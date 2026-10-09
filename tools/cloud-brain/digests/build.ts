@@ -1,0 +1,44 @@
+#!/usr/bin/env bun
+/**
+ * build.ts — a digest notebook from its seed.
+ *
+ *   bun tools/cloud-brain/digests/build.ts 2026-10-09 "Research digest, 9 October 2026"
+ *
+ * Reads digests/<day>.ojs (cells split by `// %%`), compiles it with the toolchain notebook's own
+ * `compile` (through spec-notebook.ts) and writes digests/research-<day>.html: a copy of
+ * quick_start.html whose blank-notebook block is the digest module, booting lopepage-2 and it.
+ */
+import { readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { compiler, moduleSource, splitSeed } from "../../spec-notebook.ts";
+import { blockSpans, findSpan } from "../../lib/notebook-blocks.ts";
+
+const [day, title] = process.argv.slice(2);
+if (!/^\d{4}-\d{2}-\d{2}$/.test(day || "") || !title) {
+  console.error('usage: build.ts <YYYY-MM-DD> "<title>"');
+  process.exit(2);
+}
+const here = import.meta.dir, HOST = "@tomlarkworthy/blank-notebook", name = `@digest/research-${day}`;
+const cells = ["md`# " + title + "`", ...splitSeed(readFileSync(resolve(here, `${day}.ojs`), "utf8"))];
+
+process.on("unhandledRejection", () => {});
+const { compile, dispose } = await compiler();
+const source = moduleSource(cells, compile);
+dispose();
+
+const block = (html: string, id: string, content: string, newId = id) => {
+  const span = findSpan(html, id)!, raw = html.slice(span.start, span.end);
+  const open = raw.slice(0, raw.indexOf(">") + 1).replace(`id="${id}"`, `id="${newId}"`);
+  return html.slice(0, span.start) + open + content + "</script>" + html.slice(span.end);
+};
+let html = readFileSync(resolve(here, "../../../lopecode/notebooks/quick_start.html"), "utf8");
+const before = blockSpans(html).length;
+html = block(html, HOST, "\n" + source, name);
+const conf = { mains: ["@tomlarkworthy/lopepage-2", name], hash: `#view=S100(${name})`, headless: true };
+html = block(html, "bootconf.json", "\n" + JSON.stringify(conf, null, 2) + "\n");
+html = html.replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`);
+if (blockSpans(html).length !== before) throw new Error("a splice changed the number of blocks; nothing written");
+const out = resolve(here, `research-${day}.html`);
+writeFileSync(out, html);
+console.log(JSON.stringify({ out, module: name, cells: cells.length, bytes: html.length }));
+process.exit(0);

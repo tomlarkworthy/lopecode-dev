@@ -1,0 +1,258 @@
+md`Written 2026-10-09 by Claude Code from the snapshot the Brain recorded at 04:10 UTC: 843 items from 12 sources. Each claim below is the source's own, from the stored summary or the linked page as fetched today. Nothing here was reproduced, except the one demo at the end.`
+// %%
+day = "2026-10-09"
+// %%
+md`## 1. Agents that learn from their own experience
+
+Six items this week are about an agent getting better from what it did, and two of them are about how to measure that.`
+// %%
+md`**[Self-Retrospection Distillation](https://huggingface.co/papers/2610.08077)** uses a finished trajectory to train what the same policy should have foreseen before it acted. The foresight is a training target only. Claim: across 10 tool-use and long-horizon tasks, up to 24.2 points over RL with verifiable rewards and self-distillation baselines. In their 2B setting 98% of rollout groups fail outright; plain RL ends at 0.0% success and RL with SRD at 60.6%, same rollout budget.`
+// %%
+md`**[Learn2Play Bench](https://huggingface.co/papers/2610.08215)** is a set of new text games whose rules are novel or counterintuitive, so a model cannot answer from what it already knows. Three findings: keeping the complete record of actions and feedback supported learning better than summarising it into rules; the best human players reached higher peak scores and repeated actions less; with the model fixed, a different harness raised the score and lowered the estimated cost.`
+// %%
+md`**[Agent Plasticity](https://huggingface.co/papers/2610.08902)** defines plasticity as how efficiently an agent turns experience into gains on held-out tasks. Agents store experience as artifacts that later instances inherit. Findings, stated without numbers in the abstract: frontier models differ sharply; gains inside the training regime transfer only in part; the best final agent is not always the one that improves most efficiently; agents with low plasticity often do not reuse an artifact that was relevant.`
+// %%
+md`**[Agent Lightning v1.0](https://www.microsoft.com/en-us/research/blog/agent-lightning-v1-0-a-3500-line-lightweight-agentic-rl-framework-for-training-agents-with-real-harnesses/)** (Microsoft Research Asia) trains the agent harness that is deployed, through a model proxy, in about 3,500 lines. Their example raised Qwen3.5-9B from 41.8% to 56.4% Pass@1 on SWE-bench Verified with about 6,000 training samples.`
+// %%
+md`Two more, from the abstracts only. **[ViSkill](https://huggingface.co/papers/2610.12403)** stores successful runs as visual skill cards and reports 0.89 success on Sokoban, FrozenLake and PrimitiveSkill. **[Inherit-MAS](https://huggingface.co/papers/2610.02396)** edits a multi-agent workflow between rounds and reuses stored results when the request and context match: 55.4% on WorkBench with GPT-4o-mini workers, and 29.1% fewer worker tokens there than with reuse off.`
+// %%
+md`**Reading for the Brain** (mine, not the papers'). Tom asked that the cluster improve itself. Learn2Play says keep the whole record, not a summary of it. Agent Plasticity says judge an improvement on cases that were not used to make it. The Brain keeps logs for 7 days and these digests keep their \`picks\`; neither is yet read back by anything.`
+// %%
+md`## 2. Seeing what a long-running agent did
+
+**[What Did the Agent Actually Do?](https://huggingface.co/papers/2610.06406)** groups source-linked evidence from a long run into behaviours and arranges them in a graph, with no training. On their benchmark (AgentMonBench, software engineering) and eight models, a monitor given the graph found consequential decisions and their evidence better than one given the raw context, "in most settings".`
+// %%
+md`**[From Traces to Agentic Worlds](https://huggingface.co/papers/2610.06100)** was the most upvoted paper on Hugging Face in the snapshot (132). It rebuilds an environment from historical interaction traces: a "worldbook" of schemas, evidence and induced behaviour that a model consults to play the environment for another agent. Across nine environments, actions generated against it stayed valid more often when replayed in the real one than with prompt-only simulators.`
+// %%
+md`## 3. Small typed decision models
+
+A decision model answers a declared question with a probability for each declared option and generates no text. The snapshot has eleven items on them.`
+// %%
+md`- **OpenAI's Decisions API**, as [Simon Willison describes it](https://simonwillison.net/2026/Oct/6/llm-openai-decisions/): three question types (yes/no, choices, scores), image input, charged for input only at 10 cents per million tokens against 4.2 for Jev.
+- **[SanSi](https://huggingface.co/papers/2610.07730)** loops the same layers before one readout: 72.0% on 10,027 test decisions, 13.5 points above the same shape without loops.
+- **[System Switch](https://huggingface.co/papers/2610.09683)** hands the least confident decisions of a fast model to a reasoning model, in Doom. The gain tracks how well confidence separates right from wrong (rank correlation 0.87). In closed loop no variant reached the exit; they say so.
+- **[jevman](https://www.reddit.com/r/LocalLLaMA/comments/1x0sm1b/jevman_ai_decision_models_play_pacman/)** has six of them play Pac-Man in real time. Authors' table: jev 1.13 averages 2,750 at 290 ms, GPT-6 Luna 2,568 at 179 ms, Laya 639 at 104 ms.`
+// %%
+md`A counterpoint from Reddit, one person's data: on a 10,000-row customer-service routing set, [a fine-tuned 0.6B embedding model](https://www.reddit.com/r/LocalLLaMA/comments/1x0jsdv/some_recent_decision_models_3b_on_internal/) scored 0.79 accuracy and the best decision model 0.71. And a use that fits an agent harness: [a plugin](https://www.reddit.com/r/LocalLLaMA/comments/1x0py31/auto_mode_plugin_for_the_pi_coding_agent_that/) asks a local decision model for the probability that a shell command is risky, and prompts above a threshold. The author tested 50 commands they wrote themselves.`
+// %%
+md`Two speech models small enough for a page. **[Whistle](https://cactuscompute.com/blog/whistle)** (top of Hacker News, 613 points) is speech to text in one 16.9 MB file, seven languages. Its authors report it ahead of Whisper base (145.3 MB) on LibriSpeech, SPGISpeech, Earnings-22 and the FLEURS average, and behind on TED-LIUM, AMI and the MLS average. **[NeuDecide](https://www.reddit.com/r/LocalLLaMA/comments/1x0o8zr/were_open_sourcing_neudecide_a_43_mb_audiototool/)** (Apache 2.0, 43 MB) goes from audio and a list of tools to a tool call with no transcript: 72.4% tool accuracy on SLURP with 10 tools, by their measure about three times a transcribe-then-call pipeline.`
+// %%
+md`## 4. From the bloggers
+
+- Simon Willison: [default hard budget caps](https://simonwillison.net/2026/Oct/3/default-hard-budget-caps/). A pay-by-use service should stop at a set amount unless the owner opts out; a warning email is not a cap. The Brain's per-day quota is a cap of this kind.
+- Simon Willison on [Claude Haiku 5.5](https://simonwillison.net/2026/Oct/7/claude-haiku-5-5/): $0.10 in and $0.50 out per million tokens up to 100,000 tokens, five times that beyond. By his token counter the same prompt is about 1.25 times as many tokens as on Haiku 4.5. Reasoning cannot be turned off.
+- Simon Willison on [Mistral Large 4](https://simonwillison.net/2026/Oct/6/le-chonk/): a preview on the API, 1 trillion parameters with 49 billion active, open weights promised for the end of the month.
+- [EmbeddingGemma 2](https://deepmind.google/blog/embeddinggemma-2-an-open-lightweight-multimodal-embedding-model/) (title only: the feed has no summary). [Simon's point](https://simonwillison.net/2026/Oct/6/hn-49983751/): it is Apache 2.0, and stored vectors must all be computed again when a closed model is withdrawn.
+- Simon Willison: [Wikimedia found activity by "rogue" OpenAI agents](https://simonwillison.net/2026/Oct/7/openai-rogue-agents-wikimedia/) on its wikis: sandbox edits, attempts on a hosted note tool, and heavy query traffic.`
+// %%
+md`- [Import AI 475](https://jack-clark.net/2026/10/05/import-ai-475-swarm-scaling-google-deepmind-watermarks-biology-and-the-ai-science-economy/) reports Toby Ord on swarms: a 4-agent swarm needed about twice the total tokens of one agent for the same result and half the tokens per agent, so it can finish in half the time. Returns diminish as agents are added.
+- Nathan Lambert, [The Cyber Risk Discourse is Broken](https://www.interconnects.ai/p/the-cyber-risk-discourse-is-broken): his position is that banning open weights would limit competitiveness and raise long-term cyber risk.
+- OpenAI, [Sharing AI progress in mathematics](https://openai.com/index/sharing-ai-progress-in-mathematics): results on open problems from an internal model, with Lean formalisations on GitHub. From the feed summary only; the page does not load without JavaScript.`
+// %%
+md`## 5. What people argued about
+
+- [Why isn't the industry freaking out about DeepSeek 4.1 Flash?](https://www.dgt.is/blog/2026-10-07-deepseek-freek-out/) 493 points and 413 comments on Hacker News. The post: one developer cannot tell it from a frontier model in a session, and keeps all-day sessions under a dollar. The comments were not read.
+- [TokenRouter](https://huggingface.co/papers/2610.12242): a serving system for routing between models token by token, 2.01 to 64.15 times the decoding throughput of existing systems on that workload.
+- Qwen 3.8 on r/LocalLLaMA: [159 tokens a second for the 27B on one Radeon R9700](https://www.reddit.com/r/LocalLLaMA/comments/1x18e95/qwen3827b_159_toks_on_r9700_64_toks_on_strix_halo/) with a draft model (the engine author's figures), and [Saluki 27B](https://www.reddit.com/r/LocalLLaMA/comments/1x0mn7x/saluki_27b_96_of_qwen_38s_performance_at_17_the/), "96% of Qwen 3.8's performance at ~1/7 the size" (title only).`
+// %%
+md`## 6. Candidates for the Brain's backlog
+
+Flagged only. Tom decides.
+
+1. **An open-weights embedding model for the paper corpus.** EmbeddingGemma 2 is the candidate. Reason: Simon's, above.
+2. **A decision model as the Brain's cheap classifier**, for ranking snapshot items or scoring a call as risky. Reason: probabilities, milliseconds, cents per million tokens. Against: the Reddit routing result.
+3. **A behaviour view over the logs.** The Brain's lines already carry a \`ray\` that ties a call together. Reason: the oversight paper's result that grouped, linked evidence beat raw context.
+4. **Read the record back.** Compare each digest's \`picks\` with what was acted on. Reason: Learn2Play and Agent Plasticity.`
+// %%
+md`## What was not read
+
+- arXiv: 611 items stored, none read one by one. Hugging Face's 50 daily papers stood in as the filter.
+- Reddit: 83 items with no scores (the feed has none). Titles were skimmed; a post was read only if it is cited above.
+- Hacker News and Lobsters comments.
+- OpenAI: 9 of its 14 items are customer and product posts and are left out.
+- Nothing in the last 7 days from Karpathy (two feeds), Lilian Weng, Sebastian Raschka, Eugene Yan, Chip Huyen, Hamel Husain, BAIR or Meta engineering. Anthropic and Meta AI publish no feed.`
+// %%
+md`## The picks, as data`
+// %%
+picks = [
+  { id: "2610.08077", theme: 1, source: "hf-papers", title: "Self-Retrospection Distillation", url: "https://huggingface.co/papers/2610.08077", why: "hindsight as a training target; 0.0% to 60.6% where plain RL gets no signal" },
+  { id: "2610.08215", theme: 1, source: "hf-papers", title: "Learn2Play Bench", url: "https://huggingface.co/papers/2610.08215", why: "full records beat summaries; harness matters" },
+  { id: "2610.08902", theme: 1, source: "hf-papers", title: "Agent Plasticity", url: "https://huggingface.co/papers/2610.08902", why: "a measure of self-improvement on held-out tasks" },
+  { id: "https://www.microsoft.com/en-us/research/?p=1187920", theme: 1, source: "microsoft-research", title: "Agent Lightning v1.0", url: "https://www.microsoft.com/en-us/research/blog/agent-lightning-v1-0-a-3500-line-lightweight-agentic-rl-framework-for-training-agents-with-real-harnesses/", why: "RL on the deployed harness, 3,500 lines" },
+  { id: "2610.12403", theme: 1, source: "hf-papers", title: "ViSkill", url: "https://huggingface.co/papers/2610.12403", why: "skills as visual cards" },
+  { id: "2610.02396", theme: 1, source: "hf-papers", title: "Inherit-MAS", url: "https://huggingface.co/papers/2610.02396", why: "reuse of stored results between workflow revisions" },
+  { id: "2610.06406", theme: 2, source: "hf-papers", title: "What Did the Agent Actually Do?", url: "https://huggingface.co/papers/2610.06406", why: "grouped, linked evidence for oversight" },
+  { id: "2610.06100", theme: 2, source: "hf-papers", title: "From Traces to Agentic Worlds", url: "https://huggingface.co/papers/2610.06100", why: "an environment rebuilt from traces; most upvoted" },
+  { id: "https://simonwillison.net/2026/Oct/6/llm-openai-decisions/", theme: 3, source: "simon-willison", title: "llm-openai-decisions 0.1a0", url: "https://simonwillison.net/2026/Oct/6/llm-openai-decisions/", why: "OpenAI's Decisions API described" },
+  { id: "2610.07730", theme: 3, source: "hf-papers", title: "SanSi", url: "https://huggingface.co/papers/2610.07730", why: "looped decision model" },
+  { id: "2610.09683", theme: 3, source: "hf-papers", title: "System Switch", url: "https://huggingface.co/papers/2610.09683", why: "when to defer; reports a negative result" },
+  { id: "t3_1x0sm1b", theme: 3, source: "reddit", title: "jevman", url: "https://www.reddit.com/r/LocalLLaMA/comments/1x0sm1b/jevman_ai_decision_models_play_pacman/", why: "six decision models compared live" },
+  { id: "t3_1x0jsdv", theme: 3, source: "reddit", title: "Decision models vs a fine-tuned embedding model", url: "https://www.reddit.com/r/LocalLLaMA/comments/1x0jsdv/some_recent_decision_models_3b_on_internal/", why: "counterpoint" },
+  { id: "t3_1x0py31", theme: 3, source: "reddit", title: "pi-automode-classifier", url: "https://www.reddit.com/r/LocalLLaMA/comments/1x0py31/auto_mode_plugin_for_the_pi_coding_agent_that/", why: "a decision model scoring shell commands" },
+  { id: "50008427", theme: 3, source: "hn", title: "Whistle: Speech to Text in 16.9 MB", url: "https://cactuscompute.com/blog/whistle", why: "top of Hacker News" },
+  { id: "t3_1x0o8zr", theme: 3, source: "reddit", title: "NeuDecide", url: "https://www.reddit.com/r/LocalLLaMA/comments/1x0o8zr/were_open_sourcing_neudecide_a_43_mb_audiototool/", why: "audio to tool call in the browser; the replication" },
+  { id: "https://simonwillison.net/2026/Oct/3/default-hard-budget-caps/", theme: 4, source: "simon-willison", title: "Default hard budget caps", url: "https://simonwillison.net/2026/Oct/3/default-hard-budget-caps/", why: "the Brain has one" },
+  { id: "https://simonwillison.net/2026/Oct/7/claude-haiku-5-5/", theme: 4, source: "simon-willison", title: "Claude Haiku 5.5", url: "https://simonwillison.net/2026/Oct/7/claude-haiku-5-5/", why: "price and tokenizer" },
+  { id: "https://simonwillison.net/2026/Oct/6/le-chonk/", theme: 4, source: "simon-willison", title: "Mistral Large 4", url: "https://simonwillison.net/2026/Oct/6/le-chonk/", why: "open weights promised" },
+  { id: "https://deepmind.google/blog/embeddinggemma-2-an-open-lightweight-multimodal-embedding-model/", theme: 4, source: "deepmind", title: "EmbeddingGemma 2", url: "https://deepmind.google/blog/embeddinggemma-2-an-open-lightweight-multimodal-embedding-model/", why: "open embedding model for the corpus" },
+  { id: "https://simonwillison.net/2026/Oct/7/openai-rogue-agents-wikimedia/", theme: 4, source: "simon-willison", title: "Rogue agent activity on Wikimedia", url: "https://simonwillison.net/2026/Oct/7/openai-rogue-agents-wikimedia/", why: "agents acting outside their task" },
+  { id: "https://jack-clark.net/2026/10/05/import-ai-475-swarm-scaling-google-deepmind-watermarks-biology-and-the-ai-science-economy/", theme: 4, source: "import-ai", title: "Import AI 475", url: "https://jack-clark.net/2026/10/05/import-ai-475-swarm-scaling-google-deepmind-watermarks-biology-and-the-ai-science-economy/", why: "swarm scaling" },
+  { id: "https://www.interconnects.ai/p/the-cyber-risk-discourse-is-broken", theme: 4, source: "interconnects", title: "The Cyber Risk Discourse is Broken", url: "https://www.interconnects.ai/p/the-cyber-risk-discourse-is-broken", why: "open weights and cyber risk" },
+  { id: "https://openai.com/index/sharing-ai-progress-in-mathematics", theme: 4, source: "openai", title: "Sharing AI progress in mathematics", url: "https://openai.com/index/sharing-ai-progress-in-mathematics", why: "Lean proofs published" },
+  { id: "50000488", theme: 5, source: "hn", title: "Why isn't the industry freaking out about DeepSeek 4.1 Flash?", url: "https://www.dgt.is/blog/2026-10-07-deepseek-freek-out/", why: "413 comments" },
+  { id: "2610.12242", theme: 5, source: "hf-papers", title: "TokenRouter", url: "https://huggingface.co/papers/2610.12242", why: "token-level routing" },
+  { id: "t3_1x18e95", theme: 5, source: "reddit", title: "Qwen3.8-27B: 159 tok/s on R9700", url: "https://www.reddit.com/r/LocalLLaMA/comments/1x18e95/qwen3827b_159_toks_on_r9700_64_toks_on_strix_halo/", why: "local inference speed" },
+  { id: "t3_1x0mn7x", theme: 5, source: "reddit", title: "Saluki 27B", url: "https://www.reddit.com/r/LocalLLaMA/comments/1x0mn7x/saluki_27b_96_of_qwen_38s_performance_at_17_the/", why: "title only" }
+]
+// %%
+Inputs.table(picks, {
+  columns: ["theme", "title", "source", "why"],
+  format: { title: (t, i, data) => htl.html`<a href=${data[i].url} target=_blank rel=noopener>${t}</a>` },
+  layout: "auto"
+})
+// %%
+md`## Every item of the day
+
+Loaded when the page opens from the Brain's public files, \`/static/snapshot/${day}/\`. A source with no file that day is skipped.`
+// %%
+snapshotBase = location.protocol === "file:" ? "https://cb4.endpointservices.workers.dev" : location.origin
+// %%
+snapshot = {
+  const get = async (path) => {
+    try {
+      const r = await fetch(`${snapshotBase}/static/${path}`);
+      return r.ok ? await r.json() : null;
+    } catch (e) {
+      return null;
+    }
+  };
+  const index = await get(`snapshot/${day}/index.json`);
+  if (!index) return { index: null, items: [] };
+  const files = await Promise.all(index.sources.filter((s) => s.path).map((s) => get(s.path)));
+  const items = files.filter(Boolean).flatMap((f) => f.items.map((x) => ({ ...x, source: f.source, tier: f.tier })));
+  return { index, items };
+}
+// %%
+items = snapshot.items
+// %%
+snapshot.index
+  ? md`${items.length} items from ${new Set(items.map((d) => d.source)).size} sources, recorded ${snapshot.index.ranAt}. ${picks.filter((p) => items.some((d) => d.id === p.id)).length} of the ${picks.length} picks are among them.`
+  : md`The snapshot did not load from \`${snapshotBase}\`. Opened as a local file, the Brain's files are not readable from here; open this notebook from the Brain's address.`
+// %%
+Plot.plot({
+  marginLeft: 130,
+  height: 300,
+  x: { label: "items", type: "sqrt" },
+  y: { label: null },
+  color: { legend: true, domain: ["research", "blogger", "aggregator"] },
+  marks: [
+    Plot.barX(items, Plot.groupY({ x: "count" }, { y: "source", fill: "tier", sort: { y: "-x" } })),
+    Plot.ruleX([0])
+  ]
+})
+// %%
+viewof tiers = Inputs.checkbox(["research", "blogger", "aggregator"], { label: "Tier", value: ["research", "blogger", "aggregator"] })
+// %%
+viewof sources = Inputs.select([...new Set(items.map((d) => d.source))].sort(), { label: "Source", multiple: true })
+// %%
+viewof found = Inputs.search(items.filter((d) => tiers.includes(d.tier) && (!sources.length || sources.includes(d.source))), { placeholder: "Search titles and summaries" })
+// %%
+Inputs.table(found, {
+  columns: ["title", "source", "points", "comments", "published"],
+  format: {
+    title: (t, i, data) => htl.html`<a href=${data[i].url} target=_blank rel=noopener title=${String(data[i].summary || "").replace(/<[^>]+>/g, " ").slice(0, 600)}>${t}</a>`,
+    published: (p) => String(p || "").slice(0, 10)
+  },
+  width: { source: 130, points: 60, comments: 80, published: 90 },
+  rows: 20
+})
+// %%
+md`## Replication: NeuDecide in this page
+
+The press of the button below downloads NeuDecide's three ONNX graphs (about 43 MB, from the authors' Hugging Face Space) and runs them here with onnxruntime-web 1.30.0 on one CPU thread. A sample clip, or a file of yours, goes in with a list of tools; a tool call comes out. The model code is the authors' own \`neudecide.js\` and \`tokenizer.js\`, fetched at that press. Nothing is sent anywhere but those two hosts.
+
+It runs inside a sandboxed frame with no access to this page: a notebook from the Brain's library runs as whoever is signed in, and this is other people's code.`
+// %%
+replication = {
+  const SPACE = "https://huggingface.co/spaces/neuphonic/neudecide/resolve/main/";
+  const ORT = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/";
+  const end = "</scr" + "ipt>";
+  const page = `<!doctype html><meta charset="utf-8">
+<style>
+  body { font: 13px system-ui, sans-serif; margin: 8px; color: #222; background: #fff; }
+  button, select, input { font: inherit; margin: 0 6px 6px 0; }
+  pre { background: #f4f4f4; padding: 8px; white-space: pre-wrap; margin: 6px 0; }
+  #log { color: #555; }
+</style>
+<button id="load">Load NeuDecide (about 43 MB)</button>
+<select id="scenario" disabled></select>
+<select id="sample" disabled>
+  <option value="samples/returntobase.wav">sample: returntobase.wav</option>
+  <option value="samples/vaccumkitchen.wav">sample: vaccumkitchen.wav</option>
+  <option value="samples/binfullness.wav">sample: binfullness.wav</option>
+</select>
+<input id="file" type="file" accept="audio/*" disabled>
+<button id="run" disabled>Run</button>
+<div id="log">Not loaded.</div>
+<audio id="player" controls style="display:none;height:28px"></audio>
+<pre id="out"></pre>
+<script type="module">
+const SPACE = ${JSON.stringify(SPACE)}, ORT = ${JSON.stringify(ORT)};
+const $ = (id) => document.getElementById(id), log = (t) => { $("log").textContent = t; };
+const text = async (p) => { const r = await fetch(SPACE + p); if (!r.ok) throw new Error(p + ": HTTP " + r.status); return r.text(); };
+const asModule = (src) => URL.createObjectURL(new Blob([src], { type: "text/javascript" }));
+let model, scenarios, bytes = null;
+const loadBytes = async (url, onProgress) => {
+  const r = await fetch(url); if (!r.ok) throw new Error(url + ": HTTP " + r.status);
+  const total = Number(r.headers.get("content-length")) || 0, reader = r.body.getReader(), chunks = []; let loaded = 0;
+  for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); loaded += value.byteLength; if (onProgress) onProgress(loaded, total); }
+  const out = new Uint8Array(loaded); let o = 0; for (const c of chunks) { out.set(c, o); o += c.byteLength; } return out;
+};
+$("load").onclick = async () => {
+  $("load").disabled = true;
+  try {
+    const t0 = performance.now();
+    log("Fetching the runtime and the authors' code…");
+    const ort = await import(ORT + "ort.wasm.min.mjs");
+    ort.env.wasm.wasmPaths = ORT; ort.env.wasm.numThreads = 1;
+    const tok = asModule(await text("js/tokenizer.js"));
+    const { NeuDecide } = await import(asModule((await text("js/neudecide.js")).replace("./tokenizer.js", tok)));
+    scenarios = JSON.parse(await text("scenarios.json"));
+    let got = 0;
+    model = await NeuDecide.create({ ort, baseUrl: SPACE + "model/", variant: "q4", loadBytes,
+      onProgress: (p) => { if (p.loaded && p.loaded === p.total && !p.initializing) got += p.total; log((p.stage || p.file) + (p.total ? " " + Math.round(p.loaded / 1e5) / 10 + " of " + Math.round(p.total / 1e5) / 10 + " MB" : "")); } });
+    for (const [k, s] of Object.entries(scenarios)) $("scenario").add(new Option("tools: " + s.label + " (" + s.tools.length + ")", k));
+    for (const id of ["scenario", "sample", "file", "run"]) $(id).disabled = false;
+    log("Loaded in " + Math.round(performance.now() - t0) + " ms. " + Math.round(got / 1e5) / 10 + " MB of model files.");
+    parent.postMessage({ neudecide: "loaded", ms: Math.round(performance.now() - t0), mb: Math.round(got / 1e5) / 10 }, "*");
+  } catch (e) { log("Failed: " + (e && e.message || e)); $("load").disabled = false; parent.postMessage({ neudecide: "error", message: String(e && e.message || e) }, "*"); }
+};
+$("file").onchange = async () => { const f = $("file").files[0]; bytes = f ? await f.arrayBuffer() : null; };
+$("run").onclick = async () => {
+  $("run").disabled = true;
+  try {
+    const name = bytes ? $("file").files[0].name : $("sample").value;
+    const raw = bytes ? bytes.slice(0) : (await loadBytes(SPACE + $("sample").value)).buffer;
+    $("player").src = URL.createObjectURL(new Blob([raw])); $("player").style.display = "block";
+    const decoded = await new AudioContext().decodeAudioData(raw.slice(0));
+    const ctx = new OfflineAudioContext(1, Math.max(1, Math.ceil(decoded.duration * 16000)), 16000);
+    const src = ctx.createBufferSource(); src.buffer = decoded; src.connect(ctx.destination); src.start();
+    const wave = (await ctx.startRendering()).getChannelData(0);
+    const tools = scenarios[$("scenario").value].tools;
+    const r = await model.generate(wave, tools);
+    const t = r.timings, shown = { audio: name, seconds: Math.round(t.audioSeconds * 10) / 10, tools: tools.map((x) => x.name), calls: r.calls, text: r.calls ? undefined : r.text,
+      ms: { audioEncoder: Math.round(t.audioEncoder), toolEncoder: Math.round(t.toolEncoder), decode: Math.round(t.decode), tokens: t.tokens } };
+    $("out").textContent = JSON.stringify(shown, null, 2);
+    parent.postMessage({ neudecide: "result", ...shown }, "*");
+  } catch (e) { $("out").textContent = "Failed: " + (e && e.message || e); parent.postMessage({ neudecide: "error", message: String(e && e.message || e) }, "*"); }
+  $("run").disabled = false;
+};
+${end}`;
+  const frame = document.createElement("iframe");
+  frame.setAttribute("sandbox", "allow-scripts");
+  frame.style.cssText = "width:100%;height:420px;border:1px solid #ccc;background:#fff";
+  frame.srcdoc = page;
+  return frame;
+}
+// %%
+md`What this shows and what it does not. It shows that the published model loads and answers in an ordinary page, with the tool list given at the time of the call. It does not check the authors' 72.4%: three sample clips are not a benchmark. Verified on 2026-10-09 in Chromium; the measured load and call times are in \`tools/cloud-brain/digests/README.md\`.`

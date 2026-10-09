@@ -613,9 +613,11 @@ Cloudflare stores the URL of a call, with its query string, beside each line a W
 Tom, 2026-10-09: "I would like to record the latest research (AI particularly) and you to send me a summary. We need this cluster to self improve itself. A snapshot of hackernews, reddit etc. The most interesting things should be replicated into a Notebook. Maybe the format should be a timestamped notebook." Sources: "It needs to be research or top blogger Karpathy / Simon Willison kinds of people."
 
 - **Built:** `brain-x-snapshot` records 21 feeds a day as public JSON under `/static/snapshot/<day>/` (`spec-as-built.md`, last section).
-- **Not built: the digest.** Read a day's files, choose what matters, write the summary, and make the timestamped notebook with the most interesting items replicated in it. It runs in a notebook, not in a Worker. Decided for now (Tom, 2026-10-09): the summary goes to Tom by Bluesky DM; Claude Code writes the first digests from the local session.
+- **Built 2026-10-09: the first digest**, by Claude Code in a local session. `research-2026-10-09` is public in `brain-library`: <https://cb4.endpointservices.workers.dev/library/research-2026-10-09>. Seed, builder and method: `tools/cloud-brain/digests/`. It loads the day's 843 items from `/static/snapshot/` when opened, and runs NeuDecide (43 MB, audio to tool call) in the page on a button press. The DM to Tom was drafted, not sent.
+- **Not built: the digest on the cluster.** What it needs is listed in `tools/cloud-brain/digests/README.md`, last section.
+- Flagged by the first digest, for Tom to decide: (1) an open-weights embedding model (EmbeddingGemma 2) for the paper corpus; (2) a decision model as a cheap classifier for ranking snapshot items or scoring a call; (3) a view of the logs that groups lines by `ray` into behaviours; (4) something that compares each digest's `picks` with what was acted on.
 - **Not built: "self improve".** Nothing reads a digest back into the Brain's own backlog or code.
-- Open: where the notebook of the day is kept (`brain-library`, public?) and its name (`digest-2026-10-09`?).
+- Settled for the first one: the notebook of the day is public in `brain-library`, named `research-<day>`.
 - Open: who runs the digest turn when no local session is open (a notebook in a cluster browser; the Containers workstream).
 - Open: Reddit. The feed gives no score and Reddit rate-limits Cloudflare's addresses (429 after about ten requests in an hour). An OAuth app of Tom's would give scores and a limit of its own. Not asked for yet.
 - Open: Anthropic and Meta AI publish no feed at the addresses tried. A page scrape with the browser service would cover them; not built.
