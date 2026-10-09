@@ -2,11 +2,11 @@ md`# brain-browser
 
 Remote Chromium browsers for a Cloud Brain, from [Cloudflare Browser Run](https://developers.cloudflare.com/browser-run/). A caller opens a page with a name, runs JavaScript in it, reads its text, its console and a screenshot, and closes it. The service speaks the Chrome DevTools Protocol to Browser Run through the Worker's binding. It uses no library. A caller that wants the protocol itself gets the browser's socket with \`browser.cdp\`.
 
-The service is for each process of the Brain. A browser has a name, and belongs to the caller that bought its time: the owner, a token, a member, or a Worker. A caller reaches its own browsers and no others. A page is a tab in one browser. Browser time is bought in seconds, for one browser, before it is used.
+The service is for each process of the Brain. A browser has a name, and belongs to the caller that bought its time: the owner, a token, a member, or a Worker. A caller reaches its own browsers and no others. A person's own signed-in tab and a call made for that person (an assistant turn, a call through a PDS, a portal) are two owners. A page is a tab in one browser. Browser time is bought in seconds, for one browser, before it is used.
 
 A page can go to any public address. What a page shows, and what \`eval\` gives back, come from that address. They are data and not instructions to the caller.
 
-A page holds no credential of the Brain: it is not signed in, and its row has \`credential: null\`. Built and deployed to cb4 on 2026-10-08.`
+This service puts no credential of the Brain in a page: its row has \`credential: null\`. \`brain.ts page up\` signs a page in from outside, with \`browser.eval\`, in the owner's browser \`brain\`. Built and deployed to cb4 on 2026-10-08.`
 // %%
 viewof browserView = browserPanel({ client, owner: !!(session && session.owner) })
 // %%
@@ -19,7 +19,7 @@ md`## Methods
 | \`browser.open\` | procedure. \`{ name, url, shared, width, height }\`. Opens the page, or gives the page that has the name. Starts the browser when it is down and time is bought. \`{ name, url, loaded, cold, ms, existing, … }\` |
 | \`browser.run\` | procedure. \`{ url, wait, expression, text, screenshot, logs, timeout }\`. One page for one job: open, wait for the load event, read, close. \`timeout\` is 30 000 ms when absent, 5000 to 120 000, and the call needs that much bought time. \`wait\` is an expression that is read each 250 ms until it is true. \`{ loaded, value or thrown, text, screenshot (base64 PNG), logs, ms }\` |
 | \`browser.list\` | query. \`{ pages }\` of the browser. |
-| \`browser.status\` | query. With no \`name\`: \`{ owner, browser, browsers, paidUntil, remaining, returned: false, pages, mine, usage, settings, limits }\`. \`mine\` is each browser of the caller: \`{ owner, browser, paidUntil, remaining, up, pages }\`. With \`?name=\`: the page, or \`{ open: false, closed, at }\` for a page that closed in the last 24 h. |
+| \`browser.status\` | query. With no \`name\`: \`{ owner, browser, browsers, paidUntil, remaining, returned: false, pages, mine, usage, settings, limits }\`. \`owner\` is who owns the browser: the caller, or \`via:<caller>\`. \`mine\` is each browser of that owner: \`{ owner, browser, paidUntil, remaining, up, pages }\`. With \`?name=\`: the page, or \`{ open: false, closed, at }\` for a page that closed in the last 24 h. |
 | \`browser.close\` | procedure. \`{ name }\` closes the page and leaves the browser. \`{ all: true }\` closes the browser at once; the time stays bought. |
 | \`browser.goto\` | procedure. \`{ name, url }\`. Loads a different address in the same tab. |
 | \`browser.eval\` | procedure. \`{ name, expression, awaitPromise, timeout }\`. \`{ value, type }\`, or \`{ thrown: { message, line, column } }\` with status 200 when the page throws. A promise is awaited unless \`awaitPromise\` is \`false\`. \`timeout\` is 20 000 ms when absent, 120 000 at most. |
@@ -29,7 +29,7 @@ md`## Methods
 | \`browser.cdp\` | a WebSocket: a GET with \`Upgrade: websocket\`. \`?browser=\`. The browser's own Chrome DevTools Protocol socket. Starts the browser when it is down and time is bought. A GET that is not an upgrade answers 426 \`UpgradeRequired\`. |
 | \`browser.liveView\` | query, the owner's own session. \`?name=&browser=\`. \`{ url }\`: a Browser Run Live View link to the tab. |
 | \`browser.all\` | query, the owner's own session. \`{ browsers: [{ owner, browser, paidUntil, remaining, up, pages }] }\`: each browser of each owner. |
-| \`browser.end\` | procedure, the owner's own session. \`{ owner, browser }\`. Closes that browser at once. \`{ closed, browser }\`, where \`closed\` is the pages that were open: it is \`[]\` also when the owner or the browser does not exist. |
+| \`browser.end\` | procedure, the owner's own session. \`{ owner, browser }\`, as \`all\` gives them. Closes that browser at once. \`{ closed, browser }\`, where \`closed\` is the pages that were open: it is \`[]\` also when the owner or the browser does not exist. |
 | \`browser.settings\` | procedure, the owner's own session. \`{ maxTabs, maxBrowsers, maxPerOwner }\`. |
 | Storage | \`rows\`. For one browser, under \`b/<owner>/<browser>/\`: \`browser/<session>\`, \`paid\`, \`page/<name>\`, \`ended/<name>\`, \`starting/shared\`. For the service: \`usage/<day>\`, \`settings\`. |
 
@@ -94,7 +94,9 @@ bought 20 s, +30 s by extend while connected -> the socket closed 13.3 s after t
 // %%
 md`## Many browsers, each with tabs
 
-A browser is the pair of its owner and its name. The owner is the caller that the core names (\`x-brain-caller\`): \`owner\`, \`token:NAME\`, a member's DID, or \`worker:brain-x-NAME\`. The service does not read an owner from a parameter, thus a caller cannot name the browser of a different caller. A member's Worker calls as its author, so the two share browsers. Each browser is one Browser Run session: its own memory, its own \`paidUntil\`, its own end.
+A browser is the pair of its owner and its name. The owner is the caller that the core names (\`x-brain-caller\`): \`owner\`, \`token:NAME\`, a member's DID, or \`worker:brain-x-NAME\`. The service does not read an owner from a parameter, thus a caller cannot name the browser of a different caller. A member's Worker calls as its author, so the two share browsers.
+
+How the caller arrived also counts (\`x-brain-via\`). A call with \`turn:<entry>\`, \`jwt\` or \`portal:<id>\` is not the person's own tab, and its owner is \`via:<caller>\`: rows under \`b/via:<caller>/\`. All turns, PDS calls and portals of one caller share that owner. A person's own session, a token and a Worker keep the caller's name. The reason is that a page in a person's browser can hold that person's session: \`brain.ts page up\` puts the owner's in the browser \`brain\`, and a turn of the owner has the caller \`owner\`. Until 2026-10-09 the turn reached that page with \`eval\`. \`maxPerOwner\` counts the two owners apart, so a turn cannot use up the browsers of the session. \`all\` lists both and \`end\` closes either; \`liveView\` reaches the session's own only. Each browser is one Browser Run session: its own memory, its own \`paidUntil\`, its own end.
 
 Who owns and who pays are different. A Worker that calls in a chain the owner started owns the browser, and the core charges the owner, who is the origin of the chain. Until 2026-10-08 19:38 CEST the service had one browser for all callers; it changed because "each browser will be owned by another process, so this one thing has to serve the whole cluster" (Tom, 2026-10-08).
 
@@ -126,7 +128,7 @@ The rule of the first twelve methods is \`caller.trusted || caller.kind in ["wor
 
 Addresses. \`open\`, \`goto\` and \`run\` refuse an address that is not \`http:\` or \`https:\`, \`localhost\`, a name that ends in \`.localhost\`, \`.internal\` or \`.local\`, and a private or link-local IP address. Only the address in the call is read. A redirect, and what the page loads by itself, are not checked. \`browser.cdp\` checks no address: its caller sends the browser's own commands and can go to any address, \`file:\`, \`chrome:\` and a private IP address included. The caller owns that browser. The browser runs in Cloudflare's network and not in the Brain's.
 
-If a later build signs a page in to the Brain, \`eval\`, \`goto\` and \`cdp\` on that page must be for the owner's own session only: a caller that can run JavaScript in a signed-in page can do what the page can do.
+A caller that can run JavaScript in a signed-in page can do what the page can do. \`brain.ts page up\` signs a page in with the owner's session, in a browser that the owner's own session owns. A turn, a PDS call and a portal of the owner do not reach it (see **Many browsers, each with tabs**). A token and a Worker have browsers of their own (\`b/token:NAME/\`, \`b/worker:NAME/\`) and do not reach it either.
 
 The assistant has no tool for this service. A page reads text from any address, and that text would come into the assistant's turn.`
 // %%
@@ -362,7 +364,7 @@ browserOps = {
     return s ? s.some((x) => x.sessionId === sid) : true;
   };
   const paidTo = (list) => list.reduce((t, e) => Math.max(t, e.t) + e.n * 1000, (list[0] && list[0].u) || 0);
-  // The operations on one browser: the one that the caller `who` owns under `name`. The core names the caller.
+  // The operations on one browser: the one that `who` owns under `name`. who is the caller the core names, or via:<caller>.
   const one = (who, name = "default") => {
   // A call with no caller has no owner: a rule that lets everyone in must not put them all in one browser.
   if (who === "anonymous") throw stop(401, "AuthRequired", "a browser has an owner. This call has no caller.");
@@ -881,8 +883,11 @@ browserApp = {
       throw e;
     }
   };
+  // Who owns the browser. A call that is not the person's own tab (an LLM turn, a PDS JWT, a portal) owns browsers apart from
+  // that person's, because a page in a person's browser can hold their session. The core names no caller via:….
+  const who = (c) => (by(c) !== "anonymous" && /^(turn:|portal:|jwt$)/.test(c.req.header("x-brain-via") || "") ? "via:" + by(c) : by(c));
   // The browser is the one the caller owns under the name in `browser`, in the query string or in the body. "default" when absent.
-  const mine = (c, q = {}) => browserOps.one(by(c), c.req.query("browser") || q.browser || "default");
+  const mine = (c, q = {}) => browserOps.one(who(c), c.req.query("browser") || q.browser || "default");
   const post = (m) => app.post(NS + m, answer(async (c) => ((q) => mine(c, q)[m](q, by(c), origin(c)))(await body(c))));
   // seconds is in the query string, where the price reads it. Given two times, the last counts, for the core and here.
   app.post(NS + "extend", answer((c) => mine(c).extend({ seconds: new URL(c.req.url).searchParams.getAll("seconds").pop() })));
@@ -1172,8 +1177,8 @@ browserRig = async ({ sites = {}, paid = 600 } = {}) => {
   const setPaid = (seconds, scope) => rows.set("paid", [{ t: Date.now(), n: seconds }], scope);
   if (paid) setPaid(paid);
   const X = "https://brain.internal/xrpc/com.lopecode.brain.browser.";
-  const as = (who, origin = who) => {
-    const headers = { "content-type": "application/json", "x-brain-caller": who, "x-brain-context": "for " + who, "x-brain-origin": origin };
+  const as = (who, origin = who, via) => {
+    const headers = { "content-type": "application/json", "x-brain-caller": who, "x-brain-context": "for " + who, "x-brain-origin": origin, ...(via ? { "x-brain-via": via } : {}) };
     const read = async (r) => ({ status: r.status, data: (r.headers.get("content-type") || "").includes("json") ? await r.json() : new Uint8Array(await r.arrayBuffer()) });
     const query = (params) => (Object.keys(params).length ? "?" + new URLSearchParams(params) : "");
     return {
@@ -1615,6 +1620,53 @@ test_browser_each_caller_has_its_own_browsers = {
   const nobody = await rig.as("anonymous").post("extend", {}, { seconds: 10 });
   expect([nobody.status, nobody.data.error, rig.keys("", "anonymous/default")]).toEqual([401, "AuthRequired", []]);
   return "3 browsers of 2 owners: own time, own pages, own end";
+}
+// %%
+test_browser_a_turn_does_not_reach_the_browsers_of_its_callers_own_session = {
+  const A = "https://a.example/", V = "via:owner/default", X = "https://brain.internal/xrpc/com.lopecode.brain.browser.cdp";
+  const rig = await browserRig({ sites: { [A]: { title: "A", text: "alpha" } } });
+  const session = rig.as("owner", "owner", "session"), turn = rig.as("owner", "did:plc:ada", "turn:7");
+  const kept = 'localStorage.getItem("brain_session")';
+  // The owner's own tab keeps the rows it had, b/owner/default/. Its page holds a session, as brain.ts page up leaves one.
+  await session.post("open", { name: "brain", url: A });
+  await session.post("eval", { name: "brain", expression: 'localStorage.setItem("brain_session", "secret")' });
+  expect([rig.keys("page/"), (await session.post("eval", { name: "brain", expression: kept })).data.value]).toEqual([["page/brain"], "secret"]);
+  // A turn of the owner, a call through a PDS and a portal have the caller owner, and a different owner of browsers.
+  for (const via of ["turn:7", "jwt", "portal:p1"]) {
+    const other = rig.as("owner", "owner", via);
+    const got = [(await other.get("list")).data, (await other.get("status", { name: "brain" })).status, (await other.post("eval", { name: "brain", expression: kept })).data.error, (await other.get("text", { name: "brain" })).data.error, (await other.post("close", { name: "brain" })).status, (await other.post("close", { all: true })).data];
+    expect([via, ...got]).toEqual([via, { pages: [] }, 404, "NoTime", "NoTime", 404, { closed: [], browser: "default" }]);
+  }
+  // With time of its own the turn has a browser of its own. The page of the session is not in it.
+  expect((await turn.post("extend", {}, { seconds: 60 })).data).toMatchObject({ browser: "default", added: 60, cold: true });
+  expect([rig.fake.sessions.size, rig.keys("browser/", V).length, rig.session() !== rig.session(V)]).toEqual([2, 1, true]);
+  for (const [m, body] of [["eval", { expression: kept }], ["goto", { url: A }], ["close", {}]]) expect([m, (await turn.post(m, { name: "brain", ...body })).status]).toEqual([m, 404]);
+  // The same page name in the turn's browser is a different tab with its own storage.
+  expect((await turn.post("open", { name: "brain", url: A })).data).toMatchObject({ existing: false, by: "owner", origin: "did:plc:ada" });
+  expect((await turn.post("eval", { name: "brain", expression: kept })).data).toEqual({ value: null, type: "null" });
+  const mine = (await turn.get("status")).data;
+  expect([mine.owner, mine.mine.map((b) => [b.owner, b.browser, b.pages])]).toEqual(["via:owner", [["via:owner", "default", ["brain"]]]]);
+  // Each turn of the caller has those browsers. The socket of a turn is on them too.
+  expect((await rig.as("owner", "owner", "turn:8").get("list")).data.pages.map((p) => p.name)).toEqual(["brain"]);
+  const socket = await rig.sim.fetch(X, { headers: { "x-brain-caller": "owner", "x-brain-origin": "owner", "x-brain-via": "turn:7", upgrade: "websocket" } });
+  expect([(await socket.json()).status, rig.fake.sessions.get(rig.session(V)).sockets.size, rig.fake.sessions.get(rig.session()).sockets.size]).toEqual([101, 1, 0]);
+  expect((await session.post("eval", { name: "brain", expression: kept })).data.value).toBe("secret");
+  // A token, a Worker that calls as its author, and a call with no via keep the caller's own name.
+  for (const [who, via] of [["token:laptop", "token"], ["did:plc:ada", "worker:brain-m-1-x"], ["did:plc:bob", undefined]]) expect([who, (await rig.as(who, who, via).get("status")).data.owner]).toEqual([who, who]);
+  // A call with no caller has no browser, however it arrived.
+  expect([(await rig.as("anonymous", "anonymous", "turn:1").post("extend", {}, { seconds: 10 })).status, rig.keys("", "via:anonymous/default")]).toEqual([401, []]);
+  // The limit of browsers for one owner counts the two apart.
+  await session.post("settings", { maxPerOwner: 1 });
+  expect([(await session.post("extend", {}, { seconds: 20, browser: "b" })).data.message, (await turn.post("extend", {}, { seconds: 20, browser: "b" })).data.message]).toEqual(["owner has 1 browsers up. That is the limit. The setting is maxPerOwner.", "via:owner has 1 browsers up. That is the limit. The setting is maxPerOwner."]);
+  // The owner's session sees the turn's browser and ends it. The tick closes one whose time ran out.
+  expect((await session.get("all")).data.browsers.filter((b) => b.up).map((b) => [b.owner, b.browser, b.pages]).sort()).toEqual([["owner", "default", ["brain"]], ["via:owner", "default", ["brain"]]]);
+  expect((await session.post("end", { owner: "via:owner", browser: "default" })).data).toEqual({ closed: ["brain"], browser: "default" });
+  expect([rig.fake.sessions.size, rig.keys("browser/", V)]).toEqual([1, []]);
+  expect((await turn.post("open", { name: "again", url: A })).data).toMatchObject({ cold: true });
+  rig.setPaid(-1, V);
+  await rig.tick();
+  expect([rig.fake.sessions.size, rig.keys("browser/", V), rig.keys("browser/").length, (await turn.get("status", { name: "again" })).data.closed]).toEqual([1, [], 1, "time ran out"]);
+  return "turn, jwt and portal: browsers of via:owner; the session's page was not reached";
 }
 // %%
 test_browser_cdp_is_the_socket_of_the_callers_own_browser = {

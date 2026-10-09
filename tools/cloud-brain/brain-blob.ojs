@@ -25,7 +25,7 @@ A CID is CIDv1, raw codec, SHA-256, base32: \`bafkrei…\`, 59 characters (\`blo
 | \`text/*\`, JSON, JavaScript, XML, SVG, \`+json\`, \`+xml\` | be valid UTF-8 |
 | anything else | not start as one of the five formats above |
 
-Every answer carries \`X-Content-Type-Options: nosniff\`. \`ETag\` is the CID and \`If-None-Match\` answers 304. A public blob is \`immutable\` for a year; any other is \`private, no-cache\`. A blob the owner did not upload is served with \`Content-Security-Policy: sandbox\`, and as a download when its type is one a browser runs (HTML, SVG, XML, JavaScript).
+Every answer carries \`X-Content-Type-Options: nosniff\`. \`ETag\` is the CID and \`If-None-Match\` answers 304. A public blob is \`immutable\` for a year; any other is \`private, no-cache\`. A blob whose type the owner did not set is served with \`Content-Security-Policy: sandbox\`, and as a download when its type is one a browser runs (HTML, SVG, XML, JavaScript). The owner and a recipe set a type the owner vouches for; a token and a person do not.
 
 ## Tags
 
@@ -33,7 +33,7 @@ Who may read or change a blob is decided from its tags, by the rules of \`brain-
 
 | tag | set by | meaning |
 |---|---|---|
-| \`by:<did>\` | this Worker, from the caller | an uploader. Their bytes count against their limit. The owner's uploads, and a recipe's, carry the owner's. |
+| \`by:<did>\` | this Worker, from the caller | an uploader. Their bytes count against their limit. The owner's uploads, and a recipe's, carry the owner's; a token's carry \`by:token:<name>\`. The first one in the list set the type. |
 | \`worker:<name>\` | this Worker, when a Worker uploaded | a member's Worker calls as its author, so its blob carries both. |
 | \`public\` | whoever may change the blob | anyone reads it. |
 | \`members\` | whoever may change the blob | any current member reads it. |
@@ -43,7 +43,7 @@ Who may read or change a blob is decided from its tags, by the rules of \`brain-
 |---|---|
 | read | the owner; anyone if \`public\`; a member if \`members\`; an uploader; a person granted one of its tags; a recipe, the blobs it uploaded |
 | retag | the owner; an uploader; a person granted \`write\` on one of its tags |
-| delete | an uploader, their own claim; the owner, the blob |
+| delete | an uploader, their own claim; the owner or a token, the blob |
 
 A tag with \`:\` in it is never taken from a caller. A blob has at most 8 labels. A caller who may not change a blob is shown its labels and their own \`by:\`, not who else uploaded it.
 
@@ -51,13 +51,14 @@ A caller who may not read a blob is answered 404 \`BlobNotFound\`, as for a CID 
 
 ## The same bytes twice
 
-A second person who uploads bytes already kept becomes an uploader too: their \`by:\` is added, the bytes count against their limit as well, and the labels they name are added. The type stays the first uploader's. \`blob.delete\` by one of them removes that claim; the bytes go when no \`by:\` is left. Upload only adds labels; \`blob.tag\` removes them.
+A second person who uploads bytes already kept becomes an uploader too: their \`by:\` is added, the bytes count against their limit as well, and the labels they name are added. The type stays the first uploader's, with one exception: when the owner or a recipe uploads bytes whose type somebody else set, the type becomes the one this upload declares, the owner's tag is put first, and the blob is no longer sandboxed. A blob the owner uploaded first keeps the owner's type whoever uploads it later. \`blob.delete\` by one of them removes that claim; the bytes go when no \`by:\` is left. Upload only adds labels; \`blob.tag\` removes them.
 
 An uploader may retag, so a second uploader can remove a label the first one set. Not handled (2026-10-07): the two would need a claim each with its own labels.
 
 ## Limits
 
 - 50 MB a blob. A person's limit is the one the core sends for files (\`quota.bytes\`, default 20 MB), counted here over the blobs carrying their \`by:\`. It is counted apart from their files in \`brain-static\`.
+- A blob kept before 2026-10-09 is read by the same rule, from the order of its tags: one a person uploaded before the owner is sandboxed until the owner uploads it again. One a token uploaded before then carries the owner's tag and is not sandboxed.
 - A blob is kept until it is deleted. A PDS drops a blob no record refers to; this Brain has no record store, so nothing is collected.
 - \`blob.list\` reads the index: by one tag, or for a person by each tag that opens a blob to them (their own, \`public\`, \`members\`, their grants), at most 20. The owner with no filter reads the entries in CID order.
 - The entry's tags are read, changed and written back: two changes to one blob at the same moment can lose one.
@@ -142,7 +143,7 @@ blobSchema = [
 // %%
 blobSql = ({
   get: "SELECT cid, mime, size, created, tags FROM blob_entries WHERE cid = ?1",
-  put: "INSERT INTO blob_entries (cid, mime, size, created, tags) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT (cid) DO UPDATE SET tags = excluded.tags",
+  put: "INSERT INTO blob_entries (cid, mime, size, created, tags) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT (cid) DO UPDATE SET mime = excluded.mime, tags = excluded.tags",
   drop: "DELETE FROM blob_entries WHERE cid = ?1",
   tagAdd: "INSERT OR IGNORE INTO blob_tags (tag, cid) VALUES (?1, ?2)",
   tagDrop: "DELETE FROM blob_tags WHERE tag = ?1 AND cid = ?2",
@@ -182,7 +183,11 @@ blobApp = {
   // Who is calling, from the headers the core set, and the system tags a blob they upload is given.
   const me = async (c) => {
     const who = c.req.header("x-brain-caller") || "anonymous", via = c.req.header("x-brain-via") || "";
-    if (who === "owner" || who.startsWith("token:")) return { all: true, stamp: [ownerTag()] };
+    // own: a caller whose type the owner vouches for. A token reaches every blob, and its uploads are its own, not the owner's.
+    // The owner's turn, portal or PDS call is not the owner's own tab: its bytes are stamped apart and are not vouched for.
+    if (who === "owner" && /^(turn:|portal:|jwt$)/.test(c.req.header("x-brain-via") || "")) return { all: true, stamp: ["by:owner:" + (c.req.header("x-brain-via") || "").split(":")[0]] };
+    if (who === "owner") return { all: true, own: true, stamp: [ownerTag()] };
+    if (who.startsWith("token:")) return { all: true, stamp: ["by:" + who] };
     if (who.startsWith("did:")) {
       const id = (await sha256(who)).slice(0, 10);
       // A member's Worker calls as its author and is named in x-brain-via. Any other Worker named there is refused.
@@ -195,10 +200,12 @@ blobApp = {
       return { did: who, id, member: c.req.header("x-brain-member") === "1", grants: Array.isArray(grants) ? grants : [], stamp: ["by:" + who, ...(worker ? ["worker:" + worker[1]] : [])] };
     }
     // A recipe is the owner's code: its uploads are the owner's, and it reaches the blobs it uploaded.
-    if (who.startsWith("worker:brain-x-")) return { fixed: who, stamp: [ownerTag(), who] };
+    if (who.startsWith("worker:brain-x-")) return { fixed: who, own: true, stamp: [ownerTag(), who] };
     return who === "anonymous" ? {} : null;
   };
   const stores = (m) => !!m && !!(m.all || m.fixed || m.did);
+  // The first by: tag is whoever set the type. Only the owner's is vouched for; a later uploader's by: comes after it.
+  const vouched = (tags) => tags.find((t) => t.startsWith("by:")) === ownerTag();
   const can = (m, tags, op) => {
     if (!m) return false;
     if (m.all) return true;
@@ -231,9 +238,11 @@ blobApp = {
       const limit = Number(c.req.header("x-brain-quota-bytes") || 20 * 1024 * 1024), kept = await used(mine);
       if (kept + bytes.length > limit) return fail(c, 413, "QuotaExceeded", `${kept} bytes kept and ${bytes.length} more is over ${limit}`);
     }
-    const tags = [...new Set([...(had ? had.tags : []), ...m.stamp, ...labels])];
+    // Bytes somebody else set the type of become the owner's when the owner uploads them: the owner's type, and the owner's tag first.
+    const take = !!m.own && !!had && !vouched(had.tags);
+    const tags = [...new Set([...(take ? m.stamp : []), ...(had ? had.tags : []), ...m.stamp, ...labels])];
     if (user(tags).length > MAX_TAGS) return fail(c, 400, "InvalidRequest", `tags: at most ${MAX_TAGS}`);
-    const e = had ? { ...had, tags } : { cid, mimeType: kind.mimeType, size: bytes.length, created: Date.now(), tags };
+    const e = had ? { ...had, ...(take ? { mimeType: kind.mimeType } : {}), tags } : { cid, mimeType: kind.mimeType, size: bytes.length, created: Date.now(), tags };
     if (!had) await blobs.put("b/" + cid, bytes);
     await sql.batch([[blobSql.put, cid, e.mimeType, e.size, e.created, JSON.stringify(tags)], ...tags.filter((t) => !had || !had.tags.includes(t)).map((t) => [blobSql.tagAdd, t, cid])]);
     return c.json({ blob: ref(e), tags: shown(m, tags), created: e.created });
@@ -249,8 +258,8 @@ blobApp = {
       "x-content-type-options": "nosniff",
       "x-blob-cid": e.cid
     };
-    // Bytes the owner did not upload are not the owner's to vouch for: no script, no origin, and no page.
-    if (!e.tags.includes(ownerTag())) {
+    // Bytes whose type the owner did not set are not the owner's to vouch for: no script, no origin, and no page.
+    if (!vouched(e.tags)) {
       headers["content-security-policy"] = "sandbox; default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'";
       if (blobActive(e.mimeType)) headers["content-disposition"] = "attachment";
     }
@@ -355,7 +364,7 @@ blobFakeSql = () => {
     if (statement === S.get) return { rows: entries.has(a[0]) ? [{ ...entries.get(a[0]) }] : [], changes: 0 };
     if (statement === S.put) {
       const had = entries.get(a[0]);
-      entries.set(a[0], had ? { ...had, tags: a[4] } : { cid: a[0], mime: a[1], size: a[2], created: a[3], tags: a[4] });
+      entries.set(a[0], had ? { ...had, mime: a[1], tags: a[4] } : { cid: a[0], mime: a[1], size: a[2], created: a[3], tags: a[4] });
       return { rows: [], changes: 1 };
     }
     if (statement === S.drop) return { rows: [], changes: entries.delete(a[0]) ? 1 : 0 };
@@ -560,6 +569,40 @@ test_blob_a_worker_keeps_what_it_uploaded_and_a_members_worker_is_its_author = {
   // The deployer and the core keep no blobs.
   for (const who of ["deployer", "worker:brain-core", "kernel"]) expect([who, (await rig.upload(who, "x", "text/plain")).status]).toEqual([who, 403]);
   return made.tags.join(" ");
+}
+// %%
+test_blob_bytes_are_served_as_a_page_only_when_the_owner_set_their_type = {
+  const rig = await blobRig(), { A } = rig, alice = rig.as(A), wa = "worker:brain-x-whatsapp", html = "<!doctype html><script>1<\/script>";
+  const served = async (cid) => {
+    const r = await rig.get("anonymous", cid);
+    return [r.headers.get("content-type"), (r.headers.get("content-security-policy") || "").startsWith("sandbox"), r.headers.get("content-disposition")];
+  };
+  const page = ["text/html; charset=utf-8", true, "attachment"], text = ["text/plain; charset=utf-8", false, null];
+  // Alice uploads a page: it is a download, with no script and no origin.
+  const cid = (await (await rig.upload(alice, html, "text/html", "?public=true")).json()).blob.ref.$link;
+  expect(await served(cid)).toEqual(page);
+  // The owner uploads the same bytes. The type is now the one the owner declared, and the owner's tag is first.
+  expect(await (await rig.upload("owner", html, "text/plain")).json()).toMatchObject({ blob: { ref: { $link: cid }, mimeType: "text/plain" }, tags: ["by:owner", "by:" + A, "public"] });
+  expect([rig.sim.blobs.size, rig.db.entries.get(cid).mime, await served(cid)]).toEqual([1, "text/plain", text]);
+  // Alice uploads them again as a page: the type stays the owner's.
+  expect((await (await rig.upload(alice, html, "text/html")).json()).blob.mimeType).toBe("text/plain");
+  expect(await served(cid)).toEqual(text);
+  // The owner first and a person second: the same.
+  const two = (await (await rig.upload("owner", "<p>two</p>", "text/plain", "?public=true")).json()).blob.ref.$link;
+  expect(await (await rig.upload(alice, "<p>two</p>", "text/html")).json()).toMatchObject({ blob: { mimeType: "text/plain" }, tags: ["by:owner", "public", "by:" + A] });
+  expect(await served(two)).toEqual(text);
+  // A token's upload is the token's, not the owner's. A recipe is the owner's code, and takes the bytes over as the owner does.
+  const made = await (await rig.upload("token:laptop", "<p>three</p>", "text/html", "?public=true")).json(), three = made.blob.ref.$link;
+  expect([made.tags, await served(three)]).toEqual([["by:token:laptop", "public"], page]);
+  expect((await rig.list("token:laptop")).sort()).toEqual([cid, two, three].sort());
+  expect((await rig.upload(wa, "<p>three</p>", "text/plain")).status).toBe(200);
+  expect([JSON.parse(rig.db.entries.get(three).tags), await served(three)]).toEqual([["by:owner", wa, "by:token:laptop", "public"], text]);
+  // An entry from before 2026-10-09 that a person uploaded first: sandboxed, until the owner uploads the bytes again.
+  rig.db.entries.set(cid, { ...rig.db.entries.get(cid), mime: "text/html", tags: JSON.stringify(["by:" + A, "by:owner", "public"]) });
+  expect(await served(cid)).toEqual(page);
+  expect((await rig.upload("owner", html, "text/plain")).status).toBe(200);
+  expect([JSON.parse(rig.db.entries.get(cid).tags), await served(cid)]).toEqual([["by:owner", "by:" + A, "public"], text]);
+  return "3 blobs: a person's, the owner's and a token's";
 }
 // %%
 test_blob_declares_what_it_needs = {

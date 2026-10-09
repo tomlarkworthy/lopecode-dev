@@ -2695,3 +2695,27 @@ A `deploy.reason` line names its target by module (`@tomlarkworthy/brain-kernel`
 - Whether a Worker with the minted `Workers Tail Read` token can read another Worker's request headers. Not looked at.
 - Files written outside `shell/` before this deploy have no `writer` and are served sandboxed until the owner puts them again. Which library files that affects was not listed.
 - **Timer observed.** `/static/snapshot/days.json` read at 06:20 UTC, 2026-10-09: `ranAt` `2026-10-09T06:00:28.000Z`, 822 items from 12 sources, 18 papers, `errors` empty. Nobody called `snapshot.run` after 04:49. Whether the cron or the minute alarm made that tick was not checked. The 06:00 run replaced the 04:49 files: Hugging Face had moved to its next day's list (32 papers), Reddit gave 79.
+
+## `brain-x-knowledge`: what the Brain knows, in a database of its own (2026-10-09, to 08:42 CEST)
+
+Tom, 2026-10-09: "we need some kind of knowledge database so we can record what was discovered and where, and how it entered"; "a different one than the operational one, a dedicated one for the knowledge base. It should not contain the blobs, they stay in files, but enough data for meaningful retrieval. We will be adding data from many sources and processes, this is the knowledge of the cloud brain."
+
+- **Built:** `brain-x-knowledge` (`brain-knowledge.ojs`), methods `knowledge.put get search list delete stats`. One table, `entries`, and a full-text index over title, text and tags (SQLite FTS5, `porter unicode61`). An entry holds `id kind title text url source published file sha256 method cites tags`; `by` and `at` are set by the service from the caller the core names, and a later put of the same id is recorded as `changed` without replacing them. The method reference is the first cells of the seed.
+- **Its own database.** The Worker declares the platform cell `database`, which until now only `brain-db` could. The deployer makes a D1 database named as the Worker's script is (`cb4-x-knowledge`) and binds it to that Worker alone. The rule in `refusal` names the two Workers; any other is refused with "only brain-db and brain-x-knowledge are bound to a database of their own". No file bytes are in it: `file` is a path in `brain-static`.
+- **Who calls:** the owner and their tokens, every method. `knowledge.put` also `worker:brain-x-snapshot`. Nothing is public. On cb4: a member's session 403, no session 401.
+- **Feeders.** `brain-x-snapshot` enters the titled papers of `papers.json` after it writes the file (`arxiv:<id>`, method `snapshot`, a signal as a tag); its index has `knowledge: { entered, changed }`. `digests/keep.ts <day>` enters each pick as a source entry with the kept file's path and SHA-256, and one `finding` per pick that cites it (method `digest:research-<day>`).
+- **FTS5 on D1: works.** Run first on a scratch D1 database (made and dropped 2026-10-09): 3 schema statements, put, replace, delete, `snippet`, `bm25` with column weights, and stemming (`training` found `train`). A malformed `MATCH` answers 400 `fts5: syntax error`, so `q` is quoted word by word (`knowledgeMatch`) and never reaches the index as syntax. On cb4 the search `trained database` found a note whose text has `training`.
+- **Measured on cb4, 2026-10-09 08:40 to 08:42 CEST:** `snapshot.run` kept 820 items and 19 papers and entered 13 (the 6 others have an id and no title). `keep.ts 2026-10-09` put 56 entries: 54 new, 2 changed (papers the snapshot had entered a minute before; they keep `by: worker:brain-x-snapshot`). `knowledge.stats`: 68 entries: 28 findings, 21 papers, 10 articles, 8 posts, 1 note; 55 by `owner`, 13 by `worker:brain-x-snapshot`. `knowledge.search?q=retrospection` answers `arxiv:2610.08077` with `file: corpus/2026-10-09/hf-papers/2610.08077.pdf` and the finding that cites it. `redistil`: 17 `same`. Lease held.
+- **Kept files, same run:** 25 of 28 picks (28.7 MB). Not kept: two Reddit threads (429) and one openai.com page (403).
+- **Tests:** brain-knowledge 6 of 6; brain-snapshot 9 of 9; the deployer's database test now also deploys `brain-x-knowledge` and reads its binding. The whole notebook, forced in a local tab: 682 `test_*` cells, 677 without an error, 5 failing in modules this project does not own (`test_defaultMarkdownParser_preserves_escapes`, `test_ui_ambiguous_name_asks_for_scope`, `test_ui_unknown_cell_is_a_clear_error`, `test_reflectsTitleUpdate`, and `test_tests_example` timing out). `run_tests` over the whole notebook did not return in 400 s twice; the cells were forced from `eval_code` instead (91 s).
+- **Deployer:** installed again with the one rule (`a80acec64877`). It is the deployer the security pass of the same morning had installed (`4a475765c213`) plus this rule.
+
+Not done:
+
+- Search is by words. Nothing finds by meaning.
+- The text of a PDF is not read: a paper is found by its title and abstract.
+- D1 does not export a database that has a virtual table, and `entries_fts` is one. The way round (drop the index, export, build it again from `entries`) was not run.
+- An entry is not told when its `file` is deleted.
+- `knowledge.put` is open to one Worker by name. A second feeder needs the owner to set a rule; there is no shared rule for "the Brain's own Workers".
+- The first test note (`note:first`) is still in the database.
+- No fresh review of this module yet.

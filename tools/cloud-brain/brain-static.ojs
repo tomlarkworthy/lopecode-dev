@@ -5,18 +5,18 @@ Files kept by a Cloud Brain and served from its address.
 | | |
 |---|---|
 | Worker | \`brain-x-static\` |
-| \`static.put\` | procedure. \`?path=\`, optional \`type=\`, \`tags=a,b\` and \`public=true\`; the body is the file. Answers \`{ path, size, type, sha256, public, tags, savedAt }\`. |
+| \`static.put\` | procedure. \`?path=\`, optional \`type=\`, \`tags=a,b\` and \`public=true\`; the body is the file. \`type=\` is taken from the owner, the deployer and a recipe, and ignored from anyone else. Answers \`{ path, size, type, sha256, public, tags, savedAt, writer }\`. |
 | \`static.get\` | query. \`?path=\`. The file, whoever may call the method. |
-| \`static.list\` | query. \`?prefix=\` and \`?tag=\`. \`{ files: [{ path, size, type, sha256, public, tags, savedAt }] }\`, the files the caller may read. |
+| \`static.list\` | query. \`?prefix=\` and \`?tag=\`. \`{ files: [{ path, size, type, sha256, public, tags, savedAt, writer }] }\`, the files the caller may read. A person is not shown a file that only \`public\` opens to them: its path may be all that keeps it from others. |
 | \`static.tag\` | procedure. \`{ path, tags }\` replaces the file's labels. |
 | \`static.setPublic\` | procedure. \`{ path, public }\` adds or removes the \`public\` label. |
 | \`static.delete\` | procedure. \`{ path }\` drops one file. \`{ prefix, before }\` drops each file under the prefix that the caller may change, saved before \`before\` (an ISO date or milliseconds; all of them without it). Answers \`{ deleted, paths }\`. The prefix is a folder: it ends in \`/\`, and one that does not (\`"s"\`, \`""\`) is refused with 400. Nothing under \`shell/\` is dropped this way. |
 | \`GET /static/<path>\` | whoever may read the file by its tags. \`ETag\` is the SHA-256; \`If-None-Match\` answers 304. |
 | Storage | bytes in \`blobs\` and one row per file in \`rows\`, both under \`f/<path>\` |
 
-A path is segments of \`A-Z a-z 0-9 @ . _ -\` joined by \`/\`, at most 200 characters. A file is at most 50 MB. Without \`type\` the content type comes from the extension (\`staticTypes\`), else \`application/octet-stream\`. A file is private until it is put or set public.
+A path is segments of \`A-Z a-z 0-9 @ . _ -\` joined by \`/\`, at most 200 characters. A file is at most 50 MB. Without \`type\`, and for a caller whose \`type\` is not taken, the content type comes from the extension (\`staticTypes\`), else \`application/octet-stream\`. A file is private until it is put or set public.
 
-\`shell/index.html\` is the page a Brain serves at \`/\`: a lopecode notebook without the Brain's own modules, which it loads from the Workers. Only the owner writes under \`shell/\`; a token, a DID and a Worker are refused. Each one put is also kept as \`shell/<sha256>.html\`.
+\`shell/index.html\` is the page a Brain serves at \`/\`: a lopecode notebook without the Brain's own modules, which it loads from the Workers. Only the owner writes under \`shell/\`; a token, a DID and a Worker are refused. Each one put is also kept as \`shell/<sha256>.html\`. \`library/\` holds the notebooks \`brain-library\` serves as pages: only the owner and \`brain-x-library\` write there.
 
 ## Tags
 
@@ -38,9 +38,11 @@ A tag with \`:\` in it is never taken from a caller and never changes after the 
 | change, retag, delete | the owner; the DID in its \`by:\`; a person granted \`write\` on one of its tags |
 | make a new path | the owner anywhere; a person, and a member's Worker, under \`u/ID/\` (\`ID\`: first ten hex digits of the SHA-256 of their DID); a recipe \`brain-x-NAME\` under \`NAME/\`; the deployer under \`shell/\` |
 
-A recipe is the owner's code and is not checked by tag: it reads and changes what is under its own name, and reads what is public. A file kept before tags (2026-10-07) is read as the owner's, \`public\` if its flag said so. A token is the owner's and reaches everything it reached before.
+A recipe is the owner's code and is not checked by tag: it reads and changes what is under its own name, and reads what is public. A file kept before tags (2026-10-07) is read as the owner's, \`public\` if its flag said so. A token is the owner's and reaches the paths the owner does, bar \`shell/\` and \`library/\`.
 
-The core sends, with each call by a person, whether they are a member, their tag grants and their limit in bytes. The limit counts every file under \`u/ID/\`, default 20 MB. A file not made by the owner is served with \`Content-Security-Policy: sandbox\`, so a browser gives it no script and no origin.
+The core sends, with each call by a person, whether they are a member, their tag grants and their limit in bytes. The limit counts every file under \`u/ID/\`, default 20 MB.
+
+Each put records its caller as the file's \`writer\`. A file is served with \`Content-Security-Policy: sandbox\`, so a browser gives it no script and no origin, unless its writer is the owner, the deployer or a recipe. A token's file and a member's are sandboxed, and so is the owner's file once either has written it, until the owner puts it again. A file kept before \`writer\` (2026-10-09) is sandboxed unless it is under \`shell/\`.
 
 ## Where a file goes
 
@@ -129,23 +131,33 @@ staticApp = {
     if (who.startsWith("worker:brain-x-")) return { fixed: true, home: who.slice("worker:brain-x-".length) + "/", stamp: [ownerTag(), who] };
     return who === "anonymous" ? {} : null;
   };
-  const can = (m, meta, path, op) => {
+  // open: whether `public` counts. A listing for a person leaves it out.
+  const can = (m, meta, path, op, open = true) => {
     if (!m) return false;
     if (m.all) return true;
     const tags = tagsOf(meta);
-    if (op === "read" && tags.includes("public")) return true;
+    if (open && op === "read" && tags.includes("public")) return true;
     if (m.fixed) return path.startsWith(m.home);
     if (!m.did) return false;
     if (tags.includes("by:" + m.did)) return true;
     if (op === "read" && m.member && tags.includes("members")) return true;
     return m.grants.some((g) => g && tags.includes(g.tag) && (op === "read" || g.access === "write"));
   };
-  // shell/ holds the page everyone is served, which runs as whoever is signed in: only the owner writes it, whatever its tags.
-  const shellOnly = (c, path) => path.startsWith("shell/") && !["owner", "deployer", "guard"].includes(c.req.header("x-brain-caller") || "");
+  // shell/ and library/ hold pages that are served to run as whoever is signed in: only these write there, whatever the tags.
+  // The folder a caller is kept out of, if any.
+  const KEPT = { "shell/": ["owner", "deployer", "guard"], "library/": ["owner", "worker:brain-x-library"] };
+  // The owner's turn, portal or PDS call has the caller `owner` and is not the owner's own tab: it is named apart, so it is not vouched for.
+  const writerOf = (c) => ((who, via) => (who === "owner" && /^(turn:|portal:|jwt$)/.test(via) ? "owner by " + via.split(":")[0] : who))(c.req.header("x-brain-caller") || "", c.req.header("x-brain-via") || "");
+  const kept = (c, path) => Object.keys(KEPT).find((dir) => path.startsWith(dir) && !KEPT[dir].includes(writerOf(c)));
+  // Whose bytes and type the owner vouches for: the owner's own, the deployer's shell, and a recipe's, which is the owner's code. Not a token's.
+  const trusts = (who) => ["owner", "deployer", "guard"].includes(who) || who.startsWith("worker:brain-x-");
+  // A row from before `writer` (2026-10-09) does not say who wrote the bytes: only shell/, which a token or a person never wrote, is vouched for.
+  const vouched = (path, meta) => (meta.writer ? trusts(meta.writer) : path.startsWith("shell/"));
   // A write: to a file that exists, by its tags; to a new path, only under the caller's home.
   const writable = async (c, path) => {
     if (!okPath(path)) return { no: fail(c, 400, "InvalidRequest", "path") };
-    if (shellOnly(c, path)) return { no: fail(c, 403, "Forbidden", "only the owner writes under shell/") };
+    const dir = kept(c, path);
+    if (dir) return { no: fail(c, 403, "Forbidden", `only the owner writes under ${dir}`) };
     const m = await me(c), before = await rows.get("f/" + path);
     const ok = before ? can(m, before, path, "write") : !!m && typeof m.home === "string" && path.startsWith(m.home);
     return ok ? { m, before } : { no: fail(c, 403, "Forbidden", before ? `${path} is not this caller's to change` : `${path} is outside ${m && typeof m.home === "string" ? m.home : "what this caller may reach"}`) };
@@ -155,8 +167,8 @@ staticApp = {
     // A caller inside the Brain sees this. workers.dev removes it from a response it may compress (measured 2026-10-06).
     const etag = 'W/"' + meta.sha256 + '"';
     const headers = { "content-type": meta.type, etag, "cache-control": "no-cache", "x-content-type-options": "nosniff", "x-static-sha256": meta.sha256 };
-    // A file somebody other than the owner made is not the owner's to vouch for: a browser shows it with no script and no origin.
-    if (!tagsOf(meta).includes(ownerTag())) headers["content-security-policy"] = "sandbox; default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'";
+    // Bytes somebody other than the owner last wrote are not the owner's to vouch for: a browser shows them with no script and no origin.
+    if (!vouched(path, meta)) headers["content-security-policy"] = "sandbox; default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'";
     // A file kept compressed is sent compressed, with no-transform so workers.dev leaves the ETag on it.
     const packed = meta.gzip && /\bgzip\b/.test(c.req.header("accept-encoding") || "");
     if (packed) Object.assign(headers, { "content-encoding": "gzip", "cache-control": "no-cache, no-transform", vary: "accept-encoding" });
@@ -191,7 +203,9 @@ staticApp = {
     const tags = [...(before ? system(was) : m.stamp), ...labels];
     const sha = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
     const ext = ((path.match(/\.([A-Za-z0-9]+)$/) || [])[1] || "").toLowerCase();
-    const meta = { size: bytes.length, type: c.req.query("type") || staticTypes[ext] || "application/octet-stream", sha256: sha, public: labels.includes("public"), tags, savedAt: Date.now() };
+    // writer: who wrote these bytes, which decides the sandbox. Only a writer the owner vouches for names the type.
+    const writer = writerOf(c);
+    const meta = { size: bytes.length, type: (trusts(writer) && c.req.query("type")) || staticTypes[ext] || "application/octet-stream", sha256: sha, public: labels.includes("public"), tags, savedAt: Date.now(), writer };
     // Text of any size worth it is kept a second time, compressed.
     const zipped = bytes.length >= 1024 && /^text\/|javascript|json|xml/.test(meta.type) ? new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer()) : null;
     if (zipped) meta.gzip = zipped.length;
@@ -216,10 +230,11 @@ staticApp = {
     return !meta && m && typeof m.home === "string" && path.startsWith(m.home) ? fail(c, 404, "NotFound", path) : fail(c, 403, "Forbidden", `${path} is not open to this caller`);
   });
   // ?prefix= and ?tag=. Every record under the prefix is read and the ones this caller may read are kept.
+  // A person is not shown what only `public` opens to them: an address nobody can guess is all that keeps some public files.
   app.get(NS + "list", async (c) => {
     const m = await me(c), tag = c.req.query("tag");
     if (!m || !(m.all || m.fixed || m.did)) return fail(c, 403, "Forbidden", "this caller has no files");
-    const files = (await rows.list("f/" + (c.req.query("prefix") || ""))).map(({ key, value }) => ({ path: key.slice(2), ...value, tags: tagsOf(value) })).filter((f) => can(m, f, f.path, "read") && (!tag || f.tags.includes(tag)));
+    const files = (await rows.list("f/" + (c.req.query("prefix") || ""))).map(({ key, value }) => ({ path: key.slice(2), ...value, tags: tagsOf(value) })).filter((f) => can(m, f, f.path, "read", !m.did) && (!tag || f.tags.includes(tag)));
     return c.json({ files });
   });
   const retag = async (c, path, change) => {
@@ -248,7 +263,7 @@ staticApp = {
       // A folder, not the start of a name: "s" would match site/ and snapshot/.
       if (typeof prefix !== "string" || !prefix.endsWith("/") || !okPath(prefix.slice(0, -1)) || Number.isNaN(t)) return fail(c, 400, "InvalidRequest", "{ prefix, before }: a prefix that ends in /, and a date");
       if (!m || !(m.all || m.fixed || m.did)) return fail(c, 403, "Forbidden", "this caller has no files");
-      const paths = (await rows.list("f/" + prefix)).filter(({ key, value }) => !key.startsWith("f/shell/") && (value.savedAt || 0) < t && can(m, value, key.slice(2), "write")).map((r) => r.key.slice(2));
+      const paths = (await rows.list("f/" + prefix)).filter(({ key, value }) => !key.startsWith("f/shell/") && !kept(c, key.slice(2)) && (value.savedAt || 0) < t && can(m, value, key.slice(2), "write")).map((r) => r.key.slice(2));
       for (const p of paths) {
         await rows.delete("f/" + p);
         await blobs.delete("f/" + p);
@@ -481,6 +496,83 @@ test_static_a_members_worker_writes_as_its_author_within_their_limit = {
   expect(rig.sim.rows.get("f/library/n.html").tags).toEqual(["by:owner", "worker:brain-x-library"]);
   expect((await rig.get({ "x-brain-caller": "worker:brain-x-library" }, file)).status).toBe(403);
   return "a member's Worker, within the limit";
+}
+// %%
+test_static_only_bytes_the_owner_last_wrote_are_served_as_a_page = {
+  const rig = await tagRig(), { A, a } = rig, token = "token:laptop", html = "text/html; charset=utf-8";
+  const served = async (path) => {
+    const r = await rig.call("owner", "/static/" + path);
+    return [r.status, r.headers.get("content-type"), (r.headers.get("content-security-policy") || "").startsWith("sandbox")];
+  };
+  // The owner's file, the deployer's shell and a recipe's file are not sandboxed, and the type each names is taken.
+  await rig.put("owner", "site/a.page", "<p>", "&type=text/html");
+  await rig.put("deployer", "shell/index.html", "<html>", "&public=true");
+  await rig.put("worker:brain-x-library", "library/n/1.html", "<p>", "&type=" + encodeURIComponent(html));
+  expect(rig.sim.rows.get("f/library/n/1.html")).toMatchObject({ type: html, writer: "worker:brain-x-library" });
+  expect([await served("site/a.page"), await served("shell/index.html"), await served("library/n/1.html")]).toEqual([[200, "text/html", false], [200, html, false], [200, html, false]]);
+  // A token reaches the owner's paths. What it writes is sandboxed and typed by its extension, whatever type it names.
+  expect((await rig.put(token, "site/t.txt", "<script>", "&type=text/html&public=true")).status).toBe(200);
+  expect((await rig.put(token, "site/t.html", "<script>", "&public=true")).status).toBe(200);
+  expect([await served("site/t.txt"), await served("site/t.html")]).toEqual([[200, "text/plain; charset=utf-8", true], [200, html, true]]);
+  // It writes and drops nothing under library/ or shell/.
+  for (const path of ["library/n/1.html", "library/new/2.html", "shell/x.html"]) expect([path, (await rig.put(token, path, "<script>")).status]).toEqual([path, 403]);
+  expect((await rig.post(token, "delete", { path: "library/n/1.html" })).status).toBe(403);
+  expect((await rig.post(token, "setPublic", { path: "library/n/1.html", public: true })).status).toBe(403);
+  expect(await (await rig.post(token, "delete", { prefix: "library/" })).json()).toEqual({ deleted: 0, paths: [] });
+  // The owner's file, once a token has written it, is sandboxed until the owner puts it again. Its tags do not change.
+  expect((await rig.put(token, "site/a.page", "<script>", "&type=text/html")).status).toBe(200);
+  expect(rig.sim.rows.get("f/site/a.page")).toMatchObject({ writer: token, tags: ["by:owner"] });
+  expect(await served("site/a.page")).toEqual([200, "application/octet-stream", true]);
+  await rig.put("owner", "site/a.page", "<p>", "&type=text/html");
+  expect(await served("site/a.page")).toEqual([200, "text/html", false]);
+  // A member names no type either.
+  expect((await rig.put2(rig.as(A), `u/${a}/x.txt`, "<script>", "&type=text/html")).status).toBe(200);
+  expect(await served(`u/${a}/x.txt`)).toEqual([200, "text/plain; charset=utf-8", true]);
+  // A row from before `writer`: the shell is the owner's, and any other file is sandboxed until the owner puts it again.
+  for (const path of ["shell/index.html", "site/a.page"]) rig.sim.rows.set("f/" + path, (({ writer, ...row }) => row)(rig.sim.rows.get("f/" + path)));
+  expect([await served("shell/index.html"), await served("site/a.page")]).toEqual([[200, html, false], [200, "text/html", true]]);
+  return "owner, deployer and recipe; not a token, a member or an old row";
+}
+// %%
+test_static_a_member_who_overwrites_the_owners_file_gets_no_page = {
+  const rig = await tagRig(), { B } = rig, bob = rig.as(B, { grants: [{ tag: "snapshot", access: "write" }] }), html = "text/html; charset=utf-8";
+  const served = async (path) => {
+    const r = await rig.call("anonymous", "/static/" + path);
+    return [r.headers.get("content-type"), (r.headers.get("content-security-policy") || "").startsWith("sandbox"), await r.text()];
+  };
+  await rig.put("owner", "site/report.html", "<p>", "&tags=snapshot&public=true");
+  await rig.put("worker:brain-x-snapshot", "snapshot/2026-10-09/index.json", "{}", "&type=application/json&tags=snapshot&public=true");
+  expect([await served("site/report.html"), await served("snapshot/2026-10-09/index.json")]).toEqual([[html, false, "<p>"], ["application/json", false, "{}"]]);
+  // Bob may change both by the tag. Each keeps the owner's tag, and the bytes are his: sandboxed, and typed by the extension.
+  expect((await rig.put2(bob, "site/report.html", "<script>1<\/script>", "&type=text/html")).status).toBe(200);
+  expect((await rig.put2(bob, "snapshot/2026-10-09/index.json", "<script>2<\/script>", "&type=text/html")).status).toBe(200);
+  expect(rig.sim.rows.get("f/site/report.html")).toMatchObject({ tags: ["by:owner", "snapshot", "public"], writer: B });
+  expect(rig.sim.rows.get("f/snapshot/2026-10-09/index.json")).toMatchObject({ tags: ["by:owner", "worker:brain-x-snapshot", "snapshot", "public"], writer: B });
+  expect([await served("site/report.html"), await served("snapshot/2026-10-09/index.json")]).toEqual([[html, true, "<script>1<\/script>"], ["application/json", true, "<script>2<\/script>"]]);
+  // The owner retagging it writes no bytes; the owner putting it does.
+  expect((await rig.post("owner", "tag", { path: "site/report.html", tags: ["public"] })).status).toBe(200);
+  expect((await served("site/report.html"))[1]).toBe(true);
+  await rig.put("owner", "site/report.html", "<p>");
+  expect(await served("site/report.html")).toEqual([html, false, "<p>"]);
+  return "2 files overwritten, both sandboxed";
+}
+// %%
+test_static_a_listing_does_not_show_a_person_what_is_only_public = {
+  const rig = await tagRig(), { A, B, a } = rig, pic = "whatsapp/0a1b2c3d4e5f.jpg", mine = `u/${a}/mine.txt`;
+  const list = async (headers, query = "") => (await rig.list(typeof headers === "string" ? { "x-brain-caller": headers } : headers, query)).sort();
+  await rig.put("worker:brain-x-whatsapp", pic, "jpg", "&type=image/jpeg&public=true&tags=whatsapp");
+  await rig.put("owner", "site/club.txt", "c", "&tags=members");
+  await rig.put2(rig.as(A), mine, "m", "&public=true");
+  // Bob opens the picture at its address, and no listing gives him the address.
+  expect((await rig.call2(rig.as(B), "/static/" + pic)).status).toBe(200);
+  expect([await list(rig.as(B)), await list(rig.as(B), "?prefix=whatsapp/"), await list(rig.as(B), "?tag=public"), await list(rig.as(B, { member: false }))]).toEqual([["site/club.txt"], [], [], []]);
+  // A person's own files, a members file and a file under a granted tag are listed, public or not.
+  expect(await list(rig.as(A))).toEqual(["site/club.txt", mine]);
+  expect(await list(rig.as(B, { grants: [{ tag: "whatsapp", access: "read" }] }))).toEqual(["site/club.txt", pic]);
+  // The owner and a recipe are shown what they were before.
+  expect(await list("owner")).toEqual(["site/club.txt", mine, pic]);
+  expect(await list("worker:brain-x-library")).toEqual([mine, pic]);
+  return "1 public file, listed to nobody it was not given to";
 }
 // %%
 import {cloudflare, rows, blobs, config, hono, simulate, sha256} from "@tomlarkworthy/cloudflare-iac"

@@ -15,12 +15,13 @@ brainBoot = {
   const row = (m) => `| \`${m.module}\` | ${m.worker} | \`${String(m.hash || "").slice(0, 12)}\` | ${joined.includes(m.module) ? "loaded" : had.includes(m.module) ? "in this file" : "not loaded"} |`;
   if (brainPortal) {
     const note = htl.html`<span style="color:var(--theme-foreground-muted)"></span>`;
+    const why = htl.html`<input placeholder="Reason for the change" maxlength="300" style="font:inherit;min-width:16em">`;
     const deploy = Inputs.button("Deploy", {
       reduce: async () => {
         note.textContent = " deploying…";
         try {
-          const made = await brainClient.procedure("member.deploy", { module: brainPortal.module, source: (await exportModuleJS(brainPortal.module)).source });
-          note.textContent = ` ${made.worker || brainPortal.module} is ${String(made.hash || "").slice(0, 12)}`;
+          const made = await brainClient.procedure("member.deploy", { module: brainPortal.module, source: (await exportModuleJS(brainPortal.module)).source, reason: why.value });
+          note.textContent = made.state === "refused" ? " refused: " + made.reason : ` ${made.worker || brainPortal.module} is ${String(made.hash || "").slice(0, 12)}`;
         } catch (e) {
           note.textContent = " refused: " + ((e && e.message) || e);
         }
@@ -32,7 +33,7 @@ brainBoot = {
 |---|---|---|---|
 ${brainModules.modules.map(row).join("\n")}
 
-${brainPortal.viewer === brainPortal.author ? htl.html`<div style="display:flex;align-items:center">${deploy}${note}</div>` : ""}`;
+${brainPortal.viewer === brainPortal.author ? htl.html`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${why}${deploy}${note}</div>` : ""}`;
   }
   const frames = htl.html`<div></div>`;
   const open = new Map();

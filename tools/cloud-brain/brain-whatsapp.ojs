@@ -5,18 +5,18 @@ A Cloud Brain channel: WhatsApp messages arrive in the Brain's inbox, and answer
 | | |
 |---|---|
 | Worker | \`brain-x-whatsapp\` |
-| \`/hooks/whatsapp\` | Meta's webhook. A delivery is taken only with Meta's signature over its bytes. |
+| \`/hooks/whatsapp\` | Meta's webhook. A delivery is taken only with Meta's signature over its bytes. The signature and the verify token are compared in constant time. |
 | \`whatsapp.send\` | procedure. The owner, a named token, or \`brain-x-inbox\` answering an entry; never a member, with or without a grant. \`{ to, text }\` or \`{ to, image, text }\`, where \`image\` is an https URL Meta fetches and \`text\` its caption; \`to\` must be a linked number. |
 | \`whatsapp.claim\` | procedure, the kernel. \`{ code, peek }\` answers \`{ address }\` for a link code and, unless \`peek\`, uses the code up and marks the number linked. |
 | \`whatsapp.know\` | procedure, the kernel. \`{ address, forget }\` marks a number linked, or not. |
 | \`whatsapp.status\` | query, owner. \`{ linked, codes }\` |
-| Storage | \`rows\`: \`known/<number>\`, \`code/<code>\`, \`asked/<number>\`, \`asks\`, \`quiet/<number>\` |
+| Storage | \`rows\`: \`known/<number>\`, \`took/<number>\`, \`code/<code>\`, \`asked/<number>\`, \`asks\`, \`quiet/<number>\` |
 
 What this Worker says about a sender is their number, as \`body.address\`, and nothing else. It does not know who a number belongs to or what they may do; the kernel decides that (\`@tomlarkworthy/brain-kernel\`, People).
 
-A message from a linked number is appended to the inbox. A message from any other number is dropped, and the number is sent a link, \`https://HOST/link?channel=whatsapp&code=CODE\`, at most once an hour and at most 20 an hour over all numbers. The code is good for 10 minutes and for one use. Opening the link, signing in with atproto and pressing Link is what links the number.
+A message from a linked number is appended to the inbox, at most 60 an hour for one number; a message over that is dropped and the number is told nothing. Linking does not make a number's holder a member, so the limit is for each linked number. The hour starts at the first message that is counted, and the count is one row, \`took/<number>\`, which goes when the kernel forgets the number. A message from any other number is dropped, and the number is sent a link, \`https://HOST/link?channel=whatsapp&code=CODE\`, at most once an hour and at most 20 an hour over all numbers. The code is good for 10 minutes and for one use. Opening the link, signing in with atproto and pressing Link is what links the number.
 
-A picture from a linked number is fetched from Meta and kept in static storage as a public file, \`whatsapp/<24 hex digits>.<ext>\`. Its entry reads \`[image: URL] caption\` and carries \`body.attachments: [{ kind: "image", url, type }]\`. Only JPEG, PNG, WebP and GIF of at most 5 MB are kept, and the access token goes to \`graph.facebook.com\` and to the \`https\` address under \`facebook.com\`, \`fbsbx.com\` or \`whatsapp.net\` that it names, nowhere else. A picture that fails any of these arrives as \`[image]\`. The file's address is the only thing guarding it, and nothing deletes it.
+A picture from a linked number is fetched from Meta and kept in static storage as a public file, \`whatsapp/<24 hex digits>.<ext>\`. Its entry reads \`[image: URL] caption\` and carries \`body.attachments: [{ kind: "image", url, type }]\`. Only JPEG, PNG, WebP and GIF of at most 5 MB are kept, and the access token goes to \`graph.facebook.com\` and to the \`https\` address under \`facebook.com\`, \`fbsbx.com\` or \`whatsapp.net\` that it names, nowhere else. A redirect from that address is not followed. At most 10 pictures an hour are fetched for one number, and a fetch that keeps nothing counts. A picture that fails any of these arrives as \`[image]\`. The file's address is the only thing guarding it, and nothing deletes it.
 
 Limits: text and pictures; another kind of message arrives as \`[audio]\`, \`[video]\`. The model reading the entry gets the picture's address as text. Meta allows a free-form reply for 24 hours after a number's last message, and \`whatsapp.send\` fails after that until they write again.`
 // %%
@@ -47,6 +47,12 @@ whatsappApp = {
   const NS = "/xrpc/com.lopecode.brain.whatsapp.";
   const fail = (c, status, error, message) => c.json({ error, message }, status);
   app.onError((e, c) => fail(c, 500, "InternalServerError", String((e && e.message) || e)));
+  // Two strings, compared in a time that does not say where they first differ.
+  const same = (a, b) => {
+    let d = a.length ^ b.length;
+    for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i % (b.length || 1));
+    return d === 0;
+  };
   const send = async (to, message) => {
     const r = await fetch(`https://graph.facebook.com/v25.0/${await secrets.WHATSAPP_PHONE_ID}/messages`, {
       method: "POST",
@@ -71,7 +77,8 @@ whatsappApp = {
     if (!info || !metaHost(info.url)) return null;
     const type = String(info.mime_type || media.mime || "").split(";")[0].trim(), ext = KINDS[type];
     if (!ext || Number(info.file_size) > MAX) return null;
-    const file = await fetch(info.url, { headers: auth });
+    // A redirect is not followed: the token would go with it.
+    const file = await fetch(info.url, { headers: auth, redirect: "manual" });
     if (!file.ok || Number(file.headers.get("content-length")) > MAX) return null;
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (!bytes.length || bytes.length > MAX) return null;
@@ -82,18 +89,25 @@ whatsappApp = {
 
   app.get("/hooks/whatsapp", async (c) => {
     const token = await secrets.WHATSAPP_VERIFY_TOKEN;
-    return token && c.req.query("hub.mode") === "subscribe" && c.req.query("hub.verify_token") === token ? c.text(c.req.query("hub.challenge") || "") : c.text("forbidden", 403);
+    return token && c.req.query("hub.mode") === "subscribe" && same(c.req.query("hub.verify_token") || "", token) ? c.text(c.req.query("hub.challenge") || "") : c.text("forbidden", 403);
   });
 
-  const HOUR = 3600000;
+  // What one linked number gets into the inbox in an hour, and how many of those can be pictures that are fetched and kept.
+  const HOUR = 3600000, MESSAGES = 60, PICTURES = 10;
   app.post("/hooks/whatsapp", async (c) => {
     const body = await c.req.text(), secret = await secrets.WHATSAPP_APP_SECRET;
-    if (!secret || c.req.header("x-hub-signature-256") !== (await whatsappSignature(secret, body))) return c.text("bad signature", 401);
+    if (!secret || !same(c.req.header("x-hub-signature-256") || "", await whatsappSignature(secret, body))) return c.text("bad signature", 401);
     const now = Date.now(), taken = new Set();
     for (const m of whatsappMessages(JSON.parse(body))) {
       if (await rows.get("known/" + m.from)) {
+        // Linking makes nobody a member. Over the limit of messages the message is dropped with no answer; over the limit
+        // of pictures a picture arrives as [image]. took/<number> is the count of the hour that began at `from`.
+        const was = (await rows.get("took/" + m.from)) || { from: 0 }, took = now - was.from < HOUR ? was : { from: now, n: 0, pictures: 0 };
+        if (took.n >= MESSAGES) continue;
+        const picture = !!m.media && took.pictures < PICTURES;
+        await rows.put("took/" + m.from, { from: took.from, n: took.n + 1, pictures: took.pictures + (picture ? 1 : 0) });
         const entry = { text: m.text, address: m.from, at: m.at };
-        const image = m.media ? await keepImage(m.media).catch(() => null) : null;
+        const image = picture ? await keepImage(m.media).catch(() => null) : null;
         if (image) {
           entry.attachments = [{ kind: "image", url: image.url, type: image.type }];
           entry.text = `[image: ${image.url}]` + (m.media.caption ? " " + m.media.caption : "");
@@ -151,7 +165,7 @@ whatsappApp = {
   app.post(NS + "know", kernel, async (c) => {
     const { address, forget } = await c.req.json();
     if (typeof address !== "string" || !address) return fail(c, 400, "InvalidRequest", "address");
-    if (forget) await rows.delete("known/" + address);
+    if (forget) for (const k of ["known/", "took/"]) await rows.delete(k + address);
     else await rows.put("known/" + address, { at: Date.now() });
     return c.json({ known: !forget });
   });
@@ -218,13 +232,18 @@ test_whatsapp_verification = {
   const get = (q) => sim.fetch("https://brain.internal/hooks/whatsapp?" + q);
   const ok = await get("hub.mode=subscribe&hub.verify_token=verify-me&hub.challenge=1158201444");
   expect([ok.status, await ok.text()]).toEqual([200, "1158201444"]);
-  expect((await get("hub.mode=subscribe&hub.verify_token=wrong&hub.challenge=1")).status).toBe(403);
+  // A wrong token, of the same length or not, one that only starts like the token, and none.
+  for (const t of ["wrong", "verify-mf", "verify-me2", "verify-", ""]) expect([t, (await get(`hub.mode=subscribe&hub.verify_token=${t}&hub.challenge=1`)).status]).toEqual([t, 403]);
+  expect((await get("hub.mode=subscribe&hub.challenge=1")).status).toBe(403);
   return "challenge echoed; wrong token 403";
 }
 // %%
 test_whatsapp_takes_signed_messages_from_linked_numbers = {
   const rig = await whatsappRig({ held: true, known: ["4915100000001", "4915100000002"] });
   expect((await rig.deliver([rig.message("wamid.1", "4915100000001", "hello")], { secret: "wrong" })).status).toBe(401);
+  // No signature, and one cut short.
+  const raw = JSON.stringify({ entry: [{ changes: [{ value: { messages: [rig.message("wamid.2", "4915100000001", "hello")] } }] }] }), hook = (headers) => rig.sim.fetch("https://brain.internal/hooks/whatsapp", { method: "POST", body: raw, headers });
+  expect([(await hook({})).status, (await hook({ "x-hub-signature-256": (await whatsappSignature("app-secret", raw)).slice(0, -1) })).status]).toEqual([401, 401]);
   expect(rig.sim.inbox.length).toBe(0);
   await rig.deliver([rig.message("wamid.3", "4915100000001", "hello"), rig.message("wamid.4", "4915100000002", "again")]);
   await rig.deliver([rig.message("wamid.3", "4915100000001", "hello")]);
@@ -322,7 +341,7 @@ whatsappImageRig = async ({ meta = () => ({ url: "https://lookaside.fbsbx.com/wh
     fetch: async (request) => {
       asked.push([request.url, request.headers.get("authorization")]);
       if (/\/messages$/.test(request.url)) return Response.json({ messages: [{ id: "wamid.out" }] });
-      return request.url.startsWith("https://graph.facebook.com/v25.0/") ? Response.json(meta(request.url)) : file(request.url);
+      return request.url.startsWith("https://graph.facebook.com/v25.0/") ? Response.json(meta(request.url)) : file(request.url, request);
     },
     core: async (request) => {
       const u = new URL(request.url), nsid = u.pathname.replace("/xrpc/com.lopecode.brain.", "");
@@ -344,7 +363,8 @@ whatsappImageRig = async ({ meta = () => ({ url: "https://lookaside.fbsbx.com/wh
 }
 // %%
 test_whatsapp_keeps_an_incoming_image = {
-  const rig = await whatsappImageRig();
+  const modes = [];
+  const rig = await whatsappImageRig({ file: (url, request) => (modes.push(request.redirect), new Response(new Uint8Array([1, 2, 3]), { headers: { "content-type": "image/jpeg" } })) });
   await rig.deliver("4915100000001", { id: "900100", mime_type: "image/jpeg", caption: "my cat" });
   expect(rig.puts.length).toBe(1);
   expect(rig.puts[0].path).toMatch(/^whatsapp\/[0-9a-f]{24}\.jpg$/);
@@ -354,6 +374,8 @@ test_whatsapp_keeps_an_incoming_image = {
   expect(b.text).toBe(`[image: ${b.attachments[0].url}] my cat`);
   // The token went to Meta's lookup and to the address it named, and to nothing else.
   expect(rig.asked).toEqual([["https://graph.facebook.com/v25.0/900100", "Bearer tok"], ["https://lookaside.fbsbx.com/whatsapp_business/attachments/?mid=1", "Bearer tok"]]);
+  // The download follows no redirect, so the token goes to no address that Meta's host points to.
+  expect(modes).toEqual(["manual"]);
   return "fetched from Meta, kept as a public file, entry carries its address and caption";
 }
 // %%
@@ -368,7 +390,8 @@ test_whatsapp_keeps_only_a_small_picture_from_meta = {
     "a vector picture": { meta: () => ({ url: "https://lookaside.fbsbx.com/f", mime_type: "image/svg+xml" }) },
     "a size over the limit": { meta: () => ({ url: "https://lookaside.fbsbx.com/f", mime_type: "image/png", file_size: 5 * 1024 * 1024 + 1 }) },
     "a body over the limit": { meta: () => ({ url: "https://lookaside.fbsbx.com/f", mime_type: "image/png" }), file: big },
-    "a download that fails": { meta: () => ({ url: "https://lookaside.fbsbx.com/f", mime_type: "image/png" }), file: () => new Response("no", { status: 404 }) }
+    "a download that fails": { meta: () => ({ url: "https://lookaside.fbsbx.com/f", mime_type: "image/png" }), file: () => new Response("no", { status: 404 }) },
+    "a download that redirects": { meta: () => ({ url: "https://lookaside.fbsbx.com/f", mime_type: "image/png" }), file: () => new Response(null, { status: 302, headers: { location: "https://evil.example/f" } }) }
   };
   for (const [what, options] of Object.entries(cases)) {
     const rig = await whatsappImageRig(options);
@@ -386,6 +409,35 @@ test_whatsapp_keeps_only_a_small_picture_from_meta = {
   await stranger.deliver("4915100009999", { id: "900100", mime_type: "image/jpeg" });
   expect([stranger.puts, stranger.sim.inbox, stranger.asked.map((a) => a[0])]).toEqual([[], [], ["https://graph.facebook.com/v25.0/555/messages"]]);
   return Object.keys(cases).length + " refusals, an odd id and a stranger: nothing kept";
+}
+// %%
+test_whatsapp_a_linked_number_has_a_limit_of_messages_and_of_pictures_an_hour = {
+  const A = "4915100000001", B = "4915100000002";
+  const rig = await whatsappRig({ held: false, known: [A, B] });
+  // 65 messages in one delivery and 5 in the next: 60 are taken. The rest are dropped, and the number is told nothing of it.
+  await rig.deliver(Array.from({ length: 65 }, (_, i) => rig.message("wamid.a" + i, A, "m" + i)));
+  await rig.deliver(Array.from({ length: 5 }, (_, i) => rig.message("wamid.b" + i, A, "more")));
+  expect([rig.sim.inbox.length, rig.sim.inbox[59].key, rig.rows.get("took/" + A).n, rig.texts().length]).toEqual([60, "wamid.a59", 60, 1]);
+  // The limit is for each number, and the count is one row for each.
+  await rig.deliver([rig.message("wamid.c", B, "hi")]);
+  expect([rig.sim.inbox.length, [...rig.rows.keys()].filter((k) => k.startsWith("took/")).sort()]).toEqual([61, ["took/" + A, "took/" + B]]);
+  // An hour after the first message that was counted, the count starts again in the same row.
+  rig.rows.set("took/" + A, { ...rig.rows.get("took/" + A), from: Date.now() - 3600001 });
+  await rig.deliver([rig.message("wamid.d", A, "later")]);
+  expect([rig.sim.inbox.length, rig.rows.get("took/" + A).n, Date.now() - rig.rows.get("took/" + A).from < 60000]).toEqual([62, 1, true]);
+  // The kernel forgets a number: its count goes with it.
+  await rig.kernel("know", { address: A, forget: true });
+  expect([rig.rows.has("known/" + A), rig.rows.has("took/" + A), rig.rows.has("took/" + B)]).toEqual([false, false, true]);
+  // Pictures: 10 an hour are fetched and kept. One more arrives as [image], and nothing is fetched for it.
+  const pics = await whatsappImageRig();
+  for (let i = 0; i < 12; i++) await pics.deliver(A, { id: "9001" + i, mime_type: "image/jpeg" }, "wamid.p" + i);
+  const took = pics.sim.rows.get("took/" + A);
+  expect([pics.puts.length, pics.asked.length, pics.sim.inbox.map((e) => e.body.text.slice(0, 8)).slice(9), took.n, took.pictures]).toEqual([10, 20, ["[image: ", "[image]", "[image]"], 12, 10]);
+  // A fetch that keeps nothing counts as one of the 10.
+  const none = await whatsappImageRig({ file: () => new Response("no", { status: 404 }) });
+  for (let i = 0; i < 12; i++) await none.deliver(A, { id: "9002" + i, mime_type: "image/jpeg" }, "wamid.n" + i);
+  expect([none.puts.length, none.asked.length, none.sim.inbox.length]).toEqual([0, 20, 12]);
+  return "60 messages and 10 pictures an hour for one linked number";
 }
 // %%
 test_whatsapp_declares_what_it_needs = {

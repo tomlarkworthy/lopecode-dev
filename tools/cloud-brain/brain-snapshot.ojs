@@ -20,7 +20,7 @@ Anyone reads these with no session. \`<day>\` is the UTC date, \`2026-10-09\`.
 | Address | Holds |
 |---|---|
 | \`/static/snapshot/days.json\` | \`{ days: [{ day, ranAt, items, papers }] }\`, newest first; \`papers\` is the count in that day's \`papers.json\` |
-| \`/static/snapshot/<day>/index.json\` | \`{ day, ranAt, sources: [{ name, tier, status, count, matched, of, bytes, ms, path, error, lookup }], papers: { count, path }, errors }\` |
+| \`/static/snapshot/<day>/index.json\` | \`{ day, ranAt, sources: [{ name, tier, status, count, matched, of, bytes, ms, path, error, lookup }], papers: { count, path }, knowledge, errors }\` |
 | \`/static/snapshot/<day>/<source>.json\` | \`{ source, tier, url, day, fetchedAt, count, items }\` |
 | \`/static/snapshot/<day>/papers.json\` | \`{ day, ranAt, count, papers: [{ id, url, title, summary, points, signals, via }] }\`: the papers with a signal seen that day (below) |
 
@@ -33,6 +33,7 @@ A feed's summary has its markup taken out, after its entities are read: a \`<\` 
 - Every source is fetched at the same time. Give one host one source: Reddit answered 429 to the second of two feeds, also 2 s apart (cb4, 2026-10-09), so its two subreddits are one feed.
 - A failed source does not fail the run. The timer runs once a day and does not try again; \`snapshot.run\` does.
 - \`of\` is how many items the feed held, \`matched\` how many passed \`keep\` and \`days\`, \`count\` how many were kept. \`matched\` above \`count\` means \`limit\` cut the list, unless the row has an \`error\`: a source whose file was refused has \`count: 0\` and its \`matched\`.
+- The papers of \`papers.json\` that have a title are entered in the knowledge base with \`knowledge.put\`, as \`arxiv:<id>\`, kind \`paper\`, method \`snapshot\`, each signal a tag (\`votes-hf-papers\`), 100 at most. \`knowledge\` in the index is \`{ entered, changed }\`, or \`{ error }\` on a Brain with no \`brain-x-knowledge\`; that is not one of \`errors\`.
 - \`errors\` in the index, and in the log line, names a write of \`index.json\`, \`papers.json\` or \`days.json\` that failed.
 - The daily run drops the files of days older than \`keepDays\` with \`static.delete\` \`{ prefix: "snapshot/", before }\`. \`snapshot.run\` drops nothing.
 
@@ -192,6 +193,13 @@ snapshotSignals = (list, kept) => {
   return [...papers.values()].sort((a, b) => b.signals.length - a.signals.length || (b.points || 0) - (a.points || 0));
 }
 // %%
+// The papers of papers.json as entries for knowledge.put, 100 at most: the id is arxiv:<id>, and a signal is a tag.
+snapshotEntries = (papers) =>
+  papers
+    .filter((p) => p.title)
+    .slice(0, 100)
+    .map((p) => ({ id: "arxiv:" + p.id, kind: "paper", title: String(p.title).slice(0, 500), text: String(p.summary || "").slice(0, 16000), url: p.url, source: "arxiv", method: "snapshot", tags: p.signals.map((t) => t.replace(/[^a-z0-9-]+/g, "-").slice(0, 40)).slice(0, 16) }))
+// %%
 // A list of sources as the owner gave it, or the reason it is refused.
 snapshotCheck = (list) => {
   if (!Array.isArray(list) || !list.length || list.length > 40) return "sources is a list of 1 to 40";
@@ -218,6 +226,19 @@ snapshotOps = {
   const put = async (path, value) => {
     const r = await xrpc.fetch(STATIC + "put", { method: "POST", params: { path, type: "application/json", public: "true", tags: "snapshot" }, body: new TextEncoder().encode(JSON.stringify(value)) });
     return r.ok ? null : `static.put ${path} ${r.status}`;
+  };
+  // The day's papers as entries of the knowledge base, entered as this Worker. A paper with no title is left out.
+  // On a Brain with no brain-x-knowledge the call is refused, and the index says so.
+  const enter = async (papers) => {
+    const entries = snapshotEntries(papers);
+    if (!entries.length) return { entered: 0, changed: 0 };
+    try {
+      const r = await xrpc.fetch("com.lopecode.brain.knowledge.put", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ entries }) });
+      const d = await r.json().catch(() => null);
+      return r.ok && d ? { entered: d.entered, changed: d.changed } : { error: "knowledge.put " + r.status };
+    } catch (e) {
+      return { error: String((e && e.message) || e).slice(0, 200) };
+    }
   };
   const sources = async () => (await rows.get("sources")) || snapshotSources;
   const keepDays = async () => (await rows.get("keepDays")) || 90;
@@ -250,6 +271,7 @@ snapshotOps = {
     const items = index.sources.reduce((n, s) => n + s.count, 0), papers = snapshotSignals(list, kept);
     index.papers = { count: papers.length, path: `snapshot/${day}/papers.json` };
     await tried(put(index.papers.path, { day, ranAt: index.ranAt, count: papers.length, papers }));
+    index.knowledge = await enter(papers);
     await rows.put("day/" + day, { day, ranAt: index.ranAt, items, papers: papers.length });
     await tried(put("snapshot/days.json", { days: (await rows.list("day/")).map((r) => r.value).sort((a, b) => (a.day < b.day ? 1 : -1)) }));
     index.errors = errors;
@@ -311,7 +333,7 @@ snapshot_service = cloudflare.Service(
     crons: ["0 6 * * *"],
     // A cron event carries its time; the wrapper's minute alarm does not.
     scheduled: (event) => snapshotOps.tick((event && event.scheduledTime) || Date.now()),
-    calls: ["com.lopecode.brain.static.put", "com.lopecode.brain.static.delete"],
+    calls: ["com.lopecode.brain.static.put", "com.lopecode.brain.static.delete", "com.lopecode.brain.knowledge.put"],
     methods: {
       "com.lopecode.brain.snapshot.run": { type: "procedure", allow: "caller.session" },
       "com.lopecode.brain.snapshot.sources": { type: "query", who: "anyone" },
@@ -367,8 +389,8 @@ snapshotPanel = ({ base, client, owner = false, fetch: send = (...a) => fetch(..
 // %%
 md`## Tests`
 // %%
-snapshotRig = async ({ feeds = {}, rows = new Map(), fail = null } = {}) => {
-  const files = new Map(), asked = [], dropped = [];
+snapshotRig = async ({ feeds = {}, rows = new Map(), fail = null, knowledge = 200 } = {}) => {
+  const files = new Map(), asked = [], dropped = [], entered = [];
   const sim = await simulate(snapshot_service, {
     rows,
     secrets: { BRAIN_KEY: "k" },
@@ -380,6 +402,10 @@ snapshotRig = async ({ feeds = {}, rows = new Map(), fail = null } = {}) => {
     },
     core: async (request) => {
       const u = new URL(request.url);
+      if (u.pathname.endsWith("knowledge.put")) {
+        entered.push({ entries: (await request.json()).entries });
+        return knowledge === 200 ? Response.json({ entered: entered.at(-1).entries.length, changed: 0, ids: [] }) : Response.json({ error: "MethodNotImplemented" }, { status: knowledge });
+      }
       if (u.pathname.endsWith("static.delete")) return dropped.push(await request.json()), Response.json({ deleted: 2, paths: [] });
       if (fail && fail(u.searchParams.get("path"))) return Response.json({ error: "Forbidden" }, { status: 403 });
       files.set(u.searchParams.get("path"), { public: u.searchParams.get("public"), tags: u.searchParams.get("tags"), caller: request.headers.get("x-brain-caller"), value: JSON.parse(await request.text()) });
@@ -390,7 +416,7 @@ snapshotRig = async ({ feeds = {}, rows = new Map(), fail = null } = {}) => {
     const r = await sim.fetch("https://snapshot.internal/xrpc/com.lopecode.brain.snapshot." + name, { method: body === undefined ? "GET" : "POST", headers: { "content-type": "application/json", "x-brain-caller": caller }, body: body === undefined ? undefined : JSON.stringify(body) });
     return { status: r.status, data: await r.json() };
   };
-  return { sim, files, asked, dropped, rows, call };
+  return { sim, files, asked, dropped, entered, rows, call };
 }
 // %%
 snapshotFixtures = ({
@@ -530,7 +556,16 @@ test_papers_are_the_ones_with_votes_a_lab_link_or_a_mention = {
   expect(got.papers.some((p) => ["2610.00005", "2610.00009"].includes(p.id))).toBe(false);
   expect(out.sources.map((s) => [s.name, s.count, !!s.lookup])).toEqual([["arxiv", 4, true], ["hf-papers", 3, false], ["lab", 1, false], ["blog", 1, false], ["hn", 2, false]]);
   expect(rig.files.get(out.sources[4].path).value.items.map((i) => i.papers)).toEqual([["2610.00002"], ["2610.00003"]]);
-  return "5 papers, 3 signals";
+  // The four with a title are entered in the knowledge base in one call, a signal as a tag. The one with only an id is not.
+  // Who entered them is the core's to say: it names this Worker to brain-x-knowledge.
+  expect([out.knowledge, rig.entered.length]).toEqual([{ entered: 4, changed: 0 }, 1]);
+  expect(rig.entered[0].entries.map((e) => [e.id, e.tags])).toEqual([["arxiv:2610.00001", ["votes-hf-papers", "mention-blog"]], ["arxiv:2610.00002", ["lab-lab", "mention-hn"]], ["arxiv:2610.00004", ["votes-hf-papers"]], ["arxiv:2610.00003", ["mention-hn"]]]);
+  expect(rig.entered[0].entries[1]).toEqual({ id: "arxiv:2610.00002", kind: "paper", title: "arXiv 2610.00002", text: "Announce Type: new Abstract 2610.00002", url: "https://arxiv.org/abs/2610.00002", source: "arxiv", method: "snapshot", tags: ["lab-lab", "mention-hn"] });
+  // A Brain with no knowledge base: the run is whole, and the index says the papers were not entered.
+  const none = await snapshotRig({ knowledge: 404, rows: new Map([["sources", sources.slice(1, 2)]]), feeds: { "https://hf.example/papers": [paper("2610.00001", 40)] } });
+  const bare = (await none.call("run", {})).data;
+  expect([bare.knowledge, bare.errors, bare.papers.count]).toEqual([{ error: "knowledge.put 404" }, [], 1]);
+  return "5 papers, 3 signals, 4 entered";
 }
 // %%
 test_the_timer_runs_once_a_day_after_six = {
@@ -577,10 +612,10 @@ test_the_owner_sets_the_sources_and_a_bad_list_is_refused = {
   return snapshotSources.length + " default sources";
 }
 // %%
-test_snapshot_declares_its_rules_its_timer_and_two_calls = {
+test_snapshot_declares_its_rules_its_timer_and_three_calls = {
   const { meta } = await snapshot_service.emit();
   expect(meta.worker).toBe("brain-x-snapshot");
-  expect([meta.calls, meta.secrets, meta.crons]).toEqual([["com.lopecode.brain.static.delete", "com.lopecode.brain.static.put"], [], ["0 6 * * *"]]);
+  expect([meta.calls, meta.secrets, meta.crons]).toEqual([["com.lopecode.brain.knowledge.put", "com.lopecode.brain.static.delete", "com.lopecode.brain.static.put"], [], ["0 6 * * *"]]);
   const N = "com.lopecode.brain.snapshot.";
   const ask = (m, caller, via = "") => decide(meta.access[N + m], { caller: callerOf({ caller, via }), origin: callerOf({ caller, via }), request: { params: {} } }).allow;
   expect([ask("run", "owner", "session"), ask("run", "owner", "token"), ask("run", "token:laptop"), ask("run", "worker:brain-x-echo"), ask("run", "anonymous")]).toEqual([true, false, false, false, false]);

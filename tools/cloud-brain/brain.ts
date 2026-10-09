@@ -3,7 +3,7 @@
  *   bun tools/cloud-brain/brain.ts install-deployer         # uploads .emitted/deployer.json as the deployer: <base>-deployer, or <base>-guard on a Brain from before 2026-10-08
  *   bun tools/cloud-brain/brain.ts migrate-deployer         # an old Brain: installs <base>-deployer, copies the rows of <base>-guard to it, and marks <base>-guard replaced
  *   bun tools/cloud-brain/brain.ts retire-guard             # after every Worker is deployed again: <base>-guard becomes a stub with no token and no recovery key
- *   bun tools/cloud-brain/brain.ts apply core.json [...]    # infra.apply with the recovery key
+ *   bun tools/cloud-brain/brain.ts apply core.json [...] --reason="why"   # infra.apply with the recovery key; --reason= is required here and by redistil --apply, remove and rollback
  *   bun tools/cloud-brain/brain.ts state | confirm | approval on|off | approve | rollback | remove <name>
  *   bun tools/cloud-brain/brain.ts redistil | distil | bindings | shell   # redistil: each Worker against its source, "same" when healthy
  *   bun tools/cloud-brain/brain.ts curl <path> [--owner] [-X POST -d '{}']   # the kernel; --owner or --other sends a minted session as Authorization: Bearer
@@ -65,7 +65,8 @@ const install = async (name: string, { replacedBy = null as string | null } = {}
   for (const p of e.parts) form.append(p.path, p.base64 != null ? new File([Buffer.from(p.base64, "base64")], p.path, { type: "application/wasm" }) : new File([p.text], p.path, { type: "application/javascript+module" }));
   const S = `/accounts/${st.account}/workers/scripts/${name}`;
   await api(S, { method: "PUT", body: form });
-  await api(S + "/subdomain", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ enabled: true }) });
+  // previews_enabled: false, on every install. With previews on, each old version answers at <8 hex of its id>-<name>.
+  await api(S + "/subdomain", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ enabled: true, previews_enabled: false }) });
   await api(S + "/schedules", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(replacedBy ? [] : e.meta.crons.map((cron: string) => ({ cron }))) });
   console.log(`${exists ? "updated" : "installed"} ${name} ${e.hash.slice(0, 12)} at ${urlOf(name)}${replacedBy ? " (replaced by " + replacedBy + ")" : ""}`);
 };
@@ -79,7 +80,10 @@ const deployer = async (method: string, body?: any) => {
 };
 const brief = (s: any) => ({ approval: s.approval, workers: (s.workers || []).map((w: any) => `${w.worker} ${String(w.hash).slice(0, 12)} ${w.state}${w.lastError ? " ERR " + w.lastError : ""}`), kernel: Object.fromEntries(Object.entries(s.kernel || {}).map(([k, v]: any) => [k, `${v.state} ${String(v.hash).slice(0, 12)} ${v.reason || ""}${v.deadline ? " until " + new Date(v.deadline).toISOString() : ""}`])), pending: (s.pending || []).map((p: any) => p.worker) });
 
-const [cmd, ...args] = process.argv.slice(2);
+const [cmd, ...all] = process.argv.slice(2);
+// --reason="…": why a change is made. The deployer logs it, and refuses an apply, a redistil --apply, a remove and a rollback without one.
+const reason = all.find((a) => a.startsWith("--reason="))?.slice("--reason=".length);
+const args = all.filter((a) => !a.startsWith("--reason="));
 // install-guard: the name of this command until 2026-10-07, when the deployer was called the guard.
 if (cmd === "install-deployer" || cmd === "install-guard") {
   // A new Brain's base has no dash: brain-logs reads every script named BASE-…, so cb4 would read the Brain cb4-test.
@@ -141,6 +145,8 @@ export class Rows {
   form.append("worker.js", new File([code], "worker.js", { type: "application/javascript+module" }));
   const S = `/accounts/${st.account}/workers/scripts/${from}`;
   await api(S, { method: "PUT", body: form });
+  // The versions before the stub held the token and the recovery key: their preview addresses are switched off.
+  await api(S + "/subdomain", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ enabled: true, previews_enabled: false }) });
   await api(S + "/schedules", { method: "PUT", headers: { "content-type": "application/json" }, body: "[]" });
   let now = (await api(S + "/settings")).bindings.map((b: any) => b.name).sort();
   for (const name of now.filter((n: string) => !["ROWS", "BRAIN_CONFIG"].includes(n))) await api(`${S}/secrets/${name}`, { method: "DELETE" });
@@ -161,13 +167,13 @@ export class Rows {
     const named = ["SESSION_KEY", "COOKIE_KEY"].filter((n) => e.meta.secrets.includes(n));
     if (named.length) { st.sessionKey ??= st.cookieKey ?? hex(); st.cookieKey ??= st.sessionKey; save(); w.secrets = Object.fromEntries(named.map((n) => [n, n === "SESSION_KEY" ? st.sessionKey : st.cookieKey])); }
     const t = performance.now();
-    const out = await deployer("apply", { workers: [w] });
+    const out = await deployer("apply", { workers: [w], reason });
     console.log(f, Math.round(performance.now() - t) + " ms", JSON.stringify(out.results ? out.results.map((r: any) => ({ ...r, hash: String(r.hash).slice(0, 12) })) : out));
     for (const r of out.results || []) if (r.hash && r.hash !== e.hash) console.log(`  the deployer distilled ${String(r.hash).slice(0, 12)}; the browser emitted ${e.hash.slice(0, 12)}`);
   }
 } else if (cmd === "redistil") {
   // After a deployer update: distil every Worker's kept source again; --apply deploys the ones whose code changes.
-  const out = await deployer("redistil", { apply: args.includes("--apply") });
+  const out = await deployer("redistil", { apply: args.includes("--apply"), reason });
   console.log("distiller", String(out.distiller).slice(0, 12));
   for (const r of out.results || []) console.log(" ", r.worker.padEnd(18), r.state, r.from ? String(r.from).slice(0, 12) + " -> " : "", String(r.hash || "").slice(0, 12), r.applied || "", r.reason || "");
   if (!out.results) console.log(JSON.stringify(out).slice(0, 400));
@@ -186,12 +192,12 @@ export class Rows {
     const out = await deployer("distil", { module: e.source.module, source: e.source.text, files, ...(e.meta.role === "deployer" || e.meta.role === "guard" ? { cell: "deployer_service" } : {}) });
     console.log(f.padEnd(14), Math.round(performance.now() - t) + " ms", out.hash ? `${out.hash.slice(0, 12)} browser ${e.hash.slice(0, 12)} ${out.hash === e.hash ? "identical" : "DIFFERS"}` : JSON.stringify(out).slice(0, 300));
   }
-} else if (cmd === "remove") console.log(JSON.stringify(await deployer("apply", { remove: args })));
+} else if (cmd === "remove") console.log(JSON.stringify(await deployer("apply", { remove: args, reason })));
 else if (cmd === "state") console.log(JSON.stringify(args[0] === "--full" ? await deployer("getState") : brief(await deployer("getState")), null, 1));
 else if (cmd === "confirm") console.log(JSON.stringify(await deployer("confirm", {})));
 else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
   const action = cmd === "approval" ? "approval:" + args[0] : cmd + ":" + args.join(":");
-  const r = await fetch(G() + "/", { method: "POST", body: new URLSearchParams({ key: st.recoveryKey, action }) });
+  const r = await fetch(G() + "/", { method: "POST", body: new URLSearchParams({ key: st.recoveryKey, action, ...(reason ? { reason } : {}) }) });
   console.log(r.status, /class="note">([^<]*)/.exec(await r.text())?.[1]);
 } else if (cmd === "session") {
   // An owner session for checks, in the format of brain-kernel's sessionToken cell, signed with the key this

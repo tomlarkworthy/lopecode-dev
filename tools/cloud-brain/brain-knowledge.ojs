@@ -1,0 +1,459 @@
+md`# brain-knowledge
+
+What a Cloud Brain knows: one entry for each thing found, with where it was found and how it was entered. The entries are in a database of their own. No other Worker is bound to it, and it is not the database the Brain runs on.
+
+An entry holds text to search, not a file. A paper's PDF or a page's HTML stays in \`brain-static\`; the entry has its path and its SHA-256.`
+// %%
+viewof knowledgeView = knowledgePanel({ client, owner: !!(session && session.owner) })
+// %%
+md`## Methods
+
+| | |
+|---|---|
+| Worker | \`brain-x-knowledge\` |
+| \`knowledge.put\` | procedure. One entry, or \`{ entries: [...] }\`, ${knowledgeLimits.batch} at most. \`{ entered, changed, ids }\`. |
+| \`knowledge.get\` | query. \`?id=\`. The entry, or 404 \`EntryNotFound\`. |
+| \`knowledge.search\` | query. \`?q=\` and the filters below, \`limit\` 1 to ${knowledgeLimits.page} (20). \`{ entries }\`, best match first, each with a \`snippet\`. |
+| \`knowledge.list\` | query. The filters below, \`limit\`, \`cursor\`. \`{ entries, cursor }\`, last entered first. |
+| \`knowledge.delete\` | procedure. \`{ id }\` or \`{ ids }\`. \`{ deleted }\`. |
+| \`knowledge.stats\` | query. \`{ entries, kinds, sources, by }\`: counts, the last two of the 100 largest. |
+| Filters | \`source\`, \`kind\`, \`by\`, \`tag\`, and \`since\` (milliseconds or an ISO date, compared with \`at\`) |
+| Storage | \`database\`: \`entries\` and its full-text index \`entries_fts\` |
+
+## An entry
+
+| field | |
+|---|---|
+| \`id\` | \`a-z 0-9 . _ : -\`, 1 to ${knowledgeLimits.id} characters. Left out, it is the SHA-256 of the kind, the URL and the title. One thing has one id whoever enters it: \`arxiv:2610.08077\`. |
+| \`kind\` | ${knowledgeKinds.map((k) => "\`" + k + "\`").join(", ")} |
+| \`title\` | 1 to ${knowledgeLimits.title} characters |
+| \`text\` | the abstract, the summary or the finding, ${knowledgeLimits.text} characters at most. This and the title are what a search reads. |
+| \`url\` | where it was found |
+| \`source\` | the service it came from, \`a-z 0-9 -\`: \`arxiv\`, \`hn\`, \`simon-willison\` |
+| \`published\` | the date the source gives, as text |
+| \`file\`, \`sha256\` | the path of the kept copy in \`brain-static\` and the SHA-256 of its bytes |
+| \`method\` | how it was entered, ${knowledgeLimits.method} characters at most: \`snapshot\`, \`digest:research-2026-10-09\`, \`manual\` |
+| \`cites\` | ids of the entries this one is drawn from, ${knowledgeLimits.cites} at most. A finding cites its sources. |
+| \`tags\` | \`a-z 0-9 -\`, ${knowledgeLimits.tags} at most |
+| \`by\`, \`at\` | who entered it and when. Set here from the caller the core names (\`owner\`, \`token:NAME\`, \`worker:brain-x-NAME\`, a DID); a value in the body is not read. |
+| \`changed\` | \`null\`, or \`{ by, method, at }\` of the last put after the first |
+
+A put of an id that is kept changes the entry. \`by\`, \`method\` and \`at\` stay as first entered. A field left out keeps its value; \`tags\` and \`cites\` are joined with those kept.
+
+\`\`\`js
+await client.procedure("knowledge.put", { id: "arxiv:2610.08077", kind: "paper", title: "Self-Retrospection Distillation", text: "…", url: "https://arxiv.org/abs/2610.08077", source: "arxiv", method: "manual" })
+await client.query("knowledge.search", { q: "hindsight training", kind: "paper" })
+\`\`\``
+// %%
+md`## Who can call
+
+Until the owner changes a rule: the owner and their tokens call every method. \`knowledge.put\` is also open to \`brain-x-snapshot\`, which enters the day's papers. Another Worker that enters what it finds needs a rule on \`knowledge.put\` that names it. Nothing here is public.
+
+## Search
+
+\`q\` is words. Each must be in the entry, in any order; a word ending \`*\` matches by its start. The words are stemmed (SQLite FTS5, \`porter unicode61\`): \`training\` finds \`train\`. A match in the title counts four times one in the text, and one in the tags twice. Search is by words, not by meaning.
+
+## Limits
+
+- The text of a PDF is not read. A paper is found by its title and its abstract.
+- Cloudflare does not export a D1 database that has a virtual table, and \`entries_fts\` is one. To export: drop \`entries_fts\`, export, and make it again from \`entries\`. Not run.
+- An entry does not say whether its \`file\` is still kept. Deleting the file leaves the entry.
+- Two puts of one id at the same moment: the second to read may not see the first's tags.`
+// %%
+knowledge_service = cloudflare.Service("knowledge", knowledgeApp, {
+  methods: {
+    "com.lopecode.brain.knowledge.put": { type: "procedure", who: "worker:brain-x-snapshot" },
+    "com.lopecode.brain.knowledge.get": { type: "query", who: "owner" },
+    "com.lopecode.brain.knowledge.search": { type: "query", who: "owner" },
+    "com.lopecode.brain.knowledge.list": { type: "query", who: "owner" },
+    "com.lopecode.brain.knowledge.delete": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.knowledge.stats": { type: "query", who: "owner" }
+  }
+})
+// %%
+knowledge_announce = {
+  plugins.add("workers", knowledge_service, { invalidation });
+  return "announced knowledge_service";
+}
+// %%
+knowledgeKinds = ["paper", "article", "post", "finding", "note", "other"]
+// %%
+knowledgeLimits = ({ batch: 100, page: 100, id: 100, title: 500, text: 16000, url: 2000, method: 100, cites: 50, tags: 16 })
+// %%
+// entries has a rowid (n) so that its full-text row is found by rowid; "by" is a word of SQL, so the column is entered_by.
+knowledgeSchema = [
+  "CREATE TABLE IF NOT EXISTS entries (n INTEGER PRIMARY KEY, id TEXT NOT NULL UNIQUE, kind TEXT NOT NULL, title TEXT NOT NULL, text TEXT NOT NULL, url TEXT, source TEXT, published TEXT, file TEXT, sha256 TEXT, entered_by TEXT NOT NULL, method TEXT NOT NULL, at INTEGER NOT NULL, upd_by TEXT, upd_method TEXT, upd_at INTEGER, cites TEXT NOT NULL, tags TEXT NOT NULL)",
+  "CREATE INDEX IF NOT EXISTS entries_newest ON entries (at, id)",
+  "CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(title, text, tags, tokenize = 'porter unicode61')"
+]
+// %%
+knowledgeSql = {
+  const COLS = "e.id AS id, e.kind AS kind, e.title AS title, e.text AS text, e.url AS url, e.source AS source, e.published AS published, e.file AS file, e.sha256 AS sha256, e.entered_by AS entered_by, e.method AS method, e.at AS at, e.upd_by AS upd_by, e.upd_method AS upd_method, e.upd_at AS upd_at, e.cites AS cites, e.tags AS tags";
+  // ?1 source, ?2 kind, ?3 who entered it, ?4 since, ?5 a LIKE pattern for one tag. An empty text is no filter.
+  const FILTER = "(?1 = '' OR e.source = ?1) AND (?2 = '' OR e.kind = ?2) AND (?3 = '' OR e.entered_by = ?3) AND e.at >= ?4 AND (?5 = '' OR e.tags LIKE ?5)";
+  return {
+    get: `SELECT ${COLS} FROM entries e WHERE e.id = ?1`,
+    // A put of a kept id leaves entered_by, method and at as they were.
+    put: "INSERT INTO entries (id, kind, title, text, url, source, published, file, sha256, entered_by, method, at, cites, tags) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14) ON CONFLICT (id) DO UPDATE SET kind = excluded.kind, title = excluded.title, text = excluded.text, url = excluded.url, source = excluded.source, published = excluded.published, file = excluded.file, sha256 = excluded.sha256, cites = excluded.cites, tags = excluded.tags, upd_by = excluded.entered_by, upd_method = excluded.method, upd_at = excluded.at",
+    ftsDrop: "DELETE FROM entries_fts WHERE rowid = (SELECT n FROM entries WHERE id = ?1)",
+    ftsAdd: "INSERT INTO entries_fts (rowid, title, text, tags) SELECT n, title, text, tags FROM entries WHERE id = ?1",
+    drop: "DELETE FROM entries WHERE id = ?1",
+    // D1 binds a number as a float: the limit is cast.
+    list: `SELECT ${COLS} FROM entries e WHERE ${FILTER} AND (e.at < ?6 OR (e.at = ?6 AND e.id < ?7)) ORDER BY e.at DESC, e.id DESC LIMIT CAST(?8 AS INTEGER)`,
+    search: `SELECT ${COLS}, snippet(entries_fts, -1, '[', ']', ' … ', 24) AS snippet FROM entries_fts JOIN entries e ON e.n = entries_fts.rowid WHERE entries_fts MATCH ?6 AND ${FILTER} ORDER BY bm25(entries_fts, 4.0, 1.0, 2.0) LIMIT CAST(?7 AS INTEGER)`,
+    total: "SELECT COUNT(*) AS n FROM entries",
+    byKind: "SELECT kind AS name, COUNT(*) AS n FROM entries GROUP BY kind ORDER BY n DESC",
+    bySource: "SELECT COALESCE(source, '') AS name, COUNT(*) AS n FROM entries GROUP BY source ORDER BY n DESC LIMIT 100",
+    byWho: "SELECT entered_by AS name, COUNT(*) AS n FROM entries GROUP BY entered_by ORDER BY n DESC LIMIT 100"
+  };
+}
+// %%
+// q as an FTS5 query: each word quoted, so nothing in it is read as syntax. A word ending * matches by its start.
+knowledgeMatch = (q) =>
+  String(q || "")
+    .split(/\s+/)
+    .map((w) => [w.replace(/["*]/g, ""), w.endsWith("*")])
+    .filter(([w]) => w)
+    .slice(0, 20)
+    .map(([w, start]) => `"${w}"` + (start ? "*" : ""))
+    .join(" ")
+// %%
+// One entry as given, checked. { entry } with every field, or { error }. kept is the entry of the same id, if any.
+knowledgeEntry = async (given, kept = null) => {
+  const L = knowledgeLimits, e = given;
+  if (!e || typeof e !== "object" || Array.isArray(e)) return { error: "an entry is an object" };
+  const text = (k, max, { need = false, pattern = null } = {}) => {
+    const v = e[k] === undefined || e[k] === null ? (kept ? kept[k] : null) : e[k];
+    if (v === null || v === undefined || v === "") return need ? { error: `${k}: needed` } : { value: null };
+    if (typeof v !== "string" || v.length > max || (pattern && !pattern.test(v))) return { error: `${k}: text of ${max} characters at most${pattern ? ", " + pattern.source : ""}` };
+    return { value: v };
+  };
+  const NAME = /^[a-z0-9-]{1,40}$/, ID = /^[a-z0-9][a-z0-9._:-]*$/;
+  const list = (k, max, pattern) => {
+    const v = e[k] === undefined || e[k] === null ? [] : e[k];
+    if (!Array.isArray(v) || !v.every((t) => typeof t === "string" && pattern.test(t) && t.length <= L.id)) return { error: `${k}: a list of ${pattern.source}` };
+    const all = [...new Set([...((kept && kept[k]) || []), ...v])];
+    return all.length > max ? { error: `${k}: ${max} at most` } : { value: all };
+  };
+  const out = {};
+  const fields = [
+    ["kind", () => (knowledgeKinds.includes(e.kind === undefined && kept ? kept.kind : e.kind) ? { value: e.kind === undefined && kept ? kept.kind : e.kind } : { error: "kind: one of " + knowledgeKinds.join(", ") })],
+    ["title", () => text("title", L.title, { need: true })],
+    ["text", () => ((r) => (r.error ? r : { value: r.value || "" }))(text("text", L.text))],
+    ["url", () => text("url", L.url, { pattern: /^https?:\/\/\S+$/ })],
+    ["source", () => text("source", 40, { pattern: NAME })],
+    ["published", () => text("published", 40)],
+    ["file", () => text("file", 200, { pattern: /^[A-Za-z0-9@._-]+(\/[A-Za-z0-9@._-]+)*$/ })],
+    ["sha256", () => text("sha256", 64, { pattern: /^[0-9a-f]{64}$/ })],
+    ["method", () => text("method", L.method, { need: true, pattern: /^[A-Za-z0-9._:/ -]+$/ })],
+    ["cites", () => list("cites", L.cites, ID)],
+    ["tags", () => list("tags", L.tags, NAME)]
+  ];
+  for (const [k, check] of fields) {
+    const r = check();
+    if (r.error) return { error: r.error };
+    out[k] = r.value;
+  }
+  if (e.id !== undefined && !(typeof e.id === "string" && e.id.length <= L.id && ID.test(e.id))) return { error: `id: ${ID.source}, ${L.id} characters at most` };
+  out.id = e.id !== undefined ? e.id : await sha256([out.kind, out.url || "", out.title].join("\n"));
+  return { entry: out };
+}
+// %%
+knowledgeApp = {
+  const app = new hono.Hono();
+  const NS = "/xrpc/com.lopecode.brain.knowledge.", L = knowledgeLimits, S = knowledgeSql;
+  const fail = (c, status, error, message) => c.json({ error, message }, status);
+  let ready = null;
+  const schema = () =>
+    (ready ??= database.batch(knowledgeSchema.map((s) => [s])).catch((e) => {
+      ready = null;
+      throw e;
+    }));
+  const run = async (list) => (await schema(), database.batch(list));
+  const json = (t) => { try { return JSON.parse(t); } catch { return []; } };
+  const view = (r) => ({
+    id: r.id, kind: r.kind, title: r.title, text: r.text, url: r.url, source: r.source, published: r.published, file: r.file, sha256: r.sha256,
+    by: r.entered_by, method: r.method, at: r.at, changed: r.upd_at ? { by: r.upd_by, method: r.upd_method, at: r.upd_at } : null, cites: json(r.cites), tags: json(r.tags),
+    ...(r.snippet !== undefined ? { snippet: r.snippet } : {})
+  });
+  // The filters of search and list, as the five arguments of FILTER.
+  const filters = (c) => {
+    const q = (k) => c.req.query(k) || "", since = q("since");
+    const at = since === "" ? 0 : /^\d{1,16}$/.test(since) ? Number(since) : Date.parse(since);
+    if (!Number.isFinite(at)) return { error: "since: milliseconds or a date" };
+    for (const k of ["source", "tag"]) if (q(k) && !/^[a-z0-9-]{1,40}$/.test(q(k))) return { error: k + ": a-z 0-9 -" };
+    if (q("kind") && !knowledgeKinds.includes(q("kind"))) return { error: "kind: one of " + knowledgeKinds.join(", ") };
+    if (q("by").length > 300) return { error: "by" };
+    return { args: [q("source"), q("kind"), q("by"), at, q("tag") ? `%"${q("tag")}"%` : ""] };
+  };
+  const limitOf = (c, usual) => {
+    const n = c.req.query("limit") == null ? usual : Number(c.req.query("limit"));
+    return Number.isInteger(n) && n >= 1 && n <= L.page ? n : null;
+  };
+
+  app.post(NS + "put", async (c) => {
+    const b = await c.req.json().catch(() => null);
+    const given = b && Array.isArray(b.entries) ? b.entries : b && typeof b === "object" ? [b] : null;
+    if (!given || !given.length || given.length > L.batch) return fail(c, 400, "InvalidRequest", `one entry, or { entries } of 1 to ${L.batch}`);
+    // The core named the caller. Nothing in the body says who enters.
+    const by = c.req.header("x-brain-caller") || "anonymous", now = Date.now();
+    // What is kept under the ids given, so that a field left out keeps its value. An entry with no id is asked by the id it will get.
+    const first = [];
+    for (const [i, e] of given.entries()) {
+      const r = await knowledgeEntry(e);
+      // A changed entry may leave out what a new one needs; it is checked again below against what is kept.
+      first.push(r.entry ? r.entry.id : e && typeof e.id === "string" && /^[a-z0-9][a-z0-9._:-]{0,99}$/.test(e.id) ? e.id : null);
+      if (!first[i]) return fail(c, 400, "InvalidRequest", `entry ${i + 1}: ${r.error}`);
+    }
+    const was = new Map();
+    const got = await run([...new Set(first)].map((id) => [S.get, id]));
+    for (const r of got) if (r.rows[0]) was.set(r.rows[0].id, view(r.rows[0]));
+    const entries = [], seen = new Map();
+    for (const [i, e] of given.entries()) {
+      // The same id twice in one call: the second is a change of the first.
+      const kept = seen.get(first[i]) || was.get(first[i]) || null;
+      const r = await knowledgeEntry({ ...e, id: first[i] }, kept);
+      if (r.error) return fail(c, 400, "InvalidRequest", `entry ${i + 1}: ${r.error}`);
+      seen.set(first[i], r.entry);
+      entries.push(r.entry);
+    }
+    const row = (e) => [S.put, e.id, e.kind, e.title, e.text, e.url, e.source, e.published, e.file, e.sha256, by, e.method, now, JSON.stringify(e.cites), JSON.stringify(e.tags)];
+    // One transaction for each 20 entries: the full-text row goes, the entry is written, its full-text row is made again.
+    for (let i = 0; i < entries.length; i += 20) await run(entries.slice(i, i + 20).flatMap((e) => [[S.ftsDrop, e.id], row(e), [S.ftsAdd, e.id]]));
+    const ids = [...new Set(first)], changed = ids.filter((id) => was.has(id)).length;
+    return c.json({ entered: ids.length - changed, changed, ids });
+  });
+  app.get(NS + "get", async (c) => {
+    const id = c.req.query("id") || "";
+    const r = (await run([[S.get, id]]))[0].rows[0];
+    return r ? c.json(view(r)) : fail(c, 404, "EntryNotFound", id.slice(0, 100));
+  });
+  app.get(NS + "search", async (c) => {
+    const match = knowledgeMatch(c.req.query("q")), f = filters(c), limit = limitOf(c, 20);
+    if (!match) return fail(c, 400, "InvalidRequest", "q: words to find");
+    if (f.error || !limit) return fail(c, 400, "InvalidRequest", f.error || `limit: 1 to ${L.page}`);
+    return c.json({ entries: (await run([[S.search, ...f.args, match, limit]]))[0].rows.map(view) });
+  });
+  app.get(NS + "list", async (c) => {
+    const f = filters(c), limit = limitOf(c, 50), cursor = c.req.query("cursor"), at = cursor == null ? null : /^(\d{1,16})::(.{1,100})$/.exec(cursor);
+    if (f.error || !limit || (cursor != null && !at)) return fail(c, 400, "InvalidRequest", f.error || (limit ? "cursor" : `limit: 1 to ${L.page}`));
+    const found = (await run([[S.list, ...f.args, at ? Number(at[1]) : Number.MAX_SAFE_INTEGER, at ? at[2] : "", limit]]))[0].rows;
+    const last = found.at(-1);
+    return c.json({ entries: found.map(view), cursor: found.length === limit ? `${last.at}::${last.id}` : undefined });
+  });
+  app.post(NS + "delete", async (c) => {
+    const b = (await c.req.json().catch(() => null)) || {};
+    const ids = Array.isArray(b.ids) ? b.ids : typeof b.id === "string" ? [b.id] : null;
+    if (!ids || !ids.length || ids.length > L.batch || !ids.every((id) => typeof id === "string" && id.length <= L.id)) return fail(c, 400, "InvalidRequest", `id, or ids of 1 to ${L.batch}`);
+    const done = await run([...new Set(ids)].flatMap((id) => [[S.ftsDrop, id], [S.drop, id]]));
+    // Every second answer is the entry's own row: the full-text table counts its inner rows.
+    return c.json({ deleted: done.reduce((n, r, i) => n + (i % 2 ? r.changes || 0 : 0), 0) });
+  });
+  app.get(NS + "stats", async (c) => {
+    const [total, kinds, sources, who] = await run([[S.total], [S.byKind], [S.bySource], [S.byWho]]);
+    const counts = (r) => Object.fromEntries(r.rows.map((x) => [x.name, Number(x.n)]));
+    return c.json({ entries: Number(total.rows[0].n) || 0, kinds: counts(kinds), sources: counts(sources), by: counts(who), limits: L });
+  });
+  return app;
+}
+// %%
+// A search box and the entries it finds. With nothing typed, the last entered.
+knowledgePanel = ({ client, owner = false } = {}) => {
+  const muted = "color:var(--theme-foreground-muted)";
+  if (!client || !owner) return Object.assign(htl.html`<i style=${muted}>Sign in to a Brain as the owner to search what it knows.</i>`, { value: null });
+  const box = htl.html`<div></div>`, note = htl.html`<div style="${muted};margin:6px 0"></div>`;
+  const q = Inputs.text({ label: "Find", placeholder: "words", width: "24em", submit: "Search" });
+  const kind = Inputs.select(["", ...knowledgeKinds], { label: "Kind", format: (k) => k || "any" });
+  const el = Object.assign(htl.html`<div>${q}${kind}${note}${box}</div>`, { value: [] });
+  const link = (u) => (u ? htl.html`<a href=${u} target="_blank" rel="noopener">${new URL(u).hostname}</a>` : "");
+  const draw = async () => {
+    const params = { ...(kind.value ? { kind: kind.value } : {}) };
+    const [found, stats] = await Promise.all([q.value ? client.query("knowledge.search", { ...params, q: q.value }) : client.query("knowledge.list", { ...params, limit: 50 }), client.query("knowledge.stats")]);
+    el.value = found.entries;
+    note.textContent = `${stats.entries} entries. ` + (q.value ? `${found.entries.length} found.` : "The last entered:");
+    box.replaceChildren(
+      found.entries.length
+        ? Inputs.table(found.entries.map((e) => ({ kind: e.kind, title: e.title, found: e.snippet || e.text.slice(0, 160), source: e.source || "", url: e.url, file: e.file || "", by: e.by, method: e.method, entered: new Date(e.at) })), { layout: "auto", format: { url: link, entered: (d) => d.toISOString().slice(0, 16).replace("T", " ") } })
+        : htl.html`<i style=${muted}>Nothing.</i>`
+    );
+  };
+  el.load = () => draw().catch((e) => void (note.textContent = "knowledge failed: " + ((e && e.message) || e)));
+  q.addEventListener("input", el.load);
+  kind.addEventListener("input", el.load);
+  el.ready = el.load();
+  return el;
+}
+// %%
+md`## Tests
+
+No SQL engine runs in a page. \`knowledgeFakeSql\` answers for the statements of \`knowledgeSql\` from one map, and refuses any other statement. Its search finds a word as written, with no stemming and no ranking. The statements, stemming and the snippet ran on a D1 database on 2026-10-09.`
+// %%
+knowledgeFakeSql = () => {
+  const entries = new Map(), fts = new Map(), seen = [];
+  let n = 0;
+  const S = knowledgeSql;
+  const pass = (e, [source, kind, by, since, tag]) => (!source || e.source === source) && (!kind || e.kind === kind) && (!by || e.entered_by === by) && e.at >= since && (!tag || e.tags.includes(tag.slice(1, -1)));
+  const newest = (a, b) => b.at - a.at || (a.id < b.id ? 1 : -1);
+  const cols = ({ n: _, ...e }) => e;
+  const run = async (statement, a) => {
+    seen.push(statement);
+    if (knowledgeSchema.includes(statement)) return { rows: [], changes: 0 };
+    if (statement === S.get) return { rows: entries.has(a[0]) ? [cols(entries.get(a[0]))] : [], changes: 0 };
+    if (statement === S.put) {
+      const [id, kind, title, text, url, source, published, file, sha256, by, method, at, cites, tags] = a, was = entries.get(id);
+      entries.set(id, was ? { ...was, kind, title, text, url, source, published, file, sha256, cites, tags, upd_by: by, upd_method: method, upd_at: at } : { n: ++n, id, kind, title, text, url, source, published, file, sha256, entered_by: by, method, at, upd_by: null, upd_method: null, upd_at: null, cites, tags });
+      return { rows: [], changes: 1 };
+    }
+    if (statement === S.ftsDrop) return { rows: [], changes: entries.has(a[0]) && fts.delete(entries.get(a[0]).n) ? 3 : 0 };
+    if (statement === S.ftsAdd) return fts.set(entries.get(a[0]).n, a[0]), { rows: [], changes: 3 };
+    if (statement === S.drop) return { rows: [], changes: entries.delete(a[0]) ? 1 : 0 };
+    if (statement === S.list) return { rows: [...entries.values()].filter((e) => pass(e, a) && (e.at < a[5] || (e.at === a[5] && e.id < a[6]))).sort(newest).slice(0, a[7]).map(cols), changes: 0 };
+    if (statement === S.search) {
+      const words = [...a[5].matchAll(/"([^"]*)"(\*?)/g)].map((m) => [m[1].toLowerCase(), !!m[2]]);
+      const has = (e, [w, start]) => `${e.title} ${e.text} ${e.tags}`.toLowerCase().split(/[^a-z0-9]+/).some((t) => (start ? t.startsWith(w) : t === w));
+      // Only entries with a full-text row are found, as in the database.
+      return { rows: [...fts.values()].map((id) => entries.get(id)).filter((e) => e && pass(e, a) && words.every((w) => has(e, w))).sort(newest).slice(0, a[6]).map((e) => ({ ...cols(e), snippet: e.text.slice(0, 60) })), changes: 0 };
+    }
+    if (statement === S.total) return { rows: [{ n: entries.size }], changes: 0 };
+    const count = (key) => ({ rows: Object.entries([...entries.values()].reduce((m, e) => ({ ...m, [key(e)]: (m[key(e)] || 0) + 1 }), {})).map(([name, n]) => ({ name, n })), changes: 0 });
+    if (statement === S.byKind) return count((e) => e.kind);
+    if (statement === S.bySource) return count((e) => e.source || "");
+    if (statement === S.byWho) return count((e) => e.entered_by);
+    throw new Error("a statement knowledgeSql does not hold: " + statement);
+  };
+  return { run, entries, fts, seen };
+}
+// %%
+knowledgeRig = async () => {
+  const db = knowledgeFakeSql();
+  const sim = await simulate(knowledge_service, { sql: db.run });
+  const X = "https://knowledge.internal/xrpc/com.lopecode.brain.knowledge.";
+  const as = (who) => {
+    const send = async (path, init = {}) => {
+      const r = await sim.fetch(X + path, { ...init, headers: { ...(init.headers || {}), "x-brain-caller": who } });
+      return { status: r.status, data: await r.json() };
+    };
+    return { get: (name, params = {}) => send(name + "?" + new URLSearchParams(params)), post: (name, input) => send(name, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) }) };
+  };
+  const paper = (n, more = {}) => ({ id: "arxiv:" + n, kind: "paper", title: "Paper " + n, text: "agents learn from hindsight " + n, url: "https://arxiv.org/abs/" + n, source: "arxiv", method: "snapshot", ...more });
+  return { sim, db, as, owner: as("owner"), snapshot: as("worker:brain-x-snapshot"), paper };
+}
+// %%
+test_knowledge_records_who_entered_it_and_how = {
+  const rig = await knowledgeRig();
+  // The caller is the one the core names. by and at in the body are not read.
+  expect((await rig.snapshot.post("put", { ...rig.paper(1), by: "owner", at: 5 })).data).toEqual({ entered: 1, changed: 0, ids: ["arxiv:1"] });
+  const first = (await rig.owner.get("get", { id: "arxiv:1" })).data;
+  expect(first).toMatchObject({ id: "arxiv:1", kind: "paper", by: "worker:brain-x-snapshot", method: "snapshot", changed: null, url: "https://arxiv.org/abs/1", file: null, cites: [], tags: [] });
+  expect(first.at).toBeGreaterThan(1e12);
+  // A second put changes the entry and not how it entered. A field left out keeps its value; tags are joined.
+  await rig.snapshot.post("put", { id: "arxiv:1", tags: ["votes-hf-papers"] });
+  expect((await rig.owner.post("put", { id: "arxiv:1", file: "corpus/2026-10-09/hf-papers/1.pdf", sha256: "a".repeat(64), method: "digest:research-2026-10-09", tags: ["agents"] })).data).toEqual({ entered: 0, changed: 1, ids: ["arxiv:1"] });
+  const second = (await rig.owner.get("get", { id: "arxiv:1" })).data;
+  expect(second).toMatchObject({ by: "worker:brain-x-snapshot", method: "snapshot", at: first.at, title: "Paper 1", url: "https://arxiv.org/abs/1", file: "corpus/2026-10-09/hf-papers/1.pdf", tags: ["votes-hf-papers", "agents"] });
+  expect(second.changed).toMatchObject({ by: "owner", method: "digest:research-2026-10-09" });
+  // A finding cites its source. With no id, the id is the hash of kind, url and title, so the same finding is one entry.
+  const finding = { kind: "finding", title: "Hindsight as a training target", text: "0.0% to 60.6%", cites: ["arxiv:1"], method: "digest:research-2026-10-09" };
+  const a = (await rig.owner.post("put", finding)).data, b = (await rig.owner.post("put", finding)).data;
+  expect([a.entered, b.changed, a.ids[0] === b.ids[0], /^[0-9a-f]{64}$/.test(a.ids[0])]).toEqual([1, 1, true, true]);
+  expect((await rig.owner.get("get", { id: a.ids[0] })).data.cites).toEqual(["arxiv:1"]);
+  expect((await rig.owner.get("get", { id: "arxiv:9" })).data.error).toBe("EntryNotFound");
+  return "entered by the Worker, changed by the owner";
+}
+// %%
+test_knowledge_search_finds_by_word_and_filter = {
+  const rig = await knowledgeRig(), o = rig.owner;
+  await rig.snapshot.post("put", { entries: [rig.paper(1), rig.paper(2, { text: "speech models", tags: ["speech"] })] });
+  await o.post("put", { id: "hn:3", kind: "post", title: "Whistle", text: "a small speech model", source: "hn", method: "manual" });
+  const found = async (params) => (await o.get("search", params)).data.entries.map((e) => e.id).sort();
+  expect(await found({ q: "speech" })).toEqual(["arxiv:2", "hn:3"]);
+  expect(await found({ q: "speech", source: "hn" })).toEqual(["hn:3"]);
+  expect(await found({ q: "speech", kind: "paper" })).toEqual(["arxiv:2"]);
+  expect(await found({ q: "speech", by: "owner" })).toEqual(["hn:3"]);
+  expect(await found({ q: "speech", tag: "speech" })).toEqual(["arxiv:2"]);
+  expect(await found({ q: "agents hindsight" })).toEqual(["arxiv:1"]);
+  expect(await found({ q: "hind*" })).toEqual(["arxiv:1"]);
+  expect(await found({ q: "speech", since: String(Date.now() + 60000) })).toEqual([]);
+  expect((await o.get("search", { q: "speech" })).data.entries[0].snippet).toBeTruthy();
+  // What is typed is words, never syntax of the index.
+  expect([knowledgeMatch('agents AND ("hind* OR'), knowledgeMatch("  "), knowledgeMatch("a*b c*")]).toEqual(['"agents" "AND" "(hind"* "OR"', "", '"ab" "c"*']);
+  for (const params of [{}, { q: '"' }, { q: "a", limit: "0" }, { q: "a", limit: "101" }, { q: "a", kind: "book" }, { q: "a", source: "A B" }, { q: "a", since: "soon" }]) expect((await o.get("search", params)).status).toBe(400);
+  // A changed entry is found by its new words only, and a deleted one not at all.
+  await o.post("put", { id: "hn:3", text: "a tiny audio model" });
+  expect([await found({ q: "speech" }), await found({ q: "audio" })]).toEqual([["arxiv:2"], ["hn:3"]]);
+  expect((await o.post("delete", { ids: ["hn:3", "hn:4"] })).data).toEqual({ deleted: 1 });
+  expect([await found({ q: "audio" }), rig.db.fts.size, rig.db.entries.size]).toEqual([[], 2, 2]);
+  return "8 searches, 7 refused";
+}
+// %%
+test_knowledge_list_pages_and_stats_count = {
+  const rig = await knowledgeRig(), o = rig.owner;
+  await rig.snapshot.post("put", { entries: [1, 2, 3, 4, 5].map((n) => rig.paper(n)) });
+  await new Promise((r) => setTimeout(r, 3));
+  await o.post("put", { kind: "note", title: "A note", method: "manual", source: "hn" });
+  // Last entered first; one call's entries share a time and are ordered by id.
+  const one = (await o.get("list", { limit: "4" })).data, two = (await o.get("list", { limit: "4", cursor: one.cursor })).data;
+  expect([one.entries.map((e) => e.kind), two.entries.map((e) => e.id), two.cursor]).toEqual([["note", "paper", "paper", "paper"], ["arxiv:2", "arxiv:1"], undefined]);
+  expect((await o.get("list", { kind: "note" })).data.entries.length).toBe(1);
+  expect((await o.get("list", { cursor: "x" })).status).toBe(400);
+  expect((await o.get("stats")).data).toMatchObject({ entries: 6, kinds: { paper: 5, note: 1 }, sources: { arxiv: 5, hn: 1 }, by: { "worker:brain-x-snapshot": 5, owner: 1 } });
+  return "6 entries in 2 pages";
+}
+// %%
+test_knowledge_refuses_an_entry_it_cannot_keep = {
+  const rig = await knowledgeRig(), o = rig.owner, ok = rig.paper(1);
+  const bad = [
+    [{ ...ok, kind: "book" }, "kind"], [{ ...ok, title: "" }, "title"], [{ ...ok, title: "x".repeat(501) }, "title"], [{ ...ok, text: "x".repeat(16001) }, "text"],
+    [{ ...ok, url: "ftp://x" }, "url"], [{ ...ok, source: "Hacker News" }, "source"], [{ ...ok, method: undefined }, "method"], [{ ...ok, id: "A b" }, "id"],
+    [{ ...ok, file: "a b" }, "file"], [{ ...ok, sha256: "abc" }, "sha256"], [{ ...ok, tags: ["a:b"] }, "tags"], [{ ...ok, tags: Array.from({ length: 17 }, (_, i) => "t" + i) }, "tags"], [{ ...ok, cites: "arxiv:2" }, "cites"]
+  ];
+  for (const [entry, field] of bad) expect([field, (await o.post("put", entry)).data.message.startsWith("entry 1: " + field)]).toEqual([field, true]);
+  // One bad entry and nothing of the call is kept. More than 100 is refused.
+  expect((await o.post("put", { entries: [ok, { ...ok, id: "arxiv:2", kind: "book" }] })).data.message).toMatch(/^entry 2: kind/);
+  expect((await o.post("put", { entries: Array.from({ length: 101 }, (_, i) => rig.paper(i)) })).status).toBe(400);
+  expect((await o.post("put", { entries: [] })).status).toBe(400);
+  expect([rig.db.entries.size, (await o.post("delete", {})).status]).toEqual([0, 400]);
+  // 100 in one call are kept, 20 to a transaction, and each has its full-text row.
+  expect((await o.post("put", { entries: Array.from({ length: 100 }, (_, i) => rig.paper(i)) })).data.entered).toBe(100);
+  expect([rig.db.entries.size, rig.db.fts.size]).toEqual([100, 100]);
+  return bad.length + " refused";
+}
+// %%
+test_knowledge_declares_its_own_database_and_who_calls = {
+  const { meta } = await knowledge_service.emit();
+  expect(meta).toMatchObject({ worker: "brain-x-knowledge", role: "recipe", module: "@tomlarkworthy/brain-knowledge", resources: ["database"], secrets: [], paths: [], calls: [] });
+  // The statements a run sends are the ones knowledgeSql holds: the fake refuses any other.
+  const rig = await knowledgeRig();
+  await rig.owner.post("put", rig.paper(1));
+  expect(rig.db.seen.slice(0, 3)).toEqual(knowledgeSchema);
+  const callers = { owner: { caller: "owner", via: "session" }, token: { caller: "token:laptop" }, snapshot: { caller: "worker:brain-x-snapshot" }, worker: { caller: "worker:brain-x-filler" }, member: { caller: "worker:brain-m-0123456789-a" }, anyone: { caller: "anonymous" } };
+  const through = (m) => Object.entries(callers).filter(([, w]) => decide(meta.access["com.lopecode.brain.knowledge." + m], { caller: callerOf(w), request: { method: m, path: "", verb: "POST", params: {} } }).allow).map(([n]) => n).join(" ");
+  expect(through("put")).toBe("owner token snapshot");
+  for (const m of ["get", "search", "list", "delete", "stats"]) expect([m, through(m)]).toEqual([m, "owner token"]);
+  return "put: " + through("put");
+}
+// %%
+test_knowledge_panel_searches_and_lists = {
+  const asked = [];
+  const entry = { id: "arxiv:1", kind: "paper", title: "Paper 1", text: "agents", url: "https://arxiv.org/abs/1", source: "arxiv", file: null, by: "owner", method: "manual", at: 1791500000000 };
+  const client = { query: async (name, params) => (asked.push([name, params]), name === "knowledge.stats" ? { entries: 7 } : { entries: [name === "knowledge.search" ? { ...entry, snippet: "[agents]" } : entry] }) };
+  const el = knowledgePanel({ client, owner: true });
+  await el.ready;
+  expect([el.value.length, el.textContent.includes("7 entries. The last entered:"), asked[0]]).toEqual([1, true, ["knowledge.list", { limit: 50 }]]);
+  const q = el.querySelector("input[type=text]");
+  q.value = "agents";
+  el.querySelector("form").dispatchEvent(new Event("submit", { cancelable: true }));
+  await el.load();
+  expect(asked.some(([name, params]) => name === "knowledge.search" && params.q === "agents")).toBe(true);
+  expect([el.textContent.includes("1 found."), el.textContent.includes("[agents]"), el.querySelector("a").href]).toEqual([true, true, "https://arxiv.org/abs/1"]);
+  expect(knowledgePanel({ client, owner: false }).textContent).toMatch(/Sign in to a Brain as the owner/);
+  return "listed, then searched";
+}
+// %%
+import {cloudflare, database, hono, simulate, decide, callerOf, sha256} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"
+// %%
+import {client, session} from "@tomlarkworthy/cloud-brain"

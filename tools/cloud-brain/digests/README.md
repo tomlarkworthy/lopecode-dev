@@ -69,3 +69,15 @@ JavaScript or WASM build of that engine was found in its Hugging Face repository
 ## What a digest is written from, from Tom on 2026-10-09
 
 "yes, we want curated data". The papers of a digest come from `snapshot/<day>/papers.json`, the papers with a signal (votes on Hugging Face, a link from a lab's feed, a mention in another source), not from the full `arxiv.json`. The 2026-10-09 digest was written before that file existed, from all 611 arXiv items.
+
+## Keeping the sources, and entering them in the knowledge base
+
+```
+BRAIN_BASE=cb4 bun tools/cloud-brain/digests/keep.ts <YYYY-MM-DD>
+```
+
+Reads the `picks` cell of that day's seed. Each pick is kept as a private file under `corpus/<day>/<source>/` (a paper as arXiv's PDF, a Reddit thread as its `.rss`, anything else as the page, stored as `text/plain`), and `corpus/<day>/index.json` names where each came from. A second run fetches only what is missing.
+
+It then calls `knowledge.put` with two entries a pick: the source (`arxiv:<id>` for a paper, else `<source>:<id>`; the text is the snapshot's summary when the day's snapshot has one; `file` and `sha256` of the kept copy) and a `finding` whose text is the pick's `why` and which cites the source. Both have method `digest:research-<day>`.
+
+2026-10-09, 08:41 CEST: 25 of 28 kept, 28.7 MB; 56 entries put, 54 new and 2 changed. Not kept: two Reddit threads (429) and openai.com (403); their entries have no `file`.

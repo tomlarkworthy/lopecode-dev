@@ -41,7 +41,9 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
   rule, charges the price, writes one log line, then forwards to the service.
 - **Services** (`<base>-x-NAME`, notebook module `@tomlarkworthy/brain-NAME`): browser, logs, proxy,
   bluesky, whatsapp, blob, feed, library, metrics, static, inbox, snapshot (a daily record of
-  public feeds at `/static/snapshot/<day>/`; it makes no model call). `<base>-x-page` is built from
+  public feeds at `/static/snapshot/<day>/`; it makes no model call), knowledge (what the Brain
+  knows: entries with their source, kept file and who entered them, in a D1 database of its own,
+  `knowledge.search?q=`). `<base>-x-page` is built from
   `@tomlarkworthy/cloud-brain`. `brain-secrets` is a module of the page, not a Worker.
 - **Database** (`<base>-db`): the rows every Worker keeps go through it.
 - **Deployer** (`<base>-deployer`): the only holder of a Cloudflare token. It applies recipes,
@@ -71,14 +73,14 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts <command>
 | `curl <path> --owner [curl args]` | Call the kernel as the owner. `--other` calls as a test member. |
 | `state` | What is deployed. |
 | `redistil` | Compare each Worker with its source. Healthy is every line `same`. |
-| `apply <name>.json` | Deploy a recipe, signed with the recovery key. |
+| `apply <name>.json --reason="why"` | Deploy a recipe, signed with the recovery key. Since 2026-10-09 the deployer answers 400 without `--reason=` (3 to 300 characters) and logs it as `deploy.reason`; the same for `redistil --apply`, `remove` and `rollback`. |
 | `page up` / `page state` / `page down` | The Brain's page in a browser of the cluster (below). |
 
 A health check that takes ten seconds:
 
 ```
 brain.ts curl /xrpc/com.lopecode.brain.lease.get --owner     # {"held":true}
-brain.ts redistil | grep -c same                             # 15 on 2026-10-08
+brain.ts redistil | grep -c same                             # 17 on 2026-10-09
 brain.ts curl /xrpc/com.lopecode.brain.browser.all --owner   # browsers that cost money
 brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
 ```
@@ -90,7 +92,7 @@ brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
 3. Run the tests in a local QA tab: `qa_open_notebook` on the file URL with
    `#view=…&cc=<pairing token>&r=<fresh number>`, then `run_tests`. `r` does nothing; a new value makes a new URL, so the tab
    loads the file again.
-4. Deploy under the lock: `mkdir tools/cloud-brain/.emitted/cb4.lock`, `apply`, remove the lock.
+4. Deploy under the lock: `mkdir tools/cloud-brain/.emitted/cb4.lock`, `apply … --reason="why"`, remove the lock.
    Nothing enforces it. It is the agreement between agents in this checkout: if the directory is
    there, another one is deploying; wait.
    Kernel, core and page go on probation and are put back if unhealthy.

@@ -59,3 +59,23 @@ const file = join(tmp, "index.json");
 writeFileSync(file, JSON.stringify({ day, keptAt: new Date().toISOString(), items: index }, null, 1));
 console.log(JSON.stringify(put(`corpus/${day}/index.json`, file, "application/json", "corpus")).slice(0, 200));
 console.log(`${index.filter((r) => !r.error).length} of ${index.length} kept, ${index.reduce((a, r) => a + (r.size || 0), 0)} bytes`);
+
+// Each pick as an entry of the knowledge base: the source, with its kept copy, and the finding (why it was picked),
+// which cites the source. The text of a source is the summary the day's snapshot holds for it, when it holds one.
+const summaries = new Map<string, string>();
+for (const src of new Set(picks.map((p) => p.source))) {
+  const r = await fetch(`https://${process.env.BRAIN_BASE}.endpointservices.workers.dev/static/snapshot/${day}/${src}.json`).catch(() => null);
+  for (const it of (r && r.ok ? ((await r.json()) as any).items : []) || []) if (it.summary) summaries.set(String(it.id), it.summary);
+}
+const method = `digest:research-${day}`, entries: any[] = [];
+for (const r of index) {
+  const p = picks.find((x) => x.id === r.id), arxiv = /^\d{4}\.\d{4,5}$/.test(r.id);
+  const id = arxiv ? "arxiv:" + r.id : (safe(r.source) + ":" + safe(r.id)).toLowerCase().slice(0, 100);
+  const source = safe(r.source).toLowerCase();
+  entries.push({ id, kind: arxiv ? "paper" : ["reddit", "hn", "lobsters-ai"].includes(r.source) ? "post" : "article", title: r.title, text: (summaries.get(String(r.id)) || "").slice(0, 16000), url: r.url, source: arxiv ? "arxiv" : source, method, tags: ["digest", `theme-${p.theme}`], ...(r.path ? { file: r.path, sha256: r.sha256 } : {}) });
+  if (p.why) entries.push({ id: `finding:${day}:${id}`.slice(0, 100), kind: "finding", title: r.title, text: p.why, url: `https://${process.env.BRAIN_BASE}.endpointservices.workers.dev/library/research-${day}`, source: "digest", method, cites: [id], tags: ["digest", `theme-${p.theme}`] });
+}
+const body = join(tmp, "entries.json");
+writeFileSync(body, JSON.stringify({ entries }));
+const kb = spawnSync("bun", [join(root, "tools/cloud-brain/brain.ts"), "curl", "/xrpc/com.lopecode.brain.knowledge.put", "--owner", "-X", "POST", "-H", "content-type: application/json", "--data-binary", "@" + body], { encoding: "utf8", env: process.env });
+console.log("knowledge.put", entries.length, (kb.stdout || "").trim().split("\n").pop()!.replace(/"ids":\[[^\]]*\]/, '"ids":[…]').slice(0, 200));

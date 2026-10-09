@@ -20,7 +20,7 @@ A person is an atproto account, named by its DID. There are two roles. The **own
 | | |
 |---|---|
 | \`people.list\` | query, owner. \`{ people }\`: each \`{ did, handle, role, name, addresses, methods }\`. \`role\` is \`owner\`, \`member\` or \`null\` (linked an address, not added). |
-| \`people.put\` | procedure, owner's session. \`{ did, name, services, quota, tags }\` makes that DID a member; a field left out keeps what it was. \`services: false\` stops their deploys. \`quota\` is \`{ workers, bytes, calls }\`. \`tags\` is \`[{ tag, access: "read" | "write" }]\`, the file tags they may read or change beside their own. |
+| \`people.put\` | procedure, owner's session. \`{ did, name, services, quota, tags }\` makes that DID a member; a field left out keeps what it was. \`services: false\` stops their deploys. \`quota\` is \`{ workers, bytes, calls, deploys }\`; \`deploys\` is calls of \`member.deploy\` an hour. \`tags\` is \`[{ tag, access: "read" | "write" }]\`, the file tags they may read or change beside their own. |
 | \`people.remove\` | procedure, owner's session. \`{ did }\` removes the member, their grant and their addresses, and has the deployer delete their Workers. Their files stay, for the owner. |
 | \`member.deploy\`, \`member.remove\`, \`member.modules\` | procedure, a member. Passed to the deployer with the caller's DID as the author; the owner is refused and deploys with \`infra.apply\`. \`member.deploy\` takes \`{ module, source }\`. |
 | \`people.link\` | procedure, owner's session. \`{ channel, address, did }\` binds an address without the sign-in below. |
@@ -31,7 +31,7 @@ A person is an atproto account, named by its DID. There are two roles. The **own
 
 **DIDs as addresses.** On \`bluesky\` the address is the sender's DID. \`people.put\` writes \`address/bluesky/<did>\` for the member it adds, and the owner's DID is the owner's without a row. Each change to People sends \`bluesky.know { all }\`, the DIDs of every member, to \`brain-x-bluesky\`. The rows are the kernel's own, which no Worker can read or write, and they are read under the name of the Worker the core identified by its key: an entry from \`brain-x-evil\` carrying the owner's DID is looked up as \`address/evil/<did>\` and names nobody.
 
-**Linking.** A channel sends a stranger \`https://HOST/link?channel=NAME&code=CODE\`. The page asks them to sign in with atproto, shows the address the code stands for, and binds it to the signed-in DID when they press Link. The kernel learns the address by calling the channel's \`NAME.claim\` with the code; the answer is taken only from the Worker \`brain-x-NAME\`. Linking does not make anyone a member.
+**Linking.** A channel sends a stranger \`https://HOST/link?channel=NAME&code=CODE\`. The page asks them to sign in with atproto, shows the address the code stands for, and binds it to the signed-in DID when they press Link. The kernel learns the address by calling the channel's \`NAME.claim\` with the code; the answer is taken only from the Worker \`brain-x-NAME\`. Linking does not make anyone a member. When the signed-in DID is the owner, Link also asks for the last 4 characters of the address, because whoever writes from it is then answered as the owner. The page refuses to be shown in a frame.
 
 **Turns.** \`inbox.list\` and \`inbox.poll\` answers pass through the kernel, which adds \`who: { did, role, handle }\` to each entry whose address is linked. For the owner's own session \`inbox.poll\` also adds \`turn\`, a token for each entry whose sender is the owner or a member. A call that carries it as \`Authorization: Bearer\` is made as that DID, with \`x-brain-via: turn:<entry id>\`. It lasts 10 minutes, ends with "sign out everywhere", and is refused once its DID is no longer a member.
 
@@ -50,7 +50,7 @@ A channel can narrow a turn with this and cannot widen one: the cap is taken ins
 
 **Members in the core.** After \`people.put\`, \`people.remove\`, \`grant.put\` and \`grant.delete\` the kernel sends the core every member with their grant, limits and tags (\`people.sync\`), because the core checks a member's Worker as its author.
 
-**Sessions.** No cookie is set or read. After atproto sign-in \`/auth/callback\` answers a page that writes a session token to this origin's \`localStorage\` (\`brain_session\`) and goes on; the Brain's page sends it as \`Authorization: Bearer\` with every call. It is a signed \`{ did, exp, epoch }\`, lasts 30 days and is not renewed: after that the visitor signs in again. "Sign out" drops it from the page; "sign out everywhere" (\`/auth/logout?everywhere=true\`) raises the epoch, which ends every session, turn and portal token issued before. Because a caller is only ever who their token says, a page on another address has nothing of this Brain's to send, and \`Origin\` is not looked at. A link or an \`<img>\` cannot carry a token: a private file is fetched by the page and shown from the bytes. The secret that signs all three kinds of token is still named \`COOKIE_KEY\`.
+**Sessions.** No cookie is set or read. After atproto sign-in \`/auth/callback\` answers a page that writes a session token to this origin's \`localStorage\` (\`brain_session\`) and goes on; the Brain's page sends it as \`Authorization: Bearer\` with every call. \`/auth/login\` resolves a handle and calls a PDS for anyone, so it is counted: 60 starts in 10 minutes for all visitors together, then 429. A handle that signed in here before is not counted. It is a signed \`{ did, exp, epoch }\`, lasts 30 days and is not renewed: after that the visitor signs in again. "Sign out" drops it from the page; "sign out everywhere" (\`/auth/logout?everywhere=true\`) raises the epoch, which ends every session, turn and portal token issued before. Because a caller is only ever who their token says, a page on another address has nothing of this Brain's to send, and \`Origin\` is not looked at. A link or an \`<img>\` cannot carry a token: a private file is fetched by the page and shown from the bytes. The secret that signs all three kinds of token is still named \`COOKIE_KEY\`.
 
 Before 2026-10-07 13:40 the session was a \`SameSite=Lax\` cookie. \`NAME.SUBDOMAIN.workers.dev\` addresses are one site, so a page on another Worker's address sent it: on cb4 the owner's cookie with \`Origin: https://evil.endpointservices.workers.dev\` got 200 from \`GET library.list\` and \`POST token.revoke\`.
 
@@ -151,7 +151,7 @@ portalToken = {
 }
 // %%
 // A call forwarded by a PDS carries a JWT signed with the caller's atproto key. Checked against their DID document.
-verifyServiceJwt = async (bearer, nsid, audience) => {
+verifyServiceJwt = async (bearer, nsid, audience, known) => {
   const b64u = (t) => Uint8Array.from(atob(t.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(t.length / 4) * 4, "=")), (c) => c.charCodeAt(0));
   const [h, p, s] = bearer.split(".");
   let claims;
@@ -164,8 +164,11 @@ verifyServiceJwt = async (bearer, nsid, audience) => {
   if (!(claims.exp > Date.now() / 1000)) return { error: "JwtExpired", message: "exp " + claims.exp };
   if (claims.lxm !== nsid) return { error: "BadJwtLexiconMethod", message: "lxm " + claims.lxm };
   if (typeof claims.iss !== "string" || !claims.iss.startsWith("did:")) return { error: "BadJwtIssuer", message: "iss" };
+  // The DID document is fetched only for an account that could call something: a stranger's JWT makes no request.
+  if (known && !(await known(claims.iss.split("#")[0]))) return { error: "AuthRequired", message: "this account has no access to this Brain" };
   const resolver = new atcute.CompositeDidDocumentResolver({ methods: { plc: new atcute.PlcDidDocumentResolver(), web: new atcute.WebDidDocumentResolver() } });
-  const doc = await resolver.resolve(claims.iss.split("#")[0]);
+  const doc = await resolver.resolve(claims.iss.split("#")[0]).catch(() => null);
+  if (!doc) return { error: "BadJwtIssuer", message: "no DID document" };
   const vm = (doc.verificationMethod || []).find((m) => m.id.endsWith("#atproto"));
   if (!vm) return { error: "BadJwtIssuer", message: "no #atproto key" };
   const ok = await atcute.verifySig(atcute.parsePublicMultikey(vm.publicKeyMultibase), b64u(s), new TextEncoder().encode(h + "." + p), { allowMalleableSig: true });
@@ -237,7 +240,7 @@ kernelApp = {
       return portal ? { caller: named(portal.did), via: "portal:" + portal.id, did: portal.did, portal } : { refused: { error: "AuthRequired", message: "this portal token has expired or is not this Brain's" } };
     }
     if (bearer.split(".").length === 3) {
-      const v = await verifyServiceJwt(bearer, nsid, "did:web:" + config.host);
+      const v = await verifyServiceJwt(bearer, nsid, "did:web:" + config.host, async (did) => did === config.owner || !!(await rows.get("member/" + did)) || !!(await rows.get("grant/" + did)));
       return v.error ? { refused: v } : { caller: v.iss === config.owner ? "owner" : v.iss, via: "jwt", did: v.iss };
     }
     const token = await rows.get("token/" + (await sha256(bearer)));
@@ -302,6 +305,7 @@ kernelApp = {
     }
   });
   let client = null;
+  const LOGINS = 60;
   const oauth = async () => {
     if (client) return client;
     let jwk = await rows.get("oauth/key/main");
@@ -325,6 +329,12 @@ kernelApp = {
   app.get("/auth/login", async (c) => {
     const handle = (c.req.query("handle") || "").trim().replace(/^@/, "");
     if (!handle) return c.text("handle", 400);
+    // A sign-in start resolves a handle, calls a PDS and keeps a row, for anyone. LOGINS in 10 minutes, for all visitors together.
+    // A handle that signed in before is not counted, so the count cannot keep the owner or a member out.
+    const bucket = Math.floor(Date.now() / 600000);
+    const before = (await rows.list("handle/")).some((r) => typeof r.value === "string" && r.value.toLowerCase() === handle.toLowerCase());
+    if (!before && (await rows.increment("logins/" + bucket)) > LOGINS) return c.text("too many sign-ins were started. Try again in 10 minutes.", 429);
+    await rows.delete("logins/" + (bucket - 2));
     // After sign-in a visitor goes back to the link page they came from, and nowhere else.
     const next = c.req.query("next") || "";
     const { url } = await (await oauth()).authorize({ target: { type: "account", identifier: handle }, state: { at: Date.now(), next: /^\/link\?[A-Za-z0-9=&_.-]*$/.test(next) ? next : null } });
@@ -444,7 +454,7 @@ kernelApp = {
     if (did === config.owner) return fail(c, 400, "InvalidRequest", "the owner is not a member");
     const was = (await rows.get("member/" + did)) || {};
     // quota: { workers, bytes, calls }, each a whole number; a name left out keeps the Brain's default.
-    const limits = quota === undefined ? was.quota || null : quota && Object.fromEntries(["workers", "bytes", "calls"].filter((k) => Number.isInteger(quota[k]) && quota[k] >= 0).map((k) => [k, quota[k]]));
+    const limits = quota === undefined ? was.quota || null : quota && Object.fromEntries(["workers", "bytes", "calls", "deploys"].filter((k) => Number.isInteger(quota[k]) && quota[k] >= 0).map((k) => [k, quota[k]]));
     // tags: [{ tag, access: "read" | "write" }], the labels on files this member may read or change beside their own.
     if (tags !== undefined && !(Array.isArray(tags) && tags.length <= 20 && tags.every((g) => g && typeof g.tag === "string" && /^[a-z0-9-]{1,40}$|^(by|worker):[A-Za-z0-9.:%-]{1,120}$/.test(g.tag) && ["read", "write"].includes(g.access)))) return fail(c, 400, "InvalidRequest", "tags: [{ tag, access: read | write }]");
     await rows.put("member/" + did, { tags: tags === undefined ? was.tags || [] : tags.map((g) => ({ tag: g.tag, access: g.access })), did, name: name === undefined ? was.name || null : name ? String(name).slice(0, 80) : null, added: was.added || Date.now(), services: services === undefined ? was.services !== false : !!services, quota: limits && Object.keys(limits).length ? limits : null });
@@ -489,7 +499,7 @@ const app = document.getElementById("app");
 const el = (tag, text, attrs) => { const e = document.createElement(tag); if (text) e.textContent = text; for (const k in attrs || {}) e.setAttribute(k, attrs[k]); return e; };
 const show = (...nodes) => app.replaceChildren(...nodes);
 let token = null; try { token = localStorage.getItem("brain_session"); } catch (e) {}
-const call = async (path) => { const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + token }, body: JSON.stringify(LINK) }); return { status: r.status, data: await r.json().catch(() => ({})) }; };
+const call = async (path, more) => { const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + token }, body: JSON.stringify(Object.assign({}, LINK, more)) }); return { status: r.status, data: await r.json().catch(() => ({})) }; };
 const expired = () => show(el("p", "This link has expired or was already used. Send the Brain another message to get a new one."));
 const signIn = () => {
   const form = el("form", "", { method: "get", action: "/auth/login" });
@@ -503,25 +513,31 @@ const run = async () => {
   if (found.status === 401) return signIn();
   if (found.status !== 200) return expired();
   const go = el("button", "Link", { style: "font:inherit;padding:6px 12px" });
+  const said = el("p", "", { style: "color:#b3261e" });
+  const typed = found.data.owner ? el("input", "", { placeholder: "last 4 characters of the address", autocomplete: "off", style: "font:inherit;padding:6px;width:16em" }) : null;
   go.onclick = async () => {
     go.disabled = true;
-    const done = await call("/link");
+    const done = await call("/link", typed ? { confirm: typed.value.trim() } : {});
+    if (done.status === 400) { go.disabled = false; said.textContent = done.data.message || ""; return; }
     if (done.status !== 200) return expired();
     show(el("h3", "Linked"), el("p", done.data.role ? "Messages from " + done.data.address + " are now answered." : done.data.address + " is linked to your account. The owner of this Brain has to add you before it answers."));
   };
-  show(el("h3", "Link " + LINK.channel + " " + found.data.address + "?"), el("p", "Messages from " + found.data.address + " will be answered as " + found.data.as + "."), el("p", "Only do this if that address is yours and you asked for this link yourself."), go);
+  show(el("h3", "Link " + LINK.channel + " " + found.data.address + "?"), el("p", "Messages from " + found.data.address + " will be answered as " + found.data.as + "."), el("p", "Only do this if that address is yours and you asked for this link yourself."), ...(typed ? [el("p", "You own this Brain: whoever writes from this address will be answered as you. Type the last 4 characters of the address to go on."), typed, " "] : []), go, said);
 };
 run();`;
   app.get("/link", (c) =>
-    new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Link to this Cloud Brain</title><body style="font:16px/1.5 system-ui,sans-serif;max-width:30em;margin:3em auto;padding:0 1em"><div id="app"></div><scr` + `ipt>const LINK = ${JSON.stringify(linkOf(c.req.query()))};${linkScript}</scr` + `ipt></body>`, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer", "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'self'" } }));
+    new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Link to this Cloud Brain</title><body style="font:16px/1.5 system-ui,sans-serif;max-width:30em;margin:3em auto;padding:0 1em"><div id="app"></div><scr` + `ipt>const LINK = ${JSON.stringify(linkOf(c.req.query()))};${linkScript}</scr` + `ipt></body>`, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer", "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'" } }));
   for (const [path, peek] of [["/link/peek", true], ["/link", false]])
     app.post(path, async (c) => {
       const who = c.get("who");
       if (who.via !== "session" || !who.did) return fail(c, 401, "AuthRequired", "sign in first");
-      const link = linkOf(await c.req.json().catch(() => null));
+      const body = await c.req.json().catch(() => null), link = linkOf(body);
+      // An address bound to the owner is answered as the owner. The owner types its end, so a press on a link that someone else asked for binds nothing; the code is kept.
+      const seen = link && !peek && who.caller === "owner" ? await toChannel(link.channel, "claim", { code: link.code, peek: true }) : null;
+      if (seen && addressOk(seen.address) && String((body && body.confirm) || "") !== seen.address.slice(-4)) return fail(c, 400, "InvalidRequest", "type the last 4 characters of the address");
       const found = link ? await toChannel(link.channel, "claim", peek ? { code: link.code, peek: true } : { code: link.code }) : null;
       if (!found || !addressOk(found.address)) return fail(c, 404, "NotFound", "this link has expired or was already used");
-      if (peek) return c.json({ address: found.address, as: ((handle) => (handle ? "@" + handle : who.did))(await rows.get("handle/" + who.did)) });
+      if (peek) return c.json({ address: found.address, as: ((handle) => (handle ? "@" + handle : who.did))(await rows.get("handle/" + who.did)), ...(who.caller === "owner" ? { owner: true } : {}) });
       await rows.put(`address/${link.channel}/${found.address}`, { channel: link.channel, address: found.address, did: who.did, linked: Date.now() });
       return c.json({ linked: true, address: found.address, role: await roleOf(who.did) });
     });
@@ -901,6 +917,23 @@ test_link_joins_an_address_to_the_signed_in_did = {
   return "bound on Link, by the signed-in DID, once";
 }
 // %%
+test_the_owner_types_the_end_of_an_address_before_it_is_bound = {
+  const rig = await peopleRig();
+  rig.codes.set("code-4242", "+4915112345678");
+  const link = { channel: "loop", code: "code-4242" };
+  expect((await rig.call("/link/peek", { session: rig.owner, body: link })).data).toMatchObject({ address: "+4915112345678", owner: true });
+  // One press, as a link from someone else would get: nothing is bound and the code is not used.
+  expect((await rig.call("/link", { session: rig.owner, body: link })).status).toBe(400);
+  expect((await rig.call("/link", { session: rig.owner, body: { ...link, confirm: "0000" } })).status).toBe(400);
+  expect(rig.codes.has("code-4242")).toBe(true);
+  expect(rig.sim.rows.has("address/loop/+4915112345678")).toBe(false);
+  expect((await rig.call("/link", { session: rig.owner, body: { ...link, confirm: "5678" } })).data).toEqual({ linked: true, address: "+4915112345678", role: "owner" });
+  expect(rig.sim.rows.get("address/loop/+4915112345678").did).toBe("did:plc:owner");
+  // The page cannot be put in a frame.
+  expect((await rig.call("/link?channel=loop&code=code-4242")).headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+  return "400 until the last 4 characters are typed";
+}
+// %%
 test_people_are_the_owners_to_change = {
   const rig = await peopleRig();
   const turn = await turnToken.make("cookie-key", "did:plc:owner", 1);
@@ -1110,6 +1143,20 @@ test_service_jwt_claims_are_checked_first = {
   expect((await rig.call("inbox.list", { bearer: jwt({}) })).data.error).toBe("BadJwtLexiconMethod");
   expect(rig.seen.length).toBe(0);
   return "aud, exp and lxm";
+}
+// %%
+test_a_strangers_jwt_makes_no_request_and_sign_in_starts_are_counted = {
+  const rig = await kernelRig();
+  const b64 = (o) => btoa(JSON.stringify(o)).replace(/=+$/, "");
+  const jwt = (iss) => `${b64({ alg: "ES256K" })}.${b64({ iss, aud: "did:web:cb.sub.workers.dev", exp: Date.now() / 1000 + 60, lxm: "com.lopecode.brain.secret.list" })}.AAAA`;
+  // Not the owner, not a member, no grant: refused before any DID document is fetched.
+  const stranger = await rig.call("secret.list", { bearer: jwt("did:web:stranger.example") });
+  expect([stranger.status, stranger.data.error]).toEqual([401, "AuthRequired"]);
+  expect(rig.seen.length).toBe(0);
+  // A sign-in start past the count for 10 minutes is refused before anything is resolved.
+  rig.sim.rows.set("logins/" + Math.floor(Date.now() / 600000), 60);
+  expect((await rig.call("/auth/login?handle=someone.example")).status).toBe(429);
+  return "401 AuthRequired; 429";
 }
 // %%
 test_a_method_of_another_lexicon_is_passed_on_as_anonymous = {

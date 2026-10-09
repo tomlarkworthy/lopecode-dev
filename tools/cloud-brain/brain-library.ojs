@@ -5,8 +5,8 @@ Notebooks kept by a Cloud Brain and served from its address. The files are in \`
 | | |
 |---|---|
 | Worker | \`brain-x-library\` |
-| \`library.put\` | procedure, owner. \`?name=\`, optional \`public=true\` and \`parent=<sha256>\`; the body is the notebook's HTML file. |
-| \`library.list\` | query, anyone. The owner gets every notebook, anyone else the public ones. |
+| \`library.put\` | procedure, the owner's own session; a token or a turn is refused, because the file is served as a page. \`?name=\`, optional \`public=true\` and \`parent=<sha256>\`; the body is the notebook's HTML file. |
+| \`library.list\` | query, anyone. The owner gets every notebook, anyone else the public ones; a member granted the method is anyone else. |
 | \`library.versions\` | query, owner. \`?name=\`. The last 10 saves, newest first. |
 | \`library.setPublic\` | procedure, owner. \`{ name, public }\` |
 | \`library.delete\` | procedure, owner. \`{ name }\`. Deletes every version. |
@@ -28,7 +28,8 @@ A notebook served from \`/library\` runs on the Brain's own address, so its cell
 // %%
 library_service = cloudflare.Service("library", libraryApp, {
   methods: {
-    "com.lopecode.brain.library.put": { type: "procedure", who: "owner" },
+    // A saved notebook is served as a page that runs as whoever opens it: only the owner's own tab saves one, not a token or a turn.
+    "com.lopecode.brain.library.put": { type: "procedure", who: "owner", allow: "caller.session" },
     "com.lopecode.brain.library.list": { type: "query", who: "anyone" },
     "com.lopecode.brain.library.versions": { type: "query", who: "owner" },
     "com.lopecode.brain.library.setPublic": { type: "procedure", who: "owner" },
@@ -50,9 +51,10 @@ libraryApp = {
   const KEEP = 10;
   const fail = (c, status, error, message) => c.json({ error, message }, status);
   const okName = (n) => /^[A-Za-z0-9@._-]{1,80}$/.test(n || "") && !/^\.+$/.test(n);
+  // A token is the owner's. A person is not, whatever method they were granted.
   const isOwner = (c) => {
     const who = c.req.header("x-brain-caller") || "";
-    return who === "owner" || /^(token|did):/.test(who);
+    return who === "owner" || who.startsWith("token:");
   };
   const fileOf = (name, sha) => `library/${name}/${sha.slice(0, 16)}.html`;
   const drop = (name, sha) => xrpc.fetch(STATIC + "delete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: fileOf(name, sha) }) });
@@ -238,6 +240,10 @@ test_library_public_list_and_versions = {
   expect(await (await rig.post("owner", "setPublic", { name: "notes", public: true })).json()).toEqual({ name: "notes", public: true });
   expect(await list("anonymous")).toEqual(["notes public"]);
   expect(await list("owner")).toEqual(["notes public", "private"]);
+  // A person granted library.list is anyone here: the public ones, and no notebook that is not.
+  expect(await list("did:plc:friend")).toEqual(["notes public"]);
+  expect((await rig.call("did:plc:friend", "/library/private")).status).toBe(401);
+  expect(await list("token:laptop")).toEqual(["notes public", "private"]);
   // A second save: the name serves the new file, the old one by ?v=, and it stays public.
   expect((await rig.put("owner", "notes", two, "&parent=" + "0".repeat(64))).status).toBe(409);
   const v2 = await (await rig.put("owner", "notes", two, "&parent=" + v1.sha256)).json();

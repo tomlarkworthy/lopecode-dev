@@ -19,6 +19,7 @@ One Brain, `cb4`, runs in one Cloudflare account. It has 17 Workers (counted 202
 | `brain-x-metrics`, `brain-x-static`, `brain-x-blob`, `brain-x-library`, `brain-x-proxy`, `brain-x-feed` | one module each | Metrics, files, blobs, saved notebooks, outbound fetch, Bluesky feeds. |
 | `brain-x-whatsapp`, `brain-x-bluesky` | one module each | Channels. |
 | `brain-x-logs` | `brain-logs` | The logs of this Brain's Workers, read from Cloudflare Workers Logs with Cloudflare's own query bodies. It holds a Cloudflare token with one permission, which the deployer minted for it. |
+| `brain-x-knowledge` | `brain-knowledge` | What the Brain knows: one entry per paper, page, post or finding, with where it was found, the path of its kept file, and who entered it and how. A D1 database of its own with a full-text index; no file bytes. The owner searches it; the snapshot and the digest tool enter into it. 68 entries on cb4, 2026-10-09. |
 | `brain-x-snapshot` | `brain-snapshot` | Once a day, at 06:00 UTC, fetches a list of public feeds (arXiv, Hugging Face papers, lab blogs, named writers, Hacker News, Reddit, Lobsters) and keeps each as a public JSON file under `/static/snapshot/<day>/`. It records only: no model call, no ranking, no summary. |
 | `brain-x-browser` | `brain-browser` | Remote browsers from Cloudflare Browser Run, for each process of the Brain. A browser has a name and belongs to the caller that bought its time; a page is a tab of one browser. Browser time is bought in seconds by `browser.extend`. |
 

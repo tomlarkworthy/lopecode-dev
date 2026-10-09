@@ -2,13 +2,13 @@ md`# Cloudflare from a notebook
 
 A service declared as a notebook value. \`cloudflare.Service(name, fn, options)\` returns a service: a name, a function that answers requests, and a manifest (methods, paths, rules, \`calls\`). Call it in the tab with \`service.fetch(request)\`, read the module it would upload with \`service.emit()\`, run that module in the tab with \`simulate(service)\`. \`cloudflare.Worker\` is the name of \`Service\` until 2026-10-07 and is the same function.
 
-A service is deployed as one Cloudflare Worker, and it is not a bare Worker. Its code runs inside a wrapper (\`workerRuntime\`) and reaches the Brain only through platform cells: \`secrets\`, \`sql\`, \`inbox\` and \`xrpc\` are calls to the core, which decides each one by a rule; \`rows\` are the service's own rows; \`blobs\` are its own keys in one bucket. The deployer builds the Worker's bindings from the platform cells the code reaches, so a service cannot name a binding. A service holds no Cloudflare token unless it declares the permission groups it needs (\`cloudflare: ["Workers Observability Read"]\`): the deployer then holds the deploy for the owner, mints a token of exactly those groups and binds it to that Worker alone, and the service sends it with the \`cloudflareApi\` cell. \`log\` writes one line to Workers Logs with the Worker's name and the ray of the call. Its Worker does not answer the internet: a request comes through the kernel and the core. In mode \`enforce\` the core refuses a call to a method the service does not list in \`calls\`. Outbound \`fetch\` is not restricted. \`browser\` is Cloudflare Browser Run (remote browsers, billed by the browser-hour): the approval page names a service that reaches it, and a member's service is refused it.
+A service is deployed as one Cloudflare Worker, and it is not a bare Worker. Its code runs inside a wrapper (\`workerRuntime\`) and reaches the Brain only through platform cells: \`secrets\`, \`sql\`, \`inbox\` and \`xrpc\` are calls to the core, which decides each one by a rule; \`rows\` are the service's own rows; \`blobs\` are its own keys in one bucket. The deployer builds the Worker's bindings from the platform cells the code reaches, so a service cannot name a binding. \`secrets.NAME\` answers a name in the manifest's \`secrets\` and no other: a database, a bucket or a Worker bound under that name reads as unset, as does any name that starts \`BRAIN_\`. A Hono service is handed \`{ BRAIN_INFO }\` as its \`env\`, not the Worker's bindings. A service holds no Cloudflare token unless it declares the permission groups it needs (\`cloudflare: ["Workers Observability Read"]\`): the deployer then holds the deploy for the owner, mints a token of exactly those groups and binds it to that Worker alone, and the service sends it with the \`cloudflareApi\` cell. \`log\` writes one line to Workers Logs with the Worker's name and the ray of the call. Its Worker does not answer the internet: a request comes through the kernel and the core. In mode \`enforce\` the core refuses a call to a method the service does not list in \`calls\`. Outbound \`fetch\` is not restricted. \`browser\` is Cloudflare Browser Run (remote browsers, billed by the browser-hour): the approval page names a service that reaches it, and a member's service is refused it.
 
 The module is the function plus every cell it depends on, across imports, written out in dependency order with no Observable runtime. The walk stops at **platform cells** (\`secrets\`, \`rows\`, \`sql\`, \`inbox\`, \`xrpc\`), which work in the notebook and are replaced on the Worker by the Cloudflare resource they stand for, and at **library cells** (\`library(name, file)\`), which are uploaded as a second file.
 
 Refused, naming the cell: a generator, a \`viewof\` or \`mutable\` cell, a cell that depends on a notebook builtin such as \`html\` or \`width\`, and a secret read by a computed name.
 
-\`service.deploy()\` needs a Brain: with none configured it throws. \`serviceList\` shows each declared service against what the deployer runs. There is no \`service.status\`.`
+\`service.deploy(reason)\` needs a Brain and a reason, which the deployer logs: with none configured it throws. \`serviceList\` shows each declared service against what the deployer runs. There is no \`service.status\`.`
 // %%
 md`## Services in this notebook
 
@@ -55,7 +55,7 @@ serviceList = ({ services = [], brain = null, moduleLink = null } = {}) => {
   const hue = { "in sync": "#2e9e5b", "not installed": "#2e9e5b", changed: "#e6a700", unknown: "var(--theme-foreground-muted)", skewed: "#e5484d", failing: "#e5484d", "cannot deploy": "#e5484d", "no source": "#e5484d" };
   const body = htl.html`<div></div>`;
   const root = htl.html`<div style="font:14px/1.45 var(--sans-serif, system-ui, sans-serif);color:var(--theme-foreground)">${body}</div>`;
-  let emitted = [], deployerState = null, reported = {}, registry = {}, busy = "", results = [];
+  let emitted = [], deployerState = null, reported = {}, registry = {}, busy = "", results = [], reason = "";
   const short = (h) => (h ? String(h).slice(0, 12) : "none");
   const draw = () => {
     const rows = serviceRows(emitted, deployerState, reported, registry);
@@ -77,12 +77,16 @@ serviceList = ({ services = [], brain = null, moduleLink = null } = {}) => {
         }
       }
     );
+    // The deployer refuses a change with no reason, and logs the one it is given.
+    const why = htl.html`<input placeholder="Reason for the change" maxlength="300" style="font:inherit;min-width:18em;flex:1">`;
+    why.value = reason;
+    why.oninput = () => (reason = why.value);
     const apply = Inputs.button(`Apply ${differing.length} change${differing.length === 1 ? "" : "s"}`, { disabled: !brain || !differing.length || !!busy, reduce: () => void run(differing) });
     const again = Inputs.button("Refresh", { disabled: !brain || !!busy, reduce: () => void refresh() });
     const waiting = results.filter((r) => r.state === "waiting");
     const refused = results.filter((r) => r.state === "refused" || r.state === "put-back");
     body.replaceChildren(htl.html`${table}
-      <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${apply}${again}<span style="color:var(--theme-foreground-muted)">${busy}</span></div>
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${why}${apply}${again}<span style="color:var(--theme-foreground-muted)">${busy}</span></div>
       ${waiting.length ? htl.html`<div style="margin-top:6px;color:var(--theme-foreground-muted)">Waiting for approval: ${waiting.map((r) => r.worker).join(", ")}. ${brain && brain.deployerUrl ? htl.html`Approve on the <a href=${brain.deployerUrl} target="_blank" rel="noopener">deployer page</a>, then press Apply again.` : ""}</div>` : ""}
       ${refused.map((r) => htl.html`<div style="margin-top:6px;color:#e5484d">${r.state === "refused" ? "Refused: " + r.reason : `${r.worker} failed its health check and was put back to ${short(r.previous)}. ${r.reason}`}</div>`)}`);
   };
@@ -114,7 +118,7 @@ serviceList = ({ services = [], brain = null, moduleLink = null } = {}) => {
       busy = `applying ${r.worker}…`;
       draw();
       try {
-        const out = await brain.apply(emitted.find((e) => e.meta && e.meta.worker === r.worker));
+        const out = await brain.apply(emitted.find((e) => e.meta && e.meta.worker === r.worker), { reason });
         results.push(...out.results);
       } catch (e) {
         results.push({ worker: r.worker, state: "refused", reason: String((e && e.message) || e) });
@@ -255,7 +259,8 @@ sql = ({
   batch: (list) => backend.sqlRun(list)
 })
 // %%
-// The table database itself (D1), with no check. The deployer binds it to brain-db and to no other Worker.
+// A D1 database of the Worker's own, with no check. The deployer gives one to brain-db (the table database) and one to
+// brain-x-knowledge, and to no other Worker.
 database = ({
   [platformTag]: "database",
   batch: (list) => backend.databaseRun(list)
@@ -366,9 +371,9 @@ cloudflare = {
         return typeof fn?.fetch === "function" ? fn.fetch(req, {}, {}) : fn(req, { caller, info: {} });
       },
       emit: () => emit(service),
-      deploy: async () => {
+      deploy: async (reason) => {
         if (!backend.deploy) throw new Error("no Brain configured: deploy() needs a deployer");
-        return backend.deploy(await emit(service));
+        return backend.deploy(await emit(service), reason);
       }
     };
     return service;
@@ -497,12 +502,16 @@ workerRuntime = (AsyncLocalStorage = null) => {
     // binding. Any other secret is asked of secret.get as this Worker, which answers by the secret's rule, and is
     // held for 5 s: a new value or a changed rule is followed without a deploy. Undefined when unset or refused.
     // A secret's rule can read the origin, so a value is held for one origin and not handed to another.
+    // Only a name in the manifest's secrets is answered, and from a binding only when it is text: SQL, CORE and
+    // BLOBS are bindings and not secrets, and BRAIN_KEY is this Worker's proof of itself.
     secrets: new Proxy(
       {},
       {
         get: (_, k) => {
-          if (typeof k !== "string" || !/^[A-Z][A-Z0-9_]*$/.test(k)) return undefined;
-          if (ENV[k] !== undefined) return Promise.resolve(ENV[k]);
+          if (typeof k !== "string" || !/^[A-Z][A-Z0-9_]*$/.test(k) || k.startsWith("BRAIN_")) return undefined;
+          // CF_TOKEN is in no source: the deployer binds it to a Worker that declares Cloudflare permissions.
+          if (!(info().secrets || []).includes(k) && !(k === "CF_TOKEN" && (info().cloudflare || []).length)) return undefined;
+          if (typeof ENV[k] === "string") return Promise.resolve(ENV[k]);
           const now = chain(), slot = k + "|" + (now ? now.origin + "|" + now.via : "");
           const kept = secretsHeld.get(slot);
           if (kept && Date.now() - kept.at < 5000) return kept.value;
@@ -644,7 +653,8 @@ workerRuntime = (AsyncLocalStorage = null) => {
           const store = context || ray ? { context, origin: request.headers.get("x-brain-origin") || "", via: request.headers.get("x-brain-origin-via") || "", ray } : null;
           const out = await during(store, async () =>
             typeof fn?.fetch === "function"
-              ? await fn.fetch(request, env, ctx)
+              ? // Not env: it holds every binding. The manifest is the one thing a service reads from it (the core, its hash).
+                await fn.fetch(request, { BRAIN_INFO: info() }, ctx)
               : await fn(request, { caller: request.headers.get("x-brain-caller") || "anonymous", ctx, info: info(), source })
           );
           if (!(out instanceof Response)) throw new Error("the function did not return a Response");
@@ -1115,7 +1125,7 @@ hono = library("hono", FileAttachment("hono.js"))
 // %%
 md`## Distilling in the deployer
 
-A deploy is module source. The deployer runs it in QuickJS with \`distilIn\`, which loads the module into an Observable runtime, computes the service's cell and calls this module's \`emit\` on it. The sandbox has no network and no bindings: one host call gives it module text, attachment text and SHA-256.
+A deploy is module source. The deployer runs it in QuickJS with \`distilIn\`, which loads the module into an Observable runtime, computes the service's cell and calls this module's \`emit\` on it. The sandbox has no network and no bindings: one host call gives it module text, attachment text and SHA-256. It has 64 MB of memory and a 1 MB stack, and source that does not end is stopped: QuickJS asks the host once per 10,000 loop turns and calls, and the 100,001st time the distil fails with "the source ran past the limit of the sandbox and was stopped". That is 1.2 s of \`for (;;) {}\` on a laptop (2026-10-09); a count and not a time, because a Worker's clock does not move while it computes.
 
 | | |
 |---|---|
@@ -1350,6 +1360,12 @@ distilIn = async (interpreter, data, { module, source, cell = null, sources = {}
   // one distil should be reachable from the next.
   const quickjs = await interpreter();
   const rt = quickjs.newRuntime();
+  // Source that does not end is stopped. QuickJS asks once per 10,000 loop turns and calls. The limit is a count
+  // because a Worker's clock stands still while it computes. Measured 2026-10-09: for (;;) {} is stopped at 100,000
+  // in 1.2 s; acorn parsing 700 KB, 465 ms of work, asks 2,250 times. A distil is 130 to 300 ms of a Worker's CPU.
+  const ASKS = 100000;
+  let asks = 0;
+  rt.setInterruptHandler(() => ++asks > ASKS);
   rt.setMemoryLimit(64 * 1024 * 1024);
   rt.setMaxStackSize(1024 * 1024);
   rt.setModuleLoader((name) => load(name), (base, name) => name);
@@ -1366,6 +1382,7 @@ distilIn = async (interpreter, data, { module, source, cell = null, sources = {}
   run("(" + String(main) + ")(" + JSON.stringify(module) + ", " + JSON.stringify(cell) + ").then((v) => { globalThis.__result = v; }, (e) => { globalThis.__error = String((e && e.message) || e); });", "main.js");
   for (;;) {
     const p = rt.executePendingJobs();
+    if (asks > ASKS) throw new Error("the source ran past the limit of the sandbox and was stopped");
     if (p.error) {
       const e = vm.dump(p.error);
       throw new Error((e && e.message) || JSON.stringify(e));
@@ -1403,6 +1420,16 @@ test_distils_in_quickjs_to_the_same_hash = {
   }
   expect(wrong).toBe("fx_base is not a service in @tomlarkworthy/cloudflare-iac");
   return `${out.hash.slice(0, 12)} in the tab and in QuickJS`;
+}
+// %%
+test_source_that_does_not_end_is_stopped_in_the_sandbox = {
+  const quick = async () => quickjsLib.load(await quickjs.module());
+  const distil = (source) => distilIn(quick, distillerData.default, { module: "@fx/spin", source }).then(() => "distilled", (e) => e.message);
+  // At the top of the module, and in a cell the distil computes.
+  const stopped = "the source ran past the limit of the sandbox and was stopped";
+  expect(await distil("for (;;) {}\nexport default function define() {}")).toBe(stopped);
+  expect(await distil('export default function define(runtime, observer) { const main = runtime.module(); main.variable(observer("spin_service")).define("spin_service", [], () => { for (;;) {} }); return main; }')).toBe(stopped);
+  return stopped;
 }
 // %%
 md`## Access rules
@@ -1596,6 +1623,29 @@ test_bindings_follow_platform_cells = {
   // The browser cell is written into a module only when the service reaches it (brain-browser does).
   expect((await fx_service.emit()).parts[0].text).not.toContain("__browser");
   return meta.bindings.length + " bindings";
+}
+// %%
+// Names two bindings and its own key as secrets, and lists what a Hono service is handed as env.
+fx_reach = cloudflare.Service(
+  "fxreach",
+  new hono.Hono().get("/", async (c) => c.json({ env: Object.keys(c.env), SQL: typeof (await secrets.SQL), CORE: typeof (await secrets.CORE), BRAIN_KEY: typeof (await secrets.BRAIN_KEY), T: await secrets.T }))
+)
+// %%
+test_a_service_reads_its_secrets_and_no_other_binding = {
+  const sim = await simulate(fx_reach, { secrets: { T: "bound", BRAIN_KEY: "k" } });
+  // Every name read is in the manifest, which the approval page lists.
+  expect(sim.emitted.meta.secrets).toEqual(["BRAIN_KEY", "CORE", "SQL", "T"]);
+  expect(typeof sim.env.SQL).toBe("object");
+  const got = await (await sim.fetch("https://fxreach.internal/")).json();
+  // The database and the core are bindings, and BRAIN_KEY is the Worker's own key: named as secrets, they read as unset.
+  expect(got).toEqual({ env: ["BRAIN_INFO"], SQL: "undefined", CORE: "undefined", BRAIN_KEY: "undefined", T: "bound" });
+  // SQL and CORE are asked of the core as any secret that is not bound, and the core holds none of that name.
+  expect(sim.calls.filter((c) => c.nsid === "com.lopecode.brain.secret.get").map((c) => c.data.name)).toEqual(["SQL", "CORE"]);
+  // A name that is not in the manifest is not answered from a binding and not asked of the core.
+  const bare = await simulate(fx_reach, { secrets: { T: "bound" }, info: { secrets: [] } });
+  expect((await (await bare.fetch("https://fxreach.internal/")).json()).T).toBe(undefined);
+  expect(bare.calls).toEqual([]);
+  return got.env.join(" ");
 }
 // %%
 test_refuses_generator = {

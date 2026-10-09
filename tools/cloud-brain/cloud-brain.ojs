@@ -426,8 +426,8 @@ brain = session.owner
       },
       // A deploy is not finished when the deployer says deployed: the page then loads the module back from the Worker,
       // runs its tests and tells the core, which marks the version verified or has the deployer put the old one back.
-      apply: async (emitted, { force = false } = {}) => {
-        const out = await client.procedure("infra.apply", { workers: [{ ...asSource(emitted), force }] });
+      apply: async (emitted, { force = false, reason } = {}) => {
+        const out = await client.procedure("infra.apply", { workers: [{ ...asSource(emitted), force }], reason });
         // The deployer's answer is what was deployed. A hash other than this page's is said, not hidden.
         for (const r of out.results) if (r.hash && r.hash !== emitted.hash) r.note = `the deployer distilled ${r.hash.slice(0, 12)}; this page made ${emitted.hash.slice(0, 12)}`;
         for (const r of out.results) if (r.state === "deployed" || r.state === "probation") r.verdict = await verifyService(r.worker, { expect: r.hash }).catch((e) => ({ state: "not verified", reason: String((e && e.message) || e) }));
@@ -595,7 +595,7 @@ platformWiring = {
     rowsDelete: async (key) => (await client.procedure("rows.delete", { worker: "tab", key })).deleted,
     rowsList: async (prefix = "") => (await client.query("rows.list", { worker: "tab", prefix })).rows,
     xrpc: (kind, nsid, data) => (kind === "query" ? client.query(nsid, data) : client.procedure(nsid, data)),
-    deploy: (emitted) => brain.apply(emitted)
+    deploy: (emitted, reason) => brain.apply(emitted, { reason })
   });
   return "platform cells use " + brainOrigin;
 }
@@ -889,13 +889,13 @@ assistantTools = {
     }),
     defineTool({
       id: "brain_apply",
-      description: "Ask the deployer to deploy one declared service as it is in this notebook now. worker is its Worker name from brain_services, e.g. brain-x-echo. Returns deployed, probation, waiting (the owner must approve on the deployer page), refused or put-back with the reason.",
-      parameters: { type: "object", properties: { worker: { type: "string" } }, required: ["worker"] },
-      execute: async ({ worker }) => {
+      description: "Ask the deployer to deploy one declared service as it is in this notebook now. worker is its Worker name from brain_services, e.g. brain-x-echo. reason says why it is changed, in 3 to 300 characters; the deployer logs it and refuses a deploy without one. Returns deployed, probation, waiting (the owner must approve on the deployer page), refused or put-back with the reason.",
+      parameters: { type: "object", properties: { worker: { type: "string" }, reason: { type: "string" } }, required: ["worker", "reason"] },
+      execute: async ({ worker, reason }) => {
         need();
         const emitted = (await Promise.all(declaredWorkers.map((s) => s.emit().catch((e) => ({ error: String(e.message || e), name: s.name }))))).find((e) => e.meta && e.meta.worker === worker);
         if (!emitted) throw new Error(`No declared service deploys as ${worker}. brain_services lists them.`);
-        const out = await brain.apply(emitted);
+        const out = await brain.apply(emitted, { reason });
         viewof services.refresh();
         return { title: "apply " + worker, output: JSON.stringify(out.results, null, 1) };
       }
@@ -1091,7 +1091,7 @@ installBrain = async ({ seed, token, handle, base = "brain", html = null, log = 
   const apply = async (service, extra = {}) => {
     const e = await service.emit();
     log(`deploying ${e.meta.worker}…`);
-    const out = (await deployer("apply", { workers: [{ ...asSource(e), ...extra }] })).results[0];
+    const out = (await deployer("apply", { workers: [{ ...asSource(e), ...extra }], reason: "install" })).results[0];
     if (!["deployed", "probation", "unchanged"].includes(out.state)) throw new Error(`${e.meta.worker}: ${out.state} ${out.reason || ""}`);
   };
   await apply(core_service);
