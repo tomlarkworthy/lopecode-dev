@@ -69,7 +69,7 @@ The deployer's own token needs the permission \`Account API Tokens Write\` to mi
 
 Every change names what it saw. Each Worker in \`infra.apply\` carries \`was\`: the hash the caller saw running, or \`null\` for no Worker. \`remove\` is \`[{ worker, was }]\`; \`member.deploy\` and \`member.remove\` take \`was\`; a roll back button carries it. When the Worker is no longer that, the answer is \`refused\` with \`NAME is A, you saw B\` and \`running\`, and nothing is deployed. There is no value that skips the check. A \`dry\` apply is not checked. An import of another module is not part of the check: a Worker is distilled against the kept source of its imports as they are at the deploy.
 
-One change to a Worker runs at a time, the tick's health check and a verdict's put-back among them: each takes the same row and leaves a Worker whose row is held. The deployer makes the row \`deploying/NAME\` (\`putIfAbsent\`) before it reads what is running, and deletes it when the change ends, deployed or not. A second caller in that time is refused with \`another change to NAME is running\`. A change that died leaves the row; after 5 minutes one caller takes it over, the one that makes \`deploying-over/NAME/ID\`. That row is kept, one for each change that died, and the take-over is logged as \`deploy.lease-taken-over\`. The rows have no compare-and-swap, so one case is open: a change over 5 minutes old that ends within one row read of the take-over. An approval is of one hash over one hash: the pending row keeps \`was\`, and an approval does not stand once the Worker has moved. Added 2026-10-09.
+One change to a Worker runs at a time, the tick's health check and a verdict's put-back among them: each takes the same row for its writes and leaves a Worker whose row is held. The tick's health check itself runs with no row held, and a caller waits up to a second for a row before it is refused. The deployer makes the row \`deploying/NAME\` (\`putIfAbsent\`) before it reads what is running, and deletes it when the change ends, deployed or not. A second caller in that time is refused with \`another change to NAME is running\`. A change that died leaves the row; after 5 minutes one caller takes it over, the one that makes \`deploying-over/NAME/ID/MINUTE\`, which is deleted when the take-over ends. A take-over that died leaves that row, and the next minute has a new one. The take-over is logged as \`deploy.lease-taken-over\`. The rows have no compare-and-swap, so one case is open: a change over 5 minutes old that ends within one row read of the take-over. An approval is of one hash over one hash: the pending row keeps \`was\`, and an approval does not stand once the Worker has moved. Added 2026-10-09.
 
 Every change says why. \`infra.apply\` (unless \`dry\`), \`infra.redistil\` with \`apply\`, a roll back on the page, \`member.deploy\` and \`member.remove\` take \`reason\`, 3 to 300 characters, and are refused without one (400 \`InvalidRequest\`, or \`refused\` for a member). The reason is logged before anything is done, as \`deploy.reason\` with \`reason\`, \`by\` (\`owner\`, \`recovery key\` or the member's DID) and \`targets\`. Added 2026-10-09.
 
@@ -489,13 +489,29 @@ deployerOps = {
     if (await rows.putIfAbsent(key, mine)) return mine;
     const held = await rows.get(key);
     if (!held) return (await rows.putIfAbsent(key, mine)) ? mine : null;
-    if (held.until > Date.now() || !(await rows.putIfAbsent(`deploying-over/${logical}/${held.id}`, { at: Date.now() }))) return null;
-    // Known limit, with no compare-and-swap on a row: the holder ends and another caller takes the row between
-    // the next two lines. That needs a change over 5 minutes old to end within one row read of this one.
-    if (((await rows.get(key)) || {}).id === held.id) await rows.delete(key);
-    if (!(await rows.putIfAbsent(key, mine))) return null;
-    log({ at: "deploy.lease-taken-over", target: logical });
-    return mine;
+    if (held.until > Date.now()) return null;
+    // One caller takes over an expired row: the one that makes the marker. The marker names the minute, so a
+    // take-over that died does not hold the Worker for good, and it is deleted when the take-over ends.
+    const over = `deploying-over/${logical}/${held.id}/${Math.floor(Date.now() / 60000)}`;
+    if (!(await rows.putIfAbsent(over, { at: Date.now() }))) return null;
+    try {
+      // Known limit, with no compare-and-swap on a row: the holder ends and another caller takes the row between
+      // the next two lines. That needs a change over 5 minutes old to end within one row read of this one.
+      if (((await rows.get(key)) || {}).id === held.id) await rows.delete(key);
+      if (!(await rows.putIfAbsent(key, mine))) return null;
+      log({ at: "deploy.lease-taken-over", target: logical });
+      return mine;
+    } finally {
+      await rows.deletePrefix(`deploying-over/${logical}/`);
+    }
+  };
+  // The tick holds a row for two row writes. A caller waits that out, a second, before it is told of another change.
+  const takeSoon = async (logical) => {
+    for (let i = 0; ; i++) {
+      const mine = await take(logical);
+      if (mine || i >= 4) return mine;
+      await new Promise((r) => setTimeout(r, 250));
+    }
   };
   const release = async (logical, mine) => {
     const held = await rows.get("deploying/" + logical);
@@ -503,7 +519,7 @@ deployerOps = {
   };
   // The tick and a verdict change a Worker too. They take the same row, and leave a Worker that is being changed.
   const alone = async (logical, change) => {
-    const mine = await take(logical);
+    const mine = await takeSoon(logical);
     if (!mine) return null;
     try {
       return await change(await rows.get("worker/" + logical));
@@ -514,7 +530,7 @@ deployerOps = {
   const guard = async (logical, was, change) => {
     // The whole hash: 12 characters of it are what a table shows, and are not a hash.
     if (was !== null && !/^[0-9a-f]{64}$/.test(String(was))) return { worker: logical, state: "refused", reason: SAW };
-    const mine = await take(logical);
+    const mine = await takeSoon(logical);
     if (!mine) return { worker: logical, state: "refused", reason: `another change to ${logical} is running` };
     try {
       const rec = await rows.get("worker/" + logical);
@@ -593,7 +609,7 @@ deployerOps = {
       }
       return { ...base, ...results[0] };
       };
-      results.push(dry ? await change(rec) : await guard(logical, w.was, change));
+      results.push(dry ? await change(rec) : { ...base, ...(await guard(logical, w.was, change)) });
     }
     // remove is [{ worker, was }].
     for (const item of remove) {
@@ -704,27 +720,34 @@ deployerOps = {
       if (s.state !== "probation") continue;
       const logical = key.slice("kernelstate/".length);
       onProbation.add(logical);
+      // The health check runs with no row held. The row is held for the writes, on a Worker that is still the one checked.
+      const seen = await rows.get("worker/" + logical);
+      if (!seen) continue;
+      const ok = await healthy(logical, seen.key);
       await alone(logical, async (rec) => {
         const s = await rows.get(key);
-        if (!rec || !s || s.state !== "probation") return;
-        const next = nextKernelState(s, { type: "tick", now: Date.now(), healthy: await healthy(logical, rec.key), probationMs: config.probationMs });
+        if (!rec || rec.hash !== seen.hash || !s || s.state !== "probation") return;
+        const next = nextKernelState(s, { type: "tick", now: Date.now(), healthy: ok, probationMs: config.probationMs });
         if (next.state === "rolled-back") await putBack(logical, rec, { version: s.lastGood, hash: s.lastGoodHash }, next.reason);
         await rows.put(key, next.state === "rolled-back" ? { ...next, hash: s.lastGoodHash, failedHash: s.hash, at: Date.now() } : next);
       });
     }
     // Every other Worker: two failed checks in a row puts it back to the version before, when there is one.
-    for (const row of await rows.list("worker/")) await alone(row.value.worker, async (rec) => {
-      // Read again under the row: a deploy may have ended since the list was read.
-      if (!rec || rec.state !== "deployed" || !rec.hash || onProbation.has(rec.worker) || ((await rows.get("kernelstate/" + rec.worker)) || {}).state === "probation") return;
-      // A Worker put back whose token could not be minted then. Its health is checked all the same.
+    for (const { value: seen } of await rows.list("worker/")) {
+      if (seen.state !== "deployed" || !seen.hash || onProbation.has(seen.worker)) continue;
+      const ok = await healthy(seen.worker, seen.key);
+      await alone(seen.worker, async (rec) => {
+      if (!rec || rec.hash !== seen.hash || rec.state !== "deployed" || ((await rows.get("kernelstate/" + rec.worker)) || {}).state === "probation") return;
+      // A Worker put back whose token could not be minted then. Its health is counted all the same.
       if ((rec.cloudflare || []).length && !rec.token) rec = await remint(rec.worker, rec);
-      const fails = (await healthy(rec.worker, rec.key)) ? 0 : (rec.fails || 0) + 1;
+      const fails = ok ? 0 : (rec.fails || 0) + 1;
       if (fails >= 2 && rec.previous) await putBack(rec.worker, rec, rec.previous, "health check failed twice");
       else if (fails !== (rec.fails || 0)) {
         await rows.put("worker/" + rec.worker, { ...rec, fails });
         if (fails === 2) (log({ at: "deploy.failing", target: rec.worker, hash: rec.hash, reason: "health check failed twice and there is no version before" }), await note(`failing/${rec.worker}/${rec.hash}`, { event: "failing", worker: rec.worker, hash: rec.hash }));
       }
-    });
+      });
+    }
   };
 
   const confirm = async (only = null) => {
@@ -993,7 +1016,8 @@ deployerOps = {
   // deployer, the key of each Worker included; importRows takes them into a deployer that holds none. tick and
   // distiller are this deployer's own notes and are not counted. rowsDigest is what both sides compare: per class of
   // row, how many and the SHA-256 of their keys and values.
-  const OWN = new Set(["tick", "distiller"]);
+  // Not moved and not compared: the tick's own rows, and the row of a change that is running.
+  const OWN = { has: (k) => k === "tick" || k === "distiller" || k.startsWith("deploying/") || k.startsWith("deploying-over/") };
   const exportRows = async () => ({ rows: (await rows.list("")).filter((r) => !OWN.has(r.key)) });
   const rowsDigest = async () => {
     const classes = {};
@@ -1909,15 +1933,34 @@ test_a_change_names_the_hash_it_saw_and_one_change_to_a_worker_runs_at_a_time = 
   // A change that died holds the row until `until`. Then it is taken over, once.
   rig.sim.rows.set("deploying/" + W, { id: "other", until: Date.now() - 1 });
   expect(first(await rig.recover({ workers: [{ ...two, was: one.hash }] })).state).toBe("deployed");
-  expect([rig.sim.rows.has("deploying/" + W), rig.sim.rows.has(`deploying-over/${W}/other`), rig.fake.running("cb-x-saw")]).toEqual([false, true, two.hash]);
-  rig.sim.rows.set("deploying/" + W, { id: "other", until: Date.now() - 1 });
+  const overs = () => [...rig.sim.rows.keys()].filter((k) => k.startsWith("deploying-over/")).length;
+  expect([rig.sim.rows.has("deploying/" + W), overs(), rig.fake.running("cb-x-saw")]).toEqual([false, 0, two.hash]);
+  // Another caller is taking it over in this minute: refused. A take-over that died in an earlier minute holds nothing.
+  const minute = Math.floor(Date.now() / 60000);
+  rig.sim.rows.set("deploying/" + W, { id: "dead", until: Date.now() - 1 });
+  rig.sim.rows.set(`deploying-over/${W}/dead/${minute}`, { at: Date.now() });
+  rig.sim.rows.set(`deploying-over/${W}/dead/${minute + 1}`, { at: Date.now() });
   expect(first(await rig.recover({ workers: [{ ...three, was: two.hash }] })).reason).toBe(`another change to ${W} is running`);
-  rig.sim.rows.delete("deploying/" + W);
+  rig.sim.rows.delete(`deploying-over/${W}/dead/${minute}`);
+  rig.sim.rows.delete(`deploying-over/${W}/dead/${minute + 1}`);
+  rig.sim.rows.set(`deploying-over/${W}/dead/${minute - 3}`, { at: Date.now() - 180000 });
+  // The tick's writes and a verdict take the row too: while a change holds it, a failing Worker is not counted or put back.
+  rig.sim.rows.set("deploying/" + W, { id: "other", until: Date.now() + 60000 });
+  rig.fake.unhealthy.add(two.hash);
+  await rig.sim.scheduled();
+  await rig.sim.scheduled();
+  expect([rig.sim.rows.get("worker/" + W).fails || 0, rig.fake.running("cb-x-saw")]).toEqual([0, two.hash]);
+  const coreKey = rig.sim.rows.get("worker/brain-core").key;
+  const verdict = await (await rig.sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.infra.verdict", { method: "POST", headers: { "content-type": "application/json", "x-brain-key": coreKey }, body: JSON.stringify({ worker: W, hash: two.hash, ok: false, reason: "t" }) })).json();
+  expect([verdict.state, rig.fake.running("cb-x-saw")]).toEqual(["stale", two.hash]);
+  rig.fake.unhealthy.delete(two.hash);
+  rig.sim.rows.set("deploying/" + W, { id: "dead", until: Date.now() - 1 });
   // An approval is of a hash over a hash. The Worker moves after the owner approves: the approval does not stand.
   expect(first(await rig.asOwner("apply", { workers: [{ ...one, was: two.hash }] })).state).toBe("waiting");
   expect(rig.sim.rows.get("pending/" + one.hash).was).toBe(two.hash);
   expect((await rig.form({ key: "rk", action: "approve:" + one.hash })).status).toBe(200);
   expect(first(await rig.recover({ workers: [{ ...three, was: two.hash }] })).state).toBe("deployed");
+  expect([rig.sim.rows.has("deploying/" + W), overs()]).toEqual([false, 0]);
   expect(first(await rig.asOwner("apply", { workers: [{ ...one, was: three.hash }] })).state).toBe("waiting");
   expect((await rig.form({ key: "rk", action: "approve:" + one.hash })).status).toBe(200);
   expect(first(await rig.asOwner("apply", { workers: [{ ...one, was: three.hash }] })).state).toBe("deployed");

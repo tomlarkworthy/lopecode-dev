@@ -2808,3 +2808,32 @@ What it costs:
 - A message waits up to 30 s for a tab, was 5 s.
 - After a tab closes without releasing, 90 s pass before another tab or the Bluesky Worker's own once-a-minute read takes over, was 30 s. Seen on the reload: the new tab answered after the old lease ran out.
 - Inbox entry 9 (`check`, from the owner) has no handler and is counted as waiting on every poll. Not changed.
+
+### Third review, and a deployer that carries another session's wrapper (2026-10-09, to 09:40 CEST)
+
+One fresh reviewer, verdict FIX, 7 findings, each checked against the source.
+
+| Finding | Done |
+|---|---|
+| A take-over that died after making `deploying-over/NAME/ID` held the Worker for good; the test asserted that state | the marker names the minute and is deleted when the take-over ends |
+| A verdict that met the tick's lease was dropped as `stale`, and the Worker was rolled back at the end of probation | the tick's health check runs with no row held; the row is held for the writes only, on a Worker whose hash is still the one checked |
+| An apply or a roll back was refused while only a health check ran | the same, and a caller waits up to 1 s (5 tries) for the row |
+| No test that the tick and a verdict leave a held Worker | added to the test: a failing Worker under a held row is not counted, and a verdict answers `stale` |
+| "counted apart" holds only after a first sign-in | the prose says so |
+| A refusal from `was` or the lease had no `hash` | it has |
+| `exportRows` and `rowsDigest` saw `deploying/` rows | left out of both |
+
+Also: a test for brain-blob's `by:owner:turn`.
+
+```
+tests, local tab     259 of 259 in 21 modules
+live, 07:37 UTC      no was, stale was, stale removal: refused. Two applies at once: one deployed, one refused
+install-deployer     cb4-deployer 3257ff63a6e1
+redistil             17 changes, none applied
+```
+
+**`redistil` no longer says `same`, and that is not from this change.** Between 09:05 and 09:35 another session edited the wrapper in `cloudflare-iac.ojs` (settings the owner stores, read through `config`), uncommitted. `build.ts` builds every seed in the checkout, so the deployer installed here holds that wrapper and distils every Worker to a new hash. Nothing was applied: the 17 Workers run what they ran. Only the deployer was installed in this round; the kernel's change is one sentence of prose and brain-blob's is a test, and neither was deployed. Whoever finishes the wrapper change runs `redistil --apply`.
+
+Not explained: a forced apply of brain-x-library through this deployer answered `deployed` and `infra.getState` still gives `1753e38fa319`, while `redistil` lists it as `changes`.
+
+This is the case the `was` check does not cover: two sessions in one checkout, one build. The lock directory orders deploys and not edits.

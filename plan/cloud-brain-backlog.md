@@ -652,3 +652,5 @@ The record is in `tools/cloud-brain/spec-as-built.md`, "Security review and fixe
 - **Imports are not in the `was` check** (Tom, 2026-10-09: "skip dependencies").
 - **The Health section is blank for about 19 s for the owner**: `healthView` waits on `assembled`, which verifies 16 services one after another. Measured once, 2026-10-09 08:30 CEST.
 - Done from the list above: `deploy.reason` still names the module; the open review findings of the security pass are closed.
+- **One build for every session in the checkout** (2026-10-09 09:40 CEST). `build.ts` builds every seed as it is on disk, so a deploy by one session ships another's uncommitted edits. On 2026-10-09 the deployer `3257ff63a6e1` was installed with another session's wrapper change in it and `redistil` went from 17 `same` to 17 `changes`. A build from a commit, or a worktree per session, would stop it.
+- **Unexplained**: a forced apply of brain-x-library through `3257ff63a6e1` answered `deployed` and the hash did not change, while `redistil` lists the Worker as `changes`.
