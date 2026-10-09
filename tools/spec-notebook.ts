@@ -113,7 +113,7 @@ function refreshAgent(html: string, canonical: string): { html: string; replaced
 
 // The toolchain notebook runs headless (lope-runtime), so the seed is compiled by the real
 // `compile` cell rather than a copy of it.
-async function compiler(): Promise<{ compile: Compile; dispose: () => void }> {
+export async function compiler(): Promise<{ compile: Compile; dispose: () => void }> {
   const path = TOOLCHAIN_CANDIDATES.map((p) => resolve(ROOT, p)).find((p) => existsSync(p));
   if (!path) throw new Error("no @tomlarkworthy_observablejs-toolchain.html in lopecode/ or lopebooks/");
   const log = console.log;

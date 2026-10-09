@@ -124,3 +124,6 @@ ds-bundle/
 # (maxStepsPerTurn). 2.7MB each and regenerable in one command — never committed.
 tools/robocoop-5/eval/robocoop-5-eval*.html
 tools/scratch/rc5-train/
+
+# Working files of a session; not part of the repo
+/scratch/

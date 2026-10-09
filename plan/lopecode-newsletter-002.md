@@ -127,6 +127,32 @@ backs it.
 
 Numbers are dated 2026-07-18 and have not been re-run.
 
+### sheet — added to the skeleton 2026-08-31
+
+`@tomlarkworthy/sheet` (built 2026-08-30, design note `plan/sheet-lens.md`, canonical
+`lopebooks/notebooks/@tomlarkworthy_sheet.html`) got its own subsection at the end of the Lenses
+section plus a row in the "Other lenses" table. Done on Tom's direction 2026-08-31.
+
+- The module was not in `modules/canonical.json`; declared it with `"upstream": null` (never
+  published to Observable). The earlier prototype `@tomlarkworthy/spreadsheet` in
+  `tomlarkworthy_spreadsheet.html` is superseded and stays undeclared.
+- The sheet block was inserted into the newsletter HTML (`sync-module --insert-ok`); its whole
+  dependency closure (codemirror-6-v2, editor-5, visualizer, inspector, runtime-sdk,
+  observablejs-toolchain) was already embedded, verified by diffing the two notebooks' block lists.
+- Demo: a live `sheet(runtime, {module: newsletter})` over the newsletter's own module, holding
+  four commit counts from the corrected sweep below (svg-lens 156, robocoop-4 147, daw 67,
+  quick_start 54), `B6 = d3.sum([B1, B2, B3, B4])` = 424, and `nl2_bar` bars placed at C1:C3.
+  C4 is deliberately empty — the prose invites the reader to copy C1 there and watch the
+  relative reference shift.
+- Verified 2026-08-31 in headless Chromium: `.sh-frame` renders, `B6` computes 424, zero page
+  errors (the `notebookwebhook.mov` abort is the known inherited oddity). The data cells also
+  render as inspector rows below the widget; the sheet's own canonical notebook shows the
+  identical presentation (`taxRate = 0.2`, `<detached>` slots), so this was left as-is.
+- Preflight vs baseline reports 14 NEW findings, none from this change: the sheet/spreadsheet
+  notebook findings are those notebooks postdating the baseline, and the two newsletter
+  `robocoop-5-srctools` findings come from an earlier session's uncommitted robocoop-5 block
+  updates (verified by diffing the block ids changed vs HEAD).
+
 ## What exploits source-last
 
 The claim to make: if the runtime is canonical, an edit does not have to be a source edit — it only

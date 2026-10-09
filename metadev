@@ -23,7 +23,7 @@ ENV_PASS="METADEV,METADEV_CORRELATION_ID,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
 
 # Pre-create dirs the sandbox will mount; safehouse refuses to mount nonexistent paths.
 # ~/.android holds adbkey, so the sandboxed adb inherits the phone's authorisation.
-mkdir -p ~/.mempalace ~/.cache/chroma ~/.cache/prek ~/.android
+mkdir -p ~/.mempalace ~/.cache/chroma ~/.cache/prek ~/.android ~/Library/Preferences/.wrangler ~/Library/Application\ Support/obs-studio
 
 # USB (iokit-open) grants for adb; the profile's header records what was blocked.
 ADB_PROFILE="${0:A:h}/tools/safehouse-adb.sb"
@@ -48,6 +48,10 @@ SAFEHOUSE_ARGS=(
     --add-dirs=~/.mempalace
     --add-dirs=~/.cache
     --add-dirs=~/.android
+    --add-dirs=~/Library/Preferences/.wrangler
+    --add-dirs=~/Library/Application\ Support/obs-studio
+    --add-dirs-ro=/Applications/OBS.app
+    --add-dirs=~/Desktop
     --enable=docker,shell-init,process-control,electron,chromium-full
     --append-profile="$ADB_PROFILE"
 )

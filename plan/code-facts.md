@@ -1,12 +1,12 @@
 # Reactive annotations: a fact graph over cells, with plugins that declare, check and derive
 
-Status 2026-09-24 16:45 CEST. Iteration 1 (links by name, per-node live layer) is built, exported
+Status 2026-09-25 06:42 CEST. Restructured as a tutorial (§6.5). Earlier: Iteration 1 (links by name, per-node live layer) is built, exported
 and verified (§4). Iteration 2 (one fact graph per builder, plugins own their reactivity, derived
 labels, the df34 core rules as rules over facts) is built, exported, cold-boot verified (§6) and
 held to the eight recorded ledger fixtures (§5). The 05:40 version of this brief proposed
 hidden derived variables per annotation; nothing from that kernel is needed.
 
-Open the result: `file:///Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/@tomlarkworthy_reactive-annotations.html`
+Open the result: `file:///Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/tomlarkworthy_code-facts.html`
 
 ## 1. The steer
 
@@ -518,6 +518,64 @@ so the fixture test's `annotations` → `facts` rename silently did nothing unti
 Verified 16:45: fresh headless host on the new file (a cold boot from disk), 18/18,
 `document.title` "Code facts", 13 `.cf` nodes and 0 `.ra`, summary link
 `#open=@tomlarkworthy/code-facts#total`; fixture test 8/8.
+
+### 6.5 Restructured as a tutorial (added 2026-09-25 06:42)
+
+Tom, reading the notebook: "quite hard to understand the purpose. I think mixing in ratchet with
+lint is very confusing … needs to read more like a tutorial with one motivating step at a time
+… The Plugins need much more explanation of each of their method signatures, it's not clear what
+'schema' means and how arguments are passed. lint would need its own section … Ratchet is the
+most advanced piece so should be last and have its own explanation."
+
+The demo was one chained cell (`total_facts`, seven predicates) after every plugin's source.
+Rewritten so that each section adds one predicate to the same example, and the plugin's source
+cell sits at the end of its own section instead of in a block of eleven. Order now:
+
+```
+header, report = A.summary()                  demo first
+ 1 A = facts([...])                           one comment per plugin, doubles as the contents
+ 2 readings, total, total_owner, total_query  the first fact and its triple, quoted
+ 3 messy, messy_lint, total_lint; lint, defaultLintRules   rule signature, the six rules, a custom rule
+ 4 total_alt, test_total_matches_alt, total_tested; tested
+ 5 total_doc, total_documented; documentedBy
+ 6 isPositive, broken, total_contract, broken_contract; contract
+ 7 total_crossing; crossing
+ 8 total_null_check, total_evidence; evidence  the options object, annotated
+ 9 mean, mean_facts                            chaining
+10 labels; given, core                         derive to a fixed point
+11 viewof graph, core_cells, join_query        the four query shapes
+12 config = A.audit(); summary, audit          what schema means, the six audit kinds
+13 maxLines, total_alt_size                    a plugin written in the notebook, every field commented
+14 core_ratchet; ratchet                       last, with the held/moved/lost/gained table
+Internals: cfFacts, cfHelpers, ensureStyle, facts, cfRender
+Tests
+```
+
+`maxLines({limit})` is new and installed in `A`: a live example of a factory, `needs`, `schema`,
+`opts` and `facts`. §13 also documents `link` (`subject`, `objects`, `opts`, `holder`) and the
+`ctx` a check receives, which the old "## Plugins" cell did not.
+
+Cell changes: `total_facts` split into `total_owner … total_evidence` (one per section);
+`broken_facts` (lint + contract) narrowed to `broken_contract`; `mean_facts` added for §9.
+Tests: `test_subject_chain_holds_several_facts` now reads `mean_facts` (3 findings,
+`[lint, contract, unit]`) and `total_owner` (a single finding, not an array);
+`test_summary_links_to_cells` checks `isPositive` is absent instead of `mean` (mean now has
+facts); `test_graph_is_a_watchable_cell` 13 → 16 findings. 57 → 85 cells, 17 test cells.
+
+Applied by `scratch/cf-tutorial-restructure.py`: parses the compiled block at `const _pid`
+boundaries and the `$def` lines, mints `_cf…` pids for new cells, escapes backticks in md,
+writes the module back in the new order. `node --check`, block byte-equal to
+`lope-reader --get-module`, fixtures 8/8 (06:41).
+
+Verified 06:46, headless host and a QA session, both cold boots from disk: the 18 code-facts
+tests fulfilled (awaited per variable; `run_tests` with no filter times out on the page's 251
+test cells, one unrelated editable-md test rejects), 16 `.cf` nodes, headings in order, the
+only cell error the deliberate `broken`. The first screenshot showed the summary's `objects`
+column as `,file:///…#open=…` and `,tom`: the renderer built the column with
+`html\`${v.map((x, i) => [sep, chip])}\`` and stdlib `html` flattens one level only, so each
+inner array was stringified and an `<a>` stringifies to its href. `flatMap` fixed it; the
+column now shows chips. That defect predates the tutorial; the earlier test only checks the
+`cell` column's link.
 
 ## 7. Not in this iteration
 

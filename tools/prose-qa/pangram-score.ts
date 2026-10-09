@@ -10,6 +10,7 @@
 //   --emit-cells <f>    write Observable source for one annotation per flagged paragraph
 //   --key <k>           API key (else PANGRAM_API_KEY, else tools/prose-qa/.env)
 //   --report <f>        where to save the raw response (default tools/prose-qa/reports/)
+//   --exclude <re>      skip cells whose name (or pid) matches this regex
 //
 // The API is async (POST /task, poll GET /task/{id}) and has no CORS headers, so this runs
 // here, not in the page. One credit = 100 words, rounded up, $0.05 each (pricing 2026-09-06).
@@ -94,11 +95,12 @@ function stripMarkdown(md: string): string {
   }).join("\n");
 }
 
-export function extractParagraphs(src: string): Para[] {
+export function extractParagraphs(src: string, exclude?: RegExp): Para[] {
   // $def("pid", name|null, [deps], fn) — one per cell; only md cells carry prose.
-  const defs = [...src.matchAll(/\$def\("([^"]*)",\s*(null|"[^"]*"),\s*\[([^\]]*)\],\s*(_[\w$]+)\)/g)]
+  const defs = [...src.matchAll(/\$def\("([^"]*)",\s*(null|"[^"]*"),\s*\[([^\]]*)\],\s*([\w$]+)\)/g)]
     .map((m) => ({ pid: m[1], cell: m[2] === "null" ? null : JSON.parse(m[2]), deps: m[3], fn: m[4] }))
-    .filter((d) => /(^|,)\s*"md"\s*(,|$)/.test(d.deps));
+    .filter((d) => /(^|,)\s*"md"\s*(,|$)/.test(d.deps))
+    .filter((d) => !exclude || !exclude.test(d.cell ?? d.pid));
   const paras: Para[] = [];
   for (const d of defs) {
     const at = src.indexOf(`const ${d.fn} = `);
@@ -204,7 +206,7 @@ export function emitCells(flagged: Scored[], moduleId: string, date: string): st
 // ---------- main ----------
 if (import.meta.main) {
   if (flag("--help") || (!positional[0] && !opt("--from"))) {
-    console.log(readFileSync(new URL(import.meta.url)).toString().split("\n").slice(1, 16).map((l) => l.replace(/^\/\/ ?/, "")).join("\n"));
+    console.log(readFileSync(new URL(import.meta.url)).toString().split("\n").slice(1, 17).map((l) => l.replace(/^\/\/ ?/, "")).join("\n"));
     process.exit(0);
   }
   const min = Number(opt("--min") ?? 0.7);
@@ -218,7 +220,7 @@ if (import.meta.main) {
     notebook = positional[0];
     moduleId = opt("--module")!;
     if (!moduleId) throw new Error("--module <id> is required");
-    paras = extractParagraphs(moduleSource(notebook, moduleId));
+    paras = extractParagraphs(moduleSource(notebook, moduleId), opt("--exclude") ? new RegExp(opt("--exclude")!) : undefined);
     const doc = documentOf(paras);
     const words = doc.split(/\s+/).filter(Boolean).length;
     const credits = creditsFor(words);
