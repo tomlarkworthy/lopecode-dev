@@ -169,6 +169,27 @@ test_calls_from_the_logs_become_chart_rows = {
   return "3 rows from 3 calculations";
 }
 // %%
+// One press: a sign-in link for a program with no browser (Claude Code on the web), on the clipboard. The link
+// works once, for 10 minutes; its token deploys as the owner and lasts 8 hours (Access below lists and ends it).
+loginLink = {
+  if (!brain) return htl.html`<span></span>`;
+  const note = htl.html`<span style="color:var(--theme-foreground-muted);margin-left:8px"></span>`;
+  const make = async () => (await client.procedure("token.link", { name: "claude-" + Date.now().toString(36), methods: [], deploy: true })).link;
+  const button = press("Copy Login Link", async () => {
+    note.textContent = "";
+    try {
+      // The clipboard is handed a promise in the press itself: Safari refuses a write that comes after an await.
+      const link = make();
+      if (typeof ClipboardItem === "function" && navigator.clipboard.write) await navigator.clipboard.write([new ClipboardItem({ "text/plain": link.then((text) => new Blob([text], { type: "text/plain" })) })]);
+      else await navigator.clipboard.writeText(await link);
+      note.textContent = "Copied. Paste it to Claude Code. It works once, in the next 10 minutes, and deploys as you for 8 hours.";
+    } catch (e) {
+      note.textContent = "No link copied: " + e.message;
+    }
+  });
+  return htl.html`<div style="display:flex;align-items:center;flex-wrap:wrap">${button}${note}</div>`;
+}
+// %%
 md`## Operator`
 // %%
 // settings: the fold with endpoint, key, model and system prompt. One chat on a page can host it, so the
@@ -262,6 +283,16 @@ accessPanel = {
       note.textContent = "No token: " + e.message;
     }
   });
+  const mayDeploy = htl.html`<label style="display:flex;align-items:center;gap:4px" title="The link's token also deploys and removes this Brain's Workers, as you do"><input type="checkbox">link may deploy</label>`;
+  // For a program with no browser: paste the link to it. It is good once, for 10 minutes; its token lasts 8 hours.
+  const link = press("Sign-in link", async () => {
+    try {
+      const made = await client.procedure("token.link", { name: who.value.trim(), methods: names(), deploy: mayDeploy.querySelector("input").checked });
+      note.replaceChildren(htl.html`Paste this to the program (Claude Code on the web). It works once, in the next 10 minutes; the token it gives lasts 8 hours.<br><code>${made.link}</code>`);
+    } catch (e) {
+      note.textContent = "No link: " + e.message;
+    }
+  });
   const grant = press("Grant access", async () => {
     try {
       await client.procedure("grant.put", { did: who.value.trim(), methods: names() });
@@ -272,7 +303,7 @@ accessPanel = {
     }
   });
   await draw();
-  return htl.html`<div>${list}<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${who}${methods}${token}${grant}</div>${note}</div>`;
+  return htl.html`<div>${list}<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${who}${methods}${token}${link}${mayDeploy}${grant}</div>${note}</div>`;
 }
 // %%
 md`## Spending
