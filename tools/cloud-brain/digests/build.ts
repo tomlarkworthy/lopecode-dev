@@ -37,6 +37,8 @@ html = block(html, HOST, "\n" + source, name);
 const conf = { mains: ["@tomlarkworthy/lopepage-2", name], hash: `#view=S100(${name})`, headless: true };
 html = block(html, "bootconf.json", "\n" + JSON.stringify(conf, null, 2) + "\n");
 html = html.replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`).replace(/(<meta property="og:title" content=")[^"]*/, `$1${title}`);
+// Hugging Face answers 404 to a visit referred from a workers.dev address (measured 2026-10-09), so no link here sends one.
+if (!html.includes('name="referrer"')) html = html.replace(/<title>/, `<meta name="referrer" content="no-referrer">\n<title>`);
 if (blockSpans(html).length !== before) throw new Error("a splice changed the number of blocks; nothing written");
 const out = resolve(here, `research-${day}.html`);
 writeFileSync(out, html);
