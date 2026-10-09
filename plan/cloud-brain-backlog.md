@@ -700,4 +700,4 @@ Built and on cb4: stored settings read through `config` (`config.set`, `config.g
 - Open: the 504 from Cloudflare's version upload that put one apply back (seen once).
 - Open: a per-owner daily limit before any member may lease; a count of egress.
 - Open: `exec` does not stream; no method puts a file in a container.
-- **From the deploy log of 2026-10-09** (spec-as-built, "The deploy log … read for what failed"): the deployer makes each Cloudflare call once, and a 500 and a 504 each cost a put-back; an apply of 17 Workers twice stopped after an upload and held that Worker's row for 5 minutes; a deploy line does not name the deployer that wrote it.
+- **From the deploy log of 2026-10-09** (spec-as-built, "The deploy log … read for what failed"): the deployer makes each Cloudflare call once, and a 500 and a 504 each cost a put-back; an apply of 17 Workers twice stopped after an upload and held that Worker's row for 5 minutes. (A deploy line names its deployer since 2026-10-09, `69e213914ffa`.)

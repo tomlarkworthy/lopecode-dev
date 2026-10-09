@@ -3124,3 +3124,5 @@ The deployer does not try a Cloudflare call twice. Two of today's put-backs were
 | Three answer shapes left out `deploy` | added |
 
 A consequence: a program with a deploy link deploys the page Worker and cannot renew the shell at `/` (`brain.ts shell`). The owner does that.
+
+**Each deploy line names its deployer** (23:23 CEST). Tom: "the deployers hash is a no brainer". The deployer's 19 log calls go through `say`, which adds `deployer`, the hash of the deployer answering. Deployer tests 40 of 40. Installed on cb4 as `69e213914ffa`; an apply of the unchanged kernel logged `deploy.reason` with `deployer: 69e213914ffa…`; `redistil` 17 `same` before and after.

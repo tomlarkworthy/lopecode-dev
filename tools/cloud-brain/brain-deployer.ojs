@@ -69,7 +69,7 @@ The deployer's own token needs the permission \`Account API Tokens Write\` to mi
 
 Every change names what it saw. Each Worker in \`infra.apply\` carries \`was\`: the hash the caller saw running, or \`null\` for no Worker. \`remove\` is \`[{ worker, was }]\`; \`member.deploy\` and \`member.remove\` take \`was\`; a roll back button carries it. When the Worker is no longer that, the answer is \`refused\` with \`NAME is A, you saw B\` and \`running\`, and nothing is deployed. There is no value that skips the check. A \`dry\` apply is not checked. An import of another module is not part of the check: a Worker is distilled against the kept source of its imports as they are at the deploy.
 
-One change to a Worker runs at a time, the tick's health check and a verdict's put-back among them: each takes the same row for its writes and leaves a Worker whose row is held. The tick's health check itself runs with no row held, and a caller waits up to a second for a row before it is refused. The deployer makes the row \`deploying/NAME\` (\`putIfAbsent\`) before it reads what is running, and deletes it when the change ends, deployed or not. A second caller in that time is refused with \`another change to NAME is running\`. A change that died leaves the row; after 5 minutes one caller takes it over, the one that makes \`deploying-over/NAME/ID/MINUTE\`, which is deleted when the take-over ends. A take-over that died leaves that row, and the next minute has a new one. The take-over is logged as \`deploy.lease-taken-over\`. The rows have no compare-and-swap, so one case is open: a change over 5 minutes old that ends within one row read of the take-over. An approval is of one hash over one hash: the pending row keeps \`was\`, and an approval does not stand once the Worker has moved. Added 2026-10-09.
+One change to a Worker runs at a time, the tick's health check and a verdict's put-back among them: each takes the same row for its writes and leaves a Worker whose row is held. The tick's health check itself runs with no row held, and a caller waits up to a second for a row before it is refused. The deployer makes the row \`deploying/NAME\` (\`putIfAbsent\`) before it reads what is running, and deletes it when the change ends, deployed or not. A second caller in that time is refused with \`another change to NAME is running\`. A change that died leaves the row; after 5 minutes one caller takes it over, the one that makes \`deploying-over/NAME/ID/MINUTE\`, which is deleted when the take-over ends. A take-over that died leaves that row, and the next minute has a new one. The take-over is logged as \`deploy.lease-taken-over\`. The rows have no compare-and-swap, so one case is open: a change over 5 minutes old that ends within one row read of the take-over. An approval is of one hash over one hash: the pending row keeps \`was\`, and an approval does not stand once the Worker has moved. Added 2026-10-09. Every \`deploy.…\` line also carries \`deployer\`, the hash of the deployer that wrote it.
 
 Every change says why. \`infra.apply\` (unless \`dry\`), \`infra.redistil\` with \`apply\`, a roll back on the page, \`member.deploy\` and \`member.remove\` take \`reason\`, 3 to 300 characters, and are refused without one (400 \`InvalidRequest\`, or \`refused\` for a member). The reason is logged before anything is done, as \`deploy.reason\` with \`reason\`, \`by\` (\`owner\`, \`recovery key\` or the member's DID) and \`targets\`. Added 2026-10-09.
 
@@ -127,7 +127,7 @@ deployerOps = {
       if (await healthy(logical, key, hash, version)) return true;
       await sleep(config.pollMs ?? 1500);
     }
-    log({ at: "deploy.unhealthy", target: logical, hash, version: version || "live", last: lastHealth });
+    say({ at: "deploy.unhealthy", target: logical, hash, version: version || "live", last: lastHealth });
     return false;
   };
   const toCore = async (nsid, input) => {
@@ -140,6 +140,8 @@ deployerOps = {
   // This deployer's own hash, set by deployerFn on each request. It names the distiller: a Worker's code is a function of
   // its source and of the deployer that distilled it.
   const self = { hash: null };
+  // Each line names the deployer that wrote it: after an install, two deployers answer for a while.
+  const say = (line) => log(self.hash ? { ...line, deployer: self.hash } : line);
   // The source kept for each module is the source of what is running. A version put back takes its source with it.
   const keptSources = async () => (await rows.list("source/")).filter((r) => !r.value.stale).map((r) => ({ module: r.key.slice("source/".length), ...r.value }));
   const sourcePutBack = async (logical, hash) => {
@@ -178,7 +180,7 @@ deployerOps = {
   const ensureLogs = async (logical) => {
     if (logsOn((await api("GET", script(logical) + "/script-settings")).observability)) return false;
     await api("PATCH", script(logical) + "/script-settings", text({ observability: OBSERVABILITY }), jsonType);
-    log({ at: "deploy.logs-on", target: logical });
+    say({ at: "deploy.logs-on", target: logical });
     return true;
   };
 
@@ -191,7 +193,7 @@ deployerOps = {
   const DAY = 86400000, TOKEN_DAYS = 90, ROLL_DAYS = 30;
   const audit = async (event, logical, t) => {
     const row = { at: Date.now(), event, worker: logical, token: t.id, groups: t.groups, expires: t.expires };
-    log({ at: "token." + event, target: logical, token: t.id, groups: t.groups.join(", ") });
+    say({ at: "token." + event, target: logical, token: t.id, groups: t.groups.join(", ") });
     await rows.append("audit/tokens", row, 500);
     await note(`token/${logical}/${t.id}/${event}`, row);
   };
@@ -287,11 +289,11 @@ deployerOps = {
       const constraints = b.regions.length ? { constraints: { regions: b.regions } } : {};
       if (!found) await api("POST", "/containers/applications", text({ name, scheduling_policy: "default", instances: 0, max_instances: b.max_instances, configuration, ...constraints, durable_objects: { script_name: actual(logical), class_name: b.class_name } }), jsonType);
       else await api("PATCH", "/containers/applications/" + found.id, text({ max_instances: b.max_instances, configuration, ...constraints }), jsonType);
-      log({ at: found ? "deploy.application-set" : "deploy.application-made", target: logical, application: name, image: b.image, type: b.instance_type });
+      say({ at: found ? "deploy.application-set" : "deploy.application-made", target: logical, application: name, image: b.image, type: b.instance_type });
     }
     for (const a of mine.filter((a) => !list.some((b) => a.name === actual(logical) + "-" + b.name))) {
       await api("DELETE", "/containers/applications/" + a.id);
-      log({ at: "deploy.application-removed", target: logical, application: a.name });
+      say({ at: "deploy.application-removed", target: logical, application: a.name });
     }
   };
 
@@ -455,7 +457,7 @@ deployerOps = {
       await api("POST", script(logical) + "/subdomain", text(ADDRESS), jsonType);
       if (m.crons.length) await api("PUT", script(logical) + "/schedules", text(m.crons.map((cron) => ({ cron }))), jsonType);
       version = await currentVersion(logical);
-      log({ at: "deploy.uploaded", target: logical, hash: w.hash, version, first: true });
+      say({ at: "deploy.uploaded", target: logical, hash: w.hash, version, first: true });
       if (!(await waitHealthy(logical, key, w.hash))) {
         if (previous) await setVersions(logical, [{ version_id: previous, percentage: 100 }]);
         else await api("DELETE", script(logical) + "?force=true");
@@ -466,7 +468,7 @@ deployerOps = {
       // Set again on each deploy: a script made before 2026-10-09 had its preview addresses on.
       await api("POST", script(logical) + "/subdomain", text(ADDRESS), jsonType);
       version = (await api("POST", script(logical) + "/versions", form())).id;
-      log({ at: "deploy.uploaded", target: logical, hash: w.hash, version, previous });
+      say({ at: "deploy.uploaded", target: logical, hash: w.hash, version, previous });
       await setVersions(logical, [{ version_id: previous, percentage: 100 }, { version_id: version, percentage: 0 }]);
       if (!(await waitHealthy(logical, key, w.hash, version))) {
         await setVersions(logical, [{ version_id: previous, percentage: 100 }]);
@@ -503,14 +505,14 @@ deployerOps = {
       }
     }
     await note(`deploy/${logical}/${version}`, { event: state, worker: logical, hash: w.hash });
-    log({ at: "deploy." + state, target: logical, hash: w.hash, version });
+    say({ at: "deploy." + state, target: logical, hash: w.hash, version });
     return { state, version };
   };
 
   // Every change says why, and the reason is logged before anything is done: deploy.reason { reason, by, targets }.
   const WHY = "reason: say why this is changed, in 3 to 300 characters";
   const reasonOf = (r) => (typeof r === "string" && r.trim().length >= 3 && r.trim().length <= 300 ? r.trim() : null);
-  const because = (reason, by, targets) => log({ at: "deploy.reason", reason, by, targets: targets.map((t) => String(t).slice(0, 80)).slice(0, 40) });
+  const because = (reason, by, targets) => say({ at: "deploy.reason", reason, by, targets: targets.map((t) => String(t).slice(0, 80)).slice(0, 40) });
   // A change to a Worker names the hash the caller saw running: `was`, or null for no Worker. One change to a Worker
   // runs at a time, under the row deploying/NAME, which is deleted when the change ends. A change that died holds the
   // row until `until`; then one caller takes it over, the one that makes deploying-over/NAME/ID. That row is kept.
@@ -532,7 +534,7 @@ deployerOps = {
       // the next two lines. That needs a change over 5 minutes old to end within one row read of this one.
       if (((await rows.get(key)) || {}).id === held.id) await rows.delete(key);
       if (!(await rows.putIfAbsent(key, mine))) return null;
-      log({ at: "deploy.lease-taken-over", target: logical });
+      say({ at: "deploy.lease-taken-over", target: logical });
       return mine;
     } finally {
       await rows.deletePrefix(`deploying-over/${logical}/`);
@@ -636,7 +638,7 @@ deployerOps = {
           const kept = rec && rec.hash ? { ...rec, lastError: reason, lastErrorAt: Date.now(), failedHash: w.hash } : { worker: logical, role: w.meta.role, hash: null, key: rec && rec.key, state: "removed", lastError: reason, lastErrorAt: Date.now(), failedHash: w.hash };
           await rows.put("worker/" + logical, kept);
           await note(`put-back/${logical}/${w.hash}/${kept.lastErrorAt}`, { event: "put-back", worker: logical, hash: w.hash, previous: kept.hash, reason });
-          log({ at: "deploy.put-back", target: logical, hash: w.hash, previous: kept.hash, reason });
+          say({ at: "deploy.put-back", target: logical, hash: w.hash, previous: kept.hash, reason });
           results.push({ ...base, state: "put-back", previous: kept.hash, reason });
         }
       }
@@ -671,7 +673,7 @@ deployerOps = {
         if (rec && rec.hash) await api("DELETE", script(logical) + "?force=true");
         const token = await rows.get("token/" + logical);
         if (token) (await dropToken(logical, token), await rows.delete("token/" + logical));
-        log({ at: "deploy.removed", target: logical, hash: rec && rec.hash });
+        say({ at: "deploy.removed", target: logical, hash: rec && rec.hash });
         await rows.delete("worker/" + logical);
         await rows.delete("approved/remove:" + logical);
         results.push({ worker: logical, state: "removed" });
@@ -680,7 +682,7 @@ deployerOps = {
       };
       results.push(dry ? await change(await rows.get("worker/" + logical)) : await guard(logical, item && item.was, change));
     }
-    for (const r of results) if (r.state === "refused" || r.state === "waiting") log({ at: "deploy." + r.state, target: r.worker, hash: r.hash, reason: r.reason });
+    for (const r of results) if (r.state === "refused" || r.state === "waiting") say({ at: "deploy." + r.state, target: r.worker, hash: r.hash, reason: r.reason });
     return { results };
   };
 
@@ -707,7 +709,7 @@ deployerOps = {
       await rows.put("worker/" + logical, next);
       return next;
     } catch (e) {
-      log({ at: "token.mint-failed", target: logical, reason: String((e && e.message) || e).slice(0, 300) });
+      say({ at: "token.mint-failed", target: logical, reason: String((e && e.message) || e).slice(0, 300) });
       return rec;
     }
   };
@@ -723,7 +725,7 @@ deployerOps = {
     const stale = (groups.length || rec.token) && !("token" in old && old.token === (rec.token || null));
     if (stale) next.token = null;
     // The row first: what is live is recorded before a call to Cloudflare that can fail.
-    log({ at: "deploy.put-back", target: logical, hash: rec.hash, previous: to.hash, reason });
+    say({ at: "deploy.put-back", target: logical, hash: rec.hash, previous: to.hash, reason });
     await rows.put("worker/" + logical, next);
     await sourcePutBack(logical, to.hash);
     await register(next, next.access).catch(() => null);
@@ -779,7 +781,7 @@ deployerOps = {
       if (fails >= 2 && rec.previous) await putBack(rec.worker, rec, rec.previous, "health check failed twice");
       else if (fails !== (rec.fails || 0)) {
         await rows.put("worker/" + rec.worker, { ...rec, fails });
-        if (fails === 2) (log({ at: "deploy.failing", target: rec.worker, hash: rec.hash, reason: "health check failed twice and there is no version before" }), await note(`failing/${rec.worker}/${rec.hash}`, { event: "failing", worker: rec.worker, hash: rec.hash }));
+        if (fails === 2) (say({ at: "deploy.failing", target: rec.worker, hash: rec.hash, reason: "health check failed twice and there is no version before" }), await note(`failing/${rec.worker}/${rec.hash}`, { event: "failing", worker: rec.worker, hash: rec.hash }));
       }
       });
     }
@@ -795,7 +797,7 @@ deployerOps = {
       const list = (await rows.get("confirmed/" + logical)) || [];
       await rows.put("confirmed/" + logical, [{ version: s.version, hash: s.hash, at: Date.now() }, ...list].slice(0, 5));
       confirmed.push(logical);
-      log({ at: "deploy.confirmed", target: logical, hash: s.hash, version: s.version });
+      say({ at: "deploy.confirmed", target: logical, hash: s.hash, version: s.version });
     }
     return { confirmed };
   };
@@ -1011,7 +1013,7 @@ deployerOps = {
       await register(next, access);
       if (!(await waitHealthy(logical, key, hash))) throw new Error("health check failed after go-live");
       await ensureLogs(logical).catch(() => null);
-      log({ at: "deploy.deployed", target: logical, hash, version, previous: (rec && rec.hash) || null });
+      say({ at: "deploy.deployed", target: logical, hash, version, previous: (rec && rec.hash) || null });
       await rows.put("msource/" + logical, { module: meta.module, text: typeof request.source === "string" ? request.source : null, author, hash, at: Date.now() });
       await note(`deploy/${logical}/${version}`, { event: "deployed", worker: logical, hash, author });
       return { worker: logical, hash, state: "deployed", methods };
@@ -1022,7 +1024,7 @@ deployerOps = {
         await rows.put("worker/" + logical, { ...rec, lastError: reason, lastErrorAt: Date.now(), failedHash: hash });
         await register(rec, rec.access).catch(() => null);
       } else await memberRemoveOne(logical).catch(() => null);
-      log({ at: "deploy.put-back", target: logical, hash, previous: (rec && rec.hash) || null, reason });
+      say({ at: "deploy.put-back", target: logical, hash, previous: (rec && rec.hash) || null, reason });
       return { worker: logical, hash, state: "put-back", previous: (rec && rec.hash) || null, reason };
     }
     });
@@ -1744,6 +1746,8 @@ test_the_deployer_logs_each_step_of_a_deploy_and_why_it_was_put_back = {
   });
   const mine = lines.filter((l) => l.target === "brain-x-steps");
   expect(mine.map((l) => l.at)).toEqual(["deploy.uploaded", "deploy.deployed", "deploy.uploaded", "deploy.unhealthy", "deploy.put-back", "deploy.waiting"]);
+  // Each line names the deployer that wrote it.
+  expect([...new Set(mine.map((l) => l.deployer))]).toEqual([expect.stringMatching(/^[0-9a-f]{64}$/)]);
   // What the last health check answered: here the version itself answered 500.
   expect(mine[3]).toMatchObject({ hash: v2.hash, last: "status 500" });
   expect(mine[4]).toMatchObject({ worker: "brain-deployer", hash: v2.hash, previous: v1.hash, reason: "self-test failed before go-live" });
