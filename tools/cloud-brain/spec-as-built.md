@@ -3094,3 +3094,19 @@ The first apply of the core and the page answered `put-back` in 3 s: Cloudflare'
 Left on cb4 by the check: `brain-x-library 45a95ad80b10` waits for approval. It is the running source with a comment added. It should not be approved; nothing removes a waiting deploy but a later one.
 
 Not done: no deploy through a link's token was carried to `deployed` (approval is on, and approving needs the recovery key on the deployer's page). The checkbox was not pressed on cb4. No session of Claude Code on the web has used a link.
+
+### The deploy log of 2026-10-09, read for what failed (23:13 CEST)
+
+Tom: "Check the logs we need to get to the bottom of these". `logs.query`, filter `at` includes `deploy.`, the 14 hours to 23:15 CEST: 281 lines. Times are CEST.
+
+| When | What the log says | Cause |
+|---|---|---|
+| 23:10:01, 23:10:05 | `put-back` of brain-core and brain-x-page: `PUT /workers/scripts/cb4-core 500 [{"code":10013,"message":"An unknown error has occurred…"}]` | Cloudflare's API. The 500 came 3.1 s after `deploy.reason`. In the 40 s around it no other deploy line and no error in any Worker. The same files uploaded at 23:11:24 and 23:11:37. Not explained further: the log holds Cloudflare's text and nothing else |
+| 20:36:09 | `put-back` of brain-x-container: `POST …/versions 504 []` | Cloudflare's API again, another session's deploy |
+| 10:11:05 to 10:16:15, 11:23:27 to 11:28:24 | `uploaded` with no line after it, then `refused … another change … is running`, then `lease-taken-over` 5 minutes later | An apply that stopped after its upload and did not release its row. Both were the last Workers of an apply of all 17, 4 and 6 minutes into it. What stopped the request is not in the log |
+| 10:16, 10:27, 21:09 | `put-back … not confirmed in 10 minutes` (page, core and page, core `437a531428bd`) | nobody ran `confirm` |
+| 09:46, 10:16, 10:32, 11:01 | `put-back` of brain-x-browser: `its tests failed: test_browser_open_makes_a_tab_and_reuses_it_by_name` | the same test four times; `2d4b7b601003` at 11:18 stayed |
+| 11:21:39 | brain-x-feed `unhealthy`, `health check failed after go-live` | applied again at 11:24 and stayed |
+| 09:36:07 | brain-x-library `uploaded` and `deployed` as `1753e38fa319`, the hash it had | the forced apply noted above as unexplained. It was sent 6 s after the deployer was installed. Not shown: whether the deployer that answered was the one before. A deploy line does not carry the deployer's own hash |
+
+The deployer does not try a Cloudflare call twice. Two of today's put-backs were a 500 and a 504 that a second try would likely have passed.
