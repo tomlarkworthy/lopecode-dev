@@ -622,6 +622,7 @@ Tom, 2026-10-09: "I would like to record the latest research (AI particularly) a
 - Open: Reddit. The feed gives no score and Reddit rate-limits Cloudflare's addresses (429 after about ten requests in an hour). An OAuth app of Tom's would give scores and a limit of its own. Not asked for yet.
 - Open: Anthropic and Meta AI publish no feed at the addresses tried. A page scrape with the browser service would cover them; not built.
 - Open: the first timed run (06:00 UTC) has not been observed. Check `ranAt` in `/static/snapshot/days.json`.
-- Open: history. Files are never deleted: about 1.3 MB a day, 1.0 MB of it arXiv.
+- Done 2026-10-09: history. The timed run drops days older than `keepDays` (90) through `static.delete` `{ prefix, before }`. Not observed on cb4: no day is that old.
+- Done 2026-10-09: "600 papers is too many" (Tom). `snapshot/<day>/papers.json` holds the papers with a signal: 18 on 2026-10-09 (12 by Hugging Face votes of 10 or more, 6 linked from Reddit or Import AI, 0 from a lab feed). `arxiv.json` stays, marked `lookup`. For Tom: is 10 votes the right line (9 more papers had 5 to 9), and should a later digest read `papers.json` in place of `arxiv.json`.
 - Not done: a retry when a source fails at 06:00; old files of a renamed source on the same day; a search over the days.
 

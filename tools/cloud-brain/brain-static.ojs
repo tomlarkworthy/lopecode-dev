@@ -10,7 +10,7 @@ Files kept by a Cloud Brain and served from its address.
 | \`static.list\` | query. \`?prefix=\` and \`?tag=\`. \`{ files: [{ path, size, type, sha256, public, tags, savedAt }] }\`, the files the caller may read. |
 | \`static.tag\` | procedure. \`{ path, tags }\` replaces the file's labels. |
 | \`static.setPublic\` | procedure. \`{ path, public }\` adds or removes the \`public\` label. |
-| \`static.delete\` | procedure. \`{ path }\` |
+| \`static.delete\` | procedure. \`{ path }\` drops one file. \`{ prefix, before }\` drops each file under the prefix that the caller may change, saved before \`before\` (an ISO date or milliseconds; all of them without it). Answers \`{ deleted, paths }\`. An empty prefix is refused, and nothing under \`shell/\` is dropped this way. |
 | \`GET /static/<path>\` | whoever may read the file by its tags. \`ETag\` is the SHA-256; \`If-None-Match\` answers 304. |
 | Storage | bytes in \`blobs\` and one row per file in \`rows\`, both under \`f/<path>\` |
 
@@ -41,6 +41,10 @@ A tag with \`:\` in it is never taken from a caller and never changes after the 
 A recipe is the owner's code and is not checked by tag: it reads and changes what is under its own name, and reads what is public. A file kept before tags (2026-10-07) is read as the owner's, \`public\` if its flag said so. A token is the owner's and reaches everything it reached before.
 
 The core sends, with each call by a person, whether they are a member, their tag grants and their limit in bytes. The limit counts every file under \`u/ID/\`, default 20 MB. A file not made by the owner is served with \`Content-Security-Policy: sandbox\`, so a browser gives it no script and no origin.
+
+## Where a file goes
+
+A service that keeps files by date names them \`<service>/<YYYY-MM-DD>/<name>\`: \`snapshot/2026-10-09/arxiv.json\`. The first segment is not a choice (a recipe makes a new path only under its own name) and each file carries \`worker:<name>\` and \`savedAt\`, both set by this Worker. The day is the second segment so that one day, or every day before a date, is one prefix: \`static.delete\` with \`{ prefix: "snapshot/", before: "2026-07-01" }\`. A listing reads every record under its prefix, so a prefix that ends at a day reads that day's files only.
 
 \`static.list\` reads every record under the prefix and filters; with \`?tag=\` it still reads them all. On cb4 that is 14 records (2026-10-07). There is no index by tag.
 
@@ -237,7 +241,20 @@ staticApp = {
     return retag(c, path, (labels) => (open ? [...new Set([...labels, "public"])] : labels.filter((t) => t !== "public")));
   });
   app.post(NS + "delete", async (c) => {
-    const { path } = await c.req.json().catch(() => ({}));
+    const { path, prefix, before: until } = await c.req.json().catch(() => ({}));
+    // { prefix, before }: each file under the prefix that this caller may change, saved before then. Never the shell.
+    if (prefix !== undefined) {
+      const m = await me(c), t = until === undefined ? Infinity : typeof until === "number" ? until : Date.parse(until);
+      if (typeof prefix !== "string" || !prefix || !okPath(prefix.replace(/\/$/, "")) || Number.isNaN(t)) return fail(c, 400, "InvalidRequest", "{ prefix, before }: a prefix that is not empty, and a date");
+      if (!m || !(m.all || m.fixed || m.did)) return fail(c, 403, "Forbidden", "this caller has no files");
+      const paths = (await rows.list("f/" + prefix)).filter(({ key, value }) => !key.startsWith("f/shell/") && (value.savedAt || 0) < t && can(m, value, key.slice(2), "write")).map((r) => r.key.slice(2));
+      for (const p of paths) {
+        await rows.delete("f/" + p);
+        await blobs.delete("f/" + p);
+        await blobs.delete("z/" + p);
+      }
+      return c.json({ deleted: paths.length, paths });
+    }
     const { no } = await writable(c, path);
     if (no) return no;
     const deleted = await rows.delete("f/" + path);
@@ -300,6 +317,30 @@ test_static_a_worker_reaches_only_paths_under_its_name = {
   expect((await rig.put("worker:brain-core", "core/x", "x")).status).toBe(403);
   expect((await rig.call("anonymous", rig.X + "list")).status).toBe(403);
   return "4 refusals";
+}
+// %%
+test_static_delete_by_prefix_and_date_keeps_to_what_the_caller_may_change = {
+  const rig = await staticRig(), snap = "worker:brain-x-snapshot", del = async (who, input) => { const r = await rig.post(who, "delete", input); return [r.status, (await r.json()).paths]; };
+  for (const day of ["2026-07-01", "2026-10-08", "2026-10-09"]) await rig.put(snap, `snapshot/${day}/hn.json`, "{}");
+  await rig.put("owner", "site/a.css", "a");
+  await rig.put("owner", "shell/index.html", "<html>");
+  // What a Worker makes is under its own name, stamped with it and with the time. No caller names either.
+  const made = rig.sim.rows.get("f/snapshot/2026-10-09/hn.json");
+  expect([made.tags, typeof made.savedAt]).toEqual([["by:owner", "worker:brain-x-snapshot"], "number"]);
+  expect((await rig.put(snap, "other/2026-10-09/hn.json", "{}")).status).toBe(403);
+  // The date is savedAt, not the path: give two files an older one.
+  for (const day of ["2026-07-01", "2026-10-08"]) rig.sim.rows.set(`f/snapshot/${day}/hn.json`, { ...rig.sim.rows.get(`f/snapshot/${day}/hn.json`), savedAt: Date.parse(day) });
+  expect(await del(snap, { prefix: "snapshot/", before: "2026-08-01" })).toEqual([200, ["snapshot/2026-07-01/hn.json"]]);
+  // A Worker's prefix outside its name drops nothing; an empty prefix and a bad date are refused.
+  expect(await del(snap, { prefix: "site/" })).toEqual([200, []]);
+  expect((await rig.post(snap, "delete", { prefix: "" })).status).toBe(400);
+  expect((await rig.post("owner", "delete", { prefix: "snapshot/", before: "soon" })).status).toBe(400);
+  expect((await rig.post("anonymous", "delete", { prefix: "snapshot/" })).status).toBe(403);
+  // The owner drops any prefix, and never the shell.
+  expect((await del("owner", { prefix: "s" }))[1]).toEqual(["site/a.css", "snapshot/2026-10-08/hn.json", "snapshot/2026-10-09/hn.json"]);
+  expect((await del("owner", { prefix: "shell/" }))[1]).toEqual([]);
+  expect([...rig.sim.blobs.keys()].filter((k) => !k.includes("/shell/"))).toEqual([]);
+  return "by prefix and date";
 }
 // %%
 test_static_only_the_owner_writes_the_shell = {

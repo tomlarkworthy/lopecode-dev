@@ -1012,7 +1012,7 @@ simulate = async (service, { secrets = {}, stored = {}, fetch, config = {}, info
     if (init && init.headers) Object.defineProperty(req, "headers", { value: new Headers(init.headers) });
     return mod.default.fetch(req, env, { waitUntil: simWaits.hold });
   };
-  sim.scheduled = () => mod.default.scheduled({ scheduledTime: Date.now() }, env, { waitUntil: simWaits.hold });
+  sim.scheduled = (event = { scheduledTime: Date.now() }) => mod.default.scheduled(event, env, { waitUntil: simWaits.hold });
   return sim;
 }
 // %%

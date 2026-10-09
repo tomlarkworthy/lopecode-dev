@@ -100,6 +100,15 @@ brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
 7. Commit on `main` in `lopebooks` and here, and push. Tom, 2026-10-08: "we should work on main
    mainly". Not a branch in the shared directory.
 
+## Where a service keeps files
+
+Files are in `brain-static`, by path. Anything dated is `<service>/<YYYY-MM-DD>/<name>`:
+`snapshot/2026-10-09/arxiv.json`. The store sets the rest: a Worker `brain-x-NAME` makes a new path
+only under `NAME/`, and each file carries `worker:brain-x-NAME` and `savedAt`. The day is the second
+segment for two reasons. Clean-up is one call, `static.delete` with `{ prefix: "snapshot/", before:
+"2026-07-01" }` (`before` is compared with `savedAt`). And `static.list` reads every record under its
+prefix, so a prefix that ends at a day reads that day only.
+
 ## Why did that happen: the logs
 
 `brain-x-logs` passes Cloudflare's log queries through, scoped to this Brain, owner's session only.

@@ -6,7 +6,7 @@ How the Brain works is in `@tomlarkworthy/cloud-brain-docs`. The requirements ta
 <!-- cell: built_exists -->
 ### What exists
 
-One Brain, `cb4`, runs in one Cloudflare account. It has 15 Workers. The table gives the name that the Brain uses. On Cloudflare `brain` is `cb4` and `brain-NAME` is `cb4-NAME`. A 16th script, `cb4-guard`, is a stub: until 2026-10-07 it was the deployer, and it now holds no token and no key.
+One Brain, `cb4`, runs in one Cloudflare account. It has 17 Workers (counted 2026-10-09: the deployer and the 16 that `redistil` lists). The table gives the name that the Brain uses. On Cloudflare `brain` is `cb4` and `brain-NAME` is `cb4-NAME`. An 18th script, `cb4-guard`, is a stub: until 2026-10-07 it was the deployer, and it now holds no token and no key.
 
 | Worker | module | job |
 |---|---|---|
