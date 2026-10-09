@@ -35,7 +35,9 @@ A person is an atproto account, named by its DID. There are two roles. The **own
 
 **Sign-in links** (added 2026-10-09). For a program with no browser, such as Claude Code on the web. \`token.link\` (procedure, owner's session) takes \`{ name, methods, minutes, hours, deploy }\` and answers \`{ name, deploy, link, until }\`; \`minutes\` (1 to 60, 10 if left out) is how long the link is good, \`hours\` (1 to 24, 8 if left out) how long its token lasts. The link is \`/auth/link?code=…\`. A GET of it answers text that says what to do and spends nothing, so a preview of a pasted link does not use it. The first POST answers \`{ name, token, methods, until, deploy }\` and deletes the link; a second answers 401. The token is one as \`token.create\` makes, with an end: it may not name \`infra.*\`, \`secret.*\`, \`token.*\`, \`grant.*\` or \`people.*\`, and \`token.list\` gives it with \`by: "link"\` until it ends. \`token.revoke\` with \`{ name }\` ends the token early, and deletes a link of that name nobody has used. A link is refused a name that a token or another link has.
 
-With \`deploy: true\`, \`token.link\` makes a link whose token also calls \`infra.*\` as the owner's session does, and these four only: \`infra.apply\`, \`infra.getState\`, \`infra.redistil\` and \`infra.confirm\` (which ends the probation of a kernel, core or page it deployed). Not \`infra.shell\`: that puts HTML at \`/\` with no reason, no \`was\` and no approval, and the page at \`/\` runs where the owner's session is kept; so a program cannot renew the page's shell, and the owner does after it deploys the page. It deploys and removes any Worker of this Brain, the kernel among them. What holds a session's apply holds its apply: a reason, \`was\`, and approval on the deployer's page (which needs the recovery key) when deploys need approval. The token itself names no secret, token, grant or people method. That is a limit only while deploys need approval: with approval off it can deploy a kernel of its own writing, and the kernel is what names the caller, so the token is then the owner in effect. Only a link makes such a token, so it always ends, in 24 hours at most; \`token.create\` cannot. Each call is logged by the kernel as \`infra.by.link\` with the token's name. Tom, 2026-10-09: "I do want singin links to be able to deploy with the authority of me". A token reaches its methods and no path, so \`/llms.txt\` is read with no \`Authorization\` header. Ended links and tokens are deleted when the next link is made. Only the hash of the code and of the token is kept. The code is in a query string, which Cloudflare keeps beside each log line; it is good once.
+With \`deploy: true\`, \`token.link\` makes a link whose token also calls \`infra.*\` as the owner's session does, and these four only: \`infra.apply\`, \`infra.getState\`, \`infra.redistil\` and \`infra.confirm\` (which ends the probation of a kernel, core or page it deployed). Not \`infra.shell\`: that puts HTML at \`/\` with no reason, no \`was\` and no approval, and the page at \`/\` runs where the owner's session is kept; so a program cannot renew the page's shell, and the owner does after it deploys the page. It deploys and removes any Worker of this Brain, the kernel among them. What holds a session's apply holds its apply: a reason, \`was\`, and approval on the deployer's page (which needs the recovery key) when deploys need approval. The token itself names no secret, token, grant or people method. That is a limit only while deploys need approval: with approval off it can deploy a kernel of its own writing, and the kernel is what names the caller, so the token is then the owner in effect. Only a link makes such a token, so it always ends, in 24 hours at most; \`token.create\` cannot. Each call is logged by the kernel as \`infra.by.link\` with the token's name. Tom, 2026-10-09: "I do want singin links to be able to deploy with the authority of me".
+
+With \`unattended: true\` beside \`deploy: true\` (added 2026-10-09), nothing that token applies, removes or redistils waits for approval, a Worker that declares Cloudflare permissions among them, so it changes which Cloudflare token a Worker is minted; the deployer logs \`by: token:NAME\`. It also reaches \`infra.shell\`. Such a token is the owner in effect for as long as it lasts: it can deploy a kernel of its own writing with nobody asked. What bounds it: it ends (8 hours unless said, 24 at most), \`token.revoke\` ends it, every change is logged with its reason, \`was\` holds, and the deployer mints only the groups in its \`GROUPS\`. Tom, 2026-10-09: "I would like LLMs to be able to deploy without approval and also choose what services they have". A token reaches its methods and no path, so \`/llms.txt\` is read with no \`Authorization\` header. Ended links and tokens are deleted when the next link is made. Only the hash of the code and of the token is kept. The code is in a query string, which Cloudflare keeps beside each log line; it is good once.
 
 **Turns.** \`inbox.list\` and \`inbox.poll\` answers pass through the kernel, which adds \`who: { did, role, handle }\` to each entry whose address is linked. For the owner's own session \`inbox.poll\` also adds \`turn\`, a token for each entry whose sender is the owner or a member. A call that carries it as \`Authorization: Bearer\` is made as that DID, with \`x-brain-via: turn:<entry id>\`. It lasts 10 minutes, ends with "sign out everywhere", and is refused once its DID is no longer a member.
 
@@ -249,7 +251,7 @@ kernelApp = {
     }
     const token = await rows.get("token/" + (await sha256(bearer)));
     if (token && token.until < Date.now()) return { refused: { error: "AuthRequired", message: "this token has expired" } };
-    return token ? { caller: "token:" + token.name, via: "token", methods: token.methods, deploy: token.deploy === true } : { refused: { error: "AuthRequired", message: "unknown token" } };
+    return token ? { caller: "token:" + token.name, via: "token", methods: token.methods, deploy: token.deploy === true, unattended: token.unattended === true } : { refused: { error: "AuthRequired", message: "unknown token" } };
   };
   app.use("*", async (c, next) => {
     const path = new URL(c.req.url).pathname;
@@ -260,7 +262,7 @@ kernelApp = {
     if (who.refused) return fail(c, who.refused.status || 401, who.refused.error, who.refused.message);
     // A token or another DID reaches only the methods it was given, and no path that is not a method.
     // A token of a sign-in link the owner made with deploy reaches infra.* too.
-    if (who.via === "token" && !(nsid && (who.methods.includes(nsid) || (who.deploy && DEPLOYS.includes(nsid))))) return fail(c, 403, "Forbidden", "this token does not name " + (nsid || path));
+    if (who.via === "token" && !(nsid && (who.methods.includes(nsid) || (who.deploy && deploys(who).includes(nsid))))) return fail(c, 403, "Forbidden", "this token does not name " + (nsid || path));
     // A portal shows one member's services to whoever opened it. Its token reaches the methods of that member's
     // Workers and the list of their modules, as the viewer; when the viewer is that member, their own services too.
     if (who.portal) {
@@ -382,6 +384,9 @@ kernelApp = {
   // What the token of a sign-in link made with deploy reaches of infra. Not infra.shell: it puts HTML at / with no
   // reason, no was and no approval, and that page runs where the owner's session is kept.
   const DEPLOYS = ["apply", "getState", "redistil", "confirm"].map((m) => "com.lopecode.brain.infra." + m);
+  // A link made to deploy with no approval can deploy a kernel with nobody asked, so keeping the page at / from it
+  // would keep nothing: it reaches infra.shell too, and finishes a deploy of the page.
+  const deploys = (who) => (who.unattended ? [...DEPLOYS, "com.lopecode.brain.infra.shell"] : DEPLOYS);
   const never = (m) => /^com\.lopecode\.brain\.(infra|secret|token|grant|people)\./.test(m);
   app.get(NS + "token.list", session, async (c) => c.json({ tokens: (await rows.list("token/")).map((r) => r.value).filter((t) => !(t.until < Date.now())) }));
   app.post(NS + "token.create", session, async (c) => {
@@ -398,8 +403,9 @@ kernelApp = {
   // spends nothing, so a preview of a pasted link does not use it. The token ends by itself.
   const hex = () => [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("");
   app.post(NS + "token.link", session, async (c) => {
-    const { name, methods = [], minutes = 10, hours = 8, deploy = false } = await c.req.json();
-    if (typeof deploy !== "boolean") return fail(c, 400, "InvalidRequest", "deploy is true or false");
+    const { name, methods = [], minutes = 10, hours = 8, deploy = false, unattended = false } = await c.req.json();
+    if (typeof deploy !== "boolean" || typeof unattended !== "boolean") return fail(c, 400, "InvalidRequest", "deploy and unattended are true or false");
+    if (unattended && !deploy) return fail(c, 400, "InvalidRequest", "unattended is for a link made with deploy");
     const named = methods.map(full);
     if (!/^[a-z0-9-]{1,40}$/.test(name || "")) return fail(c, 400, "InvalidRequest", "name is lower case letters, digits and -");
     if (named.some(never)) return fail(c, 400, "InvalidRequest", "a token cannot name infra, secret, token, grant or people methods");
@@ -409,8 +415,8 @@ kernelApp = {
     for (const r of [...(await rows.list("link/")), ...(await rows.list("token/"))]) r.value.until < Date.now() ? await rows.delete(r.key) : live.push(r.value.name);
     if (live.includes(name)) return fail(c, 400, "InvalidRequest", `a token or a link is named ${name}; token.revoke ends it`);
     const code = hex(), until = Date.now() + minutes * 60000;
-    await rows.put("link/" + (await sha256(code)), { name, methods: named, until, hours, deploy });
-    return c.json({ name, deploy, link: `https://${config.host}/auth/link?code=${code}`, until });
+    await rows.put("link/" + (await sha256(code)), { name, methods: named, until, hours, deploy, unattended });
+    return c.json({ name, deploy, unattended, link: `https://${config.host}/auth/link?code=${code}`, until });
   });
   app.get("/auth/link", (c) =>
     c.text(`A sign-in link of the Cloud Brain at https://${config.host}, for a program.
@@ -419,11 +425,11 @@ POST to this same address, with no body, once:
 
   curl -sS -X POST "https://${config.host}/auth/link?code=<the code in this address>"
 
-The answer is JSON { name, token, methods, until, deploy }. The link then stops working. Keep the token in memory or an
+The answer is JSON { name, token, methods, until, deploy, unattended }. The link then stops working. Keep the token in memory or an
 environment variable; do not print it or write it to a file. Send it as "Authorization: Bearer <token>". It calls
 the methods in \`methods\` and no others, until \`until\` (milliseconds). With "deploy": true in the answer it also
 calls infra.apply, infra.getState, infra.redistil and infra.confirm as the owner does: it deploys and removes this
-Brain's Workers. /llms.txt says how.
+Brain's Workers. With "unattended": true nothing it deploys waits for the owner, and it calls infra.shell too. /llms.txt says how.
 
 Then read https://${config.host}/llms.txt, with no Authorization header (a token reaches its methods and no
 other address): how to call, and what this Brain is made of.
@@ -435,8 +441,8 @@ other address): how to call, and what this Brain is made of.
     // The delete says whether this caller is the one that spent it.
     if (!made || !(await rows.delete(key)) || made.until < Date.now()) return fail(c, 401, "AuthRequired", "this link was used, has expired or is not this Brain's");
     const token = hex(), until = Date.now() + made.hours * 3600000;
-    await rows.put("token/" + (await sha256(token)), { name: made.name, methods: made.methods, created: Date.now(), until, by: "link", ...(made.deploy ? { deploy: true } : {}) });
-    return c.json({ name: made.name, token, methods: made.methods, until, deploy: !!made.deploy });
+    await rows.put("token/" + (await sha256(token)), { name: made.name, methods: made.methods, created: Date.now(), until, by: "link", ...(made.deploy ? { deploy: true } : {}), ...(made.unattended ? { unattended: true } : {}) });
+    return c.json({ name: made.name, token, methods: made.methods, until, deploy: !!made.deploy, unattended: !!made.unattended });
   });
   app.post(NS + "token.revoke", session, async (c) => {
     const { name } = await c.req.json();
@@ -631,10 +637,10 @@ run();`;
   // with deploy. The deployer is told the owner; which token it was is logged here.
   app.all(NS + "infra.*", async (c) => {
     const who = c.get("who");
-    if (!(who.caller === "owner" && who.via === "session") && !(who.via === "token" && who.deploy && DEPLOYS.includes(c.get("nsid")))) return fail(c, 401, "AuthRequired", "the owner's own session, or a sign-in link made with deploy");
+    if (!(who.caller === "owner" && who.via === "session") && !(who.via === "token" && who.deploy && deploys(who).includes(c.get("nsid")))) return fail(c, 401, "AuthRequired", "the owner's own session, or a sign-in link made with deploy");
     const url = new URL(c.req.url), bodied = c.req.method === "POST";
     if (who.via === "token") console.log(JSON.stringify({ event: "infra.by.link", token: who.caller, method: c.get("nsid").slice("com.lopecode.brain.".length), at: Date.now() }));
-    return deployer.fetch(new Request("https://deployer.internal" + url.pathname + url.search, { method: c.req.method, headers: { "content-type": "application/json", "x-brain-caller": "owner" }, body: bodied ? await bodyOf(c) : undefined, duplex: bodied ? "half" : undefined }));
+    return deployer.fetch(new Request("https://deployer.internal" + url.pathname + url.search, { method: c.req.method, headers: { "content-type": c.req.header("content-type") || "application/json", "x-brain-caller": "owner", ...(who.via === "token" && who.unattended ? { "x-brain-unattended": who.caller } : {}) }, body: bodied ? await bodyOf(c) : undefined, duplex: bodied ? "half" : undefined }));
   });
   // The inbox as a tab reads it: each entry gains who its address belongs to, and for the owner's own
   // session a poll gains a turn token for each entry the owner or a member sent. An entry written in a room
@@ -874,6 +880,20 @@ test_tokens_reach_only_their_methods = {
   expect((await rig.call("token.create", { bearer: ship.token, body: { name: "more", methods: [] } })).status).toBe(403);
   await rig.call("token.revoke", { session: rig.owner, body: { name: "dep" } });
   expect((await rig.call("infra.getState", { bearer: ship.token })).status).toBe(401);
+  // A link made to deploy with no approval: the deployer is told which token, and the page at / is in reach.
+  expect((await rig.call("token.link", { session: rig.owner, body: { name: "free", methods: [], unattended: true } })).status).toBe(400);
+  const free = (await rig.call("token.link", { session: rig.owner, body: { name: "free", methods: [], deploy: true, unattended: true } })).data;
+  const run = (await rig.call(free.link.slice(free.link.indexOf("/auth/link")), { method: "POST" })).data;
+  expect([run.deploy, run.unattended]).toEqual([true, true]);
+  expect((await rig.call("infra.apply", { bearer: run.token, body: { workers: [], reason: "a test" } })).status).toBe(200);
+  expect(rig.toDeployer.at(-1).headers["x-brain-unattended"]).toBe("token:free");
+  expect((await rig.call("infra.shell", { bearer: run.token, body: "<p>page</p>" })).status).toBe(200);
+  expect((await rig.call("infra.distil", { bearer: run.token, body: {} })).status).toBe(403);
+  expect((await rig.call("secret.get", { bearer: run.token })).status).toBe(403);
+  // The owner's session, and a link made with deploy alone, send no such header; a caller cannot send it either.
+  await rig.call("infra.getState", { session: rig.owner, headers: { "x-brain-unattended": "token:free" } });
+  expect(rig.toDeployer.at(-1).headers["x-brain-unattended"]).toBe(undefined);
+  await rig.call("token.revoke", { session: rig.owner, body: { name: "free" } });
   // A link pasted in the wrong place is ended by its name, before anyone uses it.
   const wrong = (await rig.call("token.link", { session: rig.owner, body: { name: "wrong", methods: [] } })).data.link;
   expect((await rig.call("token.revoke", { session: rig.owner, body: { name: "wrong" } })).data).toEqual({ revoked: 1 });

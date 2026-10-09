@@ -71,6 +71,8 @@ Every change names what it saw. Each Worker in \`infra.apply\` carries \`was\`: 
 
 One change to a Worker runs at a time, the tick's health check and a verdict's put-back among them: each takes the same row for its writes and leaves a Worker whose row is held. The tick's health check itself runs with no row held, and a caller waits up to a second for a row before it is refused. The deployer makes the row \`deploying/NAME\` (\`putIfAbsent\`) before it reads what is running, and deletes it when the change ends, deployed or not. A second caller in that time is refused with \`another change to NAME is running\`. A change that died leaves the row; after 5 minutes one caller takes it over, the one that makes \`deploying-over/NAME/ID/MINUTE\`, which is deleted when the take-over ends. A take-over that died leaves that row, and the next minute has a new one. The take-over is logged as \`deploy.lease-taken-over\`. The rows have no compare-and-swap, so one case is open: a change over 5 minutes old that ends within one row read of the take-over. An approval is of one hash over one hash: the pending row keeps \`was\`, and an approval does not stand once the Worker has moved. Added 2026-10-09. Every \`deploy.…\` line also carries \`deployer\`, the hash of the deployer that wrote it.
 
+A sign-in link made to deploy with no approval (\`token.link\` with \`unattended\`, see brain-kernel; added 2026-10-09): the kernel passes its token's calls with \`x-brain-unattended: token:NAME\`, which counts beside the kernel's key only. An apply, a removal or a redistil by it is not held for the owner, a Worker that declares Cloudflare permissions among them, and \`deploy.reason\` says \`by: token:NAME\`. \`GROUPS\` still bounds what can be minted, \`was\` and the reason still hold, and it hands no secret a value. Tom, 2026-10-09: "I would like LLMs to be able to deploy without approval and also choose what services they have, so reminting a new token with different scopes for example".
+
 Every change says why. \`infra.apply\` (unless \`dry\`), \`infra.redistil\` with \`apply\`, a roll back on the page, \`member.deploy\` and \`member.remove\` take \`reason\`, 3 to 300 characters, and are refused without one (400 \`InvalidRequest\`, or \`refused\` for a member). The reason is logged before anything is done, as \`deploy.reason\` with \`reason\`, \`by\` (\`owner\`, \`recovery key\` or the member's DID) and \`targets\`. Added 2026-10-09.
 
 The deployer writes a line for each step of a deploy with the \`log\` cell: \`deploy.uploaded\`, \`deploy.deployed\`, \`deploy.probation\`, \`deploy.confirmed\`, \`deploy.unhealthy\` with what the last health check answered, \`deploy.put-back\` with the reason, \`deploy.refused\`, \`deploy.waiting\`, \`deploy.removed\`, \`deploy.failing\`, \`deploy.logs-on\`, \`token.mint\`, \`token.roll\`, \`token.delete\`, \`token.mint-failed\`. A member's deploy writes \`deploy.deployed\` and \`deploy.put-back\`. The \`reason\` of a put-back can be Cloudflare's own text about the code that was sent; it is not text a caller of a method sent.`
@@ -578,9 +580,12 @@ deployerOps = {
   };
   // An approval is of one hash over one hash: it does not stand once the Worker has moved.
   const approvedOver = async (key, rec) => ((a) => !!a && (a.was ?? null) === ((rec && rec.hash) || null))(await rows.get("approved/" + key));
-  const apply = async ({ workers = [], remove = [], dry = false, reason } = {}, { recovery = false } = {}) => {
+  // by: the token of a sign-in link the owner made to deploy with no approval ("token:NAME"). Nothing of its
+  // apply is held for the owner, a Worker that declares Cloudflare permissions among it. It hands no secret a value.
+  const apply = async ({ workers = [], remove = [], dry = false, reason } = {}, { recovery = false, by = null } = {}) => {
+    const free = recovery || !!by;
     if (!dry && !reasonOf(reason)) return { error: "InvalidRequest", message: WHY };
-    if (!dry) because(reasonOf(reason), recovery ? "recovery key" : "owner", [...workers.map((w) => (w && (w.module || (w.meta && w.meta.worker))) || "?"), ...remove.map((n) => "remove " + ((n && n.worker) || n))]);
+    if (!dry) because(reasonOf(reason), recovery ? "recovery key" : by || "owner", [...workers.map((w) => (w && (w.module || (w.meta && w.meta.worker))) || "?"), ...remove.map((n) => "remove " + ((n && n.worker) || n))]);
     const approval = (await settings()).approval;
     const results = [];
     // A Worker given as source is distilled here, and what is deployed is what that gives. An import of another
@@ -619,7 +624,7 @@ deployerOps = {
         results.push({ ...base, state: "unchanged" });
       }
       // A service that declares Cloudflare permissions is held for the owner also when deploys need no approval.
-      else if ((approval || (w.meta.cloudflare || []).length) && !recovery && !(await approvedOver(w.hash, rec))) {
+      else if ((approval || (w.meta.cloudflare || []).length) && !free && !(await approvedOver(w.hash, rec))) {
         const m = w.meta;
         await rows.put("pending/" + w.hash, { worker: logical, hash: w.hash, was: (rec && rec.hash) || null, methods: m.methods, paths: m.paths, secrets: m.secrets, resources: m.resources, cloudflare: m.cloudflare || [], calls: m.calls || [], access: m.access || {}, at: Date.now() });
         results.push({ ...base, state: "waiting" });
@@ -653,7 +658,7 @@ deployerOps = {
       const results = [];
       const reason = deployerAllows({ key: "worker/" + logical, op: "delete" });
       if (reason) results.push({ worker: logical, state: "refused", reason });
-      else if (approval && !recovery && !(await approvedOver("remove:" + logical, rec))) {
+      else if (approval && !free && !(await approvedOver("remove:" + logical, rec))) {
         await rows.put("pending/remove:" + logical, { worker: logical, hash: "remove:" + logical, was: (rec && rec.hash) || null, remove: true, at: Date.now() });
         results.push({ worker: logical, state: "waiting" });
       } else if (!dry) {
@@ -866,7 +871,7 @@ deployerOps = {
 
   // Distils the kept source of every running Worker again with this deployer. One whose code comes out different is
   // listed, and deployed when asked, by the same path as any deploy. Run after the deployer is updated.
-  const redistil = async ({ apply: go = false, reason } = {}, { recovery = false } = {}) => {
+  const redistil = async ({ apply: go = false, reason } = {}, { recovery = false, by = null } = {}) => {
     if (go && !reasonOf(reason)) return { error: "InvalidRequest", message: WHY };
     const kept = await keptSources();
     const sources = Object.fromEntries(kept.map((s) => [s.module, s.text]));
@@ -893,7 +898,7 @@ deployerOps = {
       }
     }
     if (go && changed.length) {
-      const out = await apply({ workers: changed, reason }, { recovery });
+      const out = await apply({ workers: changed, reason }, { recovery, by });
       for (const r of out.results) {
         const row = results.find((x) => x.worker === r.worker && x.state === "changes");
         if (row) Object.assign(row, { applied: r.state }, r.reason ? { reason: r.reason } : {});
@@ -1180,6 +1185,9 @@ deployerFn = async (request, context) => {
     const viaKernel = inside && !!kernel && !!kernel.key && request.headers.get("x-brain-key") === kernel.key && request.headers.get("x-brain-caller") === "owner";
     const recovery = !inside && !!recoveryKey && request.headers.get("authorization") === "Bearer " + recoveryKey;
     const method = url.pathname.slice("/xrpc/com.lopecode.brain.infra.".length);
+    // The kernel names the token of a link made to deploy with no approval. Nobody else can: the header counts
+    // only beside the kernel's key.
+    const by = viaKernel && /^token:[a-z0-9-]{1,40}$/.test(request.headers.get("x-brain-unattended") || "") ? request.headers.get("x-brain-unattended") : null;
     // A third caller, for one method: the core, passing on the page's verdict on a deploy.
     const coreRec = await rows.get("worker/brain-core");
     if (method === "verdict" && request.method === "POST" && inside && !!coreRec && !!coreRec.key && request.headers.get("x-brain-key") === coreRec.key) return json(await deployerOps.verdict(await request.json()));
@@ -1198,11 +1206,11 @@ deployerFn = async (request, context) => {
     // A deployer that was replaced changes nothing. It still answers getState and exportRows.
     if (config.replacedBy && request.method === "POST") return json({ error: "Replaced", message: "this deployer was replaced by " + config.replacedBy, deployer: config.replacedBy }, 409);
     if (method === "getState" && request.method === "GET") return json(await deployerOps.state());
-    if (method === "apply" && request.method === "POST") return ((out) => json(out, out.error ? 400 : 200))(await deployerOps.apply(await request.json(), { recovery }));
+    if (method === "apply" && request.method === "POST") return ((out) => json(out, out.error ? 400 : 200))(await deployerOps.apply(await request.json(), { recovery, by }));
     if (method === "confirm" && request.method === "POST") return json(await deployerOps.confirm());
     // An installer's shell, passed on to brain-static as it arrives. The deployer keeps none of it.
     if (method === "shell" && request.method === "POST") return deployerOps.shell(request);
-    if (method === "redistil" && request.method === "POST") return ((out) => json(out, out.error ? 400 : 200))(await deployerOps.redistil(await request.json().catch(() => ({})), { recovery }));
+    if (method === "redistil" && request.method === "POST") return ((out) => json(out, out.error ? 400 : 200))(await deployerOps.redistil(await request.json().catch(() => ({})), { recovery, by }));
     // Answers what a source distils to. Deploys nothing.
     if (method === "distil" && request.method === "POST") {
       try {
@@ -1423,9 +1431,9 @@ deployerRig = async ({ acceptEmitted = true, config = {}, store } = {}) => {
     // A reason goes with each apply; a test of the reason itself sends `reason: null`. `was` is what the rig's rows
     // hold at the call, as a caller with a fresh view would send; a test of `was` names its own.
     recover: async (body) => (await post(G + "/xrpc/com.lopecode.brain.infra.apply", fresh({ reason: "a test", ...body }), { authorization: "Bearer rk" })).json(),
-    asOwner: async (method, body) => {
+    asOwner: async (method, body, more = {}) => {
       const key = (sim.rows.get("worker/brain") || {}).key;
-      const headers = { "x-brain-key": key, "x-brain-caller": "owner" };
+      const headers = { "x-brain-key": key, "x-brain-caller": "owner", ...more };
       const r = body === undefined
         ? await sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.infra." + method, { headers })
         : await post("https://deployer.internal/xrpc/com.lopecode.brain.infra." + method, ["apply", "redistil"].includes(method) ? fresh({ reason: "a test", ...body }) : body, headers);
@@ -1930,6 +1938,28 @@ test_the_signing_key_is_not_made_anew_under_its_new_name = {
   const s = fresh.fake.scripts.get("cb"), keys = s.versions.get(s.deployment[0].version_id).metadata.bindings.filter((b) => ["COOKIE_KEY", "SESSION_KEY"].includes(b.name)).map((b) => b.text);
   expect([keys.length, keys[0] === keys[1], keys[0].length > 20]).toEqual([2, true, true]);
   return "kept under the old name, not made under the new";
+}
+// %%
+test_a_link_made_to_deploy_with_no_approval_is_not_held = {
+  const rig = await deployerRig();
+  await rig.recover({ workers: [await rig.made("brain", "kernel", "k1"), await rig.made("brain-core", "core", "c1")] });
+  const LINK = { "x-brain-unattended": "token:claude-1" };
+  // Approval is on. The owner's session waits; the link's token does not, and the log names it.
+  const plain = await rig.made("brain-x-plain", "recipe", "p1");
+  expect((await rig.asOwner("apply", { workers: [plain] })).results[0].state).toBe("waiting");
+  const lines = await logged(async () => expect((await rig.asOwner("apply", { workers: [plain] }, LINK)).results[0].state).toBe("deployed"));
+  expect(lines.filter((l) => l.at === "deploy.reason").map((l) => l.by)).toContain("token:claude-1");
+  // A Worker that declares a Cloudflare permission is minted its token with nobody asked.
+  const logs = await rig.made("brain-x-logs", "recipe", "l1", { cloudflare: ["Workers Observability Read"] });
+  expect((await rig.asOwner("apply", { workers: [logs] }, LINK)).results[0].state).toBe("deployed");
+  expect(rig.fake.tokens.size).toBe(1);
+  // Not a group off the list, and a removal is not held either.
+  expect((await rig.asOwner("apply", { workers: [await rig.made("brain-x-wide", "recipe", "w1", { cloudflare: ["Workers Scripts Write"] })] }, LINK)).results[0].state).toBe("refused");
+  expect((await rig.asOwner("apply", { remove: ["brain-x-plain"] }, LINK)).results[0].state).not.toBe("waiting");
+  // The header counts beside the kernel's key only.
+  const cold = await rig.sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.infra.apply", { method: "POST", headers: { "content-type": "application/json", ...LINK }, body: JSON.stringify({ workers: [], reason: "a test" }) });
+  expect(cold.status).toBe(401);
+  return "deployed with approval on, by token:claude-1";
 }
 // %%
 test_approval_holds_an_apply = {

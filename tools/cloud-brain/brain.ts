@@ -51,7 +51,9 @@ const install = async (name: string, { replacedBy = null as string | null } = {}
   const e = deployerEmit();
   const exists = await api(`/accounts/${st.account}/workers/scripts/${name}/settings`).then(() => true, () => false);
   const bindings: any[] = [
-    { type: "secret_text", name: "CF_API_TOKEN", text: token },
+    // An update keeps the token the Worker has: the owner may have replaced it in the dashboard, and the file
+    // here would put the old one back (2026-10-09). --token sends the file's.
+    exists && !process.argv.includes("--token") ? { type: "inherit", name: "CF_API_TOKEN" } : { type: "secret_text", name: "CF_API_TOKEN", text: token },
     { type: "secret_text", name: "RECOVERY_KEY", text: st.recoveryKey },
     { type: "secret_text", name: "BRAIN_KEY", text: deployerKey() },
     { type: "durable_object_namespace", name: "ROWS", class_name: "Rows" },

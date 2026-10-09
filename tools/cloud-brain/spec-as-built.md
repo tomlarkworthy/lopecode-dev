@@ -3201,3 +3201,30 @@ Not done: a model not priced by the token was not run on cb4 (the floor is teste
 the `AI` binding was not measured; `/llms.txt` lists the two methods and was not followed by a program other than
 this one. Open items are in the backlog under `brain-x-ai`.
 
+
+### A sign-in link that deploys with no approval, and the button makes one (2026-10-09, 23:55 CEST)
+
+Tom: "I would like LLMs to be able to deploy without approval and also choose what services they have, so reminting a new token with different scopes for example. Please change the copy claude button to be much more powerful".
+
+`token.link` takes `unattended: true` beside `deploy: true`. The kernel passes that token's `infra` calls with `x-brain-unattended: token:NAME`; the deployer counts the header beside the kernel's key only. An apply, a removal or a redistil by it is not held, a Worker that declares Cloudflare permissions among them, and `deploy.reason` says `by: token:NAME`. The token also reaches `infra.shell`. The Copy Login Link button now makes such a link, with `logs.query`, `logs.keys`, `logs.values` and `quota.get`.
+
+**What it is.** Such a token is the owner in effect for its 8 hours: it can deploy a kernel of its own writing with nobody asked. What still bounds it: it ends, `token.revoke` ends it, each change is logged with a reason and the token's name, `was` holds, and the deployer mints only the groups in `GROUPS` (three, all read). A token cannot widen `GROUPS`: the deployer is installed with the Cloudflare token and not through `infra.apply`.
+
+Not done, and asked for: a wider choice of Cloudflare permission groups. `GROUPS` is unchanged.
+
+```
+tests, local tab     deployer, kernel, core, page: 108 of 108
+cb4                  cb4-deployer 5ad78c606c0a, brain dbcf56ede3b4, brain-core 71abba166724, brain-x-page 0b474de6992b
+live, approval on, a link with deploy and unattended, 1 hour
+  infra.apply, the library + a comment   deployed c90fb83265a6
+  infra.apply, the comment removed       deployed 100e89726b31, the hash it had
+  secret.list                            403
+  after token.revoke                     401
+  redistil                               18 same
+```
+
+**The installer kept the wrong Cloudflare token.** Tom replaced `CF_API_TOKEN` on `cb4-deployer` in the dashboard (version 23, source `dash`, 21:47 UTC). The file `.cf-token` still holds the one that ends 2026-10-11 (`/accounts/…/tokens/verify`: active, expires 2026-10-11T23:59:59Z), and `install-deployer` sent the file's on every install. `brain.ts` now sends `{ type: "inherit" }` for that binding when the script exists; `--token` sends the file's. The applies after that install went through, so the token Tom set deploys. `brain.ts` itself still calls Cloudflare with the file's token and stops working on 2026-10-11 unless the file is replaced. The page's installer (`cloud-brain.ojs`) was not changed.
+
+Seen in passing: for one `redistil` after the install the answer came from the deployer before (`f4430b4ce874`, another session's), then `5ad78c606c0a`. Two deployers do answer for a while after an install.
+
+Not done: the button was not pressed on cb4. No Worker with a Cloudflare permission was deployed by a link's token on cb4 (rig only). `infra.shell` by such a token was not written to on cb4.

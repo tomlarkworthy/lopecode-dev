@@ -774,6 +774,7 @@ Cloudflare Workers that one notebook defines, deploys and operates. This file is
 ## A token, for a caller with no browser
 
 - The owner makes one in a signed-in session: POST ${at}${X}token.create with \`{ "name": "laptop", "methods": ["com.lopecode.brain.knowledge.search"] }\`. The answer shows the token once.
+- Or the owner makes a sign-in link (\`token.link\` with \`{ name, methods }\`, or the page) and pastes it to the program. A GET of the link says what to do; the first POST of it answers a token that lasts 8 hours, and the link is gone.
 - A token calls the methods it names and no others. It cannot name \`infra.*\`, \`secret.*\`, \`token.*\`, \`grant.*\` or \`people.*\`, and a method marked \`by its rule\` may refuse it; the reference says.
 - Send it as \`Authorization: Bearer <token>\`. Not in a query string: paths and query strings are kept in the logs.
 - \`token.list\`, and \`token.revoke\` with \`{ name }\`, are the owner's.
@@ -800,7 +801,7 @@ The shape: the kernel (\`brain\`) is this address and says who the caller is. Th
 - A member of this Brain deploys their own: \`member.deploy\` with \`{ module, source, reason, was }\`. \`source\` is a module as \`getSource\` gives one. \`reason\` says why, in 3 to 300 characters, and is logged. \`was\` is the hash you saw running for that service, \`null\` for a new one; the deploy is refused when it is no longer that. No approval is needed. \`member.services\` lists them, \`member.remove\` takes \`{ name, reason, was }\`.
 - The owner makes a DID a member with \`people.put\`. A member calls from a signed-in page, or from a program with a service token of their own PDS (\`com.atproto.server.getServiceAuth\`, \`aud\` \`did:web:${config.host}\`, \`lxm\` the method's whole name).
 - A member's service has no secrets, no paths and no Cloudflare permissions, and its methods are \`com.lopecode.brain.m.<id>.<name>\`. The limits and the rules are in the deployer's reference${dep ? ` (\`GET ${dep}${X}getSource?part=reference\`)` : ""} and in \`getSource?worker=brain&part=reference\`.
-- The owner deploys any service with \`infra.apply\`, in their own session; a token cannot.
+- The owner deploys any Worker with \`infra.apply\`: in their own session, or with the token of a sign-in link they made with \`deploy\`. Body \`{ reason, workers: [{ module, source, was }] }\`: \`source\` is the module's text as \`getSource\` gives it, changed; \`was\` is the \`hash\` \`getSource\` gave. The answer has a \`state\` for each: \`deployed\`, \`probation\`, \`unchanged\`, \`refused\` with a \`reason\`, or \`waiting\`, which means the owner approves it on the deployer's page and the same call is then sent again (a token whose sign-in answer said \`"unattended": true\` is never made to wait). A service gets a Cloudflare API token of its own by declaring \`cloudflare: ["GROUP"]\` in its \`cloudflare.Service\` options; the deployer mints the groups on its own list and answers \`refused\`, with the reason, for another. After a deploy of the page module, POST the notebook's HTML to \`infra.shell\`. A kernel, core or page is on \`probation\` and is put back in 10 minutes unless \`infra.confirm\` (POST, \`{}\`) is called once it answers. \`infra.getState\` says what runs. Any other token cannot.
 
 ## Reference
 
