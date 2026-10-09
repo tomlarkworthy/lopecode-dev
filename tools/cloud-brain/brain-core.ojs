@@ -21,6 +21,10 @@ It answers bindings only. A caller is who the kernel says it is, and the kernel 
 | \`rule.put\`, \`rule.delete\` | procedure, the owner's own session. \`{ name, allow }\`: a CEL expression in place of the rule a service declared. A rule the service fixed is refused. |
 | \`calls.list\` | query, owner. \`{ mode, implicit, undeclared: [{ worker, method, n }] }\`. |
 | \`calls.setMode\` | procedure, the owner's own session. \`{ mode: "report" | "enforce" | null, clear }\`. |
+| \`config.list\` | query, the owner's own session. \`{ workers: [{ worker, values }], protected, ttl }\`: every stored setting. |
+| \`config.get\` | query, the owner's own session. \`?worker=\`. \`{ worker, values, changes, read }\`. \`changes\`: the last 100, each \`{ at, by, key, old, value }\`. \`read\`: the keys one running instance of the Worker has read from \`config\`, each with its value and \`from\`: \`deploy\`, \`stored\` or \`unset\`. |
+| \`config.set\` | procedure, the owner's own session. \`{ worker, key, value }\`. A number, a boolean or text of at most 500 characters; \`null\` removes the key. |
+| \`GET /llms.txt\` | anyone. Text for a program: how to call this Brain, how the owner makes a token, and one line for each method and path of each Worker, written from \`config.host\` and the route table on each request. It points at \`getSource?worker=NAME&part=reference\` for what a method takes and answers. A member's Worker and what the owner set in place of a rule or price are left out. |
 | \`price.list\` | query, owner. \`{ prices: [{ target, worker, declared, set, setAt }], unit, defaults }\`. |
 | \`price.put\`, \`price.delete\` | procedure, the owner's own session. \`{ target, price }\`: a CEL expression in place of the price a service declared. |
 | \`quota.get\` | query, any account. \`{ who, day, spent, daily, remaining, resetsAt }\` for the caller's own account. The owner reads another with \`?who=\`. |
@@ -48,6 +52,14 @@ A rule that does not name \`origin\` lets the Worker act for anyone it answers. 
 | bluesky, whatsapp → \`lease.get\`, \`inbox.append\` | no | started by the Worker's own clock |
 | any → \`secret.get\`, \`db.sql\` | no | the Worker's own secrets and tables |
 | core → \`metrics.record\` | no | the core's own counts |
+
+**Settings** (added 2026-10-09). A value a service reads from \`config\` and gives a default (\`config.pollMs ?? 30000\`) can be stored here, per Worker, and is read with no deploy. A service does nothing to take part: the core sends a Worker's stored settings with each call it forwards (\`x-brain-settings\`), and the Worker wrapper shows them through \`config\`. The core reads the rows at most once in 60 s for one instance, so a change is followed within 60 s. A Worker run only by its clock reads the row itself, at most once in 5 minutes.
+
+\`\`\`
+brain.ts curl /xrpc/com.lopecode.brain.config.set --owner -X POST -d '{"worker":"brain-x-inbox","key":"pollMs","value":60000}'
+\`\`\`
+
+What a setting cannot do. A key the deployer bound at deploy (\`owner\`, \`host\`, \`base\`, \`subdomain\`, \`account\`, \`deployer\`) is never replaced by a stored value: the wrapper reads the bound one first. \`config.set\` refuses those names, and six more that the kernel, the core and the deployer read, with 400. The kernel, the core and the deployer take no stored settings. Access rules, prices, approval and keys are not settings. A setting is written to the log in clear: do not store a secret in one. Rows: \`config/<worker>\` (the values) and \`config-log/<worker>\` (the changes).
 
 **Prices and credits** (added 2026-10-08). A method or a path can have a price beside its rule: a CEL expression over the same \`caller\`, \`origin\` and \`request\`, which gives US dollars. The owner's price (\`price.put\`) stands in for the declared one. A call with no price, or a price of 0, reads the route table and the settings the core already holds and writes no row.
 
@@ -496,6 +508,45 @@ coreApp = {
     return c.json({ deleted: !!(await settings.delete("rule/" + target)) });
   });
 
+  // Settings: values a service reads from config with a default, stored per Worker and sent with each call forwarded
+  // to it (see forward). Names the deployer binds, or that the kernel, the core or the deployer read, are refused.
+  const PROTECTED = ["owner", "host", "base", "subdomain", "account", "deployer", "self", "replacedBy", "acceptEmitted", "probationMs", "clockSkewMs", "contextMs"];
+  app.get(NS + "config.list", session, async (c) =>
+    c.json({ workers: (await rows.list("config/")).map(({ key, value }) => ({ worker: key.slice("config/".length), values: value })), protected: PROTECTED, ttl: config.settingsMs ?? 60000 })
+  );
+  app.get(NS + "config.get", session, async (c) => {
+    const worker = c.req.query("worker") || "", short = worker.replace(/^brain-(x-)?/, "");
+    const route = await rows.get("route/" + worker);
+    if (!route || !routed(route)) return fail(c, 404, "NotFound", `no Worker ${worker} takes settings`);
+    const values = (await rows.get("config/" + worker)) || {};
+    // One running instance says what it has read. Another instance may have read more.
+    const read = workers.has(short)
+      ? await workers.fetch(short, new Request(`https://${short}.internal/xrpc/_config`, { headers: { "x-brain-settings": encodeURIComponent(JSON.stringify(values)) } })).then((r) => (r.ok ? r.json() : null), () => null)
+      : null;
+    return c.json({ worker, values, changes: (await rows.get("config-log/" + worker)) || [], read: read && Array.isArray(read.read) ? read.read : null });
+  });
+  app.post(NS + "config.set", session, async (c) => {
+    const { worker, key, value = null } = await c.req.json().catch(() => ({}));
+    const route = typeof worker === "string" ? await rows.get("route/" + worker) : null;
+    if (!route || !routed(route)) return fail(c, 404, "NotFound", `no Worker ${worker} takes settings`);
+    if (typeof key !== "string" || !/^[A-Za-z][A-Za-z0-9]{0,63}$/.test(key)) return fail(c, 400, "InvalidRequest", "key is a name of letters and digits");
+    if (PROTECTED.includes(key)) return fail(c, 400, "InvalidRequest", `${key} is set at deploy and is not a setting`);
+    const plain = value === null || typeof value === "boolean" || (typeof value === "number" && Number.isFinite(value)) || (typeof value === "string" && value.length <= 500);
+    if (!plain) return fail(c, 400, "InvalidRequest", "value is a number, a boolean, text of at most 500 characters, or null to remove the key");
+    const values = (await rows.get("config/" + worker)) || {};
+    const old = Object.hasOwn(values, key) ? values[key] : null;
+    if (value === null) delete values[key];
+    else values[key] = value;
+    if (Object.keys(values).length > 50) return fail(c, 400, "InvalidRequest", "a Worker has at most 50 settings");
+    if (Object.keys(values).length) await rows.put("config/" + worker, values);
+    else await rows.delete("config/" + worker);
+    stored = null;
+    const change = { at: Date.now(), by: c.get("who").caller, key, old, value };
+    await rows.append("config-log/" + worker, change, 100);
+    console.log({ ...change, at: "config", worker });
+    return c.json({ worker, key, value, old });
+  });
+
   // The notebook side of the rows platform cell, one table per Worker name.
   const rowKey = (c, q) => "rows/" + (q.worker || "") + "/" + (q.key ?? q.prefix ?? "");
   app.get(NS + "rows.get", owner, async (c) => c.json({ value: await rows.get(rowKey(c, c.req.query())) }));
@@ -512,6 +563,15 @@ coreApp = {
   // getInfo for a named Worker, then everything a Worker declared.
   // A body of a known small size is read before it is sent on. A stream that the next Worker does not read to its end
   // throws "Can't read from request stream after response has been sent" here once the answer is out (cb4, 2026-10-08).
+  // Every Worker's stored settings, read at most once in 60 s for this instance. config.set drops this instance's copy.
+  let stored = null, storedAt = 0;
+  const settingsOf = async (worker) => {
+    if (!stored || Date.now() - storedAt >= (config.settingsMs ?? 60000)) {
+      stored = new Map((await rows.list("config/")).map(({ key, value }) => [key.slice("config/".length), value]));
+      storedAt = Date.now();
+    }
+    return stored.get(worker) || {};
+  };
   const bodyOf = async (c) => (+(c.req.header("content-length") || Infinity) <= 1e6 ? c.req.raw.arrayBuffer() : c.req.raw.body);
   const forward = async (route, c, path) => {
     const url = new URL(c.req.url), who = c.get("who");
@@ -530,6 +590,8 @@ coreApp = {
     headers.set("x-brain-origin", origin.caller);
     if (origin.via) headers.set("x-brain-origin-via", origin.via);
     headers.set("x-brain-context", await contextFor(route.worker, origin));
+    // The Worker's stored settings. Always sent, so a removed key is seen as removed.
+    headers.set("x-brain-settings", encodeURIComponent(JSON.stringify(await settingsOf(route.worker))));
     // What a store needs to decide for a person: that they are a member, their file limit and the tags they were granted.
     if (person) {
       headers.set("x-brain-member", "1");
@@ -715,13 +777,80 @@ coreApp = {
     return c.json({ day, unit: "USD", charges: charges.slice(0, Math.min(2000, Number(c.req.query("limit")) || 200)), total: Number(charges.reduce((t, e) => t + e.cost, 0).toFixed(6)), byWho: sum("who"), byMethod: sum("method") });
   });
 
+  // /llms.txt: how a program calls this Brain, for anyone. Written from config.host and the route table on each
+  // request, so a clone and a newly deployed service are right with no edit. It points at each Worker's own reference
+  // (getSource) and copies none of it. A member's Worker is left out, and so is what the owner set in place of a
+  // declared rule or price: only that one was set.
+  app.get("/llms.txt", async (c) => {
+    const at = "https://" + config.host, X = "/xrpc/com.lopecode.brain.", short = (n) => (n.startsWith("com.lopecode.brain.") ? n.slice(19) : n);
+    const set = new Set([...(await settings.list("rule/")), ...(await settings.list("price/"))].map((r) => r.key.replace(/^(rule|price)\//, "")));
+    const line = (name, r, kind) => `- ${short(name)}: ${kind}${r.who || "owner"}${r.allow ? ", with a rule" : ""}${r.price ? ", has a price" : ""}${set.has(name) ? ", changed by the owner" : ""}`;
+    const routes = (await settings.list("route/")).map((r) => r.value).filter((r) => routed(r) && r.role !== "member").sort((a, b) => (a.worker < b.worker ? -1 : 1));
+    const deployed = routes.filter((r) => Object.keys(r.methods).length + r.paths.length).map((r) => [`### ${r.worker}`, ...Object.entries(r.methods).sort().map(([n, m]) => line(n, m, m.type + ", ")), ...r.paths.map((p) => line(p.path, p, "path, "))].join("\n"));
+    const text = `# Cloud Brain at ${at}
+
+Cloudflare Workers that one notebook defines, deploys and operates. This file is written on each request from what is deployed here. It points at the reference and copies none of it.
+
+## Calling
+
+- A method is ${at}/xrpc/<name>. A name below with no \`com.\` is short for \`com.lopecode.brain.<name>\`.
+- query: GET with query parameters. procedure: POST with a JSON body.
+- A refusal is JSON \`{ error, message }\`: 401 \`AuthRequired\` (the rule is not true for this caller), 403 \`Forbidden\`, 402 (the call has a price), 501 (nothing declares the method).
+- With no \`Authorization\` header the caller is \`anonymous\`. Methods marked \`anyone\` answer it.
+
+## A token, for a caller with no browser
+
+- The owner makes one in a signed-in session: POST ${at}${X}token.create with \`{ "name": "laptop", "methods": ["knowledge.search"] }\`. The answer shows the token once.
+- A token calls the methods it names and no others. It cannot name \`infra.*\`, \`secret.*\`, \`token.*\`, \`grant.*\` or \`people.*\`, and a method marked "with a rule" may refuse it; the reference says.
+- Send it as \`Authorization: Bearer <token>\`. Not in a query string: paths and query strings are kept in the logs.
+- \`token.list\`, and \`token.revoke\` with \`{ name }\`, are the owner's.
+
+## From Claude Code on the web
+
+- The session's environment must allow \`${config.host}\`: in the environment's settings set network access to custom and add that host (https://code.claude.com/docs/en/cloud-environments, read 2026-10-09).
+- Put the token in an environment variable of that environment, not in the repository or the prompt.
+- \`curl -H "Authorization: Bearer $BRAIN_TOKEN" "${at}${X}<a method the token names>"\`
+
+## Finding your way
+
+Three calls, with no account, say what this Brain is made of:
+
+- \`GET ${at}${X}service.list\`: every Worker. For each: \`worker\`, the notebook \`module\` it is made from, \`role\`, \`methods\`, \`paths\`, and the \`hash\` of the code running. Start here.
+- \`GET ${at}${X}getInfo?worker=<worker>\`: what one Worker declares: who may call each method (\`access\`), the methods of other Workers it \`calls\`, the names of its secrets, the platform cells it uses.
+- \`GET ${at}${X}getSource?worker=<worker>\`: JSON \`{ worker, hash, module, text }\`. \`text\` is the whole module that Worker runs, as deployed: its code, its tests (\`test_\` cells) and its documentation (the first \`md\` cell). \`hash\` is what a deploy of that module replaces.
+- \`GET ${at}${X}getSource?worker=<worker>&part=reference\`: only the documentation, as text: that Worker's methods, inputs and answers. Read this before calling a method.
+
+The shape: the kernel (\`brain\`) is this address and says who the caller is. The core (\`brain-core\`) checks the rule of each method, charges its price and passes the call to a service (\`brain-x-NAME\`). \`brain-db\` keeps every Worker's rows. The deployer, a Worker at its own address, is the only holder of a Cloudflare token: it deploys a module's source as a Worker and puts back one that fails. A service is one notebook module; its source is its definition.
+
+## Making a service
+
+- A member of this Brain deploys their own: \`member.deploy\` with \`{ module, source, reason, was }\`. \`source\` is a module as \`getSource\` gives one. \`reason\` says why, in 3 to 300 characters, and is logged. \`was\` is the hash you saw running for that service, \`null\` for a new one; the deploy is refused when it is no longer that. No approval is needed. \`member.services\` lists them, \`member.remove\` takes \`{ name, reason, was }\`.
+- The owner makes a DID a member with \`people.put\`. A member calls from a signed-in page, or from a program with a service token of their own PDS (\`com.atproto.server.getServiceAuth\`, \`aud\` \`did:web:${config.host}\`, \`lxm\` the method's whole name).
+- A member's service has no secrets, no paths and no Cloudflare permissions, and its methods are \`com.lopecode.brain.m.<id>.<name>\`. The limits and the rules are in the deployer's reference and in \`getSource?worker=brain&part=reference\`.
+- The owner deploys any service with \`infra.apply\`, in their own session; a token cannot.
+
+## Reference
+
+- \`GET ${at}${X}getSource?worker=<worker>&part=reference\`: that Worker's methods, inputs and answers, as text. Without \`part\`: JSON whose \`text\` is the whole module.
+- \`worker=brain\` is the kernel (sign-in, tokens, grants, people). \`worker=brain-core\` is the core (rules, prices, quota, settings).
+- \`${at}/.well-known/did.json\`. \`quota.get\`: what this caller has spent today (a token must name it). \`${at}/\` is the notebook that defines all of this, for a person.
+
+## Deployed
+
+Each line: name, query or procedure, who the service says may call. \`owner\`: the owner, and a token or a member the owner gave the method. \`workers\`: those, and this Brain's own Workers. \`anyone\`: those, and a caller with no account. \`worker:NAME\`: the owner side, and that one Worker.
+
+${deployed.join("\n\n")}
+`;
+    return c.text(text, 200, { "cache-control": "no-store", "access-control-allow-origin": "*" });
+  });
+
   // A Worker's manifest and source, for anyone. The wrapper has already answered for the core itself.
   for (const what of ["getInfo", "getSource"])
     app.get(NS + what, async (c) => {
       const name = c.req.query("worker") || "brain-core";
       const route = await settings.get("route/" + name);
       if (!route || !routed(route) || route.role === "member") return fail(c, 404, "NotFound", name);
-      return forward(route, c, NS + what + "?worker=" + encodeURIComponent(name));
+      return forward(route, c, NS + what + "?worker=" + encodeURIComponent(name) + (c.req.query("part") === "reference" ? "&part=reference" : ""));
     });
   app.all("*", async (c) => {
     const url = new URL(c.req.url), who = c.get("who");
@@ -810,6 +939,83 @@ coreRig = async ({ config = {}, workers: more = {} } = {}) => {
     keyHash: await sha256("echo-key")
   });
   return { sim, seen, toDeployer, deployer, as, worker, echo, heard, hear, send, owner: as("owner"), anonymous: as("anonymous", ""), nobody: send("https://core.internal", {}) };
+}
+// %%
+test_llms_txt_is_written_from_the_host_and_the_route_table = {
+  const rig = await coreRig({ config: { host: "clone.example.workers.dev" } });
+  const read = async () => (await rig.anonymous("/llms.txt")).data;
+  const first = await rig.anonymous("/llms.txt");
+  expect(first.status).toBe(200);
+  expect(first.headers.get("content-type")).toMatch(/^text\/plain/);
+  // Every address is this Brain's own: a clone needs no edit.
+  expect(first.data).toContain("# Cloud Brain at https://clone.example.workers.dev\n");
+  expect(first.data.match(/https:\/\/[a-z0-9.-]+/g).filter((u) => !/^https:\/\/(clone\.example\.workers\.dev|code\.claude\.com)$/.test(u))).toEqual([]);
+  expect(first.data).toContain("### brain-x-echo\n- echo.key: query, owner\n- echo.read: query, anyone\n- echo.say: procedure, owner\n- /hooks/echo: path, anyone");
+  expect(first.data).toContain("getSource?worker=<worker>&part=reference");
+  // Where to begin, what getSource answers, and how a member makes a service.
+  for (const said of ["service.list`: every Worker", "getInfo?worker=<worker>", "`{ worker, hash, module, text }`", "`member.deploy` with `{ module, source, reason, was }`", "`aud` `did:web:clone.example.workers.dev`"]) expect(first.data).toContain(said);
+  // A service deployed later is listed, with its rule and price said to exist. Another lexicon's name is whole.
+  await rig.deployer("service.register", { worker: "brain-x-shop", role: "recipe", keyHash: "shop", paths: [], secrets: [], methods: { "com.lopecode.brain.shop.buy": { type: "procedure", who: "anyone", allow: "caller.session", price: "0.01" }, "app.bsky.feed.getFeedSkeleton": { type: "query", who: "anyone" } } });
+  expect(await read()).toContain("### brain-x-shop\n- app.bsky.feed.getFeedSkeleton: query, anyone\n- shop.buy: procedure, anyone, with a rule, has a price");
+  // What the owner set is not shown, only that it was. A member's Worker is not listed.
+  await rig.owner("rule.put", { target: "com.lopecode.brain.echo.read", allow: 'caller.id == "did:plc:private"' });
+  await rig.deployer("service.register", { worker: "brain-m-ada-notes", role: "member", author: "did:plc:ada", keyHash: "ada", paths: [], secrets: [], methods: { "com.lopecode.brain.m.ada.notes.list": { type: "query", who: "anyone" } } });
+  const last = await read();
+  expect(last).toContain("- echo.read: query, anyone, changed by the owner");
+  expect(last).not.toContain("did:plc:");
+  expect(last).not.toContain("brain-m-ada");
+  // The reference of one Worker is asked of that Worker.
+  await rig.anonymous("getSource?worker=brain-x-echo&part=reference");
+  expect(rig.seen.at(-1).url).toBe("https://echo.internal/xrpc/com.lopecode.brain.getSource?worker=brain-x-echo&part=reference");
+  return last.length + " characters";
+}
+// %%
+test_settings_are_stored_by_the_owner_and_sent_with_each_forwarded_call = {
+  const got = [], logged = [];
+  const workers = {
+    conf: async (request) => {
+      if (new URL(request.url).pathname === "/xrpc/_config") return Response.json({ worker: "brain-x-conf", read: [{ key: "pollMs", value: 60000, from: "stored" }] });
+      got.push(JSON.parse(decodeURIComponent(request.headers.get("x-brain-settings"))));
+      return Response.json({ ok: true });
+    }
+  };
+  // settingsMs 0: this instance reads the rows on every call, as another instance does after 60 s.
+  const rig = await coreRig({ config: { settingsMs: 0 }, workers });
+  await rig.deployer("service.register", { worker: "brain-x-conf", role: "recipe", methods: { "com.lopecode.brain.conf.go": { type: "procedure", who: "owner" } }, paths: [], secrets: [], keyHash: "conf" });
+  const set = (who, body) => who("config.set", body);
+  const S = { worker: "brain-x-conf", key: "pollMs", value: 60000 };
+  // The owner's own session, and nobody else: a member, a token, a Worker, a caller with no account.
+  for (const who of [rig.as("did:plc:member"), rig.as("token:laptop", ""), rig.as("owner", "turn:1"), rig.worker, rig.anonymous]) expect((await set(who, S)).status).toBe(401);
+  expect((await rig.as("did:plc:member")("config.list")).status).toBe(401);
+  expect((await rig.anonymous("config.get?worker=brain-x-conf")).status).toBe(401);
+  await rig.owner("conf.go", {});
+  expect(got.pop()).toEqual({});
+  const log = console.log;
+  console.log = (line) => void (line && line.at === "config" ? logged.push(line) : null);
+  try {
+    expect((await set(rig.owner, S)).data).toEqual({ ...S, old: null });
+    expect((await set(rig.owner, { ...S, value: 45000 })).data).toEqual({ ...S, value: 45000, old: 60000 });
+  } finally {
+    console.log = log;
+  }
+  expect(logged.map((l) => [l.worker, l.key, l.old, l.value, l.by])).toEqual([["brain-x-conf", "pollMs", null, 60000, "owner"], ["brain-x-conf", "pollMs", 60000, 45000, "owner"]]);
+  await rig.owner("conf.go", {});
+  expect(got.pop()).toEqual({ pollMs: 45000 });
+  // A name set at deploy, a name that is not one, a value that is not plain, a Worker that takes none.
+  for (const key of ["owner", "host", "base", "subdomain", "account", "deployer", "self", "replacedBy", "acceptEmitted"]) expect((await set(rig.owner, { ...S, key })).status).toBe(400);
+  for (const body of [{ ...S, key: "a.b" }, { ...S, key: "__proto__" }, { ...S, value: { a: 1 } }, { ...S, value: "x".repeat(501) }, { ...S, value: [1] }]) expect((await set(rig.owner, body)).status).toBe(400);
+  for (const worker of ["brain", "brain-core", "brain-deployer", "brain-x-none"]) expect((await set(rig.owner, { ...S, worker })).status).toBe(404);
+  const seen = (await rig.owner("config.get?worker=brain-x-conf")).data;
+  expect(seen.values).toEqual({ pollMs: 45000 });
+  expect(seen.changes.map((c) => [c.by, c.key, c.old, c.value])).toEqual([["owner", "pollMs", null, 60000], ["owner", "pollMs", 60000, 45000]]);
+  expect(seen.read).toEqual([{ key: "pollMs", value: 60000, from: "stored" }]);
+  expect((await rig.owner("config.list")).data.workers).toEqual([{ worker: "brain-x-conf", values: { pollMs: 45000 } }]);
+  // null removes the key, and the Worker is sent none.
+  expect((await set(rig.owner, { ...S, value: null })).data).toEqual({ ...S, value: null, old: 45000 });
+  await rig.owner("conf.go", {});
+  expect(got.pop()).toEqual({});
+  expect((await rig.owner("config.list")).data.workers).toEqual([]);
+  return "set, sent, changed, removed; 5 callers and 18 requests refused";
 }
 // %%
 test_calls_are_counted_and_handed_to_the_metrics_service = {

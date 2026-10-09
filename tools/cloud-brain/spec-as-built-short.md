@@ -60,6 +60,8 @@ A service is one notebook module. The module holds the prose, the code and the t
 | `secret.copy` gives a secret a second name and shows no value. | cb4: 20 rows, 0 bad, with made-up values. | 2026-10-07 |
 | A session from before the key rename is read after it. | cb4: the kernel has both bindings. | 2026-10-07 |
 | A priced call is charged to the origin's account for the UTC day, and calls made at one time do not spend past it. | cb4, scratch service, removed after: 150 calls of $0.03, 50 at one time, on $1.00: 33 passed, 117 got 402. A failed call was then given back; since the same day no charge is returned. Through 2 Workers the owner paid at each priced method. Priced p50 104 ms, free 46 ms. | 2026-10-08 |
+| The owner changes a value a service reads from `config` with one call and no deploy. A value set at deploy is never replaced. | cb4: `pollMs` 60000 on `brain-x-inbox`, `inbox.poll` 20 → 10 in 10 minutes; a member 403, no session 401, key `owner` 400, the kernel 404. | 2026-10-09 |
+| `/llms.txt` tells a program how to call this Brain, from the host and the route table of the Brain that answers. | cb4: 6660 bytes; 101 listed names, none 501; a token made as it says called `knowledge.search` with curl. | 2026-10-09 |
 
 The tests of each module run in the page under `simulate`. A deploy is unverified until the page runs those tests from the deployed source.
 

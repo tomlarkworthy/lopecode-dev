@@ -17,6 +17,7 @@ A Cloud Brain channel: Bluesky messages to the Brain's own account arrive in the
 | \`bluesky.deleteRecord\` | procedure, the same callers. \`{ collection, rkey }\` deletes that record. \`{ did, handle, uri }\`. |
 | \`bluesky.status\` | query, owner. \`{ configured, handle, did, pds, signedIn, tick, lastPoll, lastError, backoffUntil, people, groups }\` |
 | Secrets | \`BLUESKY_HANDLE\`, \`BLUESKY_APP_PASSWORD\`. Read from the core at most once in 5 minutes for one instance (\`config.credsMs\`), so a changed secret is followed within 5 minutes. |
+| Settings | \`credsMs\` (300000): how long one instance keeps the two secrets. \`pollGapMs\` (3000): the least time between two reads of Bluesky. Changed with \`config.set\` on the core, no deploy. |
 | Storage | \`rows\`: \`session\`, \`refused\`, \`cursor\`, \`since\`, \`known/<did>\`, \`convo/<did>\`, \`direct/<convo>\`, \`group/<convo>\`, \`heard/<convo>\`, \`settings\`, \`declared\`, \`declareError\`, \`accepted/<convo>\`, \`asked/<did>\`, \`asks\`, \`quiet/<did>\`, \`polled\`, \`tick\`, \`busy\`, \`backoff\`, \`error\` |
 
 With either secret unset, a tick writes \`tick\` and stops: no request leaves the Worker, and \`bluesky.status\` answers \`{ configured: false }\`.`
@@ -1192,17 +1193,25 @@ test_bluesky_writes_only_a_feed_generator_record = {
 }
 // %%
 test_bluesky_reads_its_secrets_once_in_the_window = {
-  const rig = await blueskyRig({ credsMs: 150 });
-  const reads = () => rig.state.reads || 0;
-  await rig.poll();
-  const first = reads();
-  await rig.poll();
-  const second = reads();
-  await new Promise((r) => setTimeout(r, 200));
-  await rig.poll();
-  // One pair for two polls inside the window, and a second pair after it.
-  expect([first, second, reads()]).toEqual([2, 2, 4]);
-  return "2 reads for 2 polls, 4 after the window";
+  // The wrapper itself holds a secret for 5 s, so a read is seen at the core only after that. Two instances wait
+  // the same 5.2 s: one keeps its credentials 150 ms, one for the default 5 minutes.
+  const run = async (credsMs) => {
+    const rig = await blueskyRig({ credsMs });
+    const reads = () => rig.state.reads || 0;
+    await rig.poll();
+    const first = reads();
+    await rig.poll();
+    const second = reads();
+    await new Promise((r) => setTimeout(r, 5200));
+    await rig.poll();
+    return [first, second, reads()];
+  };
+  const [short, long] = await Promise.all([run(150), run(300000)]);
+  // One pair for two polls inside the window. After it a second pair, and none while the window lasts.
+  expect(short.slice(0, 2)).toEqual([2, 2]);
+  expect(short[2]).toBeGreaterThan(2);
+  expect(long).toEqual([2, 2, 2]);
+  return "2 reads for 2 polls; more after 150 ms and 5.2 s; still 2 inside 5 minutes";
 }
 // %%
 test_bluesky_declares_what_it_needs = {

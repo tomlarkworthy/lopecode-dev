@@ -495,8 +495,43 @@ workerRuntime = (AsyncLocalStorage = null) => {
     headers.set("x-brain-key", ENV.BRAIN_KEY || "");
     return new Request(request, { headers });
   };
+  // The text of the first md`…` in a module's source, with the escapes of a template literal undone.
+  const referenceOf = (text) => {
+    const from = text.indexOf("md`") + 3, end = from < 3 ? null : /(?<!\\)`/.exec(text.slice(from));
+    return end ? text.slice(from, from + end.index).replace(/\\([`\\$])/g, "$1") : "";
+  };
   const bindingName = (name) => "X_" + name.toUpperCase().replace(/[^A-Z0-9]/g, "_");
   const secretsHeld = new Map();
+  // Settings the owner stored for this Worker (config.set, rows of the core). The core sends them with each call it
+  // forwards, so a change is read with no deploy and no call of this Worker's own. A key the deployer bound in
+  // BRAIN_CONFIG (owner, host, base…) is never replaced. The kernel, the core and the deployer take none.
+  let stored = null, storedAt = 0;
+  const configRead = new Set();
+  const takesSettings = () => !["kernel", "core", "deployer", "guard"].includes(info().role);
+  const settingsFrom = (header) => {
+    try {
+      const v = JSON.parse(decodeURIComponent(header));
+      return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+    } catch {
+      return {};
+    }
+  };
+  // A Worker run by its clock has no call to read them from. It reads the core's row itself: one statement, when
+  // it has no copy or the copy is 5 minutes old. A Worker with no database binding (a member's) reads none.
+  const settingsForTick = async () => {
+    if (!takesSettings() || !ENV.SQL || Date.now() - storedAt < 300000) return;
+    try {
+      const key = "config/" + (info().name || "");
+      // Under simulate() the test's rows stand in for the core's.
+      const row = ENV.SQL.sim ? await ENV.SQL.sim("get", key) : await ENV.SQL.prepare("SELECT v FROM kv WHERE t = ?1 AND k = ?2").bind("brain-core", key).first().then((r) => (r ? JSON.parse(r.v) : null));
+      stored = row && typeof row === "object" ? row : {};
+      storedAt = Date.now();
+    } catch {}
+  };
+  const configOf = (k) => {
+    const bound = ENV.BRAIN_CONFIG || {};
+    return Object.hasOwn(bound, k) ? { value: bound[k], from: "deploy" } : stored && Object.hasOwn(stored, k) ? { value: stored[k], from: "stored" } : { value: undefined, from: "unset" };
+  };
   const platform = {
     cloudflare: ((Service) => ({ [tag]: "cloudflare", Service, Worker: Service }))((name, fn, options = {}) => ({ name, fn, options })),
     // A key the platform bound (this Worker's own key, the kernel's cookie key, the deployer's token) is read from the
@@ -529,7 +564,7 @@ workerRuntime = (AsyncLocalStorage = null) => {
         }
       }
     ),
-    config: new Proxy({}, { get: (_, k) => (typeof k === "string" && ENV ? (ENV.BRAIN_CONFIG || {})[k] : undefined) }),
+    config: new Proxy({}, { get: (_, k) => (typeof k === "string" && ENV ? (configRead.add(k), configOf(k).value) : undefined) }),
     rows: {
       get: (key) => rowsCall("get", key),
       put: (key, value) => rowsCall("put", key, value),
@@ -623,10 +658,14 @@ workerRuntime = (AsyncLocalStorage = null) => {
         // A Worker with a scheduled function is ticked by an alarm on its rows object as well as by its cron, once a
         // minute, starting from the first request to its own address. Measured 2026-10-05: cron triggers set through
         // the API had run 0 times after 30 minutes, and a rollback was missed.
+        if (inside && takesSettings() && request.headers.has("x-brain-settings")) (stored = settingsFrom(request.headers.get("x-brain-settings"))), (storedAt = Date.now());
+        // What this instance has read from config since it started, and where each value comes from. For the core's config.get.
+        if (inside && url.pathname === "/xrpc/_config") return json({ worker: info().name, read: [...configRead].sort().map((key) => ({ key, ...configOf(key) })) });
         if (keyed && url.pathname === "/__tick") {
           // GET: when the alarm is next due and how its last call went.
           if (request.method === "GET") return json(await rowsCall("armInfo"));
           const service = await load();
+          if (service.options.scheduled) await settingsForTick();
           if (service.options.scheduled) await during(null, async () => service.options.scheduled({ alarm: true }, ctx));
           return json({ ok: true });
         }
@@ -640,6 +679,9 @@ workerRuntime = (AsyncLocalStorage = null) => {
         // Every Worker describes itself: its manifest, and the module it was emitted from. Both are public; a
         // Worker that does not answer the internet is reached for them through the kernel and the core.
         const describes = url.pathname === "/xrpc/com.lopecode.brain.getInfo" ? "info" : url.pathname === "/xrpc/com.lopecode.brain.getSource" ? "source" : null;
+        // part=reference: the module's first prose cell, which holds its method table, as text.
+        if (describes === "source" && url.searchParams.get("part") === "reference" && request.method === "GET" && (!asked || asked === info().name) && (inside || edge || keyed))
+          return new Response(referenceOf(source ? source.text : ""), { headers: { "content-type": "text/plain; charset=utf-8", "access-control-allow-origin": "*" } });
         if (describes && request.method === "GET" && (!asked || asked === info().name) && (inside || edge || keyed))
           return new Response(JSON.stringify(describes === "info" ? info() : { worker: info().name, hash: info().hash, module: source ? source.module : null, text: source ? source.text : null }), {
             headers: { "content-type": "application/json", "access-control-allow-origin": "*" }
@@ -672,6 +714,7 @@ workerRuntime = (AsyncLocalStorage = null) => {
       async scheduled(event, env, ctx) {
         ENV = env;
         const service = await load();
+        if (service.options.scheduled) await settingsForTick();
         if (service.options.scheduled) await during(null, async () => service.options.scheduled(event, ctx));
       }
     };
@@ -1727,6 +1770,40 @@ test_the_wrapper_passes_the_origin_reference_on = {
   return "passed on; none for a schedule; none when two overlap";
 }
 // %%
+fx_conf = cloudflare.Service(
+  "conf",
+  async () => Response.json({ pollMs: config.pollMs ?? 30000, owner: config.owner }),
+  { crons: ["* * * * *"], scheduled: async () => void (await rows.put("ticked", config.pollMs ?? 30000)) }
+)
+// %%
+test_stored_settings_show_through_config_and_never_replace_a_bound_key = {
+  const sim = await simulate(fx_conf, { config: { owner: "did:plc:owner" } });
+  const S = (o) => ({ "x-brain-settings": encodeURIComponent(JSON.stringify(o)) });
+  const ask = async (url, headers = {}) => (await sim.fetch(url, { headers })).json();
+  expect(await ask("https://conf.internal/")).toEqual({ pollMs: 30000, owner: "did:plc:owner" });
+  // The core's word with a call: read with no deploy. owner was bound at deploy and is not replaced.
+  expect(await ask("https://conf.internal/", S({ pollMs: 60000, owner: "did:plc:evil" }))).toEqual({ pollMs: 60000, owner: "did:plc:owner" });
+  // Kept by the instance for a call that carries none, and for its clock.
+  expect((await ask("https://conf.internal/")).pollMs).toBe(60000);
+  await sim.scheduled();
+  expect(sim.rows.get("ticked")).toBe(60000);
+  // What it has read, and where each value is from.
+  expect((await ask("https://conf.internal/xrpc/_config")).read).toEqual([{ key: "owner", value: "did:plc:owner", from: "deploy" }, { key: "pollMs", value: 60000, from: "stored" }]);
+  // Removed: the default again. Not a list, not text that is not JSON.
+  expect((await ask("https://conf.internal/", S({}))).pollMs).toBe(30000);
+  expect((await sim.fetch("https://conf.internal/", { headers: { "x-brain-settings": "%5B1%5D" } }).then((r) => r.json())).pollMs).toBe(30000);
+  // From the internet the header is removed before it is read, and _config is not answered.
+  expect((await sim.fetch("https://conf.example.workers.dev/", { headers: { ...S({ pollMs: 1 }), "x-brain-deployer": "k" } })).status).toBe(404);
+  // A Worker that only its clock has run reads the core's row itself, once.
+  const cold = await simulate(fx_conf, { rows: new Map([["config/brain-x-conf", { pollMs: 45000 }]]) });
+  await cold.scheduled();
+  expect(cold.rows.get("ticked")).toBe(45000);
+  cold.rows.set("config/brain-x-conf", { pollMs: 1 });
+  await cold.scheduled();
+  expect(cold.rows.get("ticked")).toBe(45000);
+  return "60000 from the core, owner kept, 45000 read by the clock";
+}
+// %%
 fx_named_old = cloudflare.Worker("named", () => new Response("x"), { methods: { "com.lopecode.brain.named.get": { type: "query", who: "anyone" } } })
 // %%
 fx_named_new = cloudflare.Service("named", () => new Response("x"), { methods: { "com.lopecode.brain.named.get": { type: "query", who: "anyone" } } })
@@ -1779,6 +1856,13 @@ test_a_worker_serves_its_manifest_and_its_source = {
   // Every response says which Worker and version produced it.
   expect(got.headers.get("x-brain-served-by")).toBe("brain-x-fixture@" + e.hash.slice(0, 12));
   expect(body.text).toBe(e.source.text);
+  // part=reference: the first prose cell of the module as text, with the escapes of its template undone.
+  const reference = await sim.fetch("https://cb.sub.workers.dev/xrpc/com.lopecode.brain.getSource?part=reference");
+  expect(reference.headers.get("content-type")).toMatch(/^text\/plain/);
+  const said = await reference.text();
+  expect(said.length).toBeGreaterThan(100);
+  expect(body.text).toContain(said.slice(0, 60).replace(/[`\\$]/g, "\\$&"));
+  expect(said).not.toMatch(/\\`/);
   // A question about another Worker is not this Worker's to answer.
   expect((await sim.fetch("https://cb.sub.workers.dev/xrpc/com.lopecode.brain.getSource?worker=brain-x-other")).status).not.toBe(200);
   // A recipe does not answer the internet at all; over a binding it does.

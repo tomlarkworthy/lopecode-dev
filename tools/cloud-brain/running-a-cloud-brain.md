@@ -105,6 +105,24 @@ bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.quota.put --owner -
 
 A 402 `OutOfCredits` names the price, what the account spent, its allowance, and the minutes to 00:00 UTC. A charge is not returned, whatever the Worker then answers. A service declares a price in its manifest, and `price.put` sets a different one.
 
+## Settings
+
+Added 2026-10-09. A value a service reads as `config.NAME ?? default` is changed with a call, the owner's own session only. The reference is **Settings** in the `brain-core` module; each service lists its names in its own table.
+
+```
+bun tools/cloud-brain/brain.ts curl '/xrpc/com.lopecode.brain.config.get?worker=brain-x-inbox' --owner    # stored values, the last 100 changes, what the Worker has read
+bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.config.set --owner -X POST -H 'content-type: application/json' -d '{"worker":"brain-x-inbox","key":"pollMs","value":60000}'
+bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.config.list --owner                          # every stored setting
+```
+
+`"value": null` removes the key and the default is back. A change is read within 60 s. A name the deployer sets (`owner`, `host`, `base`, …) is refused, and the kernel, the core and the deployer take none.
+
+## For a program: `/llms.txt`
+
+Added 2026-10-09. `https://<host>/llms.txt` says how to call this Brain, how the owner makes a token for a caller with no browser, and what each Worker answers. It is written on each request from the host and what is deployed, so it is right on a clone. The reference of one Worker is `/xrpc/com.lopecode.brain.getSource?worker=NAME&part=reference`.
+
+From Claude Code on the web the environment must allow the Brain's host and hold the token in an environment variable. Not tried from there.
+
 ## Messages
 
 Everything from outside arrives in the inbox. One tab holds the lease and is handed each entry. A message from a channel such as WhatsApp is answered in its sender's own session (group `brain-people`), not in the operator's chat: the page runs the turn, sends the summary back with `inbox.reply` and finishes the entry, as failed if no answer came. A member's turn has one tool, `brain_call`, made with that entry's turn token. `inbox.list?all=true` shows each message, who sent it and what was answered.

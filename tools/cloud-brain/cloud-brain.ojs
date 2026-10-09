@@ -727,7 +727,7 @@ inboxStarted = new Set()
 inboxPump = {
   if (!brain) return yield { answering: false, waiting: null, reason: "no owner session" };
   const tab = Math.random().toString(36).slice(2, 10);
-  let stopped = false, status = { answering: false, waiting: 0, tab }, readNext = 0;
+  let stopped = false, status = { answering: false, waiting: 0, tab }, readNext = 0, wait = 30000;
   invalidation.then(() => {
     stopped = true;
     client.procedure("lease.take", { tab, release: true }).catch(() => null);
@@ -743,6 +743,8 @@ inboxPump = {
           if (!read || read.configured === false) readNext = Date.now() + 300000;
         }
         const turn = await client.procedure("inbox.poll", { tab });
+        // The inbox says how long to wait: its setting pollMs, which the owner changes with config.set and no deploy.
+        if (turn.wait >= 2000) wait = turn.wait;
         let left = turn.waiting;
         for (const entry of turn.entries) {
           // From a channel: a Worker's entry that says which address wrote.
@@ -771,8 +773,8 @@ inboxPump = {
       if (status.error !== e.message) yield (status = { ...status, answering: false, error: e.message });
     }
     // One call a turn. The rows it reads are in D1, which bills nothing between calls.
-    // 30 s (Tom, 2026-10-09): a message waits up to that long. The lease lasts 3 of these.
-    await new Promise((r) => setTimeout(r, 30000));
+    // 30 s unless the inbox says another (Tom, 2026-10-09): a message waits up to that long. The lease lasts 3 of these.
+    await new Promise((r) => setTimeout(r, wait));
   }
 }
 // %%

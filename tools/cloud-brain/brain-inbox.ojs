@@ -10,7 +10,8 @@ What arrives from outside a Cloud Brain, kept in order until a tab has handled i
 | \`inbox.done\` | procedure, owner. \`{ id, failed }\`. \`failed\` is why it could not be handled; the entry is then finished as failed and is not handed out again. |
 | \`inbox.reply\` | procedure. \`{ id, text }\`. Sends \`text\` to the address entry \`id\` came from, through the channel it came from, and keeps it on the entry. An entry written in a room (\`body.room.id\`) is answered there: the channel is sent \`room\` beside \`to\`. The owner or a named token may answer any entry. A turn (\`x-brain-via: turn:<id>\`) may answer its own entry, and only while it is waiting. |
 | \`lease.take\` | procedure, owner. \`{ tab, release }\`. \`{ held, holder }\`. One tab holds it; unrenewed for 90 s it is free. |
-| \`inbox.poll\` | procedure, owner. \`{ tab }\`. \`{ held, holder, entries, waiting }\`: \`lease.take\` and the waiting entries in one call. |
+| \`inbox.poll\` | procedure, owner. \`{ tab }\`. \`{ held, holder, entries, waiting, wait }\`: \`lease.take\` and the waiting entries in one call. \`wait\`: the milliseconds the page waits before its next poll. |
+| Settings | \`pollMs\` (30000): what \`inbox.poll\` answers as \`wait\`. \`leaseMs\` (3 × \`pollMs\`): how long an unrenewed lease lasts. Changed with \`config.set\` on the core, no deploy. |
 | \`lease.get\` | query. A Worker or the owner. \`{ held }\` |
 | Storage | \`rows\`: \`inbox/<id>\` (waiting), \`inboxdone/<id>\`, \`inboxkey/<key>\`, \`inboxseq\`, \`lease\` |
 
@@ -108,11 +109,13 @@ inboxApp = {
     await rows.put((waiting ? "inbox/" : "inboxdone/") + pad(id), { ...entry, replies: [...(entry.replies || []), { at: Date.now(), by: from, text: said }].slice(-20) });
     return c.json({ id, sent: true });
   });
-  // One tab answers at a time. The page polls every 30 s, so a tab that stops renewing loses the lease after 90 s: 3 polls.
-  const LEASE = 90000;
+  // One tab answers at a time. The page polls every pollMs (30 s), so a tab that stops renewing loses the lease after
+  // 3 polls (90 s). Both are settings, read on each call: the owner changes them with config.set and no deploy.
+  const pollMs = () => Math.max(2000, Number(config.pollMs ?? 30000) || 30000);
+  const leaseMs = () => Math.max(pollMs() + 5000, Number(config.leaseMs ?? 3 * pollMs()) || 3 * pollMs());
   const take = async (tab) => {
     const now = Date.now(), held = await rows.get("lease");
-    const free = !held || held.tab === tab || now - held.at > LEASE;
+    const free = !held || held.tab === tab || now - held.at > leaseMs();
     if (free) await rows.put("lease", { tab, at: now });
     return { held: free, holder: free ? tab : held.tab };
   };
@@ -128,13 +131,13 @@ inboxApp = {
     if (typeof tab !== "string" || !tab) return fail(c, 400, "InvalidRequest", "tab");
     const lease = await take(tab);
     const entries = lease.held ? (await rows.list("inbox/")).map((r) => r.value) : [];
-    return c.json({ ...lease, entries: entries.slice(0, 50), waiting: entries.length });
+    return c.json({ ...lease, entries: entries.slice(0, 50), waiting: entries.length, wait: pollMs() });
   });
   app.get(NS + "lease.get", async (c) => {
     const from = who(c);
     if (from !== "owner" && !/^(token|did|worker):/.test(from)) return fail(c, 401, "AuthRequired", "the owner or a Worker");
     const held = await rows.get("lease");
-    return c.json({ held: !!held && Date.now() - held.at <= LEASE });
+    return c.json({ held: !!held && Date.now() - held.at <= leaseMs() });
   });
   return app;
 }
@@ -172,10 +175,10 @@ inboxRig = async () => {
     }
   });
   const X = "/xrpc/com.lopecode.brain.";
-  const as = (who, via = "") => async (path, body) => {
+  const as = (who, via = "", more = {}) => async (path, body) => {
     const r = await sim.fetch("https://inbox.internal" + X + path, {
       method: body === undefined ? "GET" : "POST",
-      headers: { "x-brain-caller": who, "x-brain-via": via, ...(body === undefined ? {} : { "content-type": "application/json" }) },
+      headers: { "x-brain-caller": who, "x-brain-via": via, ...more, ...(body === undefined ? {} : { "content-type": "application/json" }) },
       body: body === undefined ? undefined : JSON.stringify(body)
     });
     return { status: r.status, data: await r.json() };
@@ -221,7 +224,15 @@ test_lease_one_tab_at_a_time = {
   // poll is the lease and the waiting entries in one call. A tab without the lease is handed nothing.
   await rig.worker("inbox.append", { source: "t", key: "k1", body: 1 });
   expect((await rig.owner("inbox.poll", { tab: "a" })).data).toMatchObject({ held: true, holder: "a", waiting: 1 });
-  expect((await rig.owner("inbox.poll", { tab: "b" })).data).toEqual({ held: false, holder: "a", entries: [], waiting: 0 });
+  expect((await rig.owner("inbox.poll", { tab: "b" })).data).toEqual({ held: false, holder: "a", entries: [], waiting: 0, wait: 30000 });
+  // The owner stored pollMs 60000 (config.set): the page is told to wait that long, and the lease lasts 3 of them.
+  const slow = { "x-brain-settings": encodeURIComponent(JSON.stringify({ pollMs: 60000 })) };
+  expect((await rig.as("owner", "", slow)("inbox.poll", { tab: "a" })).data.wait).toBe(60000);
+  rig.sim.rows.set("lease", { tab: "a", at: Date.now() - 91000 });
+  expect((await rig.worker("lease.get")).data).toEqual({ held: true });
+  rig.sim.rows.set("lease", { tab: "a", at: Date.now() - 181000 });
+  expect((await rig.worker("lease.get")).data).toEqual({ held: false });
+  expect((await rig.as("owner", "", { "x-brain-settings": "%7B%7D" })("inbox.poll", { tab: "a" })).data.wait).toBe(30000);
   expect((await rig.worker("inbox.poll", { tab: "w" })).status).toBe(401);
   return "a, then b after 91 s, then released, then polled";
 }
@@ -265,7 +276,7 @@ test_inbox_declares_what_it_needs = {
   return Object.keys(meta.access).length + " methods";
 }
 // %%
-import {cloudflare, rows, xrpc, hono, simulate} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, rows, xrpc, config, hono, simulate} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {client, session} from "@tomlarkworthy/cloud-brain"
 // %%

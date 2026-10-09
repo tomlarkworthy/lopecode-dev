@@ -51,6 +51,10 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
 - **The page**: the notebook itself, served by the kernel. One open, signed-in tab holds the
   **lease** and is handed the inbox. The page polls every 30 s. With no tab, the lease lapses after 90 s.
 - All access control is CEL rules on methods. There is none anywhere else.
+- **Settings**: a value a service reads as `config.NAME ?? default` is changed with `config.set { worker, key, value }` on
+  the core, the owner's own session, no deploy. `config.get?worker=` shows what a Worker has read.
+- **`/llms.txt`** on the kernel's address says how a program calls this Brain; it is written from what is deployed.
+  One Worker's method table: `/xrpc/com.lopecode.brain.getSource?worker=NAME&part=reference`.
 
 ## Access from this checkout
 
@@ -95,7 +99,12 @@ brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
 4. Deploy under the lock: `mkdir tools/cloud-brain/.emitted/cb4.lock`, `apply … --reason="why"`, remove the lock.
    Nothing enforces it. It is the agreement between agents in this checkout: if the directory is
    there, another one is deploying; wait.
-   Kernel, core and page go on probation and are put back if unhealthy.
+   Core and page go on probation and are put back after 10 minutes unless confirmed: run `brain.ts confirm` about a
+   minute after applying either (2026-10-09: an applied page was put back, "not confirmed in 10 minutes").
+   `NAME.json` is written by emitting in a tab: `(await module.value("NAME_service")).emit()`, posted to
+   `http://127.0.0.1:47814/NAME.json`, which `bun tools/cloud-brain/test-receiver.ts` saves in `.emitted/`.
+   `redistil --apply` does not do this: it distils again the source the deployer already keeps. It is for after
+   `install-deployer`, which is how a change to the wrapper (`workerRuntime` in `cloudflare-iac.ojs`) reaches the Workers.
 5. Update the as-built record and the backlog in the same change.
 6. Run `/review-notebook` on what changed. The two logging reviews on 2026-10-08 found 15 real
    defects the authoring session had not seen.
@@ -118,6 +127,7 @@ The core writes one line a call with keys `at ray caller via origin method worke
 price rule by`. Three traps met on the first day:
 
 - `method` is the short name (`bluesky.poll`), not the NSID. A filter on the NSID returns nothing.
+- A `calculations` query with `groupBys`: set `limit` to 500. With 50 and more groups than that, a group of 19 calls was left out (2026-10-09).
 - `ray` is the `cf-ray` without the part after the hyphen.
 - Cloudflare stores the request's path and query string beside each line. Do not put a long-lived
   secret in a query string. Short-lived single-use codes are acceptable.

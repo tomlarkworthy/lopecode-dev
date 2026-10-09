@@ -2837,3 +2837,74 @@ redistil             17 changes, none applied
 Not explained: a forced apply of brain-x-library through this deployer answered `deployed` and `infra.getState` still gives `1753e38fa319`, while `redistil` lists it as `changes`.
 
 This is the case the `was` check does not cover: two sessions in one checkout, one build. The lock directory orders deploys and not edits.
+
+## Settings the owner stores, read through `config` (2026-10-09, to 10:44 CEST)
+
+Tom, 2026-10-09: "Something like changing the polling speed should be configuration that is easier to change with a PATCH instead of a full notebook deploy", and "each service does not need to write its own integration to the config service, this should all be 'free' functionality … Just a given platform primitive."
+
+A service already read `config.X ?? default`. Nothing in a service changed for this; the three parts are the core and the wrapper.
+
+- **Stored** by the core in its rows, `config/<worker>`, with `config.set { worker, key, value }` (`null` removes), `config.get?worker=` and `config.list`. The owner's own session only. Each change is kept (`config-log/<worker>`, the last 100: at, by, key, old, value) and written as a log line `at: "config"`.
+- **Delivered** with each call the core forwards, in the header `x-brain-settings`. The core reads the rows at most once in 60 s for one instance; `config.set` drops that instance's copy. No Worker makes a call to read its settings. A Worker run only by its clock reads the core's row itself, one SQL statement, at most once in 5 minutes.
+- **Shown** by the wrapper's `config`: a key the deployer bound at deploy first, then the stored value, then nothing. A stored value therefore never replaces `owner`, `host`, `base`, `subdomain`, `account`, `deployer`. The core also refuses those names and six more (`self`, `replacedBy`, `acceptEmitted`, `probationMs`, `clockSkewMs`, `contextMs`) with 400. The kernel, the core and the deployer take no stored settings: `config.set` answers 404 for them.
+- **Discovery**: `config.get` asks one running instance of the Worker which keys it has read from `config` and where each value came from (`deploy`, `stored`, `unset`). Another instance may have read more.
+
+Rejected: each service declaring its settings in its manifest. Tom's correction above; it would have been an integration per service.
+
+First users: `brain-x-inbox` `pollMs` (30000; `inbox.poll` answers it as `wait` and the page waits that long) and `leaseMs` (3 × `pollMs`); `brain-x-bluesky` `credsMs` and `pollGapMs`, which it already read.
+
+### Measured on cb4
+
+```
+config.set brain-x-inbox pollMs 60000, 09:46:46 CEST   {"old":null}
+  by the test member          403 Forbidden
+  with no session             401 AuthRequired
+  key "owner"                 400 owner is set at deploy and is not a setting
+  worker "brain" (the kernel) 404 no Worker brain takes settings
+config.get, read              [{"key":"leaseMs","from":"unset"},{"key":"pollMs","value":60000,"from":"stored"}]
+inbox.poll by the owner, 10 minutes, one tab
+  pollMs unset   07:20-07:30 UTC   20
+  pollMs 60000   08:33-08:43 UTC   10      no deploy between the two for the inbox
+config.set … null, 10:43:35 CEST   {"old":60000}; read: pollMs unset
+```
+
+Tests: 80 of 80 in `brain-core`, `cloudflare-iac`, `brain-inbox` and `brain-bluesky`, forced in a local tab (`run_tests` was not used; it hung earlier this day).
+
+### What went wrong on the way
+
+- **The first count showed no change (19 against 20), and the cause was the deploy, not the setting.** `redistil --apply` distils the source the deployer already keeps. It does not read the notebook. The page Worker went on serving the old page, which waits a fixed 30 s. A changed module is deployed by emitting it in a tab (`x_service.emit()`, posted to `test-receiver.ts`) and `apply NAME.json`.
+- **The wrapper is the deployer's.** A change to `workerRuntime` in `cloudflare-iac.ojs` reaches a Worker only after `install-deployer` and then `redistil --apply`.
+- **Core and page were put back after 10 minutes**: "not confirmed in 10 minutes". After `apply core.json page.json`, run `brain.ts confirm`. The first apply of the page this morning was put back for this reason.
+- **A log count with 50 groups left out a large group.** A ten-minute `calculations` query grouped by method and caller, `limit` 50, came back without `inbox.poll | owner`; its two five-minute halves had 9 and 10. That window held 101 one-call groups from a check of every method. With `limit` 500 the group is there. The 24-hour total reported incomplete earlier this day was not looked at again.
+- `test_bluesky_reads_its_secrets_once_in_the_window` passed only when other tests ran beside it: the wrapper holds a secret for 5 s, so a third read 200 ms later never reached the core. It now waits 5.2 s and compares an instance that keeps credentials 150 ms with one that keeps them 5 minutes.
+
+### Not done
+
+- Snapshot's sources and Bluesky's own settings rows are not moved onto this.
+- The page has no panel for settings. They are set with a call.
+- A member's Worker has no database binding, so one that only its clock runs reads no stored settings until a call reaches it.
+
+## `/llms.txt`, written on each request (2026-10-09, to 10:44 CEST)
+
+Tom, 2026-10-09: "I would like LLMs to be able to use the cloud easily, so maybe a few pointers (don't replicate knowledge that might go stale) in an llms.txt. I would also like it to be usable from Claude Code for Web. Users have to allow the domain URL. Probably the llms.txt should be templated rather than a static file so all the pointers are correct if someone clones it."
+
+- `GET /llms.txt` is answered by the core, for anyone, as `text/plain`. It is made from `config.host` and the route table: how to call, how the owner makes a token for a caller with no browser, what to allow in Claude Code on the web, and one line for each method and path of each Worker (name, query or procedure, who the service says may call, whether it has a rule or a price, whether the owner changed either).
+- It holds no reference text. It points at `getSource?worker=NAME&part=reference`, which is new: the wrapper of each Worker answers the first prose cell of its own module as text. That cell is the method table the module's author keeps, so there is one copy.
+- Left out: a member's Worker, the expression of a rule or price the owner set (only that one was set), the owner's handle and DID.
+- The core, not the kernel or the page Worker, because the core holds the route table. The page Worker cutting a block out of the 5 MB shell was the first idea and was not needed: every Worker already answered `getSource` with its own module.
+
+On cb4, 10:20 to 10:31 CEST:
+
+```
+GET /llms.txt, no session                 200, 6660 bytes, text/plain
+each of the 101 methods and paths listed, called with no session
+                                          401: 88, 400: 5, 200: 5, 404: 2, 403: 1; 501: 0
+getSource?part=reference                  brain 9632 bytes, brain-core 10896, brain-x-inbox 2733, text/plain
+token.create {name, methods:["knowledge.search"]} as the file says, then curl with Authorization: Bearer
+  knowledge.search?q=retrospection        200, the paper
+  knowledge.list, quota.get               403 this token does not name …
+token.revoke                              {"revoked":1}
+```
+
+Not verified: a call from a Claude Code on the web session. The line about its network setting is from https://code.claude.com/docs/en/cloud-environments as read on 2026-10-09 (an environment's network access has a custom level with a list of allowed domains); it was not tried.
+

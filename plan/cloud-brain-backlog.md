@@ -654,3 +654,14 @@ The record is in `tools/cloud-brain/spec-as-built.md`, "Security review and fixe
 - Done from the list above: `deploy.reason` still names the module; the open review findings of the security pass are closed.
 - **One build for every session in the checkout** (2026-10-09 09:40 CEST). `build.ts` builds every seed as it is on disk, so a deploy by one session ships another's uncommitted edits. On 2026-10-09 the deployer `3257ff63a6e1` was installed with another session's wrapper change in it and `redistil` went from 17 `same` to 17 `changes`. A build from a commit, or a worktree per session, would stop it.
 - **Unexplained**: a forced apply of brain-x-library through `3257ff63a6e1` answered `deployed` and the hash did not change, while `redistil` lists the Worker as `changes`.
+
+## Added 2026-10-09 10:44 CEST: settings and `/llms.txt`
+
+Built and on cb4: stored settings read through `config` (`config.set`, `config.get`, `config.list`), and `/llms.txt` with `getSource?part=reference`. Record: the last two sections of `tools/cloud-brain/spec-as-built.md`.
+
+- **`redistil --apply` does not deploy a changed module.** It distils the source the deployer keeps. A session that edits a seed must emit and `apply`, and `confirm` core and page within 10 minutes. There is no one command for "deploy what the notebook now says"; `test-receiver.ts` and a tab stand in for it.
+- **Log counts: ask for 500 groups.** With 50 a large group was left out of an answer. The 24-hour total that looked incomplete on 2026-10-09 was not looked at again.
+- Not moved onto settings: snapshot's sources, Bluesky's own settings rows. No panel on the page.
+- `/llms.txt` from a Claude Code on the web session: not tried.
+- The page has no button that makes a token and shows the `llms.txt` address beside it.
+
