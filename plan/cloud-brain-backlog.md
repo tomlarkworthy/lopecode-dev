@@ -622,6 +622,9 @@ Tom, 2026-10-09: "I would like to record the latest research (AI particularly) a
 - Open: Reddit. The feed gives no score and Reddit rate-limits Cloudflare's addresses (429 after about ten requests in an hour). An OAuth app of Tom's would give scores and a limit of its own. Not asked for yet.
 - Open: Anthropic and Meta AI publish no feed at the addresses tried. A page scrape with the browser service would cover them; not built.
 - Open: the first timed run (06:00 UTC) has not been observed. Check `ranAt` in `/static/snapshot/days.json`.
+- Open 2026-10-09: a digest reads `/static/snapshot/<day>/` live, and a later `snapshot.run` that day replaces those files. `research-2026-10-09` says 843 items in its text and now loads 823. Either a digest carries its day's items inside it, or a published day is not run again.
+- Open 2026-10-09: the timed 06:00 UTC run has not been seen. `days.json` `ranAt` after 06:00 on any day settles it.
+- Done 2026-10-09 05:15 UTC: the second review's 10 findings (spec-as-built, "The second review"). `papers.json` is 15 papers with `days: 3` on the Hugging Face list; `static.delete` takes a prefix that ends in `/`.
 - Done 2026-10-09: history. The timed run drops days older than `keepDays` (90) through `static.delete` `{ prefix, before }`. Not observed on cb4: no day is that old.
 - Done 2026-10-09: "600 papers is too many" (Tom). `snapshot/<day>/papers.json` holds the papers with a signal: 18 on 2026-10-09 (12 by Hugging Face votes of 10 or more, 6 linked from Reddit or Import AI, 0 from a lab feed). `arxiv.json` stays, marked `lookup`. For Tom: is 10 votes the right line (9 more papers had 5 to 9), and should a later digest read `papers.json` in place of `arxiv.json`.
 - Not done: a retry when a source fails at 06:00; old files of a renamed source on the same day; a search over the days.

@@ -10,7 +10,7 @@ Files kept by a Cloud Brain and served from its address.
 | \`static.list\` | query. \`?prefix=\` and \`?tag=\`. \`{ files: [{ path, size, type, sha256, public, tags, savedAt }] }\`, the files the caller may read. |
 | \`static.tag\` | procedure. \`{ path, tags }\` replaces the file's labels. |
 | \`static.setPublic\` | procedure. \`{ path, public }\` adds or removes the \`public\` label. |
-| \`static.delete\` | procedure. \`{ path }\` drops one file. \`{ prefix, before }\` drops each file under the prefix that the caller may change, saved before \`before\` (an ISO date or milliseconds; all of them without it). Answers \`{ deleted, paths }\`. An empty prefix is refused, and nothing under \`shell/\` is dropped this way. |
+| \`static.delete\` | procedure. \`{ path }\` drops one file. \`{ prefix, before }\` drops each file under the prefix that the caller may change, saved before \`before\` (an ISO date or milliseconds; all of them without it). Answers \`{ deleted, paths }\`. The prefix is a folder: it ends in \`/\`, and one that does not (\`"s"\`, \`""\`) is refused with 400. Nothing under \`shell/\` is dropped this way. |
 | \`GET /static/<path>\` | whoever may read the file by its tags. \`ETag\` is the SHA-256; \`If-None-Match\` answers 304. |
 | Storage | bytes in \`blobs\` and one row per file in \`rows\`, both under \`f/<path>\` |
 
@@ -245,7 +245,8 @@ staticApp = {
     // { prefix, before }: each file under the prefix that this caller may change, saved before then. Never the shell.
     if (prefix !== undefined) {
       const m = await me(c), t = until === undefined ? Infinity : typeof until === "number" ? until : Date.parse(until);
-      if (typeof prefix !== "string" || !prefix || !okPath(prefix.replace(/\/$/, "")) || Number.isNaN(t)) return fail(c, 400, "InvalidRequest", "{ prefix, before }: a prefix that is not empty, and a date");
+      // A folder, not the start of a name: "s" would match site/ and snapshot/.
+      if (typeof prefix !== "string" || !prefix.endsWith("/") || !okPath(prefix.slice(0, -1)) || Number.isNaN(t)) return fail(c, 400, "InvalidRequest", "{ prefix, before }: a prefix that ends in /, and a date");
       if (!m || !(m.all || m.fixed || m.did)) return fail(c, 403, "Forbidden", "this caller has no files");
       const paths = (await rows.list("f/" + prefix)).filter(({ key, value }) => !key.startsWith("f/shell/") && (value.savedAt || 0) < t && can(m, value, key.slice(2), "write")).map((r) => r.key.slice(2));
       for (const p of paths) {
@@ -331,13 +332,16 @@ test_static_delete_by_prefix_and_date_keeps_to_what_the_caller_may_change = {
   // The date is savedAt, not the path: give two files an older one.
   for (const day of ["2026-07-01", "2026-10-08"]) rig.sim.rows.set(`f/snapshot/${day}/hn.json`, { ...rig.sim.rows.get(`f/snapshot/${day}/hn.json`), savedAt: Date.parse(day) });
   expect(await del(snap, { prefix: "snapshot/", before: "2026-08-01" })).toEqual([200, ["snapshot/2026-07-01/hn.json"]]);
-  // A Worker's prefix outside its name drops nothing; an empty prefix and a bad date are refused.
+  // A Worker's prefix outside its name drops nothing; an empty prefix, one that is not a folder and a bad date are refused.
   expect(await del(snap, { prefix: "site/" })).toEqual([200, []]);
   expect((await rig.post(snap, "delete", { prefix: "" })).status).toBe(400);
+  for (const prefix of ["s", "snapshot", "snapshot/2026-10", "/"]) expect((await rig.post("owner", "delete", { prefix })).status).toBe(400);
   expect((await rig.post("owner", "delete", { prefix: "snapshot/", before: "soon" })).status).toBe(400);
   expect((await rig.post("anonymous", "delete", { prefix: "snapshot/" })).status).toBe(403);
-  // The owner drops any prefix, and never the shell.
-  expect((await del("owner", { prefix: "s" }))[1]).toEqual(["site/a.css", "snapshot/2026-10-08/hn.json", "snapshot/2026-10-09/hn.json"]);
+  // The owner drops any folder, and never the shell.
+  expect((await del("owner", { prefix: "snapshot/2026-10-08/" }))[1]).toEqual(["snapshot/2026-10-08/hn.json"]);
+  expect((await del("owner", { prefix: "snapshot/" }))[1]).toEqual(["snapshot/2026-10-09/hn.json"]);
+  expect((await del("owner", { prefix: "site/" }))[1]).toEqual(["site/a.css"]);
   expect((await del("owner", { prefix: "shell/" }))[1]).toEqual([]);
   expect([...rig.sim.blobs.keys()].filter((k) => !k.includes("/shell/"))).toEqual([]);
   return "by prefix and date";
@@ -457,6 +461,7 @@ test_static_a_files_tags_decide_who_reads_and_who_changes_it = {
   rig.sim.rows.set("f/old/pic.png", { size: 1, type: "image/png", sha256: "s", public: true, savedAt: 1 });
   expect((await (await rig.call("owner", rig.X + "list?tag=public")).json()).files.map((f) => [f.path, f.tags]).sort((x, y) => (x[0] < y[0] ? -1 : 1))).toEqual([["old/pic.png", ["by:owner", "public"]], ["site/a.html", ["by:owner", "public"]], [file, ["by:" + A, "members", "public"]]]);
   expect((await rig.post("owner", "delete", { path: file })).status).toBe(200);
+  return "read and changed by tag";
 }
 // %%
 test_static_a_members_worker_writes_as_its_author_within_their_limit = {
@@ -475,6 +480,7 @@ test_static_a_members_worker_writes_as_its_author_within_their_limit = {
   await rig.put("worker:brain-x-library", "library/n.html", "n");
   expect(rig.sim.rows.get("f/library/n.html").tags).toEqual(["by:owner", "worker:brain-x-library"]);
   expect((await rig.get({ "x-brain-caller": "worker:brain-x-library" }, file)).status).toBe(403);
+  return "a member's Worker, within the limit";
 }
 // %%
 import {cloudflare, rows, blobs, config, hono, simulate, sha256} from "@tomlarkworthy/cloudflare-iac"

@@ -2599,8 +2599,31 @@ From a review of the module (14 findings) and two notes of Tom's: "600 papers is
 - **`setSources`** refuses `days` and `limit` that are not numbers above 0, a `map` value that is not a string, `items` that is not a string, `papers` without `min`. `{ keepDays }` sets the days kept.
 - **Timer.** `ticked` is set after the row write, so a failed write is tried at the next tick. The tick reads the cron event's time; the test passes one and no longer replaces `Date.now`.
 - **Panel.** One `input` event a draw, after the value is set; a failed fetch is shown; **Run now** for the owner.
-- **`static.delete` with `{ prefix, before }`** (brain-static): drops each file under the prefix that the caller may change and that was saved before `before`. A Worker reaches its own name only; nothing under `shell/`; an empty prefix is 400. The timed run calls it with `keepDays` (90) and drops the `day/` and `ran/` rows of those days. `snapshot.run` drops nothing.
+- **`static.delete` with `{ prefix, before }`** (brain-static): drops each file under the prefix that the caller may change and that was saved before `before`. A Worker reaches its own name only; nothing under `shell/`; a prefix that does not end in `/` is 400 (from the second review, below). The timed run calls it with `keepDays` (90) and drops the `day/` and `ran/` rows of those days. `snapshot.run` drops nothing.
 - **Layout rule,** in `brain-static`'s prose and the knowledge file: a dated file is `<service>/<YYYY-MM-DD>/<name>`.
 - **Tests:** brain-snapshot 9 of 9, brain-static 8 of 8 in a local tab; 655 of the notebook's 660 `test_*` cells pass, the 5 others in modules this project does not own (`test_defaultMarkdownParser_preserves_escapes`, `test_reflectsTitleUpdate`, two `test_ui_*`, `test_tests_example` pending). `run_tests` with no filter times out on the pending one.
 - **Deployed:** `brain-x-static` `163dedde37bd`, `brain-x-snapshot` `ea4bf94bb6c8`; `redistil` 16 `same`. The digest notebook `research-2026-10-09` loads the day's 12 files (844 items) and finds its 28 picks; its seed was not changed.
 - **Not observed on cb4:** the clean-up (no day is 90 days old; tests only), `setSources` and **Run now** (tests only).
+
+#### The second review, 2026-10-09 05:00 to 05:15 UTC
+
+A fresh reviewer read both modules as changed since `f3e0e894` and returned BLOCK with 10 findings. Each was checked against the seed; all 10 were acted on.
+
+| Finding | Done |
+|---|---|
+| `papers.json` was called "the papers of the day"; Hugging Face's list held 50 papers published on 11 dates (2026-09-23 to 2026-10-07) and the row had no `days` | `days: 3` on `hf-papers`. The prose says "papers with a signal seen that day" and that a voted paper is in up to 3 days' files. Test: a paper published 2026-09-23 with 90 votes is not kept on 2026-10-09 |
+| A title's once-escaped markup was deleted: `The &lt;dialog&gt; element` became `The element` | A title is text: entities read, nothing stripped after. Only an Atom title with `type="html"` or `"xhtml"` has markup taken out. Cost: a feed that escapes markup into a plain title keeps it (`new <i>results</i>`) |
+| An Atom entry's title was read from a nested `<source>` | `<source>…</source>` is removed from the entry before its fields are read; `raw`, where links to papers are found, keeps it |
+| A source whose `static.put` was refused showed "cut from N" | the panel says it only when the row has no error; prose qualified |
+| `days.json` rows carry `papers`, not in the prose | added |
+| arXiv `limit: 700` against "600 to 900 a day" | `limit: 1000` |
+| `static.delete { prefix: "s" }` dropped `site/` and `snapshot/` | a prefix is a folder: it ends in `/`, else 400. cb4: `{ prefix: "snapshot" }` answered 400 |
+| 40 sources against a plan's subrequest limit | stated beside "1 to 40"; not measured |
+| **Run now** could be pressed twice | the button is off until the run settles |
+| Two brain-static tag tests returned nothing | each returns a string |
+
+- **Tests:** brain-snapshot 9 of 9, brain-static 8 of 8, in a local tab.
+- **Deployed 05:10 UTC:** `brain-x-static` `1b8bd5672a9f`, `brain-x-snapshot` `307230084d98`; lease held, `redistil` 16 `same`. The first apply of each was put back after 70 s, "health check failed after go-live": the deployer's log line `deploy.unhealthy` has `last: "hash 163dedde37bd"` and `"hash ea4bf94bb6c8"`, the versions before, so Cloudflare was still answering with the old code at 60 s. The second apply of each went live in 11 s. Nothing was changed between the two.
+- **Run at 05:11:18 UTC:** 823 items (844 before), `hf-papers` 30 of 50, published 2026-10-06 and 2026-10-07. **15 papers** (18 before): 9 by votes, 6 by mention (5 Reddit, 1 Import AI), 0 from a lab feed, none with two signals, 6 with an id and `via` only.
+- The digest `research-2026-10-09` loads the day's files (823 rows, no cell error). Its opening sentence is written text and still says 843 items, and its computed count of decision-model items reads 11 where it read 13: the day's files are replaced by each run and the digest reads them live.
+- **Not verified:** the timed run. It is due at the first tick after 06:00 UTC and this was written at 05:13.

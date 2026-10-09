@@ -19,34 +19,36 @@ Anyone reads these with no session. \`<day>\` is the UTC date, \`2026-10-09\`.
 
 | Address | Holds |
 |---|---|
-| \`/static/snapshot/days.json\` | \`{ days: [{ day, ranAt, items }] }\`, newest first |
+| \`/static/snapshot/days.json\` | \`{ days: [{ day, ranAt, items, papers }] }\`, newest first; \`papers\` is the count in that day's \`papers.json\` |
 | \`/static/snapshot/<day>/index.json\` | \`{ day, ranAt, sources: [{ name, tier, status, count, matched, of, bytes, ms, path, error, lookup }], papers: { count, path }, errors }\` |
 | \`/static/snapshot/<day>/<source>.json\` | \`{ source, tier, url, day, fetchedAt, count, items }\` |
-| \`/static/snapshot/<day>/papers.json\` | \`{ day, ranAt, count, papers: [{ id, url, title, summary, points, signals, via }] }\`: the papers of the day that carry a signal (below) |
+| \`/static/snapshot/<day>/papers.json\` | \`{ day, ranAt, count, papers: [{ id, url, title, summary, points, signals, via }] }\`: the papers with a signal seen that day (below) |
 
 An item is \`{ id, title, source, tier }\` and, where the feed gives them, \`url points comments author published discussion summary papers\`. An Ask HN post has no \`url\`. \`published\` is an ISO time. \`summary\` is text, cut at 1500 characters. \`papers\` is the arXiv ids the item links to.
 
-Text from a feed has its markup taken out: a \`<\` that starts a tag name is read as a tag up to the next \`>\`, so \`p < 0.05 and n > 3\` is kept and \`a<b and c>d\` loses \`<b and c>\`. Text from a JSON source is kept as it is.
+A feed's summary has its markup taken out, after its entities are read: a \`<\` that starts a tag name is read as a tag up to the next \`>\`, so \`p < 0.05 and n > 3\` is kept and \`a<b and c>d\` loses \`<b and c>\`. A title is text: \`The &lt;dialog&gt; element\` is kept as \`The <dialog> element\`, and so is markup a feed escaped into a title (\`new <i>results</i>\`). Only an Atom title that says \`type="html"\` or \`"xhtml"\` has markup taken out. An Atom entry's \`<source>\`, the feed it was copied from, is not read. Text from a JSON source is kept as it is.
 
 - A second run on one day replaces that day's files: the last run is what is kept.
 - A source that fails, or that has nothing to keep, writes no file. Its row in the index says why (\`status\`, \`error\`, \`count: 0\`), and a file an earlier run of that day made for it stays.
 - Every source is fetched at the same time. Give one host one source: Reddit answered 429 to the second of two feeds, also 2 s apart (cb4, 2026-10-09), so its two subreddits are one feed.
 - A failed source does not fail the run. The timer runs once a day and does not try again; \`snapshot.run\` does.
-- \`of\` is how many items the feed held, \`matched\` how many passed \`keep\` and \`days\`, \`count\` how many were kept. \`matched\` above \`count\` means \`limit\` cut the list.
+- \`of\` is how many items the feed held, \`matched\` how many passed \`keep\` and \`days\`, \`count\` how many were kept. \`matched\` above \`count\` means \`limit\` cut the list, unless the row has an \`error\`: a source whose file was refused has \`count: 0\` and its \`matched\`.
 - \`errors\` in the index, and in the log line, names a write of \`index.json\`, \`papers.json\` or \`days.json\` that failed.
 - The daily run drops the files of days older than \`keepDays\` with \`static.delete\` \`{ prefix: "snapshot/", before }\`. \`snapshot.run\` drops nothing.
 
 ## Papers
 
-arXiv lists 600 to 900 new papers a day in these three categories. Nobody reads that list, and its feed gives authors with no affiliation, so it cannot be cut down to known labs. \`arxiv.json\` is kept for looking a paper up (\`lookup: true\` in the index): do not read it whole. \`papers.json\` holds the papers that carry at least one signal, and says which:
+arXiv lists 600 to 900 new papers a day in these three categories (\`limit: 1000\`). Nobody reads that list, and its feed gives authors with no affiliation, so it cannot be cut down to known labs. \`arxiv.json\` is kept for looking a paper up (\`lookup: true\` in the index): do not read it whole. \`papers.json\` holds the papers that carry at least one signal, and says which:
 
 | signal | means |
 |---|---|
-| \`votes:<source>\` | the paper is in a source that has \`papers: { min }\` with at least \`min\` points. Hugging Face's daily papers, 10. |
+| \`votes:<source>\` | the paper is in a source that has \`papers: { min }\` with at least \`min\` points. Hugging Face's daily papers, 10, published in the last 3 days. |
 | \`lab:<source>\` | an item of a \`research\` feed links to it (\`arxiv.org/abs\`, \`/pdf\`, \`/html\`, or \`huggingface.co/papers\`). |
 | \`mention:<source>\` | an item of a \`blogger\` or \`aggregator\` source links to it. |
 
-\`via\` is the items that linked to it. Title and summary come from the voting source, else from \`arxiv.json\` when the paper is in that day's list; a paper from an earlier day has only its id and \`via\`. Papers are in order of how many signals they carry, then points.
+\`via\` is the items that linked to it. Title and summary come from the voting source, else from \`arxiv.json\` when the paper is in that day's list; a paper in neither, linked from an item only, has its id and \`via\` and nothing else. Papers are in order of how many signals they carry, then points.
+
+\`papers.json\` is not the papers published that day. Hugging Face's list held 50 papers published on 11 dates, 2026-09-23 to 2026-10-07, when read on 2026-10-09; \`days: 3\` keeps the last three days of it, so a voted paper is in up to 3 days' files. A paper linked from an item is in each day's file that the item is in.
 
 ## Sources
 
@@ -57,6 +59,7 @@ A source is a row, not code: \`{ name, tier, url, kind }\`. The list is public, 
 - \`days\`: keep only items published in that many days before the run. A blog's feed holds its old posts; every \`research\` blog and every \`blogger\` here has \`days: 7\`, so most of them keep nothing on most days.
 - \`keep\`: a pattern an item's text must match. arXiv's feed also lists replaced papers; \`keep\` leaves new and cross-listed ones.
 - \`limit\`: at most this many items, 500 unless given.
+- A list has 1 to 40 sources. One run is one invocation of the Worker: one fetch and one \`static.put\` for each source that keeps items, then three more writes, and one delete on the timer. The 21 here ran on cb4. 40 was not run, and the count was not measured against the plan's limit of subrequests in one invocation.
 - \`papers: { min }\`: the items are papers, their \`id\` an arXiv id, and one with \`min\` points or more is in \`papers.json\`. \`lookup: true\`: the items are papers to look up, not to read.
 
 Each source is fetched once a run, with the \`User-Agent\` \`${snapshotAgent}\`.
@@ -70,8 +73,8 @@ snapshotAgent = "lopecode-cloud-brain-snapshot/1 (+https://github.com/tomlarkwor
 snapshotSources = {
   const blog = (name, url, tier = "blogger") => ({ name, tier, url, kind: "rss", days: 7 });
   return [
-    { name: "arxiv", tier: "research", url: "https://rss.arxiv.org/rss/cs.AI+cs.LG+cs.CL", kind: "rss", keep: "Announce Type: (new|cross)", limit: 700, lookup: true },
-    { name: "hf-papers", tier: "research", url: "https://huggingface.co/api/daily_papers?limit=50", kind: "json", map: { id: "paper.id", title: "paper.title", url: "https://huggingface.co/papers/{paper.id}", points: "paper.upvotes", comments: "numComments", published: "publishedAt", summary: "paper.summary" }, papers: { min: 10 } },
+    { name: "arxiv", tier: "research", url: "https://rss.arxiv.org/rss/cs.AI+cs.LG+cs.CL", kind: "rss", keep: "Announce Type: (new|cross)", limit: 1000, lookup: true },
+    { name: "hf-papers", tier: "research", url: "https://huggingface.co/api/daily_papers?limit=50", kind: "json", map: { id: "paper.id", title: "paper.title", url: "https://huggingface.co/papers/{paper.id}", points: "paper.upvotes", comments: "numComments", published: "publishedAt", summary: "paper.summary" }, days: 3, papers: { min: 10 } },
     blog("openai", "https://openai.com/news/rss.xml", "research"),
     blog("deepmind", "https://deepmind.google/blog/rss.xml", "research"),
     blog("google-research", "https://research.google/blog/rss/", "research"),
@@ -95,13 +98,15 @@ snapshotSources = {
 }
 // %%
 // Text of a feed field: entities read, markup taken out, entities of the markup's own text read.
-snapshotText = (s, max = 1500) => {
+// markup false: the field is text, so what its entities spell ("<dialog>") is kept.
+snapshotText = (s, max = 1500, markup = true) => {
   const named = { lt: "<", gt: ">", quot: '"', apos: "'", amp: "&", nbsp: " ", mdash: "\u2014", ndash: "\u2013", hellip: "\u2026", lsquo: "\u2018", rsquo: "\u2019", ldquo: "\u201c", rdquo: "\u201d" };
   const point = (n, e) => (n >= 0 && n <= 0x10ffff ? String.fromCodePoint(n) : e);
   const entities = (t) => t.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (e, k) => (k[0] !== "#" ? (named[k.toLowerCase()] ?? e) : point(/^#x/i.test(k) ? parseInt(k.slice(2), 16) : Number(k.slice(1)), e)));
   // A tag is < and a name; "p < 0.05 and n > 3" has none.
   const tags = (t) => t.replace(/<!--[\s\S]*?-->|<\/?[a-zA-Z][^<>]*>/g, " ");
-  return snapshotPlain(entities(tags(entities(tags(String(s ?? ""))))), max);
+  const once = entities(tags(String(s ?? "")));
+  return snapshotPlain(entities(markup ? tags(once) : once), max);
 }
 // %%
 // Text that is already text: spaces made single, cut.
@@ -120,14 +125,16 @@ snapshotFeed = (xml) => {
   };
   // A CDATA section is text: its < and & are written as entities, so a tag inside one is not read as a field.
   const flat = String(xml).replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, (_, t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
-  return flat.split(/<(?:item|entry)[\s>]/).slice(1).map((s) => ({
+  // An Atom entry's <source> is the feed it was copied from, with a title and id of its own.
+  return flat.split(/<(?:item|entry)[\s>]/).slice(1).map((entry) => [entry, entry.replace(/<source[\s>][\s\S]*?<\/source>/g, "")]).map(([raw, s]) => ({
     id: snapshotText(tag(s, "guid") || tag(s, "id"), 500),
-    title: snapshotText(tag(s, "title"), 500),
+    // A title is text unless Atom says it is markup.
+    title: snapshotText(tag(s, "title"), 500, /<title\s[^>]*\btype=["'](?:html|xhtml)["']/.test(s)),
     url: snapshotText(tag(s, "link") || href(s), 2000),
     author: snapshotText(tag(s, "dc:creator") || tag(tag(s, "author"), "name"), 200),
     published: snapshotText(tag(s, "pubDate") || tag(s, "published") || tag(s, "updated"), 100),
     summary: snapshotText(tag(s, "description") || tag(s, "summary") || tag(s, "content") || tag(s, "content:encoded")),
-    raw: s
+    raw
   }));
 }
 // %%
@@ -328,7 +335,13 @@ snapshotPanel = ({ base, client, owner = false, fetch: send = (...a) => fetch(..
   const link = (u) => (u ? htl.html`<a href=${u} target="_blank">json</a>` : "");
   const load = async () => {
     const days = ((await get("days.json")) || { days: [] }).days;
-    const now = owner && client ? Inputs.button("Run now", { reduce: () => void client.procedure("snapshot.run", {}).then(() => el.load(), (e) => void (note.textContent = String((e && e.message) || e))) }) : "";
+    // One run at a time: the button is off until the run settles (a new one is drawn when it does).
+    const now = owner && client ? Inputs.button("Run now", { reduce: () => {
+      const b = now.querySelector("button");
+      if (b.disabled) return;
+      b.disabled = true;
+      void client.procedure("snapshot.run", {}).then(() => el.load(), (e) => void ((b.disabled = false), (note.textContent = String((e && e.message) || e))));
+    } }) : "";
     // The panel's one input event is its own, in draw.
     if (now) now.addEventListener("input", (e) => e.stopPropagation());
     if (!days.length) return void box.replaceChildren(htl.html`<i style=${muted}>No snapshot yet.</i>`, now);
@@ -336,7 +349,7 @@ snapshotPanel = ({ base, client, owner = false, fetch: send = (...a) => fetch(..
     const table = htl.html`<div></div>`;
     const draw = async () => {
       const index = await get(pick.value.day + "/index.json");
-      table.replaceChildren(Inputs.table((index ? index.sources : []).map((s) => ({ source: s.name, tier: s.tier, kept: s.count, of: s.of, status: s.status, note: [s.error, s.matched > s.count ? `cut from ${s.matched}` : "", s.lookup ? "to look up" : ""].filter(Boolean).join("; "), file: s.path ? root.replace(/snapshot\/$/, "") + s.path : "" })), { format: { file: link }, layout: "auto" }));
+      table.replaceChildren(Inputs.table((index ? index.sources : []).map((s) => ({ source: s.name, tier: s.tier, kept: s.count, of: s.of, status: s.status, note: [s.error, !s.error && s.matched > s.count ? `cut from ${s.matched}` : "", s.lookup ? "to look up" : ""].filter(Boolean).join("; "), file: s.path ? root.replace(/snapshot\/$/, "") + s.path : "" })), { format: { file: link }, layout: "auto" }));
       note.replaceChildren(...(index ? [`ran ${index.ranAt}`, ...(index.papers ? [`, ${index.papers.count} papers with a signal `, link(root.replace(/snapshot\/$/, "") + index.papers.path)] : []), ...(index.errors && index.errors.length ? [`. Not written: ${index.errors.join("; ")}`] : [])] : []));
       // The value is the day's index. The select's own event is stopped below, so this is the one a cell hears.
       el.value = index;
@@ -392,7 +405,7 @@ snapshotFixtures = ({
 test_a_feed_item_is_read_by_its_tags_with_markup_and_entities_taken_out = {
   const now = Date.parse("2026-10-09T06:00:00Z");
   const rss = snapshotItems(snapshotFixtures.rss, { name: "blog", tier: "blogger", kind: "rss", days: 7 }, now);
-  expect(rss).toEqual({ of: 2, matched: 1, items: [{ id: "a-1", title: "A & B: new results", url: "https://blog.example/a", author: "Ada", published: "2026-10-08T16:00:00.000Z", summary: "It's bold .", source: "blog", tier: "blogger" }] });
+  expect(rss).toEqual({ of: 2, matched: 1, items: [{ id: "a-1", title: "A & B: new <i>results</i>", url: "https://blog.example/a", author: "Ada", published: "2026-10-08T16:00:00.000Z", summary: "It's bold .", source: "blog", tier: "blogger" }] });
   // Without `days` the old post is kept as well.
   expect(snapshotItems(snapshotFixtures.rss, { name: "blog", tier: "blogger", kind: "rss" }, now).items.map((i) => i.id)).toEqual(["a-1", "old-1"]);
   const atom = snapshotItems(snapshotFixtures.atom, { name: "reddit-x", tier: "aggregator", kind: "atom" }, now);
@@ -401,7 +414,9 @@ test_a_feed_item_is_read_by_its_tags_with_markup_and_entities_taken_out = {
   const many = `<rss>${[1, 2, 3, 4].map((n) => `<item><title>T${n}</title><guid>${n}</guid><description>Announce Type: ${n % 2 ? "new" : "replace"} ${"x".repeat(3000)}</description></item>`).join("")}</rss>`;
   const kept = snapshotItems(many, { name: "arxiv", tier: "research", kind: "rss", keep: "Announce Type: (new|cross)", limit: 1 }, now);
   expect([kept.of, kept.matched, kept.items.map((i) => i.id), kept.items[0].summary.length]).toEqual([4, 2, ["1"], 1500]);
-  // An Atom entry's link is the page: rel alternate or no rel, wherever it comes. A title in CDATA is text.
+  // An Atom entry's link is the page: rel alternate or no rel, wherever it comes. A title that says it is html has its markup taken out.
+  // The feed an entry was copied from has a title and an id of its own, which are not the entry's.
+  expect(snapshotFeed('<feed><entry><source><id>other</id><title>Other feed</title><link href="https://o.example/"/></source><id>1</id><title>Mine</title><link href="https://a.example/mine"/></entry></feed>')[0]).toMatchObject({ id: "1", title: "Mine", url: "https://a.example/mine" });
   const entry = (links) => snapshotFeed(`<feed><entry><id>1</id><title type="html"><![CDATA[Fast <em>&amp;</em> small </title><x>]]></title>${links}</entry></feed>`)[0];
   expect(entry('<link rel="self" href="https://a.example/feed"/><link rel="alternate" href="https://a.example/post"/>')).toMatchObject({ title: "Fast & small", url: "https://a.example/post" });
   expect(entry('<link rel="replies" href="https://a.example/c"/><link href="https://a.example/post"/>').url).toBe("https://a.example/post");
@@ -415,17 +430,24 @@ test_text_keeps_a_comparison_and_reads_hex_and_named_entities = {
   expect(snapshotText("It&#x2019;s &#8212; caf&#xE9; &mdash; &hellip;&nbsp;&unknown; &#x110000;")).toBe("It\u2019s \u2014 caf\u00e9 \u2014 \u2026 &unknown; &#x110000;");
   // Escaped twice: markup written about, not markup.
   expect(snapshotText("&amp;lt;div&amp;gt; in a title")).toBe("<div> in a title");
+  // Escaped once: markup in a summary, text in a title.
+  expect(snapshotText("Vec&lt;T&gt; and <b>more</b>")).toBe("Vec and more");
+  expect(snapshotText("Vec&lt;T&gt; and Option&lt;Box&lt;T&gt;&gt; in Rust", 500, false)).toBe("Vec<T> and Option<Box<T>> in Rust");
+  const feed = snapshotItems("<rss><item><guid>1</guid><title>The &lt;dialog&gt; element, AT&amp;amp;T</title><description>&lt;p&gt;About &lt;b&gt;it&lt;/b&gt;&lt;/p&gt;</description></item></rss>", { name: "f", tier: "blogger", kind: "rss" }).items[0];
+  expect([feed.title, feed.summary]).toEqual(["The <dialog> element, AT&T", "About it"]);
   // A JSON source's text is text: nothing in it is a tag or an entity.
   const item = snapshotItems(JSON.stringify([{ id: "1", title: "Why a<b and c>d &amp; more", summary: "x <i>y</i>" }]), { name: "j", tier: "aggregator", kind: "json", map: { id: "id", title: "title", summary: "summary" } }).items[0];
   expect([item.title, item.summary]).toEqual(["Why a<b and c>d &amp; more", "x <i>y</i>"]);
-  return "5 texts";
+  return "8 texts";
 }
 // %%
 test_a_json_source_is_read_by_the_paths_its_map_names = {
   const hn = snapshotSources.find((s) => s.name === "hn"), hf = snapshotSources.find((s) => s.name === "hf-papers");
   const a = snapshotItems(JSON.stringify({ hits: [{ objectID: "7", title: "Show HN", url: null, points: 12, num_comments: 3, author: "pg", created_at: "2026-10-09T00:00:00Z" }, { objectID: "8" }] }), hn);
   expect(a).toEqual({ of: 2, matched: 2, items: [{ id: "7", title: "Show HN", points: 12, comments: 3, author: "pg", published: "2026-10-09T00:00:00.000Z", discussion: "https://news.ycombinator.com/item?id=7", source: "hn", tier: "aggregator" }] });
-  const b = snapshotItems(JSON.stringify([{ paper: { id: "2610.1", title: "A paper", upvotes: 5, summary: "An\nabstract" }, numComments: 0, publishedAt: "2026-10-08T00:00:00.000Z" }]), hf);
+  const b = snapshotItems(JSON.stringify([{ paper: { id: "2610.1", title: "A paper", upvotes: 5, summary: "An\nabstract" }, numComments: 0, publishedAt: "2026-10-08T00:00:00.000Z" }, { paper: { id: "2609.9", title: "An old paper", upvotes: 90, summary: "old" }, numComments: 0, publishedAt: "2026-09-23T00:00:00.000Z" }]), hf, Date.parse("2026-10-09T06:00:00Z"));
+  // The list holds weeks of papers; one published more than 3 days before the run is not kept, whatever its votes.
+  expect([b.of, b.matched]).toEqual([2, 1]);
   expect(b.items).toEqual([{ id: "2610.1", title: "A paper", url: "https://huggingface.co/papers/2610.1", points: 5, comments: 0, published: "2026-10-08T00:00:00.000Z", summary: "An abstract", source: "hf-papers", tier: "research" }]);
   // An answer that is not the list the source names gives nothing.
   expect(snapshotItems("{}", hn)).toEqual({ of: 0, matched: 0, items: [] });
@@ -583,11 +605,19 @@ test_the_panel_lists_the_days_and_the_sources_of_one = {
   expect([el.value.sources.length, heard]).toEqual([2, 1]);
   expect(el.textContent).toContain("ran 2026-10-09T06:00:10.000Z, 4 papers with a signal");
   expect(el.textContent).toContain("cut from 40");
+  // A row with an error is not said to be cut.
+  files["https://b.example/static/snapshot/2026-10-09/index.json"].sources[1].matched = 2;
   expect(el.textContent).toContain("Not written: static.put snapshot/days.json 403");
   expect([...el.querySelectorAll("a")].map((a) => a.href)).toEqual(["https://b.example/static/snapshot/2026-10-09/hn.json", "https://b.example/static/snapshot/2026-10-09/papers.json"]);
   // Run now calls the Brain and reads the days again. A reader who is not the owner has no button.
-  el.querySelector("button").click();
+  const button = el.querySelector("button");
+  button.click();
+  // Off until the run settles: a second press does nothing.
+  expect(button.disabled).toBe(true);
+  button.click();
   await new Promise((r) => setTimeout(r, 50));
+  expect(el.textContent).not.toContain("cut from 2");
+  expect(el.querySelector("button").disabled).toBe(false);
   expect([ran, heard]).toEqual([["snapshot.run"], 2]);
   expect(snapshotPanel({ base: "https://b.example/", fetch: send }).querySelector("button")).toBe(null);
   // A fetch that fails is said, not left as a blank panel.
