@@ -8,7 +8,7 @@ The module is the function plus every cell it depends on, across imports, writte
 
 Refused, naming the cell: a generator, a \`viewof\` or \`mutable\` cell, a cell that depends on a notebook builtin such as \`html\` or \`width\`, and a secret read by a computed name.
 
-\`service.deploy(reason)\` needs a Brain and a reason, which the deployer logs: with none configured it throws. \`serviceList\` shows each declared service against what the deployer runs. There is no \`service.status\`.`
+\`service.deploy(reason, was)\` needs a Brain, a reason, which the deployer logs, and the hash you saw running (\`null\` for no Worker): with none configured it throws. \`serviceList\` shows each declared service against what the deployer runs. There is no \`service.status\`.`
 // %%
 md`## Services in this notebook
 
@@ -118,7 +118,8 @@ serviceList = ({ services = [], brain = null, moduleLink = null } = {}) => {
       busy = `applying ${r.worker}…`;
       draw();
       try {
-        const out = await brain.apply(emitted.find((e) => e.meta && e.meta.worker === r.worker), { reason });
+        // r.running is what this page last read from the deployer: the view the owner pressed Apply on.
+        const out = await brain.apply(emitted.find((e) => e.meta && e.meta.worker === r.worker), { reason, was: r.running });
         results.push(...out.results);
       } catch (e) {
         results.push({ worker: r.worker, state: "refused", reason: String((e && e.message) || e) });
@@ -371,9 +372,9 @@ cloudflare = {
         return typeof fn?.fetch === "function" ? fn.fetch(req, {}, {}) : fn(req, { caller, info: {} });
       },
       emit: () => emit(service),
-      deploy: async (reason) => {
+      deploy: async (reason, was) => {
         if (!backend.deploy) throw new Error("no Brain configured: deploy() needs a deployer");
-        return backend.deploy(await emit(service), reason);
+        return backend.deploy(await emit(service), reason, was);
       }
     };
     return service;

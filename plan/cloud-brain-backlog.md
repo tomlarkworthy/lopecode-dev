@@ -644,3 +644,11 @@ The record is in `tools/cloud-brain/spec-as-built.md`, "Security review and fixe
 - **A `deploy.reason` line names the module, not the Worker.** Swap the order in `apply` if the Worker's name reads better in the logs.
 - **No test** for the owner-by-turn writer in brain-static and brain-blob.
 - **The deployer's Cloudflare token expires 2026-10-11.**
+
+## Added 2026-10-09 08:55 CEST: after `was` and the deploy lease
+
+- **Named leases as a service.** `brain-deployer` holds its own lease (`deploying/NAME`) and must not reach it through the core. A service `lease.*` over the database for other Workers is not built; `lease.take` and `lease.get` are the tab lease in `brain-inbox` and would move or be renamed.
+- **The tick's put-back does not take the deploy lease.**
+- **Imports are not in the `was` check** (Tom, 2026-10-09: "skip dependencies").
+- **The Health section is blank for about 19 s for the owner**: `healthView` waits on `assembled`, which verifies 16 services one after another. Measured once, 2026-10-09 08:30 CEST.
+- Done from the list above: `deploy.reason` still names the module; the open review findings of the security pass are closed.

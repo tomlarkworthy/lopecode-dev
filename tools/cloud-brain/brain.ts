@@ -82,6 +82,7 @@ const brief = (s: any) => ({ approval: s.approval, workers: (s.workers || []).ma
 
 const [cmd, ...all] = process.argv.slice(2);
 // --reason="…": why a change is made. The deployer logs it, and refuses an apply, a redistil --apply, a remove and a rollback without one.
+if (all.includes("--reason")) { console.error('write --reason="why", with the equals sign'); process.exit(2); }
 const reason = all.find((a) => a.startsWith("--reason="))?.slice("--reason=".length);
 const args = all.filter((a) => !a.startsWith("--reason="));
 // install-guard: the name of this command until 2026-10-07, when the deployer was called the guard.
@@ -158,10 +159,12 @@ export class Rows {
   for (const b of (await api(`/accounts/${st.account}/workers/scripts/${args[0] || scriptName()}/settings`)).bindings) console.log(" ", b.name.padEnd(16), b.type, b.service || b.class_name || "");
 } else if (cmd === "apply") {
   const force = args.includes("--force");
+  // was: what the deployer held when this command began. A Worker that moves after that is not deployed over.
+  const seen = (await deployer("getState")).workers || [];
   for (const f of args.filter((a) => !a.startsWith("--"))) {
     const e = emitted(f);
     // Source, not code: the deployer distils it. The record's parts are not sent; its hash is only compared.
-    const w: any = { module: e.source.module, source: e.source.text, files: filesOf(e.source.text), force };
+    const w: any = { module: e.source.module, source: e.source.text, files: filesOf(e.source.text), force, was: seen.find((x: any) => x.worker === e.meta.worker)?.hash ?? null };
     // The signing key is SESSION_KEY; it was COOKIE_KEY until 2026-10-07. Both names are sent with one value, and
     // the state file keeps both fields.
     const named = ["SESSION_KEY", "COOKIE_KEY"].filter((n) => e.meta.secrets.includes(n));
@@ -192,11 +195,16 @@ export class Rows {
     const out = await deployer("distil", { module: e.source.module, source: e.source.text, files, ...(e.meta.role === "deployer" || e.meta.role === "guard" ? { cell: "deployer_service" } : {}) });
     console.log(f.padEnd(14), Math.round(performance.now() - t) + " ms", out.hash ? `${out.hash.slice(0, 12)} browser ${e.hash.slice(0, 12)} ${out.hash === e.hash ? "identical" : "DIFFERS"}` : JSON.stringify(out).slice(0, 300));
   }
-} else if (cmd === "remove") console.log(JSON.stringify(await deployer("apply", { remove: args, reason })));
+} else if (cmd === "remove") {
+  const seen = (await deployer("getState")).workers || [];
+  console.log(JSON.stringify(await deployer("apply", { remove: args.map((worker) => ({ worker, was: seen.find((x: any) => x.worker === worker)?.hash ?? null })), reason })));
+}
 else if (cmd === "state") console.log(JSON.stringify(args[0] === "--full" ? await deployer("getState") : brief(await deployer("getState")), null, 1));
 else if (cmd === "confirm") console.log(JSON.stringify(await deployer("confirm", {})));
 else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
-  const action = cmd === "approval" ? "approval:" + args[0] : cmd + ":" + args.join(":");
+  // A rollback names what is running, as the page's button does.
+  const running = cmd === "rollback" ? ":" + (((await deployer("getState")).workers || []).find((x: any) => x.worker === args[0])?.hash ?? "") : "";
+  const action = cmd === "approval" ? "approval:" + args[0] : cmd + ":" + args.join(":") + running;
   const r = await fetch(G() + "/", { method: "POST", body: new URLSearchParams({ key: st.recoveryKey, action, ...(reason ? { reason } : {}) }) });
   console.log(r.status, /class="note">([^<]*)/.exec(await r.text())?.[1]);
 } else if (cmd === "session") {

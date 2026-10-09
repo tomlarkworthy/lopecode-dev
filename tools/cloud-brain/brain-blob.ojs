@@ -33,7 +33,7 @@ Who may read or change a blob is decided from its tags, by the rules of \`brain-
 
 | tag | set by | meaning |
 |---|---|---|
-| \`by:<did>\` | this Worker, from the caller | an uploader. Their bytes count against their limit. The owner's uploads, and a recipe's, carry the owner's; a token's carry \`by:token:<name>\`. The first one in the list set the type. |
+| \`by:<did>\` | this Worker, from the caller | an uploader. Their bytes count against their limit. The owner's uploads, and a recipe's, carry the owner's; a token's carry \`by:token:<name>\`, and the owner's by a turn, a portal or a PDS call \`by:owner:turn\` (\`portal\`, \`jwt\`), which does not set a type that is served as a page. The first one in the list set the type. |
 | \`worker:<name>\` | this Worker, when a Worker uploaded | a member's Worker calls as its author, so its blob carries both. |
 | \`public\` | whoever may change the blob | anyone reads it. |
 | \`members\` | whoever may change the blob | any current member reads it. |

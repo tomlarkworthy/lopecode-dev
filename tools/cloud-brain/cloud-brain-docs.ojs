@@ -29,7 +29,7 @@ A member is a DID that the owner added. Any other signed-in account has no right
 |---|---|
 | Ask the Brain a question. | Send a message on a channel from a linked address. The turn runs with the member's permissions, not the owner's. |
 | Keep files and blobs. | \`static.*\` and \`blob.*\`, under the member's own tags. The default limit is 20 MB. |
-| Deploy a service. | \`member.deploy { module, source }\`. The Worker has its author's permissions. No approval. The default limit is 3 Workers. |
+| Deploy a service. | \`member.deploy { module, source, reason, was }\`: why, and the hash you saw running (\`null\` for none). The Worker has its author's permissions. No approval. The default limit is 3 Workers. |
 | Use another member's service. | **Open** in ${mod("brain-shell")}. The module runs in a sandboxed frame and calls its Worker as the viewer. |
 
 Not verified: no member other than the owner has signed in to a deployed Brain. Each member path was run with minted sessions and under \`simulate\` (2026-10-07).`

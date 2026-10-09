@@ -426,8 +426,9 @@ brain = session.owner
       },
       // A deploy is not finished when the deployer says deployed: the page then loads the module back from the Worker,
       // runs its tests and tells the core, which marks the version verified or has the deployer put the old one back.
-      apply: async (emitted, { force = false, reason } = {}) => {
-        const out = await client.procedure("infra.apply", { workers: [{ ...asSource(emitted), force }], reason });
+      // was: the hash the caller saw running, null for no Worker. The deployer refuses when it is no longer that.
+      apply: async (emitted, { force = false, reason, was } = {}) => {
+        const out = await client.procedure("infra.apply", { workers: [{ ...asSource(emitted), force, was }], reason });
         // The deployer's answer is what was deployed. A hash other than this page's is said, not hidden.
         for (const r of out.results) if (r.hash && r.hash !== emitted.hash) r.note = `the deployer distilled ${r.hash.slice(0, 12)}; this page made ${emitted.hash.slice(0, 12)}`;
         for (const r of out.results) if (r.state === "deployed" || r.state === "probation") r.verdict = await verifyService(r.worker, { expect: r.hash }).catch((e) => ({ state: "not verified", reason: String((e && e.message) || e) }));
@@ -595,7 +596,7 @@ platformWiring = {
     rowsDelete: async (key) => (await client.procedure("rows.delete", { worker: "tab", key })).deleted,
     rowsList: async (prefix = "") => (await client.query("rows.list", { worker: "tab", prefix })).rows,
     xrpc: (kind, nsid, data) => (kind === "query" ? client.query(nsid, data) : client.procedure(nsid, data)),
-    deploy: (emitted, reason) => brain.apply(emitted, { reason })
+    deploy: (emitted, reason, was) => brain.apply(emitted, { reason, was })
   });
   return "platform cells use " + brainOrigin;
 }
@@ -864,7 +865,7 @@ assistantTools = {
           brain: brainOrigin,
           approvalNeeded: state.approval,
           deployerClock: state.tick ? { secondsAgo: Math.round((Date.now() - state.tick.at) / 1000), error: state.tick.error || null } : "never ran",
-          workers: rows.map((r) => ({ worker: r.worker, state: r.state, note: r.note || null, running: r.running ? String(r.running).slice(0, 12) : null, notebook: r.hash ? String(r.hash).slice(0, 12) : null })),
+          workers: rows.map((r) => ({ worker: r.worker, state: r.state, note: r.note || null, running: r.running || null, notebook: r.hash ? String(r.hash).slice(0, 12) : null })),
           probation: Object.fromEntries(Object.entries(state.kernel || {}).map(([k, v]) => [k, { state: v.state, reason: v.reason || null, secondsLeft: v.deadline ? Math.max(0, Math.round((v.deadline - Date.now()) / 1000)) : null }])),
           heldForApproval: (state.pending || []).map((p) => ({ worker: p.worker, hash: String(p.hash).slice(0, 12) })),
           secretsNotSet: [...new Set(rows.flatMap((r) => r.secrets || []))].filter((n) => !/^(BRAIN_|CF_|COOKIE_KEY$|SESSION_KEY$|RECOVERY_KEY$)/.test(n) && !set.has(n)),
@@ -890,13 +891,13 @@ assistantTools = {
     }),
     defineTool({
       id: "brain_apply",
-      description: "Ask the deployer to deploy one declared service as it is in this notebook now. worker is its Worker name from brain_services, e.g. brain-x-echo. reason says why it is changed, in 3 to 300 characters; the deployer logs it and refuses a deploy without one. Returns deployed, probation, waiting (the owner must approve on the deployer page), refused or put-back with the reason.",
-      parameters: { type: "object", properties: { worker: { type: "string" }, reason: { type: "string" } }, required: ["worker", "reason"] },
-      execute: async ({ worker, reason }) => {
+      description: "Ask the deployer to deploy one declared service as it is in this notebook now. worker is its Worker name from brain_services, e.g. brain-x-echo. reason says why it is changed, in 3 to 300 characters; the deployer logs it and refuses a deploy without one. was is the hash brain_services gave as running for this worker when you read it, or an empty string when it gave none; the deployer refuses when the Worker has changed since, and you then read brain_services again. Returns deployed, probation, waiting (the owner must approve on the deployer page), refused or put-back with the reason.",
+      parameters: { type: "object", properties: { worker: { type: "string" }, reason: { type: "string" }, was: { type: "string" } }, required: ["worker", "reason", "was"] },
+      execute: async ({ worker, reason, was }) => {
         need();
         const emitted = (await Promise.all(declaredWorkers.map((s) => s.emit().catch((e) => ({ error: String(e.message || e), name: s.name }))))).find((e) => e.meta && e.meta.worker === worker);
         if (!emitted) throw new Error(`No declared service deploys as ${worker}. brain_services lists them.`);
-        const out = await brain.apply(emitted, { reason });
+        const out = await brain.apply(emitted, { reason, was: was || null });
         viewof services.refresh();
         return { title: "apply " + worker, output: JSON.stringify(out.results, null, 1) };
       }
@@ -1071,7 +1072,7 @@ installBrain = async ({ seed, token, handle, base = "brain", html = null, log = 
   form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
   for (const p of deployerEmit.parts) form.append(p.path, p.base64 != null ? new File([Uint8Array.from(atob(p.base64), (ch) => ch.charCodeAt(0))], p.path, { type: "application/wasm" }) : new File([p.text], p.path, { type: "application/javascript+module" }));
   await api(S, { method: "PUT", body: form });
-  await api(S + "/subdomain", { method: "POST", headers: json, body: JSON.stringify({ enabled: true }) });
+  await api(S + "/subdomain", { method: "POST", headers: json, body: JSON.stringify({ enabled: true, previews_enabled: false }) });
   await api(S + "/schedules", { method: "PUT", headers: json, body: JSON.stringify(deployerEmit.meta.crons.map((cron) => ({ cron }))) });
 
   // A new workers.dev name takes some seconds to answer. Measured 2026-10-05: 15 to 20 s.
@@ -1089,10 +1090,12 @@ installBrain = async ({ seed, token, handle, base = "brain", html = null, log = 
     await wait(2000);
   }
 
+  // What the deployer held when it first answered: nothing, on a new Brain.
+  const seen = ((await deployer("getState")).workers || []).filter((w) => w.worker);
   const apply = async (service, extra = {}) => {
     const e = await service.emit();
     log(`deploying ${e.meta.worker}…`);
-    const out = (await deployer("apply", { workers: [{ ...asSource(e), ...extra }], reason: "install" })).results[0];
+    const out = (await deployer("apply", { workers: [{ ...asSource(e), ...extra, was: (seen.find((w) => w.worker === e.meta.worker) || {}).hash || null }], reason: "install" })).results[0];
     if (!["deployed", "probation", "unchanged"].includes(out.state)) throw new Error(`${e.meta.worker}: ${out.state} ${out.reason || ""}`);
   };
   await apply(core_service);

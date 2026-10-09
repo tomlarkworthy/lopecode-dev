@@ -2729,6 +2729,70 @@ Not done:
 
 Deployed `brain-x-knowledge` alone (`e4f0a55ce154`). `redistil`: 17 `same`; lease held. Tests 6 of 6, forced in a local tab. `note:first` deleted: 67 entries (28 findings, 21 papers, 10 articles, 8 posts; 54 by `owner`, 13 by `worker:brain-x-snapshot`). `keep.ts 2026-10-09` run once more: 26 of 28 kept; one Reddit thread 429 again, openai.com 403. Its 56 puts were all changes, so those entries now carry `changed`.
 
+## A change names the hash it saw, and one change to a Worker runs at a time (2026-10-09, to 08:55 CEST)
+
+Tom: "I am worried that a stale view of the cluster might deploy something without knowing the world had moved from concurrent actions." Before this, `infra.apply` compared only the new hash with the running one and deployed over anything else. The lock directory `.emitted/cb4.lock` is an agreement between agents in one checkout and does nothing for a tab or for `brain_apply`.
+
+Decided by Tom: `was` is mandatory with no value that skips it; imports are not part of the check; races are closed with a lease taken before the deploy and released when it ends.
+
+- **`was`.** Each Worker in `infra.apply`, each `{ worker, was }` in `remove`, `member.deploy`, `member.remove` and a roll back button carry the hash the caller saw running, `null` for no Worker. A mismatch answers `refused`, `NAME is A, you saw B`, with `running`.
+- **Lease.** The deployer makes the row `deploying/NAME` with `putIfAbsent` before it reads what is running, and deletes it when the change ends. A change that died holds it 5 minutes; one caller then takes it over by making `deploying-over/NAME/ID`, which is kept.
+- **Approval.** The pending and approved rows keep `was`. An approval of a hash over a Worker that has since moved does not stand.
+- **Callers.** The page's Apply sends the hash its row was drawn from. `brain.ts apply`, `remove` and `rollback` read `infra.getState` when the command begins. `brain_apply` requires `was` from the model's last `brain_services`. The installer reads the state once. The member's Deploy button sends the hash `portal.modules` gave.
+
+**Rejected for now: a lease service.** Tom asked whether named leases should be a service of their own over the database. The deployer deploys the core, the database Worker and every service, with the recovery key when the core is broken. A lease it reached through the core would be needed to deploy the thing that serves it. The lease here is one `putIfAbsent` on the deployer's own rows, 20 lines in `brain-deployer`. `lease.take` and `lease.get` are already the names of the tab lease in `brain-inbox`. A service that offers named leases to other Workers is in the backlog.
+
+### Second review of the security pass
+
+One fresh reviewer, verdict FIX, 7 findings, all confirmed against the source and fixed in this change: sign-in starts for the handle of the owner or a member are counted apart (600 in 10 minutes) and no other handle is exempt; the in-page installer sends `previews_enabled: false` for the deployer's script; `library.put` is `fixed: true` and its test asserts the rule; static and blob prose say what the owner by a turn is; the kernel's and the docs' `member.deploy` rows name `reason` and `was`; `mdeploys/` and `logins/` rows of earlier hours are deleted; `brain.ts` exits on `--reason` with no equals sign.
+
+### Measured on cb4, 06:53 to 06:55 UTC
+
+```
+tests, local tab              255 of 256 in 21 modules; deployer 39 of 39
+                              the 1: test_bluesky_reads_its_secrets_once_in_the_window, in a seed another
+                              session was editing; brain-x-bluesky was not deployed here
+apply library, no was         refused  was: the hash you saw running, or null for no Worker
+apply library, was 000…       refused  brain-x-library is 1753e38fa319, you saw 000000000000
+remove library, was 000…      refused  brain-x-library is 1753e38fa319, you saw 000000000000
+two applies at once, force    deployed | refused  another change to brain-x-library is running
+redistil                      every line same
+lease.get                     {"held":true}
+```
+
+Deployed: `brain-deployer` `6127221464bd`, `brain` `f6b1825b9441`, `brain-x-page` `1613dd6d787c`, `brain-x-static` `20131bb04457`, `brain-x-blob` `d7e4de1456c2`, `brain-x-library` `1753e38fa319`, and the shell. `brain-x-inbox` differed from what runs (`0142bcd0c654` against `e9b4256c4c30`) by another session's edit and was left.
+
+### Not verified
+
+- A take-over of a lease after 5 minutes on cb4 (tested in the rig only).
+- The page's Apply, the member's Deploy button, a roll back button and `brain_apply` with `was`: no one pressed them on cb4.
+- Two callers reading an expired lease in the same instant: one wins the `deploying-over` row. A third caller arriving after the winner released, still holding the old read, cannot win it again, since the row is kept.
+- The tick's put-back does not take the lease. A put-back and an apply to one Worker in the same seconds are not ordered.
+
+### Review of `was` and the lease (2026-10-09, to 09:05 CEST)
+
+One fresh reviewer read the diff after the first deploy: verdict BLOCK, 6 findings and 4 minor, each checked against the source.
+
+| Finding | Done |
+|---|---|
+| A member's second Deploy from one portal page was always refused: `was` came from `portal.modules`, read once | the button keeps what it last saw, from each answer of the deployer |
+| `brain_status` gave 12 characters of the hash; as `was` it was refused with `X is abc, you saw abc` | `brain_status` gives the whole hash, and `was` must be 64 hex characters or `null` |
+| The tick's put-back and a verdict did not take the lease, and the tick wrote `fails` over a row read before its health check | both run under the row, on the Worker's row read again; a Worker whose row is held is left for the next tick |
+| A take-over could write over a third caller's new lease | the take-over deletes only the row that expired and then makes its own with `putIfAbsent`. One case is open and is in the prose: the old holder ends within one row read of the take-over |
+| "approved, press Apply" was shown for an approval that no longer stands | `infra.getState` lists only approvals of a hash over what is running |
+| No test for the member's sign-in count, the owner by a turn in brain-static, the `mdeploys/` clean-up | one test or assertion each. brain-blob's `by:owner:turn` stamp still has none |
+| Minor: the kernel's prose, the log line `deploy.lease-taken-over`, the test's count | corrected |
+| Minor: a removal with no `was` is refused before the reserved-name check, after its reason is logged | left |
+
+```
+tests, local tab        256 of 257 in 21 modules; deployer 39, kernel 26, static 12
+                        the 1 is the bluesky test of another session's edit. test_the_panel_lists_the_days_and_the_sources_of_one
+                        failed once in the full run and passed 3 of 3 alone
+live, 07:03 to 07:05 UTC   the five checks above again, same answers; redistil 17 same; a tick ran with no error; no Worker has fails
+```
+
+Deployed: `brain-deployer` `3085c7f4a0ca`, `brain` `227e2bf195e7`, `brain-x-page` `617622d1ce0a`, `brain-x-static` `6131352eb6ca`, the shell.
+
 ## Fewer calls from an open tab: Bluesky credentials kept 5 minutes, and a 30 s poll (2026-10-09, to 09:17 CEST)
 
 Tom, 2026-10-09: "ok lets reduce polling to 30 seconds then for now". Counts are from `logs.query` on cb4, 10 minutes each, one open tab.

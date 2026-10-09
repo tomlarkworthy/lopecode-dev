@@ -16,11 +16,15 @@ brainBoot = {
   if (brainPortal) {
     const note = htl.html`<span style="color:var(--theme-foreground-muted)"></span>`;
     const why = htl.html`<input placeholder="Reason for the change" maxlength="300" style="font:inherit;min-width:16em">`;
+    // What this page last knew to be running: from portal.modules, then from each answer of the deployer.
+    let seen = (brainModules.modules.find((m) => m.module === brainPortal.module) || {}).hash || null;
     const deploy = Inputs.button("Deploy", {
       reduce: async () => {
         note.textContent = " deploying…";
         try {
-          const made = await brainClient.procedure("member.deploy", { module: brainPortal.module, source: (await exportModuleJS(brainPortal.module)).source, reason: why.value });
+          const made = await brainClient.procedure("member.deploy", { module: brainPortal.module, source: (await exportModuleJS(brainPortal.module)).source, reason: why.value, was: seen });
+          if (made.state === "deployed" || made.state === "unchanged") seen = made.hash;
+          else if ("running" in made) seen = made.running;
           note.textContent = made.state === "refused" ? " refused: " + made.reason : ` ${made.worker || brainPortal.module} is ${String(made.hash || "").slice(0, 12)}`;
         } catch (e) {
           note.textContent = " refused: " + ((e && e.message) || e);

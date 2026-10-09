@@ -67,6 +67,10 @@ A service that declares \`cloudflare: ["GROUP"]\` gets a Cloudflare API token (\
 
 The deployer's own token needs the permission \`Account API Tokens Write\` to mint, and each group it hands out.
 
+Every change names what it saw. Each Worker in \`infra.apply\` carries \`was\`: the hash the caller saw running, or \`null\` for no Worker. \`remove\` is \`[{ worker, was }]\`; \`member.deploy\` and \`member.remove\` take \`was\`; a roll back button carries it. When the Worker is no longer that, the answer is \`refused\` with \`NAME is A, you saw B\` and \`running\`, and nothing is deployed. There is no value that skips the check. A \`dry\` apply is not checked. An import of another module is not part of the check: a Worker is distilled against the kept source of its imports as they are at the deploy.
+
+One change to a Worker runs at a time, the tick's health check and a verdict's put-back among them: each takes the same row and leaves a Worker whose row is held. The deployer makes the row \`deploying/NAME\` (\`putIfAbsent\`) before it reads what is running, and deletes it when the change ends, deployed or not. A second caller in that time is refused with \`another change to NAME is running\`. A change that died leaves the row; after 5 minutes one caller takes it over, the one that makes \`deploying-over/NAME/ID\`. That row is kept, one for each change that died, and the take-over is logged as \`deploy.lease-taken-over\`. The rows have no compare-and-swap, so one case is open: a change over 5 minutes old that ends within one row read of the take-over. An approval is of one hash over one hash: the pending row keeps \`was\`, and an approval does not stand once the Worker has moved. Added 2026-10-09.
+
 Every change says why. \`infra.apply\` (unless \`dry\`), \`infra.redistil\` with \`apply\`, a roll back on the page, \`member.deploy\` and \`member.remove\` take \`reason\`, 3 to 300 characters, and are refused without one (400 \`InvalidRequest\`, or \`refused\` for a member). The reason is logged before anything is done, as \`deploy.reason\` with \`reason\`, \`by\` (\`owner\`, \`recovery key\` or the member's DID) and \`targets\`. Added 2026-10-09.
 
 The deployer writes a line for each step of a deploy with the \`log\` cell: \`deploy.uploaded\`, \`deploy.deployed\`, \`deploy.probation\`, \`deploy.confirmed\`, \`deploy.unhealthy\` with what the last health check answered, \`deploy.put-back\` with the reason, \`deploy.refused\`, \`deploy.waiting\`, \`deploy.removed\`, \`deploy.failing\`, \`deploy.logs-on\`, \`token.mint\`, \`token.roll\`, \`token.delete\`, \`token.mint-failed\`. A member's deploy writes \`deploy.deployed\` and \`deploy.put-back\`. The \`reason\` of a put-back can be Cloudflare's own text about the code that was sent; it is not text a caller of a method sent.`
@@ -474,9 +478,58 @@ deployerOps = {
   const WHY = "reason: say why this is changed, in 3 to 300 characters";
   const reasonOf = (r) => (typeof r === "string" && r.trim().length >= 3 && r.trim().length <= 300 ? r.trim() : null);
   const because = (reason, by, targets) => log({ at: "deploy.reason", reason, by, targets: targets.map((t) => String(t).slice(0, 80)).slice(0, 40) });
+  // A change to a Worker names the hash the caller saw running: `was`, or null for no Worker. One change to a Worker
+  // runs at a time, under the row deploying/NAME, which is deleted when the change ends. A change that died holds the
+  // row until `until`; then one caller takes it over, the one that makes deploying-over/NAME/ID. That row is kept.
+  const SAW = "was: the hash you saw running, all 64 characters, or null for no Worker";
+  const LEASE = 5 * 60 * 1000;
+  const h12 = (h) => (h ? String(h).slice(0, 12) : "no Worker");
+  const take = async (logical) => {
+    const key = "deploying/" + logical, mine = { id: crypto.randomUUID(), until: Date.now() + LEASE };
+    if (await rows.putIfAbsent(key, mine)) return mine;
+    const held = await rows.get(key);
+    if (!held) return (await rows.putIfAbsent(key, mine)) ? mine : null;
+    if (held.until > Date.now() || !(await rows.putIfAbsent(`deploying-over/${logical}/${held.id}`, { at: Date.now() }))) return null;
+    // Known limit, with no compare-and-swap on a row: the holder ends and another caller takes the row between
+    // the next two lines. That needs a change over 5 minutes old to end within one row read of this one.
+    if (((await rows.get(key)) || {}).id === held.id) await rows.delete(key);
+    if (!(await rows.putIfAbsent(key, mine))) return null;
+    log({ at: "deploy.lease-taken-over", target: logical });
+    return mine;
+  };
+  const release = async (logical, mine) => {
+    const held = await rows.get("deploying/" + logical);
+    if (held && held.id === mine.id) await rows.delete("deploying/" + logical);
+  };
+  // The tick and a verdict change a Worker too. They take the same row, and leave a Worker that is being changed.
+  const alone = async (logical, change) => {
+    const mine = await take(logical);
+    if (!mine) return null;
+    try {
+      return await change(await rows.get("worker/" + logical));
+    } finally {
+      await release(logical, mine);
+    }
+  };
+  const guard = async (logical, was, change) => {
+    // The whole hash: 12 characters of it are what a table shows, and are not a hash.
+    if (was !== null && !/^[0-9a-f]{64}$/.test(String(was))) return { worker: logical, state: "refused", reason: SAW };
+    const mine = await take(logical);
+    if (!mine) return { worker: logical, state: "refused", reason: `another change to ${logical} is running` };
+    try {
+      const rec = await rows.get("worker/" + logical);
+      const now = (rec && rec.hash) || null;
+      if (now !== was) return { worker: logical, state: "refused", reason: `${logical} is ${h12(now)}, you saw ${h12(was)}`, running: now };
+      return await change(rec);
+    } finally {
+      await release(logical, mine);
+    }
+  };
+  // An approval is of one hash over one hash: it does not stand once the Worker has moved.
+  const approvedOver = async (key, rec) => ((a) => !!a && (a.was ?? null) === ((rec && rec.hash) || null))(await rows.get("approved/" + key));
   const apply = async ({ workers = [], remove = [], dry = false, reason } = {}, { recovery = false } = {}) => {
     if (!dry && !reasonOf(reason)) return { error: "InvalidRequest", message: WHY };
-    if (!dry) because(reasonOf(reason), recovery ? "recovery key" : "owner", [...workers.map((w) => (w && (w.module || (w.meta && w.meta.worker))) || "?"), ...remove.map((n) => "remove " + n)]);
+    if (!dry) because(reasonOf(reason), recovery ? "recovery key" : "owner", [...workers.map((w) => (w && (w.module || (w.meta && w.meta.worker))) || "?"), ...remove.map((n) => "remove " + ((n && n.worker) || n))]);
     const approval = (await settings()).approval;
     const results = [];
     // A Worker given as source is distilled here, and what is deployed is what that gives. An import of another
@@ -503,16 +556,21 @@ deployerOps = {
       const rec = typeof logical === "string" ? await rows.get("worker/" + logical) : null;
       const base = { worker: logical, hash: w && w.hash };
       const reason = await refusal(w || {}, rec);
-      if (reason) results.push({ ...base, state: "refused", reason });
-      else if (rec && rec.hash === w.hash && rec.state === "deployed" && !w.force && !(typeof w.asset === "string" && (await sha256(w.asset)).slice(0, 32) !== rec.assetHash)) {
+      if (reason) {
+        results.push({ ...base, state: "refused", reason });
+        continue;
+      }
+      const change = async (rec) => {
+      const results = [];
+      if (rec && rec.hash === w.hash && rec.state === "deployed" && !w.force && !(typeof w.asset === "string" && (await sha256(w.asset)).slice(0, 32) !== rec.assetHash)) {
         // Deployed before the deployer kept source: keep it now, since it is the source of what is running.
         if (typeof w.source === "string" && !(await rows.get("source/" + w.module))) await rows.put("source/" + w.module, { text: w.source, files: w.files || {}, cell: w.cell || null, worker: logical, hash: w.hash, at: Date.now(), prev: null });
         results.push({ ...base, state: "unchanged" });
       }
       // A service that declares Cloudflare permissions is held for the owner also when deploys need no approval.
-      else if ((approval || (w.meta.cloudflare || []).length) && !recovery && !(await rows.get("approved/" + w.hash))) {
+      else if ((approval || (w.meta.cloudflare || []).length) && !recovery && !(await approvedOver(w.hash, rec))) {
         const m = w.meta;
-        await rows.put("pending/" + w.hash, { worker: logical, hash: w.hash, methods: m.methods, paths: m.paths, secrets: m.secrets, resources: m.resources, cloudflare: m.cloudflare || [], calls: m.calls || [], access: m.access || {}, at: Date.now() });
+        await rows.put("pending/" + w.hash, { worker: logical, hash: w.hash, was: (rec && rec.hash) || null, methods: m.methods, paths: m.paths, secrets: m.secrets, resources: m.resources, cloudflare: m.cloudflare || [], calls: m.calls || [], access: m.access || {}, at: Date.now() });
         results.push({ ...base, state: "waiting" });
       } else if (dry || !w.parts) results.push({ ...base, state: "ready" });
       else {
@@ -533,13 +591,19 @@ deployerOps = {
           results.push({ ...base, state: "put-back", previous: kept.hash, reason });
         }
       }
+      return { ...base, ...results[0] };
+      };
+      results.push(dry ? await change(rec) : await guard(logical, w.was, change));
     }
-    for (const logical of remove) {
-      const rec = await rows.get("worker/" + logical);
+    // remove is [{ worker, was }].
+    for (const item of remove) {
+      const logical = String((item && item.worker) || item);
+      const change = async (rec) => {
+      const results = [];
       const reason = deployerAllows({ key: "worker/" + logical, op: "delete" });
       if (reason) results.push({ worker: logical, state: "refused", reason });
-      else if (approval && !recovery && !(await rows.get("approved/remove:" + logical))) {
-        await rows.put("pending/remove:" + logical, { worker: logical, hash: "remove:" + logical, remove: true, at: Date.now() });
+      else if (approval && !recovery && !(await approvedOver("remove:" + logical, rec))) {
+        await rows.put("pending/remove:" + logical, { worker: logical, hash: "remove:" + logical, was: (rec && rec.hash) || null, remove: true, at: Date.now() });
         results.push({ worker: logical, state: "waiting" });
       } else if (!dry) {
         await toCore("service.unregister", { worker: logical });
@@ -561,6 +625,9 @@ deployerOps = {
         await rows.delete("approved/remove:" + logical);
         results.push({ worker: logical, state: "removed" });
       } else results.push({ worker: logical, state: "ready" });
+      return results[0];
+      };
+      results.push(dry ? await change(await rows.get("worker/" + logical)) : await guard(logical, item && item.was, change));
     }
     for (const r of results) if (r.state === "refused" || r.state === "waiting") log({ at: "deploy." + r.state, target: r.worker, hash: r.hash, reason: r.reason });
     return { results };
@@ -637,15 +704,18 @@ deployerOps = {
       if (s.state !== "probation") continue;
       const logical = key.slice("kernelstate/".length);
       onProbation.add(logical);
-      const rec = await rows.get("worker/" + logical);
-      const next = nextKernelState(s, { type: "tick", now: Date.now(), healthy: await healthy(logical, rec.key), probationMs: config.probationMs });
-      if (next.state === "rolled-back") await putBack(logical, rec, { version: s.lastGood, hash: s.lastGoodHash }, next.reason);
-      await rows.put(key, next.state === "rolled-back" ? { ...next, hash: s.lastGoodHash, failedHash: s.hash, at: Date.now() } : next);
+      await alone(logical, async (rec) => {
+        const s = await rows.get(key);
+        if (!rec || !s || s.state !== "probation") return;
+        const next = nextKernelState(s, { type: "tick", now: Date.now(), healthy: await healthy(logical, rec.key), probationMs: config.probationMs });
+        if (next.state === "rolled-back") await putBack(logical, rec, { version: s.lastGood, hash: s.lastGoodHash }, next.reason);
+        await rows.put(key, next.state === "rolled-back" ? { ...next, hash: s.lastGoodHash, failedHash: s.hash, at: Date.now() } : next);
+      });
     }
     // Every other Worker: two failed checks in a row puts it back to the version before, when there is one.
-    for (const row of await rows.list("worker/")) {
-      let rec = row.value;
-      if (rec.state !== "deployed" || !rec.hash || onProbation.has(rec.worker)) continue;
+    for (const row of await rows.list("worker/")) await alone(row.value.worker, async (rec) => {
+      // Read again under the row: a deploy may have ended since the list was read.
+      if (!rec || rec.state !== "deployed" || !rec.hash || onProbation.has(rec.worker) || ((await rows.get("kernelstate/" + rec.worker)) || {}).state === "probation") return;
       // A Worker put back whose token could not be minted then. Its health is checked all the same.
       if ((rec.cloudflare || []).length && !rec.token) rec = await remint(rec.worker, rec);
       const fails = (await healthy(rec.worker, rec.key)) ? 0 : (rec.fails || 0) + 1;
@@ -654,7 +724,7 @@ deployerOps = {
         await rows.put("worker/" + rec.worker, { ...rec, fails });
         if (fails === 2) (log({ at: "deploy.failing", target: rec.worker, hash: rec.hash, reason: "health check failed twice and there is no version before" }), await note(`failing/${rec.worker}/${rec.hash}`, { event: "failing", worker: rec.worker, hash: rec.hash }));
       }
-    }
+    });
   };
 
   const confirm = async (only = null) => {
@@ -672,17 +742,19 @@ deployerOps = {
     return { confirmed };
   };
 
-  const rollback = async (logical, version) => {
+  const rollback = async (logical, version, was) => {
     const to = ((await rows.get("confirmed/" + logical)) || []).find((c) => c.version === version);
     if (!to) throw new Error(`${version} is not a confirmed version of ${logical}`);
-    const rec = await rows.get("worker/" + logical);
-    await putBack(logical, rec, to, "rolled back from the deployer page");
-    await rows.put("kernelstate/" + logical, { state: "rolled-back", version, lastGood: version, hash: to.hash, reason: "rolled back from the deployer page", at: Date.now() });
+    return guard(logical, was || null, async (rec) => {
+      await putBack(logical, rec, to, "rolled back from the deployer page");
+      await rows.put("kernelstate/" + logical, { state: "rolled-back", version, lastGood: version, hash: to.hash, reason: "rolled back from the deployer page", at: Date.now() });
+      return { worker: logical, state: "rolled-back" };
+    });
   };
 
   // The core passes on what the page found when it ran a deployed module's tests.
-  const verdict = async ({ worker: logical, hash, ok, reason = "" }) => {
-    const rec = await rows.get("worker/" + logical);
+  const verdict = async (v) => (await alone(v.worker, (rec) => verdictOf(v, rec))) || { state: "stale" };
+  const verdictOf = async ({ worker: logical, hash, ok, reason = "" }, rec) => {
     if (!rec || rec.hash !== hash) return { state: "stale" };
     const ks = await rows.get("kernelstate/" + logical);
     const probation = ks && ks.state === "probation";
@@ -705,7 +777,7 @@ deployerOps = {
   const approve = async (hash) => {
     const pending = await rows.get("pending/" + hash);
     if (!pending) return false;
-    await rows.put("approved/" + hash, { at: Date.now(), worker: pending.worker });
+    await rows.put("approved/" + hash, { at: Date.now(), worker: pending.worker, was: pending.was ?? null });
     await rows.delete("pending/" + hash);
     return true;
   };
@@ -726,7 +798,8 @@ deployerOps = {
     pending: (await rows.list("pending/")).map((r) => r.value),
     // The deployer answering, and the deployer that last distilled everything. Different: redistil has not run since an update.
     distiller: { now: self.hash, last: await rows.get("distiller") },
-    approved: (await rows.list("approved/")).map((r) => r.key.slice("approved/".length))
+    // Only an approval that still stands: of that hash over what is running now.
+    approved: (await Promise.all((await rows.list("approved/")).map(async (r) => ((await approvedOver(r.key.slice("approved/".length), r.value.worker ? await rows.get("worker/" + r.value.worker) : null)) ? r.key.slice("approved/".length) : null)))).filter(Boolean)
   });
 
   const setApproval = async (on) => rows.put("settings", { ...(await settings()), approval: !!on });
@@ -753,7 +826,7 @@ deployerOps = {
           if (rec.distiller !== self.hash) await rows.put("worker/" + s.worker, { ...rec, distiller: self.hash });
         } else {
           results.push({ ...base, state: "changes", from: rec.hash, hash: d.hash });
-          changed.push({ module: s.module, source: s.text, cell: s.cell || undefined, files: s.files });
+          changed.push({ module: s.module, source: s.text, cell: s.cell || undefined, files: s.files, was: rec.hash });
         }
       } catch (e) {
         results.push({ ...base, state: "cannot distil", reason: String((e && e.message) || e) });
@@ -804,7 +877,7 @@ deployerOps = {
     // Counted before the distil, which is the work: every call counts, one that is refused or unchanged too.
     const hourly = Number.isFinite(quota.deploys) ? quota.deploys : MEMBER.deploysAnHour;
     const asked = await rows.increment(`mdeploys/${author}/${new Date().toISOString().slice(0, 13)}`);
-    if (asked === 1) await rows.delete(`mdeploys/${author}/${new Date(Date.now() - 3600000).toISOString().slice(0, 13)}`);
+    if (asked === 1) for (const r of await rows.list(`mdeploys/${author}/`)) if (r.key !== `mdeploys/${author}/${new Date().toISOString().slice(0, 13)}`) await rows.delete(r.key);
     if (asked > hourly) return refuse(`${asked} deploys asked this hour, at most ${hourly}`);
     if (!reasonOf(request.reason)) return refuse(WHY);
     because(reasonOf(request.reason), author, [String(request.module || request.name || "?")]);
@@ -839,7 +912,7 @@ deployerOps = {
     if (!parts.length || parts.some((p) => typeof p.text !== "string" || !/^(worker\.js|source\.js|lib\/[A-Za-z0-9_-]+\.js)$/.test(p.path))) return refuse("the parts are worker.js, source.js and lib/NAME.js", logical);
     const size = parts.reduce((n, p) => n + p.text.length, 0);
     if (size > MEMBER.partBytes) return refuse(`${size} characters of code, at most ${MEMBER.partBytes}`, logical);
-    const rec = await rows.get("worker/" + logical);
+    return guard(logical, request.was, async (rec) => {
     // ID is 10 hex digits of a hash: two DIDs can share one. The name then belongs to whoever deployed it first.
     if (rec && rec.author !== author) return refuse("the name is held by a service of another member", logical);
     const mine = (await rows.list(`worker/brain-m-${id}-`)).filter((r) => r.value.author === author && r.value.hash).length;
@@ -894,6 +967,7 @@ deployerOps = {
       log({ at: "deploy.put-back", target: logical, hash, previous: (rec && rec.hash) || null, reason });
       return { worker: logical, hash, state: "put-back", previous: (rec && rec.hash) || null, reason };
     }
+    });
   };
   const memberRemove = async ({ author, request = {} } = {}) => {
     const logical = `brain-m-${await memberId(String(author))}-${String(request.name || "")}`;
@@ -901,8 +975,7 @@ deployerOps = {
     if (!rec || rec.author !== author) return { worker: logical, state: "refused", reason: "not a service of this member" };
     if (!reasonOf(request.reason)) return { worker: logical, state: "refused", reason: WHY };
     because(reasonOf(request.reason), author, ["remove " + logical]);
-    await memberRemoveOne(logical);
-    return { worker: logical, state: "removed" };
+    return guard(logical, request.was, async () => (await memberRemoveOne(logical), { worker: logical, state: "removed" }));
   };
   // Every Worker of one member, when the owner removes them.
   const memberPurge = async ({ author } = {}) => {
@@ -912,6 +985,7 @@ deployerOps = {
       await memberRemoveOne(rec.worker);
       removed.push(rec.worker);
     }
+    await rows.deletePrefix(`mdeploys/${author}/`);
     return { removed };
   };
 
@@ -982,7 +1056,7 @@ deployerPage = (s, message = "") => {
     }</li>`;
   });
   const rollbacks = Object.entries(s.confirmed).flatMap(([name, list]) =>
-    list.map((c) => `<button name="action" value="rollback:${esc(name)}:${esc(c.version)}">Roll back ${esc(name)} to ${short(c.hash)} (${when(c.at)})</button>`)
+    list.map((c) => `<button name="action" value="rollback:${esc(name)}:${esc(c.version)}:${esc((s.workers.find((w) => w.worker === name) || {}).hash || "")}">Roll back ${esc(name)} to ${short(c.hash)} (${when(c.at)})</button>`)
   );
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cloud Brain deployer</title><style>
 body{font:15px/1.5 system-ui,sans-serif;max-width:720px;margin:2rem auto;padding:0 1rem;color:#111;background:#fff}
@@ -1083,14 +1157,15 @@ deployerFn = async (request, context) => {
   if (config.replacedBy) return page("This deployer was replaced by " + config.replacedBy + ". Nothing was changed.", 409);
   const form = await request.formData();
   if (!recoveryKey || form.get("key") !== recoveryKey) return page("Wrong recovery key. Nothing was changed.", 401);
-  const [action, a, b] = String(form.get("action") || "").split(":");
+  const [action, a, b, saw] = String(form.get("action") || "").split(":");
   try {
     if (action === "approve") return page((await deployerOps.approve(a === "remove" ? "remove:" + b : a)) ? "Approved. Press Apply in the Brain again." : "Nothing with that hash is waiting.");
     if (action === "rollback") {
       const why = deployerOps.reasonOf(form.get("reason"));
       if (!why) return page("A roll back needs a reason, 3 to 300 characters. Nothing was changed.", 400);
       deployerOps.because(why, "recovery key", ["roll back " + a]);
-      return await deployerOps.rollback(a, b), page(`Rolled ${a} back.`);
+      const out = await deployerOps.rollback(a, b, saw);
+      return out.state === "refused" ? page(`Not rolled back: ${out.reason}. Nothing was changed; load this page again.`, 409) : page(`Rolled ${a} back.`);
     }
     if (action === "approval") return await deployerOps.setApproval(a === "on"), page(`Deploys need approval: ${a === "on" ? "on" : "off"}.`);
     return page("Unknown action.", 400);
@@ -1265,18 +1340,26 @@ deployerRig = async ({ acceptEmitted = true, config = {}, store } = {}) => {
     const meta = { worker, role, crons: [], flags: [], methods: [], access: {}, paths: [], secrets: [], resources: [], bindings: [], ...extra };
     return { parts, meta, hash: await partsHash(parts, meta) };
   };
+  const running = (logical) => (sim.rows.get("worker/" + logical) || {}).hash || null;
+  const fresh = (body) => ({
+    ...body,
+    ...(body.workers ? { workers: body.workers.map((w) => (!w || "was" in w ? w : { ...w, was: running((w.meta && w.meta.worker) || (sim.rows.get("source/" + w.module) || {}).worker) })) } : {}),
+    ...(body.remove ? { remove: body.remove.map((n) => (typeof n === "string" ? { worker: n, was: running(n) } : n)) } : {})
+  });
   return {
     fake,
     sim,
     made,
-    // A reason goes with each apply; a test of the reason itself sends `reason: null`.
-    recover: async (body) => (await post(G + "/xrpc/com.lopecode.brain.infra.apply", { reason: "a test", ...body }, { authorization: "Bearer rk" })).json(),
+    fresh,
+    // A reason goes with each apply; a test of the reason itself sends `reason: null`. `was` is what the rig's rows
+    // hold at the call, as a caller with a fresh view would send; a test of `was` names its own.
+    recover: async (body) => (await post(G + "/xrpc/com.lopecode.brain.infra.apply", fresh({ reason: "a test", ...body }), { authorization: "Bearer rk" })).json(),
     asOwner: async (method, body) => {
       const key = (sim.rows.get("worker/brain") || {}).key;
       const headers = { "x-brain-key": key, "x-brain-caller": "owner" };
       const r = body === undefined
         ? await sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.infra." + method, { headers })
-        : await post("https://deployer.internal/xrpc/com.lopecode.brain.infra." + method, ["apply", "redistil"].includes(method) ? { reason: "a test", ...body } : body, headers);
+        : await post("https://deployer.internal/xrpc/com.lopecode.brain.infra." + method, ["apply", "redistil"].includes(method) ? fresh({ reason: "a test", ...body }) : body, headers);
       return r.json();
     },
     form: (fields) => sim.fetch(G + "/", { method: "POST", body: new URLSearchParams(fields) }),
@@ -1800,6 +1883,50 @@ test_a_change_says_why_and_the_reason_is_logged = {
   return why[0].reason;
 }
 // %%
+test_a_change_names_the_hash_it_saw_and_one_change_to_a_worker_runs_at_a_time = {
+  const rig = await deployerRig(), W = "brain-x-saw", old = "f".repeat(64);
+  await rig.recover({ workers: [await rig.made("brain-core", "core", "c"), await rig.made("brain", "kernel", "k")] });
+  const one = await rig.made(W, "recipe", "one"), two = await rig.made(W, "recipe", "two"), three = await rig.made(W, "recipe", "three");
+  const uploads = () => rig.fake.log.filter((l) => l.startsWith("POST") && l.includes("/versions")).length;
+  const first = (out) => out.results[0];
+  // No `was`, and one that is not what is running: refused, nothing uploaded.
+  const none = uploads();
+  expect(first(await rig.recover({ workers: [{ ...one, was: undefined }] }))).toMatchObject({ state: "refused", reason: "was: the hash you saw running, all 64 characters, or null for no Worker" });
+  expect(first(await rig.recover({ workers: [{ ...one, was: "f".repeat(12) }] })).state).toBe("refused");
+  expect(first(await rig.recover({ workers: [{ ...one, was: old }] }))).toMatchObject({ state: "refused", reason: `${W} is no Worker, you saw ffffffffffff`, running: null });
+  expect(uploads()).toBe(none);
+  expect(first(await rig.recover({ workers: [{ ...one, was: null }] })).state).toBe("deployed");
+  // A view from before that deploy: it still says no Worker.
+  const once = uploads();
+  expect(first(await rig.recover({ workers: [{ ...two, was: null }] }))).toMatchObject({ state: "refused", reason: `${W} is ${one.hash.slice(0, 12)}, you saw no Worker`, running: one.hash });
+  expect([uploads(), rig.fake.running("cb-x-saw")]).toEqual([once, one.hash]);
+  // The row of a change is deleted when the change ends, a refused one too.
+  expect(rig.sim.rows.has("deploying/" + W)).toBe(false);
+  // While another change holds the row, a caller with the right hash is refused as well.
+  rig.sim.rows.set("deploying/" + W, { id: "other", until: Date.now() + 60000 });
+  expect(first(await rig.recover({ workers: [{ ...two, was: one.hash }] }))).toMatchObject({ state: "refused", reason: `another change to ${W} is running` });
+  expect([uploads(), rig.sim.rows.get("deploying/" + W).id]).toEqual([once, "other"]);
+  // A change that died holds the row until `until`. Then it is taken over, once.
+  rig.sim.rows.set("deploying/" + W, { id: "other", until: Date.now() - 1 });
+  expect(first(await rig.recover({ workers: [{ ...two, was: one.hash }] })).state).toBe("deployed");
+  expect([rig.sim.rows.has("deploying/" + W), rig.sim.rows.has(`deploying-over/${W}/other`), rig.fake.running("cb-x-saw")]).toEqual([false, true, two.hash]);
+  rig.sim.rows.set("deploying/" + W, { id: "other", until: Date.now() - 1 });
+  expect(first(await rig.recover({ workers: [{ ...three, was: two.hash }] })).reason).toBe(`another change to ${W} is running`);
+  rig.sim.rows.delete("deploying/" + W);
+  // An approval is of a hash over a hash. The Worker moves after the owner approves: the approval does not stand.
+  expect(first(await rig.asOwner("apply", { workers: [{ ...one, was: two.hash }] })).state).toBe("waiting");
+  expect(rig.sim.rows.get("pending/" + one.hash).was).toBe(two.hash);
+  expect((await rig.form({ key: "rk", action: "approve:" + one.hash })).status).toBe(200);
+  expect(first(await rig.recover({ workers: [{ ...three, was: two.hash }] })).state).toBe("deployed");
+  expect(first(await rig.asOwner("apply", { workers: [{ ...one, was: three.hash }] })).state).toBe("waiting");
+  expect((await rig.form({ key: "rk", action: "approve:" + one.hash })).status).toBe(200);
+  expect(first(await rig.asOwner("apply", { workers: [{ ...one, was: three.hash }] })).state).toBe("deployed");
+  // A removal names the hash too.
+  expect(first(await rig.recover({ remove: [{ worker: W, was: three.hash }] }))).toMatchObject({ state: "refused", reason: `${W} is ${one.hash.slice(0, 12)}, you saw ${three.hash.slice(0, 12)}` });
+  expect(first(await rig.recover({ remove: [W] })).state).toBe("removed");
+  return "refused 7 ways, deployed 4 times";
+}
+// %%
 test_infra_needs_the_kernel_or_the_recovery_key = {
   const rig = await deployerRig();
   const G = "https://cb-deployer.sub.workers.dev/xrpc/com.lopecode.brain.infra.getState";
@@ -1830,9 +1957,13 @@ test_deployer_page_rolls_the_kernel_back = {
   expect((await rig.form({ key: "nope", action: `rollback:brain:${v1}` })).status).toBe(401);
   expect(rig.fake.running("cb")).toBe(k2.hash);
   // A roll back says why.
-  expect((await rig.form({ key: "rk", action: `rollback:brain:${v1}` })).status).toBe(400);
+  expect((await rig.form({ key: "rk", action: `rollback:brain:${v1}:${k2.hash}` })).status).toBe(400);
   expect(rig.fake.running("cb")).toBe(k2.hash);
-  expect((await rig.form({ key: "rk", action: `rollback:brain:${v1}`, reason: "k2 answers 500 on sign-in" })).status).toBe(200);
+  // A page drawn when another version was running does not roll back.
+  expect((await rig.form({ key: "rk", action: `rollback:brain:${v1}:${k1.hash}`, reason: "k2 answers 500 on sign-in" })).status).toBe(409);
+  expect((await rig.form({ key: "rk", action: `rollback:brain:${v1}`, reason: "k2 answers 500 on sign-in" })).status).toBe(409);
+  expect(rig.fake.running("cb")).toBe(k2.hash);
+  expect((await rig.form({ key: "rk", action: `rollback:brain:${v1}:${k2.hash}`, reason: "k2 answers 500 on sign-in" })).status).toBe(200);
   expect(rig.fake.running("cb")).toBe(k1.hash);
   return "rolled back to " + k1.hash.slice(0, 12);
 }
@@ -2084,7 +2215,15 @@ memberRig = async () => {
   const rig = await deployerRig();
   await rig.recover({ workers: [await rig.made("brain-core", "core", "c"), await rig.made("brain", "kernel", "k")] });
   const key = rig.sim.rows.get("worker/brain").key;
-  const as = async (method, caller, body, k = key) => {
+  // `was` is what the rig's rows hold at the call, unless the test names one.
+  const seen = async (body) => {
+    const q = body && body.request;
+    if (!q || "was" in q || typeof body.author !== "string") return body;
+    const name = q.name || String((q.meta && q.meta.worker) || "").replace(/^brain-x-/, "");
+    return { ...body, request: { ...q, was: (rig.sim.rows.get(`worker/brain-m-${(await sha256(body.author)).slice(0, 10)}-${name}`) || {}).hash || null } };
+  };
+  const as = async (method, caller, raw, k = key) => {
+    const body = await seen(raw);
     const r = await rig.sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.member." + method, { method: "POST", headers: { "content-type": "application/json", "x-brain-key": k, "x-brain-caller": caller }, body: JSON.stringify(body) });
     return { status: r.status, ...(await r.json()) };
   };
@@ -2162,7 +2301,7 @@ test_a_member_deploy_is_refused_outside_its_tier = {
 test_a_member_cannot_deploy_over_another_members_worker = {
   const rig = await memberRig(), { id, A } = rig;
   // Two DIDs with one ID cannot be made here, so the row of the other member's Worker is written as a deploy leaves it.
-  const held = { worker: `brain-m-${id}-todo`, role: "member", author: "did:plc:carol", hash: "h-carol", version: "v-carol", key: "k-carol", state: "deployed", methods: [], access: {}, paths: [], secrets: [], resources: [] };
+  const held = { worker: `brain-m-${id}-todo`, role: "member", author: "did:plc:carol", hash: "c".repeat(64), version: "v-carol", key: "k-carol", state: "deployed", methods: [], access: {}, paths: [], secrets: [], resources: [] };
   rig.sim.rows.set("worker/" + held.worker, held);
   const uploads = rig.fake.log.length;
   expect(await rig.deploy("todo", "a")).toMatchObject({ worker: held.worker, state: "refused", reason: "the name is held by a service of another member" });
@@ -2178,12 +2317,15 @@ test_member_deploys_are_counted_per_member_and_hour = {
   const rig = await memberRig(), { A } = rig;
   const hour = new Date().toISOString().slice(0, 13);
   // Two an hour for this test; 60 when the kernel names no number.
+  rig.sim.rows.set(`mdeploys/${A}/2026-01-01T00`, 9);
   const go = (salt, author = A) => rig.deploy("todo", salt, {}, author, { deploys: 2 });
   expect([(await go("a")).state, (await go("a")).state]).toEqual(["deployed", "unchanged"]);
   const uploads = rig.fake.log.length;
   expect(await go("b")).toMatchObject({ worker: null, state: "refused", reason: "3 deploys asked this hour, at most 2" });
   expect(rig.fake.log.length).toBe(uploads);
   expect(rig.sim.rows.get(`mdeploys/${A}/${hour}`)).toBe(3);
+  // The count of an earlier hour is deleted by the first call of this one.
+  expect(rig.sim.rows.has(`mdeploys/${A}/2026-01-01T00`)).toBe(false);
   // Another member has their own count.
   expect((await go("a", "did:plc:bob")).state).toBe("deployed");
   rig.sim.rows.set(`mdeploys/${A}/${hour}`, 60);

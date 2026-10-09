@@ -42,7 +42,7 @@ A recipe is the owner's code and is not checked by tag: it reads and changes wha
 
 The core sends, with each call by a person, whether they are a member, their tag grants and their limit in bytes. The limit counts every file under \`u/ID/\`, default 20 MB.
 
-Each put records its caller as the file's \`writer\`. A file is served with \`Content-Security-Policy: sandbox\`, so a browser gives it no script and no origin, unless its writer is the owner, the deployer or a recipe. A token's file and a member's are sandboxed, and so is the owner's file once either has written it, until the owner puts it again. A file kept before \`writer\` (2026-10-09) is sandboxed unless it is under \`shell/\`.
+Each put records its caller as the file's \`writer\`. A file is served with \`Content-Security-Policy: sandbox\`, so a browser gives it no script and no origin, unless its writer is the owner in their own session, the deployer or a recipe. The owner by a turn, a portal or a PDS call is the writer \`owner by turn\` (\`portal\`, \`jwt\`): its file is sandboxed, its \`type\` is not taken, and it does not write under \`shell/\` or \`library/\`. A token's file and a member's are sandboxed, and so is the owner's file once either has written it, until the owner puts it again. A file kept before \`writer\` (2026-10-09) is sandboxed unless it is under \`shell/\`.
 
 ## Where a file goes
 
@@ -157,7 +157,7 @@ staticApp = {
   const writable = async (c, path) => {
     if (!okPath(path)) return { no: fail(c, 400, "InvalidRequest", "path") };
     const dir = kept(c, path);
-    if (dir) return { no: fail(c, 403, "Forbidden", `only the owner writes under ${dir}`) };
+    if (dir) return { no: fail(c, 403, "Forbidden", `only the owner, in their own session, writes under ${dir}`) };
     const m = await me(c), before = await rows.get("f/" + path);
     const ok = before ? can(m, before, path, "write") : !!m && typeof m.home === "string" && path.startsWith(m.home);
     return ok ? { m, before } : { no: fail(c, 403, "Forbidden", before ? `${path} is not this caller's to change` : `${path} is outside ${m && typeof m.home === "string" ? m.home : "what this caller may reach"}`) };
@@ -292,7 +292,8 @@ md`## Tests`
 // %%
 staticRig = async () => {
   const sim = await simulate(static_service, {});
-  const call = (who, path, init = {}) => sim.fetch("https://static.internal" + path, { ...init, headers: { ...(init.headers || {}), "x-brain-caller": who } });
+  // who is a caller, or "owner by turn:7": the owner as the core names them for a turn, a portal or a PDS call.
+  const call = (who, path, init = {}) => sim.fetch("https://static.internal" + path, { ...init, headers: { ...(init.headers || {}), "x-brain-caller": who.split(" by ")[0], ...(who.includes(" by ") ? { "x-brain-via": who.split(" by ")[1] } : {}) } });
   const X = "/xrpc/com.lopecode.brain.static.";
   const put = (who, path, body, extra = "") => call(who, X + "put?path=" + encodeURIComponent(path) + extra, { method: "POST", body });
   const post = (who, name, input) => call(who, X + name, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
@@ -496,6 +497,23 @@ test_static_a_members_worker_writes_as_its_author_within_their_limit = {
   expect(rig.sim.rows.get("f/library/n.html").tags).toEqual(["by:owner", "worker:brain-x-library"]);
   expect((await rig.get({ "x-brain-caller": "worker:brain-x-library" }, file)).status).toBe(403);
   return "a member's Worker, within the limit";
+}
+// %%
+test_the_owner_by_a_turn_is_not_the_owner_as_a_writer = {
+  const rig = await staticRig();
+  const page = "<script>1<\/script>";
+  const got = async (path) => ((r) => [r.headers.get("content-type"), (r.headers.get("content-security-policy") || "").startsWith("sandbox")])(await rig.call("owner", "/static/" + path));
+  // A turn, a portal and a PDS call of the owner: stored, sandboxed, and the type each names is not taken.
+  for (const via of ["turn:7", "portal:did:plc:ada", "jwt"]) {
+    expect((await rig.put("owner by " + via, "site/t.txt", page, "&type=text/html")).status).toBe(200);
+    expect(await got("site/t.txt")).toEqual(["text/plain; charset=utf-8", true]);
+    expect((await rig.put("owner by " + via, "shell/index.html", page)).status).toBe(403);
+    expect((await rig.put("owner by " + via, "library/n/1.html", page)).status).toBe(403);
+  }
+  // The owner in their own session puts it again: a page.
+  expect((await rig.put("owner", "site/t.txt", page, "&type=text/html")).status).toBe(200);
+  expect(await got("site/t.txt")).toEqual(["text/html", false]);
+  return "3 ways refused under shell/ and library/";
 }
 // %%
 test_static_only_bytes_the_owner_last_wrote_are_served_as_a_page = {

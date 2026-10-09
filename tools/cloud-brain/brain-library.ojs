@@ -29,7 +29,8 @@ A notebook served from \`/library\` runs on the Brain's own address, so its cell
 library_service = cloudflare.Service("library", libraryApp, {
   methods: {
     // A saved notebook is served as a page that runs as whoever opens it: only the owner's own tab saves one, not a token or a turn.
-    "com.lopecode.brain.library.put": { type: "procedure", who: "owner", allow: "caller.session" },
+    // Fixed: this Worker is a writer brain-static trusts, so what reaches put is served as a page.
+    "com.lopecode.brain.library.put": { type: "procedure", who: "owner", allow: "caller.session", fixed: true },
     "com.lopecode.brain.library.list": { type: "query", who: "anyone" },
     "com.lopecode.brain.library.versions": { type: "query", who: "owner" },
     "com.lopecode.brain.library.setPublic": { type: "procedure", who: "owner" },
@@ -277,6 +278,7 @@ test_library_declares_what_it_needs = {
     calls: ["com.lopecode.brain.static.delete", "com.lopecode.brain.static.get", "com.lopecode.brain.static.put"],
     paths: [{ path: "/library/*", who: "anyone" }]
   });
+  expect(meta.access["com.lopecode.brain.library.put"]).toMatchObject({ allow: "caller.session", fixed: true });
   return meta.calls.join(", ");
 }
 // %%
