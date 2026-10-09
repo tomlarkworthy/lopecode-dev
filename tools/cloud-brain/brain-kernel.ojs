@@ -33,6 +33,8 @@ A person is an atproto account, named by its DID. There are two roles. The **own
 
 **Linking.** A channel sends a stranger \`https://HOST/link?channel=NAME&code=CODE\`. The page asks them to sign in with atproto, shows the address the code stands for, and binds it to the signed-in DID when they press Link. The kernel learns the address by calling the channel's \`NAME.claim\` with the code; the answer is taken only from the Worker \`brain-x-NAME\`. Linking does not make anyone a member. When the signed-in DID is the owner, Link also asks for the last 4 characters of the address, because whoever writes from it is then answered as the owner. The page refuses to be shown in a frame.
 
+**Sign-in links** (added 2026-10-09). For a program with no browser, such as Claude Code on the web. \`token.link\` (procedure, owner's session) takes \`{ name, methods, minutes, hours }\` and answers \`{ name, link, until }\`; \`minutes\` (1 to 60, 10 if left out) is how long the link is good, \`hours\` (1 to 24, 8 if left out) how long its token lasts. The link is \`/auth/link?code=…\`. A GET of it answers text that says what to do and spends nothing, so a preview of a pasted link does not use it. The first POST answers \`{ name, token, methods, until }\` and deletes the link; a second answers 401. The token is an ordinary one with an end: the same methods it may not name, listed by \`token.list\` with \`by: "link"\`, ended early by \`token.revoke\`. Only the hash of the code and of the token is kept. The code is in a query string, which Cloudflare keeps beside each log line; it is good once.
+
 **Turns.** \`inbox.list\` and \`inbox.poll\` answers pass through the kernel, which adds \`who: { did, role, handle }\` to each entry whose address is linked. For the owner's own session \`inbox.poll\` also adds \`turn\`, a token for each entry whose sender is the owner or a member. A call that carries it as \`Authorization: Bearer\` is made as that DID, with \`x-brain-via: turn:<entry id>\`. It lasts 10 minutes, ends with "sign out everywhere", and is refused once its DID is no longer a member.
 
 **Rooms.** A channel's entry may carry \`body.room: { id, name, members }\`: the message was written where others read the answer, and \`members\` are their addresses on that channel. A turn for such an entry is capped by who is in the room, because its answer is read by all of them.
@@ -244,6 +246,7 @@ kernelApp = {
       return v.error ? { refused: v } : { caller: v.iss === config.owner ? "owner" : v.iss, via: "jwt", did: v.iss };
     }
     const token = await rows.get("token/" + (await sha256(bearer)));
+    if (token && token.until < Date.now()) return { refused: { error: "AuthRequired", message: "this token has expired" } };
     return token ? { caller: "token:" + token.name, via: "token", methods: token.methods } : { refused: { error: "AuthRequired", message: "unknown token" } };
   };
   app.use("*", async (c, next) => {
@@ -383,6 +386,44 @@ kernelApp = {
     const token = [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("");
     await rows.put("token/" + (await sha256(token)), { name, methods: named, created: Date.now() });
     return c.json({ name, token });
+  });
+  // A sign-in link, for a program with no browser (Claude Code on the web). The owner makes one and pastes it;
+  // whoever POSTs it first is given a token for the methods it names, and the link is gone. A GET explains and
+  // spends nothing, so a preview of a pasted link does not use it. The token ends by itself.
+  const hex = () => [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  app.post(NS + "token.link", session, async (c) => {
+    const { name, methods = [], minutes = 10, hours = 8 } = await c.req.json();
+    const named = methods.map(full);
+    if (!/^[a-z0-9-]{1,40}$/.test(name || "")) return fail(c, 400, "InvalidRequest", "name is lower case letters, digits and -");
+    if (named.some(never)) return fail(c, 400, "InvalidRequest", "a token cannot name infra, secret, token, grant or people methods");
+    if (!(minutes >= 1 && minutes <= 60 && hours >= 1 && hours <= 24)) return fail(c, 400, "InvalidRequest", "minutes is 1 to 60, hours is 1 to 24");
+    for (const r of await rows.list("link/")) if (r.value.until < Date.now()) await rows.delete(r.key);
+    const code = hex(), until = Date.now() + minutes * 60000;
+    await rows.put("link/" + (await sha256(code)), { name, methods: named, until, hours });
+    return c.json({ name, link: `https://${config.host}/auth/link?code=${code}`, until });
+  });
+  app.get("/auth/link", (c) =>
+    c.text(`A sign-in link of the Cloud Brain at https://${config.host}, for a program.
+
+POST to this same address, with no body, once:
+
+  curl -sS -X POST "https://${config.host}/auth/link?code=<the code in this address>"
+
+The answer is JSON { name, token, methods, until }. The link then stops working. Keep the token in memory or an
+environment variable; do not print it or write it to a file. Send it as "Authorization: Bearer <token>". It calls
+the methods in \`methods\` and no others, until \`until\` (milliseconds).
+
+Then read https://${config.host}/llms.txt: how to call, and what this Brain is made of.
+`)
+  );
+  app.post("/auth/link", async (c) => {
+    const key = "link/" + (await sha256(c.req.query("code") || ""));
+    const made = await rows.get(key);
+    // The delete says whether this caller is the one that spent it.
+    if (!made || !(await rows.delete(key)) || made.until < Date.now()) return fail(c, 401, "AuthRequired", "this link was used, has expired or is not this Brain's");
+    const token = hex(), until = Date.now() + made.hours * 3600000;
+    await rows.put("token/" + (await sha256(token)), { name: made.name, methods: made.methods, created: Date.now(), until, by: "link" });
+    return c.json({ name: made.name, token, methods: made.methods, until });
   });
   app.post(NS + "token.revoke", session, async (c) => {
     const { name } = await c.req.json();
@@ -758,6 +799,26 @@ test_tokens_reach_only_their_methods = {
   // A token cannot be given the methods that deploy, read secrets or mint access.
   for (const m of ["infra.apply", "secret.get", "token.create", "grant.put"])
     expect((await rig.call("token.create", { session: rig.owner, body: { name: "bad", methods: [m] } })).status).toBe(400);
+  // A sign-in link: the owner's session makes it, a GET spends nothing, the first POST is given the token.
+  expect((await rig.call("token.link", { bearer: made.data.token, body: { name: "web", methods: ["proxy.fetch"] } })).status).toBe(403);
+  expect((await rig.call("token.link", { session: rig.owner, body: { name: "web", methods: ["infra.apply"] } })).status).toBe(400);
+  expect((await rig.call("token.link", { session: rig.owner, body: { name: "web", methods: [], hours: 25 } })).status).toBe(400);
+  const link = (await rig.call("token.link", { session: rig.owner, body: { name: "web", methods: ["proxy.fetch"], hours: 1 } })).data;
+  const at = link.link.slice(link.link.indexOf("/auth/link"));
+  expect(JSON.stringify([...rig.sim.rows])).not.toContain(at.split("code=")[1]);
+  expect((await rig.call(at)).status).toBe(200);
+  const both = await Promise.all([rig.call(at, { method: "POST" }), rig.call(at, { method: "POST" })]);
+  expect(both.map((r) => r.status).sort()).toEqual([200, 401]);
+  const web = both.find((r) => r.status === 200).data;
+  expect([web.name, web.methods]).toEqual(["web", ["com.lopecode.brain.proxy.fetch"]]);
+  expect((await rig.call("proxy.fetch", { bearer: web.token, body: {} })).status).toBe(200);
+  expect((await rig.call("inbox.list", { bearer: web.token })).status).toBe(403);
+  // The token ends by itself, and so does a link nobody used.
+  for (const [k, v] of rig.sim.rows) if (v && v.by === "link") rig.sim.rows.set(k, { ...v, until: Date.now() - 1 });
+  expect((await rig.call("proxy.fetch", { bearer: web.token, body: {} })).data.message).toBe("this token has expired");
+  const late = (await rig.call("token.link", { session: rig.owner, body: { name: "late", methods: [] } })).data.link;
+  for (const [k, v] of rig.sim.rows) if (v && v.name === "late") rig.sim.rows.set(k, { ...v, until: Date.now() - 1 });
+  expect((await rig.call(late.slice(late.indexOf("/auth/link")), { method: "POST" })).status).toBe(401);
   expect((await rig.call("token.revoke", { session: rig.owner, body: { name: "laptop" } })).data).toEqual({ revoked: 1 });
   expect((await rig.call("proxy.fetch", { bearer: made.data.token, body: {} })).status).toBe(401);
   return "one method, then revoked";

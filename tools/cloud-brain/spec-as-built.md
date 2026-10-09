@@ -3034,3 +3034,26 @@ only (33 and 29 calls: the build's checks and the two runs above). The 40 s abov
   instances, not for prepared images that are not running." The six ready instances here were running the
   entrypoint (uptime 34 s at the first lease), so the sentence does not settle it. No usage figure was read
   from the account. Still for Tom to look at.
+
+### A sign-in link for a program with no browser, and /llms.txt says where to begin (2026-10-09, 22:55 CEST)
+
+Tom: "I want an easy way to pair with claude code for web … a signin link would work."
+
+`token.link` (owner's session) answers `https://HOST/auth/link?code=…`. A GET answers text that says what to do and spends nothing. The first POST answers a token and deletes the link. The token is an ordinary one with `until`; `identify` refuses it after that. Defaults: link 10 minutes, token 8 hours. The page's Tokens panel has a "Sign-in link" button. It is in `brain-kernel.ojs`, the reference in its first `md` cell.
+
+Not built from the chat Tom pasted: a separate `auth.createLoginLink` / `auth.redeemLoginLink` pair, a session list and an audit row. The link gives a token, so `token.list` and `token.revoke` already list and end it.
+
+```
+tests, local tab        kernel and core, 55 of 55
+cb4                     brain 86912e03274f, brain-core d5fe181d6282, brain-x-page 73added6d8b3, confirmed
+live, link for quota.get, 1 hour
+  GET                   200 text/plain
+  POST                  { methods, name, token, until }
+  POST again            401 "this link was used, has expired or is not this Brain's"
+  quota.get, the token  200        lease.get, the token  403
+  after token.revoke    401
+```
+
+`/llms.txt` (the core) gained "Finding your way" (`service.list`, `getInfo`, `getSource` and what each answers, the shape in five sentences), "Making a service" (`member.deploy`) and one line on the sign-in link.
+
+Not done: the "Sign-in link" button was not pressed on cb4. The token's end and an unused link's end are tested in the rig only. No Lexicon documents are served. A token still cannot name `infra.*`, so a program signed in this way cannot deploy as the owner. `brain-core.ojs` and `cloud-brain.ojs` hold another session's uncommitted edits beside these and are not committed.
