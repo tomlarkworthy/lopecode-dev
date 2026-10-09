@@ -262,9 +262,9 @@ Cloudflare's [architecture page](https://developers.cloudflare.com/containers/pl
 (read 2026-10-09): "You are only charged for actively running instances, not for prepared images that are not
 running." The ready instances seen here were running the entrypoint, so this does not answer the question above.
 
-### The ready instances are not billed (dashboard, 2026-10-09 about 21:35 CEST)
+### The ready instances are not billed (dashboard, 2026-10-09, screenshot received 22:41 CEST)
 
-Tom's screenshot of the account's Containers page, about an hour after the application was last modified:
+Tom's screenshot of the account's Containers page; it shows the application "1 hour ago" modified:
 
 ```
 cb4-x-container-node   Ready   Default   Live Instances 0
