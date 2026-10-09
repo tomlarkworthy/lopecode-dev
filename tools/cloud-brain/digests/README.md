@@ -65,3 +65,7 @@ JavaScript or WASM build of that engine was found in its Hugging Face repository
 - The page opens on the first theme. The paragraph on how the digest was written (who, from which snapshot run, what was and was not reproduced) is the last section, "How this was written".
 - A digest opens with editing off. `build.ts` sets `__attachMenu: false` in editor-5's `cell_options.json`; the reader turns editing on from the menu.
 - A link that leaves the Brain opens a new tab, and the page sends no referrer.
+
+## What a digest is written from, from Tom on 2026-10-09
+
+"yes, we want curated data". The papers of a digest come from `snapshot/<day>/papers.json`, the papers with a signal (votes on Hugging Face, a link from a lab's feed, a mention in another source), not from the full `arxiv.json`. The 2026-10-09 digest was written before that file existed, from all 611 arXiv items.
