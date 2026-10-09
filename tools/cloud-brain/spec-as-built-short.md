@@ -16,7 +16,7 @@ One Brain, `cb4`, runs in one Cloudflare account. It has 17 Workers (counted 202
 | `brain-db` | `brain-db` | SQL tables and secrets. |
 | `brain-x-page` | `cloud-brain` | The page as a service. |
 | `brain-x-inbox` | `brain-inbox` | The inbox and the lease. |
-| `brain-x-metrics`, `brain-x-static`, `brain-x-blob`, `brain-x-library`, `brain-x-proxy`, `brain-x-feed` | one module each | Metrics, files, blobs, saved notebooks, outbound fetch, Bluesky feeds. |
+| `brain-x-static`, `brain-x-blob`, `brain-x-library`, `brain-x-proxy`, `brain-x-feed` | one module each | Files, blobs, saved notebooks, outbound fetch, Bluesky feeds. `brain-x-metrics` was removed on 2026-10-09: calls are counted from the log lines. |
 | `brain-x-whatsapp`, `brain-x-bluesky` | one module each | Channels. |
 | `brain-x-logs` | `brain-logs` | The logs of this Brain's Workers, read from Cloudflare Workers Logs with Cloudflare's own query bodies. It holds a Cloudflare token with one permission, which the deployer minted for it. |
 | `brain-x-knowledge` | `brain-knowledge` | What the Brain knows: one entry per paper, page, post or finding, with where it was found, the path of its kept file, and who entered it and how. A D1 database of its own with a full-text index; no file bytes. The owner searches it; the snapshot and the digest tool enter into it. 68 entries on cb4, 2026-10-09. |

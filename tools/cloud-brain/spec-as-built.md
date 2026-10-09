@@ -2908,3 +2908,32 @@ token.revoke                              {"revoked":1}
 
 Not verified: a call from a Claude Code on the web session. The line about its network setting is from https://code.claude.com/docs/en/cloud-environments as read on 2026-10-09 (an environment's network access has a custom level with a list of allowed domains); it was not tried.
 
+## `brain-x-metrics` removed; the page counts log lines (2026-10-09, to 11:05 CEST)
+
+Tom, 2026-10-09: "I thought we were getting rid of metrics in preference to logs." It was on the open list from 2026-10-08 ("metrics from the logs") and not done.
+
+- The core no longer counts calls or sends batches (`tele`, `flush`, `observe`, `metricsFlushMs`, `metricsRouteMs` are gone). It writes the one log line a call it already wrote.
+- The Worker `brain-x-metrics` is removed from cb4 (`brain.ts remove`, 10:51 CEST) and its module from the build. `metrics.query` answers 501.
+- The Health section of the page asks `logs.query` once: count, total and longest `ms` by Worker, method and status for the last hour (`callsQuery`, `callsSeries` in `@tomlarkworthy/cloud-brain`). The three charts moved into that module. The owner's own session only; a visitor is shown one line of text and no chart. Before, a visitor saw made-up sample data.
+- Lost with it: the `version` column of the method table (the log line has no version), the faults list, and ranges over an hour on the page. The log lines are kept 7 days and `logs.query` reads any of them.
+
+```
+10 minutes on cb4, calls logged by the core
+                                   07:20-07:30 UTC   08:53-09:03 UTC
+db.sql by worker:brain-x-metrics        48                0
+metrics.query                            1                0
+the page's chart, owner, 10:55 CEST     "1959 calls in 179 groups", 19 svg, 960 rects, 24 table rows
+redistil                                15 same of 16; lease held
+```
+
+The second window has more calls in all (361 against 142): another session was deploying and its tabs polled. Only the two metrics rows are compared.
+
+Tests: 80 of 80 in `brain-core` (29), `cloudflare-iac` (25), `cloud-brain` (12), `brain-db` (11) and `brain-logs` (3), forced in a local tab. `test_calls_from_the_logs_become_chart_rows` is new; `test_calls_are_counted_and_handed_to_the_metrics_service` and the two tests of the removed module are gone.
+
+### Left as it is
+
+- **The tables `metrics_calls` and `metrics_faults` are still in the database**, with their rows. Nothing reads or writes them. Dropping them is Tom's call.
+- `brain-db`'s tests and one comment in `cloudflare-iac` still use `brain-x-metrics` and `metrics_*` as the example of a Worker's table prefix. They test the prefix rule, not the Worker.
+- **One hour only.** A 24-hour count looked incomplete earlier this day. A likely cause was found (50 groups asked for, more than 50 present) and the page asks for 500, but a 24-hour query was not run again.
+- **`brain-x-browser` runs `8c7207b4519c`, one wrapper behind** (it answers `getSource?part=reference` with JSON). `68e467973a90` was applied three times after the deployer update and put back each time: "its tests failed: test_browser_open_makes_a_tab_and_reuses_it_by_name". That test asserts over 590 of 600 bought seconds are left at its end, so it fails when it takes more than 10 s. It failed the same way in a local tab while other tests ran. Not shown: that time is the whole cause.
+

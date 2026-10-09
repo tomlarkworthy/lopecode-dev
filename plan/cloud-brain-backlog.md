@@ -665,3 +665,12 @@ Built and on cb4: stored settings read through `config` (`config.set`, `config.g
 - `/llms.txt` from a Claude Code on the web session: not tried.
 - The page has no button that makes a token and shows the `llms.txt` address beside it.
 
+## Added 2026-10-09 11:05 CEST: metrics removed
+
+`brain-x-metrics` is gone from cb4 and from the build; the page's Health section counts the core's log lines. Record: the last section of `tools/cloud-brain/spec-as-built.md`. The line "Follow-on, not approved: metrics from the logs" above is done.
+
+- **For Tom: drop `metrics_calls` and `metrics_faults`?** Kept, unread.
+- **`brain-x-browser` is one wrapper behind**: its own test `test_browser_open_makes_a_tab_and_reuses_it_by_name` fails after a deploy when it takes over 10 s, and the deploy is put back. The test should not assert on wall time.
+- A 24-hour log count was not run again with 500 groups.
+- The page shows one hour. A range control, the faults list and latency were in the removed module and are not carried over.
+

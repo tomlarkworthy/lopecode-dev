@@ -40,7 +40,7 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
 - **Core** (`<base>-core`): every `/xrpc/com.lopecode.brain.*` call passes it. It checks the CEL
   rule, charges the price, writes one log line, then forwards to the service.
 - **Services** (`<base>-x-NAME`, notebook module `@tomlarkworthy/brain-NAME`): browser, logs, proxy,
-  bluesky, whatsapp, blob, feed, library, metrics, static, inbox, snapshot (a daily record of
+  bluesky, whatsapp, blob, feed, library, static, inbox, snapshot (a daily record of
   public feeds at `/static/snapshot/<day>/`; it makes no model call), knowledge (what the Brain
   knows: entries with their source, kept file and who entered them, in a D1 database of its own,
   `knowledge.search?q=`). `<base>-x-page` is built from
@@ -84,7 +84,7 @@ A health check that takes ten seconds:
 
 ```
 brain.ts curl /xrpc/com.lopecode.brain.lease.get --owner     # {"held":true}
-brain.ts redistil | grep -c same                             # 17 on 2026-10-09
+brain.ts redistil | grep -c same                             # 16 on 2026-10-09, after brain-x-metrics was removed
 brain.ts curl /xrpc/com.lopecode.brain.browser.all --owner   # browsers that cost money
 brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
 ```

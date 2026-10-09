@@ -256,7 +256,7 @@ md`## Data
 |---|---|---|
 | a Worker's own \`rows\` | that Worker | No other Worker reads them. |
 | key-value tables | \`db.get/list/put/delete/increment\` | One rule per table, set with \`db.setRule\`. No rule: the owner only. |
-| SQL tables | \`db.sql\`, the \`sql\` cell | A Worker owns the tables that have its name's prefix (\`brain-x-metrics\` owns \`metrics_*\`). Another caller needs the table's rule, set with \`db.sqlGrant\`. |
+| SQL tables | \`db.sql\`, the \`sql\` cell | A Worker owns the tables that have its name's prefix (\`brain-x-knowledge\` owns \`knowledge_*\`). Another caller needs the table's rule, set with \`db.sqlGrant\`. |
 | secrets | \`secret.put\`, \`await secrets.NAME\` | One rule per secret. \`secret.get\` refuses a token, a granted account and an anonymous caller, whatever the rule says. |
 | files by path | \`static.*\`, \`GET /static/PATH\` | By tag. |
 | bytes by content address | \`blob.*\` | By tag. |
@@ -265,13 +265,15 @@ ${mod("brain-db")} reads the query plan of each SQL statement that is not the ow
 
 **Tags** decide who reads or changes a file or a blob. The store writes \`by:DID\` and \`worker:NAME\`; a caller cannot set them. \`public\` opens a file to anyone. \`members\` opens it to each member. The owner grants a member \`read\` or \`write\` on any other tag. Reference: ${mod("brain-static")}, ${mod("brain-blob")}.`
 // %%
-md`## Metrics
+md`## Calls and faults
 
-The core counts each call that it answers or forwards. It sends a batch to ${mod("brain-metrics")} each 10 s, or immediately after a fault. One row is one minute of one Worker, version, method, kind of caller and status. \`metrics.query\` answers 8 days at most. The Worker deletes rows older than 14 days.
+The core writes one log line for each call that it answers or forwards: who called, the method, the Worker, the status, the time taken. Cloudflare keeps the lines 7 days. The Health section of the page counts the last hour of them with one \`logs.query\`, by Worker, method and status, for the owner. A visitor sees no chart.
 
 A fault is a status of 500 or above, except 501.
 
-Not counted: a call that does not go through the core (the deployer's health checks, a Worker's own \`fetch\`, sign-in on the kernel). A core instance that stops loses up to 10 s of counts.`
+Not in the lines: a call that does not go through the core (the deployer's health checks, a Worker's own \`fetch\`, sign-in on the kernel).
+
+Until 2026-10-09 the core also counted calls and sent the counts to a Worker, \`brain-x-metrics\`, each 10 s. That Worker is removed; the log lines hold the same counts and cost no call.`
 // %%
 md`## The page
 

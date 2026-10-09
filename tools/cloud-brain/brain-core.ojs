@@ -51,7 +51,6 @@ A rule that does not name \`origin\` lets the Worker act for anyone it answers. 
 | whatsapp → \`static.put\` | no | a picture that arrived, with no caller |
 | bluesky, whatsapp → \`lease.get\`, \`inbox.append\` | no | started by the Worker's own clock |
 | any → \`secret.get\`, \`db.sql\` | no | the Worker's own secrets and tables |
-| core → \`metrics.record\` | no | the core's own counts |
 
 **Settings** (added 2026-10-09). A value a service reads from \`config\` and gives a default (\`config.pollMs ?? 30000\`) can be stored here, per Worker, and is read with no deploy. A service does nothing to take part: the core sends a Worker's stored settings with each call it forwards (\`x-brain-settings\`), and the Worker wrapper shows them through \`config\`. The core reads the rows at most once in 60 s for one instance, so a change is followed within 60 s. A Worker run only by its clock reads the row itself, at most once in 5 minutes.
 
@@ -163,29 +162,6 @@ coreApp = {
       return null;
     }
   };
-  // Every call the core answers or forwards is counted here. The counts are handed, in batches, to whichever
-  // Worker whose service declares metrics.record; with none they are dropped. A fault (500 and above, except 501) is sent at once, the rest every 10 s.
-  const RECORD = "com.lopecode.brain.metrics.record";
-  const tele = { from: 0, buckets: new Map(), errors: [], route: null, routeAt: 0 };
-  const flush = async () => {
-    const batch = {
-      from: tele.from,
-      to: Date.now(),
-      buckets: [...tele.buckets].map(([k, v]) => {
-        const [worker, version, method, caller, status] = k.split("|");
-        return { worker, version, method, caller, status: Number(status), ...v };
-      }),
-      errors: tele.errors
-    };
-    Object.assign(tele, { from: 0, buckets: new Map(), errors: [] });
-    if (Date.now() - tele.routeAt >= (config.metricsRouteMs ?? 60000)) {
-      tele.route = (await settings.list("route/")).map((r) => r.value).find((r) => r.methods && r.methods[RECORD]) || null;
-      tele.routeAt = Date.now();
-    }
-    const short = tele.route && tele.route.worker.replace(/^brain-(x-)?/, "");
-    if (!short || !workers.has(short)) return;
-    await workers.fetch(short, new Request(`https://${short}.internal/xrpc/${RECORD}`, { method: "POST", headers: { "content-type": "application/json", "x-brain-caller": "worker:brain-core" }, body: JSON.stringify(batch) }));
-  };
   // A method as it is counted and logged: the name after com.lopecode.brain., or the path a service declared.
   // Names nobody declared are counted as one, so a stranger cannot grow the table.
   // Declared: a service's route matched (routeOf), or the core has a handler at this path. Not decided by the status.
@@ -228,22 +204,6 @@ coreApp = {
       method: nsid || c.get("path") ? nameOf(c).slice(0, 80) : "(unknown)", worker: c.get("target") || c.get("routed") || "brain-core", status, error: (await error) || null, ms: Date.now() - started,
       price: c.get("price") ?? null, rule: c.get("rule") || (status === 401 || status === 403 ? "deny" : status < 400 ? "allow" : ""), by: c.get("by") || "core"
     });
-  };
-  const observe = async (c, started) => {
-    const target = c.get("target"), status = c.res.status, ms = Date.now() - started;
-    const method = nameOf(c);
-    if (method.startsWith("metrics.")) return;
-    const who = c.get("who").caller, caller = /^(token|did):/.test(who) ? who.split(":")[0] : who;
-    // The version that answered: the forwarded Worker's own header, or this core's.
-    const by = (c.res.headers.get("x-brain-served-by") || "").split(",")[0].trim();
-    const version = target ? (by.startsWith(target + "@") ? by.slice(target.length + 1) : "") : String((c.env && c.env.BRAIN_INFO && c.env.BRAIN_INFO.hash) || "").slice(0, 12);
-    const key = [target || "brain-core", version, method, caller, status].join("|");
-    const b = tele.buckets.get(key) || { n: 0, ms: 0, max: 0 };
-    tele.buckets.set(key, { n: b.n + 1, ms: b.ms + ms, max: Math.max(b.max, ms) });
-    // 501 is the answer to a name nobody declares: the caller's mistake, not a fault.
-    if (status >= 500 && status !== 501) tele.errors.push({ t: started, worker: target || "brain-core", version, method, caller, status, ms });
-    if (!tele.from) tele.from = started;
-    if (tele.errors.length || Date.now() - tele.from >= (config.metricsFlushMs ?? 10000)) await flush();
   };
   // Members. The kernel hands over who is a member and what each was granted (people.sync), because a Worker
   // cannot ask the kernel. A member's Worker has its author's permissions and no others: a call it makes is
@@ -336,7 +296,7 @@ coreApp = {
     const now = c.get("who");
     c.set("origin", (who.keyed && (await originFrom(c.req.header("x-brain-context"), who.keyed))) || { caller: now.caller, via: now.via || "" });
     await next();
-    const done = Promise.all([say(c, started, c.res.status, errorOf(c, c.res)), observe(c, started)]).catch(() => null);
+    const done = say(c, started, c.res.status, errorOf(c, c.res)).catch(() => null);
     try {
       c.executionCtx.waitUntil(done);
     } catch {}
@@ -1016,41 +976,6 @@ test_settings_are_stored_by_the_owner_and_sent_with_each_forwarded_call = {
   expect(got.pop()).toEqual({});
   expect((await rig.owner("config.list")).data.workers).toEqual([]);
   return "set, sent, changed, removed; 5 callers and 18 requests refused";
-}
-// %%
-test_calls_are_counted_and_handed_to_the_metrics_service = {
-  const batches = [];
-  const workers = {
-    metrics: async (request) => (batches.push({ caller: request.headers.get("x-brain-caller"), ...(await request.json()) }), Response.json({ stored: 1 })),
-    broken: async () => new Response("boom", { status: 500 })
-  };
-  const settle = () => new Promise((r) => setTimeout(r, 20));
-  // The counter is the Worker's own state and outlives a rig, so both waits are set to nothing here.
-  const rig = await coreRig({ config: { metricsFlushMs: 0, metricsRouteMs: 0 }, workers });
-  const reg = (worker, methods) => rig.deployer("service.register", { worker, role: "recipe", methods, paths: [], secrets: [], keyHash: worker });
-  await reg("brain-x-metrics", { "com.lopecode.brain.metrics.record": { type: "procedure", who: "worker:brain-core" }, "com.lopecode.brain.metrics.query": { type: "query", who: "owner" } });
-  await reg("brain-x-broken", { "com.lopecode.brain.broken.go": { type: "procedure", who: "owner" } });
-  await settle();
-  batches.length = 0;
-  await rig.owner("echo.say", { text: "hi" });
-  await rig.anonymous("/hooks/echo");
-  await rig.anonymous("made.up.name");
-  await rig.owner("broken.go", {});
-  // Its own traffic is not counted.
-  await rig.owner("metrics.query");
-  await settle();
-  expect(batches.every((b) => b.caller === "worker:brain-core")).toBe(true);
-  const got = batches.flatMap((b) => b.buckets).map((b) => [b.worker, b.method, b.caller, b.status, b.n]);
-  // The broken Worker here is a bare function with no wrapper, so it names no version; the core names its own.
-  expect(batches.flatMap((b) => b.buckets).map((b) => b.version)).toEqual(["", "", rig.sim.emitted.hash.slice(0, 12), ""]);
-  expect(got).toEqual([
-    ["brain-x-echo", "echo.say", "owner", 200, 1],
-    ["brain-x-echo", "/hooks/echo", "anonymous", 200, 1],
-    ["brain-core", "(unknown)", "anonymous", 501, 1],
-    ["brain-x-broken", "broken.go", "owner", 500, 1]
-  ]);
-  expect(batches.flatMap((b) => b.errors)).toMatchObject([{ worker: "brain-x-broken", method: "broken.go", status: 500 }]);
-  return got.length + " counted";
 }
 // %%
 test_routes_by_method_and_path = {

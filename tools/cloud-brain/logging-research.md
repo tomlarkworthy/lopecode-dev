@@ -182,11 +182,11 @@ One event:
 | Tail Worker (`tail_consumers`) | own filter or own store; gets `logs`, `exceptions`, `outcome` per invocation; Paid; billed by its CPU (<https://developers.cloudflare.com/workers/observability/logs/tail-workers/>) | only if 7 days is too short |
 | `wrangler tail` / tail WebSocket | live view while debugging | no history |
 | Logpush to R2 | long retention; 10 M a month included, then $0.05 a million | later, if asked for |
-| Analytics Engine, GraphQL analytics | counts and sums, no lines | `brain-metrics` already does this |
+| Analytics Engine, GraphQL analytics | counts and sums, no lines | not needed: a `calculations` query over the log lines gives the counts (`brain-metrics` did this until it was removed on 2026-10-09) |
 
 ## 4. What the Brain records today, and what it cannot answer
 
-- `brain-metrics`: counts by worker, version, method, caller kind and status in 10 s batches, and a
+- `brain-metrics` (removed 2026-10-09; the page's chart now counts log lines): counts by worker, version, method, caller kind and status in 10 s batches, and a
   `metrics_faults` row for a 5xx (`brain-core.ojs:177`, `brain-metrics.ojs:85`). No message, no error name,
   no rule, no link between hops.
 - The deployer's audit rows: who deployed what and when.

@@ -22,7 +22,14 @@ Read this before changing, deploying or diagnosing a service of the Cloud Brain 
 
 ## Checking how it is running
 
-`brain_call` with method `metrics.query`, kind `query`, input `{ since, until, step }` (ms; default the last hour in 1-minute steps; at most 8 days). It returns `series`, rows of `{ t, worker, method, caller, status, n, ms, max }` where `ms` is the sum over `n` calls, and `errors`, the calls answered 500 or above except 501, newest first. Only calls that pass through the core are counted. The charts are in the module `@tomlarkworthy/brain-metrics`.
+The Health section of the page, for the owner: calls of the last hour by Worker, the share that were faults, and a table by method. It is one `logs.query` over the core's log lines (`callsQuery` and `callsSeries` in the module `@tomlarkworthy/cloud-brain`). The same counts from a terminal:
+
+```
+bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.logs.query --owner -X POST -H 'content-type: application/json' \
+  -d '{"queryId":"calls","timeframe":{"from":FROM_MS,"to":TO_MS},"view":"calculations","parameters":{"calculations":[{"operator":"count"}],"groupBys":[{"type":"string","value":"method"},{"type":"string","value":"caller"}],"filters":[{"key":"method","operation":"exists","type":"string"}],"limit":500}}'
+```
+
+Only calls that pass through the core have a line. Until 2026-10-09 this was `metrics.query` on `brain-x-metrics`, which is removed.
 
 ## Writing a recipe
 
