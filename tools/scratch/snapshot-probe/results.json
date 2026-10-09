@@ -1,0 +1,122 @@
+{
+ "at": "2026-10-09T04:00:38.549Z",
+ "out": [
+  {
+   "name": "hn-algolia-front",
+   "outer": 200,
+   "upstream": null,
+   "type": "application/json",
+   "bytes": 33261,
+   "ms": 3860,
+   "head": "{\"exhaustive\":{\"nbHits\":true,\"typo\":true},\"exhaustiveNbHits\":true,\"exhaustiveTypo\":true,\"hits\":[{\"_highlightRe"
+  },
+  {
+   "name": "hn-firebase-top",
+   "outer": 200,
+   "upstream": null,
+   "type": "application/json; charset=utf-8",
+   "bytes": 4501,
+   "ms": 414,
+   "head": "[50008427,50015074,50009295,49995495,50015515,50013610,49986882,50000488,50003796,50010470,50011999,50011928,4"
+  },
+  {
+   "name": "arxiv-api",
+   "outer": 429,
+   "upstream": null,
+   "type": "text/html",
+   "bytes": 14,
+   "ms": 243,
+   "head": "Rate exceeded."
+  },
+  {
+   "name": "arxiv-rss-cs.AI",
+   "outer": 200,
+   "upstream": null,
+   "type": "application/rss+xml",
+   "bytes": 1032716,
+   "ms": 215,
+   "head": "<?xml version='1.0' encoding='UTF-8'?> <rss xmlns:arxiv=\"http://arxiv.org/schemas/atom\" xmlns:dc=\"http://purl."
+  },
+  {
+   "name": "reddit-ml-json",
+   "outer": 403,
+   "upstream": null,
+   "type": "text/html",
+   "bytes": 189906,
+   "ms": 232,
+   "head": "<body class=theme-beta><div><style>.theme-light,:root{--rem360:22.5rem;--rem320:20rem;--rem192:12rem;--rem144:"
+  },
+  {
+   "name": "reddit-ml-rss",
+   "outer": 200,
+   "upstream": null,
+   "type": "application/atom+xml; charset=UTF-8",
+   "bytes": 36853,
+   "ms": 427,
+   "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><feed xmlns=\"http://www.w3.org/2005/Atom\" xmlns:media=\"http://search.yah"
+  },
+  {
+   "name": "reddit-localllama-json",
+   "outer": 403,
+   "upstream": null,
+   "type": "text/html",
+   "bytes": 189906,
+   "ms": 168,
+   "head": "<body class=theme-beta><div><style>.theme-light,:root{--rem360:22.5rem;--rem320:20rem;--rem192:12rem;--rem144:"
+  },
+  {
+   "name": "reddit-old-ml-json",
+   "outer": 200,
+   "upstream": null,
+   "type": "text/html; charset=utf-8",
+   "bytes": 328526,
+   "ms": 759,
+   "head": " <!DOCTYPE html> <html lang=\"en-US\" class=\"theme-beta\" dir=\"ltr\" device=\"desktop\"> <head prefix="
+  },
+  {
+   "name": "hf-daily-papers",
+   "outer": 200,
+   "upstream": null,
+   "type": "application/json; charset=utf-8",
+   "bytes": 267421,
+   "ms": 329,
+   "head": "[{\"paper\":{\"id\":\"2610.12299\",\"authors\":[{\"_id\":\"6ac8603a4364a3d18a5cc821\",\"name\":\"Dahyun Chung\",\"hidden\":false"
+  },
+  {
+   "name": "lobsters-hottest",
+   "outer": 200,
+   "upstream": null,
+   "type": "application/json",
+   "bytes": 14263,
+   "ms": 283,
+   "head": "[{\"short_id\":\"lhr4oy\",\"created_at\":\"2026-10-08T03:18:39.422-05:00\",\"title\":\"The people holding up the internet"
+  },
+  {
+   "name": "lobsters-ai-tag",
+   "outer": 200,
+   "upstream": null,
+   "type": "application/json",
+   "bytes": 17015,
+   "ms": 174,
+   "head": "[{\"short_id\":\"xff77a\",\"created_at\":\"2026-10-07T09:12:02.815-05:00\",\"title\":\"Best Books/Courses/Channels to Lea"
+  },
+  {
+   "name": "hf-trending-models",
+   "outer": 400,
+   "upstream": null,
+   "type": "application/json; charset=utf-8",
+   "bytes": 63,
+   "ms": 206,
+   "head": "{\"error\":\"✖ Too big: expected number to be <=20\\n → at limit\"}"
+  },
+  {
+   "name": "github-trending-search",
+   "outer": 200,
+   "upstream": null,
+   "type": "application/json; charset=utf-8",
+   "bytes": 167350,
+   "ms": 849,
+   "head": "{\"total_count\":20198,\"incomplete_results\":false,\"items\":[{\"id\":1136590548,\"node_id\":\"R_kgDOQ77-1A\",\"name\":\"ECC"
+  }
+ ]
+}

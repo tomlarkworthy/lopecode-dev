@@ -1,0 +1,239 @@
+{
+ "at": "2026-10-09T04:02:47.843Z",
+ "out": [
+  {
+   "name": "anthropic-news-rss",
+   "status": 404,
+   "type": "text/html; charset=utf-8",
+   "bytes": 20570,
+   "ms": 352,
+   "items": 0,
+   "newest": null
+  },
+  {
+   "name": "anthropic-news-feed",
+   "status": 404,
+   "type": "text/html; charset=utf-8",
+   "bytes": 21089,
+   "ms": 337,
+   "items": 0,
+   "newest": null
+  },
+  {
+   "name": "anthropic-research",
+   "status": 404,
+   "type": "text/html; charset=utf-8",
+   "bytes": 21097,
+   "ms": 354,
+   "items": 0,
+   "newest": null
+  },
+  {
+   "name": "openai-news",
+   "status": 200,
+   "type": "text/xml; charset=utf-8",
+   "bytes": 765514,
+   "ms": 265,
+   "items": 1258,
+   "newest": "Thu, 08 Oct 2026 16:00:00"
+  },
+  {
+   "name": "openai-blog",
+   "status": 200,
+   "type": "text/xml; charset=utf-8",
+   "bytes": 765514,
+   "ms": 263,
+   "items": 1258,
+   "newest": "Thu, 08 Oct 2026 16:00:00"
+  },
+  {
+   "name": "deepmind",
+   "status": 200,
+   "type": "text/xml",
+   "bytes": 69459,
+   "ms": 471,
+   "items": 100,
+   "newest": "Tue, 06 Oct 2026 19:57:04"
+  },
+  {
+   "name": "google-research",
+   "status": 200,
+   "type": "application/rss+xml; charset=u",
+   "bytes": 78479,
+   "ms": 587,
+   "items": 100,
+   "newest": "Wed, 07 Oct 2026 20:19:57"
+  },
+  {
+   "name": "meta-ai",
+   "status": 404,
+   "type": "text/html; charset=\"utf-8\"",
+   "bytes": 185442,
+   "ms": 1083,
+   "items": 0,
+   "newest": null
+  },
+  {
+   "name": "meta-research",
+   "status": 200,
+   "type": "text/xml; charset=UTF-8",
+   "bytes": 5210,
+   "ms": 2196,
+   "items": 10,
+   "newest": "Wed, 17 May 2023 10:52:00"
+  },
+  {
+   "name": "meta-eng",
+   "status": 200,
+   "type": "application/rss+xml; charset=U",
+   "bytes": 254366,
+   "ms": 318,
+   "items": 9,
+   "newest": "Wed, 02 Sep 2026 09:00:29"
+  },
+  {
+   "name": "bair",
+   "status": 200,
+   "type": "application/xml",
+   "bytes": 288486,
+   "ms": 2944,
+   "items": 10,
+   "newest": "Wed, 29 Jul 2026 02:00:00"
+  },
+  {
+   "name": "msr",
+   "status": 200,
+   "type": "application/rss+xml; charset=U",
+   "bytes": 262849,
+   "ms": 999,
+   "items": 10,
+   "newest": "Wed, 07 Oct 2026 16:00:00"
+  },
+  {
+   "name": "simonw",
+   "status": 200,
+   "type": "application/xml; charset=utf-8",
+   "bytes": 81084,
+   "ms": 265,
+   "items": 30,
+   "newest": "2026-10-08T23:34:28+00:00"
+  },
+  {
+   "name": "karpathy-bear",
+   "status": 200,
+   "type": "application/atom+xml; charset=",
+   "bytes": 143327,
+   "ms": 203,
+   "items": 10,
+   "newest": "2026-04-30T16:30:08.88384"
+  },
+  {
+   "name": "karpathy-gh",
+   "status": 200,
+   "type": "application/xml",
+   "bytes": 890356,
+   "ms": 316,
+   "items": 10,
+   "newest": "Thu, 12 Feb 2026 07:00:00"
+  },
+  {
+   "name": "lilianweng",
+   "status": 200,
+   "type": "application/xml",
+   "bytes": 79606,
+   "ms": 174,
+   "items": 53,
+   "newest": "Sat, 04 Jul 2026 00:00:00"
+  },
+  {
+   "name": "raschka",
+   "status": 200,
+   "type": "application/xml; charset=utf-8",
+   "bytes": 2704963,
+   "ms": 315,
+   "items": 20,
+   "newest": "Tue, 29 Sep 2026 10:50:25"
+  },
+  {
+   "name": "importai",
+   "status": 200,
+   "type": "application/rss+xml; charset=U",
+   "bytes": 271072,
+   "ms": 309,
+   "items": 10,
+   "newest": "Mon, 05 Oct 2026 12:32:30"
+  },
+  {
+   "name": "importai-substack",
+   "status": 200,
+   "type": "application/xml; charset=utf-8",
+   "bytes": 464633,
+   "ms": 219,
+   "items": 20,
+   "newest": "Mon, 05 Oct 2026 12:32:30"
+  },
+  {
+   "name": "eugeneyan",
+   "status": 200,
+   "type": "application/xml",
+   "bytes": 104905,
+   "ms": 215,
+   "items": 212,
+   "newest": "Sun, 21 Jun 2026 00:00:00"
+  },
+  {
+   "name": "huyenchip",
+   "status": 200,
+   "type": "application/xml",
+   "bytes": 339019,
+   "ms": 777,
+   "items": 10,
+   "newest": "Thu, 16 Jan 2025 00:00:00"
+  },
+  {
+   "name": "interconnects",
+   "status": 200,
+   "type": "application/xml; charset=utf-8",
+   "bytes": 541936,
+   "ms": 176,
+   "items": 20,
+   "newest": "Tue, 06 Oct 2026 14:22:41"
+  },
+  {
+   "name": "hamel",
+   "status": 200,
+   "type": "application/xml",
+   "bytes": 523147,
+   "ms": 317,
+   "items": 20,
+   "newest": "Wed, 30 Sep 2026 07:00:00"
+  },
+  {
+   "name": "gwern",
+   "status": 200,
+   "type": "application/xml; charset=utf-8",
+   "bytes": 140961,
+   "ms": 197,
+   "items": 14,
+   "newest": "Fri, 11 Jun 2021 14:16:22"
+  },
+  {
+   "name": "gwern-substack",
+   "status": 200,
+   "type": "application/xml; charset=utf-8",
+   "bytes": 140961,
+   "ms": 188,
+   "items": 14,
+   "newest": "Fri, 11 Jun 2021 14:16:22"
+  },
+  {
+   "name": "gwern-rss",
+   "status": 200,
+   "type": "application/xml; charset=utf-8",
+   "bytes": 140961,
+   "ms": 194,
+   "items": 14,
+   "newest": "Fri, 11 Jun 2021 14:16:22"
+  }
+ ]
+}

@@ -40,7 +40,8 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
 - **Core** (`<base>-core`): every `/xrpc/com.lopecode.brain.*` call passes it. It checks the CEL
   rule, charges the price, writes one log line, then forwards to the service.
 - **Services** (`<base>-x-NAME`, notebook module `@tomlarkworthy/brain-NAME`): browser, logs, proxy,
-  bluesky, whatsapp, blob, feed, library, metrics, static, inbox. `<base>-x-page` is built from
+  bluesky, whatsapp, blob, feed, library, metrics, static, inbox, snapshot (a daily record of
+  public feeds at `/static/snapshot/<day>/`; it makes no model call). `<base>-x-page` is built from
   `@tomlarkworthy/cloud-brain`. `brain-secrets` is a module of the page, not a Worker.
 - **Database** (`<base>-db`): the rows every Worker keeps go through it.
 - **Deployer** (`<base>-deployer`): the only holder of a Cloudflare token. It applies recipes,

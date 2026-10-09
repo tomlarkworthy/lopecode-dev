@@ -608,3 +608,18 @@ Cloudflare stores the URL of a call, with its query string, beside each line a W
 - `--url` on a notebook from `brain-library` (`/library/<name>`, public) was not run.
 - The owner's $1 a day allows about 11 hours of one browser.
 
+## Added 2026-10-09 06:11: the research digest
+
+Tom, 2026-10-09: "I would like to record the latest research (AI particularly) and you to send me a summary. We need this cluster to self improve itself. A snapshot of hackernews, reddit etc. The most interesting things should be replicated into a Notebook. Maybe the format should be a timestamped notebook." Sources: "It needs to be research or top blogger Karpathy / Simon Willison kinds of people."
+
+- **Built:** `brain-x-snapshot` records 21 feeds a day as public JSON under `/static/snapshot/<day>/` (`spec-as-built.md`, last section).
+- **Not built: the digest.** Read a day's files, choose what matters, write the summary, and make the timestamped notebook with the most interesting items replicated in it. It runs in a notebook, not in a Worker. Decided for now (Tom, 2026-10-09): the summary goes to Tom by Bluesky DM; Claude Code writes the first digests from the local session.
+- **Not built: "self improve".** Nothing reads a digest back into the Brain's own backlog or code.
+- Open: where the notebook of the day is kept (`brain-library`, public?) and its name (`digest-2026-10-09`?).
+- Open: who runs the digest turn when no local session is open (a notebook in a cluster browser; the Containers workstream).
+- Open: Reddit. The feed gives no score and Reddit rate-limits Cloudflare's addresses (429 after about ten requests in an hour). An OAuth app of Tom's would give scores and a limit of its own. Not asked for yet.
+- Open: Anthropic and Meta AI publish no feed at the addresses tried. A page scrape with the browser service would cover them; not built.
+- Open: the first timed run (06:00 UTC) has not been observed. Check `ranAt` in `/static/snapshot/days.json`.
+- Open: history. Files are never deleted: about 1.3 MB a day, 1.0 MB of it arXiv.
+- Not done: a retry when a source fails at 06:00; old files of a renamed source on the same day; a search over the days.
+

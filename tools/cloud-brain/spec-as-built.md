@@ -2534,3 +2534,56 @@ Deploy 19:29 to 19:35 UTC: deployer `2038bf52906e`, core `c06bfb19aa78`, kernel 
 - **Verified on cb4:** pairing tools against the cluster page (Linux user agent, signed in); the lease held by it with no local tab; the public quick start paired with no `brain_session`; exit when the time ran out; `browser.all` empty and `lease.get` `held: false` after.
 - **Not verified:** a reconnect after Cloudflare cuts the socket (no cut in two sockets of 11 min); `--keep`; a notebook served by `brain-library`; binary frames (not carried).
 
+## `brain-x-snapshot`: a daily record of public feeds (2026-10-09, to 06:11 CEST)
+
+Tom, 2026-10-09: "I would like to record the latest research (AI particularly) and you to send me a summary. We need this cluster to self improve itself. A snapshot of hackernews, reddit etc. The most interesting things should be replicated into a Notebook. Maybe the format should be a timestamped notebook." And on what to record: "It needs to be research or top blogger Karpathy / Simon Willison kinds of people."
+
+- **Built:** the recording half only. `brain-x-snapshot` (`brain-snapshot.ojs`) fetches a list of feeds once a day and keeps each as a public JSON file in `brain-static` under `snapshot/<day>/`. Sources are rows (`name tier url kind`, with `map`, `days`, `keep`, `limit`); one reader for RSS and Atom, one for JSON by paths. Three methods: `snapshot.run` and `snapshot.setSources` (the owner's own session), `snapshot.sources` (anyone). No method reads a snapshot: the files are public at `/static/snapshot/…`.
+- **Not built:** ranking, the summary, the notebook of the day, its delivery. No model is called from a Worker. Decided by Tom for now: the summary goes to him by Bluesky DM, and Claude Code writes the first digests from the local session.
+- **Deployed on cb4,** 04:06 UTC, then `1a6b9cf2f6d6` and `f0389cb64bbb` (04:09 UTC). 16 Workers `same`. Kernel, core and page were not touched.
+- **Tests:** brain-snapshot 7 of 7; cloudflare-iac 22 of 22 and brain-logs 3 of 3 beside it.
+
+Which sources answer a Worker of cb4 with no key (`tools/scratch/snapshot-probe/results.json`, `results-blogs.json`, through `proxy.fetch`, 2026-10-09 04:00 UTC):
+
+```
+arXiv API  export.arxiv.org/api/query            429 "Rate exceeded."      -> rss.arxiv.org/rss/cs.AI+cs.LG+cs.CL  200, 1.94 MB, 907 items
+Reddit     /r/MachineLearning/top.json           403 (HTML block page)     -> /top/.rss                            200 (Atom, no score)
+Reddit     old.reddit.com …/top.json             200 but an HTML page
+Anthropic  /rss.xml /news/rss.xml /research/…    404                       -> not in the list
+Meta AI    ai.meta.com/blog/rss/                 404                       -> engineering.fb.com/category/ai-research/feed/ 200
+Gwern      gwern.net/feed                        200, newest item 2021     -> not in the list
+HF trending  /api/trending?limit=30              400 "expected number to be <=20"; not in the list
+```
+
+The run of 04:10:28 UTC, 843 items in 12 files, about 2 s for the call:
+
+| source | tier | status | kept | ms |
+|---|---|---|---|---|
+| `arxiv` | research | 200 | 611 of 907 | 962ms |
+| `hf-papers` | research | 200 | 50 of 50 | 645ms |
+| `openai` | research | 200 | 14 of 1258 | 614ms |
+| `deepmind` | research | 200 | 1 of 100 | 388ms |
+| `google-research` | research | 200 | 4 of 100 | 1137ms |
+| `microsoft-research` | research | 200 | 2 of 10 | 1168ms |
+| `bair` | research | 200 | 0 of 10 | 1277ms |
+| `meta-engineering-ai` | research | 200 | 0 of 9 | 80ms |
+| `simon-willison` | blogger | 200 | 21 of 30 | 676ms |
+| `karpathy` | blogger | 200 | 0 of 10 | 38ms |
+| `karpathy-github` | blogger | 200 | 0 of 10 | 46ms |
+| `lilian-weng` | blogger | 200 | 0 of 53 | 47ms |
+| `sebastian-raschka` | blogger | 200 | 0 of 20 | 61ms |
+| `import-ai` | blogger | 200 | 1 of 10 | 642ms |
+| `eugene-yan` | blogger | 200 | 0 of 212 | 78ms |
+| `chip-huyen` | blogger | 200 | 0 of 10 | 705ms |
+| `interconnects` | blogger | 200 | 1 of 20 | 496ms |
+| `hamel-husain` | blogger | 200 | 0 of 20 | 129ms |
+| `hn` | aggregator | 200 | 30 of 30 | 931ms |
+| `reddit` | aggregator | 200 | 83 of 83 | 1512ms |
+| `lobsters-ai` | aggregator | 200 | 25 of 25 | 1052ms |
+
+- A blog or lab feed keeps the last 7 days (`days: 7`), so 9 of 16 kept nothing and wrote no file. arXiv keeps `Announce Type: new` and `cross` (611 of 907); its file is 1.0 MB.
+- **Reddit refuses a second feed.** With two subreddits as two sources the second answered 429, at the same time and also 2 s apart. Both are now one feed, `r/MachineLearning+LocalLLaMA` (83 items). After about ten requests in an hour from these tests Reddit answered 429 to every one for some minutes. One request a day has not been observed over days.
+- Public, checked with no session: `/static/snapshot/days.json` 200; `/static/snapshot/2026-10-09/index.json` 200, 2,995 bytes; each source file 200 (`reddit.json` 99,499 bytes). `snapshot.run` with no caller: 401. `setSources` as the test member: 403.
+- **Timer:** `scheduled` on the wrapper's tick, once a minute; the Worker runs at the first tick after 06:00 UTC and marks the day with `rows.putIfAbsent("ran/<day>")`. **Not observed:** the service was deployed at 04:06 UTC, so the first timed run is 2026-10-09 06:00 UTC. `days.json` shows a `ranAt` after 06:00 when it has happened. Whether the tick is armed could not be read: `/__tick` answered 404 to the keys in the CLI's state file.
+- **Not verified:** the `User-Agent` a source receives (a browser drops the header under `simulate`); the subrequest count against a Free plan's 50 (21 fetches, 14 writes and the row calls ran in one invocation on cb4); `setSources` on cb4 (tests only); the panel in a served page.
+- A file an earlier run of the day wrote for a source that a later run does not keep stays, and the index does not list it. `snapshot/2026-10-09/reddit-machinelearning.json` from the first test run was deleted by hand; `reddit-localllama` never had one.
