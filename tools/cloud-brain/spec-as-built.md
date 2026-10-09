@@ -2717,8 +2717,17 @@ Not done:
 - D1 does not export a database that has a virtual table, and `entries_fts` is one. The way round (drop the index, export, build it again from `entries`) was not run.
 - An entry is not told when its `file` is deleted.
 - `knowledge.put` is open to one Worker by name. A second feeder needs the owner to set a rule; there is no shared rule for "the Brain's own Workers".
-- The first test note (`note:first`) is still in the database.
-- No fresh review of this module yet.
+- A put that changes `tags` or `cites` only adds to them. Removing one means deleting the entry and putting it again.
+
+**After the fresh review, 2026-10-09 09:15 to 09:25 CEST.** Five findings, each checked against the seed and changed:
+
+- `changed.method` was the first enterer's method when the later put gave none (the merged value was written). It is now the method that put gave, `null` when none. On cb4: the owner put `{ id: "note:first", published }` and `changed` read `{ by: "owner", method: null }`.
+- The panel's value changed with no `input` event, so a cell reading `knowledgeView` kept the first list. The element now dispatches `input` after each draw. `load` listens on the two inputs, not on the element, so no second draw starts.
+- A `url` that matched the pattern and did not parse (`https://[`) was kept, and the panel's table then threw on `new URL`. The entry check now parses it (400 `url: not an address that parses` on cb4), and the panel shows an address it cannot parse as written.
+- `since=2026` was read as 2026 ms. Four digits alone are refused (400 on cb4); a date needs `YYYY-MM` at least. `kind: null` on a kept entry was refused and now keeps the kind, as `null` does for every other field.
+- The id and name patterns and the lengths of `source` (40), `published` (40) and `file` (200) were written twice, in the entry check and in the filters. They are in `knowledgePatterns` and `knowledgeLimits`, and the prose reads them from there. The method table now gives the default of `list` (50), `limits` in `stats`, and what clears a field.
+
+Deployed `brain-x-knowledge` alone (`e4f0a55ce154`). `redistil`: 17 `same`; lease held. Tests 6 of 6, forced in a local tab. `note:first` deleted: 67 entries (28 findings, 21 papers, 10 articles, 8 posts; 54 by `owner`, 13 by `worker:brain-x-snapshot`). `keep.ts 2026-10-09` run once more: 26 of 28 kept; one Reddit thread 429 again, openai.com 403. Its 56 puts were all changes, so those entries now carry `changed`.
 
 ## Fewer calls from an open tab: Bluesky credentials kept 5 minutes, and a 30 s poll (2026-10-09, to 09:17 CEST)
 

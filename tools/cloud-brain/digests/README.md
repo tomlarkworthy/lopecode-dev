@@ -81,3 +81,5 @@ Reads the `picks` cell of that day's seed. Each pick is kept as a private file u
 It then calls `knowledge.put` with two entries a pick: the source (`arxiv:<id>` for a paper, else `<source>:<id>`; the text is the snapshot's summary when the day's snapshot has one; `file` and `sha256` of the kept copy) and a `finding` whose text is the pick's `why` and which cites the source. Both have method `digest:research-<day>`.
 
 2026-10-09, 08:41 CEST: 25 of 28 kept, 28.7 MB; 56 entries put, 54 new and 2 changed. Not kept: two Reddit threads (429) and openai.com (403); their entries have no `file`.
+
+09:24 CEST, run again: 26 of 28 kept. One Reddit thread came through; the other answered 429 again and openai.com 403. The 56 entries were put again, all as changes.

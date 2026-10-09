@@ -14,10 +14,10 @@ md`## Methods
 | \`knowledge.put\` | procedure. One entry, or \`{ entries: [...] }\`, ${knowledgeLimits.batch} at most. \`{ entered, changed, ids }\`. |
 | \`knowledge.get\` | query. \`?id=\`. The entry, or 404 \`EntryNotFound\`. |
 | \`knowledge.search\` | query. \`?q=\` and the filters below, \`limit\` 1 to ${knowledgeLimits.page} (20). \`{ entries }\`, best match first, each with a \`snippet\`. |
-| \`knowledge.list\` | query. The filters below, \`limit\`, \`cursor\`. \`{ entries, cursor }\`, last entered first. |
+| \`knowledge.list\` | query. The filters below, \`limit\` 1 to ${knowledgeLimits.page} (50), \`cursor\`. \`{ entries, cursor }\`, last entered first. |
 | \`knowledge.delete\` | procedure. \`{ id }\` or \`{ ids }\`. \`{ deleted }\`. |
-| \`knowledge.stats\` | query. \`{ entries, kinds, sources, by }\`: counts, the last two of the 100 largest. |
-| Filters | \`source\`, \`kind\`, \`by\`, \`tag\`, and \`since\` (milliseconds or an ISO date, compared with \`at\`) |
+| \`knowledge.stats\` | query. \`{ entries, kinds, sources, by, limits }\`: counts, \`sources\` and \`by\` of the 100 largest, and \`knowledgeLimits\`. |
+| Filters | \`source\`, \`kind\`, \`by\`, \`tag\`, and \`since\`, compared with \`at\`: milliseconds, or a date from \`YYYY-MM\` on. Four digits alone are refused, since they could be either. |
 | Storage | \`database\`: \`entries\` and its full-text index \`entries_fts\` |
 
 ## An entry
@@ -28,17 +28,17 @@ md`## Methods
 | \`kind\` | ${knowledgeKinds.map((k) => "\`" + k + "\`").join(", ")} |
 | \`title\` | 1 to ${knowledgeLimits.title} characters |
 | \`text\` | the abstract, the summary or the finding, ${knowledgeLimits.text} characters at most. This and the title are what a search reads. |
-| \`url\` | where it was found |
-| \`source\` | the service it came from, \`a-z 0-9 -\`: \`arxiv\`, \`hn\`, \`simon-willison\` |
-| \`published\` | the date the source gives, as text |
-| \`file\`, \`sha256\` | the path of the kept copy in \`brain-static\` and the SHA-256 of its bytes |
+| \`url\` | where it was found: an \`http\` or \`https\` address that parses |
+| \`source\` | the service it came from, \`a-z 0-9 -\`, ${knowledgeLimits.source} characters at most: \`arxiv\`, \`hn\`, \`simon-willison\` |
+| \`published\` | the date the source gives, as text, ${knowledgeLimits.published} characters at most |
+| \`file\`, \`sha256\` | the path of the kept copy in \`brain-static\`, ${knowledgeLimits.file} characters at most, and the SHA-256 of its bytes |
 | \`method\` | how it was entered, ${knowledgeLimits.method} characters at most: \`snapshot\`, \`digest:research-2026-10-09\`, \`manual\` |
 | \`cites\` | ids of the entries this one is drawn from, ${knowledgeLimits.cites} at most. A finding cites its sources. |
-| \`tags\` | \`a-z 0-9 -\`, ${knowledgeLimits.tags} at most |
+| \`tags\` | \`a-z 0-9 -\`, ${knowledgeLimits.source} characters each, ${knowledgeLimits.tags} at most |
 | \`by\`, \`at\` | who entered it and when. Set here from the caller the core names (\`owner\`, \`token:NAME\`, \`worker:brain-x-NAME\`, a DID); a value in the body is not read. |
-| \`changed\` | \`null\`, or \`{ by, method, at }\` of the last put after the first |
+| \`changed\` | \`null\`, or \`{ by, method, at }\` of the last put after the first. Its \`method\` is the one that put gave, \`null\` when it gave none. |
 
-A put of an id that is kept changes the entry. \`by\`, \`method\` and \`at\` stay as first entered. A field left out keeps its value; \`tags\` and \`cites\` are joined with those kept.
+A put of an id that is kept changes the entry. \`by\`, \`method\` and \`at\` stay as first entered. A field left out, or \`null\`, keeps its value. An empty text clears \`text\`, \`url\`, \`source\`, \`published\`, \`file\` or \`sha256\`; \`title\` and \`method\` cannot be cleared. \`tags\` and \`cites\` are only added to: those given are joined with those kept, and the way to remove one is to delete the entry and put it again.
 
 \`\`\`js
 await client.procedure("knowledge.put", { id: "arxiv:2610.08077", kind: "paper", title: "Self-Retrospection Distillation", text: "…", url: "https://arxiv.org/abs/2610.08077", source: "arxiv", method: "manual" })
@@ -78,7 +78,10 @@ knowledge_announce = {
 // %%
 knowledgeKinds = ["paper", "article", "post", "finding", "note", "other"]
 // %%
-knowledgeLimits = ({ batch: 100, page: 100, id: 100, title: 500, text: 16000, url: 2000, method: 100, cites: 50, tags: 16 })
+knowledgeLimits = ({ batch: 100, page: 100, id: 100, title: 500, text: 16000, url: 2000, source: 40, published: 40, file: 200, method: 100, cites: 50, tags: 16 })
+// %%
+// An id, and a name (a source or a tag). The lengths are knowledgeLimits.id and knowledgeLimits.source.
+knowledgePatterns = ({ id: /^[a-z0-9][a-z0-9._:-]*$/, name: /^[a-z0-9-]+$/ })
 // %%
 // entries has a rowid (n) so that its full-text row is found by rowid; "by" is a word of SQL, so the column is entered_by.
 knowledgeSchema = [
@@ -93,8 +96,8 @@ knowledgeSql = {
   const FILTER = "(?1 = '' OR e.source = ?1) AND (?2 = '' OR e.kind = ?2) AND (?3 = '' OR e.entered_by = ?3) AND e.at >= ?4 AND (?5 = '' OR e.tags LIKE ?5)";
   return {
     get: `SELECT ${COLS} FROM entries e WHERE e.id = ?1`,
-    // A put of a kept id leaves entered_by, method and at as they were.
-    put: "INSERT INTO entries (id, kind, title, text, url, source, published, file, sha256, entered_by, method, at, cites, tags) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14) ON CONFLICT (id) DO UPDATE SET kind = excluded.kind, title = excluded.title, text = excluded.text, url = excluded.url, source = excluded.source, published = excluded.published, file = excluded.file, sha256 = excluded.sha256, cites = excluded.cites, tags = excluded.tags, upd_by = excluded.entered_by, upd_method = excluded.method, upd_at = excluded.at",
+    // A put of a kept id leaves entered_by, method and at as they were. ?15 is the method this put gave, null when none.
+    put: "INSERT INTO entries (id, kind, title, text, url, source, published, file, sha256, entered_by, method, at, cites, tags) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14) ON CONFLICT (id) DO UPDATE SET kind = excluded.kind, title = excluded.title, text = excluded.text, url = excluded.url, source = excluded.source, published = excluded.published, file = excluded.file, sha256 = excluded.sha256, cites = excluded.cites, tags = excluded.tags, upd_by = excluded.entered_by, upd_method = ?15, upd_at = excluded.at",
     ftsDrop: "DELETE FROM entries_fts WHERE rowid = (SELECT n FROM entries WHERE id = ?1)",
     ftsAdd: "INSERT INTO entries_fts (rowid, title, text, tags) SELECT n, title, text, tags FROM entries WHERE id = ?1",
     drop: "DELETE FROM entries WHERE id = ?1",
@@ -128,22 +131,23 @@ knowledgeEntry = async (given, kept = null) => {
     if (typeof v !== "string" || v.length > max || (pattern && !pattern.test(v))) return { error: `${k}: text of ${max} characters at most${pattern ? ", " + pattern.source : ""}` };
     return { value: v };
   };
-  const NAME = /^[a-z0-9-]{1,40}$/, ID = /^[a-z0-9][a-z0-9._:-]*$/;
+  const NAME = knowledgePatterns.name, ID = knowledgePatterns.id;
+  const parses = (u) => { try { return !!new URL(u); } catch { return false; } };
   const list = (k, max, pattern) => {
     const v = e[k] === undefined || e[k] === null ? [] : e[k];
-    if (!Array.isArray(v) || !v.every((t) => typeof t === "string" && pattern.test(t) && t.length <= L.id)) return { error: `${k}: a list of ${pattern.source}` };
+    if (!Array.isArray(v) || !v.every((t) => typeof t === "string" && pattern.test(t) && t.length <= (pattern === NAME ? L.source : L.id))) return { error: `${k}: a list of ${pattern.source}` };
     const all = [...new Set([...((kept && kept[k]) || []), ...v])];
     return all.length > max ? { error: `${k}: ${max} at most` } : { value: all };
   };
   const out = {};
   const fields = [
-    ["kind", () => (knowledgeKinds.includes(e.kind === undefined && kept ? kept.kind : e.kind) ? { value: e.kind === undefined && kept ? kept.kind : e.kind } : { error: "kind: one of " + knowledgeKinds.join(", ") })],
+    ["kind", () => ((k) => (knowledgeKinds.includes(k) ? { value: k } : { error: "kind: one of " + knowledgeKinds.join(", ") }))(e.kind == null && kept ? kept.kind : e.kind)],
     ["title", () => text("title", L.title, { need: true })],
     ["text", () => ((r) => (r.error ? r : { value: r.value || "" }))(text("text", L.text))],
-    ["url", () => text("url", L.url, { pattern: /^https?:\/\/\S+$/ })],
-    ["source", () => text("source", 40, { pattern: NAME })],
-    ["published", () => text("published", 40)],
-    ["file", () => text("file", 200, { pattern: /^[A-Za-z0-9@._-]+(\/[A-Za-z0-9@._-]+)*$/ })],
+    ["url", () => ((r) => (r.error || !r.value || parses(r.value) ? r : { error: "url: not an address that parses" }))(text("url", L.url, { pattern: /^https?:\/\/\S+$/ }))],
+    ["source", () => text("source", L.source, { pattern: NAME })],
+    ["published", () => text("published", L.published)],
+    ["file", () => text("file", L.file, { pattern: /^[A-Za-z0-9@._-]+(\/[A-Za-z0-9@._-]+)*$/ })],
     ["sha256", () => text("sha256", 64, { pattern: /^[0-9a-f]{64}$/ })],
     ["method", () => text("method", L.method, { need: true, pattern: /^[A-Za-z0-9._:/ -]+$/ })],
     ["cites", () => list("cites", L.cites, ID)],
@@ -154,8 +158,8 @@ knowledgeEntry = async (given, kept = null) => {
     if (r.error) return { error: r.error };
     out[k] = r.value;
   }
-  if (e.id !== undefined && !(typeof e.id === "string" && e.id.length <= L.id && ID.test(e.id))) return { error: `id: ${ID.source}, ${L.id} characters at most` };
-  out.id = e.id !== undefined ? e.id : await sha256([out.kind, out.url || "", out.title].join("\n"));
+  if (e.id != null && !(typeof e.id === "string" && e.id.length <= L.id && ID.test(e.id))) return { error: `id: ${ID.source}, ${L.id} characters at most` };
+  out.id = e.id != null ? e.id : await sha256([out.kind, out.url || "", out.title].join("\n"));
   return { entry: out };
 }
 // %%
@@ -179,9 +183,10 @@ knowledgeApp = {
   // The filters of search and list, as the five arguments of FILTER.
   const filters = (c) => {
     const q = (k) => c.req.query(k) || "", since = q("since");
-    const at = since === "" ? 0 : /^\d{1,16}$/.test(since) ? Number(since) : Date.parse(since);
-    if (!Number.isFinite(at)) return { error: "since: milliseconds or a date" };
-    for (const k of ["source", "tag"]) if (q(k) && !/^[a-z0-9-]{1,40}$/.test(q(k))) return { error: k + ": a-z 0-9 -" };
+    // Four digits could be a year or 2026 ms, so they are neither.
+    const at = since === "" ? 0 : /^\d{4}$/.test(since) ? NaN : /^\d{1,16}$/.test(since) ? Number(since) : /^\d{4}-\d{2}/.test(since) ? Date.parse(since) : NaN;
+    if (!Number.isFinite(at)) return { error: "since: milliseconds, or a date from YYYY-MM on" };
+    for (const k of ["source", "tag"]) if (q(k) && !(knowledgePatterns.name.test(q(k)) && q(k).length <= L.source)) return { error: k + ": a-z 0-9 -" };
     if (q("kind") && !knowledgeKinds.includes(q("kind"))) return { error: "kind: one of " + knowledgeKinds.join(", ") };
     if (q("by").length > 300) return { error: "by" };
     return { args: [q("source"), q("kind"), q("by"), at, q("tag") ? `%"${q("tag")}"%` : ""] };
@@ -202,7 +207,7 @@ knowledgeApp = {
     for (const [i, e] of given.entries()) {
       const r = await knowledgeEntry(e);
       // A changed entry may leave out what a new one needs; it is checked again below against what is kept.
-      first.push(r.entry ? r.entry.id : e && typeof e.id === "string" && /^[a-z0-9][a-z0-9._:-]{0,99}$/.test(e.id) ? e.id : null);
+      first.push(r.entry ? r.entry.id : e && typeof e.id === "string" && e.id.length <= L.id && knowledgePatterns.id.test(e.id) ? e.id : null);
       if (!first[i]) return fail(c, 400, "InvalidRequest", `entry ${i + 1}: ${r.error}`);
     }
     const was = new Map();
@@ -215,9 +220,10 @@ knowledgeApp = {
       const r = await knowledgeEntry({ ...e, id: first[i] }, kept);
       if (r.error) return fail(c, 400, "InvalidRequest", `entry ${i + 1}: ${r.error}`);
       seen.set(first[i], r.entry);
-      entries.push(r.entry);
+      // said: the method this put gave. A change that gives none is recorded with none, not with the first enterer's.
+      entries.push({ ...r.entry, said: e.method == null || e.method === "" ? null : r.entry.method });
     }
-    const row = (e) => [S.put, e.id, e.kind, e.title, e.text, e.url, e.source, e.published, e.file, e.sha256, by, e.method, now, JSON.stringify(e.cites), JSON.stringify(e.tags)];
+    const row = (e) => [S.put, e.id, e.kind, e.title, e.text, e.url, e.source, e.published, e.file, e.sha256, by, e.method, now, JSON.stringify(e.cites), JSON.stringify(e.tags), e.said];
     // One transaction for each 20 entries: the full-text row goes, the entry is written, its full-text row is made again.
     for (let i = 0; i < entries.length; i += 20) await run(entries.slice(i, i + 20).flatMap((e) => [[S.ftsDrop, e.id], row(e), [S.ftsAdd, e.id]]));
     const ids = [...new Set(first)], changed = ids.filter((id) => was.has(id)).length;
@@ -265,7 +271,7 @@ knowledgePanel = ({ client, owner = false } = {}) => {
   const q = Inputs.text({ label: "Find", placeholder: "words", width: "24em", submit: "Search" });
   const kind = Inputs.select(["", ...knowledgeKinds], { label: "Kind", format: (k) => k || "any" });
   const el = Object.assign(htl.html`<div>${q}${kind}${note}${box}</div>`, { value: [] });
-  const link = (u) => (u ? htl.html`<a href=${u} target="_blank" rel="noopener">${new URL(u).hostname}</a>` : "");
+  const link = (u) => (u ? htl.html`<a href=${u} target="_blank" rel="noopener">${((x) => { try { return new URL(x).hostname; } catch { return x; } })(u)}</a>` : "");
   const draw = async () => {
     const params = { ...(kind.value ? { kind: kind.value } : {}) };
     const [found, stats] = await Promise.all([q.value ? client.query("knowledge.search", { ...params, q: q.value }) : client.query("knowledge.list", { ...params, limit: 50 }), client.query("knowledge.stats")]);
@@ -276,6 +282,8 @@ knowledgePanel = ({ client, owner = false } = {}) => {
         ? Inputs.table(found.entries.map((e) => ({ kind: e.kind, title: e.title, found: e.snippet || e.text.slice(0, 160), source: e.source || "", url: e.url, file: e.file || "", by: e.by, method: e.method, entered: new Date(e.at) })), { layout: "auto", format: { url: link, entered: (d) => d.toISOString().slice(0, 16).replace("T", " ") } })
         : htl.html`<i style=${muted}>Nothing.</i>`
     );
+    // The value cell reads el on its own input event. load listens on q and kind, not on el, so this starts no second draw.
+    el.dispatchEvent(new Event("input"));
   };
   el.load = () => draw().catch((e) => void (note.textContent = "knowledge failed: " + ((e && e.message) || e)));
   q.addEventListener("input", el.load);
@@ -300,8 +308,8 @@ knowledgeFakeSql = () => {
     if (knowledgeSchema.includes(statement)) return { rows: [], changes: 0 };
     if (statement === S.get) return { rows: entries.has(a[0]) ? [cols(entries.get(a[0]))] : [], changes: 0 };
     if (statement === S.put) {
-      const [id, kind, title, text, url, source, published, file, sha256, by, method, at, cites, tags] = a, was = entries.get(id);
-      entries.set(id, was ? { ...was, kind, title, text, url, source, published, file, sha256, cites, tags, upd_by: by, upd_method: method, upd_at: at } : { n: ++n, id, kind, title, text, url, source, published, file, sha256, entered_by: by, method, at, upd_by: null, upd_method: null, upd_at: null, cites, tags });
+      const [id, kind, title, text, url, source, published, file, sha256, by, method, at, cites, tags, said] = a, was = entries.get(id);
+      entries.set(id, was ? { ...was, kind, title, text, url, source, published, file, sha256, cites, tags, upd_by: by, upd_method: said, upd_at: at } : { n: ++n, id, kind, title, text, url, source, published, file, sha256, entered_by: by, method, at, upd_by: null, upd_method: null, upd_at: null, cites, tags });
       return { rows: [], changes: 1 };
     }
     if (statement === S.ftsDrop) return { rows: [], changes: entries.has(a[0]) && fts.delete(entries.get(a[0]).n) ? 3 : 0 };
@@ -348,6 +356,12 @@ test_knowledge_records_who_entered_it_and_how = {
   expect(first.at).toBeGreaterThan(1e12);
   // A second put changes the entry and not how it entered. A field left out keeps its value; tags are joined.
   await rig.snapshot.post("put", { id: "arxiv:1", tags: ["votes-hf-papers"] });
+  // A change that gives no method is recorded with none: not with the method of whoever entered it first.
+  await rig.owner.post("put", { id: "arxiv:1", kind: null, published: "2026-10-07" });
+  expect((await rig.owner.get("get", { id: "arxiv:1" })).data).toMatchObject({ kind: "paper", method: "snapshot", published: "2026-10-07", changed: { by: "owner", method: null } });
+  // An empty text clears a field that may be empty.
+  await rig.owner.post("put", { id: "arxiv:1", published: "" });
+  expect((await rig.owner.get("get", { id: "arxiv:1" })).data.published).toBe(null);
   expect((await rig.owner.post("put", { id: "arxiv:1", file: "corpus/2026-10-09/hf-papers/1.pdf", sha256: "a".repeat(64), method: "digest:research-2026-10-09", tags: ["agents"] })).data).toEqual({ entered: 0, changed: 1, ids: ["arxiv:1"] });
   const second = (await rig.owner.get("get", { id: "arxiv:1" })).data;
   expect(second).toMatchObject({ by: "worker:brain-x-snapshot", method: "snapshot", at: first.at, title: "Paper 1", url: "https://arxiv.org/abs/1", file: "corpus/2026-10-09/hf-papers/1.pdf", tags: ["votes-hf-papers", "agents"] });
@@ -374,16 +388,17 @@ test_knowledge_search_finds_by_word_and_filter = {
   expect(await found({ q: "agents hindsight" })).toEqual(["arxiv:1"]);
   expect(await found({ q: "hind*" })).toEqual(["arxiv:1"]);
   expect(await found({ q: "speech", since: String(Date.now() + 60000) })).toEqual([]);
+  expect([await found({ q: "speech", since: "2026-01" }), await found({ q: "speech", since: "2999-01-01" })]).toEqual([["arxiv:2", "hn:3"], []]);
   expect((await o.get("search", { q: "speech" })).data.entries[0].snippet).toBeTruthy();
   // What is typed is words, never syntax of the index.
   expect([knowledgeMatch('agents AND ("hind* OR'), knowledgeMatch("  "), knowledgeMatch("a*b c*")]).toEqual(['"agents" "AND" "(hind"* "OR"', "", '"ab" "c"*']);
-  for (const params of [{}, { q: '"' }, { q: "a", limit: "0" }, { q: "a", limit: "101" }, { q: "a", kind: "book" }, { q: "a", source: "A B" }, { q: "a", since: "soon" }]) expect((await o.get("search", params)).status).toBe(400);
+  for (const params of [{}, { q: '"' }, { q: "a", limit: "0" }, { q: "a", limit: "101" }, { q: "a", kind: "book" }, { q: "a", source: "A B" }, { q: "a", since: "soon" }, { q: "a", since: "2026" }]) expect((await o.get("search", params)).status).toBe(400);
   // A changed entry is found by its new words only, and a deleted one not at all.
   await o.post("put", { id: "hn:3", text: "a tiny audio model" });
   expect([await found({ q: "speech" }), await found({ q: "audio" })]).toEqual([["arxiv:2"], ["hn:3"]]);
   expect((await o.post("delete", { ids: ["hn:3", "hn:4"] })).data).toEqual({ deleted: 1 });
   expect([await found({ q: "audio" }), rig.db.fts.size, rig.db.entries.size]).toEqual([[], 2, 2]);
-  return "8 searches, 7 refused";
+  return "10 searches, 8 refused";
 }
 // %%
 test_knowledge_list_pages_and_stats_count = {
@@ -404,7 +419,7 @@ test_knowledge_refuses_an_entry_it_cannot_keep = {
   const rig = await knowledgeRig(), o = rig.owner, ok = rig.paper(1);
   const bad = [
     [{ ...ok, kind: "book" }, "kind"], [{ ...ok, title: "" }, "title"], [{ ...ok, title: "x".repeat(501) }, "title"], [{ ...ok, text: "x".repeat(16001) }, "text"],
-    [{ ...ok, url: "ftp://x" }, "url"], [{ ...ok, source: "Hacker News" }, "source"], [{ ...ok, method: undefined }, "method"], [{ ...ok, id: "A b" }, "id"],
+    [{ ...ok, url: "ftp://x" }, "url"], [{ ...ok, url: "https://[" }, "url"], [{ ...ok, source: "Hacker News" }, "source"], [{ ...ok, method: undefined }, "method"], [{ ...ok, id: "A b" }, "id"],
     [{ ...ok, file: "a b" }, "file"], [{ ...ok, sha256: "abc" }, "sha256"], [{ ...ok, tags: ["a:b"] }, "tags"], [{ ...ok, tags: Array.from({ length: 17 }, (_, i) => "t" + i) }, "tags"], [{ ...ok, cites: "arxiv:2" }, "cites"]
   ];
   for (const [entry, field] of bad) expect([field, (await o.post("put", entry)).data.message.startsWith("entry 1: " + field)]).toEqual([field, true]);
@@ -439,12 +454,20 @@ test_knowledge_panel_searches_and_lists = {
   const client = { query: async (name, params) => (asked.push([name, params]), name === "knowledge.stats" ? { entries: 7 } : { entries: [name === "knowledge.search" ? { ...entry, snippet: "[agents]" } : entry] }) };
   const el = knowledgePanel({ client, owner: true });
   await el.ready;
+  const heard = [];
+  el.addEventListener("input", () => heard.push(el.value.length && el.value[0].snippet));
   expect([el.value.length, el.textContent.includes("7 entries. The last entered:"), asked[0]]).toEqual([1, true, ["knowledge.list", { limit: 50 }]]);
   const q = el.querySelector("input[type=text]");
   q.value = "agents";
   el.querySelector("form").dispatchEvent(new Event("submit", { cancelable: true }));
   await el.load();
   expect(asked.some(([name, params]) => name === "knowledge.search" && params.q === "agents")).toBe(true);
+  // The element says when its value is the new result, so a cell that reads the value sees it.
+  expect(heard.at(-1)).toBe("[agents]");
+  // An address the browser cannot parse is shown as written, and the table is still drawn.
+  const odd = knowledgePanel({ client: { query: async (name) => (name === "knowledge.stats" ? { entries: 1 } : { entries: [{ ...entry, url: "https://[" }] }) }, owner: true });
+  await odd.ready;
+  expect([odd.textContent.includes("knowledge failed"), odd.textContent.includes("https://["), !!odd.querySelector("table")]).toEqual([false, true, true]);
   expect([el.textContent.includes("1 found."), el.textContent.includes("[agents]"), el.querySelector("a").href]).toEqual([true, true, "https://arxiv.org/abs/1"]);
   expect(knowledgePanel({ client, owner: false }).textContent).toMatch(/Sign in to a Brain as the owner/);
   return "listed, then searched";
