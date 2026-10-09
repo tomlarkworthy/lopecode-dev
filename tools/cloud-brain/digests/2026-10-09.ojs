@@ -26,7 +26,7 @@ md`**[From Traces to Agentic Worlds](https://huggingface.co/papers/2610.06100)**
 // %%
 md`## 3. Small typed decision models
 
-A decision model answers a declared question with a probability for each declared option and generates no text. The snapshot has eleven items on them.`
+A decision model answers a declared question with a probability for each declared option and generates no text. The snapshot has ${items.filter((d) => d.source !== "arxiv" && /decision model|typed decision|decisions api|neudecide|jevman|\bjev\b|\blaya\b/i.test(d.title + " " + (d.summary || ""))).length} items on them outside arXiv, by a match on those names in the title or summary.`
 // %%
 md`- **OpenAI's Decisions API**, as [Simon Willison describes it](https://simonwillison.net/2026/Oct/6/llm-openai-decisions/): three question types (yes/no, choices, scores), image input, charged for input only at 10 cents per million tokens against 4.2 for Jev.
 - **[SanSi](https://huggingface.co/papers/2610.07730)** loops the same layers before one readout: 72.0% on 10,027 test decisions, 13.5 points above the same shape without loops.
@@ -35,7 +35,7 @@ md`- **OpenAI's Decisions API**, as [Simon Willison describes it](https://simonw
 // %%
 md`A counterpoint from Reddit, one person's data: on a 10,000-row customer-service routing set, [a fine-tuned 0.6B embedding model](https://www.reddit.com/r/LocalLLaMA/comments/1x0jsdv/some_recent_decision_models_3b_on_internal/) scored 0.79 accuracy and the best decision model 0.71. And a use that fits an agent harness: [a plugin](https://www.reddit.com/r/LocalLLaMA/comments/1x0py31/auto_mode_plugin_for_the_pi_coding_agent_that/) asks a local decision model for the probability that a shell command is risky, and prompts above a threshold. The author tested 50 commands they wrote themselves.`
 // %%
-md`Two speech models small enough for a page. **[Whistle](https://cactuscompute.com/blog/whistle)** (top of Hacker News, 613 points) is speech to text in one 16.9 MB file, seven languages. Its authors report it ahead of Whisper base (145.3 MB) on LibriSpeech, SPGISpeech, Earnings-22 and the FLEURS average, and behind on TED-LIUM, AMI and the MLS average. **[NeuDecide](https://www.reddit.com/r/LocalLLaMA/comments/1x0o8zr/were_open_sourcing_neudecide_a_43_mb_audiototool/)** (Apache 2.0, 43 MB) goes from audio and a list of tools to a tool call with no transcript: 72.4% tool accuracy on SLURP with 10 tools, by their measure about three times a transcribe-then-call pipeline.`
+md`Two small speech models. Only NeuDecide ships a build a page can run; Whistle's file is for its authors' C++ engine. **[Whistle](https://cactuscompute.com/blog/whistle)** (top of Hacker News, 613 points) is speech to text in one 16.9 MB file, seven languages. Its authors report it ahead of Whisper base (145.3 MB) on LibriSpeech, SPGISpeech, Earnings-22 and the FLEURS average, and behind on TED-LIUM, AMI and the MLS average. **[NeuDecide](https://www.reddit.com/r/LocalLLaMA/comments/1x0o8zr/were_open_sourcing_neudecide_a_43_mb_audiototool/)** (Apache 2.0, 43 MB) goes from audio and a list of tools to a tool call with no transcript: 72.4% tool accuracy on SLURP with 10 tools, by their measure about three times a transcribe-then-call pipeline.`
 // %%
 md`## 4. From the bloggers
 
@@ -69,6 +69,7 @@ md`## What was not read
 - arXiv: 611 items stored, none read one by one. Hugging Face's 50 daily papers stood in as the filter.
 - Reddit: 83 items with no scores (the feed has none). Titles were skimmed; a post was read only if it is cited above.
 - Hacker News and Lobsters comments.
+- Google Research: 4 items, titles only (the feed gives no summary).
 - OpenAI: 9 of its 14 items are customer and product posts and are left out.
 - Nothing in the last 7 days from Karpathy (two feeds), Lilian Weng, Sebastian Raschka, Eugene Yan, Chip Huyen, Hamel Husain, BAIR or Meta engineering. Anthropic and Meta AI publish no feed.`
 // %%
@@ -107,7 +108,7 @@ picks = [
 // %%
 Inputs.table(picks, {
   columns: ["theme", "title", "source", "why"],
-  format: { title: (t, i, data) => htl.html`<a href=${data[i].url} target=_blank rel=noopener>${t}</a>` },
+  format: { title: (t, i, data) => htl.html`<a href=${data[i].url || data[i].discussion} target=_blank rel=noopener>${t}</a>` },
   layout: "auto"
 })
 // %%
@@ -137,7 +138,7 @@ items = snapshot.items
 // %%
 snapshot.index
   ? md`${items.length} items from ${new Set(items.map((d) => d.source)).size} sources, recorded ${snapshot.index.ranAt}. ${picks.filter((p) => items.some((d) => d.id === p.id)).length} of the ${picks.length} picks are among them.`
-  : md`The snapshot did not load from \`${snapshotBase}\`. Opened as a local file, the Brain's files are not readable from here; open this notebook from the Brain's address.`
+  : md`The snapshot did not load from \`${snapshotBase}\`. ${location.protocol === "file:" ? "Opened as a local file, the Brain's files are not readable from here; open this notebook from the Brain's address." : "The day's files may be missing or the Brain unreachable."}`
 // %%
 Plot.plot({
   marginLeft: 130,
@@ -160,7 +161,7 @@ viewof found = Inputs.search(items.filter((d) => tiers.includes(d.tier) && (!sou
 Inputs.table(found, {
   columns: ["title", "source", "points", "comments", "published"],
   format: {
-    title: (t, i, data) => htl.html`<a href=${data[i].url} target=_blank rel=noopener title=${String(data[i].summary || "").replace(/<[^>]+>/g, " ").slice(0, 600)}>${t}</a>`,
+    title: (t, i, data) => htl.html`<a href=${data[i].url || data[i].discussion} target=_blank rel=noopener title=${String(data[i].summary || "").replace(/<[^>]+>/g, " ").slice(0, 600)}>${t}</a>`,
     published: (p) => String(p || "").slice(0, 10)
   },
   width: { source: 130, points: 60, comments: 80, published: 90 },
@@ -169,12 +170,12 @@ Inputs.table(found, {
 // %%
 md`## Replication: NeuDecide in this page
 
-The press of the button below downloads NeuDecide's three ONNX graphs (about 43 MB, from the authors' Hugging Face Space) and runs them here with onnxruntime-web 1.30.0 on one CPU thread. A sample clip, or a file of yours, goes in with a list of tools; a tool call comes out. The model code is the authors' own \`neudecide.js\` and \`tokenizer.js\`, fetched at that press. Nothing is sent anywhere but those two hosts.
+The press of the button below downloads NeuDecide's three ONNX graphs (about 43 MB, from the authors' Hugging Face Space) and runs them here with onnxruntime-web 1.30.0 on one CPU thread. A sample clip, or a file of yours, goes in with a list of tools; a tool call comes out. The model code is the authors' own \`neudecide.js\` and \`tokenizer.js\`, fetched at that press. onnxruntime-web comes from jsDelivr. Nothing is fetched from, or sent to, any host but those two.
 
 It runs inside a sandboxed frame with no access to this page: a notebook from the Brain's library runs as whoever is signed in, and this is other people's code.`
 // %%
 replication = {
-  const SPACE = "https://huggingface.co/spaces/neuphonic/neudecide/resolve/main/";
+  const SPACE = "https://huggingface.co/spaces/neuphonic/neudecide/resolve/e1b1388cdf210f523d9bb22b6a0e3ba6b546ea0f/"; // the Space as verified on 2026-10-09
   const ORT = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/";
   const end = "</scr" + "ipt>";
   const page = `<!doctype html><meta charset="utf-8">
@@ -228,6 +229,7 @@ $("load").onclick = async () => {
   } catch (e) { log("Failed: " + (e && e.message || e)); $("load").disabled = false; parent.postMessage({ neudecide: "error", message: String(e && e.message || e) }, "*"); }
 };
 $("file").onchange = async () => { const f = $("file").files[0]; bytes = f ? await f.arrayBuffer() : null; };
+$("sample").onchange = () => { bytes = null; $("file").value = ""; };
 $("run").onclick = async () => {
   $("run").disabled = true;
   try {
@@ -255,4 +257,4 @@ ${end}`;
   return frame;
 }
 // %%
-md`What this shows and what it does not. It shows that the published model loads and answers in an ordinary page, with the tool list given at the time of the call. It does not check the authors' 72.4%: three sample clips are not a benchmark. Verified on 2026-10-09 in Chromium; the measured load and call times are in \`tools/cloud-brain/digests/README.md\`.`
+md`What this shows and what it does not. It shows that the published model loads and answers in an ordinary page, with the tool list given at the time of the call. It does not check the authors' 72.4%: three sample clips are not a benchmark. Verified on 2026-10-09 in Chromium; then 42.6 MB loaded in 6.1 s and each of the three sample clips gave the expected call in 0.52 to 0.55 s.`

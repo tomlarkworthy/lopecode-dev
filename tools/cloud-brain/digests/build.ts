@@ -36,7 +36,7 @@ const before = blockSpans(html).length;
 html = block(html, HOST, "\n" + source, name);
 const conf = { mains: ["@tomlarkworthy/lopepage-2", name], hash: `#view=S100(${name})`, headless: true };
 html = block(html, "bootconf.json", "\n" + JSON.stringify(conf, null, 2) + "\n");
-html = html.replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`);
+html = html.replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`).replace(/(<meta property="og:title" content=")[^"]*/, `$1${title}`);
 if (blockSpans(html).length !== before) throw new Error("a splice changed the number of blocks; nothing written");
 const out = resolve(here, `research-${day}.html`);
 writeFileSync(out, html);
