@@ -495,11 +495,10 @@ workerRuntime = (AsyncLocalStorage = null) => {
     headers.set("x-brain-key", ENV.BRAIN_KEY || "");
     return new Request(request, { headers });
   };
-  // The text of the first md`…` in a module's source, with the escapes of a template literal undone.
-  const referenceOf = (text) => {
-    const from = text.indexOf("md`") + 3, end = from < 3 ? null : /(?<!\\)`/.exec(text.slice(from));
-    return end ? text.slice(from, from + end.index).replace(/\\([`\\$])/g, "$1") : "";
-  };
+  // The text of every prose cell (a cell that returns one md`…`) in a module's source, in order, with the escapes of a
+  // template literal undone. A method table in a later cell is part of the reference too.
+  const referenceOf = (text) =>
+    [...text.matchAll(/\{\s*return \(\s*md`((?:[^`\\]|\\[\s\S])*)`/g)].map((m) => m[1].replace(/\\([`\\$])/g, "$1")).join("\n\n");
   const bindingName = (name) => "X_" + name.toUpperCase().replace(/[^A-Z0-9]/g, "_");
   const secretsHeld = new Map();
   // Settings the owner stored for this Worker (config.set, rows of the core). The core sends them with each call it
@@ -679,7 +678,7 @@ workerRuntime = (AsyncLocalStorage = null) => {
         // Every Worker describes itself: its manifest, and the module it was emitted from. Both are public; a
         // Worker that does not answer the internet is reached for them through the kernel and the core.
         const describes = url.pathname === "/xrpc/com.lopecode.brain.getInfo" ? "info" : url.pathname === "/xrpc/com.lopecode.brain.getSource" ? "source" : null;
-        // part=reference: the module's first prose cell, which holds its method table, as text.
+        // part=reference: the module's prose cells, which hold its method tables, as text.
         if (describes === "source" && url.searchParams.get("part") === "reference" && request.method === "GET" && (!asked || asked === info().name) && (inside || edge || keyed))
           return new Response(referenceOf(source ? source.text : ""), { headers: { "content-type": "text/plain; charset=utf-8", "access-control-allow-origin": "*" } });
         if (describes && request.method === "GET" && (!asked || asked === info().name) && (inside || edge || keyed))
@@ -1856,7 +1855,7 @@ test_a_worker_serves_its_manifest_and_its_source = {
   // Every response says which Worker and version produced it.
   expect(got.headers.get("x-brain-served-by")).toBe("brain-x-fixture@" + e.hash.slice(0, 12));
   expect(body.text).toBe(e.source.text);
-  // part=reference: the first prose cell of the module as text, with the escapes of its template undone.
+  // part=reference: the prose cells of the module as text, with the escapes of their templates undone.
   const reference = await sim.fetch("https://cb.sub.workers.dev/xrpc/com.lopecode.brain.getSource?part=reference");
   expect(reference.headers.get("content-type")).toMatch(/^text\/plain/);
   const said = await reference.text();

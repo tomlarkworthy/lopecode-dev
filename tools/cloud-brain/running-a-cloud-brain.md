@@ -122,7 +122,7 @@ bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.config.set --owner 
 bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.config.list --owner                          # every stored setting
 ```
 
-`"value": null` removes the key and the default is back. A change is read within 60 s. A name the deployer sets (`owner`, `host`, `base`, …) is refused, and the kernel, the core and the deployer take none.
+`"value": null` removes the key and the default is back. A call carries a change within 60 s. A run by the clock (inbox, bluesky, snapshot) may use a copy up to 5 minutes old. A Worker's settings are at most 50 keys and 8 KB, and are deleted when the Worker is removed. A name the deployer sets (`owner`, `host`, `base`, …) is refused, and the kernel, the core and the deployer take none.
 
 ## For a program: `/llms.txt`
 

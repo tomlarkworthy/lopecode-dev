@@ -2937,3 +2937,37 @@ Tests: 80 of 80 in `brain-core` (29), `cloudflare-iac` (25), `cloud-brain` (12),
 - **One hour only.** A 24-hour count looked incomplete earlier this day. A likely cause was found (50 groups asked for, more than 50 present) and the page asks for 500, but a 24-hour query was not run again.
 - **`brain-x-browser` runs `8c7207b4519c`, one wrapper behind** (it answers `getSource?part=reference` with JSON). `68e467973a90` was applied three times after the deployer update and put back each time: "its tests failed: test_browser_open_makes_a_tab_and_reuses_it_by_name". That test asserts over 590 of 600 bought seconds are left at its end, so it fails when it takes more than 10 s. It failed the same way in a local tab while other tests ran. Not shown: that time is the whole cause.
 
+## The core after its fresh review (2026-10-09, to 11:35 CEST)
+
+A reviewer with no context read `@tomlarkworthy/brain-core` and the wrapper's changes since `2c97ed0c`: 11 findings, each checked against the seed, all acted on.
+
+| finding | what was done |
+|---|---|
+| `/llms.txt` shortened names, and its rule turned `app.bsky.feed.getFeedSkeleton` into a 501 | Every name is printed whole; the shortening rule is gone. |
+| `getSource?part=reference` gave the first prose cell only; 13 core routes were in no served text | `referenceOf` joins every prose cell of the module. Rows added for `service.*`, `deploy.report`, `rows.*`. |
+| `rule.put` documented as `{ name, allow }` | `{ target, allow }`, as the code reads. |
+| A removed Worker's settings stayed listed and could not be removed | `service.unregister` deletes `config/<worker>` and `config-log/<worker>`. |
+| "each Worker", with the kernel, core and deployer unlisted | "each service", and a line saying where those three references are. |
+| `owner` printed for a method with only a rule | `by its rule` whenever the service declares `allow`; the legend says the rule alone decides. |
+| The deployer's reference had no address | Printed from `config.deployer`. |
+| "a change is followed within 60 s" was not true of a tick | Kept at 5 minutes and said so: a run by the clock may use a copy up to 5 minutes old. Reading the row every tick would add one statement a tick at rest. |
+| Settings could make a 151 KB header | 8192 characters as sent (URL-encoded JSON) for one Worker; 400 beyond. |
+| Comments described the removed counter | Rewritten. |
+| No test at the default `settingsMs`; 9 of 12 protected names tested | A rig at the default; the loop reads `protected` from `config.list`. |
+
+```
+cb4, 11:25 CEST, no session
+GET /llms.txt                                     200, 11382 bytes (11:33 CEST)
+names listed (com.* and app.*), each asked        95, 501: 0   (app.bsky.feed.* among them)
+getSource?part=reference   brain 9794   brain-core 14340   brain-x-knowledge 5106 (was 386)   brain-x-browser 23391
+deployer, at its own address                      200, 10804
+```
+
+Tests: 75 of 75 forced in a local tab (every test cell that uses `coreRig`, `browserRig`, `simulate` or a fixture).
+
+Also in this change:
+
+- **`brain-x-browser` is level** (`2d4b7b601003`). Its test `test_browser_open_makes_a_tab_and_reuses_it_by_name` asserted `rig.paid() > 590` of 600 bought seconds, so it failed when the tab ran it more than 10 s after the rig was made; a second test asserted `> 500`. Both now assert that some time is left. Two other tests compare seconds within 3 (`near`); not changed.
+- **A 24-hour log count agrees with 24 one-hour counts**: 40148 lines both ways (239 groups for the day, at most 179 in an hour, `limit` 500). The earlier shortfall was the 50-group limit.
+- The deployer was installed again (`4c67d8ec4ab6`) to carry the wrapper change, and every Worker distilled again. `redistil --apply` crashed once in the CLI part-way (a DOMException printed by bun; cause not found); the change it left held `brain-x-logs` for 5 minutes.
+

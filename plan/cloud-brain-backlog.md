@@ -670,7 +670,16 @@ Built and on cb4: stored settings read through `config` (`config.set`, `config.g
 `brain-x-metrics` is gone from cb4 and from the build; the page's Health section counts the core's log lines. Record: the last section of `tools/cloud-brain/spec-as-built.md`. The line "Follow-on, not approved: metrics from the logs" above is done.
 
 - **For Tom: drop `metrics_calls` and `metrics_faults`?** Kept, unread.
-- **`brain-x-browser` is one wrapper behind**: its own test `test_browser_open_makes_a_tab_and_reuses_it_by_name` fails after a deploy when it takes over 10 s, and the deploy is put back. The test should not assert on wall time.
-- A 24-hour log count was not run again with 500 groups.
+- ~~`brain-x-browser` is one wrapper behind~~ Done 11:20 CEST: the test asserted on wall time (`rig.paid() > 590`); it now asserts some time is left.
+- ~~A 24-hour log count was not run again with 500 groups.~~ Run 11:28 CEST: 40148 lines in one 24-hour query and 40148 as 24 one-hour queries. The page could offer ranges over an hour.
 - The page shows one hour. A range control, the faults list and latency were in the removed module and are not carried over.
+
+## Added 2026-10-09 11:35 CEST: the core's review
+
+11 findings, all acted on; record in the last section of `tools/cloud-brain/spec-as-built.md`. Open after it:
+
+- `redistil --apply` crashed once in the CLI (a DOMException from bun, part-way through 15 Workers). Not reproduced on the second run; cause unknown.
+- Two browser tests still compare seconds within 3 (`near`). They have not failed.
+- A tick may run on a setting up to 5 minutes old. Timing the header copy and the row copy apart would make it 60 s at the cost of one statement a tick.
+- `/llms.txt` is 11.4 KB with whole names (9.2 KB with short ones).
 
