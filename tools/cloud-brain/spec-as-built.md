@@ -2627,3 +2627,71 @@ A fresh reviewer read both modules as changed since `f3e0e894` and returned BLOC
 - **Run at 05:11:18 UTC:** 823 items (844 before), `hf-papers` 30 of 50, published 2026-10-06 and 2026-10-07. **15 papers** (18 before): 9 by votes, 6 by mention (5 Reddit, 1 Import AI), 0 from a lab feed, none with two signals, 6 with an id and `via` only.
 - The digest `research-2026-10-09` loads the day's files (823 rows, no cell error). Its opening sentence is written text and still says 843 items, and its computed count of decision-model items reads 11 where it read 13: the day's files are replaced by each run and the digest reads them live.
 - **Not verified:** the timed run. It is due at the first tick after 06:00 UTC and this was written at 05:13.
+
+## Security review and fixes, and a reason on every change (2026-10-09, to 07:35 CEST)
+
+Tom asked for a security review of `https://cb4.endpointservices.workers.dev/`, then for the findings of medium rank and above to be fixed, then: "I would like the deployer to have a manadatory "reason for change" which will get logged".
+
+### Found, with what was measured
+
+| | Finding | Evidence |
+|---|---|---|
+| H1 | Every old version of every script answered at `<8 hex>-SCRIPT.endpointservices.workers.dev`, with the rules it had then | 5 old kernel versions answered 200 on `/auth/session` before the fix |
+| H2 | A file any token or Worker wrote was served as HTML on the kernel's origin, where `localStorage.brain_session` holds the owner's session | read in `brain-static` and `brain-blob`; not exploited |
+| H3 | A service's code received the Worker's whole `env`, so one service could read `BRAIN_KEY` and bindings it had not declared | read in the wrapper in `cloudflare-iac` |
+| H4 | A turn of the owner reached browsers of the owner's own session, one of which holds the session | read in `brain-browser` |
+| H5 | All Workers share one D1 database through `brain-db`; a Worker's `worker.js` is assembled from parts the caller sends | read; **open**, see the backlog |
+| M | A JWT from any DID made the kernel fetch that DID's document; `/auth/login` was not counted; `/link` could be framed and bound an address on one click; member deploys were not counted; source that did not end ran until Cloudflare's limit; WhatsApp took any number of messages from a linked number | read in each seed |
+
+### Changed
+
+- **Deployer and wrapper.** `previews_enabled: false` on every deploy. `secrets.NAME` answers a secret the manifest declares, never `BRAIN_*`. A Hono service is handed `{ BRAIN_INFO }` and no other binding. The QuickJS sandbox stops source after 100,000 interrupts. A member has 60 calls of `member.deploy` an hour (`mdeploys/DID/HOUR`; the owner sets another number in `quota.deploys`) and cannot deploy over another author's Worker. The approval page lists the platform cells and says the database is shared.
+- **Files.** `brain-static` records `writer` on each row. HTML is served as HTML only when the writer is the owner in a session, the deployer or a `brain-x-*` Worker; anything else is served under a sandbox. The owner by a turn, a portal or a PDS call is recorded as `owner by turn` and is not trusted. `brain-blob` does the same with the first `by:` tag. `library.put` is `caller.session`.
+- **Kernel.** A JWT whose issuer is not the owner, a member or a grantee is refused before any fetch. 60 sign-in starts each 10 minutes from handles that have not signed in before. `/link` sends `frame-ancestors 'none'` and the owner types the last 4 characters of the address.
+- **Browser.** A caller by `turn:*`, `portal:*` or `jwt` gets the namespace `via:<caller>`.
+- **Channels.** WhatsApp: 60 messages and 10 pictures an hour from a linked number, a constant-time compare of the hook's signature, `redirect: "manual"` on the media fetch. Bluesky: `heard` holds only current members.
+- **Reason.** `infra.apply` (unless `dry`), `infra.redistil` with `apply`, a roll back on the page, `member.deploy` and `member.remove` take `reason`, 3 to 300 characters. Without one: 400 `InvalidRequest`, or `refused` for a member. The deployer logs `deploy.reason { reason, by, targets }` before it does anything. `brain.ts` takes `--reason="…"`; the page's Apply and the member's Deploy button each have a reason field; the assistant's `brain_apply` tool requires `reason`; the installer sends `install`.
+
+### Review
+
+One fresh reviewer read the diff before the deploy: verdict FIX, 8 findings, all confirmed against the source.
+
+| Finding | Done |
+|---|---|
+| A turn of the owner was still a trusted writer in static and blob | `writerOf`, and the blob stamp `by:owner:turn` |
+| A token could publish a page through `library.put` | rule `caller.session` |
+| The sign-in count locked the owner out with everyone else | a handle that signed in before is not counted |
+| brain-browser's prose said a token reaches the owner's browser | corrected |
+| brain-blob's table left out that a token deletes the blob | added |
+| The link page said nothing on a wrong 4 characters | it shows the 400's message |
+| `quota.deploys` could not be set from the kernel; `mdeploys/` rows were kept for ever | the kernel keeps `deploys`; the hour before is deleted on the first call of an hour |
+| An unused `kindless` in the bluesky rig | removed |
+
+### Measured on cb4, 05:26 to 05:35 UTC
+
+```
+tests, local tab            248 of 248 in 20 modules (deployer 38, core 28, kernel 26, iac 24, bluesky 20, browser 17, …)
+apply core.json, no reason  {"error":"InvalidRequest","message":"reason: say why this is changed, in 3 to 300 characters"}
+16 applies with --reason    13 deployed, core db kernel page on probation, then confirmed
+logs.query at=deploy.reason 16 lines, by "recovery key", one target each
+redistil                    16 same
+2d9516cb-cb4, 9d97dedc-cb4, a61072ea-cb4 /auth/session   404 404 404   (200 before)
+one old cb4-core preview    404
+JWT, iss did:web:example.invalid   {"error":"AuthRequired","message":"this account has no access to this Brain"}
+GET /link                   content-security-policy … frame-ancestors 'none'
+lease.get                   {"held":true}
+```
+
+Deployed: `brain` `fd59a67e1d97`, `brain-core` `84f0747efab7`, `brain-db` `70d2d9725cc5`, `brain-x-page` `a910914f5293`, `brain-deployer` `4a475765c213`, `brain-x-static` `0d7e11ebc954`, `brain-x-blob` `b00356ae3435`, `brain-x-library` `f86a71b2b783`, `brain-x-browser` `c9cac8b6243b`, `brain-x-bluesky` `f7b54a3ab583`, `brain-x-whatsapp` `ef91a2bb7347`. The wrapper changed, so every Worker has a new hash.
+
+A `deploy.reason` line names its target by module (`@tomlarkworthy/brain-kernel`), not by Worker (`brain`). The code prefers `module`; no one chose that.
+
+### Not verified
+
+- A real WhatsApp picture after `redirect: "manual"`. If Meta's media address redirects, pictures stop.
+- The reason fields in the page's Apply row and the member's Deploy button: the tests pass, no one pressed either on cb4.
+- A roll back with a reason on the live deployer page (tested in the rig only).
+- The static and blob change for the owner by a turn has no test of its own.
+- Whether a Worker with the minted `Workers Tail Read` token can read another Worker's request headers. Not looked at.
+- Files written outside `shell/` before this deploy have no `writer` and are served sandboxed until the owner puts them again. Which library files that affects was not listed.
+- **Timer observed.** `/static/snapshot/days.json` read at 06:20 UTC, 2026-10-09: `ranAt` `2026-10-09T06:00:28.000Z`, 822 items from 12 sources, 18 papers, `errors` empty. Nobody called `snapshot.run` after 04:49. Whether the cron or the minute alarm made that tick was not checked. The 06:00 run replaced the 04:49 files: Hugging Face had moved to its next day's list (32 papers), Reddit gave 79.

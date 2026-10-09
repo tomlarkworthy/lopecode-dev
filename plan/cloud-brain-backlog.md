@@ -621,7 +621,7 @@ Tom, 2026-10-09: "I would like to record the latest research (AI particularly) a
 - Open: who runs the digest turn when no local session is open (a notebook in a cluster browser; the Containers workstream).
 - Open: Reddit. The feed gives no score and Reddit rate-limits Cloudflare's addresses (429 after about ten requests in an hour). An OAuth app of Tom's would give scores and a limit of its own. Not asked for yet.
 - Open: Anthropic and Meta AI publish no feed at the addresses tried. A page scrape with the browser service would cover them; not built.
-- Open: the first timed run (06:00 UTC) has not been observed. Check `ranAt` in `/static/snapshot/days.json`.
+- Done: the timed run was observed on 2026-10-09. `days.json` read at 06:20 UTC gave `ranAt` 06:00:28 UTC, 822 items, 18 papers, no errors.
 - Open 2026-10-09: a digest reads `/static/snapshot/<day>/` live, and a later `snapshot.run` that day replaces those files. `research-2026-10-09` says 843 items in its text and now loads 823. Either a digest carries its day's items inside it, or a published day is not run again.
 - Open 2026-10-09: the timed 06:00 UTC run has not been seen. `days.json` `ranAt` after 06:00 on any day settles it.
 - Done 2026-10-09 05:15 UTC: the second review's 10 findings (spec-as-built, "The second review"). `papers.json` is 15 papers with `days: 3` on the Hugging Face list; `static.delete` takes a prefix that ends in `/`.
@@ -629,3 +629,17 @@ Tom, 2026-10-09: "I would like to record the latest research (AI particularly) a
 - Done 2026-10-09: "600 papers is too many" (Tom). `snapshot/<day>/papers.json` holds the papers with a signal: 18 on 2026-10-09 (12 by Hugging Face votes of 10 or more, 6 linked from Reddit or Import AI, 0 from a lab feed). `arxiv.json` stays, marked `lookup`. For Tom: is 10 votes the right line (9 more papers had 5 to 9), and should a later digest read `papers.json` in place of `arxiv.json`.
 - Not done: a retry when a source fails at 06:00; old files of a renamed source on the same day; a search over the days.
 
+
+## Added 2026-10-09 07:35 CEST: left open by the security review
+
+The record is in `tools/cloud-brain/spec-as-built.md`, "Security review and fixes, and a reason on every change".
+
+- **One database for every Worker.** `brain-db` keys rows by the calling Worker's name, and the name comes from the deployer's binding. A defect in that one check exposes every service's rows and secrets. The other design is a D1 database per Worker, made by the deployer. Cost: a migration of the rows on cb4, and one more resource to make and delete per service. Tom's decision.
+- **`worker.js` comes from the caller.** The deployer distils `source.js` itself and compares hashes, but takes the wrapper's text from the request. The other design: the deployer holds the wrapper and assembles the Worker. Cost: a wrapper change needs a deployer install first. Tom's decision.
+- **`Workers Tail Read`** is minted for `brain-x-logs`. Whether a tail shows request headers of other Workers, the `Authorization` header among them, was not checked.
+- **Old files have no `writer`.** Outside `shell/` they are served sandboxed until the owner puts them again. List the library's files and re-put the ones that should run.
+- **A member's id** is 8 hex characters of a hash of the DID. Not changed.
+- **Check one WhatsApp picture** after the `redirect: "manual"` change.
+- **A `deploy.reason` line names the module, not the Worker.** Swap the order in `apply` if the Worker's name reads better in the logs.
+- **No test** for the owner-by-turn writer in brain-static and brain-blob.
+- **The deployer's Cloudflare token expires 2026-10-11.**
