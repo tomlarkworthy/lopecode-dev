@@ -9,7 +9,7 @@ What arrives from outside a Cloud Brain, kept in order until a tab has handled i
 | \`inbox.list\` | query, owner. \`?after=<id>&limit=50&all=true\`. \`{ entries, waiting }\`; without \`all\`, only entries not done. |
 | \`inbox.done\` | procedure, owner. \`{ id, failed }\`. \`failed\` is why it could not be handled; the entry is then finished as failed and is not handed out again. |
 | \`inbox.reply\` | procedure. \`{ id, text }\`. Sends \`text\` to the address entry \`id\` came from, through the channel it came from, and keeps it on the entry. An entry written in a room (\`body.room.id\`) is answered there: the channel is sent \`room\` beside \`to\`. The owner or a named token may answer any entry. A turn (\`x-brain-via: turn:<id>\`) may answer its own entry, and only while it is waiting. |
-| \`lease.take\` | procedure, owner. \`{ tab, release }\`. \`{ held, holder }\`. One tab holds it; unrenewed for 30 s it is free. |
+| \`lease.take\` | procedure, owner. \`{ tab, release }\`. \`{ held, holder }\`. One tab holds it; unrenewed for 90 s it is free. |
 | \`inbox.poll\` | procedure, owner. \`{ tab }\`. \`{ held, holder, entries, waiting }\`: \`lease.take\` and the waiting entries in one call. |
 | \`lease.get\` | query. A Worker or the owner. \`{ held }\` |
 | Storage | \`rows\`: \`inbox/<id>\` (waiting), \`inboxdone/<id>\`, \`inboxkey/<key>\`, \`inboxseq\`, \`lease\` |
@@ -108,8 +108,8 @@ inboxApp = {
     await rows.put((waiting ? "inbox/" : "inboxdone/") + pad(id), { ...entry, replies: [...(entry.replies || []), { at: Date.now(), by: from, text: said }].slice(-20) });
     return c.json({ id, sent: true });
   });
-  // One tab answers at a time. A tab that stops renewing loses the lease after 30 s.
-  const LEASE = 30000;
+  // One tab answers at a time. The page polls every 30 s, so a tab that stops renewing loses the lease after 90 s: 3 polls.
+  const LEASE = 90000;
   const take = async (tab) => {
     const now = Date.now(), held = await rows.get("lease");
     const free = !held || held.tab === tab || now - held.at > LEASE;
@@ -214,7 +214,7 @@ test_lease_one_tab_at_a_time = {
   expect((await rig.anonymous("lease.get")).status).toBe(401);
   expect((await rig.worker("lease.take", { tab: "w" })).status).toBe(401);
   // A tab that stopped renewing 31 s ago has lost it.
-  rig.sim.rows.set("lease", { tab: "a", at: Date.now() - 31000 });
+  rig.sim.rows.set("lease", { tab: "a", at: Date.now() - 91000 });
   expect((await rig.worker("lease.get")).data).toEqual({ held: false });
   expect((await rig.owner("lease.take", { tab: "b" })).data).toEqual({ held: true, holder: "b" });
   expect((await rig.owner("lease.take", { tab: "b", release: true })).data).toEqual({ held: false, holder: null });
@@ -223,7 +223,7 @@ test_lease_one_tab_at_a_time = {
   expect((await rig.owner("inbox.poll", { tab: "a" })).data).toMatchObject({ held: true, holder: "a", waiting: 1 });
   expect((await rig.owner("inbox.poll", { tab: "b" })).data).toEqual({ held: false, holder: "a", entries: [], waiting: 0 });
   expect((await rig.worker("inbox.poll", { tab: "w" })).status).toBe(401);
-  return "a, then b after 31 s, then released, then polled";
+  return "a, then b after 91 s, then released, then polled";
 }
 // %%
 test_reply_goes_back_where_the_entry_came_from = {

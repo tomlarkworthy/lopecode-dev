@@ -49,7 +49,7 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
 - **Deployer** (`<base>-deployer`): the only holder of a Cloudflare token. It applies recipes,
   health-checks, puts a bad version back, and mints narrow tokens for services that declare them.
 - **The page**: the notebook itself, served by the kernel. One open, signed-in tab holds the
-  **lease** and is handed the inbox. With no tab, the lease lapses after 30 s.
+  **lease** and is handed the inbox. The page polls every 30 s. With no tab, the lease lapses after 90 s.
 - All access control is CEL rules on methods. There is none anywhere else.
 
 ## Access from this checkout

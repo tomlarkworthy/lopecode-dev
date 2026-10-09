@@ -156,7 +156,7 @@ Limits:
 
 ## Limits
 
-- A hidden tab computes nothing. With the tab in the background the inbox is not read and the lease lapses after 30 s; the WhatsApp recipe then answers with a link, at most once an hour.
+- A hidden tab computes nothing. With the tab in the background the inbox is not read and the lease lapses after 90 s; the WhatsApp recipe then answers with a link, at most once an hour.
 - The emitted Worker has no Observable runtime: a cell value is computed once per isolate, on the first request, and is not reactive.
 - `calls` lists each method that the function calls with `xrpc`. The core refuses a call that is not in the list. `*` is one part of a name. Do not list `secret.get`, `db.sql` or `inbox.append`: the platform cells `secrets`, `sql` and `inbox` call them. `brain_call` with method `calls.list` shows each refused call.
 - Not built: a pairing relay for a page with no CDP socket (a phone), calls between Brains. A page in a browser of the cluster pairs with no relay (`page up`, above).

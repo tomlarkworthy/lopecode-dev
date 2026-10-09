@@ -750,7 +750,7 @@ inboxPump = {
           if (inboxStarted.has(entry.id) || (!conversation && !handlers.length)) continue;
           inboxStarted.add(entry.id);
           if (conversation) {
-            // A turn can take minutes and the lease lasts 30 s, so it is renewed while the turn runs.
+            // A turn can take minutes and the lease lasts 90 s, so it is renewed while the turn runs.
             const renew = setInterval(() => client.procedure("lease.take", { tab }).catch(() => null), 10000);
             try {
               await conversationTurn(entry, { client });
@@ -770,7 +770,8 @@ inboxPump = {
       if (status.error !== e.message) yield (status = { ...status, answering: false, error: e.message });
     }
     // One call a turn. The rows it reads are in D1, which bills nothing between calls.
-    await new Promise((r) => setTimeout(r, 5000));
+    // 30 s (Tom, 2026-10-09): a message waits up to that long. The lease lasts 3 of these.
+    await new Promise((r) => setTimeout(r, 30000));
   }
 }
 // %%

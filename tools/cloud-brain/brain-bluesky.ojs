@@ -6,7 +6,7 @@ A Cloud Brain channel: Bluesky messages to the Brain's own account arrive in the
 |---|---|
 | Worker | \`brain-x-bluesky\`, ticked once a minute |
 | \`bluesky.send\` | procedure. The owner, a named token, or \`brain-x-inbox\` answering an entry; never a member. \`{ to, text }\` or \`{ to, image, text }\`; \`to\` is the owner's DID or a person's. With \`room\`, a group's conversation id, the text goes to that group, and \`to\` must be in it. |
-| \`bluesky.poll\` | procedure, owner. Reads what is new now. The page calls it every 5 s while its tab answers. |
+| \`bluesky.poll\` | procedure, owner. Reads what is new now. The page calls it every 30 s while its tab answers. |
 | \`bluesky.know\` | procedure, the kernel. \`{ address, forget }\` adds or drops one DID; \`{ all: [did] }\` replaces the set. |
 | \`bluesky.room\` | procedure, the kernel. \`{ id }\` answers \`{ known, name, members, complete, served }\` for a group this Worker has seen, read from the chat service when what is kept is over 2 minutes old. |
 | \`bluesky.start\` | procedure, owner. \`{ members, name, text }\`: makes a group of the owner and people already added (2 to 20 DIDs) and says \`text\` in it. \`{ id }\`. |
@@ -16,7 +16,7 @@ A Cloud Brain channel: Bluesky messages to the Brain's own account arrive in the
 | \`bluesky.putRecord\` | procedure. The owner in their tab, or \`brain-x-feed\` when the chain was started by the owner, in their tab or in a turn run for them (\`origin.kind == "owner"\`; *Origin* in \`@tomlarkworthy/brain-core\`). A token, or a member the owner gave \`feed.publish\`, does not write a record. Until 2026-10-08 the rule read \`origin.trusted\`, which let both through. \`{ collection, rkey, record }\` writes one record in the account's repo. \`collection\` must be \`app.bsky.feed.generator\`. \`{ did, handle, uri, cid }\`. |
 | \`bluesky.deleteRecord\` | procedure, the same callers. \`{ collection, rkey }\` deletes that record. \`{ did, handle, uri }\`. |
 | \`bluesky.status\` | query, owner. \`{ configured, handle, did, pds, signedIn, tick, lastPoll, lastError, backoffUntil, people, groups }\` |
-| Secrets | \`BLUESKY_HANDLE\`, \`BLUESKY_APP_PASSWORD\` |
+| Secrets | \`BLUESKY_HANDLE\`, \`BLUESKY_APP_PASSWORD\`. Read from the core at most once in 5 minutes for one instance (\`config.credsMs\`), so a changed secret is followed within 5 minutes. |
 | Storage | \`rows\`: \`session\`, \`refused\`, \`cursor\`, \`since\`, \`known/<did>\`, \`convo/<did>\`, \`direct/<convo>\`, \`group/<convo>\`, \`heard/<convo>\`, \`settings\`, \`declared\`, \`declareError\`, \`accepted/<convo>\`, \`asked/<did>\`, \`asks\`, \`quiet/<did>\`, \`polled\`, \`tick\`, \`busy\`, \`backoff\`, \`error\` |
 
 With either secret unset, a tick writes \`tick\` and stops: no request leaves the Worker, and \`bluesky.status\` answers \`{ configured: false }\`.`
@@ -165,12 +165,19 @@ blueskyOps = {
       return 0;
     }
   };
+  // The two secrets are kept in this instance for credsMs: each read is a call to the core, and a poll made two.
+  // A changed secret is followed within that time. A missing one is not kept.
+  let kept = null;
   const creds = async () => {
+    const ms = config.credsMs ?? 300000;
+    if (ms > 0 && kept && Date.now() - kept.at < ms) return kept.c;
     const handle = await secrets.BLUESKY_HANDLE, password = await secrets.BLUESKY_APP_PASSWORD;
-    if (!handle || !password) return null;
+    if (!handle || !password) return (kept = null);
     const c = { handle: String(handle).trim().replace(/^@/, ""), password: String(password).trim() };
     // Says whether the secrets are the ones a session or a refusal was made with.
-    return { ...c, mark: (await sha256(c.handle + "\n" + c.password)).slice(0, 16) };
+    const out = { ...c, mark: (await sha256(c.handle + "\n" + c.password)).slice(0, 16) };
+    if (ms > 0) kept = { at: Date.now(), c: out };
+    return out;
   };
   const call = async (url, init) => {
     const r = await fetch(url, init);
@@ -604,7 +611,7 @@ md`## Tests
 The emitted Worker under \`simulate\`, against a stand-in for the directory, the account's PDS and the chat service. No test reaches Bluesky.`
 // %%
 // The account is did:plc:brain on https://pds.example. `events` is the chat log; `say(from, text)` adds a message to it.
-blueskyRig = async ({ held = true, known = [], configured = true, owner = "did:plc:owner", pageSize = 50, allow = "following" } = {}) => {
+blueskyRig = async ({ held = true, known = [], configured = true, owner = "did:plc:owner", pageSize = 50, allow = "following", credsMs = 0 } = {}) => {
   const jwt = (kind, n, exp) => `h.${btoa(JSON.stringify({ kind, n, exp: Math.floor(exp / 1000) }))}.s`;
   const net = { asked: [], sent: [], events: [], read: [], accepted: [], sessions: 0, refreshes: 0, live: 0, limit: 0, reset: null, password: "app-pass", declaration: allow === null ? null : { $type: "chat.bsky.actor.declaration", allowIncoming: allow }, groups: new Map(), past: new Set(), memberPage: 100, ttl: 7200000 };
   const state = { held };
@@ -665,11 +672,13 @@ blueskyRig = async ({ held = true, known = [], configured = true, owner = "did:p
   const sim = await simulate(bluesky_service, {
     rows: new Map(known.map((d) => ["known/" + d, { at: 1 }])),
     secrets: { BRAIN_KEY: "k" },
-    config: { host: "brain.example", owner, pollGapMs: 0 },
+    // credsMs 0: a test changes a secret and reads it on the next poll.
+    config: { host: "brain.example", owner, pollGapMs: 0, credsMs },
     fetch,
     core: async (request) => {
       const u = new URL(request.url), nsid = u.pathname.replace("/xrpc/com.lopecode.brain.", "");
       if (nsid === "secret.get") {
+        state.reads = (state.reads || 0) + 1;
         const name = u.searchParams.get("name"), value = sim.stored[name];
         return value === undefined ? Response.json({ error: "NotFound" }, { status: 404 }) : Response.json({ name, value });
       }
@@ -1180,6 +1189,20 @@ test_bluesky_writes_only_a_feed_generator_record = {
     expect([m, let_(m, callers.feed), let_(m, callers.inbox)]).toEqual([m, "owner turn", ""]);
   }
   return "1 written, 1 deleted, 8 refused by collection";
+}
+// %%
+test_bluesky_reads_its_secrets_once_in_the_window = {
+  const rig = await blueskyRig({ credsMs: 150 });
+  const reads = () => rig.state.reads || 0;
+  await rig.poll();
+  const first = reads();
+  await rig.poll();
+  const second = reads();
+  await new Promise((r) => setTimeout(r, 200));
+  await rig.poll();
+  // One pair for two polls inside the window, and a second pair after it.
+  expect([first, second, reads()]).toEqual([2, 2, 4]);
+  return "2 reads for 2 polls, 4 after the window";
 }
 // %%
 test_bluesky_declares_what_it_needs = {

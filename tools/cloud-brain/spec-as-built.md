@@ -105,7 +105,7 @@ Methods as built, all under `com.lopecode.brain.`:
 | `secret.get`, `secret.put`, `secret.delete` | owner's own session | |
 | `inbox.append` | a Worker, the guard, the owner | once per `key` |
 | `inbox.list`, `inbox.done` | owner | |
-| `lease.take` | owner | one tab at a time, 30 s |
+| `lease.take` | owner | one tab at a time, 90 s (30 s until 2026-10-09) |
 | `lease.get` | owner or a Worker | is a tab answering |
 | `rows.get/list/put/delete` | owner | the tab's side of the `rows` platform cell |
 | `blob.put`, `blob.get`, `notebook.plan`, `notebook.putHead`, `notebook.setPublic`, `notebook.deleteHead`, `notebook.list`, `notebook.getRecord`, `notebook.listVersions` | owner | the store |
@@ -2719,3 +2719,19 @@ Not done:
 - `knowledge.put` is open to one Worker by name. A second feeder needs the owner to set a rule; there is no shared rule for "the Brain's own Workers".
 - The first test note (`note:first`) is still in the database.
 - No fresh review of this module yet.
+
+## Fewer calls from an open tab: Bluesky credentials kept 5 minutes, and a 30 s poll (2026-10-09, to 09:17 CEST)
+
+Tom, 2026-10-09: "ok lets reduce polling to 30 seconds then for now". Counts are from `logs.query` on cb4, 10 minutes each, one open tab.
+
+- **Credentials.** `brain-x-bluesky` read `BLUESKY_HANDLE` and `BLUESKY_APP_PASSWORD` from the core on every poll: the wrapper keeps a secret 5 s and polls were 5.9 s apart. `creds()` now keeps the pair in the instance for `config.credsMs`, default 5 minutes; a missing secret is not kept, and a changed one is followed within 5 minutes. `secret.get` by `worker:brain-x-bluesky`: 218 (08:27 to 08:37 CEST) before, 8 (08:50 to 09:00) after, with the poll still at 5 s. Test: `test_bluesky_reads_its_secrets_once_in_the_window`.
+- **Poll.** The page's loop (`inboxPump` in `cloud-brain.ojs`) waits 30 s, was 5 s. `inbox.poll` and `bluesky.poll` together: 214 before (115 and 99), 38 after (19 and 19; 09:05 to 09:15 CEST). `secret.get` by the Bluesky Worker in that window: 6.
+- **Lease.** `inbox.poll` is what renews the lease, so its life went from 30 s to 90 s (`LEASE` in `brain-inbox.ojs`): 3 polls. The 10 s renewal during a running turn is as it was. `lease.get` read every 10 s for 2 minutes after the tab was reloaded (09:04:41 to 09:06:41 CEST): held 13 of 13.
+- **Deployed:** `brain-x-bluesky` `ae97ddc6ab43`, `brain-x-inbox` `0142bcd0c654`. `brain-x-page` already ran this page (`1613dd6d787c`, "unchanged" on apply): another session had deployed it from the same seeds. `redistil` 17 `same`.
+- **Tests:** 683 `test_*` cells forced in a local tab; 6 fail or time out, all in modules this project does not own.
+
+What it costs:
+
+- A message waits up to 30 s for a tab, was 5 s.
+- After a tab closes without releasing, 90 s pass before another tab or the Bluesky Worker's own once-a-minute read takes over, was 30 s. Seen on the reload: the new tab answered after the old lease ran out.
+- Inbox entry 9 (`check`, from the owner) has no handler and is counted as waiting on every poll. Not changed.
