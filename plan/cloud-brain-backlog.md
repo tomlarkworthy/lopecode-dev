@@ -268,6 +268,11 @@ after the settings deploy). Nothing tells an open tab that the Brain now serves 
 R32 to R35, Lexicons, an approval code over WhatsApp, `canonical.json` / preflight / sitemap entries, a real Meta WhatsApp number, an install into a second
 Cloudflare account, the token's minimum permissions.
 
+`brain-x-container`, leased containers (asked 2026-10-09). A spike ran a Docker Hub image from three REST calls with
+no Docker and no wrangler: cold start 245 ms, 34 ms a request from the object to a container placed in Istanbul.
+The deploy path lacks Durable Object classes, `containers` in the upload and the application resource. Five
+decisions wait on Tom (image, policy, region, who may lease, price): `tools/cloud-brain/containers.md`.
+
 ## Housekeeping
 
 Scratch Workers `cb-experiments`, `cb-step1-fixture`, `cb3`, `cb3-core`, `cb3-guard`, `cb3-x-proxy`,
