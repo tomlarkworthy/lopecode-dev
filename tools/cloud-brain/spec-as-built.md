@@ -2996,3 +2996,41 @@ redistil 20:37:43                      17 same; lease.get {"held":true}
 Tests forced in a local tab: brain-container 8 of 8, cloudflare-iac 25 of 25, brain-deployer 40 of 40 (one new: `test_container_images_are_applications_of_brain_x_container_alone`). The deployer was installed again (`57f8a8106d8f`) to carry the emit change.
 
 Open: Cloudflare keeps 6 instances of the image ready with no lease, and whether they are billed was not seen on a bill (`containers.md`, "Not known"). An apply was put back once on a 504 from Cloudflare and deployed on the next try. No reviewer has read this module yet.
+
+### 2026-10-09 20:59 CEST: the fresh review of `brain-container`, 8 findings, and one in the core
+
+A fresh reviewer (opus, no context) returned BLOCK. The first finding was run against cb4 before the fix:
+
+```
+20:55 extend?seconds=30&container=rv                      paidUntil …146285
+      get?port=8080&path=/_status                         {"paidUntil":…146285,"remaining":30,"up":true,…}   the object's own answer
+      post?port=8080&path=/_extend {owner,name,seconds:40} {"added":40,…}; status remaining 69             40 s at no price, no row
+      get?port=8080&path=/_end                            {"stopped":true}; status remaining 0, up false
+```
+
+`container.get` and `container.post` reached the object's own calls, because the object chose by path and the
+caller gives the path. Now the object has two host names, both written by the Worker: `op.internal` for its own
+calls and `port-N.internal` for port N. After the deploy (`brain-x-container` `98dcb96fd871`), with a server on
+8080 that prints what it sees, each of `/_status /_extend /_end /_stop /_exec` by GET and by POST answered
+`port saw GET /_status` and so on, and `paidUntil` did not move.
+
+Was free time bought on cb4 before? The logs of the day have `container.get` and `container.post` from `owner`
+only (33 and 29 calls: the build's checks and the two runs above). The 40 s above is the one case.
+
+- **A name given two times.** `extend?image=node&image=other` was priced at 0 (the price reads the last) and
+  sold as `node` (Hono reads the first). The service now reads the last, and **the core refuses a call that
+  gives a query parameter two times** (400, `brain-core` `437a531428bd`): the same gap was open for a rule that
+  reads `request.params` (`brain-feed`'s `request.params.feed`, the `request.params.worker` rule `brain-logs`
+  suggests). `brain-browser` already read the last `seconds` and has no other priced name. On cb4 both
+  `seconds=60&seconds=10` and `image=node&image=other` answer 400.
+- `maxContainers` is capped at the least `max` of the images (6), in `settings` and the panel.
+- Prose: a deploy does not end a container and removing the Worker does; "first six"; the body is kept for the
+  first 15 s after a start; `exec` bounds; the rate is rounded from $0.000002015.
+- The panel dispatches `input` after it sets its value.
+- Tests forced in a local tab: brain-container 8 of 8 and brain-core 29 of 29, the two the reviewer could not
+  run among them.
+- The shell was uploaded again, so the docs module of the page lists the service.
+- **Ready instances and the bill.** Cloudflare's architecture page: "You are only charged for actively running
+  instances, not for prepared images that are not running." The six ready instances here were running the
+  entrypoint (uptime 34 s at the first lease), so the sentence does not settle it. No usage figure was read
+  from the account. Still for Tom to look at.

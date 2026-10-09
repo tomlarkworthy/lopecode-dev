@@ -695,7 +695,8 @@ Built and on cb4: stored settings read through `config` (`config.set`, `config.g
 - **For Tom, each a default the parent session took and he can reverse:** who may lease (now the owner and Workers; members by a rule later), the image list (`node:22-alpine` alone), region `WEUR`, the price (lite at full use), 6 containers at most.
 - **For Tom, to look at:** Cloudflare keeps 6 instances ready with no lease. Read the account's Containers usage; if ready instances are billed it is about $1.04 a day, and `max` should go to 1 or the Worker be removed until it is used.
 - **Next step of the offline workstream:** an image that runs a headless lopecode notebook. It needs Docker one time (a machine or CI) and a push to Docker Hub or Cloudflare's registry, then one entry in `containerImageList` and a remove-and-deploy of the Worker. Not started.
-- Open: a fresh review of `brain-container`, and of the hunks in `cloudflare-iac` and `brain-deployer`.
+- **Done 2026-10-09 20:59:** the fresh review of `brain-container`: 8 findings fixed and deployed (`98dcb96fd871`). The pass-through reached the object's own calls, seen on cb4 and closed; the core refuses a query parameter given two times. Record in `spec-as-built.md`.
+- Open: a fresh review of the hunks in `cloudflare-iac` and `brain-deployer`, and of these fixes. Whether Cloudflare bills the 6 ready instances: its page says no for "prepared images that are not running", and ours were running; no bill was read.
 - Open: the 504 from Cloudflare's version upload that put one apply back (seen once).
 - Open: a per-owner daily limit before any member may lease; a count of egress.
 - Open: `exec` does not stream; no method puts a file in a container.

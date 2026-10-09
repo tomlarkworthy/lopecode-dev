@@ -8,6 +8,7 @@ It answers bindings only. A caller is who the kernel says it is, and the kernel 
 |---|---|
 | 403 \`Forbidden\` | A Worker calls a method that its service did not declare in \`calls\` (mode \`enforce\`). A member's Worker calls outside its author's reach, or is switched off. A rule cannot be decided. |
 | 405 \`InvalidRequest\` | A query sent as POST, or a procedure sent as GET. |
+| 400 \`InvalidRequest\` | A query parameter is given two times. A rule and a price read the last of them and a service may read the first, so the call is refused. |
 | 401 \`AuthRequired\` | The rule of the method or path is not true for this caller. |
 | 429 \`RateLimitExceeded\` | A member's calls for the day are used. |
 | 402 \`OutOfCredits\` | The method has a price and the account that pays has less than the price left for the day, or the call has no account. |
@@ -830,6 +831,10 @@ ${deployed.join("\n\n")}
     if (route) {
       const rule = method || path;
       if (method && (method.type === "query") !== (c.req.method === "GET")) return fail(c, 405, "InvalidRequest", `${nsid} is a ${method.type}`);
+      // A rule and a price read the query string as a map, which has the last of a name given two times. A service
+      // may read the first. So that the two never read different values, such a call is refused.
+      const given = [...url.searchParams.keys()];
+      if (new Set(given).size !== given.length) return fail(c, 400, "InvalidRequest", "a query parameter is given two times");
       // A member's Worker answers while its author is a member and the owner has not switched it off.
       if (route.role === "member") {
         const now = await rows.get("route/" + route.worker), person = await rows.get("person/" + route.author);
@@ -1461,6 +1466,9 @@ test_a_priced_call_is_charged_to_the_day_of_its_origin = {
   expect([r.status, r.headers.get("x-brain-price")]).toEqual([200, "0.01"]);
   // The price reads the request: 40 seconds at $0.000025 a second.
   expect((await rig.owner("shop.time?seconds=40", {})).headers.get("x-brain-price")).toBe("0.001");
+  // A name given two times is refused before the price is read: the price would read the last and a service may read the first.
+  const twice = await rig.owner("shop.time?seconds=4000&seconds=4", {});
+  expect([twice.status, twice.data.message, twice.headers.get("x-brain-price")]).toEqual([400, "a query parameter is given two times", null]);
   // $1 is the whole allowance and $0.011 of it is spent: refused.
   expect((await rig.owner("shop.whole", {})).status).toBe(402);
   expect(await rig.day()).toMatchObject({ who: "owner", day: rig.today, spent: 0.011, daily: 1, remaining: 0.989 });

@@ -256,6 +256,16 @@ The day's spend of the owner after both leases, the tests and the benchmark: $0.
   token has every group.
 - The limit of `exec` output, and what a container does at its memory limit.
 
+### After the review, 2026-10-09 20:59
+
+`container.get|post?path=/_extend` reached the object's own call and bought 40 s at no price on cb4 (20:55). The
+object now tells its own calls from a port by host name (`op.internal`, `port-N.internal`), and the same five
+paths reach the container's server. The record is in `spec-as-built.md` under the same time.
+
+Cloudflare's [architecture page](https://developers.cloudflare.com/containers/platform-details/architecture/)
+(read 2026-10-09): "You are only charged for actively running instances, not for prepared images that are not
+running." The ready instances seen here were running the entrypoint, so this does not answer the question above.
+
 ### Not built
 
 An image that runs a headless lopecode notebook. It is the next step of the offline workstream and
