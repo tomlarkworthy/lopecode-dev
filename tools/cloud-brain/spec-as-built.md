@@ -2971,3 +2971,28 @@ Also in this change:
 - **A 24-hour log count agrees with 24 one-hour counts**: 40148 lines both ways (239 groups for the day, at most 179 in an hour, `limit` 500). The earlier shortfall was the 50-group limit.
 - The deployer was installed again (`4c67d8ec4ab6`) to carry the wrapper change, and every Worker distilled again. `redistil --apply` crashed once in the CLI part-way (a DOMException printed by bun; cause not found); the change it left held `brain-x-logs` for 5 minutes.
 
+
+### 2026-10-09 20:41 CEST: `brain-x-container`, leased containers
+
+Tom: "Like the browser service we want a high performance light wrapper around running leased containers."
+
+New Worker `brain-x-container` `f2581201bd95` (the code of `28e477317795`, which the checks below ran on, with its prose corrected; applied 20:41:59 to 20:42:12), module `@tomlarkworthy/brain-container` (seed `brain-container.ojs`), on cb4 since 20:29:44 CEST. The spike, the five decisions and every measurement are in `containers.md`; the method table is the module's first cell.
+
+- **Methods:** `container.extend?seconds=` (the one with a price; starts the container when it is down; 503 `ContainerNotReady` when Cloudflare gives no instance), `exec`, `get` and `post` (the container's port, HTTP and WebSocket), `status`, `stop`; `all`, `end`, `settings` in the owner's own session.
+- **A container is (owner, image, name).** One Durable Object each, in the class of the image. The object holds `paidUntil`; its alarm destroys the container. `get`, `post` and `exec` read no row.
+- **Defaults taken by the parent session, not by Tom:** image `node:22-alpine`, policy `default`, region `WEUR`, `who: "workers"`, $0.000002 a second with no refunds, at most 6 containers and 3 an owner.
+- **Deploy path:** `cloudflare-iac` emits the class `Box_<image>` and its binding for a Worker that declares images, and for no other (every other hash unchanged). The deployer sends `containers` and the first-upload migration, makes the application after the health check and deletes it on remove. Only `brain-x-container` may declare images; a changed image list is refused on a Worker that runs.
+
+```
+cb4, 2026-10-09, caller in Berlin
+extend seconds=60, container down      0.62 s, cold: true, up: true
+exec ["node","-v"]                     v22.23.3
+container.get to a server on 8080      p50 102 ms, 15 ms over quota.get (87 ms), 25 calls
+lease ended 20:33:50                   20:33:56 up: false, 409 NoTime, container.all []
+application health 20:37:43            active 0
+redistil 20:37:43                      17 same; lease.get {"held":true}
+```
+
+Tests forced in a local tab: brain-container 8 of 8, cloudflare-iac 25 of 25, brain-deployer 40 of 40 (one new: `test_container_images_are_applications_of_brain_x_container_alone`). The deployer was installed again (`57f8a8106d8f`) to carry the emit change.
+
+Open: Cloudflare keeps 6 instances of the image ready with no lease, and whether they are billed was not seen on a bill (`containers.md`, "Not known"). An apply was put back once on a 504 from Cloudflare and deployed on the next try. No reviewer has read this module yet.

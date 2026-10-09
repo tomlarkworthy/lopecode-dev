@@ -33,13 +33,14 @@ const MODULES = [
   { name: "@tomlarkworthy/brain-logs", seed: "brain-logs.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-snapshot", seed: "brain-snapshot.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-knowledge", seed: "brain-knowledge.ojs", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-container", seed: "brain-container.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/cloud-brain", seed: "cloud-brain.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/cloud-brain-docs", seed: "cloud-brain-docs.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-secrets", seed: "brain-secrets.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-db", seed: "brain-db.ojs", main: true, files: {} },
 ];
 // What a Worker of a Brain owns: the deployer's two, and one per service. The shell is the notebook without these.
-const OWNED = ["cloudflare-iac", "brain-deployer", "brain-core", "brain-kernel", "brain-proxy", "brain-whatsapp", "brain-bluesky", "brain-static", "brain-blob", "brain-library", "brain-feed", "brain-browser", "brain-inbox", "brain-logs", "brain-snapshot", "brain-knowledge", "cloud-brain", "brain-db"].map((n) => "@tomlarkworthy/" + n);
+const OWNED = ["cloudflare-iac", "brain-deployer", "brain-core", "brain-kernel", "brain-proxy", "brain-whatsapp", "brain-bluesky", "brain-static", "brain-blob", "brain-library", "brain-feed", "brain-browser", "brain-inbox", "brain-logs", "brain-snapshot", "brain-knowledge", "brain-container", "cloud-brain", "brain-db"].map((n) => "@tomlarkworthy/" + n);
 // The spec is built from a seed, and the cells a reviewer writes in the page (notes, the status) are carried over from
 // the previous build. Before 2026-10-07 the module was @spec/cloud-brain and was carried whole.
 const SPEC = {

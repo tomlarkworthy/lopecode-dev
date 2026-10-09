@@ -22,6 +22,7 @@ One Brain, `cb4`, runs in one Cloudflare account. It has 17 Workers (counted 202
 | `brain-x-knowledge` | `brain-knowledge` | What the Brain knows: one entry per paper, page, post or finding, with where it was found, the path of its kept file, and who entered it and how. A D1 database of its own with a full-text index; no file bytes. The owner searches it; the snapshot and the digest tool enter into it. 68 entries on cb4, 2026-10-09. |
 | `brain-x-snapshot` | `brain-snapshot` | Once a day, at 06:00 UTC, fetches a list of public feeds (arXiv, Hugging Face papers, lab blogs, named writers, Hacker News, Reddit, Lobsters) and keeps each as a public JSON file under `/static/snapshot/<day>/`. It records only: no model call, no ranking, no summary. |
 | `brain-x-browser` | `brain-browser` | Remote browsers from Cloudflare Browser Run, for each process of the Brain. A browser has a name and belongs to the caller that bought its time; a page is a tab of one browser. Browser time is bought in seconds by `browser.extend`. |
+| `brain-x-container` | `brain-container` | Leased Linux containers from Cloudflare Containers (built 2026-10-09). A container belongs to the caller that bought its time, has a declared image (`node`) and a name, and is destroyed when the time ends. `container.extend` buys seconds; `exec` runs a command; `get` and `post` are its port. The owner and the Brain's Workers only. |
 
 A service is one notebook module. The module holds the prose, the code and the tests of the service.
 
@@ -93,6 +94,7 @@ The tests of each module run in the page under `simulate`. A deploy is unverifie
 - CPU limits and SQL metering for a member Worker.
 - The Brain's own page hosted in a remote browser. `brain-x-browser` opens pages that are not signed in.
 - A tool for the assistant to use the browser.
+- A container image that runs a lopecode notebook. `brain-x-container` runs images from Docker Hub; that image has to be built and pushed with Docker one time.
 - A cost known only after a call, such as model tokens. A charge is fixed before the call and is not returned.
 
 <!-- cell: built_limits -->
@@ -102,6 +104,8 @@ The tests of each module run in the page under `simulate`. A deploy is unverifie
 - Three tabs of the Brain's own page stopped one remote browser on cb4, two times of two. Two tabs did not. The memory limit of a Browser Run browser is not published.
 - A page in a web browser cannot open a WebSocket to the Brain as a person: it cannot set the `Authorization` header, and the kernel reads no cookie. A server-side client and a Worker can.
 - A remote browser can live up to 60 s after the time that was bought, until the next tick. Time that is bought is not given back, used or not; one `extend` is $0.09 at most.
+- Cloudflare keeps 6 instances of the container image ready with no lease. Whether they are billed was not seen on a bill (2026-10-09); at the full rate it would be $1.04 a day.
+- A container's disk is not kept past its lease. The image list of `brain-x-container` changes only by removing the Worker and deploying it again.
 - `brain.ts apply` sends the recovery key. The deployer does not hold that deploy for approval. The page's Apply is held.
 - A member's files and blobs count separately against one quota.
 - A portal token cannot be withdrawn in its 10 minutes.

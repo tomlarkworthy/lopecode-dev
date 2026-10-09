@@ -321,6 +321,12 @@ assets = ({ [platformTag]: "assets", fetch: (request) => backend.forward("assets
 // HTTP form ("/v1/devtools/browser", "/v1/sessions"); an Upgrade request answers with a WebSocket that carries CDP.
 browser = ({ [platformTag]: "browser", fetch: (path, init = {}) => backend.forward("browser", new Request("https://browser.internal" + path, init)) })
 // %%
+// Cloudflare Containers. A service declares its images in options.containers: { images: { NAME: { image, type, max,
+// entrypoint, regions } }, object }. Each image is one container application and one Durable Object class; a container
+// belongs to one object. fetch(image, id, request) reaches the object `id` of that image, and the object's ctx.container
+// is the container. `object` is { fetch(ctx, about, request), alarm(ctx, about) }: what the object does, as a cell.
+containers = ({ [platformTag]: "containers", fetch: (image, id, request) => backend.forward("containers", request) })
+// %%
 // log({ at: "poll.skipped", reason }) writes one line to Workers Logs: the object, with this Worker's name and the
 // ray of the call being answered. Cloudflare keeps each field, 7 days. Write names and decisions; never a secret,
 // a header or a body.
@@ -802,6 +808,21 @@ asSource = (emitted, doc = globalThis.document) => {
   return { module: emitted.source.module, source: emitted.source.text, files };
 }
 // %%
+// The images a service declares, as the deployer makes them: [{ name, class_name, image, instance_type, max_instances,
+// entrypoint, regions }], by name. An image is on Docker Hub and is named in the service, never by a caller.
+containerImages = (service, refuse = (cell, why) => { throw new Error(why); }) => {
+  const declared = service.options.containers || {};
+  const names = Object.keys(declared.images || {}).sort();
+  if (!names.length) refuse(service.name, "uses containers and declares no image: add containers: { images: { NAME: { image } }, object } to the service's options");
+  if (!declared.object || typeof declared.object.fetch !== "function" || typeof declared.object.alarm !== "function") refuse(service.name, "declares containers and no object with fetch and alarm");
+  return names.map((name) => {
+    const i = declared.images[name];
+    if (!/^[a-z][a-z0-9]{0,19}$/.test(name)) refuse(service.name, `names a container image "${name}": a lower case letter, then letters and digits, 20 at most`);
+    if (typeof i.image !== "string" || !/^docker\.io\/[a-z0-9._/-]+:[A-Za-z0-9._-]+$/.test(i.image)) refuse(service.name, `image "${name}" is not docker.io/NAME:TAG`);
+    return { name, class_name: "Box_" + name, image: i.image, instance_type: i.type || "lite", max_instances: i.max || 4, entrypoint: i.entrypoint || [], regions: i.regions || [] };
+  });
+}
+// %%
 // Walks the runtime's variable graph from the cell holding `service` and writes a plain ES module.
 emit = async (service) => {
   // An imported name is an alias variable whose one input lives in the exporting module.
@@ -843,6 +864,9 @@ emit = async (service) => {
     } else if (kind === "cloudflareApi") {
       used.add(kind);
       ref = "__cloudflareApi";
+    } else if (kind === "containers") {
+      used.add(kind);
+      ref = "__containers";
     } else if (kind) {
       used.add(kind);
       ref = "__rt.platform." + kind;
@@ -917,9 +941,21 @@ emit = async (service) => {
   const groups = [...new Set(service.options.cloudflare || [])].sort();
   if (used.has("cloudflareApi") && !groups.length) refuse(service.name, "uses cloudflareApi and declares no Cloudflare permissions: add cloudflare: [\"GROUP\"] to the service's options");
   if (used.has("cloudflareApi")) lines.push(`const __cloudflareApi = { fetch: async (path, init = {}) => fetch("https://api.cloudflare.com/client/v4/accounts/" + __rt.platform.config.account + path, { ...init, headers: { "content-type": "application/json", ...(init.headers || {}), authorization: "Bearer " + (await __rt.platform.secrets.CF_TOKEN) } }) };`);
+  // Containers are written here and not in the wrapper, as the browser cell is. One Durable Object class for each image
+  // the service declares. The object does what the service's options.containers.object says, with its own ctx.
+  const boxes = used.has("containers") ? containerImages(service, refuse) : [];
+  if (boxes.length) lines.push(`import { DurableObject as __DO } from "cloudflare:workers";`, `let __env = null;`, `const __containers = { fetch: (image, id, request) => { const ns = __env && __env["BOX_" + String(image).toUpperCase()]; if (!ns) throw new Error("no container image " + image); return ns.get(ns.idFromName(id)).fetch(request); } };`);
   lines.push(`const __init = async () => {`);
   for (const c of cells) lines.push(`  const ${c.id} = await (${c.text})(${c.deps.join(", ")});`);
-  lines.push(`  return ${rootRef};`, `};`, `export default __rt.serve(__init, ${source ? "__source" : "null"});`);
+  if (!boxes.length) lines.push(`  return ${rootRef};`, `};`, `export default __rt.serve(__init, ${source ? "__source" : "null"});`);
+  else {
+    // One evaluation of the cells for the Worker and its objects. An object can be the first thing to run in an isolate:
+    // it asks the Worker for its health once, which gives the wrapper the bindings.
+    lines.push(`  return ${rootRef};`, `};`, `let __one = null;`, `const __once = () => (__one ??= __init().catch((e) => { __one = null; throw e; }));`, `const __served = __rt.serve(__once, ${source ? "__source" : "null"});`);
+    lines.push(`export default { fetch: (request, env, ctx) => ((__env = env), __served.fetch(request, env, ctx)), scheduled: (event, env, ctx) => ((__env = env), __served.scheduled(event, env, ctx)) };`);
+    lines.push(`const __box = async (o, what, image, request) => { if (!__env) { __env = o.env; await __served.fetch(new Request("https://box.internal/xrpc/_health"), o.env, { waitUntil: () => {} }); } return (await __once()).options.containers.object[what](o.ctx, { image }, request); };`);
+    for (const b of boxes) lines.push(`export class ${b.class_name} extends __DO { fetch(request) { return __box(this, "fetch", ${JSON.stringify(b.name)}, request); } alarm() { return __box(this, "alarm", ${JSON.stringify(b.name)}); } }`);
+  }
   if (used.has("rows") && (role === "deployer" || role === "guard")) lines.push(`export const Rows = __rt.Rows;`);
   // A cell value of the tab is never copied: every chased cell is evaluated again on the Worker from its source.
 
@@ -948,6 +984,8 @@ emit = async (service) => {
     resources,
     // Cloudflare permission groups. The deployer mints a token of exactly these and binds it to this Worker as CF_TOKEN.
     cloudflare: groups,
+    // Container applications the deployer makes for this Worker, one for each image. Absent for a Worker with none.
+    ...(boxes.length ? { containers: boxes } : {}),
     bindings: [
       // Only the kernel's and the core's named secrets are bound. A recipe reads its secrets through the core.
       ...(role === "kernel" || role === "core" || role === "deployer" ? [...secretNames].sort().map((name) => ({ type: "secret_text", name })) : []),
@@ -957,7 +995,8 @@ emit = async (service) => {
       ...(used.has("inbox") || used.has("xrpc") || used.has("sql") || used.has("core") || (secretNames.size && (role === "recipe" || role === "system")) ? [{ type: "service", name: "CORE", service: "brain-core" }] : []),
       ...(used.has("deployer") ? [{ type: "service", name: "DEPLOYER", service: "brain-deployer" }] : []),
       ...(used.has("assets") ? [{ type: "assets", name: "ASSETS" }] : []),
-      ...(used.has("browser") ? [{ type: "browser", name: "X_CF_BROWSER_RUN" }] : [])
+      ...(used.has("browser") ? [{ type: "browser", name: "X_CF_BROWSER_RUN" }] : []),
+      ...boxes.map((b) => ({ type: "durable_object_namespace", name: "BOX_" + b.name.toUpperCase(), class_name: b.class_name }))
     ]
   };
   const hash = await partsHash(parts, meta);
@@ -981,7 +1020,7 @@ moduleSource = async (module) => {
 }
 // %%
 // Runs the emitted module in the tab with every Cloudflare binding replaced by a recording fake.
-simulate = async (service, { secrets = {}, stored = {}, fetch, config = {}, info = {}, core, deployer, guard, assets, workers = {}, rows, blobs, sql, browser } = {}) => {
+simulate = async (service, { secrets = {}, stored = {}, fetch, config = {}, info = {}, core, deployer, guard, assets, workers = {}, rows, blobs, sql, browser, containers } = {}) => {
   const emitted = await service.emit();
   const url = (text) => URL.createObjectURL(new Blob([text], { type: "text/javascript" }));
   let main = emitted.parts[0].text;
@@ -992,6 +1031,8 @@ simulate = async (service, { secrets = {}, stored = {}, fetch, config = {}, info
   }
   // A browser has no node:async_hooks. The wrapper then holds one call at a time (see workerRuntime).
   main = main.replace(/^import \{ AsyncLocalStorage as __als \} from "node:async_hooks";$/m, "const __als = null;");
+  // Nor cloudflare:workers. An object here is the emitted class over a plain base, with the ctx simulate gives it.
+  main = main.replace(/^import \{ DurableObject as __DO \} from "cloudflare:workers";$/m, "const __DO = class { constructor(ctx, env) { this.ctx = ctx; this.env = env; } };");
   const mod = await import(url(main));
   const sim = { emitted, inbox: [], rows: rows || new Map(), blobs: blobs || new Map(), requests: [], calls: [] };
   const reply = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json" } });
@@ -1057,6 +1098,40 @@ simulate = async (service, { secrets = {}, stored = {}, fetch, config = {}, info
   };
   for (const [name, handler] of Object.entries(workers))
     env["X_" + name.toUpperCase().replace(/[^A-Z0-9]/g, "_")] = { fetch: async (request) => handler(request) };
+  // containers(image, id) gives the ctx.container of one object. sim.boxes has each object that was reached:
+  // "image/id" -> { object, ctx, stored (its storage), alarm (when its alarm is due, or null), sleep() }.
+  sim.boxes = new Map();
+  for (const b of emitted.meta.containers || [])
+    env["BOX_" + b.name.toUpperCase()] = {
+      idFromName: (name) => name,
+      get: (id) => ({
+        fetch: async (request) => {
+          const key = b.name + "/" + id;
+          if (!sim.boxes.has(key)) {
+            const box = { stored: new Map(), alarm: null, container: containers ? containers(b.name, id) : null };
+            // sleep(): the object as Cloudflare makes it again after it was put to sleep. Its storage, its alarm and
+            // its container stay; what it held in memory does not.
+            box.sleep = () => {
+              box.ctx = {
+                container: box.container,
+                storage: {
+                  get: async (k) => box.stored.get(k),
+                  put: async (k, v) => void box.stored.set(k, JSON.parse(JSON.stringify(v))),
+                  delete: async (k) => box.stored.delete(k),
+                  setAlarm: async (t) => void (box.alarm = +t),
+                  getAlarm: async () => box.alarm,
+                  deleteAlarm: async () => void (box.alarm = null)
+                }
+              };
+              box.object = new mod[b.class_name](box.ctx, env);
+            };
+            box.sleep();
+            sim.boxes.set(key, box);
+          }
+          return sim.boxes.get(key).object.fetch(request);
+        }
+      })
+    };
   // browser(request) answers as the Browser Run binding. For an upgrade it gives { status: 101, webSocket }.
   if (browser) env.X_CF_BROWSER_RUN = { fetch: async (request) => browser(request) };
   sim.env = env;

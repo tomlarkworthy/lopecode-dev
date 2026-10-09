@@ -275,6 +275,26 @@ deployerOps = {
     return id;
   };
 
+  // Container applications: one for each image a Worker declares, named <script>-<image>, bound to that Worker's
+  // Durable Object class. Made after the upload, because the class must exist. One that is no longer declared is
+  // deleted. A new application has no instance ready for about 4 minutes (seen 2026-10-09).
+  const TYPES = ["lite", "basic", "standard-1", "standard-2"];
+  const applications = async (logical, list) => {
+    const mine = ((await api("GET", "/containers/applications")) || []).filter((a) => a.name.startsWith(actual(logical) + "-"));
+    for (const b of list) {
+      const name = actual(logical) + "-" + b.name, found = mine.find((a) => a.name === name);
+      const configuration = { image: b.image, instance_type: b.instance_type, ...(b.entrypoint.length ? { entrypoint: b.entrypoint } : {}) };
+      const constraints = b.regions.length ? { constraints: { regions: b.regions } } : {};
+      if (!found) await api("POST", "/containers/applications", text({ name, scheduling_policy: "default", instances: 0, max_instances: b.max_instances, configuration, ...constraints, durable_objects: { script_name: actual(logical), class_name: b.class_name } }), jsonType);
+      else await api("PATCH", "/containers/applications/" + found.id, text({ max_instances: b.max_instances, configuration, ...constraints }), jsonType);
+      log({ at: found ? "deploy.application-set" : "deploy.application-made", target: logical, application: name, image: b.image, type: b.instance_type });
+    }
+    for (const a of mine.filter((a) => !list.some((b) => a.name === actual(logical) + "-" + b.name))) {
+      await api("DELETE", "/containers/applications/" + a.id);
+      log({ at: "deploy.application-removed", target: logical, application: a.name });
+    }
+  };
+
   // Bindings are built here from the resources a service declares. Nothing the tab sends is bound as given.
   const bindingsFor = async (w, key, existing, given, token = []) => {
     const m = w.meta, tier = m.role === "kernel" || m.role === "core";
@@ -309,6 +329,8 @@ deployerOps = {
     if (uses("assets")) out.push({ type: "assets", name: "ASSETS" });
     // Browser Run. The name is the one the wrapper's workers cell reads for "cf-browser-run" (see emit in cloudflare-iac).
     if (uses("browser")) out.push({ type: "browser", name: "X_CF_BROWSER_RUN" });
+    // The Worker's own Durable Object classes, one for each container image it declares.
+    for (const b of m.containers || []) out.push({ type: "durable_object_namespace", name: "BOX_" + b.name.toUpperCase(), class_name: b.class_name });
     for (const name of existing) if (name.startsWith("X_") && name !== "X_CF_BROWSER_RUN") out.push({ type: "inherit", name });
     out.push(...token);
     out.push({ type: "secret_text", name: "BRAIN_KEY", text: key });
@@ -347,8 +369,14 @@ deployerOps = {
       const clash = (m.methods || []).find((x) => (other.methods || []).includes(x)) || (m.paths || []).map((x) => x.path).find((x) => (other.paths || []).some((o) => o.path === x));
       if (clash) return `${clash} is already served by ${other.worker}`;
     }
-    const bad = m.resources.find((r) => !["rows", "blobs", "inbox", "xrpc", "assets", "sql", "browser", ...(logical === "brain-x-knowledge" ? ["database"] : [])].includes(r));
+    // Containers run as root with the open internet and are billed by the second: one service leases them to the rest.
+    const bad = m.resources.find((r) => !["rows", "blobs", "inbox", "xrpc", "assets", "sql", "browser", ...(logical === "brain-x-knowledge" ? ["database"] : []), ...(logical === "brain-x-container" ? ["containers"] : [])].includes(r));
     if (bad) return `a recipe may not use the platform cell "${bad}"`;
+    if ((m.containers || []).length && !m.resources.includes("containers")) return "container images without the platform cell containers";
+    const image = (m.containers || []).find((b) => !/^[a-z][a-z0-9]{0,19}$/.test(b.name) || b.class_name !== "Box_" + b.name || !/^docker\.io\/[a-z0-9._/-]+:[A-Za-z0-9._-]+$/.test(b.image) || !TYPES.includes(b.instance_type) || !(b.max_instances >= 1 && b.max_instances <= 20));
+    if (image) return `container image "${image.name}" is not one this deployer makes: docker.io/NAME:TAG, ${TYPES.join(", ")}, 1 to 20 instances`;
+    // Cloudflare takes a new Durable Object class only with the upload of a script, not of a version.
+    if (rec && rec.hash && text((rec.containers || []).map((b) => b.class_name)) !== text((m.containers || []).map((b) => b.class_name))) return "the container images of a Worker change only by removing it and deploying it again";
     return m.secrets.find((s) => s.startsWith("BRAIN_") || s.startsWith("CF_")) ? "a recipe may not name a BRAIN_ or CF_ secret" : null;
   };
 
@@ -401,6 +429,9 @@ deployerOps = {
     const m = w.meta, logical = m.worker;
     const bindings = await bindingsFor(w, key, existing, given, token.binding);
     const meta = { main_module: "worker.js", compatibility_date: "2026-10-01", compatibility_flags: [...new Set([...(m.flags || []), ...wrapperFlags])], observability: OBSERVABILITY, bindings };
+    const boxes = m.containers || [];
+    if (boxes.length) meta.containers = boxes.map((b) => ({ class_name: b.class_name }));
+    if (boxes.length && !live) meta.migrations = { new_tag: "v1", new_sqlite_classes: boxes.map((b) => b.class_name) };
     let assetHash = rec ? rec.assetHash : undefined;
     if (m.resources.includes("assets")) {
       if (typeof w.asset === "string") {
@@ -447,13 +478,15 @@ deployerOps = {
         throw new Error("health check failed after go-live");
       }
     }
+    if (boxes.length || (rec && (rec.containers || []).length)) await applications(logical, boxes);
     // What is needed to put the version before back, routes included.
     await token.done();
     const before = rec && rec.hash ? { hash: rec.hash, version: previous, module: rec.module, methods: rec.methods, access: rec.access, paths: rec.paths, secrets: rec.secrets, resources: rec.resources, cloudflare: rec.cloudflare || [], token: rec.token || null } : null;
     const next = {
       worker: logical, role: m.role, module: m.module || null, hash: w.hash, version, key, state: "deployed", fails: 0, assetHash, distiller: typeof w.source === "string" ? self.hash : null,
       previous: before,
-      methods: m.methods, access: m.access || {}, paths: m.paths, secrets: m.secrets, resources: m.resources, cloudflare: m.cloudflare || [], token: token.id, deployedAt: Date.now()
+      methods: m.methods, access: m.access || {}, paths: m.paths, secrets: m.secrets, resources: m.resources, cloudflare: m.cloudflare || [], token: token.id, deployedAt: Date.now(),
+      ...(boxes.length ? { containers: boxes } : {})
     };
     await rows.put("worker/" + logical, next);
     await register(next, m.access);
@@ -633,6 +666,8 @@ deployerOps = {
             await api("PATCH", script("brain-core") + "/settings", form);
           }
         }
+        // The applications first: one whose Worker is gone would keep its instances.
+        if (rec && (rec.containers || []).length) await applications(logical, []);
         if (rec && rec.hash) await api("DELETE", script(logical) + "?force=true");
         const token = await rows.get("token/" + logical);
         if (token) (await dropToken(logical, token), await rows.delete("token/" + logical));
@@ -1076,6 +1111,8 @@ deployerPage = (s, message = "") => {
             (p.resources || []).some((r) => r === "rows" || r === "sql") ? "<p><b>Reaches the shared database.</b> A Worker with rows or sql is bound to the one database every Worker of this Brain shares.</p>" : ""
           }${
             (p.resources || []).includes("browser") ? "<p><b>Opens remote browsers.</b> Cloudflare bills browser time to this account.</p>" : ""
+          }${
+            (p.resources || []).includes("containers") ? "<p><b>Runs containers.</b> Cloudflare bills container time to this account. A container runs as root and reaches the internet.</p>" : ""
           }${(p.cloudflare || []).length ? `<p><b>Cloudflare permissions: ${esc(p.cloudflare.join(", "))}.</b> The deployer mints a Cloudflare API token with these and gives it to this Worker.</p>` : ""}`
     }</li>`;
   });
@@ -1226,7 +1263,7 @@ md`## Tests
 The deployer runs under \`simulate\` against \`fakeCloudflare\`, a stand-in for the Cloudflare API and for the Workers it deploys. A hash added to \`fake.unhealthy\` makes that version fail its health check.`
 // %%
 fakeCloudflare = () => {
-  const scripts = new Map(), log = [], calls = [], unhealthy = new Set(), stored = {}, d1 = [], tokens = new Map();
+  const scripts = new Map(), log = [], calls = [], unhealthy = new Set(), stored = {}, d1 = [], tokens = new Map(), apps = [];
   const account = ["com.cloudflare.api.account"];
   const groups = [
     { id: "g-obs-user", name: "Workers Observability Read", scopes: ["com.cloudflare.api.user"] },
@@ -1301,6 +1338,12 @@ fakeCloudflare = () => {
     if (t && !tokens.has(t[1])) return bad(404, "no token " + t[1]);
     if (t && request.method === "GET") return ok({ id: t[1], status: "active" });
     if (t && request.method === "DELETE") return tokens.delete(t[1]), ok({ id: t[1] });
+    // Container applications: made, changed and deleted by id.
+    if (path === "/containers/applications" && request.method === "GET") return ok(apps);
+    if (path === "/containers/applications") return apps.push({ id: "app-" + (apps.length + 1), ...JSON.parse(await request.text()) }), ok(apps.at(-1));
+    const app = /^\/containers\/applications\/([^/]+)$/.exec(path);
+    if (app && request.method === "PATCH") return Object.assign(apps.find((a) => a.id === app[1]), JSON.parse(await request.text())), ok({});
+    if (app && request.method === "DELETE") return apps.splice(apps.findIndex((a) => a.id === app[1]), 1), ok(null);
     const m = /^\/workers\/scripts\/([^/]+)(\/.*)?$/.exec(path);
     if (!m) return bad(404, "no route " + path);
     const name = m[1], rest = m[2] || "", s = scripts.get(name);
@@ -1345,7 +1388,7 @@ fakeCloudflare = () => {
     const s = scripts.get(name);
     return s ? bindingOf(live(s), "BRAIN_INFO").json.hash : null;
   };
-  return { fetch, scripts, log, calls, unhealthy, stored, d1, tokens, running, live: (name) => live(scripts.get(name)) };
+  return { fetch, scripts, log, calls, unhealthy, stored, d1, tokens, apps, running, live: (name) => live(scripts.get(name)) };
 }
 // %%
 // A deployer under simulate, with helpers to act as the holder of the recovery key and as the kernel.
@@ -1471,6 +1514,35 @@ test_the_table_database_is_bound_to_brain_db_alone = {
   const kb = Object.fromEntries(rig.fake.live("cb-x-knowledge").metadata.bindings.map((b) => [b.name, b]));
   expect([kb.DB.type, kb.DB.id, !!kb.SQL, rig.fake.d1.map((d) => d.name)]).toEqual(["d1", "d1-3", false, ["cb-sql", "cb-db", "cb-x-knowledge"]]);
   return db.DB.id;
+}
+// %%
+test_container_images_are_applications_of_brain_x_container_alone = {
+  const rig = await deployerRig();
+  await rig.recover({ workers: [await rig.made("brain-core", "core", "c1")] });
+  const node = { name: "node", class_name: "Box_node", image: "docker.io/library/node:22-alpine", instance_type: "lite", max_instances: 6, entrypoint: ["sh", "-c", "exec tail -f /dev/null"], regions: ["WEUR"] };
+  const box = (salt, containers = [node]) => rig.made("brain-x-container", "recipe", salt, { resources: ["containers", "rows"], containers });
+  // No other Worker runs containers, whatever it is named.
+  const no = await rig.recover({ workers: [await rig.made("brain-x-other", "recipe", "o1", { resources: ["containers"], containers: [node] }), await rig.made("brain-x-plain", "recipe", "p1", { containers: [node] })] });
+  expect(no.results.map((r) => [r.state, r.reason])).toEqual([["refused", 'a recipe may not use the platform cell "containers"'], ["refused", "container images without the platform cell containers"]]);
+  // An image that is not on Docker Hub, a type or a count this deployer does not make.
+  for (const wrong of [{ image: "registry.example/x:1" }, { image: "docker.io/library/node" }, { instance_type: "standard-4" }, { max_instances: 21 }, { class_name: "Rows" }])
+    expect((await rig.recover({ workers: [await box("w", [{ ...node, ...wrong }])] })).results[0].reason).toMatch(/^container image "node" is not one this deployer makes/);
+  expect(rig.fake.apps).toEqual([]);
+  // The first upload makes the class; the application is made after it, bound to that class of that script.
+  expect((await rig.recover({ workers: [await box("b1")] })).results[0].state).toBe("deployed");
+  const live = rig.fake.live("cb-x-container").metadata;
+  expect([live.migrations, live.containers, live.bindings.find((b) => b.name === "BOX_NODE")]).toEqual([{ new_tag: "v1", new_sqlite_classes: ["Box_node"] }, [{ class_name: "Box_node" }], { type: "durable_object_namespace", name: "BOX_NODE", class_name: "Box_node" }]);
+  expect(rig.fake.apps).toEqual([{ id: "app-1", name: "cb-x-container-node", scheduling_policy: "default", instances: 0, max_instances: 6, configuration: { image: node.image, instance_type: "lite", entrypoint: node.entrypoint }, constraints: { regions: ["WEUR"] }, durable_objects: { script_name: "cb-x-container", class_name: "Box_node" } }]);
+  // A later version sends no migration, and the application is set, not made again.
+  expect((await rig.recover({ workers: [await box("b2", [{ ...node, max_instances: 8 }])] })).results[0].state).toBe("deployed");
+  expect([rig.fake.live("cb-x-container").metadata.migrations, rig.fake.apps.length, rig.fake.apps[0].max_instances]).toEqual([undefined, 1, 8]);
+  // A different list of images is a different list of classes: refused on a Worker that runs.
+  const two = await rig.recover({ workers: [await box("b3", [node, { ...node, name: "py", class_name: "Box_py", image: "docker.io/library/python:3.13-alpine" }])] });
+  expect(two.results[0]).toMatchObject({ state: "refused", reason: "the container images of a Worker change only by removing it and deploying it again" });
+  // Removing the Worker deletes its applications.
+  expect((await rig.recover({ remove: ["brain-x-container"] })).results[0].state).toBe("removed");
+  expect([rig.fake.apps, rig.fake.scripts.has("cb-x-container")]).toEqual([[], false]);
+  return "1 application made, set and deleted";
 }
 // %%
 test_a_browser_is_bound_shown_before_approval_and_not_for_a_member = {

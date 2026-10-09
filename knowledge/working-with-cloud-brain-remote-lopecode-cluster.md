@@ -29,7 +29,7 @@ kept in step with the code.
 | The spec Tom reviews (do not edit on disk while he may have it open; Claude does not set its status) | `plan/specs/cloud-brain.html` |
 | Requirements and open questions as cells | `tools/cloud-brain/cloud-brain-specs.ojs` |
 | User-facing docs module | `tools/cloud-brain/cloud-brain-docs.ojs` |
-| Measured records | `tools/cloud-brain/rpc-performance.md`, `websockets.md`, `logging-research.md` |
+| Measured records | `tools/cloud-brain/rpc-performance.md`, `websockets.md`, `logging-research.md`, `containers.md` |
 
 Each service documents its own methods in the first `md` cell of its seed (`brain-browser.ojs`,
 `brain-logs.ojs`, `brain-core.ojs`, …). That cell is the method reference.
@@ -43,7 +43,8 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
   bluesky, whatsapp, blob, feed, library, static, inbox, snapshot (a daily record of
   public feeds at `/static/snapshot/<day>/`; it makes no model call), knowledge (what the Brain
   knows: entries with their source, kept file and who entered them, in a D1 database of its own,
-  `knowledge.search?q=`). `<base>-x-page` is built from
+  `knowledge.search?q=`), container (leased Linux containers from Cloudflare Containers, for the owner
+  and the Brain's Workers: `container.extend?seconds=`, `exec`, `get`/`post` to a port). `<base>-x-page` is built from
   `@tomlarkworthy/cloud-brain`. `brain-secrets` is a module of the page, not a Worker.
 - **Database** (`<base>-db`): the rows every Worker keeps go through it.
 - **Deployer** (`<base>-deployer`): the only holder of a Cloudflare token. It applies recipes,
@@ -84,8 +85,9 @@ A health check that takes ten seconds:
 
 ```
 brain.ts curl /xrpc/com.lopecode.brain.lease.get --owner     # {"held":true}
-brain.ts redistil | grep -c same                             # 16 on 2026-10-09, after brain-x-metrics was removed
+brain.ts redistil | grep -c same                             # 17 on 2026-10-09, after brain-x-container was added
 brain.ts curl /xrpc/com.lopecode.brain.browser.all --owner   # browsers that cost money
+brain.ts curl /xrpc/com.lopecode.brain.container.all --owner # containers that cost money
 brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
 ```
 

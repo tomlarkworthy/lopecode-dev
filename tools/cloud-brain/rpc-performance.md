@@ -446,3 +446,22 @@ methods in the metrics tables (8 days).
 `state` at the end shows `brain-core 730061663b76`: a third version of the core, deployed by another agent during
 the session, at a time this record does not have. By the git log it is the core of `b2d6e419` or `735b5795`, not checked. It also shows `brain-x-whatsapp` twice under `pending`, which this
 session did not make.
+
+## Added 2026-10-09 20:33 CEST: the pass-through of `brain-x-container`
+
+One connection from Berlin, 25 calls each in sequence, the container on a lite instance in Dublin
+(`regions: ["WEUR"]`). The script was `bench.ts` in the session's scratchpad; it is not kept.
+
+```
+ms                                   p50   p90   least
+quota.get        kernel, core         87   122    64
+container.status + service, object   120   153   102     two row reads
+container.get    + port 8080         102   128    88     no row read
+container.post   1 KB, same port     101   156    90
+container.exec   ["true"], 15 calls  127   176   118
+```
+
+`container.get` adds 15 ms at p50 to a call the core answers itself. The service Worker, the
+Durable Object and the hop to the container were not timed apart. A WebSocket through
+`container.get` opened and gave its first frame 435 ms after the client began, one run. The full
+record is `containers.md`.

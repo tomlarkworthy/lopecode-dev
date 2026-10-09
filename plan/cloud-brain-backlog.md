@@ -270,8 +270,8 @@ Cloudflare account, the token's minimum permissions.
 
 `brain-x-container`, leased containers (asked 2026-10-09). A spike ran a Docker Hub image from three REST calls with
 no Docker and no wrangler: cold start 245 ms, 34 ms a request from the object to a container placed in Istanbul.
-The deploy path lacks Durable Object classes, `containers` in the upload and the application resource. Five
-decisions wait on Tom (image, policy, region, who may lease, price): `tools/cloud-brain/containers.md`.
+**Built 2026-10-09 20:29 CEST** as `brain-x-container` (`f2581201bd95` since 20:42), with the five decisions taken as defaults by the
+parent session; see "Added 2026-10-09 20:41 CEST" below and `tools/cloud-brain/containers.md`.
 
 ## Housekeeping
 
@@ -688,3 +688,14 @@ Built and on cb4: stored settings read through `config` (`config.set`, `config.g
 - A tick may run on a setting up to 5 minutes old. Timing the header copy and the row copy apart would make it 60 s at the cost of one statement a tick.
 - `/llms.txt` is 11.4 KB with whole names (9.2 KB with short ones).
 
+
+## Added 2026-10-09 20:41 CEST: leased containers
+
+- **Done:** `brain-x-container` on cb4: `container.extend|exec|get|post|status|stop` for the owner and the Brain's Workers, `all|end|settings` for the owner's session; one lease proven end to end; `container.get` 15 ms over a core-only call. Record: `tools/cloud-brain/containers.md`.
+- **For Tom, each a default the parent session took and he can reverse:** who may lease (now the owner and Workers; members by a rule later), the image list (`node:22-alpine` alone), region `WEUR`, the price (lite at full use), 6 containers at most.
+- **For Tom, to look at:** Cloudflare keeps 6 instances ready with no lease. Read the account's Containers usage; if ready instances are billed it is about $1.04 a day, and `max` should go to 1 or the Worker be removed until it is used.
+- **Next step of the offline workstream:** an image that runs a headless lopecode notebook. It needs Docker one time (a machine or CI) and a push to Docker Hub or Cloudflare's registry, then one entry in `containerImageList` and a remove-and-deploy of the Worker. Not started.
+- Open: a fresh review of `brain-container`, and of the hunks in `cloudflare-iac` and `brain-deployer`.
+- Open: the 504 from Cloudflare's version upload that put one apply back (seen once).
+- Open: a per-owner daily limit before any member may lease; a count of egress.
+- Open: `exec` does not stream; no method puts a file in a container.
