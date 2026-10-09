@@ -3128,3 +3128,76 @@ A consequence: a program with a deploy link deploys the page Worker and cannot r
 **Each deploy line names its deployer** (23:23 CEST). Tom: "the deployers hash is a no brainer". The deployer's 19 log calls go through `say`, which adds `deployer`, the hash of the deployer answering. Deployer tests 40 of 40. Installed on cb4 as `69e213914ffa`; an apply of the unchanged kernel logged `deploy.reason` with `deployer: 69e213914ffa…`; `redistil` 17 `same` before and after.
 
 **Copy Login Link** (23:32 CEST). Tom: "I want a Copy Login Link, one press, that goes straight to clipboard, over the Operator section". Cell `loginLink` in `cloud-brain.ojs`, above `## Operator`, shown to the signed-in owner. One press calls `token.link` with `{ name: "claude-<time>", methods: [], deploy: true }` and writes the link to the clipboard. The clipboard is given a promise inside the press, because Safari refuses a write made after an await. Run in a local tab with a stand-in client: the call was `token.link {"name":"claude-X","methods":[],"deploy":true}` and the clipboard held the link. Page tests 12 of 12. On cb4 as `brain-x-page e8bff4b7e7fa`. Not pressed on cb4, and not tried in Safari.
+
+### 2026-10-09 23:35 CEST: `brain-x-ai`, one call to a model on Cloudflare Workers AI
+
+Tom: "yes servicify the Workers AI service!" New Worker `brain-x-ai` `94f162aa34b4` (23:42; `b9a0a7e25c27` at 23:33 and `cba2c3ec8b0e` at 23:36 ran the checks below, the last change is one sentence of prose), module `@tomlarkworthy/brain-ai`,
+seed `brain-ai.ojs`. Two methods, no rows, no binding of its own.
+
+- `ai.run?model=&usd=`, procedure: the body goes to `POST /accounts/ACCOUNT/ai/run/<model>` and Cloudflare's answer
+  comes back with its status and content type, a stream unread. `ai.models`, query: Cloudflare's
+  `/ai/models/search` with the caller's query string.
+- **REST and a minted token, not the `AI` binding.** The service declares `cloudflare: ["Workers AI Read"]`, as
+  `brain-x-logs` declares its permission, and the deployer mints the token. The one change outside the module is
+  that name added to `GROUPS` in `brain-deployer.ojs`. The binding needs no token; it was not used because the
+  price is made from Cloudflare's model list, which the binding does not give. A scratch token with only
+  `Workers AI Read` ran a model and listed the models; one with `Workers AI Metadata Read` listed them and got 401
+  on the run (both deleted after).
+- **Price.** A price is decided before the call and a model's cost is known after it. A price expression reads the
+  query string and not the body (`request.params`). So the caller names the price: `double(request.params.usd)`.
+  For a model whose `price` property is per token the service counts the input from the bytes of the body and sets
+  `max_tokens` to what the rest buys; for any other model `usd` is at least `flatUsd` (0.01). Rejected: a table of
+  prices in the module (325 models, and it goes stale), and a flat price a call (wrong by orders of magnitude
+  between a 1 B and a 70 B model).
+
+What ran on cb4, as the owner unless said:
+
+```
+ai.run llama-3.2-1b-instruct usd=0.0001 {messages}     200  x-brain-price 0.0001  usage: 17 prompt, 3 completion, 0.0965 neurons
+ai.run bge-small-en-v1.5     usd=0.000001 {text:[…]}   200  x-brain-price 0.000001  x-ai-neurons 0.01
+ai.run … "stream": true, with a token                  200  text/event-stream, first bytes 352 ms, end 1032 ms, 124 reads
+ai.models?search=llama-3.2-1b                          200  Cloudflare's list, one model
+a member (--other)                                     403  has no grant for com.lopecode.brain.ai.run
+no Authorization                                       401  AuthRequired
+no usd                                                 403  the price … could not be decided: No such key: usd
+usd=0.0001&usd=0                                       400  a query parameter is given two times
+usd=0.0000001 {"prompt":"hi"}                          402  BudgetTooSmall, needs 0.00000207
+model=@cf/nope/none                                    404  UnknownModel
+a token made with methods ["ai.run","ai.models"], curl 200; the same token on knowledge.search 403; revoked
+```
+
+Charged against what Cloudflare counted (`usage.neurons` × $0.000011), `@cf/meta/llama-3.2-1b-instruct`:
+
+```
+usd by eye, no max_tokens      charged 0.0001   cloudflare 0.00000126   79 x    17 prompt,   4 completion
+                               charged 0.0005   cloudflare 0.00002288   22 x    22 prompt, 111 completion
+                               charged 0.002    cloudflare 0.00003241   62 x   419 prompt, 105 completion
+usd = counted input + max_tokens of output
+  max_tokens  20               charged 0.00000648  cloudflare 0.00000086  7.53 x   completion 2
+  max_tokens 120               charged 0.00002683  cloudflare 0.00002348  1.14 x   completion 114
+  max_tokens 150               charged 0.00004997  cloudflare 0.00004144  1.21 x   completion 150, body 2010 bytes, 419 prompt tokens
+  max_tokens 400               charged 0.00008313  cloudflare 0.00008093  1.03 x   completion 400
+```
+
+The body was 3.8 to 4.8 bytes a prompt token in `messages`. A body of `{prompt}` is put in a template by the
+model: `{"prompt":"hi"}` was 45 prompt tokens. The first version counted bytes alone and under-counted that case
+(105 bytes, 57 tokens); 64 tokens are now added for a model that writes text. The core charges in millionths,
+rounded up: `usd=0.00000214` was charged 0.000003.
+
+Latency, 12 embeddings each in turn from Berlin: 195 ms p50 through the Brain, 136 at Cloudflare's address
+(`rpc-performance.md`).
+
+Tests, forced in a named tab from a module of their own: brain-ai 7 of 7, brain-deployer 40 of 40 (one of the 40
+answered "is not defined" in the batch and passed alone), brain-core 29 of 29. `redistil` 18 `same`, the lease held,
+no browser and no container running. The owner's spend for the day went from $0.022 to $0.0231.
+
+**The deployer was installed three times.** `b7485e00e2d0` at 23:33 with `Workers AI Read` in `GROUPS`. Its record
+had been emitted in a tab where a cell had been forced inside the deployer's module, so the kept source had one
+line more, `const _10en1wa = (x) => x`. An `ai.json` emitted the same way, after seven tests had been forced in its
+module, was refused: `cannot distil: invalid redefinition of global identifier`. Both were emitted again in a clean
+tab and the deployer installed as `f4430b4ce874` at 23:36. The cause and the way round it are in the knowledge file.
+
+Not done: a model not priced by the token was not run on cb4 (the floor is tested with a fake); no reasoning model;
+the `AI` binding was not measured; `/llms.txt` lists the two methods and was not followed by a program other than
+this one. Open items are in the backlog under `brain-x-ai`.
+

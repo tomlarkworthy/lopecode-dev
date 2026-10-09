@@ -44,7 +44,8 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
   public feeds at `/static/snapshot/<day>/`; it makes no model call), knowledge (what the Brain
   knows: entries with their source, kept file and who entered them, in a D1 database of its own,
   `knowledge.search?q=`), container (leased Linux containers from Cloudflare Containers, for the owner
-  and the Brain's Workers: `container.extend?seconds=`, `exec`, `get`/`post` to a port). `<base>-x-page` is built from
+  and the Brain's Workers: `container.extend?seconds=`, `exec`, `get`/`post` to a port), ai (one call to an open model on Cloudflare Workers AI:
+  `ai.run?model=&usd=`, where `usd` is charged whole; `ai.models` is Cloudflare's list). `<base>-x-page` is built from
   `@tomlarkworthy/cloud-brain`. `brain-secrets` is a module of the page, not a Worker.
 - **Database** (`<base>-db`): the rows every Worker keeps go through it.
 - **Deployer** (`<base>-deployer`): the only holder of a Cloudflare token. It applies recipes,
@@ -85,7 +86,7 @@ A health check that takes ten seconds:
 
 ```
 brain.ts curl /xrpc/com.lopecode.brain.lease.get --owner     # {"held":true}
-brain.ts redistil | grep -c same                             # 17 on 2026-10-09, after brain-x-container was added
+brain.ts redistil | grep -c same                             # 18 on 2026-10-09, after brain-x-ai was added
 brain.ts curl /xrpc/com.lopecode.brain.browser.all --owner   # browsers that cost money
 brain.ts curl /xrpc/com.lopecode.brain.container.all --owner # containers that cost money
 brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
@@ -98,6 +99,12 @@ brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
 3. Run the tests in a local QA tab: `qa_open_notebook` on the file URL with
    `#view=…&cc=<pairing token>&r=<fresh number>`, then `run_tests`. `r` does nothing; a new value makes a new URL, so the tab
    loads the file again.
+   `run_tests` hung four times on 2026-10-09. The stand-in is to force each `test_*` cell from `eval_code`. Do it
+   from a module of its own (`const side = runtime.module(); side.variable().import(name, alias, mod);
+   side.variable(observer).define(null, [alias], (x) => x)`), never with `mod.variable(observer).define(…)` inside
+   the module under test: `exportModuleJS` writes every variable of a module into its source, so the deployer's
+   own tests fail with "invalid redefinition of global identifier", and a record emitted in that tab carries the
+   test cells into the deployed Worker's kept source (seen in the deployer, 2026-10-09 23:33).
 4. Deploy under the lock: `mkdir tools/cloud-brain/.emitted/cb4.lock`, `apply … --reason="why"`, remove the lock.
    Nothing enforces it. It is the agreement between agents in this checkout: if the directory is
    there, another one is deploying; wait.

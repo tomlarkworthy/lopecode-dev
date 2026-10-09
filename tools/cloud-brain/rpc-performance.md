@@ -465,3 +465,24 @@ container.exec   ["true"], 15 calls  127   176   118
 Durable Object and the hop to the container were not timed apart. A WebSocket through
 `container.get` opened and gave its first frame 435 ms after the client began, one run. The full
 record is `containers.md`.
+
+## Added 2026-10-09 23:36 CEST: `brain-x-ai` against Cloudflare's own address
+
+One machine in Berlin, 12 calls each, taken in turn so that drift meets both. An embedding of two words
+(`@cf/baai/bge-small-en-v1.5`), the Brain's call with a token, Cloudflare's with the account token.
+
+```
+                                              p50   p90  ms
+ai.run through kernel, core, brain-x-ai       195   242
+POST api.cloudflare.com/…/ai/run/<model>      136   164
+ai.models?search=bge-small&per_page=1         157   190    the same hops, Cloudflare's model search behind them
+```
+
+About 60 ms a call is added. The service makes one request to `api.cloudflare.com`; the model's price is read from
+Cloudflare's list once in 10 minutes for one instance, so the first run of a model makes two.
+
+A stream (`"stream": true`, 115 tokens of `@cf/meta/llama-3.2-1b-instruct`): first bytes at 352 ms, the end at
+1032 ms, 124 reads. The answer is not buffered at the service, the core or the kernel.
+
+Not measured: the `AI` binding in place of the REST address, which would drop the hop to `api.cloudflare.com` and
+cannot list models or prices.

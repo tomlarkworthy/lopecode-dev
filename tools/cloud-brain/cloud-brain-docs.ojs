@@ -293,6 +293,7 @@ Each is an owner service. Its module documents it.
 | ${mod("brain-feed")} | Lists of Bluesky posts, given as Bluesky feeds. |
 | ${mod("brain-browser")} | Remote browsers from Cloudflare Browser Run, for each process of the Brain: a caller has its own browsers by name, a page is a tab of one, and time is bought in seconds for one browser. |
 | ${mod("brain-container")} | Leased Linux containers from Cloudflare Containers. A caller buys seconds for a container of a declared image, runs commands in it and reaches its ports over HTTP and WebSocket. It is destroyed when its time ends. |
+| ${mod("brain-ai")} | Open models from Cloudflare Workers AI. One call runs one model one time: the body is the model's input as Cloudflare documents it and the answer is Cloudflare's, a stream included. The caller names what the call may cost, and the service holds Cloudflare's cost under it from Cloudflare's own price list. It keeps nothing. |
 | ${mod("brain-proxy")} | Outbound requests with a secret added. |
 | ${mod("brain-logs")} | The logs of this Brain's Workers, read from Cloudflare Workers Logs with Cloudflare's own query bodies. The core writes one line a call; the Logs panel of the page reads them. |`
 // %%

@@ -273,6 +273,23 @@ no Docker and no wrangler: cold start 245 ms, 34 ms a request from the object to
 **Built 2026-10-09 20:29 CEST** as `brain-x-container` (`f2581201bd95` since 20:42), with the five decisions taken as defaults by the
 parent session; see "Added 2026-10-09 20:41 CEST" below and `tools/cloud-brain/containers.md`.
 
+`brain-x-ai`, open models from Cloudflare Workers AI (asked 2026-10-09, Tom: "yes servicify the Workers AI service!").
+**Built 2026-10-09 23:35 CEST** as `brain-x-ai` (`94f162aa34b4` since 23:42). `ai.run?model=&usd=` and `ai.models`; the record is in
+`spec-as-built.md` under that time. Open after it:
+
+- The price is the caller's ceiling, charged whole. A caller that does not set `max_tokens` pays many times the cost
+  (22 to 79 times in three runs). Not built: a quote call, or a charge after the run, which the core does not have.
+- The input is counted from bytes (3 a token, and 64 tokens for the model's template). No reasoning model and no
+  non-Latin text was run; either can cost more than was counted.
+- Models not priced by the token (images, speech) have a floor of $0.01 a call and no bound. None was run on cb4.
+- A scratch token with only `Workers AI Read` answered 200 to `GET /workers/scripts` too. What it returned was not
+  read. If that permission lists the account's Workers, the minted token reaches more than the service uses.
+- The `AI` binding was not used: it needs no token, and gives no model list or prices. Not measured against REST.
+- The deployer's kept source carried one test cell from 23:33 to 23:36 (`const _10en1wa = (x) => x`): the record
+  had been emitted in a tab where a test had been forced inside the module. Installed again from a clean tab
+  (`f4430b4ce874`). A test is forced from a module of its own (`runtime.module()` and `import`), not inside the
+  module under test: `exportModuleJS` writes every variable of the module into the source.
+
 ## Housekeeping
 
 Scratch Workers `cb-experiments`, `cb-step1-fixture`, `cb3`, `cb3-core`, `cb3-guard`, `cb3-x-proxy`,

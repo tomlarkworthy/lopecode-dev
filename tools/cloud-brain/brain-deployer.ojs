@@ -63,7 +63,7 @@ md`## Logs and Cloudflare permissions
 
 Added 2026-10-08. The deployer turns Workers Logs on for each script and Cloudflare's own line per invocation off (\`OBSERVABILITY\`, \`ensureLogs\`). The setting belongs to the script: Cloudflare took it from the upload of a new script and ignored it in the upload of a version, so 14 of the 17 scripts of cb4 kept no logs after the first deploy of this change. \`redistil\` sets it on each script the deployer has a row for, a member's Worker and one it keeps no source of included. A deploy of a member's Worker sets it too.
 
-A service that declares \`cloudflare: ["GROUP"]\` gets a Cloudflare API token (\`tokenFor\`, \`mint\`): held for the owner also when deploys need no approval, refused for a member and for a group that is not in \`GROUPS\`. The value is in the binding \`CF_TOKEN\` of that Worker and nowhere else. The rows \`token/WORKER\` hold the token's id, groups and end; \`audit/tokens\` holds each mint, roll and delete. A token is kept across deploys while its groups are the declared ones and it has more than 30 days left of its 90. A version that is put back gets a new token when the one it was deployed with was deleted (\`remint\`). The row of what is live is written first, with no token; when the mint or the bind fails, the line is \`token.mint-failed\` and each tick of the deployer tries again.
+A service that declares \`cloudflare: ["GROUP"]\` gets a Cloudflare API token (\`tokenFor\`, \`mint\`): held for the owner also when deploys need no approval, refused for a member and for a group that is not in \`GROUPS\`: the two that read logs, and \`Workers AI Read\`, which runs a model on the account (\`brain-x-ai\`, 2026-10-09). The value is in the binding \`CF_TOKEN\` of that Worker and nowhere else. The rows \`token/WORKER\` hold the token's id, groups and end; \`audit/tokens\` holds each mint, roll and delete. A token is kept across deploys while its groups are the declared ones and it has more than 30 days left of its 90. A version that is put back gets a new token when the one it was deployed with was deleted (\`remint\`). The row of what is live is written first, with no token; when the mint or the bind fails, the line is \`token.mint-failed\` and each tick of the deployer tries again.
 
 The deployer's own token needs the permission \`Account API Tokens Write\` to mint, and each group it hands out.
 
@@ -189,7 +189,7 @@ deployerOps = {
   // Worker alone as CF_TOKEN. The value is not kept anywhere else and no method returns it. The deployer keeps the
   // token's id, its groups and when it ends (token/WORKER), and writes each mint, roll and delete to audit/tokens.
   // A service may declare only the groups in GROUPS.
-  const GROUPS = ["Workers Observability Read", "Workers Tail Read"];
+  const GROUPS = ["Workers Observability Read", "Workers Tail Read", "Workers AI Read"];
   const DAY = 86400000, TOKEN_DAYS = 90, ROLL_DAYS = 30;
   const audit = async (event, logical, t) => {
     const row = { at: Date.now(), event, worker: logical, token: t.id, groups: t.groups, expires: t.expires };
@@ -1678,7 +1678,7 @@ test_a_declared_cloudflare_permission_is_held_for_the_owner_and_minted_for_that_
 test_a_cloudflare_permission_is_refused_off_the_list_and_outside_a_recipe = {
   const rig = await deployerRig();
   const reason = async (w) => (await rig.recover({ workers: [w] })).results[0].reason;
-  expect(await reason(await rig.made("brain-x-greedy", "recipe", "g", { cloudflare: ["Workers Observability Read", "Workers Scripts Write"] }))).toBe('"Workers Scripts Write" is not a Cloudflare permission a service may declare. A service may declare: Workers Observability Read, Workers Tail Read');
+  expect(await reason(await rig.made("brain-x-greedy", "recipe", "g", { cloudflare: ["Workers Observability Read", "Workers Scripts Write"] }))).toBe('"Workers Scripts Write" is not a Cloudflare permission a service may declare. A service may declare: Workers Observability Read, Workers Tail Read, Workers AI Read');
   expect(await reason(await rig.made("brain-core", "core", "c", { cloudflare: ["Workers Observability Read"] }))).toBe("only a recipe declares Cloudflare permissions");
   expect(rig.fake.tokens.size).toBe(0);
   const members = await memberRig();
