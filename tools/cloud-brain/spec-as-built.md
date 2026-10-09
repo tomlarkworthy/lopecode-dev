@@ -3068,3 +3068,29 @@ Not done: the "Sign-in link" button was not pressed on cb4. The token's end and 
 | A link could share a name with a token, and one revoke ended both | `token.link` refuses a name a token or a link has. On cb4: 400 |
 | "an ordinary one" pointed at tokens the page does not describe | the sentence names what a token may not name |
 | No test of the minutes bound, the defaults, `by: "link"`, the token absent from the rows | added |
+
+### A sign-in link that deploys as the owner (2026-10-09, 23:12 CEST)
+
+Tom: "I do want singin links to be able to deploy with the authority of me".
+
+`token.link` takes `deploy: true`. The token of that link reaches `infra.*` beside its methods, and the kernel passes the call to the deployer as the owner's. Nothing in the deployer changed, so a reason, `was` and approval hold as for a session. `token.create` still refuses `infra`: only a link makes such a token, so it ends in 24 hours at most. The kernel logs `infra.by.link` with the token's name on each call; the deployer's `deploy.reason` still says `by: owner`. The page has a "link may deploy" checkbox. `/llms.txt` gives the body of `infra.apply` and what each `state` means.
+
+Rejected: letting `token.create` name `infra.*`. A token of that kind does not end.
+
+```
+tests, local tab     kernel and core, 55 of 55
+cb4                  brain 494d62d3d898, brain-core ed0dbf7d0bcd, brain-x-page e024a30188bc, confirmed
+live, a link with deploy, methods [], 1 hour (approval is on)
+  infra.getState                         200
+  secret.list, token.list                403, 403
+  infra.apply, the library's own source  unchanged
+  infra.apply, was 000…                  refused "brain-x-library is 100e89726b31, you saw 000000000000"
+  infra.apply, source + a comment        waiting
+  after token.revoke                     401
+```
+
+The first apply of the core and the page answered `put-back` in 3 s: Cloudflare's `PUT /workers/scripts/…` gave 500, code 10013 "An unknown error has occurred". The same two files applied 2 minutes later went to probation and were confirmed. Not explained.
+
+Left on cb4 by the check: `brain-x-library 45a95ad80b10` waits for approval. It is the running source with a comment added. It should not be approved; nothing removes a waiting deploy but a later one.
+
+Not done: no deploy through a link's token was carried to `deployed` (approval is on, and approving needs the recovery key on the deployer's page). The checkbox was not pressed on cb4. No session of Claude Code on the web has used a link.
