@@ -170,7 +170,7 @@ Sign-in is atproto OAuth on the kernel. The kernel sets no cookie and reads no c
 
 A token or a grant cannot name an \`infra\`, \`secret\`, \`token\`, \`grant\` or \`people\` method. It reaches no address that is not a method.
 
-These accept the owner's own session only: \`secret.put\`, \`token.*\`, \`grant.*\`, \`rule.put\`, \`price.put\`, \`price.delete\`, \`quota.put\`, \`quota.setDefaults\`, \`calls.setMode\`, \`infra.*\`. They refuse a turn token, a PDS, an owner's token and a Worker's key.
+These accept the owner's own session only: \`secret.put\`, \`token.*\`, \`grant.*\`, \`rule.put\`, \`price.put\`, \`price.delete\`, \`quota.put\`, \`quota.setDefaults\`, \`calls.setMode\`, \`infra.*\`. They refuse a turn token, a PDS, an owner's token and a Worker's key. One exception: the token of a sign-in link the owner made with \`deploy\` reaches \`infra.apply\`, \`infra.getState\`, \`infra.redistil\` and \`infra.confirm\` (see Sign-in links in brain-kernel).
 
 \`secret.get\` accepts the owner's own session, and a Worker that the rule of that secret lets in. The rule can read \`origin\`. It refuses a turn token, a PDS, an owner's token and an anonymous caller, whatever the rule says.
 

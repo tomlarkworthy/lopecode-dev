@@ -3110,3 +3110,17 @@ Tom: "Check the logs we need to get to the bottom of these". `logs.query`, filte
 | 09:36:07 | brain-x-library `uploaded` and `deployed` as `1753e38fa319`, the hash it had | the forced apply noted above as unexplained. It was sent 6 s after the deployer was installed. Not shown: whether the deployer that answered was the one before. A deploy line does not carry the deployer's own hash |
 
 The deployer does not try a Cloudflare call twice. Two of today's put-backs were a 500 and a 504 that a second try would likely have passed.
+
+**Review of the deploy link** (23:16 CEST): one fresh reviewer, BLOCK, 7 findings, each checked against the source. Kernel `5e6982b5b02e`, core `558911dbf572` on cb4; kernel and core tests 55 of 55.
+
+| Finding | Done |
+|---|---|
+| The token reached every `infra.*` name. `infra.shell` puts HTML at `/` with no reason, no `was` and no approval, and that page runs where the owner's session is kept. Live from 23:10 to 23:16 CEST; one deploy token existed in that time, made and revoked by the check | the token reaches `infra.apply`, `getState`, `redistil`, `confirm` and no other. On cb4: `infra.shell` 403 "this token does not name com.lopecode.brain.infra.shell", `infra.distil` 403 |
+| The prose named three methods where six were reached | it names the four |
+| "no secrets, no tokens…" does not hold with approval off: the token can deploy a kernel, and the kernel names the caller | the prose says so. `token.link` does not refuse `deploy` while approval is off; cb4 has approval on |
+| `cloud-brain-docs.ojs` said `infra.*` takes the owner's session only | the exception is added |
+| The test's name states the old rule | declined: `cloud-brain-specs.ojs` cites the name and the build refuses a name nothing defines |
+| `infra.by.link` had no test | asserted |
+| Three answer shapes left out `deploy` | added |
+
+A consequence: a program with a deploy link deploys the page Worker and cannot renew the shell at `/` (`brain.ts shell`). The owner does that.

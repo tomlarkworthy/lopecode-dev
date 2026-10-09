@@ -33,9 +33,9 @@ A person is an atproto account, named by its DID. There are two roles. The **own
 
 **Linking.** A channel sends a stranger \`https://HOST/link?channel=NAME&code=CODE\`. The page asks them to sign in with atproto, shows the address the code stands for, and binds it to the signed-in DID when they press Link. The kernel learns the address by calling the channel's \`NAME.claim\` with the code; the answer is taken only from the Worker \`brain-x-NAME\`. Linking does not make anyone a member. When the signed-in DID is the owner, Link also asks for the last 4 characters of the address, because whoever writes from it is then answered as the owner. The page refuses to be shown in a frame.
 
-**Sign-in links** (added 2026-10-09). For a program with no browser, such as Claude Code on the web. \`token.link\` (procedure, owner's session) takes \`{ name, methods, minutes, hours }\` and answers \`{ name, link, until }\`; \`minutes\` (1 to 60, 10 if left out) is how long the link is good, \`hours\` (1 to 24, 8 if left out) how long its token lasts. The link is \`/auth/link?code=…\`. A GET of it answers text that says what to do and spends nothing, so a preview of a pasted link does not use it. The first POST answers \`{ name, token, methods, until }\` and deletes the link; a second answers 401. The token is one as \`token.create\` makes, with an end: it may not name \`infra.*\`, \`secret.*\`, \`token.*\`, \`grant.*\` or \`people.*\`, and \`token.list\` gives it with \`by: "link"\` until it ends. \`token.revoke\` with \`{ name }\` ends the token early, and deletes a link of that name nobody has used. A link is refused a name that a token or another link has.
+**Sign-in links** (added 2026-10-09). For a program with no browser, such as Claude Code on the web. \`token.link\` (procedure, owner's session) takes \`{ name, methods, minutes, hours, deploy }\` and answers \`{ name, deploy, link, until }\`; \`minutes\` (1 to 60, 10 if left out) is how long the link is good, \`hours\` (1 to 24, 8 if left out) how long its token lasts. The link is \`/auth/link?code=…\`. A GET of it answers text that says what to do and spends nothing, so a preview of a pasted link does not use it. The first POST answers \`{ name, token, methods, until, deploy }\` and deletes the link; a second answers 401. The token is one as \`token.create\` makes, with an end: it may not name \`infra.*\`, \`secret.*\`, \`token.*\`, \`grant.*\` or \`people.*\`, and \`token.list\` gives it with \`by: "link"\` until it ends. \`token.revoke\` with \`{ name }\` ends the token early, and deletes a link of that name nobody has used. A link is refused a name that a token or another link has.
 
-With \`deploy: true\`, \`token.link\` makes a link whose token also calls \`infra.*\` as the owner's session does: \`infra.apply\`, \`infra.getState\`, \`infra.redistil\`. It deploys and removes any Worker of this Brain, the kernel among them. What holds a session's deploy holds its deploy: a reason, \`was\`, and approval on the deployer's page (which needs the recovery key) when deploys need approval. It reaches nothing else a token cannot name: no secrets, no tokens, no grants, no people. Only a link makes such a token, so it always ends, in 24 hours at most; \`token.create\` cannot. Each call is logged by the kernel as \`infra.by.link\` with the token's name. Tom, 2026-10-09: "I do want singin links to be able to deploy with the authority of me". A token reaches its methods and no path, so \`/llms.txt\` is read with no \`Authorization\` header. Ended links and tokens are deleted when the next link is made. Only the hash of the code and of the token is kept. The code is in a query string, which Cloudflare keeps beside each log line; it is good once.
+With \`deploy: true\`, \`token.link\` makes a link whose token also calls \`infra.*\` as the owner's session does, and these four only: \`infra.apply\`, \`infra.getState\`, \`infra.redistil\` and \`infra.confirm\` (which ends the probation of a kernel, core or page it deployed). Not \`infra.shell\`: that puts HTML at \`/\` with no reason, no \`was\` and no approval, and the page at \`/\` runs where the owner's session is kept; so a program cannot renew the page's shell, and the owner does after it deploys the page. It deploys and removes any Worker of this Brain, the kernel among them. What holds a session's apply holds its apply: a reason, \`was\`, and approval on the deployer's page (which needs the recovery key) when deploys need approval. The token itself names no secret, token, grant or people method. That is a limit only while deploys need approval: with approval off it can deploy a kernel of its own writing, and the kernel is what names the caller, so the token is then the owner in effect. Only a link makes such a token, so it always ends, in 24 hours at most; \`token.create\` cannot. Each call is logged by the kernel as \`infra.by.link\` with the token's name. Tom, 2026-10-09: "I do want singin links to be able to deploy with the authority of me". A token reaches its methods and no path, so \`/llms.txt\` is read with no \`Authorization\` header. Ended links and tokens are deleted when the next link is made. Only the hash of the code and of the token is kept. The code is in a query string, which Cloudflare keeps beside each log line; it is good once.
 
 **Turns.** \`inbox.list\` and \`inbox.poll\` answers pass through the kernel, which adds \`who: { did, role, handle }\` to each entry whose address is linked. For the owner's own session \`inbox.poll\` also adds \`turn\`, a token for each entry whose sender is the owner or a member. A call that carries it as \`Authorization: Bearer\` is made as that DID, with \`x-brain-via: turn:<entry id>\`. It lasts 10 minutes, ends with "sign out everywhere", and is refused once its DID is no longer a member.
 
@@ -260,7 +260,7 @@ kernelApp = {
     if (who.refused) return fail(c, who.refused.status || 401, who.refused.error, who.refused.message);
     // A token or another DID reaches only the methods it was given, and no path that is not a method.
     // A token of a sign-in link the owner made with deploy reaches infra.* too.
-    if (who.via === "token" && !(nsid && (who.methods.includes(nsid) || (who.deploy && nsid.startsWith("com.lopecode.brain.infra."))))) return fail(c, 403, "Forbidden", "this token does not name " + (nsid || path));
+    if (who.via === "token" && !(nsid && (who.methods.includes(nsid) || (who.deploy && DEPLOYS.includes(nsid))))) return fail(c, 403, "Forbidden", "this token does not name " + (nsid || path));
     // A portal shows one member's services to whoever opened it. Its token reaches the methods of that member's
     // Workers and the list of their modules, as the viewer; when the viewer is that member, their own services too.
     if (who.portal) {
@@ -379,6 +379,9 @@ kernelApp = {
 
   // Tokens for callers with no session, and grants for other DIDs. Each names the methods it may call.
   const full = (m) => (m.startsWith("com.") ? m : "com.lopecode.brain." + m);
+  // What the token of a sign-in link made with deploy reaches of infra. Not infra.shell: it puts HTML at / with no
+  // reason, no was and no approval, and that page runs where the owner's session is kept.
+  const DEPLOYS = ["apply", "getState", "redistil", "confirm"].map((m) => "com.lopecode.brain.infra." + m);
   const never = (m) => /^com\.lopecode\.brain\.(infra|secret|token|grant|people)\./.test(m);
   app.get(NS + "token.list", session, async (c) => c.json({ tokens: (await rows.list("token/")).map((r) => r.value).filter((t) => !(t.until < Date.now())) }));
   app.post(NS + "token.create", session, async (c) => {
@@ -416,10 +419,11 @@ POST to this same address, with no body, once:
 
   curl -sS -X POST "https://${config.host}/auth/link?code=<the code in this address>"
 
-The answer is JSON { name, token, methods, until }. The link then stops working. Keep the token in memory or an
+The answer is JSON { name, token, methods, until, deploy }. The link then stops working. Keep the token in memory or an
 environment variable; do not print it or write it to a file. Send it as "Authorization: Bearer <token>". It calls
 the methods in \`methods\` and no others, until \`until\` (milliseconds). With "deploy": true in the answer it also
-calls infra.* as the owner does: it deploys and removes this Brain's Workers. /llms.txt says how.
+calls infra.apply, infra.getState, infra.redistil and infra.confirm as the owner does: it deploys and removes this
+Brain's Workers. /llms.txt says how.
 
 Then read https://${config.host}/llms.txt, with no Authorization header (a token reaches its methods and no
 other address): how to call, and what this Brain is made of.
@@ -627,7 +631,7 @@ run();`;
   // with deploy. The deployer is told the owner; which token it was is logged here.
   app.all(NS + "infra.*", async (c) => {
     const who = c.get("who");
-    if (!(who.caller === "owner" && who.via === "session") && !(who.via === "token" && who.deploy)) return fail(c, 401, "AuthRequired", "the owner's own session, or a sign-in link made with deploy");
+    if (!(who.caller === "owner" && who.via === "session") && !(who.via === "token" && who.deploy && DEPLOYS.includes(c.get("nsid")))) return fail(c, 401, "AuthRequired", "the owner's own session, or a sign-in link made with deploy");
     const url = new URL(c.req.url), bodied = c.req.method === "POST";
     if (who.via === "token") console.log(JSON.stringify({ event: "infra.by.link", token: who.caller, method: c.get("nsid").slice("com.lopecode.brain.".length), at: Date.now() }));
     return deployer.fetch(new Request("https://deployer.internal" + url.pathname + url.search, { method: c.req.method, headers: { "content-type": "application/json", "x-brain-caller": "owner" }, body: bodied ? await bodyOf(c) : undefined, duplex: bodied ? "half" : undefined }));
@@ -832,7 +836,7 @@ test_tokens_reach_only_their_methods = {
   expect((await rig.call("inbox.list", { bearer: web.token })).status).toBe(403);
   expect((await rig.call("/llms.txt", { bearer: web.token })).status).toBe(403);
   expect(JSON.stringify([...rig.sim.rows])).not.toContain(web.token);
-  const listed = async () => (await rig.call("token.list", { session: rig.owner })).data.tokens.map((t) => [t.name, t.by || null]);
+  const listed = async () => (await rig.call("token.list", { session: rig.owner })).data.tokens.map((t) => [t.name, t.by || null]).sort();
   expect(await listed()).toEqual([["laptop", null], ["web", "link"]]);
   expect(Math.round((web.until - Date.now()) / 60000)).toBe(60);
   // The token ends by itself, and so does a link nobody used.
@@ -852,7 +856,18 @@ test_tokens_reach_only_their_methods = {
   const dep = (await rig.call("token.link", { session: rig.owner, body: { name: "dep", methods: [], deploy: true } })).data;
   const ship = (await rig.call(dep.link.slice(dep.link.indexOf("/auth/link")), { method: "POST" })).data;
   expect([ship.deploy, web.deploy]).toEqual([true, false]);
-  expect((await rig.call("infra.getState", { bearer: ship.token })).status).toBe(200);
+  const lines = [], was = console.log;
+  console.log = (line) => lines.push(line);
+  try {
+    expect((await rig.call("infra.getState", { bearer: ship.token })).status).toBe(200);
+  } finally {
+    console.log = was;
+  }
+  // The kernel says which token it was: the deployer is told the owner.
+  expect(lines.filter((l) => typeof l === "string" && l.includes("infra.by.link")).map((l) => JSON.parse(l)).map((l) => [l.event, l.token, l.method])).toEqual([["infra.by.link", "token:dep", "infra.getState"]]);
+  for (const m of ["infra.confirm", "infra.redistil"]) expect((await rig.call(m, { bearer: ship.token, body: {} })).status).toBe(200);
+  // Not the page at /, and no other infra name.
+  for (const m of ["infra.shell", "infra.distil", "infra.rollback"]) expect((await rig.call(m, { bearer: ship.token, body: {} })).status).toBe(403);
   expect((await rig.call("infra.apply", { bearer: ship.token, body: { workers: [], reason: "a test" } })).status).toBe(200);
   expect(rig.toDeployer.at(-1).headers["x-brain-caller"]).toBe("owner");
   for (const m of ["secret.get", "token.list", "people.list", "inbox.list"]) expect((await rig.call(m, { bearer: ship.token })).status).toBe(403);
