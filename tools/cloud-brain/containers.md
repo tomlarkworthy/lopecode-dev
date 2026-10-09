@@ -247,10 +247,6 @@ The day's spend of the owner after both leases, the tests and the benchmark: $0.
 
 ### Not known
 
-- **Whether the 6 ready instances are billed.** The pricing page says charges start "when a request
-  is sent to the container or when it is manually started". No bill was read. If they are billed,
-  six lite instances cost 6 × $0.000002 × 86 400 = $1.04 a day. **Tom should look at the account's
-  Containers usage before this is left deployed.** Removing the Worker deletes the application.
 - What "assigned 1" means 10 s after a lease ended with `active 0`.
 - Whether a token with only Workers Scripts permission can make an application. The temporary
   token has every group.
@@ -265,6 +261,22 @@ paths reach the container's server. The record is in `spec-as-built.md` under th
 Cloudflare's [architecture page](https://developers.cloudflare.com/containers/platform-details/architecture/)
 (read 2026-10-09): "You are only charged for actively running instances, not for prepared images that are not
 running." The ready instances seen here were running the entrypoint, so this does not answer the question above.
+
+### The ready instances are not billed (dashboard, 2026-10-09 about 21:35 CEST)
+
+Tom's screenshot of the account's Containers page, about an hour after the application was last modified:
+
+```
+cb4-x-container-node   Ready   Default   Live Instances 0
+Usage, September 19 - October 19:  Memory 100 GiB-sec   Disk 800.01 GB-sec   CPU 7.7 sec   Egress 0 GB
+Billable usage (current period): $0.00
+```
+
+A lite instance is 0.25 GiB of memory and 2 GB of disk, so both figures come to 400 instance-seconds:
+100 / 0.25 = 400 and 800 / 2 = 400. That is the size of the leases and the spike that were run. Six
+ready instances for one hour would be 6 x 3600 = 21 600 instance-seconds, 5400 GiB-sec of memory.
+So the instances Cloudflare keeps ready (`healthy 6`) are not metered; only leased time is. The
+`$0.00` is the plan's included amount, not read further.
 
 ### Not built
 
