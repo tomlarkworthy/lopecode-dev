@@ -190,8 +190,10 @@ deployerOps = {
   // an account token of exactly those groups, for this account, that ends in 90 days, and binds its value to that
   // Worker alone as CF_TOKEN. The value is not kept anywhere else and no method returns it. The deployer keeps the
   // token's id, its groups and when it ends (token/WORKER), and writes each mint, roll and delete to audit/tokens.
-  // A service may declare only the groups in GROUPS.
-  const GROUPS = ["Workers Observability Read", "Workers Tail Read", "Workers AI Read"];
+  // A service may declare only the groups in GROUPS. Each was minted alone and tried on 2026-10-09 (spec-as-built,
+  // "What a minted token reaches"): these two read their own product and nothing of a Worker. "Workers Tail Read"
+  // was in the list until then, declared by no service: it read each Worker's code, settings and secret names.
+  const GROUPS = ["Workers Observability Read", "Workers AI Read"];
   const DAY = 86400000, TOKEN_DAYS = 90, ROLL_DAYS = 30;
   const audit = async (event, logical, t) => {
     const row = { at: Date.now(), event, worker: logical, token: t.id, groups: t.groups, expires: t.expires };
@@ -1282,6 +1284,7 @@ fakeCloudflare = () => {
     { id: "g-scripts", name: "Workers Scripts Write", scopes: account }
   ];
   let n = 0;
+    { id: "g-ai", name: "Workers AI Read", scopes: account },
   const ok = (result) => new Response(JSON.stringify({ success: true, result }), { headers: { "content-type": "application/json" } });
   const bad = (status, message) => new Response(JSON.stringify({ success: false, errors: [{ message }] }), { status });
   const bindingOf = (v, name) => v.metadata.bindings.find((b) => b.name === name);
@@ -1634,7 +1637,7 @@ test_the_approval_page_lists_the_platform_cells_and_names_the_shared_database = 
 test_a_declared_cloudflare_permission_is_held_for_the_owner_and_minted_for_that_worker_alone = {
   const rig = await deployerRig();
   await rig.recover({ workers: [await rig.made("brain", "kernel", "k1"), await rig.made("brain-core", "core", "c1"), await rig.made("brain-x-plain", "recipe", "p1")] });
-  const READ = ["Workers Observability Read"], BOTH = ["Workers Observability Read", "Workers Tail Read"];
+  const READ = ["Workers Observability Read"], BOTH = ["Workers AI Read", "Workers Observability Read"];
   const logs = (salt, cloudflare = READ) => rig.made("brain-x-logs", "recipe", salt, { cloudflare });
   // Held for the owner also when deploys need no approval, and the page names the permission.
   await rig.form({ key: "rk", action: "approval:off" });
@@ -1670,7 +1673,7 @@ test_a_declared_cloudflare_permission_is_held_for_the_owner_and_minted_for_that_
   // Another set: a new token of that set.
   await rig.recover({ workers: [await logs("l4", BOTH)] });
   const [t3] = [...rig.fake.tokens.values()];
-  expect([rig.fake.tokens.size, t3.policies[0].permission_groups]).toEqual([1, [{ id: "g-obs" }, { id: "g-tail" }]]);
+  expect([rig.fake.tokens.size, t3.policies[0].permission_groups]).toEqual([1, [{ id: "g-ai" }, { id: "g-obs" }]]);
   expect(events()).toEqual(["mint " + t1.id, "roll " + t2.id, "delete " + t1.id, "mint " + t3.id, "delete " + t2.id]);
   // A deploy that is put back leaves the token as it was.
   const broken = await logs("l5", READ);
@@ -1686,7 +1689,9 @@ test_a_declared_cloudflare_permission_is_held_for_the_owner_and_minted_for_that_
 test_a_cloudflare_permission_is_refused_off_the_list_and_outside_a_recipe = {
   const rig = await deployerRig();
   const reason = async (w) => (await rig.recover({ workers: [w] })).results[0].reason;
-  expect(await reason(await rig.made("brain-x-greedy", "recipe", "g", { cloudflare: ["Workers Observability Read", "Workers Scripts Write"] }))).toBe('"Workers Scripts Write" is not a Cloudflare permission a service may declare. A service may declare: Workers Observability Read, Workers Tail Read, Workers AI Read');
+  expect(await reason(await rig.made("brain-x-greedy", "recipe", "g", { cloudflare: ["Workers Observability Read", "Workers Scripts Write"] }))).toBe('"Workers Scripts Write" is not a Cloudflare permission a service may declare. A service may declare: Workers Observability Read, Workers AI Read');
+  // It reads each Worker's code: no service may have it (spec-as-built, 2026-10-09).
+  expect(await reason(await rig.made("brain-x-tail", "recipe", "t", { cloudflare: ["Workers Tail Read"] }))).toContain('"Workers Tail Read" is not a Cloudflare permission a service may declare');
   expect(await reason(await rig.made("brain-core", "core", "c", { cloudflare: ["Workers Observability Read"] }))).toBe("only a recipe declares Cloudflare permissions");
   expect(rig.fake.tokens.size).toBe(0);
   const members = await memberRig();
@@ -1699,7 +1704,7 @@ test_a_version_put_back_gets_a_token_that_works = {
   const rig = await deployerRig();
   const bound = () => rig.fake.live("cb-x-logs").metadata.bindings.find((b) => b.name === "CF_TOKEN");
   const v1 = await rig.made("brain-x-logs", "recipe", "one", { cloudflare: ["Workers Observability Read"] });
-  const v2 = await rig.made("brain-x-logs", "recipe", "two", { cloudflare: ["Workers Observability Read", "Workers Tail Read"] });
+  const v2 = await rig.made("brain-x-logs", "recipe", "two", { cloudflare: ["Workers AI Read", "Workers Observability Read"] });
   await rig.recover({ workers: [v1] });
   const first = bound().text;
   await rig.recover({ workers: [v2] });
@@ -1714,7 +1719,7 @@ test_a_version_put_back_gets_a_token_that_works = {
   expect(rig.sim.rows.get("token/brain-x-logs")).toMatchObject({ id: now.id, groups: ["Workers Observability Read"] });
   expect(rig.sim.rows.get("worker/brain-x-logs")).toMatchObject({ hash: v1.hash, token: now.id, cloudflare: ["Workers Observability Read"] });
   // The mint is refused at the next put-back. The row says what is live and that it holds no token; a later tick mints.
-  const v4 = await rig.made("brain-x-logs", "recipe", "four", { cloudflare: ["Workers Observability Read", "Workers Tail Read"] });
+  const v4 = await rig.made("brain-x-logs", "recipe", "four", { cloudflare: ["Workers AI Read", "Workers Observability Read"] });
   await rig.recover({ workers: [v4] });
   rig.fake.unhealthy.add(v4.hash);
   rig.fake.stored.noMint = true;

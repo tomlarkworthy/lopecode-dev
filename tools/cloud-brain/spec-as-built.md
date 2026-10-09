@@ -3228,3 +3228,47 @@ live, approval on, a link with deploy and unattended, 1 hour
 Seen in passing: for one `redistil` after the install the answer came from the deployer before (`f4430b4ce874`, another session's), then `5ad78c606c0a`. Two deployers do answer for a while after an install.
 
 Not done: the button was not pressed on cb4. No Worker with a Cloudflare permission was deployed by a link's token on cb4 (rig only). `infra.shell` by such a token was not written to on cb4.
+
+## What a minted token reaches, and `brain-x-ai` after its review (2026-10-09 23:50 to 2026-10-10 00:00 CEST)
+
+**Question.** The build of `brain-x-ai` reported that a token with only `Workers AI Read` "also got 200 on `/workers/scripts`". What can a token the deployer mints do?
+
+**Method.** For each group in `GROUPS` a scratch token was minted with the deployer's own policy (`effect: allow`, resource `com.cloudflare.api.account.ACCOUNT: "*"`, that one group, account scope), ends in an hour, tried, and deleted (each `DELETE` 200). Run at 21:50 UTC. The policy was read back from `GET /accounts/ACCOUNT/tokens/ID` and held that one group and that one resource in each case. `rows` is the length of `result`.
+
+```
+                                             Workers AI Read   Workers Observability Read   Workers Tail Read
+GET  /accounts/A/tokens/verify               200               200                          200
+GET  /user/tokens/verify                     401 code 1000     401                          401     (an account token is not a user token)
+GET  /workers/scripts                        200, 0 rows       200, 0 rows                  200, 35 rows
+GET  /workers/scripts/cb4-core               not asked         not asked                    200     (the Worker's code)
+GET  /workers/scripts/cb4-core/settings      not asked         not asked                    200     (bindings)
+GET  /workers/scripts/cb4-core/secrets       not asked         not asked                    200, 1 row (names, no values)
+PUT  /workers/scripts/cb4-scratch-nope-…     403               403                          403     (empty body, "No access to the specified resource")
+GET  /d1/database                            401 code 10000    401                          401
+GET  /tokens                                 403 code 9109     403                          403
+GET  /ai/models/search?per_page=1            200, 70 rows      403                          403
+POST /workers/observability/telemetry/keys   403               200, 158 rows                403
+GET  /containers/applications                403               403                          403
+GET  /storage/kv/namespaces                  401               401                          401
+GET  /r2/buckets                             403               403                          403
+```
+
+**Findings.**
+
+- `Workers AI Read` and `Workers Observability Read`: the 200 on `/workers/scripts` is an empty list. That is Cloudflare's answer for a token with no Workers permission, not a reach of the token. Each reads its own product and nothing else that was tried. The minting was not changed for them and the two tokens on cb4 (`cb4-x-ai`, ends 2027-01-07; `cb4-x-logs`, ends 2027-01-06) were not minted again: each holds one group on one account, which is as narrow as an account token goes. `brain-x-browser` and `brain-x-container` declare no Cloudflare permission and have no token.
+- `Workers Tail Read` lists the account's 35 Workers and reads a Worker's code, its bindings and the names of its secrets. It cannot write. No resource narrower than the account was found for it. No service declared it and no token with it was on the account. It was taken out of `GROUPS`: a service that declares it is now refused (`test_a_cloudflare_permission_is_refused_off_the_list_and_outside_a_recipe`). The deployer was installed with that, `34fd27bcf8e4`, at 23:57 CEST; its record differed from the one installed at 23:51 by these hunks only.
+- A token just minted answered 401 to its first 13 calls of `/ai/run`, over about 10 s, then worked.
+
+**`brain-x-ai` after its review**, deployed as `ed6c5caeb846` at 23:58 CEST. `redistil` 18 same, lease held, no browser, no container.
+
+| Finding | What was done |
+|---|---|
+| The panel's `usd` had a step and sent the last valid value | No step, no `min`/`max` on the input. The handler reads the box, refuses outside 0.000001 to 1, and the note names the `usd` sent. |
+| `price.put` breaks the bound | Documented, not fixed. The core strips each `x-brain-*` header of a call and sets `x-brain-price` on the answer only (`forward`, `priced`), so the service cannot learn what was charged. To pass it on is two lines in the core and a core deploy; not done here because another session had the core open. In the backlog. |
+| `max_tokens: null` at an output price of 0 | The body is passed as it came when the output price is 0 or absent, or when what `usd` buys is not finite. |
+| `usd=1` wrote `max_tokens` 4975115 | Measured 21:52 UTC: `usd=0.2`, `{"prompt":"Say hi."}`, no `max_tokens` → 995015 written, Cloudflare 413 code 5021 "The estimated number of input and maximum output tokens (995101) exceeded this model context window limit (60000)", charged $0.2. The list gives `context_window` ("60000"). Direct to Cloudflare, `{"prompt":"hi","max_tokens":N}`: 59914 ran, 59950 and 59999 were refused; Cloudflare's estimate of that input was 85 tokens against 69 counted here. `max_tokens` is now at most the window less twice the counted input, or the setting `maxTokens` (4096) with no window in the list. After the deploy, 21:58 UTC: `usd=0.02`, the same body → 200, 28 tokens written, `x-ai-usd` 0.00000693, charged $0.02. |
+| "The body goes as the caller wrote it" | Prose corrected. With no `max_tokens` of the caller the field is put in after the first `{` and each other byte is the caller's; a `max_tokens` inside the limit is sent byte for byte; only a `max_tokens` over the limit is parsed and written again, where a number past 2^53 is not kept exact. |
+| The model list failing threw; refusals were not logged | 502 `ModelListUnavailable`, in the refusal list. Each refusal of `ai.run` writes the `ai.run` log line with `error`. |
+| Minors | The access test asks owner, token, granted account, Worker and stranger for both methods. The template comment says 45. `usd=0.00000214` was run again (21:52:40 UTC: 200, charged $0.000003) and is `aiMeasured.rounding`. `input` events of the panel's boxes stop inside it. `aiSettings` reads each setting the same way: a number over 0, also as text. |
+
+Tests: 8 of `brain-ai` and the 4 of the deployer that mint or refuse a permission, each forced in a QA tab, all passed. `run_tests` was not used. Not looked at: whether a refusal's log line reached Workers Logs on cb4 (the rig only); a model with an output price of 0 on cb4 (none is in the list that was read); `maxTokens` on a real model with no `context_window`.

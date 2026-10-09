@@ -282,8 +282,12 @@ parent session; see "Added 2026-10-09 20:41 CEST" below and `tools/cloud-brain/c
 - The input is counted from bytes (3 a token, and 64 tokens for the model's template). No reasoning model and no
   non-Latin text was run; either can cost more than was counted.
 - Models not priced by the token (images, speech) have a floor of $0.01 a call and no bound. None was run on cb4.
-- A scratch token with only `Workers AI Read` answered 200 to `GET /workers/scripts` too. What it returned was not
-  read. If that permission lists the account's Workers, the minted token reaches more than the service uses.
+- Closed 2026-10-09: the 200 of a `Workers AI Read` token on `GET /workers/scripts` is an empty list (spec-as-built,
+  "What a minted token reaches"). `Workers Tail Read` does read each Worker's code and was taken out of `GROUPS`.
+- **The core does not tell a Worker the price it charged.** `brain-x-ai` budgets from `usd` in the query, so a
+  `price.put` under `double(request.params.usd)` lets a caller make Cloudflare spend more than they pay. To do: the
+  core sets `x-brain-price` on the forwarded call (`forward`, from `c.get("price")` in micros), and `ai.run` budgets
+  from it. Two lines in the core and a core deploy. Until then the rule is in the service's "Who can call".
 - The `AI` binding was not used: it needs no token, and gives no model list or prices. Not measured against REST.
 - The deployer's kept source carried one test cell from 23:33 to 23:36 (`const _10en1wa = (x) => x`): the record
   had been emitted in a tab where a test had been forced inside the module. Installed again from a clean tab
@@ -659,7 +663,7 @@ The record is in `tools/cloud-brain/spec-as-built.md`, "Security review and fixe
 
 - **One database for every Worker.** `brain-db` keys rows by the calling Worker's name, and the name comes from the deployer's binding. A defect in that one check exposes every service's rows and secrets. The other design is a D1 database per Worker, made by the deployer. Cost: a migration of the rows on cb4, and one more resource to make and delete per service. Tom's decision.
 - **`worker.js` comes from the caller.** The deployer distils `source.js` itself and compares hashes, but takes the wrapper's text from the request. The other design: the deployer holds the wrapper and assembles the Worker. Cost: a wrapper change needs a deployer install first. Tom's decision.
-- **`Workers Tail Read`** is minted for `brain-x-logs`. Whether a tail shows request headers of other Workers, the `Authorization` header among them, was not checked.
+- **`Workers Tail Read`** is no longer a permission a service may declare (2026-10-09): a token with it read each Worker's code, bindings and secret names. `brain-x-logs` declares `Workers Observability Read` only. A `logs.tail` would need another way to that socket, such as the deployer opening it.
 - **Old files have no `writer`.** Outside `shell/` they are served sandboxed until the owner puts them again. List the library's files and re-put the ones that should run.
 - **A member's id** is 8 hex characters of a hash of the DID. Not changed.
 - **Check one WhatsApp picture** after the `redirect: "manual"` change.
