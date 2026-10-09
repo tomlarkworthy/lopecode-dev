@@ -3057,3 +3057,14 @@ live, link for quota.get, 1 hour
 `/llms.txt` (the core) gained "Finding your way" (`service.list`, `getInfo`, `getSource` and what each answers, the shape in five sentences), "Making a service" (`member.deploy`) and one line on the sign-in link.
 
 Not done: the "Sign-in link" button was not pressed on cb4. The token's end and an unused link's end are tested in the rig only. No Lexicon documents are served. A token still cannot name `infra.*`, so a program signed in this way cannot deploy as the owner. `brain-core.ojs` and `cloud-brain.ojs` hold another session's uncommitted edits beside these and are not committed.
+
+**Review of the sign-in link** (22:58 CEST): one fresh reviewer, FIX, 6 findings, all confirmed against the source and fixed; kernel `acdd6316ae40` on cb4, its 26 tests pass.
+
+| Finding | Done |
+|---|---|
+| A program that sends its token when it reads `/llms.txt` gets 403 | the GET text and the prose say to read it with no `Authorization` header; asserted |
+| A link pasted in the wrong place could not be cancelled | `token.revoke { name }` deletes an unused link of that name. On cb4: revoked 1, then POST of the link 401 |
+| Ended link tokens stayed in `token.list` for good | `token.list` leaves them out, and making a link deletes them |
+| A link could share a name with a token, and one revoke ended both | `token.link` refuses a name a token or a link has. On cb4: 400 |
+| "an ordinary one" pointed at tokens the page does not describe | the sentence names what a token may not name |
+| No test of the minutes bound, the defaults, `by: "link"`, the token absent from the rows | added |

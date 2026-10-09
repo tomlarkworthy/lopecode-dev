@@ -33,7 +33,7 @@ A person is an atproto account, named by its DID. There are two roles. The **own
 
 **Linking.** A channel sends a stranger \`https://HOST/link?channel=NAME&code=CODE\`. The page asks them to sign in with atproto, shows the address the code stands for, and binds it to the signed-in DID when they press Link. The kernel learns the address by calling the channel's \`NAME.claim\` with the code; the answer is taken only from the Worker \`brain-x-NAME\`. Linking does not make anyone a member. When the signed-in DID is the owner, Link also asks for the last 4 characters of the address, because whoever writes from it is then answered as the owner. The page refuses to be shown in a frame.
 
-**Sign-in links** (added 2026-10-09). For a program with no browser, such as Claude Code on the web. \`token.link\` (procedure, owner's session) takes \`{ name, methods, minutes, hours }\` and answers \`{ name, link, until }\`; \`minutes\` (1 to 60, 10 if left out) is how long the link is good, \`hours\` (1 to 24, 8 if left out) how long its token lasts. The link is \`/auth/link?code=…\`. A GET of it answers text that says what to do and spends nothing, so a preview of a pasted link does not use it. The first POST answers \`{ name, token, methods, until }\` and deletes the link; a second answers 401. The token is an ordinary one with an end: the same methods it may not name, listed by \`token.list\` with \`by: "link"\`, ended early by \`token.revoke\`. Only the hash of the code and of the token is kept. The code is in a query string, which Cloudflare keeps beside each log line; it is good once.
+**Sign-in links** (added 2026-10-09). For a program with no browser, such as Claude Code on the web. \`token.link\` (procedure, owner's session) takes \`{ name, methods, minutes, hours }\` and answers \`{ name, link, until }\`; \`minutes\` (1 to 60, 10 if left out) is how long the link is good, \`hours\` (1 to 24, 8 if left out) how long its token lasts. The link is \`/auth/link?code=…\`. A GET of it answers text that says what to do and spends nothing, so a preview of a pasted link does not use it. The first POST answers \`{ name, token, methods, until }\` and deletes the link; a second answers 401. The token is one as \`token.create\` makes, with an end: it may not name \`infra.*\`, \`secret.*\`, \`token.*\`, \`grant.*\` or \`people.*\`, and \`token.list\` gives it with \`by: "link"\` until it ends. \`token.revoke\` with \`{ name }\` ends the token early, and deletes a link of that name nobody has used. A link is refused a name that a token or another link has. A token reaches its methods and no path, so \`/llms.txt\` is read with no \`Authorization\` header. Ended links and tokens are deleted when the next link is made. Only the hash of the code and of the token is kept. The code is in a query string, which Cloudflare keeps beside each log line; it is good once.
 
 **Turns.** \`inbox.list\` and \`inbox.poll\` answers pass through the kernel, which adds \`who: { did, role, handle }\` to each entry whose address is linked. For the owner's own session \`inbox.poll\` also adds \`turn\`, a token for each entry whose sender is the owner or a member. A call that carries it as \`Authorization: Bearer\` is made as that DID, with \`x-brain-via: turn:<entry id>\`. It lasts 10 minutes, ends with "sign out everywhere", and is refused once its DID is no longer a member.
 
@@ -377,7 +377,7 @@ kernelApp = {
   // Tokens for callers with no session, and grants for other DIDs. Each names the methods it may call.
   const full = (m) => (m.startsWith("com.") ? m : "com.lopecode.brain." + m);
   const never = (m) => /^com\.lopecode\.brain\.(infra|secret|token|grant|people)\./.test(m);
-  app.get(NS + "token.list", session, async (c) => c.json({ tokens: (await rows.list("token/")).map((r) => r.value) }));
+  app.get(NS + "token.list", session, async (c) => c.json({ tokens: (await rows.list("token/")).map((r) => r.value).filter((t) => !(t.until < Date.now())) }));
   app.post(NS + "token.create", session, async (c) => {
     const { name, methods = [] } = await c.req.json();
     const named = methods.map(full);
@@ -397,7 +397,10 @@ kernelApp = {
     if (!/^[a-z0-9-]{1,40}$/.test(name || "")) return fail(c, 400, "InvalidRequest", "name is lower case letters, digits and -");
     if (named.some(never)) return fail(c, 400, "InvalidRequest", "a token cannot name infra, secret, token, grant or people methods");
     if (!(minutes >= 1 && minutes <= 60 && hours >= 1 && hours <= 24)) return fail(c, 400, "InvalidRequest", "minutes is 1 to 60, hours is 1 to 24");
-    for (const r of await rows.list("link/")) if (r.value.until < Date.now()) await rows.delete(r.key);
+    // What has ended is deleted here: links nobody used, and the tokens of links.
+    const live = [];
+    for (const r of [...(await rows.list("link/")), ...(await rows.list("token/"))]) r.value.until < Date.now() ? await rows.delete(r.key) : live.push(r.value.name);
+    if (live.includes(name)) return fail(c, 400, "InvalidRequest", `a token or a link is named ${name}; token.revoke ends it`);
     const code = hex(), until = Date.now() + minutes * 60000;
     await rows.put("link/" + (await sha256(code)), { name, methods: named, until, hours });
     return c.json({ name, link: `https://${config.host}/auth/link?code=${code}`, until });
@@ -413,7 +416,8 @@ The answer is JSON { name, token, methods, until }. The link then stops working.
 environment variable; do not print it or write it to a file. Send it as "Authorization: Bearer <token>". It calls
 the methods in \`methods\` and no others, until \`until\` (milliseconds).
 
-Then read https://${config.host}/llms.txt: how to call, and what this Brain is made of.
+Then read https://${config.host}/llms.txt, with no Authorization header (a token reaches its methods and no
+other address): how to call, and what this Brain is made of.
 `)
   );
   app.post("/auth/link", async (c) => {
@@ -428,7 +432,8 @@ Then read https://${config.host}/llms.txt: how to call, and what this Brain is m
   app.post(NS + "token.revoke", session, async (c) => {
     const { name } = await c.req.json();
     let revoked = 0;
-    for (const r of await rows.list("token/")) if (r.value.name === name) revoked += (await rows.delete(r.key)) ? 1 : 0;
+    // A link of that name that nobody has used goes too.
+    for (const r of [...(await rows.list("token/")), ...(await rows.list("link/"))]) if (r.value.name === name) revoked += (await rows.delete(r.key)) ? 1 : 0;
     return c.json({ revoked });
   });
   app.get(NS + "grant.list", session, async (c) => c.json({ grants: (await rows.list("grant/")).map((r) => r.value) }));
@@ -803,6 +808,9 @@ test_tokens_reach_only_their_methods = {
   expect((await rig.call("token.link", { bearer: made.data.token, body: { name: "web", methods: ["proxy.fetch"] } })).status).toBe(403);
   expect((await rig.call("token.link", { session: rig.owner, body: { name: "web", methods: ["infra.apply"] } })).status).toBe(400);
   expect((await rig.call("token.link", { session: rig.owner, body: { name: "web", methods: [], hours: 25 } })).status).toBe(400);
+  expect((await rig.call("token.link", { session: rig.owner, body: { name: "web", methods: [], minutes: 61 } })).status).toBe(400);
+  // Not a name a token has.
+  expect((await rig.call("token.link", { session: rig.owner, body: { name: "laptop", methods: [] } })).status).toBe(400);
   const link = (await rig.call("token.link", { session: rig.owner, body: { name: "web", methods: ["proxy.fetch"], hours: 1 } })).data;
   const at = link.link.slice(link.link.indexOf("/auth/link"));
   expect(JSON.stringify([...rig.sim.rows])).not.toContain(at.split("code=")[1]);
@@ -813,12 +821,26 @@ test_tokens_reach_only_their_methods = {
   expect([web.name, web.methods]).toEqual(["web", ["com.lopecode.brain.proxy.fetch"]]);
   expect((await rig.call("proxy.fetch", { bearer: web.token, body: {} })).status).toBe(200);
   expect((await rig.call("inbox.list", { bearer: web.token })).status).toBe(403);
+  expect((await rig.call("/llms.txt", { bearer: web.token })).status).toBe(403);
+  expect(JSON.stringify([...rig.sim.rows])).not.toContain(web.token);
+  const listed = async () => (await rig.call("token.list", { session: rig.owner })).data.tokens.map((t) => [t.name, t.by || null]);
+  expect(await listed()).toEqual([["laptop", null], ["web", "link"]]);
+  expect(Math.round((web.until - Date.now()) / 60000)).toBe(60);
   // The token ends by itself, and so does a link nobody used.
   for (const [k, v] of rig.sim.rows) if (v && v.by === "link") rig.sim.rows.set(k, { ...v, until: Date.now() - 1 });
   expect((await rig.call("proxy.fetch", { bearer: web.token, body: {} })).data.message).toBe("this token has expired");
-  const late = (await rig.call("token.link", { session: rig.owner, body: { name: "late", methods: [] } })).data.link;
+  expect(await listed()).toEqual([["laptop", null]]);
+  const madeLate = (await rig.call("token.link", { session: rig.owner, body: { name: "late", methods: [] } })).data;
+  const late = madeLate.link;
+  // Making it deleted the ended token. Left alone, a link is good for 10 minutes.
+  expect([...rig.sim.rows.values()].filter((v) => v && v.by === "link")).toEqual([]);
+  expect(Math.round((madeLate.until - Date.now()) / 60000)).toBe(10);
   for (const [k, v] of rig.sim.rows) if (v && v.name === "late") rig.sim.rows.set(k, { ...v, until: Date.now() - 1 });
   expect((await rig.call(late.slice(late.indexOf("/auth/link")), { method: "POST" })).status).toBe(401);
+  // A link pasted in the wrong place is ended by its name, before anyone uses it.
+  const wrong = (await rig.call("token.link", { session: rig.owner, body: { name: "wrong", methods: [] } })).data.link;
+  expect((await rig.call("token.revoke", { session: rig.owner, body: { name: "wrong" } })).data).toEqual({ revoked: 1 });
+  expect((await rig.call(wrong.slice(wrong.indexOf("/auth/link")), { method: "POST" })).status).toBe(401);
   expect((await rig.call("token.revoke", { session: rig.owner, body: { name: "laptop" } })).data).toEqual({ revoked: 1 });
   expect((await rig.call("proxy.fetch", { bearer: made.data.token, body: {} })).status).toBe(401);
   return "one method, then revoked";
