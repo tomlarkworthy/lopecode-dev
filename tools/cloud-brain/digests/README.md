@@ -59,3 +59,9 @@ JavaScript or WASM build of that engine was found in its Hugging Face repository
 - A trigger after the snapshot's daily run, and a way to send the DM as the Brain.
 - Something that reads past digests' `picks` back. Until then "self improve" is a person reading
   the backlog section of each digest.
+
+## Layout, from Tom on 2026-10-09
+
+- The page opens on the first theme. The paragraph on how the digest was written (who, from which snapshot run, what was and was not reproduced) is the last section, "How this was written".
+- A digest opens with editing off. `build.ts` sets `__attachMenu: false` in editor-5's `cell_options.json`; the reader turns editing on from the menu.
+- A link that leaves the Brain opens a new tab, and the page sends no referrer.

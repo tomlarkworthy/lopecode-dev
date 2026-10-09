@@ -39,6 +39,14 @@ html = block(html, "bootconf.json", "\n" + JSON.stringify(conf, null, 2) + "\n")
 html = html.replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`).replace(/(<meta property="og:title" content=")[^"]*/, `$1${title}`);
 // Hugging Face answers 404 to a visit referred from a workers.dev address (measured 2026-10-09), so no link here sends one.
 if (!html.includes('name="referrer"')) html = html.replace(/<title>/, `<meta name="referrer" content="no-referrer">\n<script>addEventListener("click", (e) => { const a = e.target.closest && e.target.closest("a[href]"); if (a && /^https?:$/.test(a.protocol) && a.origin !== location.origin) { a.target = "_blank"; a.rel = "noopener"; } }, true);</scr` + `ipt>\n<title>`);
+// A digest opens for reading: editor-5 reads __attachMenu from this file and attaches editors when it is missing.
+{
+  const id = "@tomlarkworthy/editor-5/cell_options.json", span = findSpan(html, id);
+  if (!span) throw new Error("no editor-5 cell_options.json block");
+  const raw = html.slice(span.start, span.end), body = raw.slice(raw.indexOf(">") + 1, raw.lastIndexOf("</script>"));
+  const opts = { ...JSON.parse(Buffer.from(body.trim(), "base64").toString("utf8")), __attachMenu: false };
+  html = block(html, id, "\n" + Buffer.from(JSON.stringify(opts)).toString("base64") + "\n");
+}
 if (blockSpans(html).length !== before) throw new Error("a splice changed the number of blocks; nothing written");
 const out = resolve(here, `research-${day}.html`);
 writeFileSync(out, html);

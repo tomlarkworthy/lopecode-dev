@@ -1,7 +1,3 @@
-md`Written 2026-10-09 by Claude Code from the snapshot the Brain recorded at 04:10 UTC: 843 items from 12 sources. The day was recorded again at 05:11 UTC after the Hugging Face list was cut to three days, so the table below and the counts computed from it show that later run. Each claim below is the source's own, from the stored summary or the linked page as fetched today. Nothing here was reproduced, except the one demo at the end.`
-// %%
-day = "2026-10-09"
-// %%
 md`## 1. Agents that learn from their own experience
 
 Six items this week are about an agent getting better from what it did, and two of them are about how to measure that.`
@@ -74,6 +70,8 @@ md`## What was not read
 - Nothing in the last 7 days from Karpathy (two feeds), Lilian Weng, Sebastian Raschka, Eugene Yan, Chip Huyen, Hamel Husain, BAIR or Meta engineering. Anthropic and Meta AI publish no feed.`
 // %%
 md`## The picks, as data`
+// %%
+day = "2026-10-09"
 // %%
 picks = [
   { id: "2610.08077", theme: 1, source: "hf-papers", title: "Self-Retrospection Distillation", url: "https://huggingface.co/papers/2610.08077", why: "hindsight as a training target; 0.0% to 60.6% where plain RL gets no signal" },
@@ -258,3 +256,7 @@ ${end}`;
 }
 // %%
 md`What this shows and what it does not. It shows that the published model loads and answers in an ordinary page, with the tool list given at the time of the call. It does not check the authors' 72.4%: three sample clips are not a benchmark. Verified on 2026-10-09 in Chromium; then 42.6 MB loaded in 6.1 s and each of the three sample clips gave the expected call in 0.52 to 0.55 s.`
+// %%
+md`## How this was written`
+// %%
+md`Written 2026-10-09 by Claude Code from the snapshot the Brain recorded at 04:10 UTC: 843 items from 12 sources. The day was recorded again at 05:11 UTC after the Hugging Face list was cut to three days, so the table below and the counts computed from it show that later run. Each claim below is the source's own, from the stored summary or the linked page as fetched today. Nothing here was reproduced, except the one demo at the end.`
