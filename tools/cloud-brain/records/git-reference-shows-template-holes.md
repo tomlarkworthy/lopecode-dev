@@ -61,3 +61,19 @@ a module of its own: 6 of 6, none failed. The rebase onto `main` after that brou
 - The test reads prose cells only. A hole in a comment or in a refusal's message is not its matter.
 - The page's rendering of the cell was not looked at; the text is the same characters with the
   values in place of the holes.
+
+## Landing (2026-10-10, times from `date`)
+
+`land.lock` was another writer's at 23:31:27 and taken at 23:31:50. The rebase under it brought in
+`brain-issues.ojs`, `records/reference-shows-template-holes.md`, `seen.json` and the `lopebooks`
+pointer: none is what `brain-git` is built from, so the record emitted at 23:29 was applied.
+`apply` answered `brain-x-git 65d26e97c27d deployed` in 11.3 s at 23:32:15, not held for the
+owner. `redistil`: 20 lines `same`, `brain-x-git same 65d26e97c27d`.
+
+Not done at landing: `build.ts` in the main checkout and the `lopebooks` commit. The main checkout
+had six files of `tools/cloud-brain/` changed and not committed by another writer
+(`brain-deployer.ojs` +379 lines, `brain-core.ojs`, `brain.ts`, `cloud-brain.ojs`,
+`cloud-brain-docs.ojs`, `cloud-brain-specs.ojs`; modified 23:26 to 23:28) and a built notebook that
+differs from the committed one by 460 lines. A build there would have put that work in the
+notebook this landing commits. The notebook in `lopebooks` has the old `brain-git` until the
+next build is committed.
