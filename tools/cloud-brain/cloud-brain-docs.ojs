@@ -289,6 +289,7 @@ Each is an owner service. Its module documents it.
 | module | purpose |
 |---|---|
 | ${mod("brain-inbox")} | Channels append entries. The page answers them. |
+| ${mod("brain-issues")} | Issues about the Brain and its services: a signed record of events, and a workflow of guards that is installed as data. |
 | ${mod("brain-whatsapp")}, ${mod("brain-bluesky")} | Message channels. |
 | ${mod("brain-library")} | Notebooks that the Brain keeps and serves. |
 | ${mod("brain-feed")} | Lists of Bluesky posts, given as Bluesky feeds. |

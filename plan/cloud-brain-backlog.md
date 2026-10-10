@@ -265,6 +265,13 @@ after the settings deploy). Nothing tells an open tab that the Brain now serves 
 
 ## Not built
 
+**Issues (`brain-x-issues`, built 2026-10-10).** Open, from `tools/cloud-brain/spec-as-built.md`, "Issues: a signed
+record, and guards as data": the panel is not on cb4's page (`brain-x-page` not redeployed); no page was driven against
+cb4; licences; the topic `work` and claims (needs topics); encrypted bodies and `readers` for security issues; filing by
+members (needs the authority design); a dry run of a policy before install; a large `migrate`; an `unattended` link's
+token against `caller.present`. For Tom: whether a token may triage (the default lets the owner and any token), and
+whether the test issues on cb4 (`test-walk`, `test-child`, `test-escalated`, 15 events) stay as the start of the record.
+
 R32 to R35, Lexicons, an approval code over WhatsApp, `canonical.json` / preflight / sitemap entries, a real Meta WhatsApp number, an install into a second
 Cloudflare account, the token's minimum permissions.
 

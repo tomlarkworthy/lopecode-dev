@@ -3701,3 +3701,119 @@ token.list                                          both with "by":"link"; both 
 
 **Not run:** a token made from the login button of the page; an `infra.apply` by a new link's token (only `infra.getState`); a priced call by a new token on cb4. The docs module's table of callers was corrected in the seed, and the page was not deployed by this session: another session is changing it.
 
+
+## Issues: a signed record, and guards as data (2026-10-10 11:57 CEST)
+
+`brain-x-issues` (`@tomlarkworthy/brain-issues`, `7539488939bc`), the tracker of `plan/cloud-brain-issues.md` as Tom
+amended it on 2026-10-10: the record and the rule "an act goes ahead only when its installed guard is true" are code;
+states, moves and who may make them are a policy, installed by an event of the record. 16 methods. The module's first
+cells are the reference.
+
+- **The record** is the table `issues_events` through `sql`, not a topic: topics are not built. `seq` is the table's key
+  and an append inserts `head + 1`, so of two writers at one head one fails, reads the head again and writes after the
+  other. The view's row is written in the same transaction (`db.sql` runs a batch as one).
+- **An event** names the hash of the one before it, and is signed with Ed25519 by a key the Worker reads as the secret
+  `ISSUES_SIGNING_KEY`. `by` and `origin` are the caller and the origin as the core's headers named them.
+- **One fold**, `issueApply`, makes the view from events: in the service's writes, `issue.rebuild`,
+  `issue.verify?guards=true` and the page. **One judge**, `issueAllowed`, in the service, the replay and the page.
+- **Fixed in the code**: installing a policy, a swap the workflow does not list, removing a guard of one issue and
+  `issue.rebuild` need the owner present; a caller the `read` guard refuses does nothing to the issue (404).
+- **The default policy** (`issuesDefaultPolicy`) is written as event 1 of an empty record, by the Worker. It is the one
+  policy written without the owner. A record with events and no policy in its view answers 503 `ViewLost`, so it is
+  not written a second time; the replay names a second one by the Worker as refused.
+- **The panel** (`issuesPanel`) keeps a copy: one `issue.snapshot`, then `issue.sync` each `wait` ms, the service's
+  setting `syncMs` (5000). Filters are answered from the copy. A write is applied to the copy before it is sent and
+  withdrawn if refused. A move's button is disabled when `issueAllowed` refuses it in the page.
+
+### Tests
+
+9 of 9 in `brain-issues`, forced cell by cell from a side module in a headless QA tab, 2026-10-10 11:55 CEST. The race
+is `test_issues_a_key_writes_once_and_two_writers_make_one_chain`: the fake database lets another writer's event in
+between the service's read of the head and its insert. The two calls sent with `Promise.all` in the same test are not
+evidence of a race: `simulate` holds one call at a time.
+
+### On cb4, 11:52 to 11:57 CEST
+
+```
+issue.open (first write: 6 schema statements, the default policy, the issue)   1.76 s
+issue.open / move / label / swap / comment / review, 13 more writes            0.22 to 0.56 s
+a refused move or review (403)                                                 0.20 to 0.23 s
+issue.sync with nothing new, 6 calls                                           0.20 to 0.29 s
+issue.snapshot, 3 calls, 7,944 bytes with 2 issues                             0.18 to 0.26 s
+issue.verify?guards=true over 9, 11, 12 and 15 events                          0.21 to 0.26 s
+```
+
+Wall time of `brain.ts curl` from this machine; the core's `ms` was not read from the logs.
+
+- Ed25519 signs and verifies in the Worker with the name `Ed25519`, and in the QA tab's Chromium.
+- The six schema statements pass `db.sql`'s check for a Worker (`CREATE TABLE … WITHOUT ROWID`, `CREATE UNIQUE INDEX`).
+- What the core sends. A `brain.ts --owner` call: `by: {"caller":"owner","via":"session","holder":"","tab":true}`. A
+  token made with `token.create`: `{"caller":"owner","via":"delegation:20d852e770f6","holder":"secret","tab":false}`.
+- The walk, `test-walk`: opened, a triage with no reason refused, triaged, `ready` refused while its child was open,
+  the child rejected, ready, in-progress, in-review with a `deploy` ref. The implementer's own review and pass were
+  refused. A token made for the check reviewed and passed it (events 10, 11); its revert and its unlisted swap were
+  refused; it was revoked.
+- The listed swap, `test-escalated`: a bug labelled `security` and swapped by `escalate`, no owner asked. A second token
+  was then shown `{ hidden: true }` for it and its comment answered 404; revoked.
+- An install by the owner, event 12, after the default's `security` workflow changed (below). `migrate` named the old
+  hash and moved nothing: no issue was on it.
+- The record: 15 events, 3 issues, all titled "Test data: …". `issue.verify?guards=true`: `ok`, 15 checked.
+- Health after: lease held, `redistil` 20 of 20 `same`, no browsers, no containers, no lock.
+
+**This run shows the gap in "present", not the protection.** The CLI's owner session passes `caller.present`, so the
+one caller of the walk could approve, revert, install and rebuild. A sign-in link's `unattended` token was not tried.
+
+### What a poll costs
+
+The Brain charges nothing for it: `issue.sync` answered with no `x-brain-price` header (6 calls), no price is set
+for an `issue.*` method, and `quota.get` read `spent: 0.4075` after the run against about 0.406 before the build. For Cloudflare it is one request to the kernel, which calls the
+core, the service and `brain-db` over bindings; the service makes two `db.sql` calls on a poll with nothing new. A tab
+left open and visible for a day at 5 s makes 17,280 polls. At Workers Paid's $0.30 a million requests past the 10
+million a month included, that is $0.0052 a day if nothing were included. CPU time and D1 rows read were not measured.
+A hidden tab does not poll.
+
+### What went wrong on the way
+
+- **The key was set and every write answered 503.** A Worker reads a stored secret only where the owner set a rule:
+  `secret.setRule { name: "ISSUES_SIGNING_KEY", allow: 'caller.worker == "brain-x-issues"' }`. Without it `secret.get`
+  answers 403 and the cell reads undefined.
+- **Two tokens were one actor.** The first deploy named an actor by `x-brain-holder`, and every token's holder is
+  `secret`. The implementer of one token could have been reviewed by itself under another name, and two different
+  tokens could not review each other. The actor is now `delegation:<id>`. Found by reading event 10 on cb4; redeployed,
+  the view made again with `issue.rebuild`.
+- **A caller who could not read a security issue could comment on it and triage it.** Read is now a precondition of
+  every act. The default `security` workflow's `read` was `caller.id == "owner" || …`, which every token passes (a token
+  calls as `owner`); it is now `caller.present || caller.actor == issue.opener`. Event 12 installs it on cb4.
+- **The default policy could have looped.** With the view's policy lost, the first deploy's append asked for the default
+  policy, was answered "duplicate key", and went round again. Found before it ran, from the coordinator's note.
+- The panel as first written never drew after its snapshot, and its selects were filled by replacing `<option>`s under
+  `Inputs.select`. Both found by the advisor's read before a test ran; a select is now made again when its choices change.
+
+### Not done
+
+- **The panel is in the notebook, not on cb4's page.** `brain-x-page` was not redeployed.
+- A page was not driven in a browser against cb4. The panel's test runs it against the simulated service.
+- Licences, the topic `work` and claims, encrypted bodies, a push channel, filing by members, a key change as an event,
+  `readers` named on a security issue, `assignee`.
+- `issue.install` with `migrate` appends one event an issue, two `db.sql` calls each: a migration of some hundreds of
+  issues may pass a Worker's limit of calls. Not tried past zero issues on cb4 and one in the test.
+- `issue.sync` reads every issue on a poll that brings events, and `issue.list` and `issue.snapshot` always do.
+- `issue.rebuild` clears the view and writes it in batches of 300 rows; a write between two batches is not in the view
+  until the next rebuild.
+- `issue.verify?guards=true` reads the whole record in one call.
+- A guard cannot be dry-run: nothing lists the issues a new policy would strand before it is installed.
+- The last events of the record removed, or a whole record rewritten with the key, is not shown by anything.
+
+### After step 3's fresh review (2026-10-10)
+
+FIX, eight findings, read against the source and held.
+
+- **A fifth difference from the design, now removed.** The core said `holder: "secret"`. The shared `callerOf` reads the name after `secret:` into `caller.token`, and the design says `secret:NAME`, so a rule of `caller.token == "laptop"` matched a token made before and not one made after. The core sends `secret:NAME`; a test puts that rule and calls.
+- **A core that did not answer made every new token "unknown token".** The kernel now tells no answer from no row, and refuses the first with 503. A new token with `deploy` still cannot reach `infra.*` while the core is down, which a `token/` row could: said in the kernel's reference. Not changed: the kernel keeping the scope and caps itself would be the row the design took away.
+- `delegation.resolve` read `holder/secret/<hash>` through `settings`, which keeps an entry for each key asked and never drops one, and anyone can send a bearer. It reads the row with no memory: one D1 read for each call with a token or with a bearer that is nothing.
+- `token.link` refused a name that a member's delegation had, and for a Worker-held delegation of the owner said `token.revoke` ends it, which it does not. It looks at the owner's only, and names `delegation.revoke`.
+- A used link whose name was taken answered 502. It answers 409, and 502 only when the core gave no answer.
+- Prose: the docs table's exception for `unattended`; the limits `token.create` now has; a log comment; `until` ends a token at the same instant in the kernel and the core.
+
+Left: no test joins the kernel to the real core (the kernel's rig answers `delegation.*` from a stand-in that checks the name only). If the core makes a row and its answer is lost, the link is put back and the name is taken by a delegation whose secret nobody has, until `token.revoke`.
+

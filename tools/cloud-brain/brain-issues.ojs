@@ -1,0 +1,1140 @@
+md`# brain-issues
+
+Issues of a Cloud Brain: work, bugs, feedback and security reports about the Brain and its services.
+
+Two things are kept apart. The **record** is every event in one order, each naming the hash of the one before it and signed. The **view** is what is true now, made from the record by one function (\`issueApply\`) and made again at will (\`issue.rebuild\`).
+
+The tracker's code is the mechanism: the chain, and the rule that an act goes ahead only when its installed guard is true. Which states an issue has, who may move it and what a move needs are a **policy**: data, installed by an event of the same record. Built 2026-10-10; the design and what it leaves out are in \`plan/cloud-brain-issues.md\`.`
+// %%
+viewof issuesView = issuesPanel({ client, owner: !!(session && session.owner), invalidation })
+// %%
+md`## Methods
+
+| | |
+|---|---|
+| Worker | \`brain-x-issues\` |
+| \`issue.open\` | procedure. \`{ key, title, body, kind, about, parent, labels, id }\`. \`kind\` is one the policy names (${Object.keys(issuesDefaultPolicy.kinds).map((k) => "\`" + k + "\`").join(", ")} in the default). \`about\` is \`brain\` or a Worker's name. \`id\` may be made by the caller (\`a-z 0-9 -\`, 40 at most, not \`i<number>\`); left out it is \`i<seq>\`. A subtask is an issue with a \`parent\`. |
+| \`issue.comment\` | procedure. \`{ key, id, body }\` |
+| \`issue.label\` | procedure. \`{ key, id, add, remove }\`, lists of names |
+| \`issue.review\` | procedure. \`{ key, id, verdict, body, refs }\`. \`verdict\`: ${issuesLimits.verdicts.map((k) => "\`" + k + "\`").join(", ")} |
+| \`issue.move\` | procedure. \`{ key, id, to, reason, refs }\`. \`to\` is a state. Approval and revert are moves. |
+| \`issue.swap\` | procedure. \`{ key, id, swap, reason }\`: a swap the issue's workflow lists. \`{ key, id, workflow, state, reason }\`: any other, the owner present. |
+| \`issue.narrow\` | procedure. \`{ key, id, move, guard, reason }\` adds a guard to one move of one issue. \`{ key, id, remove, reason }\` removes guard number \`remove\`, the owner present. |
+| \`issue.install\` | procedure, the owner present. \`{ key, policy, migrate }\`. \`migrate\`: \`{ HASH: { workflow, states: { old: new } } }\` moves the open issues of workflow \`HASH\`, each with its own event. \`{ seq, hashes, moved }\` |
+| \`issue.policy\` | query. \`{ policy, workflows }\` in force; \`?hash=\` one workflow, an older one too. |
+| \`issue.snapshot\` | query. \`{ seq, head, policy, workflows, issues }\`: the whole view at \`seq\`. The \`body\` of a closed issue is left out. |
+| \`issue.sync\` | query. \`?after=<seq>&limit=200\`. \`{ seq, wait, events }\`: the events after \`after\`, and the milliseconds the page waits before it asks again. |
+| Settings | \`syncMs\` (5000): what \`issue.sync\` and \`issue.snapshot\` answer as \`wait\`. Changed with \`config.set\` on the core, no deploy. |
+| \`issue.get\` | query. \`?id=\`. \`{ issue, children, events }\` |
+| \`issue.list\` | query. \`?state=&kind=&about=&parent=&label=&limit=100\`. \`{ issues }\`, last changed first. |
+| \`issue.verify\` | query. \`?after=<seq>\`. Checks \`seq\`, \`prev\`, \`hash\` and \`sig\` of each event after \`after\`. \`{ ok, seq, head, checked }\`, or \`{ ok: false, seq, why }\` at the first that fails. With \`guards=true\` it starts at 1 and also judges each event against the workflow in force when it was written. |
+| \`issue.key\` | query, anyone. \`{ alg: "Ed25519", key }\`: the public key, a JWK. |
+| \`issue.rebuild\` | procedure, the owner present. Makes the view again from the record. \`{ seq, issues }\` |
+| Storage | \`sql\`: \`issues_events\` (the record), \`issues_view\`, \`issues_meta\` (the policy and every workflow by hash) |
+| Secret | \`ISSUES_SIGNING_KEY\`: an Ed25519 private key as a JWK. Without it a write answers 503. |
+
+Every write takes a \`key\`. A key is kept once: a second write with it answers the first event and \`duplicate: true\`. A write answers \`{ id, seq, event }\`. A refused act answers 403 \`Refused\` with the guard that refused it.
+
+**Who can call**: the owner, a token and a Worker of the Brain. A member cannot yet (\`plan/cloud-brain-authority.md\` decides that).
+
+## An event
+
+\`\`\`
+seq, key        its place in the record, and the caller's key
+id, type        the issue; opened commented labelled reviewed moved swapped narrowed policy
+workflow        the hash of the workflow the act was judged under
+…               the act's own fields (title, body, to, reason, refs, verdict, …)
+by, origin      { caller, via, holder, tab } as the core named them on this call, and the same for who started the chain
+ray, at         the call's ray in Workers Logs, and the time in ms
+prev            the hash of the event before it
+hash            SHA-256 of the JSON of every field above, keys sorted, no whitespace
+sig             Ed25519 signature of hash
+\`\`\`
+
+A changed or removed event breaks \`prev\` of each one after it. What the chain does not show: the last events removed, or a whole new record written by whoever holds the key and the database. Nothing outside the Brain holds the head (Tom, 2026-10-10: a signed chain only).`
+// %%
+md`## A policy
+
+\`\`\`js
+{ kinds: { bug: "task", security: "security" },
+  workflows: { task: {
+    states: ["open", "done"], start: "open", closed: ["done"],
+    read: "true", open: "true", comment: "true", label: GUARD, review: GUARD, narrow: GUARD,
+    moves: [{ name: "finish", from: "open", to: "done", guard: GUARD }],     // from: a state, a list, or "*"
+    swaps: [{ name: "escalate", to: { workflow: "security", state: "open" }, guard: GUARD }] } } }
+\`\`\`
+
+A guard is one CEL expression (*Access rules* in \`@tomlarkworthy/cloudflare-iac\`). It is true or the act is refused; an error refuses. A guard that does not parse refuses the install. A workflow is named in an event by the SHA-256 of its JSON, so an issue stays on the workflow it was opened under until a swap moves it.
+
+| a guard reads | |
+|---|---|
+| \`caller.id\`, \`caller.kind\`, \`caller.via\`, \`caller.holder\`, \`caller.delegation\` | as a method's rule does |
+| \`caller.actor\` | \`delegation:<id>\` for a call under a delegation (a token is one), or else \`caller.id\`. Two delegations of the owner are two actors. |
+| \`caller.present\` | the owner, via \`session\`, in their own tab |
+| \`issue.id\`, \`.kind\`, \`.about\`, \`.state\`, \`.labels\`, \`.parent\`, \`.opener\` | \`opener\` is an actor |
+| \`issue.major\` | the issue has the label \`major\` |
+| \`issue.by\` | a map: the name of a move → the actor who last made it. \`issue.by.start\` is the implementer in the default workflow. A move not made yet is an error, so the guard refuses. |
+| \`issue.reviews\` | \`[{ actor, verdict }]\` since the issue came into its state |
+| \`issue.children.total\`, \`.open\` | issues whose \`parent\` this is, and those not in a closed state |
+| \`event.to\`, \`.reason\`, \`.refs\`, \`.refKinds\`, \`.verdict\`, \`.add\`, \`.remove\` | the act asked for |
+
+Every fact is in the record, so \`issue.verify?guards=true\` can judge every event again.
+
+**Fixed in the code**, whatever the policy says: a caller the \`read\` guard refuses does nothing to the issue and is answered 404; installing a policy, a swap the workflow does not list, removing a guard of an issue and \`issue.rebuild\` need the owner present. The first write into an empty record installs \`issuesDefaultPolicy\` as event 1, by this Worker. That is the one policy written without the owner, and it cannot be written again: a record with events and no policy in its view answers 503 \`ViewLost\` until \`issue.rebuild\`.
+
+**Present is not exact yet.** A sign-in link's token made with \`unattended\` reaches a service as \`owner\` via \`session\` (\`plan/cloud-brain-authority.md\`, read 2026-10-10). Until that token has its own via, it passes \`caller.present\` unless the core sends \`x-brain-tab: 0\` for it.
+
+## The default policy
+
+| workflow | kinds | |
+|---|---|---|
+| \`task\` | \`bug\`, \`task\` | ${issuesDefaultPolicy.workflows.task.states.join(" → ")}. Listed swap \`escalate\` to \`security\` at \`triaged\`, for whoever may triage, when the issue has the label \`security\`. |
+| \`security\` | \`security\` | as \`task\`, every issue needs approval, read by the owner present and its opener, no swap out |
+| \`feedback\` | \`feedback\` | open → closed. Listed swap \`promote\` to \`task\`. |
+
+Who may triage, label and narrow: the owner or a token. A reviewer and whoever passes the issue is not the implementer. \`approve\`, \`revert\` and a reject from any state are the owner present. The guards are the cell \`issuesDefaultPolicy\`.`
+// %%
+issues_service = cloudflare.Service("issues", issuesApp, {
+  methods: Object.fromEntries(
+    [["open", "procedure"], ["comment", "procedure"], ["label", "procedure"], ["review", "procedure"], ["move", "procedure"], ["swap", "procedure"], ["narrow", "procedure"], ["install", "procedure"], ["rebuild", "procedure"], ["policy", "query"], ["snapshot", "query"], ["sync", "query"], ["get", "query"], ["list", "query"], ["verify", "query"], ["key", "query"]].map(([name, type]) => [
+      "com.lopecode.brain.issue." + name,
+      // The owner, a token and a Worker of the Brain. A member's Worker calls as its author's DID and is not let in.
+      name === "key" ? { type, who: "anyone" } : { type, allow: 'caller.kind in ["owner", "token", "worker"]' }
+    ])
+  )
+})
+// %%
+issues_announce = {
+  plugins.add("workers", issues_service, { invalidation });
+  return "announced issues_service";
+}
+// %%
+issuesLimits = ({ body: 20000, title: 300, reason: 2000, key: 100, refs: 20, labels: 20, policy: 100000, page: 500, verdicts: ["pass", "changes", "block"] })
+// %%
+// The guards of a Brain that has installed no policy. Written 2026-10-10 from the state table of plan/cloud-brain-issues.md.
+issuesDefaultPolicy = {
+  const triage = 'caller.kind in ["owner", "token"]';
+  const other = "caller.actor != issue.by.start";
+  const passed = `issue.reviews.exists(r, r.verdict == "pass" && r.actor != issue.by.start) && ${other}`;
+  const acts = { read: "true", open: "true", comment: "true", label: triage, review: `issue.state == "in-review" && ${other}`, narrow: triage };
+  const states = ["open", "triaged", "ready", "in-progress", "in-review", "awaiting-approval", "done", "rejected", "reverted"];
+  const moves = (always) => [
+    { name: "triage", from: "open", to: "triaged", guard: `${triage} && event.reason != ""` },
+    { name: "reject", from: ["open", "triaged"], to: "rejected", guard: `${triage} && event.reason != ""` },
+    { name: "ready", from: "triaged", to: "ready", guard: `${triage} && issue.children.open == 0` },
+    { name: "start", from: "ready", to: "in-progress", guard: "true" },
+    { name: "submit", from: "in-progress", to: "in-review", guard: "caller.actor == issue.by.start && size(event.refs) > 0 && issue.children.open == 0" },
+    ...(always ? [] : [{ name: "pass", from: "in-review", to: "done", guard: `!issue.major && ${passed}` }]),
+    { name: "to-approval", from: "in-review", to: "awaiting-approval", guard: always ? passed : `issue.major && ${passed}` },
+    { name: "rework", from: "in-review", to: "in-progress", guard: `issue.reviews.exists(r, r.verdict in ["changes", "block"]) && ${other}` },
+    { name: "approve", from: "awaiting-approval", to: "done", guard: "caller.present" },
+    { name: "revert", from: "done", to: "reverted", guard: 'caller.present && event.reason != "" && size(event.refs) > 0' },
+    { name: "owner-reject", from: "*", to: "rejected", guard: 'caller.present && event.reason != ""' }
+  ];
+  const closed = ["done", "rejected", "reverted"];
+  return {
+    kinds: { bug: "task", task: "task", feedback: "feedback", security: "security" },
+    workflows: {
+      task: { states, start: "open", closed, ...acts, moves: moves(false), swaps: [{ name: "escalate", to: { workflow: "security", state: "triaged" }, guard: `${triage} && "security" in issue.labels` }] },
+      security: { states, start: "open", closed, ...acts, read: "caller.present || caller.actor == issue.opener", moves: moves(true), swaps: [] },
+      feedback: { states: ["open", "closed"], start: "open", closed: ["closed"], ...acts, moves: [{ name: "close", from: "open", to: "closed", guard: triage }], swaps: [{ name: "promote", to: { workflow: "task", state: "open" }, guard: triage }] }
+    }
+  };
+}
+// %%
+issuesSchema = [
+  "CREATE TABLE IF NOT EXISTS issues_events (seq INTEGER PRIMARY KEY, key TEXT NOT NULL, id TEXT, type TEXT NOT NULL, at INTEGER NOT NULL, hash TEXT NOT NULL, event TEXT NOT NULL)",
+  "CREATE UNIQUE INDEX IF NOT EXISTS issues_events_key ON issues_events (key)",
+  "CREATE INDEX IF NOT EXISTS issues_events_id ON issues_events (id, seq)",
+  "CREATE TABLE IF NOT EXISTS issues_view (id TEXT NOT NULL, state TEXT, kind TEXT, about TEXT, parent TEXT, workflow TEXT, closed INTEGER, updated INTEGER, issue TEXT NOT NULL, PRIMARY KEY (id)) WITHOUT ROWID",
+  "CREATE INDEX IF NOT EXISTS issues_view_parent ON issues_view (parent)",
+  "CREATE TABLE IF NOT EXISTS issues_meta (k TEXT NOT NULL, v TEXT NOT NULL, PRIMARY KEY (k)) WITHOUT ROWID"
+]
+// %%
+issuesSql = ({
+  head: "SELECT seq, hash FROM issues_events ORDER BY seq DESC LIMIT 1",
+  byKey: "SELECT event FROM issues_events WHERE key = ?1",
+  insert: "INSERT INTO issues_events (seq, key, id, type, at, hash, event) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+  after: "SELECT event FROM issues_events WHERE seq > ?1 ORDER BY seq LIMIT ?2",
+  of: "SELECT event FROM issues_events WHERE id = ?1 ORDER BY seq",
+  one: "SELECT event FROM issues_events WHERE seq = ?1",
+  meta: "SELECT k, v FROM issues_meta",
+  putMeta: "REPLACE INTO issues_meta (k, v) VALUES (?1, ?2)",
+  // The issue, its children, and a second id (the parent of an issue being opened).
+  near: "SELECT issue FROM issues_view WHERE id = ?1 OR parent = ?1 OR id = ?2",
+  all: "SELECT issue FROM issues_view",
+  putIssue: "REPLACE INTO issues_view (id, state, kind, about, parent, workflow, closed, updated, issue) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+  onWorkflow: "SELECT issue FROM issues_view WHERE workflow = ?1 AND closed = 0",
+  clearView: "DELETE FROM issues_view",
+  clearMeta: "DELETE FROM issues_meta"
+})
+// %%
+// JSON with keys sorted and no whitespace: what an event's hash and a workflow's hash are taken of.
+issueCanon = {
+  const canon = (v) =>
+    v === null || typeof v !== "object"
+      ? JSON.stringify(v ?? null)
+      : Array.isArray(v)
+        ? "[" + v.map(canon).join(",") + "]"
+        : "{" + Object.keys(v).filter((k) => v[k] !== undefined).sort().map((k) => JSON.stringify(k) + ":" + canon(v[k])).join(",") + "}";
+  return canon;
+}
+// %%
+// An Ed25519 key from its JWK as text. With the private part (d) it signs; the public part alone checks.
+issueKeys = async (text) => {
+  const jwk = typeof text === "string" ? JSON.parse(text) : text, pub = { kty: jwk.kty, crv: jwk.crv, x: jwk.x };
+  const b64 = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const un = (s) => Uint8Array.from(atob(String(s).replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+  const enc = (s) => new TextEncoder().encode(s);
+  const priv = jwk.d ? await crypto.subtle.importKey("jwk", { ...pub, d: jwk.d }, { name: "Ed25519" }, false, ["sign"]) : null;
+  const key = await crypto.subtle.importKey("jwk", pub, { name: "Ed25519" }, false, ["verify"]);
+  return {
+    public: pub,
+    sign: async (hash) => b64(await crypto.subtle.sign("Ed25519", priv, enc(hash))),
+    verify: async (hash, sig) => crypto.subtle.verify("Ed25519", key, un(sig), enc(hash)).catch(() => false)
+  };
+}
+// %%
+issueView = () => ({ seq: 0, head: "", policy: null, workflows: {}, issues: {} })
+// %%
+// Who acted, as one name: the delegation a call was under, or else the caller. The holder is not it: on cb4 on
+// 2026-10-10 every token's call arrived with the holder "secret", so two tokens would have been one actor.
+issueActor = (by) => (by && /^delegation:/.test(by.via || "") ? by.via : (by && by.caller) || "anonymous")
+// %%
+// What a guard reads about who acts, from an event's `by`.
+issueCaller = (by) => {
+  const c = callerOf(by);
+  return { id: c.id, kind: c.kind, via: (by && by.via) || "", holder: c.holder, delegation: c.delegation, actor: issueActor(by), present: c.id === "owner" && !!by && by.via === "session" && by.tab !== false };
+}
+// %%
+// The view after one more event. No I/O: the service, issue.rebuild, issue.verify and the page all make the view with it.
+issueApply = (view, e) => {
+  view.seq = e.seq;
+  view.head = e.hash;
+  if (e.type === "policy") {
+    view.policy = { seq: e.seq, kinds: e.policy.kinds, names: e.hashes };
+    for (const [name, hash] of Object.entries(e.hashes)) view.workflows[hash] = e.policy.workflows[name];
+    return view;
+  }
+  const actor = issueActor(e.by);
+  const closed = (i) => (((view.workflows[i.workflow] || {}).closed || []).includes(i.state));
+  if (e.type === "opened") {
+    const i = { id: e.id, title: e.title, body: e.body, kind: e.kind, about: e.about, parent: e.parent || null, labels: e.labels || [], state: e.state, workflow: e.workflow, opener: actor, by: {}, reviews: [], extra: [], closed: false, comments: 0, opened_at: e.at, updated_at: e.at, seq: e.seq };
+    view.issues[e.id] = { ...i, closed: closed(i) };
+    return view;
+  }
+  const i = view.issues[e.id];
+  if (!i || i.hidden) return view;
+  i.updated_at = e.at;
+  i.seq = e.seq;
+  if (e.type === "commented") i.comments++;
+  if (e.type === "labelled") i.labels = [...new Set([...i.labels.filter((l) => !(e.remove || []).includes(l)), ...(e.add || [])])];
+  if (e.type === "reviewed") i.reviews.push({ actor, verdict: e.verdict });
+  if (e.type === "moved") Object.assign(i, { state: e.to, by: { ...i.by, [e.move]: actor }, reviews: [] });
+  if (e.type === "swapped") Object.assign(i, { workflow: e.to.workflow, state: e.to.state, reviews: [] });
+  if (e.type === "narrowed") i.extra = e.remove != null ? i.extra.filter((x) => x.n !== e.remove) : [...i.extra, { n: e.seq, move: e.move, guard: e.guard }];
+  i.closed = closed(i);
+  return view;
+}
+// %%
+// May this caller do this act, by the policy in the view? { allow, why }, and for a move or a swap which one.
+// act: { type: open | comment | label | review | move | swap | narrow | read | policy, id, … }.
+issueAllowed = (view, by, act) => {
+  const caller = issueCaller(by), no = (why, missing) => ({ allow: false, why, ...(missing ? { missing: true } : {}) });
+  const present = () => (caller.present ? { allow: true } : no("the owner, present"));
+  // The first policy of a Brain is the default one, written by the Worker itself.
+  if (act.type === "policy") return !view.seq && !view.policy && caller.id === "worker:brain-x-issues" ? { allow: true } : present();
+  if (!view.policy) return no("no policy is installed");
+  const facts = (i) => {
+    const kids = Object.values(view.issues).filter((k) => k.parent === i.id);
+    return { id: i.id, kind: i.kind, about: i.about, state: i.state, labels: i.labels, parent: i.parent || "", opener: i.opener, major: i.labels.includes("major"), by: i.by, reviews: i.reviews, children: { total: kids.length, open: kids.filter((k) => !k.closed).length } };
+  };
+  const refs = act.refs || [];
+  const event = { type: act.type, to: typeof act.to === "string" ? act.to : "", reason: act.reason || "", refs, refKinds: refs.map((r) => r.kind), verdict: act.verdict || "", add: act.add || [], remove: Array.isArray(act.remove) ? act.remove : [] };
+  const test = (guard, issue) => typeof guard === "string" && decide({ allow: guard }, { caller, issue, event }).allow;
+  if (act.type === "open") {
+    const hash = view.policy.names[view.policy.kinds[act.kind]], wf = view.workflows[hash];
+    if (!wf) return no("no workflow for the kind " + act.kind);
+    if (view.issues[act.id]) return no("an issue has this id");
+    if (act.parent && !view.issues[act.parent]) return no("no such parent", true);
+    const issue = facts({ id: act.id, kind: act.kind, about: act.about, state: wf.start, labels: act.labels || [], parent: act.parent, opener: caller.actor, by: {}, reviews: [] });
+    return test(wf.open, issue) ? { allow: true, workflow: hash, state: wf.start } : no("the workflow's open guard refuses");
+  }
+  const i = view.issues[act.id];
+  if (!i || i.hidden) return no("no such issue", true);
+  const wf = view.workflows[i.workflow];
+  if (!wf) return no("the issue's workflow is not kept");
+  const issue = facts(i);
+  // Fixed: whoever may not read an issue does nothing to it, and is told no more than that it is not there.
+  if (act.type !== "read" && !test(wf.read, issue)) return no("no such issue", true);
+  if (act.type === "move") {
+    const from = wf.moves.filter((m) => m.to === act.to && (m.from === "*" || [].concat(m.from).includes(i.state)));
+    if (!from.length) return no(`no move from ${i.state} to ${act.to}`);
+    const m = from.find((m) => test(m.guard, issue));
+    if (!m) return no(`the guard of ${from.map((m) => m.name).join(", ")} refuses`);
+    const extra = i.extra.find((x) => x.move === m.name && !test(x.guard, issue));
+    return extra ? no(`this issue's guard ${extra.n} on ${m.name} refuses`) : { allow: true, name: m.name };
+  }
+  if (act.type === "swap") {
+    if (act.swap) {
+      const s = wf.swaps.find((s) => s.name === act.swap);
+      if (!s) return no("the workflow lists no swap " + act.swap);
+      const to = { workflow: view.policy.names[s.to.workflow], state: s.to.state };
+      return view.workflows[to.workflow] && test(s.guard, issue) ? { allow: true, name: s.name, to } : no(`the guard of ${s.name} refuses`);
+    }
+    const hash = view.policy.names[act.workflow] || act.workflow, target = view.workflows[hash];
+    if (!target || !target.states.includes(act.state)) return no("no such workflow or state");
+    return caller.present ? { allow: true, name: null, to: { workflow: hash, state: act.state } } : no("a swap the workflow does not list needs the owner, present");
+  }
+  if (act.type === "narrow" && act.remove != null) return i.extra.some((x) => x.n === act.remove) ? present() : no("no such guard", true);
+  if (act.type === "narrow" && !wf.moves.some((m) => m.name === act.move)) return no("the workflow has no move " + act.move);
+  return test(wf[act.type], issue) ? { allow: true } : no(`the workflow's ${act.type} guard refuses`);
+}
+// %%
+// An allowed act as the fields of its event. The service adds seq, key, by, origin, ray, at, prev, hash and sig.
+issueEvent = (view, act, verdict) => {
+  const i = view.issues[act.id], base = { id: act.id, workflow: i ? i.workflow : verdict.workflow };
+  const reason = act.reason || "", refs = act.refs || [];
+  if (act.type === "policy") return { type: "policy", policy: act.policy, hashes: act.hashes };
+  if (act.type === "open") return { type: "opened", ...base, title: act.title, body: act.body || "", kind: act.kind, about: act.about, parent: act.parent || null, labels: act.labels || [], state: verdict.state };
+  if (act.type === "comment") return { type: "commented", ...base, body: act.body };
+  if (act.type === "label") return { type: "labelled", ...base, add: act.add || [], remove: act.remove || [] };
+  if (act.type === "review") return { type: "reviewed", ...base, verdict: act.verdict, body: act.body || "", refs };
+  if (act.type === "move") return { type: "moved", ...base, move: verdict.name, from: i.state, to: act.to, reason, refs };
+  if (act.type === "swap") return { type: "swapped", ...base, swap: verdict.name, from: { workflow: i.workflow, state: i.state }, to: verdict.to, reason, ...(act.policy ? { policy: act.policy } : {}) };
+  return act.remove != null ? { type: "narrowed", ...base, remove: act.remove, reason } : { type: "narrowed", ...base, move: act.move, guard: act.guard, reason };
+}
+// %%
+// Should this event have been refused, by the view before it? null, or why. What issue.verify?guards=true asks of each event.
+issueReplay = (view, e) => {
+  const type = { opened: "open", commented: "comment", labelled: "label", reviewed: "review", moved: "move", swapped: "swap", narrowed: "narrow", policy: "policy" }[e.type];
+  if (!type) return "no such type of event";
+  const act = { ...e, type, ...(e.type === "swapped" ? { workflow: e.to.workflow, state: e.to.state } : {}) };
+  const i = view.issues[e.id];
+  if (i && e.workflow !== i.workflow) return "judged under a workflow the issue was not on";
+  const v = issueAllowed(view, e.by, act);
+  if (!v.allow) return v.why;
+  if (e.type === "opened" && (e.workflow !== v.workflow || e.state !== v.state)) return "opened in another workflow or state than its kind's";
+  if (e.type === "moved" && (e.move !== v.name || e.from !== i.state)) return "names another move than the one allowed";
+  if (e.type === "swapped" && (e.to.workflow !== v.to.workflow || e.to.state !== v.to.state)) return "lands elsewhere than the swap says";
+  return null;
+}
+// %%
+// One event against the one before it: its seq, prev, hash and signature. null, or which is wrong.
+issueCheck = async (e, prev, seq, keys) => {
+  const { hash, sig, ...rest } = e;
+  if (e.seq !== seq) return "seq";
+  if (e.prev !== prev) return "prev";
+  if (hash !== (await sha256(issueCanon(rest)))) return "hash";
+  return (await keys.verify(hash, sig)) ? null : "sig";
+}
+// %%
+// A policy checked, as the act that installs it: every guard parses, every state and workflow named is there.
+issuePolicyAct = async (policy) => {
+  const bad = (m) => {
+    throw Object.assign(new Error(m), { status: 400, code: "InvalidPolicy" });
+  };
+  const name = /^[a-z0-9][a-z0-9-]{0,39}$/, list = (v) => Array.isArray(v) && v.every((s) => typeof s === "string" && name.test(s));
+  if (!policy || typeof policy !== "object" || !policy.workflows || typeof policy.workflows !== "object" || !policy.kinds || typeof policy.kinds !== "object") bad("policy: { workflows, kinds }");
+  if (JSON.stringify(policy).length > issuesLimits.policy) bad(`policy: ${issuesLimits.policy} characters at most`);
+  const names = Object.keys(policy.workflows);
+  if (!names.length || names.length > 20 || !names.every((n) => name.test(n))) bad("workflows: 1 to 20, named a-z 0-9 -");
+  for (const n of names) {
+    const w = policy.workflows[n], at = `workflow ${n}: `;
+    if (!w || !list(w.states) || !w.states.length) bad(at + "states");
+    if (!w.states.includes(w.start)) bad(at + "start is not one of its states");
+    if (!list(w.closed) || !w.closed.every((s) => w.states.includes(s))) bad(at + "closed: a list of its states");
+    if (!Array.isArray(w.moves) || !Array.isArray(w.swaps)) bad(at + "moves and swaps are lists");
+    const guard = (label, g) => {
+      if (typeof g !== "string" || !g || g.length > 2000) bad(at + label + " needs a guard");
+      try {
+        checkedRule(at + label, g);
+      } catch (e) {
+        bad(e.message);
+      }
+    };
+    for (const a of ["read", "open", "comment", "label", "review", "narrow"]) guard(a, w[a]);
+    for (const m of w.moves) {
+      if (!m || !name.test(m.name || "")) bad(at + "a move needs a name");
+      if (!(m.from === "*" || [].concat(m.from).every((s) => w.states.includes(s))) || !w.states.includes(m.to)) bad(at + `the move ${m.name} names a state it does not have`);
+      guard("the move " + m.name, m.guard);
+    }
+    for (const s of w.swaps) {
+      if (!s || !name.test(s.name || "")) bad(at + "a swap needs a name");
+      const target = s.to && policy.workflows[s.to.workflow];
+      if (!target || !Array.isArray(target.states) || !target.states.includes(s.to.state)) bad(at + `the swap ${s.name} names a workflow or state that is not there`);
+      guard("the swap " + s.name, s.guard);
+    }
+  }
+  for (const [k, n] of Object.entries(policy.kinds)) if (!name.test(k) || !policy.workflows[n]) bad(`kinds: ${k} names no workflow`);
+  const hashes = {};
+  for (const n of names) hashes[n] = await sha256(issueCanon(policy.workflows[n]));
+  return { type: "policy", policy, hashes };
+}
+// %%
+// A request's body as an act, or a 400.
+issueAct = (type, b) => {
+  const L = issuesLimits;
+  const bad = (m) => {
+    throw Object.assign(new Error(m), { status: 400, code: "InvalidRequest" });
+  };
+  const text = (v, max, label, need) => {
+    if (v == null || v === "") return need ? bad(label) : "";
+    if (typeof v !== "string" || v.length > max) bad(`${label}: text, ${max} characters at most`);
+    return v;
+  };
+  const name = (v, label, need) => {
+    const s = text(v, 60, label, need);
+    if (s && !/^[a-z0-9][a-z0-9-]*$/.test(s)) bad(label + ": a-z 0-9 -");
+    return s;
+  };
+  const names = (v, label) => {
+    if (v == null) return [];
+    if (!Array.isArray(v) || v.length > L.labels) bad(label);
+    return [...new Set(v.map((x) => name(x, label, true)))];
+  };
+  const refs = (v) => {
+    if (v == null) return [];
+    if (!Array.isArray(v) || v.length > L.refs) bad("refs");
+    return v.map((r) => ({ kind: name(r && r.kind, "refs.kind", true), value: text(r && r.value, 500, "refs.value", true) }));
+  };
+  b = b && typeof b === "object" ? b : {};
+  const id = name(b.id, "id", type !== "open"), reason = text(b.reason, L.reason, "reason");
+  if (id.length > 40) bad("id: 40 characters at most");
+  if (type === "open") {
+    if (/^i\d+$/.test(id)) bad("id: i<number> is the service's to give");
+    return { type, ...(id ? { id } : {}), title: text(b.title, L.title, "title", true), body: text(b.body, L.body, "body"), kind: name(b.kind, "kind", true), about: name(b.about ?? "brain", "about", true), parent: name(b.parent, "parent") || null, labels: names(b.labels, "labels") };
+  }
+  if (type === "comment") return { type, id, body: text(b.body, L.body, "body", true) };
+  if (type === "label") {
+    const add = names(b.add, "add"), remove = names(b.remove, "remove");
+    return add.length + remove.length ? { type, id, add, remove } : bad("add or remove");
+  }
+  if (type === "review") return { type, id, verdict: L.verdicts.includes(b.verdict) ? b.verdict : bad("verdict: " + L.verdicts.join(", ")), body: text(b.body, L.body, "body"), refs: refs(b.refs) };
+  if (type === "move") return { type, id, to: name(b.to, "to", true), reason, refs: refs(b.refs) };
+  if (type === "swap") return b.swap ? { type, id, swap: name(b.swap, "swap", true), reason } : { type, id, workflow: text(b.workflow, 64, "workflow", true), state: name(b.state, "state", true), reason };
+  if (b.remove != null) return Number.isInteger(b.remove) ? { type, id, remove: b.remove, reason } : bad("remove: the number of a guard");
+  const guard = text(b.guard, 2000, "guard", true);
+  try {
+    checkedRule("guard", guard);
+  } catch (e) {
+    bad(e.message);
+  }
+  return { type, id, move: name(b.move, "move", true), guard, reason };
+}
+// %%
+issuesApp = {
+  const app = new hono.Hono();
+  const NS = "/xrpc/com.lopecode.brain.issue.", S = issuesSql, L = issuesLimits, J = JSON.parse;
+  const refuse = (status, code, message) => Object.assign(new Error(message), { status, code });
+  let made = null, keys = null;
+  const schema = () =>
+    (made ||= (async () => {
+      for (const s of issuesSchema) await sql.exec(s);
+    })().catch((e) => {
+      made = null;
+      throw e;
+    }));
+  const signer = async () => {
+    if (keys) return keys;
+    const text = await secrets.ISSUES_SIGNING_KEY;
+    if (!text) throw refuse(503, "NotConfigured", "the secret ISSUES_SIGNING_KEY is not set");
+    return (keys = await issueKeys(text));
+  };
+  // Who the core says is calling, and who started the chain: copied into the event, since a log line lasts 7 days.
+  // How long the page waits between polls: the setting syncMs, changed with config.set and no deploy.
+  const wait = () => Math.max(1000, Number(config.syncMs ?? 5000) || 5000);
+  const who = (c) => ({ by: callerFrom(c.req.raw.headers), origin: originFrom(c.req.raw.headers), ray: (c.req.header("x-brain-ray") || c.req.header("cf-ray") || "").slice(0, 64) });
+  // The head, the policy with every workflow, and some issues, read in one transaction.
+  const load = async (rows) => {
+    await schema();
+    const [head, meta, found] = await sql.batch([[S.head], [S.meta], rows]);
+    const view = { ...issueView(), ...(head.rows[0] ? { seq: head.rows[0].seq, head: head.rows[0].hash } : {}) };
+    for (const { k, v } of meta.rows) k === "policy" ? (view.policy = J(v)) : (view.workflows[k.slice(3)] = J(v));
+    for (const r of found.rows) view.issues[J(r.issue).id] = J(r.issue);
+    return view;
+  };
+  const metaRows = (view) => [[S.putMeta, "policy", JSON.stringify(view.policy)], ...Object.entries(view.workflows).map(([hash, w]) => [S.putMeta, "wf/" + hash, JSON.stringify(w)])];
+  const issueRow = (i) => [S.putIssue, i.id, i.state, i.kind, i.about, i.parent, i.workflow, i.closed ? 1 : 0, i.updated_at, JSON.stringify(i)];
+  // One event more. The insert is of seq = head + 1, the table's key: of two writers at one head one fails, reads the
+  // head again and writes after the other. The view's row is written in the same transaction.
+  const append = async (ctx, key, given) => {
+    if (typeof key !== "string" || !key || key.length > L.key) throw refuse(400, "InvalidRequest", `key: text, ${L.key} characters at most`);
+    const sign = await signer();
+    for (let attempt = 0; ; attempt++) {
+      const view = await load([S.near, given.id || "", given.parent || ""]);
+      const kept = (await sql.exec(S.byKey, key)).rows[0];
+      if (kept) return { event: J(kept.event), duplicate: true };
+      // The default policy is written only into an empty record. A record with no policy in its view has lost the view.
+      if (!view.policy && view.seq) throw refuse(503, "ViewLost", "the view has no policy: issue.rebuild makes it again from the record");
+      if (!view.policy && given.type !== "policy") {
+        await append({ by: { caller: "worker:brain-x-issues", via: "" }, origin: ctx.origin, ray: ctx.ray }, "policy/default", await issuePolicyAct(issuesDefaultPolicy));
+        continue;
+      }
+      const seq = view.seq + 1, act = given.type === "open" && !given.id ? { ...given, id: "i" + seq } : given;
+      const verdict = issueAllowed(view, ctx.by, act);
+      if (!verdict.allow) throw refuse(verdict.missing ? 404 : 403, verdict.missing ? "NotFound" : "Refused", verdict.why);
+      const e = { seq, key, ...issueEvent(view, act, verdict), by: ctx.by, origin: ctx.origin, ray: ctx.ray, at: Date.now(), prev: view.head };
+      e.hash = await sha256(issueCanon(e));
+      e.sig = await sign.sign(e.hash);
+      issueApply(view, e);
+      try {
+        await sql.batch([[S.insert, seq, key, e.id || null, e.type, e.at, e.hash, JSON.stringify(e)], ...(e.type === "policy" ? metaRows(view) : [issueRow(view.issues[e.id])])]);
+        return { event: e };
+      } catch (err) {
+        // Another writer took this seq, or this key: go round again. Anything else is an error.
+        const head = (await sql.exec(S.head)).rows[0];
+        if (attempt >= 5 || ((head ? head.seq : 0) < seq && !(await sql.exec(S.byKey, key)).rows[0])) throw err;
+      }
+    }
+  };
+  const run = (fn) => async (c) => {
+    try {
+      return c.json(await fn(c, c.req.method === "POST" ? await c.req.json().catch(() => ({})) : c.req.query()));
+    } catch (e) {
+      if (e && e.status) return c.json({ error: e.code, message: e.message }, e.status);
+      throw e;
+    }
+  };
+  for (const type of ["open", "comment", "label", "review", "move", "swap", "narrow"])
+    app.post(NS + type, run(async (c, b) => {
+      const r = await append(who(c), b && b.key, issueAct(type, b));
+      return { id: r.event.id, seq: r.event.seq, ...(r.duplicate ? { duplicate: true } : {}), event: r.event };
+    }));
+  app.post(NS + "install", run(async (c, b) => {
+    const ctx = who(c), act = await issuePolicyAct(b.policy);
+    const r = await append(ctx, b.key, act), moved = [];
+    for (const [old, to] of Object.entries(b.migrate && typeof b.migrate === "object" ? b.migrate : {}))
+      for (const row of (await sql.exec(S.onWorkflow, old)).rows) {
+        const i = J(row.issue);
+        await append(ctx, `${b.key}/${i.id}`.slice(0, L.key), { type: "swap", id: i.id, workflow: String((to && to.workflow) || ""), state: ((to && to.states) || {})[i.state] || i.state, reason: "policy " + r.event.seq, policy: r.event.seq });
+        moved.push(i.id);
+      }
+    return { seq: r.event.seq, hashes: r.event.hashes, moved, ...(r.duplicate ? { duplicate: true } : {}) };
+  }));
+  // What a caller is shown of an issue its workflow's read guard refuses.
+  const shown = (view, by, i) => (issueAllowed(view, by, { type: "read", id: i.id }).allow ? i : { id: i.id, kind: i.kind, state: i.state, closed: i.closed, parent: i.parent, hidden: true });
+  const current = (view) => (view.policy ? Object.fromEntries(Object.values(view.policy.names).map((h) => [h, view.workflows[h]])) : {});
+  app.get(NS + "snapshot", run(async (c) => {
+    const view = await load([S.all]), { by } = who(c);
+    return { seq: view.seq, head: view.head, wait: wait(), policy: view.policy, workflows: view.workflows, issues: Object.values(view.issues).map((i) => shown(view, by, i)).map((i) => (i.closed && !i.hidden ? { ...i, body: undefined, bodyLeftOut: true } : i)) };
+  }));
+  app.get(NS + "sync", run(async (c, q) => {
+    await schema();
+    const after = Math.max(0, Number(q.after) || 0), events = (await sql.exec(S.after, after, Math.min(L.page, Math.max(1, Number(q.limit) || 200)))).rows.map((r) => J(r.event));
+    const view = await load(events.length ? [S.all] : [S.near, "", ""]), { by } = who(c);
+    if (after > view.seq) return { seq: view.seq, wait: wait(), reset: true, events: [] };
+    const seen = (e) => e.type === "policy" || !view.issues[e.id] || !shown(view, by, view.issues[e.id]).hidden;
+    return { seq: view.seq, wait: wait(), events: events.map((e) => (seen(e) ? e : { seq: e.seq, id: e.id, type: e.type, at: e.at, hidden: true, issue: shown(view, by, view.issues[e.id]) })) };
+  }));
+  app.get(NS + "get", run(async (c, q) => {
+    const view = await load([S.near, String(q.id || ""), ""]), { by } = who(c), i = view.issues[q.id];
+    if (!i) throw refuse(404, "NotFound", "no such issue");
+    const issue = shown(view, by, i);
+    if (issue.hidden) return { issue, children: [], events: [] };
+    return { issue, children: Object.values(view.issues).filter((k) => k.parent === i.id).map((k) => shown(view, by, k)).map((k) => (k.hidden ? k : { id: k.id, title: k.title, kind: k.kind, state: k.state, closed: k.closed })), events: (await sql.exec(S.of, i.id)).rows.map((r) => J(r.event)) };
+  }));
+  app.get(NS + "list", run(async (c, q) => {
+    const view = await load([S.all]), { by } = who(c);
+    const pass = (i) => (!q.state || i.state === q.state) && (!q.kind || i.kind === q.kind) && (!q.about || i.about === q.about) && (!q.parent || i.parent === q.parent) && (!q.label || (i.labels || []).includes(q.label));
+    // What a caller may not read is matched by its state, kind and parent only: a label would say what it is.
+    return { issues: Object.values(view.issues).map((i) => shown(view, by, i)).filter(pass).sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0)).slice(0, Math.min(L.page, Math.max(1, Number(q.limit) || 100))).map((i) => (i.hidden ? i : { ...i, body: undefined })) };
+  }));
+  app.get(NS + "policy", run(async (c, q) => {
+    const view = await load([S.near, "", ""]);
+    if (q.hash) return view.workflows[q.hash] ? { hash: q.hash, workflow: view.workflows[q.hash] } : Promise.reject(refuse(404, "NotFound", "no such workflow"));
+    return { policy: view.policy, workflows: current(view) };
+  }));
+  app.get(NS + "key", run(async () => ({ alg: "Ed25519", key: (await signer()).public })));
+  // Every event in order, a page at a time.
+  const walk = async (after, each) => {
+    for (;;) {
+      const rows = (await sql.exec(S.after, after, L.page)).rows;
+      if (!rows.length) return;
+      for (const r of rows) {
+        const e = J(r.event), stop = await each(e);
+        if (stop) return stop;
+        after = e.seq;
+      }
+    }
+  };
+  app.get(NS + "verify", run(async (c, q) => {
+    await schema();
+    const sign = await signer(), guards = q.guards === "true", view = issueView();
+    let seq = guards ? 0 : Math.max(0, Number(q.after) || 0), prev = "", checked = 0;
+    if (seq) {
+      const at = (await sql.exec(S.one, seq)).rows[0];
+      if (!at) throw refuse(404, "NotFound", "no event " + seq);
+      prev = J(at.event).hash;
+    }
+    const bad = await walk(seq, async (e) => {
+      const chain = await issueCheck(e, prev, seq + 1, sign);
+      if (chain) return { ok: false, seq: seq + 1, why: chain, checked };
+      if (guards) {
+        const why = issueReplay(view, e) || (e.type === "policy" && issueCanon((await issuePolicyAct(e.policy).catch(() => ({}))).hashes) !== issueCanon(e.hashes) ? "the policy's hashes are not its workflows'" : null);
+        if (why) return { ok: false, seq: e.seq, why, checked };
+        issueApply(view, e);
+      }
+      prev = e.hash;
+      seq = e.seq;
+      checked++;
+    });
+    return bad || { ok: true, seq, head: prev, checked, guards };
+  }));
+  app.post(NS + "rebuild", run(async (c) => {
+    if (!issueCaller(who(c).by).present) throw refuse(403, "Refused", "the owner, present");
+    await schema();
+    const view = issueView();
+    await walk(0, async (e) => void issueApply(view, e));
+    const rows = [...(view.policy ? metaRows(view) : []), ...Object.values(view.issues).map(issueRow)];
+    await sql.batch([[S.clearView], [S.clearMeta], ...rows.slice(0, 300)]);
+    for (let at = 300; at < rows.length; at += 300) await sql.batch(rows.slice(at, at + 300));
+    return { seq: view.seq, issues: Object.keys(view.issues).length };
+  }));
+  return app;
+}
+// %%
+// The page's copy of the view between visits. A browser may refuse it; the panel then starts from a snapshot.
+issuesStore = (name = "brain_issues") => ({
+  get: () => {
+    try {
+      return JSON.parse(localStorage.getItem(name));
+    } catch (e) {
+      return null;
+    }
+  },
+  set: (view) => {
+    try {
+      localStorage.setItem(name, JSON.stringify(view));
+    } catch (e) {}
+  }
+})
+// %%
+// The issues, from a copy the page keeps: one snapshot, then the events after it every few seconds. A list and its
+// filters are answered from the copy. A write is applied to the copy before it is sent, and withdrawn if refused.
+issuesPanel = ({ client, owner = false, by = { caller: "owner", via: "session" }, invalidation, store = issuesStore(), every = null } = {}) => {
+  const muted = "color:var(--theme-foreground-muted)";
+  if (!client || !owner) return htl.html`<i style=${muted}>Sign in as the owner to see the issues.</i>`;
+  let base = store.get() || issueView(), pending = [], open = null, wait = 5000;
+  const detail = new Map();
+  const note = htl.html`<span style=${muted}></span>`, list = htl.html`<div></div>`, one = htl.html`<div></div>`;
+  const now = () => pending.reduce((v, e) => issueApply(v, e), structuredClone(base));
+  // A select whose choices come from the copy: made again when they change, keeping what was chosen.
+  const chooser = (label, onInput) => {
+    const slot = htl.html`<span></span>`;
+    let input = null, have = null;
+    const set = (values) => {
+      if (have === values.join("\n")) return;
+      const was = input ? input.value : values[0];
+      have = values.join("\n");
+      input = Inputs.select(values, { label, value: values.includes(was) ? was : values[0] });
+      if (onInput) input.addEventListener("input", onInput);
+      slot.replaceChildren(input);
+    };
+    return { slot, set, get value() { return input ? input.value : ""; } };
+  };
+  const state = chooser("State", () => draw()), kind = chooser("Kind", () => draw()), newKind = chooser("Kind"), find = Inputs.text({ label: "Find", placeholder: "title, about or label" });
+  const title = Inputs.text({ label: "Title" }), body = Inputs.textarea({ label: "Body", rows: 3 }), about = Inputs.text({ label: "About", value: "brain" }), parent = Inputs.text({ label: "Parent" });
+  const snapshot = async () => {
+    const s = await client.query("issue.snapshot");
+    wait = s.wait || wait;
+    base = { seq: s.seq, head: s.head, policy: s.policy, workflows: s.workflows, issues: Object.fromEntries(s.issues.map((i) => [i.id, i])) };
+  };
+  const sync = async () => {
+    const fresh = !base.policy;
+    if (fresh) await snapshot();
+    const r = await client.query("issue.sync", { after: base.seq, limit: 200 });
+    wait = r.wait || wait;
+    if (r.reset) await snapshot();
+    for (const e of r.events) if (e.seq > base.seq) e.hidden ? Object.assign(base, { seq: e.seq, issues: { ...base.issues, [e.id]: e.issue } }) : issueApply(base, e);
+    store.set(base);
+    if (fresh || r.reset || r.events.length) draw();
+    return r.events.length;
+  };
+  // act: what issueAllowed judges. sent: the body of the call.
+  const send = async (method, act, sent) => {
+    const key = crypto.randomUUID(), view = now(), verdict = issueAllowed(view, by, act);
+    const local = verdict.allow ? { ...issueEvent(view, act, verdict), seq: view.seq, hash: view.head, key, by, at: Date.now(), pending: true } : null;
+    note.textContent = "";
+    if (local) pending.push(local), draw();
+    try {
+      const r = await client.procedure("issue." + method, { ...sent, key });
+      pending = pending.filter((e) => e !== local);
+      if (r.event && r.event.seq === base.seq + 1) issueApply(base, r.event), store.set(base);
+      else await sync();
+      detail.delete(act.id);
+    } catch (e) {
+      pending = pending.filter((x) => x !== local);
+      note.textContent = `issue.${method} was refused: ${e.message}`;
+    }
+    draw();
+  };
+  const when = (ms) => new Date(ms).toLocaleString();
+  const said = (e) => (e.type === "moved" ? `${e.from} → ${e.to}${e.reason ? ": " + e.reason : ""}` : e.type === "swapped" ? `to ${e.to.state}${e.swap ? " by " + e.swap : ""}` : e.type === "reviewed" ? `${e.verdict}${e.body ? ": " + e.body : ""}` : e.type === "labelled" ? [...(e.add || []).map((l) => "+" + l), ...(e.remove || []).map((l) => "-" + l)].join(" ") : e.type === "narrowed" ? (e.remove != null ? "removed guard " + e.remove : `${e.move}: ${e.guard}`) : e.type === "opened" ? e.title : e.body || "");
+  const refsOf = (text) => text.split(",").map((s) => s.trim()).filter(Boolean).map((s) => ({ kind: s.includes(":") ? s.slice(0, s.indexOf(":")) : "url", value: s.includes(":") ? s.slice(s.indexOf(":") + 1) : s }));
+  // The open issue is drawn again only when it, its children or its timeline changed: what is being typed is kept.
+  let drawn = "";
+  const drawOne = () => {
+    const view = now(), i = open && view.issues[open];
+    const kids = i ? Object.values(view.issues).filter((k) => k.parent === i.id) : [];
+    const key = i ? [i.id, i.seq, i.state, i.hidden, (detail.get(i.id) || {}).seq, pending.filter((e) => e.id === i.id).length, ...kids.map((k) => k.id + k.state)].join("|") : "";
+    if (key === drawn) return;
+    drawn = key;
+    if (!i) return one.replaceChildren();
+    if (i.hidden) return one.replaceChildren(htl.html`<i style=${muted}>${i.id} is not shown to this caller.</i>`);
+    const wf = view.workflows[i.workflow] || { moves: [], swaps: [] }, got = detail.get(i.id);
+    if (!got || got.seq !== i.seq) client.query("issue.get", { id: i.id }).then((r) => (detail.set(i.id, { seq: (view.issues[i.id] || i).seq, ...r }), open === i.id && drawOne())).catch(() => null);
+    const events = [...((got && got.events) || []), ...pending.filter((e) => e.id === i.id)];
+    const reason = Inputs.text({ label: "Reason" }), refs = Inputs.text({ label: "Refs", placeholder: "commit:abc, deploy:brain-x-a@hash" }), comment = Inputs.textarea({ label: "Comment", rows: 2 }), label = Inputs.text({ label: "Label" });
+    const verdict = Inputs.select(issuesLimits.verdicts, { label: "Review" }), acts = htl.html`<div style="display:flex;gap:6px;flex-wrap:wrap"></div>`;
+    const buttons = () => {
+      const moves = [...new Set(wf.moves.filter((m) => m.from === "*" || [].concat(m.from).includes(i.state)).map((m) => m.to))].map((to) => ({ text: to, act: { type: "move", id: i.id, to, reason: reason.value, refs: refsOf(refs.value) }, call: ["move", { id: i.id, to, reason: reason.value, refs: refsOf(refs.value) }] }));
+      const swaps = wf.swaps.map((s) => ({ text: "swap: " + s.name, act: { type: "swap", id: i.id, swap: s.name, reason: reason.value }, call: ["swap", { id: i.id, swap: s.name, reason: reason.value }] }));
+      acts.replaceChildren(...[...moves, ...swaps].map((b) => {
+        const v = issueAllowed(now(), by, b.act);
+        return htl.html`<button disabled=${!v.allow} title=${v.allow ? "" : v.why} onclick=${() => send(b.call[0], b.act, b.call[1])}>${b.text}</button>`;
+      }));
+    };
+    reason.addEventListener("input", buttons);
+    refs.addEventListener("input", buttons);
+    buttons();
+    one.replaceChildren(htl.html`<div style="border-top:1px solid var(--theme-foreground-faintest);margin-top:12px;padding-top:8px">
+      <b>${i.title}</b> <code>${i.id}</code> <span style=${muted}>${i.state} · ${i.kind} · ${i.about}${i.labels.length ? " · " + i.labels.join(", ") : ""}${i.parent ? " · child of " + i.parent : ""}</span>
+      <div style="white-space:pre-wrap;margin:6px 0">${(got && got.issue && got.issue.body) || i.body || ""}</div>
+      ${kids.length ? htl.html`<div>${kids.map((k) => htl.html`<div><a href="#" onclick=${(ev) => (ev.preventDefault(), (open = k.id), drawOne())}>${k.id}</a> ${k.title || ""} <span style=${muted}>${k.state}</span></div>`)}</div>` : ""}
+      <div style="margin:6px 0">${events.map((e) => htl.html`<div style=${e.pending ? muted : ""}><span style=${muted}>${when(e.at)} ${e.by.holder || e.by.caller}</span> <b>${e.type}</b> ${said(e)}${(e.refs || []).map((r) => ` [${r.kind}:${r.value}]`).join("")}</div>`)}</div>
+      ${reason}${refs}${acts}
+      <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:6px">${verdict}${Inputs.button("Review", { reduce: () => send("review", { type: "review", id: i.id, verdict: verdict.value, body: comment.value, refs: refsOf(refs.value) }, { id: i.id, verdict: verdict.value, body: comment.value, refs: refsOf(refs.value) }) })}</div>
+      ${comment}${Inputs.button("Comment", { reduce: () => comment.value.trim() && send("comment", { type: "comment", id: i.id, body: comment.value }, { id: i.id, body: comment.value }) })}
+      <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">${label}${Inputs.button("Add label", { reduce: () => label.value.trim() && send("label", { type: "label", id: i.id, add: [label.value.trim()] }, { id: i.id, add: [label.value.trim()] }) })}</div>
+    </div>`);
+  };
+  const draw = () => {
+    const view = now(), all = Object.values(view.issues);
+    state.set(["", ...new Set(all.map((i) => i.state))]);
+    kind.set(["", ...new Set(all.map((i) => i.kind))]);
+    newKind.set(Object.keys((view.policy && view.policy.kinds) || { task: 1 }));
+    const q = find.value.trim().toLowerCase();
+    const rows = all
+      .filter((i) => (!state.value || i.state === state.value) && (!kind.value || i.kind === kind.value) && (!q || `${i.title || ""} ${i.about || ""} ${(i.labels || []).join(" ")} ${i.id}`.toLowerCase().includes(q)))
+      .sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0))
+      .map((i) => ({ id: i.id, title: i.hidden ? "(not shown)" : i.title, state: i.state, kind: i.kind, about: i.about || "", labels: (i.labels || []).join(", "), parent: i.parent || "", changed: i.updated_at ? new Date(i.updated_at) : null }));
+    const table = Inputs.table(rows, { multiple: false, layout: "auto", format: { changed: (d) => (d ? d.toLocaleString() : "") } });
+    table.addEventListener("input", () => ((open = table.value ? table.value.id : null), drawOne()));
+    list.replaceChildren(rows.length ? table : htl.html`<i style=${muted}>No issues${all.length ? " match" : ""}.</i>`);
+    if (!note.textContent.includes("refused")) note.textContent = `${all.length} issues at event ${view.seq}${pending.length ? `, ${pending.length} being sent` : ""}.`;
+    root.value = view;
+    drawOne();
+  };
+  find.addEventListener("input", () => draw());
+  const create = () => {
+    if (!title.value.trim()) return;
+    const id = "n" + crypto.randomUUID().slice(0, 8), act = { type: "open", id, title: title.value.trim(), body: body.value, kind: newKind.value, about: about.value.trim() || "brain", parent: parent.value.trim() || null, labels: [] };
+    send("open", act, act);
+    open = id;
+    title.value = body.value = "";
+  };
+  const root = htl.html`<div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">${state.slot}${kind.slot}${find}</div>
+    ${list}${one}
+    <details style="margin-top:12px"><summary>New issue</summary>${title}${body}${newKind.slot}${about}${parent}${Inputs.button("Open", { reduce: create })}</details>
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center">${Inputs.button("Refresh", { reduce: () => sync().catch((e) => (note.textContent = "issue.sync failed: " + e.message)) })}${note}</div>
+  </div>`;
+  Object.assign(root, { value: base, send, sync, form: { title, kind: newKind, open: create }, filters: { state, kind } });
+  draw();
+  const tick = () => (typeof document === "undefined" || document.visibilityState === "visible") && sync().catch((e) => (note.textContent = "issue.sync failed: " + e.message));
+  // The service says how long to wait (its setting syncMs); `every` is a test's own.
+  let timer = null, over = false;
+  const loop = async () => {
+    await tick();
+    if (!over) timer = setTimeout(loop, every ?? wait);
+  };
+  loop();
+  if (invalidation) invalidation.then(() => ((over = true), clearTimeout(timer)));
+  return root;
+}
+// %%
+md`## Tests
+
+No SQL engine runs in a page. \`issuesFakeSql\` answers for the statements of \`issuesSql\` from three maps, and refuses any other statement. Its insert fails on a \`seq\` or a \`key\` that is kept, as the table's key and its unique index do.`
+// %%
+issuesFakeSql = () => {
+  const events = [], view = new Map(), meta = new Map(), S = issuesSql, hooks = [];
+  const row = (rows, changes = 0) => ({ rows, changes });
+  const run = async (statement, a) => {
+    if (issuesSchema.includes(statement)) return row([]);
+    if (statement === S.head) return row(events.length ? [{ seq: events.at(-1).seq, hash: events.at(-1).hash }] : []);
+    if (statement === S.byKey) return row(events.filter((e) => e.key === a[0]).map((e) => ({ event: e.event })));
+    if (statement === S.insert) {
+      // A test's hook stands for another writer that gets in first.
+      if (hooks.length) await hooks.shift()();
+      if (events.some((e) => e.seq === a[0])) throw new Error("UNIQUE constraint failed: issues_events.seq");
+      if (events.some((e) => e.key === a[1])) throw new Error("UNIQUE constraint failed: issues_events.key");
+      events.push({ seq: a[0], key: a[1], id: a[2], type: a[3], at: a[4], hash: a[5], event: a[6] });
+      return row([], 1);
+    }
+    if (statement === S.after) return row(events.filter((e) => e.seq > a[0]).slice(0, a[1]).map((e) => ({ event: e.event })));
+    if (statement === S.of) return row(events.filter((e) => e.id === a[0]).map((e) => ({ event: e.event })));
+    if (statement === S.one) return row(events.filter((e) => e.seq === a[0]).map((e) => ({ event: e.event })));
+    if (statement === S.meta) return row([...meta].map(([k, v]) => ({ k, v })));
+    if (statement === S.putMeta) return meta.set(a[0], a[1]), row([], 1);
+    if (statement === S.near) return row([...view.values()].filter((r) => r.id === a[0] || r.parent === a[0] || r.id === a[1]).map((r) => ({ issue: r.issue })));
+    if (statement === S.all) return row([...view.values()].map((r) => ({ issue: r.issue })));
+    if (statement === S.putIssue) return view.set(a[0], { id: a[0], parent: a[4], workflow: a[5], closed: a[6], issue: a[8] }), row([], 1);
+    if (statement === S.onWorkflow) return row([...view.values()].filter((r) => r.workflow === a[0] && !r.closed).map((r) => ({ issue: r.issue })));
+    if (statement === S.clearView) return view.clear(), row([]);
+    if (statement === S.clearMeta) return meta.clear(), row([]);
+    throw new Error("issuesFakeSql: " + statement);
+  };
+  return { run, events, view, meta, hooks };
+}
+// %%
+issuesRig = async () => {
+  const db = issuesFakeSql();
+  const pair = await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]);
+  const jwk = JSON.stringify(await crypto.subtle.exportKey("jwk", pair.privateKey)), keys = await issueKeys(jwk);
+  const sim = await simulate(issues_service, { sql: db.run, stored: { ISSUES_SIGNING_KEY: jwk } });
+  const X = "/xrpc/com.lopecode.brain.issue.";
+  let n = 0;
+  const as = (who, via = "", more = {}) => async (path, body) => {
+    const r = await sim.fetch("https://issues.internal" + X + path, {
+      method: body === undefined ? "GET" : "POST",
+      headers: { "x-brain-caller": who, "x-brain-via": via, ...more, ...(body === undefined ? {} : { "content-type": "application/json" }) },
+      body: body === undefined ? undefined : JSON.stringify({ key: "k" + ++n, ...body })
+    });
+    return { status: r.status, data: await r.json() };
+  };
+  // An event a holder of the key and the database could write past the service: chained and signed, judged by nobody.
+  const forge = async (fields, by = { caller: "token:a", via: "" }) => {
+    const head = db.events.at(-1), e = { seq: head.seq + 1, key: "forged" + ++n, ...fields, by, origin: by, ray: "", at: Date.now(), prev: head.hash };
+    e.hash = await sha256(issueCanon(e));
+    e.sig = await keys.sign(e.hash);
+    db.events.push({ seq: e.seq, key: e.key, id: e.id, type: e.type, at: e.at, hash: e.hash, event: JSON.stringify(e) });
+    return e;
+  };
+  const rig = { db, sim, keys, as, forge, owner: as("owner", "session"), a: as("token:a"), b: as("token:b"), worker: as("worker:brain-x-echo"), member: as("did:plc:other", "session") };
+  // An issue taken to in-review: opened and made ready by the owner, implemented by token a.
+  rig.inReview = async (id, more = {}) => {
+    await rig.owner("open", { id, title: id, kind: "task", ...more });
+    await rig.owner("move", { id, to: "triaged", reason: "real" });
+    await rig.owner("move", { id, to: "ready" });
+    await rig.a("move", { id, to: "in-progress" });
+    return rig.a("move", { id, to: "in-review", refs: [{ kind: "commit", value: "abc" }] });
+  };
+  return rig;
+}
+// %%
+test_issues_chain_is_signed_and_a_break_is_found = {
+  const rig = await issuesRig();
+  const opened = (await rig.owner("open", { title: "First", kind: "task" })).data;
+  await rig.owner("comment", { id: opened.id, body: "one" });
+  await rig.a("comment", { id: opened.id, body: "two" });
+  // Event 1 is the default policy, written by the Worker before the first write.
+  const events = rig.db.events.map((e) => JSON.parse(e.event));
+  expect(events.map((e) => [e.seq, e.type, e.by.caller])).toEqual([[1, "policy", "worker:brain-x-issues"], [2, "opened", "owner"], [3, "commented", "owner"], [4, "commented", "token:a"]]);
+  expect(opened).toMatchObject({ id: "i2", seq: 2 });
+  expect(events.map((e) => e.prev)).toEqual(["", ...events.slice(0, 3).map((e) => e.hash)]);
+  expect((await rig.owner("verify")).data).toEqual({ ok: true, seq: 4, head: events[3].hash, checked: 4, guards: false });
+  expect((await rig.owner("verify?after=2")).data).toMatchObject({ ok: true, checked: 2 });
+  // The public key alone checks a signature.
+  const pub = await issueKeys((await rig.member("key")).data.key);
+  expect([await pub.verify(events[1].hash, events[1].sig), await pub.verify(events[1].hash, events[2].sig)]).toEqual([true, false]);
+  // A changed body: its hash no longer matches. A removed event: the next one's prev does not.
+  const kept = rig.db.events[2].event;
+  rig.db.events[2].event = kept.replace('"one"', '"ONE"');
+  expect((await rig.owner("verify")).data).toMatchObject({ ok: false, seq: 3, why: "hash" });
+  rig.db.events[2].event = kept;
+  rig.db.events.splice(2, 1);
+  expect((await rig.owner("verify")).data).toMatchObject({ ok: false, seq: 3, why: "seq" });
+  return "4 events; a changed one and a removed one are found";
+}
+// %%
+test_issues_a_key_writes_once_and_two_writers_make_one_chain = {
+  const rig = await issuesRig();
+  const first = (await rig.owner("open", { key: "same", title: "Once", kind: "task", id: "once" })).data;
+  const again = (await rig.owner("open", { key: "same", title: "Once, retried", kind: "task", id: "once" })).data;
+  expect([first.seq, again.seq, again.duplicate, again.event.title]).toEqual([2, 2, true, "Once"]);
+  expect((await rig.owner("open", { title: "Taken", kind: "task", id: "once" })).data.message).toBe("an issue has this id");
+  // Another writer takes seq 3 between this write's read of the head and its insert.
+  rig.db.hooks.push(() => rig.forge({ id: "once", type: "commented", workflow: first.event.workflow, body: "got in first" }));
+  const late = (await rig.owner("comment", { id: "once", body: "second" })).data;
+  expect(late.seq).toBe(4);
+  expect(late.event.prev).toBe(JSON.parse(rig.db.events[2].event).hash);
+  // Two at once.
+  const both = await Promise.all([rig.a("comment", { id: "once", body: "x" }), rig.b("comment", { id: "once", body: "y" })]);
+  expect(both.map((r) => r.data.seq).sort()).toEqual([5, 6]);
+  expect((await rig.owner("verify")).data).toMatchObject({ ok: true, seq: 6, checked: 6 });
+  expect((await rig.owner("comment", { id: "once" })).status).toBe(400);
+  expect((await rig.owner("comment", { key: "", id: "once", body: "x" })).status).toBe(400);
+  expect((await rig.member("comment", { id: "nope", body: "x" })).status).toBe(404);
+  return "one event for one key; a write that lost its seq is written after the winner";
+}
+// %%
+test_issues_default_policy_review_approval_and_children = {
+  const rig = await issuesRig(), ref = [{ kind: "commit", value: "abc" }];
+  await rig.owner("open", { id: "t1", title: "Task", kind: "task" });
+  // Triage needs a reason; a Worker may not triage; an implementer needs a ref to submit.
+  expect((await rig.owner("move", { id: "t1", to: "triaged" })).data).toMatchObject({ error: "Refused", message: "the guard of triage refuses" });
+  expect((await rig.worker("move", { id: "t1", to: "triaged", reason: "real" })).status).toBe(403);
+  expect((await rig.owner("move", { id: "t1", to: "done" })).data.message).toBe("no move from open to done");
+  await rig.owner("move", { id: "t1", to: "triaged", reason: "real" });
+  await rig.owner("move", { id: "t1", to: "ready" });
+  await rig.a("move", { id: "t1", to: "in-progress" });
+  expect((await rig.a("move", { id: "t1", to: "in-review" })).status).toBe(403);
+  expect((await rig.b("move", { id: "t1", to: "in-review", refs: ref })).status).toBe(403);
+  expect((await rig.a("move", { id: "t1", to: "in-review", refs: ref })).data.event).toMatchObject({ move: "submit", from: "in-progress", to: "in-review" });
+  // The implementer neither reviews nor passes. Without a passing review nobody passes.
+  expect((await rig.a("review", { id: "t1", verdict: "pass" })).data.message).toBe("the workflow's review guard refuses");
+  expect((await rig.b("move", { id: "t1", to: "done" })).status).toBe(403);
+  await rig.b("review", { id: "t1", verdict: "changes", body: "no test" });
+  expect((await rig.b("move", { id: "t1", to: "done" })).status).toBe(403);
+  // Sent back, the implementer is still token a, and the reviews start again.
+  await rig.b("move", { id: "t1", to: "in-progress" });
+  expect((await rig.b("move", { id: "t1", to: "in-review", refs: ref })).status).toBe(403);
+  await rig.a("move", { id: "t1", to: "in-review", refs: ref });
+  expect((await rig.b("move", { id: "t1", to: "done" })).status).toBe(403);
+  await rig.b("review", { id: "t1", verdict: "pass" });
+  expect((await rig.a("move", { id: "t1", to: "done" })).status).toBe(403);
+  expect((await rig.b("move", { id: "t1", to: "done" })).data.event.move).toBe("pass");
+  // Revert is the owner present, with a reason and a ref. A token of the owner is not present.
+  expect((await rig.a("move", { id: "t1", to: "reverted", reason: "broke", refs: ref })).status).toBe(403);
+  expect((await rig.as("owner", "delegation:d1", { "x-brain-holder": "secret:laptop" })("move", { id: "t1", to: "reverted", reason: "broke", refs: ref })).status).toBe(403);
+  expect((await rig.as("owner", "session", { "x-brain-tab": "0" })("move", { id: "t1", to: "reverted", reason: "broke", refs: ref })).status).toBe(403);
+  expect((await rig.owner("move", { id: "t1", to: "reverted", reason: "broke", refs: ref })).status).toBe(200);
+  // Two tokens are two delegations of the owner, with one holder: two actors. One of them twice is one.
+  const d1 = rig.as("owner", "delegation:d1", { "x-brain-holder": "secret", "x-brain-tab": "0" }), d2 = rig.as("owner", "delegation:d2", { "x-brain-holder": "secret", "x-brain-tab": "0" });
+  await rig.owner("open", { id: "t3", title: "By tokens", kind: "task" });
+  await d1("move", { id: "t3", to: "triaged", reason: "real" });
+  await d1("move", { id: "t3", to: "ready" });
+  await d1("move", { id: "t3", to: "in-progress" });
+  await d1("move", { id: "t3", to: "in-review", refs: ref });
+  expect((await d1("review", { id: "t3", verdict: "pass" })).status).toBe(403);
+  expect((await d2("review", { id: "t3", verdict: "pass" })).status).toBe(200);
+  expect((await d2("move", { id: "t3", to: "done" })).data.event).toMatchObject({ move: "pass", by: { caller: "owner", via: "delegation:d2", holder: "secret", tab: false } });
+  // Major: a pass leads to awaiting-approval, and only the owner present approves.
+  await rig.inReview("t2", { labels: ["major"] });
+  await rig.b("review", { id: "t2", verdict: "pass" });
+  expect((await rig.b("move", { id: "t2", to: "done" })).status).toBe(403);
+  await rig.b("move", { id: "t2", to: "awaiting-approval" });
+  expect((await rig.b("move", { id: "t2", to: "done" })).status).toBe(403);
+  expect((await rig.owner("move", { id: "t2", to: "done" })).data.event.move).toBe("approve");
+  // A parent is not ready, and not submitted, while a child is open.
+  await rig.owner("open", { id: "p", title: "Parent", kind: "task" });
+  expect((await rig.owner("open", { id: "c", title: "Child", kind: "task", parent: "nope" })).status).toBe(404);
+  await rig.owner("open", { id: "c", title: "Child", kind: "task", parent: "p" });
+  await rig.owner("move", { id: "p", to: "triaged", reason: "real" });
+  expect((await rig.owner("move", { id: "p", to: "ready" })).status).toBe(403);
+  await rig.owner("move", { id: "c", to: "rejected", reason: "not needed" });
+  expect((await rig.owner("move", { id: "p", to: "ready" })).status).toBe(200);
+  expect((await rig.owner("get?id=p")).data.children).toEqual([{ id: "c", title: "Child", kind: "task", state: "rejected", closed: true }]);
+  expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: true, guards: true });
+  return "reviewer is not the implementer; major waits for the owner; a parent waits for its children";
+}
+// %%
+test_issues_swaps_and_guards_of_one_issue = {
+  const rig = await issuesRig();
+  // Opened by token a, which so goes on reading it once it is a security issue.
+  await rig.a("open", { id: "s1", title: "Leak", kind: "bug" });
+  const hashes = (await rig.owner("policy")).data.policy.names;
+  // The listed swap needs its guard (the label), and no owner.
+  expect((await rig.a("swap", { id: "s1", swap: "escalate" })).data.message).toBe("the guard of escalate refuses");
+  await rig.a("label", { id: "s1", add: ["security"] });
+  expect((await rig.worker("label", { id: "s1", add: ["x"] })).status).toBe(403);
+  // A guard added to one move of this issue, by whoever may triage. It only narrows.
+  expect((await rig.a("narrow", { id: "s1", move: "triage", guard: "caller.present" })).status).toBe(200);
+  expect((await rig.a("narrow", { id: "s1", move: "triage", guard: "caller.(" })).status).toBe(400);
+  expect((await rig.a("narrow", { id: "s1", move: "nope", guard: "true" })).status).toBe(403);
+  expect((await rig.a("move", { id: "s1", to: "triaged", reason: "real" })).data.message).toBe("this issue's guard 4 on triage refuses");
+  const swapped = (await rig.a("swap", { id: "s1", swap: "escalate", reason: "leaks a key" })).data.event;
+  expect(swapped).toMatchObject({ type: "swapped", swap: "escalate", from: { workflow: hashes.task, state: "open" }, to: { workflow: hashes.security, state: "triaged" } });
+  // Security lists no swap out: back to task is the owner present.
+  expect((await rig.a("swap", { id: "s1", workflow: "task", state: "open" })).data.message).toBe("a swap the workflow does not list needs the owner, present");
+  expect((await rig.owner("swap", { id: "s1", workflow: "task", state: "nope" })).status).toBe(403);
+  expect((await rig.owner("swap", { id: "s1", workflow: "task", state: "open" })).data.event).toMatchObject({ swap: null, to: { workflow: hashes.task, state: "open" } });
+  // The issue's own guard came along through both swaps. Only the owner present removes it.
+  expect((await rig.a("move", { id: "s1", to: "triaged", reason: "real" })).status).toBe(403);
+  expect((await rig.a("narrow", { id: "s1", remove: 4 })).data.message).toBe("the owner, present");
+  expect((await rig.owner("narrow", { id: "s1", remove: 9 })).status).toBe(404);
+  expect((await rig.owner("narrow", { id: "s1", remove: 4 })).status).toBe(200);
+  expect((await rig.a("move", { id: "s1", to: "triaged", reason: "real" })).status).toBe(200);
+  expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: true });
+  return "a listed swap by a token; an unlisted one by the owner present; a guard of one issue";
+}
+// %%
+test_issues_policy_is_installed_by_the_owner_and_migrates = {
+  const rig = await issuesRig();
+  await rig.owner("open", { id: "f1", title: "Slow page", kind: "feedback" });
+  await rig.owner("open", { id: "f2", title: "Closed", kind: "feedback" });
+  await rig.owner("move", { id: "f2", to: "closed" });
+  const was = (await rig.owner("policy")).data.policy.names;
+  const flow = { states: ["new", "seen", "closed"], start: "new", closed: ["closed"], read: "true", open: "true", comment: "true", label: "true", review: "false", narrow: "false", moves: [{ name: "see", from: "new", to: "seen", guard: 'caller.kind == "token"' }], swaps: [] };
+  const policy = { kinds: { feedback: "feedback" }, workflows: { feedback: flow } };
+  expect((await rig.a("install", { policy })).data.message).toBe("the owner, present");
+  expect((await rig.as("owner", "delegation:d1")("install", { policy })).status).toBe(403);
+  const bad = (change) => rig.owner("install", { policy: { ...policy, workflows: { feedback: { ...flow, ...change } } } }).then((r) => [r.status, r.data.error]);
+  expect(await bad({ review: "caller.(" })).toEqual([400, "InvalidPolicy"]);
+  expect(await bad({ start: "nope" })).toEqual([400, "InvalidPolicy"]);
+  expect(await bad({ moves: [{ name: "see", from: "new", to: "gone", guard: "true" }] })).toEqual([400, "InvalidPolicy"]);
+  expect(await bad({ swaps: [{ name: "x", to: { workflow: "task", state: "open" }, guard: "true" }] })).toEqual([400, "InvalidPolicy"]);
+  const installed = (await rig.owner("install", { key: "v2", policy, migrate: { [was.feedback]: { workflow: "feedback", states: { open: "new" } } } })).data;
+  expect(installed).toMatchObject({ seq: 5, moved: ["f1"] });
+  expect(installed.hashes.feedback).not.toBe(was.feedback);
+  // The open issue moved with an event of its own that cites the policy; the closed one stays on the workflow it was closed under.
+  const moved = (await rig.owner("get?id=f1")).data;
+  expect(moved.issue).toMatchObject({ state: "new", workflow: installed.hashes.feedback });
+  expect(moved.events.at(-1)).toMatchObject({ type: "swapped", swap: null, policy: 5, to: { workflow: installed.hashes.feedback, state: "new" } });
+  expect((await rig.owner("get?id=f2")).data.issue).toMatchObject({ state: "closed", workflow: was.feedback });
+  expect((await rig.owner("policy?hash=" + was.feedback)).data.workflow.states).toEqual(["open", "closed"]);
+  expect(Object.keys((await rig.owner("policy")).data.workflows)).toEqual([installed.hashes.feedback]);
+  // The new guards hold now, and a kind the policy does not name is not opened.
+  expect((await rig.owner("move", { id: "f1", to: "seen" })).status).toBe(403);
+  expect((await rig.a("move", { id: "f1", to: "seen" })).status).toBe(200);
+  expect((await rig.owner("open", { title: "x", kind: "task" })).data.message).toBe("no workflow for the kind task");
+  expect((await rig.owner("install", { key: "v2", policy })).data).toMatchObject({ seq: 5, duplicate: true, moved: [] });
+  // The default policy was written once, into the empty record, and is not written again: not after an install, not
+  // when the view is lost, not after a rebuild. A second one written past the service is named by the replay.
+  const byWorker = () => rig.db.events.map((e) => JSON.parse(e.event)).filter((e) => e.type === "policy").map((e) => [e.seq, e.by.caller]);
+  expect(byWorker()).toEqual([[1, "worker:brain-x-issues"], [5, "owner"]]);
+  rig.db.meta.clear();
+  expect((await rig.a("comment", { id: "f1", body: "x" })).data).toMatchObject({ error: "ViewLost" });
+  expect(rig.db.events.length).toBe(7);
+  await rig.owner("rebuild", {});
+  expect((await rig.a("comment", { id: "f1", body: "x" })).status).toBe(200);
+  expect(Object.keys((await rig.owner("policy")).data.policy.kinds)).toEqual(["feedback"]);
+  expect(byWorker().length).toBe(2);
+  const again = await issuePolicyAct(issuesDefaultPolicy);
+  const forged = await rig.forge({ type: "policy", policy: again.policy, hashes: again.hashes }, { caller: "worker:brain-x-issues", via: "" });
+  expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: false, seq: forged.seq, why: "the owner, present" });
+  rig.db.events.pop();
+  expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: true });
+  return "installed by the owner present; 4 policies refused; 1 open issue migrated";
+}
+// %%
+test_issues_hidden_from_who_may_not_read = {
+  const rig = await issuesRig();
+  await rig.a("open", { id: "sec", title: "Key in a log", body: "the key is …", kind: "security" });
+  await rig.a("open", { id: "pub", title: "Typo", kind: "bug" });
+  const stub = { id: "sec", kind: "security", state: "open", closed: false, parent: null, hidden: true };
+  // The opener and the owner read it; another token and a Worker are told that it is there and no more.
+  expect((await rig.a("get?id=sec")).data.issue.title).toBe("Key in a log");
+  expect((await rig.owner("get?id=sec")).data.events.length).toBe(1);
+  expect((await rig.b("get?id=sec")).data).toEqual({ issue: stub, children: [], events: [] });
+  expect((await rig.b("snapshot")).data.issues.map((i) => i.title || i.hidden)).toEqual([true, "Typo"]);
+  expect((await rig.worker("list")).data.issues.find((i) => i.id === "sec")).toEqual(stub);
+  const synced = (await rig.b("sync?after=1")).data;
+  expect(synced.events.map((e) => [e.seq, e.id, e.hidden || e.title])).toEqual([[2, "sec", true], [3, "pub", "Typo"]]);
+  expect(JSON.stringify(synced)).not.toContain("the key is");
+  expect((await rig.a("sync?after=1")).data.events[0].body).toBe("the key is …");
+  // Nor does a caller who may not read it act on it.
+  expect((await rig.b("comment", { id: "sec", body: "me too" })).status).toBe(404);
+  expect((await rig.b("move", { id: "sec", to: "triaged", reason: "x" })).status).toBe(404);
+  expect((await rig.a("comment", { id: "sec", body: "more" })).status).toBe(200);
+  // A token of the owner is not the owner present: it reads the security issue it opened and no other.
+  const d1 = rig.as("owner", "delegation:d1", { "x-brain-holder": "secret", "x-brain-tab": "0" });
+  expect((await d1("get?id=sec")).data.issue).toEqual(stub);
+  expect((await rig.member("list")).status).toBe(200);
+  return "a security issue: 2 readers, 2 callers shown a stub";
+}
+// %%
+test_issues_rebuild_and_replay_judge_the_record = {
+  const rig = await issuesRig();
+  await rig.inReview("r1");
+  await rig.owner("open", { id: "r2", title: "Other", kind: "feedback", labels: ["ui"] });
+  const before = (await rig.owner("snapshot")).data;
+  expect((await rig.a("rebuild", {})).status).toBe(403);
+  rig.db.view.clear();
+  rig.db.meta.clear();
+  expect((await rig.owner("rebuild", {})).data).toEqual({ seq: before.seq, issues: 2 });
+  expect((await rig.owner("snapshot")).data).toEqual(before);
+  expect((await rig.owner("sync?after=99")).data).toMatchObject({ reset: true, wait: 5000 });
+  expect((await rig.as("owner", "session", { "x-brain-settings": encodeURIComponent(JSON.stringify({ syncMs: 20000 })) })("sync?after=0")).data.wait).toBe(20000);
+  // A closed issue's body is left out of a snapshot and is in issue.get.
+  await rig.owner("move", { id: "r2", to: "closed" });
+  expect((await rig.owner("snapshot")).data.issues.find((i) => i.id === "r2")).toMatchObject({ bodyLeftOut: true });
+  // A move written past the service, chained and signed: the chain holds, and the replay names it.
+  const wf = before.issues.find((i) => i.id === "r1").workflow;
+  const forged = await rig.forge({ id: "r1", type: "moved", workflow: wf, move: "pass", from: "in-review", to: "done", reason: "", refs: [] });
+  expect((await rig.owner("verify")).data).toMatchObject({ ok: true, seq: forged.seq });
+  expect((await rig.owner("verify?guards=true")).data).toEqual({ ok: false, seq: forged.seq, why: "the guard of pass refuses", checked: forged.seq - 1 });
+  return "the view made again equals the view kept; a forged pass is named";
+}
+// %%
+test_issues_declares_what_it_needs = {
+  const { meta } = await issues_service.emit();
+  expect(meta).toMatchObject({ worker: "brain-x-issues", role: "recipe", module: "@tomlarkworthy/brain-issues", resources: ["sql"], secrets: ["ISSUES_SIGNING_KEY"] });
+  const methods = Object.keys(meta.access).sort().map((m) => m.replace("com.lopecode.brain.issue.", ""));
+  expect(methods).toEqual(["comment", "get", "install", "key", "label", "list", "move", "narrow", "open", "policy", "rebuild", "review", "snapshot", "swap", "sync", "verify"]);
+  const let_in = (who) => decide(meta.access["com.lopecode.brain.issue.open"], { caller: callerOf({ caller: who }), request: {} }).allow;
+  expect(["owner", "token:a", "worker:brain-x-echo", "did:plc:other", "anonymous"].map(let_in)).toEqual([true, true, true, false, false]);
+  // The default policy passes its own check.
+  expect(Object.keys((await issuePolicyAct(issuesDefaultPolicy)).hashes)).toEqual(["task", "security", "feedback"]);
+  // Without the key a write is refused and says which secret.
+  const bare = await simulate(issues_service, { sql: issuesFakeSql().run });
+  const r = await bare.fetch("https://issues.internal/xrpc/com.lopecode.brain.issue.open", { method: "POST", headers: { "x-brain-caller": "owner", "x-brain-via": "session", "content-type": "application/json" }, body: JSON.stringify({ key: "k", title: "x", kind: "task" }) });
+  expect([r.status, (await r.json()).message]).toEqual([503, "the secret ISSUES_SIGNING_KEY is not set"]);
+  return methods.length + " methods";
+}
+// %%
+test_issues_panel_draws_and_applies_a_write_before_the_answer = {
+  const rig = await issuesRig();
+  await rig.owner("open", { id: "p1", title: "Shown first", kind: "task" });
+  const held = [];
+  const ok = (r) => (r.status < 400 ? r.data : Promise.reject(new Error(r.data.message)));
+  const client = {
+    query: (name, params = {}) => rig.owner(name.replace("issue.", "") + "?" + new URLSearchParams(params)).then(ok),
+    // Each write waits until the test lets it go.
+    procedure: (name, body) => new Promise((go) => held.push(go)).then(() => rig.owner(name.replace("issue.", ""), body)).then(ok)
+  };
+  const kept = {};
+  const panel = issuesPanel({ client, owner: true, every: 1e9, store: { get: () => null, set: (v) => (kept.view = JSON.parse(JSON.stringify(v))) } });
+  expect(issuesPanel({ client, owner: false }).textContent).toContain("Sign in as the owner");
+  await panel.sync();
+  expect(panel.textContent).toContain("Shown first");
+  expect(panel.textContent).toContain("1 issues at event 2");
+  // A new issue is in the table before the service has answered, and is the service's once it has.
+  const act = { type: "open", id: "p2", title: "Typed now", body: "", kind: "task", about: "brain", parent: null, labels: [] };
+  const sent = panel.send("open", act, act);
+  expect(panel.textContent).toContain("Typed now");
+  expect([panel.value.issues.p2.state, rig.db.view.has("p2"), panel.textContent.includes("1 being sent")]).toEqual(["open", false, true]);
+  held.shift()();
+  await sent;
+  expect([rig.db.view.has("p2"), panel.value.seq, kept.view.issues.p2.title]).toEqual([true, 3, "Typed now"]);
+  // A move the guard refuses is not drawn; one the service refuses is withdrawn and said.
+  const bad = panel.send("move", { type: "move", id: "p2", to: "triaged", reason: "real" }, { id: "p2", to: "triaged" });
+  expect(panel.value.issues.p2.state).toBe("triaged");
+  held.shift()();
+  await bad;
+  expect(panel.value.issues.p2.state).toBe("open");
+  expect(panel.textContent).toContain("issue.move was refused: the guard of triage refuses");
+  // The form: a title typed, the kind chosen from the policy's, Open.
+  const kinds = panel.form.kind.slot.querySelector("select");
+  expect([panel.form.kind.value, [...kinds.options].map((o) => o.textContent)]).toEqual(["task", ["bug", "task", "feedback", "security"]]);
+  kinds.selectedIndex = 0;
+  kinds.dispatchEvent(new Event("input", { bubbles: true }));
+  expect(panel.form.kind.value).toBe("bug");
+  panel.form.title.value = "From the form";
+  panel.form.open();
+  expect(panel.textContent).toContain("From the form");
+  held.shift()();
+  await new Promise((r) => setTimeout(r, 300));
+  expect([...rig.db.view.values()].map((r) => JSON.parse(r.issue)).find((i) => i.title === "From the form")).toMatchObject({ kind: "bug", about: "brain", state: "open" });
+  // A filter is answered from the copy.
+  const select = panel.filters.kind.slot.querySelector("select");
+  expect([...select.options].map((o) => o.textContent)).toEqual(["", "task", "bug"]);
+  select.selectedIndex = 2;
+  select.dispatchEvent(new Event("input", { bubbles: true }));
+  expect([panel.filters.kind.value, panel.textContent.includes("Shown first"), panel.textContent.includes("From the form")]).toEqual(["bug", false, true]);
+  // What another caller wrote arrives with the next sync.
+  await rig.a("comment", { id: "p1", body: "from elsewhere" });
+  expect(await panel.sync()).toBe(1);
+  expect(panel.value.issues.p1.comments).toBe(1);
+  return "drawn from a snapshot; a write shown before its answer; a refusal withdrawn";
+}
+// %%
+import {cloudflare, sql, secrets, config, hono, simulate, decide, checkedRule, callerOf, callerFrom, originFrom, sha256} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {client, session} from "@tomlarkworthy/cloud-brain"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"

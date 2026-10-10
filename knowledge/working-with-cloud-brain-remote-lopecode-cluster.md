@@ -27,6 +27,7 @@ kept in step with the code.
 | Operating guide | `tools/cloud-brain/running-a-cloud-brain.md` |
 | Backlog, open decisions, inventories | `plan/cloud-brain-backlog.md` |
 | Design: one record for delegated authority (tokens, links, grants, a Worker acting for an account). The architecture for who may call what; being built in seven steps from 2026-10-10 | `plan/cloud-brain-authority.md` |
+| Design: issues (a signed record, guards as data), with what Tom amended and what was built 2026-10-10 | `plan/cloud-brain-issues.md` |
 | Proposal: topics (read, take, push) in place of one inbox; its step 2 is the design above | `plan/cloud-brain-topics.md` |
 | The spec Tom reviews (do not edit on disk while he may have it open; Claude does not set its status) | `plan/specs/cloud-brain.html` |
 | Requirements and open questions as cells | `tools/cloud-brain/cloud-brain-specs.ojs` |
@@ -50,7 +51,9 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
   `library.index { name }` writes the cards again, `{ name, modules }` the named ones; a card is public when its notebook is, and is deleted with it), container (leased Linux containers from Cloudflare Containers, for the owner
   and the Brain's Workers: `container.extend?seconds=`, `exec`, `get`/`post` to a port), ai (one call to an open model on Cloudflare Workers AI:
   `ai.run?model=&usd=`, where `usd` is charged whole; `ai.models` is Cloudflare's list; an OpenAI client's base URL is
-  `/xrpc/com.lopecode.brain.ai.v1`, its key a Brain token, $0.01 a call with no `usd`). `<base>-x-page` is built from
+  `/xrpc/com.lopecode.brain.ai.v1`, its key a Brain token, $0.01 a call with no `usd`), issues (a signed record of events
+  about the Brain's work, with the workflow as CEL guards installed as data: `issue.open`, `issue.move`, `issue.list`,
+  `issue.verify?guards=true`; design and amendments in `plan/cloud-brain-issues.md`). `<base>-x-page` is built from
   `@tomlarkworthy/cloud-brain`. `brain-secrets` is a module of the page, not a Worker.
 - **Database** (`<base>-db`): the rows every Worker keeps go through it.
 - **Deployer** (`<base>-deployer`): the only holder of a Cloudflare token. It applies recipes,
@@ -91,7 +94,7 @@ A health check that takes ten seconds:
 
 ```
 brain.ts curl /xrpc/com.lopecode.brain.lease.get --owner     # {"held":true}
-brain.ts redistil | grep -c same                             # 19 on 2026-10-10 (18 on 2026-10-09)
+brain.ts redistil | grep -c same                             # 20 on 2026-10-10 11:57 (18 on 2026-10-09)
 brain.ts curl /xrpc/com.lopecode.brain.browser.all --owner   # browsers that cost money
 brain.ts curl /xrpc/com.lopecode.brain.container.all --owner # containers that cost money
 brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
