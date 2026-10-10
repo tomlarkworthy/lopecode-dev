@@ -17,8 +17,8 @@ index", "I don't really want an index per tenant".
 - One Vectorize index, `cb4-x-knowledge-bge-base-en-768`: 768 dimensions, cosine. Three metadata indexes,
   `owner` and `kind` (string) and `day` (number, `20261010`), made by the deployer before the Worker was
   bound to the index.
-- One vector for each entry of `brain-x-knowledge`, from its title and the first 1500 characters of title
-  and text, by `@cf/baai/bge-base-en-v1.5` through `ai.v1/embeddings` at `usd=0.00005` a text.
+- One vector for each entry of `brain-x-knowledge`, from the first 1500 characters of its title and text
+  joined, by `@cf/baai/bge-base-en-v1.5` through `ai.v1/embeddings` at `usd=0.00005` a text.
 - `knowledge.search?semantic=true&q=` answers entries without their text, each with a `score`.
 - `library.put` enters one entry of kind `module` for each module of the notebook.
 - `/llms.txt` has a section "Finding what it holds" when a Worker declares `knowledge.search`.
@@ -41,12 +41,33 @@ vectorize info    {"dimensions":768,"vectorCount":173,"processedUpToDatetime":"2
 | `cloud-brain` (7.9 MB, put today, private) | `library.put` | 97 | 5.04 s |
 | `quick_start` (4.9 MB, put today, public) | `library.put` | 72 | 3.47 s |
 
-286 cards made 100 entries: a module has one card whichever notebook holds it. 73 of the 100 are public.
-The Cloud Brain notebook has 98 module blocks; the one with no card is named `d/57d79353bac56631`.
+286 cards made 100 entries: a module has one card whichever notebook holds it. 73 of the 100 were public.
+One of the 100 was not a module (see "After the review"); the counts of 97 and 72 above each include it.
 
-All of it cost the owner's account $0.008 that day (`quota.get` 0.33 before the first embedding, 0.338
-after the last search). The charge went to the owner, the account each call began with: `quota.list`
-listed no account for `brain-x-knowledge`.
+`lope-reader` lists 100 modules in the Cloud Brain notebook and 75 in `quick_start`. Four in each have no
+card, because a card is made for a block named `@user/name`: `es-module-shims@2.6.2`,
+`@observablehq/runtime@6.0.0`, `@observablehq/inspector@5.0.1` and the Observable id `d/57d79353bac56631`.
+That leaves 96 and 71.
+
+### What it cost, from the log lines (read 07:57 UTC)
+
+`logs.query`, the sum of `price` over the day's priced calls, by the account a call began with (`origin`)
+and the caller:
+
+```
+origin owner    caller owner                     81 calls  0.32635
+origin owner    caller worker:brain-x-knowledge  43 calls  0.01175    ai.v1/embeddings, 235 texts
+origin member   caller worker:brain-x-knowledge   5 calls  0.00025    the member's 5 searches by meaning
+quota.list      owner spent 0.3381, 124 charges; did:plc:cb4testmember0000000000 spent 0.00025, 5 charges
+```
+
+0.32635 + 0.01175 = 0.3381 and 81 + 43 = 124: every embedding the knowledge Worker bought for the owner
+is on the owner's account, and `quota.list` has no account for `brain-x-knowledge`. The index cost the
+owner $0.01175 by then, not the $0.008 first written here: that figure was `quota.get` read as 0.33 and
+0.338, and the first reading was not kept to its digits. 235 texts are the 173 entries and 62 more: each
+search by meaning buys one, and so does each put that changes an entry's words.
+
+A search by meaning is charged to whoever searches. The member's five cost the member $0.00005 each.
 
 ## Times, from this machine in Berlin (curl's `time_total`)
 
@@ -87,6 +108,9 @@ unit tests for cells          0.696 ui-testing    0.688 tests             0.679 
 keep a secret for a worker    0.581 brain-secrets 0.545 brain-core        0.534 brain-deployer   0.503 brain-proxy
 lease a headless browser      0.647 brain-browser 0.600 brain-shell       0.574 lopepage-2       0.564 brain-kernel
 ```
+
+(Read 07:38 to 07:40 UTC, before the review's changes. Two of the seven answer differently after them;
+see "After the review".)
 
 The wanted module is first in six of seven and second in one (`brain-container`, 0.008 behind
 `runtime-sdk`). Scores sit between 0.50 and 0.70 for a match and a miss alike, so a score is an order and
@@ -143,4 +167,60 @@ have read the kept papers. All 73 entries from before are the Brain's and privat
   allowance is $0.10 a day, 2000 texts.
 - The index of another model: the deployer makes it and leaves the old one. Nothing copies or deletes.
 - Removing `brain-x-knowledge` leaves its index, as it leaves its database.
-- Not reviewed by a fresh agent.
+
+## After the review (2026-10-10, 09:50 to 10:05 CEST)
+
+A fresh agent with the files and nothing else answered FIX with seven findings. All seven were checked
+against the source and held. `brain-x-knowledge` `8aae9e661b15`, `brain-x-library` `8648967fa482`.
+
+1. **A card for a module that does not exist.** `libraryCards` ran one regex over the whole file, and a
+   line of prose in the wiki page `@tomlarkworthy/markdown-wiki/notebook-programming-concepts.md` quotes a
+   module's opening tag with the id `@user/module-name`. cb4 held the entry `module:user:module-name`,
+   public. The file is now read block by block from the top, as `tools/lib/notebook-blocks.ts` reads it,
+   so a tag inside another block's text starts nothing. The entry was deleted at 07:57:41 UTC; `get`
+   answers 404 and a search for its words answers three other modules.
+2. **The counts.** Restated above: 100 modules, 96 cards, four named another way.
+3. **A private notebook's put wrote over a public card.** The card stayed public and took the private
+   copy's title, first prose, cell names and address. Now such a put sends `unlessPublic`, and
+   `knowledge.put` leaves a public entry whole and counts it in `skipped`. On cb4 no card was in that
+   state when checked at 07:56 UTC: the 73 public cards pointed at `quick_start` (72, the one that was
+   not a module among them) and `research-2026-10-09` (1). It did happen once. `research-2026-10-09`,
+   public, was indexed first; `cloud-brain`, private, was put at 07:37:49 UTC and wrote its copy into
+   the cards the two share; `quick_start`, public, was put at 07:37:53 and wrote over those it holds.
+   For those four seconds, and after them for any module in `research-2026-10-09` and `cloud-brain` but
+   not in `quick_start` (none was found at 07:56), a public card carried the private notebook's words.
+   Nobody but the owner could read one: no member held a grant on a knowledge method until 07:40:12, and
+   the methods answer anyone else 403. The rule was then run on cb4: `cloud-brain` indexed last answered
+   `cards: 26`, and the 71 public cards of `quick_start` still point at it.
+   The other way round is left as it was: a public notebook put after a private one makes the card public,
+   with the public copy's words.
+4. **The cost did not add up.** It does from the log lines; see "What it cost".
+5. **Cards with no prose.** 16 of the 100 cards on cb4 were a title and cell names, because the first
+   prose cell of those modules is the heading alone. The card now takes the first prose cell that says
+   something once its headings are removed. After `library.index` of the four notebooks: 3 of 99
+   (`bootloader`, `observable-runtime-v6`, `blank-notebook`), 25 texts embedded again, $0.00125.
+6. **A put says an id is taken.** A person granted `knowledge.put` is answered 403 for an id another
+   entered and 404 by `get`. Not changed: one thing has one id. Stated in the module under "Who reads an
+   entry". No person holds the grant.
+7. **This file** said "the title and the first 1500 characters of title and text" and "Not reviewed".
+
+The index after: `knowledge.stats` 172 entries, 172 vectors, 99 modules, 72 of them public.
+
+The seven questions again at 07:59:29 UTC, 100 s after the cards were entered (at 07:58:44, 55 s after,
+every answer was still the old one):
+
+```
+run code in a container       0.638 grid-container 0.631 runtime-sdk     0.623 brain-container 0.614 claude-code-pairing
+drag-and-drop layout          0.668 lopepage-2     0.631 sticky          0.629 spectral-layout 0.606 grid-container
+export a notebook             0.736 exporter-3     0.653 save-in-place   0.630 editor-5        0.620 cloud-brain
+send a message on WhatsApp    0.690 brain-whatsapp 0.553 brain-bluesky   0.522 brain-inbox     0.509 blank-notebook
+unit tests for cells          0.710 tests          0.696 ui-testing      0.675 cell-map        0.636 invoke-variable
+keep a secret for a worker    0.581 brain-secrets  0.545 brain-core      0.534 brain-deployer  0.503 brain-proxy
+lease a headless browser      0.647 brain-browser  0.600 brain-shell     0.574 lopepage-2      0.567 brain-kernel
+```
+
+The module first written down as wanted is now first in five of seven. `brain-container` went from
+second to third: `grid-container`, whose card had no prose before, now says it is a container and scores
+above it. `tests` passed `ui-testing` for the same reason, and either answers the question. Nothing was
+changed to move a rank. A card is the module's own opening prose, and a question that shares a word with
+another module's prose finds that module.

@@ -3521,4 +3521,15 @@ Tom: "index all modules (not the whole thing!) as vectors for finding relevant m
 
 ### Not done
 
-Articles, ATProto records and Hacker News items have no feeder. `library.setPublic` and `library.delete` leave cards as they were. No rule lets a member enter. Not reviewed by a fresh agent.
+Articles, ATProto records and Hacker News items have no feeder. `library.setPublic` and `library.delete` leave cards as they were. No rule lets a member enter.
+
+### After its fresh review, 2026-10-10 10:05 CEST
+
+FIX, seven findings, all held against the source; the record is `knowledge-vectors.md`, "After the review". `brain-x-knowledge` `8aae9e661b15`, `brain-x-library` `8648967fa482`.
+
+- `libraryCards` reads the file block by block from the top. A regex over the whole file had made a card for `@user/module-name`, a tag quoted in a wiki page; the entry is deleted from cb4.
+- A put of a notebook that is not public sends its cards with `unlessPublic`, and `knowledge.put` leaves a public entry whole (`skipped` in its answer). Before, the card stayed public and took the private copy's words and address. On cb4 that held for four seconds at 07:37:49 UTC, when no member had a grant.
+- A card takes the first prose cell that says something once its headings are removed: 16 of 100 cards on cb4 were cell names alone, now 3 of 99.
+- The cost adds up from the log lines: $0.01175 to the owner for 235 texts, where $0.008 was written.
+- The index after: 172 entries, 172 vectors, 99 modules (72 public). The seven questions: the wanted module first in five, where it was six.
+- Tests, forced from a side module: knowledge and library, 14 of 14. The fixes are not reviewed again.

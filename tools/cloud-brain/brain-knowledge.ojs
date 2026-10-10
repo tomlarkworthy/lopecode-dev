@@ -43,6 +43,8 @@ md`## Methods
 | \`by\`, \`at\` | who entered it and when. Set here from the caller the core names (\`owner\`, \`token:NAME\`, \`worker:brain-x-NAME\`, a DID); a value in the body is not read. |
 | \`changed\` | \`null\`, or \`{ by, method, at }\` of the last put after the first. Its \`method\` is the one that put gave, \`null\` when it gave none. |
 
+With \`unlessPublic: true\`, an entry whose kept copy is public is left as it is and counted in the answer's \`skipped\`; \`brain-x-library\` sends it with the cards of a notebook that is not public, so that a card anyone reads is not written over from a file they cannot open.
+
 A put of an id that is kept changes the entry. \`by\`, \`method\` and \`at\` stay as first entered. A field left out, or \`null\`, keeps its value. An empty text clears \`text\`, \`url\`, \`source\`, \`published\`, \`file\` or \`sha256\`; \`title\` and \`method\` cannot be cleared. \`tags\` and \`cites\` are only added to: those given are joined with those kept, and the way to remove one is to delete the entry and put it again.
 
 \`\`\`js
@@ -61,6 +63,7 @@ Every entry is in one table and one index. Each has an owner: \`public\`, the Br
 - Every entry from before 2026-10-10 is the Brain's and private, the kept papers among them. The owner makes one public with a put of \`{ id, public: true }\`.
 - The Brain changes and deletes any entry. A person changes and deletes what they entered, and enters only when the owner grants them \`knowledge.put\`.
 - \`knowledge.stats\` counts every entry and is the owner's.
+- A put says whether an id is taken. A person granted \`knowledge.put\` who puts an id that another entered is answered 403 \`was entered by another\`, where \`knowledge.get\` of the same id answers them 404. One thing has one id, so the put cannot enter a second; ids such as \`arxiv:2610.08077\` can be guessed. No person holds the grant on 2026-10-10.
 
 ## Search by meaning
 
@@ -311,9 +314,12 @@ knowledgeApp = {
     for (const r of got) if (r.rows[0]) (rows.set(r.rows[0].id, r.rows[0]), was.set(r.rows[0].id, view(r.rows[0])));
     for (const r of rows.values()) if (!(await changes(r, tenant))) return fail(c, 403, "Forbidden", `${r.id.slice(0, 40)} was entered by another`);
     const entries = [], seen = new Map();
+    let skipped = 0;
     for (const [i, e] of given.entries()) {
       // The same id twice in one call: the second is a change of the first.
       const kept = seen.get(first[i]) || was.get(first[i]) || null, old = rows.get(first[i]);
+      // unlessPublic: what anyone reads is not written over by a copy that not everyone may read.
+      if (e.unlessPublic === true && kept && kept.public) { skipped++; continue; }
       const r = await knowledgeEntry({ ...e, id: first[i] }, kept);
       if (r.error) return fail(c, 400, "InvalidRequest", `entry ${i + 1}: ${r.error}`);
       // A private entry is its first enterer's.
@@ -327,10 +333,10 @@ knowledgeApp = {
     const row = (e) => [S.put, e.id, e.kind, e.title, e.text, e.url, e.source, e.published, e.file, e.sha256, by, e.method, now, JSON.stringify(e.cites), JSON.stringify(e.tags), e.said, e.owner, e.vid];
     // One transaction for each 20 entries: the full-text row goes, the entry is written, its full-text row is made again.
     for (let i = 0; i < entries.length; i += 20) await run(entries.slice(i, i + 20).flatMap((e) => [[S.ftsDrop, e.id], row(e), [S.ftsAdd, e.id]]));
-    const ids = [...new Set(first)], changed = ids.filter((id) => was.has(id)).length;
+    const ids = [...new Set(entries.map((e) => e.id))], changed = ids.filter((id) => was.has(id)).length;
     // The last entry of each id is the one kept, and the one a vector is made for.
     const last = [...new Map(entries.map((e) => [e.id, e])).values()];
-    return c.json({ entered: ids.length - changed, changed, ids, vectors: await index(last.filter((e) => !e.vid)) });
+    return c.json({ entered: ids.length - changed, changed, ids, vectors: await index(last.filter((e) => !e.vid)), ...(skipped ? { skipped } : {}) });
   });
   app.get(NS + "get", async (c) => {
     const id = c.req.query("id") || "";
@@ -594,6 +600,15 @@ test_knowledge_search_by_meaning_answers_what_the_caller_reads = {
   // An answer says where an entry is, not what it says.
   const first = (await o.get("search", { semantic: "true", q, kind: "module" })).data.entries[0];
   expect(["text" in first, first.score > 0.5, first.url, first.title, first.public]).toEqual([false, true, "https://brain.example/library/fx", "Leased containers", true]);
+  // The same module from a notebook that is not public: the public card is left whole, and a new one is entered private.
+  const copy = { kind: "module", title: "Leased containers, private copy", text: "what the private notebook says", url: "https://brain.example/library/secret", method: "library.put", unlessPublic: true };
+  const bought = rig.asked.length;
+  expect((await o.post("put", { entries: [{ ...copy, id: "module:fx:containers" }, { ...copy, id: "module:fx:new" }] })).data).toEqual({ entered: 1, changed: 0, ids: ["module:fx:new"], vectors: 1, skipped: 1 });
+  const [kept, made] = [(await rig.member.get("get", { id: "module:fx:containers" })).data, (await o.get("get", { id: "module:fx:new" })).data];
+  expect([kept.title, kept.text, kept.url, kept.changed, made.public, (await rig.member.get("get", { id: "module:fx:new" })).status, rig.asked.length - bought]).toEqual(["Leased containers", "run code in a linux container", "https://brain.example/library/fx", null, false, 404, 1]);
+  // The other way round, a public notebook put after a private one: the card becomes public with the public copy's words.
+  expect((await o.post("put", { ...copy, id: "module:fx:new", title: "Public copy", url: "https://brain.example/library/fx", unlessPublic: undefined, public: true })).data).toMatchObject({ changed: 1, vectors: 1 });
+  expect((await rig.member.get("get", { id: "module:fx:new" })).data).toMatchObject({ title: "Public copy", url: "https://brain.example/library/fx", public: true });
   return "3 callers, 1 public entry";
 }
 // %%
