@@ -58,6 +58,10 @@ both halves (a record 60 s older than the deploy is not sent, one 60 s newer is 
 
 ### The three entries with `at: 0`
 
+They are the three Workers the loop has deployed. Step 10 of the implementer brief runs `saw <worker>`
+after `apply`: `apply` had written the time, and `saw` then wrote 0 over it. That step now writes
+`deployedAt` and needs no change.
+
 `saw brain-x-bluesky brain-x-browser brain-x-issues`, run in the worktree with the changed
 `brain.ts` after the listing showed no `MOVED` for them. The hashes are the same; `at` is now
 1791658197500, 1791658336105 and 1791657425818, the `deployedAt` of each.
