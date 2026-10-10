@@ -24,7 +24,7 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
    number plus one, and it goes in every key you write this time.
    **Then work in a worktree of your own**, because another writer may be working at the same
    time and `build.ts` in the main checkout rewrites the notebook every agent reads:
-   `W=$(tools/cloud-brain/worktree.sh <id>)`. Steps 5 to 8 happen in `$W`. Tools that read the
+   `W=$(tools/cloud-brain/worktree.sh <id>)`. Steps 5 to 9 happen in `$W`. Tools that read the
    cluster (`brain.ts`, `issue-as.sh`) are always run from the main checkout by absolute path.
    `git status` fails in the worktree (the submodules are links); `git diff`, `git add <file>`
    and `git commit` work.
@@ -60,40 +60,52 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
    the message), or put a `try/catch` round the test body for that run and take it out again.
    In the worktree the notebook is `$W/tools/cloud-brain/.emitted/cloud-brain.html`. When the
    tests pass there, commit the seed in the worktree (`git add` the files, `git commit`).
-
-   **Land it. One writer lands at a time; steps 9 to 12 are in the main checkout.**
-   - Take the landing lock: `mkdir <root>/tools/cloud-brain/.emitted/land.lock`. If it exists,
-     another writer is landing: wait with a background command
-     (`until mkdir …/land.lock 2>/dev/null; do sleep 20; done`, `run_in_background`; a foreground
-     `sleep` is blocked) and carry on when it returns. Do not remove a lock you did not make.
-   - `git -C <root> cherry-pick bm/<id>`. A conflict means another writer changed the same lines:
-     resolve it in the seed, never in the notebook, then build and test again.
-   - `bun tools/cloud-brain/build.ts` in the main checkout, and step 8 again on
-     `lopebooks/notebooks/@tomlarkworthy_cloud-brain.html`. That run's count is the one you submit.
-   - After the push in step 12: `rmdir …/land.lock`, then `tools/cloud-brain/worktree.sh --remove <id>`.
-     If you stop for any reason while holding the lock, remove it first and say so in your report.
-9. **Emit** in that tab, then close it by name:
-   `fetch("http://127.0.0.1:47814/<worker>.json", { method: "POST", body: JSON.stringify(await (await mod.value("<name>_service")).emit()) })`.
-   Each `eval_code` is its own scope: repeat the two lines that find `rt` and `mod`. The file is
-   named for the Worker and the cell for the service: for the tracker, `brain-x-issues.json` from
-   `issues_service`. Apply the file you just posted; an older `issues.json` in `.emitted/` is refused.
-   If nothing listens on 47814, start `bun tools/cloud-brain/test-receiver.ts` in the background.
-10. **Deploy under the deploy lock** (`cb4.lock`, inside the landing lock), with a reason that names the issue:
-    `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts apply <worker>.json --reason="<id>: …"`.
-    Then `redistil` (the Worker's line reads `same`), `saw <worker>`, and for the tracker
-    `curl "/xrpc/com.lopecode.brain.issue.verify?guards=true" --owner` (a read).
-11. **Check it where it runs**, when that needs no owner act: one call that shows the new
-    behaviour on cb4. When it needs one (`issue.rebuild`, `issue.install`, a move the workflow
+9. **Make it ready to land, still in the worktree and with no lock.** Since 2026-10-10 19:33 the
+   lock covers the deploy and the push only; before that the second test run, the emit and the
+   record were inside it and writers queued (Tom: "Issue completetion is bottlneck").
+   - **Record it** in a file of the issue's own, `tools/cloud-brain/records/<id>.md` (follow
+     `.claude/skills/document/SKILL.md`): what changed, the test count, what was not tried. A
+     second round adds a dated section to the same file. Every time in it is read from
+     `git log --format=%ci`, an event's `at` or `date`, never estimated. Not `spec-as-built.md`:
+     every writer appended there and the cherry-picks met. The deploy hash and the commits are
+     the refs of the submit, not part of the record. Commit it with the seed.
+   - **Bring the worktree up to `main`:** `git -C $W rebase main`, then `tools/cloud-brain/worktree.sh <id>`
+     again (it puts the submodule links back if the rebase removed them). A conflict means
+     another writer changed the same lines: resolve it in the seed, never in the notebook.
+   - **If the rebase brought in anything**, build and run step 8 again in the worktree. The count
+     you submit is the last run on the tip you land.
+   - **Emit** in that tab, to a file named for the issue, then close the tab by name:
+     `fetch("http://127.0.0.1:47814/<id>-<worker>.json", { method: "POST", body: JSON.stringify(await (await mod.value("<name>_service")).emit()) })`.
+     Each `eval_code` is its own scope: repeat the two lines that find `rt` and `mod`. The cell
+     is named for the service: for the tracker, `issues_service`, Worker `brain-x-issues`.
+     If nothing listens on 47814, start `bun tools/cloud-brain/test-receiver.ts` in the background.
+     A change with no deploy (a doc, a test, a local tool) emits nothing.
+10. **Land it. One writer lands at a time, in the main checkout.** Note `date` when you take the
+    lock and when you remove it, and put both in your report.
+    - Take the landing lock: `mkdir <root>/tools/cloud-brain/.emitted/land.lock`. If it exists,
+      another writer is landing: wait with a background command
+      (`until mkdir …/land.lock 2>/dev/null; do sleep 20; done`, `run_in_background`; a foreground
+      `sleep` is blocked) and carry on when it returns. Do not remove a lock you did not make.
+    - `git -C <root> merge-base --is-ancestor main bm/<id>`. If it fails, `main` moved while you
+      waited and what you emitted is not built on it: `rmdir` the lock, go back to step 9's
+      rebase, and come back. Never apply a file emitted before the last rebase; it would deploy
+      the Worker without the other writer's change.
+    - `git -C <root> merge --ff-only bm/<id>`, then `bun tools/cloud-brain/build.ts` there (2 s).
+      The tests are not run again: the seeds are the ones you tested.
+    - Deploy under the deploy lock (`cb4.lock`, inside the landing lock), with a reason that names the issue:
+      `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts apply <id>-<worker>.json --reason="<id>: …"`.
+      Then `redistil` (the Worker's line reads `same`), `saw <worker>`, and for the tracker
+      `curl "/xrpc/com.lopecode.brain.issue.verify?guards=true" --owner` (a read).
+    - Commit `lopebooks` first (its hook may rewrite the `.json` beside the notebook; stage that
+      and commit again), then `seen.json` in `lopecode-dev`. Push both.
+    - `rmdir …/land.lock`, then `tools/cloud-brain/worktree.sh --remove <id>`.
+      If you stop for any reason while holding the lock, remove it first and say so in your report.
+11. **Check it where it runs**, after the lock is gone, when that needs no owner act: one call
+    that shows the new behaviour on cb4. When it needs one (`issue.rebuild`, `issue.install`, a move the workflow
     keeps for the owner, anything the Never list of the rules names), send no call, with any
     token: a refusal is still a forbidden call. Write "not run on cb4: needs the owner present"
-    in the comment and in the record, with the call the owner would make.
-12. **Record it.** A dated section in `tools/cloud-brain/spec-as-built.md` (follow
-    `.claude/skills/document/SKILL.md`): what changed, the test count, the hash, what was not
-    tried. Every time in it is read from `git log --format=%ci`, an event's `at` or `date`,
-    never estimated. Commit `lopebooks` first (its hook may rewrite the `.json` beside the notebook;
-    stage that and commit again), then `lopecode-dev` with the seed, `seen.json`, the record.
-    Push both.
-13. **Say it on the issue, then submit.**
+    in the comment, with the call the owner would make.
+12. **Say it on the issue, then submit.**
     `ia comment` with the fix, the test count and what was not tried, then
     `ia move '{"key":"impl/<id>/submit-<round>","id":"<id>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha>"},{"kind":"commit","value":"lopebooks@<sha>"},{"kind":"deploy","value":"<worker>@<hash>"}]}'`.
     A key used before answers 200 with `duplicate: true` and moves nothing: read the issue

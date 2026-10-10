@@ -47,8 +47,9 @@ You change no source, build nothing and deploy nothing. You write to the tracker
 5. **Probe.** Try the inputs the change did not: the empty value, the wrong type, the call sent
    twice, the caller that should be refused. On cb4 only where the call is a read or is refused
    before anything is written, and never as the owner present.
-6. **Read the record.** The section added to `spec-as-built.md` says what changed, the test
-   count, the hash and what was not tried, and each of those is true.
+6. **Read the record.** `tools/cloud-brain/records/<id>.md` (a section of `spec-as-built.md` for
+   an issue submitted before 2026-10-10 19:33) says what changed, the test count and what was not
+   tried, and each of those is true. The hash and the commits are the refs of the submit.
 7. **Record the verdict.**
    `ir review '{"key":"rev/<id>/<round>","id":"<id>","verdict":"pass|changes|block","body":"…"}'`.
    The body lists each finding with the command that shows it, then what you ran and what you did
