@@ -35,7 +35,7 @@ A member gives the short name or the full one. A name on Cloudflare is at most 4
 Artifacts has no public repositories: a clone with no token is refused (tried 2026-10-10). So the owner names the ones anyone may read, and this Brain passes a clone or a fetch of those on:
 
 \`\`\`sh
-# the owner, once, no deploy: config.set { worker: "brain-x-git", key: "public", value: ["cloud-brain-dev"] }
+# the owner, once, no deploy: config.set { worker: "brain-x-git", key: "public", value: "cloud-brain-dev" }   (text: names with a comma between them)
 git clone https://BRAIN/git/cloud-brain-dev.git
 \`\`\`
 
@@ -104,7 +104,7 @@ git_service = cloudflare.Service(
       // A clone or a fetch, by anyone, of a repository the owner named in config.public. Reading only.
       const m = /^\/git\/([a-z0-9][a-z0-9._-]{0,39})\.git\/(info\/refs|git-upload-pack)$/.exec(url.pathname);
       const refs = m && m[2] === "info/refs";
-      if (!m || !(Array.isArray(config.public) ? config.public : []).includes(m[1]) || request.method !== (refs ? "GET" : "POST") || (refs && q.get("service") !== "git-upload-pack"))
+      if (!m || !String(config.public || "").split(",").includes(m[1]) || request.method !== (refs ? "GET" : "POST") || (refs && q.get("service") !== "git-upload-pack"))
         return refuse(404, "NotFound", "a repository anyone may read is cloned from /git/NAME.git");
       const to = await gitRead("/artifacts/namespaces/" + config.base, m[1], api);
       if (!to) return refuse(502, "UpstreamFailure", "Cloudflare did not give the repository");
@@ -248,7 +248,7 @@ test_anyone_clones_a_repository_the_owner_named_and_no_other = {
   const seen = [];
   const sim = await simulate(git_service, {
     secrets: { CF_TOKEN: "minted-1", BRAIN_KEY: "k" },
-    config: { base: "cb4", account: "acct", public: ["open"] },
+    config: { base: "cb4", account: "acct", public: "other,open" },
     fetch: async (request) => {
       const url = new URL(request.url);
       seen.push([request.method, url.host + url.pathname + url.search, request.headers.get("authorization"), request.headers.get("git-protocol"), request.method === "POST" && url.host !== "api.cloudflare.com" ? await request.text() : null]);

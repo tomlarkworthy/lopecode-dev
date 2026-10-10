@@ -168,3 +168,50 @@ service modules should be git ignored (not the shared)."
   service file could lose its ignore line; the report's hash was the deployed one for an edited file.
   After: 284 passed, 0 failed, 27 need a browser; with two modules broken on purpose, 280 and 2,
   exit code 1, and the 20 other services reported.
+
+## A repository anyone can clone, through the Brain (2026-10-10 22:55 CEST)
+
+Tom: "can we make the cloudflare artifact public or something so we can avoid breaking public
+checkouts?" Artifacts has no public repositories: its authentication page names none, and
+
+```
+$ git clone https://<account>.artifacts.cloudflare.net/git/cb4/cloud-brain-dev.git
+fatal: could not read Username for 'https://<account>.artifacts.cloudflare.net'
+```
+
+So `brain-git` declares the path `/git/*` for anyone and sends on two requests,
+`/git/NAME.git/info/refs?service=git-upload-pack` and `/git/NAME.git/git-upload-pack`, for a
+repository named in its setting `public` (text, names with a comma between them), with a read
+token it asks Cloudflare for and keeps in memory. Deployed `5d1acb6a4296`; tests 5 of 5 in a
+browser and under `cloud-brain-dev/test.ts --with`.
+
+```
+config.set { worker: "brain-x-git", key: "public", value: "cloud-brain-dev" }    made with the owner's session
+git clone https://cb4.endpointservices.workers.dev/git/cloud-brain-dev.git       1.8 s, no token
+git ls-remote …/git/deploy.git                                                   not found (not named)
+git push (to the Brain's address)                                                not found
+```
+
+`.gitmodules` now holds the Brain's address, so the account id is no longer in it. A push goes to
+Cloudflare's address (`remote.origin.pushurl` in the local submodule) with a write token.
+
+Rejected: a mirror on GitHub (a second copy to keep in step, and the reason for this service was
+not to depend on GitHub); a read token of 365 days in the URL (a secret in a public file).
+
+Costs and limits: this traffic passes the Brain, three Workers a request (kernel, core, service);
+anyone's clone costs the owner Cloudflare's operations and nobody is charged; a token is kept an
+isolate, so several isolates ask for one each; no rate limit of its own. Not measured: a clone of
+a large repository through the Brain.
+
+First deploy `d9ad71f0868b` read the setting as a list; `config.set` takes text only (400), so
+the second reads text.
+
+**What went wrong on the way.** In the worktree I ran `git commit -a`, which the worktree script
+and the implementer brief both forbid: it recorded the worktree's symlinks `lopebooks` and
+`lopecode` in place of the submodules. The fast-forward in the main checkout at 22:41 then replaced
+both submodule directories with links to themselves. Under `land.lock`, before any push: the links
+removed, each working tree made again from its own index (`checkout-index -a`, 0 changed after),
+and the commit amended to hold the gitlinks. The submodules' git directories were not touched.
+Lost: any file in those two directories that was untracked or changed and not staged at 22:41.
+`git status` at the start of this session listed neither submodule as changed; what another
+session had there at 22:41 is not known.

@@ -24,7 +24,7 @@ kept in step with the code.
 | The notebook (canonical, built, do not hand-edit) | `lopebooks/notebooks/@tomlarkworthy_cloud-brain.html` |
 | Its source: one seed per module, cells split by `// %%` | `tools/cloud-brain/*.ojs` |
 | As-built record, full and short | `tools/cloud-brain/spec-as-built.md`, `spec-as-built-short.md` |
-| `cloud-brain-dev/`: a submodule, a repository kept by the Brain's `git` service (started 2026-10-10, no history). `bun sync.ts https://cb4.endpointservices.workers.dev` reads what the Brain runs into `deploy/` by import path (about 1 s; shared modules committed, a service's module git-ignored). `bun test.ts brain-x-NAME` runs that service's tests with no browser and prints a JSON report with the hash; `--with FILE` runs a module that is not deployed yet in its place, as a check before a deploy; `bun all.ts` every service (19 s). It cannot send a change back | `cloud-brain-dev/README.md`. To fetch or push it: `git.token?name=cloud-brain-dev` and `git -c http.extraHeader="Authorization: Bearer $T"`; a plain `git submodule update` is refused |
+| `cloud-brain-dev/`: a submodule, a repository kept by the Brain's `git` service (started 2026-10-10, no history). `bun sync.ts https://cb4.endpointservices.workers.dev` reads what the Brain runs into `deploy/` by import path (about 1 s; shared modules committed, a service's module git-ignored). `bun test.ts brain-x-NAME` runs that service's tests with no browser and prints a JSON report with the hash; `--with FILE` runs a module that is not deployed yet in its place, as a check before a deploy; `bun all.ts` every service (19 s). It cannot send a change back | `cloud-brain-dev/README.md`. Its URL is the Brain's (`/git/cloud-brain-dev.git`, read by anyone, since 2026-10-10 22:55), so `git submodule update --init cloud-brain-dev` needs no token. A push goes to Cloudflare's address (`remote.origin.pushurl`, from `git.get`) with a token from `git.token?…&scope=write` in `git -c http.extraHeader="Authorization: Bearer $T"` |
 | Records of fixes made by the issue loop since 2026-10-10 19:33, one file an issue | `tools/cloud-brain/records/<id>.md` |
 | Operating guide | `tools/cloud-brain/running-a-cloud-brain.md` |
 | Backlog, open decisions, inventories | `plan/cloud-brain-backlog.md` |
@@ -58,7 +58,7 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
   about the Brain's work, with the workflow as CEL guards installed as data: `issue.open`, `issue.move`, `issue.list`,
   `issue.verify?guards=true`; design and amendments in `plan/cloud-brain-issues.md`), git (repositories kept by Cloudflare Artifacts:
   `git.create?name=`, `git.token?name=&scope=&seconds=`, then plain `git` against Cloudflare's address with the token; a member's
-  repository is their own; record in `tools/cloud-brain/records/brain-git.md`). `<base>-x-page` is built from
+  repository is their own; a repository the owner names in the setting `public` of `brain-x-git` is cloned by anyone from `/git/NAME.git`; record in `tools/cloud-brain/records/brain-git.md`). `<base>-x-page` is built from
   `@tomlarkworthy/cloud-brain`. `brain-secrets` is a module of the page, not a Worker.
 - **Database** (`<base>-db`): the rows every Worker keeps go through it.
 - **Deployer** (`<base>-deployer`): the only holder of a Cloudflare token. It applies recipes,
