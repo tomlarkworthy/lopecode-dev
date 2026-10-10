@@ -3807,6 +3807,12 @@ A hidden tab does not poll.
 - `issue.sync` reads every issue on a poll that brings events, and `issue.list` and `issue.snapshot` always do.
 - `issue.rebuild` clears the view and writes it in batches of 300 rows; a write between two batches is not in the view
   until the next rebuild.
+  (Done 18:57 CEST for a view of up to 297 rows, in "a write made while `issue.rebuild` runs is in the view it leaves"
+  below, `brain-x-issues` `dc156a413135`: the rebuild's last transaction reads the head and writes the rows of the events
+  that arrived meanwhile. Run in the test rig only, never on cb4. Not closed, listed there under "What it does not
+  close": past 297 rows a call between two of the transactions is answered from part of the view; and an append that
+  read its row before the rebuild and commits after it. The first was filed as `rebuild-partial-view-past-297` and
+  rejected at 19:24 CEST, event 190: read from the code, never run, and the record had under 200 events.)
 - `issue.verify?guards=true` reads the whole record in one call.
 - A guard cannot be dry-run: nothing lists the issues a new policy would strand before it is installed.
 - The last events of the record removed, or a whole record rewritten with the key, is not shown by anything.
