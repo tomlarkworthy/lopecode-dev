@@ -55,7 +55,9 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
   `ai.run?model=&usd=`, where `usd` is charged whole; `ai.models` is Cloudflare's list; an OpenAI client's base URL is
   `/xrpc/com.lopecode.brain.ai.v1`, its key a Brain token, $0.01 a call with no `usd`), issues (a signed record of events
   about the Brain's work, with the workflow as CEL guards installed as data: `issue.open`, `issue.move`, `issue.list`,
-  `issue.verify?guards=true`; design and amendments in `plan/cloud-brain-issues.md`). `<base>-x-page` is built from
+  `issue.verify?guards=true`; design and amendments in `plan/cloud-brain-issues.md`), git (repositories kept by Cloudflare Artifacts:
+  `git.create?name=`, `git.token?name=&scope=&seconds=`, then plain `git` against Cloudflare's address with the token; a member's
+  repository is their own; record in `tools/cloud-brain/records/brain-git.md`). `<base>-x-page` is built from
   `@tomlarkworthy/cloud-brain`. `brain-secrets` is a module of the page, not a Worker.
 - **Database** (`<base>-db`): the rows every Worker keeps go through it.
 - **Deployer** (`<base>-deployer`): the only holder of a Cloudflare token. It applies recipes,
@@ -96,6 +98,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts <command>
 | `redistil` | Compare each Worker with its source. Healthy is every line `same`. |
 | `apply <name>.json --reason="why"` | Deploy a recipe, signed with the recovery key. Since 2026-10-09 the deployer answers 400 without `--reason=` (3 to 300 characters) and logs it as `deploy.reason`; the same for `redistil --apply`, `remove` and `rollback`. |
 | `saw [name…]` | `tools/cloud-brain/seen.json`, committed with the seeds: the hash each seed is built on. `apply` and `remove` send it as `was`. A refusal has one of three causes, and the message says which. The Worker has no entry (13 of cb4's 19 on 2026-10-10 21:13): nothing was applied to it from this checkout, and the seed may be ahead of what runs or behind it. Compare `getSource?worker=NAME` (public, no `--owner`) with `source.text` of the emitted record; when every difference is this checkout's change, `saw NAME` and apply the same record. The Worker changed somewhere this checkout has not merged: merge its source into the seed, build, emit, then `saw NAME`. The record was emitted before the Worker last changed: build and emit again. `saw NAME` writes the hash that runs with the time it was deployed. Commit `seen.json` with the seed (2026-10-10, after a kernel deployed from elsewhere was replaced; `records/seen-json-6-of-19-workers.md`). |
+| `bun tools/cloud-brain/deploy-sync.ts <dir>` (not a `brain.ts` command) | What the Brain runs, as a directory laid out by import path with a `manifest.json`. Two public reads, no key. |
 | `page up` / `page state` / `page down` | The Brain's page in a browser of the cluster (below). |
 
 **An agent writes with a token, not with `--owner`.** A session minted from the state file is the

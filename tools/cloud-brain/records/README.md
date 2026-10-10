@@ -6,5 +6,5 @@ what was not tried. The deploy hash and the commits are the refs of the issue's 
 tracker (`issue.get?id=`).
 
 Since 2026-10-10 19:33 CEST. Before that each writer added a section to `spec-as-built.md`, and two
-writers landing together both changed the end of that file. Work done outside the loop is still
-recorded in `spec-as-built.md`.
+writers landing together both changed the end of that file. Work done outside the loop is recorded in
+`spec-as-built.md`, or here under the name of what was built (`brain-git.md`).
