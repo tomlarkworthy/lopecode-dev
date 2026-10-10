@@ -1,9 +1,9 @@
 # Cloud Brain: one record for delegated authority
 
-A design, not built. Written 2026-10-10 for Tom to review before anything is changed; sixth draft,
-after five fresh reviews (see *Review* at the end). A statement about the present code names the
-line it was read at where one line holds it, found by a search for the text on 2026-10-10 between
-09:41 and 09:56 CEST. Another session edits the same seeds, so the lines will move. Nothing here was run on a Brain except three reads of
+A design, not built. Written 2026-10-10 for Tom to review before anything is changed; seventh draft,
+after six fresh reviews (see *Review* at the end). A statement about the present code names the
+line it was read at where one line holds it, found by a search for the text on 2026-10-10. Each draft
+read the tree of its own commit, 09:43 to 10:30 CEST, and each reviewer printed every cited line. Another session edits the same seeds, so the lines will move. Nothing here was run on a Brain except three reads of
 cb4 that are marked.
 
 ## What was asked
@@ -197,8 +197,14 @@ x-brain-tab             tab, sent with every forwarded call
 callerOf(who).session   who.caller is "owner" and who.tab. A service that builds a caller from headers
                         (brain-db.ojs:357, :405) passes x-brain-tab. With no tab given: via == "session", as now.
 the core's session guard (C:314)    the caller is "owner" and tab. So a delegation with the cap passes it.
-the guard of delegation.create      the via is "session" itself, for the owner or a member. The cap does not pass.
-``` So the cap `session` means one thing everywhere: this holder is the
+the guard of delegation.create      the via is "session" itself, for the owner or a member; or the call is
+                                    under a delegation with the cap "delegate". The cap "session" does not pass.
+the kernel's own tests of the via   unchanged: its session guard (K:308), epoch (K:382), portal.token (K:639)
+                                    and the minting of turns at inbox.poll (K:680) stay on via == "session".
+                                    A delegation with the cap "session" is not handed turns.
+```
+
+So the cap `session` means one thing everywhere: this holder is the
 owner's own tab. It is what `unattended` is now, and the page should say it in those words.
 
 **What this changes for a token made today** (row 5). Now `caller` is `token:NAME`. After, it is
@@ -302,8 +308,8 @@ bounds nothing, as nothing bounds it now.
 
 `delegation.create { name, holder, scope, caps, until, daily, note }`, called by the owner or a
 member in their own session: the via the kernel sends is `session`. The core's guard for it is new,
-"a session of the owner or of a member", by the via and not by `tab`; a delegation with the cap
-`session` does not pass this new guard. (Such a holder can still open the owner's
+"a session of the owner or of a member, or a delegation with the cap `delegate`", by the via and not
+by `tab`; a delegation with the cap `session` does not pass this new guard. (Such a holder can still open the owner's
 browser and call from the page there, as said under *Scope*.) It answers the record, and for a secret holder the
 secret, once. `delegation.create`, `list` and `revoke` join the `MEMBER` list (K:199).
 
@@ -314,12 +320,14 @@ secret, once. `delegation.create`, `list` and `revoke` join the `MEMBER` list (K
   core refuses `delegation.create` from a keyed Worker whatever its origin. A subscription is two
   calls by the subscriber: `delegation.create` naming `worker:brain-x-topic` and the target, then
   `topic.subscribe` with the id. The page does both behind one button.
-- **A Worker holder is a system Worker, or a Worker whose author is `from`.** A delegation names a
-  Worker and not its code, so whoever can deploy that Worker gets what it holds. A system Worker is
-  deployed by the owner; a member's own Worker by that member. A delegation from one member to
-  another member's Worker is refused. The alternative is to bind to the Worker's hash, so a deploy
-  ends every delegation it holds and each subscriber makes theirs again; kept for the day
-  cross-member delegation is wanted.
+- **A Worker holder is a system Worker.** A delegation names a Worker and not its code, so whoever
+  can deploy that Worker gets what it holds, and a system Worker is deployed by the owner. A member's
+  Worker is not a holder: for its own author it has no need, since it already runs as its author
+  (row 10), and three stores read its name from the via to give it its table prefix and its stamp
+  (`brain-db.ojs:508`, `brain-blob.ojs:194`, `brain-static.ojs:122`), which a delegation's via would
+  take away. For another member it would hand that member's authority to whoever deploys it. The
+  alternative is to bind a delegation to the Worker's hash and carry the holder in a header of its
+  own; kept for the day a member's Worker must act for someone else.
 
 ### A delegation made under a delegation
 
@@ -364,7 +372,7 @@ The signed context (C:155) gains two fields:
   holder says where it is: `x-brain-hops: n`, and the core signs `h = n + 1` and refuses over 8.
   The core sends `x-brain-hops` in clear with each call it forwards, so `brain-x-topic` stores it
   with an entry and sends it back on the push. A holder that lies about `n` can loop; it is a
-  system Worker or the principal's own, and what bounds it is the allowance.
+  system Worker, and what bounds it is the allowance.
 
 A Worker answering a delegated call does not get the delegation's scope. What it may call is its own
 `calls`. That holds where `calls/mode` is `enforce`, as on cb4; the constant in the seed is `report`
@@ -438,9 +446,9 @@ The core's line (C:208) gains `delegation` and `holder`. `caller` is the princip
 | 2 turn | | unchanged in mechanism: signed, 10 minutes, no row. Described as a delegation from the sender to the owner's tab; its room cap stays in the kernel. |
 | 3 portal | | unchanged. |
 | 4 PDS JWT | | unchanged. It is the principal. |
-| 5 owner's token | `token/<sha>` | a delegation from `owner`, holder a secret, `daily: 0.10` |
+| 5 owner's token | `token/<sha>` | a delegation from `owner`, holder a secret, `daily` the allowance a token has when it is made (`quota/defaults`, $0.10 unless the owner set it; C:583, C:587) |
 | 6 link | `link/<sha>` | unchanged: a code that makes a delegation once |
-| 7 link's token | flags `deploy`, `unattended` | a delegation with `until`; `deploy` is the cap; `unattended` is the caps `deploy`, `unattended`, `session`, and `daily: null` |
+| 7 link's token | flags `deploy`, `unattended` | a delegation with `until` and `daily` as row 5; `deploy` is the cap; `unattended` is the caps `deploy`, `unattended`, `session`, and `daily: null` |
 | 8 grant | `grant/<did>` | a delegation from `owner`, holder that DID, named `grant` |
 | 9 member | `member/<did>` | unchanged. Being a member is own authority, not a delegation. |
 | 10 member's Worker | implicit in `key/<hash>` | unchanged in mechanism. Described as a delegation from the author to the Worker. |
@@ -465,7 +473,7 @@ costs neither. The words of this document describe them; the code does not move.
 |---|---|
 | A writer to a topic makes the subscriber's calls | The push reaches one method, the one in the delegation's scope, and the appender's context is not sent. The body is the appender's: a `receive` method reads `entry.sender` and trusts nothing else in it. |
 | A secret is stolen | Only its hash is kept. Scope, `until`, `daily`. Every call it makes is logged under its id. `delegation.revoke` ends it within 5 s. |
-| A Worker is redeployed with other code | A Worker holder is a system Worker or the principal's own. Who can deploy a system Worker is the owner, or a delegation with `deploy`. |
+| A Worker is redeployed with other code | A Worker holder is a system Worker. Who can deploy one is the owner, or a delegation with `deploy`. |
 | A deploy delegation redeploys `brain-x-topic` and so holds every subscriber's delegation | True, and no worse than now: it can redeploy the core. `deploy` is the owner's authority over the Brain's code and is given as that. |
 | A Worker mints itself a delegation with a caller's context | `delegation.create` is refused from any keyed Worker. |
 | A delegation outlives the right it was made from | The principal's authority is read on each call. |
@@ -491,9 +499,13 @@ touched in any step.
    `person.methods.includes` call the first two. Browser, container, blob, static and db are
    deployed with the second two, which already count a via of `delegation:` as not the person's tab.
    The kernel adds `delegation` to `never()` (K:399). Nothing a caller sees changes; the tests that
-   exist pass as they are. **Step 2 is not deployed until `redistil` shows the kernel, the core, browser,
-   container, blob, static and db as built from this step**: a core that hands out `delegation:<id>` to a browser service that still
-   has the old test would key a Worker-held delegation's browser as the owner's.
+   exist pass as they are. **Step 2 is not deployed until each of the kernel, the core, browser,
+   container, blob, static and db runs the hash this step's build emitted for it** (`brain.ts state`
+   beside the hashes `apply` printed; `redistil` cannot show it, since it compares a Worker with the
+   source the deployer kept, and says `same` of one never redeployed), **and a test in each store
+   sends it a via of `delegation:x` and reads the keeper**: a core that hands out `delegation:<id>`
+   to a browser service that still has the old test would key a Worker-held delegation's browser as
+   the owner's.
 2. **The record, in the core, then the kernel.** The core first: `delegation.create`, `list`,
    `revoke`, `resolve`, with the guard for an owner's or a member's session. Then the kernel, with
    `delegation.create`, `list`, `revoke` in the `MEMBER` list; until it is deployed a member is
@@ -518,7 +530,9 @@ touched in any step.
 6. **Grants.** `grant.put` writes a delegation with a DID holder; `people.sync` carries members
    only. Last, because the kernel's gate (K:295-299), the room cap (K:292) and `asAuthor` (C:235)
    all read grants. cb4 has no grant.
-7. **`delegate`.** A delegation made under a delegation.
+7. **`delegate`.** A delegation made under a delegation. The core's guard of `delegation.create`
+   takes the cap, and the kernel's `never()` lets `delegation.create`, `list` and `revoke` through
+   for a holder that has it.
 
 Steps 1 and 2 change nothing a caller sees. Topics can be built on 2.
 
@@ -555,8 +569,8 @@ Steps 1 and 2 change nothing a caller sees. Topics can be built on 2.
 4. **A delegation made under a delegation** (step 7): wanted, or only a principal's own session
    makes one. Recommended: wanted, with `delegate` given by hand, since an agent cannot subscribe
    without it.
-5. **A Worker holder is a system Worker or the principal's own** (recommended). Or bind to the hash
-   and allow any.
+5. **A Worker holder is a system Worker** (recommended). Or bind to the hash, carry the holder in
+   its own header, and allow a member's.
 6. **`session` as a cap that means "the owner's own tab", and `*` not reaching a session method.**
    The first is what `unattended` does now, with its name said plainly: such a holder opens the
    owner's browsers and so has the owner's session. The second is narrower than now for a holder with `session` that has no
@@ -567,7 +581,7 @@ Steps 1 and 2 change nothing a caller sees. Topics can be built on 2.
 
 ## Review
 
-2026-10-10, five drafts, four fresh reviewers: BLOCK, BLOCK, BLOCK, FIX.
+2026-10-10, seven drafts, six fresh reviewers: BLOCK, BLOCK, BLOCK, FIX, FIX, BLOCK.
 
 The first found 13 things and the author six more: who pays was said two ways for a DID holder; the
 rules that name a token were undercounted and the rules that would open were not looked for;
@@ -609,5 +623,13 @@ fact, `tab`, that its guard, the header and `caller.session` all read. The rest:
 was given a delegation via in one place and none in another (it has none); "reads every blob" was
 written of a member's secret too; blob and static keeping their owner test; a seven that followed a
 list of five; two tests on log lines that go; two citations.
+
+The sixth: BLOCK, eight findings, every cited line right. The block was a sentence left on a closing
+code fence, which made everything below it one code block when rendered. In the design: the guard of
+`delegation.create` was stated without the cap `delegate` that step 7 needs; step 1's gate named
+`redistil`, which cannot show that a store was redeployed; a member's own Worker as a holder would
+have lost the table prefix three stores give it by the via, and it never needed to be one, so a
+Worker holder is now a system Worker only; the kernel's own tests of the via were not said to stay;
+and a plain link's token had no `daily`.
 
 This draft has not had a fresh review.
