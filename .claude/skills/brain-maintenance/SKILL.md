@@ -91,7 +91,7 @@ Two files beside it, neither of them needed to resume:
 ## Triage
 
 Done by you with `issues-implementer-2`, every `open` issue in a pass, and also while an agent
-runs: triage builds nothing. (Until 2026-10-10 18:50 it was one a pass and never beside an agent;
+runs: triage builds nothing. (Until 2026-10-10 18:43 it was one a pass and never beside an agent;
 five issues then sat `open` for two hours behind three reviews of one.) Read the issue and enough of the
 code to answer three questions, then write the answers as the `reason` of the move.
 
