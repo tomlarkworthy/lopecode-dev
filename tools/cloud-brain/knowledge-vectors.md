@@ -355,3 +355,106 @@ before they were run, about modules that had no card until today.
 - The 9 `.staging` notebooks and the 14 skipped ones are not reconciled with their published copies.
 - A changed notebook is not put again by anything. The script is run by hand.
 
+
+## The knowledge docs are entered (2026-10-10, 10:28 to 10:31 CEST)
+
+Tom, 2026-10-10, on what else to index: "yeah I think knowledge docs are quite useful as well". The 50
+files of `knowledge/*.md` in this checkout are entries of kind `doc`, id `doc:<file name>`, entered by
+`tools/cloud-brain/knowledge-docs.ts` through `knowledge.put`. No seed changed and nothing was deployed.
+
+```
+08:29:07 UTC  put --all   {"put":50,"public":38,"private":12,"entered":50,"changed":0,"vectors":50,"ms":4444}
+quota.get     spent 0.36555 -> 0.36805   (50 texts at 0.00005 = 0.0025)
+knowledge.stats before    473 entries, 473 vectors   -> 523 after
+```
+
+- **What is embedded:** the H1 as the title, then the frontmatter `topics:` line where a doc has one,
+  then the body from its top. The service embeds the first 1500 characters of title and text, and keeps
+  16000 characters of text for the search by words. One vector a doc, no chunks: the three largest docs
+  are 188 KB, 78 KB and 37 KB, and nothing past their opening is found by meaning.
+- **Where the entry points:** `url` is the file on GitHub
+  (`https://github.com/tomlarkworthy/lopecode-dev/blob/main/knowledge/<name>.md`) and `sha256` is of the
+  local file. The file is not copied into `brain-static`. Rejected: a copy under `knowledge-docs/`, as
+  the kept papers have. It would be a second copy to keep in step, and the repository is public
+  (`gh api repos/tomlarkworthy/lopecode-dev` answers `"visibility":"public"`, and the unauthenticated
+  API answers 200), so the address already serves the file. Cost: the address shows `main`, so between
+  an edit here and its push the entry's `sha256` is of a file the address does not yet serve.
+- **Who reads one:** `scope:` with `in-notebook` is public, 38 docs; those already ship inside the
+  public markdown-wiki notebook. `local-development` alone is the Brain's and private, 12 docs. The
+  private ones are still readable on GitHub by anyone with the address; private here means a member's
+  search does not answer them. Whether they should be public too is Tom's to say.
+- **Searchable** between 08:29:49 and 08:30:11 UTC, 38 to 64 s after the put.
+
+### A changed doc is not entered again
+
+Tom's rule for the module cards, the same morning: "I don't think we should auto reindex, but we should be able
+to tell its state with hash or something, and know how long it has been stale". The script has the same
+two halves, and the state is worked out on this machine from the entry's `sha256`:
+
+```
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status          # fresh / stale / missing, a line a doc
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --stale     # or --all, or names
+```
+
+`stale` gives how long: the time of the first commit after the last one whose file has the entry's
+`sha256`. When no commit has that file, or the change is not committed, it is the file's mtime, and the
+line says which. Checked at 08:29 UTC by putting the SHA-256 of the file two commits back on one entry:
+
+```
+stale    private working-with-cloud-brain-remote-lopecode-cluster stale 2.6 h (since 2026-10-10T05:50Z, commit 2c31dc6a)
+{"docs":50,"fresh":49,"stale":1,"missing":0,"entriesWithNoFile":[]}
+put --stale   {"put":1,"public":0,"private":1,"entered":0,"changed":1,"vectors":0,"ms":298}
+```
+
+`vectors: 0` because the text was the same; the quota did not move. A put of a doc whose text changed
+embeds it once, $0.00005. The entry's own `staleSince` field (added today for the module cards) is not
+set by this script: the Brain cannot see this checkout, so the state would be as old as the last run.
+
+### What a search answered, as the owner, `limit=3`, 08:30:17 UTC
+
+Six questions, written before the first search. `*` is a private entry, `m:` a module card.
+
+| question | `kind=doc` | no kind |
+|---|---|---|
+| how do I push a cell to ObservableHQ | `pushing-cells-to-observablehq` 0.798, `diagnosing-new-observable-platform-differences*` 0.707, `writing-cells-in-module-source` 0.668 | the same doc 0.798, `m:observablejs-reference` 0.724, `m:switch-dataflow*` 0.722 |
+| why is my notebook blank after export | `exporting-the-notebooks-writing` 0.681, `bulk-exporting-lopebooks` 0.655, `what-a-saved-notebook-opens` 0.646 | `exporting-the-notebooks-writing` 0.681, `m:blank-notebook` 0.670, `m:exporter-3` 0.657 |
+| how do file attachments work | `how-file-attachments-work` 0.768, `vendoring-npm-dependencies` 0.607, `keeping-user-state-in-the-saved-notebook` 0.588 | the same doc 0.768, `m:fileattachments` 0.688, `m:import-wizard-file` 0.659 |
+| pair Claude with a notebook | `live-collaboration-with-claude-code-pairing` 0.664, `development-of-pairing-channel-and-claude-plugin` 0.636, `designer-resources-for-notebooks*` 0.614 | the same two docs, `m:claude-code-browser*` 0.636 |
+| write a unit test in a notebook | `writing-unit-tests-in-a-notebook` 0.756, `exporting-the-notebooks-writing` 0.626, `keeping-user-state-in-the-saved-notebook` 0.625 | the same doc 0.756, `m:notebook-semantics*` 0.681, `m:tester*` 0.647 |
+| deploy a change to the Cloud Brain | `working-with-cloud-brain-remote-lopecode-cluster*` 0.709, `querying-and-maintaining-the-lopecode-structured-knowledgebase` 0.528, `maintaining-and-updating-lopecode-and-lopebook-content-repositories` 0.517 | the same doc 0.709, `m:cloud-brain-specs*` 0.704, `m:brain-deployer*` 0.673 |
+
+- The doc I had in mind is first in five of six. For "blank after export" it is third
+  (`what-a-saved-notebook-opens`); `exporting-the-notebooks-writing` is about exporting prose.
+- With no kind, the doc is first in all six and the next two are the modules the doc is about
+  (`fileattachments`, `exporter-3`, `brain-deployer`). In these six a question phrased as "how do I"
+  scored a doc above every module card, by 0.005 to 0.08.
+- I wrote the questions, from the docs' subjects. This is not a recall measure.
+
+### A member does not read a private doc
+
+cb4, 08:30:37 to 08:30:41 UTC, the test member `did:plc:cb4testmember0000000000`, granted
+`knowledge.search`, `get` and `list` for those 4 seconds:
+
+```
+before the grant                           403 "has no grant for com.lopecode.brain.knowledge.search"
+semantic "deploy a change to the Cloud Brain", kind=doc
+                                           3 entries, 0 private   (the owner's first: working-with-cloud-brain…* 0.709)
+words "deployer", kind=doc                 0 entries              (the owner: 1, the private doc)
+get doc:working-with-cloud-brain-remote-lopecode-cluster    404 EntryNotFound
+get doc:how-file-attachments-work          200
+list kind=doc, limit 100                   38 entries, 0 private  (the owner: 50, 12 private)
+semantic "notebook", kind=doc, limit 100   38 entries, 0 private
+after grant.delete                         grant.list {"grants":[]}, list 403
+```
+
+### Not done for the docs
+
+- Run by hand. Nothing runs `status` on a commit or tells anyone a doc is stale.
+- A doc deleted from `knowledge/` keeps its entry; `status` lists it under `entriesWithNoFile` and
+  nothing deletes it.
+- Only `knowledge/*.md`. Not `plan/`, the READMEs, `tools/cloud-brain/*.md`, the lopecode-plugin docs or
+  the docs of the two content repositories.
+- `knowledgeKinds` in the seed, the list the method reference prints as "in use", does not name `doc`.
+  The service takes any kind; the list is prose and another session has that seed open.
+- `/llms.txt` does not say that docs are among what the search answers.
+- Not reviewed by a fresh agent.

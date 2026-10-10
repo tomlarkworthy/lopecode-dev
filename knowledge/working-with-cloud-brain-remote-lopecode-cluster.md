@@ -131,6 +131,16 @@ segment for two reasons. Clean-up is one call, `static.delete` with `{ prefix: "
 "2026-07-01" }` (`before` is compared with `savedAt`). And `static.list` reads every record under its
 prefix, so a prefix that ends at a day reads that day only.
 
+## The knowledge docs in the Brain's search
+
+`knowledge/*.md` are entries of kind `doc` in the Brain's knowledge base (`knowledge.search?semantic=true&kind=doc&q=`),
+entered 2026-10-10. A changed doc is not entered again by anything:
+
+```
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status        # fresh / stale (and for how long) / missing
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --stale   # the reindex; $0.00005 a doc whose text changed
+```
+
 ## Why did that happen: the logs
 
 `brain-x-logs` passes Cloudflare's log queries through, scoped to this Brain, owner's session only.
