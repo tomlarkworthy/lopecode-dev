@@ -148,10 +148,11 @@ failing run and the count are the browser's.
 
 ### Not tried
 
-- The Comment, Review and Add label buttons of the open issue (`drawOne`). The reviewer wrote "Not
-  measured: whether the Comment button of the open issue also sends twice". Read, not run: its
-  `reduce` calls `send` with no guard and the textarea is not emptied, so a second press would
-  send again. Not changed here: the rework names the block.
+- The Comment, Review and Add label buttons of the open issue (`drawOne`). Not changed here: the
+  rework names the block. This bullet said, from reading and with no run, that a second press of
+  that Comment would send again. Wrong: review 2 (event 255) measured it, "two presses of that
+  Comment with the call held: 1 call held, 1 commented event, textarea empty after". Why it sends
+  once was not looked into. Review and Add label of the open issue are still not measured.
 - The same press in two tabs, or a press of the same move in the block and in the open issue
   below it. `busy` is one panel's and is asked only by the block.
 - A caret in a row whose issue leaves the block while it is typed in (approved by someone else):
@@ -159,3 +160,82 @@ failing run and the count are the browser's.
 - A press on cb4. It is the owner's write.
 - The reviewer's probe with a client that answers after 150 ms was not run as such; the held
   client of the test is the same case with the answer under the test's control.
+
+## Round 3, 2026-10-10: the two findings of review 2
+
+Review 2 (event 255, sent back 20:12:29 CEST by event 256) found that a write of a row that fails,
+where the press had taken the issue out of the block, gives back a row with (1) every button
+disabled and titled "Being sent." until a character is typed, and (2) a new, empty box. Both have
+one cause. `send` applies the write to the copy before the service answers, so the issue no longer
+waits and `drawWaiting` deleted its row from `rows`. On the refusal `send` draws first: a new row
+was made, with a new box, while `busy` still had the id. Then `once` took the id out and called
+`oninput` of the old box, which drew the buttons of a row no longer on the page.
+
+Reproduced before any change, with the test below added to the seed of `main` at `df6725a2` and
+nothing else. The snippet of the implementer brief in a headless QA tab (session `impl-pfa-3`):
+
+```
+[18, ["test_issues_panel_a_refused_write_gives_the_row_back … Expected: true Received: false"]]
+```
+
+The assertion that failed is the first after the refusal: within 3 s, the row of `r1` is in the
+block with no button disabled and titled "Being sent.". `bun tools/lope-tests.ts … --filter
+test_issues_panel_a_` failed the same cell at the same place (908 ms, 1 passed, 1 failed), so its
+DOM shows this defect.
+
+### What changed
+
+One seed, `tools/cloud-brain/brain-issues.ojs`, 83 lines added and 3 removed, of which 78 are the
+test. All of it in `issuesPanel`.
+
+- `drawWaiting` keeps the row of an id that is in `busy` though its issue is not listed. When the
+  write is refused the issue waits again, and the row found in `rows` has the box that was typed
+  in. Where nothing else changed meanwhile it is the same row; where another caller's event came
+  it is made again around the same box, as it is for any event.
+- `once`, after the answer or the refusal, takes the id out of `busy`, draws the buttons through
+  the box's `oninput` as before, and now calls `drawWaiting`, so a row kept for a write that was
+  taken is dropped then and not at the next event.
+- The first `md` cell says it in the bullet of the block.
+
+Not changed: at the press the row still leaves the page, and is back only on a refusal. The other
+way is to leave the row on the page, disabled, until the answer. That would also keep the caret
+(below), but a write is shown as applied before the answer everywhere else in the panel, and
+`test_issues_panel_lists_what_waits_for_the_owner` reads the row as gone.
+
+### Tests
+
+18 of 18 `test_issues_*` cells in a headless QA tab (session `impl-pfa-3`) on the worktree's build,
+2026-10-10 20:26:24 CEST by the tab's clock, by the snippet of the implementer brief. 17 before,
+one new. `bun tools/lope-tests.ts … --filter test_issues`: the same 18 in 15.8 s.
+
+`test_issues_panel_a_refused_write_gives_the_row_back` has a client that holds each write until
+the test sends it on or fails it with `new Error("Failed to fetch")`, as the reviewer's did. Two
+issues, `r1` and `r2`, both labelled `needs-owner`.
+
+```
+− needs-owner on r1, failed        row gone at the press; back with the same <input>, "a line I
+                                   was writing", 0 buttons at "Being sent.", − needs-owner and
+                                   Comment enabled; the note "issue.label was refused: Failed to fetch"
+then panel.sync()                  the same; the kept issue still has the label
+rejected on r2 with a reason,      row gone; still gone after the sync; back with the same <input>,
+  token a comments meanwhile,      "because of X", the comment shown, rejected enabled; state open;
+  a sync, then failed              "issue.move was refused: Failed to fetch"
+Comment on r1, then on r2,         2 held, both rows all "Being sent."; after r2's answer r2 is
+  r2 answered first                armed and empty, r1 still all disabled with its text and 0 events;
+                                   after r1's answer one event each, both boxes the same elements
+− needs-owner on r1 again, taken   the label is off, the row is gone and stays gone after a sync
+```
+
+### Not tried
+
+- A refusal by the service's guard (a 4xx with a message) in place of a rejected promise. The
+  panel's `send` has one `catch` for both; the rig's own refusal was not sent through a row that
+  had left the block.
+- The caret. A box with the caret whose row leaves the page at the press does not have it when
+  the row comes back: `drawWaiting` restores a caret only to a box that is in the block when it
+  starts. Not asked by the review, not tested.
+- Two answers out of order for one row: `busy` lets a row send one write at a time, so there is
+  no such pair. The pair tested is of two rows.
+- The same issue pressed in the block and in the open issue below it while one is held, and the
+  same press in two tabs. As in round 2.
+- A press on cb4 (the owner's write), a narrow window, a light theme, many rows.
