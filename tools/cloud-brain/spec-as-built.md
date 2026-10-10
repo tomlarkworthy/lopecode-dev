@@ -3973,6 +3973,49 @@ wrote before this deploy would still be found by an install; cb4 has none that i
 `issue.sync`: two are under `policy/`, the service's `policy/default` and `policy/2026-10-10-read-is-first`, the key
 Claude gave the install that is event 12; such a key is refused from now on).
 
+### Issues after the review of the 4 fixes, 3 findings (2026-10-10 13:12 CEST): `brain-x-issues` `8a5184dc2723`
+
+A fourth fresh review, of the changes since `7782ac73`, answered FIX with 3 findings, all in `issue.install` and each
+made by a probe against the module's rig. All three were read in the seed and acted on (lopecode-dev `a0a5ce85`).
+
+```
+migrate: { <hash of feedback>: m, feedback: m }   -> moved ["f1"] and left [{ id: "f1", … }] in one answer
+now                                               -> 400 "that workflow is named twice", before the policy
+the view lost, an install with a migrate          -> 400 "the record keeps no workflow of that hash" (false: the view was read)
+now                                               -> 503 ViewLost, as a write answers
+migrate of a workflow onto itself                 -> a swapped event per open issue, to where it stood; its reviews cleared
+now                                               -> no event; the issue is in neither `moved` nor `left`
+```
+
+Four rounds had each found a new defect in this one handler, so it was read again whole and each input shape below
+was run against the rig. Four were wrong and are refused now; the rest answered as written and are asserted in
+`test_issues_policy_is_installed_by_the_owner_and_migrates`, which refuses 11 installs (3 before).
+
+| shape | answer |
+|---|---|
+| `migrate` a string, a list, or an entry that is a string or `null` | 400 before the policy. Before: a string was read as no migrate, 200 |
+| `states` that is not a map, or names a state the workflow moved from lacks (`opne`) | 400 before the policy. Before: ignored, and the issue landed in the state of its own name if the new workflow had one |
+| the key of an installed policy again, with another policy in the body | 400 "another policy was installed with this key". Before: answered as that install, `duplicate: true` |
+| the key of an installed policy again, with the same policy | that event, `duplicate: true`, `moved: []`, `left: []`, no plan run |
+| `migrate: {}` | the policy is written, `moved: []` |
+| a workflow with no open issue (its only issue closed) | `moved: []`; the closed issue stays on the hash it was closed under |
+| the policy in force installed again under a new key | a policy event with the same hashes; no issue changes |
+| one workflow, a `states` that maps the issue's state to another | the issue is moved there by a swap of its own |
+| a target workflow the policy lacks; a landing state it lacks | 400 before the policy (as before) |
+
+Tests 10 of 10, forced cell by cell in the QA tab `issues-qa` (closed by name). Deployed 13:12 CEST under the lock.
+After it: `redistil` 20 lines, 19 of them `same`, one for each of the 19 Workers, and the first the distiller's own
+hash; lease held, no browsers or containers, lock removed, `issue.verify?guards=true` ok on 37 events and again on 38.
+
+The tracker's own record: 36 is the reviewer's `changes` and 37 sent the issue back (both under
+`issues-reviewer-2`, written by Claude from the fresh reviewer's report); 38 is the implementer's third submit, with
+the refs lopecode-dev `a0a5ce85`, lopebooks `975cd9e5` and `brain-x-issues@8a5184dc2723`, each written after its
+push or deploy.
+
+Not done: a fresh review of this change; the verdict on `review-fixes-2`. Not tried: an install whose swaps fail with
+an error that is not a refusal (the policy stays written and the answer is a 500), a large `migrate`, and
+`issue.rebuild` against a concurrent write.
+
 
 ### After step 3's fresh review (2026-10-10 12:03 CEST): `brain-core` `675435235fdd`, `brain` `7433e97325d9`
 
