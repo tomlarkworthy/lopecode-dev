@@ -4142,7 +4142,7 @@ before). Deployed from the seed under the lock, which also replaces the hand-edi
 `same`; `issue.verify?guards=true` ok on 74 events; an install as the owner with no reason answered the 400 above
 and the record stayed at 74. Not tried on cb4: an install with a reason.
 
-### The headless harness keeps its realm's own built-ins (2026-10-10 17:15 CEST)
+### The headless harness keeps its realm's own built-ins (2026-10-10 17:07 CEST, `f6016d48`)
 
 `headless-harness-cel`. `tools/lope-runtime.js` copied every global of the happy-dom window into the vm context,
 that window's `Object`, `Array`, `Map`, `Promise` and the rest among them (happy-dom has a realm of its own:
@@ -4167,7 +4167,7 @@ no WebGL scene under happy-dom; leaving only `Object, Array, Map, Set` crashes i
 
 Not measured: `lope-push-ws.js`, `spec-notebook.ts` and `lope-bulk-jumpgate.js` beyond what those tests cover.
 
-**After its review (17:55 CEST), verdict `changes`, 2 findings, both right.** The `Object.assign` after the loop put
+**After its review (17:21 CEST; fixed in `79f455ae`, 17:36), verdict `changes`, 3 findings: two acted on here, the third filed (last paragraph).** The `Object.assign` after the loop put
 node's `Proxy`, `Reflect`, `SharedArrayBuffer`, `BigInt64Array` and `BigUint64Array` back, so "every name" was
 untrue for five: `Reflect.ownKeys({a:1}).constructor === Array` was false. They are removed from that list; a probe
 through `execution.eval` on `quick_start.html` answers true for that, for `Reflect.getOwnPropertyDescriptor`'s
@@ -4176,6 +4176,8 @@ here said the window carried the outer realm's `Object`; corrected above. The co
 change: 253 notebooks the same; `cloud-brain` 651 -> 653 passed of 732 (731 before: the notebook was rebuilt
 between the runs) with `test_browser_run_stops_at_its_timeout` failing, a test of a timer that also failed in
 the run before the first change. Node tests 122 of 126. Tracker tests headless 10 of 10.
+
+The second review (17:59 CEST), `changes`, 2 findings, both in this record: the two times above were not from the clock, and the count of findings was 2 where the review listed 3. Corrected from `git log` and the events.
 
 Still foreign to notebook code, before and after: values from `Response.json()`, `structuredClone`,
 `TextEncoder.encode`, `crypto.subtle.digest`, the bytes of `contentSync`, and DOM objects. Filed by the reviewer
