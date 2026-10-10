@@ -13,7 +13,8 @@ md`## Methods
 | Worker | \`brain-x-ai\` |
 | \`ai.run\` | procedure, the one method with a price. \`?model=&usd=\` in the query string, and the body is the model's input as [Cloudflare documents it for that model](https://developers.cloudflare.com/workers-ai/models/): \`{ "messages": [...] }\`, \`{ "prompt": "…" }\`, \`{ "text": ["…"] }\`, with \`"stream": true\` for server-sent events. \`usd\` is what the call costs the caller, in US dollars, and the most Cloudflare may be made to spend on it. The answer is Cloudflare's, with its status, and two headers more: \`x-ai-neurons\`, when Cloudflare gave the count, and \`x-ai-usd\`, that count at Cloudflare's rate. |
 | \`ai.models\` | query. Cloudflare's [model search](https://developers.cloudflare.com/api/resources/ai/subresources/models/methods/list/) with the caller's query string: \`?search=&task=&per_page=&page=\`. Each model has \`name\`, \`task\`, \`description\` and \`properties\`, where \`price\` is Cloudflare's price. |
-| Storage | none. One log line a call of \`ai.run\`, a refused one too: \`at: "ai.run"\`, \`model\`, \`usd\`, \`neurons\`, \`status\`, and \`error\` when this service refused. |
+| \`ai.v1/chat/completions\`, \`ai.v1/embeddings\`, \`ai.v1/models\` | the same models at an address an OpenAI client can be given (see An OpenAI client). Added 2026-10-10. |
+| Storage | none. One log line a priced call, a refused one too: \`at\` (\`"ai.run"\`, \`"ai.v1/chat/completions"\`, \`"ai.v1/embeddings"\`), \`model\`, \`usd\`, \`neurons\`, \`status\`, and \`error\` when this service refused. |
 
 \`\`\`js
 await client.procedure("ai.run", { messages: [{ role: "user", content: "Say hi." }] }, { params: { model: "@cf/meta/llama-3.2-1b-instruct", usd: 0.0001 } })
@@ -28,6 +29,30 @@ curl -N -X POST -H "Authorization: Bearer $BRAIN_TOKEN" -H "content-type: applic
 
 A refusal of this service is JSON \`{ error, message }\`: 400 \`InvalidRequest\`, 404 \`UnknownModel\`, 402 \`BudgetTooSmall\` with \`needs\`, 413 \`TooLarge\`, 502 \`ModelListUnavailable\` when Cloudflare's model list did not answer. Anything else is Cloudflare's answer, a 413 of its own among them.`
 // %%
+md`## An OpenAI client
+
+A client that speaks the OpenAI API is given two things: the base URL \`https://HOST/xrpc/com.lopecode.brain.ai.v1\`, and a Brain token as the API key (\`token.create\` with \`methods: ["ai.v1/chat/completions", "ai.v1/embeddings", "ai.v1/models"]\`). The model is one of Cloudflare's names. Run on cb4 with curl and such a token, 2026-10-10 05:24 UTC:
+
+\`\`\`
+curl -H "Authorization: Bearer $BRAIN_TOKEN" -H "content-type: application/json" \\
+  https://HOST/xrpc/com.lopecode.brain.ai.v1/chat/completions \\
+  -d '{"model":"@cf/meta/llama-3.2-1b-instruct","messages":[{"role":"user","content":"Say hi in three words."}],"max_completion_tokens":8}'
+// {"id":"id-1791609897432","object":"chat.completion",…,"choices":[{"index":0,"message":{"role":"assistant","content":"Hi, How are you?","refusal":null},"finish_reason":"stop"}],"usage":{"prompt_tokens":17,"completion_tokens":7,"total_tokens":24,"prompt_tokens_details":{"cached_tokens":0},"neurons":0.1695}}
+// x-brain-price: 0.01    x-ai-usd: 0.00000187
+\`\`\`
+
+- The body goes to Cloudflare's [OpenAI address](https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility/), \`/ai/v1/chat/completions\` or \`/ai/v1/embeddings\`, and the answer is Cloudflare's, a stream too (\`"stream": true\`, and \`"stream_options": {"include_usage": true}\` for the usage at its end).
+- **The price.** An OpenAI client sends no \`usd\`. A call with none is charged ${aiDefaults.v1Usd} and budgeted from that, as The price says for \`usd\`. The run above cost Cloudflare $0.0000019, so it was charged 5300 times that. A client that can add to the query string (\`defaultQuery: { usd: "0.0005" }\` in the OpenAI SDKs) names its own. The price cannot be read from the body: the core's rule sees the query string only. A call whose input is counted over the budget is refused 402, so a body over about ${Math.round(aiDefaults.v1Usd / 0.15e-6 * aiDefaults.bytesPerToken / 1000)} kB to a model of $0.15 a million input tokens needs \`usd\`.
+- **\`max_completion_tokens\`** is not read by Cloudflare (\`aiMeasured.twice\`: 3 was asked and 135 tokens came). The service writes it as \`max_tokens\`, the less of the two when both are given, and then bounds it as in \`ai.run\`.
+- **\`ai.v1/models\`** is Cloudflare's model search written as \`{ object: "list", data: [{ id, object: "model", created, owned_by }] }\`. Cloudflare has no such list at its OpenAI address (405, 2026-10-10).
+- **\`x-session-affinity\`**, a header of the caller, is passed on. Cloudflare [uses it](https://developers.cloudflare.com/workers-ai/features/prompt-caching/) to keep a session on the instance that has its prefix cached. Measured in \`tools/cloud-brain/ai-cache.md\`.
+- A refusal of this service is \`{ error, message }\`, not OpenAI's \`{ error: { message } }\`. \`/responses\` is not passed (404).
+- From a page in a browser, the kernel allows the headers \`authorization\` and \`content-type\` and no other. A client that adds one (the OpenAI SDK's \`x-stainless-*\`, OpenRouter's \`HTTP-Referer\` and \`X-Title\`, \`x-session-affinity\`) fails its preflight. Read from the kernel's answer to OPTIONS, 2026-10-10; no browser client was run.
+
+## Serverless
+
+Nothing is deployed or kept warm for a model, and Cloudflare bills by the call: "[$0.011 per 1,000 Neurons](https://developers.cloudflare.com/workers-ai/platform/pricing/)", with 10,000 neurons a day at no charge (read 2026-10-10). A model not used on this account before answered its first call in 463 to 682 ms and its fifth in 309 to 460 ms, four models (\`aiMeasured.cold\`): no load of several seconds was seen. Not measured: a model after hours of nobody's use anywhere, since other accounts use the same models.`
+// %%
 md`## The price
 
 The core charges a call before it forwards it, and what a model costs is known only after it ran. So the caller names the price, \`usd\`, and the service holds Cloudflare's cost under it. The rule of the price is \`double(request.params.usd)\`. A call with no \`usd\` is refused by the core. The core charges in millionths of a dollar, rounded up: \`usd=0.00000214\` was charged $0.000003 (\`aiMeasured.rounding\`). Nothing is returned: a call that used less, a call Cloudflare refused, and a call this service refused are all charged \`usd\`.
@@ -37,7 +62,7 @@ The core charges a call before it forwards it, and what a model costs is known o
 - The input is counted as one token for each ${aiDefaults.bytesPerToken} bytes of the body, rounded up, and ${aiDefaults.templateTokens} more for a model that writes text, which wraps the input in a template of its own. If \`usd\` is less than that many input tokens cost, the answer is 402 \`BudgetTooSmall\`, and \`needs\` is the least that would pass.
 - For a model with an output price over 0, \`max_tokens\` is the less of what the rest of \`usd\` buys and what the model's context window has room for. If the rest buys less than one token, 402. A model with no output price, or one of 0, is not bounded and its body is not touched.
 - The window: Cloudflare refuses a call when its own estimate of the input and \`max_tokens\` together are over the model's \`context_window\` (413, code 5021: \`aiMeasured.window\`). So \`max_tokens\` is at most the window less twice the counted input, and ${aiDefaults.maxTokens} for a model whose window the list does not give.
-- How the field is written. A \`max_tokens\` of the caller that is a whole number inside the limit: the body is sent byte for byte. No \`max_tokens\`: the field is put in after the first \`{\` and each other byte is the caller's. A \`max_tokens\` over the limit, or not a whole number over 0: the body is parsed and written again with the limit, and a number in it past 2^53 is not kept exact.
+- How the field is written. A \`max_tokens\` of the caller that is a whole number inside the limit, written one time in the text: the body is sent byte for byte. Written two times, Cloudflare reads the last (\`aiMeasured.twice\`), as the service does, and the body is written again with one. No \`max_tokens\`: the field is put in after the first \`{\` and each other byte is the caller's. A \`max_tokens\` over the limit, or not a whole number over 0: the body is parsed and written again with the limit, and a number in it past 2^53 is not kept exact.
 
 **Any other model** (images, speech, a model with no price in the list). The service cannot bound it. \`usd\` must be at least ${aiDefaults.flatUsd}, and the body is passed on untouched.
 
@@ -62,14 +87,14 @@ The \`AI\` binding of a Worker was not used. It needs no token, and it cannot li
 
 ## Limits
 
-- Cloudflare's [limits](https://developers.cloudflare.com/workers-ai/platform/limits/) are the account's: 300 text generations a minute, 3000 embeddings. An answer over one is passed on.
+- Cloudflare's [limits](https://developers.cloudflare.com/workers-ai/platform/limits/) are the account's: 300 text generations a minute, 3000 embeddings; the page read on 2026-10-10 gives 20 a minute for a model that needs the Workers Paid plan, and does not list which those are. An answer over one is passed on.
 - A body is ${aiDefaults.maxBody} bytes at most. It is read whole before it is sent, to count it. The answer is not read: it is streamed to the caller.
-- \`max_tokens\` is the one field the service writes in a body, as The price says. A model that names its output limit otherwise is not bounded by it.
+- \`max_tokens\` is the one field the service writes in a body, as The price says, and \`max_completion_tokens\` the one it takes out. A model that names its output limit otherwise is not bounded by it.
 - A model the list does not have is refused, also one Cloudflare would run.`
 // %%
-aiDefaults = ({ bytesPerToken: 3, templateTokens: 64, flatUsd: 0.01, maxBody: 1000000, maxTokens: 4096, usdPerNeuron: 0.000011, modelMs: 600000 })
+aiDefaults = ({ bytesPerToken: 3, templateTokens: 64, flatUsd: 0.01, maxBody: 1000000, maxTokens: 4096, v1Usd: 0.01, usdPerNeuron: 0.000011, modelMs: 600000 })
 // %%
-// Measured on cb4, 2026-10-09. Filled in from tools/cloud-brain/rpc-performance.md.
+// Measured on cb4, 2026-10-09. latency and stream are from tools/cloud-brain/rpc-performance.md; rounding and window from spec-as-built.md.
 aiMeasured = ({
   at: "2026-10-09, cb4, called from Berlin, @cf/meta/llama-3.2-1b-instruct unless named",
   latency: "an embedding (@cf/baai/bge-small-en-v1.5), 12 runs each, taken in turn: 195 ms p50 and 242 p90 through the Brain, 136 and 164 at Cloudflare's REST address",
@@ -95,6 +120,22 @@ aiMeasured = ({
     edge: "{prompt: \"hi\", max_tokens}: 59914 ran (200), 59950 and 59999 were refused (413). Cloudflare's estimate of that input was 85 tokens; the model counted 45; this service counts 69",
     estimate: "Cloudflare's estimate against this service's count, llama-3.1-8b: messages of 4543 bytes 1156 and 1579; 901 bytes of kanji and kana 158 and 365; 3013 bytes of digits and spaces 834 and 1069"
   },
+  // 2026-10-10 05:23Z, Cloudflare's own address, "Count from 1 to 60": completion_tokens of ai/run and of ai/v1/chat/completions.
+  twice: [
+    { body: '"max_tokens":40,"max_tokens":3', run: 3, v1: 3 },
+    { body: '"max_tokens":3,"max_tokens":40', run: 40, v1: 40 },
+    { body: '"max_tokens":3,"max_completion_tokens":40', run: 3, v1: 3 },
+    { body: '"max_completion_tokens":3', run: 184, v1: 135 }
+  ],
+  // 2026-10-10 05:26Z, through the Brain, ai.v1/chat/completions, max_tokens 4: ms of five calls one after the other.
+  // The first four models had not been called on this account. The first call also reads the model from Cloudflare's list.
+  cold: [
+    { model: "@cf/ibm-granite/granite-4.0-h-micro", ms: [682, 547, 382, 717, 460] },
+    { model: "@cf/aisingapore/gemma-sea-lion-v4-27b-it", ms: [540, 349, 322, 384, 309] },
+    { model: "@cf/qwen/qwen2.5-coder-32b-instruct", ms: [549, 396, 433, 601, 393] },
+    { model: "@cf/meta/llama-4-scout-17b-16e-instruct", ms: [463, 287, 261, 394, 367] },
+    { model: "@cf/meta/llama-3.2-1b-instruct", ms: [218, 195, 186, 276, 200] }
+  ],
   template: "a body of {prompt, stream, max_tokens}, 105 bytes, was 57 prompt tokens; {prompt: \"hi\"} was 45. A body of messages, 64 bytes, was 17."
 })
 // %%
@@ -134,8 +175,11 @@ aiBudget = ({ model, usd, bytes, settings = {} }) => {
   if (affords < 1) return refuse(input + rates.output, "usd buys the input and no token of output");
   // Cloudflare refuses a max_tokens that its estimate of the input puts past the context window (aiMeasured.window).
   const window = Number((((model.properties || []).find((p) => p.property_id === "context_window")) || {}).value);
-  const most = Math.min(affords, window > 0 ? Math.max(1, Math.floor(window) - 2 * tokens) : s.maxTokens);
-  if (Number.isInteger(body.max_tokens) && body.max_tokens > 0 && body.max_tokens <= most) return { body: bytes, max_tokens: body.max_tokens };
+  const most = Math.max(1, Math.floor(Math.min(affords, window > 0 ? window - 2 * tokens : s.maxTokens)));
+  // Byte for byte only with one max_tokens in the text: of two, Cloudflare reads the last (aiMeasured.twice), and so does JSON.parse.
+  const once = new TextDecoder().decode(bytes).split('"max_tokens"').length === 2;
+  const own = Number.isInteger(body.max_tokens) && body.max_tokens > 0 ? Math.min(body.max_tokens, most) : most;
+  if (once && own === body.max_tokens) return { body: bytes, max_tokens: own };
   // None of the caller's: the field goes in after the first brace, and each other byte is as it came.
   const brace = bytes.indexOf(123);
   if (!Object.hasOwn(body, "max_tokens") && brace >= 0) {
@@ -145,7 +189,21 @@ aiBudget = ({ model, usd, bytes, settings = {} }) => {
     out.set(bytes.subarray(brace + 1), brace + 1 + field.byteLength);
     return { body: out, max_tokens: most };
   }
-  return { body: new TextEncoder().encode(JSON.stringify({ ...body, max_tokens: most })), max_tokens: most };
+  return { body: new TextEncoder().encode(JSON.stringify({ ...body, max_tokens: own })), max_tokens: own };
+}
+// %%
+aiV1Price = `"usd" in request.params ? double(request.params.usd) : ${aiDefaults.v1Usd}`
+// %%
+// The body of an OpenAI call: its model, and max_completion_tokens written as max_tokens, which is the one of the
+// two Cloudflare reads (aiMeasured.twice). The less of the two when both are counts. null when there is no model.
+aiOpenAi = (bytes) => {
+  let body;
+  try { body = JSON.parse(new TextDecoder().decode(bytes)); } catch { body = null; }
+  if (!body || typeof body !== "object" || Array.isArray(body) || typeof body.model !== "string") return null;
+  if (!Object.hasOwn(body, "max_completion_tokens")) return { name: body.model, bytes };
+  const { max_completion_tokens: wanted, ...rest } = body;
+  const counts = [wanted, body.max_tokens].filter((n) => Number.isInteger(n) && n > 0);
+  return { name: body.model, bytes: new TextEncoder().encode(JSON.stringify(counts.length ? { ...rest, max_tokens: Math.min(...counts) } : rest)) };
 }
 // %%
 ai_service = {
@@ -164,31 +222,43 @@ ai_service = {
   return cloudflare.Service(
     "ai",
     async (request) => {
-      const url = new URL(request.url), what = url.pathname.split(".").pop();
-      if (what === "models") {
-        const r = await cloudflareApi.fetch("/ai/models/search" + url.search);
-        return new Response(r.body, { status: r.status, headers: { "content-type": r.headers.get("content-type") || "application/json" } });
+      const url = new URL(request.url), what = url.pathname.split(".ai.").pop();
+      if (what === "models" || what === "v1/models") {
+        const r = await cloudflareApi.fetch("/ai/models/search" + (what === "models" || url.search ? url.search : "?per_page=200"));
+        const type = { "content-type": r.headers.get("content-type") || "application/json" };
+        if (what === "models" || !r.ok) return new Response(r.body, { status: r.status, headers: type });
+        // The list as an OpenAI client reads it: the id is Cloudflare's name.
+        return new Response(JSON.stringify({ object: "list", data: ((await r.json()).result || []).map((m) => ({ id: m.name, object: "model", created: Math.floor(Date.parse(m.created_at) / 1000) || 0, owned_by: m.name.split("/")[1] || "" })) }), { headers: type });
       }
-      if (what !== "run") return json(404, "MethodNotImplemented", "ai.run and ai.models");
-      const name = url.searchParams.get("model") || "", usd = Number(url.searchParams.get("usd"));
+      const v1 = ["v1/chat/completions", "v1/embeddings"].includes(what), at = v1 ? "ai." + what : "ai.run";
+      if (what !== "run" && !v1) return json(404, "MethodNotImplemented", "ai.run, ai.models, ai.v1/chat/completions, ai.v1/embeddings and ai.v1/models");
+      let name = url.searchParams.get("model") || "";
+      const usd = v1 && !url.searchParams.has("usd") ? aiDefaults.v1Usd : Number(url.searchParams.get("usd"));
       // The core charged this call before it came here: a refusal is logged like a run.
       const refuse = (status, error, message, more = {}) => {
-        log({ at: "ai.run", model: name.slice(0, 120), usd, neurons: null, status, error });
+        log({ at, model: String(name).slice(0, 120), usd, neurons: null, status, error });
         return json(status, error, message, more);
       };
-      if (!/^@[a-z0-9-]{1,20}(\/[A-Za-z0-9._-]{1,80}){1,3}$/.test(name) || name.includes("..")) return refuse(400, "InvalidRequest", "model is a name from ai.models: @cf/meta/llama-3.2-1b-instruct");
-      if (!(usd > 0)) return refuse(400, "InvalidRequest", "usd is what this call may cost, in US dollars: more than 0");
       const settings = { bytesPerToken: config.bytesPerToken, templateTokens: config.templateTokens, flatUsd: config.flatUsd, maxBody: config.maxBody, maxTokens: config.maxTokens };
-      const bytes = new Uint8Array(await request.arrayBuffer());
+      let bytes = new Uint8Array(await request.arrayBuffer());
       if (bytes.byteLength > aiSettings(settings).maxBody) return refuse(413, "TooLarge", "the body is over the most this service sends");
+      if (v1) {
+        const shaped = aiOpenAi(bytes);
+        if (!shaped) return refuse(400, "InvalidRequest", "the body is JSON with a model: a name from ai.models");
+        ({ name, bytes } = shaped);
+      }
+      if (typeof name !== "string" || !/^@[a-z0-9-]{1,20}(\/[A-Za-z0-9._-]{1,80}){1,3}$/.test(name) || name.includes("..")) return refuse(400, "InvalidRequest", "model is a name from ai.models: @cf/meta/llama-3.2-1b-instruct");
+      if (!(usd > 0)) return refuse(400, "InvalidRequest", "usd is what this call may cost, in US dollars: more than 0");
       const model = await modelOf(name);
       if (model && model.failed) return refuse(502, "ModelListUnavailable", "Cloudflare's model list answered " + model.failed);
       if (!model) return refuse(404, "UnknownModel", name + " is not in Cloudflare's list: ai.models");
       const may = aiBudget({ model, usd, bytes, settings });
       if (!may.body) return refuse(may.status, may.error, may.message, may.needs ? { needs: may.needs } : {});
-      const r = await cloudflareApi.fetch("/ai/run/" + name, { method: "POST", body: may.body, headers: { "content-type": request.headers.get("content-type") || "application/json" } });
+      // x-session-affinity keeps a caller's calls on one instance, where Cloudflare's prefix cache is.
+      const affinity = request.headers.get("x-session-affinity");
+      const r = await cloudflareApi.fetch(v1 ? "/ai/" + what : "/ai/run/" + name, { method: "POST", body: may.body, headers: { "content-type": request.headers.get("content-type") || "application/json", ...(affinity ? { "x-session-affinity": affinity } : {}) } });
       const neurons = Number(r.headers.get("cf-ai-neurons"));
-      log({ at: "ai.run", model: name, usd, neurons: r.headers.has("cf-ai-neurons") ? neurons : null, status: r.status });
+      log({ at, model: name, usd, neurons: r.headers.has("cf-ai-neurons") ? neurons : null, status: r.status });
       const headers = { "content-type": r.headers.get("content-type") || "application/json", "cache-control": "no-store" };
       if (r.headers.has("cf-ai-neurons") && neurons >= 0) Object.assign(headers, { "x-ai-neurons": String(neurons), "x-ai-usd": (neurons * aiDefaults.usdPerNeuron).toFixed(8) });
       return new Response(r.body, { status: r.status, headers });
@@ -197,7 +267,11 @@ ai_service = {
       cloudflare: ["Workers AI Read"],
       methods: {
         "com.lopecode.brain.ai.run": { type: "procedure", who: "workers", price: "double(request.params.usd)" },
-        "com.lopecode.brain.ai.models": { type: "query", who: "workers" }
+        "com.lopecode.brain.ai.models": { type: "query", who: "workers" },
+        // An OpenAI client is given the address up to ai.v1 and adds the rest. It sends no usd: v1Usd then.
+        "com.lopecode.brain.ai.v1/chat/completions": { type: "procedure", who: "workers", price: aiV1Price },
+        "com.lopecode.brain.ai.v1/embeddings": { type: "procedure", who: "workers", price: aiV1Price },
+        "com.lopecode.brain.ai.v1/models": { type: "query", who: "workers" }
       }
     }
   );
@@ -244,6 +318,8 @@ aiPanel = ({ client, owner = false } = {}) => {
       el.value = got;
     } catch (e) {
       note.textContent = "ai.run failed: " + ((e && e.message) || e);
+      out.textContent = "";
+      el.value = null;
     }
     el.dispatchEvent(new Event("input"));
   };
@@ -295,8 +371,8 @@ aiRig = async ({ config = {} } = {}) => {
     sim.fetch("https://ai.internal/xrpc/com.lopecode.brain.ai.run?" + query, { method: "POST", headers: { "content-type": "application/json", "x-brain-caller": "owner", ...(more.headers || {}) }, body: typeof body === "string" || body instanceof Uint8Array ? body : JSON.stringify(body) });
   const sent = (i = seen.length - 1) => JSON.parse(new TextDecoder().decode(seen[i].body));
   // The price in millionths of a dollar, found by halving; error when the rule cannot be decided.
-  const price = async (params = {}) => {
-    const rule = (await ai_service.emit()).meta.access["com.lopecode.brain.ai.run"];
+  const price = async (params = {}, method = "run") => {
+    const rule = (await ai_service.emit()).meta.access["com.lopecode.brain.ai." + method];
     const context = { caller: callerOf({ caller: "owner" }), origin: callerOf({ caller: "owner" }), request: { params } };
     const error = decide({ allow: `(${rule.price}) >= 0.0` }, context).error;
     let low = 0, high = 1 << 21;
@@ -408,6 +484,13 @@ test_ai_max_tokens_fits_the_window_and_the_other_bytes_are_the_callers = {
     const out = text(aiBudget({ model: windowed, usd: 0.0001, bytes: bytes(`{"prompt":"hi","max_tokens":${bad}}`) }).body);
     expect([bad, out.split("max_tokens").length - 1, JSON.parse(out).max_tokens > 0 && JSON.parse(out).max_tokens < 500]).toEqual([bad, 1, true]);
   }
+  // max_tokens two times in the text: written again with one, the last, as Cloudflare would read it; cut when over.
+  for (const [twice, kept] of [['{"prompt":"hi","max_tokens":999999,"max_tokens":7}', 7], ['{"prompt":"hi","max_tokens":7,"max_tokens":999999}', null], ['{"max_tokens":7,"prompt":"\\"max_tokens\\""}', 7]]) {
+    const got = aiBudget({ model: windowed, usd: 0.0001, bytes: bytes(twice) }), out = text(got.body);
+    expect([twice, out.split('"max_tokens":').length - 1, kept ? got.max_tokens : got.max_tokens < 500, JSON.parse(out).max_tokens]).toEqual([twice, 1, kept || true, got.max_tokens]);
+  }
+  // A stored most that is not whole is written as a whole number, 1 at least.
+  expect(["2.5", 0.5].map((maxTokens) => aiBudget({ model: aiModels[0], usd: 0.2, bytes: hi, settings: { maxTokens } }).max_tokens)).toEqual([2, 1]);
   // An output price of 0 has no limit: the body is the caller's, with no max_tokens: null in it.
   const free = aiBudget({ model: { name: "@cf/meta/free", properties: [price(0.027, 0)] }, usd: 0.0001, bytes: hi });
   expect([text(free.body), free.max_tokens]).toEqual(['{"prompt":"hi"}', undefined]);
@@ -469,6 +552,49 @@ test_ai_refuses_what_it_cannot_run_and_the_price_is_usd = {
   return "refused before Cloudflare";
 }
 // %%
+test_ai_v1_answers_an_openai_client = {
+  const rig = await aiRig();
+  const v1 = (path, body, more = {}) => rig.sim.fetch("https://ai.internal/xrpc/com.lopecode.brain.ai.v1/" + path, { method: body === undefined ? "GET" : "POST", headers: { "content-type": "application/json", "x-brain-caller": "token:laptop", ...(more.headers || {}) }, body: body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body) });
+  const M = "@cf/meta/llama-3.2-1b-instruct", chat = { model: M, messages: [{ role: "user", content: "Say hi." }] };
+  // The model is in the body, the address is Cloudflare's OpenAI one, and the answer is Cloudflare's.
+  const lines = (await logged(async () => {
+    const r = await v1("chat/completions", chat, { headers: { "x-session-affinity": "agent-7" } });
+    expect([r.status, r.headers.get("x-ai-neurons"), (await r.json()).success]).toEqual([200, "0.1", true]);
+  })).filter((l) => l && l.at === "ai.v1/chat/completions");
+  expect(lines.map((l) => [l.model, l.usd, l.status])).toEqual([[M, 0.01, 200]]);
+  expect(rig.seen.at(-1).url).toBe("https://api.cloudflare.com/client/v4/accounts/acct/ai/v1/chat/completions");
+  // With no usd the budget is v1Usd, the price the core charged: max_tokens is what the rest of it buys.
+  const counted = Math.ceil(JSON.stringify(chat).length / 3) + 64;
+  expect(rig.sent()).toEqual({ ...chat, max_tokens: 4096 });
+  await v1("chat/completions?usd=0.0001", chat);
+  expect(rig.sent().max_tokens).toBe(Math.floor((0.0001 - counted * 0.027e-6) / 0.201e-6 + 1e-9));
+  // max_completion_tokens is not read by Cloudflare: it is written as max_tokens, the less of the two, and not sent.
+  for (const [given, sent] of [[{ max_completion_tokens: 9 }, 9], [{ max_completion_tokens: 9, max_tokens: 5 }, 5], [{ max_completion_tokens: 5, max_tokens: 9 }, 5], [{ max_completion_tokens: 1e9 }, 4096], [{ max_completion_tokens: 2.5 }, 4096], [{ max_completion_tokens: null, max_tokens: 6 }, 6]]) {
+    await v1("chat/completions", { ...chat, ...given });
+    expect([given, rig.sent().max_tokens, "max_completion_tokens" in rig.sent()]).toEqual([given, sent, false]);
+  }
+  // Two of a name in the text: one is sent, the last.
+  await v1("chat/completions", `{"model":"${M}","messages":[],"max_completion_tokens":999999,"max_completion_tokens":7,"max_tokens":999999,"max_tokens":8}`);
+  expect([rig.sent().max_tokens, new TextDecoder().decode(rig.seen.at(-1).body).split("_tokens").length - 1]).toEqual([7, 1]);
+  // An embedding: the body as it came.
+  const text = JSON.stringify({ model: "@cf/baai/bge-small-en-v1.5", input: "hello world" });
+  expect((await v1("embeddings", text)).status).toBe(200);
+  expect([rig.seen.at(-1).url.split("/ai/")[1], new TextDecoder().decode(rig.seen.at(-1).body)]).toEqual(["v1/embeddings", text]);
+  // The list of models as an OpenAI client reads it.
+  const list = await (await v1("models")).json();
+  expect([list.object, list.data.map((m) => m.id), list.data[0]]).toEqual(["list", aiModels.map((m) => m.name), { id: M, object: "model", created: 0, owned_by: "meta" }]);
+  expect(rig.seen.at(-1).url.split("/ai/")[1]).toBe("models/search?per_page=200");
+  // Refused before Cloudflare: no model, a model that is not a name, not JSON, an unknown model, and too small a usd.
+  const posts = rig.seen.filter((s) => s.method === "POST").length;
+  for (const [body, query, status] of [[{ messages: [] }, "", 400], [{ model: 5 }, "", 400], [{ model: "gpt-4o" }, "", 400], ["nope", "", 400], [{ model: "@cf/nope/none" }, "", 404], [chat, "?usd=0.000001", 402], [chat, "?usd=0", 400]])
+    expect([JSON.stringify(body), (await v1("chat/completions" + query, body)).status]).toEqual([JSON.stringify(body), status]);
+  expect((await v1("responses", chat)).status).toBe(404);
+  expect(rig.seen.filter((s) => s.method === "POST").length).toBe(posts);
+  // The price: usd when it is given, v1Usd when it is not, for both priced methods.
+  for (const m of ["v1/chat/completions", "v1/embeddings"]) expect([m, (await rig.price({}, m)).usd, (await rig.price({ usd: "0.0005" }, m)).usd, !!(await rig.price({ usd: "soon" }, m)).error]).toEqual([m, 0.01, 0.0005, true]);
+  return "an OpenAI client";
+}
+// %%
 test_ai_models_is_cloudflares_list_and_the_service_declares_one_permission = {
   const rig = await aiRig();
   const r = await rig.sim.fetch("https://ai.internal/xrpc/com.lopecode.brain.ai.models?search=bge&per_page=5", { headers: { "x-brain-caller": "owner" } });
@@ -478,10 +604,10 @@ test_ai_models_is_cloudflares_list_and_the_service_declares_one_permission = {
   const { meta } = await ai_service.emit();
   expect([meta.worker, meta.cloudflare, meta.resources, meta.secrets, meta.calls]).toEqual(["brain-x-ai", ["Workers AI Read"], [], [], []]);
   const N = "com.lopecode.brain.ai.";
-  expect(Object.keys(meta.access).filter((k) => meta.access[k].price).map((k) => k.slice(N.length))).toEqual(["run"]);
+  expect(Object.keys(meta.access).filter((k) => meta.access[k].price).map((k) => k.slice(N.length))).toEqual(["run", "v1/chat/completions", "v1/embeddings"]);
   // The owner, a token and an account the kernel passed for the method, and a Worker of the Brain; not a stranger.
   const ask = (m, who) => decide(meta.access[N + m], { caller: callerOf(who), origin: callerOf(who), request: { params: { usd: "0.001" } } }).allow;
-  for (const m of ["run", "models"]) expect([m, ask(m, { caller: "owner", via: "session" }), ask(m, { caller: "token:laptop" }), ask(m, { caller: "did:plc:ada" }), ask(m, { caller: "worker:brain-x-snapshot" }), ask(m, { caller: "anonymous" })]).toEqual([m, true, true, true, true, false]);
+  for (const m of ["run", "models", "v1/chat/completions", "v1/embeddings", "v1/models"]) expect([m, ask(m, { caller: "owner", via: "session" }), ask(m, { caller: "token:laptop" }), ask(m, { caller: "did:plc:ada" }), ask(m, { caller: "worker:brain-x-snapshot" }), ask(m, { caller: "anonymous" })]).toEqual([m, true, true, true, true, false]);
   return meta.cloudflare[0];
 }
 // %%
@@ -519,8 +645,12 @@ test_ai_panel_lists_priced_text_models_and_runs_one = {
   expect(asked.at(-1)).toEqual(["ai.run", { messages: [{ role: "user", content: "Say hi in five words." }] }, { params: { model: "@cf/meta/llama-3.2-1b-instruct", usd: 0.0005 } }]);
   expect([el.querySelector("pre").textContent, el.value.result.response]).toEqual(["Hi.", "Hi."]);
   expect(heard).toBe(2);
+  // A run that fails: the answer of the run before is not left on show, and the value is null.
+  client.procedure = async () => { throw new Error("402 BudgetTooSmall"); };
+  await el.run();
+  expect([el.querySelector("pre").textContent, el.value, el.textContent.includes("ai.run failed: 402 BudgetTooSmall"), heard]).toEqual(["", null, true, 3]);
   expect(aiPanel({ client, owner: false }).value).toBe(null);
-  return el.textContent.includes("0.097 neurons") ? "ran" : el.textContent;
+  return "ran, then a run that failed";
 }
 // %%
 import {cloudflare, cloudflareApi, config, log, logged, simulate, decide, callerOf} from "@tomlarkworthy/cloudflare-iac"

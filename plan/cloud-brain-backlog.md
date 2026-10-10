@@ -289,6 +289,18 @@ parent session; see "Added 2026-10-09 20:41 CEST" below and `tools/cloud-brain/c
   core sets `x-brain-price` on the forwarded call (`forward`, from `c.get("price")` in micros), and `ai.run` budgets
   from it. Two lines in the core and a core deploy. Until then the rule is in the service's "Who can call".
 - The `AI` binding was not used: it needs no token, and gives no model list or prices. Not measured against REST.
+- **Added 2026-10-10 07:24 CEST: an OpenAI client's address** (`02c010340043` at 07:24, `9068d2afdd21` with its prose at 07:49). Tom:
+  "Does this give us an open router compatible endpoint?" `ai.v1/chat/completions`, `ai.v1/embeddings`, `ai.v1/models`
+  under `/xrpc/com.lopecode.brain.`. Open after it:
+  - A call with no `?usd=` is charged $0.01 whatever it cost (5300 times in the one run recorded). The price rule
+    reads the query string only. A price from the body's `max_tokens`, or from a header, needs the core.
+  - A browser client that sends a header other than `authorization` and `content-type` fails the kernel's preflight
+    (the OpenAI SDK's `x-stainless-*`, OpenRouter's `HTTP-Referer` and `X-Title`, `x-session-affinity`). Kernel
+    change, not made. No browser client was run; robocoop-5 was not pointed at it.
+  - cb4 holds no `OPENROUTER_API_KEY`: `proxy.fetch` with `secret: true` answers "the secret for openrouter.ai is not set".
+  - Refusals are `{ error, message }`, not OpenAI's shape. `/responses` is not passed. No tool call was run through it.
+  - `ai-cache.md`: Workers AI kept a prefix 60 s and not 300 s; MiMo 2.5 Pro at Xiaomi 300 s and not 900 s. One run each.
+  - Not reviewed by a fresh agent: the `ai.v1` path, `aiOpenAi`, the rewritten `aiBudget`, `ai-cache.md`.
 - The deployer's kept source carried one test cell from 23:33 to 23:36 (`const _10en1wa = (x) => x`): the record
   had been emitted in a tab where a test had been forced inside the module. Installed again from a clean tab
   (`f4430b4ce874`). A test is forced from a module of its own (`runtime.module()` and `import`), not inside the

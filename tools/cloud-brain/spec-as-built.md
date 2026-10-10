@@ -3331,3 +3331,62 @@ Not done on cb4: no browser opened, no container leased, no `ai.run` made with s
 | No test for the `call.by.link` line; refused shapes tested on `token.create` only | the line is asserted; one refused shape on `token.link`. `*` on an unattended link is still not tested |
 
 Live after: kernel `2531566a2480`, core `fd21a91cf13d`, page `d10ad36e33d3`, 67 of 67, `redistil` 18 `same`, lease held.
+
+## `brain-x-ai` answers an OpenAI client; four findings of its second review (2026-10-10 07:24 CEST)
+
+Tom, 2026-10-10: "Does this give us an open router compatible endpoint? Is this serverless (e.g. on demand?). Can we
+investigate cache performance compared to the real MimMo 2.5?"
+
+**The address.** Three methods whose names have a `/`: `com.lopecode.brain.ai.v1/chat/completions`, `ai.v1/embeddings`,
+`ai.v1/models`. An OpenAI client is given the base URL `https://HOST/xrpc/com.lopecode.brain.ai.v1` and adds the rest.
+Rejected: a declared path `/ai/v1/*`. The kernel gives a token "no path that is not a method" (`brain-kernel.ojs`,
+the `who.via === "token"` line), so a Brain token could not be the API key without a kernel change. A method name
+with a `/` needed none: nothing in the wrapper, deployer, core or `token.create` checks a system service's method
+name for shape. Run on cb4 with curl and a token made for the three methods, 05:24 UTC:
+
+```
+POST ai.v1/chat/completions, max_completion_tokens 8     200  7 tokens   x-brain-price 0.01  x-ai-usd 0.00000187
+POST ai.v1/chat/completions?usd=0.0001, stream           200  SSE, usage in the last chunk, then [DONE]
+POST ai.v1/embeddings                                    200  x-brain-price 0.01
+GET  ai.v1/models                                        200  {"object":"list","data":[{"id":"@cf/…","object":"model",…
+GET  ai.models with the same token                       403
+GET  ai.v1/models with no token                          401
+```
+
+**The price with no `usd`.** `"usd" in request.params ? double(request.params.usd) : 0.01`, and the service budgets
+from the same number. Rejected: the body's `max_tokens` at list price (the core's rule does not see a body) and a
+header (it does not see headers); each is a core change, and the core was left alone. The over-charge is whatever
+$0.01 is over the cost: 5300 times in the first run above.
+
+**Measured at Cloudflare's own address, 05:23 UTC**, completion tokens for "Count from 1 to 60":
+
+```
+body                                         ai/run   ai/v1/chat/completions
+"max_tokens":40,"max_tokens":3                    3     3     -> the last of two is read
+"max_tokens":3,"max_tokens":40                   40    40
+"max_tokens":3,"max_completion_tokens":40         3     3
+"max_completion_tokens":3                       184   135     -> max_completion_tokens is not read
+```
+
+So `max_completion_tokens` is written as `max_tokens` (the less of the two) and taken out, in `aiOpenAi`.
+`GET ai/v1/models` at Cloudflare is 405, so the list is made from the model search.
+
+**The second review's four**, each verified first:
+1. Two `max_tokens` in one body. Before: `{"prompt":"hi","max_tokens":999999,"max_tokens":7}` went byte for byte,
+   which was right only because Cloudflare reads the last, as `JSON.parse` does; nothing recorded that. Now the
+   byte-for-byte path is taken only when `"max_tokens"` is in the text one time, and a body with two is written
+   again with one. The value kept is the last, cut to the limit.
+2. A stored `maxTokens` of 2.5 was written as `max_tokens: 2.5`. Now floored, 1 at least.
+3. `aiPanel` after a failed run kept the answer of the run before on show and as its value. Now cleared and null.
+4. The comment over `aiMeasured` named `rpc-performance.md` for entries that are in this file.
+
+Tests: 9 of 9 `test_ai_*` in a local tab, one new (`test_ai_v1_answers_an_openai_client`). `redistil` 18 `same`.
+
+**Serverless.** Yes: no deployment for a model, billed by the call. Measurement in `rpc-performance.md`, "called on demand".
+
+**Cache.** `ai-cache.md`. Workers AI has no MiMo; `glm-5.3-flash` and `gemma-4-26b` stood in.
+
+Not done: no fresh review of this change (the session that made it was told to spawn no agent). robocoop-5 and the
+channel's runner were not changed or pointed at it. robocoop-5's `createOpenRouterClient` takes `baseUrl` and
+`apiKey`, sends `HTTP-Referer` and `X-Title` when given a referer and title, and streams; from a browser those two
+headers would fail the kernel's preflight.

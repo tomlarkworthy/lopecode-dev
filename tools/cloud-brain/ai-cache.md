@@ -1,0 +1,128 @@
+# Prompt caching: Workers AI through the Brain against MiMo 2.5 on OpenRouter
+
+Measured 2026-10-10, 05:21 to 05:47 UTC, one machine in Berlin. Asked by Tom: "Can we investigate cache
+performance compared to the real MimMo 2.5?"
+
+Read as: prefix caching of the prompt, where a provider keeps the model's state for a prefix it has seen and bills
+the repeated tokens at a lower rate. "The real MiMo 2.5" is read as `xiaomi/mimo-v2.5-pro` on OpenRouter, the model
+`knowledge/training-robocoop-5.md` pins for every run, with `xiaomi/mimo-v2.5` beside it. Neither reading was
+confirmed with Tom.
+
+**Workers AI has no MiMo.** `ai.models?task=Text Generation` listed 36 models on 2026-10-10 and none is Xiaomi's.
+Eight of them carry a price "per M cached input tokens". Two were measured, and they are different models from MiMo:
+`@cf/zai-org/glm-5.3-flash` ($0.15 in, $0.50 out, $0.03 cached, the nearest in price to `xiaomi/mimo-v2.5` at $0.14
+and $0.28) and `@cf/google/gemma-4-26b-a4b-it` ($0.10, $0.30, $0.05). The comparison is of two services' caches, not
+of one model in two places.
+
+## What was read
+
+- Cloudflare, https://developers.cloudflare.com/workers-ai/features/prompt-caching/ (2026-10-10): "Workers AI enables
+  prefix caching by default for select models", and "To maximize cache hit rates, send the `x-session-affinity`
+  header with a unique identifier for your session or agent." It gives no lifetime for a cached prefix and no
+  smallest size. Cached tokens "are billed at a lower rate than regular input tokens, which get totalled into your
+  neuron count."
+- OpenRouter's model list, https://openrouter.ai/api/v1/models and `/models/<slug>/endpoints` (2026-10-10):
+  `xiaomi/mimo-v2.5-pro` $0.435 in, $0.87 out, $0.0036 cached a million tokens, served by GMICloud, AtlasCloud,
+  Xiaomi, DigitalOcean, Novita and StreamLake at prices of their own (DigitalOcean's cached price is $0.096).
+  `xiaomi/mimo-v2.5` $0.14, $0.28, $0.0028. Each endpoint has `supports_implicit_caching: false`.
+
+## The protocol
+
+`bun tools/cloud-brain/ai-cache-bench.ts <target> <prefixTokens>`. One run is one prefix that nothing has sent
+before: its first words are the run's name, then seeded words from a list of 55. The prefix is the system message.
+Each call ends in a new one-line question, streams, and has `max_tokens` 16 and `temperature` 0. Six calls with 2 s
+between the end of one and the start of the next, then one call after 60, 300 and 900 s idle. Ten runs went at once.
+
+- Workers AI: `POST /xrpc/com.lopecode.brain.ai.v1/chat/completions` on cb4 with the owner's session, so the Brain's
+  three hops are in the times (about 60 ms, `rpc-performance.md`). `x-session-affinity` was the run's name, but for
+  one run that sent none.
+- OpenRouter: its own address, with `reasoning: { enabled: false }` and `usage: { include: true }`. cb4 holds no
+  OpenRouter key (`proxy.fetch` answered "the secret for openrouter.ai is not set"), so the script reads the key the
+  robocoop-5 eval tools read, from a git-ignored `.env`. One run pinned the provider Xiaomi
+  (`provider: { only: ["Xiaomi"], allow_fallbacks: false }`).
+
+`first` is milliseconds from sending to the first piece of text or reasoning; `cached` is
+`usage.prompt_tokens_details.cached_tokens`. Cost is OpenRouter's `usage.cost`, and for Workers AI `usage.neurons`
+at $0.000011. The rows are in `tools/cloud-brain/.emitted/ai-cache/`, which is git-ignored; they are all below.
+
+## The rows, prefix of 27 000 tokens
+
+```
+                                     call  1      2      3      4      5      6    +60s   +300s   +900s
+glm-5.3-flash, affinity      cached     0  27264  27264  27264  27264  27264  27264      0       0   of 27320
+  Workers AI                 first   1657   3165   1018    704    890    704    758  17687    2034   ms
+                             $ x1e-3 4.11   0.83   0.83   0.83   0.83   0.83   0.83   4.11    4.11
+glm-5.3-flash, no affinity   cached     0  27264  27264  27264      0  27264      0      0       0   of 27315
+                             first   1519   1585   7338   3200   1851   2295   1374   2278    8480
+gemma-4-26b, affinity        cached     0  25984  25984  25984  25984  25984      0      0       0   of 26056
+  Workers AI                 first   2813    700    577    700    672    529   1358   1493    1625
+                             $ x1e-3 2.61   1.31   1.31   1.31   1.31   1.31   2.61   2.61    2.61
+mimo-v2.5-pro, Xiaomi only   cached     0  27264  27264  27264  27264  27264  27264  27264       0   of 27381
+  OpenRouter                 first   2723   2857   1667   1961   1772   1682   1788   3331    2518
+                             $ x1e-3 11.9   0.15   0.15   0.15   0.15   0.15   0.15   0.15    11.9
+mimo-v2.5-pro, any provider  cached     0  27344      0      0  27344  27264  27264  27264       0   of 27369
+  OpenRouter                 provider  DO     DO     Xi     No     DO     Xi     No     Xi      No
+                             first   3587   1190   2590   3439   2438   2976   2172   6976    2648
+                             $ x1e-3 13.1   2.64   11.9   13.1   2.64   0.15   0.16   0.15    13.1
+mimo-v2.5, any provider      cached     0  27328  27328  27328  27328  27328  27328  27328   27328   of 27380
+  OpenRouter                 provider  GM     Xi     GM     GM     GM     GM     No     GM      GM
+                             first   4309   1990   3601   3486  58762   4231   4180   2858   56741
+                             $ x1e-3 3.26   0.08   0.08   0.08   0.08   0.08   0.11   0.08    0.08
+```
+
+DO DigitalOcean, Xi Xiaomi, No Novita, GM GMICloud.
+
+## The rows, prefix of 7 000 tokens
+
+```
+                                     call  1      2      3      4      5      6    +60s   +300s   +900s
+glm-5.3-flash, affinity      cached     0   7296   7296   7296   7296   7296   7296      0       0   of 7340
+                             first    687    764   3553    727    553   5014   5716   1109    1800
+gemma-4-26b, affinity        cached     0      0   6912   6912      0   6912   6912      0       0   of 6989
+                             first   1054    567    466    497    556    433    495    852     867
+mimo-v2.5-pro, any provider  cached     0   7328      0   7296   7296   7296   7296   7296       0   of 7360
+                             provider  DO     DO     Xi     Xi     Xi     Xi     Xi     Xi      DO
+                             first   1750   1391   2352   1832   6006   2306   1390   2656    1227
+mimo-v2.5, any provider      cached     0   6144   6144   6144   7296   6144   6144   6144    6144   of 7311
+                             provider  No     Xi     GM     GM     No     No     GM     GM      No
+                             first  24027   1662   3055   2970   7922   4125   7442   2294    2587
+```
+
+## Reading
+
+One run of each, so each line below is what that run showed, not a rate.
+
+- **How long a prefix stays cached.** Workers AI: `glm-5.3-flash` had it after 60 s and not after 300 s, both sizes.
+  `gemma-4-26b` lost the 26 000-token prefix inside 60 s and kept the 7 000-token one through 60 s. MiMo 2.5 Pro at
+  Xiaomi had it after 300 s and not after 900 s. For an agent that waits minutes between turns, Xiaomi's cache
+  outlived Cloudflare's.
+- **What a hit saves in money.** At 27 000 tokens: `glm-5.3-flash` $0.00411 to $0.00083, a fifth. `gemma-4-26b`
+  $0.00261 to $0.00131, a half. MiMo 2.5 Pro at Xiaomi $0.0119 to $0.00015, one eightieth. A cached call of MiMo 2.5
+  Pro cost less than a cached call of either Workers AI model; an uncached one cost 3 to 5 times more.
+- **What a hit saves in time.** `gemma-4-26b`: 529 to 700 ms to the first token on a hit, 1358 to 2813 ms on a
+  miss. `glm-5.3-flash` was too uneven to say: hits from 704 to 3165 ms, misses from 1657 to 17687 ms. MiMo 2.5 Pro
+  at Xiaomi: 1667 to 3331 ms on a hit, 2518 and 2723 ms on the two misses, so no gain was seen. Workers AI's fastest
+  first token was under half of MiMo's fastest (529 ms against 1190 ms).
+- **`x-session-affinity` matters.** Without it `glm-5.3-flash` missed on the fifth call of six and after 60 s; with
+  it, neither. `brain-x-ai` passes the header on; a caller has to send it.
+- **OpenRouter's choice of provider breaks the cache of MiMo 2.5 Pro.** With no provider pinned, calls 3 and 4 went
+  to providers that had not seen the prefix and were billed in full: the six close calls cost $0.0436 against
+  $0.0127 pinned to Xiaomi. DigitalOcean's hit is billed at $0.00264, 17 times Xiaomi's.
+- **`xiaomi/mimo-v2.5` reported the prefix cached on every call after the first**, at three providers, one of which
+  (Xiaomi, call 2) had not been sent it by this run, and still after 900 s. Not explained. It was billed as cached.
+  It also wrote 14 to 16 reasoning tokens on most calls with reasoning switched off, and three of its 18 calls took
+  24, 57 and 59 s to the first token.
+- Only whole blocks are cached: 27264 of 27320, 6912 of 6989. That fits blocks of 64 tokens and was not tested.
+
+## Not measured
+
+- A second run of anything. The times of `glm-5.3-flash` in particular need more than one.
+- MiMo and a Workers AI model on one task: nothing here says which answers better.
+- A prefix that grows turn by turn, as an agent's does. Each call here had the same prefix and a new last message.
+- Tool definitions in the prefix, `cache_control` markers, and the other six Workers AI models with a cached price.
+- Whether ten runs at once changed the times. They did not share a prefix.
+
+## Spend
+
+OpenRouter $0.100 by its own `usage.cost`, 47 answered calls. Workers AI $0.068 by `usage.neurons`, 47 calls of the runs, for which the
+Brain charged the owner's allowance $0.288 (`usd` from 0.002 to 0.01 a call).

@@ -486,3 +486,25 @@ A stream (`"stream": true`, 115 tokens of `@cf/meta/llama-3.2-1b-instruct`): fir
 
 Not measured: the `AI` binding in place of the REST address, which would drop the hop to `api.cloudflare.com` and
 cannot list models or prices.
+
+## Added 2026-10-10 07:27 CEST: `brain-x-ai` is called on demand
+
+Nothing is provisioned for a model. Cloudflare bills a call in neurons, "$0.011 per 1,000 Neurons", with "10,000
+Neurons per day at no charge" (https://developers.cloudflare.com/workers-ai/platform/pricing/, read 2026-10-10), and
+its limits page gives 300 text generations a minute for the account
+(https://developers.cloudflare.com/workers-ai/platform/limits/, read 2026-10-10). Five calls one after the other
+through the Brain (`ai.v1/chat/completions`, "Say hi.", `max_tokens` 4), 05:26 UTC. The first four models had not
+been called on this account before.
+
+```
+                                           1st  2nd  3rd  4th  5th  ms
+@cf/ibm-granite/granite-4.0-h-micro        682  547  382  717  460
+@cf/aisingapore/gemma-sea-lion-v4-27b-it   540  349  322  384  309
+@cf/qwen/qwen2.5-coder-32b-instruct        549  396  433  601  393
+@cf/meta/llama-4-scout-17b-16e-instruct    463  287  261  394  367
+@cf/meta/llama-3.2-1b-instruct             218  195  186  276  200   called many times the day before
+```
+
+The first call is 100 to 250 ms over the fifth, and it also reads the model from Cloudflare's list, which the later
+ones do not. No load of seconds. Not measured: a model nobody has called for hours, which one account cannot arrange.
+Calls with a prefix of 7 000 and 27 000 tokens are in `ai-cache.md`.
