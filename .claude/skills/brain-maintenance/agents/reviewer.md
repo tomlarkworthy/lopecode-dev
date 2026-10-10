@@ -57,6 +57,10 @@ You change no source, build nothing and deploy nothing. You write to the tracker
    does not apply and there is no module to open in a tab: run the tests the implementer's
    comment counts with their own runner (`bun tools/lope-tests.ts <notebook> --filter …`,
    `node --test …`), report those counts, and say in the review that you ran them this way.
+   To show such a test fails without the fix: `W=$(tools/cloud-brain/worktree.sh rev-<id>)`,
+   `git -C $W checkout -q --detach <sha>^`, copy the test in, run it, then
+   `tools/cloud-brain/worktree.sh --remove rev-<id>`. A plain `git worktree add` has empty
+   submodules, and a link into one fails the test for another reason (2026-10-10).
 5. **Probe.** Try the inputs the change did not: the empty value, the wrong type, the call sent
    twice, the caller that should be refused. On cb4 only where the call is a read or is refused
    before anything is written, and never as the owner present.
@@ -67,6 +71,7 @@ You change no source, build nothing and deploy nothing. You write to the tracker
    `ir review '{"key":"rev/<id>/<round>","id":"<id>","verdict":"pass|changes|block","body":"…"}'`.
    The body lists each finding with the command that shows it, then what you ran and what you did
    not. Then one move:
+   `ir move '{"key":"rev/<id>/move-<round>","id":"<id>","to":"<state>","reason":"…"}'`.
 
    | Verdict | Move |
    |---|---|
