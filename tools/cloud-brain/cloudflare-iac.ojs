@@ -206,6 +206,9 @@ backend = {
     databaseRun: async () => {
       throw new Error("database runs in brain-db, or under simulate with a sql function");
     },
+    vectors: async () => {
+      throw new Error("vectors run in a Worker, or under simulate with a vectors object");
+    },
     blobGet: async (key) => store.blobs.get(key) ?? null,
     blobPut: async (key, bytes) => (store.blobs.set(key, bytes), true),
     blobHas: async (key) => store.blobs.has(key),
@@ -265,6 +268,16 @@ sql = ({
 database = ({
   [platformTag]: "database",
   batch: (list) => backend.databaseRun(list)
+})
+// %%
+// One Vectorize index of the Worker's own, declared in options.vectors: { name, dimensions, metric, metadata: { FIELD:
+// "string" | "number" | "boolean" } }. The deployer makes the index, and its metadata indexes before any vector is in
+// it, and binds it to brain-x-knowledge alone. query, upsert and deleteByIds are the binding's own, with its answers.
+vectors = ({
+  [platformTag]: "vectors",
+  query: (vector, options) => backend.vectors("query", vector, options),
+  upsert: (list) => backend.vectors("upsert", list),
+  deleteByIds: (ids) => backend.vectors("deleteByIds", ids)
 })
 // %%
 blobs = ({
@@ -823,6 +836,16 @@ containerImages = (service, refuse = (cell, why) => { throw new Error(why); }) =
   });
 }
 // %%
+// The index a service declares, as the deployer makes it: { name, dimensions, metric, metadata: [[field, type], …] }.
+// The name says what the vectors are (the model, the dimensions): another name is another index, and the old one stays.
+vectorIndex = (service, refuse = (cell, why) => { throw new Error(why); }) => {
+  const v = service.options.vectors || {}, fields = Object.entries(v.metadata || {}).sort();
+  if (!/^[a-z][a-z0-9-]{0,29}$/.test(v.name || "")) refuse(service.name, "uses vectors and names no index: add vectors: { name, dimensions, metadata } to the service's options");
+  if (!(Number.isInteger(v.dimensions) && v.dimensions >= 32 && v.dimensions <= 1536)) refuse(service.name, "vectors: dimensions is a whole number from 32 to 1536");
+  if (fields.length > 10 || fields.some(([k, t]) => !/^[a-z][a-z0-9_]{0,29}$/.test(k) || !["string", "number", "boolean"].includes(t))) refuse(service.name, "vectors: metadata is 10 fields at most, each string, number or boolean");
+  return { name: v.name, dimensions: v.dimensions, metric: v.metric || "cosine", metadata: fields };
+}
+// %%
 // Walks the runtime's variable graph from the cell holding `service` and writes a plain ES module.
 emit = async (service) => {
   // An imported name is an alias variable whose one input lives in the exporting module.
@@ -867,6 +890,9 @@ emit = async (service) => {
     } else if (kind === "containers") {
       used.add(kind);
       ref = "__containers";
+    } else if (kind === "vectors") {
+      used.add(kind);
+      ref = "__vectors";
     } else if (kind) {
       used.add(kind);
       ref = "__rt.platform." + kind;
@@ -945,9 +971,14 @@ emit = async (service) => {
   // the service declares. The object does what the service's options.containers.object says, with its own ctx.
   const boxes = used.has("containers") ? containerImages(service, refuse) : [];
   if (boxes.length) lines.push(`import { DurableObject as __DO } from "cloudflare:workers";`, `let __env = null;`, `const __containers = { fetch: (image, id, request) => { const ns = __env && __env["BOX_" + String(image).toUpperCase()]; if (!ns) throw new Error("no container image " + image); return ns.get(ns.idFromName(id)).fetch(request); } };`);
+  // The index is written here too. The binding is read from the env of the call being answered.
+  const index = used.has("vectors") ? vectorIndex(service, refuse) : null;
+  if (index && boxes.length) refuse(service.name, "uses vectors and containers: one Worker has one of the two");
+  if (index) lines.push(`let __venv = null;`, `const __vectors = { query: (v, o) => __venv.VECTORS.query(v, o), upsert: (l) => __venv.VECTORS.upsert(l), deleteByIds: (ids) => __venv.VECTORS.deleteByIds(ids) };`);
   lines.push(`const __init = async () => {`);
   for (const c of cells) lines.push(`  const ${c.id} = await (${c.text})(${c.deps.join(", ")});`);
-  if (!boxes.length) lines.push(`  return ${rootRef};`, `};`, `export default __rt.serve(__init, ${source ? "__source" : "null"});`);
+  if (index) lines.push(`  return ${rootRef};`, `};`, `const __served = __rt.serve(__init, ${source ? "__source" : "null"});`, `export default { fetch: (request, env, ctx) => ((__venv = env), __served.fetch(request, env, ctx)), scheduled: (event, env, ctx) => ((__venv = env), __served.scheduled(event, env, ctx)) };`);
+  else if (!boxes.length) lines.push(`  return ${rootRef};`, `};`, `export default __rt.serve(__init, ${source ? "__source" : "null"});`);
   else {
     // One evaluation of the cells for the Worker and its objects. An object can be the first thing to run in an isolate:
     // it asks the Worker for its health once, which gives the wrapper the bindings.
@@ -986,11 +1017,14 @@ emit = async (service) => {
     cloudflare: groups,
     // Container applications the deployer makes for this Worker, one for each image. Absent for a Worker with none.
     ...(boxes.length ? { containers: boxes } : {}),
+    // The Vectorize index the deployer makes for this Worker. Absent for a Worker with none.
+    ...(index ? { vectors: index } : {}),
     bindings: [
       // Only the kernel's and the core's named secrets are bound. A recipe reads its secrets through the core.
       ...(role === "kernel" || role === "core" || role === "deployer" ? [...secretNames].sort().map((name) => ({ type: "secret_text", name })) : []),
       ...(used.has("rows") ? [role === "deployer" ? { type: "durable_object_namespace", name: "ROWS", class_name: "Rows" } : { type: "d1", name: "SQL" }] : []),
       ...(used.has("database") ? [{ type: "d1", name: "DB", own: true }] : []),
+      ...(index ? [{ type: "vectorize", name: "VECTORS", own: true }] : []),
       ...(used.has("blobs") ? [{ type: "r2_bucket", name: "BLOBS", bucket_name: "brain-blobs" }] : []),
       ...(used.has("inbox") || used.has("xrpc") || used.has("sql") || used.has("core") || (secretNames.size && (role === "recipe" || role === "system")) ? [{ type: "service", name: "CORE", service: "brain-core" }] : []),
       ...(used.has("deployer") ? [{ type: "service", name: "DEPLOYER", service: "brain-deployer" }] : []),
@@ -1020,7 +1054,7 @@ moduleSource = async (module) => {
 }
 // %%
 // Runs the emitted module in the tab with every Cloudflare binding replaced by a recording fake.
-simulate = async (service, { secrets = {}, stored = {}, fetch, config = {}, info = {}, core, deployer, guard, assets, workers = {}, rows, blobs, sql, browser, containers } = {}) => {
+simulate = async (service, { secrets = {}, stored = {}, fetch, config = {}, info = {}, core, deployer, guard, assets, workers = {}, rows, blobs, sql, browser, containers, vectors } = {}) => {
   const emitted = await service.emit();
   const url = (text) => URL.createObjectURL(new Blob([text], { type: "text/javascript" }));
   let main = emitted.parts[0].text;
@@ -1094,6 +1128,8 @@ simulate = async (service, { secrets = {}, stored = {}, fetch, config = {}, info
     ...(emitted.meta.role === "deployer" ? {} : { SQL: { sim: async (op, key, value) => rowsOp(op, key, value) } }),
     // No SQL engine runs in a page: a test gives sql(statement, args) => { rows, changes } and answers for its statements.
     DB: { sim: async (statement, args) => (sql ? sql(statement, args) : Promise.reject(new Error("simulate was given no sql function"))) },
+    // A test gives vectors: { query, upsert, deleteByIds }, which stand for the binding.
+    ...(vectors ? { VECTORS: vectors } : {}),
     ROWS: { idFromName: (name) => name, get: () => ({ fetch: async (request) => (({ op, key, value }) => reply({ value: rowsOp(op, key, value) }))(await request.json()) }) }
   };
   for (const [name, handler] of Object.entries(workers))

@@ -745,6 +745,18 @@ Built and on cb4: stored settings read through `config` (`config.set`, `config.g
 - Open: `exec` does not stream; no method puts a file in a container.
 - **From the deploy log of 2026-10-09** (spec-as-built, "The deploy log … read for what failed"): the deployer makes each Cloudflare call once, and a 500 and a 504 each cost a put-back; an apply of 17 Workers twice stopped after an upload and held that Worker's row for 5 minutes. (A deploy line names its deployer since 2026-10-09, `69e213914ffa`.)
 
+## Added 2026-10-10 09:45 CEST: the knowledge base is searched by meaning
+
+- **Built:** one Vectorize index behind `brain-x-knowledge`, one vector an entry, `knowledge.search?semantic=true`, module cards from `library.put` (`tools/cloud-brain/knowledge-vectors.md`). 173 entries on cb4, 100 of them modules.
+- Open: feeders for web articles, ATProto records and Hacker News items. Each is a call of `knowledge.put` with a `kind` of its own; `brain-x-snapshot` enters papers only.
+- Open: Tom's notebooks in the library. Four are there; a module has a card only once a notebook that holds it is put.
+- Open: `library.setPublic` and `library.delete` leave the cards. A card made public stays public until a put of `{ id, public: false }`.
+- Open: whether a member may enter (`knowledge.put` has no rule for one). Tom has not decided.
+- Open: who is charged when a Worker enters on its clock; not seen. On 2026-10-10 every embedding was charged to the owner.
+- Open: nothing says a write is not yet searchable (41 to 63 s on cb4).
+- Open: a fresh review of the hunks in `cloudflare-iac`, `brain-deployer`, `brain-knowledge`, `brain-library` and `brain-core`.
+- For Tom: `quick_start` is public in cb4's library and `cloud-brain` is there, not public. Both were put to have modules to search.
+
 ## Parked 2026-10-10 (Tom)
 
 - **A permanent connection for an agent.** Not now: "lets forget how to do upgrades. It fine for now." A link's token ends after at most 24 hours and cannot renew itself. Options written down in the session: a standing token that may deploy; a token that renews itself.

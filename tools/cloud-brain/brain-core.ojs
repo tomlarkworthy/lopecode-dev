@@ -760,6 +760,12 @@ coreApp = {
     const line = (name, r, kind) => `- ${name}: ${kind}${r.allow ? "by its rule" : r.who || "owner"}${r.price ? ", has a price" : ""}${set.has(name) ? ", changed by the owner" : ""}`;
     const routes = (await settings.list("route/")).map((r) => r.value).filter((r) => routed(r) && r.role !== "member").sort((a, b) => (a.worker < b.worker ? -1 : 1));
     const deployed = routes.filter((r) => Object.keys(r.methods).length + r.paths.length).map((r) => [`### ${r.worker}`, ...Object.entries(r.methods).sort().map(([n, m]) => line(n, m, m.type + ", ")), ...r.paths.map((p) => line(p.path, p, "path, "))].join("\n"));
+    // Said only where a Worker declares the method: a clone with no knowledge base is told of none.
+    const holds = routes.some((r) => "com.lopecode.brain.knowledge.search" in r.methods) ? `
+## Finding what it holds
+
+- \`GET ${at}${X}knowledge.search?semantic=true&q=<the task, in words>\`: what this Brain holds that is nearest the question, as pointers (\`title\`, \`kind\`, \`url\`, \`id\`): notebook modules (\`&kind=module\`), papers, articles, notes. Search here before writing something that may exist. The owner or a token that names the method; \`knowledge.get?id=\` has an entry's text.
+` : "";
     const text = `# Cloud Brain at ${at}
 
 Cloudflare Workers that one notebook defines, deploys and operates. This file is written on each request from what is deployed here. It points at the reference and copies none of it.
@@ -796,7 +802,7 @@ Three calls, with no account, say what this Brain is made of:
 - \`GET ${at}${X}getSource?worker=<worker>&part=reference\`: only the documentation, as text: that Worker's methods, inputs and answers. Read this before calling a method.
 
 The shape: the kernel (\`brain\`) is this address and says who the caller is. The core (\`brain-core\`) checks the rule of each method, charges its price and passes the call to a service (\`brain-x-NAME\`). \`brain-db\` keeps every Worker's rows. The deployer, a Worker at its own address, is the only holder of a Cloudflare token: it deploys a module's source as a Worker and puts back one that fails. A service is one notebook module; its source is its definition.
-
+${holds}
 ## Making a service
 
 - A member of this Brain deploys their own: \`member.deploy\` with \`{ module, source, reason, was }\`. \`source\` is a module as \`getSource\` gives one. \`reason\` says why, in 3 to 300 characters, and is logged. \`was\` is the hash you saw running for that service, \`null\` for a new one; the deploy is refused when it is no longer that. No approval is needed. \`member.services\` lists them, \`member.remove\` takes \`{ name, reason, was }\`.
@@ -933,6 +939,10 @@ test_llms_txt_is_written_from_the_host_and_the_route_table = {
   expect(first.data).toContain("getSource?worker=<worker>&part=reference");
   // Where to begin, what getSource answers, and how a member makes a service.
   for (const said of ["service.list`: every Worker", "getInfo?worker=<worker>", "`{ worker, hash, module, text }`", "`member.deploy` with `{ module, source, reason, was }`", "`aud` `did:web:clone.example.workers.dev`"]) expect(first.data).toContain(said);
+  // The knowledge base is pointed at only once a Worker declares its search.
+  expect(first.data).not.toContain("Finding what it holds");
+  await rig.deployer("service.register", { worker: "brain-x-knowledge", role: "recipe", keyHash: "know", paths: [], secrets: [], methods: { "com.lopecode.brain.knowledge.search": { type: "query", who: "owner" } } });
+  expect(await read()).toContain("## Finding what it holds\n\n- `GET https://clone.example.workers.dev/xrpc/com.lopecode.brain.knowledge.search?semantic=true&q=<the task, in words>`");
   // Every name is whole, so it is the path: a listed name asked as listed is routed (not 501).
   expect(first.data).not.toContain("is short for");
   expect(first.data).toContain("https://clone-deployer.example.workers.dev/xrpc/com.lopecode.brain.getSource?part=reference");

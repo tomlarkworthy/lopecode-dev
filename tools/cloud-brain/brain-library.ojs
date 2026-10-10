@@ -10,8 +10,9 @@ Notebooks kept by a Cloud Brain and served from its address. The files are in \`
 | \`library.versions\` | query, owner. \`?name=\`. The last 10 saves, newest first. |
 | \`library.setPublic\` | procedure, owner. \`{ name, public }\` |
 | \`library.delete\` | procedure, owner. \`{ name }\`. Deletes every version. |
+| \`library.index\` | procedure, owner. \`{ name }\`. Enters the module cards of the newest version again (see Module cards). \`{ name, cards }\`. |
 | \`GET /library/<name>\` | the notebook. Anyone for a public one, the owner for any. \`?v=<sha256>\` opens a kept version. |
-| Calls | \`static.put\`, \`static.get\`, \`static.delete\` |
+| Calls | \`static.put\`, \`static.get\`, \`static.delete\`, \`knowledge.put\` |
 | Storage | \`rows\`, key \`n/<name>\`: \`{ title, sha256, size, public, savedAt, versions }\`. Files at \`library/<name>/<first 16 of sha256>.html\` in \`brain-static\`. |
 
 A name is 1 to 80 of \`A-Z a-z 0-9 @ . _ -\`. The body must be a lopecode notebook: a file with a \`bootconf.json\` block. The title is the file's \`<title>\`. With \`parent\`, a put is refused with 409 unless \`parent\` is the SHA-256 of the notebook's newest version (empty for a new name), so two tabs saving one notebook do not overwrite each other unseen.
@@ -24,7 +25,17 @@ await client.procedure("library.put", htmlBytes, { params: { name: "notes", publ
 
 \`libraryPanel({ client, origin, owner })\` is the list as a table, with upload, public and delete for the owner.
 
-A notebook served from \`/library\` runs on the Brain's own address, so its cells call the Brain as whoever is signed in. Put only notebooks you would run as yourself.`
+A notebook served from \`/library\` runs on the Brain's own address, so its cells call the Brain as whoever is signed in. Put only notebooks you would run as yourself.
+
+## Module cards
+
+A put enters one entry in \`brain-x-knowledge\` for each module in the file, of kind \`module\`, so that \`knowledge.search?semantic=true&kind=module\` finds the module for a task (added 2026-10-10). A card is \`libraryCards\`' reading of the module's block: its name and heading as the title; its first prose cell, the names of its cells (tests and the halves of a \`viewof\` left out) and the modules it imports as the text. Not its source. The card's \`url\` is the notebook's address here and its \`file\` the kept file.
+
+- A module has one card, \`module:<user>:<name>\`, whichever notebook it is in. The last put of a notebook that has it writes it.
+- A block is read as a module when it is named \`@user/name\` and is not encoded. A module with an Observable id for a name (\`d/57d7…\`) has no card: 1 of the 98 modules of the Cloud Brain notebook on 2026-10-10.
+- The cards of a public notebook are public. A put of a notebook that is not leaves a card that is already public as it is, and makes a new one private.
+- \`library.setPublic\` and \`library.delete\` do not change a card. To make one private, put \`{ id, public: false }\` to \`knowledge.put\`; to remove one, \`knowledge.delete\`.
+- The put answers \`cards\`, how many were entered. When \`knowledge.put\` fails the notebook is kept all the same and \`cards\` is smaller; \`library.index\` enters them again.`
 // %%
 library_service = cloudflare.Service("library", libraryApp, {
   methods: {
@@ -34,16 +45,40 @@ library_service = cloudflare.Service("library", libraryApp, {
     "com.lopecode.brain.library.list": { type: "query", who: "anyone" },
     "com.lopecode.brain.library.versions": { type: "query", who: "owner" },
     "com.lopecode.brain.library.setPublic": { type: "procedure", who: "owner" },
-    "com.lopecode.brain.library.delete": { type: "procedure", who: "owner" }
+    "com.lopecode.brain.library.delete": { type: "procedure", who: "owner" },
+    "com.lopecode.brain.library.index": { type: "procedure", who: "owner" }
   },
   paths: [{ path: "/library/*", who: "anyone" }],
-  calls: ["com.lopecode.brain.static.put", "com.lopecode.brain.static.get", "com.lopecode.brain.static.delete"]
+  calls: ["com.lopecode.brain.static.put", "com.lopecode.brain.static.get", "com.lopecode.brain.static.delete", "com.lopecode.brain.knowledge.put"]
 })
 // %%
 library_announce = {
   plugins.add("workers", library_service, { invalidation });
   return "announced library_service";
 }
+// %%
+// One card for each module block of a notebook's file: what is read to choose a module, and not its source. The block
+// is the text the exporter writes, so the cells are read from its define calls and the prose from its md cells.
+libraryCards = (html, { name, file, host, open = false }) =>
+  // The tag's name is joined here: written whole in a module, it would end the block the module is kept in.
+  [...html.matchAll(new RegExp("<scr" + 'ipt\\s+id="(@[A-Za-z0-9._-]+/[A-Za-z0-9._-]+)"\\s+type="text/plain"\\s+data-mime="application/javascript"\\s*>([\\s\\S]*?)</scr' + "ipt>", "g"))].map(([, module, source]) => {
+    const prose = [...source.matchAll(/\{\s*return\s*\(\s*md`((?:[^`\\]|\\[\s\S])*)`/g)].map((p) => p[1].replace(/\\([`\\$])/g, "$1"));
+    const heading = (prose.join("\n").match(/^#\s+(.+)$/m) || [])[1];
+    const cells = [...new Set([...source.matchAll(/\$def\("[^"]*", "([^"]+)"|\.variable\(observer\("([^"]+)"\)\)/g)].map((d) => d[1] || d[2]))].filter((n) => !/^(test_|viewof |mutable |initial )/.test(n));
+    const imports = [...new Set([...source.matchAll(/"module (@[^"]+)"/g)].map((d) => d[1]))];
+    const first = (prose[0] || "").replace(/^#\s+.+$/m, "").replace(/\s+/g, " ").trim();
+    return {
+      id: ("module:" + module.slice(1).toLowerCase().replace("/", ":").replace(/[^a-z0-9._:-]/g, "-")).slice(0, 100),
+      kind: "module",
+      title: (module + (heading ? ": " + heading.trim() : "")).slice(0, 500),
+      text: [first.slice(0, 900), cells.length ? "Cells: " + cells.slice(0, 60).join(", ") : "", imports.length ? "Imports: " + imports.join(", ") : ""].filter(Boolean).join("\n").slice(0, 4000),
+      url: `https://${host}/library/${name}`,
+      source: "library",
+      file,
+      method: "library.put",
+      ...(open ? { public: true } : {})
+    };
+  })
 // %%
 libraryApp = {
   const app = new hono.Hono();
@@ -59,26 +94,45 @@ libraryApp = {
   };
   const fileOf = (name, sha) => `library/${name}/${sha.slice(0, 16)}.html`;
   const drop = (name, sha) => xrpc.fetch(STATIC + "delete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: fileOf(name, sha) }) });
+  // The module cards of a file, entered in the knowledge base 100 to a call. Answers how many were entered; a call
+  // that fails is not a reason to lose the notebook.
+  const enter = async (name, html, head) => {
+    const cards = libraryCards(html, { name, file: fileOf(name, head.sha256), host: config.host, open: head.public });
+    let entered = 0;
+    for (let i = 0; i < cards.length; i += 100) {
+      const r = await xrpc.fetch("com.lopecode.brain.knowledge.put", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ entries: cards.slice(i, i + 100) }) }).catch(() => null);
+      if (r && r.ok) entered += cards.slice(i, i + 100).length;
+    }
+    return entered;
+  };
   app.post(NS + "put", async (c) => {
     const name = c.req.query("name") || "";
     if (!okName(name)) return fail(c, 400, "InvalidRequest", "name");
     const bytes = new Uint8Array(await c.req.raw.arrayBuffer());
-    if (!new TextDecoder().decode(bytes).includes('id="bootconf.json"')) return fail(c, 400, "NotANotebook", "the file has no bootconf.json block");
+    const html = new TextDecoder().decode(bytes);
+    if (!html.includes('id="bootconf.json"')) return fail(c, 400, "NotANotebook", "the file has no bootconf.json block");
     const head = await rows.get("n/" + name);
     const parent = c.req.query("parent");
     if (parent != null && parent !== (head ? head.sha256 : "")) return fail(c, 409, "StaleParent", `the newest version of ${name} is ${head ? head.sha256 : "none"}`);
     const sha256 = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
     const kept = await xrpc.fetch(STATIC + "put", { method: "POST", params: { path: fileOf(name, sha256), type: "text/html; charset=utf-8", public: "false" }, body: bytes });
     if (!kept.ok) return fail(c, 502, "UpstreamFailed", `static.put answered ${kept.status}`);
-    const text = new TextDecoder().decode(bytes.subarray(0, 65536));
-    const title = ((text.match(/<title>([^<]*)<\/title>/) || [])[1] || name).trim().slice(0, 200);
+    const title = ((html.slice(0, 65536).match(/<title>([^<]*)<\/title>/) || [])[1] || name).trim().slice(0, 200);
     const savedAt = Date.now();
     const versions = [{ sha256, size: bytes.length, savedAt }, ...(head ? head.versions.filter((v) => v.sha256 !== sha256) : [])];
     for (const old of versions.slice(KEEP)) await drop(name, old.sha256);
     const open = c.req.query("public");
     const next = { title, sha256, size: bytes.length, public: open != null ? open === "true" : !!(head && head.public), savedAt, versions: versions.slice(0, KEEP) };
     await rows.put("n/" + name, next);
-    return c.json({ name, title, sha256, size: next.size, public: next.public, savedAt, versions: next.versions.length });
+    return c.json({ name, title, sha256, size: next.size, public: next.public, savedAt, versions: next.versions.length, cards: await enter(name, html, next) });
+  });
+  app.post(NS + "index", async (c) => {
+    const { name } = await c.req.json().catch(() => ({}));
+    const head = okName(name) ? await rows.get("n/" + name) : null;
+    if (!head) return fail(c, 404, "NotFound", String(name));
+    const file = await xrpc.fetch(STATIC + "get", { params: { path: fileOf(name, head.sha256) } });
+    if (!file.ok) return fail(c, 502, "UpstreamFailed", `static.get answered ${file.status}`);
+    return c.json({ name, cards: await enter(name, await file.text(), head) });
   });
   app.get(NS + "list", async (c) => {
     const all = (await rows.list("n/")).map(({ key, value }) => ({ name: key.slice(2), title: value.title, sha256: value.sha256, size: value.size, public: value.public, savedAt: value.savedAt, versions: value.versions.length }));
@@ -193,11 +247,14 @@ libraryNotebook = (body, title = "Notes") => "<html><head><title>" + title + "</
 // The library and the static Worker it calls, joined as the core joins them: the library is worker:brain-x-library there.
 libraryRig = async () => {
   const stat = await simulate(static_service, {});
-  const asked = [];
+  const asked = [], cards = [], state = { down: false };
   const sim = await simulate(library_service, {
+    config: { host: "brain.example" },
     core: async (request) => {
       const url = new URL(request.url);
       asked.push(url.pathname.split(".").pop() + " " + (url.searchParams.get("path") || ""));
+      // knowledge.put as the core passes it on: the cards are kept for the test to read.
+      if (url.pathname.endsWith("knowledge.put")) return state.down ? new Response("{}", { status: 503 }) : (cards.push(...(await request.json()).entries), Response.json({}));
       return stat.fetch("https://static.internal" + url.pathname + url.search, {
         method: request.method,
         headers: { "content-type": request.headers.get("content-type") || "", "x-brain-caller": "worker:brain-x-library" },
@@ -209,7 +266,7 @@ libraryRig = async () => {
   const X = "/xrpc/com.lopecode.brain.library.";
   const put = (who, name, html, extra = "") => call(who, X + "put?name=" + encodeURIComponent(name) + extra, { method: "POST", body: html });
   const post = (who, name, input) => call(who, X + name, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
-  return { stat, sim, asked, call, put, post, X };
+  return { stat, sim, asked, cards, state, call, put, post, X };
 }
 // %%
 test_library_keeps_and_serves_a_notebook = {
@@ -260,6 +317,38 @@ test_library_public_list_and_versions = {
   return "2 versions, 1 conflict, 2 files deleted";
 }
 // %%
+// A module block as the exporter writes it, in both forms of its define calls.
+libraryModule = (id, body) => "<scr" + `ipt id="${id}" \n  type="text/plain"\n  data-mime="application/javascript"\n>\n${body}\n</scr` + `ipt>`
+// %%
+test_library_enters_a_card_for_each_module = {
+  const rig = await libraryRig();
+  // Joined here, so that a reader of this module's own source does not take the fixture's import for one of its own.
+  const imported = "mod" + "ule @fx/iac";
+  const boxes = libraryModule("@fx/Boxes", 'const _a = function _anonymous(md) {return (md`# Leased boxes\n\nRun code in a \\`linux\\` box.`)};\nconst _b = function _b(md) {return (md`## Tests`)};\nexport default function define(runtime, observer) {\n  $def("_a", null, ["md"], _a);\n  $def("_x", "boxPanel", ["htl"], _x);\n  $def("_v", "viewof size", [], _v);\n  $def("_s", "size", [], _s);\n  $def("_t", "test_boxes_run", [], _t);\n  main.define("' + imported + '", [], async () => 1);\n  main.define("rows", ["' + imported + '","@variable"], (_, v) => v.import("rows", _));\n}');
+  const plain = libraryModule("@fx/plain", 'const _1 = function _1(md){return(\nmd`No heading here.`\n)};\nexport default function define(runtime, observer) {\n  const main = runtime.module();\n  main.variable(observer()).define(["md"], _1);\n  main.variable(observer("draw")).define("draw", [], _2);\n}');
+  // A file attachment is not a module, whatever its name.
+  const lib = "<scr" + 'ipt id="@fx/Boxes/lib.js.gz" type="text/plain" data-mime="application/gzip" data-encoding="base64">AAAA</scr' + 'ipt>';
+  const html = libraryNotebook(boxes + plain + lib);
+  const made = await (await rig.put("owner", "fx", html)).json();
+  expect([made.cards, rig.cards.length]).toEqual([2, 2]);
+  expect(rig.cards[0]).toEqual({ id: "module:fx:boxes", kind: "module", title: "@fx/Boxes: Leased boxes", text: "Run code in a `linux` box.\nCells: boxPanel, size\nImports: @fx/iac", url: "https://brain.example/library/fx", source: "library", file: "library/fx/" + made.sha256.slice(0, 16) + ".html", method: "library.put" });
+  expect(rig.cards[1]).toMatchObject({ id: "module:fx:plain", title: "@fx/plain", text: "No heading here.\nCells: draw" });
+  // The cards of a public notebook are public; index enters them again from the kept file.
+  await rig.post("owner", "setPublic", { name: "fx", public: true });
+  expect(await (await rig.post("owner", "index", { name: "fx" })).json()).toEqual({ name: "fx", cards: 2 });
+  expect([rig.cards.length, rig.cards[2].public, rig.cards[3].public]).toEqual([4, true, true]);
+  // knowledge.put refuses: the notebook is kept, and the answer says no card was entered.
+  rig.state.down = true;
+  const again = await (await rig.put("owner", "fx", libraryNotebook(boxes, "Again"))).json();
+  expect([again.cards, again.versions, again.title]).toEqual([0, 2, "Again"]);
+  // A notebook with no module makes no call.
+  const before = rig.asked.length;
+  expect((await (await rig.put("owner", "notes", libraryNotebook("one"))).json()).cards).toBe(0);
+  expect(rig.asked.slice(before).some((a) => a.startsWith("put ") && !a.includes("library/"))).toBe(false);
+  expect((await rig.post("owner", "index", { name: "nothing" })).status).toBe(404);
+  return "2 modules, 2 cards";
+}
+// %%
 test_library_keeps_ten_versions = {
   const rig = await libraryRig();
   for (let i = 0; i < 12; i++) await rig.put("owner", "notes", libraryNotebook("save " + i));
@@ -275,7 +364,7 @@ test_library_declares_what_it_needs = {
   const { meta } = await library_service.emit();
   expect(meta).toMatchObject({
     worker: "brain-x-library", role: "recipe", module: "@tomlarkworthy/brain-library", resources: ["rows", "xrpc"], secrets: [],
-    calls: ["com.lopecode.brain.static.delete", "com.lopecode.brain.static.get", "com.lopecode.brain.static.put"],
+    calls: ["com.lopecode.brain.knowledge.put", "com.lopecode.brain.static.delete", "com.lopecode.brain.static.get", "com.lopecode.brain.static.put"],
     paths: [{ path: "/library/*", who: "anyone" }]
   });
   expect(meta.access["com.lopecode.brain.library.put"]).toMatchObject({ allow: "caller.session", fixed: true });
@@ -292,7 +381,7 @@ test_library_panel_lists_notebooks = {
   return "1 row, 4 buttons";
 }
 // %%
-import {cloudflare, rows, xrpc, hono, simulate, sha256} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, rows, xrpc, config, hono, simulate, sha256} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {static_service} from "@tomlarkworthy/brain-static"
 // %%

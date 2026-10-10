@@ -29,7 +29,7 @@ kept in step with the code.
 | The spec Tom reviews (do not edit on disk while he may have it open; Claude does not set its status) | `plan/specs/cloud-brain.html` |
 | Requirements and open questions as cells | `tools/cloud-brain/cloud-brain-specs.ojs` |
 | User-facing docs module | `tools/cloud-brain/cloud-brain-docs.ojs` |
-| Measured records | `tools/cloud-brain/rpc-performance.md`, `websockets.md`, `logging-research.md`, `containers.md`, `ai-cache.md` |
+| Measured records | `tools/cloud-brain/rpc-performance.md`, `websockets.md`, `logging-research.md`, `containers.md`, `ai-cache.md`, `knowledge-vectors.md` |
 
 Each service documents its own methods in the first `md` cell of its seed (`brain-browser.ojs`,
 `brain-logs.ojs`, `brain-core.ojs`, …). That cell is the method reference.
@@ -43,7 +43,8 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
   bluesky, whatsapp, blob, feed, library, static, inbox, snapshot (a daily record of
   public feeds at `/static/snapshot/<day>/`; it makes no model call), knowledge (what the Brain
   knows: entries with their source, kept file and who entered them, in a D1 database of its own,
-  `knowledge.search?q=`), container (leased Linux containers from Cloudflare Containers, for the owner
+  `knowledge.search?q=` by words and `&semantic=true` by meaning, one vector an entry in one Vectorize index; a put
+  to the library enters a card for each module of the notebook), container (leased Linux containers from Cloudflare Containers, for the owner
   and the Brain's Workers: `container.extend?seconds=`, `exec`, `get`/`post` to a port), ai (one call to an open model on Cloudflare Workers AI:
   `ai.run?model=&usd=`, where `usd` is charged whole; `ai.models` is Cloudflare's list; an OpenAI client's base URL is
   `/xrpc/com.lopecode.brain.ai.v1`, its key a Brain token, $0.01 a call with no `usd`). `<base>-x-page` is built from

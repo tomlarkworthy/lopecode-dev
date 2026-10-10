@@ -3489,3 +3489,36 @@ Cost of the longer link: a pasted link that leaks is usable for 8 hours, not 10 
 | The pointer in `running-a-cloud-brain.md` named no section | it names this one |
 
 Live after: kernel `b21a946d928b`, core `7fe97cdcbbff`, page `0771067cb518`, 68 of 68. Still no test asserts the notes in the GET text or `/llms.txt`; `jq` is assumed present where the agent runs.
+
+## One vector an entry: the knowledge base is searched by meaning (2026-10-10 09:45 CEST)
+
+Tom: "index all modules (not the whole thing!) as vectors for finding relevant modules for a task", then "no chunking", "a single central index", "I don't really want an index per tenant". The measurements and what was decided without asking are in `knowledge-vectors.md`.
+
+- **`cloudflare-iac`**: a platform cell `vectors` (`query`, `upsert`, `deleteByIds`, the binding's own). A service declares `vectors: { name, dimensions, metric, metadata }`; `vectorIndex` checks it and `emit` writes it to `meta.vectors` with a binding `{ type: "vectorize", name: "VECTORS", own: true }`. The cell is written in `emit`, as `browser` and `containers` are, so no other Worker's code changed: after the deployer was installed, `redistil` answered `same` for all 18.
+- **`brain-deployer`**: `ownIndex` makes the index `<script>-<name>` and its metadata indexes, then binds it. Only `brain-x-knowledge` may declare one. The row `vectors/<index>` says it was made. Another name makes another index and leaves the first. Deployer `1db43397b7bc`.
+- **`brain-knowledge`** (`079cfdad35aa`): two columns added to a table that had rows, `owner` and `vid`, read from `pragma_table_info` at start and added when missing. A put embeds what changed (`ai.v1/embeddings`, one call a put) and upserts; `knowledge.search?semantic=true`; `knowledge.embed` for entries with no vector; a delete deletes the vector. `get`, `list` and both searches answer only the public entries and the caller's.
+- **`brain-library`** (`e2522a6f0f7d`): `libraryCards` reads each module block of a put and enters a card; `library.index` does it again from the kept file.
+- **`brain-core`** (`03630d431a97`, confirmed out of probation): `/llms.txt` has "Finding what it holds" when a Worker declares `knowledge.search`.
+
+### Measured on cb4, 07:34 to 07:42 UTC
+
+| | |
+|---|---|
+| Index | `cb4-x-knowledge-bge-base-en-768`, 173 vectors for 173 entries (100 modules, 73 from before) |
+| Search by meaning, 10 runs from Berlin | 0.448 to 0.548 s |
+| Search by words, 5 runs | 0.171 to 0.218 s |
+| Put of one entry with its embedding, 5 runs | 0.930 to 1.294 s |
+| A write is searched | 41 to 63 s after it is sent (three writes) |
+| The wanted module first | 6 of 7 questions; second in the other |
+| A member granted `knowledge.search` | 73 public entries of 173; `brain-whatsapp` not among them, by meaning, by words, or by `get` (404) |
+| Tests | knowledge 8, library 6, core 29, deployer 42, cloudflare-iac 25, forced from a side module |
+
+### What went wrong on the way
+
+- `/llms.txt` looked the method up as `/xrpc/com.lopecode.brain.knowledge.search` in a table keyed by the name without `/xrpc/`. The core's test failed on it before any deploy.
+- The list of metadata indexes showed one of three for 80 s. A second create answered "already exists", which is how it was known they were made.
+- The first searches after the cards were entered answered nothing, with status 200: the writes were not applied yet.
+
+### Not done
+
+Articles, ATProto records and Hacker News items have no feeder. `library.setPublic` and `library.delete` leave cards as they were. No rule lets a member enter. Not reviewed by a fresh agent.

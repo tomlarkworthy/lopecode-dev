@@ -281,6 +281,21 @@ deployerOps = {
     return id;
   };
 
+  // A Vectorize index of a Worker's own, named <script>-<name>. Its metadata indexes are made before the index is bound,
+  // so no vector is in it without them: Cloudflare does not index the metadata of a vector that was there first.
+  // Another name is another index. The one before is left, with its vectors.
+  const ownIndex = async (logical, v) => {
+    const name = actual(logical) + "-" + v.name;
+    if (await rows.get("vectors/" + name)) return name;
+    const found = await api("GET", "/vectorize/v2/indexes/" + name).catch(() => null);
+    if (!found) await api("POST", "/vectorize/v2/indexes", text({ name, config: { dimensions: v.dimensions, metric: v.metric } }), jsonType);
+    const have = found ? ((await api("GET", "/vectorize/v2/indexes/" + name + "/metadata_index/list")).metadataIndexes || []).map((i) => i.propertyName) : [];
+    for (const [propertyName, indexType] of v.metadata) if (!have.includes(propertyName)) await api("POST", "/vectorize/v2/indexes/" + name + "/metadata_index/create", text({ propertyName, indexType }), jsonType);
+    await rows.put("vectors/" + name, { dimensions: v.dimensions, metric: v.metric, metadata: v.metadata, at: Date.now() });
+    say({ at: found ? "deploy.index-found" : "deploy.index-made", target: logical, index: name, dimensions: v.dimensions });
+    return name;
+  };
+
   // Container applications: one for each image a Worker declares, named <script>-<image>, bound to that Worker's
   // Durable Object class. Made after the upload, because the class must exist. One that is no longer declared is
   // deleted. A new application has no instance ready for about 4 minutes (seen 2026-10-09).
@@ -324,6 +339,7 @@ deployerOps = {
     // Every Worker's rows are in one D1 database of the Brain, made on first use. Only the deployer has a Durable Object.
     if (uses("rows")) out.push(existing.has("SQL") ? { type: "inherit", name: "SQL" } : { type: "d1", name: "SQL", id: await sqlDatabase() });
     if (uses("database")) out.push(existing.has("DB") ? { type: "inherit", name: "DB" } : { type: "d1", name: "DB", id: await ownDatabase(m.worker) });
+    if (uses("vectors")) out.push({ type: "vectorize", name: "VECTORS", index_name: await ownIndex(m.worker, m.vectors) });
     if (uses("blobs")) {
       const bucket = actual("brain-blobs");
       if (!existing.has("BLOBS")) await api("POST", "/r2/buckets", text({ name: bucket }), jsonType).catch((e) => { if (!/exist|10004/i.test(e.message)) throw e; });
@@ -376,8 +392,13 @@ deployerOps = {
       if (clash) return `${clash} is already served by ${other.worker}`;
     }
     // Containers run as root with the open internet and are billed by the second: one service leases them to the rest.
-    const bad = m.resources.find((r) => !["rows", "blobs", "inbox", "xrpc", "assets", "sql", "browser", ...(logical === "brain-x-knowledge" ? ["database"] : []), ...(logical === "brain-x-container" ? ["containers"] : [])].includes(r));
+    const bad = m.resources.find((r) => !["rows", "blobs", "inbox", "xrpc", "assets", "sql", "browser", ...(logical === "brain-x-knowledge" ? ["database", "vectors"] : []), ...(logical === "brain-x-container" ? ["containers"] : [])].includes(r));
     if (bad) return `a recipe may not use the platform cell "${bad}"`;
+    // What the knowledge base is searched by: one index, of the size and fields the service declares.
+    const v = m.vectors;
+    if (!!v !== m.resources.includes("vectors")) return "a vector index without the platform cell vectors, or the cell without an index";
+    if (v && !(/^[a-z][a-z0-9-]{0,29}$/.test(v.name || "") && Number.isInteger(v.dimensions) && v.dimensions >= 32 && v.dimensions <= 1536 && ["cosine", "euclidean", "dot-product"].includes(v.metric) && Array.isArray(v.metadata) && v.metadata.length <= 10 && v.metadata.every((f) => Array.isArray(f) && /^[a-z][a-z0-9_]{0,29}$/.test(f[0]) && ["string", "number", "boolean"].includes(f[1]))))
+      return "the vector index is not one this deployer makes: a name, 32 to 1536 dimensions, cosine, euclidean or dot-product, 10 metadata fields at most";
     if ((m.containers || []).length && !m.resources.includes("containers")) return "container images without the platform cell containers";
     const image = (m.containers || []).find((b) => !/^[a-z][a-z0-9]{0,19}$/.test(b.name) || b.class_name !== "Box_" + b.name || !/^docker\.io\/[a-z0-9._/-]+:[A-Za-z0-9._-]+$/.test(b.image) || !TYPES.includes(b.instance_type) || !(b.max_instances >= 1 && b.max_instances <= 20));
     if (image) return `container image "${image.name}" is not one this deployer makes: docker.io/NAME:TAG, ${TYPES.join(", ")}, 1 to 20 instances`;
@@ -1278,7 +1299,7 @@ md`## Tests
 The deployer runs under \`simulate\` against \`fakeCloudflare\`, a stand-in for the Cloudflare API and for the Workers it deploys. A hash added to \`fake.unhealthy\` makes that version fail its health check.`
 // %%
 fakeCloudflare = () => {
-  const scripts = new Map(), log = [], calls = [], unhealthy = new Set(), stored = {}, d1 = [], tokens = new Map(), apps = [];
+  const scripts = new Map(), log = [], calls = [], unhealthy = new Set(), stored = {}, d1 = [], tokens = new Map(), apps = [], indexes = [];
   const account = ["com.cloudflare.api.account"];
   const groups = [
     { id: "g-obs-user", name: "Workers Observability Read", scopes: ["com.cloudflare.api.user"] },
@@ -1342,6 +1363,13 @@ fakeCloudflare = () => {
       d1.push({ name: JSON.parse(await request.text()).name, uuid: "d1-" + (d1.length + 1) });
       return ok(d1.at(-1));
     }
+    // Vectorize: an index by name, and its metadata indexes.
+    const vz = /^\/vectorize\/v2\/indexes(?:\/([^/]+))?(\/metadata_index\/(create|list))?$/.exec(path);
+    if (vz && !vz[1]) return indexes.push({ ...JSON.parse(await request.text()), metadata: [] }), ok(indexes.at(-1));
+    if (vz && !indexes.some((i) => i.name === vz[1])) return bad(404, "vectorize.index.not_found");
+    if (vz && vz[3] === "create") return indexes.find((i) => i.name === vz[1]).metadata.push(JSON.parse(await request.text())), ok({});
+    if (vz && vz[3] === "list") return ok({ metadataIndexes: indexes.find((i) => i.name === vz[1]).metadata });
+    if (vz) return ok(indexes.find((i) => i.name === vz[1]));
     // Account tokens: the value is given once, at the mint.
     if (path === "/tokens/permission_groups") return ok(groups);
     if (path === "/tokens" && request.method === "POST") {
@@ -1404,7 +1432,7 @@ fakeCloudflare = () => {
     const s = scripts.get(name);
     return s ? bindingOf(live(s), "BRAIN_INFO").json.hash : null;
   };
-  return { fetch, scripts, log, calls, unhealthy, stored, d1, tokens, apps, running, live: (name) => live(scripts.get(name)) };
+  return { fetch, scripts, log, calls, unhealthy, stored, d1, tokens, apps, indexes, running, live: (name) => live(scripts.get(name)) };
 }
 // %%
 // A deployer under simulate, with helpers to act as the holder of the recovery key and as the kernel.
@@ -1530,6 +1558,31 @@ test_the_table_database_is_bound_to_brain_db_alone = {
   const kb = Object.fromEntries(rig.fake.live("cb-x-knowledge").metadata.bindings.map((b) => [b.name, b]));
   expect([kb.DB.type, kb.DB.id, !!kb.SQL, rig.fake.d1.map((d) => d.name)]).toEqual(["d1", "d1-3", false, ["cb-sql", "cb-db", "cb-x-knowledge"]]);
   return db.DB.id;
+}
+// %%
+test_the_vector_index_is_made_for_brain_x_knowledge_alone = {
+  const rig = await deployerRig();
+  await rig.recover({ workers: [await rig.made("brain-core", "core", "c1")] });
+  const index = { name: "bge-base-en-768", dimensions: 768, metric: "cosine", metadata: [["day", "number"], ["kind", "string"], ["owner", "string"]] };
+  const kb = (salt, vectors = index, worker = "brain-x-knowledge") => rig.made(worker, "recipe", salt, { resources: ["database", "vectors"], vectors });
+  // No other Worker has an index, and an index goes with the cell.
+  const no = await rig.recover({ workers: [await rig.made("brain-x-other", "recipe", "o1", { resources: ["vectors"], vectors: index }), await rig.made("brain-x-knowledge", "recipe", "p1", { resources: ["database"], vectors: index })] });
+  expect(no.results.map((r) => [r.state, r.reason])).toEqual([["refused", 'a recipe may not use the platform cell "vectors"'], ["refused", "a vector index without the platform cell vectors, or the cell without an index"]]);
+  for (const wrong of [{ dimensions: 8 }, { metric: "manhattan" }, { name: "A" }, { metadata: [["owner", "text"]] }])
+    expect((await rig.recover({ workers: [await kb("w", { ...index, ...wrong })] })).results[0].reason).toMatch(/^the vector index is not one this deployer makes/);
+  expect(rig.fake.indexes).toEqual([]);
+  // The index and its three metadata indexes are made before the upload that binds it.
+  expect((await rig.recover({ workers: [await kb("k1")] })).results[0].state).toBe("deployed");
+  expect(rig.fake.indexes).toEqual([{ name: "cb-x-knowledge-bge-base-en-768", config: { dimensions: 768, metric: "cosine" }, metadata: [{ propertyName: "day", indexType: "number" }, { propertyName: "kind", indexType: "string" }, { propertyName: "owner", indexType: "string" }] }]);
+  expect(rig.fake.live("cb-x-knowledge").metadata.bindings.find((b) => b.name === "VECTORS")).toEqual({ type: "vectorize", name: "VECTORS", index_name: "cb-x-knowledge-bge-base-en-768" });
+  const made = rig.fake.log.findIndex((l) => l.includes("metadata_index/create")), bound = rig.fake.log.findLastIndex((l) => l.includes("/workers/scripts/cb-x-knowledge"));
+  expect(made >= 0 && made < bound).toBe(true);
+  // A later version makes nothing. Another name is another index, and the first is left.
+  await rig.recover({ workers: [await kb("k2")] });
+  expect(rig.fake.indexes.length).toBe(1);
+  await rig.recover({ workers: [await kb("k3", { ...index, name: "m3-1024", dimensions: 1024 })] });
+  expect([rig.fake.indexes.map((i) => i.name), rig.fake.live("cb-x-knowledge").metadata.bindings.find((b) => b.name === "VECTORS").index_name]).toEqual([["cb-x-knowledge-bge-base-en-768", "cb-x-knowledge-m3-1024"], "cb-x-knowledge-m3-1024"]);
+  return rig.fake.indexes.length + " indexes";
 }
 // %%
 test_container_images_are_applications_of_brain_x_container_alone = {
