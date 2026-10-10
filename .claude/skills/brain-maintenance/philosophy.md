@@ -147,6 +147,16 @@ The design he gave for deploys, in his words:
 Asked whether "no next deploy until verified" holds one Worker or the whole cluster:
 "yes block jsut that one worker that is not verified, other deploys go on."
 
+**2026-10-10, on a signing key that no longer fits** (the tracker signed with Ed25519, which
+the cluster's browser, Chrome 128, does not have; the session had offered two ways to keep the
+339 events already signed):
+
+> the issue DB is tiny and a day old, jsut resign everything and move on, we don;t need a key
+> migration stratergy
+
+and, of the same data, "wipe it if its really a problem". Data this young gets no migration
+machinery: change it in place. Done the same hour (`tools/cloud-brain/records/sign-p256.md`).
+
 What the code did on that date is in the session's answer to him and is not repeated here: it
 changes when the design is built.
 
