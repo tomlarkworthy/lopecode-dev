@@ -46,7 +46,7 @@ Two files beside it, neither of them needed to resume:
 
 ## One pass
 
-1. **Health.** `brain.ts redistil` shows every Worker `same`; `lease.get` is held or the page is
+1. **Health.** `brain.ts redistil` shows every Worker `same`; `brain.ts state` shows each `brain-x-*` Worker at the hash `tools/cloud-brain/seen.json` holds for it (`redistil` cannot show a put-back: the kept source goes back with the Worker, so it read `same` through the one of 19:32 on 2026-10-10); `lease.get` is held or the page is
    not needed; no `cb4.lock` or `land.lock` older than 20 minutes. If the cluster is not healthy, file or find
    the issue for it and do nothing else this pass. A stale lock is the owner's to remove: say so
    in step 7 each pass until it is gone.

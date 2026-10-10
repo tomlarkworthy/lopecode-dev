@@ -19,6 +19,11 @@ asks for anything in "Never" below is commented on and left for the owner.
 - Print, copy or log a secret: the recovery key, the deployer key, a session, a token, the
   Cloudflare token, an app password. Do not read `.emitted/cb4.json` or `cb4-issues-tokens.json`
   into your output.
+- Run `brain.ts page up`, or open the Brain's own page (`https://cb4…/`) in a browser of the
+  cluster, until `deployer-put-back-issues-worker` is closed. That browser is Chrome 128, which
+  has no Ed25519: the page runs every Worker's tests on opening, the tracker's fail there, and
+  the deployer puts `brain-x-issues` back to its previous version (it did at 19:32:38 on
+  2026-10-10, taking a reviewed fix off cb4 for 11 minutes).
 - Deploy text that was not built from a seed. A change goes seed, `build.ts`, tests, emit, apply.
 - Deploy the kernel (`brain`), `brain-core`, `brain-db` or the deployer. A fix that needs one of
   them is written up on the issue, which gets the label `needs-owner` and is not started.
