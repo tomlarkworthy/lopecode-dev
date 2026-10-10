@@ -83,7 +83,10 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
     Then `redistil` (the Worker's line reads `same`), `saw <worker>`, and for the tracker
     `curl "/xrpc/com.lopecode.brain.issue.verify?guards=true" --owner` (a read).
 11. **Check it where it runs**, when that needs no owner act: one call that shows the new
-    behaviour on cb4.
+    behaviour on cb4. When it needs one (`issue.rebuild`, `issue.install`, a move the workflow
+    keeps for the owner, anything the Never list of the rules names), send no call, with any
+    token: a refusal is still a forbidden call. Write "not run on cb4: needs the owner present"
+    in the comment and in the record, with the call the owner would make.
 12. **Record it.** A dated section in `tools/cloud-brain/spec-as-built.md` (follow
     `.claude/skills/document/SKILL.md`): what changed, the test count, the hash, what was not
     tried. Every time in it is read from `git log --format=%ci`, an event's `at` or `date`,
