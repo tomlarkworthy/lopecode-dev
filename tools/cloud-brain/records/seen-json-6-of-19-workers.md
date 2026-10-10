@@ -7,7 +7,8 @@ other was refused with the advice written for a Worker that moved: read its sour
 merge it into the seed. Two writers met it on the first deploy the loop made of a Worker
 (`bluesky-tick-poll-test-no-overlap`, event 314; `browser-run-timeout-test-wall-clock`, event 318),
 and in the second the seed was ahead of cb4, with nothing to merge. The change is in `brain.ts`,
-with a test file. No seed and no Worker changed.
+with a test file, and in the `saw` row of `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md`.
+No seed and no Worker changed.
 
 ### What was read first
 
@@ -40,8 +41,8 @@ w.json not sent: brain-x-w runs aaaaaaaaaaaa and seen.json has no entry for it: 
 ### Why not the time `saw` ran
 
 The triage (event 333) said "saw writes the time it ran". The order the same triage names is
-compare, `saw`, apply the record already emitted. With the time `saw` ran, the check of line 113
-(`mtime of the record < at`) refuses that record, and the tab that emitted it is closed by then.
+compare, `saw`, apply the record already emitted. With the time `saw` ran, the check on the record's age
+(`mtime of the record < at`, line 113 before this change and 122 after) refuses that record, and the tab that emitted it is closed by then.
 That is why the line was written with 0. `deployedAt` keeps the order and makes the check refuse
 what it describes: a record emitted before the Worker that runs was deployed. The fifth test holds
 both halves (a record 60 s older than the deploy is not sent, one 60 s newer is sent with `was`).
@@ -53,6 +54,9 @@ both halves (a record 60 s older than the deploy is not sent, one 60 s newer is 
 - `redistil` is not in the advice. It distils again the source the deployer keeps and compares that
   with what runs; the seed of this checkout is not read by it, so `same` says nothing about which
   of seed and Worker is ahead. The issue's first side rested on it.
+- Two briefs of the loop still carry the old behaviour and are the overseer's to edit:
+  `.claude/skills/brain-maintenance/agents/reviewer.md:30` reads `getSource` with `--owner`
+  (`oversight.md:171` tracks it), and `oversight.md:43` says "seen.json shows `at: 0` after `saw`, by design".
 - `apply` does not fetch `getSource` and print a diff. The writer reads the direction; the message
   says how to tell.
 
@@ -92,4 +96,5 @@ The 5 fails on the old text are the wording, the empty `none` line and `at: 0` (
 - Whether the browser's emitted hash always equals the deployer's for the same source. `apply`
   prints a line when they differ; if they did for a Worker with no entry, the writer would get the
   comparison advice, which still holds.
-- The clocks: `deployedAt` is the deployer's, the record's `mtime` is this machine's.
+- The clocks: `deployedAt` is the deployer's, the record's `mtime` is this machine's. `at` now comes
+  from both: `apply` writes this machine's time, `saw NAME` the deployer's.
