@@ -4358,3 +4358,69 @@ order the refusal's instruction gives, was then refused as older. `saw NAME` now
 the time an emitted record must be newer than. Not measured: whether a fresh session given only that refusal reads
 `getSource` again.
 
+
+## The login link reads and asks; a guest invite (2026-10-10 16:48 CEST)
+
+Tom, 2026-10-10: "We need to fix the invite instructions. I want the link that I use to have less
+permissions now, because it has ask. And I also want a guest invite which I will send to collegues to
+get them up and running with the cluster as a guest, which they need to register with an atproto
+account to become a true member."
+
+On cb4: kernel `68657c4f9c14` (28 of 28 tests in a tab), page `5b8cad247724` at 16:48 and
+`0fbcec466a71` at 16:51 (14 of 14). Both confirmed; `redistil` all `same`.
+
+**Copy Login Link.** Until now: `browser.*, container.*, ai.*, logs.*, quota.get` with `deploy` and
+`unattended`, the owner in effect. Now no caps and six methods that read: `issue.list`, `issue.get`,
+`knowledge.search`, `knowledge.get`, `knowledge.list`, `quota.get`. The briefing no longer says "acts as
+its owner"; it ends "A refusal says how to ask the owner for more; ask ... do not work around it." The
+steps to ask are not in it: the 403 names `/auth/ask`. A link that deploys from its first call is still
+made in Access ("link may deploy").
+
+`logs.*` was dropped and not kept as a read: its rule is `caller.session`, which a token with no cap
+`session` fails although it names the method. A link naming it would be refused at the call.
+
+**Copy Guest Invite**, a second row under the button: a name, a methods field (default `ai.models
+ai.run`), dollars a day (default 0.10). It makes `token.link { name: "guest-NAME", methods, minutes:
+10080, hours: 168, daily }` and copies a note to the colleague and their program: the same four steps,
+what the token calls and spends, that only the owner approves a request for more, and how to become a
+member (sign in once at the Brain with an atproto account, send the owner the handle). One link a
+person, so `token.revoke { name }` ends one guest.
+
+In the kernel, for that:
+
+- `token.link` takes `daily` and passes it to `delegation.create`. A token that asks for more and is
+  replaced keeps the `daily` of the one it replaces; before, the replacement would have had none.
+- A link made without `deploy` may be good for 10080 minutes and its token for 168 hours. With
+  `deploy` the limits are as before, 480 and 24. The defaults are unchanged.
+- `/auth/ask` step 2 said the program's user opens the url and approves. A guest's user is not the
+  owner: "Only the owner of this Brain can answer ... A user who is not the owner sends the owner
+  both." `/auth/request` says the same to the owner.
+
+**Add member** in People takes a handle as well as a DID (`didOf`, resolved at `public.api.bsky.app`),
+since a handle is what the note tells a colleague to send.
+
+A guest is not a member and nothing here makes one. The token is the owner's: its caller is `owner`
+with `caller.holder == "secret:guest-NAME"`, and it spends the owner's allowance up to `daily`.
+Membership stays `people.put` by the owner. "Onboarding a member by a link" in the backlog is still
+not built.
+
+Run against cb4 at 16:50, with a link named `guest-probe`, then revoked:
+
+```
+token.link   { deploy: false, daily: 0.1 }, good 6.9 days
+POST link    methods ai.models, ai.run, quota.get; daily 0.1; until in 6.9 days
+ai.models         200
+knowledge.search  403 "this token does not name com.lopecode.brain.knowledge.search. To ask the owner for it: GET …/auth/ask"
+infra.getState    403
+quota.get         { who: "owner", spent: 0.40755, daily: 1 }
+after token.revoke, 6 s   ai.models 401
+```
+
+`quota.get` under the token answered the owner's whole day and not the token's 0.10. So it was taken
+out of the guest's default methods (page `0fbcec466a71`); the owner's link keeps it.
+
+Not run: the two buttons in a signed-in browser (the clipboard write, the fields); a call refused
+because a guest's 0.10 was spent; a colleague's session following the note; Add member with a handle
+against the real resolver. Not built: a list of who signed in and is not yet a member (the owner
+learns the handle from the colleague), and anything that tells the owner a guest asked (they are sent
+the url).

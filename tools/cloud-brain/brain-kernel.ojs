@@ -33,7 +33,7 @@ A person is an atproto account, named by its DID. There are two roles. The **own
 
 **Linking.** A channel sends a stranger \`https://HOST/link?channel=NAME&code=CODE\`. The page asks them to sign in with atproto, shows the address the code stands for, and binds it to the signed-in DID when they press Link. The kernel learns the address by calling the channel's \`NAME.claim\` with the code; the answer is taken only from the Worker \`brain-x-NAME\`. Linking does not make anyone a member. When the signed-in DID is the owner, Link also asks for the last 4 characters of the address, because whoever writes from it is then answered as the owner. The page refuses to be shown in a frame.
 
-**Sign-in links** (added 2026-10-09). For a program with no browser, such as Claude Code on the web. \`token.link\` (procedure, owner's session) takes \`{ name, methods, minutes, hours, deploy, unattended }\` and answers \`{ name, deploy, unattended, link, until }\`; \`minutes\` (1 to 480, 480 if left out; 10 until 2026-10-10, which a session that first had to have its network opened ran past) is how long the link is good, \`hours\` (1 to 24, 8 if left out) how long its token lasts. The link is \`/auth/link?code=…\`. A GET of it answers text that says what to do and spends nothing, so a preview of a pasted link does not use it. The first POST answers \`{ name, token, methods, until, deploy, unattended }\` and deletes the link; a second answers 401. The token is one as \`token.create\` makes, with an end: it may not name \`infra.*\`, \`secret.*\`, \`token.*\`, \`grant.*\` or \`people.*\`, and \`token.list\` gives it with \`by: "link"\` until it ends. \`token.revoke\` with \`{ name }\` ends the token early, and deletes a link of that name nobody has used. A link is refused a name that a token or another link has.
+**Sign-in links** (added 2026-10-09). For a program with no browser, such as Claude Code on the web. \`token.link\` (procedure, owner's session) takes \`{ name, methods, minutes, hours, deploy, unattended, daily }\` and answers \`{ name, deploy, unattended, link, until }\`; \`minutes\` (480 if left out; 10 until 2026-10-10, which a session that first had to have its network opened ran past) is how long the link is good, \`hours\` (8 if left out) how long its token lasts. A link made with \`deploy\` takes at most 480 minutes and 24 hours; one without, 10080 minutes and 168 hours (a week each, since 2026-10-10: a guest's link waits in a colleague's mail). \`daily\` is US dollars a UTC day that the token may spend of the owner's allowance, as in \`token.create\`; a token that asks for more and is replaced keeps it. The link is \`/auth/link?code=…\`. A GET of it answers text that says what to do and spends nothing, so a preview of a pasted link does not use it. The first POST answers \`{ name, token, methods, until, deploy, unattended }\` and deletes the link; a second answers 401. The token is one as \`token.create\` makes, with an end: it may not name \`infra.*\`, \`secret.*\`, \`token.*\`, \`grant.*\` or \`people.*\`, and \`token.list\` gives it with \`by: "link"\` until it ends. \`token.revoke\` with \`{ name }\` ends the token early, and deletes a link of that name nobody has used. A link is refused a name that a token or another link has.
 
 **A token is a delegation** (2026-10-10). \`token.create\`, and the POST of a sign-in link, make a delegation with a secret holder in the core (\`delegation.create\`), and the kernel keeps no row for it. \`token.list\` and \`token.revoke\` read and end those and nothing else: a token made before is a row here until it is first used, or tokens are next listed or revoked, or a link is made, and is then handed to the core by the hash of its secret (\`delegation.adopt\`) and is a delegation like any other. A call with such a token is sent to the core with the delegation's id, and there it is the call of whoever made it (the owner, for one from \`token.create\`): their rules and their allowance, which \`daily\` in \`token.create\` (US dollars a UTC day) caps. It is not the owner's own tab, so what it makes in a store is kept under \`d:<id>\` and not under \`token:NAME\`; a link made with \`unattended\` is the owner's tab for the methods its list names by a name or a prefix, and not for one that only \`*\` reaches. A token ends within 5 s of \`token.revoke\`, the time a core instance remembers a row. The core's limits are now a token's: at most 50 methods, and a name that no other delegation of the owner has (400 from \`token.create\`, where two tokens of one name were made before). With \`delegate\` among its caps (made with \`delegation.create\` in the owner's or a member's session) a token reaches \`delegation.create\`, \`list\` and \`revoke\`, and the core says what it may make; \`token.list\` marks it \`delegate: true\`. \`token.list\` shows the owner's own tokens: a member's, and one made under another, are in \`delegation.list\`. While the core does not answer, such a token is refused with 503, on \`infra.*\` too: a sign-in link's token cannot deploy a core that is down, and the owner's session can.
 
@@ -481,14 +481,18 @@ kernelApp = {
   // spends nothing, so a preview of a pasted link does not use it. The token ends by itself.
   const hex = () => [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("");
   app.post(NS + "token.link", session, async (c) => {
-    const { name, methods = [], minutes = 480, hours = 8, deploy = false, unattended = false } = await c.req.json();
+    const { name, methods = [], minutes = 480, hours = 8, deploy = false, unattended = false, daily = null } = await c.req.json();
     if (typeof deploy !== "boolean" || typeof unattended !== "boolean") return fail(c, 400, "InvalidRequest", "deploy and unattended are true or false");
     if (unattended && !deploy) return fail(c, 400, "InvalidRequest", "unattended is for a link made with deploy");
     const named = methods.map(full);
     if (!/^[a-z0-9-]{1,40}$/.test(name || "")) return fail(c, 400, "InvalidRequest", "name is lower case letters, digits and -");
     if (!named.every(listed)) return fail(c, 400, "InvalidRequest", "a method is a name, or a prefix that ends .* or /* (browser.*, ai.v1/*), or *");
     if (named.some(never)) return fail(c, 400, "InvalidRequest", "a token cannot name infra, secret, token, grant, people or delegation methods");
-    if (!(minutes >= 1 && minutes <= 480 && hours >= 1 && hours <= 24)) return fail(c, 400, "InvalidRequest", "minutes is 1 to 480, hours is 1 to 24");
+    // A link that deploys is short: 8 hours to use it, a day of token. One that does not waits a week in a
+    // colleague's mail, and its token lasts a week.
+    const most = deploy ? { minutes: 480, hours: 24 } : { minutes: 10080, hours: 168 };
+    if (!(minutes >= 1 && minutes <= most.minutes && hours >= 1 && hours <= most.hours)) return fail(c, 400, "InvalidRequest", `minutes is 1 to ${most.minutes}, hours is 1 to ${most.hours}` + (deploy ? " for a link that deploys" : ""));
+    if (daily !== null && !(typeof daily === "number" && daily >= 0)) return fail(c, 400, "InvalidRequest", "daily is US dollars a UTC day, or left out");
     // Links nobody used that have ended are deleted here.
     const live = [];
     await moveAll();
@@ -499,8 +503,8 @@ kernelApp = {
     if (taken && !taken.holder.secret) return fail(c, 400, "InvalidRequest", `a delegation is named ${name}; delegation.revoke ends it`);
     if (live.includes(name) || taken) return fail(c, 400, "InvalidRequest", `a token or a link is named ${name}; token.revoke ends it`);
     const code = hex(), until = Date.now() + minutes * 60000;
-    await rows.put("link/" + (await sha256(code)), { name, methods: named, until, hours, deploy, unattended });
-    return c.json({ name, deploy, unattended, link: `https://${config.host}/auth/link?code=${code}`, until });
+    await rows.put("link/" + (await sha256(code)), { name, methods: named, until, hours, deploy, unattended, ...(daily !== null ? { daily } : {}) });
+    return c.json({ name, deploy, unattended, ...(daily !== null ? { daily } : {}), link: `https://${config.host}/auth/link?code=${code}`, until });
   });
   app.get("/auth/link", (c) =>
     c.text(`A sign-in link of the Cloud Brain at https://${config.host}, for a program.
@@ -536,7 +540,7 @@ other address): how to call, and what this Brain is made of.
     // The owner's session made the link, so the delegation is made as the owner's session. A token that deploys
     // with nobody asked is the owner in effect, and has the cap that says so: session.
     const until = Date.now() + made.hours * 3600000, caps = made.caps || (made.unattended ? ["deploy", "unattended", "session"] : made.deploy ? ["deploy"] : []);
-    const got = await asOwnerSession("delegation.create", { name: made.name, holder: { secret: true }, scope: made.methods, caps, until, note: LINK });
+    const got = await asOwnerSession("delegation.create", { name: made.name, holder: { secret: true }, scope: made.methods, caps, until, daily: made.daily ?? null, note: LINK });
     if (got.status !== 200) {
       await rows.put(key, made);
       // The core refused (the name was taken since the link was made): not a failure to try again.
@@ -545,7 +549,7 @@ other address): how to call, and what this Brain is made of.
     }
     // A link made by token.approve for a token that asked for more replaces it: the old one ends once the new one is held.
     if (made.replaces) await asOwnerSession("delegation.revoke", { id: made.replaces });
-    return c.json({ name: made.name, token: got.data.secret, methods: made.methods, until, deploy: caps.includes("deploy"), unattended: caps.includes("unattended"), ...(made.caps ? { caps } : {}) });
+    return c.json({ name: made.name, token: got.data.secret, methods: made.methods, until, deploy: caps.includes("deploy"), unattended: caps.includes("unattended"), ...(made.caps ? { caps } : {}), ...(made.daily != null ? { daily: made.daily } : {}) });
   });
   app.post(NS + "token.revoke", session, async (c) => {
     const { name } = await c.req.json();
@@ -650,13 +654,15 @@ other address): how to call, and what this Brain is made of.
     if (!(Number.isInteger(h) && h >= 1 && h <= r.hours)) return fail(c, 400, "InvalidRequest", `hours is a whole number, 1 to ${r.hours}`);
     if (caps !== null && !Array.isArray(caps)) return fail(c, 400, "InvalidRequest", "caps is a list");
     let given = capsOf(caps === null ? r.caps : caps.filter((x) => r.caps.includes(x)));
-    let scope = r.methods, base = r.name;
+    let scope = r.methods, base = r.name, daily = null;
     if (r.kind === "upgrade") {
       const old = (await delegations()).find((d) => d.id === r.replaces);
       if (!old || (old.until && old.until <= Date.now())) return fail(c, 409, "Gone", "the token that asked has ended or was revoked");
       scope = [...new Set([...old.scope, ...r.methods])];
       given = capsOf([...old.caps, ...given]);
       base = old.name.replace(/-[0-9a-f]{4}$/, "").slice(0, 30);
+      // What it may spend a day stays: asking for a method is not asking for money.
+      daily = old.daily ?? null;
     }
     // A name no token, delegation or link of the owner's has.
     const live = [];
@@ -670,7 +676,7 @@ other address): how to call, and what this Brain is made of.
     }
     if (!name) return fail(c, 409, "Conflict", "no free name");
     const code = hex();
-    await rows.put("link/" + (await sha256(code)), { name, methods: scope, until: Date.now() + 30 * 60000, hours: h, caps: given, deploy: given.includes("deploy"), unattended: given.includes("unattended"), ...(r.kind === "upgrade" ? { replaces: r.replaces } : {}) });
+    await rows.put("link/" + (await sha256(code)), { name, methods: scope, until: Date.now() + 30 * 60000, hours: h, caps: given, deploy: given.includes("deploy"), unattended: given.includes("unattended"), ...(r.kind === "upgrade" ? { replaces: r.replaces } : {}), ...(daily != null ? { daily } : {}) });
     const key = await crypto.subtle.importKey("spki", unb64(r.publicKey), { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]);
     const sealed = b64(await crypto.subtle.encrypt({ name: "RSA-OAEP" }, key, new TextEncoder().encode(`https://${config.host}/auth/link?code=${code}`)));
     const granted = { name, methods: scope, caps: given, hours: h, ...(r.kind === "upgrade" ? { replaces: r.name } : {}) };
@@ -723,9 +729,9 @@ const run = async () => {
   const has = r.token ? new Set(r.token.methods) : null;
   const head = [
     el("h3", r.kind === "upgrade" ? "Token " + r.name + " asks for more" : "A program asks for a new token"),
-    el("p", r.kind === "upgrade" ? "Only the holder of " + r.name + (r.token ? ", made " + when(r.token.created) : "") + ", could ask this. Approving gives it a new token with what it has and what it asks for; the old one is revoked when the new one is picked up." : "Anyone can ask for a new token. Approve only if you started this."),
+    el("p", r.kind === "upgrade" ? "Only the holder of " + r.name + (r.token ? ", made " + when(r.token.created) : "") + ", could ask this. Approving gives it a new token with what it has and what it asks for; the old one is revoked when the new one is picked up." : "Anyone can ask for a new token. Approve only if you started this, or know who did."),
     el("div", r.code, { style: "font:600 32px ui-monospace,Menlo,monospace;letter-spacing:.08em;margin:8px 0 0" }),
-    el("p", "It must match the code your Claude session showed you.", { style: "margin-top:4px" })
+    el("p", "It must match the code shown by the program that asked. If a guest asked, they sent it to you.", { style: "margin-top:4px" })
   ];
   const body = [label("Reason"), el("p", r.reason, { style: "white-space:pre-wrap;word-break:break-word;margin:4px 0" }),
     label(r.kind === "upgrade" ? "Methods asked for" : "Methods"), r.methods.length ? chips(r.methods, has ? (m) => !has.has(m) : null) : el("p", "none"),
@@ -776,8 +782,9 @@ around it. Below, d is the directory that holds the brain.json your sign-in link
 
    With no token at all, leave out the Authorization header and add "name":"a-short-name" to the body.
 
-2. Show your user the url and the code from the answer. They open the url, signed in to this Brain, and
-   approve only when the page shows the same code. They may give less than you asked.
+2. Show your user the url and the code from the answer. Only the owner of this Brain can answer: they open
+   the url, signed in, and approve only when the page shows the same code. A user who is not the owner sends
+   the owner both. The owner may give less than you asked.
 
 3. Poll every 5 seconds until status is not "pending". A request lasts 60 minutes.
 
@@ -1206,8 +1213,9 @@ test_tokens_reach_only_their_methods = {
   // A sign-in link: the owner's session makes it, a GET spends nothing, the first POST is given the token.
   expect((await rig.call("token.link", { bearer: made.data.token, body: { name: "web", methods: ["proxy.fetch"] } })).status).toBe(403);
   expect((await rig.call("token.link", { session: rig.owner, body: { name: "web", methods: ["infra.apply"] } })).status).toBe(400);
-  expect((await rig.call("token.link", { session: rig.owner, body: { name: "web", methods: [], hours: 25 } })).status).toBe(400);
-  expect((await rig.call("token.link", { session: rig.owner, body: { name: "web", methods: [], minutes: 481 } })).status).toBe(400);
+  // A link that deploys is good 8 hours and its token a day; one that does not, a week each.
+  for (const [more, status] of [[{ hours: 25, deploy: true }, 400], [{ minutes: 481, deploy: true }, 400], [{ hours: 169 }, 400], [{ minutes: 10081 }, 400], [{ daily: "1" }, 400], [{ daily: -1 }, 400]])
+    expect([more, (await rig.call("token.link", { session: rig.owner, body: { name: "web", methods: [], ...more } })).status]).toEqual([more, status]);
   // Not a name a token has.
   expect((await rig.call("token.link", { session: rig.owner, body: { name: "laptop", methods: [] } })).status).toBe(400);
   const link = (await rig.call("token.link", { session: rig.owner, body: { name: "web", methods: ["proxy.fetch"], hours: 1 } })).data;
@@ -1390,6 +1398,16 @@ test_a_program_asks_for_more = {
   expect(held()).toEqual([["cc-x", ["fetch", "list"], ["session"]]]);
   expect([(await rig.call("proxy.fetch", { bearer: cc.token, body: {} })).status, (await rig.call("inbox.list", { bearer: cc2.token })).status]).toEqual([401, 200]);
   expect((await rig.call("/auth/request?id=" + more.id)).headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+  // A guest's link: a week, with a cap on what it spends a day, which the token that replaces it keeps.
+  const invite = (await rig.call("token.link", { session: rig.owner, body: { name: "guest-bo", methods: ["proxy.fetch"], minutes: 10080, hours: 168, daily: 0.1 } })).data;
+  expect([invite.daily, invite.until > Date.now() + 6 * 86400000]).toEqual([0.1, true]);
+  const bo = await redeem(invite.link);
+  expect([bo.daily, bo.deploy, bo.until > Date.now() + 6 * 86400000, [...rig.held.values()].find((d) => d.name === "guest-bo").daily]).toEqual([0.1, false, true, 0.1]);
+  const wider = (await rig.call("token.request", { bearer: bo.token, body: { methods: ["inbox.list"], reason: "a guest asks", publicKey } })).data;
+  await rig.call("token.approve", { session: rig.owner, body: { id: wider.id } });
+  const bo2 = await redeem(await open(wider.id));
+  expect([bo2.daily, [...rig.held.values()].filter((d) => d.name.startsWith("guest-bo")).map((d) => d.daily)]).toEqual([0.1, [0.1]]);
+  expect((await rig.call("/auth/ask")).data).toContain("Only the owner of this Brain can answer");
   // A refusal says where to ask, and that page says how.
   expect((await rig.call("knowledge.put", { bearer: cc2.token, body: {} })).data.message).toContain("/auth/ask");
   expect((await rig.call("/auth/ask")).data).toContain("token.request");

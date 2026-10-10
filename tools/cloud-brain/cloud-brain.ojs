@@ -171,40 +171,51 @@ test_calls_from_the_logs_become_chart_rows = {
 // %%
 // One press: a sign-in link for a program with no browser (Claude Code on the web), on the clipboard, inside a few
 // lines that say what it is and what stopped the first agent to use one (its network, Cloudflare refusing Python's
-// urllib, a shell that forgets a variable). The link works once, for 8 hours. Its token lasts 8 hours and deploys with no approval, Workers that declare Cloudflare
-// permissions among them, and calls the browser, the containers, the models and the logs as the owner's session
-// does, on the owner's allowance: it is the owner in effect (Tom, 2026-10-09 and 10). Access below ends it.
+// urllib, a shell that forgets a variable). The link works once, for 8 hours, and its token lasts 8 hours. Until
+// 2026-10-10 the token deployed with no approval and was the owner in effect. Now it reads and no more, because a
+// token asks for what it lacks (token.request) and the owner answers at /auth/request (Tom: "less permissions now,
+// because it has ask"). A link that deploys from its first call is made in Access below.
+LOGIN_METHODS = ["issue.list", "issue.get", "knowledge.search", "knowledge.get", "knowledge.list", "quota.get"]
+// %%
 loginLink = {
   if (!brain) return htl.html`<span></span>`;
   const note = htl.html`<span style="color:var(--theme-foreground-muted);margin-left:8px"></span>`;
-  const make = async () => loginBrief((await client.procedure("token.link", { name: "claude-" + Date.now().toString(36), methods: ["browser.*", "container.*", "ai.*", "logs.*", "quota.get"], minutes: 480, hours: 8, deploy: true, unattended: true })).link);
-  const button = press("Copy Login Link", async () => {
-    note.textContent = "";
-    try {
-      // The clipboard is handed a promise in the press itself: Safari refuses a write that comes after an await.
-      const link = make();
-      if (typeof ClipboardItem === "function" && navigator.clipboard.write) await navigator.clipboard.write([new ClipboardItem({ "text/plain": link.then((text) => new Blob([text], { type: "text/plain" })) })]);
-      else await navigator.clipboard.writeText(await link);
-      note.textContent = "Copied. Paste it to Claude Code. The link works once, in the next 8 hours. For 8 hours after that it deploys with no approval and uses the browser, containers, models and logs as you; Access below ends it.";
-    } catch (e) {
-      note.textContent = "No link copied: " + e.message;
-    }
-  });
+  const make = async () => loginBrief((await client.procedure("token.link", { name: "claude-" + Date.now().toString(36), methods: LOGIN_METHODS, minutes: 480, hours: 8 })).link);
+  const button = press("Copy Login Link", () => copyLater(make, note, "Copied. Paste it to Claude Code. The link works once, in the next 8 hours. Its token reads issues and what this Brain knows for 8 hours, and asks you for anything more; Access below ends it."));
   return htl.html`<div style="display:flex;align-items:center;flex-wrap:wrap">${button}${note}</div>`;
+}
+// %%
+// The clipboard is handed a promise in the press itself: Safari refuses a write that comes after an await.
+copyLater = async (make, note, said) => {
+  note.textContent = "";
+  try {
+    const text = make();
+    if (typeof ClipboardItem === "function" && navigator.clipboard.write) await navigator.clipboard.write([new ClipboardItem({ "text/plain": text.then((t) => new Blob([t], { type: "text/plain" })) })]);
+    else await navigator.clipboard.writeText(await text);
+    note.textContent = said;
+  } catch (e) {
+    note.textContent = "Nothing copied: " + e.message;
+  }
+}
+// %%
+// The four steps a program needs before its first request, whoever it works for.
+redeemSteps = (link, life) => {
+  const host = new URL(link).host;
+  return `1. Claude Code on the web: if a request to ${host} is refused by your environment, ask for that host to be allowed in the environment's network settings. The link waits: it is good for ${life}.
+2. Redeem it once, with curl, into a file only you read. Cloudflare refuses Python's urllib with 403 "error code: 1010"; that does not spend the link.
+   d=$(mktemp -d) && (umask 077; curl -sS -X POST "${link}" -o "$d/brain.json") && echo "$d/brain.json"
+3. That file is JSON with "token", "methods" and "until". Do not print the token or copy it into a repository. Send it as a header: -H "Authorization: Bearer $(jq -r .token "$d/brain.json")", with the file's path written out in a later command.
+4. Read https://${host}/llms.txt with no Authorization header: how to call, and what this Brain is made of.`;
 }
 // %%
 // What the button copies: the link, and what an agent needs before its first request.
 loginBrief = (link) => {
   const host = new URL(link).host;
-  return `You are being signed in to a Cloud Brain: a set of Cloudflare Workers that one notebook defines, deploys and operates, at https://${host}. This link gives you a token that acts as its owner.
+  return `You are being signed in to a Cloud Brain: a set of Cloudflare Workers that one notebook defines, deploys and operates, at https://${host}. This link gives you a token of its owner's, for 8 hours.
 
-1. Claude Code on the web: if a request to ${host} is refused by your environment, ask for that host to be allowed in the environment's network settings. The link waits: it is good for 8 hours.
-2. Redeem it once, with curl, into a file only you read. Cloudflare refuses Python's urllib with 403 "error code: 1010"; that does not spend the link.
-   d=$(mktemp -d) && (umask 077; curl -sS -X POST "${link}" -o "$d/brain.json") && echo "$d/brain.json"
-3. That file is JSON with "token", which lasts 8 hours. Do not print it or copy it into a repository. Send it as a header: -H "Authorization: Bearer $(jq -r .token "$d/brain.json")", with the file's path written out in a later command.
-4. Read https://${host}/llms.txt with no Authorization header: how to call, what this Brain is made of, how to read a Worker's source and deploy a change.
+${redeemSteps(link, "8 hours")}
 
-The token deploys any Worker with no approval, and calls the browser, containers, models and logs as the owner, on the owner's allowance.`;
+The token calls the methods in "methods" and no others: it reads. It does not deploy. A refusal says how to ask the owner for more; ask, with the methods and the reason, and do not work around it.`;
 }
 // %%
 test_the_login_brief_carries_the_link_and_the_host = {
@@ -212,6 +223,59 @@ test_the_login_brief_carries_the_link_and_the_host = {
   expect(text).toContain('curl -sS -X POST "https://b.example/auth/link?code=abc" -o "$d/brain.json"');
   expect(text).toContain("https://b.example/llms.txt");
   expect(text).toContain("error code: 1010");
+  expect(text).toContain("It does not deploy");
+  expect(text).not.toContain("with no approval");
+  expect(LOGIN_METHODS.filter((m) => /^(infra|logs|browser|container|ai)\./.test(m) || m.includes("*"))).toEqual([]);
+  return "ok";
+}
+// %%
+// A guest: a colleague with no account here. One press makes a link for one named person and copies it inside a
+// note written to them and to the program they paste it to. The token is the owner's, so the methods are few and
+// what it spends a day is capped. It lasts a week, and so does the link. Becoming a member is separate and is the
+// owner's act: the colleague signs in with an atproto account so there is a DID, and the owner adds it in People.
+// Not quota.get: under a token it answers the owner's whole day, not the token's own cap (seen on cb4, 2026-10-10 16:50).
+GUEST_METHODS = ["ai.models", "ai.run"]
+// %%
+guestInvite = {
+  if (!brain) return htl.html`<span></span>`;
+  const note = htl.html`<span style="color:var(--theme-foreground-muted);margin-left:8px"></span>`;
+  const who = field("guest's name, e.g. ada", { width: "12em" });
+  const methods = field("methods", { width: "16em" });
+  methods.value = GUEST_METHODS.join(" ");
+  const daily = field("US dollars a day", { width: "8em" });
+  daily.value = "0.10";
+  const make = async () => {
+    const name = "guest-" + who.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24);
+    if (name === "guest-") throw new Error("a name for the guest");
+    if (!(Number(daily.value) >= 0) || daily.value.trim() === "") throw new Error("dollars a day is a number");
+    const made = await client.procedure("token.link", { name, methods: methods.value.split(/[\s,]+/).filter(Boolean), minutes: 10080, hours: 168, daily: Number(daily.value) });
+    return guestBrief(made.link, { methods: methods.value.split(/[\s,]+/).filter(Boolean), daily: Number(daily.value) });
+  };
+  const button = press("Copy Guest Invite", () => copyLater(make, note, "Copied. Send it to them. The link works once, in the next 7 days; its token lasts 7 days, calls those methods on your allowance up to that much a day, and cannot deploy. Access below ends it. To make them a member, add their handle in People."));
+  return htl.html`<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px">${who}${methods}${daily}${button}${note}</div>`;
+}
+// %%
+// What the guest's button copies. The first paragraph is for the person; the steps are for their program.
+guestBrief = (link, { methods, daily }) => {
+  const host = new URL(link).host;
+  return `You are invited to a Cloud Brain as a guest: a set of Cloudflare Workers that one notebook defines, deploys and operates, at https://${host}. Paste this whole note to your Claude Code session. The link in it works once, within 7 days, and is yours alone: do not forward it.
+
+For the program:
+
+${redeemSteps(link, "7 days")}
+
+As a guest the token calls ${methods.join(", ")} and no others, for 7 days, and spends at most $${daily.toFixed(2)} a day of the owner's allowance. A refusal says how to ask for more. Only the owner of this Brain can approve: give your user the url and the code to send to the owner.
+
+To become a member (your own files, your own Workers, your own allowance): sign in once at https://${host}/ with an atproto account (a Bluesky handle is one), then send the owner that handle. The owner adds it under People. A member signs in with that account and needs no link.`;
+}
+// %%
+test_the_guest_brief_says_what_a_guest_has_and_how_to_join = {
+  const text = guestBrief("https://b.example/auth/link?code=abc", { methods: GUEST_METHODS, daily: 0.1 });
+  expect(text).toContain('curl -sS -X POST "https://b.example/auth/link?code=abc" -o "$d/brain.json"');
+  expect(text).toContain("ai.models, ai.run and no others");
+  expect(text).toContain("at most $0.10 a day");
+  expect(text).toContain("sign in once at https://b.example/ with an atproto account");
+  expect(text).toContain("Only the owner of this Brain can approve");
   return "ok";
 }
 // %%
@@ -279,7 +343,7 @@ libraryView = libraryPanel({ client, origin: brainOrigin, owner: !!(session && s
 // %%
 md`## Access
 
-A **token** is for a caller with no session, such as a script. A **grant** lets another atproto account call this Brain through its own PDS. Each names the methods it may call; neither can read a secret or give access, and neither can deploy, but for the token of a sign-in link made to deploy (Copy Login Link above), which the list marks.`
+A **token** is for a caller with no session, such as a script. A **grant** lets another atproto account call this Brain through its own PDS. Each names the methods it may call; neither can read a secret or give access, and neither can deploy, but for the token of a sign-in link made with "link may deploy" below, which the list marks. Copy Login Link and Copy Guest Invite above make links that do not deploy.`
 // %%
 accessPanel = {
   if (!brain) return htl.html`<i style="color:var(--theme-foreground-muted)">Sign in as the owner to see access.</i>`;
@@ -477,15 +541,22 @@ test_logs_panel_asks_cloudflare_and_a_row_filters_by_its_trace = {
   return rows.length + " rows";
 }
 // %%
+didOf = async (text) => {
+  if (/^did:/.test(text)) return text;
+  const got = await (await fetch("https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=" + encodeURIComponent(text.replace(/^@/, "")))).json();
+  if (!/^did:(plc|web):/.test(got.did || "")) throw new Error("could not resolve the handle " + text);
+  return got.did;
+}
+// %%
 md`## People
 
-The owner, the members the owner added, and anyone who linked an address and has not been added. A member's messages are answered; **Methods** names what else that member's turns may call. Reference: \`@tomlarkworthy/brain-kernel\`.`
+The owner, the members the owner added, and anyone who linked an address and has not been added. **Add member** takes a handle (\`ada.bsky.social\`) or a DID. A member's messages are answered; **Methods** names what else that member's turns may call. Reference: \`@tomlarkworthy/brain-kernel\`.`
 // %%
 peoplePanel = {
   const muted = "color:var(--theme-foreground-muted)";
   if (!brain) return htl.html`<i style=${muted}>Sign in as the owner to see people.</i>`;
   const list = htl.html`<div></div>`, note = htl.html`<div style="${muted};margin-top:6px"></div>`;
-  const did = field("did:plc:… of an atproto account", { width: "22em" }), name = field("name", { width: "10em" });
+  const did = field("handle or did:plc:… of an atproto account", { width: "22em" }), name = field("name", { width: "10em" });
   const names = (el) => el.value.split(/[\s,]+/).filter(Boolean);
   const act = (label, fn) =>
     press(label, async () => {
@@ -536,7 +607,8 @@ peoplePanel = {
       </tr>`;
     })}</table>`);
   };
-  const add = act("Add member", () => client.procedure("people.put", { did: did.value.trim(), name: name.value.trim() || null }));
+  // A handle is what a colleague sends; it is resolved where Bluesky's own app resolves it.
+  const add = act("Add member", async () => client.procedure("people.put", { did: await didOf(did.value.trim()), name: name.value.trim() || null }));
   await draw();
   return htl.html`<div>${list}<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${did}${name}${add}${press("Refresh", draw)}</div>${note}</div>`;
 }

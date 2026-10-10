@@ -783,7 +783,7 @@ Built and on cb4: stored settings read through `config` (`config.set`, `config.g
 ## Parked 2026-10-10 (Tom)
 
 - **A permanent connection for an agent.** Not now: "lets forget how to do upgrades. It fine for now." A link's token ends after at most 24 hours and cannot renew itself. Options written down in the session: a standing token that may deploy; a token that renews itself.
-- **Onboarding a member by a link.** Tom: "we need a seperate mechnism for onbaording members via link, and I don;t want to do that now." Separate from the owner's sign-in link. Not designed.
+- **Onboarding a member by a link.** Tom: "we need a seperate mechnism for onbaording members via link, and I don;t want to do that now." Separate from the owner's sign-in link. Not designed. 2026-10-10: a guest invite was built (Copy Guest Invite: a token of the owner's for one named colleague, a week, capped a day). It makes nobody a member; the colleague signs in and the owner adds their handle in People. This item is still open. Also open from that work: `quota.get` under a token answers the owner's day, not the token's `daily`; the owner is not told when a guest asks for more.
 
 ## Designs in progress (2026-10-10)
 

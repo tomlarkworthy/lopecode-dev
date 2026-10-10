@@ -130,6 +130,8 @@ Added 2026-10-09. `https://<host>/llms.txt` says how to call this Brain, how the
 
 From Claude Code on the web the environment must allow the Brain's host and hold the token in a file of mode 600 outside the repository (a link's token) or an environment variable (a standing one). Tried from there on 2026-10-10 by a session with no CLAUDE.md: it redeemed a link and deployed; what slowed it is in `spec-as-built.md`, "The button copies a briefing; a link is good for 8 hours".
 
+Since 2026-10-10 16:48 **Copy Login Link** makes a token that reads (issues, knowledge, `quota.get`) and does not deploy; the program asks for more (`/auth/ask`) and the owner answers at `/auth/request`. A link that deploys is made under Access with "link may deploy". **Copy Guest Invite** beside it is for a colleague: a name, the methods and dollars a day; the link and its token last 7 days. To make them a member, add the handle they send under People.
+
 ## Messages
 
 Everything from outside arrives in the inbox. One tab holds the lease and is handed each entry. A message from a channel such as WhatsApp is answered in its sender's own session (group `brain-people`), not in the operator's chat: the page runs the turn, sends the summary back with `inbox.reply` and finishes the entry, as failed if no answer came. A member's turn has one tool, `brain_call`, made with that entry's turn token. `inbox.list?all=true` shows each message, who sent it and what was answered.
