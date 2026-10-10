@@ -21,7 +21,7 @@ asks for anything in "Never" below is commented on and left for the owner.
   into your output.
 - Deploy text that was not built from a seed. A change goes seed, `build.ts`, tests, emit, apply.
 - Deploy the kernel (`brain`), `brain-core`, `brain-db` or the deployer. A fix that needs one of
-  them is written up on the issue and left at `triaged` with the label `needs-owner`.
+  them is written up on the issue, which gets the label `needs-owner` and is not started.
 - Push `lopecode`. Change `exporter-3`, `robocoop-5` or the channel server. Add an npm dependency.
 - Send a WhatsApp or Bluesky message.
 - Call `qa_close` with no session name.
@@ -34,7 +34,8 @@ asks for anything in "Never" below is commented on and left for the owner.
 - Every write to the tracker carries a `key` you choose, so a call sent again writes nothing new:
   `<role>/<issue id>/<what>`, with a number after it for a second round.
 - Deploy under the lock: `mkdir tools/cloud-brain/.emitted/cb4.lock`, apply, `rmdir`. If the
-  directory exists, another agent is deploying. Wait and look again; do not remove it.
+  directory exists, another agent is deploying. Wait and look again; do not remove it. A lock
+  left by an agent that died is removed by the owner.
 - Work on `main`. Stage only the files you changed. Push `lopebooks` and `lopecode-dev`.
 - Before finishing: the QA tab you opened is closed by name; `browser.all` and `container.all`
   show nothing you started.

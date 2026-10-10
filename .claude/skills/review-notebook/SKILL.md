@@ -103,3 +103,8 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   `getSource` and diffed against the build): reviewed by the session that wrote the module, not a fresh agent.
   PASS, 0 defects in the code, 2 about the process (tests never run; compiled module edited by hand, seed not
   committed). Tests 10 of 10 after the port. Recorded as `pass` on the three issues on cb4.
+- 2026-10-10 `.claude/skills/brain-maintenance/` (six files, written that day): BLOCK, 8 findings, all acted on
+  (`getSource` against the build differs by 130 lines on a correct deploy, 8 with `diff -w -B`; `mod` out of
+  scope between two `eval_code` calls; `major` approved after it is live; a second-round submit reusing its key;
+  three states matching no row; `rules.md` naming a move the policy lacks; two names for one emitted file; four
+  smaller gaps). 144k tokens, 5m50s. Not rerun.

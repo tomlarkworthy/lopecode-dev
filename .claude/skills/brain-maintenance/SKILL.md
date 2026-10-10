@@ -11,8 +11,9 @@ This skill is the loop that does it. You, the session that runs the skill, are t
 you read the tracker, decide what is next, spawn one agent for it, and write down what it
 reported. You fix nothing and review nothing yourself.
 
-Written 2026-10-10. **Not yet run as a loop.** The three bug fixes reviewed that day (events 55
-to 76) were done by hand in the order below, and the briefs are written from that.
+Written 2026-10-10. **Not yet run as a loop.** The briefs are written from that day's work by
+hand: the review of three bug fixes (events 70 to 76) and the deploys before it. The fixes
+themselves (events 55 to 69) skipped the seed and the tests, which the briefs now forbid.
 
 ## Run it
 
@@ -40,14 +41,15 @@ Two files beside it, neither of them needed to resume:
 
 - `tools/cloud-brain/.emitted/issue-loop/<id>.md` (git-ignored): the journal. After each agent
   finishes, append its role, the time from `date`, its token count and duration, and its final
-  report whole. The overseer reads it.
+  report whole. The overseer reads it. An overseer's own report goes in `_oversight.md` there.
 - `oversight.md` in this directory: one entry per oversight, written by the overseer.
 
 ## One pass
 
 1. **Health.** `brain.ts redistil` shows every Worker `same`; `lease.get` is held or the page is
    not needed; no `cb4.lock` older than 20 minutes. If the cluster is not healthy, file or find
-   the issue for it and do nothing else this pass.
+   the issue for it and do nothing else this pass. A stale lock is the owner's to remove: say so
+   in step 7 each pass until it is gone.
 2. **Is an agent of yours still running?** Then record nothing and go to step 6. One
    implementer or one reviewer at a time: `build.ts` rewrites the whole notebook, and a
    reviewer reading it mid-build reviews a file nobody wrote.
@@ -56,13 +58,14 @@ Two files beside it, neither of them needed to resume:
 
    | Issue is | Do |
    |---|---|
-   | `hidden: true`, or in the `security` workflow, or labeled `needs-owner`, or at `awaiting-approval` | Nothing. It is the owner's. |
+   | `hidden: true`, or kind or label `security`, or labeled `needs-owner`, or at `awaiting-approval` | Nothing. It is the owner's. |
    | `in-review`, and no review since it came into that state | Spawn the reviewer. |
-   | `in-progress`, started by the implementer token, no agent running | Spawn the implementer: it was sent back, or an agent died. If it has 2 `rework` moves already, do not: comment with the open findings, label `needs-owner`. |
+   | `in-progress`, started by the implementer token, no agent running | Spawn the implementer: it was sent back, or an agent died. Do not, and instead comment with the open findings and label `needs-owner`, when it has 2 `rework` moves already, or when the last implementer you spawned for it finished without a new `submit`. |
    | `ready` | Spawn the implementer. |
    | `triaged`, no open children | Move to `ready`. |
    | `open`, kind `task` or `bug` | Triage it yourself (below). |
    | `open`, kind `feedback` | `promote` it to a task when it asks for a change, `close` it with a comment when it does not. |
+   | Anything else: `in-review` with a review and no move after it, `in-progress` started by another actor | Comment with what you see, label `needs-owner`, and say so in step 7. |
 
 4. **Spawn** with the `Agent` tool: `subagent_type: general-purpose`, `model: opus`, never
    `fork`, and this prompt with nothing added. An agent that knows what you expect confirms it.
@@ -81,7 +84,8 @@ Two files beside it, neither of them needed to resume:
 7. **Tell the user** in a few lines: what moved this pass, what is waiting for the owner and
    why, what is running. Nothing moved is one line.
 8. **Schedule** (only under `/loop`): `ScheduleWakeup` 1800 s when an agent is running (its
-   report wakes you first), 1200 s when the tracker had nothing for you. A poll of the tracker
+   report wakes you first), 60 s when this pass moved something and no agent is running (there
+   may be more), 1200 s when the tracker had nothing for you. A poll of the tracker
    is charged nothing; a wake of this session is not free, so do not poll faster.
 
 ## Triage
@@ -97,9 +101,11 @@ code to answer three questions, then write the answers as the `reason` of the mo
 3. Is it one change? More than one becomes subtasks (`open` with `parent`), and the parent goes
    to `ready` when they are closed.
 
-Anything else: `triage`, then `ready`. Add the label `major` when the change alters who may do
-what, deletes or rewrites kept data, or changes a method other callers use; the owner then
-approves it after review. Add `security` and take the `escalate` swap when the body describes a
+Anything else: `triage`, then `ready`. Add the labels `major` and `needs-owner` when the change
+alters who may do what, deletes or rewrites kept data, or changes a method other callers use,
+and comment with the plan. The owner takes `needs-owner` off to let it be built. The approval
+after review is then of a change that is already deployed and pushed, since a submit needs its
+refs; the plan is where the owner stops it. Add `security` and take the `escalate` swap when the body describes a
 way past an access rule; the issue is then the owner's.
 
 ## What the loop does not do

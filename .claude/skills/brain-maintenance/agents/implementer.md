@@ -19,7 +19,9 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
    - it needs a new policy, a new secret, a new permission or a new Worker.
    Do not `start` such an issue.
 4. **Claim it.** `ia move '{"key":"impl/<id>/start","id":"<id>","to":"in-progress","reason":"…"}'`.
-   Whoever starts an issue is the only one who can submit it.
+   Whoever starts an issue is the only one who can submit it. An issue that is already
+   `in-progress` was sent back: skip this step. Count its `rework` moves; your round is that
+   number plus one, and it goes in every key you write this time.
 5. **Reproduce before fixing**, where the issue describes behaviour: a test that fails for the
    reason the issue gives. If you cannot reproduce it, say so on the issue and stop.
 6. **Fix it in the seed.** Never the notebook HTML, never the deployed text. Add or change a
@@ -46,6 +48,9 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
    The headless tool `tools/lope-runtime.js` cannot evaluate a CEL guard, so it is no substitute.
 9. **Emit** in that tab, then close it by name:
    `fetch("http://127.0.0.1:47814/<worker>.json", { method: "POST", body: JSON.stringify(await (await mod.value("<name>_service")).emit()) })`.
+   Each `eval_code` is its own scope: repeat the two lines that find `rt` and `mod`. The file is
+   named for the Worker and the cell for the service: for the tracker, `brain-x-issues.json` from
+   `issues_service`. Apply the file you just posted; an older `issues.json` in `.emitted/` is refused.
    If nothing listens on 47814, start `bun tools/cloud-brain/test-receiver.ts` in the background.
 10. **Deploy under the lock**, with a reason that names the issue:
     `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts apply <worker>.json --reason="<id>: …"`.
@@ -60,8 +65,9 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
     Push both.
 13. **Say it on the issue, then submit.**
     `ia comment` with the fix, the test count and what was not tried, then
-    `ia move '{"key":"impl/<id>/submit","id":"<id>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha>"},{"kind":"commit","value":"lopebooks@<sha>"},{"kind":"deploy","value":"<worker>@<hash>"}]}'`.
-    A submit with no refs is refused. A change with no deploy (a doc, a test) has the commits only.
+    `ia move '{"key":"impl/<id>/submit-<round>","id":"<id>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha>"},{"kind":"commit","value":"lopebooks@<sha>"},{"kind":"deploy","value":"<worker>@<hash>"}]}'`.
+    A key used before answers 200 with `duplicate: true` and moves nothing: read the issue
+    again and see `in-review`. A submit with no refs is refused. A change with no deploy (a doc, a test) has the commits only.
 
 ## What a reviewer will check
 

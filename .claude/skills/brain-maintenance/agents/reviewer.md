@@ -16,9 +16,14 @@ You change no source, build nothing and deploy nothing. You write to the tracker
 2. **Read the change.** The `refs` of the `submit` move name commits and a deploy. Read the
    diff of each commit (`git show <sha>`, `git -C lopebooks show --stat <sha>`).
 3. **Check that what runs is what was committed.** For a deploy ref:
-   `brain.ts curl "/xrpc/com.lopecode.brain.getSource?worker=<worker>" --owner` (a read), and
-   compare its `text` with `bun tools/lope-reader.ts lopebooks/notebooks/@tomlarkworthy_cloud-brain.html --get-module <module>`.
-   Any difference is a finding. `brain.ts redistil` shows the Worker `same`.
+   `brain.ts redistil` shows the Worker `same` with the hash the ref names. Then
+   `brain.ts curl "/xrpc/com.lopecode.brain.getSource?worker=<worker>" --owner` (a read; the
+   output ends ` [200]` after the JSON, so parse with `json.JSONDecoder().raw_decode`), and
+   compare its `text` with `bun tools/lope-reader.ts lopebooks/notebooks/@tomlarkworthy_cloud-brain.html --get-module <module>`
+   using `diff -w -B`. Expected and not findings (measured on `brain-x-issues` `f0bd133349d2`,
+   2026-10-10, 8 lines): the `main.define("module …", [], async …)` lines lack the `[]` in the
+   deployed text. Any other difference is a finding: `redistil` compares the Worker with the
+   source the deployer keeps, so it reads `same` for text that was edited by hand.
 4. **Run the tests yourself**, in a QA tab under a session name of your own, with the snippet in
    `agents/implementer.md` step 8. Report the count. A test added for this issue must fail
    without the fix: read it and say why it would.
