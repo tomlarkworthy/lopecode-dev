@@ -3319,3 +3319,15 @@ Tests: 67 of 67 in kernel, core and page; the prefixes, the refused shapes and t
 Cost of this, stated: with `*` in its list such a token also calls what only the owner's session could at the core (`rule.put`, `price.put`, `quota.put`). The core's log line says `owner`; which token it was is in the kernel's `call.by.link` line only.
 
 Not done on cb4: no browser opened, no container leased, no `ai.run` made with such a token (each costs); the button was not pressed.
+
+**Review of the prefixes and the owner's session** (07:31 CEST): one fresh reviewer, FIX, 5 findings, all confirmed against the source and fixed. It ran no tests (its browser runner had no Chromium). It traced one path as sound: a percent-encoded method name does not pass `never()` with a `*` token.
+
+| Finding | Done |
+|---|---|
+| `listed` refused a member's method: a member id is hex and 10 of 16 begin with a digit, so `m.0a1b2c3d4e.hello` was 400 where it was accepted the day before | a part may begin with a digit; asserted. On cb4: `token.create` with that name 200 |
+| The Access field suggested `browser.*` for a grant too; `grant.put` stored it and it granted nothing | `grant.put` answers 400 for an entry with `*`; asserted. On cb4: 400. The field says a token takes the prefix |
+| The core's table of who pays had no row for the unattended token | in the owner's row |
+| The text at `GET /auth/link` and `/llms.txt` did not say the token's calls are the owner's | one sentence in each |
+| No test for the `call.by.link` line; refused shapes tested on `token.create` only | the line is asserted; one refused shape on `token.link`. `*` on an unattended link is still not tested |
+
+Live after: kernel `2531566a2480`, core `fd21a91cf13d`, page `d10ad36e33d3`, 67 of 67, `redistil` 18 `same`, lease held.

@@ -262,7 +262,7 @@ accessPanel = {
   if (!brain) return htl.html`<i style="color:var(--theme-foreground-muted)">Sign in as the owner to see access.</i>`;
   const list = htl.html`<div></div>`, note = htl.html`<div style="color:var(--theme-foreground-muted);margin-top:6px;word-break:break-all"></div>`;
   const who = field("token name, or a DID to grant", { width: "18em" });
-  const methods = field("methods, e.g. proxy.fetch browser.* or *", { width: "20em" });
+  const methods = field("methods, e.g. proxy.fetch; a token also takes browser.* or *", { width: "20em" });
   const short = (ms) => ms.map((m) => m.replace("com.lopecode.brain.", "")).join(", ");
   const remove = (label, fn) => {
     return press(label, async () => (await fn(), draw()));

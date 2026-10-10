@@ -76,7 +76,7 @@ The order is rule, price, charge, forward. The price is for the Worker's own wor
 
 | the call is started by | the account that pays | default a day |
 |---|---|---|
-| the owner's session, the owner's turn, the owner's PDS | \`owner\` | $1.00 |
+| the owner's session, the owner's turn, the owner's PDS, the token of a sign-in link made with \`unattended\` | \`owner\` | $1.00 |
 | a member's session, PDS, portal or turn | \`did:…\`, the member | $0.10 |
 | a turn in a room | the person who wrote the message, as any turn | |
 | a token | \`token:NAME\` | $0.10 |
@@ -775,7 +775,7 @@ Cloudflare Workers that one notebook defines, deploys and operates. This file is
 
 - The owner makes one in a signed-in session: POST ${at}${X}token.create with \`{ "name": "laptop", "methods": ["com.lopecode.brain.knowledge.search"] }\`. The answer shows the token once.
 - Or the owner makes a sign-in link (\`token.link\` with \`{ name, methods }\`, or the page) and pastes it to the program. A GET of the link says what to do; the first POST of it answers a token that lasts 8 hours, and the link is gone.
-- A token calls the methods it names and no others. A name can be a prefix: \`browser.*\`, or \`*\` for every method of this Brain. It cannot name \`infra.*\`, \`secret.*\`, \`token.*\`, \`grant.*\` or \`people.*\`, and a method marked \`by its rule\` may refuse it; the reference says.
+- A token calls the methods it names and no others. A name can be a prefix: \`browser.*\`, or \`*\` for every method of this Brain. It cannot name \`infra.*\`, \`secret.*\`, \`token.*\`, \`grant.*\` or \`people.*\`, and a method marked \`by its rule\` may refuse it; the reference says. The token of a sign-in link made with \`unattended\` is the exception: its calls are made as the owner's session, and the owner's allowance pays.
 - Send it as \`Authorization: Bearer <token>\`. Not in a query string: paths and query strings are kept in the logs.
 - \`token.list\`, and \`token.revoke\` with \`{ name }\`, are the owner's.
 
