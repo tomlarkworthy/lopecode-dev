@@ -8,6 +8,8 @@
  *   bun tools/cloud-brain/brain.ts state | confirm | approval on|off | approve | rollback | remove <name>
  *   bun tools/cloud-brain/brain.ts redistil | distil | bindings | shell   # redistil: each Worker against its source, "same" when healthy
  *   bun tools/cloud-brain/brain.ts curl <path> [--owner] [-X POST -d '{}']   # the kernel; --owner or --other sends a minted session as Authorization: Bearer
+ *   bun tools/cloud-brain/brain.ts curl <path> --as NAME [-X POST -d '{}']       # the same call with the token NAME of .emitted/<base>-tokens.json. A token is not the owner present; an agent's writes go this way
+ *   bun tools/cloud-brain/brain.ts token NAME <method…> [--daily=USD] | token list | token revoke NAME   # token.create as the owner; the value goes to .emitted/<base>-tokens.json (mode 600) and is not printed
  *   bun tools/cloud-brain/brain.ts session [did]                               # mint a session token for the owner, or for another DID
  *   bun tools/cloud-brain/brain.ts page up [--minutes N] [--token LOPE-…] [--url https://…] [--keep] | page state | page down   # the Brain's page in a browser of the cluster, signed in and paired with a channel on this machine
  * State (recovery key, deployer key, session tokens) is in .emitted/<base>.json, git-ignored. The Cloudflare token is never printed.
@@ -21,6 +23,9 @@ const token = readFileSync(resolve(import.meta.dir, "../scratch/cloud-brain-expe
 const statePath = E(BASE + ".json");
 const st: any = existsSync(statePath) ? JSON.parse(readFileSync(statePath, "utf8")) : {};
 const save = () => writeFileSync(statePath, JSON.stringify(st, null, 1));
+// Tokens made here for agents: { name: value } in a git-ignored file of mode 600.
+const tokens = (f = BASE + "-tokens.json"): any => (existsSync(E(f)) ? JSON.parse(readFileSync(E(f), "utf8")) : {});
+const keepTokens = (t: any) => writeFileSync(E(BASE + "-tokens.json"), JSON.stringify(t, null, 1), { mode: 0o600 });
 const hex = (n = 32) => [...crypto.getRandomValues(new Uint8Array(n))].map((b) => b.toString(16).padStart(2, "0")).join("");
 const api = async (path: string, init: RequestInit = {}) => {
   const r = await fetch("https://api.cloudflare.com/client/v4" + path, { ...init, headers: { authorization: "Bearer " + token, ...(init.headers || {}) } });
@@ -382,9 +387,36 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
     clearInterval(timer);
     process.exit(0);
   } else console.log("page up [--minutes N] [--token LOPE-…] [--view …] [--url https://…] [--browser NAME] [--name PAGE] [--keep] | page state | page down");
+} else if (cmd === "token") {
+  // A token for an agent of this checkout, made with the owner's session and never printed. The owner, event 150 of
+  // cb4's issue record: an agent calls with a token, and may use the owner's session to make one.
+  const asOwner = async (m: string, body?: any) => {
+    const r = await fetch(B() + "/xrpc/com.lopecode.brain." + m, { method: body ? "POST" : "GET", headers: { authorization: "Bearer " + st.session, ...(body ? { "content-type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
+    return { status: r.status, body: (await r.json().catch(() => ({}))) as any };
+  };
+  const kept = tokens();
+  if (args[0] === "list") {
+    const r = await asOwner("token.list");
+    console.log(JSON.stringify({ kept: Object.keys(kept), brain: r.body }));
+  } else if (args[0] === "revoke" && args[1]) {
+    const r = await asOwner("token.revoke", { name: args[1] });
+    if (r.status === 200) { delete kept[args[1]]; keepTokens(kept); }
+    console.log(r.status, JSON.stringify(r.body));
+  } else if (args[0] && args.length > 1) {
+    const daily = args.find((a) => a.startsWith("--daily="));
+    const methods = args.slice(1).filter((a) => !a.startsWith("--"));
+    if (kept[args[0]]) { console.log(`a token "${args[0]}" is kept already; "token revoke ${args[0]}" first`); process.exit(1); }
+    const r = await asOwner("token.create", { name: args[0], methods, ...(daily ? { daily: Number(daily.slice(8)) } : {}) });
+    if (r.status !== 200 || !r.body.token) { console.log(r.status, JSON.stringify({ ...r.body, token: undefined })); process.exit(1); }
+    keepTokens({ ...kept, [args[0]]: r.body.token });
+    console.log(`made "${args[0]}" for ${methods.join(", ")}; call with: curl <path> --as ${args[0]}`);
+  } else console.log("token NAME <method…> [--daily=USD] | token list | token revoke NAME");
 } else if (cmd === "curl") {
-  const path = args[0], rest = args.slice(1).filter((a) => a !== "--owner" && a !== "--other");
-  const extra = args.includes("--owner") && st.session ? ["-H", "authorization: Bearer " + st.session] : args.includes("--other") && st.otherSession ? ["-H", "authorization: Bearer " + st.otherSession] : [];
+  const as = args.indexOf("--as"), name = as < 0 ? "" : args[as + 1];
+  const path = args[0], rest = args.slice(1).filter((a, i) => a !== "--owner" && a !== "--other" && i + 1 !== as && i + 1 !== as + 1);
+  const have = name ? { ...tokens(BASE + "-issues-tokens.json"), ...tokens() } : {};
+  if (name && !have[name]) { console.log(`no token "${name}" is kept; make one with: token ${name} <method…>`); process.exit(1); }
+  const extra = name ? ["-H", "authorization: Bearer " + have[name]] : args.includes("--owner") && st.session ? ["-H", "authorization: Bearer " + st.session] : args.includes("--other") && st.otherSession ? ["-H", "authorization: Bearer " + st.otherSession] : [];
   const p = Bun.spawn(["curl", "-s", "-m", "30", "-w", " [%{http_code}]\n", ...extra, ...rest, (path.startsWith("http") ? "" : B()) + path], { stdout: "inherit", stderr: "inherit" });
   await p.exited;
 } else console.log("unknown command");

@@ -85,12 +85,37 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts <command>
 
 | Command | Use |
 |---|---|
-| `curl <path> --owner [curl args]` | Call the kernel as the owner. `--other` calls as a test member. |
+| `curl <path> --owner [curl args]` | Call the kernel with the owner's session. `--other` calls as a test member. |
+| `curl <path> --as NAME [curl args]` | The same call with a token of that name. |
+| `token NAME <method…> [--daily=USD]`, `token list`, `token revoke NAME` | Make a token with the owner's session (`token.create`). Its value goes to `.emitted/<base>-tokens.json`, mode 600, and is not printed. |
 | `state` | What is deployed. |
 | `redistil` | Compare each Worker with its source. Healthy is every line `same`. |
 | `apply <name>.json --reason="why"` | Deploy a recipe, signed with the recovery key. Since 2026-10-09 the deployer answers 400 without `--reason=` (3 to 300 characters) and logs it as `deploy.reason`; the same for `redistil --apply`, `remove` and `rollback`. |
 | `saw [name…]` | `tools/cloud-brain/seen.json`, committed with the seeds: the hash each seed is built on. `apply` and `remove` send it as `was`. A refusal means the Worker changed somewhere this checkout has not merged, or the record was emitted before the last change: read it with `getSource?worker=NAME`, merge it into the seed, build, emit, then `saw NAME` and commit `seen.json` with the seed (2026-10-10, after a kernel deployed from elsewhere was replaced). |
 | `page up` / `page state` / `page down` | The Brain's page in a browser of the cluster (below). |
+
+**An agent writes with a token, not with `--owner`.** A session minted from the state file is the
+owner's own session, and a service cannot tell it from the owner in their tab: events 2 to 9 of
+cb4's issue record, made with `brain.ts curl --owner`, carry `"via":"session","tab":true`, the same
+as event 150, which Tom made in the page (read 2026-10-10 19:20 with `issue.sync?since=0`). So such
+a call passes `caller.present` and can approve, revert, install a policy and rebuild. Tom on that
+issue (`owner-session-file-is-present`, event 150): "external agents should prefer to us a token
+over masquerading as the owner. They can obtain a token using owner if they don;t have other
+options". In this checkout:
+
+```
+brain.ts token my-task issue.* knowledge.search     # once, with the owner's session; prints the name only
+brain.ts curl /xrpc/com.lopecode.brain.issue.list --as my-task
+brain.ts token revoke my-task                       # when the work is done
+```
+
+Run on cb4 2026-10-10 19:21 with a token for `quota.get`: `quota.get` 200, `inbox.list` 403 "this
+token does not name com.lopecode.brain.inbox.list", `revoke` `{"revoked":1}`. A token's call arrives
+`via delegation:<id>` with `tab: false`, so it is never the owner present. A token cannot name
+`infra`, `secret`, `token`, `grant`, `people` or `delegation` methods (the kernel's `token.create`
+answers 400); those and `apply` stay with the owner's session or the recovery key, and the reads
+in the health check below are still made with `--owner`. Nothing refuses a write sent with `--owner`: this is an agreement, as the deploy lock is.
+`--as` also reads `.emitted/<base>-issues-tokens.json`, where the tokens of the issue loop are.
 
 A health check that takes ten seconds:
 

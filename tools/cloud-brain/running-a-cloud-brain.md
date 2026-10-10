@@ -132,6 +132,8 @@ From Claude Code on the web the environment must allow the Brain's host and hold
 
 Since 2026-10-10 16:48 **Copy Login Link** makes a token that reads (issues, knowledge, `quota.get`) and does not deploy; the program asks for more (`/auth/ask`) and the owner answers at `/auth/request`. A link that deploys is made under Access with "link may deploy". **Copy Guest Invite** beside it is for a colleague: a name, the methods and dollars a day; the link and its token last 7 days. To make them a member, add the handle they send under People.
 
+From a checkout that holds a Brain's state file (added 2026-10-10): an agent makes a token with `brain.ts token NAME <method…>` and calls with `brain.ts curl <path> --as NAME`, in place of `--owner`. The session `brain.ts` mints from the state file is the owner's own, and a call with it reads as the owner present. The reason and what was run are in `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md`, "Access from this checkout".
+
 ## Messages
 
 Everything from outside arrives in the inbox. One tab holds the lease and is handed each entry. A message from a channel such as WhatsApp is answered in its sender's own session (group `brain-people`), not in the operator's chat: the page runs the turn, sends the summary back with `inbox.reply` and finishes the entry, as failed if no answer came. A member's turn has one tool, `brain_call`, made with that entry's turn token. `inbox.list?all=true` shows each message, who sent it and what was answered.

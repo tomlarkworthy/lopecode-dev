@@ -4798,3 +4798,78 @@ the default; an install with no reason reads installed with no reason recorded"`
 Not tried: the panel on the live page of cb4, as in the section above (`brain-x-page` was not
 applied). Not tried: a long reason or one with a newline; the reviewer's probes of those were not
 read either.
+
+## An agent calls with a token; `brain.ts` makes one without printing it (2026-10-10 19:21 CEST): no deploy
+
+Issue `owner-session-file-is-present`. A session minted from `.emitted/cb4.json` passes
+`caller.present`, so whoever holds the file approves, reverts, installs and rebuilds. Triage (event
+133) gave the owner two ways: (a) mark a session as present at a browser sign-in, a kernel and core
+change; (b) keep it and treat the file as the owner's key. The owner, event 150, in the page:
+"yes external agents should prefer to us a token over masquerading as the owner. They can obtain a
+token using owner if they don;t have other options", then moved it to `ready` (event 151). Read
+here as (b) with an agreement on top. What counts as present is not changed.
+
+**What the record shows**, `issue.sync?since=0` with the token `issues-implementer-2`, 19:20:
+
+```
+2 to 9   opened, moved (triage, reject, ready, start, submit), commented   {"caller":"owner","via":"session","holder":"","tab":true}    brain.ts curl --owner
+10, 11   reviewed, moved pass                                              {"caller":"owner","via":"delegation:20d852e770f6","holder":"secret","tab":false}    a token
+150      commented                                                         {"caller":"owner","via":"session","holder":"","tab":true}    Tom, in the page
+```
+
+Events 2 to 9 and event 150 have the same `by`. So the issues service cannot tell the file from the
+tab, and a stricter test there (`tab === true` in `issueCaller`) would change nothing: `brain.ts`
+sends no `x-brain-tab` and the core still writes `tab: true` for it.
+
+**Changed, in `brain.ts`.** Before, the one way to make a token from a checkout was
+`curl …token.create --owner`, which prints the token.
+
+```
+brain.ts token NAME <method…> [--daily=USD]   token.create with the owner's session; the value goes to .emitted/<base>-tokens.json (mode 600)
+brain.ts token list | token revoke NAME        token.list beside the names kept here; token.revoke, and the name leaves the file
+brain.ts curl <path> --as NAME                 the call with that token; also reads .emitted/<base>-issues-tokens.json
+```
+
+**Run on cb4**, 19:21:37 to 19:21:39 (`date`), from a copy of the worktree's `brain.ts` in the main
+checkout (the worktree has no state file), deleted after:
+
+```
+token                                   the usage line
+token bm-check quota.get                made "bm-check" for quota.get; call with: curl <path> --as bm-check
+stat cb4-tokens.json                    -rw-------
+token bm-check quota.get                a token "bm-check" is kept already; "token revoke bm-check" first
+curl quota.get --as bm-check            {"who":"owner","day":"2026-10-10","spent":0.40755,…} [200]
+curl inbox.list --as bm-check           {"error":"Forbidden","message":"this token does not name com.lopecode.brain.inbox.list. …"} [403]
+curl issue.get?id=… --as issues-implementer-2    the issue, from the loop's own token file
+curl quota.get --as nobody              no token "nobody" is kept; make one with: token nobody <method…>
+curl lease.get --owner                  {"held":true} [200]      (unchanged)
+token list                              kept ["bm-check"], and the Brain's list
+token revoke bm-check                   200 {"revoked":1}; the file is {}
+```
+
+**Changed, in the docs.** `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md`, "Access
+from this checkout": the two rows of the command table and a paragraph with the owner's words, the
+three commands and the run above. `running-a-cloud-brain.md`, "For a program": one paragraph that
+points there.
+
+**Tests.** None: `brain.ts` has no test (`ls tests | grep -i brain` prints nothing) and none was
+added. No seed changed, no notebook was built, no `test_*` cell was run for this. The evidence is
+the eleven commands above.
+
+Not done, with the reason:
+
+- `--owner` with a write is not refused and prints no warning. `knowledge-docs.ts`,
+  `library-backfill.ts` and `library-homes.ts` write through `brain.ts curl --owner`, and
+  `config.set` is documented that way; the owner said "prefer". So the agreement is kept by the
+  agent, as the deploy lock is, and an agent that ignores it is still the owner present.
+- What counts as present (option (a)): the kernel and the core, which the loop does not deploy.
+- The paragraph "Who is present" in `brain-issues.ojs` does not name the new commands: that is a
+  deploy of `brain-x-issues` for one sentence.
+- `issue-as.sh` is left as it is; `curl --as issues-implementer-2` now does the same.
+- The roles' briefs and `rules.md` are not edited: they already send every tracker write through a token.
+
+Not tried: `--daily=`; `token revoke` of a name the Brain has and the file has not; a token name
+the kernel refuses (the 400 is printed without the body's `token`, read in the code only); a call
+with a revoked token through `--as` (the name leaves the file at revoke, so `--as` stops first).
+`token list` prints what `token.list` answers; whether that holds a secret was not read, and its
+output was piped through a script that printed keys only.
