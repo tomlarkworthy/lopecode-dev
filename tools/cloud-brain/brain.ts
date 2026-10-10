@@ -89,7 +89,7 @@ const deployer = async (method: string, body?: any) => {
 const seenPath = resolve(import.meta.dir, "seen.json");
 const seenAll = (): any => existsSync(seenPath) ? JSON.parse(readFileSync(seenPath, "utf8")) : {};
 const sawGet = (worker: string) => (seenAll()[BASE] ?? {})[worker];
-const sawPut = (worker: string, hash: string | null) => { const all = seenAll(); (all[BASE] ??= {})[worker] = { hash, at: Date.now() }; writeFileSync(seenPath, JSON.stringify(all, null, 1) + "\n"); };
+const sawPut = (worker: string, hash: string | null, at = Date.now()) => { const all = seenAll(); (all[BASE] ??= {})[worker] = { hash, at }; writeFileSync(seenPath, JSON.stringify(all, null, 1) + "\n"); };
 const HOW = (worker: string) => `Read its source (curl "/xrpc/com.lopecode.brain.getSource?worker=${worker}" --owner), merge it into the seed, build and emit again, then: saw ${worker}`;
 // What to send as was, or a refusal made here. file: the emitted record, which must be newer than the record of
 // the Worker's last change: one emitted before it was built from a seed without that change.
@@ -239,7 +239,8 @@ export class Rows {
   // saw: the record against what runs. saw NAME…: record what runs now, after its source is merged into the seed.
   const seen = (await deployer("getState")).workers || [];
   const runs = (worker: string) => seen.find((x: any) => x.worker === worker)?.hash ?? null;
-  for (const worker of args) sawPut(worker, runs(worker));
+  // at 0: saw comes after the emit of the merged seed, and that record is the one to send.
+  for (const worker of args) sawPut(worker, runs(worker), 0);
   const rec = seenAll()[BASE] ?? {};
   for (const worker of [...new Set([...Object.keys(rec), ...seen.map((x: any) => x.worker)])].sort()) console.log(worker.padEnd(20), rec[worker] ? String(rec[worker].hash).slice(0, 12) : "none".padEnd(12), !rec[worker] ? "" : rec[worker].hash === runs(worker) ? "" : "MOVED: runs " + String(runs(worker)).slice(0, 12));
 }

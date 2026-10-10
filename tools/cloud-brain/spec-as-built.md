@@ -4339,7 +4339,22 @@ marked it `MOVED` before anything was applied over it. `tools/cloud-brain/merge-
 is found once. It printed four blocks for `41d6606f61fb`; after `build.ts` no cell's code differs from the kept source.
 It is not a three-way merge: the base is the built notebook, so the seed must hold no edit of this checkout's own.
 
-Not done. The deployer's own refusal still says only `NAME is A, you saw B`; the instruction is in `llms.txt` alone.
-The page's `brain_apply` tool still asks the model for the hash `brain_services` gave and says to read it again on a
+Not done. The page's `brain_apply` tool still asks the model for the hash `brain_services` gave and says to read it again on a
 refusal. The deployer keeps one earlier source per module, so a replaced version is recoverable once.
+
+**The refusal says it, and `llms.txt` does not** (2026-10-10 16:16 CEST). Tom: "We need to be token effecient, and
+incremental disclosure. I would say \"NAME is A, you saw B, your view is stale\" as the only required thing". The
+paragraph added to `llms.txt` at 16:03 is removed (every reader paid for it; a refusal is read by the one it concerns);
+the reworded `member.deploy` line stays. The deployer's refusal has three more words. Deployer `cde3662f97c8`, 42 of
+42 in a tab, installed 16:13 with `install-deployer`, every Worker `same` after; `brain-core` `85c97339cddc`, 34 of
+34, applied 16:15 and confirmed. On cb4, with the record for `brain-core` set to 64 zeros:
+
+```
+{"worker":"brain-core","state":"refused","reason":"brain-core is 0b6a7b6291ee, you saw 000000000000, your view is stale"}
+```
+
+Found doing it: `brain.ts saw NAME` wrote the time of the call, and the emitted record made before it, which is the
+order the refusal's instruction gives, was then refused as older. `saw NAME` now writes `at: 0`; only a deploy sets
+the time an emitted record must be newer than. Not measured: whether a fresh session given only that refusal reads
+`getSource` again.
 
