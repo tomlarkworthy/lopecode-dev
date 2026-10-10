@@ -52,7 +52,7 @@ subscription.
 | `topic.create` | `{ topic, write, read }`. `write` and `read` are rules in the expressions a method's rule uses. The creator may always change or delete it. |
 | `topic.append` | `{ topic, key, body }` → `{ seq, duplicate }`. `key` is kept once, as the inbox does. The entry records `sender`, the caller the core named. |
 | `topic.read` | `?topic=&after=&limit=` → `{ entries, next }`. |
-| `topic.subscribe` | `{ topic, name, target, params, seconds }`. With `target` (a `NAME.receive` method) it is a push subscription and `params` is the query sent with each push; without, one to take from. Needs the topic's `read` rule. |
+| `topic.subscribe` | `{ topic, name, target, params, failed, seconds }`. With `target` (a `NAME.receive` method) it is a push subscription and `params` is the query sent with each push; without, one to take from. Needs the topic's `read` rule. |
 | `topic.take` | `{ topic, name, limit }` → entries claimed for `seconds`. A claim that ends unanswered is handed out again. |
 | `topic.done` | `{ topic, name, seq, failed }`. |
 | `topic.list`, `topic.subs`, `topic.unsubscribe`, `topic.delete` | |
@@ -65,8 +65,13 @@ An entry is `{ topic, seq, key, sender, at, body, hops }`. A body is at most 100
 The service calls each push subscription's target through the core, with the entry as the body and
 the subscription's `params` as the query. The core checks the target's rule, charges its price and
 writes its log line, as for any call. A 2xx answer moves the subscription's position. Anything else
-is tried again with a growing wait, and after 5 tries (a guess) the entry is marked failed for that
-subscription and the position moves. Delivery is at least once; a target that must not act twice
+is tried again with a growing wait, and after 5 tries (a guess) the entry is given up for that
+subscription and the position moves. What happens to it is set on the subscription (Tom, 2026-10-10:
+"Failed delivery should go to a dead leatter queue which is another topic, or throw away (a
+configurable)"): with `failed: "TOPIC"` it is appended to that topic as `{ topic, name, seq, entry,
+status, error, tries }`, and with no `failed` it is dropped. The subscriber must pass that topic's
+`write` rule when subscribing. A topic of failures is a topic: it is read, taken from or pushed like
+any other, and a push from it that fails goes where its own subscription says. Delivery is at least once; a target that must not act twice
 keeps the `seq` it has handled.
 
 **A target is a method named `NAME.receive`**, written to take an entry. Two reasons, both from the
@@ -144,7 +149,7 @@ position per reader.
 ## Storage
 
 SQL tables in the Brain's D1, through the `sql` cell: `entries(topic, seq, key, sender, at, body,
-hops)`, `subs(topic, name, target, params, owner, position, seconds)`, `claims(topic, name, seq, until,
+hops)`, `subs(topic, name, target, params, failed, owner, position, seconds)`, `claims(topic, name, seq, until,
 tries)`. An append is one transaction that takes the next `seq` for the topic. Not measured: the
 cost of an append in D1 rows, or how many appends a second one topic takes.
 
