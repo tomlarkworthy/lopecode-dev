@@ -883,9 +883,10 @@ browserApp = {
       throw e;
     }
   };
-  // Who owns the browser. A call that is not the person's own tab (an LLM turn, a PDS JWT, a portal) owns browsers apart from
-  // that person's, because a page in a person's browser can hold their session. The core names no caller via:….
-  const who = (c) => (by(c) !== "anonymous" && /^(turn:|portal:|jwt$)/.test(c.req.header("x-brain-via") || "") ? "via:" + by(c) : by(c));
+  // Who owns the browser. A call that is not the person's own tab (an LLM turn, a PDS JWT, a portal, a call under a
+  // delegation) owns browsers apart from that person's, because a page in a person's browser can hold their session.
+  // The core names no caller via:… or d:….
+  const who = (c) => keeperOf(c.req.raw.headers);
   // The browser is the one the caller owns under the name in `browser`, in the query string or in the body. "default" when absent.
   const mine = (c, q = {}) => browserOps.one(who(c), c.req.query("browser") || q.browser || "default");
   const post = (m) => app.post(NS + m, answer(async (c) => ((q) => mine(c, q)[m](q, by(c), origin(c)))(await body(c))));
@@ -1631,8 +1632,9 @@ test_browser_a_turn_does_not_reach_the_browsers_of_its_callers_own_session = {
   await session.post("open", { name: "brain", url: A });
   await session.post("eval", { name: "brain", expression: 'localStorage.setItem("brain_session", "secret")' });
   expect([rig.keys("page/"), (await session.post("eval", { name: "brain", expression: kept })).data.value]).toEqual([["page/brain"], "secret"]);
-  // A turn of the owner, a call through a PDS and a portal have the caller owner, and a different owner of browsers.
-  for (const via of ["turn:7", "jwt", "portal:p1"]) {
+  // A turn of the owner, a call through a PDS, a portal and a call under a delegation have the caller owner, and a
+  // different owner of browsers.
+  for (const via of ["turn:7", "jwt", "portal:p1", "delegation:0a1b"]) {
     const other = rig.as("owner", "owner", via);
     const got = [(await other.get("list")).data, (await other.get("status", { name: "brain" })).status, (await other.post("eval", { name: "brain", expression: kept })).data.error, (await other.get("text", { name: "brain" })).data.error, (await other.post("close", { name: "brain" })).status, (await other.post("close", { all: true })).data];
     expect([via, ...got]).toEqual([via, { pages: [] }, 404, "NoTime", "NoTime", 404, { closed: [], browser: "default" }]);
@@ -1727,7 +1729,7 @@ test_browser_panel_shows_pages_and_the_usage = {
   return "1 page, 2 browsers, 9 buttons";
 }
 // %%
-import {cloudflare, rows, browser, log, hono, simulate, decide, callerOf} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, rows, browser, log, hono, simulate, decide, callerOf, keeperOf} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {plugins} from "@tomlarkworthy/plugin-registry"
 // %%

@@ -3536,3 +3536,45 @@ FIX, seven findings, all held against the source; the record is `knowledge-vecto
 - 2026-10-10 10:08 to 10:23 CEST: the notebooks of `lopecode/notebooks` (51, public) and `lopebooks/notebooks` (187, private) were put with `tools/cloud-brain/library-backfill.ts`. The index went from 172 entries to 473, module cards from 99 to 400 (118 public, 282 private), the library from 4 notebooks to 240 (906 MB), for $0.0239. No public card points at a private notebook. The last writes were searched 118 to 134 s later. 27 of the 66 public cards whose module has a home in lopecode point at that home. Record: `knowledge-vectors.md`, "The notebooks are put".
 - 2026-10-10 10:44 to 10:51 CEST: the library's notebooks whose kept file is the blob at `origin/main` of lopecode or lopebooks were made public, 237 of 240, and each module's card was put at its home by `modules/canonical.json` with `tools/cloud-brain/library-homes.ts`: 399 of 400 cards public, 279 of 279 at the declared home. No Worker changed. Record: `knowledge-vectors.md`, "The repos' notebooks are public".
 - 2026-10-10 10:37 CEST: a put no longer writes a module card that is kept (`brain-x-knowledge` `aae6f3ea23e8`, `brain-x-library` `437cab7a8afc`). A card has the SHA-256 of its module's block; a put of the card's notebook with another block gives the card `staleSince`, the first such put, and `knowledge.list?kind=module&stale=true` lists them. `library.index` writes the cards. `knowledge.put` took `ifAbsent` and the field `staleSince`, and knows nothing of notebooks. cb4: the 400 cards took their hashes in 240 calls with no card written, 0 stale; a scratch module changed twice was charged nothing, kept its date, and `index` embedded it once (`knowledge-vectors.md`, "A card says when its module has changed"). Tests 16 of 16. Not reviewed.
+
+## Authority, step 1 of 7: one matcher, and the caller's tab and keeper as shared cells (2026-10-10 10:57 CEST)
+
+The design is `plan/cloud-brain-authority.md` (ninth draft, eight fresh reviews). Step 1 changes nothing a caller sees. It puts in one place what four services each had a copy of, and adds the one case a later step needs: a call whose via is `delegation:<id>`.
+
+| cell, in `cloudflare-iac` | what it replaced |
+|---|---|
+| `matches(patterns, nsid)` | the kernel's `names()` body, its two `grant.methods.includes`, the core's `person.methods.includes` |
+| `MEMBER`, `may({ member, grant }, nsid)` | the kernel's own list and the test at its gate. The list is the 21 names it was, compared line by line with `HEAD` |
+| `callerFrom(headers)`, `originFrom(headers)` | `brain-db` building a caller and an origin by hand |
+| `ownTab(headers)` | `/^(turn:|portal:|jwt$)/` on the via in blob and static |
+| `keeperOf(headers)` | the same test in browser and container (`"via:" + caller`) |
+| `callerOf` | reads `tab` and `holder` when they are given; adds `caller.delegation` and `caller.holder`, both `""` today |
+
+The kernel's `never()` names `delegation`. No core sends `x-brain-tab`, `x-brain-holder` or a via of `delegation:` yet.
+
+```
+Worker             before        after
+brain              b21a946d928b  5c35fe2c92ef
+brain-core         03630d431a97  9c2da80e39f2
+brain-db           27b0403bca9c  63f1a03e105f
+brain-x-blob       a9a68afe5d43  fa9885f906d0
+brain-x-static     fb6f5090496e  2f306cdad523
+brain-x-browser    2d4b7b601003  25c852c2f5e3
+brain-x-container  98dcb96fd871  5995d018bd88
+cb4-deployer       1db43397b7bc  9f8c5de08825
+```
+
+- **Only these changed.** Every service was emitted from the tab before any deploy; the other twelve (ai, bluesky, feed, inbox, knowledge, library, logs, page, proxy, snapshot, whatsapp, and the deployer's probe was not emitted) had the hash that was live.
+- **Tests**, in a local tab, each `test_*` cell of 20 modules: all pass with no existing assertion changed, bar two noted below. `test_one_matcher_and_the_callers_own_tab` (new, `cloudflare-iac`) holds `keeperOf` and `ownTab` to the expression they replaced, copied into the test, on 14 callers, and then the delegation case. One existing test in each of the five stores has a `delegation:0a1b` case added: its browsers and containers are under `d:0a1b`, its blob is stamped `by:d:0a1b` and not vouched for, static sandboxes its page, and `secret.copy` answers 401.
+- **Live**, as the owner after the last deploy: `lease.get`, `browser.all`, `container.all`, `blob.list`, `static.list`, `db.tables`, `quota.get` 200. `redistil`: 19 of 19 `same` (`brain-x-scopes` is another session's, new today). A DID that is not a member is refused `member.whoami` with the message it had.
+
+### What went wrong on the way
+
+- **The first apply of the stores was refused**: `cannot distil: db_service: callerFrom is not defined`. The deployer distils a Worker with its own copy of `cloudflare-iac`, so a new shared cell needs `install-deployer` before any Worker that reads it. Nothing was deployed by the refused call. After `install-deployer`, `redistil` gave `same` for all, as the wrapper did not change.
+- **`brain-x-browser` was put back once.** The deployer ran its tests and `test_browser_tick_makes_rows_and_sessions_agree` failed on `used >= 100 && used <= 110` with 111: the bound is on seconds of wall clock the test itself took. The same test gave 111 twice in the local tab run one test at a time, and passed in a run of all at once. Applied again, it stayed. The bound is not changed here; it will fail a deploy again.
+- **A store's tests are part of its hash.** Adding the delegation cases changed the five stores' hashes with no change to their code, so they were deployed a second time (10:56) to keep the Brain equal to the seeds.
+- **`test_ai_refuses_what_it_cannot_run_and_the_price_is_usd` failed in the run of all tests at once** and passes alone: `logged` reads the console, and another test's lines were in it. `brain-ai` is not changed by this step.
+- The design's gate for step 2 said to compare each Worker with the hash "this step's build emitted". That is what was done, from `apply`'s own output and `state`.
+
+Also: `tools/cloud-brain/knowledge-docs.ts` enters `plan/cloud-brain-*.md` as well as `knowledge/*.md`. The authority design, the topics proposal and the backlog are entries `doc:cloud-brain-authority`, `-topics` and `-backlog` on cb4, private. A search by words found the first at once; by meaning it was not among the first four a minute after the put, and was not tried again.
+

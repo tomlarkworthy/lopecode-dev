@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// Enters knowledge/*.md into a Brain's knowledge base, one entry a doc (kind `doc`, id `doc:<name>`), so that
+// Enters knowledge/*.md and the Cloud Brain designs (plan/cloud-brain-*.md) into a Brain's knowledge base, one entry a doc (kind `doc`, id `doc:<name>`), so that
 // knowledge.search?semantic=true finds the doc for a task. Nothing re-enters a changed doc: `status` says which
 // entries are behind their file and for how long, `put` is the reindex.
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status
@@ -16,7 +16,7 @@ import { spawnSync } from "node:child_process";
 const root = join(dirname(new URL(import.meta.url).pathname), "..", "..");
 if (!process.env.BRAIN_BASE) throw new Error("BRAIN_BASE");
 const [cmd, ...args] = process.argv.slice(2);
-const REPO = "https://github.com/tomlarkworthy/lopecode-dev/blob/main/knowledge/", TEXT = 16000;
+const REPO = "https://github.com/tomlarkworthy/lopecode-dev/blob/main/", TEXT = 16000;
 const sha = (b: string | Uint8Array) => createHash("sha256").update(b).digest("hex");
 
 const tmp = join(mkdtempSync(join(tmpdir(), "kdocs-")), "body.json");
@@ -29,15 +29,19 @@ const call = (path: string, body?: any) => {
   return JSON.parse(m[1]);
 };
 
-const docs = readdirSync(join(root, "knowledge")).filter((f) => f.endsWith(".md")).sort().map((f) => {
-  const raw = readFileSync(join(root, "knowledge", f), "utf8"), name = f.slice(0, -3);
+// plan/cloud-brain-*.md: the designs and the backlog. They have no frontmatter, so they are entered private.
+const files = [...readdirSync(join(root, "knowledge")).filter((f) => f.endsWith(".md")).sort().map((f) => "knowledge/" + f),
+  ...readdirSync(join(root, "plan")).filter((f) => /^cloud-brain-.*\.md$/.test(f)).sort().map((f) => "plan/" + f)];
+const docs = files.map((rel) => {
+  const f = rel.split("/")[1];
+  const raw = readFileSync(join(root, rel), "utf8"), name = f.slice(0, -3);
   const fm = /^---\n([\s\S]*?)\n---\n/.exec(raw), head = fm ? fm[1] : "", body = fm ? raw.slice(fm[0].length) : raw;
   const h1 = /^# +(.+)$/m.exec(body);
   const topics = (/^topics: *(.+)$/m.exec(head) || [])[1] || "";
   // Topics first: the service embeds the first 1500 characters of title and text.
   const text = [topics && "Topics: " + topics, body.replace(/^# +.+\n/m, "").trim()].filter(Boolean).join("\n\n").slice(0, TEXT);
   return { name, id: "doc:" + name.toLowerCase(), public: /^scope:.*\bin-notebook\b/m.test(head), scoped: /^scope:/m.test(head),
-    title: (h1 ? h1[1] : name).slice(0, 500), text, sha256: sha(readFileSync(join(root, "knowledge", f))), rel: "knowledge/" + f };
+    title: (h1 ? h1[1] : name).slice(0, 500), text, sha256: sha(readFileSync(join(root, rel))), rel };
 });
 
 const kept = () => {
@@ -87,7 +91,7 @@ if (cmd === "status") {
   let entered = 0, changed = 0, vectors = 0;
   const t0 = Date.now();
   for (let i = 0; i < pick.length; i += 25) {
-    const r = call("knowledge.put", { entries: pick.slice(i, i + 25).map((d) => ({ id: d.id, kind: "doc", public: d.public, title: d.title, text: d.text, url: REPO + d.name + ".md", source: "lopecode-dev", sha256: d.sha256, method: "knowledge-docs", tags: ["knowledge-doc"] })) });
+    const r = call("knowledge.put", { entries: pick.slice(i, i + 25).map((d) => ({ id: d.id, kind: "doc", public: d.public, title: d.title, text: d.text, url: REPO + d.rel, source: "lopecode-dev", sha256: d.sha256, method: "knowledge-docs", tags: ["knowledge-doc"] })) });
     entered += r.entered; changed += r.changed; vectors += r.vectors ?? 0;
   }
   console.log(JSON.stringify({ put: pick.length, public: pick.filter((d) => d.public).length, private: pick.filter((d) => !d.public).length, entered, changed, vectors, ms: Date.now() - t0 }));

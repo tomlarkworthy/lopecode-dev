@@ -184,8 +184,9 @@ blobApp = {
   const me = async (c) => {
     const who = c.req.header("x-brain-caller") || "anonymous", via = c.req.header("x-brain-via") || "";
     // own: a caller whose type the owner vouches for. A token reaches every blob, and its uploads are its own, not the owner's.
-    // The owner's turn, portal or PDS call is not the owner's own tab: its bytes are stamped apart and are not vouched for.
-    if (who === "owner" && /^(turn:|portal:|jwt$)/.test(c.req.header("x-brain-via") || "")) return { all: true, stamp: ["by:owner:" + (c.req.header("x-brain-via") || "").split(":")[0]] };
+    // The owner's turn, portal or PDS call, or a call under a delegation, is not the owner's own tab: its bytes are
+    // stamped apart and are not vouched for.
+    if (who === "owner" && !ownTab(c.req.raw.headers)) return { all: true, stamp: [via.startsWith("delegation:") ? "by:d:" + via.slice("delegation:".length) : "by:owner:" + via.split(":")[0]] };
     if (who === "owner") return { all: true, own: true, stamp: [ownerTag()] };
     if (who.startsWith("token:")) return { all: true, stamp: ["by:" + who] };
     if (who.startsWith("did:")) {
@@ -605,6 +606,9 @@ test_blob_bytes_are_served_as_a_page_only_when_the_owner_set_their_type = {
   // The owner by a turn is not the owner as an uploader: the same as a token's.
   const turned = await (await rig.upload({ "x-brain-caller": "owner", "x-brain-via": "turn:7" }, "<p>four</p>", "text/html", "?public=true")).json();
   expect([turned.tags, await served(turned.blob.ref.$link)]).toEqual([["by:owner:turn", "public"], page]);
+  // Nor is the owner under a delegation: the stamp names the delegation.
+  const held = await (await rig.upload({ "x-brain-caller": "owner", "x-brain-via": "delegation:0a1b" }, "<p>five</p>", "text/html", "?public=true")).json();
+  expect([held.tags, await served(held.blob.ref.$link)]).toEqual([["by:d:0a1b", "public"], page]);
   return "3 blobs: a person's, the owner's and a token's";
 }
 // %%
@@ -615,7 +619,7 @@ test_blob_declares_what_it_needs = {
   return meta.resources.join(", ");
 }
 // %%
-import {cloudflare, sql, blobs, config, hono, simulate, sha256} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, sql, blobs, config, hono, simulate, sha256, ownTab} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {plugins} from "@tomlarkworthy/plugin-registry"
 // %%

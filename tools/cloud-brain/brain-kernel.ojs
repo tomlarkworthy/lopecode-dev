@@ -195,8 +195,6 @@ kernelApp = {
   const bodyOf = async (c) => (+(c.req.header("content-length") || Infinity) <= 1e6 ? c.req.raw.arrayBuffer() : c.req.raw.body);
   const fail = (c, status, error, message) => c.json({ error, message }, status);
   app.onError((e, c) => fail(c, 500, "InternalServerError", String((e && e.message) || e)));
-  // What every member may call. Anything more is that member's grant.
-  const MEMBER = ["inbox.reply", "member.whoami", "member.services", "member.deploy", "member.remove", "member.modules", "static.put", "static.get", "static.list", "static.tag", "static.setPublic", "static.delete", "blob.upload", "blob.get", "blob.info", "blob.list", "blob.tag", "blob.delete", "portal.token", "portal.modules", "quota.get"].map((m) => "com.lopecode.brain." + m);
   // What a portal token reaches beside the methods of its author's Workers, when the viewer is that author.
   const PORTAL_OWN = ["member.whoami", "member.services", "member.deploy", "member.remove", "member.modules"].map((m) => "com.lopecode.brain." + m);
   // A method of some member's own service. Its rule, which the deployer wrote, says whether another member may call it.
@@ -289,14 +287,14 @@ kernelApp = {
       for (const did of [who.did, ...others]) {
         if (did && did === config.owner) continue;
         const grant = did && (await rows.get("member/" + did)) ? await rows.get("grant/" + did) : null;
-        if (!(nsid && grant && grant.methods.includes(nsid))) return fail(c, 403, "Forbidden", `a turn in a room reaches inbox.reply and what everyone in the room has a grant for; ${did === who.did ? "its sender" : did || "someone who is not a member"} has none for ${nsid || path}`);
+        if (!(grant && matches(grant.methods, nsid))) return fail(c, 403, "Forbidden", `a turn in a room reaches inbox.reply and what everyone in the room has a grant for; ${did === who.did ? "its sender" : did || "someone who is not a member"} has none for ${nsid || path}`);
       }
     if (who.caller.startsWith("did:")) {
       const member = await rows.get("member/" + who.caller);
       // A turn is run for a member. Once they are removed, a token already issued stops working.
       if ((who.turn || who.portal) && !member) return fail(c, 403, "Forbidden", `${who.caller} is not a member`);
       const grant = nsid ? await rows.get("grant/" + who.caller) : null;
-      if (nsid && !(member && (MEMBER.includes(nsid) || nsid.startsWith(MEMBER_NS))) && !(grant && grant.methods.includes(nsid))) return fail(c, 403, "Forbidden", `${who.caller} has no grant for ${nsid}`);
+      if (nsid && !may({ member, grant: grant && grant.methods }, nsid)) return fail(c, 403, "Forbidden", `${who.caller} has no grant for ${nsid}`);
       // A member is still themselves when they open a file; every other page is served to them as to anyone.
       if (!nsid && !(member && path.startsWith("/static/"))) who.caller = "anonymous";
     }
@@ -396,12 +394,13 @@ kernelApp = {
   // A link made to deploy with no approval can deploy a kernel with nobody asked, so keeping the page at / from it
   // would keep nothing: it reaches infra.shell too, and finishes a deploy of the page.
   const deploys = (who) => (who.unattended ? [...DEPLOYS, "com.lopecode.brain.infra.shell"] : DEPLOYS);
-  const never = (m) => /^com\.lopecode\.brain\.(infra|secret|token|grant|people)[./]/.test(m);
+  // delegation: the record a token becomes (plan/cloud-brain-authority.md). Named here before the core has it.
+  const never = (m) => /^com\.lopecode\.brain\.(infra|secret|token|grant|people|delegation)[./]/.test(m);
   // A token's list holds whole names and prefixes: "browser.*" is every method of that service, "*" every method
   // of this Brain. No prefix reaches a name a token may not have.
   // A name may go on in segments after a / (ai.v1/chat/completions); "ai.v1/*" is every method under ai.v1/.
   const listed = (m) => /^[A-Za-z0-9]+(\.[A-Za-z0-9]+)*(\/[A-Za-z0-9]+)*([./]\*)?$/.test(m);
-  const names = (methods, nsid) => !never(nsid) && methods.some((m) => m === nsid || (/[./]\*$/.test(m) && nsid.startsWith(m.slice(0, -1))));
+  const names = (methods, nsid) => !never(nsid) && matches(methods, nsid);
   app.get(NS + "token.list", session, async (c) => c.json({ tokens: (await rows.list("token/")).map((r) => r.value).filter((t) => !(t.until < Date.now())) }));
   app.post(NS + "token.create", session, async (c) => {
     const { name, methods = [] } = await c.req.json();
@@ -1534,7 +1533,7 @@ test_a_portal_token_reaches_one_members_services_as_the_viewer = {
   return "one member's methods and modules, as the viewer";
 }
 // %%
-import {cloudflare, secrets, rows, config, core, deployer, hono, library, simulate, sha256} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, secrets, rows, config, core, deployer, hono, library, simulate, sha256, matches, may} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {expect} from "@tomlarkworthy/jest-expect-standalone"
 // %%

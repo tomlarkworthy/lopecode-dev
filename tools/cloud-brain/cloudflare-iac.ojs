@@ -1653,17 +1653,92 @@ callerOf = (who) => {
   // "guard": what a core from before 2026-10-08 calls the deployer.
   const id = ((who && who.caller) || "anonymous").replace(/^guard$/, "deployer");
   const kind = /^(token|did|worker):/.test(id) ? id.split(":")[0] : id;
+  const via = (who && who.via) || "", holder = (who && who.holder) || "";
   return {
     id,
     kind,
     did: kind === "did" ? id : "",
     worker: kind === "worker" ? id.slice("worker:".length) : "",
-    token: kind === "token" ? id.slice("token:".length) : "",
-    // The owner in their own tab, not a token or a granted account acting for them.
-    session: id === "owner" && ((who && who.via) || "") === "session",
+    // The name of the secret a call is made with: a token's own, or the holder of a delegation.
+    token: kind === "token" ? id.slice("token:".length) : holder.startsWith("secret:") ? holder.slice("secret:".length) : "",
+    // A call under a delegation held by a secret or a Worker (plan/cloud-brain-authority.md): which, and who holds it.
+    delegation: via.startsWith("delegation:") ? via.slice("delegation:".length) : "",
+    holder,
+    // The owner in their own tab, not a token or a granted account acting for them. The core says so as `tab`;
+    // a caller built with no tab is in their tab when the via is session.
+    session: id === "owner" && (typeof (who && who.tab) === "boolean" ? who.tab : via === "session"),
     // The kernel has checked this caller against the method: the owner, a token or a granted account.
     trusted: id === "owner" || kind === "token" || kind === "did"
   };
+}
+// %%
+// Who a call is by and who started its chain, from the headers the core sends a service: what callerOf takes.
+// tab is absent from a core that does not send it.
+callerFrom = (headers, o = "") => ({
+  caller: headers.get(`x-brain-${o}caller`.replace("origin-caller", "origin")) || "anonymous",
+  via: headers.get(`x-brain-${o}via`) || "",
+  holder: headers.get(`x-brain-${o}holder`) || "",
+  ...((t) => (t === "1" || t === "0" ? { tab: t === "1" } : {}))(headers.get(`x-brain-${o}tab`))
+})
+// %%
+originFrom = (headers) => (headers.get("x-brain-origin") ? callerFrom(headers, "origin-") : callerFrom(headers))
+// %%
+// Is this call from the caller's own tab? A turn, a portal, a PDS call and a call under a delegation are not: what
+// they make is kept apart, because a page in a person's browser can hold their session.
+ownTab = (headers) => ((who) => (typeof who.tab === "boolean" ? who.tab : !/^(turn:|portal:|jwt$|delegation:)/.test(who.via)))(callerFrom(headers))
+// %%
+// Whose a browser or a container is. The caller's; apart from theirs for a call that is not from their own tab,
+// and apart again under each delegation.
+keeperOf = (headers) => {
+  const who = callerFrom(headers);
+  if (who.caller === "anonymous") return who.caller;
+  if (who.via.startsWith("delegation:") && !ownTab(headers)) return "d:" + who.via.slice("delegation:".length);
+  return /^(turn:|portal:|jwt$)/.test(who.via) ? "via:" + who.caller : who.caller;
+}
+// %%
+// Does a list of method names reach a method? A whole name, or a prefix that ends .* or /*. The one matcher for a
+// token's list, a grant's and a delegation's scope.
+matches = (patterns, nsid) => !!nsid && (patterns || []).some((m) => m === nsid || (/[./]\*$/.test(m) && nsid.startsWith(m.slice(0, -1))))
+// %%
+// What every member may call with nobody's leave. Anything more is that member's grant.
+MEMBER = ["inbox.reply", "member.whoami", "member.services", "member.deploy", "member.remove", "member.modules", "static.put", "static.get", "static.list", "static.tag", "static.setPublic", "static.delete", "blob.upload", "blob.get", "blob.info", "blob.list", "blob.tag", "blob.delete", "portal.token", "portal.modules", "quota.get"].map((m) => "com.lopecode.brain." + m)
+// %%
+// What a DID may call: a member the MEMBER list and any method of a member's service (com.lopecode.brain.m.…, whose
+// own rule then decides), and anyone what the owner granted them.
+may = ({ member, grant }, nsid) => !!nsid && ((!!member && (MEMBER.includes(nsid) || nsid.startsWith("com.lopecode.brain.m."))) || matches(grant, nsid))
+// %%
+test_one_matcher_and_the_callers_own_tab = {
+  const h = (o) => new Headers(o);
+  // A list: whole names, and prefixes that end .* or /*. Not a part of a name.
+  const list = ["a.b.one", "a.c.*", "a.v1/*"];
+  expect(["a.b.one", "a.b.two", "a.c.x", "a.c.x.y", "a.cx", "a.v1/chat/x", "a.v1", ""].map((m) => matches(list, m))).toEqual([true, false, true, true, false, true, false, false]);
+  expect([matches(null, "a"), matches(["com.lopecode.brain.*"], "com.lopecode.brain.x.y")]).toEqual([false, true]);
+  // A member, a member with a grant, a DID with only a grant, nobody.
+  const B = "com.lopecode.brain.";
+  expect([may({ member: true }, B + "blob.get"), may({ member: true }, B + "m.0a.x"), may({ member: true }, B + "library.list"), may({ member: true, grant: [B + "library.list"] }, B + "library.list"), may({ grant: [B + "library.list"] }, B + "blob.get"), may({}, B + "blob.get"), may({ member: true }, null)]).toEqual([true, true, false, true, false, false, false]);
+  // keeperOf against the test four services had before it (brain-browser, 2026-10-10), on every caller there is today.
+  const before = (by, via) => (by !== "anonymous" && /^(turn:|portal:|jwt$)/.test(via) ? "via:" + by : by);
+  const today = [["owner", "session"], ["owner", "turn:7"], ["owner", "portal:ab"], ["owner", "jwt"], ["owner", ""], ["did:plc:a", "session"], ["did:plc:a", "turn:7"], ["did:plc:a", "jwt"], ["did:plc:a", "worker:brain-m-0a-x"], ["token:a", "token"], ["worker:brain-x-a", ""], ["deployer", ""], ["anonymous", ""], ["anonymous", "jwt"]];
+  for (const [by, via] of today) expect([by, via, keeperOf(h({ "x-brain-caller": by, "x-brain-via": via }))]).toEqual([by, via, before(by, via)]);
+  // ownTab against the test blob and static had: the owner by a turn, a portal or a PDS is not in their tab.
+  for (const [by, via] of today) expect([by, via, ownTab(h({ "x-brain-caller": by, "x-brain-via": via }))]).toEqual([by, via, !/^(turn:|portal:|jwt$)/.test(via)]);
+  // The one new case: a call under a delegation is not the caller's tab and keeps what it makes under the delegation.
+  const d = { "x-brain-caller": "owner", "x-brain-via": "delegation:0a1b2c3d4e5f" };
+  expect([ownTab(h(d)), keeperOf(h(d))]).toEqual([false, "d:0a1b2c3d4e5f"]);
+  // The core's word, when it sends one, is what counts: a delegation with the cap session is the owner's tab.
+  expect([ownTab(h({ ...d, "x-brain-tab": "1" })), keeperOf(h({ ...d, "x-brain-tab": "1" })), ownTab(h({ "x-brain-caller": "owner", "x-brain-via": "session", "x-brain-tab": "0" }))]).toEqual([true, "owner", false]);
+  // What a rule reads. With no tab, a session is the via, as before; with one, the tab.
+  const c = (w) => ((x) => [x.id, x.session, x.token, x.holder, x.delegation])(callerOf(w));
+  expect(c({ caller: "owner", via: "session" })).toEqual(["owner", true, "", "", ""]);
+  expect(c({ caller: "owner", via: "turn:7" })).toEqual(["owner", false, "", "", ""]);
+  expect(c({ caller: "token:a", via: "token" })).toEqual(["token:a", false, "a", "", ""]);
+  expect(c(callerFrom(h({ ...d, "x-brain-holder": "secret:laptop" })))).toEqual(["owner", false, "laptop", "secret:laptop", "0a1b2c3d4e5f"]);
+  expect(c(callerFrom(h({ ...d, "x-brain-tab": "1" })))).toEqual(["owner", true, "", "", "0a1b2c3d4e5f"]);
+  expect(c({ caller: "did:plc:a", via: "session", tab: true })).toEqual(["did:plc:a", false, "", "", ""]);
+  // The origin has headers of its own, and is the caller when the core names none.
+  const o = h({ "x-brain-caller": "worker:brain-x-a", "x-brain-origin": "owner", "x-brain-origin-via": "delegation:ff", "x-brain-origin-tab": "0", "x-brain-origin-holder": "worker:brain-x-topic" });
+  expect([originFrom(o), originFrom(h({ "x-brain-caller": "owner", "x-brain-via": "session" }))]).toEqual([{ caller: "owner", via: "delegation:ff", holder: "worker:brain-x-topic", tab: false }, { caller: "owner", via: "session", holder: "" }]);
+  return "one matcher; the keeper and the tab as before, and one new case";
 }
 // %%
 // decide(rule, { caller, request }) -> { allow, expression, error }. Anything but true is a refusal, an error included.

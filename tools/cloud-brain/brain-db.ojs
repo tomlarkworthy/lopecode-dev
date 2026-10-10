@@ -155,9 +155,9 @@ dbApp = {
   const MAX = 100000;
   const fail = (c, status, error, message) => c.json({ error, message }, status);
   const named = (s) => typeof s === "string" && /^[A-Za-z0-9_.-]{1,60}$/.test(s);
-  const who = (c) => ({ caller: c.req.header("x-brain-caller") || "anonymous", via: c.req.header("x-brain-via") || "" });
+  const who = (c) => callerFrom(c.req.raw.headers);
   // Who started the chain of calls this one is part of, as the core names them. With no name it is the caller.
-  const origin = (c) => callerOf(c.req.header("x-brain-origin") ? { caller: c.req.header("x-brain-origin"), via: c.req.header("x-brain-origin-via") || "" } : who(c));
+  const origin = (c) => callerOf(originFrom(c.req.raw.headers));
   // The table's rule, else the database's "*", else the owner and their tokens.
   const OWNER = { allow: 'caller.kind in ["owner", "token"]' };
   const ruleFor = async (db, table) => (await settings.get(`rule/${db}/${table}`)) || (await settings.get(`rule/${db}/*`)) || OWNER;
@@ -227,7 +227,7 @@ dbApp = {
   });
   app.post(NS + "setRule", async (c) => {
     const me = who(c);
-    if (me.caller !== "owner" || me.via !== "session") return fail(c, 401, "AuthRequired", "the owner's own session");
+    if (!callerOf(me).session) return fail(c, 401, "AuthRequired", "the owner's own session");
     const { db, table, allow = null } = await c.req.json().catch(() => ({}));
     if (!named(db) || !(table === "*" || named(table))) return fail(c, 400, "InvalidRequest", "db, and a table or *");
     if (allow === null) return c.json({ db, table, allow: null, deleted: !!(await settings.delete(`rule/${db}/${table}`)) });
@@ -331,7 +331,7 @@ dbApp = {
   });
   app.post(NS + "sqlGrant", async (c) => {
     const me = who(c);
-    if (me.caller !== "owner" || me.via !== "session") return fail(c, 401, "AuthRequired", "the owner's own session");
+    if (!callerOf(me).session) return fail(c, 401, "AuthRequired", "the owner's own session");
     const { table, allow = null } = await c.req.json().catch(() => ({}));
     if (typeof table !== "string" || !/^[A-Za-z_][A-Za-z0-9_]{0,99}$/.test(table)) return fail(c, 400, "InvalidRequest", "table");
     const key = "sqlrule/" + table.toLowerCase();
@@ -715,6 +715,8 @@ test_a_secret_is_copied_to_a_new_name_and_its_value_is_in_no_answer = {
   const S = "/xrpc/com.lopecode.brain.secret.", VALUE = "made-up-value-7f3a";
   const copy = (as, from, to) => as(S + "copy", { from, to });
   const turn = rig.as("owner", "turn:4");
+  // The owner under a delegation is not the owner's own session.
+  expect((await copy(rig.as("owner", "delegation:0a1b"), "WA_TOKEN", "HELD")).status).toBe(401);
   await rig.owner(S + "put", { name: "WA_TOKEN", value: VALUE });
   await rig.owner(S + "setRule", { name: "WA_TOKEN", allow: 'caller.worker == "brain-x-whatsapp"' });
   await rig.owner(S + "put", { name: "PLAIN", value: "other-made-up" });
@@ -945,7 +947,7 @@ test_db_declares_what_it_needs = {
   return Object.keys(meta.access).length + " methods";
 }
 // %%
-import {cloudflare, rows, database, hono, settings, decide, callerOf, checkedRule, simulate} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, rows, database, hono, settings, decide, callerOf, callerFrom, originFrom, checkedRule, simulate} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {client, session} from "@tomlarkworthy/cloud-brain"
 // %%

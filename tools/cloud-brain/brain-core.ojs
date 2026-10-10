@@ -232,7 +232,7 @@ coreApp = {
     if (!person) return fail(c, 403, "Forbidden", `${author} is not a member, so ${worker} may call nothing`);
     const route = await rows.get("route/" + worker);
     if (!route || route.off) return fail(c, 403, "Forbidden", `${worker} is switched off`);
-    if (!nsid || !(WORKER.includes(nsid) || nsid.startsWith(MEMBER_NS) || person.methods.includes(nsid))) return fail(c, 403, "Forbidden", `${worker} runs as ${author}, who has no grant for ${nsid || url.pathname}`);
+    if (!nsid || !(WORKER.includes(nsid) || nsid.startsWith(MEMBER_NS) || matches(person.methods, nsid))) return fail(c, 403, "Forbidden", `${worker} runs as ${author}, who has no grant for ${nsid || url.pathname}`);
     if (!(await spend(person))) return fail(c, 429, "RateLimitExceeded", `${author} has used today's ${quotaOf(person).calls} calls`);
     c.set("who", { caller: author, via: "worker:" + worker });
     return null;
@@ -1753,7 +1753,7 @@ test_the_log_line_of_a_priced_call_has_its_price = {
   return "200 then 402, each with the price";
 }
 // %%
-import {cloudflare, rows, workers, deployer, config, hono, decide, callerOf, ruleExpression, checkedRule, cel, settings, simulate, sha256, xrpc, backend, logged} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, rows, workers, deployer, config, hono, decide, callerOf, ruleExpression, checkedRule, cel, settings, simulate, sha256, xrpc, backend, logged, matches} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {expect} from "@tomlarkworthy/jest-expect-standalone"
 // %%

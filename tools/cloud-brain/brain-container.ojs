@@ -396,7 +396,7 @@ containerApp = {
     }
   };
   // Who owns the container: the caller, or via:<caller> for a call that is not that person's own tab (see brain-browser).
-  const who = (c) => (by(c) !== "anonymous" && /^(turn:|portal:|jwt$)/.test(c.req.header("x-brain-via") || "") ? "via:" + by(c) : by(c));
+  const who = (c) => keeperOf(c.req.raw.headers);
   // The price and a rule read the query string as the core does: of a name given two times, the last. The core
   // refuses such a call; this service reads the same one all the same.
   const last = (c, name) => new URL(c.req.url).searchParams.getAll(name).pop();
@@ -710,7 +710,9 @@ test_container_each_caller_has_its_own_and_a_caller_names_no_image = {
   await rig.owner.post("extend", {}, { seconds: 60 });
   await reader.post("extend", {}, { seconds: 60 });
   await turn.post("extend", {}, { seconds: 60, container: "job" });
-  expect([...rig.sim.boxes.keys()].sort()).toEqual(["node/owner/default", "node/via:owner/job", "node/worker:brain-x-reader/default"]);
+  // A call under a delegation keeps its containers under the delegation, not the owner.
+  await rig.as("owner", "delegation:0a1b").post("extend", {}, { seconds: 60, container: "held" });
+  expect([...rig.sim.boxes.keys()].sort()).toEqual(["node/d:0a1b/held", "node/owner/default", "node/via:owner/job", "node/worker:brain-x-reader/default"]);
   // A caller reaches its own container by the same name, and no parameter names another owner's.
   await reader.post("exec", { cmd: ["id"] });
   expect([rig.fake.of("worker:brain-x-reader/default").execs.filter((e) => e[0] === "id").length, rig.fake.of().execs.filter((e) => e[0] === "id").length]).toEqual([1, 0]);
@@ -721,7 +723,7 @@ test_container_each_caller_has_its_own_and_a_caller_names_no_image = {
   for (const image of ["docker.io/library/alpine:3", "Node", "other"]) expect([image, (await rig.owner.post("extend", {}, { seconds: 60, image })).data.message]).toEqual([image, "image: one of node"]);
   for (const container of ["a/b", "-a", "x".repeat(41)]) expect((await rig.owner.post("extend", {}, { seconds: 60, container })).status).toBe(400);
   // The owner's own session sees each container, and ends any one.
-  expect((await rig.owner.get("all")).data.containers.map((c) => [c.owner, c.container, c.up])).toEqual([["owner", "default", true], ["via:owner", "job", true], ["worker:brain-x-reader", "default", true]]);
+  expect((await rig.owner.get("all")).data.containers.map((c) => [c.owner, c.container, c.up])).toEqual([["d:0a1b", "held", true], ["owner", "default", true], ["via:owner", "job", true], ["worker:brain-x-reader", "default", true]]);
   await rig.owner.post("end", { owner: "worker:brain-x-reader", image: "node", container: "default" });
   expect(rig.fake.of("worker:brain-x-reader/default").running).toBe(false);
   // The limits count containers with time left. One that has time is extended at the limit.
@@ -772,7 +774,7 @@ test_container_panel_shows_the_price_and_names_the_container = {
   return "2 containers, 6 buttons";
 }
 // %%
-import {cloudflare, rows, containers, hono, simulate, decide, callerOf} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, rows, containers, hono, simulate, decide, callerOf, keeperOf} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {plugins} from "@tomlarkworthy/plugin-registry"
 // %%

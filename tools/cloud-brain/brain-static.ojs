@@ -147,7 +147,7 @@ staticApp = {
   // The folder a caller is kept out of, if any.
   const KEPT = { "shell/": ["owner", "deployer", "guard"], "library/": ["owner", "worker:brain-x-library"] };
   // The owner's turn, portal or PDS call has the caller `owner` and is not the owner's own tab: it is named apart, so it is not vouched for.
-  const writerOf = (c) => ((who, via) => (who === "owner" && /^(turn:|portal:|jwt$)/.test(via) ? "owner by " + via.split(":")[0] : who))(c.req.header("x-brain-caller") || "", c.req.header("x-brain-via") || "");
+  const writerOf = (c) => ((who, via) => (who === "owner" && !ownTab(c.req.raw.headers) ? "owner by " + (via.startsWith("delegation:") ? "d:" + via.slice("delegation:".length) : via.split(":")[0]) : who))(c.req.header("x-brain-caller") || "", c.req.header("x-brain-via") || "");
   const kept = (c, path) => Object.keys(KEPT).find((dir) => path.startsWith(dir) && !KEPT[dir].includes(writerOf(c)));
   // Whose bytes and type the owner vouches for: the owner's own, the deployer's shell, and a recipe's, which is the owner's code. Not a token's.
   const trusts = (who) => ["owner", "deployer", "guard"].includes(who) || who.startsWith("worker:brain-x-");
@@ -503,8 +503,9 @@ test_the_owner_by_a_turn_is_not_the_owner_as_a_writer = {
   const rig = await staticRig();
   const page = "<script>1<\/script>";
   const got = async (path) => ((r) => [r.headers.get("content-type"), (r.headers.get("content-security-policy") || "").startsWith("sandbox")])(await rig.call("owner", "/static/" + path));
-  // A turn, a portal and a PDS call of the owner: stored, sandboxed, and the type each names is not taken.
-  for (const via of ["turn:7", "portal:did:plc:ada", "jwt"]) {
+  // A turn, a portal, a PDS call of the owner and a call under a delegation: stored, sandboxed, and the type each
+  // names is not taken.
+  for (const via of ["turn:7", "portal:did:plc:ada", "jwt", "delegation:0a1b"]) {
     expect((await rig.put("owner by " + via, "site/t.txt", page, "&type=text/html")).status).toBe(200);
     expect(await got("site/t.txt")).toEqual(["text/plain; charset=utf-8", true]);
     expect((await rig.put("owner by " + via, "shell/index.html", page)).status).toBe(403);
@@ -593,7 +594,7 @@ test_static_a_listing_does_not_show_a_person_what_is_only_public = {
   return "1 public file, listed to nobody it was not given to";
 }
 // %%
-import {cloudflare, rows, blobs, config, hono, simulate, sha256} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, rows, blobs, config, hono, simulate, sha256, ownTab} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {plugins} from "@tomlarkworthy/plugin-registry"
 // %%

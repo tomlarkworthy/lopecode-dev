@@ -505,6 +505,8 @@ someone revokes it. `until` is the answer, and the page should make it hard to l
 
 ## Order of work
 
+**Built so far:** step 1, deployed to cb4 2026-10-10 10:57 CEST (`tools/cloud-brain/spec-as-built.md`, "Authority, step 1 of 7"). A new shared cell needs `install-deployer` before the Workers that read it: the deployer distils with its own copy of `cloudflare-iac`.
+
 Each step is deployed and confirmed alone, and each works with the other of kernel and core one step
 behind, because the two are deployed one at a time and a bad one is put back. The deployer is not
 touched in any step.
