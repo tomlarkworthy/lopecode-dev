@@ -27,6 +27,10 @@ You change no source, build nothing and deploy nothing. You write to the tracker
 4. **Run the tests yourself**, in a QA tab under a session name of your own, with the snippet in
    `agents/implementer.md` step 8. Report the count. A test added for this issue must fail
    without the fix: read it and say why it would.
+   When the `submit` has no deploy ref and its commits touch no seed (a local tool, a doc), step 3
+   does not apply and there is no module to open in a tab: run the tests the implementer's
+   comment counts with their own runner (`bun tools/lope-tests.ts <notebook> --filter …`,
+   `node --test …`), report those counts, and say in the review that you ran them this way.
 5. **Probe.** Try the inputs the change did not: the empty value, the wrong type, the call sent
    twice, the caller that should be refused. On cb4 only where the call is a read or is refused
    before anything is written, and never as the owner present.
