@@ -46,7 +46,10 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
    `run_tests` hangs on this notebook; do not use it. Do not define the observers inside the
    module under test: they would be written into the deployed source.
    `bun tools/lope-tests.ts <notebook> --filter test_<service>` runs the same cells with no browser
-   (10 of 10 for the tracker since 2026-10-10). Use it while working; the count you submit is the browser's.
+   (11 of 11 for the tracker at 2026-10-10 18:42; each test added raises it). Use it while working;
+   the count you submit is the browser's. It prints a thrown assertion as a timeout with no
+   message: to read which assertion failed, run the snippet above in the tab (its `bad` list has
+   the message), or put a `try/catch` round the test body for that run and take it out again.
 9. **Emit** in that tab, then close it by name:
    `fetch("http://127.0.0.1:47814/<worker>.json", { method: "POST", body: JSON.stringify(await (await mod.value("<name>_service")).emit()) })`.
    Each `eval_code` is its own scope: repeat the two lines that find `rt` and `mod`. The file is
