@@ -29,7 +29,7 @@ of `token NAME <method…>`. `token revoke NAME` is not changed: it sends the na
 and deletes the key from the file if the Brain answers 200.
 
 **Tests.** `tests/tools/brain-cli.test.ts`, new, 7 cases (`cd tests/tools && bun test brain-cli.test.ts`):
-7 pass against the file in the main checkout after the landing (19:47), 5 fail against the file
+7 pass against the file in the main checkout after the landing (19:45:38), 5 fail against the file
 before. Run from the repo root the same file gives 0 pass, 7 fail, each with `EBADF: bad file
 descriptor, posix_spawn '/opt/homebrew/bin/bun'` before `brain.ts` starts; a two-line test that
 spawns `bun --version` fails there the same way, and both pass from `tests/tools`, `tools` or a
