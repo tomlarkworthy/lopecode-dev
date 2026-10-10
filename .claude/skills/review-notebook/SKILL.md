@@ -108,3 +108,8 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   scope between two `eval_code` calls; `major` approved after it is live; a second-round submit reusing its key;
   three states matching no row; `rules.md` naming a move the policy lacks; two names for one emitted file; four
   smaller gaps). 144k tokens, 5m50s. Not rerun.
+- 2026-10-10 `plan/specs/deploy-verification.html` (`@spec/deploy-verification`, authored by the spawning
+  session): FIX, 10 findings and 5 minor. 14 taken, 1 declined (the unused `annotation` import is the
+  template's). 148k subagent tokens, 5m22s. Nothing rendered: `lope-browser-runner.ts` wants
+  `chromium_headless_shell-1200`, which is not installed. It found what the author could not see from
+  inside: the handover's `--filter test_deployer` matched 2 of the deployer's 42 tests.
