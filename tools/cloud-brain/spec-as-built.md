@@ -4493,3 +4493,55 @@ One reviewer with no context: FIX, 9 findings, all confirmed against the source.
 
 Still not run: the buttons in a signed-in browser, a guest's request approved on cb4 (the kept end is
 checked in the kernel's test only), a call refused at a spent cap.
+
+## Issues: the panel removes a label (2026-10-10 18:18 CEST): `brain-x-issues` `a465a1ae5970`
+
+Issue `n1c3997b1`, opened by Tom from the page: "labelled added "needs-owner" and owner could nto remove the
+label after processing". The panel had **Add label** and nothing that removes one; its own text said
+"Removing a label and `issue.narrow` have no control: they are calls". `issue.label` with `remove` was
+not at fault: event 88 of the record is a `labelled` event with `remove: ["needs-owner"]`, sent with a
+token, and the label left that issue.
+
+**Changed, in `issuesPanel` (`brain-issues.ojs`) only.** Each label in the header of the open issue is
+followed by a `×` button that sends `issue.label { id, remove: [label] }`. It is judged like a move's
+button: `issueAllowed` with the act, disabled where the label guard refuses, with the refusal as its
+tooltip. So `major` is live for the owner's session in the page and disabled for a token. The write
+goes through the panel's `send`, so the label leaves the page's copy before the service answers and
+comes back if it refuses. The panel has `show(id)`, which opens an issue as choosing its row does; the
+test uses it. The `md` cell that describes the controls says the new one.
+
+**Reproduced first.** `test_issues_panel_removes_a_label` against the seed with the header line as it
+was, run with `bun tools/lope-tests.ts … --filter test_issues_panel_removes`:
+
+```
+expect([!!remover(panel, "needs-owner"), !!remover(panel, "major")]).toEqual([true, true])
+- true, true
++ false, false
+```
+
+`lope-tests.ts` printed that failure as a timeout (`⧖ … 10009ms`); the message is from a `try/catch`
+put round the test body for that run and taken out again.
+
+**Tests.** 11 of 11 `test_issues_*` in a headless Chromium QA tab at 18:17:32 CEST (the tab's own
+clock), forced from a module of their own; the record was emitted from that tab. 11 of 11 with
+`lope-tests.ts` as well. The new test: an issue with `needs-owner` and `major`, a button for each,
+the first pressed, the label gone from the panel's value and from the rig's view row; then a panel
+judged as `token:a` has the `major` button disabled with title "the workflow's label guard refuses".
+
+**Two things the headless run does differently from Chromium** (happy-dom), both found here:
+
+- Choosing a row by its radio in `Inputs.table` (`click()`, or `checked = true` and an `input` event)
+  did not open the issue. That is why the panel has `show`.
+- An htl attribute hole cut the title at the apostrophe: `title=${"the workflow's label guard
+  refuses"}` read back as `the workflow`. The new button sets `title` as a property. The move buttons
+  still set it as an attribute; no test reads theirs.
+
+**Deployed** under the lock with `--reason="n1c3997b1: the issues panel has a button that removes a
+label"`: `brain-x-issues` `a465a1ae5970`, state `deployed`. `redistil`: 19 lines, each `same`.
+`issue.verify?guards=true`: `ok`, 110 checked. `getSource?worker=brain-x-issues` holds
+`button data-remove=`. No deploy of `brain-x-page`: the shell loads the module from `brain-x-issues`.
+
+Not tried: the button pressed in the owner's signed-in page on cb4 (it needs the owner's session);
+the button in a narrow window; a label whose name is long. `ndd66a518`, the issue the label was stuck
+on, had `labels: []` when read at 18:20: event 107 (18:08:08 by its `at`) is a `labelled` event with
+`remove: ["needs-owner"]` under the token `issues-implementer-2`, before this change was deployed.
