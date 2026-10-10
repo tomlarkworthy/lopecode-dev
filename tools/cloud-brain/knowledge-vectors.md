@@ -2,8 +2,9 @@
 
 Record of 2026-10-10, 09:15 to 09:45 CEST, on `cb4`. The code is `tools/cloud-brain/brain-knowledge.ojs`
 (search, embedding, who reads an entry), `brain-library.ojs` (`libraryCards`), `brain-deployer.ojs`
-(`ownIndex`) and `cloudflare-iac.ojs` (the `vectors` cell). Every figure below is from a command run in
-that half hour; times are UTC from `date -u`.
+(`ownIndex`) and `cloudflare-iac.ojs` (the `vectors` cell). Every figure in the sections up to "Not done" is from a command run in
+that half hour, except where a line says when it was read; "After the review" has its own window. Times are
+UTC from `date -u`.
 
 ## What was asked
 
@@ -109,8 +110,8 @@ keep a secret for a worker    0.581 brain-secrets 0.545 brain-core        0.534 
 lease a headless browser      0.647 brain-browser 0.600 brain-shell       0.574 lopepage-2       0.564 brain-kernel
 ```
 
-(Read 07:38 to 07:40 UTC, before the review's changes. Two of the seven answer differently after them;
-see "After the review".)
+(Read 07:38 to 07:40 UTC, before the review's changes. The first answer of two of the seven changed after them;
+six of the seven rows differ somewhere. See "After the review".)
 
 The wanted module is first in six of seven and second in one (`brain-container`, 0.008 behind
 `runtime-sdk`). Scores sit between 0.50 and 0.70 for a match and a miss alike, so a score is an order and
@@ -159,7 +160,8 @@ have read the kept papers. All 73 entries from before are the Brain's and privat
 
 - Articles from the web, ATProto records and Hacker News items are not entered. Only `brain-x-snapshot`'s
   papers, the digest's picks and module cards are. Each needs its feeder to call `knowledge.put`.
-- Tom's other notebooks are not in the library, so their modules have no card. 100 modules are.
+- Tom's other notebooks are not in the library, so their modules have no card. 99 modules are (100 before
+  the review, one of them not a module).
 - `library.setPublic` and `library.delete` leave the cards as they were.
 - A member cannot enter: no rule opens `knowledge.put` to one. The service keeps a person's entries
   apart from the Brain's (tested under `simulate`, not on cb4).
@@ -224,3 +226,16 @@ second to third: `grid-container`, whose card had no prose before, now says it i
 above it. `tests` passed `ui-testing` for the same reason, and either answers the question. Nothing was
 changed to move a rank. A card is the module's own opening prose, and a question that shares a word with
 another module's prose finds that module.
+
+## The second review (2026-10-10, about 10:05 CEST)
+
+The changes since the first review went to a second fresh agent. It answered FIX with five findings, all
+prose, and found no defect in the `unlessPublic` path, the block-by-block reader or the counts. It could
+not run a `test_*` cell (Playwright's Chromium is not installed) and read nothing from cb4. All five held
+and were applied:
+
+1. The header said every figure was from 09:15 to 09:45 CEST; "After the review" has later readings.
+2. "Two of the seven answer differently" was the count of changed first answers; six rows differ.
+3. "Not done" said 100 modules; 99 after the review.
+4. The library's prose named no writer for a card that only private notebooks have.
+5. The module said "88 charges", a reading written down nowhere; the recorded one is 124 at 07:57 UTC.
