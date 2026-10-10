@@ -78,3 +78,6 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   since `5e9a20b6`: FIX, 8 findings, 6 confirmed by the reviewer's probes, 1 plausible, 1 prose; all 8 acted on
   (lopecode-dev `7782ac73`). 196k subagent tokens, 11m52s. The browser runner still could not launch; headless
   `lope-tests.ts` passed 2 of 9 for a harness reason (the vm context's `Object` is the host's, which cel-js rejects).
+- 2026-10-10 `lopebooks/notebooks/@tomlarkworthy_cloud-brain.html`, module `@tomlarkworthy/brain-issues`, changes
+  since `b629bef8`: FIX, 4 findings, all confirmed by the reviewer's probes; all 4 acted on (lopecode-dev
+  `525a8bc7`). 156k subagent tokens, 7m07s. The count fell 13, 8, 4 over three runs on one module in one day.

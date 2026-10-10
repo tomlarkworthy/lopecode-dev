@@ -3940,6 +3940,40 @@ Not done: a fresh review of these 8 fixes; the verdict on `review-fixes-2`; a re
 short; a large `migrate`; `issue.rebuild` against concurrent writes; an `unattended` link's token tried against
 `caller.present`; the harness change above.
 
+### Issues after the review of the 8 fixes, 4 findings (2026-10-10 12:59 CEST): `brain-x-issues` `49f2a4d1c02d`
+
+A third fresh review, of the changes since `b629bef8`, answered FIX with 4 findings, each made by its own probe
+against the module's rig. All four were read in the seed and acted on (lopecode-dev `525a8bc7`).
+
+```
+migrate: { feedback: … } (a name, or a mistyped hash)  -> 200, moved [], the policy written, the issue left behind
+now                                                     -> 400 before the policy; a name in the policy in force is taken as its hash
+comment keyed policy/<next seq>/<id> before an install  -> that issue in `left`: "another event has the key of its swap"
+now                                                     -> 400 "key: policy/ is the service's own", on the 7 write routes and on install's key
+issue.install answer                                    -> `left` absent unless one was left, and absent from a duplicate
+now                                                     -> always a list
+the panel's prose                                       -> Review, Comment and Add label named; removing a label and narrow are calls only
+```
+
+Tests 10 of 10, forced cell by cell in the QA tab `issues-qa` (closed by name); the three code fixes are asserted in
+`test_issues_policy_is_installed_by_the_owner_and_migrates`. Deployed 12:59 CEST under the lock, which the authority session held until 12:59:34. After it: every line of
+`redistil` `same`, lease held, no browsers or containers, `issue.verify?guards=true` ok on 33 events. On cb4 the
+token `issues-implementer-2` was answered 400 for a comment keyed `policy/99/review-fixes-2`, and nothing was
+written.
+
+The tracker's own record of this round: the reviewer's verdict is event 32 (`changes`, under `issues-reviewer-2`,
+written by Claude from the fresh reviewer's report), 33 sent it back, 34 is the implementer's second submit and 35 a
+comment correcting 34: its ref `lopebooks aeb9e6bd` names the commit before the change, because the lopebooks commit
+was refused by the `lope-spec-sync` hook (the notebook's spec file did not list `@tomlarkworthy/brain-issues`) when
+the event was written. An event cannot be changed, so the correction is another event. The built module went to
+lopebooks in the authority session's `f617e979`; `787e55d2` adds the spec entry.
+
+Not done: a fresh review of these four fixes; the verdict on `review-fixes-2`. A key starting `policy/` that a caller
+wrote before this deploy would still be found by an install; cb4 has none that is a swap's (the 35 keys were read with
+`issue.sync`: two are under `policy/`, the service's `policy/default` and `policy/2026-10-10-read-is-first`, the key
+Claude gave the install that is event 12; such a key is refused from now on).
+
+
 ### After step 3's fresh review (2026-10-10 12:03 CEST): `brain-core` `675435235fdd`, `brain` `7433e97325d9`
 
 FIX, eight findings, read against the source and held.
