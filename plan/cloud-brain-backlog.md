@@ -749,11 +749,14 @@ Built and on cb4: stored settings read through `config` (`config.set`, `config.g
 
 - **Built:** one Vectorize index behind `brain-x-knowledge`, one vector an entry, `knowledge.search?semantic=true`, module cards from `library.put` (`tools/cloud-brain/knowledge-vectors.md`). 172 entries on cb4, 99 of them modules, after the review's fixes.
 - Open: feeders for web articles, ATProto records and Hacker News items. Each is a call of `knowledge.put` with a `kind` of its own; `brain-x-snapshot` enters papers only.
-- Open: Tom's notebooks in the library. Four are there; a module has a card only once a notebook that holds it is put.
+- Done 2026-10-10 10:23 CEST: Tom's notebooks are in the library, 240 of them (52 public from `lopecode/notebooks`, 188 private from `lopebooks/notebooks`), 400 module cards, 118 public (`tools/cloud-brain/library-backfill.ts`).
+- Open: 282 module cards are private because staging was put private. Which staging notebooks may be public is Tom's to say.
+- Open: a public card is written by the last public put that has the module; 27 of 66 point at the module's home by `modules/canonical.json`. `library.put` is not told the home.
+- Open: nothing puts a changed notebook again; the backfill script is run by hand.
 - Open: `library.setPublic` and `library.delete` leave the cards. A card made public stays public until a put of `{ id, public: false }`.
 - Open: whether a member may enter (`knowledge.put` has no rule for one). Tom has not decided.
 - Open: who is charged when a Worker enters on its clock; not seen. On 2026-10-10 every embedding was charged to the account the call began with: the owner $0.01175 for 235 texts by 07:57 UTC, a member $0.00005 for each search by meaning.
-- Open: nothing says a write is not yet searchable (41 to 63 s on cb4).
+- Open: nothing says a write is not yet searchable (41 to 63 s on cb4; 118 to 134 s after the 238-notebook backfill).
 - Done 2026-10-10 10:05 CEST: the fresh review, FIX, 7 findings, all acted on (`knowledge-vectors.md`, "After the review"). The fixes are not reviewed again.
 - Open: `brain-container` is third for "run code in a container", behind `grid-container` and `runtime-sdk`. A card is the module's opening prose; nothing ranks a module by what it does.
 - Open: a person granted `knowledge.put` learns from a 403 that an id is taken. No person holds the grant.

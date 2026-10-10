@@ -160,8 +160,8 @@ have read the kept papers. All 73 entries from before are the Brain's and privat
 
 - Articles from the web, ATProto records and Hacker News items are not entered. Only `brain-x-snapshot`'s
   papers, the digest's picks and module cards are. Each needs its feeder to call `knowledge.put`.
-- Tom's other notebooks are not in the library, so their modules have no card. 99 modules are (100 before
-  the review, one of them not a module).
+- ~~Tom's other notebooks are not in the library.~~ Put the same day: see "The notebooks are put" below.
+  At the time of this section 99 modules had a card (100 before the review, one of them not a module).
 - `library.setPublic` and `library.delete` leave the cards as they were.
 - A member cannot enter: no rule opens `knowledge.put` to one. The service keeps a person's entries
   apart from the Brain's (tested under `simulate`, not on cb4).
@@ -239,3 +239,119 @@ and were applied:
 3. "Not done" said 100 modules; 99 after the review.
 4. The library's prose named no writer for a card that only private notebooks have.
 5. The module said "88 charges", a reading written down nowhere; the recorded one is 124 at 07:57 UTC.
+
+## The notebooks are put (2026-10-10, 10:08 to 10:23 CEST)
+
+Tom asked whether the notebook modules were in the index. They were not: four notebooks were in the
+library. `tools/cloud-brain/library-backfill.ts` put the rest through `brain.ts curl` and `library.put`.
+What was put, as told to Tom before the run:
+
+- `lopecode/notebooks/*.html`, the published ones, public, first.
+- `lopebooks/notebooks/*.html`, staging, private, after. A private put leaves a public card whole.
+- The whole file is kept in the library. Only the card is embedded.
+
+```
+                      files   bytes         started   ended     cards answered
+lopecode, public        51    130 222 244   08:08:38  08:11:11  UTC
+lopebooks, private     187    725 878 864   08:11:29  08:20:50  UTC (8 retried from 08:20:15)
+together               238    856 101 108                       3071
+```
+
+- **Names.** A notebook's name is its file name without `.html`. 23 names are in both repos: 14 staging
+  files are the same bytes as the published one and were skipped; 9 differ and are kept beside it as
+  `<name>.staging`. `@tomlarkworthy_cloud-brain` was put as `cloud-brain`, the name it already had.
+- **Not put.** Two files in `lopebooks/notebooks` have no `bootconf.json` block (saved web pages, an
+  IRS form and a stock image page). The library would have refused them with 400.
+- **The largest.** `linux-claude`, 50 495 891 bytes, under the 50 MiB limit of `brain-static`: 15.0 s, 1 card.
+  The median put took 2.5 s.
+- **Order.** Public notebooks went in the order of how many modules `modules/canonical.json` names them the
+  home of, fewest first, because the last public put that has a module writes its card.
+
+### Eleven tries answered nothing
+
+Eleven puts of ten files ended in under a second with curl's status `000` and no answer (`linux-claude`
+after 10.8 s). Each went through when tried again, the same bytes. The cause was not found: the script
+did not keep curl's error text on those tries. It now passes `-S --retry 2` and logs stderr. The log is
+`tools/cloud-brain/.emitted/cb4-library-backfill.jsonl` (git-ignored); a file whose SHA-256 is in it with
+status 200 is skipped on the next run.
+
+### The index after
+
+`knowledge.stats` at 08:21:00 UTC, and every module card listed with `knowledge.list?kind=module`:
+
+| | before (07:59 UTC) | after |
+|---|---|---|
+| Entries, vectors | 172, 172 | 473, 473 |
+| Module cards | 99 | 400 |
+| of them public | 72 | 118 |
+| of them private | 27 | 282 |
+| Notebooks in the library | 4 | 240 (52 public, 188 private) |
+| Bytes in the library | 62 937 148 | 906 278 578 |
+
+- **Public cards that point at a private notebook: 0** of 118. No card points at a notebook the library
+  does not have.
+- **Cost: $0.0239**, `quota.get` 0.34035 at 08:08 to 0.36425 at 08:21, which is 478 texts at $0.00005.
+  3071 cards were sent; a card whose title and text are as they were is not embedded again. `library.put`
+  itself is not priced.
+- **Most cards are private.** 282 of 400. A module that only staging has is found by the owner and by no
+  one else, and `canonical.json` names lopebooks as the home of most modules.
+- **A public card is often not from the module's home.** Of the 66 public cards whose module has a home in
+  lopecode by `canonical.json`, 27 point at it. The others carry the words and address of whichever public
+  notebook was put last with a copy. The order above is a heuristic: two homes that each embed the other's
+  module cannot both be last. Nothing in `library.put` knows which notebook is a module's home.
+- **47 of 400 cards have no prose**, cell names alone (3 of 99 before).
+- **Modules by namespace:** `tomlarkworthy` 344, `endpointservices` 13, `bumbeishvili` 11, `mbostock` 9, and
+  14 others with 1 to 4.
+
+### A write was searched after two minutes, not one
+
+The last eight puts ended at 08:20:50 UTC. By the index's own count (Cloudflare's `info`):
+
+```
+08:22:41  vectorCount 467, processedUpToDatetime 08:20:35
+08:22:48  467
+08:23:04  473, processedUpToDatetime 08:20:50        118 to 134 s after the last write
+```
+
+A search for "votes for women history" at 08:21:46, 08:22:16, 08:22:24 and 08:22:31 did not answer
+`womens-suffrage`, entered at 08:20:44; at 08:23:11 it was first, 0.653. Earlier in the day the lag was
+41 to 63 s. Search by meaning took 0.44 to 0.50 s over four runs, 1.07 s on the first, with 400 cards.
+
+### What a search answered, as the owner, `kind=module`, `limit=4`, 08:21:24 UTC
+
+A `*` is a private card. The first seven are the questions asked before; the last five were written
+before they were run, about modules that had no card until today.
+
+| Question | Answered |
+|---|---|
+| run code in a container | `compile-zig*` 0.660, `endpointservices/serverless-cells*` 0.648, `serverless-cells*` 0.644, `lopecode-live-2026*` 0.643 |
+| drag-and-drop layout | `lopepage-2` 0.668, `sticky` 0.631, `spectral-layout` 0.629, `vertical-sliders*` 0.620 |
+| export a notebook | `exporter-3` 0.731, `exporter*` 0.720, `exporter-2` 0.715, `save-in-place` 0.653 |
+| send a message on WhatsApp | `brain-whatsapp*` 0.690, `firestore-messaging*` 0.573, `foc-chat*` 0.567, `tom-larkworthy*` 0.559 |
+| unit tests for cells | `tester*` 0.733, `notebook-semantics*` 0.720, `tests` 0.710, `ui-testing` 0.696 |
+| keep a secret for a worker | `brain-secrets*` 0.581, `brain-core*` 0.545, `secrets` 0.537, `brain-deployer*` 0.534 |
+| lease a headless browser | `brain-browser*` 0.647, `brain-shell*` 0.600, `serverless-cells*` 0.576, `webxr-dom-overlay*` 0.575 |
+| solve a mixed integer linear program | `mip*` 0.769, `expression-fuzzer*` 0.556, `spectral-layout` 0.552, `linear-app-technical-deep-dive*` 0.540 |
+| draw a state machine | `fsm*` 0.695, `belief-geometry*` 0.644, `svg-boinger*` 0.617, `p5-sandbox*` 0.614 |
+| run Python in the browser | `brain-browser*` 0.658, `pyodide*` 0.649, `claude-code-browser*` 0.614, `compile-zig*` 0.612 |
+| shortest path in a graph | `dijkstra*` 0.648, `spectral-layout` 0.644, `ego-graph*` 0.598, `mip*` 0.581 |
+| music sequencer with audio tracks | `sequencer*` 0.773, `daw*` 0.695, `audio-inputs*` 0.684, `butter-synth*` 0.646 |
+
+- Of the first seven the wanted module is first in five, as after the review, with four times the cards.
+  `brain-container` is no longer in the four for "run code in a container"; asked "container" alone it is
+  first of 100. `tester` (staging only) now leads "unit tests for cells".
+- Of the five new ones the module I had in mind is first in three (`mip`, `fsm`, `dijkstra`) and second in
+  two (`pyodide`, `daw`). At 08:23:11, once the index had the last writes, "run Python in the browser"
+  answered `monty*` 0.693 first ("Monty: sandboxed Python in the browser"), entered at 08:20:49.
+- I wrote all twelve questions. This is not a recall measure.
+
+### Not done by the backfill
+
+- Staging stayed private, so 282 modules are found by the owner alone. Making a module's card public is a
+  put of a public notebook that has it, or `{ id, public: true }`. Which staging notebooks may be public
+  is Tom's to say.
+- A card from the module's home notebook: it needs `library.put` to be told the home, or the puts to be
+  ordered module by module. Not built.
+- The 9 `.staging` notebooks and the 14 skipped ones are not reconciled with their published copies.
+- A changed notebook is not put again by anything. The script is run by hand.
+
