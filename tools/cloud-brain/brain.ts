@@ -4,7 +4,7 @@
  *   bun tools/cloud-brain/brain.ts migrate-deployer         # an old Brain: installs <base>-deployer, copies the rows of <base>-guard to it, and marks <base>-guard replaced
  *   bun tools/cloud-brain/brain.ts retire-guard             # after every Worker is deployed again: <base>-guard becomes a stub with no token and no recovery key
  *   bun tools/cloud-brain/brain.ts apply core.json [...] --reason="why"   # infra.apply with the recovery key; --reason= is required here and by redistil --apply, remove and rollback
- *   bun tools/cloud-brain/brain.ts saw [name…]   # the hash recorded as seen for each Worker, sent as `was` by apply and remove; with names, record what runs now (after merging its source)
+ *   bun tools/cloud-brain/brain.ts saw [name…]   # seen.json: the hash each seed here is built on, sent as `was` by apply and remove; with names, record what runs now (after merging its source)
  *   bun tools/cloud-brain/brain.ts state | confirm | approval on|off | approve | rollback | remove <name>
  *   bun tools/cloud-brain/brain.ts redistil | distil | bindings | shell   # redistil: each Worker against its source, "same" when healthy
  *   bun tools/cloud-brain/brain.ts curl <path> [--owner] [-X POST -d '{}']   # the kernel; --owner or --other sends a minted session as Authorization: Bearer
@@ -12,7 +12,7 @@
  *   bun tools/cloud-brain/brain.ts page up [--minutes N] [--token LOPE-…] [--url https://…] [--keep] | page state | page down   # the Brain's page in a browser of the cluster, signed in and paired with a channel on this machine
  * State (recovery key, deployer key, session tokens) is in .emitted/<base>.json, git-ignored. The Cloudflare token is never printed.
  */
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 const BASE = process.env.BRAIN_BASE || "cb1";
 const OWNER = "did:plc:j7nm3lrd5h7fm3sfhcv3lhfv";
@@ -82,15 +82,27 @@ const deployer = async (method: string, body?: any) => {
   const text = await r.text();
   try { return JSON.parse(text); } catch { return { status: r.status, text: text.slice(0, 600) }; }
 };
-// was: the hash this checkout last deployed or fetched for a Worker (st.saw), not what runs when the command begins.
-// Reading it from getState at that moment let an apply at 12:58 on 2026-10-10 replace a kernel another process had
-// deployed at 12:45 and this checkout had never seen. With no record the running hash is recorded, once.
-const sawOf = (worker: string, seen: any[]) => {
-  st.saw ??= {};
-  if (!(worker in st.saw)) { st.saw[worker] = seen.find((x: any) => x.worker === worker)?.hash ?? null; save(); console.log(`  ${worker}: nothing recorded as seen; recorded what runs now, ${String(st.saw[worker]).slice(0, 12)}`); }
-  return st.saw[worker];
+// was: the hash the seeds in this checkout are built on, kept beside them in seen.json and committed with them, so
+// it travels with the source: a checkout that has another's change has its hash too. It is not what runs when the
+// command begins (an apply at 12:58 on 2026-10-10 replaced a kernel deployed from elsewhere at 12:45 that way), and
+// not the state file, which sessions that do not know of each other share.
+const seenPath = resolve(import.meta.dir, "seen.json");
+const seenAll = (): any => existsSync(seenPath) ? JSON.parse(readFileSync(seenPath, "utf8")) : {};
+const sawGet = (worker: string) => (seenAll()[BASE] ?? {})[worker];
+const sawPut = (worker: string, hash: string | null) => { const all = seenAll(); (all[BASE] ??= {})[worker] = { hash, at: Date.now() }; writeFileSync(seenPath, JSON.stringify(all, null, 1) + "\n"); };
+const HOW = (worker: string) => `Read its source (curl "/xrpc/com.lopecode.brain.getSource?worker=${worker}" --owner), merge it into the seed, build and emit again, then: saw ${worker}`;
+// What to send as was, or a refusal made here. file: the emitted record, which must be newer than the record of
+// the Worker's last change: one emitted before it was built from a seed without that change.
+const sawOf = (worker: string, running: any[], file?: string): { was: string | null } | { refused: string } => {
+  const now = running.find((x: any) => x.worker === worker)?.hash ?? null, rec = sawGet(worker);
+  if (!rec) {
+    if (now === null) return { was: null };
+    return { refused: `${worker} runs ${String(now).slice(0, 12)} and seen.json has no hash for it. ${HOW(worker)}` };
+  }
+  if (file && statSync(E(file)).mtimeMs < rec.at) return { refused: `${file} was emitted before ${worker} last changed in this checkout (${new Date(rec.at).toLocaleTimeString()}): build and emit again` };
+  return { was: rec.hash };
 };
-const MOVED = (worker: string) => `  ${worker} changed since this checkout last deployed or fetched it. Fetch its source (curl "/xrpc/com.lopecode.brain.getSource?worker=${worker}" --owner), merge it into the seed, build and emit again, then: saw ${worker}`;
+const MOVED = (worker: string) => `  ${worker} is not what the seed in this checkout is built on. ${HOW(worker)}`;
 const brief = (s: any) => ({ approval: s.approval, workers: (s.workers || []).map((w: any) => `${w.worker} ${String(w.hash).slice(0, 12)} ${w.state}${w.lastError ? " ERR " + w.lastError : ""}`), kernel: Object.fromEntries(Object.entries(s.kernel || {}).map(([k, v]: any) => [k, `${v.state} ${String(v.hash).slice(0, 12)} ${v.reason || ""}${v.deadline ? " until " + new Date(v.deadline).toISOString() : ""}`])), pending: (s.pending || []).map((p: any) => p.worker) });
 
 const [cmd, ...all] = process.argv.slice(2);
@@ -176,7 +188,9 @@ export class Rows {
   for (const f of args.filter((a) => !a.startsWith("--"))) {
     const e = emitted(f);
     // Source, not code: the deployer distils it. The record's parts are not sent; its hash is only compared.
-    const w: any = { module: e.source.module, source: e.source.text, files: filesOf(e.source.text), force, was: sawOf(e.meta.worker, seen) };
+    const saw: any = sawOf(e.meta.worker, seen, f);
+    if (saw.refused) { console.log(f, "not sent:", saw.refused); continue; }
+    const w: any = { module: e.source.module, source: e.source.text, files: filesOf(e.source.text), force, was: saw.was };
     // The signing key is SESSION_KEY; it was COOKIE_KEY until 2026-10-07. Both names are sent with one value, and
     // the state file keeps both fields.
     const named = ["SESSION_KEY", "COOKIE_KEY"].filter((n) => e.meta.secrets.includes(n));
@@ -186,7 +200,7 @@ export class Rows {
     console.log(f, Math.round(performance.now() - t) + " ms", JSON.stringify(out.results ? out.results.map((r: any) => ({ ...r, hash: String(r.hash).slice(0, 12) })) : out));
     for (const r of out.results || []) if (r.hash && r.hash !== e.hash) console.log(`  the deployer distilled ${String(r.hash).slice(0, 12)}; the browser emitted ${e.hash.slice(0, 12)}`);
     for (const r of out.results || []) {
-      if (["deployed", "probation", "same", "unchanged"].includes(r.state) && r.hash) { st.saw[r.worker] = r.hash; save(); }
+      if (["deployed", "probation", "same", "unchanged"].includes(r.state) && r.hash) sawPut(r.worker, r.hash);
       if (r.state === "refused" && "running" in r) console.log(MOVED(r.worker));
     }
   }
@@ -213,17 +227,21 @@ export class Rows {
   }
 } else if (cmd === "remove") {
   const seen = (await deployer("getState")).workers || [];
-  const out = await deployer("apply", { remove: args.map((worker) => ({ worker, was: sawOf(worker, seen) })), reason });
+  const asked = args.map((worker) => ({ worker, saw: sawOf(worker, seen) as any }));
+  for (const a of asked) if (a.saw.refused) console.log(a.worker, "not sent:", a.saw.refused);
+  const out = await deployer("apply", { remove: asked.filter((a) => !a.saw.refused).map((a) => ({ worker: a.worker, was: a.saw.was })), reason });
   console.log(JSON.stringify(out));
   for (const r of out.results || []) {
-    if (r.state === "removed") { st.saw[r.worker] = null; save(); }
+    if (r.state === "removed") sawPut(r.worker, null);
     if (r.state === "refused" && "running" in r) console.log(MOVED(r.worker));
   }
 } else if (cmd === "saw") {
-  // saw: what is recorded. saw NAME…: record what runs now as seen, after its source is merged into this checkout.
+  // saw: the record against what runs. saw NAME…: record what runs now, after its source is merged into the seed.
   const seen = (await deployer("getState")).workers || [];
-  for (const worker of args) { delete (st.saw ??= {})[worker]; sawOf(worker, seen); }
-  for (const [worker, hash] of Object.entries(st.saw ?? {})) console.log(worker.padEnd(18), String(hash).slice(0, 12), hash === (seen.find((x: any) => x.worker === worker)?.hash ?? null) ? "" : "MOVED: runs " + String(seen.find((x: any) => x.worker === worker)?.hash ?? null).slice(0, 12));
+  const runs = (worker: string) => seen.find((x: any) => x.worker === worker)?.hash ?? null;
+  for (const worker of args) sawPut(worker, runs(worker));
+  const rec = seenAll()[BASE] ?? {};
+  for (const worker of [...new Set([...Object.keys(rec), ...seen.map((x: any) => x.worker)])].sort()) console.log(worker.padEnd(20), rec[worker] ? String(rec[worker].hash).slice(0, 12) : "none".padEnd(12), !rec[worker] ? "" : rec[worker].hash === runs(worker) ? "" : "MOVED: runs " + String(runs(worker)).slice(0, 12));
 }
 else if (cmd === "state") console.log(JSON.stringify(args[0] === "--full" ? await deployer("getState") : brief(await deployer("getState")), null, 1));
 else if (cmd === "confirm") console.log(JSON.stringify(await deployer("confirm", {})));

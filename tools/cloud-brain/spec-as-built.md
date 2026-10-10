@@ -4259,17 +4259,26 @@ recoverable from the deployer: it keeps one earlier source per module, and when 
 the order of the `define` lines, and in no cell's code. Not done: the kernel's tests were not run in a tab from this
 build, and nothing was deployed, since cb4 already runs this code.
 
-**`was`.** `brain.ts` keeps `saw: { worker: hash }` in the state file. `apply` and `remove` send it as `was` and
-write it after a deploy that stands; with no record for a Worker, what runs is recorded once and the command says so.
-A refusal prints what to do: read the source with `getSource`, merge, build, emit, then `brain.ts saw NAME`, which
-records what runs now. `brain.ts saw` lists the record and marks a Worker that has moved.
-Run on cb4 at 15:25 with the record for `brain-x-issues` set to 64 zeros and `issues.json`, which is what runs:
+**`was`.** The hash each seed is built on is kept beside the seeds in `tools/cloud-brain/seen.json`
+(`{ base: { worker: { hash, at } } }`) and committed with them, so a checkout that has another's change to a seed has
+its hash too, and one that has not is refused. The first version of this, at 15:25, kept it in the state file. Tom,
+2026-10-10: "we are expecting uncordinated changes so don;t expect on your state file to be the source of truth".
+`apply` and `remove` send the recorded hash as `was` and write it after a deploy that stands. `brain.ts saw` lists the
+record against what runs; `saw NAME` records what runs now, for after its source is merged into the seed.
+
+Three refusals, run on cb4 at 15:32, nothing deployed:
 
 ```
+blob.json not sent: brain-x-blob runs 9d753c5341ab and seen.json has no hash for it. Read its source (…), merge it into the seed, …
+issues.json not sent: issues.json was emitted before brain-x-issues last changed in this checkout (3:32:10 PM): build and emit again
 {"worker":"brain-x-issues","state":"refused","reason":"brain-x-issues is 2735c3bb57cf, you saw 000000000000"}
 ```
 
-Limits. The record is in the state file, so two sessions that use one checkout share it: it stops a deploy over a
-change made from a tab's Apply or from another checkout, and not over one made by another session here with a seed
-this session has not built from. `rollback` and a put-back do not write the record. `redistil --apply` is unchanged.
+The first two are made by `brain.ts` and the third by the deployer, with the record set to 64 zeros.
 
+Limits. `seen.json` holds `brain`, `brain-core` and `brain-x-issues`; the other 16 Workers have no record and their
+first apply is refused until `saw NAME`, which is a statement that the seed holds what runs and is checked by nobody.
+The check of an emitted record's age is by the file's time against `at`, so it is this machine's: a record emitted in
+one checkout and applied from another is not covered. Two sessions in one working tree share `seen.json` and the
+seeds; what stands between them is that age check. `rollback` and a put-back do not write the record. `redistil
+--apply` is unchanged. The page's Apply sends the hash its row was drawn from, as before.
