@@ -21,7 +21,12 @@ You change no source, build nothing and deploy nothing. You write to the tracker
    `brain.ts redistil` shows the Worker `same` with the hash the ref names, or with a later one
    when another issue has landed since: then `git -C lopebooks merge-base --is-ancestor <sha> HEAD`
    succeeds and the compare below is against `HEAD` (`git -C lopebooks show HEAD:…`, saved to
-   your scratchpad and read with `lope-reader.ts`), not the working file. Then
+   your scratchpad and read with `lope-reader.ts`), not the working file. A writer deploys some
+   minutes before its `lopebooks` commit lands, so a later hash can be on cb4 while `HEAD` is
+   still the ref's commit, and the deployed text then matches neither. While
+   `tools/cloud-brain/.emitted/land.lock` exists a landing is under way: wait for it to go
+   (`until [ ! -d …/land.lock ]; do sleep 20; done`, `run_in_background`), then run `redistil`
+   and read `HEAD` again before comparing. Then
    `brain.ts curl "/xrpc/com.lopecode.brain.getSource?worker=<worker>" --owner` (a read; the
    output ends ` [200]` after the JSON, so parse with `json.JSONDecoder().raw_decode`), and
    compare its `text` with `bun tools/lope-reader.ts lopebooks/notebooks/@tomlarkworthy_cloud-brain.html --get-module <module>`
