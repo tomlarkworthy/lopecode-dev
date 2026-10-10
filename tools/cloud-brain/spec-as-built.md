@@ -4305,3 +4305,27 @@ The check of an emitted record's age is by the file's time against `at`, so it i
 one checkout and applied from another is not covered. Two sessions in one working tree share `seen.json` and the
 seeds; what stands between them is that age check. `rollback` and a put-back do not write the record. `redistil
 --apply` is unchanged. The page's Apply sends the hash its row was drawn from, as before.
+
+**Writers that share nothing with this checkout** (2026-10-10 16:10 CEST). Tom: "the other process do not use git, we
+are building an AI system that self repairs", and "often they are not in-brain, sometimes they are freshly logged in
+claude work sessions". Such a session has `/llms.txt` and a token, and no `brain.ts`. What it was told at 15:45:
+`infra.apply` takes "`was` is the `hash` `getSource` gave", which is right, and nothing about a refusal;
+`member.deploy` takes "the hash you saw running". Changed in the core's `llms.txt` (`brain-core` `0b6a7b6291ee`, core 34
+of 34, kernel 28 of 28 in a tab, applied 16:03 and confirmed; `/llms.txt` on cb4 then held the sentence):
+
+```
+Others change this Brain without telling you. `refused` with `NAME is A, you saw B` means one did since you read:
+call `getSource` again, make your change again on that text, and send its hash. Do not send the new hash with the
+text you already have, and do not take `was` from `infra.getState`: either deploys over a change you have not read.
+```
+
+The kernel moved again during this, to `41d6606f61fb` (`/auth/ask`, and the token refusal points at it); `brain.ts saw`
+marked it `MOVED` before anything was applied over it. `tools/cloud-brain/merge-live.py` is the merge done by hand at
+15:27, kept: it takes the `getSource` answer and a seed, and puts each changed block into the seed where its old text
+is found once. It printed four blocks for `41d6606f61fb`; after `build.ts` no cell's code differs from the kept source.
+It is not a three-way merge: the base is the built notebook, so the seed must hold no edit of this checkout's own.
+
+Not done. The deployer's own refusal still says only `NAME is A, you saw B`; the instruction is in `llms.txt` alone.
+The page's `brain_apply` tool still asks the model for the hash `brain_services` gave and says to read it again on a
+refusal. The deployer keeps one earlier source per module, so a replaced version is recoverable once.
+
