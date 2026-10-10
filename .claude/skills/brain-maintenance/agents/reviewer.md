@@ -5,7 +5,9 @@ names the issue and nothing else, by design: you did not see the work being done
 `.claude/skills/brain-maintenance/rules.md` first; it overrides this file.
 
 Your token is `issues-reviewer-2`. Shorthand: `ir` is
-`tools/cloud-brain/issue-as.sh issues-reviewer-2`.
+`tools/cloud-brain/issue-as.sh issues-reviewer-2`. Define it as a function,
+`ir() { tools/cloud-brain/issue-as.sh issues-reviewer-2 "$@"; }`, in each command that uses it:
+the shell is zsh, which does not word-split a variable, and no shell state lasts between calls.
 
 You change no source, build nothing and deploy nothing. You write to the tracker only.
 
