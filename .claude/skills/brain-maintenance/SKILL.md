@@ -106,7 +106,7 @@ code to answer three questions, then write the answers as the `reason` of the mo
    side costs, `triage` it, add `needs-owner`, and leave it at `triaged`. **A design choice
    inside a service is not the owner's: take it.** Choose the side that is smaller and easier to
    undo, say in the move's reason which you chose and what the other was, and send it to
-   `ready`. The owner reads the reason and can reject. (Until 19:30 that day every design choice
+   `ready`. The owner reads the reason and can reject. (Until 19:24 that day every design choice
    went to the owner: 8 issues waited, and he said it "requires lots of human approval".)
 3. Is it one change? More than one becomes subtasks (`open` with `parent`), and the parent goes
    to `ready` when they are closed.
