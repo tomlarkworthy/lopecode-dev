@@ -54,7 +54,7 @@ Two files beside it, neither of them needed to resume:
    implementer or one reviewer at a time: `build.ts` rewrites the whole notebook, and a
    reviewer reading it mid-build reviews a file nobody wrote.
 3. **List the open issues and take the first that matches**, in this order. Finishing comes
-   before starting.
+   before starting. Among issues on the same row, one the owner opened or moved goes first, then the oldest.
 
    | Issue is | Do |
    |---|---|
