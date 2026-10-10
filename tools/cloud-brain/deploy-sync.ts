@@ -10,6 +10,7 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { gunzipSync } from "node:zlib";
 import { parse } from "acorn";
 import { blocks } from "../lib/notebook-blocks.ts";
 
@@ -52,15 +53,19 @@ const page = await (await fetch(kernel + "/")).text();
 const shared = [], files = [];
 let bootconf = null;
 for (const b of blocks(page)) {
-  const mime = /data-mime="([^"]+)"/.exec(b.attrs)?.[1], b64 = /data-encoding="base64"/.test(b.attrs);
+  const mime = /data-mime="([^"]+)"/.exec(b.attrs)?.[1], enc = /data-encoding="([^"]+)"/.exec(b.attrs)?.[1] || "";
   if (b.id === "bootconf.json" && mime === "application/json") { bootconf = JSON.parse(b.content); continue; }
   if (!b.id.startsWith("@") || owned.has(b.id)) continue;
-  if (mime === "application/javascript" && b.id.split("/").length === 2 && !b64) {
+  const js = mime === "application/javascript" && b.id.split("/").length === 2;
+  if (js && !enc) {
     put(b.id + ".js", b.content);
     shared.push({ module: b.id, imports: imports(b.content, b.id) });
   } else {
-    put(b.id, b64 ? Buffer.from(b.content, "base64") : b.content);
-    files.push({ path: b.id, mime });
+    // A library kept encoded (the runtime, the inspector) is a file, not a notebook module.
+    const bytes = enc.startsWith("base64") ? Buffer.from(b.content, "base64") : b.content;
+    const path = b.id + (js ? ".js" : "");
+    put(path, enc.endsWith("+gzip") ? gunzipSync(bytes as Buffer) : bytes);
+    files.push({ path, mime });
   }
 }
 
