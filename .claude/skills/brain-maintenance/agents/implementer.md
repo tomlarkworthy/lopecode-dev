@@ -45,7 +45,8 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
    ```
    `run_tests` hangs on this notebook; do not use it. Do not define the observers inside the
    module under test: they would be written into the deployed source.
-   The headless tool `tools/lope-runtime.js` cannot evaluate a CEL guard, so it is no substitute.
+   `bun tools/lope-tests.ts <notebook> --filter test_<service>` runs the same cells with no browser
+   (10 of 10 for the tracker since 2026-10-10). Use it while working; the count you submit is the browser's.
 9. **Emit** in that tab, then close it by name:
    `fetch("http://127.0.0.1:47814/<worker>.json", { method: "POST", body: JSON.stringify(await (await mod.value("<name>_service")).emit()) })`.
    Each `eval_code` is its own scope: repeat the two lines that find `rt` and `mod`. The file is

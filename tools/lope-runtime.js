@@ -381,6 +381,9 @@ export async function loadNotebook(notebookPath, options = {}) {
     // realm's turns a direct eval into an indirect one, so `eval("x = …")` writes to the
     // wrong global (observablejs-toolchain's importFake relies on direct eval).
     const seen = new Set(["window", "self", "globalThis", "constructor", "happyDOM", "eval", "Function"]);
+    // The language's own globals (Object, Array, Map, Promise, …) stay the vm realm's too. The DOM window
+    // carries the outer realm's, and with those `({}).constructor === Object` is false in notebook code.
+    for (const name of vm.runInNewContext("Object.getOwnPropertyNames(globalThis)")) seen.add(name);
     for (let o = domWindow; o && o !== Object.prototype; o = Object.getPrototypeOf(o)) {
       for (const name of Object.getOwnPropertyNames(o)) {
         if (seen.has(name)) continue;

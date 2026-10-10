@@ -4142,6 +4142,30 @@ before). Deployed from the seed under the lock, which also replaces the hand-edi
 `same`; `issue.verify?guards=true` ok on 74 events; an install as the owner with no reason answered the 400 above
 and the record stayed at 74. Not tried on cb4: an install with a reason.
 
+### The headless harness keeps its realm's own built-ins (2026-10-10 17:15 CEST)
+
+`headless-harness-cel`. `tools/lope-runtime.js` copied every global of the happy-dom window into the vm context,
+the outer realm's `Object`, `Array`, `Map`, `Promise` and the rest among them, so in notebook code
+`({}).constructor === Object` was false and cel-js answered `Unsupported type: Object` for any guard that reads a
+field. It now skips every name a bare context defines (`vm.runInNewContext("Object.getOwnPropertyNames(globalThis)")`).
+
+```
+bun tools/lope-tests.ts …cloud-brain.html --filter test_issues
+copied as before               2 of 10
+Object, Array, Map, Set left   6 of 10
+every built-in left           10 of 10
+```
+
+Measured before keeping it: the smoke worker over all 254 notebooks of `lopebooks` and `lopecode`, each run both
+ways back to back, 6 at a time. Tests passed 40543 -> 40573, failed 1013 -> 1009. Three notebooks gained
+(`cloud-brain` 594 -> 651 passed, `mip` 152 -> 275, `compile-dataflow` 185 -> 186), 250 were the same, and one is
+worse: `webxr-dom-overlay` went from 151 passed to a crash, `Cannot read properties of undefined (reading
+'activeCameraEl')` in A-Frame 1.8.0, 3 runs of 3. A-Frame now gets as far as starting its components and there is
+no WebGL scene under happy-dom; leaving only `Object, Array, Map, Set` crashes it the same way. Left as it is.
+`node --experimental-vm-modules --test tests/notebooks/*.test.js`: 126 tests, 122 pass, 2 fail, the same before and after.
+
+Not measured: `lope-push-ws.js`, `spec-notebook.ts` and `lope-bulk-jumpgate.js` beyond what those tests cover.
+
 ## Authority, step 5 of 7: the old rows are moved (2026-10-10 12:32 CEST)
 
 `brain-core` `f5bd26a33b83`, `brain` `8144becfacae`. Core 32 tests, kernel 26.
