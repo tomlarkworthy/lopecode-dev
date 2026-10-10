@@ -35,6 +35,10 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    reason the issue gives. If you cannot reproduce it, say so on the issue and stop.
 6. **Fix it in the seed.** Never the notebook HTML, never the deployed text. Add or change a
    `test_*` cell in the same module so the defect cannot return unseen.
+   When the fix is in a local tool and no seed (`brain.ts`, `tools/lope-tests.ts`), the test is a
+   file under `tests/` that `node --test` or `bun test` runs and that fails before the fix; its
+   count is the one you submit, and steps 7 to 9 need no build, tab or emit. If the tool cannot
+   be loaded by a test as it stands, say so in the comment with the commands you ran instead.
 7. **Build** in the worktree, to a file of its own:
    `cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html`.
    Without `--out` it refuses there.
