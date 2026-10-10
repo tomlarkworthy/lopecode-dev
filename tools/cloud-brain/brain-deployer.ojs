@@ -193,7 +193,9 @@ deployerOps = {
   // A service may declare only the groups in GROUPS. Each was minted alone and tried on 2026-10-09 (spec-as-built,
   // "What a minted token reaches"): these two read their own product and nothing of a Worker. "Workers Tail Read"
   // was in the list until then, declared by no service: it read each Worker's code, settings and secret names.
-  const GROUPS = ["Workers Observability Read", "Workers AI Read"];
+  // "Artifacts Write" (brain-git, 2026-10-10) is not such a one and was not tried: it makes, reads and deletes every
+  // Artifacts repository of the account, in any namespace. The service fixes the namespace.
+  const GROUPS = ["Workers Observability Read", "Workers AI Read", "Artifacts Write"];
   const DAY = 86400000, TOKEN_DAYS = 90, ROLL_DAYS = 30;
   const audit = async (event, logical, t) => {
     const row = { at: Date.now(), event, worker: logical, token: t.id, groups: t.groups, expires: t.expires };
@@ -1306,6 +1308,7 @@ fakeCloudflare = () => {
     { id: "g-obs", name: "Workers Observability Read", scopes: account },
     { id: "g-tail", name: "Workers Tail Read", scopes: account },
     { id: "g-ai", name: "Workers AI Read", scopes: account },
+    { id: "g-art", name: "Artifacts Write", scopes: account },
     { id: "g-scripts", name: "Workers Scripts Write", scopes: account }
   ];
   let n = 0;
@@ -1745,7 +1748,7 @@ test_a_declared_cloudflare_permission_is_held_for_the_owner_and_minted_for_that_
 test_a_cloudflare_permission_is_refused_off_the_list_and_outside_a_recipe = {
   const rig = await deployerRig();
   const reason = async (w) => (await rig.recover({ workers: [w] })).results[0].reason;
-  expect(await reason(await rig.made("brain-x-greedy", "recipe", "g", { cloudflare: ["Workers Observability Read", "Workers Scripts Write"] }))).toBe('"Workers Scripts Write" is not a Cloudflare permission a service may declare. A service may declare: Workers Observability Read, Workers AI Read');
+  expect(await reason(await rig.made("brain-x-greedy", "recipe", "g", { cloudflare: ["Workers Observability Read", "Workers Scripts Write"] }))).toBe('"Workers Scripts Write" is not a Cloudflare permission a service may declare. A service may declare: Workers Observability Read, Workers AI Read, Artifacts Write');
   // It reads each Worker's code: no service may have it (spec-as-built, 2026-10-09).
   expect(await reason(await rig.made("brain-x-tail", "recipe", "t", { cloudflare: ["Workers Tail Read"] }))).toContain('"Workers Tail Read" is not a Cloudflare permission a service may declare');
   expect(await reason(await rig.made("brain-core", "core", "c", { cloudflare: ["Workers Observability Read"] }))).toBe("only a recipe declares Cloudflare permissions");
