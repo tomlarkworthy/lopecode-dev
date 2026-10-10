@@ -360,7 +360,7 @@ function syncAll(
 // ------------------------------------------------------- corpus-wide canonical sync
 
 /** Module ids a block imports — see lope-preflight.ts for why these are excluded. */
-function importsOf(src: string): string[] {
+export function importsOf(src: string): string[] {
   return [...src.matchAll(/main\.define\("module ([^"]+)"/g)]
     .map((m) => m[1])
     .filter((id) => /^@[^/${]+\/[^/${]+$/.test(id) && id !== "@x");
