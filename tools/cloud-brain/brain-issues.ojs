@@ -13,6 +13,7 @@ md`The panel above is for the owner, signed in. It answers from a copy of the vi
 - **State, Kind, Find** filter the table from the copy, with no call. Find reads the title, \`about\`, the labels and the id.
 - **A row** opens that issue: its body, its children, its events, and a button for each state it can move to and each swap its workflow lists. A button the guard would refuse is disabled, and its tooltip is the refusal. Reason and Refs are sent with a move, so a button can come alive as they are typed.
 - **Refs**: entries separated by commas. \`kind:value\` is a ref of that kind (\`commit:abc\`, \`deploy:brain-x-a@hash\`); an address (\`https://…\`) or a text with no colon is a \`url\`.
+- **Review** sends the verdict with the Comment text and the Refs. **Comment** and **Add label** each send their own. Removing a label and \`issue.narrow\` have no control: they are calls.
 - **New issue** opens one with an id the page makes. **Refresh** asks for the events since the copy now.
 - A write is drawn before the service answers, and withdrawn with the refusal if it refuses.
 
@@ -30,7 +31,7 @@ md`## Methods
 | \`issue.move\` | procedure. \`{ key, id, to, reason, refs }\`. \`to\` is a state. Approval and revert are moves. |
 | \`issue.swap\` | procedure. \`{ key, id, swap, reason }\`: a swap the issue's workflow lists. \`{ key, id, workflow, state, reason }\`: any other, the owner present. |
 | \`issue.narrow\` | procedure. \`{ key, id, move, guard, reason }\` adds a guard to one move of one issue. \`{ key, id, remove, reason }\` removes guard number \`remove\`, the owner present. |
-| \`issue.install\` | procedure, the owner present. \`{ key, policy, migrate }\`. \`migrate\`: \`{ HASH: { workflow, states: { old: new } } }\` moves the open issues of workflow \`HASH\`, each with its own event, keyed \`policy/<seq>/<id>\`. A \`migrate\` that names a workflow the policy lacks, or would land an issue in a state its new workflow lacks, is refused with 400 before the policy is written. The issues are read again once the policy is written, and each again before its own event: one opened on \`HASH\` meanwhile is moved, and one closed or moved meanwhile is left where it is. \`{ seq, hashes, moved, left }\`; \`left\` is \`[{ id, why }]\` of those not moved. A \`key\` that a policy event holds answers that event with \`duplicate: true\` and moves nothing: a migration cut short is finished by the owner's own swaps. A \`key\` another kind of event holds is 400. |
+| \`issue.install\` | procedure, the owner present. \`{ key, policy, migrate }\`. \`migrate\`: \`{ HASH: { workflow, states: { old: new } } }\` moves the open issues of workflow \`HASH\`, each with its own event, keyed \`policy/<seq>/<id>\`. \`HASH\` is a workflow hash the record keeps, or the name of a workflow in the policy in force; anything else is 400 before the policy is written. A \`migrate\` that names a workflow the policy lacks, or would land an issue in a state its new workflow lacks, is refused with 400 before the policy is written. The issues are read again once the policy is written, and each again before its own event: one opened on \`HASH\` meanwhile is moved, and one closed or moved meanwhile is left where it is. \`{ seq, hashes, moved, left }\`; \`left\` is \`[{ id, why }]\` of those not moved, empty when all were. A \`key\` that a policy event holds answers that event with \`duplicate: true\` and moves nothing: a migration cut short is finished by the owner's own swaps. A \`key\` another kind of event holds is 400. |
 | \`issue.policy\` | query. \`{ policy, workflows }\` in force; \`?hash=\` one workflow, an older one too. |
 | \`issue.snapshot\` | query. \`{ seq, head, wait, policy, workflows, issues }\`: the whole view at \`seq\`. The \`body\` of a closed issue is left out (\`bodyLeftOut\`). An issue the caller may not read is \`{ id, kind, state, closed, parent, hidden: true }\`, here and in \`issue.list\` and \`issue.get\`. |
 | \`issue.sync\` | query. \`?after=<seq>&head=<hash>&limit=${issuesLimits.syncPage}\`. \`{ seq, wait, events }\`: the events after \`after\`, and the milliseconds the page waits before it asks again. An event of an issue the caller may not read is \`{ seq, id, type, at, hash, hidden: true, issue }\`. \`reset: true\` and no events when \`after\` is past the record's head, or \`head\` is not the hash of event \`after\`: the caller's copy is of another record, and it starts again from a snapshot. |
@@ -43,7 +44,7 @@ md`## Methods
 | Storage | \`sql\`: \`issues_events\` (the record), \`issues_view\`, \`issues_meta\` (the policy and every workflow by hash) |
 | Secret | \`ISSUES_SIGNING_KEY\`: an Ed25519 private key as a JWK. Without it a write, \`issue.verify\` and \`issue.key\` answer 503 \`NotConfigured\`; the other queries answer. |
 
-Every write takes a \`key\`. A key is kept once: a second write with it answers \`duplicate: true\`, with the first event when the same actor wrote it and with \`{ id, seq }\` alone for anyone else. A write answers \`{ id, seq, event }\`.
+Every write takes a \`key\`. A key is kept once: a second write with it answers \`duplicate: true\`, with the first event when the same actor wrote it and with \`{ id, seq }\` alone for anyone else. A write answers \`{ id, seq, event }\`. A key that starts \`policy/\` is the service's own (the default policy's, and each swap of a migration) and is refused with 400.
 
 **The signing key** is made by the owner, once, outside the Worker: \`crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"])\`, the private key exported as a JWK, stored with \`secret.put\`, and let to this Worker alone with \`secret.setRule { name: "ISSUES_SIGNING_KEY", allow: 'caller.worker == "brain-x-issues"' }\`. Without the rule the Worker reads nothing and answers 503 (cb4, 2026-10-10). A refused act answers 403 \`Refused\` with the guard that refused it.
 
@@ -539,16 +540,27 @@ issuesApp = {
       throw e;
     }
   };
+  // Keys under policy/ are the service's own: the default policy's, and each swap of a migration. A caller who took
+  // one ahead of an install would hold that issue out of it.
+  const callerKey = (key) => (typeof key === "string" && key.startsWith("policy/") ? Promise.reject(refuse(400, "InvalidRequest", "key: policy/ is the service's own")) : key);
   for (const type of ["open", "comment", "label", "review", "move", "swap", "narrow"])
     app.post(NS + type, run(async (c, b) => {
-      const r = await append(who(c), b && b.key, issueAct(type, b));
+      const r = await append(who(c), await callerKey(b && b.key), issueAct(type, b));
       return { id: r.event.id, seq: r.event.seq, ...(r.duplicate ? { duplicate: true } : {}), ...(r.duplicate && !r.mine ? {} : { event: r.event }) };
     }));
   app.post(NS + "install", run(async (c, b) => {
     const ctx = who(c);
     if (!issueCaller(ctx.by).present) throw refuse(403, "Refused", "the owner, present");
-    const act = await issuePolicyAct(b.policy), migrate = Object.entries(b.migrate && typeof b.migrate === "object" ? b.migrate : {});
+    const act = await issuePolicyAct(b.policy), key = await callerKey(b.key);
     await schema();
+    // A migrate names the workflow it moves issues from by a hash the record keeps, or by its name in the policy in
+    // force. Anything else would move nothing and say so to nobody.
+    const was = await load([S.near, "", ""]), migrate = [];
+    for (const [given, to] of Object.entries(b.migrate && typeof b.migrate === "object" ? b.migrate : {})) {
+      const old = issueAt(was.workflows, given) ? given : was.policy && issueAt(was.policy.names, given);
+      if (!old) throw refuse(400, "InvalidRequest", `migrate ${given}: the record keeps no workflow of that hash, and the policy in force none of that name`);
+      migrate.push([old, to]);
+    }
     // The open issues of each workflow a migrate names, and where each lands. `left`: null, and one that cannot land
     // is a 400; a list, and it is put there with why.
     const planned = async (left) => {
@@ -566,16 +578,16 @@ issuesApp = {
     };
     // Checked whole before the policy is written: a policy is not left installed with a migration that cannot land.
     await planned(null);
-    const r = await append(ctx, b.key, act), moved = [], left = [];
+    const r = await append(ctx, key, act), moved = [], left = [];
     if (r.event.type !== "policy") throw refuse(400, "InvalidRequest", "key: another event has this key");
-    if (r.duplicate) return { seq: r.event.seq, hashes: r.event.hashes, moved, duplicate: true };
+    if (r.duplicate) return { seq: r.event.seq, hashes: r.event.hashes, moved, left, duplicate: true };
     // Read again now that the policy is written, so an issue opened on an old workflow meanwhile is moved too. Each
     // swap says where it takes its issue from: one closed or moved since is refused and left where it is.
     for (const m of await planned(left)) {
       const swap = await append(ctx, `policy/${r.event.seq}/${m.id}`, { type: "swap", id: m.id, from: m.from, workflow: m.workflow, state: m.state, reason: "policy " + r.event.seq, policy: r.event.seq }).catch((e) => (e && e.status ? { why: e.message } : Promise.reject(e)));
       swap.why || swap.duplicate ? left.push({ id: m.id, why: swap.why || "another event has the key of its swap" }) : moved.push(m.id);
     }
-    return { seq: r.event.seq, hashes: r.event.hashes, moved, ...(left.length ? { left } : {}) };
+    return { seq: r.event.seq, hashes: r.event.hashes, moved, left };
   }));
   // What a caller is shown of an issue its workflow's read guard refuses.
   const shown = (view, by, i) => (issueAllowed(view, by, { type: "read", id: i.id }).allow ? i : { id: i.id, kind: i.kind, state: i.state, closed: i.closed, parent: i.parent, hidden: true });
@@ -1084,11 +1096,17 @@ test_issues_policy_is_installed_by_the_owner_and_migrates = {
   expect((await rig.owner("install", { policy, migrate: { [was.feedback]: { workflow: "feedback" } } })).data).toEqual({ error: "InvalidRequest", message: `migrate ${was.feedback}: f1 is open, and feedback has no state open` });
   // Nor under a key that another kind of event holds (k1 is the key f1 was opened with).
   expect((await rig.owner("install", { key: "k1", policy })).data).toEqual({ error: "InvalidRequest", message: "key: another event has this key" });
+  // Nor with a migrate from something that is neither a hash the record keeps nor a name in the policy in force.
+  expect((await rig.owner("install", { policy, migrate: { feedbak: { workflow: "feedback", states: { open: "new" } } } })).data.message).toBe("migrate feedbak: the record keeps no workflow of that hash, and the policy in force none of that name");
+  // Keys under policy/ are the service's own: a caller cannot take the key of a swap ahead of an install.
+  expect((await rig.a("comment", { key: "policy/5/f1", id: "f1", body: "claim" })).data).toEqual({ error: "InvalidRequest", message: "key: policy/ is the service's own" });
+  expect((await rig.owner("install", { key: "policy/default", policy })).status).toBe(400);
   expect([rig.db.events.length, (await rig.owner("policy")).data.policy.names]).toEqual([events, was]);
   const nothing = await rig.sim.fetch("https://issues.internal/xrpc/com.lopecode.brain.issue.install", { method: "POST", headers: { "x-brain-caller": "owner", "x-brain-via": "session", "content-type": "application/json" }, body: "null" });
   expect(nothing.status).toBe(400);
-  const installed = (await rig.owner("install", { key: "v2", policy, migrate: { [was.feedback]: { workflow: "feedback", states: { open: "new" } } } })).data;
-  expect(installed).toMatchObject({ seq: 5, moved: ["f1"] });
+  // The workflow to move from, named as the policy in force names it (its hash does the same).
+  const installed = (await rig.owner("install", { key: "v2", policy, migrate: { feedback: { workflow: "feedback", states: { open: "new" } } } })).data;
+  expect(installed).toMatchObject({ seq: 5, moved: ["f1"], left: [] });
   expect(installed.hashes.feedback).not.toBe(was.feedback);
   // The open issue moved with an event of its own that cites the policy; the closed one stays on the workflow it was closed under.
   const moved = (await rig.owner("get?id=f1")).data;
@@ -1101,7 +1119,7 @@ test_issues_policy_is_installed_by_the_owner_and_migrates = {
   expect((await rig.owner("move", { id: "f1", to: "seen" })).status).toBe(403);
   expect((await rig.a("move", { id: "f1", to: "seen" })).status).toBe(200);
   expect((await rig.owner("open", { title: "x", kind: "task" })).data.message).toBe("no workflow for the kind task");
-  expect((await rig.owner("install", { key: "v2", policy })).data).toMatchObject({ seq: 5, duplicate: true, moved: [] });
+  expect((await rig.owner("install", { key: "v2", policy })).data).toMatchObject({ seq: 5, duplicate: true, moved: [], left: [] });
   // The default policy was written once, into the empty record, and is not written again: not after an install, not
   // when the view is lost, not after a rebuild. A second one written past the service is named by the replay.
   const byWorker = () => rig.db.events.map((e) => JSON.parse(e.event)).filter((e) => e.type === "policy").map((e) => [e.seq, e.by.caller]);
