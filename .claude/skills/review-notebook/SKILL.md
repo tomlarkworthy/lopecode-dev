@@ -68,3 +68,9 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   launch (Playwright headless shell missing), so nothing rendered was reviewed; the reviewer fell
   back to `notebook-import.ts`. Five brief defects reported, four fixed in `reviewer.md` the same
   day. Outcome: Tom deleted the notebook on 2026-10-08 ("it is not high quality") rather than fix it.
+- 2026-10-10 `lopebooks/notebooks/@tomlarkworthy_cloud-brain.html`, module `@tomlarkworthy/brain-issues`: FIX, 13
+  findings, 11 confirmed by the reviewer's own probes against the module's rig and 2 by trace; all 13 acted on
+  (lopecode-dev `b629bef8`). 176k subagent tokens, 10m52s. The browser runner could not launch (it wants
+  `chromium_headless_shell-1200`); the reviewer ran scratch scripts against build 1234.
+- 2026-10-10 `plan/cloud-brain-issues.md`: FIX, 6 findings, 5 fixed (`d59929e6`), 1 declined (a field list inside the
+  section kept as pasted). 105k subagent tokens, 3m29s.

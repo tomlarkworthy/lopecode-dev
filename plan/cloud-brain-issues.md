@@ -347,7 +347,8 @@ so the page can judge a move before it sends it.
 ## Built
 
 `brain-x-issues`, module `@tomlarkworthy/brain-issues` (`tools/cloud-brain/brain-issues.ojs`), deployed
-to cb4 2026-10-10 11:52 CEST and again 11:55 (`7539488939bc`). The method reference is the module's
+to cb4 2026-10-10 11:52 CEST, again 11:55 (`7539488939bc`), and after its fresh review, before 12:22 (`c1c684bb28ae`,
+13 findings). The method reference is the module's
 first cells; what was measured and what went wrong is in `tools/cloud-brain/spec-as-built.md`, "Issues:
 a signed record, and guards as data". Where the build left the design above:
 
@@ -361,7 +362,7 @@ a signed record, and guards as data". Where the build left the design above:
 | the actor is the holder | the actor is `delegation:<id>`. On cb4 every token's call carried the holder `secret` at 11:54 CEST, so two tokens would have been one actor. The core has sent `secret:NAME` since `675435235fdd` (12:03 CEST). |
 | security bodies encrypted | not built. An issue its `read` guard refuses is answered as `{ id, kind, state, closed, parent, hidden }` (and `issue.sync` answers the `seq`, `type` and `at` of each of its events), and a caller who may not read it does nothing to it (404). `readers` is not built: the default lets the owner present and the opener read. |
 | 12 methods | 16. Added: `issue.label`; `issue.swap` (a swap the workflow lists needs no owner, any other needs the owner present: amendment 2); `issue.narrow` (a guard added to one move of one issue: amendment 1, "as the work progresses"); `issue.install` and `issue.policy`; `issue.snapshot` and `issue.sync` for the page. Every write takes a `key` and is kept once. Event types: `opened commented labelled reviewed moved swapped narrowed policy`. The view is `issues_view` and `issues_meta`. |
-| the Issues panel on the Brain's page | `issuesPanel`, in the module's notebook only (amendment 3). `brain-x-page` was not redeployed and no page was driven in a browser against cb4. |
+| the Issues panel on the Brain's page | `issuesPanel` (amendment 3). On cb4's page at `#view=C100(S100(@tomlarkworthy/brain-issues))` with no deploy of `brain-x-page`: the shell loads the module from the Worker. Driven once in a signed-in headless tab, 2026-10-10 12:24 CEST, read-only: the list, one issue, its move buttons. No write was made from the page. |
 | `issue.list` with `assignee`, `awaiting=me` | `state`, `kind`, `about`, `parent`, `label`. |
 | a key change is an event | not built. |
 | `issue.verify` judges the record | the chain and the signatures, yes. With `guards=true` each event is judged again under the tracker's code as deployed now: an event names its workflow's hash and not the tracker's version. |

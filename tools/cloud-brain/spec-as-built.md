@@ -3799,8 +3799,7 @@ A hidden tab does not poll.
 
 ### Not done
 
-- **The panel is in the notebook, not on cb4's page.** `brain-x-page` was not redeployed.
-- A page was not driven in a browser against cb4. The panel's test runs it against the simulated service.
+- (Done 12:24 CEST, below: the panel is on cb4's page and was driven there once, read-only.)
 - Licences, the topic `work` and claims, encrypted bodies, a push channel, filing by members, a key change as an event,
   `readers` named on a security issue, `assignee`.
 - `issue.install` with `migrate` appends one event an issue, two `db.sql` calls each: a migration of some hundreds of
@@ -3810,8 +3809,66 @@ A hidden tab does not poll.
   until the next rebuild.
 - `issue.verify?guards=true` reads the whole record in one call.
 - A guard cannot be dry-run: nothing lists the issues a new policy would strand before it is installed.
-- The panel's test waits 300 ms for the form's write where it should await it.
 - The last events of the record removed, or a whole record rewritten with the key, is not shown by anything.
+
+### Issues after its fresh review, 13 findings (2026-10-10 12:24 CEST): `brain-x-issues` `c1c684bb28ae`
+
+A fresh agent reviewed `@tomlarkworthy/brain-issues` and answered FIX. It ran the module's own rig in headless Chromium:
+11 findings came with a probe's output, 2 with a trace. Each was read in the source before it was changed.
+
+```
+a key reused by another caller        200 with the first event, a security issue's body in it   -> { id, seq, duplicate }, no event
+label remove major, by a token        200, then pass to done with no approval                   -> the owner present (default policy)
+narrow reject "false", owner rejects  403 "this issue's guard 3 on reject refuses"              -> owner-reject goes ahead
+install, migrate to a missing state   403, and the policy already in force                      -> 400 before the policy event
+review block, then another's pass     200 done                                                  -> "the guard of pass refuses" (default policy)
+get?id=constructor                    200 { hidden: true }                                      -> 404
+two Brains, one kept copy             the panel listed the other Brain's issue                  -> a copy for each address; reset when its head is not the record's
+a sync applied an event               0 input events on issuesView                              -> 1
+the prose's example policy            refused by issuePolicyAct                                 -> the cell issuesExamplePolicy, installed by a test
+https://… typed into Refs             kind "https", value "//…"                                 -> kind "url", whole
+the panel's test                      a 300 ms wait, a timer left                               -> awaits the write, ends its panels
+5000 and 200 in three places          -                                                         -> issuesLimits.syncMs, syncPage
+three prose rows                      differed from the code                                    -> reworded; where the signing key comes from is in the module
+```
+
+- `issue.install` now checks the owner present before it reads the policy, and a `null` body is 400 (it was 500).
+- `issue.sync` takes `head`: when it is not the hash of event `after`, the answer is `reset`. With `after` at the record's
+  head that costs no call; behind the head, one `db.sql` call more. A hidden event's stub now carries its `hash`, so the
+  page's head follows it.
+- Tests: 9 of 9, forced cell by cell in a headless QA tab (`issues-qa`, closed by name), before the deploy. The deploy was between 12:04 and 12:22 CEST; its time was not read.
+- **The replay under the new code.** Fixes 3 and 8 change how a move is judged. `issue.verify?guards=true` over the 16
+  events written under `7539488939bc`: `ok`, 16 checked. No event was a pass beside a block or a move past a narrowed
+  guard, so nothing is judged differently. That is luck of the record, not a property: an event still names its
+  workflow's hash and not the tracker's version.
+
+**A corrected policy is installed on cb4, by Claude, at Tom's word.** Tom, 2026-10-10: "please install the upgraded
+policy, give me something to approve". Event 17 is `issuesDefaultPolicy` as it is now (fixes 2 and 8 are policy), with
+`migrate` naming the three hashes of event 12; event 18 moves `test-escalated`, the one open issue, onto the new
+`security` hash at `triaged`. The call was made with `brain.ts` and this checkout's owner session, so the record reads
+it as the owner present. The policy event has no field for a reason: who made it is said here and in the body of the
+issue below.
+
+**An issue waits for Tom's approval**: `review-fixes-13`, kind `task`, label `major`, about `brain-x-issues`, events 19
+to 25. Opened, triaged and made ready from the owner session; started and submitted under the token
+`issues-implementer-1010` (`delegation:64cb6196a7c4`) with refs to lopecode-dev `b629bef8`, lopebooks `811504e2` and
+`brain-x-issues@c1c684bb28ae`; reviewed `pass` and moved to `awaiting-approval` under `issues-reviewer-1010`
+(`delegation:3cdd9ae8c614`). Refused on the way, each 403: the implementer's own review, the reviewer's pass to `done`,
+the reviewer's approve, the reviewer taking `major` off. Both tokens are Claude, in one session, and were revoked.
+`issue.verify?guards=true`: `ok`, 25 checked (12:24 CEST). The install is at 12:22:52 and the last move at 12:23:30 by the events' `at`.
+
+**The panel is on cb4's page, and was driven there once.** No deploy of `brain-x-page` was needed: the shell loads the
+module from `brain-x-issues`. A headless QA tab at
+`https://cb4.endpointservices.workers.dev/#view=C100(S100(@tomlarkworthy/brain-issues))`, signed in with the owner
+session handed over a one-time loopback path, listed the four issues with `review-fixes-13` first; with that row
+chosen the buttons were `done` (enabled: the approve move), `rejected` (disabled, "the guard of owner-reject refuses":
+no reason typed) and `swap: escalate` (disabled). Nothing was pressed. Tab closed by name.
+
+Health after: lease held, `redistil` 20 of 20 `same`, no browsers, no containers, no lock, no token left.
+
+Not done: the fixes have had no fresh review of their own. The approve button was not pressed, so a write from the
+page to cb4 has not been made. `issue.rebuild` against concurrent writes, a large `migrate`, and an `unattended` link
+token against `caller.present` are as before.
 
 ### After step 3's fresh review (2026-10-10 12:03 CEST): `brain-core` `675435235fdd`, `brain` `7433e97325d9`
 
