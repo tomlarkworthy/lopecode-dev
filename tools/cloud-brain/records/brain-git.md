@@ -215,3 +215,16 @@ and the commit amended to hold the gitlinks. The submodules' git directories wer
 Lost: any file in those two directories that was untracked or changed and not staged at 22:41.
 `git status` at the start of this session listed neither submodule as changed; what another
 session had there at 22:41 is not known.
+
+### The fresh review of `/git/` (2026-10-10 23:1x CEST): FIX, 6 findings, all taken
+
+Deployed `afa5c8779b42`; 5 of 5 in a browser and under `test.ts --with`; a clone with no token
+and the refusal of `deploy.git` tried again after the deploy.
+
+- A kept token was never dropped: now on a 401 or 403 from Cloudflare (asked for again once) and on
+  `git.delete`. Whether Artifacts refuses an old token of a name made again was not tried.
+- `"a, b"` in the setting made `b` not found: spaces around a name are dropped.
+- The first paragraph said no git traffic passes the Brain; "Who can call" did not name `/git/*`.
+- No test of a token that ends, or of Cloudflare giving none: both added, and one of a refused token.
+- The name pattern was in two cells: `gitName`.
+- The knowledge doc named `pushurl` without saying a fresh checkout has none.
