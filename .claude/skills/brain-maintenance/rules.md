@@ -41,7 +41,7 @@ asks for anything in "Never" below is commented on and left for the owner.
   `<role>/<issue id>/<what>`, with a number after it for a second round.
 - Commit, build or push in the main checkout only while holding the landing lock,
   `tools/cloud-brain/.emitted/land.lock` (`mkdir`, and `rmdir` when done). A writer's own edits and
-  builds are in its worktree (`tools/cloud-brain/worktree.sh <id>`) and need no lock. Tests are run
+  builds are in its worktree (`tools/cloud-brain/worktree.sh <id>`) and need no lock. A seed's tests are run
   in that worktree's `cloud-brain-dev/` first (what cb4 runs, read by `sync.ts`), then in a browser.
   Nothing under a `deploy/` directory is edited to make a change, or committed when it is a service's.
 - Deploy under the lock: `mkdir tools/cloud-brain/.emitted/cb4.lock`, apply, `rmdir`. If the

@@ -10,10 +10,24 @@
 set -e
 # The main checkout, also when the copy that runs is a worktree's own.
 ROOT="$(dirname "$(git -C "$(dirname "$0")" rev-parse --path-format=absolute --git-common-dir)")"
-if [ "$1" = "--remove" ]; then git -C "$ROOT" worktree remove --force "$ROOT/.claude/worktrees/bm-$2"; git -C "$ROOT" branch -D "bm/$2" >/dev/null; git -C "$ROOT/cloud-brain-dev" worktree prune; exit 0; fi
+if [ "$1" = "--remove" ]; then git -C "$ROOT" worktree remove --force "$ROOT/.claude/worktrees/bm-$2"; git -C "$ROOT" branch -D "bm/$2" >/dev/null; [ -e "$ROOT/cloud-brain-dev/.git" ] && git -C "$ROOT/cloud-brain-dev" worktree prune; exit 0; fi
 MODS="lopebooks lopecode"
 # The submodules are empty in a worktree; the tools read notebooks from them. Linked, never written: build.ts refuses its default --out here.
 link() { for m in $MODS; do [ -L "$W/$m" ] || { rmdir "$W/$m" 2>/dev/null || true; ln -s "$ROOT/$m" "$W/$m"; }; done; }
+# cloud-brain-dev is a worktree of its own, not a link: sync.ts makes deploy/ again from nothing, and a writer's
+# test.ts must not read it while another writer's sync is half way. It is put at the commit this worktree's HEAD
+# names, and what the Brain runs is read into it (about 1 s). Also after a rebase, and for a worktree made before this.
+dev() {
+  [ -e "$ROOT/cloud-brain-dev/.git" ] || return 0
+  local at; at="$(git -C "$W" ls-tree HEAD cloud-brain-dev | awk '{print $3}')"
+  if [ ! -e "$W/cloud-brain-dev/.git" ]; then
+    git -C "$ROOT/cloud-brain-dev" worktree prune
+    git -C "$ROOT/cloud-brain-dev" worktree add -q --detach "$W/cloud-brain-dev" "$at" >&2
+  elif [ "$(git -C "$W/cloud-brain-dev" rev-parse HEAD)" != "$at" ]; then
+    git -C "$W/cloud-brain-dev" checkout -q --detach "$at" >&2
+  fi
+  (cd "$W/cloud-brain-dev" && bun sync.ts "https://${BRAIN_BASE:-cb4}.endpointservices.workers.dev" >&2) || echo "worktree.sh: sync.ts failed; run it in $W/cloud-brain-dev" >&2
+}
 stopped() { [ -d "$GD/rebase-merge" ] || [ -d "$GD/rebase-apply" ]; }
 # A commit made with `git commit -a` or `git add -A` here records the link, or nothing, where the submodule was.
 gitlinks() { for m in $MODS; do [ "$(git -C "$W" ls-tree HEAD "$m" | cut -c1-6)" = 160000 ] || { echo "worktree.sh: a commit of bm/$ID has $m as something other than the submodule; take that path out of the commit (git add the files by name, never -a or -A)" >&2; return 1; }; done; }
@@ -40,6 +54,7 @@ if [ "$1" = "--rebase" ]; then
   read -r WAS ONTO < "$KEPT"; rm "$KEPT"
   [ "$(git -C "$W" merge-base HEAD "$ONTO")" = "$ONTO" ] || { echo "worktree.sh: bm/$ID is not on main; git said why above" >&2; exit 1; }
   gitlinks
+  dev
   git -C "$W" diff --name-only "$WAS" "$ONTO"
   exit 0
 fi
@@ -47,13 +62,7 @@ ID="$1"; W="$ROOT/.claude/worktrees/bm-$ID"
 [ -d "$W" ] || git -C "$ROOT" worktree add -q "$W" -b "bm/$ID" main
 mkdir -p "$W/tools/cloud-brain/.emitted"
 [ -e "$W/tools/node_modules" ] || ln -s "$ROOT/tools/node_modules" "$W/tools/node_modules"
-# cloud-brain-dev is a worktree of its own, not a link: sync.ts makes deploy/ again from nothing, and a writer's
-# test.ts must not read it while another writer's sync is half way. What the Brain runs is read into it here (about 1 s).
-if [ ! -e "$W/cloud-brain-dev/.git" ] && [ -e "$ROOT/cloud-brain-dev/.git" ]; then
-  git -C "$ROOT/cloud-brain-dev" worktree prune
-  git -C "$ROOT/cloud-brain-dev" worktree add -q --detach "$W/cloud-brain-dev" HEAD >&2
-  (cd "$W/cloud-brain-dev" && bun sync.ts "https://${BRAIN_BASE:-cb4}.endpointservices.workers.dev" >&2) || echo "worktree.sh: sync.ts failed; run it in $W/cloud-brain-dev" >&2
-fi
+dev
 GD="$(git -C "$W" rev-parse --absolute-git-dir)"
 # While a rebase is stopped the links stay out: `git rebase --continue` fails on them.
 stopped || link

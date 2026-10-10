@@ -40,7 +40,8 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    directory in a worktree when solving tasks"). It is a worktree of the repository
    `cloud-brain-dev`, yours alone, and `worktree.sh` has read what cb4 runs into its `deploy/`
    (about 1 s; `bun sync.ts https://cb4.endpointservices.workers.dev` there reads it again and
-   loses any edit under `deploy/`). `bun test.ts <worker>` there runs that service's tests as
+   loses any edit under `deploy/`; `worktree.sh --rebase <id>` does it too, and gives a worktree
+   made before 2026-10-10 23:10 its `cloud-brain-dev/`). `bun test.ts <worker>` there runs that service's tests as
    deployed, with no browser, in about 2 s; `--with FILE` runs your built module in its place.
    `git status` fails in the worktree (`lopebooks` and `lopecode` are links); `git diff`, `git add <file>`
    and `git commit` work. Never `git commit -a` or `git add -A` there: the commit records the
@@ -62,7 +63,7 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    you hold: a second press before the answer, a write that is refused (also one that would have
    taken its row off the page), two answers that arrive out of order, and another caller's event
    on the row while its box has the caret. One the change does not meet goes in "not tried" by name.
-7. **Build and test in the worktree, with no browser, until it passes.** One command a round (2.3 s for `brain-static`, 2026-10-10 23:40):
+7. **Build and test in the worktree, with no browser, until it passes.** One command a round (2.3 s for `brain-static`, 2026-10-10 23:10):
    ```
    cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html \
      && bun tools/lope-reader.ts tools/cloud-brain/.emitted/cloud-brain.html --get-module @tomlarkworthy/<module> > tools/cloud-brain/.emitted/<id>.js \
@@ -76,7 +77,7 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    - It runs a module's tests one at a time. The owner's page runs them together, and two tests
      that read the log at once took each other's lines there.
    - `--with` puts one module in place. A change to a module others import (`cloudflare-iac`)
-     is not in the services it runs; for those, step 8 on each service it could change.
+     is not in the services it runs; for those, step 8 on each service it could change. A Worker of two modules (`brain-deployer`) takes the module's name in place of `<worker>`.
    `bun tools/lope-tests.ts <notebook> --filter test_<service>` is the older runner of the same
    cells (`--report <path>` writes CTRF); use it when `test.ts` cannot load the module.
 8. **Run the module's tests in a browser, once it passes in step 7.** The count you submit is
@@ -120,7 +121,7 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
      the notebook, `git add` each file by name, and run the same command again.
    - **If the rebase changed what your module is built from** (the files it printed
      name your seed, a seed it imports, `cloudflare-iac*.ojs` or `build.ts`), run steps 7 and 8
-     again in the worktree, after `bun sync.ts …` in `$W/cloud-brain-dev` (another writer has deployed). Another service's seed, a record, `seen.json` or a doc does
+     again in the worktree (the rebase has read what cb4 runs again: another writer has deployed). Another service's seed, a record, `seen.json` or a doc does
      not count. The count you submit is the last run you made.
    - **Record it** in a file of the issue's own, `tools/cloud-brain/records/<id>.md` (follow
      `.claude/skills/document/SKILL.md`): what changed, the test count, what was not tried. A
@@ -156,10 +157,12 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
     - Commit `lopebooks` first (its hook may rewrite the `.json` beside the notebook; stage that
       and commit again), then `seen.json` and the `lopebooks` pointer in `lopecode-dev`. Push both.
     - With no deploy: lock, rebase, `merge --ff-only`, push, unlock. No build, apply or `lopebooks` commit.
-    - After a deploy, before the worktree goes: `cd $W/cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev && bun test.ts <worker>`.
+    - `rmdir …/land.lock`.
+    - After a deploy, with the lock gone and before the worktree goes: `cd $W/cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev && bun test.ts <worker>`.
       Its JSON line is the report of what now runs: `hash` is the hash you deployed, `failed` is 0.
       Put the line's counts in your comment. A `failed` here is a deployed defect: say so on the issue first.
-    - `rmdir …/land.lock`, then `tools/cloud-brain/worktree.sh --remove <id>`.
+      No JSON line: `sync.ts` printed `left out: <worker> …` (another deploy of it is under way); run both again.
+    - `tools/cloud-brain/worktree.sh --remove <id>`.
       If you stop for any reason while holding the lock, remove it first and say so in your report.
 11. **Check it where it runs**, after the lock is gone, when that needs no owner act: one call
     that shows the new behaviour on cb4. When it needs one (`issue.rebuild`, `issue.install`, a move the workflow

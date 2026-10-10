@@ -34,7 +34,7 @@ You change no source, build nothing and deploy nothing. You write to the tracker
    2026-10-10, 8 lines): the `main.define("module …", [], async …)` lines lack the `[]` in the
    deployed text. Any other difference is a finding: `redistil` compares the Worker with the
    source the deployer keeps, so it reads `same` for text that was edited by hand.
-4. **Run the tests yourself.** First what runs, with no browser (about 5 s; since 2026-10-10 23:40):
+4. **Run the tests yourself.** First what runs, with no browser (about 5 s; since 2026-10-10 23:10):
    ```
    git -C cloud-brain-dev worktree add -q --detach <your scratchpad>/cbd-<id> HEAD
    cd <your scratchpad>/cbd-<id> && bun sync.ts https://cb4.endpointservices.workers.dev && bun test.ts <worker>
