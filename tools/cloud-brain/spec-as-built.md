@@ -3804,7 +3804,7 @@ A hidden tab does not poll.
 - A guard cannot be dry-run: nothing lists the issues a new policy would strand before it is installed.
 - The last events of the record removed, or a whole record rewritten with the key, is not shown by anything.
 
-### After step 3's fresh review (2026-10-10)
+### After step 3's fresh review (2026-10-10 12:03 CEST): `brain-core` `675435235fdd`, `brain` `7433e97325d9`
 
 FIX, eight findings, read against the source and held.
 

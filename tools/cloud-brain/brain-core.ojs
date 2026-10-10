@@ -52,7 +52,7 @@ xrpc.fetch("com.lopecode.brain.m.0a1b.shop.receive", { method: "POST", headers: 
 - It begins a chain of its own: the origin is the maker, and the origin of whatever the Worker was answering is not read. \`x-brain-hops\` says how long the chain already is; the core adds one, sends it on with each forwarded call, and refuses a chain over 8.
 - \`daily\` is the most the chain may spend in a UTC day, counted beside the maker's own allowance. \`delegation.list\` shows \`spentToday\`. Calls made at the same moment can pass it by the price of those calls; the maker's allowance is exact.
 - A member's delegations are deleted when the member is removed.
-- A secret holder (a token made from 2026-10-10) sends the secret to the kernel as \`Authorization: Bearer\`. Its calls are the owner's: the owner's rules and allowance, \`caller.holder\` is \`secret\`. It is the owner's own tab only with the cap \`session\`; without it what it makes in a store is kept under \`d:<id>\`. \`deploy\` and \`unattended\` are read by the kernel for \`infra.*\`.
+- A secret holder (a token made from 2026-10-10) sends the secret to the kernel as \`Authorization: Bearer\`. Its calls are the owner's: the owner's rules and allowance, \`caller.holder\` is \`secret:NAME\` and \`caller.token\` is \`NAME\`. It is the owner's own tab only with the cap \`session\`; without it what it makes in a store is kept under \`d:<id>\`. \`deploy\` and \`unattended\` are read by the kernel for \`infra.*\`.
 - A holder that takes a delegation's id from a caller must check that the caller made it (\`from\`). An id is not a secret.
 
 **Origin.** A rule reads \`caller\`, who made the call, and \`origin\`, who started the chain of calls it is part of. The two have the same fields. For a call from outside they are equal. When a Worker makes a call while it answers one, \`caller\` is the Worker and \`origin\` is the origin of the call it answers. A call a Worker makes by its own schedule has the Worker as \`origin\`. For a member's Worker \`caller\` is its author, and so is \`origin\` when it answers nobody.
@@ -222,7 +222,7 @@ coreApp = {
   //   price   US dollars, when the method has a price
   //   rule    allow, deny or error; by: what decided. manifest (the service's rule), owner (the owner's rule),
   //           fixed (a rule the service fixed), calls (what a Worker declared), grant (a member's), core (its own methods),
-  //           delegation (a call with x-brain-as that was refused)
+  //           delegation (a call with x-brain-as, or a token's call from the kernel, that was refused)
   const errorOf = (c, res) =>
     c.get("error") || (res.status >= 400 && /json/.test(res.headers.get("content-type") || "") ? res.clone().json().then((b) => (b && typeof b.error === "string" ? b.error.slice(0, 80) : null), () => null) : null);
   const say = async (c, started, status, error) => {
@@ -301,7 +301,7 @@ coreApp = {
     if (!d || !d.holder || !d.holder.secret) return fail(c, 401, "AuthRequired", "unknown token");
     const no = await stands(c, d);
     if (no) return no;
-    c.set("who", { caller: d.from, via: "delegation:" + d.id, tab: d.caps.includes("session"), holder: "secret", d: d.id, hops: 0 });
+    c.set("who", { caller: d.from, via: "delegation:" + d.id, tab: d.caps.includes("session"), holder: "secret:" + d.name, d: d.id, hops: 0 });
     return null;
   };
   // A Worker calls what its service declared in `calls`, and what a platform cell calls for it (IMPLICIT). The list is
@@ -995,7 +995,8 @@ ${deployed.join("\n\n")}
   app.post(NS + "delegation.resolve", async (c) => {
     const w = c.get("who"), { sha256: hash } = (await c.req.json().catch(() => null)) || {};
     if (!(w.kernel && w.caller === "kernel")) return fail(c, 401, "AuthRequired", "the kernel");
-    const id = typeof hash === "string" && /^[0-9a-f]{64}$/.test(hash) ? await settings.get("holder/secret/" + hash) : null;
+    // Read with no memory: anyone can send a bearer nobody made, and settings would keep an entry for each.
+    const id = typeof hash === "string" && /^[0-9a-f]{64}$/.test(hash) ? await rows.get("holder/secret/" + hash) : null;
     const d = id ? await settings.get("delegation/" + id) : null;
     return c.json({ delegation: d && d.holder.secret === hash ? d : null });
   });
@@ -1969,7 +1970,11 @@ test_a_token_is_a_delegation_with_a_secret_holder_that_the_kernel_resolves = {
   // The kernel passes the call on with the id. It is the owner's, and not in their tab, whatever else the kernel said.
   const sent = (id) => (m, body) => rig.as("token:laptop", "session")(m, body, { "x-brain-delegation": id });
   expect((await sent(t.id)("shop.receive", {})).status).toBe(200);
-  expect(heard.at(-1)).toMatchObject({ caller: "owner", via: "delegation:" + t.id, tab: "0", holder: "secret", origin: "owner", "origin-tab": "0" });
+  expect(heard.at(-1)).toMatchObject({ caller: "owner", via: "delegation:" + t.id, tab: "0", holder: "secret:laptop", origin: "owner", "origin-tab": "0" });
+  // A rule reads the token's name, as it did of a token made before.
+  await rig.owner("rule.put", { target: B + "shop.tab", allow: 'caller.token == "laptop" && caller.holder == "secret:laptop"' });
+  expect((await sent(t.id)("shop.tab", {})).status).toBe(200);
+  await rig.owner("rule.put", { target: B + "shop.tab", allow: "caller.session" });
   // Not the session guard of a rule or of the core, not out of its scope, and never a delegation method.
   expect([(await sent(t.id)("shop.tab", {})).status, (await sent(t.id)("rule.list")).status, (await sent(t.id)("delegation.list")).status, (await sent("0123456789ab")("shop.receive", {})).status]).toEqual([401, 403, 403, 401]);
   // Only the kernel's key sends the header: from a Worker it is not read, and the Worker is itself.
