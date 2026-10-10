@@ -4105,6 +4105,29 @@ and 24 installs refused" (22 before, counted by the cell). Deployed 13:33 CEST u
 42 and 43 and is at `in-review` again by event 44 (under `issues-implementer-2`), with those commits and the Worker
 hash as refs. Not reviewed yet.
 
+### Three bugs fixed from another session, reviewed here (2026-10-10 16:00 CEST): `brain-x-issues` `bee926e17a78`
+
+Eight bugs were filed as issues on cb4 (events 47 to 54, kind `bug`). A session holding the token
+`delegation:6749db53ba2f` took three of them from `open` to `in-review` (events 55 to 69, 15:41 to 15:48 CEST) and
+deployed twice, `2735c3bb57cf` -> `f0cad0570837` -> `bee926e17a78`. Its notes say the tests were not run ("no
+notebook runtime"; `node --check` only). It deployed the compiled module edited by hand: nothing was committed to
+the seed, and one `md` cell keeps the name of its old text (`_brainissues_anon_1a300b870b`).
+
+| issue | change |
+|---|---|
+| `install-lost-view-bad-policy` | `issue.install` checks the lost view (503 `ViewLost`) before it reads the policy. |
+| `test-sort-no-comparator` | `.sort((a, b) => a - b)` in one test. |
+| `policy-event-no-reason` | `issue.install` takes `reason`, optional, text of `issuesLimits.reason` (2000) characters at most; it is kept in the policy event under its hash. Left out, the event is as before. |
+
+Done here: `getSource?worker=brain-x-issues` diffed against the build (7 hunks), each put into
+`brain-issues.ojs`, built. The build then differs from what runs in two ways and no others: the name of that `md`
+cell and the order of one test's inputs. Tests 10 of 10 in the QA tab `issues-review` (closed by name), which is
+their first run. `brain.ts saw brain-x-issues` records `bee926e17a78`. Nothing was deployed from this checkout,
+so the Worker still keeps the hand-edited text; the next apply of this seed replaces it.
+
+Not tried on cb4: an install with a reason (an install is the owner's act), and the lost view.
+Open for the owner: whether `reason` is required.
+
 ## Authority, step 5 of 7: the old rows are moved (2026-10-10 12:32 CEST)
 
 `brain-core` `f5bd26a33b83`, `brain` `8144becfacae`. Core 32 tests, kernel 26.

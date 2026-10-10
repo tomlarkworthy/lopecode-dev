@@ -99,3 +99,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   checking the key before the body and removing an input form, not a further patch. Recorded as `pass` on
   `review-fixes-2` on cb4 (events 45, 46). No reviewer could run `lope-browser-runner.ts --run-tests`
   (`chromium_headless_shell-1200` has no executable); each ran the cells by hand in build 1234.
+- 2026-10-10 `brain-issues` as deployed by another session (`bee926e17a78`, three bug fixes, read through
+  `getSource` and diffed against the build): reviewed by the session that wrote the module, not a fresh agent.
+  PASS, 0 defects in the code, 2 about the process (tests never run; compiled module edited by hand, seed not
+  committed). Tests 10 of 10 after the port. Recorded as `pass` on the three issues on cb4.
