@@ -4012,12 +4012,14 @@ BLOCK, six findings, all taken.
 
 On cb4 the seven rows were moved at 12:32 with the first code, with a random id each and no name taken (eight names, all different, in `token.list`).
 
+After the review of step 5 the two were deployed again: `brain-core` `be88df64837c`, `brain` `027284b52877`, 12:45 CEST. The six-line run of step 6 below is from the code before that (12:41); `grant.put`, `grant.list` and `grant.delete` were run again at 13:00 on the code of step 7.
+
 ## Authority, step 6 of 7: a grant is a delegation (2026-10-10 12:41 CEST)
 
 `brain-core` `b68bebad811f`, `brain` `fbc1a80ce059`. Core 33 tests, kernel 26. Tom, 2026-10-10: "yes do step 4 and the whole thing please", taken as yes to the design's recommended choices, of which this is the second.
 
 - **The core.** `delegation.create { name: "grant", holder: { did }, scope }`: the owner's own session alone, whole method names, none of the never kind or of `member.*`, no caps, no `until`, no `daily`. One for a DID: a second deletes the first. Rows `delegation/<id>` and `holder/did/<did>`. `delegation.resolve { did }` answers it to the kernel. What a member may call (`asAuthor` for their Worker, `mayNow` for their delegations, the scope check of `delegation.create`) reads that row, and the methods a kernel from before sends with `people.sync` when there is none.
-- **The kernel.** `grant.put`, `grant.list` and `grant.delete` call the core as the owner's session and keep no row. The five reads of `grant/<did>` (a JWT from a DID that is no member, the cap of a room, the gate, `people.list`, `people.remove`) ask the core. `people.remove` revokes the grant. `people.sync` sends who is a member and not what each was granted. A `grant/` row from before is made in the core when that DID next calls or grants are listed, and deleted.
+- **The kernel.** `grant.put`, `grant.list` and `grant.delete` call the core as the owner's session and keep no row. The reads of `grant/<did>` (a JWT from a DID that is no member, the cap of a room, the gate, `people.list`, `grant.list`) ask the core; `people.sync` no longer reads it. `people.remove`, which deleted the row, revokes the grant. `people.sync` sends who is a member and not what each was granted. A `grant/` row from before is made in the core when that DID next calls or grants are listed, and deleted.
 - **A call by a DID is as it was**: the caller is the DID, by session, PDS or turn, and nothing says "delegation".
 
 Cost: one call to the core for each call a DID makes, where the kernel read its own row. Not measured.
@@ -4035,5 +4037,57 @@ grant.delete                     {"deleted":true}; grant.list {"grants":[]}
 
 **Not run on cb4:** a call by a DID that has a grant (the one member of cb4 is a person's account, and the test account `--other` is not a member: its `quota.get` answers 403 "has no grant", as before this step). While the core does not answer, a DID's granted method is refused 403 "has no grant", which is the wrong word for it.
 
+**Order of deploy:** the core first. A kernel of step 6 with a core of step 5 gives every granted DID 403 "has no grant", and its next `people.sync` empties what the old core kept. The core is not put back alone.
 
-After the review of step 5 the two were deployed again: `brain-core` `be88df64837c`, `brain` `027284b52877`, 12:45 CEST.
+### After step 6's fresh review (2026-10-10)
+
+FIX, eight findings, all taken; one has no fix and is recorded.
+
+- **A deleted grant was still honoured by the core** for a member's Worker and delegations, on a Brain where a kernel from before had sent `methods` with `people.sync`: `grant.delete` no longer told the core its people. `grant.put`, `grant.delete` and the move of an old row call `syncPeople()` again, which now sends no `methods`. Not reached on cb4, which had no grant.
+- **`delegation.resolve { did }` read through the 5 s memory**, which keeps an entry for each key asked, and the kernel asks for any DID a stranger's JWT names. It reads with no memory, as the hash branch does, and takes a DID of the shape `did:plc:` or `did:web:` only. Left: one call to the core for each stranger's JWT, where there was none.
+- **Two moves of one old grant at once** could leave two rows. A grant's id is the first 12 characters of the SHA-256 of its DID. The row that says who holds a delegation (`holder/did/`, `holder/secret/`) is deleted only when it names the delegation being dropped.
+- `grant.put` deleted the old row before the core answered; it deletes after a 200.
+- **Left as it is:** an old grant that the core refuses (over 50 methods, or a name that is not letters and digits between dots) stays a row and gives nothing, and `grant.list` does not show it. The kernel's reference says so. cb4 had none.
+- Five lines of the two references said what was true before this step; the count of reads above was wrong.
+
+## Authority, step 7 of 7: a delegation made under a delegation (2026-10-10 12:58 CEST)
+
+`brain-core` `eba1f4c655c0`, `brain` `f1687167cf41`. Core 34 tests, kernel 27. The third of the design's recommended choices.
+
+- **The cap `delegate`**, on a secret holder only. The owner or a member gives it (`delegation.create` in their own session). `session`, `deploy` and `unattended` stay the owner's to give.
+- **A token with it** calls `delegation.create`, `list` and `revoke`. The kernel lets those three through for it and no other method of the never kind; the core's `delegating` guard takes a person's own session or such a token.
+- **What it makes:** `from` the same person, `parent` its own id, held by a Worker or a secret, no caps, each scope entry inside the parent's, `until` no later, `daily` no more. `until` and `daily` are the parent's when the body names none; `null` under a parent that has one is refused. It lists and revokes what it made and nothing else.
+- **On each call under a child** the parent is read: gone, ended, without the cap or not reaching the method, the call is 403. Revoking a delegation with the cap deletes what was made under it.
+- **A member makes a token** (a secret holder) for what they may call. Step 3 refused that; the design had it.
+- `token.list` shows the owner's own tokens. A member's, and one made under another, are in `delegation.list`.
+
+Run on cb4 13:00, secrets held in shell variables and not printed:
+
+```
+owner: delegation.create s7-agent, secret, [knowledge.search], caps [delegate], until +30 min   200
+s7-agent: delegation.create s7-sub, secret, [knowledge.search]     200  parent = s7-agent's id, from owner, caps [], until inherited
+s7-sub:   knowledge.search?q=delegation                            200
+s7-sub:   delegation.list                                          403
+s7-sub:   quota.get (outside its scope)                            403
+s7-agent: delegation.create scope [inbox.list]                     403
+s7-agent: delegation.create caps [delegate]                        400
+s7-agent: delegation.list                                          s7-sub only
+s7-agent: token.list                                               403
+owner:    token.list                                               s7-agent, not s7-sub
+owner:    delegation.revoke s7-agent                               revoked
+s7-sub:   knowledge.search                                         401;  s7-agent: delegation.list 401
+owner:    delegation.list                                          no s7 row
+```
+
+Two runs before this one failed in the script and not in the Brain: the answer has `secret` twice (the hash in `holder`, the secret itself last), and the script took both lines as the token.
+
+**Limits, as the design has them:**
+
+- `daily` is each child's own. Ten children under a parent of $1 a day can spend $10 of the maker's money; the maker's allowance is what bounds the sum.
+- A child's name is one of its maker's names: a token is refused a name the owner has used and cannot list.
+- A parent that ends by `until` is deleted with its children when its maker next makes a delegation; until then the children are listed and refused.
+
+**Not run on cb4:** a child held by a Worker; a member's token (cb4's one member is a person's account). Both are in the core's test. **Not tested:** the 403 for a child whose parent row is gone while its own remains, which revoking no longer produces.
+
+Recorded 13:01 CEST.
+
