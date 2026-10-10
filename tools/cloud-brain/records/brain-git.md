@@ -228,3 +228,26 @@ and the refusal of `deploy.git` tried again after the deploy.
 - No test of a token that ends, or of Cloudflare giving none: both added, and one of a refused token.
 - The name pattern was in two cells: `gitName`.
 - The knowledge doc named `pushurl` without saying a fresh checkout has none.
+
+## The issue loop tests in cloud-brain-dev, in the writer's worktree (2026-10-10 23:10 CEST)
+
+Tom: "I think your job is to move the matinance skill to prefer using that directory in a
+worktree when solving tasks".
+
+- `worktree.sh <id>` now gives the worktree a `cloud-brain-dev/` of its own (a git worktree of
+  that repository, not a link) and runs `sync.ts` in it: 4.1 s for the whole script, 22 services.
+  Its own copy because `sync.ts` makes `deploy/` again from nothing. `--remove` prunes it.
+  Tried: create, `test.ts brain-x-git` (5 passed), `--rebase`, create again, `--remove`.
+- Implementer brief: step 7 is one command, build then `test.ts <worker> --with <built module>`
+  (2.3 s for `brain-static`); step 5 reproduces with it; after a deploy the writer syncs and runs
+  `test.ts <worker>` so the report carries the deployed hash. `lope-tests.ts` is the fallback.
+- Reviewer brief: the same check in a copy of its own before the tab. `rules.md`: one sentence.
+
+Kept, and why: the seed is still what is edited (`rules.md`: "Deploy text that was not built
+from a seed"); the count submitted is still the browser's (27 tests read a browser global, and
+`test.ts` runs tests one at a time where the owner's page runs them together); the emit still
+needs the tab, because the text `lope-reader --get-module` gives is not the text a tab emits and
+the deployer hashes the second. A command that sends a module back with no browser would remove
+the tab; it is not built.
+
+Not tried: a full issue worked by an agent under the new brief.

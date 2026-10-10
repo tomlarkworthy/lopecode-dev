@@ -15,6 +15,9 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    review, the reviewer's findings are the `reviewed` events; fix those and nothing else.
 2. **Read the code it is about.** The source of a service is its seed, `tools/cloud-brain/<name>.ojs`.
    The first `md` cell is its method reference. `spec-as-built.md` and `tools/cloud-brain/records/` have the history.
+   What runs on cb4, when that is the question, is in your worktree after step 4:
+   `$W/cloud-brain-dev/deploy/@tomlarkworthy/<module>.js`, with each Worker's hash in `deploy/services.json`.
+   It is for reading. A change is made in the seed.
 3. **Decide whether it is yours.** Stop, comment with what you found, add the label
    `needs-owner`, and report, when any of these is true:
    - the fix needs something in the Never list of the rules. A change to a `test_*` cell counts:
@@ -33,11 +36,18 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    time and `build.ts` in the main checkout rewrites the notebook every agent reads:
    `W=$(tools/cloud-brain/worktree.sh <id>)`. Steps 5 to 9 happen in `$W`. Tools that read the
    cluster (`brain.ts`, `issue-as.sh`) are always run from the main checkout by absolute path.
-   `git status` fails in the worktree (the submodules are links); `git diff`, `git add <file>`
+   **`$W/cloud-brain-dev` is where you test** (Tom, 2026-10-10: the loop is "to prefer using that
+   directory in a worktree when solving tasks"). It is a worktree of the repository
+   `cloud-brain-dev`, yours alone, and `worktree.sh` has read what cb4 runs into its `deploy/`
+   (about 1 s; `bun sync.ts https://cb4.endpointservices.workers.dev` there reads it again and
+   loses any edit under `deploy/`). `bun test.ts <worker>` there runs that service's tests as
+   deployed, with no browser, in about 2 s; `--with FILE` runs your built module in its place.
+   `git status` fails in the worktree (`lopebooks` and `lopecode` are links); `git diff`, `git add <file>`
    and `git commit` work. Never `git commit -a` or `git add -A` there: the commit records the
    links in the submodules' place, which the landing would take to `main`.
 5. **Reproduce before fixing**, where the issue describes behaviour: a test that fails for the
-   reason the issue gives. If you cannot reproduce it, say so on the issue and stop.
+   reason the issue gives. Write it in the seed and run it with step 7's loop: it fails against
+   what is deployed, before you change anything else. If you cannot reproduce it, say so on the issue and stop.
 6. **Fix it in the seed.** Never the notebook HTML, never the deployed text. Add or change a
    `test_*` cell in the same module so the defect cannot return unseen.
    When the fix is in a local tool and no seed (`brain.ts`, `tools/lope-tests.ts`), the test is a
@@ -52,10 +62,25 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    you hold: a second press before the answer, a write that is refused (also one that would have
    taken its row off the page), two answers that arrive out of order, and another caller's event
    on the row while its box has the caret. One the change does not meet goes in "not tried" by name.
-7. **Build** in the worktree, to a file of its own:
-   `cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html`.
-   Without `--out` it refuses there.
-8. **Run the module's tests in a browser.** Open a QA tab with a session name of your own
+7. **Build and test in the worktree, with no browser, until it passes.** One command a round (2.3 s for `brain-static`, 2026-10-10 23:40):
+   ```
+   cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html \
+     && bun tools/lope-reader.ts tools/cloud-brain/.emitted/cloud-brain.html --get-module @tomlarkworthy/<module> > tools/cloud-brain/.emitted/<id>.js \
+     && (cd cloud-brain-dev && bun test.ts <worker> --with $W/tools/cloud-brain/.emitted/<id>.js)
+   ```
+   `build.ts` refuses without `--out` there. `test.ts` prints a line a test and one line of JSON:
+   `passed`, `failed`, `needsBrowser`. It runs your module against the other modules as cb4 runs
+   them, so it also shows a change that only holds with another writer's undeployed work.
+   What it does not do, and step 8 does:
+   - A test that reads `document` or `location` is counted `needsBrowser`, never passed (27 of 311 on 2026-10-10).
+   - It runs a module's tests one at a time. The owner's page runs them together, and two tests
+     that read the log at once took each other's lines there.
+   - `--with` puts one module in place. A change to a module others import (`cloudflare-iac`)
+     is not in the services it runs; for those, step 8 on each service it could change.
+   `bun tools/lope-tests.ts <notebook> --filter test_<service>` is the older runner of the same
+   cells (`--report <path>` writes CTRF); use it when `test.ts` cannot load the module.
+8. **Run the module's tests in a browser, once it passes in step 7.** The count you submit is
+   this one, and the emit of step 9 needs the tab. Open a QA tab with a session name of your own
    (`qa_open_notebook`, headless, the notebook's file URL with
    `#view=C100(S70(<module>),S30(@tomlarkworthy/claude-code-pairing))&cc=<pairing token>&r=<new number>`),
    wait for `connected`, then `eval_code` with the tab's full URL as `notebook_id`:
@@ -81,16 +106,8 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    answers first unless the rig holds one. One it does not meet goes in "not tried" by name.
    `run_tests` hangs on this notebook; do not use it. Do not define the observers inside the
    module under test: they would be written into the deployed source.
-   Faster while working, about 2 s a service: the built module against what runs, with no browser
-   (since 2026-10-10 22:34; `cd <root>/cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev` first):
-   `bun tools/lope-reader.ts <notebook> --get-module @tomlarkworthy/<module> > /tmp/m.js && bun <root>/cloud-brain-dev/test.ts <worker> --with /tmp/m.js`.
-   It counts a test that draws a panel as `needsBrowser`, not as passed. The count you submit is still the browser's.
-   `bun tools/lope-tests.ts <notebook> --filter test_<service>` runs the same cells with no browser
-   (17 of 17 for the tracker at 2026-10-10 20:00; each test added raises it). Use it while working;
-   the count you submit is the browser's. Since bfd9ae46 (2026-10-10) it prints a thrown assertion
-   as failed with its message under the name, and `--report <path>` writes the same to a CTRF
-   file; a `timed out` there is a cell that did not settle in 10 s. The `bad` list of the snippet
-   above has the message in the tab.
+   The `bad` list has each failure's message. A count here that differs from step 7's
+   `passed + needsBrowser` goes in your comment with the names.
    In the worktree the notebook is `$W/tools/cloud-brain/.emitted/cloud-brain.html`. When the
    tests pass there, commit the seed in the worktree (`git add` the files, `git commit`).
 9. **Make it ready to land, still in the worktree and with no lock.** Since 2026-10-10 19:33 the
@@ -102,8 +119,8 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
      Exit 1 is a conflict: another writer changed the same lines. Resolve it in the seed, never in
      the notebook, `git add` each file by name, and run the same command again.
    - **If the rebase changed what your module is built from** (the files it printed
-     name your seed, a seed it imports, `cloudflare-iac*.ojs` or `build.ts`), build and run
-     step 8 again in the worktree. Another service's seed, a record, `seen.json` or a doc does
+     name your seed, a seed it imports, `cloudflare-iac*.ojs` or `build.ts`), run steps 7 and 8
+     again in the worktree, after `bun sync.ts …` in `$W/cloud-brain-dev` (another writer has deployed). Another service's seed, a record, `seen.json` or a doc does
      not count. The count you submit is the last run you made.
    - **Record it** in a file of the issue's own, `tools/cloud-brain/records/<id>.md` (follow
      `.claude/skills/document/SKILL.md`): what changed, the test count, what was not tried. A
@@ -139,6 +156,9 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
     - Commit `lopebooks` first (its hook may rewrite the `.json` beside the notebook; stage that
       and commit again), then `seen.json` and the `lopebooks` pointer in `lopecode-dev`. Push both.
     - With no deploy: lock, rebase, `merge --ff-only`, push, unlock. No build, apply or `lopebooks` commit.
+    - After a deploy, before the worktree goes: `cd $W/cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev && bun test.ts <worker>`.
+      Its JSON line is the report of what now runs: `hash` is the hash you deployed, `failed` is 0.
+      Put the line's counts in your comment. A `failed` here is a deployed defect: say so on the issue first.
     - `rmdir …/land.lock`, then `tools/cloud-brain/worktree.sh --remove <id>`.
       If you stop for any reason while holding the lock, remove it first and say so in your report.
 11. **Check it where it runs**, after the lock is gone, when that needs no owner act: one call

@@ -34,7 +34,16 @@ You change no source, build nothing and deploy nothing. You write to the tracker
    2026-10-10, 8 lines): the `main.define("module …", [], async …)` lines lack the `[]` in the
    deployed text. Any other difference is a finding: `redistil` compares the Worker with the
    source the deployer keeps, so it reads `same` for text that was edited by hand.
-4. **Run the tests yourself**, in a QA tab under a session name of your own, with the snippet in
+4. **Run the tests yourself.** First what runs, with no browser (about 5 s; since 2026-10-10 23:40):
+   ```
+   git -C cloud-brain-dev worktree add -q --detach <your scratchpad>/cbd-<id> HEAD
+   cd <your scratchpad>/cbd-<id> && bun sync.ts https://cb4.endpointservices.workers.dev && bun test.ts <worker>
+   ```
+   A copy of your own, because `sync.ts` makes `deploy/` again and a writer may be reading the
+   shared one. The JSON line's `hash` is the deploy ref's, or a later one as in step 3; `failed`
+   is 0. `needsBrowser` tests were not run by it. Remove the copy when done
+   (`git -C cloud-brain-dev worktree remove --force <path>`).
+   Then the count you report, in a QA tab under a session name of your own, with the snippet in
    `agents/implementer.md` step 8. Other agents land changes while you review, so test the
    notebook of the commit, not the working file:
    `git -C lopebooks show <sha>:"notebooks/@tomlarkworthy_cloud-brain.html" > <your scratchpad>/nb-<id>.html` (the scratchpad is shared with the other reviewer: the issue id keeps the files apart)
