@@ -3870,6 +3870,76 @@ Not done: the fixes have had no fresh review of their own. The approve button wa
 page to cb4 has not been made. `issue.rebuild` against concurrent writes, a large `migrate`, and an `unattended` link
 token against `caller.present` are as before.
 
+### Issues after the review of the 13 fixes, 8 findings (2026-10-10 12:46 CEST): `brain-x-issues` `1a8235778cf8`
+
+**Tom approved `review-fixes-13` from the page.** Event 26, 12:37:04 CEST by its `at`: `moved`, `approve`,
+`awaiting-approval` to `done`, `by: { caller: "owner", via: "session", tab: true }`. It is the first write made from
+the panel to cb4, and the first event of the record that the owner made at a keyboard. `issue.verify?guards=true`
+after it: `ok`, 26 checked.
+
+A fresh agent then reviewed the changes since `5e9a20b6` and answered FIX, 8 findings. It ran scratch probes on the
+module's own cells. Each finding was read in the source before it was changed.
+
+```
+install with migrate, an issue closed meanwhile   swapped back to an open state, listed in moved  -> the swap names where it takes the issue from; refused, and in left
+install with migrate, an issue opened meanwhile   stayed on the old workflow (not run by the reviewer) -> the plan is read again after the policy event; moved
+a 92 character key, two ids alike to the cut      one swap event, both ids in moved                -> the key is policy/<seq>/<id>; in moved only when written
+open { parent: <an issue not read> }               200, and the parent held back from ready         -> 404 "no such parent"
+a refused first write into an empty record        404, and the default policy written as event 1   -> judged first against the default; nothing written
+install under a key an open holds                 200 { seq: 2, moved: [], duplicate: true }       -> 400 "key: another event has this key"
+the panel                                         no prose                                         -> one cell under it: filters, a row, Refs, the kept copy, the options
+"Present is not exact yet"                        said an unattended link's token passes           -> "Who is present": no token does (below)
+the issue.verify row, a comment in draw           left out guards and checked; "viewof issuesView" -> corrected
+```
+
+- **`issue.install` in three steps.** The migration is checked whole before the policy is written, as before. Once it
+  is written the open issues of each old workflow are read again, and an issue that cannot land then is put in `left`
+  with why, not refused: the policy is in force by then. Each swap carries `from`, and `issueAllowed` refuses a swap
+  whose `from` is not where the issue is; the replay judges the same field, so a swap written past the service with
+  another `from` is named. The answer is `{ seq, hashes, moved, left }`.
+- **A duplicate install moves nothing.** A key that a policy event holds answers that event and runs no plan. So a
+  migration cut short by a failure is not finished by sending the install again; the owner swaps what is left
+  (`issue.swap { id, workflow, state }`). Not changed, by choice: a second install under one key with another policy
+  would otherwise migrate under a policy that was never written.
+- **The view read for an open** now holds the parent's children too (`near` has `OR parent = ?2`), so a `read` guard
+  that counts children is judged as the replay judges it.
+- **Who is present, read in what cb4 runs.** `getSource` of the kernel (`fbc1a80ce059` at 12:35 CEST, `82bc8520a7bd`
+  at 12:47) and the core (`b68bebad811f`, then `be88df64837c`): a bearer is resolved to a delegation, the core names
+  the call `via: "delegation:" + d.id`, and the cap `session` sets `tab` and nothing else. `caller.present` needs the
+  via `session`, so no token passes, an `unattended` link's among them. Not tried with such a token. What passes with
+  nobody at a keyboard is unchanged: a session minted from the state file.
+- Tests: 10 of 10, forced cell by cell from a side module in a headless QA tab (`issues-qa`, closed by name).
+  `test_issues_migrate_moves_what_is_still_there` is new: another writer opens one issue as the policy is written and
+  closes another as the first swap is written.
+- **On cb4 after the deploy (12:46 CEST):** `issue.verify?guards=true` `ok`, 30 checked, under the new code: no old
+  event is an open under a parent its opener could not read, or a swap from elsewhere than its issue was. A token's
+  `issue.open { parent: "test-escalated" }` (a security issue it does not read): 404 `no such parent`, nothing written.
+  Lease held, `redistil` 20 of 20 `same`, no browsers, no containers, no lock.
+
+**This work is an issue of the tracker, made without the owner's session.** `review-fixes-2`, kind `task`, not
+`major`, events 27 to 31: opened, triaged, made ready, started and submitted (refs: lopecode-dev `7782ac73`, lopebooks
+`aeb9e6bd`, `brain-x-issues@1a8235778cf8`) under the token `issues-implementer-2`. The default policy lets a token do
+each of those; the owner's session was used only to make the two tokens (`token.create`, methods `issue.*`). It
+rests at `in-review`. The token `issues-reviewer-2` is kept for the verdict, to be recorded after a fresh reviewer has
+read the change; it has made one read (`issue.get`) and one refused write (the probe above), and no event. Both
+tokens are Claude's, their values in the git-ignored `tools/cloud-brain/.emitted/cb4-issues-tokens.json`;
+`tools/cloud-brain/.emitted/issue-as.sh <token name> <method> ['<json body>']` calls as one and prints no secret.
+
+**The headless test run and CEL.** `bun tools/lope-tests.ts lopebooks/notebooks/@tomlarkworthy_cloud-brain.html
+--filter test_issues`: 2 passed, 7 timed out (12:30 CEST), and `cloudflare-iac`'s own `test_rules_are_cel_expressions`
+times out the same way, so it is not this module's. The cause is the harness: `tools/lope-runtime.js` copies the DOM
+window's globals into the vm context, the host's `Object`, `Array`, `Map` and `Set` among them, and cel-js types a
+value by `value.constructor` against those names (`case Object: case Map: … default: "Unsupported type"`). An object
+literal made in the context has the context's own `Object`, so every guard that reads a field is an error. Tried once
+and put back: with those four names left to the context, 5 of 9 passed and the `cloudflare-iac` test passed; 4 still
+timed out at 10 s, cause not looked for. Not applied: the harness runs the whole corpus (the preflight and the bulk
+smoke test), and the change was not measured there. It is not the null-prototype maps of the first review (the
+module uses `Object.hasOwn`, and makes none), and a Worker and a browser have one realm, so neither has it.
+
+Not done: a fresh review of these 8 fixes; the verdict on `review-fixes-2`; a retry that finishes a migration cut
+short; a large `migrate`; `issue.rebuild` against concurrent writes; an `unattended` link's token tried against
+`caller.present`; the harness change above.
+
 ### After step 3's fresh review (2026-10-10 12:03 CEST): `brain-core` `675435235fdd`, `brain` `7433e97325d9`
 
 FIX, eight findings, read against the source and held.

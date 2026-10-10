@@ -266,12 +266,15 @@ after the settings deploy). Nothing tells an open tab that the Brain now serves 
 ## Not built
 
 **Issues (`brain-x-issues`, built 2026-10-10).** Open, from `tools/cloud-brain/spec-as-built.md`, "Issues: a signed
-record, and guards as data": a write from the page to cb4 (the panel was driven there read-only, 12:24 CEST); a fresh review of the 13 fixes
-(`c1c684bb28ae`); licences; the topic `work` and claims (needs topics); encrypted bodies and `readers` for security issues; filing by
-members (needs the authority design); a dry run of a policy before install; a large `migrate`; an `unattended` link's
-token against `caller.present`. For Tom: whether a token may triage (the default lets the owner and any token), and
-whether the test issues on cb4 (`test-walk`, `test-child`, `test-escalated`) stay as the start of the record, and
-`review-fixes-13`, which waits at `awaiting-approval` for his approve (the `done` button of that issue in the panel).
+record, and guards as data": a fresh review of the 8 fixes of the second review (`1a8235778cf8`), and the verdict on
+`review-fixes-2`, which rests at `in-review` for it (the token `issues-reviewer-2` is kept for that); a retry that
+finishes a migration cut short; licences; the topic `work` and claims (needs topics); encrypted bodies and `readers`
+for security issues; filing by members (needs the authority design); a dry run of a policy before install; a large
+`migrate`; an `unattended` link's token tried against `caller.present` (read in the kernel and core: it does not
+pass); `tools/lope-runtime.js` hands the vm context the host's `Object`, so no CEL guard that reads a field runs in
+`lope-tests.ts` (7 of 9 issue tests time out there). For Tom: whether a token may triage (the default lets the owner
+and any token), and whether the test issues on cb4 (`test-walk`, `test-child`, `test-escalated`) stay as the start of
+the record. Done 2026-10-10 12:37 CEST: Tom approved `review-fixes-13` from the panel, the first write from the page.
 
 R32 to R35, Lexicons, an approval code over WhatsApp, `canonical.json` / preflight / sitemap entries, a real Meta WhatsApp number, an install into a second
 Cloudflare account, the token's minimum permissions.
