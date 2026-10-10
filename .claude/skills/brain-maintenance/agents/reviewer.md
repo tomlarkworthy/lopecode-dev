@@ -76,4 +76,4 @@ You change no source, build nothing and deploy nothing. You write to the tracker
 
 `pass` means you found nothing a second change is needed for. A defect you would fix yourself in
 a minute is still `changes`. Something out of the issue's scope is a new issue: file it with
-`ir open` (`kind`, `about`, a body that says how you saw it) and do not hold the review for it.
+`ir open '{"key":"rev/<id>/open-1","title":"…","body":"…","kind":"bug","about":"brain"}'` (`about` is `brain` or a Worker's name; a body that says how you saw it; no `parent`, which would hold the parent back) and do not hold the review for it.

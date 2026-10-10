@@ -170,10 +170,29 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
     token: a refusal is still a forbidden call. Write "not run on cb4: needs the owner present"
     in the comment, with the call the owner would make.
 12. **Say it on the issue, then submit.**
-    `ia comment` with the fix, the test count and what was not tried, then
+    `ia comment '{"key":"impl/<id>/comment-<round>","id":"<id>","body":"…"}'` (the field is `body`; `text` is refused 400) with the fix, the test count and what was not tried, then
     `ia move '{"key":"impl/<id>/submit-<round>","id":"<id>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha of the seed commit>"},{"kind":"commit","value":"lopebooks@<sha>"},{"kind":"deploy","value":"<worker>@<hash>"}]}'`.
     A key used before answers 200 with `duplicate: true` and moves nothing: read the issue
     again and see `in-review`. A submit with no refs is refused. One `commit` ref for each commit the landing added to `lopecode-dev`. A change with no deploy (a doc, a local tool with its test file) has the commits only.
+
+## The tracker's write calls
+
+Each is `ia <call> '<json>'`, and each takes a `key`. The shapes, from the tracker's own reference
+(`getSource?worker=brain-x-issues&part=reference`, read 2026-10-10 23:30):
+
+| Call | JSON |
+|---|---|
+| `open` | `{ key, title, body, kind, about, parent, labels, id }`. `about` is `brain` or a Worker's name; `id` is `a-z 0-9 -`, 40 at most. |
+| `comment` | `{ key, id, body }` |
+| `label` | `{ key, id, add, remove }`, lists of names |
+| `move` | `{ key, id, to, reason, refs }` |
+
+A follow-up opened with this issue as `parent` holds this issue back from review until it is
+closed (the submit is refused 403, `issue.children.open == 0`; `brain-tests-fail-headless-unread`,
+2026-10-10). Open a follow-up with no `parent` and name this issue in its body.
+
+A change with no seed and no local tool in it (a doc alone) still needs a count for the submit:
+a test file under `tests/` that reads the doc and fails before the edit (`tests/tools/doc-token-example.test.ts`).
 
 ## What a reviewer will check
 
