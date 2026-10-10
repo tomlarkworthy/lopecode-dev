@@ -3,7 +3,7 @@
  *   bun tools/cloud-brain/build.ts [--out path] [--token LOPE-…]
  * While the notebook is built from seeds, the seeds are the source and the HTML is regenerated.
  */
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { blockSpans, blockContent, findSpan } from "../lib/notebook-blocks.ts";
@@ -85,6 +85,8 @@ const DROP_MAINS = ["@tomlarkworthy/at-login", "@tomlarkworthy/at-write", "@toml
 }
 
 const arg = (k: string) => { const i = process.argv.indexOf("--" + k); return i > 0 ? process.argv[i + 1] : undefined; };
+// In a git worktree (worktree.sh) lopebooks is a link to the main checkout's: a build there names its own --out.
+if (!arg("out") && statSync(resolve(ROOT, ".git")).isFile()) throw new Error("in a worktree: pass --out tools/cloud-brain/.emitted/cloud-brain.html");
 const out = resolve(ROOT, arg("out") || "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html");
 process.on("unhandledRejection", () => {});
 

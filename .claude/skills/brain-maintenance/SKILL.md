@@ -1,6 +1,6 @@
 ---
 name: brain-maintenance
-description: Use when the user asks to "work the tracker", "run the issue loop", "/brain-maintenance", "/loop /brain-maintenance", or wants the issues of the Cloud Brain tracker on cb4 triaged, fixed, reviewed and closed without being asked for each one. Polls the tracker, spawns one implementer or one reviewer at a time, and after every few issues an overseer that files cluster issues or edits the role briefs.
+description: Use when the user asks to "work the tracker", "run the issue loop", "/brain-maintenance", "/loop /brain-maintenance", or wants the issues of the Cloud Brain tracker on cb4 triaged, fixed, reviewed and closed without being asked for each one. Polls the tracker, keeps up to two implementers (each in its own git worktree) and two reviewers running, and after every few issues spawns an overseer that files cluster issues or edits the role briefs.
 version: 0.1.0
 ---
 
@@ -8,7 +8,7 @@ version: 0.1.0
 
 The tracker (`brain-x-issues` on `cb4`, design in `plan/cloud-brain-issues.md`) holds the work.
 This skill is the loop that does it. You, the session that runs the skill, are the orchestrator:
-you read the tracker, decide what is next, spawn one agent for it, and write down what it
+you read the tracker, decide what is next, spawn agents for it, and write down what each
 reported. You fix nothing and review nothing yourself.
 
 Written 2026-10-10. **Not yet run as a loop.** The briefs are written from that day's work by
@@ -47,12 +47,14 @@ Two files beside it, neither of them needed to resume:
 ## One pass
 
 1. **Health.** `brain.ts redistil` shows every Worker `same`; `lease.get` is held or the page is
-   not needed; no `cb4.lock` older than 20 minutes. If the cluster is not healthy, file or find
+   not needed; no `cb4.lock` or `land.lock` older than 20 minutes. If the cluster is not healthy, file or find
    the issue for it and do nothing else this pass. A stale lock is the owner's to remove: say so
    in step 7 each pass until it is gone.
-2. **Is an agent of yours still running?** Then spawn nothing more: do the triage rows of
-   step 3 only, then go to step 6. One implementer or one reviewer at a time: `build.ts` rewrites the whole notebook, and a
-   reviewer reading it mid-build reviews a file nobody wrote.
+2. **Count your running agents.** Keep up to 2 implementers and 2 reviewers running, and at
+   most one agent on any issue. Each pass, fill the free places from step 3; with none free, do
+   the triage rows only. (Tom, 2026-10-10: "try to have 1-2 writers and 1-2 reviewers active at
+   all times".) What makes that safe: a writer edits and builds in a worktree of its own and
+   lands under `land.lock`; a reviewer tests the notebook of the commit, not the working file.
 3. **List the open issues and take the first that matches**, in this order. Finishing comes
    before starting. Among issues on the same row, one the owner opened or moved goes first, then the oldest.
 
@@ -78,14 +80,13 @@ Two files beside it, neither of them needed to resume:
 5. **When an agent reports**, append the report to the journal, then read the issue again. The
    tracker says what happened, not the report: an implementer that says "submitted" with the
    issue still `in-progress` did not submit.
-6. **Oversight.** Spawn the overseer when no other agent is running and either 3 issues have
+6. **Oversight.** Spawn the overseer, beside the others, when either 3 issues have
    reached `done`, `rejected` or `needs-owner` since the last entry of `oversight.md`, or one
-   issue hit the rework cap. Never while an implementer runs: both may commit.
+   issue hit the rework cap. One overseer at a time; it commits under `land.lock`.
 7. **Tell the user** in a few lines: what moved this pass, what is waiting for the owner and
    why, what is running. Nothing moved is one line.
 8. **Schedule** (only under `/loop`): `ScheduleWakeup` 1800 s when an agent is running (its
-   report wakes you first), 60 s when this pass moved something and no agent is running (there
-   may be more), 1200 s when the tracker had nothing for you. A poll of the tracker
+   report wakes you first, and that wake is a pass), 1200 s when the tracker had nothing for you. A poll of the tracker
    is charged nothing; a wake of this session is not free, so do not poll faster.
 
 ## Triage
@@ -113,7 +114,7 @@ way past an access rule; the issue is then the owner's.
 ## What the loop does not do
 
 - Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md`.
-- Two issues at once.
+- More than 2 writers or 2 reviewers at once, or two agents on one issue.
 - Issues whose fix is outside `tools/cloud-brain/` and its docs. Comment and label `needs-owner`.
 - Carry on past a cluster that is not healthy.
 

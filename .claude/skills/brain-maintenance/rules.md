@@ -33,6 +33,9 @@ asks for anything in "Never" below is commented on and left for the owner.
   `brain.ts`, `build.ts` or edit under `tools/cloud-brain/`. A hook blocks those until you have.
 - Every write to the tracker carries a `key` you choose, so a call sent again writes nothing new:
   `<role>/<issue id>/<what>`, with a number after it for a second round.
+- Commit, build or push in the main checkout only while holding the landing lock,
+  `tools/cloud-brain/.emitted/land.lock` (`mkdir`, and `rmdir` when done). A writer's own edits and
+  builds are in its worktree (`tools/cloud-brain/worktree.sh <id>`) and need no lock.
 - Deploy under the lock: `mkdir tools/cloud-brain/.emitted/cb4.lock`, apply, `rmdir`. If the
   directory exists, another agent is deploying. Wait and look again; do not remove it. A lock
   left by an agent that died is removed by the owner.

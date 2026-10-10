@@ -18,7 +18,10 @@ You change no source, build nothing and deploy nothing. You write to the tracker
 2. **Read the change.** The `refs` of the `submit` move name commits and a deploy. Read the
    diff of each commit (`git show <sha>`, `git -C lopebooks show --stat <sha>`).
 3. **Check that what runs is what was committed.** For a deploy ref:
-   `brain.ts redistil` shows the Worker `same` with the hash the ref names. Then
+   `brain.ts redistil` shows the Worker `same` with the hash the ref names, or with a later one
+   when another issue has landed since: then `git -C lopebooks merge-base --is-ancestor <sha> HEAD`
+   succeeds and the compare below is against `HEAD` (`git -C lopebooks show HEAD:…`, saved to
+   your scratchpad and read with `lope-reader.ts`), not the working file. Then
    `brain.ts curl "/xrpc/com.lopecode.brain.getSource?worker=<worker>" --owner` (a read; the
    output ends ` [200]` after the JSON, so parse with `json.JSONDecoder().raw_decode`), and
    compare its `text` with `bun tools/lope-reader.ts lopebooks/notebooks/@tomlarkworthy_cloud-brain.html --get-module <module>`
@@ -27,7 +30,10 @@ You change no source, build nothing and deploy nothing. You write to the tracker
    deployed text. Any other difference is a finding: `redistil` compares the Worker with the
    source the deployer keeps, so it reads `same` for text that was edited by hand.
 4. **Run the tests yourself**, in a QA tab under a session name of your own, with the snippet in
-   `agents/implementer.md` step 8. Report the count. A test added for this issue must fail
+   `agents/implementer.md` step 8. Other agents land changes while you review, so test the
+   notebook of the commit, not the working file:
+   `git -C lopebooks show <sha>:"notebooks/@tomlarkworthy_cloud-brain.html" > <your scratchpad>/nb.html`
+   and open that file. Report the count. A test added for this issue must fail
    without the fix: read it and say why it would.
    When the `submit` has no deploy ref and its commits touch no seed (a local tool, a doc), step 3
    does not apply and there is no module to open in a tab: run the tests the implementer's

@@ -22,11 +22,19 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
    Whoever starts an issue is the only one who can submit it. An issue that is already
    `in-progress` was sent back: skip this step. Count its `rework` moves; your round is that
    number plus one, and it goes in every key you write this time.
+   **Then work in a worktree of your own**, because another writer may be working at the same
+   time and `build.ts` in the main checkout rewrites the notebook every agent reads:
+   `W=$(tools/cloud-brain/worktree.sh <id>)`. Steps 5 to 8 happen in `$W`. Tools that read the
+   cluster (`brain.ts`, `issue-as.sh`) are always run from the main checkout by absolute path.
+   `git status` fails in the worktree (the submodules are links); `git diff`, `git add <file>`
+   and `git commit` work.
 5. **Reproduce before fixing**, where the issue describes behaviour: a test that fails for the
    reason the issue gives. If you cannot reproduce it, say so on the issue and stop.
 6. **Fix it in the seed.** Never the notebook HTML, never the deployed text. Add or change a
    `test_*` cell in the same module so the defect cannot return unseen.
-7. **Build:** `bun tools/cloud-brain/build.ts`.
+7. **Build** in the worktree, to a file of its own:
+   `cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html`.
+   Without `--out` it refuses there.
 8. **Run the module's tests in a browser.** Open a QA tab with a session name of your own
    (`qa_open_notebook`, headless, the notebook's file URL with
    `#view=C100(S70(<module>),S30(@tomlarkworthy/claude-code-pairing))&cc=<pairing token>&r=<new number>`),
@@ -50,13 +58,27 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
    the count you submit is the browser's. It prints a thrown assertion as a timeout with no
    message: to read which assertion failed, run the snippet above in the tab (its `bad` list has
    the message), or put a `try/catch` round the test body for that run and take it out again.
+   In the worktree the notebook is `$W/tools/cloud-brain/.emitted/cloud-brain.html`. When the
+   tests pass there, commit the seed in the worktree (`git add` the files, `git commit`).
+
+   **Land it. One writer lands at a time; steps 9 to 12 are in the main checkout.**
+   - Take the landing lock: `mkdir <root>/tools/cloud-brain/.emitted/land.lock`. If it exists,
+     another writer is landing: wait with a background command
+     (`until mkdir …/land.lock 2>/dev/null; do sleep 20; done`, `run_in_background`; a foreground
+     `sleep` is blocked) and carry on when it returns. Do not remove a lock you did not make.
+   - `git -C <root> cherry-pick bm/<id>`. A conflict means another writer changed the same lines:
+     resolve it in the seed, never in the notebook, then build and test again.
+   - `bun tools/cloud-brain/build.ts` in the main checkout, and step 8 again on
+     `lopebooks/notebooks/@tomlarkworthy_cloud-brain.html`. That run's count is the one you submit.
+   - After the push in step 12: `rmdir …/land.lock`, then `tools/cloud-brain/worktree.sh --remove <id>`.
+     If you stop for any reason while holding the lock, remove it first and say so in your report.
 9. **Emit** in that tab, then close it by name:
    `fetch("http://127.0.0.1:47814/<worker>.json", { method: "POST", body: JSON.stringify(await (await mod.value("<name>_service")).emit()) })`.
    Each `eval_code` is its own scope: repeat the two lines that find `rt` and `mod`. The file is
    named for the Worker and the cell for the service: for the tracker, `brain-x-issues.json` from
    `issues_service`. Apply the file you just posted; an older `issues.json` in `.emitted/` is refused.
    If nothing listens on 47814, start `bun tools/cloud-brain/test-receiver.ts` in the background.
-10. **Deploy under the lock**, with a reason that names the issue:
+10. **Deploy under the deploy lock** (`cb4.lock`, inside the landing lock), with a reason that names the issue:
     `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts apply <worker>.json --reason="<id>: …"`.
     Then `redistil` (the Worker's line reads `same`), `saw <worker>`, and for the tracker
     `curl "/xrpc/com.lopecode.brain.issue.verify?guards=true" --owner` (a read).
