@@ -39,7 +39,7 @@ Artifacts has no public repositories: a clone with no token is refused (tried 20
 git clone https://BRAIN/git/cloud-brain-dev.git
 \`\`\`
 
-\`/git/NAME.git/info/refs?service=git-upload-pack\` and \`/git/NAME.git/git-upload-pack\` are sent to the repository's own address with a read token the service asks for and keeps in memory until a minute before it ends (\`gitRead\`). Nothing else under \`/git/\` is answered, so there is no push this way. This traffic does pass the Brain. Nobody is charged for it: a clone by anyone costs the Brain's owner Cloudflare's operations.
+\`/git/NAME.git/info/refs?service=git-upload-pack\` and \`/git/NAME.git/git-upload-pack\` are sent to the repository's own address with a read token the service asks Cloudflare for and keeps in memory until a minute before it ends. A Worker's memory is one isolate's, so two isolates ask for a token each (\`gitRead\`). Nothing else under \`/git/\` is answered, so there is no push this way. This traffic does pass the Brain. Nobody is charged for it: a clone by anyone costs the Brain's owner Cloudflare's operations.
 
 ## Who can call
 
@@ -79,16 +79,16 @@ gitRepo = (prefix, name) => {
   return full.length > prefix.length && ok(full) ? full : null;
 }
 // %%
-// The address and a read token of a repository anyone may read, kept in this Worker's memory while the token lasts.
+// A read token of a repository anyone may read, kept in this Worker's memory while the token lasts.
 gitRead = {
   const kept = new Map();
   return async (space, repo, send) => {
     const had = kept.get(repo);
     if (had && had.until > Date.now() + 60000) return had;
-    const [about, token] = await Promise.all([send(space + "/repos/" + repo, "GET"), send(space + "/tokens", "POST", { repo, scope: "read", ttl: gitDefaults.seconds })]);
-    if (!about.ok || !token.ok) return null;
-    const remote = (await about.json()).result.remote, plaintext = (await token.json()).result.plaintext;
-    const got = { remote, plaintext, until: Number(String(plaintext).split("?expires=")[1]) * 1000 || Date.now() + gitDefaults.seconds * 1000 };
+    const token = await send(space + "/tokens", "POST", { repo, scope: "read", ttl: gitDefaults.seconds });
+    if (!token.ok) return null;
+    const plaintext = (await token.json()).result.plaintext;
+    const got = { plaintext, until: Number(String(plaintext).split("?expires=")[1]) * 1000 || Date.now() + gitDefaults.seconds * 1000 };
     kept.set(repo, got);
     return got;
   };
@@ -110,7 +110,7 @@ git_service = cloudflare.Service(
       if (!to) return refuse(502, "UpstreamFailure", "Cloudflare did not give the repository");
       const headers = { authorization: "Bearer " + to.plaintext };
       for (const h of ["content-type", "accept", "git-protocol", "content-encoding"]) if (request.headers.get(h)) headers[h] = request.headers.get(h);
-      const r = await fetch(to.remote + "/" + m[2] + (refs ? "?service=git-upload-pack" : ""), { method: request.method, headers, body: refs ? undefined : await request.arrayBuffer() });
+      const r = await fetch("https://" + config.account + ".artifacts.cloudflare.net/git/" + config.base + "/" + m[1] + ".git/" + m[2] + (refs ? "?service=git-upload-pack" : ""), { method: request.method, headers, body: refs ? undefined : await request.arrayBuffer() });
       return new Response(r.body, { status: r.status, headers: { "content-type": r.headers.get("content-type") || "application/octet-stream", "cache-control": "no-cache" } });
     }
     const verb = { create: "POST", token: "POST", delete: "POST", get: "GET", list: "GET" }[what];
@@ -253,8 +253,7 @@ test_anyone_clones_a_repository_the_owner_named_and_no_other = {
       const url = new URL(request.url);
       seen.push([request.method, url.host + url.pathname + url.search, request.headers.get("authorization"), request.headers.get("git-protocol"), request.method === "POST" && url.host !== "api.cloudflare.com" ? await request.text() : null]);
       if (url.host !== "api.cloudflare.com") return new Response("PACK", { headers: { "content-type": "application/x-git-upload-pack-result" } });
-      const result = url.pathname.endsWith("/tokens") ? { plaintext: "art_v1_read?expires=" + Math.floor(Date.now() / 1000 + 3600) } : { remote: "https://acct.artifacts.cloudflare.net/git/cb4/open.git" };
-      return new Response(JSON.stringify({ success: true, result }), { headers: { "content-type": "application/json" } });
+      return new Response(JSON.stringify({ success: true, result: { plaintext: "art_v1_read?expires=" + Math.floor(Date.now() / 1000 + 3600) } }), { headers: { "content-type": "application/json" } });
     }
   });
   const get = (path, init = {}) => sim.fetch("https://git.internal" + path, { ...init, headers: { "x-brain-caller": "anonymous", ...(init.headers || {}) } });
@@ -268,14 +267,14 @@ test_anyone_clones_a_repository_the_owner_named_and_no_other = {
     ["GET", "acct.artifacts.cloudflare.net/git/cb4/open.git/info/refs?service=git-upload-pack", expect.stringMatching(/^Bearer art_v1_read/), "version=2", null],
     ["POST", "acct.artifacts.cloudflare.net/git/cb4/open.git/git-upload-pack", expect.stringMatching(/^Bearer art_v1_read/), null, "0032want"]
   ]);
-  expect(seen.length).toBe(4);
+  expect(seen.length).toBe(3);
   expect([...refs.headers.keys(), ...pack.headers.keys()].join(" ")).not.toMatch(/authorization/);
   // A repository that was not named, a push, and anything else under /git/ are not found, and Cloudflare is not asked.
   for (const [path, init] of [
     ["/git/core.git/info/refs?service=git-upload-pack"], ["/git/open.git/info/refs?service=git-receive-pack"], ["/git/open.git/info/refs"],
     ["/git/open.git/git-receive-pack", { method: "POST", body: "x" }], ["/git/open.git/git-upload-pack"], ["/git/open.git/HEAD"], ["/git/open/info/refs?service=git-upload-pack"], ["/git/../open.git/info/refs?service=git-upload-pack"]
   ]) expect((await get(path, init)).status).toBe(404);
-  expect(seen.length).toBe(4);
+  expect(seen.length).toBe(3);
   return "2 passed on, 8 not found";
 }
 // %%
