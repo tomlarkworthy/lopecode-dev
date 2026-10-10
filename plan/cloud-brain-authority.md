@@ -1,9 +1,9 @@
 # Cloud Brain: one record for delegated authority
 
-A design, not built. Written 2026-10-10 for Tom to review before anything is changed; eighth draft,
-after seven fresh reviews (see *Review* at the end). A statement about the present code names the
+A design, not built. Written 2026-10-10 for Tom to review before anything is changed; ninth draft,
+after eight fresh reviews (see *Review* at the end). A statement about the present code names the
 line it was read at where one line holds it, found by a search for the text on 2026-10-10. Each draft
-read the tree of its own commit, the first at 09:43 CEST and this one at 10:35, and each reviewer printed every cited line. Another session edits the same seeds, so the lines will move. Nothing here was run on a Brain except five reads of
+read the tree of its own commit, the first at 09:43 CEST and this one at 10:42, and each reviewer printed every cited line. Another session edits the same seeds, so the lines will move. Nothing here was run on a Brain except five reads of
 cb4 as the owner (`rule.list`, `db.tables`, `token.list`, `grant.list`, `calls.list`), marked where used.
 
 ## What was asked
@@ -294,7 +294,7 @@ Methods are of four kinds, and a pattern reaches less of each:
 | kind | which | `*` | a prefix or a name | also needs |
 |---|---|---|---|---|
 | ordinary | the rest | yes | yes | |
-| session | a method whose rule or guard is the owner's own session: `logs.*`, `browser.all`, `rule.put`, `rule.delete`, `price.put`, `quota.put`, `config.set`, `db.setRule` and the like (C:314 and each `caller.session` rule; 16 rules on cb4) | no | yes | the cap `session` |
+| session | a method whose rule or guard is the owner's own session: `logs.*`, `browser.all`, `rule.put`, `rule.delete`, `price.put`, `quota.put`, `config.set`, `db.setRule` and the like (C:314 and each `caller.session` rule; 16 rules on cb4, of which the three `secret` ones are of the never kind) | no | yes | the cap `session` |
 | deploy | `infra.apply`, `getState`, `redistil`, `confirm`; with `unattended`, `infra.shell` and no approval held | no | no | the cap `deploy`; `unattended` |
 | never | `secret.*`, `grant.*`, `people.*`, `token.*`, `delegation.*`, the other `infra.*` | no | no | the principal's own session; `delegation.create`, `list` and `revoke` under the cap `delegate`, below |
 
@@ -364,9 +364,13 @@ asked. A row is simpler to list and to revoke.
 
 | holder | how the call arrives | who checks |
 |---|---|---|
-| a secret | `Authorization: Bearer <secret>` at the kernel, as a token now | the kernel asks the core `delegation.resolve { sha256 }` and holds the answer 5 s; it needs `from` for its member gate (K:295-299) and the caps for `infra.*`. It forwards the call as `x-brain-caller: from` with `x-brain-delegation: <id>`, and the core reads the row by that id and decides |
+| a secret | `Authorization: Bearer <secret>` at the kernel, as a token now | the kernel asks the core `delegation.resolve { sha256 }` and holds the answer 5 s; it needs `from` for its member gate (K:295-299) and the caps for `infra.*`. It forwards the call as `x-brain-caller: from` with `x-brain-delegation: <id>`, a header only the kernel's key may send. The core reads the row by that id, decides, and sends services the via `delegation:<id>` itself |
 | a Worker | the Worker's own key, and `x-brain-as: <id>`, straight to the core | the core: the row's holder is the Worker the key names |
 | a DID | a PDS JWT or a session at the kernel, as a grant now | the kernel proves the DID; the core reads the one row for it |
+
+A call with `x-brain-as` is not checked against the holder's own `calls` (`asDeclared`, C:280): the
+delegation's scope is what bounds it, and `brain-x-topic` could not list every subscriber's target
+when it is deployed.
 
 The Worker's side is a platform cell: `xrpc.as(id, { hops }).procedure(name, body)`. A call made
 with `x-brain-as` starts a new chain: origin is `from`, and the context of whatever the Worker was
@@ -464,7 +468,7 @@ The core's line (C:208) gains `delegation` and `holder`. `caller` is the princip
 | 9 member | `member/<did>` | unchanged. Being a member is own authority, not a delegation. |
 | 10 member's Worker | implicit in `key/<hash>` | unchanged in mechanism. Described as a delegation from the author to the Worker. |
 | 11 system Worker | `calls` | unchanged. Own authority. |
-| 12 context | `c1.` | gains `d` and `h` |
+| 12 context | `c1.` | gains `t`, `d` and `h` |
 | 13 recovery key | | unchanged |
 
 Rows 2, 3 and 10 could be rows in the same table. They are left because a turn is made for every
@@ -535,17 +539,24 @@ touched in any step.
 4. **The kinds of method.** A change of the kernel alone: the `toCore` rewrite (K:508) and
    `deploys()` go. The core has computed `tab` from the cap since step 2, and its own `session` guard
    and every `caller.session` rule have read it since then, so a link from the login button keeps
-   its eleven routes and sixteen rules. The kernel reads `deploy` from the caps. The kernel's `call.by.link` and
+   its eleven routes and thirteen rules (the sixteen less `secret.put`, `secret.delete` and
+   `secret.setRule`, which are never a holder's, now as then: K:399). The kernel reads `deploy` from the caps. The kernel's `call.by.link` and
    `infra.by.link` lines go with the rewrite, and the two assertions on them in
    `test_tokens_reach_only_their_methods` (`brain-kernel.ojs:899`, `:930`) become assertions on the
    core's line. The four kinds in
    *Scope* are enforced, so `*` stops reaching a session method.
 5. **Move the old rows.** Each `token/` row becomes a delegation; the kernel's `token/` read goes.
-   On cb4 that is three rows today, each ending within 8 hours of when it was made.
+   On cb4 that is three rows today, each ending within 8 hours of when it was made. What a moved token
+   made as `token:NAME` is left behind: its browsers and containers end when their time does, and its
+   blobs keep the old stamp and stay readable by the owner. A moved token starts again under
+   `d:<id>`.
 6. **Grants.** `grant.put` writes a delegation with a DID holder; `people.sync` carries members
-   only. Last, because five places read grants: the kernel hearing a JWT from a DID that is not a
-   member (K:258), the room cap (K:291-292), the kernel's gate (K:295-299), and `asAuthor` (C:235).
-   After it the kernel asks `delegation.resolve { did }` where it read `grant/`. cb4 has no grant.
+   only. Last, because the kernel reads `grant/` in six places and deletes it in one, and the core
+   reads the copy `people.sync` gives it: hearing a JWT from a DID that is not a member (K:258), the
+   room cap (K:291), the gate (K:298), `grant.list` (K:475), `people.sync` (K:480), `people.list`
+   (K:537), the delete in `people.remove` (K:564), and `asAuthor` (C:235). After it each read is
+   `delegation.resolve { did }` or `delegation.list`, and `people.remove` revokes that DID's
+   delegation, or a removed person would keep the methods a grant gave. cb4 has no grant.
 7. **`delegate`.** A delegation made under a delegation. The core's guard of `delegation.create`
    takes the cap, and the kernel's `never()` lets `delegation.create`, `list` and `revoke` through
    for a holder that has it.
@@ -599,7 +610,7 @@ Steps 1 and 2 change nothing a caller sees. Topics can be built on 2.
 
 ## Review
 
-2026-10-10, eight drafts, seven fresh reviewers: BLOCK, BLOCK, BLOCK, FIX, FIX, BLOCK, FIX.
+2026-10-10, nine drafts, eight fresh reviewers: BLOCK, BLOCK, BLOCK, FIX, FIX, BLOCK, FIX, FIX.
 
 The first found 13 things and the author six more: who pays was said two ways for a DID holder; the
 rules that name a token were undercounted and the rules that would open were not looked for;
@@ -657,4 +668,13 @@ the origin. The holder's name had no header. How a secret's call reaches the cor
 it is one now, with its cost. `token.revoke` as a forward would have left an unused link alive.
 Step 6 missed two reads of `grant/`. A time in the header had not happened, again.
 
-This draft has not had a fresh review.
+The eighth: FIX, seven findings, every cited line right at HEAD. None touched the model. Step 6
+missed three more reads of `grant/` and the delete in `people.remove`, which would have left a
+removed person their granted methods. The id of a delegation reached the core in two spellings.
+Whether a holder's `x-brain-as` call is held to its own `calls` was not said (it is not). A token
+moved in step 5 would silently lose what it had made. Three of the sixteen `caller.session` rules
+are `secret` ones a holder never reaches. Two counts.
+
+The model has not changed since the fifth draft; what the last three reviews found is what a call
+carries and which line reads it. Building begins at step 1 with this draft, and each step is
+reviewed as it is built.
