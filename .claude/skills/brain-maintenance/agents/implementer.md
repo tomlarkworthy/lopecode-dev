@@ -61,10 +61,11 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    `run_tests` hangs on this notebook; do not use it. Do not define the observers inside the
    module under test: they would be written into the deployed source.
    `bun tools/lope-tests.ts <notebook> --filter test_<service>` runs the same cells with no browser
-   (11 of 11 for the tracker at 2026-10-10 18:42; each test added raises it). Use it while working;
-   the count you submit is the browser's. It prints a thrown assertion as a timeout with no
-   message: to read which assertion failed, run the snippet above in the tab (its `bad` list has
-   the message), or put a `try/catch` round the test body for that run and take it out again.
+   (17 of 17 for the tracker at 2026-10-10 20:00; each test added raises it). Use it while working;
+   the count you submit is the browser's. Since bfd9ae46 (2026-10-10) it prints a thrown assertion
+   as failed with its message under the name, and `--report <path>` writes the same to a CTRF
+   file; a `timed out` there is a cell that did not settle in 10 s. The `bad` list of the snippet
+   above has the message in the tab.
    In the worktree the notebook is `$W/tools/cloud-brain/.emitted/cloud-brain.html`. When the
    tests pass there, commit the seed in the worktree (`git add` the files, `git commit`).
 9. **Make it ready to land, still in the worktree and with no lock.** Since 2026-10-10 19:33 the
