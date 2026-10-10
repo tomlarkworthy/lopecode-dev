@@ -4683,3 +4683,61 @@ write timed inside it. So the new path has run in the rig only, and the first re
 runs on cb4 is its first run against D1. The implementer's token sent one `issue.rebuild` to cb4
 after the deploy, which the rules of the loop forbid; it was answered 403 `the owner, present` and
 wrote nothing. Not tried either: more than 297 rows, in the rig or on cb4.
+
+## Issues: the panel shows the policy in force and its reason (2026-10-10 19:03 CEST): `brain-x-issues` `23d1f2d0b140`
+
+Issue `panel-shows-no-policy-reason`, filed in the review of `install-reason-unreadable`, whose fix
+put the reason in `view.policy` and listed the panel under Not done. The panel read `view.policy` in
+one place, for the kinds of a new issue.
+
+**Reproduced first.** The new cell `test_issues_panel_shows_the_policy_in_force` reads
+`panel.policy.textContent`. Before the change, in the worktree's build:
+
+```
+⧖ test_issues_panel_shows_the_policy_in_force (10013ms)
+Tests: 12 passed, 0 failed, 1 timed out, 0 skipped, 13 total
+```
+
+`lope-tests.ts` prints a throw as a timeout. Which line threw was not read; the panel had no
+`policy` property then, so the first read of it is the likely one.
+
+**Changed, in `brain-issues.ojs`.** `issuesPanel` has one more element, a muted line under the
+Refresh row, set in `draw()` from the policy of the view it draws:
+
+```
+Policy of event 3: a second reviewer for security
+Policy of event 1, the default.
+```
+
+The second form is a policy with no `reason`, which is the default one written by the Worker. With
+no policy in the copy (before the first answer) the line is empty. It makes no call: the reason
+arrives in `issue.snapshot`, in a policy event of `issue.sync`, or from the copy kept in
+`localStorage`. The element is `panel.policy`, for the test. The list under the panel in the
+module's prose has a line for it.
+
+Not taken: writing it into the note beside Refresh. A refusal is said there and stays until the
+next write, so the policy would be hidden behind it.
+
+**Tests.** 13 of 13 `test_issues_*` in a headless Chromium QA tab on
+`lopebooks/notebooks/@tomlarkworthy_cloud-brain.html`, between the cherry-pick (19:02:21, `git log
+--format=%ci`) and 19:03:32 (`date`), forced from a module of their own; the record was emitted from
+that tab. 12 before. 13 of 13 also in the worktree's build, in a tab and with `lope-tests.ts`. The
+new cell checks, in the rig:
+
+- an empty line before the first sync, then `Policy of event 1, the default.`;
+- after an install by another caller, one `issue.sync` later: the seq and the reason;
+- a refused move is said in the note and the line still reads the policy;
+- a panel opened afterwards has it from `issue.snapshot`, and one drawn from the kept copy has it
+  with no call.
+
+**Deployed** under both locks with `--reason="panel-shows-no-policy-reason: the issues panel shows
+the policy in force and the reason it was installed with"`: state `deployed`. `redistil`:
+`brain-x-issues  same  23d1f2d0b140`. `issue.verify?guards=true`: `ok`, 154 checked.
+`getSource?worker=brain-x-issues` holds the line's template, `Policy of event ${p.seq}`.
+
+Not tried: the panel on the live page of cb4. `brain-x-page` was not applied (`redistil` reads
+`same 466494feb62c` for it, as before); whether the page a visitor loads takes this module from
+`brain-x-issues` or from the page's own copy was not checked, so the line may not be on cb4's page
+until the page is next applied. Not tried: a long reason (the limit is 2000 characters; the line wraps, not seen).
+Not done: earlier policies and policy events are in no drawn list; the issue asks for the one in
+force. Not asked: whether the owner wants the line at all, which the issue leaves open.
