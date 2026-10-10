@@ -40,12 +40,14 @@ const imports = (text: string, name: string) => {
 const got = await (await fetch(deployer + X + "infra.getModules")).json();
 const services = [];
 for (const m of got.modules.sort((a: any, b: any) => a.module.localeCompare(b.module))) {
-  // The deployer keeps the source of a Worker that was removed. What runs answers getSource with the same hash.
+  // The deployer keeps the source of a Worker that was removed. What runs answers getSource with the same hash;
+  // only that is written (Tom, 2026-10-10: "yes only what is running").
   const live = await fetch(kernel + X + "getSource?worker=" + m.worker).then((r) => (r.ok ? r.json() : null)).catch(() => null);
   const running = m.worker === "brain-deployer" || (!!live && live.hash === m.hash && live.module === m.module);
+  if (!running) continue;
   put(m.module + ".js", m.text);
   for (const [name, text] of Object.entries(m.files || {})) put(m.module + "/" + name, text as string);
-  services.push({ module: m.module, worker: m.worker, hash: m.hash, running, files: Object.keys(m.files || {}).sort(), imports: imports(m.text, m.module) });
+  services.push({ module: m.module, worker: m.worker, hash: m.hash, files: Object.keys(m.files || {}).sort(), imports: imports(m.text, m.module) });
 }
 
 const owned = new Set(services.map((s) => s.module));
@@ -72,4 +74,4 @@ for (const b of blocks(page)) {
 const have = new Set([...owned, ...shared.map((s) => s.module)]);
 const missing = [...new Set([...services, ...shared].flatMap((s) => s.imports || []))].filter((m) => !have.has(m)).sort();
 put("manifest.json", JSON.stringify({ brain: kernel, distiller: got.distiller, bootconf, services, shared, files, missing, unparsed }, null, 1) + "\n");
-console.log(`${services.length} service modules (${services.filter((s) => s.running).length} running), ${shared.length} shared, ${files.length} files, ${missing.length} imports with no module: ${missing.join(" ")}` + (unparsed.length ? "\nnot parsed: " + unparsed.join("; ") : ""));
+console.log(`${services.length} service modules, ${shared.length} shared, ${files.length} files, ${missing.length} imports with no module: ${missing.join(" ")}` + (unparsed.length ? "\nnot parsed: " + unparsed.join("; ") : ""));
