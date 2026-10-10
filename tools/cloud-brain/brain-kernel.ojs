@@ -21,7 +21,7 @@ A person is an atproto account, named by its DID. There are two roles. The **own
 |---|---|
 | \`people.list\` | query, owner. \`{ people }\`: each \`{ did, handle, role, name, addresses, methods }\`. \`role\` is \`owner\`, \`member\` or \`null\` (linked an address, not added). |
 | \`people.put\` | procedure, owner's session. \`{ did, name, services, quota, tags }\` makes that DID a member; a field left out keeps what it was. \`services: false\` stops their deploys. \`quota\` is \`{ workers, bytes, calls, deploys }\`; \`deploys\` is calls of \`member.deploy\` an hour. \`tags\` is \`[{ tag, access: "read" | "write" }]\`, the file tags they may read or change beside their own. |
-| \`people.remove\` | procedure, owner's session. \`{ did }\` removes the member, their grant and their addresses, and has the deployer delete their Workers. Their files stay, for the owner. |
+| \`people.remove\` | procedure, owner's session. \`{ did }\` removes the member, their grant, their addresses and the delegations they made, and has the deployer delete their Workers. Their files stay, for the owner. |
 | \`member.deploy\`, \`member.remove\`, \`member.modules\` | procedure, a member. Passed to the deployer with the caller's DID as the author; the owner is refused and deploys with \`infra.apply\`. \`member.deploy\` takes \`{ module, source, reason, was }\` and \`member.remove\` \`{ name, reason, was }\`: \`reason\` is 3 to 300 characters and is logged, \`was\` is the hash the caller saw running, \`null\` for no Worker. |
 | \`people.link\` | procedure, owner's session. \`{ channel, address, did }\` binds an address without the sign-in below. |
 | \`people.unlink\` | procedure, owner's session. \`{ channel, address }\` |

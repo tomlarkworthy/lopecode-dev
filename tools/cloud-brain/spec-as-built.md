@@ -3653,7 +3653,9 @@ test_browser_tick_makes_rows_and_sessions_agree   used >= 100 && used <= 110    
 test_browser_time_is_bought_by_extend_alone       |remaining - 100| <= 3            got 96
 ```
 
-`usedSeconds` holds the seconds the test's own browsers have run, and bought time runs down while the test runs. The first now measures the 100 s as a difference between two reads. The tolerance in the second, and in `test_browser_each_caller_has_its_own`, is the amount less the seconds the test has taken so far. 17 of 17 in a tab, one at a time, 5.0 s; the deploy of `52e24a4a7b36` ran them and stayed.
+`usedSeconds` holds the seconds the test's own browsers have run, and bought time runs down while the test runs. The first now measures the 100 s as a difference between two reads. The tolerance in the second, and in `test_browser_each_caller_has_its_own_browsers` (whose tolerance was 10 s and had not failed), is the amount less the seconds the test has taken so far. 17 of 17 in a tab, one at a time, 5.0 s; the deploy of `52e24a4a7b36` ran them and stayed.
 
 **The notebook is committed in `lopebooks`.** Its pre-commit hook had refused it: `tools/build-sitemaps.ts` listed the directory, and two saved web pages and a notebook that were never committed were in it. It lists what git tracks. `lopebooks/sitemap.xml` gained `@tomlarkworthy_cloud-brain.html`, `@tomlarkworthy_jev.html` and `ratchet-code.html`, which were tracked and missing, and lost `linux-claude.html`, which `.gitignore` names and so is not published.
+
+A second fresh review of those fixes, 11:40 CEST: FIX, five minor findings, all taken. `quota.ledger?who=` refuses a `who` that is no account (a delegation's own count has no origin to show). The tick test's two bounds are widened by the seconds between their reads. A copied comment, a test's name here, and `people.remove` in the kernel's table now says the delegations go. `brain-core` `6efada888c7d`, `brain` `829be8ac5be7`, `brain-x-browser` `c2aa692e990a`; core 31, kernel 26, browser 17 pass.
 
