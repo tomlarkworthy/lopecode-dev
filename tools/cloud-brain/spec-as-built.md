@@ -3341,8 +3341,8 @@ investigate cache performance compared to the real MimMo 2.5?"
 `ai.v1/models`. An OpenAI client is given the base URL `https://HOST/xrpc/com.lopecode.brain.ai.v1` and adds the rest.
 Rejected: a declared path `/ai/v1/*`. The kernel gives a token "no path that is not a method" (`brain-kernel.ojs`,
 the `who.via === "token"` line), so a Brain token could not be the API key without a kernel change. A method name
-with a `/` needed none: nothing in the wrapper, deployer, core or `token.create` checks a system service's method
-name for shape. Run on cb4 with curl and a token made for the three methods, 05:24 UTC:
+with a `/` needed none at 05:24 UTC: nothing in the wrapper, deployer or core checks a system service's method
+name for shape, and `token.create` did not then. Run on cb4 with curl and a token made for the three methods, 05:24 UTC:
 
 ```
 POST ai.v1/chat/completions, max_completion_tokens 8     200  7 tokens   x-brain-price 0.01  x-ai-usd 0.00000187
@@ -3352,6 +3352,33 @@ GET  ai.v1/models                                        200  {"object":"list","
 GET  ai.models with the same token                       403
 GET  ai.v1/models with no token                          401
 ```
+
+**The token, broken and mended the same morning (fresh review, BLOCK).** The kernel deployed after 05:24 checked
+each entry of `methods` against `^[A-Za-z0-9]+(\.[A-Za-z0-9]+)*(\.\*)?$` (commit 2d1a3c76), so `token.create` for the
+three names answered 400 and only `ai.*` passed, which also reaches `ai.run`. Seen on cb4 at 05:55 UTC. The check
+now takes `/` segments after the dotted name, and a prefix may end `/*`: `ai.v1/*` is every method under `ai.v1/`.
+Asserted in `test_tokens_reach_only_their_methods` (the whole name, the prefix, `ai.run` and `ai.v1x/models` 403,
+five malformed names 400). Kernel `c3f110263213`, cb4, 05:58 UTC, curl with a new token of each kind:
+
+```
+token of the three names   chat 200  embeddings 200  ai.v1/models 200  ai.run 403  ai.models 403
+token of ai.v1/*           chat 200  embeddings 200  ai.v1/models 200  ai.run 403  ai.models 403
+```
+
+**A page on another origin.** The kernel allowed the request headers `authorization` and `content-type` only, so
+the OpenAI SDK (`x-stainless-*`) and OpenRouter's `HTTP-Referer` and `X-Title` failed their preflight. A preflight
+is now answered with the headers it asked for, when they are letters, digits, `-`, `,` and spaces, 1000 characters
+at most. No cookie is read and only `authorization` says who calls; the headers the core trusts (`x-brain-*`) are
+dropped by the kernel on the way in, as before. Asserted in `test_a_token_is_the_callers_to_send_from_anywhere`.
+Run in the cluster's browser `test` from `https://example.com`, 05:59 UTC: `fetch` with `x-stainless-os`,
+`http-referer`, `x-title`, `x-session-affinity`, `openai-organization` answered 200; `openai@4` from esm.sh made a
+chat completion and listed 70 models. robocoop-5 was not run against it.
+
+**The same review, the rest.** A token's $0.10 a day is 10 calls at $0.01: now said in the module and the guide,
+with `defaultQuery: { usd }` and `quota.put`. `v1Usd` stays 0.01: at 0.001 a prompt over about 6600 tokens to a
+$0.15 model is refused 402. Four sentences written for `ai.run` alone now name the `ai.v1` methods. A body with
+`max_completion_tokens` is parsed and written again; said. `ai.v1/models` gave 70 models and that is all of them
+(Cloudflare's `total_count` says 324, page 2 is empty, `per_page=50` gives 50 then 20).
 
 **The price with no `usd`.** `"usd" in request.params ? double(request.params.usd) : 0.01`, and the service budgets
 from the same number. Rejected: the body's `max_tokens` at list price (the core's rule does not see a body) and a

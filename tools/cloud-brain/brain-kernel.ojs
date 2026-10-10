@@ -35,7 +35,9 @@ A person is an atproto account, named by its DID. There are two roles. The **own
 
 **Sign-in links** (added 2026-10-09). For a program with no browser, such as Claude Code on the web. \`token.link\` (procedure, owner's session) takes \`{ name, methods, minutes, hours, deploy, unattended }\` and answers \`{ name, deploy, unattended, link, until }\`; \`minutes\` (1 to 60, 10 if left out) is how long the link is good, \`hours\` (1 to 24, 8 if left out) how long its token lasts. The link is \`/auth/link?code=…\`. A GET of it answers text that says what to do and spends nothing, so a preview of a pasted link does not use it. The first POST answers \`{ name, token, methods, until, deploy, unattended }\` and deletes the link; a second answers 401. The token is one as \`token.create\` makes, with an end: it may not name \`infra.*\`, \`secret.*\`, \`token.*\`, \`grant.*\` or \`people.*\`, and \`token.list\` gives it with \`by: "link"\` until it ends. \`token.revoke\` with \`{ name }\` ends the token early, and deletes a link of that name nobody has used. A link is refused a name that a token or another link has.
 
-**Lists of methods** (2026-10-10). In \`token.create\` and \`token.link\` an entry of \`methods\` is a whole name or a prefix that ends \`.*\`: \`browser.*\` is every method of that service, \`*\` every method of this Brain. No prefix reaches a name a token may not have (\`infra\`, \`secret\`, \`token\`, \`grant\`, \`people\`). A grant to a DID still names whole methods.
+**Lists of methods** (2026-10-10). In \`token.create\` and \`token.link\` an entry of \`methods\` is a whole name or a prefix that ends \`.*\`: \`browser.*\` is every method of that service, \`*\` every method of this Brain. A name may go on after a \`/\` (\`ai.v1/chat/completions\`), and \`ai.v1/*\` is every method under \`ai.v1/\` and not \`ai.run\` (2026-10-10: the first shape check had refused every name with a \`/\`). No prefix reaches a name a token may not have (\`infra\`, \`secret\`, \`token\`, \`grant\`, \`people\`). A grant to a DID still names whole methods.
+
+**Other origins** (2026-10-10). No cookie is read, so any origin may call with a token and read the answer. A preflight is answered with the headers it asked for (\`access-control-request-headers\`), because a client library adds its own: the OpenAI one sends \`x-stainless-*\`. Before, only \`authorization\` and \`content-type\` passed.
 
 With \`deploy: true\`, \`token.link\` makes a link whose token also calls \`infra.*\` as the owner's session does, and these four only: \`infra.apply\`, \`infra.getState\`, \`infra.redistil\` and \`infra.confirm\` (which ends the probation of a kernel, core or page it deployed). Not \`infra.shell\`: that puts HTML at \`/\` with no reason, no \`was\` and no approval, and the page at \`/\` runs where the owner's session is kept; so a program cannot renew the page's shell, and the owner does after it deploys the page. It deploys and removes any Worker of this Brain, the kernel among them. What holds a session's apply holds its apply: a reason, \`was\`, and approval on the deployer's page (which needs the recovery key) when deploys need approval. The token itself names no secret, token, grant or people method. That is a limit only while deploys need approval: with approval off it can deploy a kernel of its own writing, and the kernel is what names the caller, so the token is then the owner in effect. Only a link makes such a token, so it always ends, in 24 hours at most; \`token.create\` cannot. Each call is logged by the kernel as \`infra.by.link\` with the token's name. Tom, 2026-10-09: "I do want singin links to be able to deploy with the authority of me".
 
@@ -203,7 +205,10 @@ kernelApp = {
   // Every caller sends a token in a header, this Brain's own page included, so any origin may call and read the answer.
   const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "authorization, content-type", "access-control-allow-methods": "GET, POST", "access-control-expose-headers": "x-proxy-upstream", "access-control-max-age": "600" };
   app.use("/xrpc/*", async (c, next) => {
-    if (c.req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+    // A client library adds headers of its own (the OpenAI one: x-stainless-*). The preflight is told the ones it
+    // asked for: no cookie is read and no header but authorization says who calls, so none of them is a risk.
+    const asked = c.req.header("access-control-request-headers") || "";
+    if (c.req.method === "OPTIONS") return new Response(null, { status: 204, headers: { ...cors, ...(/^[A-Za-z0-9, -]{1,1000}$/.test(asked) ? { "access-control-allow-headers": asked, vary: "access-control-request-headers" } : {}) } });
     await next();
     if (!c.req.header("authorization")) return;
     const headers = new Headers(c.res.headers);
@@ -394,14 +399,15 @@ kernelApp = {
   const never = (m) => /^com\.lopecode\.brain\.(infra|secret|token|grant|people)\./.test(m);
   // A token's list holds whole names and prefixes: "browser.*" is every method of that service, "*" every method
   // of this Brain. No prefix reaches a name a token may not have.
-  const listed = (m) => /^[A-Za-z0-9]+(\.[A-Za-z0-9]+)*(\.\*)?$/.test(m);
-  const names = (methods, nsid) => !never(nsid) && methods.some((m) => m === nsid || (m.endsWith(".*") && nsid.startsWith(m.slice(0, -1))));
+  // A name may go on in segments after a / (ai.v1/chat/completions); "ai.v1/*" is every method under ai.v1/.
+  const listed = (m) => /^[A-Za-z0-9]+(\.[A-Za-z0-9]+)*(\/[A-Za-z0-9]+)*([./]\*)?$/.test(m);
+  const names = (methods, nsid) => !never(nsid) && methods.some((m) => m === nsid || (/[./]\*$/.test(m) && nsid.startsWith(m.slice(0, -1))));
   app.get(NS + "token.list", session, async (c) => c.json({ tokens: (await rows.list("token/")).map((r) => r.value).filter((t) => !(t.until < Date.now())) }));
   app.post(NS + "token.create", session, async (c) => {
     const { name, methods = [] } = await c.req.json();
     const named = methods.map(full);
     if (!/^[a-z0-9-]{1,40}$/.test(name || "")) return fail(c, 400, "InvalidRequest", "name is lower case letters, digits and -");
-    if (!named.every(listed)) return fail(c, 400, "InvalidRequest", "a method is a name, or a prefix that ends .* (browser.*), or *");
+    if (!named.every(listed)) return fail(c, 400, "InvalidRequest", "a method is a name, or a prefix that ends .* or /* (browser.*, ai.v1/*), or *");
     if (named.some(never)) return fail(c, 400, "InvalidRequest", "a token cannot name infra, secret, token, grant or people methods");
     const token = [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("");
     await rows.put("token/" + (await sha256(token)), { name, methods: named, created: Date.now() });
@@ -417,7 +423,7 @@ kernelApp = {
     if (unattended && !deploy) return fail(c, 400, "InvalidRequest", "unattended is for a link made with deploy");
     const named = methods.map(full);
     if (!/^[a-z0-9-]{1,40}$/.test(name || "")) return fail(c, 400, "InvalidRequest", "name is lower case letters, digits and -");
-    if (!named.every(listed)) return fail(c, 400, "InvalidRequest", "a method is a name, or a prefix that ends .* (browser.*), or *");
+    if (!named.every(listed)) return fail(c, 400, "InvalidRequest", "a method is a name, or a prefix that ends .* or /* (browser.*, ai.v1/*), or *");
     if (named.some(never)) return fail(c, 400, "InvalidRequest", "a token cannot name infra, secret, token, grant or people methods");
     if (!(minutes >= 1 && minutes <= 60 && hours >= 1 && hours <= 24)) return fail(c, 400, "InvalidRequest", "minutes is 1 to 60, hours is 1 to 24");
     // What has ended is deleted here: links nobody used, and the tokens of links.
@@ -923,7 +929,7 @@ test_tokens_reach_only_their_methods = {
   expect((await rig.call("inbox.list", { bearer: all.token })).status).toBe(403);
   await rig.call("token.revoke", { session: rig.owner, body: { name: "wide" } });
   // A prefix: every method under it, none beside it, and never a name a token may not have.
-  for (const bad of ["secret.*", "infra.*", "pro*", "*.fetch", "proxy.*.x", ""]) expect((await rig.call("token.create", { session: rig.owner, body: { name: "bad", methods: [bad] } })).status).toBe(400);
+  for (const bad of ["secret.*", "infra.*", "pro*", "*.fetch", "proxy.*.x", "", "ai.v1/", "ai.v1//x", "ai/v1.x", "ai.v1/*/x", "/x"]) expect((await rig.call("token.create", { session: rig.owner, body: { name: "bad", methods: [bad] } })).status).toBe(400);
   const star = (await rig.call("token.create", { session: rig.owner, body: { name: "star", methods: ["proxy.*"] } })).data.token;
   expect((await rig.call("proxy.fetch", { bearer: star, body: {} })).status).toBe(200);
   expect(rig.seen.at(-1).headers["x-brain-caller"]).toBe("token:star");
@@ -931,6 +937,12 @@ test_tokens_reach_only_their_methods = {
   const every = (await rig.call("token.create", { session: rig.owner, body: { name: "every", methods: ["*"] } })).data.token;
   expect((await rig.call("inbox.list", { bearer: every })).status).toBe(200);
   for (const m of ["secret.get", "token.list", "infra.getState", "people.list"]) expect((await rig.call(m, { bearer: every })).status).toBe(403);
+  // A name with a /: the whole name, or everything under the part before a /*. Neither reaches the names beside it.
+  const whole = (await rig.call("token.create", { session: rig.owner, body: { name: "whole", methods: ["ai.v1/chat/completions"] } })).data.token;
+  const under = (await rig.call("token.create", { session: rig.owner, body: { name: "under", methods: ["ai.v1/*"] } })).data.token;
+  expect(await Promise.all(["ai.v1/chat/completions", "ai.v1/models", "ai.run", "ai.v1x/models"].map(async (m) => (await rig.call(m, { bearer: whole, body: {} })).status))).toEqual([200, 403, 403, 403]);
+  expect(await Promise.all(["ai.v1/chat/completions", "ai.v1/models", "ai.run", "ai.v1x/models"].map(async (m) => (await rig.call(m, { bearer: under, body: {} })).status))).toEqual([200, 200, 403, 403]);
+  for (const n of ["whole", "under"]) await rig.call("token.revoke", { session: rig.owner, body: { name: n } });
   // A member's method: its id is hex and may begin with a digit. A grant to a DID takes no prefix.
   expect((await rig.call("token.create", { session: rig.owner, body: { name: "mem", methods: ["m.0a1b2c3d4e.hello", "m.0a1b2c3d4e.*"] } })).status).toBe(200);
   for (const m of ["proxy.*", "*"]) expect((await rig.call("grant.put", { session: rig.owner, body: { did: "did:plc:other", methods: [m] } })).status).toBe(400);
@@ -1454,6 +1466,11 @@ test_a_token_is_the_callers_to_send_from_anywhere = {
   expect((await rig.call("token.list", { headers: { origin: "null" } })).status).toBe(401);
   const there = await rig.call("token.list", { session: rig.owner, headers: { origin: sibling } });
   expect([there.status, there.headers.get("access-control-allow-origin")]).toEqual([200, "*"]);
+  // A preflight is told the headers it asked for, so a client library that adds its own is not stopped.
+  const pre = (asked) => rig.call("ai.v1/chat/completions", { method: "OPTIONS", headers: { origin: sibling, "access-control-request-method": "POST", ...(asked ? { "access-control-request-headers": asked } : {}) } });
+  expect([(await pre("authorization, content-type, x-stainless-os, http-referer, x-title")).status, (await pre("authorization, content-type, x-stainless-os, http-referer, x-title")).headers.get("access-control-allow-headers")]).toEqual([204, "authorization, content-type, x-stainless-os, http-referer, x-title"]);
+  expect((await pre()).headers.get("access-control-allow-headers")).toBe("authorization, content-type");
+  expect((await pre("x-a; b=(c)")).headers.get("access-control-allow-headers")).toBe("authorization, content-type");
   return "401 without a token, whatever the origin";
 }
 // %%
