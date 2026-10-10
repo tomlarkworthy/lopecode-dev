@@ -1,14 +1,17 @@
 # What the Cloud Brain is for, and how the loop decides
 
-Read this before `rules.md`. It is the owner's, as `rules.md` is: the overseer does not edit it,
-and neither does any other agent. A change to it comes from the owner's own words, which are
-quoted here with their date.
+Read this before `rules.md`. It is the owner's, as `rules.md` is. A change to it comes from the
+owner's own words, quoted with their date. The one edit an agent makes here is the orchestrator
+adding such a quote under "Clarifications". The overseer does not edit it.
+
+Where this file and `rules.md` differ, `rules.md` holds until the owner changes it. The
+differences known on 2026-10-10 are listed under "In force until the owner changes them".
 
 ## Why this file exists
 
-On 2026-10-10 the loop ran for a day. At 21:07 CEST the tracker had 14 open issues and 12 of
-them waited for the owner. Most asked him to pick between two sides of a small matter. He
-stopped the loop and said:
+On 2026-10-10 the loop ran from about 16:00 to 21:25 CEST. When the owner stopped it the tracker
+had 14 open issues: 10 labeled `needs-owner` and 2 held behind those. Most asked him to pick
+between two sides of a small matter. At 21:33 he said:
 
 > I feel there is a lot of minutae that should be answerable from a general philosophy.
 
@@ -45,18 +48,19 @@ tools, briefs or tests is fixed by the loop.
 
 **3. Self-documenting.** When an agent had to guess a call shape, a limit or a file's place, the
 doc or the tool is at fault and is changed so the next agent does not guess. On 2026-10-10 the
-same gaps were reported up to seven times each before a brief changed (the cut of a long
-`eval_code` return, the ` [200]` after `brain.ts curl` output, the body of `issue.open`). None
-of those is a question for the owner.
+cut of a long `eval_code` return was reported seven times before a brief changed
+(`agents/reviewer.md` step 4), and the call shape of `issue.open` four times with no change yet
+(`oversight.md`). Neither is a question for the owner.
 
 **4. Easy to steer.** What the owner is shown is short and can be answered in a word. Questions
 are gathered, not sent one at a time. What he said is written where the next agent reads it
 (this file, a brief, the issue), with his words and the date, so he is not asked twice.
 
 **5. Performance, reliability, improving.** Cost is part of a decision. A round of one writer
-and one reviewer cost about 250,000 tokens on 2026-10-10 whatever the size of the change, and
-two issues took three rounds (about 660,000 and 680,000). A fix that costs more than the defect
-does is not started; say so in the reject reason with what would reopen it.
+and one reviewer cost 167,000 to 266,000 tokens on 2026-10-10, the lowest for a one-line doc
+change. Three issues took three rounds: 800,386, 792,862 and 624,066 tokens (the sums of the
+agents' counts in the journal, `tools/cloud-brain/.emitted/issue-loop/`). A fix that costs more
+than the defect does is not started; say so in the reject reason with what would reopen it.
 
 **6. Reflective.** The overseer is this line. It measures from the tracker's events and the
 journal, not from what an agent said of itself, and changes the briefs.
@@ -78,22 +82,42 @@ So the label goes on an issue only when one of these is true:
 - the issue proposes to change one of the seven, or a line of `rules.md`.
 
 The comment that goes with the label names the lines concerned, says what they leave open in one
-or two sentences, and gives the reading the agent would take. The owner's answer is then added
-under "Clarifications", so the same question is not asked of him again.
+or two sentences, and gives the reading the agent would take. The orchestrator adds the owner's
+answer under "Clarifications", with his words and the date, so the same question is not asked of
+him again.
 
 Everything else is decided by the agent that meets it, with the line it decided by named in the
 move's reason.
 
-## An act that needs the owner's hand is not a question
+## An act that needs the owner's hand is not a question (proposed, not in force)
 
 Some things only the owner may do: install a policy, deploy the kernel, the core, the database
 or the deployer, make a secret, approve a `major` change. Line 1 is why.
 
-Whether such an act should be done is still decided from the seven. The loop prepares it in
-full: the change is written, tested and kept on a branch, and the issue's last comment is the
-one command or the one word the owner has to give. It carries the label `owner-act`, not
-`needs-owner`. The owner is shown these as a list of things to run, not as things to think about.
-(`owner-act` had not been used on the tracker when this was written.)
+The proposal: whether such an act should be done is still decided from the seven, and the loop
+prepares it in full. The change is written, tested and kept on a branch, the issue's last
+comment is the one command or the one word the owner gives, and the issue carries a label of
+its own, `owner-act`, so the owner sees a list of things to run and not things to think about.
+
+None of this is in force. `rules.md` says such a fix "is written up on the issue, which gets the
+label `needs-owner` and is not started", and step 3 of `agents/implementer.md` says the same of
+a new policy, secret, permission or Worker. Landing removes the worktree and its branch. The
+tracker's "For your attention" block lists `needs-owner` and not `owner-act`
+(`brain-issues.ojs`, the `waits` function). Until the owner changes `rules.md`, an act of this
+kind is commented with the plan and the word needed, labeled `needs-owner`, and not built.
+
+## In force until the owner changes them
+
+`needs-owner` is also put on an issue in these cases, which the three above do not cover. Each
+is in `SKILL.md` or a brief and was not changed when this file was added.
+
+- A fix that needs something in the Never list of `rules.md`, or a new policy, secret,
+  permission or Worker (`agents/implementer.md` step 3).
+- A `major` change: one that alters who may do what, deletes or rewrites kept data, or changes a
+  method other callers use (`SKILL.md`, Triage). This is wider than line 1 as read above: a
+  change that only narrows what a caller may do is `major` too.
+- An issue whose writer finished without a submit, or that has 3 reworks and is not getting
+  anywhere, and an issue in a state the procedure does not name (`SKILL.md`, step 3).
 
 ## Clarifications
 
@@ -101,9 +125,12 @@ The owner's answers, each with its date and his words. Empty on 2026-10-10.
 
 ## Not settled
 
-- Whether the seven are in order of weight. Line 1 against line 2 is the common case: on
-  2026-10-10 a fix to three test cells was stopped, written and tested, because a Worker's hash
-  covers its tests and the change would have moved the kernel, the core and the deployer. No
-  line of a service changed.
-- Whether `rules.md` is still the right list. It was written before the seven. Nothing in it
-  was changed when this file was added.
+- Whether the seven are in order of weight, and so whether the proposal above is taken. The
+  case from 2026-10-10: a fix for tests that took each other's log lines was written and tested
+  and then stopped (branch `bm/tests-replace-console-log`, commit `b169230e`). It changes three
+  test cells and the helper `logged` in `cloudflare-iac.ojs` that they read through. A Worker's
+  hash covers its module's tests, and the deployer's covers `cloudflare-iac`, so landing it
+  moves the kernel, the core and the deployer. Line 2 says land it; line 1, as `rules.md` has
+  it, says the loop does not deploy those three.
+- Whether `rules.md` is still the right list. It was written before the seven. One line was
+  added to it with this file, pointing here, and no rule was changed.

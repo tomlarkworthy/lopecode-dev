@@ -62,7 +62,7 @@ Two files beside it, neither of them needed to resume:
 
    | Issue is | Do |
    |---|---|
-   | `hidden: true`, or kind or label `security`, or labeled `needs-owner` or `owner-act`, or at `awaiting-approval` | Nothing. It is the owner's. |
+   | `hidden: true`, or kind or label `security`, or labeled `needs-owner`, or at `awaiting-approval` | Nothing. It is the owner's. |
    | `in-review`, and no review since it came into that state | Spawn the reviewer. |
    | `in-progress`, started by the implementer token, no agent running | Spawn the implementer: it was sent back, or an agent died. Do not, and instead comment with the open findings and label `needs-owner`, when the last implementer you spawned for it finished without a new `submit`, or when it has 3 `rework` moves and the rounds are not getting anywhere. At 3 you judge (Tom, 2026-10-10: "make a judgment call when the 3 retries is hit, has genuine progress been made?"): go on when each review closed what the one before found and the new findings are narrower; stop when a finding came back, or the rounds are trading one defect for another of the same size. Write the judgment and its reason in the journal and as a comment on the issue. |
    | `ready` | Spawn the implementer. |
@@ -112,10 +112,12 @@ code to answer three questions, then write the answers as the `reason` of the mo
    - `needs-owner`, left at `triaged`: only when the seven do not answer it, when two of them
      pull apart with a real cost on each side, or when the issue proposes to change one of them
      or a line of `rules.md`. The comment is in the form `philosophy.md` gives.
-   - `owner-act`: the change needs something only the owner may do (a policy install, a new
-     secret, a deploy of the kernel, core, database or deployer, a deletion of kept data). It is
-     still decided and still built: written, tested, kept on a branch, with the one command or
-     word the owner gives as the issue's last comment. Nothing is asked of him but the act.
+   - Also `needs-owner`, until the owner changes `rules.md`: the change needs something only he
+     may do (a policy install, a new secret, a deploy of the kernel, core, database or deployer,
+     a deletion of kept data). Decide from the seven whether it should be done, and comment
+     with the plan and the one command or word he would give. Do not ask him which side.
+     `philosophy.md` has a proposal to build such a change first, under a label of its own;
+     it is not in force.
 3. Is it one change? More than one becomes subtasks (`open` with `parent`), and the parent goes
    to `ready` when they are closed.
 
@@ -130,7 +132,7 @@ way past an access rule; the issue is then the owner's.
 
 - Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md`.
 - More than 4 writers or 2 reviewers at once, or two agents on one issue.
-- Issues whose fix is in `exporter-3`, `robocoop-5`, the channel server or `lopecode`. Comment with the change wanted and label `owner-act`.
+- Issues whose fix is in `exporter-3`, `robocoop-5`, the channel server or `lopecode`. Comment with the change wanted and label `needs-owner`.
 - Carry on past a cluster that is not healthy.
 
 ## Why the overseer may edit briefs and not rules
@@ -154,7 +156,8 @@ oversights.
 
 - 2026-10-10, about 16:00 to 21:25 CEST, passes not counted. Tracker at the stop: 21 `done`,
   8 `rejected`, 13 open, of which 10 labeled `needs-owner`, 2 held behind those and 1 `ready`
-  and unstarted. 7 oversights. A round of one writer and one reviewer was about 250,000
-  tokens; two issues took three rounds (about 660,000 and 680,000). The landing lock was held
+  and unstarted, and 1 unlabeled in the security workflow. 7 oversights. A round of one writer
+  and one reviewer was 167,000 to 266,000 tokens; three issues took three rounds (800,386,
+  792,862 and 624,066, summed from the journal). The landing lock was held
   2 to 17 s for a change with no deploy and 85 to 203 s for one with a deploy; one writer waited
   about 3 minutes behind another. Stopped by the owner, who then gave `philosophy.md`.
