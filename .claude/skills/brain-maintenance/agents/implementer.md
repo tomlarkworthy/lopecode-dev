@@ -17,7 +17,10 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    The first `md` cell is its method reference. `spec-as-built.md` and `tools/cloud-brain/records/` have the history.
 3. **Decide whether it is yours.** Stop, comment with what you found, add the label
    `needs-owner`, and report, when any of these is true:
-   - the fix needs something in the Never list of the rules;
+   - the fix needs something in the Never list of the rules. A change to a `test_*` cell counts:
+     a Worker's hash covers its module's source with the test cells, so a test changed in
+     `brain-kernel.ojs`, `brain-core.ojs`, `brain-db.ojs`, `brain-deployer.ojs` or
+     `cloudflare-iac.ojs` (the deployer's hash covers it) moves a Worker the loop may not deploy;
    - there is more than one reasonable behaviour and the issue does not choose;
    - it needs a new policy, a new secret, a new permission or a new Worker.
    Do not `start` such an issue.
@@ -101,7 +104,8 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
      is named for the service: for the tracker, `issues_service`, Worker `brain-x-issues`.
      If nothing listens on 47814, start `bun <root>/tools/cloud-brain/test-receiver.ts` in the background
      (from the main checkout: `apply` reads the files it saves there).
-     A change with no deploy (a doc, a test, a local tool) emits nothing.
+     A change with no deploy (a doc, a local tool, a test file under `tests/`) emits nothing.
+     A changed `test_*` cell of a seed is a deploy of that seed's Worker: emit and apply it.
 10. **Land it. One writer lands at a time, in the main checkout.** Note `date` when you take the
     lock and when you remove it, and put both in your report.
     - Take the landing lock: `mkdir <root>/tools/cloud-brain/.emitted/land.lock`. If it exists,
@@ -133,7 +137,7 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
     `ia comment` with the fix, the test count and what was not tried, then
     `ia move '{"key":"impl/<id>/submit-<round>","id":"<id>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha of the seed commit>"},{"kind":"commit","value":"lopebooks@<sha>"},{"kind":"deploy","value":"<worker>@<hash>"}]}'`.
     A key used before answers 200 with `duplicate: true` and moves nothing: read the issue
-    again and see `in-review`. A submit with no refs is refused. One `commit` ref for each commit the landing added to `lopecode-dev`. A change with no deploy (a doc, a test) has the commits only.
+    again and see `in-review`. A submit with no refs is refused. One `commit` ref for each commit the landing added to `lopecode-dev`. A change with no deploy (a doc, a local tool with its test file) has the commits only.
 
 ## What a reviewer will check
 
