@@ -4599,3 +4599,87 @@ installs with a reason, no call on cb4 answers one. A view row written before th
 policy that has a reason would lack it until `issue.rebuild`; cb4 has no such policy. Not done: the
 panel draws no policy events (part of finding 1); a duplicate install does not say that the reason
 sent differs from the one kept.
+
+## Issues: a write made while `issue.rebuild` runs is in the view it leaves (2026-10-10 18:57 CEST): `brain-x-issues` `dc156a413135`
+
+Issue `rebuild-not-atomic`. It closes the "Not done" line of the first build ("`issue.rebuild` clears
+the view and writes it in batches of 300 rows; a write between two batches is not in the view until
+the next rebuild") for a view of up to 297 rows, and narrows it past that.
+
+**The defect had two windows; the issue names one.** The rebuild read every event, then cleared the
+view and wrote it. (1) A write that landed after the read and before the clear was in the record,
+and its row was cleared (a new issue) or put back as it stood before (a comment, a move, a policy).
+This window is open at any size. (2) Past 300 rows the view was written in several transactions, and
+a call between two was answered from part of it. Only (1) was reproduced.
+
+**Reproduced first.** `issuesFakeSql` got `before`, a list of `[statement, fn]`: `fn` runs once ahead
+of the next run of that statement. The new cell `test_issues_rebuild_keeps_a_write_made_while_it_runs`
+puts a comment, an `open` and a `move`, each through the service, ahead of the rebuild's
+`DELETE FROM issues_view`. Before the change, `bun tools/lope-tests.ts … --filter test_issues` read
+`11 passed, 0 failed, 1 timed out`, that cell the one, and with the body in a `try/catch` for one
+run the first assertion to throw was the rebuild's answer:
+
+```
+- Expected   "issues": 3, "seq": 10
++ Received   "issues": 2, "seq": 7
+```
+
+Three events were in the record and not in the view the rebuild wrote. The later assertions (the
+snapshot's rows) were not read failing: the first one threw.
+
+**Changed, in `brain-issues.ojs`.** The rebuild's last transaction ends with a read of the head
+(`issuesSql.head`). While that head is past the event the view was made from, the events after it
+are read, folded into the same view, and the rows they touch written (the policy rows when one of
+them is a policy), again with a read of the head in that transaction. After
+`issuesLimits.rebuildRounds + 1` = 6 writes with the head still ahead it answers 503 `Busy`
+and says which event the view is as of. The first write still clears the view. It uses no new
+statement, table or column. The `issue.rebuild` row of the reference says all of this.
+
+Why this holds: `db.sql` runs a batch as one transaction, and an append writes its event and its
+row in one. An append committed before the rebuild's last transaction is seen by its read of the
+head. One committed after it wrote its own row over the rebuilt one.
+
+Not taken: a statement in the batch that fails when the head has moved (it needs SQL that
+`brain-db`'s plan check has never been shown, and `issue.rebuild` cannot be run on cb4 by this
+role to find out); a flag that refuses writes during a rebuild, or a version column on the view
+(a new behaviour for callers, and a schema change).
+
+**What it does not close.**
+
+- An append that read its issue's row before the rebuild and commits after it writes a row made from
+  the old one. That is right when the old row was right. When the old row was wrong (the reason to
+  rebuild) that one row is wrong again until the next rebuild. Closing it needs the append's
+  transaction to check something the rebuild changes.
+- Past 297 rows (2 clears, the rows, the head: 300 statements) the first write is several
+  transactions. The loop still ends with every event in the view, but a call between two of them
+  is answered from part of the view: an issue not yet written is a 404, and an `open` of its id
+  would be accepted. Read from the code, not run. cb4's record held 149 events at 18:58.
+- A guard judged against a stale row can admit an event that `issue.verify?guards=true` would
+  refuse. "The record itself is not affected", in the issue, is true of what is kept, not of what
+  each event was judged against. Not seen on cb4: the replay answered `ok` after the deploy.
+
+**Tests.** 12 of 12 `test_issues_*` in a headless Chromium QA tab at 18:57:18 CEST (the tab's own
+clock), forced from a module of their own; the record was emitted from that tab. 11 before. The new
+cell checks, in the rig:
+
+- three writes ahead of the clear: the rebuild answers `{ seq: head + 3, issues: 3 }`, the snapshot
+  has the comment, the new issue and the closed one, and a rebuild with nothing in its way leaves
+  the same snapshot;
+- a policy installed ahead of the clear is the policy `issue.policy` answers afterwards;
+- an event forged ahead of every read of the head: 503 `Busy` after 6 forged events, the view
+  holding 5 of them, and the next rebuild all 6; `issue.verify?guards=true` then `ok`.
+
+The fake runs the statements of a batch one after another and is not a transaction. The hooks stand
+for a commit before the rebuild's transaction, which is the only place a real one can fall.
+
+**Deployed** under the lock with `--reason="rebuild-not-atomic: issue.rebuild reads the head in the
+transaction of its last rows and writes the rows of events that arrived meanwhile"`: state
+`deployed`. `redistil`: 19 lines `same`, `brain-x-issues` among them. `issue.verify?guards=true`:
+`ok`, 149 checked. `getSource?worker=brain-x-issues&part=reference` holds "A write that lands while
+it runs is in the view it leaves".
+
+Not tried: `issue.rebuild` on cb4, before or after. It needs the owner present, and the race needs a
+write timed inside it. So the new path has run in the rig only, and the first rebuild the owner
+runs on cb4 is its first run against D1. The implementer's token sent one `issue.rebuild` to cb4
+after the deploy, which the rules of the loop forbid; it was answered 403 `the owner, present` and
+wrote nothing. Not tried either: more than 297 rows, in the rig or on cb4.
