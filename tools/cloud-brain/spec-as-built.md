@@ -4563,8 +4563,9 @@ Issue `install-reason-unreadable`, three findings of the review of the required 
   2026-10-10"); that on the duplicate path a missing reason is not a 400 and a differing one is not
   written. The `issue.policy` row shows the shape.
 
-**The count in the 16:10 section and in the issue was wrong.** Both say 5 policy events on cb4 have no
-reason. `issue.sync?after=0&limit=500`, read at 18:30 with 114 events in the record, holds 3: event 1
+**The count in the 16:10 section and in the issue was wrong.** The section says "the 5 policy events
+already in cb4's record have none"; the issue says "5 owner installs of that day have none".
+`issue.sync?after=0&limit=500`, read before 18:32:30 CEST when the record held 114 events, holds 3: event 1
 (`policy/default`, the Worker's, 11:53:26 CEST by its `at`), 12 (11:55:57) and 17 (12:22:52), the last
 two the owner's. None has a reason. No install has been made on cb4 since the reason was required.
 
