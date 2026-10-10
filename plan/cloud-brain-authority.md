@@ -1,7 +1,7 @@
 # Cloud Brain: one record for delegated authority
 
-A design, not built. Written 2026-10-10 for Tom to review before anything is changed; fourth draft,
-after three fresh reviews (see *Review* at the end). A statement about the present code names the
+A design, not built. Written 2026-10-10 for Tom to review before anything is changed; fifth draft,
+after four fresh reviews (see *Review* at the end). A statement about the present code names the
 line it was read at where one line holds it, found by a search for the text on 2026-10-10 between
 09:41 and 09:56 CEST. Another session edits the same seeds, so the lines will move. Nothing here was run on a Brain except three reads of
 cb4 that are marked.
@@ -127,15 +127,17 @@ This is the choice that changes behaviour, so both sides are written out.
 
 | holder | made by | `caller` in a rule | account that pays | what it makes is kept |
 |---|---|---|---|---|
-| a secret | the owner, a member | `from` | `from`, inside `daily` | apart, under the delegation |
-| a Worker | the owner, a member | `from` | `from`, inside `daily` | apart, under the delegation |
+| a secret | the owner, a member | `from` | `from`, inside `daily` | as a token's is now, see below |
+| a Worker | the owner, a member | `from` | `from`, inside `daily` | the same |
 | a DID | the owner only | that DID | that DID; `daily` is not used | as that DID's |
 
 **A delegated call is by the principal and is not the principal's own tab.** That is the class a
 turn, a portal and a PDS call are in now. A secret and a Worker have no identity worth keeping: for
 a rule and for an allowance they are a hand of the principal. For a store they are what a turn is:
-the browsers, containers and blobs such a call makes are kept under `d:<id>`, apart from the
-principal's and from every other delegation's. A page in the owner's browser holds the owner's
+the browsers and containers such a call makes are keyed `d:<id>`, apart from the principal's and
+from every other delegation's. Its blobs are stamped `by:d:<id>` and it reads every blob, and its
+static files are in the principal's space with the delegation as `writer`: both as a token's are now
+(`brain-blob.ojs:186-190`, `brain-static.ojs:115`), and neither is a wall. A page in the owner's browser holds the owner's
 session, so a secret with `browser.*` must not reach it; under `d:<id>` it does not, as a token
 today does not (`b/token:NAME/`, `brain-browser.ojs:131`).
 
@@ -159,18 +161,24 @@ caller.trusted      as now: the owner, or a caller whose scope was checked
 Two things are kept apart, because a store and a rule ask different questions:
 
 - **`caller.session`**, for a rule: is this the owner's own tab. Sixteen rules are exactly this.
-- **`x-brain-tab: 1`**, for a store: is this call from the principal's own tab, whoever the principal
-  is. The core sends it for a session of the owner or of a member, and for a delegation with the cap
-  `session`. It does not send it for a turn, a portal, a PDS call or any other delegation.
+- **`x-brain-tab`**, for a store: is this call from the principal's own tab, whoever the principal
+  is. The core sends it with every call it forwards: `1` for a session of the owner or of a member
+  and for a delegation with the cap `session`; `0` for everything else.
 
 A service is sent `x-brain-caller` (the principal), `x-brain-via` (`delegation:<id>` under one) and
 `x-brain-tab`. One platform cell reads them:
 
 ```
-ownTab(request)    x-brain-tab is "1"; from a core that does not send the header yet,
+ownTab(request)    x-brain-tab is "1". When the header is absent (a core from before step 2):
                    the via is none of turn:, portal:, jwt, delegation:
-keeperOf(request)  the caller when ownTab; "d:<id>" under a delegation; "via:<caller>" otherwise
+keeperOf(request)  "d:<id>"        the via is delegation:<id> and it is not ownTab
+                   "via:<caller>"  the via is turn:, portal: or jwt
+                   the caller      everything else
 ```
+
+`keeperOf` is today's test with one case added, so nothing that exists is keyed anew: a Worker
+calling for itself is `worker:NAME`, a member's Worker is its author, a token made before step 3 is
+`token:NAME`, each as now (`brain-browser.ojs:131`, `:888`).
 
 `keeperOf` takes the place of the test in browser and container, and `ownTab` of the test in blob and
 static and of the two guards in `brain-db` that read `via !== "session"` (`brain-db.ojs:230`,
@@ -265,13 +273,23 @@ So `*` with `session` does not reach `rule.put`; the scope must say `rule.*` or 
 table is `never()` (K:399), `deploys()` (K:398), the kernel's own list of what a turn does not reach
 (K:14) and the `toCore` rewrite (K:508), as one.
 
-`session`, `deploy` and `unattended` are given by the owner's own session and nobody else. A
+`session`, `deploy` and `unattended` are given by the owner's own session and nobody else.
+`delegate` is given by the owner or a member in their own session, to a secret holder only. A
 delegation made under a delegation has no caps.
+
+The narrowing of `*` binds a holder that has `session` and has neither `browser.*` nor `deploy` with
+`unattended`. A holder with `session` and `browser.*` opens the owner's browsers, where a page holds
+the owner's session; a holder that deploys with no approval can deploy a kernel. Either can do what
+the owner can, whatever its scope says. The login button's token is both, so for it this table
+bounds nothing, as nothing bounds it now.
 
 ### Making one
 
 `delegation.create { name, holder, scope, caps, until, daily, note }`, called by the owner or a
-member in their own session (`via: session`). It answers the record, and for a secret holder the
+member in their own session: the via the kernel sends is `session`. The core's guard for it is new,
+"a session of the owner or of a member"; its `session` guard (C:314) is the owner's only. A
+delegation with the cap `session` does not pass it. (Such a holder can still open the owner's
+browser and call from the page there, as said under *Scope*.) It answers the record, and for a secret holder the
 secret, once. `delegation.create`, `list` and `revoke` join the `MEMBER` list (K:199).
 
 - The scope is checked against what the caller may call now. A member cannot put `library.list` in
@@ -359,8 +377,16 @@ A DID's grant is part of what that DID may do, as now (K:299 is `MEMBER`, `m.*` 
 member's delegation may name a method the member has by grant. `may` and `matches` are one cell,
 emitted into the kernel and the core. The kernel needs them for
 the routes it answers itself and never forwards to the core: `infra.*` to the deployer (K:667),
-`token.*`, `people.*`, `auth`, `member.*`, `portal.*`. For those it asks the core
+`token.*`, `grant.*`, `people.*`, `auth`, `portal.*`, and `member.deploy`, `member.remove`,
+`member.modules` (K:653). For those it asks the core
 `delegation.resolve { sha256 | did }`, which only the kernel's key may call.
+
+The kernel writes no delegation row. Its `token.create`, `token.revoke` and `token.list` become
+forwards to the core's `delegation.*`, carrying the caller and the via as `toCore` does and changing
+only the shape of the body and the answer. A link stays a row of the kernel; when it is redeemed the
+kernel calls `delegation.create` as `owner`, `session`, which is who made the link (K:420 is behind
+the kernel's `session` guard). The core takes the kernel's word for the caller there as it does on
+every call.
 
 Then `C:312` stops trusting the kernel: the core checks a delegated call itself. The `MEMBER` list
 moves from the kernel (K:199) into the shared cell, since the core needs it to answer for a member's
@@ -453,8 +479,10 @@ touched in any step.
    exist pass as they are. **Step 2 is not deployed until `redistil` shows these seven Workers as
    built from this step**: a core that hands out `delegation:<id>` to a browser service that still
    has the old test would key a Worker-held delegation's browser as the owner's.
-2. **The record, in the core.** `delegation.create`, `list`, `revoke`, `resolve`, for the owner and
-   for members; `x-brain-as` and `x-brain-hops` for a Worker holder; `d` and `h` in the context;
+2. **The record, in the core, then the kernel.** The core first: `delegation.create`, `list`,
+   `revoke`, `resolve`, with the guard for an owner's or a member's session. Then the kernel, with
+   `delegation.create`, `list`, `revoke` in the `MEMBER` list; until it is deployed a member is
+   refused at the kernel, which is safe. In the core also: `x-brain-as` and `x-brain-hops` for a Worker holder; `d` and `h` in the context;
    `x-brain-tab`; `delegation` and `holder` in the log line; `daily`. Only Worker holders are used
    yet. This is what topics step 2 needs.
 3. **New tokens are delegations.** `token.create` and the POST of a link write a delegation, with
@@ -488,7 +516,7 @@ Steps 1 and 2 change nothing a caller sees. Topics can be built on 2.
 - Which methods are "session" is not a list anywhere: it is each rule that is `caller.session` and
   each route behind the `session` guard. Step 4 has to make that a list. The seeds outside
   tests have 16 rules that are exactly `caller.session` (browser 4, container 3, db 3, library 1,
-  logs 3, snapshot 2), 2 that are compound (`brain-bluesky.ojs:599-600`), and 11 routes of the core
+  logs 3, snapshot 2), 3 that are compound (`brain-bluesky.ojs:599-600`, `brain-db.ojs:138`), and 11 routes of the core
   behind its `session` guard (C:333 to C:731). cb4's `rule.list` shows the same 16.
 - UCAN was read from its README and atproto permissions from one page, each through a summary.
   Macaroons, biscuits and cloud role assumption were not read and are not cited.
@@ -511,15 +539,15 @@ Steps 1 and 2 change nothing a caller sees. Topics can be built on 2.
    and allow any.
 6. **`session` as a cap that means "the owner's own tab", and `*` not reaching a session method.**
    The first is what `unattended` does now, with its name said plainly: such a holder opens the
-   owner's browsers and so has the owner's session. The second is narrower than now. Recommended: both. The login button then names
-   `logs.*`, `browser.*`, `container.*`, `ai.*` as it does, and would add `rule.*` only if you want
-   an agent to change rules.
+   owner's browsers and so has the owner's session. The second is narrower than now for a holder with `session` that has no
+   `browser.*` and does not deploy unattended. It does not bound the login button's token, which has
+   both and is the owner in effect, as now. Recommended: both.
 7. **`calls/mode`**: the seed's default is `report`. Recommended: make `enforce` the default, apart
    from this work.
 
 ## Review
 
-2026-10-10, three drafts, two fresh reviewers, both BLOCK.
+2026-10-10, five drafts, four fresh reviewers: BLOCK, BLOCK, BLOCK, FIX.
 
 The first found 13 things and the author six more: who pays was said two ways for a DID holder; the
 rules that name a token were undercounted and the rules that would open were not looked for;
@@ -546,5 +574,12 @@ between steps 3 and 4; every grant shared one name; two line numbers; four dead 
 listed; a count; a comment that answered a "not tried"; a number that could be counted; and
 `delegate` on a Worker that could never be used.
 
-This draft has not had a fresh review. Three rounds each found a real defect in what the round
-before had added, so a fourth is owed before anything is built from it.
+The fourth: FIX, eight findings, every cited line right. `keeperOf` as written would have keyed a
+Worker's and an old token's browsers anew once the core sent the header, so it is now today's test
+with one case added and the header is sent on every call. Decision 6 offered leaving `rule.*` off the
+login button as a control, and that token is the owner in effect; the text says so now. The kernel
+was to "write a delegation" with no call named for it. The rest: three `member` methods that the
+core answers; a count; a stale header; "kept apart" said of blobs and static files, which are
+stamped and not walled; and who gives `delegate`.
+
+This draft has not had a fresh review.
