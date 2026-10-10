@@ -161,7 +161,8 @@ numbers are guesses.
 1. `topic.create`, `append`, `read`, `list`, `delete`, with the two rules. A member's topic is named
    `m.<their id>.NAME`, as a member's method is.
 2. The core change: `brain-x-topic` starts a call as a named subscriber, and the context carries
-   `hops`. Then push subscriptions to `NAME.receive`, made by the owner or a member, pushed at the
+   `hops`. Designed in `plan/cloud-brain-authority.md` (a delegation with a Worker holder; its steps
+   1 and 2). Then push subscriptions to `NAME.receive`, made by the owner or a member, pushed at the
    append and retried by the clock.
 3. `take` and `done`.
 4. The inbox as a topic: `inbox.append` writes to it, the page's lease is a take. Last, because the
