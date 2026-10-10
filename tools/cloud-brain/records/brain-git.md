@@ -251,3 +251,13 @@ the deployer hashes the second. A command that sends a module back with no brows
 the tab; it is not built.
 
 Not tried: a full issue worked by an agent under the new brief.
+
+## AGENTS.md and the philosophy are in cloud-brain-dev (2026-10-10 23:15 CEST)
+
+Tom: "is the philosophy in there? I think we move some of the agent context and a AGENTS.md in
+that directory too". It was not. `philosophy.md` is moved there whole, with four lines at its
+head saying where the files it names are; `.claude/skills/brain-maintenance/philosophy.md` is a
+link to it, so every brief that names it reads the same file. `AGENTS.md` there is new: what to
+read first, the loop of a change, the Brain's shape in four lines, and the owner's standing rules
+as the knowledge doc has them. Not moved: `rules.md` and the briefs, which name this
+checkout's tools and tokens. A checkout without the submodule has a dangling link.

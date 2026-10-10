@@ -23,7 +23,10 @@ has the counts.
 /brain-maintenance oversee      spawn the overseer now
 ```
 
-Read `philosophy.md` and then `rules.md` in this directory before the first pass. Both bind you
+Read `philosophy.md` and then `rules.md` in this directory before the first pass.
+(`philosophy.md` is a link into the submodule `cloud-brain-dev`, where it is kept since 2026-10-10
+beside `AGENTS.md`; a quote added to it is a commit there, pushed as `cloud-brain-dev/README.md`
+says, and then the submodule's pointer here.) Both bind you
 as well as the agents. `philosophy.md` is what you decide by; `rules.md` is what no decision
 may cross.
 
