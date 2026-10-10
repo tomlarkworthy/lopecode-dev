@@ -751,9 +751,12 @@ Built and on cb4: stored settings read through `config` (`config.set`, `config.g
 - Open: feeders for web articles, ATProto records and Hacker News items. Each is a call of `knowledge.put` with a `kind` of its own; `brain-x-snapshot` enters papers only.
 - Done 2026-10-10 10:23 CEST: Tom's notebooks are in the library, 240 of them (52 public from `lopecode/notebooks`, 188 private from `lopebooks/notebooks`), 400 module cards, 118 public (`tools/cloud-brain/library-backfill.ts`).
 - Done 2026-10-10 10:31 CEST: the 50 `knowledge/*.md` docs are entries of kind `doc`, 38 public (`scope: in-notebook`) and 12 private, 523 entries in all (`tools/cloud-brain/knowledge-docs.ts`, `knowledge-vectors.md` "The knowledge docs are entered"). Open: nothing runs `knowledge-docs.ts status`, so a stale doc is seen only when someone asks; whether the 12 `local-development` docs may be public (the repository is); `plan/`, READMEs and the content repositories' docs are not entered.
-- Open: 282 module cards are private because staging was put private. Which staging notebooks may be public is Tom's to say.
+- Done 2026-10-10 10:51 CEST: Tom said the two repos are all public. 237 of 240 library notebooks are public (the file kept is the blob at `origin/main`), 399 of 400 module cards (`tools/cloud-brain/library-homes.ts`).
 - Done 2026-10-10 10:37 CEST: a put does not write a kept card; the card says since when its notebook's copy differs (`staleSince`, `knowledge.list?kind=module&stale=true`), and `library.index` writes it. 400 cards have a hash, 0 stale.
-- Open: 27 of 66 public cards point at the module's home by `modules/canonical.json`. `library.index { name }` of the home notebook now moves a card there; nothing reads `canonical.json` and none was moved.
+- Done 2026-10-10 10:51 CEST: 279 of 279 cards with a declared home are there (66 of 66 lopecode homes). 224 `library.index` calls placed 343; two homes that hold each other's module cannot both be indexed last, so the owner put the other 55 with `knowledge.put`.
+- Open: `library.index` takes a notebook, not a module. A `modules` list would place a card without the script's second step. Nothing runs `library-homes.ts` after a push.
+- Open: `quick_start` was public in the library with a file lopecode has not pushed (the checkout is 2 commits ahead). It is the pushed blob now; the unpushed one is still a kept version. Tom: push lopecode, or delete and put the notebook again.
+- Open: `research-2026-10-09` is public in the library and in neither repo. Tom to say whether digests stay public.
 - Open: how many other notebooks hold a copy that differs from a card is not counted.
 - Open: a card whose notebook is deleted is never marked stale.
 - Open: nothing puts a changed notebook again; the backfill script is run by hand. A put now marks cards and does not write them, so a run of the script shows what is stale.

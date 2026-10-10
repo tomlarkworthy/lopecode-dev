@@ -555,3 +555,137 @@ Tests, forced from a side module in QA tab `kv-stale`: knowledge 9 of 9, library
 - A search does not rank a stale card lower or leave it out. It answers the date.
 - `list?stale=true` is one page of 100 at most.
 - Not reviewed by a fresh agent.
+
+## The repos' notebooks are public and each card is at its module's home (2026-10-10, 10:44 to 10:51 CEST)
+
+Tom, after the notebooks were put: "We should also probably index https://github.com/tomlarkworthy/lopecode
+and https://github.com/tomlarkworthy/lopebooks they would all be public". The files were in the library
+already; staging had been put private, so 282 of 400 cards were. `tools/cloud-brain/library-homes.ts`
+(`plan`, `run`, `check`) did the rest with no change to a Worker. Log: `.emitted/cb4-library-homes.jsonl`.
+
+### Which notebooks qualify
+
+A notebook is public only when the file the library keeps is, byte for byte, the blob at `origin/main` of
+one of the two repos, after a `git fetch` (lopecode `1c97371`, lopebooks `e051dfbb`). The GitHub API
+answered `visibility: public` for both, unauthenticated. 234 of the 240 kept files matched a blob.
+
+```
+236 qualify      234 the kept file is the pushed blob (50 lopecode, 184 lopebooks)
+                   2 tracked, kept in another version: put again from the pushed blob
+  3 stay private   fairy-dog-calendar, linux-claude, tomlarkworthy_mermaid-9-2-2: in no repo's origin/main
+  1 left as it is  research-2026-10-09: public since it was published, in neither repo
+```
+
+- **`quick_start` was public with a file that is not pushed.** The lopecode checkout is two commits ahead
+  of `origin/main` (`2bbed08`, `5045424`, both change `quick_start.html`), and Tom has not said to push
+  lopecode. The backfill put the checkout's file. It is now the pushed blob (`b18b3414…`, 08:44:14 UTC).
+  The unpushed file is still one of the library's 10 kept versions of that name, opened by anyone who has
+  its hash (`?v=`). Not deleted: `library.delete` removes every version.
+- **`cloud-brain`** was an earlier build than the pushed one; put again from the blob (`e933a7ab…`).
+- The 9 `.staging` copies are lopebooks files that differ from their published namesake. They are public
+  and none is a module's home: 0 cards point at one.
+
+### Where a card goes
+
+The home of a module is `modules/canonical.json`'s lopecode notebook, else its lopebooks one
+(`loadCanonical` of `tools/lope-sync.ts`). A module with none declared takes a qualifying notebook that
+has it: one that is already some module's home first, lopecode before lopebooks. 398 modules are in the
+236 notebooks; 279 have a declared home that has them, in 224 notebooks.
+
+`library.index { name }` writes every card of its notebook, so one call cannot place one module. The 224
+homes were indexed in an order that puts a notebook before the home of any other module it has. Two
+homes that each have the other's module cannot both be last: that order leaves 55 modules (44 with a
+declared home) with another notebook, 47 of them with `@tomlarkworthy_prosemirror`, the last indexed.
+Those 55 the owner put with `knowledge.put`: the home's own card, read by `libraryCards` itself (the cell
+is loaded from the built notebook with `tools/notebook-import.ts`, not copied into the script).
+
+Alternative not taken: put all 398 cards as the owner in 8 calls and index nothing. It is 216 fewer
+calls; it leaves `library.index`, the documented writer, unused, and the 55 would not be told apart.
+
+### Measured (UTC)
+
+```
+08:44:09  before   400 cards: 118 public, 282 private, 0 stale; 176 of 279 at the declared home
+08:44:12  put cloud-brain 200, stale 2;  08:44:14  put quick_start 200, stale 6
+08:44:15 to 08:45:09  184 library.setPublic, all 200
+08:45:09 to 08:49:32  224 library.index, all 200, 11,483 cards written, median 1.30 s, longest 2.14 s
+08:49:36  knowledge.put of 55 cards: changed 55, vectors 13
+08:49:40  after    400 cards: 399 public, 1 private, 0 stale; 279 of 279 at the declared home,
+                   398 of 398 where the plan put them; 0 public cards at a notebook that is not public
+```
+
+- Of the 66 modules with a declared lopecode home, 66 have their card there (27 before).
+- The private card is `module:fairy-dog:fairy-dog-calendar`. The modules of the other two private
+  notebooks are in public ones too, and their cards point there.
+- The library: 240 notebooks, 237 public.
+- Cost: the owner's spent went 0.3695 to 0.40625, $0.03675, which is 735 texts at $0.00005. The plan
+  counted 425 changes of words within the pass, plus a card's first write where the home's copy says
+  something else than the card did. Another session entered 3 docs in the same minutes (50 to 53), so up
+  to $0.00015 of it is not this run's. `library.setPublic` and `library.index` are not priced.
+- Searchable: the owner's questions at 08:50:26, 46 s after the last write, answered from the new cards.
+
+### The twelve questions again, as the owner, `kind=module`, `limit=4`, 08:50:26 UTC
+
+No card in these answers is private now.
+
+| Question | Answered |
+|---|---|
+| run code in a container | `compile-zig` 0.660, `serverless-cells` 0.649, `serverless-cells` 0.645, `serverside-cells` 0.639 |
+| drag-and-drop layout | `lopepage-2` 0.668, `sticky` 0.631, `spectral-layout` 0.629, `vertical-sliders` 0.614 |
+| export a notebook | `exporter-3` 0.731, `exporter-2` 0.715, `exporter` 0.711, `save-in-place` 0.653 |
+| send a message on WhatsApp | `brain-whatsapp` 0.690, `firestore-messaging` 0.573, `foc-chat` 0.567, `tom-larkworthy` 0.557 |
+| unit tests for cells | `tester` 0.733, `notebook-semantics` 0.720, `tests` 0.710, `ui-testing` 0.696 |
+| keep a secret for a worker | `brain-secrets` 0.581, `brain-core` 0.545, `secrets` 0.537, `brain-deployer` 0.534 |
+| lease a headless browser | `brain-browser` 0.647, `brain-shell` 0.600, `serverless-cells` 0.577, `webxr-dom-overlay` 0.575 |
+| solve a mixed integer linear program | `mip` 0.742, `spectral-layout` 0.552, `linear-app-technical-deep-dive` 0.540, `expression-fuzzer` 0.540 |
+| draw a state machine | `fsm` 0.695, `belief-geometry` 0.644, `svg-boinger` 0.617, `p5-sandbox` 0.607 |
+| run Python in the browser | `monty` 0.693, `brain-browser` 0.658, `pyodide` 0.656, `compile-zig` 0.612 |
+| shortest path in a graph | `dijkstra` 0.648, `spectral-layout` 0.644, `ego-graph` 0.598, `radial-tree` 0.573 |
+| music sequencer with audio tracks | `sequencer` 0.766, `daw` 0.695, `audio-inputs` 0.665, `butter-synth` 0.646 |
+
+First place: 5 of the first seven and 3 of the five new ones (`mip`, `fsm`, `dijkstra`), as before.
+`pyodide` is third behind `monty`; `daw` second. The two `serverless-cells` are two users' modules of
+that name. A few scores moved (`mip` 0.769 to 0.742) where the home's copy says something else.
+
+### What a member reads now (08:50:51 to 08:51:07 UTC)
+
+The test member `did:plc:cb4testmember0000000000`, granted `knowledge.search`, `get` and `list` for 15
+seconds, then the grant deleted.
+
+```
+before the grant                         403 "has no grant for com.lopecode.brain.knowledge.search"
+solve a mixed integer linear program     mip 0.742 first        (staging only: private until today)
+draw a state machine                     fsm 0.695 first
+deploy a change to the Cloud Brain       cloud-brain-specs 0.703, brain-deployer, cloud-brain-docs, cloud-brain
+                                         (the owner's first: the private doc working-with-cloud-brain… 0.719)
+fairy dog calendar                       svg-boinger 0.549, …   (the owner's first: fairy-dog-calendar 0.779, private)
+get module:fairy-dog:fairy-dog-calendar  404          get doc:working-with-cloud-brain-…  404
+get module:tomlarkworthy:mip             200          search by words "fairy"             {"entries":[]}
+list, every page                         437 entries, 0 private: 399 modules, 38 docs
+                                         (the owner: 526, 89 private)
+after                                    grant.list {"grants":[]}, 403 again
+```
+
+### Decided without asking
+
+- **Pushed means the blob at `origin/main`,** not "tracked in the checkout". That is what turned up
+  `quick_start`.
+- **`research-2026-10-09` is left public.** It was public before today and is in neither repo; its page
+  cites kept sources, the kept files themselves are private entries. Whether a digest stays public is
+  Tom's to say.
+- **A module with no declared home** goes to a notebook that is already a home, so no extra notebook is
+  indexed for it.
+- **The owner's `knowledge.put` placed 55 cards.** Their `changed.by` is `owner`, not the library.
+
+### Not done
+
+- `library.index` takes a notebook, not a module, so the 55 are placed by a script. The next
+  `library.index` of a notebook that has one of them takes it back; `library-homes.ts run` puts it right
+  again. A `modules` list on `library.index` would remove the script's second step; it is a seed change.
+- Nothing runs `library-homes.ts` when a notebook is pushed or `canonical.json` changes.
+- A notebook pushed after today is not put: `library-backfill.ts` reads the checkout, not `origin/main`,
+  and puts lopebooks private.
+- The unpushed `quick_start` version is still kept (above). The 14 staging files that are the same as
+  the published one are not in the library under a second name.
+- `/library/cloud-brain` now serves the Brain's own notebook to anyone, as GitHub does.
+- Not reviewed by a fresh agent.
