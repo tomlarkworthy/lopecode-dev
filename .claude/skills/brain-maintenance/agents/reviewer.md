@@ -40,6 +40,10 @@ You change no source, build nothing and deploy nothing. You write to the tracker
    `git -C lopebooks show <sha>:"notebooks/@tomlarkworthy_cloud-brain.html" > <your scratchpad>/nb-<id>.html` (the scratchpad is shared with the other reviewer: the issue id keeps the files apart)
    and open that file. Report the count. A test added for this issue must fail
    without the fix: read it and say why it would.
+   A long return of `eval_code` is cut with no error (seven reports on 2026-10-10, one at about
+   600 characters; `eval-code-cuts-long-return`). Return a compact string, `JSON.stringify` with
+   no indent, the part you need first, one probe a call; a result that ends mid-value was cut
+   and is asked again smaller, not reported.
    When the `submit` has no deploy ref and its commits touch no seed (a local tool, a doc), step 3
    does not apply and there is no module to open in a tab: run the tests the implementer's
    comment counts with their own runner (`bun tools/lope-tests.ts <notebook> --filter …`,
