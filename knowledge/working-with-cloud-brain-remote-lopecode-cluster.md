@@ -24,6 +24,7 @@ kept in step with the code.
 | The notebook (canonical, built, do not hand-edit) | `lopebooks/notebooks/@tomlarkworthy_cloud-brain.html` |
 | Its source: one seed per module, cells split by `// %%` | `tools/cloud-brain/*.ojs` |
 | As-built record, full and short | `tools/cloud-brain/spec-as-built.md`, `spec-as-built-short.md` |
+| Records of fixes made by the issue loop since 2026-10-10 19:33, one file an issue | `tools/cloud-brain/records/<id>.md` |
 | Operating guide | `tools/cloud-brain/running-a-cloud-brain.md` |
 | Backlog, open decisions, inventories | `plan/cloud-brain-backlog.md` |
 | Design: one record for delegated authority (tokens, links, grants, a Worker acting for an account). The architecture for who may call what; its seven steps were built on cb4 2026-10-10 | `plan/cloud-brain-authority.md` |

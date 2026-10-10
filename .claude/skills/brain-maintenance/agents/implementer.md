@@ -11,7 +11,7 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
 1. **Read the issue.** `ia "get?id=<id>"`: the issue and every event on it. If it came back from
    review, the reviewer's findings are the `reviewed` events; fix those and nothing else.
 2. **Read the code it is about.** The source of a service is its seed, `tools/cloud-brain/<name>.ojs`.
-   The first `md` cell is its method reference. `spec-as-built.md` has the history.
+   The first `md` cell is its method reference. `spec-as-built.md` and `tools/cloud-brain/records/` have the history.
 3. **Decide whether it is yours.** Stop, comment with what you found, add the label
    `needs-owner`, and report, when any of these is true:
    - the fix needs something in the Never list of the rules;
@@ -63,22 +63,25 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
 9. **Make it ready to land, still in the worktree and with no lock.** Since 2026-10-10 19:33 the
    lock covers the deploy and the push only; before that the second test run, the emit and the
    record were inside it and writers queued (Tom: "Issue completetion is bottlneck").
+   - **Bring the worktree up to `main`:** `git -C $W rebase main`, then `tools/cloud-brain/worktree.sh <id>`
+     again (it puts the submodule links back if the rebase removed them). A conflict means
+     another writer changed the same lines: resolve it in the seed, never in the notebook.
+   - **If the rebase changed what your module is built from** (`git diff --name-only ORIG_HEAD HEAD`
+     names your seed, a seed it imports, `cloudflare-iac*.ojs` or `build.ts`), build and run
+     step 8 again in the worktree. Another service's seed, a record, `seen.json` or a doc does
+     not count. The count you submit is the last run you made.
    - **Record it** in a file of the issue's own, `tools/cloud-brain/records/<id>.md` (follow
      `.claude/skills/document/SKILL.md`): what changed, the test count, what was not tried. A
      second round adds a dated section to the same file. Every time in it is read from
      `git log --format=%ci`, an event's `at` or `date`, never estimated. Not `spec-as-built.md`:
      every writer appended there and the cherry-picks met. The deploy hash and the commits are
-     the refs of the submit, not part of the record. Commit it with the seed.
-   - **Bring the worktree up to `main`:** `git -C $W rebase main`, then `tools/cloud-brain/worktree.sh <id>`
-     again (it puts the submodule links back if the rebase removed them). A conflict means
-     another writer changed the same lines: resolve it in the seed, never in the notebook.
-   - **If the rebase brought in anything**, build and run step 8 again in the worktree. The count
-     you submit is the last run on the tip you land.
+     the refs of the submit, not part of the record. Commit it (a second commit is fine).
    - **Emit** in that tab, to a file named for the issue, then close the tab by name:
      `fetch("http://127.0.0.1:47814/<id>-<worker>.json", { method: "POST", body: JSON.stringify(await (await mod.value("<name>_service")).emit()) })`.
      Each `eval_code` is its own scope: repeat the two lines that find `rt` and `mod`. The cell
      is named for the service: for the tracker, `issues_service`, Worker `brain-x-issues`.
-     If nothing listens on 47814, start `bun tools/cloud-brain/test-receiver.ts` in the background.
+     If nothing listens on 47814, start `bun <root>/tools/cloud-brain/test-receiver.ts` in the background
+     (from the main checkout: `apply` reads the files it saves there).
      A change with no deploy (a doc, a test, a local tool) emits nothing.
 10. **Land it. One writer lands at a time, in the main checkout.** Note `date` when you take the
     lock and when you remove it, and put both in your report.
@@ -86,10 +89,11 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
       another writer is landing: wait with a background command
       (`until mkdir …/land.lock 2>/dev/null; do sleep 20; done`, `run_in_background`; a foreground
       `sleep` is blocked) and carry on when it returns. Do not remove a lock you did not make.
-    - `git -C <root> merge-base --is-ancestor main bm/<id>`. If it fails, `main` moved while you
-      waited and what you emitted is not built on it: `rmdir` the lock, go back to step 9's
-      rebase, and come back. Never apply a file emitted before the last rebase; it would deploy
-      the Worker without the other writer's change.
+    - `git -C $W rebase main` again: a writer that landed while you waited moved `main`. Look at
+      what came in as in step 9. If it changed what your module is built from, what you emitted
+      is stale: `rmdir` the lock, build, test and emit again, and come back. Never apply a file
+      emitted before such a change; it would deploy the Worker without the other writer's work.
+      Anything else: keep the lock and carry on.
     - `git -C <root> merge --ff-only bm/<id>`, then `bun tools/cloud-brain/build.ts` there (2 s).
       The tests are not run again: the seeds are the ones you tested.
     - Deploy under the deploy lock (`cb4.lock`, inside the landing lock), with a reason that names the issue:
@@ -97,7 +101,8 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
       Then `redistil` (the Worker's line reads `same`), `saw <worker>`, and for the tracker
       `curl "/xrpc/com.lopecode.brain.issue.verify?guards=true" --owner` (a read).
     - Commit `lopebooks` first (its hook may rewrite the `.json` beside the notebook; stage that
-      and commit again), then `seen.json` in `lopecode-dev`. Push both.
+      and commit again), then `seen.json` and the `lopebooks` pointer in `lopecode-dev`. Push both.
+    - With no deploy: lock, rebase, `merge --ff-only`, push, unlock. No build, apply or `lopebooks` commit.
     - `rmdir …/land.lock`, then `tools/cloud-brain/worktree.sh --remove <id>`.
       If you stop for any reason while holding the lock, remove it first and say so in your report.
 11. **Check it where it runs**, after the lock is gone, when that needs no owner act: one call
@@ -107,9 +112,9 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
     in the comment, with the call the owner would make.
 12. **Say it on the issue, then submit.**
     `ia comment` with the fix, the test count and what was not tried, then
-    `ia move '{"key":"impl/<id>/submit-<round>","id":"<id>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha>"},{"kind":"commit","value":"lopebooks@<sha>"},{"kind":"deploy","value":"<worker>@<hash>"}]}'`.
+    `ia move '{"key":"impl/<id>/submit-<round>","id":"<id>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha of the seed commit>"},{"kind":"commit","value":"lopebooks@<sha>"},{"kind":"deploy","value":"<worker>@<hash>"}]}'`.
     A key used before answers 200 with `duplicate: true` and moves nothing: read the issue
-    again and see `in-review`. A submit with no refs is refused. A change with no deploy (a doc, a test) has the commits only.
+    again and see `in-review`. A submit with no refs is refused. One `commit` ref for each commit the landing added to `lopecode-dev`. A change with no deploy (a doc, a test) has the commits only.
 
 ## What a reviewer will check
 
