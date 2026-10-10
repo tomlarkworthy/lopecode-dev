@@ -96,7 +96,7 @@ md`## Many browsers, each with tabs
 
 A browser is the pair of its owner and its name. The owner is the caller that the core names (\`x-brain-caller\`): \`owner\`, \`token:NAME\`, a member's DID, or \`worker:brain-x-NAME\`. The service does not read an owner from a parameter, thus a caller cannot name the browser of a different caller. A member's Worker calls as its author, so the two share browsers.
 
-How the caller arrived also counts (\`x-brain-via\`). A call with \`turn:<entry>\`, \`jwt\` or \`portal:<id>\` is not the person's own tab, and its owner is \`via:<caller>\`: rows under \`b/via:<caller>/\`. All turns, PDS calls and portals of one caller share that owner. A person's own session, a token and a Worker keep the caller's name. The reason is that a page in a person's browser can hold that person's session: \`brain.ts page up\` puts the owner's in the browser \`brain\`, and a turn of the owner has the caller \`owner\`. Until 2026-10-09 the turn reached that page with \`eval\`. \`maxPerOwner\` counts the two owners apart, so a turn cannot use up the browsers of the session. \`all\` lists both and \`end\` closes either; \`liveView\` reaches the session's own only. Each browser is one Browser Run session: its own memory, its own \`paidUntil\`, its own end.
+How the caller arrived also counts (\`x-brain-via\`). A call with \`turn:<entry>\`, \`jwt\` or \`portal:<id>\` is not the person's own tab, and its owner is \`via:<caller>\`: rows under \`b/via:<caller>/\`. All turns, PDS calls and portals of one caller share that owner. A call under a delegation (\`delegation:<id>\`) has the owner \`d:<id>\`, apart from the person's and from every other delegation's. A person's own session, a token and a Worker keep the caller's name. The reason is that a page in a person's browser can hold that person's session: \`brain.ts page up\` puts the owner's in the browser \`brain\`, and a turn of the owner has the caller \`owner\`. Until 2026-10-09 the turn reached that page with \`eval\`. \`maxPerOwner\` counts the two owners apart, so a turn cannot use up the browsers of the session. \`all\` lists both and \`end\` closes either; \`liveView\` reaches the session's own only. Each browser is one Browser Run session: its own memory, its own \`paidUntil\`, its own end.
 
 Who owns and who pays are different. A Worker that calls in a chain the owner started owns the browser, and the core charges the owner, who is the origin of the chain. Until 2026-10-08 19:38 CEST the service had one browser for all callers; it changed because "each browser will be owned by another process, so this one thing has to serve the whole cluster" (Tom, 2026-10-08).
 
@@ -1668,6 +1668,10 @@ test_browser_a_turn_does_not_reach_the_browsers_of_its_callers_own_session = {
   rig.setPaid(-1, V);
   await rig.tick();
   expect([rig.fake.sessions.size, rig.keys("browser/", V), rig.keys("browser/").length, (await turn.get("status", { name: "again" })).data.closed]).toEqual([1, [], 1, "time ran out"]);
+  // The browser of a call under a delegation is kept under the delegation.
+  const heldAs = rig.as("owner", "owner", "delegation:0a1b");
+  await heldAs.post("extend", {}, { seconds: 60 });
+  expect([rig.keys("browser/", "d:0a1b/default").length, (await heldAs.get("status")).data.owner]).toEqual([1, "d:0a1b"]);
   return "turn, jwt and portal: browsers of via:owner; the session's page was not reached";
 }
 // %%

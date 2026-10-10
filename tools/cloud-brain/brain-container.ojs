@@ -66,7 +66,7 @@ md`## Who can call, and what it costs
 
 \`extend\`, \`exec\`, \`get\`, \`post\`, \`status\` and \`stop\` are \`who: "workers"\`: the owner, a token or an account the owner gave the method, and a Worker of this Brain that names the method in its \`calls\`. A member has none of them. \`all\`, \`end\` and \`settings\` are for the owner's own session, and the owner cannot put a different rule.
 
-A container is the triple of its owner, its image and its name. The owner is the caller the core names. A call made for a person that is not their own tab (a turn, a PDS call, a portal) owns containers as \`via:<caller>\`, as in \`brain-browser\`.
+A container is the triple of its owner, its image and its name. The owner is the caller the core names. A call made for a person that is not their own tab (a turn, a PDS call, a portal) owns containers as \`via:<caller>\`, and a call under a delegation as \`d:<id>\`, as in \`brain-browser\`.
 
 The price of \`extend\` is \`seconds\` times the rate of the image, which is Cloudflare's price for the instance type at full use, rounded: lite is $0.000002015 a second from the three prices and the list charges $0.000002 ([pricing](https://developers.cloudflare.com/containers/pricing/), read 2026-10-09: memory $0.0000025 a GiB-second, CPU $0.000020 a vCPU-second, disk $0.00000007 a GB-second). Time that is bought is not given back: not when the container is stopped, and not when it never started.
 

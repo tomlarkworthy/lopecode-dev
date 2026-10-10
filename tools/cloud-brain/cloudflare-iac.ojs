@@ -1604,7 +1604,8 @@ A rule is one [CEL](https://github.com/google/cel-spec) expression, evaluated by
 |---|---|
 | \`caller.id\` | \`owner\`, \`anonymous\`, \`deployer\`, \`token:NAME\`, \`did:plc:…\`, \`worker:brain-x-NAME\` |
 | \`caller.kind\` | \`owner\`, \`anonymous\`, \`deployer\`, \`token\`, \`did\`, \`worker\` |
-| \`caller.did\`, \`caller.worker\`, \`caller.token\` | the DID, the Worker name, the token name; \`""\` for another kind |
+| \`caller.did\`, \`caller.worker\`, \`caller.token\` | the DID, the Worker name, the token name; \`""\` for another kind. \`caller.token\` is also the name of the secret a delegation is held by |
+| \`caller.delegation\`, \`caller.holder\` | for a call under a delegation: its id, and \`worker:NAME\` or \`secret:NAME\` that holds it. The caller is then who made the delegation. \`""\` otherwise |
 | \`caller.session\` | the owner in their own tab |
 | \`caller.trusted\` | the owner, or a token or granted account the kernel has checked against this method |
 | \`request.method\` | the NSID, or \`""\` for a path |
@@ -1700,8 +1701,18 @@ keeperOf = (headers) => {
 // token's list, a grant's and a delegation's scope.
 matches = (patterns, nsid) => !!nsid && (patterns || []).some((m) => m === nsid || (/[./]\*$/.test(m) && nsid.startsWith(m.slice(0, -1))))
 // %%
+// What no holder of a secret or a delegation reaches, whatever its list says: only a person's own session does.
+neverHeld = (nsid) => /^com\.lopecode\.brain\.(infra|secret|token|grant|people|delegation)[./]/.test(nsid || "")
+// %%
+// A list of method names as it is kept: whole names, a prefix that ends .* or /*, and * for every method of this
+// Brain. null when it is not such a list. A part of a name (brow*) is not a prefix.
+scoped = (methods) =>
+  Array.isArray(methods) && methods.length > 0 && methods.length <= 50 && methods.every((m) => typeof m === "string" && (m === "*" || /^[A-Za-z0-9]+(\.[A-Za-z0-9]+)*(\/[A-Za-z0-9]+)*([./]\*)?$/.test(m)))
+    ? methods.map((m) => (m.startsWith("com.") ? m : "com.lopecode.brain." + m))
+    : null
+// %%
 // What every member may call with nobody's leave. Anything more is that member's grant.
-MEMBER = ["inbox.reply", "member.whoami", "member.services", "member.deploy", "member.remove", "member.modules", "static.put", "static.get", "static.list", "static.tag", "static.setPublic", "static.delete", "blob.upload", "blob.get", "blob.info", "blob.list", "blob.tag", "blob.delete", "portal.token", "portal.modules", "quota.get"].map((m) => "com.lopecode.brain." + m)
+MEMBER = ["inbox.reply", "member.whoami", "member.services", "member.deploy", "member.remove", "member.modules", "static.put", "static.get", "static.list", "static.tag", "static.setPublic", "static.delete", "blob.upload", "blob.get", "blob.info", "blob.list", "blob.tag", "blob.delete", "portal.token", "portal.modules", "quota.get", "delegation.create", "delegation.list", "delegation.revoke"].map((m) => "com.lopecode.brain." + m)
 // %%
 // What a DID may call: a member the MEMBER list and any method of a member's service (com.lopecode.brain.m.…, whose
 // own rule then decides), and anyone what the owner granted them.

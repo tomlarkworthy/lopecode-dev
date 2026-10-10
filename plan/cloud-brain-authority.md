@@ -508,8 +508,9 @@ someone revokes it. `until` is the answer, and the page should make it hard to l
 **Built so far:** step 1, deployed to cb4 2026-10-10 10:57 CEST (`tools/cloud-brain/spec-as-built.md`, "Authority, step 1 of 7"). A new shared cell needs `install-deployer` before the Workers that read it: the deployer distils with its own copy of `cloudflare-iac`.
 
 Each step is deployed and confirmed alone, and each works with the other of kernel and core one step
-behind, because the two are deployed one at a time and a bad one is put back. The deployer is not
-touched in any step.
+behind, because the two are deployed one at a time and a bad one is put back. The deployer's own
+code is not changed in any step, but it is installed again (`install-deployer`) before a step whose
+Workers read a new shared cell, because it distils with its own copy of `cloudflare-iac`.
 
 1. **The shared cells, and the stores.** `matches` and `may` in `cloudflare-iac`, with the `MEMBER`
    list; `ownTab`, `keeperOf`, `callerFrom`, `originFrom`; `callerOf` reads `tab` and `holder` when

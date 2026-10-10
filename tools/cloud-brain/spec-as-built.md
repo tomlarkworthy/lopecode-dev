@@ -3564,7 +3564,7 @@ brain-x-container  98dcb96fd871  5995d018bd88
 cb4-deployer       1db43397b7bc  9f8c5de08825
 ```
 
-- **Only these changed.** Every service was emitted from the tab before any deploy; the other twelve (ai, bluesky, feed, inbox, knowledge, library, logs, page, proxy, snapshot, whatsapp, and the deployer's probe was not emitted) had the hash that was live.
+- **Only these changed.** Every service was emitted from the tab before any deploy; the other eleven that were emitted (ai, bluesky, feed, inbox, knowledge, library, logs, page, proxy, snapshot, whatsapp) had the hash that was live. `brain-x-scopes`, which another session deployed today, was not emitted; `redistil` says `same` of it.
 - **Tests**, in a local tab, each `test_*` cell of 20 modules: all pass with no existing assertion changed, bar two noted below. `test_one_matcher_and_the_callers_own_tab` (new, `cloudflare-iac`) holds `keeperOf` and `ownTab` to the expression they replaced, copied into the test, on 14 callers, and then the delegation case. One existing test in each of the five stores has a `delegation:0a1b` case added: its browsers and containers are under `d:0a1b`, its blob is stamped `by:d:0a1b` and not vouched for, static sandboxes its page, and `secret.copy` answers 401.
 - **Live**, as the owner after the last deploy: `lease.get`, `browser.all`, `container.all`, `blob.list`, `static.list`, `db.tables`, `quota.get` 200. `redistil`: 19 of 19 `same` (`brain-x-scopes` is another session's, new today). A DID that is not a member is refused `member.whoami` with the message it had.
 

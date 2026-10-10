@@ -42,7 +42,7 @@ A recipe is the owner's code and is not checked by tag: it reads and changes wha
 
 The core sends, with each call by a person, whether they are a member, their tag grants and their limit in bytes. The limit counts every file under \`u/ID/\`, default 20 MB.
 
-Each put records its caller as the file's \`writer\`. A file is served with \`Content-Security-Policy: sandbox\`, so a browser gives it no script and no origin, unless its writer is the owner in their own session, the deployer or a recipe. The owner by a turn, a portal or a PDS call is the writer \`owner by turn\` (\`portal\`, \`jwt\`): its file is sandboxed, its \`type\` is not taken, and it does not write under \`shell/\` or \`library/\`. A token's file and a member's are sandboxed, and so is the owner's file once either has written it, until the owner puts it again. A file kept before \`writer\` (2026-10-09) is sandboxed unless it is under \`shell/\`.
+Each put records its caller as the file's \`writer\`. A file is served with \`Content-Security-Policy: sandbox\`, so a browser gives it no script and no origin, unless its writer is the owner in their own session, the deployer or a recipe. The owner by a turn, a portal or a PDS call is the writer \`owner by turn\` (\`portal\`, \`jwt\`), and the owner under a delegation \`owner by d:<id>\`: its file is sandboxed, its \`type\` is not taken, and it does not write under \`shell/\` or \`library/\`. A token's file and a member's are sandboxed, and so is the owner's file once either has written it, until the owner puts it again. A file kept before \`writer\` (2026-10-09) is sandboxed unless it is under \`shell/\`.
 
 ## Where a file goes
 

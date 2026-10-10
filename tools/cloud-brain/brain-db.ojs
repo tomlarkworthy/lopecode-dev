@@ -715,8 +715,9 @@ test_a_secret_is_copied_to_a_new_name_and_its_value_is_in_no_answer = {
   const S = "/xrpc/com.lopecode.brain.secret.", VALUE = "made-up-value-7f3a";
   const copy = (as, from, to) => as(S + "copy", { from, to });
   const turn = rig.as("owner", "turn:4");
-  // The owner under a delegation is not the owner's own session.
-  expect((await copy(rig.as("owner", "delegation:0a1b"), "WA_TOKEN", "HELD")).status).toBe(401);
+  // The owner under a delegation is not the owner's own session: not for a copy, a table's rule or a rule for SQL.
+  const heldAs = rig.as("owner", "delegation:0a1b");
+  expect([(await copy(heldAs, "WA_TOKEN", "HELD")).status, (await heldAs("setRule", { db: "site", table: "posts", allow: "true" })).status, (await heldAs("sqlGrant", { table: "library_docs", allow: "true" })).status]).toEqual([401, 401, 401]);
   await rig.owner(S + "put", { name: "WA_TOKEN", value: VALUE });
   await rig.owner(S + "setRule", { name: "WA_TOKEN", allow: 'caller.worker == "brain-x-whatsapp"' });
   await rig.owner(S + "put", { name: "PLAIN", value: "other-made-up" });

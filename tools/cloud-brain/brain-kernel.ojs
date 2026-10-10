@@ -395,7 +395,7 @@ kernelApp = {
   // would keep nothing: it reaches infra.shell too, and finishes a deploy of the page.
   const deploys = (who) => (who.unattended ? [...DEPLOYS, "com.lopecode.brain.infra.shell"] : DEPLOYS);
   // delegation: the record a token becomes (plan/cloud-brain-authority.md). Named here before the core has it.
-  const never = (m) => /^com\.lopecode\.brain\.(infra|secret|token|grant|people|delegation)[./]/.test(m);
+  const never = neverHeld;
   // A token's list holds whole names and prefixes: "browser.*" is every method of that service, "*" every method
   // of this Brain. No prefix reaches a name a token may not have.
   // A name may go on in segments after a / (ai.v1/chat/completions); "ai.v1/*" is every method under ai.v1/.
@@ -407,7 +407,7 @@ kernelApp = {
     const named = methods.map(full);
     if (!/^[a-z0-9-]{1,40}$/.test(name || "")) return fail(c, 400, "InvalidRequest", "name is lower case letters, digits and -");
     if (!named.every(listed)) return fail(c, 400, "InvalidRequest", "a method is a name, or a prefix that ends .* or /* (browser.*, ai.v1/*), or *");
-    if (named.some(never)) return fail(c, 400, "InvalidRequest", "a token cannot name infra, secret, token, grant or people methods");
+    if (named.some(never)) return fail(c, 400, "InvalidRequest", "a token cannot name infra, secret, token, grant, people or delegation methods");
     const token = [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("");
     await rows.put("token/" + (await sha256(token)), { name, methods: named, created: Date.now() });
     return c.json({ name, token });
@@ -423,7 +423,7 @@ kernelApp = {
     const named = methods.map(full);
     if (!/^[a-z0-9-]{1,40}$/.test(name || "")) return fail(c, 400, "InvalidRequest", "name is lower case letters, digits and -");
     if (!named.every(listed)) return fail(c, 400, "InvalidRequest", "a method is a name, or a prefix that ends .* or /* (browser.*, ai.v1/*), or *");
-    if (named.some(never)) return fail(c, 400, "InvalidRequest", "a token cannot name infra, secret, token, grant or people methods");
+    if (named.some(never)) return fail(c, 400, "InvalidRequest", "a token cannot name infra, secret, token, grant, people or delegation methods");
     if (!(minutes >= 1 && minutes <= 480 && hours >= 1 && hours <= 24)) return fail(c, 400, "InvalidRequest", "minutes is 1 to 480, hours is 1 to 24");
     // What has ended is deleted here: links nobody used, and the tokens of links.
     const live = [];
@@ -486,7 +486,7 @@ other address): how to call, and what this Brain is made of.
     const named = methods.map(full);
     if (!/^did:(plc|web):[A-Za-z0-9.:%-]+$/.test(did || "")) return fail(c, 400, "InvalidRequest", "did");
     if (named.some((m) => m.includes("*"))) return fail(c, 400, "InvalidRequest", "a grant names whole methods; a prefix is for a token");
-    if (named.some(never) || named.some((m) => m.startsWith("com.lopecode.brain.member."))) return fail(c, 400, "InvalidRequest", "a grant cannot name infra, secret, token, grant, people or member methods");
+    if (named.some(never) || named.some((m) => m.startsWith("com.lopecode.brain.member."))) return fail(c, 400, "InvalidRequest", "a grant cannot name infra, secret, token, grant, people, delegation or member methods");
     await rows.put("grant/" + did, { did, methods: named, granted: Date.now() });
     await syncPeople();
     return c.json({ did, methods: named });
@@ -1456,7 +1456,13 @@ test_a_member_reads_their_own_spending = {
   expect((await rig.call("quota.get", { session: rig.other })).status).toBe(200);
   expect([(await rig.call("quota.list", { session: rig.other })).status, (await rig.call("quota.ledger", { session: rig.other })).status, (await rig.call("quota.put", { session: rig.other, body: { who: "did:plc:other", daily: 9 } })).status]).toEqual([403, 403, 403]);
   expect(asked()).toEqual([["quota.get", "did:plc:other"]]);
-  return "quota.get only";
+  // A member makes, lists and revokes delegations: the core answers, and is told it is their own session. A token
+  // with every method is not sent on.
+  expect((await rig.call("delegation.list", { session: rig.other })).status).toBe(200);
+  expect(rig.seen.at(-1).headers).toMatchObject({ "x-brain-caller": "did:plc:other", "x-brain-via": "session" });
+  const wide = (await rig.call("token.create", { session: rig.owner, body: { name: "wide", methods: ["*"] } })).data.token;
+  expect([(await rig.call("delegation.list", { bearer: wide })).status, (await rig.call("delegation.create", { bearer: wide, body: {} })).status]).toEqual([403, 403]);
+  return "quota.get, and delegation.* in their own session";
 }
 // %%
 test_a_token_is_the_callers_to_send_from_anywhere = {
@@ -1533,7 +1539,7 @@ test_a_portal_token_reaches_one_members_services_as_the_viewer = {
   return "one member's methods and modules, as the viewer";
 }
 // %%
-import {cloudflare, secrets, rows, config, core, deployer, hono, library, simulate, sha256, matches, may} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, secrets, rows, config, core, deployer, hono, library, simulate, sha256, matches, may, neverHeld} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {expect} from "@tomlarkworthy/jest-expect-standalone"
 // %%
