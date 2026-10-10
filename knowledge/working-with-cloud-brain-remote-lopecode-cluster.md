@@ -111,8 +111,8 @@ over masquerading as the owner. They can obtain a token using owner if they don;
 options". In this checkout:
 
 ```
-brain.ts token my-task 'issue.*' knowledge.search   # once, with the owner's session; prints the name only. Quoted: zsh stops on a bare issue.*
-brain.ts curl /xrpc/com.lopecode.brain.issue.list --as my-task
+brain.ts token my-task quota.get knowledge.search   # once, with the owner's session; prints the name only
+brain.ts curl /xrpc/com.lopecode.brain.quota.get --as my-task
 brain.ts token revoke my-task                       # when the work is done
 ```
 
@@ -122,7 +122,20 @@ token does not name com.lopecode.brain.inbox.list", `revoke` `{"revoked":1}`. A 
 `infra`, `secret`, `token`, `grant`, `people` or `delegation` methods (the kernel's `token.create`
 answers 400); those and `apply` stay with the owner's session or the recovery key, and the reads
 in the health check below are still made with `--owner`. Nothing refuses a write sent with `--owner`: this is an agreement, as the deploy lock is.
+A method list also takes a prefix (`'browser.*'`), quoted: zsh stops on a bare one with "no matches found".
 `--as` also reads `.emitted/<base>-issues-tokens.json`, where the tokens of the issue loop are.
+
+**No token of your own for the tracker.** Until 2026-10-10 the example above made a token for
+`'issue.*'`. Each token is a delegation of its own, and the tracker takes each as another actor:
+on issue `doc-example-mints-tracker-token` event 234 is `via delegation:84cd2100b161` (holder
+`secret:issues-reviewer-2`) and event 236 `via delegation:b6559fa96c36` (holder
+`secret:issues-implementer-2`). The workflow's guard for a pass is
+`r.verdict == "pass" && r.actor != issue.by.start` (`tools/cloud-brain/brain-issues.ojs`), and
+between two tokens one agent made that keeps nothing apart. An agent of the
+issue loop writes to the tracker with its role's token through `tools/cloud-brain/issue-as.sh`
+(`.claude/skills/brain-maintenance/rules.md`, "Which token") and makes no other. This is an
+agreement: `token.create` does not refuse `issue.*` to a caller that holds one, which would be a
+change to the kernel and is the owner's (the triage of that issue, event 236).
 
 A health check that takes ten seconds:
 
