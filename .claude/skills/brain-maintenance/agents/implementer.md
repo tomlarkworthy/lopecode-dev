@@ -61,7 +61,8 @@ Your token is `issues-implementer-2`. Shorthand below: `ia` is
     behaviour on cb4.
 12. **Record it.** A dated section in `tools/cloud-brain/spec-as-built.md` (follow
     `.claude/skills/document/SKILL.md`): what changed, the test count, the hash, what was not
-    tried. Commit `lopebooks` first (its hook may rewrite the `.json` beside the notebook;
+    tried. Every time in it is read from `git log --format=%ci`, an event's `at` or `date`,
+    never estimated. Commit `lopebooks` first (its hook may rewrite the `.json` beside the notebook;
     stage that and commit again), then `lopecode-dev` with the seed, `seen.json`, the record.
     Push both.
 13. **Say it on the issue, then submit.**
