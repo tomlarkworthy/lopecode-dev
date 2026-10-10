@@ -82,6 +82,9 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts <command>
   sessions. The Cloudflare token is `tools/scratch/cloud-brain-experiments/.cf-token`, git-ignored
   and temporary. **Never print or copy either.** If the state file is missing, there is no access;
   ask Tom.
+- A `brain.ts` changed in a git worktree has neither file beside it. `BRAIN_STATE_DIR=<main checkout>/tools/cloud-brain/.emitted`
+  runs it on the main checkout's state without copying it there (2026-10-10, `records/worktree-rebase-and-state-gaps.md`;
+  run with `curl --as` only). The Cloudflare token is read when a command sends it, so `curl`, `token` and `saw` start without it.
 - The header comment of `brain.ts` lists the commands. The ones used daily:
 
 | Command | Use |
