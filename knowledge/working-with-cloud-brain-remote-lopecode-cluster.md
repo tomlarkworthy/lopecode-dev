@@ -163,8 +163,14 @@ brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
 4. Deploy under the lock: `mkdir tools/cloud-brain/.emitted/cb4.lock`, `apply … --reason="why"`, remove the lock.
    Nothing enforces it. It is the agreement between agents in this checkout: if the directory is
    there, another one is deploying; wait.
-   Core and page go on probation and are put back after 10 minutes unless confirmed: run `brain.ts confirm` about a
-   minute after applying either (2026-10-09: an applied page was put back, "not confirmed in 10 minutes").
+   Core and page go on probation and are put back after 10 minutes unless confirmed: run `brain.ts confirm <worker>`
+   about a minute after applying either (2026-10-09: an applied page was put back, "not confirmed in 10 minutes").
+   `confirm` takes one Worker's name and exits 1 without it (2026-10-10).
+   Written 2026-10-10, on cb4 only once the deployer is deployed: every Worker with a version before it goes on
+   probation, the deployer runs its tests in the Brain's browser inside the apply, and the result's state is
+   `verified`, `put-back` or `probation` (no verdict). A second apply of a Worker on probation is refused until
+   then; `apply --over-unverified` (recovery key) goes over it. See "A deploy is verified by the deployer" in
+   `brain-deployer.ojs`.
    `NAME.json` is written by emitting in a tab: `(await module.value("NAME_service")).emit()`, posted to
    `http://127.0.0.1:47814/NAME.json`, which `bun tools/cloud-brain/test-receiver.ts` saves in `.emitted/`.
    `redistil --apply` does not do this: it distils again the source the deployer already keeps. It is for after

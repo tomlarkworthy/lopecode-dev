@@ -324,7 +324,7 @@ moduleLink = (module, label) => htl.html`<a href=${linkTo(module, { onObservable
 // %%
 // Shown from the moment a new kernel or core is live until it is kept or rolled back.
 probation = {
-  // Read after the page has run the tests and reported: a pass ends a probation.
+  // The deployer verifies a deploy itself. Keeping a version by hand is for the kernel, and for a run that gave no verdict.
   assembled;
   if (!brain) return htl.html``;
   const s = await brain.state().catch(() => null);
@@ -342,7 +342,7 @@ probation = {
       const timer = setInterval(tick, 1000);
       invalidation.then(() => clearInterval(timer));
       const keep = press("Keep this version", async () => {
-        await brain.confirm();
+        await brain.confirm(name);
         location.reload();
       });
       out.append(htl.html`<div style="padding:8px 12px;margin:4px 0;border-radius:6px;background:color-mix(in srgb, #e6a700 20%, var(--theme-background))"><b>${name}</b> <code>${short(k.hash)}</code> is live on probation. Confirm within ${left} or it is rolled back. ${keep}</div>`);
@@ -705,7 +705,7 @@ brain = session.owner
         for (const r of out.results) if (r.state === "deployed" || r.state === "probation") await loadService(r.worker, { expect: r.hash }).catch(() => null);
         return out;
       },
-      confirm: () => client.procedure("infra.confirm", {})
+      confirm: (worker) => client.procedure("infra.confirm", { worker })
     }
   : null
 // %%
@@ -1372,7 +1372,9 @@ installBrain = async ({ seed, token, handle, base = "brain", html = null, log = 
     const e = await service.emit();
     log(`deploying ${e.meta.worker}…`);
     const out = (await deployer("apply", { workers: [{ ...asSource(e), ...extra, was: (seen.find((w) => w.worker === e.meta.worker) || {}).hash || null }], reason: "install" })).results[0];
-    if (!["deployed", "probation", "unchanged"].includes(out.state)) throw new Error(`${e.meta.worker}: ${out.state} ${out.reason || ""}`);
+    if (!["deployed", "probation", "verified", "unchanged"].includes(out.state)) throw new Error(`${e.meta.worker}: ${out.state} ${out.reason || ""}`);
+    // An install over an older Brain leaves the Worker on probation: kept by name, one a call.
+    if (out.state === "probation") await deployer("confirm", { worker: e.meta.worker });
   };
   await apply(core_service);
   // One value under both names: the key was named COOKIE_KEY until 2026-10-07 and the kernel still reads that name.
@@ -1380,7 +1382,6 @@ installBrain = async ({ seed, token, handle, base = "brain", html = null, log = 
   await apply(kernel_service, { secrets: { SESSION_KEY: sessionKey, COOKIE_KEY: sessionKey } });
   await apply(static_service);
   await apply(page_service);
-  await deployer("confirm", {});
   // The shell goes to blob storage through the deployer, which passes the body on as it arrives.
   log("writing the notebook out…");
   // The shell is this notebook without the modules the new Brain's Workers now serve.

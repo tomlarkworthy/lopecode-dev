@@ -237,7 +237,7 @@ A deploy is module source: \`{ module, source }\`. The deployer does the other s
 2. **Check.** An owner service has the name \`brain-x-NAME\`. It cannot claim a method or path that another Worker serves. It cannot name the deployer, the kernel or the core.
 3. **Approve.** Approval is on at install. The deployer page lists a held deploy. The owner approves it there with the recovery key, then presses **Apply** again. Approval does not deploy.
 4. **Go live.** The deployer uploads a version, sends its own request to that version, moves it to 100%, then checks its health. On a failure, the deployer restores the previous version and appends an inbox entry.
-5. **Verify.** The page loads the module from the Worker, runs its \`test_\` cells and reports to the core. Until then the Worker is \`unverified\`. On a failed report, the deployer restores the previous version.
+5. **Verify.** The deployer opens the Brain's page in a browser of the Brain, with that Worker's module alone in the layout and no session. The page runs the module's \`test_\` cells and the deployer reads the verdict. Until they pass the Worker is on probation: a second deploy of it is refused. On a fail the deployer restores the previous version at once; with no verdict, after 10 minutes. \`infra.confirm { worker }\` ends one Worker's probation by hand.
 
 A Worker's identity is the hash of its source and the version of the distiller. The deployer keeps each Worker's source. Each Worker serves its source at \`getSource\`. The page loads its modules from there, so the page shows the code that runs.
 

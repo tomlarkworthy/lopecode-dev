@@ -80,7 +80,7 @@ A new Brain:
 BRAIN_BASE=<base> bun tools/cloud-brain/brain.ts install-deployer   # <base>-deployer, a new recovery key in .emitted/<base>.json
 BRAIN_BASE=<base> bun tools/cloud-brain/brain.ts apply core.json --reason="why"   # refused with 400 without a reason, which the deployer logs; then kernel, db, static, inbox, the other services, page
 BRAIN_BASE=<base> bun tools/cloud-brain/brain.ts shell
-BRAIN_BASE=<base> bun tools/cloud-brain/brain.ts confirm
+BRAIN_BASE=<base> bun tools/cloud-brain/brain.ts confirm <worker>   # one Worker a call; `state` shows which are on probation
 ```
 
 A Brain from before 2026-10-08 has the deployer at `<base>-guard`. A Worker cannot be renamed, so the move makes a second Worker and copies the rows. No step deletes a Worker or a row.
@@ -89,7 +89,7 @@ A Brain from before 2026-10-08 has the deployer at `<base>-guard`. A Worker cann
 |---|---|---|
 | 1 | `install-deployer` | `<base>-guard` runs the new code. `state` lists the same Workers. |
 | 2 | `migrate-deployer` | It prints one line per row class and `equal`. It stops, with nothing else changed, when a class differs. After it, an apply to `<base>-guard` answers 409 `Replaced`. |
-| 3 | `apply` each service, core first, page last; then `shell` and `confirm` | `redistil` reports `same` for each Worker. `/.well-known/did.json` names `<base>-deployer` as `#deployer`. |
+| 3 | `apply` each service, core first, page last; then `shell` and `confirm <worker>` for each Worker `state` shows on probation | `redistil` reports `same` for each Worker. `/.well-known/did.json` names `<base>-deployer` as `#deployer`. |
 | 4 | `retire-guard` | `bindings <base>-guard` lists `BRAIN_CONFIG` and `ROWS` only. The old address answers 410 `Replaced`. |
 
 Measured on `cb4`, 2026-10-07: step 2 took 16 s for 44 rows (1.7 MB); steps 1 to 4 took 6 minutes 30 s, 23:52:05 to 23:58:35 CEST. Between step 2 and step 3 the kernel is bound to the old deployer, and the page's Apply answers `Replaced`.

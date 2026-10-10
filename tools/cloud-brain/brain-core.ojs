@@ -20,7 +20,7 @@ It answers bindings only. A caller is who the kernel says it is, and the kernel 
 |---|---|
 | \`service.list\` | query, anyone. \`{ services: [{ worker, role, module, hash, verified, methods, paths, secrets }] }\`: every Worker but a member's. |
 | \`service.register\`, \`service.unregister\`, \`service.health\` | procedure, the deployer. The route and the key of a Worker it deployed or removed (removal also deletes that Worker's settings), and the health of a Worker with no address. |
-| \`deploy.report\` | procedure, owner. \`{ worker, hash, ok, tests: [{ name, ok }], reason }\`: the page's verdict after it ran the module's tests. 409 when that hash is not running. |
+| \`deploy.report\` | procedure, the deployer. \`{ worker, hash, ok, tests, failed: [name], reason }\`: the deployer's verdict after it ran the module's tests in a browser of the Brain. The route is marked \`verified\`, or \`failing\` when that hash was verified before. 409 when that hash is not running. |
 | \`rows.get\`, \`rows.list\` | query, owner. \`?worker=&key=\`, \`?worker=&prefix=\`: the notebook-side rows kept for a Worker name. |
 | \`rows.put\`, \`rows.delete\` | procedure, owner. \`{ worker, key, value }\`, \`{ worker, key }\`. |
 | \`rule.list\` | query, owner. The rules the owner set. |
@@ -419,10 +419,6 @@ coreApp = {
   };
   const deployerOnly = async (c, next) => (c.get("who").caller === "deployer" ? next() : fail(c, 401, "AuthRequired", "the deployer"));
 
-  const toDeployer = async (verdict) => {
-    const r = await deployer.fetch(new Request("https://deployer.internal/xrpc/com.lopecode.brain.infra.verdict", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(verdict) }));
-    return r.ok ? r.json() : null;
-  };
   // What Workers called without declaring it, and whether such a call is refused or only counted.
   app.get(NS + "calls.list", owner, async (c) =>
     c.json({
@@ -519,28 +515,17 @@ coreApp = {
   // A member's Worker is not listed here: the page loads the module of every Worker this names, as whoever is
   // signed in. member.services lists them.
   app.get(NS + "service.list", async (c) => c.json({ services: (await rows.list("route/")).map((r) => r.value).filter((r) => r.role !== "member") }));
-  // The page's verdict on a deploy, after it ran the module's tests. A pass marks the hash verified. A fail while
-  // the hash is still unverified has the deployer put the version before back; a fail after that is only recorded.
-  app.post(NS + "deploy.report", owner, async (c) => {
-    const { worker, hash, ok, tests = [], reason = "" } = await c.req.json();
+  // The deployer's verdict on a deploy, after it ran the module's tests in a browser of the Brain. The deployer
+  // has already acted on it; here the route is marked. A pass marks the hash verified. A fail on a hash that was
+  // verified is kept apart, as `failing`.
+  app.post(NS + "deploy.report", deployerOnly, async (c) => {
+    const { worker, hash, ok, tests = 0, failed = [], reason = "" } = await c.req.json();
     const route = await rows.get("route/" + worker);
     if (!route || !route.hash || route.hash !== hash) return fail(c, 409, "Stale", `${worker} is not running ${String(hash).slice(0, 12)}`);
-    const was = route.verified;
-    const failed = tests.filter((t) => !t.ok).map((t) => t.name);
-    const verdict = { ok: !!ok, at: Date.now(), tests: tests.length, failed, reason: String(reason).slice(0, 300) };
-    if (ok) {
-      await settings.put("route/" + worker, { ...route, verified: verdict });
-      // Every pass is passed on: the same hash deployed again is on probation again, and only the deployer knows.
-      await toDeployer({ worker, hash, ok: true });
-      return c.json({ worker, hash, state: "verified" });
-    }
-    if (was && was.ok) {
-      await settings.put("route/" + worker, { ...route, failing: verdict });
-      return c.json({ worker, hash, state: "failing" });
-    }
-    await settings.put("route/" + worker, { ...route, verified: verdict });
-    const out = await toDeployer({ worker, hash, ok: false, reason: verdict.reason || "failed: " + failed.join(", ") });
-    return c.json({ worker, hash, state: out && out.state === "put-back" ? "put-back" : "failed", previous: out ? out.previous || null : null });
+    const verdict = { ok: !!ok, at: Date.now(), tests: Number(tests) || 0, failed: (Array.isArray(failed) ? failed : []).map(String), reason: String(reason).slice(0, 300) };
+    const failing = !ok && !!route.verified && route.verified.ok;
+    await settings.put("route/" + worker, failing ? { ...route, failing: verdict } : { ...route, verified: verdict });
+    return c.json({ worker, hash, state: ok ? "verified" : failing ? "failing" : "failed" });
   });
 
   // Rules the owner sets without a deploy. The target is a method's NSID or a path as its service declared it.
@@ -701,6 +686,8 @@ coreApp = {
   const pricing = async () => ({ ...PRICING, ...((await settings.get("quota/defaults")) || {}) });
   const accountOf = (origin) => {
     const o = callerOf(origin);
+    // The deployer buys for the owner: the test run of a deploy is the owner's spend.
+    if (o.kind === "deployer") return "owner";
     return o.kind === "owner" || ["did", "token", "worker"].includes(o.kind) ? o.id : null;
   };
   const kindOf = (account) => (account === "owner" ? "owner" : account.startsWith("did:") ? "member" : account.split(":")[0]);
@@ -1294,26 +1281,24 @@ test_routes_by_method_and_path = {
   return rig.seen.length + " forwarded";
 }
 // %%
-test_a_deploy_is_unverified_until_its_tests_are_reported = {
+// R10 of the deploy verification spec: the report is the deployer's, and nobody else's.
+test_core_deploy_report_is_the_deployers = {
   const rig = await coreRig();
   const echo = async () => (await rig.owner("service.list")).data.services.find((s) => s.worker === "brain-x-echo");
   expect(await echo()).toMatchObject({ hash: "h1", module: "@tomlarkworthy/echo", verified: null });
-  // Not the owner, or not the hash that is running: nothing changes.
-  expect((await rig.anonymous("deploy.report", { worker: "brain-x-echo", hash: "h1", ok: true })).status).toBe(401);
-  expect((await rig.owner("deploy.report", { worker: "brain-x-echo", hash: "old", ok: false })).data.error).toBe("Stale");
+  // Not the deployer: the owner's own session, a Worker, nobody. Nothing changes.
+  for (const who of [rig.owner, rig.anonymous, rig.worker]) expect((await who("deploy.report", { worker: "brain-x-echo", hash: "h1", ok: true, tests: 2 })).status).toBe(401);
+  expect((await echo()).verified).toBe(null);
+  // Not the hash that is running.
+  expect((await rig.deployer("deploy.report", { worker: "brain-x-echo", hash: "old", ok: false })).data.error).toBe("Stale");
+  // A fail on a hash that was never verified is its verdict. The core puts nothing back: the deployer has decided.
+  expect((await rig.deployer("deploy.report", { worker: "brain-x-echo", hash: "h1", ok: false, tests: 2, failed: ["test_b"], reason: "test_b: expected 1" })).data).toEqual({ worker: "brain-x-echo", hash: "h1", state: "failed" });
+  expect((await echo()).verified).toMatchObject({ ok: false, tests: 2, failed: ["test_b"], reason: "test_b: expected 1" });
+  expect((await rig.deployer("deploy.report", { worker: "brain-x-echo", hash: "h1", ok: true, tests: 2, failed: [] })).data.state).toBe("verified");
+  expect((await echo()).verified).toMatchObject({ ok: true, tests: 2, failed: [] });
+  // A fail after a pass is kept beside the pass.
+  expect((await rig.deployer("deploy.report", { worker: "brain-x-echo", hash: "h1", ok: false, tests: 2, failed: ["test_a"] })).data.state).toBe("failing");
   expect(rig.toDeployer).toEqual([]);
-  // A fail while unverified goes to the deployer, which puts the version before back.
-  const failed = await rig.owner("deploy.report", { worker: "brain-x-echo", hash: "h1", ok: false, tests: [{ name: "test_a", ok: true }, { name: "test_b", ok: false }] });
-  expect(failed.data).toEqual({ worker: "brain-x-echo", hash: "h1", state: "put-back", previous: "h0" });
-  expect(rig.toDeployer[0]).toMatchObject({ path: "/xrpc/com.lopecode.brain.infra.verdict", key: "core-key", body: { worker: "brain-x-echo", hash: "h1", ok: false, reason: "failed: test_b" } });
-  expect((await echo()).verified).toMatchObject({ ok: false, failed: ["test_b"] });
-  // A pass marks it verified and tells the deployer, each time.
-  expect((await rig.owner("deploy.report", { worker: "brain-x-echo", hash: "h1", ok: true, tests: [{ name: "test_a", ok: true }] })).data.state).toBe("verified");
-  expect((await rig.owner("deploy.report", { worker: "brain-x-echo", hash: "h1", ok: true })).data.state).toBe("verified");
-  expect(rig.toDeployer.map((g) => g.body.ok)).toEqual([false, true, true]);
-  // A fail after that is recorded and nothing is put back.
-  expect((await rig.owner("deploy.report", { worker: "brain-x-echo", hash: "h1", ok: false, tests: [{ name: "test_a", ok: false }] })).data.state).toBe("failing");
-  expect(rig.toDeployer.length).toBe(3);
   expect(await echo()).toMatchObject({ verified: { ok: true }, failing: { failed: ["test_a"] } });
   // The same hash registered again stays verified; a new hash starts unverified.
   const again = { worker: "brain-x-echo", role: "recipe", methods: {}, paths: [], secrets: [], keyHash: await sha256("echo-key") };
@@ -1793,6 +1778,10 @@ test_the_origin_pays_through_one_worker_and_through_two = {
   expect(rig.shop.length).toBe(before);
   const ledger = (await rig.owner("quota.ledger?who=" + encodeURIComponent("did:plc:ada"))).data;
   expect(ledger.charges.map((e) => [e.caller, e.origin])).toEqual([["worker:brain-x-a", "did:plc:ada (session)"], ["did:plc:ada", "did:plc:ada (turn:9)"]]);
+  // The deployer has no account of its own: what it buys, the test run of a deploy, is the owner's spend.
+  const ownerBefore = (await spent()).owner;
+  const bought = await rig.deployer("shop.buy", {});
+  expect([bought.status, Math.round(((await spent()).owner - ownerBefore) * 100)]).toEqual([200, 1]);
   return JSON.stringify(await spent());
 }
 // %%

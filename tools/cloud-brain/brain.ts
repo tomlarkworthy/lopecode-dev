@@ -5,7 +5,7 @@
  *   bun tools/cloud-brain/brain.ts retire-guard             # after every Worker is deployed again: <base>-guard becomes a stub with no token and no recovery key
  *   bun tools/cloud-brain/brain.ts apply core.json [...] --reason="why"   # infra.apply with the recovery key; --reason= is required here and by redistil --apply, remove and rollback
  *   bun tools/cloud-brain/brain.ts saw [name…]   # seen.json: the hash each seed here is built on, sent as `was` by apply and remove; with names, record what runs now (after comparing its source with the emitted record, or merging it). A Worker with no entry: its first apply is refused and says what to compare
- *   bun tools/cloud-brain/brain.ts state | confirm | approval on|off | approve | rollback | remove <name>
+ *   bun tools/cloud-brain/brain.ts state | confirm <worker> | approval on|off | approve | rollback | remove <name>
  *   bun tools/cloud-brain/brain.ts redistil | distil | bindings | shell   # redistil: each Worker against its source, "same" when healthy
  *   bun tools/cloud-brain/brain.ts curl <path> [--owner] [-X POST -d '{}']   # the kernel; --owner or --other sends a minted session as Authorization: Bearer
  *   bun tools/cloud-brain/brain.ts curl <path> --as NAME [-X POST -d '{}']       # the same call with the token NAME of .emitted/<base>-tokens.json. A token is not the owner present; an agent's writes go this way
@@ -216,7 +216,8 @@ export class Rows {
     const named = ["SESSION_KEY", "COOKIE_KEY"].filter((n) => e.meta.secrets.includes(n));
     if (named.length) { st.sessionKey ??= st.cookieKey ?? hex(); st.cookieKey ??= st.sessionKey; save(); w.secrets = Object.fromEntries(named.map((n) => [n, n === "SESSION_KEY" ? st.sessionKey : st.cookieKey])); }
     const t = performance.now();
-    const out = await deployer("apply", { workers: [w], reason });
+    // --over-unverified: deploy over a Worker whose tests have not passed yet. The recovery key's way out; it is logged.
+    const out = await deployer("apply", { workers: [w], reason, overUnverified: args.includes("--over-unverified") });
     console.log(f, Math.round(performance.now() - t) + " ms", JSON.stringify(out.results ? out.results.map((r: any) => ({ ...r, hash: String(r.hash).slice(0, 12) })) : out));
     for (const r of out.results || []) if (r.hash && r.hash !== e.hash) console.log(`  the deployer distilled ${String(r.hash).slice(0, 12)}; the browser emitted ${e.hash.slice(0, 12)}`);
     for (const r of out.results || []) {
@@ -247,9 +248,9 @@ export class Rows {
   }
 } else if (cmd === "remove") {
   const seen = (await deployer("getState")).workers || [];
-  const asked = args.map((worker) => ({ worker, saw: sawOf(worker, seen) as any }));
+  const asked = args.filter((a) => !a.startsWith("--")).map((worker) => ({ worker, saw: sawOf(worker, seen) as any }));
   for (const a of asked) if (a.saw.refused) console.log(a.worker, "not sent:", a.saw.refused);
-  const out = await deployer("apply", { remove: asked.filter((a) => !a.saw.refused).map((a) => ({ worker: a.worker, was: a.saw.was })), reason });
+  const out = await deployer("apply", { remove: asked.filter((a) => !a.saw.refused).map((a) => ({ worker: a.worker, was: a.saw.was })), reason, overUnverified: all.includes("--over-unverified") });
   console.log(JSON.stringify(out));
   for (const r of out.results || []) {
     if (r.state === "removed") sawPut(r.worker, null);
@@ -266,7 +267,11 @@ export class Rows {
   for (const worker of [...new Set([...Object.keys(rec), ...seen.map((x: any) => x.worker)])].sort()) console.log(worker.padEnd(20), rec[worker] ? String(rec[worker].hash).slice(0, 12) : "none".padEnd(12), !rec[worker] ? `no entry: its first apply from here is refused until its source is compared and: saw ${worker}` : rec[worker].hash === runs(worker) ? "" : "MOVED: runs " + String(runs(worker)).slice(0, 12));
 }
 else if (cmd === "state") console.log(JSON.stringify(args[0] === "--full" ? await deployer("getState") : brief(await deployer("getState")), null, 1));
-else if (cmd === "confirm") console.log(JSON.stringify(await deployer("confirm", {})));
+else if (cmd === "confirm") {
+  // One Worker a call: a confirm with no name would keep every unverified Worker with no test run.
+  if (!args[0]) (console.error("usage: brain.ts confirm <worker>, a Worker that state shows on probation"), process.exit(1));
+  console.log(JSON.stringify(await deployer("confirm", { worker: args[0] })));
+}
 else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
   // A rollback names what is running, as the page's button does.
   const running = cmd === "rollback" ? ":" + (((await deployer("getState")).workers || []).find((x: any) => x.worker === args[0])?.hash ?? "") : "";
