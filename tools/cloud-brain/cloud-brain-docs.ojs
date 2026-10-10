@@ -237,7 +237,7 @@ A deploy is module source: \`{ module, source }\`. The deployer does the other s
 2. **Check.** An owner service has the name \`brain-x-NAME\`. It cannot claim a method or path that another Worker serves. It cannot name the deployer, the kernel or the core.
 3. **Approve.** Approval is on at install. The deployer page lists a held deploy. The owner approves it there with the recovery key, then presses **Apply** again. Approval does not deploy.
 4. **Go live.** The deployer uploads a version, sends its own request to that version, moves it to 100%, then checks its health. On a failure, the deployer restores the previous version and appends an inbox entry.
-5. **Verify.** The deployer opens the Brain's page in a browser of the Brain, with that Worker's module alone in the layout and no session. The page runs the module's \`test_\` cells and the deployer reads the verdict. Until they pass the Worker is on probation: a second deploy of it is refused. On a fail the deployer restores the previous version at once; with no verdict, after 10 minutes. \`infra.confirm { worker }\` ends one Worker's probation by hand.
+5. **Verify.** The deployer opens the Brain's page in a browser of the Brain, with that Worker's module and the shell in the layout, no other module of the Brain, and no session. The page runs the module's \`test_\` cells and the deployer reads the verdict. Until they pass the Worker is on probation: a second deploy of it is refused. On a fail the deployer restores the previous version at once; with no verdict, after 10 minutes. \`infra.confirm { worker }\` ends one Worker's probation by hand.
 
 A Worker's identity is the hash of its source and the version of the distiller. The deployer keeps each Worker's source. Each Worker serves its source at \`getSource\`. The page loads its modules from there, so the page shows the code that runs.
 
@@ -245,7 +245,7 @@ A change to ${mod("cloudflare-iac")} is a deployer update. A deployer update nee
 // %%
 md`## Probation and recovery
 
-A bad kernel, core, \`brain-db\` or page can lock the owner out. A new version of one of these is on probation from the moment it is live. The owner presses **Keep this version**, or the page's tests pass. After two failed health checks, or 10 minutes with no confirm, the deployer restores the previous version.
+A bad kernel, core, \`brain-db\` or page can lock the owner out. A new version of any Worker is on probation from the moment it is live. The deployer's run of its tests passes, or the owner presses **Keep this version** (the kernel is kept this way only). After two failed health checks, or 10 minutes with no confirm, the deployer restores the previous version.
 
 No Worker of the Brain can change the deployer: the deployer refuses an apply that names it. The deployer page is one HTML response with no script. With the recovery key, the deployer page rolls the kernel back and approves a deploy. With the recovery key, the deployer also answers \`infra.*\` to a caller that is not the kernel. That is the path when the kernel is broken. The installer makes the recovery key and shows it one time.
 

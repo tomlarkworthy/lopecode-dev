@@ -150,6 +150,8 @@ verifyModule = async ({ worker, module, hash }, { client = brainClient, rt = run
     running = await client.query("getInfo", { worker }).then((i) => i.hash, () => null);
     if (running === hash || Date.now() >= until) break;
   }
+  // No answer is not a verdict on this version: the Worker's health is the deployer's own check.
+  if (running == null) return { worker, module, hash, none: "the Worker did not say what it runs" };
   if (running !== hash) failed.push({ name: "the Worker reports the hash that was loaded", message: `loaded ${String(hash).slice(0, 12)}, running ${String(running).slice(0, 12)}` });
   const otherTestsRan = [...rt._variables].filter((v) => v._module !== mod && isTest(v) && v._version > 0 && v._value !== undefined).length;
   return { worker, module, hash, ok: failed.length === 0, tests: names.length, failed, otherTestsRan, ms: Date.now() - began, heapMB: globalThis.performance && performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1e6) : null };
@@ -526,6 +528,8 @@ test_verifyModule_runs_the_tests_and_checks_the_hash = {
     // Another version answering is a failure, named.
     const stale = await verifyModule({ worker: "brain-x-t", module: none, hash: "h2" }, { ...quick, client: says("h1") });
     expect([stale.ok, stale.tests, stale.failed]).toEqual([false, 0, [{ name: "the Worker reports the hash that was loaded", message: "loaded h2, running h1" }]]);
+    // No answer about what runs is no verdict.
+    expect(await verifyModule({ worker: "brain-x-t", module: none, hash: "h1" }, { ...quick, client: { query: async () => { throw new Error("NotFound"); } } })).toEqual({ worker: "brain-x-t", module: none, hash: "h1", none: "the Worker did not say what it runs" });
     // The version before may answer first: it is asked again until the time is up.
     let asked = 0;
     const late = { query: async () => ({ hash: ++asked < 3 ? "h1" : "h2" }) };

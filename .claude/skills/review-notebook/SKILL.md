@@ -113,3 +113,9 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   template's). 148k subagent tokens, 5m22s. Nothing rendered: `lope-browser-runner.ts` wants
   `chromium_headless_shell-1200`, which is not installed. It found what the author could not see from
   inside: the handover's `--filter test_deployer` matched 2 of the deployer's 42 tests.
+- 2026-10-10 `lopebooks/notebooks/@tomlarkworthy_cloud-brain.html`, modules brain-deployer, brain-core,
+  cloud-brain, brain-shell, changes since `344e904d~3` (deploy verification): BLOCK, 7 findings and 4 minor.
+  5 fixed, 1 left for the owner (a spec row), 1 not changed (in `cloudflare-iac.ojs`, ask first); 1 of 4 minor
+  fixed. 232k subagent tokens, 11m35s. It could not launch a browser (`chromium_headless_shell-1200` missing).
+  What it found that the author had not: two callers that did not know the new result states `verified` and
+  `failing`, and a deploy token that could confirm its own deploy.

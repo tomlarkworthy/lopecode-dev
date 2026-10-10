@@ -89,7 +89,9 @@ After the deploy, inside the same \`infra.apply\`, the deployer buys 120 s of br
 BRAIN/#view=C100(S100(MODULE,@tomlarkworthy/brain-shell))&verify=WORKER
 ~~~
 
-The page has no session. It loads that module and what it imports, runs its \`test_\` cells, and leaves \`{ worker, module, hash, ok, tests, failed: [{ name, message }], otherTestsRan, ms }\` at \`window.__brainVerdict\` (brain-shell, \`brainVerdict\`). The run waits for that value up to 100 s. The kernel is not run this way, and a Worker that names no module has nothing to open.
+The page has no session. It loads that module and what it imports, runs its \`test_\` cells, and leaves \`{ worker, module, hash, ok, tests, failed: [{ name, message }], otherTestsRan, ms }\` at \`window.__brainVerdict\` (brain-shell, \`brainVerdict\`). The run waits for that value up to 100 s. brain-shell is in the layout beside the module because the cell that judges is there; no other module of the Brain is loaded.
+
+The kernel is not run this way, because it serves the page of the run, and a Worker that names no module has nothing to open. Both stay on probation after a deploy: their next deploy is refused, and they are put back at 10 minutes, unless \`infra.confirm\` names them.
 
 | the run gave | the deployer | the result's \`state\` | log line |
 |---|---|---|---|
@@ -103,10 +105,10 @@ A Worker left on probation is put back by the tick when 10 minutes have passed (
 
 While a Worker is on probation a second deploy or a removal of it is refused: \`NAME is HASH12 and not verified yet: its tests are running, and it is put back at HH:MM:SS if they have not passed. Deploy again after that.\` (UTC). Other Workers in the same call go on. Two ways past it:
 
-- \`infra.confirm { worker }\` keeps one Worker by hand. With no \`worker\` it answers 400: a confirm of everything would keep every unverified Worker with no test run.
+- \`infra.confirm { worker }\` keeps one Worker by hand. With no \`worker\` it answers 400: a confirm of everything would keep every unverified Worker with no test run. The token of a sign-in link made to deploy is answered 403: it would keep its own deploy.
 - \`overUnverified: true\` in the body of an \`infra.apply\` signed with the recovery key deploys over it, and writes \`deploy.over-unverified\`. It is for when what verifies is itself broken. The key alone does not do it, because \`brain.ts apply\` signs every call with the key; the CLI's flag is \`--over-unverified\`.
 
-Not measured on a Brain yet. On 2026-10-10 the page half was run in a local Chrome against cb4's address with the built modules substituted (\`tools/scratch/cloud-brain-experiments/verify-page/shell-check.ts\`): brain-x-issues, 19 tests, a verdict about 2.4 s after load. The deployer half is tested with a faked browser only.`
+Not measured on a Brain yet. On 2026-10-10 the page half was run in a local Chrome against cb4's address with the built modules substituted (\`tools/scratch/cloud-brain-experiments/verify-page/shell-check.ts\`, \`BUILT='*' ONLY=verify\`), once for each of the 19 Workers cb4 runs other than the kernel: 19 pass, 3 to 34 tests each, a verdict 1.4 to 2.6 s after load for 17, 7.0 s for brain-x-bluesky and 11.8 s for brain-x-browser. The deployer half is tested with a faked browser only.`
 // %%
 deployerOps = {
   const text = (v) => JSON.stringify(v);
@@ -683,13 +685,14 @@ deployerOps = {
       }
       const change = async (rec) => {
       const results = [];
-      const held = dry ? null : await unverified(logical, { recovery, over: overUnverified === true });
-      if (held) return { ...base, state: "refused", reason: held };
+      let held = null;
       if (rec && rec.hash === w.hash && rec.state === "deployed" && !w.force && !(typeof w.asset === "string" && (await sha256(w.asset)).slice(0, 32) !== rec.assetHash)) {
         // Deployed before the deployer kept source: keep it now, since it is the source of what is running.
         if (typeof w.source === "string" && !(await rows.get("source/" + w.module))) await rows.put("source/" + w.module, { text: w.source, files: w.files || {}, cell: w.cell || null, worker: logical, hash: w.hash, at: Date.now(), prev: null });
         results.push({ ...base, state: "unchanged" });
       }
+      // Not while the version that runs is unverified. After "unchanged": the same version again changes nothing.
+      else if (!dry && (held = await unverified(logical, { recovery, over: overUnverified === true }))) results.push({ ...base, state: "refused", reason: held });
       // A service that declares Cloudflare permissions is held for the owner also when deploys need no approval.
       else if ((approval || (w.meta.cloudflare || []).length) && !free && !(await approvedOver(w.hash, rec))) {
         const m = w.meta;
@@ -1328,6 +1331,8 @@ deployerFn = async (request, context) => {
     if (config.replacedBy && request.method === "POST") return json({ error: "Replaced", message: "this deployer was replaced by " + config.replacedBy, deployer: config.replacedBy }, 409);
     if (method === "getState" && request.method === "GET") return json(await deployerOps.state());
     if (method === "apply" && request.method === "POST") return ((out) => json(out, out.error ? 400 : 200))(await deployerOps.apply(await request.json(), { recovery, by }));
+    // Not for a sign-in link's token: it would keep its own deploy with no test run.
+    if (method === "confirm" && request.method === "POST" && by) return json({ error: "Forbidden", message: "a sign-in link does not confirm a deploy: the owner's session or the recovery key" }, 403);
     if (method === "confirm" && request.method === "POST") return ((out) => json(out, out.error ? 400 : 200))(await deployerOps.confirmByHand(await request.json().catch(() => ({}))));
     // An installer's shell, passed on to brain-static as it arrives. The deployer keeps none of it.
     if (method === "shell" && request.method === "POST") return deployerOps.shell(request);
@@ -2072,7 +2077,8 @@ test_deployer_refuses_a_deploy_over_an_unverified_one = {
   expect((await rig.asOwner("apply", { workers: [v3] }, { "x-brain-unattended": "token:claude-1" })).results[0].reason).toBe(words);
   expect((await rig.recover({ workers: [v3], overUnverified: false })).results[0].reason).toBe(words);
   expect((await rig.recover({ workers: [v3], overUnverified: false, dry: true })).results[0].state).toBe("ready");
-  // The same version again is refused too, and so is a removal.
+  // The same version again changes nothing and is not refused; forced, it is a deploy and is refused. So is a removal.
+  expect((await rig.recover({ workers: [v2], overUnverified: false })).results[0].state).toBe("unchanged");
   expect((await rig.recover({ workers: [{ ...v2, force: true }], overUnverified: false })).results[0].reason).toBe(words);
   expect((await rig.recover({ remove: [A], overUnverified: false })).results[0]).toEqual({ worker: A, state: "refused", reason: words });
   // Another Worker in the same call goes on.
@@ -2223,6 +2229,8 @@ test_deployer_confirm_names_its_worker = {
   const on = async () => Object.entries((await rig.state()).kernel).filter(([, k]) => k.state === "probation").map(([name]) => name).sort();
   expect(await on()).toEqual(["brain", A]);
   for (const body of [{}, { worker: "" }, { worker: null }, { only: A }]) expect(await rig.asOwner("confirm", body)).toEqual({ error: "InvalidRequest", message: "worker: name the Worker to confirm, one a call" });
+  // A sign-in link made to deploy does not keep its own deploy.
+  expect(await rig.asOwner("confirm", { worker: A }, { "x-brain-unattended": "token:claude-1" })).toEqual({ error: "Forbidden", message: "a sign-in link does not confirm a deploy: the owner's session or the recovery key" });
   expect(await on()).toEqual(["brain", A]);
   expect(await rig.asOwner("confirm", { worker: A })).toEqual({ confirmed: [A] });
   expect([await on(), ks().state]).toEqual([["brain"], "confirmed"]);

@@ -221,7 +221,7 @@ export class Rows {
     console.log(f, Math.round(performance.now() - t) + " ms", JSON.stringify(out.results ? out.results.map((r: any) => ({ ...r, hash: String(r.hash).slice(0, 12) })) : out));
     for (const r of out.results || []) if (r.hash && r.hash !== e.hash) console.log(`  the deployer distilled ${String(r.hash).slice(0, 12)}; the browser emitted ${e.hash.slice(0, 12)}`);
     for (const r of out.results || []) {
-      if (["deployed", "probation", "same", "unchanged"].includes(r.state) && r.hash) sawPut(r.worker, r.hash);
+      if (["deployed", "probation", "verified", "failing", "same", "unchanged"].includes(r.state) && r.hash) sawPut(r.worker, r.hash);
       if (r.state === "refused" && "running" in r) console.log(MOVED(r.worker));
     }
   }

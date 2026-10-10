@@ -9,7 +9,11 @@ const worker = process.argv[3] || "brain-x-issues", module = process.argv[4] || 
 const shell = await Bun.file(resolve(import.meta.dir, "../../../cloud-brain/.emitted/shell.html")).text();
 // The modules the deployer serves, with the ones named in BUILT taken from the built notebook in their place.
 const built = blocks(await Bun.file(resolve(import.meta.dir, "../../../../lopebooks/notebooks/@tomlarkworthy_cloud-brain.html")).text());
-const BUILT = (process.env.BUILT ?? "@tomlarkworthy/cloud-brain").split(",").filter(Boolean);
+// BUILT=* stands every module the built notebook has in place of the Brain's. ONLY=verify makes the first run alone
+// and prints one line.
+const named = (process.env.BUILT ?? "@tomlarkworthy/cloud-brain").split(",").filter(Boolean);
+const BUILT = { includes: (id: string) => (named[0] === "*" ? built.some((b) => b.id === id) : named.includes(id)) };
+const ONLY = process.env.ONLY || "";
 const CHROME = process.env.CHROME || `${process.env.HOME}/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`;
 const browser = await chromium.launch({ executablePath: CHROME, headless: true });
 const state = () => {
@@ -44,11 +48,12 @@ const open = async (hash: string) => {
 {
   const { page, errors, t0 } = await open(`#view=C100(S100(${module},@tomlarkworthy/brain-shell))&verify=${worker}`);
   const verdict = await page.waitForFunction(() => (window as any).__brainVerdict, null, { timeout: 150000 }).then((h) => h.jsonValue(), (e) => ({ none: String(e).slice(0, 200) }));
-  console.log(JSON.stringify({ run: "verify", ms: Date.now() - t0, verdict, ...(await page.evaluate(state)), errors }, null, 1));
+  if (ONLY === "verify") console.log(JSON.stringify({ worker, ms: Date.now() - t0, ok: verdict.ok ?? null, tests: verdict.tests ?? null, failed: verdict.failed ?? null, none: verdict.none ?? null, heapMB: verdict.heapMB ?? null, errors: errors.slice(0, 2) }));
+  else console.log(JSON.stringify({ run: "verify", ms: Date.now() - t0, verdict, ...(await page.evaluate(state)), errors }, null, 1));
   await page.close();
 }
 // 2. The page as a visitor opens it, then a module opened by its link.
-{
+if (ONLY !== "verify") {
   const { page, errors, t0 } = await open("");
   await page.waitForFunction(() => { const rt = (window as any).__ojs_runtime; return rt && rt.mains && rt.mains.has("@tomlarkworthy/cloud-brain"); }, null, { timeout: 90000 }).catch((e) => errors.push(String(e).slice(0, 200)));
   await page.waitForTimeout(8000);

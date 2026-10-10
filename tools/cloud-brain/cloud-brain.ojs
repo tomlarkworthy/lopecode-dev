@@ -322,7 +322,7 @@ notLoaded = (registry, joined) =>
 // A link that opens a module's tab beside the ones already open.
 moduleLink = (module, label) => htl.html`<a href=${linkTo(module, { onObservable: false })} title=${module} onclick=${(e) => (e.preventDefault(), navigate(e.currentTarget.getAttribute("href")))}>${label}</a>`
 // %%
-// Shown from the moment a new kernel or core is live until it is kept or rolled back.
+// Shown for each Worker on probation, from the moment its new version is live until it is kept or put back.
 probation = {
   // The deployer verifies a deploy itself. Keeping a version by hand is for the kernel, and for a run that gave no verdict.
   assembled;
@@ -702,7 +702,7 @@ brain = session.owner
         const out = await client.procedure("infra.apply", { workers: [{ ...asSource(emitted), force, was }], reason });
         // The deployer's answer is what was deployed. A hash other than this page's is said, not hidden.
         for (const r of out.results) if (r.hash && r.hash !== emitted.hash) r.note = `the deployer distilled ${r.hash.slice(0, 12)}; this page made ${emitted.hash.slice(0, 12)}`;
-        for (const r of out.results) if (r.state === "deployed" || r.state === "probation") await loadService(r.worker, { expect: r.hash }).catch(() => null);
+        for (const r of out.results) if (["deployed", "probation", "verified", "failing"].includes(r.state)) await loadService(r.worker, { expect: r.hash }).catch(() => null);
         return out;
       },
       confirm: (worker) => client.procedure("infra.confirm", { worker })
