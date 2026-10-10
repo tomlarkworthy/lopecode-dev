@@ -116,3 +116,35 @@ The repository `deploy` (every running module, one commit of 21:53) is still on 
 
 Not built: sending a module from `deploy/` back to the deployer; running a module's tests from
 this repository; a page booted from `deploy/`.
+
+## cloud-brain-dev: a service's tests with no browser (2026-10-10 22:26 CEST)
+
+Tom: "we need tests too, thats essential for post deployment reporting, but per service"; and of
+the sync, "did you use concurrent downloads?" (it had not).
+
+In the repository `cloud-brain-dev`, commit `d6510f1`:
+
+- `sync.ts` sends its reads at once: 3.5 s to 0.8, 1.2 and 1.0 s (three runs). The two large reads
+  take 0.6 s each alone.
+- `test.ts <worker>` runs the `test_*` cells of that Worker's module from `deploy/` under bun and
+  prints one line of JSON a module: `{ worker, module, hash, passed, failed, needsBrowser, tests }`.
+  `all.sh` runs it for every service at once.
+
+```
+cb4, 22:26, 22 modules, 19 s:   284 passed   0 failed   27 need a browser
+one line of brain-git changed in deploy/ (ttl: seconds + 1):   1 of 4 failed, exit code 1
+```
+
+What it took, each found by a failing test: loading a module from its text unchanged
+(`vm.SourceTextModule`; bun's `import` prints functions again and `part=reference` then found no
+prose cell), the standard library from the bootloader's `stdlib_5_8_9` cell, files through
+`window.lopecode.contentSync`, every service named in `runtime.mains`, tests observed from a side
+module, and a module's tests one at a time (run together, a `brain-core` test that counts log
+lines got 7 of 8, the same kind of failure as the deployer's test in a browser at 21:48).
+
+Not done: posting the report to the Brain (the deployer's check of a deploy is the page's, in a
+browser, and is another session's work); the 27 tests that need a DOM; a comparison of these
+counts with a browser's for the same hashes; the send-back command.
+
+Another session removed `land.lock` at 21:53 by mistake (its `mkdir` had failed and its `rmdir`
+ran); it said so at 22:24. That is the lock found gone above.
