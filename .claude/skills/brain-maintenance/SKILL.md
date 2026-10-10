@@ -50,8 +50,8 @@ Two files beside it, neither of them needed to resume:
    not needed; no `cb4.lock` older than 20 minutes. If the cluster is not healthy, file or find
    the issue for it and do nothing else this pass. A stale lock is the owner's to remove: say so
    in step 7 each pass until it is gone.
-2. **Is an agent of yours still running?** Then record nothing and go to step 6. One
-   implementer or one reviewer at a time: `build.ts` rewrites the whole notebook, and a
+2. **Is an agent of yours still running?** Then spawn nothing more: do the triage rows of
+   step 3 only, then go to step 6. One implementer or one reviewer at a time: `build.ts` rewrites the whole notebook, and a
    reviewer reading it mid-build reviews a file nobody wrote.
 3. **List the open issues and take the first that matches**, in this order. Finishing comes
    before starting. Among issues on the same row, one the owner opened or moved goes first, then the oldest.
@@ -90,7 +90,9 @@ Two files beside it, neither of them needed to resume:
 
 ## Triage
 
-Done by you with `issues-implementer-2`, one issue a pass. Read the issue and enough of the
+Done by you with `issues-implementer-2`, every `open` issue in a pass, and also while an agent
+runs: triage builds nothing. (Until 2026-10-10 18:50 it was one a pass and never beside an agent;
+five issues then sat `open` for two hours behind three reviews of one.) Read the issue and enough of the
 code to answer three questions, then write the answers as the `reason` of the move.
 
 1. Is it real? A duplicate, test data, or something that is already so is `reject`ed with the
