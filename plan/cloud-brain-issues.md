@@ -362,4 +362,5 @@ a signed record, and guards as data". Where the build left the design above:
 | security bodies encrypted | not built. An issue its `read` guard refuses is answered as `{ id, kind, state, hidden }`, and a caller who may not read it does nothing to it (404). `readers` is not built: the default lets the owner present and the opener read. |
 | `issue.list` with `assignee`, `awaiting=me` | `state`, `kind`, `about`, `parent`, `label`. |
 | a key change is an event | not built. |
+| `issue.verify` judges the record | the chain and the signatures, yes. With `guards=true` each event is judged again under the tracker's code as deployed now: an event names its workflow's hash and not the tracker's version. |
 | licences; the topic `work` and claims; filing by members; a push channel | not built. |

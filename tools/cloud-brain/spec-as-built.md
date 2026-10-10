@@ -3757,16 +3757,23 @@ Wall time of `brain.ts curl` from this machine; the core's `ms` was not read fro
   was then shown `{ hidden: true }` for it and its comment answered 404; revoked.
 - An install by the owner, event 12, after the default's `security` workflow changed (below). `migrate` named the old
   hash and moved nothing: no issue was on it.
-- The record: 15 events, 3 issues, all titled "Test data: …". `issue.verify?guards=true`: `ok`, 15 checked.
+- The record: 16 events, 3 issues, all titled "Test data: …". `issue.verify?guards=true`: `ok`, 16 checked (12:04).
 - Health after: lease held, `redistil` 20 of 20 `same`, no browsers, no containers, no lock.
 
-**This run shows the gap in "present", not the protection.** The CLI's owner session passes `caller.present`, so the
-one caller of the walk could approve, revert, install and rebuild. A sign-in link's `unattended` token was not tried.
+**The record on cb4 says the owner was present, and Tom was not.** Events 2 to 9 and 12 to 16 carry `by: owner` via
+`session` with `tab: true`. Claude made them, with `brain.ts` and the owner session this checkout keeps, event 12 (a
+policy install) among them. Event 16 is a comment on `test-walk` that says so inside the chain. So this run shows the
+gap in "present", not the protection: whoever holds that session file approves, reverts, installs and rebuilds. A
+sign-in link's `unattended` token was not tried.
+
+**A replay judges under the code deployed now.** An event names the hash of its workflow and not the version of the
+tracker. The actor rule changed between the two deploys (below); events 1 to 11 were written under the first and pass
+the replay under the second only because the reviewer differs from the implementer under both.
 
 ### What a poll costs
 
-The Brain charges nothing for it: `issue.sync` answered with no `x-brain-price` header (6 calls), no price is set
-for an `issue.*` method, and `quota.get` read `spent: 0.4075` after the run against about 0.406 before the build. For Cloudflare it is one request to the kernel, which calls the
+The Brain charges nothing for it: `quota.get` read `spent: 0.4075`, then 20 `issue.sync` calls as the owner, then
+`0.4075` again (12:03 CEST); the calls carried no `x-brain-price` header and no price is set for an `issue.*` method. For Cloudflare it is one request to the kernel, which calls the
 core, the service and `brain-db` over bindings; the service makes two `db.sql` calls on a poll with nothing new. A tab
 left open and visible for a day at 5 s makes 17,280 polls. At Workers Paid's $0.30 a million requests past the 10
 million a month included, that is $0.0052 a day if nothing were included. CPU time and D1 rows read were not measured.
@@ -3777,8 +3784,9 @@ A hidden tab does not poll.
 - **The key was set and every write answered 503.** A Worker reads a stored secret only where the owner set a rule:
   `secret.setRule { name: "ISSUES_SIGNING_KEY", allow: 'caller.worker == "brain-x-issues"' }`. Without it `secret.get`
   answers 403 and the cell reads undefined.
-- **Two tokens were one actor.** The first deploy named an actor by `x-brain-holder`, and every token's holder is
-  `secret`. The implementer of one token could have been reviewed by itself under another name, and two different
+- **Two tokens were one actor.** The first deploy named an actor by `x-brain-holder`, and at 11:54 CEST every token's
+  holder was `secret` (another session's change in progress makes it `secret:NAME`; the delegation's id tells two
+  tokens apart either way). The implementer of one token could have been reviewed by itself under another name, and two different
   tokens could not review each other. The actor is now `delegation:<id>`. Found by reading event 10 on cb4; redeployed,
   the view made again with `issue.rebuild`.
 - **A caller who could not read a security issue could comment on it and triage it.** Read is now a precondition of
@@ -3802,6 +3810,7 @@ A hidden tab does not poll.
   until the next rebuild.
 - `issue.verify?guards=true` reads the whole record in one call.
 - A guard cannot be dry-run: nothing lists the issues a new policy would strand before it is installed.
+- The panel's test waits 300 ms for the form's write where it should await it.
 - The last events of the record removed, or a whole record rewritten with the key, is not shown by anything.
 
 ### After step 3's fresh review (2026-10-10 12:03 CEST): `brain-core` `675435235fdd`, `brain` `7433e97325d9`
