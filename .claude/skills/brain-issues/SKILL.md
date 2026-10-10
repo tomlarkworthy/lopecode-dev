@@ -1,0 +1,129 @@
+---
+name: brain-issues
+description: Use when the user asks to "work the tracker", "run the issue loop", "/brain-issues", "/loop /brain-issues", or wants the issues of the Cloud Brain tracker on cb4 triaged, fixed, reviewed and closed without being asked for each one. Polls the tracker, spawns one implementer or one reviewer at a time, and after every few issues an overseer that files cluster issues or edits the role briefs.
+version: 0.1.0
+---
+
+# The issue loop of the Cloud Brain
+
+The tracker (`brain-x-issues` on `cb4`, design in `plan/cloud-brain-issues.md`) holds the work.
+This skill is the loop that does it. You, the session that runs the skill, are the orchestrator:
+you read the tracker, decide what is next, spawn one agent for it, and write down what it
+reported. You fix nothing and review nothing yourself.
+
+Written 2026-10-10. **Not yet run as a loop.** The three bug fixes reviewed that day (events 55
+to 76) were done by hand in the order below, and the briefs are written from that.
+
+## Run it
+
+```
+/loop /brain-issues        every wake does one pass, then schedules the next
+/brain-issues              one pass, then a report
+/brain-issues oversee      spawn the overseer now
+```
+
+Read `rules.md` in this directory before the first pass. It binds you as well as the agents.
+
+## State
+
+There is no state file. What is true is in the tracker:
+
+| Question | Where |
+|---|---|
+| What is there to do | `issue-as.sh issues-implementer-2 "list"`, the issues not `done`, `rejected`, `closed` or `reverted` |
+| Who has an issue | `issue.by.start` in `get?id=` |
+| What a reviewer found | the `reviewed` events of the issue |
+| How many times it bounced | the `moved` events with `move: "rework"` |
+| Where oversight got to | the last heading of `oversight.md` |
+
+Two files beside it, neither of them needed to resume:
+
+- `tools/cloud-brain/.emitted/issue-loop/<id>.md` (git-ignored): the journal. After each agent
+  finishes, append its role, the time from `date`, its token count and duration, and its final
+  report whole. The overseer reads it.
+- `oversight.md` in this directory: one entry per oversight, written by the overseer.
+
+## One pass
+
+1. **Health.** `brain.ts redistil` shows every Worker `same`; `lease.get` is held or the page is
+   not needed; no `cb4.lock` older than 20 minutes. If the cluster is not healthy, file or find
+   the issue for it and do nothing else this pass.
+2. **Is an agent of yours still running?** Then record nothing and go to step 6. One
+   implementer or one reviewer at a time: `build.ts` rewrites the whole notebook, and a
+   reviewer reading it mid-build reviews a file nobody wrote.
+3. **List the open issues and take the first that matches**, in this order. Finishing comes
+   before starting.
+
+   | Issue is | Do |
+   |---|---|
+   | `hidden: true`, or in the `security` workflow, or labeled `needs-owner`, or at `awaiting-approval` | Nothing. It is the owner's. |
+   | `in-review`, and no review since it came into that state | Spawn the reviewer. |
+   | `in-progress`, started by the implementer token, no agent running | Spawn the implementer: it was sent back, or an agent died. If it has 2 `rework` moves already, do not: comment with the open findings, label `needs-owner`. |
+   | `ready` | Spawn the implementer. |
+   | `triaged`, no open children | Move to `ready`. |
+   | `open`, kind `task` or `bug` | Triage it yourself (below). |
+   | `open`, kind `feedback` | `promote` it to a task when it asks for a change, `close` it with a comment when it does not. |
+
+4. **Spawn** with the `Agent` tool: `subagent_type: general-purpose`, `model: opus`, never
+   `fork`, and this prompt with nothing added. An agent that knows what you expect confirms it.
+   ```
+   Working directory: <absolute repo root>.
+   Read <root>/.claude/skills/brain-issues/agents/<role>.md and follow it.
+   Issue: <id>
+   ```
+   For the overseer the last line is `Last oversight ended at event <seq>. Journal: <root>/tools/cloud-brain/.emitted/issue-loop/`.
+5. **When an agent reports**, append the report to the journal, then read the issue again. The
+   tracker says what happened, not the report: an implementer that says "submitted" with the
+   issue still `in-progress` did not submit.
+6. **Oversight.** Spawn the overseer when no other agent is running and either 3 issues have
+   reached `done`, `rejected` or `needs-owner` since the last entry of `oversight.md`, or one
+   issue hit the rework cap. Never while an implementer runs: both may commit.
+7. **Tell the user** in a few lines: what moved this pass, what is waiting for the owner and
+   why, what is running. Nothing moved is one line.
+8. **Schedule** (only under `/loop`): `ScheduleWakeup` 1800 s when an agent is running (its
+   report wakes you first), 1200 s when the tracker had nothing for you. A poll of the tracker
+   is charged nothing; a wake of this session is not free, so do not poll faster.
+
+## Triage
+
+Done by you with `issues-implementer-2`, one issue a pass. Read the issue and enough of the
+code to answer three questions, then write the answers as the `reason` of the move.
+
+1. Is it real? A duplicate, test data, or something that is already so is `reject`ed with the
+   reason and the id of what it duplicates.
+2. Can an agent do it within the rules? A design choice, a policy install, a new secret, a
+   change to the kernel, core, database or deployer: comment with the choice and what each side
+   costs, `triage` it, add `needs-owner`, and leave it at `triaged`.
+3. Is it one change? More than one becomes subtasks (`open` with `parent`), and the parent goes
+   to `ready` when they are closed.
+
+Anything else: `triage`, then `ready`. Add the label `major` when the change alters who may do
+what, deletes or rewrites kept data, or changes a method other callers use; the owner then
+approves it after review. Add `security` and take the `escalate` swap when the body describes a
+way past an access rule; the issue is then the owner's.
+
+## What the loop does not do
+
+- Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md`.
+- Two issues at once.
+- Issues whose fix is outside `tools/cloud-brain/` and its docs. Comment and label `needs-owner`.
+- Carry on past a cluster that is not healthy.
+
+## Why the overseer may edit briefs and not rules
+
+Tom, 2026-10-10: the overseer "either files issues to improve the cluster OR tweaks the skills
+to be better at doing their job". So it edits `agents/implementer.md`, `agents/reviewer.md` and
+the procedure above directly, one commit an edit, each quoting the issue that showed the need.
+`git log -- .claude/skills/brain-issues` is the list; `git revert` undoes one.
+
+It does not edit `rules.md` or its own brief, and it may not remove a check from any brief.
+Those go to the tracker as `major`, which lands at `awaiting-approval` for the owner. The cost of
+letting it edit everything: an agent judged by its own account of itself tends to drop the steps
+that slow it, and the next pass runs the edited brief with nobody having read it. The cost of
+gating everything (as `lopeteam-reflect` does): no brief improves while the owner is away, which
+is when the loop runs.
+
+## Runs
+
+Append one line per `/loop` session: date, passes, issues closed, issues left for the owner,
+oversights.
