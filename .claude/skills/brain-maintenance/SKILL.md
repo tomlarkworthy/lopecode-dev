@@ -97,10 +97,17 @@ five issues then sat `open` for two hours behind three reviews of one.) Read the
 code to answer three questions, then write the answers as the `reason` of the move.
 
 1. Is it real? A duplicate, test data, or something that is already so is `reject`ed with the
-   reason and the id of what it duplicates.
-2. Can an agent do it within the rules? A design choice, a policy install, a new secret, a
-   change to the kernel, core, database or deployer: comment with the choice and what each side
-   costs, `triage` it, add `needs-owner`, and leave it at `triaged`.
+   reason and the id of what it duplicates. So is a defect nobody has met: found by reading the
+   code, never reproduced, with no case where it cost anything. The owner rejected two of those
+   on 2026-10-10 ("Need more evidence this is a problem before fixing", "wait until real issue").
+   Say in the reason what evidence would reopen it.
+2. Can an agent do it within the rules? A policy install, a new secret, a change to the kernel,
+   core, database or deployer, a deletion of kept data: comment with the choice and what each
+   side costs, `triage` it, add `needs-owner`, and leave it at `triaged`. **A design choice
+   inside a service is not the owner's: take it.** Choose the side that is smaller and easier to
+   undo, say in the move's reason which you chose and what the other was, and send it to
+   `ready`. The owner reads the reason and can reject. (Until 19:30 that day every design choice
+   went to the owner: 8 issues waited, and he said it "requires lots of human approval".)
 3. Is it one change? More than one becomes subtasks (`open` with `parent`), and the parent goes
    to `ready` when they are closed.
 
