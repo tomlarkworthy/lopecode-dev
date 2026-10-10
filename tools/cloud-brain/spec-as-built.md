@@ -3906,14 +3906,14 @@ BLOCK, five findings, all taken.
 
 - **`com.lopecode.*` and `com.*` were `*` under a shorter spelling** and kept the owner's tab for every session method: the core dropped only the literal `com.lopecode.brain.*` before it asked whether the scope names the method. It drops every prefix that `com.lopecode.brain.` begins with. A test makes a delegation with both and is refused `shop.tab` and `config.list`. Only the owner's session makes a secret holder, so what was wrong was the stated property and not a stranger's reach.
 - **The text served at `GET /auth/link`** said a token made with `unattended` calls as the owner's session. It says: for the methods the list names by a name or a prefix. The kernel's reference and the docs table say the same.
-- The core's note, the plan's summary of step 3.
+- The core's note said "without it" of the cap, where a call under `*` with the cap is also kept under `d:<id>`; it says "when a call is not the owner's tab". The plan's summary of step 3 said in the present tense that a new token is `token:NAME` in the kernel; it says "was, until step 4".
 - **Tokens made between step 3 and step 4.** Read at 12:36 with `delegation.list`: one delegation was made by a session in that time (`claude-docs-fe39`, no caps, 7 methods named). None had `unattended` with `*`, so no token lost a session method at 12:27.
 
 ## Authority, step 5 of 7: the old rows are moved (2026-10-10 12:32 CEST)
 
 `brain-core` `f5bd26a33b83`, `brain` `8144becfacae`. Core 32 tests, kernel 26.
 
-The core mints a secret, so it could not make a delegation for a token that exists: the kernel has the hash of that token's secret and not the secret. New in the core: `delegation.adopt { sha256, name, scope, caps, until, created, note }`, the kernel's alone, which writes the row and the `holder/secret/<hash>` row from the hash. The same hash again answers the same row. A name one of the owner's delegations has gets `-` and four characters of the new id. The row's `by` is `moved`.
+The core mints a secret, so it could not make a delegation for a token that exists: the kernel has the hash of that token's secret and not the secret. New in the core: `delegation.adopt { sha256, name, scope, caps, until, created, note }`, the kernel's alone, which writes the row and the `holder/secret/<hash>` row from the hash. The same hash again answers the same row. The row's `by` is `moved`.
 
 The kernel hands a `token/` row over when a call comes with that token, and every row that is left when tokens are listed, revoked or a link is made; then it deletes the row. With that the kernel's rewrite of an `unattended` token to the owner's session, its `call.by.link` line and its own reads of `token/` are gone. What is left of `token/` in the kernel is the hand-over, which can go when no Brain has such a row.
 
@@ -3930,3 +3930,40 @@ Those six are other sessions' sign-in links. Before, the kernel sent their calls
 
 
 After the review of step 4 the two were deployed again: `brain-core` `cbdd277b41e5`, `brain` `e4ec23e80ecf`, 12:36 CEST.
+
+### After step 5's fresh review (2026-10-10)
+
+BLOCK, six findings, all taken.
+
+- **A moved token could get a name the owner never gave it.** `delegation.adopt` renamed a row whose name was taken (`ci` to `ci-ab12`), and `token.revoke { name: "ci" }` then left that secret working, where before it ended every token of the name. The name is now kept as it was. Two tokens of one name are two rows, as they were, and `token.revoke` ends both.
+- **Two hand-overs of one token at once** could each write a row, and revoking the spare one would have ended the token. The id of a moved row is the first 12 characters of the hash, so both write the same row.
+- The docs table still had a row for a token from before as `token:NAME`. Every token is a delegation now; the row is gone.
+- The plan's summary said step 4 keeps the rewrite; it went in this step. The kernel's reference named two of the four things that hand a row over.
+
+On cb4 the seven rows were moved at 12:32 with the first code, with a random id each and no name taken (eight names, all different, in `token.list`).
+
+## Authority, step 6 of 7: a grant is a delegation (2026-10-10 12:41 CEST)
+
+`brain-core` `b68bebad811f`, `brain` `fbc1a80ce059`. Core 33 tests, kernel 26. Tom, 2026-10-10: "yes do step 4 and the whole thing please", taken as yes to the design's recommended choices, of which this is the second.
+
+- **The core.** `delegation.create { name: "grant", holder: { did }, scope }`: the owner's own session alone, whole method names, none of the never kind or of `member.*`, no caps, no `until`, no `daily`. One for a DID: a second deletes the first. Rows `delegation/<id>` and `holder/did/<did>`. `delegation.resolve { did }` answers it to the kernel. What a member may call (`asAuthor` for their Worker, `mayNow` for their delegations, the scope check of `delegation.create`) reads that row, and the methods a kernel from before sends with `people.sync` when there is none.
+- **The kernel.** `grant.put`, `grant.list` and `grant.delete` call the core as the owner's session and keep no row. The five reads of `grant/<did>` (a JWT from a DID that is no member, the cap of a room, the gate, `people.list`, `people.remove`) ask the core. `people.remove` revokes the grant. `people.sync` sends who is a member and not what each was granted. A `grant/` row from before is made in the core when that DID next calls or grants are listed, and deleted.
+- **A call by a DID is as it was**: the caller is the DID, by session, PDS or turn, and nothing says "delegation".
+
+Cost: one call to the core for each call a DID makes, where the kernel read its own row. Not measured.
+
+Run on cb4 12:41, with a DID nobody has:
+
+```
+grant.list                       {"grants":[]}            (cb4 had no grant to move)
+grant.put did methods [knowledge.search]   200
+grant.list                       one grant, the full method name
+delegation.list                  "name":"grant","from":"owner","holder":{"did":…}
+grant.put methods [knowledge.*]  400
+grant.delete                     {"deleted":true}; grant.list {"grants":[]}
+```
+
+**Not run on cb4:** a call by a DID that has a grant (the one member of cb4 is a person's account, and the test account `--other` is not a member: its `quota.get` answers 403 "has no grant", as before this step). While the core does not answer, a DID's granted method is refused 403 "has no grant", which is the wrong word for it.
+
+
+After the review of step 5 the two were deployed again: `brain-core` `be88df64837c`, `brain` `027284b52877`, 12:45 CEST.

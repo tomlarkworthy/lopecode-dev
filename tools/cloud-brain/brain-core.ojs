@@ -37,7 +37,7 @@ It answers bindings only. A caller is who the kernel says it is, and the kernel 
 | \`quota.list\`, \`quota.ledger\` | query, owner. Each account's day, and the charges of one day (\`?day=&who=&limit=\`) with totals by account and by method. |
 | \`quota.put\`, \`quota.setDefaults\` | procedure, the owner's own session. \`{ who, daily }\`, and \`{ owner, member, worker, token, perCall, keepDays }\`. \`null\` is the default again. |
 | \`delegation.create\` | procedure, the owner's or a member's own session. \`{ name, holder: { worker }, scope, until, daily, note }\` → the record, with its \`id\`. With \`holder: { secret: true }\` and \`caps\` (the owner only) the answer has \`secret\`, once: a token. The kernel's \`token.create\` and a sign-in link make these. |
-| \`delegation.resolve\`, \`delegation.adopt\` | procedures, the kernel. \`{ sha256 }\` of a secret → \`{ delegation }\` or null; and a token from before 2026-10-10, handed over by its hash. |
+| \`delegation.resolve\`, \`delegation.adopt\` | procedures, the kernel. \`{ sha256 }\` of a secret, or \`{ did }\` for that DID's grant → \`{ delegation }\` or null; and a token from before 2026-10-10, handed over by its hash. |
 | \`delegation.list\`, \`delegation.revoke\` | query and procedure, the same callers. The owner reads and revokes any, a member their own. \`{ id }\`. |
 
 **Delegations** (design: \`plan/cloud-brain-authority.md\`; built 2026-10-10 for a Worker holder only). The owner or a member lets a Worker the owner deployed call the methods in a \`scope\`, until a time or until it is revoked. The Worker names the delegation on a call it makes:
@@ -52,7 +52,8 @@ xrpc.fetch("com.lopecode.brain.m.0a1b.shop.receive", { method: "POST", headers: 
 - It begins a chain of its own: the origin is the maker, and the origin of whatever the Worker was answering is not read. \`x-brain-hops\` says how long the chain already is; the core adds one, sends it on with each forwarded call, and refuses a chain over 8.
 - \`daily\` is the most the chain may spend in a UTC day, counted beside the maker's own allowance. \`delegation.list\` shows \`spentToday\`. Calls made at the same moment can pass it by the price of those calls; the maker's allowance is exact.
 - A member's delegations are deleted when the member is removed.
-- A secret holder (a token made from 2026-10-10) sends the secret to the kernel as \`Authorization: Bearer\`. Its calls are the owner's: the owner's rules and allowance, \`caller.holder\` is \`secret:NAME\` and \`caller.token\` is \`NAME\`. It is the owner's own tab only with the cap \`session\`, and then only for a method the scope names by its name or a prefix: \`*\` alone does not reach \`rule.put\`, \`config.set\` or any method whose rule is \`caller.session\`. When a call is not the owner's tab, what it makes in a store is kept under \`d:<id>\`. \`deploy\` and \`unattended\` are read by the kernel for \`infra.*\`.
+- **A grant is a delegation with a DID holder** (2026-10-10): \`{ name: "grant", holder: { did }, scope }\`, the owner's alone to make, one for a DID, whole method names only. It is the kernel's \`grant.put\`. A call by that DID says nothing of it: the caller is the DID, in a session, through a PDS or in a turn as before, and the grant is part of what that DID may call.
+- A secret holder (a token) sends the secret to the kernel as \`Authorization: Bearer\`. Its calls are the owner's: the owner's rules and allowance, \`caller.holder\` is \`secret:NAME\` and \`caller.token\` is \`NAME\`. It is the owner's own tab only with the cap \`session\`, and then only for a method the scope names by its name or a prefix: \`*\` alone does not reach \`rule.put\`, \`config.set\` or any method whose rule is \`caller.session\`. When a call is not the owner's tab, what it makes in a store is kept under \`d:<id>\`. \`deploy\` and \`unattended\` are read by the kernel for \`infra.*\`.
 - A holder that takes a delegation's id from a caller must check that the caller made it (\`from\`). An id is not a secret.
 
 **Origin.** A rule reads \`caller\`, who made the call, and \`origin\`, who started the chain of calls it is part of. The two have the same fields. For a call from outside they are equal. When a Worker makes a call while it answers one, \`caller\` is the Worker and \`origin\` is the origin of the call it answers. A call a Worker makes by its own schedule has the Worker as \`origin\`. For a member's Worker \`caller\` is its author, and so is \`origin\` when it answers nobody.
@@ -249,6 +250,12 @@ coreApp = {
   const today = () => new Date(clock()).toISOString().slice(0, 10);
   // Calls into and out of one member's Workers, counted per UTC day.
   const spend = async (person) => (await rows.increment(`mcalls/${person.did}/${today()}`)) <= quotaOf(person).calls;
+  // What the owner granted a DID: the scope of the one delegation that DID holds. From a kernel of before
+  // 2026-10-10 the grant comes with people.sync instead, in the person's row.
+  const grantOf = async (did, person) => {
+    const id = await settings.get("holder/did/" + did), d = id ? await settings.get("delegation/" + id) : null;
+    return d && !(d.until && d.until <= clock()) ? d.scope : (person && person.methods) || [];
+  };
   const asAuthor = async (c, { worker, author }) => {
     const url = new URL(c.req.url);
     const nsid = url.pathname.startsWith("/xrpc/") ? url.pathname.slice("/xrpc/".length) : null;
@@ -256,7 +263,7 @@ coreApp = {
     if (!person) return fail(c, 403, "Forbidden", `${author} is not a member, so ${worker} may call nothing`);
     const route = await rows.get("route/" + worker);
     if (!route || route.off) return fail(c, 403, "Forbidden", `${worker} is switched off`);
-    if (!nsid || !(WORKER.includes(nsid) || nsid.startsWith(MEMBER_NS) || matches(person.methods, nsid))) return fail(c, 403, "Forbidden", `${worker} runs as ${author}, who has no grant for ${nsid || url.pathname}`);
+    if (!nsid || !(WORKER.includes(nsid) || nsid.startsWith(MEMBER_NS) || matches(await grantOf(author, person), nsid))) return fail(c, 403, "Forbidden", `${worker} runs as ${author}, who has no grant for ${nsid || url.pathname}`);
     if (!(await spend(person))) return fail(c, 429, "RateLimitExceeded", `${author} has used today's ${quotaOf(person).calls} calls`);
     c.set("who", { caller: author, via: "worker:" + worker });
     return null;
@@ -271,7 +278,7 @@ coreApp = {
   const mayNow = async (from, nsid) => {
     if (from === "owner") return true;
     const person = from.startsWith("did:") ? await rows.get("person/" + from) : null;
-    return !!person && may({ member: true, grant: person.methods }, nsid);
+    return !!person && may({ member: true, grant: await grantOf(from, person) }, nsid);
   };
   // What every call under a delegation passes, whoever holds it. null when it stands.
   const stands = async (c, d) => {
@@ -941,15 +948,34 @@ ${deployed.join("\n\n")}
   const drop = async (d) => {
     await settings.delete("delegation/" + d.id);
     if (d.holder && d.holder.secret) await settings.delete("holder/secret/" + d.holder.secret);
+    if (d.holder && d.holder.did) await settings.delete("holder/did/" + d.holder.did);
   };
   app.post(NS + "delegation.create", inPerson, async (c) => {
     const from = c.get("who").caller, b = (await c.req.json().catch(() => null)) || {};
     const { name, holder, caps = [], until = null, daily = null, note = "" } = b;
     const one = holder && typeof holder === "object" && Object.keys(holder).length === 1, secretHeld = !!one && holder.secret === true;
+    // A grant: the owner gives another account methods, and that account calls them as itself and pays for them.
+    // A DID holds one, named grant; a second for the same DID takes the place of the first.
+    const didHeld = !!one && typeof holder.did === "string" && /^did:(plc|web):[A-Za-z0-9.:%-]+$/.test(holder.did);
+    if (didHeld) {
+      const scope = Array.isArray(b.scope) && !b.scope.length ? [] : scoped(b.scope);
+      if (from !== "owner") return fail(c, 403, "Forbidden", "a DID holder is the owner's to make: nobody else extends what another person may do");
+      if (name !== "grant" || (Array.isArray(caps) && caps.length) || until !== null || daily !== null) return fail(c, 400, "InvalidRequest", "a DID holder is { name: \"grant\", holder: { did }, scope }, with no caps, until or daily");
+      if (!scope || scope.some((m) => m.includes("*"))) return fail(c, 400, "InvalidRequest", "a grant names whole methods, at most 50; a prefix is for a token");
+      const no = scope.find((m) => neverHeld(m) || m.startsWith("com.lopecode.brain.member."));
+      if (no) return fail(c, 400, "InvalidRequest", `${no} is not granted`);
+      const was = await rows.get("holder/did/" + holder.did), old = was ? await rows.get("delegation/" + was) : null;
+      if (old) await drop(old);
+      const id = [...crypto.getRandomValues(new Uint8Array(6))].map((x) => x.toString(16).padStart(2, "0")).join("");
+      const d = { id, name: "grant", from, holder: { did: holder.did }, scope, caps: [], until: null, daily: null, parent: null, note: typeof note === "string" ? note.slice(0, 300) : "", created: Date.now(), by: c.get("who").via };
+      await settings.put("delegation/" + id, d);
+      await settings.put("holder/did/" + holder.did, id);
+      return c.json(d);
+    }
     // A token may name no method: a sign-in link made only to deploy.
     const scope = secretHeld && Array.isArray(b.scope) && !b.scope.length ? [] : scoped(b.scope);
     if (typeof name !== "string" || !/^[a-z0-9-]{1,40}$/.test(name)) return fail(c, 400, "InvalidRequest", "name is a-z, 0-9 and -, 1 to 40 characters");
-    if (!secretHeld && !(one && typeof holder.worker === "string")) return fail(c, 400, "InvalidRequest", "holder is { worker: NAME } or { secret: true }");
+    if (!secretHeld && !(one && typeof holder.worker === "string")) return fail(c, 400, "InvalidRequest", "holder is { worker: NAME }, { secret: true } or { did }");
     if (secretHeld && from !== "owner") return fail(c, 403, "Forbidden", "a secret holder is the owner's to make");
     // A delegation names a Worker and not its code, so the Worker is one the owner deploys.
     const route = secretHeld ? null : await rows.get("route/" + holder.worker);
@@ -963,14 +989,15 @@ ${deployed.join("\n\n")}
     if (no) return fail(c, 400, "InvalidRequest", `${no} is not reached under a delegation`);
     if (from !== "owner") {
       const me = await rows.get("person/" + from), ALL = "com.lopecode.brain.*";
-      const over = scope.find((m) => m !== ALL && !may({ member: true, grant: me.methods }, m) && !(/[./]\*$/.test(m) && MEMBER.some((own) => own.startsWith(m.slice(0, -1)))));
+      const granted = await grantOf(from, me);
+      const over = scope.find((m) => m !== ALL && !may({ member: true, grant: granted }, m) && !(/[./]\*$/.test(m) && MEMBER.some((own) => own.startsWith(m.slice(0, -1)))));
       if (over) return fail(c, 403, "Forbidden", `${from} may not call ${over}`);
     }
     if (until !== null && !(Number.isInteger(until) && until > clock())) return fail(c, 400, "InvalidRequest", "until is a time in ms after now, or null");
     if (daily !== null && !(typeof daily === "number" && Number.isFinite(daily) && daily >= 0)) return fail(c, 400, "InvalidRequest", "daily is US dollars a UTC day, or null");
     if (typeof note !== "string" || note.length > 300) return fail(c, 400, "InvalidRequest", "note is text, at most 300 characters");
-    // What has ended goes when its maker makes another.
-    const mine = (await rows.list("delegation/")).map((r) => r.value).filter((o) => o.from === from), live = [];
+    // What has ended goes when its maker makes another. A grant has the one name for every DID, and is not counted.
+    const mine = (await rows.list("delegation/")).map((r) => r.value).filter((o) => o.from === from && !o.holder.did), live = [];
     for (const o of mine) o.until && o.until <= clock() ? await drop(o) : live.push(o.name);
     if (live.includes(name)) return fail(c, 400, "InvalidRequest", `a delegation named ${name} exists; revoke it first`);
     const hex = (n) => [...crypto.getRandomValues(new Uint8Array(n))].map((x) => x.toString(16).padStart(2, "0")).join("");
@@ -995,7 +1022,8 @@ ${deployed.join("\n\n")}
     return c.json({ revoked: true, id });
   });
   // A token from before 2026-10-10 was a row of the kernel, which has the hash of its secret and not the secret.
-  // The kernel hands each over once. A name one of the owner's delegations has is kept apart by the new id.
+  // The kernel hands each over. The id is the start of the hash, so two hand-overs of one token at the same moment
+  // write the one row. The name is kept as it was: two old tokens could have one name, and token.revoke ends both.
   app.post(NS + "delegation.adopt", async (c) => {
     const w = c.get("who"), b = (await c.req.json().catch(() => null)) || {};
     if (!(w.kernel && w.caller === "kernel")) return fail(c, 401, "AuthRequired", "the kernel");
@@ -1003,9 +1031,8 @@ ${deployed.join("\n\n")}
     if (!ok) return fail(c, 400, "InvalidRequest", "{ sha256, name, scope, caps, until, created, note }");
     const had = await rows.get("holder/secret/" + b.sha256);
     if (had && (await rows.get("delegation/" + had))) return c.json(await rows.get("delegation/" + had));
-    const id = [...crypto.getRandomValues(new Uint8Array(6))].map((x) => x.toString(16).padStart(2, "0")).join("");
-    const taken = (await rows.list("delegation/")).some((r) => r.value.from === "owner" && r.value.name === b.name);
-    const d = { id, name: taken ? b.name.slice(0, 35) + "-" + id.slice(0, 4) : b.name, from: "owner", holder: { secret: b.sha256 }, scope: b.scope, caps: b.caps, until: Number.isInteger(b.until) ? b.until : null, daily: null, parent: null, note: typeof b.note === "string" ? b.note.slice(0, 300) : "", created: Number.isInteger(b.created) ? b.created : Date.now(), by: "moved" };
+    const id = b.sha256.slice(0, 12);
+    const d = { id, name: b.name, from: "owner", holder: { secret: b.sha256 }, scope: b.scope, caps: b.caps, until: Number.isInteger(b.until) ? b.until : null, daily: null, parent: null, note: typeof b.note === "string" ? b.note.slice(0, 300) : "", created: Number.isInteger(b.created) ? b.created : Date.now(), by: "moved" };
     await settings.put("delegation/" + id, d);
     await settings.put("holder/secret/" + b.sha256, id);
     return c.json(d);
@@ -1013,8 +1040,13 @@ ${deployed.join("\n\n")}
   // The kernel asks whose secret it was sent: it needs the scope for the routes it answers itself and the caps for
   // infra.*. The row is found by the hash, and the answer has no secret in it.
   app.post(NS + "delegation.resolve", async (c) => {
-    const w = c.get("who"), { sha256: hash } = (await c.req.json().catch(() => null)) || {};
+    const w = c.get("who"), { sha256: hash, did } = (await c.req.json().catch(() => null)) || {};
     if (!(w.kernel && w.caller === "kernel")) return fail(c, 401, "AuthRequired", "the kernel");
+    // A DID's grant. Read through the 5 s memory: the kernel asks on each call a member makes.
+    if (typeof did === "string" && did.length <= 300) {
+      const held = await settings.get("holder/did/" + did), g = held ? await settings.get("delegation/" + held) : null;
+      return c.json({ delegation: g && g.holder.did === did ? g : null });
+    }
     // Read with no memory: anyone can send a bearer nobody made, and settings would keep an entry for each.
     const id = typeof hash === "string" && /^[0-9a-f]{64}$/.test(hash) ? await rows.get("holder/secret/" + hash) : null;
     const d = id ? await settings.get("delegation/" + id) : null;
@@ -2019,11 +2051,11 @@ test_a_token_is_a_delegation_with_a_secret_holder_that_the_kernel_resolves = {
   expect((await make({ name: "laptop", scope: ["*"] })).status).toBe(400);
   expect((await rig.owner("delegation.revoke", { id: t.id })).data).toEqual({ revoked: true, id: t.id });
   expect([(await kernel("delegation.resolve", { sha256: t.holder.secret })).data, (await sent(t.id)("shop.receive", {})).status, (await make({ name: "laptop", scope: ["*"] })).status]).toEqual([{ delegation: null }, 401, 200]);
-  // A token from before: the kernel hands over the hash it has. The same hash again is the same row; a name that
-  // is taken is kept apart; nobody but the kernel does it.
+  // A token from before: the kernel hands over the hash it has. The same hash again is the same row; its name is
+  // kept, though another has it; nobody but the kernel does it.
   const HASH = await sha256("made-before"), old = { sha256: HASH, name: "laptop", scope: [B + "shop.receive"], caps: ["deploy"], until: null, created: 5, note: "sign-in link" };
   const moved = (await kernel("delegation.adopt", old)).data;
-  expect([moved.name, moved.from, moved.holder, moved.caps, moved.created, moved.by, (await kernel("delegation.adopt", old)).data.id, (await kernel("delegation.resolve", { sha256: HASH })).data.delegation.id]).toEqual(["laptop-" + moved.id.slice(0, 4), "owner", { secret: HASH }, ["deploy"], 5, "moved", moved.id, moved.id]);
+  expect([moved.name, moved.from, moved.holder, moved.caps, moved.created, moved.by, (await kernel("delegation.adopt", old)).data.id, (await kernel("delegation.resolve", { sha256: HASH })).data.delegation.id]).toEqual(["laptop", "owner", { secret: HASH }, ["deploy"], 5, "moved", HASH.slice(0, 12), HASH.slice(0, 12)]);
   expect([(await sent(moved.id)("shop.receive", {})).status, (await rig.owner("delegation.adopt", old)).status, (await kernel("delegation.adopt", { ...old, caps: ["root"] })).status]).toEqual([200, 401, 400]);
   await rig.owner("delegation.revoke", { id: moved.id });
   // Ended, it is refused, and it goes when the owner makes another.
@@ -2032,6 +2064,38 @@ test_a_token_is_a_delegation_with_a_secret_holder_that_the_kernel_resolves = {
   await make({ name: "next", scope: ["*"] });
   expect([(await rig.owner("delegation.list")).data.delegations.map((d) => d.name).sort(), (await kernel("delegation.resolve", { sha256: button.holder.secret })).data]).toEqual([["laptop", "next", "ship"], { delegation: null }]);
   return "a secret holder: resolved by the kernel only, the owner's call, the owner's tab with the cap session";
+}
+// %%
+test_a_grant_is_a_delegation_that_a_did_holds = {
+  const B = "com.lopecode.brain.", ADA = "did:plc:ada", BO = "did:plc:bo";
+  const hear = async (request) => (request.url.endsWith(".getInfo") ? Response.json({ name: "brain-x-shop", hash: "h", calls: [] }) : Response.json({ ok: true }));
+  const rig = await coreRig({ workers: { shop: hear } }), kernel = rig.as("kernel", "");
+  await rig.deployer("service.register", { worker: "brain-x-shop", role: "recipe", paths: [], secrets: [], hash: "h", keyHash: await sha256("shop-key"), methods: { [B + "shop.receive"]: { type: "procedure", who: "anyone" }, [B + "shop.other"]: { type: "procedure", who: "anyone" } } });
+  // The kernel says who is a member, and no longer what each was granted.
+  await kernel("people.sync", { people: [{ did: ADA }] });
+  const grant = (did, scope, more) => rig.owner("delegation.create", { name: "grant", holder: { did }, scope, ...more });
+  const mine = (name) => rig.as(ADA)("delegation.create", { name, holder: { worker: "brain-x-echo" }, scope: ["shop.receive"] });
+  const held = (id) => rig.send("https://core.internal", { "x-brain-key": "echo-key", "x-brain-as": id });
+  // With no grant a member cannot delegate the method. With one they can, and the Worker's call is theirs.
+  expect((await mine("a")).status).toBe(403);
+  const g = (await grant(ADA, ["shop.receive"])).data;
+  expect([g.name, g.from, g.holder, g.scope, g.caps, (await kernel("delegation.resolve", { did: ADA })).data.delegation.id, (await kernel("delegation.resolve", { did: BO })).data]).toEqual(["grant", "owner", { did: ADA }, [B + "shop.receive"], [], g.id, { delegation: null }]);
+  const a = (await mine("a")).data;
+  expect((await held(a.id)("shop.receive", {})).status).toBe(200);
+  // A second grant takes the place of the first: one row for a DID, and what the first gave is gone.
+  const g2 = (await grant(ADA, ["shop.other"])).data;
+  expect([(await rig.owner("delegation.list")).data.delegations.filter((d) => d.holder.did).map((d) => d.id), (await held(a.id)("shop.receive", {})).status]).toEqual([[g2.id], 403]);
+  // A grant for another DID has the same name. A member does not see the owner's grant to them, and makes none.
+  expect([(await grant(BO, [])).status, (await rig.as(ADA)("delegation.list")).data.delegations.map((d) => d.name), (await rig.as(ADA)("delegation.create", { name: "grant", holder: { did: BO }, scope: ["shop.other"] })).status]).toEqual([200, ["a"], 403]);
+  // Whole names only, none of the never kind or of member.*, no caps, no end, no daily amount, and no other name.
+  expect(await Promise.all([grant(BO, ["shop.*"]), grant(BO, ["secret.get"]), grant(BO, ["member.deploy"]), grant(BO, ["shop.other"], { caps: ["session"] }), grant(BO, ["shop.other"], { until: Date.now() + 9e6 }), grant(BO, ["shop.other"], { daily: 1 }), grant(BO, ["shop.other"], { name: "other" }), grant("did:nope", ["shop.other"])].map((p) => p.then((r) => r.status)))).toEqual([400, 400, 400, 400, 400, 400, 400, 400]);
+  // Revoked, the DID has no grant. Nobody but the kernel asks.
+  await rig.owner("delegation.revoke", { id: g2.id });
+  expect([(await kernel("delegation.resolve", { did: ADA })).data, (await rig.owner("delegation.resolve", { did: ADA })).status]).toEqual([{ delegation: null }, 401]);
+  // A kernel from before sends the grant with people.sync, and it is read when the DID holds no delegation.
+  await kernel("people.sync", { people: [{ did: ADA, methods: [B + "shop.receive"] }] });
+  expect((await mine("b")).status).toBe(200);
+  return "a grant: one delegation for a DID, the owner's to make, read on each call";
 }
 // %%
 test_a_worker_calls_under_a_delegation_as_who_made_it_and_not_in_their_tab = {

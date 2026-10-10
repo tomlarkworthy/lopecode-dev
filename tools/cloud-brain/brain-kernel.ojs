@@ -35,7 +35,9 @@ A person is an atproto account, named by its DID. There are two roles. The **own
 
 **Sign-in links** (added 2026-10-09). For a program with no browser, such as Claude Code on the web. \`token.link\` (procedure, owner's session) takes \`{ name, methods, minutes, hours, deploy, unattended }\` and answers \`{ name, deploy, unattended, link, until }\`; \`minutes\` (1 to 480, 480 if left out; 10 until 2026-10-10, which a session that first had to have its network opened ran past) is how long the link is good, \`hours\` (1 to 24, 8 if left out) how long its token lasts. The link is \`/auth/link?code=…\`. A GET of it answers text that says what to do and spends nothing, so a preview of a pasted link does not use it. The first POST answers \`{ name, token, methods, until, deploy, unattended }\` and deletes the link; a second answers 401. The token is one as \`token.create\` makes, with an end: it may not name \`infra.*\`, \`secret.*\`, \`token.*\`, \`grant.*\` or \`people.*\`, and \`token.list\` gives it with \`by: "link"\` until it ends. \`token.revoke\` with \`{ name }\` ends the token early, and deletes a link of that name nobody has used. A link is refused a name that a token or another link has.
 
-**A token is a delegation** (2026-10-10). \`token.create\`, and the POST of a sign-in link, make a delegation with a secret holder in the core (\`delegation.create\`), and the kernel keeps no row for it. \`token.list\` and \`token.revoke\` read and end those and nothing else: a token made before is a row here until it is first used or tokens are next listed, and is then handed to the core by the hash of its secret (\`delegation.adopt\`) and is a delegation like any other. A call with such a token is sent to the core with the delegation's id, and there it is the owner's call: the owner's rules and the owner's allowance, which \`daily\` in \`token.create\` (US dollars a UTC day) caps. It is not the owner's own tab, so what it makes in a store is kept under \`d:<id>\` and not under \`token:NAME\`; a link made with \`unattended\` is the owner's tab for the methods its list names by a name or a prefix, and not for one that only \`*\` reaches. A token ends within 5 s of \`token.revoke\`, the time a core instance remembers a row. The core's limits are now a token's: at most 50 methods, and a name that no other delegation of the owner has (400 from \`token.create\`, where two tokens of one name were made before). While the core does not answer, such a token is refused with 503, on \`infra.*\` too: a sign-in link's token cannot deploy a core that is down, and the owner's session can.
+**A token is a delegation** (2026-10-10). \`token.create\`, and the POST of a sign-in link, make a delegation with a secret holder in the core (\`delegation.create\`), and the kernel keeps no row for it. \`token.list\` and \`token.revoke\` read and end those and nothing else: a token made before is a row here until it is first used, or tokens are next listed or revoked, or a link is made, and is then handed to the core by the hash of its secret (\`delegation.adopt\`) and is a delegation like any other. A call with such a token is sent to the core with the delegation's id, and there it is the owner's call: the owner's rules and the owner's allowance, which \`daily\` in \`token.create\` (US dollars a UTC day) caps. It is not the owner's own tab, so what it makes in a store is kept under \`d:<id>\` and not under \`token:NAME\`; a link made with \`unattended\` is the owner's tab for the methods its list names by a name or a prefix, and not for one that only \`*\` reaches. A token ends within 5 s of \`token.revoke\`, the time a core instance remembers a row. The core's limits are now a token's: at most 50 methods, and a name that no other delegation of the owner has (400 from \`token.create\`, where two tokens of one name were made before). While the core does not answer, such a token is refused with 503, on \`infra.*\` too: a sign-in link's token cannot deploy a core that is down, and the owner's session can.
+
+**A grant is a delegation** (2026-10-10). \`grant.put\` makes a delegation that the DID holds, named \`grant\`, in the core, and the kernel keeps no row; \`grant.list\` and \`grant.delete\` read and end it, and \`people.remove\` ends it with the member. For each call a DID makes the kernel asks the core for that DID's grant. A grant from before is a row here until the DID next calls or grants are listed. \`people.sync\` tells the core who is a member and no longer what each was granted.
 
 **Lists of methods** (2026-10-10). In \`token.create\` and \`token.link\` an entry of \`methods\` is a whole name or a prefix that ends \`.*\`: \`browser.*\` is every method of that service, \`*\` every method of this Brain. A name may go on after a \`/\` (\`ai.v1/chat/completions\`), and \`ai.v1/*\` is every method under \`ai.v1/\` and not \`ai.run\` (2026-10-10: the first shape check had refused every name with a \`/\`). No prefix reaches a name a token may not have (\`infra\`, \`secret\`, \`token\`, \`grant\`, \`people\`), whether it goes on with a \`.\` or a \`/\`. A grant to a DID still names whole methods.
 
@@ -255,7 +257,7 @@ kernelApp = {
       return portal ? { caller: named(portal.did), via: "portal:" + portal.id, did: portal.did, portal } : { refused: { error: "AuthRequired", message: "this portal token has expired or is not this Brain's" } };
     }
     if (bearer.split(".").length === 3) {
-      const v = await verifyServiceJwt(bearer, nsid, "did:web:" + config.host, async (did) => did === config.owner || !!(await rows.get("member/" + did)) || !!(await rows.get("grant/" + did)));
+      const v = await verifyServiceJwt(bearer, nsid, "did:web:" + config.host, async (did) => did === config.owner || !!(await rows.get("member/" + did)) || !!(await grantOf(did)));
       return v.error ? { refused: v } : { caller: v.iss === config.owner ? "owner" : v.iss, via: "jwt", did: v.iss };
     }
     // A token is a delegation that the core keeps, found by the hash. The caller is who made it. Its scope is the
@@ -291,6 +293,22 @@ kernelApp = {
   const moveAll = async () => {
     for (const r of await rows.list("token/")) r.value.until < Date.now() ? await rows.delete(r.key) : await move(r.key, r.value);
   };
+  // What the owner granted a DID: a delegation that DID holds, in the core. A grant from before 2026-10-10 is a
+  // row here until it is first read, and is then made in the core as the owner's session made it.
+  const moveGrant = async (g) => {
+    const r = await asOwnerSession("delegation.create", { name: "grant", holder: { did: g.did }, scope: g.methods });
+    if (r.status === 200) await rows.delete("grant/" + g.did);
+  };
+  const grantOf = async (did) => {
+    const old = await rows.get("grant/" + did);
+    if (old) await moveGrant(old);
+    const d = ((await coreCall({ "x-brain-caller": "kernel" }, "delegation.resolve", { did })).data || {}).delegation;
+    return d ? { did, methods: d.scope, granted: d.created } : null;
+  };
+  const grants = async () => {
+    for (const { value: g } of await rows.list("grant/")) await moveGrant(g);
+    return (await delegations()).filter((d) => d.holder && d.holder.did);
+  };
   const asOwnerSession = (method, body) => coreCall({ "x-brain-caller": "owner", "x-brain-via": "session" }, method, body);
   const delegations = async () => ((await asOwnerSession("delegation.list")).data || {}).delegations || [];
   app.use("*", async (c, next) => {
@@ -319,14 +337,14 @@ kernelApp = {
     if (others.length && nsid !== "com.lopecode.brain.inbox.reply")
       for (const did of [who.did, ...others]) {
         if (did && did === config.owner) continue;
-        const grant = did && (await rows.get("member/" + did)) ? await rows.get("grant/" + did) : null;
+        const grant = did && (await rows.get("member/" + did)) ? await grantOf(did) : null;
         if (!(grant && matches(grant.methods, nsid))) return fail(c, 403, "Forbidden", `a turn in a room reaches inbox.reply and what everyone in the room has a grant for; ${did === who.did ? "its sender" : did || "someone who is not a member"} has none for ${nsid || path}`);
       }
     if (who.caller.startsWith("did:")) {
       const member = await rows.get("member/" + who.caller);
       // A turn is run for a member. Once they are removed, a token already issued stops working.
       if ((who.turn || who.portal) && !member) return fail(c, 403, "Forbidden", `${who.caller} is not a member`);
-      const grant = nsid ? await rows.get("grant/" + who.caller) : null;
+      const grant = nsid ? await grantOf(who.caller) : null;
       if (nsid && !may({ member, grant: grant && grant.methods }, nsid)) return fail(c, 403, "Forbidden", `${who.caller} has no grant for ${nsid}`);
       // A member is still themselves when they open a file; every other page is served to them as to anyone.
       if (!nsid && !(member && path.startsWith("/static/"))) who.caller = "anonymous";
@@ -522,15 +540,20 @@ other address): how to call, and what this Brain is made of.
     for (const d of await tokens()) if (d.name === name) revoked += ((await asOwnerSession("delegation.revoke", { id: d.id })).data || {}).revoked ? 1 : 0;
     return c.json({ revoked });
   });
-  app.get(NS + "grant.list", session, async (c) => c.json({ grants: (await rows.list("grant/")).map((r) => r.value) }));
+  app.get(NS + "grant.list", session, async (c) => c.json({ grants: (await grants()).map((d) => ({ did: d.holder.did, methods: d.scope, granted: d.created })) }));
   // The core checks a member's Worker as its author, and cannot ask the kernel who that is: it is told, whole, each
-  // time a member or a grant changes.
+  // time a member changes. What each was granted is the core's own row.
   const syncPeople = async () => {
     const people = [];
-    for (const { value: m } of await rows.list("member/")) people.push({ did: m.did, methods: ((await rows.get("grant/" + m.did)) || { methods: [] }).methods, quota: m.quota || null, tags: m.tags || [] });
+    for (const { value: m } of await rows.list("member/")) people.push({ did: m.did, quota: m.quota || null, tags: m.tags || [] });
     await core.fetch(new Request("https://core.internal/xrpc/com.lopecode.brain.people.sync", { method: "POST", headers: { "content-type": "application/json", "x-brain-caller": "kernel" }, body: JSON.stringify({ people }) }));
     // A channel that knows senders by DID is told the whole list too; one that is not deployed does not answer.
     for (const channel of NATIVE) await toChannel(channel, "know", { all: people.map((p) => p.did) }).catch(() => null);
+  };
+  const ungrant = async (did) => {
+    let deleted = await rows.delete("grant/" + did);
+    for (const d of await delegations()) if (d.holder && d.holder.did === did) deleted = !!((await asOwnerSession("delegation.revoke", { id: d.id })).data || {}).revoked || deleted;
+    return deleted;
   };
   app.post(NS + "grant.put", session, async (c) => {
     const { did, methods = [] } = await c.req.json();
@@ -538,14 +561,14 @@ other address): how to call, and what this Brain is made of.
     if (!/^did:(plc|web):[A-Za-z0-9.:%-]+$/.test(did || "")) return fail(c, 400, "InvalidRequest", "did");
     if (named.some((m) => m.includes("*"))) return fail(c, 400, "InvalidRequest", "a grant names whole methods; a prefix is for a token");
     if (named.some(never) || named.some((m) => m.startsWith("com.lopecode.brain.member."))) return fail(c, 400, "InvalidRequest", "a grant cannot name infra, secret, token, grant, people, delegation or member methods");
-    await rows.put("grant/" + did, { did, methods: named, granted: Date.now() });
-    await syncPeople();
+    await rows.delete("grant/" + did);
+    const made = await asOwnerSession("delegation.create", { name: "grant", holder: { did }, scope: named });
+    if (made.status !== 200) return c.json(made.data || { error: "UpstreamFailure", message: "the core did not answer" }, made.status);
     return c.json({ did, methods: named });
   });
   app.post(NS + "grant.delete", session, async (c) => {
-    const deleted = await rows.delete("grant/" + (await c.req.json()).did);
-    await syncPeople();
-    return c.json({ deleted });
+    const { did } = await c.req.json();
+    return c.json({ deleted: await ungrant(did) });
   });
 
   // Who is calling, then the core. Nothing the caller sent says who they are.
@@ -582,7 +605,7 @@ other address): how to call, and what this Brain is made of.
     if (config.owner) at(config.owner).role = "owner";
     for (const { value: m } of await rows.list("member/")) Object.assign(at(m.did), { role: "member", name: m.name || null, added: m.added, services: m.services !== false, quota: m.quota || null, tags: m.tags || [] });
     for (const { value: a } of await rows.list("address/")) at(a.did).addresses.push({ channel: a.channel, address: a.address, linked: a.linked });
-    for (const { value: g } of await rows.list("grant/")) if (people.has(g.did)) at(g.did).methods = g.methods;
+    for (const g of await grants()) if (people.has(g.holder.did)) at(g.holder.did).methods = g.scope;
     for (const p of people.values()) p.handle = await rows.get("handle/" + p.did);
     return c.json({ people: [...people.values()] });
   });
@@ -609,7 +632,8 @@ other address): how to call, and what this Brain is made of.
     const { did } = await c.req.json();
     if (!DID.test(did || "") || did === config.owner) return fail(c, 400, "InvalidRequest", "did");
     const removed = await rows.delete("member/" + did);
-    await rows.delete("grant/" + did);
+    // Their grant is revoked too, or a removed person would keep the methods it gave.
+    await ungrant(did);
     // From here the core refuses every call into and out of their Workers; the deployer then deletes them.
     await syncPeople();
     await deployer.fetch(new Request("https://deployer.internal/xrpc/com.lopecode.brain.member.purge", { method: "POST", headers: { "content-type": "application/json", "x-brain-caller": "owner" }, body: JSON.stringify({ author: did }) })).catch(() => null);
@@ -786,10 +810,16 @@ kernelRig = async ({ core, secrets = { SESSION_KEY: "cookie-key", COOKIE_KEY: "c
       const d = { id: hexOf(6), name: b.name, from: "owner", holder: { secret: b.sha256 }, scope: b.scope, caps: b.caps, until: b.until, daily: null, note: b.note, created: b.created };
       return (held.set(d.id, d), Response.json(d));
     }
+    if (m === "resolve" && b.did) return Response.json({ delegation: [...held.values()].find((d) => d.holder.did === b.did) || null });
+    if (m === "create" && b.holder.did) {
+      for (const [k, d] of held) if (d.holder.did === b.holder.did) held.delete(k);
+      const d = { id: hexOf(6), name: "grant", from: "owner", holder: { did: b.holder.did }, scope: b.scope, caps: [], until: null, daily: null, note: "", created: Date.now() };
+      return (held.set(d.id, d), Response.json(d));
+    }
     if (m === "resolve") return Response.json({ delegation: [...held.values()].find((d) => d.holder.secret === b.sha256) || null });
     if (m === "list") return Response.json({ delegations: [...held.values()] });
     if (m === "revoke") return Response.json({ revoked: held.delete(b.id) });
-    if ([...held.values()].some((d) => d.name === b.name && !(d.until && d.until < Date.now()))) return Response.json({ error: "InvalidRequest", message: `a delegation named ${b.name} exists; revoke it first` }, { status: 400 });
+    if ([...held.values()].some((d) => !d.holder.did && d.name === b.name && !(d.until && d.until < Date.now()))) return Response.json({ error: "InvalidRequest", message: `a delegation named ${b.name} exists; revoke it first` }, { status: 400 });
     const secret = hexOf(32), d = { id: hexOf(6), name: b.name, from: "owner", holder: { secret: await sha256(secret) }, scope: b.scope, caps: b.caps || [], until: b.until ?? null, daily: b.daily ?? null, note: b.note || "", created: Date.now() };
     held.set(d.id, d);
     return Response.json({ ...d, secret });
@@ -1018,12 +1048,14 @@ test_tokens_reach_only_their_methods = {
   const H = "com.lopecode.brain.", rowsOf = () => [...rig.sim.rows.keys()].filter((k) => k.startsWith("token/")).length;
   rig.sim.rows.set("token/" + (await sha256("made-before")), { name: "old", methods: [H + "proxy.fetch"], created: 1 });
   rig.sim.rows.set("token/" + (await sha256("made-free")), { name: "oldfree", methods: [H + "proxy.*"], created: 2, until: Date.now() + 60000, by: "link", deploy: true, unattended: true });
+  rig.sim.rows.set("token/" + (await sha256("made-twin")), { name: "old", methods: [], created: 4 });
   rig.sim.rows.set("token/" + (await sha256("made-ended")), { name: "oldended", methods: [], created: 3, until: Date.now() - 1, by: "link" });
-  expect([(await rig.call("proxy.fetch", { bearer: "made-before", body: {} })).status, rig.seen.at(-1).headers["x-brain-caller"], rig.seen.at(-1).headers["x-brain-delegation"], (await rig.call("inbox.list", { bearer: "made-before" })).status, rowsOf()]).toEqual([200, "owner", [...rig.held.values()].find((d) => d.name === "old").id, 403, 2]);
+  expect([(await rig.call("proxy.fetch", { bearer: "made-before", body: {} })).status, rig.seen.at(-1).headers["x-brain-caller"], rig.seen.at(-1).headers["x-brain-delegation"], (await rig.call("inbox.list", { bearer: "made-before" })).status, rowsOf()]).toEqual([200, "owner", [...rig.held.values()].find((d) => d.name === "old").id, 403, 3]);
   expect((await rig.call("proxy.fetch", { bearer: "made-ended", body: {} })).data.message).toBe("this token has expired");
-  expect([(await listed()).filter((t) => t[0].startsWith("old")), rowsOf(), [...rig.held.values()].find((d) => d.name === "oldfree").caps]).toEqual([[["old", null], ["oldfree", "link"]], 0, ["deploy", "unattended", "session"]]);
+  expect([(await listed()).filter((t) => t[0].startsWith("old")), rowsOf(), [...rig.held.values()].find((d) => d.name === "oldfree").caps]).toEqual([[["old", null], ["old", null], ["oldfree", "link"]], 0, ["deploy", "unattended", "session"]]);
   expect([(await rig.call("infra.shell", { bearer: "made-free", body: "<p>page</p>" })).status, rig.toDeployer.at(-1).headers["x-brain-unattended"]]).toEqual([200, "token:oldfree"]);
-  expect([(await rig.call("token.revoke", { session: rig.owner, body: { name: "old" } })).data, (await rig.call("proxy.fetch", { bearer: "made-before", body: {} })).status]).toEqual([{ revoked: 1 }, 401]);
+  // Two tokens from before could have one name. Each keeps it, and token.revoke ends both, as it did.
+  expect([(await rig.call("token.revoke", { session: rig.owner, body: { name: "old" } })).data, (await rig.call("proxy.fetch", { bearer: "made-before", body: {} })).status, (await rig.call("proxy.fetch", { bearer: "made-twin", body: {} })).status]).toEqual([{ revoked: 2 }, 401, 401]);
   const every = (await rig.call("token.create", { session: rig.owner, body: { name: "every", methods: ["*"] } })).data.token;
   expect((await rig.call("inbox.list", { bearer: every })).status).toBe(200);
   for (const m of ["secret.get", "token.list", "infra.getState", "people.list"]) expect((await rig.call(m, { bearer: every })).status).toBe(403);
@@ -1057,6 +1089,15 @@ test_another_did_needs_a_grant = {
   await rig.call("/notebooks/x", { session: rig.other });
   expect(rig.seen.at(-1).headers["x-brain-caller"]).toBe("anonymous");
   expect((await rig.call("grant.put", { session: rig.other, body: { did: "did:plc:other", methods: ["inbox.list"] } })).status).toBe(403);
+  // The grant is a delegation that the DID holds, in the core; the kernel keeps no row. A second takes its place.
+  const grantsOf = () => [...rig.held.values()].filter((d) => d.holder.did === "did:plc:other").map((d) => d.scope);
+  expect([grantsOf(), [...rig.sim.rows.keys()].filter((k) => k.startsWith("grant/")), (await rig.call("grant.list", { session: rig.owner })).data.grants.map((g) => [g.did, g.methods])]).toEqual([[["com.lopecode.brain.index.search"]], [], [["did:plc:other", ["com.lopecode.brain.index.search"]]]]);
+  await rig.call("grant.put", { session: rig.owner, body: { did: "did:plc:other", methods: ["inbox.list"] } });
+  expect([grantsOf(), (await rig.call("index.search", { session: rig.other })).status, (await rig.call("inbox.list", { session: rig.other })).status]).toEqual([[["com.lopecode.brain.inbox.list"]], 403, 200]);
+  expect([(await rig.call("grant.delete", { session: rig.owner, body: { did: "did:plc:other" } })).data, (await rig.call("inbox.list", { session: rig.other })).status, (await rig.call("grant.delete", { session: rig.owner, body: { did: "did:plc:other" } })).data]).toEqual([{ deleted: true }, 403, { deleted: false }]);
+  // A grant from before 2026-10-10 is a row here until the DID next calls, and is then made in the core.
+  rig.sim.rows.set("grant/did:plc:other", { did: "did:plc:other", methods: ["com.lopecode.brain.index.search"], granted: 1 });
+  expect([(await rig.call("index.search", { session: rig.other })).status, rig.sim.rows.has("grant/did:plc:other"), grantsOf()]).toEqual([200, false, [["com.lopecode.brain.index.search"]]]);
   return "403 until granted";
 }
 // %%
@@ -1237,7 +1278,8 @@ test_people_are_the_owners_to_change = {
   const { people } = (await rig.call("people.list", { session: rig.owner })).data;
   expect(people.map((p) => [p.did, p.role, p.addresses.map((a) => a.address).join(), p.methods.length])).toEqual([["did:plc:owner", "owner", "+100", 0], ["did:plc:new", "member", "did:plc:new,+500", 1], ["did:plc:other", "member", "+200", 0], ["did:plc:guest", null, "+300", 0]]);
   expect((await rig.call("people.remove", { session: rig.owner, body: { did: "did:plc:new" } })).data).toEqual({ removed: true });
-  expect(["member/did:plc:new", "grant/did:plc:new", "address/loop/+500"].map((k) => rig.sim.rows.has(k))).toEqual([false, false, false]);
+  // The grant goes with the member: it is a delegation in the core, and is revoked there.
+  expect([...["member/did:plc:new", "address/loop/+500"].map((k) => rig.sim.rows.has(k)), [...rig.held.values()].filter((d) => d.holder.did === "did:plc:new").length]).toEqual([false, false, 0]);
   expect(rig.known.has("+500")).toBe(false);
   expect((await rig.call("people.remove", { session: rig.owner, body: { did: "did:plc:owner" } })).status).toBe(400);
   for (const kind of ["token.create", "grant.put"])
@@ -1496,7 +1538,7 @@ test_a_member_reaches_their_own_services_and_the_deployer_hears_who = {
   // The core was told who is a member, with the kernel's own name for itself.
   const sync = rig.seen.filter((s) => s.url.endsWith(".people.sync")).at(-1);
   expect(sync.headers["x-brain-caller"]).toBe("kernel");
-  expect(JSON.parse(sync.body)).toEqual({ people: [{ did: "did:plc:other", methods: [], quota: { workers: 5 }, tags: [{ tag: "family", access: "read" }] }] });
+  expect(JSON.parse(sync.body)).toEqual({ people: [{ did: "did:plc:other", quota: { workers: 5 }, tags: [{ tag: "family", access: "read" }] }] });
   expect((await rig.call("member.deploy", { session: rig.other, body })).status).toBe(200);
   const heard = rig.toDeployer.at(-1);
   expect(heard.url).toBe("https://deployer.internal/xrpc/com.lopecode.brain.member.deploy");
