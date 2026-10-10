@@ -26,7 +26,7 @@ kept in step with the code.
 | As-built record, full and short | `tools/cloud-brain/spec-as-built.md`, `spec-as-built-short.md` |
 | Operating guide | `tools/cloud-brain/running-a-cloud-brain.md` |
 | Backlog, open decisions, inventories | `plan/cloud-brain-backlog.md` |
-| Design: one record for delegated authority (tokens, links, grants, a Worker acting for an account). The architecture for who may call what; being built in seven steps from 2026-10-10 | `plan/cloud-brain-authority.md` |
+| Design: one record for delegated authority (tokens, links, grants, a Worker acting for an account). The architecture for who may call what; its seven steps were built on cb4 2026-10-10 | `plan/cloud-brain-authority.md` |
 | Design: issues (a signed record, guards as data), with what Tom amended and what was built 2026-10-10 | `plan/cloud-brain-issues.md` |
 | Proposal: topics (read, take, push) in place of one inbox; its step 2 is the design above | `plan/cloud-brain-topics.md` |
 | The spec Tom reviews (do not edit on disk while he may have it open; Claude does not set its status) | `plan/specs/cloud-brain.html` |

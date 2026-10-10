@@ -39,7 +39,7 @@ It answers bindings only. A caller is who the kernel says it is, and the kernel 
 | \`delegation.create\` | procedure, the owner's or a member's own session. \`{ name, holder: { worker }, scope, until, daily, note }\` → the record, with its \`id\`. With \`holder: { secret: true }\` and \`caps\` the answer has \`secret\`, once: a token. A member makes one for what they may call. The caps \`session\`, \`deploy\` and \`unattended\` are the owner's to give, \`delegate\` the owner's or a member's. The kernel's \`token.create\` and a sign-in link make these. |
 | \`delegation.resolve\`, \`delegation.adopt\` | procedures, the kernel. \`{ sha256 }\` of a secret, or \`{ did }\` for that DID's grant → \`{ delegation }\` or null; and a token from before 2026-10-10, handed over by its hash. |
 | \`delegation.list\`, \`delegation.revoke\` | query and procedure, the same callers. The owner reads and revokes any, a member their own. \`{ id }\`. |
-| | The three are also called with a token whose delegation has the cap \`delegate\`. What it makes is \`from\` the same person, with that delegation as \`parent\`: held by a Worker or a secret, no caps, each scope entry inside the parent's, \`until\` no later and \`daily\` no more. It lists and revokes what it made. A call under such a child is refused once the parent is revoked, has ended or does not reach the method. |
+| | \`delegation.create\`, \`list\` and \`revoke\` are also called with a token whose delegation has the cap \`delegate\`. What it makes is \`from\` the same person, with that delegation as \`parent\`: held by a Worker or a secret, no caps, each scope entry inside the parent's, \`until\` no later and \`daily\` no more. What a child spends counts against the parent's \`daily\` as well as its own. It lists and revokes what it made, and revoking a delegation deletes what was made under it. A call under such a child is refused once the parent is revoked, has ended or does not reach the method. |
 
 **Delegations** (design: \`plan/cloud-brain-authority.md\`; built 2026-10-10: a Worker, a secret or a DID holds one). The owner or a member lets a Worker the owner deployed call the methods in a \`scope\`, until a time or until it is revoked. The Worker names the delegation on a call it makes:
 
@@ -767,13 +767,15 @@ coreApp = {
     // A chain under a delegation with a daily amount: refused when what it has spent, with this, is over the amount.
     // Its count is written after the account has paid, so a call the account refused is not in it. The cost of that
     // order: calls made at the same moment can each read the count before any is written, and pass the amount.
-    const held = origin.d ? await settings.get("delegation/" + origin.d) : null, capped = held && Number.isFinite(held.daily);
-    if (capped) {
-      const { spent } = fold(await rows.get(spendKey(today(), "delegation/" + held.id)));
-      if (spent + u > micro(held.daily)) return fail(c, 402, "OutOfCredits", `${target} costs ${money(usd(u))}. Delegation ${held.name} has spent ${money(usd(spent))} of ${money(held.daily)} today`);
+    // One made under another counts against that one's amount too, so making children does not make more to spend.
+    const held = origin.d ? await settings.get("delegation/" + origin.d) : null, above = held && held.parent ? await settings.get("delegation/" + held.parent) : null;
+    const capped = [held, above].filter((d) => d && Number.isFinite(d.daily));
+    for (const d of capped) {
+      const { spent } = fold(await rows.get(spendKey(today(), "delegation/" + d.id)));
+      if (spent + u > micro(d.daily)) return fail(c, 402, "OutOfCredits", `${target} costs ${money(usd(u))}. Delegation ${d.name} has spent ${money(usd(spent))} of ${money(d.daily)} today`);
     }
     const got = await charge(account, u, allowance, { m: target, c: c.get("who").caller, o: origin.caller, v: origin.via || "" });
-    if (got.ok && capped) await rows.append(spendKey(today(), "delegation/" + held.id), { t: Date.now(), i: crypto.randomUUID().slice(0, 13), u, A: Number.MAX_SAFE_INTEGER, m: target }, KEEP);
+    if (got.ok) for (const d of capped) await rows.append(spendKey(today(), "delegation/" + d.id), { t: Date.now(), i: crypto.randomUUID().slice(0, 13), u, A: Number.MAX_SAFE_INTEGER, m: target }, KEEP);
     if (!got.ok)
       return fail(c, 402, "OutOfCredits", got.full
         ? `${account} has made ${CHARGES} priced calls today, which is the most for one day. The count is new at 00:00 UTC`
@@ -2134,7 +2136,7 @@ test_a_delegation_with_the_cap_delegate_makes_delegations_under_itself = {
   const B = "com.lopecode.brain.", ADA = "did:plc:ada", end = Date.now() + 3600000;
   const hear = async (request) => (request.url.endsWith(".getInfo") ? Response.json({ name: "brain-x-shop", hash: "h", calls: [] }) : Response.json({ ok: true }));
   const rig = await coreRig({ workers: { shop: hear } }), kernel = rig.as("kernel", "");
-  await rig.deployer("service.register", { worker: "brain-x-shop", role: "recipe", paths: [], secrets: [], hash: "h", keyHash: await sha256("shop-key"), methods: { [B + "shop.receive"]: { type: "procedure", who: "anyone" }, [B + "shop.other"]: { type: "procedure", who: "anyone" } } });
+  await rig.deployer("service.register", { worker: "brain-x-shop", role: "recipe", paths: [], secrets: [], hash: "h", keyHash: await sha256("shop-key"), methods: { [B + "shop.receive"]: { type: "procedure", who: "anyone" }, [B + "shop.other"]: { type: "procedure", who: "anyone" }, [B + "shop.paid"]: { type: "procedure", who: "anyone", price: "0.04" } } });
   await kernel("people.sync", { people: [{ did: ADA }] });
   // The kernel sends a token's call with the id of its delegation.
   const sent = (id) => (m, body) => rig.as("owner", "token")(m, body, { "x-brain-delegation": id });
@@ -2158,6 +2160,12 @@ test_a_delegation_with_the_cap_delegate_makes_delegations_under_itself = {
   // Under every method, any ordinary scope is inside; the never kind is still not.
   const wide = (await secret({ name: "wide", scope: ["*"], caps: ["delegate"] })).data;
   expect([(await under(wide.id, { name: "w1", scope: ["shop.other"] })).status, (await under(wide.id, { name: "w2", scope: ["*", "shop.*"] })).status, (await under(wide.id, { name: "w3", scope: ["secret.get"] })).status]).toEqual([200, 200, 400]);
+  // What a child spends counts against the parent's amount: a second child does not have the amount again.
+  const purse = (await secret({ name: "purse", scope: ["shop.paid"], caps: ["delegate"], daily: 0.05 })).data;
+  const c1 = (await under(purse.id, { name: "c1", scope: ["shop.paid"] })).data;
+  expect([(await sent(c1.id)("shop.paid", {})).status, (await sent(purse.id)("delegation.revoke", { id: c1.id })).data.revoked]).toEqual([200, true]);
+  const c2 = (await under(purse.id, { name: "c2", scope: ["shop.paid"] })).data;
+  expect([(await sent(c2.id)("shop.paid", {})).status, (await rig.owner("delegation.list")).data.delegations.filter((d) => ["purse", "c2"].includes(d.name)).map((d) => d.spentToday).sort()]).toEqual([402, [0, 0.04]]);
   // A member makes a token for what they may call, and may give it delegate and no other cap.
   await rig.owner("delegation.create", { name: "grant", holder: { did: ADA }, scope: ["shop.receive"] });
   const mine = (body) => rig.as(ADA)("delegation.create", { holder: { secret: true }, scope: ["shop.receive"], ...body });

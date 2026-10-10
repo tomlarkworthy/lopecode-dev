@@ -4046,7 +4046,7 @@ BLOCK, six findings, all taken.
 
 On cb4 the seven rows were moved at 12:32 with the first code, with a random id each and no name taken (eight names, all different, in `token.list`).
 
-After the review of step 5 the two were deployed again: `brain-core` `be88df64837c`, `brain` `027284b52877`, 12:45 CEST. The six-line run of step 6 below is from the code before that (12:41); `grant.put`, `grant.list` and `grant.delete` were run again at 13:00 on the code of step 7.
+After the review of step 5 the two were deployed again: `brain-core` `be88df64837c`, `brain` `027284b52877`, 12:45 CEST. The six-line run of step 6 below is from the code before that (12:41); `grant.put`, `grant.list` and `grant.delete` were run again at 13:10 on the last code of step 7 (below).
 
 ## Authority, step 6 of 7: a grant is a delegation (2026-10-10 12:41 CEST)
 
@@ -4075,7 +4075,7 @@ grant.delete                     {"deleted":true}; grant.list {"grants":[]}
 
 ### After step 6's fresh review (2026-10-10)
 
-FIX, eight findings, all taken; one has no fix and is recorded.
+FIX, eight findings, all taken; one has no fix and is recorded. The fixes were deployed with step 7 (`brain-core` `eba1f4c655c0`, `brain` `f1687167cf41`).
 
 - **A deleted grant was still honoured by the core** for a member's Worker and delegations, on a Brain where a kernel from before had sent `methods` with `people.sync`: `grant.delete` no longer told the core its people. `grant.put`, `grant.delete` and the move of an old row call `syncPeople()` again, which now sends no `methods`. Not reached on cb4, which had no grant.
 - **`delegation.resolve { did }` read through the 5 s memory**, which keeps an entry for each key asked, and the kernel asks for any DID a stranger's JWT names. It reads with no memory, as the hash branch does, and takes a DID of the shape `did:plc:` or `did:web:` only. Left: one call to the core for each stranger's JWT, where there was none.
@@ -4084,7 +4084,7 @@ FIX, eight findings, all taken; one has no fix and is recorded.
 - **Left as it is:** an old grant that the core refuses (over 50 methods, or a name that is not letters and digits between dots) stays a row and gives nothing, and `grant.list` does not show it. The kernel's reference says so. cb4 had none.
 - Five lines of the two references said what was true before this step; the count of reads above was wrong.
 
-## Authority, step 7 of 7: a delegation made under a delegation (2026-10-10 12:58 CEST)
+## Authority, step 7 of 7: a delegation made under a delegation (2026-10-10, deployed between 12:57, when the records were emitted, and 13:00 CEST)
 
 `brain-core` `eba1f4c655c0`, `brain` `f1687167cf41`. Core 34 tests, kernel 27. The third of the design's recommended choices.
 
@@ -4115,13 +4115,32 @@ owner:    delegation.list                                          no s7 row
 
 Two runs before this one failed in the script and not in the Brain: the answer has `secret` twice (the hash in `holder`, the secret itself last), and the script took both lines as the token.
 
-**Limits, as the design has them:**
+**Limits:**
 
-- `daily` is each child's own. Ten children under a parent of $1 a day can spend $10 of the maker's money; the maker's allowance is what bounds the sum.
 - A child's name is one of its maker's names: a token is refused a name the owner has used and cannot list.
 - A parent that ends by `until` is deleted with its children when its maker next makes a delegation; until then the children are listed and refused.
 
 **Not run on cb4:** a child held by a Worker; a member's token (cb4's one member is a person's account). Both are in the core's test. **Not tested:** the 403 for a child whose parent row is gone while its own remains, which revoking no longer produces.
 
 Recorded 13:01 CEST.
+
+### After step 7's fresh review (2026-10-10 13:10 CEST)
+
+FIX, nine findings, all taken. `brain-core` `b6b4335eed09`, `brain` `a2580cd4ed83`. Core 34 tests, kernel 27.
+
+- **`daily` on a token with `delegate` did not cap what its holder spent.** Each child had its own count, so a holder could make a child, spend its amount, revoke it and make another. A child's call is now counted against the parent's `daily` as well as its own, and refused when either is passed. The core's test makes two children under a parent of $0.05 and a method of $0.04: the first pays, the second is refused 402. The design did not say this; the plan's "Built so far" does now.
+- `token.list` marks a token that has the cap: `delegate: true`.
+- The plan said only the owner makes a secret holder, said each of kernel and core works one step behind (true to step 5), and named no difference for step 7. The kernel's reference had the `delegate` text under grants and called every token's call the owner's.
+- A kernel test read 59 minutes where it wanted 60 when the tests ran side by side; it takes a difference under 2.
+
+Run on cb4 13:10:
+
+```
+s7-agent (delegate) makes s7-sub; s7-sub: knowledge.search   200
+owner: token.list                                            s7-agent has "delegate":true
+owner: delegation.revoke s7-agent                            revoked; s7-sub: knowledge.search 401
+grant.put did [knowledge.search]  200;  grant.list  the full method name;  grant.delete  deleted;  grant.list  []
+```
+
+**Not run on cb4:** the parent's `daily` refusing a second child. No method the scratch tokens reach has a price; it is the core's test alone.
 

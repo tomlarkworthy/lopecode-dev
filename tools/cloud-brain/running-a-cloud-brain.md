@@ -18,7 +18,7 @@ Read this before changing, deploying or diagnosing a service of the Cloud Brain 
 | `brain_call` | one XRPC call to this Brain as the owner, e.g. `inbox.list`, `people.list`, `secret.list`, `library.list` |
 | `brain_apply` | ask the deployer to deploy one service as it is in this notebook now. The Worker carries the module's source; the page then loads it back, runs the module's `test_` cells and reports. `verdict.state` is `verified`, or `put-back` when the tests failed and the version before is running again |
 
-`brain_call` refuses `secret.get`, `token.*`, `grant.*` and `infra.*`. Secret values, access and deploys are the owner's own actions on the page.
+`brain_call` refuses `secret.get`, `token.*`, `grant.*`, `delegation.*` and `infra.*`. Secret values, access and deploys are the owner's own actions on the page.
 
 ## Checking how it is running
 

@@ -787,5 +787,16 @@ Built and on cb4: stored settings read through `config` (`config.set`, `config.g
 
 ## Designs in progress (2026-10-10)
 
-- `plan/cloud-brain-authority.md`: one record for delegated authority. Nine drafts, eight fresh reviews; building from step 1.
-- `plan/cloud-brain-topics.md`: topics in place of one inbox. Waits on steps 1 and 2 of the design above.
+- `plan/cloud-brain-authority.md`: one record for delegated authority. ✅ All seven steps on cb4, 2026-10-10 (`spec-as-built.md`, "Authority, step 1 of 7" to "step 7 of 7"): a token, a sign-in link and a grant are each a delegation in the core, and a token with the cap `delegate` makes narrower ones.
+- `plan/cloud-brain-topics.md`: topics in place of one inbox. Not started. What it waited on (a Worker calling as a named subscriber; an agent's token making that delegation) is built. Four choices in it are Tom's.
+
+### Left open by the authority build (2026-10-10)
+
+- A JWT from a DID that is no member costs one call to the core (`delegation.resolve { did }`), where it cost none.
+- A grant from before that the core refuses (over 50 methods, or a name that is not letters and digits between dots) stays a kernel row, gives nothing and is not in `grant.list`. cb4 had none.
+- If the core makes a token and its answer is lost, the name is taken and nobody has the secret; `delegation.revoke` frees it.
+- `quota.setDefaults` still has a `token` default and `isAccount` still takes `token:NAME`; no caller has that name now.
+- No test runs the kernel against the real core: each has a stand-in for the other.
+- While the core does not answer, a token is refused 503, and a new deploy token cannot reach `infra.*`. A DID's granted method is refused 403 "has no grant".
+- The Access page (`cloud-brain.ojs`) was not changed: `delegation.list` now also answers grants and children, and nothing on the page makes a token with `delegate`.
+- No call by a member with a grant, and no member's token, has been run on cb4: its one member is a person's account.
