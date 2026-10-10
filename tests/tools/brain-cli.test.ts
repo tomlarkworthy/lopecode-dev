@@ -2,8 +2,10 @@
 // Issue owner-session-file-is-present, reviews 1 and 2: `--as` alone went out unsigned, and
 // `--as __proto__` / `--as toString` passed a truthiness test on a plain object.
 //
-//   bun test tests/tools/brain-cli.test.ts
+//   cd tests/tools && bun test brain-cli.test.ts
 //   BRAIN_TS=/path/to/another/brain.ts bun test …   # the same cases against another copy
+// Not from the repo root: there `bun test` fails every spawn with "EBADF: bad file descriptor, posix_spawn"
+// (2026-10-10 19:44, bun 1.4.0, a two-line test that spawns `bun --version` fails the same way). Cause not found.
 import { test, expect } from "bun:test";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";

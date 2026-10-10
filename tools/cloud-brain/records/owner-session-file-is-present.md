@@ -28,9 +28,13 @@ was read by name: the `curl --as` guard, the `authorization` header, and the "is
 of `token NAME <method…>`. `token revoke NAME` is not changed: it sends the name to `token.revoke`
 and deletes the key from the file if the Brain answers 200.
 
-**Tests.** `tests/tools/brain-cli.test.ts`, new, 7 cases (`bun test tests/tools/brain-cli.test.ts`):
-7 pass against a copy of the changed file placed in the main checkout, 5 fail against the file
-before. In a checkout with no `tools/scratch/cloud-brain-experiments/.cf-token` (a worktree) all 7
+**Tests.** `tests/tools/brain-cli.test.ts`, new, 7 cases (`cd tests/tools && bun test brain-cli.test.ts`):
+7 pass against the file in the main checkout after the landing (19:47), 5 fail against the file
+before. Run from the repo root the same file gives 0 pass, 7 fail, each with `EBADF: bad file
+descriptor, posix_spawn '/opt/homebrew/bin/bun'` before `brain.ts` starts; a two-line test that
+spawns `bun --version` fails there the same way, and both pass from `tests/tools`, `tools` or a
+worktree. The cause was not found. The first commit of this round was pushed with the root command
+in the test's header; the second corrects it. In a checkout with no `tools/scratch/cloud-brain-experiments/.cf-token` (a worktree) all 7
 are skipped, because `brain.ts` reads that file when it starts; `BRAIN_TS=<path>` points the cases
 at another copy. No `test_*` cell was run: no seed changed.
 
