@@ -24,6 +24,7 @@ kept in step with the code.
 | The notebook (canonical, built, do not hand-edit) | `lopebooks/notebooks/@tomlarkworthy_cloud-brain.html` |
 | Its source: one seed per module, cells split by `// %%` | `tools/cloud-brain/*.ojs` |
 | As-built record, full and short | `tools/cloud-brain/spec-as-built.md`, `spec-as-built-short.md` |
+| `cloud-brain-dev`: a repository kept by the Brain's `git` service, started 2026-10-10 with no history. `sync.ts` reads what the Brain runs into `deploy/` by import path; shared modules are committed, a service's source is not. It cannot send a change back yet | clone with `git.get?name=cloud-brain-dev` and `git.token` (its README) |
 | Records of fixes made by the issue loop since 2026-10-10 19:33, one file an issue | `tools/cloud-brain/records/<id>.md` |
 | Operating guide | `tools/cloud-brain/running-a-cloud-brain.md` |
 | Backlog, open decisions, inventories | `plan/cloud-brain-backlog.md` |
@@ -98,7 +99,6 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts <command>
 | `redistil` | Compare each Worker with its source. Healthy is every line `same`. |
 | `apply <name>.json --reason="why"` | Deploy a recipe, signed with the recovery key. Since 2026-10-09 the deployer answers 400 without `--reason=` (3 to 300 characters) and logs it as `deploy.reason`; the same for `redistil --apply`, `remove` and `rollback`. |
 | `saw [name…]` | `tools/cloud-brain/seen.json`, committed with the seeds: the hash each seed is built on. `apply` and `remove` send it as `was`. A refusal has one of three causes, and the message says which. The Worker has no entry (13 of cb4's 19 on 2026-10-10 21:13): nothing was applied to it from this checkout, and the seed may be ahead of what runs or behind it. Compare `getSource?worker=NAME` (public, no `--owner`) with `source.text` of the emitted record; when every difference is this checkout's change, `saw NAME` and apply the same record. The Worker changed somewhere this checkout has not merged: merge its source into the seed, build, emit, then `saw NAME`. The record was emitted before the Worker last changed: build and emit again. `saw NAME` writes the hash that runs with the time it was deployed. Commit `seen.json` with the seed (2026-10-10, after a kernel deployed from elsewhere was replaced; `records/seen-json-6-of-19-workers.md`). |
-| `bun tools/cloud-brain/deploy-sync.ts <dir>` (not a `brain.ts` command) | What the Brain runs, as a directory laid out by import path with a `manifest.json`. Two public reads, no key. |
 | `page up` / `page state` / `page down` | The Brain's page in a browser of the cluster (below). |
 
 **An agent writes with a token, not with `--owner`.** A session minted from the state file is the

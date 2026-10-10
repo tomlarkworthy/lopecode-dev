@@ -90,3 +90,29 @@ FIX, 5 findings, all taken. `brain-x-git` `869e8a226168`, applied 22:02 in 22.9 
 
 On cb4 after this deploy, 22:03, with a token for `git.*`: `git.list` answered `deploy`; `git.token?seconds=59`
 answered 400 "seconds is a whole number from 60 to 86400". A member's long name was not tried there.
+
+## cloud-brain-dev (2026-10-10 22:16 CEST)
+
+Tom: "cloud-brain-dev needs to be mega lean, no history, a fresh start, minimal, no service source,
+those are downloaded, but shared sources? yes."
+
+A repository `cloud-brain-dev` on cb4, one commit, three things: `README.md`, `sync.ts`, `deploy/`.
+`sync.ts` is `deploy-sync.ts` written again with no dependency but bun (HTMLRewriter for the page's
+blocks; no list of imports, so no parser) and is the only copy: `deploy-sync.ts` is deleted here.
+It writes `deploy/.gitignore` from the list of services, so 76 shared modules and 62 files are
+committed and the 22 services' modules are not.
+
+```
+bun sync.ts https://cb4.endpointservices.workers.dev    22 services, 76 shared modules, 62 files, 3.5 s
+every file byte-identical to deploy-sync.ts's, but for brain-git and brain-issues, deployed between the runs
+clone of the pushed repository, sync.ts there: git status shows 0 changes; .git 2.2 MB
+```
+
+An hour earlier the same name held `tools/cloud-brain` split out with its history (171 commits,
+seeds included). Tom did not want that; the repository was deleted with `git.delete` and made again.
+A create straight after the delete answered "repo already exists" once, and passed 5 s later.
+
+The repository `deploy` (every running module, one commit of 21:53) is still on cb4.
+
+Not built: sending a module from `deploy/` back to the deployer; running a module's tests from
+this repository; a page booted from `deploy/`.
