@@ -5077,3 +5077,58 @@ to the tracker, was not held against the change and the example still names `iss
 Not tried: `brain.ts token my-task 'issue.*' knowledge.search` itself (a write with the owner's
 session; the quoting was checked with `echo` only, so still no prefix has gone through
 `brain.ts token`); `--as` given twice; the items listed as not tried in the section of 19:21.
+
+## The page takes `brain-issues` from `brain-x-issues`; `brain-x-page` needed no deploy (2026-10-10 19:33 CEST): no deploy
+
+Issue `page-not-redeployed`: "brain-x-page was not applied after the panel changes; the owner still
+cannot remove a label in the page". Not reproduced. The page of cb4 had the remove button when
+looked at. Nothing was built, emitted or applied.
+
+**Which copy the page runs.** The file the kernel serves at `/` (5,022,768 bytes, `x-static-sha256`
+`5cd227a3a84f`, read with `curl` at 19:25) has two `brain-*` module blocks, `brain-shell` and
+`brain-secrets`, and the text `issuesPanel` nowhere. `brainBoot` in `brain-shell.ojs` asks the
+deployer for `infra.getModules` and joins each module it answers. Read at 19:27:
+
+```
+@tomlarkworthy/brain-issues  brain-x-issues  4ddc93e00e23   has issuesPanel, "remove: [", "label guard refuses"
+@tomlarkworthy/cloud-brain   brain-x-page    466494feb62c   no issuesPanel
+```
+
+So a change to `issuesPanel` reaches the page with `brain-x-issues` alone. `brain-x-page` holds
+`@tomlarkworthy/cloud-brain`, which does not name the panel. Both texts were compared with the
+blocks of `lopebooks/notebooks/@tomlarkworthy_cloud-brain.html` as built at `bfd9ae46`: 1554 and
+1422 lines with content, and the only lines that differ are the import lines, which the page's
+exporter and `build.ts` spell differently (`main.define("module …", async () =>` against
+`main.define("module …", [], async () =>`). No cell differs, so the page Worker is not behind its
+seed either.
+
+**In a browser of the cluster.** `brain.ts page up --minutes 10` with
+`--view "C100(S70(@tomlarkworthy/brain-issues,@tomlarkworthy/brain-shell),S30(@tomlarkworthy/claude-code-pairing))"`,
+signed in as the owner, then one `eval_code` over the pairing bridge, before 19:33:29, that called
+the panel's `show("lope-tests-throw-reads-timeout")` and read its buttons:
+
+```
+inMains true   served brain-x-issues 4ddc93e00e23   the page's block equals the served text: true
+× button: disabled false, title "Remove the label needs-owner", after " · needs-owner"
+```
+
+The button was not pressed: that is a write as the owner present. `page down` at 19:33.
+
+**Why the two labels stayed.** Not known. The core's log for the six hours to 19:27 has 14
+`issue.label` calls, all `via delegation:…` (the loop's tokens), none `via session`. So no press of
+the button reached the Brain; the log cannot say whether the owner saw the button. `service.list`
+calls with the owner's session come in a group of seven at 18:52:01 to 18:52:29, which is what a
+page opening looks like, after the button was deployed (18:18) and before the owner's moves
+(events 148 at 18:57:35 and 151 at 18:59:51). That reading was not checked against a page load of
+known time. The label guard allows it: `needs-owner` comes off for the owner or a token, only
+`major` needs the owner present (`issuesDefaultPolicy`).
+
+**What is still true.** A page joins the modules once, when it opens (`brainBoot`). A tab that was
+open before a deploy of `brain-x-issues` keeps the panel it loaded until it is reloaded. Nothing
+on the page says a newer one is deployed. Not changed here: the issue does not ask for it.
+
+Tests: none run. No seed changed.
+
+Not tried: pressing the button on cb4; a page loaded with the default layout (the panel was put in
+view with `--view`; where the owner opens it from was not looked up); a screenshot (the QA
+screenshot tool reads a local browser, not the cluster's); a tab kept open across a deploy.
