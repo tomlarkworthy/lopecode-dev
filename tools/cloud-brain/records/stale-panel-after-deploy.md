@@ -104,3 +104,90 @@ is between the Refresh row and the policy line, the button to its right.
   draft is kept anywhere.
 - The other modules of the page. A tab held across a deploy of any other Worker still says
   nothing. That is the side triage left for the owner.
+
+## Round 2, 2026-10-10: review 1
+
+Review 1 (event 253, 20:09:01 CEST) asked for changes, two findings. Both are in
+`tools/cloud-brain/brain-issues.ojs`; seed commit `bb7259ed`, 20:19:50.
+
+**1. The line was false after the page itself deployed `brain-x-issues`.** `joined` was
+`issuesJoinedAt(brainModules)`, a value from when the page opened. The page loads a Worker's
+module again after it deploys one (`loadService`, `cloud-brain.ojs` 766-786) and writes the hash
+in `fromBrain[module]` (line 785). The panel then said "this page has OLD" of a page that had NEW.
+
+- `issuesJoinedAt(listed, loaded = {}, worker)` reads the row of `loaded` whose `worker` is
+  `brain-x-issues` first, and the deployer's list when there is none. The second argument was
+  `worker` in round 1; nothing but `viewof issuesView` and the test called it.
+- `viewof issuesView` passes `joined: () => issuesJoinedAt(brainModules, fromBrain)`. `fromBrain`
+  is a new import from `@tomlarkworthy/cloud-brain`, beside `client` and `session`.
+- `issuesPanel` takes `joined` as a hash or a function. `check()` calls it before asking (none:
+  nothing is asked) and again when the answer lands, and the line is drawn from the second.
+
+**2. Of two answers out of order, the last to land drew the line.** `check()` now numbers its
+calls. An answer to a call that is not the last one made draws nothing. A tab shown again still
+makes two `getInfo` calls (`visibilitychange` and `focus`), not one as comment 1 said; they are
+not joined into one.
+
+One more option, `listen` (default true). `listen: false` makes a panel that adds no listener
+and does not ask when made. The new assertions use it: a listening panel hears every
+`visibilitychange` and `focus` of the page, and the first form of these assertions, in a cell of
+its own with a listening panel, failed under `lope-tests.ts` (`Expected: true, Received: false`)
+because the events of `test_issues_panel_says_when_a_newer_one_is_deployed`, which runs beside
+it, made a later call on its panel. They are now in that cell, after its events, with a panel
+that does not listen. Round 1's half of the cell still counts calls on a listening panel.
+
+### Tests
+
+The count is 17 `test_issues_*`: 15 at round 1, 2 added by `panel-for-your-attention`, none
+added here (one cell is longer).
+
+17 of 17 in a headless QA tab on the worktree's build of `bb7259ed`, by the snippet of the
+implementer brief, `bad []`, the tab's clock 20:20:13 CEST, `visibilityState` visible. The same
+17 with `lope-tests.ts` in 14.88 s.
+
+Each defect put back in the seed alone, built to another file, `lope-tests.ts --filter test_issues_panel_says`:
+
+```
+no order guard (n !== asks taken out)        0 passed, 1 failed   expect(received).toEqual(expected)
+joined read once, when the panel is made     0 passed, 1 failed   expect(received).toEqual(expected)
+```
+
+Which `toEqual` failed in each was not read (the output was cut at the first lines of the
+difference). Before the fix, the new assertions as a cell of their own failed on
+`joined.slice is not a function`: round 1's panel has no function form, so that run shows the
+form missing and not the false line.
+
+What the added half reads, with `getInfo` answering from a list of `[milliseconds, hash]`:
+
+```
+page has A, Worker A, check()                       asked once, no line
+page and Worker both B (the page deployed)          no line
+Worker C                                            "brain-x-issues is cccccccccccc, this page has bbbbbbbbbbbb."
+answer C in 60 ms, page has C before it lands       no line
+two calls: B in 150 ms, then C at once; page has C  no line after both
+two calls: C in 150 ms, then B at once              the line, "is bbbbbbbbbbbb, this page has cccccccccccc."
+page has nothing                                    nothing asked
+issuesJoinedAt(listed A, loaded B)                  B; A with no row loaded; B with no list; null with neither
+```
+
+### Not tried, round 2
+
+- Still not seen on the cb4 page, for the reason of round 1. No page deployed
+  `brain-x-issues` with this panel on it. That `fromBrain` on a Brain's page has a row with
+  `worker: "brain-x-issues"` and the hash `getInfo` answers is read from `cloud-brain.ojs` 785
+  and from `verifyService`, which compares the same two (line 807), not from a page.
+- A false line for a short time after the page deploys. When the deploy changes `issuesPanel`,
+  `applySource` makes `viewof issuesView` again and the new panel asks at once, before
+  `loadService` reaches line 785: `fromBrain` still has the old hash, and the line is drawn if
+  `getInfo` answers before 785 runs. It goes at the next question. Read from the code, not timed.
+  For the owner `verifyService` then runs this module's tests, and
+  `test_issues_panel_says_when_a_newer_one_is_deployed` sends `visibilitychange` and `focus` to
+  the document, which the page's panel hears; that this clears the line was not seen.
+- Round 1's "in this file" case. Once `assembled` has run `loadService` for the Worker,
+  `fromBrain` has the hash of what the page's copy was made the same as, so the comparison is
+  with what the page runs. Before that the deployer's list is still used. Read from the code.
+- A row of `fromBrain` that goes away while the line is drawn: the line would stay. Nothing
+  removes a row (`grep -n fromBrain tools/cloud-brain/cloud-brain.ojs`: lines 683, 752, 785).
+- The hazard to round 1's half of the test: the owner coming back to the tab while the page
+  runs it adds a `getInfo` call to the counts it expects, the test fails, and a failed test on
+  the page has the Worker put back. Not changed here; the review did not ask.
