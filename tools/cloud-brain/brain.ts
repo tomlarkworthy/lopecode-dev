@@ -13,13 +13,17 @@
  *   bun tools/cloud-brain/brain.ts session [did]                               # mint a session token for the owner, or for another DID
  *   bun tools/cloud-brain/brain.ts page up [--minutes N] [--token LOPE-…] [--url https://…] [--keep] | page state | page down   # the Brain's page in a browser of the cluster, signed in and paired with a channel on this machine
  * State (recovery key, deployer key, session tokens) is in .emitted/<base>.json, git-ignored. The Cloudflare token is never printed.
+ * BRAIN_STATE_DIR=<another checkout>/tools/cloud-brain/.emitted reads and writes the state, the tokens, the emitted records and
+ * the Cloudflare token of that checkout: how a brain.ts changed in a worktree, which has none, is run without copying it. seen.json stays this checkout's.
  */
 import { existsSync, readFileSync, writeFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 const BASE = process.env.BRAIN_BASE || "cb1";
 const OWNER = "did:plc:j7nm3lrd5h7fm3sfhcv3lhfv";
-const E = (f: string) => resolve(import.meta.dir, ".emitted", f);
-const token = readFileSync(resolve(import.meta.dir, "../scratch/cloud-brain-experiments/.cf-token"), "utf8").trim();
+const STATE = process.env.BRAIN_STATE_DIR ? resolve(process.env.BRAIN_STATE_DIR) : resolve(import.meta.dir, ".emitted");
+const E = (f: string) => resolve(STATE, f);
+// Read when a command sends it, so one that does not (curl, token, saw) starts in a checkout that has no such file.
+const cfToken = () => readFileSync(resolve(STATE, "../../scratch/cloud-brain-experiments/.cf-token"), "utf8").trim();
 const statePath = E(BASE + ".json");
 const st: any = existsSync(statePath) ? JSON.parse(readFileSync(statePath, "utf8")) : {};
 const save = () => writeFileSync(statePath, JSON.stringify(st, null, 1));
@@ -30,7 +34,7 @@ const keepTokens = (t: any) => writeFileSync(E(BASE + "-tokens.json"), JSON.stri
 const keptToken = (t: any, name: string): string => (Object.hasOwn(t, name) && typeof t[name] === "string" ? t[name] : "");
 const hex = (n = 32) => [...crypto.getRandomValues(new Uint8Array(n))].map((b) => b.toString(16).padStart(2, "0")).join("");
 const api = async (path: string, init: RequestInit = {}) => {
-  const r = await fetch("https://api.cloudflare.com/client/v4" + path, { ...init, headers: { authorization: "Bearer " + token, ...(init.headers || {}) } });
+  const r = await fetch("https://api.cloudflare.com/client/v4" + path, { ...init, headers: { authorization: "Bearer " + cfToken(), ...(init.headers || {}) } });
   const j: any = await r.json().catch(() => ({}));
   if (!r.ok || j.success === false) throw new Error(`${init.method || "GET"} ${path.replace(/[0-9a-f]{32}/, "<account>")} ${r.status} ${JSON.stringify(j.errors || j).slice(0, 400)}`);
   return j.result;
@@ -62,7 +66,7 @@ const install = async (name: string, { replacedBy = null as string | null } = {}
   const bindings: any[] = [
     // An update keeps the token the Worker has: the owner may have replaced it in the dashboard, and the file
     // here would put the old one back (2026-10-09). --token sends the file's.
-    exists && !process.argv.includes("--token") ? { type: "inherit", name: "CF_API_TOKEN" } : { type: "secret_text", name: "CF_API_TOKEN", text: token },
+    exists && !process.argv.includes("--token") ? { type: "inherit", name: "CF_API_TOKEN" } : { type: "secret_text", name: "CF_API_TOKEN", text: cfToken() },
     { type: "secret_text", name: "RECOVERY_KEY", text: st.recoveryKey },
     { type: "secret_text", name: "BRAIN_KEY", text: deployerKey() },
     { type: "durable_object_namespace", name: "ROWS", class_name: "Rows" },
@@ -219,7 +223,7 @@ export class Rows {
   if (!out.results) console.log(JSON.stringify(out).slice(0, 400));
 } else if (cmd === "shell") {
   // The notebook file goes to blob storage as the request's body, not inside JSON. The deployer passes it on.
-  const file = Bun.file(resolve(import.meta.dir, args[0] || ".emitted/shell.html"));
+  const file = Bun.file(resolve(import.meta.dir, args[0] || E("shell.html")));
   const t = performance.now();
   const r = await fetch(`${G()}/xrpc/com.lopecode.brain.infra.shell`, { method: "POST", headers: { authorization: "Bearer " + st.recoveryKey, "content-type": "text/html; charset=utf-8" }, body: file });
   console.log(r.status, Math.round(performance.now() - t) + " ms", (await r.text()).slice(0, 300));
