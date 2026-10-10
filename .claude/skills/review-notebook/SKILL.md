@@ -89,3 +89,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   in `issue.install`, the first a regression made by the round before; all 4 acted on (lopecode-dev `2a5cb517`).
   151k subagent tokens, 4m47s. Five rounds on one handler found 13, 8, 4, 3, 4: this round the handler's shape was
   changed (the key looked up first, an input form removed) where the earlier rounds had patched.
+- 2026-10-10 the same module, changes since `a0a5ce85`: FIX, 2 findings, both confirmed by the reviewer's probes, both
+  in the migrate shape check of `issue.install` (a mapped state not checked against the target workflow unless an
+  issue was there; "undefined" in a refusal); both acted on (lopecode-dev `f9351237`). 160k subagent tokens, 5m00s.
+  Seventh run on this module: 13, 8, 4, 3, 4, 2.

@@ -4087,6 +4087,24 @@ containers; no lock; `issue.verify?guards=true` ok on 40 events, then 41. `revie
 Not tried, as before: an install whose swap fails with an error that is not a refusal, a large `migrate`,
 `issue.rebuild` against a concurrent write.
 
+### Issues after the review of the reshaped install, 2 findings (2026-10-10 13:33 CEST): `brain-x-issues` `2735c3bb57cf`
+
+The sixth fresh review (scope: changes since `a0a5ce85`) answered FIX with 2 findings, both in the migrate shape
+check of `issue.install`, both acted on (lopecode-dev `f9351237`, lopebooks `ec32761e`):
+
+- **A mapped state that is no state of the target workflow was accepted when no open issue was in the state it was
+  mapped from** (the reviewer's probe: `closed -> 'NOT A NAME!'` answered 200). The target workflow and every
+  `states` value are now checked against the new policy in the shape check, before the policy is written, whether
+  or not an issue is there: 400 `feedback has no state nwe`.
+- **An entry with no `workflow` was refused with "the policy has no workflow undefined".** It is now told the shape.
+
+Tests 10 of 10, forced cell by cell in the QA tab `issues-qa` (closed by name); the install test reads "4 policies
+and 24 installs refused" (22 before, counted by the cell). Deployed 13:33 CEST under the lock. After it: `redistil`
+19 Workers `same` and the distiller's own line; lease held; no browsers or containers; no lock;
+`issue.verify?guards=true` ok on 43 events, then 44. `review-fixes-2` had the sixth review's `changes` as events
+42 and 43 and is at `in-review` again by event 44 (under `issues-implementer-2`), with those commits and the Worker
+hash as refs. Not reviewed yet.
+
 ## Authority, step 5 of 7: the old rows are moved (2026-10-10 12:32 CEST)
 
 `brain-core` `f5bd26a33b83`, `brain` `8144becfacae`. Core 32 tests, kernel 26.
