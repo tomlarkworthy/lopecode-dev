@@ -4128,6 +4128,20 @@ so the Worker still keeps the hand-edited text; the next apply of this seed repl
 Not tried on cb4: an install with a reason (an install is the owner's act), and the lost view.
 Open for the owner: whether `reason` is required.
 
+### An install requires a reason (2026-10-10 16:10 CEST): `brain-x-issues` `f0bd133349d2`
+
+Tom, on the question above: "I think reason should be mandatory". `issue.install` now answers 400 `reason: text,
+1 to 2000 characters: who asked for the install and why` when `reason` is missing, not text, blank or too long.
+The check is after the key (an install sent again is still answered from its key) and after the lost view, and
+before the policy is read. The default policy the service writes into an empty record has no reason, and the 5
+policy events already in cb4's record have none; nothing checks an old event for one.
+
+The test rig sends `reason: "a test"` with an install that names none, so the other install tests are unchanged.
+Tests 10 of 10 in the QA tab `issues-review`; the install test reads "4 policies and 32 installs refused" (28
+before). Deployed from the seed under the lock, which also replaces the hand-edited text. After it: 19 Workers
+`same`; `issue.verify?guards=true` ok on 74 events; an install as the owner with no reason answered the 400 above
+and the record stayed at 74. Not tried on cb4: an install with a reason.
+
 ## Authority, step 5 of 7: the old rows are moved (2026-10-10 12:32 CEST)
 
 `brain-core` `f5bd26a33b83`, `brain` `8144becfacae`. Core 32 tests, kernel 26.
