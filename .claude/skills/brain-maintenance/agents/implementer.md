@@ -30,7 +30,8 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    `W=$(tools/cloud-brain/worktree.sh <id>)`. Steps 5 to 9 happen in `$W`. Tools that read the
    cluster (`brain.ts`, `issue-as.sh`) are always run from the main checkout by absolute path.
    `git status` fails in the worktree (the submodules are links); `git diff`, `git add <file>`
-   and `git commit` work.
+   and `git commit` work. Never `git commit -a` or `git add -A` there: the commit records the
+   links in the submodules' place, which the landing would take to `main`.
 5. **Reproduce before fixing**, where the issue describes behaviour: a test that fails for the
    reason the issue gives. If you cannot reproduce it, say so on the issue and stop.
 6. **Fix it in the seed.** Never the notebook HTML, never the deployed text. Add or change a
@@ -39,6 +40,10 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    file under `tests/` that `node --test` or `bun test` runs and that fails before the fix; its
    count is the one you submit, and steps 7 to 9 need no build, tab or emit. If the tool cannot
    be loaded by a test as it stands, say so in the comment with the commands you ran instead.
+   A changed `brain.ts` is run from the worktree with
+   `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted`, never copied into the main checkout.
+   `tests/tools/*.test.ts` run in the worktree; the count of `node --test tests/notebooks/*.test.js`
+   is the main checkout's (in a worktree the untracked files it reads are absent).
    When the change is a control of a panel that sends a write or a call, test it with a client
    you hold: a second press before the answer, a write that is refused (also one that would have
    taken its row off the page), two answers that arrive out of order, and another caller's event
@@ -75,11 +80,13 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
 9. **Make it ready to land, still in the worktree and with no lock.** Since 2026-10-10 19:33 the
    lock covers the deploy and the push only; before that the second test run, the emit and the
    record were inside it and writers queued (Tom: "Issue completetion is bottlneck").
-   - **Bring the worktree up to `main`:** `git -C $W rebase main`, then `tools/cloud-brain/worktree.sh <id>`
-     again (it puts the submodule links back if the rebase removed them). A conflict means
-     another writer changed the same lines: resolve it in the seed, never in the notebook.
-   - **If the rebase changed what your module is built from** (`git diff --name-only ORIG_HEAD HEAD`
-     names your seed, a seed it imports, `cloudflare-iac*.ojs` or `build.ts`), build and run
+   - **Bring the worktree up to `main`:** `tools/cloud-brain/worktree.sh --rebase <id>`, never
+     `git rebase main` there (after a conflict `git rebase --continue` fails on the submodule
+     links). It prints the files that came in from `main`, and nothing when `main` had not moved.
+     Exit 1 is a conflict: another writer changed the same lines. Resolve it in the seed, never in
+     the notebook, `git add` each file by name, and run the same command again.
+   - **If the rebase changed what your module is built from** (the files it printed
+     name your seed, a seed it imports, `cloudflare-iac*.ojs` or `build.ts`), build and run
      step 8 again in the worktree. Another service's seed, a record, `seen.json` or a doc does
      not count. The count you submit is the last run you made.
    - **Record it** in a file of the issue's own, `tools/cloud-brain/records/<id>.md` (follow
@@ -101,8 +108,8 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
       another writer is landing: wait with a background command
       (`until mkdir …/land.lock 2>/dev/null; do sleep 20; done`, `run_in_background`; a foreground
       `sleep` is blocked) and carry on when it returns. Do not remove a lock you did not make.
-    - `git -C $W rebase main` again: a writer that landed while you waited moved `main`. Look at
-      what came in as in step 9. If it changed what your module is built from, what you emitted
+    - `tools/cloud-brain/worktree.sh --rebase <id>` again: a writer that landed while you waited
+      moved `main`. Look at what came in as in step 9. If it changed what your module is built from, what you emitted
       is stale: `rmdir` the lock, build, test and emit again, and come back. Never apply a file
       emitted before such a change; it would deploy the Worker without the other writer's work.
       Anything else: keep the lock and carry on.
