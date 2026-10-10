@@ -100,6 +100,8 @@ Done by you with `issues-implementer-2`, every `open` issue in a pass, and also 
 runs: triage builds nothing. (Until 2026-10-10 18:43 it was one a pass and never beside an agent;
 five issues then sat `open` for two hours behind three reviews of one.) Read the issue and enough of the
 code to answer three questions, then write the answers as the `reason` of the move.
+A time you write in an issue's body, a comment or a reason is read from `date` or an event's
+`at`, never estimated (2026-10-10: a body said "23:30" and a comment "23:33", written at 23:24:45 and 23:25:04).
 
 1. Is it real? A duplicate, test data, or something that is already so is `reject`ed with the
    reason and the id of what it duplicates. So is a defect nobody has met: found by reading the
