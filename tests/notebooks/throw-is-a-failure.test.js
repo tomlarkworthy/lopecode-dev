@@ -55,6 +55,17 @@ test("runTests reports a cell that threw as failed, with the message, computed b
       test_zx_unreached_throw: ["failed", "late boom"],
       test_zx_unreached_pass: ["passed", "ran"],
     });
+
+    // Two definitions of one name: each variable rejects, and neither may wait out the timer
+    // (review 1: a guard keyed on the name left the second one's timer to overwrite the failure).
+    mod.variable().define("test_zw_dup", [], () => "one");
+    mod.variable().define("test_zw_dup", [], () => "two");
+    const t1 = Date.now();
+    const dup = await ex.runTests(4000, "test_zw_");
+    assert.deepEqual(dup.tests.map((r) => [r.name, r.state, r.error]), [
+      ["test_zw_dup", "failed", "test_zw_dup is defined more than once"],
+    ]);
+    assert.ok(Date.now() - t1 < 3000, "the duplicate pair answered before the timer");
   } finally {
     ex.dispose();
   }

@@ -803,8 +803,12 @@ export class LopecodeExecution {
       const fullName = `${this._getModuleName(v._module)}#${v._name}`;
 
       const p = new Promise(resolve => {
+        // Settled once per variable, not per fullName: two definitions of one name share it.
+        let settled = false;
         const tid = setTimeout(() => {
-          results.set(fullName, { state: "timeout", name: v._name, module: this._getModuleName(v._module) });
+          if (settled) return;
+          settled = true;
+          if (!results.has(fullName)) results.set(fullName, { state: "timeout", name: v._name, module: this._getModuleName(v._module) });
           resolve();
         }, timeout);
 
@@ -817,13 +821,15 @@ export class LopecodeExecution {
           resolve(); return;
         }
         const failed = (error) => {
-          if (results.has(fullName)) return;
+          if (settled) return;
+          settled = true;
           clearTimeout(tid);
           results.set(fullName, { state: "failed", name: v._name, module: this._getModuleName(v._module), error: error?.message || String(error) });
           resolve();
         };
         const fulfilled = (value) => {
-          if (results.has(fullName)) return;
+          if (settled) return;
+          settled = true;
           clearTimeout(tid);
           const why = LopecodeExecution.skipReason(value);
           results.set(fullName, why === null
