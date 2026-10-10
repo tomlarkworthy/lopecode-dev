@@ -27,12 +27,11 @@ You change no source, build nothing and deploy nothing. You write to the tracker
    `tools/cloud-brain/.emitted/land.lock` exists a landing is under way: wait for it to go
    (`until [ ! -d …/land.lock ]; do sleep 20; done`, `run_in_background`), then run `redistil`
    and read `HEAD` again before comparing. Then
-   `brain.ts curl "/xrpc/com.lopecode.brain.getSource?worker=<worker>" --owner` (a read; the
-   output ends ` [200]` after the JSON, so parse with `json.JSONDecoder().raw_decode`), and
+   `curl -s "https://cb4.endpointservices.workers.dev/xrpc/com.lopecode.brain.getSource?worker=<worker>"` (a public read, no session), and
    compare its `text` with `bun tools/lope-reader.ts lopebooks/notebooks/@tomlarkworthy_cloud-brain.html --get-module <module>`
-   using `diff -w -B`. Expected and not findings (measured on `brain-x-issues` `f0bd133349d2`,
-   2026-10-10, 8 lines): the `main.define("module …", [], async …)` lines lack the `[]` in the
-   deployed text. Any other difference is a finding: `redistil` compares the Worker with the
+   using `diff -w -B`. Expected and not findings: the `main.define("module …", [], async …)` lines lack the `[]` in the
+   deployed text, two lines of diff for each module the service imports (10 on `brain-x-issues`
+   `62d63c573c8f`, 2026-10-10). Any other difference is a finding: `redistil` compares the Worker with the
    source the deployer keeps, so it reads `same` for text that was edited by hand.
 4. **Run the tests yourself.** First what runs, with no browser (about 5 s; since 2026-10-10 23:10):
    ```
@@ -60,13 +59,15 @@ You change no source, build nothing and deploy nothing. You write to the tracker
    To show such a test fails without the fix: `W=$(tools/cloud-brain/worktree.sh rev-<id>)`,
    `git -C $W checkout -q --detach <sha>^`, copy the test in, run it, then
    `tools/cloud-brain/worktree.sh --remove rev-<id>`. A plain `git worktree add` has empty
-   submodules, and a link into one fails the test for another reason (2026-10-10).
+   submodules, and a link into one fails the test for another reason (2026-10-10). When the
+   empty submodule is the case under test, the plain `git worktree add --detach` is the one to use.
 5. **Probe.** Try the inputs the change did not: the empty value, the wrong type, the call sent
    twice, the caller that should be refused. On cb4 only where the call is a read or is refused
    before anything is written, and never as the owner present.
 6. **Read the record.** `tools/cloud-brain/records/<id>.md` (a section of `spec-as-built.md` for
    an issue submitted before 2026-10-10 19:33) says what changed, the test count and what was not
-   tried, and each of those is true. The hash and the commits are the refs of the submit.
+   tried, and each of those is true. The record need not hold the deploy hash or the commits:
+   those are the refs of the submit.
 7. **Record the verdict.**
    `ir review '{"key":"rev/<id>/<round>","id":"<id>","verdict":"pass|changes|block","body":"…"}'`.
    The body lists each finding with the command that shows it, then what you ran and what you did
