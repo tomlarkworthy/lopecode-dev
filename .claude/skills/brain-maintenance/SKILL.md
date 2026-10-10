@@ -1,6 +1,6 @@
 ---
 name: brain-maintenance
-description: Use when the user asks to "work the tracker", "run the issue loop", "/brain-maintenance", "/loop /brain-maintenance", or wants the issues of the Cloud Brain tracker on cb4 triaged, fixed, reviewed and closed without being asked for each one. Polls the tracker, keeps up to two implementers (each in its own git worktree) and two reviewers running, and after every few issues spawns an overseer that files cluster issues or edits the role briefs.
+description: Use when the user asks to "work the tracker", "run the issue loop", "/brain-maintenance", "/loop /brain-maintenance", or wants the issues of the Cloud Brain tracker on cb4 triaged, fixed, reviewed and closed without being asked for each one. Polls the tracker, keeps up to four implementers (each in its own git worktree) and two reviewers running, and after every few issues spawns an overseer that files cluster issues or edits the role briefs.
 version: 0.1.0
 ---
 
@@ -11,9 +11,9 @@ This skill is the loop that does it. You, the session that runs the skill, are t
 you read the tracker, decide what is next, spawn agents for it, and write down what each
 reported. You fix nothing and review nothing yourself.
 
-Written 2026-10-10. **Not yet run as a loop.** The briefs are written from that day's work by
-hand: the review of three bug fixes (events 70 to 76) and the deploys before it. The fixes
-themselves (events 55 to 69) skipped the seed and the tests, which the briefs now forbid.
+Written 2026-10-10 and run as a loop the same day, from about 16:00 to 21:25 CEST, when the owner
+stopped it ("don't start any new work until we try to improve this process"). The line in Runs
+has the counts.
 
 ## Run it
 
@@ -23,7 +23,9 @@ themselves (events 55 to 69) skipped the seed and the tests, which the briefs no
 /brain-maintenance oversee      spawn the overseer now
 ```
 
-Read `rules.md` in this directory before the first pass. It binds you as well as the agents.
+Read `philosophy.md` and then `rules.md` in this directory before the first pass. Both bind you
+as well as the agents. `philosophy.md` is what you decide by; `rules.md` is what no decision
+may cross.
 
 ## State
 
@@ -60,7 +62,7 @@ Two files beside it, neither of them needed to resume:
 
    | Issue is | Do |
    |---|---|
-   | `hidden: true`, or kind or label `security`, or labeled `needs-owner`, or at `awaiting-approval` | Nothing. It is the owner's. |
+   | `hidden: true`, or kind or label `security`, or labeled `needs-owner` or `owner-act`, or at `awaiting-approval` | Nothing. It is the owner's. |
    | `in-review`, and no review since it came into that state | Spawn the reviewer. |
    | `in-progress`, started by the implementer token, no agent running | Spawn the implementer: it was sent back, or an agent died. Do not, and instead comment with the open findings and label `needs-owner`, when the last implementer you spawned for it finished without a new `submit`, or when it has 3 `rework` moves and the rounds are not getting anywhere. At 3 you judge (Tom, 2026-10-10: "make a judgment call when the 3 retries is hit, has genuine progress been made?"): go on when each review closed what the one before found and the new findings are narrower; stop when a finding came back, or the rounds are trading one defect for another of the same size. Write the judgment and its reason in the journal and as a comment on the issue. |
    | `ready` | Spawn the implementer. |
@@ -101,13 +103,19 @@ code to answer three questions, then write the answers as the `reason` of the mo
    code, never reproduced, with no case where it cost anything. The owner rejected two of those
    on 2026-10-10 ("Need more evidence this is a problem before fixing", "wait until real issue").
    Say in the reason what evidence would reopen it.
-2. Can an agent do it within the rules? A policy install, a new secret, a change to the kernel,
-   core, database or deployer, a deletion of kept data: comment with the choice and what each
-   side costs, `triage` it, add `needs-owner`, and leave it at `triaged`. **A design choice
-   inside a service is not the owner's: take it.** Choose the side that is smaller and easier to
-   undo, say in the move's reason which you chose and what the other was, and send it to
-   `ready`. The owner reads the reason and can reject. (Until 19:24 that day every design choice
-   went to the owner: 8 issues waited, and he said it "requires lots of human approval".)
+2. What does `philosophy.md` say to do? **Decide it.** Choose the side that is smaller and
+   easier to undo, name the line of the seven you decided by in the move's reason with what the
+   other side was, and send it to `ready`. The owner reads the reason and can reject. This
+   holds for a choice about the loop's own rules and tools as much as for a choice inside a
+   service. (At the stop on 2026-10-10, 12 of 14 open issues waited for the owner, and he said
+   the label "should really be about changing or clarifying philosophy".)
+   - `needs-owner`, left at `triaged`: only when the seven do not answer it, when two of them
+     pull apart with a real cost on each side, or when the issue proposes to change one of them
+     or a line of `rules.md`. The comment is in the form `philosophy.md` gives.
+   - `owner-act`: the change needs something only the owner may do (a policy install, a new
+     secret, a deploy of the kernel, core, database or deployer, a deletion of kept data). It is
+     still decided and still built: written, tested, kept on a branch, with the one command or
+     word the owner gives as the issue's last comment. Nothing is asked of him but the act.
 3. Is it one change? More than one becomes subtasks (`open` with `parent`), and the parent goes
    to `ready` when they are closed.
 
@@ -122,7 +130,7 @@ way past an access rule; the issue is then the owner's.
 
 - Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md`.
 - More than 4 writers or 2 reviewers at once, or two agents on one issue.
-- Issues whose fix is outside `tools/cloud-brain/` and its docs. Comment and label `needs-owner`.
+- Issues whose fix is in `exporter-3`, `robocoop-5`, the channel server or `lopecode`. Comment with the change wanted and label `owner-act`.
 - Carry on past a cluster that is not healthy.
 
 ## Why the overseer may edit briefs and not rules
@@ -143,3 +151,10 @@ is when the loop runs.
 
 Append one line per `/loop` session: date, passes, issues closed, issues left for the owner,
 oversights.
+
+- 2026-10-10, about 16:00 to 21:25 CEST, passes not counted. Tracker at the stop: 21 `done`,
+  8 `rejected`, 13 open, of which 10 labeled `needs-owner`, 2 held behind those and 1 `ready`
+  and unstarted. 7 oversights. A round of one writer and one reviewer was about 250,000
+  tokens; two issues took three rounds (about 660,000 and 680,000). The landing lock was held
+  2 to 17 s for a change with no deploy and 85 to 203 s for one with a deploy; one writer waited
+  about 3 minutes behind another. Stopped by the owner, who then gave `philosophy.md`.

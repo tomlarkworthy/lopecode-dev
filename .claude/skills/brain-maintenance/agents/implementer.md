@@ -21,7 +21,8 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
      a Worker's hash covers its module's source with the test cells, so a test changed in
      `brain-kernel.ojs`, `brain-core.ojs`, `brain-db.ojs`, `brain-deployer.ojs` or
      `cloudflare-iac.ojs` (the deployer's hash covers it) moves a Worker the loop may not deploy;
-   - there is more than one reasonable behaviour and the issue does not choose;
+   - `philosophy.md` (beside `rules.md`) does not say which of two reasonable behaviours to take.
+     When it does, take it and say in your comment which line decided it; that is not a stop;
    - it needs a new policy, a new secret, a new permission or a new Worker.
    Do not `start` such an issue.
 4. **Claim it.** `ia move '{"key":"impl/<id>/start","id":"<id>","to":"in-progress","reason":"…"}'`.
