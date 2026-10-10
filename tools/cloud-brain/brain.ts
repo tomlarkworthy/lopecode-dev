@@ -4,7 +4,7 @@
  *   bun tools/cloud-brain/brain.ts migrate-deployer         # an old Brain: installs <base>-deployer, copies the rows of <base>-guard to it, and marks <base>-guard replaced
  *   bun tools/cloud-brain/brain.ts retire-guard             # after every Worker is deployed again: <base>-guard becomes a stub with no token and no recovery key
  *   bun tools/cloud-brain/brain.ts apply core.json [...] --reason="why"   # infra.apply with the recovery key; --reason= is required here and by redistil --apply, remove and rollback
- *   bun tools/cloud-brain/brain.ts saw [name…]   # seen.json: the hash each seed here is built on, sent as `was` by apply and remove; with names, record what runs now (after merging its source)
+ *   bun tools/cloud-brain/brain.ts saw [name…]   # seen.json: the hash each seed here is built on, sent as `was` by apply and remove; with names, record what runs now (after comparing its source with the emitted record, or merging it). A Worker with no entry: its first apply is refused and says what to compare
  *   bun tools/cloud-brain/brain.ts state | confirm | approval on|off | approve | rollback | remove <name>
  *   bun tools/cloud-brain/brain.ts redistil | distil | bindings | shell   # redistil: each Worker against its source, "same" when healthy
  *   bun tools/cloud-brain/brain.ts curl <path> [--owner] [-X POST -d '{}']   # the kernel; --owner or --other sends a minted session as Authorization: Bearer
@@ -50,7 +50,8 @@ const filesOf = (source: string) => {
 // The deployer's script. Until 2026-10-08 it was <base>-guard, and a state file from before then names no script.
 const scriptName = () => st.deployerScript ?? (st.recoveryKey ? BASE + "-guard" : BASE + "-deployer");
 const urlOf = (name: string) => `https://${name}.${st.subdomain}.workers.dev`;
-const G = () => urlOf(scriptName());
+// deployerUrl: a field of the state file that only a test writes, to put a local stand-in in the deployer's place.
+const G = () => (/^http:\/\/127\.0\.0\.1:\d+$/.test(st.deployerUrl ?? "") ? st.deployerUrl : urlOf(scriptName()));
 // The deployer's own key was guardKey in a state file from before 2026-10-08. Both fields are kept.
 const deployerKey = () => { st.deployerKey ??= st.guardKey ?? hex(); st.guardKey ??= st.deployerKey; return st.deployerKey; };
 const deployerEmit = () => emitted(existsSync(E("deployer.json")) ? "deployer.json" : "guard.json");
@@ -101,16 +102,24 @@ const seenPath = resolve(import.meta.dir, "seen.json");
 const seenAll = (): any => existsSync(seenPath) ? JSON.parse(readFileSync(seenPath, "utf8")) : {};
 const sawGet = (worker: string) => (seenAll()[BASE] ?? {})[worker];
 const sawPut = (worker: string, hash: string | null, at = Date.now()) => { const all = seenAll(); (all[BASE] ??= {})[worker] = { hash, at }; writeFileSync(seenPath, JSON.stringify(all, null, 1) + "\n"); };
-const HOW = (worker: string) => `Read its source (curl "/xrpc/com.lopecode.brain.getSource?worker=${worker}" --owner), merge it into the seed, build and emit again, then: saw ${worker}`;
+// getSource is public: no session is sent to read what runs.
+const SOURCE = (worker: string) => `curl "/xrpc/com.lopecode.brain.getSource?worker=${worker}", field text`;
+const HOW = (worker: string) => `Read its source (${SOURCE(worker)}), merge it into the seed, build and emit again, then: saw ${worker}`;
+// No entry: nothing was applied to this Worker from a checkout with this seen.json. That does not say it moved,
+// and the seed may be ahead of what runs (brain-x-browser, 2026-10-10) or behind it. hash: the emitted record's.
+const FIRST = (worker: string, now: string, file?: string, hash?: string) => `${worker} runs ${now.slice(0, 12)} and seen.json has no entry for it: no apply or saw of it is recorded in this checkout, which does not say it changed elsewhere. `
+  + (!file ? `Read what runs (${SOURCE(worker)}), then: saw ${worker}`
+    : hash === now ? `${file} has the same hash, so the seed builds to what runs and there is nothing to deploy: saw ${worker}`
+    : `Compare what runs (${SOURCE(worker)}) with source.text of ${file}. If every difference is a change made in this checkout, the seed is ahead: saw ${worker}, then apply ${file} again. If what runs has text the seed lacks, merge it into the seed, build and emit again, then: saw ${worker}`);
 // What to send as was, or a refusal made here. file: the emitted record, which must be newer than the record of
 // the Worker's last change: one emitted before it was built from a seed without that change.
-const sawOf = (worker: string, running: any[], file?: string): { was: string | null } | { refused: string } => {
+const sawOf = (worker: string, running: any[], file?: string, hash?: string): { was: string | null } | { refused: string } => {
   const now = running.find((x: any) => x.worker === worker)?.hash ?? null, rec = sawGet(worker);
   if (!rec) {
     if (now === null) return { was: null };
-    return { refused: `${worker} runs ${String(now).slice(0, 12)} and seen.json has no hash for it. ${HOW(worker)}` };
+    return { refused: FIRST(worker, String(now), file, hash) };
   }
-  if (file && statSync(E(file)).mtimeMs < rec.at) return { refused: `${file} was emitted before ${worker} last changed in this checkout (${new Date(rec.at).toLocaleTimeString()}): build and emit again` };
+  if (file && statSync(E(file)).mtimeMs < rec.at) return { refused: `${file} was emitted before ${worker} last changed (${new Date(rec.at).toLocaleString()}): build and emit again` };
   return { was: rec.hash };
 };
 const MOVED = (worker: string) => `  ${worker} is not what the seed in this checkout is built on. ${HOW(worker)}`;
@@ -199,7 +208,7 @@ export class Rows {
   for (const f of args.filter((a) => !a.startsWith("--"))) {
     const e = emitted(f);
     // Source, not code: the deployer distils it. The record's parts are not sent; its hash is only compared.
-    const saw: any = sawOf(e.meta.worker, seen, f);
+    const saw: any = sawOf(e.meta.worker, seen, f, e.hash);
     if (saw.refused) { console.log(f, "not sent:", saw.refused); continue; }
     const w: any = { module: e.source.module, source: e.source.text, files: filesOf(e.source.text), force, was: saw.was };
     // The signing key is SESSION_KEY; it was COOKIE_KEY until 2026-10-07. Both names are sent with one value, and
@@ -250,10 +259,11 @@ export class Rows {
   // saw: the record against what runs. saw NAME…: record what runs now, after its source is merged into the seed.
   const seen = (await deployer("getState")).workers || [];
   const runs = (worker: string) => seen.find((x: any) => x.worker === worker)?.hash ?? null;
-  // at 0: saw comes after the emit of the merged seed, and that record is the one to send.
-  for (const worker of args) sawPut(worker, runs(worker), 0);
+  // at: when what runs was deployed, not now. saw comes after the emit of the compared or merged seed, and that
+  // record is the one to send; one emitted before that deploy is refused. It was 0 until 2026-10-10, which refused none.
+  for (const worker of args) sawPut(worker, runs(worker), Number(seen.find((x: any) => x.worker === worker)?.deployedAt) || Date.now());
   const rec = seenAll()[BASE] ?? {};
-  for (const worker of [...new Set([...Object.keys(rec), ...seen.map((x: any) => x.worker)])].sort()) console.log(worker.padEnd(20), rec[worker] ? String(rec[worker].hash).slice(0, 12) : "none".padEnd(12), !rec[worker] ? "" : rec[worker].hash === runs(worker) ? "" : "MOVED: runs " + String(runs(worker)).slice(0, 12));
+  for (const worker of [...new Set([...Object.keys(rec), ...seen.map((x: any) => x.worker)])].sort()) console.log(worker.padEnd(20), rec[worker] ? String(rec[worker].hash).slice(0, 12) : "none".padEnd(12), !rec[worker] ? `no entry: its first apply from here is refused until its source is compared and: saw ${worker}` : rec[worker].hash === runs(worker) ? "" : "MOVED: runs " + String(runs(worker)).slice(0, 12));
 }
 else if (cmd === "state") console.log(JSON.stringify(args[0] === "--full" ? await deployer("getState") : brief(await deployer("getState")), null, 1));
 else if (cmd === "confirm") console.log(JSON.stringify(await deployer("confirm", {})));
