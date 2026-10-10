@@ -121,7 +121,31 @@ is in `SKILL.md` or a brief and was not changed when this file was added.
 
 ## Clarifications
 
-The owner's answers, each with its date and his words. Empty on 2026-10-10.
+The owner's answers, each with its date and his words.
+
+**2026-10-10, on what verifies a deploy** (asked: what should the page report when it could not
+run a Worker's tests). His answer was a design, and a line he named as philosophy:
+
+> in a multi agent system multiplayer bugs need to be removed.
+
+A check whose result depends on what else is running beside it (another agent's work, the
+owner's tab, the page's other tests) has a multiplayer bug. The check is moved to where it runs
+alone; it is not made tolerant of the company.
+
+The design he gave for deploys, in his words:
+
+- "the report definately needs the hash of what it is verifying so the wrong report doesn;t
+  rollback the wrong worker."
+- "It should not be mandatory because it might be lost."
+- "if something has proof the deployment is broken then it is correct to roll it back. We do
+  not want poisoned code infecting the cluster and comounding."
+- "the deployer should have an isolated version testing what is deployed does what is expected."
+- "you can't do another deployment until verified ... the 10 min rollback is mandatory
+  liveliness feature. We can't have the next thing building on a faulty base."
+- "its mega important the verification occur quickly and on an isolated code base."
+
+What the code did on that date is in the session's answer to him and is not repeated here: it
+changes when the design is built.
 
 ## Not settled
 
