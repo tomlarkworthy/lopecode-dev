@@ -26,6 +26,8 @@ const save = () => writeFileSync(statePath, JSON.stringify(st, null, 1));
 // Tokens made here for agents: { name: value } in a git-ignored file of mode 600.
 const tokens = (f = BASE + "-tokens.json"): any => (existsSync(E(f)) ? JSON.parse(readFileSync(E(f), "utf8")) : {});
 const keepTokens = (t: any) => writeFileSync(E(BASE + "-tokens.json"), JSON.stringify(t, null, 1), { mode: 0o600 });
+// A kept token's value, or "". Own string properties only: t["toString"] and t["__proto__"] are truthy on any object.
+const keptToken = (t: any, name: string): string => (Object.hasOwn(t, name) && typeof t[name] === "string" ? t[name] : "");
 const hex = (n = 32) => [...crypto.getRandomValues(new Uint8Array(n))].map((b) => b.toString(16).padStart(2, "0")).join("");
 const api = async (path: string, init: RequestInit = {}) => {
   const r = await fetch("https://api.cloudflare.com/client/v4" + path, { ...init, headers: { authorization: "Bearer " + token, ...(init.headers || {}) } });
@@ -405,7 +407,7 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
   } else if (args[0] && args.length > 1) {
     const daily = args.find((a) => a.startsWith("--daily="));
     const methods = args.slice(1).filter((a) => !a.startsWith("--"));
-    if (kept[args[0]]) { console.log(`a token "${args[0]}" is kept already; "token revoke ${args[0]}" first`); process.exit(1); }
+    if (keptToken(kept, args[0])) { console.log(`a token "${args[0]}" is kept already; "token revoke ${args[0]}" first`); process.exit(1); }
     const r = await asOwner("token.create", { name: args[0], methods, ...(daily ? { daily: Number(daily.slice(8)) } : {}) });
     if (r.status !== 200 || !r.body.token) { console.log(r.status, JSON.stringify({ ...r.body, token: undefined })); process.exit(1); }
     keepTokens({ ...kept, [args[0]]: r.body.token });
@@ -416,8 +418,8 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
   const path = args[0], rest = args.slice(1).filter((a, i) => a !== "--owner" && a !== "--other" && i + 1 !== as && i + 1 !== as + 1);
   const have = name ? { ...tokens(BASE + "-issues-tokens.json"), ...tokens() } : {};
   if (as >= 0 && !name) { console.log("--as needs a name: curl <path> --as NAME"); process.exit(1); }
-  if (as >= 0 && !have[name]) { console.log(`no token "${name}" is kept; make one with: token ${name} <method…>`); process.exit(1); }
-  const extra = name ? ["-H", "authorization: Bearer " + have[name]] : args.includes("--owner") && st.session ? ["-H", "authorization: Bearer " + st.session] : args.includes("--other") && st.otherSession ? ["-H", "authorization: Bearer " + st.otherSession] : [];
+  if (as >= 0 && !keptToken(have, name)) { console.log(`no token "${name}" is kept; make one with: token ${name} <method…>`); process.exit(1); }
+  const extra = name ? ["-H", "authorization: Bearer " + keptToken(have, name)] : args.includes("--owner") && st.session ? ["-H", "authorization: Bearer " + st.session] : args.includes("--other") && st.otherSession ? ["-H", "authorization: Bearer " + st.otherSession] : [];
   const p = Bun.spawn(["curl", "-s", "-m", "30", "-w", " [%{http_code}]\n", ...extra, ...rest, (path.startsWith("http") ? "" : B()) + path], { stdout: "inherit", stderr: "inherit" });
   await p.exited;
 } else console.log("unknown command");
