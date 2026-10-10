@@ -4709,7 +4709,9 @@ Policy of event 3: a second reviewer for security
 Policy of event 1, the default.
 ```
 
-The second form is a policy with no `reason`, which is the default one written by the Worker. With
+The second form was drawn for any policy with no `reason`. That is the default one written by the
+Worker, and also an install from before a reason was required, which is not the default: corrected
+in the next section. With
 no policy in the copy (before the first answer) the line is empty. It makes no call: the reason
 arrives in `issue.snapshot`, in a policy event of `issue.sync`, or from the copy kept in
 `localStorage`. The element is `panel.policy`, for the test. The list under the panel in the
@@ -4741,3 +4743,58 @@ Not tried: the panel on the live page of cb4. `brain-x-page` was not applied (`r
 until the page is next applied. Not tried: a long reason (the limit is 2000 characters; the line wraps, not seen).
 Not done: earlier policies and policy events are in no drawn list; the issue asks for the one in
 force. Not asked: whether the owner wants the line at all, which the issue leaves open.
+
+## Issues: the panel calls only event 1 the default (2026-10-10 19:16 CEST): `brain-x-issues` `4ddc93e00e23`
+
+Review 1 of `panel-shows-no-policy-reason` (event 164) sent it back. The line of the section above
+read "the default" for every policy with no `reason`. On cb4 the policy in force is such a policy
+and the owner installed it:
+
+```
+issue.policy --owner, 19:16     policy seq 17, keys kinds, names, seq      (no reason)
+the reviewer's sync?since=16    policy events 1 (worker:brain-x-issues), 12 and 17 (the owner), none with a reason
+```
+
+So the panel would have read `Policy of event 17, the default.` there. The first test did not see
+it: in the rig the only policy with no reason is event 1.
+
+**Reproduced first.** One more case in `test_issues_panel_shows_the_policy_in_force`: a panel drawn
+from a kept copy whose policy is the rig's with `seq: 17` and no `reason`. Before the change, in the
+worktree's build, `lope-tests.ts --filter test_issues_panel`: 2 passed, 1 timed out of 3. The
+message of the throw was not read (a run with a `try/catch` round the new line printed nothing
+that `lope-tests.ts` shows); the reviewer saw `Policy of event 5, the default.` for the same shape
+in a tab.
+
+**Changed, in `brain-issues.ojs`.** `draw()` has three forms:
+
+```
+Policy of event 3: a second reviewer for security
+Policy of event 1, the default.
+Policy of event 17, installed with no reason recorded.
+```
+
+The second is a policy with no reason whose `seq` is 1, the third any other with no reason. It
+needs no call: the guard lets the Worker write a policy only into an empty record, so the default
+is event 1 or it does not exist. The line of the prose list under the panel says the same.
+
+Not done: an owner who installed first, before a reason was required, wrote event 1 themselves, and
+the panel would call that policy the default. `view.policy` does not hold who installed it; telling
+the two apart needs `by` carried into the view, a change of what `issue.policy` answers. Not the
+case on cb4, where event 1 is the Worker's.
+
+**Tests.** 13 of 13 `test_issues_*`, none in the bad list, in a headless Chromium QA tab on
+`lopebooks/notebooks/@tomlarkworthy_cloud-brain.html` built in the main checkout after the
+cherry-pick (19:14:43, `git log --format=%ci`), finished 19:15:22 (the tab's clock), forced from a
+module of their own. The record was emitted from that tab at 19:15. The count is 13 as before: a
+case was added to a cell, not a cell. Before that, 13 of 13 with `lope-tests.ts` on the worktree's
+build and on the main checkout's; no browser run was made on the worktree's build this round.
+
+**Deployed** under both locks with `--reason="panel-shows-no-policy-reason: only event 1 is called
+the default; an install with no reason reads installed with no reason recorded"`: state `deployed`.
+`redistil`: `brain-x-issues  same  4ddc93e00e23`. `issue.verify?guards=true`: `ok`, 183 checked.
+`getSource?worker=brain-x-issues` holds `installed with no reason recorded` on one line. With
+`issue.policy` answering seq 17 and no reason, the deployed text draws the third form for cb4.
+
+Not tried: the panel on the live page of cb4, as in the section above (`brain-x-page` was not
+applied). Not tried: a long reason or one with a newline; the reviewer's probes of those were not
+read either.
