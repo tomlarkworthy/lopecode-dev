@@ -3284,3 +3284,38 @@ Tests: 8 of `brain-ai` and the 4 of the deployer that mint or refuse a permissio
 | Three stale statements (`unattended` in two shapes, a comment, the list of `by`) | corrected |
 | Weak tests: a removal asserted "not waiting"; no redistil by the link | `removed`; a redistil by the link is asserted. The content-type the kernel passes on is not tested: the rig sends one type |
 | `/llms.txt` told every deploy token to POST to `infra.shell` | it says an unattended one does, and another asks the owner |
+
+## The button's token calls the browser, containers, models and logs as the owner (2026-10-10 07:26 CEST)
+
+Tom, 2026-10-10, after an agent redeemed a link from the button and could deploy but not read logs or open a browser: "brwoser and containers and AI please and * for method lists".
+
+Measured on cb4 before the change, with a token whose list named them:
+
+```
+logs.keys     401 "not allowed by the rule for this"   -> the rule is caller.session; a token is not one
+browser.list  200
+quota.get     who token:reach-check, daily 0.1          -> about an hour of browser time
+```
+
+So the button shipped on 2026-10-09 named three `logs` methods that its token could not call.
+
+Changed in the kernel:
+
+- **Prefixes.** An entry of `methods` in `token.create` and `token.link` is a whole name, or a prefix ending `.*`, or `*`. Anything else is 400. `names()` refuses `infra`, `secret`, `token`, `grant`, `people` first, so `*` does not reach them. A grant to a DID still names whole methods.
+- **The owner's session at the core.** For a token of a link made with `unattended`, `toCore` sends `x-brain-caller: owner`, `x-brain-via: session`, and logs `call.by.link` with the token's name. Rules of `caller.session` hold, the price goes to the owner's allowance, a browser or container it opens is the owner's. Rejected: changing the rules of `logs`, `browser.all`, `container.all` one by one, which needs a new notion of caller in each service; raising a token's default allowance, which raises it for every token.
+- **The button** asks for `["browser.*", "container.*", "ai.*", "logs.*", "quota.get"]`.
+
+After, on cb4, kernel `99fca66a87ad`, core `0dc81a5c4263`, page `d3ca8568ea3e`, with a token of such a link:
+
+```
+logs.keys 200  browser.list 200  browser.all 200  container.all 200  ai.models 200
+quota.get  who owner, daily 1
+not named: inbox.list 403  secret.list 403  token.list 403  rule.list 403
+infra.getState 200 (deploy)      after token.revoke: 401
+```
+
+Tests: 67 of 67 in kernel, core and page; the prefixes, the refused shapes and the two headers are in `test_tokens_reach_only_their_methods`. `redistil` 18 `same`, lease held.
+
+Cost of this, stated: with `*` in its list such a token also calls what only the owner's session could at the core (`rule.put`, `price.put`, `quota.put`). The core's log line says `owner`; which token it was is in the kernel's `call.by.link` line only.
+
+Not done on cb4: no browser opened, no container leased, no `ai.run` made with such a token (each costs); the button was not pressed.
