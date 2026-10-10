@@ -4177,7 +4177,7 @@ change: 253 notebooks the same; `cloud-brain` 651 -> 653 passed of 732 (731 befo
 between the runs) with `test_browser_run_stops_at_its_timeout` failing, a test of a timer that also failed in
 the run before the first change. Node tests 122 of 126. Tracker tests headless 10 of 10.
 
-The second review (17:59 CEST), `changes`, 2 findings, both in this record: the two times above were not from the clock, and the count of findings was 2 where the review listed 3. Corrected from `git log` and the events.
+The second review (17:58 CEST), `changes`, 2 findings, both in this record: the two times above were not from the clock, and the count of findings was 2 where the review listed 3. Corrected from `git log` and the events.
 
 Still foreign to notebook code, before and after: values from `Response.json()`, `structuredClone`,
 `TextEncoder.encode`, `crypto.subtle.digest`, the bytes of `contentSync`, and DOM objects. Filed by the reviewer
