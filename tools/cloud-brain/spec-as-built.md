@@ -3637,3 +3637,23 @@ cb4-deployer       9f8c5de08825  199cd75c0aa5
 - **Not run live**: a call with `x-brain-as`. No Worker on cb4 sends one; the first will be `brain-x-topic`.
 - The six findings of step 1's fresh review (FIX) are in this change: three kernel messages name `delegation`; the rule table has `caller.delegation` and `caller.holder`; the four stores' prose names `d:<id>`; the browser test asserts the key `d:0a1b/default`; db has a `setRule` and a `sqlGrant` case; the count of Workers above was wrong and is corrected.
 
+### After step 2's fresh review, and the browser tests (2026-10-10 11:26 CEST)
+
+FIX, six findings, each traced in the source by the reviewer and held. `brain-core` `4ee1d32b16d8`, `brain` `f93e9c892c45`, `brain-x-browser` `52e24a4a7b36`.
+
+- `quota.ledger` with no `who` read the delegations' own counts as accounts, so a delegated charge of $0.04 was two charges and a total of $0.08. It leaves them out, as `quota.list` did. The test reads the ledger.
+- A delegation's count was written before the account was charged, so a call the account refused was in `spentToday` and used up `daily`. Now the count is read first, the account is charged, and the count is written when the account paid. Cost of that order: calls made at the same moment can each pass the read, and `daily` is passed by their price. The maker's allowance stays exact. Charging the account first and keeping the old write was the other choice; it makes the maker pay for a call the cap then refuses.
+- A removed member's delegations were kept, and worked again when the member was added again. `people.sync` deletes them.
+- The design's first line said "not built"; a kernel comment and the list of `by` values in the core were behind.
+
+**The browser tests** (Tom, 2026-10-10: "tidy up and fix the browser tests"). Two failed on this machine today, both by reading the wall clock against a fixed bound:
+
+```
+test_browser_tick_makes_rows_and_sessions_agree   used >= 100 && used <= 110        got 111
+test_browser_time_is_bought_by_extend_alone       |remaining - 100| <= 3            got 96
+```
+
+`usedSeconds` holds the seconds the test's own browsers have run, and bought time runs down while the test runs. The first now measures the 100 s as a difference between two reads. The tolerance in the second, and in `test_browser_each_caller_has_its_own`, is the amount less the seconds the test has taken so far. 17 of 17 in a tab, one at a time, 5.0 s; the deploy of `52e24a4a7b36` ran them and stayed.
+
+**The notebook is committed in `lopebooks`.** Its pre-commit hook had refused it: `tools/build-sitemaps.ts` listed the directory, and two saved web pages and a notebook that were never committed were in it. It lists what git tracks. `lopebooks/sitemap.xml` gained `@tomlarkworthy_cloud-brain.html`, `@tomlarkworthy_jev.html` and `ratchet-code.html`, which were tracked and missing, and lost `linux-claude.html`, which `.gitignore` names and so is not published.
+

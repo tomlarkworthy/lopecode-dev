@@ -394,7 +394,6 @@ kernelApp = {
   // A link made to deploy with no approval can deploy a kernel with nobody asked, so keeping the page at / from it
   // would keep nothing: it reaches infra.shell too, and finishes a deploy of the page.
   const deploys = (who) => (who.unattended ? [...DEPLOYS, "com.lopecode.brain.infra.shell"] : DEPLOYS);
-  // delegation: the record a token becomes (plan/cloud-brain-authority.md). Named here before the core has it.
   const never = neverHeld;
   // A token's list holds whole names and prefixes: "browser.*" is every method of that service, "*" every method
   // of this Brain. No prefix reaches a name a token may not have.

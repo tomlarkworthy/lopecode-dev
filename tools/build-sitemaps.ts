@@ -15,7 +15,7 @@
 //   bun tools/build-sitemaps.ts --check                exit 1 if any URL set is wrong
 //   bun tools/build-sitemaps.ts --check --only lopebooks   just that repo (the prek hook)
 
-import { readdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join, dirname } from "node:path";
 
@@ -52,13 +52,16 @@ function lastmod(repoDir: string, relPath: string): string {
 }
 
 function urlsFor({ dir, base }: { dir: string; base: string }) {
-  const nbDir = join(ROOT, dir, "notebooks");
   return [
     // The repo landing page: GitHub Pages renders README.md here, and it is the crawl path that
     // got the first four notebooks indexed.
     { loc: `${ORIGIN}${base}/`, lastmod: lastmod(dir, "README.md") },
-    ...readdirSync(nbDir)
-      .filter((f) => f.endsWith(".html"))
+    // The files git tracks (a staged add counts), not the directory: a page saved into notebooks/
+    // and never committed is not published, and listing it failed every commit (2026-10-10).
+    ...execFileSync("git", ["-C", join(ROOT, dir), "ls-files", "-z", "--", "notebooks"], { encoding: "utf8" })
+      .split("\0")
+      .filter((f) => /^notebooks\/[^/]+\.html$/.test(f))
+      .map((f) => f.slice("notebooks/".length))
       .sort()
       .map((f) => ({
         // encodeURI, not encodeURIComponent: the live URLs carry a literal `@`, and %40 would be

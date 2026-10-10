@@ -1,9 +1,10 @@
 # Cloud Brain: one record for delegated authority
 
-A design, not built. Written 2026-10-10 for Tom to review before anything is changed; ninth draft,
+A design. Steps 1 and 2 of its seven are built and on cb4 (see *Order of work*); the rest is not.
+Written 2026-10-10 for Tom to review before anything was changed; ninth draft,
 after eight fresh reviews (see *Review* at the end). A statement about the present code names the
 line it was read at where one line holds it, found by a search for the text on 2026-10-10. Each draft
-read the tree of its own commit, the first at 09:43 CEST and this one at 10:42, and each reviewer printed every cited line. Another session edits the same seeds, so the lines will move. Nothing here was run on a Brain except five reads of
+read the tree of its own commit, the first at 09:43 CEST and this one at 10:42, and each reviewer printed every cited line. Another session edits the same seeds, so the lines will move. While it was drafted nothing here was run on a Brain except five reads of
 cb4 as the owner (`rule.list`, `db.tables`, `token.list`, `grant.list`, `calls.list`), marked where used.
 
 ## What was asked
