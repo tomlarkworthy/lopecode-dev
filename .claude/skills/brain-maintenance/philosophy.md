@@ -137,6 +137,10 @@ The design he gave for deploys, in his words:
 - "the report definately needs the hash of what it is verifying so the wrong report doesn;t
   rollback the wrong worker."
 - "It should not be mandatory because it might be lost."
+  He took this back in the same message and again the same evening, in a note on the spec
+  (`plan/specs/deploy-verification.html`): "YES! and deploys on that worker are blocked until it
+  happens. I corrected myself on that". A deploy stands only when its passing verdict has
+  arrived; with none in 10 minutes it is put back.
 - "if something has proof the deployment is broken then it is correct to roll it back. We do
   not want poisoned code infecting the cluster and comounding."
 - "the deployer should have an isolated version testing what is deployed does what is expected."
