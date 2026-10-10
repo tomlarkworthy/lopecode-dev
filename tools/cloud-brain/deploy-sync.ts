@@ -1,8 +1,9 @@
 /**
  * Writes what a Brain runs as a directory whose paths are the modules' import paths.
  *   BRAIN_BASE=cb4 bun tools/cloud-brain/deploy-sync.ts <dir>
- * Two public reads, no key: the deployer's infra.getModules (every module a Worker owns, with its files)
- * and the page the kernel serves (the shell: every other module the page imports, and their files).
+ * Public reads, no key: the deployer's infra.getModules (every module a Worker owns, with its files), the page the
+ * kernel serves (the shell: every other module the page imports, and their files), and getSource once a Worker,
+ * to tell what runs from what the deployer only keeps.
  *   <dir>/manifest.json            which module is a service of which Worker, at which hash; which are shared
  *   <dir>/@user/name.js            a module, where import("/@user/name.js?v=4") looks for it
  *   <dir>/@user/name/<file>        a file of a module
@@ -44,7 +45,7 @@ for (const m of got.modules.sort((a: any, b: any) => a.module.localeCompare(b.mo
   // only that is written (Tom, 2026-10-10: "yes only what is running").
   const live = await fetch(kernel + X + "getSource?worker=" + m.worker).then((r) => (r.ok ? r.json() : null)).catch(() => null);
   const running = m.worker === "brain-deployer" || (!!live && live.hash === m.hash && live.module === m.module);
-  if (!running) continue;
+  if (!running) { if (!live) console.error(`left out: ${m.worker} did not answer getSource`); continue; }
   put(m.module + ".js", m.text);
   for (const [name, text] of Object.entries(m.files || {})) put(m.module + "/" + name, text as string);
   services.push({ module: m.module, worker: m.worker, hash: m.hash, files: Object.keys(m.files || {}).sort(), imports: imports(m.text, m.module) });

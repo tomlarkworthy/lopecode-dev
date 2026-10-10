@@ -7,7 +7,7 @@ Git repositories for a Cloud Brain, kept by [Cloudflare Artifacts](https://devel
 | \`git.create?name=\` | \`POST /accounts/ACCOUNT/artifacts/namespaces/BASE/repos\` with \`{ name, default_branch: "main" }\`. The answer has \`remote\` and a first write token. |
 | \`git.get?name=\` | \`GET …/repos/NAME\`: the repository, with its \`remote\`. |
 | \`git.list?limit=&cursor=\` | \`GET …/repos\`. |
-| \`git.token?name=&scope=&seconds=\` | \`POST …/tokens\` with \`{ repo, scope, ttl }\`. \`scope\` is \`read\` (when not given) or \`write\`. \`seconds\` is ${gitDefaults.seconds} when not given and at most ${gitDefaults.most}. The answer's \`plaintext\` is the token. |
+| \`git.token?name=&scope=&seconds=\` | \`POST …/tokens\` with \`{ repo, scope, ttl }\`. \`scope\` is \`read\` (when not given) or \`write\`. \`seconds\` is ${gitDefaults.seconds} when not given, from ${gitDefaults.least} to ${gitDefaults.most}. The answer's \`plaintext\` is the token. |
 | \`git.delete?name=\` | \`DELETE …/repos/NAME\`. |
 
 All but \`get\` and \`list\` are sent with POST. The parameters are in the query string so a rule can read them (\`request.params.name\`, \`request.params.scope\`); none is a secret. A token is in the body of the answer and nowhere else.
@@ -28,7 +28,7 @@ Inside the namespace a name belongs to whoever made it (\`gitTenant\`, \`gitRepo
 | the owner, a token, a Worker of the Brain | \`notes\` | every repository of the Brain, a member's by its full name |
 | an account the owner gave the method (\`did:…\`), and that account's Workers | \`m-ID-notes\`, where ID is 10 hex of the SHA-256 of the DID | names that start with \`m-ID-\` and no other |
 
-A member gives the short name or the full one. \`git.list\` answers a member only their own. The owner cannot make a repository whose name starts like a member's.
+A member gives the short name or the full one. A name on Cloudflare is at most 40 characters, so a member's short name is at most 27. \`git.list\` answers a member only their own: it is one page of Cloudflare's list with the others taken out, so a page can be short or empty while \`cursor\` says there is more, and any count beside it is the Brain's. The owner cannot make a repository whose name starts like a member's.
 
 ## Who can call
 
@@ -48,19 +48,24 @@ The service declares \`cloudflare: ["${gitDefaults.group}"]\`. The deployer mint
 
 Not built: \`fork\`, \`import\`, revoking one token, giving another account a repository of yours.`
 // %%
-gitDefaults = ({ seconds: 3600, most: 86400, usd: 0.001, group: "Artifacts Write" })
+gitDefaults = ({ seconds: 3600, least: 60, most: 86400, usd: 0.001, group: "Artifacts Write" })
 // %%
 // The start of a caller's repository names. "" is the Brain's own: the owner, a token, the deployer, a Worker of the
 // Brain. A person is m-ID-, as a member's Worker is brain-m-ID-NAME. null: no repositories.
 gitTenant = async (who) =>
   who === "owner" || who === "deployer" || /^token:/.test(who || "") || /^worker:brain(-(?!m-)|$)/.test(who || "") ? "" : /^did:/.test(who || "") ? "m-" + (await sha256(who)).slice(0, 10) + "-" : null
 // %%
-// The name on Cloudflare of the repository a caller means, or null when the name is not theirs to use.
+// How a member's repository starts on Cloudflare. The 10 is the length of a member's id (memberId in brain-deployer).
+gitMember = /^m-[0-9a-f]{10}-/
+// %%
+// The name on Cloudflare of the repository a caller means, or null when the name is not theirs to use. The name
+// Cloudflare holds is at most 40 characters, so one this service made is one it takes back.
 gitRepo = (prefix, name) => {
-  if (typeof name !== "string" || !/^[a-z0-9][a-z0-9._-]{0,39}$/.test(name)) return null;
-  const members = /^m-[0-9a-f]{10}-/;
+  const ok = (n) => /^[a-z0-9][a-z0-9._-]{0,39}$/.test(n);
+  if (typeof name !== "string" || !ok(name)) return null;
   if (prefix === "") return name;
-  return name.startsWith(prefix) ? (name.length > prefix.length ? name : null) : members.test(name) ? null : prefix + name;
+  const full = name.startsWith(prefix) ? name : gitMember.test(name) ? "" : prefix + name;
+  return full.length > prefix.length && ok(full) ? full : null;
 }
 // %%
 git_service = cloudflare.Service(
@@ -83,16 +88,16 @@ git_service = cloudflare.Service(
       return new Response(JSON.stringify({ ...data, result: (Array.isArray(data.result) ? data.result : []).filter((x) => String(x && x.name).startsWith(prefix)) }), { headers: { "content-type": "application/json" } });
     }
     const repo = gitRepo(prefix, q.get("name"));
-    if (!repo) return refuse(400, "InvalidRequest", "name is a repository of yours: a lower-case letter or digit, then up to 39 of a-z 0-9 . _ -");
+    if (!repo) return refuse(400, "InvalidRequest", "name is a repository of yours: a lower-case letter or digit, then up to 39 of a-z 0-9 . _ - (26 for an account that is not the owner)");
     if (what === "create") {
-      if (prefix === "" && /^m-[0-9a-f]{10}-/.test(repo)) return refuse(400, "InvalidRequest", "a name that starts m-ID- is a member's to make");
+      if (prefix === "" && gitMember.test(repo)) return refuse(400, "InvalidRequest", "a name that starts m-ID- is a member's to make");
       return pass(await send("/repos", "POST", { name: repo, default_branch: "main" }));
     }
     if (what === "get") return pass(await send("/repos/" + repo, "GET"));
     if (what === "delete") return pass(await send("/repos/" + repo, "DELETE"));
     const scope = q.get("scope") || "read", seconds = q.get("seconds") === null ? gitDefaults.seconds : Number(q.get("seconds"));
     if (scope !== "read" && scope !== "write") return refuse(400, "InvalidRequest", "scope is read or write");
-    if (!Number.isInteger(seconds) || seconds < 60 || seconds > gitDefaults.most) return refuse(400, "InvalidRequest", "seconds is a whole number from 60 to " + gitDefaults.most);
+    if (!Number.isInteger(seconds) || seconds < gitDefaults.least || seconds > gitDefaults.most) return refuse(400, "InvalidRequest", "seconds is a whole number from " + gitDefaults.least + " to " + gitDefaults.most);
     return pass(await send("/tokens", "POST", { repo, scope, ttl: seconds }));
   },
   {
@@ -171,6 +176,12 @@ test_a_member_reaches_their_own_repositories_and_no_other = {
     for (const method of ["create", "token", "delete"]) expect((await rig.call(alice, method, "name=" + encodeURIComponent(name))).status).toBe(400);
   expect((await rig.call(alice, "get", "name=m-0000000000-other")).status).toBe(400);
   expect(rig.seen.length).toBe(3);
+  // A member's longest name is 27, and the owner reaches it by the name Cloudflare holds.
+  expect((await rig.call(alice, "create", "name=" + "a".repeat(28))).status).toBe(400);
+  expect((await rig.call(alice, "create", "name=" + "a".repeat(27))).status).toBe(200);
+  expect((await rig.call("owner", "delete", "name=" + rig.alice + "a".repeat(27))).status).toBe(200);
+  expect((await rig.call(alice, "get", "name=" + rig.alice + "a".repeat(27))).status).toBe(200);
+  expect(rig.seen.splice(3).map((s) => s.url)).toEqual(["cb4/repos", "cb4/repos/" + rig.alice + "a".repeat(27), "cb4/repos/" + rig.alice + "a".repeat(27)]);
   // A list is the member's own.
   expect((await rig.call(alice, "list")).data.result).toEqual([{ name: rig.alice + "notes" }]);
   // The owner reaches a member's repository by its full name, and does not make one.
