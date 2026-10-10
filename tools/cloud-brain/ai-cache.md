@@ -28,7 +28,7 @@ of one model in two places.
 
 ## The protocol
 
-`BRAIN_BASE=cb4 bun tools/cloud-brain/ai-cache-bench.ts <target> <prefixTokens>`, with `30000` and `8000` as
+`BRAIN_BASE=cb4 USD=<n> bun tools/cloud-brain/ai-cache-bench.ts <target> <prefixTokens>`, with `30000` and `8000` as
 `prefixTokens`: the script writes 0.8 words a token asked, and the models counted about 27 000 and 7 000 tokens. The
 targets were `cf:@cf/zai-org/glm-5.3-flash`, `cf:@cf/google/gemma-4-26b-a4b-it`, `or:xiaomi/mimo-v2.5-pro`,
 `or:xiaomi/mimo-v2.5` and, for the pinned run, `or:xiaomi/mimo-v2.5-pro@Xiaomi`. One run is one prefix that nothing has sent
@@ -39,14 +39,25 @@ two batches of five: the OpenRouter runs from 05:21:41 UTC, the Workers AI runs 
 runs with `--quick` (two calls, `prefixTokens` 2000) tried the script; they are under The rows, prefix of 1 900 tokens.
 
 - Workers AI: `POST /xrpc/com.lopecode.brain.ai.v1/chat/completions` on cb4 with the owner's session, so the Brain's
-  three hops are in the times (about 60 ms, `rpc-performance.md`). `x-session-affinity` was the run's name, but for
+  three hops are in the times (about 60 ms, `rpc-performance.md`). `USD` is the `usd` of each call, which the Brain
+  charges whole: 0.01 for `glm-5.3-flash` at 30000 (both runs), 0.003 at 8000 and 2000; 0.007 for `gemma-4-26b` at
+  30000 and 0.002 at 8000 (the `charged` of each row). With no `USD` the script sends 0.02. `x-session-affinity` was the run's name, but for
   one run that sent none (`AFFINITY=0` in the environment).
 - OpenRouter: its own address, with `reasoning: { enabled: false }` and `usage: { include: true }`. cb4 holds no
   OpenRouter key (`proxy.fetch` answered "the secret for openrouter.ai is not set"), so the script reads the key the
   robocoop-5 eval tools read, from the git-ignored `tools/robocoop-4/.env`. One run pinned the provider Xiaomi
   (`provider: { only: ["Xiaomi"], allow_fallbacks: false }`).
 
-`first` is milliseconds from sending to the first piece of text or reasoning; `cached` is
+`first` is milliseconds from sending to the first piece of text or reasoning.
+
+**A limit of `first`.** Reasoning was switched off on the OpenRouter calls only; the script sends no such field to
+Workers AI. 46 of the 47 Workers AI calls returned no answer text in their 16 tokens (the one that did: `glm-5.3-flash`
+at 7 000 tokens, call 6, "OK"). Every one has a `first`, so for those 46 it is the time to a piece of reasoning. The
+27 calls of MiMo 2.5 Pro all answered "OK" in text. So `first` compares calls of one model with each other. Between
+Workers AI and MiMo it compares the first reasoning piece with the first answer piece, and says nothing of which
+answers sooner. Not run again with reasoning off on both sides.
+
+`cached` is
 `usage.prompt_tokens_details.cached_tokens`. Cost is OpenRouter's `usage.cost`, and for Workers AI `usage.neurons`
 at $0.000011. The rows are in `tools/cloud-brain/.emitted/ai-cache/`, which is git-ignored; they are all below.
 
@@ -117,11 +128,13 @@ One run of each, so each line below is what that run showed, not a rate.
 - **What a hit saves in money.** At 27 000 tokens: `glm-5.3-flash` $0.00411 to $0.00083, a fifth. `gemma-4-26b`
   $0.00261 to $0.00131, a half. MiMo 2.5 Pro at Xiaomi $0.0119 to $0.00015, one eightieth. A cached call of MiMo 2.5
   Pro cost less than a cached call of either Workers AI model; an uncached one cost 3 to 5 times more.
-- **What a hit saves in time.** `gemma-4-26b` at 27 000 tokens: 529 to 700 ms to the first token on a hit, 1358 to
+- **What a hit saves in time.** `gemma-4-26b` at 27 000 tokens: 529 to 700 ms of `first` on a hit, 1358 to
   2813 ms on a miss. At 7 000 tokens the gain was small or none: 433 to 497 ms on the four hits, 556 and 567 ms on
   the two misses among the close calls, 852 to 1054 ms on the first call and the two after 300 s and more. `glm-5.3-flash` was too uneven to say: hits from 704 to 3165 ms, misses from 1657 to 17687 ms. MiMo 2.5 Pro
-  at Xiaomi: 1667 to 3331 ms on a hit, 2518 and 2723 ms on the two misses, so no gain was seen. Workers AI's fastest
-  first token was under half of MiMo's fastest (529 ms against 1190 ms).
+  at Xiaomi: 1667 to 3331 ms on a hit, 2518 and 2723 ms on the two misses, so no gain was seen. The
+  smallest `first` in the 27 000-token rows was 529 ms on Workers AI (`gemma-4-26b`) and 1190 ms for MiMo 2.5 Pro (at
+  DigitalOcean), but the first is a piece of reasoning and the second a piece of the answer (A limit of `first`), so
+  this does not show that Workers AI answers sooner.
 - **`x-session-affinity`: one pair of runs, and one run against.** `glm-5.3-flash` at 27 000 tokens missed on the
   fifth call of six and after 60 s without the header, and on neither with it. That is one run each way. With the
   header, `gemma-4-26b` at 7 000 tokens still missed on calls 2 and 5. So the header did not make a hit certain, and
@@ -132,7 +145,7 @@ One run of each, so each line below is what that run showed, not a rate.
 - **`xiaomi/mimo-v2.5` reported the prefix cached on every call after the first**, at three providers, two of which
   (Xiaomi at call 2, Novita after 60 s) had not been sent it by this run, and still after 900 s. Not explained. It was billed as cached.
   It also wrote 14 to 16 reasoning tokens on most calls with reasoning switched off, and three of its 18 calls took
-  24, 57 and 59 s to the first token.
+  24, 57 and 59 s to `first`.
 - Only part of a prefix is reported cached: 27264 of 27320, 6912 of 6989. Each count at Workers AI, Xiaomi, Novita
   and GMICloud is a multiple of 64. DigitalOcean's are not (27344 and 7328, multiples of 16). Block size was not tested.
 - **A short prompt.** `glm-5.3-flash` did not cache a prompt of 1872 tokens on its second call, 2 s after the first.
@@ -140,6 +153,7 @@ One run of each, so each line below is what that run showed, not a rate.
 
 ## Not measured
 
+- Workers AI with reasoning switched off, so that `first` is the first piece of an answer on both services.
 - A second run of anything. The times of `glm-5.3-flash` in particular need more than one.
 - MiMo and a Workers AI model on one task: nothing here says which answers better.
 - A prefix that grows turn by turn, as an agent's does. Each call here had the same prefix and a new last message.

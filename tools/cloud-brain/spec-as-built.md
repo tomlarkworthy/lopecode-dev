@@ -3380,6 +3380,28 @@ $0.15 model is refused 402. Four sentences written for `ai.run` alone now name t
 `max_completion_tokens` is parsed and written again; said. `ai.v1/models` gave 70 models and that is all of them
 (Cloudflare's `total_count` says 324, page 2 is empty, `per_page=50` gives 50 then 20).
 
+**The fresh review of those fixes (FIX, 7 findings), each verified first.** Kernel `e6067c676e8f`, `brain-x-ai`
+`81cecba2a8d7`, cb4, 2026-10-10 06:08 UTC.
+1. `never` matched `infra.` and not `infra/`, and since the morning a name may go on with a `/`. Before, on cb4:
+   `token.create { methods: ["infra/*"] }` answered 200 (no handler has such a name, so it reached nothing; token
+   revoked). Now `(infra|secret|token|grant|people)[./]`: `infra/*` 400, `secret/x` 400, `ai.v1/*` 200 (06:09 UTC).
+   Asserted in `test_tokens_reach_only_their_methods`.
+2. A page on another origin could read one header of an answer, `x-proxy-upstream`. Now also `x-brain-price`,
+   `x-ai-usd`, `x-ai-neurons`. curl with `origin: https://example.com`: `access-control-expose-headers: x-brain-price,
+   x-ai-usd, x-ai-neurons, x-proxy-upstream`. Not read from a page in a browser.
+3. `ai.v1/models` sent the caller's query string to Cloudflare when there was one, so a client with
+   `defaultQuery: { usd }` asked `/ai/models/search?usd=…` with no `per_page`. Now always `?per_page=200` and nothing
+   of the caller's. On cb4 `ai.v1/models?usd=0.0005&per_page=1` gives 70, as with no query. Asserted.
+4. The kernel's prose now says a preflight's headers are echoed only when they are letters, digits and `-`
+   (`x_trace_id` is told `authorization, content-type`; asserted, and seen on cb4).
+5. The first paragraph of brain-ai names `max_completion_tokens` beside `max_tokens`.
+6. `ai-cache.md`: reasoning was off on the OpenRouter calls only, and 46 of 47 Workers AI calls returned no answer
+   text, so their `first` is a piece of reasoning. The sentence that set 529 ms against 1190 ms no longer reads as
+   Workers AI answering sooner. Not measured again.
+7. `ai-cache.md`: the protocol line names `USD=<n>` and the value of each run.
+
+Tests in a local tab, forced from a module of their own: kernel 26 of 26, `test_ai_*` 9 of 9. `redistil` 18 `same`.
+
 **The price with no `usd`.** `"usd" in request.params ? double(request.params.usd) : 0.01`, and the service budgets
 from the same number. Rejected: the body's `max_tokens` at list price (the core's rule does not see a body) and a
 header (it does not see headers); each is a core change, and the core was left alone. The over-charge is whatever

@@ -305,7 +305,12 @@ parent session; see "Added 2026-10-09 20:41 CEST" below and `tools/cloud-brain/c
   - Refusals are `{ error, message }`, not OpenAI's shape. `/responses` is not passed. No tool call was run through it.
   - `ai-cache.md`: Workers AI kept a prefix 60 s and not 300 s; MiMo 2.5 Pro at Xiaomi 300 s and not 900 s. One run each.
   - Reviewed by two fresh agents 2026-10-10: `brain-ai.ojs` (BLOCK, 5 findings) and `ai-cache.md` (FIX, 10), all
-    acted on (spec-as-built, "The token, broken and mended the same morning"). The fixes are not reviewed.
+    acted on (spec-as-built, "The token, broken and mended the same morning").
+  - The fixes reviewed by a third fresh agent 2026-10-10 (FIX, 7 findings), all acted on (kernel `e6067c676e8f`,
+    `brain-x-ai` `81cecba2a8d7`): a token could name `infra/*`; a page could not read the price headers;
+    `ai.v1/models` sent a client's `usd` on. These last fixes are not reviewed.
+  - `ai-cache.md`: `first` on Workers AI is a reasoning piece (46 of 47 calls had no answer text). Run again with
+    reasoning off on both sides before comparing first-token times between the two services.
 - The deployer's kept source carried one test cell from 23:33 to 23:36 (`const _10en1wa = (x) => x`): the record
   had been emitted in a tab where a test had been forced inside the module. Installed again from a clean tab
   (`f4430b4ce874`). A test is forced from a module of its own (`runtime.module()` and `import`), not inside the
