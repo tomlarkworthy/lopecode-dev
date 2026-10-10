@@ -15,7 +15,7 @@ viewof issuesView = issuesPanel({ client, owner: !!(session && session.owner), i
 issuesJoinedAt = (listed, loaded = {}, worker = "brain-x-issues") =>
   (Object.values(loaded || {}).find((l) => l && l.worker === worker) || {}).hash || (((listed && listed.modules) || []).find((m) => m.worker === worker) || {}).hash || null
 // %%
-md`The panel above is for the owner, signed in. It answers from a copy of the view that the page keeps, one for each Brain's address, in \`localStorage\` under \`${issuesStore("ADDRESS").name}\`: one \`issue.snapshot\`, then \`issue.sync\` every \`wait\` milliseconds while the tab is visible.
+md`The panel above is for the owner, signed in. It answers from a copy of the view that the page keeps, one for each Brain's address, in \`localStorage\` under \`brain_issues ADDRESS\`: one \`issue.snapshot\`, then \`issue.sync\` every \`wait\` milliseconds while the tab is visible.
 
 - **For your attention**, above the filters: the open issues that wait for the owner, last changed first. One waits when it has the label \`needs-owner\` or \`security\`, is at \`awaiting-approval\`, is of kind \`security\`, or is not shown to this caller. Each row has the issue's last comment (its last event when it has none), one box, and beside it a button for each state the owner may move the issue to, **Comment**, and **− needs-owner** where it has that label. The text of the box is the reason of a move or the body of the comment, and the box is emptied when the service has taken it. A write that is refused, or that the network drops, leaves the text: where the press had taken the issue out of the block, its row comes back with the same box and its buttons can be pressed again. Until the service has answered a press, the buttons of that row are disabled, so a second press is not a second event; the box can still be typed in, and it keeps the caret when another caller's event draws its row again. A move that needs a reason is disabled until the box has text. A move the guard would refuse whatever the reason has no button there, nor has a swap, nor a move that needs refs: those are in the open issue, which the row's title opens. The last comment is one \`issue.get\` for each listed issue, asked again when the issue changes.
 - **State, Kind, Find** filter the table from the copy, with no call. Find reads the title, \`about\`, the labels and the id.
@@ -34,24 +34,24 @@ md`## Methods
 | | |
 |---|---|
 | Worker | \`brain-x-issues\` |
-| \`issue.open\` | procedure. \`{ key, title, body, kind, about, parent, labels, id }\`. \`kind\` is one the policy names (${Object.keys(issuesDefaultPolicy.kinds).map((k) => "\`" + k + "\`").join(", ")} in the default). \`about\` is \`brain\` or a Worker's name. \`id\` may be made by the caller (\`a-z 0-9 -\`, 40 at most, not \`i<number>\`); left out it is \`i<seq>\`. A subtask is an issue with a \`parent\`. |
+| \`issue.open\` | procedure. \`{ key, title, body, kind, about, parent, labels, id }\`. \`kind\` is one the policy names (\`bug\`, \`task\`, \`feedback\`, \`security\` in the default). \`about\` is \`brain\` or a Worker's name. \`id\` may be made by the caller (\`a-z 0-9 -\`, 40 at most, not \`i<number>\`); left out it is \`i<seq>\`. A subtask is an issue with a \`parent\`. |
 | \`issue.comment\` | procedure. \`{ key, id, body }\` |
 | \`issue.label\` | procedure. \`{ key, id, add, remove }\`, lists of names |
-| \`issue.review\` | procedure. \`{ key, id, verdict, body, refs }\`. \`verdict\`: ${issuesLimits.verdicts.map((k) => "\`" + k + "\`").join(", ")}. What each does is the policy's: in the default, \`changes\` and \`block\` both let the issue be sent back, and a \`block\` also stops a pass until it is. |
+| \`issue.review\` | procedure. \`{ key, id, verdict, body, refs }\`. \`verdict\`: \`pass\`, \`changes\`, \`block\`. What each does is the policy's: in the default, \`changes\` and \`block\` both let the issue be sent back, and a \`block\` also stops a pass until it is. |
 | \`issue.move\` | procedure. \`{ key, id, to, reason, refs }\`. \`to\` is a state. Approval and revert are moves. |
 | \`issue.swap\` | procedure. \`{ key, id, swap, reason }\`: a swap the issue's workflow lists. \`{ key, id, workflow, state, reason }\`: any other, the owner present. |
 | \`issue.narrow\` | procedure. \`{ key, id, move, guard, reason }\` adds a guard to one move of one issue. \`{ key, id, remove, reason }\` removes guard number \`remove\`, the owner present. |
-| \`issue.install\` | procedure, the owner present. \`{ key, policy, migrate, reason }\`. \`reason\`, required, text of 1 to ${issuesLimits.reason} characters, is kept in the policy event: who asked for the install and why. It is read back as \`policy.reason\` of \`issue.policy\` and \`issue.snapshot\` while that policy is in force, and in the policy event that \`issue.sync\` answers. Without one the answer is 400 and nothing is written. The default policy has none, nor has an install from before one was required (on cb4, the deploy of 2026-10-10 16:10 CEST); for those \`policy\` has no \`reason\`. \`migrate\`: \`{ HASH: { workflow, states: { old: new } } }\` moves the open issues of workflow \`HASH\`, each with its own event, keyed \`policy/<seq>/<id>\`. \`HASH\` is a workflow hash the record keeps (\`issue.policy\` answers those in force); anything else is 400 before the policy is written, and so is a \`states\` that names a state \`HASH\` lacks or maps one to something that is not a state of \`workflow\`, whether or not an issue is in it, and an entry with no \`workflow\`. An issue already on the workflow and in the state it would land in gets no event and is in neither list. With the view lost the answer is 503 \`ViewLost\`. A \`migrate\` that names a workflow the policy lacks, or would land an issue in a state its new workflow lacks, is refused with 400 before the policy is written. The issues are read again once the policy is written, and each again before its own event: one opened on \`HASH\` meanwhile is moved, and one closed or moved meanwhile is left where it is. \`{ seq, hashes, moved, left }\`; \`left\` is \`[{ id, why }]\` of those not moved, empty when all were. The \`key\` is looked up before anything else in the body is read. One that a policy event holds, sent with the same policy, answers that event with \`duplicate: true\`, \`moved: []\`, \`left: []\` and the \`reason\` that was kept, and moves nothing. The \`reason\` sent with it is not read: one that is missing is not answered 400, and one that differs is not written. A migration cut short is finished by the owner's own swaps. Sent with another policy it is 400, and so is a \`key\` another kind of event holds. |
+| \`issue.install\` | procedure, the owner present. \`{ key, policy, migrate, reason }\`. \`reason\`, required, text of 1 to 2000 characters, is kept in the policy event: who asked for the install and why. It is read back as \`policy.reason\` of \`issue.policy\` and \`issue.snapshot\` while that policy is in force, and in the policy event that \`issue.sync\` answers. Without one the answer is 400 and nothing is written. The default policy has none, nor has an install from before one was required (on cb4, the deploy of 2026-10-10 16:10 CEST); for those \`policy\` has no \`reason\`. \`migrate\`: \`{ HASH: { workflow, states: { old: new } } }\` moves the open issues of workflow \`HASH\`, each with its own event, keyed \`policy/<seq>/<id>\`. \`HASH\` is a workflow hash the record keeps (\`issue.policy\` answers those in force); anything else is 400 before the policy is written, and so is a \`states\` that names a state \`HASH\` lacks or maps one to something that is not a state of \`workflow\`, whether or not an issue is in it, and an entry with no \`workflow\`. An issue already on the workflow and in the state it would land in gets no event and is in neither list. With the view lost the answer is 503 \`ViewLost\`. A \`migrate\` that names a workflow the policy lacks, or would land an issue in a state its new workflow lacks, is refused with 400 before the policy is written. The issues are read again once the policy is written, and each again before its own event: one opened on \`HASH\` meanwhile is moved, and one closed or moved meanwhile is left where it is. \`{ seq, hashes, moved, left }\`; \`left\` is \`[{ id, why }]\` of those not moved, empty when all were. The \`key\` is looked up before anything else in the body is read. One that a policy event holds, sent with the same policy, answers that event with \`duplicate: true\`, \`moved: []\`, \`left: []\` and the \`reason\` that was kept, and moves nothing. The \`reason\` sent with it is not read: one that is missing is not answered 400, and one that differs is not written. A migration cut short is finished by the owner's own swaps. Sent with another policy it is 400, and so is a \`key\` another kind of event holds. |
 | \`issue.policy\` | query. \`{ policy: { seq, kinds, names, reason }, workflows }\` in force; \`?hash=\` one workflow, an older one too. |
 | \`issue.snapshot\` | query. \`{ seq, head, wait, policy, workflows, issues }\`: the whole view at \`seq\`. The \`body\` of a closed issue is left out (\`bodyLeftOut\`). An issue the caller may not read is \`{ id, kind, state, closed, parent, hidden: true }\`, here and in \`issue.list\` and \`issue.get\`. |
-| \`issue.sync\` | query. \`?after=<seq>&head=<hash>&limit=${issuesLimits.syncPage}\`. \`{ seq, wait, events }\`: the events after \`after\`, and the milliseconds the page waits before it asks again. An event of an issue the caller may not read is \`{ seq, id, type, at, hash, hidden: true, issue }\`. \`reset: true\` and no events when \`after\` is past the record's head, or \`head\` is not the hash of event \`after\`: the caller's copy is of another record, and it starts again from a snapshot. |
-| Settings | \`syncMs\` (${issuesLimits.syncMs}): what \`issue.sync\` and \`issue.snapshot\` answer as \`wait\`. Changed with \`config.set\` on the core, no deploy. |
+| \`issue.sync\` | query. \`?after=<seq>&head=<hash>&limit=200\`. \`{ seq, wait, events }\`: the events after \`after\`, and the milliseconds the page waits before it asks again. An event of an issue the caller may not read is \`{ seq, id, type, at, hash, hidden: true, issue }\`. \`reset: true\` and no events when \`after\` is past the record's head, or \`head\` is not the hash of event \`after\`: the caller's copy is of another record, and it starts again from a snapshot. |
+| Settings | \`syncMs\` (5000): what \`issue.sync\` and \`issue.snapshot\` answer as \`wait\`. Changed with \`config.set\` on the core, no deploy. |
 | \`issue.get\` | query. \`?id=\`. \`{ issue, children, events }\` |
 | \`issue.list\` | query. \`?state=&kind=&about=&parent=&label=&limit=100\`. \`{ issues }\`, last changed first. |
 | \`issue.verify\` | query. \`?after=<seq>\`. Checks \`seq\`, \`prev\`, \`hash\` and \`sig\` of each event after \`after\`. \`{ ok, seq, head, checked, guards }\`, or \`{ ok: false, seq, why, checked }\` at the first that fails; \`checked\` is how many passed. With \`guards=true\` it starts at 1 and also judges each event against the workflow in force when it was written. |
 | \`issue.key\` | query, anyone. \`{ alg: "ES256", key }\`: the public key, a JWK. |
 | \`issue.resign\` | procedure, the owner present. Signs every event's \`hash\` again with the key the Worker holds now, for after the key is replaced. No hash changes: \`sig\` is outside it. \`{ seq, signed }\`. |
-| \`issue.rebuild\` | procedure, the owner present. Makes the view again from the record. \`{ seq, issues }\`. A write that lands while it runs is in the view it leaves: the head is read in the transaction that writes the last rows, and while it has moved the events after it are read and their rows written. After ${issuesLimits.rebuildRounds + 1} writes with the head still moving it answers 503 \`Busy\`; send it again. Up to 297 rows the view is cleared and written in one transaction; past that in several, and a call between two of them is answered from part of the view |
+| \`issue.rebuild\` | procedure, the owner present. Makes the view again from the record. \`{ seq, issues }\`. A write that lands while it runs is in the view it leaves: the head is read in the transaction that writes the last rows, and while it has moved the events after it are read and their rows written. After 6 writes with the head still moving it answers 503 \`Busy\`; send it again. Up to 297 rows the view is cleared and written in one transaction; past that in several, and a call between two of them is answered from part of the view |
 | Storage | \`sql\`: \`issues_events\` (the record), \`issues_view\`, \`issues_meta\` (the policy and every workflow by hash) |
 | Secret | \`ISSUES_SIGNING_KEY\`: an ECDSA P-256 private key as a JWK. Without it a write, \`issue.verify\` and \`issue.key\` answer 503 \`NotConfigured\`; the other queries answer. |
 
@@ -80,7 +80,32 @@ A changed or removed event breaks \`prev\` of each one after it. What the chain 
 md`## A policy
 
 \`\`\`js
-${issuesExampleText}
+{ kinds: {"bug":"task","security":"security"},
+  workflows: {
+    task: {
+      states: ["open","done"],
+      start: "open",
+      closed: ["done"],
+      read: "true",
+      open: "true",
+      comment: "true",
+      label: "caller.kind in [\\"owner\\", \\"token\\"]",
+      review: "false",
+      narrow: "caller.kind in [\\"owner\\", \\"token\\"]",
+      moves: [{"name":"finish","from":"open","to":"done","guard":"caller.kind in [\\"owner\\", \\"token\\"] && event.reason != \\"\\""}],
+      swaps: [{"name":"escalate","to":{"workflow":"security","state":"open"},"guard":"caller.kind in [\\"owner\\", \\"token\\"] && \\"security\\" in issue.labels"}] },
+    security: {
+      states: ["open","done"],
+      start: "open",
+      closed: ["done"],
+      read: "caller.present || caller.actor == issue.opener",
+      open: "true",
+      comment: "true",
+      label: "caller.kind in [\\"owner\\", \\"token\\"]",
+      review: "false",
+      narrow: "caller.kind in [\\"owner\\", \\"token\\"]",
+      moves: [{"name":"finish","from":"open","to":"done","guard":"caller.kind in [\\"owner\\", \\"token\\"] && event.reason != \\"\\""}],
+      swaps: [] } } }
 \`\`\`
 
 That is the cell \`issuesExamplePolicy\`, and \`issue.install\` takes it as it is. A move's \`from\` is a state, a list of states, or \`"*"\`. A guard is one CEL expression (*Access rules* in \`@tomlarkworthy/cloudflare-iac\`). It is true or the act is refused; an error refuses. A guard that does not parse refuses the install. A workflow is named in an event by the SHA-256 of its JSON, so an issue stays on the workflow it was opened under until a swap moves it.
@@ -107,13 +132,13 @@ Every fact is in the record, so \`issue.verify?guards=true\` can judge every eve
 
 | workflow | kinds | |
 |---|---|---|
-| \`task\` | \`bug\`, \`task\` | ${issuesDefaultPolicy.workflows.task.states.join(" → ")}. Listed swap \`escalate\` to \`security\` at \`triaged\`, for whoever may triage, when the issue has the label \`security\`. |
+| \`task\` | \`bug\`, \`task\` | open → triaged → ready → in-progress → in-review → awaiting-approval → done → rejected → reverted. Listed swap \`escalate\` to \`security\` at \`triaged\`, for whoever may triage, when the issue has the label \`security\`. |
 | \`security\` | \`security\` | as \`task\`, every issue needs approval, read by the owner present and its opener, no swap out |
 | \`feedback\` | \`feedback\` | open → closed. Listed swap \`promote\` to \`task\`. |
 
 Who may triage, label and narrow: the owner or a token; taking the label \`major\` off is the owner present. A reviewer and whoever passes the issue is not the implementer, and nobody passes it while a review says \`block\`. A guard added to one move of an issue does not stop another move to the same state: the owner's \`owner-reject\` goes ahead whatever is added to \`reject\`. \`approve\`, \`revert\` and a reject from any state are the owner present. The guards are the cell \`issuesDefaultPolicy\`.`
 // %%
-// The smallest policy with a listed swap: two workflows of two states. Shown in the prose above, and installed by a test.
+// The smallest policy with a listed swap: two workflows of two states. Written out in the prose above, and installed by a test.
 issuesExamplePolicy = {
   const team = 'caller.kind in ["owner", "token"]';
   const flow = (read, swaps) => ({ states: ["open", "done"], start: "open", closed: ["done"], read, open: "true", comment: "true", label: team, review: "false", narrow: team, moves: [{ name: "finish", from: "open", to: "done", guard: team + ' && event.reason != ""' }], swaps });
@@ -748,7 +773,10 @@ issuesStore = (brain = "") => ((name) => ({
       localStorage.setItem(name, JSON.stringify(view));
     } catch (e) {}
   }
-}))("brain_issues " + brain)
+}))(issuesStoreName(brain))
+// %%
+// The key of the page's copy. A cell of its own: issuesStore names localStorage, which a test with no browser cannot read.
+issuesStoreName = (brain = "") => "brain_issues " + brain
 // %%
 // The issues, from a copy the page keeps: one snapshot, then the events after it every few seconds. A list and its
 // filters are answered from the copy. A write is applied to the copy before it is sent, and withdrawn if refused.
@@ -1551,6 +1579,32 @@ test_issues_declares_what_it_needs = {
   const r = await bare.fetch("https://issues.internal/xrpc/com.lopecode.brain.issue.open", { method: "POST", headers: { "x-brain-caller": "owner", "x-brain-via": "session", "content-type": "application/json" }, body: JSON.stringify({ key: "k", title: "x", kind: "task" }) });
   expect([r.status, (await r.json()).message]).toEqual([503, "the secret ISSUES_SIGNING_KEY is not set"]);
   return methods.length + " methods";
+}
+// %%
+// The reference is the text of the prose cells as the module's source has it (referenceOf in cloudflare-iac): a hole in
+// one of them is printed as it is written and never filled. So the prose states each value, and this holds it to the cells.
+test_issues_reference_states_each_value_and_has_no_hole = {
+  const sim = await simulate(issues_service, { sql: issuesFakeSql().run });
+  const got = await sim.fetch("https://issues.internal/xrpc/com.lopecode.brain.getSource?part=reference", { headers: { "x-brain-caller": "anonymous" } });
+  expect(got.status).toBe(200);
+  const text = await got.text();
+  expect(text).toContain("| `issue.open` |");
+  expect(text.split("$" + "{").length - 1).toBe(0);
+  const ticked = (l) => l.map((k) => "`" + k + "`").join(", ");
+  const L = issuesLimits;
+  const stated = [
+    "under `" + issuesStoreName("ADDRESS") + "`",
+    "`kind` is one the policy names (" + ticked(Object.keys(issuesDefaultPolicy.kinds)) + " in the default)",
+    "`verdict`: " + ticked(L.verdicts) + ".",
+    "text of 1 to " + L.reason + " characters",
+    "&limit=" + L.syncPage + "`",
+    "`syncMs` (" + L.syncMs + ")",
+    "After " + (L.rebuildRounds + 1) + " writes",
+    "| " + issuesDefaultPolicy.workflows.task.states.join(" → ") + ". Listed swap",
+    "```js\n" + issuesExampleText + "\n```"
+  ];
+  for (const s of stated) expect(text).toContain(s);
+  return stated.length + " values stated, no hole";
 }
 // %%
 test_issues_panel_draws_and_applies_a_write_before_the_answer = {
