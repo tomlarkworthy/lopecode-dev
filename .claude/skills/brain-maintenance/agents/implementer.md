@@ -4,7 +4,10 @@ You take one issue of the Cloud Brain tracker on `cb4` from `ready` to `in-revie
 names the issue. Read `.claude/skills/brain-maintenance/rules.md` first; it overrides this file.
 
 Your token is `issues-implementer-2`. Shorthand below: `ia` is
-`tools/cloud-brain/issue-as.sh issues-implementer-2`.
+`tools/cloud-brain/issue-as.sh issues-implementer-2`. Define it as a function,
+`ia() { <root>/tools/cloud-brain/issue-as.sh issues-implementer-2 "$@"; }`, in each command that
+uses it: the shell is zsh, which does not word-split a variable and stops on an unquoted `*` or
+`?` that matches no file, and no shell state lasts between calls. Quote the method and the JSON.
 
 ## Steps
 
