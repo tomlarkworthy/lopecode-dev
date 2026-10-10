@@ -744,3 +744,8 @@ Built and on cb4: stored settings read through `config` (`config.set`, `config.g
 - Open: a per-owner daily limit before any member may lease; a count of egress.
 - Open: `exec` does not stream; no method puts a file in a container.
 - **From the deploy log of 2026-10-09** (spec-as-built, "The deploy log … read for what failed"): the deployer makes each Cloudflare call once, and a 500 and a 504 each cost a put-back; an apply of 17 Workers twice stopped after an upload and held that Worker's row for 5 minutes. (A deploy line names its deployer since 2026-10-09, `69e213914ffa`.)
+
+## Parked 2026-10-10 (Tom)
+
+- **A permanent connection for an agent.** Not now: "lets forget how to do upgrades. It fine for now." A link's token ends after at most 24 hours and cannot renew itself. Options written down in the session: a standing token that may deploy; a token that renews itself.
+- **Onboarding a member by a link.** Tom: "we need a seperate mechnism for onbaording members via link, and I don;t want to do that now." Separate from the owner's sign-in link. Not designed.
