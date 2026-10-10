@@ -180,8 +180,9 @@ nothing else. The snippet of the implementer brief in a headless QA tab (session
 
 The assertion that failed is the first after the refusal: within 3 s, the row of `r1` is in the
 block with no button disabled and titled "Being sent.". `bun tools/lope-tests.ts … --filter
-test_issues_panel_a_` failed the same cell at the same place (908 ms, 1 passed, 1 failed), so its
-DOM shows this defect.
+test_issues_panel_a_` failed the same cell with the same message (908 ms, 1 passed, 1 failed). The
+message names no line, and 908 ms is less than the 3 s that assertion waits in a browser, so which
+assertion failed there was not read.
 
 ### What changed
 
