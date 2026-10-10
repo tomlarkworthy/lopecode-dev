@@ -1765,8 +1765,8 @@ img.ProseMirror-separator {
     <div class="cell-editor-body" style="display: none;"></div>
   </div></div><div class="observablehq" cell="readiness"><div style="font:13px system-ui;padding:.5em .8em;border:1px solid color-mix(in srgb, currentColor 25%, transparent);border-radius:6px"><div style="display:flex;gap:1.2em;flex-wrap:wrap;align-items:baseline">
     <strong>Not ready to hand over</strong>
-    <span style="opacity: 1;"><strong>5</strong> annotations to resolve</span><span style="opacity: 1;"><strong>1</strong> blocking questions open</span><span style="opacity: 0.5;"><strong>0</strong> of 14 requirements without a check</span><span style="opacity: 0.5;"><strong>0</strong> of 0 states without a drawing</span>
-  </div><ol style="margin:.5em 0 0;padding-left:1.4em"><li><a href="#">blocking question</a>: brain.ts confirm with no name confirms every Worker on probation (brain-deployer.ojs:823). After this change t…</li><li><a href="#">open question</a>: The Brain's page boots @tomlarkworthy/tests, which runs every test_ cell present. With one module in view that…</li><li><a href="#">open question</a>: After a put back for failed tests, is the same hash refused if it is sent again? Today nothing remembers a fai…</li><li><a href="#">open question</a>: The deployer and the kernel are deployed by install-deployer and by the recovery path, not by infra.apply. Are…</li></ol></div></div><div><div class="cell-editor" style="display: flex;
+    <span style="opacity: 1;"><strong>9</strong> annotations to resolve</span><span style="opacity: 0.5;"><strong>0</strong> blocking questions open</span><span style="opacity: 0.5;"><strong>0</strong> of 15 requirements without a check</span><span style="opacity: 0.5;"><strong>0</strong> of 0 states without a drawing</span>
+  </div></div></div><div><div class="cell-editor" style="display: flex;
            flex-direction: column;
            background: var(--theme-background-alt);">
     <style>
@@ -2116,7 +2116,7 @@ img.ProseMirror-separator {
     <div class="cell-editor-body" style="display: none;"></div>
   </div></div><div class="observablehq" cell="requirements"><span class="observablehq--collapsed observablehq--inspect"><span class="observablehq--cellname">requirements = </span><a><svg width="8" height="8" class="observablehq--caret">
     <path d="M7 4L1 8V0z" fill="currentColor"></path>
-  </svg>Array(14) [</a><span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>]</span></div><div><div class="cell-editor" style="display: flex;
+  </svg>Array(15) [</a><span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>, <span class="observablehq--shallow">Object</span>]</span></div><div><div class="cell-editor" style="display: flex;
            flex-direction: column;
            background: var(--theme-background-alt);">
     <style>
@@ -2142,7 +2142,7 @@ img.ProseMirror-separator {
     <div class="cell-editor-body" style="display: none;"></div>
   </div></div><div class="observablehq" cell="requirementsTable"><table style="font-size:.9em">
   <thead><tr><th>id</th><th>requirement</th><th>check</th></tr></thead>
-  <tbody><tr data-requirement="R1"><td><strong>R1</strong></td><td>After a deploy by `infra.apply` of a Worker that has a version before it, the deployer shall put that Worker on probation: state `probation`, with the hash, the hash before it and the time. Today this is so for the kernel, the core and the page's Worker only. `memberDeploy` is untouched.</td><td><code>brain-deployer: test_deployer_an_applied_worker_is_on_probation_after_a_deploy</code></td></tr><tr data-requirement="R2"><td><strong>R2</strong></td><td>While a Worker is on probation, when 10 minutes (`probationMs`) have passed with no passing verdict, the deployer shall put it back to the version before with the reason `not confirmed in 10 minutes`, as `nextKernelState` words it today.</td><td><code>brain-deployer: test_deployer_unverified_worker_is_put_back_at_the_limit</code></td></tr><tr data-requirement="R3"><td><strong>R3</strong></td><td>While a Worker is on probation, an apply, a redistil with apply, or a remove of that Worker shall be refused with the string under Words, and a deploy of any other Worker in the same call shall go on.</td><td><code>brain-deployer: test_deployer_refuses_a_deploy_over_an_unverified_one</code></td></tr><tr data-requirement="R4"><td><strong>R4</strong></td><td>After a deploy, and before it answers the apply, the deployer shall buy browser time (`browser.extend`, 120 s) and make one run (`browser.run`) of the Brain's page with that Worker's module alone in view. The apply's result for the Worker is then `verified`, `put-back`, or `probation` when the run gave no verdict.</td><td><code>brain-deployer: test_deployer_starts_one_verify_run_per_deploy; on cb4: logs.query at=deploy.verify after an apply</code></td></tr><tr data-requirement="R5"><td><strong>R5</strong></td><td>The verdict shall carry the hash the page loaded. The deployer shall act on it only when that hash is the one it deployed and is still running; any other verdict is logged and dropped.</td><td><code>brain-deployer: test_deployer_drops_a_verdict_for_another_hash</code></td></tr><tr data-requirement="R6"><td><strong>R6</strong></td><td>When the verdict is a pass, the deployer shall end the probation, record the hash as confirmed, and tell the core, which marks the route verified.</td><td><code>brain-deployer: test_deployer_pass_ends_probation; on cb4: service.list shows verified.ok for the hash</code></td></tr><tr data-requirement="R7"><td><strong>R7</strong></td><td>When the verdict is a fail (a test threw, or had no result in 30 s), the deployer shall put the Worker back at once with the failed tests in the reason.</td><td><code>brain-deployer: test_deployer_fail_puts_back_at_once</code></td></tr><tr data-requirement="R8"><td><strong>R8</strong></td><td>When the run gives no verdict (the browser service is down, the page did not load, the run passed its time), the deployer shall log `deploy.verify.none` and change nothing. R2 then decides.</td><td><code>brain-deployer: test_deployer_no_verdict_changes_nothing</code></td></tr><tr data-requirement="R9"><td><strong>R9</strong></td><td>The Brain's page shall load a Worker's module only when that module is in the view or is opened by a click. With one module in view, no other Worker's module is loaded and none of its `test_` cells run. The verdict says how many other tests ran (`otherTestsRan`).</td><td><code>cloud-brain: test_page_loads_only_the_modules_in_view; on cb4: otherTestsRan of deploy.verified is the count of the shell's own tests and no service's</code></td></tr><tr data-requirement="R10"><td><strong>R10</strong></td><td>The Brain's page shall send no verdict. `verifyService` runs tests for the reader and reports nothing; `deploy.report` on the core answers only the deployer.</td><td><code>cloud-brain: test_page_sends_no_report; brain-core: test_core_deploy_report_is_the_deployers</code></td></tr><tr data-requirement="R11"><td><strong>R11</strong></td><td>For `brain-x-issues` on cb4 the verdict shall arrive within 60 s of the deploy.</td><td><code>on cb4: the `at` of deploy.verified minus the `at` of the deploy, from logs.query. Measured by hand 2026-10-10 22:35: 9 s from opening the tab to the verdict.</code></td></tr><tr data-requirement="R13"><td><strong>R13</strong></td><td>A module with no `test_` cell is verified: the verdict is a pass with `tests: 0`, and the log line says so.</td><td><code>brain-deployer: test_deployer_a_module_with_no_tests_is_verified</code></td></tr><tr data-requirement="R12"><td><strong>R12</strong></td><td>A Worker deployed for the first time has nothing to be put back to. Its run is made, the verdict is recorded (`verified` or `failing`), and it is not on probation.</td><td><code>brain-deployer: test_deployer_first_deploy_is_verified_with_nothing_to_put_back</code></td></tr><tr data-requirement="R14"><td><strong>R14</strong></td><td>A deploy signed with the recovery key shall go over a Worker on probation (R3 does not refuse it), and the deployer shall log that it did, with the hash it went over.</td><td><code>brain-deployer: test_deployer_recovery_key_deploys_over_an_unverified_worker</code></td></tr></tbody>
+  <tbody><tr data-requirement="R1"><td><strong>R1</strong></td><td>After a deploy by `infra.apply` of a Worker that has a version before it, the deployer shall put that Worker on probation: state `probation`, with the hash, the hash before it and the time. Today this is so for the kernel, the core and the page's Worker only. `memberDeploy` is untouched.</td><td><code>brain-deployer: test_deployer_an_applied_worker_is_on_probation_after_a_deploy</code></td></tr><tr data-requirement="R2"><td><strong>R2</strong></td><td>While a Worker is on probation, when 10 minutes (`probationMs`) have passed with no passing verdict, the deployer shall put it back to the version before with the reason `not confirmed in 10 minutes`, as `nextKernelState` words it today.</td><td><code>brain-deployer: test_deployer_unverified_worker_is_put_back_at_the_limit</code></td></tr><tr data-requirement="R3"><td><strong>R3</strong></td><td>While a Worker is on probation, an apply, a redistil with apply, or a remove of that Worker shall be refused with the string under Words, and a deploy of any other Worker in the same call shall go on.</td><td><code>brain-deployer: test_deployer_refuses_a_deploy_over_an_unverified_one</code></td></tr><tr data-requirement="R4"><td><strong>R4</strong></td><td>After a deploy, and before it answers the apply, the deployer shall buy browser time (`browser.extend`, 120 s) and make one run (`browser.run`) of the Brain's page with that Worker's module alone in view. The apply's result for the Worker is then `verified`, `put-back`, or `probation` when the run gave no verdict.</td><td><code>brain-deployer: test_deployer_starts_one_verify_run_per_deploy; on cb4: logs.query at=deploy.verify after an apply</code></td></tr><tr data-requirement="R5"><td><strong>R5</strong></td><td>The verdict shall carry the hash the page loaded. The deployer shall act on it only when that hash is the one it deployed and is still running; any other verdict is logged and dropped.</td><td><code>brain-deployer: test_deployer_drops_a_verdict_for_another_hash</code></td></tr><tr data-requirement="R6"><td><strong>R6</strong></td><td>When the verdict is a pass, the deployer shall end the probation, record the hash as confirmed, and tell the core, which marks the route verified.</td><td><code>brain-deployer: test_deployer_pass_ends_probation; on cb4: service.list shows verified.ok for the hash</code></td></tr><tr data-requirement="R7"><td><strong>R7</strong></td><td>When the verdict is a fail (a test threw, or had no result in 30 s), the deployer shall put the Worker back at once with the failed tests in the reason.</td><td><code>brain-deployer: test_deployer_fail_puts_back_at_once</code></td></tr><tr data-requirement="R8"><td><strong>R8</strong></td><td>When the run gives no verdict (the browser service is down, the page did not load, the run passed its time), the deployer shall log `deploy.verify.none` and change nothing. R2 then decides.</td><td><code>brain-deployer: test_deployer_no_verdict_changes_nothing</code></td></tr><tr data-requirement="R9"><td><strong>R9</strong></td><td>The Brain's page shall load a Worker's module only when that module is in the view or is opened by a click. With one module in view, no other Worker's module is loaded and none of its `test_` cells run. The verdict says how many other tests ran (`otherTestsRan`).</td><td><code>cloud-brain: test_page_loads_only_the_modules_in_view; on cb4: otherTestsRan of deploy.verified is the count of the shell's own tests and no service's</code></td></tr><tr data-requirement="R10"><td><strong>R10</strong></td><td>The Brain's page shall send no verdict. `verifyService` runs tests for the reader and reports nothing; `deploy.report` on the core answers only the deployer.</td><td><code>cloud-brain: test_page_sends_no_report; brain-core: test_core_deploy_report_is_the_deployers</code></td></tr><tr data-requirement="R15"><td><strong>R15</strong></td><td>A confirm by hand shall name its Worker. `infra.confirm` with no Worker is refused, and `brain.ts confirm` takes the name. One call ends the probation of that Worker and of no other.</td><td><code>brain-deployer: test_deployer_confirm_names_its_worker; tests/tools: brain.ts confirm with no name exits 1 and says to name the Worker</code></td></tr><tr data-requirement="R11"><td><strong>R11</strong></td><td>For `brain-x-issues` on cb4 the verdict shall arrive within 60 s of the deploy.</td><td><code>on cb4: the `at` of deploy.verified minus the `at` of the deploy, from logs.query. Measured by hand 2026-10-10 22:35: 9 s from opening the tab to the verdict.</code></td></tr><tr data-requirement="R13"><td><strong>R13</strong></td><td>A module with no `test_` cell is verified: the verdict is a pass with `tests: 0`, and the log line says so.</td><td><code>brain-deployer: test_deployer_a_module_with_no_tests_is_verified</code></td></tr><tr data-requirement="R12"><td><strong>R12</strong></td><td>A Worker deployed for the first time has nothing to be put back to. Its run is made, the verdict is recorded (`verified` or `failing`), and it is not on probation.</td><td><code>brain-deployer: test_deployer_first_deploy_is_verified_with_nothing_to_put_back</code></td></tr><tr data-requirement="R14"><td><strong>R14</strong></td><td>A deploy signed with the recovery key shall go over a Worker on probation (R3 does not refuse it), and the deployer shall log that it did, with the hash it went over.</td><td><code>brain-deployer: test_deployer_recovery_key_deploys_over_an_unverified_worker</code></td></tr></tbody>
 </table></div><div><div class="cell-editor" style="display: flex;
            flex-direction: column;
            background: var(--theme-background-alt);">
@@ -2394,11 +2394,12 @@ img.ProseMirror-separator {
     </div>
 
     <div class="cell-editor-body" style="display: none;"></div>
-  </div></div><div class="observablehq"><div id="xqqbciompxb" class="lope-editable-md"><h2 id="handover">Handover</h2>
+  </div></div><div class="observablehq"><div id="q2ut0hbtn9" class="lope-editable-md"><h2 id="handover">Handover</h2>
 <p>This changes the deployer, the core and the page. <code>rules.md</code> of the brain-maintenance loop names the kernel, <code>brain-core</code>, <code>brain-db</code> and the deployer as the owner's to deploy; the page's Worker is a recipe that goes on probation. Write, test and stop; Tom deploys all three.</p>
 <h3 id="where-the-work-goes">Where the work goes</h3>
 <ul>
-<li><code>tools/cloud-brain/brain-deployer.ojs</code>: <code>nextKernelState</code> (line 41) already has the three transitions; R1 is the condition at line 525 that puts only non-recipes on probation. R3 is in the <code>change</code> callbacks that <code>apply</code> (line 610) gives <code>guard</code> for a deploy and for a remove, and in <code>redistil</code> with apply. Not inside <code>guard</code> itself: the roll back button of the deployer page, <code>memberDeploy</code> and <code>memberRemove</code> also go through <code>guard</code> and are not refused. R4 to R8: a function beside <code>verdict</code> (line 849) that buys the browser time and makes the run after <code>rows.put("worker/…")</code>, awaited inside the apply, and <code>verdictOf</code> (line 850), which already drops a stale hash (it logs nothing today) and puts back on a fail. The tick (line 796) already puts back at the limit for what is on probation, with the reason <code>not confirmed in 10 minutes</code>, which is kept. <code>memberDeploy</code> (line 966) is a separate path and is not changed.</li>
+<li><code>tools/cloud-brain/brain-deployer.ojs</code>: <code>nextKernelState</code> (line 41) already has the three transitions; R1 is the condition at line 525 that puts only non-recipes on probation. R3 is in the <code>change</code> callbacks that <code>apply</code> (line 610) gives <code>guard</code> for a deploy and for a remove, and in <code>redistil</code> with apply. Not inside <code>guard</code> itself: the roll back button of the deployer page, <code>memberDeploy</code> and <code>memberRemove</code> also go through <code>guard</code> and are not refused. R14 is the same place: a call signed with the recovery key is not refused, and is logged. R4 to R8: a function beside <code>verdict</code> (line 849) that buys the browser time and makes the run after <code>rows.put("worker/…")</code>, awaited inside the apply, and <code>verdictOf</code> (line 850), which already drops a stale hash (it logs nothing today) and puts back on a fail. The tick (line 796) already puts back at the limit for what is on probation, with the reason <code>not confirmed in 10 minutes</code>, which is kept. R15 is <code>confirm</code> (line 823, <code>confirm = async (only = null)</code>), which today confirms every Worker when <code>only</code> is null. <code>memberDeploy</code> (line 966) is a separate path and is not changed.</li>
+<li><code>tools/cloud-brain/brain.ts</code> line 269, which sends <code>{}</code> for <code>confirm</code>: it takes the Worker's name (R15).</li>
 <li><code>tools/cloud-brain/brain-core.ojs</code>: <code>deploy.report</code> (line 524) and <code>toDeployer</code> (line 422). The core keeps <code>verified</code> on the route; it is told by the deployer.</li>
 <li><code>tools/cloud-brain/cloud-brain.ojs</code>: <code>verifyService</code> (line 790), <code>assembled</code> (line 826), <code>assembledRefresh</code>, <code>loadService</code> (line 766).</li>
 <li><code>tools/cloud-brain/cloud-brain-docs.ojs</code> line 240 and <code>cloud-brain-specs.ojs</code> R9, which describe the page reporting.</li>
@@ -2438,8 +2439,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts redistil        # every line same
 <h3 id="steps">Steps</h3>
 <ol>
 <li>Page: load only the modules in view or clicked (R9), and the cell that makes the verdict. Tom deploys the page's Worker. Then by hand, <code>browser.run</code> on cb4 for three Workers: <code>brain-x-issues</code>, <code>brain-x-browser</code>, <code>brain-x-static</code>. <strong>Stop and show</strong> the three verdicts, times, heap and <code>otherTestsRan</code>. If the shell's own tests make a run slow, that is a finding for Tom and not a reason to change the design alone.</li>
-<li>Deployer: R1, R2, R3 with their tests. No run yet, so every deploy is put back at 10 minutes unless confirmed by hand. Do not deploy this step alone.</li>
-<li>Deployer: R4 to R8 and R12 with their tests, the browser stood in for by a fake in the rig. <strong>Stop and show</strong> the tests.</li>
+<li>Deployer: R1, R2, R3, R14 and R15 with their tests, and <code>brain.ts confirm</code> taking a name. No run yet, so every deploy is put back at 10 minutes unless confirmed by hand. Do not deploy this step alone.</li>
+<li>Deployer: R4 to R8, R12 and R13 with their tests, the browser stood in for by a fake in the rig. <strong>Stop and show</strong> the tests.</li>
 <li>Core: <code>deploy.report</code> for the deployer only. Page: R10.</li>
 <li>Tom deploys the deployer, the core and the page to cb4. Then the checks above on cb4. <strong>Stop and show.</strong></li>
 <li>Docs and the as-built record. Then the owner closes <code>deployer-put-back-issues-worker</code> and <code>verify-in-hidden-tab-fails-tests</code>, and removes the line of <code>rules.md</code> about the cluster's browser.</li>
@@ -2520,7 +2521,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts redistil        # every line same
     <div class="cell-editor-body" style="display: none;"></div>
   </div></div><div class="observablehq" cell="questionsTable"><table style="font-size:.9em">
   <thead><tr><th></th><th>question</th><th>answer</th></tr></thead>
-  <tbody><tr data-question="0"><td></td><td>Where is the verify page made?</td><td>It is the Brain's page with one module in view. Tom, 2026-10-10: "I thought the brain already served a shell and pulled in modules." and "I think the brain shoudl default to loading only modules in its view or that are clicked".</td></tr><tr data-question="1"><td></td><td>The Brain's page boots @tomlarkworthy/tests, which runs every test_ cell present. With one module in view that is the shell's own tests and the module's. Does the tests module stay a main of the Brain's page? Claude would keep it and measure in step 1; if the shell's tests slow a run, drop it from the mains and let the Tests pane load it when opened.</td><td><em>open</em></td></tr><tr data-question="2"><td></td><td>A deploy of brain-x-browser, of the page's Worker or of the core can break the thing that verifies it. Is the 10 minute limit enough for those, with no other check? Claude would say yes: a broken verifier gives no verdict, and R2 puts the Worker back.</td><td>Yes, the 10 minute limit is enough. Tom, 2026-10-10, a note on this row: "yes that's fine".</td></tr><tr data-question="3"><td></td><td>The deployer buys 120 s of browser time for each run: 0.003 USD at the rate in brain-browser (N x 0.000025), charged to the caller `deployer`. brain-x-browser takes the deployer's call (brain-browser.ojs:125). Is that spend accepted with no daily limit, or is a limit wanted? With a limit reached, runs give no verdict and every deploy is put back at 10 minutes.</td><td>The spend is accepted. Tom, 2026-10-10, a note on the words "spend accepted": "yes". He asked for no limit, so none is built.</td></tr><tr data-question="4"><td>blocking</td><td>brain.ts confirm with no name confirms every Worker on probation (brain-deployer.ojs:823). After this change that would keep every unverified recipe with no test run. Claude would make a hand confirm name its Worker, and leave it to the owner's session and the recovery key.</td><td><em>open</em></td></tr><tr data-question="5"><td></td><td>Is a module with no test_ cell verified, failed, or refused at deploy? Claude wrote R13 as verified. Every brain-*.ojs has at least one test today.</td><td>Verified (R13). Tom, 2026-10-10, a note on the word "verified": "yes verified".</td></tr><tr data-question="6"><td></td><td>May a deploy signed with the recovery key go over an unverified Worker? It is the way out when a verifier is broken and the fix is to a Worker on probation. Claude would allow it and log it.</td><td>Yes, and it is logged (R14). Tom, 2026-10-10, a note on "allow it and log it": "yes its allowed".</td></tr><tr data-question="7"><td></td><td>After a put back for failed tests, is the same hash refused if it is sent again? Today nothing remembers a failed hash. Claude would not add it: the run is the cost of sending it again.</td><td><em>open</em></td></tr><tr data-question="8"><td></td><td>The deployer and the kernel are deployed by install-deployer and by the recovery path, not by infra.apply. Are they verified by this run too, or left to their probation and brain.ts confirm as today? Claude would leave them as today in this change.</td><td><em>open</em></td></tr><tr data-question="9"><td></td><td>Does a report have to arrive for a deploy to stand?</td><td>Yes. Tom, 2026-10-10, a note on the "No." this row had: "YES! and deploys on that worker are blocked until it happens. I corrected myself on that". A deploy stands only when its passing verdict has arrived. Until then the Worker's next deploy is refused (R3), and with no verdict in 10 minutes it is put back (R2, R8). His first words that day were "It should not be mandatory because it might be lost."; later in the same message he corrected it: "Actually that does imply you can't do another deployment until verified ... the 10 min rollback is mandatory liveliness feature."</td></tr><tr data-question="10"><td></td><td>Is every deploy blocked while one Worker is unverified?</td><td>No. Tom, 2026-10-10: "yes block jsut that one worker that is not verified, other deploys go on."</td></tr><tr data-question="11"><td></td><td>If the browser service is down, every deploy is put back at 10 minutes. Is that accepted?</td><td>Yes. Tom, 2026-10-10: "the 10 min rollback is mandatory liveliness feature. We can't have the next thing building on a faulty base."</td></tr><tr data-question="12"><td></td><td>Browser, or tests with no browser?</td><td>Browser. Tom, 2026-10-10: "I think maybe browser route is better, but the repository work is still very useful".</td></tr></tbody>
+  <tbody><tr data-question="0"><td></td><td>Where is the verify page made?</td><td>It is the Brain's page with one module in view. Tom, 2026-10-10: "I thought the brain already served a shell and pulled in modules." and "I think the brain shoudl default to loading only modules in its view or that are clicked".</td></tr><tr data-question="1"><td></td><td>The Brain's page boots @tomlarkworthy/tests, which runs every test_ cell present. With one module in view that is the shell's own tests and the module's. Does the tests module stay a main of the Brain's page? Claude would keep it and measure in step 1; if the shell's tests slow a run, drop it from the mains and let the Tests pane load it when opened.</td><td>It stays, and step 1 measures what it costs a run. Tom, 2026-10-10, a note on "Does the tests module stay a main of the Brain's page?": "sure".</td></tr><tr data-question="2"><td></td><td>A deploy of brain-x-browser, of the page's Worker or of the core can break the thing that verifies it. Is the 10 minute limit enough for those, with no other check? Claude would say yes: a broken verifier gives no verdict, and R2 puts the Worker back.</td><td>Yes, the 10 minute limit is enough. Tom, 2026-10-10, a note on this row: "yes that's fine".</td></tr><tr data-question="3"><td></td><td>The deployer buys 120 s of browser time for each run: 0.003 USD at the rate in brain-browser (N x 0.000025), charged to the caller `deployer`. brain-x-browser takes the deployer's call (brain-browser.ojs:125). Is that spend accepted with no daily limit, or is a limit wanted? With a limit reached, runs give no verdict and every deploy is put back at 10 minutes.</td><td>The spend is accepted. Tom, 2026-10-10, a note on the words "spend accepted": "yes". He asked for no limit, so none is built.</td></tr><tr data-question="4"><td></td><td>brain.ts confirm with no name confirms every Worker on probation (brain-deployer.ojs:823). After this change that would keep every unverified recipe with no test run. Claude would make a hand confirm name its Worker, and leave it to the owner's session and the recovery key.</td><td>A hand confirm names its Worker (R15). Tom, 2026-10-10, a note on "Claude would make a hand confirm name its Worker": "ok lets try".</td></tr><tr data-question="5"><td></td><td>Is a module with no test_ cell verified, failed, or refused at deploy? Claude wrote R13 as verified. Every brain-*.ojs has at least one test today.</td><td>Verified (R13). Tom, 2026-10-10, a note on the word "verified": "yes verified".</td></tr><tr data-question="6"><td></td><td>May a deploy signed with the recovery key go over an unverified Worker? It is the way out when a verifier is broken and the fix is to a Worker on probation. Claude would allow it and log it.</td><td>Yes, and it is logged (R14). Tom, 2026-10-10, a note on "allow it and log it": "yes its allowed".</td></tr><tr data-question="7"><td></td><td>After a put back for failed tests, is the same hash refused if it is sent again? Today nothing remembers a failed hash. Claude would not add it: the run is the cost of sending it again.</td><td>No. Nothing remembers a failed hash; sent again, it is deployed and run again. Tom, 2026-10-10, a note on "sent again": "no that's unnecessary complicatins".</td></tr><tr data-question="8"><td></td><td>The deployer and the kernel are deployed by install-deployer and by the recovery path, not by infra.apply. Are they verified by this run too, or left to their probation and brain.ts confirm as today? Claude would leave them as today in this change.</td><td>Left as today: their probation, and a confirm by hand that names them (R15). Tom, 2026-10-10, a note on this row: "leave alone for now."</td></tr><tr data-question="9"><td></td><td>Does a report have to arrive for a deploy to stand?</td><td>Yes. Tom, 2026-10-10, a note on the "No." this row had: "YES! and deploys on that worker are blocked until it happens. I corrected myself on that". A deploy stands only when its passing verdict has arrived. Until then the Worker's next deploy is refused (R3), and with no verdict in 10 minutes it is put back (R2, R8). His first words that day were "It should not be mandatory because it might be lost."; later in the same message he corrected it: "Actually that does imply you can't do another deployment until verified ... the 10 min rollback is mandatory liveliness feature."</td></tr><tr data-question="10"><td></td><td>Is every deploy blocked while one Worker is unverified?</td><td>No. Tom, 2026-10-10: "yes block jsut that one worker that is not verified, other deploys go on."</td></tr><tr data-question="11"><td></td><td>If the browser service is down, every deploy is put back at 10 minutes. Is that accepted?</td><td>Yes. Tom, 2026-10-10: "the 10 min rollback is mandatory liveliness feature. We can't have the next thing building on a faulty base."</td></tr><tr data-question="12"><td></td><td>Browser, or tests with no browser?</td><td>Browser. Tom, 2026-10-10: "I think maybe browser route is better, but the repository work is still very useful".</td></tr></tbody>
 </table></div><div><div class="cell-editor" style="display: flex;
            flex-direction: column;
            background: var(--theme-background-alt);">
@@ -2951,11 +2952,219 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts redistil        # every line same
     </div>
 
     <div class="cell-editor-body" style="display: none;"></div>
-  </div></div></div></div><div data-a2-layer="" style="position: absolute; left: 0px; top: 0px; overflow: hidden; pointer-events: none; z-index: 50; width: 1621px; height: 14902px;"><svg style="position: absolute; left: 0px; top: 0px; width: 100%; height: 100%; overflow: visible;"><path data-a2-line="a215q1inz3" fill="none" stroke="var(--theme-foreground-focus, #0085ff)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1 4" stroke-opacity="0.45" d="M 653.625 12375.64453125 L 533.625 12393.390625"></path><polygon data-a2-head="a215q1inz3" fill="var(--theme-foreground-focus, #0085ff)" fill-opacity="0.7" points="533.625,12393.390625 543.1133439331003,12396.030952518926 541.942999350662,12388.117022170587"></polygon><path data-a2-line="a2b3970h96" fill="none" stroke="var(--theme-foreground-focus, #0085ff)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1 4" stroke-opacity="0.45" d="M 396.171875 12956.837461890244 L 393.171875 12957.703125"></path><polygon data-a2-head="a2b3970h96" fill="var(--theme-foreground-focus, #0085ff)" fill-opacity="0.7" points="393.171875,12957.703125 402.9280454839126,12959.051137421617 400.71010155474943,12951.364738737766"></polygon><path data-a2-line="a26u6w7f1x" fill="none" stroke="var(--theme-foreground-focus, #0085ff)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1 4" stroke-opacity="0.45" d="M 396.171875 13289.053025265957 L 328.171875 13301.890625"></path><polygon data-a2-head="a26u6w7f1x" fill="var(--theme-foreground-focus, #0085ff)" fill-opacity="0.7" points="328.171875,13301.890625 337.7576993121243,13304.151592106591 336.2736091439446,13296.290455015005"></polygon><path data-a2-line="a2qfy634bg" fill="none" stroke="var(--theme-foreground-focus, #0085ff)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1 4" stroke-opacity="0.45" d="M 442.81770374752364 13455.6484375 L 442.84375 13455.640625"></path><polygon data-a2-head="a2qfy634bg" fill="var(--theme-foreground-focus, #0085ff)" fill-opacity="0.7" points="442.84375,13455.640625 433.0739822417497,13454.394977397404 435.3723940033692,13462.05769906624"></polygon><path data-a2-line="a2z14qq9t2" fill="none" stroke="var(--theme-foreground-focus, #0085ff)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="1.5 5" stroke-opacity="0.85" d="M 1345.2578125 13704.38880172358 L 786.625 13788.484375"></path><polygon data-a2-head="a2z14qq9t2" fill="var(--theme-foreground-focus, #0085ff)" fill-opacity="1" points="786.625,13788.484375 796.1201669555212,13791.100059324755 794.9292796236223,13783.18919417847"></polygon></svg><div data-a2-hl="a215q1inz3" style="position: absolute; left: 0px; top: 0px; pointer-events: none;"><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 533.625px; top: 12393.390625px; width: 0px; height: 18.015625px;"></div><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 210.484375px; top: 12635.203125px; width: 65.6875px; height: 172.09375px;"></div><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 276.171875px; top: 12638.859375px; width: 93px; height: 18.015625px;"></div></div><div data-ann-id="a215q1inz3" data-a2-state="open" data-a2-folded="false" style="position: absolute; pointer-events: auto; box-sizing: border-box; border-width: 1px; border-style: solid; border-color: var(--theme-foreground-focus, #0085ff); border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 6px; background: var(--theme-background-raised, var(--theme-background, #fff)); color: var(--theme-foreground, #1a1a2e); box-shadow: rgba(0, 0, 0, 0.18) 0px 2px 10px; font-style: normal; font-variant-caps: normal; font-weight: normal; font-width: normal; font-size: 12px; line-height: 1.4; font-family: system-ui, sans-serif; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-variant-emoji: normal; font-feature-settings: normal; font-optical-sizing: auto; font-variation-settings: normal; display: flex; flex-direction: column; width: 240px; left: 653.625px; top: 12322.398438px; z-index: 1; opacity: 1;"><div style="align-items: center; gap: 6px; padding: 3px 6px; cursor: move; border-bottom: 1px solid var(--theme-foreground-faint, #999); font-size: 11px; color: var(--theme-foreground-faint, #999);"><span style="flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">questionsTable · quote</span><button data-a2-edit="a215q1inz3" title="Edit this annotation's cell" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 12px; padding: 0px 2px;">✎</button><button title="Click to pick a new anchor · drag to re-aim" style="border: medium; background: none; cursor: crosshair; color: var(--theme-foreground-focus, #0085ff); font-size: 13px; padding: 0px 2px;">⌖</button><button title="Delete" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 14px; padding: 0px 2px;">×</button></div><div data-a2-body="a215q1inz3" class="a2-note" style="padding: 2px 7px; min-height: 22px; max-height: 340px; overflow: auto;"><p id="nxubibauwk" class="lope-editable-md">yes that's fine</p></div><div data-a2-editor="a215q1inz3" style="display: none; border-top: 1px solid var(--theme-foreground-faint, #999); max-height: 320px; overflow: auto;"></div><div data-a2-grip="a215q1inz3" title="Drag to resize · double-click to fit the note" style="position: absolute; right: 0px; bottom: 0px; width: 14px; height: 14px; cursor: nwse-resize; pointer-events: auto; background: linear-gradient(135deg, transparent 0 55%, var(--theme-foreground-faint, #999) 55% 62%, transparent 62% 74%, var(--theme-foreground-faint, #999) 74% 81%, transparent 81%);"></div></div><div data-a2-hl="a2b3970h96" style="position: absolute; left: 0px; top: 0px; pointer-events: none;"><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 276.171875px; top: 12957.703125px; width: 117px; height: 18.015625px;"></div></div><div data-ann-id="a2b3970h96" data-a2-state="open" data-a2-folded="false" style="position: absolute; pointer-events: auto; box-sizing: border-box; border-width: 1px; border-style: solid; border-color: var(--theme-foreground-focus, #0085ff); border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 6px; background: var(--theme-background-raised, var(--theme-background, #fff)); color: var(--theme-foreground, #1a1a2e); box-shadow: rgba(0, 0, 0, 0.18) 0px 2px 10px; font-style: normal; font-variant-caps: normal; font-weight: normal; font-width: normal; font-size: 12px; line-height: 1.4; font-family: system-ui, sans-serif; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-variant-emoji: normal; font-feature-settings: normal; font-optical-sizing: auto; font-variation-settings: normal; display: flex; flex-direction: column; width: 240px; left: 396.171875px; top: 12886.710938px; z-index: 1; opacity: 1;"><div style="align-items: center; gap: 6px; padding: 3px 6px; cursor: move; border-bottom: 1px solid var(--theme-foreground-faint, #999); font-size: 11px; color: var(--theme-foreground-faint, #999);"><span style="flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">questionsTable · quote</span><button data-a2-edit="a2b3970h96" title="Edit this annotation's cell" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 12px; padding: 0px 2px;">✎</button><button title="Click to pick a new anchor · drag to re-aim" style="border: medium; background: none; cursor: crosshair; color: var(--theme-foreground-focus, #0085ff); font-size: 13px; padding: 0px 2px;">⌖</button><button title="Delete" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 14px; padding: 0px 2px;">×</button></div><div data-a2-body="a2b3970h96" class="a2-note" style="padding: 2px 7px; min-height: 22px; max-height: 340px; overflow: auto;"><p id="xt7guhgki3" class="lope-editable-md">yes</p></div><div data-a2-editor="a2b3970h96" style="display: none; border-top: 1px solid var(--theme-foreground-faint, #999); max-height: 320px; overflow: auto;"></div><div data-a2-grip="a2b3970h96" title="Drag to resize · double-click to fit the note" style="position: absolute; right: 0px; bottom: 0px; width: 14px; height: 14px; cursor: nwse-resize; pointer-events: auto; background: linear-gradient(135deg, transparent 0 55%, var(--theme-foreground-faint, #999) 55% 62%, transparent 62% 74%, var(--theme-foreground-faint, #999) 74% 81%, transparent 81%);"></div></div><div data-a2-hl="a26u6w7f1x" style="position: absolute; left: 0px; top: 0px; pointer-events: none;"><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 276.171875px; top: 13301.890625px; width: 52px; height: 18.015625px;"></div></div><div data-ann-id="a26u6w7f1x" data-a2-state="open" data-a2-folded="false" style="position: absolute; pointer-events: auto; box-sizing: border-box; border-width: 1px; border-style: solid; border-color: var(--theme-foreground-focus, #0085ff); border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 6px; background: var(--theme-background-raised, var(--theme-background, #fff)); color: var(--theme-foreground, #1a1a2e); box-shadow: rgba(0, 0, 0, 0.18) 0px 2px 10px; font-style: normal; font-variant-caps: normal; font-weight: normal; font-width: normal; font-size: 12px; line-height: 1.4; font-family: system-ui, sans-serif; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-variant-emoji: normal; font-feature-settings: normal; font-optical-sizing: auto; font-variation-settings: normal; display: flex; flex-direction: column; width: 240px; left: 396.171875px; top: 13230.898438px; z-index: 1; opacity: 1;"><div style="align-items: center; gap: 6px; padding: 3px 6px; cursor: move; border-bottom: 1px solid var(--theme-foreground-faint, #999); font-size: 11px; color: var(--theme-foreground-faint, #999);"><span style="flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">questionsTable · quote</span><button data-a2-edit="a26u6w7f1x" title="Edit this annotation's cell" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 12px; padding: 0px 2px;">✎</button><button title="Click to pick a new anchor · drag to re-aim" style="border: medium; background: none; cursor: crosshair; color: var(--theme-foreground-focus, #0085ff); font-size: 13px; padding: 0px 2px;">⌖</button><button title="Delete" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 14px; padding: 0px 2px;">×</button></div><div data-a2-body="a26u6w7f1x" class="a2-note" style="padding: 2px 7px; min-height: 22px; max-height: 340px; overflow: auto;"><p id="dj0qy10wq7d" class="lope-editable-md">yes verified</p></div><div data-a2-editor="a26u6w7f1x" style="display: none; border-top: 1px solid var(--theme-foreground-faint, #999); max-height: 320px; overflow: auto;"></div><div data-a2-grip="a26u6w7f1x" title="Drag to resize · double-click to fit the note" style="position: absolute; right: 0px; bottom: 0px; width: 14px; height: 14px; cursor: nwse-resize; pointer-events: auto; background: linear-gradient(135deg, transparent 0 55%, var(--theme-foreground-faint, #999) 55% 62%, transparent 62% 74%, var(--theme-foreground-faint, #999) 74% 81%, transparent 81%);"></div></div><div data-a2-hl="a2qfy634bg" style="position: absolute; left: 0px; top: 0px; pointer-events: none;"><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 321.171875px; top: 13455.640625px; width: 121.671875px; height: 18.015625px;"></div></div><div data-ann-id="a2qfy634bg" data-a2-state="open" data-a2-folded="false" style="position: absolute; pointer-events: auto; box-sizing: border-box; border-width: 1px; border-style: solid; border-color: var(--theme-foreground-focus, #0085ff); border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 6px; background: var(--theme-background-raised, var(--theme-background, #fff)); color: var(--theme-foreground, #1a1a2e); box-shadow: rgba(0, 0, 0, 0.18) 0px 2px 10px; font-style: normal; font-variant-caps: normal; font-weight: normal; font-width: normal; font-size: 12px; line-height: 1.4; font-family: system-ui, sans-serif; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-variant-emoji: normal; font-feature-settings: normal; font-optical-sizing: auto; font-variation-settings: normal; display: flex; flex-direction: column; width: 240px; left: 441.171875px; top: 13384.648438px; z-index: 1; opacity: 1;"><div style="align-items: center; gap: 6px; padding: 3px 6px; cursor: move; border-bottom: 1px solid var(--theme-foreground-faint, #999); font-size: 11px; color: var(--theme-foreground-faint, #999);"><span style="flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">questionsTable · quote</span><button data-a2-edit="a2qfy634bg" title="Edit this annotation's cell" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 12px; padding: 0px 2px;">✎</button><button title="Click to pick a new anchor · drag to re-aim" style="border: medium; background: none; cursor: crosshair; color: var(--theme-foreground-focus, #0085ff); font-size: 13px; padding: 0px 2px;">⌖</button><button title="Delete" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 14px; padding: 0px 2px;">×</button></div><div data-a2-body="a2qfy634bg" class="a2-note" style="padding: 2px 7px; min-height: 22px; max-height: 340px; overflow: auto;"><p id="2fytnq1h2ug" class="lope-editable-md">yes its allowed</p></div><div data-a2-editor="a2qfy634bg" style="display: none; border-top: 1px solid var(--theme-foreground-faint, #999); max-height: 320px; overflow: auto;"></div><div data-a2-grip="a2qfy634bg" title="Drag to resize · double-click to fit the note" style="position: absolute; right: 0px; bottom: 0px; width: 14px; height: 14px; cursor: nwse-resize; pointer-events: auto; background: linear-gradient(135deg, transparent 0 55%, var(--theme-foreground-faint, #999) 55% 62%, transparent 62% 74%, var(--theme-foreground-faint, #999) 74% 81%, transparent 81%);"></div></div><div data-a2-hl="a2z14qq9t2" style="position: absolute; left: 0px; top: 0px; pointer-events: none;"><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 762.625px; top: 13788.484375px; width: 24px; height: 18.015625px;"></div></div><div data-ann-id="a2z14qq9t2" data-a2-state="open" data-a2-folded="false" style="position: absolute; pointer-events: auto; box-sizing: border-box; border-width: 2px; border-style: solid; border-color: var(--theme-foreground-focus, #0085ff); border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 6px; background: var(--theme-background-raised, var(--theme-background, #fff)); color: var(--theme-foreground, #1a1a2e); box-shadow: rgba(0, 0, 0, 0.18) 0px 2px 10px; font-style: normal; font-variant-caps: normal; font-weight: normal; font-width: normal; font-size: 12px; line-height: 1.4; font-family: system-ui, sans-serif; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-variant-emoji: normal; font-feature-settings: normal; font-optical-sizing: auto; font-variation-settings: normal; display: flex; flex-direction: column; width: 240px; left: 1345.257813px; top: 13632.824219px; z-index: 2; opacity: 1;"><div style="align-items: center; gap: 6px; padding: 3px 6px; cursor: move; border-bottom: 1px solid var(--theme-foreground-faint, #999); font-size: 11px; color: var(--theme-foreground-faint, #999);"><span style="flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">questionsTable · quote</span><button data-a2-edit="a2z14qq9t2" title="Edit this annotation's cell" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 12px; padding: 0px 2px;">✎</button><button title="Click to pick a new anchor · drag to re-aim" style="border: medium; background: none; cursor: crosshair; color: var(--theme-foreground-focus, #0085ff); font-size: 13px; padding: 0px 2px;">⌖</button><button title="Delete" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 14px; padding: 0px 2px;">×</button></div><div data-a2-body="a2z14qq9t2" class="a2-note" style="padding: 2px 7px; min-height: 22px; max-height: 340px; overflow: auto;"><p id="ln686uqytra" class="lope-editable-md">YES! and deploys on that worker are blocked until it happens. I corrected myself on that</p></div><div data-a2-editor="a2z14qq9t2" style="display: none; border-top: 1px solid var(--theme-foreground-faint, #999); max-height: 320px; overflow: auto;"></div><div data-a2-grip="a2z14qq9t2" title="Drag to resize · double-click to fit the note" style="position: absolute; right: 0px; bottom: 0px; width: 14px; height: 14px; cursor: nwse-resize; pointer-events: auto; background: linear-gradient(135deg, transparent 0 55%, var(--theme-foreground-faint, #999) 55% 62%, transparent 62% 74%, var(--theme-foreground-faint, #999) 74% 81%, transparent 81%);"></div></div></div></div><div class="lp2-pane" data-module="@tomlarkworthy/claude-code-pairing" style="overflow: auto; height: 100%; width: 100%; position: relative; overflow-anchor: auto; display: none; flex: 1 1 auto;"><div class="lopecode-visualizer"><div class="observablehq-root lope-viz" style="min-height: 2rem; min-width: 2rem;"><div class="observablehq" cell="cc_chat"><div class="cc-chat" style="border: 1px solid var(--theme-foreground-faint); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; background: var(--theme-background-a); font-family: inherit; height: 400px;"><div class="cc-status-bar" style="display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--theme-foreground-faint); font-size: 12px; color: var(--theme-foreground-faint); background: var(--theme-background-b);"><span style="width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: rgb(34, 197, 94);"></span><span class="cc-status-text">Connected to Claude Code</span></div><div class="cc-body" style="flex: 1 1 0%; overflow: hidden; display: flex; flex-direction: column;"><div class="cc-chat-view" style="display: flex; flex-direction: column; height: 100%;"><div class="cc-activity-bar" title="Click to expand activity log" style="padding: 4px 12px; font-size: 11px; font-family: var(--monospace, monospace); color: var(--theme-foreground-muted, #888); background: var(--theme-background-alt, #f8f8f8); border-bottom: 1px solid var(--theme-foreground-faint, #eee); min-height: 20px; display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer;"><span style="flex-shrink: 0;">🔧</span><span style="overflow: hidden; text-overflow: ellipsis; flex: 1 1 0%;">$ M=/Users/tom.larkworthy/dev/lopecode-dev; L=$M/tools/cloud-brain/.emitted/land.lock; until mkdir $L 2&gt;/dev/null; do slee</span></div><div class="cc-activity-log" style="display: none; max-height: 120px; overflow-y: auto; padding: 4px 12px; font-size: 11px; font-family: var(--monospace, monospace); color: var(--theme-foreground-muted, #888); background: var(--theme-background-alt, #f8f8f8); border-bottom: 1px solid var(--theme-foreground-faint, #eee); line-height: 1.6;"><div style="opacity: 0.5;">10:51:53 PM Thinking…</div><div style="opacity: 0.6;">10:51:57 PM Thinking…</div><div style="opacity: 0.7;">10:51:59 PM $ python3 - &lt;&lt;'EOF'
+  </div></div><div class="observablehq" cell="annotation_a2rfmdjpwx_note"><span class="observablehq--collapsed observablehq--inspect"><span class="observablehq--cellname">annotation_a2rfmdjpwx_note = </span><a><svg width="8" height="8" class="observablehq--caret">
+    <path d="M7 4L1 8V0z" fill="currentColor"></path>
+  </svg>HTMLParagraphElement {</a>}</span></div><div><div class="cell-editor" style="display: flex;
+           flex-direction: column;
+           background: var(--theme-background-alt);">
+    <style>
+      .cell-editor .cm-editor {
+        height: fit-content;
+        background-color: var(--theme-background);
+      }
+      .cell-editor .hotbar {
+        margin-left: auto;
+        text-align: right;
+        font-family: var(--monospace);
+        font-size: 12px;
+        height: 17px;
+        outline: 1px solid var(--theme-background-alt);
+        user-select: none;
+      }
+    </style>
+
+    <div style="width:100%; cursor: pointer;">
+      <div class="hotbar" data-reorderable="1" style="cursor: grab; touch-action: none;"><span class="reorder-grip" title="Drag to reorder cell" style="float: left; margin-left: 4px; opacity: 0.55;">⠿</span><span class="add-cell-btn" title="Add cell below" tabindex="-1" style="cursor: pointer; margin-right: 6px;">➕</span>edit</div>
+    </div>
+
+    <div class="cell-editor-body" style="display: none;"></div>
+  </div></div><div class="observablehq" cell="annotation_a2rfmdjpwx"><span class="observablehq--collapsed observablehq--inspect"><span class="observablehq--cellname">annotation_a2rfmdjpwx = </span><a><svg width="8" height="8" class="observablehq--caret">
+    <path d="M7 4L1 8V0z" fill="currentColor"></path>
+  </svg>Object {</a><span class="observablehq--key">box</span>: <span class="observablehq--shallow">Object</span>, <span class="observablehq--key">state</span>: <span><span class="observablehq--string">"open"</span></span>, <span class="observablehq--key">createdAt</span>: <span><span class="observablehq--string">"2026-10-10T20:56:50.454Z"</span></span>, <span class="observablehq--key">anchor</span>: <span class="observablehq--shallow">Object</span>}</span></div><div><div class="cell-editor" style="display: flex;
+           flex-direction: column;
+           background: var(--theme-background-alt);">
+    <style>
+      .cell-editor .cm-editor {
+        height: fit-content;
+        background-color: var(--theme-background);
+      }
+      .cell-editor .hotbar {
+        margin-left: auto;
+        text-align: right;
+        font-family: var(--monospace);
+        font-size: 12px;
+        height: 17px;
+        outline: 1px solid var(--theme-background-alt);
+        user-select: none;
+      }
+    </style>
+
+    <div style="width:100%; cursor: pointer;">
+      <div class="hotbar" data-reorderable="1" style="cursor: grab; touch-action: none;"><span class="reorder-grip" title="Drag to reorder cell" style="float: left; margin-left: 4px; opacity: 0.55;">⠿</span><span class="add-cell-btn" title="Add cell below" tabindex="-1" style="cursor: pointer; margin-right: 6px;">➕</span>edit</div>
+    </div>
+
+    <div class="cell-editor-body" style="display: none;"></div>
+  </div></div><div class="observablehq" cell="annotation_a23nl5sxn0_note"><span class="observablehq--collapsed observablehq--inspect"><span class="observablehq--cellname">annotation_a23nl5sxn0_note = </span><a><svg width="8" height="8" class="observablehq--caret">
+    <path d="M7 4L1 8V0z" fill="currentColor"></path>
+  </svg>HTMLParagraphElement {</a>}</span></div><div><div class="cell-editor" style="display: flex;
+           flex-direction: column;
+           background: var(--theme-background-alt);">
+    <style>
+      .cell-editor .cm-editor {
+        height: fit-content;
+        background-color: var(--theme-background);
+      }
+      .cell-editor .hotbar {
+        margin-left: auto;
+        text-align: right;
+        font-family: var(--monospace);
+        font-size: 12px;
+        height: 17px;
+        outline: 1px solid var(--theme-background-alt);
+        user-select: none;
+      }
+    </style>
+
+    <div style="width:100%; cursor: pointer;">
+      <div class="hotbar" data-reorderable="1" style="cursor: grab; touch-action: none;"><span class="reorder-grip" title="Drag to reorder cell" style="float: left; margin-left: 4px; opacity: 0.55;">⠿</span><span class="add-cell-btn" title="Add cell below" tabindex="-1" style="cursor: pointer; margin-right: 6px;">➕</span>edit</div>
+    </div>
+
+    <div class="cell-editor-body" style="display: none;"></div>
+  </div></div><div class="observablehq" cell="annotation_a23nl5sxn0"><span class="observablehq--collapsed observablehq--inspect"><span class="observablehq--cellname">annotation_a23nl5sxn0 = </span><a><svg width="8" height="8" class="observablehq--caret">
+    <path d="M7 4L1 8V0z" fill="currentColor"></path>
+  </svg>Object {</a><span class="observablehq--key">box</span>: <span class="observablehq--shallow">Object</span>, <span class="observablehq--key">state</span>: <span><span class="observablehq--string">"open"</span></span>, <span class="observablehq--key">createdAt</span>: <span><span class="observablehq--string">"2026-10-10T20:58:34.171Z"</span></span>, <span class="observablehq--key">anchor</span>: <span class="observablehq--shallow">Object</span>}</span></div><div><div class="cell-editor" style="display: flex;
+           flex-direction: column;
+           background: var(--theme-background-alt);">
+    <style>
+      .cell-editor .cm-editor {
+        height: fit-content;
+        background-color: var(--theme-background);
+      }
+      .cell-editor .hotbar {
+        margin-left: auto;
+        text-align: right;
+        font-family: var(--monospace);
+        font-size: 12px;
+        height: 17px;
+        outline: 1px solid var(--theme-background-alt);
+        user-select: none;
+      }
+    </style>
+
+    <div style="width:100%; cursor: pointer;">
+      <div class="hotbar" data-reorderable="1" style="cursor: grab; touch-action: none;"><span class="reorder-grip" title="Drag to reorder cell" style="float: left; margin-left: 4px; opacity: 0.55;">⠿</span><span class="add-cell-btn" title="Add cell below" tabindex="-1" style="cursor: pointer; margin-right: 6px;">➕</span>edit</div>
+    </div>
+
+    <div class="cell-editor-body" style="display: none;"></div>
+  </div></div><div class="observablehq" cell="annotation_a2p3d80zpz_note"><span class="observablehq--collapsed observablehq--inspect"><span class="observablehq--cellname">annotation_a2p3d80zpz_note = </span><a><svg width="8" height="8" class="observablehq--caret">
+    <path d="M7 4L1 8V0z" fill="currentColor"></path>
+  </svg>HTMLParagraphElement {</a>}</span></div><div><div class="cell-editor" style="display: flex;
+           flex-direction: column;
+           background: var(--theme-background-alt);">
+    <style>
+      .cell-editor .cm-editor {
+        height: fit-content;
+        background-color: var(--theme-background);
+      }
+      .cell-editor .hotbar {
+        margin-left: auto;
+        text-align: right;
+        font-family: var(--monospace);
+        font-size: 12px;
+        height: 17px;
+        outline: 1px solid var(--theme-background-alt);
+        user-select: none;
+      }
+    </style>
+
+    <div style="width:100%; cursor: pointer;">
+      <div class="hotbar" data-reorderable="1" style="cursor: grab; touch-action: none;"><span class="reorder-grip" title="Drag to reorder cell" style="float: left; margin-left: 4px; opacity: 0.55;">⠿</span><span class="add-cell-btn" title="Add cell below" tabindex="-1" style="cursor: pointer; margin-right: 6px;">➕</span>edit</div>
+    </div>
+
+    <div class="cell-editor-body" style="display: none;"></div>
+  </div></div><div class="observablehq" cell="annotation_a2p3d80zpz"><span class="observablehq--collapsed observablehq--inspect"><span class="observablehq--cellname">annotation_a2p3d80zpz = </span><a><svg width="8" height="8" class="observablehq--caret">
+    <path d="M7 4L1 8V0z" fill="currentColor"></path>
+  </svg>Object {</a><span class="observablehq--key">box</span>: <span class="observablehq--shallow">Object</span>, <span class="observablehq--key">state</span>: <span><span class="observablehq--string">"open"</span></span>, <span class="observablehq--key">createdAt</span>: <span><span class="observablehq--string">"2026-10-10T20:58:53.639Z"</span></span>, <span class="observablehq--key">anchor</span>: <span class="observablehq--shallow">Object</span>}</span></div><div><div class="cell-editor" style="display: flex;
+           flex-direction: column;
+           background: var(--theme-background-alt);">
+    <style>
+      .cell-editor .cm-editor {
+        height: fit-content;
+        background-color: var(--theme-background);
+      }
+      .cell-editor .hotbar {
+        margin-left: auto;
+        text-align: right;
+        font-family: var(--monospace);
+        font-size: 12px;
+        height: 17px;
+        outline: 1px solid var(--theme-background-alt);
+        user-select: none;
+      }
+    </style>
+
+    <div style="width:100%; cursor: pointer;">
+      <div class="hotbar" data-reorderable="1" style="cursor: grab; touch-action: none;"><span class="reorder-grip" title="Drag to reorder cell" style="float: left; margin-left: 4px; opacity: 0.55;">⠿</span><span class="add-cell-btn" title="Add cell below" tabindex="-1" style="cursor: pointer; margin-right: 6px;">➕</span>edit</div>
+    </div>
+
+    <div class="cell-editor-body" style="display: none;"></div>
+  </div></div><div class="observablehq" cell="annotation_a2ej7my6wd_note"><span class="observablehq--collapsed observablehq--inspect"><span class="observablehq--cellname">annotation_a2ej7my6wd_note = </span><a><svg width="8" height="8" class="observablehq--caret">
+    <path d="M7 4L1 8V0z" fill="currentColor"></path>
+  </svg>HTMLParagraphElement {</a>}</span></div><div><div class="cell-editor" style="display: flex;
+           flex-direction: column;
+           background: var(--theme-background-alt);">
+    <style>
+      .cell-editor .cm-editor {
+        height: fit-content;
+        background-color: var(--theme-background);
+      }
+      .cell-editor .hotbar {
+        margin-left: auto;
+        text-align: right;
+        font-family: var(--monospace);
+        font-size: 12px;
+        height: 17px;
+        outline: 1px solid var(--theme-background-alt);
+        user-select: none;
+      }
+    </style>
+
+    <div style="width:100%; cursor: pointer;">
+      <div class="hotbar" data-reorderable="1" style="cursor: grab; touch-action: none;"><span class="reorder-grip" title="Drag to reorder cell" style="float: left; margin-left: 4px; opacity: 0.55;">⠿</span><span class="add-cell-btn" title="Add cell below" tabindex="-1" style="cursor: pointer; margin-right: 6px;">➕</span>edit</div>
+    </div>
+
+    <div class="cell-editor-body" style="display: none;"></div>
+  </div></div><div class="observablehq" cell="annotation_a2ej7my6wd"><span class="observablehq--collapsed observablehq--inspect"><span class="observablehq--cellname">annotation_a2ej7my6wd = </span><a><svg width="8" height="8" class="observablehq--caret">
+    <path d="M7 4L1 8V0z" fill="currentColor"></path>
+  </svg>Object {</a><span class="observablehq--key">box</span>: <span class="observablehq--shallow">Object</span>, <span class="observablehq--key">state</span>: <span><span class="observablehq--string">"open"</span></span>, <span class="observablehq--key">createdAt</span>: <span><span class="observablehq--string">"2026-10-10T20:59:06.882Z"</span></span>, <span class="observablehq--key">anchor</span>: <span class="observablehq--shallow">Object</span>}</span></div><div><div class="cell-editor" style="display: flex;
+           flex-direction: column;
+           background: var(--theme-background-alt);">
+    <style>
+      .cell-editor .cm-editor {
+        height: fit-content;
+        background-color: var(--theme-background);
+      }
+      .cell-editor .hotbar {
+        margin-left: auto;
+        text-align: right;
+        font-family: var(--monospace);
+        font-size: 12px;
+        height: 17px;
+        outline: 1px solid var(--theme-background-alt);
+        user-select: none;
+      }
+    </style>
+
+    <div style="width:100%; cursor: pointer;">
+      <div class="hotbar" data-reorderable="1" style="cursor: grab; touch-action: none;"><span class="reorder-grip" title="Drag to reorder cell" style="float: left; margin-left: 4px; opacity: 0.55;">⠿</span><span class="add-cell-btn" title="Add cell below" tabindex="-1" style="cursor: pointer; margin-right: 6px;">➕</span>edit</div>
+    </div>
+
+    <div class="cell-editor-body" style="display: none;"></div>
+  </div></div></div></div><div data-a2-layer="" style="position: absolute; left: 0px; top: 0px; overflow: hidden; pointer-events: none; z-index: 50; width: 1621px; height: 15345px;"><svg style="position: absolute; left: 0px; top: 0px; width: 100%; height: 100%; overflow: visible;"><path data-a2-line="a215q1inz3" fill="none" stroke="var(--theme-foreground-focus, #0085ff)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1 4" stroke-opacity="0.45" d="M 821.359375 12657.95703125 L 701.359375 12675.703125"></path><polygon data-a2-head="a215q1inz3" fill="var(--theme-foreground-focus, #0085ff)" fill-opacity="0.7" points="701.359375,12675.703125 710.8477189331003,12678.343452518926 709.677374350662,12670.429522170587"></polygon><path data-a2-line="a2b3970h96" fill="none" stroke="var(--theme-foreground-focus, #0085ff)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1 4" stroke-opacity="0.45" d="M 505.984375 13097.831518735562 L 429.84375 13111.609375"></path><polygon data-a2-head="a2b3970h96" fill="var(--theme-foreground-focus, #0085ff)" fill-opacity="0.7" points="429.84375,13111.609375 439.41216914289726,13113.942903466901 437.98768086500206,13106.070747907834"></polygon><path data-a2-line="a26u6w7f1x" fill="none" stroke="var(--theme-foreground-focus, #0085ff)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1 4" stroke-opacity="0.45" d="M 336.984375 13461.303025265957 L 268.984375 13474.140625"></path><polygon data-a2-head="a26u6w7f1x" fill="var(--theme-foreground-focus, #0085ff)" fill-opacity="0.7" points="268.984375,13474.140625 278.5701993121243,13476.401592106591 277.0861091439446,13468.540455015005"></polygon><path data-a2-line="a2qfy634bg" fill="none" stroke="var(--theme-foreground-focus, #0085ff)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1 4" stroke-opacity="0.45" d="M 383.63020374752364 13609.5546875 L 383.65625 13609.546875"></path><polygon data-a2-head="a2qfy634bg" fill="var(--theme-foreground-focus, #0085ff)" fill-opacity="0.7" points="383.65625,13609.546875 373.8864822417497,13608.301227397404 376.1848940033692,13615.96394906624"></polygon><path data-a2-line="a2z14qq9t2" fill="none" stroke="var(--theme-foreground-focus, #0085ff)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1 4" stroke-opacity="0.45" d="M 913.6171875 13625.962626739016 L 487.359375 13634.890625"></path><polygon data-a2-head="a2z14qq9t2" fill="var(--theme-foreground-focus, #0085ff)" fill-opacity="0.7" points="487.359375,13634.890625 496.4411634134514,13638.701283632481 496.27363962281396,13630.703037838584"></polygon><path data-a2-line="a2rfmdjpwx" fill="none" stroke="var(--theme-foreground-focus, #0085ff)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1 4" stroke-opacity="0.45" d="M 539.984375 13638.13114703325 L 451.09375 13653.234375"></path><polygon data-a2-head="a2rfmdjpwx" fill="var(--theme-foreground-focus, #0085ff)" fill-opacity="0.7" points="451.09375,13653.234375 460.63661681170777,13655.6702922839 459.2965581154831,13647.783325649594"></polygon><path data-a2-line="a23nl5sxn0" fill="none" stroke="var(--theme-foreground-focus, #0085ff)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1 4" stroke-opacity="0.45" d="M 531.984375 12698.278937931407 L 452.78125 12712.390625"></path><polygon data-a2-head="a23nl5sxn0" fill="var(--theme-foreground-focus, #0085ff)" fill-opacity="0.7" points="452.78125,12712.390625 462.3433454784018,12714.749932114797 460.9400780243448,12706.873966113575"></polygon><path data-a2-line="a2p3d80zpz" fill="none" stroke="var(--theme-foreground-focus, #0085ff)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1 4" stroke-opacity="0.45" d="M 403.829851557341 13338.7421875 L 403.84375 13338.734375"></path><polygon data-a2-head="a2p3d80zpz" fill="var(--theme-foreground-focus, #0085ff)" fill-opacity="0.7" points="403.84375,13338.734375 394.0382535815733,13339.657543450621 397.95829496130904,13346.631299653784"></polygon><path data-a2-line="a2ej7my6wd" fill="none" stroke="var(--theme-foreground-focus, #0085ff)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="1.5 5" stroke-opacity="0.85" d="M 436.12299334654585 13753.9609375 L 437.765625 13751.953125"></path><polygon data-a2-head="a2ej7my6wd" fill="var(--theme-foreground-focus, #0085ff)" fill-opacity="1" points="437.765625,13751.953125 428.9708197218281,13756.386114975066 435.16266556828464,13761.45178817946"></polygon></svg><div data-a2-hl="a215q1inz3" style="position: absolute; left: 0px; top: 0px; pointer-events: none;"><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 701.359375px; top: 12675.703125px; width: 0px; height: 18.015625px;"></div><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 210.484375px; top: 12844.140625px; width: 6.5px; height: 153.75px;"></div><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 216.984375px; top: 12847.796875px; width: 93px; height: 18.015625px;"></div></div><div data-ann-id="a215q1inz3" data-a2-state="open" data-a2-folded="false" style="position: absolute; pointer-events: auto; box-sizing: border-box; border-width: 1px; border-style: solid; border-color: var(--theme-foreground-focus, #0085ff); border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 6px; background: var(--theme-background-raised, var(--theme-background, #fff)); color: var(--theme-foreground, #1a1a2e); box-shadow: rgba(0, 0, 0, 0.18) 0px 2px 10px; font-style: normal; font-variant-caps: normal; font-weight: normal; font-width: normal; font-size: 12px; line-height: 1.4; font-family: system-ui, sans-serif; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-variant-emoji: normal; font-feature-settings: normal; font-optical-sizing: auto; font-variation-settings: normal; display: flex; flex-direction: column; width: 240px; left: 821.359375px; top: 12604.710938px; z-index: 1; opacity: 1;"><div style="align-items: center; gap: 6px; padding: 3px 6px; cursor: move; border-bottom: 1px solid var(--theme-foreground-faint, #999); font-size: 11px; color: var(--theme-foreground-faint, #999);"><span style="flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">questionsTable · quote</span><button data-a2-edit="a215q1inz3" title="Edit this annotation's cell" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 12px; padding: 0px 2px;">✎</button><button title="Click to pick a new anchor · drag to re-aim" style="border: medium; background: none; cursor: crosshair; color: var(--theme-foreground-focus, #0085ff); font-size: 13px; padding: 0px 2px;">⌖</button><button title="Delete" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 14px; padding: 0px 2px;">×</button></div><div data-a2-body="a215q1inz3" class="a2-note" style="padding: 2px 7px; min-height: 22px; max-height: 340px; overflow: auto;"><p id="nxubibauwk" class="lope-editable-md">yes that's fine</p></div><div data-a2-editor="a215q1inz3" style="display: none; border-top: 1px solid var(--theme-foreground-faint, #999); max-height: 320px; overflow: auto;"></div><div data-a2-grip="a215q1inz3" title="Drag to resize · double-click to fit the note" style="position: absolute; right: 0px; bottom: 0px; width: 14px; height: 14px; cursor: nwse-resize; pointer-events: auto; background: linear-gradient(135deg, transparent 0 55%, var(--theme-foreground-faint, #999) 55% 62%, transparent 62% 74%, var(--theme-foreground-faint, #999) 74% 81%, transparent 81%);"></div></div><div data-a2-hl="a2b3970h96" style="position: absolute; left: 0px; top: 0px; pointer-events: none;"><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 385.984375px; top: 13111.609375px; width: 43.859375px; height: 18.015625px;"></div><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 216.984375px; top: 13129.953125px; width: 70px; height: 18.015625px;"></div></div><div data-ann-id="a2b3970h96" data-a2-state="open" data-a2-folded="false" style="position: absolute; pointer-events: auto; box-sizing: border-box; border-width: 1px; border-style: solid; border-color: var(--theme-foreground-focus, #0085ff); border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 6px; background: var(--theme-background-raised, var(--theme-background, #fff)); color: var(--theme-foreground, #1a1a2e); box-shadow: rgba(0, 0, 0, 0.18) 0px 2px 10px; font-style: normal; font-variant-caps: normal; font-weight: normal; font-width: normal; font-size: 12px; line-height: 1.4; font-family: system-ui, sans-serif; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-variant-emoji: normal; font-feature-settings: normal; font-optical-sizing: auto; font-variation-settings: normal; display: flex; flex-direction: column; width: 240px; left: 505.984375px; top: 13040.617188px; z-index: 1; opacity: 1;"><div style="align-items: center; gap: 6px; padding: 3px 6px; cursor: move; border-bottom: 1px solid var(--theme-foreground-faint, #999); font-size: 11px; color: var(--theme-foreground-faint, #999);"><span style="flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">questionsTable · quote</span><button data-a2-edit="a2b3970h96" title="Edit this annotation's cell" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 12px; padding: 0px 2px;">✎</button><button title="Click to pick a new anchor · drag to re-aim" style="border: medium; background: none; cursor: crosshair; color: var(--theme-foreground-focus, #0085ff); font-size: 13px; padding: 0px 2px;">⌖</button><button title="Delete" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 14px; padding: 0px 2px;">×</button></div><div data-a2-body="a2b3970h96" class="a2-note" style="padding: 2px 7px; min-height: 22px; max-height: 340px; overflow: auto;"><p id="xt7guhgki3" class="lope-editable-md">yes</p></div><div data-a2-editor="a2b3970h96" style="display: none; border-top: 1px solid var(--theme-foreground-faint, #999); max-height: 320px; overflow: auto;"></div><div data-a2-grip="a2b3970h96" title="Drag to resize · double-click to fit the note" style="position: absolute; right: 0px; bottom: 0px; width: 14px; height: 14px; cursor: nwse-resize; pointer-events: auto; background: linear-gradient(135deg, transparent 0 55%, var(--theme-foreground-faint, #999) 55% 62%, transparent 62% 74%, var(--theme-foreground-faint, #999) 74% 81%, transparent 81%);"></div></div><div data-a2-hl="a26u6w7f1x" style="position: absolute; left: 0px; top: 0px; pointer-events: none;"><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 216.984375px; top: 13474.140625px; width: 52px; height: 18.015625px;"></div></div><div data-ann-id="a26u6w7f1x" data-a2-state="open" data-a2-folded="false" style="position: absolute; pointer-events: auto; box-sizing: border-box; border-width: 1px; border-style: solid; border-color: var(--theme-foreground-focus, #0085ff); border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 6px; background: var(--theme-background-raised, var(--theme-background, #fff)); color: var(--theme-foreground, #1a1a2e); box-shadow: rgba(0, 0, 0, 0.18) 0px 2px 10px; font-style: normal; font-variant-caps: normal; font-weight: normal; font-width: normal; font-size: 12px; line-height: 1.4; font-family: system-ui, sans-serif; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-variant-emoji: normal; font-feature-settings: normal; font-optical-sizing: auto; font-variation-settings: normal; display: flex; flex-direction: column; width: 240px; left: 336.984375px; top: 13403.148438px; z-index: 1; opacity: 1;"><div style="align-items: center; gap: 6px; padding: 3px 6px; cursor: move; border-bottom: 1px solid var(--theme-foreground-faint, #999); font-size: 11px; color: var(--theme-foreground-faint, #999);"><span style="flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">questionsTable · quote</span><button data-a2-edit="a26u6w7f1x" title="Edit this annotation's cell" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 12px; padding: 0px 2px;">✎</button><button title="Click to pick a new anchor · drag to re-aim" style="border: medium; background: none; cursor: crosshair; color: var(--theme-foreground-focus, #0085ff); font-size: 13px; padding: 0px 2px;">⌖</button><button title="Delete" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 14px; padding: 0px 2px;">×</button></div><div data-a2-body="a26u6w7f1x" class="a2-note" style="padding: 2px 7px; min-height: 22px; max-height: 340px; overflow: auto;"><p id="dj0qy10wq7d" class="lope-editable-md">yes verified</p></div><div data-a2-editor="a26u6w7f1x" style="display: none; border-top: 1px solid var(--theme-foreground-faint, #999); max-height: 320px; overflow: auto;"></div><div data-a2-grip="a26u6w7f1x" title="Drag to resize · double-click to fit the note" style="position: absolute; right: 0px; bottom: 0px; width: 14px; height: 14px; cursor: nwse-resize; pointer-events: auto; background: linear-gradient(135deg, transparent 0 55%, var(--theme-foreground-faint, #999) 55% 62%, transparent 62% 74%, var(--theme-foreground-faint, #999) 74% 81%, transparent 81%);"></div></div><div data-a2-hl="a2qfy634bg" style="position: absolute; left: 0px; top: 0px; pointer-events: none;"><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 261.984375px; top: 13609.546875px; width: 121.671875px; height: 18.015625px;"></div></div><div data-ann-id="a2qfy634bg" data-a2-state="open" data-a2-folded="false" style="position: absolute; pointer-events: auto; box-sizing: border-box; border-width: 1px; border-style: solid; border-color: var(--theme-foreground-focus, #0085ff); border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 6px; background: var(--theme-background-raised, var(--theme-background, #fff)); color: var(--theme-foreground, #1a1a2e); box-shadow: rgba(0, 0, 0, 0.18) 0px 2px 10px; font-style: normal; font-variant-caps: normal; font-weight: normal; font-width: normal; font-size: 12px; line-height: 1.4; font-family: system-ui, sans-serif; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-variant-emoji: normal; font-feature-settings: normal; font-optical-sizing: auto; font-variation-settings: normal; display: flex; flex-direction: column; width: 240px; left: 381.984375px; top: 13538.554688px; z-index: 1; opacity: 1;"><div style="align-items: center; gap: 6px; padding: 3px 6px; cursor: move; border-bottom: 1px solid var(--theme-foreground-faint, #999); font-size: 11px; color: var(--theme-foreground-faint, #999);"><span style="flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">questionsTable · quote</span><button data-a2-edit="a2qfy634bg" title="Edit this annotation's cell" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 12px; padding: 0px 2px;">✎</button><button title="Click to pick a new anchor · drag to re-aim" style="border: medium; background: none; cursor: crosshair; color: var(--theme-foreground-focus, #0085ff); font-size: 13px; padding: 0px 2px;">⌖</button><button title="Delete" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 14px; padding: 0px 2px;">×</button></div><div data-a2-body="a2qfy634bg" class="a2-note" style="padding: 2px 7px; min-height: 22px; max-height: 340px; overflow: auto;"><p id="2fytnq1h2ug" class="lope-editable-md">yes its allowed</p></div><div data-a2-editor="a2qfy634bg" style="display: none; border-top: 1px solid var(--theme-foreground-faint, #999); max-height: 320px; overflow: auto;"></div><div data-a2-grip="a2qfy634bg" title="Drag to resize · double-click to fit the note" style="position: absolute; right: 0px; bottom: 0px; width: 14px; height: 14px; cursor: nwse-resize; pointer-events: auto; background: linear-gradient(135deg, transparent 0 55%, var(--theme-foreground-faint, #999) 55% 62%, transparent 62% 74%, var(--theme-foreground-faint, #999) 74% 81%, transparent 81%);"></div></div><div data-a2-hl="a2z14qq9t2" style="position: absolute; left: 0px; top: 0px; pointer-events: none;"><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 330.984375px; top: 13726.609375px; width: 0px; height: 18.015625px;"></div><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 462.359375px; top: 13634.890625px; width: 25px; height: 18.015625px;"></div></div><div data-ann-id="a2z14qq9t2" data-a2-state="open" data-a2-folded="false" style="position: absolute; pointer-events: auto; box-sizing: border-box; border-width: 1px; border-style: solid; border-color: var(--theme-foreground-focus, #0085ff); border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 6px; background: var(--theme-background-raised, var(--theme-background, #fff)); color: var(--theme-foreground, #1a1a2e); box-shadow: rgba(0, 0, 0, 0.18) 0px 2px 10px; font-style: normal; font-variant-caps: normal; font-weight: normal; font-width: normal; font-size: 12px; line-height: 1.4; font-family: system-ui, sans-serif; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-variant-emoji: normal; font-feature-settings: normal; font-optical-sizing: auto; font-variation-settings: normal; display: flex; flex-direction: column; width: 240px; left: 913.617188px; top: 13570.949219px; z-index: 1; opacity: 1;"><div style="align-items: center; gap: 6px; padding: 3px 6px; cursor: move; border-bottom: 1px solid var(--theme-foreground-faint, #999); font-size: 11px; color: var(--theme-foreground-faint, #999);"><span style="flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">questionsTable · quote</span><button data-a2-edit="a2z14qq9t2" title="Edit this annotation's cell" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 12px; padding: 0px 2px;">✎</button><button title="Click to pick a new anchor · drag to re-aim" style="border: medium; background: none; cursor: crosshair; color: var(--theme-foreground-focus, #0085ff); font-size: 13px; padding: 0px 2px;">⌖</button><button title="Delete" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 14px; padding: 0px 2px;">×</button></div><div data-a2-body="a2z14qq9t2" class="a2-note" style="padding: 2px 7px; min-height: 22px; max-height: 340px; overflow: auto;"><p id="ln686uqytra" class="lope-editable-md">YES! and deploys on that worker are blocked until it happens. I corrected myself on that</p></div><div data-a2-editor="a2z14qq9t2" style="display: none; border-top: 1px solid var(--theme-foreground-faint, #999); max-height: 320px; overflow: auto;"></div><div data-a2-grip="a2z14qq9t2" title="Drag to resize · double-click to fit the note" style="position: absolute; right: 0px; bottom: 0px; width: 14px; height: 14px; cursor: nwse-resize; pointer-events: auto; background: linear-gradient(135deg, transparent 0 55%, var(--theme-foreground-faint, #999) 55% 62%, transparent 62% 74%, var(--theme-foreground-faint, #999) 74% 81%, transparent 81%);"></div></div><div data-a2-hl="a2rfmdjpwx" style="position: absolute; left: 0px; top: 0px; pointer-events: none;"><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 419.984375px; top: 13653.234375px; width: 31.109375px; height: 18.015625px;"></div><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 216.984375px; top: 13671.578125px; width: 38px; height: 18.015625px;"></div></div><div data-ann-id="a2rfmdjpwx" data-a2-state="open" data-a2-folded="false" style="position: absolute; pointer-events: auto; box-sizing: border-box; border-width: 1px; border-style: solid; border-color: var(--theme-foreground-focus, #0085ff); border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 6px; background: var(--theme-background-raised, var(--theme-background, #fff)); color: var(--theme-foreground, #1a1a2e); box-shadow: rgba(0, 0, 0, 0.18) 0px 2px 10px; font-style: normal; font-variant-caps: normal; font-weight: normal; font-width: normal; font-size: 12px; line-height: 1.4; font-family: system-ui, sans-serif; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-variant-emoji: normal; font-feature-settings: normal; font-optical-sizing: auto; font-variation-settings: normal; display: flex; flex-direction: column; width: 240px; left: 539.984375px; top: 13582.242188px; z-index: 1; opacity: 1;"><div style="align-items: center; gap: 6px; padding: 3px 6px; cursor: move; border-bottom: 1px solid var(--theme-foreground-faint, #999); font-size: 11px; color: var(--theme-foreground-faint, #999);"><span style="flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">questionsTable · quote</span><button data-a2-edit="a2rfmdjpwx" title="Edit this annotation's cell" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 12px; padding: 0px 2px;">✎</button><button title="Click to pick a new anchor · drag to re-aim" style="border: medium; background: none; cursor: crosshair; color: var(--theme-foreground-focus, #0085ff); font-size: 13px; padding: 0px 2px;">⌖</button><button title="Delete" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 14px; padding: 0px 2px;">×</button></div><div data-a2-body="a2rfmdjpwx" class="a2-note" style="padding: 2px 7px; min-height: 22px; max-height: 340px; overflow: auto;"><p id="k5in40e6r1a" class="lope-editable-md">no that's unnecessary complicatins</p></div><div data-a2-editor="a2rfmdjpwx" style="display: none; border-top: 1px solid var(--theme-foreground-faint, #999); max-height: 320px; overflow: auto;"></div><div data-a2-grip="a2rfmdjpwx" title="Drag to resize · double-click to fit the note" style="position: absolute; right: 0px; bottom: 0px; width: 14px; height: 14px; cursor: nwse-resize; pointer-events: auto; background: linear-gradient(135deg, transparent 0 55%, var(--theme-foreground-faint, #999) 55% 62%, transparent 62% 74%, var(--theme-foreground-faint, #999) 74% 81%, transparent 81%);"></div></div><div data-a2-hl="a23nl5sxn0" style="position: absolute; left: 0px; top: 0px; pointer-events: none;"><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 411.984375px; top: 12712.390625px; width: 40.796875px; height: 18.015625px;"></div><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 216.984375px; top: 12730.740356px; width: 217.494598px; height: 18.019287px;"></div><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 216.984375px; top: 12749.078125px; width: 121px; height: 18.015625px;"></div></div><div data-ann-id="a23nl5sxn0" data-a2-state="open" data-a2-folded="false" style="position: absolute; pointer-events: auto; box-sizing: border-box; border-width: 1px; border-style: solid; border-color: var(--theme-foreground-focus, #0085ff); border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 6px; background: var(--theme-background-raised, var(--theme-background, #fff)); color: var(--theme-foreground, #1a1a2e); box-shadow: rgba(0, 0, 0, 0.18) 0px 2px 10px; font-style: normal; font-variant-caps: normal; font-weight: normal; font-width: normal; font-size: 12px; line-height: 1.4; font-family: system-ui, sans-serif; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-variant-emoji: normal; font-feature-settings: normal; font-optical-sizing: auto; font-variation-settings: normal; display: flex; flex-direction: column; width: 240px; left: 531.984375px; top: 12641.398438px; z-index: 1; opacity: 1;"><div style="align-items: center; gap: 6px; padding: 3px 6px; cursor: move; border-bottom: 1px solid var(--theme-foreground-faint, #999); font-size: 11px; color: var(--theme-foreground-faint, #999);"><span style="flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">questionsTable · quote</span><button data-a2-edit="a23nl5sxn0" title="Edit this annotation's cell" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 12px; padding: 0px 2px;">✎</button><button title="Click to pick a new anchor · drag to re-aim" style="border: medium; background: none; cursor: crosshair; color: var(--theme-foreground-focus, #0085ff); font-size: 13px; padding: 0px 2px;">⌖</button><button title="Delete" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 14px; padding: 0px 2px;">×</button></div><div data-a2-body="a23nl5sxn0" class="a2-note" style="padding: 2px 7px; min-height: 22px; max-height: 340px; overflow: auto;"><p id="0f1u06z7f1t8" class="lope-editable-md">sure</p></div><div data-a2-editor="a23nl5sxn0" style="display: none; border-top: 1px solid var(--theme-foreground-faint, #999); max-height: 320px; overflow: auto;"></div><div data-a2-grip="a23nl5sxn0" title="Drag to resize · double-click to fit the note" style="position: absolute; right: 0px; bottom: 0px; width: 14px; height: 14px; cursor: nwse-resize; pointer-events: auto; background: linear-gradient(135deg, transparent 0 55%, var(--theme-foreground-faint, #999) 55% 62%, transparent 62% 74%, var(--theme-foreground-faint, #999) 74% 81%, transparent 81%);"></div></div><div data-a2-hl="a2p3d80zpz" style="position: absolute; left: 0px; top: 0px; pointer-events: none;"><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 226.984375px; top: 13338.734375px; width: 176.859375px; height: 18.015625px;"></div><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 216.984375px; top: 13357.078125px; width: 109px; height: 18.015625px;"></div></div><div data-ann-id="a2p3d80zpz" data-a2-state="open" data-a2-folded="false" style="position: absolute; pointer-events: auto; box-sizing: border-box; border-width: 1px; border-style: solid; border-color: var(--theme-foreground-focus, #0085ff); border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 6px; background: var(--theme-background-raised, var(--theme-background, #fff)); color: var(--theme-foreground, #1a1a2e); box-shadow: rgba(0, 0, 0, 0.18) 0px 2px 10px; font-style: normal; font-variant-caps: normal; font-weight: normal; font-width: normal; font-size: 12px; line-height: 1.4; font-family: system-ui, sans-serif; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-variant-emoji: normal; font-feature-settings: normal; font-optical-sizing: auto; font-variation-settings: normal; display: flex; flex-direction: column; width: 240px; left: 346.984375px; top: 13267.742188px; z-index: 1; opacity: 1;"><div style="align-items: center; gap: 6px; padding: 3px 6px; cursor: move; border-bottom: 1px solid var(--theme-foreground-faint, #999); font-size: 11px; color: var(--theme-foreground-faint, #999);"><span style="flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">questionsTable · quote</span><button data-a2-edit="a2p3d80zpz" title="Edit this annotation's cell" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 12px; padding: 0px 2px;">✎</button><button title="Click to pick a new anchor · drag to re-aim" style="border: medium; background: none; cursor: crosshair; color: var(--theme-foreground-focus, #0085ff); font-size: 13px; padding: 0px 2px;">⌖</button><button title="Delete" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 14px; padding: 0px 2px;">×</button></div><div data-a2-body="a2p3d80zpz" class="a2-note" style="padding: 2px 7px; min-height: 22px; max-height: 340px; overflow: auto;"><p id="l44w0nx71qa" class="lope-editable-md">ok lets try</p></div><div data-a2-editor="a2p3d80zpz" style="display: none; border-top: 1px solid var(--theme-foreground-faint, #999); max-height: 320px; overflow: auto;"></div><div data-a2-grip="a2p3d80zpz" title="Drag to resize · double-click to fit the note" style="position: absolute; right: 0px; bottom: 0px; width: 14px; height: 14px; cursor: nwse-resize; pointer-events: auto; background: linear-gradient(135deg, transparent 0 55%, var(--theme-foreground-faint, #999) 55% 62%, transparent 62% 74%, var(--theme-foreground-faint, #999) 74% 81%, transparent 81%);"></div></div><div data-a2-hl="a2ej7my6wd" style="position: absolute; left: 0px; top: 0px; pointer-events: none;"><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 225.984375px; top: 13751.953125px; width: 211.78125px; height: 18.015625px;"></div><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 216.984375px; top: 13770.302834px; width: 227.453033px; height: 18.019333px;"></div><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 216.984375px; top: 13788.646584px; width: 195.515747px; height: 18.019341px;"></div><div style="position: absolute; background: rgba(0, 133, 255, 0.16); border-radius: 2px; left: 216.984375px; top: 13806.984375px; width: 53px; height: 18.015625px;"></div></div><div data-ann-id="a2ej7my6wd" data-a2-state="open" data-a2-folded="false" style="position: absolute; pointer-events: auto; box-sizing: border-box; border-width: 2px; border-style: solid; border-color: var(--theme-foreground-focus, #0085ff); border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 6px; background: var(--theme-background-raised, var(--theme-background, #fff)); color: var(--theme-foreground, #1a1a2e); box-shadow: rgba(0, 0, 0, 0.18) 0px 2px 10px; font-style: normal; font-variant-caps: normal; font-weight: normal; font-width: normal; font-size: 12px; line-height: 1.4; font-family: system-ui, sans-serif; font-size-adjust: none; font-kerning: auto; font-variant-alternates: normal; font-variant-ligatures: normal; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-position: normal; font-variant-emoji: normal; font-feature-settings: normal; font-optical-sizing: auto; font-variation-settings: normal; display: flex; flex-direction: column; width: 240px; left: 345.984375px; top: 13680.960938px; z-index: 2; opacity: 1;"><div style="align-items: center; gap: 6px; padding: 3px 6px; cursor: move; border-bottom: 1px solid var(--theme-foreground-faint, #999); font-size: 11px; color: var(--theme-foreground-faint, #999);"><span style="flex: 1 1 0%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">questionsTable · quote</span><button data-a2-edit="a2ej7my6wd" title="Edit this annotation's cell" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 12px; padding: 0px 2px;">✎</button><button title="Click to pick a new anchor · drag to re-aim" style="border: medium; background: none; cursor: crosshair; color: var(--theme-foreground-focus, #0085ff); font-size: 13px; padding: 0px 2px;">⌖</button><button title="Delete" style="border: medium; background: none; cursor: pointer; color: var(--theme-foreground-faint, #999); font-size: 14px; padding: 0px 2px;">×</button></div><div data-a2-body="a2ej7my6wd" class="a2-note" style="padding: 2px 7px; min-height: 22px; max-height: 340px; overflow: auto;"><p id="98f23mjd4ar" class="lope-editable-md">leave alone for now.</p></div><div data-a2-editor="a2ej7my6wd" style="display: none; border-top: 1px solid var(--theme-foreground-faint, #999); max-height: 320px; overflow: auto;"></div><div data-a2-grip="a2ej7my6wd" title="Drag to resize · double-click to fit the note" style="position: absolute; right: 0px; bottom: 0px; width: 14px; height: 14px; cursor: nwse-resize; pointer-events: auto; background: linear-gradient(135deg, transparent 0 55%, var(--theme-foreground-faint, #999) 55% 62%, transparent 62% 74%, var(--theme-foreground-faint, #999) 74% 81%, transparent 81%);"></div></div></div></div><div class="lp2-pane" data-module="@tomlarkworthy/claude-code-pairing" style="overflow: auto; height: 100%; width: 100%; position: relative; overflow-anchor: auto; display: none; flex: 1 1 auto;"><div class="lopecode-visualizer"><div class="observablehq-root lope-viz" style="min-height: 2rem; min-width: 2rem;"><div class="observablehq" cell="cc_chat"><div class="cc-chat" style="border: 1px solid var(--theme-foreground-faint); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; background: var(--theme-background-a); font-family: inherit; height: 400px;"><div class="cc-status-bar" style="display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--theme-foreground-faint); font-size: 12px; color: var(--theme-foreground-faint); background: var(--theme-background-b);"><span style="width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: rgb(34, 197, 94);"></span><span class="cc-status-text">Connected to Claude Code</span></div><div class="cc-body" style="flex: 1 1 0%; overflow: hidden; display: flex; flex-direction: column;"><div class="cc-chat-view" style="display: flex; flex-direction: column; height: 100%;"><div class="cc-activity-bar" title="Click to expand activity log" style="padding: 4px 12px; font-size: 11px; font-family: var(--monospace, monospace); color: var(--theme-foreground-muted, #888); background: var(--theme-background-alt, #f8f8f8); border-bottom: 1px solid var(--theme-foreground-faint, #eee); min-height: 20px; display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer;"><span style="flex-shrink: 0;">🔧</span><span style="overflow: hidden; text-overflow: ellipsis; flex: 1 1 0%;">$ cd /Users/tom.larkworthy/dev/lopecode-dev; git fetch -q origin; git status -sb | head -1; git status --short | grep -v "</span></div><div class="cc-activity-log" style="display: none; max-height: 120px; overflow-y: auto; padding: 4px 12px; font-size: 11px; font-family: var(--monospace, monospace); color: var(--theme-foreground-muted, #888); background: var(--theme-background-alt, #f8f8f8); border-bottom: 1px solid var(--theme-foreground-faint, #eee); line-height: 1.6;"><div style="opacity: 0.5;">10:51:53 PM Thinking…</div><div style="opacity: 0.583333;">10:51:57 PM Thinking…</div><div style="opacity: 0.666667;">10:51:59 PM $ python3 - &lt;&lt;'EOF'
 p='tools/cloud-brain/brain-git.ojs'; s=open(p).read()
 def rep(a,b):
     global s
-    assert a in s, a[</div><div style="opacity: 0.8;">10:52:32 PM Thinking…</div><div style="opacity: 0.9;">10:52:32 PM $ M=/Users/tom.larkworthy/dev/lopecode-dev; L=$M/tools/cloud-brain/.emitted/land.lock; until mkdir $L 2&gt;/dev/null; do slee</div></div><div class="cc-messages" style="flex: 1 1 0%; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px;"><div class="cc-msg cc-msg-side" style="max-width: 85%; padding: 8px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; align-self: flex-start; background: none; color: var(--theme-foreground-muted, #888); font-style: italic; border-left: 2px solid var(--theme-foreground-faint, #ccc); margin: 3px 0px;">The spec is reviewed, revised and open in your browser on this machine: `plan/specs/deploy-verification.html` (`4c46892a`). Nobody has seen it rendered yet: the reviewer's browser tool couldn't launch, and I haven't looked at the page since the rebuild.
+    assert a in s, a[</div><div style="opacity: 0.75;">10:52:32 PM Thinking…</div><div style="opacity: 0.833333;">10:52:32 PM $ M=/Users/tom.larkworthy/dev/lopecode-dev; L=$M/tools/cloud-brain/.emitted/land.lock; until mkdir $L 2&gt;/dev/null; do slee</div><div style="opacity: 0.916667;">11:00:22 PM $ cd /Users/tom.larkworthy/dev/lopecode-dev; git fetch -q origin; git status -sb | head -1; git status --short | grep -v "</div></div><div class="cc-messages" style="flex: 1 1 0%; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px;"><div class="cc-msg cc-msg-side" style="max-width: 85%; padding: 8px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; align-self: flex-start; background: none; color: var(--theme-foreground-muted, #888); font-style: italic; border-left: 2px solid var(--theme-foreground-faint, #ccc); margin: 3px 0px;">The spec is reviewed, revised and open in your browser on this machine: `plan/specs/deploy-verification.html` (`4c46892a`). Nobody has seen it rendered yet: the reviewer's browser tool couldn't launch, and I haven't looked at the page since the rebuild.
 
 **Your two answers are now the design**
 - The verify page is the Brain's own page with one module in view; there is no separate file or synthesiser.
@@ -2988,7 +3197,13 @@ What the review found and what I did:
 
 The earlier caveat still stands: anything untracked or unstaged in `lopebooks` or `lopecode` at 22:41 was lost when I rebuilt those directories.
 
-Not built yet: the send-back command (deploying a module from `deploy/` without a browser), and posting a test report to the Brain.</div></div><div class="cc-attachments" style="display: none; padding: 4px 12px; gap: 6px; flex-wrap: wrap; border-top: 1px solid var(--theme-foreground-faint);"></div><div style="display: flex; gap: 8px; padding: 12px; align-items: flex-end; border-top: 1px solid var(--theme-foreground-faint);"><textarea class="cc-input" placeholder="Message Claude... (paste screenshots here)" rows="2" style="width: 100%; box-sizing: border-box; resize: none; border: 1px solid var(--theme-foreground-faint); border-radius: 8px; padding: 10px 12px; font-family: inherit; font-size: 14px; outline: medium; background: var(--theme-background-a); color: var(--theme-foreground);"></textarea><span class="cc-voice-toggle" title="Toggle voice mode" style="font-size: 20px; opacity: 0.4; transition: opacity 0.15s; line-height: 1; cursor: pointer; flex-shrink: 0; align-self: center;">🎙️</span><button style="padding: 8px 16px; background: var(--theme-foreground); color: var(--theme-background-a); border: medium; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; margin-left: auto;">Send</button></div></div></div></div></div><div><div class="cell-editor" style="display: flex;
+Not built yet: the send-back command (deploying a module from `deploy/` without a browser), and posting a test report to the Brain.</div><div class="cc-msg cc-msg-side" style="max-width: 85%; padding: 8px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; align-self: flex-start; background: none; color: var(--theme-foreground-muted, #888); font-style: italic; border-left: 2px solid var(--theme-foreground-faint, #ccc); margin: 3px 0px;">Everything from this work is already committed and pushed; there was nothing left to do.
+
+- **`lopecode-dev`**: `main` matches `origin/main`.
+- **`lopebooks`**: `main` matches `origin/main`, no changes.
+- **`cloud-brain-dev`**: no changes; its last commit `041b30b` is what the public address serves.
+
+The remaining modified files in the main checkout are not mine and I left them alone: the deploy-verification spec (`plan/specs/deploy-verification.html`, `tools/scratch/spec/deploy-verification.ojs`) belongs to the other session, and the rest (`scratch/lp2.js`, `tools/scratch/*`, `vendor/foc-wiki`, `lopecode-videos`) were already modified when this session started.</div></div><div class="cc-attachments" style="display: none; padding: 4px 12px; gap: 6px; flex-wrap: wrap; border-top: 1px solid var(--theme-foreground-faint);"></div><div style="display: flex; gap: 8px; padding: 12px; align-items: flex-end; border-top: 1px solid var(--theme-foreground-faint);"><textarea class="cc-input" placeholder="Message Claude... (paste screenshots here)" rows="2" style="width: 100%; box-sizing: border-box; resize: none; border: 1px solid var(--theme-foreground-faint); border-radius: 8px; padding: 10px 12px; font-family: inherit; font-size: 14px; outline: medium; background: var(--theme-background-a); color: var(--theme-foreground);"></textarea><span class="cc-voice-toggle" title="Toggle voice mode" style="font-size: 20px; opacity: 0.4; transition: opacity 0.15s; line-height: 1; cursor: pointer; flex-shrink: 0; align-self: center;">🎙️</span><button style="padding: 8px 16px; background: var(--theme-foreground); color: var(--theme-background-a); border: medium; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; margin-left: auto;">Send</button></div></div></div></div></div><div><div class="cell-editor" style="display: flex;
            flex-direction: column;
            background: var(--theme-background-alt);">
     <style>
@@ -8419,461 +8634,6 @@ export default function define(runtime, observer) {
   return main;
 }</script><!--/-->
 
-<script id="@spec/deploy-verification" 
-  type="text/plain"
-  data-mime="application/javascript"
->
-const _spec_0_0 = function _anonymous(md) {return (md`# Deploy verification`);};
-const _spec_1_0 = function _opening(md) {return (md`After every deploy the deployer runs the deployed module's tests itself, alone, in a browser of the cluster, and acts on the result. A Worker that is not verified in 10 minutes is put back, and its next deploy is refused until then. For the owner and for every agent that deploys: a deploy is kept or put back by what was deployed, and not by which tab happened to be open.`);};
-const _spec_2_0 = function _specStatus(sticky,Inputs) {return (sticky(Inputs.select(["draft", "in review", "approved for handover"], { label: "Status", value: "draft" }), "draft"));};
-const _spec_2_1 = (G, _) => G.input(_);
-const _spec_3_0 = function _readiness(annotations,specModule,requirements,questions,states,specStatus,htl) {
-  const notes = (annotations || []).filter((a) => a.home === specModule || (a.anchor && a.anchor.module === specModule));
-  const unchecked = requirements.filter((r) => !r.check || /^<.*>$/.test(r.check.trim()));
-  const blocking = questions.filter((q) => q.blocking && !q.answer);
-  const undrawn = states.filter((s) => !s.drawing);
-  const items = [
-    [notes.length, "annotations to resolve"],
-    [blocking.length, "blocking questions open"],
-    [unchecked.length, `of ${requirements.length} requirements without a check`],
-    [undrawn.length, `of ${states.length} states without a drawing`]
-  ];
-  const ready = items.every(([n]) => n === 0) && specStatus === "approved for handover";
-  // Everything that still needs the reviewer, listed here with a link to where it is answered.
-  const open = questions.map((q, i) => ({ q, i })).filter(({ q }) => !q.answer);
-  const todo = [
-    ...open.filter(({ q }) => q.blocking).map(({ q, i }) => ({ tag: "blocking question", text: q.q, to: `[data-question="${i}"]` })),
-    ...open.filter(({ q }) => !q.blocking).map(({ q, i }) => ({ tag: "open question", text: q.q, to: `[data-question="${i}"]` })),
-    ...unchecked.map((r) => ({ tag: "no check", text: `${r.id} ${r.text}`, to: `[data-requirement="${r.id}"]` })),
-    ...undrawn.map((s) => ({ tag: "not drawn", text: `state: ${s.state}`, to: `[data-state="${s.state}"]` }))
-  ];
-  const box = htl.html`<div style="font:13px system-ui;padding:.5em .8em;border:1px solid color-mix(in srgb, currentColor 25%, transparent);border-radius:6px"></div>`;
-  // Scrolls the pane; a plain #fragment link would replace the lopepage layout hash.
-  const jump = (to) => (e) => {
-    e.preventDefault();
-    const el = (box.closest(".lp2-pane") || box.ownerDocument).querySelector(to);
-    if (!el) return;
-    el.scrollIntoView({ block: "center", behavior: "smooth" });
-    if (el.animate) el.animate([{ background: "color-mix(in srgb, currentColor 22%, transparent)" }, { background: "transparent" }], 1800);
-  };
-  const short = (s) => (s.length > 110 ? s.slice(0, 110) + "…" : s);
-  box.append(htl.html`<div style="display:flex;gap:1.2em;flex-wrap:wrap;align-items:baseline">
-    <strong>${ready ? "Ready to hand over" : "Not ready to hand over"}</strong>
-    ${items.map(([n, label]) => htl.html`<span style=${{ opacity: n ? 1 : 0.5 }}><strong>${n}</strong> ${label}</span>`)}
-  </div>`);
-  if (todo.length) box.append(htl.html`<ol style="margin:.5em 0 0;padding-left:1.4em">${todo.map((t) => htl.html`<li><a href="#" onclick=${jump(t.to)}>${t.tag}</a>: ${short(t.text)}</li>`)}</ol>`);
-  return box;
-};
-const _spec_4_0 = function _anonymous(md) {return (md`## Reviewing this spec
-
-- **Leave a note**: ☰ → Annotate → Note, then drag over the words or click the shape. Notes are review comments; Claude Code works through them, and you delete each when it is dealt with.
-- **Ask about a spot**: ☰ → Annotate → Ask, then pick the words or shape and type. The question goes to the agent with what you pointed at, and the answer threads at that spot. It reads Ask Claude while a Claude Code session is paired and Ask robocoop otherwise; the switchboard tab changes which.
-- **Click prose** to rewrite it. This spec has no drawings.
-- **Ask** in the pane at the bottom. Roboco-op reads and edits this notebook.
-- ☰ → **Save in place** keeps your edits and notes in this file.`);};
-const _spec_5_0 = function _anonymous(md) {return (md`## Problem
-
-On 2026-10-10 at 19:32:38 CEST the deployer put \`brain-x-issues\` back to its previous version and a reviewed fix was off cb4 for 11 minutes. Nothing was wrong with the fix. An agent had opened the Brain's page in the cluster's browser with the owner's session. That browser is Chrome 128, the tracker then signed with Ed25519, Chrome 128 has none, the page reported the tracker's tests as failed, and the deployer acted on the report.
-
-What the code does today (read 2026-10-10):
-
-- The deployer checks health only. \`/xrpc/_health\` twice failed puts a Worker back (\`brain-deployer.ojs\`, the tick at line 796).
-- The tests are run by the owner's page. \`assembled\` (\`cloud-brain.ojs:826\`) runs \`verifyService\` for every Worker when the page opens with the owner signed in, and \`verifyService\` (\`cloud-brain.ojs:790\`) sends \`deploy.report\` to the core (\`brain-core.ojs:524\`).
-- One failed report on a hash not yet verified has the deployer put the version before back (\`verdictOf\`, \`brain-deployer.ojs:850\`).
-- \`brain.ts apply\` reports nothing, so a Worker deployed from the command line stays unverified until the owner opens the page. Five versions of the tracker were deployed that way on 2026-10-10, each over an unverified one.
-- Only the kernel, the core and the Worker that serves the page are put back when nobody confirms in 10 minutes (\`brain-deployer.ojs:525\`). Every other Worker stays unverified with no limit.
-
-So a verdict depends on whose browser opens the page, which browser it is, and what else that page is doing. Measured the same day at 22:11 in the cluster's Chrome 128: the published notebook opened with only the tracker in view ran every module's tests at once (the build boots \`@tomlarkworthy/tests\` and 42 mains), and 18 of the tracker's 19 tests had no result in 60 s. Heap 640 MB.`);};
-const _spec_6_0 = function _anonymous(md) {return (md`## Outcome
-
-- A deploy of a Worker is followed, with no person and no page involved, by a run of that Worker's \`test_\` cells alone, and the deployer's log has \`deploy.verified\`, or \`deploy.failed\` and \`deploy.rollback\`, with the hash and the failed tests.
-- A Worker deployed and not verified within 10 minutes is put back to the version before. This holds for every Worker deployed with \`infra.apply\`. A member's Worker (\`member.deploy\`) is not changed.
-- A second deploy of a Worker that is still unverified is refused with a message that says when it will be decided. A deploy of any other Worker goes on.
-- Opening the Brain's page, in any browser, signed in or not, changes no Worker.
-
-Tom, 2026-10-10: "the report definately needs the hash of what it is verifying so the wrong report doesn;t rollback the wrong worker. It should not be mandatory because it might be lost. But if something has proof the deployment is broken then it is correct to roll it back. We do not want poisoned code infecting the cluster and comounding. But the deployer should have an isolated version testing what is deployed does what is expected." And: "you can't do another deployment until verified ... the 10 min rollback is mandatory liveliness feature. We can't have the next thing building on a faulty base. So its mega important the verification occur quickly and on an isolated code base."`);};
-const _spec_7_0 = function _anonymous(md) {return (md`### Size
-
-Three days. The deployer's state machine and the refusal are one day with tests. The verify page and the run are one day. The page's change, the docs, and the first deploys on cb4 with the owner are the third. If time runs out the rows at the bottom of Behaviour go first.`);};
-const _spec_8_0 = function _anonymous(md) {return (md`## Scope
-
-### Not your concern, do not build it
-
-- \`cloud-brain-dev\`, the repository kept by \`brain-x-git\`, with \`sync.ts\` and \`test.ts\` (tests under bun with no browser). Another session owns it. Its \`services.json\` is not read by this design.
-- \`brain-x-container\`. Not used.
-- The tracker (\`brain-issues.ojs\`), its signing, its panel.
-- The approval of a deploy by the owner (\`approval\` in the deployer's settings, \`pending/\`). Unchanged: verification starts when a Worker is deployed, which is after any approval.
-- \`brain.ts page up\` and the pairing bridge.
-- The health check and its two-fails rule. Kept as it is.
-
-### Non-goals
-
-- Running the tests before the deploy. What is tested is what runs, read back from the Worker; a test before the deploy tests what was sent.
-- A second browser or a newer Chrome. Cloudflare's Browser Run is Chrome 128.0.6613.137 and documents no way to choose (read 2026-10-10; \`cloudflare/playwright\` issue 232). The design does not depend on the version: a module whose tests need a newer browser fails its verification and is put back, which is the correct answer for a Brain whose only browser is that one.
-- Verifying a member's Worker (\`member.deploy\`). Members' modules have no tests the owner vouches for.
-- Making the page smaller than the module's imports. The tracker's page is 4.9 MB of 54 modules, and ran in 3.8 s.`);};
-const _spec_9_0 = function _anonymous(md) {return (md`## Words
-
-The implementer uses these strings as written.`);};
-const _spec_10_0 = function _copy_title(md) {return (md`Deploy verification`);};
-const _spec_11_0 = function _copy_opening(md) {return (md`The deployer runs a Worker's tests after each deploy, alone, in a browser of the Brain. Until they pass the Worker is on probation: it is put back after 10 minutes, and it cannot be deployed again.`);};
-const _spec_12_0 = function _copy_strings(md) {return (md`| where | text |
-|---|---|
-| a deploy refused while the Worker is unverified (\`reason\` of the result, state \`refused\`) | \`NAME is HASH12 and not verified yet: its tests are running, and it is put back at HH:MM:SS if they have not passed. Deploy again after that.\` |
-| put back, tests failed (\`deploy.rollback\` reason) | \`its tests failed: test_a, test_b: MESSAGE\` (as today, 200 characters) |
-| put back, no verdict in time | \`not confirmed in 10 minutes\` (as today, \`nextKernelState\`) |
-| log line, a verdict for a hash that is not running | \`{ at: "deploy.verify.stale", target, hash, running }\` |
-| log line, run started | \`{ at: "deploy.verify", target, hash, run }\` |
-| log line, verdict | \`{ at: "deploy.verified", target, hash, tests, otherTestsRan, ms }\` or \`{ at: "deploy.failed", target, hash, failed, otherTestsRan, ms }\` |
-| log line, the run gave no verdict | \`{ at: "deploy.verify.none", target, hash, reason }\` |
-| deployer page, a Worker on probation | \`NAME HASH12 is on probation until HH:MM:SS.\` (as today, now for every Worker) |`);};
-const _spec_13_0 = function _anonymous(md) {return (md`## Behaviour
-
-One requirement per row, in priority order: if time runs out, the bottom rows go first. \`check\` is how anyone can tell the row holds. The \`test_\` names are cells to be written in the module named.`);};
-const _spec_14_0 = function _requirements() {return ([
-  { id: "R1", text: "After a deploy by `infra.apply` of a Worker that has a version before it, the deployer shall put that Worker on probation: state `probation`, with the hash, the hash before it and the time. Today this is so for the kernel, the core and the page's Worker only. `memberDeploy` is untouched.", check: "brain-deployer: test_deployer_an_applied_worker_is_on_probation_after_a_deploy" },
-  { id: "R2", text: "While a Worker is on probation, when 10 minutes (`probationMs`) have passed with no passing verdict, the deployer shall put it back to the version before with the reason `not confirmed in 10 minutes`, as `nextKernelState` words it today.", check: "brain-deployer: test_deployer_unverified_worker_is_put_back_at_the_limit" },
-  { id: "R3", text: "While a Worker is on probation, an apply, a redistil with apply, or a remove of that Worker shall be refused with the string under Words, and a deploy of any other Worker in the same call shall go on.", check: "brain-deployer: test_deployer_refuses_a_deploy_over_an_unverified_one" },
-  { id: "R4", text: "After a deploy, and before it answers the apply, the deployer shall buy browser time (`browser.extend`, 120 s) and make one run (`browser.run`) of the Brain's page with that Worker's module alone in view. The apply's result for the Worker is then `verified`, `put-back`, or `probation` when the run gave no verdict.", check: "brain-deployer: test_deployer_starts_one_verify_run_per_deploy; on cb4: logs.query at=deploy.verify after an apply" },
-  { id: "R5", text: "The verdict shall carry the hash the page loaded. The deployer shall act on it only when that hash is the one it deployed and is still running; any other verdict is logged and dropped.", check: "brain-deployer: test_deployer_drops_a_verdict_for_another_hash" },
-  { id: "R6", text: "When the verdict is a pass, the deployer shall end the probation, record the hash as confirmed, and tell the core, which marks the route verified.", check: "brain-deployer: test_deployer_pass_ends_probation; on cb4: service.list shows verified.ok for the hash" },
-  { id: "R7", text: "When the verdict is a fail (a test threw, or had no result in 30 s), the deployer shall put the Worker back at once with the failed tests in the reason.", check: "brain-deployer: test_deployer_fail_puts_back_at_once" },
-  { id: "R8", text: "When the run gives no verdict (the browser service is down, the page did not load, the run passed its time), the deployer shall log `deploy.verify.none` and change nothing. R2 then decides.", check: "brain-deployer: test_deployer_no_verdict_changes_nothing" },
-  { id: "R9", text: "The Brain's page shall load a Worker's module only when that module is in the view or is opened by a click. With one module in view, no other Worker's module is loaded and none of its `test_` cells run. The verdict says how many other tests ran (`otherTestsRan`).", check: "cloud-brain: test_page_loads_only_the_modules_in_view; on cb4: otherTestsRan of deploy.verified is the count of the shell's own tests and no service's" },
-  { id: "R10", text: "The Brain's page shall send no verdict. `verifyService` runs tests for the reader and reports nothing; `deploy.report` on the core answers only the deployer.", check: "cloud-brain: test_page_sends_no_report; brain-core: test_core_deploy_report_is_the_deployers" },
-  { id: "R11", text: "For `brain-x-issues` on cb4 the verdict shall arrive within 60 s of the deploy.", check: "on cb4: the `at` of deploy.verified minus the `at` of the deploy, from logs.query. Measured by hand 2026-10-10 22:35: 9 s from opening the tab to the verdict." },
-  { id: "R13", text: "A module with no `test_` cell is verified: the verdict is a pass with `tests: 0`, and the log line says so.", check: "brain-deployer: test_deployer_a_module_with_no_tests_is_verified" },
-  { id: "R12", text: "A Worker deployed for the first time has nothing to be put back to. Its run is made, the verdict is recorded (`verified` or `failing`), and it is not on probation.", check: "brain-deployer: test_deployer_first_deploy_is_verified_with_nothing_to_put_back" },
-  { id: "R14", text: "A deploy signed with the recovery key shall go over a Worker on probation (R3 does not refuse it), and the deployer shall log that it did, with the hash it went over.", check: "brain-deployer: test_deployer_recovery_key_deploys_over_an_unverified_worker" }
-]);};
-const _spec_15_0 = function _requirementsTable(htl,requirements) {return (htl.html`<table style="font-size:.9em">
-  <thead><tr><th>id</th><th>requirement</th><th>check</th></tr></thead>
-  <tbody>${requirements.map((r) => htl.html`<tr data-requirement=${r.id}><td><strong>${r.id}</strong></td><td>${r.text}</td><td>${r.check ? htl.html`<code>${r.check}</code>` : htl.html`<em>none</em>`}</td></tr>`)}</tbody>
-</table>`);};
-const _spec_16_0 = function _anonymous(md) {return (md`### Worked examples
-
-What the verify page left on \`window.__verify\`, read with \`browser.eval\` on cb4 at 22:35 CEST on 2026-10-10 (\`tools/scratch/cloud-brain-experiments/verify-page/\`). \`worker\`, \`module\` and \`hash\` are what R5 reads.`);};
-const _spec_17_0 = function _examples() {return ([
-  { given: "brain-x-issues 15d722ba45e4, its module alone, Chrome 128 on cb4", expect: { worker: "brain-x-issues", module: "@tomlarkworthy/brain-issues", hash: "15d722ba45e4bce31309478f7e49d36427f199dccd97c41383c7e326c597a6ff", ok: true, tests: 19, failed: [], bootMs: 1086, testMs: 3784, otherTestsRan: 0, heapMB: 93 } },
-  { given: "the same module in the whole published notebook, same browser, 22:11", expect: { tests: 19, noResultIn60s: 18, heapMB: 640 } },
-  { given: "a verdict whose hash is not the one deployed", expect: "logged, dropped, the Worker stays on probation" }
-]);};
-const _spec_18_0 = function _anonymous(md) {return (md`## Design
-
-The parts and the order. The deployer is the only actor that decides. The browser is a place the tests run, and holds no credential.`);};
-const _spec_19_0 = function _architecture(onPaper,mermaid) {return (onPaper(mermaid`flowchart LR
-  apply[infra.apply] --> dep[deployer]
-  dep -- deploys --> w[Worker NAME]
-  dep -- run the verify page for NAME --> br[brain-x-browser]
-  br --> page[the Brain page, NAME module alone in view]
-  page -. getSource, public .-> w
-  page -- verdict with hash --> dep
-  dep -- pass: confirm, fail: put back --> w
-  dep -- verified or failing --> core[brain-core route]
-  tick[one-minute tick] -- 10 minutes and no pass: put back --> dep`));};
-const _spec_20_0 = function _sequence(onPaper,mermaid) {return (onPaper(mermaid`sequenceDiagram
-  participant C as brain.ts apply
-  participant D as deployer
-  participant W as Worker NAME
-  participant B as brain-x-browser
-  C->>D: infra.apply NAME (was HASH0)
-  D->>W: deploy HASH1
-  D->>D: probation NAME, lastGood HASH0
-  D->>B: extend 120 s, run the page with NAME in view
-  B->>W: getSource NAME
-  B-->>D: verdict hash HASH1, ok, failed
-  alt pass and HASH1 is running
-    D->>D: confirmed
-  else fail and HASH1 is running
-    D->>W: put back HASH0
-  else no verdict
-    D->>D: nothing, at 10 minutes put back HASH0
-  end
-  D-->>C: verified, put-back or probation
-  C->>D: infra.apply NAME again, while on probation
-  D-->>C: refused, not verified yet`));};
-const _spec_21_0 = function _anonymous(md) {return (md`### The verify page
-
-It is the Brain's own page. Tom, 2026-10-10: "I thought the brain already served a shell and pulled in modules." It does: the page the kernel serves holds no service's module, and \`loadService\` (\`cloud-brain.ojs:766\`) reads a Worker's module with \`getSource\` and applies it to the page. What makes that page unfit to verify one Worker today:
-
-- \`assembled\` loads the module of every Worker when the page opens (22 on cb4).
-- The page boots 20 mains, \`@tomlarkworthy/tests\` among them, which runs every \`test_\` cell that is present.
-
-Tom, 2026-10-10: "I think the brain shoudl default to loading only modules in its view or that are clicked". So:
-
-- The page loads a Worker's module when it is in the view (\`#view=…\`) or when its link is clicked, and not before. The Services table is drawn from the registry (\`service.list\`) without the modules.
-- The deployer's run is \`browser.run\` on \`<brain>/#view=C100(S100(MODULE))\` with no session, a \`wait\` that is true when the verdict is there, and an \`expression\` that reads it. The verdict is made by a cell of the page's module that runs the \`test_\` cells of the module in view, 30 s each, and checks \`getInfo\` gives the hash that was loaded (as \`verifyService\` does today).
-- The page sends nothing. The run's answer goes back to the deployer, which called it.
-
-Not measured: this page with one module in view, in the cluster's browser. The shell's own 20 mains still boot and their tests run beside the module's. Step 1 measures it. What was measured is the module with only its imports booted, in a file made by a probe: 19 of 19 in 3.8 s, heap 93 MB (\`tools/scratch/cloud-brain-experiments/verify-page/\`). The probe's file-making is not part of this design.
-
-### How the deployer waits
-
-The run is awaited inside the apply, after the Worker is deployed and put on probation, and the apply answers with the verdict. \`browser.run\` ends at 120 s at most. The deployer has no \`ctx.waitUntil\` of its own today (\`cloudflare-iac.ojs:692\` is the wrapper's), and a run started from the one-minute tick could use all 60 s of R11 before it began. If the request ends before the run does (the client went away), the Worker stays on probation and R2 decides. \`brain-x-browser\` takes a call from the deployer: its rule is \`caller.trusted || caller.kind in ["worker", "deployer"]\` (\`brain-browser.ojs:125\`). Every method but \`extend\`, \`list\` and \`status\` answers 409 \`NoTime\` with no bought time (\`brain-browser.ojs:48\`), so the deployer buys before it runs.
-
-### Decisions
-
-| decided | instead of | because |
-|---|---|---|
-| The deployer starts the run and decides | the owner's page reporting (today) | the page's verdict depended on the browser and on what else the page ran; 2026-10-10 19:32 |
-| Tests run in a browser of the Brain | bun with no browser (\`cloud-brain-dev/test.ts\`) | at 22:33 that runner had 7 failures not yet explained and 28 tests that need a DOM (its author's count). Tom: "it has not got the tests working though. I think maybe browser route is better" |
-| Browser Run as it is, Chrome 128 | a container with a current Chrome | no image to keep; 19 of 19 in 3.8 s. The cost is the non-goal above |
-| The Brain's page loads only the modules in view or clicked | loading every Worker's module on opening (today); a separate verify file made by the deployer or a tool | Tom: "I think the brain shoudl default to loading only modules in its view or that are clicked". The published notebook with everything booted: 18 of 19 had no result in 60 s |
-| The run is awaited inside the apply | a run started by the tick | the tick is a minute apart; Tom: "its mega important the verification occur quickly" |
-| A module with no tests is verified | putting it back at 10 minutes | there is nothing to fail; the health check still applies |
-| Probation for every Worker, 10 minutes | health check only for recipes (today) | Tom: "the 10 min rollback is mandatory liveliness feature" |
-| An unverified Worker blocks its own next deploy only | blocking every deploy | Tom: "yes block jsut that one worker that is not verified, other deploys go on." |
-| The tracker signs with ECDSA P-256 | keeping Ed25519 with a second code path | done 2026-10-10 22:04, \`tools/cloud-brain/records/sign-p256.md\` |
-
-### Known traps
-
-- \`brain.ts confirm\` with no name ends the probation of every Worker at once (\`brain-deployer.ojs:823\`, \`confirm = async (only = null)\`; \`brain.ts:269\` sends \`{}\`). After R1 that would confirm every unverified recipe with no test. See the open questions.
-- A service's module is not in the Brain's page. The page loads it from the Worker.
-- \`browser.open\` refuses a URL that is not http or https, so a blank tab cannot be asked for.
-- \`browser.run\` ends at 120 s at most. A module whose tests need longer cannot be verified by one run.
-- The page's \`verifyService\` also loads a Worker's module into the reader's page (\`loadService\`). That stays. Only the report goes.`);};
-const _spec_22_0 = function _anonymous(md) {return (md`## Handover
-
-This changes the deployer, the core and the page. \`rules.md\` of the brain-maintenance loop names the kernel, \`brain-core\`, \`brain-db\` and the deployer as the owner's to deploy; the page's Worker is a recipe that goes on probation. Write, test and stop; Tom deploys all three.
-
-### Where the work goes
-
-- \`tools/cloud-brain/brain-deployer.ojs\`: \`nextKernelState\` (line 41) already has the three transitions; R1 is the condition at line 525 that puts only non-recipes on probation. R3 is in the \`change\` callbacks that \`apply\` (line 610) gives \`guard\` for a deploy and for a remove, and in \`redistil\` with apply. Not inside \`guard\` itself: the roll back button of the deployer page, \`memberDeploy\` and \`memberRemove\` also go through \`guard\` and are not refused. R4 to R8: a function beside \`verdict\` (line 849) that buys the browser time and makes the run after \`rows.put("worker/…")\`, awaited inside the apply, and \`verdictOf\` (line 850), which already drops a stale hash (it logs nothing today) and puts back on a fail. The tick (line 796) already puts back at the limit for what is on probation, with the reason \`not confirmed in 10 minutes\`, which is kept. \`memberDeploy\` (line 966) is a separate path and is not changed.
-- \`tools/cloud-brain/brain-core.ojs\`: \`deploy.report\` (line 524) and \`toDeployer\` (line 422). The core keeps \`verified\` on the route; it is told by the deployer.
-- \`tools/cloud-brain/cloud-brain.ojs\`: \`verifyService\` (line 790), \`assembled\` (line 826), \`assembledRefresh\`, \`loadService\` (line 766).
-- \`tools/cloud-brain/cloud-brain-docs.ojs\` line 240 and \`cloud-brain-specs.ojs\` R9, which describe the page reporting.
-- Read first: \`knowledge/working-with-cloud-brain-remote-lopecode-cluster.md\`, \`.claude/skills/brain-maintenance/philosophy.md\` (Clarifications).
-
-Line numbers are of commit \`79e502e2\`.
-
-### Boundaries
-
-| | |
-|---|---|
-| **always** | seed, \`build.ts\`, the module's tests in a browser, then emit. Report the test output. |
-| **ask first** | a change to \`cloudflare-iac.ojs\` (it moves every Worker's hash); a new method on \`brain-x-browser\`; a new Worker |
-| **never** | deploy the kernel, the core, the database or the deployer; open the Brain's page in the cluster's browser before step 5 is on cb4; scan notebook HTML with a regular expression |
-
-### Checks
-
-\`\`\`
-bun tools/cloud-brain/build.ts
-bun tools/lope-tests.ts lopebooks/notebooks/@tomlarkworthy_cloud-brain.html --filter test_ --report tools/cloud-brain/.emitted/verify.ctrf.json
-BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts redistil        # every line same
-\`\`\`
-
-\`--filter test_deployer\` matches 2 of the deployer's 42 tests and \`--filter test_core\` none of the core's 34, so the filter is every test. In a browser, run every \`test_\` cell of \`@tomlarkworthy/brain-deployer\`, \`@tomlarkworthy/brain-core\` and \`@tomlarkworthy/cloud-brain\` with the snippet of step 8 in \`.claude/skills/brain-maintenance/agents/implementer.md\`, and report the three counts.
-
-Existing tests this change rewrites, by name: \`test_a_deploy_is_unverified_until_its_tests_are_reported\` (\`brain-core.ojs:1297\`) and \`test_a_failed_verdict_puts_the_deploy_back\` (\`brain-deployer.ojs:1918\`), which test the page's report. \`test_probation_transitions\` (\`:1508\`) and \`test_kernel_probation\` (\`:1974\`) assert \`not confirmed in\`, which is kept; they must still pass.
-
-After Tom's deploys, on cb4: apply a recipe twice within a minute (the second answers \`refused\` with the string under Words), and read \`logs.query\` for \`deploy.verify\` and \`deploy.verified\` of the first.
-
-### Steps
-
-1. Page: load only the modules in view or clicked (R9), and the cell that makes the verdict. Tom deploys the page's Worker. Then by hand, \`browser.run\` on cb4 for three Workers: \`brain-x-issues\`, \`brain-x-browser\`, \`brain-x-static\`. **Stop and show** the three verdicts, times, heap and \`otherTestsRan\`. If the shell's own tests make a run slow, that is a finding for Tom and not a reason to change the design alone.
-2. Deployer: R1, R2, R3 with their tests. No run yet, so every deploy is put back at 10 minutes unless confirmed by hand. Do not deploy this step alone.
-3. Deployer: R4 to R8 and R12 with their tests, the browser stood in for by a fake in the rig. **Stop and show** the tests.
-4. Core: \`deploy.report\` for the deployer only. Page: R10.
-5. Tom deploys the deployer, the core and the page to cb4. Then the checks above on cb4. **Stop and show.**
-6. Docs and the as-built record. Then the owner closes \`deployer-put-back-issues-worker\` and \`verify-in-hidden-tab-fails-tests\`, and removes the line of \`rules.md\` about the cluster's browser.`);};
-const _spec_23_0 = function _anonymous(md) {return (md`## Open questions
-
-A question marked blocking stops the handover. Each open one is listed in the strip at the top with a link to its row here. Rows with an answer are Tom's, with his words.`);};
-const _spec_24_0 = function _questions() {return ([
-  { q: "Where is the verify page made?", blocking: false, answer: "It is the Brain's page with one module in view. Tom, 2026-10-10: \"I thought the brain already served a shell and pulled in modules.\" and \"I think the brain shoudl default to loading only modules in its view or that are clicked\"." },
-  { q: "The Brain's page boots @tomlarkworthy/tests, which runs every test_ cell present. With one module in view that is the shell's own tests and the module's. Does the tests module stay a main of the Brain's page? Claude would keep it and measure in step 1; if the shell's tests slow a run, drop it from the mains and let the Tests pane load it when opened.", blocking: false, answer: "" },
-  { q: "A deploy of brain-x-browser, of the page's Worker or of the core can break the thing that verifies it. Is the 10 minute limit enough for those, with no other check? Claude would say yes: a broken verifier gives no verdict, and R2 puts the Worker back.", blocking: true, answer: "Yes, the 10 minute limit is enough. Tom, 2026-10-10, a note on this row: \"yes that's fine\"." },
-  { q: "The deployer buys 120 s of browser time for each run: 0.003 USD at the rate in brain-browser (N x 0.000025), charged to the caller `deployer`. brain-x-browser takes the deployer's call (brain-browser.ojs:125). Is that spend accepted with no daily limit, or is a limit wanted? With a limit reached, runs give no verdict and every deploy is put back at 10 minutes.", blocking: true, answer: "The spend is accepted. Tom, 2026-10-10, a note on the words \"spend accepted\": \"yes\". He asked for no limit, so none is built." },
-  { q: "brain.ts confirm with no name confirms every Worker on probation (brain-deployer.ojs:823). After this change that would keep every unverified recipe with no test run. Claude would make a hand confirm name its Worker, and leave it to the owner's session and the recovery key.", blocking: true, answer: "" },
-  { q: "Is a module with no test_ cell verified, failed, or refused at deploy? Claude wrote R13 as verified. Every brain-*.ojs has at least one test today.", blocking: false, answer: "Verified (R13). Tom, 2026-10-10, a note on the word \"verified\": \"yes verified\"." },
-  { q: "May a deploy signed with the recovery key go over an unverified Worker? It is the way out when a verifier is broken and the fix is to a Worker on probation. Claude would allow it and log it.", blocking: false, answer: "Yes, and it is logged (R14). Tom, 2026-10-10, a note on \"allow it and log it\": \"yes its allowed\"." },
-  { q: "After a put back for failed tests, is the same hash refused if it is sent again? Today nothing remembers a failed hash. Claude would not add it: the run is the cost of sending it again.", blocking: false, answer: "" },
-  { q: "The deployer and the kernel are deployed by install-deployer and by the recovery path, not by infra.apply. Are they verified by this run too, or left to their probation and brain.ts confirm as today? Claude would leave them as today in this change.", blocking: false, answer: "" },
-  { q: "Does a report have to arrive for a deploy to stand?", blocking: false, answer: "Yes. Tom, 2026-10-10, a note on the \"No.\" this row had: \"YES! and deploys on that worker are blocked until it happens. I corrected myself on that\". A deploy stands only when its passing verdict has arrived. Until then the Worker's next deploy is refused (R3), and with no verdict in 10 minutes it is put back (R2, R8). His first words that day were \"It should not be mandatory because it might be lost.\"; later in the same message he corrected it: \"Actually that does imply you can't do another deployment until verified ... the 10 min rollback is mandatory liveliness feature.\"" },
-  { q: "Is every deploy blocked while one Worker is unverified?", blocking: false, answer: "No. Tom, 2026-10-10: \"yes block jsut that one worker that is not verified, other deploys go on.\"" },
-  { q: "If the browser service is down, every deploy is put back at 10 minutes. Is that accepted?", blocking: false, answer: "Yes. Tom, 2026-10-10: \"the 10 min rollback is mandatory liveliness feature. We can't have the next thing building on a faulty base.\"" },
-  { q: "Browser, or tests with no browser?", blocking: false, answer: "Browser. Tom, 2026-10-10: \"I think maybe browser route is better, but the repository work is still very useful\"." }
-]);};
-const _spec_25_0 = function _questionsTable(htl,questions) {return (htl.html`<table style="font-size:.9em">
-  <thead><tr><th></th><th>question</th><th>answer</th></tr></thead>
-  <tbody>${questions.map((q, i) => htl.html`<tr data-question=${i}><td>${q.blocking && !q.answer ? "blocking" : ""}</td><td>${q.q}</td><td>${q.answer || htl.html`<em>open</em>`}</td></tr>`)}</tbody>
-</table>`);};
-const _spec_26_0 = function _states() {return ([]);};
-const _spec_27_0 = function _onPaper(htl) {return ((node) => htl.html`<div style="max-width:640px;background:#f6f7f9;border-radius:6px;padding:10px">${node}</div>`);};
-const _spec_28_0 = function _specModule() {return ("@spec/deploy-verification");};
-const _annotation_a215q1inz3_note = function _anonymous(md) {return (md`yes that's fine`);};
-const _annotation_a215q1inz3 = function _annotation_a215q1inz3(annotation) {return (annotation({
- "anchor": {
-  "surface": "text",
-  "module": "@spec/deploy-verification",
-  "region": "cell",
-  "afterIndex": 0,
-  "cell": "questionsTable",
-  "pid": "_spec_25_0",
-  "quote": {
-   "prefix": "load it when opened.openblocking",
-   "exact": "A deploy of b",
-   "suffix": "rain-x-browser, of the page's Wo"
-  },
-  "hint": {
-   "start": 642,
-   "end": 655
-  },
-  "cellHash": "kvby0x"
- },
- "createdAt": "2026-10-10T20:53:14.315Z"
-}));};
-const _annotation_a2b3970h96_note = function _anonymous(md) {return (md`yes`);};
-const _annotation_a2b3970h96 = function _annotation_a2b3970h96(annotation) {return (annotation({
- "anchor": {
-  "surface": "text",
-  "module": "@spec/deploy-verification",
-  "region": "cell",
-  "afterIndex": 0,
-  "cell": "questionsTable",
-  "pid": "_spec_25_0",
-  "quote": {
-   "prefix": "brain-browser.ojs:125). Is that ",
-   "exact": "spend accepted ",
-   "suffix": "with no daily limit, or is a lim"
-  },
-  "hint": {
-   "start": 1202,
-   "end": 1217
-  },
-  "cellHash": "kvby0x"
- },
- "createdAt": "2026-10-10T20:53:44.633Z"
-}));};
-const _annotation_a26u6w7f1x_note = function _anonymous(md) {return (md`yes verified`);};
-const _annotation_a26u6w7f1x = function _annotation_a26u6w7f1x(annotation) {return (annotation({
- "anchor": {
-  "surface": "text",
-  "module": "@spec/deploy-verification",
-  "region": "cell",
-  "afterIndex": 0,
-  "cell": "questionsTable",
-  "pid": "_spec_25_0",
-  "quote": {
-   "prefix": " at deploy? Claude wrote R13 as ",
-   "exact": "verified",
-   "suffix": ". Every brain-*.ojs has at least"
-  },
-  "hint": {
-   "start": 1840,
-   "end": 1848
-  },
-  "cellHash": "kvby0x"
- },
- "createdAt": "2026-10-10T20:54:40.455Z"
-}));};
-const _annotation_a2qfy634bg_note = function _anonymous(md) {return (md`yes its allowed`);};
-const _annotation_a2qfy634bg = function _annotation_a2qfy634bg(annotation) {return (annotation({
- "anchor": {
-  "surface": "text",
-  "module": "@spec/deploy-verification",
-  "region": "cell",
-  "afterIndex": 0,
-  "cell": "questionsTable",
-  "pid": "_spec_25_0",
-  "quote": {
-   "prefix": "rker on probation. Claude would ",
-   "exact": "allow it and log it.",
-   "suffix": "openAfter a put back for failed "
-  },
-  "hint": {
-   "start": 2145,
-   "end": 2165
-  },
-  "cellHash": "kvby0x"
- },
- "createdAt": "2026-10-10T20:55:03.197Z"
-}));};
-const _annotation_a2z14qq9t2_note = function _anonymous(md) {return (md`YES! and deploys on that worker are blocked until it happens. I corrected myself on that`);};
-const _annotation_a2z14qq9t2 = function _annotation_a2z14qq9t2(annotation) {return (annotation({
- "box": {
-  "dx": 582.6328125,
-  "dy": -164.66796875,
-  "w": 240
- },
- "state": "open",
- "createdAt": "2026-10-10T20:55:26.683Z",
- "anchor": {
-  "surface": "text",
-  "module": "@spec/deploy-verification",
-  "region": "cell",
-  "afterIndex": 0,
-  "cell": "questionsTable",
-  "pid": "_spec_25_0",
-  "quote": {
-   "prefix": "to arrive for a deploy to stand?",
-   "exact": "No.",
-   "suffix": " Tom, 2026-10-10: \"It should not"
-  },
-  "hint": {
-   "start": 2754,
-   "end": 2757
-  },
-  "cellHash": "kvby0x"
- }
-}));};
-
-export default function define(runtime, observer) {
-  const main = runtime.module();
-  const $def = (pid, name, deps, fn) => {
-    main.variable(observer(name)).define(name, deps, fn).pid = pid;
-  };
-
-  $def("_spec_0_0", null, ["md"], _spec_0_0);  
-  $def("_spec_1_0", "opening", ["md"], _spec_1_0);  
-  $def("_spec_2_0", "viewof specStatus", ["sticky","Inputs"], _spec_2_0);  
-  $def("_spec_2_1", "specStatus", ["Generators","viewof specStatus"], _spec_2_1);  
-  $def("_spec_3_0", "readiness", ["annotations","specModule","requirements","questions","states","specStatus","htl"], _spec_3_0);  
-  $def("_spec_4_0", null, ["md"], _spec_4_0);  
-  $def("_spec_5_0", null, ["md"], _spec_5_0);  
-  $def("_spec_6_0", null, ["md"], _spec_6_0);  
-  $def("_spec_7_0", null, ["md"], _spec_7_0);  
-  $def("_spec_8_0", null, ["md"], _spec_8_0);  
-  $def("_spec_9_0", null, ["md"], _spec_9_0);  
-  $def("_spec_10_0", "copy_title", ["md"], _spec_10_0);  
-  $def("_spec_11_0", "copy_opening", ["md"], _spec_11_0);  
-  $def("_spec_12_0", "copy_strings", ["md"], _spec_12_0);  
-  $def("_spec_13_0", null, ["md"], _spec_13_0);  
-  $def("_spec_14_0", "requirements", [], _spec_14_0);  
-  $def("_spec_15_0", "requirementsTable", ["htl","requirements"], _spec_15_0);  
-  $def("_spec_16_0", null, ["md"], _spec_16_0);  
-  $def("_spec_17_0", "examples", [], _spec_17_0);  
-  $def("_spec_18_0", null, ["md"], _spec_18_0);  
-  $def("_spec_19_0", "architecture", ["onPaper","mermaid"], _spec_19_0);  
-  $def("_spec_20_0", "sequence", ["onPaper","mermaid"], _spec_20_0);  
-  $def("_spec_21_0", null, ["md"], _spec_21_0);  
-  $def("_spec_22_0", null, ["md"], _spec_22_0);  
-  $def("_spec_23_0", null, ["md"], _spec_23_0);  
-  $def("_spec_24_0", "questions", [], _spec_24_0);  
-  $def("_spec_25_0", "questionsTable", ["htl","questions"], _spec_25_0);  
-  $def("_spec_26_0", "states", [], _spec_26_0);  
-  $def("_spec_27_0", "onPaper", ["htl"], _spec_27_0);  
-  $def("_spec_28_0", "specModule", [], _spec_28_0);  
-  main.define("module @tomlarkworthy/editable-md", async () => runtime.module((await import("/@tomlarkworthy/editable-md.js?v=4")).default));  
-  main.define("md", ["module @tomlarkworthy/editable-md", "@variable"], (_, v) => v.import("md", _));  
-  main.define("module @tomlarkworthy/annotate", async () => runtime.module((await import("/@tomlarkworthy/annotate.js?v=4")).default));  
-  main.define("annotation", ["module @tomlarkworthy/annotate", "@variable"], (_, v) => v.import("annotation", _));  
-  main.define("annotations", ["module @tomlarkworthy/annotate", "@variable"], (_, v) => v.import("annotations", _));  
-  main.define("module @tomlarkworthy/sticky", async () => runtime.module((await import("/@tomlarkworthy/sticky.js?v=4")).default));  
-  main.define("sticky", ["module @tomlarkworthy/sticky", "@variable"], (_, v) => v.import("sticky", _));  
-  $def("_annotation_a215q1inz3_note", "annotation_a215q1inz3_note", ["md"], _annotation_a215q1inz3_note);  
-  $def("_annotation_a215q1inz3", "annotation_a215q1inz3", ["annotation"], _annotation_a215q1inz3);  
-  $def("_annotation_a2b3970h96_note", "annotation_a2b3970h96_note", ["md"], _annotation_a2b3970h96_note);  
-  $def("_annotation_a2b3970h96", "annotation_a2b3970h96", ["annotation"], _annotation_a2b3970h96);  
-  $def("_annotation_a26u6w7f1x_note", "annotation_a26u6w7f1x_note", ["md"], _annotation_a26u6w7f1x_note);  
-  $def("_annotation_a26u6w7f1x", "annotation_a26u6w7f1x", ["annotation"], _annotation_a26u6w7f1x);  
-  $def("_annotation_a2qfy634bg_note", "annotation_a2qfy634bg_note", ["md"], _annotation_a2qfy634bg_note);  
-  $def("_annotation_a2qfy634bg", "annotation_a2qfy634bg", ["annotation"], _annotation_a2qfy634bg);  
-  $def("_annotation_a2z14qq9t2_note", "annotation_a2z14qq9t2_note", ["md"], _annotation_a2z14qq9t2_note);  
-  $def("_annotation_a2z14qq9t2", "annotation_a2z14qq9t2", ["annotation"], _annotation_a2z14qq9t2);
-  return main;
-}</script><!--/-->
-
 <script id="@tomlarkworthy/editable-md" 
   type="text/plain"
   data-mime="application/javascript"
@@ -9817,6 +9577,559 @@ export default function define(runtime, observer) {
   $def("_uxgoi6", "test_table_round_trip", ["mdCellSourceToMarkdown","editableMarkdownParser","expect","editableMarkdownSerializer","markdownToMdTagged"], _uxgoi6);  
   $def("_7wucnx", "test_table_placeholder_round_trip", ["mdCellSourceToMarkdown","editableMarkdownSerializer","editableMarkdownParser","markdownToMdTagged","expect","compile"], _7wucnx);  
   $def("_tstinstbl", "test_insertTable_round_trip", ["prosemirror","editableSchema","insertTable","expect","editableMarkdownSerializer","editableMarkdownParser","markdownToMdTagged"], _tstinstbl);
+  return main;
+}</script><!--/-->
+
+<script id="@spec/deploy-verification" 
+  type="text/plain"
+  data-mime="application/javascript"
+>
+const _spec_0_0 = function _anonymous(md) {return (md`# Deploy verification`);};
+const _spec_1_0 = function _opening(md) {return (md`After every deploy the deployer runs the deployed module's tests itself, alone, in a browser of the cluster, and acts on the result. A Worker that is not verified in 10 minutes is put back, and its next deploy is refused until then. For the owner and for every agent that deploys: a deploy is kept or put back by what was deployed, and not by which tab happened to be open.`);};
+const _spec_2_0 = function _specStatus(sticky,Inputs) {return (sticky(Inputs.select(["draft", "in review", "approved for handover"], { label: "Status", value: "draft" }), "draft"));};
+const _spec_2_1 = (G, _) => G.input(_);
+const _spec_3_0 = function _readiness(annotations,specModule,requirements,questions,states,specStatus,htl) {
+  const notes = (annotations || []).filter((a) => a.home === specModule || (a.anchor && a.anchor.module === specModule));
+  const unchecked = requirements.filter((r) => !r.check || /^<.*>$/.test(r.check.trim()));
+  const blocking = questions.filter((q) => q.blocking && !q.answer);
+  const undrawn = states.filter((s) => !s.drawing);
+  const items = [
+    [notes.length, "annotations to resolve"],
+    [blocking.length, "blocking questions open"],
+    [unchecked.length, `of ${requirements.length} requirements without a check`],
+    [undrawn.length, `of ${states.length} states without a drawing`]
+  ];
+  const ready = items.every(([n]) => n === 0) && specStatus === "approved for handover";
+  // Everything that still needs the reviewer, listed here with a link to where it is answered.
+  const open = questions.map((q, i) => ({ q, i })).filter(({ q }) => !q.answer);
+  const todo = [
+    ...open.filter(({ q }) => q.blocking).map(({ q, i }) => ({ tag: "blocking question", text: q.q, to: `[data-question="${i}"]` })),
+    ...open.filter(({ q }) => !q.blocking).map(({ q, i }) => ({ tag: "open question", text: q.q, to: `[data-question="${i}"]` })),
+    ...unchecked.map((r) => ({ tag: "no check", text: `${r.id} ${r.text}`, to: `[data-requirement="${r.id}"]` })),
+    ...undrawn.map((s) => ({ tag: "not drawn", text: `state: ${s.state}`, to: `[data-state="${s.state}"]` }))
+  ];
+  const box = htl.html`<div style="font:13px system-ui;padding:.5em .8em;border:1px solid color-mix(in srgb, currentColor 25%, transparent);border-radius:6px"></div>`;
+  // Scrolls the pane; a plain #fragment link would replace the lopepage layout hash.
+  const jump = (to) => (e) => {
+    e.preventDefault();
+    const el = (box.closest(".lp2-pane") || box.ownerDocument).querySelector(to);
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (el.animate) el.animate([{ background: "color-mix(in srgb, currentColor 22%, transparent)" }, { background: "transparent" }], 1800);
+  };
+  const short = (s) => (s.length > 110 ? s.slice(0, 110) + "…" : s);
+  box.append(htl.html`<div style="display:flex;gap:1.2em;flex-wrap:wrap;align-items:baseline">
+    <strong>${ready ? "Ready to hand over" : "Not ready to hand over"}</strong>
+    ${items.map(([n, label]) => htl.html`<span style=${{ opacity: n ? 1 : 0.5 }}><strong>${n}</strong> ${label}</span>`)}
+  </div>`);
+  if (todo.length) box.append(htl.html`<ol style="margin:.5em 0 0;padding-left:1.4em">${todo.map((t) => htl.html`<li><a href="#" onclick=${jump(t.to)}>${t.tag}</a>: ${short(t.text)}</li>`)}</ol>`);
+  return box;
+};
+const _spec_4_0 = function _anonymous(md) {return (md`## Reviewing this spec
+
+- **Leave a note**: ☰ → Annotate → Note, then drag over the words or click the shape. Notes are review comments; Claude Code works through them, and you delete each when it is dealt with.
+- **Ask about a spot**: ☰ → Annotate → Ask, then pick the words or shape and type. The question goes to the agent with what you pointed at, and the answer threads at that spot. It reads Ask Claude while a Claude Code session is paired and Ask robocoop otherwise; the switchboard tab changes which.
+- **Click prose** to rewrite it. This spec has no drawings.
+- **Ask** in the pane at the bottom. Roboco-op reads and edits this notebook.
+- ☰ → **Save in place** keeps your edits and notes in this file.`);};
+const _spec_5_0 = function _anonymous(md) {return (md`## Problem
+
+On 2026-10-10 at 19:32:38 CEST the deployer put \`brain-x-issues\` back to its previous version and a reviewed fix was off cb4 for 11 minutes. Nothing was wrong with the fix. An agent had opened the Brain's page in the cluster's browser with the owner's session. That browser is Chrome 128, the tracker then signed with Ed25519, Chrome 128 has none, the page reported the tracker's tests as failed, and the deployer acted on the report.
+
+What the code does today (read 2026-10-10):
+
+- The deployer checks health only. \`/xrpc/_health\` twice failed puts a Worker back (\`brain-deployer.ojs\`, the tick at line 796).
+- The tests are run by the owner's page. \`assembled\` (\`cloud-brain.ojs:826\`) runs \`verifyService\` for every Worker when the page opens with the owner signed in, and \`verifyService\` (\`cloud-brain.ojs:790\`) sends \`deploy.report\` to the core (\`brain-core.ojs:524\`).
+- One failed report on a hash not yet verified has the deployer put the version before back (\`verdictOf\`, \`brain-deployer.ojs:850\`).
+- \`brain.ts apply\` reports nothing, so a Worker deployed from the command line stays unverified until the owner opens the page. Five versions of the tracker were deployed that way on 2026-10-10, each over an unverified one.
+- Only the kernel, the core and the Worker that serves the page are put back when nobody confirms in 10 minutes (\`brain-deployer.ojs:525\`). Every other Worker stays unverified with no limit.
+
+So a verdict depends on whose browser opens the page, which browser it is, and what else that page is doing. Measured the same day at 22:11 in the cluster's Chrome 128: the published notebook opened with only the tracker in view ran every module's tests at once (the build boots \`@tomlarkworthy/tests\` and 42 mains), and 18 of the tracker's 19 tests had no result in 60 s. Heap 640 MB.`);};
+const _spec_6_0 = function _anonymous(md) {return (md`## Outcome
+
+- A deploy of a Worker is followed, with no person and no page involved, by a run of that Worker's \`test_\` cells alone, and the deployer's log has \`deploy.verified\`, or \`deploy.failed\` and \`deploy.rollback\`, with the hash and the failed tests.
+- A Worker deployed and not verified within 10 minutes is put back to the version before. This holds for every Worker deployed with \`infra.apply\`. A member's Worker (\`member.deploy\`) is not changed.
+- A second deploy of a Worker that is still unverified is refused with a message that says when it will be decided. A deploy of any other Worker goes on.
+- Opening the Brain's page, in any browser, signed in or not, changes no Worker.
+
+Tom, 2026-10-10: "the report definately needs the hash of what it is verifying so the wrong report doesn;t rollback the wrong worker. It should not be mandatory because it might be lost. But if something has proof the deployment is broken then it is correct to roll it back. We do not want poisoned code infecting the cluster and comounding. But the deployer should have an isolated version testing what is deployed does what is expected." And: "you can't do another deployment until verified ... the 10 min rollback is mandatory liveliness feature. We can't have the next thing building on a faulty base. So its mega important the verification occur quickly and on an isolated code base."`);};
+const _spec_7_0 = function _anonymous(md) {return (md`### Size
+
+Three days. The deployer's state machine and the refusal are one day with tests. The verify page and the run are one day. The page's change, the docs, and the first deploys on cb4 with the owner are the third. If time runs out the rows at the bottom of Behaviour go first.`);};
+const _spec_8_0 = function _anonymous(md) {return (md`## Scope
+
+### Not your concern, do not build it
+
+- \`cloud-brain-dev\`, the repository kept by \`brain-x-git\`, with \`sync.ts\` and \`test.ts\` (tests under bun with no browser). Another session owns it. Its \`services.json\` is not read by this design.
+- \`brain-x-container\`. Not used.
+- The tracker (\`brain-issues.ojs\`), its signing, its panel.
+- The approval of a deploy by the owner (\`approval\` in the deployer's settings, \`pending/\`). Unchanged: verification starts when a Worker is deployed, which is after any approval.
+- \`brain.ts page up\` and the pairing bridge.
+- The health check and its two-fails rule. Kept as it is.
+
+### Non-goals
+
+- Running the tests before the deploy. What is tested is what runs, read back from the Worker; a test before the deploy tests what was sent.
+- A second browser or a newer Chrome. Cloudflare's Browser Run is Chrome 128.0.6613.137 and documents no way to choose (read 2026-10-10; \`cloudflare/playwright\` issue 232). The design does not depend on the version: a module whose tests need a newer browser fails its verification and is put back, which is the correct answer for a Brain whose only browser is that one.
+- Verifying a member's Worker (\`member.deploy\`). Members' modules have no tests the owner vouches for.
+- Making the page smaller than the module's imports. The tracker's page is 4.9 MB of 54 modules, and ran in 3.8 s.`);};
+const _spec_9_0 = function _anonymous(md) {return (md`## Words
+
+The implementer uses these strings as written.`);};
+const _spec_10_0 = function _copy_title(md) {return (md`Deploy verification`);};
+const _spec_11_0 = function _copy_opening(md) {return (md`The deployer runs a Worker's tests after each deploy, alone, in a browser of the Brain. Until they pass the Worker is on probation: it is put back after 10 minutes, and it cannot be deployed again.`);};
+const _spec_12_0 = function _copy_strings(md) {return (md`| where | text |
+|---|---|
+| a deploy refused while the Worker is unverified (\`reason\` of the result, state \`refused\`) | \`NAME is HASH12 and not verified yet: its tests are running, and it is put back at HH:MM:SS if they have not passed. Deploy again after that.\` |
+| put back, tests failed (\`deploy.rollback\` reason) | \`its tests failed: test_a, test_b: MESSAGE\` (as today, 200 characters) |
+| put back, no verdict in time | \`not confirmed in 10 minutes\` (as today, \`nextKernelState\`) |
+| log line, a verdict for a hash that is not running | \`{ at: "deploy.verify.stale", target, hash, running }\` |
+| log line, run started | \`{ at: "deploy.verify", target, hash, run }\` |
+| log line, verdict | \`{ at: "deploy.verified", target, hash, tests, otherTestsRan, ms }\` or \`{ at: "deploy.failed", target, hash, failed, otherTestsRan, ms }\` |
+| log line, the run gave no verdict | \`{ at: "deploy.verify.none", target, hash, reason }\` |
+| deployer page, a Worker on probation | \`NAME HASH12 is on probation until HH:MM:SS.\` (as today, now for every Worker) |`);};
+const _spec_13_0 = function _anonymous(md) {return (md`## Behaviour
+
+One requirement per row, in priority order: if time runs out, the bottom rows go first. \`check\` is how anyone can tell the row holds. The \`test_\` names are cells to be written in the module named.`);};
+const _spec_14_0 = function _requirements() {return ([
+  { id: "R1", text: "After a deploy by `infra.apply` of a Worker that has a version before it, the deployer shall put that Worker on probation: state `probation`, with the hash, the hash before it and the time. Today this is so for the kernel, the core and the page's Worker only. `memberDeploy` is untouched.", check: "brain-deployer: test_deployer_an_applied_worker_is_on_probation_after_a_deploy" },
+  { id: "R2", text: "While a Worker is on probation, when 10 minutes (`probationMs`) have passed with no passing verdict, the deployer shall put it back to the version before with the reason `not confirmed in 10 minutes`, as `nextKernelState` words it today.", check: "brain-deployer: test_deployer_unverified_worker_is_put_back_at_the_limit" },
+  { id: "R3", text: "While a Worker is on probation, an apply, a redistil with apply, or a remove of that Worker shall be refused with the string under Words, and a deploy of any other Worker in the same call shall go on.", check: "brain-deployer: test_deployer_refuses_a_deploy_over_an_unverified_one" },
+  { id: "R4", text: "After a deploy, and before it answers the apply, the deployer shall buy browser time (`browser.extend`, 120 s) and make one run (`browser.run`) of the Brain's page with that Worker's module alone in view. The apply's result for the Worker is then `verified`, `put-back`, or `probation` when the run gave no verdict.", check: "brain-deployer: test_deployer_starts_one_verify_run_per_deploy; on cb4: logs.query at=deploy.verify after an apply" },
+  { id: "R5", text: "The verdict shall carry the hash the page loaded. The deployer shall act on it only when that hash is the one it deployed and is still running; any other verdict is logged and dropped.", check: "brain-deployer: test_deployer_drops_a_verdict_for_another_hash" },
+  { id: "R6", text: "When the verdict is a pass, the deployer shall end the probation, record the hash as confirmed, and tell the core, which marks the route verified.", check: "brain-deployer: test_deployer_pass_ends_probation; on cb4: service.list shows verified.ok for the hash" },
+  { id: "R7", text: "When the verdict is a fail (a test threw, or had no result in 30 s), the deployer shall put the Worker back at once with the failed tests in the reason.", check: "brain-deployer: test_deployer_fail_puts_back_at_once" },
+  { id: "R8", text: "When the run gives no verdict (the browser service is down, the page did not load, the run passed its time), the deployer shall log `deploy.verify.none` and change nothing. R2 then decides.", check: "brain-deployer: test_deployer_no_verdict_changes_nothing" },
+  { id: "R9", text: "The Brain's page shall load a Worker's module only when that module is in the view or is opened by a click. With one module in view, no other Worker's module is loaded and none of its `test_` cells run. The verdict says how many other tests ran (`otherTestsRan`).", check: "cloud-brain: test_page_loads_only_the_modules_in_view; on cb4: otherTestsRan of deploy.verified is the count of the shell's own tests and no service's" },
+  { id: "R10", text: "The Brain's page shall send no verdict. `verifyService` runs tests for the reader and reports nothing; `deploy.report` on the core answers only the deployer.", check: "cloud-brain: test_page_sends_no_report; brain-core: test_core_deploy_report_is_the_deployers" },
+  { id: "R15", text: "A confirm by hand shall name its Worker. `infra.confirm` with no Worker is refused, and `brain.ts confirm` takes the name. One call ends the probation of that Worker and of no other.", check: "brain-deployer: test_deployer_confirm_names_its_worker; tests/tools: brain.ts confirm with no name exits 1 and says to name the Worker" },
+  { id: "R11", text: "For `brain-x-issues` on cb4 the verdict shall arrive within 60 s of the deploy.", check: "on cb4: the `at` of deploy.verified minus the `at` of the deploy, from logs.query. Measured by hand 2026-10-10 22:35: 9 s from opening the tab to the verdict." },
+  { id: "R13", text: "A module with no `test_` cell is verified: the verdict is a pass with `tests: 0`, and the log line says so.", check: "brain-deployer: test_deployer_a_module_with_no_tests_is_verified" },
+  { id: "R12", text: "A Worker deployed for the first time has nothing to be put back to. Its run is made, the verdict is recorded (`verified` or `failing`), and it is not on probation.", check: "brain-deployer: test_deployer_first_deploy_is_verified_with_nothing_to_put_back" },
+  { id: "R14", text: "A deploy signed with the recovery key shall go over a Worker on probation (R3 does not refuse it), and the deployer shall log that it did, with the hash it went over.", check: "brain-deployer: test_deployer_recovery_key_deploys_over_an_unverified_worker" }
+]);};
+const _spec_15_0 = function _requirementsTable(htl,requirements) {return (htl.html`<table style="font-size:.9em">
+  <thead><tr><th>id</th><th>requirement</th><th>check</th></tr></thead>
+  <tbody>${requirements.map((r) => htl.html`<tr data-requirement=${r.id}><td><strong>${r.id}</strong></td><td>${r.text}</td><td>${r.check ? htl.html`<code>${r.check}</code>` : htl.html`<em>none</em>`}</td></tr>`)}</tbody>
+</table>`);};
+const _spec_16_0 = function _anonymous(md) {return (md`### Worked examples
+
+What the verify page left on \`window.__verify\`, read with \`browser.eval\` on cb4 at 22:35 CEST on 2026-10-10 (\`tools/scratch/cloud-brain-experiments/verify-page/\`). \`worker\`, \`module\` and \`hash\` are what R5 reads.`);};
+const _spec_17_0 = function _examples() {return ([
+  { given: "brain-x-issues 15d722ba45e4, its module alone, Chrome 128 on cb4", expect: { worker: "brain-x-issues", module: "@tomlarkworthy/brain-issues", hash: "15d722ba45e4bce31309478f7e49d36427f199dccd97c41383c7e326c597a6ff", ok: true, tests: 19, failed: [], bootMs: 1086, testMs: 3784, otherTestsRan: 0, heapMB: 93 } },
+  { given: "the same module in the whole published notebook, same browser, 22:11", expect: { tests: 19, noResultIn60s: 18, heapMB: 640 } },
+  { given: "a verdict whose hash is not the one deployed", expect: "logged, dropped, the Worker stays on probation" }
+]);};
+const _spec_18_0 = function _anonymous(md) {return (md`## Design
+
+The parts and the order. The deployer is the only actor that decides. The browser is a place the tests run, and holds no credential.`);};
+const _spec_19_0 = function _architecture(onPaper,mermaid) {return (onPaper(mermaid`flowchart LR
+  apply[infra.apply] --> dep[deployer]
+  dep -- deploys --> w[Worker NAME]
+  dep -- run the verify page for NAME --> br[brain-x-browser]
+  br --> page[the Brain page, NAME module alone in view]
+  page -. getSource, public .-> w
+  page -- verdict with hash --> dep
+  dep -- pass: confirm, fail: put back --> w
+  dep -- verified or failing --> core[brain-core route]
+  tick[one-minute tick] -- 10 minutes and no pass: put back --> dep`));};
+const _spec_20_0 = function _sequence(onPaper,mermaid) {return (onPaper(mermaid`sequenceDiagram
+  participant C as brain.ts apply
+  participant D as deployer
+  participant W as Worker NAME
+  participant B as brain-x-browser
+  C->>D: infra.apply NAME (was HASH0)
+  D->>W: deploy HASH1
+  D->>D: probation NAME, lastGood HASH0
+  D->>B: extend 120 s, run the page with NAME in view
+  B->>W: getSource NAME
+  B-->>D: verdict hash HASH1, ok, failed
+  alt pass and HASH1 is running
+    D->>D: confirmed
+  else fail and HASH1 is running
+    D->>W: put back HASH0
+  else no verdict
+    D->>D: nothing, at 10 minutes put back HASH0
+  end
+  D-->>C: verified, put-back or probation
+  C->>D: infra.apply NAME again, while on probation
+  D-->>C: refused, not verified yet`));};
+const _spec_21_0 = function _anonymous(md) {return (md`### The verify page
+
+It is the Brain's own page. Tom, 2026-10-10: "I thought the brain already served a shell and pulled in modules." It does: the page the kernel serves holds no service's module, and \`loadService\` (\`cloud-brain.ojs:766\`) reads a Worker's module with \`getSource\` and applies it to the page. What makes that page unfit to verify one Worker today:
+
+- \`assembled\` loads the module of every Worker when the page opens (22 on cb4).
+- The page boots 20 mains, \`@tomlarkworthy/tests\` among them, which runs every \`test_\` cell that is present.
+
+Tom, 2026-10-10: "I think the brain shoudl default to loading only modules in its view or that are clicked". So:
+
+- The page loads a Worker's module when it is in the view (\`#view=…\`) or when its link is clicked, and not before. The Services table is drawn from the registry (\`service.list\`) without the modules.
+- The deployer's run is \`browser.run\` on \`<brain>/#view=C100(S100(MODULE))\` with no session, a \`wait\` that is true when the verdict is there, and an \`expression\` that reads it. The verdict is made by a cell of the page's module that runs the \`test_\` cells of the module in view, 30 s each, and checks \`getInfo\` gives the hash that was loaded (as \`verifyService\` does today).
+- The page sends nothing. The run's answer goes back to the deployer, which called it.
+
+Not measured: this page with one module in view, in the cluster's browser. The shell's own 20 mains still boot and their tests run beside the module's. Step 1 measures it. What was measured is the module with only its imports booted, in a file made by a probe: 19 of 19 in 3.8 s, heap 93 MB (\`tools/scratch/cloud-brain-experiments/verify-page/\`). The probe's file-making is not part of this design.
+
+### How the deployer waits
+
+The run is awaited inside the apply, after the Worker is deployed and put on probation, and the apply answers with the verdict. \`browser.run\` ends at 120 s at most. The deployer has no \`ctx.waitUntil\` of its own today (\`cloudflare-iac.ojs:692\` is the wrapper's), and a run started from the one-minute tick could use all 60 s of R11 before it began. If the request ends before the run does (the client went away), the Worker stays on probation and R2 decides. \`brain-x-browser\` takes a call from the deployer: its rule is \`caller.trusted || caller.kind in ["worker", "deployer"]\` (\`brain-browser.ojs:125\`). Every method but \`extend\`, \`list\` and \`status\` answers 409 \`NoTime\` with no bought time (\`brain-browser.ojs:48\`), so the deployer buys before it runs.
+
+### Decisions
+
+| decided | instead of | because |
+|---|---|---|
+| The deployer starts the run and decides | the owner's page reporting (today) | the page's verdict depended on the browser and on what else the page ran; 2026-10-10 19:32 |
+| Tests run in a browser of the Brain | bun with no browser (\`cloud-brain-dev/test.ts\`) | at 22:33 that runner had 7 failures not yet explained and 28 tests that need a DOM (its author's count). Tom: "it has not got the tests working though. I think maybe browser route is better" |
+| Browser Run as it is, Chrome 128 | a container with a current Chrome | no image to keep; 19 of 19 in 3.8 s. The cost is the non-goal above |
+| The Brain's page loads only the modules in view or clicked | loading every Worker's module on opening (today); a separate verify file made by the deployer or a tool | Tom: "I think the brain shoudl default to loading only modules in its view or that are clicked". The published notebook with everything booted: 18 of 19 had no result in 60 s |
+| The run is awaited inside the apply | a run started by the tick | the tick is a minute apart; Tom: "its mega important the verification occur quickly" |
+| A module with no tests is verified | putting it back at 10 minutes | there is nothing to fail; the health check still applies |
+| Probation for every Worker, 10 minutes | health check only for recipes (today) | Tom: "the 10 min rollback is mandatory liveliness feature" |
+| An unverified Worker blocks its own next deploy only | blocking every deploy | Tom: "yes block jsut that one worker that is not verified, other deploys go on." |
+| The tracker signs with ECDSA P-256 | keeping Ed25519 with a second code path | done 2026-10-10 22:04, \`tools/cloud-brain/records/sign-p256.md\` |
+
+### Known traps
+
+- \`brain.ts confirm\` with no name ends the probation of every Worker at once (\`brain-deployer.ojs:823\`, \`confirm = async (only = null)\`; \`brain.ts:269\` sends \`{}\`). After R1 that would confirm every unverified recipe with no test. See the open questions.
+- A service's module is not in the Brain's page. The page loads it from the Worker.
+- \`browser.open\` refuses a URL that is not http or https, so a blank tab cannot be asked for.
+- \`browser.run\` ends at 120 s at most. A module whose tests need longer cannot be verified by one run.
+- The page's \`verifyService\` also loads a Worker's module into the reader's page (\`loadService\`). That stays. Only the report goes.`);};
+const _spec_22_0 = function _anonymous(md) {return (md`## Handover
+
+This changes the deployer, the core and the page. \`rules.md\` of the brain-maintenance loop names the kernel, \`brain-core\`, \`brain-db\` and the deployer as the owner's to deploy; the page's Worker is a recipe that goes on probation. Write, test and stop; Tom deploys all three.
+
+### Where the work goes
+
+- \`tools/cloud-brain/brain-deployer.ojs\`: \`nextKernelState\` (line 41) already has the three transitions; R1 is the condition at line 525 that puts only non-recipes on probation. R3 is in the \`change\` callbacks that \`apply\` (line 610) gives \`guard\` for a deploy and for a remove, and in \`redistil\` with apply. Not inside \`guard\` itself: the roll back button of the deployer page, \`memberDeploy\` and \`memberRemove\` also go through \`guard\` and are not refused. R14 is the same place: a call signed with the recovery key is not refused, and is logged. R4 to R8: a function beside \`verdict\` (line 849) that buys the browser time and makes the run after \`rows.put("worker/…")\`, awaited inside the apply, and \`verdictOf\` (line 850), which already drops a stale hash (it logs nothing today) and puts back on a fail. The tick (line 796) already puts back at the limit for what is on probation, with the reason \`not confirmed in 10 minutes\`, which is kept. R15 is \`confirm\` (line 823, \`confirm = async (only = null)\`), which today confirms every Worker when \`only\` is null. \`memberDeploy\` (line 966) is a separate path and is not changed.
+- \`tools/cloud-brain/brain.ts\` line 269, which sends \`{}\` for \`confirm\`: it takes the Worker's name (R15).
+- \`tools/cloud-brain/brain-core.ojs\`: \`deploy.report\` (line 524) and \`toDeployer\` (line 422). The core keeps \`verified\` on the route; it is told by the deployer.
+- \`tools/cloud-brain/cloud-brain.ojs\`: \`verifyService\` (line 790), \`assembled\` (line 826), \`assembledRefresh\`, \`loadService\` (line 766).
+- \`tools/cloud-brain/cloud-brain-docs.ojs\` line 240 and \`cloud-brain-specs.ojs\` R9, which describe the page reporting.
+- Read first: \`knowledge/working-with-cloud-brain-remote-lopecode-cluster.md\`, \`.claude/skills/brain-maintenance/philosophy.md\` (Clarifications).
+
+Line numbers are of commit \`79e502e2\`.
+
+### Boundaries
+
+| | |
+|---|---|
+| **always** | seed, \`build.ts\`, the module's tests in a browser, then emit. Report the test output. |
+| **ask first** | a change to \`cloudflare-iac.ojs\` (it moves every Worker's hash); a new method on \`brain-x-browser\`; a new Worker |
+| **never** | deploy the kernel, the core, the database or the deployer; open the Brain's page in the cluster's browser before step 5 is on cb4; scan notebook HTML with a regular expression |
+
+### Checks
+
+\`\`\`
+bun tools/cloud-brain/build.ts
+bun tools/lope-tests.ts lopebooks/notebooks/@tomlarkworthy_cloud-brain.html --filter test_ --report tools/cloud-brain/.emitted/verify.ctrf.json
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts redistil        # every line same
+\`\`\`
+
+\`--filter test_deployer\` matches 2 of the deployer's 42 tests and \`--filter test_core\` none of the core's 34, so the filter is every test. In a browser, run every \`test_\` cell of \`@tomlarkworthy/brain-deployer\`, \`@tomlarkworthy/brain-core\` and \`@tomlarkworthy/cloud-brain\` with the snippet of step 8 in \`.claude/skills/brain-maintenance/agents/implementer.md\`, and report the three counts.
+
+Existing tests this change rewrites, by name: \`test_a_deploy_is_unverified_until_its_tests_are_reported\` (\`brain-core.ojs:1297\`) and \`test_a_failed_verdict_puts_the_deploy_back\` (\`brain-deployer.ojs:1918\`), which test the page's report. \`test_probation_transitions\` (\`:1508\`) and \`test_kernel_probation\` (\`:1974\`) assert \`not confirmed in\`, which is kept; they must still pass.
+
+After Tom's deploys, on cb4: apply a recipe twice within a minute (the second answers \`refused\` with the string under Words), and read \`logs.query\` for \`deploy.verify\` and \`deploy.verified\` of the first.
+
+### Steps
+
+1. Page: load only the modules in view or clicked (R9), and the cell that makes the verdict. Tom deploys the page's Worker. Then by hand, \`browser.run\` on cb4 for three Workers: \`brain-x-issues\`, \`brain-x-browser\`, \`brain-x-static\`. **Stop and show** the three verdicts, times, heap and \`otherTestsRan\`. If the shell's own tests make a run slow, that is a finding for Tom and not a reason to change the design alone.
+2. Deployer: R1, R2, R3, R14 and R15 with their tests, and \`brain.ts confirm\` taking a name. No run yet, so every deploy is put back at 10 minutes unless confirmed by hand. Do not deploy this step alone.
+3. Deployer: R4 to R8, R12 and R13 with their tests, the browser stood in for by a fake in the rig. **Stop and show** the tests.
+4. Core: \`deploy.report\` for the deployer only. Page: R10.
+5. Tom deploys the deployer, the core and the page to cb4. Then the checks above on cb4. **Stop and show.**
+6. Docs and the as-built record. Then the owner closes \`deployer-put-back-issues-worker\` and \`verify-in-hidden-tab-fails-tests\`, and removes the line of \`rules.md\` about the cluster's browser.`);};
+const _spec_23_0 = function _anonymous(md) {return (md`## Open questions
+
+A question marked blocking stops the handover. Each open one is listed in the strip at the top with a link to its row here. Rows with an answer are Tom's, with his words.`);};
+const _spec_24_0 = function _questions() {return ([
+  { q: "Where is the verify page made?", blocking: false, answer: "It is the Brain's page with one module in view. Tom, 2026-10-10: \"I thought the brain already served a shell and pulled in modules.\" and \"I think the brain shoudl default to loading only modules in its view or that are clicked\"." },
+  { q: "The Brain's page boots @tomlarkworthy/tests, which runs every test_ cell present. With one module in view that is the shell's own tests and the module's. Does the tests module stay a main of the Brain's page? Claude would keep it and measure in step 1; if the shell's tests slow a run, drop it from the mains and let the Tests pane load it when opened.", blocking: false, answer: "It stays, and step 1 measures what it costs a run. Tom, 2026-10-10, a note on \"Does the tests module stay a main of the Brain's page?\": \"sure\"." },
+  { q: "A deploy of brain-x-browser, of the page's Worker or of the core can break the thing that verifies it. Is the 10 minute limit enough for those, with no other check? Claude would say yes: a broken verifier gives no verdict, and R2 puts the Worker back.", blocking: true, answer: "Yes, the 10 minute limit is enough. Tom, 2026-10-10, a note on this row: \"yes that's fine\"." },
+  { q: "The deployer buys 120 s of browser time for each run: 0.003 USD at the rate in brain-browser (N x 0.000025), charged to the caller `deployer`. brain-x-browser takes the deployer's call (brain-browser.ojs:125). Is that spend accepted with no daily limit, or is a limit wanted? With a limit reached, runs give no verdict and every deploy is put back at 10 minutes.", blocking: true, answer: "The spend is accepted. Tom, 2026-10-10, a note on the words \"spend accepted\": \"yes\". He asked for no limit, so none is built." },
+  { q: "brain.ts confirm with no name confirms every Worker on probation (brain-deployer.ojs:823). After this change that would keep every unverified recipe with no test run. Claude would make a hand confirm name its Worker, and leave it to the owner's session and the recovery key.", blocking: true, answer: "A hand confirm names its Worker (R15). Tom, 2026-10-10, a note on \"Claude would make a hand confirm name its Worker\": \"ok lets try\"." },
+  { q: "Is a module with no test_ cell verified, failed, or refused at deploy? Claude wrote R13 as verified. Every brain-*.ojs has at least one test today.", blocking: false, answer: "Verified (R13). Tom, 2026-10-10, a note on the word \"verified\": \"yes verified\"." },
+  { q: "May a deploy signed with the recovery key go over an unverified Worker? It is the way out when a verifier is broken and the fix is to a Worker on probation. Claude would allow it and log it.", blocking: false, answer: "Yes, and it is logged (R14). Tom, 2026-10-10, a note on \"allow it and log it\": \"yes its allowed\"." },
+  { q: "After a put back for failed tests, is the same hash refused if it is sent again? Today nothing remembers a failed hash. Claude would not add it: the run is the cost of sending it again.", blocking: false, answer: "No. Nothing remembers a failed hash; sent again, it is deployed and run again. Tom, 2026-10-10, a note on \"sent again\": \"no that's unnecessary complicatins\"." },
+  { q: "The deployer and the kernel are deployed by install-deployer and by the recovery path, not by infra.apply. Are they verified by this run too, or left to their probation and brain.ts confirm as today? Claude would leave them as today in this change.", blocking: false, answer: "Left as today: their probation, and a confirm by hand that names them (R15). Tom, 2026-10-10, a note on this row: \"leave alone for now.\"" },
+  { q: "Does a report have to arrive for a deploy to stand?", blocking: false, answer: "Yes. Tom, 2026-10-10, a note on the \"No.\" this row had: \"YES! and deploys on that worker are blocked until it happens. I corrected myself on that\". A deploy stands only when its passing verdict has arrived. Until then the Worker's next deploy is refused (R3), and with no verdict in 10 minutes it is put back (R2, R8). His first words that day were \"It should not be mandatory because it might be lost.\"; later in the same message he corrected it: \"Actually that does imply you can't do another deployment until verified ... the 10 min rollback is mandatory liveliness feature.\"" },
+  { q: "Is every deploy blocked while one Worker is unverified?", blocking: false, answer: "No. Tom, 2026-10-10: \"yes block jsut that one worker that is not verified, other deploys go on.\"" },
+  { q: "If the browser service is down, every deploy is put back at 10 minutes. Is that accepted?", blocking: false, answer: "Yes. Tom, 2026-10-10: \"the 10 min rollback is mandatory liveliness feature. We can't have the next thing building on a faulty base.\"" },
+  { q: "Browser, or tests with no browser?", blocking: false, answer: "Browser. Tom, 2026-10-10: \"I think maybe browser route is better, but the repository work is still very useful\"." }
+]);};
+const _spec_25_0 = function _questionsTable(htl,questions) {return (htl.html`<table style="font-size:.9em">
+  <thead><tr><th></th><th>question</th><th>answer</th></tr></thead>
+  <tbody>${questions.map((q, i) => htl.html`<tr data-question=${i}><td>${q.blocking && !q.answer ? "blocking" : ""}</td><td>${q.q}</td><td>${q.answer || htl.html`<em>open</em>`}</td></tr>`)}</tbody>
+</table>`);};
+const _spec_26_0 = function _states() {return ([]);};
+const _spec_27_0 = function _onPaper(htl) {return ((node) => htl.html`<div style="max-width:640px;background:#f6f7f9;border-radius:6px;padding:10px">${node}</div>`);};
+const _spec_28_0 = function _specModule() {return ("@spec/deploy-verification");};
+const _annotation_a215q1inz3_note = function _anonymous(md) {return (md`yes that's fine`);};
+const _annotation_a215q1inz3 = function _annotation_a215q1inz3(annotation) {return (annotation({
+ "anchor": {
+  "surface": "text",
+  "module": "@spec/deploy-verification",
+  "region": "cell",
+  "afterIndex": 0,
+  "cell": "questionsTable",
+  "pid": "_spec_25_0",
+  "quote": {
+   "prefix": "load it when opened.openblocking",
+   "exact": "A deploy of b",
+   "suffix": "rain-x-browser, of the page's Wo"
+  },
+  "hint": {
+   "start": 642,
+   "end": 655
+  },
+  "cellHash": "kvby0x"
+ },
+ "createdAt": "2026-10-10T20:53:14.315Z"
+}));};
+const _annotation_a2b3970h96_note = function _anonymous(md) {return (md`yes`);};
+const _annotation_a2b3970h96 = function _annotation_a2b3970h96(annotation) {return (annotation({
+ "anchor": {
+  "surface": "text",
+  "module": "@spec/deploy-verification",
+  "region": "cell",
+  "afterIndex": 0,
+  "cell": "questionsTable",
+  "pid": "_spec_25_0",
+  "quote": {
+   "prefix": "brain-browser.ojs:125). Is that ",
+   "exact": "spend accepted ",
+   "suffix": "with no daily limit, or is a lim"
+  },
+  "hint": {
+   "start": 1202,
+   "end": 1217
+  },
+  "cellHash": "kvby0x"
+ },
+ "createdAt": "2026-10-10T20:53:44.633Z"
+}));};
+const _annotation_a26u6w7f1x_note = function _anonymous(md) {return (md`yes verified`);};
+const _annotation_a26u6w7f1x = function _annotation_a26u6w7f1x(annotation) {return (annotation({
+ "anchor": {
+  "surface": "text",
+  "module": "@spec/deploy-verification",
+  "region": "cell",
+  "afterIndex": 0,
+  "cell": "questionsTable",
+  "pid": "_spec_25_0",
+  "quote": {
+   "prefix": " at deploy? Claude wrote R13 as ",
+   "exact": "verified",
+   "suffix": ". Every brain-*.ojs has at least"
+  },
+  "hint": {
+   "start": 1840,
+   "end": 1848
+  },
+  "cellHash": "kvby0x"
+ },
+ "createdAt": "2026-10-10T20:54:40.455Z"
+}));};
+const _annotation_a2qfy634bg_note = function _anonymous(md) {return (md`yes its allowed`);};
+const _annotation_a2qfy634bg = function _annotation_a2qfy634bg(annotation) {return (annotation({
+ "anchor": {
+  "surface": "text",
+  "module": "@spec/deploy-verification",
+  "region": "cell",
+  "afterIndex": 0,
+  "cell": "questionsTable",
+  "pid": "_spec_25_0",
+  "quote": {
+   "prefix": "rker on probation. Claude would ",
+   "exact": "allow it and log it.",
+   "suffix": "openAfter a put back for failed "
+  },
+  "hint": {
+   "start": 2145,
+   "end": 2165
+  },
+  "cellHash": "kvby0x"
+ },
+ "createdAt": "2026-10-10T20:55:03.197Z"
+}));};
+const _annotation_a2z14qq9t2_note = function _anonymous(md) {return (md`YES! and deploys on that worker are blocked until it happens. I corrected myself on that`);};
+const _annotation_a2z14qq9t2 = function _annotation_a2z14qq9t2(annotation) {return (annotation({
+ "box": {
+  "dx": 582.6328125,
+  "dy": -164.66796875,
+  "w": 240
+ },
+ "state": "open",
+ "createdAt": "2026-10-10T20:55:26.683Z",
+ "anchor": {
+  "surface": "text",
+  "module": "@spec/deploy-verification",
+  "region": "cell",
+  "afterIndex": 0,
+  "cell": "questionsTable",
+  "pid": "_spec_25_0",
+  "quote": {
+   "prefix": "to arrive for a deploy to stand?",
+   "exact": "No.",
+   "suffix": " Tom, 2026-10-10: \"It should not"
+  },
+  "hint": {
+   "start": 2754,
+   "end": 2757
+  },
+  "cellHash": "kvby0x"
+ }
+}));};
+const _annotation_a2rfmdjpwx_note = function _anonymous(md) {return (md`no that's unnecessary complicatins`);};
+const _annotation_a2rfmdjpwx = function _annotation_a2rfmdjpwx(annotation) {return (annotation({
+ "anchor": {
+  "surface": "text",
+  "module": "@spec/deploy-verification",
+  "region": "cell",
+  "afterIndex": 0,
+  "cell": "questionsTable",
+  "pid": "_spec_25_0",
+  "quote": {
+   "prefix": " the same hash refused if it is ",
+   "exact": "sent again",
+   "suffix": "? Today nothing remembers a fail"
+  },
+  "hint": {
+   "start": 2331,
+   "end": 2341
+  },
+  "cellHash": "kvby0x"
+ },
+ "createdAt": "2026-10-10T20:56:50.454Z"
+}));};
+const _annotation_a23nl5sxn0_note = function _anonymous(md) {return (md`sure`);};
+const _annotation_a23nl5sxn0 = function _annotation_a23nl5sxn0(annotation) {return (annotation({
+ "anchor": {
+  "surface": "text",
+  "module": "@spec/deploy-verification",
+  "region": "cell",
+  "afterIndex": 0,
+  "cell": "questionsTable",
+  "pid": "_spec_25_0",
+  "quote": {
+   "prefix": "ll's own tests and the module's.",
+   "exact": " Does the tests module stay a main of the Brain's page?",
+   "suffix": " Claude would keep it and measur"
+  },
+  "hint": {
+   "start": 431,
+   "end": 486
+  },
+  "cellHash": "kvby0x"
+ },
+ "createdAt": "2026-10-10T20:58:34.171Z"
+}));};
+const _annotation_a2p3d80zpz_note = function _anonymous(md) {return (md`ok lets try`);};
+const _annotation_a2p3d80zpz = function _annotation_a2p3d80zpz(annotation) {return (annotation({
+ "anchor": {
+  "surface": "text",
+  "module": "@spec/deploy-verification",
+  "region": "cell",
+  "afterIndex": 0,
+  "cell": "questionsTable",
+  "pid": "_spec_25_0",
+  "quote": {
+   "prefix": "ified recipe with no test run. C",
+   "exact": "laude would make a hand confirm name it",
+   "suffix": "s Worker, and leave it to the ow"
+  },
+  "hint": {
+   "start": 1639,
+   "end": 1678
+  },
+  "cellHash": "kvby0x"
+ },
+ "createdAt": "2026-10-10T20:58:53.639Z"
+}));};
+const _annotation_a2ej7my6wd_note = function _anonymous(md) {return (md`leave alone for now.`);};
+const _annotation_a2ej7my6wd = function _annotation_a2ej7my6wd(annotation) {return (annotation({
+ "anchor": {
+  "surface": "text",
+  "module": "@spec/deploy-verification",
+  "region": "cell",
+  "afterIndex": 0,
+  "cell": "questionsTable",
+  "pid": "_spec_25_0",
+  "quote": {
+   "prefix": "at's unnecessary complicatins\".T",
+   "exact": "he deployer and the kernel are deployed by install-deployer and by the recovery path, not by infra.ap",
+   "suffix": "ply. Are they verified by this r"
+  },
+  "hint": {
+   "start": 2744,
+   "end": 2845
+  },
+  "cellHash": "kvby0x"
+ },
+ "createdAt": "2026-10-10T20:59:06.882Z"
+}));};
+
+export default function define(runtime, observer) {
+  const main = runtime.module();
+  const $def = (pid, name, deps, fn) => {
+    main.variable(observer(name)).define(name, deps, fn).pid = pid;
+  };
+
+  $def("_spec_0_0", null, ["md"], _spec_0_0);  
+  $def("_spec_1_0", "opening", ["md"], _spec_1_0);  
+  $def("_spec_2_0", "viewof specStatus", ["sticky","Inputs"], _spec_2_0);  
+  $def("_spec_2_1", "specStatus", ["Generators","viewof specStatus"], _spec_2_1);  
+  $def("_spec_3_0", "readiness", ["annotations","specModule","requirements","questions","states","specStatus","htl"], _spec_3_0);  
+  $def("_spec_4_0", null, ["md"], _spec_4_0);  
+  $def("_spec_5_0", null, ["md"], _spec_5_0);  
+  $def("_spec_6_0", null, ["md"], _spec_6_0);  
+  $def("_spec_7_0", null, ["md"], _spec_7_0);  
+  $def("_spec_8_0", null, ["md"], _spec_8_0);  
+  $def("_spec_9_0", null, ["md"], _spec_9_0);  
+  $def("_spec_10_0", "copy_title", ["md"], _spec_10_0);  
+  $def("_spec_11_0", "copy_opening", ["md"], _spec_11_0);  
+  $def("_spec_12_0", "copy_strings", ["md"], _spec_12_0);  
+  $def("_spec_13_0", null, ["md"], _spec_13_0);  
+  $def("_spec_14_0", "requirements", [], _spec_14_0);  
+  $def("_spec_15_0", "requirementsTable", ["htl","requirements"], _spec_15_0);  
+  $def("_spec_16_0", null, ["md"], _spec_16_0);  
+  $def("_spec_17_0", "examples", [], _spec_17_0);  
+  $def("_spec_18_0", null, ["md"], _spec_18_0);  
+  $def("_spec_19_0", "architecture", ["onPaper","mermaid"], _spec_19_0);  
+  $def("_spec_20_0", "sequence", ["onPaper","mermaid"], _spec_20_0);  
+  $def("_spec_21_0", null, ["md"], _spec_21_0);  
+  $def("_spec_22_0", null, ["md"], _spec_22_0);  
+  $def("_spec_23_0", null, ["md"], _spec_23_0);  
+  $def("_spec_24_0", "questions", [], _spec_24_0);  
+  $def("_spec_25_0", "questionsTable", ["htl","questions"], _spec_25_0);  
+  $def("_spec_26_0", "states", [], _spec_26_0);  
+  $def("_spec_27_0", "onPaper", ["htl"], _spec_27_0);  
+  $def("_spec_28_0", "specModule", [], _spec_28_0);  
+  main.define("module @tomlarkworthy/editable-md", async () => runtime.module((await import("/@tomlarkworthy/editable-md.js?v=4")).default));  
+  main.define("md", ["module @tomlarkworthy/editable-md", "@variable"], (_, v) => v.import("md", _));  
+  main.define("module @tomlarkworthy/annotate", async () => runtime.module((await import("/@tomlarkworthy/annotate.js?v=4")).default));  
+  main.define("annotation", ["module @tomlarkworthy/annotate", "@variable"], (_, v) => v.import("annotation", _));  
+  main.define("annotations", ["module @tomlarkworthy/annotate", "@variable"], (_, v) => v.import("annotations", _));  
+  main.define("module @tomlarkworthy/sticky", async () => runtime.module((await import("/@tomlarkworthy/sticky.js?v=4")).default));  
+  main.define("sticky", ["module @tomlarkworthy/sticky", "@variable"], (_, v) => v.import("sticky", _));  
+  $def("_annotation_a215q1inz3_note", "annotation_a215q1inz3_note", ["md"], _annotation_a215q1inz3_note);  
+  $def("_annotation_a215q1inz3", "annotation_a215q1inz3", ["annotation"], _annotation_a215q1inz3);  
+  $def("_annotation_a2b3970h96_note", "annotation_a2b3970h96_note", ["md"], _annotation_a2b3970h96_note);  
+  $def("_annotation_a2b3970h96", "annotation_a2b3970h96", ["annotation"], _annotation_a2b3970h96);  
+  $def("_annotation_a26u6w7f1x_note", "annotation_a26u6w7f1x_note", ["md"], _annotation_a26u6w7f1x_note);  
+  $def("_annotation_a26u6w7f1x", "annotation_a26u6w7f1x", ["annotation"], _annotation_a26u6w7f1x);  
+  $def("_annotation_a2qfy634bg_note", "annotation_a2qfy634bg_note", ["md"], _annotation_a2qfy634bg_note);  
+  $def("_annotation_a2qfy634bg", "annotation_a2qfy634bg", ["annotation"], _annotation_a2qfy634bg);  
+  $def("_annotation_a2z14qq9t2_note", "annotation_a2z14qq9t2_note", ["md"], _annotation_a2z14qq9t2_note);  
+  $def("_annotation_a2z14qq9t2", "annotation_a2z14qq9t2", ["annotation"], _annotation_a2z14qq9t2);  
+  $def("_annotation_a2rfmdjpwx_note", "annotation_a2rfmdjpwx_note", ["md"], _annotation_a2rfmdjpwx_note);  
+  $def("_annotation_a2rfmdjpwx", "annotation_a2rfmdjpwx", ["annotation"], _annotation_a2rfmdjpwx);  
+  $def("_annotation_a23nl5sxn0_note", "annotation_a23nl5sxn0_note", ["md"], _annotation_a23nl5sxn0_note);  
+  $def("_annotation_a23nl5sxn0", "annotation_a23nl5sxn0", ["annotation"], _annotation_a23nl5sxn0);  
+  $def("_annotation_a2p3d80zpz_note", "annotation_a2p3d80zpz_note", ["md"], _annotation_a2p3d80zpz_note);  
+  $def("_annotation_a2p3d80zpz", "annotation_a2p3d80zpz", ["annotation"], _annotation_a2p3d80zpz);  
+  $def("_annotation_a2ej7my6wd_note", "annotation_a2ej7my6wd_note", ["md"], _annotation_a2ej7my6wd_note);  
+  $def("_annotation_a2ej7my6wd", "annotation_a2ej7my6wd", ["annotation"], _annotation_a2ej7my6wd);
   return main;
 }</script><!--/-->
 
