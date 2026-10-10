@@ -191,3 +191,96 @@ issuesJoinedAt(listed A, loaded B)                  B; A with no row loaded; B w
 - The hazard to round 1's half of the test: the owner coming back to the tab while the page
   runs it adds a `getInfo` call to the counts it expects, the test fails, and a failed test on
   the page has the Worker put back. Not changed here; the review did not ask.
+
+## Round 3, 2026-10-10: review 2
+
+Review 2 (event 275, 20:29:54 CEST) found the two findings of review 1 met and asked for one
+change, in the test: a `focus` of the window that is not the test's, 40 ms into
+`test_issues_panel_says_when_a_newer_one_is_deployed`, failed it. Round 1's half read `check()`
+and counted `getInfo` calls on a panel that listens, and since round 2 a later call makes the
+counted one not the last. `verifyService` runs the cell on the owner's page, and a failed test of
+a hash that is not yet verified has the Worker put back. This is the last item of "Not tried,
+round 2" above.
+
+Only that cell of `tools/cloud-brain/brain-issues.ojs` changed (63 lines added, 41 removed; the
+seed commit `948d869d` reads 20:35:51, after one rebase). `issuesPanel` and the Worker's handlers are as
+round 2 left them. `grep -n "joined:"` in the seed: the page's panel and this cell are the only
+makers of a panel with `joined`, so no other test has a panel that listens.
+
+### Seen before the change
+
+In a headless QA tab on the worktree's build of `main` at `d1c1a971`, with `tv` the test's
+variable and `ins` its inputs, `await tv._definition(...ins)` beside a stray event (the tab's
+clock 20:33:02 CEST, `visibilityState` visible):
+
+```
+nothing else                          pass, 5486 ms
+focus every 3 ms                      expect(received).toBe(expected)  Expected: true  Received: false
+visibilitychange every 3 ms           expect(received).toBe(expected)  Expected: 2  Received: 5
+one focus at 40 ms                    pass, 445 ms
+```
+
+The single focus at 40 ms, which failed for the reviewer, passed here: the first run of the cell
+in this tab took 5.5 s and the second 0.4 s, so 40 ms is not the same point of the cell in every
+run. The two interval forms do not depend on it.
+
+### What the cell does now
+
+Three panels, each with a fake kernel and a count of its own (the count is taken when `getInfo`
+is called, not when it answers):
+
+```
+panel, joined A, listen: false   every exact count and every read of check(): nothing asked when made; check() false;
+                                 Worker B and 30 ms, still 1 call and no line; Refresh, 2 calls and the line; Reload once;
+                                 getInfo fails, the line stays; back to A, the line goes; 4 calls in all
+local, no joined                 Refresh, a focus and check(): 0 calls (with no joined a panel does not listen)
+heard, joined A, listening       at least 1 call when made, the first for brain-x-issues, no line;
+                                 Worker B, visibilitychange: the line; Worker A, focus: the line goes;
+                                 ended, count read, both events, 30 ms: the count is the same
+```
+
+On the listening panel each step sets what the Worker runs, sends one event and waits for the
+line. Any call made after the step is answered the same hash, and of two calls the last one made
+draws, so an event that is not the test's ends in the same line. The count after the end is exact
+because the count is read once the listeners are off.
+
+Round 2's half is unchanged but for its opening comment and one `let`.
+
+### Tests
+
+18 `test_issues_*`: 17 at round 2 and 1 from `panel-for-your-attention` round 3. None added here.
+
+18 of 18 in a headless QA tab opened new on the worktree's build of the changed seed, by the
+snippet of the implementer brief, `bad []`, the tab's clock 20:34:22 CEST, `visibilityState`
+visible. The same 18 with `lope-tests.ts` in 15.09 s. In that tab, the changed cell called as above:
+
+```
+nothing else                                              pass, 554 ms
+focus every 3 ms                                          pass, 493 ms
+visibilitychange every 3 ms                               pass, 501 ms
+both every 3 ms                                           pass, 493 ms
+one focus at each of 0, 20, 40 ... 480 ms (25 runs)       all pass
+```
+
+Each defect put back in `issuesPanel` alone, built to another file,
+`lope-tests.ts --filter test_issues_panel_says`, 0 passed and 1 failed each time:
+
+```
+no focus listener                          toBe  Expected: true
+no visibilitychange listener               toBe  Expected: true
+listeners kept after invalidation          toBe  Expected: 3
+check() not called when a listening panel is made    toBe  Expected: true
+```
+
+### Not tried, round 3
+
+- The owner's focus on the cb4 page while `verifyService` runs the cell: not seen, the rules
+  keep an agent off that page. The stray events were made by `dispatchEvent` in a local tab.
+- A stray event while `getInfo` is slow on the listening panel. Its fake answers at once. Round
+  2's half has the slow answers, on a panel that does not listen.
+- `until` waits 3 s (300 turns of 10 ms) for a line. A page too busy to answer a resolved
+  promise in that time fails the cell. Not measured on the owner's page.
+- `back` asks only when `document.visibilityState` is `visible`. The cell was run in visible
+  tabs and under `lope-tests.ts`; in a hidden tab the two waits for the line would fail. A
+  hidden tab computes nothing, so the page does not run the cell there; not tried.
+- The other 17 tests under stray events. None makes a panel with `joined`, read by `grep`, not run.
