@@ -232,7 +232,7 @@ test_the_login_brief_carries_the_link_and_the_host = {
 // A guest: a colleague with no account here. One press makes a link for one named person and copies it inside a
 // note written to them and to the program they paste it to. The token is the owner's, so the methods are few and
 // what it spends a day is capped. It lasts a week, and so does the link. Becoming a member is separate and is the
-// owner's act: the colleague signs in with an atproto account so there is a DID, and the owner adds it in People.
+// owner's act: the colleague sends the handle of an atproto account, and the owner adds it in People.
 // Not quota.get: under a token it answers the owner's whole day, not the token's own cap (seen on cb4, 2026-10-10 16:50).
 GUEST_METHODS = ["ai.models", "ai.run"]
 // %%
@@ -247,11 +247,15 @@ guestInvite = {
   const make = async () => {
     const name = "guest-" + who.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24);
     if (name === "guest-") throw new Error("a name for the guest");
-    if (!(Number(daily.value) >= 0) || daily.value.trim() === "") throw new Error("dollars a day is a number");
-    const made = await client.procedure("token.link", { name, methods: methods.value.split(/[\s,]+/).filter(Boolean), minutes: 10080, hours: 168, daily: Number(daily.value) });
-    return guestBrief(made.link, { methods: methods.value.split(/[\s,]+/).filter(Boolean), daily: Number(daily.value) });
+    const names = methods.value.split(/[\s,]+/).filter(Boolean), usd = Number(daily.value);
+    if (!names.length) throw new Error("at least one method");
+    if (!(Number.isFinite(usd) && usd >= 0) || daily.value.trim() === "") throw new Error("dollars a day is a number");
+    // A second press for the same person replaces the first: the link nobody used, or the token, of that name ends.
+    await client.procedure("token.revoke", { name });
+    const made = await client.procedure("token.link", { name, methods: names, minutes: 10080, hours: 168, daily: usd });
+    return guestBrief(made.link, { methods: names, daily: usd });
   };
-  const button = press("Copy Guest Invite", () => copyLater(make, note, "Copied. Send it to them. The link works once, in the next 7 days; its token lasts 7 days, calls those methods on your allowance up to that much a day, and cannot deploy. Access below ends it. To make them a member, add their handle in People."));
+  const button = press("Copy Guest Invite", () => copyLater(make, note, "Copied. Send it to them. The link works once, in the next 7 days; its token lasts 7 days, calls those methods on your allowance up to that much a day, and cannot deploy. Access below ends it; so does another invite for the same name. To make them a member, add their handle in People."));
   return htl.html`<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px">${who}${methods}${daily}${button}${note}</div>`;
 }
 // %%
@@ -264,17 +268,17 @@ For the program:
 
 ${redeemSteps(link, "7 days")}
 
-As a guest the token calls ${methods.join(", ")} and no others, for 7 days, and spends at most $${daily.toFixed(2)} a day of the owner's allowance. A refusal says how to ask for more. Only the owner of this Brain can approve: give your user the url and the code to send to the owner.
+As a guest the token calls ${methods.join(", ")} and no others, for 7 days, and spends at most $${daily} a day of the owner's allowance. A refusal says how to ask for more. Only the owner of this Brain can approve: give your user the url and the code to send to the owner.
 
-To become a member (your own files, your own Workers, your own allowance): sign in once at https://${host}/ with an atproto account (a Bluesky handle is one), then send the owner that handle. The owner adds it under People. A member signs in with that account and needs no link.`;
+To become a member (your own files, your own Workers, your own allowance): send the owner the handle of an atproto account (a Bluesky handle is one). The owner adds it under People. A member signs in at https://${host}/ with that account and needs no link.`;
 }
 // %%
 test_the_guest_brief_says_what_a_guest_has_and_how_to_join = {
   const text = guestBrief("https://b.example/auth/link?code=abc", { methods: GUEST_METHODS, daily: 0.1 });
   expect(text).toContain('curl -sS -X POST "https://b.example/auth/link?code=abc" -o "$d/brain.json"');
   expect(text).toContain("ai.models, ai.run and no others");
-  expect(text).toContain("at most $0.10 a day");
-  expect(text).toContain("sign in once at https://b.example/ with an atproto account");
+  expect(text).toContain("at most $0.1 a day");
+  expect(text).toContain("signs in at https://b.example/ with that account");
   expect(text).toContain("Only the owner of this Brain can approve");
   return "ok";
 }
@@ -357,7 +361,7 @@ accessPanel = {
   const draw = async () => {
     const [{ tokens }, { grants }] = await Promise.all([client.query("token.list"), client.query("grant.list")]);
     list.replaceChildren(htl.html`<table style="border-collapse:collapse;margin:0">
-      ${tokens.map((t) => htl.html`<tr><td style="padding:2px 12px 2px 0">token <b>${t.name}</b></td><td style="padding:2px 12px">${t.deploy ? htl.html`<b>${t.unattended ? "deploys with no approval" : "deploys"}</b>${t.methods.length ? ", " : ""}` : ""}${short(t.methods)}</td><td style="padding:2px 12px;color:var(--theme-foreground-muted)">created ${new Date(t.created).toISOString().slice(0, 10)}${t.until ? ", ends " + new Date(t.until).toISOString().slice(0, 16).replace("T", " ") + " UTC" : ""}</td><td>${remove("Revoke", () => client.procedure("token.revoke", { name: t.name }))}</td></tr>`)}
+      ${tokens.map((t) => htl.html`<tr><td style="padding:2px 12px 2px 0">token <b>${t.name}</b></td><td style="padding:2px 12px">${t.deploy ? htl.html`<b>${t.unattended ? "deploys with no approval" : "deploys"}</b>${t.methods.length ? ", " : ""}` : ""}${short(t.methods)}</td><td style="padding:2px 12px;color:var(--theme-foreground-muted)">created ${new Date(t.created).toISOString().slice(0, 10)}${t.until ? ", ends " + new Date(t.until).toISOString().slice(0, 16).replace("T", " ") + " UTC" : ""}${t.daily != null ? ", $" + t.daily + " a day" : ""}</td><td>${remove("Revoke", () => client.procedure("token.revoke", { name: t.name }))}</td></tr>`)}
       ${grants.map((g) => htl.html`<tr><td style="padding:2px 12px 2px 0">${g.did}</td><td style="padding:2px 12px">${short(g.methods)}</td><td style="padding:2px 12px;color:var(--theme-foreground-muted)">granted ${new Date(g.granted).toISOString().slice(0, 10)}</td><td>${remove("Remove", () => client.procedure("grant.delete", { did: g.did }))}</td></tr>`)}
       ${tokens.length + grants.length ? "" : htl.html`<tr><td style="color:var(--theme-foreground-muted)">No tokens or grants.</td></tr>`}
     </table>`);

@@ -4424,3 +4424,31 @@ because a guest's 0.10 was spent; a colleague's session following the note; Add 
 against the real resolver. Not built: a list of who signed in and is not yet a member (the owner
 learns the handle from the colleague), and anything that tells the owner a guest asked (they are sent
 the url).
+
+### After its fresh review (2026-10-10 17:02 CEST)
+
+One reviewer with no context: FIX, 9 findings, all confirmed against the source. Kernel `2a968b988230`
+(28 of 28), page `466494feb62c` (14 of 14), confirmed, `redistil` all `same`.
+
+- **A guest's token that asked for more was replaced by one of at most 24 hours** (8 by default), and
+  the week's token was revoked. The note says 7 days. Fixed: the replacement ends no sooner than the
+  token it replaces (`ends` on the link row); the test asserts it.
+- **A second press for the same name was refused for 7 days**, and Access has no row for a link nobody
+  used. Fixed: the button calls `token.revoke { name }` first, so a new invite for a name ends the last
+  one, used or not.
+- **Access did not show a token's `daily`.** Fixed.
+- **An approved request starts the day's spend again**: the count is by delegation id and the
+  replacement has a new one. Not fixed; written in the kernel's reference.
+- **An empty methods field, a cap printed rounded, `Infinity` sent as no cap.** Fixed: both refused,
+  and the cap is printed as typed.
+- **"Sign in once" did nothing toward membership.** Removed: the note says to send the owner a handle.
+- **After a request is approved the token is `guest-NAME-XXXX`**, so `token.revoke { name:
+  "guest-NAME" }` no longer ends it, and a name of four hex letters (`abba`) loses its name. Not fixed.
+  Access lists the new name with a Revoke button.
+- **The two answers that carry `daily` did not say so.** Fixed in the reference and at `GET /auth/link`.
+- **The run did not cover the login link's own methods.** Run at 17:03 with a link of those six
+  methods, then revoked: `issue.list`, `knowledge.search`, `knowledge.list`, `quota.get` 200;
+  `logs.keys`, `browser.all` 403.
+
+Still not run: the buttons in a signed-in browser, a guest's request approved on cb4 (the kept end is
+checked in the kernel's test only), a call refused at a spent cap.
