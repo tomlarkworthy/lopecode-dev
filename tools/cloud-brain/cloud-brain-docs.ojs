@@ -147,7 +147,7 @@ The kernel identifies the caller, in this order. No header from a caller can set
 | a turn token | the DID of the person whose message the turn answers | \`turn:ENTRY\` |
 | a portal token | the viewer's DID | \`portal:ID\` |
 | a JWT that an atproto key signed (a PDS forwards a call) | \`owner\`, or the DID | \`jwt\` |
-| a token that the owner made, from 2026-10-10 | \`owner\`, with \`caller.delegation\` and \`caller.holder == "secret:NAME"\` and \`caller.token == "NAME"\`; not the owner's tab, unless a sign-in link made with \`unattended\` made it | \`delegation:ID\` |
+| a token that the owner made, from 2026-10-10 | \`owner\`, with \`caller.delegation\` and \`caller.holder == "secret:NAME"\` and \`caller.token == "NAME"\`; not the owner's tab, unless a sign-in link made with \`unattended\` made it and its list names the method by a name or a prefix, not by \`*\` alone | \`delegation:ID\` |
 | a token that the owner made before 2026-10-10 | \`token:NAME\` | \`token\` |
 | none of these | \`anonymous\` | |
 

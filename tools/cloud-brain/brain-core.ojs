@@ -37,7 +37,7 @@ It answers bindings only. A caller is who the kernel says it is, and the kernel 
 | \`quota.list\`, \`quota.ledger\` | query, owner. Each account's day, and the charges of one day (\`?day=&who=&limit=\`) with totals by account and by method. |
 | \`quota.put\`, \`quota.setDefaults\` | procedure, the owner's own session. \`{ who, daily }\`, and \`{ owner, member, worker, token, perCall, keepDays }\`. \`null\` is the default again. |
 | \`delegation.create\` | procedure, the owner's or a member's own session. \`{ name, holder: { worker }, scope, until, daily, note }\` → the record, with its \`id\`. With \`holder: { secret: true }\` and \`caps\` (the owner only) the answer has \`secret\`, once: a token. The kernel's \`token.create\` and a sign-in link make these. |
-| \`delegation.resolve\` | procedure, the kernel. \`{ sha256 }\` of a secret → \`{ delegation }\` or null. |
+| \`delegation.resolve\`, \`delegation.adopt\` | procedures, the kernel. \`{ sha256 }\` of a secret → \`{ delegation }\` or null; and a token from before 2026-10-10, handed over by its hash. |
 | \`delegation.list\`, \`delegation.revoke\` | query and procedure, the same callers. The owner reads and revokes any, a member their own. \`{ id }\`. |
 
 **Delegations** (design: \`plan/cloud-brain-authority.md\`; built 2026-10-10 for a Worker holder only). The owner or a member lets a Worker the owner deployed call the methods in a \`scope\`, until a time or until it is revoked. The Worker names the delegation on a call it makes:
@@ -52,7 +52,7 @@ xrpc.fetch("com.lopecode.brain.m.0a1b.shop.receive", { method: "POST", headers: 
 - It begins a chain of its own: the origin is the maker, and the origin of whatever the Worker was answering is not read. \`x-brain-hops\` says how long the chain already is; the core adds one, sends it on with each forwarded call, and refuses a chain over 8.
 - \`daily\` is the most the chain may spend in a UTC day, counted beside the maker's own allowance. \`delegation.list\` shows \`spentToday\`. Calls made at the same moment can pass it by the price of those calls; the maker's allowance is exact.
 - A member's delegations are deleted when the member is removed.
-- A secret holder (a token made from 2026-10-10) sends the secret to the kernel as \`Authorization: Bearer\`. Its calls are the owner's: the owner's rules and allowance, \`caller.holder\` is \`secret:NAME\` and \`caller.token\` is \`NAME\`. It is the owner's own tab only with the cap \`session\`, and then only for a method the scope names by its name or a prefix: \`*\` alone does not reach \`rule.put\`, \`config.set\` or any method whose rule is \`caller.session\`. Without it what it makes in a store is kept under \`d:<id>\`. \`deploy\` and \`unattended\` are read by the kernel for \`infra.*\`.
+- A secret holder (a token made from 2026-10-10) sends the secret to the kernel as \`Authorization: Bearer\`. Its calls are the owner's: the owner's rules and allowance, \`caller.holder\` is \`secret:NAME\` and \`caller.token\` is \`NAME\`. It is the owner's own tab only with the cap \`session\`, and then only for a method the scope names by its name or a prefix: \`*\` alone does not reach \`rule.put\`, \`config.set\` or any method whose rule is \`caller.session\`. When a call is not the owner's tab, what it makes in a store is kept under \`d:<id>\`. \`deploy\` and \`unattended\` are read by the kernel for \`infra.*\`.
 - A holder that takes a delegation's id from a caller must check that the caller made it (\`from\`). An id is not a secret.
 
 **Origin.** A rule reads \`caller\`, who made the call, and \`origin\`, who started the chain of calls it is part of. The two have the same fields. For a call from outside they are equal. When a Worker makes a call while it answers one, \`caller\` is the Worker and \`origin\` is the origin of the call it answers. A call a Worker makes by its own schedule has the Worker as \`origin\`. For a member's Worker \`caller\` is its author, and so is \`origin\` when it answers nobody.
@@ -97,8 +97,7 @@ The order is rule, price, charge, forward. The price is for the Worker's own wor
 | the owner's session, the owner's turn, the owner's PDS, the token of a sign-in link made with \`unattended\` | \`owner\` | $1.00 |
 | a member's session, PDS, portal or turn | \`did:…\`, the member | $0.10 |
 | a turn in a room | the person who wrote the message, as any turn | |
-| a token made from 2026-10-10 (a delegation with a secret holder), a Worker calling under the owner's delegation | \`owner\`, and no more than the delegation's \`daily\` | $1.00 |
-| a token made before 2026-10-10 | \`token:NAME\` | $0.10 |
+| a token (a delegation with a secret holder), a Worker calling under the owner's delegation | \`owner\`, and no more than the delegation's \`daily\` | $1.00 |
 | a Worker by its own clock | \`worker:NAME\` | $0.10 |
 | a member's Worker by its own clock | its author | |
 | nobody (\`anonymous\`) | none: a priced call is refused | |
@@ -304,7 +303,8 @@ coreApp = {
     // The cap session holds for what the scope names, by a name or a prefix. A method that only * reaches is not
     // called from the owner's tab: so * does not reach a method of the owner's own session.
     const nsid = new URL(c.req.url).pathname.slice("/xrpc/".length);
-    const tab = d.caps.includes("session") && matches(d.scope.filter((m) => m !== "com.lopecode.brain.*"), nsid);
+    // * is kept as com.lopecode.brain.*, and com.* and com.lopecode.* are the same thing spelled shorter.
+    const tab = d.caps.includes("session") && matches(d.scope.filter((m) => !(/[./]\*$/.test(m) && "com.lopecode.brain.".startsWith(m.slice(0, -1)))), nsid);
     c.set("who", { caller: d.from, via: "delegation:" + d.id, tab, holder: "secret:" + d.name, d: d.id, hops: 0 });
     return null;
   };
@@ -993,6 +993,22 @@ ${deployed.join("\n\n")}
     if (!d || (me !== "owner" && d.from !== me)) return c.json({ revoked: false });
     await drop(d);
     return c.json({ revoked: true, id });
+  });
+  // A token from before 2026-10-10 was a row of the kernel, which has the hash of its secret and not the secret.
+  // The kernel hands each over once. A name one of the owner's delegations has is kept apart by the new id.
+  app.post(NS + "delegation.adopt", async (c) => {
+    const w = c.get("who"), b = (await c.req.json().catch(() => null)) || {};
+    if (!(w.kernel && w.caller === "kernel")) return fail(c, 401, "AuthRequired", "the kernel");
+    const ok = typeof b.sha256 === "string" && /^[0-9a-f]{64}$/.test(b.sha256) && typeof b.name === "string" && /^[a-z0-9-]{1,40}$/.test(b.name) && Array.isArray(b.scope) && b.scope.every((m) => typeof m === "string") && Array.isArray(b.caps) && b.caps.every((x) => CAPS.includes(x));
+    if (!ok) return fail(c, 400, "InvalidRequest", "{ sha256, name, scope, caps, until, created, note }");
+    const had = await rows.get("holder/secret/" + b.sha256);
+    if (had && (await rows.get("delegation/" + had))) return c.json(await rows.get("delegation/" + had));
+    const id = [...crypto.getRandomValues(new Uint8Array(6))].map((x) => x.toString(16).padStart(2, "0")).join("");
+    const taken = (await rows.list("delegation/")).some((r) => r.value.from === "owner" && r.value.name === b.name);
+    const d = { id, name: taken ? b.name.slice(0, 35) + "-" + id.slice(0, 4) : b.name, from: "owner", holder: { secret: b.sha256 }, scope: b.scope, caps: b.caps, until: Number.isInteger(b.until) ? b.until : null, daily: null, parent: null, note: typeof b.note === "string" ? b.note.slice(0, 300) : "", created: Number.isInteger(b.created) ? b.created : Date.now(), by: "moved" };
+    await settings.put("delegation/" + id, d);
+    await settings.put("holder/secret/" + b.sha256, id);
+    return c.json(d);
   });
   // The kernel asks whose secret it was sent: it needs the scope for the routes it answers itself and the caps for
   // infra.*. The row is found by the hash, and the answer has no secret in it.
@@ -1990,6 +2006,9 @@ test_a_token_is_a_delegation_with_a_secret_holder_that_the_kernel_resolves = {
   const button = (await make({ name: "button", scope: ["shop.*"], caps: ["deploy", "unattended", "session"], until: Date.now() + 3600000, note: "sign-in link" })).data;
   expect([(await sent(button.id)("shop.tab", {})).status, heard.at(-1).tab, heard.at(-1)["origin-tab"], (await sent(button.id)("delegation.create", { name: "y", holder: { secret: true }, scope: ["*"] })).status]).toEqual([200, "1", "1", 403]);
   // The cap session and *: an ordinary method is reached, not in the owner's tab; a session method is not reached.
+  const short = (await make({ name: "short", scope: ["com.lopecode.*", "com.*"], caps: ["session"] })).data;
+  expect([(await sent(short.id)("shop.receive", {})).status, (await sent(short.id)("shop.tab", {})).status, (await sent(short.id)("config.list")).status]).toEqual([200, 401, 401]);
+  await rig.owner("delegation.revoke", { id: short.id });
   const star = (await make({ name: "star", scope: ["*"], caps: ["session"] })).data, named = (await make({ name: "named", scope: ["*", "shop.tab"], caps: ["session"] })).data;
   expect([(await sent(star.id)("shop.receive", {})).status, heard.at(-1).tab, (await sent(star.id)("shop.tab", {})).status, (await sent(star.id)("config.list")).status, (await sent(named.id)("shop.tab", {})).status]).toEqual([200, "0", 401, 401, 200]);
   for (const d of [star, named]) await rig.owner("delegation.revoke", { id: d.id });
@@ -2000,6 +2019,13 @@ test_a_token_is_a_delegation_with_a_secret_holder_that_the_kernel_resolves = {
   expect((await make({ name: "laptop", scope: ["*"] })).status).toBe(400);
   expect((await rig.owner("delegation.revoke", { id: t.id })).data).toEqual({ revoked: true, id: t.id });
   expect([(await kernel("delegation.resolve", { sha256: t.holder.secret })).data, (await sent(t.id)("shop.receive", {})).status, (await make({ name: "laptop", scope: ["*"] })).status]).toEqual([{ delegation: null }, 401, 200]);
+  // A token from before: the kernel hands over the hash it has. The same hash again is the same row; a name that
+  // is taken is kept apart; nobody but the kernel does it.
+  const HASH = await sha256("made-before"), old = { sha256: HASH, name: "laptop", scope: [B + "shop.receive"], caps: ["deploy"], until: null, created: 5, note: "sign-in link" };
+  const moved = (await kernel("delegation.adopt", old)).data;
+  expect([moved.name, moved.from, moved.holder, moved.caps, moved.created, moved.by, (await kernel("delegation.adopt", old)).data.id, (await kernel("delegation.resolve", { sha256: HASH })).data.delegation.id]).toEqual(["laptop-" + moved.id.slice(0, 4), "owner", { secret: HASH }, ["deploy"], 5, "moved", moved.id, moved.id]);
+  expect([(await sent(moved.id)("shop.receive", {})).status, (await rig.owner("delegation.adopt", old)).status, (await kernel("delegation.adopt", { ...old, caps: ["root"] })).status]).toEqual([200, 401, 400]);
+  await rig.owner("delegation.revoke", { id: moved.id });
   // Ended, it is refused, and it goes when the owner makes another.
   config.clockSkewMs = 2 * 3600000;
   expect((await sent(button.id)("shop.receive", {})).status).toBe(403);

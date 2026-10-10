@@ -3900,3 +3900,33 @@ methods [quota.get, config.list, browser.status]   quota.get 200  config.list 20
 
 `config.list` is behind the core's session guard: refused under `*`, reached when named.
 
+### After step 4's fresh review (2026-10-10)
+
+BLOCK, five findings, all taken.
+
+- **`com.lopecode.*` and `com.*` were `*` under a shorter spelling** and kept the owner's tab for every session method: the core dropped only the literal `com.lopecode.brain.*` before it asked whether the scope names the method. It drops every prefix that `com.lopecode.brain.` begins with. A test makes a delegation with both and is refused `shop.tab` and `config.list`. Only the owner's session makes a secret holder, so what was wrong was the stated property and not a stranger's reach.
+- **The text served at `GET /auth/link`** said a token made with `unattended` calls as the owner's session. It says: for the methods the list names by a name or a prefix. The kernel's reference and the docs table say the same.
+- The core's note, the plan's summary of step 3.
+- **Tokens made between step 3 and step 4.** Read at 12:36 with `delegation.list`: one delegation was made by a session in that time (`claude-docs-fe39`, no caps, 7 methods named). None had `unattended` with `*`, so no token lost a session method at 12:27.
+
+## Authority, step 5 of 7: the old rows are moved (2026-10-10 12:32 CEST)
+
+`brain-core` `f5bd26a33b83`, `brain` `8144becfacae`. Core 32 tests, kernel 26.
+
+The core mints a secret, so it could not make a delegation for a token that exists: the kernel has the hash of that token's secret and not the secret. New in the core: `delegation.adopt { sha256, name, scope, caps, until, created, note }`, the kernel's alone, which writes the row and the `holder/secret/<hash>` row from the hash. The same hash again answers the same row. A name one of the owner's delegations has gets `-` and four characters of the new id. The row's `by` is `moved`.
+
+The kernel hands a `token/` row over when a call comes with that token, and every row that is left when tokens are listed, revoked or a link is made; then it deletes the row. With that the kernel's rewrite of an `unattended` token to the owner's session, its `call.by.link` line and its own reads of `token/` are gone. What is left of `token/` in the kernel is the hand-over, which can go when no Brain has such a row.
+
+On cb4, `token.list` before and after the two deploys, names only:
+
+```
+before  8 tokens, 1 with an id (a delegation)        after  8 tokens, 8 with an id
+delegation.list: 7 rows with "by":"moved"; 6 with caps deploy, unattended, session; each names its methods (4 to 7), none by *
+```
+
+Those six are other sessions' sign-in links. Before, the kernel sent their calls as the owner's session; now the core reads the cap `session` from the moved row. Their browsers and containers are the owner's in both. `claude-knowledge-3725` had no `unattended`: its account was `token:claude-knowledge-3725` and is now the owner's, and what it makes is kept under `d:<id>`.
+
+**Not run:** a call with one of the moved tokens (they are other sessions' secrets; the test hands over three rows and calls with each). Not done: the `token` default in `quota.setDefaults` and `token:NAME` in `isAccount` are still in the core, and now name nothing new.
+
+
+After the review of step 4 the two were deployed again: `brain-core` `cbdd277b41e5`, `brain` `e4ec23e80ecf`, 12:36 CEST.
