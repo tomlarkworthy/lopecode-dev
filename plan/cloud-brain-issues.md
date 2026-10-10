@@ -119,7 +119,7 @@ ray         the cf-ray of the call that made the event, as the core logs it
 at          ms
 prev        the hash of the entry before it in the topic
 hash        sha256 of the canonical JSON of every field above (keys sorted, no whitespace)
-sig         Ed25519 signature of hash, by the service's key
+sig         ECDSA P-256 signature of hash, by the service's key (Ed25519 until 2026-10-10)
 ```
 
 `by` and `origin` are copied into the event because the log lines they point at last 7 days and the
@@ -136,7 +136,7 @@ always `worker:brain-x-issues`; who acted is in `by`.
   writes `prev` and `hash` in the append's transaction, and `brain-x-issues` signs what comes back and
   stores `sig` beside it (`sig/<seq>` in its view). The alternative, a lock row in the issues service as
   the deployer's `alone` does, holds every write of the tracker behind one row.
-- **Signing key**: an Ed25519 key pair, the private key a secret of `brain-x-issues` (`ISSUES_SIGNING_KEY`;
+- **Signing key**: an ECDSA P-256 key pair (Ed25519 until 2026-10-10: Chrome 128, the cluster's browser, has none), the private key a secret of `brain-x-issues` (`ISSUES_SIGNING_KEY`;
   the deployer refuses only names starting `BRAIN_` or `CF_`, per the running-a-cloud-brain wiki). The
   public key is answered by `issue.key` and written in `llms.txt`, so anyone can check a copy of the
   record without a secret. HMAC was not chosen: checking it needs the key that makes it.
