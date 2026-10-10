@@ -382,7 +382,7 @@ export async function loadNotebook(notebookPath, options = {}) {
     // wrong global (observablejs-toolchain's importFake relies on direct eval).
     const seen = new Set(["window", "self", "globalThis", "constructor", "happyDOM", "eval", "Function"]);
     // The language's own globals (Object, Array, Map, Promise, …) stay the vm realm's too. The DOM window
-    // carries the outer realm's, and with those `({}).constructor === Object` is false in notebook code.
+    // has a realm of its own, and with its Object `({}).constructor === Object` is false in notebook code.
     for (const name of vm.runInNewContext("Object.getOwnPropertyNames(globalThis)")) seen.add(name);
     for (let o = domWindow; o && o !== Object.prototype; o = Object.getPrototypeOf(o)) {
       for (const name of Object.getOwnPropertyNames(o)) {
@@ -401,9 +401,9 @@ export async function loadNotebook(notebookPath, options = {}) {
   }
 
   sharedContext = vm.createContext(Object.assign(domGlobals, {
-    // node-side globals the DOM window does not carry
-    Proxy, Reflect, structuredClone, SharedArrayBuffer,
-    BigInt64Array, BigUint64Array,
+    // node-side globals the DOM window does not carry. Not the language's own (Proxy, Reflect,
+    // SharedArrayBuffer, BigInt64Array, …): the context has those, and they must stay its own.
+    structuredClone,
     TextEncoderStream, TextDecoderStream, DecompressionStream, CompressionStream,
     MessageChannel, MessagePort,
     indexedDB: new IDBFactory(),

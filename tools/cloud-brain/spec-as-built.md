@@ -4145,7 +4145,8 @@ and the record stayed at 74. Not tried on cb4: an install with a reason.
 ### The headless harness keeps its realm's own built-ins (2026-10-10 17:15 CEST)
 
 `headless-harness-cel`. `tools/lope-runtime.js` copied every global of the happy-dom window into the vm context,
-the outer realm's `Object`, `Array`, `Map`, `Promise` and the rest among them, so in notebook code
+that window's `Object`, `Array`, `Map`, `Promise` and the rest among them (happy-dom has a realm of its own:
+`new Window().Object === Object` is false), so in notebook code
 `({}).constructor === Object` was false and cel-js answered `Unsupported type: Object` for any guard that reads a
 field. It now skips every name a bare context defines (`vm.runInNewContext("Object.getOwnPropertyNames(globalThis)")`).
 
@@ -4165,6 +4166,20 @@ no WebGL scene under happy-dom; leaving only `Object, Array, Map, Set` crashes i
 `node --experimental-vm-modules --test tests/notebooks/*.test.js`: 126 tests, 122 pass, 2 fail, the same before and after.
 
 Not measured: `lope-push-ws.js`, `spec-notebook.ts` and `lope-bulk-jumpgate.js` beyond what those tests cover.
+
+**After its review (17:55 CEST), verdict `changes`, 2 findings, both right.** The `Object.assign` after the loop put
+node's `Proxy`, `Reflect`, `SharedArrayBuffer`, `BigInt64Array` and `BigUint64Array` back, so "every name" was
+untrue for five: `Reflect.ownKeys({a:1}).constructor === Array` was false. They are removed from that list; a probe
+through `execution.eval` on `quick_start.html` answers true for that, for `Reflect.getOwnPropertyDescriptor`'s
+result against `Object`, and for `new BigInt64Array(1).buffer instanceof ArrayBuffer`. And the cause first written
+here said the window carried the outer realm's `Object`; corrected above. The corpus again, against the first
+change: 253 notebooks the same; `cloud-brain` 651 -> 653 passed of 732 (731 before: the notebook was rebuilt
+between the runs) with `test_browser_run_stops_at_its_timeout` failing, a test of a timer that also failed in
+the run before the first change. Node tests 122 of 126. Tracker tests headless 10 of 10.
+
+Still foreign to notebook code, before and after: values from `Response.json()`, `structuredClone`,
+`TextEncoder.encode`, `crypto.subtle.digest`, the bytes of `contentSync`, and DOM objects. Filed by the reviewer
+as `headless-harness-foreign-values`.
 
 ## Authority, step 5 of 7: the old rows are moved (2026-10-10 12:32 CEST)
 
