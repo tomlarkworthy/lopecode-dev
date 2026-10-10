@@ -415,7 +415,8 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
   const as = args.indexOf("--as"), name = as < 0 ? "" : args[as + 1];
   const path = args[0], rest = args.slice(1).filter((a, i) => a !== "--owner" && a !== "--other" && i + 1 !== as && i + 1 !== as + 1);
   const have = name ? { ...tokens(BASE + "-issues-tokens.json"), ...tokens() } : {};
-  if (name && !have[name]) { console.log(`no token "${name}" is kept; make one with: token ${name} <method…>`); process.exit(1); }
+  if (as >= 0 && !name) { console.log("--as needs a name: curl <path> --as NAME"); process.exit(1); }
+  if (as >= 0 && !have[name]) { console.log(`no token "${name}" is kept; make one with: token ${name} <method…>`); process.exit(1); }
   const extra = name ? ["-H", "authorization: Bearer " + have[name]] : args.includes("--owner") && st.session ? ["-H", "authorization: Bearer " + st.session] : args.includes("--other") && st.otherSession ? ["-H", "authorization: Bearer " + st.otherSession] : [];
   const p = Bun.spawn(["curl", "-s", "-m", "30", "-w", " [%{http_code}]\n", ...extra, ...rest, (path.startsWith("http") ? "" : B()) + path], { stdout: "inherit", stderr: "inherit" });
   await p.exited;

@@ -104,7 +104,7 @@ over masquerading as the owner. They can obtain a token using owner if they don;
 options". In this checkout:
 
 ```
-brain.ts token my-task issue.* knowledge.search     # once, with the owner's session; prints the name only
+brain.ts token my-task 'issue.*' knowledge.search   # once, with the owner's session; prints the name only. Quoted: zsh stops on a bare issue.*
 brain.ts curl /xrpc/com.lopecode.brain.issue.list --as my-task
 brain.ts token revoke my-task                       # when the work is done
 ```

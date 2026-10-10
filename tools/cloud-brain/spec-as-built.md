@@ -5031,3 +5031,49 @@ Not done: the four later "not tried" sentences that name `issue.rebuild` against
 (the sections of 12:24 CEST and after) are left as written; each says what had not been tried at
 its own time. Nothing was called on cb4 but reads of the tracker. `implementer.md` step 12 does not
 ask for older "Not done" lines to be marked; the issue names that as a wider cause and not this task.
+
+## `brain.ts curl --as` with no name stops; the doc's token example is quoted (2026-10-10 19:32 CEST): no deploy
+
+Issue `owner-session-file-is-present`, round 2. Review 1 (event 195) held two things against
+`lopecode-dev@4df5fe7b`. Both are fixed and nothing else is changed.
+
+1. `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md` line 107 told an agent to run
+   `brain.ts token my-task issue.* knowledge.search`. In zsh, the shell of this checkout, that is
+   `zsh:1: no matches found: issue.*` and no token is made. The line now quotes it: `'issue.*'`.
+2. `brain.ts curl <path> --as` with nothing after it sent the call with no `Authorization` header:
+   the guard was `if (name && !have[name])` and a missing name is falsy. Now `--as` with no name
+   prints `--as needs a name: curl <path> --as NAME` and exits 1, and the kept-token test is
+   `as >= 0 && !have[name]`.
+
+**Before**, from the main checkout, before the edit (the time was not read; the reviewer's same run is in event 195):
+`curl quota.get --as` answered `{"error":"AuthRequired","message":"an account"} [401]`, exit 0.
+
+**After**, 19:32:57, from a copy of the worktree's `brain.ts` in the main checkout (the worktree has
+no state file), deleted after:
+
+```
+curl quota.get --as                        --as needs a name: curl <path> --as NAME                        exit 1
+curl quota.get -X POST -d {} --as          the same line                                                   exit 1
+curl quota.get --owner --as                the same line (the owner's session is not used instead)         exit 1
+curl quota.get --as nobody                 no token "nobody" is kept; make one with: token nobody <method…>   exit 1
+curl quota.get --as -X GET                 no token "-X" is kept; …                                        exit 1
+curl quota.get --as issues-implementer-2   403 this token does not name com.lopecode.brain.quota.get       exit 0
+curl issue.get?id=… --as issues-implementer-2    200, 16868 bytes
+curl lease.get --owner                     {"held":true} [200]
+zsh -c "echo token my-task 'issue.*' knowledge.search"    token my-task issue.* knowledge.search
+zsh -c 'echo token my-task issue.* knowledge.search'      zsh:1: no matches found: issue.*, exit 1
+```
+
+A first pass of the same loop passed each case as one word (zsh does not split `$a`); curl refused
+those as unknown options and sent nothing. The table is the second pass, with `${=a}`.
+
+**Tests.** None: `brain.ts` has no test and none was added; no seed changed and no `test_*` cell
+was run. The evidence is the ten commands above.
+
+Not done: the reviewer's note that the example makes a token for `issue.*`, which is a new actor
+to the tracker, was not held against the change and the example still names `issue.*`. The label
+`needs-owner` is still on the issue.
+
+Not tried: `brain.ts token my-task 'issue.*' knowledge.search` itself (a write with the owner's
+session; the quoting was checked with `echo` only, so still no prefix has gone through
+`brain.ts token`); `--as` given twice; the items listed as not tried in the section of 19:21.
