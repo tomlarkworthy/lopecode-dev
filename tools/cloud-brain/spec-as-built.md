@@ -4873,3 +4873,130 @@ the kernel refuses (the 400 is printed without the body's `token`, read in the c
 with a revoked token through `--as` (the name leaves the file at revoke, so `--as` stops first).
 `token list` prints what `token.list` answers; whether that holds a secret was not read, and its
 output was piped through a script that printed keys only.
+
+## `lope-tests.ts` prints a test cell that threw as failed, with its message (2026-10-10 19:25 CEST): no deploy
+
+Issue `lope-tests-throw-reads-timeout`. The change is in `tools/lope-tests.ts` and `runTests` of
+`tools/lope-runtime.js`, outside `tools/cloud-brain`; no seed changed and nothing was deployed.
+`bfd9ae46`, 19:25:02 (`git log --format=%ci`).
+
+**Reproduced** in the worktree, with four cells added to `brain-issues.ojs` for the run and taken
+out again (`git diff` of the seed is empty): a sync `throw`, a `throw` after an `await`, an
+`expect([false, false]).toEqual([true, true])`, and the same after `await issues_service.emit()`.
+`bun tools/lope-tests.ts .emitted/cloud-brain.html --filter test_issues`, before the change:
+
+```
+  ⧖ test_issues_zz_async_throw (10007ms)
+  ⧖ test_issues_zz_expect_async (10007ms)
+  ⧖ test_issues_zz_expect_sync (10007ms)
+  ⧖ test_issues_zz_sync_throw (10007ms)
+Tests: 13 passed, 0 failed, 4 timed out, 0 skipped, 17 total
+```
+
+So it is not about `async`: a sync `throw` does it too.
+
+**Cause.** Read from the four cells after `loadNotebook` returned, before the reporter touched them:
+
+```
+name                          _reachable  _version  _error     _promise
+test_issues_zz_sync_throw     true        1         undefined  rejected: sync boom
+test_issues_zz_async_throw    true        1         undefined  rejected: async boom
+test_issues_zz_expect_sync    true        2         undefined  rejected: expect(received).toEqual(expected) …
+test_issues_zz_expect_async   true        4         undefined  rejected: expect(received).toEqual(expected) …
+```
+
+The cells had run during boot (the 13 that passed print no duration: they took the branch for a
+value already there). Three things then make a timeout:
+
+- The runtime never writes `_error`. `node_modules/@observablehq/runtime/src/runtime.js`,
+  `variable_compute`: a rejection sets `_value = undefined` and calls the observer of that moment.
+  The reporter's `if (v._error !== undefined)` branch could not be taken.
+- An observer put on the cell afterwards is called at the next compute only.
+- `runtime._dirty.add(v)` queues a compute only when reachability rises (`runtime.js` lines 99 to
+  112: `_updates` gets a variable whose `reachable > variable._reachable`). The cell was reachable
+  already, so nothing ran and the 10 s timer answered.
+
+The outcome is still in `v._promise`, which `variable_compute` assigns on every compute.
+
+**Changed.** `followComputed(v, fulfilled, rejected)` in `lope-runtime.js`: for a cell with
+`_reachable` and `_version > 0` it reads `v._promise`; a rejection of a promise that has been
+replaced since is followed to the new one. Both reporters call it and keep the observer for a cell
+nothing has computed, whose `_promise` is the constructor's and resolves with `undefined`. The dead
+`_error` branch is gone from both. In `lope-tests.ts`, `finish` records a cell once, and
+`--verbose` prints the value of each passed cell under its line.
+
+After, the same notebook and command (exit 1):
+
+```
+  ✗ test_issues_zz_async_throw (1ms)
+      async boom
+  ✗ test_issues_zz_expect_sync (1ms)
+      expect(received).toEqual(expected)
+      …
+      -   true,
+      -   true,
+      +   false,
+      +   false,
+  ✗ test_issues_zz_sync_throw (1ms)
+      sync boom
+Tests: 13 passed, 4 failed, 0 timed out, 0 skipped, 17 total
+```
+
+`--filter test_issues_declares --verbose` prints `16 methods` under the line.
+
+**Tests.** `tests/notebooks/throw-is-a-failure.test.js`, one test on
+`lopecode/notebooks/@tomlarkworthy_flow-queue.html`: cells that threw before `runTests` looked
+(sync, after an `await`), cells still running when it looked (a throw and a pass after 1.5 s), and
+two cells nothing had computed. Before the change it failed with `test_zy_sync_throw: ['timeout',
+undefined]` and the same for `test_zy_async_throw`. With the `_reachable`/`_version` line of
+`followComputed` taken out it fails with `test_zx_unreached_throw: ['passed', 'undefined']`.
+In the main checkout after the cherry-pick,
+`node --experimental-vm-modules --test tests/notebooks/*.test.js`: 127 tests, 123 pass, 2 fail, 2
+skipped. The same command before it: 126, 122, 2, 2. The 2 that fail are
+`@tomlarkworthy_robocoop-4.html retains re-export-fragile fixes` for `lopebooks` and `lopecode`, both times.
+
+The whole notebook, `bun tools/lope-tests.ts lopebooks/notebooks/@tomlarkworthy_cloud-brain.html`
+at `lopebooks` `e15ac19e`, the previous tool (`git show HEAD~1:tools/lope-tests.ts`) and this one,
+each run twice with the same line both times:
+
+```
+before  Tests: 673 passed, 16 failed, 31 timed out, 71 skipped, 791 total
+after   Tests: 666 passed, 24 failed, 8 timed out, 37 skipped, 735 total
+```
+
+There are 735 `test_*` cells. The previous tool printed 28 of them more than once (56 lines
+too many): its `finish` was not guarded, so a cell whose observer was called again after it
+had been recorded was recorded again. That is a second defect, not in the issue, fixed by the same
+change. By cell, the states the previous tool printed against the one this prints:
+
+```
+656  passed            -> passed
+ 37  skipped           -> skipped
+  9  failed            -> failed
+ 14  timeout           -> failed     the message is now printed
+  9  timeout           -> passed     the cell had run and returned undefined
+  8  timeout           -> timeout
+  2  failed and passed -> one of them (1 failed, 1 passed)
+```
+
+The tracker's 13 `test_issues_*` cells pass in both. 13 cells pass with the value `undefined`
+(the CTRF report, `extra.value`): `test_normalize`, `test_table_round_trip` and others of the
+markdown editor, which assert with `expect` and return nothing. A cell nothing had computed and
+that returns `undefined` already read as passed through the observer; a cell computed at boot now
+reads the same.
+
+Not done, with the reason:
+
+- No `--json` flag. `--report <path>` writes CTRF with each passed cell's value in `extra.value`
+  and each failure's message in `message`; it was there before. The overseer's comment (event 168)
+  says the tool has none.
+- `implementer.md` step 8 still says the tool prints a thrown assertion as a timeout. The brief is
+  the overseer's to edit; it is said on the issue.
+- The 24 cells that fail and the 8 that time out under the headless harness were not looked at.
+
+Not tried: the tests in a browser (nothing in the notebook changed, and the tool does not run
+there); `bun test` of the new test file (it was run with `node --test`); a generator test cell;
+a cell redefined while `runTests` waits, which is what the follow to a replaced promise is for;
+`tools/bulk-smoke-test.js`, whose worker calls `runTests` (`bulk-smoke-test-worker.js` line 37)
+and so gets the change; the pairing channel's `run_tests` (the channel server is another
+repository and was not read).
