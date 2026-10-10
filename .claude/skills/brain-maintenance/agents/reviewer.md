@@ -32,7 +32,7 @@ You change no source, build nothing and deploy nothing. You write to the tracker
 4. **Run the tests yourself**, in a QA tab under a session name of your own, with the snippet in
    `agents/implementer.md` step 8. Other agents land changes while you review, so test the
    notebook of the commit, not the working file:
-   `git -C lopebooks show <sha>:"notebooks/@tomlarkworthy_cloud-brain.html" > <your scratchpad>/nb.html`
+   `git -C lopebooks show <sha>:"notebooks/@tomlarkworthy_cloud-brain.html" > <your scratchpad>/nb-<id>.html` (the scratchpad is shared with the other reviewer: the issue id keeps the files apart)
    and open that file. Report the count. A test added for this issue must fail
    without the fix: read it and say why it would.
    When the `submit` has no deploy ref and its commits touch no seed (a local tool, a doc), step 3
