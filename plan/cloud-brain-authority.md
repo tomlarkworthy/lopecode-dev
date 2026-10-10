@@ -1,6 +1,6 @@
 # Cloud Brain: one record for delegated authority
 
-A design. Steps 1, 2 and 3 of its seven are built and on cb4 (see *Order of work*); the rest is not.
+A design. Steps 1 to 4 of its seven are built and on cb4 (see *Order of work*); the rest is not.
 Written 2026-10-10 for Tom to review before anything was changed; ninth draft,
 after eight fresh reviews (see *Review* at the end). A statement about the present code names the
 line it was read at where one line holds it, found by a search for the text on 2026-10-10. Each draft
@@ -506,7 +506,7 @@ someone revokes it. `until` is the answer, and the page should make it hard to l
 
 ## Order of work
 
-**Built so far:** steps 1, 2 and 3, deployed to cb4 2026-10-10 10:57, 11:13 and 11:53 CEST (`tools/cloud-brain/spec-as-built.md`, "Authority, step 1 of 7", "step 2 of 7", "step 3 of 7"). Step 3 differs from this text in four ways, listed there: the kernel asks the core on each call and holds nothing, a new token is still `token:NAME` inside the kernel, only the owner makes a secret holder, and a link is known by the delegation's `note`. Step 2 left out `delegation.resolve` (step 3 is its first caller) and the `xrpc.as` cell (a holder sends the headers with `xrpc.fetch`), and the context has a fourth field, `n`, the holder. A new shared cell needs `install-deployer` before the Workers that read it: the deployer distils with its own copy of `cloudflare-iac`.
+**Built so far:** steps 1 to 4, deployed to cb4 2026-10-10 10:57, 11:13, 11:53 and 12:27 CEST (`tools/cloud-brain/spec-as-built.md`, "Authority, step 1 of 7" to "step 4 of 7"). Step 4 keeps the kernel's rewrite for tokens that are still its own rows, keeps `infra.by.link`, and enforces "`*` reaches no session method" by not counting a call that only `*` reaches as the owner's tab. Step 3 differs from this text in four ways, listed there: the kernel asks the core on each call and holds nothing, a new token is still `token:NAME` inside the kernel, only the owner makes a secret holder, and a link is known by the delegation's `note`. Step 2 left out `delegation.resolve` (step 3 is its first caller) and the `xrpc.as` cell (a holder sends the headers with `xrpc.fetch`), and the context has a fourth field, `n`, the holder. A new shared cell needs `install-deployer` before the Workers that read it: the deployer distils with its own copy of `cloudflare-iac`.
 
 Each step is deployed and confirmed alone, and each works with the other of kernel and core one step
 behind, because the two are deployed one at a time and a bad one is put back. The deployer's own

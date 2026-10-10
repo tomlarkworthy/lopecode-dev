@@ -3883,3 +3883,20 @@ FIX, eight findings, read against the source and held.
 
 Left: no test joins the kernel to the real core (the kernel's rig answers `delegation.*` from a stand-in that checks the name only). If the core makes a row and its answer is lost, the link is put back and the name is taken by a delegation whose secret nobody has, until `token.revoke`.
 
+## Authority, step 4 of 7: the kinds of method (2026-10-10 12:27 CEST)
+
+`brain-core` `b8b01855ff2a`, `brain` `216787fa90b7`. Core 32 tests, kernel 26.
+
+- **The kernel.** A token that is a delegation is its maker in the kernel too (`caller: owner`), and the core is sent `owner` with the id. The rewrite to the owner's session and the `call.by.link` line are for a token that is still a `token/` row, and go with those rows in step 5: six such tokens of other sessions were live on cb4, made with `unattended`, and without the rewrite each would have lost every `caller.session` method in the middle of its work. That is why the design's order (the rewrite goes in 4, the rows move in 5) was not followed to the letter.
+- **`infra.by.link` stays**, with `d:<id>` for a delegation. The design said the core's one line would say which token deployed. A deploy goes from the kernel to the deployer and does not pass the core, so the core has no line for it.
+- **`*` and the cap `session`**, in the core. The design gives four kinds of method and says `*` reaches no session method. The core cannot list the session methods: a rule is any CEL expression. So the cap holds for a method the scope names by its name or a prefix, and a call that only `*` reaches is not the owner's tab. A session guard or a `caller.session` rule then refuses it. A side of this the design does not have: under `*` an ordinary method is reached with `x-brain-tab: 0`, so a store keeps what it makes under `d:<id>` and not as the owner's.
+
+Run on cb4, two links made with `deploy` and `unattended`, tokens not printed, both revoked:
+
+```
+methods ["*"]                                      quota.get 200  config.list 401  browser.status 200  infra.getState 200  inbox.list 200  secret.list 403
+methods [quota.get, config.list, browser.status]   quota.get 200  config.list 200  browser.status 200  infra.getState 200  inbox.list 403  secret.list 403
+```
+
+`config.list` is behind the core's session guard: refused under `*`, reached when named.
+
