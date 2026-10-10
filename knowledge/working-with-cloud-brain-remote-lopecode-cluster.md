@@ -88,6 +88,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts <command>
 | `state` | What is deployed. |
 | `redistil` | Compare each Worker with its source. Healthy is every line `same`. |
 | `apply <name>.json --reason="why"` | Deploy a recipe, signed with the recovery key. Since 2026-10-09 the deployer answers 400 without `--reason=` (3 to 300 characters) and logs it as `deploy.reason`; the same for `redistil --apply`, `remove` and `rollback`. |
+| `saw [name…]` | The hash this checkout last deployed or fetched for each Worker; `apply` and `remove` send it as `was`. A refused apply means the Worker changed elsewhere: read it with `getSource?worker=NAME`, merge it into the seed, build, emit, then `saw NAME` (2026-10-10, after a kernel deployed from elsewhere was replaced). |
 | `page up` / `page state` / `page down` | The Brain's page in a browser of the cluster (below). |
 
 A health check that takes ten seconds:

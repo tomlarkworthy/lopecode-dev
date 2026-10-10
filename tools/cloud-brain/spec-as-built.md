@@ -4236,3 +4236,40 @@ grant.put did [knowledge.search]  200;  grant.list  the full method name;  grant
 
 **Not run on cb4:** the parent's `daily` refusing a second child. No method the scratch tokens reach has a price; it is the core's test alone.
 
+## A kernel deployed from elsewhere was replaced, and `was` is now what the checkout saw (2026-10-10 15:27 CEST)
+
+The deployer's log for `target: brain`, read with `logs.query` at 15:23:
+
+```
+12:43:58 deploy.uploaded 027284b52877   this checkout, step 5 after its review
+12:45:28 deploy.uploaded 82bc8520a7bd   another process; not in this checkout's seed
+12:58:46 deploy.uploaded f1687167cf41   this checkout, step 7: it replaced 82bc8520a7bd
+13:09:38 deploy.uploaded a2580cd4ed83   this checkout, step 7 after its review
+15:22:28 deploy.uploaded bbe0e2481cb9   the other process again, built on a2580cd4ed83
+```
+
+`brain.ts apply` sent as `was` the hash `infra.getState` gave when the command began, so the deployer's check passed
+at 12:58: it compared the running hash with itself, read a second earlier. The source of `82bc8520a7bd` is not
+recoverable from the deployer: it keeps one earlier source per module, and when read, before 15:22, that was `f1687167cf41`.
+
+**Merged.** `bbe0e2481cb9` was read with `getSource?worker=brain` and its eight changed blocks put into
+`brain-kernel.ojs`: `token.request` and what serves it ("Asking for more" in the kernel's reference), the path
+`/auth/request` after a sign-in, `caps` on a link, and the cell `test_a_program_asks_for_more`. After
+`build.ts` the notebook's kernel module and the kept source differ in the generated name of the first `md` cell and in
+the order of the `define` lines, and in no cell's code. Not done: the kernel's tests were not run in a tab from this
+build, and nothing was deployed, since cb4 already runs this code.
+
+**`was`.** `brain.ts` keeps `saw: { worker: hash }` in the state file. `apply` and `remove` send it as `was` and
+write it after a deploy that stands; with no record for a Worker, what runs is recorded once and the command says so.
+A refusal prints what to do: read the source with `getSource`, merge, build, emit, then `brain.ts saw NAME`, which
+records what runs now. `brain.ts saw` lists the record and marks a Worker that has moved.
+Run on cb4 at 15:25 with the record for `brain-x-issues` set to 64 zeros and `issues.json`, which is what runs:
+
+```
+{"worker":"brain-x-issues","state":"refused","reason":"brain-x-issues is 2735c3bb57cf, you saw 000000000000"}
+```
+
+Limits. The record is in the state file, so two sessions that use one checkout share it: it stops a deploy over a
+change made from a tab's Apply or from another checkout, and not over one made by another session here with a seed
+this session has not built from. `rollback` and a put-back do not write the record. `redistil --apply` is unchanged.
+
