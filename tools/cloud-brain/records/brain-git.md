@@ -88,4 +88,5 @@ FIX, 5 findings, all taken. `brain-x-git` `869e8a226168`, applied 22:02 in 22.9 
   runs). The header says so, and a Worker that does not answer is printed, where before it was
   left out in silence. "Two public reads" under What was built above is wrong in the same way.
 
-Not run on cb4 after this deploy: any call to the service.
+On cb4 after this deploy, 22:03, with a token for `git.*`: `git.list` answered `deploy`; `git.token?seconds=59`
+answered 400 "seconds is a whole number from 60 to 86400". A member's long name was not tried there.
