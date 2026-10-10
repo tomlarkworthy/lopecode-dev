@@ -4306,7 +4306,7 @@ one checkout and applied from another is not covered. Two sessions in one workin
 seeds; what stands between them is that age check. `rollback` and a put-back do not write the record. `redistil
 --apply` is unchanged. The page's Apply sends the hash its row was drawn from, as before.
 
-**Writers that share nothing with this checkout** (2026-10-10 16:10 CEST). Tom: "the other process do not use git, we
+**Writers that share nothing with this checkout** (2026-10-10 16:05 CEST). Tom: "the other process do not use git, we
 are building an AI system that self repairs", and "often they are not in-brain, sometimes they are freshly logged in
 claude work sessions". Such a session has `/llms.txt` and a token, and no `brain.ts`. What it was told at 15:45:
 `infra.apply` takes "`was` is the `hash` `getSource` gave", which is right, and nothing about a refusal;
