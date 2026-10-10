@@ -5,13 +5,14 @@
 //
 //   cd tests/tools && bun test doc-token-example.test.ts
 import { test, expect } from "bun:test";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, mkdtempSync, writeFileSync, symlinkSync, rmSync } from "node:fs";
 import { resolve, join } from "node:path";
+import { tmpdir } from "node:os";
 
 const root = resolve(import.meta.dir, "../..");
-const md = (dir: string): string[] =>
-  readdirSync(join(root, dir), { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory() ? md(join(dir, e.name)) : e.name.endsWith(".md") ? [join(dir, e.name)] : []);
+const md = (dir: string, base = root): string[] =>
+  readdirSync(join(base, dir), { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? md(join(dir, e.name), base) : e.name.endsWith(".md") && existsSync(join(base, dir, e.name)) ? [join(dir, e.name)] : []);
 const files = [...md("knowledge"), ...md(".claude/skills/brain-maintenance")];
 
 // `token NAME <method…>` with a method `issue.something`, quoted or not. `token list` and `token revoke` name none.
@@ -30,4 +31,16 @@ test("no doc shows an agent making itself a token for the tracker", () => {
   const found = files.flatMap((f) =>
     readFileSync(join(root, f), "utf8").split("\n").flatMap((l, i) => (mints(l) ? [`${f}:${i + 1}: ${l.trim()}`] : [])));
   expect(found).toEqual([]);
+});
+
+// philosophy.md of the skill is a link into the submodule cloud-brain-dev, which a plain `git worktree add` leaves empty.
+test("a link whose target is absent is passed over", () => {
+  const dir = mkdtempSync(join(tmpdir(), "doc-token-"));
+  try {
+    writeFileSync(join(dir, "kept.md"), "text\n");
+    symlinkSync(join(dir, "absent", "philosophy.md"), join(dir, "philosophy.md"));
+    expect(md(".", dir)).toEqual(["kept.md"]);
+  } finally {
+    rmSync(dir, { recursive: true });
+  }
 });

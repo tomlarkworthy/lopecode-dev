@@ -49,7 +49,45 @@ after             2 pass 0 fail, 7 expect() calls
   is read from the kernel's reference ("Lists of methods", `brain-kernel.ojs`).
 - `knowledge-docs.ts put --stale` was not run, so the Brain's search has the doc's old text until
   someone does. It uses the owner's session.
-- The test reads two directories. `spec-as-built.md` and `records/owner-session-file-is-present.md`
-  quote the old line as history and are not read by it. `cloud-brain-dev/*.md` and
-  `tools/cloud-brain/*.md` are not read; a grep of them on 2026-10-10 found no such line.
+- The test reads two directories. `tools/cloud-brain/*.md`, `tools/cloud-brain/records/*.md` and
+  `cloud-brain-dev/*.md` are not read by it. Two lines there match its pattern, both in
+  `tools/cloud-brain/spec-as-built.md` and both history of `owner-session-file-is-present`: line
+  5041 (the old line, unquoted) and line 5077 (a "Not tried"). This record's own lines 7 and 38
+  match too. `cloud-brain-dev/*.md` has none (corrected 2026-10-10 in round 2, below).
 - The copy of this doc in a notebook wiki: its scope is `local-development`, so `sync-wiki.ts` does not ship it.
+
+## Round 2, 2026-10-10 23:29 CEST
+
+Review 1 (event 351, `changes`) had two findings. The doc change was found right and is as it was.
+
+1. **The test threw where `cloud-brain-dev/` is not checked out.**
+   `.claude/skills/brain-maintenance/philosophy.md` is a link to `../../../cloud-brain-dev/philosophy.md`.
+   `readdirSync` lists it as a `.md` and `readFileSync` throws on it. `md()` now leaves out a name
+   that `existsSync` does not find (it follows the link). A third test makes a directory with one
+   file and one link to nothing and expects the file alone. In the worktree, `cd tests/tools && bun test doc-token-example.test.ts`:
+
+   ```
+   third test added, md() as it was   2 pass 1 fail   Received + "philosophy.md"
+   with existsSync                    3 pass 0 fail, 8 expect() calls
+   ```
+
+   The reviewer's case, a `git worktree add --detach` of the branch with `cloud-brain-dev/` empty
+   (`ls cloud-brain-dev | wc -l`: 0):
+
+   ```
+   the test of f24f5836    1 pass 1 fail   ENOENT … .claude/skills/brain-maintenance/philosophy.md
+   this round's test       3 pass 0 fail, 8 expect() calls
+   ```
+
+   There the test reads one doc fewer. `philosophy.md` has no token line (grep, with the submodule present).
+
+2. **This record said a grep of `tools/cloud-brain/*.md` found no such line.** It was wrong:
+   `grep -n "brain\.ts token [a-z-]* .*issue\." tools/cloud-brain/*.md tools/cloud-brain/records/*.md cloud-brain-dev/*.md`
+   gives `spec-as-built.md` lines 5041 and 5077 and this record's lines 7 and 38.
+   `records/owner-session-file-is-present.md` names `'issue.*'` (lines 59, 63) without the command,
+   so the first round's "quote the old line" was wrong of it too. The bullet above is corrected.
+
+Not tried in round 2: the reviewer's four lines the pattern does not catch (`'*'`, two spaces
+after `brain.ts`, a line continued with a backslash, `token.create` sent with `curl --owner`);
+they were not held against the change and the pattern is as it was. A link to a directory of
+docs is not followed (`isDirectory()` is false for a link); neither directory has one.
