@@ -108,7 +108,7 @@ is between the Refresh row and the policy line, the button to its right.
 ## Round 2, 2026-10-10: review 1
 
 Review 1 (event 253, 20:09:01 CEST) asked for changes, two findings. Both are in
-`tools/cloud-brain/brain-issues.ojs`; seed commit `bb7259ed`, 20:19:50.
+`tools/cloud-brain/brain-issues.ojs`; the seed was committed 20:19:50.
 
 **1. The line was false after the page itself deployed `brain-x-issues`.** `joined` was
 `issuesJoinedAt(brainModules)`, a value from when the page opened. The page loads a Worker's
@@ -141,7 +141,7 @@ that does not listen. Round 1's half of the cell still counts calls on a listeni
 The count is 17 `test_issues_*`: 15 at round 1, 2 added by `panel-for-your-attention`, none
 added here (one cell is longer).
 
-17 of 17 in a headless QA tab on the worktree's build of `bb7259ed`, by the snippet of the
+17 of 17 in a headless QA tab on the worktree's build of that commit, by the snippet of the
 implementer brief, `bad []`, the tab's clock 20:20:13 CEST, `visibilityState` visible. The same
 17 with `lope-tests.ts` in 14.88 s.
 
