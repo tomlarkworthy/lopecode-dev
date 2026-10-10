@@ -85,3 +85,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   since `7782ac73`: FIX, 3 findings, all confirmed by the reviewer's probes and all in one handler
   (`issue.install`); all 3 acted on (lopecode-dev `a0a5ce85`). 147k subagent tokens, 5m58s. Re-reading that handler
   whole afterwards, shape by shape, found 4 more inputs it answered wrongly that no run had named.
+- 2026-10-10 the same module, changes since `525a8bc7`: FIX, 4 findings, all confirmed by the reviewer's probes, all
+  in `issue.install`, the first a regression made by the round before; all 4 acted on (lopecode-dev `2a5cb517`).
+  151k subagent tokens, 4m47s. Five rounds on one handler found 13, 8, 4, 3, 4: this round the handler's shape was
+  changed (the key looked up first, an input form removed) where the earlier rounds had patched.

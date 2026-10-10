@@ -4056,6 +4056,37 @@ BLOCK, five findings, all taken.
 - The core's note said "without it" of the cap, where a call under `*` with the cap is also kept under `d:<id>`; it says "when a call is not the owner's tab". The plan's summary of step 3 said in the present tense that a new token is `token:NAME` in the kernel; it says "was, until step 4".
 - **Tokens made between step 3 and step 4.** Read at 12:36 with `delegation.list`: one delegation was made by a session in that time (`claude-docs-fe39`, no caps, 7 methods named). None had `unattended` with `*`, so no token lost a session method at 12:27.
 
+### Issues after the review of the 3 fixes, 4 findings (2026-10-10 13:24 CEST): `brain-x-issues` `8fed3ece9fc9`
+
+The fifth fresh review answered FIX with 4 findings, all in `issue.install`. The rounds had gone 13, 8, 4, 3, 4, and
+the first of these 4 was made by the round before. So the handler was changed in shape, not patched again
+(lopecode-dev `2a5cb517`, lopebooks `a336b645`).
+
+- **The key is looked up first**, before anything else in the body is read. A policy event holds it and the body has
+  the same policy: that install again, `duplicate: true`, `moved: []`, `left: []`. Another policy: 400. Another kind
+  of event: 400. Before, the `migrate` was checked first, against the policy by then in force, so an install sent
+  again could be refused although it had happened.
+- **A `migrate` key is a workflow hash the record keeps, and nothing else.** The by-name form was added in the third
+  round as a convenience. It caused one defect in each of the next two rounds: one workflow named twice (by hash and
+  by name), and an install sent again by name answered 400. It is removed, and the "named twice" check with it: two
+  equal hashes cannot be two keys of one object.
+- **The same-policy check compares the whole policy.** It compared the workflow hashes, so the same workflows with
+  another `kinds` was answered as a duplicate and the new `kinds` was not installed.
+- **A `states` value is the name of a state:** `""`, `null`, an object or a number is 400.
+- **The test counts what it refuses** (22 installs and 4 policies; the string had said 11 where the cell made 18),
+  and sends each of the 6 installs it saw accepted a second time, unchanged: each answers its first `seq` and
+  `hashes` with `duplicate: true`, `moved: []`, `left: []`, and writes no event. That is the case the fifth review
+  found, for every accepted body and not for the one a reviewer thought of.
+
+Tests 10 of 10, forced cell by cell in the QA tab `issues-qa` (closed by name). Deployed 13:24 CEST under the lock.
+After it: `redistil` 20 lines, 19 `same` (the Workers) and the distiller's own; lease held; no browsers or
+containers; no lock; `issue.verify?guards=true` ok on 40 events, then 41. `review-fixes-2` had the fifth review's
+`changes` as events 39 and 40 (under `issues-reviewer-2`) and is at `in-review` again by event 41 (under
+`issues-implementer-2`), with these commits and the Worker hash as refs. Not reviewed yet.
+
+Not tried, as before: an install whose swap fails with an error that is not a refusal, a large `migrate`,
+`issue.rebuild` against a concurrent write.
+
 ## Authority, step 5 of 7: the old rows are moved (2026-10-10 12:32 CEST)
 
 `brain-core` `f5bd26a33b83`, `brain` `8144becfacae`. Core 32 tests, kernel 26.
