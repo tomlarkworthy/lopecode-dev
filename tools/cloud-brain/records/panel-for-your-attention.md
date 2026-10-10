@@ -106,7 +106,7 @@ the second is `document.activeElement === box` after another caller's comment an
 
 ### What changed
 
-One seed, `tools/cloud-brain/brain-issues.ojs`, 127 lines added and 15 removed, of which 91 are the
+One seed, `tools/cloud-brain/brain-issues.ojs`, 127 lines added and 15 removed, of which 103 are the
 two tests. All of it is in `issuesPanel`; no handler, SQL or policy.
 
 - **The caret.** `drawWaiting` read `document.activeElement` after its loop. The loop makes a row
