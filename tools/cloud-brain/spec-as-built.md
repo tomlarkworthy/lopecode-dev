@@ -3439,3 +3439,18 @@ Not done: no fresh review of this change (the session that made it was told to s
 channel's runner were not changed or pointed at it. robocoop-5's `createOpenRouterClient` takes `baseUrl` and
 `apiKey`, sends `HTTP-Referer` and `X-Title` when given a referer and title, and streams; from a browser those two
 headers would fail the kernel's preflight.
+
+## The button copies a briefing; a link is good for 8 hours (2026-10-10 08:26 CEST)
+
+A Claude Code on the web session with no CLAUDE.md redeemed a link from the button and deployed (Tom's run, 2026-10-10). What it reported slowed it, and what was done:
+
+| Reported | Checked | Done |
+|---|---|---|
+| Its environment refused the host, so it never saw the link's GET text; the note about allowing the host is in `/llms.txt`, which it could not read either | not reproducible from here | the button copies six lines with the link in them; line 1 says to have the host allowed |
+| The redeem POST from Python answered 403 "error code: 1010" | reproduced on cb4: `Python-urllib/3.11` 403 on `/llms.txt` and `/auth/link`; `python-requests`, `node`, `Go-http-client`, curl reach the Worker. Cloudflare's edge refuses it; the link is not spent | said in the briefing, the GET text and `/llms.txt`. Not turned off: whether a `workers.dev` address allows that is not known |
+| "Keep the token in an environment variable" does not work where each shell command starts fresh; it ran a background relay | not reproduced | the advice is a file of mode 600 in a temporary directory, outside any repository |
+| 10 minutes ran out while the network was being opened (Tom: "10 mins is too short, make it 8 hours for initial use") | | `minutes` is 1 to 480 and 480 if left out |
+
+`loginBrief(link)` in the page writes the text; `test_the_login_brief_carries_the_link_and_the_host`. On cb4, kernel `f38d5d0eef1a`, core `166bab350bc0`, page `dd3d79a7359f`: a link made with no `minutes` is good for 480; the GET text and `/llms.txt` carry both notes; 68 of 68; `redistil` 18 `same`. The button was not pressed on cb4, and no agent has yet been given the briefing.
+
+Cost of the longer link: a pasted link that leaks is usable for 8 hours, not 10 minutes, until it is redeemed or `token.revoke` names it.

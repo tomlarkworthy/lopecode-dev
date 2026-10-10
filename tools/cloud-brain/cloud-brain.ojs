@@ -169,14 +169,15 @@ test_calls_from_the_logs_become_chart_rows = {
   return "3 rows from 3 calculations";
 }
 // %%
-// One press: a sign-in link for a program with no browser (Claude Code on the web), on the clipboard. The link
-// works once, for 10 minutes. Its token lasts 8 hours and deploys with no approval, Workers that declare Cloudflare
+// One press: a sign-in link for a program with no browser (Claude Code on the web), on the clipboard, inside a few
+// lines that say what it is and what stopped the first agent to use one (its network, Cloudflare refusing Python's
+// urllib, a shell that forgets a variable). The link works once, for 8 hours. Its token lasts 8 hours and deploys with no approval, Workers that declare Cloudflare
 // permissions among them, and calls the browser, the containers, the models and the logs as the owner's session
 // does, on the owner's allowance: it is the owner in effect (Tom, 2026-10-09 and 10). Access below ends it.
 loginLink = {
   if (!brain) return htl.html`<span></span>`;
   const note = htl.html`<span style="color:var(--theme-foreground-muted);margin-left:8px"></span>`;
-  const make = async () => (await client.procedure("token.link", { name: "claude-" + Date.now().toString(36), methods: ["browser.*", "container.*", "ai.*", "logs.*", "quota.get"], deploy: true, unattended: true })).link;
+  const make = async () => loginBrief((await client.procedure("token.link", { name: "claude-" + Date.now().toString(36), methods: ["browser.*", "container.*", "ai.*", "logs.*", "quota.get"], deploy: true, unattended: true })).link);
   const button = press("Copy Login Link", async () => {
     note.textContent = "";
     try {
@@ -184,12 +185,34 @@ loginLink = {
       const link = make();
       if (typeof ClipboardItem === "function" && navigator.clipboard.write) await navigator.clipboard.write([new ClipboardItem({ "text/plain": link.then((text) => new Blob([text], { type: "text/plain" })) })]);
       else await navigator.clipboard.writeText(await link);
-      note.textContent = "Copied. Paste it to Claude Code. It works once, in the next 10 minutes. For 8 hours it deploys with no approval and uses the browser, containers, models and logs as you; Access below ends it.";
+      note.textContent = "Copied. Paste it to Claude Code. The link works once, in the next 8 hours. For 8 hours after that it deploys with no approval and uses the browser, containers, models and logs as you; Access below ends it.";
     } catch (e) {
       note.textContent = "No link copied: " + e.message;
     }
   });
   return htl.html`<div style="display:flex;align-items:center;flex-wrap:wrap">${button}${note}</div>`;
+}
+// %%
+// What the button copies: the link, and what an agent needs before its first request.
+loginBrief = (link) => {
+  const host = new URL(link).host;
+  return `You are being signed in to a Cloud Brain: a set of Cloudflare Workers that one notebook defines, deploys and operates, at https://${host}. This link gives you a token that acts as its owner.
+
+1. Claude Code on the web: if a request to ${host} is refused by your environment, ask for that host to be allowed in the environment's network settings. The link waits: it is good for 8 hours.
+2. Redeem it once, with curl. Cloudflare refuses Python's urllib with 403 "error code: 1010"; that does not spend the link.
+   curl -sS -X POST "${link}"
+3. The answer is JSON with "token". It lasts 8 hours. Keep it in a file of mode 600 in a temporary directory, outside any repository, and do not print it. Send it as "Authorization: Bearer <token>".
+4. Read https://${host}/llms.txt with no Authorization header: how to call, what this Brain is made of, how to read a Worker's source and deploy a change.
+
+The token deploys any Worker with no approval, and calls the browser, containers, models and logs as the owner, on the owner's allowance.`;
+}
+// %%
+test_the_login_brief_carries_the_link_and_the_host = {
+  const text = loginBrief("https://b.example/auth/link?code=abc");
+  expect(text).toContain('curl -sS -X POST "https://b.example/auth/link?code=abc"');
+  expect(text).toContain("https://b.example/llms.txt");
+  expect(text).toContain("error code: 1010");
+  return "ok";
 }
 // %%
 md`## Operator`
@@ -286,11 +309,11 @@ accessPanel = {
     }
   });
   const mayDeploy = htl.html`<label style="display:flex;align-items:center;gap:4px" title="The link's token also deploys and removes this Brain's Workers, as you do"><input type="checkbox">link may deploy</label>`;
-  // For a program with no browser: paste the link to it. It is good once, for 10 minutes; its token lasts 8 hours.
+  // For a program with no browser: paste the link to it. It is good once, for 8 hours; its token lasts 8 hours more.
   const link = press("Sign-in link", async () => {
     try {
       const made = await client.procedure("token.link", { name: who.value.trim(), methods: names(), deploy: mayDeploy.querySelector("input").checked });
-      note.replaceChildren(htl.html`Paste this to the program (Claude Code on the web). It works once, in the next 10 minutes; the token it gives lasts 8 hours.<br><code>${made.link}</code>`);
+      note.replaceChildren(htl.html`Paste this to the program (Claude Code on the web). It works once, in the next 8 hours; the token it gives lasts 8 hours.<br><code>${made.link}</code>`);
     } catch (e) {
       note.textContent = "No link: " + e.message;
     }
