@@ -58,3 +58,6 @@
 [submodule "tomlarkworthy.github.io"]
 	path = tomlarkworthy.github.io
 	url = git@github.com:tomlarkworthy/tomlarkworthy.github.io.git
+[submodule "cloud-brain-dev"]
+	path = cloud-brain-dev
+	url = https://a3e2af584fbdedd172bede5ca0018aae.artifacts.cloudflare.net/git/cb4/cloud-brain-dev.git
