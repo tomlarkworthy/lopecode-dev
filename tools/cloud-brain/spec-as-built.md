@@ -5006,3 +5006,28 @@ a cell redefined while `runTests` waits, which is what the follow to a replaced 
 `tools/bulk-smoke-test.js`, whose worker calls `runTests` (`bulk-smoke-test-worker.js` line 37)
 and so gets the change; the pairing channel's `run_tests` (the channel server is another
 repository and was not read).
+
+## The "Not done" line about `issue.rebuild` is marked where it stands (2026-10-10 19:31 CEST): no deploy
+
+Issue `spec-not-done-rebuild-line-stale`. The "Not done" list of the first build of the tracker
+(the section dated 11:57 CEST) still read "`issue.rebuild` clears the view and writes it in batches
+of 300 rows; a write between two batches is not in the view until the next rebuild" after
+`rebuild-not-atomic` (18:57 CEST, `dc156a413135`) changed it. Its implementer and its reviewer both
+named the line in their reports and left it.
+
+The line now carries a mark after it: done at 18:57 CEST for a view of up to 297 rows, the two
+things that section does not close, and that the first of them, `rebuild-partial-view-past-297`,
+was rejected (event 190, `at` 19:24:37 CEST, read with `issue.get`). The sentence itself is kept,
+unlike the first item of that list, which was replaced by its mark: the 18:57 section quotes it.
+
+`plan/cloud-brain-backlog.md` has no line about the rebuild's batches (`grep -n rebuild`: one line,
+359, about something else), so nothing is marked there. `spec-as-built-short.md` has none either.
+
+**Tests.** No seed and no notebook changed. `bun tools/lope-tests.ts
+lopebooks/notebooks/@tomlarkworthy_cloud-brain.html --filter test_issues`, headless, at 19:31:10
+CEST: `13 passed, 0 failed, 0 timed out`. Not run in a browser.
+
+Not done: the four later "not tried" sentences that name `issue.rebuild` against a concurrent write
+(the sections of 12:24 CEST and after) are left as written; each says what had not been tried at
+its own time. Nothing was called on cb4 but reads of the tracker. `implementer.md` step 12 does not
+ask for older "Not done" lines to be marked; the issue names that as a wider cause and not this task.
