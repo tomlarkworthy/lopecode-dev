@@ -74,13 +74,13 @@ const state = (have: Map<string, any>) => docs.map((d) => {
 });
 
 if (cmd === "status") {
-  const rows = state(kept());
+  const have = kept(), rows = state(have);
   for (const r of rows) {
     const s = r.state === "stale" && r.entry.sha256 !== r.sha256 ? staleSince(r, r.entry.sha256) : null;
     console.log(r.state.padEnd(8), (r.public ? "public " : "private"), r.name, s ? `stale ${age(s.at)} (since ${new Date(s.at).toISOString().slice(0, 16)}Z, ${s.from})` : r.state === "stale" ? "visibility differs" : "");
   }
   const n = (s: string) => rows.filter((r) => r.state === s).length;
-  const gone = [...kept().keys()].filter((id) => !docs.some((d) => d.id === id));
+  const gone = [...have.keys()].filter((id) => !docs.some((d) => d.id === id));
   console.log(JSON.stringify({ docs: rows.length, fresh: n("fresh"), stale: n("stale"), missing: n("missing"), entriesWithNoFile: gone }));
 } else if (cmd === "put") {
   const rows = state(kept());

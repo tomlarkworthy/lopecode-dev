@@ -47,7 +47,7 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
   knows: entries with their source, kept file and who entered them, in a D1 database of its own,
   `knowledge.search?q=` by words and `&semantic=true` by meaning, one vector an entry in one Vectorize index; a put
   to the library enters a card for each module that has none, and marks a kept card `staleSince` when the notebook's copy differs;
-  `library.index { name }` writes the cards again), container (leased Linux containers from Cloudflare Containers, for the owner
+  `library.index { name }` writes the cards again, `{ name, modules }` the named ones; a card is public when its notebook is, and is deleted with it), container (leased Linux containers from Cloudflare Containers, for the owner
   and the Brain's Workers: `container.extend?seconds=`, `exec`, `get`/`post` to a port), ai (one call to an open model on Cloudflare Workers AI:
   `ai.run?model=&usd=`, where `usd` is charged whole; `ai.models` is Cloudflare's list; an OpenAI client's base URL is
   `/xrpc/com.lopecode.brain.ai.v1`, its key a Brain token, $0.01 a call with no `usd`). `<base>-x-page` is built from
@@ -91,7 +91,7 @@ A health check that takes ten seconds:
 
 ```
 brain.ts curl /xrpc/com.lopecode.brain.lease.get --owner     # {"held":true}
-brain.ts redistil | grep -c same                             # 18 on 2026-10-09, after brain-x-ai was added
+brain.ts redistil | grep -c same                             # 19 on 2026-10-10 (18 on 2026-10-09)
 brain.ts curl /xrpc/com.lopecode.brain.browser.all --owner   # browsers that cost money
 brain.ts curl /xrpc/com.lopecode.brain.container.all --owner # containers that cost money
 brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend

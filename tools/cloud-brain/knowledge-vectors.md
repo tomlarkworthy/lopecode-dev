@@ -469,7 +469,8 @@ the ones whose words had changed.
 What is there now (`brain-x-knowledge` `aae6f3ea23e8`, `brain-x-library` `437cab7a8afc`):
 
 - A card's `sha256` is that of the module's block in the notebook file the card was read from, its
-  `url` names that notebook and its `file` the kept file. `changed.at` is when it was last written.
+  `url` names that notebook and its `file` the kept file. `changed.at` is the last put of any field, a
+  mark or a hash included; it does not say how old the words are (`wordsAt` does, since 11:02 CEST, below).
 - `library.put` sends its cards with `ifAbsent`. `knowledge.put` enters the ones that are new, leaves
   the kept ones whole and answers what each was made from. The library compares, and for a card made
   from this notebook whose block now differs it puts `{ id, staleSince }`. No text goes to the model.
@@ -485,15 +486,17 @@ not read a notebook or compare anything: it keeps a date a writer gives it. The 
 for each card in the library's own table; that is a second record of what the entry already says, and
 a search would not have answered it.
 
-### The 400 cards took their hashes without being written
+### The 400 cards took their hashes, their words left as they were
 
 The cards from the morning had no `sha256`. A card with none takes the hash of its module's block
 when its `file` is the file the library still keeps for that notebook, which says the card was read
 from that very file. `library.index { name, rebuild: false }` over the 240 notebooks, one after
-another, 08:30:58 to 08:33:40 UTC (`.emitted/cb4-card-state-migration.jsonl`):
+another, 08:30:58 to 08:33:40 UTC. The log (`.emitted/cb4-card-state-migration.jsonl`) has 239 rows;
+`tomlarkworthy_svg-lens` is the one library name not in it, called by hand, its answer not kept. Each
+card was written once, with its hash alone, so every `changed.at` moved to these minutes.
 
 ```
-240 calls, 240 answered 200, each {"cards":0,"stale":0}
+239 logged calls, 239 answered 200, each {"cards":0,"stale":0}
 knowledge.list kind=module, all pages:   400 cards, 400 with sha256, 0 stale, 118 public
 knowledge.list kind=module stale=true:   {"entries":[]}
 ```
@@ -685,7 +688,97 @@ after                                    grant.list {"grants":[]}, 403 again
 - Nothing runs `library-homes.ts` when a notebook is pushed or `canonical.json` changes.
 - A notebook pushed after today is not put: `library-backfill.ts` reads the checkout, not `origin/main`,
   and puts lopebooks private.
-- The unpushed `quick_start` version is still kept (above). The 14 staging files that are the same as
+- The unpushed `quick_start` version was still kept (above) until 09:06 UTC (next section). The 14 staging files that are the same as
   the published one are not in the library under a second name.
 - `/library/cloud-brain` now serves the Brain's own notebook to anyone, as GitHub does.
 - Not reviewed by a fresh agent.
+
+## After a third review: cards follow their notebook (2026-10-10, 11:02 to 11:07 CEST)
+
+A fresh agent read the staleness change and the two feeder scripts and answered FIX. Each finding was
+checked against the source before it was acted on. Deployed 09:01:56 to 09:03:00 UTC:
+`brain-x-knowledge` `03f94116b6fb`, `brain-x-library` `d2b71a832c03`, `brain-core` `fe216a9b40ea`
+(confirmed 09:03:27). Tests forced from a side module in QA tab `kv-follow`: knowledge 9 of 9, library
+8 of 8, the core's `/llms.txt` test 1 of 1.
+
+| Finding | Was it so | What was done |
+|---|---|---|
+| `library-backfill.ts` sorts homes last, right when the last put wrote the card | yes: `rank(a) - rank(b)` and its comment | `rank(b) - rank(a)`, lopecode before lopebooks; the comment says it is a heuristic and `library-homes.ts run` places the cards |
+| The script puts all of lopecode public and all of lopebooks private | yes | a file is public only when it is the blob at `origin/main` (`library-pushed.ts`, used by both scripts). `--plan` on cb4: 234 public, 4 private |
+| `--only x` meant private, `--limit abc` meant no limit | yes | both throw |
+| `--retry 2` does not retry a 5xx | curl 8.7.1 has `--retry-all-errors` | added to both scripts. Not seen retrying: no call failed |
+| `changed.at` is described as when the words were written | it is the last put of anything (`upd_at = excluded.at` on every conflict) | wording corrected here, in the seed and in the short record; `wordsAt` added |
+| A notebook made private after its cards went public is never marked stale | yes: `unlessPublic` was answered before `ifAbsent`, so the library was not told of the card | `knowledge.put` answers the kept card in `kept` as well as counting it in `skipped` |
+| `knowledgeKinds` has no `doc` | yes; cb4 has 53 entries of that kind | added. The kinds on cb4 at 09:06 UTC: module 400, doc 53, finding 28, paper 27, article 10, post 8, all in the list |
+| `knowledge-docs.ts status` lists the entries twice | yes | once |
+| Two blocks of one module name in a file make two cards with one id | none of the 254 files of the two repos has two | `libraryCards` reads the first, the block a page reads |
+
+### What was chosen
+
+- **The age of the words: one field, `wordsAt`.** A column `words_at`, set to now when a put changes
+  the title or the text and carried otherwise. Six lines. The other choice was to record that nothing
+  says it. For a row from before the column it answers `at`, the first entry: all 400 cards read
+  `wordsAt == at` at 09:06 UTC, though 343 were written from their homes at 08:45 to 08:49. That is
+  wrong by up to 40 minutes for those and is not corrected.
+- **A card is read by whoever reads the notebook it was made from.** A put, `setPublic` and
+  `index { rebuild: false }` set `public` on the cards whose `url` is that notebook. A notebook made
+  private takes its cards private though a public notebook may have the module too; `library.index`
+  of that one writes a public card. The other choice, moving the card to another holder, needs the
+  library to know every notebook's modules, which it does not keep.
+- **`library.delete` deletes the notebook's cards**, with `knowledge.delete { ids, url }`, which takes
+  only entries made from that address; `knowledge.delete` is open to `brain-x-library` for it. Marking
+  them was the other choice: a mark leaves a search answering an address that is 404. The ids are read
+  from the newest kept file, so a card of a module that only an older version had stays.
+- **`library.index { name, modules }`** writes the named modules' cards only. `library-homes.ts` asks
+  each home for its own modules; the ordering and the owner's put of 55 cards are gone from the script.
+- **`library.delete { name, sha256 }`** deletes one kept version that is not the newest.
+
+### On cb4, a scratch notebook (09:03:16 to 09:03:27 UTC)
+
+`scratch-follow-proof`, one module, deleted at the end. `spent` 0.40715 before, 0.40735 after: four
+texts, $0.0002 (the first card, two changes of who reads it, one index).
+
+```
+                              answer               card: public  staleSince      wordsAt        changed.at
+put v1 public                 cards 1, stale 0     true          null            …997480        (none)
+setPublic false               cards 0, stale 0     false         null            …997480        …000021
+put v2 while private          cards 0, stale 1     false         1791623001551   …997480        …001580
+setPublic true                cards 0, stale 1     true          1791623001551   …997480        …002472
+index modules [it, @scratch/none]  cards 1, stale 0  true        null            …003774        …003774
+index modules []              400 InvalidRequest
+delete sha256 of v1           {"deleted":true,"versions":1,"cards":0}
+delete                        {"deleted":true,"versions":1,"cards":1}; knowledge.get of the card 404
+```
+
+`wordsAt` stayed at the first put through three puts that moved `changed.at`, and moved when the index
+wrote new words. The case the review named, a public card whose notebook is private at the put, is in
+the unit test (`test_library_cards_follow_their_notebook`); on cb4 `setPublic` had already taken the
+card private, so the put found none.
+
+### The homes again, by module (09:04:26 to 09:06:21 UTC)
+
+```
+before   400 cards, 399 public, 0 stale, 279 of 279 at the declared home; 55 last written by the owner
+224 library.index { name, modules }, all 200, 398 cards written, 99.0 s in all (11,483 cards before)
+after    400 cards, 399 public, 0 stale, 279 of 279, 398 of 398 planned; 400 last written by brain-x-library
+         0 cards with a changed text or url; spent 0.40735 before and after
+```
+
+`/llms.txt` now reads: "notebook modules (`&kind=module`), the docs of how the notebooks and this Brain
+are worked on (`&kind=doc`), papers, articles, notes."
+
+`quick_start` kept two versions: `b18b3414…`, the blob at lopecode's `origin/main`, and `bb7876d1…`,
+the file of lopecode's unpushed HEAD. `library.delete { name, sha256 }` of the second at 09:06 UTC:
+`/library/quick_start?v=bb7876d1…` answers 404, `/library/quick_start` 200 to a member. lopecode was
+not pushed.
+
+51 of the 400 cards have no prose (08:59 UTC; 47 before the cards went to their homes).
+
+At 09:06 UTC: 19 Workers `same`, lease held, no browser, no container.
+
+### Not done
+
+- A module that another notebook has is without a card after `library.delete` of the card's notebook,
+  until that notebook is put or indexed.
+- `setPublic` re-embeds each card it changes ($0.00005): the vector says who reads it.
+- Nothing runs `library-homes.ts` after a push. Not reviewed by a fresh agent after these changes.

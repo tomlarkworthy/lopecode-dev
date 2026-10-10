@@ -8,11 +8,11 @@ Notebooks kept by a Cloud Brain and served from its address. The files are in \`
 | \`library.put\` | procedure, the owner's own session; a token or a turn is refused, because the file is served as a page. \`?name=\`, optional \`public=true\` and \`parent=<sha256>\`; the body is the notebook's HTML file. |
 | \`library.list\` | query, anyone. The owner gets every notebook, anyone else the public ones; a member granted the method is anyone else. |
 | \`library.versions\` | query, owner. \`?name=\`. The last 10 saves, newest first. |
-| \`library.setPublic\` | procedure, owner. \`{ name, public }\` |
-| \`library.delete\` | procedure, owner. \`{ name }\`. Deletes every version. |
-| \`library.index\` | procedure, owner. \`{ name }\`. Writes the module cards of the newest version again, from its kept file (see Module cards). \`{ name, cards, stale }\`. With \`rebuild: false\` it does what a put does: enters the cards that are missing and marks the ones that differ. |
+| \`library.setPublic\` | procedure, owner. \`{ name, public }\`. The cards made from the notebook are read by whoever reads it (see Module cards). \`{ name, public, cards, stale }\` |
+| \`library.delete\` | procedure, owner. \`{ name }\`. Deletes every version, and the cards made from the notebook: \`{ deleted, versions, cards }\`. With \`sha256\`, one kept version that is not the newest, and no card. |
+| \`library.index\` | procedure, owner. \`{ name }\`. Writes the module cards of the newest version again, from its kept file (see Module cards). \`{ name, cards, stale }\`. With \`rebuild: false\` it does what a put does: enters the cards that are missing and marks the ones that differ. With \`modules\`, 1 to 100 names \`@user/name\`, only those modules' cards are written, and a name the notebook does not have is passed over. |
 | \`GET /library/<name>\` | the notebook. Anyone for a public one, the owner for any. \`?v=<sha256>\` opens a kept version. |
-| Calls | \`static.put\`, \`static.get\`, \`static.delete\`, \`knowledge.put\` |
+| Calls | \`static.put\`, \`static.get\`, \`static.delete\`, \`knowledge.put\`, \`knowledge.delete\` |
 | Storage | \`rows\`, key \`n/<name>\`: \`{ title, sha256, size, public, savedAt, versions }\`. Files at \`library/<name>/<first 16 of sha256>.html\` in \`brain-static\`. |
 
 A name is 1 to 80 of \`A-Z a-z 0-9 @ . _ -\`. The body must be a lopecode notebook: a file with a \`bootconf.json\` block. The title is the file's \`<title>\`. With \`parent\`, a put is refused with 409 unless \`parent\` is the SHA-256 of the notebook's newest version (empty for a new name), so two tabs saving one notebook do not overwrite each other unseen.
@@ -36,16 +36,18 @@ A put does not write a card that is kept (since 2026-10-10 10:30 CEST; before, e
 - A card is made from one notebook, the one its \`url\` names. When a put of that notebook has another block for the module, the card gets \`staleSince\`, the time of that put. It is still found, with its old words, and every answer that has the card has the date.
 - \`staleSince\` is the first put that differed. Later changes do not move it. A put that has the card's own block again clears it.
 - \`knowledge.list?kind=module&stale=true\` lists the cards that differ, the longest so first; \`libraryPanel\` says how many. The put answers \`stale\`, how many of the notebook's own cards differ after it.
-- \`library.index { name }\` is the only thing that writes a kept card: it reads the notebook's kept file, writes each of its modules' cards and embeds the ones whose words changed. It also takes a card that was made from another notebook, which is how a module's card is moved to the notebook that is its home. A notebook that is not public does not take a public card.
+- \`library.index { name }\` is the only thing that writes a kept card: it reads the notebook's kept file, writes each of its modules' cards and embeds the ones whose words changed. It also takes a card that was made from another notebook, which is how a module's card is moved to the notebook that is its home: \`{ name, modules: ["@user/name"] }\` takes that one card and leaves the notebook's others where they are (added 2026-10-10; before, two notebooks that each had the other's module could not both be given their own). A notebook that is not public does not take a public card.
 - A copy of the module in another notebook marks nothing: most modules are in many notebooks and the copies differ. How many copies differ from a card is not counted.
 - A card from before the hash was kept takes it at the next put or \`index { rebuild: false }\` of its notebook, when its \`file\` is the file that is kept; when it is not, the card is marked.
 
 - A module has one card, \`module:<user>:<name>\`, whichever notebook it is in. The first put of a notebook that has the module enters it. After that only \`library.index\` writes it.
 - The file is read block by block from the top, and a block is a module when it is named \`@user/name\` and is JavaScript that is not encoded. Of the 100 modules \`lope-reader\` lists in the Cloud Brain notebook on 2026-10-10, 96 have a card. The four without are named another way: \`es-module-shims@2.6.2\`, \`@observablehq/runtime@6.0.0\`, \`@observablehq/inspector@5.0.1\` and the Observable id \`d/57d79353bac56631\`. 71 of 75 in \`quick_start\`, the same four left out.
-- The cards of a public notebook are public, and say what that notebook's copy of the module says. A put of a notebook that is not public sends its cards with \`unlessPublic\`: \`brain-x-knowledge\` leaves a card that is public whole (its words and its address stay those of the public notebook) and enters the others private. Until 2026-10-10 10:00 CEST such a put kept the card public and wrote the private copy's words and address into it.
+- A card is read by whoever reads the notebook it was made from: public for a public notebook, the Brain's for one that is not. That is set when the card is entered or written by \`library.index\`, and a put, \`library.setPublic\` and \`index { rebuild: false }\` set it again on the cards made from that notebook. A notebook made private takes its cards with it, though a public notebook may have the module too; \`library.index\` of that one gives the module a public card again. A re-read costs one embedding a card, since the vector says who reads it.
+- A put of a notebook that is not public sends its cards with \`unlessPublic\`: \`brain-x-knowledge\` leaves a public card made from another notebook whole (its words and its address stay the public notebook's) and enters only the cards that are missing, private. Until 2026-10-10 10:00 CEST such a put kept the card public and wrote the private copy's words and address into it.
 - A module that is in a private notebook only, then in a public one: the card stays private and the private notebook's, until \`library.index\` of the public notebook makes it public with the public copy's words. Nothing makes it private again but a put of \`{ id, public: false }\`.
-- A module whose prose is headings alone has a card of its cell names: 3 of the 99 cards on cb4 (\`bootloader\`, \`observable-runtime-v6\`, \`blank-notebook\`). Reading the first prose cell alone left 16 of 100 so, until 2026-10-10.
-- \`library.setPublic\` and \`library.delete\` do not change a card. To make one private, put \`{ id, public: false }\` to \`knowledge.put\`; to remove one, \`knowledge.delete\`.
+- A module whose prose is headings alone has a card of its cell names: 51 of the 400 cards on cb4 on 2026-10-10 at 08:59 UTC, after each card was written from its module's home (47 before; 3 of 99 when two notebooks were kept). Reading the first prose cell alone left 16 of 100 so, until 2026-10-10.
+- A file that has two blocks of one name has one card, of the first: the block a page reads. None of the 254 notebook files of lopecode and lopebooks has two (read 2026-10-10).
+- \`library.delete\` deletes the cards made from the notebook's newest version (since 2026-10-10; before, they stayed and named an address that answered 404). A module another notebook has is without a card until that notebook is put or indexed. A card of a module that only an older version had stays.
 - The put answers \`cards\`, how many were entered; a card left as it was is not counted. When \`knowledge.put\` fails the notebook is kept all the same and \`cards\` is smaller; \`library.index\` with \`rebuild: false\` enters them.
 - The library keeps 10 versions of a notebook. A stale card's \`file\` may be a version that is gone.`
 // %%
@@ -61,13 +63,16 @@ library_service = cloudflare.Service("library", libraryApp, {
     "com.lopecode.brain.library.index": { type: "procedure", who: "owner" }
   },
   paths: [{ path: "/library/*", who: "anyone" }],
-  calls: ["com.lopecode.brain.static.put", "com.lopecode.brain.static.get", "com.lopecode.brain.static.delete", "com.lopecode.brain.knowledge.put"]
+  calls: ["com.lopecode.brain.static.put", "com.lopecode.brain.static.get", "com.lopecode.brain.static.delete", "com.lopecode.brain.knowledge.put", "com.lopecode.brain.knowledge.delete"]
 })
 // %%
 library_announce = {
   plugins.add("workers", library_service, { invalidation });
   return "announced library_service";
 }
+// %%
+// One id for a module's card, whichever notebook it is in.
+libraryCardId = (module) => ("module:" + module.slice(1).toLowerCase().replace("/", ":").replace(/[^a-z0-9._:-]/g, "-")).slice(0, 100)
 // %%
 // One card for each module block of a notebook's file: what is read to choose a module, and not its source. The block
 // is the text the exporter writes, so the cells are read from its define calls and the prose from its md cells.
@@ -81,7 +86,8 @@ libraryCards = async (html, { name, file, host, open = false }) => {
     if (gt < 0) break;
     const close = html.indexOf(CLOSE, gt), end = close < 0 ? html.length : close;
     const m = /^\S+\s+id="(@[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+)"\s+type="text\/plain"\s+data-mime="application\/javascript"\s*>$/.exec(html.slice(at, gt + 1));
-    if (m) modules.push([m[1], html.slice(gt + 1, end)]);
+    // The first block of a name is the one a page reads.
+    if (m && !modules.some(([name]) => name === m[1])) modules.push([m[1], html.slice(gt + 1, end)]);
     i = end + CLOSE.length;
   }
   return Promise.all(modules.map(async ([module, source]) => {
@@ -92,7 +98,7 @@ libraryCards = async (html, { name, file, host, open = false }) => {
     // The first prose cell that says something once its headings are gone: many modules open with a cell that is the heading alone.
     const first = prose.map((p) => p.replace(/^#+\s+.+$/gm, "").replace(/\s+/g, " ").trim()).find(Boolean) || "";
     return {
-      id: ("module:" + module.slice(1).toLowerCase().replace("/", ":").replace(/[^a-z0-9._:-]/g, "-")).slice(0, 100),
+      id: libraryCardId(module),
       kind: "module",
       title: (module + (heading ? ": " + heading.trim() : "")).slice(0, 500),
       text: [first.slice(0, 900), cells.length ? "Cells: " + cells.slice(0, 60).join(", ") : "", imports.length ? "Imports: " + imports.join(", ") : ""].filter(Boolean).join("\n").slice(0, 4000),
@@ -130,9 +136,10 @@ libraryApp = {
   // this notebook now differ from it. A call that fails is not a reason to lose the notebook.
   // rebuild: every card is written from this file (library.index). Otherwise a card that is kept is left as it is, and
   // one made from this notebook is marked when its module's block is no longer the one it was made from.
-  const enter = async (name, html, head, rebuild) => {
+  // only: the ids of the cards to send, when not all.
+  const enter = async (name, html, head, rebuild, only = null) => {
     const file = fileOf(name, head.sha256), now = Date.now();
-    const cards = await libraryCards(html, { name, file, host: config.host, open: head.public });
+    const cards = (await libraryCards(html, { name, file, host: config.host, open: head.public })).filter((c) => !only || only.has(c.id));
     let entered = 0, stale = 0;
     for (let i = 0; i < cards.length; i += 100) {
       const some = cards.slice(i, i + 100), mine = new Map(some.map((c) => [c.id, c]));
@@ -142,10 +149,13 @@ libraryApp = {
       for (const k of said.kept || []) {
         // A card made from another notebook says nothing of this one, and this one nothing of it.
         if (k.url !== mine.get(k.id).url) continue;
-        const same = k.sha256 ? k.sha256 === mine.get(k.id).sha256 : k.file === file;
+        const same = k.sha256 ? k.sha256 === mine.get(k.id).sha256 : k.file === file, mark = {};
         // A card from before 2026-10-10 has no hash: it takes this one when it was made from this very file.
-        if (same && (k.staleSince || !k.sha256)) marks.push({ id: k.id, sha256: mine.get(k.id).sha256, staleSince: 0 });
-        if (!same && !k.staleSince) marks.push({ id: k.id, staleSince: now });
+        if (same && (k.staleSince || !k.sha256)) Object.assign(mark, { sha256: mine.get(k.id).sha256, staleSince: 0 });
+        if (!same && !k.staleSince) mark.staleSince = now;
+        // Whoever reads the notebook reads the cards made from it.
+        if (!!k.public !== !!head.public) mark.public = !!head.public;
+        if (Object.keys(mark).length) marks.push({ id: k.id, ...mark });
         if (!same) stale++;
       }
       if (marks.length) await known(marks);
@@ -174,12 +184,13 @@ libraryApp = {
     return c.json({ name, title, sha256, size: next.size, public: next.public, savedAt, versions: next.versions.length, ...(await enter(name, html, next, false)) });
   });
   app.post(NS + "index", async (c) => {
-    const { name, rebuild } = await c.req.json().catch(() => ({}));
+    const { name, rebuild, modules } = await c.req.json().catch(() => ({}));
     const head = okName(name) ? await rows.get("n/" + name) : null;
     if (!head) return fail(c, 404, "NotFound", String(name));
+    if (modules != null && !(Array.isArray(modules) && modules.length >= 1 && modules.length <= 100 && modules.every((m) => typeof m === "string" && /^@[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(m)))) return fail(c, 400, "InvalidRequest", "modules: 1 to 100 names, @user/name");
     const file = await xrpc.fetch(STATIC + "get", { params: { path: fileOf(name, head.sha256) } });
     if (!file.ok) return fail(c, 502, "UpstreamFailed", `static.get answered ${file.status}`);
-    return c.json({ name, ...(await enter(name, await file.text(), head, rebuild !== false)) });
+    return c.json({ name, ...(await enter(name, await file.text(), head, rebuild !== false, modules ? new Set(modules.map(libraryCardId)) : null)) });
   });
   app.get(NS + "list", async (c) => {
     const all = (await rows.list("n/")).map(({ key, value }) => ({ name: key.slice(2), title: value.title, sha256: value.sha256, size: value.size, public: value.public, savedAt: value.savedAt, versions: value.versions.length }));
@@ -193,16 +204,35 @@ libraryApp = {
     const { name, public: open } = await c.req.json().catch(() => ({}));
     const head = okName(name) ? await rows.get("n/" + name) : null;
     if (!head) return fail(c, 404, "NotFound", String(name));
-    await rows.put("n/" + name, { ...head, public: !!open });
-    return c.json({ name, public: !!open });
+    // The file first: its cards are set to the notebook's reader, as a put would set them.
+    const file = await xrpc.fetch(STATIC + "get", { params: { path: fileOf(name, head.sha256) } });
+    if (!file.ok) return fail(c, 502, "UpstreamFailed", `static.get answered ${file.status}`);
+    const next = { ...head, public: !!open };
+    await rows.put("n/" + name, next);
+    return c.json({ name, public: !!open, ...(await enter(name, await file.text(), next, false)) });
   });
   app.post(NS + "delete", async (c) => {
-    const { name } = await c.req.json().catch(() => ({}));
+    const { name, sha256: one } = await c.req.json().catch(() => ({}));
     const head = okName(name) ? await rows.get("n/" + name) : null;
     if (!head) return c.json({ deleted: false });
+    // One kept version that is not the newest: its file goes, the notebook and its cards stay.
+    if (one != null) {
+      if (one === head.sha256 || !head.versions.some((v) => v.sha256 === one)) return fail(c, 400, "InvalidRequest", "sha256: a kept version that is not the newest");
+      await drop(name, one);
+      await rows.put("n/" + name, { ...head, versions: head.versions.filter((v) => v.sha256 !== one) });
+      return c.json({ deleted: true, versions: 1, cards: 0 });
+    }
+    // The cards made from it go with it: their address would answer 404.
+    const file = await xrpc.fetch(STATIC + "get", { params: { path: fileOf(name, head.sha256) } });
+    const ids = file.ok ? (await libraryCards(await file.text(), { name, file: "", host: config.host })).map((card) => card.id) : [];
+    let cards = 0;
+    for (let i = 0; i < ids.length; i += 100) {
+      const r = await xrpc.fetch("com.lopecode.brain.knowledge.delete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: ids.slice(i, i + 100), url: `https://${config.host}/library/${name}` }) }).catch(() => null);
+      cards += (r && r.ok && (await r.json().catch(() => null)) || { deleted: 0 }).deleted;
+    }
     for (const v of head.versions) await drop(name, v.sha256);
     await rows.delete("n/" + name);
-    return c.json({ deleted: true, versions: head.versions.length });
+    return c.json({ deleted: true, versions: head.versions.length, cards });
   });
   app.get("/library/:name{.+}", async (c) => {
     const name = c.req.param("name");
@@ -303,8 +333,8 @@ libraryRig = async () => {
     const ids = [], kept = [];
     for (const { ifAbsent, unlessPublic, ...e } of sent) {
       const was = kb.get(e.id);
-      if (unlessPublic && was && was.public) continue;
-      if (ifAbsent && was) { kept.push({ id: was.id, url: was.url, file: was.file, sha256: was.sha256 || null, staleSince: was.staleSince || null, public: !!was.public }); continue; }
+      if (ifAbsent && was) kept.push({ id: was.id, url: was.url, file: was.file, sha256: was.sha256 || null, staleSince: was.staleSince || null, public: !!was.public });
+      if ((unlessPublic && was && was.public) || (ifAbsent && was)) continue;
       kb.set(e.id, { ...was, ...e, staleSince: e.staleSince == null ? (was && was.staleSince) || null : e.staleSince || null });
       ids.push(e.id);
     }
@@ -317,6 +347,8 @@ libraryRig = async () => {
       asked.push(url.pathname.split(".").pop() + " " + (url.searchParams.get("path") || ""));
       // knowledge.put as the core passes it on: the cards are kept for the test to read.
       if (url.pathname.endsWith("knowledge.put")) return state.down ? new Response("{}", { status: 503 }) : knowledge((await request.json()).entries);
+      // knowledge.delete with url: only the entries made from that address.
+      if (url.pathname.endsWith("knowledge.delete")) return (({ ids, url: from }) => Response.json({ deleted: ids.filter((id) => kb.has(id) && kb.get(id).url === from && kb.delete(id)).length }))(await request.json());
       return stat.fetch("https://static.internal" + url.pathname + url.search, {
         method: request.method,
         headers: { "content-type": request.headers.get("content-type") || "", "x-brain-caller": "worker:brain-x-library" },
@@ -357,7 +389,7 @@ test_library_public_list_and_versions = {
   await rig.put("owner", "private", libraryNotebook("p", "Private"));
   const list = async (who) => (await (await rig.call(who, rig.X + "list")).json()).notebooks.map((n) => n.name + (n.public ? " public" : ""));
   expect(await list("anonymous")).toEqual([]);
-  expect(await (await rig.post("owner", "setPublic", { name: "notes", public: true })).json()).toEqual({ name: "notes", public: true });
+  expect(await (await rig.post("owner", "setPublic", { name: "notes", public: true })).json()).toEqual({ name: "notes", public: true, cards: 0, stale: 0 });
   expect(await list("anonymous")).toEqual(["notes public"]);
   expect(await list("owner")).toEqual(["notes public", "private"]);
   // A person granted library.list is anyone here: the public ones, and no notebook that is not.
@@ -373,7 +405,10 @@ test_library_public_list_and_versions = {
   expect((await rig.call("anonymous", "/library/notes?v=" + "0".repeat(64))).status).toBe(404);
   expect((await (await rig.call("owner", rig.X + "versions?name=notes")).json()).versions.map((v) => v.sha256)).toEqual([v2.sha256, v1.sha256]);
   // Deleting removes every version's file.
-  expect(await (await rig.post("owner", "delete", { name: "notes" })).json()).toEqual({ deleted: true, versions: 2 });
+  // One version that is not the newest goes alone; the newest does not.
+  expect([(await rig.post("owner", "delete", { name: "notes", sha256: v2.sha256 })).status, await (await rig.post("owner", "delete", { name: "notes", sha256: v1.sha256 })).json(), (await rig.call("anonymous", "/library/notes?v=" + v1.sha256)).status, (await rig.call("anonymous", "/library/notes")).status]).toEqual([400, { deleted: true, versions: 1, cards: 0 }, 404, 200]);
+  await rig.put("owner", "notes", one, "&parent=" + v2.sha256);
+  expect(await (await rig.post("owner", "delete", { name: "notes" })).json()).toEqual({ deleted: true, versions: 2, cards: 0 });
   expect([...rig.stat.blobs.keys()].length).toBe(1);
   expect((await rig.call("anonymous", "/library/notes")).status).toBe(404);
   return "2 versions, 1 conflict, 2 files deleted";
@@ -398,9 +433,12 @@ test_library_enters_a_card_for_each_module = {
   expect(rig.cards[0]).toEqual({ id: "module:fx:boxes", kind: "module", title: "@fx/Boxes: Leased boxes", text: "Run code in a `linux` box.\nCells: boxPanel, size\nImports: @fx/iac", url: "https://brain.example/library/fx", source: "library", file: "library/fx/" + made.sha256.slice(0, 16) + ".html", sha256: await sha256(boxes.slice(boxes.indexOf(">") + 1, boxes.lastIndexOf("</scr"))), method: "library.put", unlessPublic: true, ifAbsent: true });
   expect(rig.cards[1]).toMatchObject({ id: "module:fx:plain", title: "@fx/plain", text: "No heading here.\nCells: draw" });
   // The cards of a public notebook are public; index enters them again from the kept file.
+  // Made public, the two cards are made public: asked for with ifAbsent, then one put of { id, public } each.
   await rig.post("owner", "setPublic", { name: "fx", public: true });
+  expect(rig.cards.slice(4)).toEqual([{ id: "module:fx:boxes", public: true }, { id: "module:fx:plain", public: true }]);
+  const at = rig.cards.length;
   expect(await (await rig.post("owner", "index", { name: "fx" })).json()).toEqual({ name: "fx", cards: 2, stale: 0 });
-  expect([rig.cards.length, rig.cards[2].public, rig.cards[3].public, "unlessPublic" in rig.cards[2], "ifAbsent" in rig.cards[2]]).toEqual([4, true, true, false, false]);
+  expect([rig.cards.length - at, rig.cards[at].public, rig.cards[at + 1].public, "unlessPublic" in rig.cards[at], "ifAbsent" in rig.cards[at]]).toEqual([2, true, true, false, false]);
   // knowledge.put refuses: the notebook is kept, and the answer says no card was entered.
   rig.state.down = true;
   const again = await (await rig.put("owner", "fx", libraryNotebook(boxes, "Again"))).json();
@@ -448,6 +486,40 @@ test_library_says_when_a_card_no_longer_matches_its_notebook = {
   return "stale, same date, fresh, rebuilt, taken over";
 }
 // %%
+test_library_cards_follow_their_notebook = {
+  const rig = await libraryRig();
+  const mod = (id, prose) => libraryModule(id, 'const _a = function _a(md) {return (md`# ' + id + '\n\n' + prose + '`)};\nexport default function define(runtime, observer) {\n  $def("_a", null, ["md"], _a);\n}');
+  const card = (id) => rig.kb.get("module:fx:" + id);
+  const index = async (input) => (({ cards, stale }) => [cards, stale])(await (await rig.post("owner", "index", input)).json());
+  // Two notebooks that each have the other's module: one name of modules gives each its own card.
+  await rig.put("owner", "a", libraryNotebook(mod("@fx/a", "a at home") + mod("@fx/b", "b as a has it")), "&public=true");
+  await rig.put("owner", "b", libraryNotebook(mod("@fx/b", "b at home") + mod("@fx/a", "a as b has it")), "&public=true");
+  expect([card("a").text, card("b").text]).toEqual(["a at home", "b as a has it"]);
+  expect([await index({ name: "b", modules: ["@fx/b", "@fx/none"] }), card("a").url, card("b").url, card("b").text]).toEqual([[1, 0], "https://brain.example/library/a", "https://brain.example/library/b", "b at home"]);
+  for (const modules of [[], "@fx/b", ["fx/b"], Array.from({ length: 101 }, () => "@fx/b")]) expect((await rig.post("owner", "index", { name: "b", modules })).status).toBe(400);
+  // A notebook with one name twice has the card of its first block, and that card is not marked by the second.
+  expect((({ cards, stale }) => [cards, stale])(await (await rig.put("owner", "twice", libraryNotebook(mod("@fx/c", "first") + mod("@fx/c", "second")))).json())).toEqual([1, 0]);
+  expect(card("c").text).toBe("first");
+  // Made private: the cards made from it are the Brain's, the other notebook's card stays public.
+  expect(await (await rig.post("owner", "setPublic", { name: "a", public: false })).json()).toEqual({ name: "a", public: false, cards: 0, stale: 0 });
+  expect([card("a").public, card("b").public]).toEqual([false, true]);
+  // A change to it while private marks its card; a public card of another notebook is left.
+  expect((({ cards, stale }) => [cards, stale])(await (await rig.put("owner", "a", libraryNotebook(mod("@fx/a", "a, changed") + mod("@fx/b", "b, changed in a")))).json())).toEqual([0, 1]);
+  expect([card("a").staleSince > 1e12, card("a").text, card("b").staleSince || null, card("b").text]).toEqual([true, "a at home", null, "b at home"]);
+  // A card that is public while its notebook is not (the owner's own put): the put still marks it, and takes it back.
+  await rig.post("owner", "index", { name: "a" });
+  card("a").public = true;
+  expect((({ cards, stale }) => [cards, stale])(await (await rig.put("owner", "a", libraryNotebook(mod("@fx/a", "a, changed again")))).json())).toEqual([0, 1]);
+  expect([card("a").public, card("a").staleSince > 1e12]).toEqual([false, true]);
+  // Public again, and the cards with it.
+  await rig.post("owner", "setPublic", { name: "a", public: true });
+  expect(card("a").public).toBe(true);
+  // Deleted: the cards made from it go, the other notebook's stay.
+  expect(await (await rig.post("owner", "delete", { name: "a" })).json()).toMatchObject({ deleted: true, cards: 1 });
+  expect([rig.kb.has("module:fx:a"), rig.kb.has("module:fx:b")]).toEqual([false, true]);
+  return "one card moved, private with its notebook, deleted with it";
+}
+// %%
 test_library_keeps_ten_versions = {
   const rig = await libraryRig();
   for (let i = 0; i < 12; i++) await rig.put("owner", "notes", libraryNotebook("save " + i));
@@ -463,7 +535,7 @@ test_library_declares_what_it_needs = {
   const { meta } = await library_service.emit();
   expect(meta).toMatchObject({
     worker: "brain-x-library", role: "recipe", module: "@tomlarkworthy/brain-library", resources: ["rows", "xrpc"], secrets: [],
-    calls: ["com.lopecode.brain.knowledge.put", "com.lopecode.brain.static.delete", "com.lopecode.brain.static.get", "com.lopecode.brain.static.put"],
+    calls: ["com.lopecode.brain.knowledge.delete", "com.lopecode.brain.knowledge.put", "com.lopecode.brain.static.delete", "com.lopecode.brain.static.get", "com.lopecode.brain.static.put"],
     paths: [{ path: "/library/*", who: "anyone" }]
   });
   expect(meta.access["com.lopecode.brain.library.put"]).toMatchObject({ allow: "caller.session", fixed: true });

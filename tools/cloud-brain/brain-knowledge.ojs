@@ -18,7 +18,7 @@ md`## Methods
 | \`knowledge.search\` | query. \`?q=\` and the filters below, \`limit\` 1 to ${knowledgeLimits.page} (20). \`{ entries }\`, best match first, each with a \`snippet\`. With \`semantic=true\`: by meaning (see Search by meaning). |
 | \`knowledge.embed\` | procedure. \`{ limit }\`, 1 to ${knowledgeLimits.batch} (50). Makes the vectors of entries that have none, the last entered first. \`{ embedded, left }\`. |
 | \`knowledge.list\` | query. The filters below, \`limit\` 1 to ${knowledgeLimits.page} (50), \`cursor\`. \`{ entries, cursor }\`, last entered first. With \`stale=true\`: the entries that have a \`staleSince\`, the longest stale first, one page and no cursor. |
-| \`knowledge.delete\` | procedure. \`{ id }\` or \`{ ids }\`. \`{ deleted }\`. |
+| \`knowledge.delete\` | procedure. \`{ id }\` or \`{ ids }\`. \`{ deleted }\`. With \`url\`, only those of the ids whose \`url\` is that one: a writer deletes what was made from an address and leaves an entry that has since been made from another. |
 | \`knowledge.stats\` | query. \`{ entries, vectors, kinds, sources, by, limits }\`: counts of every entry, whoever reads it; \`sources\` and \`by\` of the 100 largest; \`knowledgeLimits\`. |
 | Filters | \`source\`, \`kind\`, \`by\`, \`tag\`, and \`since\`, compared with \`at\`: milliseconds, or a date from \`YYYY-MM\` on. Four digits alone are refused, since they could be either. |
 | Storage | \`database\`: \`entries\` and its full-text index \`entries_fts\`. \`vectors\`: the index \`${knowledgeVectors.name}\`, one vector an entry. |
@@ -42,9 +42,10 @@ md`## Methods
 | \`tags\` | \`a-z 0-9 -\`, ${knowledgeLimits.source} characters each, ${knowledgeLimits.tags} at most |
 | \`by\`, \`at\` | who entered it and when. Set here from the caller the core names (\`owner\`, \`token:NAME\`, \`worker:brain-x-NAME\`, a DID); a value in the body is not read. |
 | \`staleSince\` | \`null\`, or when what the entry was made from was first seen to differ from it, in milliseconds. Whoever enters the entry sets it; a put of \`{ id, staleSince: 0 }\` clears it. Nothing here looks at a source. An entry that has one is still found and answered, with the date. |
-| \`changed\` | \`null\`, or \`{ by, method, at }\` of the last put after the first. Its \`method\` is the one that put gave, \`null\` when it gave none. |
+| \`changed\` | \`null\`, or \`{ by, method, at }\` of the last put after the first, whatever it changed: a put of \`staleSince\` or of a \`sha256\` alone counts. Its \`method\` is the one that put gave, \`null\` when it gave none. |
+| \`wordsAt\` | when the title or the text was last written, in milliseconds. \`changed.at\` does not say that: every one of the 400 module cards on cb4 had a \`changed.at\` of 2026-10-10 08:30 to 08:33 UTC after a pass that gave each its hash and wrote no word. For an entry whose words were last written before 2026-10-10 11:02 CEST it is when the entry was first entered. |
 
-With \`unlessPublic: true\`, an entry whose kept copy is public is left as it is and counted in the answer's \`skipped\`; \`brain-x-library\` sends it with the cards of a notebook that is not public, so that a card anyone reads is not written over from a file they cannot open.
+With \`unlessPublic: true\`, an entry whose kept copy is public is left as it is and counted in the answer's \`skipped\` (and is in \`kept\` too when the entry has \`ifAbsent\`); \`brain-x-library\` sends it with the cards of a notebook that is not public, so that a card anyone reads is not written over from a file they cannot open.
 
 With \`ifAbsent: true\`, an entry that is kept is left whole, whoever reads it, and the answer's \`kept\` has its \`{ id, url, file, sha256, staleSince, public }\`: what a writer needs to tell whether its source has moved on, without writing the entry again (added 2026-10-10 for the module cards, see brain-library).
 
@@ -57,7 +58,7 @@ await client.query("knowledge.search", { q: "hindsight training", kind: "paper" 
 // %%
 md`## Who can call
 
-Until the owner changes a rule: the owner and their tokens call every method. \`knowledge.put\` is also open to \`brain-x-snapshot\`, which enters the day's papers, and \`brain-x-library\`, which enters a card for each module of a kept notebook. Another Worker that enters what it finds needs a rule on \`knowledge.put\` that names it. No method is open to anyone else until the owner grants it or changes its rule.
+Until the owner changes a rule: the owner and their tokens call every method. \`knowledge.put\` is also open to \`brain-x-snapshot\`, which enters the day's papers, and \`brain-x-library\`, which enters a card for each module of a kept notebook. \`knowledge.delete\` is open to \`brain-x-library\`, which deletes the cards of a notebook it deletes (since 2026-10-10). Another Worker that enters what it finds needs a rule on \`knowledge.put\` that names it. No method is open to anyone else until the owner grants it or changes its rule.
 
 ## Who reads an entry
 
@@ -100,7 +101,8 @@ knowledge_service = cloudflare.Service("knowledge", knowledgeApp, {
     "com.lopecode.brain.knowledge.get": { type: "query", who: "owner" },
     "com.lopecode.brain.knowledge.search": { type: "query", who: "owner" },
     "com.lopecode.brain.knowledge.list": { type: "query", who: "owner" },
-    "com.lopecode.brain.knowledge.delete": { type: "procedure", who: "owner" },
+    // The library deletes the cards of a notebook that is deleted.
+    "com.lopecode.brain.knowledge.delete": { type: "procedure", allow: 'caller.trusted || caller.worker == "brain-x-library"' },
     "com.lopecode.brain.knowledge.stats": { type: "query", who: "owner" },
     "com.lopecode.brain.knowledge.embed": { type: "procedure", who: "owner" }
   },
@@ -114,7 +116,7 @@ knowledge_announce = {
 }
 // %%
 // The kinds the panel offers. A kind is any name: a new source of entries needs no change here.
-knowledgeKinds = ["paper", "article", "post", "finding", "note", "module", "other"]
+knowledgeKinds = ["paper", "article", "post", "finding", "note", "module", "doc", "other"]
 // %%
 // The one model every vector is from, and the index they are in. Another model is another index name: vectors of two
 // models cannot be compared. chars: what of an entry is embedded, title first (the model reads 512 tokens). usd: what
@@ -146,11 +148,13 @@ knowledgeColumns = [
   ["vid", "ALTER TABLE entries ADD COLUMN vid TEXT"],
   ["vid", "CREATE INDEX IF NOT EXISTS entries_vid ON entries (vid)"],
   // When what the entry was made from was first seen to differ from it. null: not known to differ.
-  ["stale_at", "ALTER TABLE entries ADD COLUMN stale_at INTEGER"]
+  ["stale_at", "ALTER TABLE entries ADD COLUMN stale_at INTEGER"],
+  // When the title or the text was last written. null: not since the column was added (2026-10-10).
+  ["words_at", "ALTER TABLE entries ADD COLUMN words_at INTEGER"]
 ]
 // %%
 knowledgeSql = {
-  const COLS = "e.id AS id, e.kind AS kind, e.title AS title, e.text AS text, e.url AS url, e.source AS source, e.published AS published, e.file AS file, e.sha256 AS sha256, e.entered_by AS entered_by, e.method AS method, e.at AS at, e.upd_by AS upd_by, e.upd_method AS upd_method, e.upd_at AS upd_at, e.cites AS cites, e.tags AS tags, e.owner AS owner, e.vid AS vid, e.stale_at AS stale_at";
+  const COLS = "e.id AS id, e.kind AS kind, e.title AS title, e.text AS text, e.url AS url, e.source AS source, e.published AS published, e.file AS file, e.sha256 AS sha256, e.entered_by AS entered_by, e.method AS method, e.at AS at, e.upd_by AS upd_by, e.upd_method AS upd_method, e.upd_at AS upd_at, e.cites AS cites, e.tags AS tags, e.owner AS owner, e.vid AS vid, e.stale_at AS stale_at, e.words_at AS words_at";
   // ?1 source, ?2 kind, ?3 who entered it, ?4 since, ?5 a LIKE pattern for one tag. An empty text is no filter.
   // ?6 is the caller (knowledgeTenant): an entry is read when it is public or the caller's.
   const MINE = "(e.owner = 'public' OR e.owner = ?6)";
@@ -159,7 +163,8 @@ knowledgeSql = {
     get: `SELECT ${COLS} FROM entries e WHERE e.id = ?1`,
     // A put of a kept id leaves entered_by, method and at as they were. ?15 is the method this put gave, null when none.
     // ?16 owner. ?17 the vector the entry keeps: null when what the vector is made from has changed. ?18 stale since.
-    put: "INSERT INTO entries (id, kind, title, text, url, source, published, file, sha256, entered_by, method, at, cites, tags, owner, vid, stale_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?16, ?17, ?18) ON CONFLICT (id) DO UPDATE SET stale_at = excluded.stale_at, kind = excluded.kind, title = excluded.title, text = excluded.text, url = excluded.url, source = excluded.source, published = excluded.published, file = excluded.file, sha256 = excluded.sha256, cites = excluded.cites, tags = excluded.tags, owner = excluded.owner, vid = excluded.vid, upd_by = excluded.entered_by, upd_method = ?15, upd_at = excluded.at",
+    // ?19 when the title or the text was last written.
+    put: "INSERT INTO entries (id, kind, title, text, url, source, published, file, sha256, entered_by, method, at, cites, tags, owner, vid, stale_at, words_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?16, ?17, ?18, ?19) ON CONFLICT (id) DO UPDATE SET stale_at = excluded.stale_at, words_at = excluded.words_at, kind = excluded.kind, title = excluded.title, text = excluded.text, url = excluded.url, source = excluded.source, published = excluded.published, file = excluded.file, sha256 = excluded.sha256, cites = excluded.cites, tags = excluded.tags, owner = excluded.owner, vid = excluded.vid, upd_by = excluded.entered_by, upd_method = ?15, upd_at = excluded.at",
     columns: "SELECT name FROM pragma_table_info('entries')",
     vector: "UPDATE entries SET vid = ?2 WHERE id = ?1",
     // The entries of the vectors a query found, by vector id, and again only those the caller reads.
@@ -256,7 +261,7 @@ knowledgeApp = {
   const json = (t) => { try { return JSON.parse(t); } catch { return []; } };
   const view = (r) => ({
     id: r.id, kind: r.kind, title: r.title, text: r.text, url: r.url, source: r.source, published: r.published, file: r.file, sha256: r.sha256,
-    by: r.entered_by, method: r.method, at: r.at, changed: r.upd_at ? { by: r.upd_by, method: r.upd_method, at: r.upd_at } : null, cites: json(r.cites), tags: json(r.tags), public: r.owner === "public", staleSince: r.stale_at || null,
+    by: r.entered_by, method: r.method, at: r.at, changed: r.upd_at ? { by: r.upd_by, method: r.upd_method, at: r.upd_at } : null, cites: json(r.cites), tags: json(r.tags), public: r.owner === "public", staleSince: r.stale_at || null, wordsAt: r.words_at || r.at,
     ...(r.snippet !== undefined ? { snippet: r.snippet } : {})
   });
   // The core named the caller. Nothing in a body or a query says who calls.
@@ -329,20 +334,25 @@ knowledgeApp = {
       // The same id twice in one call: the second is a change of the first.
       const kept = seen.get(first[i]) || was.get(first[i]) || null, old = rows.get(first[i]);
       // unlessPublic: what anyone reads is not written over by a copy that not everyone may read.
+      // ifAbsent: an entry that is kept is left whole, and the answer says what it was made from. That holds for one
+      // unlessPublic leaves too: its writer still has to see that its source has moved on.
+      const whole = e.ifAbsent === true && kept ? { id: kept.id, url: kept.url, file: kept.file, sha256: kept.sha256, staleSince: kept.staleSince, public: kept.public } : null;
+      if (whole) left.push(whole);
       if (e.unlessPublic === true && kept && kept.public) { skipped++; continue; }
-      // ifAbsent: an entry that is kept is left whole, and the answer says what it was made from.
-      if (e.ifAbsent === true && kept) { left.push({ id: kept.id, url: kept.url, file: kept.file, sha256: kept.sha256, staleSince: kept.staleSince, public: kept.public }); continue; }
+      if (whole) continue;
       const r = await knowledgeEntry({ ...e, id: first[i] }, kept);
       if (r.error) return fail(c, 400, "InvalidRequest", `entry ${i + 1}: ${r.error}`);
       // A private entry is its first enterer's.
       const owner = r.entry.public ? "public" : await knowledgeTenant(old ? old.entered_by : by);
       // The vector is kept while what it was made from, and who reads it, are the same.
       const vid = old && old.vid && !seen.has(first[i]) && old.title === r.entry.title && old.text === r.entry.text && old.kind === r.entry.kind && old.owner === owner ? old.vid : null;
+      // The words are as old as their last writing: a mark, a tag or a hash does not make them newer.
+      const wordsAt = old && !seen.has(first[i]) && old.title === r.entry.title && old.text === r.entry.text ? old.words_at || old.at : now;
       seen.set(first[i], r.entry);
       // said: the method this put gave. A change that gives none is recorded with none, not with the first enterer's.
-      entries.push({ ...r.entry, said: e.method == null || e.method === "" ? null : r.entry.method, owner, vid, at: old ? old.at : now });
+      entries.push({ ...r.entry, said: e.method == null || e.method === "" ? null : r.entry.method, owner, vid, wordsAt, at: old ? old.at : now });
     }
-    const row = (e) => [S.put, e.id, e.kind, e.title, e.text, e.url, e.source, e.published, e.file, e.sha256, by, e.method, now, JSON.stringify(e.cites), JSON.stringify(e.tags), e.said, e.owner, e.vid, e.staleSince];
+    const row = (e) => [S.put, e.id, e.kind, e.title, e.text, e.url, e.source, e.published, e.file, e.sha256, by, e.method, now, JSON.stringify(e.cites), JSON.stringify(e.tags), e.said, e.owner, e.vid, e.staleSince, e.wordsAt];
     // One transaction for each 20 entries: the full-text row goes, the entry is written, its full-text row is made again.
     for (let i = 0; i < entries.length; i += 20) await run(entries.slice(i, i + 20).flatMap((e) => [[S.ftsDrop, e.id], row(e), [S.ftsAdd, e.id]]));
     const ids = [...new Set(entries.map((e) => e.id))], changed = ids.filter((id) => was.has(id)).length;
@@ -391,7 +401,8 @@ knowledgeApp = {
     const ids = Array.isArray(b.ids) ? b.ids : typeof b.id === "string" ? [b.id] : null;
     if (!ids || !ids.length || ids.length > L.batch || !ids.every((id) => typeof id === "string" && id.length <= L.id)) return fail(c, 400, "InvalidRequest", `id, or ids of 1 to ${L.batch}`);
     const tenant = await tenantOf(c), mine = [];
-    for (const r of await run([...new Set(ids)].map((id) => [S.get, id]))) if (r.rows[0] && (await changes(r.rows[0], tenant))) mine.push(r.rows[0]);
+    // url: only what was made from that address.
+    for (const r of await run([...new Set(ids)].map((id) => [S.get, id]))) if (r.rows[0] && (b.url == null || r.rows[0].url === b.url) && (await changes(r.rows[0], tenant))) mine.push(r.rows[0]);
     if (!mine.length) return c.json({ deleted: 0 });
     // The vectors first. One that stays behind is found by no search: a search answers with entries.
     const vids = mine.filter((r) => r.vid).map((r) => r.vid);
@@ -464,11 +475,11 @@ knowledgeFakeSql = () => {
     seen.push(statement);
     if (knowledgeSchema.includes(statement) || knowledgeColumns.some(([, s]) => s === statement)) return { rows: [], changes: 0 };
     // A table from before 2026-10-10: it has neither column, and both are added.
-    if (statement === S.columns) return { rows: seen.some((s) => s === knowledgeColumns[0][1]) ? [{ name: "owner" }, { name: "vid" }, { name: "stale_at" }] : [], changes: 0 };
+    if (statement === S.columns) return { rows: seen.some((s) => s === knowledgeColumns[0][1]) ? [{ name: "owner" }, { name: "vid" }, { name: "stale_at" }, { name: "words_at" }] : [], changes: 0 };
     if (statement === S.get) return { rows: entries.has(a[0]) ? [cols(entries.get(a[0]))] : [], changes: 0 };
     if (statement === S.put) {
-      const [id, kind, title, text, url, source, published, file, sha256, by, method, at, cites, tags, said, owner, vid, stale_at] = a, was = entries.get(id);
-      entries.set(id, was ? { ...was, kind, title, text, url, source, published, file, sha256, cites, tags, owner, vid, stale_at, upd_by: by, upd_method: said, upd_at: at } : { n: ++n, id, kind, title, text, url, source, published, file, sha256, entered_by: by, method, at, upd_by: null, upd_method: null, upd_at: null, cites, tags, owner, vid, stale_at });
+      const [id, kind, title, text, url, source, published, file, sha256, by, method, at, cites, tags, said, owner, vid, stale_at, words_at] = a, was = entries.get(id);
+      entries.set(id, was ? { ...was, kind, title, text, url, source, published, file, sha256, cites, tags, owner, vid, stale_at, words_at, upd_by: by, upd_method: said, upd_at: at } : { n: ++n, id, kind, title, text, url, source, published, file, sha256, entered_by: by, method, at, upd_by: null, upd_method: null, upd_at: null, cites, tags, owner, vid, stale_at, words_at });
       return { rows: [], changes: 1 };
     }
     if (statement === S.ftsDrop) return { rows: [], changes: entries.has(a[0]) && fts.delete(entries.get(a[0]).n) ? 3 : 0 };
@@ -645,6 +656,17 @@ test_knowledge_says_since_when_an_entry_differs_from_its_source = {
   // 0 says it is as its source again.
   await o.post("put", { id: "arxiv:2", staleSince: 0 });
   expect(await stale()).toEqual([["arxiv:1", 5000]]);
+  // A mark is a put, so changed.at moves with it; the words are as old as they were.
+  const marked = (await o.get("get", { id: "arxiv:1" })).data;
+  expect([marked.wordsAt, marked.changed.at > marked.wordsAt || marked.changed.at === marked.at]).toEqual([marked.at, true]);
+  await new Promise((r) => setTimeout(r, 3));
+  await o.post("put", { id: "arxiv:1", text: "other words" });
+  expect((await o.get("get", { id: "arxiv:1" })).data.wordsAt).toBeGreaterThan(marked.wordsAt);
+  // unlessPublic leaves a public entry, and with ifAbsent still says what it was made from.
+  await o.post("put", { id: "arxiv:2", public: true });
+  expect((await o.post("put", { ...rig.paper(2), title: "Private copy", unlessPublic: true, ifAbsent: true })).data).toMatchObject({ entered: 0, ids: [], skipped: 1, kept: [{ id: "arxiv:2", public: true }] });
+  // A delete with url takes only what was made from that address.
+  expect([(await o.post("delete", { ids: ["arxiv:1", "arxiv:2"], url: "https://arxiv.org/abs/2" })).data, (await o.get("get", { id: "arxiv:1" })).status]).toEqual([{ deleted: 1 }, 200]);
   expect([(await o.post("put", { id: "arxiv:1", staleSince: -1 })).status, (await o.get("list", { stale: "true", cursor: "1::a" })).status, (await rig.member.get("list", { stale: "true" })).data.entries]).toEqual([400, 400, []]);
   return "kept whole, 2 stale, 1 cleared";
 }
@@ -724,7 +746,8 @@ test_knowledge_declares_its_own_database_and_who_calls = {
   const callers = { owner: { caller: "owner", via: "session" }, token: { caller: "token:laptop" }, snapshot: { caller: "worker:brain-x-snapshot" }, library: { caller: "worker:brain-x-library" }, worker: { caller: "worker:brain-x-filler" }, member: { caller: "worker:brain-m-0123456789-a" }, anyone: { caller: "anonymous" } };
   const through = (m) => Object.entries(callers).filter(([, w]) => decide(meta.access["com.lopecode.brain.knowledge." + m], { caller: callerOf(w), request: { method: m, path: "", verb: "POST", params: {} } }).allow).map(([n]) => n).join(" ");
   expect(through("put")).toBe("owner token snapshot library");
-  for (const m of ["get", "search", "list", "delete", "stats", "embed"]) expect([m, through(m)]).toEqual([m, "owner token"]);
+  expect(through("delete")).toBe("owner token library");
+  for (const m of ["get", "search", "list", "stats", "embed"]) expect([m, through(m)]).toEqual([m, "owner token"]);
   return "put: " + through("put");
 }
 // %%

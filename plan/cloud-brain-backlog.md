@@ -754,13 +754,13 @@ Built and on cb4: stored settings read through `config` (`config.set`, `config.g
 - Done 2026-10-10 10:51 CEST: Tom said the two repos are all public. 237 of 240 library notebooks are public (the file kept is the blob at `origin/main`), 399 of 400 module cards (`tools/cloud-brain/library-homes.ts`).
 - Done 2026-10-10 10:37 CEST: a put does not write a kept card; the card says since when its notebook's copy differs (`staleSince`, `knowledge.list?kind=module&stale=true`), and `library.index` writes it. 400 cards have a hash, 0 stale.
 - Done 2026-10-10 10:51 CEST: 279 of 279 cards with a declared home are there (66 of 66 lopecode homes). 224 `library.index` calls placed 343; two homes that hold each other's module cannot both be indexed last, so the owner put the other 55 with `knowledge.put`.
-- Open: `library.index` takes a notebook, not a module. A `modules` list would place a card without the script's second step. Nothing runs `library-homes.ts` after a push.
-- Open: `quick_start` was public in the library with a file lopecode has not pushed (the checkout is 2 commits ahead). It is the pushed blob now; the unpushed one is still a kept version. Tom: push lopecode, or delete and put the notebook again.
+- Done 2026-10-10 11:06 CEST: `library.index { name, modules }` writes the named modules' cards; `library-homes.ts` uses it (224 calls, 398 cards, all 400 last written by the library). Open: nothing runs `library-homes.ts` after a push.
+- Open: `quick_start` was public in the library with a file lopecode has not pushed (the checkout is 2 commits ahead). It is the pushed blob now, and the unpushed version was deleted 2026-10-10 11:06 CEST with `library.delete { name, sha256 }`. lopecode is still 2 commits ahead; Tom to push.
 - Open: `research-2026-10-09` is public in the library and in neither repo. Tom to say whether digests stay public.
 - Open: how many other notebooks hold a copy that differs from a card is not counted.
-- Open: a card whose notebook is deleted is never marked stale.
+- Done 2026-10-10 11:02 CEST: `library.delete` deletes the cards made from the notebook's newest version. Open: a module another notebook has is then without a card until that notebook is put or indexed; a card of a module only an older version had stays.
 - Open: nothing puts a changed notebook again; the backfill script is run by hand. A put now marks cards and does not write them, so a run of the script shows what is stale.
-- Open: `library.setPublic` and `library.delete` leave the cards. A card made public stays public until a put of `{ id, public: false }`.
+- Done 2026-10-10 11:02 CEST: a card is read by whoever reads the notebook it was made from; `library.setPublic` and a put set it. A private notebook's put now marks a public card made from it (`knowledge.put` answers it in `kept`). `wordsAt` says when an entry's words were written; `changed.at` is the last put of anything. For rows from before, `wordsAt` is the first entry, up to 40 minutes early for 343 cards.
 - Open: whether a member may enter (`knowledge.put` has no rule for one). Tom has not decided.
 - Open: who is charged when a Worker enters on its clock; not seen. On 2026-10-10 every embedding was charged to the account the call began with: the owner $0.01175 for 235 texts by 07:57 UTC, a member $0.00005 for each search by meaning.
 - Open: nothing says a write is not yet searchable (41 to 63 s on cb4; 118 to 134 s after the 238-notebook backfill).

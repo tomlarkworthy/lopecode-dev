@@ -4,13 +4,15 @@
 // A notebook qualifies when the file the library keeps is, byte for byte, the blob at origin/main of lopecode or
 // lopebooks (run `git fetch` in both first). One that is tracked but kept in another version is put again from the blob.
 // The home of a module is modules/canonical.json's lopecode notebook, else its lopebooks one, else any qualifying
-// notebook that has it (lopecode first). `library.index` writes every card of a notebook, so homes are indexed in an
-// order that leaves each module with the notebook indexed last among those that have it.
+// notebook that has it (lopecode first). Each home is asked for the cards of its own modules only:
+// `library.index { name, modules }` (since 2026-10-10; before, every card of a notebook was written, the homes were
+// indexed in an order, and 55 modules of homes that hold each other's were put by the owner).
 import { readFileSync, appendFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join, dirname } from "node:path";
 import { importNotebookModule } from "../notebook-import.ts";
 import { loadCanonical } from "../lope-sync.ts";
+import { git, pushed } from "./library-pushed.ts";
 
 const root = join(dirname(new URL(import.meta.url).pathname), "..", "..");
 const base = process.env.BRAIN_BASE || "";
@@ -21,9 +23,8 @@ const logPath = join(out, base + "-library-homes.jsonl");
 mkdirSync(join(out, "homes-tmp"), { recursive: true });
 const NS = "/xrpc/com.lopecode.brain.";
 const sha = (b: Uint8Array | string) => createHash("sha256").update(b).digest("hex");
-const git = (repo: string, ...a: string[]) => Bun.spawnSync(["git", "-C", join(root, repo), ...a], { maxBuffer: 1 << 28 }).stdout;
 const brain = async (path: string, ...curl: string[]) => {
-  const p = Bun.spawn(["bun", join(root, "tools/cloud-brain/brain.ts"), "curl", NS + path, "--owner", "-S", "--retry", "2", "-m", "300", ...curl], { stdout: "pipe", stderr: "pipe", env: process.env });
+  const p = Bun.spawn(["bun", join(root, "tools/cloud-brain/brain.ts"), "curl", NS + path, "--owner", "-S", "--retry", "2", "--retry-all-errors", "-m", "300", ...curl], { stdout: "pipe", stderr: "pipe", env: process.env });
   const text = (await new Response(p.stdout).text()).trim();
   await p.exited;
   const m = /^([\s\S]*) \[(\d+)\]$/.exec(text) || [null, text, "0"];
@@ -34,8 +35,7 @@ const post = (path: string, body: unknown) => brain(path, "-X", "POST", "-H", "c
 const log = (row: any) => { appendFileSync(logPath, JSON.stringify({ at: new Date().toISOString(), ...row }) + "\n"); return row; };
 
 // The library's name for a repo file, as library-backfill.ts chose it.
-const tracked = (repo: string) => new Set(String(git(repo, "ls-tree", "-r", "--name-only", "origin/main", "notebooks/")).split("\n").filter((f) => f.endsWith(".html")));
-const T: Record<string, Set<string>> = { lopecode: tracked("lopecode"), lopebooks: tracked("lopebooks") };
+const T: Record<string, Map<string, string>> = { lopecode: pushed("lopecode"), lopebooks: pushed("lopebooks") };
 const candidates = (name: string): [string, string][] =>
   name === "cloud-brain" ? [["lopebooks", "notebooks/@tomlarkworthy_cloud-brain.html"]]
   : name.endsWith(".staging") ? [["lopebooks", `notebooks/${name.slice(0, -8)}.html`]]
@@ -83,28 +83,16 @@ for (const [m, hs] of holders) {
   const fallback = [...hs].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))[0];
   home.set(m, { name: declared || fallback, declared: !!declared });
 }
-// N goes before H when N has a module whose home is H. A cycle is cut where it is found; those modules end elsewhere.
-const homes = [...new Set([...home.values()].map((h) => h.name))].sort();
-const after = new Map(homes.map((h) => [h, new Set(has.get(h)!.map((m) => home.get(m)!.name).filter((x) => x !== h))]));
-const order: string[] = [], state = new Map<string, number>();
-// Post-order over "is indexed after me": what must come later is placed first, then the list is reversed.
-const visit = (n: string) => { if (state.get(n)) return; state.set(n, 1); for (const later of after.get(n)!) visit(later); state.set(n, 2); order.push(n); };
-for (const h of homes) visit(h);
-order.reverse();
-const last = new Map<string, string>();
-for (const n of order) for (const m of has.get(n)!) last.set(m, n);
-const missed = [...home].filter(([m, h]) => last.get(m) !== h.name).map(([m, h]) => ({ module: m, home: h.name, gets: last.get(m), declared: h.declared }));
+// What each home is asked for: the modules whose home it is.
+const asks = new Map<string, string[]>();
+for (const [m, h] of home) asks.set(h.name, [...(asks.get(h.name) || []), m]);
 const plan = {
   library: library.length, qualify: open.length, alreadyPublic: open.filter((n) => n.public).length, toSetPublic: open.filter((n) => !n.public).map((n) => n.name).length,
   rePut: open.filter((n) => !n.same).map((n) => [n.name, n.repo]),
   stayAsTheyAre: notebooks.filter((n) => !n.repo).map((n) => [n.name, n.public ? "public" : "private"]),
-  modules: holders.size, declaredHome: [...home.values()].filter((h) => h.declared).length, indexCalls: order.length, cycleMisses: missed
+  modules: holders.size, declaredHome: [...home.values()].filter((h) => h.declared).length, homes: asks.size
 };
-writeFileSync(join(out, base + "-library-homes-plan.json"), JSON.stringify({ ...plan, order, home: Object.fromEntries(home) }, null, 1));
-// How many cards an index pass in this order writes with other words than the card had: each is one embedding.
-const said = new Map<string, string>(); let flips = 0, writes = 0;
-for (const n of order) for (const c of cardsOf.get(n)!) { writes++; const t = c.title + "\n" + c.text; if (said.has(c.id) && said.get(c.id) !== t) flips++; said.set(c.id, t); }
-Object.assign(plan, { indexWrites: writes, textChangesAfterFirst: flips });
+writeFileSync(join(out, base + "-library-homes-plan.json"), JSON.stringify({ ...plan, home: Object.fromEntries(home) }, null, 1));
 if (cmd === "plan") { console.log(JSON.stringify(plan, null, 1)); process.exit(0); }
 
 const cards = async () => {
@@ -146,18 +134,9 @@ for (const n of open.filter((n) => n.same && !n.public)) {
   if (r.status !== 200) { console.log("setPublic failed", n.name, r.status, JSON.stringify(r.body)); process.exit(1); }
 }
 console.log("public set");
-for (const name of order) {
-  const t0 = Date.now(), r = await post("library.index", { name });
-  log({ step: "index", name, status: r.status, cards: r.body.cards, stale: r.body.stale, ms: Date.now() - t0, error: r.body.error, message: r.body.message });
+for (const [name, modules] of [...asks].sort()) for (let i = 0; i < modules.length; i += 100) {
+  const t0 = Date.now(), r = await post("library.index", { name, modules: modules.slice(i, i + 100) });
+  log({ step: "index", name, modules: modules.slice(i, i + 100).length, status: r.status, cards: r.body.cards, stale: r.body.stale, ms: Date.now() - t0, error: r.body.error, message: r.body.message });
   console.log(new Date().toISOString().slice(11, 19), r.status, String(Date.now() - t0).padStart(6), String(r.body.cards ?? "-").padStart(4), name, r.body.error || "");
-}
-// What an order could not give: two homes that each have the other's module. The owner puts the home's card itself.
-{
-  const of = new Map((await cards()).map((c) => [c.id, c]));
-  const want = [...home].map(([m, h]) => cardsOf.get(h.name)!.find((c) => moduleOf(c) === m)).filter((c) => of.get(c.id) && of.get(c.id).url !== c.url);
-  for (let i = 0; i < want.length; i += 50) {
-    const r = await post("knowledge.put", { entries: want.slice(i, i + 50).map((c) => ({ ...c, staleSince: 0 })) });
-    console.log("placed by the owner", r.status, JSON.stringify(log({ step: "place", status: r.status, ids: want.slice(i, i + 50).map((c) => c.id), answer: { changed: r.body.changed, vectors: r.body.vectors, error: r.body.error, message: r.body.message } })).slice(0, 300));
-  }
 }
 console.log("after", JSON.stringify(log({ step: "after", ...(await check()) })));
