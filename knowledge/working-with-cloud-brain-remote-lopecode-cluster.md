@@ -44,7 +44,8 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
   public feeds at `/static/snapshot/<day>/`; it makes no model call), knowledge (what the Brain
   knows: entries with their source, kept file and who entered them, in a D1 database of its own,
   `knowledge.search?q=` by words and `&semantic=true` by meaning, one vector an entry in one Vectorize index; a put
-  to the library enters a card for each module of the notebook), container (leased Linux containers from Cloudflare Containers, for the owner
+  to the library enters a card for each module that has none, and marks a kept card `staleSince` when the notebook's copy differs;
+  `library.index { name }` writes the cards again), container (leased Linux containers from Cloudflare Containers, for the owner
   and the Brain's Workers: `container.extend?seconds=`, `exec`, `get`/`post` to a port), ai (one call to an open model on Cloudflare Workers AI:
   `ai.run?model=&usd=`, where `usd` is charged whole; `ai.models` is Cloudflare's list; an OpenAI client's base URL is
   `/xrpc/com.lopecode.brain.ai.v1`, its key a Brain token, $0.01 a call with no `usd`). `<base>-x-page` is built from

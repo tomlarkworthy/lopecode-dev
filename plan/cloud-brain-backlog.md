@@ -752,8 +752,11 @@ Built and on cb4: stored settings read through `config` (`config.set`, `config.g
 - Done 2026-10-10 10:23 CEST: Tom's notebooks are in the library, 240 of them (52 public from `lopecode/notebooks`, 188 private from `lopebooks/notebooks`), 400 module cards, 118 public (`tools/cloud-brain/library-backfill.ts`).
 - Done 2026-10-10 10:31 CEST: the 50 `knowledge/*.md` docs are entries of kind `doc`, 38 public (`scope: in-notebook`) and 12 private, 523 entries in all (`tools/cloud-brain/knowledge-docs.ts`, `knowledge-vectors.md` "The knowledge docs are entered"). Open: nothing runs `knowledge-docs.ts status`, so a stale doc is seen only when someone asks; whether the 12 `local-development` docs may be public (the repository is); `plan/`, READMEs and the content repositories' docs are not entered.
 - Open: 282 module cards are private because staging was put private. Which staging notebooks may be public is Tom's to say.
-- Open: a public card is written by the last public put that has the module; 27 of 66 point at the module's home by `modules/canonical.json`. `library.put` is not told the home.
-- Open: nothing puts a changed notebook again; the backfill script is run by hand.
+- Done 2026-10-10 10:37 CEST: a put does not write a kept card; the card says since when its notebook's copy differs (`staleSince`, `knowledge.list?kind=module&stale=true`), and `library.index` writes it. 400 cards have a hash, 0 stale.
+- Open: 27 of 66 public cards point at the module's home by `modules/canonical.json`. `library.index { name }` of the home notebook now moves a card there; nothing reads `canonical.json` and none was moved.
+- Open: how many other notebooks hold a copy that differs from a card is not counted.
+- Open: a card whose notebook is deleted is never marked stale.
+- Open: nothing puts a changed notebook again; the backfill script is run by hand. A put now marks cards and does not write them, so a run of the script shows what is stale.
 - Open: `library.setPublic` and `library.delete` leave the cards. A card made public stays public until a put of `{ id, public: false }`.
 - Open: whether a member may enter (`knowledge.put` has no rule for one). Tom has not decided.
 - Open: who is charged when a Worker enters on its clock; not seen. On 2026-10-10 every embedding was charged to the account the call began with: the owner $0.01175 for 235 texts by 07:57 UTC, a member $0.00005 for each search by meaning.

@@ -458,3 +458,100 @@ after grant.delete                         grant.list {"grants":[]}, list 403
   The service takes any kind; the list is prose and another session has that seed open.
 - `/llms.txt` does not say that docs are among what the search answers.
 - Not reviewed by a fresh agent.
+
+## A card says when its module has changed (2026-10-10, 10:25 to 10:37 CEST)
+
+Tom, after the notebooks were put: "what if a module gets updated? I don't think we should auto
+reindex, but we should be able to tell its state with hash or something, and know how long it has
+been stale." Until this change every `library.put` wrote the cards of its modules again and embedded
+the ones whose words had changed.
+
+What is there now (`brain-x-knowledge` `aae6f3ea23e8`, `brain-x-library` `437cab7a8afc`):
+
+- A card's `sha256` is that of the module's block in the notebook file the card was read from, its
+  `url` names that notebook and its `file` the kept file. `changed.at` is when it was last written.
+- `library.put` sends its cards with `ifAbsent`. `knowledge.put` enters the ones that are new, leaves
+  the kept ones whole and answers what each was made from. The library compares, and for a card made
+  from this notebook whose block now differs it puts `{ id, staleSince }`. No text goes to the model.
+- `staleSince` is on every answer that has the entry (`get`, `list`, both searches).
+  `knowledge.list?kind=module&stale=true` lists the cards that differ, the longest so first.
+  `libraryPanel` says how many.
+- `library.index { name }` writes the notebook's cards from its kept file and clears the date.
+  `{ name, rebuild: false }` does what a put does, from the kept file.
+
+Where the state is kept was a choice. The entry already had `sha256`, `url` and `file`, so the hash
+and the notebook went there, and one new field, `staleSince`, says the rest. `brain-x-knowledge` does
+not read a notebook or compare anything: it keeps a date a writer gives it. The other way was a row
+for each card in the library's own table; that is a second record of what the entry already says, and
+a search would not have answered it.
+
+### The 400 cards took their hashes without being written
+
+The cards from the morning had no `sha256`. A card with none takes the hash of its module's block
+when its `file` is the file the library still keeps for that notebook, which says the card was read
+from that very file. `library.index { name, rebuild: false }` over the 240 notebooks, one after
+another, 08:30:58 to 08:33:40 UTC (`.emitted/cb4-card-state-migration.jsonl`):
+
+```
+240 calls, 240 answered 200, each {"cards":0,"stale":0}
+knowledge.list kind=module, all pages:   400 cards, 400 with sha256, 0 stale, 118 public
+knowledge.list kind=module stale=true:   {"entries":[]}
+```
+
+### One module changed three times, on cb4 (08:31:21 to 08:31:40 UTC)
+
+A scratch notebook `scratch-stale-proof` with one module, `@scratch/stale-proof`, put three times with
+different prose, then indexed, then deleted with its card. `spent` is the owner's `quota.get`.
+
+```
+                      answer                 card's text      sha256      staleSince      spent
+before                                                                                    0.36935
+put v1   08:31:21     cards 1, stale 0       "…zebra…"        a0dabb60f0  null            0.36940
+put v2   08:31:23     cards 0, stale 1       "…zebra…"        a0dabb60f0  1791621084163   0.36940
+put v3   08:31:24     cards 0, stale 1       "…zebra…"        a0dabb60f0  1791621084163   0.36940
+index    08:31:35     cards 1, stale 0       "…violin…"       b178fd1411  null            0.36945
+index again           cards 1, stale 0                                                    0.36945
+```
+
+- The two puts of a changed module were charged nothing and left the card's words as they were.
+- The second change did not move `staleSince` (08:31:24.163 UTC, the put of v2).
+- While stale, a search by words for `zebra` answered the card with its `staleSince`; `lighthouse`,
+  a word of v2 only, answered nothing. `list?stale=true` answered the one card.
+- `library.index` embedded once ($0.00005). A second `index` of the same file was charged nothing.
+- A search by meaning was not run against the stale card: a write is not in the index for a minute
+  or two, and the test is the unit test's (`test_knowledge_says_since_when_an_entry_differs_from_its_source`).
+- `quota.get` read 0.36950 at 08:34 UTC, one text more than the table ends on. The 240 migration
+  calls changed no title or text, so they bought none; which call it was is not traced. Another
+  session was entering docs in the same minutes.
+
+Tests, forced from a side module in QA tab `kv-stale`: knowledge 9 of 9, library 7 of 7.
+
+### Decided without asking
+
+- **A card belongs to one notebook, and only that notebook makes it stale.** A module is in up to 218
+  notebooks and most copies differ; counting any copy would leave nearly every card stale for good.
+  How many other copies differ from a card is not counted: it would need each notebook's hashes kept,
+  and nothing asks for it yet.
+- **A module with no card still gets one from the first put that has it.** Otherwise a new module is
+  not found until someone indexes its notebook.
+- **A put that has the card's own block again clears the date.** The card matches its notebook again.
+- **`library.index` takes a card from another notebook.** It always wrote every card of its notebook;
+  now that a put does not, it is the way to move a module's card to its home (27 of 66 public cards
+  point there). Seen in the unit test, not on cb4: no card was moved.
+- **A notebook that is not public never takes a public card,** by put or by index, as before. Its put
+  of a module whose public card is another notebook's records nothing at all, so nothing of a private
+  notebook reaches a card a member reads.
+- **The reverse case changed.** A public notebook put after a private one no longer makes the card
+  public with its own words; the card stays the private notebook's until `library.index` of the
+  public one.
+
+### Not done
+
+- Nothing reads `modules/canonical.json`: which notebook is a module's home is not known to the
+  library, and no card was moved.
+- A card's `file` may be a version the library no longer keeps (it keeps 10).
+- `library.delete` and `library.setPublic` still leave cards as they were; a card whose notebook is
+  deleted is never marked.
+- A search does not rank a stale card lower or leave it out. It answers the date.
+- `list?stale=true` is one page of 100 at most.
+- Not reviewed by a fresh agent.
