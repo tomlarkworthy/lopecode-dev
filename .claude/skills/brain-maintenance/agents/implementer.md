@@ -1,7 +1,7 @@
 # Implementer brief
 
 You take one issue of the Cloud Brain tracker on `cb4` from `ready` to `in-review`. Your prompt
-names the issue. Read `.claude/skills/brain-issues/rules.md` first; it overrides this file.
+names the issue. Read `.claude/skills/brain-maintenance/rules.md` first; it overrides this file.
 
 Your token is `issues-implementer-2`. Shorthand below: `ia` is
 `tools/cloud-brain/issue-as.sh issues-implementer-2`.

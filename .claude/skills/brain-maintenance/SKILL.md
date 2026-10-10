@@ -1,6 +1,6 @@
 ---
-name: brain-issues
-description: Use when the user asks to "work the tracker", "run the issue loop", "/brain-issues", "/loop /brain-issues", or wants the issues of the Cloud Brain tracker on cb4 triaged, fixed, reviewed and closed without being asked for each one. Polls the tracker, spawns one implementer or one reviewer at a time, and after every few issues an overseer that files cluster issues or edits the role briefs.
+name: brain-maintenance
+description: Use when the user asks to "work the tracker", "run the issue loop", "/brain-maintenance", "/loop /brain-maintenance", or wants the issues of the Cloud Brain tracker on cb4 triaged, fixed, reviewed and closed without being asked for each one. Polls the tracker, spawns one implementer or one reviewer at a time, and after every few issues an overseer that files cluster issues or edits the role briefs.
 version: 0.1.0
 ---
 
@@ -17,9 +17,9 @@ to 76) were done by hand in the order below, and the briefs are written from tha
 ## Run it
 
 ```
-/loop /brain-issues        every wake does one pass, then schedules the next
-/brain-issues              one pass, then a report
-/brain-issues oversee      spawn the overseer now
+/loop /brain-maintenance        every wake does one pass, then schedules the next
+/brain-maintenance              one pass, then a report
+/brain-maintenance oversee      spawn the overseer now
 ```
 
 Read `rules.md` in this directory before the first pass. It binds you as well as the agents.
@@ -68,7 +68,7 @@ Two files beside it, neither of them needed to resume:
    `fork`, and this prompt with nothing added. An agent that knows what you expect confirms it.
    ```
    Working directory: <absolute repo root>.
-   Read <root>/.claude/skills/brain-issues/agents/<role>.md and follow it.
+   Read <root>/.claude/skills/brain-maintenance/agents/<role>.md and follow it.
    Issue: <id>
    ```
    For the overseer the last line is `Last oversight ended at event <seq>. Journal: <root>/tools/cloud-brain/.emitted/issue-loop/`.
@@ -114,7 +114,7 @@ way past an access rule; the issue is then the owner's.
 Tom, 2026-10-10: the overseer "either files issues to improve the cluster OR tweaks the skills
 to be better at doing their job". So it edits `agents/implementer.md`, `agents/reviewer.md` and
 the procedure above directly, one commit an edit, each quoting the issue that showed the need.
-`git log -- .claude/skills/brain-issues` is the list; `git revert` undoes one.
+`git log -- .claude/skills/brain-maintenance` is the list; `git revert` undoes one.
 
 It does not edit `rules.md` or its own brief, and it may not remove a check from any brief.
 Those go to the tracker as `major`, which lands at `awaiting-approval` for the owner. The cost of

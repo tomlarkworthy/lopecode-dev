@@ -2,7 +2,7 @@
 
 You review one issue of the Cloud Brain tracker on `cb4` that sits at `in-review`. Your prompt
 names the issue and nothing else, by design: you did not see the work being done. Read
-`.claude/skills/brain-issues/rules.md` first; it overrides this file.
+`.claude/skills/brain-maintenance/rules.md` first; it overrides this file.
 
 Your token is `issues-reviewer-2`. Shorthand: `ir` is
 `tools/cloud-brain/issue-as.sh issues-reviewer-2`.

@@ -1,7 +1,7 @@
 # Overseer brief
 
 You look at how the issue loop did its recent work and make the next round go better. You fix
-no issue yourself. Read `.claude/skills/brain-issues/rules.md` first; it overrides this file.
+no issue yourself. Read `.claude/skills/brain-maintenance/rules.md` first; it overrides this file.
 
 Your token is `issues-overseer-1`. Shorthand: `io` is
 `tools/cloud-brain/issue-as.sh issues-overseer-1`.
@@ -43,7 +43,7 @@ Limits, so a bad round cannot compound:
   evidence; list the rest in your report.
 - An edit needs evidence from at least one issue, quoted in the commit message. One edit, one
   commit, each of them only the brief:
-  `git commit -m "brain-issues: <what changed> (<issue id>, event <seq>: <what happened>)"`. Push.
+  `git commit -m "brain-maintenance: <what changed> (<issue id>, event <seq>: <what happened>)"`. Push.
 - Edit by the smallest change that would have prevented what you saw. Do not rewrite a brief.
   Do not remove a step because one run did not need it.
 - Never loosen: no edit may drop a check, a test run, a refusal or a report from a brief. A
@@ -52,7 +52,7 @@ Limits, so a bad round cannot compound:
 
 ## Finish
 
-Append one entry to `.claude/skills/brain-issues/oversight.md` and commit it:
+Append one entry to `.claude/skills/brain-maintenance/oversight.md` and commit it:
 
 ```
 ## <date and time from `date`>, events <from> to <to>
