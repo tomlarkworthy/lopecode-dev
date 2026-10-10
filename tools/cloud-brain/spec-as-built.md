@@ -4545,3 +4545,56 @@ Not tried: the button pressed in the owner's signed-in page on cb4 (it needs the
 the button in a narrow window; a label whose name is long. `ndd66a518`, the issue the label was stuck
 on, had `labels: []` when read at 18:20: event 107 (18:08:08 by its `at`) is a `labelled` event with
 `remove: ["needs-owner"]` under the token `issues-implementer-2`, before this change was deployed.
+
+## Issues: the reason of an install is read back (2026-10-10 18:33 CEST): `brain-x-issues` `4357b34ddfc1`
+
+Issue `install-reason-unreadable`, three findings of the review of the required reason (`f0bd133349d2`).
+
+**Changed, in `brain-issues.ojs`.**
+
+- `issueApply` keeps the reason in the view: `view.policy` is `{ seq, kinds, names, reason }`, with no
+  `reason` key when the policy event has none. `issue.policy` and `issue.snapshot` answer `view.policy`,
+  so both carry it with no other change, and `issue.rebuild` makes it again from the record.
+- An install sent again under a kept key answers the kept `reason` beside `duplicate: true`. The
+  `reason` in the body of such a call is still not read: the key is looked up first. That order is
+  as it was; the reference now says it.
+- The `issue.install` row of the reference: where the reason is read back; that the default policy
+  and an install from before one was required have none (in place of "Policy events from before
+  2026-10-10"); that on the duplicate path a missing reason is not a 400 and a differing one is not
+  written. The `issue.policy` row shows the shape.
+
+**The count in the 16:10 section and in the issue was wrong.** Both say 5 policy events on cb4 have no
+reason. `issue.sync?after=0&limit=500`, read at 18:30 with 114 events in the record, holds 3: event 1
+(`policy/default`, the Worker's, 11:53:26 CEST by its `at`), 12 (11:55:57) and 17 (12:22:52), the last
+two the owner's. None has a reason. No install has been made on cb4 since the reason was required.
+
+**Reproduced first.** The assertions were added to `test_issues_policy_is_installed_by_the_owner_and_migrates`
+before the change, and `bun tools/lope-tests.ts … --filter test_issues` then read `10 passed, 1 timed
+out` with that cell the one (`lope-tests.ts` prints a thrown assertion as a timeout). Which assertion
+threw first was not read. After the change: 11 passed.
+
+**Tests.** 11 of 11 `test_issues_*` in a headless Chromium QA tab at 18:33:22 CEST (the tab's own
+clock), forced from a module of their own; the record was emitted from that tab. The install test
+reads "4 policies and 34 installs refused; … 6 installs sent again and answered as before" (32
+refused before). What it now checks:
+
+- `issue.policy` answers `{ seq: 10, kinds, names, reason: "seen is new again" }` after the install
+  of that reason, `issue.snapshot` the same reason, and `issue.policy` again after the meta rows are
+  cleared and `issue.rebuild` is run;
+- a record whose only policy is the default answers a `policy` with keys `seq, kinds, names`;
+- the key `v2` sent again with reason `"corrected"`, none, or `7` answers `duplicate: true` and
+  `reason: "a test"`, and each accepted install sent again answers its own reason;
+- with the view lost, an install with no reason or `""` answers `ViewLost` (the 503 before the 400).
+
+**Deployed** under the lock with `--reason="install-reason-unreadable: issue.policy answers the
+reason of the policy in force, a duplicate install answers the kept reason"`: state `deployed`.
+`redistil`: 19 lines, each `same`. `issue.verify?guards=true`: `ok`, 116 checked.
+`getSource?worker=brain-x-issues&part=reference` holds "read back as `policy.reason`".
+`issue.policy` on cb4 answers a `policy` with keys `seq, kinds, names` and `seq: 17`, as before:
+event 17 has no reason.
+
+Not tried: a reason read back on cb4. That needs an install, which is the owner's. Until the owner
+installs with a reason, no call on cb4 answers one. A view row written before this deploy for a
+policy that has a reason would lack it until `issue.rebuild`; cb4 has no such policy. Not done: the
+panel draws no policy events (part of finding 1); a duplicate install does not say that the reason
+sent differs from the one kept.
