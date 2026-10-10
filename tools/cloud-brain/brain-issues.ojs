@@ -8,6 +8,16 @@ The tracker's code is the mechanism: the chain, and the rule that an act goes ah
 // %%
 viewof issuesView = issuesPanel({ client, owner: !!(session && session.owner), invalidation })
 // %%
+md`The panel above is for the owner, signed in. It answers from a copy of the view that the page keeps, one for each Brain's address, in \`localStorage\` under \`${issuesStore("ADDRESS").name}\`: one \`issue.snapshot\`, then \`issue.sync\` every \`wait\` milliseconds while the tab is visible.
+
+- **State, Kind, Find** filter the table from the copy, with no call. Find reads the title, \`about\`, the labels and the id.
+- **A row** opens that issue: its body, its children, its events, and a button for each state it can move to and each swap its workflow lists. A button the guard would refuse is disabled, and its tooltip is the refusal. Reason and Refs are sent with a move, so a button can come alive as they are typed.
+- **Refs**: entries separated by commas. \`kind:value\` is a ref of that kind (\`commit:abc\`, \`deploy:brain-x-a@hash\`); an address (\`https://…\`) or a text with no colon is a \`url\`.
+- **New issue** opens one with an id the page makes. **Refresh** asks for the events since the copy now.
+- A write is drawn before the service answers, and withdrawn with the refusal if it refuses.
+
+\`issuesPanel({ client, owner, by, store, every, invalidation })\`: \`by\` is who the page judges guards as (the owner's session if left out); \`store\` is \`{ get, set }\` in place of \`localStorage\`; \`every\` is a poll interval that overrides the service's; \`invalidation\` stops the poll. Its value is the view, and it sends \`input\` when the view changes.`
+// %%
 md`## Methods
 
 | | |
@@ -20,14 +30,14 @@ md`## Methods
 | \`issue.move\` | procedure. \`{ key, id, to, reason, refs }\`. \`to\` is a state. Approval and revert are moves. |
 | \`issue.swap\` | procedure. \`{ key, id, swap, reason }\`: a swap the issue's workflow lists. \`{ key, id, workflow, state, reason }\`: any other, the owner present. |
 | \`issue.narrow\` | procedure. \`{ key, id, move, guard, reason }\` adds a guard to one move of one issue. \`{ key, id, remove, reason }\` removes guard number \`remove\`, the owner present. |
-| \`issue.install\` | procedure, the owner present. \`{ key, policy, migrate }\`. \`migrate\`: \`{ HASH: { workflow, states: { old: new } } }\` moves the open issues of workflow \`HASH\`, each with its own event. A \`migrate\` that names a workflow the policy lacks, or would land an issue in a state its new workflow lacks, is refused with 400 before the policy is written. \`{ seq, hashes, moved }\` |
+| \`issue.install\` | procedure, the owner present. \`{ key, policy, migrate }\`. \`migrate\`: \`{ HASH: { workflow, states: { old: new } } }\` moves the open issues of workflow \`HASH\`, each with its own event, keyed \`policy/<seq>/<id>\`. A \`migrate\` that names a workflow the policy lacks, or would land an issue in a state its new workflow lacks, is refused with 400 before the policy is written. The issues are read again once the policy is written, and each again before its own event: one opened on \`HASH\` meanwhile is moved, and one closed or moved meanwhile is left where it is. \`{ seq, hashes, moved, left }\`; \`left\` is \`[{ id, why }]\` of those not moved. A \`key\` that a policy event holds answers that event with \`duplicate: true\` and moves nothing: a migration cut short is finished by the owner's own swaps. A \`key\` another kind of event holds is 400. |
 | \`issue.policy\` | query. \`{ policy, workflows }\` in force; \`?hash=\` one workflow, an older one too. |
 | \`issue.snapshot\` | query. \`{ seq, head, wait, policy, workflows, issues }\`: the whole view at \`seq\`. The \`body\` of a closed issue is left out (\`bodyLeftOut\`). An issue the caller may not read is \`{ id, kind, state, closed, parent, hidden: true }\`, here and in \`issue.list\` and \`issue.get\`. |
 | \`issue.sync\` | query. \`?after=<seq>&head=<hash>&limit=${issuesLimits.syncPage}\`. \`{ seq, wait, events }\`: the events after \`after\`, and the milliseconds the page waits before it asks again. An event of an issue the caller may not read is \`{ seq, id, type, at, hash, hidden: true, issue }\`. \`reset: true\` and no events when \`after\` is past the record's head, or \`head\` is not the hash of event \`after\`: the caller's copy is of another record, and it starts again from a snapshot. |
 | Settings | \`syncMs\` (${issuesLimits.syncMs}): what \`issue.sync\` and \`issue.snapshot\` answer as \`wait\`. Changed with \`config.set\` on the core, no deploy. |
 | \`issue.get\` | query. \`?id=\`. \`{ issue, children, events }\` |
 | \`issue.list\` | query. \`?state=&kind=&about=&parent=&label=&limit=100\`. \`{ issues }\`, last changed first. |
-| \`issue.verify\` | query. \`?after=<seq>\`. Checks \`seq\`, \`prev\`, \`hash\` and \`sig\` of each event after \`after\`. \`{ ok, seq, head, checked }\`, or \`{ ok: false, seq, why }\` at the first that fails. With \`guards=true\` it starts at 1 and also judges each event against the workflow in force when it was written. |
+| \`issue.verify\` | query. \`?after=<seq>\`. Checks \`seq\`, \`prev\`, \`hash\` and \`sig\` of each event after \`after\`. \`{ ok, seq, head, checked, guards }\`, or \`{ ok: false, seq, why, checked }\` at the first that fails; \`checked\` is how many passed. With \`guards=true\` it starts at 1 and also judges each event against the workflow in force when it was written. |
 | \`issue.key\` | query, anyone. \`{ alg: "Ed25519", key }\`: the public key, a JWK. |
 | \`issue.rebuild\` | procedure, the owner present. Makes the view again from the record. \`{ seq, issues }\` |
 | Storage | \`sql\`: \`issues_events\` (the record), \`issues_view\`, \`issues_meta\` (the policy and every workflow by hash) |
@@ -77,9 +87,9 @@ That is the cell \`issuesExamplePolicy\`, and \`issue.install\` takes it as it i
 
 Every fact is in the record, so \`issue.verify?guards=true\` can judge every event again.
 
-**Fixed in the code**, whatever the policy says: a caller the \`read\` guard refuses does nothing to the issue and is answered 404; installing a policy, a swap the workflow does not list, removing a guard of an issue and \`issue.rebuild\` need the owner present. The first write into an empty record, when it is not itself an \`issue.install\`, installs \`issuesDefaultPolicy\` as event 1, by this Worker (an owner who installs first writes event 1 themselves, and the default is never written). That is the one policy written without the owner, and it cannot be written again: a record with events and no policy in its view answers 503 \`ViewLost\` until \`issue.rebuild\`.
+**Fixed in the code**, whatever the policy says: a caller the \`read\` guard refuses does nothing to the issue, opens no child of it, and is answered 404; installing a policy, a swap the workflow does not list, removing a guard of an issue and \`issue.rebuild\` need the owner present. The first write into an empty record, when it is not itself an \`issue.install\` and the default policy allows it, installs \`issuesDefaultPolicy\` as event 1, by this Worker. A first write the default would refuse is refused and writes nothing, and an owner who installs first writes event 1 themselves: the default is then never written. That is the one policy written without the owner, and it cannot be written again: a record with events and no policy in its view answers 503 \`ViewLost\` until \`issue.rebuild\`.
 
-**Present is not exact yet.** A sign-in link's token made with \`unattended\` reaches a service as \`owner\` via \`session\` (\`plan/cloud-brain-authority.md\`, read 2026-10-10). Until that token has its own via, it passes \`caller.present\` unless the core sends \`x-brain-tab: 0\` for it.
+**Who is present.** No token is. Every token's call reaches a service as \`owner\` via \`delegation:<id>\`, the token of a sign-in link made with \`unattended\` among them: its cap \`session\` sets \`x-brain-tab\` and leaves the via as it is, and \`caller.present\` needs the via \`session\`. Read 2026-10-10 in the source cb4 runs (kernel \`fbc1a80ce059\`, core \`b68bebad811f\`); not tried with a link's token. What passes with nobody at a keyboard is a session minted from a Brain's state file (\`brain.ts curl --owner\`): 13 of the first 16 events on cb4 were made that way.
 
 ## The default policy
 
@@ -175,8 +185,8 @@ issuesSql = ({
   one: "SELECT event FROM issues_events WHERE seq = ?1",
   meta: "SELECT k, v FROM issues_meta",
   putMeta: "REPLACE INTO issues_meta (k, v) VALUES (?1, ?2)",
-  // The issue, its children, and a second id (the parent of an issue being opened).
-  near: "SELECT issue FROM issues_view WHERE id = ?1 OR parent = ?1 OR id = ?2",
+  // The issue and its children, and the same of a second id (the parent of an issue being opened).
+  near: "SELECT issue FROM issues_view WHERE id = ?1 OR parent = ?1 OR id = ?2 OR parent = ?2",
   all: "SELECT issue FROM issues_view",
   putIssue: "REPLACE INTO issues_view (id, state, kind, about, parent, workflow, closed, updated, issue) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
   onWorkflow: "SELECT issue FROM issues_view WHERE workflow = ?1 AND closed = 0",
@@ -274,7 +284,9 @@ issueAllowed = (view, by, act) => {
     const hash = issueAt(view.policy.names, issueAt(view.policy.kinds, act.kind)), wf = issueAt(view.workflows, hash);
     if (!wf) return no("no workflow for the kind " + act.kind);
     if (issueAt(view.issues, act.id)) return no("an issue has this id");
-    if (act.parent && !issueAt(view.issues, act.parent)) return no("no such parent", true);
+    // A parent the caller may not read is no parent: a child holds its parent back from ready and from review.
+    const p = act.parent ? issueAt(view.issues, act.parent) : null;
+    if (act.parent && (!p || p.hidden || !test((issueAt(view.workflows, p.workflow) || {}).read, facts(p)))) return no("no such parent", true);
     const issue = facts({ id: act.id, kind: act.kind, about: act.about, state: wf.start, labels: act.labels || [], parent: act.parent, opener: caller.actor, by: {}, reviews: [] });
     return test(wf.open, issue) ? { allow: true, workflow: hash, state: wf.start } : no("the workflow's open guard refuses");
   }
@@ -297,6 +309,8 @@ issueAllowed = (view, by, act) => {
     return held ? no(`this issue's guard ${own(held).n} on ${held.name} refuses`) : no(`the guard of ${from.map((m) => m.name).join(", ")} refuses`);
   }
   if (act.type === "swap") {
+    // A swap that says where it takes the issue from is refused when the issue is elsewhere by now.
+    if (act.from && (act.from.workflow !== i.workflow || act.from.state !== i.state)) return no("the issue is no longer where this swap takes it from");
     if (act.swap) {
       const s = wf.swaps.find((s) => s.name === act.swap);
       if (!s) return no("the workflow lists no swap " + act.swap);
@@ -479,6 +493,12 @@ issuesApp = {
   const issueRow = (i) => [S.putIssue, i.id, i.state, i.kind, i.about, i.parent, i.workflow, i.closed ? 1 : 0, i.updated_at, JSON.stringify(i)];
   // One event more. The insert is of seq = head + 1, the table's key: of two writers at one head one fails, reads the
   // head again and writes after the other. The view's row is written in the same transaction.
+  // The act with its id, and the verdict that lets it through. A refusal is thrown.
+  const judge = (view, by, given) => {
+    const act = given.type === "open" && !given.id ? { ...given, id: "i" + (view.seq + 1) } : given, verdict = issueAllowed(view, by, act);
+    if (!verdict.allow) throw refuse(verdict.missing ? 404 : 403, verdict.missing ? "NotFound" : "Refused", verdict.why);
+    return [act, verdict];
+  };
   const append = async (ctx, key, given) => {
     if (typeof key !== "string" || !key || key.length > L.key) throw refuse(400, "InvalidRequest", `key: text, ${L.key} characters at most`);
     const sign = await signer();
@@ -490,12 +510,13 @@ issuesApp = {
       // The default policy is written only into an empty record. A record with no policy in its view has lost the view.
       if (!view.policy && view.seq) throw refuse(503, "ViewLost", "the view has no policy: issue.rebuild makes it again from the record");
       if (!view.policy && given.type !== "policy") {
-        await append({ by: { caller: "worker:brain-x-issues", via: "" }, origin: ctx.origin, ray: ctx.ray }, "policy/default", await issuePolicyAct(issuesDefaultPolicy));
+        // Judged first against the default as it would stand: a write it refuses leaves the record empty.
+        const first = await issuePolicyAct(issuesDefaultPolicy);
+        judge(issueApply(issueView(), { seq: 1, hash: "", type: "policy", policy: first.policy, hashes: first.hashes }), ctx.by, given);
+        await append({ by: { caller: "worker:brain-x-issues", via: "" }, origin: ctx.origin, ray: ctx.ray }, "policy/default", first);
         continue;
       }
-      const seq = view.seq + 1, act = given.type === "open" && !given.id ? { ...given, id: "i" + seq } : given;
-      const verdict = issueAllowed(view, ctx.by, act);
-      if (!verdict.allow) throw refuse(verdict.missing ? 404 : 403, verdict.missing ? "NotFound" : "Refused", verdict.why);
+      const seq = view.seq + 1, [act, verdict] = judge(view, ctx.by, given);
       const e = { seq, key, ...issueEvent(view, act, verdict), by: ctx.by, origin: ctx.origin, ray: ctx.ray, at: Date.now(), prev: view.head };
       e.hash = await sha256(issueCanon(e));
       e.sig = await sign.sign(e.hash);
@@ -526,25 +547,35 @@ issuesApp = {
   app.post(NS + "install", run(async (c, b) => {
     const ctx = who(c);
     if (!issueCaller(ctx.by).present) throw refuse(403, "Refused", "the owner, present");
-    const act = await issuePolicyAct(b.policy), plan = [];
-    // Every issue a migrate would move is given its landing place before the policy is written: a policy is not left
-    // installed with its migration half done.
+    const act = await issuePolicyAct(b.policy), migrate = Object.entries(b.migrate && typeof b.migrate === "object" ? b.migrate : {});
     await schema();
-    for (const [old, to] of Object.entries(b.migrate && typeof b.migrate === "object" ? b.migrate : {})) {
-      const target = to && issueAt(act.policy.workflows, to.workflow);
-      if (!target) throw refuse(400, "InvalidRequest", `migrate ${old}: the policy has no workflow ${to && to.workflow}`);
-      for (const row of (await sql.exec(S.onWorkflow, old)).rows) {
-        const i = J(row.issue), state = issueAt(to.states, i.state) || i.state;
-        if (!target.states.includes(state)) throw refuse(400, "InvalidRequest", `migrate ${old}: ${i.id} is ${i.state}, and ${to.workflow} has no state ${state}`);
-        plan.push({ id: i.id, workflow: to.workflow, state });
+    // The open issues of each workflow a migrate names, and where each lands. `left`: null, and one that cannot land
+    // is a 400; a list, and it is put there with why.
+    const planned = async (left) => {
+      const plan = [];
+      for (const [old, to] of migrate) {
+        const target = to && issueAt(act.policy.workflows, to.workflow);
+        if (!target) throw refuse(400, "InvalidRequest", `migrate ${old}: the policy has no workflow ${to && to.workflow}`);
+        for (const row of (await sql.exec(S.onWorkflow, old)).rows) {
+          const i = J(row.issue), state = issueAt(to.states, i.state) || i.state, why = target.states.includes(state) ? null : `${i.id} is ${i.state}, and ${to.workflow} has no state ${state}`;
+          if (why && !left) throw refuse(400, "InvalidRequest", `migrate ${old}: ${why}`);
+          why ? left.push({ id: i.id, why }) : plan.push({ id: i.id, from: { workflow: old, state: i.state }, workflow: act.hashes[to.workflow], state });
+        }
       }
+      return plan;
+    };
+    // Checked whole before the policy is written: a policy is not left installed with a migration that cannot land.
+    await planned(null);
+    const r = await append(ctx, b.key, act), moved = [], left = [];
+    if (r.event.type !== "policy") throw refuse(400, "InvalidRequest", "key: another event has this key");
+    if (r.duplicate) return { seq: r.event.seq, hashes: r.event.hashes, moved, duplicate: true };
+    // Read again now that the policy is written, so an issue opened on an old workflow meanwhile is moved too. Each
+    // swap says where it takes its issue from: one closed or moved since is refused and left where it is.
+    for (const m of await planned(left)) {
+      const swap = await append(ctx, `policy/${r.event.seq}/${m.id}`, { type: "swap", id: m.id, from: m.from, workflow: m.workflow, state: m.state, reason: "policy " + r.event.seq, policy: r.event.seq }).catch((e) => (e && e.status ? { why: e.message } : Promise.reject(e)));
+      swap.why || swap.duplicate ? left.push({ id: m.id, why: swap.why || "another event has the key of its swap" }) : moved.push(m.id);
     }
-    const r = await append(ctx, b.key, act), moved = [];
-    for (const m of plan) {
-      await append(ctx, `${b.key}/${m.id}`.slice(0, L.key), { type: "swap", id: m.id, workflow: m.workflow, state: m.state, reason: "policy " + r.event.seq, policy: r.event.seq });
-      moved.push(m.id);
-    }
-    return { seq: r.event.seq, hashes: r.event.hashes, moved, ...(r.duplicate ? { duplicate: true } : {}) };
+    return { seq: r.event.seq, hashes: r.event.hashes, moved, ...(left.length ? { left } : {}) };
   }));
   // What a caller is shown of an issue its workflow's read guard refuses.
   const shown = (view, by, i) => (issueAllowed(view, by, { type: "read", id: i.id }).allow ? i : { id: i.id, kind: i.kind, state: i.state, closed: i.closed, parent: i.parent, hidden: true });
@@ -763,7 +794,7 @@ issuesPanel = ({ client, owner = false, by = { caller: "owner", via: "session" }
     if (!note.textContent.includes("refused")) note.textContent = `${all.length} issues at event ${view.seq}${pending.length ? `, ${pending.length} being sent` : ""}.`;
     root.value = view;
     drawOne();
-    // A cell that reads viewof issuesView runs again: the copy changed, whoever changed it.
+    // A cell that reads issuesView (the value) runs again: the copy changed, whoever changed it.
     root.dispatchEvent(new Event("input"));
   };
   find.addEventListener("input", () => draw());
@@ -819,7 +850,7 @@ issuesFakeSql = () => {
     if (statement === S.one) return row(events.filter((e) => e.seq === a[0]).map((e) => ({ event: e.event })));
     if (statement === S.meta) return row([...meta].map(([k, v]) => ({ k, v })));
     if (statement === S.putMeta) return meta.set(a[0], a[1]), row([], 1);
-    if (statement === S.near) return row([...view.values()].filter((r) => r.id === a[0] || r.parent === a[0] || r.id === a[1]).map((r) => ({ issue: r.issue })));
+    if (statement === S.near) return row([...view.values()].filter((r) => r.id === a[0] || r.parent === a[0] || r.id === a[1] || (a[1] && r.parent === a[1])).map((r) => ({ issue: r.issue })));
     if (statement === S.all) return row([...view.values()].map((r) => ({ issue: r.issue })));
     if (statement === S.putIssue) return view.set(a[0], { id: a[0], parent: a[4], workflow: a[5], closed: a[6], issue: a[8] }), row([], 1);
     if (statement === S.onWorkflow) return row([...view.values()].filter((r) => r.workflow === a[0] && !r.closed).map((r) => ({ issue: r.issue })));
@@ -1051,6 +1082,8 @@ test_issues_policy_is_installed_by_the_owner_and_migrates = {
   const events = rig.db.events.length;
   expect((await rig.owner("install", { policy, migrate: { [was.feedback]: { workflow: "nope" } } })).status).toBe(400);
   expect((await rig.owner("install", { policy, migrate: { [was.feedback]: { workflow: "feedback" } } })).data).toEqual({ error: "InvalidRequest", message: `migrate ${was.feedback}: f1 is open, and feedback has no state open` });
+  // Nor under a key that another kind of event holds (k1 is the key f1 was opened with).
+  expect((await rig.owner("install", { key: "k1", policy })).data).toEqual({ error: "InvalidRequest", message: "key: another event has this key" });
   expect([rig.db.events.length, (await rig.owner("policy")).data.policy.names]).toEqual([events, was]);
   const nothing = await rig.sim.fetch("https://issues.internal/xrpc/com.lopecode.brain.issue.install", { method: "POST", headers: { "x-brain-caller": "owner", "x-brain-via": "session", "content-type": "application/json" }, body: "null" });
   expect(nothing.status).toBe(400);
@@ -1092,7 +1125,15 @@ test_issues_policy_is_installed_by_the_owner_and_migrates = {
   await rig.a("open", { id: "e1", title: "From the example", kind: "bug", labels: ["security"] });
   expect((await rig.a("swap", { id: "e1", swap: "escalate" })).data.event.to).toEqual({ workflow: example.hashes.security, state: "open" });
   expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: true });
-  return "installed by the owner present; 4 policies and 2 migrations refused; 1 open issue migrated; the example installs";
+  // A first write that the default policy would refuse writes nothing, the default included; the owner's install is then event 1.
+  const empty = await issuesRig();
+  expect((await empty.a("comment", { id: "nope", body: "x" })).status).toBe(404);
+  expect((await empty.owner("open", { title: "x", kind: "nope" })).status).toBe(403);
+  expect((await empty.owner("open", { title: "x", kind: "task", parent: "nope" })).status).toBe(404);
+  expect(empty.db.events.length).toBe(0);
+  expect((await empty.owner("install", { policy: issuesExamplePolicy })).data.seq).toBe(1);
+  expect(empty.db.events.map((e) => JSON.parse(e.event).by.caller)).toEqual(["owner"]);
+  return "installed by the owner present; 4 policies and 3 installs refused; 1 open issue migrated; the example installs; a refused first write leaves the record empty";
 }
 // %%
 test_issues_hidden_from_who_may_not_read = {
@@ -1118,6 +1159,10 @@ test_issues_hidden_from_who_may_not_read = {
   const guessed = (await rig.b("comment", { key: "said", id: "pub", body: "x" })).data;
   expect(guessed).toEqual({ id: "sec", seq: 4, duplicate: true });
   expect((await rig.a("comment", { key: "said", id: "sec", body: "again" })).data.event.body).toContain("3 May");
+  // Nor does it open a child of it, which would hold the issue back from ready. Its opener does.
+  expect((await rig.b("open", { title: "Me too", kind: "bug", parent: "sec" })).data).toEqual({ error: "NotFound", message: "no such parent" });
+  expect((await rig.worker("open", { title: "Me too", kind: "bug", parent: "sec" })).status).toBe(404);
+  expect((await rig.a("open", { id: "kid", title: "A part of it", kind: "bug", parent: "sec" })).status).toBe(200);
   // A token of the owner is not the owner present: it reads the security issue it opened and no other.
   const d1 = rig.as("owner", "delegation:d1", { "x-brain-holder": "secret", "x-brain-tab": "0" });
   expect((await d1("get?id=sec")).data.issue).toEqual(stub);
@@ -1146,6 +1191,39 @@ test_issues_rebuild_and_replay_judge_the_record = {
   expect((await rig.owner("verify")).data).toMatchObject({ ok: true, seq: forged.seq });
   expect((await rig.owner("verify?guards=true")).data).toEqual({ ok: false, seq: forged.seq, why: "the guard of pass refuses", checked: forged.seq - 1 });
   return "the view made again equals the view kept; a forged pass is named";
+}
+// %%
+test_issues_migrate_moves_what_is_still_there = {
+  const rig = await issuesRig();
+  for (const id of ["aaaaaaaaaa1", "aaaaaaaaaa2", "gone"]) await rig.owner("open", { id, title: id, kind: "feedback" });
+  const { policy: was, workflows: flows } = (await rig.owner("policy")).data, old = was.names.feedback;
+  const flow = { states: ["new", "closed"], start: "new", closed: ["closed"], read: "true", open: "true", comment: "true", label: "true", review: "false", narrow: "false", moves: [{ name: "close", from: "new", to: "closed", guard: "true" }], swaps: [] };
+  const policy = { kinds: { feedback: "feedback" }, workflows: { feedback: flow } };
+  // Another writer, past the service, with its row of the view: what a second caller does while an install runs.
+  const other = async (fields) => {
+    const e = await rig.forge(fields, { caller: "owner", via: "session" }), row = rig.db.view.get(e.id);
+    const i = issueApply({ ...issueView(), workflows: flows, issues: row ? { [e.id]: JSON.parse(row.issue) } : {} }, e).issues[e.id];
+    rig.db.view.set(i.id, { id: i.id, parent: i.parent, workflow: i.workflow, closed: i.closed ? 1 : 0, issue: JSON.stringify(i) });
+  };
+  // As the policy is written, "late" is opened on the old workflow. As the first swap is written, "gone" is closed.
+  rig.db.hooks.push(
+    () => other({ id: "late", type: "opened", workflow: old, title: "late", body: "", kind: "feedback", about: "brain", parent: null, labels: [], state: "open" }),
+    () => null,
+    () => other({ id: "gone", type: "moved", workflow: old, move: "close", from: "open", to: "closed", reason: "", refs: [] })
+  );
+  // A key at the limit: the swaps are keyed from the policy's seq, so two ids alike to their last letter are two events.
+  const installed = (await rig.owner("install", { key: "k".repeat(issuesLimits.key - 8), policy, migrate: { [old]: { workflow: "feedback", states: { open: "new" } } } })).data;
+  expect(installed).toMatchObject({ moved: ["aaaaaaaaaa1", "aaaaaaaaaa2", "late"], left: [{ id: "gone", why: "the issue is no longer where this swap takes it from" }] });
+  const now = Object.fromEntries((await rig.owner("list")).data.issues.map((i) => [i.id, [i.state, i.workflow === installed.hashes.feedback, i.closed]]));
+  expect(now).toEqual({ aaaaaaaaaa1: ["new", true, false], aaaaaaaaaa2: ["new", true, false], late: ["new", true, false], gone: ["closed", false, true] });
+  const swaps = rig.db.events.map((e) => JSON.parse(e.event)).filter((e) => e.type === "swapped");
+  expect(swaps.map((e) => e.key)).toEqual(["aaaaaaaaaa1", "aaaaaaaaaa2", "late"].map((id) => `policy/${installed.seq}/${id}`));
+  expect(swaps[0].from).toEqual({ workflow: old, state: "open" });
+  // A swap written past the service that names another place than the issue was in is named by the replay.
+  expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: true });
+  const forged = await rig.forge({ id: "late", type: "swapped", workflow: installed.hashes.feedback, swap: null, from: { workflow: installed.hashes.feedback, state: "closed" }, to: { workflow: installed.hashes.feedback, state: "new" }, reason: "" }, { caller: "owner", via: "session" });
+  expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: false, seq: forged.seq, why: "the issue is no longer where this swap takes it from" });
+  return "3 moved, 1 closed meanwhile and left; 1 opened meanwhile and moved";
 }
 // %%
 test_issues_declares_what_it_needs = {
