@@ -144,6 +144,9 @@ The design he gave for deploys, in his words:
   liveliness feature. We can't have the next thing building on a faulty base."
 - "its mega important the verification occur quickly and on an isolated code base."
 
+Asked whether "no next deploy until verified" holds one Worker or the whole cluster:
+"yes block jsut that one worker that is not verified, other deploys go on."
+
 What the code did on that date is in the session's answer to him and is not repeated here: it
 changes when the design is built.
 
