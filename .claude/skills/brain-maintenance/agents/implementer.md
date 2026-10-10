@@ -70,6 +70,14 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    })));
    return JSON.stringify([names.length, bad]);
    ```
+   Name a `test_*` cell in the first line that finds `mod`: a helper such as `blueskyRig` is in
+   two modules and gives the other one's count. The snippet reads the value of the page's own
+   first run, made while every other test cell computes; the owner's page runs each `test_*`
+   cell the same way at opening and after a deploy (`verifyService`, `cloud-brain.ojs`), and a
+   fail there puts an unverified Worker back. So a test you add or change has no bound on the
+   wall clock, assigns nothing to `console` or another global, counts calls and reads returns
+   only on a panel made with `listen: false`, and does not rest on which of two calls of a fake
+   answers first unless the rig holds one. One it does not meet goes in "not tried" by name.
    `run_tests` hangs on this notebook; do not use it. Do not define the observers inside the
    module under test: they would be written into the deployed source.
    `bun tools/lope-tests.ts <notebook> --filter test_<service>` runs the same cells with no browser
