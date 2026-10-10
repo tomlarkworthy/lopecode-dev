@@ -1,0 +1,294 @@
+opening = md`After every deploy the deployer runs the deployed module's tests itself, alone, in a browser of the cluster, and acts on the result. A Worker that is not verified in 10 minutes is put back, and its next deploy is refused until then. For the owner and for every agent that deploys: a deploy is kept or put back by what was deployed, and not by which tab happened to be open.`
+// %%
+viewof specStatus = sticky(Inputs.select(["draft", "in review", "approved for handover"], { label: "Status", value: "draft" }), "draft")
+// %%
+readiness = {
+  const notes = (annotations || []).filter((a) => a.home === specModule || (a.anchor && a.anchor.module === specModule));
+  const unchecked = requirements.filter((r) => !r.check || /^<.*>$/.test(r.check.trim()));
+  const blocking = questions.filter((q) => q.blocking && !q.answer);
+  const undrawn = states.filter((s) => !s.drawing);
+  const items = [
+    [notes.length, "annotations to resolve"],
+    [blocking.length, "blocking questions open"],
+    [unchecked.length, `of ${requirements.length} requirements without a check`],
+    [undrawn.length, `of ${states.length} states without a drawing`]
+  ];
+  const ready = items.every(([n]) => n === 0) && specStatus === "approved for handover";
+  // Everything that still needs the reviewer, listed here with a link to where it is answered.
+  const open = questions.map((q, i) => ({ q, i })).filter(({ q }) => !q.answer);
+  const todo = [
+    ...open.filter(({ q }) => q.blocking).map(({ q, i }) => ({ tag: "blocking question", text: q.q, to: `[data-question="${i}"]` })),
+    ...open.filter(({ q }) => !q.blocking).map(({ q, i }) => ({ tag: "open question", text: q.q, to: `[data-question="${i}"]` })),
+    ...unchecked.map((r) => ({ tag: "no check", text: `${r.id} ${r.text}`, to: `[data-requirement="${r.id}"]` })),
+    ...undrawn.map((s) => ({ tag: "not drawn", text: `state: ${s.state}`, to: `[data-state="${s.state}"]` }))
+  ];
+  const box = htl.html`<div style="font:13px system-ui;padding:.5em .8em;border:1px solid color-mix(in srgb, currentColor 25%, transparent);border-radius:6px"></div>`;
+  // Scrolls the pane; a plain #fragment link would replace the lopepage layout hash.
+  const jump = (to) => (e) => {
+    e.preventDefault();
+    const el = (box.closest(".lp2-pane") || box.ownerDocument).querySelector(to);
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (el.animate) el.animate([{ background: "color-mix(in srgb, currentColor 22%, transparent)" }, { background: "transparent" }], 1800);
+  };
+  const short = (s) => (s.length > 110 ? s.slice(0, 110) + "…" : s);
+  box.append(htl.html`<div style="display:flex;gap:1.2em;flex-wrap:wrap;align-items:baseline">
+    <strong>${ready ? "Ready to hand over" : "Not ready to hand over"}</strong>
+    ${items.map(([n, label]) => htl.html`<span style=${{ opacity: n ? 1 : 0.5 }}><strong>${n}</strong> ${label}</span>`)}
+  </div>`);
+  if (todo.length) box.append(htl.html`<ol style="margin:.5em 0 0;padding-left:1.4em">${todo.map((t) => htl.html`<li><a href="#" onclick=${jump(t.to)}>${t.tag}</a>: ${short(t.text)}</li>`)}</ol>`);
+  return box;
+}
+// %%
+md`## Reviewing this spec
+
+- **Leave a note**: ☰ → Annotate → Note, then drag over the words or click the shape. Notes are review comments; Claude Code works through them, and you delete each when it is dealt with.
+- **Ask about a spot**: ☰ → Annotate → Ask, then pick the words or shape and type. The question goes to the agent with what you pointed at, and the answer threads at that spot. It reads Ask Claude while a Claude Code session is paired and Ask robocoop otherwise; the switchboard tab changes which.
+- **Click prose** to rewrite it. **Drag shapes** in a drawing to move them; the tool strip above the drawings adds new ones.
+- **Ask** in the pane at the bottom. Roboco-op reads and edits this notebook.
+- ☰ → **Save in place** keeps your edits and notes in this file.`
+// %%
+md`## Problem
+
+On 2026-10-10 at 19:32:38 CEST the deployer put \`brain-x-issues\` back to its previous version and a reviewed fix was off cb4 for 11 minutes. Nothing was wrong with the fix. An agent had opened the Brain's page in the cluster's browser with the owner's session. That browser is Chrome 128, the tracker then signed with Ed25519, Chrome 128 has none, the page reported the tracker's tests as failed, and the deployer acted on the report.
+
+What the code does today (read 2026-10-10):
+
+- The deployer checks health only. \`/xrpc/_health\` twice failed puts a Worker back (\`brain-deployer.ojs\`, the tick at line 796).
+- The tests are run by the owner's page. \`assembled\` (\`cloud-brain.ojs:818\`) runs \`verifyService\` for every Worker when the page opens with the owner signed in, and \`verifyService\` (\`cloud-brain.ojs:790\`) sends \`deploy.report\` to the core (\`brain-core.ojs:524\`).
+- One failed report on a hash not yet verified has the deployer put the version before back (\`verdictOf\`, \`brain-deployer.ojs:848\`).
+- \`brain.ts apply\` reports nothing, so a Worker deployed from the command line stays unverified until the owner opens the page. Five versions of the tracker were deployed that way on 2026-10-10, each over an unverified one.
+- Only the kernel, the core and the Worker that serves the page are put back when nobody confirms in 10 minutes (\`brain-deployer.ojs:523\`). Every other Worker stays unverified with no limit.
+
+So a verdict depends on whose browser opens the page, which browser it is, and what else that page is doing. Measured the same day at 22:11 in the cluster's Chrome 128: the published notebook opened with only the tracker in view ran every module's tests at once (the build boots \`@tomlarkworthy/tests\` and 42 mains), and 18 of the tracker's 19 tests had no result in 60 s. Heap 640 MB.`
+// %%
+md`## Outcome
+
+- A deploy of a Worker is followed, with no person and no page involved, by a run of that Worker's \`test_\` cells alone, and the deployer's log says \`verified\` or \`put back\` with the hash and the failed tests.
+- A Worker deployed and not verified within 10 minutes is put back to the version before. This holds for every Worker.
+- A second deploy of a Worker that is still unverified is refused with a message that says when it will be decided. A deploy of any other Worker goes on.
+- Opening the Brain's page, in any browser, signed in or not, changes no Worker.
+
+Tom, 2026-10-10: "the report definately needs the hash of what it is verifying so the wrong report doesn;t rollback the wrong worker. It should not be mandatory because it might be lost. But if something has proof the deployment is broken then it is correct to roll it back. We do not want poisoned code infecting the cluster and comounding. But the deployer should have an isolated version testing what is deployed does what is expected." And: "you can't do another deployment until verified ... the 10 min rollback is mandatory liveliness feature. We can't have the next thing building on a faulty base. So its mega important the verification occur quickly and on an isolated code base."`
+// %%
+md`### Size
+
+Three days. The deployer's state machine and the refusal are one day with tests. The verify page and the run are one day. The page's change, the docs, and the first deploys on cb4 with the owner are the third. If time runs out the rows at the bottom of Behaviour go first.`
+// %%
+md`## Scope
+
+### Not your concern, do not build it
+
+- \`cloud-brain-dev\`, the repository kept by \`brain-x-git\`, with \`sync.ts\` and \`test.ts\` (tests under bun with no browser). Another session owns it. Its \`services.json\` is not read by this design.
+- \`brain-x-container\`. Not used.
+- The tracker (\`brain-issues.ojs\`), its signing, its panel.
+- The approval of a deploy by the owner (\`approval\` in the deployer's settings, \`pending/\`). Unchanged: verification starts when a Worker is deployed, which is after any approval.
+- \`brain.ts page up\` and the pairing bridge.
+- The health check and its two-fails rule. Kept as it is.
+
+### Non-goals
+
+- Running the tests before the deploy. What is tested is what runs, read back from the Worker; a test before the deploy tests what was sent.
+- A second browser or a newer Chrome. Cloudflare's Browser Run is Chrome 128.0.6613.137 and documents no way to choose (read 2026-10-10; \`cloudflare/playwright\` issue 232). The design does not depend on the version: a module whose tests need a newer browser fails its verification and is put back, which is the correct answer for a Brain whose only browser is that one.
+- Verifying a member's Worker (\`member.deploy\`). Members' modules have no tests the owner vouches for.
+- Making the page smaller than the module's imports. The tracker's page is 4.9 MB of 54 modules, and ran in 3.8 s.`
+// %%
+md`## Words
+
+The implementer uses these strings as written.`
+// %%
+copy_title = md`Deploy verification`
+// %%
+copy_opening = md`The deployer runs a Worker's tests after each deploy, alone, in a browser of the Brain. Until they pass the Worker is on probation: it is put back after 10 minutes, and it cannot be deployed again.`
+// %%
+copy_strings = md`| where | text |
+|---|---|
+| a deploy refused while the Worker is unverified (\`reason\` of the result, state \`refused\`) | \`NAME is HASH12 and not verified yet: its tests are running, and it is put back at HH:MM:SS if they have not passed. Deploy again after that.\` |
+| put back, tests failed (\`deploy.rollback\` reason) | \`its tests failed: test_a, test_b: MESSAGE\` (as today, 200 characters) |
+| put back, no verdict in time | \`not verified in 10 minutes\` |
+| log line, run started | \`{ at: "deploy.verify", target, hash, run }\` |
+| log line, verdict | \`{ at: "deploy.verified", target, hash, tests, ms }\` or \`{ at: "deploy.failed", target, hash, failed, ms }\` |
+| log line, the run gave no verdict | \`{ at: "deploy.verify.none", target, hash, reason }\` |
+| deployer page, a Worker on probation | \`NAME HASH12 is on probation until HH:MM:SS.\` (as today, now for every Worker) |`
+// %%
+md`## Behaviour
+
+One requirement per row, in priority order: if time runs out, the bottom rows go first. \`check\` is how anyone can tell the row holds. The \`test_\` names are cells to be written in the module named.`
+// %%
+requirements = [
+  { id: "R1", text: "After a deploy of a Worker that has a version before it, the deployer shall put that Worker on probation: state `probation`, with the hash, the hash before it and the time. Today this is so for the kernel, the core and the page's Worker only.", check: "brain-deployer: test_deployer_every_worker_is_on_probation_after_a_deploy" },
+  { id: "R2", text: "While a Worker is on probation, when 10 minutes (`probationMs`) have passed with no passing verdict, the deployer shall put it back to the version before and log `not verified in 10 minutes`.", check: "brain-deployer: test_deployer_unverified_worker_is_put_back_at_the_limit" },
+  { id: "R3", text: "While a Worker is on probation, an apply, a redistil with apply, or a remove of that Worker shall be refused with the string under Words, and a deploy of any other Worker in the same call shall go on.", check: "brain-deployer: test_deployer_refuses_a_deploy_over_an_unverified_one" },
+  { id: "R4", text: "After a deploy, the deployer shall start one run of the Worker's tests in a browser of the Brain, on a page that boots that Worker's module alone, read from what the Worker runs.", check: "brain-deployer: test_deployer_starts_one_verify_run_a_deploy; on cb4: logs.query at=deploy.verify after an apply" },
+  { id: "R5", text: "The verdict shall carry the hash the page loaded. The deployer shall act on it only when that hash is the one it deployed and is still running; any other verdict is logged and dropped.", check: "brain-deployer: test_deployer_drops_a_verdict_for_another_hash" },
+  { id: "R6", text: "When the verdict is a pass, the deployer shall end the probation, record the hash as confirmed, and tell the core, which marks the route verified.", check: "brain-deployer: test_deployer_pass_ends_probation; on cb4: service.list shows verified.ok for the hash" },
+  { id: "R7", text: "When the verdict is a fail (a test threw, or had no result in 30 s), the deployer shall put the Worker back at once with the failed tests in the reason.", check: "brain-deployer: test_deployer_fail_puts_back_at_once" },
+  { id: "R8", text: "When the run gives no verdict (the browser service is down, the page did not load, the run passed its time), the deployer shall log `deploy.verify.none` and change nothing. R2 then decides.", check: "brain-deployer: test_deployer_no_verdict_changes_nothing" },
+  { id: "R9", text: "On the verify page, no `test_` cell of any other module shall run.", check: "the verdict's otherTestsRan is 0; brain-deployer or cloud-brain: test_verify_page_boots_one_module" },
+  { id: "R10", text: "The Brain's page shall send no verdict. `verifyService` runs tests for the reader and reports nothing; `deploy.report` on the core answers only the deployer.", check: "cloud-brain: test_page_sends_no_report; brain-core: test_core_deploy_report_is_the_deployers" },
+  { id: "R11", text: "For `brain-x-issues` on cb4 the verdict shall arrive within 60 s of the deploy.", check: "on cb4: the `at` of deploy.verified minus the `at` of the deploy, from logs.query. Measured by hand 2026-10-10 22:35: 9 s from opening the tab to the verdict." },
+  { id: "R12", text: "A Worker deployed for the first time has nothing to be put back to. Its run is made, the verdict is recorded (`verified` or `failing`), and it is not on probation.", check: "brain-deployer: test_deployer_first_deploy_is_verified_with_nothing_to_put_back" }
+]
+// %%
+requirementsTable = htl.html`<table style="font-size:.9em">
+  <thead><tr><th>id</th><th>requirement</th><th>check</th></tr></thead>
+  <tbody>${requirements.map((r) => htl.html`<tr data-requirement=${r.id}><td><strong>${r.id}</strong></td><td>${r.text}</td><td>${r.check ? htl.html`<code>${r.check}</code>` : htl.html`<em>none</em>`}</td></tr>`)}</tbody>
+</table>`
+// %%
+md`### Worked examples
+
+What the verify page left on \`window.__verify\`, read with \`browser.eval\` on cb4 at 22:35 CEST on 2026-10-10 (\`tools/scratch/cloud-brain-experiments/verify-page/\`). \`worker\`, \`module\` and \`hash\` are what R5 reads.`
+// %%
+examples = [
+  { given: "brain-x-issues 15d722ba45e4, its module alone, Chrome 128 on cb4", expect: { worker: "brain-x-issues", module: "@tomlarkworthy/brain-issues", hash: "15d722ba45e4bce31309478f7e49d36427f199dccd97c41383c7e326c597a6ff", ok: true, tests: 19, failed: [], bootMs: 1086, testMs: 3784, otherTestsRan: 0, heapMB: 93 } },
+  { given: "the same module in the whole published notebook, same browser, 22:11", expect: { tests: 19, noResultIn60s: 18, heapMB: 640 } },
+  { given: "a verdict whose hash is not the one deployed", expect: "logged, dropped, the Worker stays on probation" }
+]
+// %%
+md`## Design
+
+The parts and the order. The deployer is the only actor that decides. The browser is a place the tests run, and holds no credential.`
+// %%
+architecture = onPaper(mermaid`flowchart LR
+  apply[infra.apply] --> dep[deployer]
+  dep -- deploys --> w[Worker NAME]
+  dep -- run the verify page for NAME --> br[brain-x-browser]
+  br --> page[verify page: frame, NAME module, its imports]
+  page -. getSource and getModules, public .-> w
+  page -- verdict with hash --> dep
+  dep -- pass: confirm, fail: put back --> w
+  dep -- verified or failing --> core[brain-core route]
+  tick[one-minute tick] -- 10 minutes and no pass: put back --> dep`)
+// %%
+sequence = onPaper(mermaid`sequenceDiagram
+  participant C as brain.ts apply
+  participant D as deployer
+  participant W as Worker NAME
+  participant B as brain-x-browser
+  C->>D: infra.apply NAME (was HASH0)
+  D->>W: deploy HASH1
+  D->>D: probation NAME, lastGood HASH0
+  D-->>C: probation
+  D->>B: run verify page for NAME
+  B->>W: getSource NAME
+  B-->>D: verdict hash HASH1, ok, failed
+  alt pass and HASH1 is running
+    D->>D: confirmed
+  else fail and HASH1 is running
+    D->>W: put back HASH0
+  else no verdict
+    D->>D: nothing, at 10 minutes put back HASH0
+  end
+  C->>D: infra.apply NAME again, while on probation
+  D-->>C: refused, not verified yet`)
+// %%
+md`### The verify page
+
+A frame and the modules a test needs. Tom, 2026-10-10: "You would just have the frame and inject the modules you need to run the test." And: "there is a specific strcuture to support streaming, simplest though it put the bootloader last".
+
+- The frame is the Brain's page with every module block and every block a module owns taken out.
+- Into it go the module the Worker runs (\`getSource\`), and each module that one imports, each with its files ahead of it, all ahead of the document's \`<!-- Bootloader -->\` marker.
+- \`bootconf.mains\` is that one module. \`@tomlarkworthy/tests\` and the Brain's main module are not booted, so nothing runs another module's tests and nothing calls the Brain as the owner.
+- A script after the bootloader asks for each \`test_\` cell of the module, 30 s each, and leaves \`{ worker, module, hash, ok, tests, failed }\` where the run reads it.
+
+Built as a probe (\`tools/scratch/cloud-brain-experiments/verify-page/page.ts\`) on \`tools/lib/notebook-blocks.ts\` and \`importsOf\` of \`tools/channel/sync-module.ts\`. No regular expression of the probe's own finds a block or an import. Tom, 2026-10-10: "you should never use cude regexes, we have many tools like sync-module to do this properly."
+
+### Decisions
+
+| decided | instead of | because |
+|---|---|---|
+| The deployer starts the run and decides | the owner's page reporting (today) | the page's verdict depended on the browser and on what else the page ran; 2026-10-10 19:32 |
+| Tests run in a browser of the Brain | bun with no browser (\`cloud-brain-dev/test.ts\`) | at 22:33 that runner had 7 failures not yet explained and 28 tests that need a DOM (its author's count). Tom: "it has not got the tests working though. I think maybe browser route is better" |
+| Browser Run as it is, Chrome 128 | a container with a current Chrome | no image to keep; 19 of 19 in 3.8 s. The cost is the non-goal above |
+| One module booted | the notebook with one pane in view | the pane does not decide what boots; 18 of 19 had no result in 60 s |
+| Probation for every Worker, 10 minutes | health check only for recipes (today) | Tom: "the 10 min rollback is mandatory liveliness feature" |
+| An unverified Worker blocks its own next deploy only | blocking every deploy | Tom: "yes block jsut that one worker that is not verified, other deploys go on." |
+| The tracker signs with ECDSA P-256 | keeping Ed25519 with a second code path | done 2026-10-10 22:04, \`tools/cloud-brain/records/sign-p256.md\` |
+
+### Known traps
+
+- A module block put after the bootloader's first read of it is not found, and the runtime then asks \`api.observablehq.com\` for the module and gets 404. Seen 2026-10-10 in the probe's first version.
+- A module's files go ahead of the module. \`hono.Hono is not a constructor\` was every test of the tracker when \`@tomlarkworthy/cloudflare-iac/hono.js\` was absent.
+- A service's module is not in the Brain's page. The page loads it from the Worker. The deployer's \`infra.getModules\` has each with its files.
+- \`browser.open\` refuses a URL that is not http or https, so a blank tab cannot be asked for.
+- \`browser.run\` ends at 120 s at most. A module whose tests need longer cannot be verified by one run.
+- The page's \`verifyService\` also loads a Worker's module into the reader's page (\`loadService\`). That stays. Only the report goes.`
+// %%
+md`## Handover
+
+This changes the deployer, the core and the page. By \`rules.md\` of the brain-maintenance loop those are deployed by the owner. Write, test and stop; Tom deploys.
+
+### Where the work goes
+
+- \`tools/cloud-brain/brain-deployer.ojs\`: \`nextKernelState\` (line 41) already has the three transitions; R1 is the condition at line 523 that puts only non-recipes on probation. R3 is in \`apply\` (line 609) and in the paths of \`redistil\` and \`remove\`, inside \`guard\`. R4 to R8: a function beside \`verdict\` (line 847) that starts the run after \`rows.put("worker/…")\`, and \`verdictOf\` (line 848), which already drops a stale hash and puts back on a fail. The tick (line 796) already puts back at the limit for what is on probation.
+- \`tools/cloud-brain/brain-core.ojs\`: \`deploy.report\` (line 524) and \`toDeployer\` (line 422). The core keeps \`verified\` on the route; it is told by the deployer.
+- \`tools/cloud-brain/cloud-brain.ojs\`: \`verifyService\` (line 790), \`assembled\` (line 818), \`assembledRefresh\`.
+- The verify page: see the first open question for where it is made. The probe is \`tools/scratch/cloud-brain-experiments/verify-page/page.ts\`.
+- \`tools/cloud-brain/cloud-brain-docs.ojs\` line 240 and \`cloud-brain-specs.ojs\` R9, which describe the page reporting.
+- Read first: \`knowledge/working-with-cloud-brain-remote-lopecode-cluster.md\`, \`.claude/skills/brain-maintenance/philosophy.md\` (Clarifications).
+
+Line numbers are of commit \`79e502e2\`.
+
+### Boundaries
+
+| | |
+|---|---|
+| **always** | seed, \`build.ts\`, the module's tests in a browser, then emit. Report the test output. |
+| **ask first** | a change to \`cloudflare-iac.ojs\` (it moves every Worker's hash); a new method on \`brain-x-browser\`; a new Worker |
+| **never** | deploy the kernel, the core, the database or the deployer; open the Brain's page in the cluster's browser before step 5 is on cb4; scan notebook HTML with a regular expression |
+
+### Checks
+
+\`\`\`
+bun tools/cloud-brain/build.ts
+bun tools/lope-tests.ts lopebooks/notebooks/@tomlarkworthy_cloud-brain.html --filter test_deployer
+bun tools/lope-tests.ts lopebooks/notebooks/@tomlarkworthy_cloud-brain.html --filter test_core
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts redistil        # every line same
+\`\`\`
+
+After Tom's deploys, on cb4: apply a recipe twice within a minute (the second answers \`refused\` with the string under Words), and read \`logs.query\` for \`deploy.verify\` and \`deploy.verified\` of the first.
+
+### Steps
+
+1. The verify page for one Worker, made the way the first open question is answered, run by hand in the cluster's browser for three Workers: \`brain-x-issues\`, \`brain-x-browser\`, \`brain-x-static\`. **Stop and show** the three verdicts and times.
+2. Deployer: R1, R2, R3 with their tests. No run yet, so every deploy is put back at 10 minutes unless confirmed by hand. Do not deploy this step alone.
+3. Deployer: R4 to R8 and R12 with their tests, the browser stood in for by a fake in the rig. **Stop and show** the tests.
+4. Core: \`deploy.report\` for the deployer only. Page: R10.
+5. Tom deploys the deployer, the core and the page to cb4. Then the checks above on cb4. **Stop and show.**
+6. Docs and the as-built record. Then the owner closes \`deployer-put-back-issues-worker\` and \`verify-in-hidden-tab-fails-tests\`, and removes the line of \`rules.md\` about the cluster's browser.`
+// %%
+md`## Open questions
+
+A question marked blocking stops the handover. Each open one is listed in the strip at the top with a link to its row here. Rows with an answer are Tom's, with his words.`
+// %%
+questions = [
+  { q: "Where is the verify page made? (a) The page's Worker serves a frame with no service module in it, and a script ahead of the bootloader reads the Worker's module and its imports from the Brain's public reads and adds them to the document; the deployer calls browser.run on that address. Not measured. (b) The deployer makes the whole file from the frame and the sources it keeps, opens a tab on an https address and writes the file into it with browser.eval. Measured: 4.9 MB, 9 s. (b) needs the block library as cells of the deployer's module, which is code copied from tools/lib. Claude would take (a) and measure it in step 1.", blocking: true, answer: "" },
+  { q: "A deploy of brain-x-browser, of the page's Worker or of the core can break the thing that verifies it. Is the 10 minute limit enough for those, with no other check? Claude would say yes: a broken verifier gives no verdict, and R2 puts the Worker back.", blocking: true, answer: "" },
+  { q: "Who pays for the browser time of a run, and through what? browser.extend is the one priced method and the core counts the price. A run of 20 s is 0.0005 USD at the rate in brain-browser. The deployer calls the core with its key today (toCore); whether the browser service takes a call from the caller `deployer` was not read. Is a daily limit wanted for it?", blocking: false, answer: "" },
+  { q: "May a deploy signed with the recovery key go over an unverified Worker? It is the way out when a verifier is broken and the fix is to a Worker on probation. Claude would allow it and log it.", blocking: false, answer: "" },
+  { q: "After a put back for failed tests, is the same hash refused if it is sent again? Today nothing remembers a failed hash. Claude would not add it: the run is the cost of sending it again.", blocking: false, answer: "" },
+  { q: "The deployer and the kernel are deployed by install-deployer and by the recovery path, not by infra.apply. Are they verified by this run too, or left to their probation and brain.ts confirm as today? Claude would leave them as today in this change.", blocking: false, answer: "" },
+  { q: "Does a report have to arrive for a deploy to stand?", blocking: false, answer: "No. Tom, 2026-10-10: \"It should not be mandatory because it might be lost.\" With no report the 10 minute limit decides (R2, R8)." },
+  { q: "Is every deploy blocked while one Worker is unverified?", blocking: false, answer: "No. Tom, 2026-10-10: \"yes block jsut that one worker that is not verified, other deploys go on.\"" },
+  { q: "If the browser service is down, every deploy is put back at 10 minutes. Is that accepted?", blocking: false, answer: "Yes. Tom, 2026-10-10: \"the 10 min rollback is mandatory liveliness feature. We can't have the next thing building on a faulty base.\"" },
+  { q: "Browser, or tests with no browser?", blocking: false, answer: "Browser. Tom, 2026-10-10: \"I think maybe browser route is better, but the repository work is still very useful\"." }
+]
+// %%
+questionsTable = htl.html`<table style="font-size:.9em">
+  <thead><tr><th></th><th>question</th><th>answer</th></tr></thead>
+  <tbody>${questions.map((q, i) => htl.html`<tr data-question=${i}><td>${q.blocking && !q.answer ? "blocking" : ""}</td><td>${q.q}</td><td>${q.answer || htl.html`<em>open</em>`}</td></tr>`)}</tbody>
+</table>`
+// %%
+states = []
+// %%
+// mermaid draws dark text on no background, which is unreadable on a dark theme.
+onPaper = (node) => htl.html`<div style="max-width:640px;background:#f6f7f9;border-radius:6px;padding:10px">${node}</div>`
+// %%
+specModule = "__SPEC_MODULE__"
+// %%
+import {md} from "@tomlarkworthy/editable-md"
+// %%
+import {annotation, annotations} from "@tomlarkworthy/annotate"
+// %%
+import {sticky} from "@tomlarkworthy/sticky"
+
