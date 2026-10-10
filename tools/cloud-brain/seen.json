@@ -19,6 +19,10 @@
   "brain-x-bluesky": {
    "hash": "d63b5fccfa5f5a2201cdef220cf6de8176ff05c5cbfaf9a3989054318aacd300",
    "at": 0
+  },
+  "brain-x-browser": {
+   "hash": "ef7bf8d547938c1231c10e32ad3e1b8263c09be5ab320ab3d8ee02a0dc128e5f",
+   "at": 0
   }
  }
 }
