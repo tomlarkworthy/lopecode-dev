@@ -74,6 +74,8 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    them, so it also shows a change that only holds with another writer's undeployed work.
    What it does not do, and step 8 does:
    - A test that reads `document` or `location` is counted `needsBrowser`, never passed (27 of 311 on 2026-10-10).
+     So is a test that reads a cell whose inputs name a browser global (`issuesStore` names
+     `localStorage`), with no failure line: if a test you wrote lands there, look at the cells it reads.
    - It runs a module's tests one at a time. The owner's page runs them together, and two tests
      that read the log at once took each other's lines there.
    - `--with` puts one module in place. A change to a module others import (`cloudflare-iac`)
@@ -129,10 +131,11 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
      `git log --format=%ci`, an event's `at` or `date`, never estimated. Not `spec-as-built.md`:
      every writer appended there and the cherry-picks met. The deploy hash and the commits are
      the refs of the submit, not part of the record. Commit it (a second commit is fine).
+     The loop's reviewer is the record's fresh read; `/review-notebook` is not run on it.
    - **Emit** in that tab, to a file named for the issue, then close the tab by name:
      `fetch("http://127.0.0.1:47814/<id>-<worker>.json", { method: "POST", body: JSON.stringify(await (await mod.value("<name>_service")).emit()) })`.
      Each `eval_code` is its own scope: repeat the two lines that find `rt` and `mod`. The cell
-     is named for the service: for the tracker, `issues_service`, Worker `brain-x-issues`.
+     is named for the service: `issues_service` for Worker `brain-x-issues`, `git_service` for `brain-x-git`.
      If nothing listens on 47814, start `bun <root>/tools/cloud-brain/test-receiver.ts` in the background
      (from the main checkout: `apply` reads the files it saves there).
      A change with no deploy (a doc, a local tool, a test file under `tests/`) emits nothing.
@@ -148,7 +151,15 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
       is stale: `rmdir` the lock, build, test and emit again, and come back. Never apply a file
       emitted before such a change; it would deploy the Worker without the other writer's work.
       Anything else: keep the lock and carry on.
-    - `git -C <root> merge --ff-only bm/<id>`, then `bun tools/cloud-brain/build.ts` there (2 s).
+    - `git -C <root> merge --ff-only bm/<id>`. Then the notebook, built from committed seeds: the
+      worktree is at `main`'s commit now, so
+      `cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html && cp tools/cloud-brain/.emitted/cloud-brain.html "<root>/lopebooks/notebooks/@tomlarkworthy_cloud-brain.html"`.
+      Never `build.ts` in the main checkout: another session may have seeds open there, uncommitted
+      and with no lock, and that build writes them into the notebook you commit (six such files
+      on 2026-10-10 23:29; one writer built them in and had to undo it, one skipped the
+      `lopebooks` commit). `git -C <root>/lopebooks diff --stat` shows your change and no other.
+      If `git -C <root> diff --quiet -- tools/cloud-brain/brain.ts` fails, `brain.ts` there is
+      someone's edit: run the worktree's, `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted bun $W/tools/cloud-brain/brain.ts …`.
       The tests are not run again: the seeds are the ones you tested.
     - Deploy under the deploy lock (`cb4.lock`, inside the landing lock), with a reason that names the issue:
       `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts apply <id>-<worker>.json --reason="<id>: …"`.
