@@ -770,3 +770,8 @@ Built and on cb4: stored settings read through `config` (`config.set`, `config.g
 
 - **A permanent connection for an agent.** Not now: "lets forget how to do upgrades. It fine for now." A link's token ends after at most 24 hours and cannot renew itself. Options written down in the session: a standing token that may deploy; a token that renews itself.
 - **Onboarding a member by a link.** Tom: "we need a seperate mechnism for onbaording members via link, and I don;t want to do that now." Separate from the owner's sign-in link. Not designed.
+
+## Designs in progress (2026-10-10)
+
+- `plan/cloud-brain-authority.md`: one record for delegated authority. Nine drafts, eight fresh reviews; building from step 1.
+- `plan/cloud-brain-topics.md`: topics in place of one inbox. Waits on steps 1 and 2 of the design above.
