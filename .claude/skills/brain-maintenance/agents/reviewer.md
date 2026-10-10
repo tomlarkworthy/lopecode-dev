@@ -40,7 +40,9 @@ You change no source, build nothing and deploy nothing. You write to the tracker
    ```
    A copy of your own, because `sync.ts` makes `deploy/` again and a writer may be reading the
    shared one. The JSON line's `hash` is the deploy ref's, or a later one as in step 3; `failed`
-   is 0. `needsBrowser` tests were not run by it. Remove the copy when done
+   is 0. `needsBrowser` tests were not run by it. The module as deployed is
+   `deploy/@tomlarkworthy/<module>.js` there: a copy of it with one line changed, run with
+   `bun test.ts <worker> --with <copy>`, shows whether a test fails without the fix. Remove the copy when done
    (`git -C cloud-brain-dev worktree remove --force <path>`).
    Then the count you report, in a QA tab under a session name of your own, with the snippet in
    `agents/implementer.md` step 8. Other agents land changes while you review, so test the
