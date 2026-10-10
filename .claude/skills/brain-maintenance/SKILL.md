@@ -50,7 +50,7 @@ Two files beside it, neither of them needed to resume:
    not needed; no `cb4.lock` or `land.lock` older than 20 minutes. If the cluster is not healthy, file or find
    the issue for it and do nothing else this pass. A stale lock is the owner's to remove: say so
    in step 7 each pass until it is gone.
-2. **Count your running agents.** Keep up to 2 implementers and 2 reviewers running, and at
+2. **Count your running agents.** Keep up to 4 implementers and 2 reviewers running (4 since 19:28 2026-10-10, Tom: "maybe we do another 2 in parrallel"; they land one at a time, so past 4 they queue on `land.lock`), and at
    most one agent on any issue. Each pass, fill the free places from step 3; with none free, do
    the triage rows only. (Tom, 2026-10-10: "try to have 1-2 writers and 1-2 reviewers active at
    all times".) What makes that safe: a writer edits and builds in a worktree of its own and
@@ -121,7 +121,7 @@ way past an access rule; the issue is then the owner's.
 ## What the loop does not do
 
 - Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md`.
-- More than 2 writers or 2 reviewers at once, or two agents on one issue.
+- More than 4 writers or 2 reviewers at once, or two agents on one issue.
 - Issues whose fix is outside `tools/cloud-brain/` and its docs. Comment and label `needs-owner`.
 - Carry on past a cluster that is not healthy.
 
