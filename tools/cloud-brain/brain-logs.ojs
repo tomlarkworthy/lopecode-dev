@@ -27,7 +27,7 @@ Cloudflare keeps what a Worker writes with \`console.log\`, 7 days on Workers Pa
 
 | Line | Written by | Fields |
 |---|---|---|
-| \`at: "call"\` | the core, one a call | \`ray caller via origin method worker status error ms price rule by\` (see \`coreApp\` in brain-core) |
+| \`at: "call"\` | the core, one a call | \`ray caller via origin delegation holder method worker status error ms price rule by\` (see \`coreApp\` in brain-core) |
 | \`at: "throw"\` | the wrapper, when a service throws | \`worker ray error stack\`: the error's name and the frames of its stack, not its message, which can quote what a caller sent |
 | \`at: "deploy.…"\`, \`"token.…"\` | the deployer | \`target hash version previous first last reason token groups\`. \`reason\` and \`last\` can hold Cloudflare's text or a health check's answer about the code deployed, not what a caller of a method sent |
 | \`at: "browser.…"\` | brain-browser | \`session reason\` |

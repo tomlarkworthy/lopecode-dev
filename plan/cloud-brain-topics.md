@@ -162,7 +162,8 @@ numbers are guesses.
    `m.<their id>.NAME`, as a member's method is.
 2. The core change: `brain-x-topic` starts a call as a named subscriber, and the context carries
    `hops`. Designed in `plan/cloud-brain-authority.md` (a delegation with a Worker holder; its steps
-   1 and 2). Then push subscriptions to `NAME.receive`, made by the owner or a member, pushed at the
+   1 and 2, on cb4 since 2026-10-10 11:13 CEST). `topic.subscribe` takes a delegation's id and must
+   check that its `from` is the subscriber: an id is public. Then push subscriptions to `NAME.receive`, made by the owner or a member, pushed at the
    append and retried by the clock.
 3. `take` and `done`.
 4. The inbox as a topic: `inbox.append` writes to it, the page's lease is a take. Last, because the

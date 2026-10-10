@@ -3579,3 +3579,61 @@ cb4-deployer       1db43397b7bc  9f8c5de08825
 
 Also: `tools/cloud-brain/knowledge-docs.ts` enters `plan/cloud-brain-*.md` as well as `knowledge/*.md`. The authority design, the topics proposal and the backlog are entries `doc:cloud-brain-authority`, `-topics` and `-backlog` on cb4, private. A search by words found the first at once; by meaning it was not among the first four a minute after the put, and was not tried again.
 
+## Authority, step 2 of 7: the delegation record, and a Worker that calls under one (2026-10-10 11:13 CEST)
+
+`plan/cloud-brain-authority.md`, step 2. The core keeps `delegation/<id>` and decides a call made under one. Only a Worker holder is built; a token and a grant are the kernel's until steps 3 and 6.
+
+```
+delegation.create   the owner's or a member's own session   { name, holder: { worker }, scope, until, daily, note }
+delegation.list     the same; the owner reads all, a member their own, each with spentToday
+delegation.revoke   the same; { id }
+a holder's call     the Worker's key, x-brain-as: <id>, x-brain-hops: <n>
+```
+
+What a call with `x-brain-as` is, from `test_a_worker_calls_under_a_delegation_as_who_made_it_and_not_in_their_tab`, as the Worker that answers hears it:
+
+```
+x-brain-caller owner   x-brain-via delegation:<id>   x-brain-tab 0   x-brain-holder worker:brain-x-echo
+x-brain-origin owner   x-brain-origin-via delegation:<id>   x-brain-origin-tab 0   x-brain-origin-holder worker:brain-x-echo   x-brain-hops 1
+```
+
+| | |
+|---|---|
+| in the scope, and the maker may call it now | 200; a rule reads `caller.kind == "owner"`, `caller.holder`, `caller.delegation` |
+| `caller.session` rule; the core's `session` guard (`rule.put`) | 401, 401 |
+| not in the scope; `secret.get`, `delegation.list`, `delegation.create` under scope `*`; a path | 403 each |
+| another Worker with the same id; an id nobody has; an id that is a path | 403 each |
+| the kernel's key with `x-brain-as` | the header is not read |
+| `calls/mode` `enforce`, target not in the holder's `calls` | 200 with `x-brain-as`, 403 without |
+| the Worker that answered calls on | origin `owner` under the delegation, `origin.session` false, hops kept |
+| `x-brain-hops: 7`, `8`, `-1`, `x` | 200 (sent on as 8), 403, 403, 403 |
+| a method priced $0.04 under `daily: 0.05`, two calls | 200, 402; the owner's day has $0.04, `spentToday` 0.04 |
+| a member's: the grant removed, then the member | 403, 403 |
+| past `until`; revoked | 403, 403; another delegation of the same holder goes on |
+
+Also in this step:
+
+- **One fact, `tab`.** The core's `session` guard is `owner && tab`, where `tab` is the via being `session`. It sends `x-brain-tab` (and `x-brain-origin-tab`) with every call it forwards, and the signed context carries `t`, `d`, `n` (the holder) and `h`. The design named three fields; `n` is the fourth, so the origin's holder needs no read of the row.
+- **The log line** has `delegation` and `holder`. `brain-logs` and the knowledge doc list the keys.
+- **The kernel**: `delegation.create`, `list`, `revoke` are in `MEMBER`; `never()` is the shared `neverHeld`. A token with `*` is refused them (test in `test_a_member_reads_their_own_spending`).
+- **Not built, against the design**: `delegation.resolve` (nothing calls it until step 3); a `xrpc.as` cell (a holder sends the two headers with `xrpc.fetch`, which needed no change to the wrapper and so no redeploy of every Worker); a member's blob under a delegation has no stamp of the delegation; a member's delegated calls are not counted in `mcalls`.
+- **For the topic service**: an id is public. A holder that takes an id from a caller must check `from` is that caller, or one member subscribes with another's delegation. Written in the core's doc cell.
+
+```
+Worker             before        after
+brain              5c35fe2c92ef  104ec1131cf9
+brain-core         9c2da80e39f2  130eb99555ff    cb1cab3ceb16 at 11:13; two messages reworded at 11:17
+brain-db           63f1a03e105f  0af12bd0d64e    tests only
+brain-x-blob       fa9885f906d0  9d753c5341ab    tests and prose
+brain-x-static     2f306cdad523  eea190ca7e51    tests and prose
+brain-x-browser    25c852c2f5e3  44ac2149aea9    tests and prose
+brain-x-container  5995d018bd88  e661e7f284e7    tests and prose
+brain-x-logs       da78a8b9962e  02c7dbcf1369    prose
+cb4-deployer       9f8c5de08825  199cd75c0aa5
+```
+
+- **Tests**, local tab, one at a time: core 31, kernel 26, cloudflare-iac 26, db 11, container 8, blob 8, static 12, logs 3, all pass. Browser 16 of 17: `test_browser_tick_makes_rows_and_sessions_agree` gives 111 for "about 100" alone in a fresh tab, and gives the same in the notebook at `lopebooks` `e051dfbb`, from before step 1. It is not this work's and is not fixed here.
+- **Live on cb4, 11:14 CEST, as the owner**: `delegation.create` for `brain-x-feed` answered the record (`by: "session"`); holders `brain` and `brain-x-nope` 400; scope `secret.get` 400; a DID that is not a member 403 at the kernel; `delegation.list` one, `delegation.revoke`, then none. `redistil` all `same`.
+- **Not run live**: a call with `x-brain-as`. No Worker on cb4 sends one; the first will be `brain-x-topic`.
+- The six findings of step 1's fresh review (FIX) are in this change: three kernel messages name `delegation`; the rule table has `caller.delegation` and `caller.holder`; the four stores' prose names `d:<id>`; the browser test asserts the key `d:0a1b/default`; db has a `setRule` and a `sqlGrant` case; the count of Workers above was wrong and is corrected.
+

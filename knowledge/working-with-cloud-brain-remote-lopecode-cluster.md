@@ -147,8 +147,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --stale   # the reind
 ## Why did that happen: the logs
 
 `brain-x-logs` passes Cloudflare's log queries through, scoped to this Brain, owner's session only.
-The core writes one line a call with keys `at ray caller via origin method worker status error ms
-price rule by`. Three traps met on the first day:
+The core writes one line a call with keys `at ray caller via origin delegation holder method worker status
+error ms price rule by`. Three traps met on the first day:
 
 - `method` is the short name (`bluesky.poll`), not the NSID. A filter on the NSID returns nothing.
 - A `calculations` query with `groupBys`: set `limit` to 500. With 50 and more groups than that, a group of 19 calls was left out (2026-10-09).

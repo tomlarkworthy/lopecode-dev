@@ -505,7 +505,7 @@ someone revokes it. `until` is the answer, and the page should make it hard to l
 
 ## Order of work
 
-**Built so far:** step 1, deployed to cb4 2026-10-10 10:57 CEST (`tools/cloud-brain/spec-as-built.md`, "Authority, step 1 of 7"). A new shared cell needs `install-deployer` before the Workers that read it: the deployer distils with its own copy of `cloudflare-iac`.
+**Built so far:** steps 1 and 2, deployed to cb4 2026-10-10 10:57 and 11:13 CEST (`tools/cloud-brain/spec-as-built.md`, "Authority, step 1 of 7" and "step 2 of 7"). Step 2 left out `delegation.resolve` (step 3 is its first caller) and the `xrpc.as` cell (a holder sends the headers with `xrpc.fetch`), and the context has a fourth field, `n`, the holder. A new shared cell needs `install-deployer` before the Workers that read it: the deployer distils with its own copy of `cloudflare-iac`.
 
 Each step is deployed and confirmed alone, and each works with the other of kernel and core one step
 behind, because the two are deployed one at a time and a bad one is put back. The deployer's own
