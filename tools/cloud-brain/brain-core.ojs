@@ -784,7 +784,7 @@ Cloudflare Workers that one notebook defines, deploys and operates. This file is
 - The session's environment must allow \`${config.host}\`: in the environment's settings set network access to custom and add that host (https://code.claude.com/docs/en/cloud-environments, read 2026-10-09).
 - A token from a sign-in link: keep it in a file of mode 600 in a temporary directory, outside the repository, since a shell command there does not keep a variable for the next one. A standing token: an environment variable of that environment, not the repository or the prompt.
 - Use curl, or send a User-Agent of your own. Cloudflare refuses Python's urllib with 403 "error code: 1010" before this Brain sees the call (measured 2026-10-10: urllib refused; python-requests, node, Go and curl pass).
-- \`curl -H "Authorization: Bearer $BRAIN_TOKEN" "${at}${X}<a method the token names>"\`
+- \`curl -H "Authorization: Bearer $(jq -r .token <the file>)" "${at}${X}<a method the token names>"\`, or \`$BRAIN_TOKEN\` for a standing token in the environment.
 
 ## Finding your way
 

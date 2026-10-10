@@ -128,7 +128,7 @@ bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.config.list --owner
 
 Added 2026-10-09. `https://<host>/llms.txt` says how to call this Brain, how the owner makes a token for a caller with no browser, and what each Worker answers. It is written on each request from the host and what is deployed, so it is right on a clone. The reference of one Worker is `/xrpc/com.lopecode.brain.getSource?worker=NAME&part=reference`.
 
-From Claude Code on the web the environment must allow the Brain's host and hold the token in a file of mode 600 outside the repository (a link's token) or an environment variable (a standing one). Tried from there on 2026-10-10 by a session with no CLAUDE.md: it redeemed a link and deployed; what slowed it is in `spec-as-built.md`.
+From Claude Code on the web the environment must allow the Brain's host and hold the token in a file of mode 600 outside the repository (a link's token) or an environment variable (a standing one). Tried from there on 2026-10-10 by a session with no CLAUDE.md: it redeemed a link and deployed; what slowed it is in `spec-as-built.md`, "The button copies a briefing; a link is good for 8 hours".
 
 ## Messages
 

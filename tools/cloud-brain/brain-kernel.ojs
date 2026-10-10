@@ -37,7 +37,7 @@ A person is an atproto account, named by its DID. There are two roles. The **own
 
 **Lists of methods** (2026-10-10). In \`token.create\` and \`token.link\` an entry of \`methods\` is a whole name or a prefix that ends \`.*\`: \`browser.*\` is every method of that service, \`*\` every method of this Brain. A name may go on after a \`/\` (\`ai.v1/chat/completions\`), and \`ai.v1/*\` is every method under \`ai.v1/\` and not \`ai.run\` (2026-10-10: the first shape check had refused every name with a \`/\`). No prefix reaches a name a token may not have (\`infra\`, \`secret\`, \`token\`, \`grant\`, \`people\`), whether it goes on with a \`.\` or a \`/\`. A grant to a DID still names whole methods.
 
-**Other origins** (2026-10-10). No cookie is read, so any origin may call with a token and read the answer. A preflight is answered with the headers it asked for (\`access-control-request-headers\`), because a client library adds its own: the OpenAI one sends \`x-stainless-*\`. That holds when the names are letters, digits and \`-\`; a preflight that asks for any other (\`x_trace_id\`) is told \`authorization, content-type\` only, as every preflight was before. A page on another origin can read four headers of an answer: \`x-brain-price\`, \`x-ai-usd\`, \`x-ai-neurons\` and \`x-proxy-upstream\` (before 2026-10-10, the last only).
+**Other origins** (2026-10-10). No cookie is read, so any origin may call with a token and read the answer. A refusal is readable too: until 2026-10-10 an answer to a call with no \`authorization\` header carried no \`access-control-allow-origin\`, so a page with no key saw a network error where curl saw 401. A preflight is answered with the headers it asked for (\`access-control-request-headers\`), because a client library adds its own: the OpenAI one sends \`x-stainless-*\`. That holds when the names are letters, digits and \`-\`; a preflight that asks for any other (\`x_trace_id\`) is told \`authorization, content-type\` only, as every preflight was before. A page on another origin can read four headers of an answer: \`x-brain-price\`, \`x-ai-usd\`, \`x-ai-neurons\` and \`x-proxy-upstream\` (before 2026-10-10, the last only).
 
 With \`deploy: true\`, \`token.link\` makes a link whose token also calls \`infra.*\` as the owner's session does, and these four only: \`infra.apply\`, \`infra.getState\`, \`infra.redistil\` and \`infra.confirm\` (which ends the probation of a kernel, core or page it deployed). Not \`infra.shell\`: that puts HTML at \`/\` with no reason, no \`was\` and no approval, and the page at \`/\` runs where the owner's session is kept; so a program cannot renew the page's shell, and the owner does after it deploys the page. It deploys and removes any Worker of this Brain, the kernel among them. What holds a session's apply holds its apply: a reason, \`was\`, and approval on the deployer's page (which needs the recovery key) when deploys need approval. The token itself names no secret, token, grant or people method. That is a limit only while deploys need approval: with approval off it can deploy a kernel of its own writing, and the kernel is what names the caller, so the token is then the owner in effect. Only a link makes such a token, so it always ends, in 24 hours at most; \`token.create\` cannot. Each call is logged by the kernel as \`infra.by.link\` with the token's name. Tom, 2026-10-09: "I do want singin links to be able to deploy with the authority of me".
 
@@ -210,7 +210,7 @@ kernelApp = {
     const asked = c.req.header("access-control-request-headers") || "";
     if (c.req.method === "OPTIONS") return new Response(null, { status: 204, headers: { ...cors, ...(/^[A-Za-z0-9, -]{1,1000}$/.test(asked) ? { "access-control-allow-headers": asked, vary: "access-control-request-headers" } : {}) } });
     await next();
-    if (!c.req.header("authorization")) return;
+    // Every answer, a refusal too: without these a page reads a 401 as a network error.
     const headers = new Headers(c.res.headers);
     for (const [k, v] of Object.entries(cors)) headers.set(k, v);
     c.res = new Response(c.res.body, { status: c.res.status, headers, webSocket: c.res.webSocket });
@@ -439,14 +439,14 @@ kernelApp = {
 
 POST to this same address, with no body, once:
 
-  curl -sS -X POST "https://${config.host}/auth/link?code=<the code in this address>"
+  d=$(mktemp -d) && (umask 077; curl -sS -X POST "https://${config.host}/auth/link?code=<the code in this address>" -o "$d/brain.json") && echo "$d/brain.json"
 
 A 403 "error code: 1010" is Cloudflare refusing the client before this Brain saw the call, and the link is not
 spent: Python's urllib is refused by its User-Agent. Use curl, or send another User-Agent.
 
-The answer is JSON { name, token, methods, until, deploy, unattended }. The link then stops working. Keep the
-token where your next command can read it and nothing else does: a file of mode 600 in a temporary directory,
-outside any repository. Do not print it. Send it as "Authorization: Bearer <token>". It calls
+The answer is JSON { name, token, methods, until, deploy, unattended }, and that command keeps it in a file of
+mode 600 in a temporary directory without printing it. The link then stops working. Keep the token there, outside
+any repository. Send it as "Authorization: Bearer <token>", e.g. $(jq -r .token <that file>). It calls
 the methods in \`methods\` and no others, until \`until\` (milliseconds). With "deploy": true in the answer it also
 calls infra.apply, infra.getState, infra.redistil and infra.confirm as the owner does: it deploys and removes this
 Brain's Workers. With "unattended": true nothing it deploys waits for the owner, and it calls infra.shell too. /llms.txt says how.
@@ -841,7 +841,6 @@ test_tokens_reach_only_their_methods = {
   expect(rig.seen[0].headers["x-brain-caller"]).toBe("token:laptop");
   // Another origin can read the answer to a call that carried a token.
   expect((await rig.call("proxy.fetch", { bearer: made.data.token, body: {} })).headers.get("access-control-allow-origin")).toBe("*");
-  expect((await rig.call("auth.nothing")).headers.get("access-control-allow-origin")).toBe(null);
   expect((await rig.call("inbox.list", { bearer: made.data.token })).status).toBe(403);
   expect((await rig.call("/notebooks/private", { bearer: made.data.token })).status).toBe(403);
   expect((await rig.call("infra.getState", { bearer: made.data.token })).status).toBe(403);
@@ -1467,7 +1466,9 @@ test_a_token_is_the_callers_to_send_from_anywhere = {
   // No cookie is read, so a page on another address has nothing of this Brain's to send. With a session it was
   // given, it is that session, from any origin, and the answer is readable there.
   expect((await rig.call("token.list", { cookie: rig.owner, headers: { origin: sibling, "sec-fetch-site": "same-site" } })).status).toBe(401);
-  expect((await rig.call("token.list", { headers: { origin: "null" } })).status).toBe(401);
+  const refused = await rig.call("token.list", { headers: { origin: "null" } });
+  // A refusal is readable there too: a page sees the 401, not a network error.
+  expect([refused.status, refused.headers.get("access-control-allow-origin"), refused.headers.get("access-control-expose-headers")]).toEqual([401, "*", "x-brain-price, x-ai-usd, x-ai-neurons, x-proxy-upstream"]);
   const there = await rig.call("token.list", { session: rig.owner, headers: { origin: sibling } });
   expect([there.status, there.headers.get("access-control-allow-origin")]).toEqual([200, "*"]);
   // A preflight is told the headers it asked for, so a client library that adds its own is not stopped.

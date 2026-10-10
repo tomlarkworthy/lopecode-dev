@@ -124,7 +124,7 @@ No Lexicon documents were written. Methods follow the XRPC shape (GET query, POS
 - A request is identified in this order: session cookie, then `Authorization: Bearer` as a service JWT (three dot-separated parts; `aud`, `exp` and `lxm` are checked before the signature is fetched), then as a token (looked up by SHA-256, so the token is not stored).
 - A token or a granted DID reaches only the methods it names, and no path that is not a method. Neither may name `infra.*`, `secret.*`, `token.*` or `grant.*`.
 - `/` is the notebook last saved to the store, or the copy the kernel was installed with when the store has none. The asset is not part of the kernel's hash, so a redeploy that changes only the notebook has to be forced; the product path for a new notebook is Save.
-- Calls from another origin: `/xrpc/*` answers a preflight, and a response to a request that carried `Authorization` gets `access-control-allow-origin: *`. A cookie request never does.
+- Calls from another origin: `/xrpc/*` answers a preflight, and every answer under `/xrpc/*` gets `access-control-allow-origin: *`, a refusal included (since 2026-10-10; before, only a request that carried `Authorization`). No cookie is read.
 - OAuth is the experiment's client with its stores moved to `rows`. A sign-in by anyone but the owner is revoked at their PDS and only their DID is kept.
 
 <!-- cell: built_store -->
@@ -3400,6 +3400,29 @@ $0.15 model is refused 402. Four sentences written for `ai.run` alone now name t
    Workers AI answering sooner. Not measured again.
 7. `ai-cache.md`: the protocol line names `USD=<n>` and the value of each run.
 
+**A refusal with no token had no CORS headers.** Kernel `e07215c81766`, cb4, 2026-10-10 06:28 UTC. Seen while
+checking the fixes above: `ai.v1/models` from `Origin: https://example.com` with no token answered 401 with no
+`access-control-*` header, so a page with a missing key got a network error where curl got 401. Cause: the CORS
+middleware returned early on `if (!c.req.header("authorization")) return;`. The line is in the first commit of
+the seed (`3e945f5e`, 2026-10-08), from when a cookie could say who calls; no cookie is read now, so an answer to
+a call without a token is what anyone gets with curl. A call with a wrong token already had the headers. The
+line is removed. curl with `origin: https://example.com`, each with `access-control-allow-origin: *` and the
+expose list:
+
+```
+no token                401
+wrong token             401
+unknown method          501
+token off its list      403   (ai.models with a token of ai.v1/models; token revoked)
+token on its list       200
+```
+
+`fetch` from a `file://` page in a local Chromium (origin `null`): status 401 with no token and with a wrong
+one plus `x-stainless-os`; neither threw. Not run from a browser of the cluster. Asserted in
+`test_a_token_is_the_callers_to_send_from_anywhere`; kernel tests 26 of 26. The stored-page record above
+("people.list with no token: blocked, no CORS headers without Authorization") is of 2026-10-09 and no longer
+holds: that call now reads its 401.
+
 Tests in a local tab, forced from a module of their own: kernel 26 of 26, `test_ai_*` 9 of 9. `redistil` 18 `same`.
 
 **The price with no `usd`.** `"usd" in request.params ? double(request.params.usd) : 0.01`, and the service budgets
@@ -3446,7 +3469,7 @@ A Claude Code on the web session with no CLAUDE.md redeemed a link from the butt
 
 | Reported | Checked | Done |
 |---|---|---|
-| Its environment refused the host, so it never saw the link's GET text; the note about allowing the host is in `/llms.txt`, which it could not read either | not reproducible from here | the button copies six lines with the link in them; line 1 says to have the host allowed |
+| Its environment refused the host, so it never saw the link's GET text; the note about allowing the host is in `/llms.txt`, which it could not read either | not reproducible from here | the button copies an opening line, four numbered steps and a closing line, with the link in step 2; step 1 says to have the host allowed |
 | The redeem POST from Python answered 403 "error code: 1010" | reproduced on cb4: `Python-urllib/3.11` 403 on `/llms.txt` and `/auth/link`; `python-requests`, `node`, `Go-http-client`, curl reach the Worker. Cloudflare's edge refuses it; the link is not spent | said in the briefing, the GET text and `/llms.txt`. Not turned off: whether a `workers.dev` address allows that is not known |
 | "Keep the token in an environment variable" does not work where each shell command starts fresh; it ran a background relay | not reproduced | the advice is a file of mode 600 in a temporary directory, outside any repository |
 | 10 minutes ran out while the network was being opened (Tom: "10 mins is too short, make it 8 hours for initial use") | | `minutes` is 1 to 480 and 480 if left out |
@@ -3454,3 +3477,15 @@ A Claude Code on the web session with no CLAUDE.md redeemed a link from the butt
 `loginBrief(link)` in the page writes the text; `test_the_login_brief_carries_the_link_and_the_host`. On cb4, kernel `f38d5d0eef1a`, core `166bab350bc0`, page `dd3d79a7359f`: a link made with no `minutes` is good for 480; the GET text and `/llms.txt` carry both notes; 68 of 68; `redistil` 18 `same`. The button was not pressed on cb4, and no agent has yet been given the briefing.
 
 Cost of the longer link: a pasted link that leaks is usable for 8 hours, not 10 minutes, until it is redeemed or `token.revoke` names it.
+
+**Review of the briefing** (08:29 CEST): one fresh reviewer, FIX, 5 findings, all fixed. It ran no tests.
+
+| Finding | Done |
+|---|---|
+| Step 2's `curl` printed the token that step 3 said not to print, and the link is single use | one command writes the answer to a mode-600 file in `mktemp -d` and prints the path, in the briefing and the GET text. Run on cb4 with a real link: file `-rw-------`, `quota.get` 200 with the token read by `jq` |
+| `/llms.txt` said to keep the token in a file and then showed `$BRAIN_TOKEN` | the example reads the file with `jq`; `$BRAIN_TOKEN` is named for a standing token |
+| The page said "8 hours" and left the lifetime to the kernel's default; a page ahead of its kernel would give a 10-minute link | both `token.link` calls of the page send `minutes: 480, hours: 8`; an older kernel answers 400 |
+| "six lines", "line 1" in this record | corrected above |
+| The pointer in `running-a-cloud-brain.md` named no section | it names this one |
+
+Live after: kernel `b21a946d928b`, core `7fe97cdcbbff`, page `0771067cb518`, 68 of 68. Still no test asserts the notes in the GET text or `/llms.txt`; `jq` is assumed present where the agent runs.

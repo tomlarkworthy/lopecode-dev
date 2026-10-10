@@ -177,7 +177,7 @@ test_calls_from_the_logs_become_chart_rows = {
 loginLink = {
   if (!brain) return htl.html`<span></span>`;
   const note = htl.html`<span style="color:var(--theme-foreground-muted);margin-left:8px"></span>`;
-  const make = async () => loginBrief((await client.procedure("token.link", { name: "claude-" + Date.now().toString(36), methods: ["browser.*", "container.*", "ai.*", "logs.*", "quota.get"], deploy: true, unattended: true })).link);
+  const make = async () => loginBrief((await client.procedure("token.link", { name: "claude-" + Date.now().toString(36), methods: ["browser.*", "container.*", "ai.*", "logs.*", "quota.get"], minutes: 480, hours: 8, deploy: true, unattended: true })).link);
   const button = press("Copy Login Link", async () => {
     note.textContent = "";
     try {
@@ -199,9 +199,9 @@ loginBrief = (link) => {
   return `You are being signed in to a Cloud Brain: a set of Cloudflare Workers that one notebook defines, deploys and operates, at https://${host}. This link gives you a token that acts as its owner.
 
 1. Claude Code on the web: if a request to ${host} is refused by your environment, ask for that host to be allowed in the environment's network settings. The link waits: it is good for 8 hours.
-2. Redeem it once, with curl. Cloudflare refuses Python's urllib with 403 "error code: 1010"; that does not spend the link.
-   curl -sS -X POST "${link}"
-3. The answer is JSON with "token". It lasts 8 hours. Keep it in a file of mode 600 in a temporary directory, outside any repository, and do not print it. Send it as "Authorization: Bearer <token>".
+2. Redeem it once, with curl, into a file only you read. Cloudflare refuses Python's urllib with 403 "error code: 1010"; that does not spend the link.
+   d=$(mktemp -d) && (umask 077; curl -sS -X POST "${link}" -o "$d/brain.json") && echo "$d/brain.json"
+3. That file is JSON with "token", which lasts 8 hours. Do not print it or copy it into a repository. Send it as a header: -H "Authorization: Bearer $(jq -r .token "$d/brain.json")", with the file's path written out in a later command.
 4. Read https://${host}/llms.txt with no Authorization header: how to call, what this Brain is made of, how to read a Worker's source and deploy a change.
 
 The token deploys any Worker with no approval, and calls the browser, containers, models and logs as the owner, on the owner's allowance.`;
@@ -209,7 +209,7 @@ The token deploys any Worker with no approval, and calls the browser, containers
 // %%
 test_the_login_brief_carries_the_link_and_the_host = {
   const text = loginBrief("https://b.example/auth/link?code=abc");
-  expect(text).toContain('curl -sS -X POST "https://b.example/auth/link?code=abc"');
+  expect(text).toContain('curl -sS -X POST "https://b.example/auth/link?code=abc" -o "$d/brain.json"');
   expect(text).toContain("https://b.example/llms.txt");
   expect(text).toContain("error code: 1010");
   return "ok";
@@ -312,7 +312,7 @@ accessPanel = {
   // For a program with no browser: paste the link to it. It is good once, for 8 hours; its token lasts 8 hours more.
   const link = press("Sign-in link", async () => {
     try {
-      const made = await client.procedure("token.link", { name: who.value.trim(), methods: names(), deploy: mayDeploy.querySelector("input").checked });
+      const made = await client.procedure("token.link", { name: who.value.trim(), methods: names(), minutes: 480, hours: 8, deploy: mayDeploy.querySelector("input").checked });
       note.replaceChildren(htl.html`Paste this to the program (Claude Code on the web). It works once, in the next 8 hours; the token it gives lasts 8 hours.<br><code>${made.link}</code>`);
     } catch (e) {
       note.textContent = "No link: " + e.message;
