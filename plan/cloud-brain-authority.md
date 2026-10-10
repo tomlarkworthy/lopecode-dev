@@ -1,10 +1,10 @@
 # Cloud Brain: one record for delegated authority
 
-A design, not built. Written 2026-10-10 for Tom to review before anything is changed; seventh draft,
-after six fresh reviews (see *Review* at the end). A statement about the present code names the
+A design, not built. Written 2026-10-10 for Tom to review before anything is changed; eighth draft,
+after seven fresh reviews (see *Review* at the end). A statement about the present code names the
 line it was read at where one line holds it, found by a search for the text on 2026-10-10. Each draft
-read the tree of its own commit, 09:43 to 10:30 CEST, and each reviewer printed every cited line. Another session edits the same seeds, so the lines will move. Nothing here was run on a Brain except three reads of
-cb4 that are marked.
+read the tree of its own commit, the first at 09:43 CEST and this one at 10:35, and each reviewer printed every cited line. Another session edits the same seeds, so the lines will move. Nothing here was run on a Brain except five reads of
+cb4 as the owner (`rule.list`, `db.tables`, `token.list`, `grant.list`, `calls.list`), marked where used.
 
 ## What was asked
 
@@ -30,7 +30,7 @@ Thirteen ways a call gets its authority. `K` is `brain-kernel.ojs`, `C` is `brai
 | 5 | owner's token | `token.create`, owner's session (K:406) | a secret; `token/<sha256>` | its `methods`, names and prefixes (K:404) | `token.revoke` | K:261, K:274 | `token:NAME`, via `token` | `token:NAME`, $0.10 (C:583) |
 | 6 | sign-in link | `token.link` (K:420) | a code; `link/<sha256>` (K:434) | nothing; one POST turns it into row 7 | 1 to 480 minutes (K:428) | | | |
 | 7 | link's token | the POST of a link (K:465) | as row 5, with `until`, `deploy`, `unattended` | row 5; with `deploy` four `infra` methods, with `unattended` `infra.shell` too (K:395-398, K:667) | `until`, at most 24 h | K:261, K:274 | `token:NAME`; with `unattended`, `owner` via `session` (K:508-510) | `token:NAME`; with `unattended`, `owner` |
-| 8 | grant | `grant.put`, owner's session (K:485) | `grant/<did>` | the methods named, whole names only | `grant.delete` | K:299; C:235 for the DID's Workers | the DID | the DID |
+| 8 | grant | `grant.put`, owner's session (K:485) | `grant/<did>` | the methods named, whole names only | `grant.delete` | K:258 (a JWT is heard), K:291 (a room), K:299; C:235 for the DID's Workers | the DID | the DID |
 | 9 | member | `people.put` (K:541) | `member/<did>` | the `MEMBER` list (K:199), any `m.*` method, their grant | `people.remove` | K:295-299 | the DID | the DID, $0.10 |
 | 10 | a member's Worker | the member's deploy | the Worker's key; `key/<hash>` with `author` (C:132) | the `WORKER` list (C:219), any `m.*` method, the author's grant (C:235) | removal; the author stops being a member (C:232) | C:228 `asAuthor` | the author, via `worker:NAME` | the author |
 | 11 | a system Worker | the owner's deploy | the Worker's key (C:133) | what its service lists in `calls` (C:259 `callsOf`); refused only when `calls/mode` is `enforce` (C:287), and the default is `report` (C:246) | removal | C:280 `asDeclared` | `worker:NAME`; origin from row 12 | the origin |
@@ -71,7 +71,7 @@ Five things the table shows:
   one test, `/^(turn:|portal:|jwt$)/` on the via. Browser and container apply it to any caller
   (`brain-browser.ojs:888`, `brain-container.ojs:399`); blob and static to the owner only
   (`brain-blob.ojs:188`, `brain-static.ojs:150`). The browser's reason: "a page in a person's browser
-  can hold their session" (`brain-browser.ojs:886`). `brain-db.ojs:404` has a narrower test of its
+  can hold their session" (`brain-browser.ojs:887`). `brain-db.ojs:404` has a narrower test of its
   own, a turn of the owner, which this design leaves.
 - **Nothing lets a system Worker act for a named account by its own start.** A Worker that answers
   a call acts for that call's origin (row 12), and a Worker by its clock is itself (C:40). A push
@@ -168,16 +168,25 @@ Two things are kept apart, because a store and a rule ask different questions:
   is. The core sends it with every call it forwards: `1` for a session of the owner or of a member
   and for a delegation with the cap `session`; `0` for everything else.
 
-A service is sent `x-brain-caller` (the principal), `x-brain-via` (`delegation:<id>` under one) and
-`x-brain-tab`. One platform cell reads them:
+A service is sent, about the caller: `x-brain-caller` (the principal), `x-brain-via`
+(`delegation:<id>` under one), `x-brain-tab`, and `x-brain-holder` (`secret:NAME` or `worker:NAME`).
+About the origin it is sent the same four as `x-brain-origin`, `-via`, `-tab`, `-holder`: a rule
+reads `origin.session` (`brain-db.ojs:675`, C:1276), and the origin's tab must come with it down a
+chain, so the signed context carries it too (below). Platform cells read them, so no service parses
+a header for this:
 
 ```
+callerFrom(request), originFrom(request)   what callerOf takes: { caller, via, tab, holder }
 ownTab(request)    x-brain-tab is "1". When the header is absent (a core from before step 2):
                    the via is none of turn:, portal:, jwt, delegation:
 keeperOf(request)  "d:<id>"        the via is delegation:<id> and it is not ownTab
                    "via:<caller>"  the via is turn:, portal: or jwt
                    the caller      everything else
 ```
+
+`brain-db` builds a caller and an origin from headers by hand (`brain-db.ojs:158`, `:160`) and
+decides every table rule with them (`:168`); it takes the two cells. `caller.token` and
+`caller.holder` come from `x-brain-holder`.
 
 `keeperOf` is today's test with one case added, so nothing that exists is keyed anew: a Worker
 calling for itself is `worker:NAME`, a member's Worker is its author, a token made before step 3 is
@@ -355,7 +364,7 @@ asked. A row is simpler to list and to revoke.
 
 | holder | how the call arrives | who checks |
 |---|---|---|
-| a secret | `Authorization: Bearer <secret>` at the kernel, as a token now | the kernel hashes it and sends the hash to the core with the call; the core finds the row |
+| a secret | `Authorization: Bearer <secret>` at the kernel, as a token now | the kernel asks the core `delegation.resolve { sha256 }` and holds the answer 5 s; it needs `from` for its member gate (K:295-299) and the caps for `infra.*`. It forwards the call as `x-brain-caller: from` with `x-brain-delegation: <id>`, and the core reads the row by that id and decides |
 | a Worker | the Worker's own key, and `x-brain-as: <id>`, straight to the core | the core: the row's holder is the Worker the key names |
 | a DID | a PDS JWT or a session at the kernel, as a grant now | the kernel proves the DID; the core reads the one row for it |
 
@@ -364,7 +373,8 @@ with `x-brain-as` starts a new chain: origin is `from`, and the context of whate
 answering is not sent. That is the fix for the push in the topics proposal: the appender's context
 never reaches the target.
 
-The signed context (C:155) gains two fields:
+The signed context (C:155) gains three fields: `t`, the origin's tab, sent on as
+`x-brain-origin-tab`; and:
 
 - `d`, the delegation id, so each call further down the chain is logged and capped under it.
 - `h`, hops. A call from outside has 0. A call a Worker makes while answering one keeps the `h` of
@@ -401,12 +411,13 @@ member's delegation may name a method the member has by grant. `may` and `matche
 emitted into the kernel and the core. The kernel needs them for
 the routes it answers itself and never forwards to the core: `infra.*` to the deployer (K:667),
 `token.*`, `grant.*`, `people.*`, `auth`, `portal.*`, and `member.deploy`, `member.remove`,
-`member.modules` (K:653). For those it asks the core
-`delegation.resolve { sha256 | did }`, which only the kernel's key may call.
+`member.modules` (K:653). `delegation.resolve { sha256 | did }` is the core's, and only the kernel's
+key may call it; the kernel calls it for every secret it is sent, as said under *Using one*.
 
 The kernel writes no delegation row. Its `token.create`, `token.revoke` and `token.list` become
 forwards to the core's `delegation.*`, carrying the caller and the via as `toCore` does and changing
-only the shape of the body and the answer. A link stays a row of the kernel; when it is redeemed the
+the shape of the body and the answer. `token.revoke` first deletes the kernel's unused link of that
+name, as it does now (K:471-472). A link stays a row of the kernel; when it is redeemed the
 kernel calls `delegation.create` as `owner`, `session`, which is who made the link (K:420 is behind
 the kernel's `session` guard). The core takes the kernel's word for the caller there as it does on
 every call.
@@ -495,7 +506,8 @@ behind, because the two are deployed one at a time and a bad one is put back. Th
 touched in any step.
 
 1. **The shared cells, and the stores.** `matches` and `may` in `cloudflare-iac`, with the `MEMBER`
-   list; `ownTab` and `keeperOf`; `callerOf` reads `tab` when it is given. The kernel's `names()` and `includes` and the core's
+   list; `ownTab`, `keeperOf`, `callerFrom`, `originFrom`; `callerOf` reads `tab` and `holder` when
+   they are given. The kernel's `names()` and `includes` and the core's
    `person.methods.includes` call the first two. Browser, container, blob, static and db are
    deployed with the second two, which already count a via of `delegation:` as not the person's tab.
    The kernel adds `delegation` to `never()` (K:399). Nothing a caller sees changes; the tests that
@@ -510,7 +522,9 @@ touched in any step.
    `revoke`, `resolve`, with the guard for an owner's or a member's session. Then the kernel, with
    `delegation.create`, `list`, `revoke` in the `MEMBER` list; until it is deployed a member is
    refused at the kernel, which is safe. In the core also: `x-brain-as` and `x-brain-hops` for a Worker holder; `d` and `h` in the context;
-   `x-brain-tab`; `delegation` and `holder` in the log line; `daily`. Only Worker holders are used
+   `t` too; `x-brain-tab` and `x-brain-holder`, for the caller and for the origin; `tab` computed from
+   the via or from the cap `session` from this step on; `delegation` and `holder` in the log line;
+   `daily`. Only Worker holders are used
    yet. This is what topics step 2 needs.
 3. **New tokens are delegations.** `token.create` and the POST of a link write a delegation, with
    the caps: `deploy` for a link made with `deploy`; `deploy`, `unattended`, `session` for one made
@@ -518,9 +532,10 @@ touched in any step.
    and from the caps it sets the `who.deploy` and `who.unattended` it reads now (K:274, K:508,
    K:667), so a link from the login button deploys as before. Tokens made before keep working as
    they did. From here a new token is the owner, not in the owner's tab unless it has `session`.
-4. **The kinds of method.** The `toCore` rewrite (K:508) and `deploys()` go: the core sets `tab` for
-   the cap `session`, which its own `session` guard and every `caller.session` rule read since steps
-   1 and 2, and the kernel reads `deploy` from the caps. The kernel's `call.by.link` and
+4. **The kinds of method.** A change of the kernel alone: the `toCore` rewrite (K:508) and
+   `deploys()` go. The core has computed `tab` from the cap since step 2, and its own `session` guard
+   and every `caller.session` rule have read it since then, so a link from the login button keeps
+   its eleven routes and sixteen rules. The kernel reads `deploy` from the caps. The kernel's `call.by.link` and
    `infra.by.link` lines go with the rewrite, and the two assertions on them in
    `test_tokens_reach_only_their_methods` (`brain-kernel.ojs:899`, `:930`) become assertions on the
    core's line. The four kinds in
@@ -528,8 +543,9 @@ touched in any step.
 5. **Move the old rows.** Each `token/` row becomes a delegation; the kernel's `token/` read goes.
    On cb4 that is three rows today, each ending within 8 hours of when it was made.
 6. **Grants.** `grant.put` writes a delegation with a DID holder; `people.sync` carries members
-   only. Last, because the kernel's gate (K:295-299), the room cap (K:292) and `asAuthor` (C:235)
-   all read grants. cb4 has no grant.
+   only. Last, because five places read grants: the kernel hearing a JWT from a DID that is not a
+   member (K:258), the room cap (K:291-292), the kernel's gate (K:295-299), and `asAuthor` (C:235).
+   After it the kernel asks `delegation.resolve { did }` where it read `grant/`. cb4 has no grant.
 7. **`delegate`.** A delegation made under a delegation. The core's guard of `delegation.create`
    takes the cap, and the kernel's `never()` lets `delegation.create`, `list` and `revoke` through
    for a holder that has it.
@@ -538,9 +554,11 @@ Steps 1 and 2 change nothing a caller sees. Topics can be built on 2.
 
 ## Not verified
 
-- No cost was measured: the D1 read a delegated call adds, or the 5 s of memory under load.
+- No cost was measured: the call from the kernel to the core that a secret's first call in 5 s adds
+  (`delegation.resolve`), the D1 read a delegated call adds in the core, or the 5 s of memory under
+  load. Today a token is one read of the kernel's own rows.
 - `settings` says of itself "A write goes to rows and drops this instance's copy; another instance
-  sees it within ttl" (I:291-292). Not run for `delegation/` rows.
+  sees it within ttl" (I:292-293). Not run for `delegation/` rows.
 - The lists in *What this changes* come from two searches of the seeds on 2026-10-10 for `"token"`,
   `token:`, `"owner"` and the via test, the second by a reviewer who found five guards the first
   missed. They are not known to be whole. Step 3 should begin with a test that calls every method
@@ -581,7 +599,7 @@ Steps 1 and 2 change nothing a caller sees. Topics can be built on 2.
 
 ## Review
 
-2026-10-10, seven drafts, six fresh reviewers: BLOCK, BLOCK, BLOCK, FIX, FIX, BLOCK.
+2026-10-10, eight drafts, seven fresh reviewers: BLOCK, BLOCK, BLOCK, FIX, FIX, BLOCK, FIX.
 
 The first found 13 things and the author six more: who pays was said two ways for a DID holder; the
 rules that name a token were undercounted and the rules that would open were not looked for;
@@ -631,5 +649,12 @@ code fence, which made everything below it one code block when rendered. In the 
 have lost the table prefix three stores give it by the via, and it never needed to be one, so a
 Worker holder is now a system Worker only; the kernel's own tests of the via were not said to stay;
 and a plain link's token had no `daily`.
+
+The seventh: FIX, nine findings, two citations a line off. `tab` reached a service for the caller
+and not for the origin, though rules read `origin.session`, and `brain-db` decides its table rules
+from headers it parses by hand: the context carries `t` now, and platform cells build the caller and
+the origin. The holder's name had no header. How a secret's call reaches the core was said two ways;
+it is one now, with its cost. `token.revoke` as a forward would have left an unused link alive.
+Step 6 missed two reads of `grant/`. A time in the header had not happened, again.
 
 This draft has not had a fresh review.
