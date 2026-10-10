@@ -36,7 +36,8 @@ It answers bindings only. A caller is who the kernel says it is, and the kernel 
 | \`quota.get\` | query, any account. \`{ who, day, spent, daily, remaining, resetsAt }\` for the caller's own account. The owner reads another with \`?who=\`. |
 | \`quota.list\`, \`quota.ledger\` | query, owner. Each account's day, and the charges of one day (\`?day=&who=&limit=\`) with totals by account and by method. |
 | \`quota.put\`, \`quota.setDefaults\` | procedure, the owner's own session. \`{ who, daily }\`, and \`{ owner, member, worker, token, perCall, keepDays }\`. \`null\` is the default again. |
-| \`delegation.create\` | procedure, the owner's or a member's own session. \`{ name, holder: { worker }, scope, until, daily, note }\` → the record, with its \`id\`. |
+| \`delegation.create\` | procedure, the owner's or a member's own session. \`{ name, holder: { worker }, scope, until, daily, note }\` → the record, with its \`id\`. With \`holder: { secret: true }\` and \`caps\` (the owner only) the answer has \`secret\`, once: a token. The kernel's \`token.create\` and a sign-in link make these. |
+| \`delegation.resolve\` | procedure, the kernel. \`{ sha256 }\` of a secret → \`{ delegation }\` or null. |
 | \`delegation.list\`, \`delegation.revoke\` | query and procedure, the same callers. The owner reads and revokes any, a member their own. \`{ id }\`. |
 
 **Delegations** (design: \`plan/cloud-brain-authority.md\`; built 2026-10-10 for a Worker holder only). The owner or a member lets a Worker the owner deployed call the methods in a \`scope\`, until a time or until it is revoked. The Worker names the delegation on a call it makes:
@@ -51,6 +52,7 @@ xrpc.fetch("com.lopecode.brain.m.0a1b.shop.receive", { method: "POST", headers: 
 - It begins a chain of its own: the origin is the maker, and the origin of whatever the Worker was answering is not read. \`x-brain-hops\` says how long the chain already is; the core adds one, sends it on with each forwarded call, and refuses a chain over 8.
 - \`daily\` is the most the chain may spend in a UTC day, counted beside the maker's own allowance. \`delegation.list\` shows \`spentToday\`. Calls made at the same moment can pass it by the price of those calls; the maker's allowance is exact.
 - A member's delegations are deleted when the member is removed.
+- A secret holder (a token made from 2026-10-10) sends the secret to the kernel as \`Authorization: Bearer\`. Its calls are the owner's: the owner's rules and allowance, \`caller.holder\` is \`secret\`. It is the owner's own tab only with the cap \`session\`; without it what it makes in a store is kept under \`d:<id>\`. \`deploy\` and \`unattended\` are read by the kernel for \`infra.*\`.
 - A holder that takes a delegation's id from a caller must check that the caller made it (\`from\`). An id is not a secret.
 
 **Origin.** A rule reads \`caller\`, who made the call, and \`origin\`, who started the chain of calls it is part of. The two have the same fields. For a call from outside they are equal. When a Worker makes a call while it answers one, \`caller\` is the Worker and \`origin\` is the origin of the call it answers. A call a Worker makes by its own schedule has the Worker as \`origin\`. For a member's Worker \`caller\` is its author, and so is \`origin\` when it answers nobody.
@@ -95,7 +97,8 @@ The order is rule, price, charge, forward. The price is for the Worker's own wor
 | the owner's session, the owner's turn, the owner's PDS, the token of a sign-in link made with \`unattended\` | \`owner\` | $1.00 |
 | a member's session, PDS, portal or turn | \`did:…\`, the member | $0.10 |
 | a turn in a room | the person who wrote the message, as any turn | |
-| a token | \`token:NAME\` | $0.10 |
+| a token made from 2026-10-10 (a delegation with a secret holder), a Worker calling under the owner's delegation | \`owner\`, and no more than the delegation's \`daily\` | $1.00 |
+| a token made before 2026-10-10 | \`token:NAME\` | $0.10 |
 | a Worker by its own clock | \`worker:NAME\` | $0.10 |
 | a member's Worker by its own clock | its author | |
 | nobody (\`anonymous\`) | none: a priced call is refused | |
@@ -147,7 +150,7 @@ coreApp = {
     // A member's Worker is known by its key like any other, and is then checked as its author.
     if (known.role === "member") return { caller: "worker:" + known.worker, keyed: known.worker, member: { worker: known.worker, author: known.author } };
     if (known.role !== "kernel") return { caller: "worker:" + known.worker, keyed: known.worker };
-    return { caller: request.headers.get("x-brain-caller") || "anonymous", via: request.headers.get("x-brain-via") || "" };
+    return { caller: request.headers.get("x-brain-caller") || "anonymous", via: request.headers.get("x-brain-via") || "", kernel: true };
   };
   // Origin. The caller of a call is who made it; the origin is who started the chain of calls it is part of. With
   // each call the core forwards goes a reference: the origin, the Worker it is for and when it ends, signed with a
@@ -271,17 +274,34 @@ coreApp = {
     const person = from.startsWith("did:") ? await rows.get("person/" + from) : null;
     return !!person && may({ member: true, grant: person.methods }, nsid);
   };
-  const asHolder = async (c, worker, id) => {
+  // What every call under a delegation passes, whoever holds it. null when it stands.
+  const stands = async (c, d) => {
     const url = new URL(c.req.url), nsid = url.pathname.startsWith("/xrpc/") ? url.pathname.slice("/xrpc/".length) : null;
+    if (d.until && d.until <= clock()) return fail(c, 403, "Forbidden", `delegation ${d.name} has ended`);
+    if (!nsid || neverHeld(nsid) || !matches(d.scope, nsid)) return fail(c, 403, "Forbidden", `delegation ${d.name} does not reach ${nsid || url.pathname}`);
+    if (!(await mayNow(d.from, nsid))) return fail(c, 403, "Forbidden", `${d.from} may not call ${nsid} now, so delegation ${d.name} does not`);
+    return null;
+  };
+  const asHolder = async (c, worker, id) => {
     const d = /^[0-9a-f]{12}$/.test(id) ? await settings.get("delegation/" + id) : null;
     if (!d || !d.holder || d.holder.worker !== worker) return fail(c, 403, "Forbidden", `${worker} holds no such delegation`);
-    if (d.until && d.until <= clock()) return fail(c, 403, "Forbidden", `delegation ${d.name} has ended`);
     // The holder says how long the chain is that this call goes on from. A push that causes a push is one longer.
     const hops = Number(c.req.header("x-brain-hops") || 0);
     if (!Number.isInteger(hops) || hops < 0 || hops >= HOPS) return fail(c, 403, "Forbidden", `a chain of calls under delegations is at most ${HOPS} long`);
-    if (!nsid || neverHeld(nsid) || !matches(d.scope, nsid)) return fail(c, 403, "Forbidden", `delegation ${d.name} does not reach ${nsid || url.pathname}`);
-    if (!(await mayNow(d.from, nsid))) return fail(c, 403, "Forbidden", `${d.from} may not call ${nsid} now, so delegation ${d.name} does not`);
+    const no = await stands(c, d);
+    if (no) return no;
     c.set("who", { caller: d.from, via: "delegation:" + d.id, tab: false, holder: "worker:" + worker, d: d.id, hops: hops + 1 });
+    return null;
+  };
+  // A call the kernel passes on for whoever sent a delegation's secret (a token). The kernel matched the secret to
+  // the row; the row is read again here and is what decides. It is the maker's own tab when the delegation has the
+  // cap `session`, and not otherwise.
+  const asSecret = async (c, id) => {
+    const d = /^[0-9a-f]{12}$/.test(id) ? await settings.get("delegation/" + id) : null;
+    if (!d || !d.holder || !d.holder.secret) return fail(c, 401, "AuthRequired", "unknown token");
+    const no = await stands(c, d);
+    if (no) return no;
+    c.set("who", { caller: d.from, via: "delegation:" + d.id, tab: d.caps.includes("session"), holder: "secret", d: d.id, hops: 0 });
     return null;
   };
   // A Worker calls what its service declared in `calls`, and what a platform cell calls for it (IMPLICIT). The list is
@@ -339,11 +359,13 @@ coreApp = {
     c.set("who", who);
     // x-brain-as is read from a Worker known by its key, and not from a member's: that one runs as its author.
     const as = !who.member && who.keyed ? c.req.header("x-brain-as") : null;
-    const no = who.member ? await asAuthor(c, who.member) : as ? await asHolder(c, who.keyed, as) : who.caller.startsWith("worker:") ? await asDeclared(c, who.caller.slice("worker:".length)) : null;
+    // x-brain-delegation is read from the kernel's key only.
+    const token = who.kernel ? c.req.header("x-brain-delegation") : null;
+    const no = who.member ? await asAuthor(c, who.member) : as ? await asHolder(c, who.keyed, as) : token ? await asSecret(c, token) : who.caller.startsWith("worker:") ? await asDeclared(c, who.caller.slice("worker:".length)) : null;
     if (no) {
       await routeOf(c);
       c.set("rule", "deny");
-      c.set("by", who.member ? "grant" : as ? "delegation" : "calls");
+      c.set("by", who.member ? "grant" : as || token ? "delegation" : "calls");
       await say(c, started, no.status, c.get("error"));
       return no;
     }
@@ -437,7 +459,7 @@ coreApp = {
     const now = new Set(people.map((p) => p.did));
     for (const { key } of await rows.list("person/")) if (!now.has(key.slice("person/".length))) await rows.delete(key);
     // What a removed member delegated goes with them: added again later, they begin with none.
-    for (const { key, value } of await rows.list("delegation/")) if (value.from !== "owner" && !now.has(value.from)) await settings.delete(key);
+    for (const { value } of await rows.list("delegation/")) if (value.from !== "owner" && !now.has(value.from)) await drop(value);
     for (const p of people) await rows.put("person/" + p.did, { did: p.did, methods: p.methods || [], quota: p.quota || null, tags: p.tags || [] });
     return c.json({ people: people.length });
   });
@@ -909,17 +931,29 @@ ${deployed.join("\n\n")}
       if (!route || !routed(route) || route.role === "member") return fail(c, 404, "NotFound", name);
       return forward(route, c, NS + what + "?worker=" + encodeURIComponent(name) + (c.req.query("part") === "reference" ? "&part=reference" : ""));
     });
-  // Making a delegation. Only a Worker holder so far, and it has no caps: a secret holder and a DID holder are the
-  // kernel's tokens and grants until they move here.
+  // Making a delegation. The holder is a Worker the owner deployed, or a secret that this answers once: a token.
+  // A secret is the owner's to make so far, and it alone has caps. A DID holder is the kernel's grant until that moves here.
+  const CAPS = ["session", "deploy", "unattended"];
+  const drop = async (d) => {
+    await settings.delete("delegation/" + d.id);
+    if (d.holder && d.holder.secret) await settings.delete("holder/secret/" + d.holder.secret);
+  };
   app.post(NS + "delegation.create", inPerson, async (c) => {
     const from = c.get("who").caller, b = (await c.req.json().catch(() => null)) || {};
-    const { name, holder, caps = [], until = null, daily = null, note = "" } = b, scope = scoped(b.scope);
+    const { name, holder, caps = [], until = null, daily = null, note = "" } = b;
+    const one = holder && typeof holder === "object" && Object.keys(holder).length === 1, secretHeld = !!one && holder.secret === true;
+    // A token may name no method: a sign-in link made only to deploy.
+    const scope = secretHeld && Array.isArray(b.scope) && !b.scope.length ? [] : scoped(b.scope);
     if (typeof name !== "string" || !/^[a-z0-9-]{1,40}$/.test(name)) return fail(c, 400, "InvalidRequest", "name is a-z, 0-9 and -, 1 to 40 characters");
-    if (!holder || typeof holder.worker !== "string" || Object.keys(holder).length !== 1) return fail(c, 400, "InvalidRequest", "holder is { worker: NAME }");
+    if (!secretHeld && !(one && typeof holder.worker === "string")) return fail(c, 400, "InvalidRequest", "holder is { worker: NAME } or { secret: true }");
+    if (secretHeld && from !== "owner") return fail(c, 403, "Forbidden", "a secret holder is the owner's to make");
     // A delegation names a Worker and not its code, so the Worker is one the owner deploys.
-    const route = await rows.get("route/" + holder.worker);
-    if (!route || !["recipe", "system"].includes(route.role)) return fail(c, 400, "InvalidRequest", `${holder.worker} is not a service the owner deployed`);
-    if (!Array.isArray(caps) || caps.length) return fail(c, 400, "InvalidRequest", "a Worker holder has no caps");
+    const route = secretHeld ? null : await rows.get("route/" + holder.worker);
+    if (!secretHeld && (!route || !["recipe", "system"].includes(route.role))) return fail(c, 400, "InvalidRequest", `${holder.worker} is not a service the owner deployed`);
+    if (!Array.isArray(caps) || caps.some((x) => !CAPS.includes(x)) || new Set(caps).size !== caps.length) return fail(c, 400, "InvalidRequest", "caps are session, deploy and unattended");
+    if (caps.length && !secretHeld) return fail(c, 400, "InvalidRequest", "a Worker holder has no caps");
+    // Deploying with nobody asked can deploy a kernel, so it is the owner in effect and is said to be: both other caps.
+    if (caps.includes("unattended") && !(caps.includes("deploy") && caps.includes("session"))) return fail(c, 400, "InvalidRequest", "unattended goes with deploy and session");
     if (!scope) return fail(c, 400, "InvalidRequest", "scope is 1 to 50 method names; a prefix ends .* or /*, and * is every method");
     const no = scope.find(neverHeld);
     if (no) return fail(c, 400, "InvalidRequest", `${no} is not reached under a delegation`);
@@ -931,11 +965,17 @@ ${deployed.join("\n\n")}
     if (until !== null && !(Number.isInteger(until) && until > clock())) return fail(c, 400, "InvalidRequest", "until is a time in ms after now, or null");
     if (daily !== null && !(typeof daily === "number" && Number.isFinite(daily) && daily >= 0)) return fail(c, 400, "InvalidRequest", "daily is US dollars a UTC day, or null");
     if (typeof note !== "string" || note.length > 300) return fail(c, 400, "InvalidRequest", "note is text, at most 300 characters");
-    if ((await rows.list("delegation/")).some((r) => r.value.from === from && r.value.name === name)) return fail(c, 400, "InvalidRequest", `a delegation named ${name} exists; revoke it first`);
-    const id = [...crypto.getRandomValues(new Uint8Array(6))].map((x) => x.toString(16).padStart(2, "0")).join("");
-    const d = { id, name, from, holder: { worker: holder.worker }, scope, caps: [], until, daily, parent: null, note, created: Date.now(), by: c.get("who").via };
+    // What has ended goes when its maker makes another.
+    const mine = (await rows.list("delegation/")).map((r) => r.value).filter((o) => o.from === from), live = [];
+    for (const o of mine) o.until && o.until <= clock() ? await drop(o) : live.push(o.name);
+    if (live.includes(name)) return fail(c, 400, "InvalidRequest", `a delegation named ${name} exists; revoke it first`);
+    const hex = (n) => [...crypto.getRandomValues(new Uint8Array(n))].map((x) => x.toString(16).padStart(2, "0")).join("");
+    const id = hex(6), secret = secretHeld ? hex(32) : null;
+    const d = { id, name, from, holder: secretHeld ? { secret: await sha256(secret) } : { worker: holder.worker }, scope, caps, until, daily, parent: null, note, created: Date.now(), by: c.get("who").via };
     await settings.put("delegation/" + id, d);
-    return c.json(d);
+    if (secret) await settings.put("holder/secret/" + d.holder.secret, id);
+    // The secret is in this answer and nowhere else: the row has its hash.
+    return c.json(secret ? { ...d, secret } : d);
   });
   // The owner reads every delegation, a member their own. spentToday: what was charged under it this UTC day.
   app.get(NS + "delegation.list", inPerson, async (c) => {
@@ -947,8 +987,17 @@ ${deployed.join("\n\n")}
     const me = c.get("who").caller, { id } = (await c.req.json().catch(() => null)) || {};
     const d = typeof id === "string" && /^[0-9a-f]{12}$/.test(id) ? await rows.get("delegation/" + id) : null;
     if (!d || (me !== "owner" && d.from !== me)) return c.json({ revoked: false });
-    await settings.delete("delegation/" + id);
+    await drop(d);
     return c.json({ revoked: true, id });
+  });
+  // The kernel asks whose secret it was sent: it needs the scope for the routes it answers itself and the caps for
+  // infra.*. The row is found by the hash, and the answer has no secret in it.
+  app.post(NS + "delegation.resolve", async (c) => {
+    const w = c.get("who"), { sha256: hash } = (await c.req.json().catch(() => null)) || {};
+    if (!(w.kernel && w.caller === "kernel")) return fail(c, 401, "AuthRequired", "the kernel");
+    const id = typeof hash === "string" && /^[0-9a-f]{64}$/.test(hash) ? await settings.get("holder/secret/" + hash) : null;
+    const d = id ? await settings.get("delegation/" + id) : null;
+    return c.json({ delegation: d && d.holder.secret === hash ? d : null });
   });
   app.all("*", async (c) => {
     const url = new URL(c.req.url), who = c.get("who");
@@ -1897,6 +1946,53 @@ test_a_delegation_is_made_in_a_persons_own_session_for_a_worker_the_owner_deploy
   const hers = (await ada("delegation.list")).data.delegations[0].id;
   expect([(await rig.owner("delegation.revoke", { id: hers })).data, (await rig.owner("delegation.revoke", { id: "nope" })).data, await list(ada)]).toEqual([{ revoked: true, id: hers }, { revoked: false }, []]);
   return "made by a session, for a system Worker";
+}
+// %%
+test_a_token_is_a_delegation_with_a_secret_holder_that_the_kernel_resolves = {
+  const heard = [], B = "com.lopecode.brain.", ADA = "did:plc:ada";
+  const hear = async (request) => {
+    if (request.url.endsWith(".getInfo")) return Response.json({ name: "brain-x-shop", hash: "h", calls: [] });
+    heard.push(Object.fromEntries(["caller", "via", "tab", "holder", "origin", "origin-tab", "hops"].map((h) => [h, request.headers.get("x-brain-" + h)])));
+    return Response.json({ ok: true });
+  };
+  const config = {}, rig = await coreRig({ config, workers: { shop: hear } }), kernel = rig.as("kernel", "");
+  await rig.deployer("service.register", { worker: "brain-x-shop", role: "recipe", paths: [], secrets: [], hash: "h", keyHash: await sha256("shop-key"), methods: { [B + "shop.receive"]: { type: "procedure", who: "owner" }, [B + "shop.tab"]: { type: "procedure", who: "anyone", allow: "caller.session" }, [B + "shop.paid"]: { type: "procedure", who: "owner", price: "0.04" } } });
+  await kernel("people.sync", { people: [{ did: ADA, methods: [] }] });
+  const make = (body) => rig.owner("delegation.create", { holder: { secret: true }, ...body });
+  // The secret is answered once. The row has its hash, and no list has the secret.
+  const t = (await make({ name: "laptop", scope: ["shop.receive", "shop.tab", "shop.paid"], daily: 0.05 })).data;
+  expect([/^[0-9a-f]{64}$/.test(t.secret), t.holder, t.caps, t.from]).toEqual([true, { secret: await sha256(t.secret) }, [], "owner"]);
+  expect(JSON.stringify([(await rig.owner("delegation.list")).data, [...rig.sim.rows]])).not.toContain(t.secret);
+  // The kernel asks whose secret it was sent. Nobody else does, and a hash nobody made gives nothing.
+  expect((await kernel("delegation.resolve", { sha256: t.holder.secret })).data.delegation).toMatchObject({ id: t.id, name: "laptop", from: "owner", scope: [B + "shop.receive", B + "shop.tab", B + "shop.paid"] });
+  expect([(await rig.owner("delegation.resolve", { sha256: t.holder.secret })).status, (await rig.worker("delegation.resolve", { sha256: t.holder.secret })).status, (await kernel("delegation.resolve", { sha256: "0".repeat(64) })).data, (await kernel("delegation.resolve", {})).data]).toEqual([401, 401, { delegation: null }, { delegation: null }]);
+  // The kernel passes the call on with the id. It is the owner's, and not in their tab, whatever else the kernel said.
+  const sent = (id) => (m, body) => rig.as("token:laptop", "session")(m, body, { "x-brain-delegation": id });
+  expect((await sent(t.id)("shop.receive", {})).status).toBe(200);
+  expect(heard.at(-1)).toMatchObject({ caller: "owner", via: "delegation:" + t.id, tab: "0", holder: "secret", origin: "owner", "origin-tab": "0" });
+  // Not the session guard of a rule or of the core, not out of its scope, and never a delegation method.
+  expect([(await sent(t.id)("shop.tab", {})).status, (await sent(t.id)("rule.list")).status, (await sent(t.id)("delegation.list")).status, (await sent("0123456789ab")("shop.receive", {})).status]).toEqual([401, 403, 403, 401]);
+  // Only the kernel's key sends the header: from a Worker it is not read, and the Worker is itself.
+  expect((await rig.send("https://core.internal", { "x-brain-key": "echo-key", "x-brain-delegation": t.id })("shop.receive", {})).status).toBe(401);
+  // The owner pays, and daily is the most it spends in a day.
+  expect([(await sent(t.id)("shop.paid", {})).status, (await sent(t.id)("shop.paid", {})).status, (await rig.owner("quota.list")).data.accounts.map((a) => [a.who, a.spent])]).toEqual([200, 402, [["owner", 0.04]]]);
+  // Caps are a secret holder's. With session it is the owner's own tab. unattended goes with the other two.
+  expect([(await make({ name: "x", scope: ["*"], caps: ["unattended", "deploy"] })).status, (await make({ name: "x", scope: ["*"], caps: ["root"] })).status, (await make({ name: "x", scope: ["*"], caps: ["deploy", "deploy"] })).status, (await rig.owner("delegation.create", { name: "x", holder: { worker: "brain-x-echo" }, scope: ["*"], caps: ["session"] })).status, (await make({ name: "x", scope: ["secret.get"] })).status, (await rig.as(ADA)("delegation.create", { name: "x", holder: { secret: true }, scope: ["static.get"] })).status]).toEqual([400, 400, 400, 400, 400, 403]);
+  const button = (await make({ name: "button", scope: ["shop.*"], caps: ["deploy", "unattended", "session"], until: Date.now() + 3600000, note: "sign-in link" })).data;
+  expect([(await sent(button.id)("shop.tab", {})).status, heard.at(-1).tab, heard.at(-1)["origin-tab"], (await sent(button.id)("delegation.create", { name: "y", holder: { secret: true }, scope: ["*"] })).status]).toEqual([200, "1", "1", 403]);
+  // A link made only to deploy names no method, so it reaches none here.
+  const ship = (await make({ name: "ship", scope: [], caps: ["deploy"] })).data;
+  expect([ship.scope, (await sent(ship.id)("shop.receive", {})).status]).toEqual([[], 403]);
+  // A name is one of the maker's, until it is revoked. Revoked, the hash finds nothing.
+  expect((await make({ name: "laptop", scope: ["*"] })).status).toBe(400);
+  expect((await rig.owner("delegation.revoke", { id: t.id })).data).toEqual({ revoked: true, id: t.id });
+  expect([(await kernel("delegation.resolve", { sha256: t.holder.secret })).data, (await sent(t.id)("shop.receive", {})).status, (await make({ name: "laptop", scope: ["*"] })).status]).toEqual([{ delegation: null }, 401, 200]);
+  // Ended, it is refused, and it goes when the owner makes another.
+  config.clockSkewMs = 2 * 3600000;
+  expect((await sent(button.id)("shop.receive", {})).status).toBe(403);
+  await make({ name: "next", scope: ["*"] });
+  expect([(await rig.owner("delegation.list")).data.delegations.map((d) => d.name).sort(), (await kernel("delegation.resolve", { sha256: button.holder.secret })).data]).toEqual([["laptop", "next", "ship"], { delegation: null }]);
+  return "a secret holder: resolved by the kernel only, the owner's call, the owner's tab with the cap session";
 }
 // %%
 test_a_worker_calls_under_a_delegation_as_who_made_it_and_not_in_their_tab = {

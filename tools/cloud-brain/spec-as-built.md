@@ -3659,3 +3659,45 @@ test_browser_time_is_bought_by_extend_alone       |remaining - 100| <= 3        
 
 A second fresh review of those fixes, 11:40 CEST: FIX, five minor findings, all taken. `quota.ledger?who=` refuses a `who` that is no account (a delegation's own count has no origin to show). The tick test's two bounds are widened by the seconds between their reads. A copied comment, a test's name here, and `people.remove` in the kernel's table now says the delegations go. `brain-core` `6efada888c7d`, `brain` `829be8ac5be7`, `brain-x-browser` `c2aa692e990a`; core 31, kernel 26, browser 17 pass.
 
+## Authority, step 3 of 7: a new token is a delegation (2026-10-10 11:53 CEST)
+
+`plan/cloud-brain-authority.md`, *Order of work*, step 3. `brain-core` `cc4782ed3eff`, `brain` `7b1db63157f9`. The core was deployed and confirmed first, with the kernel of step 2 in front of it; then the kernel. No shared cell changed, so the deployer was not installed again. Core 32 tests, kernel 26, one at a time in a tab.
+
+**The core.** `delegation.create` takes `holder: { secret: true }`. It makes 32 random bytes, keeps `holder: { secret: <sha256> }` and a row `holder/secret/<sha256>` that gives the id, and answers the secret once. Such a holder may have `caps`: `session`, `deploy`, `unattended`, and `unattended` only with the other two. Its scope may be empty (a link made only to deploy). `delegation.resolve { sha256 }` answers the row to the kernel and to nobody else. A call from the kernel's key with `x-brain-delegation: <id>` is checked as a Worker holder's is (`until`, the scope, never `infra` `secret` `token` `grant` `people` `delegation`, what the maker may call now) and is then `caller: owner`, `via: delegation:<id>`, `holder: secret`, in the owner's tab when the caps have `session`. `delegation.create` deletes the maker's ended delegations before it checks the name.
+
+**The kernel.** `token.create` and the POST of a sign-in link call the core's `delegation.create` as the owner's session and keep no row. A bearer that is no `token/` row is asked of the core by its hash. `token.list` and `token.revoke` cover both. `token.create` takes `daily`.
+
+**What a caller sees change**, for a token made from now:
+
+| | before | now |
+|---|---|---|
+| the account that pays | `token:NAME`, $0.10 a day | `owner`, capped by `daily` when one is given |
+| a rule's `caller` | kind `token` | `owner`, with `caller.delegation` and `caller.holder == "secret"`; `caller.session` false |
+| what it makes in blob, static, browser, container | under `token:NAME` | under `d:<id>` |
+| a link made with `unattended` | the owner's session, by a rewrite in the kernel | the owner's tab, by the cap `session` in the row |
+
+The seven tokens that were live on cb4 (`claude-…`, other sessions' sign-in links) are `token/` rows and were listed by `token.list` between the two deploys and after.
+
+**Run on cb4, 11:50 to 11:51.** No secret was printed: each token was held in a shell variable for the calls and unset.
+
+```
+token.create s3-check [quota.get, browser.list]     64 characters
+  quota.get as the token                            "who":"owner"
+  browser.list 200   inbox.list 403   delegation.list 403   token.list 403   infra.getState 403
+  token.revoke                                      {"revoked":1}; 6 s later quota.get 401
+token.link s3-link deploy                           POST 200, second POST 401
+  quota.get 200   infra.getState 200   infra.shell 403   browser.status 403
+token.link s3-free deploy unattended [quota.get, browser.status]
+  quota.get 200   infra.getState 200   infra.shell 501 (a GET; the kernel passed it)   browser.status 200   secret.list 403
+token.list                                          both with "by":"link"; both revoked
+```
+
+**Not as the design said.**
+
+- The kernel does not hold a resolved row for 5 s. It asks the core on each call with such a token, and the core answers from the 5 s memory `settings` already has. One call to the core more for each token call; a revoked token ends within 5 s, and at once in the instance that revoked it.
+- In the kernel a new token is still `token:NAME` with `via: token`, and the core is sent that with the id. The core takes the row's word. So the kernel's own routes, its two log lines and `x-brain-unattended: token:NAME` to the deployer are as they were, and a core from before this step would read the call as it read a token. Step 4 removes this.
+- A secret holder is the owner's to make. A member's is refused (403): the kernel's own routes read a member from the session's DID, which a token does not have.
+- "Made by a link" is the delegation's `note` (`sign-in link`), which `token.list` shows as `by: "link"`. The row's `by` is `session`, the via of the call that made it.
+
+**Not run:** a token made from the login button of the page; an `infra.apply` by a new link's token (only `infra.getState`); a priced call by a new token on cb4. The docs module's table of callers was corrected in the seed, and the page was not deployed by this session: another session is changing it.
+

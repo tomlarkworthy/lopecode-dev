@@ -35,6 +35,8 @@ A person is an atproto account, named by its DID. There are two roles. The **own
 
 **Sign-in links** (added 2026-10-09). For a program with no browser, such as Claude Code on the web. \`token.link\` (procedure, owner's session) takes \`{ name, methods, minutes, hours, deploy, unattended }\` and answers \`{ name, deploy, unattended, link, until }\`; \`minutes\` (1 to 480, 480 if left out; 10 until 2026-10-10, which a session that first had to have its network opened ran past) is how long the link is good, \`hours\` (1 to 24, 8 if left out) how long its token lasts. The link is \`/auth/link?code=…\`. A GET of it answers text that says what to do and spends nothing, so a preview of a pasted link does not use it. The first POST answers \`{ name, token, methods, until, deploy, unattended }\` and deletes the link; a second answers 401. The token is one as \`token.create\` makes, with an end: it may not name \`infra.*\`, \`secret.*\`, \`token.*\`, \`grant.*\` or \`people.*\`, and \`token.list\` gives it with \`by: "link"\` until it ends. \`token.revoke\` with \`{ name }\` ends the token early, and deletes a link of that name nobody has used. A link is refused a name that a token or another link has.
 
+**A token is a delegation** (2026-10-10). \`token.create\`, and the POST of a sign-in link, make a delegation with a secret holder in the core (\`delegation.create\`), and the kernel keeps no row for it. \`token.list\` and \`token.revoke\` read and end those and the tokens made before, which are rows here and work as they did. A call with such a token is sent to the core with the delegation's id, and there it is the owner's call: the owner's rules and the owner's allowance, which \`daily\` in \`token.create\` (US dollars a UTC day) caps. It is not the owner's own tab, so what it makes in a store is kept under \`d:<id>\` and not under \`token:NAME\`; a link made with \`unattended\` is the owner's tab, as before. A token ends within 5 s of \`token.revoke\`, the time a core instance remembers a row.
+
 **Lists of methods** (2026-10-10). In \`token.create\` and \`token.link\` an entry of \`methods\` is a whole name or a prefix that ends \`.*\`: \`browser.*\` is every method of that service, \`*\` every method of this Brain. A name may go on after a \`/\` (\`ai.v1/chat/completions\`), and \`ai.v1/*\` is every method under \`ai.v1/\` and not \`ai.run\` (2026-10-10: the first shape check had refused every name with a \`/\`). No prefix reaches a name a token may not have (\`infra\`, \`secret\`, \`token\`, \`grant\`, \`people\`), whether it goes on with a \`.\` or a \`/\`. A grant to a DID still names whole methods.
 
 **Other origins** (2026-10-10). No cookie is read, so any origin may call with a token and read the answer. A refusal is readable too: until 2026-10-10 an answer to a call with no \`authorization\` header carried no \`access-control-allow-origin\`, so a page with no key saw a network error where curl saw 401. A preflight is answered with the headers it asked for (\`access-control-request-headers\`), because a client library adds its own: the OpenAI one sends \`x-stainless-*\`. That holds when the names are letters, digits and \`-\`; a preflight that asks for any other (\`x_trace_id\`) is told \`authorization, content-type\` only, as every preflight was before. A page on another origin can read four headers of an answer: \`x-brain-price\`, \`x-ai-usd\`, \`x-ai-neurons\` and \`x-proxy-upstream\` (before 2026-10-10, the last only).
@@ -256,10 +258,24 @@ kernelApp = {
       const v = await verifyServiceJwt(bearer, nsid, "did:web:" + config.host, async (did) => did === config.owner || !!(await rows.get("member/" + did)) || !!(await rows.get("grant/" + did)));
       return v.error ? { refused: v } : { caller: v.iss === config.owner ? "owner" : v.iss, via: "jwt", did: v.iss };
     }
-    const token = await rows.get("token/" + (await sha256(bearer)));
+    const hash = await sha256(bearer), token = await rows.get("token/" + hash);
     if (token && token.until < Date.now()) return { refused: { error: "AuthRequired", message: "this token has expired" } };
-    return token ? { caller: "token:" + token.name, via: "token", methods: token.methods, deploy: token.deploy === true, unattended: token.unattended === true } : { refused: { error: "AuthRequired", message: "unknown token" } };
+    if (token) return { caller: "token:" + token.name, via: "token", methods: token.methods, deploy: token.deploy === true, unattended: token.unattended === true };
+    // A token made from 2026-10-10 is a delegation that the core keeps, found by the hash. Here it is read as a
+    // token is: its scope is the list, two of its caps are deploy and unattended. The core is sent its id.
+    const d = await resolve(hash);
+    if (d && d.until && d.until < Date.now()) return { refused: { error: "AuthRequired", message: "this token has expired" } };
+    return d ? { caller: "token:" + d.name, via: "token", methods: d.scope, deploy: d.caps.includes("deploy"), unattended: d.caps.includes("unattended"), delegation: d.id } : { refused: { error: "AuthRequired", message: "unknown token" } };
   };
+  // Calls the kernel makes to the core's delegation methods: as itself to ask whose secret a hash is, and as the
+  // owner's session for a route below that its own session guard has passed, or for a link the owner's session made.
+  const coreCall = async (headers, method, body) => {
+    const r = await core.fetch(new Request("https://core.internal/xrpc/com.lopecode.brain." + method, { method: body === undefined ? "GET" : "POST", headers: { "content-type": "application/json", ...headers }, body: body === undefined ? undefined : JSON.stringify(body) })).catch(() => null);
+    return { status: r ? r.status : 502, data: r ? await r.json().catch(() => null) : null };
+  };
+  const resolve = async (hash) => ((await coreCall({ "x-brain-caller": "kernel" }, "delegation.resolve", { sha256: hash })).data || {}).delegation || null;
+  const asOwnerSession = (method, body) => coreCall({ "x-brain-caller": "owner", "x-brain-via": "session" }, method, body);
+  const delegations = async () => ((await asOwnerSession("delegation.list")).data || {}).delegations || [];
   app.use("*", async (c, next) => {
     const path = new URL(c.req.url).pathname;
     const nsid = path.startsWith("/xrpc/") ? path.slice("/xrpc/".length) : null;
@@ -400,16 +416,20 @@ kernelApp = {
   // A name may go on in segments after a / (ai.v1/chat/completions); "ai.v1/*" is every method under ai.v1/.
   const listed = (m) => /^[A-Za-z0-9]+(\.[A-Za-z0-9]+)*(\/[A-Za-z0-9]+)*([./]\*)?$/.test(m);
   const names = (methods, nsid) => !never(nsid) && matches(methods, nsid);
-  app.get(NS + "token.list", session, async (c) => c.json({ tokens: (await rows.list("token/")).map((r) => r.value).filter((t) => !(t.until < Date.now())) }));
+  // A token made before 2026-10-10 is a row here. One made since is a delegation with a secret holder, in the core.
+  const LINK = "sign-in link";
+  const shown = (d) => ({ name: d.name, methods: d.scope, created: d.created, id: d.id, ...(d.until ? { until: d.until } : {}), ...(d.note === LINK ? { by: "link" } : {}), ...(d.caps.includes("deploy") ? { deploy: true } : {}), ...(d.caps.includes("unattended") ? { unattended: true } : {}), ...(d.daily === null ? {} : { daily: d.daily }) });
+  const tokens = async () => (await delegations()).filter((d) => d.holder && d.holder.secret);
+  app.get(NS + "token.list", session, async (c) => c.json({ tokens: [...(await rows.list("token/")).map((r) => r.value), ...(await tokens()).map(shown)].filter((t) => !(t.until < Date.now())) }));
   app.post(NS + "token.create", session, async (c) => {
-    const { name, methods = [] } = await c.req.json();
+    const { name, methods = [], daily = null } = await c.req.json();
     const named = methods.map(full);
     if (!/^[a-z0-9-]{1,40}$/.test(name || "")) return fail(c, 400, "InvalidRequest", "name is lower case letters, digits and -");
     if (!named.every(listed)) return fail(c, 400, "InvalidRequest", "a method is a name, or a prefix that ends .* or /* (browser.*, ai.v1/*), or *");
     if (named.some(never)) return fail(c, 400, "InvalidRequest", "a token cannot name infra, secret, token, grant, people or delegation methods");
-    const token = [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("");
-    await rows.put("token/" + (await sha256(token)), { name, methods: named, created: Date.now() });
-    return c.json({ name, token });
+    const made = await asOwnerSession("delegation.create", { name, holder: { secret: true }, scope: named, daily });
+    if (made.status !== 200) return c.json(made.data || { error: "UpstreamFailure", message: "the core did not answer" }, made.status);
+    return c.json({ name, token: made.data.secret });
   });
   // A sign-in link, for a program with no browser (Claude Code on the web). The owner makes one and pastes it;
   // whoever POSTs it first is given a token for the methods it names, and the link is gone. A GET explains and
@@ -427,6 +447,9 @@ kernelApp = {
     // What has ended is deleted here: links nobody used, and the tokens of links.
     const live = [];
     for (const r of [...(await rows.list("link/")), ...(await rows.list("token/"))]) r.value.until < Date.now() ? await rows.delete(r.key) : live.push(r.value.name);
+    // The core has one name for each of the owner's delegations. Found here, the link is not made; found when the
+    // link is used, the link would be spent on nothing.
+    for (const d of await delegations()) if (!(d.until && d.until < Date.now())) live.push(d.name);
     if (live.includes(name)) return fail(c, 400, "InvalidRequest", `a token or a link is named ${name}; token.revoke ends it`);
     const code = hex(), until = Date.now() + minutes * 60000;
     await rows.put("link/" + (await sha256(code)), { name, methods: named, until, hours, deploy, unattended });
@@ -459,15 +482,22 @@ other address): how to call, and what this Brain is made of.
     const made = await rows.get(key);
     // The delete says whether this caller is the one that spent it.
     if (!made || !(await rows.delete(key)) || made.until < Date.now()) return fail(c, 401, "AuthRequired", "this link was used, has expired or is not this Brain's");
-    const token = hex(), until = Date.now() + made.hours * 3600000;
-    await rows.put("token/" + (await sha256(token)), { name: made.name, methods: made.methods, created: Date.now(), until, by: "link", ...(made.deploy ? { deploy: true } : {}), ...(made.unattended ? { unattended: true } : {}) });
-    return c.json({ name: made.name, token, methods: made.methods, until, deploy: !!made.deploy, unattended: !!made.unattended });
+    // The owner's session made the link, so the delegation is made as the owner's session. A token that deploys
+    // with nobody asked is the owner in effect, and has the cap that says so: session.
+    const until = Date.now() + made.hours * 3600000, caps = made.unattended ? ["deploy", "unattended", "session"] : made.deploy ? ["deploy"] : [];
+    const got = await asOwnerSession("delegation.create", { name: made.name, holder: { secret: true }, scope: made.methods, caps, until, note: LINK });
+    if (got.status !== 200) {
+      await rows.put(key, made);
+      return fail(c, 502, "UpstreamFailure", "no token was made and the link is not spent: " + ((got.data && got.data.message) || got.status));
+    }
+    return c.json({ name: made.name, token: got.data.secret, methods: made.methods, until, deploy: !!made.deploy, unattended: !!made.unattended });
   });
   app.post(NS + "token.revoke", session, async (c) => {
     const { name } = await c.req.json();
     let revoked = 0;
     // A link of that name that nobody has used goes too.
     for (const r of [...(await rows.list("token/")), ...(await rows.list("link/"))]) if (r.value.name === name) revoked += (await rows.delete(r.key)) ? 1 : 0;
+    for (const d of await tokens()) if (d.name === name) revoked += ((await asOwnerSession("delegation.revoke", { id: d.id })).data || {}).revoked ? 1 : 0;
     return c.json({ revoked });
   });
   app.get(NS + "grant.list", session, async (c) => c.json({ grants: (await rows.list("grant/")).map((r) => r.value) }));
@@ -506,6 +536,8 @@ other address): how to call, and what this Brain is made of.
     const asOwner = who.via === "token" && who.unattended;
     headers.set("x-brain-caller", asOwner ? "owner" : who.caller);
     headers.set("x-brain-via", asOwner ? "session" : who.via);
+    // A delegation's id. The core reads the row and says who the call is by; what is set above is for a core from before it did.
+    if (who.delegation) headers.set("x-brain-delegation", who.delegation);
     if (asOwner) console.log(JSON.stringify({ event: "call.by.link", token: who.caller, method: (c.get("nsid") || url.pathname).replace("com.lopecode.brain.", ""), at: Date.now() }));
     // The ray Cloudflare gave this call. The core writes it in its log line, and a caller already has it as cf-ray.
     if (c.req.header("cf-ray")) headers.set("x-brain-ray", c.req.header("cf-ray"));
@@ -723,10 +755,26 @@ kernelRig = async ({ core, secrets = { SESSION_KEY: "cookie-key", COOKIE_KEY: "c
     list.push({ url: request.url, method: request.method, headers: Object.fromEntries(request.headers), body });
     return request.url.endsWith("/go") ? new Response(null, { status: 302, headers: { location: "https://example.com/" } }) : Response.json({ ok: true });
   };
+  // The core's delegation methods, as far as the kernel uses them: a secret holder made by the owner's session,
+  // found by its hash by the kernel. These calls are not in `seen`.
+  const held = new Map(), inner = core || record(seen), hexOf = (n) => [...crypto.getRandomValues(new Uint8Array(n))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const withDelegations = async (request) => {
+    const m = new URL(request.url).pathname.split("com.lopecode.brain.delegation.")[1], h = request.headers;
+    // Anyone else's call is passed on like any other: a member's own delegation.list.
+    if (!m || !(h.get("x-brain-caller") === "kernel" || (h.get("x-brain-caller") === "owner" && h.get("x-brain-via") === "session"))) return inner(request);
+    const b = request.method === "POST" ? await request.json() : {};
+    if (m === "resolve") return Response.json({ delegation: [...held.values()].find((d) => d.holder.secret === b.sha256) || null });
+    if (m === "list") return Response.json({ delegations: [...held.values()] });
+    if (m === "revoke") return Response.json({ revoked: held.delete(b.id) });
+    if ([...held.values()].some((d) => d.name === b.name && !(d.until && d.until < Date.now()))) return Response.json({ error: "InvalidRequest", message: `a delegation named ${b.name} exists; revoke it first` }, { status: 400 });
+    const secret = hexOf(32), d = { id: hexOf(6), name: b.name, from: "owner", holder: { secret: await sha256(secret) }, scope: b.scope, caps: b.caps || [], until: b.until ?? null, daily: b.daily ?? null, note: b.note || "", created: Date.now() };
+    held.set(d.id, d);
+    return Response.json({ ...d, secret });
+  };
   const sim = await simulate(kernel_service, {
     secrets: { ...secrets, BRAIN_KEY: "kernel-key" },
     config: { host: "cb.sub.workers.dev", owner: "did:plc:owner", deployer: "https://cb-deployer.sub.workers.dev" },
-    core: core || record(seen),
+    core: withDelegations,
     deployer: record(toDeployer)
   });
   const B = "https://cb.sub.workers.dev";
@@ -743,7 +791,7 @@ kernelRig = async ({ core, secrets = { SESSION_KEY: "cookie-key", COOKIE_KEY: "c
     try { data = JSON.parse(text); } catch {}
     return { status: r.status, data, headers: r.headers };
   };
-  return { sim, seen, toDeployer, call, owner: await sessionToken.make("cookie-key", "did:plc:owner"), other: await sessionToken.make("cookie-key", "did:plc:other") };
+  return { sim, seen, toDeployer, held, call, owner: await sessionToken.make("cookie-key", "did:plc:owner"), other: await sessionToken.make("cookie-key", "did:plc:other") };
 }
 // %%
 test_the_signing_key_is_read_under_either_name = {
@@ -836,7 +884,8 @@ test_tokens_reach_only_their_methods = {
   expect(made.data.token).toMatch(/^[0-9a-f]{64}$/);
   expect(JSON.stringify([...rig.sim.rows])).not.toContain(made.data.token);
   expect((await rig.call("proxy.fetch", { bearer: made.data.token, body: {} })).status).toBe(200);
-  expect(rig.seen[0].headers["x-brain-caller"]).toBe("token:laptop");
+  // The core is sent the delegation's id, and from the row says who the call is by.
+  expect([rig.seen[0].headers["x-brain-caller"], rig.seen[0].headers["x-brain-delegation"], rig.held.size]).toEqual(["token:laptop", [...rig.held.values()][0].id, 1]);
   // Another origin can read the answer to a call that carried a token.
   expect((await rig.call("proxy.fetch", { bearer: made.data.token, body: {} })).headers.get("access-control-allow-origin")).toBe("*");
   expect((await rig.call("inbox.list", { bearer: made.data.token })).status).toBe(403);
@@ -870,13 +919,12 @@ test_tokens_reach_only_their_methods = {
   expect(await listed()).toEqual([["laptop", null], ["web", "link"]]);
   expect(Math.round((web.until - Date.now()) / 60000)).toBe(60);
   // The token ends by itself, and so does a link nobody used.
-  for (const [k, v] of rig.sim.rows) if (v && v.by === "link") rig.sim.rows.set(k, { ...v, until: Date.now() - 1 });
+  for (const d of rig.held.values()) if (d.note === "sign-in link") d.until = Date.now() - 1;
   expect((await rig.call("proxy.fetch", { bearer: web.token, body: {} })).data.message).toBe("this token has expired");
   expect(await listed()).toEqual([["laptop", null]]);
   const madeLate = (await rig.call("token.link", { session: rig.owner, body: { name: "late", methods: [] } })).data;
   const late = madeLate.link;
-  // Making it deleted the ended token. Left alone, a link is good for 8 hours.
-  expect([...rig.sim.rows.values()].filter((v) => v && v.by === "link")).toEqual([]);
+  // Left alone, a link is good for 8 hours.
   expect(Math.round((madeLate.until - Date.now()) / 60000)).toBe(480);
   for (const [k, v] of rig.sim.rows) if (v && v.name === "late") rig.sim.rows.set(k, { ...v, until: Date.now() - 1 });
   expect((await rig.call(late.slice(late.indexOf("/auth/link")), { method: "POST" })).status).toBe(401);
@@ -935,6 +983,16 @@ test_tokens_reach_only_their_methods = {
   expect((await rig.call("proxy.fetch", { bearer: star, body: {} })).status).toBe(200);
   expect(rig.seen.at(-1).headers["x-brain-caller"]).toBe("token:star");
   expect((await rig.call("proxyx.fetch", { bearer: star, body: {} })).status).toBe(403);
+  // A link whose name a token took since it was made: no token is made, and the link is not spent.
+  const twice = (await rig.call("token.link", { session: rig.owner, body: { name: "twice", methods: [] } })).data.link;
+  await rig.call("token.create", { session: rig.owner, body: { name: "twice", methods: [] } });
+  const links = () => [...rig.sim.rows.keys()].filter((k) => k.startsWith("link/")).length;
+  expect([(await rig.call(twice.slice(twice.indexOf("/auth/link")), { method: "POST" })).status, links(), (await rig.call("token.revoke", { session: rig.owner, body: { name: "twice" } })).data, links()]).toEqual([502, 1, { revoked: 2 }, 0]);
+  // A token made before 2026-10-10 is a row of the kernel, and works as it did: the core is sent no id.
+  rig.sim.rows.set("token/" + (await sha256("made-before")), { name: "old", methods: ["com.lopecode.brain.proxy.fetch"], created: 1 });
+  expect([(await rig.call("proxy.fetch", { bearer: "made-before", body: {} })).status, rig.seen.at(-1).headers["x-brain-caller"], rig.seen.at(-1).headers["x-brain-delegation"], (await rig.call("inbox.list", { bearer: "made-before" })).status]).toEqual([200, "token:old", undefined, 403]);
+  expect((await listed()).map((t) => t[0])).toContain("old");
+  expect([(await rig.call("token.revoke", { session: rig.owner, body: { name: "old" } })).data, (await rig.call("proxy.fetch", { bearer: "made-before", body: {} })).status]).toEqual([{ revoked: 1 }, 401]);
   const every = (await rig.call("token.create", { session: rig.owner, body: { name: "every", methods: ["*"] } })).data.token;
   expect((await rig.call("inbox.list", { bearer: every })).status).toBe(200);
   for (const m of ["secret.get", "token.list", "infra.getState", "people.list"]) expect((await rig.call(m, { bearer: every })).status).toBe(403);
