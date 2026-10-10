@@ -69,3 +69,23 @@ sync, a web server on the synced directory, building a notebook from `manifest.j
   the shared notebook rebuilt under the lock; `git status` in `lopebooks` showed it unchanged.
 - `rmdir land.lock` at 21:53:39 found it already gone. Nothing else had landed (`git log`), and
   who removed it is not known.
+
+## After its fresh review (2026-10-10 22:02 CEST)
+
+FIX, 5 findings, all taken. `brain-x-git` `869e8a226168`, applied 22:02 in 22.9 s; every Worker
+`same` after. 4 of 4 in a browser tab on the build of the branch.
+
+- A member's short name of 28 to 40 characters made a repository whose name on Cloudflare was 41
+  to 53, which the owner could list and not get, give a token for or delete: the 40 limit was
+  applied before the `m-ID-` prefix. It is now applied to the name Cloudflare holds; a member's
+  short name is at most 27. No such repository was made on cb4.
+- The prose gave only the most `seconds`; it now says from 60.
+- The prose now says a member's `git.list` is one page of Cloudflare's with the others taken out,
+  so a page can be empty while `cursor` says there is more. Not changed: the service does not page
+  for the member. Cloudflare's `search` parameter on the list was not tried.
+- The member-name pattern was written in three places; it is one cell, `gitMember`.
+- `deploy-sync.ts` said "two public reads" and makes one more a Worker (`getSource`, to tell what
+  runs). The header says so, and a Worker that does not answer is printed, where before it was
+  left out in silence. "Two public reads" under What was built above is wrong in the same way.
+
+Not run on cb4 after this deploy: any call to the service.
