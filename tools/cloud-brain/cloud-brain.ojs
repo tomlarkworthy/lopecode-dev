@@ -304,7 +304,20 @@ assistantLine = htl.html`<div style="color:var(--theme-foreground-muted)">${
 // %%
 md`## Services`
 // %%
-viewof services = serviceList({ services: declaredWorkers, brain, moduleLink })
+viewof services = serviceList({ services: [...declaredWorkers, ...notLoaded(registered, brainJoined)], brain, moduleLink })
+// %%
+// What the core routes to: one row per Worker, with its module's name, without the module.
+registered = client ? client.query("service.list").then((r) => r.services, () => []) : []
+// %%
+// A Worker whose module is not on this page stands in the Services table as what runs, unchanged. Its name is the
+// link that adds the module.
+notLoaded = (registry, joined) =>
+  registry
+    .filter((r) => r.hash && r.module && !joined.includes(r.module))
+    .map((r) => ({
+      name: r.worker,
+      emit: async () => ({ name: r.worker, hash: r.hash, meta: { worker: r.worker, role: r.role, module: r.module || null, methods: Object.keys(r.methods || {}), calls: [], paths: (r.paths || []).map((p) => (typeof p === "string" ? { path: p } : p)), secrets: r.secrets || [] } })
+    }))
 // %%
 // A link that opens a module's tab beside the ones already open.
 moduleLink = (module, label) => htl.html`<a href=${linkTo(module, { onObservable: false })} title=${module} onclick=${(e) => (e.preventDefault(), navigate(e.currentTarget.getAttribute("href")))}>${label}</a>`
@@ -683,14 +696,13 @@ brain = session.owner
         const l = fromBrain[emitted.meta.module];
         return l && emitted.source && emitted.source.text === l.baseline ? l.hash : null;
       },
-      // A deploy is not finished when the deployer says deployed: the page then loads the module back from the Worker,
-      // runs its tests and tells the core, which marks the version verified or has the deployer put the old one back.
+      // The page judges no deploy. It loads the module back from the Worker, so its copy is what now runs.
       // was: the hash the caller saw running, null for no Worker. The deployer refuses when it is no longer that.
       apply: async (emitted, { force = false, reason, was } = {}) => {
         const out = await client.procedure("infra.apply", { workers: [{ ...asSource(emitted), force, was }], reason });
         // The deployer's answer is what was deployed. A hash other than this page's is said, not hidden.
         for (const r of out.results) if (r.hash && r.hash !== emitted.hash) r.note = `the deployer distilled ${r.hash.slice(0, 12)}; this page made ${emitted.hash.slice(0, 12)}`;
-        for (const r of out.results) if (r.state === "deployed" || r.state === "probation") r.verdict = await verifyService(r.worker, { expect: r.hash }).catch((e) => ({ state: "not verified", reason: String((e && e.message) || e) }));
+        for (const r of out.results) if (r.state === "deployed" || r.state === "probation") await loadService(r.worker, { expect: r.hash }).catch(() => null);
         return out;
       },
       confirm: () => client.procedure("infra.confirm", {})
@@ -786,48 +798,26 @@ loadService = async (worker, { expect = null } = {}) => {
   return { worker, module: s.module, hash: s.hash, state };
 }
 // %%
-// Runs every test_ cell of the module a Worker was deployed from and reports to the core.
-verifyService = async (worker, { report = true, expect = null } = {}) => {
+// Runs every test_ cell of the module a Worker was deployed from, for whoever is reading. It is sent nowhere: the
+// deployer runs a Worker's tests itself after a deploy, and decides.
+verifyService = async (worker, { expect = null } = {}) => {
   const loaded = await loadService(worker, { expect });
   if (!loaded.module) return { worker, state: "no source" };
   if (loaded.state === "not applied") return { worker, state: "not verified", reason: loaded.reason };
-  const mod = runtime.mains.get(loaded.module) || [...runtime._variables].find((v) => v._name === "module " + loaded.module)?._value;
-  const names = [...runtime._variables].filter((v) => v._module === mod && /^test_/.test(v._name || "")).map((v) => v._name);
-  const tests = [];
-  for (const name of names) {
-    try {
-      await Promise.race([mod.value(name), new Promise((_, no) => setTimeout(() => no(new Error("no result in 30 s")), 30000))]);
-      tests.push({ name, ok: true });
-    } catch (e) {
-      tests.push({ name, ok: false, message: String((e && e.message) || e).slice(0, 300) });
-    }
-  }
-  // What the Worker says it is running has to be what was loaded and tested.
-  const info = await client.query("getInfo", { worker }).catch(() => null);
-  if (!info || info.hash !== loaded.hash) tests.push({ name: "the Worker reports the hash that was loaded", ok: false, message: `loaded ${String(loaded.hash).slice(0, 12)}, running ${String(info && info.hash).slice(0, 12)}` });
-  const failed = tests.filter((x) => !x.ok);
-  const result = { worker, module: loaded.module, hash: loaded.hash, ok: failed.length === 0, tests: tests.length, failed };
-  if (!report || !session.owner) return result;
-  // The core is a Worker too: straight after its own deploy the version before may answer, and not know this hash.
-  const send = () => client.procedure("deploy.report", { worker, hash: loaded.hash, ok: result.ok, tests, reason: failed.map((f) => `${f.name}: ${f.message}`).join("; ") });
-  let said = null;
-  for (let i = 0; !said; i++) {
-    try {
-      said = await send();
-    } catch (e) {
-      if (i >= 8 || !/is not running/.test(String(e && e.message))) throw e;
-      await new Promise((r) => setTimeout(r, 2000));
-    }
-  }
-  return { ...result, state: said.state, previous: said.previous || null };
+  return verifyModule({ worker, module: loaded.module, hash: loaded.hash }, { client });
 }
 // %%
-// On opening: the registry, each Worker's module, its tests, the report. One line per Worker.
+// One line per Worker of the registry. A Worker whose module is on this page (the layout names it) has its copy made
+// the same as the Worker's, and for the owner its tests run. The others are not loaded.
 assembled = {
   if (!client) return [];
   const { services: registry } = await client.query("service.list").catch(() => ({ services: [] }));
   const out = [];
   for (const r of registry) {
+    if (!r.module || !brainJoined.includes(r.module)) {
+      out.push({ worker: r.worker, module: r.module || null, state: "not loaded" });
+      continue;
+    }
     try {
       out.push(session.owner ? await verifyService(r.worker, { expect: r.hash }) : await loadService(r.worker, { expect: r.hash }));
     } catch (e) {
@@ -839,7 +829,7 @@ assembled = {
 // %%
 // The table is drawn before the modules are loaded; draw it again once they are.
 assembledRefresh = {
-  viewof services.tests = Object.fromEntries(assembled.map((a) => [a.worker, a.tests != null ? `${a.tests - a.failed.length}/${a.tests}${a.failed.length ? ": " + a.failed.map((f) => f.name).join(", ") : ""}` : a.state === "not loaded" || a.reason ? `${a.state}: ${a.reason || ""}` : ""]));
+  viewof services.tests = Object.fromEntries(assembled.map((a) => [a.worker, a.tests != null ? `${a.tests - a.failed.length}/${a.tests}${a.failed.length ? ": " + a.failed.map((f) => f.name).join(", ") : ""}` : a.none || a.reason ? `${a.state || "not run"}: ${a.none || a.reason}` : a.state === "not loaded" ? "not loaded" : ""]));
   if (!brain) return "no owner session";
   viewof services.refresh();
   return "refreshed";
@@ -1275,10 +1265,35 @@ test_turn_tool_calls_as_the_sender_or_not_at_all = {
   return "2 calls made, 2 refused";
 }
 // %%
+test_a_worker_whose_module_is_not_loaded_is_listed_as_what_runs = {
+  const registry = [
+    { worker: "brain-x-a", role: "recipe", module: "@t/a", hash: "ha", methods: { "com.lopecode.brain.a.get": {} }, paths: ["/a/"], secrets: ["K"] },
+    { worker: "brain-x-b", role: "recipe", module: "@t/b", hash: "hb", methods: {}, paths: [] },
+    { worker: "brain-x-gone", module: "@t/gone", hash: null }
+  ];
+  const rows = notLoaded(registry, ["@t/b"]);
+  expect(rows.map((r) => r.name)).toEqual(["brain-x-a"]);
+  const emitted = await rows[0].emit();
+  expect(emitted).toEqual({ name: "brain-x-a", hash: "ha", meta: { worker: "brain-x-a", role: "recipe", module: "@t/a", methods: ["com.lopecode.brain.a.get"], calls: [], paths: [{ path: "/a/" }], secrets: ["K"] } });
+  // In the table it is in sync with what runs: there is nothing to apply for a module nobody has opened.
+  const [row] = serviceRows([emitted], { workers: [{ worker: "brain-x-a", hash: "ha" }] }, { "brain-x-a": "ha" }, {});
+  expect([row.state, row.module, row.methods, row.paths]).toEqual(["in sync", "@t/a", ["com.lopecode.brain.a.get"], ["/a/"]]);
+  return "1 stand-in of 3";
+}
+// %%
+// R10 of the deploy verification spec: opening the page, or reading a Worker's tests on it, tells the core nothing.
+test_page_sends_no_report = {
+  const mine = [...runtime._variables].filter((v) => v._module === runtime.mains.get("@tomlarkworthy/cloud-brain") && typeof v._definition === "function");
+  expect(mine.length).toBeGreaterThan(50);
+  const naming = mine.filter((v) => v._name !== "test_page_sends_no_report" && String(v._definition).includes("deploy" + ".report")).map((v) => v._name);
+  expect(naming).toEqual([]);
+  return mine.length + " cells, none names the report";
+}
+// %%
 // This notebook as one HTML page, as it is in the tab now.
 notebookHtml = async () => {
   // The layout is kept; a pairing token and other one-time parameters are not.
-  const drop = new Set(["cc", "open", "close", "filesync", "from", "focus"]);
+  const drop = new Set(["cc", "open", "close", "filesync", "from", "focus", "verify"]);
   const kept = String(location.hash || "").replace(/^#/, "").split("&").filter(Boolean).filter((p) => !drop.has(p.split("=")[0]));
   // No prerender: it bakes the open panes into the page as HTML, links carrying this tab's pairing token among them.
   return (await exportToHTML({ mains: new Map(runtime.mains), runtime, options: { hash: kept.length ? "#" + kept.join("&") : "", prerender: false } })).source;
@@ -1441,7 +1456,7 @@ test_install_order_and_where_the_token_goes = {
   return calls.length + " requests";
 }
 // %%
-import {declaredWorkers, serviceList, backend, sha256, seedSource, cloudflare, xrpc, simulate, asSource, wrapperFlags} from "@tomlarkworthy/cloudflare-iac"
+import {declaredWorkers, serviceList, serviceRows, backend, sha256, seedSource, cloudflare, xrpc, simulate, asSource, wrapperFlags} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {static_service} from "@tomlarkworthy/brain-static"
 // %%
@@ -1455,7 +1470,7 @@ import {xrpcClient} from "@tomlarkworthy/xrpc-client"
 // %%
 import {plugins} from "@tomlarkworthy/plugin-registry"
 // %%
-import {brainOrigin, shellOf, brainSession, brainClient, brainWho, brainModules, brainDeployer} from "@tomlarkworthy/brain-shell"
+import {brainOrigin, shellOf, brainSession, brainClient, brainWho, brainModules, brainDeployer, brainJoined, verifyModule} from "@tomlarkworthy/brain-shell"
 // %%
 import {robocoop5, defaultWatches, rc5_controller, rc5_agents} from "@tomlarkworthy/robocoop-5"
 // %%

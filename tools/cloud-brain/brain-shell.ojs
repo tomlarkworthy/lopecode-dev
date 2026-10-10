@@ -10,9 +10,8 @@ The page a Brain serves at \`/\` is a shell: lopecode, this module, and no servi
 brainBoot = {
   if (!brainOrigin) return md`This copy was opened from a file. It holds its modules itself.`;
   if (brainModules.error) return md`The modules of this ${brainPortal ? "portal" : "Brain"} could not be read: ${brainModules.error}.`;
-  const had = brainModules.modules.filter((m) => runtime.mains.has(m.module)).map((m) => m.module);
-  const joined = await joinModules(brainModules.modules);
-  const row = (m) => `| \`${m.module}\` | ${m.worker} | \`${String(m.hash || "").slice(0, 12)}\` | ${joined.includes(m.module) ? "loaded" : had.includes(m.module) ? "in this file" : "not loaded"} |`;
+  const joined = brainJoined;
+  const row = (m) => `| \`${m.module}\` | ${m.worker} | \`${String(m.hash || "").slice(0, 12)}\` | ${joined.includes(m.module) ? "loaded" : "not loaded"} |`;
   if (brainPortal) {
     const note = htl.html`<span style="color:var(--theme-foreground-muted)"></span>`;
     const why = htl.html`<input placeholder="Reason for the change" maxlength="300" style="font:inherit;min-width:16em">`;
@@ -39,8 +38,7 @@ ${brainModules.modules.map(row).join("\n")}
 
 ${brainPortal.viewer === brainPortal.author ? htl.html`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${why}${deploy}${note}</div>` : ""}`;
   }
-  const frames = htl.html`<div></div>`;
-  const open = new Map();
+  const { frames, open } = brainPortals;
   const portal = (s) =>
     Inputs.button("Open", {
       reduce: () => {
@@ -53,15 +51,120 @@ ${brainPortal.viewer === brainPortal.author ? htl.html`<div style="display:flex;
       }
     });
   const tr = (module, worker, hash, last) => htl.html`<tr><td><code>${module}</code></td><td>${worker}</td><td><code>${String(hash || "").slice(0, 12)}</code></td><td>${last}</td></tr>`;
-  const state = (m) => (joined.includes(m.module) ? "loaded" : had.includes(m.module) ? "in this file" : "not loaded");
+  // A module is added when the layout names it. This link names it: a tab beside the ones already open.
+  const state = (m) => (joined.includes(m.module) ? "loaded" : htl.html`<a href=${linkTo(m.module, { onObservable: false })} onclick=${(e) => (e.preventDefault(), navigate(e.currentTarget.getAttribute("href")))}>open</a>`);
   return htl.html`<div>
-    <p>${joined.length} of ${brainModules.modules.length} modules loaded from this Brain's Workers, distilled by deployer <code>${String(brainModules.distiller || "").slice(0, 12)}</code>.${portalServices.length ? ` ${portalServices.length} of a member's, each opened as a portal: a frame with its own runtime.` : ""}</p>
+    <p>${joined.length} of ${brainModules.modules.length} modules of this Brain's Workers are on this page. One is added when the layout names it. Distilled by deployer <code>${String(brainModules.distiller || "").slice(0, 12)}</code>.${portalServices.length ? ` ${portalServices.length} of a member's, each opened as a portal: a frame with its own runtime.` : ""}</p>
     <table>
       <thead><tr><th>module</th><th>Worker</th><th>hash</th><th></th></tr></thead>
       <tbody>${brainModules.modules.map((m) => tr(m.module, m.worker, m.hash, state(m)))}${portalServices.map((s) => tr(s.module, s.worker, s.hash, portal(s)))}</tbody>
     </table>
     ${frames}
   </div>`;
+}
+// %%
+// The frames of the portals that are open. Kept apart from brainBoot, which is drawn again when a module joins.
+brainPortals = ({ frames: htl.html`<div></div>`, open: new Map() })
+// %%
+// The modules a layout names, from an address such as #view=C100(S70(@a/b,@c/d),S30(@e/f))&cc=LOPE-1-X.
+viewModules = (hash) => {
+  const view = String(hash || "").replace(/^#/, "").split("&").find((p) => p.startsWith("view="));
+  if (!view) return [];
+  try {
+    return [...listModules(decodeURIComponent(view)).keys()];
+  } catch {
+    return [];
+  }
+}
+// %%
+// The Brain's modules the layout names now. A new value when that set changes: a link opened a pane.
+brainWanted = !brainOrigin || brainPortal || brainModules.error
+  ? []
+  : Generators.observe((notify) => {
+      let last = null;
+      const say = () => {
+        const names = viewModules(location.hash).filter((n) => brainModules.modules.some((m) => m.module === n));
+        if (names.join(" ") !== last) notify(((last = names.join(" ")), names));
+      };
+      say();
+      addEventListener("hashchange", say);
+      addEventListener("popstate", say);
+      return () => (removeEventListener("hashchange", say), removeEventListener("popstate", say));
+    })
+// %%
+// The modules a module's source imports by path: each import("/@a/b.js?v=4") in the parsed text.
+importsOfText = (text) => {
+  const out = new Set();
+  const walk = (n) => {
+    if (n.type === "ImportExpression" && n.source.type === "Literal" && String(n.source.value).startsWith("/@")) out.add(String(n.source.value).slice(1).replace(/\.js(\?.*)?$/, ""));
+    for (const k in n) {
+      const v = n[k];
+      if (Array.isArray(v)) v.forEach((c) => c && typeof c.type === "string" && walk(c));
+      else if (v && typeof v.type === "string") walk(v);
+    }
+  };
+  walk(acorn.parse(text, { ecmaVersion: "latest", sourceType: "module" }));
+  return [...out];
+}
+// %%
+// Of list, the named modules and what they import from list, to any depth.
+closureOf = (names, list) => {
+  const by = new Map(list.map((m) => [m.module, m])), seen = new Map();
+  const add = (name) => {
+    const m = by.get(name);
+    if (!m || seen.has(name)) return;
+    seen.set(name, m);
+    importsOfText(m.text).forEach(add);
+  };
+  names.forEach(add);
+  return [...seen.values()];
+}
+// %%
+// The Brain's modules that are on this page. On a Brain's page: the ones the layout names, each with the source of
+// what it imports. In a portal: every module of the member.
+brainJoined = {
+  if (!brainOrigin || brainModules.error) return [];
+  const all = brainModules.modules;
+  if (brainPortal) await joinModules(all);
+  else await joinModules(closureOf(brainWanted, all), { mains: brainWanted });
+  return all.filter((m) => runtime.mains.has(m.module)).map((m) => m.module);
+}
+// %%
+// Runs every test_ cell of one module of this page, each with a limit, and asks the Worker which hash it runs.
+// otherTestsRan: test cells of other modules that ran on the page beside these.
+verifyModule = async ({ worker, module, hash }, { client = brainClient, rt = runtime, limit = 30000, settle = 30000, wait = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) => {
+  const began = Date.now(), mod = rt.mains.get(module);
+  if (!mod) return { worker, module, hash, none: "the module is not on the page" };
+  const isTest = (v) => /^test_/.test(v._name || "");
+  const names = [...rt._variables].filter((v) => v._module === mod && isTest(v)).map((v) => v._name);
+  const failed = [];
+  await Promise.all(
+    names.map((name) =>
+      Promise.race([mod.value(name), new Promise((_, no) => setTimeout(() => no(new Error(`no result in ${limit / 1000} s`)), limit))]).catch((e) => failed.push({ name, message: String((e && e.message) || e).slice(0, 300) }))
+    )
+  );
+  // What the Worker says it runs has to be what was loaded and tested. A new version takes some seconds to reach
+  // every place Cloudflare answers from, so the version before may answer first.
+  let running = null;
+  for (const until = Date.now() + settle; ; await wait(1500)) {
+    running = await client.query("getInfo", { worker }).then((i) => i.hash, () => null);
+    if (running === hash || Date.now() >= until) break;
+  }
+  if (running !== hash) failed.push({ name: "the Worker reports the hash that was loaded", message: `loaded ${String(hash).slice(0, 12)}, running ${String(running).slice(0, 12)}` });
+  const otherTestsRan = [...rt._variables].filter((v) => v._module !== mod && isTest(v) && v._version > 0 && v._value !== undefined).length;
+  return { worker, module, hash, ok: failed.length === 0, tests: names.length, failed, otherTestsRan, ms: Date.now() - began, heapMB: globalThis.performance && performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1e6) : null };
+}
+// %%
+// For the deployer's run of this page, whose address ends &verify=brain-x-NAME: the verdict on that Worker's
+// module, left on the window where the run reads it. { none } when there is nothing to judge by.
+brainVerdict = {
+  const worker = decodeURIComponent((String(location.hash).replace(/^#/, "").split("&").find((p) => p.startsWith("verify=")) || "").slice(7));
+  if (!worker || !brainOrigin || brainPortal) return null;
+  const say = (verdict) => (globalThis.__brainVerdict = verdict);
+  if (brainModules.error) return say({ worker, none: "the modules of this Brain could not be read: " + brainModules.error });
+  const m = brainModules.modules.find((x) => x.worker === worker && brainJoined.includes(x.module));
+  if (!m) return say({ worker, none: "no module of this Worker is in the layout" });
+  return say(await verifyModule(m).catch((e) => ({ worker, module: m.module, hash: m.hash, none: String((e && e.message) || e) })));
 }
 // %%
 md`## Reference
@@ -76,7 +179,12 @@ md`## Reference
 | \`portalHtml(shell, { base, author, id, module, viewer })\` | The shell file as a portal's document: the layout is the member's module then this one, and a first script waits for the token from the page that framed it. |
 | \`openPortal(service, { client, base })\` | The frame for one row of \`member.services\`, kept supplied with a token. |
 | \`brainModules\` | What the deployer answers at \`infra.getModules\`: \`{ distiller, modules: [{ module, worker, hash, text, files }] }\`. Public. |
-| \`joinModules(list)\` | Adds each module to the page as a main: its source and files as script blocks, then its definition, once. A module the page already has is left alone. |
+| \`joinModules(list, { mains })\` | Adds each module's source and files to the page as script blocks, and each one named in \`mains\` (all of them when not given) as a main, once. A module that was added as source and imported since becomes a main as it is. A module the file holds is left alone. |
+| \`viewModules(hash)\` | The modules a layout names. |
+| \`brainWanted\` | The Brain's modules the layout names now. |
+| \`brainJoined\` | The Brain's modules on this page: \`brainWanted\` joined, with the source of what they import. |
+| \`verifyModule({ worker, module, hash })\` | Runs the module's \`test_\` cells, 30 s each, and checks the Worker reports that hash: \`{ worker, module, hash, ok, tests, failed, otherTestsRan, ms, heapMB }\`, or \`{ none }\` when the module is not on the page. |
+| \`brainVerdict\` | With \`&verify=brain-x-NAME\` in the address, \`verifyModule\` of that Worker's module in the layout, also at \`window.__brainVerdict\`. Sent nowhere. |
 | \`shellOf(html, modules)\` | A notebook file without those modules, their files, or their places in the layout. |
 
 A module joins before any of its cells exists, so the page names it; an \`import\` of it from any other module, the shell's or a Brain's, reaches this one copy.`
@@ -130,7 +238,10 @@ brainModules = !brainOrigin
       (e) => ({ error: String((e && e.message) || e), modules: [] })
     )
 // %%
-joinModules = async (list, { doc = document, rt = runtime } = {}) => {
+joinModules = {
+  // One at a time: a join stands in for the runtime's module() while it runs.
+  let queue = Promise.resolve();
+  const join = async (list, { doc = document, rt = runtime, mains = null } = {}) => {
   const mimeOf = (name) => (/\.js$/.test(name) ? "text/javascript" : /\.json$/.test(name) ? "application/json" : "text/plain");
   const block = (id, mime, text) => {
     if (doc.getElementById(id)) return false;
@@ -138,12 +249,15 @@ joinModules = async (list, { doc = document, rt = runtime } = {}) => {
     s.type = "text/plain";
     s.id = id;
     s.setAttribute("data-mime", mime);
+    s.setAttribute("data-brain", "");
     s.textContent = text;
     doc.head.appendChild(s);
     return true;
   };
-  const fresh = list.filter((m) => !(rt.mains && rt.mains.has(m.module)) && !doc.getElementById(m.module));
-  for (const m of fresh) {
+  // A module whose block the file itself holds is left alone. One whose block a join added is this Brain's.
+  const ours = list.filter((m) => !(rt.mains && rt.mains.has(m.module)) && ((b) => !b || b.hasAttribute("data-brain"))(doc.getElementById(m.module)));
+  const fresh = ours.filter((m) => !mains || mains.includes(m.module));
+  for (const m of ours) {
     // A module reads its files while it is defined, so each one it names has a block, empty when none was sent.
     const names = /new Map\(\[([^\]]*)\]\.map\(\(name\)/.exec(m.text);
     for (const name of names ? JSON.parse("[" + names[1] + "]") : []) block(m.module + "/" + encodeURIComponent(name), mimeOf(name), (m.files || {})[name] ?? "");
@@ -157,6 +271,14 @@ joinModules = async (list, { doc = document, rt = runtime } = {}) => {
   const plain = rt.module;
   const make = (m, define) => {
     pending.delete(m.module);
+    // Added as source by a join before this one and imported since: the runtime has it. It becomes a main as it is.
+    const had = rt._modules.get(define);
+    if (had) {
+      had._name = m.module;
+      (rt.mains || (rt.mains = new Map())).set(m.module, had);
+      joined.push(m.module);
+      return had;
+    }
     const mod = createModule(m.module, rt);
     // The runtime keeps one module per definition: an import of this module from anywhere gets this one.
     rt._modules.set(define, mod);
@@ -186,6 +308,8 @@ joinModules = async (list, { doc = document, rt = runtime } = {}) => {
     delete rt.module;
   }
   return joined;
+  };
+  return (list, options) => (queue = queue.then(() => join(list, options), () => join(list, options)));
 }
 // %%
 // Who the session says is signed in. A session the Brain refuses is dropped, and the visitor is signed out.
@@ -327,6 +451,98 @@ test_openPortal_frames_the_shell_and_answers_ready_with_a_token = {
   }
 }
 // %%
+test_viewModules_reads_the_modules_a_layout_names = {
+  expect(viewModules("#view=C100(S70(@a/b,@c/d),S30(@e/f))&cc=LOPE-1-X&verify=brain-x-b")).toEqual(["@a/b", "@c/d", "@e/f"]);
+  expect(viewModules("#view=" + encodeURIComponent("C100(S100(@a/b))"))).toEqual(["@a/b"]);
+  expect([viewModules("#cc=LOPE-1-X"), viewModules(""), viewModules(null)]).toEqual([[], [], []]);
+  return "3 named, none with no view";
+}
+// %%
+test_closureOf_is_the_named_modules_and_what_they_import = {
+  const text = (...imports) => `export default function define(runtime, observer) {\n  const main = runtime.module();\n${imports.map((i) => `  main.define("module ${i}", async () => runtime.module((await import("/${i}.js?v=4")).default));`).join("\n")}\n  main.variable(observer("note")).define("note", [], () => 'import("/@t/quoted.js?v=4") in a string is not an import');\n  return main;\n}`;
+  const list = [{ module: "@t/a", text: text("@t/b", "@other/lib") }, { module: "@t/b", text: text("@t/c") }, { module: "@t/c", text: text("@t/a") }, { module: "@t/d", text: text() }, { module: "@t/quoted", text: text() }];
+  expect(importsOfText(list[0].text)).toEqual(["@t/b", "@other/lib"]);
+  // A module the list does not hold is somebody else's to supply; a loop of imports ends.
+  expect(closureOf(["@t/a"], list).map((m) => m.module)).toEqual(["@t/a", "@t/b", "@t/c"]);
+  expect(closureOf(["@t/d", "@t/none"], list).map((m) => m.module)).toEqual(["@t/d"]);
+  return "3 of 5";
+}
+// %%
+// R9 of the deploy verification spec: one module in view is one main, with the source of what it imports and no more.
+test_page_loads_only_the_modules_in_view = {
+  const tag = "@test/view-" + Math.random().toString(36).slice(2, 8), a = tag + "a", b = tag + "b", c = tag + "c";
+  const text = (cells, from = null) => `export default function define(runtime, observer) {
+  const main = runtime.module();
+${from ? `  main.define("module ${from}", async () => runtime.module((await import("/${from}.js?v=4")).default));\n  main.define("token", ["module ${from}", "@variable"], (_, v) => v.import("token", _));` : ""}
+${cells}
+  return main;
+}`;
+  const list = [
+    { module: a, text: text(`  main.variable(observer("got")).define("got", ["token"], (token) => token);`, b) },
+    { module: b, text: text(`  main.variable(observer("token")).define("token", [], () => ({}));\n  main.variable(observer("test_b")).define("test_b", [], () => "ran");`) },
+    { module: c, text: text(`  main.variable(observer("test_c")).define("test_c", [], () => "ran");`) }
+  ];
+  try {
+    expect(await joinModules(closureOf([a], list), { mains: [a] })).toEqual([a]);
+    expect([a, b, c].map((id) => !!document.getElementById(id))).toEqual([true, true, false]);
+    expect([a, b, c].map((id) => runtime.mains.has(id))).toEqual([true, false, false]);
+    const token = await runtime.mains.get(a).value("got");
+    // Nothing asked for the test of the module that was only imported.
+    expect([...runtime._variables].filter((v) => v._name === "test_b" && v._version > 0).length).toBe(0);
+    // Opened later, it is the module the first one imported, not a second copy.
+    expect(await joinModules(closureOf([b], list), { mains: [b] })).toEqual([b]);
+    expect(await runtime.mains.get(b).value("token")).toBe(token);
+    expect(await joinModules(closureOf([a, b], list), { mains: [a, b] })).toEqual([]);
+    return "1 main, 1 imported, 1 not on the page";
+  } finally {
+    for (const id of [a, b, c]) {
+      const mod = runtime.mains.get(id);
+      if (mod) for (const v of [...runtime._variables]) if (v._module === mod) v.delete();
+      runtime.mains.delete(id);
+      document.getElementById(id)?.remove();
+    }
+  }
+}
+// %%
+test_verifyModule_runs_the_tests_and_checks_the_hash = {
+  const name = "@test/verify-" + Math.random().toString(36).slice(2, 8), none = name + "n";
+  const text = (cells) => `export default function define(runtime, observer) {\n  const main = runtime.module();\n${cells}\n  return main;\n}`;
+  const cells = `  main.variable(observer("test_passes")).define("test_passes", [], () => "ok");
+  main.variable(observer("test_throws")).define("test_throws", [], () => { throw new Error("broken"); });
+  main.variable(observer("test_hangs")).define("test_hangs", [], () => new Promise(() => {}));
+  main.variable(observer("not_a_test")).define("not_a_test", [], () => { throw new Error("not run"); });`;
+  const says = (hash) => ({ query: async (method, input) => (expect([method, input]).toEqual(["getInfo", { worker: "brain-x-t" }]), { hash }) });
+  // The limit is short for the cell that never answers, and long enough for the others on a page that is busy.
+  const quick = { limit: 2000, settle: 0, wait: async () => {} };
+  try {
+    await joinModules([{ module: name, text: text(cells) }, { module: none, text: text(`  main.variable(observer("x")).define("x", [], () => 1);`) }]);
+    const v = await verifyModule({ worker: "brain-x-t", module: name, hash: "h1" }, { ...quick, client: says("h1") });
+    expect(v).toMatchObject({ worker: "brain-x-t", module: name, hash: "h1", ok: false, tests: 3 });
+    expect(v.failed.map((f) => f.name).sort()).toEqual(["test_hangs", "test_throws"]);
+    expect(v.failed.find((f) => f.name === "test_throws").message).toBe("broken");
+    expect(v.failed.find((f) => f.name === "test_hangs").message).toBe("no result in 2 s");
+    // R13: nothing to fail is a pass, when the Worker runs what was loaded.
+    expect(await verifyModule({ worker: "brain-x-t", module: none, hash: "h1" }, { ...quick, client: says("h1") })).toMatchObject({ ok: true, tests: 0, failed: [] });
+    // Another version answering is a failure, named.
+    const stale = await verifyModule({ worker: "brain-x-t", module: none, hash: "h2" }, { ...quick, client: says("h1") });
+    expect([stale.ok, stale.tests, stale.failed]).toEqual([false, 0, [{ name: "the Worker reports the hash that was loaded", message: "loaded h2, running h1" }]]);
+    // The version before may answer first: it is asked again until the time is up.
+    let asked = 0;
+    const late = { query: async () => ({ hash: ++asked < 3 ? "h1" : "h2" }) };
+    expect((await verifyModule({ worker: "brain-x-t", module: none, hash: "h2" }, { ...quick, settle: 5000, client: late })).ok).toBe(true);
+    expect(asked).toBe(3);
+    expect(await verifyModule({ worker: "brain-x-t", module: "@test/not-here", hash: "h1" }, { ...quick, client: says("h1") })).toEqual({ worker: "brain-x-t", module: "@test/not-here", hash: "h1", none: "the module is not on the page" });
+    return "3 tests, 2 failed; none is a pass";
+  } finally {
+    for (const id of [name, none]) {
+      const mod = runtime.mains.get(id);
+      if (mod) for (const v of [...runtime._variables]) if (v._module === mod) v.delete();
+      runtime.mains.delete(id);
+      document.getElementById(id)?.remove();
+    }
+  }
+}
+// %%
 test_brainSession_sends_what_this_origin_keeps = {
   const headers = await brainSession.headers();
   const kept = brainSession.get();
@@ -384,6 +600,10 @@ test_joinModules_adds_a_module_once_and_imports_reach_it = {
 import {runtime, createModule} from "@tomlarkworthy/runtime-sdk"
 // %%
 import {xrpcClient} from "@tomlarkworthy/xrpc-client"
+// %%
+import {acorn} from "@tomlarkworthy/acorn-8-11-3"
+// %%
+import {listModules, linkTo, navigate} from "@tomlarkworthy/lopepage-urls"
 // %%
 import {exportModuleJS} from "@tomlarkworthy/exporter-3"
 // %%
