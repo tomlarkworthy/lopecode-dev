@@ -6,7 +6,8 @@
 # worktree.sh --remove <issue id>
 # Prints the worktree's path. Seeds are edited and built there; nothing is deployed or pushed from it.
 set -e
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# The main checkout, also when the copy that runs is a worktree's own.
+ROOT="$(dirname "$(git -C "$(dirname "$0")" rev-parse --path-format=absolute --git-common-dir)")"
 if [ "$1" = "--remove" ]; then git -C "$ROOT" worktree remove --force "$ROOT/.claude/worktrees/bm-$2"; git -C "$ROOT" branch -D "bm/$2" >/dev/null; exit 0; fi
 MODS="lopebooks lopecode"
 # The submodules are empty in a worktree; the tools read notebooks from them. Linked, never written: build.ts refuses its default --out here.

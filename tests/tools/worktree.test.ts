@@ -142,3 +142,16 @@ test("an uncommitted change stops it, with the links back and no file printed", 
   git(w, "checkout", "other.txt");
   expect(wt("--rebase", "t1").out.trim().split("\n").sort()).toEqual(["lopebooks", "seed2.ojs"]);
 });
+
+test("the worktree's own copy of the script acts on the main checkout's worktrees", () => {
+  const { root, land, writer } = repo();
+  const w = writer("t1");
+  land("other.txt", "theirs\n");
+  const own = (...a: string[]) => sh(w, "bash", join(w, "tools/cloud-brain/worktree.sh"), ...a);
+  expect(own("t1").out.trim()).toBe(w);
+  const r = own("--rebase", "t1");
+  expect(r.code).toBe(0);
+  expect(r.out.trim().split("\n").sort()).toEqual(["lopebooks", "other.txt"]);
+  expect(lstatSync(join(w, ".claude"), { throwIfNoEntry: false })).toBeUndefined();
+  expect(realpathSync(join(w, "lopebooks"))).toBe(join(root, "lopebooks"));
+});
