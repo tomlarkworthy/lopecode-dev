@@ -27,7 +27,7 @@
  *   --baseline <path>   Compare against a previous CTRF report; exit 1 on regression
  *   --timeout <ms>      Per-test safety timeout (default 10000)
  *   --hash <#…>         Override location.hash (arms hash-gated suites)
- *   --verbose           Forward runtime debug logs
+ *   --verbose           Forward runtime debug logs; print each passed cell's value
  *
  * Exit codes:
  *   0 - All tests passed and (when --baseline given) no regressions
@@ -35,7 +35,7 @@
  *   2 - Could not load notebook, no tests found, or every test skipped
  */
 
-import { loadNotebook } from "./lope-runtime.js";
+import { loadNotebook, followComputed } from "./lope-runtime.js";
 import { writeFileSync, readFileSync, existsSync } from "fs";
 import { resolve } from "path";
 import { randomUUID } from "crypto";
@@ -122,7 +122,7 @@ const USAGE = `Usage: bun tools/lope-tests.ts <notebook.html> [options]
   --baseline <f>   Compare to baseline CTRF report; exit 1 on regression
   --timeout <ms>   Per-test safety timeout (default 10000)
   --hash <#…>      Override location.hash (arms hash-gated suites)
-  --verbose        Print runtime logs`;
+  --verbose        Print runtime logs and each passed cell's value`;
 
 function parseArgs(argv: string[]): Args {
   const out: Args = {
@@ -190,7 +190,11 @@ const promises = testVars.map((v) => {
   const mod = moduleNameOf(v);
   const t0 = Date.now();
   return new Promise<void>((res) => {
+    let done = false;
     const finish = (r: TestResult) => {
+      if (done) return;
+      done = true;
+      clearTimeout(tid);
       results.push(r);
       res();
     };
@@ -199,32 +203,24 @@ const promises = testVars.map((v) => {
     }, args.timeout);
 
     if (v._value !== undefined) {
-      clearTimeout(tid);
       const why = skipReason(v._value);
       finish(why === null
         ? { name, module: mod, state: "passed", durationMs: 0, value: String(v._value).slice(0, 200) }
         : { name, module: mod, state: "skipped", durationMs: 0, reason: why });
       return;
     }
-    if (v._error !== undefined) {
-      clearTimeout(tid);
-      finish({ name, module: mod, state: "failed", durationMs: 0, error: v._error?.message || String(v._error) });
-      return;
-    }
-    v._observer = {
-      fulfilled: (val: any) => {
-        clearTimeout(tid);
-        const why = skipReason(val);
-        finish(why === null
-          ? { name, module: mod, state: "passed", durationMs: Date.now() - t0, value: String(val).slice(0, 200) }
-          : { name, module: mod, state: "skipped", durationMs: Date.now() - t0, reason: why });
-      },
-      rejected: (err: any) => {
-        clearTimeout(tid);
-        finish({ name, module: mod, state: "failed", durationMs: Date.now() - t0, error: err?.message || String(err) });
-      },
-      pending: () => {},
+    const fulfilled = (val: any) => {
+      const why = skipReason(val);
+      finish(why === null
+        ? { name, module: mod, state: "passed", durationMs: Date.now() - t0, value: String(val).slice(0, 200) }
+        : { name, module: mod, state: "skipped", durationMs: Date.now() - t0, reason: why });
     };
+    const rejected = (err: any) => {
+      finish({ name, module: mod, state: "failed", durationMs: Date.now() - t0, error: err?.message || String(err) });
+    };
+    // A cell that threw at boot has its error in _promise only; see followComputed.
+    followComputed(v, fulfilled, rejected);
+    v._observer = { fulfilled, rejected, pending: () => {} };
     // Do NOT preset _reachable: runtime_computeNow queues a variable only when its
     // reachability RISES, and `true > true` is false. The observer above is what
     // raises it; this just marks it dirty. See lope-runtime's runTests.
@@ -247,6 +243,7 @@ for (const r of results) {
   const tag = r.state === "passed" ? "  ✓" : r.state === "failed" ? "  ✗" : r.state === "skipped" ? "  ∅" : "  ⧖";
   const dur = r.durationMs ? ` (${r.durationMs}ms)` : "";
   console.log(`${tag} ${r.name}${dur}`);
+  if (args.verbose && r.value !== undefined) console.log(`      ${r.value}`);
   if (r.reason) console.log(`      skipped: ${r.reason}`);
   if (r.error) console.log(`      ${r.error.replace(/\n/g, "\n      ")}`);
 }

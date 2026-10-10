@@ -644,6 +644,16 @@ export async function loadNotebook(notebookPath, options = {}) {
 // LopecodeExecution
 // ==========================================================================
 
+// A cell that has already run keeps its outcome in `_promise` alone: the runtime never writes
+// `_error`, and an observer attached afterwards is not called until the next compute, which
+// does not come for a cell that is already reachable. A cell nothing has computed is left to
+// its observer: its `_promise` is the constructor's, resolved with undefined.
+export function followComputed(v, fulfilled, rejected) {
+  if (!v._reachable || !(v._version > 0)) return;
+  const p = v._promise;
+  p.then(fulfilled, (error) => (v._promise === p ? rejected(error) : followComputed(v, fulfilled, rejected)));
+}
+
 export class LopecodeExecution {
   constructor(internals) {
     this._internals = internals;
@@ -806,29 +816,25 @@ export class LopecodeExecution {
             : { state: "skipped", name: v._name, module: this._getModuleName(v._module), reason: why });
           resolve(); return;
         }
-        if (v._error !== undefined) {
+        const failed = (error) => {
+          if (results.has(fullName)) return;
           clearTimeout(tid);
-          results.set(fullName, { state: "failed", name: v._name, module: this._getModuleName(v._module), error: v._error?.message || String(v._error) });
-          resolve(); return;
-        }
+          results.set(fullName, { state: "failed", name: v._name, module: this._getModuleName(v._module), error: error?.message || String(error) });
+          resolve();
+        };
+        const fulfilled = (value) => {
+          if (results.has(fullName)) return;
+          clearTimeout(tid);
+          const why = LopecodeExecution.skipReason(value);
+          results.set(fullName, why === null
+            ? { state: "passed", name: v._name, module: this._getModuleName(v._module), value: String(value).slice(0, 200) }
+            : { state: "skipped", name: v._name, module: this._getModuleName(v._module), reason: why });
+          resolve();
+        };
+        followComputed(v, fulfilled, failed);
 
         // Attach a real observer so the runtime considers this variable (and deps) reachable
-        v._observer = {
-          fulfilled: (value) => {
-            clearTimeout(tid);
-            const why = LopecodeExecution.skipReason(value);
-            results.set(fullName, why === null
-              ? { state: "passed", name: v._name, module: this._getModuleName(v._module), value: String(value).slice(0, 200) }
-              : { state: "skipped", name: v._name, module: this._getModuleName(v._module), reason: why });
-            resolve();
-          },
-          rejected: (error) => {
-            clearTimeout(tid);
-            results.set(fullName, { state: "failed", name: v._name, module: this._getModuleName(v._module), error: error?.message || String(error) });
-            resolve();
-          },
-          pending: () => {},
-        };
+        v._observer = { fulfilled, rejected: failed, pending: () => {} };
         // Do NOT preset _reachable: computeNow queues a variable only when its
         // reachability RISES, and `true > true` is false. The observer above raises it.
         this.runtime._dirty?.add(v);
