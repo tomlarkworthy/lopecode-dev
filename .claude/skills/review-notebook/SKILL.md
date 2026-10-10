@@ -93,3 +93,9 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   in the migrate shape check of `issue.install` (a mapped state not checked against the target workflow unless an
   issue was there; "undefined" in a refusal); both acted on (lopecode-dev `f9351237`). 160k subagent tokens, 5m00s.
   Seventh run on this module: 13, 8, 4, 3, 4, 2.
+- 2026-10-10 `lopebooks/notebooks/@tomlarkworthy_cloud-brain.html`, module `@tomlarkworthy/brain-issues`, changes
+  since `2a5cb517` (eighth run): CLEAR, no findings; two asides not acted on. Findings by round on this module:
+  13, 8, 4, 3, 4, 2, 0. Rounds 3 to 6 were all in one handler (`issue.install` with `migrate`); what ended it was
+  checking the key before the body and removing an input form, not a further patch. Recorded as `pass` on
+  `review-fixes-2` on cb4 (events 45, 46). No reviewer could run `lope-browser-runner.ts --run-tests`
+  (`chromium_headless_shell-1200` has no executable); each ran the cells by hand in build 1234.
