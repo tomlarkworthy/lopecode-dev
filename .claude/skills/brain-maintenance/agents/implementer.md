@@ -39,6 +39,10 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    file under `tests/` that `node --test` or `bun test` runs and that fails before the fix; its
    count is the one you submit, and steps 7 to 9 need no build, tab or emit. If the tool cannot
    be loaded by a test as it stands, say so in the comment with the commands you ran instead.
+   When the change is a control of a panel that sends a write or a call, test it with a client
+   you hold: a second press before the answer, a write that is refused (also one that would have
+   taken its row off the page), two answers that arrive out of order, and another caller's event
+   on the row while its box has the caret. One the change does not meet goes in "not tried" by name.
 7. **Build** in the worktree, to a file of its own:
    `cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html`.
    Without `--out` it refuses there.
