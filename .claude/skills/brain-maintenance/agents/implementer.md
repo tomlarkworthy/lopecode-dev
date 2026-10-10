@@ -81,6 +81,10 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    answers first unless the rig holds one. One it does not meet goes in "not tried" by name.
    `run_tests` hangs on this notebook; do not use it. Do not define the observers inside the
    module under test: they would be written into the deployed source.
+   Faster while working, about 2 s a service: the built module against what runs, with no browser
+   (since 2026-10-10 22:34; `cd <root>/cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev` first):
+   `bun tools/lope-reader.ts <notebook> --get-module @tomlarkworthy/<module> > /tmp/m.js && bun <root>/cloud-brain-dev/test.ts <worker> --with /tmp/m.js`.
+   It counts a test that draws a panel as `needsBrowser`, not as passed. The count you submit is still the browser's.
    `bun tools/lope-tests.ts <notebook> --filter test_<service>` runs the same cells with no browser
    (17 of 17 for the tracker at 2026-10-10 20:00; each test added raises it). Use it while working;
    the count you submit is the browser's. Since bfd9ae46 (2026-10-10) it prints a thrown assertion

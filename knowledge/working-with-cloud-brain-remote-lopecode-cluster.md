@@ -24,7 +24,7 @@ kept in step with the code.
 | The notebook (canonical, built, do not hand-edit) | `lopebooks/notebooks/@tomlarkworthy_cloud-brain.html` |
 | Its source: one seed per module, cells split by `// %%` | `tools/cloud-brain/*.ojs` |
 | As-built record, full and short | `tools/cloud-brain/spec-as-built.md`, `spec-as-built-short.md` |
-| `cloud-brain-dev`: a repository kept by the Brain's `git` service, started 2026-10-10 with no history. `sync.ts` reads what the Brain runs into `deploy/` by import path; shared modules are committed, a service's source is not. It cannot send a change back yet | clone with `git.get?name=cloud-brain-dev` and `git.token` (its README) |
+| `cloud-brain-dev/`: a submodule, a repository kept by the Brain's `git` service (started 2026-10-10, no history). `bun sync.ts https://cb4.endpointservices.workers.dev` reads what the Brain runs into `deploy/` by import path (about 1 s; shared modules committed, a service's module git-ignored). `bun test.ts brain-x-NAME` runs that service's tests with no browser and prints a JSON report with the hash; `--with FILE` runs a module that is not deployed yet in its place, as a check before a deploy; `bun all.ts` every service (19 s). It cannot send a change back | `cloud-brain-dev/README.md`. To fetch or push it: `git.token?name=cloud-brain-dev` and `git -c http.extraHeader="Authorization: Bearer $T"`; a plain `git submodule update` is refused |
 | Records of fixes made by the issue loop since 2026-10-10 19:33, one file an issue | `tools/cloud-brain/records/<id>.md` |
 | Operating guide | `tools/cloud-brain/running-a-cloud-brain.md` |
 | Backlog, open decisions, inventories | `plan/cloud-brain-backlog.md` |

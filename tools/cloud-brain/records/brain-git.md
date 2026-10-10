@@ -148,3 +148,23 @@ counts with a browser's for the same hashes; the send-back command.
 
 Another session removed `land.lock` at 21:53 by mistake (its `mkdir` had failed and its `rmdir`
 ran); it said so at 22:24. That is the lock found gone above.
+
+## cloud-brain-dev is a submodule here; a check before a deploy (2026-10-10 22:34 CEST)
+
+Tom: "maybe it useful jsut for agents as a pre deploy check. can you vendor that repostory in? the
+service modules should be git ignored (not the shared)."
+
+- `cloud-brain-dev/` is a submodule of lopecode-dev. Its URL is Cloudflare's and holds the account
+  id, which this public repository already had in a tracked file
+  (`tools/scratch/cloud-brain-experiments/worker/.wrangler/cache/wrangler-account.json`). A fetch
+  needs a token from `git.token`; a plain `git submodule update` is refused.
+- `test.ts <worker> --with FILE` runs a module that is not deployed in the place of the deployed
+  one. With brain-git as `lope-reader.ts --get-module` reads it from the built notebook: 4 of 4.
+  With one comparison in that file changed (`seconds < 61`): exit code 1. The implementer brief
+  names it as the fast check while working; the count submitted is still the browser's.
+- Its fresh review: FIX, 8 findings, all taken (commit `88106ee` there). `all.sh` gave exit code 0 with a
+  failing test and is `all.ts` now; one module that did not load took every service's report with
+  it; 7 files with `%40` in their names were written encoded and looked for decoded; a stale
+  service file could lose its ignore line; the report's hash was the deployed one for an edited file.
+  After: 284 passed, 0 failed, 27 need a browser; with two modules broken on purpose, 280 and 2,
+  exit code 1, and the 20 other services reported.
