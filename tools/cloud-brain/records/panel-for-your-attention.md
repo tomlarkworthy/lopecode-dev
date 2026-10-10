@@ -88,3 +88,74 @@ screenshot: three rows, the box filling the row, the buttons to its right.
   `issue.get` when it is first drawn and one more each time its issue changes.
 - A narrow window, and a light theme.
 - Keyboard use: Enter in the box does nothing, because a row has more than one button.
+
+## Round 2, 2026-10-10: the two findings of review 1
+
+Review 1 (event 245, sent back 19:54:06 CEST by event 246) found two defects in the block, both
+measured in a browser. Both were reproduced before any change: with the two tests below added to
+the seed of `lopebooks@ddb6cd94` and nothing else, the snippet of the implementer brief answered,
+in a headless QA tab,
+
+```
+[16, ["test_issues_panel_a_second_press_writes_once … Expected: false Received: true",
+      "test_issues_panel_keeps_the_caret_in_a_row_box … [true, "half a line", - true + false, 2, 6]"]]
+```
+
+The first line is "is any button of the row enabled after a press of Comment". The third value of
+the second is `document.activeElement === box` after another caller's comment and `panel.sync()`.
+
+### What changed
+
+One seed, `tools/cloud-brain/brain-issues.ojs`, 127 lines added and 15 removed, of which 91 are the
+two tests. All of it is in `issuesPanel`; no handler, SQL or policy.
+
+- **The caret.** `drawWaiting` read `document.activeElement` after its loop. The loop makes a row
+  again by putting the kept box into a new `htl` template, which takes the box out of the page,
+  and a box out of the page has no caret. The active element and its selection are now read
+  before the loop. After the rows are put back the box is focused and `setSelectionRange` is
+  called with what was read. Only a row's box is restored; a button that had the focus is a new
+  element after a redraw and is not.
+- **One write of a row at a time.** A set `busy` of issue ids. A press in a row goes through
+  `once`: it does nothing when the id is in the set; otherwise it adds the id, draws the row's
+  buttons (all disabled, tooltip "Being sent."), sends, and on the answer or the refusal takes
+  the id out and draws the buttons again. It covers the moves, **Comment** and **− needs-owner**
+  of a row. The box stays open for typing while a write is on its way.
+  `actButtons` and `unlabel` take the wrapper as `via`; the open issue (`drawOne`) passes none and
+  is as it was.
+- The first `md` cell says both in the bullet of the block.
+
+### Tests
+
+17 of 17 `test_issues_*` cells in a headless QA tab (session `impl-pfa-2`) on the worktree's build,
+2026-10-10 20:00:44 CEST, after the rebase on `bb447b04`. 14 were there at review 1, one came with
+`stale-panel-after-deploy`, two are new:
+
+- `test_issues_panel_keeps_the_caret_in_a_row_box`. The panel is appended to `document.body`, since
+  the caret is the document's, and removed at the end. A box is focused with the selection 2 to 6.
+  Read after each of: another caller's comment on that issue and a sync; the answer of `issue.get`
+  (the row made a third time); a comment on the row beside it, which changes the order to c2, c1.
+  Each time: the same element, the same text, `activeElement`, selection 2 to 6.
+- `test_issues_panel_a_second_press_writes_once`. The client holds each write until the test lets
+  it go. After one press of Comment every button of the row is disabled; a second press and a
+  press of every other button leave one call held. Text typed meanwhile is kept and arms nothing.
+  On the answer: one `commented` event with that body. Then a refusal ("not now"): the text is
+  kept, the note says it, the buttons are armed. Then two presses again: one call, one event, the
+  box empty.
+
+`bun tools/lope-tests.ts … --filter test_issues` passes the same 17 in 15.0 s. It was not run on the
+build that had the tests and no fix, so whether its DOM shows either defect is not known; the
+failing run and the count are the browser's.
+
+### Not tried
+
+- The Comment, Review and Add label buttons of the open issue (`drawOne`). The reviewer wrote "Not
+  measured: whether the Comment button of the open issue also sends twice". Read, not run: its
+  `reduce` calls `send` with no guard and the textarea is not emptied, so a second press would
+  send again. Not changed here: the rework names the block.
+- The same press in two tabs, or a press of the same move in the block and in the open issue
+  below it. `busy` is one panel's and is asked only by the block.
+- A caret in a row whose issue leaves the block while it is typed in (approved by someone else):
+  the row and its text go. Before and after this change.
+- A press on cb4. It is the owner's write.
+- The reviewer's probe with a client that answers after 150 ms was not run as such; the held
+  client of the test is the same case with the answer under the test's control.
