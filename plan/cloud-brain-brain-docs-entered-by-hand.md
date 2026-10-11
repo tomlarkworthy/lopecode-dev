@@ -1,8 +1,10 @@
 # Cloud Brain: the docs of the checkout are entered by the landing, not by hand
 
-Spec of the project `brain-docs-entered-by-hand` on cb4's tracker. Written 2026-10-11 between
-19:10 and 19:40 CEST from `lopecode-dev` `eb6b653a`, `cloud-brain-dev` `4c17e68` and the tracker at
-event 1370. Nothing here is built. Each number under "The design" that is not under "What exists
+Spec of the project `brain-docs-entered-by-hand` on cb4's tracker. Written 2026-10-11, begun
+19:10 CEST, from `lopecode-dev` `eb6b653a`, `cloud-brain-dev` `4c17e68` and the tracker at
+event 1370; its commit `be983aec` is at 19:22:26 (the first writing gave an end of 19:40, which was
+an estimate and after its own commit). Round 2, the same day from 19:29, answers review 1436: see
+"Answers to the review of round 1" at the end. Nothing here is built. Each number under "The design" that is not under "What exists
 today" is an estimate and says so.
 
 ## What was asked
@@ -91,8 +93,8 @@ knowledge-docs 61    research:memento-3 2    research:talorys 1    research:know
 The four that `status` prints are the four that `knowledge-docs.ts` did not enter. Their `url`s are
 `tools/cloud-brain/research-talorys.md` and `tools/cloud-brain/knowledge-reranking.md` (both files
 exist, `ls`, 19:17), `/library/research-memento-3` and
-`/static/corpus/research-memento-3/build/README.md` on cb4 (not fetched by me). Line 87 of the tool
-counts every entry of kind `doc` whose id is not a file of its two directories. No doc of
+`/static/corpus/research-memento-3/build/README.md` on cb4 (not fetched by me). Line 84 of the tool
+(`const gone`) counts every entry of kind `doc` whose id is not a file of its two directories. No doc of
 `knowledge/` or `plan/cloud-brain-*.md` has been deleted or renamed since 2026-10-01
 (`git log --since=2026-10-01 --diff-filter=DR --name-status -- knowledge/ 'plan/cloud-brain-*.md'`
 prints nothing). So the count of entries left behind by a deleted doc is 0.
@@ -205,10 +207,22 @@ Outside, 19:20 CEST:
    release's alone: a put that fails prints `docs: not entered (<why>)` and the lock is still
    released. It runs for every landing, with or without a doc in it, so a doc left behind by any
    other way is entered by the next landing (R5). Each call of this mode has a limit of 30 s.
-   `LOCK_DOCS=0` leaves the step out, for `tests/tools/lock.test.ts`.
+   **Which Brain.** The tool throws without `BRAIN_BASE` (line 17), `lock.sh` sets none, an agent's
+   shell has none (`echo ${BRAIN_BASE:-unset}`: `unset`, 19:29 CEST) and the briefs give the release
+   with nothing before it. So `lock.sh` gives the tool the name itself:
+   `BRAIN_BASE="${BRAIN_BASE:-cb4}"`, as `worktree.sh` line 29 has it for `sync.ts`. A name the
+   caller set is kept. The line the step prints carries the name, `docs (cb4): {"put":…}` or
+   `docs (cb4): not entered (<why>)`, so a landing's output says where its docs went. `cb4` as the
+   default is already what this checkout's loop is tied to: the deploy lock is `cb4.lock` and
+   `rules.md` names no other Brain. `brain.ts` alone would default to `cb1` (its line 22), which is
+   why the name is not left to it.
+   **For the tests.** `LOCK_DOCS=0` leaves the step out; `LOCK_DOCS=<path>` runs that program in the
+   tool's place with the same arguments and environment. `fresh()` of `tests/tools/lock.test.ts`
+   will set `LOCK_DOCS=0` for the cases there today: they release a `land` lock and would otherwise
+   call cb4 from a test. The step is for `land` only; `release cb4` runs nothing.
 4. **The check.** `knowledge-docs.ts status --check` exits 1 when any doc is stale or missing and 0
    otherwise (R5). The overseer runs it beside `issue-stats.ts` and records the line.
-5. **No file** (R4). Line 87 counts an entry only when its `method` is `knowledge-docs`. Today that
+5. **No file** (R4). Line 84 counts an entry only when its `method` is `knowledge-docs`. Today that
    is 0. Nothing is deleted.
 6. **Three more docs** (R6): `AGENTS.md`, `README.md` and `philosophy.md`, read at the commit that
    `lopecode-dev`'s `origin/main` records for the submodule (`git ls-tree origin/main cloud-brain-dev`,
@@ -220,10 +234,15 @@ Outside, 19:20 CEST:
    address on the Brain. The operator's brief already says `knowledge.search` with `kind: "doc"`
    then `knowledge.get` (`fb-a2vp4smwzq`, event 1234). `philosophy.md` is 16,045 characters and an
    entry holds 16,000 after the title line is taken off: the text the tool would send is 15,987
-   characters today (counted as line 46 of the tool does), 13 under the limit, and will be cut at its end when the file grows.
+   characters today (counted as line 43 of the tool does), 13 under the limit, and will be cut at its end when the file grows.
    That cut is `seen-knowledge-get-cuts-long-guides`.
-7. **The words** (R7): the tool's header, and "A changed doc is not entered again by anything" in
-   `knowledge/calling-a-cloud-brain-from-this-checkout.md`.
+7. **The words** (R7). Two places say today that nothing enters a doc: line 3 of the tool, "Nothing
+   re-enters a changed doc", and "A changed doc is not entered again by anything" in
+   `knowledge/calling-a-cloud-brain-from-this-checkout.md`. Each is replaced by text that names
+   what does: `lock.sh release land`, the token `loop-docs`, `origin/main` as the source, and what
+   is not entered until the next landing (a commit with no landing, a push of `cloud-brain-dev`
+   alone). Neither file holds `lock.sh release land` or `loop-docs` today (`grep -c`, 0 and 0 for
+   each, 19:29 CEST), so their presence is the check.
 
 What the design does not cover, and what happens then. A commit to `main` made without the landing
 lock, the owner's or a session's, is entered by the next landing of anyone. A change to
@@ -269,16 +288,19 @@ Each is run by an agent with a token of the loop. Until the owner has made `loop
 
 | | Known by |
 |---|---|
-| R1 | Task 3: after a landing that changes a doc, the release prints the put's line and `BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status --check` exits 0. Without the new token: `knowledge.search?q=doc:<name>&kind=doc` with `loop-knowledge` answers the `sha256` of `git show origin/main:<path> \| shasum -a 256` |
+| R1 | Task 2, before the token exists: the release of its own landing, run as the brief gives it with no `BRAIN_BASE`, prints a line that begins `docs (cb4):` and names the missing token; it does not print `(BRAIN_BASE)`. Task 3: after a landing that changes a doc, the release prints `docs (cb4): {"put":…}` and `BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status --check` exits 0. Without the new token: `knowledge.search?q=doc:<name>&kind=doc` with `loop-knowledge` answers the `sha256` of `git show origin/main:<path> \| shasum -a 256` |
 | R2 | `grep -c -- '"--owner"' tools/cloud-brain/knowledge-docs.ts` shows the flag only where the argument `--owner` passes it; the test runs `put` with a fake `brain.ts` and reads `--as loop-docs` in its arguments |
 | R3 | The test: a repository with a doc changed on disk and not pushed; `status` reads it fresh and `put --stale` sends nothing |
 | R4 | The test: a fake list with an entry of `method: research:x` and one of `knowledge-docs`, neither with a file; `entriesWithNoFile` has the second alone. On cb4: the array is empty |
-| R5 | `tests/tools/lock.test.ts`: a release calls the tool (a stub that writes a file), a stub that exits 1 leaves the release at exit 0 with the lock gone, `LOCK_DOCS=0` calls nothing. `status --check` exits 1 in the test of R3's opposite case (a pushed change, an old entry) |
-| R6 | Task 3: `knowledge.search?q=doc:cloud-brain-dev-philosophy&kind=doc` with `loop-knowledge` answers the entry, its `sha256` that of the file at the commit `git ls-tree origin/main cloud-brain-dev` names |
-| R7 | `grep -c "not entered again by anything" knowledge/calling-a-cloud-brain-from-this-checkout.md` is 0 |
+| R5 | `tests/tools/lock.test.ts`: a release calls the tool (a stub that writes a file), a stub that exits 1 leaves the release at exit 0 with the lock gone, `LOCK_DOCS=0` calls nothing, `release cb4` calls nothing. The stub is `LOCK_DOCS=<path>` and writes its arguments and its `BRAIN_BASE` to a file: a release run with `BRAIN_BASE` taken out of the environment (`env -u BRAIN_BASE`) leaves `put --stale` and `cb4` there, and one run with `BRAIN_BASE=cbx` leaves `cbx`; the release's own output holds `docs (cb4):` in the first. `status --check` exits 1 in the test of R3's opposite case (a pushed change, an old entry) |
+| R6 | Task 3: `knowledge.search?q=doc:cloud-brain-dev-philosophy&kind=doc` with `loop-knowledge` answers the entry, its `sha256` that of the file at the commit `git ls-tree origin/main cloud-brain-dev` names. The hash is of the whole file, so this does not show that the entry's text holds the file's end: `philosophy.md` is 13 characters under the cut today. The test of task 1 shows what is sent for a file over 16,000 characters (the first 16,000, as now); the cut itself is `seen-knowledge-get-cuts-long-guides` |
+| R7 | In each of `knowledge/calling-a-cloud-brain-from-this-checkout.md` and `tools/cloud-brain/knowledge-docs.ts`: `grep -c "lock.sh release land"` and `grep -c "loop-docs"` are 1 or more (0 in both today), and `grep -c "not entered again by anything"` in the guide and `grep -c "Nothing re-enters a changed doc"` in the tool are 0 (1 and 1 today). A test file of task 2 holds the six counts, as `tests/tools/doc-token-example.test.ts` reads a doc for a phrase |
 
 Not a condition of any task: whether the operator in the owner's tab reads the three entries
-through its own `brain_call`. That needs his tab. It goes in his list.
+through its own `brain_call`. That needs his tab. It goes in his list. Read by the reviewer of
+round 1 and not run: the entries are private and the operator reads them all the same, since in the
+owner's tab `brain_call` is his session, in a turn it is "this turn's token: the owner"
+(`cloud-brain.ojs` line 1004), and a token is the Brain's side (`brain-knowledge.ojs` line 135).
 
 ## The tasks, in the order they land
 
@@ -289,8 +311,14 @@ Each is one writer and one review. No Worker is deployed by any of them.
    header. `tests/tools/knowledge-docs.test.ts` with a fake `brain.ts` and a repository made in a
    temporary directory, as `lock.test.ts` makes its lock directory. Worth having if nothing after
    it lands: R3 and R4 are met by it alone.
-2. **`lock.sh release land`** runs the step; the tests of R5; the section of the calling guide
-   (R7), which then says what enters a doc and what does not. The project
+2. **`lock.sh release land`** runs the step with the Brain's name (`${BRAIN_BASE:-cb4}`) and
+   `LOCK_DOCS`; the tests of R5, the case with no `BRAIN_BASE` among them; the section of the
+   calling guide and the tool's header (R7), which then say what enters a doc and what does not,
+   with the test of their phrases. From this landing until the owner has made the token, every
+   release prints `docs (cb4): not entered (no token "loop-docs" …)`: that line is this task's
+   check on cb4, and it is one line a landing.
+   It does not land before task 1: the step would then call today's tool, which puts with
+   `--owner`, a write as the owner at every landing (`rules.md`, the first line of "Never"). The project
    `locks-held-in-the-cluster` rewrites `lock.sh`; whichever lands second rebases over the other,
    and the step is the last lines of `release` in both.
 3. **The first run**, after the owner has made `loop-docs`: `put --stale` by the writer, its line,
@@ -301,7 +329,8 @@ Each is one writer and one review. No Worker is deployed by any of them.
 
 ## What only the owner can do
 
-- Approve this spec. It is `major`: a token of the loop gains a write it did not have.
+- Approve this spec. It is `major`: a token of the loop gains a write it did not have. The label
+  was put on the project by the orchestrator (event 1440); the tasks opened from it need it too.
 - Make the token: `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-docs knowledge.put knowledge.list`.
 - A paragraph in `rules.md` beside "Searching what the Brain knows", his to word. Proposed:
   "`loop-docs` names `knowledge.put` and `knowledge.list`. It is used through
@@ -317,3 +346,39 @@ Each is one writer and one review. No Worker is deployed by any of them.
   cb4; all four were entered by other methods. Read from the entries' `method` and `url`.
 - The body's "Whether a token that names knowledge.put could do the put" was answered by an issue
   the body itself names as beside the project (event 1287).
+
+## Answers to the review of round 1
+
+Review 1436, verdict changes, of `be983aec`. Written 2026-10-11 from 19:29 CEST in a worktree at
+`e284639e`.
+
+**Finding 1, which Brain the step enters into.** Held, and it would have gone as the review says.
+Read again: `sed -n 17p tools/cloud-brain/knowledge-docs.ts` is the throw; `grep -n BRAIN_BASE
+tools/cloud-brain/lock.sh tests/tools/lock.test.ts` prints nothing; `echo ${BRAIN_BASE:-unset}` in
+this agent's shell printed `unset`. Changed: item 3 of "The design" now has "Which Brain"
+(`lock.sh` passes `${BRAIN_BASE:-cb4}` and prints the name in its line), R5 has the case (a release
+with `BRAIN_BASE` taken out, and the stub's record reads `cb4`), and R1 has a check that task 2 can
+run on cb4 before the token exists. Not chosen: a default inside `knowledge-docs.ts`. The tool is
+also run by hand against a Brain the caller names, and a silent `cb4` there would enter one Brain's
+docs when another was meant; the landing is the one caller whose Brain is known. The review's note
+that task 1's test needs a way to stand a fake `brain.ts` in is left to that writer; for `lock.sh`
+the way is now said (`LOCK_DOCS=<path>`), because R5's new case depends on it.
+
+**Finding 2, R7's check.** Held: the old check passed on a deletion and the header had none.
+Changed: item 7 says what the two texts will name, and R7's row counts two phrases the new text
+must hold in each file, with today's counts (0) beside them, and the two old sentences at 0.
+
+**Not findings, each answered.**
+
+- The label `major`: put by the orchestrator at event 1440 (`get?id=`: `labels ["major"]`). The
+  owner's list says so and says the tasks need it.
+- "Line 87" and "line 46": 84 and 43 (`grep -n "const gone\|slice(0, TEXT)"` in the worktree).
+  Corrected in the three places.
+- R6's check and the file's end: the row now says what the hash does not show.
+- Private entries and the operator: added under the table, as read by the reviewer and not run.
+- The header's "19:40": corrected to what the commit says.
+- The R4 filter: no change.
+
+Not done in this round: `knowledge-docs.ts status` was not run again (it calls with `--owner`), so
+the counts under "Now" are still those of 19:13. The spec itself is by now a missing doc, as it
+foretold.
