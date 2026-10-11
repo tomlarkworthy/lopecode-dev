@@ -8,15 +8,16 @@
  *   bun tools/cloud-brain/brain.ts state | confirm <worker> | approval on|off | approve | rollback | remove <name>
  *   bun tools/cloud-brain/brain.ts redistil | distil | bindings | shell [SHELL.html [VERIFY.html]]   # shell: posts .emitted/verify.html (infra.shell?name=verify, the page of a deploy's test run) and then .emitted/shell.html, with the recovery key; neither when one is not there. redistil: each Worker against its source, "same" when healthy; --apply deploys the ones that differ and moves the seen.json entry of each one whose entry was the hash before
  *   bun tools/cloud-brain/brain.ts curl <path> [--owner] [-X POST -d '{}']   # the kernel; --owner or --other sends a minted session as Authorization: Bearer. stdout is the body alone; the status, ` [200]`, is on stderr
- *   bun tools/cloud-brain/brain.ts curl <path> --as NAME [-X POST -d '{}']       # the same call with the token NAME of .emitted/<base>-tokens.json. A token is not the owner present; an agent's writes go this way
- *   bun tools/cloud-brain/brain.ts token NAME <method…> [--daily=USD] | token list | token revoke NAME   # token.create as the owner; the value goes to .emitted/<base>-tokens.json (mode 600) and is not printed
+ *   bun tools/cloud-brain/brain.ts curl <path> --as NAME [-X POST -d '{}']       # the same call with the token NAME of .emitted/<base>-tokens.json, -issues-tokens.json or -agent-tokens.json. A token is not the owner present; an agent's writes go this way
+ *   bun tools/cloud-brain/brain.ts token NAME <method…> [--daily=USD] [--delegate] | token list | token revoke NAME   # token.create as the owner; the value goes to .emitted/<base>-tokens.json (mode 600) and is not printed. --delegate: a token that makes tokens inside its own methods (delegation.create with the cap delegate)
+ *   bun tools/cloud-brain/brain.ts agent-token <role> [what for] | agent-token list | agent-token revoke NAME   # a token for one agent or session, for issue.*, 48 hours: a child of the token loop-agents, which the owner makes once (token loop-agents 'issue.*' --delegate). role: orch impl rev spec over dig out. stdout is the name, <role>-<6 hex>; the value goes to .emitted/<base>-agent-tokens.json (mode 600), where issue-as.sh reads it. plan/cloud-brain-record-names-token-not-agent.md
  *   bun tools/cloud-brain/brain.ts session [did]                               # mint a session token for the owner, or for another DID
  *   bun tools/cloud-brain/brain.ts page up [--minutes N] [--token LOPE-…] [--url https://…] [--keep] | page state | page down   # the Brain's page in a browser of the cluster, signed in and paired with a channel on this machine
  * State (recovery key, deployer key, session tokens) is in .emitted/<base>.json, git-ignored. The Cloudflare token is never printed.
  * BRAIN_STATE_DIR=<another checkout>/tools/cloud-brain/.emitted reads and writes the state, the tokens, the emitted records and
  * the Cloudflare token of that checkout: how a brain.ts changed in a worktree, which has none, is run without copying it. seen.json stays this checkout's.
  */
-import { existsSync, readFileSync, writeFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, statSync, mkdirSync, rmdirSync, renameSync, chmodSync } from "node:fs";
 import { resolve } from "node:path";
 const BASE = process.env.BRAIN_BASE || "cb1";
 const OWNER = "did:plc:j7nm3lrd5h7fm3sfhcv3lhfv";
@@ -32,6 +33,30 @@ const tokens = (f = BASE + "-tokens.json"): any => (existsSync(E(f)) ? JSON.pars
 const keepTokens = (t: any) => writeFileSync(E(BASE + "-tokens.json"), JSON.stringify(t, null, 1), { mode: 0o600 });
 // A kept token's value, or "". Own string properties only: t["toString"] and t["__proto__"] are truthy on any object.
 const keptToken = (t: any, name: string): string => (Object.hasOwn(t, name) && typeof t[name] === "string" ? t[name] : "");
+// Tokens made by agent-token, one for each agent or session: { name: value }, the same shape, in a file of their own.
+const AGENTS = BASE + "-agent-tokens.json";
+// Two agents make or end a token at once, so the file is read and written while a directory beside it is held
+// (milliseconds: no call to the Brain is made inside). One left by a process that died is taken after 10 s.
+const changeAgentTokens = async (change: (t: any) => void) => {
+  const lock = E(AGENTS + ".lock"), file = E(AGENTS);
+  for (let i = 0; ; i++) {
+    try { mkdirSync(lock); break; } catch (e: any) {
+      if (e.code !== "EEXIST") throw e;
+      let age = 0;
+      try { age = Date.now() - statSync(lock).mtimeMs; } catch {}
+      if (age > 10000) { try { rmdirSync(lock); } catch {} continue; }
+      if (i >= 400) throw new Error(`${lock} is held`);
+      await Bun.sleep(25);
+    }
+  }
+  try {
+    const t = tokens(AGENTS);
+    change(t);
+    writeFileSync(file + ".tmp", JSON.stringify(t, null, 1), { mode: 0o600 });
+    chmodSync(file + ".tmp", 0o600);
+    renameSync(file + ".tmp", file);
+  } finally { rmdirSync(lock); }
+};
 const hex = (n = 32) => [...crypto.getRandomValues(new Uint8Array(n))].map((b) => b.toString(16).padStart(2, "0")).join("");
 const api = async (path: string, init: RequestInit = {}) => {
   const r = await fetch("https://api.cloudflare.com/client/v4" + path, { ...init, headers: { authorization: "Bearer " + cfToken(), ...(init.headers || {}) } });
@@ -88,7 +113,15 @@ const install = async (name: string, { replacedBy = null as string | null } = {}
 };
 const digestOf = async (base: string) => JSON.parse((await at(base, "rowsDigest")).text).classes as Record<string, { rows: number; sha256: string }>;
 const sameDigest = (a: any, b: any) => JSON.stringify(Object.entries(a).sort()) === JSON.stringify(Object.entries(b).sort());
-const B = () => `https://${BASE}.${st.subdomain}.workers.dev`;
+// brainUrl: a field of the state file that only a test writes, to put a local stand-in in the kernel's place.
+const B = () => (/^http:\/\/127\.0\.0\.1:\d+$/.test(st.brainUrl ?? "") ? st.brainUrl : `https://${BASE}.${st.subdomain}.workers.dev`);
+// One call of a method with a session or a token's value as the bearer. The bearer is never printed.
+const callAs = async (bearer: string, m: string, body?: any) => {
+  const r = await fetch(B() + "/xrpc/com.lopecode.brain." + m, { method: body ? "POST" : "GET", headers: { authorization: "Bearer " + bearer, ...(body ? { "content-type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  return { status: r.status, body: (await r.json().catch(() => ({}))) as any };
+};
+// A method as a scope names it: the whole name, as the kernel's token.create writes it.
+const full = (m: string) => (m.startsWith("com.") ? m : "com.lopecode.brain." + m);
 const deployer = async (method: string, body?: any) => {
   const r = await fetch(`${G()}/xrpc/com.lopecode.brain.infra.${method}`, { method: body === undefined ? "GET" : "POST", headers: { authorization: "Bearer " + st.recoveryKey, "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
   const text = await r.text();
@@ -450,10 +483,7 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
 } else if (cmd === "token") {
   // A token for an agent of this checkout, made with the owner's session and never printed. The owner, event 150 of
   // cb4's issue record: an agent calls with a token, and may use the owner's session to make one.
-  const asOwner = async (m: string, body?: any) => {
-    const r = await fetch(B() + "/xrpc/com.lopecode.brain." + m, { method: body ? "POST" : "GET", headers: { authorization: "Bearer " + st.session, ...(body ? { "content-type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
-    return { status: r.status, body: (await r.json().catch(() => ({}))) as any };
-  };
+  const asOwner = (m: string, body?: any) => callAs(st.session, m, body);
   const kept = tokens();
   if (args[0] === "list") {
     const r = await asOwner("token.list");
@@ -466,15 +496,69 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
     const daily = args.find((a) => a.startsWith("--daily="));
     const methods = args.slice(1).filter((a) => !a.startsWith("--"));
     if (keptToken(kept, args[0])) { console.log(`a token "${args[0]}" is kept already; "token revoke ${args[0]}" first`); process.exit(1); }
-    const r = await asOwner("token.create", { name: args[0], methods, ...(daily ? { daily: Number(daily.slice(8)) } : {}) });
-    if (r.status !== 200 || !r.body.token) { console.log(r.status, JSON.stringify({ ...r.body, token: undefined })); process.exit(1); }
-    keepTokens({ ...kept, [args[0]]: r.body.token });
-    console.log(`made "${args[0]}" for ${methods.join(", ")}; call with: curl <path> --as ${args[0]}`);
-  } else console.log("token NAME <method…> [--daily=USD] | token list | token revoke NAME");
+    const amount = daily ? { daily: Number(daily.slice(8)) } : {};
+    // --delegate: a token that makes tokens inside its own methods, each ended with it (the parent of agent-token).
+    // token.create gives no caps, so this is delegation.create, which answers the value as `secret`.
+    const delegate = args.includes("--delegate");
+    const r = delegate ? await asOwner("delegation.create", { name: args[0], holder: { secret: true }, scope: methods.map(full), caps: ["delegate"], ...amount }) : await asOwner("token.create", { name: args[0], methods, ...amount });
+    const value = delegate ? r.body.secret : r.body.token;
+    if (r.status !== 200 || !value) { console.log(r.status, JSON.stringify({ ...r.body, token: undefined, secret: undefined })); process.exit(1); }
+    keepTokens({ ...kept, [args[0]]: value });
+    console.log(`made "${args[0]}" for ${methods.join(", ")}${delegate ? ", with the cap delegate" : ""}; call with: curl <path> --as ${args[0]}`);
+  } else console.log("token NAME <method…> [--daily=USD] [--delegate] | token list | token revoke NAME");
+} else if (cmd === "agent-token") {
+  // One token for each agent and each session, so an event's by.holder names who wrote it. Each is made under the
+  // token loop-agents (scope issue.*, cap delegate), which the owner makes once; this command uses no session.
+  const ROLES = ["orch", "impl", "rev", "spec", "over", "dig", "out"], PARENT = "loop-agents", HOURS = 48;
+  const stop = (text: string): never => { console.log(text); process.exit(1); };
+  const usage = `agent-token <role> [what for] | agent-token list | agent-token revoke NAME   (role: ${ROLES.join(" ")})`;
+  const known = args[0] === "list" || (args[0] === "revoke" && !!args[1]) || ROLES.includes(args[0]);
+  if (!known) stop(usage);
+  const parent = keptToken(tokens(), PARENT) || stop(`no token "${PARENT}" is kept. The owner makes it once: token ${PARENT} 'issue.*' --delegate`);
+  const kept = tokens(AGENTS);
+  const refused = (r: { status: number; body: any }) => stop(`${r.status} ${JSON.stringify({ ...r.body, secret: undefined })}`);
+  const iso = (t: number | null) => (t ? new Date(t).toISOString() : null);
+  if (args[0] === "list") {
+    const r = await callAs(parent, "delegation.list");
+    if (r.status !== 200) refused(r);
+    // kept: its value is in this checkout's file, so issue-as.sh can send it.
+    for (const d of r.body.delegations || []) console.log(JSON.stringify({ name: d.name, note: d.note, made: iso(d.created), until: iso(d.until), kept: !!keptToken(kept, d.name) }));
+  } else if (args[0] === "revoke") {
+    const name = args[1], value = keptToken(kept, name);
+    const l = await callAs(parent, "delegation.list");
+    if (l.status !== 200) refused(l);
+    const row = (l.body.delegations || []).find((d: any) => d.name === name);
+    if (!row && !value) stop(`no token "${name}" was made under ${PARENT} or is kept here`);
+    if (row) {
+      const r = await callAs(parent, "delegation.revoke", { id: row.id });
+      if (r.status !== 200 || !r.body.revoked) refused(r);
+    }
+    if (!value) { console.log(`revoked "${name}". Its value is not kept here, so no read was sent with it`); process.exit(0); }
+    // One read of the tracker with the child's own value. The kernel and the core each remember a row for 5 s, so
+    // a value used a moment ago can still answer: it is read again, a second apart, for 12 s.
+    let status = 0;
+    for (const end = Date.now() + 12000; ; await Bun.sleep(1000)) {
+      status = (await callAs(value, "issue.policy")).status;
+      if (status === 401 || Date.now() >= end) break;
+    }
+    if (status !== 401) stop(`${status}: "${name}" still answers a read of issue.policy after its revoke. Its entry is kept`);
+    await changeAgentTokens((t) => { delete t[name]; });
+    console.log(`401: "${name}" is revoked and its value is refused. Its entry is gone: issue-as.sh ${name} is exit 2`);
+  } else {
+    const role = args[0], name = `${role}-${hex(3)}`, note = [role, args.slice(1).join(" ")].filter(Boolean).join("; ").slice(0, 300);
+    const until = Date.now() + HOURS * 3600e3;
+    const r = await callAs(parent, "delegation.create", { name, holder: { secret: true }, scope: [full("issue.*")], until, note });
+    if (r.status !== 200 || !r.body.secret) refused(r);
+    // A value that cannot be kept is of no use to anyone: the child is ended.
+    try { await changeAgentTokens((t) => { t[name] = r.body.secret; }); } catch (e: any) { await callAs(parent, "delegation.revoke", { id: r.body.id }); stop(`"${name}" was made and could not be kept (${e.message}); it is revoked`); }
+    // stdout is the name alone, so N=$(brain.ts agent-token impl <issue>) reads it.
+    console.error(`made "${name}" (${note}) under ${PARENT} for issue.*, until ${iso(until)}; call with: issue-as.sh ${name} <method>, and end it with: agent-token revoke ${name}`);
+    console.log(name);
+  }
 } else if (cmd === "curl") {
   const as = args.indexOf("--as"), name = as < 0 ? "" : args[as + 1];
   const path = args[0], rest = args.slice(1).filter((a, i) => a !== "--owner" && a !== "--other" && i + 1 !== as && i + 1 !== as + 1);
-  const have = name ? { ...tokens(BASE + "-issues-tokens.json"), ...tokens() } : {};
+  const have = name ? { ...tokens(AGENTS), ...tokens(BASE + "-issues-tokens.json"), ...tokens() } : {};
   if (as >= 0 && !name) { console.log("--as needs a name: curl <path> --as NAME"); process.exit(1); }
   if (as >= 0 && !keptToken(have, name)) { console.log(`no token "${name}" is kept; make one with: token ${name} <method…>`); process.exit(1); }
   const extra = name ? ["-H", "authorization: Bearer " + keptToken(have, name)] : args.includes("--owner") && st.session ? ["-H", "authorization: Bearer " + st.session] : args.includes("--other") && st.otherSession ? ["-H", "authorization: Bearer " + st.otherSession] : [];
