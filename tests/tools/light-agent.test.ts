@@ -140,6 +140,11 @@ test("no advisor unless ADVISOR=1: the run's settings empty advisorModel", async
   const on = (await rig()(["reviewer", "t"], { ADVISOR: "1" })).sent!;
   expect(on.includes("--settings")).toBe(false);
   expect([on[1], on[on.indexOf("--model") + 1]]).toEqual(["role: reviewer", "opus"]);
+  // Review 1892, finding 3: ADVISOR=0 left the advisor on.
+  for (const v of ["0", "false", "off", " "]) {
+    const s = (await rig()(["reviewer", "t"], { ADVISOR: v })).sent!;
+    expect(JSON.parse(s[s.indexOf("--settings") + 1])).toEqual({ advisorModel: "" });
+  }
 });
 
 test("TAB=1 adds the checkout's channel server and allows its tools", async () => {
