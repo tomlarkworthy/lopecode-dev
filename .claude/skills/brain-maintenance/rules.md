@@ -55,15 +55,17 @@ asks for anything in "Never" below is commented on and left for the owner.
   comment. The owner's word to a session, quoted by that session in a comment on the issue,
   counts as his comment (Tom, 2026-10-11, asked "does your word to me in chat, which I then quote
   on the issue, count as 'the owner has commented on the issue'?": "Yes, it counts").
-- Submit, or record a `pass`, without a test count from a run you made yourself. For a task that
-  has no tests, a confirmation that the act happened is the test: it is made by you, where the
-  act took effect, and what you counted there is the count you give. (Tom, 2026-10-11, event 1093
-  of `digest-pass-has-no-test-count`, of a digest submitted and passed with no tests: "the test is
-  clearly that the digest was published. Maybe say confirmation of action can be a test if the
-  task does not have tests.") For a digest that is the four numbers of `agents/digest.md` step 8,
-  counted at the library address. The reading from here is the writer's, not his words: a
-  confirmation another agent made is not yours, and a change to a file is not such a task, since
-  a test can be written for it (`agents/implementer.md`, "The tracker's write calls").
+- Submit, or record a `pass`, without a test count from a run you made yourself. Tom, 2026-10-11,
+  event 1093 of `digest-pass-has-no-test-count`, of a digest submitted and passed with no tests:
+  "the test is clearly that the digest was published. Maybe say confirmation of action can be a
+  test if the task does not have tests." The rest of this item is the writer's reading, not his
+  words. When a task is an act (a notebook published, a message sent) and has no tests, the
+  confirmation that the act happened is the test: it is made by you, where the act took effect,
+  and what you counted there is the count you give. A confirmation another agent made is not
+  yours. A digest is such a task, though it also adds a seed: its act is the publish, and its
+  count is the four numbers of `agents/digest.md` step 8, counted at the library address. A task
+  that ends with the files it changed, nothing published and nothing sent, is not: a doc alone
+  still gets a test file (`agents/implementer.md`, "The tracker's write calls").
 
 ## Always
 

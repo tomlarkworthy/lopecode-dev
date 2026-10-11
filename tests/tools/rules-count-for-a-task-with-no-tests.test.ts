@@ -30,25 +30,44 @@ test("item() reads one item and stops at the next", () => {
   expect(item("- a\n", "- z")).toBe("");
 });
 
-test("the Never line still asks for a count from the agent's own run", () => {
-  expect(line).toContain("without a test count from a run you made yourself");
+// What stands before the marker is the rule's first sentence and the owner's words, and nothing else: a reading
+// put there would read as his (review 1148, finding 1).
+const marker = " The rest of this item is the writer's reading, not his words. ";
+const his =
+  "- Submit, or record a `pass`, without a test count from a run you made yourself. Tom, 2026-10-11, event 1093 of " +
+  "`digest-pass-has-no-test-count`, of a digest submitted and passed with no tests: \"the test is clearly that the " +
+  "digest was published. Maybe say confirmation of action can be a test if the task does not have tests.\"";
+const reading = line.slice(line.indexOf(marker) + marker.length);
+
+test("before the marker: the first sentence and the owner's words, letter for letter", () => {
+  expect(line.split(marker).length).toBe(2);
+  expect(line.slice(0, line.indexOf(marker))).toBe(his);
 });
 
-test("for a task with no tests it takes a confirmation of the act, made by the agent", () => {
-  expect(line).toMatch(/task (that|which) has no tests/);
-  expect(line).toMatch(/confirmation that the act happened/);
-  expect(line).toMatch(/made by you/);
+test("after the marker: an act with no tests is confirmed by the agent itself", () => {
+  expect(reading).toMatch(/is an act \(.*\) and has no tests/);
+  expect(reading).toContain("the confirmation that the act happened is the test");
+  expect(reading).toContain("made by you");
+  expect(reading).toContain("A confirmation another agent made is not yours.");
 });
 
-test("it carries the owner's words, their date and the event", () => {
-  expect(line).toContain("confirmation of action can be a test if the task does not have tests");
-  expect(line).toContain("Tom, 2026-10-11");
-  expect(line).toContain("event 1093");
+// A digest adds a seed, so a sentence that leaves out every change to a file leaves out the digest (finding 2).
+test("a digest is named as such a task, and a doc alone as not one", () => {
+  expect(reading).toMatch(/A digest is such a task, though it also adds a seed: its act is the publish/);
+  expect(reading).toMatch(/nothing published and nothing sent, is not: a doc alone still gets a test file/);
+  expect(reading).not.toMatch(/a change to a file is not such a task/);
 });
 
 test("the brief it names for a digest has the four numbers counted at the library address", () => {
-  expect(line).toContain("`agents/digest.md` step 8");
+  expect(reading).toContain("`agents/digest.md` step 8");
   const step8 = item(readFileSync(join(skill, "agents/digest.md"), "utf8"), "8. **Publish, count");
   expect(step8).toContain("count the same four numbers there");
   expect(step8).toContain("/library/research-<day>");
+});
+
+test("the doc-alone sentence it names is in the implementer's brief", () => {
+  expect(reading).toContain("(`agents/implementer.md`, \"The tracker's write calls\")");
+  const brief = readFileSync(join(skill, "agents/implementer.md"), "utf8");
+  const section = brief.slice(brief.indexOf("## The tracker's write calls"), brief.indexOf("## What a reviewer will check"));
+  expect(section).toContain("(a doc alone) still needs a count for the submit");
 });
