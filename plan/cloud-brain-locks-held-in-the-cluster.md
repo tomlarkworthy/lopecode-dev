@@ -684,7 +684,7 @@ Round 4. The review is event 1277, verdict `changes`, at `760c76a6`.
 Not asked by the review and changed: `lock.sh renew` sends `renew: true` (the last bullet but one
 of "A lock past its `until`"). It is a third body of `issue.lock`, no new method.
 
-**The fresh read.** Before the submit the draft (`e71cbe3b` in the worktree) was read by an agent
+**The fresh read.** Before the submit the draft (`01924da8` on `main`; `e71cbe3b` in the worktree before the landing rebased it) was read by an agent
 with no context of this session (`/review-notebook`, 19:01 to 19:05). It gave eight findings. Each
 was checked against the file it names, and all eight changed the spec:
 
