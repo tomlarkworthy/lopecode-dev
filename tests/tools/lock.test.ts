@@ -376,11 +376,11 @@ test("a plain take asks once: a lost answer is exit 2, and the renew the brief g
   expect((await lock("take", "land", "a")).code).toBe(1);
 });
 
-// The briefs a writer may edit name the tool and no local lock. rules.md is the owner's (task 4 of the spec adds it here).
+// The briefs name the tool and no local lock. rules.md is the owner's: its two sentences are his answer A (event 1535 of lk-4-rules-md-two-sentences).
 test("R3: the briefs name lock.sh for both locks, and no directory, mkdir, rmdir or rm -r of either", () => {
   const read = (f: string) => readFileSync(join(root, f), "utf8");
   const skill = ".claude/skills/brain-maintenance/";
-  const named = [skill + "agents/implementer.md", skill + "agents/overseer.md", skill + "SKILL.md", "knowledge/changing-and-deploying-a-cloud-brain-worker.md"];
+  const named = [skill + "agents/implementer.md", skill + "agents/overseer.md", skill + "SKILL.md", skill + "rules.md", "knowledge/changing-and-deploying-a-cloud-brain-worker.md"];
   for (const f of [...named, skill + "agents/spec.md"]) {
     const text = read(f);
     if (named.includes(f)) {
