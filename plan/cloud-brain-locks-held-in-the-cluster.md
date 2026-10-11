@@ -5,6 +5,11 @@ and 18:05 CEST (event 1107's `at`, and `date`) from `lopecode-dev` `f5428cf8` an
 The design is a proposal; each number under "The design" that is not under "What exists today" is a
 choice and says what it was chosen from.
 
+Round 2, 2026-10-11 18:22 to 18:26 CEST (`date`), from `1788b1a4` and the tracker at event 1173:
+review 1169 sent it back with two findings and three notes. Each is answered in place, and the
+last part, "Review 1169, answered", says where. The tasks are five now, not four: the task that
+was 2 is 3.
+
 ## What was asked
 
 Tom, 2026-10-11, comment 1099 on `rules-md-names-lock-sh`, whole. He had been offered three wordings
@@ -29,7 +34,7 @@ system multiplayer bugs need to be removed."
 | The feature's body, "how a lock of an agent that died ends" | R4 |
 | The feature's body, "a session's rmdir removed a writer's lock at 15:25" (`land-lock-any-session-can-remove`, done) | R5: what that fix gave is kept |
 | The feature's body, "what an agent does when the cluster cannot be reached" | R6 |
-| The feature's body, "what a lock on the landing means when two machines each have a checkout" | R2, and task 2's change to step 10 of the writer's brief |
+| The feature's body, "what a lock on the landing means when two machines each have a checkout" | R2, and task 3's change to step 10 of the writer's brief |
 | The feature's body, "whether lock.sh stays as the command" | it stays: "The design", the tool |
 
 The requirements:
@@ -57,13 +62,35 @@ with a file `holder` (the name, a tab, the time). `bun test ./tests/tools/lock.t
 fail (run 18:02). Neither directory existed at 17:58 (`ls tools/cloud-brain/.emitted/*.lock`: no
 matches).
 
-**Who names them.** `grep -rIl "lock\.sh\|land\.lock\|cb4\.lock"` over the checkout, without the
-submodules, `.emitted/` and the worktrees: 16 files. Eight tell an agent what to do and change with
-this feature: `lock.sh`, `tests/tools/lock.test.ts`, `rules.md`, `SKILL.md`, `agents/implementer.md`,
-`agents/overseer.md`, `agents/spec.md`, and
-`knowledge/working-with-cloud-brain-remote-lopecode-cluster.md`. The other eight are records
-(`records/*.md`, `oversight.md`, `spec-as-built.md`, `rpc-performance.md`,
-`plan/specs/deploy-verification.html`) and stay as written.
+**Who names them.** Counted again in round 2, at `1788b1a4`, 18:24:
+`git ls-files | xargs grep -Il "lock\.sh\|land\.lock\|cb4\.lock"` answers 18 tracked files. (Round 1
+said 16, from f5428cf8 and a grep of the directory; two records and this spec came since, and the
+lock text of one knowledge page moved to another in `879b7017`, 18:09:15.)
+
+- Eight tell an agent what to do and change with this feature: `lock.sh`,
+  `tests/tools/lock.test.ts`, `rules.md`, `SKILL.md` (lines 55, 58, 59, 63, 145, 241),
+  `agents/implementer.md`, `agents/overseer.md` (lines 93, 94), `agents/spec.md`, and
+  `knowledge/changing-and-deploying-a-cloud-brain-worker.md`, step 4, lines 37 to 41.
+- One names `lock.sh` only as a path in a fixture and does not change:
+  `tests/tools/review-needs-tab.test.ts` line 32.
+- Nine are records and stay as written: four under `records/`, `oversight.md`, `spec-as-built.md`,
+  `rpc-performance.md`, `plan/specs/deploy-verification.html`, and this spec.
+
+**A ninth file that tells an agent what to do is in no checkout** (review 1169, finding 1). The
+reviewer's brief has been a file of the Brain since 2026-10-11,
+`https://cb4.endpointservices.workers.dev/static/cloud-brain-dev/roles/reviewer.md`, read as
+`cloud-brain-dev/brain/roles/reviewer.md`. The grep above cannot find it. Its step 3, lines 42 to 44
+of the copy fetched 18:22:
+
+```
+While `tools/cloud-brain/.emitted/land.lock` exists a landing is under way: wait for it to go
+(`until [ ! -d …/land.lock ]; do sleep 20; done`, `run_in_background`), then run `redistil`
+and read `HEAD` again before comparing.
+```
+
+With no directory ever made, that wait returns at once during a landing, with no error. It is the
+only file of the Brain for an agent: `/static/cloud-brain-dev/index.md` lists one path, and
+`git -C cloud-brain-dev ls-files`, grepped the same way, answers nothing.
 
 **How long a lock is held.** 13 lines of the loop's journal carry "LOCK TIMES"
 (`grep -rhc "LOCK TIMES" tools/cloud-brain/.emitted/issue-loop/*.md`, summed). Those of 2026-10-10
@@ -95,7 +122,7 @@ agent is on the record; `SKILL.md` step 1 gives such a lock to the owner (`rm -r
   (`NAME is A, you saw B`); one change to a Worker runs at a time under the row `deploying/NAME`
   (`putIfAbsent`), taken over after 5 minutes. The same paragraph says of those rows: "The rows have
   no compare-and-swap, so one case is open". `brain.ts apply` does not look at `cb4.lock`
-  (the knowledge doc, step 4: "Nothing makes `apply` look at it").
+  (`knowledge/changing-and-deploying-a-cloud-brain-worker.md`, step 4: "Nothing makes `apply` look at it").
 - A landing. `git push` to origin refuses a push that is not a fast-forward, and
   `git merge --ff-only` in the main checkout refuses a branch that is not ahead of `main`.
 
@@ -176,6 +203,11 @@ issue.locks   query      ?history=N
   an `INSERT OR IGNORE`, then a read. The row is the caller's after it or it is not. Times are the
   Worker's `Date.now()`; no caller's clock is read. If the upsert with a `WHERE` passes
   `brain-db`'s check it is one statement in place of two; `brain-db` is not changed either way.
+  Neither form is known to pass that check (review 1169, "what I did not"). The check reads the
+  opcodes of the statement and refuses one it does not know (`brain-db.ojs` line 845,
+  `"refused: the opcode VOpen is not one this check reads"`); `INSERT OR IGNORE` is nowhere in that
+  file (`grep -c "OR IGNORE" tools/cloud-brain/brain-db.ojs`: 0), and no token of the loop names
+  `db.sql`, so it cannot be asked before a deploy. Task 1 says what its writer does about it.
 - `n` goes up by one at each take that is not a renew.
 - A take over a lock that has ended answers `over: { who, until }` beside `held: true`, and the
   history row of the lock that ended has `how: "expired"`. A release writes `how: "released"`.
@@ -198,8 +230,27 @@ lock.sh show land|cb4                            the holder, since when, until w
 ```
 
 It calls through `issue-as.sh` with the token named in `LOCK_TOKEN`, `issues-implementer-2` when
-unset; the overseer's brief sets `issues-overseer-1`. It makes no directory and reads none.
-`--wait` asks again every 20 s as now, also while the cluster is not reached.
+unset; the overseer's brief sets `issues-overseer-1` and the reviewer's `issues-reviewer-2`. It
+makes no directory and reads none. `--wait` asks again every 20 s as now, also while the cluster is
+not reached. `show` exits 2, not 1, when the cluster is not reached, so that "nobody holds it" is
+never read from a call that failed.
+
+**The reviewer's wait.** Step 3 of the Brain's `roles/reviewer.md` asks the tool in place of the
+directory:
+
+```
+export LOCK_TOKEN=issues-reviewer-2
+until <checkout>/tools/cloud-brain/lock.sh show land >/dev/null 2>&1; [ $? -eq 1 ]; do sleep 20; done
+git -C <checkout> pull --ff-only && git -C <checkout>/lopebooks pull --ff-only
+```
+
+It goes on at exit 1 only. Today's `lock.sh show` reads the directory and exits 1 when there is
+none (`lock.sh` line 49) and ignores `LOCK_TOKEN`; the cluster's script answers the same code from
+`issue.locks`, which the reviewer's token reaches through `issue.*`. So the same three lines are
+right before and after `lock.sh` changes, and the brief is changed first (task 2) with no moment
+at which it waits on nothing. The pull is for a reviewer on a second machine, whose `HEAD` is its
+own checkout's; on one machine it brings nothing in. With the cluster not reached the wait does
+not end; the review needs cb4 for `redistil` and `getSource` in any case.
 
 **Two machines.** The lock is one for all checkouts. Step 10 of `agents/implementer.md` gains one
 line after the take: `git -C <root> pull --ff-only` and the same in `lopebooks`, before
@@ -210,7 +261,11 @@ is a stop: release and report. On one machine it brings nothing in.
 at work. A push by the slower of the two is refused by origin, an apply by `was`. What is not
 refused: both building the notebook into one main checkout, which needs both on one machine. The
 holder's `release` then answers exit 1 with the new holder; the brief says to stop and report, not
-to push. The margin is 600 s against 203 s, from 9 holds.
+to push. The margin is 600 s against 203 s, from 9 holds. Step 10 of the writer's brief runs
+`lock.sh renew land <id>` before the merge and again before the push: a renew that answers exit 1
+is the same stop, met before the checkout is written to and not after. That narrows the case and
+does not close it. Closing it means the thing written to checks `n`, and for a deploy that is the
+deployer, which is the owner's (his list, below).
 
 **When the cluster is not reached.** `take` exits 2. The agent does not land and does not deploy;
 it waits with `--wait` or stops and reports. A deploy needs the cluster in any case. A landing with
@@ -246,6 +301,12 @@ exits 2 and nobody lands until the Worker is forward again. The tracker's other 
   behind each other for 2 to 203 s a landing.
 - **A heartbeat process that renews.** An agent of the loop has no process between its commands.
   `renew` is a command it runs before a long step.
+- **The writer of the `lock.sh` task puts the reviewer's brief in the same landing.** One landing
+  in place of two. `rules.md`, "The files of the Brain an agent reads": "The overseer changes a
+  brief with it; no other role does", and it would need the owner's word to cross. With the wait
+  written as above it does not need to be the same landing, so the overseer makes it, before.
+- **The reviewer's brief changed after `lock.sh`, by the overseer, on the orchestrator's word.**
+  Between the two the reviewer waits on a directory nobody makes: finding 1 for some minutes.
 
 ## How each requirement is known to be met
 
@@ -256,12 +317,12 @@ their own (`probe-<issue id>`), never `land` or `cb4`.
 | | Check |
 |---|---|
 | R1 | `ia lock '{"name":"probe-x","who":"a","seconds":30}'` answers `held: true`; `ia "locks"` lists it; after `ia lock '{"name":"probe-x","who":"a","release":true}'` it does not. And `test_*` cells of `brain-issues.ojs`, run with `bun test.ts brain-x-issues --with <built module>` in the worktree's `cloud-brain-dev/` |
-| R2 | With `a` holding `probe-x`, the same call with `who: "b"` answers 409 and names `a`. The call carries nothing of the machine it is made from, so one made from another is the same call. 20 takes of one free name sent together with 20 names: the count of `held: true` is 1 (a test cell against the fake, and once against cb4) |
-| R3 | `grep -c "mkdir\|rmdir" tools/cloud-brain/lock.sh` is 0. A test in `lock.test.ts`: after `take` with `BRAIN_STATE_DIR` at an empty directory, the directory is still empty. The test "the briefs name lock.sh for both locks" reads `rules.md`, `SKILL.md` and `spec.md` too, and fails on a code span with `mkdir`, `rmdir` or `rm -r` of either lock |
+| R2 | With `a` holding `probe-x`, the same call with `who: "b"` answers 409 and names `a`. The call carries nothing of the machine it is made from, so one made from another is the same call. 20 takes of the one free `name`, each with a `who` of its own (`w1` to `w20`), sent together: the count of `held: true` is 1 (a test cell against the fake, and once against cb4) |
+| R3 | After task 3: `grep -c "mkdir\|rmdir" tools/cloud-brain/lock.sh` is 0. A test in `lock.test.ts`: after `take` with `BRAIN_STATE_DIR` at an empty directory, the directory is still empty. The test "the briefs name lock.sh for both locks" reads `SKILL.md`, `agents/spec.md` and the knowledge page too, and fails on a code span with `mkdir`, `rmdir` or `rm -r` of either lock or a path that ends `land.lock` or `cb4.lock`. It does not read `rules.md` until task 4 (R7). After task 2, the Brain's copy, a public read: `curl -s https://cb4.endpointservices.workers.dev/static/cloud-brain-dev/roles/reviewer.md \| grep -c "land\.lock\|cb4\.lock"` is 0 (it is 2 today, 18:22) and `grep -c "lock.sh show land"` of the same is 1. The same `curl` is a test in `lock.test.ts` from task 3 on, skipped with its reason printed when cb4 does not answer |
 | R4 | A test cell with the clock moved past `until`: `b` takes, the answer has `over`, the history has `how: "expired"`. On cb4: `a` takes `probe-x` for 5 s, and 6 s later `b` takes it |
 | R5 | In `lock.test.ts`, against a stand-in for the service: `take land a`, then `take land b && echo landed; release land b` prints no `landed`, exits 1, and `show land` names `a`. A test cell: a release with `a`'s name by the reviewer's token is 403 |
 | R6 | In `lock.test.ts`: with the service's address at a closed port, `take` exits 2 within the call's time limit and makes nothing under `BRAIN_STATE_DIR` |
-| R7 | The brief test of R3 passes with `rules.md` among the files it reads |
+| R7 | After task 4, and not before: `rules.md` is added to the files the brief test of R3 reads, in the commit that changes the two sentences, and the test passes. With today's `rules.md` in the list it fails, on lines 79 and 83 |
 | R8 | `ia "locks?history=50"` answers the rows; `issue-stats.ts` prints a line `locks` with the count, the median and the longest hold of `land` and of `cb4` |
 
 The stand-in of R5 and R6 is a server the test starts that answers the three shapes above. It is
@@ -276,26 +337,63 @@ is the owner's to see (below).
    methods, their rows in the method reference, test cells for R1, R2, R4, R5 and R8. Deployed by
    the loop under the directory lock, which is still the lock. `major` by `SKILL.md`'s reading: it
    adds something callers may do. Then the probes of R1, R2 and R4 against cb4.
-2. **`lock.sh` over the cluster, and the briefs.** `lock.sh` as above; `lock.test.ts` rewritten
-   against the stand-in (R3, R5, R6); `agents/implementer.md` step 10 (the pull, `renew`, exit 2,
-   what to do when a release answers exit 1), `agents/overseer.md` (`LOCK_TOKEN`), `agents/spec.md`
-   step 6, `SKILL.md` step 1 (a lock past its time is not held; nothing is the owner's to remove),
-   the knowledge doc's step 4. Writers call the main checkout's `lock.sh` by its path, so the change
-   holds for every writer from the merge on. This landing is the last under a directory: its writer
-   keeps the old script (`git show <sha before>:tools/cloud-brain/lock.sh` to a file in its scratch
-   directory, run with `BRAIN_STATE_DIR`) and releases its directory with it after the push. The
-   orchestrator starts it when no other writer is between step 9 and step 10.
-3. **`rules.md`, the two sentences.** The owner's (below). Then the brief test reads `rules.md`
-   (R7), and `rules-md-names-lock-sh` is closed with this spec as its answer.
-4. **`issue-stats.ts` prints the holds** (R8), and the oversight reads them in place of the
+   The first probe after the deploy is the test of the statement form, since nothing before it runs
+   `brain-db`'s check on these statements (if `bun test.ts brain-x-issues --with …` does run it, the
+   writer learns it at step 7 and says so). A refusal is `issue.lock` answering `brain-db`'s
+   `refused: …`; the other methods of the tracker do not run these statements. The writer then
+   tries, in this order and each as a deploy: the two-statement form, the one upsert with a
+   `WHERE`, and a `SELECT` then an `INSERT` or `UPDATE` whose `WHERE` repeats the condition and
+   whose answer's `changes` is read. If all three are refused the change needed is in `brain-db`,
+   the owner's: the writer stops with the three refusals quoted and the label `needs-owner`.
+2. **The reviewer's brief on the Brain.** The three lines of "The reviewer's wait" in place of the
+   wait on the directory, in step 3 of `roles/reviewer.md`. Made by an overseer the orchestrator
+   starts for this one edit, with `put.sh` as `agents/overseer.md` says (no commit, no lock, the
+   entry in `oversight.md`), since `rules.md` gives that file to the overseer alone. It needs
+   neither task 1 nor task 3: today's `lock.sh show land` answers it. Its check is R3's `curl`,
+   run by a reviewer, and one review made with the new brief while a writer holds `land`.
+3. **`lock.sh` over the cluster, and the briefs** (task 2 of round 1). `lock.sh` as above;
+   `lock.test.ts` rewritten against the stand-in (R3, R5, R6) with the `curl` of the Brain's copy;
+   `agents/implementer.md` step 10 (the pull, `renew` before the merge and before the push, exit 2,
+   what to do when a release or a renew answers exit 1), `agents/overseer.md` (`LOCK_TOKEN`),
+   `agents/spec.md` step 6, `SKILL.md` step 1 (a lock past its time is not held; nothing is the
+   owner's to remove) and its five other lines, and step 4 of
+   `knowledge/changing-and-deploying-a-cloud-brain-worker.md`. Writers call the main checkout's
+   `lock.sh` by its path, so the change holds for every writer from the merge on.
+   **This landing is under both locks** (review 1169, finding 2). Before `merge --ff-only` its
+   writer takes `land` twice: the directory, with the script as it was
+   (`git show main:tools/cloud-brain/lock.sh` to a file in its scratch directory, run with
+   `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted`), and the cluster's, with the new script of
+   its worktree (`$W/tools/cloud-brain/lock.sh take land <id>`). A writer still on the old script
+   meets the directory; one that arrives after the merge runs the new script and meets the
+   cluster's lock. Both are released after the push, the cluster's last.
+   One case the two locks do not cover: a `lock.sh take land … --wait` of the old script that was
+   already running at the merge goes on as the old script and takes the directory when it is
+   released. So round 1's line stays beside this one, "the orchestrator starts it when no other
+   writer is between step 9 and step 10", and before releasing the directory the writer runs
+   `pgrep -fl "lock.sh take land"`: with any line but its own it leaves the directory held and
+   reports, and the orchestrator stops that waiter and starts it again, on the new script. That
+   bash goes on with the script it started was not tried; it is assumed the worse way.
+4. **`rules.md`, the two sentences.** The owner's (below). The same commit adds `rules.md` to the
+   files the brief test reads (R7), and `rules-md-names-lock-sh` is closed with this spec as its
+   answer.
+5. **`issue-stats.ts` prints the holds** (R8), and the oversight reads them in place of the
    writers' "LOCK TIMES" lines. The first numbers are compared with the nine above.
 
-Task 2 needs 1 deployed. Task 3 needs 2. Task 4 needs 1.
+Task 3 needs 1 deployed and 2 put. Task 4 needs 3. Task 5 needs 1. Task 2 needs nothing.
 
 ## What only the owner can do
 
 - **Approve this spec.** With it, that the three tokens of the loop reach two new methods through
   the prefix `issue.*` they already name. No token is made.
+- **Weigh one thing in that approval** (the reviewer, 1169, question 3, asked that he see it). The
+  lease is a lock for efficiency, not for correctness. If a holder is still at work when its 600 s
+  end (the longest hold measured is 203 s, of 9), a second writer gets the lock. A push is then
+  refused by origin and an apply by `was`; two writers on one machine can still both build into the
+  main checkout, and a `renew` before the merge and the push narrows that without closing it. `n`
+  rises at each take and nothing checks it. To close it the deployer would refuse an apply whose
+  `n` is not the lock's, which is a deploy of the deployer and so his. This spec does not ask for
+  it. Against it stands his line of 2026-10-10: "in a multi agent system multiplayer bugs need to
+  be removed."
 - **The two sentences of `rules.md`**, lines 74 to 81, and whether the loop makes the edit on his
   word (one commit that quotes it) or he does. Proposed:
   - "Commit, build or push in the main checkout only while holding the landing lock:
@@ -310,3 +408,22 @@ Task 2 needs 1 deployed. Task 3 needs 2. Task 4 needs 1.
 - **Ending a lock before its time**, if he ever wants to: `issue.lock` with `force: true` in his tab.
 
 No deploy of the kernel, the core, the database or the deployer, no policy install, no new secret.
+
+## Review 1169, answered
+
+Round 2. The review is event 1169, verdict `changes`, at `3a45a6f8`.
+
+| | What it found | Answer |
+|---|---|---|
+| 1 | The reviewer's brief on the Brain waits on the directory `land.lock`, and is in no inventory, task or check | In "Who names them" with its three lines quoted. "The reviewer's wait" gives the text in its place. Task 2, new, makes the edit: the overseer, by `put.sh`, before `lock.sh` changes, which the text allows because it is right under both scripts. R3 reads the Brain's copy with a `curl` |
+| 2 | In the landing of the `lock.sh` task a writer arriving after the merge takes the free cluster lock beside the directory's holder | Task 3: that writer holds both from before the merge until after the push |
+| a | The lock text of the knowledge doc moved in `879b7017` | `knowledge/changing-and-deploying-a-cloud-brain-worker.md`, step 4, in the inventory, in "What already guards" and in task 3. The count is 18 files, made again |
+| b | R2's "20 names" read two ways | One `name`, 20 values of `who` |
+| c | R3's row read `rules.md` before the task that changes it | R3's test does not read `rules.md`; R7 adds it in task 4's commit |
+| question 3 | The owner should see that the lease is for efficiency | First under "What only the owner can do", after the approval. A `renew` before the merge and the push is added to step 10 |
+| not done | Whether the two statements pass `brain-db`'s check | Still not known, and why it cannot be asked before a deploy is under "The design". Task 1 gives the order of three forms and the stop |
+
+Not done in round 2: the knowledge searches and the three outside sources were not made again,
+since no finding asked for another design. The three lines of "The reviewer's wait" were not run:
+the exit code of today's `show` was read from `lock.sh`, lines 48 to 50, and the cluster's script
+does not exist.
