@@ -46,7 +46,7 @@ line 2, the smaller side.
 
 ## Tests
 
-Each run in the worktree `bm/knowledge-by-says-owner-for-a-token` on 2026-10-11, after the start move (19:55 CEST, its event's `at`) and before the seed's commit (19:57:23, `git log --format=%ci`); the 20 runs ended 19:57:19 (`at` of their last line).
+Each run in the worktree `bm/knowledge-by-says-owner-for-a-token` on 2026-10-11, after the start move (19:55 CEST, its event's `at`). The seed was committed at 19:56:34 (`git log --format=%ai -1 3b29a7ec`, the author date, which a rebase keeps), after the two `test.ts` runs and before the QA tab and the 20 runs, which ended 19:57:19 (`at` of their last line). (Corrected 2026-10-11 in round 2: this said the runs were before a commit of 19:57:23 by `%ci`. That was the committer date after the first rebase; the second moved it to 20:02:22.)
 
 Before the sentence changed, with the test and the rig in place
 (`bun test.ts brain-x-knowledge --with <built module>` in `cloud-brain-dev/`):
@@ -69,9 +69,11 @@ In a QA tab on the worktree's build (Chrome 151, the snippet of the implementer'
 `"runs":20,"passed":20,"failed":0,"none":0,"from":["document"],"byChance":[]`, `mains` of the
 first line `["@tomlarkworthy/brain-shell","@tomlarkworthy/brain-knowledge"]`, `tests` 11 in each run.
 
-The rebase before the landing brought in `tests/tools/issue-lock-sql.test.ts`,
-`tools/cloud-brain/brain-issues.ojs` and a record; none is what `brain-knowledge` is built from,
-and the tests were not run again.
+Two rebases. The one before the record was written brought in `tests/tools/issue-lock-sql.test.ts`,
+`tools/cloud-brain/brain-issues.ojs` and `records/lk-1-issue-lock-methods.md`. The one under the landing lock
+brought in `lopebooks`, `tools/cloud-brain/brain-dashboard.ojs`, `records/dsv-2-member-metrics.md`,
+`records/lk-1-issue-lock-methods.md` and `seen.json` (the lines `worktree.sh --rebase` printed each time). None is
+what `brain-knowledge` is built from, and the tests were not run again.
 
 ## Not tried, not changed
 
@@ -86,3 +88,45 @@ and the tests were not run again.
 - The same phrase in other references: `brain-browser.ojs` ("`owner`, `token:NAME`, a member's DID"),
   `cloudflare-iac.ojs` (`caller.id`), `brain-blob.ojs` (`by:token:<name>`). Not read against what
   those services do; `cloudflare-iac` is in the deployer's hash.
+
+## Round 2, 2026-10-11
+
+Review 1624, two findings.
+
+**1. The row said "A token's call is the owner's". It is its maker's.** `asSecret` sets
+`caller: d.from`, and a member makes a token too (`brain-core.ojs`, the test lines after "A member
+makes a token for what they may call"). The reviewer showed `by: "did:plc:ada"` on a copy of the
+deployed module with the test's caller changed. The service was right and the sentence was not.
+
+- The row now reads: "A token's call is its maker's: an entry entered with a token the owner made
+  has `by: "owner"`, as one the owner entered in their tab has, and one entered with a token a
+  member made has that member's DID."
+- The test is `test_knowledge_a_token_enters_as_its_maker_and_the_reference_says_so` (the name of
+  round 1, `…_enters_as_the_owner_…`, is gone). It adds a put and a change with
+  `x-brain-caller: did:plc:ada`, `x-brain-via: delegation:d2`, `x-brain-holder: secret:rsi-index`,
+  and reads `by`, `changed.by` (`did:plc:ada`), `public` (false) and `stats.by`. Of the row it
+  holds that `token:NAME` and "call is the owner's" are absent and three short phrases present
+  ("its maker's", "a token the owner made", "a token a member made"), not the sentence by its letters.
+
+Runs, in a new worktree of the same name:
+
+```
+test.ts --with, the new test with the row of round 1   "passed":9,"failed":1,"needsBrowser":1
+     FAIL … Expected value:  "call is the owner's"
+test.ts --with, after the row changed                  "passed":10,"failed":0,"needsBrowser":1
+QA tab, the snippet of step 8                          [11,[]]
+verify-run.ts brain-x-knowledge --shell <build> --times 20
+     "runs":20,"passed":20,"failed":0,"none":0,"from":["document"],"byChance":[]   at 2026-10-11T18:14:13Z
+```
+
+The member's assertions come before the row's in the cell and held in the first of those runs: the
+service kept the DID before this round. The seed's commit is 20:13:40 (`git log --format=%ai`),
+after both `test.ts` runs and before the tab and the 20 runs.
+
+**2. The commit time in "Tests".** Corrected there, with the list of what each rebase brought in.
+
+Not tried in this round: a token made by a member on cb4, and a put with one. The reference says
+no person held the grant `knowledge.put` on 2026-10-10; that was not read again. A member's
+*Worker* (`worker:brain-m-…`) calling with a token was not tried either; the rule of
+`knowledge.put` is `caller.trusted` or two named Workers, and what `trusted` is for a member's
+token was not read.
