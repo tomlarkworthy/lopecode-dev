@@ -1,0 +1,917 @@
+{
+ "note": "Question sets for knowledge.search. `want` is the entry (or any of several) that answers the question. real: searches agents made on cb4 on 2026-10-10 (from logs.query), labelled 2026-10-11 by reading the corpus, before any arm was run. builder: the questions of knowledge-vectors.md with the entry its writer had in mind. synthetic: written 2026-10-11 by a fresh agent from a fixed sample of 60 entries (see knowledge-reranking.md).",
+ "real": [
+  {
+   "q": "cloud-brain-authority delegation design",
+   "mode": "semantic",
+   "want": [
+    "doc:cloud-brain-authority"
+   ],
+   "who": "token:claude-knowledge-3725"
+  },
+  {
+   "q": "delegation holder scope caps widen token",
+   "mode": "semantic",
+   "want": [
+    "doc:cloud-brain-authority"
+   ],
+   "who": "token:claude-knowledge-3725"
+  },
+  {
+   "q": "plan authority delegation",
+   "mode": "semantic",
+   "want": [
+    "doc:cloud-brain-authority"
+   ],
+   "who": "token:claude-knowledge-3725"
+  },
+  {
+   "q": "plan design cloud brain",
+   "mode": "words",
+   "kind": "doc",
+   "want": [
+    "doc:cloud-brain-authority",
+    "doc:cloud-brain-issues",
+    "doc:cloud-brain-topics",
+    "doc:cloud-brain-backlog"
+   ],
+   "who": "token:claude-knowledge-3725",
+   "why": "each of the four is a plan document of the Brain"
+  },
+  {
+   "q": "scope approval",
+   "mode": "semantic",
+   "kind": "module",
+   "want": [],
+   "who": "token:claude-knowledge-3725",
+   "why": "no entry answers: brain-scopes has no card (nor brain-issues, brain-git)"
+  },
+  {
+   "q": "cloud-brain-authority",
+   "mode": "words",
+   "want": [
+    "doc:cloud-brain-authority"
+   ],
+   "who": "owner session"
+  },
+  {
+   "q": "cloud-brain-topics",
+   "mode": "words",
+   "want": [
+    "doc:cloud-brain-topics"
+   ],
+   "who": "owner session"
+  },
+  {
+   "q": "backlog",
+   "mode": "words",
+   "want": [
+    "doc:cloud-brain-backlog"
+   ],
+   "who": "owner session",
+   "why": "the word is in the file name only; the title is 'bugs and rough edges to fix'"
+  },
+  {
+   "q": "issue tracker attestation",
+   "mode": "words",
+   "want": [
+    "doc:cloud-brain-issues"
+   ],
+   "who": "owner session"
+  },
+  {
+   "q": "licence per service",
+   "mode": "semantic",
+   "want": [
+    "doc:cloud-brain-issues"
+   ],
+   "who": "owner session",
+   "why": "quotes Tom: each service should have a license ... on a per service basis"
+  },
+  {
+   "q": "review before deploy",
+   "mode": "semantic",
+   "want": [
+    "doc:cloud-brain-issues"
+   ],
+   "who": "owner session",
+   "why": "issue.review, the reviewer is not the implementer"
+  },
+  {
+   "q": "hash chain audit log",
+   "mode": "semantic",
+   "want": [
+    "doc:cloud-brain-issues"
+   ],
+   "who": "owner session",
+   "why": "attestation: signed chain, to reverse engineer the chain of events"
+  },
+  {
+   "q": "task subtasks work queue",
+   "mode": "semantic",
+   "want": [
+    "doc:cloud-brain-issues"
+   ],
+   "who": "owner session",
+   "why": "large tasks split into subtasks, issue.split"
+  }
+ ],
+ "builder": [
+  {
+   "q": "run code in a container",
+   "kind": "module",
+   "want": [
+    "module:tomlarkworthy:brain-container"
+   ]
+  },
+  {
+   "q": "drag-and-drop layout",
+   "kind": "module",
+   "want": [
+    "module:tomlarkworthy:lopepage-2"
+   ]
+  },
+  {
+   "q": "export a notebook",
+   "kind": "module",
+   "want": [
+    "module:tomlarkworthy:exporter-3"
+   ]
+  },
+  {
+   "q": "send a message on WhatsApp",
+   "kind": "module",
+   "want": [
+    "module:tomlarkworthy:brain-whatsapp"
+   ]
+  },
+  {
+   "q": "unit tests for cells",
+   "kind": "module",
+   "want": [
+    "module:tomlarkworthy:tests",
+    "module:tomlarkworthy:ui-testing"
+   ]
+  },
+  {
+   "q": "keep a secret for a worker",
+   "kind": "module",
+   "want": [
+    "module:tomlarkworthy:brain-secrets"
+   ]
+  },
+  {
+   "q": "lease a headless browser",
+   "kind": "module",
+   "want": [
+    "module:tomlarkworthy:brain-browser"
+   ]
+  },
+  {
+   "q": "solve a mixed integer linear program",
+   "kind": "module",
+   "want": [
+    "module:tomlarkworthy:mip"
+   ]
+  },
+  {
+   "q": "draw a state machine",
+   "kind": "module",
+   "want": [
+    "module:tomlarkworthy:fsm"
+   ]
+  },
+  {
+   "q": "run Python in the browser",
+   "kind": "module",
+   "want": [
+    "module:tomlarkworthy:pyodide",
+    "module:tomlarkworthy:monty"
+   ]
+  },
+  {
+   "q": "shortest path in a graph",
+   "kind": "module",
+   "want": [
+    "module:tomlarkworthy:dijkstra"
+   ]
+  },
+  {
+   "q": "music sequencer with audio tracks",
+   "kind": "module",
+   "want": [
+    "module:tomlarkworthy:daw"
+   ]
+  },
+  {
+   "q": "how do I push a cell to ObservableHQ",
+   "want": [
+    "doc:pushing-cells-to-observablehq"
+   ]
+  },
+  {
+   "q": "why is my notebook blank after export",
+   "want": [
+    "doc:what-a-saved-notebook-opens"
+   ]
+  },
+  {
+   "q": "how do file attachments work",
+   "want": [
+    "doc:how-file-attachments-work"
+   ]
+  },
+  {
+   "q": "pair Claude with a notebook",
+   "want": [
+    "doc:live-collaboration-with-claude-code-pairing"
+   ]
+  },
+  {
+   "q": "write a unit test in a notebook",
+   "want": [
+    "doc:writing-unit-tests-in-a-notebook"
+   ]
+  },
+  {
+   "q": "deploy a change to the Cloud Brain",
+   "want": [
+    "doc:working-with-cloud-brain-remote-lopecode-cluster"
+   ]
+  }
+ ],
+ "synthetic": [
+  {
+   "q": "make a music production app where every setting is saved in the code",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:daw"
+   ]
+  },
+  {
+   "q": "browser synth drum pattern persisted state",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:daw"
+   ]
+  },
+  {
+   "q": "render notebook cells into a container inside the notebook to build a minimap",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:visualizer"
+   ]
+  },
+  {
+   "q": "custom cell renderer minimap layout",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:visualizer"
+   ]
+  },
+  {
+   "q": "button that copies a text snippet to the clipboard in a notebook",
+   "form": "natural",
+   "want": [
+    "module:mbostock:pbcopy"
+   ]
+  },
+  {
+   "q": "clipboard copy button observable",
+   "form": "keyword",
+   "want": [
+    "module:mbostock:pbcopy"
+   ]
+  },
+  {
+   "q": "let independent components register and discover each other without direct references",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:plugin-registry"
+   ]
+  },
+  {
+   "q": "decoupled plugin registration stream",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:plugin-registry"
+   ]
+  },
+  {
+   "q": "live-updating unit tests that rerun as I fix code in a notebook",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:testing"
+   ]
+  },
+  {
+   "q": "reactive test suite reporting",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:testing"
+   ]
+  },
+  {
+   "q": "add a subscribe-to-feed link icon to my blog notebook",
+   "form": "natural",
+   "want": [
+    "module:chitacan:rss"
+   ]
+  },
+  {
+   "q": "rss feed subscribe icon",
+   "form": "keyword",
+   "want": [
+    "module:chitacan:rss"
+   ]
+  },
+  {
+   "q": "how to save a notebook with all its dependencies as one offline html file",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:exporter"
+   ]
+  },
+  {
+   "q": "serialize notebook single html file://",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:exporter"
+   ]
+  },
+  {
+   "q": "which service holds the cloud API token and approves deploys of workers",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:brain-deployer"
+   ]
+  },
+  {
+   "q": "worker deploy approval probation health check",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:brain-deployer"
+   ]
+  },
+  {
+   "q": "touch-drag game where I wire parts together and scrub values",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:corepox-game"
+   ]
+  },
+  {
+   "q": "drag wire ports shipyard game",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:corepox-game"
+   ]
+  },
+  {
+   "q": "develop and debug serverless functions without painful local tooling",
+   "form": "natural",
+   "want": [
+    "module:endpointservices:webcode"
+   ]
+  },
+  {
+   "q": "serverless functions in-browser debugging deploy",
+   "form": "keyword",
+   "want": [
+    "module:endpointservices:webcode"
+   ]
+  },
+  {
+   "q": "minimal agent loop with tool calls and hooks, no UI",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:robocoop-5-core"
+   ]
+  },
+  {
+   "q": "agent session hooks tool definition openrouter",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:robocoop-5-core"
+   ]
+  },
+  {
+   "q": "single bundled code editor library import that avoids duplicate dependency problems",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:codemirror-6-v2"
+   ]
+  },
+  {
+   "q": "codemirror 6 vendored bundle javascript",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:codemirror-6-v2"
+   ]
+  },
+  {
+   "q": "write the open notebook back to the same file on my disk instead of downloading",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:save-in-place"
+   ]
+  },
+  {
+   "q": "file system access api save indexeddb handle",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:save-in-place"
+   ]
+  },
+  {
+   "q": "see a log of every cell edit and replay changes from git commits",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:local-change-history"
+   ]
+  },
+  {
+   "q": "edit history replay git commits variable",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:local-change-history"
+   ]
+  },
+  {
+   "q": "how do workers read and store secrets with access rules",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:brain-secrets"
+   ]
+  },
+  {
+   "q": "secret put get rule owner",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:brain-secrets"
+   ]
+  },
+  {
+   "q": "keep a bigquery table in sync with an external data source with low latency",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:synchronizing-external-state-into-bigquery-efficiently"
+   ]
+  },
+  {
+   "q": "bigquery sync tables views generator",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:synchronizing-external-state-into-bigquery-efficiently"
+   ]
+  },
+  {
+   "q": "one-click copy of text to the clipboard widget",
+   "form": "natural",
+   "want": [
+    "module:mbostock:copy-to-clipboard"
+   ]
+  },
+  {
+   "q": "copy button clipboard text",
+   "form": "keyword",
+   "want": [
+    "module:mbostock:copy-to-clipboard"
+   ]
+  },
+  {
+   "q": "color input that supports transparency in a notebook",
+   "form": "natural",
+   "want": [
+    "module:shaunlebron:color-picker"
+   ]
+  },
+  {
+   "q": "color picker alpha rgba hsva",
+   "form": "keyword",
+   "want": [
+    "module:shaunlebron:color-picker"
+   ]
+  },
+  {
+   "q": "dataset of trending notebooks posted by a bot on social media",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:twitter-trending-notebook-bot-dataset-2022"
+   ]
+  },
+  {
+   "q": "twitter trending observable notebooks data",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:twitter-trending-notebook-bot-dataset-2022"
+   ]
+  },
+  {
+   "q": "estimate event rate from timestamps in a node script via npm",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:rate-estimation-min"
+   ]
+  },
+  {
+   "q": "rate estimator npm node.js runtime",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:rate-estimation-min"
+   ]
+  },
+  {
+   "q": "run one coding agent session across many git repos at once",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:virtual-monorepo"
+   ]
+  },
+  {
+   "q": "claude code several repositories single tree git",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:virtual-monorepo"
+   ]
+  },
+  {
+   "q": "log in to a shared AWS dashboard from browser without the SDK",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:cw-share-auth"
+   ]
+  },
+  {
+   "q": "cognito srp authentication bigint webcrypto credentials",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:cw-share-auth"
+   ]
+  },
+  {
+   "q": "remember a form control's value across page reloads without manual setItem code",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:local-storage-view"
+   ]
+  },
+  {
+   "q": "persist input localstorage view binding",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:local-storage-view"
+   ]
+  },
+  {
+   "q": "functions to inspect and modify the running Observable runtime from a cell",
+   "form": "natural",
+   "want": [
+    "module:tomlarkworthy:runtime-sdk"
+   ]
+  },
+  {
+   "q": "meta-programming runtime variables onCodeChange modules",
+   "form": "keyword",
+   "want": [
+    "module:tomlarkworthy:runtime-sdk"
+   ]
+  },
+  {
+   "q": "how to write a good brief for the AI design tool",
+   "form": "natural",
+   "want": [
+    "doc:preparing-a-good-claude-design-spec-handover"
+   ]
+  },
+  {
+   "q": "design agent brief handover zip inventory",
+   "form": "keyword",
+   "want": [
+    "doc:preparing-a-good-claude-design-spec-handover"
+   ]
+  },
+  {
+   "q": "what does the shipped mobile game screen look like and how does it pause",
+   "form": "natural",
+   "want": [
+    "doc:corepox-shipped-ui-observed"
+   ]
+  },
+  {
+   "q": "corepox apk screenshots ui states emulator",
+   "form": "keyword",
+   "want": [
+    "doc:corepox-shipped-ui-observed"
+   ]
+  },
+  {
+   "q": "how does the notebook serve embedded files when code calls fetch or loads a script",
+   "form": "natural",
+   "want": [
+    "doc:lopecode-internal-networking"
+   ]
+  },
+  {
+   "q": "intercept fetch xhr importmap embedded scripts",
+   "form": "keyword",
+   "want": [
+    "doc:lopecode-internal-networking"
+   ]
+  },
+  {
+   "q": "why does my compiled module code break for reactive input cells and imports",
+   "form": "natural",
+   "want": [
+    "doc:writing-cells-in-module-source"
+   ]
+  },
+  {
+   "q": "define viewof mutable import expansion variables",
+   "form": "keyword",
+   "want": [
+    "doc:writing-cells-in-module-source"
+   ]
+  },
+  {
+   "q": "how do we measure and improve our in-notebook coding agent against benchmarks",
+   "form": "natural",
+   "want": [
+    "doc:training-robocoop-5"
+   ]
+  },
+  {
+   "q": "agent benchmark harness failure autopsy regression",
+   "form": "keyword",
+   "want": [
+    "doc:training-robocoop-5"
+   ]
+  },
+  {
+   "q": "how to make an editor for drawings where dragging edits the source attributes",
+   "form": "natural",
+   "want": [
+    "doc:svg-editor-architecture"
+   ]
+  },
+  {
+   "q": "svg editor lens write-back gap list",
+   "form": "keyword",
+   "want": [
+    "doc:svg-editor-architecture"
+   ]
+  },
+  {
+   "q": "my formula box works with the default text but breaks on what users type",
+   "form": "natural",
+   "want": [
+    "doc:evaluating-user-typed-expressions"
+   ]
+  },
+  {
+   "q": "user expression eval compile catch errors",
+   "form": "keyword",
+   "want": [
+    "doc:evaluating-user-typed-expressions"
+   ]
+  },
+  {
+   "q": "how to keep costs down using the most expensive model in agent sessions",
+   "form": "natural",
+   "want": [
+    "doc:effective-use-of-fable"
+   ]
+  },
+  {
+   "q": "model pricing subagents routing token cost",
+   "form": "keyword",
+   "want": [
+    "doc:effective-use-of-fable"
+   ]
+  },
+  {
+   "q": "how does the bridge between Claude Code and the notebook page work internally",
+   "form": "natural",
+   "want": [
+    "doc:development-of-pairing-channel-and-claude-plugin"
+   ]
+  },
+  {
+   "q": "mcp stdio websocket channel architecture",
+   "form": "keyword",
+   "want": [
+    "doc:development-of-pairing-channel-and-claude-plugin"
+   ]
+  },
+  {
+   "q": "export many notebooks from Observable at once and check them",
+   "form": "natural",
+   "want": [
+    "doc:bulk-exporting-lopebooks"
+   ]
+  },
+  {
+   "q": "batch export spec jumpgate qc",
+   "form": "keyword",
+   "want": [
+    "doc:bulk-exporting-lopebooks"
+   ]
+  },
+  {
+   "q": "which copy of a module is authoritative and how do I regenerate notebook files",
+   "form": "natural",
+   "want": [
+    "doc:maintaining-and-updating-lopecode-and-lopebook-content-repositories"
+   ]
+  },
+  {
+   "q": "source of truth regenerate html content repo",
+   "form": "keyword",
+   "want": [
+    "doc:maintaining-and-updating-lopecode-and-lopebook-content-repositories"
+   ]
+  },
+  {
+   "q": "my notebook breaks on the new Observable site and I need to find why",
+   "form": "natural",
+   "want": [
+    "doc:diagnosing-new-observable-platform-differences"
+   ]
+  },
+  {
+   "q": "notebook-kit runtime differences debugging probes",
+   "form": "keyword",
+   "want": [
+    "doc:diagnosing-new-observable-platform-differences"
+   ]
+  },
+  {
+   "q": "my game ignores arrow keys or keeps running after I edit the cell",
+   "form": "natural",
+   "want": [
+    "doc:keyboard-input-and-loops-in-cells"
+   ]
+  },
+  {
+   "q": "keydown listener timer cleanup restart cell",
+   "form": "keyword",
+   "want": [
+    "doc:keyboard-input-and-loops-in-cells"
+   ]
+  },
+  {
+   "q": "how do I reach and pair with the running remote worker cluster",
+   "form": "natural",
+   "want": [
+    "doc:working-with-cloud-brain-remote-lopecode-cluster"
+   ]
+  },
+  {
+   "q": "cloudflare workers brain cli deploy pairing",
+   "form": "keyword",
+   "want": [
+    "doc:working-with-cloud-brain-remote-lopecode-cluster"
+   ]
+  },
+  {
+   "q": "agents that learn reusable skills stored as images instead of text",
+   "form": "natural",
+   "want": [
+    "arxiv:2610.12403"
+   ]
+  },
+  {
+   "q": "visual skill library vlm agent",
+   "form": "keyword",
+   "want": [
+    "arxiv:2610.12403"
+   ]
+  },
+  {
+   "q": "generate interactive training worlds for agents using a neural renderer",
+   "form": "natural",
+   "want": [
+    "arxiv:2610.12374"
+   ]
+  },
+  {
+   "q": "simulator game engine neural renderer video model",
+   "form": "keyword",
+   "want": [
+    "arxiv:2610.12374"
+   ]
+  },
+  {
+   "q": "robot navigation using a language model that works in new places without fine-tuning",
+   "form": "natural",
+   "want": [
+    "arxiv:2610.12126"
+   ]
+  },
+  {
+   "q": "mllm navigation agent unseen scene robot",
+   "form": "keyword",
+   "want": [
+    "arxiv:2610.12126"
+   ]
+  },
+  {
+   "q": "textbook covering how language models are pretrained, prompted and aligned",
+   "form": "natural",
+   "want": [
+    "arxiv:2501.09223"
+   ]
+  },
+  {
+   "q": "llm book pre-training alignment inference reasoning",
+   "form": "keyword",
+   "want": [
+    "arxiv:2501.09223"
+   ]
+  },
+  {
+   "q": "predicting robot video that actually follows the commanded actions",
+   "form": "natural",
+   "want": [
+    "arxiv:2610.12468"
+   ]
+  },
+  {
+   "q": "robot world model video prediction counterfactual",
+   "form": "keyword",
+   "want": [
+    "arxiv:2610.12468"
+   ]
+  },
+  {
+   "q": "matching points between images when the edit breaks smooth motion or rigid geometry",
+   "form": "natural",
+   "want": [
+    "arxiv:2610.12421"
+   ]
+  },
+  {
+   "q": "dense correspondence image editing matching",
+   "form": "keyword",
+   "want": [
+    "arxiv:2610.12421"
+   ]
+  },
+  {
+   "q": "a single agent that researches using images and video as inputs",
+   "form": "natural",
+   "want": [
+    "arxiv:2610.12419"
+   ]
+  },
+  {
+   "q": "multimodal deep research visual grounding retrieval",
+   "form": "keyword",
+   "want": [
+    "arxiv:2610.12419"
+   ]
+  },
+  {
+   "q": "run speech to function call locally on CPU without transcribing first",
+   "form": "natural",
+   "want": [
+    "reddit:t3_1x0o8zr"
+   ]
+  },
+  {
+   "q": "audio tool call wasm cpu open source",
+   "form": "keyword",
+   "want": [
+    "reddit:t3_1x0o8zr"
+   ]
+  },
+  {
+   "q": "which fast decision model plays a real-time game best and how quickly",
+   "form": "natural",
+   "want": [
+    "reddit:t3_1x0sm1b"
+   ]
+  },
+  {
+   "q": "pac-man benchmark decision models latency leaderboard",
+   "form": "keyword",
+   "want": [
+    "reddit:t3_1x0sm1b"
+   ]
+  },
+  {
+   "q": "what does the new cheap fast Anthropic model cost and what changed in tokenizer",
+   "form": "natural",
+   "want": [
+    "simon-willison:https---simonwillison.net-2026-oct-7-claude-haiku-5-5-"
+   ]
+  },
+  {
+   "q": "haiku pricing tokenizer input output cost",
+   "form": "keyword",
+   "want": [
+    "simon-willison:https---simonwillison.net-2026-oct-7-claude-haiku-5-5-"
+   ]
+  }
+ ]
+}

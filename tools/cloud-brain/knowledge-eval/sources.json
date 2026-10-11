@@ -1,0 +1,439 @@
+{
+ "sources": [
+  {
+   "id": "web:cormack-2009-rrf",
+   "kind": "paper",
+   "title": "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods",
+   "authors": "G. V. Cormack, C. L. A. Clarke, Stefan Büttcher",
+   "year": 2009,
+   "venue": "SIGIR '09 (2-page poster paper)",
+   "url": "https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf",
+   "abstract": "Reciprocal Rank Fusion (RRF), a simple method for combining the document rankings from multiple IR systems, consistently yields better results than any individual system, and better results than the standard method Condorcet Fuse. This result is demonstrated by using RRF to combine the results of several TREC experiments, and to build a meta-learner that ranks the LETOR 3 dataset better than any previously reported method.",
+   "bearing": "Formula (Section 1): RRFscore(d) = sum over rankings r of 1/(k + r(d)), where 'k = 60 was fixed during a pilot investigation and not altered during subsequent validation'; the constant 'mitigates the impact of high rankings by outlier systems'. Table 1 (30 Wumpus configurations, TREC topics 351-400) gives MAP .2072 at k=0, .2145 at k=60, .2147 at k=80, .2098 at k=500, against best individual .2016, Condorcet .2074, CombMNZ .2039; the text says k=60 'was near-optimal, but that the choice was not critical'. Table 2: RRF beats Condorcet on all four TREC collections but loses to CombMNZ on TREC 3 (.4350 vs .4381); Table 3 (LETOR 3): CombMNZ 0.6107 vs RRF 0.6051 (p about .2). The experiments fuse 30 runs or many TREC submissions, not two rankers; nothing in the paper tests a lexical+dense pair or a 500-document corpus. RRF uses ranks only, so it needs no score normalisation ('combines ranks without regard to the arbitrary scores returned by particular ranking methods', Section 2).",
+   "fetched": [
+    "https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf (302 to http://cormack.uwaterloo.ca/cormack/cormacksigir09-rrf.pdf; PDF downloaded with curl -L and read in full, 2 pages)"
+   ],
+   "could_not_verify": "ACM DOI page not fetched; the PDF is the author-hosted copy."
+  },
+  {
+   "id": "arxiv:1901.04085",
+   "kind": "paper",
+   "title": "Passage Re-ranking with BERT",
+   "authors": "Rodrigo Nogueira, Kyunghyun Cho",
+   "year": 2019,
+   "venue": "arXiv preprint",
+   "url": "https://arxiv.org/abs/1901.04085",
+   "abstract": "Recently, neural models pretrained on a language modeling task, such as ELMo (Peters et al., 2017), OpenAI GPT (Radford et al., 2018), and BERT (Devlin et al., 2018), have achieved impressive results on various natural language processing tasks such as question-answering and natural language inference. In this paper, we describe a simple re-implementation of BERT for query-based passage re-ranking. Our system is the state of the art on the TREC-CAR dataset and the top entry in the leaderboard of the MS MARCO passage retrieval task, outperforming the previous state of the art by 27% (relative) in MRR@10. The code to reproduce our results is available at https://github.com/nyu-dl/dl4marco-bert",
+   "bearing": "Section 2 describes the pipeline this decision is about: a first stage retrieves candidates (BM25, 'for example, a thousand'), a second stage re-scores each query-passage pair independently with a cross-encoder, and the top ten or fifty go on. Input format (Section 2): query as sentence A truncated to 64 tokens, passage as sentence B, total at most 512 tokens; the [CLS] vector feeds a single-layer classifier that outputs a relevance probability, and passages are ranked by it. Table 1: MS MARCO dev MRR@10 16.7 for BM25 (Lucene, no tuning) vs 34.7 for BERT Base and 36.5 for BERT Large reranking the BM25 top 1000. These are in-domain numbers (the reranker was fine-tuned on MS MARCO), so they bound what a zero-shot reranker on a 527-entry technical corpus can be expected to do.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 1901.04085: title, authors, abstract)",
+    "https://arxiv.org/html/1901.04085"
+   ],
+   "could_not_verify": ""
+  },
+  {
+   "id": "arxiv:1910.14424",
+   "kind": "paper",
+   "title": "Multi-Stage Document Ranking with BERT",
+   "authors": "Rodrigo Nogueira, Wei Yang, Kyunghyun Cho, Jimmy Lin",
+   "year": 2019,
+   "venue": "arXiv preprint",
+   "url": "https://arxiv.org/abs/1910.14424",
+   "abstract": "The advent of deep neural networks pre-trained via language modeling tasks has spurred a number of successful applications in natural language processing. This work explores one such popular model, BERT, in the context of document ranking. We propose two variants, called monoBERT and duoBERT, that formulate the ranking problem as pointwise and pairwise classification, respectively. These two models are arranged in a multi-stage ranking architecture to form an end-to-end search system. One major advantage of this design is the ability to trade off quality against latency by controlling the admission of candidates into each pipeline stage, and by doing so, we are able to find operating points that offer a good balance between these two competing metrics. On two large-scale datasets, MS MARCO and TREC CAR, experiments show that our model produces results that are either at or comparable to the state of the art. Ablation studies show the contributions of each component and characterize the latency/quality tradeoff space.",
+   "bearing": "Names the multi-stage architecture (BM25 H0 -> pointwise monoBERT H1 -> pairwise duoBERT H2) and treats candidate depth as the cost knob. Base configuration (experimental setup) is k0=1000 into monoBERT and k1=50 into duoBERT. Section 5.1: 'latency increases linearly as we consider more candidates', 'we see diminishing returns with larger k0 values', and 'compared to k0=1000, on both datasets we can achieve more than half the gain in effectiveness with only around a fifth of the number of inferences'. The results section reports a gain of 17.5 MRR@10 points from applying monoBERT to the Anserini BM25 top 1000 on MS MARCO, and only 0.5 more from the pairwise stage. Bearing: a single pointwise cross-encoder stage carries almost all the gain, and a shallow pool recovers most of it.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 1910.14424: title, authors, abstract)",
+    "https://arxiv.org/html/1910.14424"
+   ],
+   "could_not_verify": "The exact effectiveness values at k0=50/100/200 are in Figure 2 (an image), not read."
+  },
+  {
+   "id": "arxiv:2010.06467",
+   "kind": "paper",
+   "title": "Pretrained Transformers for Text Ranking: BERT and Beyond",
+   "authors": "Jimmy Lin, Rodrigo Nogueira, Andrew Yates",
+   "year": 2020,
+   "venue": "Synthesis Lectures on Human Language Technologies, Morgan & Claypool (per the arXiv comment field)",
+   "url": "https://arxiv.org/abs/2010.06467",
+   "abstract": "The goal of text ranking is to generate an ordered list of texts retrieved from a corpus in response to a query. Although the most common formulation of text ranking is search, instances of the task can also be found in many natural language processing applications. This survey provides an overview of text ranking with neural network architectures known as transformers, of which BERT is the best-known example. The combination of transformers and self-supervised pretraining has been responsible for a paradigm shift in natural language processing (NLP), information retrieval (IR), and beyond. In this survey, we provide a synthesis of existing work as a single point of entry for practitioners who wish to gain a better understanding of how to apply transformers to text ranking problems and researchers who wish to pursue work in this area. We cover a wide range of modern techniques, grouped into two high-level categories: transformer models that perform reranking in multi-stage architectures and dense retrieval techniques that perform ranking directly. There are two themes that pervade our survey: techniques for handling long documents, beyond typical sentence-by-sentence processing in NLP, and techniques for addressing the tradeoff between effectiveness (i.e., result quality) and efficiency (e.g., query latency, model and index size). Although transformer architectures and pretraining techniques are recent innovations, many aspects of how they are applied to text ranking are relatively well understood and represent mature techniques. However, there remain many open research questions, and thus in addition to laying out the foundations of pretrained transformers for text ranking, this survey also attempts to prognosticate where the field is heading.",
+   "bearing": "Used only at abstract level. The abstract groups the field into 'transformer models that perform reranking in multi-stage architectures and dense retrieval techniques that perform ranking directly' and names the effectiveness/efficiency trade-off (result quality vs query latency, model and index size) as a pervading theme. It states that many aspects of applying transformers to ranking 'are relatively well understood and represent mature techniques'. It is the reference to cite for retrieve-then-rerank being the standard design rather than a novelty.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 2010.06467: title, authors, abstract)",
+    "https://arxiv.org/html/2010.06467"
+   ],
+   "could_not_verify": "The body (about 885 KB of HTML text) was downloaded but not read section by section; no section-level claim is taken from it."
+  },
+  {
+   "id": "arxiv:2104.08663",
+   "kind": "paper",
+   "title": "BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models",
+   "authors": "Nandan Thakur, Nils Reimers, Andreas Rücklé, Abhishek Srivastava, Iryna Gurevych",
+   "year": 2021,
+   "venue": "NeurIPS 2021 Datasets and Benchmarks Track (per the arXiv comment field)",
+   "url": "https://arxiv.org/abs/2104.08663",
+   "abstract": "Existing neural information retrieval (IR) models have often been studied in homogeneous and narrow settings, which has considerably limited insights into their out-of-distribution (OOD) generalization capabilities. To address this, and to facilitate researchers to broadly evaluate the effectiveness of their models, we introduce Benchmarking-IR (BEIR), a robust and heterogeneous evaluation benchmark for information retrieval. We leverage a careful selection of 18 publicly available datasets from diverse text retrieval tasks and domains and evaluate 10 state-of-the-art retrieval systems including lexical, sparse, dense, late-interaction and re-ranking architectures on the BEIR benchmark. Our results show BM25 is a robust baseline and re-ranking and late-interaction-based models on average achieve the best zero-shot performances, however, at high computational costs. In contrast, dense and sparse-retrieval models are computationally more efficient but often underperform other approaches, highlighting the considerable room for improvement in their generalization capabilities. We hope this framework allows us to better evaluate and understand existing retrieval systems, and contributes to accelerating progress towards better robust and generalizable systems in the future. BEIR is publicly available at https://github.com/UKPLab/beir.",
+   "bearing": "Zero-shot evaluation of ten retrieval systems on 18 datasets, metric nDCG@10 (Table 2). Numbered findings in the results discussion following Table 2: (1) BM25 'heavily underperforms neural approaches by 7-18 points on in-domain MS MARCO' yet is 'a strong baseline for generalization'; (3) dense retrievers (ANCE, TAS-B) 'on many other datasets perform significantly worse than BM25', worst under large domain shift; (4) 'The cross-attentional re-ranking model (BM25+CE) performs the best and is able to outperform BM25 on almost all (16/18) datasets', failing only on ArguAna and Touche-2020. The BM25+CE system 'reranks the top-100 retrieved hits' with a 6-layer MiniLM cross-encoder trained on MS MARCO (model descriptions). Cost: reranking the BM25 top 100 has 'high latency (> 350 ms)' while dense retrievers are '20-30x faster (< 20ms)' (efficiency section). TAS-B is reported to prefer short documents (median 10 words retrieved on TREC-COVID vs 160 for ANCE), which is relevant to short module cards crowding out long docs, though that is a property of TAS-B's loss, not shown for BGE.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 2104.08663: title, authors, abstract)",
+    "https://arxiv.org/html/2104.08663"
+   ],
+   "could_not_verify": "Per-dataset nDCG@10 values in Table 2 were not transcribed. No BEIR result covers bge-base-en-v1.5 or bge-reranker-base (both postdate the paper)."
+  },
+  {
+   "id": "arxiv:2210.11934",
+   "kind": "paper",
+   "title": "An Analysis of Fusion Functions for Hybrid Retrieval",
+   "authors": "Sebastian Bruch, Siyu Gai, Amir Ingber",
+   "year": 2022,
+   "venue": "arXiv preprint (v2, 2023)",
+   "url": "https://arxiv.org/abs/2210.11934",
+   "abstract": "We study hybrid search in text retrieval where lexical and semantic search are fused together with the intuition that the two are complementary in how they model relevance. In particular, we examine fusion by a convex combination (CC) of lexical and semantic scores, as well as the Reciprocal Rank Fusion (RRF) method, and identify their advantages and potential pitfalls. Contrary to existing studies, we find RRF to be sensitive to its parameters; that the learning of a CC fusion is generally agnostic to the choice of score normalization; that CC outperforms RRF in in-domain and out-of-domain settings; and finally, that CC is sample efficient, requiring only a small set of training examples to tune its only parameter to a target domain.",
+   "bearing": "Compares convex combination (CC) of normalised lexical and semantic scores, f = alpha*f_Sem + (1-alpha)*f_Lex, with RRF. Abstract and Section 1: 'we find RRF to be sensitive to its parameters; that the learning of a CC fusion is generally agnostic to the choice of score normalization; that CC outperforms RRF in in-domain and out-of-domain settings; and ... CC is sample efficient'. Table 2 compares RRF with eta=60 against their TM2C2 normalisation with alpha=0.8, tuned on in-domain validation sets and then held fixed. Section 6 and Figure 12: 'with less than 5% of the training data, which is often a small set of queries, TM2C2's alpha converges, regardless of the magnitude of domain shift'. Section 1 (RQ3), developed in Section 5, argues RRF 'disregards the distribution of scores and, as such, discards useful information'; Section 6 (Figure 11) shows a CC of unnormalised scores degrades in-domain ranking, so normalisation is required but its exact form matters little. This conflicts with Cormack et al.'s 'the choice [of k] was not critical'; the two papers measure different things (30-run fusion on TREC MAP vs a lexical+dense pair on NDCG@1000).",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 2210.11934: title, authors, abstract)",
+    "https://arxiv.org/html/2210.11934"
+   ],
+   "could_not_verify": "The numeric cells of Table 2 and the sensitivity plots (figures) were not read; only the text and captions. Evaluation is Recall/NDCG at cutoff 1000 (100 for SciFact, NFCorpus), not top-5 or top-10 precision."
+  },
+  {
+   "id": "arxiv:2201.10582",
+   "kind": "paper",
+   "title": "Out-of-Domain Semantics to the Rescue! Zero-Shot Hybrid Retrieval Models",
+   "authors": "Tao Chen, Mingyang Zhang, Jing Lu, Michael Bendersky, Marc Najork",
+   "year": 2022,
+   "venue": "ECIR 2022 (per the arXiv comment field)",
+   "url": "https://arxiv.org/abs/2201.10582",
+   "abstract": "The pre-trained language model (eg, BERT) based deep retrieval models achieved superior performance over lexical retrieval models (eg, BM25) in many passage retrieval tasks. However, limited work has been done to generalize a deep retrieval model to other tasks and domains. In this work, we carefully select five datasets, including two in-domain datasets and three out-of-domain datasets with different levels of domain shift, and study the generalization of a deep model in a zero-shot setting. Our findings show that the performance of a deep retrieval model is significantly deteriorated when the target domain is very different from the source domain that the model was trained on. On the contrary, lexical models are more robust across domains. We thus propose a simple yet effective framework to integrate lexical and deep retrieval models. Our experiments demonstrate that these two models are complementary, even when the deep model is weaker in the out-of-domain setting. The hybrid model obtains an average of 20.4% relative gain over the deep retrieval model, and an average of 9.54% over the lexical model in three out-of-domain datasets.",
+   "bearing": "The paper Bruch et al. argue against: it fuses a lexical and a dense retriever with RRF, described in Section 1 as a 'non-parametric fusion framework [that] can be easily applied to any new datasets or domains, without any fine-tuning'. Abstract: the hybrid 'obtains an average of 20.4% relative gain over the deep retrieval model, and an average of 9.54% over the lexical model in three out-of-domain datasets'; Section 1 calls the 20.4% a 'relative recall gain'. It states that lexical and deep models 'are complementary, even when the deep model is weaker in the out-of-domain setting'. Bearing: zero-shot RRF of BM25 and dense, with no tuning data, is the evidence-backed default when no labelled queries exist.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 2201.10582: title, authors, abstract)",
+    "https://arxiv.org/html/2201.10582"
+   ],
+   "could_not_verify": "Which recall cutoff the 20.4% refers to, and the three dataset names, were not read from the results tables."
+  },
+  {
+   "id": "arxiv:2309.07597",
+   "kind": "paper",
+   "title": "C-Pack: Packed Resources For General Chinese Embeddings",
+   "authors": "Shitao Xiao, Zheng Liu, Peitian Zhang, Niklas Muennighoff, Defu Lian, Jian-Yun Nie",
+   "year": 2023,
+   "venue": "SIGIR 2024 (per the arXiv comment field)",
+   "url": "https://arxiv.org/abs/2309.07597",
+   "abstract": "We introduce C-Pack, a package of resources that significantly advance the field of general Chinese embeddings. C-Pack includes three critical resources. 1) C-MTEB is a comprehensive benchmark for Chinese text embeddings covering 6 tasks and 35 datasets. 2) C-MTP is a massive text embedding dataset curated from labeled and unlabeled Chinese corpora for training embedding models. 3) C-TEM is a family of embedding models covering multiple sizes. Our models outperform all prior Chinese text embeddings on C-MTEB by up to +10% upon the time of the release. We also integrate and optimize the entire suite of training methods for C-TEM. Along with our resources on general Chinese embedding, we release our data and models for English text embeddings. The English models achieve state-of-the-art performance on MTEB benchmark; meanwhile, our released English data is 2 times larger than the Chinese data. All these resources are made publicly available at https://github.com/FlagOpen/FlagEmbedding.",
+   "bearing": "This is the paper behind the BGE embedding family; its actual arXiv title is 'C-Pack: Packed Resources For General Chinese Embeddings'. Training recipe (training section of the paper): contrastive pre-training on in-batch negatives with batch size up to 19,200, then task-specific fine-tuning in which 'a task specific instruction ... is attached to the query side' and one mined hard negative is added per pair. The English models are said to follow 'the same recipe as the Chinese models' and results are in Table 5 (MTEB). The fetched full text contains zero occurrences of 'reranker' or 'cross-encoder': the paper does not describe or evaluate bge-reranker-base, so it is not a source for the reranker.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 2309.07597: title, authors, abstract)",
+    "https://arxiv.org/html/2309.07597"
+   ],
+   "could_not_verify": "Whether v1.5 (the 'more reasonable similarity distribution' release) is covered by the paper; the v1.5 change is documented only on the Hugging Face card. Table 5 values were not transcribed."
+  },
+  {
+   "id": "arxiv:2402.03216",
+   "kind": "paper",
+   "title": "M3-Embedding: Multi-Linguality, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge Distillation",
+   "authors": "Jianlv Chen, Shitao Xiao, Peitian Zhang, Kun Luo, Defu Lian, Zheng Liu",
+   "year": 2024,
+   "venue": "arXiv preprint",
+   "url": "https://arxiv.org/abs/2402.03216",
+   "abstract": "In this paper, we introduce a new embedding model called M3-Embedding, which is distinguished for its versatility in \\textit{Multi-Linguality}, \\textit{Multi-Functionality}, and \\textit{Multi-Granularity}. It provides a uniform support for the semantic retrieval of more than 100 working languages. It can simultaneously accomplish the three common retrieval functionalities: dense retrieval, multi-vector retrieval, and sparse retrieval. Besides, it is also capable of processing inputs of different granularities, spanning from short sentences to long documents of up to 8,192 tokens. The effective training of M3-Embedding presents a series of technical contributions. Notably, we propose a novel self-knowledge distillation approach, where the relevance scores from different retrieval functionalities can be integrated as the teacher signal to enhance the training quality. We also optimize the batching strategy, which enables a large batch size and high training throughput to improve the discriminativeness of embeddings. M3-Embedding exhibits a superior performance in our experiment, leading to new state-of-the-art results on multilingual, cross-lingual, and long-document retrieval benchmarks.",
+   "bearing": "One encoder producing dense, sparse (learned lexical weights per token) and multi-vector scores, fused as s_rank = w1*s_dense + w2*s_lex + w3*s_mul (Section 3.2, Eq. 1), where the weights 'depend on the downstream scenario'. In the MIRACL experiment setup Dense+Sparse uses w1=1, w2=0.3, w3=0 over the union of the two top-1000 lists. Result text for Table 1: the sparse mode 'outperforms the typical BM25 methods in all languages', and 'the collaboration of dense and sparse method (Dense+Sparse) leads to a further improvement over each individual method, and the collaboration of all three methods (All) brings forth the best performance'. Bearing: fixed-weight score fusion of a lexical and a dense signal from the same model improves over dense alone; but the Workers AI @cf/baai/bge-m3 endpoint page documents only `text` / `query`+`contexts` inputs and no sparse-weight output, so the sparse mode is not obviously available there.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 2402.03216: title, authors, abstract)",
+    "https://arxiv.org/html/2402.03216",
+    "https://developers.cloudflare.com/workers-ai/models/bge-m3/index.md"
+   ],
+   "could_not_verify": "Numeric nDCG@10 cells of Table 1. Whether Workers AI bge-m3 can return lexical weights: the sync-output schema URL returned only the async stub."
+  },
+  {
+   "id": "web:hf-bge-reranker-base",
+   "kind": "article",
+   "title": "BAAI/bge-reranker-base (Hugging Face model card, with config.json and tokenizer_config.json)",
+   "authors": "BAAI (FlagEmbedding project)",
+   "year": 2023,
+   "venue": "Hugging Face model card",
+   "url": "https://huggingface.co/BAAI/bge-reranker-base",
+   "abstract": "[Model list footnote 2] Different from embedding model, reranker uses question and document as input and directly output similarity instead of embedding. To balance the accuracy and time cost, cross-encoder is widely used to re-rank top-k documents retrieved by other simple models. For examples, use bge embedding model to retrieve top 100 relevant documents, and then use bge reranker to re-rank the top 100 document to get the final top-3 results.\n\n[Usage for Reranker] Different from embedding model, reranker uses question and document as input and directly output similarity instead of embedding. You can get a relevance score by inputting query and passage to the reranker. The reranker is optimized based cross-entropy loss, so the relevance score is not bounded to a specific range.\n\n[BGE Reranker] Cross-encoder will perform full-attention over the input pair, which is more accurate than embedding model (i.e., bi-encoder) but more time-consuming than embedding model. Therefore, it can be used to re-rank the top-k documents returned by embedding model. We train the cross-encoder on a multilingual pair data,\n\n[News, 09/12/2023] New reranker model: release cross-encoder models `BAAI/bge-reranker-base` and `BAAI/bge-reranker-large`, which are more powerful than embedding model. We recommend to use/fine-tune them to re-rank top-k documents returned by embedding models. update embedding model: release `bge-*-v1.5` embedding model to alleviate the issue of the similarity distribution, and enhance its retrieval ability without instruction.\n\n[FAQ 2. The similarity score between two dissimilar sentences is higher than 0.5] Suggest to use bge v1.5, which alleviates the issue of the similarity distribution. Since we finetune the models by contrastive learning with a temperature of 0.01, the similarity distribution of the current BGE model is about in the interval [0.6, 1]. So a similarity score greater than 0.5 does not indicate that the two sentences are similar. For downstream tasks, such as passage retrieval or semantic similarity, what matters is the relative order of the scores, not the absolute value. If you need to filter similar sentences based on a similarity threshold, please select an appropriate similarity threshold based on the similarity distribution on your data (such as 0.8, 0.85, or even 0.9).\n\n[FAQ 3] For the `bge-*-v1.5`, we improve its retrieval ability when not using instruction. No instruction only has a slight degradation in retrieval performance compared with using instruction. ... In all cases, the documents/passages do not need to add the instruction.",
+   "bearing": "Input is a (query, passage) pair, no instruction prefix; output is a raw logit ('not bounded to a specific range'), and the Cloudflare model page adds that it 'can be mapped to a float value in [0,1] by sigmoid function'. Length: the example code tokenises with max_length=512, tokenizer_config.json has model_max_length 512, config.json has max_position_embeddings 514 on an xlm-roberta-base backbone, so query+passage share 512 tokens and anything beyond is truncated. Recommended use is stated twice: rerank the top-k of an embedding model, with the example 'retrieve top 100 ... re-rank ... to get the final top-3'. The card also explains the compressed cosine scores observed in this corpus: BGE embeddings are trained at temperature 0.01 and their similarities sit 'about in the interval [0.6, 1]', 'what matters is the relative order of the scores, not the absolute value' (v1.5 is said to alleviate, not remove, this). The card lists the reranker as 'Chinese and English'; its reported reranking numbers are on Chinese/cross-lingual sets (T2Reranking, MMarcoReranking, CMedQA), avg 65.42.",
+   "fetched": [
+    "https://huggingface.co/BAAI/bge-reranker-base/raw/main/README.md",
+    "https://huggingface.co/BAAI/bge-reranker-base/raw/main/config.json",
+    "https://huggingface.co/BAAI/bge-reranker-base/raw/main/tokenizer_config.json",
+    "https://huggingface.co/BAAI/bge-base-en-v1.5/raw/main/README.md (downloaded, same FAQ text; not separately quoted)"
+   ],
+   "could_not_verify": "No English BEIR/MTEB reranking number for bge-reranker-base is on the card. No published evidence on how it scores identifiers, file names or code-like text."
+  },
+  {
+   "id": "web:cf-workers-ai-bge-reranker-base",
+   "kind": "article",
+   "title": "bge-reranker-base (Cloudflare Workers AI model page, JSON schemas, and Workers AI pricing)",
+   "authors": "Cloudflare",
+   "year": 2026,
+   "venue": "Cloudflare developer documentation",
+   "url": "https://developers.cloudflare.com/workers-ai/models/bge-reranker-base/",
+   "abstract": "`@cf/baai/bge-reranker-base` - Text Classification - BAAI - Cloudflare-hosted. Different from embedding model, reranker uses question and document as input and directly output similarity instead of embedding. You can get a relevance score by inputting query and passage to the reranker. And the score can be mapped to a float value in [0,1] by sigmoid function. Unit Pricing: $0.00311 per M input tokens.\n\nUsage: const response = await env.AI.run('@cf/baai/bge-reranker-base', { query, contexts }); with contexts = [{ text: 'a cyberpunk lizzard' }, { text: 'a cyberpunk cat' }].\n\nInput schema (schema-input.json): {\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\",\"minLength\":1,\"description\":\"A query you wish to perform against the provided contexts.\"},\"top_k\":{\"type\":\"integer\",\"minimum\":1,\"description\":\"Number of returned results starting with the best score.\"},\"contexts\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"minLength\":1,\"description\":\"One of the provided context content\"}}},\"description\":\"List of provided contexts. Note that the index in this array is important, as the response will refer to it.\"}},\"required\":[\"query\",\"contexts\"]}\n\nOutput schema (schema-output.json): {\"type\":\"object\",\"contentType\":\"application/json\",\"properties\":{\"response\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"integer\",\"description\":\"Index of the context in the request\"},\"score\":{\"type\":\"number\",\"description\":\"Score of the context under the index.\"}}}}}}\n\nPricing page rows: @cf/baai/bge-reranker-base | $0.003 per M input tokens | 283 neurons per M input tokens. @cf/baai/bge-base-en-v1.5 | $0.067 per M input tokens | 6058 neurons per M input tokens. @cf/baai/bge-large-en-v1.5 | $0.204 per M input tokens | 18582 neurons. @cf/baai/bge-m3 | $0.012 per M input tokens | 1075 neurons. @cf/qwen/qwen3-embedding-0.6b | $0.012 per M input tokens | 1075 neurons. @cf/meta/llama-3.2-3b-instruct | $0.051 per M input tokens, $0.335 per M output tokens. @cf/meta/llama-3.3-70b-instruct-fp8-fast | $0.293 per M input tokens, $2.253 per M output tokens. Workers AI ... is priced at $0.011 per 1,000 Neurons; free allocation 10,000 Neurons per day.",
+   "bearing": "One call scores a whole candidate list: input {query, contexts:[{text}], top_k?}, output {response:[{id, score}]} where id is the index into contexts. The schema sets no maxItems on contexts and no maxLength on text, and the page lists no context window for this model, so the per-call candidate limit and truncation behaviour are undocumented. Price is $0.00311 per M input tokens on the model page and $0.003 per M (283 neurons) in the pricing table, about 22x cheaper per token than the bge-base-en-v1.5 embedding ($0.067) and about 17x cheaper than llama-3.2-3b input ($0.051). By arithmetic (not a documented figure), 50 candidates of 400 tokens each is 20k tokens, about $0.00006 per search. The score description says sigmoid maps it to [0,1]; whether the endpoint returns the raw logit or the sigmoid value is not stated.",
+   "fetched": [
+    "https://developers.cloudflare.com/workers-ai/models/bge-reranker-base/index.md",
+    "https://developers.cloudflare.com/workers-ai/models/bge-reranker-base/schema-input.json",
+    "https://developers.cloudflare.com/workers-ai/models/bge-reranker-base/schema-output.json",
+    "https://developers.cloudflare.com/workers-ai/platform/pricing/index.md"
+   ],
+   "could_not_verify": "Latency of a rerank call; maximum contexts per call; per-context token limit and whether over-long text errors or truncates; whether `score` is a logit or a probability; whether the response is sorted. All need a measurement on the deployed Worker. @cf/google/embeddinggemma-300m was not found by my grep of the pricing table."
+  },
+  {
+   "id": "web:cf-vectorize-limits",
+   "kind": "article",
+   "title": "Limits - Cloudflare Vectorize docs (and Query vectors best-practices page)",
+   "authors": "Cloudflare",
+   "year": 2026,
+   "venue": "Cloudflare developer documentation (page marked Last updated Aug 5, 2026)",
+   "url": "https://developers.cloudflare.com/vectorize/platform/limits/",
+   "abstract": "| Feature | Current Limit |\n| Maximum dimensions per vector | 1536 dimensions, 32 bits precision |\n| Metadata per vector | 10KiB |\n| Maximum returned results (`topK`) with values or metadata | 50 |\n| Maximum returned results (`topK`) without values and metadata | 100 |\n| Maximum vectors per index | 20,000,000 |\n| Maximum metadata indexes per Vectorize index | 10 |\n| Maximum indexed data per metadata index per vector | 64 bytes |\n\nLimits for V1 indexes (deprecated): Maximum returned results (topK) | 20.\n\nFrom the Query vectors page: // topK defaults to 5; returnValues defaults to false; returnMetadata defaults to \"none\".",
+   "bearing": "A single Vectorize query returns at most 100 ids+scores, or 50 if values or metadata are requested; the default is 5. For a 527-entry corpus this means a dense candidate pool of up to 100 (19% of the corpus) is available in one call if entry text is fetched from the SQLite/D1 side by id rather than from Vectorize metadata. The limits and query pages document no hybrid or rerank recipe for Vectorize itself; the hybrid+rerank recipe Cloudflare documents is in AI Search (see web:cf-ai-search-hybrid-rerank).",
+   "fetched": [
+    "https://developers.cloudflare.com/vectorize/platform/limits/index.md",
+    "https://developers.cloudflare.com/vectorize/best-practices/query-vectors/index.md"
+   ],
+   "could_not_verify": "Whether any other Vectorize page (tutorials, reference architectures) gives a hybrid recipe; only these two pages were read."
+  },
+  {
+   "id": "web:cf-ai-search-hybrid-rerank",
+   "kind": "article",
+   "title": "Cloudflare AI Search docs: Hybrid search, Keyword search, Reranking, Search modes",
+   "authors": "Cloudflare",
+   "year": 2026,
+   "venue": "Cloudflare developer documentation (pages marked Last updated Oct 1, 2026)",
+   "url": "https://developers.cloudflare.com/ai-search/configuration/indexing/hybrid-search/",
+   "abstract": "[Hybrid search] Hybrid search runs vector and keyword search in parallel and merges the results. ... Hybrid search is enabled by default. Fusion method: `rrf` (default) - Reciprocal Rank Fusion. Scores results based on rank position across both search methods. Recommended for most use cases. `max` - Takes the higher of the normalized vector and keyword scores. Use when one search method is consistently more relevant. Reranking: After fusion, you can optionally apply reranking to further reorder results by semantic relevance. Reranking uses a cross-encoder model that evaluates the query and each chunk together, which can improve precision beyond what fusion alone provides. Reranking is disabled by default. Scoring details: vector_score - Vector similarity score (0 to 1). keyword_score - Raw BM25 keyword score. vector_rank, keyword_rank, fusion_method, reranking_score - Score from the reranking model, if enabled.\n\n[Keyword search] Keyword tokenizer: `porter` (default) - Applies Porter stemming. \"running\" matches \"run.\" Best for natural language. `trigram` - Overlapping 3-character windows. \"config\" matches \"configuration.\" Best for code. Keyword match mode: `and` (default) - All query terms must appear. Higher precision, fewer results. `or` - Any query term can match. Higher recall, more results.\n\n[Reranking] When enabled, AI Search will: 1. Retrieve a set of relevant results from your index, constrained by your `max_num_results` and `score_threshold` parameters. 2. Pass those results through a reranking model. 3. Return the reranked results ... Reranking helps improve accuracy, especially for large or noisy datasets where vector similarity alone may not produce the optimal ordering. ... reranking: { enabled: true, model: \"@cf/baai/bge-reranker-base\" } ... Adding reranking will include an additional step to the query request. As a result, there may be an increase in the latency of the request.\n\n[Search modes] Vector search ... can lose specifics. In a query like \"ERR_CONNECTION_REFUSED timeout,\" vector search captures the broad concept of connection failures but might not surface the page that contains that exact error string. Keyword search matches chunks that contain your query terms exactly using BM25 full-text search. ... Hybrid search runs vector and keyword search in parallel and merges the results using a fusion method. Vector search understands intent, keyword search matches specific terms.",
+   "bearing": "Cloudflare's own managed search product ships the pipeline under consideration: BM25 and vector search in parallel, fused with RRF by default ('Recommended for most use cases'), then an optional cross-encoder rerank using @cf/baai/bge-reranker-base. It is a product default, not an evaluation: the pages give no measurements. Two details map onto the observed symptoms: the keyword side offers an `or` match mode ('Any query term can match. Higher recall') next to the default `and`, and a `trigram` tokenizer described as 'Best for code'; SQLite FTS5 has both: its query grammar includes '<query1> OR <query2>' next to implicit AND, and ('Matches if either query1 or query2 match'), and its documentation says 'The trigram tokenizer extends FTS5 to support substring matching in general, instead of the usual token matching' (sqlite.org/fts5.html). The Search modes page describes the identifier failure of vector search in the same terms as the brief. AI Search chunks documents, which the brief rules out, so it is a reference design rather than a drop-in.",
+   "fetched": [
+    "https://developers.cloudflare.com/ai-search/configuration/indexing/hybrid-search/index.md",
+    "https://developers.cloudflare.com/ai-search/configuration/indexing/keyword-search/index.md",
+    "https://developers.cloudflare.com/ai-search/configuration/retrieval/reranking/index.md",
+    "https://developers.cloudflare.com/ai-search/concepts/search-modes/index.md",
+    "https://developers.cloudflare.com/ai-search/llms.txt (index)",
+    "https://www.sqlite.org/fts5.html"
+   ],
+   "could_not_verify": "The RRF constant AI Search uses, the candidate depth it fuses and reranks, and any quality or latency measurement: none is on the pages read."
+  },
+  {
+   "id": "arxiv:2304.09542",
+   "kind": "paper",
+   "title": "Is ChatGPT Good at Search? Investigating Large Language Models as Re-Ranking Agents",
+   "authors": "Weiwei Sun, Lingyong Yan, Xinyu Ma, Shuaiqiang Wang, Pengjie Ren, Zhumin Chen, Dawei Yin, Zhaochun Ren",
+   "year": 2023,
+   "venue": "EMNLP 2023 (per the arXiv comment field)",
+   "url": "https://arxiv.org/abs/2304.09542",
+   "abstract": "Large Language Models (LLMs) have demonstrated remarkable zero-shot generalization across various language-related tasks, including search engines. However, existing work utilizes the generative ability of LLMs for Information Retrieval (IR) rather than direct passage ranking. The discrepancy between the pre-training objectives of LLMs and the ranking objective poses another challenge. In this paper, we first investigate generative LLMs such as ChatGPT and GPT-4 for relevance ranking in IR. Surprisingly, our experiments reveal that properly instructed LLMs can deliver competitive, even superior results to state-of-the-art supervised methods on popular IR benchmarks. Furthermore, to address concerns about data contamination of LLMs, we collect a new test set called NovelEval, based on the latest knowledge and aiming to verify the model's ability to rank unknown knowledge. Finally, to improve efficiency in real-world applications, we delve into the potential for distilling the ranking capabilities of ChatGPT into small specialized models using a permutation distillation scheme. Our evaluation results turn out that a distilled 440M model outperforms a 3B supervised model on the BEIR benchmark. The code to reproduce our results is available at www.github.com/sunnweiwei/RankGPT.",
+   "bearing": "Listwise 'permutation generation' reranking with ChatGPT/GPT-4 over a sliding window (Section 3.2; Figure 3 shows window 4, step 2). Section 1: GPT-4 'outperforms the previous state-of-the-art models by an average nDCG improvement of 2.7, 2.3, and 2.7 on TREC, BEIR, and Mr.TyDi'. Cost, Appendix H Table 11 ('Average token cost, number API request, and $USD per query on TREC'): gpt-3.5-turbo permutation generation 19,960 tokens, 10 requests, $0.040; gpt-4 19,890 tokens, 10 requests, $0.596; gpt-4 reranking only the top 30 is 3,271 tokens, 1 request, $0.098. On BEIR they 'use gpt-4 to re-rank the top-30 passages re-ranked by gpt-3.5-turbo to reduce the cost'. Bearing: the gain over a supervised cross-encoder is a few nDCG points for about 20k tokens and 10 LLM requests per query; a single-window call over 20-30 candidates is the only variant compatible with a 1 s budget, and the paper does not report latency.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 2304.09542: title, authors, abstract)",
+    "https://arxiv.org/html/2304.09542"
+   ],
+   "could_not_verify": "Wall-clock latency (not reported in the text read). Results with small open models of the size hosted on Workers AI."
+  },
+  {
+   "id": "arxiv:2312.02724",
+   "kind": "paper",
+   "title": "RankZephyr: Effective and Robust Zero-Shot Listwise Reranking is a Breeze!",
+   "authors": "Ronak Pradeep, Sahel Sharifymoghaddam, Jimmy Lin",
+   "year": 2023,
+   "venue": "arXiv preprint",
+   "url": "https://arxiv.org/abs/2312.02724",
+   "abstract": "In information retrieval, proprietary large language models (LLMs) such as GPT-4 and open-source counterparts such as LLaMA and Vicuna have played a vital role in reranking. However, the gap between open-source and closed models persists, with reliance on proprietary, non-transparent models constraining reproducibility. Addressing this gap, we introduce RankZephyr, a state-of-the-art, open-source LLM for listwise zero-shot reranking. RankZephyr not only bridges the effectiveness gap with GPT-4 but in some cases surpasses the proprietary model. Our comprehensive evaluations across several datasets (TREC Deep Learning Tracks; NEWS and COVID from BEIR) showcase this ability. RankZephyr benefits from strategic training choices and is resilient against variations in initial document ordering and the number of documents reranked. Additionally, our model outperforms GPT-4 on the NovelEval test set, comprising queries and passages past its training period, which addresses concerns about data contamination. To foster further research in this rapidly evolving field, we provide all code necessary to reproduce our results at https://github.com/castorini/rank_llm.",
+   "bearing": "Abstract plus the introduction and training description: an open 7B listwise reranker distilled from RankGPT that 'bridges the effectiveness gap with GPT-4 but in some cases surpasses the proprietary model' and 'is resilient against variations in initial document ordering and the number of documents reranked'. Training used the top 20 BM25 candidates per query ordered by RankGPT3.5 as teacher. Bearing: effective zero-shot listwise reranking is attributed to a model fine-tuned for the task, not to a general small instruct model; the paper gives no evidence that an untuned llama-class model on Workers AI would match a cross-encoder.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 2312.02724: title, authors, abstract)",
+    "https://arxiv.org/html/2312.02724"
+   ],
+   "could_not_verify": "Latency and cost figures; Section 6.3 (first-stage model and number of candidates) was located but its numbers not read. RankZephyr is not in the Workers AI catalogue as far as the pricing table shows."
+  },
+  {
+   "id": "arxiv:2310.09497",
+   "kind": "paper",
+   "title": "A Setwise Approach for Effective and Highly Efficient Zero-shot Ranking with Large Language Models",
+   "authors": "Shengyao Zhuang, Honglei Zhuang, Bevan Koopman, Guido Zuccon",
+   "year": 2023,
+   "venue": "SIGIR 2024 (per the arXiv comment field)",
+   "url": "https://arxiv.org/abs/2310.09497",
+   "abstract": "We propose a novel zero-shot document ranking approach based on Large Language Models (LLMs): the Setwise prompting approach. Our approach complements existing prompting approaches for LLM-based zero-shot ranking: Pointwise, Pairwise, and Listwise. Through the first-of-its-kind comparative evaluation within a consistent experimental framework and considering factors like model size, token consumption, latency, among others, we show that existing approaches are inherently characterised by trade-offs between effectiveness and efficiency. We find that while Pointwise approaches score high on efficiency, they suffer from poor effectiveness. Conversely, Pairwise approaches demonstrate superior effectiveness but incur high computational overhead. Our Setwise approach, instead, reduces the number of LLM inferences and the amount of prompt token consumption during the ranking procedure, compared to previous methods. This significantly improves the efficiency of LLM-based zero-shot ranking, while also retaining high zero-shot ranking effectiveness. We make our code and results publicly available at \\url{https://github.com/ielab/llm-rankers}.",
+   "bearing": "Compares pointwise, listwise, pairwise and setwise LLM ranking under one harness (Flan-T5 models, single GPU, reranking BM25 top 100 on TREC DL). Table 2, Flan-t5-large, TREC DL 2019: BM25 NDCG@10 .506; pointwise.yes_no .654 with 100 inferences, about 16k prompt tokens, 0.6 s; listwise.generation .561 with 245 inferences, about 119k prompt tokens, 54.2 s; listwise.likelihood .669, 10 s; pairwise.allpair .666 with 9,900 inferences, 109.6 s. Section 1 states 'Pointwise approaches score high on efficiency'; the method sections note they need access to output logits and that 'ranking documents based on Pointwise relevance scores necessitates calibration'. Bearing: within the LLM family only pointwise scoring is near a 1 s budget at depth 100, and that is the same shape of computation as a cross-encoder at far higher token cost.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 2310.09497: title, authors, abstract)",
+    "https://arxiv.org/html/2310.09497"
+   ],
+   "could_not_verify": "Whether Workers AI LLM endpoints expose token logits (required for pointwise yes/no scoring) was not checked. The abstract headline about pointwise having poor effectiveness is relative to pairwise within the paper; the Table 2 row quoted above is the Flan-t5-large row only."
+  },
+  {
+   "id": "arxiv:2109.08535",
+   "kind": "paper",
+   "title": "Simple Entity-Centric Questions Challenge Dense Retrievers",
+   "authors": "Christopher Sciavolino, Zexuan Zhong, Jinhyuk Lee, Danqi Chen",
+   "year": 2021,
+   "venue": "EMNLP 2021 (per the arXiv comment field)",
+   "url": "https://arxiv.org/abs/2109.08535",
+   "abstract": "Open-domain question answering has exploded in popularity recently due to the success of dense retrieval models, which have surpassed sparse models using only a few supervised training examples. However, in this paper, we demonstrate current dense models are not yet the holy grail of retrieval. We first construct EntityQuestions, a set of simple, entity-rich questions based on facts from Wikidata (e.g., \"Where was Arve Furset born?\"), and observe that dense retrievers drastically underperform sparse methods. We investigate this issue and uncover that dense retrievers can only generalize to common entities unless the question pattern is explicitly observed during training. We discuss two simple solutions towards addressing this critical problem. First, we demonstrate that data augmentation is unable to fix the generalization problem. Second, we argue a more robust passage encoder helps facilitate better question adaptation using specialized question encoders. We hope our work can shed light on the challenges in creating a robust, universal dense retriever that works well across different input distributions.",
+   "bearing": "Direct evidence for the identifier/rare-name symptom. Section 1: on EntityQuestions a DPR model 'drastically underperforms the sparse BM25 baseline (49.7% vs 72.0% on average)' in top-20 retrieval accuracy, 'with the gap on some question patterns reaching 60% absolute'; training DPR on four datasets raises it only to 56.7% (footnote to the EntityQuestions results). Abstract: 'dense retrievers can only generalize to common entities unless the question pattern is explicitly observed during training' and 'data augmentation is unable to fix the generalization problem'. The paper's conclusion in Section 1 is that 'dense retrieval models are not yet robust enough to replace sparse methods'. The model tested is DPR (2020), not BGE; the mechanism (rare tokens the encoder has not learned to place) is the same one that would apply to module names and file names.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 2109.08535: title, authors, abstract)",
+    "https://arxiv.org/html/2109.08535"
+   ],
+   "could_not_verify": "No result for bge-base-en-v1.5 on EntityQuestions was found or looked for."
+  },
+  {
+   "id": "arxiv:2508.21038",
+   "kind": "paper",
+   "title": "On the Theoretical Limitations of Embedding-Based Retrieval",
+   "authors": "Orion Weller, Michael Boratko, Iftekhar Naim, Jinhyuk Lee",
+   "year": 2025,
+   "venue": "ICLR 2026 (per the arXiv comment field)",
+   "url": "https://arxiv.org/abs/2508.21038",
+   "abstract": "Vector embeddings have been tasked with an ever-increasing set of retrieval tasks over the years, with a nascent rise in using them for reasoning, instruction-following, coding, and more. These new benchmarks push embeddings to work for any query and any notion of relevance that could be given. While prior works have pointed out theoretical limitations of vector embeddings, there is a common assumption that these difficulties are exclusively due to unrealistic queries, and those that are not can be overcome with better training data and larger models. In this work, we demonstrate that we may encounter these theoretical limitations in realistic settings with extremely simple queries. We connect known results in learning theory, showing that the number of top-k subsets of documents capable of being returned as the result of some query is limited by the dimension of the embedding. We empirically show that this holds true even if we directly optimize on the test set with free parameterized embeddings. Using free embeddings, we then demonstrate that returning all pairs of documents requires a relatively high dimension. We then create a realistic dataset called LIMIT that stress tests embedding models based on these theoretical results, and observe that even state-of-the-art models fail on this dataset despite the simple nature of the task. Our work shows the limits of embedding models under the existing single vector paradigm and calls for future research to develop new techniques that can resolve this fundamental limitation.",
+   "bearing": "The paper exists (arXiv 2508.21038). It ties the number of top-k document combinations a single-vector model can return to embedding dimension, and builds the LIMIT dataset to show it. A 'small' version has only 46 documents and 1000 queries (LIMIT dataset and results text, Figures 3-4): 'in the 46 document version models cannot solve the task even with recall@20', and the best embedding models have 'a recall@2 of less than 60%' while 'BM25 comes close to perfect scores' and a long-context LLM given all 46 documents solves 100% of queries. So a small corpus does not by itself make single-vector retrieval reliable. The paper also shows the limit of the lexical side: replacing corpus terms with synonyms, 'BM25 drops more than 89% whereas Qwen3 embedding drops 38.9%' (text for Figure 6), and it leaves 'hybrid sparse/dense solutions' to future work. Its recommendation in the introduction is to use 'cross-encoders / multi-vector / more expressive similarity functions' alongside embeddings.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 2508.21038: title, authors, abstract)",
+    "https://arxiv.org/html/2508.21038"
+   ],
+   "could_not_verify": "LIMIT is an adversarial synthetic task (arbitrary attribute combinations); the paper does not show that natural agent queries over module cards hit the bound. Scores are read from text describing Figures 3, 4 and 6, not from the figures."
+  },
+  {
+   "id": "arxiv:1909.00512",
+   "kind": "paper",
+   "title": "How Contextual are Contextualized Word Representations? Comparing the Geometry of BERT, ELMo, and GPT-2 Embeddings",
+   "authors": "Kawin Ethayarajh",
+   "year": 2019,
+   "venue": "EMNLP 2019 (per the arXiv comment field)",
+   "url": "https://arxiv.org/abs/1909.00512",
+   "abstract": "Replacing static word embeddings with contextualized word representations has yielded significant improvements on many NLP tasks. However, just how contextual are the contextualized representations produced by models such as ELMo and BERT? Are there infinitely many context-specific representations for each word, or are words essentially assigned one of a finite number of word-sense representations? For one, we find that the contextualized representations of all words are not isotropic in any layer of the contextualizing model. While representations of the same word in different contexts still have a greater cosine similarity than those of two different words, this self-similarity is much lower in upper layers. This suggests that upper layers of contextualizing models produce more context-specific representations, much like how upper layers of LSTMs produce more task-specific representations. In all layers of ELMo, BERT, and GPT-2, on average, less than 5% of the variance in a word's contextualized representations can be explained by a static embedding for that word, providing some justification for the success of contextualized representations.",
+   "bearing": "Background for compressed cosine scores. Section 1: in all layers of ELMo, BERT and GPT-2 'the contextualized word representations of all words are not isotropic ... they are anisotropic, occupying a narrow cone in the vector space', and in GPT-2's last layer 'two random words will on average have almost perfect cosine similarity'. This is about token representations of 2019 models, not about contrastively trained sentence embeddings; it shows why raw cosine values from transformer encoders can sit in a narrow high band and should not be read as absolute relevance. The BGE-specific statement of the same effect is on the model card (web:hf-bge-reranker-base, FAQ 2).",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 1909.00512: title, authors, abstract)",
+    "https://arxiv.org/html/1909.00512"
+   ],
+   "could_not_verify": "No source fetched here measures the cosine score distribution of bge-base-en-v1.5 on a small technical corpus; the 0.03-0.07 spread in the brief is the only such measurement."
+  },
+  {
+   "id": "web:carbonell-1998-mmr",
+   "kind": "paper",
+   "title": "The Use of MMR, Diversity-Based Reranking for Reordering Documents and Producing Summaries",
+   "authors": "Jaime Carbonell, Jade Goldstein",
+   "year": 1998,
+   "venue": "SIGIR '98, Melbourne, pp. 335-336",
+   "url": "https://www.cs.cmu.edu/~jgc/publication/The_Use_MMR_Diversity_Based_LTMIR_1998.pdf",
+   "abstract": "This paper presents a method for combining query-relevance with information-novelty in the context of text retrieval and summarization. The Maximal Marginal Relevance (MMR) criterion strives to reduce redundancy while maintaining query relevance in re-ranking retrieved documents and in selecting appropriate passages for text summarization. Preliminary results indicate some benefits for MMR diversity ranking in document retrieval and in single document summarization. The latter are borne out by the recent results of the SUMMAC conference in the evaluation of summarization systems. However, the clearest advantage is demonstrated in constructing non-redundant multi-document summaries, where MMR results are clearly superior to non-MMR passage selection.",
+   "bearing": "Formula (Section 2): MMR = argmax over D_i in R\\S of [ lambda * Sim1(D_i, Q) - (1 - lambda) * max over D_j in S of Sim2(D_i, D_j) ], selecting greedily; lambda=1 gives the plain relevance ranking and lambda=0 maximal diversity; the paper suggests starting at lambda = .3 and then .7 after reformulating. The retrieval evidence is a pilot with five undergraduate users, of whom '80% chose the method MMR' (Section 3); the quantitative results are for summarisation. Section 1 says pure relevance ranking is appropriate 'where relevant documents are few', which describes a 527-entry corpus. MMR penalises content similarity between results; it is not a per-type quota, and nothing in the paper addresses one document type dominating a mixed index.",
+   "fetched": [
+    "https://www.cs.cmu.edu/~jgc/publication/The_Use_MMR_Diversity_Based_LTMIR_1998.pdf (PDF downloaded with curl and read in full, 2 scanned pages; the abstract above is transcribed from the scan with OCR errors corrected)"
+   ],
+   "could_not_verify": "The formula in the PDF text layer is garbled; it was read from the page image."
+  },
+  {
+   "id": "arxiv:1904.08375",
+   "kind": "paper",
+   "title": "Document Expansion by Query Prediction",
+   "authors": "Rodrigo Nogueira, Wei Yang, Jimmy Lin, Kyunghyun Cho",
+   "year": 2019,
+   "venue": "arXiv preprint",
+   "url": "https://arxiv.org/abs/1904.08375",
+   "abstract": "One technique to improve the retrieval effectiveness of a search engine is to expand documents with terms that are related or representative of the documents' content.From the perspective of a question answering system, this might comprise questions the document can potentially answer. Following this observation, we propose a simple method that predicts which queries will be issued for a given document and then expands it with those predictions with a vanilla sequence-to-sequence model, trained using datasets consisting of pairs of query and relevant documents. By combining our method with a highly-effective re-ranking component, we achieve the state of the art in two retrieval tasks. In a latency-critical regime, retrieval results alone (without re-ranking) approach the effectiveness of more computationally expensive neural re-rankers but are much faster.",
+   "bearing": "Document-side expansion: a sequence-to-sequence model predicts queries a document would answer and they are appended to the document before BM25 indexing (Section 3). Abstract: 'In a latency-critical regime, retrieval results alone (without re-ranking) approach the effectiveness of more computationally expensive neural re-rankers but are much faster.' BEIR (arxiv:2104.08663, Conclusion) independently lists 'the document expansion technique docT5query' among the three approaches that 'performed overall well across the evaluated tasks'. Bearing for 527 short entries: expansion is paid once per entry at index time and adds nothing to query cost, and it attacks the vocabulary gap of the lexical side. The paper's model was trained on MS MARCO query-passage pairs; using a general LLM to write the expansion queries is an extrapolation.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 1904.08375: title, authors, abstract)",
+    "https://arxiv.org/html/1904.08375"
+   ],
+   "could_not_verify": "The MS MARCO MRR@10 values in Table 1 were not transcribed. No evidence in the paper for expanding the text fed to a dense embedder (it expands the BM25 index only)."
+  },
+  {
+   "id": "arxiv:2212.10496",
+   "kind": "paper",
+   "title": "Precise Zero-Shot Dense Retrieval without Relevance Labels",
+   "authors": "Luyu Gao, Xueguang Ma, Jimmy Lin, Jamie Callan",
+   "year": 2022,
+   "venue": "arXiv preprint",
+   "url": "https://arxiv.org/abs/2212.10496",
+   "abstract": "While dense retrieval has been shown effective and efficient across tasks and languages, it remains difficult to create effective fully zero-shot dense retrieval systems when no relevance label is available. In this paper, we recognize the difficulty of zero-shot learning and encoding relevance. Instead, we propose to pivot through Hypothetical Document Embeddings~(HyDE). Given a query, HyDE first zero-shot instructs an instruction-following language model (e.g. InstructGPT) to generate a hypothetical document. The document captures relevance patterns but is unreal and may contain false details. Then, an unsupervised contrastively learned encoder~(e.g. Contriever) encodes the document into an embedding vector. This vector identifies a neighborhood in the corpus embedding space, where similar real documents are retrieved based on vector similarity. This second step ground the generated document to the actual corpus, with the encoder's dense bottleneck filtering out the incorrect details. Our experiments show that HyDE significantly outperforms the state-of-the-art unsupervised dense retriever Contriever and shows strong performance comparable to fine-tuned retrievers, across various tasks (e.g. web search, QA, fact verification) and languages~(e.g. sw, ko, ja).",
+   "bearing": "Query-side expansion: an instruction-following LLM writes a hypothetical answer document, an unsupervised contrastive encoder (Contriever) embeds it, and that vector is used for the nearest-neighbour search (Section 1, Figure 1). Abstract: HyDE 'significantly outperforms the state-of-the-art unsupervised dense retriever Contriever and shows strong performance comparable to fine-tuned retrievers'. The comparison is against an unsupervised encoder with no relevance training; BGE is a supervised, instruction-tuned retriever, i.e. the kind HyDE is described as merely 'comparable to'. It adds one LLM generation per search before retrieval, which conflicts with the 1 s and pay-per-call constraints, and a hallucinated document cannot supply identifiers the query did not contain.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 2212.10496: title, authors, abstract)",
+    "https://arxiv.org/html/2212.10496"
+   ],
+   "could_not_verify": "nDCG@10 table values not transcribed. No result for HyDE on top of BGE."
+  },
+  {
+   "id": "arxiv:2411.11767",
+   "kind": "paper",
+   "title": "Drowning in Documents: Consequences of Scaling Reranker Inference",
+   "authors": "Mathew Jacob, Erik Lindgren, Matei Zaharia, Michael Carbin, Omar Khattab, Andrew Drozdov",
+   "year": 2024,
+   "venue": "ReNeuIR 2025 Workshop at SIGIR 2025 (per the arXiv comment field)",
+   "url": "https://arxiv.org/abs/2411.11767",
+   "abstract": "Rerankers, typically cross-encoders, are computationally intensive but are frequently used because they are widely assumed to outperform cheaper initial IR systems. We challenge this assumption by measuring reranker performance for full retrieval, not just re-scoring first-stage retrieval. To provide a more robust evaluation, we prioritize strong first-stage retrieval using modern dense embeddings and test rerankers on a variety of carefully chosen, challenging tasks, including internally curated datasets to avoid contamination, and out-of-domain ones. Our empirical results reveal a surprising trend: the best existing rerankers provide initial improvements when scoring progressively more documents, but their effectiveness gradually declines and can even degrade quality beyond a certain limit. We hope that our findings will spur future research to improve reranking.",
+   "bearing": "The main source on how deep a pool to rerank. Section 1: 'while rerankers initially help with small values for K, reranking with large K decreases recall precipitously, often dropping beneath the quality of standalone retrievers'; rerankers 'often score completely irrelevant documents ... very highly' (phantom hits). Section 4.1: rerankers improved Recall@10 over retrieval for at least one K in 85.0% (academic) and 88.9% (enterprise) of experiments, but 'In very few cases did using the largest value of K lead to the best average Recall@10', and in 53.3% / 44.4% of experiments scaling K ended worse than retrieval alone (Table 1). Models tested include bge-reranker-v2-m3 and jina-reranker-v2 on top of strong dense first stages (experimental setup); footnote: 'reranking the top-100 or top-1000 documents is typical'. Section 4.3: a gpt-4o-mini listwise reranker (window 20, stride 10) had higher Recall@10 and kept improving with K. Conclusion: 'when ranking the entire corpus, we find that modern embedding models outperform cross-encoders'. Bearing: do not rerank all 527 entries; keep K small and measure it.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 2411.11767: title, authors, abstract)",
+    "https://arxiv.org/html/2411.11767"
+   ],
+   "could_not_verify": "The K at which each reranker peaks is in Figures 2-3 (images), not read; K values in the study go up to above 5000, far beyond this corpus. bge-reranker-base (the Workers AI model) was not among the rerankers tested."
+  },
+  {
+   "id": "arxiv:2109.00062",
+   "kind": "paper",
+   "title": "Shallow pooling for sparse labels",
+   "authors": "Negar Arabzadeh, Alexandra Vtyurina, Xinyi Yan, Charles L. A. Clarke",
+   "year": 2021,
+   "venue": "arXiv preprint",
+   "url": "https://arxiv.org/abs/2109.00062",
+   "abstract": "Recent years have seen enormous gains in core IR tasks, including document and passage ranking. Datasets and leaderboards, and in particular the MS MARCO datasets, illustrate the dramatic improvements achieved by modern neural rankers. When compared with traditional test collections, the MS MARCO datasets employ substantially more queries with substantially fewer known relevant items per query. Given the sparsity of these relevance labels, the MS MARCO leaderboards track improvements with mean reciprocal rank (MRR). In essence, a relevant item is treated as the \"right answer\", with rankers scored on their ability to place this item high in the ranking. In working with these sparse labels, we have observed that the top items returned by a ranker often appear superior to judged relevant items. To test this observation, we employed crowdsourced workers to make preference judgments between the top item returned by a modern neural ranking stack and a judged relevant item. The results support our observation. If we imagine a perfect ranker under MRR, with a score of 1 on all queries, our preference judgments indicate that a searcher would prefer the top result from a modern neural ranking stack more frequently than the top result from the imaginary perfect ranker, making our neural ranker \"better than perfect\". To understand the implications for the leaderboard, we pooled the top document from available runs near the top of the passage ranking leaderboard for over 500 queries. We employed crowdsourced workers to make preference judgments over these pools and re-evaluated the runs. Our results support our concerns that current MS MARCO datasets may no longer be able to recognize genuine improvements in rankers. In future, if rankers are measured against a single \"right answer\", this answer should be the best answer or most preferred answer, and maintained with ongoing judgments.",
+   "bearing": "On evaluating with sparse labels. Abstract: MS MARCO uses thousands of queries with 'often just one' known relevant item ('94% of the nearly seven thousand queries ... have only a single known relevant passage'), evaluated by MRR; with preference judgments, searchers preferred a neural ranker's top result over the single labelled answer often enough that the ranker was 'better than perfect'. The authors conclude 'if rankers are measured against a single answer, this answer should be the best answer or most preferred answer, and maintained with ongoing judgments', done cheaply by 'shallow pooling': when a previously unjudged document surfaces at rank 1, compare it with the current best. Bearing: a small hand-labelled query set for this corpus with one expected entry per query will under-credit a reranker that surfaces a different but better entry; the labels should be revised when the top result changes.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 2109.00062: title, authors, abstract)",
+    "https://arxiv.org/html/2109.00062"
+   ],
+   "could_not_verify": "Nothing here gives a minimum number of queries."
+  },
+  {
+   "id": "web:manning-irbook-ch8",
+   "kind": "article",
+   "title": "Introduction to Information Retrieval, Chapter 8: Evaluation in information retrieval (sections \"Information retrieval system evaluation\" and \"Evaluation of ranked retrieval results\")",
+   "authors": "Christopher D. Manning, Prabhakar Raghavan, Hinrich Schütze",
+   "year": 2008,
+   "venue": "Cambridge University Press (online HTML edition)",
+   "url": "https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html",
+   "abstract": "[Information retrieval system evaluation] The test document collection and suite of information needs have to be of a reasonable size: you need to average performance over fairly large test sets, as results are highly variable over different documents and information needs. As a rule of thumb, 50 information needs has usually been found to be a sufficient minimum. Relevance is assessed relative to an information need, not a query. ... A document is relevant if it addresses the stated information need, not because it just happens to contain all the words in the query.\n\n[Evaluation of ranked retrieval results] The above measures factor in precision at all recall levels. For many prominent applications, particularly web search, this may not be germane to users. What matters is rather how many good results there are on the first page or the first three pages. This leads to measuring precision at fixed low levels of retrieved results, such as 10 or 30 documents. This is referred to as \"Precision at k\", for example \"Precision at 10\". It has the advantage of not requiring any estimate of the size of the set of relevant documents but the disadvantages that it is the least stable of the commonly used evaluation measures and that it does not average well, since the total number of relevant documents for a query has a strong influence on precision at k. ... A final approach that has seen increasing adoption, especially when employed with machine learning approaches to ranking is measures of cumulative gain, and in particular normalized discounted cumulative gain (NDCG). NDCG is designed for situations of non-binary notions of relevance. Like precision at k, it is evaluated over some number k of top search results. ... NDCG(Q, k) = (1/|Q|) sum_j Z_kj sum_{m=1..k} (2^R(j,m) - 1) / log2(1+m), where Z_kj is a normalization factor calculated to make it so that a perfect ranking's NDCG at k for query j is 1.",
+   "bearing": "Textbook definitions and one sizing rule: '50 information needs has usually been found to be a sufficient minimum' for a test collection, because 'results are highly variable over different documents and information needs'. Precision at k is 'the least stable of the commonly used evaluation measures'; NDCG@k handles graded relevance. It also states the distinction that matters for an AND-matching keyword search: a document is relevant 'not because it just happens to contain all the words in the query'. Bearing: an eval set of a few dozen agent queries is below the usual floor, so differences of a few points between pipelines should not be treated as real without a paired per-query comparison.",
+   "fetched": [
+    "https://nlp.stanford.edu/IR-book/html/htmledition/information-retrieval-system-evaluation-1.html",
+    "https://nlp.stanford.edu/IR-book/html/htmledition/evaluation-of-ranked-retrieval-results-1.html"
+   ],
+   "could_not_verify": "The page read does not define MRR in the part extracted (MRR as the MS MARCO measure is taken from arxiv:2109.00062 and arxiv:1901.04085). The NDCG formula is transcribed from LaTeX alt text."
+  },
+  {
+   "id": "arxiv:2506.05176",
+   "kind": "paper",
+   "title": "Qwen3 Embedding: Advancing Text Embedding and Reranking Through Foundation Models",
+   "authors": "Yanzhao Zhang, Mingxin Li, Dingkun Long, Xin Zhang, Huan Lin, Baosong Yang, Pengjun Xie, An Yang, Dayiheng Liu, Junyang Lin, Fei Huang, Jingren Zhou",
+   "year": 2025,
+   "venue": "arXiv preprint",
+   "url": "https://arxiv.org/abs/2506.05176",
+   "abstract": "In this work, we introduce the Qwen3 Embedding series, a significant advancement over its predecessor, the GTE-Qwen series, in text embedding and reranking capabilities, built upon the Qwen3 foundation models. Leveraging the Qwen3 LLMs' robust capabilities in multilingual text understanding and generation, our innovative multi-stage training pipeline combines large-scale unsupervised pre-training with supervised fine-tuning on high-quality datasets. Effective model merging strategies further ensure the robustness and adaptability of the Qwen3 Embedding series. During the training process, the Qwen3 LLMs serve not only as backbone models but also play a crucial role in synthesizing high-quality, rich, and diverse training data across multiple domains and languages, thus enhancing the training pipeline. The Qwen3 Embedding series offers a spectrum of model sizes (0.6B, 4B, 8B) for both embedding and reranking tasks, addressing diverse deployment scenarios where users can optimize for either efficiency or effectiveness. Empirical evaluations demonstrate that the Qwen3 Embedding series achieves state-of-the-art results across diverse benchmarks. Notably, it excels on the multilingual evaluation benchmark MTEB for text embedding, as well as in various retrieval tasks, including code retrieval, cross-lingual retrieval and multilingual retrieval. To facilitate reproducibility and promote community-driven research and development, the Qwen3 Embedding models are publicly available under the Apache 2.0 license.",
+   "bearing": "Abstract only (the body was downloaded but no claim is taken from it). The series 'offers a spectrum of model sizes (0.6B, 4B, 8B) for both embedding and reranking tasks' and the abstract claims it excels on multilingual MTEB and 'in various retrieval tasks, including code retrieval'; no number is given in the abstract. Workers AI hosts @cf/qwen/qwen3-embedding-0.6b at $0.012 per M input tokens against $0.067 for bge-base-en-v1.5 (Workers AI pricing page). LIMIT (arxiv:2508.21038) includes Qwen3 embeddings among the single-vector models that fail its 46-document task, so swapping the embedder is not a substitute for a lexical channel or a reranker. No Qwen3 reranker appears in the Workers AI pricing rows read.",
+   "fetched": [
+    "http://export.arxiv.org/api/query (arXiv API record for 2506.05176: title, authors, abstract)",
+    "https://developers.cloudflare.com/workers-ai/platform/pricing/index.md"
+   ],
+   "could_not_verify": "Any score for the 0.6B model specifically; whether it improves identifier matching. Not read."
+  }
+ ],
+ "threads_without_a_source": [
+  "Quota or interleaving per document type when one type dominates a mixed index (400 module cards vs 54 docs): no primary source found. MMR (web:carbonell-1998-mmr) diversifies by content similarity, not by type, and its retrieval evidence is a five-user pilot. A per-type cap would be an engineering choice, not a cited result.",
+  "Length/shortness bias of BGE embeddings (short module cards outranking long docs): only an adjacent finding was found, BEIR's observation that TAS-B prefers short documents (arxiv:2104.08663, Section 5 finding 6). Nothing fetched measures it for bge-base-en-v1.5.",
+  "Any evaluation of bge-reranker-base in English, on code/identifier-heavy text, or zero-shot out of domain: not on the model card, not in C-Pack (which never mentions the reranker), and Drowning in Documents tests bge-reranker-v2-m3 instead.",
+  "Candidate-pool depth for a corpus of hundreds of entries: sources cover 100-5000 candidates from corpora of thousands to millions (arxiv:1910.14424, arxiv:2104.08663, arxiv:2411.11767). None studies K as a fraction of a 527-entry corpus.",
+  "Statistical power with few labelled queries (Webber, Moffat, Zobel, CIKM 2008; Buckley and Voorhees on measure stability): the arXiv title search returned nothing and no author-hosted copy was fetched. Only the textbook '50 information needs' rule (web:manning-irbook-ch8) is cited.",
+  "Truncation effect of embedding only the first 1500 characters of long docs: no source sought beyond the 512-token limits on the model cards.",
+  "RankLLM (arXiv 2505.19284, SIGIR 2025, a Python package for LLM reranking), RankVicuna (2309.15088), Pairwise Ranking Prompting (2306.17563), 'Is Cosine-Similarity of Embeddings Really About Similarity?' (2403.05440), 'The Curse of Dense Low-Dimensional Information Retrieval for Large Index Sizes' (2012.14210), EmbeddingGemma (2509.20354): located through the arXiv API and existence confirmed, but not included as sources because nothing read in them changes the decision. 2403.05440 analyses regularised matrix-factorisation embeddings, not text encoders; 2012.14210 concerns large indexes, the opposite regime.",
+  "Wang et al., 'BERT-based Dense Retrievers Require Interpolation with BM25 for Effective Passage Retrieval' (ICTIR 2021): not on arXiv under that title; not fetched.",
+  "Workers AI operational facts needed to size the rerank call (latency, max contexts per call, per-context truncation, logit vs sigmoid output): not documented on the pages read."
+ ],
+ "recommendation": "The sources support a three-step pipeline. (1) Two candidate lists per query: FTS5 BM25 with OR matching instead of AND (the default AND is the documented precision-over-recall setting, and relevance is not 'contains all the words': web:cf-ai-search-hybrid-rerank, web:manning-irbook-ch8), and the existing dense top-K; the need for the lexical list on identifier and rare-term queries is supported by arxiv:2109.08535 (BM25 72.0% vs DPR 49.7%), arxiv:2508.21038 (BM25 near-perfect where embeddings fail on 46 documents) and arxiv:2104.08663. (2) Fuse them. With no labelled queries, RRF with k=60 is the zero-shot default (web:cormack-2009-rrf, arxiv:2201.10582, and Cloudflare's own default); once a few dozen labelled queries exist, arxiv:2210.11934 supports replacing it with a convex combination of normalised scores, whose single weight converges on little data. Raw cosine values should not be thresholded or compared across channels (model card: scores sit in about [0.6, 1], only order matters). (3) Rerank a small fused pool with @cf/baai/bge-reranker-base in one call and return the top few: cross-encoder reranking of a first-stage top 100 was the best zero-shot configuration in BEIR (16 of 18 datasets over BM25), the model card recommends exactly this use, and the token price is lower than the embedding call. The pool should be tens of candidates, not the whole corpus: arxiv:1910.14424 shows diminishing returns with depth and arxiv:2411.11767 shows recall falling as K grows; each candidate must fit with the query in 512 tokens, so long docs are scored on a truncated prefix. An LLM listwise reranker is not supported for this budget: about 20k tokens and 10 requests per query on TREC in arxiv:2304.09542, 10-54 s for listwise on a single GPU in arxiv:2310.09497, and the strong open results come from task-distilled models (arxiv:2312.02724). Index-time expansion of entries (arxiv:1904.08375) is the one expansion method whose cost is not per search. NOT supported by evidence read here: that bge-reranker-base works on English technical or identifier-heavy text (its card reports Chinese and cross-lingual sets only, and it is not in C-Pack); any specific K for a 527-entry corpus; any per-type quota or boost to stop module cards crowding out docs; that RRF is better than score fusion for a two-list lexical+dense case (Bruch et al. find the opposite); that HyDE helps on top of a supervised embedder; and the rerank call's latency, context limit and output scale on Workers AI. Each of these has to be settled by measurement on a labelled query set, ideally about 50 queries with labels revised when a new top result appears (web:manning-irbook-ch8, arxiv:2109.00062)."
+}

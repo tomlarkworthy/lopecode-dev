@@ -782,3 +782,12 @@ At 09:06 UTC: 19 Workers `same`, lease held, no browser, no container.
   until that notebook is put or indexed.
 - `setPublic` re-embeds each card it changes ($0.00005): the vector says who reads it.
 - Nothing runs `library-homes.ts` after a push. Not reviewed by a fresh agent after these changes.
+
+## The order of a search changed on 2026-10-11
+
+`knowledge.search?semantic=true` no longer answers the nearest vectors alone. It joins them with the
+search by words (any word, the entry's id searched), and each answer has a `snippet`. The questions
+of this file's tables were asked again with every arm; the figures and the reasons, among them a
+cross-encoder that was measured and not taken, are in `tools/cloud-brain/knowledge-reranking.md`.
+The scores in the tables above are cosines; a `score` answered today is a place in the answer, 0 to 1,
+and the cosine is in `cosine`.
