@@ -1,49 +1,93 @@
 #!/usr/bin/env bun
-// Enters knowledge/*.md and the Cloud Brain designs (plan/cloud-brain-*.md) into a Brain's knowledge base, one entry a doc (kind `doc`, id `doc:<name>`), so that
-// knowledge.search?semantic=true finds the doc for a task. Nothing re-enters a changed doc: `status` says which
-// entries are behind their file and for how long, `put` is the reindex.
-//   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status
+// Enters knowledge/*.md, the Cloud Brain designs (plan/cloud-brain-*.md) and three files of cloud-brain-dev (AGENTS.md,
+// README.md, philosophy.md) into a Brain's knowledge base, one entry a doc (kind `doc`, id `doc:<name>`), so that
+// knowledge.search?semantic=true finds the doc for a task. `status` says which entries are behind their file and for
+// how long, `put` enters them. No step of a landing runs the put yet (plan/cloud-brain-brain-docs-entered-by-hand.md, task 2).
+//   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status [--check]      --check: exit 1 when a doc is stale or missing
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --all | --stale | <name>…
-// The file is not copied: the entry's url is the doc on GitHub (the repo is public) and sha256 is of the local file.
+//   … --owner            call with the owner's session, for the owner's own use; an agent does not
+//   … --limit=SECONDS    the time one call may take (120)
+// The source is origin/main of this repository, read with git: an edit on disk and a commit not pushed are not seen,
+// by status or by put. The three files of cloud-brain-dev are read at the commit origin/main records for the
+// submodule; when its checkout lacks that commit they are left as they are and the last line says so (cloudBrainDev).
+// A call is made with the token loop-docs (knowledge.put, knowledge.list), kept in the main checkout's .emitted/, so
+// the tool runs from a worktree. With no such token it prints the command the owner makes it with and exits 2.
+// The file is not copied: the entry's url is the doc on GitHub's main (the repo is public) and sha256 is of that file.
 // A doc whose frontmatter scope has `in-notebook` is public (it already ships in the markdown-wiki notebook);
-// one that is `local-development` only is the Brain's and private.
-import { readdirSync, readFileSync, statSync, writeFileSync, mkdtempSync } from "node:fs";
+// one that is `local-development` only is the Brain's and private. The three of cloud-brain-dev are private.
+// tests/tools/knowledge-docs.test.ts
+import { writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createHash } from "node:crypto";
 import { join, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 
-const root = join(dirname(new URL(import.meta.url).pathname), "..", "..");
-if (!process.env.BRAIN_BASE) throw new Error("BRAIN_BASE");
+const here = dirname(new URL(import.meta.url).pathname), root = join(here, "..", "..");
+const BASE = process.env.BRAIN_BASE;
+if (!BASE) throw new Error("BRAIN_BASE");
 const [cmd, ...args] = process.argv.slice(2);
-const REPO = "https://github.com/tomlarkworthy/lopecode-dev/blob/main/", TEXT = 16000;
+const flag = (f: string) => args.includes(f);
+const names = args.filter((a) => !a.startsWith("--"));
+const limit = (args.find((a) => /^--limit=\d+$/.test(a)) || "--limit=120").slice(8);
+const REPO = "https://github.com/tomlarkworthy/lopecode-dev/blob/main/", TEXT = 16000, SRC = "origin/main", TOKEN = "loop-docs";
 const sha = (b: string | Uint8Array) => createHash("sha256").update(b).digest("hex");
+const git = (at: string, ...a: string[]) => spawnSync("git", ["-C", at, ...a], { encoding: "buffer", maxBuffer: 1 << 26 });
+const line = (at: string, ...a: string[]) => { const r = git(at, ...a); return r.status === 0 ? r.stdout.toString().trim() : ""; };
+
+// The main checkout's state, also when the copy that runs is a worktree's own (as lock.sh finds it).
+const common = line(here, "rev-parse", "--path-format=absolute", "--git-common-dir");
+const state = process.env.BRAIN_STATE_DIR || (common ? join(dirname(common), "tools/cloud-brain/.emitted") : "");
+const who = flag("--owner") ? ["--owner"] : ["--as", TOKEN];
 
 const tmp = join(mkdtempSync(join(tmpdir(), "kdocs-")), "body.json");
 const call = (path: string, body?: any) => {
   if (body) writeFileSync(tmp, JSON.stringify(body));
-  const r = spawnSync("bun", [join(root, "tools/cloud-brain/brain.ts"), "curl", "/xrpc/com.lopecode.brain." + path, "--owner", "-sS", "-m", "120",
-    ...(body ? ["-X", "POST", "-H", "content-type: application/json", "--data-binary", "@" + tmp] : [])], { encoding: "utf8", env: process.env, maxBuffer: 1 << 26 });
-  // brain.ts curl: the body on stdout, the status last on stderr.
+  const r = spawnSync("bun", [join(root, "tools/cloud-brain/brain.ts"), "curl", "/xrpc/com.lopecode.brain." + path, ...who, "-sS", "-m", limit,
+    ...(body ? ["-X", "POST", "-H", "content-type: application/json", "--data-binary", "@" + tmp] : [])],
+    { encoding: "utf8", env: { ...process.env, ...(state ? { BRAIN_STATE_DIR: state } : {}) }, maxBuffer: 1 << 26 });
+  // brain.ts curl: the body on stdout, the status last on stderr. A name with no token kept is answered on stdout, before any call.
   const st = /\[(\d+)\]\s*$/.exec(r.stderr || ""), text = (r.stdout || "").trim();
+  if (text.startsWith(`no token "${TOKEN}" is kept`)) {
+    console.error(`no token "${TOKEN}" is kept. The owner makes it once: BRAIN_BASE=${BASE} bun tools/cloud-brain/brain.ts token ${TOKEN} knowledge.put knowledge.list`);
+    process.exit(2);
+  }
   if (!st || st[1] !== "200") throw new Error(`${path.split("?")[0]}: ${st ? st[1] + " " + text.slice(0, 200) : (r.stderr || "").slice(0, 200)}`);
   return JSON.parse(text);
 };
 
-// plan/cloud-brain-*.md: the designs and the backlog. They have no frontmatter, so they are entered private.
-const files = [...readdirSync(join(root, "knowledge")).filter((f) => f.endsWith(".md")).sort().map((f) => "knowledge/" + f),
-  ...readdirSync(join(root, "plan")).filter((f) => /^cloud-brain-.*\.md$/.test(f)).sort().map((f) => "plan/" + f)];
-const docs = files.map((rel) => {
-  const f = rel.split("/")[1];
-  const raw = readFileSync(join(root, rel), "utf8"), name = f.slice(0, -3);
-  const fm = /^---\n([\s\S]*?)\n---\n/.exec(raw), head = fm ? fm[1] : "", body = fm ? raw.slice(fm[0].length) : raw;
+const head = line(root, "rev-parse", SRC);
+if (!head) throw new Error(`no ${SRC} in ${root}`);
+type Doc = { name: string; id: string; public: boolean; scoped: boolean; title: string; text: string; sha256: string; url: string; source: string; at: string; rev: string; path: string };
+const doc = (name: string, bytes: Uint8Array, more: { at: string; rev: string; path: string; url: string; source: string; private?: boolean }): Doc => {
+  const raw = Buffer.from(bytes).toString("utf8");
+  const fm = /^---\n([\s\S]*?)\n---\n/.exec(raw), top = fm ? fm[1] : "", body = fm ? raw.slice(fm[0].length) : raw;
   const h1 = /^# +(.+)$/m.exec(body);
-  const topics = (/^topics: *(.+)$/m.exec(head) || [])[1] || "";
+  const topics = (/^topics: *(.+)$/m.exec(top) || [])[1] || "";
   // Topics first: the service embeds the first 1500 characters of title and text.
   const text = [topics && "Topics: " + topics, body.replace(/^# +.+\n/m, "").trim()].filter(Boolean).join("\n\n").slice(0, TEXT);
-  return { name, id: "doc:" + name.toLowerCase(), public: /^scope:.*\bin-notebook\b/m.test(head), scoped: /^scope:/m.test(head),
-    title: (h1 ? h1[1] : name).slice(0, 500), text, sha256: sha(readFileSync(join(root, rel))), rel };
-});
+  return { name, id: "doc:" + name.toLowerCase(), public: !more.private && /^scope:.*\bin-notebook\b/m.test(top), scoped: !!more.private || /^scope:/m.test(top),
+    title: (h1 ? h1[1] : name).slice(0, 500), text, sha256: sha(bytes), url: more.url, source: more.source, at: more.at, rev: more.rev, path: more.path };
+};
+
+// plan/cloud-brain-*.md: the designs and the backlog. They have no frontmatter, so they are entered private.
+const docs: Doc[] = line(root, "ls-tree", "-r", "--name-only", SRC, "knowledge/", "plan/").split("\n")
+  .filter((p) => /^knowledge\/[^/]+\.md$/.test(p) || /^plan\/cloud-brain-[^/]*\.md$/.test(p))
+  .map((p) => doc(p.split("/")[1].slice(0, -3), git(root, "show", `${SRC}:${p}`).stdout, { at: root, rev: SRC, path: p, url: REPO + p, source: "lopecode-dev" }));
+
+// The three files of cloud-brain-dev, at the commit origin/main records: a landing fetches nothing of that repository.
+const DEV = "cloud-brain-dev", DEV_FILES: [string, string][] = [["AGENTS.md", "agents"], ["README.md", "readme"], ["philosophy.md", "philosophy"]];
+const devIds = DEV_FILES.map(([, n]) => `doc:${DEV}-${n}`);
+const pin = (/^160000 commit ([0-9a-f]+)\t/.exec(line(root, "ls-tree", SRC, DEV)) || [])[1];
+let devLeft = "";
+if (!pin) devLeft = `${SRC} records no ${DEV}; its three docs are left as they are`;
+else if (git(join(root, DEV), "cat-file", "-e", pin + "^{commit}").status !== 0) devLeft = `the checkout of ${DEV} lacks commit ${pin.slice(0, 8)}, which ${SRC} records; its three docs are left as they are`;
+else {
+  const url = line(root, "config", "--blob", `${SRC}:.gitmodules`, `submodule.${DEV}.url`);
+  for (const [f, n] of DEV_FILES) {
+    const r = git(join(root, DEV), "show", `${pin}:${f}`);
+    if (r.status === 0) docs.push(doc(`${DEV}-${n}`, r.stdout, { at: join(root, DEV), rev: pin, path: f, url, source: DEV, private: true }));
+  }
+}
 
 const kept = () => {
   const out = new Map<string, any>();
@@ -55,48 +99,49 @@ const kept = () => {
 };
 
 // When the file first differed from what the entry holds: the commit after the last one whose file has the
-// entry's sha256. With no such commit, or an uncommitted change, the file's mtime.
-const staleSince = (d: any, entrySha: string) => {
-  const git = (...a: string[]) => spawnSync("git", ["-C", root, ...a], { encoding: "buffer", maxBuffer: 1 << 26 });
-  const dirty = git("status", "--porcelain", "--", d.rel).stdout.toString().trim();
-  const log = git("log", "--format=%H %ct", "--", d.rel).stdout.toString().trim().split("\n").filter(Boolean).map((l) => l.split(" "));
+// entry's sha256. With no such commit, the last commit of the file.
+const staleSince = (d: Doc, entrySha: string) => {
+  const log = line(d.at, "log", "--format=%H %ct", d.rev, "--", d.path).split("\n").filter(Boolean).map((l) => l.split(" "));
   let first: string[] | null = null;
   for (const [h, t] of log) {
-    if (sha(git("show", `${h}:${d.rel}`).stdout) === entrySha) return first ? { at: Number(first[1]) * 1000, from: "commit " + first[0].slice(0, 8) } : { at: statSync(join(root, d.rel)).mtimeMs, from: "mtime, not committed" };
+    if (first && sha(git(d.at, "show", `${h}:${d.path}`).stdout) === entrySha) return { at: Number(first[1]) * 1000, from: "commit " + first[0].slice(0, 8) };
     first = [h, t];
   }
-  return { at: statSync(join(root, d.rel)).mtimeMs, from: dirty ? "mtime, not committed" : "mtime, no commit has the entry's file" };
+  return log.length ? { at: Number(log[0][1]) * 1000, from: `commit ${log[0][0].slice(0, 8)}, no commit has the entry's file` } : null;
 };
 
 const age = (ms: number) => { const h = (Date.now() - ms) / 36e5; return h < 48 ? h.toFixed(1) + " h" : (h / 24).toFixed(1) + " d"; };
-const state = (have: Map<string, any>) => docs.map((d) => {
+const rowsOf = (have: Map<string, any>) => docs.map((d) => {
   const e = have.get(d.id);
   return { ...d, entry: e, state: !e ? "missing" : e.sha256 === d.sha256 && !!e.public === d.public ? "fresh" : "stale" };
 });
+const read = { source: `${SRC}@${head.slice(0, 8)}`, ...(devLeft ? { cloudBrainDev: devLeft } : {}) };
 
 if (cmd === "status") {
-  const have = kept(), rows = state(have);
+  const have = kept(), rows = rowsOf(have);
   for (const r of rows) {
     const s = r.state === "stale" && r.entry.sha256 !== r.sha256 ? staleSince(r, r.entry.sha256) : null;
     console.log(r.state.padEnd(8), (r.public ? "public " : "private"), r.name, s ? `stale ${age(s.at)} (since ${new Date(s.at).toISOString().slice(0, 16)}Z, ${s.from})` : r.state === "stale" ? "visibility differs" : "");
   }
   const n = (s: string) => rows.filter((r) => r.state === s).length;
-  const gone = [...have.keys()].filter((id) => !docs.some((d) => d.id === id));
-  console.log(JSON.stringify({ docs: rows.length, fresh: n("fresh"), stale: n("stale"), missing: n("missing"), entriesWithNoFile: gone }));
+  // Only an entry this tool entered: kind `doc` is also filled by other methods, whose entries have no file here.
+  const gone = [...have.values()].filter((e) => e.method === "knowledge-docs" && !docs.some((d) => d.id === e.id) && !(devLeft && devIds.includes(e.id))).map((e) => e.id);
+  console.log(JSON.stringify({ docs: rows.length, fresh: n("fresh"), stale: n("stale"), missing: n("missing"), entriesWithNoFile: gone, ...read }));
+  if (flag("--check") && n("stale") + n("missing") > 0) process.exit(1);
 } else if (cmd === "put") {
-  const rows = state(kept());
-  const pick = args.includes("--all") ? rows : args.includes("--stale") ? rows.filter((r) => r.state !== "fresh") : rows.filter((r) => args.includes(r.name));
+  const rows = rowsOf(kept());
+  const pick = flag("--all") ? rows : flag("--stale") ? rows.filter((r) => r.state !== "fresh") : rows.filter((r) => names.includes(r.name));
   const unscoped = pick.filter((r) => !r.scoped).map((r) => r.name);
   if (unscoped.length) console.log("no scope in frontmatter, entered private:", unscoped.join(", "));
   if (!pick.length) { console.log("nothing to put"); process.exit(0); }
   let entered = 0, changed = 0, vectors = 0;
   const t0 = Date.now();
   for (let i = 0; i < pick.length; i += 25) {
-    const r = call("knowledge.put", { entries: pick.slice(i, i + 25).map((d) => ({ id: d.id, kind: "doc", public: d.public, title: d.title, text: d.text, url: REPO + d.rel, source: "lopecode-dev", sha256: d.sha256, method: "knowledge-docs", tags: ["knowledge-doc"] })) });
+    const r = call("knowledge.put", { entries: pick.slice(i, i + 25).map((d) => ({ id: d.id, kind: "doc", public: d.public, title: d.title, text: d.text, url: d.url, source: d.source, sha256: d.sha256, method: "knowledge-docs", tags: ["knowledge-doc"] })) });
     entered += r.entered; changed += r.changed; vectors += r.vectors ?? 0;
   }
-  console.log(JSON.stringify({ put: pick.length, public: pick.filter((d) => d.public).length, private: pick.filter((d) => !d.public).length, entered, changed, vectors, ms: Date.now() - t0 }));
+  console.log(JSON.stringify({ put: pick.length, public: pick.filter((d) => d.public).length, private: pick.filter((d) => !d.public).length, entered, changed, vectors, ms: Date.now() - t0, ...read }));
 } else {
-  console.error("usage: knowledge-docs.ts status | put --all | --stale | <name>…");
+  console.error("usage: knowledge-docs.ts status [--check] | put --all | --stale | <name>…   [--owner] [--limit=SECONDS]");
   process.exit(1);
 }
