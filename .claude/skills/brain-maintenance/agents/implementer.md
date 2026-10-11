@@ -373,9 +373,10 @@ token and ends it.
     - `"verdict":"changes"` and one line: the review is recorded and the reviewer's `rework` move was
       not read. Start nothing on the verdict alone: the round's number is the count of `rework` moves
       plus one, so before that move your keys are the first round's, and a write with one answers
-      `duplicate: true` and writes nothing. Read `ia "get?id=<id>"` once. `in-progress`: as the item
+      `duplicate: true` and writes nothing. Read `ia "get?id=<id>"` once; so too when the second line
+      is a move to any other state. `in-progress`: as the item
       above. Still `in-review`: report that, with the review's seq; the orchestrator's table has the
-      row for it. (To event 2851 each of the 54 `changes` reviews of the record had its `rework`
+      row for it. Any other state: report what you read. (To event 2851 each of the 54 `changes` reviews of the record had its `rework`
       within 9.7 s, 0.5 s at the median; `tools/cloud-brain/records/os-4-writer-waits.md`.)
     - **Exit 2**: the tool keeps no token of your name, or the read was refused (401, 403): your
       token was ended. Write nothing with another, and report.

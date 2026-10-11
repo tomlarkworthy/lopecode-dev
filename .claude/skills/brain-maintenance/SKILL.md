@@ -132,9 +132,9 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    **A writer that waits.** Since `os-4-writer-waits` (2026-10-11) a writer does not report at its submit: it waits up to
    20 minutes for its review with `tools/cloud-brain/issue-wait.sh` and takes the first round of changes itself
    (`agents/implementer.md`, step 13). You read which writer waits from the tracker: an agent of yours that has not
-   reported, whose issue is at `in-review`, or at `in-progress` with a `rework` after its last `submit`. Such a writer
-   is not counted as a writer at work, and it is still the agent on its issue: after the `rework` you send it nothing,
-   the round is its own. Its submit reaches you as a line of the watch (step 8), and the review is then yours to start.
+   reported, whose issue is at `in-review`, or at `in-progress` with a `rework` after its last `submit`. At `in-review`
+   it is not counted as a writer at work; after the `rework` it is at work again. In both it is still the agent on
+   its issue: after the `rework` you send it nothing, the round is its own. Its submit reaches you as a line of the watch (step 8), and the review is then yours to start.
    On trial: `plan/cloud-brain-loop-order-of-service.md`, part 5, kept or taken out by `os-5-trial-read` after five
    rounds a writer took this way. First writer seen to wait: not yet, when this was written.
    (`plan/cloud-brain-loop-order-of-service.md`, part 3, approved for the owner at event 2611. His words, of the
@@ -256,7 +256,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    `cost {"role":"implementer","round":1,"tokens":177525,"seconds":723,"tools":37,"outcome":"in-review","event":205,"agent":"af49053b540d9c3f5","session":"f501a8e8-b922-4e11-a581-2b725efd6272","token":"impl-3fa2c1"}`,
    under the key `cost-<id>-<role>-<round>`, which a second post of the same run does not repeat.
    `role` is `implementer`, `reviewer`, `spec-writer`, `digest`, `overseer` or `triage`; `round`
-   counts the runs of that role on that issue from 1; `tokens`, `seconds` and `tools` are the
+   counts the runs of that role on that issue from 1 (a writer's is the round it wrote, the `rework` moves before it
+   plus one, as in its keys `comment-N` and `submit-N`; for a run of two rounds, below, the first of them); `tokens`, `seconds` and `tools` are the
    Agent result's numbers as integers, a missing one left out and none estimated; `outcome` is
    `in-review`, `pass`, `changes`, `stopped` or `no-submit`; `event` is the submit or the review
    the run made, when it made one. `token` is the name of the token the agent wrote with, the one you made for it and put in its

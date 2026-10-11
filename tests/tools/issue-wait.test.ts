@@ -171,7 +171,7 @@ test("the writer's brief has the wait as step 13: the command, the timeout, five
 
 test("SKILL.md: a writer that waits is not a writer at work, its run of two rounds has one cost line, and the watch names the submit", () => {
   const skill = flat(process.env.SKILL, "../../.claude/skills/brain-maintenance/SKILL.md");
-  expect(skill).toMatch(/\*\*A writer that waits\.\*\*.*Such a writer is not counted as a writer at work, and it is still the agent on its issue/);
+  expect(skill).toMatch(/\*\*A writer that waits\.\*\*.*At `in-review` it is not counted as a writer at work; after the `rework` it is at work again\. In both it is still the agent on its issue/);
   expect(skill).toMatch(/gets one line, when it reports: `"rounds":2`, `round` the number of the first of the two, `event` the last submit/);
   expect(skill).toMatch(/`agent-usage\.ts --session <session> --agent <agentId>` with no `--last-run`/);
   expect(skill).toMatch(/issue-watch\.sh <your token>.*for each `submit` and `submit-spec` move, whatever token made it/);
