@@ -33,7 +33,7 @@ A person is an atproto account, named by its DID. There are two roles. The **own
 
 **Linking.** A channel sends a stranger \`https://HOST/link?channel=NAME&code=CODE\`. The page asks them to sign in with atproto, shows the address the code stands for, and binds it to the signed-in DID when they press Link. The kernel learns the address by calling the channel's \`NAME.claim\` with the code; the answer is taken only from the Worker \`brain-x-NAME\`. Linking does not make anyone a member. When the signed-in DID is the owner, Link also asks for the last 4 characters of the address, because whoever writes from it is then answered as the owner. The page refuses to be shown in a frame.
 
-**Sign-in links** (added 2026-10-09). For a program with no browser, such as Claude Code on the web. \`token.link\` (procedure, owner's session) takes \`{ name, methods, minutes, hours, deploy, unattended, daily, uses }\` and answers \`{ name, deploy, unattended, link, until }\`, with \`daily\` when one was set and \`uses\` when it is over 1; \`minutes\` (480 if left out; 10 until 2026-10-10, which a session that first had to have its network opened ran past) is how long the link is good, \`hours\` (8 if left out) how long its token lasts. A link made with \`deploy\` takes at most 480 minutes and 24 hours; one without, 10080 minutes and 168 hours (a week each, since 2026-10-10: a guest's link waits in a colleague's mail). \`daily\` is US dollars a UTC day that the token may spend of the owner's allowance, as in \`token.create\`; a token that asks for more and is replaced keeps it, and ends no sooner than the one it replaces; what it has spent that day is counted from nothing again, because the count is by delegation. The link is \`/auth/link?code=…\`. A GET of it answers text that says what to do and spends nothing, so a preview of a pasted link does not use it. The first POST answers \`{ name, token, methods, until, deploy, unattended }\` and deletes the link; a second answers 401. A link made for several people (\`uses\`, a whole number from 2 to 20, since 2026-10-11; not with \`deploy\`, and its name is 35 characters at most) gives each POST a token of its own, named \`NAME-XXXX\` in the answer's \`name\`, until its uses are given; the POST after that answers 401, and the link stays until its \`minutes\` end. A use is not spent when no token was made. The token is one as \`token.create\` makes, with an end: it may not name \`infra.*\`, \`secret.*\`, \`token.*\`, \`grant.*\` or \`people.*\`, and \`token.list\` gives it with \`by: "link"\` until it ends, and with \`group: "NAME"\` when its link was made for several. \`token.revoke\` with \`{ name }\` ends the token early, and deletes a link of that name nobody has used. With the name of a link for several it ends the link, the uses not yet given and every token the link gave; with \`NAME-XXXX\` it ends that one token. A link is refused a name that a token or another link has, or that a live token has as its group.
+**Sign-in links** (added 2026-10-09). For a program with no browser, such as Claude Code on the web. \`token.link\` (procedure, owner's session) takes \`{ name, methods, minutes, hours, deploy, unattended, daily, uses }\` and answers \`{ name, deploy, unattended, link, until }\`, with \`daily\` when one was set and \`uses\` when it is over 1; \`minutes\` (480 if left out; 10 until 2026-10-10, which a session that first had to have its network opened ran past) is how long the link is good, \`hours\` (8 if left out) how long its token lasts. A link made with \`deploy\` takes at most 480 minutes and 24 hours; one without, 10080 minutes and 168 hours (a week each, since 2026-10-10: a guest's link waits in a colleague's mail). \`daily\` is US dollars a UTC day that the token may spend of the owner's allowance, as in \`token.create\`; a token that asks for more and is replaced keeps it, and ends no sooner than the one it replaces; what it has spent that day is counted from nothing again, because the count is by delegation. The link is \`/auth/link?code=…\`. A GET of it answers text that says what to do and spends nothing, so a preview of a pasted link does not use it. The first POST answers \`{ name, token, methods, until, deploy, unattended }\` and deletes the link; a second answers 401. A link made for several people (\`uses\`, a whole number from 2 to 20, since 2026-10-11; not with \`deploy\`, and its name is 35 characters at most) gives each POST a token of its own, named \`NAME-XXXX\` in the answer's \`name\`, until its uses are given; the POST after that answers 401, and the link stays until its \`minutes\` end. A use is not spent when no token was made. The token is one as \`token.create\` makes, with an end: it may not name \`infra.*\`, \`secret.*\`, \`token.*\`, \`grant.*\` or \`people.*\`, and \`token.list\` gives it with \`by: "link"\` until it ends, and with \`group: "NAME"\` when its link was made for several. \`token.revoke\` with \`{ name }\` ends the token early, and deletes a link of that name nobody has used. With the name of a link for several it ends the link, the uses not yet given and every token the link gave; with \`NAME-XXXX\` it ends that one token. A link is refused a name that a token or another link has, or that a live token has as its group, and \`token.create\` is refused the name of a live link for several and of a live token's group.
 
 **A token is a delegation** (2026-10-10). \`token.create\`, and the POST of a sign-in link, make a delegation with a secret holder in the core (\`delegation.create\`), and the kernel keeps no row for it. \`token.list\` and \`token.revoke\` read and end those and nothing else: a token made before is a row here until it is first used, or tokens are next listed or revoked, or a link is made, and is then handed to the core by the hash of its secret (\`delegation.adopt\`) and is a delegation like any other. A call with such a token is sent to the core with the delegation's id, and there it is the call of whoever made it (the owner, for one from \`token.create\`): their rules and their allowance, which \`daily\` in \`token.create\` (US dollars a UTC day) caps. It is not the owner's own tab, so what it makes in a store is kept under \`d:<id>\` and not under \`token:NAME\`; a link made with \`unattended\` is the owner's tab for the methods its list names by a name or a prefix, and not for one that only \`*\` reaches. A token ends within 5 s of \`token.revoke\`, the time a core instance remembers a row. The core's limits are now a token's: at most 50 methods, and a name that no other delegation of the owner has (400 from \`token.create\`, where two tokens of one name were made before). With \`delegate\` among its caps (made with \`delegation.create\` in the owner's or a member's session) a token reaches \`delegation.create\`, \`list\` and \`revoke\`, and the core says what it may make; \`token.list\` marks it \`delegate: true\`. \`token.list\` shows the owner's own tokens: a member's, and one made under another, are in \`delegation.list\`. While the core does not answer, such a token is refused with 503, on \`infra.*\` too: a sign-in link's token cannot deploy a core that is down, and the owner's session can.
 
@@ -475,6 +475,8 @@ kernelApp = {
     if (!/^[a-z0-9-]{1,40}$/.test(name || "")) return fail(c, 400, "InvalidRequest", "name is lower case letters, digits and -");
     if (!named.every(listed)) return fail(c, 400, "InvalidRequest", "a method is a name, or a prefix that ends .* or /* (browser.*, ai.v1/*), or *");
     if (named.some(never)) return fail(c, 400, "InvalidRequest", "a token cannot name infra, secret, token, grant, people or delegation methods");
+    // The name of a link for several is its group's: token.revoke of it ends them all, so no single token takes it.
+    if ((await rows.list("link/")).some((r) => r.value.uses > 1 && r.value.name === name && !(r.value.until < Date.now())) || (await tokens()).some((d) => groupOf(d) === name && !(d.until && d.until <= Date.now()))) return fail(c, 400, "InvalidRequest", `a link for several or its tokens are named ${name}; token.revoke ends them`);
     const made = await asOwnerSession("delegation.create", { name, holder: { secret: true }, scope: named, daily });
     if (made.status !== 200) return c.json(made.data || { error: "UpstreamFailure", message: "the core did not answer" }, made.status);
     return c.json({ name, token: made.data.secret });
@@ -503,7 +505,7 @@ kernelApp = {
     // Links nobody used that have ended are deleted here.
     const live = [];
     await moveAll();
-    for (const r of await rows.list("link/")) r.value.until < Date.now() ? (await rows.delete(r.key), await rows.deletePrefix("link-use/" + r.key.slice(5) + "/")) : live.push(r.value.name);
+    for (const r of await rows.list("link/")) r.value.until < Date.now() ? (await rows.delete(r.key), await rows.deletePrefix("link-use/" + r.key.slice(5) + "/")) : live.push(r.value.name, ...(r.value.group ? [r.value.group] : []));
     // The core has one name for each of the owner's delegations. Found here, the link is not made; found when the
     // link is used, the link would be spent on nothing.
     const taken = (await delegations()).find((d) => d.from === "owner" && d.name === name && !(d.until && d.until <= Date.now()));
@@ -526,7 +528,9 @@ spent: Python's urllib is refused by its User-Agent. Use curl, or send another U
 
 The answer is JSON { name, token, methods, until, deploy, unattended }, with "daily" (US dollars a UTC day it may
 spend) when the owner set one, and that command keeps it in a file of
-mode 600 in a temporary directory without printing it. The link then stops working. Keep the token there, outside
+mode 600 in a temporary directory without printing it. From a link made for several, "name" is the link's name,
+a hyphen and four characters. A link for one then stops working; a link for several does when its uses are given.
+Keep the token there, outside
 any repository. Send it as "Authorization: Bearer <token>", e.g. $(jq -r .token <that file>). It calls
 the methods in \`methods\` and no others, until \`until\` (milliseconds). With "deploy": true in the answer it also
 calls infra.apply, infra.getState and infra.redistil as the owner does: it deploys and removes this
@@ -687,7 +691,7 @@ other address): how to call, and what this Brain is made of.
     // A name no token, delegation or link of the owner's has.
     const live = [];
     await moveAll();
-    for (const x of await rows.list("link/")) x.value.until < Date.now() ? await rows.delete(x.key) : live.push(x.value.name);
+    for (const x of await rows.list("link/")) x.value.until < Date.now() ? (await rows.delete(x.key), await rows.deletePrefix("link-use/" + x.key.slice(5) + "/")) : live.push(x.value.name);
     for (const d of await delegations()) if (d.from === "owner" && !(d.until && d.until <= Date.now())) live.push(d.name);
     let name = null;
     for (let i = 0; i < 8 && !name; i++) {
@@ -1375,6 +1379,8 @@ test_a_link_for_several_gives_each_a_token_of_their_own = {
   expect([made.uses, made.until > Date.now() + 6 * 86400000]).toEqual([3, true]);
   // A second link or a token of the group's name is refused while the link lives.
   expect((await link({ uses: 2 })).status).toBe(400);
+  const plain = () => rig.call("token.create", { session: rig.owner, body: { name: "team", methods: ["proxy.fetch"] } });
+  expect((await plain()).status).toBe(400);
   // Four POSTs at once: three tokens, each its own delegation with the cap of a day, and one refusal.
   const got = await Promise.all([1, 2, 3, 4].map(() => rig.call(at, { method: "POST" })));
   const ok = got.filter((r) => r.status === 200).map((r) => r.data);
@@ -1383,6 +1389,8 @@ test_a_link_for_several_gives_each_a_token_of_their_own = {
   const listed = async () => (await rig.call("token.list", { session: rig.owner })).data.tokens.filter((t) => t.group === "team").map((t) => t.by);
   const held = () => [...rig.held.values()].filter((d) => d.name.startsWith("team")).length;
   expect(await listed()).toEqual(["link", "link", "link"]);
+  // With the uses given the link's row is still there, and the tokens' group holds the name.
+  expect((await plain()).status).toBe(400);
   // One of them is ended by its own name and the others go on.
   expect((await rig.call("token.revoke", { session: rig.owner, body: { name: ok[0].name } })).data).toEqual({ revoked: 1 });
   expect([(await rig.call("proxy.fetch", { bearer: ok[0].token, body: {} })).status, (await rig.call("proxy.fetch", { bearer: ok[1].token, body: {} })).status]).toEqual([401, 200]);
