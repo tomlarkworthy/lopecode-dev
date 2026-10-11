@@ -2,11 +2,12 @@
 // session counted by their key. Issue ta-2-stats-by-prefix, R3 and R5 of plan/cloud-brain-record-names-token-not-agent.md.
 //
 //   bun test ./tests/tools/issue-stats.test.ts
+//   ISSUE_STATS_TS=/path/to/another/issue-stats.ts bun test …
 // No call leaves the machine: the events are the list below.
 import { test, expect } from "bun:test";
 import { resolve } from "node:path";
 
-const tool = resolve(import.meta.dir, "../../tools/cloud-brain/issue-stats.ts");
+const tool = process.env.ISSUE_STATS_TS || resolve(import.meta.dir, "../../tools/cloud-brain/issue-stats.ts");
 const { report, role, text } = await import(tool);
 
 const token = (name: string) => ({ caller: "owner", via: "delegation:b6559fa96c36", holder: `secret:${name}`, tab: false });
