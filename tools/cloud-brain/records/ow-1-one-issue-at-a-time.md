@@ -76,7 +76,7 @@ It stops at its first line there, so that run does not show that its later lines
 After the change, the same snippet, first thing run in a fresh tab on the build of the seed as committed: `[33,[]]`.
 
 A build with the one expression that shows the issue of a refused press again taken out
-(`&& (at = i.id)` made `&& false`), same snippet in a fresh tab:
+(`&& (at = i.id)` made `&& false`), same snippet in a fresh tab. That build was of the seed a step before the one committed, when `fell` was one id and not a set; the expression and the tests were the same:
 
 ```
 [33, [test_issues_panel_a_refused_write_gives_the_row_back, test_issues_panel_attention_rows_say_what_is_asked]]
