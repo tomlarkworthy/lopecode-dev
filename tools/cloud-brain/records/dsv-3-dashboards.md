@@ -48,7 +48,7 @@ writes none. What it costs: the owner has no method that deletes a member's dash
 none for a member's metric. The owner in his tab and a token are not told apart, so his tab does
 not write a member's either.
 
-A consequence: the owner keeps no name that starts `m-` (`m-notes` is 403), since such a name
+A consequence: the owner keeps no name that starts `m-` (`m-new` is 403 in the test), since such a name
 could not be told from a member's.
 
 **`dashboard.put` of `health`.** Decided: 403, for every caller, and the same for
