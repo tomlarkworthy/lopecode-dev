@@ -2,7 +2,10 @@
 // Enters knowledge/*.md, the Cloud Brain designs (plan/cloud-brain-*.md) and three files of cloud-brain-dev (AGENTS.md,
 // README.md, philosophy.md) into a Brain's knowledge base, one entry a doc (kind `doc`, id `doc:<name>`), so that
 // knowledge.search?semantic=true finds the doc for a task. `status` says which entries are behind their file and for
-// how long, `put` enters them. No step of a landing runs the put yet (plan/cloud-brain-brain-docs-entered-by-hand.md, task 2).
+// how long, `put` enters them. What enters a changed doc: `lock.sh release land`, the last command of a landing, runs
+// `put --stale --limit=30` with the lock gone and prints the last line as `docs (<brain>): …`
+// (plan/cloud-brain-brain-docs-entered-by-hand.md). A commit pushed with no landing, and a push of cloud-brain-dev
+// alone, are not entered until the next landing of anyone.
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status [--check]      --check: exit 1 when a doc is stale, missing or badname
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --all | --stale | <name>…
 //   … --owner            call with the owner's session, for the owner's own use; an agent does not

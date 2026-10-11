@@ -1,6 +1,6 @@
 ---
 scope: [local-development]
-topics: Cloud Brain; cb4; brain.ts curl; the state file; a token for an agent; no --owner writes; the health check; brain-x-logs; knowledge-docs.ts
+topics: Cloud Brain; cb4; brain.ts curl; the state file; a token for an agent; no --owner writes; the health check; brain-x-logs; knowledge-docs.ts; what enters a doc into the Brain's search (lock.sh release land, loop-docs)
 triggers:
   - "(^Bash |^|[;&|] )bun +tools/cloud-brain/brain\.ts( |$)"
   - "(^Bash |^|[;&|] )BRAIN_BASE=[a-z0-9]+ +bun +tools/cloud-brain/brain\.ts( |$)"
@@ -109,10 +109,43 @@ error ms price rule by`. Three traps met on the first day:
 
 ## The knowledge docs in the Brain's search
 
-`knowledge/*.md` are entries of kind `doc` in the Brain's knowledge base (`knowledge.search?semantic=true&kind=doc&q=`),
-entered 2026-10-10. A changed doc is not entered again by anything:
+`knowledge/*.md`, `plan/cloud-brain-*.md` and three files of `cloud-brain-dev` (`AGENTS.md`, `README.md`,
+`philosophy.md`) are entries of kind `doc` in the Brain's knowledge base (`knowledge.search?semantic=true&kind=doc&q=`).
+The first were entered 2026-10-10. The tool is `tools/cloud-brain/knowledge-docs.ts`; its header is the reference.
+
+**What enters a changed doc** (since 2026-10-11, `plan/cloud-brain-brain-docs-entered-by-hand.md`): the last
+command of every landing, `tools/cloud-brain/lock.sh release land <who>`. With the lock gone it runs
+`knowledge-docs.ts put --stale --limit=30` and prints one more line. The release is exit 0 whatever that line says.
 
 ```
-BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status        # fresh / stale (and for how long) / missing
-BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --stale   # the reindex; $0.00005 a doc whose text changed
+docs (cb4): {"put":2,…}                     the tool's last line: what was entered
+docs (cb4): nothing to put
+docs (cb4): not entered (<why>)             the tool failed; the docs wait for the next landing
 ```
+
+- The name in brackets is the Brain: `BRAIN_BASE`, and `cb4` when the caller's shell has none.
+- The call is made with the token `loop-docs`, which the owner makes once:
+  `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-docs knowledge.put knowledge.list`. An agent does not
+  make it and does not pass `--owner` to the tool. On 2026-10-11 20:05 CEST it had not been made, and a release
+  with the tool itself printed
+  `docs (cb4): not entered (no token "loop-docs" is kept. The owner makes it once: BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-docs knowledge.put knowledge.list)`
+  in 1.2 s. The first two lines above were printed that day with a stub in the tool's place (`tests/tools/lock.test.ts`),
+  not by cb4.
+- The source is `origin/main`, read with git. A file edited on disk and a commit not pushed are not seen, by
+  `status` or by `put`.
+- Not entered until the next landing of anyone: a commit pushed with no landing, and a push of `cloud-brain-dev` alone
+  (its three files are read at the commit `lopecode-dev`'s `origin/main` records for the submodule).
+- `LOCK_DOCS=0` before the release leaves the step out. The tests of `lock.sh` set it.
+
+By hand:
+
+```
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status --check   # fresh / stale (and for how long) / missing / badname, one line a doc
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --stale      # what the release runs; $0.00005 a doc whose text changed
+```
+
+`status --check` exits 0 when no doc is behind, 1 when one is, and 2 with the owner's command when no `loop-docs` is
+kept. A tool that threw also exits 1 (seen with no `BRAIN_BASE`; a refused call throws the same way, not run): the
+last line is then bun's and not the JSON. `badname` is a doc whose file name gives no id the service takes
+(a space, an underscore, a character outside ASCII): it is in no put until the file has another name. No doc of
+`origin/main` was one on 2026-10-11 20:04 CEST (67 docs, `status --check --owner`).
