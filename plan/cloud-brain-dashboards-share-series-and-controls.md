@@ -42,19 +42,26 @@ sections: Health, Operator, Services, Library, Access, Spending, Logs, People, C
 `requestsChart` (line 98) and `healthStrip` (line 111). No service's own panel draws a chart
 (`grep -n "Plot\." tools/cloud-brain/*.ojs`: 5 lines, all in those two functions).
 
-**Health** (lines 30 to 170) is one cell, `healthView`, and seven functions it calls:
+**Health** (lines 30 to 170) is one cell, `healthView`, and seven functions it calls. The cell,
+lines 32 to 43, with `…` where text is left out:
 
 ```
 healthView = {
   assembled;
-  …
+  if (!client || !session.owner) return htl.html`<i …>Sign in as the owner to see the calls of the last hour.</i>`;
   const until = Date.now(), ask = { since: until - 3600000, until };
-  const data = await client.procedure("logs.query", callsQuery(ask)).then(…callsSeries…);
-  return dashboard([ {Calls: requestsChart(data, { width: width - 40 })}, {Health: healthStrip(…)}, {By method: methodTable(…)} ], …);
+  const data = await client.procedure("logs.query", callsQuery(ask)).then((answer) => callsSeries(answer, ask), …);
+  return dashboard([
+    { title: "Calls", body: requestsChart(data, { width: width - 40 }), wide: true },
+    { title: "Health", body: healthStrip(data, { width: width - 40 }), wide: true },
+    { title: "By method", body: methodTable(data, { link: … }), wide: true }
+  ], { note: … `The last hour, from the core's log lines: …` });
 }
 ```
 
 - It has 0 controls. The span is the constant `3600000`, one hour.
+- Each drawing function fixes its own grouping: `rollup(data.series, ["t", "worker"])` in
+  `requestsChart` and `healthStrip` (lines 99, 112), `["worker", "method"]` in `methodTable` (line 126).
 - The rows already have one shape: `callsSeries` answers `{ since, until, step, series, groups }`
   with `series` rows `{ t, worker, method, status, n, ms, max }`, and all three panels draw from
   that one value through `rollup(series, keys)`. So R3 is met inside the cell and nowhere else:
@@ -150,30 +157,45 @@ calls = …   // inputs: assembled, client, session, timeRange, callsQuery, call
 the cell's inputs. It keeps `assembled`, as `healthView` has today. Why `healthView` waits for
 `assembled` is not written in the seed and was not found; task 1 keeps it and does not guess.
 
+`calls` keeps the owner check: with no client, or a caller who is not the owner, its value is
+`null` and it sends nothing. `healthView` then answers the line a visitor reads today ("Sign in as
+the owner to see the calls of …") and makes no panel.
+
 **A panel, written once.** The prototype is ordinary cells, visible and editable on the page like
 any other, as the pizza widget is in the module's notebook:
 
 ```js
-panelStart = ({ draw: "calls", by: "worker" })            // replaced in each instance
+panelStart = ({ draw: "calls", worker: "" })               // replaced in each instance
 viewof panelDraw = Inputs.select(["calls", "faults", "table"], { label: "Show", value: panelStart.draw })
-viewof panelBy = Inputs.select(["worker", "method", "status"], { label: "By", value: panelStart.by })
-panelBody = …   // requestsChart, healthStrip or methodTable of `calls`, rolled up by panelBy, at `width`
-panel = htl.html`<div>${viewof panelDraw}${viewof panelBy}${panelBody}</div>`
+viewof panelWorker = Inputs.select(["", …the Workers named in calls.series], { label: "Worker", format: (w) => w || "all", value: panelStart.worker })
+panelBody = …   // requestsChart, healthStrip or methodTable of { ...calls, series: the rows of panelWorker, or all }, at `width`
+panel = htl.html`<div>${viewof panelDraw}${viewof panelWorker}${panelBody}</div>`
 ```
+
+The per-panel control filters rows before they are drawn, so the three drawing functions and their
+test stay as they are. A control that changes the grouping (by method, by status) would need each
+function to take its keys; that is not in this design.
+
+The prototype is under a sub-heading of its own after the dashboard, "### One panel", with a line
+saying the panels above are instances of it. It draws as one more live panel there, which is where
+a panel is edited and tried.
 
 **The dashboard, instanced.**
 
 ```js
 import {instantiateDataflow} from "@tomlarkworthy/dataflow-templating"
-import {lookupVariable, thisModule, onCodeChange} from "@tomlarkworthy/runtime-sdk"
+import {Inspector} from "@tomlarkworthy/inspector"
+import {runtime, createModule, lookupVariable, thisModule, onCodeChange} from "@tomlarkworthy/runtime-sdk"   // line 1488 today imports the first two
 
-healthPanels = [{ draw: "calls", by: "worker" }, { draw: "faults", by: "worker" }, { draw: "table", by: "method" }]
+viewof myModule = thisModule()
+healthPanels = [{ draw: "calls", worker: "" }, { draw: "faults", worker: "" }, { draw: "table", worker: "" }]
 healthView = …
   // for each entry: instantiateDataflow(template, { params: { panelStart: entry }, observers: (name) => name === "panel" ? new Inspector(box) : null, watch: onCodeChange })
   // dispose each on invalidation; lay the boxes out with dashboard()
 ```
 
-`template` is `lookupVariable(["viewof panelDraw", "panelDraw", "viewof panelBy", "panelBy", "panelBody", "panel"], myModule)`.
+`template` is `lookupVariable(["viewof panelDraw", "panelDraw", "viewof panelWorker", "panelWorker", "panelBody", "panel"], myModule)`.
+Neither `Inspector` nor any of the three new runtime-sdk names is imported by `cloud-brain.ojs` today.
 `calls`, `timeRange`, `width` and the drawing functions are not in it, so each instance reads the
 page's own through a bridge (`instance.captures`). The three panels of today are the three entries
 of `healthPanels`; a fourth panel is a fourth entry.
@@ -199,7 +221,11 @@ and Health's is `view: "calculations"`, two different answers. Logs still reads 
   the number of rows and the time the query takes were not measured. Task 2 measures the five
   spans on cb4 in the owner's tab and leaves out of the select any span that fails or drops groups.
 - Whether a `viewof` in an instance, drawn through an `Inspector`, keeps its choice when `calls`
-  changes. By the runtime's rule it should: `viewof panelBy` does not read `calls`. Task 4 tests it.
+  changes. `viewof panelWorker` reads `calls` for its list of Workers, so as written it is made again
+  on each answer and falls back to its start. Task 4 either keeps the choice across an answer (the
+  select made once, its options set in place) or shows that losing it is what happens, and says which.
+- Whether `Inputs.bind` of two selects whose values come from a `Map` carries the choice both
+  ways. Not run. Task 3 tests it.
 - Whether `test.ts` (no browser) can run a test that instances a dataflow. Today the Health test
   needs a browser already, so nothing is lost if it cannot.
 
@@ -221,6 +247,8 @@ and Health's is `view: "calculations"`, two different answers. Logs still reads 
   call. Its row shape `{ time, series, value }` has one measure a row; Health's rows carry three
   (`n`, `ms`, `max`) and `rollup` derives two more (`e4`, `e5`). Changing the shape would rewrite
   the three drawing functions and their test for no requirement.
+- **A per-panel "By" (worker, method, status).** The first draft of this spec had it. Each drawing
+  function fixes its grouping, so it needs the same rewrite. A filter by Worker does not.
 - **A timer that asks again.** A press of "Refresh" asks once. The page was not measured for what
   a `logs.query` costs Cloudflare or how long it takes, and the outside reading is that a dashboard
   does not refresh by default.
@@ -252,15 +280,17 @@ Each is one writer and one review, and each deploys `brain-x-page` alone.
    `healthView` drawing from `calls`. No control, no new behaviour. A test with a counting client:
    one query for one `timeRange`. Check R2's `$def` line and the resize count after.
 2. **The two controls.** `viewof span` and `viewof asked` above the panels; `timeRange` reads them;
-   the note under the panels names the span instead of "The last hour". Measure the five spans on
+   the note under the panels (line 42) and the line a visitor reads (line 35) name the span
+   instead of "the last hour". Measure the five spans on
    cb4 (step, rows, groups against the 500 limit, time taken) and keep the ones that answer whole.
-   Update the line on Health in `cloud-brain-docs.ojs` ("counts the last hour") and in
-   `cloud-brain-specs.ojs`.
+   Update the line on Health in `cloud-brain-docs.ojs` (line 271, "counts the last hour"). No
+   other seed says "last hour" (`grep -n "last hour" tools/cloud-brain/*.ojs`: that line and the two above).
 3. **Logs reads the span.** `logsView` takes the shared control and binds its select to it. The
    existing test `test_logs_panel_asks_cloudflare_and_a_row_filters_by_its_trace` passes a stand-in
    and still passes; one new assertion for R1.
 4. **Panels from a template.** The prototype cells, `healthPanels`, the instances, disposal on
-   invalidation. Checks of R4, and that a panel's "By" keeps its choice across a "Refresh".
+   invalidation, under "### One panel". Checks of R4, and what a panel's "Worker" does across a "Refresh".
+   The drawing functions are not changed.
    The first use of `instantiateDataflow` in a Brain seed: the writer reads
    `plan/dataflow-templating-2.md` first and checks that the shell cb4 serves carries the module.
 
