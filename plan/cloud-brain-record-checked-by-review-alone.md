@@ -6,6 +6,7 @@ at event 1622, read whole with `issues-implementer-2` (`sync?after=0&limit=500`,
 Nothing here is built. Before the submit the draft (`c83f48e2`) was read by an agent with no context
 of the session: seven findings, all taken, by 20:29 (`date`). Two changed the design: what choice
 A reaches (2 of the 11, not all), and how R3 pairs a review with the round after it.
+Sent back by review 1887 with two findings; what changed for each is under "Round 2" at the end.
 
 The project's body proposes no design. It asks four things under "Not known". This spec measures
 the fourth, and the answer changes the first: of the 11 rounds that a record's words alone caused,
@@ -46,7 +47,9 @@ The rest of this section is the writer's reading. The overseer's body asks:
 The requirements:
 
 - **R1.** A test under `tests/` that holds a sentence of a record reads only texts that cannot
-  change after the record's commit: the record itself, and a file as a named commit has it.
+  change after the record's commit: the record itself, and a file as a named commit has it. Any
+  other file counts, a seed or a plan alike. One read is not of this kind: a test that holds a
+  sentence of a doc or a brief itself (that `SKILL.md` has a line) reads that file as it is.
 - **R2.** The sentence of the link record gives the tracker's count, with the command.
 - **R3.** How many `changes` are of statements alone, how many of those are in the issue's own
   record and nowhere else, and what the round after each cost, is printed by `issue-stats.ts`.
@@ -167,8 +170,9 @@ d3d4a3e0  10-10 19:45:36  owner-session-file-is-present.md   "after the landing 
 ```
 
 The other seven are times of another day written without a date in the form the rule knows, or
-quoted. The check on tracker writes landed at 11:58:33 on 2026-10-11 (`0ec9ddb3`). In the 87 commits
-to records after 11:58:43, 276 times were compared and none is ahead. No `changes` after event 467
+quoted. The check on tracker writes landed at 11:58:33 on 2026-10-11 (`0ec9ddb3`). In the 95 commits
+to records after 11:58:43 (at `61c95926`; 64 of them add a line with a time the rule compares), 276
+times were compared and none is ahead. The script and its output are under "Round 2". No `changes` after event 467
 has a finding about a time in a record. Not measured: a time that is wrong and behind the clock,
 which no rule of this kind sees, and times in commit messages.
 
@@ -188,9 +192,18 @@ Three small tasks, and one choice that is the owner's. The tasks do not wait for
 of them makes a round cheaper: tasks 1 and 2 mend what two reports found, and task 3 makes the
 cost a number the overseer reads in place of 50 reviews.
 
-**R1.** `ds-3-record.test.ts` reads the seed with `git show eefc16a2:tools/cloud-brain/cloud-brain.ojs`
-in place of the working file. Line 366 of `agents/implementer.md` gains one sentence: a test of a
-record's sentence reads the record and, for anything else, a file as a commit named in the record has it.
+**R1.** `ds-3-record.test.ts` has two reads of a working file that is not the record, and both go.
+Line 15 reads the seed: it becomes `git show eefc16a2:tools/cloud-brain/cloud-brain.ojs`, the commit
+the record names at its line 127. Line 26 reads `plan/cloud-brain-dashboards-share-series-and-controls.md`,
+a spec with three commits that a later round may reword: it becomes `git show 1e6aabbc:plan/…`, the
+last commit of that file and the one the record's "lines 299 to 300 of the plan" were read at. The
+record names no commit there, so its line 132 gains "at `1e6aabbc`". After the task
+`grep -c "read(" tests/tools/ds-3-record.test.ts` is 2: the helper and the record. Both commits give
+what the test expects today (`git show` of each, read by a script of the same lines: 14, 13 and 4 at
+`eefc16a2`; "was not tried; they may" at line 300 of `1e6aabbc`). The paragraph "A change with no seed
+and no local tool" of `agents/implementer.md` (line 395 at `aaf211b2`; 366 at `73ba9f3e`)
+gains one sentence: a test of a record's sentence reads the record and, for anything else, a file as
+a commit named in the record has it.
 
 **R2.** Line 22 of the link record reads 15 and 12, with the command: the `sync` calls and the
 filter (`type == "linked"`, `at` up to 11:53:00 CEST). Line 42, "The 14 links on cb4", stays: event
@@ -205,8 +218,10 @@ of the issue itself, the line is `statements only, record`. `issue-stats.ts` pri
 many reviews begin with each, of either verdict, and for the `changes` among them the cost of the
 round after. That cost is the first implementer `cost` comment whose `event` is after the review's
 seq, and the first reviewer `cost` comment whose `event` is after that one; a review with either
-missing (100, 1032 and 1052 today, and a comment with no `event`) is counted and left out of the
-sum, and the line says how many were. Pairing by `round` is wrong: for review 534 it picks the
+missing (100, 1032 and 1052 today) or with a comment that has no `event` (452 today: the reviewer's
+comment 807 was backfilled without one) is counted and left out of the sum, and the line says how
+many were. So on the record to event 1622, marked as the table above classes it, the line would sum
+seven rounds, 1,834,670 (the table's 2,015,361 less 180,691), and leave four out. Pairing by `round` is wrong: for review 534 it picks the
 writer's round 2, the one before the review. The reviewer's brief is a file of the Brain; the
 overseer puts it (`cloud-brain-dev/put.sh roles/reviewer.md`), so that half of the task is the overseer's.
 
@@ -238,7 +253,7 @@ Each is a command an agent runs with its own token or none.
 
 | | Check |
 |---|---|
-| R1 | In a worktree, add one line to `cloud-brain.ojs` between the two marks the test names; `bun test ./tests/tools/ds-3-record.test.ts` still answers 2 pass. Today it would answer 1 fail. |
+| R1 | In a worktree, add one line to `cloud-brain.ojs` between the two marks the test names, and change "they may" to "they might" at line 300 of `plan/cloud-brain-dashboards-share-series-and-controls.md`; `bun test ./tests/tools/ds-3-record.test.ts` still answers 2 pass. Today it answers 0 pass, 2 fail (run at 20:39 in the worktree at `aaf211b2`, the two edits then taken back: 2 pass). And `grep -c "read(" tests/tools/ds-3-record.test.ts` is 2. |
 | R2 | `grep -c "15 \`linked\` events, 12" tools/cloud-brain/records/link-issues-with-a-common-cause.md` is 1, and the command beside it, run with `issues-implementer-2`, answers 15 and 12. |
 | R3 | `bun tools/cloud-brain/issue-stats.ts --token=issues-implementer-2` prints a line `statements only`. On today's record it reads 0, since no review carries the mark. A test in `tests/tools/issue-stats.test.ts` gives it the events of review 534 with its five cost comments, marked, and reads 310,348; and a marked `pass`, which is counted. |
 | R4 | The choice is on the project as written below, and he has answered it or not. After it, the same line over a window (`--window=SEQ`): with B, how many `statements only, record` rounds there were and their cost, which is the case for A at the next oversight; with A, the marked `pass` reviews and each reviewer's own `cost`. |
@@ -247,11 +262,13 @@ Each is a command an agent runs with its own token or none.
 
 Each is one writer and one review, with no seed and no deploy.
 
-1. `rc-1-record-test-reads-a-commit`: R1. One test file and one sentence of `agents/implementer.md`.
+1. `rc-1-record-test-reads-a-commit`: R1. One test file, one sentence of `agents/implementer.md`, and
+   the commit's name at line 132 of `records/ds-3-logs-reads-the-span.md`.
 2. `rc-2-link-record-count`: R2. Two lines of one record. It needs a count for its submit: the test
    of task 1's kind, reading the record alone.
 3. `rc-3-record-only-count`: R3. `issue-stats.ts`, its test, and the text for step 7 of the
-   reviewer's brief written in the task's record for the overseer to put.
+   reviewer's brief written in the task's record for the overseer to put. Its test also gives the
+   events of review 452 and expects it counted and left out.
 
 Tasks 1 and 2 touch no common file. Task 3 lands alone; its line reads 0 until the brief is put.
 
@@ -275,7 +292,8 @@ together, both on the evening of 2026-10-11.
   (a tool that refuses a commit touching any other file, and the brief), about one round to build.
 - **B. As today**, with R3's line counting what A would have saved. For it: every line of a record
   has been read by an agent that did not write it, and nothing is built on two cases. Against it:
-  about 243,000 tokens for each such round until he chooses again.
+  242,591 tokens for each such round until he chooses again (the mean of the two above; the median
+  of the eight is 258,844).
 
 Not offered: a reviewer that also mends `SKILL.md`, a knowledge doc or a seed's reference. That
 would reach 452, 1090, 1122, 1183 and 1202 as well, and those files tell agents what to do or are
@@ -308,6 +326,11 @@ comment on the project.
 
 ## Not done
 
+- R3 counts a mark that each reviewer puts on its own review, and line 6 as read in `philosophy.md`
+  has the overseer measure "not from what an agent said of itself". Two readers already differ on one
+  of five: the project's body has 1148 as words alone and this spec has it T. The rate the owner
+  chooses by carries that. The overseer can read the marked reviews of a window against their
+  bodies; nothing here makes it.
 - The 34 B bodies were not all read to their end. Nothing after a cut can take a review out of B.
 - The transcripts of the eight writers were not read, so where a rework round's tokens go is taken
   from review 1454's one measurement.
@@ -316,3 +339,68 @@ comment on the project.
   for. "Not chosen" lists what was weighed; R3's line is what a later project would start from.
 - `spec.md` step 3 names `issue-stats.ts` for a project about the loop. It was run and gives
   the 61; nothing else in its output bears on records. The classes above are what R3 adds to it.
+
+## Round 2, 2026-10-11
+
+Review 1887 (`changes`, 20:36:33 CEST, the event's `at`) made again every count the choice rests on
+and sent the spec back for two things. Written from 20:38 to 20:39 CEST (`date`) at `lopecode-dev` `aaf211b2`.
+
+1. *R1's design changed the read of the seed and left the test's second working file, the plan, as
+   it was; R1's check could not tell.* Taken. The design under R1 now names both reads and the
+   commit each becomes, the record gains the name of the second commit, and the check edits both
+   files. R1 itself now says which read it does not mean: a test that holds a doc's own sentence,
+   as the two other tests do. Read in round 2 (`grep -n "read(\|readFileSync\|toContain\|toMatch"` of
+   both): `redistil-record-statements.test.ts` reads a knowledge doc for that doc's `redistil` row,
+   and `rework-resumes-the-implementer.test.ts` reads `SKILL.md` and the brief for sections of
+   those files; each holds its record's sentences from the record alone.
+2. *"87 commits" had no command and `git log` gives 95.* The 87 was wrong and is 95; where it came
+   from is not known, since the script of round 1 was not kept. The 470, the 10 and the 276 were
+   made again with the script below, written in round 2 from the rule as "Times" gives it:
+
+   ```
+   git log --format=%ct 61c95926 -- tools/cloud-brain/records/ | awk '$1>1791712723' | wc -l      95
+   python3 rule.py 61c95926
+     61c95926 commits 154 added lines 8557 times 470 ahead 10 | after 11:58:43: commits 95 with a time compared 64 times 276 ahead 0
+   python3 rule.py 73ba9f3e
+     73ba9f3e commits 157 added lines 8779 times 484 ahead 10 | after 11:58:43: commits 98 with a time compared 67 times 290 ahead 0
+   ```
+
+   The script the fresh reader of round 1 wrote was kept, and at `61c95926` it prints 475 times and 7
+   ahead, as round 1 said, and 94 commits and 278 times after the cut, none ahead. The 95th is the
+   merge `e1ca5c47`, for which `git log -p` prints no lines; `rule.py` counts it and that script does not. `rule.py`:
+
+   ```python
+   import subprocess,re,sys,datetime
+   head=sys.argv[1]
+   out=subprocess.run(["git","log",head,"--reverse","--format=@@C %H %ct","-p","--unified=0","--","tools/cloud-brain/records/"],capture_output=True,text=True).stdout
+   DATE=re.compile(r"20\d\d-\d\d-\d\d")
+   TIME=re.compile(r"(?<![\d:.])([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?(?![\d:])( ?(UTC|Z|CEST))?")
+   tz=datetime.timezone(datetime.timedelta(hours=2))
+   cut=datetime.datetime(2026,10,11,11,58,43,tzinfo=tz).timestamp()
+   lines=n=ahead=na=aa=0; call=set(); cafter=set(); cwith=set(); hits=[]
+   for l in out.split("\n"):
+       if l.startswith("@@C "):
+           _,h,ct=l.split(); ct=int(ct); cd=datetime.datetime.fromtimestamp(ct,tz); call.add(h)
+           if ct>cut: cafter.add(h)
+       elif l.startswith("+") and not l.startswith("+++"):
+           lines+=1; t=l[1:]
+           ds=DATE.findall(t)
+           if ds and cd.strftime("%Y-%m-%d") not in ds: continue
+           for m in TIME.finditer(t):
+               hh=int(m.group(1)); mm=int(m.group(2)); ss=int(m.group(3) or 0)
+               named=cd.replace(hour=hh,minute=mm,second=ss)
+               if m.group(5) in ("UTC","Z"): named+=datetime.timedelta(hours=2)
+               n+=1
+               if ct>cut: na+=1; cwith.add(h)
+               if (named-cd).total_seconds()>60:
+                   ahead+=1; hits.append((h[:8],cd.strftime("%m-%d %H:%M:%S"),t[max(0,m.start()-30):m.end()+15]))
+                   if ct>cut: aa+=1
+   print(head,"commits",len(call),"added lines",lines,"times",n,"ahead",ahead,"| after 11:58:43: commits",len(cafter),"with a time compared",len(cwith),"times",na,"ahead",aa)
+   if len(sys.argv)>2:
+       for h in hits: print("  ",h)
+   ```
+
+The review's two notes are taken as well: R3 says that review 452 is left out of today's sum and
+task 3's test expects it; choice B gives 242,591 as the mean of two. Its third, that R3 counts what
+a reviewer says of itself, is under "Not done". This round was not read by a fresh agent before the
+submit: the loop's reviewer reads it.
