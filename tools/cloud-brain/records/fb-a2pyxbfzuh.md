@@ -25,8 +25,9 @@ isMain false   block false   vars null
 ```
 
 The layout names the module, the tab is there, and the page has neither the module's script block
-nor a main of that name. The pane reads `loading @tomlarkworthy/brain-inbox…` (screenshot of the
-21:23:47 run below, same result).
+nor a main of that name. In the 21:23:47 run below, on the shell of HEAD's seed, the pane reads
+`loading @tomlarkworthy/brain-inbox…` 30 s after the click (`before.png`, attached to the issue;
+`after.png` is the same moment with the change).
 
 ### The cause, 21:22:19
 
@@ -94,6 +95,21 @@ brief's step 8 on `$W/tools/cloud-brain/.emitted/cloud-brain.html`, layout
 `C100(S70(@tomlarkworthy/brain-shell),S30(@tomlarkworthy/claude-code-pairing))`, in three fresh
 loads of one QA session (`r=7101`, `7102`, `7103`; the last two at 21:26:30 and 21:26:45):
 `[10,[]]` each time. 10 is the count of `grep -c "^test_" tools/cloud-brain/brain-shell.ojs`.
+
+The page the deployer opens after a deploy joins the Worker's module through the changed cell, so
+it was run on the built `verify.html`, 21:29:36:
+`BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-page --shell $W/tools/cloud-brain/.emitted/verify.html --times 3`
+
+```
+{"worker":"brain-x-page","runs":3,"passed":3,"failed":0,"none":0,"from":["brain"],"hashes":["2d5bfe692895"],"byChance":[],"everyTime":[],…,"exit":0}
+```
+
+Each run: `tests` 23 of `@tomlarkworthy/cloud-brain`, which imports `brainJoined` from the shell,
+and 9 of the shell's own beside them. `from` is `brain`: the module was the deployed one, joined
+by the built shell. Other Workers were not run this way.
+
+That no Worker's module is built from another text than before:
+`git diff 4af860c8 HEAD --stat -- 'tools/cloud-brain/*.ojs'` names `brain-shell.ojs` alone.
 
 The new test cannot be run against the seed before: `wantedOf` is not a cell there. What was run
 without the fix is the click on the shell of HEAD's seed, above.
