@@ -180,9 +180,11 @@ review 1456); nothing on cb4.
 ## Part two, 2026-10-11: four children made on cb4, and the two R6 checks (issue `ta-1b-agent-token-on-cb4`)
 
 The owner's `A` is event 1942; the parent `loop-agents` was made by the orchestrating session on
-his word (comment 1954). Everything below was run 2026-10-11 from 20:51:46 to 20:52:41 CEST
+his word (comment 1954). Every call to cb4 below was made 2026-10-11 from 20:51:46 to 20:52:41 CEST
 (`date` before the first command and after the last), with `issue-as.sh` of the main checkout and
 `brain.ts` of the worktree on the main checkout's state (`BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted`).
+The two runs of `bun test` under "fails before" were made before those calls, the same evening, and
+their times were not written down.
 
 Four children were made and all four are revoked. The writes are the ones the spec's R6 rows
 list, made with children of `loop-agents` and no role token; the issue's own moves and comments
@@ -276,8 +278,10 @@ r6-check-project-ta-1b  closed  8 events  1988..1995  the same three
 ```
 
 Each event's `by.holder` is `secret:<the child's name>` and each child has a `via` of its own:
-the first events on cb4 with the shape R1 asks for. `sync?after=1971` (24 events, to 1995) has 0
-with `secret:loop-agents`: the parent wrote nothing. `issue.verify?guards=true` after the last
+the first events on cb4 with the shape R1 asks for. The whole record, read at event 2052 with
+`sync?after=` page by page (200 events a page) and each `by.holder` matched against
+`secret:(impl|rev|orch|spec|over|dig|out)-[0-9a-f]{6}`: 16 events, all of 1980 to 1995, none
+before and none after; 0 of the 2052 have `secret:loop-agents`, so the parent wrote nothing. `issue.verify?guards=true` after the last
 event: `{"ok":true,"seq":1997,…,"checked":1997,"guards":true}`.
 
 Then each of the three answered `policy` with 200, was revoked (401 on read 1, exit 0), and
