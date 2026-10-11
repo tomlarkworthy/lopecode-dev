@@ -85,9 +85,10 @@ bun test                                                                        
 The first line is `brain.ts` before the change. Four of its six failures are the defect
 (`Expected: "bbbb…" Received: "aaaa…"` for `deployed`, `probation`, `verified`, `failing`); two are
 the new lines not printed. The five new cases that pass before the change are the ones that
-assert nothing is written. The one failure of the last line is in `sync-module.test.ts`
-("ordering applies to blocks a module reads off the DOM"), which reads no file of this change;
-the same file gives 6 pass, 0 fail in the main checkout, where the notebooks are not links.
+assert nothing is written. The one failure of the last line is `preflight.test.ts:66`
+("ordering applies to blocks a module reads off the DOM, not just its loader map"), which reads no
+file of this change. It fails in the main checkout too. (Corrected in round 2, below: this
+paragraph first named another file and gave a cause.)
 
 My first run of the four cases failed on a pattern of mine (two spaces after `->` in the printed
 row), not on the defect. The counts above are after that was corrected.
@@ -106,3 +107,52 @@ row), not on the defect. The counts above are after that was corrected.
   The deployer's code makes neither.
 - With `BRAIN_STATE_DIR`, `seen.json` is still the one beside the script that ran: a worktree's
   `brain.ts` writes the worktree's file. That is so for `apply` too and was not changed.
+
+## Round 2, 2026-10-11: two statements of round 1 corrected
+
+The review (event 452, verdict `changes`) found two untrue statements and no fault in the code or
+its tests. No line of `brain.ts` or `brain-seen.test.ts` changed in this round.
+
+**The failing test of `tests/tools`.** Round 1 wrote that the one failure of `bun test` there was
+in `sync-module.test.ts`, and that the file passed in the main checkout "where the notebooks are
+not links". Both were wrong. Run by me at 1d060dce, 2026-10-11 11:20 CEST:
+
+```
+main checkout  cd tests/tools && bun test          ->  86 pass, 1 fail   preflight.test.ts:66
+main checkout  bun test preflight.test.ts          ->  17 pass, 1 fail
+main checkout  bun test sync-module.test.ts        ->   6 pass, 0 fail
+worktree       cd tests/tools && bun test          ->  86 pass, 1 fail   the same test
+```
+
+The test is "ordering applies to blocks a module reads off the DOM, not just its loader map". It
+fails the same way in both places, so a worktree's links are not its cause. Its cause was not
+looked for here: `preflight.test.ts` and `tools/lope-preflight.ts` last changed in 82e1f42d
+(2026-09-21), and the reviewer filed it as `preflight-ordering-test-fails-on-main`. How round 1
+came to name the other file is not known; the name was not read from the output of a run kept
+anywhere.
+
+**The `redistil` row of the knowledge doc.** It said that before the change `saw` read `MOVED`
+"for every swept Worker". `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts saw`, 2026-10-11 11:20
+CEST: 6 `MOVED`, the six listed in round 1. The sweep moved 18 of 20 (event 375), and 8 Workers
+read `none`: a Worker with no entry has nothing to differ from. The row now says "a swept Worker
+that had an entry", with the count. Which 12 of the 18 read no `MOVED`, by having no entry or by
+an `apply` after the sweep, was not worked out.
+
+### Tests
+
+`tests/tools/redistil-record-statements.test.ts`, 2 cases, reads the row and this record. Before
+the two edits: 0 pass, 2 fail. After, in the worktree, `cd tests/tools`:
+
+```
+bun test redistil-record-statements.test.ts brain-seen.test.ts brain-cli.test.ts brain-confirm-names-a-worker.test.ts  ->  28 pass, 0 fail
+bun test                                                                                                              ->  88 pass, 1 fail
+```
+
+The one failure is the preflight test above.
+
+### Not tried
+
+- Everything round 1 lists is still not tried: no `redistil --apply` on cb4, and the six stale
+  entries are not cleared (ticket `seen-seen-json-behind-after-sweep`).
+- The knowledge doc is an entry of the Brain's search (`knowledge-docs.ts put --stale`); it was not
+  entered again after this edit.
