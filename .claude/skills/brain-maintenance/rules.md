@@ -50,7 +50,7 @@ asks for anything in "Never" below is commented on and left for the owner.
   `loop-removes-needs-owner`: "yes if the answer becomes clear from philosophy, or the owner has
   commented on the issue and clarified.") The removal follows a comment that names the event
   that put the label on and what ended its reason: the line of `philosophy.md`, or the owner's
-  comment. The owner's word to a session is written on the issue as a comment first, quoted.
+  comment.
 - Submit, or record a `pass`, without a test count from a run you made yourself.
 
 ## Always
