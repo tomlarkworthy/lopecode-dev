@@ -205,16 +205,33 @@ Rounds 1 and 2 of this section said three: `a216c74` was left out, an implemente
 `snapshot-digest-test-fails-by-chance` whose run had stopped and which the orchestrator sent to at
 12:03:03Z ("You stopped at about 12:35 CEST waiting on two probe arms"). That was not a rework
 round and has no `cost` line with `resumed`, which is how the first count missed it; review 1122
-found it. The list is from the answers to the sends, not from the `cost` lines:
+found it. The list is from the answers to the sends, not from the `cost` lines. Each answer is
+matched to its `SendMessage` call by the call's id, so a tool result that only quotes the words
+"Resuming agent" is not counted (the command is review 1183's; run 18:27 CEST):
 
 ```
-jq -c 'select(.type=="user")|.timestamp as $t|.message.content[]?|select(type=="object" and .type=="tool_result")|(.content|tostring)|select(test("Resuming agent"))|[$t,(capture("Resuming agent (?<a>[0-9a-f]+)").a)]' $A.jsonl      (18:05 CEST, the lines before 14:32Z)
-["2026-10-11T12:03:03.926Z","a216c74"] ["2026-10-11T14:18:14.386Z","a89422c"] ["2026-10-11T14:31:14.412Z","ab2bb0b"] ["2026-10-11T14:31:36.018Z","a48b041"]
+jq -c 'select(.type=="assistant")|.message.content[]?|select(type=="object" and .type=="tool_use" and .name=="SendMessage")|[.id,.input.to]' $A.jsonl > sends.json
+jq -c --slurpfile s sends.json 'select(.type=="user")|.timestamp as $t|.message.content[]?|select(type=="object" and .type=="tool_result")|. as $r|($s[]|select(.[0]==$r.tool_use_id)) as $m|[$t,$m[1][0:7],($r.content|tostring|if test("Resuming agent") then "resumed" else "queued" end)]' $A.jsonl | grep -v '"queued"'
+
+["2026-10-11T12:03:03.926Z","a216c74","resumed"]
+["2026-10-11T14:18:14.386Z","a89422c","resumed"]
+["2026-10-11T14:31:14.412Z","ab2bb0b","resumed"]
+["2026-10-11T14:31:36.018Z","a48b041","resumed"]
+["2026-10-11T14:37:27.231Z","ab2bb0b","resumed"]
+["2026-10-11T15:52:12.278Z","a80fa84","resumed"]
+["2026-10-11T15:57:22.249Z","a873aa0","resumed"]
+["2026-10-11T16:05:11.999Z","a873aa0","resumed"]
+["2026-10-11T16:09:06.100Z","a4b8bbd","resumed"]
+["2026-10-11T16:15:09.339Z","a0be5db","resumed"]
+["2026-10-11T16:26:51.440Z","a873aa0","resumed"]
 ```
 
-A fifth line, at 13:56:36Z, is a tool result that quotes the words and has no agent. After 14:32Z
-there are sends to `ab2bb0b` again, `a80fa84`, `a48b041` again, `a873aa0` and `a216c74` again, to
-18:05 CEST; none of those is measured here.
+The first four are the ones before 14:32Z. The seven after are to `ab2bb0b` again, `a80fa84`,
+`a873aa0` three times, `a4b8bbd` and `a0be5db`; none of those is measured here. `a48b041` and
+`a216c74` were not sent to again. Round 3 of this section said they were: its command tested every
+tool result for the words, and two of the lines it found were the printed reports of the reviewers
+of this issue (reviews 1090 and 1122), which quote them. Five other sends that day were answered
+"Message queued for delivery", to an agent still running, and are not resumes.
 
 ```
 agent     last request      first after the send   gap      first request: cache written / read

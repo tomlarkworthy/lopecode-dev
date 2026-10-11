@@ -97,8 +97,8 @@ usage a216c7469a0554062 2026-10-11T12:03:03      18:05 CEST
 {"from":"2026-10-11T12:03:08.236Z",…,"requests":18,"cache_creation":136801,"cache_read":2257271,"output":14107,"first":[114548,6267]}
 ```
 
-Not tried: the sends after 14:32Z (five, two of them to this agent's own id `a873aa0`) were not
-measured. `SKILL.md`, "on the one resume tried (2026-10-11, an agent that had answered "OK" with
+Not tried: the sends after 14:32Z were not measured. (This line said "five, two of them to this
+agent's own id `a873aa0`"; that count was wrong, round 4 below.) `SKILL.md`, "on the one resume tried (2026-10-11, an agent that had answered "OK" with
 no tool call)", may be another resume again. Which session made it is not known to me; it was not
 looked for in this session's transcript.
 
@@ -111,3 +111,27 @@ bun test ./tests/tools                                           182 pass, 0 fai
 
 A first run of the change gave 8 pass, 1 fail: the new sentence of `SKILL.md` ended "is not
 known", which round 1's test forbids in that section. It now ends "has not been found".
+
+## Round 4, 2026-10-11
+
+Sent back by review 1183 (the `rework` move is event 1184, 18:17:28 CEST). Resumed again.
+
+Round 3 named five sends after 14:32Z, two of them to `a48b041` and `a216c74` "again". Neither
+was sent to again. The command I gave tested every tool result for the words "Resuming agent",
+and two of its lines were the printed reports of reviews 1090 and 1122 of this issue, which quote
+them. I had set one such line aside (13:56:36Z) and took those two as sends.
+
+The section now has review 1183's command, which matches each answer to its `SendMessage` call
+by id, and its eleven lines as run at 18:27 CEST: four before 14:32Z, as the table has them, and
+seven after (`ab2bb0b`, `a80fa84`, `a873aa0` three times, `a4b8bbd`, `a0be5db`). To 18:05 CEST,
+the bound round 3 gave, that is the four the review names. The sentence names all seven because
+the output quoted has them. `SKILL.md` is not changed.
+
+```
+bun test ./tests/tools/rework-resumes-the-implementer.test.ts    in the worktree, 2026-10-11 18:28 CEST
+  with the section as on main (git stash of it)                   8 pass, 1 fail
+  with the change                                                 9 pass, 0 fail, 49 expect() calls
+bun test ./tests/tools                                           189 pass, 0 fail, 22 files
+```
+
+No count is added in this round but the list above. Not tried: as round 3.
