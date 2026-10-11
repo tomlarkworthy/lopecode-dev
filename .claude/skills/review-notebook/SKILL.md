@@ -167,3 +167,6 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   (3 confirmed, 4 plausible) and 1 aside, all taken (lopecode-dev `93018451`). 127k subagent tokens, 8m05s. It asked cb4 for the counts and the 30
   searches again and they held. What the author had not seen: the copies kept to put an entry back from would have been written in a writer's
   worktree, which is removed at landing, and `text` run again would have kept a summarized entry as the text as entered.
+- 2026-10-11 `plan/cloud-brain-i1842.md` (the spec of the Operator's own tab, first writing): FIX, 7 findings (6 confirmed, 1 plausible),
+  all taken (lopecode-dev `0a26c20a`). 92k subagent tokens, 4m04s. What the author had not seen: the check that closes the project piped
+  a page into `lope-reader.ts`, which reads no stdin, and the pairing check opened a layout that still had the pane the spec removes.
