@@ -47,7 +47,7 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
   rule, charges the price, writes one log line, then forwards to the service.
 - **Services** (`<base>-x-NAME`, notebook module `@tomlarkworthy/brain-NAME`): browser, logs, proxy,
   bluesky, whatsapp, blob, feed, library, static, inbox, snapshot (a daily record of
-  public feeds at `/static/snapshot/<day>/`; it makes no model call), knowledge (what the Brain
+  public feeds at `/static/snapshot/<day>/`; it makes no model call, and since 2026-10-11 a run opens the task `digest-<day>` in the tracker), knowledge (what the Brain
   knows: entries with their source, kept file and who entered them, in a D1 database of its own,
   `knowledge.search?q=` by words and `&semantic=true` by meaning, one vector an entry in one Vectorize index; a put
   to the library enters a card for each module that has none, and marks a kept card `staleSince` when the notebook's copy differs;

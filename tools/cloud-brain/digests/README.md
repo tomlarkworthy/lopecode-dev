@@ -56,7 +56,12 @@ JavaScript or WASM build of that engine was found in its Hugging Face repository
   this machine.
 - A rule for what a digest may claim: each number from a stored summary or a page fetched that day,
   title-only items marked. Today that rule is in the prompt.
-- A trigger after the snapshot's daily run, and a way to send the DM as the Brain.
+- A trigger after the snapshot's daily run. **Built 2026-10-11:** the run opens a task in the Brain's
+  tracker, `digest-<day>`, labeled `digest` (`brain-snapshot.ojs`; record in
+  `tools/cloud-brain/records/snapshot-opens-digest-issue.md`). The issue loop has a brief for it,
+  `.claude/skills/brain-maintenance/agents/digest.md`. The task waits until a session runs the loop.
+- A way to send the DM as the Brain. The loop's rules forbid a Bluesky message.
+- A caller other than the owner's session that may publish: `library.put` is `caller.session`, fixed.
 - Something that reads past digests' `picks` back. Until then "self improve" is a person reading
   the backlog section of each digest.
 
