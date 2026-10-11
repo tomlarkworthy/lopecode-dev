@@ -47,7 +47,7 @@ would otherwise guess.
 
 `tests/tools/issue-as-body-file.test.ts`, seven tests, with the real curl against a local server
 that keeps the bytes of each request (the rig of `tool-status-stderr.test.ts`). Run in the worktree
-at 20:15 CEST (`date`), curl 8.7.1, `getconf ARG_MAX` 1048576:
+between 20:18:03 and 20:18:57 CEST (`date` before the first and after the third), curl 8.7.1, `getconf ARG_MAX` 1048576:
 
 | Command | Result |
 |---|---|
@@ -77,8 +77,7 @@ What the seven hold:
 ### On cb4
 
 Not called on cb4 before the landing: the script reads its tokens beside itself, and a worktree's
-`.emitted/` has none. The round's comment on the issue is sent after the landing as
-`ia comment @<file>`, from a file with apostrophes and newlines, and says what the tracker answered.
+`.emitted/` has none.
 
 ### Not tried
 
@@ -89,8 +88,9 @@ Not called on cb4 before the landing: the script reads its tokens beside itself,
 - A file that is not UTF-8, through the script. In python alone, `json.loads(open(f, encoding="utf-8").read())`
   on a file that begins `\xff\xfe` raises `UnicodeDecodeError`, which is a `ValueError`: the check
   would pass it, as it passes text that is not JSON, and curl would send it.
-- `brain.ts curl`: the issue says it is not known whether a writer met the same there. Not looked at.
-  It passes its arguments to curl, so `-d @file` and `--data-binary @file` are curl's own there.
+- `brain.ts curl`: the issue says it is not known whether a writer met the same there. No call made.
+  `brain.ts` line 567 spawns curl with the caller's arguments spread into the list (`...rest`), so a
+  `--data-binary @file` given there is curl's own; that was read, not run.
 - The other briefs that name the helper (`agents/digest.md`, `agents/overseer.md`, `agents/spec.md`,
   the reviewer's on the Brain) were not edited: the issue names the implementer's alone, and the
   reviewer's is the overseer's to put.
