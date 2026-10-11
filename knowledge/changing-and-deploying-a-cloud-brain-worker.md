@@ -58,7 +58,7 @@ The other pages are listed in that file, which is read first.
    and prints each verdict with the tests that ran beside it, by module. Exit 1: a test passed and failed on one
    hash, or a module other than brain-shell and the Worker's ran a test, which is every run of `/` until
    `shell/verify.html` is served (132 other tests in 95 of 95 runs, 2026-10-11); exit 2: a run failed or gave no
-   verdict. `--shell` puts a built file in the document's place; a file that holds the Worker's module (a whole build) is served with its boot list cut to brain-shell and that module, so the build's module is what runs (since 2026-10-11, `records/verify-run-shell-runs-deployed.md`). `tools/cloud-brain/records/dv-1-verify-run-tool.md`.
+   verdict. `--shell` puts a built file in the document's place; a file that holds the Worker's module (a whole build) is served with its boot list cut to brain-shell and that module, and the page's `getSource` requests are aborted, so the build's module is what runs and is not written over (since 2026-10-11, `records/verify-run-shell-runs-deployed.md`). `tools/cloud-brain/records/dv-1-verify-run-tool.md`.
 5. Update the as-built record and the backlog in the same change.
 6. Run `/review-notebook` on what changed. The two logging reviews on 2026-10-08 found 15 real
    defects the authoring session had not seen.

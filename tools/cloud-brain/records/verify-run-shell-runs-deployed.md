@@ -59,7 +59,8 @@ case 3 it reads the deployed number on a run that tested the build.
 - `tools/cloud-brain/verify-run.ts`: `shellDocument(html, module)`. A file that holds a block of
   the Worker's module is served with `bootconf.json`'s `mains` set to brain-shell and that
   module (`verifyShell` of `verify-shell.ts`, which now takes the list); every other block is as
-  it was. The page's module is then not booted, brain-shell leaves alone a module the file holds
+  it was. The page's module is then not booted (false for `brain-x-page`, whose module it is:
+  round 2), brain-shell leaves alone a module the file holds
   (`joinModules`, "A module whose block the file itself holds is left alone"), and what the module
   imports comes from the file. A file with no block of the module (`verify.html`) is served as it
   was. The start line has `mains`, the list or null.
@@ -75,7 +76,7 @@ that says which module ran, because the cause was not known. With the cause know
 boot list is the same size, is undone by reverting one function, and gives the writer the count
 step 8 asks for before the deploy; `from` and exit 3 are kept as the check on it. `from` reads
 whose block the module has. It does not see a cell written over afterwards, which is what the
-cut prevents.
+cut prevents (for `brain-x-page` it does not: round 2).
 
 ### The tests
 
@@ -109,3 +110,56 @@ start line's `mains`; what `otherModules` read there was not looked at.
   `dv-3-deployer-opens-verify-html`. A test that fails only in that company is not met here.
 - `assembled` and `brainVerdict` on the owner's own page, where both still run: the owner's page
   holds the deployed modules, so `loadService` finds them the same and writes nothing. Not run.
+
+## Round 2, 2026-10-11
+
+Review 1250, one finding: for `brain-x-page` the cut does not do what round 1 said. That Worker's
+module is `@tomlarkworthy/cloud-brain`, the module that holds `assembled`, so the cut keeps it a
+main, `assembled` runs, and `loadService("brain-x-page")` writes the Worker's source over the
+build's copy, 58 to 165 ms after the verdict in the reviewer's 8 runs, with `from`
+`["document"]` and exit 0. Round 1 had seen this replacement with the whole build (case 2 of the
+table above) and did not look for it after the cut. A build of `cloud-brain` with slower tests
+would be case 1 again.
+
+### What changed
+
+`verify-run.ts`, `routes(page, base, body, cut)`: for a file that holds the module, the page's
+requests to `/xrpc/com.lopecode.brain.getSource` are aborted, and a run's line has `refused`,
+their count when the verdict was read. `getSource` is the one call by which `loadService` learns
+what a Worker runs; with no answer it throws, `assembled` keeps the row as `not loaded`, and
+nothing is written. brain-shell's verdict asks `getInfo` and the deployer's `getModules`, which
+are answered as before. A file without the module is served with no abort.
+
+Two sides (the review names both; `philosophy.md` line 2 and the clarification of 2026-10-10, a
+check is moved to where it runs alone). Keeping `assembled` from loading at a run address is a
+change to `cloud-brain.ojs` and a deploy of `brain-x-page`; it is the one that would also hold on
+the owner's page, and is left with `seen-assembled-races-verdict`. Having the tool see a replaced
+cell and exit 3 was not taken: the replacement usually comes after the verdict, where it harms
+nothing, so the exit would depend on which came first. The abort is in the tool, removes the
+writer for every Worker's module, and is one route.
+
+### The tests
+
+Each by the command beside it, in the worktree, after the last change. The build is one that adds
+one test to `cloud-brain.ojs` (20 tests; cb4 ran `brain-x-page` with 19).
+
+| command | result |
+|---|---|
+| `bun test ./tests/tools/verify-run.test.ts` | 18 pass, 0 fail. The stand-in's build now asks `getSource` and, when answered, adds a test to the module before the verdict. |
+| the same against a copy of the tool with the abort's `if (cut)` made `if (false)` | 17 pass, 1 fail: `tests` 3 where 2 are the file's |
+| the reviewer's `probe-race.ts` (the cut alone), 3 runs | changed in 3 of 3, 20 tests to 19, 49 to 93 ms after the verdict |
+| `probe-race-routes.ts` (attached: the same probe with `routes` of the tool, kept open 10 s after the verdict), 8 runs from 16:42:50 UTC | changed in 0 of 8; `refused` 1 and `testsAtVerdict` 20 in each |
+| `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-page --shell <that build> --times 20`, 16:44:29 to 16:44:51 UTC | 20 of 20, `tests` 20, `from` `["document"]`, `refused` 0 or 1 a run, exit 0 |
+| the same for `brain-x-issues`, 16:44:52 to 16:45:20 UTC | 20 of 20, `tests` 27, `refused` 0, exit 0 |
+| `… brain-x-issues --shell .emitted/verify.html --times 1` | `mains` null, no `refused`, `from` `["brain"]`, passed |
+| `bun test ./tests/tools` | 195 pass, 0 fail, 23 files |
+
+### Not tried
+
+- A build of `cloud-brain` whose tests run long enough for the overwrite to have come before the
+  verdict without the abort. None was built; the stand-in test is that case.
+- A test of the module under test that itself needs a real answer to `getSource` from cb4. No
+  test of `cloud-brain.ojs` or `brain-issues.ojs` failed for want of one in the 40 runs above.
+- What `assembled` does after the abort beyond leaving the module alone for 10 s: the row it
+  draws, and whether it asks again (`seen-assembled-asks-again-in-a-loop`; `refused` was 1 at
+  10 s in 8 of 8).

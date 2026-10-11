@@ -118,7 +118,10 @@ const build = (more = "") => ["<!doctype html><html><head>", block("bootconf.jso
   for (const m of mains) if (m !== "@t/w" && m !== "${SHELL}") for (let i = 0; i < 3; i++) add("test_" + i, m);
   add("test_a", "@t/w"); add("test_b", "@t/w");
   window.__ojs_runtime = { mains: mods, _variables: vars };
-  fetch("/next").then((r) => r.json()).then((v) => setTimeout(() => (window.__brainVerdict = v), 20));
+  // As cloud-brain's loadService: the page asks what the Worker runs and, when answered, writes it over its copy
+  // of the module, before the verdict. (Review 1250: the cut keeps cloud-brain a main when it is the module.)
+  fetch("/xrpc/com.lopecode.brain.getSource?worker=brain-x-w").then((r) => r.ok && r.json()).then((s) => s && s.text && add("test_written_over", "@t/w"), () => null)
+    .then(() => fetch("/next")).then((r) => r.json()).then((v) => setTimeout(() => (window.__brainVerdict = v), 20));
 </scr` + `ipt></head></html>`].join("\n");
 
 test("--shell: a file that holds the module is served with the boot list cut to brain-shell and the module", () => {
@@ -166,6 +169,7 @@ const rig = (ends: boolean[]) => {
     asked.push(url.pathname);
     if (url.pathname === "/.well-known/did.json") return Response.json({ service: [{ id: "#deployer", serviceEndpoint: url.origin + "/deployer" }] });
     if (url.pathname === "/deployer/xrpc/com.lopecode.brain.infra.getModules") return Response.json({ modules: [{ module: "@t/other", worker: "brain-x-other", hash: H2 }, { module: M, worker: "brain-x-w", hash: H1 }] });
+    if (url.pathname === "/xrpc/com.lopecode.brain.getSource") return Response.json({ worker: "brain-x-w", module: M, hash: H1, text: "what the Worker runs" });
     if (url.pathname === "/next") {
       const ok = ends[call++ % ends.length];
       return Response.json({ worker: "brain-x-w", module: M, hash: H1, ok, tests: 2, failed: ok ? [] : [{ name: "test_b", message: "Expected one line" }], otherTestsRan: 9, ms: 5 });
@@ -238,6 +242,9 @@ test("in a browser: a whole build as --shell boots the module and brain-shell, n
     expect(runs.map((x: any) => [x.ok, x.tests, x.from, x.ran])).toEqual([[true, 2, "document", { [M]: 2 }], [true, 2, "document", { [M]: 2 }]]);
     expect(summary).toMatchObject({ runs: 2, passed: 2, failed: 0, from: ["document"], notTheFiles: 0, otherModules: {}, exit: 0 });
     expect(code).toBe(0);
+    // The page asked what the Worker runs, once a run, and was not answered: its copy of the module was not written over.
+    expect(runs.map((x: any) => x.refused)).toEqual([1, 1]);
+    expect(r.asked.includes("/xrpc/com.lopecode.brain.getSource")).toBe(false);
     // The module's block is another's text on the page (a join's): the runs are not of the file's module.
     writeFileSync(file, build("data-brain"));
     const other = await r.run("brain-x-w", "--times", "2", "--shell", file);

@@ -132,7 +132,10 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    `cd <root> && BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts <worker> --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20`.
    It opens the deployer's run address 20 times with your build as the document, and reads only.
    The tool serves a build with its boot list cut to brain-shell and the Worker's module (`mains`
-   in its first line), so your build's module runs, as the deployer's page runs a deployed one.
+   in its first line) and answers no `getSource` of the page (`refused` in a run's line: the
+   page's module reads what a Worker runs by it and writes that over the build's copy; for
+   `brain-x-page` the cut keeps that module, and the abort is what stops it), so your build's
+   module runs, as the deployer's page runs a deployed one.
    Read `mains` in the first line and `from` in the last: a list, and `["document"]`, say the
    module of each run was your build's, and `tests` of a run then equals step 7's `passed + needsBrowser`. A `from` that
    names `brain`, or exit 3, says it was not: the 20 say nothing of your change, pass or fail.

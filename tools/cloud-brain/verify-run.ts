@@ -9,10 +9,13 @@
 //
 // --shell FILE   answer the document at BASE/ with this file; every other request goes to the Brain.
 //                A file that holds the Worker's module (a whole build, .emitted/cloud-brain.html) is served with its
-//                boot list cut to brain-shell and that module, so the file's module is what runs. Served as it is,
-//                the page's own module (cloud-brain, `assembled`) writes what the Worker runs over the file's copy
-//                while the tests run. A file without the module (.emitted/verify.html) is served as it is, and
-//                brain-shell joins the module the Worker runs. The start line's `mains` is the list, or null.
+//                boot list cut to brain-shell and that module, and the page's requests for getSource are aborted
+//                (`refused` in a run's line), so the file's module is what runs. Served as it is, the page's own
+//                module (cloud-brain, `assembled`) reads what each Worker runs with getSource and writes it over
+//                the file's copy while the tests run. The cut alone does not stop that for brain-x-page, whose
+//                module is cloud-brain itself: it is the abort that does. A file without the module
+//                (.emitted/verify.html) is served as it is, with no abort, and brain-shell joins the module the
+//                Worker runs. The start line's `mains` is the list, or null.
 // --base         cb4 (the default, or BRAIN_BASE), or a whole address.
 // --timeout      how long one run waits for a verdict, 150 s by default.
 // CHROME=path    another Chrome than Playwright's own. With none, and Playwright's own build not installed, the
@@ -21,7 +24,8 @@
 // stdout: one line of JSON for the start, one a run, one summary. A run's `ran` is the test_ cells that had a
 // value when the verdict was read, by module. `from` is whose text the module's block on the page is: "document"
 // (the file's own), "brain" (joined by brain-shell: what the Worker runs), null (no block). The summary's `from`
-// is each one seen.
+// is each one seen. `from` reads the block, not the cells: it does not see a cell written over after the
+// module was defined. What keeps the cells the file's is the abort above.
 // Exit 3: --shell named a file that holds the Worker's module and a run's module was not the file's. The runs say
 //         nothing of the file's module, whatever they count.
 // Exit 1: a test passed and failed on one hash, or a module other than brain-shell and the Worker's ran a test.
@@ -46,6 +50,7 @@ export type Run = {
   failed?: { name: string; message?: string }[];
   ran?: Record<string, number>; // module -> test_ cells that had a value
   from?: "document" | "brain" | null; // whose text the module's block is
+  refused?: number; // getSource requests of the page that were aborted (a file that holds the module)
   otherTestsRan?: number | null;
   ms?: number | null; // the verdict's own time
   wall?: number; // goto to verdict
@@ -85,6 +90,17 @@ export function shellDocument(html: string, module: string): { body: string; mai
   if (!findSpan(html, module)) return { body: html, mains: null };
   const mains = [...new Set([...VERIFY_MAINS, module])];
   return { body: verifyShell(html, mains), mains };
+}
+
+// What the page of a run is answered: the file in the document's place, and, when the file holds the module
+// (cut), no answer to getSource, which is how a page learns what a Worker runs to write it over its own copy
+// (cloud-brain.ojs, loadService). The count of those is the returned object's `refused`.
+export const isGetSource = (url: URL) => url.pathname === "/xrpc/com.lopecode.brain.getSource";
+export async function routes(page: any, base: string, body: string | null, cut: boolean) {
+  const seen = { refused: 0 };
+  if (body != null) await page.route((url: URL) => url.origin + url.pathname === base + "/", (route: any) => (route.request().resourceType() === "document" ? route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body }) : route.continue()));
+  if (cut) await page.route(isGetSource, (route: any) => (seen.refused++, route.abort()));
+  return seen;
 }
 
 const median = (xs: (number | null | undefined)[]) => {
@@ -179,14 +195,14 @@ async function main() {
       const context = await browser.newContext(), page = await context.newPage();
       const errors: string[] = [];
       page.on("pageerror", (e) => errors.push(String(e).slice(0, 160)));
-      if (body != null) await page.route((url) => url.origin + url.pathname === base + "/", (route) => (route.request().resourceType() === "document" ? route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body }) : route.continue()));
+      const seen = await routes(page, base, body, !!mains);
       const t0 = Date.now();
       let run: Run;
       try {
         await page.goto(address, { waitUntil: "load" });
         const got: any = await (await page.waitForFunction(read, null, { timeout: timeout * 1000 })).jsonValue();
         const v = got.verdict;
-        run = { hash: v.hash ?? null, ok: v.ok, none: v.none, names: got.names, failed: (v.failed || []).map((f: any) => ({ name: String(f.name), message: String(f.message || "") })), ran: got.ran, from: got.from ?? null, otherTestsRan: v.otherTestsRan ?? null, ms: v.ms ?? null, wall: Date.now() - t0, heapMB: got.heapMB ?? null, variables: got.variables ?? null };
+        run = { hash: v.hash ?? null, ok: v.ok, none: v.none, names: got.names, failed: (v.failed || []).map((f: any) => ({ name: String(f.name), message: String(f.message || "") })), ran: got.ran, from: got.from ?? null, ...(mains ? { refused: seen.refused } : {}), otherTestsRan: v.otherTestsRan ?? null, ms: v.ms ?? null, wall: Date.now() - t0, heapMB: got.heapMB ?? null, variables: got.variables ?? null };
       } catch (e: any) {
         run = { none: "no verdict: " + String(e.message || e).split("\n")[0].slice(0, 200), wall: Date.now() - t0 };
       }
