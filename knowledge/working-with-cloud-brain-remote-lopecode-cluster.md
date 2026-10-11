@@ -163,16 +163,15 @@ brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
 4. Deploy under the lock: `mkdir tools/cloud-brain/.emitted/cb4.lock`, `apply … --reason="why"`, remove the lock.
    Nothing enforces it. It is the agreement between agents in this checkout: if the directory is
    there, another one is deploying; wait.
-   Until cb4 runs the deployer written 2026-10-10 (`0a0fd674`): core and page go on probation and are put back after 10 minutes
-   unless confirmed, so run `brain.ts confirm <worker>` about a minute after applying either (2026-10-09: an
-   applied page was put back, "not confirmed in 10 minutes"). `confirm` takes one Worker's name and exits 1
-   without it.
-   Once cb4 runs that deployer: every Worker with a version before it goes on probation, the deployer runs its
-   tests in the Brain's browser inside the apply, and the result's state is `verified`, `put-back` or `probation`
-   (no verdict). Confirm by hand only on `probation`, after reading `deploy.verify.none` in the logs for why
-   there was no verdict; the kernel always needs it. A second apply of a Worker on probation is refused;
-   `apply --over-unverified` (recovery key) goes over it. See "A deploy is verified by the deployer" in
-   `brain-deployer.ojs`.
+   Since 2026-10-11 07:51 CEST on cb4: every Worker with a version before it goes on probation, the deployer
+   runs its tests in the Brain's browser inside the apply (20 to 55 s an apply that morning), and the result's
+   state is `verified`, `put-back` (its tests failed; `reason` names them) or `probation` (no verdict).
+   Nothing to do on `verified`. On `probation`, read `deploy.verify.none` in the logs for why there was no
+   verdict, then `brain.ts confirm <worker>` within 10 minutes or it is put back; `confirm` takes one name and
+   exits 1 without it. The kernel has no run and always needs `brain.ts confirm brain`. A second apply of a
+   Worker on probation is refused; `apply --over-unverified` (recovery key) goes over it. An apply of a record
+   older than the Worker's last change is not sent ("emitted before … last changed"): emit again. See "A deploy
+   is verified by the deployer" in `brain-deployer.ojs` and `tools/cloud-brain/records/deploy-verification.md`.
    `NAME.json` is written by emitting in a tab: `(await module.value("NAME_service")).emit()`, posted to
    `http://127.0.0.1:47814/NAME.json`, which `bun tools/cloud-brain/test-receiver.ts` saves in `.emitted/`.
    `redistil --apply` does not do this: it distils again the source the deployer already keeps. It is for after

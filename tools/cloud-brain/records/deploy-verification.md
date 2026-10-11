@@ -1,9 +1,10 @@
-# Deploy verification: built, not deployed
+# Deploy verification: built 2026-10-10, on cb4 since 2026-10-11
 
 Spec: `plan/specs/deploy-verification.html`, approved by Tom 2026-10-10 ("yes approved, please build it").
 Built 2026-10-10, the evening to 23:56 CEST, by one Claude session while Tom slept.
 Commits in lopecode-dev: `31310a3b` (page and shell), `0a0fd674` (deployer, core, CLI), and the one that adds
-this file (review fixes). **Nothing here is on cb4.** No Worker, shell or deployer was deployed.
+this file (review fixes). On 2026-10-10 nothing was deployed. On 2026-10-11 Tom said "you can fix all those things, deploy to cb4";
+the section "On cb4" at the end is that morning.
 
 ## What changed
 
@@ -86,15 +87,64 @@ One fresh agent (opus, no context), 2026-10-10: BLOCK, 7 findings and 4 minor.
 | minor: redistil with apply awaits a run a Worker | True. See the order below. |
 | minor: no assertion of R3 for redistil | Not added. |
 
-## To put it on cb4 (Tom)
+## On cb4, 2026-10-11
 
-1. `brain.ts shell` posts `.emitted/shell.html`. The page that cb4 runs today works with the new shell.
-2. `install-deployer`, then apply `core.json` at once. The core cb4 runs today answers 402 to the deployer's
-   purchase, so every run before the new core gives `deploy.verify.none` and the Worker stays on probation. The
-   core's own run is one of those: `brain.ts confirm brain-core` within 10 minutes.
-3. Apply `page.json`. Expect `verified`.
-4. `redistil --apply`: the deployer's hash moved, so every Worker is distilled and deployed again, each with a
-   run. 19 runs at 2 to 12 s plus the deploys, in one request: several minutes. The kernel comes back
-   `probation`: `brain.ts confirm brain`.
-5. The spec's checks: three `browser.run` verdicts read from `logs.query` (`deploy.verify`, `deploy.verified`),
-   a recipe applied twice (the second is refused or `verified` first), a failing test put back.
+Tom, 07:40: "you can fix all those things, deploy to cb4". Commits `44f9e5d0`, `316af301` and the one that adds
+this section. Times are CEST, from `date` around each command and from the logs (`logs.query`, `at` includes
+`deploy.`).
+
+Fixed first, from the lists above: the kernel no longer passes `infra.confirm` for a link's token; Services
+words a put-back by its reason (`cloudflare-iac.ojs`); `infra.getModules` leaves out removed Workers (40 rows to
+22 on cb4); one constant for the 10 minutes; the three tests that replaced `console.log` no longer put it back,
+and two of the 30 failing tests pass (`test_a_version_put_back_gets_a_token_that_works`,
+`test_one_log_line_a_call_with_these_keys_and_no_secret`). A second fresh review of that change: BLOCK, 2
+findings and 1 beside them, all prose, all fixed (`/llms.txt` told a program to POST `{}` to `infra.confirm`).
+Tests: 765 run, 28 fail, all in the list from before; `test_reflectsDelete` and `test_reflectsTitleUpdate`
+failed in one run of four and `test_verifyModule…` in another (a 2 s limit, now 6 s).
+
+Before deploying, what cb4 ran was compared with each record (`getSource`, `infra.getModules`): every line a
+deploy would remove was one this change removed.
+
+```
+07:51:03  20 Workers same, lease held
+07:51     shell posted; install-deployer 2b9c85734540
+07:51:40  apply core   -> verified, 34 tests, 35.2 s   log: deploy.verify 05:52:03Z, deploy.verified 05:52:15Z, ms 14106, otherTestsRan 132
+07:52:23  apply page   -> verified, 16 tests, 52.1 s   log: deploy.verify 05:53:06Z, deploy.verified 05:53:14Z, ms 8346, otherTestsRan 132
+07:53:24  apply kernel -> probation (no run), 55.8 s; lease.get, quota.get, /, did.json answer; confirm brain
+07:59     core again (llms.txt) -> verified, 38.8 s; kernel again -> probation, 12.1 s; confirm brain
+```
+
+`redistil` after the deployer changed: 20 lines `same`, so nothing else was deployed again. The estimate above
+(every Worker deployed again, several minutes) was wrong: the wrapper did not change.
+
+The live checks, with a scratch Worker `brain-x-verifycheck` made by
+`tools/scratch/cloud-brain-experiments/verify-page/mk-verifycheck.ts` and removed after:
+
+```
+08:01:05  version 1, first deploy          -> verified, 1 test, 12.8 s
+08:01:30  version 2, its test throws       -> put-back to 955c9f1b5370, 22.2 s
+            reason: its tests failed: test_verifycheck: version 2 is broken on purpose
+            a call 1 s after: {"version":2}; 8 s after: {"version":1}, getInfo 955c9f1b5370
+08:02:14  version 3, over the put-back one -> verified, 20.8 s
+08:02     the same kernel, forced          -> probation, 8.7 s
+          the same kernel, forced again    -> refused, 1.1 s:
+            brain is 9856f86908b6 and not verified yet: its tests are running, and it is put back at 06:12:43 if they have not passed. Deploy again after that.
+          brain.ts confirm (no name)       -> usage line; confirm brain -> {"confirmed":["brain"]}
+```
+
+Found by the live check: removing a Worker left its `kernelstate/` row, so `state` still listed
+`brain-x-verifycheck`. Fixed (the removal deletes `kernelstate/NAME` and `confirmed/NAME`, tested), deployer
+`eb227bbea8bb` installed 08:05, the scratch Worker deployed and removed once more to clear the row.
+
+Spend: `quota.get` read 0.00705 USD before the kernel and 0.01905 after the checks; each run buys 120 s
+(0.003 USD). The deployer's browser stays up until its bought time ends (265 s left at 08:03, no page open).
+
+Seen and not this change's: at 07:50:48, before the new deployer, the mechanism this replaces put
+`brain-x-issues` back (`its tests failed: test_issues_panel_keeps_the_caret_in_a_row_box`), from someone's page.
+
+Not done: no run of a Worker whose page gives no verdict on cb4 (`deploy.verify.none`); the brain's own tests
+of that are with a faked browser. The 10 minute put-back of an unconfirmed Worker was not waited for. R14's row
+in the spec still has its first wording; the "As built" cell beside it has the flag.
+
+The deployer cb4 runs after this record was written is `284fffe3cfc5` (installed 08:08): the same code, with the
+measurements above in its own text.

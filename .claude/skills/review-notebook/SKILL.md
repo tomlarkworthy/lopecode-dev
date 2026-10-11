@@ -119,3 +119,6 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   fixed. 232k subagent tokens, 11m35s. It could not launch a browser (`chromium_headless_shell-1200` missing).
   What it found that the author had not: two callers that did not know the new result states `verified` and
   `failing`, and a deploy token that could confirm its own deploy.
+- 2026-10-11 the same notebook, modules brain-deployer, brain-core, brain-kernel, cloudflare-iac, changes since
+  `ff76e3ae`: BLOCK, 2 findings and 1 out of scope, all confirmed and fixed. 123k subagent tokens, 5m30s. All
+  three were prose a code change had made false, one of them `/llms.txt`, which programs read.
