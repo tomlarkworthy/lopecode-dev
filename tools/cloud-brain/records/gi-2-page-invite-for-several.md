@@ -11,7 +11,7 @@ sentence. Nothing in this round made a link for several against a real kernel.
 ### What changed
 
 One commit of the seed and the guide (62 lines added and 11 removed in `tools/cloud-brain/cloud-brain.ojs`,
-`git diff --numstat` of that commit; 2026-10-11 21:56:58 +0200 from `git log --format=%ci`).
+`git diff --numstat` of that commit, `5a5ea594`; 2026-10-11 21:58:47 +0200 from `git log --format=%ci`, the time of the rebase it landed by).
 
 - `page-3.diff` of the issue `group-invites` (sha256 `1ae34b10…`, the one review 2321 read), applied
   with `git apply`, which took it by its text at the seed's new lines. It gives `guestInvite` a
@@ -51,6 +51,9 @@ Each command was run in the issue's worktree `$W`, after the rebase onto `412fc0
 | from the main checkout, `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-page --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20` (21:58 CEST) | `runs 20, passed 20, failed 0, none 0, byChance [], from ["document"]`, `mains` brain-shell and cloud-brain, `tests` 30 a run |
 
 The count submitted is 30 of 30.
+
+After the deploy (22:01 CEST), `cd $W/cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev && bun test.ts brain-x-page`:
+hash `f6639d5906c7`, `passed 14, failed 0, needsBrowser 16`. The apply answered `state verified, tests 30`.
 
 ### The button and the Access row, in a browser
 
