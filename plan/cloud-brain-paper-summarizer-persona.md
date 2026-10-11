@@ -412,14 +412,14 @@ after a put is not verified; task 3 finds out on ten.
 ## The tasks, in the order they land
 
 1. **`ps-1-paper-text`**: `summarize-papers.ts text`, with tests on two kept fixtures (an arXiv
-   HTML page, a PDF of two columns). Run over the 59 with arXiv HTML, with `loop-knowledge`; the
+   HTML page, a PDF of two columns). Also tested: no `.entry.json` is written for a summarized entry, and the
+   main checkout's `.emitted/` is found from a worktree. Run over the 59 with arXiv HTML, with `loop-knowledge`; the
    record has the address and the character count of each, and for each of the 63 entries the
    length and SHA-256 of its text as entered, from the `.entry.json` it wrote (R8). The four from
    a kept PDF, and the comparison of the two routes on three papers, are run when the token exists.
 2. **`ps-2-summarizer-role`**: `READS` in `agent.sh`, with the tests of R7; the brief, put with
    `put.sh`; `run --dry`, `check` and `restore`, with tests of the assembly, the length rule, the
-   number rule (`1,000` against `1000`, a number not in the text), the second-run rule, no
-   `.entry.json` written for a summarized entry, the main checkout's `.emitted/` found from a worktree, the
+   number rule (`1,000` against `1000`, a number not in the text), the second-run rule, the
    canary's stop and the refusal of a put with no `.entry.json`. Run dry on three papers; the
    record has the three summaries' lengths, the numbers refused, and `usd` of each. No put to the
    knowledge base. `agent.sh` is in the repository `cloud-brain-dev`, which the loop pushes.
