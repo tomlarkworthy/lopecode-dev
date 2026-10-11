@@ -63,6 +63,15 @@ You change no source, build nothing and deploy nothing. You write to the tracker
    `tools/cloud-brain/worktree.sh --remove rev-<id>`. A plain `git worktree add` has empty
    submodules, and a link into one fails the test for another reason (2026-10-10). When the
    empty submodule is the case under test, the plain `git worktree add --detach` is the one to use.
+   When the commits touch a seed and the `submit` has no deploy ref and no `lopebooks` commit (a
+   change written on a branch for the owner to install, as for the deployer), step 3 becomes a
+   check that cb4 is as it was (`brain.ts redistil` reads `same`) and the module is one you build:
+   `W=$(tools/cloud-brain/worktree.sh rev-<id>)`, `git -C $W checkout -q --detach <the branch's tip>`,
+   `bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html` there,
+   `lope-reader.ts <that file> --get-module <module>` saved to a file, `bun test.ts <module> --with <the file>`
+   in `cloud-brain-dev`, then the step 8 snippet in a tab of that build. Say in the review that
+   you ran them this way. As review 874 of `dv-3-deployer-opens-verify-html` did, 2026-10-11, with
+   no step to follow (`seen-review-brief-branch-only-seed`); not run a second time.
 5. **Probe.** Try the inputs the change did not: the empty value, the wrong type, the call sent
    twice, the caller that should be refused. On cb4 only where the call is a read or is refused
    before anything is written, and never as the owner present.
