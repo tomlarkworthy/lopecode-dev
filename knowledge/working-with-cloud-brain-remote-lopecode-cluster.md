@@ -288,7 +288,9 @@ have modified the protocol". The bridge needed no new infrastructure.
   where a pass-through will do (`browser.cdp`, `logs.query`).
 - No agent loop in a Worker. A turn runs in a notebook.
 - Only the deployer holds a Cloudflare token. A service declares the permissions it needs and the
-  deployer mints a token for it. Only the owner deploys such a service.
+  deployer mints a token for it. Only the owner deployed such a service until 2026-10-11, when
+  Tom said the loop may: "yes if its behind a multi tenant interface and thoroughly designed acording to the principles." (`cloud-brain-dev/philosophy.md`, Clarifications). A new
+  permission is still his.
 - Secrets never printed, never copied into files or output: recovery key, deployer key, sessions,
   tokens, the Cloudflare token, app passwords.
 - Do not send WhatsApp or Bluesky messages to anyone Tom did not name.
