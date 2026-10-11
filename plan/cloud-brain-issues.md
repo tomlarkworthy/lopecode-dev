@@ -379,6 +379,10 @@ The three that are not `part-of` are refused between two issues whose workflows 
 `read` guards: the link would name a security report to whoever reads the other issue. For the
 same reason a swap that changes an issue's `read` rule (`escalate`) drops those links from both
 issues, and a `remove` is always taken when the link is there (review at event 467).
+An install's `migrate` swaps issues one at a time, so the swap of the first of two linked issues
+drops their link even when both end under one rule. Since 2026-10-11 `issue.install` writes such a
+link again, as a link event of its own, once the link guard takes it; what stays off is answered in
+`unlinked` (`tools/cloud-brain/records/review-the-default-workflow.md`, Round 3).
 Taking a part off its parent lifts the parent's wait for its parts. The owner, 2026-10-11 12:05 CEST, asked whether it should be his alone or the loop's with a reason on record: "its fine". So it is the loop's, and the reason goes in the move or comment that follows it.
 Not taken: `blocks` (a part already holds its parent; no issue of the 57 was held by anything else),
 and link types as policy data (four fixed in `issuesLimits.rels` until a fifth is needed).

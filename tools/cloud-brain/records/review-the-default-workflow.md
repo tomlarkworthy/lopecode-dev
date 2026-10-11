@@ -136,7 +136,7 @@ more. That is one move in a next install, not made today: one install in a day, 
 met it.
 
 **13. A doc-only change had to name a test file to submit.** That is a brief's rule
-(`agents/implementer.md`, step 6), not the workflow's: the `submit` guard asks for one ref of any
+(`agents/implementer.md`, "The tracker's write calls": "A change with no seed and no local tool in it (a doc alone) still needs a count for the submit"), not the workflow's: the `submit` guard asks for one ref of any
 kind. Not changed here. The overseer has two mentions of tests that assert a doc's phrases
 (`oversight.md`); a third is its to act on.
 
@@ -160,7 +160,8 @@ no count here.
 | `in-progress`, `in-review` | The two states where work is done; the writer and the reviewer are told apart by them. `in-review` has no move out but a review's: a reviewer is spawned for every issue there, and 37 of 37 got one. |
 | `awaiting-approval` | Met once (`review-fixes-13`, 13.6 minutes). Kept for `major`; see 12. |
 | `done`, `rejected`, `reverted` | `reverted` has no move out and has never been used: a reverted change that is wanted again is a new issue. |
-| `triage`, `ready`, `submit`, `pass`, `rework`, `to-approval`, `approve`, `revert` | Each was used as written (the path letters below) and no trap was traced to its guard. |
+| `triage`, `ready`, `submit`, `pass`, `rework`, `to-approval`, `approve` | Each was used as written (the path letters below) and no trap was traced to its guard. |
+| `revert` | Not used: 0 `revert` moves in events 1 to 588 (the count of the review at event 595). Kept because it is the only move out of `done`, and the one way the record can say that a change which passed review was taken back. Its guard is `caller.present && event.reason != "" && size(event.refs) > 0`: the owner, with why and the commit that took it back. Without it a reverted change reads `done`. The module's rig makes the move (`test_issues_default_policy_review_approval_and_children`: 403 for a token, 200 for the owner present); cb4 never has. |
 | swap `escalate` (task to security), swap `promote` (feedback to task) | `escalate` was used once, on test data. `promote` has not been used; kept because the overseer's brief names it for the owner's own feedback. |
 
 ## What did work
@@ -275,3 +276,75 @@ is corrected to `test-`.
 - `needs-owner` stays a label. What changed is that three of its twelve end with one install, and
   that an agent can `close` an issue the owner answered in a session, with his words as the reason.
 - The numbers are of one Brain over two days with one owner.
+
+## Round 3, 2026-10-11: a migration took off links it had no reason to
+
+The review at event 595 found that the link drop of `513f4fcb` also runs inside an install. A
+`migrate` swaps its issues one at a time, so of two linked issues of one workflow the first is on
+the new `read` guard while the second is still on the old one, and the swap drops their link from
+both. After the second swap both are read by one rule and neither names the other. The reviewer's
+probe (event 597): `x1 related x2`, an install with `task.read` changed, `moved ["x1","x2"]`,
+`links []` and `linked []` after. cb4's 14 links were not touched: the install of event 483 changed
+no `read` guard and was made before that code ran.
+
+**What changed.** `issueApply` is as it was: a swap drops the links of its issue to every issue
+then read by another rule. `issue.install` now reads the links of each issue before and after its
+swap, keeps what the swap took off, and after each swap tries to write again every kept link that
+names the issue just moved. The write is an ordinary link event, keyed `policy/<seq>/link/<n>` and
+judged by `issueAllowed` as any `issue.link` of the caller's, so it is refused while the two ends
+are read by different rules and taken once they are not. The answer has two more lists:
+`relinked`, `[{ id, rel, to }]`, and `unlinked`, `[{ id, rel, to, why }]`, the links that stayed
+off with the last refusal. The answer of an install sent again has both, empty.
+
+**The other way, and why not.** The reviewer offered two: compare the rule each end will have
+once the swaps are done, or put the link back when the second end lands. The first needs the
+`migrate` in the policy event, so that `issueApply` can know where the other end goes, and then
+keeps the link on a promise. Three things in the seed break the promise:
+
+- `S.onWorkflow` selects `closed = 0`: a closed issue is not moved, and stays read by the old rule.
+- An open issue that is moved or closed between the plan and its swap is `left`
+  ("the issue is no longer where this swap takes it from"), and an install can be cut short.
+- With a `migrate` of A to B and B to C in one install, an issue on B has either arrived or is
+  still to go, and the view does not say which.
+
+In each the link would stay between two issues read by different rules, with no later event to
+judge it again. Putting back never has a link there: it is off from the first swap until the
+write that the link guard allows. The cost is one event a link put back, and the seconds of the
+install in which the link is absent.
+
+**The test.** `test_issues_migration_puts_back_links_under_one_rule`: four links, an install that
+gives the task and the feedback workflows one new `read` guard. Two are put back (two tasks; a
+feedback and a task), two stay off with "the two issues are not read by the same rule" (a task
+closed before the install, which is not moved; a project, whose workflow did not change). A second
+install that changes `comment` and no `read` puts nothing back and drops nothing. Then
+`issue.rebuild` gives the same six issues and `verify?guards=true` is ok.
+
+Run in the worktree at 14:21 CEST, `bun test.ts brain-x-issues --with <the built module>` in
+`cloud-brain-dev`, against the other modules as cb4 runs them:
+
+```
+the seed as committed (7697ee31)        passed 14  failed 0  needsBrowser 8
+the same file with the put-back cut out passed 13  failed 1  needsBrowser 8
+  FAIL test_issues_migration_puts_back_links_under_one_rule
+  - ["{id:f1,rel:duplicate,to:x2}", "{id:x1,rel:related,to:x2}"]   + []
+```
+
+In a QA tab (Chrome 151, 14:22:13) on the notebook built from that commit, each `test_*` cell of
+the module observed from a module of its own: 22 of 22, none failed. That is 14 and the 8 that need a browser.
+
+**Also in this round.** The row of the kept table that said `revert` "was used as written" was
+false and is replaced by a row of its own. Trap 13 named step 6 of the implementer brief; the rule
+on a doc alone is under "The tracker's write calls" there.
+
+**Not tried.**
+
+- No install, swap or link was sent to cb4. The put-back has run in the module's rig only.
+- A caller taking a link off by `issue.link` in the moment between the install's read before a
+  swap and its read after: the install would count that link as dropped by the swap and write it
+  again. Not tested and not guarded.
+- An install cut short between a swap and its put-back leaves that link off. The owner's own swaps
+  finish the migration (the reference says so); they do not put a link back, and no test covers it.
+- `unlinked` carries the refusal of the last try, which the test reads only as "not read by the
+  same rule". A link guard that refuses the owner present was not tried.
+- Nothing shows `relinked` or `unlinked` but the answer of the call: the seed has no control that sends an install.
+
