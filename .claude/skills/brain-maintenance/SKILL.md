@@ -141,7 +141,8 @@ Two files beside it, neither of them needed to resume:
    `bun tools/cloud-brain/agent-usage.ts --session <session> --agent <agentId>` prints, as it is,
    `"usage":{"input":61,"cacheWrite":141873,"cacheRead":3561349,"output":17885,"requests":29,"advisor":{"calls":2,"input":254047,"output":13751}}`.
    So every Agent run's line has `agent` and `session`, not the implementer's alone. For a round that was sent
-   to an agent add `--last-run`, which counts that round and not the ones before it. For the light reviewer it is
+   to an agent add `--last-run`, which counts that round and not the ones before it (run it when the round
+   reports: once a later round is sent, `--last-run` is that one, and an earlier one is `--run N`, the agent's Nth). For the light reviewer it is
    `--session <the session of its JSON line>` with no `--agent`. When the command exits 1 (no transcript) leave
    `usage` out. `tokens` stays: it is the size of the last request, which says how full the agent was, not what
    it was billed. A run that was stopped or died gets its comment too. No time

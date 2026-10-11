@@ -26,7 +26,25 @@ test("--last-run counts from the last prompt, and a tool result is not a prompt"
   const t = [prompt("round 1"), asst("m1", u(1, 1, 1, 1)), result(), asst("m2", u(1, 1, 1, 1)),
     JSON.stringify({ type: "user", message: { content: [{ type: "text", text: "round 2" }] } }), asst("m3", u(5, 50, 500, 6)), result(), asst("m4", u(5, 0, 550, 4))].join("\n");
   expect(usageOf(t).requests).toBe(4);
-  expect(usageOf(t, true)).toEqual({ input: 10, cacheWrite: 50, cacheRead: 1050, output: 10, requests: 2, advisor: zero });
+  expect(usageOf(t, "last")).toEqual({ input: 10, cacheWrite: 50, cacheRead: 1050, output: 10, requests: 2, advisor: zero });
+});
+
+// Review 1454, finding 1: a Skill call writes a user row of text, which is not a prompt.
+test("a row a tool wrote is not a prompt", () => {
+  const skill = JSON.stringify({ type: "user", isMeta: true, sourceToolUseID: "toolu_1", message: { content: [{ type: "text", text: "Base directory for this skill: /x" }] } });
+  const sent = JSON.stringify({ type: "user", isMeta: true, message: { content: "round 2" } });
+  const t = [prompt("round 1"), asst("m1", u(1, 1, 1, 1)), skill, asst("m2", u(1, 1, 1, 1)), sent, asst("m3", u(7, 7, 7, 7)), skill, asst("m4", u(1, 1, 1, 1))].join("\n");
+  expect(usageOf(t, "last")!.requests).toBe(2);
+  expect(usageOf(t, 1)!.requests).toBe(2);
+});
+
+// Review 1454, finding 2: the last run is not round N once a later round has been sent.
+test("--run N counts the Nth prompt's run, and there is none past the last", () => {
+  const t = [prompt("1"), asst("m1", u(1, 10, 100, 1)), result(), asst("m2", u(1, 0, 110, 1)), prompt("2"), asst("m3", u(2, 20, 200, 2)), prompt("3"), asst("m4", u(3, 30, 300, 3))].join("\n");
+  expect(usageOf(t, 1)).toEqual({ input: 2, cacheWrite: 10, cacheRead: 210, output: 2, requests: 2, advisor: zero });
+  expect(usageOf(t, 2)).toEqual({ input: 2, cacheWrite: 20, cacheRead: 200, output: 2, requests: 1, advisor: zero });
+  expect(usageOf(t, 3)).toEqual(usageOf(t, "last"));
+  for (const bad of [0, 4, 1.5, NaN]) expect(usageOf(t, bad)).toBeNull();
 });
 
 test("a line that is not JSON and a file with no request", () => {
@@ -51,5 +69,11 @@ test("the transcript of a session and of a subagent are found; the command print
   expect(run("--session", "S9").code).toBe(1);
   expect(run("--session", "S2").code).toBe(1);
   expect(run().code).toBe(1);
+  expect(run(join(p, "S1.jsonl"), "--run", "1").code).toBe(0);
+  for (const bad of ["2", "0", "x", "-1"]) expect(run(join(p, "S1.jsonl"), "--run", bad).code).toBe(1);
+  const dir = Bun.spawnSync(["bun", tool, home]);
+  expect(dir.exitCode).toBe(1);
+  expect(dir.stderr.toString()).toContain("no transcript");
+  expect(dir.stderr.toString()).not.toContain("EISDIR");
   rmSync(home, { recursive: true, force: true });
 });
