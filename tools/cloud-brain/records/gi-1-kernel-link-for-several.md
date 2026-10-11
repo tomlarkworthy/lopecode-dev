@@ -12,7 +12,9 @@ this round. It used the token `issues-implementer-2` on the tracker, having none
 
 Two commits of `tools/cloud-brain/brain-kernel.ojs`, 92 lines added and 20 removed together
 (`git diff --numstat HEAD~2 HEAD`): `bb012ae1` (2026-10-11 22:01:56 +0200) and `74c72486`
-(22:06:24 +0200, `git log --format='%h %ci'`).
+(22:06:24 +0200, `git log --format='%h %ci'`). Those are the worktree's names: after the rebase onto `main` they
+landed as `a9b24808` and `ecc4a130` (the refs of the submit), with the same 92 and 20
+(`git diff --numstat a9b24808^ ecc4a130`).
 
 - `kernel-3.diff` of the issue `group-invites` (sha256 `a78d52c3…`, checked after the download with
   `shasum -a 256`), applied with `git apply`. `token.link` takes `uses`, a whole number 1 to 20.
