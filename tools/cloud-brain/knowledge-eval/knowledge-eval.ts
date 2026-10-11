@@ -32,10 +32,11 @@ const brain = (path: string, body?: unknown): [number, any] => { for (let n = 0;
 const brainOnce = (path: string, body?: unknown): [number, any] => {
   const tmp = join(dir, "body.json");
   if (body !== undefined) writeFileSync(tmp, JSON.stringify(body));
-  const r = Bun.spawnSync(["bun", join(here, "..", "brain.ts"), "curl", path, "--as", as, ...(body !== undefined ? ["-X", "POST", "-H", "content-type: application/json", "-d", "@" + tmp] : [])], { env: process.env });
-  const out = r.stdout.toString(), m = /\s*\[(\d+)\]\s*$/.exec(out);
+  const r = Bun.spawnSync(["bun", join(here, "..", "brain.ts"), "curl", path, "--as", as, ...(body !== undefined ? ["-X", "POST", "-H", "content-type: application/json", "-d", "@" + tmp] : [])], { env: process.env, stdout: "pipe", stderr: "pipe" });
+  // brain.ts curl: the body on stdout, the status last on stderr.
+  const out = r.stdout.toString(), m = /\[(\d+)\]\s*$/.exec(r.stderr.toString());
   let j: any = null;
-  try { j = JSON.parse(m ? out.slice(0, m.index) : out); } catch {}
+  try { j = JSON.parse(out); } catch {}
   return [m ? Number(m[1]) : 0, j];
 };
 const X = "/xrpc/com.lopecode.brain.";

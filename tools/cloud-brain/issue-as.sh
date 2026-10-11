@@ -1,6 +1,9 @@
 #!/bin/bash
 # issue-as.sh <token name> <method[?query]> [json body]   calls issue.<method> on cb4 as a token.
 # Tokens are in .emitted/cb4-issues-tokens.json (git-ignored). The token is never printed.
+# stdout is the answer's body and nothing else, so a read pipes into a JSON parser. The HTTP status, ` [200]`, is on stderr
+# (curl's %{stderr}, 7.63 or later): a terminal shows both, `2>&1` gives the body then the status as before 2026-10-11.
+# tests/tools/tool-status-stderr.test.ts; records/tool-read-ends-with-status-not-json.md.
 # A body whose `reason` or `body` names a time of day ahead of this machine's clock by more than a minute is
 # not sent (exit 3, nothing read or called): such a time was estimated, not read. The date nearest a time
 # says which day it is of; a time beside another day's date is not compared. ISSUE_AS_TIME_AHEAD=1 sends anyway.
@@ -40,5 +43,5 @@ PY
 [ $? -eq 3 ] && exit 3; fi
 tok=$(python3 -c "import json,sys; print(json.load(open('$D/.emitted/cb4-issues-tokens.json'))[sys.argv[1]])" "$1") || exit 2
 U="https://cb4.endpointservices.workers.dev/xrpc/com.lopecode.brain.issue.$2"
-if [ -n "$3" ]; then curl -s -m 30 -w ' [%{http_code}]\n' -H "authorization: Bearer $tok" -H 'content-type: application/json' -X POST -d "$3" "$U"
-else curl -s -m 30 -w ' [%{http_code}]\n' -H "authorization: Bearer $tok" "$U"; fi
+if [ -n "$3" ]; then curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" -H 'content-type: application/json' -X POST -d "$3" "$U"
+else curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" "$U"; fi

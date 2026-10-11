@@ -17,8 +17,8 @@ const as = join(dirname(import.meta.path), "issue-as.sh");
 
 const events: any[] = [];
 for (let after = 0; ; ) {
-  const out = execFileSync(as, [token, `sync?after=${after}&limit=500`], { encoding: "utf8" });
-  const page = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1)).events || [];
+  const out = execFileSync(as, [token, `sync?after=${after}&limit=500`], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  const page = JSON.parse(out).events || [];
   events.push(...page);
   if (page.length < 500) break;
   after = page.at(-1).seq;

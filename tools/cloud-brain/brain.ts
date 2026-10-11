@@ -7,7 +7,7 @@
  *   bun tools/cloud-brain/brain.ts saw [name…]   # seen.json: the hash each seed here is built on, sent as `was` by apply and remove; with names, record what runs now (after comparing its source with the emitted record, or merging it). A Worker with no entry: its first apply is refused and says what to compare
  *   bun tools/cloud-brain/brain.ts state | confirm <worker> | approval on|off | approve | rollback | remove <name>
  *   bun tools/cloud-brain/brain.ts redistil | distil | bindings | shell   # redistil: each Worker against its source, "same" when healthy; --apply deploys the ones that differ and moves the seen.json entry of each one whose entry was the hash before
- *   bun tools/cloud-brain/brain.ts curl <path> [--owner] [-X POST -d '{}']   # the kernel; --owner or --other sends a minted session as Authorization: Bearer
+ *   bun tools/cloud-brain/brain.ts curl <path> [--owner] [-X POST -d '{}']   # the kernel; --owner or --other sends a minted session as Authorization: Bearer. stdout is the body alone; the status, ` [200]`, is on stderr
  *   bun tools/cloud-brain/brain.ts curl <path> --as NAME [-X POST -d '{}']       # the same call with the token NAME of .emitted/<base>-tokens.json. A token is not the owner present; an agent's writes go this way
  *   bun tools/cloud-brain/brain.ts token NAME <method…> [--daily=USD] | token list | token revoke NAME   # token.create as the owner; the value goes to .emitted/<base>-tokens.json (mode 600) and is not printed
  *   bun tools/cloud-brain/brain.ts session [did]                               # mint a session token for the owner, or for another DID
@@ -451,6 +451,6 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
   if (as >= 0 && !name) { console.log("--as needs a name: curl <path> --as NAME"); process.exit(1); }
   if (as >= 0 && !keptToken(have, name)) { console.log(`no token "${name}" is kept; make one with: token ${name} <method…>`); process.exit(1); }
   const extra = name ? ["-H", "authorization: Bearer " + keptToken(have, name)] : args.includes("--owner") && st.session ? ["-H", "authorization: Bearer " + st.session] : args.includes("--other") && st.otherSession ? ["-H", "authorization: Bearer " + st.otherSession] : [];
-  const p = Bun.spawn(["curl", "-s", "-m", "30", "-w", " [%{http_code}]\n", ...extra, ...rest, (path.startsWith("http") ? "" : B()) + path], { stdout: "inherit", stderr: "inherit" });
+  const p = Bun.spawn(["curl", "-s", "-m", "30", "-w", "%{stderr} [%{http_code}]\n", ...extra, ...rest, (path.startsWith("http") ? "" : B()) + path], { stdout: "inherit", stderr: "inherit" });
   await p.exited;
 } else console.log("unknown command");

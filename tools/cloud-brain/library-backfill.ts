@@ -63,9 +63,11 @@ for (const p of todo) {
   if (left-- <= 0) break;
   const t0 = Date.now();
   const proc = Bun.spawn(["bun", join(root, "tools/cloud-brain/brain.ts"), "curl", `/xrpc/com.lopecode.brain.library.put?name=${encodeURIComponent(p.name)}&public=${p.open}`, "--owner", "-S", "--retry", "2", "--retry-all-errors", "-m", "300", "-X", "POST", "-H", "content-type: text/html", "--data-binary", "@" + p.path], { stdout: "pipe", stderr: "pipe", env: process.env });
-  const out = (await new Response(proc.stdout).text()).trim(), err = (await new Response(proc.stderr).text()).trim().slice(0, 200);
+  const out = (await new Response(proc.stdout).text()).trim(), errAll = (await new Response(proc.stderr).text()).trim();
   await proc.exited;
-  const m = /^([\s\S]*) \[(\d+)\]$/.exec(out) || [null, out, "0"];
+  // brain.ts curl: the body on stdout, the status last on stderr.
+  const st = /\[(\d+)\]$/.exec(errAll), err = errAll.replace(/\s*\[\d+\]$/, "").slice(0, 200);
+  const m = [null, out, st ? st[1] : "0"];
   let body: any = null; try { body = JSON.parse(m[1]!); } catch { body = { raw: String(m[1]).slice(0, 300) }; }
   const row = { at: new Date().toISOString(), name: p.name, from: p.dir.split("/")[0], open: p.open, size: p.size, sha256: p.sha256, status: Number(m[2]), ms: Date.now() - t0, cards: body.cards, error: body.error, message: body.message || err || body.raw };
   appendFileSync(logPath, JSON.stringify(row) + "\n");

@@ -25,9 +25,10 @@ const NS = "/xrpc/com.lopecode.brain.";
 const sha = (b: Uint8Array | string) => createHash("sha256").update(b).digest("hex");
 const brain = async (path: string, ...curl: string[]) => {
   const p = Bun.spawn(["bun", join(root, "tools/cloud-brain/brain.ts"), "curl", NS + path, "--owner", "-S", "--retry", "2", "--retry-all-errors", "-m", "300", ...curl], { stdout: "pipe", stderr: "pipe", env: process.env });
-  const text = (await new Response(p.stdout).text()).trim();
+  const text = (await new Response(p.stdout).text()).trim(), st = /\[(\d+)\]\s*$/.exec(await new Response(p.stderr).text());
   await p.exited;
-  const m = /^([\s\S]*) \[(\d+)\]$/.exec(text) || [null, text, "0"];
+  // brain.ts curl: the body on stdout, the status last on stderr.
+  const m = [null, text, st ? st[1] : "0"];
   let body: any = null; try { body = JSON.parse(m[1]!); } catch { body = { raw: String(m[1]).slice(0, 300) }; }
   return { status: Number(m[2]), body };
 };

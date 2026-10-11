@@ -24,9 +24,10 @@ const call = (path: string, body?: any) => {
   if (body) writeFileSync(tmp, JSON.stringify(body));
   const r = spawnSync("bun", [join(root, "tools/cloud-brain/brain.ts"), "curl", "/xrpc/com.lopecode.brain." + path, "--owner", "-sS", "-m", "120",
     ...(body ? ["-X", "POST", "-H", "content-type: application/json", "--data-binary", "@" + tmp] : [])], { encoding: "utf8", env: process.env, maxBuffer: 1 << 26 });
-  const m = /^([\s\S]*) \[(\d+)\]$/.exec((r.stdout || "").trim());
-  if (!m || m[2] !== "200") throw new Error(`${path.split("?")[0]}: ${m ? m[2] + " " + m[1].slice(0, 200) : (r.stderr || "").slice(0, 200)}`);
-  return JSON.parse(m[1]);
+  // brain.ts curl: the body on stdout, the status last on stderr.
+  const st = /\[(\d+)\]\s*$/.exec(r.stderr || ""), text = (r.stdout || "").trim();
+  if (!st || st[1] !== "200") throw new Error(`${path.split("?")[0]}: ${st ? st[1] + " " + text.slice(0, 200) : (r.stderr || "").slice(0, 200)}`);
+  return JSON.parse(text);
 };
 
 // plan/cloud-brain-*.md: the designs and the backlog. They have no frontmatter, so they are entered private.

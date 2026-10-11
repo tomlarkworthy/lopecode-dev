@@ -92,7 +92,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts <command>
 
 | Command | Use |
 |---|---|
-| `curl <path> --owner [curl args]` | Call the kernel with the owner's session. `--other` calls as a test member. |
+| `curl <path> --owner [curl args]` | Call the kernel with the owner's session. `--other` calls as a test member. stdout is the answer's body alone, so it pipes into a JSON parser; the status, ` [200]`, is written to stderr (since 2026-10-11, `issue-as.sh` the same; before that it followed the body on stdout). |
 | `curl <path> --as NAME [curl args]` | The same call with a token of that name. |
 | `token NAME <method…> [--daily=USD]`, `token list`, `token revoke NAME` | Make a token with the owner's session (`token.create`). Its value goes to `.emitted/<base>-tokens.json`, mode 600, and is not printed. |
 | `state` | What is deployed. |

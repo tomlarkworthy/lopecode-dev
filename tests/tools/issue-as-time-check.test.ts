@@ -19,8 +19,9 @@ const rig = () => {
   copyFileSync(script, join(root, "issue-as.sh"));
   chmodSync(join(root, "issue-as.sh"), 0o755);
   writeFileSync(join(root, ".emitted/cb4-issues-tokens.json"), JSON.stringify({ t: "not-a-token" }));
-  // Writes its arguments one a line, then answers as the tracker does.
-  writeFileSync(join(root, "bin/curl"), `#!/bin/bash\nprintf '%s\\n' "$@" > "${root}/sent"\nprintf '{"ok":true} [200]\\n'\n`);
+  // Writes its arguments one a line, then answers as curl does for the tracker: the body on stdout, and the status
+  // where the -w it was given puts it.
+  writeFileSync(join(root, "bin/curl"), `#!/bin/bash\nprintf '%s\\n' "$@" > "${root}/sent"\nprintf '{"ok":true}'\ncase "$*" in *'%{stderr} [%{http_code}]'*) printf ' [200]\\n' >&2;; *) printf ' [200]\\n';; esac\n`);
   chmodSync(join(root, "bin/curl"), 0o755);
   return (now: string, method: string, body?: unknown, more: Record<string, string> = {}) => {
     const args = [join(root, "issue-as.sh"), "t", method];
@@ -63,7 +64,8 @@ test("a time of the past is sent, with the body as given", () => {
   const body = JSON.stringify(move("date read 11:05:58 CEST; the move before is stamped 11:06"));
   const r = rig()(at, "move", body);
   expect(r.code).toBe(0);
-  expect(r.out).toContain("[200]");
+  expect(JSON.parse(r.out)).toEqual({ ok: true });
+  expect(r.err).toBe(" [200]\n");
   expect(r.sent).toContain(body);
   expect(r.sent).toContain("authorization: Bearer not-a-token");
   expect(r.sent).toContain("https://cb4.endpointservices.workers.dev/xrpc/com.lopecode.brain.issue.move");

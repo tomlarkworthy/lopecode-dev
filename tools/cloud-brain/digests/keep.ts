@@ -22,12 +22,13 @@ const safe = (s: string) => s.replace(/[^A-Za-z0-9@._-]/g, "-").slice(0, 80);
 const put = (path: string, file: string, type: string, tags: string) => {
   const r = spawnSync("bun", [join(root, "tools/cloud-brain/brain.ts"), "curl", `/xrpc/com.lopecode.brain.static.put?path=${path}&type=${encodeURIComponent(type)}&tags=${tags}`,
     "--owner", "-X", "POST", "-H", `content-type: ${type}`, "--data-binary", "@" + file], { encoding: "utf8", env: process.env });
-  const line = (r.stdout || "").trim().split("\n").pop() || "";
-  return / \[200\]$/.test(line) ? JSON.parse(line.replace(/ \[200\]$/, "")) : { error: line.slice(0, 160) };
+  // brain.ts curl: the body on stdout, the status last on stderr.
+  const line = (r.stdout || "").trim().split("\n").pop() || "", st = (/\[(\d+)\]\s*$/.exec(r.stderr || "") || [])[1];
+  return st === "200" ? JSON.parse(line) : { error: (line + " [" + st + "]").slice(0, 160) };
 };
 const call = (path: string) => {
   const r = spawnSync("bun", [join(root, "tools/cloud-brain/brain.ts"), "curl", path, "--owner"], { encoding: "utf8", env: process.env });
-  return JSON.parse(((r.stdout || "").trim().split("\n").pop() || "{}").replace(/ \[\d+\]$/, ""));
+  return JSON.parse((r.stdout || "").trim().split("\n").pop() || "{}");
 };
 // A second run fetches only what is not kept yet.
 const have = new Map<string, any>((call(`/xrpc/com.lopecode.brain.static.list?prefix=corpus/${day}/`).files || []).map((f: any) => [f.path.replace(/\.[a-z]+$/, ""), f]));
@@ -78,4 +79,4 @@ for (const r of index) {
 const body = join(tmp, "entries.json");
 writeFileSync(body, JSON.stringify({ entries }));
 const kb = spawnSync("bun", [join(root, "tools/cloud-brain/brain.ts"), "curl", "/xrpc/com.lopecode.brain.knowledge.put", "--owner", "-X", "POST", "-H", "content-type: application/json", "--data-binary", "@" + body], { encoding: "utf8", env: process.env });
-console.log("knowledge.put", entries.length, (kb.stdout || "").trim().split("\n").pop()!.replace(/"ids":\[[^\]]*\]/, '"ids":[…]').slice(0, 200));
+console.log("knowledge.put", entries.length, (kb.stdout || "").trim().split("\n").pop()!.replace(/"ids":\[[^\]]*\]/, '"ids":[…]').slice(0, 200), (kb.stderr || "").trim().split("\n").pop());

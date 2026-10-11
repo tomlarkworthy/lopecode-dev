@@ -42,8 +42,8 @@ test("BRAIN_STATE_DIR: --as sends the token kept in that directory, and without 
   const server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: (req) => ((got = req.headers.get("authorization")), new Response("ok")) });
   const call = async (env: Record<string, string>) => {
     const p = Bun.spawn(["bun", script, "curl", `http://127.0.0.1:${server.port}/x`, "--as", "in-state-dir"], { env: { ...process.env, BRAIN_BASE: "no-such-brain-for-tests", ...env }, stdout: "pipe", stderr: "pipe" });
-    const out = (await new Response(p.stdout).text()) + (await new Response(p.stderr).text());
-    return { code: await p.exited, out };
+    const body = await new Response(p.stdout).text(), err = await new Response(p.stderr).text();
+    return { code: await p.exited, out: body + err, body, err };
   };
   try {
     const { BRAIN_STATE_DIR: _, ...rest } = process.env as any;
@@ -51,7 +51,8 @@ test("BRAIN_STATE_DIR: --as sends the token kept in that directory, and without 
     expect(without.stdout.toString()).toContain('no token "in-state-dir" is kept');
     expect(got).toBe(null);
     const r = await call({ BRAIN_STATE_DIR: dir });
-    expect(r.out).toContain("ok [200]");
+    expect(r.body).toBe("ok");
+    expect(r.err).toBe(" [200]\n");
     expect(r.out).not.toContain("value-for-the-test");
     expect(got).toBe("Bearer value-for-the-test");
   } finally {
