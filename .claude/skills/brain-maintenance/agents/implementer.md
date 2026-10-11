@@ -303,6 +303,14 @@ token and ends it.
       next to the one that works (`0` where `1` is the switch), and the caller that should be refused.
     - A comment or a header you added reads in order where it stands.
     - Each ref of the submit is a commit that is pushed.
+    - What you changed is spoken of elsewhere. For each command, method, flag or step whose
+      behaviour you changed, `git grep -n -F '<name>' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'`,
+      and read the lines in files you did not touch. One your change made untrue is mended in this
+      landing. In the spec of your task, when the sentence is a choice the owner approved, it stays
+      and gains "(As built, `<id>`, <date>: …; the record.)". In a file that is not yours (the
+      reviewer's brief on the Brain, a seed whose Worker you do not deploy, `rules.md`,
+      `philosophy.md`), the line and its mend go in your comment under "For the overseer". Say in the
+      comment what you searched for and how many lines it printed.
     Since that day a reviewer holds a change only for what it does, its tests and what is claimed of it, and
     mends a small thing in a document itself (its brief, "What holds a change, and what is a note").
 12. **Say it on the issue, then submit.**
