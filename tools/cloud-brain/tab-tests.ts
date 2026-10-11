@@ -18,9 +18,11 @@
 //
 // The tests are read as the paired snippet read them: each test_ cell is imported into a module of the tool's
 // own and observed there, so the value is that of the page's first run, made while the other test cells compute,
-// and nothing is defined in the module under test.
+// and nothing is defined in the module under test. A test has one verdict, that of its first run: the page
+// computes a cell again each time one of its inputs has a new value, and a later throw or a later value is not
+// read (before 2026-10-11 each later throw was one more line of `failed`, and one less in `passed`).
 //
-// stdout: one line of JSON, { notebook, module, tests, passed, failed: ["name message"], emitted: [{ cell, file,
+// stdout: one line of JSON, { notebook, module, tests, passed, failed: ["name message"] (one a test), emitted: [{ cell, file,
 // hash, bytes }], notEmitted: ["cell message"], errors, browser, ms }. `errors` is the page's first uncaught errors.
 // Exit 0: every test passed and every --emit was written. Exit 1: a test failed or timed out, and nothing was emitted. Exit 2: the tests
 // passed and an emit was not written. Exit 64: the arguments. Exit 70: the tool could not run (no file, no
@@ -75,9 +77,12 @@ export const runTests = async ({ module, ms }: { module: string; ms: number }) =
   const names: string[] = [...rt._variables].filter((v: any) => v._module === mod && v._name && v._name.startsWith("test_")).map((v: any) => v._name);
   const side = rt.module(), bad: string[] = [];
   await Promise.all(names.map((n) => new Promise<void>((res) => {
-    const t = setTimeout(() => { bad.push(n + " TIMEOUT"); res(); }, ms);
+    // The observer hears every later run of the cell too: the first verdict is the one kept.
+    let done = false;
+    const verdict = (message?: string) => { if (done) return; done = true; clearTimeout(t); if (message != null) bad.push(n + " " + message); res(); };
+    const t = setTimeout(() => verdict("TIMEOUT"), ms);
     side.variable().import(n, "s_" + n, mod);
-    side.variable({ fulfilled: () => { clearTimeout(t); res(); }, rejected: (e: any) => { clearTimeout(t); bad.push(n + " " + String((e && e.message) || e).slice(0, 400)); res(); } }).define(null, ["s_" + n], (x: any) => x);
+    side.variable({ fulfilled: () => verdict(), rejected: (e: any) => verdict(String((e && e.message) || e).slice(0, 400)) }).define(null, ["s_" + n], (x: any) => x);
   })));
   return [names, bad] as [string[], string[]];
 };

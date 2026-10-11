@@ -56,6 +56,25 @@ test("each test_ cell of the module is read: a throw and a hang are named, the o
   expect([...rt._variables].filter((v: any) => v._module === mod).length).toBe(before);
 });
 
+// Issue tab-tests-lists-one-fail-several-times. A cell is computed again each time one of its inputs has a new
+// value, and the observer hears each of those.
+test("a test_ cell that is computed again has one verdict, its first: one line when it throws each time, none when it throws later", async () => {
+  const rt: any = new Runtime({});
+  const mod = rt.module();
+  mod.variable().define("tick", [], function* () { for (let i = 0; i < 5; i++) yield i; });
+  mod.variable().define("test_missing", ["tick", "nowhere"], (t: number, n: any) => n);
+  mod.variable().define("test_flip", ["tick"], (t: number) => { if (t > 0) throw new Error("later " + t); return "first"; });
+  mod.variable().define("test_ok", [], () => 1);
+  // the run is still open while the others are computed again
+  mod.variable().define("test_slow", [], () => new Promise((r) => setTimeout(() => r(1), 400)));
+  rt.mains = new Map([[M, mod]]);
+  (globalThis as any).window = { __ojs_runtime: rt };
+  const [names, bad] = await runTests({ module: M, ms: 2000 });
+  expect(names.sort()).toEqual(["test_flip", "test_missing", "test_ok", "test_slow"]);
+  expect(bad).toEqual(["test_missing nowhere is not defined"]);
+  expect(report(names, bad, [], [])).toMatchObject({ tests: 4, passed: 3, failed: ["test_missing nowhere is not defined"], exit: 1 });
+});
+
 test("an emit is the service cell's record as text; a cell that is not there throws", async () => {
   page();
   expect(await emitCell({ module: M, cell: "w_service" })).toBe('{"hash":"abc","parts":[{"path":"w.js","text":"é"}]}');
