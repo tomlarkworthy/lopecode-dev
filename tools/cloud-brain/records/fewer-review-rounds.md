@@ -47,5 +47,8 @@ notification each taken for a prompt).
 - `rc-3-record-only-count` carries text for step 7 of the same brief (a number of the world, background). It
   was not merged with this; its writer was told on that issue that the brief changed.
 - There is no test: the change is the wording of two briefs. `bun test ./tests/tools` after it: 304 pass, 0 fail.
+  (The reviewer, round 1: no run it made gives 304. Other issues' tests landed while this was written; in a
+  worktree at `5ecbbc0c` the run is 310 tests, 308 pass and 2 fail there, and in the main checkout at `db7b853d`
+  317 pass, 0 fail. The suite holds nothing of this change.)
 - The spec writer's brief has no such list. Suggestions 4 to 6 (a later round that reads the delta, a cap on
   rounds, changes that skip review) were not asked for.
