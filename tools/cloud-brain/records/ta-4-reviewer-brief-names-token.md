@@ -85,8 +85,21 @@ after the put    the same command
                  4 pass, 0 fail, 9 expect() calls
 ```
 
-The whole directory, in the worktree after the rebase onto `main`: see the submit's comment for the command
-and its count.
+The first count cannot be made again with that command: the Brain's copy has changed. It can with the
+brief as it was in git until the move to the Brain, which has the same three lines:
+
+```
+$ git show f7881ad7:.claude/skills/brain-maintenance/agents/reviewer.md > <scratch>/before.md
+$ grep -c issues-reviewer-2 <scratch>/before.md
+3
+$ BRIEF=<scratch>/before.md bun test ./tests/tools/reviewer-brief-names-token.test.ts
+1 pass, 3 fail, 6 expect() calls
+```
+
+The copy `put.sh` kept is the exact text before this put, and reading it needs `loop-roles`.
+
+The whole directory, in the worktree after the rebase onto `main`: `bun test ./tests/tools`, 221 pass, 0 fail,
+1441 expect() calls, 26 files.
 
 ## Not tried
 
@@ -97,5 +110,7 @@ and its count.
 - **A named token that is kept and was revoked** answers 401, not exit 2 (the spec, R2). The brief does not
   say what a reviewer does then.
 - **The fallback's removal**, with the owner's revoke.
+- **`rules.md`, "Which token"**, still gives `issues-reviewer-2` for reviewing, and the brief says `rules.md`
+  overrides it. The two agree while no task names a token. The table is changed in task 3.
 - **The test reads the network.** With cb4 not answering, three of the four fail; no skip was written.
 - The kept copy was restored to disk and read, as above. It was not put back, so a return to it is not shown.
