@@ -18,7 +18,7 @@ issuesJoinedAt = (listed, loaded = {}, worker = "brain-x-issues") =>
 md`The panel above is for the owner, signed in. It answers from a copy of the view that the page keeps, one for each Brain's address, in \`localStorage\` under \`brain_issues ADDRESS\`: one \`issue.snapshot\`, then \`issue.sync\` every \`wait\` milliseconds while the tab is visible.
 
 - **For your attention**, above the filters: the open issues that wait for the owner. One waits when it has the label \`needs-owner\` or \`security\`, is at \`awaiting-approval\`, is of kind \`security\`, or is not shown to this caller. They are in four groups, each under a heading with its count, in this order: **To approve** (at \`awaiting-approval\`), **To answer** (labelled \`needs-owner\`), **Security** (the rest that are read), **Not shown to this caller**; inside a group by id, so a row does not move when something is said on it. A row starts with the issue's id, then one line that says what is asked, then the title (which opens the issue), its state, kind, labels and the project it is part of. Under that is what the ask is about: for an approval the review that passed; for an answer the comment the label was put on with (the last one by whoever added the label, before the labelling) or the body of an issue opened with the label; then the last comment, or the last event when nothing else is shown. Then one box and the buttons. A move's button is named for the move the owner would make, not for the state it leads to: **approve**, **reject** (the owner's \`owner-reject\`), **triage**, **close**; its tooltip names the state. The one that is asked comes first, in bold: **approve** on an approval, **Answer** on an answer. **Answer** sends the text of the box as a comment and then takes \`needs-owner\` off, two events for one press; where the comment is taken and the label is refused, the box is emptied and **take needs-owner off** is pressed again. After those, **Comment**, and **take needs-owner off** where the issue has that label. The text of the box is the reason of a move or the body of the comment, and the box is emptied when the service has taken it. A write that is refused, or that the network drops, leaves the text: where the press had taken the issue out of the block, its row comes back with the same box and its buttons can be pressed again. Until the service has answered a press, the buttons of that row are disabled, so a second press is not a second event; the box can still be typed in, and it keeps the caret when another caller's event draws its row again. A move that needs a reason is disabled until the box has text. A move the guard would refuse whatever the reason has no button there, nor has a swap, nor a move that needs refs: those are in the open issue, which the row's title opens and where the buttons have the same names. What is under a row is one \`issue.get\` for each listed issue, asked again when the issue changes. The record has no link that says one issue waits for another, so a row the owner cannot act on yet is not told apart.
-- **State, Kind, Find** filter the table from the copy, with no call. State starts at **open work**: every issue whose workflow does not list its state under \`closed\` (in the default policy that leaves out \`done\`, \`closed\`, \`rejected\` and \`reverted\`), so a state a later policy adds is in it unless that policy closes it. **all** is every issue; after it, each state that an issue of the copy is at. The choice is not kept over a reload. The line under the table counts the whole copy, not the rows shown. Find reads the title, \`about\`, the labels and the id.
+- **State, Kind, Find** filter the table from the copy, with no call. State starts at **open work**: every issue whose workflow does not list its state under \`closed\` (in the default policy that leaves out \`done\`, \`closed\`, \`rejected\` and \`reverted\`), so a state a later policy adds is in it unless that policy closes it. **every issue** is the whole copy; after it, each state that an issue of the copy is at. Neither text can be a state's name, which has no space. The choice is not kept over a reload. The line under the table counts the whole copy, not the rows shown. Find reads the title, \`about\`, the labels and the id.
 - **A row** opens that issue: its body, its links (what it says of other issues, and what they say of it; each opens that issue), its children, its events, and a button for each state it can move to and each swap its workflow lists. A button the guard would refuse is disabled, and its tooltip is the refusal. Reason and Refs are sent with a move, so a button can come alive as they are typed.
 - **Refs**: entries separated by commas. \`kind:value\` is a ref of that kind (\`commit:abc\`, \`deploy:brain-x-a@hash\`); an address (\`https://…\`) or a text with no colon is a \`url\`.
 - **Review** sends the verdict with the Comment text and the Refs. **Comment** and **Add label** each send their own. The **×** after a label of the open issue removes that label; where the label guard refuses (\`major\`, for anyone but the owner present) it is disabled and its tooltip is the refusal. An attachment of the open issue is a line under its body: its name, type and size. The name asks \`issue.attachment\` and saves the bytes as a file of that name; it is not opened in the page. A second press before the answer asks nothing. \`issue.narrow\`, \`issue.link\` and \`issue.attach\` have no control: each is a call.
@@ -969,6 +969,9 @@ issuesStoreName = (brain = "") => "brain_issues " + brain
 // The first choice of the panel's State filter. Not a state's name: a state has no space in it.
 issuesOpenWork = "open work"
 // %%
+// The text of the choice for every issue, whose value is "". A space in it for the same reason: a state may be named all.
+issuesEveryIssue = "every issue"
+// %%
 // The issues, from a copy the page keeps: one snapshot, then the events after it every few seconds. A list and its
 // filters are answered from the copy. A write is applied to the copy before it is sent, and withdrawn if refused.
 issuesPanel = ({ client, owner = false, by = { caller: "owner", via: "session" }, invalidation, store = issuesStore(String((client && client.base) || "")), every = null, joined = null, worker = "brain-x-issues", reload = () => location.reload(), listen = true, save = issuesSave } = {}) => {
@@ -1010,7 +1013,7 @@ issuesPanel = ({ client, owner = false, by = { caller: "owner", via: "session" }
     return { slot, set, get value() { return input ? input.value : ""; } };
   };
   // State starts at its first choice, the work that is not finished; "" is every issue.
-  const state = chooser("State", () => draw(), (v) => v || "all"), kind = chooser("Kind", () => draw()), newKind = chooser("Kind"), find = Inputs.text({ label: "Find", placeholder: "title, about or label" });
+  const state = chooser("State", () => draw(), (v) => v || issuesEveryIssue), kind = chooser("Kind", () => draw()), newKind = chooser("Kind"), find = Inputs.text({ label: "Find", placeholder: "title, about or label" });
   const title = Inputs.text({ label: "Title" }), body = Inputs.textarea({ label: "Body", rows: 3 }), about = Inputs.text({ label: "About", value: "brain" }), parent = Inputs.text({ label: "Parent" });
   const snapshot = async () => {
     const s = await client.query("issue.snapshot");
@@ -2246,20 +2249,20 @@ test_issues_panel_lists_the_open_work_at_load = {
   await panel.sync();
   const titles = ["Still to do", "Turned down", "A note answered", "Being looked at"], shown = () => titles.map((t) => panel.list.textContent.includes(t));
   // The select is made again when the states of the copy change, so it is found at each use.
-  const options = () => [...panel.filters.state.slot.querySelector("select").options].map((o) => o.textContent), choose = (text) => {
-    const select = panel.filters.state.slot.querySelector("select");
+  const options = (of = panel) => [...of.filters.state.slot.querySelector("select").options].map((o) => o.textContent), choose = (text, of = panel) => {
+    const select = of.filters.state.slot.querySelector("select");
     select.selectedIndex = [...select.options].findIndex((o) => o.textContent === text);
     select.dispatchEvent(new Event("input", { bubbles: true }));
   };
   // At load: the first choice, and the two that are not closed. The count under the table is of the whole copy.
-  expect(options()).toEqual(["open work", "all", "open", "rejected", "closed", "triaged"]);
+  expect(options()).toEqual(["open work", "every issue", "open", "rejected", "closed", "triaged"]);
   expect([panel.filters.state.value, shown()]).toEqual([issuesOpenWork, [true, false, false, true]]);
   expect(panel.textContent).toContain("4 issues at event");
   // "closed" is what each workflow says of its own states: a move to one takes the row out, with no call.
   await panel.send("move", { type: "move", id: "w1", to: "rejected", reason: "not real either" }, { id: "w1", to: "rejected", reason: "not real either" });
-  expect([panel.filters.state.value, options(), shown()]).toEqual([issuesOpenWork, ["open work", "all", "rejected", "closed", "triaged"], [false, false, false, true]]);
+  expect([panel.filters.state.value, options(), shown()]).toEqual([issuesOpenWork, ["open work", "every issue", "rejected", "closed", "triaged"], [false, false, false, true]]);
   // Every issue, and one state, are still there to choose.
-  choose("all");
+  choose(issuesEveryIssue);
   expect([panel.filters.state.value, shown()]).toEqual(["", [true, true, true, true]]);
   choose("rejected");
   expect(shown()).toEqual([true, true, false, false]);
@@ -2268,7 +2271,19 @@ test_issues_panel_lists_the_open_work_at_load = {
   await panel.sync();
   expect([panel.filters.state.value, options().includes("ready")]).toEqual(["rejected", true]);
   end();
-  return "open work at load; all and one state on choice";
+  // A later policy may name a state all (a state is a-z 0-9 -). No two choices read the same, and each gives its own rows.
+  const copy = { seq: 1, head: "h", policy: { seq: 1 }, workflows: {}, issues: [{ id: "a1", title: "At a state named all", kind: "task", state: "all", closed: false, labels: [] }, { id: "a2", title: "At another state", kind: "task", state: "open", closed: false, labels: [] }] };
+  let end2 = null;
+  const later = issuesPanel({ client: { query: async (name) => (name === "issue.snapshot" ? copy : { events: [] }), procedure: async () => ({}) }, owner: true, every: 1e9, listen: false, invalidation: new Promise((r) => (end2 = r)), store: { get: () => null, set: () => {} } });
+  await later.sync();
+  const rows = () => ["At a state named all", "At another state"].map((t) => later.list.textContent.includes(t));
+  expect([options(later), new Set(options(later)).size]).toEqual([["open work", "every issue", "all", "open"], 4]);
+  choose("all", later);
+  expect([later.filters.state.value, rows()]).toEqual(["all", [true, false]]);
+  choose(issuesEveryIssue, later);
+  expect([later.filters.state.value, rows()]).toEqual(["", [true, true]]);
+  end2();
+  return "open work at load; every issue and one state on choice; a state named all is one choice of its own";
 }
 // %%
 test_issues_panel_removes_a_label = {
