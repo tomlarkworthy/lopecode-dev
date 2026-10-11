@@ -36,7 +36,7 @@ insertions, 19 deletions).
 
 | cell | what changed |
 |---|---|
-| `metricSeries` | also answers `sampled`: the highest of `run.statistics.abr_level` and every row's `sampleInterval`, and 1 when neither is there or is a number above 0. |
+| `metricSeries` | also answers `sampled`: the highest of `run.statistics.abr_level` and every row's `sampleInterval`, and 1 when neither is a number above 1 (absent, `null`, 0, text). |
 | `metricPieceDefaults` | new: `{ ms: 86400000, most: 8 }`. |
 | `metricPieces` | new: the parts of a span, `ms` long, counted back from `until`, the first the short one; none for a span of `ms` or less, for more than `most` parts, for an `ms` under a minute. |
 | `metricJoin` | new: the answers of the parts as one. Rows of the same time and group are added up (`n`, `sum`; `max` the higher). `step` is the longest of the parts', `groups` the most any part answered, `sampled` the highest. |
@@ -62,8 +62,9 @@ The answer of `metric.query` is now `{ metric, since, until, step, groups, sampl
   2026-10-09, `spec-as-built.md:2971`); a refusal would take the Health panels away over a span
   where a marked estimate can be drawn. The issue's defect is the silence. Line 2 of
   `philosophy.md`: the smaller side, and the easier to undo.
-- **A span of a day or less, or of more than 8 parts, is not asked again.** 8 is 7 days, which is
-  what Cloudflare keeps, and one short part. A `since` of years ago would otherwise be hundreds of
+- **A span of a day or less, or of more than 8 parts, is not asked again.** 8 is 7 days and one
+  short part; 7 days is what the spec says the logs hold (`plan/cloud-brain-dashboard-service.md`,
+  "A span older than 7 days answers what the logs have"), and was not measured here. A `since` of years ago would otherwise be hundreds of
   queries on the owner's account.
 - **A setting, `pieceMs`**, as `memoryMs` is: `0` asks nothing again, so the owner undoes the
   second half of this change with no deploy.
@@ -150,9 +151,10 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-dashboard --shell $W/
 
 Each of the 20 runs' lines has `"tests":11` (`grep -o '"tests":[0-9]*' verify.out | sort | uniq -c`: 20).
 
-The rebase after it brought in eight files (three of `.claude/skills/brain-maintenance/`, the
+The first rebase after it brought in eight files (three of `.claude/skills/brain-maintenance/`, the
 `cloud-brain-dev` pointer, one test file under `tests/tools/` and three records), none of which
-the module is built from, so the tests were not run again. The record emitted in the tab, read
+the module is built from, so the tests were not run again; the second, under the landing lock,
+brought in `.claude/skills/brain-maintenance/oversight.md`. The record emitted in the tab, read
 from the file the receiver saved: hash `41a68d588088…`, `meta.resources` `["rows"]`,
 `meta.cloudflare` `["Workers Observability Read"]`, eight methods, a reference of 23482
 characters, no `test_` and no `sampledAnswer` in `parts[0].text`.

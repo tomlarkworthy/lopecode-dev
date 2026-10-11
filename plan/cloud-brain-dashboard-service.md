@@ -257,7 +257,9 @@ Its time is Cloudflare's timestamp of the line. Nothing is added to any service.
   counts, 40 148 lines (`spec-as-built.md`). Nothing was read for 7 days. The cost task compares.
   Compared 2026-10-11: a 7-day answer is made from a sample and does not say so (160 where the
   lines were 173); 1 hour and 24 hours were whole (`tools/cloud-brain/records/dsv-4-cost.md`,
-  "Measured on cb4").
+  "Measured on cb4"). Since `metric-query-sampled-unsaid`, the same day, the answer
+  says it (`sampled`) and a sampled span of days is asked again a day at a time: 7 days then
+  equalled the lines, 175 (`tools/cloud-brain/records/metric-query-sampled-unsaid.md`, "On cb4").
 - **`groups` not below 500** means Cloudflare cut the answer, as the page's note says for Health
   since `ds-2`.
 - A span older than 7 days answers what the logs have. Stage 2 is the way past it.
