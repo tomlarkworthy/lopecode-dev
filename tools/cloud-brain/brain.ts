@@ -544,7 +544,7 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
       if (status === 401 || Date.now() >= end) break;
     }
     if (status !== 401) stop(`${status}: "${name}" still answers a read of issue.policy after its revoke. Its entry is kept`);
-    await changeAgentTokens((t) => { delete t[name]; });
+    try { await changeAgentTokens((t) => { delete t[name]; }); } catch (e: any) { stop(`"${name}" is revoked and its value is refused (401), and its entry could not be removed (${e.message}). When that is mended: agent-token revoke ${name}`); }
     console.log(`401: "${name}" is revoked and its value is refused. Its entry is gone: issue-as.sh ${name} is exit 2`);
   } else {
     const role = args[0], name = `${role}-${hex(3)}`, note = [role, args.slice(1).join(" ")].filter(Boolean).join("; ").slice(0, 300);

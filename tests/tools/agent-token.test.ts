@@ -7,7 +7,7 @@
 //   bun test ./tests/tools/agent-token.test.ts
 //   BRAIN_TS=/path/to/brain.ts ISSUE_AS_SH=/path/to/issue-as.sh bun test …   # the same cases against other copies
 import { test, expect, beforeAll, afterAll } from "bun:test";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, chmodSync, realpathSync, statSync, existsSync, utimesSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, chmodSync, realpathSync, statSync, existsSync, utimesSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 
@@ -393,3 +393,26 @@ test("brain.ts curl --as a name that is not kept names both ways to make one", a
   expect(got.out).toContain("agent-token <role>");
   expect(calls).toEqual([]);
 });
+
+// Review 1456: the same lock met by a revoke ended in a stack trace, after the revoke was sent.
+test("agent-token revoke: a lock that cannot be removed is exit 1 with one line and the entry kept; again with the lock gone removes it", async () => {
+  const r = rig();
+  await r.parent();
+  const name = (await r.brain("agent-token", "impl", "x")).out.trim(), secret = r.kept("cb4-agent-tokens.json")[name];
+  const lock = staleLock(r.state, true);
+  calls = [];
+  const stuck = await r.brain("agent-token", "revoke", name);
+  expect(stuck.code).toBe(1);
+  expect(sent("delegation.revoke").length).toBe(1);
+  expect(stuck.out).toContain(`agent-token revoke ${name}`);
+  expect(stuck.out).toContain(lock);
+  expect(stuck.out.trim().split("\n").length).toBe(1);
+  expect(stuck.err).toBe("");
+  expect(r.kept("cb4-agent-tokens.json")).toEqual({ [name]: secret });
+  rmSync(lock, { recursive: true });
+  calls = [];
+  const again = await r.brain("agent-token", "revoke", name);
+  expect(again.code).toBe(0);
+  expect(sent("delegation.revoke")).toEqual([]);
+  expect(r.kept("cb4-agent-tokens.json")).toEqual({});
+}, 30000);

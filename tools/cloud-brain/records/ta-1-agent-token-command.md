@@ -130,7 +130,10 @@ $ bun test ./tests/tools/agent-token.test.ts
 $ bun test ./tests/tools
  220 pass
  0 fail
-Ran 220 tests across 25 files.
+Ran 220 tests across 25 files.            # in the worktree before its rebase at the landing: this round's change without ta-4's test file. No commit of main is that tree
+ 224 pass
+ 0 fail
+Ran 224 tests across 26 files.            # on main at aaeb1fff, the landed commit: ta-4's test file (4 tests) came in with the rebase
 ```
 
 Part one's sentence "A lock older than 10 s is taken as left by a dead process" holds for an empty
@@ -142,3 +145,34 @@ now ends `…, or for an agent's tracker calls: agent-token <role>`. The third n
 Not tried in this round: a lock held by a live process for longer than 400 tries (about 10 s),
 which ends the same way through `is held`; an `rmdir` refused for another reason than a file in
 the directory (permissions). Nothing on cb4, as before.
+
+## Round 3, 2026-10-11: the count of round 2 says where it was taken; a revoke that meets the same lock
+
+Review 1456 (`changes`, one finding, in this record). Round 2 gave `bun test ./tests/tools` as 220
+in 25 files and named no tree. It was the worktree before the rebase that brought in
+`reviewer-brief-names-token.test.ts` (4 tests, `bbe69435`), and no commit of `main` gives it. The
+block above now has both counts and says which is which. The sha the worktree stood on was not
+written down in round 2 and is not given.
+
+The review's note, taken: `agent-token revoke NAME` with a lock that cannot be removed sent the
+revoke, read 401, and then ended in a stack trace of `brain.ts`. It now ends in one line, exit 1,
+the entry kept: `"<name>" is revoked and its value is refused (401), and its entry could not be
+removed (<why>). When that is mended: agent-token revoke <name>`. Run again with the lock gone it
+is exit 0 with no second revoke sent.
+
+```
+$ bun test ./tests/tools/agent-token.test.ts      # the new test, brain.ts as of aaeb1fff
+(fail) agent-token revoke: a lock that cannot be removed is exit 1 with one line and the entry kept; again with the lock gone removes it
+ 19 pass
+ 1 fail
+$ bun test ./tests/tools/agent-token.test.ts      # with the change
+ 20 pass
+ 0 fail
+ 153 expect() calls
+```
+
+The count of the whole directory at the landed commit is in the issue's comment of this round, not
+here: it is run after the landing, and this file is landed with the change.
+
+Not tried: the create's own revoke is not read ("it is revoked" is printed whatever it answered,
+review 1456); nothing on cb4.
