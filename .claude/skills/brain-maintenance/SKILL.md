@@ -229,7 +229,13 @@ deploy: `start` from `open` with the reason triage would have given, make the ch
 write its record (`tools/cloud-brain/records/<id>.md`, as `agents/implementer.md` step 9 says; a
 change to a doc alone has one too: reviews 642, 645 and 686 each sent a quick win of yours back
 with "no record" among the findings),
-land it under `land.lock`, `submit` with the commit. The review is a reviewer's as for any issue.
+land it under `land.lock`, `submit` with the commit. Any submit of your own, a quick win or work
+a session did on the owner's word, is sent after the push and after the lock is released: one
+`commit` ref for each commit the landing added, read then with `git log`, and a `deploy` ref
+(`<worker>@<hash>`) for each thing put on cb4; and it has its record first, as above. (Submit 1042
+named another issue's HEAD, sent while the lock was held; reviews 1032 and 1052 of
+`dv-4-owner-install-and-shell` each sent back a submit with no deploy ref, the first with no
+record.) The review is a reviewer's as for any issue.
 Anything in a seed goes to a writer. A writer does the same for what it meets beside its issue
 (`agents/implementer.md`, "A quick win"); a reviewer does not (it would be the writer).
 
