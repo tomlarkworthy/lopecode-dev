@@ -286,7 +286,7 @@ Seen and not acted on:
 - seen-member-worker-name-hashes-the-did (561): philosophy.md says the read leaves "those two fields" out and the build leaves out more. The orchestrator's to correct there, not mine.
 - Open for the owner: link-issues-with-a-common-cause and deploy-verdict-from-a-shared-page at awaiting-approval; review-the-default-workflow in-progress after 595, his session's; approve-made-for-the-owner-on-his-word, rules-never-line-added-unapproved, loop-removes-needs-owner, digest-pass-has-no-test-count, n9e1c1256 (he took needs-owner off it at 575; triaged, major), deployer-put-back-issues-worker (ready, his press), link-outlives-escalate and part-of-names-a-hidden-parent (security, hidden from my token). n39625a1a is at triaged with no label (fourth mention). test-escalated is still hidden at triaged.
 
-## 2026-10-11 15:40 CEST, events 616 to 741
+## 2026-10-11 15:40 CEST, events 616 to 744
 Issues looked at: tool-read-ends-with-status-not-json, approve-made-for-the-owner-on-his-word, loop-removes-needs-owner, skill-md-needs-owner-removal-stale, review-the-default-workflow (round 3), attention-block-unreadable-to-owner (both rounds), dv-1-verify-run-tool, dv-2 to dv-6 as opened, annotations-file-feedback as opened, rules-never-line-added-unapproved, deployer-put-back-issues-worker, and the open feedback tickets, of which three are new (624, 641, 667). Reviews 642, 645, 686 and 698 were read whole. The journal of each, and `_orchestrator.md` from 14:57.
 Measured (`issue-stats.ts`, whole record at event 728):
 - `open  85 stays  median 3.8 min  total 65.3 h  max 8.9 h`; `ready  46 stays  median 2.5 min  total 46.1 h  max 17.7 h`
@@ -305,7 +305,8 @@ Edited:
 - b01350c2 SKILL.md, A quick win: the record is written before it lands (642 finding 2, 645 finding 2, 686 finding 3; three reviewers wrote that no brief said). To be judged by whether a quick win of the orchestrator goes in one round.
 - Not a brief: 39bed690, `issue-stats.ts` counts an issue opened with needs-owner.
 Seen and not acted on:
-- My own events are 729 to 741. The next starts from 741; 715 to 728 were read for moves and not whole (dv-2's submit 728 and dv-3's start 724 are after this window's evidence).
+- The step 8 line does not fit brain-deployer, and dv-3's writer was started (724, 15:35:44) before it landed (15:39:14): `verify-run.ts brain-deployer --times 1`, run 15:42, gives `"none":"the Worker did not say what it runs"`, exit 2, and the module's name exit 70. Said to that writer on dv-3 (742) and on dv-6 (743), linked to seen-briefs-change-under-a-writer (744). No edit was left to put it in the line.
+- My own events are 729 to 744. The next starts from 744; 715 to 728 were read for moves and not whole (dv-2's submit 728 and dv-3's start 724 are after this window's evidence).
 - 35712f55 (the orchestrator's, read as it asked): implementer.md step 2 gives the call whole, with `<root>` and `--as loop-knowledge`; spec.md step 4 not read. No writer has run it under the brief yet.
 - implementer.md, "A quick win", has the same gap as SKILL.md had ("landed as step 10 says", no word of step 9). No case by a writer.
 - reviewer.md step 5 against rules.md Never (624). First of what is left for an edit.
