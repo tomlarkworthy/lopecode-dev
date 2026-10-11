@@ -54,7 +54,7 @@ not kept: it imports `report`, reads the events with `sync?after=0&limit=500` an
 
 ## Tests
 
-`bun test ./tests/tools/issue-stats.test.ts`, in the worktree at `c1ec9d92` (the tool's commit, after the rebase onto `676c3a75`): 16 pass, 0 fail, 52
+`bun test ./tests/tools/issue-stats.test.ts`, in the worktree with the tool's commit as it landed, `1cbeb4c3` on `555a0615`: 16 pass, 0 fail, 52
 expects. Five are new. With `ISSUE_STATS_TS` set to the tool of `main` before this change, the
 same file: 11 pass, 5 fail.
 
