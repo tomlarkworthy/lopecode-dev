@@ -113,9 +113,19 @@ Two files beside it, neither of them needed to resume:
    issue hit the rework cap. One overseer at a time; it commits under `land.lock`.
 7. **Tell the user** in a few lines: what moved this pass, what is waiting for the owner and
    why, what is running. Nothing moved is one line.
-8. **Schedule** (only under `/loop`): `ScheduleWakeup` 1800 s when an agent is running (its
-   report wakes you first, and that wake is a pass), 1200 s when the tracker had nothing for you. A poll of the tracker
-   is charged nothing; a wake of this session is not free, so do not poll faster.
+8. **Watch, then schedule** (only under `/loop`). The tracker wakes you, not the clock (the
+   owner, 2026-10-11: "The self pacing mechanism is quite slow, I think you need a background
+   tasks notifying you of new issues as they come in"). Keep one `Monitor` armed, `timeout_ms`
+   1800000, with the command
+   `tools/cloud-brain/issue-watch.sh issues-implementer-2 <the last seq you have read>`.
+   It reads `sync?after=` every 30 s and prints a line for each issue another caller opened and
+   for each event made with the owner's session (a comment, a label, a move, an approval in the
+   panel). A line is a wake: read that issue and take it from the table of step 3, without a
+   whole pass. An agent's own writes print nothing; its report wakes you as before. The monitor
+   ends after 30 minutes and says so: arm it again from the last seq, in the same turn. Then
+   `ScheduleWakeup` 1800 s as the fallback, for a monitor that died or a session that slept; that
+   wake is a whole pass, health first. A poll of the tracker is charged nothing; a wake of this
+   session is not free, so the watch prints only what you would act on.
 
 ## A quick win
 
