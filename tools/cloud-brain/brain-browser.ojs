@@ -1583,6 +1583,44 @@ test_browser_refuses_urls_and_too_many_pages = {
   return refused.length + " addresses refused; 2 pages at most";
 }
 // %%
+// For a test: the browsers whose tick failed while fn ran, as the tick names them to console.error. Every call goes
+// on to the function that was there, which is the tap of logged, and that function is never put back: two tests
+// that each put back what they saved, out of order, leave one test's function in place for good.
+browserTickFailures = async (fn) => {
+  const failed = [], before = console.error;
+  let listening = true;
+  console.error = (...a) => (listening && a[0] === "browser tick" ? failed.push(a[1]) : null, before.apply(console, a));
+  try {
+    await fn();
+  } finally {
+    listening = false;
+  }
+  return failed;
+}
+// %%
+test_browser_tick_failures_are_heard_and_every_line_goes_on = {
+  const rig = await browserRig(), mark = "tick-heard-" + Math.random().toString(36).slice(2);
+  await rig.open("a");
+  rig.rows.set("browser/" + rig.session(), null);
+  // A line of another test arrives while this one listens, and one after two listeners that ended out of order.
+  let first, second, release;
+  const held = new Promise((r) => (release = r));
+  const lines = await logged(async () => {
+    const outer = browserTickFailures(async () => {
+      second = await browserTickFailures(async () => (console.error({ at: mark, n: 1 }), await rig.tick()));
+      await held;
+    });
+    const inner = browserTickFailures(async () => void console.error({ at: mark, n: 2 }));
+    await inner;
+    release();
+    first = await outer;
+    console.error({ at: mark, n: 3 });
+  });
+  expect(lines.filter((l) => l.at === mark).map((l) => l.n)).toEqual([1, 2, 3]);
+  expect([first, second]).toEqual([["owner/default"], ["owner/default"]]);
+  return "1 failed tick heard by 2 listeners; 3 lines of another test went on";
+}
+// %%
 test_browser_each_caller_has_its_own_browsers = {
   const rig = await browserRig({ paid: 0 }), A = "https://a.example/";
   const reader = rig.as("worker:brain-x-reader", "owner"), R = "worker:brain-x-reader/default";
@@ -1616,11 +1654,10 @@ test_browser_each_caller_has_its_own_browsers = {
   rig.setPaid(-1, OB);
   expect([(await rig.owner.post("eval", { name: "a", expression: "1", ...inB })).data.error, (await rig.owner.post("eval", { name: "a", expression: "1 + 1" })).data.value, rig.fake.sessions.size]).toEqual(["NoTime", 2, 2]);
   // The tick of one browser fails (its row is broken here). The tick still closes the browser after it.
-  const sid = rig.session(), row = rig.rows.get("browser/" + sid), failed = [], error = console.error;
+  const sid = rig.session(), row = rig.rows.get("browser/" + sid);
   rig.rows.set("browser/" + sid, null);
   rig.setPaid(-1, R);
-  console.error = (...a) => failed.push(a[1]);
-  await rig.tick().finally(() => (console.error = error));
+  const failed = await browserTickFailures(() => rig.tick());
   rig.rows.set("browser/" + sid, row);
   expect(failed).toEqual(["owner/default"]);
   expect([rig.fake.sessions.size, rig.keys("browser/", R), rig.keys("browser/").length, (await reader.get("status", { name: "a" })).data.closed]).toEqual([1, [], 1, "time ran out"]);
@@ -1751,7 +1788,7 @@ test_browser_panel_shows_pages_and_the_usage = {
   return "1 page, 2 browsers, 9 buttons";
 }
 // %%
-import {cloudflare, rows, browser, log, hono, simulate, decide, callerOf, keeperOf} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, rows, browser, log, hono, simulate, logged, decide, callerOf, keeperOf} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {plugins} from "@tomlarkworthy/plugin-registry"
 // %%
