@@ -136,7 +136,9 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    - **Record it** in a file of the issue's own, `tools/cloud-brain/records/<id>.md` (follow
      `.claude/skills/document/SKILL.md`): what changed, the test count, what was not tried. A
      second round adds a dated section to the same file. Every time in it is read from
-     `git log --format=%ci`, an event's `at` or `date`, never estimated. Not `spec-as-built.md`:
+     `git log --format=%ci`, an event's `at` or `date`, never estimated. Every count in it, and in
+     your comment, is the output of a command written beside it, run after the last change it
+     counts; a count you cannot run again is not written. Not `spec-as-built.md`:
      every writer appended there and the cherry-picks met. The deploy hash and the commits are
      the refs of the submit, not part of the record. Commit it (a second commit is fine).
      The loop's reviewer is the record's fresh read; `/review-notebook` is not run on it.
