@@ -175,7 +175,17 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
      second round adds a dated section to the same file. Every time in it is read from
      `git log --format=%ci`, an event's `at` or `date`, never estimated. Every count in it, and in
      your comment, is the output of a command written beside it, run after the last change it
-     counts; a count you cannot run again is not written. Not `spec-as-built.md`:
+     counts; a count you cannot run again is not written. A sentence that says what the page, a
+     tool or a doc line does is held the same way (where a thing is drawn, when a call is sent, "at
+     no other time", "for every Worker"), in the record, the comment and the docs: you saw it in a
+     run of your own after the last change, made the way its reader will meet it (the page in the
+     tab, the tool that caller has, each Worker the sentence covers). What you saw of one case is
+     written of that case and the rest goes under what was not tried. Words taken from the issue or
+     the spec are checked as your own are (2026-10-11: review 1202 of `ds-2-span-and-refresh-controls`,
+     three texts had the note "under the panels" as the spec does, and it is drawn above them;
+     review 1250 of `verify-run-shell-runs-deployed`, "The page's module is then not booted", false
+     for `brain-x-page`; review 1259 of `fb-a2vp4smwzq`, four pointers shown reachable with
+     `brain.ts curl`, and the operator's own tool cut three of them at 8000 characters). Not `spec-as-built.md`:
      every writer appended there and the cherry-picks met. The deploy hash and the commits are
      the refs of the submit, not part of the record. Commit it (a second commit is fine).
      The loop's reviewer is the record's fresh read; `/review-notebook` is not run on it.
