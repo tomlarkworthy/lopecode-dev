@@ -3,24 +3,35 @@
 // `mkdir land.lock && …; rmdir land.lock`; the mkdir failed (a writer held the lock) and the rmdir
 // after the `;` removed that writer's lock.
 //
+// Issue bd-2-release-land-enters-docs: a release of land then runs knowledge-docs.ts put --stale (the cases at the end).
+//
 //   bun test ./tests/tools/lock.test.ts
 //   LOCK_SH=/path/to/another/lock.sh bun test …
 // Every case runs in a directory of its own (BRAIN_STATE_DIR), never the checkout's .emitted/.
 import { test, expect } from "bun:test";
-import { mkdtempSync, mkdirSync, existsSync, readFileSync, realpathSync } from "node:fs";
+import { mkdtempSync, mkdirSync, existsSync, readFileSync, realpathSync, writeFileSync, chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 
 const root = resolve(import.meta.dir, "../..");
 const script = process.env.LOCK_SH || join(root, "tools/cloud-brain/lock.sh");
-const fresh = () => {
+// LOCK_DOCS=0: a release of land runs no docs step, so no case here calls a Brain. The cases of the step set a stub.
+const fresh = (env: Record<string, string | undefined> = {}) => {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "bm-lock-")));
   const sh = (cmd: string) => {
-    const p = Bun.spawnSync(["bash", "-c", cmd], { env: { ...process.env, BRAIN_STATE_DIR: dir, LOCK: script } });
+    const p = Bun.spawnSync(["bash", "-c", cmd], { env: { ...process.env, BRAIN_STATE_DIR: dir, LOCK: script, LOCK_DOCS: "0", ...env } });
     return { code: p.exitCode, out: p.stdout.toString().trim(), err: p.stderr.toString().trim() };
   };
   const lock = (...a: string[]) => sh(`bash "$LOCK" ${a.join(" ")}`);
   return { dir, sh, lock };
+};
+// A program in the place of knowledge-docs.ts: it writes its arguments and its BRAIN_BASE to a file, then does as `then` says.
+const stub = (then = `echo '{"put":2,"entered":2}'`) => {
+  const at = realpathSync(mkdtempSync(join(tmpdir(), "bm-lock-docs-")));
+  const program = join(at, "docs.sh"), seen = join(at, "seen");
+  writeFileSync(program, `#!/bin/bash\nprintf '%s|%s\\n' "$*" "\${BRAIN_BASE-unset}" >> "${seen}"\n${then}\n`);
+  chmodSync(program, 0o755);
+  return { program, calls: () => (existsSync(seen) ? readFileSync(seen, "utf8").trim().split("\n") : []) };
 };
 
 test("take makes the directory rules.md names, with the holder in it", () => {
@@ -142,4 +153,80 @@ test("take --wait leaves with exit 2 when sleep refuses the seconds the check le
     expect(Date.now() - t).toBeLessThan(2000);
   }
   expect(lock("show", "land").out).toContain("writer-a");
+});
+
+// The docs step of `release land`: plan/cloud-brain-brain-docs-entered-by-hand.md, R5 and "Which Brain".
+test("a release of land runs the docs tool with put --stale, and prints its last line with the Brain's name", () => {
+  const docs = stub(`echo "no scope in frontmatter, entered private: x"; echo '{"put":2,"entered":2}'`);
+  const { dir, lock } = fresh({ LOCK_DOCS: docs.program, BRAIN_BASE: undefined });
+  lock("take", "land", "writer-a");
+  expect(docs.calls()).toEqual([]);
+  const r = lock("release", "land", "writer-a");
+  expect(r.code).toBe(0);
+  expect(existsSync(join(dir, "land.lock"))).toBe(false);
+  // No BRAIN_BASE in the caller's environment, as an agent's shell has none: the tool is given cb4.
+  expect(docs.calls()).toEqual(["put --stale --limit=30|cb4"]);
+  const lines = r.out.split("\n");
+  expect(lines[0]).toContain("land.lock released by writer-a");
+  expect(lines.slice(1)).toEqual([`docs (cb4): {"put":2,"entered":2}`]);
+});
+
+test("a BRAIN_BASE the caller set is kept, and is the name in the line", () => {
+  const docs = stub();
+  const { lock } = fresh({ LOCK_DOCS: docs.program, BRAIN_BASE: "cbx" });
+  lock("take", "land", "writer-a");
+  const r = lock("release", "land", "writer-a");
+  expect(docs.calls()).toEqual(["put --stale --limit=30|cbx"]);
+  expect(r.out).toContain(`docs (cbx): {"put":2,"entered":2}`);
+  expect(r.out).not.toContain("cb4");
+});
+
+test("a docs tool that fails leaves the release at exit 0 with the lock gone, and the line says why", () => {
+  const cases: [string, string][] = [
+    [`echo 'no token "loop-docs" is kept. The owner makes it once: …' >&2; exit 2`, `docs (cb4): not entered (no token "loop-docs" is kept. The owner makes it once: …)`],
+    // An uncaught throw as bun prints it: the source lines, then the message.
+    [`printf '27 | if (!BASE) throw\\n          ^\\nerror: knowledge.list: 403 refused\\n      at tool.ts:27:22\\n\\nBun v1.4.0\\n' >&2; exit 1`, "docs (cb4): not entered (knowledge.list: 403 refused)"],
+    ["exit 1", "docs (cb4): not entered (exit 1, and it printed nothing)"],
+  ];
+  for (const [then, line] of cases) {
+    const docs = stub(then);
+    const { dir, lock } = fresh({ LOCK_DOCS: docs.program, BRAIN_BASE: undefined });
+    lock("take", "land", "writer-a");
+    const r = lock("release", "land", "writer-a");
+    expect(r.code).toBe(0);
+    expect(existsSync(join(dir, "land.lock"))).toBe(false);
+    expect(docs.calls().length).toBe(1);
+    expect(r.out.split("\n").slice(1)).toEqual([line]);
+    expect(lock("take", "land", "writer-b").code).toBe(0);
+  }
+  // A program that is not there: the same.
+  const { dir, lock } = fresh({ LOCK_DOCS: "/nowhere/docs.sh", BRAIN_BASE: undefined });
+  lock("take", "land", "writer-a");
+  const r = lock("release", "land", "writer-a");
+  expect(r.code).toBe(0);
+  expect(existsSync(join(dir, "land.lock"))).toBe(false);
+  expect(r.out).toContain("docs (cb4): not entered (");
+});
+
+test("the step is for a release of land that happened: not LOCK_DOCS=0, not cb4, not a take or a show, not a release refused", () => {
+  const docs = stub();
+  const off = fresh({ LOCK_DOCS: "0" });
+  off.lock("take", "land", "writer-a");
+  const quiet = off.lock("release", "land", "writer-a");
+  expect(quiet.code).toBe(0);
+  expect(quiet.out).not.toContain("docs");
+  const { lock } = fresh({ LOCK_DOCS: docs.program });
+  expect(lock("take", "cb4", "writer-a").code).toBe(0);
+  const cb4 = lock("release", "cb4", "writer-a");
+  expect(cb4.code).toBe(0);
+  expect(cb4.out).not.toContain("docs");
+  expect(lock("release", "land", "writer-a").code).toBe(1);
+  expect(lock("take", "land", "writer-a").code).toBe(0);
+  expect(lock("show", "land").code).toBe(0);
+  const other = lock("release", "land", "writer-b");
+  expect(other.code).toBe(1);
+  expect(other.out).not.toContain("docs");
+  expect(docs.calls()).toEqual([]);
+  expect(lock("release", "land", "writer-a").code).toBe(0);
+  expect(docs.calls().length).toBe(1);
 });

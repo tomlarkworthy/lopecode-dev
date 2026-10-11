@@ -3,6 +3,9 @@
 #                                                  Exit 0: yours. Exit 1: held, and stderr names the holder.
 #                                                  --wait looks again every 20 s (or the seconds given) until it is taken.
 # lock.sh release land|cb4 <who>                   give it back. Exit 1, and the lock stays, when <who> is not its holder.
+#                                                  After a release of land it runs `knowledge-docs.ts put --stale --limit=30`
+#                                                  and prints `docs (<brain>): <its last line>`, or `docs (<brain>): not
+#                                                  entered (<why>)`; the exit is the release's, 0, either way.
 # lock.sh show land|cb4                            the holder and since when. Exit 1 when nobody holds it.
 # <who> is the issue id for a writer, or the role (overseer, orchestrator): a-z A-Z 0-9 . _ -
 #
@@ -13,7 +16,9 @@
 # held and does not release it. A lock left by an agent that died is the owner's to remove (`rm -r`).
 # Use it as `lock.sh take land <who> && { …; lock.sh release land <who>; }` or over several commands; never
 # `…; rmdir`. Issue land-lock-any-session-can-remove, tests/tools/lock.test.ts.
-usage() { sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }
+# The docs step (issue bd-2-release-land-enters-docs): <brain> is BRAIN_BASE, or cb4 when the caller set none.
+# LOCK_DOCS=0 leaves the step out; LOCK_DOCS=<program> runs that program in the tool's place, with the same arguments.
+usage() { sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }
 CMD="$1"; NAME="$2"; WHO="$3"
 case "$NAME" in land|cb4) ;; *) usage ;; esac
 # The main checkout's state, also when the copy that runs is a worktree's own. BRAIN_STATE_DIR as brain.ts reads it.
@@ -44,6 +49,19 @@ case "$CMD" in
     TOOK="$(since)"
     rm "$LOCK/holder" && rmdir "$LOCK" || { echo "lock.sh: could not remove $LOCK" >&2; exit 2; }
     echo "$NAME.lock released by $WHO at $(date '+%Y-%m-%d %H:%M:%S %Z') (taken $TOOK)"
+    # The docs of origin/main that are behind in the Brain's search are entered now, the lock already gone.
+    if [ "$NAME" = land ] && [ "${LOCK_DOCS:-}" != 0 ]; then
+      export BRAIN_BASE="${BRAIN_BASE:-cb4}"
+      if [ -n "${LOCK_DOCS:-}" ]; then OUT="$("$LOCK_DOCS" put --stale --limit=30 2>&1)"; else OUT="$(bun "$(dirname "$0")/knowledge-docs.ts" put --stale --limit=30 2>&1)"; fi
+      RC=$?
+      if [ "$RC" = 0 ]; then echo "docs ($BRAIN_BASE): $(printf '%s\n' "$OUT" | grep -v '^[[:space:]]*$' | tail -1)"
+      else
+        WHY="$(printf '%s\n' "$OUT" | sed -n 's/^error: //p' | head -1)"
+        [ -n "$WHY" ] || WHY="$(printf '%s\n' "$OUT" | grep -v '^[[:space:]]*$' | tail -1)"
+        echo "docs ($BRAIN_BASE): not entered (${WHY:-exit $RC, and it printed nothing})" | cut -c1-400
+      fi
+    fi
+    exit 0
     ;;
   show)
     [ -d "$LOCK" ] || { echo "$NAME.lock is not held"; exit 1; }
