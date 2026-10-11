@@ -39,6 +39,12 @@ the submit.
 
 `tests/tools/rules-md-philosophy-push-leave.test.ts`, new.
 
+A later commit of the same two files, authored 2026-10-11 after the record was first written, narrowed two
+phrases before the landing: the push paragraph said a change to `agent.sh` "or the README" waits
+for his push, and the record it names is of `agent.sh` alone; and the last paragraph of "A token
+an approved spec names" now reads "his session or his key", since the post of the shell is made
+with the key. The counts below are from runs made after it.
+
 What in the readings is mine and not the owner's:
 
 - The push leave is held to a commit that adds his quoted words to `philosophy.md`. The choice says
