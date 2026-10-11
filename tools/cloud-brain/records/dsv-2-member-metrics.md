@@ -135,6 +135,81 @@ no `test_` in `parts[0].text`.
 - A query string that names a parameter twice: the core refuses it (`brain-core.ojs:1085`) before the service, which reads the first for `metric` in the hold and in the lookup alike.
 - Two puts at once by one member at 49 kept: the count is read and then written, so both can
   land and 51 be kept.
-- What a member's Worker (`worker:brain-m-…`, running as its author) would need to read its own
-  metric: it is refused by the rule and by the service.
+- A member's Worker's call on cb4. Round 1 wrote here that it "is refused by the rule and by the
+  service". That was false (review 1615): see round 2 below.
 - The tests run together on the owner's page.
+
+## Round 2, 2026-10-11 (review 1615, one finding)
+
+The seed commit's author time is 20:13:35 +0200 (`git log --format=%ai`).
+
+**The finding.** The reference said "A Worker, a member's Worker included, and a stranger are
+answered 403 by every method", and this record said the same under "Not tried". Both were false.
+The core sends a member's Worker's call on as its author's: `asAuthor` of `brain-core.ojs` sets
+`who` to `{ caller: author, via: "worker:" + worker }` after checking the author's grant, and
+`forward` writes `x-brain-caller` from `who.caller` and `x-brain-via` from `who.via`. The service
+is given the DID. Round 1's test gave the name `worker:brain-m-<id>-todo` as `x-brain-caller`,
+which the core does not send for a member's Worker, so its 403 said nothing of one.
+
+**Decided: answered, as the member.** The reviewer left the choice to the writer. The service's
+behaviour is not changed. By line 2 of `philosophy.md`, the smaller side: it is what the core
+means by a member's Worker (its test is named `test_a_members_worker_calls_as_its_author_and_no_more`),
+and what `brain-git.ojs` says of a member ("that account's Workers", line 29). The Worker reaches
+its author's metrics and no other's, so nothing between members is opened (the reviewer's
+reading too). `brain-blob.ojs:192` to 196 does the same: a DID whose `x-brain-via` names a Worker
+`brain-m-<their id>-…` is answered as the member. It also refuses a DID whose `via` names any
+other Worker. This service does not read `x-brain-via` at all, so a DID that arrives by another
+Worker, a portal or a turn is the member here; which of those the core can send for these four
+methods was not read. Refusing a member's own Worker would be one condition on `x-brain-via` in
+the service; not chosen, since it is the larger change and nothing between members needs it.
+
+**What it costs, said in the reference under "No price".** A member's Worker is called by whoever
+its own rule lets in. With the grant, such a caller can make it send `metric.query`, each a logs
+query on the owner's account, up to the author's calls for a day (2000 by default, counted in
+`asAuthor`). That count was read in `brain-core.ojs` and not run.
+
+**What changed.** `brain-dashboard.ojs`, 24 insertions and 5 deletions (`git show --stat` of the
+seed commit).
+
+- The reference: the sentence of "Who can call" now says a Worker of the Brain and a stranger
+  are 403 and a member's Worker is answered as the member; "No price" says the paragraph above.
+- `test_a_member_keeps_and_reads_metrics_of_their_own_workers_and_no_others`: a caller with
+  `x-brain-caller` alice's DID and `x-brain-via: worker:brain-m-<alice>-todo`. Its `metric.put` is
+  200, over the Worker `todo` and over another Worker of alice; `metric.list` is alice's two;
+  `metric.query` of alice's is 200 with one body, script `cb4-m-<alice>-todo`; `metric.delete` of
+  alice's is 200. Six asks are 403: a put under bob's name, a put over bob's Worker, a delete and
+  a query of bob's metric, a query of `deploys.confirmed` and of `core.calls`. The comment on the
+  `worker:` caller now says the core sends that name for a Worker of the Brain.
+- `test_dashboard_declares_one_cloudflare_permission_and_its_rows` reads the new sentence in
+  `source.reference` and the absence of the old one.
+
+**Tests.** Five `test_*` cells, none added.
+
+```
+cd cloud-brain-dev && bun test.ts brain-x-dashboard                 (what cb4 ran, 4bc3ad7cfb30)   "passed":5,"failed":0,"needsBrowser":0
+cd cloud-brain-dev && bun test.ts brain-x-dashboard --with $W/tools/cloud-brain/.emitted/dsv-2.js   "passed":5,"failed":0,"needsBrowser":0
+```
+
+The service's answers did not change, so no behaviour test fails on round 1's service. The one
+assertion that does is the reference's: with round 1's sentence put back in a scratch build,
+
+```
+bun test.ts brain-x-dashboard --with <scratch>/mut.js
+FAIL test_dashboard_declares_one_cloudflare_permission_and_its_rows   Expected value: "So a member's Worker is answered as the member is"
+```
+
+In a browser, the step-8 snippet, one headless tab, `r=72102`: `[5,[]]`.
+
+```
+BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-dashboard --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20
+"mains":["@tomlarkworthy/brain-shell","@tomlarkworthy/brain-dashboard"]
+{"worker":"brain-x-dashboard","runs":20,"passed":20,"failed":0,"none":0,"from":["document"],…,"byChance":[],…,"at":"2026-10-11T18:13:55.350Z"}
+```
+
+`grep -c '"tests":5,'` over its output: 20. The record emitted in that tab: hash `942bf844cbe8…`,
+a reference of 10060 characters that holds the new sentence, no `test_` in `parts[0].text`.
+
+**Not tried in round 2.** A member's Worker's call on cb4, or through the core in a rig: the
+headers are the ones `forward` writes, read in its source, and the test gives them to the service
+by hand. The count of 2000 a day. A DID with any other `x-brain-via` (another Worker, `portal:`,
+`turn:`, `jwt`, a delegation). Everything under "Not tried" above still stands.
