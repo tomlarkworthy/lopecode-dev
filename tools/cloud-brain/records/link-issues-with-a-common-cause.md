@@ -18,9 +18,20 @@ Methods cell of `tools/cloud-brain/brain-issues.ojs`.
 (a link is refused between two issues read by different rules). 21 of 21 tests in a QA tab (Chrome
 151) and in the deployer's run (Chrome 128); `issue.verify?guards=true` ok over 456 events.
 
-First used on cb4 at event 429 (this issue `related` to `review-the-default-workflow`). By 11:53
-the record had 14 `linked` events, 11 of them the overseer's: three reports made parts of the
+First used on cb4 at event 429 (this issue `related` to `review-the-default-workflow`). By 11:53:00 CEST
+the record had 15 `linked` events, 12 of them the overseer's: three reports made parts of the
 project `deploy-verdict-from-a-shared-page`, three closed as a `duplicate` or with their `cause` named.
+One of the 15, event 515, is a `remove` (a part taken off its parent), so 14 links were made. The count,
+from the main checkout (`1791712380000` is 11:53:00 CEST in ms; the first event after it is 546):
+
+```
+for a in 0 500; do tools/cloud-brain/issue-as.sh issues-implementer-2 "sync?after=$a&limit=500" 2>/dev/null; done \
+  | jq -sc '[.[].events[] | select(.type == "linked" and .at <= 1791712380000)]
+            | [length, (map(select(.by.holder == "secret:issues-overseer-1")) | length), (map(select(.remove == true)) | length)]'
+[15,12,1]
+```
+
+Until the issue `rc-2-link-record-count` (2026-10-11) this sentence gave one fewer of each, with no command (`records/rc-2-link-record-count.md`).
 
 ## Round 2: what the loop's reviewer found (event 467) and what was done
 
