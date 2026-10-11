@@ -55,7 +55,7 @@ do not have (it names what was done for the ask, or leaves it for him).
 Run from the main checkout with the worktree's `report()` over the whole record (`sync?after=`, 500 a call):
 
 ```
-23:00 CEST, event 2745    51 open    25 due    0 to promote
+23:04 CEST, event 2753    51 open    25 due    0 to promote
 23:05 CEST, event 2775    33 open     7 due    0 to promote
 list?kind=feedback&state=open&limit=500 at 23:05   -> 33 issues
 ```
