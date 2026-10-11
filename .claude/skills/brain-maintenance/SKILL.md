@@ -52,9 +52,10 @@ Two files beside it, neither of them needed to resume:
 ## One pass
 
 1. **Health.** `brain.ts redistil` shows every Worker `same`; `brain.ts state` shows each `brain-x-*` Worker at the hash `tools/cloud-brain/seen.json` holds for it (`redistil` cannot show a put-back: the kept source goes back with the Worker, so it read `same` through the one of 19:32 on 2026-10-10); `lease.get` is held or the page is
-   not needed; no `cb4.lock` or `land.lock` older than 20 minutes. If the cluster is not healthy, file or find
-   the issue for it and do nothing else this pass. A stale lock is the owner's to remove: say so
-   in step 7 each pass until it is gone.
+   not needed; no `cb4.lock` or `land.lock` older than 20 minutes (`tools/cloud-brain/lock.sh show land`, `show cb4`: the holder and since when; exit 1 is not held). If the cluster is not healthy, file or find
+   the issue for it and do nothing else this pass. A stale lock is the owner's to remove (`rm -r`; it holds a file since 2026-10-11): say so
+   in step 7 each pass until it is gone. A commit of your own in the main checkout is made between
+   `tools/cloud-brain/lock.sh take land orchestrator` and `lock.sh release land orchestrator`.
 2. **Count your running agents.** Keep up to 4 implementers and 2 reviewers running (4 since 19:28 2026-10-10, Tom: "maybe we do another 2 in parrallel"; they land one at a time, so past 4 they queue on `land.lock`), and at
    most one agent on any issue. Each pass, fill the free places from step 3; with none free, do
    the triage rows only. (Tom, 2026-10-10: "try to have 1-2 writers and 1-2 reviewers active at

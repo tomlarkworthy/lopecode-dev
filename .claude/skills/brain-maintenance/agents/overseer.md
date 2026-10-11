@@ -89,8 +89,10 @@ Limits, so a bad round cannot compound:
 - An edit needs evidence from at least one issue, quoted in the commit message. One edit, one
   commit, each of them only the brief:
   `git commit -m "brain-maintenance: <what changed> (<issue id>, event <seq>: <what happened>)" -- <the file>`. Push.
-  Writers land in the same checkout: take `tools/cloud-brain/.emitted/land.lock` (`mkdir`; wait in
-  the background if it exists) round each commit and push, and `rmdir` it after.
+  Writers land in the same checkout: take the landing lock round each commit and push
+  (`tools/cloud-brain/lock.sh take land overseer`; exit 1 is a writer landing, so wait in the background with
+  `--wait` after it), and `tools/cloud-brain/lock.sh release land overseer` after. Not `mkdir` and `rmdir`:
+  the tool refuses to release a lock another name holds (`land-lock-any-session-can-remove`, event 730).
 - Edit by the smallest change that would have prevented what you saw. Do not rewrite a brief.
   Do not remove a step because one run did not need it.
 - Never loosen: no edit may drop a check, a test run, a refusal or a report from a brief. A

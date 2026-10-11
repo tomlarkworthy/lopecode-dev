@@ -163,9 +163,12 @@ brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
    the module under test: `exportModuleJS` writes every variable of a module into its source, so the deployer's
    own tests fail with "invalid redefinition of global identifier", and a record emitted in that tab carries the
    test cells into the deployed Worker's kept source (seen in the deployer, 2026-10-09 23:33).
-4. Deploy under the lock: `mkdir tools/cloud-brain/.emitted/cb4.lock`, `apply … --reason="why"`, remove the lock.
-   Nothing enforces it. It is the agreement between agents in this checkout: if the directory is
-   there, another one is deploying; wait.
+4. Deploy under the lock: `tools/cloud-brain/lock.sh take cb4 <who>`, `apply … --reason="why"`,
+   `tools/cloud-brain/lock.sh release cb4 <who>`. The lock is the directory `tools/cloud-brain/.emitted/cb4.lock`
+   with the holder's name in it; `take` exits 1 and names the holder when another agent is deploying (wait), and
+   `release` refuses a name that is not the holder's (since 2026-10-11, `tools/cloud-brain/records/land-lock-any-session-can-remove.md`;
+   before that it was a bare `mkdir` and `rmdir`, and a session removed a lock it had failed to take).
+   Nothing makes `apply` look at it. It is the agreement between agents in this checkout.
    Since 2026-10-11 07:51 CEST on cb4: every Worker with a version before it goes on probation, the deployer
    runs its tests in the Brain's browser inside the apply (20 to 55 s an apply that morning), and the result's
    state is `verified`, `put-back` (its tests failed; `reason` names them) or `probation` (no verdict).
