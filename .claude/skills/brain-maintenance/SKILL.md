@@ -135,7 +135,16 @@ Two files beside it, neither of them needed to resume:
    has `"resumed":true` and the same `agent`:
    `cost {"role":"implementer","round":2,"resumed":true,"tokens":201310,"seconds":410,"tools":19,"outcome":"in-review","event":231,"agent":"af49053b540d9c3f5","session":"f501a8e8-b922-4e11-a581-2b725efd6272"}`.
    Its numbers are the ones the resumed run reported, as they are; what `tokens` counts there is
-   said in that section. A run that was stopped or died gets its comment too. No time
+   said in that section.
+   Every line also has `usage`, what the run was billed (the owner, 2026-10-11: "yes lets post  billed tokens
+   (input, cache reads, output) per run for subagents too"): the one line that
+   `bun tools/cloud-brain/agent-usage.ts --session <session> --agent <agentId>` prints, as it is,
+   `"usage":{"input":61,"cacheWrite":141873,"cacheRead":3561349,"output":17885,"requests":29,"advisor":{"calls":2,"input":254047,"output":13751}}`.
+   So every Agent run's line has `agent` and `session`, not the implementer's alone. For a round that was sent
+   to an agent add `--last-run`, which counts that round and not the ones before it. For the light reviewer it is
+   `--session <the session of its JSON line>` with no `--agent`. When the command exits 1 (no transcript) leave
+   `usage` out. `tokens` stays: it is the size of the last request, which says how full the agent was, not what
+   it was billed. A run that was stopped or died gets its comment too. No time
    of day goes in the body. An overseer's run is on no issue: its line goes in `_oversight.md` in
    the same form, and yours for the pass, with the role `orchestrator`, in `_orchestrator.md`
    when the session shows a count. The journal is written as before. The runs before this
