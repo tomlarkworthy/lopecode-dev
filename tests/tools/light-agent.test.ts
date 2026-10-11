@@ -99,7 +99,7 @@ test("a path under brain/ reached through a symlink is fetched", async () => {
 });
 
 // agent.sh with a `claude` that writes its arguments down and answers two lines of stream-json.
-const rig = () => {
+const rig = (hold = false) => {
   const dir = root();
   mkdirSync(join(dir, "bin"));
   mkdirSync(join(dir, "checkout/tools/cloud-brain"), { recursive: true });
@@ -110,12 +110,12 @@ const rig = () => {
     { type: "assistant", message: { usage: { input_tokens: 2, cache_creation_input_tokens: 10, cache_read_input_tokens: 100, output_tokens: 5 } } },
     { type: "result", session_id: "s-1", result: "done", total_cost_usd: 0.5, num_turns: 3, duration_ms: 1200, usage: { input_tokens: 4, cache_creation_input_tokens: 20, cache_read_input_tokens: 300, output_tokens: 9 } },
   ];
-  writeFileSync(join(dir, "bin/claude"), `#!/bin/bash\nprintf '%s\\n' "$@" > "${dir}/sent"\nS=$(printf '%s\\n' "$2" | sed -n 's/^scratch: //p'); [ -n "$S" ] && [ -d "$S" ] && [ -z "$(ls -A "$S")" ] && touch "${dir}/scratch-was-there"\ncat <<'EOF'\n${lines.map((l) => JSON.stringify(l)).join("\n")}\nEOF\n`);
+  writeFileSync(join(dir, "bin/claude"), `#!/bin/bash\nprintf '%s\\n' "$@" > "${dir}/sent"\nS=$(printf '%s\\n' "$2" | sed -n 's/^scratch: //p'); [ -n "$S" ] && [ -d "$S" ] && [ -z "$(ls -A "$S")" ] && touch "${dir}/scratch-was-there"\n${hold ? `while [ ! -e "${dir}/go" ]; do sleep 0.02; done\n` : ""}cat <<'EOF'\n${lines.map((l) => JSON.stringify(l)).join("\n")}\nEOF\n`);
   chmodSync(join(dir, "bin/claude"), 0o755);
-  return async (args: string[], env: Record<string, string> = {}) => {
+  return Object.assign(async (args: string[], env: Record<string, string> = {}) => {
     const r = await run([join(dir, "agent.sh"), ...args], { PATH: `${join(dir, "bin")}:${process.env.PATH}`, CHECKOUT: join(dir, "checkout"), TAB: "", MODEL: "", ADVISOR: "", READS: "", DRY: "", ...env });
     return { ...r, scratchWasThere: existsSync(join(dir, "scratch-was-there")), sent: existsSync(join(dir, "sent")) ? readFileSync(join(dir, "sent"), "utf8").split("\n") : null, checkout: join(dir, "checkout") };
-  };
+  }, { dir });
 };
 
 test("agent.sh ROLE task: a prompt of four lines, four tools, no MCP server, and one JSON line back", async () => {
@@ -214,6 +214,39 @@ test("no advisor unless ADVISOR=1: the run's settings empty advisorModel", async
     const s = (await rig()(["reviewer", "t"], { ADVISOR: v })).sent!;
     expect(JSON.parse(s[s.indexOf("--settings") + 1])).toEqual({ advisorModel: "" });
   }
+});
+
+// Issue agent-sh-read-whole-before-run: three light reviewers printed their JSON line and then ended exit 2 on
+// "unexpected EOF while looking for matching", with the scratch directory left, after agent.sh was written over
+// during the run. `claude` here waits for the file `go`, so the write is made while agent.sh runs.
+// Skipped while the agent.sh under test has no block with its exit inside (the fix is a commit of cloud-brain-dev
+// that only the owner pushes); AGENT_SH_WRITTEN_OVER=1 runs it on any agent.sh.
+const agentSh = readFileSync(join(dev, "agent.sh"), "utf8");
+const readWhole = /\n\{\n[\s\S]*\nexit\n\}\n*$/.test(agentSh);
+test.skipIf(!readWhole && !process.env.AGENT_SH_WRITTEN_OVER)("agent.sh written over while claude runs: exit 0, the JSON line, no scratch directory left", async () => {
+  const lines = agentSh.split("\n");
+  const over: Record<string, string> = {
+    longer: [lines[0], "# a line that was not there when the run began", ...lines.slice(1)].join("\n"),
+    "two bytes longer": [lines[0], "#", ...lines.slice(1)].join("\n"),
+    shorter: [lines[0], ...lines.slice(2)].join("\n"),
+    "as long": agentSh.replace("# agent.sh ROLE", "# AGENT.SH ROLE"),
+    empty: "",
+  };
+  expect([over.longer.length > agentSh.length, over.shorter.length < agentSh.length, over["as long"].length, over["as long"] === agentSh]).toEqual([true, true, agentSh.length, false]);
+  const got: unknown[] = [];
+  for (const args of [["reviewer", "t"], ["--resume", "s-1", "more"]]) for (const [how, text] of Object.entries(over)) {
+    const a = rig(true);
+    const running = a(args);
+    while (!existsSync(join(a.dir, "sent"))) await Bun.sleep(5);
+    writeFileSync(join(a.dir, "agent.sh"), text);
+    writeFileSync(join(a.dir, "go"), "");
+    const r = await running;
+    const scratch = r.sent!.find((l) => l.startsWith("scratch: "))?.replace("scratch: ", "");
+    let result = null;
+    try { result = JSON.parse(r.out).result; } catch {}
+    got.push([args[0], how, r.code, result, r.err, scratch ? existsSync(scratch) : null]);
+  }
+  expect(got).toEqual(["reviewer", "--resume"].flatMap((form) => Object.keys(over).map((how) => [form, how, 0, "done", "", form === "reviewer" ? false : null])));
 });
 
 test("TAB=1 adds the checkout's channel server and allows its tools", async () => {

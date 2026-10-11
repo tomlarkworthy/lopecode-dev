@@ -186,6 +186,10 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    (the `session` of that JSON, not yours) and `"light":true`; `tools` is left out. It is never sent
    `--resume`. When the command prints no JSON line, or exits 1 (the result was an error) or 2, spawn the reviewer once as an Agent, as above, with the same token in its prompt:
    the file `agents/reviewer.md` says where the brief is. Say so in the journal and in step 7.
+   A JSON line and exit 2 together are not that case: the line is printed only when the run gave a result, so the
+   exit is from the script after it (three reviews on 2026-10-11, when `agent.sh` was written over during the run;
+   `tools/cloud-brain/records/agent-sh-read-whole-before-run.md`). Read the issue: when the review is recorded
+   there it stands, its cost is posted from the line, and no second reviewer is spawned.
    Measured before the switch: 25,212 after it had read its brief, the rules and `philosophy.md`, where an
    Agent told to answer "OK" is 40,842; one review replayed at 69,440 against 100,725 (the README has both,
    and what was not tried). First real review by it: not yet.
