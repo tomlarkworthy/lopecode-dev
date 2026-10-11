@@ -14,6 +14,6 @@ export const notebookOf = ({ named, worktree, built }: { named?: string; worktre
 export const testNeeding = (file: string, paths: string[]) => {
   const lacks = paths.filter((p) => !existsSync(p));
   if (!lacks.length) return test;
-  console.log(`skipped: ${file}: no ${lacks.join(", ")}. tools/cloud-brain/worktree.sh makes a worktree that has it; in another checkout, git submodule update --init cloud-brain-dev lopebooks`);
+  console.log(`skipped: ${file}: no ${lacks.join(", ")}. tools/cloud-brain/worktree.sh makes a worktree that has it; in another checkout, git submodule update --init cloud-brain-dev lopebooks lopecode`);
   return test.skip;
 };
