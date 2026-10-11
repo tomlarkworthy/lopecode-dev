@@ -3,8 +3,8 @@
 Task 5 of `plan/cloud-brain-dashboard-service.md`. Built 2026-10-11 by a writer of the issue loop,
 round 1. Three commits of the seed, at 21:19:34, 21:28:03 and 21:36:44 +0200
 (`git log --format=%ci`): the section, its move to before `## Operator`, and `dashboardGet`
-answering no panels for an answer that has none. `MAIN-BEFORE` below is `main` before them and
-`SEED-LAST` the third.
+answering no panels for an answer that has none. They are `96398e13`, `777f38fb` and `c6cfebf8`
+on `main`, which was at `f7d03412` before them.
 
 Nothing here was seen on cb4 in the owner's tab: the section asks with the owner's own session.
 Every count below is from a local QA tab (headless Chromium, 1280 by 800) on the worktree's build
@@ -12,8 +12,8 @@ with `session` and `client` stood in, or from the commands named.
 
 ## What changed
 
-`tools/cloud-brain/cloud-brain.ojs`: a section `## Dashboards` before `## Operator`: the heading, 18 cells and 4 tests (`git diff MAIN-BEFORE SEED-LAST -- tools/cloud-brain/cloud-brain.ojs | grep -c '^+// %%'`: 23). No line of the seed was removed
-(`git diff MAIN-BEFORE SEED-LAST -- tools/cloud-brain/cloud-brain.ojs | grep '^-' | grep -v '^---' | wc -l`: 0), so
+`tools/cloud-brain/cloud-brain.ojs`: a section `## Dashboards` before `## Operator`: the heading, 18 cells and 4 tests (`git diff f7d03412 c6cfebf8 -- tools/cloud-brain/cloud-brain.ojs | grep -c '^+// %%'`: 23). No line of the seed was removed
+(`git diff f7d03412 c6cfebf8 -- tools/cloud-brain/cloud-brain.ojs | grep '^-' | grep -v '^---' | wc -l`: 0), so
 the cells of Health are as they were.
 
 | cell | what it is |
