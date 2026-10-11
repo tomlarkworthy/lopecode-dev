@@ -63,7 +63,7 @@ reads the set: `knowledge.search?kind=paper&tag=awesome-rsi&limit=100&q=the+a+of
 entries with the tag awesome-rsi          63   (61 method research:awesome-rsi, 2 research:memento-3)
   file under corpus/…/arxiv/              61   (59 awesome-rsi, 2 memento-3)
   file under corpus/…/nature/              2
-  public                                   0   all entered by the owner's session
+  public                                   0   each reads by: owner, which a token's put reads too
   text at the limit of 16000 characters   56
   with "Body, from arXiv's HTML version"  57   the marker is at character 942 to 2177, median 1727
   title + abstract longer than 1500       47 of those 57
@@ -94,6 +94,9 @@ the Python modules `pypdf` and `fitz` (`which`, `python3 -c "import …"`, 19:53
 **No token of the loop writes to the knowledge base.** The names kept in `.emitted/cb4-tokens.json`
 (names only, read with `json.load(...).keys()`): `loop-bluesky`, `loop-deploys`, `loop-knowledge`,
 `loop-library`, `loop-roles`. `loop-docs`, which `knowledge-docs.ts` asks for, is not among them.
+A token that named `knowledge.put` entered 75 entries on 2026-10-11
+(`records/knowledge-by-says-owner-for-a-token.md`, which landed while this file was being landed);
+which token, and whether it is the one that entered these papers, was not found: it is not kept under a name of the loop.
 
 **The search already finds a paper by what its kept text says.** Two sets of ten questions were
 written by this writer from ten of the 57 entries (sorted by id, every sixth from the third), each
