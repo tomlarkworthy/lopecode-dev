@@ -403,7 +403,7 @@ never installed) is this workflow without the gathering and is removed.
 | `start` also from `open` and `triaged`, with the reason triage would have given; refused when the issue is `major`, labeled `needs-owner`, or has an open part | 9: five moves for any change. A quick win is `start`, `submit`, and the review. |
 | `back`, in-progress → ready, with a reason | 2 |
 | `close`, from open, triaged, ready, in-progress → `closed`, with a reason | 5: an answer is not a reject |
-| `reopen`, closed or rejected → open, with a reason | 7 |
+| `reopen`, closed or rejected → open, with a reason; what the owner rejected, by the owner present only. `owner-reject` is listed first, so any reject by the owner present has that name | 7 |
 | `reject` also from `ready` | an issue made ready and then found not real |
 | `owner-reject` from the six states that are not closed, where it was `"*"` | 6 |
 | feedback: `close` needs a reason, a parent or a link; `reopen` | 8 |

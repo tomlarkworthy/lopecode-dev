@@ -6,7 +6,7 @@ Written 2026-10-11 10:59 CEST. For the issues `review-the-default-workflow` (eve
 
 Tom, 2026-10-11 08:42: "There are many trap states and things that do not make sense in paractice.
 We should review all the items and see if they made sense and suggest a new default workflow that
-works better." And at about 10:20, with the nine feedback tickets of that morning unconnected:
+works better." And later that morning, with the nine feedback tickets of 10:11 unconnected:
 "lets try to fix both those issues with a review of the whole issues workflow. Remember we want a
 system that self adapt and gets better over time, at the moment the system is quite ineffecient. I
 think if an agent has spare context left and it already knows how to fix an issue it should jsut do
@@ -15,9 +15,9 @@ one larger set of gather  requirements for a large reenginneing project".
 
 ## What was read
 
-`issue.sync?after=0` and `?after=200` with the token `issues-implementer-2`, 10:20: 399 events,
+`issue.sync?after=0` and `?after=200` with the token `issues-implementer-2`, after event 399 (10:42): 399 events,
 60 issues, 56 of them not test data (4 are `test-…`, one of those hidden). Events 1 to 399 cover
-2026-10-10 11:52 to 2026-10-11 10:17 CEST. 42 of the 56 were opened on the first day.
+2026-10-10 11:53 to 2026-10-11 10:42 CEST. 42 of the 56 were opened on the first day.
 
 The counts below are printed by `bun tools/cloud-brain/issue-stats.ts` (written for this review, so
 the next one is one command). At 10:57 the record had 406 events and the same shape.

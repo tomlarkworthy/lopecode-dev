@@ -41,6 +41,9 @@ the system is quite ineffecient". On that day 56 issues had spent 47.3 h waiting
 
 ## Feedback tickets, and gathering
 
+> **In force once the policy of 2026-10-11 is installed** (`io policy` lists the kind `project`). Until then
+> `issue.link` works and the new moves and kinds answer 403: work as before, and say that the install waits.
+
 Agents open issues of kind `feedback` for anything that seems off against `philosophy.md`
 (the owner, 2026-10-11: "only feedback so we can identify patterns and check before writing a
 solution"). Read every open one, each oversight, with the events, and the open tasks and bugs

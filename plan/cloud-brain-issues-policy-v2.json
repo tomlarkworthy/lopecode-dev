@@ -1,6 +1,6 @@
 {
  "key": "policy-2026-10-11-workflow-v2",
- "reason": "FILL: the owner's word",
+ "reason": "Tom, 2026-10-11, to the orchestrating session: \"lets try to fix both those issues with a review of the whole issues workflow\" (review-the-default-workflow, link-issues-with-a-common-cause). Adds the kinds project and feature (his event 97 on ndd66a518), start from open, back, close, reopen, a link guard; owner-reject no longer lands on a closed issue. Review: tools/cloud-brain/records/review-the-default-workflow.md",
  "policy": {
   "kinds": {
    "bug": "task",
@@ -39,6 +39,19 @@
     "review": "issue.state == \"in-review\" && caller.actor != issue.by.start",
     "narrow": "caller.kind in [\"owner\", \"token\"]",
     "moves": [
+     {
+      "name": "owner-reject",
+      "from": [
+       "open",
+       "triaged",
+       "ready",
+       "in-progress",
+       "in-review",
+       "awaiting-approval"
+      ],
+      "to": "rejected",
+      "guard": "caller.present && event.reason != \"\""
+     },
      {
       "name": "triage",
       "from": "open",
@@ -125,26 +138,13 @@
        "rejected"
       ],
       "to": "open",
-      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\" && (caller.present || !(\"owner-reject\" in issue.by))"
      },
      {
       "name": "revert",
       "from": "done",
       "to": "reverted",
       "guard": "caller.present && event.reason != \"\" && size(event.refs) > 0"
-     },
-     {
-      "name": "owner-reject",
-      "from": [
-       "open",
-       "triaged",
-       "ready",
-       "in-progress",
-       "in-review",
-       "awaiting-approval"
-      ],
-      "to": "rejected",
-      "guard": "caller.present && event.reason != \"\""
      }
     ],
     "swaps": [
@@ -186,6 +186,19 @@
     "review": "issue.state == \"in-review\" && caller.actor != issue.by.start",
     "narrow": "caller.kind in [\"owner\", \"token\"]",
     "moves": [
+     {
+      "name": "owner-reject",
+      "from": [
+       "open",
+       "triaged",
+       "ready",
+       "in-progress",
+       "in-review",
+       "awaiting-approval"
+      ],
+      "to": "rejected",
+      "guard": "caller.present && event.reason != \"\""
+     },
      {
       "name": "triage",
       "from": "open",
@@ -266,26 +279,13 @@
        "rejected"
       ],
       "to": "open",
-      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\" && (caller.present || !(\"owner-reject\" in issue.by))"
      },
      {
       "name": "revert",
       "from": "done",
       "to": "reverted",
       "guard": "caller.present && event.reason != \"\" && size(event.refs) > 0"
-     },
-     {
-      "name": "owner-reject",
-      "from": [
-       "open",
-       "triaged",
-       "ready",
-       "in-progress",
-       "in-review",
-       "awaiting-approval"
-      ],
-      "to": "rejected",
-      "guard": "caller.present && event.reason != \"\""
      }
     ],
     "swaps": []
@@ -317,7 +317,7 @@
       "name": "reopen",
       "from": "closed",
       "to": "open",
-      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\" && (caller.present || !(\"owner-reject\" in issue.by))"
      }
     ],
     "swaps": [
@@ -357,6 +357,19 @@
     "review": "issue.state == \"spec-review\" && caller.actor != issue.by.spec",
     "narrow": "caller.kind in [\"owner\", \"token\"]",
     "moves": [
+     {
+      "name": "owner-reject",
+      "from": [
+       "open",
+       "spec",
+       "spec-review",
+       "awaiting-approval",
+       "approved",
+       "building"
+      ],
+      "to": "rejected",
+      "guard": "caller.present && event.reason != \"\""
+     },
      {
       "name": "spec",
       "from": "open",
@@ -436,20 +449,7 @@
        "rejected"
       ],
       "to": "open",
-      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
-     },
-     {
-      "name": "owner-reject",
-      "from": [
-       "open",
-       "spec",
-       "spec-review",
-       "awaiting-approval",
-       "approved",
-       "building"
-      ],
-      "to": "rejected",
-      "guard": "caller.present && event.reason != \"\""
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\" && (caller.present || !(\"owner-reject\" in issue.by))"
      }
     ],
     "swaps": []

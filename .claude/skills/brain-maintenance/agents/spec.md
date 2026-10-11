@@ -9,6 +9,9 @@ into one larger set of gather requirements for a large reenginneing project") an
 implementation and review for each before merging"). Not yet run: say in your report what in it
 misled you.
 
+> **In force once the policy of 2026-10-11 is installed** (`ia policy` lists the kind `project`). Until then
+> `issue.link` works and the new moves and kinds answer 403: work as before, and say that the install waits.
+
 Read `philosophy.md` and `rules.md` in `.claude/skills/brain-maintenance/` first. Your token is
 `issues-implementer-2`; define `ia` as `agents/implementer.md` does ("The tracker's write calls").
 

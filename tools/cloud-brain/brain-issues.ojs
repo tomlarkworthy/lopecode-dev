@@ -35,7 +35,7 @@ md`## Methods
 |---|---|
 | Worker | \`brain-x-issues\` |
 | \`issue.open\` | procedure. \`{ key, title, body, kind, about, parent, labels, id }\`. \`kind\` is one the policy names (\`bug\`, \`task\`, \`feedback\`, \`security\`, \`feature\`, \`project\` in the default). \`about\` is \`brain\` or a Worker's name. \`id\` may be made by the caller (\`a-z 0-9 -\`, 40 at most, not \`i<number>\`); left out it is \`i<seq>\`. A subtask is an issue with a \`parent\`. |
-| \`issue.link\` | procedure. \`{ key, id, to, rel, remove }\`: issue \`id\` says \`rel\` of issue \`to\`, both of which the caller may read. \`rel\`: \`duplicate\` (\`id\` is the same report as \`to\`), \`cause\` (\`to\` is why \`id\` happens), \`related\`, and \`part-of\`. The first three are kept on both issues: \`links: [{ rel, to }]\` on the one that says it and \`linked: [{ rel, id }]\` on the other, and neither changes what either may do unless a guard reads \`issue.links\`. \`part-of\` sets the \`parent\` of \`id\` to \`to\`, after it was opened: an issue has one parent, the new one replaces the old, and an issue is not made part of one of its own parts. \`remove: true\` takes the link off; for \`part-of\` it needs no \`to\` and leaves the issue with no parent. Guard: the workflow's \`link\`, and \`label\` where a workflow has none. |
+| \`issue.link\` | procedure. \`{ key, id, to, rel, remove }\`: issue \`id\` says \`rel\` of issue \`to\`, both of which the caller may read. \`rel\`: \`duplicate\`, \`cause\`, \`related\`, and \`part-of\`. \`duplicate\`: \`id\` is the same report as \`to\`. \`cause\`: \`to\` is why \`id\` happens. The first three are kept on both issues: \`links: [{ rel, to }]\` on the one that says it and \`linked: [{ rel, id }]\` on the other, and neither changes what either may do unless a guard reads \`issue.links\`. \`part-of\` sets the \`parent\` of \`id\` to \`to\`, after it was opened: an issue has one parent, the new one replaces the old, and an issue is not made part of one of its own parts. \`remove: true\` takes the link off; for \`part-of\` it needs no \`to\` and leaves the issue with no parent. Guard: the workflow's \`link\`, and \`label\` where a workflow has none. |
 | \`issue.comment\` | procedure. \`{ key, id, body }\` |
 | \`issue.label\` | procedure. \`{ key, id, add, remove }\`, lists of names |
 | \`issue.review\` | procedure. \`{ key, id, verdict, body, refs }\`. \`verdict\`: \`pass\`, \`changes\`, \`block\`. What each does is the policy's: in the default, \`changes\` and \`block\` both let the issue be sent back, and a \`block\` also stops a pass until it is. |
@@ -146,7 +146,7 @@ Moves of \`task\` beside the straight path, each with a reason:
 | \`start\` | open, triaged → in-progress | Whoever already has the fix starts with the reason triage would have given, in place of \`triage\`, \`ready\`, \`start\`. Refused for an issue labeled \`major\` or \`needs-owner\`, or with an open part. From \`ready\` it needs nothing. |
 | \`back\` | in-progress → ready | The work stopped: it needs the owner, or its writer is gone. Until 2026-10-11 \`submit\` was the one move out. |
 | \`close\` | open, triaged, ready, in-progress → closed | Ended with no change of its own: answered, a duplicate, gathered into a project, overtaken. \`rejected\` is for what is not real or will not be done. |
-| \`reopen\` | closed, rejected → open | The evidence a reject asked for arrived. |
+| \`reopen\` | closed, rejected → open | The evidence a reject asked for arrived. What the owner rejected (\`owner-reject\`, the name of any reject by the owner present) is opened again by the owner present only. |
 
 A \`project\`: \`spec\` (someone takes it, with a reason), \`submit-spec\` by that actor with a ref to the spec, a \`pass\` review by another actor and \`to-approval\`, \`approve\` by the owner present (or \`send-back\` with a reason), \`decompose\` once it has an open part, \`finish\` when none is open. A \`changes\` or \`block\` review lets it be sent back to \`spec\` (\`respec\`).
 
@@ -197,8 +197,12 @@ issuesDefaultPolicy = {
   const acts = { read: "true", open: "true", comment: "true", label: `${triage} && (!("major" in event.remove) || caller.present)`, link: triage, review: `issue.state == "in-review" && ${other}`, narrow: triage };
   const live = ["open", "triaged", "ready", "in-progress", "in-review", "awaiting-approval"];
   const states = [...live, "done", "closed", "rejected", "reverted"];
-  const reopen = (from) => ({ name: "reopen", from, to: "open", guard: said });
+  // What the owner rejected is the owner's to open again. owner-reject is listed before reject, so the owner's reject
+  // is recorded under that name from any state.
+  const reopen = (from) => ({ name: "reopen", from, to: "open", guard: `${said} && (caller.present || !("owner-reject" in issue.by))` });
+  const ownerReject = (from) => ({ name: "owner-reject", from, to: "rejected", guard: 'caller.present && event.reason != ""' });
   const moves = (always) => [
+    ownerReject(live),
     { name: "triage", from: "open", to: "triaged", guard: said },
     { name: "reject", from: ["open", "triaged", "ready"], to: "rejected", guard: said },
     { name: "ready", from: "triaged", to: "ready", guard: `${triage} && issue.children.open == 0` },
@@ -214,8 +218,7 @@ issuesDefaultPolicy = {
     // Ended with no change of its own: answered, a duplicate, gathered into a project, overtaken.
     { name: "close", from: ["open", "triaged", "ready", "in-progress"], to: "closed", guard: said },
     reopen(["closed", "rejected"]),
-    { name: "revert", from: "done", to: "reverted", guard: 'caller.present && event.reason != "" && size(event.refs) > 0' },
-    { name: "owner-reject", from: live, to: "rejected", guard: 'caller.present && event.reason != ""' }
+    { name: "revert", from: "done", to: "reverted", guard: 'caller.present && event.reason != "" && size(event.refs) > 0' }
   ];
   const closed = ["done", "closed", "rejected", "reverted"];
   // A project: issues are gathered into it (issue.link, part-of) while it is open; then a spec, its review, the owner's
@@ -225,6 +228,7 @@ issuesDefaultPolicy = {
   const project = {
     states: [...specLive, "done", "closed", "rejected"], start: "open", closed: ["done", "closed", "rejected"], ...acts, review: `issue.state == "spec-review" && ${writer}`,
     moves: [
+      ownerReject(specLive),
       { name: "spec", from: "open", to: "spec", guard: said },
       { name: "back", from: "spec", to: "open", guard: said },
       { name: "submit-spec", from: "spec", to: "spec-review", guard: "caller.actor == issue.by.spec && size(event.refs) > 0" },
@@ -236,8 +240,7 @@ issuesDefaultPolicy = {
       { name: "finish", from: "building", to: "done", guard: `${triage} && issue.children.open == 0` },
       { name: "close", from: ["open", "spec"], to: "closed", guard: said },
       { name: "reject", from: ["open", "spec"], to: "rejected", guard: said },
-      reopen(["closed", "rejected"]),
-      { name: "owner-reject", from: specLive, to: "rejected", guard: 'caller.present && event.reason != ""' }
+      reopen(["closed", "rejected"])
     ],
     swaps: []
   };
@@ -1363,11 +1366,16 @@ test_issues_links_parts_and_the_moves_that_end_a_trap = {
   expect((await rig.a("move", { id: "t1", to: "ready", reason: "needs the owner" })).data.event.move).toBe("back");
   await rig.b("move", { id: "t1", to: "in-progress" });
   expect((await rig.b("move", { id: "t1", to: "closed", reason: "answered: yes" })).data.event.move).toBe("close");
-  // Closed and rejected open again with a reason. Nothing moves onto a closed issue (cb4's old workflow took a second reject).
+  // Closed and rejected open again with a reason; what the owner rejected, by the owner only. Nothing moves onto a
+  // closed issue (cb4's old workflow took a second reject).
   expect((await rig.a("move", { id: "t1", to: "open" })).status).toBe(403);
   expect((await rig.a("move", { id: "t1", to: "open", reason: "met again" })).data.event.move).toBe("reopen");
-  await rig.owner("move", { id: "t1", to: "rejected", reason: "no" });
+  await rig.a("move", { id: "t1", to: "rejected", reason: "not real" });
+  expect((await rig.b("move", { id: "t1", to: "open", reason: "met again" })).status).toBe(200);
+  expect((await rig.owner("move", { id: "t1", to: "rejected", reason: "no" })).data.event.move).toBe("owner-reject");
   expect((await rig.owner("move", { id: "t1", to: "rejected", reason: "again" })).data.message).toBe("no move from rejected to rejected");
+  expect((await rig.a("move", { id: "t1", to: "open", reason: "met again" })).status).toBe(403);
+  expect((await rig.owner("move", { id: "t1", to: "open", reason: "met again" })).data.event.move).toBe("reopen");
   // The view made again from the record has the links on both issues.
   const before = (await rig.owner("get?id=f2")).data.issue;
   await rig.owner("rebuild", {});
@@ -1738,6 +1746,7 @@ test_issues_reference_states_each_value_and_has_no_hole = {
     "under `" + issuesStoreName("ADDRESS") + "`",
     "`kind` is one the policy names (" + ticked(Object.keys(issuesDefaultPolicy.kinds)) + " in the default)",
     "`verdict`: " + ticked(L.verdicts) + ".",
+    "`rel`: " + ticked(L.rels.filter((r) => r !== "part-of")).replace(/, (`[a-z]+`)$/, ", $1,") + " and",
     "text of 1 to " + L.reason + " characters",
     "&limit=" + L.syncPage + "`",
     "`syncMs` (" + L.syncMs + ")",

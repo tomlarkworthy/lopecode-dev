@@ -188,6 +188,9 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
 
 ## A quick win
 
+> **In force once the policy of 2026-10-11 is installed** (`ia policy` lists the kind `project`). Until then
+> `issue.link` works and the new moves and kinds answer 403: work as before, and say that the install waits.
+
 The owner, 2026-10-11: "if an agent has spare context left and it already knows how to fix an issue
 it should jsut do it as a quick win while it is there." Before 2026-10-11 the only thing you could
 do with a second defect was file it, and a round for a one-line change cost 167,000 tokens or more.
