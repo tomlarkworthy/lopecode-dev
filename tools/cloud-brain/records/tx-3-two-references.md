@@ -123,3 +123,20 @@ browsers, containers, blobs (under d:<id>, where it was token:NAME)").
 - Whether a blob tagged `by:token:NAME` is still kept on cb4.
 - `cloudflare-iac.ojs` line 1628 (`caller.id`: `token:NAME`) is the owner's: the deployer's hash covers that file.
 - `brain-container.ojs` reads `keeperOf` too. Its reference was not read.
+
+## The landing: the first apply of `brain-x-blob` was put back
+
+Added under the landing lock, 2026-10-11. `brain-x-browser` was applied once: `"state":"verified","tests":19`.
+`brain-x-blob` had no entry in `seen.json`; `getSource?worker=brain-x-blob` differed from the record's
+`source.text` in 29 lines of `diff`, each of this change (the row, the new test and its `$def`), so `saw brain-x-blob`, then apply.
+`logs.deploys` (`--as loop-deploys`) of that apply, times from the lines' `t`:
+
+```
+22:06:56  deploy.uploaded   brain-x-blob  hash 90faa7353a8f
+22:08:06  deploy.unhealthy  last: "hash 8060796790ff"
+22:08:08  deploy.put-back   reason: "health check failed after go-live"
+```
+
+For 70 s after the upload the Worker answered with the hash before. No test ran. `waitHealthy`
+(`brain-deployer.ojs`) has a comment of the same on 2026-10-06. The same record applied again at
+22:09:36: `17849 ms`, `"state":"verified","tests":9`. Why Cloudflare answered late was not found.
