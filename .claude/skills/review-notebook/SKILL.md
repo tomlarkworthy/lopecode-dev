@@ -153,3 +153,9 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   thread): FIX, 8 findings (7 confirmed, 1 plausible), all taken. 91k subagent tokens, 4m43s. It fetched the repository
   and the thread again and every figure and quotation about them held, three counts to within one; what was wrong was
   what the file said of Cloud Brain ("multi-tenant", "four commands", prices "in the method tables").
+- 2026-10-11 `@tomlarkworthy/brain-issues` (changes since `878802c3`: `issue.link`, the project workflow), `plan/cloud-brain-issues.md`,
+  `records/review-the-default-workflow.md` and `brain-maintenance/agents/spec.md`, one agent for the four: FIX, FIX, FIX, BLOCK.
+  18 findings (15 confirmed, 3 plausible), 17 taken (lopecode-dev `3cb43d9b`), 1 declined (the path by `triage` and `ready`
+  stays open for a `major` issue: said in the prose). 241k subagent tokens, 10m06s. What the author had not seen: a link named a
+  security issue to a caller who could not read it; a project had no way out once approved; the record's own count dropped an
+  issue whose id begins `test`; and a second submit under the spec brief's key answered 200 and moved nothing.
