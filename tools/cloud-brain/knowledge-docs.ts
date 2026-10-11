@@ -18,8 +18,8 @@
 // The file is not copied: the entry's url is the doc on GitHub's main (the repo is public) and sha256 is of that file.
 // A doc whose frontmatter scope has `in-notebook` is public (it already ships in the markdown-wiki notebook);
 // one that is `local-development` only is the Brain's and private. The three of cloud-brain-dev are private.
-// The id is the file's name in lower case. A name that gives no id knowledge.put takes (a space, an underscore, a
-// character outside ASCII) is `badname` in status and `badNames` in the last line, and is in no put (i1546).
+// The id is the file's name in lower case. A name that gives no id knowledge.put takes (a space, a
+// character outside ASCII, anything but a-z 0-9 . _ : -) is `badname` in status and `badNames` in the last line, and is in no put (i1546).
 // tests/tools/knowledge-docs.test.ts
 import { writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";

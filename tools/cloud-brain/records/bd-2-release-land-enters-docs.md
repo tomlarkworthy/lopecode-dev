@@ -84,7 +84,11 @@ exit 0, real 1.20 s
 ```
 
 This run is not the landing's: `BRAIN_STATE_DIR` was the temporary directory, which the tool hands on
-to `brain.ts`, so the token was looked for there and not in the main checkout's `.emitted/`. The
+to `brain.ts`, so the token was looked for there and not in the main checkout's `.emitted/`. That the
+main checkout keeps none: from the worktree with no `BRAIN_STATE_DIR` (the tool then takes the main
+checkout's), 2026-10-11 20:14:45 CEST, `BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --stale --limit=30`
+printed `no token "loop-docs" is kept. The owner makes it once: BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-docs knowledge.put knowledge.list`
+and exited 2. The
 line of this landing's own release, run as the brief gives it, is printed after this file is
 committed. It is in the issue's comment.
 
@@ -101,7 +105,7 @@ line 140, `knowledgePatterns.id`; line 137, `knowledgeLimits.id`). `knowledge.pu
 before it writes any and answers 400 `entry N: id: …` for the call (the same seed, the loop under
 "What is kept under the ids given"). Read in the seed, not run on cb4. So one doc named `café.md`,
 once listed, would have had each put of its 25 refused, at every landing. The same holds today for a
-name with a space or an underscore, which the old listing did pass on: `knowledge/Upper Case.md` was
+name with a space, which the old listing did pass on: `knowledge/Upper Case.md` was
 `doc:upper case` (the question of event 1550).
 
 So a doc whose id is outside that pattern is:

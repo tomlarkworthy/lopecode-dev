@@ -126,8 +126,9 @@ docs (cb4): not entered (<why>)             the tool failed; the docs wait for t
 - The name in brackets is the Brain: `BRAIN_BASE`, and `cb4` when the caller's shell has none.
 - The call is made with the token `loop-docs`, which the owner makes once:
   `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-docs knowledge.put knowledge.list`. An agent does not
-  make it and does not pass `--owner` to the tool. On 2026-10-11 20:05 CEST it had not been made, and a release
-  with the tool itself printed
+  make it and does not pass `--owner` to the tool. On 2026-10-11 20:14:45 CEST it had not been made: `put --stale` by
+  hand, on the main checkout's state, exited 2 with `no token "loop-docs" is kept. The owner makes it once: …`. A
+  release with the tool itself, its lock and state in a temporary directory, had printed at 20:05:34
   `docs (cb4): not entered (no token "loop-docs" is kept. The owner makes it once: BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-docs knowledge.put knowledge.list)`
   in 1.2 s. The first two lines above were printed that day with a stub in the tool's place (`tests/tools/lock.test.ts`),
   not by cb4.
@@ -147,5 +148,5 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --stale      # what t
 `status --check` exits 0 when no doc is behind, 1 when one is, and 2 with the owner's command when no `loop-docs` is
 kept. A tool that threw also exits 1 (seen with no `BRAIN_BASE`; a refused call throws the same way, not run): the
 last line is then bun's and not the JSON. `badname` is a doc whose file name gives no id the service takes
-(a space, an underscore, a character outside ASCII): it is in no put until the file has another name. No doc of
+(a space, a character outside ASCII, anything but `a-z 0-9 . _ : -` once in lower case): it is in no put until the file has another name. No doc of
 `origin/main` was one on 2026-10-11 20:04 CEST (67 docs, `status --check --owner`).
