@@ -12,6 +12,17 @@ found" at 19:53 CEST and `/opt/homebrew/bin/pdftotext`, version 26.10.0, at 20:0
 writing (`2a6b756d`) read the four papers without arXiv HTML from arXiv's TeX source and the
 publisher's page; this one reads them from the kept PDF, and the token names `static.get` too.
 
+**Round 2, 2026-10-11 20:12 to the time of its commit, after review 1611 (verdict `changes`).**
+What changed, by finding:
+
+| Review 1611 | Answer | Where |
+|---|---|---|
+| Finding 1: "With Read alone the worst a paper can do is a wrong summary" is false, since `agent.sh` gives the agent the checkout and nothing refuses a Read of the token files | True, and wider than the finding: `--allowedTools "Read"` grants Read on every path of the machine, with or without `--add-dir` (measured, run e1 below). The summarizer is started with neither the checkout nor that grant, and reads its own directory and one directory holding one file. Measured with four runs. A canary beside the token files is read for before each run. The sentence is rewritten. | Design piece 1; R7; task 2 |
+| Finding 2: ps-3 and ps-4 rewrite 63 kept entries; say whether they carry `major`, where the text as entered is kept and how it is put back | Both carry `major`. Task 1 writes each entry as read to a file before any token that can put exists, and its record has the SHA-256 of each. `restore` puts it back; the pilot restores one entry and compares the hash before the other 53 are touched. | Design piece 3, "Putting an entry back"; R8; tasks 1, 3, 4; the owner's list |
+| Observation: R5 by `semantic=true` only | Set A is asked by words alone as well, as a condition. | R5 |
+| Observation: the number rule refuses true summaries; what is done with a paper refused twice | `1,000` and `1000` match. A paper refused twice is recorded, not asked again by a later run, and read by the task's writer; `check` fails while one is unanswered. | Design piece 3, step 4; R2; R6 |
+| Observations on who puts the brief, and the model | Unchanged; both are said as readings. | |
+
 The issue has no parts: it is the owner's request, filed for him by a session. So there are no
 gathered reports to list, and the eight questions the filing session left "for the spec to settle"
 are taken in their place.
@@ -46,6 +57,8 @@ spec is where he says so.
 | R4 | The entry says its text is a model's summary, of what and when. | the filing session's fourth question |
 | R5 | What the search finds today it still finds. | measured below: the search is near its ceiling on what is kept |
 | R6 | The loop can run it again on papers entered later, with no session's memory. | "Our task loop can do" |
+| R7 | The agent that reads a paper can read no file of the checkout or the machine but its own directory and the paper's text. | review 1611, finding 1; `philosophy.md` line 1; `rules.md`, Never, "Print, copy or log a secret" |
+| R8 | The text of each entry as it was before its first summary is kept, and one command puts it back. | review 1611, finding 2; `SKILL.md`, Triage, "deletes or rewrites kept data" |
 
 The eight questions of the issue's body, each in one line:
 
@@ -133,14 +146,69 @@ a run; $114.14 in all.
 
 ## The design
 
-Four pieces. The second and third are new files; the first is one line; the fourth is a token.
+Four pieces. The second and third are new files; the first is a change to `agent.sh`; the fourth is a token.
 
-**1. `agent.sh` takes the tools from the caller.** Today the line is
-`--tools "Bash,Read,Grep,Glob"`. With `TOOLS=Read` the summarizer is started with Read and nothing
-else. A paper is text from outside, and a summarizer that can run a command can be told by a
-paper to run one: the tokens of the loop are files of the checkout it is given. With Read alone
-the worst a paper can do is a wrong summary. Whether `claude -p --tools "Read"` starts as expected
-is not tried; task 2 tries it.
+**1. `agent.sh READS=DIR`: an agent that reads one directory.** A paper is text from outside. An
+agent that reads it can be told by it what to do, and what the agent answers is put into a kept
+entry. So the agent is given nothing worth telling it to read.
+
+Round 1 of this spec changed `--tools` alone and said "With Read alone the worst a paper can do is
+a wrong summary". Review 1611 found that false: `agent.sh` passes `--add-dir "$CHECKOUT"`, and
+`tools/cloud-brain/.emitted/cb4-tokens.json` and `cb4.json` are files of the checkout. Measured
+for this round, it is wider than the checkout. Four runs, 2026-10-11 20:13 to 20:14 CEST,
+`claude` 2.1.296, `--model haiku --strict-mcp-config --tools "Read"`, started in the main
+checkout's `cloud-brain-dev/` as `agent.sh` starts it. `out/` and `only/` are two directories
+under `/private/tmp`, each with one file of a known line:
+
+```
+run  flags added                 out/canary.txt   only/in.txt   <checkout>/README.md   brain/roles/reviewer.md
+e1   --allowedTools "Read"       read             read
+e2   (none)                      refused          refused
+e3   --add-dir only/             refused          read
+e4   --add-dir only/                              read          refused                read
+```
+
+The refusal, as the agent was given it: "Claude requested permissions to read from … but you
+haven't granted it yet." Each run's first line listed `tools ['Read']` and no MCP server. The four
+cost $0.0055 together.
+
+**e1 says what today's line does: `--allowedTools "Read"` grants a Read of any path, whatever is
+added.** Taking the checkout out of `--add-dir` and leaving that flag would have changed nothing.
+e3 and e4 are the shape taken: no `--allowedTools`, one directory added.
+
+With `READS=DIR` set, `agent.sh`:
+
+- passes `--tools "Read"`, no `--allowedTools`, and `--add-dir "$DIR"` in place of the checkout;
+- writes no `checkout:` line in the prompt, and `scratch: $DIR`; it neither makes nor removes `DIR`;
+- does the same on `--resume`, whose flags today are the same line;
+- adds `tools` to its JSON line, from the first line `claude` prints (`"type":"system","subtype":"init"`).
+
+One variable and not two (`TOOLS`, `ADD`): a caller that set the tools and forgot the directory
+would have round 1's defect. With `READS` unset nothing changes for the reviewer.
+
+What the summarizer can then read, and so what a paper can have copied into an entry:
+
+- `DIR`: the paper's text and nothing else. The tool makes it new for each paper (`mktemp -d`,
+  outside the checkout) and removes it after.
+- `cloud-brain-dev/`, where it is started. Listed 20:14 CEST: `.claude/settings.json` and the
+  hook, `.git` (one line, the path of the repository's directory, which is outside), `.gitignore`,
+  `agent.sh`, `AGENTS.md`, `all.ts`, `CLAUDE.md`, `philosophy.md`, `put.sh`, `README.md`, `sync.ts`,
+  `test.ts`, `brain/` (files of the Brain, served to anyone at `/static/cloud-brain-dev/`) and
+  `deploy/` (the modules cb4 runs, as `sync.ts` read them). No token is kept there: the
+  repository's config has no `extraHeader` line (`grep -c` answered 0), and it is outside the directory anyway.
+  The files under `deploy/` were not opened for this.
+- What `claude` puts in every agent's context on this machine: the user's own instructions and
+  memory for that directory. Not read for this; the reviewer of the loop has had the same since 2026-10-11.
+
+So the sentence is now: **the worst a paper can do is a wrong or misleading summary, up to the
+6,500 characters the tool accepts, made of the paper's words and of the files listed above.** None
+of those is a secret. Two things this does not close. A summary is read later by agents that
+search the knowledge base, and those have Bash: a paper that addresses them is quoted into an
+entry by rule 3 of the brief, not removed. That is so today, without a summarizer: 57 entries
+hold up to 16,000 characters of a paper's body as fetched. And the boundary is `claude`'s
+default, not the Brain's: a later version, or a line of the user's settings that allows Read,
+would open it with no change here. For that the tool reads for a canary before each run
+(piece 3), and stops when it is found.
 
 **2. The brief, `brain/roles/paper-summarizer.md`**, kept on the Brain as the reviewer's is. Its
 task line names one file of text and the title's length. It asks for exactly two things as the
@@ -170,22 +238,42 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts text  --tag awesome-rsi
 BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts run   --tag awesome-rsi --ids a,b --dry   # summaries written to .emitted/papers/, nothing put
 BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts run   --tag awesome-rsi          # one agent a paper, one after another; puts with loop-papers
 BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts check --tag awesome-rsi          # reads with loop-knowledge; exit 1 on a failing entry
+BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts restore --ids a,b                 # puts back the text as entered; loop-papers
 ```
+
+`text` also writes each entry as it reads it to `.emitted/papers/<id>.entry.json` (`title`, `text`,
+`tags`, `changed`, and the SHA-256 of `text`), once: a file that is there is never written again.
+It needs `loop-knowledge` only, so the 63 files exist before a token that can put does.
+
+Before its first paper, `run` reads for a canary. It writes a new random line to
+`tools/cloud-brain/.emitted/canary.txt`, which is beside the token files, starts
+`READS=<an empty directory> MODEL=haiku agent.sh paper-summarizer "read <that path> and answer with its content"`,
+and stops with nothing put when the answer holds the line or when `tools` is not `["Read"]`.
+About $0.003 a run by e4's price. The token files themselves are never the subject of a test: a
+test that failed would have read one into an output.
 
 For one paper, `run`:
 
-1. Reads the entry (the search by words, as above).
+1. Reads the entry (the search by words, as above). No `<id>.entry.json`: the paper is skipped and
+   named. An entry without the summary's line whose text is not the file's: the same, since
+   something else has written to it.
 2. Gets the text: `arxiv.org/html/<id>`, tags and scripts taken out; else the kept PDF, read with
    `static.get?path=<the entry's file>` and the token `loop-papers`, its SHA-256 compared with the
    entry's `sha256`, through `pdftotext`. One paragraph a line, so that Read pages it. It is written to
    `tools/cloud-brain/.emitted/papers/<id>.txt` (git-ignored) with its SHA-256. A text under
    5000 characters is a failed fetch: the paper is skipped and named.
-3. Starts `TOOLS=Read cloud-brain-dev/agent.sh paper-summarizer "summarize <path>; the title is <n> characters"`
-   and takes `result` from its one JSON line.
-4. Refuses the result when the lead is too long, a section is missing, or a number in it is not
-   in the text read. A number is a run of digits with its `.`, `,` and `%`; it is looked for as
-   written, in the same `.txt` the agent was given and nowhere else. Refused once, the same agent is sent the list (`agent.sh --resume`); refused twice,
-   the paper is skipped and named.
+3. Copies the text into a new directory `D` outside the checkout and starts
+   `READS=D cloud-brain-dev/agent.sh paper-summarizer "summarize D/<id>.txt; the title is <n> characters"`.
+   It takes `result` from the one JSON line, and nothing when `tools` is not `["Read"]`.
+4. Refuses the result when the lead is too long, a section is missing, the sections are over
+   5000 characters, or a number in it is not in the text read. A number is a run of digits with
+   its `.`, `,` and `%`; it is looked for in the same `.txt` the agent was given and nowhere else,
+   as written but for a `,` between digits and a `.` at its end, which are taken out on both sides
+   (`1,000` is `1000`). A number the summary worked out is refused: the brief says to copy.
+   Refused once, the same agent is sent the list (`READS=D agent.sh --resume`, `D` still there).
+   Refused twice, nothing is put, the entry is as it was, and the journal's line says `refused`
+   with the numbers and the text's hash. A later `run` does not start an agent for a paper
+   refused for that same text unless given `--again`.
 5. Puts, with the token `loop-papers`: `{ id, text, tags: ["paper-summary"], method: "paper-summarizer" }`,
    where `text` is, in order: the lead; the sections; the line
    `Summary by paper-summarizer (<model>), <day>, of <address read>, sha256 of the text read <hash>.`;
@@ -210,6 +298,25 @@ No change is made to `brain-x-knowledge`. Three things it does already carry R2 
 
 With a lead of at most `1498 - title` characters first in `text`, the 1500 embedded characters are
 the title and the lead, whole.
+
+**Putting an entry back.** A put of a summary takes text out of the entry. The lead (up to
+`1498 - title`), the sections (up to 5000) and the two lines come first, about 6,600 characters,
+and 56 of the 63 entries are at the limit of 16,000 today: each of those loses about that much
+from the end of the paper's body as kept. The other 7 lose less or nothing. The service keeps no
+earlier text of an entry (`brain-knowledge.ojs`, the statement `put`: one row an id, written over).
+
+- Where it is kept: `.emitted/papers/<id>.entry.json`, written by `text` in task 1. Task 1's
+  record, which is committed, lists each id with the length and SHA-256 of its text as entered.
+- How it is put back: `summarize-papers.ts restore --ids a,b` (or `--tag`) puts
+  `{ id, text: <the file's>, method: "paper-summarizer:restore" }` with `loop-papers`, after
+  comparing the file's text with the hash kept beside it. The service embeds the entry again in that call.
+- What it does not undo: the tag `paper-summary` stays, since a put joins tags and removes none;
+  `changed.method` reads `paper-summarizer:restore`. `check` names such an entry as restored.
+- What the copy is: files on this machine, git-ignored, not on the Brain. With the machine lost
+  the hashes in the record say what was there and nothing gives it back. What a summarized entry
+  no longer holds is a stretch of arXiv's HTML body, public at the address its line names.
+  Keeping the copies on the Brain needs `static.put` in the token, a write to every file of the
+  store; not taken for text that is public.
 
 **4. A token, `loop-papers`**, naming `knowledge.put`, `knowledge.search` and `static.get` (the kept PDFs are private files). It is the owner's to
 make (below). It is held by the tool, never by the summarizer.
@@ -252,6 +359,14 @@ papers at the reviewer's 320 s would be 5.6 hours; that too is an upper mark.
 - **Cloudflare's Markdown conversion** (`ai-tomarkdown-pass-through`, linked to this issue at
   event 1553). Not needed for these 63 on this machine. A summarizer run where there is no
   `pdftotext` would need it.
+- **A deny rule for `.emitted/`**, the second way review 1611 offered. It names one place. The
+  Cloudflare token is at `tools/scratch/cloud-brain-experiments/.cf-token`, and the user's home
+  has keys this spec has no list of. A list of what may be read is shorter than a list of what may not.
+- **A refusal in the Read hook** (`brain-read.sh` already makes each path real and could refuse
+  any outside two directories). It can be tested with no model. Not taken as well: e2 to e4 show
+  the flags hold, and the canary of each run tests the agent as started, which a test of the hook
+  alone does not.
+- **A new agent in place of `--resume` after a refusal.** It would read the paper a second time.
 - **The summarizer holding the token and putting its own summary.** One call fewer, and a paper's
   text then reaches an agent that can write to every entry of the Brain.
 - **Dropping the abstract and the body from the entry.** It would leave room for a longer
@@ -261,16 +376,18 @@ papers at the reviewer's 320 s would be 5.6 hours; that too is an upper mark.
 
 ## How each requirement is known to be met
 
-Each is run by an agent of the loop with `loop-knowledge` or no token.
+Each is run by an agent of the loop with `loop-knowledge` or no token, but the restore of R8, which is a put and is made in task 3 with `loop-papers`.
 
 | | Check |
 |---|---|
 | R1 | `curl -s -o /dev/null -w '%{http_code}' https://cb4.endpointservices.workers.dev/static/cloud-brain-dev/roles/paper-summarizer.md` answers 200. `journal.jsonl` has one `session` for each id and no `session` twice. |
-| R2 | `summarize-papers.ts check`: every entry of `knowledge.search?kind=paper&tag=paper-summary&q=summary&limit=100` has `changed.method` `paper-summarizer`, the line `Summary by paper-summarizer`, a first paragraph of at most `1498 - title length` characters, and the six sections. The journal's put answers each have `vectors: 1`. And for each entry, `knowledge.search?semantic=true&kind=paper&limit=1&q=<the lead's first 300 characters>` answers that entry. |
+| R2 | `summarize-papers.ts check --tag awesome-rsi`: every entry with that tag is summarized, or is named in `--except` with the issue that says why; a paper the journal has as `refused` and no such issue fails it. Every entry of `knowledge.search?kind=paper&tag=paper-summary&q=summary&limit=100` has `changed.method` `paper-summarizer`, the line `Summary by paper-summarizer`, a first paragraph of at most `1498 - title length` characters, and the six sections. The journal's put answers each have `vectors: 1`. And for each entry, `knowledge.search?semantic=true&kind=paper&limit=1&q=<the lead's first 300 characters>` answers that entry. |
 | R3 | The journal has no put with a refused number. The reviewer takes five entries (the first five by SHA-256 of the id), and for each locates three claims of the sections in `.emitted/papers/<id>.txt`, which `summarize-papers.ts text --ids …` writes again; the hash in the entry's line is the file's. |
 | R4 | In `check`, above: the method, the tag and the line. |
-| R5 | Set A asked again: no wanted entry lower than third (today: 9 first, 1 second). |
-| R6 | `summarize-papers.ts run --tag awesome-rsi` a second time puts nothing and says 63 skipped. The command is in `knowledge/calling-a-cloud-brain-from-this-checkout.md`, beside `knowledge-docs.ts`. |
+| R5 | Set A asked again, both ways it was measured: `semantic=true`, no wanted entry lower than third (today: 9 first, 1 second); and by words alone with `kind=paper`, the same bound (today: 10 first). Five of its questions are from character 13600 of the kept text, which the cut removes from an entry at the limit, so the second is where a loss would show. Measured in the pilot, whose ten papers are the sets' ten. |
+| R6 | `summarize-papers.ts run --tag awesome-rsi` a second time starts no agent but the canary's and puts nothing: its last line counts 63 as summarized, refused before, or excepted. The command is in `knowledge/calling-a-cloud-brain-from-this-checkout.md`, beside `knowledge-docs.ts`. |
+| R7 | Task 2's tests, each a run of `agent.sh` with `READS` and `MODEL=haiku`, by e4's method: a canary at `tools/cloud-brain/.emitted/canary.txt` is not in the result; a file in `READS` is; the same two on `--resume`; `tools` is `["Read"]`. And with `READS` unset the line `agent.sh` builds is today's (a test of the flags, no agent started). In every `run` after: the journal's first line is the canary's, `"canary":"refused"`. |
+| R8 | `ls .emitted/papers/*.entry.json | wc -l` answers 63 before task 3 starts, and each file's hash is the one in task 1's record. In the pilot: one of the ten is restored, `knowledge.search` answers its `text` with the record's SHA-256 and the put answered `vectors: 1`, and it is summarized again. |
 
 Reported and not a condition of landing: set B asked again (0.753 today), and the cost a paper.
 If set B does not rise, the record says so. The owner asked for the summary as the embedded text;
@@ -284,17 +401,22 @@ after a put is not verified; task 3 finds out on ten.
 
 1. **`ps-1-paper-text`**: `summarize-papers.ts text`, with tests on two kept fixtures (an arXiv
    HTML page, a PDF of two columns). Run over the 59 with arXiv HTML, with `loop-knowledge`; the
-   record has the address and the character count of each. The four from a kept PDF, and the
-   comparison of the two routes on three papers, are run when the token exists.
-2. **`ps-2-summarizer-role`**: `TOOLS` in `agent.sh`; the brief, put with `put.sh`; `run --dry`
-   and `check`, with tests of the assembly, the length rule, the number rule and the second-run
-   rule. Run dry on three papers; the record has the three summaries' lengths, the numbers
-   refused, and `usd` of each. No put to the knowledge base.
-3. **`ps-3-pilot-ten`**: after the token exists. `run` on the ten papers of the question sets.
-   `check`; sets A and B asked again; the cost of the ten and what 53 more would cost at that
-   rate. If that is over $50, the task ends there with the figure on the issue for the owner;
-   otherwise task 4 goes on.
-4. **`ps-4-the-rest`**: `run` on the other 53, in the way described under the list; `check`; the doc line of R6; in `SKILL.md` step 5,
+   record has the address and the character count of each, and for each of the 63 entries the
+   length and SHA-256 of its text as entered, from the `.entry.json` it wrote (R8). The four from
+   a kept PDF, and the comparison of the two routes on three papers, are run when the token exists.
+2. **`ps-2-summarizer-role`**: `READS` in `agent.sh`, with the tests of R7; the brief, put with
+   `put.sh`; `run --dry`, `check` and `restore`, with tests of the assembly, the length rule, the
+   number rule (`1,000` against `1000`, a number not in the text), the second-run rule, the
+   canary's stop and the refusal of a put with no `.entry.json`. Run dry on three papers; the
+   record has the three summaries' lengths, the numbers refused, and `usd` of each. No put to the
+   knowledge base. `agent.sh` is in the repository `cloud-brain-dev`, which the loop pushes.
+3. **`ps-3-pilot-ten`**, `major`: after the token exists. `run` on the ten papers of the question sets.
+   `check`; one entry restored and summarized again (R8); sets A and B asked again, A both ways
+   (R5); how many of the ten were refused once and twice; the cost of the ten and what 53 more
+   would cost at that rate. If that is over $50, or R5 fails, the task ends there with the
+   figures on the issue for the owner, the ten restored when it is R5 that failed; otherwise
+   task 4 goes on.
+4. **`ps-4-the-rest`**, `major`: `run` on the other 53, in the way described under the list; `check`; the doc line of R6; in `SKILL.md` step 5,
    `paper-summarizer` added to the roles of a `cost` comment, one comment a task with the sum of
    the journal's `usd` and `"light":true`.
 
@@ -305,6 +427,23 @@ no session but its own, and reads `journal.jsonl` when it is told the command ha
 writer that ends first leaves a run that stopped with it; the next writer starts the same
 command, which skips what is done. If the pilot measures more than 3 minutes a paper, task 4 is
 opened as tasks of 15 papers (`--ids`), each one writer and one review.
+
+A paper refused twice is the task's writer's to read: the refused numbers against
+`.emitted/papers/<id>.txt`. Where the number is in the text in another form, the rule is at fault
+and is changed with a test. Where it is not, `run --again` once; refused again, the writer opens
+one `feedback` issue naming the papers and what was refused, and `check` is run with `--except`.
+No flag puts a summary with a refused number.
+
+**Tasks 3 and 4 are `major`**: they rewrite kept data (`SKILL.md`, Triage), and they are the
+first use of a token of the loop that writes to the knowledge base. As
+`plan/cloud-brain-dashboard-service.md` has it for its tasks 1 and 2, and
+`plan/cloud-brain-brain-docs-entered-by-hand.md` for a token that gains a write: the owner's
+approval of this spec is his word for the plan, the orchestrator opens the two with `major` and
+quotes the approval event in a comment on each, so `needs-owner` is not put on. Each then passes
+review to `awaiting-approval` and not `done` (`brain-issues.ojs`, `pass` has the guard
+`!issue.major`), with its puts made, and waits for his `approve`. That approval stops nothing
+already put; `restore` is what undoes one. If his approval of the spec asks for a gate before the
+puts, task 3 is opened with `needs-owner` and waits. Tasks 1 and 2 put nothing and are not `major`.
 
 Who puts the brief: `rules.md` says of the token `loop-roles`, "The overseer changes a brief with
 it; no other role does." The reviewer's brief was first put by the writer of its task
@@ -322,6 +461,10 @@ covering the first put too, the overseer puts the file task 2 wrote.
    the knowledge base, and `knowledge.put` by the owner's token changes any entry of the Brain's,
    not papers only: that the tool puts nothing but `{ id, text, tags, method }` of a paper entry
    is an agreement, as `loop-roles` is.
+2. Approve this spec, knowing that tasks 3 and 4 rewrite the text of 63 kept entries (about 6,600
+   characters leave the end of 56 of them) and that the copies to put back from are files on
+   this machine.
+3. Approve task 3 and task 4, each after its review, at "To approve": they are `major`.
 
 ## Read
 
