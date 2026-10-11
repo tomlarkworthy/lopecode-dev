@@ -25,10 +25,10 @@ would have no note to go in. The triage's size ("the draft kept in the browser b
 for the smaller half: a new `feedbackApp` on a page whose notes are still cells.
 
 Run, in a headless Chrome on the built file, `bun tools/cloud-brain/feedback-reload-check.ts $W/tools/cloud-brain/.emitted/cloud-brain.html`
-at 22:15:04, line 3 of its output, after `page.reload()` and before the app is made:
+at 22:16:57, line 3 of its output, after `page.reload()` and before the app is made:
 
 ```
-3 after a reload, before the app is made: {"notes":[],"boxes":[],"kept":"{\"a21vk6bwbb\":{\"text\":\"Typed and not filed.\\nSecond line.\", …
+3 after a reload, before the app is made: {"notes":[],"boxes":[],"kept":"{\"a2ldvubpaa\":{\"text\":\"Typed and not filed.\\nSecond line.\", …
 ```
 
 No note is in annotate's store and none is drawn.
@@ -114,17 +114,17 @@ pane. `feedbackOn` is false on a file, so it redefines the cell `feedback` as th
 it, with the rig's tracker in the place of `brainClient`, annotate's own `a2Store`, and
 `feedbackKept("reload-check")`, the browser's `localStorage`. Then: `a2Layer.arm("note")` and a real
 click on the heading, the text typed with the keyboard, `page.reload()`, `feedback` redefined again.
-Run at 22:15:04 on the last build (Chrome 151.0.7922.34, the browser `tab-tests.ts` named), cut to
+Run at 22:16:57 on the last build (Chrome 151.0.7922.34, the browser `tab-tests.ts` named), cut to
 what each line shows:
 
 | Line | Notes in annotate's store | The box | `localStorage` |
 |---|---|---|---|
-| 1 placed, nothing typed | `a21vk6bwbb` | draft, empty | none |
-| 2 typed | `a21vk6bwbb` | `Typed and not filed.\nSecond line.` | one entry `a21vk6bwbb`, with the anchor and `box` |
+| 1 placed, nothing typed | `a2ldvubpaa` | draft, empty | none |
+| 2 typed | `a2ldvubpaa` | `Typed and not filed.\nSecond line.` | one entry `a2ldvubpaa`, with the anchor and `box` |
 | 3 after a reload, before the app is made | none | none | the same entry |
-| 4 after a reload, the app made | `a2r3h6u49t`, `draft: a21vk6bwbb` | the same text | the same entry |
+| 4 after a reload, the app made | `a2yqvrsl2r`, `draft: a2ldvubpaa` | the same text | the same entry |
 | 5 typed on, then `feedback` redefined on the page | the same one note | `… Second line. More.` | the entry, with the later text |
-| 6 File pressed | `issue: fb-a21vk6bwbb` | `open fb-a21vk6bwbb` and the text | none; the rig got one `issue.open`, key `annotation/a21vk6bwbb` |
+| 6 File pressed | `issue: fb-a2ldvubpaa` | `open fb-a2ldvubpaa` and the text | none; the rig got one `issue.open`, key `annotation/a2ldvubpaa` |
 | 7 after a second reload | none | none | none |
 
 `page errors: []`. Line 7 has no note because the rig's tracker is made new with the app and has no
