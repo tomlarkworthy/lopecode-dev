@@ -198,7 +198,9 @@ the record names at its line 127. Line 26 reads `plan/cloud-brain-dashboards-sha
 a spec with three commits that a later round may reword: it becomes `git show 1e6aabbc:plan/…`, the
 last commit of that file and the one the record's "lines 299 to 300 of the plan" were read at. The
 record names no commit there, so its line 132 gains "at `1e6aabbc`". After the task
-`grep -c "read(" tests/tools/ds-3-record.test.ts` is 2: the helper and the record. Both commits give
+`grep -c "read(" tests/tools/ds-3-record.test.ts` is 1, the read of the record (3 today: lines 12, 15 and 26;
+the helper's own line, `const read = (…) => readFileSync(…)`, does not hold the text `read(`). The two reads
+of a commit go through a second helper, `show(commit, path)`, so `grep -c 'show("'` is 2. Both commits give
 what the test expects today (`git show` of each, read by a script of the same lines: 14, 13 and 4 at
 `eefc16a2`; "was not tried; they may" at line 300 of `1e6aabbc`). The paragraph "A change with no seed
 and no local tool" of `agents/implementer.md` (line 395 at `aaf211b2`; 366 at `73ba9f3e`)
@@ -253,7 +255,7 @@ Each is a command an agent runs with its own token or none.
 
 | | Check |
 |---|---|
-| R1 | In a worktree, add one line to `cloud-brain.ojs` between the two marks the test names, and change "they may" to "they might" at line 300 of `plan/cloud-brain-dashboards-share-series-and-controls.md`; `bun test ./tests/tools/ds-3-record.test.ts` still answers 2 pass. Today it answers 0 pass, 2 fail (run at 20:39 in the worktree at `aaf211b2`, the two edits then taken back: 2 pass). And `grep -c "read(" tests/tools/ds-3-record.test.ts` is 2. |
+| R1 | In a worktree, add one line to `cloud-brain.ojs` between the two marks the test names, and change "they may" to "they might" at line 300 of `plan/cloud-brain-dashboards-share-series-and-controls.md`; `bun test ./tests/tools/ds-3-record.test.ts` still answers 2 pass. Today it answers 0 pass, 2 fail (run at 20:39 in the worktree at `aaf211b2`, the two edits then taken back: 2 pass). And `grep -c "read(" tests/tools/ds-3-record.test.ts` is 1, the read of the record (3 today), and `grep -c 'show("'` is 2, the helper `show(commit, path)` the design names. |
 | R2 | `grep -c "15 \`linked\` events, 12" tools/cloud-brain/records/link-issues-with-a-common-cause.md` is 1, and the command beside it, run with `issues-implementer-2`, answers 15 and 12. |
 | R3 | `bun tools/cloud-brain/issue-stats.ts --token=issues-implementer-2` prints a line `statements only`. On today's record it reads 0, since no review carries the mark. A test in `tests/tools/issue-stats.test.ts` gives it the events of review 534 with its five cost comments, marked, and reads 310,348; and a marked `pass`, which is counted. |
 | R4 | The choice is on the project as written below, and he has answered it or not. After it, the same line over a window (`--window=SEQ`): with B, how many `statements only, record` rounds there were and their cost, which is the case for A at the next oversight; with A, the marked `pass` reviews and each reviewer's own `cost`. |
@@ -404,3 +406,31 @@ The review's two notes are taken as well: R3 says that review 452 is left out of
 task 3's test expects it; choice B gives 242,591 as the mean of two. Its third, that R3 counts what
 a reviewer says of itself, is under "Not done". This round was not read by a fresh agent before the
 submit: the loop's reviewer reads it.
+
+## Round 3, 2026-10-11
+
+Review 1929 (`changes`, one finding) made again what round 2 added and sent the spec back for one
+count. Written at 20:46 CEST (`date`) in the worktree at `lopecode-dev` `c5d4617f`.
+
+1. *R1's design and R1's check said `grep -c "read(" tests/tools/ds-3-record.test.ts` is 2 after the
+   task, "the helper and the record"; it is 1.* Taken, in both places. The 2 was written in round 2
+   with no run behind it. This round the design was made in the worktree and then taken back: a
+   helper `show(commit, path)` over `git show`, line 15 as `show("eefc16a2", "tools/…")`, line 26 as
+   `show("1e6aabbc", "plan/…")`. On that file:
+
+   ```
+   grep -c "read(" tests/tools/ds-3-record.test.ts                      1   (the line `const record = read("tools/cloud-brain/records/ds-3-logs-reads-the-span.md");`)
+   bun test ./tests/tools/ds-3-record.test.ts                           2 pass, 0 fail, 5 expects
+   the same, with the check's two edits (a line after the first mark
+   of cloud-brain.ojs; "they may" to "they might" in the plan)          2 pass, 0 fail, 5 expects
+   grep -c "read(" on the test as main has it                           3
+   ```
+
+   So the first half of R1's check was run on the changed test for the first time here; rounds 1 and 2
+   had run it on the test as it is (0 pass, 2 fail). The count holds for a writer who keeps the
+   helper `read` for the record and gives the two other reads another name, so the design now
+   names that helper, `show(commit, path)`, and the check has its count as well: `grep -c 'show("'`
+   answered 2 on the changed file.
+
+Nothing else of the file was changed, and nothing else was made again. This round was not read by a
+fresh agent before the submit: the loop's reviewer reads it.
