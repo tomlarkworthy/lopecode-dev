@@ -1,8 +1,9 @@
 # The page's section Dashboards (`dsv-5-page-section`)
 
 Task 5 of `plan/cloud-brain-dashboard-service.md`. Built 2026-10-11 by a writer of the issue loop,
-round 1. The seed commit's time is 21:19:34 +0200 (`git log --format=%ci -1`, after the rebase onto
-`9c2e9db6`).
+round 1. Two commits of the seed, at 21:19:34 and 21:28:03 +0200 (`git log --format=%ci`): the
+section, and its move to before `## Operator`. `MAIN-BEFORE` below is `main` before them and
+`SEED-LAST` the second.
 
 Nothing here was seen on cb4 in the owner's tab: the section asks with the owner's own session.
 Every count below is from a local QA tab (headless Chromium, 1280 by 800) on the worktree's build
@@ -10,9 +11,8 @@ with `session` and `client` stood in, or from the commands named.
 
 ## What changed
 
-`tools/cloud-brain/cloud-brain.ojs`: a section `## Dashboards` between the cells of Health and the
-login link: the heading, 18 cells and 4 tests (`git show --format= SEED-COMMIT -- tools/cloud-brain/cloud-brain.ojs | grep -c '^+// %%'`: 23). No line of the seed was removed
-(`git show --format= SEED-COMMIT -- tools/cloud-brain/cloud-brain.ojs | grep '^-' | grep -v '^---' | wc -l`: 0), so
+`tools/cloud-brain/cloud-brain.ojs`: a section `## Dashboards` before `## Operator`: the heading, 18 cells and 4 tests (`git diff MAIN-BEFORE SEED-LAST -- tools/cloud-brain/cloud-brain.ojs | grep -c '^+// %%'`: 23). No line of the seed was removed
+(`git diff MAIN-BEFORE SEED-LAST -- tools/cloud-brain/cloud-brain.ojs | grep '^-' | grep -v '^---' | wc -l`: 0), so
 the cells of Health are as they were.
 
 | cell | what it is |
@@ -62,17 +62,20 @@ of `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md`, and
   dashboard before. `history.replaceState`, as the layout writes its own pair, would keep no entry.
 - **A table of a counted metric has no `sum` and `max` columns.** The spec's "n, sum, max" is drawn
   for a metric with a value.
-- **Where the section is.** After the cells of Health and before the two login buttons, which were
-  the last cells under Health and are now the last under Dashboards. That is the order of the seed;
-  the buttons draw for the owner and were not seen drawn.
+- **Where the section is.** Before `## Operator`, after the two sign-in buttons, which stay the
+  last cells under Health. It was first written between the charts of Health and those buttons,
+  which put the owner's buttons under the dashboard's panels; it was moved before the landing.
 
 ## The counts in a tab
 
 Stood in as `records/ds-1-split-healthview.md` did: `mod.redefine("session", { signedIn: true,
-owner: true })` and a `client` whose `query` answers `dashboard.list` (two names, `three` and
-`deploys`), `dashboard.get` and `metric.query` from fixtures and pushes each call to `window.seen`.
-`three` is three panels over `deploys.confirmed` by `target` (bars, table, bars); `deploys` is two
-panels over two metrics. The build is the one of the commit above; tab `r=5505`, 19:20 UTC.
+owner: true })` and a `client` whose `query` answers `dashboard.list` (four names), `dashboard.get`
+and `metric.query` from fixtures and pushes each call to `window.seen`. `three` is three panels
+over `deploys.confirmed` by `target` (bars, table, bars); `deploys` is two panels over two metrics;
+`health` is the three panels `dashboard.get?name=health` answers on cb4, over rows in the shape of
+`core.calls`; `odd` is five panels that cannot be drawn as asked. One tab, `r=5507`, on the build
+of the seed as it landed (the section before `## Operator`), from 19:28 UTC. Each row was written
+by the tab to `.emitted/dsv-5-tab-log.json` and is copied from that file.
 
 ```
                                    dashboard.list  dashboard.get  metric.query   chosen   pair in the hash   panels
@@ -80,57 +83,74 @@ after the stand-in, read at 8 s          1              1             1         
 read again at 14 s                       1              1             1          Three    none               3
 "Refresh" (under Health) clicked, 3 s    1              1             2          Three    none               3
 qa_viewport 1000x800, 5 s                1              1             2          Three    none               3     chart 920 -> 912 wide
-select set to deploys, 3 s               1              2             4          Deploys  dashboard=deploys  2     view= and cc= still in the hash
+select set to deploys, 3 s               1              2             4          Deploys  dashboard=deploys  2
 history.back(), 3 s                      1              3             5          Three    none               3
 history.forward(), 3 s                   1              4             7          Deploys  dashboard=deploys  2
+span (under Health) set to 360, 3 s      1              4             9          Deploys  dashboard=deploys  2     note: The last 6 hours: 2 panels from 2 queries.
+span set to 60, 3 s                      1              4            11          Deploys  dashboard=deploys  2
+select set to odd, 3 s                   1              5            15          Odd      dashboard=odd      5     note: The last hour: 5 panels from 4 queries, 1 failed.
+select set to health, 3 s                1              6            16          Health   dashboard=health   3     note: The last hour: 3 panels from 1 query.
 ```
 
 So three panels over one metric and `by` sent 1 `metric.query`, "Refresh" added 1, a resize added
-0, each once of once (R7). The select listed 2 names, the second drew its panels and put
-`dashboard=deploys` in the hash (R5). The one `metric.query` of the first row was
-`{"metric":"deploys.confirmed","since":…,"until":…,"by":"target"}` (read on the build before the
-rebase, `r=5502`).
+0, each once of once (R7). The select listed the names, a choice drew its panels and put
+`dashboard=NAME` in the hash (R5). In every row the hash still had its `view=` and `cc=` pairs,
+and there were 0 `.observablehq--error` between the `h2` "Health" and the `h2` "Operator".
 
-**A tab opened with the pair** (`…&r=5506&dashboard=deploys`, the same build, stood in the same
-way): chosen "Deploys", 1 `dashboard.list`, 1 `dashboard.get` with `{"name":"deploys"}`, 2
-`metric.query`, 2 panels.
+- **The layout is not made again by a choice.** After "select set to deploys": the select was the
+  same element, its `.lp2-pane` the same and connected, the select of the span connected,
+  `history.length` 2 then 3.
+- **`health`**: "Calls" 5 rect, "Health" 3 rect, "By method" 2 rows, from 1 `metric.query`.
+- **`odd`**, a panel's place when it cannot be drawn:
 
-**With no session**, the same build (`r=5505`, before the stand-in): 0 `.observablehq--error`
-between the `h2` "Health" and the `h2` "Operator"; one line, "Sign in as the owner to see the
-dashboards."; no select.
+  ```
+  Refused: metric.query failed: not allowed by the rule for this
+  Pie: This page has no draw "pie".
+  Methods: The draw "methods" takes rows by worker, method, status, and this panel's by has no worker, method, status.
+  Limit: (a table of 2 rows) 500 groups is the limit of one answer: some lines may be missing.
+  Empty: No lines in this span.
+  ```
 
-### Seen on the build before the rebase
+**A choice made before an answer.** The stand-in was made to hold its `metric.query` answers.
 
-The rebase brought another writer's change to `cloud-brain.ojs` (`operator-tab-module`, the cells
-under `## Operator`). These were read in tabs `r=5502` and `r=5503` on the build before it, with
-the cells of this section the same text, and were not read again after it.
+```
+                                          dashboard.get  metric.query sent  held   panels drawn
+three chosen, read at 1.5 s                     7              17             1    health's
+deploys chosen, read 1.5 s later                8              17             1    health's
+the held answer let go, read at 2 s             8              19             2    health's
+those two let go, read at 2 s                   8              19             0    deploys'
+```
 
-- **The layout is not made again by a choice.** After the select was set to `deploys`: the select
-  was the same element, its `.lp2-pane` the same and connected, the select of the span connected,
-  `history.length` 5 then 6.
-- **A change of the span asks again**: the span set to 360, `metric.query` 7 then 9 for the two
-  queries of `deploys`, note "The last 6 hours: 2 panels from 2 queries."
-- **A second choice before the answer.** The stand-in held its `metric.query` answers. `three`
-  chosen: 1 sent and held. `deploys` chosen 1.5 s later: nothing more was sent while the first
-  was held, and the panels did not change. The first let go: the 2 queries of `deploys` were then
-  sent, and held. Those let go: the panels of `deploys`. The panels of `three` were never drawn.
-  So the page's runtime does not start a cell again until its last run has answered, and two
-  answers of one cell do not arrive out of order. A `metric.query` that never answers would hold
-  the section; that was not made to happen with a real request.
-- **Two presses of "Refresh" before an answer**, 0.8 s apart, with 2 queries held: nothing sent
-  until those were let go, then 2 more (one pair for the two presses), 12 then 14.
-- **What else asks again.** `client` redefined: `dashboard.list` +1, `dashboard.get` +1,
-  `metric.query` +2, the choice still `deploys` from the hash. `session` redefined to the same
-  value: the same three. `session` to `{ signedIn: false }`: the visitor's line, no select, 0
-  panels, nothing sent.
-- **What is said in a panel's place**, a dashboard of 7 panels (`r=5503`): 5 queries for 7 panels,
-  note "The last hour: 7 panels from 5 queries, 1 answered from the service's memory, 1 failed.";
-  a refused metric read "metric.query failed: not allowed by the rule for this"; a draw `pie`
-  read `This page has no draw "pie".`; `methods` over rows by `target` said which names its `by`
-  lacks. The select came before the note and the note before the first panel in the document.
-- **The docs** (`r=5504`, the docs tab in the layout): the three new places each had a link titled
-  `@tomlarkworthy/brain-dashboard`. Whether the docs tab had an error element was asked in the same
-  call and its answer was cut; it was not asked again.
+With one answer of `three` held, the choice of `deploys` sent no `metric.query` until that answer
+was let go; then its two were sent. The panels of `three` were not drawn at any of the four reads.
+What the runtime would do with two answers of one cell out of order was not made to happen: the
+second ask was never sent while the first was held. A `metric.query` that never answers was not
+tried with a real request; by these rows the section would wait on it.
+
+**Two presses of "Refresh"**, 0.8 s apart, with the answers held: 21 sent and 2 held at 1.5 s
+(the first press); those let go, 23 sent and 2 held (the second press); those let go, 23 and 0.
+So each press asked, one after the other.
+
+**What else asks again.** `client` redefined: `dashboard.list` 1 to 2, `dashboard.get` 8 to 9,
+`metric.query` 23 to 25, the choice still Deploys from the hash. `session` redefined to the same
+value: 3, 10, 27. `session` to `{ signedIn: false }`: the line "Sign in as the owner to see the
+dashboards.", no select, 0 panels, the three counts unchanged.
+
+**A tab opened with the pair** (`…&r=5508&dashboard=deploys`, the same build, stood in with two
+names): chosen "Deploys", 1 `dashboard.list`, 1 `dashboard.get` with `{"name":"deploys"}`, 2
+`metric.query`, the first `{"metric":"deploys.confirmed","since":1791743595879,"until":1791747195879,"by":"target"}`,
+2 panels. The select came before the note and the note before the first panel in the document.
+The buttons between the `h2` "Health" and the `h2` "Dashboards" were "Refresh", "Copy Login Link"
+and "Copy Guest Invite"; none was between "Dashboards" and "Operator".
+
+**With no session**, the same build (`r=5507`, before the stand-in): 0 `.observablehq--error`
+between the `h2` "Health" and the `h2` "Operator"; one line under "Dashboards", "Sign in as the
+owner to see the dashboards."; no select. The `h2`s read Health, Dashboards, Operator.
+
+**The docs**, on a build before the section was moved (`r=5504`, the docs tab in the layout; the
+docs seed is the same text): the three new places each had a link titled
+`@tomlarkworthy/brain-dashboard`. Whether the docs tab had an error element was asked in the same
+call and its answer was cut; it was not asked again.
 
 ## Tests
 
@@ -138,14 +158,15 @@ the cells of this section the same text, and were not read again after it.
 |---|---|
 | `cd $W/cloud-brain-dev && bun test.ts brain-x-page` (what cb4 runs, `2d5bfe692895`) | `passed` 10, `failed` 0, `needsBrowser` 13 |
 | `… bun test.ts brain-x-page --with $W/tools/cloud-brain/.emitted/dsv-5.js` | `passed` 12, `failed` 0, `needsBrowser` 15. Two of the four new tests read no DOM and pass here; the other two make a select, a chart and a table. |
-| the snippet of the brief's step 8, fresh QA tab on the build (`r=5505`, 19:20:09 UTC) | `[27,[]]`. 27 is 12 + 15. |
-| `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-page --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20`, ended 19:21:36 UTC | `runs` 20, `passed` 20, `failed` 0, `none` 0, `byChance` `[]`, `from` `["document"]`, `mains` brain-shell and cloud-brain; `"tests":27` in each of the 20 lines. |
+| the snippet of the brief's step 8, fresh QA tab on the build (`r=5507`, 19:28:19 UTC) | `[27,[]]`. 27 is 12 + 15. |
+| `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-page --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20`, ended 19:33:44 UTC | `runs` 20, `passed` 20, `failed` 0, `none` 0, `byChance` `[]`, `from` `["document"]`, `mains` brain-shell and cloud-brain; `"tests":27` in each of the 20 lines. |
 | `bun test ./tests/tools/dsv-5-docs-name-the-dashboard-service.test.ts`, in the worktree | 4 pass, 0 fail. With the three files it reads as `41e72b7e` had them (before the rebase): 0 pass, 4 fail. |
 | `bun test ./tests/tools`, in the worktree | 320 pass, 0 fail |
 
-A first `verify-run` of 20, on the build before the rebase, gave 19 passed and 1 failed: run 19
-failed "the Worker reports the hash that was loaded: loaded 1a3d5c8c9e93, running 2d5bfe692895".
-Another writer deployed `brain-x-page` between two runs. No test of the module failed in it.
+Two earlier runs of `verify-run`, 20 each. On the build before the rebase: 19 passed and 1 failed,
+run 19, "the Worker reports the hash that was loaded: loaded 1a3d5c8c9e93, running 2d5bfe692895".
+Another writer deployed `brain-x-page` between two runs; no test of the module failed in it. On
+the build after the rebase and before the section was moved, ended 19:21:36 UTC: 20 passed.
 
 The new tests read no clock, assign nothing to `console` or another global, and make their select
 with stand-ins for the hash, `go` and `listen`.
@@ -155,11 +176,6 @@ with stand-ins for the hash, `go` and `listen`.
 - **Anything on cb4 as the owner**: the section in his tab, `health` chosen there and drawn
   through `metric.query?metric=core.calls`, a real answer in a panel, the time it takes.
 - **A member's tab.** The section shows a member the visitor's line.
-- **`calls`, `faults` and `methods` in a tab.** They are drawn in a test
-  (`test_bars_and_a_table_draw_any_metric_and_a_panel_says_what_it_cannot_draw`), from rows in the
-  shape `metric.query` answers; no stood-in dashboard had such a panel that drew.
-- **An answer with 500 groups, and a span with no line, in a tab on the final build.** Both lines
-  were in the 7-panel dashboard of `r=5503`; that tool answer was cut before them, and they are held by the test.
 - **A dashboard with 20 panels over 20 queries.** They are sent together; what 20 logs queries at
   once cost on cb4 is not known.
 - **A span of days.** `records/dsv-4-cost.md` found a 7-day answer made from a sample (160 where
@@ -172,3 +188,4 @@ with stand-ins for the hash, `go` and `listen`.
   not looked at.
 - **A second press, a refused write, another caller's event on a row with the caret**: the
   section sends no write and has no text box. The second press is above.
+- **Two answers of one cell out of order**, and a request that never answers: above.
