@@ -47,15 +47,38 @@ The first pattern for "a prose cell" matched `{ return ( md`` anywhere in a defi
 `all.ts` hung past 255 s; one service at a time with `timeout 25` named it. The pattern is now
 anchored to the whole definition.
 
-## What it takes to reach cb4
+## Deployed on cb4, 2026-10-11 08:23 to 08:37 CEST
 
-`workerRuntime` is text inside every Worker, so this changes the hash of all 19, the four with
-holes and the 15 without. The route is the one the knowledge doc gives for a change to the wrapper:
-`install-deployer`, then `redistil --apply`. Both are the owner's (the deployer, the kernel, the
-core and the database are among them).
+The owner, asked whether to run the two steps or drop the branch: "1 deploy it".
 
-Landing on `main` before the deployer runs this would make every later emit from a tab carry a
-`source.reference` and a wrapper the running deployer does not produce. So the branch waits.
+```
+08:23:07  install-deployer                 cb4-deployer f9007d2d7681
+08:23:45  redistil --apply                 the client timed out at 5 minutes; 11 Workers were done, the kernel on probation
+08:28     confirm brain                    after /llms.txt 200, lease held, and 0 holes in the reference of brain, brain-core, brain-x-knowledge, brain-x-ai
+08:30:20  redistil --apply (the rest)      logs, proxy, static, whatsapp, page verified; library refused ("another change to brain-x-library is running")
+08:34:29  redistil --apply (three)         library verified; container and snapshot put back a second time
+08:36     apply brain-x-issues from seed   ec8dc24307e7 verified, 20 tests
+```
 
-Not done: the four seeds keep their holes (they are now right to have them). The tests added to
-`brain-issues` and `brain-git` that forbid a hole in their prose still hold and can stay.
+18 of 20 Workers run the new wrapper. Two do not, each put back twice on one test in the deployer's browser:
+
+- `brain-x-snapshot` (stays 5cbec0bab498): `test_the_panel_lists_the_days_and_the_sources_of_one` waits 50 ms
+  after a click and expects the redraw. In a local tab on this build the redraw's input event had not come at
+  50 ms (twice) and had at 300 ms and 1500 ms. The module's text is the same on main and on the branch.
+- `brain-x-container` (stays e661e7f284e7): `test_container_get_and_post_are_the_port_and_read_no_row`,
+  "Cannot read properties of undefined (reading 'method')". Passed twice in a local tab on this build. Not
+  explained.
+
+Both show `changes` in `redistil` until they pass. Their references still read from source (1 hole each).
+
+`brain-x-issues` could not be distilled by this deployer as it ran: it had been put back at 07:50:48 to
+15d722ba45e4, whose prose has a hole on `issuesStore`, which names `localStorage`
+("cannot deploy \"issues\": cell \"(a prose cell)\" is prose with a value that cannot be computed at the
+emit: localStorage is not defined"). The refusal did what it is for. The seed has no such hole since
+5cd71020 and was applied in its place.
+
+To go back: `cp .emitted/deployer.before-reference.json .emitted/deployer.json`, `install-deployer`,
+`redistil --apply`.
+
+Not done: the fresh review of this change was cut off by a crash at about 08:00 and the owner said not to
+run it again. `redistil --apply` of every Worker does not fit in one call of 5 minutes now that each is tested.
