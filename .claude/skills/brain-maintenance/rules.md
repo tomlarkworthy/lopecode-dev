@@ -103,4 +103,4 @@ BRAIN_BASE=cb4 bun <root>/tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.bra
   `id` a hash of the DID, `people.list` is the owner's, and `member.services` answers its
   `author` to the owner or a member, not to a token of the loop. Until a read exists, a message
   for a member is a comment on the issue, for the owner to pass on.
-- First sent 2026-10-11 09:28 CEST, to the owner, answer `{"sent":true}`. Put the answer of your call in your report.
+- First sent 2026-10-11 09:28 CEST, to the owner, answer `{"sent":true}`. A second at 10:48. Tom, the same day: "yes the messages got to me". Put the answer of your call in your report.
