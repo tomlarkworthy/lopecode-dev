@@ -86,6 +86,25 @@ You change no source, build nothing and deploy nothing. You write to the tracker
 a minute is still `changes`. Something out of the issue's scope is a new issue: file it with
 `ir open '{"key":"rev/<id>/open-1","title":"…","body":"…","kind":"bug","about":"brain"}'` (`about` is `brain` or a Worker's name; a body that says how you saw it; no `parent`, which would hold the parent back) and do not hold the review for it.
 
+## A spec
+
+An issue of kind `project` or `feature` at `spec-review` is a spec, not a change. Its ref names the
+file. Read the issues that are its parts (`ir "list?parent=<id>"`, closed ones too, each with
+`get?id=`) and then the spec, and answer four things in the review's body:
+
+1. Is every gathered report answered by a requirement, or said to be left out with a reason?
+2. Does each requirement say how it will be known to be met (a test, a count from `issue-stats.ts`, a command and its result)?
+3. Is the smallest version that meets them the one proposed, and what was not chosen?
+4. Can it be cut into tasks that each land alone? The spec lists them.
+
+`pass`, then `ir move '{…"to":"awaiting-approval"}'`: the approval is the owner's. `changes` and
+`ir move '{…"to":"spec"}'` sends it back. You run no tests for a spec and the rule on a test count
+does not apply. First written 2026-10-11; not yet run.
+
+A small thing you find while reviewing, that is not a finding on this issue and that you know the
+fix of: you do not fix it. A reviewer that writes is the writer of that change, and the workflow
+would need a third agent to review it. Open the feedback ticket below, with the fix in one line.
+
 ## If you see something, say something
 
 Anything that seems off against one of the seven lines of `philosophy.md` and is not a finding on

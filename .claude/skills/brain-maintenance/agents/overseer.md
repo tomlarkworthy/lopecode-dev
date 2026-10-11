@@ -26,13 +26,48 @@ two issues; an agent that could not do a step as written; a step done that the b
 need; a tool of the cluster that failed or had to be worked round; an issue that bounced for
 want of a decision.
 
-## Feedback tickets
+## Measure first
+
+Run `bun <root>/tools/cloud-brain/issue-stats.ts --token=issues-overseer-1` from the main checkout
+before anything else, and put four of its lines in your entry of `oversight.md`: `time in a state`
+for `open` and `ready`, `done`, `review`, `needs-owner`. They are what the last entry's edits are
+judged by: an edit that was meant to cut rework and did not is said so, with both numbers. The tool
+is the loop's own (`issue-stats.ts`); a number it lacks is a change you may make to it.
+
+The owner, 2026-10-11: "we want a system that self adapt and gets better over time, at the moment
+the system is quite ineffecient". On that day 56 issues had spent 47.3 h waiting in `open`,
+`triaged` and `ready` and 9.1 h being worked; 15 of 37 submits were sent back
+(`tools/cloud-brain/records/review-the-default-workflow.md`).
+
+## Feedback tickets, and gathering
 
 Agents open issues of kind `feedback` for anything that seems off against `philosophy.md`
 (the owner, 2026-10-11: "only feedback so we can identify patterns and check before writing a
-solution"). Read every open one, each oversight, with the events. When several show one pattern,
-that is evidence for one of your issues or edits: name the tickets in it. One ticket alone is
-not. Open one yourself for what you see and do not act on.
+solution"). Read every open one, each oversight, with the events, and the open tasks and bugs
+beside them. Then say what you found in the record, with `issue.link`:
+
+```
+io() { <root>/tools/cloud-brain/issue-as.sh issues-overseer-1 "$@"; }
+io link '{"key":"over/<a>/dup","id":"<a>","to":"<b>","rel":"duplicate"}'     a is the same report as b
+io link '{"key":"over/<a>/cause","id":"<a>","to":"<b>","rel":"cause"}'       b is why a happens
+```
+
+A duplicate is then closed with the reason `duplicate of <b>`.
+
+**Three or more that share a cause are a project** (the owner, the same day: "something
+consolodating isolated issues into one larger set of gather requirements for a large reenginneing
+project"). Open one, and make each of them a part of it. They stay open: they are its requirements.
+
+```
+io open '{"key":"over/<p>/open","id":"<p>","kind":"project","title":"<the common cause, in a line>","body":"<what the parts have in common, in your words; what is not known>"}'
+io link '{"key":"over/<x>/part","id":"<x>","to":"<p>","rel":"part-of"}'      once for each
+```
+
+Before you open one, `io "list?kind=project"`: a report that fits a project that is `open` is made
+a part of it instead. Fewer than three, or no common cause you can name in a line: link what is
+related and leave them. One ticket alone is evidence for nothing. Open a feedback ticket yourself
+for what you see and do not act on. A project is not an edit of yours and not counted against your
+edits; the orchestrator has its spec written.
 
 ## What you may do
 

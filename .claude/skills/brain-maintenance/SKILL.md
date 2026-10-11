@@ -9,7 +9,7 @@ version: 0.1.0
 The tracker (`brain-x-issues` on `cb4`, design in `plan/cloud-brain-issues.md`) holds the work.
 This skill is the loop that does it. You, the session that runs the skill, are the orchestrator:
 you read the tracker, decide what is next, spawn agents for it, and write down what each
-reported. You fix nothing and review nothing yourself.
+reported. You review nothing yourself, and you fix only a quick win (below).
 
 Written 2026-10-10 and run as a loop the same day, from about 16:00 to 21:25 CEST, when the owner
 stopped it ("don't start any new work until we try to improve this process"). The line in Runs
@@ -70,9 +70,14 @@ Two files beside it, neither of them needed to resume:
    | `in-progress`, started by the implementer token, no agent running | Spawn the implementer: it was sent back, or an agent died. Do not, and instead comment with the open findings and label `needs-owner`, when the last implementer you spawned for it finished without a new `submit`, or when it has 3 `rework` moves and the rounds are not getting anywhere. At 3 you judge (Tom, 2026-10-10: "make a judgment call when the 3 retries is hit, has genuine progress been made?"): go on when each review closed what the one before found and the new findings are narrower; stop when a finding came back, or the rounds are trading one defect for another of the same size. Write the judgment and its reason in the journal and as a comment on the issue. |
    | labeled `digest`, opened by `worker:brain-x-snapshot` (`opener` in `get?id=`), at `open` | When several are open, the newest is the one written: `reject` each older one with the reason `covered by digest-<newest day>`, and comment on the newest with the days it covers. Then `triage` and `ready` it, the reason "the day's digest, opened by the snapshot's run"; the three questions of Triage are not asked. |
    | labeled `digest`, at `ready` | Spawn the digest writer (role `digest`). |
+   | kind `project` or `feature`, at `spec-review`, no review since it came there | Spawn the reviewer; it follows "A spec" in its brief. |
+   | kind `project` or `feature`, at `spec`, no agent running | Spawn the spec writer (role `spec`): it was sent back, or an agent died. |
+   | kind `project` or `feature`, at `approved` | Open each task the spec lists, with `parent` the project, and move it to `building` (`decompose`). Close each gathered report that is still open with the reason `in the spec of <id>`. |
+   | kind `project` or `feature`, at `building`, no open part | Move it to `done` (`finish`). |
+   | kind `project` or `feature`, at `open`, with three parts or more, or opened by the owner | Spawn the spec writer (role `spec`). With fewer it is still gathering: nothing. |
    | `ready` | Spawn the implementer. |
    | `triaged`, no open children | Move to `ready`. |
-   | `open`, kind `task` or `bug` | Triage it yourself (below). |
+   | `open`, kind `task` or `bug` | Triage it yourself (below), or take it as a quick win. |
    | `open`, kind `feedback` | Nothing, unless it is the owner's and asks for a change: then `promote` it. Feedback is filed by agents for anything that seems off against `philosophy.md` (Tom, 2026-10-11: "only feedback so we can identify patterns and check before writing a solution"), and the overseer reads it together. It is not counted as work waiting. |
    | Anything else: `in-review` with a review and no move after it, `in-progress` started by another actor | Comment with what you see, label `needs-owner`, and say so in step 7. |
 
@@ -95,6 +100,35 @@ Two files beside it, neither of them needed to resume:
 8. **Schedule** (only under `/loop`): `ScheduleWakeup` 1800 s when an agent is running (its
    report wakes you first, and that wake is a pass), 1200 s when the tracker had nothing for you. A poll of the tracker
    is charged nothing; a wake of this session is not free, so do not poll faster.
+
+## A quick win
+
+Tom, 2026-10-11: "if an agent has spare context left and it already knows how to fix an issue it
+should jsut do it as a quick win while it is there." That is said of every agent, you among them.
+Triage has you read the issue and the code; sometimes you then hold the whole fix, and spawning a
+writer to find it again was 167,000 tokens at the least on 2026-10-10. Take it yourself when the
+fix is in a brief, a doc, a record or a local tool, is one change, and needs no seed built and no
+deploy: `start` from `open` with the reason triage would have given, make the change in a worktree,
+land it under `land.lock`, `submit` with the commit. The review is a reviewer's as for any issue.
+Anything in a seed goes to a writer. A writer does the same for what it meets beside its issue
+(`agents/implementer.md`, "A quick win"); a reviewer does not (it would be the writer).
+
+## Links, and projects
+
+Since 2026-10-11 (`plan/cloud-brain-issues.md`, "Amended 2026-10-11"): `issue.link { key, id, to, rel }`
+with `rel` one of `duplicate`, `cause`, `related`, `part-of`. Use it at triage instead of an id in
+prose: a duplicate is linked and then `close`d (`reject` is for what is not real); an issue that
+exists because of another names it as its `cause`. `part-of` makes an issue a part of another after
+it was opened, and `{ id, rel: "part-of", remove: true }` takes it off.
+
+A `project` gathers reports that share a cause: the overseer opens one when three or more do
+(`agents/overseer.md`), and the owner opens one for a feature. Its path is spec, review of the
+spec, the owner's approval, tasks as its parts, done when none is open; the rows above are that
+path. You do not decide a project's design at triage: the spec is where it is decided, and the
+approval is where the owner stops it.
+
+An issue the owner answered in the session, with nothing left to build: `close` it with his words
+and the date as the reason. `back` (in-progress to ready) gives back work that stopped.
 
 ## The daily digest
 
@@ -129,6 +163,8 @@ A time you write in an issue's body, a comment or a reason is read from `date` o
    holds for a choice about the loop's own rules and tools as much as for a choice inside a
    service. (At the stop on 2026-10-10, 12 of 14 open issues waited for the owner, and he said
    the label "should really be about changing or clarifying philosophy".)
+   - An issue that is one of several with a common cause is not sent to `ready` alone: link it,
+     and leave the gathering to the overseer (below, "Links, and projects").
    - `needs-owner`, left at `triaged`: only when the seven do not answer it, when two of them
      pull apart with a real cost on each side, or when the issue proposes to change one of them
      or a line of `rules.md`. The comment is in the form `philosophy.md` gives.
@@ -139,7 +175,7 @@ A time you write in an issue's body, a comment or a reason is read from `date` o
      `philosophy.md` has a proposal to build such a change first, under a label of its own;
      it is not in force.
 3. Is it one change? More than one becomes subtasks (`open` with `parent`), and the parent goes
-   to `ready` when they are closed.
+   to `ready` when they are closed. More than a handful, or a change of design: it is a `project`.
 
 Anything else: `triage`, then `ready`. Add the labels `major` and `needs-owner` when the change
 alters who may do what, deletes or rewrites kept data, or changes a method other callers use,

@@ -344,6 +344,86 @@ Said after a look at `https://bugs.rocicorp.dev/p/zero`, whose page is a 1,816-b
 snapshot, the events after a `seq`, writes named by the caller's own key and id, and the policy as data
 so the page can judge a move before it sends it.
 
+## Amended 2026-10-11
+
+After a review of the record's first 399 events (`tools/cloud-brain/records/review-the-default-workflow.md`,
+eleven traps, each with the event that met it). Tom that day, quoted as typed:
+
+> "lets try to fix both those issues with a review of the whole issues workflow. Remember we want a
+> system that self adapt and gets better over time, at the moment the system is quite ineffecient. I
+> think if an agent has spare context left and it already knows how to fix an issue it should jsut do
+> it as a quick win while it is there. I think we need something consolodating isolated issues into
+> one larger set of gather  requirements for a large reenginneing project"
+
+and earlier the same morning: "I think we are missing a primative for the orchistrator to combine
+tickets as having a common root cause or linking them somehow."
+
+Written 2026-10-11 11:00 CEST. What follows is the orchestrating session's design from those words.
+
+**4. A link is an event.** `issue.link { key, id, to, rel, remove }`, event type `linked`.
+
+| rel | what it says | kept |
+|---|---|---|
+| `part-of` | `id` is one of the parts of `to` | as the `parent` of `id`: one, replaced by a new one, taken off with `remove` |
+| `duplicate` | `id` is the same report as `to` | `links` on `id`, `linked` on `to` |
+| `cause` | `to` is why `id` happens | the same |
+| `related` | anything else worth finding | the same |
+
+`part-of` is the existing parent, settable after the issue is opened. That is the whole of
+"combine tickets": a project is opened, and issues that already exist are made parts of it. It uses
+the column, the index and the guard fact (`issue.children`) that were there. The other three are
+kept on both issues so that `issue.get` of either shows them with no second read;
+`issue.list?link=ID` finds the parts and the linked of one issue. A guard reads `issue.links`.
+A workflow has a `link` guard; one written before links has none, and whoever may label may link.
+Not taken: `blocks` (a part already holds its parent; no issue of the 56 was held by anything else),
+and link types as policy data (four fixed in `issuesLimits.rels` until a fifth is needed).
+
+**5. A kind for gathered work: `project`, also named `feature`.** Tom on `ndd66a518`, 2026-10-10
+(event 97): "A feature request should follow the path of a bug, it needs specs, which need review,
+then approval, then task decomposition, implementation and review for each before merging." That
+path and "one larger set of gather requirements" are one workflow:
+
+```
+open ─► spec ─► spec-review ─► awaiting-approval ─► approved ─► building ─► done
+ (gather)  ▲          │               │ send-back                (parts)
+           └─ respec ─┘◄──────────────┘                 closed, rejected from open or spec
+```
+
+While it is `open`, issues are made part of it. `spec` is taken by one actor with a reason;
+`submit-spec` is that actor's, with a ref to the spec; a `pass` review by another actor lets it go
+`to-approval`; `approve` is the owner present. `decompose` needs an open part and `finish` none, so
+the gathered reports are closed into the spec ("in the spec of P") before the tasks are opened.
+The proposal of 2026-10-10 for the kind `feature` (`plan/cloud-brain-issues-feature-policy.json`,
+never installed) is this workflow without the gathering and is removed.
+
+**6. The task workflow loses its traps.** States as before, and `closed`.
+
+| change | trap of the review |
+|---|---|
+| `start` also from `open` and `triaged`, with the reason triage would have given; refused when the issue is `major`, labeled `needs-owner`, or has an open part | 9: five moves for any change. A quick win is `start`, `submit`, and the review. |
+| `back`, in-progress → ready, with a reason | 2 |
+| `close`, from open, triaged, ready, in-progress → `closed`, with a reason | 5: an answer is not a reject |
+| `reopen`, closed or rejected → open, with a reason | 7 |
+| `reject` also from `ready` | an issue made ready and then found not real |
+| `owner-reject` from the six states that are not closed, where it was `"*"` | 6 |
+| feedback: `close` needs a reason, a parent or a link; `reopen` | 8 |
+| `issue.link` with `part-of` and `remove` | 3, 4 |
+
+Not changed: the reviewer is not the writer; `major` waits for the owner; a parent waits for its
+parts. `triaged` is kept though its median stay is 0.0 minutes: it is where an issue waits for the
+owner with a plan, and dropping a state migrates every open issue for no gain.
+
+**7. The loop measures itself.** `bun tools/cloud-brain/issue-stats.ts` prints time in each state,
+what is open and idle, the share sent back, and what became of `needs-owner`. The overseer runs it
+at each oversight (`agents/overseer.md`) and writes the numbers in its entry, so a change to a
+brief or to the workflow has a before and an after.
+
+**Installing it.** The policy is the cell `issuesDefaultPolicy`; with its migration it is
+`plan/cloud-brain-issues-policy-v2.json` (7 old workflow hashes, each to the workflow of the same
+name: every old state is a state of the new one). An install is the owner present. An issue at
+`in-review` with a review and no move after it loses that review in the swap (`issueApply` empties
+reviews on a swap): install with none waiting there.
+
 ## Built
 
 `brain-x-issues`, module `@tomlarkworthy/brain-issues` (`tools/cloud-brain/brain-issues.ojs`), deployed
@@ -361,7 +441,7 @@ a signed record, and guards as data". Where the build left the design above:
 | `ownerPresent`: caller `owner`, via `session` | `caller.present`: that, and not `x-brain-tab: 0`. On cb4 a token's call arrives as `owner` via `delegation:<id>` with `tab: false`, so it is refused. A sign-in link's `unattended` token was not tried; read in the kernel and core cb4 ran at 12:47 CEST (`82bc8520a7bd`, `be88df64837c`), its call too is via `delegation:<id>`, so it does not pass. A call made with `brain.ts --owner` from this checkout's session file passes (`tab: true`): events 2 to 9 and 12 to 16 on cb4, a policy install among them, were made that way by Claude and read as the owner present. |
 | the actor is the holder | the actor is `delegation:<id>`. On cb4 every token's call carried the holder `secret` at 11:54 CEST, so two tokens would have been one actor. The core has sent `secret:NAME` since `675435235fdd` (12:03 CEST). |
 | security bodies encrypted | not built. An issue its `read` guard refuses is answered as `{ id, kind, state, closed, parent, hidden }` (and `issue.sync` answers the `seq`, `type` and `at` of each of its events), and a caller who may not read it does nothing to it (404). `readers` is not built: the default lets the owner present and the opener read. |
-| 12 methods | 16. Added: `issue.label`; `issue.swap` (a swap the workflow lists needs no owner, any other needs the owner present: amendment 2); `issue.narrow` (a guard added to one move of one issue: amendment 1, "as the work progresses"); `issue.install` and `issue.policy`; `issue.snapshot` and `issue.sync` for the page. Every write takes a `key` and is kept once. Event types: `opened commented labelled reviewed moved swapped narrowed policy`. The view is `issues_view` and `issues_meta`. |
+| 12 methods | 16 on 2026-10-10, 17 with `issue.link` on 2026-10-11. Added: `issue.label`; `issue.swap` (a swap the workflow lists needs no owner, any other needs the owner present: amendment 2); `issue.narrow` (a guard added to one move of one issue: amendment 1, "as the work progresses"); `issue.install` and `issue.policy`; `issue.snapshot` and `issue.sync` for the page. Every write takes a `key` and is kept once. Event types: `opened commented labelled reviewed moved swapped narrowed policy`. The view is `issues_view` and `issues_meta`. |
 | the Issues panel on the Brain's page | `issuesPanel` (amendment 3). On cb4's page at `#view=C100(S100(@tomlarkworthy/brain-issues))` with no deploy of `brain-x-page`: the shell loads the module from the Worker. Driven once in a signed-in headless tab, 2026-10-10 12:24 CEST, read-only: the list, one issue, its move buttons. The first write from the page was Tom's approval of `review-fixes-13`, 12:37 CEST (event 26). |
 | `issue.list` with `assignee`, `awaiting=me` | `state`, `kind`, `about`, `parent`, `label`. |
 | a key change is an event | not built. |
