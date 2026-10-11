@@ -95,6 +95,39 @@ TOSEM 2021; Bell et al., "DeFlaker", ICSE 2018).
   row, with names, is a change of the deployer and of `brain-shell` (`verifyModule` returns
   `failed` and a count) and is not built.
 
+### What the first deploy showed, and the second
+
+`brain-x-logs` `c24253ddb4cc` was applied at 11:31 CEST (`deploy.verified`, 6 tests, the apply
+21 s). Read with `--owner`, `logs.deploys` over 05:45 to 09:12 UTC of 2026-10-11, one query:
+
+```
+deploy.verify 42, deploy.verified 35, deploy.failed 7, deploy.put-back 8,
+deploy.probation 43, deploy.uploaded 47, deploy.confirmed 36          (262 lines of 13 kinds)
+```
+
+These seven are the counts event 445 took from Cloudflare's own grouped calculation over the
+same span. **Held** for that span: the method answers it whole. Seven days to 09:12 UTC: 1307
+lines in 5 queries, 13 s; the default day: 2 s.
+
+The same answer showed a gap. The issue's own case, the caret test of event 393, had no line in
+`tests`: brain-x-issues read `runs 3, failed 0, putBack 1`.
+
+```
+05:50:48 deploy.put-back brain-x-issues 62d63c57 its tests failed: test_issues_panel_keeps_the_caret_in_a_row_box: expect(received)…
+```
+
+No `deploy.failed` and no `deploy.verify` of that hash is before it. That put-back was made on a
+verdict a page sent, three minutes before the deployer's own run was on cb4 (07:51 CEST,
+`brain-deployer.ojs`). The other seven put-backs on a test each follow a `deploy.failed` line.
+
+So `deployRuns` was changed, and `brain-x-logs` deployed a second time: a put-back whose reason
+starts `its tests failed:` and that has no `deploy.failed` line of its Worker and hash before
+it is a failed run, with the first test the reason names. A reason is cut at 200 characters and
+a message can hold `; `, so a second name is not read from it. A failed line and its put-back
+are one run: three fails of brain-x-container at one hash with three put-backs are three runs.
+Whether the deployer of today can still put back on a page's verdict was not read; the lines of
+05:50 are in Cloudflare until 2026-10-18 either way.
+
 ### Tests
 
 Written first and run against what cb4 ran (`bun test.ts brain-x-logs --with …`, the worktree's
@@ -109,8 +142,13 @@ change the module had 3 tests.
   left out, the counts, the default span, five refused spans, Cloudflare's 429 as a 502.
 - `test_deploy_lines_halves_a_window_until_it_is_whole`: a window at its limit is halved; a
   crowded minute and a span past the bound of queries are errors.
-- `test_deploy_runs_counts_by_worker_hash_and_failed_test`: the caret case, a hash that failed
-  and passed, a Worker with no verdict.
+- `test_deploy_runs_counts_by_worker_hash_and_failed_test`: the caret case as cb4 has it (a
+  put-back with no failed line), a hash that failed and passed, a failed line with its put-back
+  twice at one hash, a Worker with no verdict.
+
+The counts above are of the first build. The second build, with the put-back rule: 6 passed, 0
+failed in `test.ts`; 6 of 6 in a QA tab. The changed test was not run against the first build;
+what it guards was seen on cb4, above.
 
 ### Not tried
 
