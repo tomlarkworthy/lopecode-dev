@@ -65,3 +65,66 @@ clauses together with no cell. The fixtures' `frac` had the wrong keys.
 - A member. The module is off for anyone but the owner.
 - The other notebooks that embed annotate were not given the new copy: only its own notebook and
   `quick_start.html`, which the Brain's page is built from.
+
+## Round 2, 2026-10-11: a closed issue is not a done one
+
+Review 908 (event 908), one finding. The note took "the issue is closed" as the signal that the
+work is done. The loop closes a feedback issue when it has gathered it, which is before any work.
+The owner's first note, `fb-a2kw99i9wy`, was closed at event 863, five minutes after he filed it,
+and made part of `dashboards-share-series-and-controls` at event 865. That project was at
+`spec-review`. His page read **Done** with a Remove button, and the reason shown named an id that
+the tracker had refused (corrected in event 866, which a closed note did not show).
+
+"Nothing was filed on cb4" under "Not tried" above was true when written and stopped being true at
+event 858.
+
+### What changed
+
+All in `tools/cloud-brain/brain-feedback.ojs`.
+
+| | |
+|---|---|
+| `feedbackFollows(issue)` (new) | For a closed issue: its `parent`, and the `to` of each link it says. Empty for an open issue. |
+| `feedbackProgress(ticket, followed)` | Answers `done` (closed, and every followed issue read and closed) and `gathered` (closed and not done). Each line of `links` ends with the followed issue's state. `last` is the latest event of the issue and of those it follows, with the id in front when it is a followed one's. `reason`, when done, is `<id> <state>: <reason>` for each followed issue, and the issue's own when it follows none. |
+| `feedbackApp`, `view` | **Done** and Remove on `done`. On `gathered` the heading is `gathered`, there is no button, and the last event is shown in place of the close reason. |
+| `feedbackApp`, `gone` | The box's × takes the label off on `done` only. Before, it did so for any closed issue, so the × on a gathered note would have removed it for good. |
+| `feedbackApp`, `sync` | A followed issue has no label, so `issue.list?label=annotation` does not say when it moved. Each one is read with `issue.get` on every ask: one call a followed issue every 30 s while the tab is visible. One that cannot be read counts as not done. |
+| The first `md` cell | Rows Progress, Gathered, Done, Remove. |
+
+### Chosen between two
+
+The review offered: the note follows what the issue is part of or linked to, or a gathered note
+reads as gathered and has no Remove "until then". The second alone has no "then": nothing would
+ever say Done. Both are built: `gathered` while a followed issue is open, **Done** when all are closed.
+
+- **Links are followed as the parent is.** The close guard of the feedback workflow takes a parent
+  or a link (review 908), so a feedback issue closed with `cause X` is gathered the same way.
+  Only links the issue says (`links`), not those said of it (`linked`).
+- **One step.** A followed issue that is itself closed as part of a third counts as closed. The
+  smaller side (`philosophy.md`, line 2); a chain was not met on cb4, where one issue carries the label.
+- **A followed issue that was rejected reads Done**, with `proj rejected: <reason>` as the reason. The
+  work is over either way and the owner reads why.
+
+### Measured
+
+Each run after the last change to the seed (`git log -1 --format=%ci -- tools/cloud-brain/brain-feedback.ojs`).
+
+| | |
+|---|---|
+| Before the fix, with the new test and `feedbackFollows` alone: `bun tools/lope-tests.ts tools/cloud-brain/.emitted/cloud-brain.html --filter test_feedback_a_gathered` | 0 passed, 1 failed. The note of a closed issue whose project was at `spec-review` had a `Remove` button and the reason "In the spec of a-name-that-was-refused." |
+| After: `bun tools/lope-tests.ts tools/cloud-brain/.emitted/cloud-brain.html --filter test_feedback` in the worktree | 8 passed, 0 failed, of 8. |
+| The step-8 snippet of `agents/implementer.md` in a headless QA tab on that file, `S70(@tomlarkworthy/brain-feedback)`, two fresh loads (`r=7731`, `r=7732`) | `[8,[]]` both times. |
+| The same tab, `feedbackRig` given what `issue.get` answered on cb4 for `fb-a2kw99i9wy` and `dashboards-share-series-and-controls` at 16:20 CEST (the issue, and each event's type, to, reason, body, at, by) | `data-feedback="gathered"`, 0 buttons, "part of dashboards-share-series-and-controls: spec-review", and the last line was the project's latest comment. Calls: `issue.list`, `issue.get` of each. |
+
+`test.ts` and `verify-run.ts` take a Worker; this module is in the page's shell and has none, so
+neither was run. The two fresh loads stand in for the second.
+
+### Not tried
+
+- The page on cb4 with the owner signed in. The note of `fb-a2kw99i9wy` there is the owner's to look at.
+- A followed issue the owner cannot read (`hidden: true`). The rig's tracker has none; the pure
+  function counts one that is open as not done (the new test, last block).
+- A followed issue reopened after its note read Done and before Remove: the next ask reads it again
+  and the note goes back to `gathered`. Not run.
+- Many gathered notes: one `issue.get` each, every 30 s.
+- annotate did not change; `tools/test-annotate.js` was not run again.
