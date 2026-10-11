@@ -1,10 +1,11 @@
 # A writer waits for its own review (`os-4-writer-waits`)
 
 Task 4 of `plan/cloud-brain-loop-order-of-service.md`, part 5 of its design (R5), round 1, by a
-writer of the issue loop on 2026-10-11. One commit in a worktree made at `6577a442`, by its
-subject: "os-4-writer-waits: issue-wait.sh waits for a writer's own review, …" (commit time
-23:49:44 +0200, `git log --format=%ci` in the worktree; the landing's rebase gives it another).
-The commits after it are this record. Their names on `main` are the refs of the submit. No seed, no deploy.
+writer of the issue loop on 2026-10-11. Two commits of the change in a worktree made at `6577a442`, by their
+subjects: "os-4-writer-waits: issue-wait.sh waits for a writer's own review, …" (commit time
+23:49:44 +0200, `git log --format=%ci` in the worktree before the rebase, which gives it another) and
+"os-4-writer-waits: what round counts for a writer, …", three sentences of the two texts mended before the landing.
+The others are this record. Their names on `main` are the refs of the submit. No seed, no deploy.
 
 The change is a trial. `os-5-trial-read` keeps or takes out step 13 of the writer's brief after
 five rounds that a writer took itself. No writer had waited for a review when this was written.
@@ -135,8 +136,12 @@ The record has 213 `submit` and `submit-spec` moves; one was made with the owner
 
 ## The whole suite
 
-`bun test ./tests/tools` in the worktree, after the commit named above: 447 pass, 1 skip, 0 fail,
-448 tests in 49 files. The run after this record was committed is in the comment of the submit.
+`bun test ./tests/tools --reporter=junit --reporter-outfile=<file>` in the worktree, after the second
+commit of the change and the rebase onto `f4e05bd3` (which brought in `tests/tools/needs.ts` and
+`tests/tools/tab-tests.test.ts`), ended 2026-10-12 00:00:17 CEST: 447 pass, 1 skip, 0 fail, 448 tests in 49 files.
+The skip, from the report: "agent.sh written over while claude runs: exit 0, the JSON line, no scratch directory
+left", `tests/tools/light-agent.test.ts` line 230, a test this change does not touch. The run printed no line
+`skipped:`.
 
 ## What was read before designing
 
