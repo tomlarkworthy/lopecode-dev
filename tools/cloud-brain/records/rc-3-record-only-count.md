@@ -78,6 +78,18 @@ of the paragraph after the table of step 7, lines 137 and 138: "`pass` means you
 second change is needed for. A defect you would fix yourself in a minute is still `changes`." The
 rest of that paragraph, from "Something out of the issue's scope", stays.
 
+**The brief changed after it was read here** (added by the reviewer, round 1). It was put again at
+21:13:50 CEST for `fewer-review-rounds`: `cloud-brain-dev/put.sh --history roles/reviewer.md` ends
+`2026-10-11T19-13-50Z-6252ef03`, the copy read here, kept when it was replaced. The brief is 231 lines
+now and the two sentences this text replaces are not in it. Its section "What holds a change, and what
+is a note" quotes event 2099 and says what a note is. Comment 2182 of the issue: "what is left for this
+task is the line on a review of statements alone and its count". So the paragraph **The mark** below is
+what is left to put. The rest is to be read against that section, which is the one in force where they
+differ: who takes a note (there the reviewer mends it, or one feedback ticket), a test count that is
+not what a run gives and a ref that names a commit that is not there (there each holds a change, here
+neither is settled), and a defect "however small" (there an input at the edge that no caller sends is
+a note).
+
 Why that sentence goes: two reviews of the same evening read it both ways. Review 1887 sent a spec
 back for "87 commits" where `git log` gives 95, with one other finding. Review 2053 passed a
 record that says "16,045 bytes" where its own `wc -c` gave 16,051, with the note "a round costs more than
