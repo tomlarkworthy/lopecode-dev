@@ -335,8 +335,8 @@ test_the_login_brief_carries_the_link_and_the_host = {
   return "ok";
 }
 // %%
-// A guest: a colleague with no account here. One press makes a link for one named person and copies it inside a
-// note written to them and to the program they paste it to. The token is the owner's, so the methods are few and
+// A guest: a colleague with no account here. One press makes a link for one named person, or for the number of
+// people typed (a group, named as one), and copies it inside a note written to them and to the program they paste it to. The token is the owner's, so the methods are few and
 // what it spends a day is capped. It lasts a week, and so does the link. Becoming a member is separate and is the
 // owner's act: the colleague sends the handle of an atproto account, and the owner adds it in People.
 // Not quota.get: under a token it answers the owner's whole day, not the token's own cap (seen on cb4, 2026-10-10 16:50).
@@ -350,25 +350,56 @@ guestInvite = {
   methods.value = GUEST_METHODS.join(" ");
   const daily = field("US dollars a day", { width: "8em" });
   daily.value = "0.10";
-  const make = async () => {
+  const people = field("people", { width: "5em" });
+  people.value = "1";
+  const make = async (uses) => {
     const name = "guest-" + who.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24);
     if (name === "guest-") throw new Error("a name for the guest");
     const names = methods.value.split(/[\s,]+/).filter(Boolean), usd = Number(daily.value);
     if (!names.length) throw new Error("at least one method");
     if (!(Number.isFinite(usd) && usd >= 0) || daily.value.trim() === "") throw new Error("dollars a day is a number");
     // A second press for the same person replaces the first: the link nobody used, or the token, of that name ends.
-    await client.procedure("token.revoke", { name });
-    const made = await client.procedure("token.link", { name, methods: names, minutes: 10080, hours: 168, daily: usd });
-    return guestBrief(made.link, { methods: names, daily: usd });
+    return guestBrief(await guestLink(client, { name, methods: names, daily: usd, uses }), { methods: names, daily: usd, uses });
   };
-  const button = press("Copy Guest Invite", () => copyLater(make, note, "Copied. Send it to them. The link works once, in the next 7 days; its token lasts 7 days, calls those methods on your allowance up to that much a day, and cannot deploy. Access below ends it; so does another invite for the same name. To make them a member, add their handle in People."));
-  return htl.html`<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px">${who}${methods}${daily}${button}${note}</div>`;
+  // The field is read once a press: the note that is copied and the line under the button are of one number.
+  const button = press("Copy Guest Invite", () => { const uses = Number(people.value); return copyLater(() => make(uses), note, guestCopied(uses)); });
+  return htl.html`<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px">${who}${methods}${daily}${people}${button}${note}</div>`;
 }
 // %%
+// The link of an invite, for one person or for several. A second invite of a name replaces the first: the link,
+// and every token it gave, end. A kernel from before links for several takes no uses and makes a link for one:
+// that link is ended and the press fails, so a note for five is never copied around a link for one.
+guestLink = async (client, { name, methods, daily, uses }) => {
+  if (!(Number.isInteger(uses) && uses >= 1 && uses <= 20)) throw new Error("people is a whole number, 1 to 20");
+  await client.procedure("token.revoke", { name });
+  const made = await client.procedure("token.link", { name, methods, minutes: 10080, hours: 168, daily, ...(uses > 1 ? { uses } : {}) });
+  if (uses > 1 && made.uses !== uses) throw (await client.procedure("token.revoke", { name }), new Error("this Brain's kernel makes a link for one person only: no group link was made"));
+  return made.link;
+}
+// %%
+test_a_guest_link_for_several_is_not_copied_from_a_kernel_that_makes_one = {
+  const fake = (answer) => { const calls = [], sent = []; return { calls, sent, procedure: async (m, b) => (calls.push([m, b.name, b.uses]), sent.push(b), m === "token.link" ? answer(b) : { revoked: 0 }) }; };
+  const now = fake((b) => ({ link: "https://b.example/auth/link?code=abc", ...(b.uses ? { uses: b.uses } : {}) })), old = fake(() => ({ link: "https://b.example/auth/link?code=abc" }));
+  const ask = (c, uses) => guestLink(c, { name: "guest-team", methods: ["ai.run"], daily: 0.1, uses }).then((link) => link, (e) => e.message);
+  expect([await ask(now, 5), now.calls]).toEqual(["https://b.example/auth/link?code=abc", [["token.revoke", "guest-team", undefined], ["token.link", "guest-team", 5]]]);
+  // The link ends 7 days after it is made, and a token it gives lasts 7 days.
+  expect([now.sent[1].minutes, now.sent[1].hours]).toEqual([10080, 168]);
+  // One person: no uses is sent, so a kernel of either age makes the link it always made.
+  expect([await ask(old, 1), old.calls.at(-1)]).toEqual(["https://b.example/auth/link?code=abc", ["token.link", "guest-team", undefined]]);
+  expect([await ask(old, 5), old.calls.slice(-2).map((c) => c[0])]).toEqual(["this Brain's kernel makes a link for one person only: no group link was made", ["token.link", "token.revoke"]]);
+  for (const bad of [0, 21, 1.5, NaN]) expect(await ask(now, bad)).toBe("people is a whole number, 1 to 20");
+  return "ok";
+}
+// %%
+// The line the button writes when the note is on the clipboard.
+guestCopied = (uses) => uses > 1
+  ? `Copied. Send it to them. The link works for ${uses} people, once each, in the next 7 days; each gets a token of their own that lasts 7 days, calls those methods on your allowance up to that much a day, and cannot deploy. Access below ends one token; another invite for the same name ends the link and every token it gave. To make one of them a member, add their handle in People.`
+  : "Copied. Send it to them. The link works once, in the next 7 days; its token lasts 7 days, calls those methods on your allowance up to that much a day, and cannot deploy. Access below ends it; so does another invite for the same name. To make them a member, add their handle in People."
+// %%
 // What the guest's button copies. The first paragraph is for the person; the steps are for their program.
-guestBrief = (link, { methods, daily }) => {
+guestBrief = (link, { methods, daily, uses = 1 }) => {
   const host = new URL(link).host;
-  return `You are invited to a Cloud Brain as a guest: a set of Cloudflare Workers that one notebook defines, deploys and operates, at https://${host}. Paste this whole note to your Claude Code session. The link in it works once, within 7 days, and is yours alone: do not forward it.
+  return `You are invited to a Cloud Brain as a guest: a set of Cloudflare Workers that one notebook defines, deploys and operates, at https://${host}. Paste this whole note to your Claude Code session. ${uses > 1 ? `The link in it works for ${uses} people, once each, within 7 days, and is for the people it was sent to: do not pass it on. Each of you gets a token of your own.` : "The link in it works once, within 7 days, and is yours alone: do not forward it."}
 
 For the program:
 
@@ -386,6 +417,11 @@ test_the_guest_brief_says_what_a_guest_has_and_how_to_join = {
   expect(text).toContain("at most $0.1 a day");
   expect(text).toContain("signs in at https://b.example/ with that account");
   expect(text).toContain("Only the owner of this Brain can approve");
+  expect(text).toContain("works once, within 7 days, and is yours alone");
+  const group = guestBrief("https://b.example/auth/link?code=abc", { methods: GUEST_METHODS, daily: 0.1, uses: 5 });
+  expect(group).toContain("works for 5 people, once each, within 7 days");
+  expect(group).not.toContain("yours alone");
+  expect(group).toContain("at most $0.1 a day");
   return "ok";
 }
 // %%
@@ -827,6 +863,21 @@ md`## Access
 
 A **token** is for a caller with no session, such as a script. A **grant** lets another atproto account call this Brain through its own PDS. Each names the methods it may call; neither can read a secret or give access, and neither can deploy, but for the token of a sign-in link made with "link may deploy" below, which the list marks. Copy Login Link and Copy Guest Invite above make links that do not deploy.`
 // %%
+// A token a link for several gave is named NAME-XXXX; token.list gives the link's name as its group.
+tokenOf = (t) => (t && typeof t.group === "string" && t.group ? " of " + t.group : "")
+// %%
+test_the_page_says_how_many_an_invite_is_for_and_which_link_a_token_is_of = {
+  const one = guestCopied(1), five = guestCopied(5);
+  expect(one).toContain("The link works once, in the next 7 days");
+  expect(one).toContain("Access below ends it; so does another invite for the same name");
+  expect(five).toContain("The link works for 5 people, once each, in the next 7 days");
+  expect(five).toContain("another invite for the same name ends the link and every token it gave");
+  expect(five).not.toContain("works once");
+  expect(guestCopied(20)).toContain("for 20 people");
+  expect([{ name: "guest-team-a1b2", group: "guest-team" }, { name: "guest-ada" }, { name: "x", group: "" }, { name: "y", group: null }, { name: "z", group: 3 }].map(tokenOf)).toEqual([" of guest-team", "", "", "", ""]);
+  return "ok";
+}
+// %%
 accessPanel = {
   if (!brain) return htl.html`<i style="color:var(--theme-foreground-muted)">Sign in as the owner to see access.</i>`;
   const list = htl.html`<div></div>`, note = htl.html`<div style="color:var(--theme-foreground-muted);margin-top:6px;word-break:break-all"></div>`;
@@ -839,7 +890,7 @@ accessPanel = {
   const draw = async () => {
     const [{ tokens }, { grants }] = await Promise.all([client.query("token.list"), client.query("grant.list")]);
     list.replaceChildren(htl.html`<table style="border-collapse:collapse;margin:0">
-      ${tokens.map((t) => htl.html`<tr><td style="padding:2px 12px 2px 0">token <b>${t.name}</b></td><td style="padding:2px 12px">${t.deploy ? htl.html`<b>${t.unattended ? "deploys with no approval" : "deploys"}</b>${t.methods.length ? ", " : ""}` : ""}${short(t.methods)}</td><td style="padding:2px 12px;color:var(--theme-foreground-muted)">created ${new Date(t.created).toISOString().slice(0, 10)}${t.until ? ", ends " + new Date(t.until).toISOString().slice(0, 16).replace("T", " ") + " UTC" : ""}${t.daily != null ? ", $" + t.daily + " a day" : ""}</td><td>${remove("Revoke", () => client.procedure("token.revoke", { name: t.name }))}</td></tr>`)}
+      ${tokens.map((t) => htl.html`<tr><td style="padding:2px 12px 2px 0">token <b>${t.name}</b>${tokenOf(t)}</td><td style="padding:2px 12px">${t.deploy ? htl.html`<b>${t.unattended ? "deploys with no approval" : "deploys"}</b>${t.methods.length ? ", " : ""}` : ""}${short(t.methods)}</td><td style="padding:2px 12px;color:var(--theme-foreground-muted)">created ${new Date(t.created).toISOString().slice(0, 10)}${t.until ? ", ends " + new Date(t.until).toISOString().slice(0, 16).replace("T", " ") + " UTC" : ""}${t.daily != null ? ", $" + t.daily + " a day" : ""}</td><td>${remove("Revoke", () => client.procedure("token.revoke", { name: t.name }))}</td></tr>`)}
       ${grants.map((g) => htl.html`<tr><td style="padding:2px 12px 2px 0">${g.did}</td><td style="padding:2px 12px">${short(g.methods)}</td><td style="padding:2px 12px;color:var(--theme-foreground-muted)">granted ${new Date(g.granted).toISOString().slice(0, 10)}</td><td>${remove("Remove", () => client.procedure("grant.delete", { did: g.did }))}</td></tr>`)}
       ${tokens.length + grants.length ? "" : htl.html`<tr><td style="color:var(--theme-foreground-muted)">No tokens or grants.</td></tr>`}
     </table>`);
