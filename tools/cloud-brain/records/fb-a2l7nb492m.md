@@ -12,7 +12,7 @@ All of it is in `tools/cloud-brain/brain-issues.ojs`, a deploy of `brain-x-issue
 | | |
 |---|---|
 | `issuesOpenWork` | a new cell, the text `"open work"`: the value of the filter's first choice. No state can have that name: `issuePolicyAct` takes a state named `a-z 0-9 -` only (`/^[a-z0-9][a-z0-9-]{0,39}$/`), and this has a space. |
-| the State filter | its choices are now `open work`, `all`, then each state an issue of the copy is at. The first is chosen at load. `all` is the choice that was blank before. |
+| the State filter | its choices are now `open work`, `every issue` (`all` in round 1, see below), then each state an issue of the copy is at. The first is chosen at load. `every issue` is the choice that was blank before. |
 | what `open work` shows | every issue with `closed` false. `closed` is set on each issue by `issueApply` from the `closed` list of the issue's own workflow. |
 | `chooser` | takes a third argument, the text of a choice. Kind and the form's Kind do not pass one. |
 | the panel | `panel.list`, the node the table is drawn in, for the test. |
@@ -66,3 +66,28 @@ the states change. The test now finds the element at each use.
 - Whether an issue open in the pane under the table should close when a move takes its row out of
   the table. It stays open, as it did under a one-state filter.
 - The four cases of step 6 for a control that sends a write: the filter sends none.
+
+## Round 2, 2026-10-11
+
+Sent back by the review at event 1166, one finding: the blank choice was shown as `all`, and `all`
+is a name a state may have, so a policy with such a state gives two choices that read the same.
+Round 1 gave this reason for `open work` and did not apply it to the other text.
+
+Changed, in `tools/cloud-brain/brain-issues.ojs`: a cell `issuesEveryIssue`, the text
+`"every issue"`, which the State filter shows for the value `""`. The reference line names it and
+says neither text can be a state's name. The test has a second panel on a copy with an issue at a
+state named `all`: the four choices differ, `all` gives that issue alone, `every issue` gives both.
+
+The step 8 snippet in a QA tab, on a build with the changed test and the filter of round 1, with
+the reviewer's case run after it (the texts of the choices on a copy with a state named `all`):
+
+```
+[27, ["test_issues_panel_lists_the_open_work_at_load … - "every issue", + "all", …"], ["open work","all","all","open"]]
+```
+
+After the change, a fresh tab: `[27,[]]`. `bun test.ts brain-x-issues --with <the built module>`:
+`passed` 16, `failed` 0, `needsBrowser` 11. `verify-run.ts brain-x-issues --shell <the worktree's
+build> --times 20`: `"runs":20,"passed":20,"failed":0,"none":0,"byChance":[]`.
+
+Not tried: a policy installed with a state named `all` (the test's copy is a made one, answered
+by a client of the test, with no workflow in it). The rest is as in round 1.
