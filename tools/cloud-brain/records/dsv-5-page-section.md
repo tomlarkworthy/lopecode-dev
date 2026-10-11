@@ -1,9 +1,10 @@
 # The page's section Dashboards (`dsv-5-page-section`)
 
 Task 5 of `plan/cloud-brain-dashboard-service.md`. Built 2026-10-11 by a writer of the issue loop,
-round 1. Two commits of the seed, at 21:19:34 and 21:28:03 +0200 (`git log --format=%ci`): the
-section, and its move to before `## Operator`. `MAIN-BEFORE` below is `main` before them and
-`SEED-LAST` the second.
+round 1. Three commits of the seed, at 21:19:34, 21:28:03 and 21:36:44 +0200
+(`git log --format=%ci`): the section, its move to before `## Operator`, and `dashboardGet`
+answering no panels for an answer that has none. `MAIN-BEFORE` below is `main` before them and
+`SEED-LAST` the third.
 
 Nothing here was seen on cb4 in the owner's tab: the section asks with the owner's own session.
 Every count below is from a local QA tab (headless Chromium, 1280 by 800) on the worktree's build
@@ -73,8 +74,9 @@ owner: true })` and a `client` whose `query` answers `dashboard.list` (four name
 and `metric.query` from fixtures and pushes each call to `window.seen`. `three` is three panels
 over `deploys.confirmed` by `target` (bars, table, bars); `deploys` is two panels over two metrics;
 `health` is the three panels `dashboard.get?name=health` answers on cb4, over rows in the shape of
-`core.calls`; `odd` is five panels that cannot be drawn as asked. One tab, `r=5507`, on the build
-of the seed as it landed (the section before `## Operator`), from 19:28 UTC. Each row was written
+`core.calls`; `odd` is five panels that cannot be drawn as asked. One tab, `r=5507`, from 19:28 UTC,
+on the build of the second commit: the seed as it landed but for `dashboardGet` and its test (the
+third commit, below). Each row was written
 by the tab to `.emitted/dsv-5-tab-log.json` and is copied from that file.
 
 ```
@@ -143,7 +145,21 @@ names): chosen "Deploys", 1 `dashboard.list`, 1 `dashboard.get` with `{"name":"d
 The buttons between the `h2` "Health" and the `h2` "Dashboards" were "Refresh", "Copy Login Link"
 and "Copy Guest Invite"; none was between "Dashboards" and "Operator".
 
-**With no session**, the same build (`r=5507`, before the stand-in): 0 `.observablehq--error`
+**After the third commit** (`r=5509`, the build that landed, two names stood in, `three` and a
+dashboard `bare` whose `dashboard.get` answer has no `panels`):
+
+```
+                              dashboard.list  dashboard.get  metric.query   chosen  panels  note
+after the stand-in, 8 s             1              1             1          Three     3     The last hour: 3 panels from 1 query.
+"Refresh" clicked, 3 s              1              1             2          Three     3
+select set to bare, 3 s             1              2             2          Bare      0     The last hour: 0 panels from 0 queries.
+```
+
+0 `.observablehq--error` between "Health" and "Operator" in each row. Before that commit a
+dashboard with no `panels` would have thrown in `dashboardNote`; that was read in the cell and
+not made to happen in a tab.
+
+**With no session**, the build of the second commit (`r=5507`, before the stand-in): 0 `.observablehq--error`
 between the `h2` "Health" and the `h2` "Operator"; one line under "Dashboards", "Sign in as the
 owner to see the dashboards."; no select. The `h2`s read Health, Dashboards, Operator.
 
@@ -158,15 +174,17 @@ call and its answer was cut; it was not asked again.
 |---|---|
 | `cd $W/cloud-brain-dev && bun test.ts brain-x-page` (what cb4 runs, `2d5bfe692895`) | `passed` 10, `failed` 0, `needsBrowser` 13 |
 | `… bun test.ts brain-x-page --with $W/tools/cloud-brain/.emitted/dsv-5.js` | `passed` 12, `failed` 0, `needsBrowser` 15. Two of the four new tests read no DOM and pass here; the other two make a select, a chart and a table. |
-| the snippet of the brief's step 8, fresh QA tab on the build (`r=5507`, 19:28:19 UTC) | `[27,[]]`. 27 is 12 + 15. |
-| `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-page --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20`, ended 19:33:44 UTC | `runs` 20, `passed` 20, `failed` 0, `none` 0, `byChance` `[]`, `from` `["document"]`, `mains` brain-shell and cloud-brain; `"tests":27` in each of the 20 lines. |
+| the snippet of the brief's step 8, fresh QA tab on the build (`r=5509`, answered 19:37:14 UTC) | `[27,[]]`. 27 is 12 + 15. |
+| `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-page --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20`, ended 19:37:42 UTC | `runs` 20, `passed` 20, `failed` 0, `none` 0, `byChance` `[]`, `from` `["document"]`, `mains` brain-shell and cloud-brain; `"tests":27` in each of the 20 lines. |
 | `bun test ./tests/tools/dsv-5-docs-name-the-dashboard-service.test.ts`, in the worktree | 4 pass, 0 fail. With the three files it reads as `41e72b7e` had them (before the rebase): 0 pass, 4 fail. |
-| `bun test ./tests/tools`, in the worktree | 320 pass, 0 fail |
+| `bun test ./tests/tools`, in the worktree | 321 pass, 0 fail |
 
 Two earlier runs of `verify-run`, 20 each. On the build before the rebase: 19 passed and 1 failed,
 run 19, "the Worker reports the hash that was loaded: loaded 1a3d5c8c9e93, running 2d5bfe692895".
 Another writer deployed `brain-x-page` between two runs; no test of the module failed in it. On
-the build after the rebase and before the section was moved, ended 19:21:36 UTC: 20 passed.
+the build after the rebase and before the section was moved, ended 19:21:36 UTC: 20 passed. On
+the build of the second commit, ended 19:33:44 UTC: 20 passed. The row above is the fourth run,
+after a second rebase brought in `brain-shell.ojs`, which this module imports.
 
 The new tests read no clock, assign nothing to `console` or another global, and make their select
 with stand-ins for the hash, `go` and `listen`.
