@@ -255,6 +255,9 @@ Its time is Cloudflare's timestamp of the line. Nothing is added to any service.
   (`abr_level`, `brain-logs.ojs:61` and `:115`, which is why `deployLines` reads in pieces). For
   `calculations` the one observation is of 2026-10-09: a 24-hour count agreed with 24 one-hour
   counts, 40 148 lines (`spec-as-built.md`). Nothing was read for 7 days. The cost task compares.
+  Compared 2026-10-11: a 7-day answer is made from a sample and does not say so (160 where the
+  lines were 173); 1 hour and 24 hours were whole (`tools/cloud-brain/records/dsv-4-cost.md`,
+  "Measured on cb4").
 - **`groups` not below 500** means Cloudflare cut the answer, as the page's note says for Health
   since `ds-2`.
 - A span older than 7 days answers what the logs have. Stage 2 is the way past it.

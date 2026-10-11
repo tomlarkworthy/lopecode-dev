@@ -12,7 +12,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts curl "/xrpc/com.lopecode.brain.met
 no token "loop-dashboard" is kept; make one with: token loop-dashboard <method…>, …
 ```
 
-What waits for it is listed under "Waits for the token".
+What waited for it was done later the same day, by `dsv-4-cost-on-cb4`: "Measured on cb4" below.
 
 ## What changed
 
@@ -165,26 +165,132 @@ tab, read from the file the receiver saved: hash `f8667794afd8…`, `meta.resour
 `meta.cloudflare` `["Workers Observability Read"]`, eight methods, a reference of 18122
 characters, no `test_` in `parts[0].text`.
 
-## Waits for the token
+## Measured on cb4 (`dsv-4-cost-on-cb4`, 2026-10-11)
 
-Each of these is a call on cb4 with `--as loop-dashboard`. None was made, and no `--owner` call was
-made in their place: the spec's check is a token's, and the owner in a tab is another caller to
-the rule.
+This section was "Waits for the token" until the token `loop-dashboard` was made (event 2024 of
+`dsv-4-cost-on-cb4`). Its five items were measured by a second writer of the loop on 2026-10-11
+between 19:01:00 and 19:06:20 UTC (the `at` of the first and last ask), against
+`brain-x-dashboard` at `f8667794afd8` (`getSource?worker=brain-x-dashboard`, read at 19:03 UTC).
 
-- **R7, the five spans.** `metric.query?metric=deploys.confirmed&by=target` over 15 minutes, 1
-  hour, 6 hours, 24 hours and 7 days. Cold: five asks, `until` moved back one minute for each.
-  Warm: the last of those asked five more times. `cost.ms`, `cost.cached`, `groups` and the wall
-  time of each.
-- **How many warm asks were `cached`.** That is the count of asks that reached an instance with
-  the answer. The reference says it is not counted yet.
-- **R3, the comparison.** `n` summed over one hour and over 24 hours, against the lines
-  `at: "deploy.confirmed"` of `logs.deploys` over the same span.
-- **Whether a `calculations` answer over 7 days is sampled.**
-- **The comment on `ds-ingestion-tail-to-analytics-engine`** with the logs side's measured times.
-  There are no times to give, so no comment was written there.
+Every ask was `brain.ts curl` from the main checkout, one at a time unless said, with curl's own
+clock for the whole call:
+
+```
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts curl "/xrpc/com.lopecode.brain.metric.query?metric=deploys.confirmed&by=target&since=SINCE&until=UNTIL" --as loop-dashboard -m 120 -w '%{stderr}%{time_total} [%{http_code}]\n'
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts curl "/xrpc/com.lopecode.brain.logs.deploys?from=SINCE&to=UNTIL" --as loop-deploys -m 120 -w '%{stderr}%{time_total} [%{http_code}]\n'
+```
+
+Two scripts made the asks and wrote one JSON line for each, 65 and 26 lines. The scripts and their
+output are attached to the issue: `measure.py`, `measure.jsonl`, `measure2.py`, `measure2.jsonl`
+(`issue-as.sh issues-implementer-2 "attachment?id=dsv-4-cost-on-cb4&name=measure.jsonl"`). Each
+number below is read from those lines. `U` is 1791745260000 (19:01:00 UTC) and `E` is
+1791744660000 (18:51:00 UTC). Every answer was 200.
+
+### R7: the five spans
+
+Cold: `until` is `U` less 1 to 5 minutes, `since` is `until` less the span. Warm: the fifth of
+those asked five more times, starting under 0.1 s after its answer.
+
+| span | cold `cost.ms` | cold whole call, s | `step` | `groups` | sum of `n` | warm `cached` | warm whole call, s |
+|---|---|---|---|---|---|---|---|
+| 15 minutes | 360 318 351 338 392 | 0.64 0.50 0.50 0.58 0.56 | 15000 | 1 | 1 | 5 of 5 | 0.14 to 0.24 |
+| 1 hour | 379 410 363 471 363 | 0.57 0.58 0.56 0.65 0.54 | 60000 | 2 2 2 3 3 | 6 6 6 7 7 | 5 of 5 | 0.18 to 0.26 |
+| 6 hours | 644 497 523 522 653 | 0.88 0.70 0.73 0.73 0.85 | 360000 | 4 | 19 | 5 of 5 | 0.16 to 0.20 |
+| 24 hours | 1010 854 1095 857 894 | 1.28 1.17 1.35 1.04 1.09 | 1440000 | 22 | 63 | 5 of 5 | 0.16 to 0.25 |
+| 7 days | 7378 6886 8302 1097 5949 | 7.54 7.14 8.56 1.30 6.18 | 10079000 10078000 10077000 10075000 10074000 | 7 7 7 1 7 | 160 160 160 100 160 | 5 of 5 | 0.16 to 0.25 |
+
+Every cold answer had `cost` `{ queries: 1, cached: false }` and every warm one
+`{ ms: 0, queries: 0, cached: true }`. The whole call less `cost.ms` was 0.15 to 0.32 s over the
+25 cold asks, which is the kernel, the core and the network from this machine.
+
+The 7-day row is not a count of the lines: see "Whether a 7-day answer is sampled".
+
+### How many asks made again were `cached`
+
+32 of 32, made up to 50 s after the answer:
+
+- the 25 warm asks above;
+- 1 more by chance: the last day of the seven below is the query of R3's 24 hours, asked 25 s
+  after that answer;
+- 6 of a second run. One 1-hour query not asked before (`until` = `E` less 17 minutes), then
+  asked again every 10 s:
+
+  ```
+  0 s false 376 ms | 10 s true | 20 s true | 30 s true | 40 s true | 50 s true | 60 s false 491 ms | 70 s true
+  ```
+
+  The ask at 60 s was sent again, as the memory's time says, and the one at 70 s is 10 s after
+  that answer.
+
+No ask reached an instance without the answer. All were from one machine, one at a time, over
+five minutes: how long an instance lives and how many run at once is still not counted.
+
+**Two asks at one moment** (the first record's "Not tried"). Three 1-hour queries not asked
+before, each sent twice together from two threads: all six answers had `cached: false`,
+`queries: 1` (`cost.ms` 356 and 494, 382 and 464, 371 and 436). Each is sent, as the service was
+read to do.
+
+### R3: `n` against the lines of `logs.deploys`
+
+The same `since` and `until` to both. `logs.deploys` side: the lines whose `at` is
+`deploy.confirmed`, counted from `lines`, and by `target`.
+
+| span, ending at `E` | `metric.query`, sum of `n` | `logs.deploys`, lines confirmed | by target | `metric.query` call, s | `logs.deploys` call, s (its `queries`, all its lines) |
+|---|---|---|---|---|---|
+| 1 hour | 6 | 6 | equal, 3 targets | 0.63 | 0.82 (1, 36) |
+| 24 hours | 62 | 62 | equal, 22 targets | 1.10 | 1.98 (1, 448) |
+| 2 days | 136 | 136 | equal | 2.96 | 5.33 (1, 989) |
+| 3 days | 171 | 171 | equal | 3.36 | 10.67 (3, 1459) |
+| 4 days | **160**, 7 targets | 173, 22 targets | not equal | 6.49 | 12.17 (3, 1466) |
+| 5 days | 173 | 173 | equal | 4.44 | 11.01 (3, 1466) |
+| 6 days | 173 | 173 | equal | 4.65 | 18.81 (5, 1466) |
+| 7 days | **160**, 7 targets | 173, 22 targets | not equal | 8.12 | 17.52 (5, 1466) |
+
+R3 asked for one hour and 24 hours: equal, so the spec's "known limit" is not needed for them.
+The other rows were added to find where the 7-day difference starts. The spec's "52 in the 24
+hours to 16:32 UTC" was not checked: these 24 hours end at 18:51 UTC.
+
+### Whether a 7-day answer is sampled
+
+It is, and the answer does not say so.
+
+```
+one 7-day ask, E - 7 days to E     n 160   {"brain":20,"brain-core":40,"brain-x-dashboard":10,"brain-x-issues":50,"brain-x-knowledge":10,"brain-x-logs":10,"brain-x-page":20}
+seven 1-day asks of the same days  n 0 0 0 2 35 74 62 = 173
+logs.deploys of the same 7 days    173 lines deploy.confirmed, 22 targets, the first at 2026-10-08 18:50:55 UTC
+```
+
+- The seven days summed by target equal the lines by target (22 targets). The 7-day answer has 7
+  targets, each `n` a multiple of 10: `brain` 20 where the lines are 45, `brain-x-issues` 50 where
+  they are 12, `brain-db` absent where they are 10.
+- Six 7-day asks were made (the five cold ones and this one). Their spans differ by up to 9
+  minutes at each end and hold the same 173 lines (the first and last confirmed line are inside
+  all six). Five answered the 160 above. The sixth (`until` = `U` less 4 minutes) answered
+  `{"brain-x-issues":100}` in 1097 ms where the others took 5949 to 8302.
+- The 4-day ask answered the same 160. Its `groups` was 22 and its `series` held 7 targets, so
+  `groups` does not show a sample.
+- 5 and 6 days were whole, one ask each. So the span does not decide it, and what does was not
+  found. Not read: Cloudflare's own word on the answer (`result.run.statistics`, which
+  `brain-logs.ojs` reads for `abr_level` on an `events` query). `metric.query` does not pass it
+  on, and `logs.query` is the owner's.
+- The first three of the seven days have no line (the first `deploy.confirmed` is of 2026-10-08).
+  Their asks took 3.60, 3.12 and 2.28 s for `n` 0; the three after took 3.21, 1.48 and 1.39 s.
+
+What follows from it is not built here. `metric-query-sampled-unsaid` is opened for it: a count
+over days that `metric.query` gives as whole can be 13 of 173 short and name 7 targets of 22.
+
+### What was changed with these numbers
+
+- The reference of `brain-dashboard.ojs` (the last commit of that file, author time 21:09:17 +0200):
+  a paragraph and table in "A query" on the sample; a table "Measured on cb4" in "What a query
+  costs"; the counts in "Another instance has its own memory" and "Two asks at the same moment";
+  three sentences of "Not known" replaced. That is a deploy of `brain-x-dashboard`; its counts
+  are in `records/dsv-4-cost-on-cb4.md`.
+- A comment on `ds-ingestion-tail-to-analytics-engine` with the logs side's times.
 
 ## Not tried
 
+- (Tried since, the first, second and third of this list as far as "Measured on cb4" says: `metric.query` on cb4 with a token, two asks at one moment, and `cost.ms` in a Worker.)
 - `metric.query` on cb4 by any caller, after the deploy. What the landing checks there, the Worker's tests as deployed and the reference it serves, is in the comment of the submit on the issue, since it follows this file's commit.
 - Two asks of one query at the same moment. Read in the service: the memory is read at line 417,
   before Cloudflare is asked, and written at line 424, after it answered, so each is sent.
