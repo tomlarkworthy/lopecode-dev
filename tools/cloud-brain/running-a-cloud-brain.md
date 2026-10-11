@@ -16,9 +16,12 @@ Read this before changing, deploying or diagnosing a service of the Cloud Brain 
 | `brain_status` | call first: every Worker and whether it is serving, probation and its deadline, deploys held for approval, the deployer's clock, secrets not set, inbox waiting |
 | `brain_services` | every declared service: its Worker name, the hash this notebook would deploy, the hash running, and the state |
 | `brain_call` | one XRPC call to this Brain as the owner, e.g. `inbox.list`, `people.list`, `secret.list`, `library.list` |
+| `attention_draft` | put a text in the box of an issue that waits for the owner, in the block "For your attention" of the tracker's panel on this page. Nothing is sent: the owner reads the box and presses. Refused when the box has text already (since 2026-10-11) |
 | `brain_apply` | ask the deployer to deploy one service as it is in this notebook now. The Worker carries the module's source; the page then loads it back, runs the module's `test_` cells and reports. `verdict.state` is `verified`, or `put-back` when the tests failed and the version before is running again |
 
 `brain_call` refuses `secret.get`, `token.*`, `grant.*`, `delegation.*` and `infra.*`. Secret values, access and deploys are the owner's own actions on the page.
+
+Since 2026-10-11 it also refuses ten procedures of the tracker: `issue.move`, `issue.swap`, `issue.label`, `issue.comment`, `issue.review`, `issue.install`, `issue.rebuild`, `issue.resign`, `issue.narrow` and `issue.lock`. Every read of `issue.*`, and `issue.open`, `issue.link` and `issue.attach`, are not refused. A move, a comment, a label and a review are the owner's presses. An answer for the owner is drafted with `attention_draft`. The whole list of what is refused is the cell `assistantRefuses` of `@tomlarkworthy/cloud-brain`.
 
 ## Checking how it is running
 
