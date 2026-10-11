@@ -128,3 +128,56 @@ neither was run. The two fresh loads stand in for the second.
   and the note goes back to `gathered`. Not run.
 - Many gathered notes: one `issue.get` each, every 30 s.
 - annotate did not change; `tools/test-annotate.js` was not run again.
+
+## Round 3, 2026-10-11: a close with no link yet, and the cost comment
+
+Review 992 (event 992): finding 908 answered, two findings from round 2's own rule and one line of the doc.
+
+1. **Done between the close and the link.** Round 2 kept "closed and follows nothing is Done". The
+   loop closed `fb-a2kw99i9wy` at event 863 and linked it at event 865, 15.5 s later; the page asks
+   every 30 s, so an ask in between drew Done, and Remove there takes the label off for good.
+2. **The progress line was the loop's cost record.** A `cost {…}` comment follows every round, so it
+   was the latest event of the project the note followed.
+3. The row Progress of the first `md` cell said the state of each linked issue is shown. For an open issue none is read.
+
+### What changed
+
+All in `tools/cloud-brain/brain-feedback.ojs`.
+
+| | |
+|---|---|
+| `feedbackLimits.waitMs` (new) | 300000, five minutes. |
+| `feedbackProgress(ticket, followed, { now, waitMs })` | A closed issue that follows none is `done` only when `now` is `waitMs` or more after its closing event's `at`; until then it is `settling`, with `until` the time. `gathered` is now only for an issue that follows something. A comment whose body starts `cost {` is never `last`. |
+| `feedbackApp({ …, now })` | `now` is the page's clock, `Date.now` by default, and the rig's in the tests. A settling note reads its state (`closed`) and the reason, a line with the time Remove comes, and has no button. The box's × on it hides it and sends no call, as `gone` reads the same `done`. |
+| `feedbackRig` | A clock: long after every event unless `setNow(ms)` was called. |
+| The first `md` cell | Rows Progress (reworded, and the cost comment), Closed (new), Done, Remove. |
+
+### Chosen between
+
+- **A wait by the clock**, against two others. Never Done without a parent or link: a feedback issue
+  closed with a reason alone ("not real") would then keep its note for good, and the close guard
+  allows that close. Done on the second ask that finds nothing: that is a wait of 30 s by another
+  name, and 15.5 s was measured once. Five minutes is 19 times the one gap measured; it is not
+  derived from anything else. A close that is linked after five minutes still reads Done until the
+  ask after the link, when it goes to `gathered`; the label is gone if Remove was pressed before.
+- **The order in the loop was not changed.** Linking before closing would end the gap at its source.
+  It is in `SKILL.md` and `rules.md`, which are not a writer's.
+- **The cost comment is told by its body**, `^cost \{`, not by its key (`cost-…`): the body is what the note would draw.
+
+### Measured
+
+Each after the last change to the seed.
+
+| | |
+|---|---|
+| Before the fix, the new test alone: `bun tools/lope-tests.ts tools/cloud-brain/.emitted/cloud-brain.html --filter test_feedback_a_close` | 0 passed, 1 failed, at its first expect: the note of an issue closed 15 s before read Done. |
+| After: `--filter test_feedback` in the worktree | 9 passed, 0 failed, of 9. |
+| The step-8 snippet in a headless QA tab on that file, two fresh loads (`r=8841`, `r=8842`) | `[9,[]]` both times. |
+| The first of those tabs, `feedbackRig` given what `issue.get` answered on cb4 at 16:33 CEST for `fb-a2kw99i9wy` and its project (then at `building`, a cost comment third from last) | `gathered`, 0 buttons, "part of dashboards-share-series-and-controls: building", and the last line "…: Approved by the owner at event 946. The four tasks of the spec are opened as parts: …". No `cost {`. |
+
+### Not tried
+
+- The wait on the real page: no issue with the label was closed alone while this was written.
+- A page whose clock is far from the tracker's. Fast by five minutes or more, the wait is nothing.
+- A close whose link comes after five minutes (above).
+- The rest of round 2's list stands: the owner signed in on cb4, a hidden followed issue, a chain of two.
