@@ -173,3 +173,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
 - 2026-10-11 `plan/cloud-brain-i1842.md`, the uncommitted diff of round 2 (after review 1951 on cb4): FIX, 5 findings (4 confirmed, 1 plausible),
   all taken. 93k subagent tokens, 1m41s. What the author had not seen: one command line was given two opposite pass conditions (task 1's run in the
   old shell and task 3's in the new), and the check of the inbox pump passed on a signed-out page where the pump polls nothing.
+- 2026-10-11 `plan/cloud-brain-owner-acts-on-what-waits-for-him.md` (the spec of the block that shows one issue at a time, first writing, draft `906aa771`):
+  FIX, 8 findings (6 confirmed, 2 plausible), all taken (lopecode-dev `99cefd01`). 114k subagent tokens, 5m16s. What the author had not seen: the
+  refusal list named 8 of the tracker's 13 procedures and left `issue.review` and `issue.lock` open, the refusing function has a second caller, and
+  the draft into a row's box would have left its buttons disabled and written over what the owner had typed.
