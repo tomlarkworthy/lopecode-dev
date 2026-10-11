@@ -197,6 +197,28 @@ brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
 7. Commit on `main` in `lopebooks` and here, and push. Tom, 2026-10-08: "we should work on main
    mainly". Not a branch in the shared directory.
 
+## A Playwright script in `tools/`
+
+A script under `tools/` that launches Chromium takes the browser from `tools/lib/playwright-chrome.js`:
+
+```js
+import { chromium } from "playwright";
+import { chromeOptions } from "./lib/playwright-chrome.js"; // "../lib/…" from tools/cloud-brain/
+const browser = await chromium.launch({
+  headless,
+  ...chromeOptions(chromium, { headless }), // {} when Playwright's own build is installed
+});
+```
+
+A bare `chromium.launch()` there failed on 2026-10-11, headed and headless, with "Executable doesn't exist at
+…/chromium-1200/…": `tools/node_modules` has Playwright 1.57, which names build 1200, and the cache
+(`~/Library/Caches/ms-playwright`) had 1169 and 1234. The helper names the newest complete build and says so in
+one line on stderr; `CHROME=path` names another. With no build at all it throws the command that installs one,
+`cd tools && npx playwright install chromium`, which was not run here. Eight tools use it
+(`tests/tools/playwright-chrome.test.ts` lists them); the other scripts that launch do not, and one that fails
+this way is fixed by the two lines above, not by an `executablePath` written by hand.
+`tools/cloud-brain/records/playwright-headed-chromium-1200.md`.
+
 ## Where a service keeps files
 
 Files are in `brain-static`, by path. Anything dated is `<service>/<YYYY-MM-DD>/<name>`:

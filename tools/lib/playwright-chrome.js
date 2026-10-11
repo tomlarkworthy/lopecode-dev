@@ -41,7 +41,7 @@ export function chromeFor(own, env = {}, { headless = true } = {}) {
   if (!at) throw new Error(`no Playwright cache in ${own}; set CHROME=path`);
   const [, cache, wanted] = at;
   const prefix = headless ? "chromium_headless_shell" : "chromium";
-  const builds = readdirSync(cache)
+  const builds = (existsSync(cache) ? readdirSync(cache) : []) // no directory: Playwright never downloaded a browser here
     .map((d) => (d.startsWith(prefix + "-") && /^\d+$/.test(d.slice(prefix.length + 1)) ? d.slice(prefix.length + 1) : null))
     .filter((n) => n !== null)
     .sort((a, b) => Number(b) - Number(a));

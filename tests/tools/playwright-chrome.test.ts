@@ -38,6 +38,24 @@ test("headed: the build Playwright names, then the newest complete chromium-N", 
   expect(() => chromeFor("/usr/bin/chrome", {}, { headless: false })).toThrow("no Playwright cache in /usr/bin/chrome");
 });
 
+// A machine where Playwright never downloaded a browser has no cache directory at all (review, event 1044).
+test("a cache directory that does not exist reads as no builds: the install line, not ENOENT", () => {
+  const { cache } = cacheOf();
+  const own = join(cache, "absent", "chromium-1200", "chrome-mac-arm64", "x");
+  for (const headless of [true, false]) {
+    expect(() => chromeFor(own, {}, { headless })).toThrow(`in ${join(cache, "absent")} (Playwright names build 1200); run: ${INSTALL}`);
+    expect(() => chromeOptions({ executablePath: () => own }, { headless, env: {}, log: () => {} })).toThrow(INSTALL);
+  }
+});
+
+// Where an agent that writes a new Playwright script reads of the helper (review, event 1044, finding 2).
+test("the Cloud Brain guide gives the import", () => {
+  const doc = readFileSync(join(root, "knowledge/working-with-cloud-brain-remote-lopecode-cluster.md"), "utf8");
+  expect(doc).toContain('import { chromeOptions } from "./lib/playwright-chrome.js";');
+  expect(doc).toContain("...chromeOptions(chromium, { headless })");
+  expect(doc).toContain(INSTALL);
+});
+
 test("headed: the Linux and Windows layouts", () => {
   const { put, own } = cacheOf();
   const linux = put("chromium-1234", ["chrome-linux", "chrome"]);

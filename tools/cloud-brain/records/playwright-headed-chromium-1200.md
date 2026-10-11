@@ -91,3 +91,40 @@ printed the same stderr line, then `Variables: 4075`.
 - A headless launch with a headed build when no shell is complete. It throws the install line.
 - The channel's `qa_open_notebook`. `lopecode-plugin/node_modules/playwright-core` is 1.62.1, which
   names build 1234, the one installed; the channel is not the loop's to change.
+
+## Round 2, 2026-10-11
+
+The review of event 1044 found two things. Both were true.
+
+**1. A cache directory that does not exist threw ENOENT.** Round 1's "With none it throws one line"
+held for an empty cache and not for an absent one, which is a machine where Playwright never
+downloaded a browser. Before this round, with the new assertion in place:
+
+```
+Received message: "ENOENT: no such file or directory, scandir '…/playwright-chrome-SOr6NY/absent'"
+```
+
+`chromeFor` now reads an absent cache as no builds (`existsSync(cache) ? readdirSync(cache) : []`).
+The reviewer's command, in the worktree after the change:
+
+```
+PLAYWRIGHT_BROWSERS_PATH=/private/tmp/claude-502/nonexistent-cache bun tools/lope-browser-runner.ts lopecode/notebooks/quick_start.html --list-cells
+error: no complete chromium_headless_shell in /private/tmp/claude-502/nonexistent-cache (Playwright names build 1200); run: cd tools && npx playwright install chromium, or set CHROME=path
+```
+
+**2. No doc named the helper.** `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md` has a
+section "A Playwright script in `tools/`" with the import. That guide, because a hook makes every
+agent of the loop read it before `brain.ts`, `build.ts` or an edit under `tools/cloud-brain/`, and
+the three reports of the issue were agents of the loop. `CLAUDE.md` was the reviewer's other place;
+it was left as it is, an agent's message being no leave to change it. An agent that writes a probe
+without reading that guide still meets Playwright's own text.
+
+| command, in the worktree | result |
+|---|---|
+| `bun test ./tests/tools/playwright-chrome.test.ts`, the two new tests and round 1's helper and guide | 5 pass, 2 fail |
+| the same after the change | 7 pass, 0 fail |
+| `bun test ./tests/tools` | 175 pass, 0 fail, 20 files |
+| `bash scripts/check-learnings-triggers.sh` | 0 error(s) |
+
+Not tried this round: anything in round 1's list; a real machine with no cache (the test and the
+reviewer's command name a path that does not exist).
