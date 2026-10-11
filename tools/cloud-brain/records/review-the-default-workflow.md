@@ -267,9 +267,9 @@ is corrected to `test-`.
 - `close` from `in-progress` is any token's, with a reason: another token can close a writer's live
   work, and a writer can close in place of a review. Left: the reason is in the record and the
   issue opens again with `reopen`. Narrow it to `issue.by.start` if it is misused.
-- Whether taking a part off its parent (`issue.link`, `part-of`, `remove`) should be the owner's
-  alone is asked of the owner (2026-10-11): it lifts the parent's `issue.children.open == 0`. The
-  loop's token did it once, at event 515, to free `brain-tests-fail-headless-unread`.
+- Taking a part off its parent (`issue.link`, `part-of`, `remove`) lifts the parent's
+  `issue.children.open == 0`. The loop's token did it once, at event 515, to free
+  `brain-tests-fail-headless-unread`. The owner, 2026-10-11 12:05 CEST, asked whether it should be his alone or the loop's with a reason on record: "its fine". So it is the loop's, and the reason goes in the move or comment that follows it.
 
 - Trap 11, rounds of rework, is measured and not changed.
 - `needs-owner` stays a label. What changed is that three of its twelve end with one install, and

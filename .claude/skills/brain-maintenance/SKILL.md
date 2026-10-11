@@ -123,7 +123,9 @@ Since 2026-10-11 (`plan/cloud-brain-issues.md`, "Amended 2026-10-11"): `issue.li
 with `rel` one of `duplicate`, `cause`, `related`, `part-of`. Use it at triage instead of an id in
 prose: a duplicate is linked and then `close`d (`reject` is for what is not real); an issue that
 exists because of another names it as its `cause`. `part-of` makes an issue a part of another after
-it was opened, and `{ id, rel: "part-of", remove: true }` takes it off.
+it was opened, and `{ id, rel: "part-of", remove: true }` takes it off. That lets the parent be
+submitted without that part, and it is the loop's to do (Tom, 2026-10-11: "its fine"): say why in
+a comment on the parent.
 
 A `project` gathers reports that share a cause: the overseer opens one when three or more do
 (`agents/overseer.md`), and the owner opens one for a feature. Its path is spec, review of the

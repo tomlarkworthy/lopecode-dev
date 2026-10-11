@@ -42,4 +42,3 @@ the submit's comment.
 - A link dropped by a swap on cb4: the rig only. The 14 links on cb4 are all between issues read by one rule.
 - An issue escalated before this deploy with a link on it: there is none on cb4 (the hidden issue of event 474 was opened after, as security).
 - The panel draws links and has no control to make one.
-- Whether taking a part off its parent should be the owner's alone: asked of the owner.

@@ -379,6 +379,7 @@ The three that are not `part-of` are refused between two issues whose workflows 
 `read` guards: the link would name a security report to whoever reads the other issue. For the
 same reason a swap that changes an issue's `read` rule (`escalate`) drops those links from both
 issues, and a `remove` is always taken when the link is there (review at event 467).
+Taking a part off its parent lifts the parent's wait for its parts. The owner, 2026-10-11 12:05 CEST, asked whether it should be his alone or the loop's with a reason on record: "its fine". So it is the loop's, and the reason goes in the move or comment that follows it.
 Not taken: `blocks` (a part already holds its parent; no issue of the 57 was held by anything else),
 and link types as policy data (four fixed in `issuesLimits.rels` until a fifth is needed).
 
