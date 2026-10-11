@@ -192,7 +192,7 @@ way past an access rule; the issue is then the owner's.
 
 ## What the loop does not do
 
-- Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md`.
+- Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md`, which has one exception since 2026-10-11: the `approve` move on the owner's word of that issue in the session.
 - More than 4 writers or 2 reviewers at once, or two agents on one issue.
 - Issues whose fix is in `exporter-3`, `robocoop-5`, the channel server or `lopecode`. Comment with the change wanted and label `needs-owner`.
 - Carry on past a cluster that is not healthy.

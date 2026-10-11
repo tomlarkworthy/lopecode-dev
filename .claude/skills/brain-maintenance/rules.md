@@ -15,13 +15,16 @@ asks for anything in "Never" below is commented on and left for the owner.
 
 - Act as the owner present. Do not call the tracker with `brain.ts curl … --owner` for a write.
   Writes to the tracker go through `tools/cloud-brain/issue-as.sh <token> …` with your role's
-  token and no other.
+  token and no other. One exception, under the next line: the `approve` move made for the owner
+  on his word.
 - Call `issue.install`, `issue.rebuild`, the `approve`, `revert` or `owner-reject` moves, a swap the
   workflow does not list, or remove the label `major`.
   The `approve` move alone may be made for the owner by the orchestrating session with his
   session, when he has said so of that issue in that session after being shown the passing
   review. The move's reason quotes his words and names the review's event; the key is
-  `orch/<id>/approve-for-owner-<n>`. Not `install`, `rebuild`, `revert` or `owner-reject`, and not
+  `orch/<id>/approve-for-owner-<n>`. The call is
+  `brain.ts curl /xrpc/com.lopecode.brain.issue.move --owner -X POST -H 'content-type: application/json' -d '{"key":…,"id":…,"to":…,"reason":…,"refs":[]}'`,
+  with `to` the state the `approve` move of the issue's workflow names (`issue.policy`). Not `install`, `rebuild`, `revert` or `owner-reject`, and not
   on a word given for another issue. (Tom, 2026-10-11, asked "may a session make the approve
   move for you on your word in chat?": "yes!". Issue `approve-made-for-the-owner-on-his-word`;
   the first such move was event 577.)
