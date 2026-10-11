@@ -5,9 +5,12 @@
 // over the requests of the run. A request is one message id; its last usage line is the whole of it. --last-run
 // counts from the last prompt in the file, which for an agent that was sent a second round is that round alone;
 // --run N counts the Nth prompt's run, from 1, up to the next prompt. A prompt is a user row that is no tool
-// result and is either plain (no origin, not isMeta, not written by a tool) or sent by the coordinator
-// (origin.kind "coordinator"). A Skill call's row and a background task's notification are neither, and the
-// summary row a compaction writes (isCompactSummary) is no prompt: a run goes on through it.
+// result and is plain (no origin, not isMeta, not written by a tool), or sent by the coordinator
+// (origin.kind "coordinator"), or typed by a person in a main session (origin.kind "human", not isMeta).
+// A Skill call's row and a background task's notification are none of these, nor is a message a person
+// typed while a turn ran (origin.kind "human", isMeta), and the summary row a compaction writes
+// (isCompactSummary) is no prompt: a run goes on through each. Rows of origin.kind "channel" and "peer"
+// start no run either; whether they should was not decided (records/i1559.md).
 // The advisor's tokens are another model's and are not in the four sums. Exit 1: no transcript, or no request in it.
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -18,7 +21,7 @@ export function usageOf(text: string, run?: boolean | "last" | number) {
   const rows = text.split("\n").filter(Boolean).flatMap((l) => { try { return [JSON.parse(l)]; } catch { return []; } });
   const prompts: number[] = [];
   rows.forEach((o, i) => {
-    const mine = o.origin ? o.origin.kind === "coordinator" : !o.isMeta && !o.sourceToolUseID && !o.isCompactSummary;
+    const mine = o.origin ? o.origin.kind === "coordinator" || (o.origin.kind === "human" && !o.isMeta) : !o.isMeta && !o.sourceToolUseID && !o.isCompactSummary;
     const c = o.type === "user" && mine && o.message?.content;
     if (typeof c === "string" || (Array.isArray(c) && !c.some((x) => x.type === "tool_result"))) prompts.push(i);
   });

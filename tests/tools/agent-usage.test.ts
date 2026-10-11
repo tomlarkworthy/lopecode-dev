@@ -61,6 +61,23 @@ test("a compaction's summary row is not a prompt", () => {
   expect(usageOf(one, 2)).toBeNull();
 });
 
+// i1559: a main session's typed message has origin.kind "human" and is not isMeta. One sent while a
+// turn runs is isMeta ("The user sent a new message while you were working") and the run goes on.
+test("a message a person typed is a prompt, and one typed while a turn runs is not", () => {
+  const typed = (text: string) => JSON.stringify({ type: "user", origin: { kind: "human" }, promptSource: "typed", turnOrigin: "human", message: { content: text } });
+  const blocks = JSON.stringify({ type: "user", origin: { kind: "human" }, message: { content: [{ type: "text", text: "3" }] } });
+  const mid = JSON.stringify({ type: "user", isMeta: true, origin: { kind: "human" }, message: { content: "The user sent a new message while you were working:\nwhy so slow?" } });
+  const note = JSON.stringify({ type: "user", origin: { kind: "task-notification" }, message: { content: "<task-notification>" } });
+  const t = [typed("1"), asst("m1", u(1, 1, 1, 1)), result(), asst("m2", u(1, 1, 1, 1)), typed("2"), asst("m3", u(2, 2, 2, 2)), mid, asst("m4", u(2, 2, 2, 2)), note, asst("m5", u(2, 2, 2, 2)),
+    blocks, asst("m6", u(4, 4, 4, 4))].join("\n");
+  expect(usageOf(t)!.requests).toBe(6);
+  expect(usageOf(t, 1)).toEqual({ input: 2, cacheWrite: 2, cacheRead: 2, output: 2, requests: 2, advisor: zero });
+  expect(usageOf(t, 2)).toEqual({ input: 6, cacheWrite: 6, cacheRead: 6, output: 6, requests: 3, advisor: zero });
+  expect(usageOf(t, 3)).toEqual({ input: 4, cacheWrite: 4, cacheRead: 4, output: 4, requests: 1, advisor: zero });
+  expect(usageOf(t, "last")).toEqual(usageOf(t, 3));
+  expect(usageOf(t, 4)).toBeNull();
+});
+
 // Review 1454, finding 2: the last run is not round N once a later round has been sent.
 test("--run N counts the Nth prompt's run, and there is none past the last", () => {
   const t = [prompt("1"), asst("m1", u(1, 10, 100, 1)), result(), asst("m2", u(1, 0, 110, 1)), prompt("2"), asst("m3", u(2, 20, 200, 2)), prompt("3"), asst("m4", u(3, 30, 300, 3))].join("\n");
