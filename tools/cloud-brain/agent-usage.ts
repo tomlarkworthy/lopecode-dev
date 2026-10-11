@@ -4,7 +4,9 @@
 // One JSON line: { input, cacheWrite, cacheRead, output, requests, advisor: { calls, input, output } }, the sums
 // over the requests of the run. A request is one message id; its last usage line is the whole of it. --last-run
 // counts from the last prompt in the file, which for an agent that was sent a second round is that round alone;
-// --run N counts the Nth prompt's run, from 1, up to the next prompt.
+// --run N counts the Nth prompt's run, from 1, up to the next prompt. Requests before the first prompt are a run
+// too, run 1, and the first prompt's is then run 2: a fork's first round has no prompt row, and a skill run as a
+// subagent has an isMeta row for one. So the runs add up to the whole file.
 // The advisor's tokens are another model's and are not in the four sums. Exit 1: no transcript, or no request in it.
 //
 // A prompt is a row a person or the coordinator sent. Every `user` row is one kind (kindOf), by the first line
@@ -57,6 +59,7 @@ export function usageOf(text: string, run?: boolean | "last" | number) {
   const prompts: number[] = [];
   rows.forEach((o, i) => { if (STARTS.has(kindOf(o) ?? "")) prompts.push(i); });
   const request = (o: any) => o.type === "assistant" && o.message?.id && o.message.usage;
+  if (rows.slice(0, prompts[0] ?? rows.length).some(request)) prompts.unshift(0);
   let from = 0, to = rows.length;
   if (run === true || run === "last") from = prompts.at(-1) ?? 0;
   else if (typeof run === "number") {

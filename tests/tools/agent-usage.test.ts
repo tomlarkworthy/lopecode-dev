@@ -189,3 +189,25 @@ test("every kind of row has one name, and four kinds start a run", () => {
   expect([...new Set(cases.map((c) => c[1]).filter((n) => n && STARTS.has(n)))].sort()).toEqual(["coordinator", "human", "plain", "shell-command"]);
   expect([...STARTS].sort()).toEqual(["coordinator", "human", "plain", "shell-command"]);
 });
+
+// A fork's transcript begins with the model's rows and a skill run as a subagent with an isMeta row: the
+// first round of each has no prompt. A main session may begin with a local command, which is no round.
+test("requests before the first prompt are run 1, and the runs add up to the whole file", () => {
+  const sent = row({ isMeta: true, origin: { kind: "coordinator" } }, "The coordinator sent a message while you were working: round 2");
+  const none = [expansion, asst("m1", u(1, 1, 1, 1)), result(), asst("m2", u(1, 1, 1, 1)), interrupted].join("\n");
+  expect(usageOf(none, 1)).toEqual(usageOf(none));
+  expect(usageOf(none, "last")).toEqual(usageOf(none));
+  expect(usageOf(none, 2)).toBeNull();
+  const fork = [JSON.stringify({ type: "fork-context-ref" }), asst("m1", u(1, 1, 1, 1)), result(), asst("m2", u(1, 1, 1, 1)), sent, asst("m3", u(4, 4, 4, 4))].join("\n");
+  expect(usageOf(fork, 1)!.input).toBe(2);
+  expect(usageOf(fork, 2)!.input).toBe(4);
+  expect(usageOf(fork, "last")).toEqual(usageOf(fork, 2));
+  expect(usageOf(fork, 3)).toBeNull();
+  expect(usageOf(fork, 1)!.requests + usageOf(fork, 2)!.requests).toBe(usageOf(fork)!.requests);
+  const local = [caveat, command, stdout, typed("1"), asst("m1", u(2, 2, 2, 2)), typed("2"), asst("m2", u(4, 4, 4, 4))].join("\n");
+  expect(usageOf(local, 1)!.input).toBe(2);
+  expect(usageOf(local, 2)!.input).toBe(4);
+  expect(usageOf(local, 3)).toBeNull();
+  expect(usageOf("", 1)).toBeNull();
+  expect(usageOf(caveat, 1)).toBeNull();
+});
