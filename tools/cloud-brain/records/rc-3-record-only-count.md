@@ -65,7 +65,9 @@ same file: 11 pass, 5 fail.
 - No marked review: the line reads 0.
 - `--window` gives a line of its own; `--until 838` leaves 534 out, since comment 839 is after it.
 
-The bodies of the cost comments in the test are cb4's, whole. The two review bodies are the
+The bodies of the nine cost comments in the test (804 to 807, 835 to 839) are cb4's, whole. That
+of the `cost-usage` comment 1720 is cut (no `agent`, `session` or `advisor`); it is there as a
+comment that is not a cost comment. The two review bodies are the
 test's own, since no review on cb4 has the mark.
 
 ## The text for step 7 of the reviewer's brief
@@ -147,7 +149,9 @@ run" and are neither. The text leaves each to the reviewer as before and decides
 ## The quote for `philosophy.md`
 
 Written under Clarifications and committed in `cloud-brain-dev` as `d3ba059` (21:12:50 CEST), on
-the branch `rc-3-philosophy` of the submodule in the main checkout. It is not pushed and the
+the branch `rc-3-philosophy` of the submodule in the main checkout. A second commit there,
+`726671a` (21:16:54, after the landing), mends one sentence of the first, which said the
+reviewer's brief already has the text; it is the branch's tip. It is not pushed and the
 pointer in `lopecode-dev` is not moved: `philosophy.md` as agents read it does not have it.
 
 ```
