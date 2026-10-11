@@ -69,7 +69,7 @@ of the two tests that break a row. Before, the test kept it.
   deploy the deployer. That way was written in round 1 and is on branch
   `kept/tests-replace-console-log-r1` (`b169230e`, `baea695c`), not landed.
 - Each call of `browserTickFailures` leaves one more function around `console.error` for the life
-  of the page: two for one run of the module's tests. What many runs in one page cost was not measured.
+  of the page: four for one run of the module's tests (three calls in the new test, one in the changed test). What many runs in one page cost was not measured.
 - A filter by a name of the test's own: the tick names the browser `owner/default` in every rig.
   A tick that fails in a different test at the same time would be counted. No other test of the
   module breaks a row.
