@@ -4,6 +4,7 @@
 // LOPE_PAIRING_TOKEN (or --token) and constructs the standard pairing hash URL.
 
 import { chromium, type Browser } from "playwright";
+import { chromeOptions } from "./lib/playwright-chrome.js";
 import { resolve, basename, dirname, join } from "path";
 import { existsSync, writeFileSync, unlinkSync, readFileSync } from "fs";
 import { fileURLToPath } from "url";
@@ -80,6 +81,7 @@ async function main() {
 
   const browser: Browser = await chromium.launch({
     headless: true,
+    ...chromeOptions(chromium, { headless: true }),
     args: [
       // Belt-and-suspenders against background-tab throttling. Headless
       // Chromium does not normally apply these throttles, but the flags are

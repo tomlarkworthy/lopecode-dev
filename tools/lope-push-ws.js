@@ -37,6 +37,7 @@
  */
 
 import { chromium } from 'playwright';
+import { chromeOptions } from './lib/playwright-chrome.js';
 import WebSocket from 'ws';
 import path from 'path';
 import fs from 'fs';
@@ -576,6 +577,7 @@ async function extractCookies(options) {
   log('Extracting auth cookies from browser profile...');
   const browser = await chromium.launchPersistentContext(options.profile, {
     headless: true,
+    ...chromeOptions(chromium, { headless: true }),
   });
 
   try {
@@ -1084,6 +1086,7 @@ async function main() {
     }
     const browser = await chromium.launchPersistentContext(options.profile, {
       headless: !options.headed,
+      ...chromeOptions(chromium, { headless: !options.headed }),
       viewport: { width: 1920, height: 1080 },
     });
     const page = await browser.newPage();

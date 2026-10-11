@@ -15,6 +15,7 @@
  *   bun tools/lope-load-profiler.ts <url> [--headed] [--timeout 60000] [--runs 1] [--json out.json]
  */
 import { chromium } from 'playwright';
+import { chromeOptions } from './lib/playwright-chrome.js';
 
 function parseArgs(argv: string[]) {
   const a = argv.slice(2);
@@ -55,7 +56,7 @@ const initScript = `
 const FINAL_MARKER = 'submit_summary';
 
 async function profileOnce(url: string, opts: any) {
-  const browser = await chromium.launch({ headless: !opts.headed, channel: opts.channel || undefined });
+  const browser = await chromium.launch({ headless: !opts.headed, channel: opts.channel || undefined, ...(opts.channel ? {} : chromeOptions(chromium, { headless: !opts.headed })) });
   const context = await browser.newContext();
   await context.addInitScript(initScript);
   const page = await context.newPage();

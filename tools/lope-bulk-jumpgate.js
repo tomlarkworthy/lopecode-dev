@@ -41,6 +41,7 @@
  */
 
 import { chromium } from 'playwright';
+import { chromeOptions } from './lib/playwright-chrome.js';
 import { execFileSync } from 'child_process';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -156,7 +157,7 @@ fs.mkdirSync(outputDir, { recursive: true });
 log(`Spec: ${spec.notebooks.length} notebook(s), additionalMains: ${spec.additionalMains?.join(', ') || 'none'}`);
 log(`Output: ${outputDir}`);
 
-const browser = await chromium.launch({ headless: !options.headed });
+const browser = await chromium.launch({ headless: !options.headed, ...chromeOptions(chromium, { headless: !options.headed }) });
 const context = await browser.newContext();
 const page = await context.newPage();
 

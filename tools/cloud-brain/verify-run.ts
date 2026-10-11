@@ -21,8 +21,8 @@
 // Exit 0: every run passed and nothing else ran a test.
 // Exit 64: the arguments. Exit 70: the tool could not run (no deployer, no such Worker, no Chrome, no file).
 // Spec: plan/cloud-brain-deploy-verdict-from-a-shared-page.md, design 3. Record: records/dv-1-verify-run-tool.md.
-import { readFileSync, existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
+import { chromeFor as sharedChromeFor } from "../lib/playwright-chrome.js";
 
 export const SHELL = "@tomlarkworthy/brain-shell";
 export const FIXTURE = /^@test\//;
@@ -137,25 +137,9 @@ async function moduleOf(base: string, worker: string) {
   return { module: m.module as string, hash: m.hash as string };
 }
 
-// The headless Chrome to launch: CHROME, or the build this Playwright names, or the newest one in its cache when
-// that build was never downloaded (tools/node_modules has Playwright 1.57, which names build 1200; 1169 and 1234
-// were the ones installed on 2026-10-11). `own` is chromium.executablePath(), read for the cache and the number.
-export function chromeFor(own: string, env: Record<string, string | undefined> = {}) {
-  if (env.CHROME) return env.CHROME;
-  const at = /^(.*)[\\/]chromium-(\d+)[\\/]/.exec(own);
-  if (!at) throw new Error(`no Playwright cache in ${own}; set CHROME=path`);
-  const [, cache, wanted] = at;
-  const binary = (n: string) => {
-    const dir = join(cache, "chromium_headless_shell-" + n);
-    if (!existsSync(join(dir, "INSTALLATION_COMPLETE"))) return null;
-    const sub = readdirSync(dir).find((d) => d.startsWith("chrome-headless-shell-"));
-    const file = sub && ["chrome-headless-shell", "chrome-headless-shell.exe"].map((f) => join(dir, sub, f)).find((f) => existsSync(f));
-    return file || null;
-  };
-  const builds = readdirSync(cache).map((d) => /^chromium_headless_shell-(\d+)$/.exec(d)?.[1]).filter((n): n is string => !!n).sort((a, b) => Number(b) - Number(a));
-  for (const n of [wanted, ...builds]) { const file = binary(n); if (file) return file; }
-  throw new Error(`no complete chromium_headless_shell in ${cache}; run npx playwright install, or set CHROME=path`);
-}
+// The headless Chrome to launch: CHROME, or the build this Playwright names, or the newest complete one in its
+// cache when that build was never downloaded. Shared with the other launchers since 2026-10-11.
+export const chromeFor = (own: string, env: Record<string, string | undefined> = {}) => sharedChromeFor(own, env, { headless: true });
 
 async function main() {
   let args;

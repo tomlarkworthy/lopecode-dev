@@ -32,6 +32,7 @@
  */
 
 import { chromium } from 'playwright';
+import { chromeOptions } from './lib/playwright-chrome.js';
 import { execFileSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
@@ -294,6 +295,7 @@ async function main() {
   const browser = await chromium.launch({
     headless: !options.headed,
     args: ['--disable-web-security'],
+    ...chromeOptions(chromium, { headless: !options.headed }),
   });
 
   const context = await browser.newContext();

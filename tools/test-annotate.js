@@ -6,6 +6,7 @@
 //   node tools/test-annotate.js [--headed]
 
 import { chromium } from 'playwright';
+import { chromeOptions } from './lib/playwright-chrome.js';
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
 
@@ -131,7 +132,7 @@ const restoreDataBlock = () => {
     .replace(MODULE_RE, (_a, o, _b, c) => o + pristineModule + c));
 };
 
-const browser = await chromium.launch({ headless: !headed, args: ['--disable-web-security'] });
+const browser = await chromium.launch({ headless: !headed, args: ['--disable-web-security'], ...chromeOptions(chromium, { headless: !headed }) });
 const context = await browser.newContext({ viewport: { width: 1300, height: 4600 } });
 const page = await context.newPage();
 const errors = [];

@@ -34,6 +34,7 @@
  */
 
 import { chromium } from "playwright";
+import { chromeOptions } from "./lib/playwright-chrome.js";
 import { resolve, basename } from "path";
 import { existsSync } from "fs";
 import { runTestVariables, serializeValue, generateTAPReport } from "./tools.js";
@@ -149,6 +150,7 @@ async function runNotebook(options: Options): Promise<void> {
 
   const browser = await chromium.launch({
     headless: !options.headed,
+    ...chromeOptions(chromium, { headless: !options.headed }),
   });
 
   const context = await browser.newContext();
