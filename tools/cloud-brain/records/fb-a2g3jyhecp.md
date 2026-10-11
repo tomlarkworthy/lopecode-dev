@@ -5,7 +5,7 @@ The owner's note on his page, at the heading "Dashboards" of `@tomlarkworthy/clo
 (at the top) Not in the shell." `dsv-5-page-section` had put the section in the page's module
 because the spec said so (`plan/cloud-brain-dashboard-service.md`, "On the page").
 
-Round 1, a writer of the issue loop. The commit of the seeds is `SEEDSHA`, SEEDTIME
+Round 1, a writer of the issue loop. The commit of the seeds is `4c4849d6`, 2026-10-11 22:18:49 +0200
 (`git log --format='%h %ci'`).
 
 Nothing here was seen in the owner's tab on cb4: the select asks with the owner's own session.
@@ -18,8 +18,8 @@ worktree's build, with `session` and `client` of `cloud-brain` stood in.
 gone, and nothing else.
 
 ```
-git diff SEEDSHA^ SEEDSHA -- tools/cloud-brain/cloud-brain.ojs | grep -c '^-// %%'                  23
-git diff SEEDSHA^ SEEDSHA -- tools/cloud-brain/cloud-brain.ojs | grep '^+' | grep -vc '^+++'         0
+git diff 4c4849d6^ 4c4849d6 -- tools/cloud-brain/cloud-brain.ojs | grep -c '^-// %%'                  23
+git diff 4c4849d6^ 4c4849d6 -- tools/cloud-brain/cloud-brain.ojs | grep '^+' | grep -vc '^+++'         0
 ```
 
 `tools/cloud-brain/brain-dashboard.ojs`: 22 of those 23 cells, each as it was (compared cell by
@@ -37,7 +37,7 @@ to 69: the 22, two prose cells and two imports.
 | the end of `## Tests` | the 4 tests |
 | the last two cells | `import {session, client, timeRange, spanName, dashboard, chartBase, requestsChart, healthStrip, methodTable} from "@tomlarkworthy/cloud-brain"` and `import {navigate} from "@tomlarkworthy/lopepage-urls"` |
 
-Three lines of the seed were removed and written again (`git diff SEEDSHA^ SEEDSHA -- tools/cloud-brain/brain-dashboard.ojs | grep '^-' | grep -vc '^---'`: 3):
+Three lines of the seed were removed and written again (`git diff 4c4849d6^ 4c4849d6 -- tools/cloud-brain/brain-dashboard.ojs | grep '^-' | grep -vc '^---'`: 3):
 the first paragraph, split as above; "How the page draws a panel: no page reads a dashboard yet" under
 "Not known", which `dsv-5-page-section` had made untrue, now says the panels were not seen in the
 owner's tab; and a comment of `test_dashboard_declares_one_cloudflare_permission_and_its_rows` that
@@ -107,7 +107,7 @@ build, reads, stands in `session` (`{ signedIn: true, owner: true }`) and `clien
 the page's module, and reads after each act. The stand-in answers `dashboard.list` with two names,
 `health` (the three panels of `dashboardDefinitions`) and `deploys` (bars and a table over two metrics), and
 counts each call. Run at 20:10 UTC (`date -u` before it) on a build of the worktree with `brain-dashboard.ojs` and
-`cloud-brain.ojs` as `SAMPLEDSHA` has them: this change and the next commit
+`cloud-brain.ojs` as `64db274b` has them: this change and the next commit
 (`records/dashboard-panel-does-not-say-sampled.md`).
 
 Layout `C100(S50(@tomlarkworthy/cloud-brain),S50(@tomlarkworthy/brain-dashboard))`:
@@ -139,7 +139,7 @@ read the hour the page's `span` opens with.
 
 Every row but the first two and the last is of one build of the worktree, made at 20:16 UTC after the
 last rebase that changed a seed (`brain-kernel.ojs`, which the page's module imports), with
-`brain-dashboard.ojs` and `cloud-brain.ojs` as `SAMPLEDSHA` has them. So each count of `brain-dashboard`
+`brain-dashboard.ojs` and `cloud-brain.ojs` as `64db274b` has them. So each count of `brain-dashboard`
 includes the assertions of the next commit; the number of tests is the same with and without it.
 
 | command | result |

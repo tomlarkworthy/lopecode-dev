@@ -6,7 +6,7 @@ Filed by the reviewer of `dsv-5-page-section` on 2026-10-11: `metric.query` answ
 was drawn as a whole count.
 
 A quick win of the writer of `fb-a2g3jyhecp`, who was moving `panelBody` to `brain-dashboard.ojs`.
-One commit, `SAMPLEDSHA`, SAMPLEDTIME (`git log --format='%h %ci'`), on `SEEDSHA`.
+One commit, `64db274b`, 2026-10-11 22:18:49 +0200 (`git log --format='%h %ci'`), on `4c4849d6`.
 
 ## What changed
 
@@ -29,14 +29,14 @@ which one is sampled.
 ## Tests
 
 `test_bars_and_a_table_draw_any_metric_and_a_panel_says_what_it_cannot_draw` has six more
-`expect` calls (`git diff SEEDSHA SAMPLEDSHA -- tools/cloud-brain/brain-dashboard.ojs | grep -c '^+  expect('`): `sampled` of 1, undefined, null and 0 say nothing; 10 says the sentence under a table
+`expect` calls (`git diff 4c4849d6 64db274b -- tools/cloud-brain/brain-dashboard.ojs | grep -c '^+  expect('`): `sampled` of 1, undefined, null and 0 say nothing; 10 says the sentence under a table
 and under bars, whose marks are still drawn; an empty answer with 10 reads the two sentences; 500
 groups and `sampled` 2 give two lines, the limit first.
 
 | command | result |
 |---|---|
-| the build with the test as changed and `panelBody` as `SEEDSHA` has it: `cd $W && bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/nofix.html @tomlarkworthy/brain-dashboard` | `tests` 15, `passed` 14, `failed` that test: `expect(string).toContain(value)`, expected the sentence, received the table's text |
-| the same on a build with the seed as `SAMPLEDSHA` has it, at 20:16 UTC | `tests` 15, `passed` 15, `failed` `[]` |
+| the build with the test as changed and `panelBody` as `4c4849d6` has it: `cd $W && bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/nofix.html @tomlarkworthy/brain-dashboard` | `tests` 15, `passed` 14, `failed` that test: `expect(string).toContain(value)`, expected the sentence, received the table's text |
+| the same on a build with the seed as `64db274b` has it, at 20:16 UTC | `tests` 15, `passed` 15, `failed` `[]` |
 | `cd $W/cloud-brain-dev && bun test.ts brain-x-dashboard --with $W/tools/cloud-brain/.emitted/fb-dash.js` | `passed` 13, `failed` 0, `needsBrowser` 2. The changed test is one of the 2: it makes a chart and a table. |
 | `cd <root> && BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-dashboard --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20`, ended 20:17:34 UTC | `runs` 20, `passed` 20, `failed` 0, `none` 0, `byChance` `[]`, `from` `["document"]`; `"tests":15` in each of the 20 lines |
 
