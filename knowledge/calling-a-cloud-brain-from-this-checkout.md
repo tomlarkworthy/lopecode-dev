@@ -126,12 +126,16 @@ docs (cb4): not entered (<why>)             the tool failed; the docs wait for t
 - The name in brackets is the Brain: `BRAIN_BASE`, and `cb4` when the caller's shell has none.
 - The call is made with the token `loop-docs`, which the owner makes once:
   `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-docs knowledge.put knowledge.list`. An agent does not
-  make it and does not pass `--owner` to the tool. On 2026-10-11 20:14:45 CEST it had not been made: `put --stale` by
-  hand, on the main checkout's state, exited 2 with `no token "loop-docs" is kept. The owner makes it once: …`. A
-  release with the tool itself, its lock and state in a temporary directory, had printed at 20:05:34
-  `docs (cb4): not entered (no token "loop-docs" is kept. The owner makes it once: BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-docs knowledge.put knowledge.list)`
-  in 1.2 s. The first two lines above were printed that day with a stub in the tool's place (`tests/tools/lock.test.ts`),
-  not by cb4.
+  make it and does not pass `--owner` to the tool. It was made 2026-10-11, by the orchestrating session on the owner's
+  word (`bd-3-first-run-of-the-docs-step`, event 1952). The first put with it was a release's, not a put by hand:
+  12 entries carry `at` 2026-10-11 20:48:28 CEST (`knowledge.list` with `loop-docs`), 9 of them new and 3 changed, after
+  the landing of `49fa9983` (its writer gives the release as 20:48:26); `status --check` at 20:50:28 read 70 docs, 70 fresh, exit 0
+  (`tools/cloud-brain/records/bd-3-first-run-of-the-docs-step.md`).
+- With no `loop-docs` kept the tool exits 2 and the release prints, as it did at 20:05:34 that day with its lock and
+  state in a temporary directory, in 1.2 s:
+  `docs (cb4): not entered (no token "loop-docs" is kept. The owner makes it once: BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-docs knowledge.put knowledge.list)`.
+  The second line above (`nothing to put`) was printed that day with a stub in the tool's place (`tests/tools/lock.test.ts`),
+  and by the tool run by hand on cb4 at 20:50:20; no release was seen to print it.
 - The source is `origin/main`, read with git. A file edited on disk and a commit not pushed are not seen, by
   `status` or by `put`.
 - Not entered until the next landing of anyone: a commit pushed with no landing, and a push of `cloud-brain-dev` alone
