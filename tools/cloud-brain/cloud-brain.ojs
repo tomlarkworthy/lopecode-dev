@@ -30,16 +30,34 @@ signIn = {
 md`## Health`
 // %%
 healthView = {
-  assembled;
-  // The owner's own session only: logs.query is not a visitor's. A visitor is shown no chart, and no made-up one.
-  if (!client || !session.owner) return htl.html`<i style="color:var(--theme-foreground-muted)">Sign in as the owner to see the calls of the last hour.</i>`;
-  const until = Date.now(), ask = { since: until - 3600000, until };
-  const data = await client.procedure("logs.query", callsQuery(ask)).then((answer) => callsSeries(answer, ask), (e) => ({ ...ask, step: 60000, series: [], error: String((e && e.message) || e) }));
+  // A visitor is shown no chart, and no made-up one.
+  if (!calls) return htl.html`<i style="color:var(--theme-foreground-muted)">Sign in as the owner to see the calls of the last hour.</i>`;
+  const data = calls;
   return dashboard([
     { title: "Calls", body: requestsChart(data, { width: width - 40 }), wide: true },
     { title: "Health", body: healthStrip(data, { width: width - 40 }), wide: true },
     { title: "By method", body: methodTable(data, { link: (worker, label) => ((row) => (row && row.module ? moduleLink(row.module, label) : null))([...((brainModules && brainModules.modules) || []), ...(services || [])].find((r) => r.worker === worker)) }), wide: true }
   ], { note: data.error ? "logs.query failed: " + data.error : `The last hour, from the core's log lines: ${d3.sum(data.series, (d) => d.n)} calls in ${data.groups} groups.` });
+}
+// %%
+// The span the panels of Health read: the hour before the page loaded. The one place the clock is read.
+timeRange = {
+  const until = Date.now();
+  return { since: until - 3600000, until };
+}
+// %%
+// The calls of a range, as callsSeries answers them. No client: null, and nothing is sent. A query that fails
+// answers no rows and the error.
+callsRead = async ({ client, range }) => {
+  if (!client) return null;
+  return client.procedure("logs.query", callsQuery(range)).then((answer) => callsSeries(answer, range), (e) => ({ ...range, step: 60000, series: [], error: String((e && e.message) || e) }));
+}
+// %%
+// What every panel of Health draws from, and any other cell may read. The owner's own session only: logs.query is
+// not a visitor's, so a visitor's value is null. It does not name width or services: a resize draws again and does not ask again.
+calls = {
+  assembled;
+  return callsRead({ client: session.owner ? client : null, range: timeRange });
 }
 // %%
 // One logs.query for the charts: the core's line of each call, counted by Worker, method and status. Cloudflare
@@ -167,6 +185,22 @@ test_calls_from_the_logs_become_chart_rows = {
   expect(callsSeries({ result: { calculations: [] } }, ask).series).toEqual([]);
   expect(callsSeries(null, ask)).toMatchObject({ series: [], groups: 0, step: 60000 });
   return "3 rows from 3 calculations";
+}
+// %%
+test_calls_are_read_once_for_a_range_and_not_without_a_client = {
+  const range = { since: Date.UTC(2026, 9, 9, 7, 0), until: Date.UTC(2026, 9, 9, 8, 0) };
+  const seen = [];
+  const data = await callsRead({ client: { procedure: async (name, body) => (seen.push([name, body]), { result: { run: { granularity: 60000 }, calculations: [] } }) }, range });
+  expect(seen.length).toBe(1);
+  expect(seen[0]).toEqual(["logs.query", callsQuery(range)]);
+  expect([seen[0][1].timeframe, seen[0][1].view]).toEqual([{ from: range.since, to: range.until }, "calculations"]);
+  expect(data).toEqual({ ...range, step: 60000, series: [], groups: 0 });
+  // No client (a visitor): nothing is sent.
+  expect(await callsRead({ client: null, range })).toBe(null);
+  expect(seen.length).toBe(1);
+  // A query that fails answers the range, no rows and the error.
+  expect(await callsRead({ client: { procedure: async () => { throw new Error("AuthRequired"); } }, range })).toEqual({ ...range, step: 60000, series: [], error: "AuthRequired" });
+  return "1 logs.query for a range, 0 with no client";
 }
 // %%
 // One press: a sign-in link for a program with no browser (Claude Code on the web), on the clipboard, inside a few
