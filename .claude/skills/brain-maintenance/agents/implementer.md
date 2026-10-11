@@ -1,7 +1,7 @@
 # Implementer brief
 
-You take one issue of the Cloud Brain tracker on `cb4` from `ready` to `in-review`. Your prompt
-names the issue. Read `.claude/skills/brain-maintenance/rules.md` first; it overrides this file.
+You take one issue of the Cloud Brain tracker on `cb4` from `ready` to `in-review`, wait for its
+review, and take one round of changes yourself (step 13). Your prompt names the issue. Read `.claude/skills/brain-maintenance/rules.md` first; it overrides this file.
 
 You write to the tracker with the token your prompt names: its last line says `Your token is` and a
 name, `impl-` and six hex digits. The orchestrator made it for this run, and it is yours alone
@@ -348,8 +348,50 @@ token and ends it.
     `ia move '{"key":"impl/<id>/submit-<round>","id":"<id>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha of the seed commit>"},{"kind":"deploy","value":"<worker>@<hash>"}]}'`.
     A key used before answers 200 with `duplicate: true` and moves nothing: read the issue
     again and see `in-review`. A submit with no refs is refused. One `commit` ref for each commit the landing added to `lopecode-dev`. No `lopebooks` ref: the notebook of a change is the build of its `lopecode-dev` commit, and a `lopebooks` commit, on the day's first landing, is a backup (step 10). A change with no deploy (a doc, a local tool with its test file) has the commits only.
+13. **Wait for your review, and take the next round yourself.** On trial since `os-4-writer-waits`
+    (2026-10-11; `plan/cloud-brain-loop-order-of-service.md`, part 5): your context is in the prompt
+    cache for 5 minutes after your last request, and all 16 rounds sent to a writer by message before that
+    day came later than that and wrote the whole context again, 111,329 to 203,811 tokens each. A
+    request every 4 minutes keeps it. With the submit of step 12 answered (`seq` of its answer is
+    the submit's):
+    ```
+    <root>/tools/cloud-brain/issue-wait.sh <token> <id> <seq of your submit>
+    ```
+    in the foreground, with the Bash `timeout` at 280000, from the main checkout by its absolute path
+    (a worktree keeps no token). It reads `sync?after=` every 15 s and writes nothing.
+    - **Exit 3**, nothing printed: no review in 240 s. Run the same command again, up to 5 runs in
+      all (20 minutes). After the fifth, report as step 12 left it: the orchestrator sends the round or judges, as before.
+    - **Exit 0**: the first line is the `reviewed` event, with its `verdict` and `body`. The second
+      line, when there is one, is the reviewer's move after it, which the tool waits 30 s for.
+    - `"verdict":"pass"`: report.
+    - `"verdict":"changes"` and a second line with `"to":"in-progress"`: the round is yours. Follow
+      "A resumed round" below from its first item; the review it speaks of is the first line, and no
+      message comes. Then the comment and the submit of step 12 with the round's number, and this
+      step once more from the new submit's `seq`. That is the one round you take: after a second
+      `changes`, report. Report also, and take no round, when the issue then has 3 `rework` moves or
+      more: the judgment at 3 is the orchestrator's (`SKILL.md`, step 3).
+    - `"verdict":"changes"` and one line: the review is recorded and the reviewer's `rework` move was
+      not read. Start nothing on the verdict alone: the round's number is the count of `rework` moves
+      plus one, so before that move your keys are the first round's, and a write with one answers
+      `duplicate: true` and writes nothing. Read `ia "get?id=<id>"` once. `in-progress`: as the item
+      above. Still `in-review`: report that, with the review's seq; the orchestrator's table has the
+      row for it. (To event 2851 each of the 54 `changes` reviews of the record had its `rework`
+      within 9.7 s, 0.5 s at the median; `tools/cloud-brain/records/os-4-writer-waits.md`.)
+    - **Exit 2**: the tool keeps no token of your name, or the read was refused (401, 403): your
+      token was ended. Write nothing with another, and report.
+    A round that came to you as a message does not wait: submit and report. Neither does a quick
+    win: its review is the orchestrator's to hand out and to read. In your report say how many runs
+    of the tool you made, what each exited with, and which rounds this run made. The orchestrator
+    learns of your submit from its watch, which prints every `submit`, not from your report.
+    First run by a writer, of its own review: not yet, when this was written. Two things of it were
+    seen: one run of 240 s in the foreground of a writer that was an agent of the orchestrating
+    session ended with exit 3 and was not stopped (2026-10-11, 23:40:35 to 23:44:35 CEST), and five
+    runs one after another were not tried.
 
 ## A resumed round
+
+A round you take yourself after step 13 is a resumed round too: what follows holds, with the tool's
+first line where it says the message.
 
 Since 2026-10-11 the orchestrator may send a rework round to the agent that wrote the change, as a
 message, in place of a new agent (`SKILL.md`, "A rework round goes to the agent that wrote the

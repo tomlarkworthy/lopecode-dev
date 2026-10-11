@@ -129,6 +129,14 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    pass in which an agent's report or your own session names a rate limit or a usage limit, or in
    which `lock.sh show land` has named the same holder for two passes. One agent on an issue, as before.
    In a pass that starts nothing new, the rows of step 3 that spawn no agent are still done, triage among them.
+   **A writer that waits.** Since `os-4-writer-waits` (2026-10-11) a writer does not report at its submit: it waits up to
+   20 minutes for its review with `tools/cloud-brain/issue-wait.sh` and takes the first round of changes itself
+   (`agents/implementer.md`, step 13). You read which writer waits from the tracker: an agent of yours that has not
+   reported, whose issue is at `in-review`, or at `in-progress` with a `rework` after its last `submit`. Such a writer
+   is not counted as a writer at work, and it is still the agent on its issue: after the `rework` you send it nothing,
+   the round is its own. Its submit reaches you as a line of the watch (step 8), and the review is then yours to start.
+   On trial: `plan/cloud-brain-loop-order-of-service.md`, part 5, kept or taken out by `os-5-trial-read` after five
+   rounds a writer took this way. First writer seen to wait: not yet, when this was written.
    (`plan/cloud-brain-loop-order-of-service.md`, part 3, approved for the owner at event 2611. His words, of the
    proposal that became it: "Maybe we let it manage its own pool size and not worry about optimality". Measured there,
    over 453 minutes of 2026-10-11: a review waited with no reviewer on it for 195 minutes, 100 of
@@ -261,6 +269,15 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    `cost {"role":"implementer","round":2,"resumed":true,"tokens":201310,"seconds":410,"tools":19,"outcome":"in-review","event":231,"agent":"af49053b540d9c3f5","session":"f501a8e8-b922-4e11-a581-2b725efd6272","token":"impl-3fa2c1"}`.
    Its numbers are the ones the resumed run reported, as they are; what `tokens` counts there is
    said in that section.
+   A run in which the writer waited and took a round itself (step 2, "A writer that waits") made two submits and
+   gets one line, when it reports: `"rounds":2`, `round` the number of the first of the two, `event` the last submit,
+   `outcome` what the issue was at when it reported, no `"resumed"`, and the key `cost-<id>-<role>-<round>` with
+   that first number. The round after it is counted from the tracker as every round is (the `rework` moves plus one),
+   so its line is two on from this one. `usage` is `agent-usage.ts --session <session> --agent <agentId>` with no
+   `--last-run`: the agent was given one prompt, and both rounds are its run. `seconds` of such a line has the waits in it.
+   A run that waited and took no round (a `pass`, or no review in 20 minutes) has no `rounds`.
+   (`rounds` is a field of this comment because the comment is what a cost is today: the tasks of
+   `run-cost-is-part-of-the-issue-model`, `cm-1` to `cm-6`, were at `triaged` on 2026-10-11, and its spec names no such field.)
    Every line also has `usage`, what the run was billed (the owner, 2026-10-11: "yes lets post  billed tokens
    (input, cache reads, output) per run for subagents too"): the one line that
    `bun tools/cloud-brain/agent-usage.ts --session <session> --agent <agentId>` prints, as it is,
@@ -273,7 +290,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    (`tools/cloud-brain/records/cost-comment-has-billed-usage.md`, "The backfill"). `tokens` stays: it is the size of the last request, which says how full the agent was, not what
    it was billed. A run that was stopped or died gets its comment too. No time
    of day goes in the body. With the comment written, end the run's token unless it is one of those kept for a rework round
-   ("A token for each agent", Ended); and when the issue has just left `in-review` for good, end its writer's. An overseer's run is on no issue: its line goes in `_oversight.md` in
+   ("A token for each agent", Ended); and when the issue has just left `in-review` for good, end its writer's, once that writer has reported
+   (one that waits reads the tracker with it until then, and `issue-wait.sh` exits 2 at a read that is refused). An overseer's run is on no issue: its line goes in `_oversight.md` in
    the same form, and yours for the pass, with the role `orchestrator`, in `_orchestrator.md`
    when the session shows a count. The journal is written as before. The runs before this
    (100 on 37 issues, read from the journal's headings) carry `"backfilled":true`.
@@ -289,10 +307,11 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    `tools/cloud-brain/issue-watch.sh <your token> <the last seq you have read>`.
    It reads `sync?after=` every 30 s and prints a line for each issue another caller opened (any holder but the one token it is given:
    with a token an agent, an issue a writer or an overseer of yours opens is such a line too, where it printed nothing when all wrote with one),
-   for each issue opened with the label `owner`, whatever token opened it (step 3, "The owner's"; a label a token puts on after the open is no line), and
+   for each issue opened with the label `owner`, whatever token opened it (step 3, "The owner's"; a label a token puts on after the open is no line),
+   for each `submit` and `submit-spec` move, whatever token made it (since `os-4-writer-waits`: a writer that waits has not reported, so this line is how you learn a review is wanted; a watch armed before that change prints none until it is armed again), and
    for each event made with the owner's session (a comment, a label, a move, an approval in the
    panel). A line is a wake: read that issue and take it from the table of step 3, without a
-   whole pass. An agent's own writes print nothing; its report wakes you as before. The monitor
+   whole pass. An agent's other writes print nothing; its report wakes you as before. The monitor
    ends after 30 minutes and says so: arm it again from the last seq, in the same turn. Then
    `ScheduleWakeup` 1800 s as the fallback, for a monitor that died or a session that slept; that
    wake is a whole pass, health first. A poll of the tracker is charged nothing; a wake of this
@@ -308,7 +327,10 @@ round, 46% of 12.06 M tokens (the journal of 2026-10-10 and 10-11, counted in th
 was round 3 of `annotations-file-feedback` the same day (cost comment 1003); its counts are in
 `tools/cloud-brain/records/rework-resumes-the-implementer.md`, "The first resumed round".
 
-For an issue at `in-progress` whose last move is `rework`, with no agent running:
+For an issue at `in-progress` whose last move is `rework`, with no agent running. A writer that
+waits for its review (step 2, "A writer that waits") is running: it takes that round itself and is
+sent no message. What follows is for a writer that has reported: after its second `changes`, after
+20 minutes with no review, or one spawned before `os-4-writer-waits`.
 
 1. Read its last comment whose body starts `cost {"role":"implementer"`.
 2. When that line has an `agent`, its `session` is the output of `echo $CLAUDE_CODE_SESSION_ID`

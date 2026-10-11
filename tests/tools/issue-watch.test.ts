@@ -49,6 +49,30 @@ test("an event made with the owner's session is a line, whatever its type", () =
   expect(r.lines).toEqual(["7 commented x OWNER  his words", "LAST 7"]);
 });
 
+// Issue os-4-writer-waits: a writer that waits for its review has not reported, so its submit is a line.
+const move = (seq: number, id: string, m: unknown, to: string, holder: string) =>
+  ({ seq, type: "moved", id, move: m, from: "x", to, reason: `reason of ${id}`, refs: [], by: by(holder) });
+
+test("a submit and a submit-spec are a line each, whatever token made them, the watch's own too", () => {
+  const r = watch([move(20, "a", "submit", "in-review", "impl-bbbbbb"), move(21, "b", "submit-spec", "spec-review", "spec-cccccc"),
+    move(22, "c", "submit", "in-review", "orch-aaaaaa")]);
+  expect(r.lines).toEqual(["20 moved a impl-bbbbbb in-review reason of a", "21 moved b spec-cccccc spec-review reason of b",
+    "22 moved c orch-aaaaaa in-review reason of c", "LAST 22"]);
+});
+
+test("no other move is a line: it is the name of the move that is read, not the state it goes to", () => {
+  const r = watch([move(30, "a", "start", "in-progress", "impl-bbbbbb"), move(31, "a", "rework", "in-progress", "rev-dddddd"),
+    move(32, "a", "pass", "done", "rev-dddddd"), move(33, "a", "swap", "in-review", "impl-bbbbbb"), move(34, "a", "submits", "in-review", "impl-bbbbbb"),
+    move(35, "a", ["submit"], "in-review", "impl-bbbbbb"), move(36, "a", null, "in-review", "impl-bbbbbb"),
+    { seq: 37, type: "commented", id: "a", move: "submit", body: "x", by: by("impl-bbbbbb") }]);
+  expect(r.lines).toEqual(["LAST 37"]);
+});
+
+test("a submit made with the owner's session is one line, not two", () => {
+  const r = watch([{ ...move(40, "a", "submit", "in-review", "x"), by: { caller: "owner", via: "session", tab: true } }]);
+  expect(r.lines).toEqual(["40 moved a OWNER in-review reason of a", "LAST 40"]);
+});
+
 test("an answer with no event prints nothing, and so does one that is not JSON", () => {
   expect(watch([]).lines).toEqual([]);
   const p = Bun.spawnSync(["bash", script, "--filter", me], { stdin: Buffer.from("not json") });

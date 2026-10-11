@@ -347,6 +347,16 @@ until its review is in, and takes the next round itself:
   `event` the last submit; `agent-usage.ts` needs no `--last-run` for it. A writer that waits is
   not counted as a writer at work in part 3.
 
+(As built, `os-4-writer-waits`, 2026-10-11: the tool prints a second line when it reads one within
+30 s of the review, the first move of the issue after it, since the reviewer's `rework` is a later
+event than its review (the note of review 2415) and a writer that acts before that move writes with
+the first round's keys; with 240 the command then ends within 271 s. With one line the writer reads
+the issue once and reports when it is still `in-review`. Exit 2 is a token that is not kept or a
+read that is refused. The section is step 13 of the brief; a round that came by message, and a
+quick win, do not wait, and no round is taken at 3 `rework` moves. In the `cost` line `round` is the
+first of the two rounds. One run of 240 s in the foreground of a background Agent was made and was
+not stopped; five in a row were not tried; the record.)
+
 What it would have cost and saved over this record, in units of one base input token, with the
 multipliers under "Read" and a context of 157,500 (the mean of the 16 rewrites): a wait call
 reads the context at 0.05, 7,900 a call. The 132 stays from a submit to its `pass` or `rework`
