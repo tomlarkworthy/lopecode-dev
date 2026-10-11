@@ -65,7 +65,7 @@ Two files beside it, neither of them needed to resume:
 
    | Issue is | Do |
    |---|---|
-   | `hidden: true`, or kind or label `security`, or labeled `needs-owner`, or at `awaiting-approval` | Nothing. It is the owner's. |
+   | `hidden: true`, or kind or label `security`, or labeled `needs-owner`, or at `awaiting-approval` | Nothing. It is the owner's. Two things since 2026-10-11, each in `rules.md`, Never: `needs-owner` comes off when the answer has become clear from `philosophy.md` or the owner has answered (on the issue, or to you, quoted by you in a comment), after a comment that names the event that put it on; and an `approve` he gives you in the session, of that issue after its passing review, you make for him. |
    | `in-review`, and no review since it came into that state | Spawn the reviewer. |
    | `in-progress`, started by the implementer token, no agent running | Spawn the implementer: it was sent back, or an agent died. Do not, and instead comment with the open findings and label `needs-owner`, when the last implementer you spawned for it finished without a new `submit`, or when it has 3 `rework` moves and the rounds are not getting anywhere. At 3 you judge (Tom, 2026-10-10: "make a judgment call when the 3 retries is hit, has genuine progress been made?"): go on when each review closed what the one before found and the new findings are narrower; stop when a finding came back, or the rounds are trading one defect for another of the same size. Write the judgment and its reason in the journal and as a comment on the issue. |
    | labeled `digest`, opened by `worker:brain-x-snapshot` (`opener` in `get?id=`), at `open` | When several are open, the newest is the one written: `reject` each older one with the reason `covered by digest-<newest day>`, and comment on the newest with the days it covers. Then `triage` and `ready` it, the reason "the day's digest, opened by the snapshot's run"; the three questions of Triage are not asked. |
@@ -185,7 +185,7 @@ A time you write in an issue's body, a comment or a reason is read from `date` o
 
 Anything else: `triage`, then `ready`. Add the labels `major` and `needs-owner` when the change
 alters who may do what, deletes or rewrites kept data, or changes a method other callers use,
-and comment with the plan. The owner takes `needs-owner` off to let it be built. The approval
+and comment with the plan. The owner takes `needs-owner` off to let it be built, or answers and you take it off (`rules.md`, Never, the `needs-owner` line). The approval
 after review is then of a change that is already deployed and pushed, since a submit needs its
 refs; the plan is where the owner stops it. Add `security` and take the `escalate` swap when the body describes a
 way past an access rule; the issue is then the owner's.
