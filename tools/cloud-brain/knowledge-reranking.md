@@ -1,15 +1,17 @@
 # Ranking the knowledge search: what was read, measured and changed
 
 Record of 2026-10-11, 08:25 to 09:20 CEST, on `cb4`. Tom, after the call log showed 10 searches by
-agents in two days and poor answers to them: "yes we need a reranking step. Please do serious research,
+token or delegation in two days (13 look-ups in all, with those an agent made on the owner's session) and poor answers to them: "yes we need a reranking step. Please do serious research,
 record that research in the cluster (more knowledge) and come up with a better algorithm based in
 research."
 
 The result is not the one asked for. A model that reads each candidate again (a cross-encoder, the
-"reranking step" of the literature) ordered the answers worse than the search it was given. What
+"reranking step" of the literature) ordered the answers worse than the list it was given on the
+questions agents asked and on the builder's, and no better on all 126 together. What
 improved the order was joining the search by words to the search by meaning. That is deployed
 (`brain-x-knowledge` `ae5ebb4b7608`, 07:16:53 UTC). Every figure below is from a command run in that
-hour; the tables are the output of `tools/cloud-brain/knowledge-eval/knowledge-eval.ts`.
+hour; the tables are the output of `tools/cloud-brain/knowledge-eval/knowledge-eval.ts run`, the second its
+`pooled` part. The ranks they were made from are kept in `knowledge-eval/ranks-2026-10-11.json`.
 
 ## What agents had asked
 
@@ -98,7 +100,7 @@ Every answer is cached in `.emitted/rerank/cache.json`.
 arm                             real (12): MRR  @1   @3   @10     builder (18): MRR  @1   @3   @10  synthetic (96): MRR  @1   @3   @10
 as asked                                   0.403 0.25 0.58 0.58                 0.835 0.78 0.89 0.94                0.854 0.76 0.97 0.97
 dense                                      0.396 0.25 0.50 0.67                 0.835 0.78 0.89 0.94                0.854 0.76 0.97 0.97
-words, all (deployed)                      0.458 0.42 0.50 0.50                 0.250 0.22 0.28 0.28                0.328 0.32 0.33 0.33
+words, all (as it was)                     0.458 0.42 0.50 0.50                 0.250 0.22 0.28 0.28                0.328 0.32 0.33 0.33
 words, any                                 0.625 0.50 0.75 0.75                 0.595 0.44 0.72 0.89                0.872 0.81 0.92 0.97
 words, any +name                           0.792 0.67 0.92 0.92                 0.602 0.44 0.72 0.89                0.871 0.81 0.91 0.97
 rrf dense + any                            0.540 0.42 0.58 0.92                 0.796 0.72 0.89 0.89                0.893 0.82 0.96 0.99
@@ -125,7 +127,7 @@ m3 16000 cc0.5 +name                       0.861 0.75 1.00 1.00                 
 - `> ceN`: the first N of the list before it, ordered again by the cross-encoder. `head`: it reads the title and the first 1200 characters. `window`: the title and the 1200 characters of the text with most of the question's words. `fused`: its order and the order it was given, by RRF with k=10.
 - `qwen3`, `m3`: `@cf/qwen/qwen3-embedding-0.6b` and `@cf/baai/bge-m3` in place of `bge-base-en-v1.5`, every entry embedded through `ai.run` and the cosine worked out on this machine, with 16000 characters of an entry where the deployed model reads 1500. No second index was made.
 
-All 126 questions together, against `as asked`. The interval is a paired bootstrap, 4000 resamples; "better/worse" counts questions whose wanted entry moved up or down:
+All 126 questions together, against `as asked`. The interval is a paired bootstrap, 4000 resamples; "better/worse" counts questions whose wanted entry moved up or down within the first ten (a move from 40th to 25th is not counted):
 
 ```
 arm                              MRR    change  95% interval       better/worse  in first ten
@@ -146,13 +148,16 @@ words, all (as it was)           0.329  -0.479  [-0.569, -0.389]   8/76         
 found nothing. The wanted entry was in the first ten for 43 of 126 questions; with any word, 118; with
 the name searched too, 120.
 
-**The two lists together beat either.** Words alone are best on `real` (0.792) and worst on `builder`
-(0.602); vectors alone the reverse (0.396, 0.835). `shortest path in a graph` is found by meaning
+**The two lists together are the best over all the questions, and not on each set.** Words alone are
+best on `real` (0.792, above the 0.743 of the two together) and worst on `builder` (0.602); vectors
+alone the reverse (0.396, 0.835). `shortest path in a graph` is found by meaning
 only: the card of `@tomlarkworthy/dijkstra` is its title and "Cells: step, PriorityQueue, suite,
 testing". `backlog` is found by words only.
 
-**The cross-encoder made the order worse.** Every arm that lets `bge-reranker-base` decide the order
-is below the list it was given, on `real` and on `builder`. Three of its answers, from the cache:
+**The cross-encoder made the order worse where it mattered.** Every arm that lets `bge-reranker-base`
+decide the order is below the list it was given, on `real` and on `builder` (30 questions). On
+`synthetic` (96) it is level with that list or above the vectors alone (0.895 against 0.854), and over
+all 126 the best of its arms is 0.814 against 0.808 for the search as it was and 0.861 for the list it was given. Three of its answers, from the cache:
 
 ```
 export a notebook [module]        0.948 editor, 0.931 editor-4, 0.899 editor-5 … 0.832 exporter-3 (first by meaning, 0.736)
@@ -181,9 +186,12 @@ reads 0.743 against 0.403. The differences between 0.5, 0.6 and 0.7 are smaller 
 between two runs of the same arm (`cc a=0.5 +name` 0.883 from the live vectors, 0.892 from cosines
 worked out here over all 527).
 
-**What got worse.** `builder` fell from 0.835 to 0.772: 14 of 18 first before, 12 after. "why is my
-notebook blank after export" went from 5th to 12th and "export a notebook" from 1st to 3rd: questions
-in everyday words where many entries share the words. 10 of 126 questions moved down, 24 up.
+**What got worse.** `builder` fell from 0.835 to 0.772: 14 of 18 first before, 12 after. Five of its
+questions moved down ("shortest path in a graph" 1st to 5th, "lease a headless browser" 1st to 2nd,
+"why is my notebook blank after export" 5th to 9th, "unit tests for cells" 3rd to 4th, "music sequencer
+with audio tracks" 2nd to 3rd) and one up ("run code in a container" 11th to 2nd). They are questions
+in everyday words that many entries share, or, for the first, a card with no words to match. 10 of 126
+questions moved down, 24 up.
 
 ## What was changed
 
@@ -194,8 +202,9 @@ in everyday words where many entries share the words. 10 of 126 questions moved 
 - `knowledge.search?semantic=true` makes two lists of 100 (Vectorize `topK` 100, which is its limit without values or metadata; the words) and orders by `knowledgeFuse`, the convex combination at `knowledgeHybrid.meaning = 0.5`. Each answer has `score` (0 to 1, a place in this answer), `cosine` when the vectors found it, and a `snippet`: the matched words, or the first 200 characters. Before, an answer by meaning said nothing of the text and the agent needed `knowledge.get` to judge it.
 - No model reads the candidates. Price as before: one embedding of the question, $0.00005.
 
-Alternatives not taken, and why: RRF (0.861 against 0.883, and it put `dijkstra` 17th where meaning
-alone had it first, since an entry one list lacks loses to entries that are middling in both); the
+Alternatives not taken, and why: RRF (0.861 against 0.883; it put `dijkstra` 17th where meaning
+alone had it first, since an entry one list lacks loses to entries that are middling in both, and the
+convex combination has it 5th for the same reason); the
 cross-encoder (above); another embedder (above); an LLM over the first ten (not run: the sources give
 10 requests and seconds a query, and nothing here measures it).
 
@@ -236,8 +245,37 @@ score does not say an answer is good, only where it stands.
 Entered with the token `rerank-research` (made for this, revoked at the end), all private, as every
 entry is until the owner says otherwise:
 
-- 26 sources at 07:04:29 UTC, `method: research:knowledge-reranking`, tags `search-research` and `reranking`: 18 arXiv papers by id (`arxiv:2210.11934`, …) and 8 others (`web:cormack-2009-rrf`, `web:hf-bge-reranker-base`, …). Each has the abstract or the passage, then what it says for this search and what could not be verified.
-- Findings that cite them, ids `finding:2026-10-11:knowledge-search:*` (see the section "Findings entered").
+- 26 sources at 07:04:29 UTC, `method: research:knowledge-reranking`, tags `search-research` and `reranking`: 19 arXiv papers by id (`arxiv:2210.11934`, …) and 7 others (`web:cormack-2009-rrf`, `web:hf-bge-reranker-base`, …). Each has the abstract or the passage, then what it says for this search and what could not be verified.
+- Five findings that cite them, at 07:22:52 UTC: `finding:2026-10-11:knowledge-search:two-lists`, `:cross-encoder-lost`, `:any-word-and-name`, `:embedder`, `:who-searches`.
+- A summary of this file, as `doc:knowledge-reranking`, with its address. Not its text: see "The record outranked what it describes".
+
+Asked at 09:26 CEST, 75 s after the last put, `semantic=true&q=should we add a reranker to search`:
+
+```
+0.919 paper    arxiv:2411.11767                                   Drowning in Documents: Consequences of Scaling Reranker Inference
+0.913 finding  finding:2026-10-11:knowledge-search:cross-encoder-lost
+0.873 paper    arxiv:1901.04085                                   Passage Re-ranking with BERT
+```
+
+### The record outranked what it describes
+
+The five findings and this file's text were entered, and then the question this file uses as its example was asked again:
+
+```
+semantic=true&q=backlog     after the second deploy (not timed)   after the rewording, 07:36:09 UTC
+ 1  1.000 finding:…:any-word-and-name                               1  doc:cloud-brain-backlog
+ 2  0.361 doc:knowledge-reranking                                 2  finding:…:any-word-and-name
+10  0.135 doc:cloud-brain-backlog
+```
+
+A text about a search holds the questions it was tested with, so it matches them better than the entry
+they were for. The finding was reworded without the word, and the entry for this file is a summary
+written without the questions. The 30 questions of `real` and `builder` were not all asked again after
+the entries went in; the `live` row above is from before them. Four more were asked at 07:36: `cloud-brain-authority` first as before, and the three others answered as before the entries.
+
+### A second deploy, of words only
+
+`12fcc190ec76`, 07:34:49 to 07:35:10 UTC, verified, 10 tests: the prose and the test changed after the fresh review. No statement and no handler changed.
 
 ## Cost
 
@@ -256,4 +294,4 @@ the same hour, so not all of it is this work's.
 - The text of a doc past 16,000 characters is not kept, so not searched by words either.
 - `entries_fts` is still in the database on cb4.
 - The eval reads a dump. `knowledge-eval.ts dump` refreshes it; a wanted id that is gone makes `run` throw.
-- An agent that does not search is not helped by a better order. 10 searches in two days was the starting observation and nothing here changes it.
+- An agent that does not search is not helped by a better order. 13 look-ups in two days was the starting observation and nothing here changes it.

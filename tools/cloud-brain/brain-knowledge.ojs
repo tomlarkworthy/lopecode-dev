@@ -71,21 +71,21 @@ Every entry is in one table and one index. Each has an owner: \`public\`, the Br
 
 ## Search by meaning
 
-\`knowledge.search?semantic=true&q=…\`. Two lists are made, each of the ${knowledgeHybrid.pool} best among the entries the caller reads: the nearest vectors to the question (Vectorize), and the entries that have any of its words (the search by words below). Each list's scores are brought to 0 to 1 over that list, an entry a list lacks counts 0 there, and the answer is ordered by ${knowledgeHybrid.meaning} of the one and ${1 - knowledgeHybrid.meaning} of the other. Each entry is answered without its \`text\`, with that \`score\`, its \`cosine\` when the vectors found it, and a \`snippet\`: the words that matched, or the start of the text. \`knowledge.get\` has the text.
+\`knowledge.search?semantic=true&q=…\`. Two lists are made, each of the ${knowledgeHybrid.pool} best among the entries the caller reads: the nearest vectors to the question (Vectorize), and the entries that have any of its words (the search by words below). Each list's scores are brought to 0 to 1 over that list, an entry a list lacks counts 0 there (so does the last of a list: of two entries the words find, the second counts as if not found), and the answer is ordered by ${knowledgeHybrid.meaning} of the one and ${1 - knowledgeHybrid.meaning} of the other. Each entry is answered without its \`text\`, with that \`score\`, its \`cosine\` when the vectors found it, and a \`snippet\`: the words that matched, or the start of the text. \`knowledge.get\` has the text.
 
 - **Why two lists.** On cb4 on 2026-10-11 the vectors alone put the wanted entry first for 3 of 12 questions agents had asked; the two lists together for 8 of 12 (\`tools/cloud-brain/knowledge-reranking.md\`). A question that is a name (\`cloud-brain-authority\`), or words a text has once (\`licence per service\`), is found by its words; a question in other words than the entry's is found by its meaning.
 - **No model reads the candidates again.** A cross-encoder (\`@cf/baai/bge-reranker-base\`) over the best 30 was measured the same day and ordered them worse than the two lists did. It is not called.
 
-- The filters are \`kind\` and \`since\`. \`since\` is taken by the day, UTC. \`source\`, \`by\` and \`tag\` are refused: they are not fields of the index.
+- The filters are \`kind\` and \`since\`. \`since\` is taken by the day, UTC, for the vectors and to the millisecond for the words, so an entry of that day from before the moment given may be answered by its meaning alone. \`source\`, \`by\` and \`tag\` are refused: they are not fields of the index.
 - **The model** is \`${knowledgeVectors.model}\`, ${knowledgeVectors.dimensions} dimensions, and every vector is from it. It is named in the index, \`${knowledgeVectors.name}\`: another model is another index and every entry embedded again (\`knowledge.embed\`).
 - **What is embedded** is the title and the start of the text, ${knowledgeVectors.chars} characters together. There is one vector an entry, and no chunks: the end of a long text is found by words only.
 - **Embedding costs** ${knowledgeVectors.usd} USD a text, a question too, which \`brain-x-ai\` charges. On cb4 on 2026-10-10 the charge went to the account the call began with: \`quota.list\` showed the owner's 124 charges at 07:57 UTC and no account for this Worker. A put by a Worker on its clock was not watched. A put embeds its entries in one call. An entry whose title, text, kind and reader are as before keeps its vector.
 - **When the embedding fails** (the allowance is spent, the model is down) the entries are kept all the same, the put answers a smaller \`vectors\`, one line \`knowledge.embed-failed\` is logged, and \`knowledge.embed\` makes the vectors later. A search by meaning then answers 502.
-- Vectorize takes a write in and answers a query from it about a minute later: three writes on cb4 were in the index's count 41 to 63 s after they were sent (2026-10-10). A search in that minute does not find the new entry; a search by words does.
+- Vectorize takes a write in and answers a query from it about a minute later: three writes on cb4 were in the index's count 41 to 63 s after they were sent (2026-10-10). In that minute the new entry is not found by its meaning; it is found by its words, in both searches.
 
 ## Search by words
 
-\`q\` is words. An entry is found when it has any of them, and one that has more of them, or rarer ones, is ordered first (BM25). Until 2026-10-11 an entry had to have every word: of 126 questions with a known answer, that found the answer among the first ten for 43, and any word, with the id searched, for 120 (\`tools/cloud-brain/knowledge-reranking.md\`). Words that say nothing are left out of a question (\`${[...knowledgeStop].slice(0, 6).join(" ")}\` and others, ${knowledgeStop.size} in all) unless it has no other. A word ending \`*\` matches by its start. The words are stemmed (SQLite FTS5, \`porter unicode61\`): \`training\` finds \`train\`. A match in the title or in the entry's id counts four times one in the text, and one in the tags twice. The id is searched so that an entry is found by its name: \`doc:cloud-brain-backlog\` has no "backlog" in its title or its text.
+\`q\` is words. An entry is found when it has any of them, and one that has more of them, or rarer ones, is ordered first (BM25). Until 2026-10-11 an entry had to have every word: of 126 questions with a known answer, that found the answer among the first ten for 43, and any word, with the entry's name searched, for 120 (measured with the last part of the id; the whole id is what is searched, \`tools/cloud-brain/knowledge-reranking.md\`). Words that say nothing are left out of a question (\`${[...knowledgeStop].slice(0, 6).join(" ")}\` and others, ${knowledgeStop.size} in all) unless it has no other. A word ending \`*\` matches by its start. The words are stemmed (SQLite FTS5, \`porter unicode61\`): \`training\` finds \`train\`. A match in the title or in the entry's id counts four times one in the text, and one in the tags twice. The id is searched so that an entry is found by its name: \`doc:cloud-brain-backlog\` has no "backlog" in its title or its text.
 
 ## Limits
 
@@ -511,7 +511,7 @@ knowledgePanel = ({ client, owner = false } = {}) => {
 // %%
 md`## Tests
 
-No SQL engine runs in a page. \`knowledgeFakeSql\` answers for the statements of \`knowledgeSql\` from one map, and refuses any other statement. Its search finds a word as written, with no stemming, and orders by how many of the words an entry has. The statements, stemming and the snippet ran on a D1 database on 2026-10-09.
+No SQL engine runs in a page. \`knowledgeFakeSql\` answers for the statements of \`knowledgeSql\` from one map, and refuses any other statement. Its search finds a word as written, with no stemming, and orders by how many of the words an entry has. The statements, stemming and the snippet ran on a D1 database on 2026-10-09. The statements of 2026-10-11 (\`entries_words\`, its fill, the search with four weights) first ran on cb4's database when they were deployed, and one was refused there: the fake answers a statement by its name and cannot know what an engine refuses, so these tests pass on a statement no database takes (\`tools/cloud-brain/knowledge-reranking.md\`, "The deploy").
 
 Nor does Vectorize or a model. \`knowledgeFakeVectors\` is the binding as a map, and the rig's embedding of a text is a count of its words. The index, the model and the filter ran on cb4 on 2026-10-10.`
 // %%
@@ -712,9 +712,16 @@ test_knowledge_orders_by_words_and_meaning_together = {
   // entry named for it has the word in its id alone and no vector near the question; the words' list finds it.
   const found = (await o.get("search", { semantic: "true", q: "backlog" })).data.entries;
   expect([found.map((e) => e.id).slice(0, 2).sort(), found.find((e) => e.id === "doc:cloud-brain-backlog").snippet, found.every((e) => !("text" in e) && !("bm" in e))]).toEqual([["doc:cloud-brain-backlog", "doc:svg"], "collected while building", true]);
-  // An entry that only the vectors found has the start of its text as its snippet and its cosine; one that only the words found has no cosine.
   const tea = (await o.get("search", { semantic: "true", q: "green" })).data.entries;
   expect([tea[0].id, tea[0].snippet, tea[0].score]).toEqual(["note:far", "green and black", 1]);
+  // An entry that only the vectors found has its cosine and the start of its text as its snippet, 200 characters.
+  await o.post("put", { id: "note:long", kind: "note", title: "Long", text: "x".repeat(150) + " " + "y".repeat(150), method: "manual" });
+  const svg = (await o.get("search", { semantic: "true", q: "green" })).data.entries.find((e) => e.id === "note:long");
+  expect([svg.snippet.length, "cosine" in svg]).toEqual([200, true]);
+  // One that only the words found, its vector not in the index, has no cosine.
+  rig.index.held.delete("note:far");
+  const worded = (await o.get("search", { semantic: "true", q: "green" })).data.entries.find((e) => e.id === "note:far");
+  expect([worded.snippet, "cosine" in worded]).toEqual(["green and black", false]);
   // A database from before 2026-10-11 has entries and no row of their words: the first call fills them.
   const old = await knowledgeRig();
   await old.owner.post("put", old.paper(1));

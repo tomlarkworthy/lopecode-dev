@@ -134,3 +134,9 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   128k subagent tokens, 6m57s. It replayed the loader against cb4 and checked the quoted numbers against stored
   summaries and pages; the browser runner still could not launch. What the author had not seen: a "first seen"
   column that meant the first of the two days covered, and a list of the Brain's Cloudflare services without R2.
+- 2026-10-11 `tools/cloud-brain/knowledge-reranking.md`, `@tomlarkworthy/brain-knowledge` (changes since `3f469ba6`) and
+  `tools/cloud-brain/knowledge-eval/knowledge-eval.ts`, one agent for the three: FIX, FIX, FIX. 16 findings (13 confirmed,
+  3 plausible), all taken; one (the last of a list scores 0, as an absent entry does) is said in the prose and not changed.
+  142k subagent tokens, 8m59s. It ran the eval again from the cache and the tables held to the digit; what the author had
+  not seen: two example ranks in the record that the results file contradicts, an interval column no code computed, and
+  baseline arms that could no longer be made after the deploy they measured.

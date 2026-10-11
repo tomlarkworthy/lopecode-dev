@@ -4,7 +4,16 @@
 // and @cf/baai/bge-reranker-base through ai.run. Every answer is cached in .emitted/rerank/, so a second run is free.
 //
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-eval/knowledge-eval.ts dump --as TOKEN     # the entries, once
-//   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-eval/knowledge-eval.ts run --as TOKEN [--sets real,builder,synthetic] [--show]
+//   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-eval/knowledge-eval.ts run --as TOKEN [--sets real,builder,synthetic] [--arms "live;dense"] [--show]
+//
+// --arms is split on ";" (an arm's name may have a comma). The run ends with the pooled table: every question together
+// against "as asked", with a paired bootstrap.
+//
+// The arms named dense, as asked, rrf, cc and ce are built on the search by meaning AS IT WAS until 2026-10-11 07:15 UTC,
+// whose answers are in the cache of the machine that ran them. The service now answers the fused order at that address,
+// so those arms cannot be made again: with no cached answer they throw. ranks-2026-10-11.json beside this file has the
+// rank each arm gave each question. "base 1500" is the nearest arm that can be made again (the same model, cosines
+// worked out here), and "live" is the service as it is.
 import { Database } from "bun:sqlite";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -55,26 +64,29 @@ const entries: any[] = JSON.parse(readFileSync(join(dir, "entries.json"), "utf8"
 const byId = new Map(entries.map((e) => [e.id, e]));
 
 // The service's own full-text table, made here from the dump: same tokenizer, same weights (knowledgeSql.search).
-// `name` is not a column of the service: the last part of the id and the file name of the url, for the arms that try it.
+// `name`: the entry's id, the service's fourth column since 2026-10-11. The figures of 2026-10-11 before the deploy were
+// made with the last part of the id and the file name of the url.
 const db = new Database(":memory:");
 db.run("CREATE VIRTUAL TABLE f USING fts5(title, text, tags, name, tokenize = 'porter unicode61')");
 const nameOf = (e: any) => [e.id.split(":").pop(), (e.url || "").split("/").pop()?.replace(/\.(md|html)$/, "")].filter(Boolean).join(" ");
 entries.forEach((e, i) => db.run("INSERT INTO f (rowid, title, text, tags, name) VALUES (?,?,?,?,?)", [i + 1, e.title, e.text || "", (e.tags || []).join(" "), nameOf(e)]));
 const STOP = new Set("a an and are as at be by do does for from how i in is it its my of on or that the this to what when where which who why with can me we you".split(" "));
 const words = (q: string) => q.split(/\s+/).map((w) => w.replace(/["*]/g, "")).filter(Boolean).slice(0, 20);
-// and: knowledgeMatch as deployed. or: any word, stop words left out. name: whether the fourth column is searched.
+// Without any: every word needed, knowledgeMatch as it was until 2026-10-11. any: any word, stop words left out, as it
+// is now. name: whether the fourth column is searched.
 const lexical = (q: string, kind: string | undefined, o: { any?: boolean; name?: boolean; limit?: number } = {}): string[] => lexicalScored(q, kind, o).map((x) => x[0]);
 const lexicalScored = (q: string, kind: string | undefined, { any = false, name = false, limit = 100 }: { any?: boolean; name?: boolean; limit?: number } = {}): [string, number][] => {
   let ws = words(q);
   if (any) ws = ((kept) => (kept.length ? kept : ws))(ws.filter((w) => !STOP.has(w.toLowerCase())));
   if (!ws.length) return [];
   const match = (name ? "" : "{title text tags} : ") + "(" + ws.map((w) => `"${w}"`).join(any ? " OR " : " ") + ")";
-  const rows = db.query("SELECT rowid, -bm25(f, 4.0, 1.0, 2.0, 4.0) AS s FROM f WHERE f MATCH ? ORDER BY s DESC LIMIT 400").all(match) as any[];
+  const rows = db.query("SELECT rowid, -bm25(f, 4.0, 1.0, 2.0, 4.0) AS s FROM f WHERE f MATCH ? ORDER BY s DESC LIMIT 5000").all(match) as any[];
   return rows.map((r) => [entries[r.rowid - 1], r.s] as [any, number]).filter(([e]) => !kind || e.kind === kind).slice(0, limit).map(([e, s]) => [e.id, s]);
 };
 // The live search by meaning, 100 deep: [[id, score]].
 const dense = (q: string, kind?: string): [string, number][] =>
   cached("dense|" + (kind || "") + "|" + q, () => {
+    throw new Error("no cached answer of the search by meaning as it was before 2026-10-11 for: " + q + " (see the header)");
     const [s, j] = brain(X + "knowledge.search?semantic=true&limit=100&q=" + encodeURIComponent(q) + (kind ? "&kind=" + kind : ""));
     if (s !== 200) throw new Error("knowledge.search answered " + s + " for " + q);
     return j.entries.map((e: any) => [e.id, e.score]);
@@ -165,7 +177,7 @@ const arms: Record<string, (x: Q) => string[]> = {
   // What the service answers now (since 2026-10-11 07:15 UTC: the two lists as one order), asked 100 deep.
   "live": (x) => cached("live2|" + (x.kind || "") + "|" + x.q, () => { const [s, j] = brain(X + "knowledge.search?semantic=true&limit=100&q=" + encodeURIComponent(x.q) + (x.kind ? "&kind=" + x.kind : "")); if (s !== 200) throw new Error("knowledge.search answered " + s); return j.entries.map((e: any) => e.id); }),
   "live, as asked": (x) => cached("liveas|" + (x.mode || "") + (x.kind || "") + "|" + x.q, () => { const [s, j] = brain(X + "knowledge.search?limit=100&q=" + encodeURIComponent(x.q) + (x.kind ? "&kind=" + x.kind : "") + (x.mode === "words" ? "" : "&semantic=true")); if (s !== 200) throw new Error("knowledge.search answered " + s); return j.entries.map((e: any) => e.id); }),
-  "words, all (deployed)": (x) => lexical(x.q, x.kind),
+  "words, all (as it was)": (x) => lexical(x.q, x.kind),
   "words, any": (x) => lexical(x.q, x.kind, { any: true }),
   "words, any +name": (x) => lexical(x.q, x.kind, { any: true, name: true }),
   "rrf dense + any": (x) => rrf([dense(x.q, x.kind).map((d) => d[0]), lexical(x.q, x.kind, { any: true })]),
@@ -208,6 +220,23 @@ if (process.argv[2] === "run") {
   for (const name of only) console.log(pad(name, 32) + Object.keys(sets).map((s) => ((m) => pad(`${"".padEnd(s.length + 7)}${m.mrr.toFixed(3)} ${m.hit1.toFixed(2)} ${m.hit3.toFixed(2)} ${m.hit10.toFixed(2)}`, 34))(out[name][s])).join(""));
   if (flag("show")) for (const [s, qs] of Object.entries(sets)) qs.forEach((x, i) => console.log(s.padEnd(10) + only.map((n) => String(out[n][s].ranks[i] === Infinity ? "-" : out[n][s].ranks[i]).padStart(4)).join("") + "  " + (x.kind ? "[" + x.kind + "] " : "") + x.q));
   writeFileSync(join(dir, "results.json"), JSON.stringify({ at: new Date().toISOString(), entries: entries.length, out }, null, 1));
+  // Every question together against "as asked": the change in MRR with a paired bootstrap (4000 resamples, a fixed
+  // seed), and how many questions moved up or down within the first ten.
+  if (out["as asked"]) {
+    const rr = (r: number | null) => (r == null || r > 10 ? 0 : 1 / r);
+    const flat = (a: string) => Object.keys(sets).flatMap((s) => out[a][s].ranks.map(rr));
+    const base = flat("as asked");
+    let seed = 7;
+    const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+    console.log("\npooled (" + base.length + ")".padEnd(22) + "MRR    change  95% interval      better/worse  in first ten");
+    const rows = only.map((a) => {
+      const x = flat(a), n = x.length, d = x.map((v, i) => v - base[i]), mean = d.reduce((p, c) => p + c, 0) / n, bs: number[] = [];
+      for (let b = 0; b < 4000; b++) { let s = 0; for (let i = 0; i < n; i++) s += d[Math.floor(rnd() * n)]; bs.push(s / n); }
+      bs.sort((p, q) => p - q);
+      return [a, x.reduce((p, c) => p + c, 0) / n, mean, bs[100], bs[3899], d.filter((v) => v > 0).length, d.filter((v) => v < 0).length, x.filter((v) => v > 0).length] as any[];
+    });
+    for (const r of rows.sort((p, q) => q[1] - p[1])) console.log(pad(r[0], 32) + r[1].toFixed(3) + "  " + (r[2] >= 0 ? "+" : "") + r[2].toFixed(3) + "  [" + r[3].toFixed(3) + ", " + r[4].toFixed(3) + "]   " + (r[5] + "/" + r[6]).padEnd(13) + r[7]);
+  }
   const calls = cache.calls || [];
   if (calls.length) console.log(`cross-encoder calls so far: ${calls.length}, median ${calls.map((c: any) => c.ms).sort((a: number, b: number) => a - b)[calls.length >> 1]} ms (through brain.ts), tokens ${calls.reduce((a: number, c: any) => a + (c.tokens || 0), 0)}`);
 }
