@@ -12,7 +12,7 @@ md`## What the owner can do
 |---|---|
 | See what runs. Deploy a change. | **Services** in ${mod("cloud-brain")}: one row per Worker, its version, its state, and **Apply**. |
 | See calls, latency and faults. | **Health** in ${mod("cloud-brain")}. |
-| Ask for a change in words. | **Operator** in ${mod("cloud-brain")}. The assistant needs a model: a paired Claude Code session, or a key in its settings. |
+| Ask for a change in words. | The tab ${mod("brain-operator")}, under this one when the page opens. On a page whose shell has no such tab the chat is under **Operator** in ${mod("cloud-brain")}. The assistant needs a model: a paired Claude Code session, or a key in its settings. |
 | Set a secret. | ${mod("brain-secrets")}. |
 | Add a member. Set the member's methods, limits and file tags. | **People** in ${mod("cloud-brain")}. |
 | Give a script or another atproto account some methods. | **Access** in ${mod("cloud-brain")}: a token or a grant. |

@@ -45,6 +45,7 @@ const MODULES = [
   { name: "@tomlarkworthy/cloud-brain-docs", seed: "cloud-brain-docs.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-secrets", seed: "brain-secrets.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-feedback", seed: "brain-feedback.ojs", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-operator", seed: "brain-operator.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-db", seed: "brain-db.ojs", main: true, files: {} },
 ];
 // What a Worker of a Brain owns: the deployer's two, and one per service. The shell is the notebook without these.
@@ -187,7 +188,9 @@ const conf = JSON.parse(blockContent(html, "bootconf.json")!);
 const mains = [...MODULES.filter((m) => m.main).map((m) => m.name), SPEC.name];
 conf.mains = (conf.mains as string[]).filter((m) => !DROP_MAINS.includes(m)).flatMap((m) => (m === HOST ? mains : [m]));
 if (!conf.mains.includes("@tomlarkworthy/tests")) conf.mains.push("@tomlarkworthy/tests");
-conf.hash = "#view=C100(S70(@tomlarkworthy/cloud-brain,@tomlarkworthy/cloud-brain-docs,@tomlarkworthy/cloud-brain-specs),S30(@tomlarkworthy/claude-code-pairing))";
+// The Operator's chat has the lower pane (brain-operator.ojs). claude-code-pairing is a main and has no pane: an
+// address that names it shows it, and a cc= token pairs with or without one (plan/cloud-brain-i1842.md).
+conf.hash = "#view=C100(S50(@tomlarkworthy/cloud-brain,@tomlarkworthy/cloud-brain-docs,@tomlarkworthy/cloud-brain-specs),S50(@tomlarkworthy/brain-operator))";
 const bc = findSpan(html, "bootconf.json")!;
 const raw = html.slice(bc.start, bc.end);
 html = html.slice(0, bc.start) + raw.slice(0, raw.indexOf(">") + 1) + "\n" + JSON.stringify(conf, null, 2) + "\n</script>" + html.slice(bc.end);

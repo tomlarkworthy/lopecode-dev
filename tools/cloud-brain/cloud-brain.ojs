@@ -366,18 +366,36 @@ test_the_guest_brief_says_what_a_guest_has_and_how_to_join = {
 // %%
 md`## Operator`
 // %%
+// The chat is offered by name, in the plugin set "operator": brain-operator, a module of the shell, draws it in a
+// tab of its own and cannot import this module, which a Worker serves after the shell has booted.
 // settings: the fold with endpoint, key, model and system prompt. One chat on a page can host it, so the
 // default layout does not also open the robocoop-5 module.
-viewof assistant = robocoop5({
-  group: "brain",
-  height: 420,
-  persist: true,
-  settings: true,
-  // The operator's brief leads; the prompt typed in the settings fold follows it.
-  system: () => assistantPrompt + "\n\n" + (promptView.value || ""),
-  watches: () => [...defaultWatches(), ...assistantWatches()],
-  invalidation
-})
+operatorChat = {
+  const part = {
+    chat: ({ invalidation, height = 420 } = {}) =>
+      robocoop5({
+        group: "brain",
+        height,
+        persist: true,
+        settings: true,
+        // The operator's brief leads; the prompt typed in the settings fold follows it.
+        system: () => assistantPrompt + "\n\n" + (promptView.value || ""),
+        watches: () => [...defaultWatches(), ...assistantWatches()],
+        invalidation
+      })
+  };
+  plugins.add("operator", part, { invalidation });
+  return part;
+}
+// %%
+// Where the chat is. A shell that has brain-operator draws it there, and this section links to that tab. A shell
+// posted before 2026-10-11 has no such module, and this page is deployed without the shell: there the chat is here.
+operatorSection = (mains, part, { invalidation, link = moduleLink } = {}) =>
+  mains && mains.has("@tomlarkworthy/brain-operator")
+    ? htl.html`<div data-operator-section="link">The chat is in the tab ${link("@tomlarkworthy/brain-operator", "brain-operator")}.</div>`
+    : htl.html`<div data-operator-section="chat">${part.chat({ invalidation })}</div>`
+// %%
+operatorHere = operatorSection(runtime.mains, operatorChat, { invalidation })
 // %%
 assistantLine = htl.html`<div style="color:var(--theme-foreground-muted)">${
   !brain ? "" : inboxPump.error ? "Inbox: " + inboxPump.error : inboxPump.answering ? "Answering messages in this tab." : "Standing by. Another tab is answering."
@@ -1340,6 +1358,18 @@ test_eval_js_shows_the_slice_the_brief_names_whole = {
   expect(await shown(6001)).toBe("x".repeat(6000) + " \u2026(+1 chars)");
   expect(truncate(await shown(6000), 8000)).toBe("x".repeat(6000));
   return "6000 whole, 6001 cut";
+}
+// %%
+test_operator_section_is_a_link_where_the_shell_has_the_tab = {
+  let made = 0;
+  const node = htl.html`<p>the chat</p>`, part = { chat: () => (made++, node) };
+  const link = (module, label) => htl.html`<a href=${"#" + module}>${label}</a>`;
+  const there = operatorSection(new Map([["@tomlarkworthy/brain-operator", {}], ["@tomlarkworthy/cloud-brain", {}]]), part, { link });
+  expect([there.dataset.operatorSection, made, there.querySelector("a").getAttribute("href")]).toEqual(["link", 0, "#@tomlarkworthy/brain-operator"]);
+  // A shell from before the tab: the chat is in this section, as it was.
+  const old = operatorSection(new Map([["@tomlarkworthy/cloud-brain", {}]]), part, { link });
+  expect([old.dataset.operatorSection, made, old.contains(node), old.querySelector("a")]).toEqual(["chat", 1, true, null]);
+  return "a link with brain-operator in mains, the chat without";
 }
 // %%
 test_assistant_refuses_owner_only_methods = {

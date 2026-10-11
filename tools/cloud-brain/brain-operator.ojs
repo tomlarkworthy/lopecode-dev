@@ -1,0 +1,70 @@
+md`# Operator`
+// %%
+viewof operator = operatorView(operatorParts, { invalidation, height: operatorHeight })
+// %%
+md`The Operator keeps this Brain running and changes it when asked. It needs a model: a paired Claude Code session, or a key under **settings** at the top of the chat.
+
+The chat is made by ${operatorLink("@tomlarkworthy/cloud-brain", "cloud-brain")}, which holds its brief, its tools and the inbox, and is drawn here (\`tools/cloud-brain/records/operator-tab-module.md\`).`
+// %%
+// What the page module offers under "operator" (cloud-brain, operatorChat). Empty until that module has joined
+// the page, which on a Brain is after this cell first runs.
+operatorParts = plugins.get("operator")
+// %%
+// The pane is half of the window's height in the default layout (build.ts). What is taken off is the tab bar, the
+// title and the margins above the chat, measured by tools/cloud-brain/operator-tab-check.ts.
+operatorHeight = "calc(50vh - 80px)"
+// %%
+operatorLink = (module, label) => htl.html`<a href=${linkTo(module, { onObservable: false })} title=${module} onclick=${(e) => (e.preventDefault(), navigate(e.currentTarget.getAttribute("href")))}>${label}</a>`
+// %%
+// The chat of the first part. With none, a line that says where the chat comes from.
+operatorView = (parts, { invalidation = null, height, link = operatorLink } = {}) => {
+  const part = [...(parts || [])][0];
+  return part
+    ? htl.html`<div data-operator="chat">${part.chat({ invalidation, height })}</div>`
+    : htl.html`<div data-operator="no part" style="color:var(--theme-foreground-muted)">The Operator's chat is made by the page module, which is not on this page. Open ${link("@tomlarkworthy/cloud-brain", "cloud-brain")}.</div>`;
+}
+// %%
+md`## Tests`
+// %%
+test_operator_with_a_part = {
+  const asked = [], node = htl.html`<p>the chat</p>`, stop = new Promise(() => {});
+  const view = operatorView([{ chat: (options) => (asked.push(options), node) }, { chat: () => htl.html`<p>a second</p>` }], { invalidation: stop, height: 300 });
+  expect([view.dataset.operator, view.contains(node), view.textContent]).toEqual(["chat", true, "the chat"]);
+  expect(asked).toEqual([{ invalidation: stop, height: 300 }]);
+  return "the first part's chat, asked once with the cell's invalidation and the height";
+}
+// %%
+test_operator_with_no_part = {
+  const link = (module, label) => htl.html`<a href=${"#" + module}>${label}</a>`;
+  for (const parts of [[], null, undefined]) {
+    const view = operatorView(parts, { link });
+    expect([view.dataset.operator, view.querySelector("a").getAttribute("href"), view.querySelector("textarea")]).toEqual(["no part", "#@tomlarkworthy/cloud-brain", null]);
+  }
+  return "a line and a link to cloud-brain";
+}
+// %%
+// The order on a Brain: the tab draws, then the page module joins and adds its part. A registry of its own, so
+// the page's real part is not in it.
+test_operator_none_then_one = {
+  const registry = createPlugins(), gen = registry.get("operator");
+  const link = (module, label) => htl.html`<a href=${"#" + module}>${label}</a>`;
+  const node = htl.html`<p>the chat</p>`;
+  try {
+    const none = operatorView(await (await gen.next()).value, { link });
+    const remove = registry.add("operator", { chat: () => node });
+    const one = operatorView(await (await gen.next()).value, { link });
+    remove();
+    const gone = operatorView(await (await gen.next()).value, { link });
+    expect([none, one, gone].map((v) => v.dataset.operator)).toEqual(["no part", "chat", "no part"]);
+    expect([none.contains(node), one.contains(node), gone.contains(node)]).toEqual([false, true, false]);
+  } finally {
+    gen.return();
+  }
+  return "no part, then the part's chat, then no part";
+}
+// %%
+import {plugins, createPlugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {linkTo, navigate} from "@tomlarkworthy/lopepage-urls"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"
