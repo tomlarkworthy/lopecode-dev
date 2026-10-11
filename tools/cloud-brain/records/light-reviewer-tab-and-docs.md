@@ -84,6 +84,18 @@ there, and filed two tickets). One review each way is not a comparison of the tw
 The reviewer could not see who put the brief on the Brain: the writer of this issue did, with `put.sh` and the
 token `loop-roles`, as the owner of the issue on the owner's word of 2026-10-11 ("you own the issues").
 
+## Round 3 (review 1200, the light reviewer with no tab: 63,786 at its end, 14 turns, 291 s, $2.37)
+
+One finding. The merge of round 2 was read against its first parent. The real one, `57c775cc`, is main merged
+into the branch, so its first parent is the branch: the diff was what main brought, and the exit 0 came from a
+seed of another issue. The branch's own seed, `brain-deployer.ojs`, was not in it. The script now reads a merge
+against each parent (`git show -m --name-only`), so it asks for a tab when either side brought a seed. That
+asks too often for a branch that merged main while main held a seed; the cost is the tab tools, not a missed
+test. Two tests added, the reviewer's direction and a merge of docs alone (6 tests, 15 expects).
+
+The reviewer opened `seen-writer-put-brief-with-loop-roles`: `rules.md` gives `loop-roles` to the overseer alone,
+and the writer of this issue put the brief. Left with the owner.
+
 ## Not done, not tried
 
 - No review has yet run with no tab; the review of this issue is the first.
