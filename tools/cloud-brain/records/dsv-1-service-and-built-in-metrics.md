@@ -1,7 +1,7 @@
 # brain-x-dashboard: the service and the built-in metrics (`dsv-1-service-and-built-in-metrics`)
 
 Task 1 of `plan/cloud-brain-dashboard-service.md`. Built 2026-10-11 by a writer of the issue loop,
-round 1. The seed commit is `1ec0be30`, committed 19:25:42 +0200 (`git log --format=%ci`). A new
+round 1. The seed commit's author time is 19:24:54 +0200 (`git log --format=%ai`). A new
 Worker and `major`: the owner approved the spec at event 1371 and answered "A" on this issue at
 event 1401.
 
@@ -128,5 +128,22 @@ The record was emitted in the third tab: hash `d14fc1ce29288e40769376aeb83bb49b7
 - A member's call, on cb4 or through the kernel. The hold was run in `simulate` with
   `x-brain-caller` a DID.
 - `redistil` after a change to `logsScope` in brain-logs.
-- The tests run together on the owner's page, and the deployer's own run of them: a first version
-  has no probation, as the spec reads `knowledge/changing-and-deploying-a-cloud-brain-worker.md` line 43.
+- The tests run together on the owner's page.
+- Whether the page on cb4 boots the new module: `brain.ts shell` was not posted.
+
+## The apply (19:29:37 to 19:30:08 CEST, the deploy lock's own times)
+
+Before it, `brain.ts redistil` read every one of 20 Workers `same`, and the cells `logsScope` and
+`logsScript` of the build's brain-logs were the text of the deployed one (`grep -o` of each from
+both files, `shasum`: `8ba34a742502` and `624fcf5fb5b6` twice).
+
+```
+dsv-1-service-and-built-in-metrics-brain-x-dashboard.json 15504 ms [{"worker":"brain-x-dashboard","hash":"d14fc1ce2928","state":"verified","version":"cef6c396-9895-4517-a946-e3415cb353c5","tests":4}]
+```
+
+The hash is the one the tab emitted, so the deployer distilled the import of brain-logs to the
+same text. The state is `verified` with `tests: 4`: the deployer ran the tests of this first
+version. The spec read `knowledge/changing-and-deploying-a-cloud-brain-worker.md` line 43 as a
+first version having no run; for this apply it had one. What a failed run would have done to a
+Worker with no version before it was not seen. After it `redistil` read 21 lines `same`,
+`brain-x-dashboard  same  d14fc1ce2928` among them.
