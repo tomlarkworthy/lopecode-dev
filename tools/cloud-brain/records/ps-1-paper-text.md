@@ -42,8 +42,9 @@ Choices the plan left to the writer. Task 2's number rule searches the `.txt`, s
   appendices. Not cut: an appendix is the paper, and the PDF route has no structure to cut by. Task 3's measured
   cost is where to weigh it.
 - **PDF**: `pdftotext -enc UTF-8`, without `-layout`. With `-layout` the two-column test fails (run as a mutation).
-  Section numbers are on lines of their own (`1`, then `Introduction`), and page numbers and running heads are in
-  the text.
+  In the fixture a section's number is on a line of its own (`1`, then `Introduction`). `P/arxiv:2310.02304.txt` has
+  79 lines that are a number of one or two digits alone (`grep -c '^[0-9]\{1,2\}$'`): section numbers and page numbers,
+  not told apart.
 - **A text under 5000 characters** is named and not written. None of the 63 was.
 - **arXiv is asked once every 3 s** (`--delay`), with a user-agent that names this repository. Any answer but 200
   or 404 stops the run with exit 1.
@@ -56,7 +57,7 @@ cd <worktree> && bun test ./tests/tools/summarize-papers.test.ts
 ```
 
 The two fixtures are under `tests/tools/fixtures/summarize-papers/`, both CC BY 4.0, named with their authors in
-the test's header: `arxiv-2603.06333v1.html` (the page as arXiv answered it, 257,012 bytes) and
+the test's header (the names are the pages' `citation_author` lines at arxiv.org/abs): `arxiv-2603.06333v1.html` (the page as arXiv answered it, 257,012 bytes) and
 `arxiv-2308.10144v3-page2.pdf` (page 2 of a two-column paper, 90,288 bytes). The PDF is not arXiv's bytes:
 `pdfseparate` gave a page of 10 MB, so the page was written again with `pdftocairo -pdf -f 2 -l 2`.
 
@@ -122,8 +123,7 @@ session's and is of another cut; it was not reproduced.
 
 `python3 -c "import json,glob;[print(r['id'],r['route'],r['address'],r.get('version'),r['chars'],r['sha256'][:16]) for r in map(lambda f:json.load(open(f)),sorted(glob.glob('P/*.text.json')))]"`
 
-The address is the one asked; arXiv serves its newest version there, and the version is the one the page's text
-names. For a PDF the address is the entry's `file`; which version of the paper that file is was not read.
+The address is the one asked and names no version; the version is the one the page's text names. For a PDF the address is the entry's `file`; which version of the paper that file is was not read.
 
 | id | route | address read | version the page names | characters | sha256 of the text, first 16 |
 |---|---|---|---|---|---|
@@ -292,9 +292,9 @@ What it does not say. Why `arxiv:2406.07496` differs by 21,473 characters was no
 arXiv than the kept file, or content one route drops). No text was read by eye for this comparison, and tables were
 not compared apart. Three papers, one of them two-column.
 
-**Which should be first: arXiv's HTML, as built.** For it: paragraphs and headings are lines of their own, with
-no page numbers or running heads, and a formula with structure is its TeX. Against it: the page is arXiv's newest version and the
-kept file may be an earlier one; the entry's line names what was read. The kept PDF first would be one route and
+**Which should be first: arXiv's HTML, as built.** For it: paragraphs and headings are lines of their own,
+a section's number is on its heading's line, and a formula with structure is its TeX. Against it: the page may be another version than the
+kept file (the plan's point, not measured here); the entry's line names what was read. The kept PDF first would be one route and
 always the entry's file, and nothing above shows it reads worse. That is a preference by structure, with these
 three rows behind it and no summary written from either.
 
@@ -317,6 +317,9 @@ three rows behind it and no summary written from either.
 - `--ids` with no `--tag` on cb4 was run for three ids at 20:47; an id the Brain lacks was tested with the fake only.
 - Read on a line of 1500 characters, and the summarizer on any of these files.
 - A machine with no `pdftotext`: the paper is named with the spawn's error; not run.
-- Prior art, searched in the Brain with `loop-knowledge` (`semantic=true`) before the design: "extract text from
-  arXiv HTML page", "pdftotext two column PDF text extraction", "keep entry text as entered before rewrite sha256".
-  Nothing bore on it. `cheerio`, already in `package.json`, parses the page; no dependency was added.
+
+## Prior art
+
+Prior art, searched in the Brain with `loop-knowledge` (`semantic=true`) before the design: "extract text from
+arXiv HTML page", "pdftotext two column PDF text extraction", "keep entry text as entered before rewrite sha256".
+Nothing bore on it. `cheerio`, already in `package.json`, parses the page; no dependency was added.
