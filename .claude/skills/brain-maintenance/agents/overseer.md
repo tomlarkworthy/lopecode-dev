@@ -41,8 +41,7 @@ the system is quite ineffecient". On that day 57 issues had spent 47.4 h waiting
 
 ## Feedback tickets, and gathering
 
-> **In force once the policy of 2026-10-11 is installed** (`io policy` lists the kind `project`). Until then
-> `issue.link` works and the new moves and kinds answer 403: work as before, and say that the install waits.
+> In force on cb4 since the owner installed the policy of 2026-10-11 (event 483).
 
 Agents open issues of kind `feedback` for anything that seems off against `philosophy.md`
 (the owner, 2026-10-11: "only feedback so we can identify patterns and check before writing a

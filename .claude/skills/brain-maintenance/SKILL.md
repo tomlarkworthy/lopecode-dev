@@ -52,7 +52,7 @@ Two files beside it, neither of them needed to resume:
 ## One pass
 
 1. **Health.** `brain.ts redistil` shows every Worker `same`; `brain.ts state` shows each `brain-x-*` Worker at the hash `tools/cloud-brain/seen.json` holds for it (`redistil` cannot show a put-back: the kept source goes back with the Worker, so it read `same` through the one of 19:32 on 2026-10-10); `lease.get` is held or the page is
-   not needed; no `cb4.lock` or `land.lock` older than 20 minutes. Also read `issue-as.sh issues-implementer-2 policy` once: when its `kinds` has no `project`, the policy of 2026-10-11 is not installed, the rows for a project and the quick win are not yet in force, and step 7 says so. If the cluster is not healthy, file or find
+   not needed; no `cb4.lock` or `land.lock` older than 20 minutes. If the cluster is not healthy, file or find
    the issue for it and do nothing else this pass. A stale lock is the owner's to remove: say so
    in step 7 each pass until it is gone.
 2. **Count your running agents.** Keep up to 4 implementers and 2 reviewers running (4 since 19:28 2026-10-10, Tom: "maybe we do another 2 in parrallel"; they land one at a time, so past 4 they queue on `land.lock`), and at
@@ -103,8 +103,7 @@ Two files beside it, neither of them needed to resume:
 
 ## A quick win
 
-> **In force once the policy of 2026-10-11 is installed** (`ia policy` lists the kind `project`). Until then
-> `issue.link` works and the new moves and kinds answer 403: work as before, and say that the install waits.
+> In force on cb4 since the owner installed the policy of 2026-10-11 (event 483).
 
 Tom, 2026-10-11: "if an agent has spare context left and it already knows how to fix an issue it
 should jsut do it as a quick win while it is there." That is said of every agent, you among them.
@@ -118,8 +117,7 @@ Anything in a seed goes to a writer. A writer does the same for what it meets be
 
 ## Links, and projects
 
-> **In force once the policy of 2026-10-11 is installed** (`ia policy` lists the kind `project`). Until then
-> `issue.link` works and the new moves and kinds answer 403: work as before, and say that the install waits.
+> In force on cb4 since the owner installed the policy of 2026-10-11 (event 483).
 
 Since 2026-10-11 (`plan/cloud-brain-issues.md`, "Amended 2026-10-11"): `issue.link { key, id, to, rel }`
 with `rel` one of `duplicate`, `cause`, `related`, `part-of`. Use it at triage instead of an id in

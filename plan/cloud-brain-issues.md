@@ -431,6 +431,9 @@ reviews on a swap): install with none waiting there. Closed issues are not migra
 `rejected` on cb4 at event 449): each stays on its old workflow, which has no `reopen`, and opening
 one again is the owner's own swap.
 
+Installed by the owner on cb4 2026-10-11, event 483. The 27 open issues were all moved to the new
+workflows; `issue.verify?guards=true` answered ok over 511 events afterwards.
+
 ## Built
 
 `brain-x-issues`, module `@tomlarkworthy/brain-issues` (`tools/cloud-brain/brain-issues.ojs`), deployed
