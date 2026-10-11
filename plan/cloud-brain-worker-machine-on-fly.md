@@ -1,7 +1,9 @@
 # Cloud Brain: a worker machine on Fly.io for the issue loop, started by the Brain and stopped by itself
 
 Spec of the project `worker-machine-on-fly` (tracker of cb4, event 1628). Written 2026-10-11 22:20 to
-22:45 UTC (2026-10-12 00:20 to 00:45 CEST, from `date`) by the spec writer `spec-29ad08`. Round 1. A fresh agent with the file alone read it before the landing (`/review-notebook`: FIX, 9
+22:45 UTC (2026-10-12 00:20 to 00:45 CEST, from `date`) by the spec writer `spec-29ad08`. Round 1 was
+sent back by review 2886 (event 2887); round 2, written 2026-10-11 22:45 to 23:00 UTC, answers it under
+"Round 2" below, and each passage it changed is marked (round 2). In round 1 a fresh agent with the file alone read it before the landing (`/review-notebook`: FIX, 9
 findings and 7 minor, all taken; the last part says which changed the design).
 Nothing is built. No Fly.io account exists that the writer knows of, and no call to Fly.io was made:
 every statement about Fly.io below is from its documents, read through a tool that answers with a
@@ -249,19 +251,47 @@ T6 counts the issues labeled `laptop`, which is the number.
 **One orchestrator at a time.** Nothing in the tracker says which session has a review in hand: an
 orchestrator counts its own agents (`SKILL.md`, step 2), so two would each give a waiting review a
 reviewer. A third lock of the cluster, `loop`, is held by the orchestrator that runs: taken before
-its first pass as `orchestrator-<host>`, renewed each pass, 600 s, as `land` and `cb4` are
-(`issue.lock`; the history has other names taken that way, `probe-lk-1-issue-lock-methods`.
+its first pass as `orchestrator-<host>`, for 600 s as `land` and `cb4` are, and kept by its watch and
+not by its passes (round 2, below) (`issue.lock`; the history has other names taken that way, `probe-lk-1-issue-lock-methods`.
 `lock.sh` refuses a third name today, line 36: `case "$NAME" in land|cb4) ;; *) usage ;; esac`; T4
-adds `loop` there). A session that finds it held does no pass. The
+adds `loop` there). A session that finds it held does no pass.
+
+**What keeps `loop` held (round 2).** Not a pass. A pass is not every 600 s: `SKILL.md` step 8 wakes
+the orchestrator on a line of the watch or an agent's report, and its fallback is `ScheduleWakeup`
+1800 s, so a live loop with one writer at work goes more than 10 minutes with no wake (the medians
+above: 8.1 min at `in-progress`, 5.8 at `in-review`). What does run all the while is the watch of
+that step: `issue-watch.sh`, armed as a `Monitor` with the orchestrator's token, reads the tracker
+every 30 s (`issue-watch.sh`, line 33, `sleep "$every"`) and ends when the session no longer arms it.
+T4 gives it a second argument, the holder's name: with it, every fourth read (120 s) it sends
+`lock.sh renew loop <who>` under its token, which is the holder's. So `loop` is held while a watch of
+that orchestrator runs, and ends 600 s after the last renew of a watch that died, was not armed again,
+or whose session was closed or slept. The watch ends itself after 30 minutes and is armed again "in
+the same turn"; a turn that takes more than 8 minutes to arm it loses the lock, and the orchestrator
+then finds its `renew` refused (exit 1) at the next pass and does no pass until it takes `loop`
+again. A session open on the laptop whose `/loop` the owner stopped arms no watch, so it holds
+nothing 10 minutes later and the machine may start. 600 s is kept and not the method's 1800: it is
+how soon the cluster learns that a loop is gone.
+
+With that, the three rules that read the lock read a live watch: the tick's "not held" (On) is no
+orchestrator with a watch anywhere; a laptop session started between two passes of the machine finds
+`loop` held; and the tick's stop of a machine `started` with `loop` not held for 20 minutes fires
+only for a machine whose watch is gone, which is a `claude` that hung or died without `run.sh`
+ending. Whether `claude -p` keeps a `Monitor` running with no terminal is T1's to see; if it does
+not, `run.sh` runs the same renew beside `claude` for as long as that process lives, and the laptop
+is not changed by it.
+
+ The
 laptop's loop, started by the owner, asks the machine's to yield with `fly.down`, which stops
-nothing at once: it sets a row, `yield`. The machine's orchestrator reads `fly.status` in its health
-step each pass; with `yield` set it starts nothing, waits for its running agents to report, ends
+nothing at once: it sets a row, `yield`. The machine's watch reads `fly.status` with each renew (the token `fly-status`) and prints a line when `yield` is
+set, which is a wake (round 2: a pass may be 30 minutes off); with `yield` set the orchestrator starts nothing, waits for its running agents to report, ends
 their tokens, releases `loop` and ends. A writer between `take land` and its push finishes its
 landing first. The laptop's loop takes `loop` when it is released. If the machine is still `started`
 30 minutes after the yield, the tick stops it with `POST …/stop`; what that leaves is an issue at
 `in-progress` whose writer is gone, which is the row "a starter that cannot go on" of `SKILL.md`
 step 3, and the machine's agent tokens, which the laptop's session ends by name with `brain.ts
-agent-token revoke` (it made `fly-agents` and keeps its value). His session has the state file and
+agent-token --parent fly-agents revoke <name>` (round 2: the command reads `PARENT = "loop-agents"`
+today, `brain.ts` line 514, so from the laptop it neither lists nor ends a child of `fly-agents`; T4
+adds the flag. The laptop made `fly-agents` and keeps its value). His session has the state file and
 his attention, so it is the one that goes on. The owner's Stop button is `fly.down?now=true`: the
 stop at once.
 
@@ -271,29 +301,32 @@ machine is `stopped`; the lock `loop` is not held; the day's hours are under the
 work when its row there spawns an agent or makes a move, and it is not labeled `needs-owner` or
 `laptop` and is no digest. So it leaves out what that table answers "Nothing" for (`hidden` or
 `security`, `awaiting-approval`, `open` of kind `feedback`, a project at `open` with fewer than three
-parts) and takes in a round sent back at `in-progress` or `spec`. T4 writes it from the table as it
+parts) and takes in a round sent back at `in-progress` or `spec`. T3 writes it from the table as it
 is that day, with one test for each row. Whether `issue.list` answers enough for every row (a
 `held:` comment is read from comments by `issue-stats.ts`) was not checked; `calls` grows by what
-T4 finds it needs. The same function is the first thing `run.sh` asks, so the tick and the machine
+T3 finds it needs. The same function is the first thing `run.sh` asks, so the tick and the machine
 cannot disagree.
 
 The function can still be wrong about what a loop does. So the service keeps the ids of `fly.work`
 at each start: when the machine stops with that set unchanged, the tick does not start it for the
 same set again. One wasted start a set, not one each 5 minutes until the day's limit.
 
-**Off.** The loop ends itself: after 3 passes in a row that started and resumed nothing and with no
-agent running (whether `claude -p` keeps the wakeups and the watch of `SKILL.md` step 8 going with
-no terminal is T1's to see), the orchestrator releases `loop` and ends its `/loop`. `claude -p` returns, `run.sh`
+**Off (round 2: one pass, not three).** The loop ends itself: after one whole pass that started and
+resumed nothing, with no agent running. Three such passes are three fallback wakes, 90 minutes of a
+machine doing nothing, and the tick asks the same `fly.work` 5 minutes after any stop, so the second
+and third bought nothing. At that pass (whether `claude -p` keeps the wakeups and the watch of `SKILL.md` step 8 going with
+no terminal is T1's to see) the orchestrator releases `loop` and ends its `/loop`. `claude -p` returns, `run.sh`
 exits 0, and under policy `no` Fly.io does not start the machine again. No token of Fly.io is on the
 machine. Two things stand behind it, both in the service: `fly.down`, above, and the tick,
-which stops a machine that is `started` while `loop` has not been held for 20 minutes (a loop that
-died with its process still up) or when the day's limit is reached.
+which stops a machine that is `started` while `loop` has not been held for 20 minutes (no watch for
+20 minutes: a loop that died with its process still up) or when the day's limit is reached. The
+machine's own end is at a pass, so it comes within one fallback wake, 30 minutes, of the last work;
+the tick's stop cannot come first while the watch runs.
 
 **The limit.** `config.maxHoursADay`, 8 when not set, changed with `config.set` and no deploy. The
 service keeps each start and stop it saw as a row and sums the day in UTC. At $0.035 an hour, 8 hours
 is $0.28 a day. What the loop spends on the model in those hours is the subscription's and is not
-counted here; a pass that names a usage limit already starts nothing new (`SKILL.md`, step 2), and
-three such passes end the loop by the rule above.
+counted here; a pass that names a usage limit already starts nothing new (`SKILL.md`, step 2), and such a pass ends the loop by the rule above.
 
 ### 3. The service `brain-x-fly` (R3, R7). Answers "the proxy", "the secrets"
 
@@ -305,7 +338,7 @@ secret, `FLY_API_TOKEN`, and one host, `api.machines.dev`. The app's name is `co
 | `fly.get` | the owner's own session (`allow: "caller.session"`, fixed) | query, `?path=`. A GET to `https://api.machines.dev/v1/apps/<app>/<path>`, the answer as it is |
 | `fly.post` | the same | procedure, `?path=&method=`. The body as it is; POST, PUT or DELETE. The path cannot leave `/v1/apps/<app>/` |
 | `fly.status` | `workers` | query. `{ app, machine: { id, state, region, image, guest }, volume, hoursToday, maxHoursADay, loop: <holder or null>, yield: <since or null>, work: <n> }` |
-| `fly.work` | `workers` | query. `{ work: [ids] }`: the issues the test of part 2 counts |
+| `fly.work` | `workers` | query. `{ work: [ids] }`: the issues the test of part 2 counts. Built in T3, with the service (round 2) |
 | `fly.up` | `workers` | procedure. Starts the machine when it is stopped and the day is under its limit. `{ started, state }`; 409 with the reason otherwise |
 | `fly.down` | `workers` | procedure. Sets `yield`; the tick stops the machine 30 minutes later if it still runs. `?now=true`, the owner's own session: `POST …/stop` at once. `{ state, yield }` |
 | cron `*/5 * * * *` | | the tick of part 2 |
@@ -339,7 +372,10 @@ filled in (the volume, the machine, a change of image), shown to the owner signe
 An agent on the machine can read all of the last three: they are in its environment and its files,
 as the laptop's are in the laptop's. What a page it reads could make it send out is a Claude login
 that makes model requests, two keys that push two repositories, and tokens for `issue.*`,
-`knowledge.search` and `knowledge.put`. On the laptop the same agent's shell reads the recovery key.
+`knowledge.search` and `knowledge.put`. What the key of `lopecode-dev` is worth (round 2): a push to
+`main` carries `.claude/settings.json`, the hooks and the briefs, which the laptop's sessions then
+run beside the recovery key. An agent on the laptop can make that push today, so it is no new reach;
+it is the most that the machine holds. On the laptop the same agent's shell reads the recovery key.
 
 ### 4. A shell for the owner (R5). Answers "SSH for the owner without another page"
 
@@ -387,11 +423,11 @@ answered what "before" says.
 | R3 | `curl -s -o /dev/null -w "%{http_code}" "https://cb4.endpointservices.workers.dev/xrpc/com.lopecode.brain.getSource?worker=brain-x-fly&part=reference"` | `404` | `200`, after T3. Not run |
 | R3 | `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.fly.status --as loop-fly` | with `loop-knowledge`, there being no `loop-fly`: 403 "this token does not name com.lopecode.brain.fly.status" | 200 with `machine.state`, after T3 and the owner's secret. Not run |
 | R3, R7 | `bun test.ts brain-x-fly --with <built module>` in the worktree's `cloud-brain-dev/`: the tests of T3, among them that `fly.post?path=../../other` is refused with no upstream request, that a token is refused `fly.get`, that `meta.secrets` is `["FLY_API_TOKEN"]` and `meta.calls` the two of part 3 | no seed | every test passes; the writer of T3 gives the count its run gave |
-| R1, R6 | `fly.status` answers `machine.image` as the image T2 pushed, and the tracker has a `moved` event whose `by.holder` is a token with the note `orch; fly:<machine id>` (`brain.ts agent-token list`) | no such token | after T4. Not run |
-| R2, on | With `loop` not held and one issue at `ready` and not labeled: `fly.status` twice, 6 minutes apart; `machine.state` goes `stopped` to `started` | | after T4. Not run |
-| R2, off | With `fly.work` answering `{"work":[]}`: `fly.status` each 5 minutes; `started` to `stopped` with no `fly.down` in the core's lines of that span (`metric.query` over `method: "fly.down"`, with `loop-dashboard`, if T3 defines the metric; else the rows `fly.status` sums) | | after T4. Not run. If the machine does not reach `stopped` on the exit, the restart-policy page was read wrong and the tick's stop is what ends it: the check then says which |
-| R7 | On the machine, by the machine's own loop as a step of T4's record: `ls tools/cloud-brain/.emitted/` holds `cb4-tokens.json`, `cb4-agent-tokens.json` and `issue-loop`, and no `cb4.json`; `env` has no name beginning `FLY_API` or `CF_` | | after T4. Not run |
-| R8, apart | `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh show loop` exits 0 and names `orchestrator-<the machine>` while it runs; a second `take loop` exits 1 | `show` with a third name: not tried | after T4. Not run |
+| R1, R6 | `fly.status` answers `machine.image` as the image T2 pushed, `fly.status` answers `loop` as `orchestrator-<the machine's host>`, and the tracker has a `moved` event whose `by.holder` is the name of a line with the note `orch; fly:<machine id>` in `brain.ts agent-token --parent fly-agents list` (round 2: without the flag the list is of `loop-agents` and has no such line) | no such token, no such flag | after T4b. Not run |
+| R2, on | With `loop` not held and one issue at `ready` and not labeled: `fly.status` twice, 6 minutes apart; `machine.state` goes `stopped` to `started` | | after T4b. Not run |
+| R2, off | With `fly.work` answering `{"work":[]}`: `fly.status` each 5 minutes; `started` to `stopped` within 35 minutes of the last move of a token of the machine (one fallback wake and one tick), with `loop` held until the pass that ends it and no `fly.down` in the core's lines of that span (`metric.query` over `method: "fly.down"`, with `loop-dashboard`, if T3 defines the metric; else the rows `fly.status` sums) | | after T4b. Not run. If the machine does not reach `stopped` on the exit, the restart-policy page was read wrong and the tick's stop is what ends it: the check then says which |
+| R7 | On the machine, by the machine's own loop as a step of T4b's record: `ls tools/cloud-brain/.emitted/` holds `cb4-tokens.json`, `cb4-agent-tokens.json` and `issue-loop`, and no `cb4.json`; `env` has no name beginning `FLY_API` or `CF_` | | after T4b. Not run |
+| R8, apart (round 2) | `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh show loop`, asked each 5 minutes for 40 minutes while one writer of the machine works and no pass is made: exit 0 and `orchestrator-<the machine>` each time, the `until` later each time (the watch's renews); a `take loop` under another name exits 1. And in `tests/tools/`: the watch against a stand-in sends a renew at its fourth read and none without the holder's name | `LOCK_TOKEN=spec-29ad08 lock.sh show land`, run 22:49 UTC: `land is not held`, exit 1. `show loop`: refused by line 36, not run | after T4. Not run |
 | R8, limit | `test_fly_up_refused_past_the_day` in the seed: with rows summing 8 hours, `fly.up` answers 409 and makes no upstream request | no seed | passes, T3 |
 | R4, R5 | Not an agent's: the owner's list | | |
 
@@ -408,10 +444,14 @@ Each is one writer and one review. T1 cannot start before the owner's list, item
    running (the lock `loop` does not exist before T4). With his deploy token in that shell and `curl`
    against `api.machines.dev`: a volume and a machine of `ubuntu:24.04`. The shell on it is `fly ssh
    console -C`, with his login: the Machines API page has no `exec`. Install the tools, clone, run
-   one pass of the loop with one `orch` token copied there for the hour and no state file. It measures, each with its
+   one pass of the loop with one `orch` token copied there for the hour and no state file, and one
+   review with `cloud-brain-dev/agent.sh` (round 2; its brief is fetched with no token). A review
+   that needs a tab (`review-needs-tab.sh`, exit 0) needs the channel server and a paired tab, which
+   the machine does not have in this spec: the machine's loop leaves such a review with a `held:`
+   comment that names the laptop, and `fly.work` does not count it. It measures, each with its
    time from `date`: create to `started`; a start from `stopped`; whether exit 0 of the first process
    under policy `no` leaves the machine `stopped`; memory while a writer runs its tests; which
-   permission mode lets a pass finish; which hooks fail on Linux; whether a deploy token makes
+   permission mode lets a pass finish; whether a `Monitor` and a `ScheduleWakeup` run under `claude -p`; which hooks fail on Linux; whether a deploy token makes
    machines and volumes and sets secrets; how `files` with `secret_name` writes a file; a push of
    each of the two repositories with its own key. Every line of
    "Read" that came from a summary and that parts 1 to 3 rest on is tried here. A result that breaks
@@ -419,32 +459,36 @@ Each is one writer and one review. T1 cannot start before the owner's list, item
 2. **T2, the image and `run.sh`**: `tools/cloud-brain/fly/Dockerfile`, `run.sh`, and where the image
    is built and kept, from T1's commands. Tests: `run.sh` against a stub `claude` exits 0 when
    `fly.work` is empty, without starting it.
-3. **T3, `brain-fly.ojs`**: the service of part 3 with its tests, the panel, the metric of its
-   calls; deployed by the loop on the laptop. It declares a secret and no Cloudflare permission.
+3. **T3, `brain-fly.ojs`**: the service of part 3 with its tests, `fly.work` from the table of
+   step 3 with a test for each row (round 2: it was in T4, with a deploy of its own), the panel, the
+   metric of its calls; deployed by the loop on the laptop. It declares a secret and no Cloudflare permission.
    `brain.ts confirm` if on probation. Before the owner's secret is put, `fly.status` answers 400
    "the secret FLY_API_TOKEN is not set", and that is what its writer's check reads.
-4. **T4, the loop there**: the lock `loop` in `lock.sh` and `SKILL.md` step 1; the second form of the
-   health step; the label `laptop` in the writer's brief and at triage; the three empty passes that
-   end a loop, and the read of `yield`; `fly.work` from the table of step 3 (in the seed, deployed
-   from the laptop); no digest and no overseer with no state file; the tool that writes the
-   machine's token file; the machine made with `fly.post` by the owner from the page's form. Its record holds
-   the first issue a token of the machine moved, and the R2, R7 and R8 checks run.
-5. **T5, the docs**: `knowledge/` gets a page for the machine (start, stop, the shell, a new image,
+4. **T4, the loop's own files, no seed and no deploy** (round 2: cut at the deploy): `loop` in
+   `lock.sh`; the renew and the line for `yield` in `issue-watch.sh`, with their tests; `SKILL.md`
+   steps 1 and 8 (the take, the second form of the health step, the one empty pass that ends a
+   loop); the label `laptop` in the writer's brief and at triage; no digest, no overseer and no tab
+   review with no state file; `agent-token --parent`; the tool that writes the machine's token file.
+5. **T4b, the first run**: the owner makes the volume and the machine from the page's form and
+   presses Start. A record, `tools/cloud-brain/records/fly-4b-first-run.md`, with the first issue a
+   token of the machine moved and the R1, R2, R7 and R8 checks run there.
+6. **T5, the docs**: `knowledge/` gets a page for the machine (start, stop, the shell, a new image,
    the limit, what it cannot do), linked from the Brain's index page, with the line about `METADEV`;
    `spec-as-built.md` and the backlog.
-6. **T6, after 7 days of it**: `issue-stats.ts` again beside the numbers above (the totals of `open`
+7. **T6, after 7 days of it**: `issue-stats.ts` again beside the numbers above (the totals of `open`
    and `ready`), `hoursToday` summed, the count of issues labeled `laptop` and how long each waited.
-   It says whether the size, the limit and the one-orchestrator rule stay.
+   It says whether the size, the limit and the one-orchestrator rule stay, and gives the longest
+   stretch `loop` was not held while a loop ran (the lock's history, `issue.locks?history=`).
 
 ## What the orchestrator makes
 
 | Name | Methods | Command | Needed by | What holds it to its use |
 |---|---|---|---|---|
 | `loop-fly` | `fly.status fly.work fly.up fly.down` | `brain.ts token loop-fly fly.status fly.work fly.up fly.down` | T3's checks; the laptop's loop, to yield | The methods reach no further: `fly.get` and `fly.post` are refused to every token |
-| `fly-agents` | `issue.*`, `--delegate` | `brain.ts token fly-agents 'issue.*' --delegate` | T4: the machine's `agent-token` | It is the parent of the machine's agents and of nothing on the laptop, so the machine's are told from the laptop's |
-| `fly-knowledge` | `knowledge.search` | `brain.ts token fly-knowledge knowledge.search` | T4 | One read |
-| `fly-docs` | `knowledge.put knowledge.list` | `brain.ts token fly-docs knowledge.put knowledge.list` | T4: the docs step of a landing there | As `loop-docs`: not held to kind `doc`, an agreement (`rules.md`) |
-| `fly-status` | `fly.status fly.work` | `brain.ts token fly-status fly.status fly.work` | T4: `run.sh` and the health step on the machine | Two reads. The machine gets no `fly.up` and no `fly.down` |
+| `fly-agents` | `issue.*`, `--delegate` | `brain.ts token fly-agents 'issue.*' --delegate` | T4b: the machine's `agent-token` | It is the parent of the machine's agents and of nothing on the laptop, so the machine's are told from the laptop's |
+| `fly-knowledge` | `knowledge.search` | `brain.ts token fly-knowledge knowledge.search` | T4b | One read |
+| `fly-docs` | `knowledge.put knowledge.list` | `brain.ts token fly-docs knowledge.put knowledge.list` | T4b: the docs step of a landing there | As `loop-docs`: not held to kind `doc`, an agreement (`rules.md`) |
+| `fly-status` | `fly.status fly.work` | `brain.ts token fly-status fly.status fly.work` | T4b: `run.sh`, the watch and the health step on the machine | Two reads. The machine gets no `fly.up` and no `fly.down` |
 
 The last four are what the machine holds. The briefs and the tools read three names literally:
 `loop-knowledge` (`agents/implementer.md`, `agents/spec.md`), `loop-docs` (`knowledge-docs.ts`,
@@ -470,10 +514,13 @@ leave it. T4 has a tool that writes that file from the four, without printing a 
 6. The machine's token file as a secret of the app. The orchestrating session makes the file; the
    value is set by him with `fly secrets set --stage`, or by the session through `fly.post` in his
    tab if T1 finds the Machines API sets secrets. Until T1 says which, it is his.
-7. Make the volume and the machine from the page's form (T4), and press Start the first time.
+7. Make the volume and the machine from the page's form (T4b), and press Start the first time.
 8. Approve the label `laptop` and the lock `loop` as changes to the loop's procedure, and the new
    Worker `brain-x-fly` with its secret (`agents/implementer.md`, step 3, puts a new Worker and a new
-   secret to him). His approval of this spec is read as that word.
+   secret to him). His approval of this spec is read as that
+   word, and as his word that a session on the machine sets `METADEV=1` with no `safehouse` under
+   it: the hook that asks for the variable is there to keep a session inside that sandbox, and on
+   the machine the machine is the wall (round 2, note 2 of the review).
 
 Items 1, 2, 4 and 5 are another page or another tool, once. He asked for "maybe jsut for initial
 billing setup"; items 2, 4 and 5 are more than billing, and each is a credential that only his login
@@ -487,6 +534,35 @@ change that needs a deploy waits for a session on his laptop, and how many that 
 before T6. A is as written. B is a deployer method that takes a deploy of a
 `brain-x-*` service from a token, which is a change to the deployer and his to make. The spec takes
 A, and T6 counts what A cost.
+
+## Round 2: review 2886
+
+The review (event 2886, by `rev-0f04ca`, verdict `changes`) answered its four questions yes and
+held the change on one finding, quoted:
+
+> The lock `loop` does not stay held between the passes of the loop that holds it, and three rules of part 2 read it as though it did.
+
+Read again before answering, each as the review gives it: `SKILL.md` step 8 (lines 304 to 318: the
+watch reads every 30 s, ends after 30 minutes, and "`ScheduleWakeup` 1800 s as the fallback");
+`lock.sh` lines 2 and 7 (600 s for a take and for a renew); `brain-issues.ojs` (`lockMax`, 1800);
+`brain.ts` line 514 (`PARENT = "loop-agents"`). All four are as the review says. Since the submit
+`origin/main` has one more commit, `8b4d5245`, the writer's own line in the Runs of `/review-notebook`.
+
+| The review | What changed, and where |
+|---|---|
+| Finding 1: `loop` ends between passes; the tick starts a machine beside a live laptop loop, a laptop session takes the lock beside the machine, the tick stops a machine at work, and the check "R8, apart" reads exit 1 | Part 2, "What keeps `loop` held": the watch renews it every 120 s, not the pass. The three rules are each said again there. "Off" is one empty pass and not three, so the tick's stop is not what ends an idle machine. The checks "R8, apart" and "R2, off" are rewritten |
+| Note 1: `agent-token list` and `revoke` read the parent `loop-agents` | `--parent fly-agents`, in T4; the R1/R6 check and the yield use it |
+| Note 2: item 8 of the owner's list does not name `METADEV=1` | Named there |
+| Note 3: what the push key is worth | Part 3, under the table of secrets |
+| Note 4: T4 is seven things and has a deploy in it | `fly.work` is in T3 with the service; T4 is the loop's files with no deploy; the owner's making of the machine and the checks are T4b |
+| Note 5: T1 measures no review; a review with a tab needs the channel server | T1 runs one review with `agent.sh`; a review that needs a tab is left for the laptop with a `held:` comment |
+
+Not chosen for finding 1: a row of the service that the orchestrator writes at each wake, read stale
+after 45 minutes. It needs no change to the watch. It rests on the longest gap between two wakes,
+which is 1800 s and the length of the turn after it, and a turn has no bound; and a loop that died
+would be read as live for 45 minutes. And a renew of 1800 s at each pass: the fallback's own length,
+so it ends at the moment the next pass begins. A second fresh reader read the diff of this round
+before its landing; its line is in the Runs of `/review-notebook`.
 
 ## What the fresh reader changed
 
