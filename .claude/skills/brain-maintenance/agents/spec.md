@@ -43,7 +43,14 @@ already used answers `duplicate: true` and moves nothing: after each move read t
      `logs.query`) or needs his tab is not one, and neither is a count read in a QA tab from a cell
      that reads the page's own client and session, unless the spec says how the tab stands them in.
      What only he can measure goes in the owner's list below and is no condition of a task landing
-     (`dashboards-share-series-and-controls`, review 918, findings 1 and 3);
+     (`dashboards-share-series-and-controls`, review 918, findings 1 and 3).
+     A command a check names is run before the submit, and the result the spec gives for it is the one
+     the run gave: for a result after a task, make the design's edit in the worktree, run the command,
+     take the edit back. A check that cannot be run before its task is built says so, and says where it
+     is run then: a copy of the page opened from a file has no `brainOrigin`, so nothing a Worker's
+     module draws is in it. A result with no run behind it is a round, the task's writer could not have
+     met it (`record-checked-by-review-alone`, review 1929: `grep -c "read("` written as 2 after the
+     task, 1 by the run; `i1842`, review 1951: a probe of a fetched copy, to find a chat that cannot be there);
    - the tasks, in the order they land, each small enough for one writer and one review;
    - what only the owner can do (a deploy of the kernel, core, database or deployer; a policy
      install; a rule), as one list.
