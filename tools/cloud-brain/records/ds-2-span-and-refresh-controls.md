@@ -16,7 +16,7 @@ author time is 18:04:57 +0200 (`git log --format=%ci`).
 | `timeRange` (changed) | Names `asked`, then `rangeOf(span, Date.now())`. Still the one read of the clock. |
 | `rangeOf` (new) | `(minutes, now) => ({ since, until })`. Split out so a test gives the clock. |
 | `spanName` (new) | Minutes in words: the select's name with a leading "1 " dropped ("hour"), or "N minutes" for a span the select does not have. |
-| `callsNote` (new) | The line under the panels, a string, from the answer alone. |
+| `callsNote` (new) | The note of the dashboard, a string, from the answer alone. `dashboard` draws its note above the panels, so it is under the two controls (round 2; round 1 wrote "under the panels"). |
 | `healthView` (changed) | The visitor's line names the chosen span; the note is `callsNote(calls)`. |
 
 The note reads the span from the answer (`until - since`), not from the control, so it describes
@@ -34,7 +34,7 @@ Both controls are cells of the page and show to a visitor too. A visitor who cha
 changes the line he reads and sends nothing (`calls` stays `null`; below).
 
 `tools/cloud-brain/cloud-brain-docs.ojs`, "## Calls and faults": "counts the last hour of them"
-now names the five spans, the two things that ask again, and the line about 500 groups.
+now names the five spans, what asks again, and the line about 500 groups (its words on the last two were put right in round 2, below).
 
 Not changed: `callsQuery`, `callsSeries`, `callsRead`, `calls`, the drawing functions, the two
 existing tests of Health, `logsView`.
@@ -127,3 +127,48 @@ control. Before the change, with the test alone added to the seed, it failed in 
 - **The docs line on cb4.** `cloud-brain-docs` is a module of the shell, which reaches cb4 by
   `brain.ts shell`, the owner's. Until then cb4's docs say "counts the last hour".
 - **The step's wording for a step that is not whole seconds.** `callsNote` would print a fraction.
+
+## Round 2, 2026-10-11: two statements put right (review 1202)
+
+Both findings were of words this change wrote. No behaviour changed.
+
+**1. The note is above the panels.** `dashboard` puts the note's div before the grid, as it did
+before this task. Round 1 said "under the panels" in the comment on `callsNote`, in the docs line
+and in this record, following the issue and the spec, which misname the layout. Of the two ways
+the review offered, the words were changed and the note was left where it is: it is the smaller
+change and needs no deploy (philosophy line 2). In a tab on the build, stood in as the owner, the
+note followed the button "Refresh" and came before the panel titled "Calls" in the document.
+
+**2. "At no other time" was false.** `calls` names `assembled`, `session` and `client`. In the
+same tab, with no control touched:
+
+```
+after the stand-in, read at 8 s                    1
+client redefined again, read at 5 s                2
+session redefined again, read at 5 s               3
+```
+
+The docs line now reads: "It asks again when the span is changed or "Refresh" is pressed, and
+when the page signs in or assembles its Workers' modules again. A resize draws again and does
+not ask. The line above the charts, under the two controls, gives the span, …". A change of
+`brainJoined`, the other input of `assembled`, was not made in a tab.
+
+**What was changed.** One comment line of `cloud-brain.ojs`, one sentence of
+`cloud-brain-docs.ojs`, and this record. `main` had moved: another writer's change to
+`cloud-brain.ojs` came in with `worktree.sh --rebase`, and what follows was run after it.
+
+**No deploy.** The comment is not in the built module: `cmp` of the module read out of this
+build (`lope-reader.ts --get-module @tomlarkworthy/cloud-brain`) with the one read out of
+`lopebooks/notebooks/@tomlarkworthy_cloud-brain.html` at `main` reported no difference, and the
+record emitted in the tab had the hash cb4 runs, `b0482128c42c`. The notebook differs from
+`main`'s in 6 lines, all of the docs cell "## Calls and faults".
+
+| command | result |
+|---|---|
+| `cd $W/cloud-brain-dev && bun test.ts brain-x-page` (what cb4 runs, hash `b0482128c42c…`) | `passed` 8, `failed` 0, `needsBrowser` 11 |
+| `… bun test.ts brain-x-page --with $W/tools/cloud-brain/.emitted/ds-2.js` | `passed` 8, `failed` 0, `needsBrowser` 11 |
+| the snippet of the brief's step 8 in a fresh QA tab on the build (`r=8304`, 16:31:31 UTC) | `[19,[]]`. 19 is 8 + 11; the other writer's change added one test. |
+
+Not tried in round 2: `verify-run.ts` (no `test_*` cell was added or changed); a test that holds
+the docs to the layout (none was written: the sentence is prose, and `tests/` has no file that
+reads `cloud-brain-docs.ojs`); the docs line on cb4, which is still the owner's `brain.ts shell`.
