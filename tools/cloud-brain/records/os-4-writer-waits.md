@@ -3,7 +3,7 @@
 Task 4 of `plan/cloud-brain-loop-order-of-service.md`, part 5 of its design (R5), round 1, by a
 writer of the issue loop on 2026-10-11. One commit in a worktree made at `6577a442`, by its
 subject: "os-4-writer-waits: issue-wait.sh waits for a writer's own review, …" (commit time
-23:49:31 +0200, `git log --format=%ci` in the worktree; the landing's rebase gives it another).
+23:49:44 +0200, `git log --format=%ci` in the worktree; the landing's rebase gives it another).
 The commits after it are this record. Their names on `main` are the refs of the submit. No seed, no deploy.
 
 The change is a trial. `os-5-trial-read` keeps or takes out step 13 of the writer's brief after
@@ -41,7 +41,9 @@ tool waits. A read by the writer is one more request over its whole context each
 tool's read costs nothing. Line 5 of `philosophy.md` (cost is part of a decision) decided it.
 
 How long the move takes, from the record read whole to event 2851 with `issue-as.sh impl-697b35
-"sync?after=<seq>"` (16 calls, 200 events at most in one) at 23:38 CEST, a script of this writing, not kept:
+"sync?after=<seq>"` (16 calls, 200 events at most in one), a script of this writing, not kept. It was read after
+event 2851 (`at` 23:35:08 CEST) and before this task's `start`, event 2856 (`date` after it: 23:39:10), as were the
+search and the `get` named below:
 
 ```
 reviews with a later move of their issue   214   median 5.2 s   85th percentile 7.3 s   over 30 s: 4
@@ -66,8 +68,7 @@ by message does not wait, and neither does a quick win: the spec's "once".
 
 **`round` of a line with `"rounds":2`.** The spec gives `rounds` and `event`. `round` is the first
 of the two, and the key has that number. `run-cost-is-part-of-the-issue-model` was at `building`
-with `cm-1` to `cm-6` at `triaged` (`issue-as.sh impl-697b35 "get?id=run-cost-is-part-of-the-issue-model"`,
-23:33 CEST), so the comment is the current form of a cost line.
+with `cm-1` to `cm-6` at `triaged` (`issue-as.sh impl-697b35 "get?id=run-cost-is-part-of-the-issue-model"`), so the comment is the current form of a cost line.
 
 ## The tests
 
@@ -102,17 +103,17 @@ worktree keeps no token.
 
 ```
 issue-wait.sh impl-697b35 os-4-writer-waits 2856          23:40:35 to 23:44:35 CEST   exit 3, nothing printed
-issue-wait.sh impl-697b35 os-4-writer-waits 2856 20       23:39:59 to 23:40:19        exit 3
-issue-wait.sh impl-697b35 os-2-order-and-pool 2843 20     under 1 s                   exit 0: 2848 reviewed pass, 2849 moved pass
+issue-wait.sh impl-697b35 os-4-writer-waits 2856 20       23:51:25 to 23:51:45        exit 3
+issue-wait.sh impl-697b35 os-2-order-and-pool 2843 20     23:51:45                    exit 0: 2848 reviewed (pass), 2849 moved (pass)
 issue-wait.sh impl-697b35 topics-service 2781 5           23:50:14                    exit 0: 2797 reviewed changes, 2798 moved respec
-issue-wait.sh impl-nope os-2-order-and-pool 1 20                                      exit 2, "no token named impl-nope is kept; nothing was sent"
-issue-wait.sh impl-697b35 os-2-order-and-pool 99999 3                                 exit 3, "after 99999 is past the last event, 2856; reading from 2856"
+issue-wait.sh impl-nope os-2-order-and-pool 1 20          23:51:45 to 23:51:49, with  exit 2, "no token named impl-nope is kept; nothing was sent"
+issue-wait.sh impl-697b35 os-2-order-and-pool 99999 3     the line above              exit 3, "after 99999 is past the last event, 2863; reading from 2863"
 ```
 
 The first line is the spec's "not tried": the run was a foreground Bash call with the timeout at
 280,000 ms, made by a writer that was a background Agent of the orchestrating session, and the
-harness did not stop it. That is one run. The first two and the last were made before the exit for
-a refused read and `ISSUE_WAIT_MOVE` were added; the others after neither.
+harness did not stop it. That is one run, and it was made before the exit for a refused read and
+`ISSUE_WAIT_MOVE` were added to the tool; the other five were made with the tool as committed.
 
 **Every submit of the record through `--filter`**, at 23:50 CEST, the record to event 2851 as one
 answer, each `submit` move's id and seq as the arguments:
@@ -139,7 +140,7 @@ The record has 213 `submit` and `submit-spec` moves; one was made with the owner
 
 ## What was read before designing
 
-The Brain's search with `loop-knowledge`, 23:31 CEST. Three searches with `semantic=true` ("wait
+The Brain's search with `loop-knowledge`. Three searches with `semantic=true` ("wait
 for review event poll tracker", "prompt cache keep warm resumed writer", "cost line rounds usage
 agent") were each answered `UpstreamFailed … ai.v1/embeddings answered 402 owner has made 2000
 priced calls today`. One by words, "wait review", gave six `doc:` entries, the first the spec of
@@ -163,4 +164,4 @@ to a shell error and not read. Nothing but the spec was used.
   line with `"rounds":2` and `agent-usage.ts` with no `--last-run` for such a run are written and
   not yet followed by anyone. No transcript of a run of two rounds exists to count.
 - **A watch that is already armed.** It runs the script as it was when it started, so it prints no
-  submit until it is armed again (`oversight.md` has that of an earlier landing). `SKILL.md`, step 8, says so.
+  submit until it is armed again (`oversight.md`: "a watch armed before a landing runs the old `issue-watch.sh` until armed again (os-1)"). `SKILL.md`, step 8, says so.
