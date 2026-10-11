@@ -1,8 +1,9 @@
 # Cloud Brain: a sentence that was seen to be untrue is filed, and nobody mends it
 
 Spec of the project `texts-not-read-again-after-a-change` on cb4's tracker. Written 2026-10-11 from
-21:34 (event 2277's `at`, the take) to 21:55 CEST (`date`), from `lopecode-dev` `origin/main` at
-`f7d03412` and the tracker at event 2277. Nothing here is built. Not read by a fresh agent before
+21:34 (event 2277's `at`, the take) to 21:46 CEST (the first commit's author time, `git log --format=%ai`), from `lopecode-dev` `origin/main` at
+`f7d03412` and the tracker at event 2277. Nothing here is built. Every measurement below was run between the take and 21:44 (a `date`
+before the file was written); the one time read at a run is the 21:40 of the checks. Not read by a fresh agent before
 the submit: the loop's reviewer reads it.
 
 The project's title says "nothing finds the texts that speak of a thing". The record says
@@ -73,7 +74,7 @@ with `date -r`):
 ```
 
 Six of six were seen by a writer or a reviewer of the loop. Three tickets carry the mend (1263, 1841, 1962). At
-`origin/main` `f7d03412` all six sentences still stand (`git grep` of each phrase, 21:36 CEST).
+`origin/main` `f7d03412` all six sentences still stand (`git grep` of each phrase).
 
 **Why the agent that saw it did not mend it.** Read in the briefs as they are:
 
@@ -96,7 +97,7 @@ the review (`plan/cloud-brain-record-checked-by-review-alone.md`, the table of c
 tickets. `ds-3` and `ds-4` were sent to the spec with a comment each (1339, 1340). No other round
 is on the record for these six.
 
-**Would a search for the names a change touches have found them** (Not known 2). Run 21:38 CEST,
+**Would a search for the names a change touches have found them** (Not known 2).
 `git grep -n -F` at each change's commit over `knowledge`, `plan/cloud-brain-*.md`, the briefs and
 `tools/cloud-brain/*.md|*.ojs|*.sh|*.ts`:
 
@@ -114,7 +115,7 @@ So a name the writer chooses finds two of six that the writer had not already in
 
 **Would a tool that picks the names find them.** The method of DOCER (under "Read"): a name that
 the change takes out of the code and that the docs still hold. `names.py`, at the end of this
-file, over the last 150 commits that touch a tool or a seed, run 21:39 CEST:
+file, over the last 150 commits that touch a tool or a seed:
 
 ```
 python3 names.py origin/main 150
@@ -137,7 +138,7 @@ plan/specs/cloud-brain.html, R16                                   "owner, token
 Three in six searches is not a rate.
 
 **1580, read against the code.** The ticket says "Not read against what those three services do".
-Read 21:41 CEST: `brain-blob.ojs` line 191 still has `if (who.startsWith("token:")) return { all: true, stamp: ["by:" + who] }`,
+Read in the seeds at `f7d03412`: `brain-blob.ojs` line 191 still has `if (who.startsWith("token:")) return { all: true, stamp: ["by:" + who] }`,
 and line 189 stamps a delegation's upload `by:d:<id>`. `brain-browser.ojs` line 99 says a call under
 a delegation has the owner `d:<id>`; its test at line 1712 still sends `token:laptop`. So the
 branches for `token:` are in the code and no caller reaches them
@@ -295,7 +296,7 @@ touches no file of the others.
 
 ## Read
 
-- The Brain, five searches with `loop-knowledge` (`knowledge.search?semantic=true`), 21:37 CEST:
+- The Brain, five searches with `loop-knowledge` (`knowledge.search?semantic=true`):
   "a sentence in a doc that became untrue after the behaviour changed", "stale documentation found
   when code changes", "keep a spec true after its tasks land, as built", "search the docs for the
   names a change touches", "documentation drift outdated references code comment inconsistency".
