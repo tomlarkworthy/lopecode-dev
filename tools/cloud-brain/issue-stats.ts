@@ -6,7 +6,11 @@
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 
-const arg = (n: string, d: string) => (process.argv.find((a) => a.startsWith(`--${n}=`)) || `--${n}=${d}`).split("=")[1];
+// --name=value or --name value.
+const arg = (n: string, d: string) => {
+  const at = process.argv.findIndex((a) => a === `--${n}` || a.startsWith(`--${n}=`));
+  return at < 0 ? d : process.argv[at].includes("=") ? process.argv[at].split("=")[1] : process.argv[at + 1] ?? d;
+};
 const token = arg("token", "issues-overseer-1"), since = Number(arg("after", "0")), idleH = Number(arg("idle", "4"));
 const as = join(dirname(import.meta.path), "issue-as.sh");
 

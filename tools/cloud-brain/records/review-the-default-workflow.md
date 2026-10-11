@@ -121,6 +121,48 @@ more rounds. `owner-session-file-is-present`: three rounds, about 620,000 tokens
 round, all in one function. Not a fault of the workflow's states. Not addressed here; it is the
 largest cost that is left.
 
+## The four the issue named that are not among the eleven
+
+The issue's body listed nine traps to start from. Five are above. These four were left out of the
+first writing of this file (review at event 466) and are decided here.
+
+**12. A `major` change is deployed before the owner approves it.** `submit` needs a ref, and for a
+seed the ref is a deploy, so `awaiting-approval` approves what already runs. Not changed. The plan
+at triage is where the owner stops a `major` change (`SKILL.md`, Triage: the labels `major` and
+`needs-owner` together, and he takes the second off to let it be built); the approval afterwards is
+of a change he already let through. What the task workflow lacks is a `send-back` from
+`awaiting-approval` such as the project workflow has: the owner can approve or reject, not ask for
+more. That is one move in a next install, not made today: one install in a day, and no issue has
+met it.
+
+**13. A doc-only change had to name a test file to submit.** That is a brief's rule
+(`agents/implementer.md`, step 6), not the workflow's: the `submit` guard asks for one ref of any
+kind. Not changed here. The overseer has two mentions of tests that assert a doc's phrases
+(`oversight.md`); a third is its to act on.
+
+**14. The one who files also triages and starts** (events 343 to 350, inside 66 s). Decided the
+other way, by the owner's words of 2026-10-11 ("if an agent has spare context left and it already
+knows how to fix an issue it should jsut do it"): `start` from `open` is now the workflow's own
+move. What is kept between a writer and its own work is the review: `submit` is the writer's, and
+neither the review nor the pass can be (the guards `caller.actor != issue.by.start`). The quick
+start is refused for an issue labeled `major` or `needs-owner`.
+
+**15. `test-escalated` is hidden and nobody can end it.** It is test data of 2026-10-10 on the
+security workflow, read by the owner present and its opener only, so no token of the loop sees its
+title or can move it. Not changed: it is one press of the owner's (reject, in the panel). It is in
+no count here.
+
+## Each state and move that was kept
+
+| kept | why |
+|---|---|
+| `open`, `triaged`, `ready` | `triaged` holds what waits for the owner with a plan; `ready` is the queue a writer is spawned from. Their median stays are 0.0 and 2.4 minutes, so neither costs time when nothing waits. |
+| `in-progress`, `in-review` | The two states where work is done; the writer and the reviewer are told apart by them. `in-review` has no move out but a review's: a reviewer is spawned for every issue there, and 37 of 37 got one. |
+| `awaiting-approval` | Met once (`review-fixes-13`, 13.6 minutes). Kept for `major`; see 12. |
+| `done`, `rejected`, `reverted` | `reverted` has no move out and has never been used: a reverted change that is wanted again is a new issue. |
+| `triage`, `ready`, `submit`, `pass`, `rework`, `to-approval`, `approve`, `revert` | Each was used as written (the path letters below) and no trap was traced to its guard. |
+| swap `escalate` (task to security), swap `promote` (feedback to task) | `escalate` was used once, on test data. `promote` has not been used; kept because the overseer's brief names it for the owner's own feedback. |
+
 ## What did work
 
 - No done issue was reverted. No review was passed by its own writer; the guard refused each try.
@@ -216,13 +258,20 @@ Line 7 of `philosophy.md` asks for it before a design. Two searches, 2026-10-11:
 ## Corrected the same day
 
 The first count here left out `tests-replace-console-log`: the script dropped ids that begin with
-`test`, and four are test data, not five. Found by the fresh review at 11:35. The counts above are
+`test`, and four are test data, not five. Found by the fresh review the same morning. The counts above are
 with it: 57 issues, 20 that got `needs-owner`, 12 waiting. `issue-stats.ts` had the same filter and
 is corrected to `test-`.
 
 ## Not done
 
+- `close` from `in-progress` is any token's, with a reason: another token can close a writer's live
+  work, and a writer can close in place of a review. Left: the reason is in the record and the
+  issue opens again with `reopen`. Narrow it to `issue.by.start` if it is misused.
+- Whether taking a part off its parent (`issue.link`, `part-of`, `remove`) should be the owner's
+  alone is asked of the owner (2026-10-11): it lifts the parent's `issue.children.open == 0`. The
+  loop's token did it once, at event 515, to free `brain-tests-fail-headless-unread`.
+
 - Trap 11, rounds of rework, is measured and not changed.
-- `needs-owner` stays a label. What changed is that three of its eleven end with one install, and
+- `needs-owner` stays a label. What changed is that three of its twelve end with one install, and
   that an agent can `close` an issue the owner answered in a session, with his words as the reason.
 - The numbers are of one Brain over two days with one owner.

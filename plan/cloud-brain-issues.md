@@ -376,7 +376,9 @@ kept on both issues so that `issue.get` of either shows them with no second read
 `issue.list?link=ID` finds the parts and the linked of one issue. A guard reads `issue.links`.
 A workflow has a `link` guard; one written before links has none, and whoever may label may link.
 The three that are not `part-of` are refused between two issues whose workflows have different
-`read` guards: the link would name a security report to whoever reads the other issue.
+`read` guards: the link would name a security report to whoever reads the other issue. For the
+same reason a swap that changes an issue's `read` rule (`escalate`) drops those links from both
+issues, and a `remove` is always taken when the link is there (review at event 467).
 Not taken: `blocks` (a part already holds its parent; no issue of the 57 was held by anything else),
 and link types as policy data (four fixed in `issuesLimits.rels` until a fifth is needed).
 
