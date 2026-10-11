@@ -121,7 +121,10 @@ Two files beside it, neither of them needed to resume:
    Measured before the switch: 25,212 after it had read its brief, the rules and `philosophy.md`, where an
    Agent told to answer "OK" is 40,842; one review replayed at 69,440 against 100,725 (the README has both,
    and what was not tried). First real review by it: not yet.
-5. **When an agent reports**, append the report to the journal, then read the issue again. The
+5. **When an agent reports**, append the report to the journal, then read the issue again.
+   A reviewer may have made a commit of its own since 2026-10-11: a note mended in a document of the change
+   (its brief, "What holds a change, and what is a note"; the owner: "Lets do  1,2,3"). It is named in the
+   review's body and needs no review and no move from you. The
    tracker says what happened, not the report: an implementer that says "submitted" with the
    issue still `in-progress` did not submit.
    Then put what the run cost on the issue, so that cost per issue is read from the tracker and

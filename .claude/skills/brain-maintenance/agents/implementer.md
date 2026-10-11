@@ -271,6 +271,21 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
     keeps for the owner, anything the Never list of the rules names), send no call, with any
     token: a refusal is still a forbidden call. Write "not run on cb4: needs the owner present"
     in the comment, with the call the owner would make.
+    **Before the submit, read your change as the reviewer will.** What reviews sent changes back for, by
+    how often (the tracker on 2026-10-11: 68 `changes` reviews, 144 findings, about half of them on a record,
+    a README or wording; the owner that day: "reduce review rounds"). Each is a minute now and a round later:
+    - The record exists, `tools/cloud-brain/records/<id>.md`, and has what changed, the test count and what was not tried.
+    - Every count in the submit's reason, the comment and the record is one a command of yours printed, and
+      the count of the whole suite is from a run made after your last edit.
+    - No sentence says more than you saw: "every", "always", "no other", and anything of a run you did not make.
+    - A number that is not from this change has where it is from beside it.
+    - The test you added fails without the fix, and you ran it without the fix to see.
+    - You tried the inputs the reviewer will: the empty value, the wrong type, the call sent twice, the value
+      next to the one that works (`0` where `1` is the switch), and the caller that should be refused.
+    - A comment or a header you added reads in order where it stands.
+    - Each ref of the submit is a commit that is pushed.
+    Since that day a reviewer holds a change only for what it does, its tests and what is claimed of it, and
+    mends a small thing in a document itself (its brief, "What holds a change, and what is a note").
 12. **Say it on the issue, then submit.**
     `ia comment '{"key":"impl/<id>/comment-<round>","id":"<id>","body":"…"}'` (the field is `body`; `text` is refused 400) with the fix, the test count and what was not tried, then
     `ia move '{"key":"impl/<id>/submit-<round>","id":"<id>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha of the seed commit>"},{"kind":"commit","value":"lopebooks@<sha>"},{"kind":"deploy","value":"<worker>@<hash>"}]}'`.
