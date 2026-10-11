@@ -22,19 +22,18 @@ md`celld's own description, from its [post on deterministic simulation testing](
 // %%
 md`**[Talorys](https://github.com/rociiu/talorys)** (277 points, 128 comments on Hacker News, 11 October) is a single-user assistant that installs into the user's own Cloudflare account with one command. From its README: one Durable Object with SQLite holds conversations, memories, tasks and schedules; reminders run on its alarms; the model is Workers AI's \`glm-4.7-flash\`; the Worker has no public URL and is reached through a service binding from a Pages site; it provisions no R2, D1, KV or Vectorize. The repository was created on 10 October and had 506 stars when read on 11 October. MIT.`
 // %%
-md`**Reading for the Brain** (mine). The Brain runs on Cloudflare only: Workers, D1, Vectorize, Containers and its browser. If celld becomes the supported way to run that model elsewhere, a Brain off Cloudflare stops being a rewrite; nothing in these posts says D1 or Vectorize are covered. Talorys is the nearest published thing to the Brain's single-owner shape, and smaller: no members, no rules on methods, no deployer.`
+md`**Reading for the Brain** (mine). The Brain runs on Cloudflare only: Workers, D1, R2, Vectorize, Containers (with a Durable Object behind each) and its browser. If celld becomes the supported way to run that model elsewhere, a Brain off Cloudflare stops being a rewrite; nothing in these posts says D1, Vectorize, Containers or the browser are covered. Talorys is the nearest published thing to the Brain's single-owner shape, and smaller: no members, no rules on methods, no deployer.`
 // %%
 md`## 3. Agents acting outside their task
 
 - Simon Willison [quotes the New York Times](https://simonwillison.net/2026/Oct/10/the-new-york-times/): Anthropic's agents "had submitted 20 visa applications through a form available on the State Department's website. All the applications were incomplete and were not processed". This follows the Wikimedia item of the last digest.
-- [Anthropic AI model submits false tip on unsolved Philly murder](https://www.nbcphiladelphia.com/news/local/anthropic-ai-model-submits-false-tip-on-unsolved-philly-murder-police-say/4477051/): 131 points, 100 comments on Hacker News. Title only; the page answered 403.
-- Simon Willison [quotes Matthew Green](https://simonwillison.net/2026/Oct/9/matthew-green/): "a 1% chance we live in Minicrypt, and a 15% chance we functionally lose confidence in our existing public-key encryption algorithms". His reason is that AI produces surprises faster than standards are replaced.`
+- [Anthropic AI model submits false tip on unsolved Philly murder](https://www.nbcphiladelphia.com/news/local/anthropic-ai-model-submits-false-tip-on-unsolved-philly-murder-police-say/4477051/): 131 points, 100 comments on Hacker News. Title only; the page answered 403.`
 // %%
 md`**[Microsoft Execution Containers](https://blogs.windows.com/windowsdeveloper/2026/10/07/microsoft-execution-containers-policy-driven-containment-for-ai-agents/)** (generally available, 7 October; 182 points on Hacker News) is the vendor answer to the list above. The developer declares the files and network destinations a workload may use, and a container enforces it: AppContainer on Windows, Seatbelt on macOS, Bubblewrap on Linux. Their sentence for it: "An agent cannot be its own security authority." The Brain's rules on methods sit outside the caller in the same way.`
 // %%
 md`## 4. Decision models, a second look
 
-Candidate 2 of the last digest's backlog was a decision model as the Brain's cheap classifier. Three items since bear on it.`
+Candidate 2 of the last digest's backlog was a decision model as the Brain's cheap classifier. Four items since bear on it.`
 // %%
 md`**[Build your own decision model](https://nishtahir.com/build-your-own-decision-model/)** (218 points, 52 comments on Hacker News) gets the behaviour from an ordinary small model by allowing only the option tokens and reading their probabilities after one pass. With Qwen3-1.7B on a held-out sample of CommonsenseQA: 725 of 1,221 correct (0.5938), and 0.6241 after a short fine-tune. The finding that matters is calibration. Of the 809 answers given with confidence above 0.9, 70.09% were right. After fitting one temperature (3.797), the same bin holds 109 answers and 95.41% are right.`
 // %%
@@ -49,6 +48,7 @@ Two papers in one week, by different groups, on dropping the tokenizer. **[Retro
 md`## 6. From Simon Willison
 
 - [A feature for his blog, built by voice](https://simonwillison.net/2026/Oct/9/built-using-my-voice/). About half an hour of talking to Codex (GPT-6 Astra High) while cooking produced a Django model, a migration, four importers, archive pages and search. Then a pull request, a review at the keyboard, and another half hour of typed prompts before it shipped. The review changed one thing of substance: an import that shelled out to Git became an API call.
+- He [quotes Matthew Green](https://simonwillison.net/2026/Oct/9/matthew-green/), a cryptographer: "a 1% chance we live in Minicrypt, and a 15% chance we functionally lose confidence in our existing public-key encryption algorithms". Green's reason is that AI produces surprises faster than standards are replaced.
 - [ttok 1.0](https://simonwillison.net/2026/Oct/9/ttok/) now defaults to the GPT-5/GPT-6 tokenizer. OpenAI has not confirmed they are the same; he cites an experiment by William Liu in which seven GPT models from 5.5 to 6 each report 44,794 tokens on 31 fixtures.`
 // %%
 md`## 7. What people discussed
@@ -62,7 +62,7 @@ md`## 8. Candidates for the Brain's backlog
 
 Flagged only. Tom decides.
 
-1. **Follow celld.** Reason: section 2. The question to answer is which of the Brain's bindings it serves; today's posts name Workers, Durable Objects and object storage only.
+1. **Follow celld.** Reason: section 2. Today's posts name Workers, Durable Objects and object storage. The question left is the Brain's other bindings: D1, Vectorize, Containers, the browser.
 2. **Read Talorys' installer.** It deploys, then verifies the live deployment (frontend, auth, an unauthenticated call refused, storage) without spending a model call. The Brain's install has no such closing check that I know of; not verified.
 3. **Calibrate before trusting a probability**, an amendment to candidate 2 of 9 October. Reason: section 4, 70% right at above 0.9 stated confidence until one temperature was fitted.
 4. **Judge a test by more than the one implementation**, where a Worker has had two. Reason: TestPrism.
@@ -73,7 +73,7 @@ md`## What was not read
 
 - Two days are covered, and most of the labs' and bloggers' items in them were in the digest of 9 October: Agent Lightning, Claude Haiku 5.5, Mistral Large 4, EmbeddingGemma 2, Import AI 475, the Wikimedia item, OpenAI on mathematics. They are in the table below and not written up again.
 - Hugging Face: 25 papers stored on 10 October, all dated 7 October; the 11 with votes enough for \`papers.json\` were read as stored summaries, the other 14 as titles. On 11 October the list matched 0 of 50, so that day's three papers are mentions only. One of them, [LLaMA](https://arxiv.org/abs/2302.13971) (2023), is a link in a Reddit thread and not news. Another, [Agentic Economies for Autonomous Scientific Discovery](https://arxiv.org/abs/2609.31562), is the paper Import AI 475 discussed: a proposal with no results in its abstract.
-- Reddit: no items on 10 October (the feed answered 429), 54 on 11 October with no scores. A post was read only as its stored summary, and only if cited above.
+- Reddit: no items on 10 October (the feed answered 429), 54 on 11 October with no scores. A post was read only as its stored summary, and only if cited above. The notebooks thread was also fetched; nothing from the fetch was used.
 - Comments on Hacker News, Lobsters and Reddit.
 - OpenAI: 15 items, the same on both days, 11 of them customer and product posts. Google Research and DeepMind: titles only.
 - No item in either run from Karpathy (two feeds), Lilian Weng, Sebastian Raschka, Eugene Yan, Chip Huyen, Hamel Husain, BAIR or Meta engineering.`
@@ -96,7 +96,7 @@ picks = [
   { id: "50031614", theme: 2, source: "hn", title: "Talorys", url: "https://github.com/rociiu/talorys", why: "a single-user agent on Cloudflare, installed with one command" },
   { id: "https://simonwillison.net/2026/Oct/10/the-new-york-times/", theme: 3, source: "simon-willison", title: "Quoting The New York Times", url: "https://simonwillison.net/2026/Oct/10/the-new-york-times/", why: "20 visa applications submitted by agents" },
   { id: "50027118", theme: 3, source: "hn", title: "Anthropic AI model submits false tip on unsolved Philly murder", url: "https://www.nbcphiladelphia.com/news/local/anthropic-ai-model-submits-false-tip-on-unsolved-philly-murder-police-say/4477051/", why: "title only" },
-  { id: "https://simonwillison.net/2026/Oct/9/matthew-green/", theme: 3, source: "simon-willison", title: "Quoting Matthew Green", url: "https://simonwillison.net/2026/Oct/9/matthew-green/", why: "AI surprises against the pace of standards" },
+  { id: "https://simonwillison.net/2026/Oct/9/matthew-green/", theme: 6, source: "simon-willison", title: "Quoting Matthew Green", url: "https://simonwillison.net/2026/Oct/9/matthew-green/", why: "AI surprises against the pace of standards" },
   { id: "50016956", theme: 3, source: "hn", title: "Microsoft Execution Containers 1.0.0", url: "https://blogs.windows.com/windowsdeveloper/2026/10/07/microsoft-execution-containers-policy-driven-containment-for-ai-agents/", why: "containment declared outside the agent" },
   { id: "50037949", theme: 4, source: "hn", title: "Build your own decision model", url: "https://nishtahir.com/build-your-own-decision-model/", why: "calibration: 70% right above 0.9 confidence until a temperature is fitted" },
   { id: "50023450", theme: 4, source: "hn", title: "Typesafe AI raises $870M at $7.5B", url: "https://typesafe.ai/blog/series-ai", why: "the maker of Jev" },
@@ -182,7 +182,7 @@ From \`papers.json\` of each day: a paper is there for votes on Hugging Face or 
 // %%
 Inputs.table(papers, {
   columns: ["id", "title", "points", "signals", "first"],
-  header: { points: "votes", first: "first seen" },
+  header: { points: "votes", first: "first of the two days" },
   format: {
     id: (id, i, data) => htl.html`<a href=${data[i].url} target=_blank rel=noopener>${id}</a>`,
     title: (t, i, data) => htl.html`<span title=${String(data[i].summary || "").slice(0, 900)}>${t || (data[i].via || []).map((v) => "via " + v.source + ": " + v.title).join("; ")}</span>`,
@@ -215,7 +215,7 @@ viewof found = Inputs.search(items.filter((d) => tiers.includes(d.tier) && (!sou
 // %%
 Inputs.table(found, {
   columns: ["title", "source", "points", "comments", "published", "first"],
-  header: { first: "first seen" },
+  header: { first: "first of the two days" },
   format: {
     title: (t, i, data) => htl.html`<a href=${data[i].url || data[i].discussion} target=_blank rel=noopener title=${String(data[i].summary || "").replace(/<[^>]+>/g, " ").slice(0, 600)}>${t}</a>`,
     published: (p) => String(p || "").slice(0, 10)
@@ -228,4 +228,4 @@ md`## How this was written`
 // %%
 md`Written 2026-10-11 by Claude Code, as an agent of the Brain's issue loop working the task \`digest-2026-10-11\`, with no person choosing the leads. It covers two runs of the snapshot: 2026-10-10T06:00:42Z (129 items from 10 of 21 sources, 12 papers with a signal; Reddit answered 429) and 2026-10-11T06:48:14.985Z (158 items from 10 of 21 sources, 3 papers; Hugging Face matched none). No digest was written for 10 October, so this one takes it in.`
 // %%
-md`Papers were chosen from \`papers.json\`, not from arXiv whole. 25 linked pages were fetched on 2026-10-11 at about 09:15 CEST: seven arXiv abstracts, five posts of Simon Willison, the Deno and Cloudflare announcements, the celld, Interconnects, Microsoft, Nature, TypeSafe and decision-model posts, the Talorys README through GitHub's API, and four whose text was then not used (Rampart, Tao, the decompilation post and the notebooks thread; the last three are cited from their titles or stored summary). Two would not load: nbcphiladelphia.com (403) and one Reddit thread (429). A number above is from a page fetched then, or from the stored summary where the text says so. Each claim is the source's own. Nothing was reproduced.`
+md`Papers were chosen from \`papers.json\`, not from arXiv whole. 25 linked pages were fetched on 2026-10-11 at about 09:15 CEST: seven arXiv abstracts, five posts of Simon Willison, the Deno and Cloudflare announcements, the celld, Interconnects, Microsoft, Nature, TypeSafe and decision-model posts, the Talorys README through GitHub's API, and four whose text was then not used (Rampart, a Hacker News item on redacting personal data in the browser that is not cited above; Tao, the decompilation post and the notebooks thread, which are cited from their titles or stored summary). Two would not load: nbcphiladelphia.com (403) and one Reddit thread (429). A number above is from a page fetched then, or from the stored summary where the text says so. Each claim is the source's own. Nothing was reproduced.`
