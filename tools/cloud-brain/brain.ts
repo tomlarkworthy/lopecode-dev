@@ -36,16 +36,18 @@ const keptToken = (t: any, name: string): string => (Object.hasOwn(t, name) && t
 // Tokens made by agent-token, one for each agent or session: { name: value }, the same shape, in a file of their own.
 const AGENTS = BASE + "-agent-tokens.json";
 // Two agents make or end a token at once, so the file is read and written while a directory beside it is held
-// (milliseconds: no call to the Brain is made inside). One left by a process that died is taken after 10 s.
+// (milliseconds: no call to the Brain is made inside). One left by a process that died is taken after 10 s; one
+// that cannot be removed (it is not empty: something else wrote into it) is an error at once, and so is 400 tries.
 const changeAgentTokens = async (change: (t: any) => void) => {
   const lock = E(AGENTS + ".lock"), file = E(AGENTS);
   for (let i = 0; ; i++) {
     try { mkdirSync(lock); break; } catch (e: any) {
       if (e.code !== "EEXIST") throw e;
+      if (i >= 400) throw new Error(`${lock} is held`);
       let age = 0;
       try { age = Date.now() - statSync(lock).mtimeMs; } catch {}
-      if (age > 10000) { try { rmdirSync(lock); } catch {} continue; }
-      if (i >= 400) throw new Error(`${lock} is held`);
+      // ENOENT: another process took it away first, and the next try is as any other.
+      if (age > 10000) try { rmdirSync(lock); } catch (x: any) { if (x.code !== "ENOENT") throw new Error(`${lock} was left more than 10 s ago and cannot be removed (${x.code})`); }
       await Bun.sleep(25);
     }
   }
@@ -560,7 +562,7 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
   const path = args[0], rest = args.slice(1).filter((a, i) => a !== "--owner" && a !== "--other" && i + 1 !== as && i + 1 !== as + 1);
   const have = name ? { ...tokens(AGENTS), ...tokens(BASE + "-issues-tokens.json"), ...tokens() } : {};
   if (as >= 0 && !name) { console.log("--as needs a name: curl <path> --as NAME"); process.exit(1); }
-  if (as >= 0 && !keptToken(have, name)) { console.log(`no token "${name}" is kept; make one with: token ${name} <method…>`); process.exit(1); }
+  if (as >= 0 && !keptToken(have, name)) { console.log(`no token "${name}" is kept; make one with: token ${name} <method…>, or for an agent's tracker calls: agent-token <role>`); process.exit(1); }
   const extra = name ? ["-H", "authorization: Bearer " + keptToken(have, name)] : args.includes("--owner") && st.session ? ["-H", "authorization: Bearer " + st.session] : args.includes("--other") && st.otherSession ? ["-H", "authorization: Bearer " + st.otherSession] : [];
   const p = Bun.spawn(["curl", "-s", "-m", "30", "-w", "%{stderr} [%{http_code}]\n", ...extra, ...rest, (path.startsWith("http") ? "" : B()) + path], { stdout: "inherit", stderr: "inherit" });
   await p.exited;

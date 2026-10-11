@@ -7,7 +7,7 @@
 //   bun test ./tests/tools/agent-token.test.ts
 //   BRAIN_TS=/path/to/brain.ts ISSUE_AS_SH=/path/to/issue-as.sh bun test …   # the same cases against other copies
 import { test, expect, beforeAll, afterAll } from "bun:test";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, chmodSync, realpathSync, statSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, chmodSync, realpathSync, statSync, existsSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 
@@ -96,7 +96,8 @@ const rig = () => {
   chmodSync(join(root, "bin/curl"), 0o755);
   const env = { ...process.env, BRAIN_BASE: "cb4", BRAIN_STATE_DIR: state, PATH: `${join(root, "bin")}:${process.env.PATH}` };
   const run = async (cmd: string[]) => {
-    const p = Bun.spawn(cmd, { env, stdout: "pipe", stderr: "pipe" });
+    // A run that does not end is killed, and its exit code is then not 0 or 1.
+    const p = Bun.spawn(cmd, { env, stdout: "pipe", stderr: "pipe", timeout: 20000 });
     const out = await new Response(p.stdout).text(), err = await new Response(p.stderr).text();
     return { code: await p.exited, out, err, all: out + err };
   };
@@ -344,4 +345,51 @@ test("token revoke of the parent ends its children: a child's secret is then ref
   await r.brain("token", "revoke", "loop-agents");
   expect(r.kept("cb4-tokens.json")).toEqual({});
   expect((await r.as(name, "get?id=x")).err).toBe(" [401]\n");
+});
+
+// Review 1420: the branch for a lock left behind went round with no sleep and no end when the lock could not be
+// removed, after the child was made. A lock is an empty directory; a file in it is what makes rmdir fail.
+const staleLock = (state: string, withFile: boolean) => {
+  const lock = join(state, "cb4-agent-tokens.json.lock"), then = new Date(Date.now() - 60000);
+  mkdirSync(lock);
+  if (withFile) writeFileSync(join(lock, "x"), "");
+  utimesSync(lock, then, then);
+  return lock;
+};
+
+test("agent-token: a lock left behind that cannot be removed is exit 1, and the child that was made is revoked and not kept", async () => {
+  const r = rig(), parent = await r.parent();
+  const lock = staleLock(r.state, true);
+  calls = [];
+  const began = Date.now(), made = await r.brain("agent-token", "impl", "stuck");
+  expect(made.code).toBe(1);
+  expect(Date.now() - began).toBeLessThan(15000);
+  expect(made.out).toContain("could not be kept");
+  expect(made.out).toContain(lock);
+  const [create] = sent("delegation.create");
+  expect(sent("delegation.revoke")).toMatchObject([{ bearer: parent.secret }]);
+  expect(rows.map((d) => d.name)).toEqual(["loop-agents"]);
+  expect(made.out).toContain(create.body.name);
+  expect(r.kept("cb4-agent-tokens.json")).toEqual({});
+  expect(existsSync(lock)).toBe(true);
+}, 30000);
+
+test("agent-token: a lock left behind that can be removed is taken, and the child is kept", async () => {
+  const r = rig();
+  await r.parent();
+  const lock = staleLock(r.state, false);
+  const began = Date.now(), made = await r.brain("agent-token", "impl", "left");
+  expect(made.code).toBe(0);
+  expect(Date.now() - began).toBeLessThan(5000);
+  expect(Object.keys(r.kept("cb4-agent-tokens.json"))).toEqual([made.out.trim()]);
+  expect(existsSync(lock)).toBe(false);
+}, 30000);
+
+test("brain.ts curl --as a name that is not kept names both ways to make one", async () => {
+  const r = rig();
+  const got = await r.brain("curl", NS + "issue.policy", "--as", "impl-000000");
+  expect(got.code).toBe(1);
+  expect(got.out).toContain('no token "impl-000000" is kept');
+  expect(got.out).toContain("agent-token <role>");
+  expect(calls).toEqual([]);
 });
