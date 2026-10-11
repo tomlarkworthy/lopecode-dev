@@ -329,6 +329,7 @@ Each is `ia <call> '<json>'`, and each takes a `key`. The shapes, from the track
 |---|---|
 | `open` | `{ key, title, body, kind, about, parent, labels, id }`. `about` is `brain` or a Worker's name; `id` is `a-z 0-9 -`, 40 at most. |
 | `comment` | `{ key, id, body }` |
+| `attach` | `{ key, id, name, mimeType, text }`, or `base64` in place of `text`. A file for the reviewer or the owner (a diff, a log, a screenshot): 1 MB, 20 an issue, a name once. Read back with `ia "attachment?id=<id>&name=<name>"`. Since 2026-10-11 (`records/n9e1c1256.md`). |
 | `label` | `{ key, id, add, remove }`, lists of names |
 | `move` | `{ key, id, to, reason, refs }` |
 
