@@ -3,7 +3,7 @@
 // README.md, philosophy.md) into a Brain's knowledge base, one entry a doc (kind `doc`, id `doc:<name>`), so that
 // knowledge.search?semantic=true finds the doc for a task. `status` says which entries are behind their file and for
 // how long, `put` enters them. No step of a landing runs the put yet (plan/cloud-brain-brain-docs-entered-by-hand.md, task 2).
-//   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status [--check]      --check: exit 1 when a doc is stale or missing
+//   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status [--check]      --check: exit 1 when a doc is stale, missing or badname
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --all | --stale | <name>…
 //   … --owner            call with the owner's session, for the owner's own use; an agent does not
 //   … --limit=SECONDS    the time one call may take (120)
@@ -15,6 +15,8 @@
 // The file is not copied: the entry's url is the doc on GitHub's main (the repo is public) and sha256 is of that file.
 // A doc whose frontmatter scope has `in-notebook` is public (it already ships in the markdown-wiki notebook);
 // one that is `local-development` only is the Brain's and private. The three of cloud-brain-dev are private.
+// The id is the file's name in lower case. A name that gives no id knowledge.put takes (a space, an underscore, a
+// character outside ASCII) is `badname` in status and `badNames` in the last line, and is in no put (i1546).
 // tests/tools/knowledge-docs.test.ts
 import { writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -57,7 +59,10 @@ const call = (path: string, body?: any) => {
 
 const head = line(root, "rev-parse", SRC);
 if (!head) throw new Error(`no ${SRC} in ${root}`);
-type Doc = { name: string; id: string; public: boolean; scoped: boolean; title: string; text: string; sha256: string; url: string; source: string; at: string; rev: string; path: string };
+// What knowledge.put takes as an id (brain-knowledge.ojs, knowledgePatterns.id and knowledgeLimits.id, read 2026-10-11). One id
+// outside it has the whole call refused 400, so a doc with such a name is named and left out of the put.
+const ID = /^[a-z0-9][a-z0-9._:-]*$/, ID_MAX = 100;
+type Doc = { name: string; id: string; named: boolean; public: boolean; scoped: boolean; title: string; text: string; sha256: string; url: string; source: string; at: string; rev: string; path: string };
 const doc = (name: string, bytes: Uint8Array, more: { at: string; rev: string; path: string; url: string; source: string; private?: boolean }): Doc => {
   const raw = Buffer.from(bytes).toString("utf8");
   const fm = /^---\n([\s\S]*?)\n---\n/.exec(raw), top = fm ? fm[1] : "", body = fm ? raw.slice(fm[0].length) : raw;
@@ -65,12 +70,15 @@ const doc = (name: string, bytes: Uint8Array, more: { at: string; rev: string; p
   const topics = (/^topics: *(.+)$/m.exec(top) || [])[1] || "";
   // Topics first: the service embeds the first 1500 characters of title and text.
   const text = [topics && "Topics: " + topics, body.replace(/^# +.+\n/m, "").trim()].filter(Boolean).join("\n\n").slice(0, TEXT);
-  return { name, id: "doc:" + name.toLowerCase(), public: !more.private && /^scope:.*\bin-notebook\b/m.test(top), scoped: !!more.private || /^scope:/m.test(top),
+  const id = "doc:" + name.toLowerCase();
+  return { name, id, named: ID.test(id) && id.length <= ID_MAX, public: !more.private && /^scope:.*\bin-notebook\b/m.test(top), scoped: !!more.private || /^scope:/m.test(top),
     title: (h1 ? h1[1] : name).slice(0, 500), text, sha256: sha(bytes), url: more.url, source: more.source, at: more.at, rev: more.rev, path: more.path };
 };
 
 // plan/cloud-brain-*.md: the designs and the backlog. They have no frontmatter, so they are entered private.
-const docs: Doc[] = line(root, "ls-tree", "-r", "--name-only", SRC, "knowledge/", "plan/").split("\n")
+// -z: without it git writes a path that has a character outside ASCII in quotes and escapes, and the doc matches no pattern (i1546).
+const listed = git(root, "ls-tree", "-r", "-z", "--name-only", SRC, "knowledge/", "plan/");
+const docs: Doc[] = (listed.status === 0 ? listed.stdout.toString("utf8") : "").split("\0")
   .filter((p) => /^knowledge\/[^/]+\.md$/.test(p) || /^plan\/cloud-brain-[^/]*\.md$/.test(p))
   .map((p) => doc(p.split("/")[1].slice(0, -3), git(root, "show", `${SRC}:${p}`).stdout, { at: root, rev: SRC, path: p, url: REPO + p, source: "lopecode-dev" }));
 
@@ -113,27 +121,30 @@ const staleSince = (d: Doc, entrySha: string) => {
 const age = (ms: number) => { const h = (Date.now() - ms) / 36e5; return h < 48 ? h.toFixed(1) + " h" : (h / 24).toFixed(1) + " d"; };
 const rowsOf = (have: Map<string, any>) => docs.map((d) => {
   const e = have.get(d.id);
-  return { ...d, entry: e, state: !e ? "missing" : e.sha256 === d.sha256 && !!e.public === d.public ? "fresh" : "stale" };
+  return { ...d, entry: e, state: !d.named ? "badname" : !e ? "missing" : e.sha256 === d.sha256 && !!e.public === d.public ? "fresh" : "stale" };
 });
-const read = { source: `${SRC}@${head.slice(0, 8)}`, ...(devLeft ? { cloudBrainDev: devLeft } : {}) };
+const badNames = docs.filter((d) => !d.named).map((d) => d.name);
+const read = { ...(badNames.length ? { badNames } : {}), source: `${SRC}@${head.slice(0, 8)}`, ...(devLeft ? { cloudBrainDev: devLeft } : {}) };
+const BAD = `its id is not one knowledge.put takes (${ID.source}, ${ID_MAX} characters at most): not entered until the file has another name`;
 
 if (cmd === "status") {
   const have = kept(), rows = rowsOf(have);
   for (const r of rows) {
     const s = r.state === "stale" && r.entry.sha256 !== r.sha256 ? staleSince(r, r.entry.sha256) : null;
-    console.log(r.state.padEnd(8), (r.public ? "public " : "private"), r.name, s ? `stale ${age(s.at)} (since ${new Date(s.at).toISOString().slice(0, 16)}Z, ${s.from})` : r.state === "stale" ? "visibility differs" : "");
+    console.log(r.state.padEnd(8), (r.public ? "public " : "private"), r.name, s ? `stale ${age(s.at)} (since ${new Date(s.at).toISOString().slice(0, 16)}Z, ${s.from})` : r.state === "stale" ? "visibility differs" : r.state === "badname" ? BAD : "");
   }
   const n = (s: string) => rows.filter((r) => r.state === s).length;
   // Only an entry this tool entered: kind `doc` is also filled by other methods, whose entries have no file here.
   const gone = [...have.values()].filter((e) => e.method === "knowledge-docs" && !docs.some((d) => d.id === e.id) && !(devLeft && devIds.includes(e.id))).map((e) => e.id);
   console.log(JSON.stringify({ docs: rows.length, fresh: n("fresh"), stale: n("stale"), missing: n("missing"), entriesWithNoFile: gone, ...read }));
-  if (flag("--check") && n("stale") + n("missing") > 0) process.exit(1);
+  if (flag("--check") && n("stale") + n("missing") + badNames.length > 0) process.exit(1);
 } else if (cmd === "put") {
-  const rows = rowsOf(kept());
+  const rows = rowsOf(kept()).filter((r) => r.named);
   const pick = flag("--all") ? rows : flag("--stale") ? rows.filter((r) => r.state !== "fresh") : rows.filter((r) => names.includes(r.name));
+  const left = badNames.length ? `not entered, ${BAD.replace("its id is", "the id is")}: ${badNames.join(", ")}` : "";
   const unscoped = pick.filter((r) => !r.scoped).map((r) => r.name);
   if (unscoped.length) console.log("no scope in frontmatter, entered private:", unscoped.join(", "));
-  if (!pick.length) { console.log("nothing to put"); process.exit(0); }
+  if (!pick.length) { console.log("nothing to put" + (left ? "; " + left : "")); process.exit(0); }
   let entered = 0, changed = 0, vectors = 0;
   const t0 = Date.now();
   for (let i = 0; i < pick.length; i += 25) {

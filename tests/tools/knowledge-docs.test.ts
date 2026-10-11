@@ -249,3 +249,39 @@ test("--limit=SECONDS is the time one call may take", () => {
   const a = t.calls().at(-1).args;
   expect(a[a.indexOf("-m") + 1]).toBe("30");
 });
+
+// i1546: git writes a path with a character outside ASCII as "knowledge/caf\303\251.md" unless asked with -z,
+// and the doc then matched no pattern: no line in status, no put, nothing for --check to count.
+test("i1546: a doc whose name gives no id the service takes is listed as badname, fails --check and is left out of every put", () => {
+  const t = fresh();
+  t.write("knowledge/café.md", "# Café\n\nThe text.\n");
+  t.write("knowledge/Upper Case.md", "# Upper\n\nThe text.\n");
+  t.write("knowledge/MixedCase.md", "# Mixed\n\nThe text.\n");
+  t.git(t.repo, "add", "knowledge");
+  t.git(t.repo, "commit", "-q", "-m", "three names");
+  t.git(t.repo, "push", "-q", "origin", "main");
+  const nfc = (x: string) => x.normalize("NFC");
+  const s = t.kdocs(["status", "--check"]);
+  expect(s.code).toBe(1);
+  const j = t.summary(s.out);
+  expect(j).toMatchObject({ docs: 9, fresh: 6, stale: 0, missing: 1 });
+  expect(j.badNames.map(nfc).sort()).toEqual(["Upper Case", "café"]);
+  const lines = nfc(s.out).split("\n");
+  expect(lines.filter((l) => l.startsWith("badname")).length).toBe(2);
+  expect(lines.find((l) => l.includes("café"))).toMatch(/^badname\s+private café its id is not one knowledge\.put takes/);
+  expect(lines.find((l) => l.includes("MixedCase"))).toMatch(/^missing/);
+  // The put goes on without them: the doc that can be entered is, under its name in lower case.
+  const p = t.kdocs(["put", "--stale"]);
+  expect(p.code).toBe(0);
+  expect(t.puts().map((e: any) => e.id)).toEqual(["doc:mixedcase"]);
+  expect(t.summary(p.out).badNames.map(nfc).sort()).toEqual(["Upper Case", "café"]);
+  expect(t.kdocs(["put", "--all"]).code).toBe(0);
+  expect(t.kdocs(["put", "café", "Upper Case"]).code).toBe(0);
+  for (const e of t.puts()) expect(e.id).toMatch(/^[a-z0-9][a-z0-9._:-]*$/);
+  // With nothing else behind, the one line a landing prints still names them.
+  t.keep([...t.all(), t.entry("mixedcase", "# Mixed\n\nThe text.\n")]);
+  const n = t.kdocs(["put", "--stale"]);
+  expect(n.code).toBe(0);
+  expect(nfc(n.out)).toMatch(/^nothing to put; not entered, .*: .*café/);
+  expect(n.out.split("\n").length).toBe(1);
+});
