@@ -49,6 +49,11 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
 5. **Reproduce before fixing**, where the issue describes behaviour: a test that fails for the
    reason the issue gives. Write it in the seed and run it with step 7's loop: it fails against
    what is deployed, before you change anything else. If you cannot reproduce it, say so on the issue and stop.
+   A defect that depends on what runs beside the test (another cell's line in `logged()`, a
+   listener on `console`) does not fail in that loop, which runs one test at a time. Make it fail
+   there by running the neighbour inside the test's own window (a second rig), and count it where
+   it was met: the deployer's run address opened N times before the fix and N times after, with N
+   and both counts in the comment (`snapshot-digest-test-fails-by-chance`: 14 of 40, then 0 of 40).
 6. **Fix it in the seed.** Never the notebook HTML, never the deployed text. Add or change a
    `test_*` cell in the same module so the defect cannot return unseen.
    When the fix is in a local tool and no seed (`brain.ts`, `tools/lope-tests.ts`), the test is a
