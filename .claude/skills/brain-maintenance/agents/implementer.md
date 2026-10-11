@@ -69,7 +69,7 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    `test_*` cell in the same module so the defect cannot return unseen.
    When the fix is in a local tool and no seed (`brain.ts`, `tools/lope-tests.ts`), the test is a
    file under `tests/` that `node --test` or `bun test` runs and that fails before the fix; its
-   count is the one you submit, and steps 7 to 9 need no build, tab or emit. If the tool cannot
+   count is the one you submit, and steps 7 to 9 need no build, browser run or emit. If the tool cannot
    be loaded by a test as it stands, say so in the comment with the commands you ran instead.
    A changed `brain.ts` is run from the worktree with
    `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted`, never copied into the main checkout.
@@ -102,32 +102,33 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    `bun tools/lope-tests.ts <notebook> --filter test_<service>` is the older runner of the same
    cells (`--report <path>` writes CTRF); use it when `test.ts` cannot load the module.
 8. **Run the module's tests in a browser, once it passes in step 7.** The count you submit is
-   this one, and the emit of step 9 needs the tab. Open a QA tab with a session name of your own
-   (`qa_open_notebook`, headless, the notebook's file URL with
-   `#view=C100(S70(<module>),S30(@tomlarkworthy/claude-code-pairing))&cc=<pairing token>&r=<new number>`),
-   wait for `connected`, then `eval_code` with the tab's full URL as `notebook_id`:
-   ```js
-   const rt = window.__ojs_runtime;
-   let mod; for (const v of rt._variables) if (v._name === "<a cell of the module>") mod = v._module;
-   const names = [...rt._variables].filter(v => v._module === mod && v._name && v._name.startsWith("test_")).map(v => v._name);
-   const side = rt.module(), bad = [];
-   await Promise.all(names.map(n => new Promise(res => {
-     const t = setTimeout(() => { bad.push(n + " TIMEOUT"); res(); }, 90000);
-     side.variable().import(n, "s_" + n, mod);
-     side.variable({ fulfilled: () => { clearTimeout(t); res(); }, rejected: e => { clearTimeout(t); bad.push(n + " " + String(e && e.message || e).slice(0, 400)); res(); } }).define(null, ["s_" + n], x => x);
-   })));
-   return JSON.stringify([names.length, bad]);
+   this one. One command, in the worktree, with no pairing (13 s for `brain-static`, 25 s for
+   `brain-issues`, 2026-10-11):
    ```
-   Name a `test_*` cell in the first line that finds `mod`: a helper such as `blueskyRig` is in
-   two modules and gives the other one's count. The snippet reads the value of the page's own
+   cd $W && bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/<module>
+   ```
+   It opens the build in a local headless Chrome and prints one line of JSON: `tests`, `passed`,
+   and `failed`, a list of each failed test's name and message (`TIMEOUT` after 90 s). Exit 0 is
+   every test passed, 1 a test failed, 70 the module was not found: it is named whole, as in the
+   notebook's boot list. A worktree made before the tool landed gets it with
+   `tools/cloud-brain/worktree.sh --rebase <id>`.
+   Do not open a paired tab for this (`qa_open_notebook` with `cc=`). You are an agent of the
+   orchestrating session, so your tab pairs through its channel server, and each `connected`,
+   `variable_update`, `cell_change` and `disconnected` of the tab is sent to that session, which
+   answers it with a request over its whole context: 1,047 such rows by 21:36 CEST on 2026-10-11, and
+   501 of that session's 1,376 requests were answers to them
+   (`records/writers-qa-tabs-wake-the-orchestrator.md`). Steps 8 and 9 need none. When
+   you must look at the page itself (a screenshot, a click), open one, do that, and close it by
+   name at once.
+   The tool reads the value of the page's own
    first run, made while every other test cell computes; the owner's page runs each `test_*`
    cell the same way at opening and after a deploy (`verifyService`, `cloud-brain.ojs`), and a
    fail there puts an unverified Worker back. So a test you add or change has no bound on the
    wall clock, assigns nothing to `console` or another global, counts calls and reads returns
    only on a panel made with `listen: false`, and does not rest on which of two calls of a fake
    answers first unless the rig holds one. One it does not meet goes in "not tried" by name.
-   One pass of the snippet does not show a test meets that. When you added or changed a
-   `test_*` cell, after the snippet and not in its place, from the main checkout
+   One pass of the tool does not show a test meets that. When you added or changed a
+   `test_*` cell, after the tool and not in its place, from the main checkout
    (1.3 s a run on 2026-10-11 18:22 CEST, 20 runs in 28 s):
    `cd <root> && BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts <worker> --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20`.
    It opens the deployer's run address 20 times with your build as the document, and reads only.
@@ -148,13 +149,11 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    passed and failed on one build: back to step 6. A run counted under `none` gave no verdict
    and is not a pass: a timeout is run again, and for a Worker that never gives one
    (`brain-deployer`: "the Worker did not say what it runs", exit 2) this command does not
-   apply, so run the snippet in three fresh tabs and say so in your comment.
+   apply, so run `tab-tests.ts` three times and say so in your comment.
    `hash` is the deployed Worker's and not your build's. (`attention-block-unreadable-to-owner`: the writer's one pass gave `[23,[]]`,
    review 698 failed the new test in 2 of 2 fresh tabs, and this command on that build, served whole as it then was,
    `lopebooks@07cc2ef2`, gave 5 failed of 10 and named it.)
-   `run_tests` hangs on this notebook; do not use it. Do not define the observers inside the
-   module under test: they would be written into the deployed source.
-   The `bad` list has each failure's message. A count here that differs from step 7's
+   A count here that differs from step 7's
    `passed + needsBrowser` goes in your comment with the names.
    In the worktree the notebook is `$W/tools/cloud-brain/.emitted/cloud-brain.html`. When the
    tests pass there, commit the seed in the worktree (`git add` the files, `git commit`).
@@ -195,12 +194,12 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
      every writer appended there and the cherry-picks met. The deploy hash and the commits are
      the refs of the submit, not part of the record. Commit it (a second commit is fine).
      The loop's reviewer is the record's fresh read; `/review-notebook` is not run on it.
-   - **Emit** in that tab, to a file named for the issue, then close the tab by name:
-     `fetch("http://127.0.0.1:47814/<id>-<worker>.json", { method: "POST", body: JSON.stringify(await (await mod.value("<name>_service")).emit()) })`.
-     Each `eval_code` is its own scope: repeat the two lines that find `rt` and `mod`. The cell
-     is named for the service: `issues_service` for Worker `brain-x-issues`, `git_service` for `brain-x-git`.
-     If nothing listens on 47814, start `bun <root>/tools/cloud-brain/test-receiver.ts` in the background
-     (from the main checkout: `apply` reads the files it saves there).
+   - **Emit** with the same tool, to a file named for the issue in the main checkout, where `apply` reads it:
+     `cd $W && bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/<module> --emit <name>_service=<root>/tools/cloud-brain/.emitted/<id>-<worker>.json`.
+     It runs the tests again and then writes what `(await module.value("<name>_service")).emit()` gives;
+     `emitted` in its line has the file, its `hash` and its size. With a failed test it writes no file (exit 1);
+     exit 2 is tests passed and no file written (`notEmitted` says why). The cell is named for the service: `issues_service` for Worker `brain-x-issues`,
+     `git_service` for `brain-x-git`. The command that gave your count and the one that emitted may be one.
      A change with no deploy (a doc, a local tool, a test file under `tests/`) emits nothing.
      A changed `test_*` cell of a seed is a deploy of that seed's Worker: emit and apply it.
 10. **Land it. One writer lands at a time, in the main checkout.** Note `date` when you take the
@@ -316,8 +315,7 @@ What a resumed round does that a first round does not:
   the diff (`git -C <root> diff <sha> main -- .claude/skills/brain-maintenance`), which is short.
   `philosophy.md` is in the submodule: `git -C <root>/cloud-brain-dev log --since=<the date of your submit> -- philosophy.md`.
   A file the list does not name is as you read it.
-- **Nothing outside your context was kept.** No shell state, no QA tab (you closed it by name),
-  no lock, no receiver you started. A tab is opened with a new `r` and a session name not used before.
+- **Nothing outside your context was kept.** No shell state, no lock, no tab you opened.
 - **The round's number** is the count of `rework` moves plus one, as step 4 says, in every key:
   `comment-2`, `submit-2`. The record gets a dated section in the same file (step 9).
 - **Everything else is the brief as written**: the prior-art search only when the findings ask for
