@@ -8,6 +8,8 @@ exists today" is an estimate and says so.
 
 Round 2, 2026-10-11 16:33 CEST: sent back by the review of event 990 with five findings. Each is
 answered under "The review of event 990" at the end, and the text it concerns is changed in place.
+Round 3, 16:38 CEST: sent back by the review of event 1005 with three findings, answered under
+"The review of event 1005".
 
 ## What was asked
 
@@ -41,8 +43,9 @@ is taken here as a report.
 | "The size of a marked thing" | settled under "The size of a marked thing": a document, and the long one is cut in two |
 | "Where the mark is and what the script reads" | a value of `scope:` in the frontmatter (event 913); the script reads files |
 | "What is in the body and what is searched for" | all of it in the body. A search at the time of need is taken out by the correction (event 913) |
-| "The hook" | R5 | task 3: the gate run by hand as under "The hook", with a session name that has read nothing: exit 2 that names `cloud-brain-access-for-the-loop.md` and not the 27 KB doc. Task 4, if the hook's input names the agent type: the same call with `"agent_type":"brain-reviewer"` added exits 0. Task 8: the last row of R7's table, which waits on the owner's clause and is no condition of a task landing |
-| R6 |
+| "The hook" | R5 |
+| "How a knowledge mistake is seen" | R4: a tool that reads the transcripts, and one line of the report |
+| "The proof before the switch" | R6 |
 | "The restart" | once, by the owner. The issue's reading was wider than the docs: see "What exists today" |
 | "Which role is next" | left out of this spec. Decided from R7's numbers after 20 lean reviews; the tool of task 2 measures any role |
 | Related: `rework-resumes-the-implementer` (done, event 901) | no requirement. It says "The reviewer is never resumed", which holds here |
@@ -373,34 +376,53 @@ Three and 20 are first guesses, to be changed by the overseer from what it sees.
 Six of the twelve `changes` reviews listed above are run again by the lean type: the first review
 of six different issues, chosen by the task before any run and named in its record.
 
-A replay runs in the main checkout at today's `HEAD`, as every review does. The brief has the
-reviewer read the change with `git show <sha>` and make its own worktree at `<sha>^` when a test
-has to fail without the fix (step 4), so nothing in a review needs the working tree to be old. The
-first writing put the replay in a worktree at the submit's commit; the review's finding 1 showed
-that such a tree has the old `issue-as.sh`, no token, and (at `f6016d48`, the commit of submit 91)
-no `worktree.sh`.
+A replay has to see what the first reviewer saw and no more. Two places were tried on paper and
+each failed a review:
 
-A reviewer reads the issue with `ir "get?id="`, which today would show it the review it is being
-compared with, and it writes its verdict with `ir review` and `ir move`. So the proof needs
-`issue-as.sh` to take `ISSUE_AS_UNTIL=<seq>`: a `get` or `list` answers with the events after that
-one left out and the issue's state as that event left it, and any write is printed and not sent.
-The replay prompt is the loop's prompt and one more line, which gives `ir` whole, by absolute path:
+- *A worktree at the submit's commit, with the brief's relative paths* (the first writing). Finding
+  1 of review 990: such a tree has the old `issue-as.sh`, no token, and at `f6016d48` (submit 91)
+  no `worktree.sh`.
+- *The main checkout at today's `HEAD`* (round 2). Finding 3 of review 1005: step 6 of the brief
+  has every reviewer read `tools/cloud-brain/records/<id>.md`, and today's file names the review
+  the run is scored against (`records/dv-6-brief-step-8-runs-verify-run.md` line 13: "Review 869,
+  changes. The line gave …"). 9 of the 10 issues have such a record. Today's tree also holds the
+  fix, so a test run there passes for a reason the first reviewer did not have, and commit
+  messages quote reviews (`ef5fc361` quotes 195 and 209). Each of these errs toward meeting the gate.
+
+So: the old tree, and today's tools by absolute path. The orchestrator makes the tree with today's
+tool, `W=$(<root>/tools/cloud-brain/worktree.sh replay-<id>)` and `git -C $W checkout -q --detach <sha>`,
+with `<sha>` the submit's commit. In it the record is the one the first reviewer read or is absent,
+the fix of the next round does not exist, a test runs on the code under review, and `git log`
+ends at the submit.
+
+The tracker is the other way in. A reviewer reads the issue with `ir "get?id="`, which today would
+show it the review it is being compared with, and it writes its verdict with `ir review` and
+`ir move`. So the proof needs `issue-as.sh` to take `ISSUE_AS_UNTIL=<seq>`: a `get` or `list`
+answers with the events after that one left out and the issue's state as that event left it, and
+any write is printed and not sent.
+
+The replay prompt is the loop's prompt, with `Working directory: $W`, and these lines:
 
 ```
-Replay. Define ir as: ir() { ISSUE_AS_UNTIL=<seq> <root>/tools/cloud-brain/issue-as.sh issues-reviewer-2 "$@"; }
+Replay. Your tree is at the commit under review. Define ir as:
+ir() { ISSUE_AS_UNTIL=<seq> <root>/tools/cloud-brain/issue-as.sh issues-reviewer-2 "$@"; }
+A tool the brief names under tools/ that this tree lacks or that fails here: run <root>/tools/… by its absolute path.
+Read nothing else under <root>/, and no commit that is not an ancestor of HEAD.
 ```
 
-Two things a replay can still see that the first reviewer could not, and what is done about each:
+`worktree.sh` links `lopebooks` and `lopecode` to the main checkout's, so a notebook read through
+the link is today's. The twelve submits have no deploy ref; a replay of one whose commit changes a
+notebook is not among the six.
 
-- The working tree holds the later fix. `agent-reads.ts` lists the files a run read; a run that
-  read, in the working tree, a file the next round's commit changed is marked in the record and
-  its findings on that file are not counted for the lean type.
-- A write sent past the harness. The record's last event on the issue is read before and after
-  each run (`ir "get?id="` with no `UNTIL`); a new one fails the task.
+What still leaks, and the rule for it. `agent-reads.ts` prints, for a replay, each Read and each
+Bash command that names a path under `<root>/` other than `<root>/tools/`, or `git log --all`, or
+a commit that `git merge-base --is-ancestor <it> <sha>` refuses. A run with one such line is not
+counted at all, for either arm, and is run again. The record's last event on the issue is read
+before and after each run (`ir "get?id="` with no `UNTIL`); a new one fails the task.
 
 **The second arm.** Three of the six are also replayed by `general-purpose` with the present
 prompt and the same `Replay` line. The lean run differs from the recorded review in more than its
-body: today's `reviewer.md` (amended since from those reviews), today's tree, the harness. The
+body: today's `reviewer.md` (amended since from those reviews), today's tools, the harness. The
 second arm has all three and not the body. A recorded finding that both arms miss is read as the
 replay's, not the body's, and is left out of the gate with the reason in the record.
 
@@ -451,7 +473,7 @@ arithmetic on medians, not a measurement.
 | R2 | `agent-types.ts --list` names five parts, each a whole file; a sentence of `rules.md` is found by `grep -rl` in one file of the repository, the written `.claude/agents/` left out |
 | R3 | `bun tools/cloud-brain/agent-types.ts` exits 0; after one character changed in `reviewer.md` it exits 1; the test in `tests/tools/` fails the same way |
 | R4 | `agent-reads.ts --role reviewer` prints the tables of "What exists today" for the 64 runs; `overseer.md` has the step; the first oversight after the switch records its output and what it changed |
-| R5 | a session whose first agent is a lean reviewer runs `bun tools/cloud-brain/brain.ts redistil` and is not refused; `agent-reads.ts` shows under 3 of 20 runs reading the 27 KB doc |
+| R5 | task 3: the gate run by hand as under "The hook", with a session name that has read nothing: exit 2 that names `cloud-brain-access-for-the-loop.md` and not the 27 KB doc. Task 4, if the hook's input names the agent type: the same call with `"agent_type":"brain-reviewer"` added exits 0. Task 8: the last row of R7's table, which waits on the owner's clause and is no condition of a task landing |
 | R6 | the record `tools/cloud-brain/records/lean-reviewer-persona.md` has the six issues, each recorded finding, whether each arm named it, and the issue's last event before and after each run |
 | R7 | the table above, filled from 20 runs |
 
@@ -493,7 +515,7 @@ Each is one writer and one review. 1 and 2 are worth having if nothing after the
 
 | | Finding | Answer |
 |---|---|---|
-| F1 | a replay in a worktree at the old commit has the old `issue-as.sh`, no token and at some commits no `worktree.sh` | taken. A replay runs in the main checkout; its `ir` is given whole with an absolute path. "The proof before the switch", second and third paragraphs |
+| F1 | a replay in a worktree at the old commit has the old `issue-as.sh`, no token and at some commits no `worktree.sh` | taken: `ir` is given whole with an absolute path, and so is any tool the old tree lacks. Round 2 also moved the replay to the main checkout, which review 1005 (N3) showed to be worse; it is back in the old tree. "The proof before the switch" |
 | F2 | no arm of the present type; one run is one draw | taken. Three of the six by `general-purpose` under the same replay; a miss is run once more. The same section, "The second arm" |
 | F3 | the body tells the lean reviewer to read all of `philosophy.md`; no row for it in R7; a read of a file in the body is not counted | taken. `philosophy.md` is in the body whole, the script opens the body with a line that says a pointer to a file in it is met, R7 has rows for `philosophy.md` and `rules.md`, `agent-reads.ts` prints in-body reads apart |
 | F4 | task 1's check and R5's first check cannot be run by the task's reviewer | taken. Task 1 is checked by two greps and its count moves to task 8. R5 is checked by running the gate by hand, which was done for this round: exit 2 on the relative path, 0 on the absolute |
@@ -506,6 +528,16 @@ The two things it noted that were not findings are taken too: `reviewer.md` is 1
 the loop runs with its own token. The checks of R1 to R7 are files, exit codes, transcripts on this
 machine and the tracker read with `issue-as.sh`. Two wait on the owner and are no condition of a
 task landing: the restart (R1's second half, in task 6), and the clause in `rules.md` (R7's last row).
+
+## The review of event 1005
+
+`changes`, three findings, by `issues-reviewer-2`.
+
+| | Finding | Answer |
+|---|---|---|
+| N1 | the round 2 edit broke the table of reports: a row of three cells, `\| R6 \|` alone, and the row of "How a knowledge mistake is seen" gone | restored as `fb1f8190` had the three rows. The cause: an edit that looked for the first `\| R5 \|` in the file and found the wrong table |
+| N2 | R5's row under "How each requirement is known to be met" unchanged | the text meant for it, which N1's edit put in the other table, is now that row |
+| N3 | a replay at today's `HEAD` reads today's record, which names the review it is scored against; the fix and the commit messages are there too | taken. The replay is back in a tree at the submit's commit, with today's tools by absolute path, which answers this and F1 of review 990 together. A run that read outside the tree is not counted at all, as the review proposed. "The proof before the switch" |
 
 ## Read
 
