@@ -46,7 +46,7 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
 - **Core** (`<base>-core`): every `/xrpc/com.lopecode.brain.*` call passes it. It checks the CEL
   rule, charges the price, writes one log line, then forwards to the service.
 - **Services** (`<base>-x-NAME`, notebook module `@tomlarkworthy/brain-NAME`): browser, logs, proxy,
-  bluesky, whatsapp, blob, feed, library, static, inbox, snapshot (a daily record of
+  bluesky, whatsapp, blob, feed, library (a notebook put by a token is served with scripts and no origin since 2026-10-11, so an agent may publish one), static, inbox, snapshot (a daily record of
   public feeds at `/static/snapshot/<day>/`; it makes no model call, and since 2026-10-11 a run opens the task `digest-<day>` in the tracker), knowledge (what the Brain
   knows: entries with their source, kept file and who entered them, in a D1 database of its own,
   `knowledge.search?q=` by words (any of them, the id searched too) and `&semantic=true` by words and meaning as one order (since 2026-10-11), one vector an entry in one Vectorize index; a put

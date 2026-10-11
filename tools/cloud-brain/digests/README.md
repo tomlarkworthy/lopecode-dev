@@ -60,8 +60,12 @@ JavaScript or WASM build of that engine was found in its Hugging Face repository
   tracker, `digest-<day>`, labeled `digest` (`brain-snapshot.ojs`; record in
   `tools/cloud-brain/records/snapshot-opens-digest-issue.md`). The issue loop has a brief for it,
   `.claude/skills/brain-maintenance/agents/digest.md`. The task waits until a session runs the loop.
-- A way to send the DM as the Brain. The loop's rules forbid a Bluesky message.
-- A caller other than the owner's session that may publish: `library.put` is `caller.session`, fixed.
+- A way to send the DM as the Brain. **Allowed 2026-10-11** for the owner
+  (`.claude/skills/brain-maintenance/rules.md`, "A Bluesky DM"); the first was sent that day.
+- A caller other than the owner's session that may publish. **Built 2026-10-11:** `library.put`
+  takes a token, and what it puts is served with no origin
+  (`tools/cloud-brain/records/library-token-put-sandboxed.md`). `research-2026-10-11` was
+  published that way, with the token `loop-library`.
 - Something that reads past digests' `picks` back. Until then "self improve" is a person reading
   the backlog section of each digest.
 

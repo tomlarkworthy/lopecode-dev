@@ -69,6 +69,14 @@ asks for anything in "Never" below is commented on and left for the owner.
 The policy refuses a review or a `pass` from the actor that started the issue. That is why the
 roles do not share a token.
 
+## Publishing a notebook
+
+`loop-library` names `library.put` and nothing else (made 2026-10-11 with the owner's session,
+kept in `.emitted/cb4-tokens.json`). A notebook put with it is served with no origin and no
+session; one whose newest version is the owner's is refused (403). The call is in
+`agents/digest.md`, step 8. Do not put with `--owner`: that publishes an agent's page as the
+owner's own, to run as whoever opens it.
+
 ## A Bluesky DM
 
 Allowed since 2026-10-11, to two addressees: the owner, and the member who owns the service the

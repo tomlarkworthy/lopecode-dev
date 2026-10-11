@@ -12,17 +12,18 @@ before step 3: its sections "Layout" and "What a digest is written from" are Tom
 Your token is `issues-implementer-2`. `ia` is `tools/cloud-brain/issue-as.sh issues-implementer-2`,
 defined as a function in each command, as in `agents/implementer.md`.
 
-## What stops you today
+## Nothing stops you today
 
-One step of a digest is not open to an agent. Do the rest, then stop as step 7 says.
+Until 2026-10-11 two steps were not open to an agent, and the first digest written from this
+brief (`digest-2026-10-11`) stopped before publishing. Both were lifted that day by Tom:
 
-| Step | Why not | Read on |
-|---|---|---|
-| Publishing to the library | `library.put` is `allow: "caller.session", fixed: true` (`tools/cloud-brain/brain-library.ojs`, the `methods` of `library_service`): the owner's own session, and `rule.put` refuses a fixed rule. A token is not that. | 2026-10-11, in the seed; no call was sent |
-
-When Tom changes it, this table and step 7 are edited in the same commit. The summary to Tom by
-Bluesky DM was the second row until 2026-10-11, when he allowed a DM to the owner (`rules.md`,
-"A Bluesky DM").
+- The summary by Bluesky DM: "bluesky DMs to the owner or member owning the service are allowed"
+  (`rules.md`, "A Bluesky DM").
+- Publishing: "Why can't it be published automatically. I think this should be automated too".
+  `library.put` takes a token since then, and a notebook the owner's own tab did not put is
+  served with scripts and no origin, so it has no session of whoever opens it
+  (`tools/cloud-brain/records/library-token-put-sandboxed.md`). What that costs your page:
+  nothing is kept in the browser between visits, and it reads only public files.
 
 ## Steps
 
@@ -54,29 +55,33 @@ Bluesky DM was the second row until 2026-10-11, when he allowed a DM to the owne
 6. **Build and check.**
    `bun tools/cloud-brain/digests/build.ts <day> "Research digest, <D Month YYYY>"` writes
    `digests/research-<day>.html` (git-ignored). Open it in a QA tab under a session name of your
-   own and count the variables and those with an error (0). Those two numbers are your count
-   today. The items and the picks found among them cannot be counted on the file: a `file://`
-   page is not let read `/static` (the answer has no `access-control-allow-origin`; read
-   2026-10-11 with `curl -H "Origin: null"`), and the page says so in place of the table. They
-   are counted from the library address, in step 8. Close the tab by name.
-7. **Stop before publishing.** Commit the seed in the worktree. Copy the built file to
-   `<root>/tools/cloud-brain/digests/` before the worktree goes: it is git-ignored, the landing
-   removes the worktree, and the publish command reads it from the main checkout. Land the seed
-   as `agents/implementer.md` step 10 lands a change with no deploy. Then one comment,
-   `ia comment '{"key":"digest/digest-<day>/built","id":"digest-<day>","body":"…"}'`, with: the two
-   numbers; the path of the built file; the publish command of the README's step 6 with the day
-   filled in; and the summary for Tom, 300 characters at most. Send that summary to the owner
-   as `rules.md`, "A Bluesky DM" says, ending "Built, not published: digest-<day> waits for you."
-   One message; put the call's answer in the comment. Then
-   `ia label '{"key":"digest/digest-<day>/needs-owner","id":"digest-<day>","add":["needs-owner"]}'` and report. Do not submit:
-   nothing is published for a reviewer to read.
-8. **When publishing is open to you** (the table above is gone): publish, open the library
-   address with no session and count four numbers there (variables, those with an error, items
-   loaded, picks found). Send the owner the summary with the library address, one message
-   (`rules.md`, "A Bluesky DM"), then
+   own and count the variables and those with an error (0). The items and picks are counted
+   at the library address, in step 8: on 2026-10-11 a `file://` page could not read `/static`,
+   and whether it can since public files allow any origin was not measured. Close the tab by name.
+7. **Land the seed.** Commit it in the worktree. Copy the built file to
+   `<root>/tools/cloud-brain/digests/` before the worktree goes: it is git-ignored, and the
+   publish command reads it from the main checkout. Land as `agents/implementer.md` step 10
+   lands a change with no deploy.
+8. **Publish, count, tell the owner, submit.** From the main checkout:
+   ```
+   BRAIN_BASE=cb4 bun <root>/tools/cloud-brain/brain.ts curl "/xrpc/com.lopecode.brain.library.put?name=research-<day>&public=true" \
+     --as loop-library -X POST -H "content-type: text/html" --data-binary @<root>/tools/cloud-brain/digests/research-<day>.html
+   ```
+   The answer has `"sandboxed":true`. `loop-library` names `library.put` alone; if `brain.ts`
+   says no such token is kept, do not make one: comment, label `needs-owner`, report.
+   Open `https://cb4.endpointservices.workers.dev/library/research-<day>` with no session in a QA
+   tab (`chromium_args: ["--disable-features=LocalNetworkAccessChecks"]`, or the tab does not
+   pair) and count four numbers: the module's variables, those with an error (0), the items
+   loaded, and the picks found among the items and papers. On 2026-10-11: 55, 0, 216 items and
+   14 papers, 28 of 28.
+   Send the owner one Bluesky message (`rules.md`, "A Bluesky DM"): the summary, 300 characters
+   at most, and the library address. Then one comment,
+   `ia comment '{"key":"digest/digest-<day>/published","id":"digest-<day>","body":"…"}'`, with the
+   four numbers, the answer of the put and of the send, and that `keep.ts` was not run (it
+   calls with `--owner`). Then
    `ia move '{"key":"digest/digest-<day>/submit-<round>","id":"digest-<day>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha>"},{"kind":"url","value":"https://cb4.endpointservices.workers.dev/library/research-<day>"}]}'`.
-   `tools/cloud-brain/digests/keep.ts` (the picks' sources into the Brain's files and knowledge
-   base) calls with `--owner` and is not run by you; say in the comment that it was not run.
+   Sent back by a review: fix the seed, build, land, and publish again; a second put by the
+   token over its own first is taken.
 
 ## What a digest may not do
 

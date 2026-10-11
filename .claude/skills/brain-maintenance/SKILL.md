@@ -103,9 +103,11 @@ labeled `digest` (Tom, 2026-10-11: "we should automatically file a task in the i
 research summary. Then our claude can process it automatically"). The label says which brief: a
 digest is written, not fixed, so `agents/implementer.md` does not fit it. The opener is checked
 because anyone who may call `issue.open` may write that label. An issue labeled `digest` with
-another opener is triaged as any task. The writer stops before publishing today, and the issue
-then waits labeled `needs-owner`: `agents/digest.md`, "What stops you today". A reviewer for a
-digest follows "A digest" in `agents/reviewer.md`. Not yet run: no pass has met a digest issue.
+another opener is triaged as any task. The writer publishes with the token `loop-library`, sends
+the owner one Bluesky message and submits (`agents/digest.md`, step 8). A reviewer for a digest
+follows "A digest" in `agents/reviewer.md`. First pass over one: 2026-10-11, `digest-2026-10-11`,
+whose writer stopped before publishing under the rules of that morning; the reviewer's section
+has not been run.
 
 ## Triage
 
