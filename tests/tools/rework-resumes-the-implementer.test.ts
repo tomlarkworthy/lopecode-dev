@@ -1,0 +1,48 @@
+// The issue loop's procedure sends a rework round to the implementer that wrote the change (SendMessage),
+// and the cost comment of an implementer's run carries what is needed to find it: `agent` and `session`.
+// Issue rework-resumes-the-implementer.
+//
+//   bun test ./tests/tools/rework-resumes-the-implementer.test.ts
+import { test, expect } from "bun:test";
+import { readFileSync } from "node:fs";
+import { resolve, join } from "node:path";
+
+const dir = resolve(import.meta.dir, "../../.claude/skills/brain-maintenance");
+const skill = readFileSync(join(dir, "SKILL.md"), "utf8");
+const brief = readFileSync(join(dir, "agents/implementer.md"), "utf8");
+
+// Every `cost {…}` example of SKILL.md, parsed.
+const costs = [...skill.matchAll(/`cost (\{[^`]*\})`/g)].map((m) => JSON.parse(m[1]));
+// A `## ` section, up to the next one.
+const section = (text: string, heading: string) => text.match(new RegExp(`\\n## ${heading}\\n[\\s\\S]*?(?=\\n## |$)`))?.[0] ?? "";
+
+test("an implementer's cost example carries the agent id and the session", () => {
+  const impl = costs.filter((c) => c.role === "implementer");
+  expect(impl.length).toBeGreaterThan(0);
+  for (const c of impl) {
+    expect(c.agent).toMatch(/^a[0-9a-f]+$/);
+    expect(c.session).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+  }
+});
+
+test("a resumed round's cost example says so, and names the round whose count it holds", () => {
+  const resumed = costs.filter((c) => c.resumed === true);
+  expect(resumed.length).toBe(1);
+  expect(resumed[0].round).toBeGreaterThan(1);
+});
+
+test("the row for an issue sent back reads the cost comment and resumes with SendMessage, or spawns", () => {
+  const row = skill.split("\n").find((l) => l.trim().startsWith("| `in-progress`, started by the implementer token")) ?? "";
+  expect(row).toContain("Resume or spawn the implementer");
+  const s = section(skill, "A rework round goes to the agent that wrote the change");
+  for (const word of ["SendMessage", "CLAUDE_CODE_SESSION_ID", "`session`", "`agent`", "spawn as step 4"]) expect(s).toContain(word);
+});
+
+test("the reviewer is never resumed", () => {
+  expect(section(skill, "A rework round goes to the agent that wrote the change")).toMatch(/reviewer[^.]*never resumed/);
+});
+
+test("the brief says what a resumed round does that a first round does not", () => {
+  const s = section(brief, "A resumed round");
+  for (const word of ["`reviewed`", "worktree.sh", "rules.md", "git -C <root> diff --stat"]) expect(s).toContain(word);
+});

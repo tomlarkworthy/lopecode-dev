@@ -69,7 +69,7 @@ Two files beside it, neither of them needed to resume:
    | at `awaiting-approval` | Nothing, unless the owner has said in this session that he approves that issue, after its passing review was shown to him: then you make the `approve` move for him (`rules.md`, Never, the `approve` line). |
    | labeled `needs-owner` | Read it again each pass: the events since the label was put on, and what the owner has said in this session. When he has answered (a comment of his on the issue, or his word to you, which you quote in a comment first), or `philosophy.md` now answers it (say what changed), comment with the event that put the label on and what ended its reason, take the label off (`rules.md`, Never, the `needs-owner` line), and take the issue again from this table. Otherwise nothing: it is the owner's, and it is named in step 7. |
    | `in-review`, and no review since it came into that state | Spawn the reviewer. |
-   | `in-progress`, started by the implementer token, no agent running | Spawn the implementer: it was sent back, or an agent died. Do not, and instead comment with the open findings and label `needs-owner`, when the last implementer you spawned for it finished without a new `submit`, or when it has 3 `rework` moves and the rounds are not getting anywhere. At 3 you judge (Tom, 2026-10-10: "make a judgment call when the 3 retries is hit, has genuine progress been made?"): go on when each review closed what the one before found and the new findings are narrower; stop when a finding came back, or the rounds are trading one defect for another of the same size. Write the judgment and its reason in the journal and as a comment on the issue. |
+   | `in-progress`, started by the implementer token, no agent running | Resume or spawn the implementer: it was sent back ("A rework round goes to the agent that wrote the change", below), or an agent died (spawn). Do not, and instead comment with the open findings and label `needs-owner`, when the last implementer you spawned for it finished without a new `submit`, or when it has 3 `rework` moves and the rounds are not getting anywhere. At 3 you judge (Tom, 2026-10-10: "make a judgment call when the 3 retries is hit, has genuine progress been made?"): go on when each review closed what the one before found and the new findings are narrower; stop when a finding came back, or the rounds are trading one defect for another of the same size. Write the judgment and its reason in the journal and as a comment on the issue. |
    | labeled `digest`, opened by `worker:brain-x-snapshot` (`opener` in `get?id=`), at `open` | When several are open, the newest is the one written: `reject` each older one with the reason `covered by digest-<newest day>`, and comment on the newest with the days it covers. Then `triage` and `ready` it, the reason "the day's digest, opened by the snapshot's run"; the three questions of Triage are not asked. |
    | labeled `digest`, at `ready` | Spawn the digest writer (role `digest`). |
    | kind `project` or `feature`, at `spec-review`, no review since it came there | Spawn the reviewer; it follows "A spec" in its brief. |
@@ -97,13 +97,20 @@ Two files beside it, neither of them needed to resume:
    Then put what the run cost on the issue, so that cost per issue is read from the tracker and
    not parsed from the journal (the owner, 2026-10-11): one comment, with the token you triage
    with, whose body is the word `cost` and one line of JSON,
-   `cost {"role":"implementer","round":2,"tokens":177525,"seconds":723,"tools":37,"outcome":"in-review","event":205}`,
+   `cost {"role":"implementer","round":1,"tokens":177525,"seconds":723,"tools":37,"outcome":"in-review","event":205,"agent":"af49053b540d9c3f5","session":"f501a8e8-b922-4e11-a581-2b725efd6272"}`,
    under the key `cost-<id>-<role>-<round>`, which a second post of the same run does not repeat.
    `role` is `implementer`, `reviewer`, `spec-writer`, `digest`, `overseer` or `triage`; `round`
    counts the runs of that role on that issue from 1; `tokens`, `seconds` and `tools` are the
    Agent result's numbers as integers, a missing one left out and none estimated; `outcome` is
    `in-review`, `pass`, `changes`, `stopped` or `no-submit`; `event` is the submit or the review
-   the run made, when it made one. A run that was stopped or died gets its comment too. No time
+   the run made, when it made one. An implementer's line also has `agent`, the `agentId` of the
+   Agent result as it is written there, and `session`, the output of `echo $CLAUDE_CODE_SESSION_ID`
+   in your Bash: the two say where the agent can be sent its next round (below, "A rework round
+   goes to the agent that wrote the change"). A round that was sent to an agent and not spawned
+   has `"resumed":true` and the same `agent`:
+   `cost {"role":"implementer","round":2,"resumed":true,"tokens":201310,"seconds":410,"tools":19,"outcome":"in-review","event":231,"agent":"af49053b540d9c3f5","session":"f501a8e8-b922-4e11-a581-2b725efd6272"}`.
+   Its numbers are the ones the resumed run reported, as they are; what `tokens` counts there is
+   said in that section. A run that was stopped or died gets its comment too. No time
    of day goes in the body. An overseer's run is on no issue: its line goes in `_oversight.md` in
    the same form, and yours for the pass, with the role `orchestrator`, in `_orchestrator.md`
    when the session shows a count. The journal is written as before. The runs before this
@@ -126,6 +133,60 @@ Two files beside it, neither of them needed to resume:
    `ScheduleWakeup` 1800 s as the fallback, for a monitor that died or a session that slept; that
    wake is a whole pass, health first. A poll of the tracker is charged nothing; a wake of this
    session is not free, so the watch prints only what you would act on.
+
+## A rework round goes to the agent that wrote the change
+
+Tom, 2026-10-11: "resuming implementors is a good idea, not always possible if they are done by
+different agents, but maybe we append session-id". Until then a rework round was a new agent,
+which read the brief, the issue and the code again: 10 of 36 issues had more than one implementer
+round, 46% of 12.06 M tokens (the journal of 2026-10-10 and 10-11, counted in the body of
+`rework-resumes-the-implementer`). Written 2026-10-11; no round has been run this way yet
+(`tools/cloud-brain/records/rework-resumes-the-implementer.md`).
+
+For an issue at `in-progress` whose last move is `rework`, with no agent running:
+
+1. Read its last comment whose body starts `cost {"role":"implementer"`.
+2. When that line has an `agent`, and its `session` is the output of `echo $CLAUDE_CODE_SESSION_ID`
+   in your Bash, send the round to that agent: `SendMessage` (load it with `ToolSearch`,
+   `select:SendMessage`) with `to` the `agent` value and this message, with nothing added:
+   ```
+   Issue: <id>, sent back by the review at event <seq of the `reviewed` event>.
+   A resumed round: read "A resumed round" in <root>/.claude/skills/brain-maintenance/agents/implementer.md and follow it.
+   ```
+   The answer to a send that was taken is `{"success":true,"message":"Resuming agent …"}`. The
+   agent runs in the background and reports as a spawned one does; step 5 is the same, with
+   `"resumed":true`. It is one of the 4 implementers of step 2 while it runs.
+3. Anything else, spawn as step 4: no such comment, a line with no `agent` (every run before
+   2026-10-11), another session's agent, or a send that is refused (an agent the user stopped
+   refuses a message; a transcript is deleted after 30 days). A refused send is not tried twice.
+
+An agent's transcript is kept under the session that spawned it
+(`$CLAUDE_CONFIG_DIR/projects/<project>/<session>/subagents/agent-<agentId>.jsonl`), which is why
+the session is compared: the id alone, read in another session, names nothing there. The id is on
+the issue and not in your memory because your context is compacted and the transcripts are not.
+A session that was resumed after a restart of Claude Code keeps its id; a new session does not,
+and spawns.
+That the variable gives that directory's name was read in a subagent's Bash on 2026-10-11, not in
+an orchestrator's. Before the first send of a session, `ls` that `subagents/` directory with the
+variable in the path and see the `agent-<agentId>.jsonl` of an agent you spawned; when it is not
+there, every round of the session is a spawn, and say so in step 7.
+
+The reviewer is never resumed: a review is by an agent that has not read the work before, and a
+resumed reviewer has. The spec writer, the digest writer and the overseer are spawned as before.
+
+What `tokens` is for a resumed round: on the one resume tried (2026-10-11, an agent that had
+answered "OK" with no tool call) the count was 40,982 after the first turn and 41,056 after the
+second, so the number held the first turn's context. A resumed round's `tokens` is therefore not
+set beside a new agent's as it stands. `"resumed":true` marks it, and the `tokens` of the same
+agent's comment before it is what to take off. Whether that difference is what the round was
+charged is not known.
+
+Not tried: a resumed agent that had used tools, one whose worktree was removed between the rounds
+(every implementer's is, at landing), one resumed after this session compacted or was restarted.
+Not decided: when a long first round makes a resume dearer than a new agent, and whether a
+resumed writer passes its second review more often than a new one (7 of the 9 round-2 reviews
+readable in the journal on 2026-10-11 asked for changes again). The overseer compares the
+`"resumed":true` lines with the round-2 lines without it once there are some.
 
 ## A quick win
 

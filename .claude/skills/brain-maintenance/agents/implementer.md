@@ -13,6 +13,7 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
 
 1. **Read the issue.** `ia "get?id=<id>"`: the issue and every event on it. If it came back from
    review, the reviewer's findings are the `reviewed` events; fix those and nothing else.
+   If you wrote the round before and this one came to you as a message, read "A resumed round" below first.
 2. **Read the code it is about.** The source of a service is its seed, `tools/cloud-brain/<name>.ojs`.
    The first `md` cell is its method reference. `spec-as-built.md` and `tools/cloud-brain/records/` have the history.
    What runs on cb4, when that is the question, is in your worktree after step 4:
@@ -221,6 +222,41 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
     `ia move '{"key":"impl/<id>/submit-<round>","id":"<id>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha of the seed commit>"},{"kind":"commit","value":"lopebooks@<sha>"},{"kind":"deploy","value":"<worker>@<hash>"}]}'`.
     A key used before answers 200 with `duplicate: true` and moves nothing: read the issue
     again and see `in-review`. A submit with no refs is refused. One `commit` ref for each commit the landing added to `lopecode-dev`. A change with no deploy (a doc, a local tool with its test file) has the commits only.
+
+## A resumed round
+
+Since 2026-10-11 the orchestrator may send a rework round to the agent that wrote the change, as a
+message, in place of a new agent (`SKILL.md`, "A rework round goes to the agent that wrote the
+change"; Tom that day: "resuming implementors is a good idea"). You then have the first round in
+your context: the brief, the code and why you made each choice. That is what the resume is for,
+and it is also what can mislead you. No round had been run this way when this was written; say in
+your report what of it was wrong.
+
+What a resumed round does that a first round does not:
+
+- **Read the issue again**, `ia "get?id=<id>"`. The message names a `reviewed` event by its seq:
+  its findings are the round, and nothing else is. Read them from the event, not from what you
+  expected a reviewer to say. The other events since your submit may be the owner's.
+- **Make the worktree again.** Step 10 removed yours with its branch.
+  `W=$(tools/cloud-brain/worktree.sh <id>)` gives a new one at `main`, where your change now is,
+  with what cb4 runs today in `cloud-brain-dev/deploy/`. There is nothing to rebase before step 9.
+- **Do not trust what you read of a file that has changed.** Other writers landed while the
+  review ran. `git -C <root> diff --stat <sha> main`, with `<sha>` the last `commit` ref of your
+  submit, names every file changed since. Read again each file of that list that this round rests
+  on. `rules.md` and this brief are among them when the overseer or the owner changed them: read
+  the diff (`git -C <root> diff <sha> main -- .claude/skills/brain-maintenance`), which is short.
+  `philosophy.md` is in the submodule: `git -C <root>/cloud-brain-dev log --since=<the date of your submit> -- philosophy.md`.
+  A file the list does not name is as you read it.
+- **Nothing outside your context was kept.** No shell state, no QA tab (you closed it by name),
+  no lock, no receiver you started. A tab is opened with a new `r` and a session name not used before.
+- **The round's number** is the count of `rework` moves plus one, as step 4 says, in every key:
+  `comment-2`, `submit-2`. The record gets a dated section in the same file (step 9).
+- **Everything else is the brief as written**: the prior-art search only when the findings ask for
+  a new design, the reproduction when a finding describes behaviour, the tests run again by you,
+  the landing, the comment, the submit. A count from the first round is not submitted again.
+
+In the report, say that the round was resumed, what you used from the first round without
+reading it again, and anything of it that had gone stale.
 
 ## A quick win
 
