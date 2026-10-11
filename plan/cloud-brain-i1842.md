@@ -1,7 +1,7 @@
 # Cloud Brain: the Operator in a tab of its own, in the place claude-code-pairing has when the page opens
 
-Spec of the feature `i1842` on cb4's tracker. Written 2026-10-11, 20:30 to 20:55 CEST, from
-`lopecode-dev` `6c738a77` and the tracker at event 1863. Nothing here is built. Every number under
+Spec of the feature `i1842` on cb4's tracker. Written 2026-10-11, 20:27 to 20:55 CEST, in a
+worktree of `lopecode-dev` at `1094614b` (every `file:line` below is of that commit) and the tracker at event 1863. Nothing here is built. Every number under
 "What exists today" is from a command run in that time, named beside it. The design was not run:
 what in it is a reading and not a measurement is marked so.
 
@@ -32,8 +32,8 @@ the lower pane.
 |---|---|---|
 | R1 | The Operator's chat is in a tab of its own: a tab that holds the chat and nothing else of the page module. | "its own dedicated tab" |
 | R2 | The address with no hash opens with that tab showing, in the pane claude-code-pairing has today, and the chat's input is on screen without scrolling. | "visible/focused on page load", "replacing claude-code-pairing as the default" |
-| R3 | claude-code-pairing has no pane when the page opens. An address that names it still shows it, and a `cc=` token still pairs. | "no longer be the default AI"; the loop's own pairing addresses (`brain.ts:391`, `knowledge/pairing-with-the-cloud-brain-page.md:22`, `agents/implementer.md:107`) |
-| R4 | There is one Operator chat on a page, not two. | `cloud-brain.ojs:368`: "One chat on a page can host [the settings fold]" |
+| R3 | claude-code-pairing has no pane when the page opens. An address that names it still shows it, and a `cc=` token still pairs, with the pane and without it. | "no longer be the default AI"; the loop's own pairing addresses (`brain.ts:391`, `knowledge/pairing-with-the-cloud-brain-page.md:22`, `agents/implementer.md:107`) |
+| R4 | There is one Operator chat on a page, not two. | `cloud-brain.ojs:369`: "One chat on a page can host [the settings fold]" |
 | R5 | The Operator keeps its brief, its tools, its watch of the Brain and its session group. | nothing in the request changes what the Operator is |
 | R6 | Messages from a channel are answered as before. | the inbox pump is a cell of the same module as the chat (`cloud-brain.ojs:1086`) |
 | R7 | At every step between today and the end the live page has a working Operator. | the page module and the shell reach cb4 by different hands (below); `philosophy.md`, the fifth of the seven (reliable) |
@@ -81,20 +81,31 @@ Brain import `brain-shell` and library modules only, never a Worker's (`grep "^i
 `brain-secrets.ojs`, `brain-feedback.ojs`, `cloud-brain-docs.ojs`). What the bootloader does with a
 shell module that imports a Worker's module was not run.
 
-**A module with no pane still runs.** `tools/probe-i1842-observed.ts` (not committed; Playwright on
-`lopebooks/notebooks/@tomlarkworthy_cloud-brain.html` from a file, 15 s after load, 20:33) read
-`_version` of nine cells under five layouts. Three of them:
+**A module with no pane still runs.** A Playwright script opened
+`lopebooks/notebooks/@tomlarkworthy_cloud-brain.html` from a file at 1400 × 900 under each of five
+layouts, waited 15 s, and read `_version` of nine cells of the runtime (20:33; build 1234 of the
+headless shell). The script was a scratch file and is not kept: task 1's probe makes the same read
+(`[...runtime._variables].find((v) => v._name === NAME && v._module === runtime.mains.get(MODULE))._version`)
+and is committed. All of what it printed, the layouts written short:
 
 ```
-layout                              cc_ws  inboxPump  viewof assistant
-today                                 4       8            7
-today without the pairing pane        4       9            8
-cloud-brain-docs alone                4       8            7
+layout                                             cc_ws cc_status cc_change_forwarder | viewof assistant inboxPump inboxMirror assistantRule assistantTools | pairedEndpoint
+C(S70(cloud-brain,docs,specs),S30(pairing)) today    4      1            4            |        7            8          8            3             7        |       1
+C(S70(cloud-brain,docs,specs))                       4      1            4            |        8            9          9            3             8        |       1
+C(S100(docs,cloud-brain))                            4      1            4            |        7            8          8            3             7        |       1
+C(S100(docs))                                        4      1            4            |        7            8          8            3             7        |       1
+C(S70(docs),S30(robocoop-5))                         4      1            4            |        7            8          8            3             7        |       1
 ```
+
+The first three columns are claude-code-pairing's, the next five `cloud-brain`'s, the last
+`robocoop-5-engine`'s. Every cell had `_reachable: true` in every layout. The pixel numbers above
+(632, 453, 264) are from a second scratch script of the same kind that took a screenshot of four
+layouts and read `getBoundingClientRect` of each tab label; it is not kept either, and R2's check
+replaces it.
 
 `cc_ws` is the cell of claude-code-pairing that dials the channel. It ran to the same version with
 no pane. So taking the pane out of the layout does not stop the module, while it stays in `mains`.
-Not tried: a real pairing with no pane (the probe had no channel to dial). The Operator's own use
+Not tried: a real pairing with no pane (the script had no channel to dial); it is a check of R3. The Operator's own use
 of a paired session does not go through that module: `pairedEndpoint` of `robocoop-5-engine` reads
 the token from the address and asks `127.0.0.1:<port>/v1/models` itself.
 
@@ -126,13 +137,14 @@ operatorChat = {
 
 The options are today's, unchanged, so R5 holds by construction. `plugins` is already imported there
 (`cloud-brain.ojs:1645`) and this is how the Brain's modules already find each other without an
-import: every service adds itself to `"workers"`, and `brain-inbox.ojs:31` adds handlers to `"inbox"`.
+import: every service adds itself to `"workers"`, and `cloud-brain.ojs:1142` adds a handler to `"inbox"`.
 
 **2. A module `@tomlarkworthy/brain-operator`, seed `tools/cloud-brain/brain-operator.ojs`.** In
 `build.ts` `MODULES` with `main: true` and not in `OWNED`: a module of the shell, as `brain-secrets` and
 `brain-feedback` are. It imports `plugins` and nothing of a Worker. Its cells:
 
-- a title and two sentences on what the Operator is and where its settings are;
+- a title, and under the chat two sentences on what the Operator is and where its settings are
+  (under it, or left out, so that they take none of the pane's height from R2);
 - `operatorParts = plugins.get("operator")`, which yields again when the page module joins;
 - `viewof operator`: the chat of the first part, made with this cell's `invalidation`; with no part,
   a line that says the Operator belongs to the page module and a link that opens `cloud-brain`;
@@ -172,7 +184,7 @@ cloud-brain-specs") gains the fourth tab in its text and its check. Its status i
 
 - **Open `@tomlarkworthy/robocoop-5` in the pane.** No new module: it is in the shell already. Its
   chat has neither the brief nor the watch nor the group `brain`, the tab is named robocoop-5 and
-  holds that module's own documentation, and the comment at `cloud-brain.ojs:368` is there because
+  holds that module's own documentation, and the comment at `cloud-brain.ojs:369` is there because
   two chats cannot both host the settings.
 - **A shell module that imports the brief from `cloud-brain`.** The plain way to split a module. On
   the live page `cloud-brain` is not there when the shell boots and its path answers 404 (above).
@@ -201,13 +213,14 @@ script the task adds, `tools/cloud-brain/operator-tab-check.ts FILE`, which open
 |---|---|---|
 | R1 | the probe | the pane of the tab `brain-operator` holds one chat input; no heading of `cloud-brain` is in it |
 | R2 | `bun tools/lope-reader.ts .emitted/shell.html`; the probe | `bootconf.hash` is the string of change 4 with `brain-shell` added by `shellOf`; the chat input's bottom edge is ≤ 900 and the pane's scroll offset is 0 |
-| R3 | the same two; `git diff` | the hash does not name claude-code-pairing and `mains` does; `cc_ws` has `_version > 0`; `brain.ts:391` is unchanged. A real pairing: the reviewer's own QA tab of this task, opened as `implementer.md:107` says |
+| R3 | the same two; `git diff`; a pairing | the hash does not name claude-code-pairing and `mains` does; `cc_ws` has `_version > 0`; `brain.ts:391` is unchanged. A real pairing, both ways, by the reviewer: the built file opened with the hash of change 4 and `&cc=<token>` (no pairing pane) answers `connected` and a `list_cells`; and the QA tab opened as `implementer.md:107` says (with the pane) does as today. If the first fails, claude-code-pairing stays in the layout as a second tab of the lower stack and the spec's R3 is met that way |
 | R4 | the probe | one settings fold on the page; the "## Operator" section of `cloud-brain` holds a link and no chat input |
 | R5 | `cd $W/cloud-brain-dev && bun test.ts brain-x-page --with <built module>` | `failed` 0, and the count is 22 plus the tests the task adds; `test_the_operator_is_told_to_read_the_docs` and `test_the_operator_is_pointed_at_what_the_brain_holds` are among them, unchanged |
 | R6 | the probe | `inboxPump` has `_version > 0` |
 | R7 | a test in `cloud-brain`, of the function that chooses between the link and the chat, given a `mains` with and without `brain-operator`; `bun tools/lope-tests.ts <built> --filter test_operator` for the new module | both pass |
 
-After the owner's post, at the address: `curl -s https://cb4.endpointservices.workers.dev/ | bun tools/lope-reader.ts`
+After the owner's post, at the address: `curl -s https://cb4.endpointservices.workers.dev/ -o live.html`, then
+`bun tools/lope-reader.ts live.html` (the tool takes a path and no stdin),
 shows the same hash and `brain-operator` in `mains`. That is read by the loop and is a condition of
 closing the project, not of the task landing.
 
