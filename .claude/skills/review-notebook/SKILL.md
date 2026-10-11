@@ -129,3 +129,8 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
 - 2026-10-11 `.claude/skills/brain-maintenance/rules.md`, changes since `60d2b63d~1` (a Bluesky DM to the owner
   is allowed): FIX, 4 findings (2 confirmed, 2 plausible), all taken. 94k subagent tokens, 3m05s. The send
   command failed from a writer's worktree (no token file there), and the loop has no read of a member's DID.
+- 2026-10-11 `tools/cloud-brain/digests/research-2026-10-11.html`, module `@digest/research-2026-10-11` (the first
+  digest written by the issue loop): FIX, 6 findings (4 confirmed, 2 plausible), all taken (lopecode-dev `53e49fbf`).
+  128k subagent tokens, 6m57s. It replayed the loader against cb4 and checked the quoted numbers against stored
+  summaries and pages; the browser runner still could not launch. What the author had not seen: a "first seen"
+  column that meant the first of the two days covered, and a list of the Brain's Cloudflare services without R2.
