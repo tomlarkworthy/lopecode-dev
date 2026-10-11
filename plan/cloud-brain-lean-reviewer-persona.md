@@ -6,6 +6,9 @@ Spec of the feature `lean-reviewer-persona` on cb4's tracker. Written 2026-10-11
 review has been run by a lean type, and each number under "The design" that is not under "What
 exists today" is an estimate and says so.
 
+Round 2, 2026-10-11 16:33 CEST: sent back by the review of event 990 with five findings. Each is
+answered under "The review of event 990" at the end, and the text it concerns is changed in place.
+
 ## What was asked
 
 Tom, 2026-10-11, quoted in the issue's body (event 905), whole:
@@ -38,9 +41,8 @@ is taken here as a report.
 | "The size of a marked thing" | settled under "The size of a marked thing": a document, and the long one is cut in two |
 | "Where the mark is and what the script reads" | a value of `scope:` in the frontmatter (event 913); the script reads files |
 | "What is in the body and what is searched for" | all of it in the body. A search at the time of need is taken out by the correction (event 913) |
-| "The hook" | R5 |
-| "How a knowledge mistake is seen" | R4: a tool that reads the transcripts, and one line of the report |
-| "The proof before the switch" | R6 |
+| "The hook" | R5 | task 3: the gate run by hand as under "The hook", with a session name that has read nothing: exit 2 that names `cloud-brain-access-for-the-loop.md` and not the 27 KB doc. Task 4, if the hook's input names the agent type: the same call with `"agent_type":"brain-reviewer"` added exits 0. Task 8: the last row of R7's table, which waits on the owner's clause and is no condition of a task landing |
+| R6 |
 | "The restart" | once, by the owner. The issue's reading was wider than the docs: see "What exists today" |
 | "Which role is next" | left out of this spec. Decided from R7's numbers after 20 lean reviews; the tool of task 2 measures any role |
 | Related: `rework-resumes-the-implementer` (done, event 901) | no requirement. It says "The reviewer is never resumed", which holds here |
@@ -146,15 +148,24 @@ tool results in the 64 reviewer runs that hold "learnings you have not Read"    
 ~/.claude/learnings-fires.tsv, rows for this doc                                 926: allowed 918, block 8
 ```
 
-No reviewer was refused. Two causes, both read in the scripts and neither tried by removing it:
+No reviewer was refused. Two causes, read in the scripts and then run by hand (below):
 the list of read files is kept by `CLAUDE_CODE_SESSION_ID` (`scripts/learnings-track-read.sh`),
 which a subagent shares with the session that spawned it, so one read by any agent of the session
 opens the gate for all; and the trigger wants `bun tools/…` with a relative path, which a call by
 the absolute path does not match. The 45 reads of the doc come from `rules.md`, "Always": "Read
 `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md` before the first `brain.ts`,
 `build.ts` or edit under `tools/cloud-brain/`". So the issue's "the hook requires" is, for a
-reviewer today, a line of `rules.md`. In a session whose first agent is a reviewer the hook would
-refuse; that was not run.
+reviewer today, a line of `rules.md`. The gate run by hand on 2026-10-11 at about 16:31 CEST, with a session name that has read nothing
+(`CLAUDE_CODE_SESSION_ID=probe-lrp-1 LEARNINGS_FIRE_LOG=<scratch> bash scripts/learnings-gate.sh`,
+the call as JSON on stdin):
+
+```
+"command":"bun tools/cloud-brain/brain.ts redistil"            exit 2, names the 27 KB doc
+"command":"bun <root>/tools/cloud-brain/brain.ts redistil"     exit 0
+```
+
+So a session whose first agent is a reviewer is refused on the relative path and not on the
+absolute one.
 
 The gate credits a read made with the Read tool or a Bash read. Text in an agent type's body is not
 a read, so putting the reviewer's part of the doc in its body does not open the gate.
@@ -239,30 +250,38 @@ because the brief is the body.
 ### The body, and the one source
 
 The body is whole files, one after another, each under a line that names it. No part of a file is
-taken.
+taken. It opens with two lines the script writes: "Each file below is whole and is the file as it
+was when this type was written. A line in one of them that says to read another of them is met."
 
-| Part | Bytes today | Marked how |
+| Part | Bytes, 2026-10-11 16:32 CEST | Marked how |
 |---|---|---|
-| `agents/reviewer.md` | 9,765 | it is the role's brief; named in the script's table of roles |
+| `agents/reviewer.md` | 10,643 | it is the role's brief; named in the script's table of roles |
 | `rules.md` | 9,939 | the same table: every role gets it whole |
-| `philosophy.md`, "The seven" | 587 | the same table, by heading. The one part that is not a whole file |
+| `philosophy.md` | 16,051 | the same table |
 | `agents/tests-in-a-tab.md` (new: step 8 of `implementer.md`, moved) | about 4,000 | the same table, for `reviewer` and `implementer` |
 | `knowledge/cloud-brain-access-for-the-loop.md` (new: cut from the Cloud Brain doc) | about 7,000 | frontmatter `scope: [local-development, reviewer]` |
 
-About 31 KB. At four bytes a token that is about 8,000 tokens, an estimate. With the issue's 6,239
-the first turn would be near 14,000 against 41,105 today, before the MCP tools are counted.
+About 48 KB. At four bytes a token that is about 12,000 tokens, an estimate. With the issue's 6,239
+the first turn would be near 18,000 against 41,105 today, before the MCP tools are counted.
+
+`philosophy.md` is in whole. The first writing took "The seven" only (562 bytes). The review's
+finding 3: `rules.md` line 3, in the body, says "Read `philosophy.md` first: it is what agents
+decide by", `reviewer.md` cites its Clarifications, and 31 of 65 runs read it today, so a lean
+reviewer would be sent by its own body to the 16 KB file. The other way out is a clause in
+`rules.md`, which is the owner's; this way asks him nothing and leaves no line of the body
+pointing outside it. It costs about 4,000 tokens a turn. If `agent-reads.ts` later shows the
+Clarifications unused, cutting the file is the overseer's proposal to him.
 
 There are two kinds of mark, and the reason is who may edit what.
 
 - **A knowledge doc** carries `reviewer` as a value of `scope:`, beside `local-development`. This
   is the owner's tag, and the third value of the set: check 6 of `check-learnings-triggers.sh`
-  takes its set of values from the script's table of roles, so a role with no entry is refused as
-  an unknown scope is today. The script reads the files and nothing else.
+  gets `reviewer` in its `case` (lines 248 to 251), written there by hand in task 3. The script
+  of task 4 does not write that list; its test fails when a role of its table is not a value
+  check 6 takes, or a doc carries a role the table lacks. The script reads the files and nothing else.
 - **A file of the loop** (`rules.md`, `philosophy.md`, a brief) has no frontmatter and is not a
   knowledge entry, and the overseer may not edit the first two. Which roles get them is a table of
-  eight lines or so at the head of the script. `philosophy.md` is the owner's and is not cut: the
-  script takes the text between "## The seven" and the next `##`, and fails when either heading is
-  gone.
+  eight lines or so at the head of the script.
 
 The loop's files do not move into `knowledge/` (event 913 leaves this to the spec). `rules.md` and
 the briefs are named by path in `SKILL.md`, in each other and in the spawn prompt of every role;
@@ -308,8 +327,8 @@ bun tools/cloud-brain/agent-types.ts --write    # write
 bun tools/cloud-brain/agent-types.ts --list     # each role, its parts and their bytes
 ```
 
-It fails, and writes nothing, when a part named in its table is missing, a heading it cuts at is
-gone, or a doc names a role the table lacks. The written file opens with a comment that names the
+It fails, and writes nothing, when a part named in its table is missing or a doc names a role the
+table lacks. The written file opens with a comment that names the
 script. A test in `tests/tools/` runs the check, so `bun test ./tests/tools`, which every writer of
 the loop runs, fails when a source was changed and the script was not run.
 
@@ -335,7 +354,8 @@ Two inputs, the first from the record and the second from the agent.
 
 1. `tools/cloud-brain/agent-reads.ts --role reviewer [--since <time>]` reads the transcripts as
    "What exists today" did and prints, for the runs of a type: the files read that are not in its
-   body, by number of runs; the tools called; first-turn context, turns, and context summed over
+   body, by number of runs; the files read that are in its body, apart (a read the body should
+   have saved); the tools called; first-turn context, turns, and context summed over
    turns. The numbers of this spec came from a script of this shape in a scratch directory, which
    is not kept; task 2 writes it into the repository and its first output is checked against the
    tables above.
@@ -351,27 +371,53 @@ Three and 20 are first guesses, to be changed by the overseer from what it sees.
 ### The proof before the switch (R6)
 
 Six of the twelve `changes` reviews listed above are run again by the lean type: the first review
-of six different issues, chosen by the task before any run and named in its record. For each, a
-worktree at the submit's commit, and the issue as it was at the submit.
+of six different issues, chosen by the task before any run and named in its record.
+
+A replay runs in the main checkout at today's `HEAD`, as every review does. The brief has the
+reviewer read the change with `git show <sha>` and make its own worktree at `<sha>^` when a test
+has to fail without the fix (step 4), so nothing in a review needs the working tree to be old. The
+first writing put the replay in a worktree at the submit's commit; the review's finding 1 showed
+that such a tree has the old `issue-as.sh`, no token, and (at `f6016d48`, the commit of submit 91)
+no `worktree.sh`.
 
 A reviewer reads the issue with `ir "get?id="`, which today would show it the review it is being
 compared with, and it writes its verdict with `ir review` and `ir move`. So the proof needs
 `issue-as.sh` to take `ISSUE_AS_UNTIL=<seq>`: a `get` or `list` answers with the events after that
 one left out and the issue's state as that event left it, and any write is printed and not sent.
-The replay prompt is the loop's prompt with that one variable set in the `ir` function.
+The replay prompt is the loop's prompt and one more line, which gives `ir` whole, by absolute path:
+
+```
+Replay. Define ir as: ir() { ISSUE_AS_UNTIL=<seq> <root>/tools/cloud-brain/issue-as.sh issues-reviewer-2 "$@"; }
+```
+
+Two things a replay can still see that the first reviewer could not, and what is done about each:
+
+- The working tree holds the later fix. `agent-reads.ts` lists the files a run read; a run that
+  read, in the working tree, a file the next round's commit changed is marked in the record and
+  its findings on that file are not counted for the lean type.
+- A write sent past the harness. The record's last event on the issue is read before and after
+  each run (`ir "get?id="` with no `UNTIL`); a new one fails the task.
+
+**The second arm.** Three of the six are also replayed by `general-purpose` with the present
+prompt and the same `Replay` line. The lean run differs from the recorded review in more than its
+body: today's `reviewer.md` (amended since from those reviews), today's tree, the harness. The
+second arm has all three and not the body. A recorded finding that both arms miss is read as the
+replay's, not the body's, and is left out of the gate with the reason in the record.
 
 Read from each run: the verdict, and for each finding of the recorded review that the next round
-then changed, whether the lean review names it. The gate: `changes` in six of six, and every such
-finding named in five of six. A finding the lean review makes that the record lacks is looked at
-by the orchestrator and listed. Below the gate, the body is what is changed (R4's loop, by hand,
-once) and the six are run again; the type does not go into `SKILL.md`.
+then changed, whether the review names it. One run is one draw: a miss by the lean type is run
+once more, and counts as a miss when both runs miss it. The gate: `changes` in six of six, and
+every counted finding named in five of six. A finding the lean review makes that the record lacks
+is looked at by the orchestrator and listed. Below the gate, the body is what is changed (R4's
+loop, by hand, once) and the six are run again; the type does not go into `SKILL.md`.
 
 This shows the lean type on changes to tools, briefs and docs. It does not show it on a deploy
 (steps 3 and 4 of the brief, the QA tab). The first five lean reviews of a submit with a deploy ref
 are read by the overseer at its next run against the same list as any review; nothing else covers
 that half before the switch, and the spec says so in place of a control it does not have.
 
-Cost, an estimate: six runs at the present median of 107,955 is 650,000 tokens at most.
+Cost, an estimate: nine runs at the present median of 107,955 is 970,000 tokens, and each second
+run of a miss as much again.
 
 ### What is measured after (R7)
 
@@ -379,10 +425,12 @@ Cost, an estimate: six runs at the present median of 107,955 is 650,000 tokens a
 
 ```
                                      today        wanted
-first-turn context, median           41,105       under 20,000
+first-turn context, median           41,105       under 24,000
 context summed over turns, median    1,315,354    under 900,000
 runs that read implementer.md        35 of 65     0
-runs that read the 27 KB doc         45 of 65     under 3
+runs that read philosophy.md         31 of 65     under 3
+runs that read rules.md              65 of 65     under 3
+runs that read the 27 KB doc         45 of 65     under 3  (with the owner's clause; without it, not expected to move)
 ```
 
 and the share of submits sent back. `issue-stats.ts`, which the overseer reads, printed "69 submits, 25
@@ -391,19 +439,20 @@ sent back" at event 906; this spec's own count of the record at event 926 (the l
 success: it is the sign R6 guards against, and the overseer reads the lean `pass` reviews of that
 span when it falls below 25%.
 
-"Under 900,000" comes from 15 turns at about 27,000 less start-up and about 10,000 less read. It is
+"Under 900,000" comes from 15 turns at about 23,000 less start-up and about 10,000 less read
+(820,000). It is
 arithmetic on medians, not a measurement.
 
 ## How each requirement is known to be met
 
 | | Known by |
 |---|---|
-| R1 | `.claude/agents/brain-reviewer.md` exists; a transcript's meta file says `"agentType":"brain-reviewer"`; `agent-reads.ts` shows no tool outside the list |
-| R2 | `agent-types.ts --list` names five parts, each a file; a sentence of `rules.md` is found by `grep -rl` in one file of the repository, the written `.claude/agents/` left out |
+| R1 | task 4: `.claude/agents/brain-reviewer.md` exists and `agent-types.ts` exits 0. Task 6, after the restart: the meta file beside a replay's transcript says `"agentType":"brain-reviewer"`, and `agent-reads.ts` shows no tool outside the list |
+| R2 | `agent-types.ts --list` names five parts, each a whole file; a sentence of `rules.md` is found by `grep -rl` in one file of the repository, the written `.claude/agents/` left out |
 | R3 | `bun tools/cloud-brain/agent-types.ts` exits 0; after one character changed in `reviewer.md` it exits 1; the test in `tests/tools/` fails the same way |
 | R4 | `agent-reads.ts --role reviewer` prints the tables of "What exists today" for the 64 runs; `overseer.md` has the step; the first oversight after the switch records its output and what it changed |
 | R5 | a session whose first agent is a lean reviewer runs `bun tools/cloud-brain/brain.ts redistil` and is not refused; `agent-reads.ts` shows under 3 of 20 runs reading the 27 KB doc |
-| R6 | the record `tools/cloud-brain/records/lean-reviewer-persona.md` has the six issues, each recorded finding and whether the lean review named it |
+| R6 | the record `tools/cloud-brain/records/lean-reviewer-persona.md` has the six issues, each recorded finding, whether each arm named it, and the issue's last event before and after each run |
 | R7 | the table above, filled from 20 runs |
 
 ## The tasks, in the order they land
@@ -411,19 +460,22 @@ arithmetic on medians, not a measurement.
 Each is one writer and one review. 1 and 2 are worth having if nothing after them is approved.
 
 1. **`tests-in-a-tab.md`.** Step 8 of `implementer.md` becomes `agents/tests-in-a-tab.md`; both
-   briefs name it. Known by: over the next 10 reviews no reviewer reads `implementer.md`.
+   briefs name it. Known by: `grep -c implementer.md agents/reviewer.md` is 0, and
+   `grep -l tests-in-a-tab.md agents/*.md` names both briefs. The count of reviewers that still
+   read `implementer.md` is task 8's.
 2. **`agent-reads.ts`**, with a test over a fixture transcript. Its output for today's reviewers
    matches this spec, or the record says where this spec was wrong.
 3. **The doc cut and the marks.** `knowledge/cloud-brain-access-for-the-loop.md` with `reviewer` in its
-   `scope:`, the value added to check 6 of `check-learnings-triggers.sh`, the two triggers moved,
+   `scope:`, the value written into the `case` of check 6 of `check-learnings-triggers.sh` (task 4 does not
+   change it again), the two triggers moved,
    CLAUDE.md's table of knowledge docs and its paragraph on `scope:`. The other readers of `scope:`
-   (`tools/sync-wiki.ts`, `tools/cloud-brain/knowledge-docs.ts`) are run with the new value in place;
-   how they take a third value was not read for this spec.
+   (`tools/sync-wiki.ts`, `tools/cloud-brain/knowledge-docs.ts`) take a third value with no change: the reviewer of event 990 read `sync-wiki.ts` line 55 (keeps a
+   doc whose list includes `in-notebook`) and `knowledge-docs.ts` line 44 (tests for that word).
 4. **`agent-types.ts`** and its test; `.claude/agents/brain-reviewer.md` written by it; the start-up
    count of the type, with and without `ToolSearch`, in the record. The hook's input for a subagent
    is read, and the gate's change is made or the record says why not. `SKILL.md` is not changed.
 5. **`ISSUE_AS_UNTIL`** in `issue-as.sh`, with a test that a write is not sent.
-6. **The proof**: six replays, the record. Needs the owner's restart after task 4.
+6. **The proof**: six replays by the lean type and three by `general-purpose`, the record. Needs the owner's restart after task 4.
 7. **The switch**: `SKILL.md` step 4, the `Lacked:` line in `reviewer.md`, the step in `overseer.md`.
    Only when task 6 met its gate.
 8. **The reading after 20 lean reviews**: R7's table in the record, and which role is next.
@@ -434,6 +486,26 @@ Each is one writer and one review. 1 and 2 are worth having if nothing after the
 - Restart the orchestrating session once after task 4 lands: `.claude/agents/` is a new directory.
 - Approve the clause in `rules.md`, "Always", first line (R5). Without it a lean reviewer is still
   told to read the 27 KB doc, and reads it.
+
+## The review of event 990
+
+`changes`, five findings, by `issues-reviewer-2`. It found nothing against the design.
+
+| | Finding | Answer |
+|---|---|---|
+| F1 | a replay in a worktree at the old commit has the old `issue-as.sh`, no token and at some commits no `worktree.sh` | taken. A replay runs in the main checkout; its `ir` is given whole with an absolute path. "The proof before the switch", second and third paragraphs |
+| F2 | no arm of the present type; one run is one draw | taken. Three of the six by `general-purpose` under the same replay; a miss is run once more. The same section, "The second arm" |
+| F3 | the body tells the lean reviewer to read all of `philosophy.md`; no row for it in R7; a read of a file in the body is not counted | taken. `philosophy.md` is in the body whole, the script opens the body with a line that says a pointer to a file in it is met, R7 has rows for `philosophy.md` and `rules.md`, `agent-reads.ts` prints in-body reads apart |
+| F4 | task 1's check and R5's first check cannot be run by the task's reviewer | taken. Task 1 is checked by two greps and its count moves to task 8. R5 is checked by running the gate by hand, which was done for this round: exit 2 on the relative path, 0 on the absolute |
+| F5 | check 6 is fed by the script in the design and by hand in task 3 | taken, by hand. Task 3 writes the value; task 4's test holds the script's table and check 6 to each other |
+
+The two things it noted that were not findings are taken too: `reviewer.md` is 10,643 bytes since
+`f7881ad7`, and its reading of how `sync-wiki.ts` and `knowledge-docs.ts` take a third value is in task 3.
+
+`agents/spec.md` step 5 changed at `e3b6a308` after the first submit: a check is one an agent of
+the loop runs with its own token. The checks of R1 to R7 are files, exit codes, transcripts on this
+machine and the tracker read with `issue-as.sh`. Two wait on the owner and are no condition of a
+task landing: the restart (R1's second half, in task 6), and the clause in `rules.md` (R7's last row).
 
 ## Read
 
