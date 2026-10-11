@@ -77,13 +77,33 @@ viewModules = (hash) => {
   }
 }
 // %%
-// The Brain's modules the layout names now. A new value when that set changes: a link opened a pane.
+// The modules the page will show, from an address and the ones before it. A link of linkTo writes an intent with no
+// layout, #open=@a/b#cell, and announces it; lopepage then writes the layout with replaceState, which announces
+// nothing. So an intent is read here as lopepage reads it (lp2_syncFromUrl): on the address's layout, or with none
+// on the modules before, open adds its module and close takes its module away.
+wantedOf = (hash, before = []) => {
+  const parts = String(hash || "").replace(/^#/, "").split("&");
+  const moduleOf = (key) => {
+    const p = parts.find((x) => x.startsWith(key + "="));
+    try {
+      return p ? decodeURIComponent(p.slice(key.length + 1)).split("#")[0].trim() : "";
+    } catch {
+      return "";
+    }
+  };
+  const open = moduleOf("open"), close = moduleOf("close");
+  const names = parts.some((p) => p.startsWith("view=")) ? viewModules(hash) : [...before];
+  if (open && !names.includes(open)) names.push(open);
+  return close ? names.filter((n) => n !== close) : names;
+}
+// %%
+// The Brain's modules the page shows or is about to. A new value when that set changes: a link opened a pane.
 brainWanted = !brainOrigin || brainPortal || brainModules.error
   ? []
   : Generators.observe((notify) => {
-      let last = null;
+      let last = null, before = [];
       const say = () => {
-        const names = viewModules(location.hash).filter((n) => brainModules.modules.some((m) => m.module === n));
+        const names = (before = wantedOf(location.hash, before)).filter((n) => brainModules.modules.some((m) => m.module === n));
         if (names.join(" ") !== last) notify(((last = names.join(" ")), names));
       };
       say();
@@ -185,7 +205,8 @@ md`## Reference
 | \`brainModules\` | What the deployer answers at \`infra.getModules\`: \`{ distiller, modules: [{ module, worker, hash, text, files }] }\`. Public. |
 | \`joinModules(list, { mains })\` | Adds each module's source and files to the page as script blocks, and each one named in \`mains\` (all of them when not given) as a main, once. A module that was added as source and imported since becomes a main as it is. A module the file holds is left alone. |
 | \`viewModules(hash)\` | The modules a layout names. |
-| \`brainWanted\` | The Brain's modules the layout names now. |
+| \`wantedOf(hash, before)\` | The modules the page will show: the layout's when the address has one, or else \`before\`, with the module of an \`open=\` intent added and of a \`close=\` taken away. |
+| \`brainWanted\` | The Brain's modules the layout names now, or that a link has just asked for. |
 | \`brainJoined\` | The Brain's modules on this page: \`brainWanted\` joined, with the source of what they import. |
 | \`verifyModule({ worker, module, hash })\` | Runs the module's \`test_\` cells, 30 s each, and checks the Worker reports that hash: \`{ worker, module, hash, ok, tests, failed, otherTestsRan, ms, heapMB }\`, or \`{ none }\` when the module is not on the page. |
 | \`brainVerdict\` | With \`&verify=brain-x-NAME\` in the address, \`verifyModule\` of that Worker's module in the layout, also at \`window.__brainVerdict\`. Sent nowhere. |
@@ -460,6 +481,23 @@ test_viewModules_reads_the_modules_a_layout_names = {
   expect(viewModules("#view=" + encodeURIComponent("C100(S100(@a/b))"))).toEqual(["@a/b"]);
   expect([viewModules("#cc=LOPE-1-X"), viewModules(""), viewModules(null)]).toEqual([[], [], []]);
   return "3 named, none with no view";
+}
+// %%
+// A link's click is announced with the intent alone in the address; the layout that follows it is not announced.
+test_wantedOf_adds_the_module_a_link_asks_for = {
+  const before = ["@a/b", "@e/f"];
+  expect(wantedOf("#open=@a/c", before)).toEqual(["@a/b", "@e/f", "@a/c"]);
+  expect(wantedOf("#cc=LOPE-1-X&open=@a/c#cell", before)).toEqual(["@a/b", "@e/f", "@a/c"]);
+  expect(wantedOf("#open=" + encodeURIComponent("@a/c#cell"), before)).toEqual(["@a/b", "@e/f", "@a/c"]);
+  expect(wantedOf("#open=@a/b", before)).toEqual(before);
+  expect(wantedOf("#close=@a/b", before)).toEqual(["@e/f"]);
+  // With a layout in the address the intent is applied to that layout, and the ones before are not read.
+  expect(wantedOf("#view=C100(S100(@a/d))", before)).toEqual(["@a/d"]);
+  expect(wantedOf("#view=C100(S100(@a/d,@a/g))&open=@a/c&close=@a/g", before)).toEqual(["@a/d", "@a/c"]);
+  // Nothing to read leaves the ones before, and the list passed in is not written to.
+  expect([wantedOf("#cc=LOPE-1-X", before), wantedOf("", before), wantedOf(null), wantedOf("#open=", before), wantedOf("#open=%E0%A4%A", before), wantedOf("#focus=@a/c", before)]).toEqual([before, before, [], before, before, before]);
+  expect(before).toEqual(["@a/b", "@e/f"]);
+  return "open and close read, on a layout and with none";
 }
 // %%
 test_closureOf_is_the_named_modules_and_what_they_import = {
