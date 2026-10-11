@@ -41,13 +41,15 @@ viewof asked = Inputs.button("Refresh")
 healthView = {
   // A visitor is shown no chart, and no made-up one.
   if (!calls) return htl.html`<i style="color:var(--theme-foreground-muted)">Sign in as the owner to see the calls of the last ${spanName(span)}.</i>`;
-  const data = calls;
-  return dashboard([
-    { title: "Calls", body: requestsChart(data, { width: width - 40 }), wide: true },
-    { title: "Health", body: healthStrip(data, { width: width - 40 }), wide: true },
-    { title: "By method", body: methodTable(data, { link: (worker, label) => ((row) => (row && row.module ? moduleLink(row.module, label) : null))([...((brainModules && brainModules.modules) || []), ...(services || [])].find((r) => r.worker === worker)) }), wide: true }
-  ], { note: callsNote(data) });
+  return dashboard(healthPanels(calls, { width: width - 40, link: (worker, label) => ((row) => (row && row.module ? moduleLink(row.module, label) : null))([...((brainModules && brainModules.modules) || []), ...(services || [])].find((r) => r.worker === worker)) }), { note: callsNote(calls) });
 }
+// %%
+// The panels under Health, in order. The strip of faults by Worker (healthStrip) was the second until 2026-10-11,
+// when the owner took it off the page; a dashboard draws it still, as "faults".
+healthPanels = (data, { width, link = null } = {}) => [
+  { title: "Calls", body: requestsChart(data, { width }), wide: true },
+  { title: "By method", body: methodTable(data, { link }), wide: true }
+]
 // %%
 // The range the panels of Health read: the chosen span, ending when it was chosen or "Refresh" was last pressed.
 // The one place the clock is read.
@@ -211,6 +213,29 @@ test_calls_from_the_logs_become_chart_rows = {
   expect(callsSeries({ result: { calculations: [] } }, ask).series).toEqual([]);
   expect(callsSeries(null, ask)).toMatchObject({ series: [], groups: 0, step: 60000 });
   return "3 rows from 3 calculations";
+}
+// %%
+test_health_draws_calls_and_methods_and_no_strip_of_faults = {
+  const since = Date.UTC(2026, 9, 9, 7, 0), until = Date.UTC(2026, 9, 9, 8, 0);
+  const data = { since, until, step: 60000, groups: 2, series: [
+    { t: since + 60000, worker: "brain-x-inbox", method: "inbox.poll", status: 200, n: 2, ms: 80, max: 50 },
+    { t: since + 120000, worker: "brain-x-inbox", method: "inbox.poll", status: 502, n: 1, ms: 900, max: 900 },
+    { t: since + 60000, worker: "brain-core", method: "rule.list", status: 401, n: 1, ms: 3, max: 3 }
+  ] };
+  const panels = healthPanels(data, { width: 600, link: (worker, label) => (worker === "brain-core" ? htl.html`<a href="#core">${label}</a>` : null) });
+  expect(panels.map((p) => [p.title, p.wide])).toEqual([["Calls", true], ["By method", true]]);
+  // No panel has the legend of the strip, and the strip is not a panel under another title.
+  const drawn = dashboard(panels);
+  expect(drawn.querySelectorAll("div[style*=border]").length).toBe(2);
+  expect(drawn.textContent).not.toContain("share of calls that were faults");
+  // The faults are still read under Health, by method: 1 of inbox.poll's 3 calls.
+  const rows = [...panels[1].body.querySelectorAll("tbody tr")].map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent.trim()).filter(Boolean));
+  expect(rows.map((r) => r.slice(0, 5))).toEqual([["brain-x-inbox", "inbox.poll", "3", "0", "1"], ["brain-core", "rule.list", "1", "1", "0"]]);
+  // link is handed to the table: a Worker it knows is a link, another is its name.
+  expect([...panels[1].body.querySelectorAll("tbody a")].map((a) => a.textContent)).toEqual(["brain-core"]);
+  // With no rows: the same two panels.
+  expect(healthPanels({ since, until, step: 60000, groups: 0, series: [] }, { width: 600 }).map((p) => p.title)).toEqual(["Calls", "By method"]);
+  return "2 panels under Health";
 }
 // %%
 test_calls_are_read_once_for_a_range_and_not_without_a_client = {
@@ -475,7 +500,7 @@ dashboardData = dashboardRead({ client: session.owner ? client : null, dashboard
 // Cloudflare does not say when it left groups out, so an answer with that many says it may be short.
 dashboardGroupLimit = 500
 // %%
-// The dimensions a draw takes its rows by. calls, faults and methods are the three charts of Health, over the rows
+// The dimensions a draw takes its rows by. calls, faults and methods are the three draws of the dashboard `health`, over the rows
 // of core.calls; bars and table draw any metric.
 panelNeeds = ({ calls: ["worker"], faults: ["worker", "status"], methods: ["worker", "method", "status"], bars: [], table: [] })
 // %%
@@ -523,7 +548,7 @@ panelBody = (panel, answer, { width } = {}) => {
   if (lacks.length) return line(`The draw "${panel.draw}" takes rows by ${needs.join(", ")}, and this panel's by has no ${lacks.join(", ")}.`);
   if (!answer.series.length) return line("No lines in this span.");
   const data = { since: answer.since, until: answer.until, step: answer.step, series: answer.series };
-  // The charts of Health name the sum `ms`.
+  // The charts made for Health name the sum `ms`.
   const calls = () => ({ ...data, series: answer.series.map((r) => ({ ...r, ms: r.sum || 0, max: r.max || 0 })) });
   const body = panel.draw === "bars" ? barsChart(data, { by, width }) : panel.draw === "table" ? groupTable(data, { by }) : panel.draw === "calls" ? requestsChart(calls(), { width }) : panel.draw === "faults" ? healthStrip(calls(), { width }) : methodTable(calls());
   return answer.groups >= dashboardGroupLimit ? htl.html`<div>${body}<div style="color:var(--theme-foreground-muted)">${dashboardGroupLimit} groups is the limit of one answer: some lines may be missing.</div></div>` : body;
@@ -678,7 +703,7 @@ test_bars_and_a_table_draw_any_metric_and_a_panel_says_what_it_cannot_draw = {
   const panel = (draw, by = ["target"]) => ({ title: draw, metric: counted.metric, by, filter: {}, draw });
   expect(marks(panelBody(panel("bars"), counted, { width: 600 }), "rect")).toBeGreaterThan(2);
   expect(cells(panelBody(panel("table"), counted)).length).toBe(2);
-  // The three draws of Health take the rows of core.calls, with the sum as `ms`.
+  // The three draws of the dashboard `health` take the rows of core.calls, with the sum as `ms`.
   const calls = { metric: "core.calls", since, until, step: 60000, groups: 2, series: [{ t: since + 60000, worker: "brain-x-inbox", method: "inbox.poll", status: 200, n: 2, sum: 80, max: 50 }, { t: since + 120000, worker: "brain-x-inbox", method: "inbox.poll", status: 502, n: 1, sum: 900, max: 900 }, { t: since + 60000, worker: "brain-core", method: "rule.list", status: 401, n: 1, sum: 3, max: 3 }] };
   const health = ["worker", "method", "status"];
   expect(marks(panelBody(panel("calls", health), calls), "rect")).toBeGreaterThan(2);
