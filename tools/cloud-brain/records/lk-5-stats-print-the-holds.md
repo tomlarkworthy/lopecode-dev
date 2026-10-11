@@ -99,8 +99,13 @@ The new tests:
 - **The comparison the task asks for**, the first numbers against the nine of the spec. There are no
   first numbers: no hold of `land` or of `cb4` is in the cluster until task 3 puts `lock.sh` on it.
   What the tool says of the nine themselves is the first test above: median 92 s, longest 203 s.
-- The part of the tool that reads (`import.meta.main`) is not loaded by a test. It was run once
-  after the landing; the comment on the issue has what it printed.
+- The part of the tool that reads (`import.meta.main`) is not loaded by a test. It was run from the
+  main checkout at 20:19:14 CEST (`date`), after the push, as
+  `bun tools/cloud-brain/issue-stats.ts --token=issues-implementer-2`: the five lines above, with
+  20:19:17 on the first. With `--json`, `locks.names.land` was
+  `{"rows":0,"released":0,"medianS":0,"longestS":0,"longest":null,"expired":0,"forced":0}`.
+  With `--token=no-such-token` the tool ended on bun's error at the first read of `issue.sync`, as
+  it did before this change; the read of the locks was not reached.
 - `locks  not read: …` from a real call. The tests give `holds` an answer with no `history`. A
   tracker without `issue.locks` and an `issue-as.sh` that exits non-zero were not met.
 - More than 500 holds. The tool then counts the newest 500 and its first line says so; nothing
@@ -111,8 +116,13 @@ The new tests:
 - A row whose `how` is none of the three is in no test. One run with a made row `how: "odd"` of `land`
   answered `rows` 1 and 0 for `released`, `expired` and `forced`, and printed `land  0 released`: the
   first line counts it and the name's line does not show it. The tracker writes no such row.
-- The overseer's brief still tells the oversight to read the writers' "LOCK TIMES" lines. That line
-  is the overseer's to change (the issue's body).
+- "The oversight reads them in place of the writers' LOCK TIMES lines" (the task). No brief names
+  those lines: `grep -rn "LOCK TIMES" .claude/skills/brain-maintenance/` answers nothing. They are in
+  the loop's journal, from the two times step 10 of `agents/implementer.md` has a writer put in its
+  report. `agents/overseer.md` line 31 has the overseer run `issue-stats.ts`, which now prints the
+  holds; that brief says nothing of them, and it is the overseer's to change (the issue's body).
+  Step 10 still asks a writer for the two times. Not changed here: until task 3 the cluster has no
+  hold of `land` to read in their place.
 
 Searches of the Brain before the design (`knowledge.search?semantic=true`, token `loop-knowledge`):
 "how long a lock was held median longest", "issue-stats report of the tracker record", "lease
