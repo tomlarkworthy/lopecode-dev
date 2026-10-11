@@ -59,7 +59,7 @@ Choices the spec does not make, taken here:
 - **`Held:` with a capital marks too.** The spec's "in either case" can be read of the triage
   reason alone.
 - **The word rule can mark an issue nobody held.** Event 299 is a triage whose reason has "while
-  the test held console.log". That issue is closed. The rule is the spec's.
+  the test held console.log". That issue (`tests-replace-console-log`) is at `done`, so it is no row. The rule is the spec's.
 - **The key is not read.** Any comment that begins `held:` is a reason, whoever wrote it. The
   spec names the key `orch/<id>/held-1` for the orchestrator's; no comment on cb4 begins `held:`
   at event 2683 and no key has `/held-` (a script over the events read as above).
