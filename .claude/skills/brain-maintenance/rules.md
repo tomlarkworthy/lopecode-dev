@@ -42,6 +42,12 @@ asks for anything in "Never" below is commented on and left for the owner.
   day, to the session that had built the digest task: "lets loosen the rules, bluesky DMs to the
   owner or member owning the service are allowed". No issue was filed for it.) How one is sent is under "A Bluesky DM" below.
 - Call `qa_close` with no session name.
+- Remove the label `needs-owner`, but for two cases: the answer has become clear from
+  `philosophy.md`, or the owner has commented on the issue and clarified. (Tom, 2026-10-11, of
+  `loop-removes-needs-owner`: "yes if the answer becomes clear from philosophy, or the owner has
+  commented on the issue and clarified.") The removal follows a comment that names the event
+  that put the label on and what ended its reason: the line of `philosophy.md`, or the owner's
+  comment. The owner's word to a session is written on the issue as a comment first, quoted.
 - Submit, or record a `pass`, without a test count from a run you made yourself.
 
 ## Always
