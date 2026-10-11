@@ -1,5 +1,8 @@
 # dv-3-deployer-opens-verify-html
 
+**Since 2026-10-11 16:41 CEST this is on `main` (`57c775cc`) and on cb4 (`cb4-deployer` `4a25dc92cc07`), done for the owner: `records/dv-4-owner-install-and-shell.md`. What is below is the record as written before that.**
+
+
 ## Round 1, 2026-10-11
 
 Task 3 of `plan/cloud-brain-deploy-verdict-from-a-shared-page.md`, design 2. It is the one change of
