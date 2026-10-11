@@ -21,7 +21,7 @@ thetarot.online is hoisted ahead of 1.5 MB of scans that another module reads af
 preflight had reported all 78 of them. The commit changed `tools/lope-preflight.ts` and no file
 under `tests/`. The test's module calls none of the three, so the tool is right to say nothing.
 
-Since when, measured with a detached worktree at each commit, 2026-10-11:
+Since when, measured with a detached worktree at each commit, 2026-10-11 (the runs of this record ended by 11:20:36 CEST, this machine's `date`):
 
 ```
 812455dc^ (061eb542)   16 pass  0 fail
@@ -30,7 +30,7 @@ Since when, measured with a detached worktree at each commit, 2026-10-11:
 
 So it has failed on `main` since 2026-08-17. The issue says both files were last changed in
 `82e1f42d`; `git log -- tests/tools/preflight.test.ts` gives `98c4346f` (2026-08-23) as the test
-file's last commit, which did not touch this test.
+file's last commit, which did not touch this test (`git diff 812455dc 98c4346f` of the file has no line of it).
 
 ## What changed
 
