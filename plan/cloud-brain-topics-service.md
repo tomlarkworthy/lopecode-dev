@@ -1,6 +1,6 @@
 # Cloud Brain: the topic service, read, taken from and pushed to one kind of method
 
-Spec of the feature `topics-service` on cb4's tracker. Written 2026-10-11, 22:40 to 23:08 CEST (the first writing ended 23:00, by the time of the file; the eight findings of the fresh review were answered by 23:08),
+Spec of the feature `topics-service` on cb4's tracker. Written 2026-10-11, 22:40 to 23:08 CEST (the first writing ended 23:00, by the time of the file; the eight findings of the fresh review were answered by 23:08). Round 2, 23:15 CEST: the finding of review 2797 and its three notes are answered at the end, and the text they name is changed,
 from the seeds at `lopecode-dev` `20dc75fa` and from what cb4 answered between 20:50 and 20:58 UTC
 that day. Nothing here is built, and no method or cell named in "The design" was run. Names are
 proposals. It takes the place of the proposal `plan/cloud-brain-topics.md` (2026-10-10) as what is
@@ -283,7 +283,17 @@ xrpc.fetch("<target>?<params>", { method: "POST",
 An entry given up moves the position. With `failed: "TOPIC"` on the subscription,
 `{ topic, name, seq, entry, status, error, tries }` is appended to that topic, with `sender`
 `worker:brain-x-topic` and the key `<topic>/<name>/<seq>`; with none it is dropped, and the
-subscription's row counts it (`dropped`). Delivery is at least once: a target that must not act
+subscription's row counts it (`dropped`).
+
+**The way to `failed` ends too.** The entry appended to a `failed` topic carries the `hops` of the
+entry given up, plus one. An entry whose `hops` is 8 or more is never appended to a `failed`
+topic: it is counted in `dropped`, whatever the subscription names. So a failure is one more link
+of the chain it came from. A subscription on `F` with `failed: "F"` and a target that answers 403
+writes `F` eight times for one append (`hops` 1 to 8) and stops, and two topics that name each
+other as `failed` do the same between them. The rule is the same for an entry that fails by
+`topic.done { failed }` or by five claims that ended. Not chosen: refusing a `failed` that is the
+subscription's own topic at `topic.subscribe`. It does not see a route through a second topic, and
+the count does. Delivery is at least once: a target that must not act
 twice keeps the `seq` it has handled.
 
 A subscription is delivered in order, so one entry being retried holds the ones behind it for up
@@ -320,10 +330,12 @@ owner are one caller, `owner`, and share a subscription; a member's is the membe
 | threat | what holds it |
 |---|---|
 | A writer to a topic makes the subscriber's calls | The push reaches the one target, which the subscriber named and the delegation's scope names. The appender's context is not sent (`brain-core.ojs:392`). The body is the appender's: a `receive` method trusts `entry.sender` and nothing else in it. |
-| A member subscribes with another's delegation | The `quota.get` probe at subscribe. A test in `simulate` with the real core. |
+| A member subscribes with another's delegation | The `quota.get` probe at subscribe. Tested with the core stood in, and tried on cb4 in task 2. |
+| A token of the owner subscribes with a delegation another of his tokens, or he, made for `brain-x-topic` | Nothing. Every token is `owner` to the core (`asSecret`, `brain-core.ojs:322`), so the probe passes, and a token that names `topic.subscribe` reaches a `receive` method its own list does not name, when he has made a delegation whose scope names it. What bounds it is which delegations he makes for this Worker, and which tokens he gives `topic.subscribe`. |
 | A member reads or writes another's topic | Names under `m.<id>.` are made by that member only; the default rules name the creator; a rule that lets others in is the creator's own. |
 | A subscriber points `topic.receive` at a topic it may not write | The append there is checked against that topic's `write` rule with the subscriber as caller. |
-| A loop of pushes | `hops`, 8. The entries kept to a topic, 10,000. A member's 2,000 calls a day (`QUOTA`, `brain-core.ojs:247`) for what a member appends. |
+| A loop of pushes | `hops`, 8, for a push and for the way to `failed` alike ("The way to `failed` ends too"). The entries kept to a topic, 10,000. A member's 2,000 calls a day (`QUOTA`, `brain-core.ojs:247`) for what a member appends. |
+| A wide chain: many subscriptions that push to each other | `hops` bounds the length of a chain and not its width. Two settings bound the width: `config.subsPerTopic ?? 10` subscriptions to a topic and `config.topicsPerCreator ?? 50` topics to a member (the owner has no such count); over either, `topic.subscribe` or `topic.create` is 400. Both numbers are guesses. What is left: one append can still cause up to 10 pushes a link over 8 links, and a member's pushes are not counted in `mcalls` (the core, "What exists today"). Nothing in this design counts them; `topic.subs` shows each subscription's position, and the owner deletes a topic. |
 | A redeploy of `brain-x-topic` holds every subscriber's delegation | True, as the authority design says of it (`plan/cloud-brain-authority.md` line 493). The loop's `apply` is made with the recovery key and is not held by the deployer (`plan/cloud-brain-dashboard-service.md`, "One new Worker"), so a writer of the loop can do this. His approval of this spec accepts that for this Worker; what stands against it is review of each task. |
 
 ## Not chosen
@@ -364,9 +376,9 @@ Three kinds of check. None needs the owner's session or his tab.
 | R2 | token, task 1: `topic.create` of `check.one`, three appends, `topic.read?topic=check.one&after=1` answers `seq` 2 and 3 and `next: 3`. | |
 | R3 | test, and token in task 1: the same `key` twice answers one `seq`, the second with `duplicate: true`; `topic.read` has one entry. | The inbox does this for its one log (`test_inbox_once_per_key_in_order`, passed). |
 | R4 | test in `simulate(topic_service, { core })`, the core stood in by a function that answers a call with `x-brain-as` as `asHolder` does (the holder, then `from` as the caller). The real core is not in this test: its own test is in `brain-core.ojs`, which the loop does not change, and whether a seed can import the core's service for a test without carrying it into its Worker is not tried. The real core is met on cb4, in the token check below. The target hears `x-brain-caller` the subscriber, `x-brain-via delegation:<id>`, `x-brain-holder worker:brain-x-topic`, and no context of the appender. A subscribe with a delegation another account made is 403. | The core's own test passes; no Worker sends the header. |
-| R4 | token, task 2: a child delegation made with `loop-topic` for `brain-x-topic`, scope `topic.receive` and `quota.get`; `check.a` pushed to `topic.receive?topic=check.b`; an append to `check.a`, then `topic.read` of `check.b` each second. The entry is there, and the seconds from the append's answer to the first read that has it, for 10 appends, are in the record. The first call with `x-brain-as` on cb4. | Not run live (`spec-as-built.md` 3637). |
+| R4 | token, task 2: a child delegation made with `loop-topic` for `brain-x-topic`, scope `topic.receive` and `quota.get`; `check.a` pushed to `topic.receive?topic=check.b`; an append to `check.a`, then `topic.read` of `check.b` each second. The entry is there, and the seconds from the append's answer to the first read that has it, for 10 appends, are in the record: each is under 10 s, or R4 is not met (a tick is up to 60 s). The first call with `x-brain-as` on cb4. | Not run live (`spec-as-built.md` 3637). |
 | R5 | test: `topic.subscribe` with target `com.lopecode.brain.browser.open`, `com.lopecode.brain.topic.append`, `com.lopecode.brain.m.0a.x.receiver` and `https://example.com/receive` is 400 each; `topic.receive` and `com.lopecode.brain.topic.receive` are kept as the one whole name. token, task 2: a subscription made with the second child, whose scope is `quota.get` alone, target `topic.receive`: the entry is given up at the first try with status 403 and is in the `failed` topic. | |
-| R6 | test, the clock stood in: a target that answers 500 is called 5 times over the waits and the entry is then in the `failed` topic with `tries: 5`; with no `failed`, `dropped` is 1; a 400 is called once. token, task 2: `check.loop` pushed to `topic.receive?topic=check.loop`, one append: `topic.read` then has entries with `hops` 0 to 8 and no tenth, and the seconds from the append to the ninth are in the record (under 60 says no entry waited for a tick). | |
+| R6 | test, the clock stood in: a target that answers 500 is called 5 times over the waits and the entry is then in the `failed` topic with `tries: 5`; with no `failed`, `dropped` is 1; a 400 is called once. token, task 2: `check.loop` pushed to `topic.receive?topic=check.loop`, one append: `topic.read` then has entries with `hops` 0 to 8 and no tenth, and the seconds from the append to the ninth are in the record (under 60 says no entry waited for a tick). test: a subscription on `f` with `failed: "f"` and a target that answers 403, one append: `f` then has 9 entries, `hops` 0 to 8, the subscription's `dropped` is 1, and a tick of the clock adds none; the same with `f` failing to `g` and `g` to `f`, 9 entries between them. test: the eleventh subscription to a topic is 400. | |
 | R7 | test, callers as DIDs: a member creates `m.<their id>.x` and is refused `m.<another id>.x` and `x`; another member's read, append, subscribe and delete of it are 403 under the default rules. Not checked on cb4: a member there needs his grant (his list, item 2). | `may` gives a member no `topic.*`. |
 | R8 | test: two takers of one subscription are handed different entries; a claim that ended is handed out again; the fifth ending sends the entry to `failed`. token, task 3: take 1 of 2 on `check.work`, `done`, take again answers the other. | |
 | R9 | read, after each task: `cd cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev` and the hashes of `brain`, `brain-core`, `brain-db`, `brain-deployer` in `deploy/services.json`. `git diff --stat` of the task names no seed but `brain-topic.ojs` (tasks 1 to 3) and `cloud-brain-docs.ojs` (task 4). | `18ab224bd54b`, `716194d83bd1`, `163647e04b63`, `4a25dc92cc07`. A later deploy of one of them by him changes the value; the check is that no task of this project did. |
@@ -480,3 +492,21 @@ findings and a note, each checked against the source and taken.
 
 Not reviewed by it, and so resting on this writer alone: the two events of the tracker, the test
 runs' pass counts, the refused search, the four outside pages, and the timings of `issue.sync`.
+
+## Review 2797, round 2 (2026-10-11)
+
+Verdict `changes`, one finding and three notes. The round was resumed by the agent that wrote the
+first. `git diff --stat 1fb1a9c5 b0312e36` over `brain-core.ojs`, `cloudflare-iac.ojs`, `build.ts`
+and `brain.ts` prints nothing, so nothing the first round read has moved.
+
+- **The way to `failed` had no end** (the finding). True as read: round 1 gave the appended entry
+  no `hops`, and an entry at 8 went to `failed` again with no call. The rule is now under "Push":
+  a failed entry carries the given-up entry's `hops` plus one, and one at 8 or more is counted in
+  `dropped` and not appended. It is in the row "A loop of pushes", and R6 has a test for a
+  subscription whose `failed` is its own topic and for two topics that name each other. Counted
+  by hand for the first: `hops` 0 is appended by the caller, 1 to 8 by the service, and the entry
+  at 8 is dropped; 9 entries. Not run: nothing is built.
+- **Breadth** (note). Taken as two settings and a row in the threats table, which also says what
+  they do not bound.
+- **One token of the owner and another's delegation** (note). A row in the threats table.
+- **R4 had no number to pass** (note). Each of the 10 is under 10 s.
