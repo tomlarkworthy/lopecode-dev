@@ -60,6 +60,30 @@ comment undercounts a light review by the advisor's call. Not changed here.
 
 `tests/tools/review-needs-tab.test.ts`, 3 tests, 10 expects. `bun test ./tests/tools`: see the submit.
 
+## Round 2 (review 1176, by the light reviewer with no tab)
+
+The review: `changes`, four findings; context 91,087 at its end, 30 turns, 507 s, $3.20. Review 3 of
+`light-reviewer-in-use`, with the tab tools, was 88,501, 16 turns, 295 s, $2.17. So this one review did not come
+out smaller: the start is 8,342 lower and it did more (it rebuilt the tree before the change to show 6 tests fail
+there, and filed two tickets). One review each way is not a comparison of the two starts.
+
+1. A merge commit read as no file, so exit 1 where a seed was merged: `review-needs-tab.sh lopecode-dev@57c775cc
+   lopecode-dev@737fda15` (the refs of `dv-4-owner-install-and-shell`) was 1. The script now reads a merge against
+   its first parent, and the same command exits 0 with `tools/cloud-brain/brain-feedback.ojs`. One test added (4 tests, 12 expects).
+2. The line of `rules.md` now carries the owner's words for the cut.
+3. `knowledge-eval/queries.json`, committed in this round: the three questions that want the old file also accept
+   the page (6 ids added). It was written after the submit and before the review, by the writer of this issue.
+   The eval was not run against cb4.
+4. Left out of this record before: the docs were entered again on the Brain after the commit,
+   `knowledge-docs.ts put --stale`, `{"put":10,"entered":7,"changed":3,"vectors":8}`; that is the four files of
+   this change and six other docs that were stale or missing. And "one cell was changed" was short: each page
+   also gained a title, a paragraph saying where it was moved from, and the changing page a heading, "The
+   commands that deploy", a second header for its part of the command table, and one sentence pointing at the
+   calling page, which has one pointing back.
+
+The reviewer could not see who put the brief on the Brain: the writer of this issue did, with `put.sh` and the
+token `loop-roles`, as the owner of the issue on the owner's word of 2026-10-11 ("you own the issues").
+
 ## Not done, not tried
 
 - No review has yet run with no tab; the review of this issue is the first.

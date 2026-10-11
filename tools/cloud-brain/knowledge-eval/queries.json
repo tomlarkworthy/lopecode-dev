@@ -236,7 +236,8 @@
   {
    "q": "deploy a change to the Cloud Brain",
    "want": [
-    "doc:working-with-cloud-brain-remote-lopecode-cluster"
+    "doc:working-with-cloud-brain-remote-lopecode-cluster",
+    "doc:changing-and-deploying-a-cloud-brain-worker"
    ]
   }
  ],
@@ -763,14 +764,19 @@
    "q": "how do I reach and pair with the running remote worker cluster",
    "form": "natural",
    "want": [
-    "doc:working-with-cloud-brain-remote-lopecode-cluster"
+    "doc:working-with-cloud-brain-remote-lopecode-cluster",
+    "doc:calling-a-cloud-brain-from-this-checkout",
+    "doc:pairing-with-the-cloud-brain-page"
    ]
   },
   {
    "q": "cloudflare workers brain cli deploy pairing",
    "form": "keyword",
    "want": [
-    "doc:working-with-cloud-brain-remote-lopecode-cluster"
+    "doc:working-with-cloud-brain-remote-lopecode-cluster",
+    "doc:calling-a-cloud-brain-from-this-checkout",
+    "doc:changing-and-deploying-a-cloud-brain-worker",
+    "doc:pairing-with-the-cloud-brain-page"
    ]
   },
   {

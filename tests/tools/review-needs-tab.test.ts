@@ -46,6 +46,22 @@ test("a seed, a notebook and a module each need one, and the file is named", () 
   r.done();
 });
 
+// Review 1176, finding 1: the refs of dv-4-owner-install-and-shell had a merge, which a plain `git show` reads as no file.
+test("a merge commit is read against its first parent", () => {
+  const r = rig();
+  r.commit(r.root, "a.md");
+  const base = sh(["git", "rev-parse", "--abbrev-ref", "HEAD"], r.root).out;
+  sh(["git", "checkout", "-qb", "side"], r.root);
+  r.commit(r.root, "tools/cloud-brain/brain-x.ojs");
+  sh(["git", "checkout", "-q", base], r.root);
+  r.commit(r.root, "b.md");
+  sh(["git", "-c", "user.name=t", "-c", "user.email=t@t", "merge", "-q", "--no-ff", "-m", "merge", "side"], r.root);
+  const merge = sh(["git", "rev-parse", "HEAD"], r.root).out;
+  expect(sh(["git", "rev-list", "--parents", "-n1", merge], r.root).out.split(" ").length).toBe(3);
+  expect(r.run("lopecode-dev@" + merge)).toEqual({ code: 0, out: "lopecode-dev: tools/cloud-brain/brain-x.ojs", err: "" });
+  r.done();
+});
+
 test("a commit that cannot be read, a ref with no @ and no ref at all exit 2", () => {
   const r = rig();
   r.commit(r.root, "a.md");
