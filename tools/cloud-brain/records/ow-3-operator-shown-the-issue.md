@@ -132,8 +132,12 @@ of the name check:
 | the check of the name's characters | 30, 29; `test_the_operator_moves_nothing_on_the_tracker` |
 | the filter of `turnToolset`, and the end of the ten | 30, 28; `test_attention_draft_calls_the_part_and_no_method`, `test_the_operator_moves_nothing_on_the_tracker` |
 
+The same on the check as it is now, with the line that refuses a part `.` or `..` taken out, started
+23:01:40 CEST (`date`): 30 tests, 29 passed; failed `test_the_operator_moves_nothing_on_the_tracker`.
+
 The runs submitted, on a build of the worktree after its rebase onto `main` (`20dc75fa`) and after
-the last edit, 22:53 to 22:54 CEST (`date`):
+the last edit of the seed (its commit is 23:01:55 CEST, `git log --format=%ci`), ended 23:02:33 CEST
+(`date`):
 
 - `cd cloud-brain-dev && bun test.ts brain-x-page --with <the built module>`:
   `"passed":14,"failed":0,"needsBrowser":16`. All three new tests are among the 16.
