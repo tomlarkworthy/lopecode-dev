@@ -292,5 +292,5 @@ have modified the protocol". The bridge needed no new infrastructure.
   permission is still his.
 - Secrets never printed, never copied into files or output: recovery key, deployer key, sessions,
   tokens, the Cloudflare token, app passwords.
-- Do not send WhatsApp or Bluesky messages to anyone Tom did not name.
+- Do not send WhatsApp or Bluesky messages to anyone Tom did not name. Named for the issue loop on 2026-10-11: a Bluesky DM to the owner, or to the member who owns the service it is about (`.claude/skills/brain-maintenance/rules.md`, "A Bluesky DM").
 - Do not change `exporter-3`, `robocoop-5` or the channel server for this project without asking.

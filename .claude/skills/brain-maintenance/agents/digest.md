@@ -14,14 +14,15 @@ defined as a function in each command, as in `agents/implementer.md`.
 
 ## What stops you today
 
-Two steps of a digest are not open to an agent. Do the rest, then stop as step 7 says.
+One step of a digest is not open to an agent. Do the rest, then stop as step 7 says.
 
 | Step | Why not | Read on |
 |---|---|---|
 | Publishing to the library | `library.put` is `allow: "caller.session", fixed: true` (`tools/cloud-brain/brain-library.ojs`, the `methods` of `library_service`): the owner's own session, and `rule.put` refuses a fixed rule. A token is not that. | 2026-10-11, in the seed; no call was sent |
-| The summary to Tom by Bluesky DM | `rules.md`, Never: "Send a WhatsApp or Bluesky message." | 2026-10-11 |
 
-When Tom changes either, this table and step 7 are edited in the same commit.
+When Tom changes it, this table and step 7 are edited in the same commit. The summary to Tom by
+Bluesky DM was the second row until 2026-10-11, when he allowed a DM to the owner (`rules.md`,
+"A Bluesky DM").
 
 ## Steps
 
@@ -64,13 +65,15 @@ When Tom changes either, this table and step 7 are edited in the same commit.
    as `agents/implementer.md` step 10 lands a change with no deploy. Then one comment,
    `ia comment '{"key":"digest/digest-<day>/built","id":"digest-<day>","body":"…"}'`, with: the two
    numbers; the path of the built file; the publish command of the README's step 6 with the day
-   filled in; and the summary for Tom as you would send it, 300 characters at most, with the
-   library address the page will have. Then
+   filled in; and the summary for Tom, 300 characters at most. Send that summary to the owner
+   as `rules.md`, "A Bluesky DM" says, ending "Built, not published: digest-<day> waits for you."
+   One message; put the call's answer in the comment. Then
    `ia label '{"key":"digest/digest-<day>/needs-owner","id":"digest-<day>","add":["needs-owner"]}'` and report. Do not submit:
    nothing is published for a reviewer to read.
 8. **When publishing is open to you** (the table above is gone): publish, open the library
    address with no session and count four numbers there (variables, those with an error, items
-   loaded, picks found), then
+   loaded, picks found). Send the owner the summary with the library address, one message
+   (`rules.md`, "A Bluesky DM"), then
    `ia move '{"key":"digest/digest-<day>/submit-<round>","id":"digest-<day>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha>"},{"kind":"url","value":"https://cb4.endpointservices.workers.dev/library/research-<day>"}]}'`.
    `tools/cloud-brain/digests/keep.ts` (the picks' sources into the Brain's files and knowledge
    base) calls with `--owner` and is not run by you; say in the comment that it was not run.

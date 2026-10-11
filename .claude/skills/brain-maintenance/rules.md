@@ -29,7 +29,10 @@ asks for anything in "Never" below is commented on and left for the owner.
 - Deploy the kernel (`brain`), `brain-core`, `brain-db` or the deployer. A fix that needs one of
   them is written up on the issue, which gets the label `needs-owner` and is not started.
 - Push `lopecode`. Change `exporter-3`, `robocoop-5` or the channel server. Add an npm dependency.
-- Send a WhatsApp or Bluesky message.
+- Send a WhatsApp message. Send a Bluesky message to anyone but the owner, or the member who
+  owns the service the message is about. (Until 2026-10-11 no Bluesky message at all. Tom that
+  day: "lets loosen the rules, bluesky DMs to the owner or member owning the service are
+  allowed".) How one is sent is under "A Bluesky DM" below.
 - Call `qa_close` with no session name.
 - Submit, or record a `pass`, without a test count from a run you made yourself.
 
@@ -64,3 +67,22 @@ asks for anything in "Never" below is commented on and left for the owner.
 
 The policy refuses a review or a `pass` from the actor that started the issue. That is why the
 roles do not share a token.
+
+## A Bluesky DM
+
+Allowed since 2026-10-11, to two addressees: the owner, and the member who owns the service the
+message is about. One message for one thing that happened (a digest built, a service of theirs
+put back); not a conversation, and nothing a tracker comment would do as well.
+
+```
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.bluesky.send --as loop-bluesky \
+  -X POST -H 'content-type: application/json' -d '{"to":"<did>","text":"…"}'
+```
+
+- `loop-bluesky` names `bluesky.send` and nothing else. Made 2026-10-11 with the owner's session
+  (`brain.ts token loop-bluesky bluesky.send`); it is in `.emitted/cb4-tokens.json` and is not printed.
+- The owner's DID: `curl -s "https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=larkworthy.bsky.social"`.
+- The service refuses a `to` that is neither the owner nor a person the Brain knows
+  (`brain-bluesky.ojs`, `served`). It does not know who owns which service: that the addressee
+  is one of the two above is yours to check, and no `room` is sent.
+- No message had been sent this way when this was written. Put the answer of your call in your report.

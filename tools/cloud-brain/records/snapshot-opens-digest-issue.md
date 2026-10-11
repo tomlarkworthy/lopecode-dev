@@ -80,6 +80,8 @@ also covers 2026-10-10, for which no task exists.
 1. `library.put` is `allow: "caller.session", fixed: true` (`brain-library.ojs`). A token cannot
    publish, and `rule.put` refuses a fixed rule. Read in the seed; no call was sent.
 2. `rules.md`, Never: "Send a WhatsApp or Bluesky message." The summary is a Bluesky DM.
+   **Lifted 2026-10-11** by Tom ("bluesky DMs to the owner or member owning the service are
+   allowed"): `rules.md`, "A Bluesky DM", and token `loop-bluesky`.
 3. The loop has not run since Tom stopped it on 2026-10-10 at about 21:25 CEST. A task waits in
    the tracker until a session runs `/loop /brain-maintenance`.
 4. `digests/keep.ts` calls with `--owner`.
