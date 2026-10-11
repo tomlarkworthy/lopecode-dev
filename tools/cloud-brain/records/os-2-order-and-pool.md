@@ -26,7 +26,7 @@ of part 3. Taken: the rule replaces 8 and 4 as it would have replaced 4 and 2. T
 to stop and ask whether the doubling outlives the approval; the approval is the later word, and
 his three sentences are kept in step 2 as what the rule replaces.
 
-So the spec's check of R3 did not tell before from after. Run in the worktree at 23:15 CEST, on
+So the spec's check of R3 did not tell before from after. Run in the worktree at 23:21 CEST (`date` in the same call), on
 the file of `85880f72` (`git show 85880f72:.claude/skills/brain-maintenance/SKILL.md`) and on the
 file as changed:
 
@@ -102,16 +102,17 @@ The one that passes on the old file is the sixth, which does not read it.
 `tests/tools/briefs-name-the-prompts-token.test.ts` had a test "the limits are 8 and 4, with the
 owner's words", of `ta-3`. It held the two texts this task replaces. It now holds that his
 sentence is kept and that no limit of that form is stated. With the old `SKILL.md` in place and
-the new test file (`git stash` of the one file): 13 pass, 1 fail, the changed test.
+the new test file (`git stash` of the one file, before the first commit): 13 pass, 1 fail, the
+changed test. As committed: 14 pass, 0 fail.
 
 The count of the whole directory, run after the last edit, is in the issue's comment.
 
 ## Prior art
 
-Three searches of the Brain with `semantic=true` at 23:11 CEST ("order of service free place
+Three searches of the Brain with `semantic=true`, made before the design and again at 23:23 CEST ("order of service free place
 resumption review start", "pool size number of writers reviewers rate limit", "issue past 4 hours
 held reason") each answered 402, "owner has made 2000 priced calls today, which is the most for
-one day". Three by words (`order of service`, `pool writers reviewers`, `held past 4 hours`) each
+one day", both times. Three by words (`order of service`, `pool writers reviewers`, `held past 4 hours`; `date` after them printed 23:11:18) each
 answered the spec itself, `doc:cloud-brain-loop-order-of-service`, and nothing else that bears on
 an order or a pool. Used: the spec, and the records of `os-1` and `os-3`.
 
@@ -122,7 +123,7 @@ an order or a pool. Used: the spec, and the records of `os-1` and `os-3`.
   wait, is first seen in the loop's next pass.
 - **The `held:` comment on cb4.** No comment was written with the key `orch/<id>/held-1`. The line
   was read once from the main checkout, `bun tools/cloud-brain/issue-stats.ts --token=impl-6cabee`
-  at 23:12 CEST: `past 4 h, not started, no reason: 0 (5 more are held)`. That a `held:` comment
+  at 23:23 CEST (`date` before and after it): `past 4 h, not started, no reason: 0 (8 more are held)`. That a `held:` comment
   moves an issue from the count to the held is `os-3`'s test, not run again as a call here.
 - **The two signs that stop a start.** No pass has met a rate limit named in a report, or `lock.sh
   show land` naming one holder for two passes. The text says nothing of how a pass remembers the
