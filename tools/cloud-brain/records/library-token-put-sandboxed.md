@@ -75,12 +75,29 @@ Alternatives, and why not:
 `localStorage` `SecurityError`, 55 variables of the digest's module, 0 with an error, 216 items,
 14 papers, 28 of 28 picks found.
 
-Tests: library 9 and static 12 in a browser tab, 0 failed; `test.ts` 8 and 12 passed, 1 library
+Tests: library 9 and static 12 in a browser tab, 0 failed; `cloud-brain-dev/test.ts` 8 and 12 passed, 1 library
 test needing a browser. New: `test_library_a_notebook_the_owner_did_not_put_is_served_with_no_origin`.
+
+The built file opened from `file://` after the deploy, QA browser, 10:50 CEST: the same four
+numbers (55, 0, 216 and 14, 28 of 28). Before it, that page could not read `/static`.
+
+The version's `writer` on cb4 is `owner delegation:2c975079166e`: a token is the owner by a
+delegation, and the id is the delegation's, not the token. `library.versions` is the owner's to
+read (anonymous: `AuthRequired`); the public `library.list` does not carry `writer`.
+
+`brain.ts curl --owner` sends a minted session, whose `via` is `session`, so `ownTab` judges
+it the owner's own tab (`cloudflare-iac.ojs`, `ownTab`): the owner's put from the command line
+is served as before and replaces his own notebooks. Read in the source; not run. It also
+means the header rests on an agent not putting with `--owner`, which `rules.md` forbids and
+nothing enforces.
 
 ## Not tried, and what this does not do
 
 - The owner putting `research-2026-10-11` in their own tab to lift the header. In the tests only.
+- A token of a sign-in link with the cap `session`. It sets `x-brain-tab`, so `ownTab` judges
+  it the owner's own tab (`cloudflare-iac.ojs`, the test beside `ownTab`): its put would be
+  served as the owner's, with no header. That is the meaning of the cap; no such token was
+  made or tried here.
 - Safari and Firefox. The measurement is Chromium's.
 - Editing and saving from a sandboxed notebook, and any notebook that keeps state in
   `localStorage` or IndexedDB: both are refused there. The digest needs neither.
@@ -91,3 +108,37 @@ test needing a browser. New: `test_library_a_notebook_the_owner_did_not_put_is_s
   linking to the Brain can do.
 - A token that names `library.put` can fill the library with names of its own. Nothing limits
   how many.
+
+## After the fresh reviews, 2026-10-11
+
+`/review-notebook`, two agents. The modules: BLOCK, 6 findings. The record, the digest brief
+and `rules.md`: FIX, 7 findings. Each was checked against the source and all 13 were taken.
+
+The one that mattered: the Library panel opened an owner-only notebook by fetching it with the
+session and opening the bytes as a blob. A blob takes the origin of the page that made it and
+has none of the answer's headers, so a token's notebook that was not public, or was made owner
+only afterwards, would have run as the owner. The reviewer's probe of the same call on a
+synthetic page:
+
+```
+direct:     {"origin":"null","error":"SecurityError"}
+panel blob: {"origin":"https://brain.example","session":"OWNER-TOKEN"}
+```
+
+No such notebook was on cb4: the one token put there is public, and a public one is opened
+by its address. Fixed in `e60a95e9dcde` (verified, 9 tests, 22204 ms): `library.list` answers
+`sandboxed`, and the panel does not fetch such a notebook; it says the notebook opens from its
+address alone. Not built: opening it inside a sandboxed frame, so an owner-only notebook of an
+agent cannot be read from the panel at all today.
+
+Also in that deploy:
+- `library.delete` refuses what `put` refuses. A caller with both methods could delete the
+  owner's notebook and put under its name. `loop-library` has the put alone.
+- The header gains `allow-forms`. `alert`, `confirm` and `prompt` stay off.
+- A module card is entered from a token's notebook like any other, unmarked. Said in the
+  module's prose; not changed.
+- A test puts as `token:laptop`; until then every put in the tests was the owner by a delegation.
+
+The header on cb4 after it:
+`sandbox allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads`.
+The measurements above were made under the header without `allow-forms`.

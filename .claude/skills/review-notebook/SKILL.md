@@ -140,3 +140,12 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   142k subagent tokens, 8m59s. It ran the eval again from the cache and the tables held to the digit; what the author had
   not seen: two example ranks in the record that the results file contradicts, an interval column no code computed, and
   baseline arms that could no longer be made after the deploy they measured.
+- 2026-10-11 `lopebooks/notebooks/@tomlarkworthy_cloud-brain.html`, modules brain-library, brain-static, changes
+  since `997bbcdf` (a token publishes, served with no origin): BLOCK, 6 findings, all taken (lopecode-dev
+  `daf5cc6d`). 156k subagent tokens, 5m52s. It found the path the author's measurement could not: the Library
+  panel opened an owner-only notebook as a blob of its own page, which has the opener's session and none of
+  the answer's headers. Its browser runner could not launch; it probed the one call in headless shell 1234.
+- 2026-10-11 `tools/cloud-brain/records/library-token-put-sandboxed.md`, `agents/digest.md`, `rules.md` of
+  brain-maintenance, changes since `997bbcdf`: FIX, 7 findings, all taken. 103k subagent tokens, 4m07s. Three
+  were lines the same day's work had made false (no digest written from the brief, no DM sent, no seed with
+  the loader).

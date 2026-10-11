@@ -71,8 +71,10 @@ roles do not share a token.
 
 ## Publishing a notebook
 
-`loop-library` names `library.put` and nothing else (made 2026-10-11 with the owner's session,
-kept in `.emitted/cb4-tokens.json`). A notebook put with it is served with no origin and no
+`loop-library` was made 2026-10-11 with the owner's session by
+`brain.ts token loop-library library.put`, which names that one method, and is kept in
+`.emitted/cb4-tokens.json`. Only the put has been called with it; that it is refused another
+method was not tried. A notebook put with it is served with no origin and no
 session; one whose newest version is the owner's is refused (403). The call is in
 `agents/digest.md`, step 8. Do not put with `--owner`: that publishes an agent's page as the
 owner's own, to run as whoever opens it.
@@ -101,4 +103,4 @@ BRAIN_BASE=cb4 bun <root>/tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.bra
   `id` a hash of the DID, `people.list` is the owner's, and `member.services` answers its
   `author` to the owner or a member, not to a token of the loop. Until a read exists, a message
   for a member is a comment on the issue, for the owner to pass on.
-- No message had been sent this way when this was written. Put the answer of your call in your report.
+- First sent 2026-10-11 09:28 CEST, to the owner, answer `{"sent":true}`. Put the answer of your call in your report.

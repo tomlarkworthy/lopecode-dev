@@ -4,10 +4,12 @@ You take one issue labeled `digest` from `ready` to `in-review`: the research di
 of `brain-x-snapshot`'s files. Your prompt names the issue, `digest-<day>`. Read
 `.claude/skills/brain-maintenance/rules.md` first; it overrides this file.
 
-Written 2026-10-11, the day `brain-x-snapshot` began to open these issues. No digest has been
-written from this brief yet. The one digest that exists, `research-2026-10-09`, was written by a
-session with Tom, and `tools/cloud-brain/digests/README.md` is the record of how. Read it whole
-before step 3: its sections "Layout" and "What a digest is written from" are Tom's and bind you.
+Written 2026-10-11, the day `brain-x-snapshot` began to open these issues. Two digests exist:
+`research-2026-10-09`, written by a session with Tom, and `research-2026-10-11`, the first
+written from this brief. `tools/cloud-brain/digests/README.md` is the record of how the first
+was made. Read it whole before step 3: its sections "Layout" and "What a digest is written
+from" are Tom's and bind you. Its step 6 puts with `--owner`, which is how the first was
+published; yours is step 8 here, and `rules.md` forbids the other.
 
 Your token is `issues-implementer-2`. `ia` is `tools/cloud-brain/issue-as.sh issues-implementer-2`,
 defined as a function in each command, as in `agents/implementer.md`.
@@ -41,23 +43,25 @@ brief (`digest-2026-10-11`) stopped before publishing. Both were lifted that day
    the number there, or quote it from the stored `summary` and say so. An item you know by its
    title alone is marked as that. A page that would not load (`openai.com` answered a JavaScript
    check on 2026-10-09) is named in "What was not read".
-5. **Write the seed**, `tools/cloud-brain/digests/<day>.ojs`, with `2026-10-09.ojs` open beside
+5. **Write the seed**, `tools/cloud-brain/digests/<day>.ojs`, with `2026-10-11.ojs` open beside
    it: themes as `md` cells, `day`, the `picks` array (`id theme source title url why`), the cells
    that load the day's files, and last the section "How this was written" (who, which snapshot
    run by its `ranAt`, the days covered, what was fetched, what was not reproduced). A
    replication in the page is wanted when a lead ships something a page can run and you ran it;
    say "nothing was reproduced" otherwise. A day with little in it gets a short digest.
-   Do not copy that seed's `snapshot` cell as it is: it was written before `papers.json` existed,
-   so it loads every source with a `path`, `arxiv.json` whole among them, and never `papers.json`.
-   Yours leaves out the rows marked `lookup` and loads `papers.json`; a pick that is a paper is
-   looked for among its `papers` by the arXiv id (an item of `arxiv.json` has the feed's guid as
-   its id, not that). No seed has this loader yet: say in your report what you wrote.
+   Take the loading cells from that seed, not from `2026-10-09.ojs`, which was written before
+   `papers.json` existed: it loads every source with a `path`, `arxiv.json` whole among them,
+   and never `papers.json`. The loader of 2026-10-11 leaves out the rows marked `lookup` and
+   loads `papers.json`; a pick that is a paper is looked for among its `papers` by the arXiv id
+   (an item of `arxiv.json` has the feed's guid as its id, not that).
 6. **Build and check.**
    `bun tools/cloud-brain/digests/build.ts <day> "Research digest, <D Month YYYY>"` writes
    `digests/research-<day>.html` (git-ignored). Open it in a QA tab under a session name of your
-   own and count the variables and those with an error (0). The items and picks are counted
-   at the library address, in step 8: on 2026-10-11 a `file://` page could not read `/static`,
-   and whether it can since public files allow any origin was not measured. Close the tab by name.
+   own and count four numbers: the module's variables, those with an error (0), the items
+   loaded, and the picks found among the items and papers. A `file://` page reads the
+   snapshot's public files since they allow any origin (2026-10-11, the built file of that
+   day: 55, 0, 216 items and 14 papers, 28 of 28). Do not publish a digest whose picks are
+   not all found. Close the tab by name.
 7. **Land the seed.** Commit it in the worktree. Copy the built file to
    `<root>/tools/cloud-brain/digests/` before the worktree goes: it is git-ignored, and the
    publish command reads it from the main checkout. Land as `agents/implementer.md` step 10
@@ -71,9 +75,8 @@ brief (`digest-2026-10-11`) stopped before publishing. Both were lifted that day
    says no such token is kept, do not make one: comment, label `needs-owner`, report.
    Open `https://cb4.endpointservices.workers.dev/library/research-<day>` with no session in a QA
    tab (`chromium_args: ["--disable-features=LocalNetworkAccessChecks"]`, or the tab does not
-   pair) and count four numbers: the module's variables, those with an error (0), the items
-   loaded, and the picks found among the items and papers. On 2026-10-11: 55, 0, 216 items and
-   14 papers, 28 of 28.
+   pair) and count the same four numbers there; they are the ones you report. On 2026-10-11
+   they equalled the file's.
    Send the owner one Bluesky message (`rules.md`, "A Bluesky DM"): the summary, 300 characters
    at most, and the library address. Then one comment,
    `ia comment '{"key":"digest/digest-<day>/published","id":"digest-<day>","body":"…"}'`, with the
@@ -81,7 +84,8 @@ brief (`digest-2026-10-11`) stopped before publishing. Both were lifted that day
    calls with `--owner`). Then
    `ia move '{"key":"digest/digest-<day>/submit-<round>","id":"digest-<day>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha>"},{"kind":"url","value":"https://cb4.endpointservices.workers.dev/library/research-<day>"}]}'`.
    Sent back by a review: fix the seed, build, land, and publish again; a second put by the
-   token over its own first is taken.
+   token over its own first is taken. A 403 on that put means the owner has put the notebook
+   since, and it is theirs: comment, label `needs-owner`, report.
 
 ## What a digest may not do
 

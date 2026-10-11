@@ -39,6 +39,10 @@ JavaScript or WASM build of that engine was found in its Hugging Face repository
 
 ## What is manual
 
+As of 2026-10-09, for the first digest. Since 2026-10-11 the issue loop's digest writer does
+the build, the check, the publish and the message
+(`.claude/skills/brain-maintenance/agents/digest.md`); the next section has each.
+
 - Choosing the leads and writing the prose.
 - Fetching linked pages. `openai.com` returned a JavaScript check, so that item rests on its feed
   summary.

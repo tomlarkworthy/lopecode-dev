@@ -79,6 +79,8 @@ also covers 2026-10-10, for which no task exists.
 
 1. `library.put` is `allow: "caller.session", fixed: true` (`brain-library.ojs`). A token cannot
    publish, and `rule.put` refuses a fixed rule. Read in the seed; no call was sent.
+   **Lifted 2026-10-11** by Tom ("I think this should be automated too"):
+   `records/library-token-put-sandboxed.md`, and token `loop-library`.
 2. `rules.md`, Never: "Send a WhatsApp or Bluesky message." The summary is a Bluesky DM.
    **Lifted 2026-10-11** by Tom ("bluesky DMs to the owner or member owning the service are
    allowed"): `rules.md`, "A Bluesky DM", and token `loop-bluesky`.
