@@ -93,7 +93,10 @@ token and ends it.
    `tests/tools/*.test.ts` run in the worktree, as `bun test ./tests/tools` or `./tests/tools/<file>`
    with the `./` (without it bun also runs every copy under `worktrees/` of the main checkout:
    153 pass, 44 fail where `./tests/tools` gives 90 pass, 0 fail), and the comment gives the command
-   as run; the count of `node --test tests/notebooks/*.test.js`
+   as run. A worktree fresh from `worktree.sh`, with nothing built, gave 0 fail there on 2026-10-11
+   (`records/tests-tools-fail-in-a-fresh-worktree.md`), so a fail in that count is looked at, not waved
+   through; a line `skipped: <file>: no <path>` in the output names a test that did not run and the
+   file the checkout lacks, and goes in the comment. The count of `node --test tests/notebooks/*.test.js`
    is the main checkout's (in a worktree the untracked files it reads are absent).
    When the change is a control of a panel that sends a write or a call, test it with a client
    you hold: a second press before the answer, a write that is refused (also one that would have

@@ -8,11 +8,16 @@
 // and run headlessly; only the PDS is faked. No credentials, no network.
 //
 //   bun test tests/tools/atproto-publish.test.ts
-import { test, expect, beforeAll, afterAll } from "bun:test";
-import { writeFileSync, mkdtempSync } from "node:fs";
+import { expect, beforeAll, afterAll } from "bun:test";
+import { existsSync, writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { loadPublisher, publishNotebook, type Opts, type Decl } from "../../tools/atproto-publish.ts";
+import { testNeeding } from "./needs.ts";
+
+// ATPROTO_HTML names another atproto.html. In a checkout whose lopecode is empty the tests are skipped, with one line.
+const ATPROTO = process.env.ATPROTO_HTML || resolve(import.meta.dir, "../../lopecode/notebooks/atproto.html");
+const test = testNeeding("atproto-publish.test.ts", [ATPROTO]);
 
 const DID = "did:plc:testauthor000000000000";
 const PDS = "https://pds.test.invalid";
@@ -117,12 +122,13 @@ class FakePds {
 // ------------------------------------------------------------------ rig
 
 let pubReal: Awaited<ReturnType<typeof loadPublisher>>;
-let realFetch: typeof fetch;
+// Read here, not in beforeAll: when loadPublisher threw before the read, afterAll put `undefined` in fetch's place
+// and every later file of the run had no fetch (issue tests-tools-fail-in-a-fresh-worktree).
+const realFetch = globalThis.fetch;
 const dir = mkdtempSync(join(tmpdir(), "atpub-test-"));
 
 beforeAll(async () => {
-  pubReal = await loadPublisher(resolve(import.meta.dir, "../../lopecode/notebooks/atproto.html"));
-  realFetch = globalThis.fetch;
+  if (existsSync(ATPROTO)) pubReal = await loadPublisher(ATPROTO);
 });
 afterAll(() => { globalThis.fetch = realFetch; pubReal?.dispose(); });
 
