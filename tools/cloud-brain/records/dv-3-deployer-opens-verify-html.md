@@ -81,6 +81,7 @@ deployer's code as it was:
 cd $W/cloud-brain-dev && bun test.ts @tomlarkworthy/brain-deployer --with $W/tools/cloud-brain/.emitted/dv-3-deployer-opens-verify-html.js
 before the change to verifyDeploy and shell   "passed":53,"failed":3,"needsBrowser":0
 after, and after the rebase of 15:40          "passed":56,"failed":0,"needsBrowser":0   (6 runs after the rebase, the same line each)
+after the second rebase, 15:47 (build.ts came in)  "passed":56,"failed":0,"needsBrowser":0
 ```
 
 `test.ts brain-deployer` answers "--with takes a Worker of one module, or the module's name"; the
@@ -90,7 +91,8 @@ In a browser, the notebook built in the worktree after the rebase, layout
 `C100(S70(@tomlarkworthy/brain-deployer),S30(@tomlarkworthy/claude-code-pairing))`, the snippet of
 step 8 of the implementer's brief, in three fresh tabs (`r=3101`, `3104`, `3105`), 15:41 to 15:46 CEST:
 `[56,[]]` each, Chrome/151.0.7922.34. 56 tests, none failed. Two more tabs (`r=3102`, `3103`) were
-asked before they had connected and gave no count.
+asked before they had connected and gave no count. After the second rebase, one more fresh tab (`r=3106`, 15:48): `[56,[]]`.
+The counts under `brain.ts` below are of the same build.
 
 `brain.ts`:
 
@@ -127,8 +129,9 @@ cd $W && bun test ./tests/tools                                                 
 
 ### For the owner, to turn it on (`dv-4-owner-install-and-shell`)
 
-1. Read `git diff main...origin/bm/dv-3-deployer-opens-verify-html`, and merge it.
-2. Build, and emit the deployer in a tab of that build to `.emitted/deployer.json`
+1. Read `git diff main...origin/bm/dv-3-deployer-opens-verify-html`, and merge it to `main`.
+2. Build from `main` after the merge, so that what is installed is what `main` builds, and emit the
+   deployer in a tab of that build to `.emitted/deployer.json`
    (`(await mod.value("deployer_service")).emit()`, posted to `test-receiver.ts`). No file was
    emitted from the branch: `.emitted/deployer.json` of the main checkout is as it was.
 3. `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts install-deployer`. Nothing changes yet: with no
