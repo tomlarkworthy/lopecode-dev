@@ -73,7 +73,7 @@ Two files beside it, neither of them needed to resume:
    | `ready` | Spawn the implementer. |
    | `triaged`, no open children | Move to `ready`. |
    | `open`, kind `task` or `bug` | Triage it yourself (below). |
-   | `open`, kind `feedback` | `promote` it to a task when it asks for a change, `close` it with a comment when it does not. |
+   | `open`, kind `feedback` | Nothing, unless it is the owner's and asks for a change: then `promote` it. Feedback is filed by agents for anything that seems off against `philosophy.md` (Tom, 2026-10-11: "only feedback so we can identify patterns and check before writing a solution"), and the overseer reads it together. It is not counted as work waiting. |
    | Anything else: `in-review` with a review and no move after it, `in-progress` started by another actor | Comment with what you see, label `needs-owner`, and say so in step 7. |
 
 4. **Spawn** with the `Agent` tool: `subagent_type: general-purpose`, `model: opus`, never

@@ -86,6 +86,12 @@ You change no source, build nothing and deploy nothing. You write to the tracker
 a minute is still `changes`. Something out of the issue's scope is a new issue: file it with
 `ir open '{"key":"rev/<id>/open-1","title":"…","body":"…","kind":"bug","about":"brain"}'` (`about` is `brain` or a Worker's name; a body that says how you saw it; no `parent`, which would hold the parent back) and do not hold the review for it.
 
+## If you see something, say something
+
+Anything that seems off against one of the seven lines of `philosophy.md` and is not a finding on
+this issue: open a feedback ticket with `ir open`, kind `feedback`, id `seen-<short>`: what was
+seen, when, where to read it, which line. No fix in it (2026-10-11, `philosophy.md`, Clarifications).
+
 ## A digest
 
 An issue labeled `digest` is a published notebook, not a change to a service. Steps 2 to 6 are

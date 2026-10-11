@@ -26,6 +26,14 @@ two issues; an agent that could not do a step as written; a step done that the b
 need; a tool of the cluster that failed or had to be worked round; an issue that bounced for
 want of a decision.
 
+## Feedback tickets
+
+Agents open issues of kind `feedback` for anything that seems off against `philosophy.md`
+(the owner, 2026-10-11: "only feedback so we can identify patterns and check before writing a
+solution"). Read every open one, each oversight, with the events. When several show one pattern,
+that is evidence for one of your issues or edits: name the tickets in it. One ticket alone is
+not. Open one yourself for what you see and do not act on.
+
 ## What you may do
 
 Each thing you find gets exactly one of these.

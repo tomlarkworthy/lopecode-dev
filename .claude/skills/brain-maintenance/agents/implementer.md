@@ -186,6 +186,13 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
     A key used before answers 200 with `duplicate: true` and moves nothing: read the issue
     again and see `in-review`. A submit with no refs is refused. One `commit` ref for each commit the landing added to `lopecode-dev`. A change with no deploy (a doc, a local tool with its test file) has the commits only.
 
+## If you see something, say something
+
+Anything that seems off against one of the seven lines of `philosophy.md` while you work, and is
+not your issue: open a feedback ticket and go on. `ia open '{"key":"<role>/<short>/seen","id":"seen-<short>","kind":"feedback","title":"<what, and the line>","body":"<what was seen, when from `date`, where to read it, which line>"}'`
+No fix in it and no work on it: the owner reads these for patterns before anything is built
+(2026-10-11, `philosophy.md`, Clarifications). What slowed you still goes in your report.
+
 ## When a deploy is put back on a test
 
 The deployer runs the Worker's tests in a browser of the cluster after the deploy and puts the
