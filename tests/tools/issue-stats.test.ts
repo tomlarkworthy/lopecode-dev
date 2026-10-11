@@ -253,3 +253,16 @@ test("--window counts the marked reviews after that event, with a line of its ow
   // At event 838 the reviewer's comment of the round after 534 was not written yet.
   expect(report(marked, { now: 1e7, until: 838 }).statementsOnly.all).toEqual({ reviews: 2, verdicts: { changes: 2 }, round: { summed: 0, tokens: 0, leftOut: [452, 534] } });
 });
+
+// Issue issue-stats-default-token-r4: the tool names no token of a role, and has no default for --token.
+test("with no --token the tool prints its usage and exits 2, and no line of it names a role's token", async () => {
+  const { readFileSync } = await import("node:fs");
+  expect(readFileSync(tool, "utf8").match(/issues-(implementer|reviewer|overseer)-\d/g)).toBe(null);
+  for (const args of [[], ["--json"], ["--token"], ["--token", "--json"]]) {
+    const r = Bun.spawnSync(["bun", tool, ...args], { env: { ...process.env, BRAIN_STATE_DIR: "/nonexistent" } });
+    expect(r.exitCode, args.join(" ")).toBe(2);
+    expect(r.stdout.toString()).toBe("");
+    expect(r.stderr.toString()).toContain("issue-stats.ts --token NAME");
+    expect(r.stderr.toString()).toContain("nothing was sent");
+  }
+});

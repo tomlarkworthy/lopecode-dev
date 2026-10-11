@@ -1,7 +1,9 @@
 #!/usr/bin/env bun
 // What the tracker's record says of the loop: where issues wait, which states hold them, how often work is sent back.
-//   bun tools/cloud-brain/issue-stats.ts [--token issues-overseer-1] [--after SEQ] [--until SEQ] [--window SEQ] [--idle HOURS] [--json]
+//   bun tools/cloud-brain/issue-stats.ts --token NAME [--after SEQ] [--until SEQ] [--window SEQ] [--idle HOURS] [--json]
 // Read from issue.sync with a token, through issue-as.sh (run it from the main checkout: a worktree has no tokens).
+// --token is the caller's own token, the one its prompt names, and has no default: with none the tool prints the line
+// above and exits 2, and nothing is sent (issue-stats-default-token-r4; until then it read as a role's token).
 // --after counts only the issues opened after that event. Times are the events' own `at`.
 // --window counts the events after that one, whatever issue they are of: what an oversight judges its last edits by.
 // --until reads the record as it was at that event: a count written down with its event can be made again.
@@ -209,7 +211,11 @@ export function text(report: Report) {
 type Report = ReturnType<typeof report>;
 
 if (import.meta.main) {
-  const token = arg("token", "issues-overseer-1"), as = join(dirname(import.meta.path), "issue-as.sh");
+  const token = arg("token", ""), as = join(dirname(import.meta.path), "issue-as.sh");
+  if (!token || token.startsWith("--")) {
+    console.error("issue-stats.ts: no --token; nothing was sent\n  bun tools/cloud-brain/issue-stats.ts --token NAME [--after SEQ] [--until SEQ] [--window SEQ] [--idle HOURS] [--json]\n  NAME is your own token, the one your prompt names (a name issue-as.sh keeps)");
+    process.exit(2);
+  }
   const events: any[] = [];
   for (let after = 0; ; ) {
     const out = execFileSync(as, [token, `sync?after=${after}&limit=500`], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
