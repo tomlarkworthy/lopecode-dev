@@ -116,4 +116,22 @@ a draft once the row is back. Another caller's event on the row: held for a box 
   answer, and the answer leaves the text. No test holds it.
 - Two tracker panels on one page: each run of `issues_attention` adds one part, and task 3 picks.
 - A text longer than the service takes.
-- Chrome 128, the cluster's browser, before the deploy. The deployer runs the tests there after it.
+- Chrome 128, the cluster's browser. It has not run this build: see below.
+
+## The deploy had no test run of the deployer's
+
+The apply (22:31:55 to 22:32:12 CEST, `lock.sh`) answered `"state":"probation"` for hash
+`e3b34e862cd1`. The deployer's lines, read with `logs.deploys` (`--as loop-deploys`), have why:
+
+```
+deploy.verify.none  brain-x-issues  reason: browser.extend answered 402 owner has made 2000 priced
+calls today, which is the most for one day. The count is new at 00:00 UTC
+```
+
+So the deployer leased no browser and ran no test. `brain.ts state` read
+`probation e3b34e862cd1 until 2026-10-11T20:42:10.970Z`, after which the version is put back. At
+22:34:42 CEST (`date`) `brain.ts confirm brain-x-issues` answered `{"confirmed":["brain-x-issues"]}`,
+which is the step `knowledge/changing-and-deploying-a-cloud-brain-worker.md` gives for a probation
+with a reason read. The version stands on the three runs under "Tests", all in Chrome 151 on this
+machine. Not taken: letting it be put back, which leaves `main` and the notebook ahead of cb4 until
+a deploy after 00:00 UTC. To undo: `brain.ts rollback`.
