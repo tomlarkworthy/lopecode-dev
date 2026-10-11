@@ -9,7 +9,10 @@ import { mkdtempSync, writeFileSync, readFileSync, chmodSync, rmSync } from "nod
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 
+import { testNeeding } from "./needs.ts";
+
 const root = resolve(import.meta.dir, "../..");
+const agentSh = join(process.env.CLOUD_BRAIN_DEV || join(root, "cloud-brain-dev"), "agent.sh");
 const url = `${process.env.BRAIN || "https://cb4.endpointservices.workers.dev"}/static/cloud-brain-dev/roles/reviewer.md`;
 const brief = async () => {
   if (process.env.BRIEF) return readFileSync(process.env.BRIEF, "utf8");
@@ -38,13 +41,13 @@ test("the shorthand is defined with a name to write in, not a shell variable", a
 });
 
 // agent.sh is not changed by this task: the name reaches the reviewer in the task text, which it sends as given.
-test("agent.sh sends a task that names a token as its task line, whole", () => {
+testNeeding("reviewer-brief-names-token.test.ts, its test of agent.sh", [agentSh])("agent.sh sends a task that names a token as its task line, whole", () => {
   const dir = mkdtempSync(join(tmpdir(), "brief-token-"));
   try {
     writeFileSync(join(dir, "claude"), `#!/bin/bash\nprintf '%s' "$2" > "${dir}/prompt"\necho '{"type":"result","session_id":"s","result":"ok","usage":{}}'\n`);
     chmodSync(join(dir, "claude"), 0o755);
     const task = "review issue some-issue; your token is rev-3fa2c1";
-    const r = Bun.spawnSync([join(root, "cloud-brain-dev/agent.sh"), "reviewer", task], {
+    const r = Bun.spawnSync([agentSh, "reviewer", task], {
       env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, CHECKOUT: root },
     });
     expect(r.exitCode).toBe(0);

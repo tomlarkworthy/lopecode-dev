@@ -4,12 +4,16 @@
 //
 //   bun test ./tests/tools/light-agent.test.ts
 // No call leaves the machine: the Brain is a server of this process, and `claude` is a stand-in on PATH.
-import { test, expect, afterAll } from "bun:test";
+import { test as always, expect, afterAll } from "bun:test";
 import { symlinkSync, mkdtempSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, existsSync, chmodSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 
+import { testNeeding } from "./needs.ts";
+
 const dev = process.env.CLOUD_BRAIN_DEV || resolve(import.meta.dir, "../../cloud-brain-dev");
+// In a checkout whose cloud-brain-dev is empty (a plain `git worktree add`) every test here is skipped, with one line.
+const test = testNeeding("light-agent.test.ts", [join(dev, "agent.sh"), join(dev, "put.sh")]);
 const files: Record<string, string> = { "roles/x.md": "one" };
 let asked: string[] = [];
 const brain = Bun.serve({
@@ -221,9 +225,9 @@ test("no advisor unless ADVISOR=1: the run's settings empty advisorModel", async
 // during the run. `claude` here waits for the file `go`, so the write is made while agent.sh runs.
 // Skipped while the agent.sh under test has no block with its exit inside (the fix is a commit of cloud-brain-dev
 // that only the owner pushes); AGENT_SH_WRITTEN_OVER=1 runs it on any agent.sh.
-const agentSh = readFileSync(join(dev, "agent.sh"), "utf8");
+const agentSh = existsSync(join(dev, "agent.sh")) ? readFileSync(join(dev, "agent.sh"), "utf8") : "";
 const readWhole = /\n\{\n[\s\S]*\nexit\n\}\n*$/.test(agentSh);
-test.skipIf(!readWhole && !process.env.AGENT_SH_WRITTEN_OVER)("agent.sh written over while claude runs: exit 0, the JSON line, no scratch directory left", async () => {
+(readWhole || process.env.AGENT_SH_WRITTEN_OVER ? test : always.skip)("agent.sh written over while claude runs: exit 0, the JSON line, no scratch directory left", async () => {
   const lines = agentSh.split("\n");
   const over: Record<string, string> = {
     longer: [lines[0], "# a line that was not there when the run began", ...lines.slice(1)].join("\n"),

@@ -5,22 +5,28 @@
 //      SQLite, so a pass here is not a pass there: the first call on cb4 is that test.
 //   2. The batches of issueLocking are run as one transaction each, as brain-db runs a batch.
 // The statements are read from the built module, never retyped: the notebook of this checkout, or in a writer's
-// worktree the build there (tools/cloud-brain/.emitted/cloud-brain.html). BRAIN_NOTEBOOK names another.
+// worktree the build there (tools/cloud-brain/.emitted/cloud-brain.html) when there is one. A worktree with no build
+// reads the committed notebook through its link, so a seed changed there and not built is not what is tested.
+// BRAIN_NOTEBOOK names another. With no notebook or no brain-db.js the tests are skipped, and a line says for want of what.
 // plan/cloud-brain-locks-held-in-the-cluster.md, task 1; tools/cloud-brain/records/lk-1-issue-lock-methods.md.
-import { test, expect, beforeAll } from "bun:test";
+import { expect, beforeAll } from "bun:test";
 import { Database } from "bun:sqlite";
-import { mkdtempSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 import { importNotebookModule } from "../../tools/notebook-import.ts";
+import { BUILT, notebookOf, testNeeding } from "./needs.ts";
 
 const ROOT = resolve(import.meta.dir, "../..");
 const worktree = statSync(resolve(ROOT, ".git")).isFile();
-const NOTEBOOK = resolve(ROOT, process.env.BRAIN_NOTEBOOK || (worktree ? "tools/cloud-brain/.emitted/cloud-brain.html" : "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html"));
+const NOTEBOOK = resolve(ROOT, notebookOf({ named: process.env.BRAIN_NOTEBOOK, worktree, built: existsSync(resolve(ROOT, BUILT)) }));
+const BRAIN_DB = resolve(ROOT, "cloud-brain-dev/deploy/@tomlarkworthy/brain-db.js");
+const test = testNeeding("issue-lock-sql.test.ts", [NOTEBOOK, BRAIN_DB]);
 
 let S: Record<string, string>, schema: string[], locking: any, limits: any, db_: any;
 
 beforeAll(async () => {
+  if (!existsSync(NOTEBOOK) || !existsSync(BRAIN_DB)) return;
   const got = Bun.spawnSync(["bun", resolve(ROOT, "tools/lope-reader.ts"), NOTEBOOK, "--get-module", "@tomlarkworthy/brain-issues"]);
   if (got.exitCode !== 0) throw new Error(`no module @tomlarkworthy/brain-issues in ${NOTEBOOK}: ${got.stderr.toString().slice(0, 300)}`);
   const file = join(mkdtempSync(join(tmpdir(), "issue-lock-")), "brain-issues.js");
@@ -31,7 +37,7 @@ beforeAll(async () => {
   // A module from before the change has neither cell: the tests then fail, each on what it reads.
   schema = await issues.value("issuesLockSchema").catch(() => []);
   locking = await issues.value("issueLocking").catch(() => null);
-  db_ = await importNotebookModule(resolve(ROOT, "cloud-brain-dev/deploy/@tomlarkworthy/brain-db.js"));
+  db_ = await importNotebookModule(BRAIN_DB);
 });
 
 const fresh = () => {
