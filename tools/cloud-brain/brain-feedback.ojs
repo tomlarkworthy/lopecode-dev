@@ -28,8 +28,7 @@ feedbackLimits = ({ title: 120, text: 4000, shown: 400, everyMs: 30000, label: "
 // near: the text of the element under the note's tip, for a note that marks no text of its own.
 feedbackWhere = (anchor = {}, near = "") =>
   feedbackLimits.says +
-  [anchor.module && `module \`${anchor.module}\``, anchor.cell && `cell \`${anchor.cell}\``, anchor.quote && anchor.quote.exact ? `at the text "${String(anchor.quote.exact).slice(0, 200)}"` : near && `on the element that reads "${String(near).replace(/\s+/g, " ").trim().slice(0, 120)}"`].filter(Boolean).join(", ") +
-  (anchor.module || anchor.cell ? "." : "no cell.")
+  [anchor.module && `module \`${anchor.module}\``, anchor.cell && `cell \`${anchor.cell}\``, anchor.quote && anchor.quote.exact ? `at the text "${String(anchor.quote.exact).slice(0, 200)}"` : near && `on the element that reads "${String(near).replace(/\s+/g, " ").trim().slice(0, 120)}"`].filter(Boolean).concat(anchor.module || anchor.cell ? [] : ["no cell"]).join(", ") + "."
 // %%
 feedbackBody = (text, where, near = "") => `${String(text).trim()}\n\n${feedbackWhere(where.anchor, near)}\n\n${feedbackLimits.fence}${JSON.stringify(where)}\n${"`".repeat(3)}`
 // %%
@@ -62,7 +61,7 @@ feedbackProgress = (ticket) => {
 // The notes of one page. client: issue.* calls. store: annotate's (create, remove, patch, get, all, refresh).
 feedbackApp = ({ client, store, about = () => "brain", near = () => "", limits = feedbackLimits }) => {
   // tickets: issue id to what issue.get answered. of: note id to issue id. hidden: open issues whose note was closed here.
-  const tickets = new Map(), of = new Map(), els = new Map(), drafts = new Map(), says = new Map(), hidden = new Set();
+  const tickets = new Map(), of = new Map(), els = new Map(), drafts = new Map(), says = new Map(), hidden = new Set(), filing = new Set();
   let busy = false;
   for (const a of store.all()) if (a.kind === limits.kind && a.issue) of.set(a.id, a.issue);
   const get = async (iss) => {
@@ -95,6 +94,7 @@ feedbackApp = ({ client, store, about = () => "brain", near = () => "", limits =
     if (!text || !rec) return (says.set(id, text ? "The note is gone." : "Write something first."), draw(id));
     const iss = "fb-" + id.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 36);
     of.set(id, iss);
+    filing.add(iss);
     draw(id);
     try {
       await client.procedure("issue.open", { key: "annotation/" + id, id: iss, title: cut(text.split("\n")[0], limits.title), body: feedbackBody(text, { anchor: rec.anchor, box: rec.box }, near(rec)), kind: "feedback", about: about(rec.anchor), labels: [limits.label] });
@@ -106,6 +106,7 @@ feedbackApp = ({ client, store, about = () => "brain", near = () => "", limits =
       of.delete(id);
       says.set(id, "issue.open was refused: " + e.message);
     }
+    filing.delete(iss);
     draw(id);
   };
   // Places a note for each labeled issue that has none here, and takes away a note whose issue lost the label.
@@ -123,8 +124,7 @@ feedbackApp = ({ client, store, about = () => "brain", near = () => "", limits =
         if (a) of.set(a.id, i.id);
       }
       for (const [id, iss] of [...of]) {
-        // Not listed and never read: it is being filed now.
-        if (ids.has(iss) || !tickets.has(iss)) continue;
+        if (ids.has(iss) || filing.has(iss)) continue;
         const t = await get(iss).catch(() => null);
         if (t && (t.issue.labels || []).includes(limits.label)) continue;
         of.delete(id);
@@ -169,10 +169,10 @@ feedbackApp = ({ client, store, about = () => "brain", near = () => "", limits =
 }
 // %%
 // The text under a note's tip: the first element there that is in a cell and not in annotate's own layer.
-feedbackNear = (rec) => {
+feedbackNear = (rec, { resolve = a2Anchors.resolve, doc = document } = {}) => {
   try {
-    const at = a2Anchors.resolve(rec), p = at && (at.kind === "rects" ? at.rects[0] && { x: at.rects[0].left + 2, y: at.rects[0].top + 2 } : at);
-    const el = p && document.elementsFromPoint(p.x, p.y).find((e) => e.closest(".observablehq") && !e.closest("[data-a2-layer],[data-a2-root]"));
+    const at = resolve(rec.anchor), p = at && (at.kind === "rects" ? at.rects[0] && { x: at.rects[0].left + 2, y: at.rects[0].top + 2 } : at);
+    const el = p && doc.elementsFromPoint(p.x, p.y).find((e) => e.closest(".observablehq") && !e.closest("[data-a2-layer],[data-a2-root]"));
     return el ? el.textContent || "" : "";
   } catch {
     return "";
@@ -192,6 +192,10 @@ feedbackKind = {
 // %%
 feedbackSync = {
   if (!feedback) return "off";
+  // A note placed before annotate knows the kind would be written into the module it points at.
+  feedbackKind;
+  for (let i = 0; i < 400 && !a2Store.kindOf(feedbackLimits.kind); i++) await new Promise((r) => setTimeout(r, 25));
+  if (!a2Store.kindOf(feedbackLimits.kind)) return "annotate has no kind " + feedbackLimits.kind;
   const tick = () => document.visibilityState === "visible" && feedback.sync().catch((e) => console.warn("brain-feedback: " + e.message));
   const timer = setInterval(tick, feedbackLimits.everyMs);
   invalidation.then(() => clearInterval(timer));
@@ -249,13 +253,13 @@ test_feedback_body_keeps_the_anchor_and_says_where = {
   const fence = "`".repeat(3);
   expect(feedbackParse(feedbackBody(`see ${fence}annotation\n{"anchor":1}\n${fence}`, { anchor: { cell: "x" } })).anchor).toEqual({ cell: "x" });
   expect([feedbackParse("plain"), feedbackParse(`${fence}annotation\nnot json\n${fence}`), feedbackParse(`${fence}annotation\n{"box":{}}\n${fence}`), feedbackParse(undefined)]).toEqual([null, null, null, null]);
-  expect(feedbackWhere({})).toBe("Annotated on the Brain's page: no cell.");
+  expect([feedbackWhere({}), feedbackWhere({ quote: { exact: "foo" } }), feedbackWhere({}, " Services\n table ")]).toEqual(["Annotated on the Brain's page: no cell.", "Annotated on the Brain's page: at the text \"foo\", no cell.", "Annotated on the Brain's page: on the element that reads \"Services table\", no cell."]);
   return "the text, the sentence and the anchor go into a body and come back; a body without an anchor is null";
 }
 // %%
 test_feedback_file_opens_an_issue_and_the_note_shows_it = {
   const rig = feedbackRig(), app = rig.app();
-  const a = rig.store.create({ module: "@tomlarkworthy/brain-issues", cell: "issuesView", surface: "element", frac: { x: 0.5, y: 0.5 } }, { kind: "feedback" });
+  const a = rig.store.create({ module: "@tomlarkworthy/brain-issues", cell: "issuesView", surface: "element", frac: { fx: 0.5, fy: 0.5 } }, { kind: "feedback" });
   const el = app.note(a.id), press = (name) => [...el.querySelectorAll("button")].find((b) => b.textContent === name).click();
   const until = async (f) => { for (let i = 0; i < 100 && !f(); i++) await new Promise((r) => setTimeout(r, 10)); return !!f(); };
   expect(el.querySelector("[data-feedback]").dataset.feedback).toBe("draft");
@@ -286,7 +290,7 @@ test_feedback_file_opens_an_issue_and_the_note_shows_it = {
 }
 // %%
 test_feedback_load_places_a_note_for_each_labeled_issue = {
-  const rig = feedbackRig(), anchor = { module: "@tomlarkworthy/cloud-brain", cell: "services", surface: "element", frac: { x: 0.1, y: 0.2 } };
+  const rig = feedbackRig(), anchor = { module: "@tomlarkworthy/cloud-brain", cell: "services", surface: "element", frac: { fx: 0.1, fy: 0.2 } };
   await rig.client.procedure("issue.open", { id: "fb-one", title: "One", body: feedbackBody("One", { anchor, box: { dx: 5, dy: 6, w: 300 } }), kind: "feedback", about: "brain", labels: ["annotation"] });
   await rig.client.procedure("issue.open", { id: "by-hand", title: "Labeled by hand", body: "no anchor", kind: "feedback", about: "brain", labels: ["annotation"] });
   await rig.client.procedure("issue.open", { id: "other", title: "Not a note", body: feedbackBody("x", { anchor }), kind: "feedback", about: "brain", labels: [] });
@@ -314,7 +318,7 @@ test_feedback_load_places_a_note_for_each_labeled_issue = {
 }
 // %%
 test_feedback_done_then_remove_takes_the_label_off = {
-  const rig = feedbackRig(), anchor = { cell: "services", surface: "element", frac: { x: 0.1, y: 0.2 } };
+  const rig = feedbackRig(), anchor = { cell: "services", surface: "element", frac: { fx: 0.1, fy: 0.2 } };
   for (const id of ["fb-done", "fb-open"]) await rig.client.procedure("issue.open", { id, title: id, body: feedbackBody(id, { anchor }), kind: "feedback", about: "brain", labels: ["annotation"] });
   const app = rig.app();
   await app.sync();
@@ -348,7 +352,7 @@ test_feedback_cells_stay_in_this_module_with_annotates_store = {
   const mine = () => a2Store.all().filter((a) => a.kind === limits.kind);
   try {
     expect(await until(() => a2Store.kindOf(limits.kind))).toBe(true);
-    const anchor = { module: "@tomlarkworthy/cloud-brain", cell: "services", surface: "element", frac: { x: 0.5, y: 0.5 } };
+    const anchor = { module: "@tomlarkworthy/cloud-brain", cell: "services", surface: "element", frac: { fx: 0.5, fy: 0.5 } };
     await rig.client.procedure("issue.open", { id: "fb-real", title: "Real", body: feedbackBody("Real", { anchor, box: { dx: 7, dy: 8, w: 300 } }), kind: "feedback", about: "brain", labels: ["annotation"] });
     await app.sync();
     expect(mine().map((a) => [a.issue, a.home, a.anchor.module, a.box])).toEqual([["fb-real", limits.home, "@tomlarkworthy/cloud-brain", { dx: 7, dy: 8, w: 300 }]]);
@@ -372,6 +376,23 @@ test_feedback_cells_stay_in_this_module_with_annotates_store = {
     for (const a of mine()) a2Store.remove(a.id);
     off();
   }
+}
+// %%
+test_feedback_near_reads_under_the_anchor_and_a_kept_note_without_its_label_goes = {
+  // The anchor is what is resolved, not the record, whose cell is the note itself.
+  const asked = [], el = { closest: (s) => s === ".observablehq", textContent: "Services" }, layer = { closest: () => true, textContent: "the note" };
+  const doc = { elementsFromPoint: (x, y) => (asked.push([x, y]), [layer, el]) };
+  expect([feedbackNear({ cell: "annotation_x_note", anchor: { cell: "services" } }, { resolve: (a) => (asked.push(a), { kind: "point", x: 3, y: 4 }), doc }), asked]).toEqual(["Services", [{ cell: "services" }, [3, 4]]]);
+  expect(feedbackNear({ anchor: {} }, { resolve: () => ({ kind: "rects", rects: [{ left: 10, top: 20 }] }), doc })).toBe("Services");
+  expect(feedbackNear({ anchor: {} }, { resolve: () => { throw new Error("gone"); }, doc })).toBe("");
+  // A note kept from before, whose issue lost the label while no page was open: read once, then taken away.
+  const rig = feedbackRig();
+  await rig.client.procedure("issue.open", { id: "fb-old", title: "Old", body: feedbackBody("Old", { anchor: { cell: "x" } }), kind: "feedback", about: "brain", labels: [] });
+  const a = rig.store.create({ cell: "x" }, { kind: "feedback", issue: "fb-old" });
+  const app = rig.app();
+  await app.sync();
+  expect([rig.cells.size, app.of.size, rig.calls.slice(1).map((c) => c[0])]).toEqual([0, 0, ["issue.list", "issue.get"]]);
+  return "near resolves the anchor; a kept note of an issue with no label is removed on the first ask";
 }
 // %%
 test_feedback_is_off_away_from_the_owners_page = {

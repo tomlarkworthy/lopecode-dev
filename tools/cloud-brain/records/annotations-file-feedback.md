@@ -44,9 +44,17 @@ loop already reads feedback. A second store would need a read rule, a sync and a
 
 | | |
 |---|---|
-| `bun tools/lope-tests.ts <built> --filter test_feedback` | 6 passed of 6, 16.7 s. One of them runs on annotate's own store. |
-| `node tools/test-annotate.js` (headless shell 1234) | 145 passed of 145; 142 before the three new checks. |
+| `bun tools/lope-tests.ts <built> --filter test_feedback` | 7 passed of 7. One of them runs on annotate's own store. The whole notebook: 20 failed and 8 timed out, the same names as the notebook on main. |
+| `tools/test-annotate.js`, run from a copy with `executablePath` set to `~/Library/Caches/ms-playwright/chromium_headless_shell-1234/…/chrome-headless-shell` (as written it asks for build 1200, which is not installed) | 145 passed of 145; 142 before the three new checks. |
 | A QA tab, Chrome 151, the built file, `feedback` redefined over the rig's tracker and annotate's store | Menu kind armed, one click on the docs heading, text typed, File: the cells `annotation_<id>` and `_note` were in `brain-feedback`, the anchor's module `cloud-brain-docs`. The body's sentence read `on the element that reads "Cloud Brain: what it does and how it works"`. A comment and then a close were drawn after `sync`. The box's × on the closed issue sent one `issue.label` with `remove: ["annotation"]`, and no cell was left. |
+
+## The fresh review (FIX, 8 findings, all taken)
+
+The sentence in the body named the element under the note's box, not under its tip (`resolve` was
+given the record). A note placed before annotate knew the kind went into the annotated module:
+`feedbackSync` now waits for the kind, and annotate's `patch` leaves a record of an unregistered kind
+where it is. A kept note whose issue had lost its label stayed as `fb-…`. `feedbackWhere` ran two
+clauses together with no cell. The fixtures' `frac` had the wrong keys.
 
 ## Not tried
 
