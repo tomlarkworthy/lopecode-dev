@@ -170,3 +170,6 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
 - 2026-10-11 `plan/cloud-brain-i1842.md` (the spec of the Operator's own tab, first writing): FIX, 7 findings (6 confirmed, 1 plausible),
   all taken (lopecode-dev `0a26c20a`). 92k subagent tokens, 4m04s. What the author had not seen: the check that closes the project piped
   a page into `lope-reader.ts`, which reads no stdin, and the pairing check opened a layout that still had the pane the spec removes.
+- 2026-10-11 `plan/cloud-brain-i1842.md`, the uncommitted diff of round 2 (after review 1951 on cb4): FIX, 5 findings (4 confirmed, 1 plausible),
+  all taken. 93k subagent tokens, 1m41s. What the author had not seen: one command line was given two opposite pass conditions (task 1's run in the
+  old shell and task 3's in the new), and the check of the inbox pump passed on a signed-out page where the pump polls nothing.
