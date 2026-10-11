@@ -140,7 +140,7 @@ the last edit of the seed (its commit is 23:01:55 CEST, `git log --format=%ci`),
 (`date`):
 
 - `cd cloud-brain-dev && bun test.ts brain-x-page --with <the built module>`:
-  `"passed":14,"failed":0,"needsBrowser":16`. All three new tests are among the 16.
+  `"passed":14,"failed":0,"needsBrowser":16`. Two of the three new tests are among the 16; `test_attention_draft_calls_the_part_and_no_method` is one of the 14 (the reviewer's run on the deployed hash, round 1).
 - `bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/cloud-brain --emit page_service=…`:
   `"tests":30,"passed":30,"failed":[]`, Chrome 151.0.7922.34.
 - `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-page --shell <the build> --times 20`:
