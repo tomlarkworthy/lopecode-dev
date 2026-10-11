@@ -48,9 +48,12 @@ This is the reviewers' case: "the failures are tests of the reviewer brief and a
 (`writers-qa-tabs-wake-the-orchestrator`, 309 pass 11 fail of 320 at `70b324f0`). Their count is not
 reproduced exactly. A plain worktree at `70b324f0` in the session's scratchpad, outside the
 checkout, gave 303 pass, 17 fail of 320 (between 22:16 and 22:21:44): there `light-agent.test.ts` had no read at load, so
-its 15 tests failed one by one, and the reviewer-brief tests passed because `atproto-publish.test.ts`
-failed earlier still, at its import (`Cannot find package 'linkedom'`: a worktree outside the
-checkout finds no `node_modules` above it). So the fails differ by what the checkout lacks
+its 15 tests failed one by one, and the tests that read the reviewer's brief passed. Why they passed
+there is not shown by the output kept of that run (its `(fail)` lines and counts). At the same path,
+at the first commit of this change, `atproto-publish.test.ts` stopped at its import on
+`Cannot find package 'linkedom'`, before it touches `fetch`; `linkedom` and `happy-dom` are in the
+checkout's `node_modules/` and not in `tools/node_modules/` (`ls -d`, 22:41), and only the second
+was linked there. So the fails differ by what the checkout lacks
 (`cloud-brain-dev`, `lopecode`, a build, a `node_modules` above it), and by the commit only in how a
 file fails for want of the same thing.
 
@@ -88,7 +91,7 @@ For a missing submodule there is nothing to read in its place, so those are skip
 
 ## Counts
 
-The first two at the second commit as it was before the rebase onto `main` (`c01d74c8` then, `67bb0902` on `main`), 2026-10-11.
+The first two at the second commit of this change, before the rebase onto `main`, 2026-10-11.
 
 ```
 worktree.sh worktree, .emitted/ empty, 22:33:38      bun test ./tests/tools
@@ -104,9 +107,13 @@ The one skip of the first run was there before the change (`light-agent.test.ts`
 files run with its path pointed at a directory that does not exist, and `needs-fetch.fixture.ts`
 run after `atproto-publish.test.ts` in one process. With `needs.ts` in place and the three test
 files of the first commit put back as `bcf9e955` has them, `bun test ./tests/tools/needs.test.ts`
-gave 1 pass, 3 fail (before 22:25:59; four tests then).
+gave 1 pass, 3 fail (before 22:25:59; four tests then). With `atproto-publish.test.ts` put back as
+`bcf9e955` has it, `bun test ./needs.test.ts -t atproto` in `tests/tools` gave 1 pass, 1 fail
+(22:41:15): the skip test fails, and the `fetch` test passes, because the file as it was takes no
+`ATPROTO_HTML` and found the linked `lopecode`. That test fails without the fix only where `lopecode`
+is absent, which is the run under "What was wrong" (`fetch after: undefined`).
 
-After the last edit (the `skipped:` line names `lopecode` too, `c2643032`) and the rebase onto `main`
+After the last edit to a test's file (the third commit: the `skipped:` line names `lopecode` too) and the rebase onto `main`
 at `9de0dd52`, which brought in three test files of other writers:
 
 ```
