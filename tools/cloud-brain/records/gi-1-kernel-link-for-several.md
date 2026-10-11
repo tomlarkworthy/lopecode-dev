@@ -70,9 +70,34 @@ Two not taken:
 
 ### Not tried
 
-- A link for several on cb4. The spec leaves the one run of the whole path to the owner (its
-  "What only the owner can do", 3): Copy Guest Invite with people at 2, two POSTs and a third.
+- The page's part of the path on cb4: Copy Guest Invite with people at 2 (the spec's "What only
+  the owner can do", 3). The kernel's part was run, under "On cb4" below.
 - The spec writer's count that each of three edits taken out fails a test was not made again.
 - Two POSTs racing for one place against the real database. The test runs four POSTs at once
   against the rig's rows; the reviewer read `putIfAbsent` as `INSERT OR IGNORE` on a primary key
   in `cloudflare-iac.ojs` and did not ask cb4 which `brain-db` runs.
+
+### On cb4, 2026-10-11
+
+Deployed as `brain` `18ab224bd54b` (the apply answered `probation` at 22:14:28 CEST; `brain.ts
+confirm brain` answered `{"confirmed":["brain"]}` at 22:15:08; `redistil` then read `same`). One
+run between the two, with the owner's session for the `token.*` calls and each token kept in a
+file of mode 600 that was deleted after:
+
+| Call | Answer |
+|---|---|
+| `token.link { name: "gi1-check", methods: ["quota.get"], minutes: 5, hours: 1, daily: 0.01, uses: 2 }` | 200, `uses: 2` |
+| POST of the link, first and second | 200 each: `gi1-check-229b`, `gi1-check-0e67`, `daily: 0.01`; each token's `quota.get` 200 |
+| POST of the link, third | 401 |
+| `token.list` | both with `by: "link"`, `group: "gi1-check"` |
+| `token.create { name: "gi1-check" }` | 400 |
+| `token.revoke { name: "gi1-check-229b" }` | `{ revoked: 1 }`; that token's `quota.get` 401, the other's 200 |
+| `token.revoke { name: "gi1-check" }` | `{ revoked: 2 }`; both tokens 401; `token.list` has none of the group |
+
+Also read after the apply: `/` 200; `token.list` 200 with 12 tokens, none with a group; a call
+with the token `loop-knowledge` 200; a POST of `/auth/link?code=0` 401. After the landing:
+`cd cloud-brain-dev && bun sync.ts … && bun test.ts brain` gave hash `18ab224bd54b`, `passed 29,
+failed 0, needsBrowser 0`.
+
+Not run on cb4: two POSTs at the same moment, a link for several left to end by its time, and a
+token of a group that asks for more.
