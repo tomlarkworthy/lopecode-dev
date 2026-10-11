@@ -949,19 +949,21 @@ turnClient = (token) => xrpcClient(brainOrigin, { namespace: "com.lopecode.brain
 // %%
 // What brain_call shows of an answer: 20000 characters from offset, and a last line when there is more. The loop
 // shows 8000 characters of a tool's result, the first and last 4000, unless the tool returns outputLimit.
-callAnswer = (out, offset) => {
+callAnswer = (out, offset, kind) => {
   const text = typeof out === "string" ? out : JSON.stringify(out, null, 1);
   const from = Math.min(text.length, Math.max(0, Math.floor(Number(offset) || 0))), end = Math.min(text.length, from + 20000);
-  const more = end < text.length ? `\n[characters ${from} to ${end} of ${text.length}. The rest: the same call with offset ${end}]` : "";
+  const more = end >= text.length ? "" : `\n[characters ${from} to ${end} of ${text.length}. ${kind === "procedure" ? "The rest is not read: a procedure called again would run a second time" : "The rest: the same call with offset " + end}]`;
   return { output: text.slice(from, end) + more, outputLimit: 20200 };
 }
+// %%
+offsetRefused = "offset is for a query. A procedure called again would run a second time, so it is not called."
 // %%
 // brain_call for one person's session. `turn.call` is the client of the entry being answered, so the Brain
 // sees the call as that person. With no turn running there is nothing to call with, and it refuses.
 turnTool = (turn) =>
   defineTool({
     id: "brain_call",
-    description: "Call one XRPC method of the Cloud Brain as the person this message came from. method is short (library.list, getInfo) or a full NSID. kind is query (GET, input becomes the query string) or procedure (POST, input is the JSON body). The Brain refuses what that person may not call. An answer is shown 20000 characters at a time and its last line says when there is more: make the same query again with offset.",
+    description: "Call one XRPC method of the Cloud Brain as the person this message came from. method is short (library.list, getInfo) or a full NSID. kind is query (GET, input becomes the query string) or procedure (POST, input is the JSON body). The Brain refuses what that person may not call. An answer is shown 20000 characters at a time and its last line says when there is more: make the same query again with offset. offset is refused with a procedure.",
     parameters: {
       type: "object",
       properties: { method: { type: "string" }, kind: { type: "string", enum: ["query", "procedure"] }, input: { type: "object" }, offset: { type: "number" } },
@@ -970,8 +972,9 @@ turnTool = (turn) =>
     execute: async ({ method, kind, input, offset }) => {
       if (!turn.call) throw new Error("No message is being answered.");
       if (assistantRefuses(method)) throw new Error(`${method} is not available to the assistant. The owner does this on the page.`);
+      if (kind !== "query" && offset) throw new Error(offsetRefused);
       const out = kind === "query" ? await turn.call.query(method, input) : await turn.call.procedure(method, input);
-      return { title: method, ...callAnswer(out, offset) };
+      return { title: method, ...callAnswer(out, offset, kind) };
     }
   })
 // %%
@@ -1129,7 +1132,7 @@ assistantPrompt = `You are the operator of a Cloud Brain: the Cloudflare Workers
 How to work:
 - Start from what is running. Each step you are shown "brain", a one-line state of every Worker, probation, held deploys and the inbox. Call brain_status for the detail. Answer a question about what is running from brain_status, brain_services or brain_call, not by reading source: source says what would be deployed, not what is.
 - How the Brain works is a different question. The module @tomlarkworthy/cloud-brain-docs says what the owner and a member can do, and how the core is built: the deployer, the kernel, the core, who is calling, tokens, rules, the call path, deploys, data and metrics. Read it with read_file /src/@tomlarkworthy/cloud-brain-docs.js before you answer a question about how the Brain works, and before you change a service. Answer from it and from the module it names, not from memory.
-- What this brief does not say is read where it is kept, not remembered. What the Brain holds on a question (the guides to how this Brain and its notebooks are worked on, the designs, notebook modules, papers): brain_call knowledge.search { q, semantic: "true" }, with kind: "doc" for the guides alone, then knowledge.get { id } for an entry's text. One Worker's methods, inputs and answers as deployed: brain_call getSource { worker, part: "reference" }, before a method you have not called. How a program calls this Brain, and every method deployed: ${brainOrigin}/llms.txt. The files the agents that maintain this Brain read: ${brainOrigin}/static/cloud-brain-dev/index.md lists them. Those two are addresses, not methods: eval_js with (await (await fetch(address)).text()).slice(0, 7000), then slice(7000, 14000) and on, since eval_js shows 8000 characters of a result with the middle cut out.
+- What this brief does not say is read where it is kept, not remembered. What the Brain holds on a question (the guides to how this Brain and its notebooks are worked on, the designs, notebook modules, papers): brain_call knowledge.search { q, semantic: "true" }, with kind: "doc" for the guides alone, then knowledge.get { id } for an entry's text. One Worker's methods, inputs and answers as deployed: brain_call getSource { worker, part: "reference" }, before a method you have not called. How a program calls this Brain, and every method deployed: ${brainOrigin}/llms.txt. The files the agents that maintain this Brain read: ${brainOrigin}/static/cloud-brain-dev/index.md lists them. Those two are addresses, not methods: eval_js with (await (await fetch(address)).text()).slice(0, 6000), then slice(6000, 12000) and on, since eval_js shows the first 6000 characters of a text and drops the rest.
 - Lead an answer with the state and what you did, in the owner's terms (which Worker, which version, is it serving). Leave cell names and notebook mechanics out unless asked.
 - Say so unprompted when something needs the owner: a Worker failing or put back, a version on probation that nobody has kept, a deploy waiting for approval, a secret a service names that is not set, messages waiting.
 - To change or add a service: read /content/@tomlarkworthy/markdown-wiki/running-a-cloud-brain.md, edit its cells, see its tests pass, brain_apply it, then check brain_status until it is serving or was put back, and report which. Prove a new or changed service from outside, with a real call, before you say it works. A kernel or core update is on probation until the owner presses Keep this version; tell them.
@@ -1218,7 +1221,7 @@ assistantTools = {
     }),
     defineTool({
       id: "brain_call",
-      description: "Call one XRPC method of the Cloud Brain as its owner. method is short (inbox.list, people.list, secret.list, library.list, getInfo) or a full NSID. kind is query (GET, input becomes the query string) or procedure (POST, input is the JSON body). An answer is shown 20000 characters at a time and its last line says when there is more: make the same query again with offset.",
+      description: "Call one XRPC method of the Cloud Brain as its owner. method is short (inbox.list, people.list, secret.list, library.list, getInfo) or a full NSID. kind is query (GET, input becomes the query string) or procedure (POST, input is the JSON body). An answer is shown 20000 characters at a time and its last line says when there is more: make the same query again with offset. offset is refused with a procedure.",
       parameters: {
         type: "object",
         properties: { method: { type: "string" }, kind: { type: "string", enum: ["query", "procedure"] }, input: { type: "object" }, offset: { type: "number" } },
@@ -1227,8 +1230,9 @@ assistantTools = {
       execute: async ({ method, kind, input, offset }) => {
         need();
         if (assistantRefuses(method)) throw new Error(`${method} is not available to the operator. The owner does this on the page.`);
+        if (kind !== "query" && offset) throw new Error(offsetRefused);
         const out = kind === "query" ? await client.query(method, input) : await client.procedure(method, input);
-        return { title: method, ...callAnswer(out, offset) };
+        return { title: method, ...callAnswer(out, offset, kind) };
       }
     }),
     defineTool({
@@ -1269,7 +1273,7 @@ test_the_operator_is_pointed_at_what_the_brain_holds = {
     expect(turnPrompt({ role: "owner", channel: "bluesky", room: { name: "r", people: [] } })).not.toContain(pointer);
   }
   expect(["knowledge.search", "knowledge.get", "getSource", "com.lopecode.brain.knowledge.search"].map(assistantRefuses)).toEqual(Array(4).fill(false));
-  expect(assistantPrompt).toContain(".slice(0, 7000)");
+  expect(assistantPrompt).toContain(".slice(0, 6000), then slice(6000, 12000)");
   return "5 pointers; 3 methods brain_call makes";
 }
 // %%
@@ -1292,6 +1296,33 @@ test_brain_call_shows_a_long_answer_in_parts_and_the_loop_cuts_none = {
   expect(callAnswer("abc", 9).output).toBe("");
   expect(callAnswer("abc", -1).output).toBe("abc");
   return "27094 characters in 2 calls, none cut";
+}
+// %%
+// offset makes the call again, so with a procedure it is refused before the call, and a procedure's long answer
+// does not say to call again.
+test_brain_call_never_runs_a_procedure_again_for_the_rest = {
+  let ran = 0;
+  const tool = turnTool({ call: { procedure: async () => (ran++, "p".repeat(25000)) } }), call = { method: "inbox.reply", kind: "procedure", input: { id: 1, text: "x" } };
+  const first = (await tool.execute(call)).output;
+  expect(first.slice(20000)).toBe("\n[characters 0 to 20000 of 25000. The rest is not read: a procedure called again would run a second time]");
+  expect(first).not.toContain("with offset");
+  expect((await tool.execute({ ...call, offset: 20000 })).output).toBe("Error: " + offsetRefused);
+  expect(ran).toBe(1);
+  expect(callAnswer("q".repeat(25000), 0, "query").output).toContain("The rest: the same call with offset 20000]");
+  return "1 procedure for 2 calls";
+}
+// %%
+// The slice the brief names is what eval_js shows whole: robocoop-5 keeps the first 6000 characters of a text.
+// eval_js needs a page. It is read here and not imported, so that with no browser the first line throws and the
+// run counts the test as needing one; as an input it fails there with "Text is not defined", which counts as a fail.
+test_eval_js_shows_the_slice_the_brief_names_whole = {
+  document;
+  const tool_eval_js = await runtime.module((await globalThis.importShim("/@tomlarkworthy/robocoop-5-srctools.js?v=4")).default).value("tool_eval_js");
+  const shown = async (n) => (await tool_eval_js.execute({ module: "@tomlarkworthy/cloud-brain", code: `"x".repeat(${n})` })).output;
+  expect(await shown(6000)).toBe("x".repeat(6000));
+  expect(await shown(6001)).toBe("x".repeat(6000) + " \u2026(+1 chars)");
+  expect(truncate(await shown(6000), 8000)).toBe("x".repeat(6000));
+  return "6000 whole, 6001 cut";
 }
 // %%
 test_assistant_refuses_owner_only_methods = {
