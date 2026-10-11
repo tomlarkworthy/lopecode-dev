@@ -149,3 +149,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   brain-maintenance, changes since `997bbcdf`: FIX, 7 findings, all taken. 103k subagent tokens, 4m07s. Three
   were lines the same day's work had made false (no digest written from the brief, no DM sent, no seed with
   the loader).
+- 2026-10-11 `tools/cloud-brain/research-talorys.md` (a reading of another project's repository and its Hacker News
+  thread): FIX, 8 findings (7 confirmed, 1 plausible), all taken. 91k subagent tokens, 4m43s. It fetched the repository
+  and the thread again and every figure and quotation about them held, three counts to within one; what was wrong was
+  what the file said of Cloud Brain ("multi-tenant", "four commands", prices "in the method tables").
