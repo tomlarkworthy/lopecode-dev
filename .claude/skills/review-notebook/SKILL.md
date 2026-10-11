@@ -163,3 +163,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   (4 confirmed, 2 plausible) and 1 minor, all taken. 93k subagent tokens, 4m04s. It fetched the paper and one neighbour
   again; what the author had not seen: the comparison quoted a neighbour's run with another model and left out its run
   with the same model, which used fewer actions than the paper under review.
+- 2026-10-11 `plan/cloud-brain-paper-summarizer-persona.md`, changes since main at `cdae8f99` (round 2 of the spec, after review 1611 on cb4): FIX, 7 findings
+  (3 confirmed, 4 plausible) and 1 aside, all taken (lopecode-dev `93018451`). 127k subagent tokens, 8m05s. It asked cb4 for the counts and the 30
+  searches again and they held. What the author had not seen: the copies kept to put an entry back from would have been written in a writer's
+  worktree, which is removed at landing, and `text` run again would have kept a summarized entry as the text as entered.
