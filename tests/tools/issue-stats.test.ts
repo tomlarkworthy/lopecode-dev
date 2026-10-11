@@ -266,3 +266,94 @@ test("with no --token the tool prints its usage and exits 2, and no line of it n
     expect(r.stderr.toString()).toContain("nothing was sent");
   }
 });
+
+// os-3-stats-past-four-hours, R4 of plan/cloud-brain-loop-order-of-service.md, part 4 of its design: the mark `held`
+// and the line `past 4 h, not started, no reason: <n>`, counted from an issue's last move.
+const HOUR = 3600000, NOW = 100 * HOUR;
+const orch = token("orch-d97e0e");
+const at = (hoursAgo: number) => NOW - hoursAgo * HOUR;
+let n4 = 5000;
+const open4 = (id: string, hoursAgo: number, more: any = {}) => ({ seq: ++n4, key: `k${n4}`, type: "opened", id, kind: "task", state: "open", labels: [], by: orch, at: at(hoursAgo), ...more });
+const move4 = (id: string, move: string, to: string, hoursAgo: number, reason = "") => ({ seq: ++n4, key: `k${n4}`, type: "moved", id, move, to, reason, by: orch, at: at(hoursAgo) });
+const said4 = (id: string, hoursAgo: number, body: string, key = `orch/${id}/held-1`) => ({ seq: ++n4, key, type: "commented", id, body, by: orch, at: at(hoursAgo) });
+const policy4 = { seq: 4999, type: "policy", hashes: { task: "w" }, policy: { workflows: { task: { closed: ["done", "closed", "rejected", "reverted"] } } }, at: at(50) };
+const past4 = [
+  policy4,
+  // No reason: triaged 6 h ago, and a comment an hour ago that is no reason.
+  open4("p-bare", 7, { workflow: "w" }), move4("p-bare", "triage", "triaged", 6, "True and worth it."), said4("p-bare", 1, "The body names the wrong file.", "rev/p-bare/note"),
+  // Never moved: counted from its open.
+  open4("p-open", 5, { workflow: "w", kind: "project" }),
+  open4("p-ready", 9, { workflow: "w", kind: "bug" }), move4("p-ready", "triage", "triaged", 8, "True."), move4("p-ready", "ready", "ready", 7.5, "Nothing it waits on."),
+  // A reason: the orchestrator's comment, and a triage reason with the word in either case.
+  open4("h-comment", 9, { workflow: "w" }), move4("h-comment", "triage", "triaged", 8, "It waits for data."), said4("h-comment", 7, "held: it waits for 20 runs of the deployer; the 20th starts it."),
+  open4("h-space", 9, { workflow: "w" }), said4("h-space", 0.5, "  Held: until the owner answers."),
+  open4("h-triage", 9, { workflow: "w" }), move4("h-triage", "triage", "triaged", 8, "A task of an approved spec. Held at triaged until: ta-1."),
+  open4("h-lower", 9, { workflow: "w" }), move4("h-lower", "triage", "triaged", 8, "Task 3 of the approved spec; held until the shell is posted."),
+  // Not a reason: `held` in a comment that does not begin with `held:`, with no colon, in a word that only has it, in a triage
+  // reason that a later triage replaced, and in the reason of a move that is no triage.
+  open4("n-mid", 9, { workflow: "w" }), said4("n-mid", 8, "This is held: for the owner."),
+  open4("n-colon", 9, { workflow: "w" }), said4("n-colon", 8, "held until the owner answers"), said4("n-colon", 8, "", "k-empty"), { ...said4("n-colon", 8, "", "k-none"), body: undefined },
+  open4("n-word", 9, { workflow: "w" }), move4("n-word", "triage", "triaged", 8, "The finding is upheld; withheld from nobody."),
+  open4("n-second", 9, { workflow: "w" }), move4("n-second", "triage", "triaged", 8, "Held at triaged until: x."), move4("n-second", "reopen", "open", 7, "x is done."), move4("n-second", "triage", "triaged", 6, "True; x is done."),
+  open4("n-ready", 9, { workflow: "w" }), move4("n-ready", "triage", "triaged", 8, "True."), move4("n-ready", "ready", "ready", 7, "ds-3 and ds-4 stay held behind this one."),
+  // Not rows of the count: feedback, needs-owner by the open and by a later label, an agent on it, closed, a test's
+  // issue, a hidden one, and one whose last move is under four hours ago though it was opened nine hours ago.
+  open4("x-feedback", 9, { workflow: "w", kind: "feedback" }),
+  open4("x-asked", 9, { workflow: "w", labels: ["needs-owner"] }),
+  open4("x-labelled", 9, { workflow: "w" }), { seq: ++n4, key: `k${n4}`, type: "labelled", id: "x-labelled", add: ["needs-owner"], remove: [], by: orch, at: at(8) },
+  open4("x-progress", 9, { workflow: "w" }), move4("x-progress", "start", "in-progress", 8),
+  open4("x-review", 9, { workflow: "w" }), move4("x-review", "start", "in-progress", 8), move4("x-review", "submit", "in-review", 7),
+  open4("x-spec", 9, { workflow: "w", kind: "project" }), move4("x-spec", "spec", "spec", 8),
+  open4("x-closed", 9, { workflow: "w" }), move4("x-closed", "close", "closed", 8),
+  open4("test-x", 9, { workflow: "w" }),
+  open4("x-hidden", 9, { workflow: "w", hidden: true }),
+  open4("x-young", 9, { workflow: "w" }), move4("x-young", "triage", "triaged", 3.9, "True."),
+  // The label taken off again: a row of the count from then on.
+  open4("p-unasked", 9, { workflow: "w", labels: ["needs-owner"] }), { seq: ++n4, key: `k${n4}`, type: "labelled", id: "p-unasked", add: [], remove: ["needs-owner"], by: orch, at: at(1) }
+];
+const pastLines = (lines: string[]) => lines.slice(lines.findIndex((l) => /^past \d/.test(l)));
+
+test("past 4 h, not started: counted from the last move, so a comment does not hide an issue (R4)", () => {
+  const r = report(past4, { now: NOW });
+  expect(new Set(r.unstarted.noReason.map((w: any) => w.id))).toEqual(new Set(["p-bare", "p-open", "p-ready", "p-unasked", "n-mid", "n-colon", "n-word", "n-second", "n-ready"]));
+  expect(r.unstarted.count).toBe(9);
+  expect(r.unstarted.hours).toBe(4);
+  // p-bare had a comment an hour ago: it is not idle for 4 h, and it is counted, at 6 h since its triage.
+  expect(r.waiting.some((w: any) => w.id === "p-bare")).toBe(false);
+  expect(r.unstarted.noReason.find((w: any) => w.id === "p-bare")).toEqual({ id: "p-bare", kind: "task", state: "triaged", sinceMoveH: 6 });
+  expect(r.unstarted.noReason.find((w: any) => w.id === "p-open")).toEqual({ id: "p-open", kind: "project", state: "open", sinceMoveH: 5 });
+  // The longest first.
+  expect(r.unstarted.noReason.map((w: any) => w.sinceMoveH)).toEqual([...r.unstarted.noReason.map((w: any) => w.sinceMoveH)].sort((a, b) => b - a));
+});
+
+test("a row with a reason is marked held and left out of the count: a `held:` comment, or `held` in the last triage reason", () => {
+  const r = report(past4, { now: NOW });
+  expect(r.unstarted.held.map((w: any) => [w.id, w.by]).sort()).toEqual([["h-comment", "comment"], ["h-lower", "triage"], ["h-space", "comment"], ["h-triage", "triage"]]);
+  // In the list of the idle: the mark, on those rows and on no other. h-space had its comment half an hour ago and is not idle.
+  expect(r.waiting.filter((w: any) => w.held).map((w: any) => w.id).sort()).toEqual(["h-comment", "h-lower", "h-triage"]);
+  expect(r.waiting.find((w: any) => w.id === "x-feedback").held).toBe(false);
+});
+
+test("the lines printed: `held` at the end of a marked row, and the count on a line of its own with its rows under it", () => {
+  const lines = text(report(past4, { now: NOW }));
+  expect(lines).toContain(`  ${"h-triage".padEnd(40)} ${"task".padEnd(8)} ${"triaged".padEnd(17)}     8 h    by orch-d97e0e  held`);
+  expect(lines).toContain(`  ${"x-feedback".padEnd(40)} ${"feedback".padEnd(8)} ${"open".padEnd(17)}     9 h    by orch-d97e0e`);
+  expect(lines.filter((l: string) => / held$/.test(l)).length).toBe(3);
+  const past = pastLines(lines);
+  expect(past[0]).toBe("past 4 h, not started, no reason: 9 (4 more are held)");
+  expect(past.length).toBe(10);
+  expect(past).toContain(`  ${"p-bare".padEnd(40)} ${"task".padEnd(8)} ${"triaged".padEnd(17)}     6 h with no move`);
+  expect(past.at(-1)).toBe(lines.at(-1));
+});
+
+test("--idle is the hours of both; with nothing past them the line reads 0", () => {
+  const two = report(past4, { now: NOW, idleH: 2 });
+  expect(two.unstarted.count).toBe(10);
+  expect(two.unstarted.noReason.some((w: any) => w.id === "x-young")).toBe(true);
+  expect(pastLines(text(two))[0]).toBe("past 2 h, not started, no reason: 10 (4 more are held)");
+  expect(pastLines(text(report(past4, { now: NOW, idleH: 10 })))).toEqual(["past 10 h, not started, no reason: 0"]);
+  expect(pastLines(text(report(events, { now: 1e6 })))).toEqual(["past 4 h, not started, no reason: 0"]);
+  // --until reads the record as it was: before h-comment's comment (its third event) it had no reason.
+  const before = report(past4, { now: NOW, until: past4.find((e: any) => e.id === "h-comment" && e.type === "commented")!.seq - 1 });
+  expect(before.unstarted.noReason.some((w: any) => w.id === "h-comment")).toBe(true);
+});

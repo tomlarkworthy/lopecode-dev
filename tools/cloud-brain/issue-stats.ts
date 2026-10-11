@@ -11,6 +11,14 @@
 // The lines under `locks` are issue.locks?history=500, the holds of the landing lock and the deploy lock as the tracker
 // keeps them: read when the tool runs, of the newest 500 holds. They are rows and not events, so --after, --until and
 // --window do not reach them, and a count of them cannot be made again once the rows are trimmed.
+// The last line, `past 4 h, not started, no reason: <n>`, is R4 of plan/cloud-brain-loop-order-of-service.md (os-3). Its
+// rows are the issues that are not closed, not feedback, not labeled `needs-owner` now, at `open`, `triaged` or `ready`
+// (no agent is on one there), and whose last move, or open when it never moved, is --idle hours ago or more. `idle` in
+// the list above it is since the last event of any kind, so a comment takes an issue out of that list and not out of
+// this count. A row has a reason, and is left out of <n>, when a comment of the issue begins `held:` or the reason of
+// its last `triage` move has the word `held`, with a capital or without; such a row carries `held` in the list of the idle. Both
+// are read wherever they are in the issue's record: a reason written before a later move still counts. The rows of <n>
+// are printed under the line. The clock of both lists is this machine's when the tool runs, with --until too.
 // `report`, `holds` and `text` take what was read and call nothing: tests/tools/issue-stats.test.ts.
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
@@ -51,16 +59,18 @@ const workflows: Record<string, any> = {}, issues: Record<string, any> = {};
 for (const e of events) {
   if (e.type === "policy") for (const [n, h] of Object.entries(e.hashes)) workflows[h as string] = e.policy.workflows[n];
   if (!e.id || e.hidden || e.type === "policy") continue;
-  if (e.type === "opened") issues[e.id] = { id: e.id, kind: e.kind, opener: who(e.by), workflow: e.workflow, state: e.state, at: e.at, since: e.at, seq: e.seq, labels: new Set(e.labels || []), stays: [], moves: [], verdicts: [], asked: (e.labels || []).includes("needs-owner"), parent: e.parent, links: 0 };
+  if (e.type === "opened") issues[e.id] = { id: e.id, kind: e.kind, opener: who(e.by), workflow: e.workflow, state: e.state, at: e.at, since: e.at, seq: e.seq, labels: new Set(e.labels || []), stays: [], moves: [], verdicts: [], asked: (e.labels || []).includes("needs-owner"), parent: e.parent, links: 0, heldBy: { comment: false, triage: false } };
   const i = issues[e.id];
   if (!i) continue;
   i.last = e.at;
   if (e.type === "moved" || e.type === "swapped") {
     const to = e.type === "moved" ? e.to : e.to.state;
     i.stays.push([i.state, e.at - i.since]);
+    if (e.move === "triage") i.heldBy.triage = /\bheld\b/i.test(e.reason || "");
     i.moves.push(e.move || e.swap || "swap");
     Object.assign(i, { state: to, since: e.at }, e.type === "swapped" ? { workflow: e.to.workflow } : {});
   }
+  if (e.type === "commented" && /^held:/i.test(String(e.body || "").trimStart())) i.heldBy.comment = true;
   if (e.type === "reviewed") i.verdicts.push(e.verdict);
   if (e.type === "labelled") {
     for (const l of e.add || []) i.labels.add(l);
@@ -137,6 +147,11 @@ const statementsOnly = (list: any[]) => {
   return { all: tally(marked), record: tally(marked.filter((e) => mark(e)![1])) };
 };
 
+// R4: not started and no agent on it, for --idle hours since its last move. `by` is the reason found, a comment first.
+const unstartedStates = ["open", "triaged", "ready"];
+const canWait = (i: any) => i.kind !== "feedback" && !i.labels.has("needs-owner") && unstartedStates.includes(i.state);
+const heldBy = (i: any) => (i.heldBy.comment ? "comment" : i.heldBy.triage ? "triage" : null);
+const past = open.filter((i) => canWait(i) && now - i.since >= idleH * 3600000).map((i) => ({ id: i.id, kind: i.kind, state: i.state, sinceMoveH: H(now - i.since), by: heldBy(i) })).sort((a, b) => b.sinceMoveH - a.sinceMoveH);
 const moved = (m: string) => inWindow.filter((e) => e.type === "moved" && e.move === m).length;
 const windowReport = {
   after: from, events: inWindow.length, submits: moved("submit") + moved("submit-spec"), reworks: moved("rework") + moved("send-back"),
@@ -163,8 +178,10 @@ return {
   feedback: { open: open.filter((i) => i.kind === "feedback").length, gathered: all.filter((i) => i.kind === "feedback" && (i.parent || i.links > 0)).length },
   // Absent when no answer of issue.locks was given.
   locks: locks === undefined ? undefined : holds(locks),
-  // Not closed, and nothing has happened to it for --idle hours: the candidates for a trap.
-  waiting: open.filter((i) => now - i.last > idleH * 3600000).map((i) => ({ id: i.id, kind: i.kind, state: i.state, idleH: H(now - i.last), labels: [...i.labels], opener: i.opener })).sort((a, b) => b.idleH - a.idleH)
+  // Not closed, and nothing has happened to it for --idle hours: the candidates for a trap. `held` is under `unstarted`.
+  waiting: open.filter((i) => now - i.last > idleH * 3600000).map((i) => ({ id: i.id, kind: i.kind, state: i.state, idleH: H(now - i.last), labels: [...i.labels], opener: i.opener, held: canWait(i) && !!heldBy(i) })).sort((a, b) => b.idleH - a.idleH),
+  // Past --idle hours since the last move, not started: `noReason` is R4's count, `held` the rows with a reason.
+  unstarted: { hours: idleH, count: past.filter((w) => !w.by).length, noReason: past.filter((w) => !w.by).map(({ by, ...w }) => w), held: past.filter((w) => w.by) }
 };
 }
 
@@ -205,7 +222,10 @@ export function text(report: Report) {
     for (const h of l.ended) console.log(`  ended  ${h.name} by ${h.who} at ${stamp(h.until)}, taken ${stamp(h.taken)}; no row of the history yet`);
   }
   console.log(`open and idle for ${idleH} h or more`);
-  for (const w of report.waiting) console.log(`  ${w.id.padEnd(40)} ${w.kind.padEnd(8)} ${w.state.padEnd(17)} ${String(w.idleH).padStart(5)} h  ${w.labels.join(",")}  by ${w.opener}`);
+  for (const w of report.waiting) console.log(`  ${w.id.padEnd(40)} ${w.kind.padEnd(8)} ${w.state.padEnd(17)} ${String(w.idleH).padStart(5)} h  ${w.labels.join(",")}  by ${w.opener}${w.held ? "  held" : ""}`);
+  const u = report.unstarted;
+  console.log(`past ${u.hours} h, not started, no reason: ${u.count}${u.held.length ? ` (${u.held.length} more are held)` : ""}`);
+  for (const w of u.noReason) console.log(`  ${w.id.padEnd(40)} ${w.kind.padEnd(8)} ${w.state.padEnd(17)} ${String(w.sinceMoveH).padStart(5)} h with no move`);
   return lines;
 }
 type Report = ReturnType<typeof report>;
