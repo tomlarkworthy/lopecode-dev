@@ -161,8 +161,8 @@ The first cell built its table of metrics with a template inside a hole
 (`${metricDefinitions.map((d) => \`| … |\`)}`). `emit` reads a cell as prose when its whole
 definition is one `md` template with no bare backtick (`cloudflare-iac.ojs`, the pattern above
 `source.reference`), so that cell was left out and nothing said so: the four tests passed, in the
-tab and in the deployer's run. Every method, rule and limit of the service was missing from what
-`/llms.txt` points an agent at.
+tab and in the deployer's run. Every method, rule and limit of the service was missing from the
+read the knowledge page gives for a Worker's method table (`getSource?worker=NAME&part=reference`).
 
 The table is now a cell, `metricTable`, and the first cell holds `${metricTable}`.
 `test_dashboard_declares_one_cloudflare_permission_and_keeps_nothing` reads `source.reference`
@@ -190,3 +190,15 @@ each run read `"tests":4`. The emit of that tab: hash `9dfb05e93a08…`, a refer
 
 Other seeds were not read for the same shape: whether another Worker serves a reference short of
 a cell is not known.
+
+The second apply, 19:34:19 to 19:35:05 CEST (the deploy lock's times), and the same read after it:
+
+```
+dsv-1-service-and-built-in-metrics-brain-x-dashboard.json 45251 ms [{"worker":"brain-x-dashboard","hash":"9dfb05e93a08","state":"verified","version":"9c01e769-2179-4ab8-bb14-95aad2ac49de","tests":4}]
+curl -s "…getSource?worker=brain-x-dashboard&part=reference" | wc -c      4920
+16:| `core.calls` | `brain-core` | `at: "call"` | `ms`, summed, and its max | `worker`, `method`, `status` (a number) |
+```
+
+`redistil` after it: 21 lines `same`, `brain-x-dashboard  same  9dfb05e93a08`. A stranger's call,
+with no token, both versions' rule: `metric.query?metric=deploys.confirmed` 401, `metric.list` 401
+(run against the first version at 19:32).
