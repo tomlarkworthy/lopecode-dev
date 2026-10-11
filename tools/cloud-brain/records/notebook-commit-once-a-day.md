@@ -72,6 +72,11 @@ bun test ./tests/tools/notebook-backup.test.ts     11 pass, 0 fail   at df8e69ae
 bun test ./tests/tools                             416 pass, 1 skip, 0 fail, 417 tests across 46 files   at 26743c2e, after the rebase
 ```
 
+`df8e69ae` and `26743c2e` were the branch before the landing's rebase and are on no branch now. On
+`main` the change is `6f5980de`, `5309342d`, `c476ef9a` and `b0312e36`, and at `b0312e36`, after the
+landing (23:13 CEST): `bun test ./tests/tools`, 424 pass, 1 skip, 0 fail, 425 tests across 47 files
+(another issue's test file came in with the rebase).
+
 The skip is `tests/tools/light-agent.test.ts` line 230, which this change does not touch (each file
 that has the word `skip` run alone; that one printed `1 skip`).
 
