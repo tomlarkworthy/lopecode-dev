@@ -5,7 +5,10 @@
 // --after counts only the issues opened after that event. Times are the events' own `at`.
 // --window counts the events after that one, whatever issue they are of: what an oversight judges its last edits by.
 // --until reads the record as it was at that event: a count written down with its event can be made again.
-// `report` and `text` take a list of events and call nothing: tests/tools/issue-stats.test.ts.
+// The lines under `locks` are issue.locks?history=500, the holds of the landing lock and the deploy lock as the tracker
+// keeps them: read when the tool runs, of the newest 500 holds. They are rows and not events, so --after, --until and
+// --window do not reach them, and a count of them cannot be made again once the rows are trimmed.
+// `report`, `holds` and `text` take what was read and call nothing: tests/tools/issue-stats.test.ts.
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 
@@ -20,7 +23,25 @@ const arg = (n: string, d: string) => {
 export const role = (name: string) => /^(orch|impl|rev|spec|over|dig|out)-[0-9a-f]{6}$/.exec(name)?.[1] ?? name;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/, forOwner = /^orch\/.+\/approve-for-owner-\d+$/;
 
-export function report(record: any[], { since = 0, from = 0, until = 0, idleH = 4, now = Date.now() }: { since?: number; from?: number; until?: number; idleH?: number; now?: number } = {}) {
+const median = (l: number[]) => (l.length ? [...l].sort((a, b) => a - b)[l.length >> 1] : 0);
+
+// What issue.locks answered, counted. A hold is measured when its holder released it: `ended` of a row "expired" is the
+// lease's `until` and of a row "forced" the owner's call, neither the end of the work. `land` and `cb4` are always
+// named, any other name when it has a row. No clock is read here: the tracker sorted `locks` from `ended` by its own.
+export function holds(answer: any) {
+  if (!answer || !Array.isArray(answer.history)) return { unread: String(answer?.message || answer?.error || "no answer") };
+  const history: any[] = answer.history, seconds = (h: any) => +((h.ended - h.taken) / 1000).toFixed(1);
+  const names = [...new Set(["land", "cb4", ...[...history, ...(answer.locks || []), ...(answer.ended || [])].map((h) => h.name)])];
+  const of = (name: string) => {
+    const rows = history.filter((h) => h.name === name), released = rows.filter((h) => h.how === "released");
+    const longest = released.reduce((a: any, h) => (a && a.ended - a.taken >= h.ended - h.taken ? a : h), null);
+    const how = (k: string) => rows.filter((h) => h.how === k).length;
+    return { rows: rows.length, released: released.length, medianS: median(released.map(seconds)), longestS: longest ? seconds(longest) : 0, longest: longest && { who: longest.who, taken: longest.taken }, expired: how("expired"), forced: how("forced") };
+  };
+  return { now: answer.now, rows: history.length, held: answer.locks || [], ended: answer.ended || [], names: Object.fromEntries(names.map((n) => [n, of(n)])) };
+}
+
+export function report(record: any[], { since = 0, from = 0, until = 0, idleH = 4, now = Date.now(), locks }: { since?: number; from?: number; until?: number; idleH?: number; now?: number; locks?: any } = {}) {
 const events = until ? record.filter((e) => e.seq <= until) : record;
 const who = (by: any) => ((by?.holder || "").startsWith("secret:") ? by.holder.slice(7) : by?.caller === "owner" ? (by.tab === false ? "owner (token)" : "owner") : by?.caller || "?");
 const workflows: Record<string, any> = {}, issues: Record<string, any> = {};
@@ -49,7 +70,6 @@ for (const e of events) {
 const H = (ms: number) => +(ms / 3600000).toFixed(1);
 const all = Object.values(issues).filter((i: any) => i.seq > since && !/^test-/.test(i.id)) as any[];
 const closed = (i: any) => (workflows[i.workflow]?.closed || []).includes(i.state);
-const median = (l: number[]) => (l.length ? [...l].sort((a, b) => a - b)[l.length >> 1] : 0);
 const count = (l: string[]) => l.reduce((m: Record<string, number>, k) => ((m[k] = (m[k] || 0) + 1), m), {});
 
 const perState: Record<string, number[]> = {};
@@ -113,10 +133,15 @@ return {
   review: { submits, reworks, verdicts: count(all.flatMap((i) => i.verdicts)) },
   needsOwner: { ever: asked.length, became: count(asked.map((i) => i.state)), waitingNow: open.filter((i) => i.labels.has("needs-owner")).length },
   feedback: { open: open.filter((i) => i.kind === "feedback").length, gathered: all.filter((i) => i.kind === "feedback" && (i.parent || i.links > 0)).length },
+  // Absent when no answer of issue.locks was given.
+  locks: locks === undefined ? undefined : holds(locks),
   // Not closed, and nothing has happened to it for --idle hours: the candidates for a trap.
   waiting: open.filter((i) => now - i.last > idleH * 3600000).map((i) => ({ id: i.id, kind: i.kind, state: i.state, idleH: H(now - i.last), labels: [...i.labels], opener: i.opener })).sort((a, b) => b.idleH - a.idleH)
 };
 }
+
+// A time of the tracker's, as `date` writes it on this machine.
+const stamp = (ms: number) => { const d = new Date(ms), p = (n: number) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; };
 
 // The lines printed without --json.
 export function text(report: Report) {
@@ -139,6 +164,14 @@ export function text(report: Report) {
   if (from) line("window", `${windowReport.events} events after ${from}: ${windowReport.submits} submits, ${windowReport.reworks} sent back; verdicts ${JSON.stringify(windowReport.verdicts)}; ${windowReport.timesAhead.length} of ${windowReport.withText} texts name a time ahead of their own stamp ${JSON.stringify(windowReport.timesAhead)}`);
   line("needs-owner", `${report.needsOwner.ever} issues ever; now ${JSON.stringify(report.needsOwner.became)}; ${report.needsOwner.waitingNow} open with the label`);
   line("feedback", `${report.feedback.open} open, ${report.feedback.gathered} with a parent or a link`);
+  const l: any = report.locks;
+  if (l?.unread) line("locks", `not read: ${l.unread}`);
+  else if (l) {
+    line("locks", `${l.rows} holds in the history (the newest 500 are kept), ${l.held.length} held and ${l.ended.length} ended and not taken since, at ${stamp(l.now)}`);
+    for (const [n, h] of Object.entries(l.names) as [string, any][]) console.log(`  ${n.padEnd(8)} ${String(h.released).padStart(3)} released${h.released ? `  median ${h.medianS} s  longest ${h.longestS} s by ${h.longest.who}, taken ${stamp(h.longest.taken)}` : ""}${h.expired + h.forced ? `; ${h.expired} expired and ${h.forced} forced, not measured` : ""}`);
+    for (const h of l.held) console.log(`  held   ${h.name} by ${h.who} since ${stamp(h.taken)}, until ${stamp(h.until)}`);
+    for (const h of l.ended) console.log(`  ended  ${h.name} by ${h.who} at ${stamp(h.until)}, taken ${stamp(h.taken)}; no row of the history yet`);
+  }
   console.log(`open and idle for ${idleH} h or more`);
   for (const w of report.waiting) console.log(`  ${w.id.padEnd(40)} ${w.kind.padEnd(8)} ${w.state.padEnd(17)} ${String(w.idleH).padStart(5)} h  ${w.labels.join(",")}  by ${w.opener}`);
   return lines;
@@ -155,6 +188,10 @@ if (import.meta.main) {
     if (page.length < 500) break;
     after = page.at(-1).seq;
   }
-  const r = report(events, { since: Number(arg("after", "0")), from: Number(arg("window", "0")), until: Number(arg("until", "0")), idleH: Number(arg("idle", "4")) });
+  // A Worker put back to before issue.locks answers no `history`; the rest is printed and the line says what it answered.
+  let locks: any;
+  try { locks = JSON.parse(execFileSync(as, [token, "locks?history=500"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })); }
+  catch (e: any) { locks = { message: String(e?.message || e).split("\n")[0] }; }
+  const r = report(events, { locks, since: Number(arg("after", "0")), from: Number(arg("window", "0")), until: Number(arg("until", "0")), idleH: Number(arg("idle", "4")) });
   console.log(process.argv.includes("--json") ? JSON.stringify(r) : text(r).join("\n"));
 }
