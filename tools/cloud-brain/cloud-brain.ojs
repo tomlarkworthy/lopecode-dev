@@ -62,7 +62,7 @@ rangeOf = (minutes, now) => ({ since: now - minutes * 60000, until: now })
 // A span of minutes in words: the name the select gives it, "hour" for one hour, else the minutes.
 spanName = (minutes) => (([name]) => name.replace(/^1 /, ""))([...spanOptions].find(([, m]) => m === minutes) || [minutes + " minutes"])
 // %%
-// The line under the panels: the span, the step and the groups of the answer that is drawn, read from the answer
+// The line above the panels, under the two controls: the span, the step and the groups of the answer that is drawn, read from the answer
 // itself. Cloudflare answers at most the query's limit of groups (500) and does not say when it left some out, so
 // an answer with that many says it may be short. Not measured on cb4 for the longer spans: logs.query is the owner's.
 callsNote = (data) => {
