@@ -68,6 +68,8 @@ Two files beside it, neither of them needed to resume:
    | `hidden: true`, or kind or label `security`, or labeled `needs-owner`, or at `awaiting-approval` | Nothing. It is the owner's. |
    | `in-review`, and no review since it came into that state | Spawn the reviewer. |
    | `in-progress`, started by the implementer token, no agent running | Spawn the implementer: it was sent back, or an agent died. Do not, and instead comment with the open findings and label `needs-owner`, when the last implementer you spawned for it finished without a new `submit`, or when it has 3 `rework` moves and the rounds are not getting anywhere. At 3 you judge (Tom, 2026-10-10: "make a judgment call when the 3 retries is hit, has genuine progress been made?"): go on when each review closed what the one before found and the new findings are narrower; stop when a finding came back, or the rounds are trading one defect for another of the same size. Write the judgment and its reason in the journal and as a comment on the issue. |
+   | labeled `digest`, opened by `worker:brain-x-snapshot` (`opener` in `get?id=`), at `open` | When several are open, the newest is the one written: `reject` each older one with the reason `covered by digest-<newest day>`, and comment on the newest with the days it covers. Then `triage` and `ready` it, the reason "the day's digest, opened by the snapshot's run"; the three questions of Triage are not asked. |
+   | labeled `digest`, at `ready` | Spawn the digest writer (role `digest`). |
    | `ready` | Spawn the implementer. |
    | `triaged`, no open children | Move to `ready`. |
    | `open`, kind `task` or `bug` | Triage it yourself (below). |
@@ -93,6 +95,17 @@ Two files beside it, neither of them needed to resume:
 8. **Schedule** (only under `/loop`): `ScheduleWakeup` 1800 s when an agent is running (its
    report wakes you first, and that wake is a pass), 1200 s when the tracker had nothing for you. A poll of the tracker
    is charged nothing; a wake of this session is not free, so do not poll faster.
+
+## The daily digest
+
+Since 2026-10-11 `brain-x-snapshot` opens one task after its daily run (06:00 UTC), `digest-<day>`,
+labeled `digest` (Tom, 2026-10-11: "we should automatically file a task in the issues to run the
+research summary. Then our claude can process it automatically"). The label says which brief: a
+digest is written, not fixed, so `agents/implementer.md` does not fit it. The opener is checked
+because anyone who may call `issue.open` may write that label. An issue labeled `digest` with
+another opener is triaged as any task. The writer stops before publishing today, and the issue
+then waits labeled `needs-owner`: `agents/digest.md`, "What stops you today". A reviewer for a
+digest follows "A digest" in `agents/reviewer.md`. Not yet run: no pass has met a digest issue.
 
 ## Triage
 

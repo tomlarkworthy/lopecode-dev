@@ -85,3 +85,20 @@ You change no source, build nothing and deploy nothing. You write to the tracker
 `pass` means you found nothing a second change is needed for. A defect you would fix yourself in
 a minute is still `changes`. Something out of the issue's scope is a new issue: file it with
 `ir open '{"key":"rev/<id>/open-1","title":"…","body":"…","kind":"bug","about":"brain"}'` (`about` is `brain` or a Worker's name; a body that says how you saw it; no `parent`, which would hold the parent back) and do not hold the review for it.
+
+## A digest
+
+An issue labeled `digest` is a published notebook, not a change to a service. Steps 2 to 6 are
+replaced by these; steps 1 and 7 hold. Written 2026-10-11; no digest has been reviewed by it yet.
+
+1. Open the `url` ref with no session, in a QA tab of your own. Count the variables, those with
+   an error, the items loaded and the `picks` found among them, and compare with the writer's
+   four numbers.
+2. For every number the prose quotes, find it in the stored summary
+   (`/static/snapshot/<day>/<source>.json`) or on the linked page. A number in neither is a
+   finding. So is an item described past its title when the digest's own "What was not read"
+   says only the title was read.
+3. The layout is Tom's (`tools/cloud-brain/digests/README.md`, "Layout"): opens on the first
+   theme, editing off, "How this was written" last, a link that leaves the Brain opens a new tab.
+4. Read the seed's commit: it adds `digests/<day>.ojs` and nothing else.
+

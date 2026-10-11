@@ -1,6 +1,6 @@
 md`# brain-snapshot
 
-A Cloud Brain recipe: once a day it fetches a list of public feeds and keeps what each one said as a public JSON file. It records. It makes no model call, ranks nothing and writes no summary: a notebook reads the files and does that.
+A Cloud Brain recipe: once a day it fetches a list of public feeds and keeps what each one said as a public JSON file. It records. It makes no model call, ranks nothing and writes no summary: a notebook reads the files and does that. A run that kept items opens one task in the Brain's tracker, \`digest-<day>\`, for whoever writes that day's digest.
 
 | | |
 |---|---|
@@ -10,6 +10,7 @@ A Cloud Brain recipe: once a day it fetches a list of public feeds and keeps wha
 | \`snapshot.setSources\` | procedure, the owner's own session. \`{ sources: [...] }\` replaces the list; \`{ sources: null }\` goes back to the list below. \`{ keepDays }\` sets how many days are kept (90 unless set). |
 | Timer | each day at the first tick after 06:00 UTC, once (\`rows\`: \`ran/<day>\`). The tick is the wrapper's minute alarm, armed by the deployer's health check at deploy; the cron is declared as well. |
 | Storage | files in \`brain-static\` under \`snapshot/<day>/\`, public, tag \`snapshot\`. \`rows\`: \`sources\`, \`keepDays\`, \`ran/<day>\`, \`day/<day>\`. |
+| Tracker | \`issue.open\` as this Worker, once a day: id \`digest-<day>\`, kind \`task\`, label \`digest\`, key \`snapshot/<day>/digest\`. |
 
 To run it now: the **Run now** button below, in the owner's own session. From this checkout: \`BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.snapshot.run --owner -X POST\`. A token is refused.
 
@@ -20,7 +21,7 @@ Anyone reads these with no session. \`<day>\` is the UTC date, \`2026-10-09\`.
 | Address | Holds |
 |---|---|
 | \`/static/snapshot/days.json\` | \`{ days: [{ day, ranAt, items, papers }] }\`, newest first; \`papers\` is the count in that day's \`papers.json\` |
-| \`/static/snapshot/<day>/index.json\` | \`{ day, ranAt, sources: [{ name, tier, status, count, matched, of, bytes, ms, path, error, lookup }], papers: { count, path }, knowledge, errors }\` |
+| \`/static/snapshot/<day>/index.json\` | \`{ day, ranAt, sources: [{ name, tier, status, count, matched, of, bytes, ms, path, error, lookup }], papers: { count, path }, knowledge, issue, errors }\` |
 | \`/static/snapshot/<day>/<source>.json\` | \`{ source, tier, url, day, fetchedAt, count, items }\` |
 | \`/static/snapshot/<day>/papers.json\` | \`{ day, ranAt, count, papers: [{ id, url, title, summary, points, signals, via }] }\`: the papers with a signal seen that day (below) |
 
@@ -34,6 +35,7 @@ A feed's summary has its markup taken out, after its entities are read: a \`<\` 
 - A failed source does not fail the run. The timer runs once a day and does not try again; \`snapshot.run\` does.
 - \`of\` is how many items the feed held, \`matched\` how many passed \`keep\` and \`days\`, \`count\` how many were kept. \`matched\` above \`count\` means \`limit\` cut the list, unless the row has an \`error\`: a source whose file was refused has \`count: 0\` and its \`matched\`.
 - The papers of \`papers.json\` that have a title are entered in the knowledge base with \`knowledge.put\`, as \`arxiv:<id>\`, kind \`paper\`, method \`snapshot\`, each signal a tag (\`votes-hf-papers\`), 100 at most. \`knowledge\` in the index is \`{ entered, changed }\`, or \`{ error }\` on a Brain with no \`brain-x-knowledge\`; that is not one of \`errors\`.
+- A run that kept at least one item opens a task for that day's digest with \`issue.open\`. Its body is the day, the time of the run, the counts, the two addresses and each source that answered with an error; it says nothing of how a digest is written. The key is the day's, so a second run that day opens nothing and is answered the first one's id. \`issue\` in the index is \`{ id, seq }\`, \`{ skipped }\` for a run that kept nothing, or \`{ error }\` on a Brain with no \`brain-x-issues\`; that is not one of \`errors\`. Nothing here writes the digest or closes the task.
 - \`errors\` in the index, and in the log line, names a write of \`index.json\`, \`papers.json\` or \`days.json\` that failed.
 - The daily run drops the files of days older than \`keepDays\` with \`static.delete\` \`{ prefix: "snapshot/", before }\`. \`snapshot.run\` drops nothing.
 
@@ -220,6 +222,26 @@ snapshotCheck = (list) => {
   return null;
 }
 // %%
+// What issue.open is sent for one day's run: facts of the run, and nothing of how a digest is written.
+snapshotTask = (index, items) => {
+  const day = index.day, kept = index.sources.filter((s) => s.count), failed = index.sources.filter((s) => s.error);
+  return {
+    key: `snapshot/${day}/digest`,
+    id: "digest-" + day,
+    kind: "task",
+    about: "brain-x-snapshot",
+    labels: ["digest"],
+    title: "Research digest for " + day,
+    body: [
+      `The snapshot of ${day} ran at ${index.ranAt}. Its digest is not written.`,
+      "",
+      `- ${items} items kept from ${kept.length} of ${index.sources.length} sources: /static/snapshot/${day}/index.json`,
+      `- ${index.papers.count} papers with a signal: /static/${index.papers.path}`,
+      ...failed.map((s) => `- ${s.name} gave nothing: ${String(s.error).slice(0, 120)}`)
+    ].join("\n")
+  };
+}
+// %%
 snapshotOps = {
   const STATIC = "com.lopecode.brain.static.";
   const dayOf = (now) => new Date(now).toISOString().slice(0, 10);
@@ -236,6 +258,18 @@ snapshotOps = {
       const r = await xrpc.fetch("com.lopecode.brain.knowledge.put", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ entries }) });
       const d = await r.json().catch(() => null);
       return r.ok && d ? { entered: d.entered, changed: d.changed } : { error: "knowledge.put " + r.status };
+    } catch (e) {
+      return { error: String((e && e.message) || e).slice(0, 200) };
+    }
+  };
+  // The task for the day's digest, opened as this Worker. The key is the day's: a second run opens nothing.
+  // On a Brain with no brain-x-issues the call is refused, and the index says so.
+  const ask = async (index, items) => {
+    if (!items) return { skipped: "the run kept no items" };
+    try {
+      const r = await xrpc.fetch("com.lopecode.brain.issue.open", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(snapshotTask(index, items)) });
+      const d = await r.json().catch(() => null);
+      return r.ok && d ? { id: d.id, seq: d.seq } : { error: "issue.open " + r.status };
     } catch (e) {
       return { error: String((e && e.message) || e).slice(0, 200) };
     }
@@ -274,6 +308,7 @@ snapshotOps = {
     index.knowledge = await enter(papers);
     await rows.put("day/" + day, { day, ranAt: index.ranAt, items, papers: papers.length });
     await tried(put("snapshot/days.json", { days: (await rows.list("day/")).map((r) => r.value).sort((a, b) => (a.day < b.day ? 1 : -1)) }));
+    index.issue = await ask(index, items);
     index.errors = errors;
     // The index is written last, with what failed before it. Its own failure is in the answer and the log.
     await tried(put(`snapshot/${day}/index.json`, index));
@@ -333,7 +368,7 @@ snapshot_service = cloudflare.Service(
     crons: ["0 6 * * *"],
     // A cron event carries its time; the wrapper's minute alarm does not.
     scheduled: (event) => snapshotOps.tick((event && event.scheduledTime) || Date.now()),
-    calls: ["com.lopecode.brain.static.put", "com.lopecode.brain.static.delete", "com.lopecode.brain.knowledge.put"],
+    calls: ["com.lopecode.brain.static.put", "com.lopecode.brain.static.delete", "com.lopecode.brain.knowledge.put", "com.lopecode.brain.issue.open"],
     methods: {
       "com.lopecode.brain.snapshot.run": { type: "procedure", allow: "caller.session" },
       "com.lopecode.brain.snapshot.sources": { type: "query", who: "anyone" },
@@ -389,8 +424,8 @@ snapshotPanel = ({ base, client, owner = false, fetch: send = (...a) => fetch(..
 // %%
 md`## Tests`
 // %%
-snapshotRig = async ({ feeds = {}, rows = new Map(), fail = null, knowledge = 200 } = {}) => {
-  const files = new Map(), asked = [], dropped = [], entered = [];
+snapshotRig = async ({ feeds = {}, rows = new Map(), fail = null, knowledge = 200, issues = 200 } = {}) => {
+  const files = new Map(), asked = [], dropped = [], entered = [], opened = [];
   const sim = await simulate(snapshot_service, {
     rows,
     secrets: { BRAIN_KEY: "k" },
@@ -406,6 +441,13 @@ snapshotRig = async ({ feeds = {}, rows = new Map(), fail = null, knowledge = 20
         entered.push({ entries: (await request.json()).entries });
         return knowledge === 200 ? Response.json({ entered: entered.at(-1).entries.length, changed: 0, ids: [] }) : Response.json({ error: "MethodNotImplemented" }, { status: knowledge });
       }
+      // As the tracker answers: a key it holds gives the first event's id and seq again.
+      if (u.pathname.endsWith("issue.open")) {
+        if (issues !== 200) return Response.json({ error: "MethodNotImplemented" }, { status: issues });
+        const act = await request.json(), had = opened.find((o) => o.key === act.key);
+        if (!had) opened.push({ ...act, seq: opened.length + 1, caller: request.headers.get("x-brain-caller") });
+        return Response.json({ id: act.id, seq: (had || opened.at(-1)).seq, ...(had ? { duplicate: true } : {}) });
+      }
       if (u.pathname.endsWith("static.delete")) return dropped.push(await request.json()), Response.json({ deleted: 2, paths: [] });
       if (fail && fail(u.searchParams.get("path"))) return Response.json({ error: "Forbidden" }, { status: 403 });
       files.set(u.searchParams.get("path"), { public: u.searchParams.get("public"), tags: u.searchParams.get("tags"), caller: request.headers.get("x-brain-caller"), value: JSON.parse(await request.text()) });
@@ -416,7 +458,7 @@ snapshotRig = async ({ feeds = {}, rows = new Map(), fail = null, knowledge = 20
     const r = await sim.fetch("https://snapshot.internal/xrpc/com.lopecode.brain.snapshot." + name, { method: body === undefined ? "GET" : "POST", headers: { "content-type": "application/json", "x-brain-caller": caller }, body: body === undefined ? undefined : JSON.stringify(body) });
     return { status: r.status, data: await r.json() };
   };
-  return { sim, files, asked, dropped, entered, rows, call };
+  return { sim, files, asked, dropped, entered, opened, rows, call };
 }
 // %%
 snapshotFixtures = ({
@@ -568,6 +610,37 @@ test_papers_are_the_ones_with_votes_a_lab_link_or_a_mention = {
   return "5 papers, 3 signals, 4 entered";
 }
 // %%
+test_a_run_that_kept_items_opens_one_task_for_the_days_digest = {
+  const sources = [{ name: "blog", tier: "blogger", url: "https://blog.example/feed", kind: "rss" }, { name: "refused", tier: "aggregator", url: "https://refused.example/feed", kind: "rss" }];
+  const feeds = { "https://blog.example/feed": snapshotFixtures.rss, "https://refused.example/feed": 429 };
+  const rig = await snapshotRig({ rows: new Map([["sources", sources]]), feeds });
+  const out = (await rig.call("run", {})).data, day = out.day;
+  expect(out.issue).toEqual({ id: "digest-" + day, seq: 1 });
+  expect(rig.opened.length).toBe(1);
+  const { seq, caller, ...sent } = rig.opened[0];
+  expect(sent).toEqual({
+    key: `snapshot/${day}/digest`, id: "digest-" + day, kind: "task", about: "brain-x-snapshot", labels: ["digest"], title: "Research digest for " + day,
+    body: [`The snapshot of ${day} ran at ${out.ranAt}. Its digest is not written.`, "", `- 2 items kept from 1 of 2 sources: /static/snapshot/${day}/index.json`, `- 0 papers with a signal: /static/snapshot/${day}/papers.json`, "- refused gave nothing: the source answered 429"].join("\n")
+  });
+  // The index that is kept says which task.
+  expect(rig.files.get(`snapshot/${day}/index.json`).value.issue).toEqual({ id: "digest-" + day, seq: 1 });
+  // A second run that day sends the same key, and the tracker opens nothing.
+  expect([(await rig.call("run", {})).data.issue, rig.opened.length]).toEqual([{ id: "digest-" + day, seq: 1 }, 1]);
+  // The timer's run opens the task of its own day.
+  await rig.sim.scheduled({ scheduledTime: Date.parse("2020-01-02T06:00:30Z") });
+  expect(rig.opened.map((o) => o.id)).toEqual(["digest-" + day, "digest-2020-01-02"]);
+  // A run that kept nothing opens none.
+  const quiet = await snapshotRig({ rows: new Map([["sources", sources.slice(1)]]), feeds });
+  expect([(await quiet.call("run", {})).data.issue, quiet.opened.length]).toEqual([{ skipped: "the run kept no items" }, 0]);
+  // A Brain with no tracker: the run is whole, and the index says no task was opened.
+  const none = await snapshotRig({ issues: 404, rows: new Map([["sources", sources]]), feeds });
+  const bare = (await none.call("run", {})).data;
+  expect([bare.issue, bare.errors, bare.sources[0].count]).toEqual([{ error: "issue.open 404" }, [], 2]);
+  // What is sent is one the tracker's own limits take.
+  expect([sent.id.length <= 40, /^[a-z0-9-]+$/.test(sent.id), sent.key.length <= 100, sent.key.startsWith("policy/")]).toEqual([true, true, true, false]);
+  return "1 task a day";
+}
+// %%
 test_the_timer_runs_once_a_day_after_six = {
   const rig = await snapshotRig({ rows: new Map([["sources", [{ name: "blog", tier: "blogger", url: "https://blog.example/feed", kind: "rss" }]]]), feeds: { "https://blog.example/feed": snapshotFixtures.rss } });
   // A cron event carries its time, and the tick reads that.
@@ -612,10 +685,10 @@ test_the_owner_sets_the_sources_and_a_bad_list_is_refused = {
   return snapshotSources.length + " default sources";
 }
 // %%
-test_snapshot_declares_its_rules_its_timer_and_three_calls = {
+test_snapshot_declares_its_rules_its_timer_and_four_calls = {
   const { meta } = await snapshot_service.emit();
   expect(meta.worker).toBe("brain-x-snapshot");
-  expect([meta.calls, meta.secrets, meta.crons]).toEqual([["com.lopecode.brain.knowledge.put", "com.lopecode.brain.static.delete", "com.lopecode.brain.static.put"], [], ["0 6 * * *"]]);
+  expect([meta.calls, meta.secrets, meta.crons]).toEqual([["com.lopecode.brain.issue.open", "com.lopecode.brain.knowledge.put", "com.lopecode.brain.static.delete", "com.lopecode.brain.static.put"], [], ["0 6 * * *"]]);
   const N = "com.lopecode.brain.snapshot.";
   const ask = (m, caller, via = "") => decide(meta.access[N + m], { caller: callerOf({ caller, via }), origin: callerOf({ caller, via }), request: { params: {} } }).allow;
   expect([ask("run", "owner", "session"), ask("run", "owner", "token"), ask("run", "token:laptop"), ask("run", "worker:brain-x-echo"), ask("run", "anonymous")]).toEqual([true, false, false, false, false]);
@@ -646,11 +719,14 @@ test_the_panel_lists_the_days_and_the_sources_of_one = {
   expect([...el.querySelectorAll("a")].map((a) => a.href)).toEqual(["https://b.example/static/snapshot/2026-10-09/hn.json", "https://b.example/static/snapshot/2026-10-09/papers.json"]);
   // Run now calls the Brain and reads the days again. A reader who is not the owner has no button.
   const button = el.querySelector("button");
+  // The redraw sends the panel's input event. Waited for by that event, not by the clock: 50 ms was not enough
+  // in the deployer's browser, which put this Worker back twice on 2026-10-11.
+  const redrawn = new Promise((r) => el.addEventListener("input", r, { once: true }));
   button.click();
   // Off until the run settles: a second press does nothing.
   expect(button.disabled).toBe(true);
   button.click();
-  await new Promise((r) => setTimeout(r, 50));
+  await redrawn;
   expect(el.textContent).not.toContain("cut from 2");
   expect(el.querySelector("button").disabled).toBe(false);
   expect([ran, heard]).toEqual([["snapshot.run"], 2]);
