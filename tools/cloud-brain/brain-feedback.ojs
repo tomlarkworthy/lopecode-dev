@@ -6,6 +6,7 @@ Feedback about the Brain's page, written on the page. A note placed with \`@toml
 |---|---|
 | Where | The Brain's own address, with the owner signed in. Not a portal, not a page opened with \`#verify=\`, not a file. \`feedbackOn\` says which. |
 | Start one | The page menu, Annotate, Feedback; or select text and press the chip \`feedback\`. Click what the note is about, write, press **File**. |
+| The default | A note that annotate makes with no kind is made a feedback note here (\`feedbackDefault\`): Note in the menu, the chip \`annotate\`, Annotate in the palette. The owner, 2026-10-11: "yes make it the default". A plain note has no File and nothing sends it; three of his were written as plain notes and taken as filed. A note of another kind (\`switchboard\`) is as before. So this page has no plain note. |
 | What is filed | \`issue.open\` with kind \`feedback\`, the label \`annotation\`, the id \`fb-<note id>\`, the first line as the title, and \`about\` the Worker whose module was clicked (\`brain\` when it is none). The body is the text, one sentence that says where, and the anchor as JSON in a fence named \`annotation\`. |
 | On page load | \`issue.list?label=annotation\`, then \`issue.get\` for each, and a note is placed for each at its anchor. Asked again every 30 s while the tab is visible; an issue is read again only when its \`updated_at\` moved. |
 | What a note shows | Two things: the request as it was written, whole, and the latest state of the work with the id of the issue that state is of. Nothing of the comments, links or reviews (Tom, 2026-10-11: "the original request needs to be show. I think the jsut the latest state is good"). When the issue is done, the reason it was closed with as well. |
@@ -189,8 +190,18 @@ feedbackApp = ({ client, store, about = () => "brain", near = () => "", limits =
     draw(id);
     return el;
   };
+  // Annotate's menu, palette and selection chip each end in store.create, and the plain note is the first of each.
+  // From this call until the function it answers is called, a note created with no kind is of this one.
+  const byDefault = () => {
+    const create = store.create;
+    let on = true;
+    const mine = (anchor, fields) => create.call(store, anchor, on && !(fields && (fields.kind || fields.src)) ? { ...fields, kind: limits.kind } : fields);
+    mine.byDefault = limits.kind;
+    store.create = mine;
+    return () => ((on = false), void (store.create === mine && (store.create = create)));
+  };
   const kind = { id: limits.kind, label: "Feedback", chip: "feedback", icon: "✉", order: 1, home: limits.home, box: { w: 280 }, note: ({ id }) => `feedbackNote(${JSON.stringify(id)})` };
-  return { note, file, sync, gone, remove, kind, tickets, of, hidden, drafts };
+  return { note, file, sync, gone, remove, byDefault, kind, tickets, of, hidden, drafts };
 }
 // %%
 // The text under a note's tip: the first element there that is in a cell and not in annotate's own layer.
@@ -213,6 +224,13 @@ feedbackKind = {
   if (!feedback) return "off: " + (!brainOrigin ? "not a Brain's address" : brainPortal ? "a portal" : !(brainWho && brainWho.owner) ? "the owner is not signed in" : "a verify page");
   plugins.add("annotate-kinds", feedback.kind, { invalidation });
   return "registered the kind feedback";
+}
+// %%
+// The owner, 2026-10-11, asked whether Feedback should be the kind of a note he makes on his page: "yes make it the default".
+feedbackDefault = {
+  if (!feedback) return "off";
+  invalidation.then(feedback.byDefault());
+  return "a note made with no kind is of the kind " + feedbackLimits.kind;
 }
 // %%
 feedbackSync = {
@@ -314,6 +332,36 @@ test_feedback_file_opens_an_issue_and_the_note_shows_it = {
   await again.sync();
   expect([again.of.get(a.id), rig.cells.size]).toEqual(["fb-a2t1", 1]);
   return "an empty note sends nothing; a refusal keeps the text; File sends issue.open with the anchor and the note shows the issue";
+}
+// %%
+// Three notes of the owner's, 2026-10-11 20:31 to 20:40 CEST, had no kind and no File (page-feedback-filed-twice-never-arrived).
+test_feedback_a_note_made_with_no_kind_is_a_feedback_note = {
+  const rig = feedbackRig(), app = rig.app(), anchor = { module: "@tomlarkworthy/cloud-brain", cell: "healthView", surface: "element", frac: { fx: 0.5, fy: 0.5 } };
+  const plain = rig.store.create, until = async (f) => { for (let i = 0; i < 100 && !f(); i++) await new Promise((r) => setTimeout(r, 10)); return !!f(); };
+  // As annotate creates a plain note: no fields, and the record has no kind.
+  expect(rig.store.create(anchor).kind).toBe(undefined);
+  const back = app.byDefault();
+  expect(rig.store.create.byDefault).toBe("feedback");
+  const a = rig.store.create(anchor), el = app.note(a.id);
+  expect([a.kind, el.querySelector("[data-feedback]").dataset.feedback, !!el.querySelector("textarea"), [...el.querySelectorAll("button")].map((b) => b.textContent)]).toEqual(["feedback", "draft", true, ["File"]]);
+  // It files as a note of the kind does.
+  ((box) => ((box.value = "The Health chart is not useful."), box.dispatchEvent(new Event("input", { bubbles: true }))))(el.querySelector("textarea"));
+  el.querySelector("button").click();
+  expect(await until(() => el.querySelector("[data-feedback=open]"))).toBe(true);
+  expect([rig.calls.filter((c) => c[0] === "issue.open").map((c) => [c[1].id, c[1].labels]), rig.store.get(a.id).issue]).toEqual([[["fb-" + a.id, ["annotation"]]], "fb-" + a.id]);
+  // Empty fields and a box alone are no kind; another kind and a source of the caller's own are left as they are.
+  expect([rig.store.create(anchor, {}).kind, rig.store.create(anchor, undefined).kind, rig.store.create(anchor, null).kind]).toEqual(["feedback", "feedback", "feedback"]);
+  expect(rig.store.create(anchor, { box: { w: 300 } })).toMatchObject({ kind: "feedback", box: { w: 300 } });
+  expect([rig.store.create(anchor, { kind: "switchboard" }).kind, rig.store.create(anchor, { src: "1 + 1" }).kind]).toEqual(["switchboard", undefined]);
+  // The cell ran again: the app before puts its own back, the next one is over the store's own, and takes that away in turn.
+  back();
+  expect([rig.store.create === plain, rig.store.create(anchor).kind]).toEqual([true, undefined]);
+  const one = app.byDefault(), two = rig.app().byDefault();
+  one();
+  expect(rig.store.create(anchor).kind).toBe("feedback");
+  two();
+  expect(rig.store.create(anchor).kind).toBe(undefined);
+  return "a note created with no kind is a feedback note with File, and files; another kind is left; taken away, a plain note is plain";
 }
 // %%
 test_feedback_load_places_a_note_for_each_labeled_issue = {
@@ -518,6 +566,8 @@ test_feedback_near_reads_under_the_anchor_and_a_kept_note_without_its_label_goes
 // %%
 test_feedback_is_off_away_from_the_owners_page = {
   expect(feedbackOn).toBe(!!brainOrigin && !brainPortal && !!(brainWho && brainWho.owner) && !/[#&]verify=/.test(location.hash));
+  // The default kind of a note is set on the owner's page and nowhere else.
+  expect([feedbackDefault === "off", a2Store.create.byDefault]).toEqual(feedbackOn ? [false, feedbackLimits.kind] : [true, undefined]);
   if (feedbackOn) return "on: this is the Brain's address with the owner signed in";
   expect([feedback, feedbackSync, feedbackNote("x").textContent]).toEqual([null, "off", "Feedback notes are for the owner, signed in at the Brain's address."]);
   expect(feedbackKind.startsWith("off: ")).toBe(true);
