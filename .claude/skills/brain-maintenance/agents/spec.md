@@ -38,7 +38,12 @@ already used answers `duplicate: true` and moves nothing: after each move read t
    - each gathered report in one line with its id, and the requirement it becomes or why it is left out;
    - what exists today, measured;
    - the smallest design that meets the requirements, and what was not chosen and why;
-   - how each requirement will be known to be met;
+   - how each requirement will be known to be met, by a check an agent of the loop can run with
+     its own token: a call that answers the owner's session only (`allow: "caller.session"`, as
+     `logs.query`) or needs his tab is not one, and neither is a count read in a QA tab from a cell
+     that reads the page's own client and session, unless the spec says how the tab stands them in.
+     What only he can measure goes in the owner's list below and is no condition of a task landing
+     (`dashboards-share-series-and-controls`, review 918, findings 1 and 3);
    - the tasks, in the order they land, each small enough for one writer and one review;
    - what only the owner can do (a deploy of the kernel, core, database or deployer; a policy
      install; a rule), as one list.
