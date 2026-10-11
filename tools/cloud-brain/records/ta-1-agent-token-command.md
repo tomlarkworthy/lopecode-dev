@@ -3,7 +3,7 @@
 ## Part one, 2026-10-11: the commands, tested against a local stand-in. Nothing was made on cb4
 
 Task 1 of `plan/cloud-brain-record-names-token-not-agent.md`, approved at event 1285. The code is
-commit `7943b8d5`, 2026-10-11 19:06:10 +0200 (`git log --format='%h %ci'`). Local tools: no seed,
+commit `3158d6d0` (written 2026-10-11 19:06:10 +0200 as `7943b8d5`, before the rebase onto `main`) (`git log --format='%h %ci'`). Local tools: no seed,
 no Worker, no deploy.
 
 **No child was made on cb4, and no parent.** The parent `loop-agents` is the owner's to make
@@ -65,7 +65,7 @@ $ cd <worktree> && BRAIN_TS=<root>/tools/cloud-brain/brain.ts ISSUE_AS_SH=<root>
 $ bun test ./tests/tools/agent-token.test.ts
  16 pass
  0 fail
- 126 expect() calls                        # commit 7943b8d5
+ 126 expect() calls                        # commit 3158d6d0
 $ bun test ./tests/tools
  211 pass
  0 fail
