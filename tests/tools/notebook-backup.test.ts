@@ -1,0 +1,162 @@
+// notebook-backup.sh: a landing writes the built notebook into lopebooks and commits it once a day.
+// Issue notebook-commit-once-a-day; tools/cloud-brain/records/notebook-commit-once-a-day.md.
+//
+//   bun test ./tests/tools/notebook-backup.test.ts
+// The tool runs on a repository made here (NOTEBOOK_REPO) with the day given (NOTEBOOK_TODAY); nothing of the
+// checkout's lopebooks is read or written. The last three tests read the writer's brief and the knowledge doc.
+import { test, expect } from "bun:test";
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync, chmodSync, mkdirSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+
+const ROOT = resolve(import.meta.dir, "../..");
+const TOOL = join(ROOT, "tools/cloud-brain/notebook-backup.sh");
+const HTML = "notebooks/@tomlarkworthy_cloud-brain.html";
+const JSON_ = "notebooks/@tomlarkworthy_cloud-brain.json";
+const who = { GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
+const sh = (cmd: string[], cwd: string, env: Record<string, string> = {}) => {
+  const r = Bun.spawnSync(cmd, { cwd, env: { ...process.env, ...who, ...env } });
+  return { code: r.exitCode, out: r.stdout.toString().trim(), err: r.stderr.toString().trim() };
+};
+// A repository whose notebook was last committed at noon of `day`, local time.
+const repo = (day: string | null) => {
+  const dir = mkdtempSync(join(tmpdir(), "nb-backup-"));
+  sh(["git", "init", "-q", "-b", "main"], dir);
+  mkdirSync(join(dir, "notebooks"));
+  writeFileSync(join(dir, "other.txt"), "x");
+  if (day) writeFileSync(join(dir, HTML), "<html>one</html>\n");
+  sh(["git", "add", "-A"], dir);
+  const at = `${day || "2026-01-01"}T12:00:00`;
+  sh(["git", "commit", "-q", "-m", "first"], dir, { GIT_COMMITTER_DATE: at, GIT_AUTHOR_DATE: at });
+  return dir;
+};
+const built = (dir: string, text: string) => { const p = join(dir, "built.html"); writeFileSync(p, text); return p; };
+const run = (dir: string, file: string, today: string) => sh(["bash", TOOL, file], ROOT, { NOTEBOOK_REPO: dir, NOTEBOOK_TODAY: today });
+const count = (dir: string) => Number(sh(["git", "rev-list", "--count", "HEAD", "--", HTML], dir).out);
+const dirty = (dir: string) => sh(["git", "status", "--porcelain", "--", "notebooks"], dir).out;
+
+test("a second landing of a day writes the file and commits nothing", () => {
+  const dir = repo("2026-10-11");
+  try {
+    const r = run(dir, built(dir, "<html>two</html>\n"), "2026-10-11");
+    expect([r.code, r.out]).toEqual([0, "not due: last committed 2026-10-11"]);
+    expect(readFileSync(join(dir, HTML), "utf8")).toBe("<html>two</html>\n");
+    expect(count(dir)).toBe(1);
+    expect(dirty(dir)).toBe(`M ${HTML}`);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("the first landing of a later day commits it, with what the day before left uncommitted, and the next does not", () => {
+  const dir = repo("2026-10-11");
+  try {
+    run(dir, built(dir, "<html>two</html>\n"), "2026-10-11");
+    const r = run(dir, built(dir, "<html>three</html>\n"), "2026-10-12");
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(/^committed [0-9a-f]{8} 2026-10-12$/);
+    expect(count(dir)).toBe(2);
+    expect(sh(["git", "show", `HEAD:${HTML}`], dir).out).toBe("<html>three</html>");
+    expect(dirty(dir)).toBe("");
+    expect(sh(["git", "log", "-1", "--format=%s"], dir).out).toMatch(/^cloud-brain: the notebook of 2026-10-12, built from the seeds of lopecode-dev@[0-9a-f]+ /);
+    // the committer's clock is today's, so the day the tool reads back is the real one
+    const real = sh(["date", "+%F"], dir).out;
+    const again = run(dir, built(dir, "<html>four</html>\n"), real);
+    expect([again.code, again.out]).toEqual([0, `not due: last committed ${real}`]);
+    expect(count(dir)).toBe(2);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("a backup that is due and the same as the committed file makes no commit", () => {
+  const dir = repo("2026-10-10");
+  try {
+    const r = run(dir, built(dir, "<html>one</html>\n"), "2026-10-12");
+    expect([r.code, r.out]).toEqual([0, "same: last committed 2026-10-10"]);
+    expect(count(dir)).toBe(1);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("a repository that never had the notebook gets it committed", () => {
+  const dir = repo(null);
+  try {
+    const r = run(dir, built(dir, "<html>new</html>\n"), "2026-10-12");
+    expect(r.out).toMatch(/^committed [0-9a-f]{8} 2026-10-12$/);
+    expect(count(dir)).toBe(1);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("only the notebook and its .json are committed, whatever else is staged", () => {
+  const dir = repo("2026-10-10");
+  try {
+    writeFileSync(join(dir, "other.txt"), "changed");
+    sh(["git", "add", "other.txt"], dir);
+    writeFileSync(join(dir, JSON_), "{}\n");
+    const r = run(dir, built(dir, "<html>two</html>\n"), "2026-10-12");
+    expect(r.out).toMatch(/^committed /);
+    expect(sh(["git", "show", "--name-only", "--format=", "HEAD"], dir).out.split("\n").sort()).toEqual([HTML, JSON_]);
+    expect(sh(["git", "status", "--porcelain"], dir).out).toMatch(/^M  other\.txt/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("a hook that writes the .json and refuses is met by a second try, which has the .json", () => {
+  const dir = repo("2026-10-10");
+  try {
+    const hook = join(dir, ".git/hooks/pre-commit");
+    writeFileSync(hook, `#!/bin/sh\n[ "$(cat '${JSON_}' 2>/dev/null)" = '{"synced":1}' ] && exit 0\necho '{"synced":1}' > '${JSON_}'\necho "spec written" >&2\nexit 1\n`);
+    chmodSync(hook, 0o755);
+    const r = run(dir, built(dir, "<html>two</html>\n"), "2026-10-12");
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(/^committed /);
+    expect(sh(["git", "show", `HEAD:${JSON_}`], dir).out).toBe('{"synced":1}');
+    expect(dirty(dir)).toBe("");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("a hook that always refuses is exit 3, with the file written and nothing committed", () => {
+  const dir = repo("2026-10-10");
+  try {
+    const hook = join(dir, ".git/hooks/pre-commit");
+    writeFileSync(hook, "#!/bin/sh\necho no >&2\nexit 1\n");
+    chmodSync(hook, 0o755);
+    const r = run(dir, built(dir, "<html>two</html>\n"), "2026-10-12");
+    expect(r.code).toBe(3);
+    expect(r.out).toBe("");
+    expect(count(dir)).toBe(1);
+    expect(readFileSync(join(dir, HTML), "utf8")).toBe("<html>two</html>\n");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("no build, an empty build and no argument are exit 1 and write nothing", () => {
+  const dir = repo("2026-10-10");
+  try {
+    for (const file of [join(dir, "absent.html"), built(dir, ""), ""]) {
+      const r = run(dir, file, "2026-10-12");
+      expect([file, r.code, r.out]).toEqual([file, 1, ""]);
+    }
+    expect(readFileSync(join(dir, HTML), "utf8")).toBe("<html>one</html>\n");
+    expect(count(dir)).toBe(1);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+const flat = (s: string) => s.replace(/\s+/g, " ");
+const brief = () => readFileSync(join(ROOT, ".claude/skills/brain-maintenance/agents/implementer.md"), "utf8");
+const step = (s: string, n: number) => s.slice(s.indexOf(`\n${n}. **`), s.indexOf(`\n${n + 1}. **`));
+
+test("step 10 of the writer's brief hands the build to the tool and commits lopebooks only on `committed`", () => {
+  const s = flat(step(brief(), 10));
+  expect(s).toContain('tools/cloud-brain/notebook-backup.sh "$W/tools/cloud-brain/.emitted/cloud-brain.html"');
+  expect(s).not.toContain("Commit `lopebooks` first");
+  expect(s).not.toMatch(/&& cp tools\/cloud-brain\/\.emitted\/cloud-brain\.html/);
+  expect(s).toMatch(/`not due: …` or `same: …`[^.]*no `lopebooks` commit/);
+  expect(existsSync(TOOL)).toBe(true);
+});
+
+test("step 12 asks for no lopebooks ref", () => {
+  const s = step(brief() + "\n13. **", 12);
+  expect(s).not.toContain('"value":"lopebooks@<sha>"');
+  expect(flat(s)).toContain("the notebook of a change is the build of its `lopecode-dev` commit");
+});
+
+test("the knowledge doc says the seeds are the source and the committed notebook a daily backup", () => {
+  const s = flat(readFileSync(join(ROOT, "knowledge/working-with-cloud-brain-remote-lopecode-cluster.md"), "utf8"));
+  expect(s).not.toContain("The notebook (canonical, built, do not hand-edit)");
+  expect(s).toContain("committed once a day as a backup");
+});

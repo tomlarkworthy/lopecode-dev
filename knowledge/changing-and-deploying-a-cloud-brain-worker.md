@@ -70,8 +70,11 @@ The other pages are listed in that file, which is read first.
 5. Update the as-built record and the backlog in the same change.
 6. Run `/review-notebook` on what changed. The two logging reviews on 2026-10-08 found 15 real
    defects the authoring session had not seen.
-7. Commit on `main` in `lopebooks` and here, and push. Tom, 2026-10-08: "we should work on main
-   mainly". Not a branch in the shared directory.
+7. Commit on `main` here, and push. Tom, 2026-10-08: "we should work on main
+   mainly". Not a branch in the shared directory. Since 2026-10-11 the built notebook is not committed in
+   `lopebooks` with each change: `tools/cloud-brain/notebook-backup.sh FILE` writes a build over the file there and
+   commits it when its last commit is of an earlier day (Tom that day: "that can be a once a day thing for backups";
+   `tools/cloud-brain/records/notebook-commit-once-a-day.md`).
 
 ## The commands that deploy
 

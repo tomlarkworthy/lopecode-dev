@@ -247,8 +247,12 @@ token and ends it.
       another machine may have landed. With every writer on one machine it brings nothing in. Git
       refuses it in two cases and each is a stop (`LOCK_TOKEN=<token> lock.sh release land <id>`, report, no merge):
       the checkout's `main` and origin's have each a commit the other has not, or the pull brings
-      in a file that is changed in the checkout (`seen.json`, and the notebook in `lopebooks`,
-      are often changed there).
+      in a file that is changed in the checkout (`seen.json` is often changed there). The notebook in
+      `lopebooks` is changed there after every landing of a day but the first (below), so a pull that
+      brings in a commit of it from another machine is refused for that file: it is a build and nothing
+      of it is lost, so `git -C <root>/lopebooks checkout -- notebooks/@tomlarkworthy_cloud-brain.html notebooks/@tomlarkworthy_cloud-brain.json`
+      and pull again (run on two scratch repositories on 2026-10-11, not in `lopebooks`; the record of
+      `notebook-commit-once-a-day`).
     - `tools/cloud-brain/worktree.sh --rebase <id>` again: a writer that landed while you waited
       moved `main`. Look at what came in as in step 9. If it changed what your module is built from, what you emitted
       is stale: `LOCK_TOKEN=<token> lock.sh release land <id>`, build, test and emit again, and come back. Never apply a file
@@ -261,11 +265,18 @@ token and ends it.
       yours: go on. Exit 2: cb4 was not reached; ask again, and do not merge until it answers 0.
       Then the notebook, built from committed seeds: the
       worktree is at `main`'s commit now, so
-      `cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html && cp tools/cloud-brain/.emitted/cloud-brain.html "<root>/lopebooks/notebooks/@tomlarkworthy_cloud-brain.html"`.
+      `cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html && <root>/tools/cloud-brain/notebook-backup.sh "$W/tools/cloud-brain/.emitted/cloud-brain.html"`.
+      The tool writes the build over `<root>/lopebooks/notebooks/@tomlarkworthy_cloud-brain.html`, where the
+      owner and a session read it, and commits it there only when the file's last commit is of an
+      earlier day. Its one line is `committed <sha> <day>`, `not due: …` or `same: …`
+      (the header of `notebook-backup.sh`). Since `notebook-commit-once-a-day` (the owner, 2026-10-11:
+      "we don't need to commit  @tomlarkworthy_cloud-brain.html all the time, that can be a once a day
+      thing for backups"); until then every landing committed it, 53 commits of an 8.7 MB file on that day.
+      The notebook of a change is the build of its `lopecode-dev` commit (`build.ts --out`, the same bytes),
+      so nothing waits on the backup.
       Never `build.ts` in the main checkout: another session may have seeds open there, uncommitted
-      and with no lock, and that build writes them into the notebook you commit (six such files
-      on 2026-10-10 23:29; one writer built them in and had to undo it, one skipped the
-      `lopebooks` commit). `git -C <root>/lopebooks diff --stat` shows your change and no other.
+      and with no lock, and that build writes them into the notebook (six such files
+      on 2026-10-10 23:29; one writer built them in and had to undo it).
       If `git -C <root> diff --quiet -- tools/cloud-brain/brain.ts` fails, `brain.ts` there is
       someone's edit: run the worktree's, `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted bun $W/tools/cloud-brain/brain.ts …`.
       The tests are not run again: the seeds are the ones you tested.
@@ -273,9 +284,12 @@ token and ends it.
       `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts apply <id>-<worker>.json --reason="<id>: …"`.
       Then `redistil` (the Worker's line reads `same`), `saw <worker>`, and for the tracker
       `curl "/xrpc/com.lopecode.brain.issue.verify?guards=true" --owner` (a read).
-    - Commit `lopebooks` first (its hook may rewrite the `.json` beside the notebook; stage that
-      and commit again), then `seen.json` and the `lopebooks` pointer in `lopecode-dev`.
-      `LOCK_TOKEN=<token> lock.sh renew land <id>` again, then push both. Exit 1 from this renew: no push; report
+    - Commit `seen.json` in `lopecode-dev`. After `not due: …` or `same: …` there is no `lopebooks` commit,
+      no pointer to commit and no push of `lopebooks`. After `committed <sha> <day>` (the first landing of a
+      day that builds) the tool has made the `lopebooks` commit: `git -C <root> add lopebooks` goes in the
+      same `lopecode-dev` commit, and `lopebooks` is pushed first. Exit 3 from the tool is no
+      stop of the landing: the backup was not made, say so in your comment with the hook's words.
+      `LOCK_TOKEN=<token> lock.sh renew land <id>` again, then push. Exit 1 from this renew: no push; report
       what is committed in the main checkout and not pushed.
     - With no deploy: take, pull, rebase, renew, `merge --ff-only`, renew, push, release. No build, apply or `lopebooks` commit.
     - `LOCK_TOKEN=<token> <root>/tools/cloud-brain/lock.sh release land <id>`. It prints when the lock was taken and when it went. Then one line `docs (cb4): …`: the docs step; `not entered (…)` is no failure of the landing (the exit is the release's; `knowledge/calling-a-cloud-brain-from-this-checkout.md`, "The knowledge docs in the Brain's search").
@@ -318,9 +332,9 @@ token and ends it.
     mends a small thing in a document itself (its brief, "What holds a change, and what is a note").
 12. **Say it on the issue, then submit.**
     `ia comment '{"key":"impl/<id>/comment-<round>","id":"<id>","body":"…"}'` (the field is `body`; `text` is refused 400) with the fix, the test count and what was not tried, then
-    `ia move '{"key":"impl/<id>/submit-<round>","id":"<id>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha of the seed commit>"},{"kind":"commit","value":"lopebooks@<sha>"},{"kind":"deploy","value":"<worker>@<hash>"}]}'`.
+    `ia move '{"key":"impl/<id>/submit-<round>","id":"<id>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha of the seed commit>"},{"kind":"deploy","value":"<worker>@<hash>"}]}'`.
     A key used before answers 200 with `duplicate: true` and moves nothing: read the issue
-    again and see `in-review`. A submit with no refs is refused. One `commit` ref for each commit the landing added to `lopecode-dev`. A change with no deploy (a doc, a local tool with its test file) has the commits only.
+    again and see `in-review`. A submit with no refs is refused. One `commit` ref for each commit the landing added to `lopecode-dev`. No `lopebooks` ref: the notebook of a change is the build of its `lopecode-dev` commit, and a `lopebooks` commit, on the day's first landing, is a backup (step 10). A change with no deploy (a doc, a local tool with its test file) has the commits only.
 
 ## A resumed round
 
