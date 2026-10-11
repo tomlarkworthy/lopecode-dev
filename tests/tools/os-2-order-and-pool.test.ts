@@ -50,8 +50,12 @@ test("the rows of a round sent back stand above the rows of a review, and those 
   for (const r of [sentBack, dead, quick, spec]) expect(r).toBeLessThan(review);
   expect(specReview).toBe(review + 1);
   for (const s of [digest, ready]) expect(s).toBeGreaterThan(specReview);
-  // among starts, a bug or a task before a project or a feature
-  expect(at("at `open`, with three parts or more, or the owner's")).toBe(ready + 1);
+  // the rows that start are not ordered by the table: a project at `open` stands above `ready`, and the sentence decides
+  expect(at("at `open`, with three parts or more, or the owner's")).toBeLessThan(ready);
+  const three = step(3);
+  expect(three).toContain("The rows that start an agent (a digest writer for a digest at `ready`, a spec writer for a project or feature at `open`, an implementer for `ready`) are one group");
+  expect(three).toContain("the order of those rows in the table decides nothing");
+  expect(three).toContain("So a project of the owner's at `open` is started before a task of the loop's at `ready`.");
 });
 
 test("no number of writers or reviewers is stated as a limit, in the procedure or in the description", () => {

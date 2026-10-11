@@ -152,8 +152,11 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    (step 1, "Past 4 hours"); then a bug or a task before a project or a feature; then the oldest.
    A writer and a reviewer are different agents and do not take each other's place: the order says which you spawn
    or send first in a pass. Kind stands for size, since nothing in the record gives a size before the work.
+   The rows that start an agent (a digest writer for a digest at `ready`, a spec writer for a project or feature at `open`,
+   an implementer for `ready`) are one group: among the issues they match, the sentence above orders the starts, and the
+   order of those rows in the table decides nothing. So a project of the owner's at `open` is started before a task of the loop's at `ready`.
    (Until `os-2-order-and-pool`, 2026-10-11: "Finishing comes before starting. Among issues on the same row, one the
-   owner opened or moved goes first, then the oldest", and the row for a review stood above the rows for a round sent back, the row for a project at `open` above the row for `ready`.
+   owner opened or moved goes first, then the oldest", and the row for a review stood above the rows for a round sent back.
    `plan/cloud-brain-loop-order-of-service.md`, part 2.)
    **The owner's**, in this table and wherever the procedure says it of an issue: opened by his
    session (`by.via` of its `opened` event is `session`), or labeled `owner`. A session that opens
@@ -181,8 +184,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    | labeled `digest`, at `ready` | Spawn the digest writer (role `digest`). |
    | kind `project` or `feature`, at `approved` | Open each task the spec lists, with `parent` the project, and move it to `building` (`decompose`). A task has the labels the spec gives it: `major` on each task of a spec that says its tasks are (bd-2 and bd-3 were opened with none from a spec approved as `major`, and a reviewer's `pass` of bd-2 would have gone to `done` with no approval; `seen-bd-2-opened-without-major`). Close each gathered report that is still open with the reason `in the spec of <id>`. |
    | kind `project` or `feature`, at `building`, no open part | Move it to `done` (`finish`). |
-   | `ready` | Spawn the implementer. |
    | kind `project` or `feature`, at `open`, with three parts or more, or the owner's | Spawn the spec writer (role `spec`). With fewer it is still gathering: nothing. |
+   | `ready` | Spawn the implementer. |
    | `triaged`, no open children | Move to `ready`. |
    | `open`, kind `task` or `bug` | Triage it yourself (below), or take it as a quick win. |
    | `open`, kind `feedback` | Nothing, but for one case: it is the owner's ("The owner's", above), asks for a change, and has no parent and no link either way. Then `promote` it, `issue-as.sh <your token> swap '{"key":"orch/<id>/promote","id":"<id>","swap":"promote","reason":"…"}'`, and triage it in the same pass. A promoted issue keeps the kind `feedback` and is on the task workflow from then on (`workflow` in `get?id=` is the task's): it is taken by the rows for a task, this row no longer. One of his that has a parent or a link is not promoted, since the work it is tied to is already under way and a second task would do it twice (`philosophy.md`, line 2: the smaller side); it is closed with that work. Who closes: the overseer, each oversight, closes a feedback issue when every issue it is tied to is at `done` or `closed` (`agents/overseer.md`, "Feedback that is due"). `bun tools/cloud-brain/issue-stats.ts --token=<your token>` prints both lists, `feedback due to be closed` and `feedback of the owner's with no tie, to promote`; the second is this row's. Feedback is filed by agents for anything that seems off against `philosophy.md` (Tom, 2026-10-11: "only feedback so we can identify patterns and check before writing a solution"), and the overseer reads it together. It is not counted as work waiting. (Until `feedback-closed-or-promoted`, 2026-10-11, nothing closed one: 51 were at `open` at event 2745, 25 of them tied only to work that was `done` or `closed`. The owner: "Why are the feedback ones not being done?") |

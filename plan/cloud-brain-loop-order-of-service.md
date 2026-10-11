@@ -261,9 +261,9 @@ each other's place; the order says which the orchestrator spawns first in a pass
 two. The row "A dead writer" went with the row of a writer sent back, which ends "When it cannot be
 sent one, the next row" and means that one; the row "A quick win of your own, sent back" is also
 an `in-progress` after a `rework`. The row for `spec-review` went to stand under the row for
-`in-review`, above the rows of the digest, which are starts. The row that spawns a spec writer for
-a project at `open` went under the row for `ready`, for "a bug or a task before a project or a
-feature"; the record.)
+`in-review`, above the rows of the digest, which are starts. The rows that start an agent were not
+moved: the row for a project at `open` stands above the row for `ready`, and a sentence after the
+order says that among those rows the order of starts decides and the table's does not; the record.)
 
 **"Smallest first" is not taken as asked.** Nothing in the record gives a size before the work:
 the kind is the one thing known at triage. A bug or a task is one writer and one review by the

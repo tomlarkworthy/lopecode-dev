@@ -57,20 +57,24 @@ grep -c                                                              before  aft
   the owner opened or moved goes first, then the oldest." is replaced by the spec's sentence of
   part 2. Its "(below)" after "an issue past 4 hours" reads `(step 1, "Past 4 hours")`, since the
   list is read in step 1, above. The old sentence is quoted once, as what was.
-- **Step 3, the rows.** Six rows moved and none was changed
+- **Step 3, the rows.** Five rows moved and none was changed
   (`diff <(grep '^   | ' before | sort) <(grep '^   | ' after | sort)` printed nothing; 21 rows).
-  The spec names two. The six, and why the other four:
+  The spec names two. The five, and why the other three:
   - the row of a writer sent back, and the row "A spec sent back": the spec's two;
   - "A dead writer": the row of a writer sent back ends "When it cannot be sent one, the next
     row", and means this one. It covers a writer that died with no `rework` too, which is then
     taken before a review. The other side was to keep it below and name the row in that sentence;
   - "A quick win of your own, sent back": it is an `in-progress` after a `rework`;
   - the row for `spec-review`, to stand under the row for `in-review`: both are "a review that
-    waits", and the rows of the digest between them are starts;
-  - the row that spawns a spec writer for a project at `open`, to stand under the row for `ready`:
-    the sentence has "a bug or a task before a project or a feature", and step 3 says "take the
-    first that matches", so the table said the opposite. The other side was to leave the row and
-    add a sentence that the table does not order the starts.
+    waits", and the rows of the digest between them are starts.
+- **Step 3, the rows that start.** Step 3 says "take the first that matches", and the row for a
+  project at `open` stands above the row for `ready`, where the sentence has "a bug or a task
+  before a project or a feature". No place in a table gives the sentence's order: with the
+  project's row below `ready`, a project of the owner's at `open` (`worker-machine-on-fly`, the
+  case the spec was written for) would be taken after a task of the loop's. That move was made
+  here and taken back. In its place three lines after the order say that the rows which start an
+  agent (a digest writer, a spec writer, an implementer) are one group, ordered by the sentence
+  and not by the table.
 - **"A rework round goes to the agent that wrote the change", item 2.** "It is one of the 8
   implementers of step 2 while it runs" reads "While it runs it is the agent on that issue, and a
   writer at work for step 2".
