@@ -147,3 +147,46 @@ version. The spec read `knowledge/changing-and-deploying-a-cloud-brain-worker.md
 first version having no run; for this apply it had one. What a failed run would have done to a
 Worker with no version before it was not seen. After it `redistil` read 21 lines `same`,
 `brain-x-dashboard  same  d14fc1ce2928` among them.
+
+## The reference the Worker served was one heading (found 19:32 CEST, fixed the same landing)
+
+The first read of the deployed Worker, with no token:
+
+```
+curl -s "https://cb4.endpointservices.workers.dev/xrpc/com.lopecode.brain.getSource?worker=brain-x-dashboard&part=reference" | wc -c
+       8          ("## Tests")
+```
+
+The first cell built its table of metrics with a template inside a hole
+(`${metricDefinitions.map((d) => \`| … |\`)}`). `emit` reads a cell as prose when its whole
+definition is one `md` template with no bare backtick (`cloudflare-iac.ojs`, the pattern above
+`source.reference`), so that cell was left out and nothing said so: the four tests passed, in the
+tab and in the deployer's run. Every method, rule and limit of the service was missing from what
+`/llms.txt` points an agent at.
+
+The table is now a cell, `metricTable`, and the first cell holds `${metricTable}`.
+`test_dashboard_declares_one_cloudflare_permission_and_keeps_nothing` reads `source.reference`
+of the emit: it starts `# brain-dashboard`, has a row a definition and both rules, and no `${`.
+With a template put back inside the hole, in a scratch build:
+
+```
+cd cloud-brain-dev && bun test.ts brain-x-dashboard --with <scratch>/mut2.js
+FAIL test_dashboard_declares_one_cloudflare_permission_and_keeps_nothing   Expected: true  Received: false
+"passed":3,"failed":1,"needsBrowser":0
+```
+
+With the fix (the Worker is on cb4 now, so the brief's runner and the 20 runs apply):
+
+```
+cd cloud-brain-dev && bun test.ts brain-x-dashboard --with $W/tools/cloud-brain/.emitted/dsv-1.js
+"passed":4,"failed":0,"needsBrowser":0
+QA tab, r=71004, the step-8 snippet:   [4,[]]
+BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-dashboard --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20
+{"worker":"brain-x-dashboard","runs":20,"passed":20,"failed":0,"none":0,"from":["document"],…,"byChance":[],…,"at":"2026-10-11T17:33:53.939Z"}
+```
+
+`mains` of its first line was `["@tomlarkworthy/brain-shell","@tomlarkworthy/brain-dashboard"]` and
+each run read `"tests":4`. The emit of that tab: hash `9dfb05e93a08…`, a reference of 4920 characters.
+
+Other seeds were not read for the same shape: whether another Worker serves a reference short of
+a cell is not known.

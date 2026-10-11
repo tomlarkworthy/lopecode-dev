@@ -13,7 +13,7 @@ They are a value of this module (\`metricDefinitions\`) and no method writes one
 
 | Name | Worker | Lines | Value | Dimensions |
 |---|---|---|---|---|
-${metricDefinitions.map((d) => `| \`${d.name}\` | \`${d.worker}\` | \`at: "${d.at}"\` | ${d.value ? "`" + d.value + "`, summed, and its max" : "none: counted"} | ${d.dims.map((x) => "`" + x.key + "`" + (x.type === "number" ? " (a number)" : "")).join(", ")} |`).join("\n")}
+${metricTable}
 
 For a line of the deployer the Worker deployed is \`target\`; \`worker\` on it is the writer. The core's line also holds \`caller\`, \`holder\`, \`delegation\` and \`by\`, which are not dimensions and cannot be asked for.
 
@@ -59,6 +59,13 @@ metricDefinitions = [
   { name: "deploys.put-back", worker: "brain-deployer", at: "deploy.put-back", value: null, dims: [{ key: "target" }] },
   { name: "deploys.failed", worker: "brain-deployer", at: "deploy.failed", value: null, dims: [{ key: "target" }] }
 ]
+// %%
+// The definitions as rows of the reference's table. A cell of its own: a prose cell with a template inside a hole
+// is not read as prose at the emit, and the Worker then serves a reference without it.
+metricTable = {
+  const code = (text) => "`" + text + "`";
+  return metricDefinitions.map((d) => `| ${code(d.name)} | ${code(d.worker)} | ${code(`at: "${d.at}"`)} | ${d.value ? code(d.value) + ", summed, and its max" : "none: counted"} | ${d.dims.map((x) => code(x.key) + (x.type === "number" ? " (a number)" : "")).join(", ")} |`).join("\n");
+}
 // %%
 // The rules, read by the service's manifest and by the reference above.
 metricRules = ({
@@ -298,8 +305,14 @@ test_metric_query_refuses_what_the_definition_does_not_name = {
 }
 // %%
 test_dashboard_declares_one_cloudflare_permission_and_keeps_nothing = {
-  const { meta, parts } = await dashboard_service.emit();
+  const { meta, parts, source } = await dashboard_service.emit();
   expect(meta.worker).toBe("brain-x-dashboard");
+  // The reference the Worker serves holds the first cell with its holes filled: a row a definition, and both rules.
+  expect(source.reference.startsWith("# brain-dashboard")).toBe(true);
+  for (const d of metricDefinitions) expect(source.reference).toContain("| `" + d.name + "` | `" + d.worker + "` |");
+  expect(source.reference).toContain("| `metric.query` | `" + metricRules.query + "` |");
+  expect(source.reference).toContain("| `metric.list` | `" + metricRules.list + "` |");
+  expect(source.reference).not.toMatch(/\$\{/);
   expect(meta.cloudflare).toEqual(["Workers Observability Read"]);
   expect([meta.resources, meta.secrets, meta.calls]).toEqual([[], [], []]);
   // The token is read from the binding the deployer made, and the script filter is brain-logs' own cell, carried into this Worker.
