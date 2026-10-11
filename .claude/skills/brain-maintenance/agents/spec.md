@@ -54,10 +54,19 @@ already used answers `duplicate: true` and moves nothing: after each move read t
    - the tasks, in the order they land, each small enough for one writer and one review;
    - what only the owner can do (a deploy of the kernel, core, database or deployer; a policy
      install; a rule), as one list.
-6. **Land it** under the landing lock (`lock.sh take land <id>`) as `agents/implementer.md` step 10 says: the file only.
-7. **Submit**: `ia move '{"key":"spec/<id>/submit-<round>","id":"<id>","to":"spec-review","refs":[{"kind":"commit","value":"<sha>"}]}'`,
+6. **Land it** under the landing lock (`lock.sh take land <id>`) as `agents/implementer.md` step 10 says: the file only,
+   added by its name (`git add plan/cloud-brain-<id>.md`, then `git commit` with no `-a`: in a worktree `-a` stages
+   `lopebooks` and `lopecode`, which are links there; the writers of `record-checked-by-review-alone` and `i1842`).
+7. **Submit**. First read the issue again (`ia "get?id=<id>"`): a comment that came while you wrote is answered in
+   the file, and landed, before the move. `<sha>` is the last commit of the file on `origin/main`; the refs of a move
+   cannot be changed after it (`paper-summarizer-persona`: comment 1571 came mid-writing, the submit 1578 named the
+   commit before the one that answered it, and review 1611 had to be told which to read by comment 1599).
+   `ia move '{"key":"spec/<id>/submit-<round>","id":"<id>","to":"spec-review","refs":[{"kind":"commit","value":"<sha>"}]}'`,
    with `<round>` 1 the first time. Read the issue again and see `spec-review`.
-   Sent back (`spec` again), you answer each finding in the file and submit again with the next round's key.
+   Sent back (`spec` again): read the review whole before the file (the `reviewed` event the `respec` move names),
+   work in a worktree (`worktree.sh <id>` again when the one before is gone), answer each finding in the file, and
+   submit again with the next round's key. Steps 2 to 4 are done again for what a finding asks to be read or
+   measured and for a part gathered since, not from the start; steps 5 to 7 hold for the round as for the first.
 
 After the owner's approval the orchestrator opens the tasks as parts and moves the project to
 `building`. That is not yours.
