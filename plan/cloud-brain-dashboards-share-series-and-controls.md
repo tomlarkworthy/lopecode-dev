@@ -150,12 +150,21 @@ applied to Health. Its words on the shared part:
 viewof span = Inputs.select(new Map([["15 minutes", 15], ["1 hour", 60], ["6 hours", 360], ["24 hours", 1440], ["7 days", 10080]]), { label: "Last", value: 60 })
 viewof asked = Inputs.button("Refresh")
 timeRange = (asked, { since: Date.now() - span * 60000, until: Date.now() })   // the one place the clock is read
-calls = …   // inputs: assembled, client, session, timeRange, callsQuery, callsSeries. One logs.query. The value callsSeries answers today.
+callsRead = async ({ client, range }) => …   // a function. No client: null, nothing sent. Else one logs.query of callsQuery(range), through callsSeries; a failure answers { ...range, step, series: [], error } as today.
+calls = (assembled, callsRead({ client: session.owner ? client : null, range: timeRange }))   // inputs: assembled, client, session, timeRange, callsRead
 ```
+
+`callsRead` is what a test calls with a stand-in, as the Logs test calls `logsView({ client, now })`
+(line 498): `callsRead({ client: { procedure: async (name, body) => (seen.push([name, body]), fixture) }, range })`.
+The cell `calls` only passes the page's own client to it.
 
 `calls` does not name `width`, `services` or `brainModules`, so R2's "nothing else asks" holds by
 the cell's inputs. It keeps `assembled`, as `healthView` has today. Why `healthView` waits for
 `assembled` is not written in the seed and was not found; task 1 keeps it and does not guess.
+The compiled inputs of `assembled` are `client, brainJoined, session, verifyService, loadService`
+(deploy line 1354): not `width`, not `services`. So `calls` asks again when the Workers' modules
+are assembled again (a change of `brainJoined` or of the session), and for no other reason but its
+own range.
 
 `calls` keeps the owner check: with no client, or a caller who is not the owner, its value is
 `null` and it sends nothing. `healthView` then answers the line a visitor reads today ("Sign in as
@@ -175,6 +184,16 @@ panel = htl.html`<div>${viewof panelDraw}${viewof panelWorker}${panelBody}</div>
 The per-panel control filters rows before they are drawn, so the three drawing functions and their
 test stay as they are. A control that changes the grouping (by method, by status) would need each
 function to take its keys; that is not in this design.
+
+**With no owner** `calls` is `null`, and the prototype cells are cells of the page outside
+`healthView`, so each says what it answers then:
+
+- `viewof panelDraw`: as for the owner. It reads only `panelStart`.
+- `viewof panelWorker`: a select with the one option "all" (`calls ? …its Workers : []`).
+- `panelBody`: with `calls` null, the muted line "Sign in as the owner to see a panel.", and no
+  drawing function is called.
+- `panel`: the two controls and that line.
+- `healthView` makes no instance (above), so nothing else reads a null.
 
 The prototype is under a sub-heading of its own after the dashboard, "### One panel", with a line
 saying the panels above are instances of it. It draws as one more live panel there, which is where
@@ -218,8 +237,15 @@ and Health's is `view: "calculations"`, two different answers. Logs still reads 
 
 - What Cloudflare answers for the longer spans. `callsQuery` asks for at most 500 groups and takes
   the step Cloudflare chooses (`granularity`, 60 s for an hour). For 24 hours and 7 days the step,
-  the number of rows and the time the query takes were not measured. Task 2 measures the five
-  spans on cb4 in the owner's tab and leaves out of the select any span that fails or drops groups.
+  the number of rows and the time the query takes were not measured, and no agent of the loop can
+  measure them: `logs.query` is `allow: "caller.session"` (`brain-logs.ojs` line 225), the owner in
+  his own tab. So no task waits for that number. The select offers the five spans Logs offers
+  today, and the page says what it got: the note under the panels gives the span, the step and
+  `groups`, and when `groups` is not below the query's own `limit` (500) it adds "500 groups is the
+  limit of one answer: some calls may be missing." A query that fails shows its error there, as
+  today. That `groups` (the length of the count's `aggregates`) reaches 500 when Cloudflare cuts
+  an answer is a reading of `callsSeries`, not something seen. The owner reads the true numbers
+  off the page the first time he picks 7 days; nothing asks him to.
 - Whether a `viewof` in an instance, drawn through an `Inspector`, keeps its choice when `calls`
   changes. `viewof panelWorker` reads `calls` for its list of Workers, so as written it is made again
   on each answer and falls back to its start. Task 4 either keeps the choice across an answer (the
@@ -259,14 +285,29 @@ and Health's is `view: "calculations"`, two different answers. Logs still reads 
 
 ## How each requirement is known to be met
 
-Each check is run in a QA tab on the built notebook with a client that counts calls, or on cb4 in
-the owner's tab where it says so.
+No check needs cb4 or the owner's session. A check is one of three kinds:
+
+- **test**: a `test_*` cell of `cloud-brain.ojs`, calling a function with a stand-in client.
+- **source**: a line read in the compiled module after `build.ts`.
+- **tab**: a local QA tab on the built notebook. It has no session, so `calls` is null there. For
+  the counts, the tab's own `client` and `session` cells are stood in from `eval_code`, in the
+  tab only and never exported: with `mod` the module `@tomlarkworthy/cloud-brain` of the page,
+  `mod.redefine("session", { signedIn: true, owner: true })` and
+  `mod.redefine("client", { procedure: async (name, body) => (seen.push([name, body]), fixture), query: async () => ({ services: [] }) })`,
+  where `fixture` is the answer of `test_calls_from_the_logs_become_chart_rows` and `seen` is a
+  list on `window`. A count is the entries of `seen` named `logs.query` with `view: "calculations"`
+  added by one act. **Not run**: whether other cells of the page that read `client` throw on this
+  stand-in was not tried; they may, and it does not change the count. Task 1 runs it first on the
+  page as it is today, which gives the "before" of the resize.
 
 | | check | before (2026-10-11) |
 |---|---|---|
-| R1 | Setting "Last" under Health changes the value shown by the select in Logs, and the reverse. The next "Read" in Logs sends that span as `timeframe`. | Two selects, not linked; Health has none. |
-| R2 | Changing "Last" sends 1 `logs.query` with `view: "calculations"`. "Refresh" sends 1. Changing the viewport width (`qa_viewport`) sends 0. | 0 controls. Resize: `width` is an input of the cell that queries; the count was not measured (task 1 measures it first). |
-| R2 | The compiled `$def` line of `calls` names neither `width` nor `services` nor `brainModules`. | `healthView` names all three. |
+| R1 | test: `logsView({ client, now, span })` with a stand-in select as `span`. Setting the stand-in changes the value of the select inside the panel, and the reverse; a press of "Read" then sends `timeframe.from = now - span * 60000`. | Two selects, not linked; Health has none. |
+| R2 | test: `callsRead` with a counting client sends 1 `logs.query` for one range, with that range as `timeframe`; with `client: null` it sends 0 and answers null. | No such function; the query is inside `healthView`. |
+| R2 | tab, stood in as above: changing "Last" adds 1; "Refresh" adds 1; changing the viewport width (`qa_viewport`) adds 0. | 0 controls. Resize: `width` is an input of the cell that queries; the count was not measured (task 1 measures it first, the same way). |
+| R2 | source: the `$def` line of `calls` names neither `width` nor `services` nor `brainModules`. | `healthView` names all three. |
+| R2 | test: the note for an answer with `groups: 500` carries the line about the limit, and for `groups: 2` does not. | The note has no such line. |
+| visitor | tab, with no stand-in (no session): under "## Health", 0 cells with an error (`.observablehq--error` inside the module's cells from the heading "Health" to "Operator"), and the visitor's line shows. After task 4 the same count includes the cells under "### One panel". | 0 errors expected today; task 1 counts it before. |
 | R3 | A cell elsewhere on the page that names `calls` gets `{ since, until, step, series, groups }`. | The rows are a local of `healthView`. |
 | R4 | A fourth entry in `healthPanels` draws a fourth panel with no other edit. With 3 and with 4 panels, `runtime._variables.size` of the page differs by 0 after the first instance (the module's own measure, `instancingCost`). | No templating. |
 | all | `test_calls_from_the_logs_become_chart_rows` passes unchanged through tasks 1 to 3. `bun test.ts brain-x-page`: `failed 0`, and `passed` not below 6. | `passed 6, failed 0, needsBrowser 10`. |
@@ -275,14 +316,16 @@ the owner's tab where it says so.
 
 Each is one writer and one review, and each deploys `brain-x-page` alone.
 
-1. **Split `healthView`.** First measure in a QA tab how many `logs.query` one resize sends today
-   and write the number in the record. Then: `timeRange` (the constant hour), `calls`, and
-   `healthView` drawing from `calls`. No control, no new behaviour. A test with a counting client:
-   one query for one `timeRange`. Check R2's `$def` line and the resize count after.
+1. **Split `healthView`.** First, in a QA tab stood in as "How each requirement is known to be met"
+   says, count the `logs.query` one resize sends today, and the errors under Health with no
+   session; write both in the record. Then: `timeRange` (the constant hour), `callsRead`, `calls`,
+   and `healthView` drawing from `calls`. No control, no new behaviour. The test of `callsRead`.
+   Check R2's `$def` line and the two counts after.
 2. **The two controls.** `viewof span` and `viewof asked` above the panels; `timeRange` reads them;
    the note under the panels (line 42) and the line a visitor reads (line 35) name the span
-   instead of "the last hour". Measure the five spans on
-   cb4 (step, rows, groups against the 500 limit, time taken) and keep the ones that answer whole.
+   instead of "the last hour". The select has the five spans of Logs. The note gives span, step and
+   `groups`, with the line about the limit when `groups` is not below it, and its test. Nothing is
+   measured on cb4: the writer cannot call `logs.query`.
    Update the line on Health in `cloud-brain-docs.ojs` (line 271, "counts the last hour"). No
    other seed says "last hour" (`grep -n "last hour" tools/cloud-brain/*.ojs`: that line and the two above).
 3. **Logs reads the span.** `logsView` takes the shared control and binds its select to it. The
@@ -294,8 +337,8 @@ Each is one writer and one review, and each deploys `brain-x-page` alone.
    The first use of `instantiateDataflow` in a Brain seed: the writer reads
    `plan/dataflow-templating-2.md` first and checks that the shell cb4 serves carries the module.
 
-After task 4 the as-built record (`tools/cloud-brain/spec-as-built.md`) gets the section on
-dashboards, in the same change.
+Each task writes its own record, `tools/cloud-brain/records/<the task's id>.md`, as
+`agents/implementer.md` step 10 says. Not `spec-as-built.md`.
 
 ## What only the owner can do
 
@@ -303,5 +346,22 @@ dashboards, in the same change.
   dataflowTemplating" rightly (panels instanced with the module), or whether he meant only that the
   page should be built the way that notebook's example is, in which case task 4 is dropped.
 
-Nothing else. No task deploys the kernel, the core, the database or the deployer, installs a
+Nothing else, and nothing to run or measure: the first draft had task 2 measure the five spans in
+his tab, which no agent may do, and the page now reports those numbers itself. No task deploys the kernel, the core, the database or the deployer, installs a
 policy, or adds a rule, a secret or a permission.
+
+## Review, round 1 (event 918, 2026-10-11): changes, four findings
+
+- **F1, task 2 rested on a measurement only the owner can make.** True: `logs.query` is
+  `caller.session`. Taken the second way offered. The five spans ship, the note says `groups` and
+  flags the limit, and no task waits for a number from cb4. See "Not known", the R2 rows, task 2
+  and the owner's list.
+- **F2, the prototype for a visitor.** True: as written `viewof panelWorker` and `panelBody` read
+  a null. Each prototype cell now says what it answers with `calls` null, under "With no owner",
+  and the row "visitor" checks 0 errors under Health with no session.
+- **F3, the counting client had no way in.** True. The query moved into a function, `callsRead`,
+  which the test calls with a stand-in; the counts in a tab are made by standing in `client` and
+  `session` with `redefine` from `eval_code`. That stand-in was not run by this writer and the
+  text says so.
+- **F4, the record's place.** `records/<id>.md` a task. The line on `spec-as-built.md` is gone.
+- **`assembled`.** The reviewer's reading of its inputs is in the design, read again at deploy line 1354.
