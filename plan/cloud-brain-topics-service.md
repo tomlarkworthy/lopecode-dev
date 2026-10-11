@@ -251,8 +251,9 @@ subscription when they differ, or when the core refuses the call (the id is nobo
 Worker's, ended, or its scope has no `quota.get`). So one member cannot subscribe with another's
 delegation. This is why the scope has `quota.get`. It is
 untried: a call with `x-brain-as` has not been sent on cb4, and that `quota.get` answers
-`who: "owner"` or the DID under one is read from the code. It is the first thing task 2 runs, in
-`simulate` against the real core module and then on cb4, before the rest of the task is written.
+`who: "owner"` or the DID under one is read from the code. It is the first thing task 2 runs, on cb4
+with `loop-topic` and a child delegation, before the rest of the task is written; a stand-in for the core in
+`simulate` cannot settle it.
 
 Not chosen for this: a method `delegation.get` for a holder, in the core. It is the direct way and
 it is a deploy of the core, which the loop does not make; it would put push behind an act of his.
@@ -362,7 +363,7 @@ Three kinds of check. None needs the owner's session or his tab.
 | R1 | test: an append by a caller the `write` rule refuses is 403, a read the `read` rule refuses is 403; a rule that does not parse is 400; the creator changes a rule and the next call follows it. | No topic. |
 | R2 | token, task 1: `topic.create` of `check.one`, three appends, `topic.read?topic=check.one&after=1` answers `seq` 2 and 3 and `next: 3`. | |
 | R3 | test, and token in task 1: the same `key` twice answers one `seq`, the second with `duplicate: true`; `topic.read` has one entry. | The inbox does this for its one log (`test_inbox_once_per_key_in_order`, passed). |
-| R4 | test with the real core module in `simulate` (as `test_a_worker_calls_under_a_delegation_…` builds it): the target hears `x-brain-caller` the subscriber, `x-brain-via delegation:<id>`, `x-brain-holder worker:brain-x-topic`, and no context of the appender. A subscribe with a delegation another account made is 403. | The core's own test passes; no Worker sends the header. |
+| R4 | test in `simulate(topic_service, { core })`, the core stood in by a function that answers a call with `x-brain-as` as `asHolder` does (the holder, then `from` as the caller). The real core is not in this test: its own test is in `brain-core.ojs`, which the loop does not change, and whether a seed can import the core's service for a test without carrying it into its Worker is not tried. The real core is met on cb4, in the token check below. The target hears `x-brain-caller` the subscriber, `x-brain-via delegation:<id>`, `x-brain-holder worker:brain-x-topic`, and no context of the appender. A subscribe with a delegation another account made is 403. | The core's own test passes; no Worker sends the header. |
 | R4 | token, task 2: a child delegation made with `loop-topic` for `brain-x-topic`, scope `topic.receive` and `quota.get`; `check.a` pushed to `topic.receive?topic=check.b`; an append to `check.a`, then `topic.read` of `check.b` each second. The entry is there, and the seconds from the append's answer to the first read that has it, for 10 appends, are in the record. The first call with `x-brain-as` on cb4. | Not run live (`spec-as-built.md` 3637). |
 | R5 | test: `topic.subscribe` with target `com.lopecode.brain.browser.open`, `com.lopecode.brain.topic.append`, `com.lopecode.brain.m.0a.x.receiver` and `https://example.com/receive` is 400 each; `topic.receive` and `com.lopecode.brain.topic.receive` are kept as the one whole name. token, task 2: a subscription made with the second child, whose scope is `quota.get` alone, target `topic.receive`: the entry is given up at the first try with status 403 and is in the `failed` topic. | |
 | R6 | test, the clock stood in: a target that answers 500 is called 5 times over the waits and the entry is then in the `failed` topic with `tries: 5`; with no `failed`, `dropped` is 1; a 400 is called once. token, task 2: `check.loop` pushed to `topic.receive?topic=check.loop`, one append: `topic.read` then has entries with `hops` 0 to 8 and no tenth, and the seconds from the append to the ninth are in the record (under 60 says no entry waited for a tick). | |
@@ -388,8 +389,8 @@ approval event in a comment on each. A `major` task that passes review waits at
    the names, the clock's removal of old entries. The tests of R1, R3 and R7 (topics). Deploys
    `brain-x-topic`. Then the token checks of R2 and R3, and the time of 20 appends and 20 reads
    from this machine.
-2. **`tp-2-push-to-receive`.** First the probe: `quota.get` under a delegation, in `simulate`
-   with the real core and on cb4. If it does not answer the maker, the writer stops and comments;
+2. **`tp-2-push-to-receive`.** First the probe: `quota.get` under a delegation, on cb4, from a
+   build of the service that has `topic.subscribe` and nothing else of this task. If it does not answer the maker, the writer stops and comments;
    the choice is then `delegation.get` in the core, which is his. Then `topic.subscribe`,
    `unsubscribe`, `subs`, the push at the append and by the clock, the tries, `failed`, `hops`,
    `topic.receive`. The tests and the token checks of R4, R5 and R6.
