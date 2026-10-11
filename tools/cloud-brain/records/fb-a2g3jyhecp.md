@@ -5,8 +5,8 @@ The owner's note on his page, at the heading "Dashboards" of `@tomlarkworthy/clo
 (at the top) Not in the shell." `dsv-5-page-section` had put the section in the page's module
 because the spec said so (`plan/cloud-brain-dashboard-service.md`, "On the page").
 
-Round 1, a writer of the issue loop. The commit of the seeds is `69624562`, 2026-10-11 22:09:41 +0200
-(`git log --format='%h %ci'`), on `main` at `8c837a66`.
+Round 1, a writer of the issue loop. The commit of the seeds is `SEEDSHA`, SEEDTIME
+(`git log --format='%h %ci'`).
 
 Nothing here was seen in the owner's tab on cb4: the select asks with the owner's own session.
 What is said of the page below is from a local headless Chrome (151.0.7922.34, 1280 by 800) on the
@@ -18,8 +18,8 @@ worktree's build, with `session` and `client` of `cloud-brain` stood in.
 gone, and nothing else.
 
 ```
-git diff 8c837a66 69624562 -- tools/cloud-brain/cloud-brain.ojs | grep -c '^-// %%'                  23
-git diff 8c837a66 69624562 -- tools/cloud-brain/cloud-brain.ojs | grep '^+' | grep -vc '^+++'         0
+git diff SEEDSHA^ SEEDSHA -- tools/cloud-brain/cloud-brain.ojs | grep -c '^-// %%'                  23
+git diff SEEDSHA^ SEEDSHA -- tools/cloud-brain/cloud-brain.ojs | grep '^+' | grep -vc '^+++'         0
 ```
 
 `tools/cloud-brain/brain-dashboard.ojs`: 22 of those 23 cells, each as it was (compared cell by
@@ -37,7 +37,7 @@ to 69: the 22, two prose cells and two imports.
 | the end of `## Tests` | the 4 tests |
 | the last two cells | `import {session, client, timeRange, spanName, dashboard, chartBase, requestsChart, healthStrip, methodTable} from "@tomlarkworthy/cloud-brain"` and `import {navigate} from "@tomlarkworthy/lopepage-urls"` |
 
-Three lines of the seed were removed and written again (`git diff 8c837a66 69624562 -- tools/cloud-brain/brain-dashboard.ojs | grep '^-' | grep -vc '^---'`: 3):
+Three lines of the seed were removed and written again (`git diff SEEDSHA^ SEEDSHA -- tools/cloud-brain/brain-dashboard.ojs | grep '^-' | grep -vc '^---'`: 3):
 the first paragraph, split as above; "How the page draws a panel: no page reads a dashboard yet" under
 "Not known", which `dsv-5-page-section` had made untrue, now says the panels were not seen in the
 owner's tab; and a comment of `test_dashboard_declares_one_cloudflare_permission_and_its_rows` that
@@ -106,8 +106,9 @@ cloud-brain panel in its own tab". Used: `doc:cloud-brain-dashboards-share-serie
 build, reads, stands in `session` (`{ signedIn: true, owner: true }`) and `client` by `redefine` in
 the page's module, and reads after each act. The stand-in answers `dashboard.list` with two names,
 `health` (the three panels of `dashboardDefinitions`) and `deploys` (bars and a table over two metrics), and
-counts each call. Run at 20:10 UTC (`date -u` before it) on the build of `58479f30`, which is this
-change and the next commit (`records/dashboard-panel-does-not-say-sampled.md`).
+counts each call. Run at 20:10 UTC (`date -u` before it) on a build of the worktree with `brain-dashboard.ojs` and
+`cloud-brain.ojs` as `SAMPLEDSHA` has them: this change and the next commit
+(`records/dashboard-panel-does-not-say-sampled.md`).
 
 Layout `C100(S50(@tomlarkworthy/cloud-brain),S50(@tomlarkworthy/brain-dashboard))`:
 
@@ -136,9 +137,10 @@ read the hour the page's `span` opens with.
 
 ## Tests
 
-Every row is of the build of `58479f30`, after the rebase onto `8c837a66`, so each count of
-`brain-dashboard` includes the assertions of the next commit; the number of tests is the same with
-and without it.
+Every row but the first two and the last is of one build of the worktree, made at 20:16 UTC after the
+last rebase that changed a seed (`brain-kernel.ojs`, which the page's module imports), with
+`brain-dashboard.ojs` and `cloud-brain.ojs` as `SAMPLEDSHA` has them. So each count of `brain-dashboard`
+includes the assertions of the next commit; the number of tests is the same with and without it.
 
 | command | result |
 |---|---|
@@ -148,10 +150,10 @@ and without it.
 | `… bun test.ts brain-x-page --with $W/tools/cloud-brain/.emitted/fb-page.js` | `passed` 12, `failed` 0, `needsBrowser` 14 |
 | `cd $W && bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/brain-dashboard` | `tests` 15, `passed` 15, `failed` `[]`. 15 is 13 + 2. |
 | `… tab-tests.ts … @tomlarkworthy/cloud-brain` | `tests` 26, `passed` 26, `failed` `[]`. 26 is 12 + 14. |
-| `cd <root> && BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-dashboard --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20`, ended 20:13:31 UTC | `runs` 20, `passed` 20, `failed` 0, `none` 0, `byChance` `[]`, `from` `["document"]`, `mains` brain-shell and brain-dashboard; `"tests":15` in each of the 20 lines. |
-| the same for `brain-x-page`, ended 20:13:55 UTC | `runs` 20, `passed` 20, `failed` 0, `none` 0, `byChance` `[]`, `from` `["document"]`, `mains` brain-shell and cloud-brain; `"tests":26` in each of the 20 lines. |
+| `cd <root> && BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-dashboard --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20`, ended 20:17:34 UTC | `runs` 20, `passed` 20, `failed` 0, `none` 0, `byChance` `[]`, `from` `["document"]`, `mains` brain-shell and brain-dashboard; `"tests":15` in each of the 20 lines. |
+| the same for `brain-x-page`, ended 20:17:56 UTC | `runs` 20, `passed` 20, `failed` 0, `none` 0, `byChance` `[]`, `from` `["document"]`, `mains` brain-shell and cloud-brain; `"tests":26` in each of the 20 lines. |
 | `bun test ./tests/tools/dsv-5-docs-name-the-dashboard-service.test.ts`, in the worktree | 5 pass, 0 fail. The same file in a directory with the four files it reads as `bf4762e2` had them (`git show bf4762e2:<path>`, before the change): 0 pass, 5 fail. |
-| `bun test ./tests/tools`, in the worktree, ended 20:15:20 UTC | 368 pass, 1 skip, 0 fail |
+| `bun test ./tests/tools`, in the worktree, ended 20:15:20 UTC, before that rebase | 368 pass, 1 skip, 0 fail |
 
 So 4 tests left `brain-x-page` and 4 came to `brain-x-dashboard`, by `test.ts`: 14 + 16 = 30 before and 12 + 14 = 26 after; 11 before and 13 + 2 = 15 after. The reproduction
 of the brief's step 5 is the docs test: it holds that `viewof dashboardName` and `dashboardView` are
