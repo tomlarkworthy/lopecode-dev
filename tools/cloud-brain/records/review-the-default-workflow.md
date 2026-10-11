@@ -16,13 +16,13 @@ one larger set of gather  requirements for a large reenginneing project".
 ## What was read
 
 `issue.sync?after=0` and `?after=200` with the token `issues-implementer-2`, after event 399 (10:42): 399 events,
-60 issues, 56 of them not test data (4 are `test-…`, one of those hidden). Events 1 to 399 cover
-2026-10-10 11:53 to 2026-10-11 10:42 CEST. 42 of the 56 were opened on the first day.
+61 issues, 57 of them not test data (4 are `test-…`, one of those hidden). Events 1 to 399 cover
+2026-10-10 11:53 to 2026-10-11 10:42 CEST. 43 of the 57 were opened on the first day.
 
 The counts below are printed by `bun tools/cloud-brain/issue-stats.ts` (written for this review, so
 the next one is one command). At 10:57 the record had 406 events and the same shape.
 
-## Where the 56 are
+## Where the 57 are
 
 | | issues |
 |---|---|
@@ -30,12 +30,12 @@ the next one is one command). At 10:57 the record had 406 events and the same sh
 | done after being sent back (1, 2 or 4 times) | 8 |
 | rejected after triage or by the owner | 5 |
 | filed by an agent and rejected within 2 minutes | 4 |
-| waiting for the owner under `needs-owner` | 11 |
+| waiting for the owner under `needs-owner` | 12 |
 | feedback, open (the nine `seen-…` of 10:11 on 2026-10-11) | 9 |
 | open or triaged, not started | 4 |
 | in-progress with no agent on it | 1 |
 
-22 done of 56 in 22 hours, of which the loop ran about 5.5.
+22 done of 57 in 23 hours, of which the loop ran about 5.5.
 
 ## Where the time went
 
@@ -43,9 +43,9 @@ Time in a state before the move out of it (an issue still in a state is not in t
 
 | state | stays | median | total | longest |
 |---|---|---|---|---|
-| open | 44 | 1.4 min | 35.6 h | 8.9 h |
-| triaged | 30 | 0.0 min | 4.1 h | 1.6 h |
-| ready | 24 | 2.5 min | 7.6 h | 3.5 h |
+| open | 45 | 1.7 min | 35.6 h | 8.9 h |
+| triaged | 31 | 0.0 min | 4.1 h | 1.6 h |
+| ready | 25 | 2.4 min | 7.7 h | 3.5 h |
 | in-progress | 37 | 6.6 min | 4.4 h | 0.3 h |
 | in-review | 37 | 5.8 min | 4.7 h | 0.4 h |
 
@@ -53,27 +53,28 @@ The work is short: a writer's round is 6.6 minutes at the median and a review 5.
 before the work and beside it. A done issue took 0.9 h at the median from opened to done, and its
 two rounds of work about 12 minutes of that.
 
-`triaged` has a median of 0.0 minutes: 30 stays, and in the usual case the same token made `triage`
+`triaged` has a median of 0.0 minutes: 31 stays, and in the usual case the same token made `triage`
 and `ready` in one breath. As a state it holds only what waits for the owner or for a child.
 
 ## The traps, each with the event that met it
 
-**1. `needs-owner` is a label with no move that takes it away.** 19 of 56 issues got it. Of those, 5
-were done and 4 rejected; 10 are open with it now, idle 11 to 18 hours (`ndd66a518`, opened by the
-owner, 16.8 h at `ready`). The label stayed on 3 issues after they were done or rejected (event 264).
+**1. `needs-owner` is a label with no move that takes it away.** 20 of 57 issues got it. Of those, 4
+were done and 4 rejected; 12 are open with it now, ten of them idle 13.6 to 16.0 hours (`ndd66a518`,
+opened by the owner, 16.0 h at `ready`) and two for 1.2 and 2.1. The label is still on 6 issues
+that are done or rejected.
 The loop's token took it off twice at the owner's word given in chat (events 88, 107), which an
-overseer filed as a breach (`loop-removes-needs-owner`). What the 11 waiting ones wait for:
+overseer filed as a breach (`loop-removes-needs-owner`). What the 12 wait for:
 
 | what only the owner can give | issues |
 |---|---|
 | a policy install | `ndd66a518`, `in-progress-no-way-back`, `move-onto-closed-issue-is-taken` |
 | a word on a rule of the loop | `loop-removes-needs-owner`, `rules-never-line-added-unapproved` |
 | a plan to approve before building | `n9e1c1256` |
-| a deploy of the kernel, core or deployer, or a change to the channel server | `eval-code-cuts-long-return`, `deployer-put-back-issues-worker`, `verify-in-hidden-tab-fails-tests` |
+| a deploy of the kernel, core or deployer, or a change to the channel server | `eval-code-cuts-long-return`, `deployer-put-back-issues-worker`, `verify-in-hidden-tab-fails-tests`, `tests-replace-console-log` |
 | nothing any more: he answered in the session and the work is deployed | `reference-holes-four-more-workers` |
 | a publish rule since loosened | `digest-2026-10-11` |
 
-Three of the eleven are one install. One is stale: the answer was given outside the tracker and
+Three of the twelve are one install. One is stale: the answer was given outside the tracker and
 nothing in the tracker heard it.
 
 **2. `in-progress` had one move out, `submit`.** `tests-replace-console-log` was started, found to
@@ -111,8 +112,8 @@ tokens, the lowest for a one-line doc change (SKILL.md, Runs). `spec-not-done-re
 94,106 and 72,754 tokens to mark six lines stale (oversight of 19:46). The writer that found the
 stale line had it open and could not fix it there: it was not its issue.
 
-**10. Four issues were filed by a reviewer and rejected by triage in under two minutes** (events 235
-to 238 and after). The reviewer saw something real and small; the only thing it could do was file,
+**10. Four issues were rejected by triage in under two minutes of being filed**, three by a reviewer
+and one by the deployer (a test of that morning). The reviewer saw something real and small; the only thing it could do was file,
 and the only thing triage could do with a defect nobody had met was reject.
 
 **11. 15 of 37 submits were sent back.** 14 of 22 done issues passed first time; 8 took 1, 2 or 4
@@ -166,6 +167,7 @@ A to-approval, O approve. `seq` is the event that opened it.
 | 281 | `move-onto-closed-issue-is-taken` | bug | reviewer-2 | T | waits for the owner at triaged, idle 14.1 h |
 | 289 | `worktree-rebase-exit-0-when-main-moved` | task | reviewer-2 | X | rejected 28 s after it was filed by reviewer-2 |
 | 291 | `browser-run-timeout-test-wall-clock` | task | implementer-2 | TRSUP | done, first pass |
+| 292 | `tests-replace-console-log` | task | implementer-2 | TRS | waits for the owner at in-progress, idle 13.6 h |
 | 293 | `bluesky-tick-poll-test-no-overlap` | task | implementer-2 | TRSUP | done, first pass |
 | 303 | `verify-in-hidden-tab-fails-tests` | bug | reviewer-2 | T | waits for the owner at triaged, idle 14.0 h |
 | 324 | `browser-run-bound-loose-under-load` | task | reviewer-2 | X | rejected 33 s after it was filed by reviewer-2 |
@@ -202,14 +204,21 @@ Line 7 of `philosophy.md` asks for it before a design. Two searches, 2026-10-11:
   [Zoho](https://www.zoho.com/projects/help/link-bugs.html)). Parent and child is kept apart from
   links in each of them. Taken: one of each group that the record showed a need for, `related`,
   `duplicate`, `part-of` (composition, as the parent), `cause`. Not taken: `blocks`. A part already
-  holds its parent, and nothing in the 56 issues was held by an issue that was not its part.
+  holds its parent, and nothing in the 57 issues was held by an issue that was not its part.
 - Waiting against working. Flow efficiency is touch time over touch plus wait; practitioners report
   5 to 25 percent as usual ([CodeSignal](https://codesignal.com/learn/courses/kanban-and-flow-optimization/lessons/advanced-flow-analytics),
-  a rule of thumb and not a study). Here: about 9.1 h in `in-progress` and `in-review` against 47.3 h
+  a rule of thumb and not a study). Here: about 9.1 h in `in-progress` and `in-review` against 47.4 h
   in `open`, `triaged` and `ready`, 16 percent, before counting what still waits. A study of 8,000
   items over four years in one company found work in progress correlates with lead time and gave no
   optimal limit ([SINTEF](https://www.sintef.no/en/publications/publication/1637884/)). Read from
   search summaries; the papers themselves were not opened.
+
+## Corrected the same day
+
+The first count here left out `tests-replace-console-log`: the script dropped ids that begin with
+`test`, and four are test data, not five. Found by the fresh review at 11:35. The counts above are
+with it: 57 issues, 20 that got `needs-owner`, 12 waiting. `issue-stats.ts` had the same filter and
+is corrected to `test-`.
 
 ## Not done
 

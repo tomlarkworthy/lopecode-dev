@@ -428,7 +428,9 @@
       "name": "close",
       "from": [
        "open",
-       "spec"
+       "spec",
+       "approved",
+       "building"
       ],
       "to": "closed",
       "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""

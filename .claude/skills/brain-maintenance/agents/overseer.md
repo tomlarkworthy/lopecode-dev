@@ -35,7 +35,7 @@ judged by: an edit that was meant to cut rework and did not is said so, with bot
 is the loop's own (`issue-stats.ts`); a number it lacks is a change you may make to it.
 
 The owner, 2026-10-11: "we want a system that self adapt and gets better over time, at the moment
-the system is quite ineffecient". On that day 56 issues had spent 47.3 h waiting in `open`,
+the system is quite ineffecient". On that day 57 issues had spent 47.4 h waiting in `open`,
 `triaged` and `ready` and 9.1 h being worked; 15 of 37 submits were sent back
 (`tools/cloud-brain/records/review-the-default-workflow.md`).
 

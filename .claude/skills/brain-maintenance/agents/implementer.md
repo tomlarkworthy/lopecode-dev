@@ -210,7 +210,7 @@ It gets its own issue and its own commit, so the review and a revert are of that
 ia open '{"key":"impl/<short>/open","id":"<short>","kind":"bug","title":"…","body":"what was wrong, where"}'
 ia link '{"key":"impl/<short>/link","id":"<short>","to":"<your issue>","rel":"related"}'
 ia move '{"key":"impl/<short>/start","id":"<short>","to":"in-progress","reason":"real: <how you met it>. One change: <what>."}'
-…the fix, its test, the commit, landed as step 13 says…
+…the fix, its test, the commit, landed as step 10 says…
 ia move '{"key":"impl/<short>/submit","id":"<short>","to":"in-review","refs":[{"kind":"commit","value":"<sha>"}]}'
 ```
 

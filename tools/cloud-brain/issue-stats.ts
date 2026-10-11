@@ -44,7 +44,7 @@ for (const e of events) {
 }
 
 const now = Date.now(), H = (ms: number) => +(ms / 3600000).toFixed(1);
-const all = Object.values(issues).filter((i: any) => i.seq > since && !/^test/.test(i.id)) as any[];
+const all = Object.values(issues).filter((i: any) => i.seq > since && !/^test-/.test(i.id)) as any[];
 const closed = (i: any) => (workflows[i.workflow]?.closed || []).includes(i.state);
 const median = (l: number[]) => (l.length ? [...l].sort((a, b) => a - b)[l.length >> 1] : 0);
 const count = (l: string[]) => l.reduce((m: Record<string, number>, k) => ((m[k] = (m[k] || 0) + 1), m), {});
