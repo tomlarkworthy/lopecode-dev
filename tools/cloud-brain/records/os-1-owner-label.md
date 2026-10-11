@@ -2,8 +2,8 @@
 
 Task 1 of `plan/cloud-brain-loop-order-of-service.md`, part 1 of its design (R1), round 1, by a
 writer of the issue loop on 2026-10-11. Two commits in a worktree made at `338d3dd6`, by their
-subjects: "issue-watch.sh --filter reads an answer of sync from stdin" (22:34:34 +0200,
-`git log --format=%ci`) and "the label owner marks an issue the owner asked for" (22:42:07). This
+subjects: "issue-watch.sh --filter reads an answer of sync from stdin" (author time 22:34:34 +0200,
+`git log --format=%ai`; the commit time is the landing's rebase) and "the label owner marks an issue the owner asked for" (22:42:07). This
 record is a third. Their names on `main` are the refs of the submit. No seed, no deploy.
 
 ## What changed
