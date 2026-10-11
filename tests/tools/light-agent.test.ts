@@ -106,13 +106,14 @@ const rig = () => {
   copyFileSync(join(dev, "agent.sh"), join(dir, "agent.sh"));
   chmodSync(join(dir, "agent.sh"), 0o755);
   const lines = [
+    { type: "system", subtype: "init", tools: ["Read", "Bash"], permissionMode: "default" },
     { type: "assistant", message: { usage: { input_tokens: 2, cache_creation_input_tokens: 10, cache_read_input_tokens: 100, output_tokens: 5 } } },
     { type: "result", session_id: "s-1", result: "done", total_cost_usd: 0.5, num_turns: 3, duration_ms: 1200, usage: { input_tokens: 4, cache_creation_input_tokens: 20, cache_read_input_tokens: 300, output_tokens: 9 } },
   ];
   writeFileSync(join(dir, "bin/claude"), `#!/bin/bash\nprintf '%s\\n' "$@" > "${dir}/sent"\nS=$(printf '%s\\n' "$2" | sed -n 's/^scratch: //p'); [ -n "$S" ] && [ -d "$S" ] && [ -z "$(ls -A "$S")" ] && touch "${dir}/scratch-was-there"\ncat <<'EOF'\n${lines.map((l) => JSON.stringify(l)).join("\n")}\nEOF\n`);
   chmodSync(join(dir, "bin/claude"), 0o755);
   return async (args: string[], env: Record<string, string> = {}) => {
-    const r = await run([join(dir, "agent.sh"), ...args], { PATH: `${join(dir, "bin")}:${process.env.PATH}`, CHECKOUT: join(dir, "checkout"), TAB: "", MODEL: "", ADVISOR: "", ...env });
+    const r = await run([join(dir, "agent.sh"), ...args], { PATH: `${join(dir, "bin")}:${process.env.PATH}`, CHECKOUT: join(dir, "checkout"), TAB: "", MODEL: "", ADVISOR: "", READS: "", DRY: "", ...env });
     return { ...r, scratchWasThere: existsSync(join(dir, "scratch-was-there")), sent: existsSync(join(dir, "sent")) ? readFileSync(join(dir, "sent"), "utf8").split("\n") : null, checkout: join(dir, "checkout") };
   };
 };
@@ -128,7 +129,7 @@ test("agent.sh ROLE task: a prompt of four lines, four tools, no MCP server, and
   expect([s[3].startsWith("scratch: /"), r.scratchWasThere, existsSync(scratch)]).toEqual([true, true, false]);
   expect([s.includes("--strict-mcp-config"), s.includes("--mcp-config"), s[s.indexOf("--tools") + 1], s[s.indexOf("--allowedTools") + 1], s[s.indexOf("--add-dir") + 1], s[s.indexOf("--model") + 1]])
     .toEqual([true, false, "Bash,Read,Grep,Glob", "Bash,Read,Grep,Glob", r.checkout, "opus"]);
-  expect(JSON.parse(r.out)).toEqual({ session: "s-1", result: "done", usd: 0.5, usage: { input: 4, cacheWrite: 20, cacheRead: 300, output: 9 }, context: 117, turns: 3, ms: 1200, legs: 1 });
+  expect(JSON.parse(r.out)).toEqual({ session: "s-1", result: "done", usd: 0.5, usage: { input: 4, cacheWrite: 20, cacheRead: 300, output: 9 }, context: 117, turns: 3, ms: 1200, legs: 1, toolset: ["Read", "Bash"], mode: "default" });
 });
 
 // The review of fewer-review-rounds waited for the landing lock in the background: the stream had two result lines,
@@ -148,9 +149,55 @@ test("a run of two legs is reported at its end: the last result, usage summed", 
   ];
   writeFileSync(join(dir, "bin/claude"), `#!/bin/bash\ncat <<'EOF'\n${lines.map((l) => JSON.stringify(l)).join("\n")}\nEOF\n`);
   chmodSync(join(dir, "bin/claude"), 0o755);
-  const r = await run([join(dir, "agent.sh"), "reviewer", "t"], { PATH: `${join(dir, "bin")}:${process.env.PATH}`, CHECKOUT: join(dir, "checkout"), TAB: "", MODEL: "", ADVISOR: "" });
+  const r = await run([join(dir, "agent.sh"), "reviewer", "t"], { PATH: `${join(dir, "bin")}:${process.env.PATH}`, CHECKOUT: join(dir, "checkout"), TAB: "", MODEL: "", ADVISOR: "", READS: "", DRY: "" });
   expect(r.code).toBe(0);
-  expect(JSON.parse(r.out)).toEqual({ session: "s-2", result: "DONE", usd: 0.5, usage: { input: 5, cacheWrite: 22, cacheRead: 330, output: 13 }, context: 117, turns: 3, ms: 1200, legs: 2 });
+  expect(JSON.parse(r.out)).toEqual({ session: "s-2", result: "DONE", usd: 0.5, usage: { input: 5, cacheWrite: 22, cacheRead: 330, output: 13 }, context: 117, turns: 3, ms: 1200, legs: 2, toolset: null, mode: null });
+});
+
+// Issue ps-2-summarizer-role, R7 of plan/cloud-brain-paper-summarizer-persona.md: an agent that reads text from outside.
+// What these flags do in a real start is in the record (records/ps-2-summarizer-role.md): --allowedTools "Read" grants
+// a Read of any path, and a user's defaultMode "auto" lets a file outside the directory be read.
+test("READS=DIR: the one tool Read, no --allowedTools, DIR in the checkout's place, the default permission mode; DIR is neither made nor removed", async () => {
+  const dir = root();
+  writeFileSync(join(dir, "paper.txt"), "text");
+  const r = await rig()(["paper-summarizer", "summarize x"], { READS: dir });
+  const s = r.sent!;
+  expect(r.code).toBe(0);
+  expect([s[1], s[2], s[3]]).toEqual(["role: paper-summarizer", `scratch: ${dir}`, "task: summarize x"]);
+  expect([s[s.indexOf("--tools") + 1], s.includes("--allowedTools"), s[s.indexOf("--add-dir") + 1], s[s.indexOf("--permission-mode") + 1], s.includes("--mcp-config"), s.includes("--strict-mcp-config")])
+    .toEqual(["Read", false, dir, "default", false, true]);
+  // No line of the prompt and no argument names the checkout.
+  expect([s.some((l) => l.startsWith("checkout:")), s.some((l) => l.includes(r.checkout)), JSON.parse(s[s.indexOf("--settings") + 1])]).toEqual([false, false, { advisorModel: "" }]);
+  expect([existsSync(dir), existsSync(join(dir, "paper.txt")), r.scratchWasThere]).toEqual([true, true, false]);
+  expect(JSON.parse(r.out)).toMatchObject({ session: "s-1", toolset: ["Read", "Bash"], mode: "default" });
+});
+
+test("READS=DIR on --resume: the same flags; READS needs no checkout; a READS that is no directory and READS with TAB are refused before claude", async () => {
+  const dir = root();
+  const s = (await rig()(["--resume", "s-1", "again"], { READS: dir })).sent!;
+  expect([s[1], s[s.indexOf("--resume") + 1], s[s.indexOf("--tools") + 1], s.includes("--allowedTools"), s[s.indexOf("--add-dir") + 1], s[s.indexOf("--permission-mode") + 1]]).toEqual(["again", "s-1", "Read", false, dir, "default"]);
+  const none = await rig()(["paper-summarizer", "t"], { READS: dir, CHECKOUT: tmpdir() });
+  expect([none.code, none.sent![none.sent!.indexOf("--add-dir") + 1]]).toEqual([0, dir]);
+  const got = [await rig()(["paper-summarizer", "t"], { READS: join(dir, "not-there") }), await rig()(["paper-summarizer", "t"], { READS: dir, TAB: "1" }), await rig()(["paper-summarizer"], { READS: dir })];
+  expect(got.map((r) => [r.code, r.sent])).toEqual([[1, null], [1, null], [1, null]]);
+  expect([got[0].err.includes("is not a directory"), got[1].err.includes("READS and TAB are not given together")]).toEqual([true, true]);
+});
+
+test("DRY=1 prints the arguments and starts nothing: today's for a reviewer, and with READS no --allowedTools and no checkout", async () => {
+  const a = rig();
+  const plain = await a(["reviewer", "x"], { DRY: "1" });
+  expect([plain.code, plain.sent]).toEqual([0, null]);
+  const p = plain.out.trimEnd().split("\n");
+  expect(p.slice(0, 2).concat(p.slice(4))).toEqual(["-p", "role: reviewer", "task: x", "--model", "opus", "--settings", '{"advisorModel":""}', "--strict-mcp-config", "--tools", "Bash,Read,Grep,Glob",
+    "--allowedTools", "Bash,Read,Grep,Glob", "--add-dir", plain.checkout, "--output-format", "stream-json", "--verbose"]);
+  expect([p[2], p[3].startsWith("scratch: /")]).toEqual([`checkout: ${plain.checkout}`, true]);
+  const dir = root();
+  const reads = await a(["paper-summarizer", "x"], { DRY: "1", READS: dir });
+  expect([reads.code, reads.sent]).toEqual([0, null]);
+  expect(reads.out.trimEnd().split("\n")).toEqual(["-p", "role: paper-summarizer", `scratch: ${dir}`, "task: x", "--model", "opus", "--settings", '{"advisorModel":""}', "--strict-mcp-config",
+    "--tools", "Read", "--add-dir", dir, "--permission-mode", "default", "--output-format", "stream-json", "--verbose"]);
+  // Any other value of DRY starts the agent.
+  expect((await a(["reviewer", "x"], { DRY: "0" })).sent).not.toBe(null);
 });
 
 // The owner, 2026-10-11: "ok lets disable the advisor for review". The setting is the one that removed it in a real start.

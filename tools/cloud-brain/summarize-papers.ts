@@ -1,13 +1,18 @@
 #!/usr/bin/env bun
 // The text of each kept paper of a Brain's knowledge base, as a file for the role paper-summarizer, and each entry
-// kept as it was entered (plan/cloud-brain-paper-summarizer-persona.md, design piece 3; R8). Puts nothing.
+// kept as it was entered (plan/cloud-brain-paper-summarizer-persona.md, design piece 3; R8). `text` and `compare` put
+// nothing; `run` without --dry and `restore` without --dry put with the token loop-papers.
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts text --tag awesome-rsi
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts text --ids arxiv:2603.06333,arxiv:2310.02304
 //   … --route=pdf   the kept PDF, also for a paper arXiv has a page of
 //   … --delay=MS    the wait between two fetches from arXiv (3000)
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts compare --ids a,b,c    both routes for each paper, nothing written:
 //      one line a paper with the share of each text's numbers, distinct words and runs of 8 words that the other has
-// `run`, `check` and `restore` of the plan are not built: they are the task ps-2-summarizer-role.
+//   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts run --tag awesome-rsi --ids a,b --dry   one agent a paper; summaries to <papers>, nothing put
+//   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts run --tag awesome-rsi          the same, and each summary put with loop-papers
+//      … --model NAME (opus)   --again: also a paper refused twice before for the same text
+//   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts check --tag awesome-rsi [--except id=issue,id=issue]   reads only; exit 1 on a failing entry
+//   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts restore --ids a,b [--dry]      puts back the text as entered, from <id>.entry.json
 //
 // text, in two passes. The entries are read with the token loop-knowledge (knowledge.search by words, which
 // answers each entry with its text).
@@ -25,8 +30,40 @@
 // (BRAIN_STATE_DIR, else the directory above git's common directory, as knowledge-docs.ts finds the state).
 // One line of JSON a paper, and a last line of counts. Exit 1 when arXiv answers anything but 200 or 404 (the run
 // stops there: a 429 is not asked again), or when the search answered as many entries as its limit.
+//
+// run (design piece 3; task ps-2-summarizer-role). The agent is cloud-brain-dev/agent.sh with READS (SUMMARIZER_AGENT
+// names another script, for the tests). Before any agent: `DRY=1 READS=<dir> agent.sh` must print --tools Read,
+// --permission-mode default and no --allowedTools, else exit 3 (a script without READS would start an agent with Bash).
+// Then the canary: a new random line is written to <state>/canary.txt, beside the token files, and a haiku agent with
+// an empty directory is asked to read it. Exit 3, with no paper read, unless the answer is without the line, `toolset`
+// is ["Read"] and `mode` is "default". For each paper, in the order of the ids:
+//   1. No <id>.entry.json, or one whose text is not its hash, or an entry with no summary whose text is not the
+//      file's (something else wrote to it): skipped and named.
+//   2. The text is fetched now, as `text` fetches it, and written to <id>.txt. A <id>.txt that is merely there is never
+//      read: after a failed fetch the file of an earlier run stays, and the paper is skipped.
+//   3. An entry that has the summary's line with this text's SHA-256 is skipped (`summarized`). A paper the journal has
+//      as refused for this text, by a run that was not --dry, is skipped (`refused-before`) unless --again.
+//   4. The text is copied to a new directory D outside the checkout and
+//      `READS=D agent.sh paper-summarizer "summarize D/<id>.txt, N lines; the title is T characters, so the first paragraph is at most 1498-T characters"`.
+//      The answer is judged (`judge`): the first paragraph's length, the six headings in order, the sections' 5000
+//      characters, and every number of it in the text's numbers (`numbers`: 1,000 is 1000). Refused, the list is sent
+//      to the same agent (--resume); refused again, nothing is put and the journal says `refused`.
+//   5. The entry's new text (`assemble`): first paragraph, sections, the line
+//      "Summary by paper-summarizer (<model>), <day>, of <address>, sha256 of the text read <hash>.", the line
+//      "As entered before the summary:", and the text of <id>.entry.json cut so the whole is 16000 characters. Always
+//      from that file, also on a second summary: the entry then holds an already cut copy. Written to
+//      <id>.summary.txt; put as { id, text, tags: ["paper-summary"], method: "paper-summarizer" } unless --dry.
+//   6. One line to <papers>/journal.jsonl: id, outcome (put | dry | refused | failed), session, usd, context, ms, the
+//      lengths, what each round refused, the put's answer. One line a paper, so one `session` an id.
+// An agent whose `toolset` is not ["Read"] stops the run (exit 3) and its answer is not used.
+// check: every entry of the tag is summarized (the tag, the line, changed.method, a first paragraph within its length,
+// the six headings, a put with vectors: 1 in the journal, and the semantic search of the first 300 characters of its
+// first paragraph answers it first), or is named in --except. A restored entry and a refused paper fail it.
+// restore: the text of <id>.entry.json, compared with the hash kept beside it, put as { id, text, method:
+// "paper-summarizer:restore" }. An id with no file is refused and nothing is put for it. The tag paper-summary stays.
 // tests/tools/summarize-papers.test.ts
-import { writeFileSync, mkdirSync, mkdtempSync, existsSync, readFileSync, rmSync } from "node:fs";
+import { writeFileSync, mkdirSync, mkdtempSync, existsSync, readFileSync, rmSync, appendFileSync, realpathSync } from "node:fs";
+import { randomBytes } from "node:crypto";
 import { tmpdir } from "node:os";
 import { createHash } from "node:crypto";
 import { join, dirname } from "node:path";
@@ -138,16 +175,56 @@ export const compareTexts = (html: string, pdf: string) => {
     htmlWordsInPdf: share(new Set(hw), new Set(pw)), pdfWordsInHtml: share(new Set(pw), new Set(hw)), htmlRunsInPdf: share(hs, ps), pdfRunsInHtml: share(ps, hs) };
 };
 
+
+// ---- The summary: what the role's brief asks for, and what is refused of an answer.
+export const HEADINGS = ["What is claimed", "How it works", "How it was evaluated", "Results", "Limits and what was not shown", "Names"];
+export const TEXT_MAX = 16000, SECTIONS_MAX = 5000, EMBEDDED = 1500, ENTERED_LINE = "As entered before the summary:";
+// The service embeds (title + "\n\n" + text).slice(0, 1500): a first paragraph of this length is in the vector whole.
+export const leadMax = (title: string) => EMBEDDED - 2 - title.length;
+// The first paragraph is what is before the first "## " line, as one line; the sections are from that line to the end.
+export const parseSummary = (result: string) => {
+  const lines = (result || "").replace(/\r/g, "").trim().split("\n"), at = lines.findIndex((l) => /^##\s/.test(l));
+  const lead = (at < 0 ? lines : lines.slice(0, at)).join(" ").replace(/\s+/g, " ").trim();
+  const sections = at < 0 ? "" : lines.slice(at).map((l) => l.trimEnd()).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  const found = sections.split("\n").filter((l) => /^##\s/.test(l)).map((l) => l.replace(/^##\s+/, "").trim());
+  return { lead, sections, found };
+};
+// What is refused, as sentences the agent is sent; `numbers` are those of the answer that the text read does not have.
+export const judge = (result: string, title: string, text: string) => {
+  const { lead, sections, found } = parseSummary(result), max = leadMax(title), refused: string[] = [];
+  if (!lead) refused.push("there is no first paragraph before the first heading");
+  else if (lead.length > max) refused.push(`the first paragraph is ${lead.length} characters and the limit is ${max}`);
+  const missing = HEADINGS.filter((h) => !found.includes(h));
+  for (const h of missing) refused.push(`the heading "## ${h}" is missing`);
+  if (!missing.length && found.join("|") !== HEADINGS.join("|")) refused.push(`the headings are not the six in their order: ${found.map((h) => `"${h}"`).join(", ")}`);
+  if (sections.length > SECTIONS_MAX) refused.push(`the sections are ${sections.length} characters together and the limit is ${SECTIONS_MAX}`);
+  const has = numbers(text), not = [...numbers(lead + "\n" + sections)].filter((n) => !has.has(n));
+  if (not.length) refused.push(`these numbers are not in the text as you wrote them: ${not.join(" ")}`);
+  return { lead, sections, refused, numbers: not };
+};
+export const summaryLine = (x: { model: string; day: string; address: string; sha256: string }) =>
+  `${SUMMARY_LINE} (${x.model}), ${x.day}, of ${x.address}, sha256 of the text read ${x.sha256}.`;
+export const lineOf = (text: string) => {
+  const m = /^Summary by paper-summarizer \(([^)]*)\), (\S+), of (\S+), sha256 of the text read ([0-9a-f]{64})\.$/m.exec(text || "");
+  return m ? { model: m[1], day: m[2], address: m[3], sha256: m[4] } : null;
+};
+// The entry's text with a summary: what the entry held before is last, and is what is cut.
+export const assemble = (x: { lead: string; sections: string; model: string; day: string; address: string; sha256: string; entered: string }) => {
+  const head = `${x.lead}\n\n${x.sections}\n\n${summaryLine(x)}\n${ENTERED_LINE}\n`;
+  return head + x.entered.slice(0, Math.max(0, TEXT_MAX - head.length));
+};
+
 if (import.meta.main) {
   const BASE = process.env.BRAIN_BASE;
   if (!BASE) throw new Error("BRAIN_BASE");
   const [cmd, ...args] = process.argv.slice(2);
   const opt = (name: string) => { const i = args.indexOf("--" + name), eq = args.find((a) => a.startsWith(`--${name}=`)); return eq ? eq.slice(name.length + 3) : i >= 0 ? args[i + 1] : undefined; };
-  if (cmd !== "text" && cmd !== "compare") { console.error(`summarize-papers.ts: "${cmd ?? ""}" is not built; this file has: text --tag TAG | --ids a,b [--route=pdf], compare --ids a,b`); process.exit(2); }
+  const flag = (name: string) => args.includes("--" + name);
+  if (!["text", "compare", "run", "check", "restore"].includes(cmd)) { console.error(`summarize-papers.ts: "${cmd ?? ""}" is not a command; this file has: text | run [--dry] | check | restore [--dry], each with --tag TAG or --ids a,b, and compare --ids a,b`); process.exit(2); }
   const route = opt("route");
   if (route && route !== "pdf") { console.error("--route=pdf, or none"); process.exit(2); }
   const tag = opt("tag"), ids = (opt("ids") || "").split(",").filter(Boolean), delay = Number(opt("delay") ?? 3000);
-  if (!tag && !ids.length) { console.error("text --tag TAG | --ids a,b"); process.exit(2); }
+  if (!tag && !ids.length) { console.error(`${cmd} --tag TAG | --ids a,b`); process.exit(2); }
   const ARXIV = process.env.ARXIV_HTML || "https://arxiv.org/html/", UA = "lopecode-cloud-brain summarize-papers (github.com/tomlarkworthy/lopecode-dev)";
   const state = stateDir();
   if (!state) throw new Error("no state directory: not in a git checkout and no BRAIN_STATE_DIR");
@@ -163,11 +240,22 @@ if (import.meta.main) {
     return { text, status: st ? st[1] : "", noToken: text.startsWith(`no token "${token}" is kept`), err: (r.stderr || "").slice(0, 200) };
   };
   const LIMIT = 100;
-  const search = (q: string, more = "") => {
-    const r = brain(`knowledge.search?kind=paper&limit=${LIMIT}${more}&q=${encodeURIComponent(q)}`, "loop-knowledge");
+  const search = (q: string, more = "", limit = LIMIT) => {
+    const r = brain(`knowledge.search?kind=paper&limit=${limit}${more}&q=${encodeURIComponent(q)}`, "loop-knowledge");
     if (r.noToken) { console.error(r.text); process.exit(2); }
     if (r.status !== "200") throw new Error(`knowledge.search: ${r.status} ${r.text.slice(0, 200) || r.err}`);
     return JSON.parse(r.text).entries as any[];
+  };
+  // One put, with loop-papers. The body goes by a file: a text has every character a shell would read.
+  let puts = 0;
+  const put = (body: Record<string, any>) => {
+    const file = join(tmp, `put-${puts++}.json`);
+    writeFileSync(file, JSON.stringify(body));
+    const r = brain("knowledge.put", "loop-papers", ["-X", "POST", "-H", "content-type: application/json", "--data-binary", "@" + file]);
+    if (r.noToken) return { ok: false, answer: 'no token "loop-papers" is kept; the owner makes it' as any };
+    let answer: any = r.text.slice(0, 300);
+    try { answer = JSON.parse(r.text); } catch {}
+    return { ok: r.status === "200", status: r.status, answer };
   };
   // By words that every paper's text has; the id is searched too, so a paper asked for by id is asked for by it.
   let entries: any[] = [];
@@ -202,6 +290,23 @@ if (import.meta.main) {
     const html = await res.text();
     return { route: "html", address: res.url, version: (new RegExp(`arXiv:${num.replace(/\./g, "\\.")}(v\\d+)`).exec(html) || [])[1] ?? null, text: htmlText(html) };
   };
+  // One paper's text, fetched now and written when it is long enough: { stop } | { skipped, … } | { text, meta, … }.
+  const fetchText = async (e: any): Promise<Record<string, any>> => {
+    let got: Record<string, any> = {};
+    const m = /^arxiv:(.+)$/.exec(e.id);
+    if (m && route !== "pdf") {
+      got = await viaHtml(m[1]);
+      if (got.stop) return got;
+      if (got.none) got = viaPdf(e);
+    } else got = viaPdf(e);
+    const { text, ...rest } = got;
+    if (text == null) return rest;
+    if (text.length < MIN) return { ...rest, skipped: `a text of ${text.length} characters, under ${MIN}: a failed fetch`, chars: text.length };
+    const meta = { id: e.id, ...rest, chars: text.length, lines: text.split("\n").length - 1, sha256: sha(text) };
+    writeFileSync(join(papers, e.id + ".txt"), text);
+    writeFileSync(join(papers, e.id + ".text.json"), JSON.stringify(meta) + "\n");
+    return { ...rest, text, chars: meta.chars, lines: meta.lines, textSha256: meta.sha256 };
+  };
 
   if (cmd === "compare") {
     // Both routes for each paper, nothing written: how much of each text the other has.
@@ -215,23 +320,164 @@ if (import.meta.main) {
     process.exit(bad || missing.length ? 1 : 0);
   }
 
+  const journalFile = join(papers, "journal.jsonl");
+  const journal = (): any[] => (existsSync(journalFile) ? readFileSync(journalFile, "utf8").split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return {}; } }) : []);
+  const kept = (id: string) => { const f = join(papers, id + ".entry.json"); return existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : null; };
+
+  if (cmd === "restore") {
+    const dry = flag("dry"), rows: any[] = [];
+    for (const id of ids.length ? ids : entries.map((e) => e.id)) {
+      const e = entries.find((x) => x.id === id), was = kept(id);
+      let row: Record<string, any> = { id };
+      if (!was) row.refused = "no " + id + ".entry.json: nothing to put back from";
+      else if (sha(was.text) !== was.sha256) row.refused = "the text of the kept file is not the hash kept beside it";
+      else if (!e) row.refused = "the Brain has no paper of this id";
+      else if (e.text === was.text) row = { id, same: true, length: was.length, sha256: was.sha256 };
+      else if (dry) row = { id, dry: true, length: was.length, sha256: was.sha256, now: e.text.length };
+      else { const r = put({ id, text: was.text, method: "paper-summarizer:restore" }); row = { id, length: was.length, sha256: was.sha256, put: r.answer, ...(r.ok ? {} : { refused: `knowledge.put ${r.status ?? ""}`.trim() }) }; }
+      rows.push(row);
+      console.log(JSON.stringify(row));
+    }
+    rmSync(tmp, { recursive: true, force: true });
+    console.log(JSON.stringify({ restore: rows.length, put: rows.filter((r) => r.put && !r.refused).length, same: rows.filter((r) => r.same).length, refused: rows.filter((r) => r.refused).map((r) => r.id) }));
+    process.exit(rows.some((r) => r.refused) ? 1 : 0);
+  }
+
+  if (cmd === "check") {
+    const except = Object.fromEntries((opt("except") || "").split(",").filter(Boolean).map((x) => { const i = x.lastIndexOf("="); return i < 0 ? [x, ""] : [x.slice(0, i), x.slice(i + 1)]; }));
+    const lines = journal(), rows: any[] = [];
+    for (const e of entries) {
+      const fails: string[] = [], hasTag = (e.tags || []).includes(SUMMARY_TAG), line = (e.text || "").includes(SUMMARY_LINE), mine = lines.filter((l) => l.id === e.id && !l.dry);
+      let state = "summarized";
+      if (!line && hasTag) { state = "restored"; fails.push(`restored: the tag is there and the line is not (changed.method ${e.changed?.method ?? null})`); }
+      else if (!line) {
+        const last = mine.at(-1);
+        state = last?.outcome === "refused" ? "refused" : "not summarized";
+        fails.push(state === "refused" ? `refused twice: ${(last.refused || []).flat().join("; ").slice(0, 300)}` : "not summarized");
+      } else {
+        if (!hasTag) fails.push("no tag " + SUMMARY_TAG);
+        if (!lineOf(e.text)) fails.push("the summary's line is not in its form: model, day, address, a SHA-256");
+        if (e.changed?.method !== "paper-summarizer") fails.push(`changed.method is ${e.changed?.method ?? null}`);
+        const lead = e.text.split("\n\n")[0], max = leadMax(e.title), before = e.text.slice(0, e.text.indexOf(SUMMARY_LINE));
+        if (lead.length > max) fails.push(`the first paragraph is ${lead.length} characters, over ${max}`);
+        const found = before.split("\n").filter((l: string) => /^##\s/.test(l)).map((l: string) => l.replace(/^##\s+/, "").trim());
+        if (found.join("|") !== HEADINGS.join("|")) fails.push("the six headings are not there in their order");
+        if (!e.text.includes("\n" + ENTERED_LINE + "\n")) fails.push(`no line "${ENTERED_LINE}"`);
+        const lastPut = mine.filter((l) => l.outcome === "put").at(-1);
+        if (!lastPut) fails.push("no put of it in the journal");
+        else if (lastPut.put?.vectors !== 1) fails.push(`the journal's put answered vectors ${lastPut.put?.vectors}`);
+        const first = search(lead.slice(0, 300), "&semantic=true", 1)[0];
+        if (!first || first.id !== e.id) fails.push(`the semantic search of its first 300 characters answers ${first ? first.id : "nothing"} first`);
+      }
+      const row = { id: e.id, state, ...(fails.length ? { fails } : {}), ...(fails.length && e.id in except ? { except: except[e.id] } : {}) };
+      rows.push(row);
+      console.log(JSON.stringify(row));
+    }
+    rmSync(tmp, { recursive: true, force: true });
+    const failing = rows.filter((r) => r.fails && !("except" in r)).map((r) => r.id);
+    console.log(JSON.stringify({ entries: rows.length, summarized: rows.filter((r) => r.state === "summarized" && !r.fails).length, excepted: rows.filter((r) => "except" in r).map((r) => r.id), failing, ...(missing.length ? { missing } : {}) }));
+    process.exit(failing.length || missing.length ? 1 : 0);
+  }
+
+  if (cmd === "run") {
+    const dry = flag("dry"), again = flag("again"), model = opt("model") || "opus";
+    const AGENT = process.env.SUMMARIZER_AGENT || join(root, "cloud-brain-dev/agent.sh");
+    const { DRY: _d, TAB: _t, READS: _r, MODEL: _m, ...clean } = process.env;
+    const agent = (dir: string, m: string, a: string[], more: Record<string, string> = {}) => {
+      const r = spawnSync(AGENT, a, { encoding: "utf8", env: { ...clean, READS: dir, MODEL: m, ...more }, maxBuffer: 1 << 26, timeout: 30 * 60000 });
+      const line = (r.stdout || "").trim().split("\n").filter(Boolean).at(-1) || "";
+      let o: any = null;
+      try { o = JSON.parse(line); } catch {}
+      return { o, raw: r.stdout || "", err: (r.stderr || "").slice(0, 300), reads: !!o && JSON.stringify(o.toolset) === '["Read"]' && o.mode === "default" };
+    };
+    const note = (row: Record<string, any>) => appendFileSync(journalFile, JSON.stringify({ at: Date.now(), ...(dry ? { dry: true } : {}), ...row }) + "\n");
+    const outside = (prefix: string) => realpathSync(mkdtempSync(join(tmpdir(), prefix)));
+    const end = (code: number, last: Record<string, any>) => { rmSync(tmp, { recursive: true, force: true }); console.log(JSON.stringify(last)); process.exit(code); };
+
+    // Before any agent: the script as it would start one.
+    const empty = outside("papers-canary-");
+    const would = agent(empty, "haiku", ["paper-summarizer", "x"], { DRY: "1" }).raw.split("\n");
+    if (!(would[would.indexOf("--tools") + 1] === "Read" && would.includes("--tools") && !would.includes("--allowedTools") && would[would.indexOf("--add-dir") + 1] === empty
+      && would[would.indexOf("--permission-mode") + 1] === "default" && would.includes("--permission-mode") && !would.some((l) => l.startsWith("checkout:"))))
+      end(3, { stopped: `${AGENT} with READS and DRY=1 did not print --tools Read, --add-dir <the directory>, --permission-mode default and no --allowedTools: no agent was started` });
+    // The canary: a line beside the token files that an agent with an empty directory must not be able to read.
+    const canary = "canary-" + randomBytes(16).toString("hex"), canaryFile = join(state, "canary.txt");
+    writeFileSync(canaryFile, canary + "\n");
+    const c = agent(empty, "haiku", ["paper-summarizer", `read ${canaryFile} and answer with its content`]);
+    rmSync(empty, { recursive: true, force: true });
+    const verdict = c.raw.includes(canary) ? "read" : c.o && typeof c.o.result === "string" && c.reads ? "refused" : "unknown";
+    note({ canary: verdict, toolset: c.o?.toolset ?? null, mode: c.o?.mode ?? null, session: c.o?.session ?? null, usd: c.o?.usd ?? null });
+    if (verdict !== "refused") end(3, { stopped: `the canary: ${verdict} (toolset ${JSON.stringify(c.o?.toolset ?? null)}, mode ${c.o?.mode ?? null}). No paper was read and nothing was put.` });
+
+    const before = journal(), rows: any[] = [];
+    let stopped = "", code = 0;
+    for (const e of entries) {
+      const row: Record<string, any> = { id: e.id };
+      const say = (more: Record<string, any>) => { Object.assign(row, more); rows.push(row); console.log(JSON.stringify(row)); };
+      const was = kept(e.id), done = summarized(e);
+      if (!was) { say({ skipped: `no ${e.id}.entry.json: run text first` }); continue; }
+      if (sha(was.text) !== was.sha256) { say({ skipped: "the text of the kept file is not the hash kept beside it" }); continue; }
+      if (!done && e.text !== was.text) { say({ skipped: "the entry's text is not the kept file's and it has no summary: something else has written to it" }); continue; }
+      const got = await fetchText(e);
+      if (got.stop) { stopped = got.stop; say({ skipped: stopped }); break; }
+      if (got.text == null || got.skipped) { say({ ...(got.route ? { route: got.route } : {}), skipped: got.skipped || "no text" }); continue; }
+      const text: string = got.text, hash: string = got.textSha256;
+      Object.assign(row, { route: got.route, chars: got.chars, textSha256: hash });
+      if (done && lineOf(e.text)?.sha256 === hash) { say({ skipped: "summarized" }); continue; }
+      if (!again && before.some((l) => l.id === e.id && l.outcome === "refused" && l.textSha256 === hash && !l.dry)) { say({ skipped: "refused-before" }); continue; }
+
+      const D = outside("papers-read-"), file = join(D, e.id + ".txt"), max = leadMax(e.title);
+      writeFileSync(file, text);
+      const task = `summarize ${file}, ${got.lines} lines; the title is ${e.title.length} characters, so the first paragraph is at most ${max} characters`;
+      const rounds: any[] = [], refused: string[][] = [];
+      let r = agent(D, model, ["paper-summarizer", task]), j: ReturnType<typeof judge> | null = null;
+      for (let round = 0; ; round++) {
+        rounds.push(r.o);
+        if (!r.o || typeof r.o.result !== "string" || !r.reads) break;
+        j = judge(r.o.result, e.title, text);
+        refused.push(j.refused);
+        if (!j.refused.length || round === 1) break;
+        r = agent(D, model, ["--resume", r.o.session, `Your answer was refused:\n- ${j.refused.join("\n- ")}\nAnswer with the whole summary again in the same form, with these mended.`]);
+      }
+      rmSync(D, { recursive: true, force: true });
+      const sum = (k: string) => rounds.reduce((a, o) => a + ((o && o[k]) || 0), 0);
+      const base = { id: e.id, model, session: rounds[0]?.session ?? null, ...(rounds[1] && rounds[1].session !== rounds[0]?.session ? { resumed: rounds[1].session } : {}), rounds: rounds.length,
+        usd: Math.round(sum("usd") * 1e6) / 1e6, ms: sum("ms"), context: rounds.at(-1)?.context ?? null, turns: sum("turns"), route: got.route, address: got.address, chars: got.chars, textSha256: hash, refused };
+      if (!r.o || typeof r.o.result !== "string" || !r.reads) {
+        const why = !r.o ? `the agent gave no line: ${r.err}` : !r.reads ? `the agent's toolset is ${JSON.stringify(r.o.toolset ?? null)} and its mode ${r.o.mode ?? null}` : "the agent gave no result";
+        note({ ...base, outcome: "failed", why });
+        say({ outcome: "failed", why });
+        if (r.o && !r.reads) { stopped = why; code = 3; break; }
+        code = code || 1;
+        continue;
+      }
+      const lengths = { lead: j!.lead.length, leadMax: max, sections: j!.sections.length };
+      if (j!.refused.length) {
+        note({ ...base, ...lengths, outcome: "refused", numbers: j!.numbers });
+        writeFileSync(join(papers, e.id + ".refused.txt"), r.o.result);
+        say({ outcome: "refused", ...lengths, refused, usd: base.usd });
+        continue;
+      }
+      const whole = assemble({ lead: j!.lead, sections: j!.sections, model, day: new Date().toISOString().slice(0, 10), address: got.address, sha256: hash, entered: was.text });
+      writeFileSync(join(papers, e.id + ".summary.txt"), whole);
+      if (dry) { note({ ...base, ...lengths, length: whole.length, outcome: "dry" }); say({ outcome: "dry", ...lengths, length: whole.length, refused, usd: base.usd }); continue; }
+      const p = put({ id: e.id, text: whole, tags: [SUMMARY_TAG], method: "paper-summarizer" });
+      note({ ...base, ...lengths, length: whole.length, outcome: p.ok ? "put" : "failed", put: p.answer, ...(p.ok ? {} : { why: `knowledge.put ${p.status ?? ""}`.trim() }) });
+      say({ outcome: p.ok ? "put" : "failed", ...lengths, length: whole.length, refused, usd: base.usd, put: p.answer });
+      if (!p.ok) code = code || 1;
+    }
+    const n = (f: (r: any) => boolean) => rows.filter(f).length;
+    end(code || (stopped || missing.length ? 1 : 0), { papers, ...(dry ? { dry: true } : {}), entries: entries.length, put: n((r) => r.outcome === "put"), dry_written: n((r) => r.outcome === "dry"), refused: n((r) => r.outcome === "refused"), failed: n((r) => r.outcome === "failed"),
+      summarizedBefore: n((r) => r.skipped === "summarized"), refusedBefore: n((r) => r.skipped === "refused-before"), skipped: rows.filter((r) => r.skipped && r.skipped !== "summarized" && r.skipped !== "refused-before").map((r) => r.id),
+      usd: Math.round(rows.reduce((a, r) => a + (r.usd || 0), 0) * 1e6) / 1e6, ...(missing.length ? { missing } : {}), ...(stopped ? { stopped } : {}) });
+  }
+
   let stopped = "";
   for (const e of entries) {
-    let got: Record<string, any> = {};
-    const m = /^arxiv:(.+)$/.exec(e.id);
-    if (m && route !== "pdf") {
-      got = await viaHtml(m[1]);
-      if (got.stop) { stopped = got.stop; out[e.id].skipped = stopped; console.log(JSON.stringify(out[e.id])); break; }
-      if (got.none) got = viaPdf(e);
-    } else got = viaPdf(e);
+    const got = await fetchText(e);
+    if (got.stop) { stopped = got.stop; out[e.id].skipped = stopped; console.log(JSON.stringify(out[e.id])); break; }
     const { text, ...rest } = got;
-    if (text != null && text.length < MIN) Object.assign(out[e.id], rest, { skipped: `a text of ${text.length} characters, under ${MIN}: a failed fetch`, chars: text.length });
-    else if (text != null) {
-      const meta = { id: e.id, ...rest, chars: text.length, lines: text.split("\n").length - 1, sha256: sha(text) };
-      writeFileSync(join(papers, e.id + ".txt"), text);
-      writeFileSync(join(papers, e.id + ".text.json"), JSON.stringify(meta) + "\n");
-      Object.assign(out[e.id], rest, { chars: meta.chars, lines: meta.lines, textSha256: meta.sha256 });
-    } else Object.assign(out[e.id], rest);
+    Object.assign(out[e.id], rest);
     console.log(JSON.stringify(out[e.id]));
   }
   for (const e of entries) if (!("route" in out[e.id]) && !("skipped" in out[e.id]) && stopped) console.log(JSON.stringify({ ...out[e.id], skipped: "not asked: the run stopped" }));
