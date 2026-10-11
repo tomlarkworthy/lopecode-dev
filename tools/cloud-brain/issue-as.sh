@@ -1,5 +1,5 @@
 #!/bin/bash
-# issue-as.sh <token name> <method[?query]> [json body]   calls issue.<method> on cb4 as a token.
+# issue-as.sh <token name> <method[?query]> [json body | @file]   calls issue.<method> on cb4 as a token.
 # Tokens are in .emitted/cb4-issues-tokens.json (a role's) and, read after it, .emitted/cb4-agent-tokens.json (one for each
 # agent or session, made by `brain.ts agent-token <role>`; gone from it after `agent-token revoke NAME`). Both are
 # git-ignored. The token is never printed. A name in neither is exit 2 and nothing is sent.
@@ -11,11 +11,22 @@
 # not sent (exit 3, nothing read or called): such a time was estimated, not read. The date nearest a time
 # says which day it is of; a time beside another day's date is not compared. ISSUE_AS_TIME_AHEAD=1 sends anyway.
 # tests/tools/issue-as-time-check.test.ts; records/tracker-write-names-a-time-not-read.md.
+# A third argument that begins with @ names a file whose bytes are the body, sent as they are: `issue-as.sh NAME comment @body.json`.
+# For a body with an apostrophe (it ends the quoting of an inline '{…}' in the caller's shell) or longer than a few lines
+# (one over ARG_MAX is "argument list too long"). The time check reads the file. A file that is absent or empty is exit 4
+# and nothing is sent. The path is relative to where the call is made; `@-` is a file named `-`, never stdin.
+# tests/tools/issue-as-body-file.test.ts; records/issue-as-body-from-a-file.md.
 D="$(cd "$(dirname "$0")" && pwd)"
-if [ -n "$3" ] && [ -z "$ISSUE_AS_TIME_AHEAD" ]; then python3 - "$3" <<'PY'
+F=""
+case "$3" in @*)
+  F="${3#@}"
+  if [ ! -f "$F" ] || [ ! -s "$F" ]; then echo "issue-as.sh: the body's file $F is absent or empty; nothing was sent" >&2; exit 4; fi
+  case "$F" in /*) ;; *) F="./$F";; esac;;
+esac
+if [ -n "$3" ] && [ -z "$ISSUE_AS_TIME_AHEAD" ]; then python3 - "$3" "$F" <<'PY'
 import json, os, re, sys
 from datetime import datetime, timezone
-try: sent = json.loads(sys.argv[1])
+try: sent = json.loads(open(sys.argv[2], encoding="utf-8").read() if sys.argv[2] else sys.argv[1])
 except ValueError: sys.exit(0)
 if not isinstance(sent, dict): sys.exit(0)
 # ISSUE_AS_NOW is the test's clock, a local time.
@@ -57,5 +68,6 @@ sys.exit(1)
 PY
 ) || exit 2
 U="https://cb4.endpointservices.workers.dev/xrpc/com.lopecode.brain.issue.$2"
-if [ -n "$3" ]; then curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" -H 'content-type: application/json' -X POST -d "$3" "$U"
+if [ -n "$F" ]; then curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" -H 'content-type: application/json' -X POST --data-binary "@$F" "$U"
+elif [ -n "$3" ]; then curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" -H 'content-type: application/json' -X POST -d "$3" "$U"
 else curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" "$U"; fi

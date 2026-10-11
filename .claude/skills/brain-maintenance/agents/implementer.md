@@ -359,6 +359,12 @@ Each is `ia <call> '<json>'`, and each takes a `key`. The shapes, from the track
 | `label` | `{ key, id, add, remove }`, lists of names |
 | `move` | `{ key, id, to, reason, refs }` |
 
+A body with an apostrophe, or of more than a few lines, is written to a file in the scratchpad (the
+Write tool) and sent with `@`: `ia comment @<scratchpad>/comment.json`. An apostrophe ends the quoting
+of an inline `'<json>'` and zsh sends nothing; a body over ARG_MAX (1048576 bytes here) is "argument
+list too long". The file's bytes are the body as they are, the time check reads them, and a file that
+is absent or empty is exit 4 with nothing sent (`records/issue-as-body-from-a-file.md`).
+
 A follow-up opened with this issue as `parent` holds this issue back from review until it is
 closed (the submit is refused 403, `issue.children.open == 0`; `brain-tests-fail-headless-unread`,
 2026-10-10). Open a follow-up with no `parent` and name this issue in its body.
