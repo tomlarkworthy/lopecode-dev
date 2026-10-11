@@ -85,7 +85,7 @@ Each count is the output of the command beside it, run in the worktree after the
 |---|---|
 | `bun test ./tests/tools/verify-run.test.ts` | 18 pass, 0 fail |
 | `git show a3292e24:tools/cloud-brain/verify-run.ts > tools/cloud-brain/verify-run-was.ts && VERIFY_RUN_TS=$PWD/tools/cloud-brain/verify-run-was.ts bun test ./tests/tools/verify-run.test.ts; rm tools/cloud-brain/verify-run-was.ts` (the tool as it was) | 15 pass, 3 fail: the three tests added here |
-| `bun test ./tests/tools` | 184 pass, 0 fail, 21 files |
+| `bun test ./tests/tools`, after the rebase onto `main` | 192 pass, 0 fail, 22 files |
 | `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-issues --shell <the build of 39fab5cc above> --times 20`, 16:22:15 to 16:22:43 UTC | `passed` 20, `failed` 0, `none` 0, `from` `["document"]`, `tests` 23 in each run, `otherTestsRan` 9, median `wall` 1297 ms, exit 0. Before the change: 0 of 5, `wall` 27486 ms. |
 | the same for `brain-x-page` with the build that adds one test to `cloud-brain` | `passed` 20 of 20, `from` `["document"]`, exit 0. `tests` was not read from these 20; one run made before them gave 18 |
 | the same for `brain-x-issues` with a build that adds `test_issues_probe_throws = { throw new Error("probe throws") }`, `--times 3` | `failed` 3 of 3, `everyTime` names that test with `probe throws`, exit 2 |
