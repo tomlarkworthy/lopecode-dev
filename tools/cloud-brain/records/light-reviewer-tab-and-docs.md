@@ -98,7 +98,7 @@ and the writer of this issue put the brief. Left with the owner.
 
 ## Not done, not tried
 
-- No review has yet run with no tab; the review of this issue is the first.
+- Three reviews have run with no tab, the three of this issue (91,087, 63,786 and 58,757 at their ends; $3.20, $2.37, $1.45). None was of a change that needs one.
 - `needed a tab` has not been reported by any reviewer, so the second start was not exercised.
 - The system prompt and the tool list of the light agent are as they were (the owner: skip).
 - The reviewer still reads the issue with every event (39 KB for an issue in its third round).
