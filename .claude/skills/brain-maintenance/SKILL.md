@@ -94,6 +94,20 @@ Two files beside it, neither of them needed to resume:
 5. **When an agent reports**, append the report to the journal, then read the issue again. The
    tracker says what happened, not the report: an implementer that says "submitted" with the
    issue still `in-progress` did not submit.
+   Then put what the run cost on the issue, so that cost per issue is read from the tracker and
+   not parsed from the journal (the owner, 2026-10-11): one comment, with the token you triage
+   with, whose body is the word `cost` and one line of JSON,
+   `cost {"role":"implementer","round":2,"tokens":177525,"seconds":723,"tools":37,"outcome":"in-review","event":205}`,
+   under the key `cost-<id>-<role>-<round>`, which a second post of the same run does not repeat.
+   `role` is `implementer`, `reviewer`, `spec-writer`, `digest`, `overseer` or `triage`; `round`
+   counts the runs of that role on that issue from 1; `tokens`, `seconds` and `tools` are the
+   Agent result's numbers as integers, a missing one left out and none estimated; `outcome` is
+   `in-review`, `pass`, `changes`, `stopped` or `no-submit`; `event` is the submit or the review
+   the run made, when it made one. A run that was stopped or died gets its comment too. No time
+   of day goes in the body. An overseer's run is on no issue: its line goes in `_oversight.md` in
+   the same form, and yours for the pass, with the role `orchestrator`, in `_orchestrator.md`
+   when the session shows a count. The journal is written as before. The runs before this
+   (100 on 37 issues, read from the journal's headings) carry `"backfilled":true`.
 6. **Oversight.** Spawn the overseer, beside the others, when either 3 issues have
    reached `done`, `rejected` or `needs-owner` since the last entry of `oversight.md`, or one
    issue hit the rework cap. One overseer at a time; it commits under `land.lock`.
