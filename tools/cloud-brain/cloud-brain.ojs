@@ -29,21 +29,47 @@ signIn = {
 // %%
 md`## Health`
 // %%
+// The spans a panel may read. Logs offers the same five.
+spanOptions = new Map([["15 minutes", 15], ["1 hour", 60], ["6 hours", 360], ["24 hours", 1440], ["7 days", 10080]])
+// %%
+// How far back the panels of Health read, in minutes. A change asks for the calls again, once.
+viewof span = Inputs.select(spanOptions, { label: "Last", value: 60 })
+// %%
+// A press asks for the calls again, over the same span ending now. Nothing asks on a timer.
+viewof asked = Inputs.button("Refresh")
+// %%
 healthView = {
   // A visitor is shown no chart, and no made-up one.
-  if (!calls) return htl.html`<i style="color:var(--theme-foreground-muted)">Sign in as the owner to see the calls of the last hour.</i>`;
+  if (!calls) return htl.html`<i style="color:var(--theme-foreground-muted)">Sign in as the owner to see the calls of the last ${spanName(span)}.</i>`;
   const data = calls;
   return dashboard([
     { title: "Calls", body: requestsChart(data, { width: width - 40 }), wide: true },
     { title: "Health", body: healthStrip(data, { width: width - 40 }), wide: true },
     { title: "By method", body: methodTable(data, { link: (worker, label) => ((row) => (row && row.module ? moduleLink(row.module, label) : null))([...((brainModules && brainModules.modules) || []), ...(services || [])].find((r) => r.worker === worker)) }), wide: true }
-  ], { note: data.error ? "logs.query failed: " + data.error : `The last hour, from the core's log lines: ${d3.sum(data.series, (d) => d.n)} calls in ${data.groups} groups.` });
+  ], { note: callsNote(data) });
 }
 // %%
-// The span the panels of Health read: the hour before the page loaded. The one place the clock is read.
+// The range the panels of Health read: the chosen span, ending when it was chosen or "Refresh" was last pressed.
+// The one place the clock is read.
 timeRange = {
-  const until = Date.now();
-  return { since: until - 3600000, until };
+  asked;
+  return rangeOf(span, Date.now());
+}
+// %%
+// The range of a span of minutes that ends at now.
+rangeOf = (minutes, now) => ({ since: now - minutes * 60000, until: now })
+// %%
+// A span of minutes in words: the name the select gives it, "hour" for one hour, else the minutes.
+spanName = (minutes) => (([name]) => name.replace(/^1 /, ""))([...spanOptions].find(([, m]) => m === minutes) || [minutes + " minutes"])
+// %%
+// The line under the panels: the span, the step and the groups of the answer that is drawn, read from the answer
+// itself. Cloudflare answers at most the query's limit of groups (500) and does not say when it left some out, so
+// an answer with that many says it may be short. Not measured on cb4 for the longer spans: logs.query is the owner's.
+callsNote = (data) => {
+  if (data.error) return "logs.query failed: " + data.error;
+  const each = (ms) => (ms % 3600000 === 0 ? [ms / 3600000, "hour"] : ms % 60000 === 0 ? [ms / 60000, "minute"] : [ms / 1000, "s"]);
+  const [count, unit] = each(data.step), limit = callsQuery(data).parameters.limit;
+  return `The last ${spanName(Math.round((data.until - data.since) / 60000))}, from the core's log lines: ${data.series.reduce((sum, d) => sum + d.n, 0)} calls in ${data.groups} groups, one bar each ${count} ${unit === "s" || count === 1 ? unit : unit + "s"}.${data.groups >= limit ? ` ${limit} groups is the limit of one answer: some calls may be missing.` : ""}`;
 }
 // %%
 // The calls of a range, as callsSeries answers them. No client: null, and nothing is sent. A query that fails
@@ -201,6 +227,27 @@ test_calls_are_read_once_for_a_range_and_not_without_a_client = {
   // A query that fails answers the range, no rows and the error.
   expect(await callsRead({ client: { procedure: async () => { throw new Error("AuthRequired"); } }, range })).toEqual({ ...range, step: 60000, series: [], error: "AuthRequired" });
   return "1 logs.query for a range, 0 with no client";
+}
+// %%
+test_the_note_names_the_span_and_says_when_the_answer_is_at_the_limit = {
+  const hour = { since: Date.UTC(2026, 9, 9, 7, 0), until: Date.UTC(2026, 9, 9, 8, 0), step: 60000, series: [{ n: 3 }, { n: 1 }] };
+  expect([...spanOptions]).toEqual([["15 minutes", 15], ["1 hour", 60], ["6 hours", 360], ["24 hours", 1440], ["7 days", 10080]]);
+  expect([15, 60, 360, 1440, 10080, 90].map(spanName)).toEqual(["15 minutes", "hour", "6 hours", "24 hours", "7 days", "90 minutes"]);
+  // Span, step and groups, read from the answer and not from the control: the note is of what was drawn.
+  expect(callsNote({ ...hour, groups: 2 })).toBe("The last hour, from the core's log lines: 4 calls in 2 groups, one bar each 1 minute.");
+  const week = { since: hour.until - 10080 * 60000, until: hour.until, step: 3600000, series: [], groups: 499 };
+  expect(callsNote(week)).toBe("The last 7 days, from the core's log lines: 0 calls in 499 groups, one bar each 1 hour.");
+  // The limit is the query's own, 500: an answer with that many groups may have been cut.
+  const limit = callsQuery(week).parameters.limit;
+  expect(limit).toBe(500);
+  expect(callsNote({ ...week, groups: limit })).toBe("The last 7 days, from the core's log lines: 0 calls in 500 groups, one bar each 1 hour. 500 groups is the limit of one answer: some calls may be missing.");
+  expect(callsNote({ ...week, groups: 2 })).not.toContain("limit");
+  expect(callsNote({ ...week, step: 90000, groups: 2 })).toContain("one bar each 90 s.");
+  // A query that failed: the error, as before.
+  expect(callsNote({ ...hour, series: [], error: "AuthRequired" })).toBe("logs.query failed: AuthRequired");
+  // What a range is for a span, with the clock given: one instant, both ends from it.
+  expect(rangeOf(360, hour.until)).toEqual({ since: hour.until - 6 * 3600000, until: hour.until });
+  return "the note for 2, 499 and 500 groups";
 }
 // %%
 // One press: a sign-in link for a program with no browser (Claude Code on the web), on the clipboard, inside a few
