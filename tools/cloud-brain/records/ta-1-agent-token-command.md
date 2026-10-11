@@ -176,3 +176,124 @@ here: it is run after the landing, and this file is landed with the change.
 
 Not tried: the create's own revoke is not read ("it is revoked" is printed whatever it answered,
 review 1456); nothing on cb4.
+
+## Part two, 2026-10-11: four children made on cb4, and the two R6 checks (issue `ta-1b-agent-token-on-cb4`)
+
+The owner's `A` is event 1942; the parent `loop-agents` was made by the orchestrating session on
+his word (comment 1954). Everything below was run 2026-10-11 from 20:51:46 to 20:52:41 CEST
+(`date` before the first command and after the last), with `issue-as.sh` of the main checkout and
+`brain.ts` of the worktree on the main checkout's state (`BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted`).
+
+Four children were made and all four are revoked. The writes are the ones the spec's R6 rows
+list, made with children of `loop-agents` and no role token; the issue's own moves and comments
+were made with `issues-implementer-2`.
+
+### One child: made, read with, listed, revoked
+
+```
+$ brain.ts agent-token impl ta-1b-agent-token-on-cb4
+made "impl-4f0826" (impl; ta-1b-agent-token-on-cb4) under loop-agents for issue.*, until 2026-10-13T18:51:46.105Z; …   (stderr)
+impl-4f0826                                                                                                            (stdout, exit 0)
+$ stat -f '%Sp' tools/cloud-brain/.emitted/cb4-agent-tokens.json
+-rw-------
+$ issue-as.sh impl-4f0826 "get?id=ta-1b-agent-token-on-cb4"      [200]   the issue, in-progress, 11 events
+$ issue-as.sh impl-4f0826 policy                                 [200]   policy seq 483
+$ brain.ts agent-token list
+{"name":"impl-4f0826","note":"impl; ta-1b-agent-token-on-cb4","made":"2026-10-11T18:51:46.272Z","until":"2026-10-13T18:51:46.105Z","kept":true}
+$ brain.ts agent-token revoke impl-4f0826
+401: "impl-4f0826" is revoked and its value is refused, on read 1 of issue.policy, 90 ms after the revoke. Its entry is gone: issue-as.sh impl-4f0826 is exit 2     (exit 0)
+$ issue-as.sh impl-4f0826 "get?id=ta-1b-agent-token-on-cb4"
+issue-as.sh: no token named impl-4f0826 is kept; nothing was sent                                                    (exit 2)
+$ brain.ts agent-token list                                      (no line, exit 0)
+```
+
+Against part one's "Not tried", and the stand-in of `tests/tools/agent-token.test.ts`:
+
+- `issue.policy` answers 200 to a token for `issue.*`. The stand-in said so; cb4 does.
+- A revoked child is 401, not 403, **on the first read, in all four revokes**: 90, 130, 74 and 67 ms
+  after the revoke (the tool's own line). For the last three the value had answered a read of
+  `issue.policy` with 200 in the command before the revoke, so a value used a moment before was
+  not answered once more. Part one repeated the read for 12 s because of the kernel's sentence
+  "ends within 5 s of `token.revoke`"; the repeat was never needed in these four. Four revokes of
+  one evening do not show it is never needed, and it stays.
+- The stand-in differs from cb4 in nothing that was seen. Its body for a 401 or a 403 was not compared with cb4's.
+
+**The revoke's line now says on which read the 401 came and how long after the revoke**, because
+the issue asks for the number and the tool printed none. Fails before, on `brain.ts` as of `49fa9983`:
+
+```
+$ bun test ./tests/tools/agent-token.test.ts
+(fail) agent-token revoke NAME: delegation.revoke by the parent, one read with the child's secret answers 401, …
+(fail) agent-token revoke: a secret the kernel still remembers is read again until it answers 401
+ 18 pass
+ 2 fail
+$ bun test ./tests/tools/agent-token.test.ts      # with the change
+ 20 pass
+ 0 fail
+ 155 expect() calls
+```
+
+The time is from before the first read to after the last, so it has the sleeps between reads in
+it (the test holds 2000 ms or more for a 401 on read 3).
+
+### The two R6 checks
+
+Children `A` = `impl-b9cc6a`, `B` = `impl-acb1ec`, `O` = `orch-1c2ddc`. Every submit carried a
+`commit` ref, so a 403 is the guard on the actor and not `size(event.refs) > 0`. The script's
+output, one line a call (status, then the event when one was written):
+
+```
+r6-check-task-ta-1b (kind task)
+open                       O  200 seq 1980 opened
+start by A                 A  200 seq 1981 start open->in-progress        via delegation:8b44de136ba9
+submit by B                B  403 {"error":"Refused","message":"the guard of submit refuses"}
+back by O                  O  200 seq 1982 back in-progress->ready        via delegation:6898624f5e78
+start by B                 B  200 seq 1983 start ready->in-progress       via delegation:d00faaa6d984
+submit by A                A  403 {"error":"Refused","message":"the guard of submit refuses"}
+submit by B                B  200 seq 1984 submit in-progress->in-review
+review changes by O        O  200 seq 1985 reviewed
+rework by O                O  200 seq 1986 rework in-review->in-progress
+close by O                 O  200 seq 1987 close in-progress->closed
+
+r6-check-project-ta-1b (kind project)
+open                       O  200 seq 1988 opened
+spec by A                  A  200 seq 1989 spec open->spec
+submit-spec by B           B  403 {"error":"Refused","message":"the guard of submit-spec refuses"}
+back by O                  O  200 seq 1990 back spec->open
+spec by B                  B  200 seq 1991 spec open->spec
+submit-spec by A           A  403 {"error":"Refused","message":"the guard of submit-spec refuses"}
+submit-spec by B           B  200 seq 1992 submit-spec spec->spec-review
+review changes by O        O  200 seq 1993 reviewed
+respec by O                O  200 seq 1994 respec spec-review->spec
+close by O                 O  200 seq 1995 close spec->closed
+```
+
+403, 403, 200 on each, as the spec's rows say. Read back with `issue-as.sh issues-implementer-2 "get?id=…"`:
+
+```
+r6-check-task-ta-1b     closed  8 events  1980..1987  holders secret:impl-acb1ec, secret:impl-b9cc6a, secret:orch-1c2ddc
+r6-check-project-ta-1b  closed  8 events  1988..1995  the same three
+```
+
+Each event's `by.holder` is `secret:<the child's name>` and each child has a `via` of its own:
+the first events on cb4 with the shape R1 asks for. `sync?after=1971` (24 events, to 1995) has 0
+with `secret:loop-agents`: the parent wrote nothing. `issue.verify?guards=true` after the last
+event: `{"ok":true,"seq":1997,…,"checked":1997,"guards":true}`.
+
+Then each of the three answered `policy` with 200, was revoked (401 on read 1, exit 0), and
+`issue-as.sh <name> policy` was exit 2. `agent-token list` printed no line and
+`cb4-agent-tokens.json` has no name in it.
+
+For task 6: these 16 events have holders `impl-…` and `orch-…` that are the `token` of no `cost`
+line. They are this check's and not an agent's run; R1's third check will name them.
+
+### Not tried
+
+- **That `token revoke loop-agents` ends the parent, and with it a child.** It is a write with the
+  owner's session, and the parent is the one tasks 3, 5 and 6 need. Still as the stand-in has it.
+- A child after its `until` (48 h), and the core dropping a maker's ended tokens.
+- A read of a revoked child from another place than this machine, or more than 130 ms after the revoke.
+- `agent-token revoke` of a name that is kept and no longer a row, on cb4.
+- Two `agent-token` at once on cb4 (the three of the R6 check were made one after another).
+- The `pass` and `to-approval` moves with a child: the checks end at `close`.
+- Whether the orchestrator's poll saw either check issue while it was open (8 s for both, `date`).

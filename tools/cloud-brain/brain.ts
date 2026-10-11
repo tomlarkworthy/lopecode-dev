@@ -538,14 +538,17 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
     if (!value) { console.log(`revoked "${name}". Its value is not kept here, so no read was sent with it`); process.exit(0); }
     // One read of the tracker with the child's own value. The kernel and the core each remember a row for 5 s, so
     // a value used a moment ago can still answer: it is read again, a second apart, for 12 s.
-    let status = 0;
-    for (const end = Date.now() + 12000; ; await Bun.sleep(1000)) {
+    let status = 0, reads = 0;
+    const from = Date.now();
+    for (const end = from + 12000; ; await Bun.sleep(1000)) {
       status = (await callAs(value, "issue.policy")).status;
+      reads++;
       if (status === 401 || Date.now() >= end) break;
     }
-    if (status !== 401) stop(`${status}: "${name}" still answers a read of issue.policy after its revoke. Its entry is kept`);
+    const took = Date.now() - from;
+    if (status !== 401) stop(`${status}: "${name}" still answers a read of issue.policy after its revoke, on read ${reads}, ${took} ms after. Its entry is kept`);
     try { await changeAgentTokens((t) => { delete t[name]; }); } catch (e: any) { stop(`"${name}" is revoked and its value is refused (401), and its entry could not be removed (${e.message}). When that is mended: agent-token revoke ${name}`); }
-    console.log(`401: "${name}" is revoked and its value is refused. Its entry is gone: issue-as.sh ${name} is exit 2`);
+    console.log(`401: "${name}" is revoked and its value is refused, on read ${reads} of issue.policy, ${took} ms after the revoke${row ? "" : " (none was sent: it was no row)"}. Its entry is gone: issue-as.sh ${name} is exit 2`);
   } else {
     const role = args[0], name = `${role}-${hex(3)}`, note = [role, args.slice(1).join(" ")].filter(Boolean).join("; ").slice(0, 300);
     const until = Date.now() + HOURS * 3600e3;

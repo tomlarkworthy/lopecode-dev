@@ -283,7 +283,7 @@ test("agent-token revoke NAME: delegation.revoke by the parent, one read with th
   calls = [];
   const gone = await r.brain("agent-token", "revoke", name);
   expect(gone.code).toBe(0);
-  expect(gone.out).toContain("401");
+  expect(gone.out).toMatch(/^401: .* on read 1 of issue\.policy, \d+ ms after the revoke\. /);
   expect(sent("delegation.revoke")).toMatchObject([{ bearer: parent.secret, body: { id } }]);
   expect(sent("issue.policy")).toMatchObject([{ bearer: secret, method: "GET" }]);
   expect(Object.keys(r.kept("cb4-agent-tokens.json"))).toEqual([other]);
@@ -305,6 +305,9 @@ test("agent-token revoke: a secret the kernel still remembers is read again unti
   const gone = await r.brain("agent-token", "revoke", name);
   expect(gone.code).toBe(0);
   expect(sent("issue.policy").length).toBe(3);
+  // The line says on which read the 401 came and how long after the revoke: what a record of a run on a Brain quotes.
+  expect(gone.out).toMatch(/^401: .* on read 3 of issue\.policy, \d+ ms after the revoke\. /);
+  expect(Number(gone.out.match(/, (\d+) ms after/)![1])).toBeGreaterThanOrEqual(2000);
   expect(r.kept("cb4-agent-tokens.json")).toEqual({});
 }, 20000);
 
