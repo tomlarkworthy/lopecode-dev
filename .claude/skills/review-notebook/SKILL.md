@@ -126,3 +126,6 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   and `records/snapshot-opens-digest-issue.md`, one agent for the three: FIX, FIX, CLEAR. 9 findings (6 confirmed,
   3 plausible), all taken. 169k subagent tokens, 6m39s. What the author had not seen: the brief's check counted
   items on a `file://` page that cannot read them, and its publish command named a file the landing deletes.
+- 2026-10-11 `.claude/skills/brain-maintenance/rules.md`, changes since `60d2b63d~1` (a Bluesky DM to the owner
+  is allowed): FIX, 4 findings (2 confirmed, 2 plausible), all taken. 94k subagent tokens, 3m05s. The send
+  command failed from a writer's worktree (no token file there), and the loop has no read of a member's DID.
