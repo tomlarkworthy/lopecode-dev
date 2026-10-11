@@ -958,7 +958,8 @@ emit = async (service) => {
   // The reference a Worker serves: the module's prose cells as text, each hole filled with the value its cell has
   // here. Made at the emit, in the tab and in the deployer's QuickJS alike, because a Worker holds the cells'
   // source and does not run them: served from source, a hole read as ${gitDefaults.seconds} (40 of them in four
-  // Workers on 2026-10-10). A cell whose hole cannot be computed here keeps its source text.
+  // Workers on 2026-10-10). A hole that cannot be computed here refuses the emit: kept as source text it would
+  // give the tab and the deployer two hashes for one module.
   if (source) {
     const filled = (strings, ...values) => strings.reduce((a, t, i) => a + t + (i < values.length ? String(values[i]) : ""), "");
     const prose = [];
@@ -971,7 +972,7 @@ emit = async (service) => {
       prose.push(
         await Promise.all(names.map((n) => (n === "md" ? filled : v._module.value(n))))
           .then((inputs) => String(v._definition(...inputs)))
-          .catch(() => written[1].replace(/\\([`\\$])/g, "$1"))
+          .catch((e) => refuse(v._name || "(a prose cell)", "is prose with a value that cannot be computed at the emit: " + (e && e.message)))
       );
     }
     source.reference = prose.join("\n\n");
@@ -2087,6 +2088,11 @@ test_a_worker_serves_its_manifest_and_its_source = {
   expect(said).toContain("compatibility flags " + wrapperFlags.map((f) => "`" + f + "`").join(", ") + ".");
   expect(said).not.toContain("${wrapperFlags");
   expect(body.reference).toBeUndefined();
+  // Every prose cell of the source is in it, in the source's order: only the hole differs.
+  const hole = '${wrapperFlags.map((f) => "`" + f + "`").join(", ")}';
+  const asWritten = [...body.text.matchAll(/\{\s*return \(\s*md`((?:[^`\\]|\\[\s\S])*)`/g)].map((m) => m[1].replace(/\\([`\\$])/g, "$1")).join("\n\n");
+  expect(asWritten).toContain(hole);
+  expect(said).toBe(asWritten.replace(hole, wrapperFlags.map((f) => "`" + f + "`").join(", ")));
   // A question about another Worker is not this Worker's to answer.
   expect((await sim.fetch("https://cb.sub.workers.dev/xrpc/com.lopecode.brain.getSource?worker=brain-x-other")).status).not.toBe(200);
   // A recipe does not answer the internet at all; over a binding it does.
