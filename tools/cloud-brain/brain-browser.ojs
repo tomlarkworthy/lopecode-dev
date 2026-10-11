@@ -94,9 +94,9 @@ bought 20 s, +30 s by extend while connected -> the socket closed 13.3 s after t
 // %%
 md`## Many browsers, each with tabs
 
-A browser is the pair of its owner and its name. The owner is the caller that the core names (\`x-brain-caller\`): \`owner\`, \`token:NAME\`, a member's DID, or \`worker:brain-x-NAME\`. The service does not read an owner from a parameter, thus a caller cannot name the browser of a different caller. A member's Worker calls as its author, so the two share browsers.
+A browser is the pair of its owner and its name. The owner is read from what the core sends of the caller (\`x-brain-caller\`, \`x-brain-via\`, \`x-brain-tab\`): \`owner\`, a member's DID or \`worker:brain-x-NAME\`, and \`via:<caller>\` or \`d:<id>\` for a call that is not from the caller's own tab (the next paragraph). The core names no token as a caller since 2026-10-10: a call with a token is its maker's, under the token's delegation. The service does not read an owner from a parameter, thus a caller cannot name the browser of a different caller. A member's Worker calls as its author, so the two share browsers.
 
-How the caller arrived also counts (\`x-brain-via\`). A call with \`turn:<entry>\`, \`jwt\` or \`portal:<id>\` is not the person's own tab, and its owner is \`via:<caller>\`: rows under \`b/via:<caller>/\`. All turns, PDS calls and portals of one caller share that owner. A call under a delegation (\`delegation:<id>\`) has the owner \`d:<id>\`, apart from the person's and from every other delegation's. A person's own session, a token and a Worker keep the caller's name. The reason is that a page in a person's browser can hold that person's session: \`brain.ts page up\` puts the owner's in the browser \`brain\`, and a turn of the owner has the caller \`owner\`. Until 2026-10-09 the turn reached that page with \`eval\`. \`maxPerOwner\` counts the two owners apart, so a turn cannot use up the browsers of the session. \`all\` lists both and \`end\` closes either; \`liveView\` reaches the session's own only. Each browser is one Browser Run session: its own memory, its own \`paidUntil\`, its own end.
+How the caller arrived also counts (\`x-brain-via\`). A call with \`turn:<entry>\`, \`jwt\` or \`portal:<id>\` is not the person's own tab, and its owner is \`via:<caller>\`: rows under \`b/via:<caller>/\`. All turns, PDS calls and portals of one caller share that owner. A call under a delegation (\`delegation:<id>\`) has the owner \`d:<id>\`, apart from the person's and from every other delegation's. A person's own session and a Worker keep the caller's name. So does a call under a delegation that the core marks as the maker's own tab (\`x-brain-tab: 1\`): its owner is the maker, and it has the maker's own browsers. A call with a token is a call under the token's delegation, so a token's browsers are under \`d:<id>\`, whether the owner or a member made it, but for a call with that mark. The core sets the mark for a token whose delegation has the cap \`session\` and whose scope names the method (\`brain-core.ojs\`, \`asSecret\`). The token's name (\`x-brain-holder: secret:NAME\`) is not read here. The reason is that a page in a person's browser can hold that person's session: \`brain.ts page up\` puts the owner's in the browser \`brain\`, and a turn of the owner has the caller \`owner\`. Until 2026-10-09 the turn reached that page with \`eval\`. \`maxPerOwner\` counts the two owners apart, so a turn cannot use up the browsers of the session. \`all\` lists both and \`end\` closes either; \`liveView\` reaches the session's own only. Each browser is one Browser Run session: its own memory, its own \`paidUntil\`, its own end.
 
 Who owns and who pays are different. A Worker that calls in a chain the owner started owns the browser, and the core charges the owner, who is the origin of the chain. Until 2026-10-08 19:38 CEST the service had one browser for all callers; it changed because "each browser will be owned by another process, so this one thing has to serve the whole cluster" (Tom, 2026-10-08).
 
@@ -128,7 +128,7 @@ The rule of the first twelve methods is \`caller.trusted || caller.kind in ["wor
 
 Addresses. \`open\`, \`goto\` and \`run\` refuse an address that is not \`http:\` or \`https:\`, \`localhost\`, a name that ends in \`.localhost\`, \`.internal\` or \`.local\`, and a private or link-local IP address. Only the address in the call is read. A redirect, and what the page loads by itself, are not checked. \`browser.cdp\` checks no address: its caller sends the browser's own commands and can go to any address, \`file:\`, \`chrome:\` and a private IP address included. The caller owns that browser. The browser runs in Cloudflare's network and not in the Brain's.
 
-A caller that can run JavaScript in a signed-in page can do what the page can do. \`brain.ts page up\` signs a page in with the owner's session, in a browser that the owner's own session owns. A turn, a PDS call and a portal of the owner do not reach it (see **Many browsers, each with tabs**). A token and a Worker have browsers of their own (\`b/token:NAME/\`, \`b/worker:NAME/\`) and do not reach it either.
+A caller that can run JavaScript in a signed-in page can do what the page can do. \`brain.ts page up\` signs a page in with the owner's session, in a browser that the owner's own session owns. A turn, a PDS call and a portal of the owner do not reach it (see **Many browsers, each with tabs**). A Worker has browsers of its own (\`b/worker:NAME/\`) and does not reach it either. Nor does a token, whose browsers are its delegation's (\`b/d:<id>/\`), with one exception: a call with a token that the core marks as the owner's own tab (\`x-brain-tab: 1\`, for a delegation with the cap \`session\`) is in the owner's browsers and reaches that page.
 
 The assistant has no tool for this service. A page reads text from any address, and that text would come into the assistant's turn.`
 // %%
@@ -1728,6 +1728,34 @@ test_browser_a_turn_does_not_reach_the_browsers_of_its_callers_own_session = {
   await heldAs.post("extend", {}, { seconds: 60 });
   expect([rig.keys("browser/", "d:0a1b/default").length, (await heldAs.get("status")).data.owner]).toEqual([1, "d:0a1b"]);
   return "turn, jwt and portal: browsers of via:owner; the session's page was not reached";
+}
+// %%
+test_browser_a_tokens_browsers_are_its_delegations_and_the_reference_says_so = {
+  const A = "https://a.example/", X = "https://brain.internal/xrpc/com.lopecode.brain.";
+  const rig = await browserRig({ sites: { [A]: { title: "A", text: "alpha" } } });
+  // The owner's own tab has a page, as brain.ts page up leaves one.
+  await rig.as("owner", "owner", "session").post("open", { name: "brain", url: A });
+  // A token's call as the core sends it: by its maker, under the token's delegation, held by the secret's name.
+  const token = async (caller, tab, id) => {
+    const headers = { "x-brain-caller": caller, "x-brain-origin": caller, "x-brain-via": "delegation:" + id, "x-brain-holder": "secret:laptop", "x-brain-tab": tab };
+    const get = async (m) => (await rig.sim.fetch(X + "browser." + m, { headers })).json();
+    return [(await get("status")).owner, (await get("list")).pages.map((p) => p.name)];
+  };
+  // Under the delegation, whoever made the token, and the page of the owner's tab is not in it.
+  expect([await token("owner", "0", "0a1b"), await token("did:plc:ada", "0", "0c2d")]).toEqual([["d:0a1b", []], ["d:0c2d", []]]);
+  // A call the core marks as the maker's own tab keeps the maker's name: the owner's page is reached.
+  expect([await token("owner", "1", "0a1b"), await token("did:plc:ada", "1", "0c2d")]).toEqual([["owner", ["brain"]], ["did:plc:ada", []]]);
+  const got = await rig.sim.fetch(X + "getSource?part=reference", { headers: { "x-brain-caller": "anonymous" } });
+  expect(got.status).toBe(200);
+  const text = await got.text(), line = (start) => text.split("\n").filter((l) => l.startsWith(start));
+  const [pair, arrived, signedIn] = [line("A browser is the pair"), line("How the caller arrived"), line("A caller that can run JavaScript")];
+  expect([pair.length, arrived.length, signedIn.length]).toEqual([1, 1, 1]);
+  // What the reference may not name: a caller the core does not send, and rows no call writes.
+  for (const wrong of ["token:NAME", "token:<name>", "a token and a Worker keep"]) expect(text).not.toContain(wrong);
+  expect(pair[0]).toContain("d:<id>");
+  for (const said of ["x-brain-tab", "a token"]) expect(arrived[0]).toContain(said);
+  for (const said of ["b/d:<id>/", "x-brain-tab"]) expect(signedIn[0]).toContain(said);
+  return "a token's browsers: d:<id> for the owner's and a member's; the maker's own with x-brain-tab 1; 3 lines of the reference";
 }
 // %%
 test_browser_cdp_is_the_socket_of_the_callers_own_browser = {
