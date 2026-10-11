@@ -437,11 +437,11 @@ viewof dashboardName = dashboardPick({
   }
 })
 // %%
-// The dashboard of a name, as dashboard.get answers it: { name, title, panels }. No client or no name: null, and
-// nothing is sent. A read that fails answers the name, no panels and the error.
+// The dashboard of a name, as dashboard.get answers it: { name, title, panels }, with no panels for an answer
+// that has none. No client or no name: null, and nothing is sent. A read that fails answers the name, no panels and the error.
 dashboardGet = async ({ client, name }) => {
   if (!client || !name) return null;
-  return client.query("dashboard.get", { name }).then((r) => r.dashboard, (e) => ({ name, title: name, panels: [], error: String((e && e.message) || e) }));
+  return client.query("dashboard.get", { name }).then((r) => ({ name, title: name, ...r.dashboard, panels: (r.dashboard || {}).panels || [] }), (e) => ({ name, title: name, panels: [], error: String((e && e.message) || e) }));
 }
 // %%
 // The chosen dashboard. It does not name timeRange: "Refresh" asks for the data again, not for the dashboard.
@@ -563,6 +563,11 @@ test_a_dashboard_is_read_with_one_metric_query_for_each_distinct_metric_by_and_f
   expect(got).toEqual({ name: "deploys", title: "Deploys", panels: five });
   expect([await dashboardGet({ client, name: null }), await dashboardGet({ client: null, name: "deploys" }), seen.length]).toEqual([null, null, 1]);
   expect(await dashboardGet({ client: { query: async () => { throw new Error("no dashboard x"); } }, name: "x" })).toEqual({ name: "x", title: "x", panels: [], error: "no dashboard x" });
+  // An answer with no dashboard in it, and a dashboard with no panels: the name and no panels, which is read with no query.
+  const bare = await dashboardGet({ client: { query: async () => ({}) }, name: "x" });
+  expect([bare, await dashboardGet({ client: { query: async () => ({ dashboard: { name: "x", title: "X" } }) }, name: "x" })]).toEqual([{ name: "x", title: "x", panels: [] }, { name: "x", title: "X", panels: [] }]);
+  const none = await dashboardRead({ client, dashboard: bare, range });
+  expect([seen.length, none.answers.size, dashboardNote(none)]).toEqual([1, 0, "The last hour: 0 panels from 0 queries."]);
   // Its data: one metric.query a query, over the range, with by joined and a filter as parameters.
   seen.length = 0;
   const three = await dashboardRead({ client, dashboard: { name: "d", title: "D", panels: [panel("bars"), panel("table"), panel("bars")] }, range });
