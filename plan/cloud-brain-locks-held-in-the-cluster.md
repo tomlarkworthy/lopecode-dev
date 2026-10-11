@@ -1,7 +1,7 @@
 # Cloud Brain: the landing lock and the deploy lock, held in the cluster
 
-Spec of the feature `locks-held-in-the-cluster` on cb4's tracker. Written 2026-10-11 between 17:50
-and 18:20 CEST from `lopecode-dev` `f5428cf8` and the tracker at event 1107. Nothing here is built.
+Spec of the feature `locks-held-in-the-cluster` on cb4's tracker. Written 2026-10-11 between 17:59
+and 18:05 CEST (event 1107's `at`, and `date`) from `lopecode-dev` `f5428cf8` and the tracker at event 1107. Nothing here is built.
 The design is a proposal; each number under "The design" that is not under "What exists today" is a
 choice and says what it was chosen from.
 
@@ -49,7 +49,7 @@ The requirements:
 
 ## What exists today, measured
 
-Read on 2026-10-11 between 17:50 and 18:05 CEST.
+Read on 2026-10-11 between 17:59 and 18:05 CEST.
 
 **The two locks.** `tools/cloud-brain/lock.sh` (56 lines): `take|release|show land|cb4 <who>`. The
 lock is a directory, `<main checkout>/tools/cloud-brain/.emitted/<name>.lock`, made with `mkdir`,
