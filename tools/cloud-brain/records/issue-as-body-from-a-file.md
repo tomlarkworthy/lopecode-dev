@@ -55,6 +55,11 @@ between 20:18:03 and 20:18:57 CEST (`date` before the first and after the third)
 | `ISSUE_AS_SH=<the script of 7e50dddc> bun test ./tests/tools/issue-as-body-file.test.ts` | 2 pass, 5 fail |
 | `bun test ./tests/tools` (after `build.ts --out` in the worktree, which `issue-lock-sql.test.ts` reads) | 267 pass, 0 fail |
 
+After `worktree.sh --rebase` brought in `main` (a test file and nine tests more, none of this
+change's files), between 20:19:11 and 20:20:09 CEST: the first command 7 pass, 0 fail; the third
+276 pass, 0 fail in 33 files. A second rebase under the landing lock brought `issue-stats.ts` with
+its test and a record; the suite was not run again after it.
+
 The two that pass against the old script are the inline form and the brief's paragraph, which the
 script does not decide; the paragraph's test failed before the brief was edited (1 pass, 6 fail
 with nothing changed).
