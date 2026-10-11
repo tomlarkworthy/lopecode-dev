@@ -87,7 +87,24 @@ git pull --ff-only origin main        "1 file changed", exit 0
 
 ## The tool on the checkout's own `lopebooks`
 
-See "The landing" below; it is added after the landing, from what the tool printed there.
+One run, in this change's own landing, under the landing lock (taken 23:12:48 CEST), after the
+merge, with `main` at `c476ef9a` and `lopebooks` at `997e73e4`, whose last commit of the notebook was
+of that day:
+
+```
+cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html
+cmp tools/cloud-brain/.emitted/cloud-brain.html <root>/lopebooks/notebooks/@tomlarkworthy_cloud-brain.html     exit 0
+<root>/tools/cloud-brain/notebook-backup.sh "$W/tools/cloud-brain/.emitted/cloud-brain.html"
+not due: last committed 2026-10-11                                                                          exit 0
+```
+
+`lopebooks` was at `997e73e4` after it and `git -C lopebooks status --short` printed nothing: the
+build was the committed file, so nothing was written. This is the `not due` line only.
+
+Not run on `lopebooks` itself: the commit. Its hooks there (`lope-token-scan`, `lope-preflight`,
+`lope-spec-sync`, `lope-sitemap`, `lope-content-index`, `lopebooks/.pre-commit-config.yaml`) are stood
+in for, in the test, by a `pre-commit` written by hand that writes the `.json` and refuses once. The
+first real commit is the first landing that builds on 2026-10-12 or later.
 
 ## For the overseer: the reviewer's brief
 
