@@ -122,3 +122,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
 - 2026-10-11 the same notebook, modules brain-deployer, brain-core, brain-kernel, cloudflare-iac, changes since
   `ff76e3ae`: BLOCK, 2 findings and 1 out of scope, all confirmed and fixed. 123k subagent tokens, 5m30s. All
   three were prose a code change had made false, one of them `/llms.txt`, which programs read.
+- 2026-10-11 `@tomlarkworthy/brain-snapshot` (changes since `f4840711~1`), `brain-maintenance/agents/digest.md`
+  and `records/snapshot-opens-digest-issue.md`, one agent for the three: FIX, FIX, CLEAR. 9 findings (6 confirmed,
+  3 plausible), all taken. 169k subagent tokens, 6m39s. What the author had not seen: the brief's check counted
+  items on a `file://` page that cannot read them, and its publish command named a file the landing deletes.

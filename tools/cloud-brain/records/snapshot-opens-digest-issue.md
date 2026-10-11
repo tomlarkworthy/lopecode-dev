@@ -83,3 +83,23 @@ also covers 2026-10-10, for which no task exists.
 3. The loop has not run since Tom stopped it on 2026-10-10 at about 21:25 CEST. A task waits in
    the tracker until a session runs `/loop /brain-maintenance`.
 4. `digests/keep.ts` calls with `--owner`.
+
+## After the fresh review, 2026-10-11
+
+`/review-notebook` on the module, `agents/digest.md` and this record: FIX, FIX, CLEAR. 4 findings
+on the module and 5 on the brief, each checked against the source and all taken.
+
+- The run's log line has `issue` when the tracker refused. Before, a refusal was in `index.json`
+  alone, and the timer does not run again that day.
+- An answer that names another issue is `{ error: "issue.open answered <id>" }`: the tracker
+  answers a held key with the event that holds it, and the index would have named that issue as
+  the day's task. Not met on cb4; the rig's `held` shows it.
+- Prose: the count of calls in one run names `knowledge.put` and `issue.open`; `issue` is in
+  indexes since 2026-10-11; a refusal has more causes than a Brain with no tracker.
+- The brief: a `file://` page cannot read `/static`, so the built file gives two numbers and the
+  library address four; the 2026-10-09 seed's loader reads `arxiv.json` whole and never
+  `papers.json`; the built file is copied out before the worktree goes; counts come from
+  `index.json`, not the issue's body; keys are `digest/digest-<day>/<what>`.
+
+The reviewer could not open a browser (`chromium_headless_shell-1200` is missing), so it did not
+run the panel test. 10 tests, 0 failed, in a QA tab of this session on the fixed build.

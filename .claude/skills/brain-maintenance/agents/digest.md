@@ -25,9 +25,11 @@ When Tom changes either, this table and step 7 are edited in the same commit.
 
 ## Steps
 
-1. **Read the issue.** `ia "get?id=digest-<day>"`. The body is the run's counts and the two
-   addresses. A comment from the orchestrator may name earlier days this digest also covers.
-2. **Claim it.** `ia move '{"key":"digest/<day>/start","id":"digest-<day>","to":"in-progress","reason":"…"}'`.
+1. **Read the issue.** `ia "get?id=digest-<day>"`. The body is the counts and the two addresses
+   of the run that opened it. A later `snapshot.run` that day replaces the files and not the
+   body: take counts and `ranAt` from `index.json`. A comment may name earlier days this digest
+   also covers. Every key you write is `digest/digest-<day>/<what>`, as `rules.md` shapes keys.
+2. **Claim it.** `ia move '{"key":"digest/digest-<day>/start","id":"digest-<day>","to":"in-progress","reason":"…"}'`.
    Then `W=$(tools/cloud-brain/worktree.sh digest-<day>)` and work there.
 3. **Read the day.** `https://cb4.endpointservices.workers.dev/static/snapshot/<day>/index.json`,
    then `papers.json` and each source file the index gives a `path` for. Public, no token. Not
@@ -43,23 +45,33 @@ When Tom changes either, this table and step 7 are edited in the same commit.
    run by its `ranAt`, the days covered, what was fetched, what was not reproduced). A
    replication in the page is wanted when a lead ships something a page can run and you ran it;
    say "nothing was reproduced" otherwise. A day with little in it gets a short digest.
+   Do not copy that seed's `snapshot` cell as it is: it was written before `papers.json` existed,
+   so it loads every source with a `path`, `arxiv.json` whole among them, and never `papers.json`.
+   Yours leaves out the rows marked `lookup` and loads `papers.json`; a pick that is a paper is
+   looked for among its `papers` by the arXiv id (an item of `arxiv.json` has the feed's guid as
+   its id, not that). No seed has this loader yet: say in your report what you wrote.
 6. **Build and check.**
    `bun tools/cloud-brain/digests/build.ts <day> "Research digest, <D Month YYYY>"` writes
    `digests/research-<day>.html` (git-ignored). Open it in a QA tab under a session name of your
-   own and count: the variables, those with an error (0), the items loaded, and how many of the
-   `picks` are found among the items. Those four numbers are the count of your submit. The
-   README does not name the tool its step 5 used; this is the check of its step 7, made on the
-   file. Close the tab by name.
-7. **Stop before publishing.** Commit the seed in the worktree and land it as
-   `agents/implementer.md` step 10 lands a change with no deploy. Then one comment,
-   `ia comment '{"key":"digest/<day>/built","id":"digest-<day>","body":"…"}'`, with: the four
+   own and count the variables and those with an error (0). Those two numbers are your count
+   today. The items and the picks found among them cannot be counted on the file: a `file://`
+   page is not let read `/static` (the answer has no `access-control-allow-origin`; read
+   2026-10-11 with `curl -H "Origin: null"`), and the page says so in place of the table. They
+   are counted from the library address, in step 8. Close the tab by name.
+7. **Stop before publishing.** Commit the seed in the worktree. Copy the built file to
+   `<root>/tools/cloud-brain/digests/` before the worktree goes: it is git-ignored, the landing
+   removes the worktree, and the publish command reads it from the main checkout. Land the seed
+   as `agents/implementer.md` step 10 lands a change with no deploy. Then one comment,
+   `ia comment '{"key":"digest/digest-<day>/built","id":"digest-<day>","body":"…"}'`, with: the two
    numbers; the path of the built file; the publish command of the README's step 6 with the day
    filled in; and the summary for Tom as you would send it, 300 characters at most, with the
-   library address the page will have. Label the issue `needs-owner` and report. Do not submit:
+   library address the page will have. Then
+   `ia label '{"key":"digest/digest-<day>/needs-owner","id":"digest-<day>","add":["needs-owner"]}'` and report. Do not submit:
    nothing is published for a reviewer to read.
 8. **When publishing is open to you** (the table above is gone): publish, open the library
-   address with no session and count the four numbers again there, then
-   `ia move '{"key":"digest/<day>/submit-<round>","id":"digest-<day>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha>"},{"kind":"url","value":"https://cb4.endpointservices.workers.dev/library/research-<day>"}]}'`.
+   address with no session and count four numbers there (variables, those with an error, items
+   loaded, picks found), then
+   `ia move '{"key":"digest/digest-<day>/submit-<round>","id":"digest-<day>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha>"},{"kind":"url","value":"https://cb4.endpointservices.workers.dev/library/research-<day>"}]}'`.
    `tools/cloud-brain/digests/keep.ts` (the picks' sources into the Brain's files and knowledge
    base) calls with `--owner` and is not run by you; say in the comment that it was not run.
 
