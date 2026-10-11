@@ -1,7 +1,7 @@
 # Cloud Brain: the record names the agent that made a call
 
-Spec of the project `record-names-token-not-agent` on cb4's tracker. Written 2026-10-11 between
-18:08 and 18:30 CEST (event 1156's `at`, and `date`) from `lopecode-dev` `870cd992` and the tracker
+Spec of the project `record-names-token-not-agent` on cb4's tracker. Written 2026-10-11 from
+18:08 CEST (event 1156's `at`; the file's first commit is 18:17) from `lopecode-dev` `870cd992` and the tracker
 at event 1158. Nothing here is built. Every count under "What exists today" was made that evening
 from `issue.sync?after=0`, read with `issues-implementer-2` (1158 events), unless it names another source.
 
@@ -78,8 +78,8 @@ starter submit with `caller.actor == issue.by.start` (lines 195, 215).
 **The implementer token is at least three kinds of caller.** Of its 699 events, 227 have a key that
 starts `orch`, 80 `triage`, 177 `impl`, 17 `spec`; all 148 `cost` comments are written with it, as
 `SKILL.md` line 123 tells the orchestrator ("with the token you triage with"). So the orchestrating
-session, each writer and each spec writer are one actor. 12 distinct `agent` ids and 10 `session`
-ids are named in the 18 `cost` lines that carry one; the other 130 name no agent.
+session, each writer and each spec writer are one actor. 18 `cost` lines carry an `agent` id, 12 distinct, all of one session; 27 carry a `session`, 10
+distinct. The other 130 lines name no agent.
 
 **The overseer token is two.** 10 of its events are a session's outside the loop: 857, 905, 913,
 1008, 1009, 1029, 1030, 1031, 1068, 1069 (the report and its comment 1127). `issue-stats.ts` at
@@ -95,7 +95,7 @@ the overseer's.
 
 `issue-as.sh <token name> …` takes the name as its first argument from any caller. The names are
 written in 9 files of briefs, docs and tools (`grep -l` for the three names, 22 lines), and in the
-body of reports: the three parts of this project each quote a command with `issues-reviewer-2` in it.
+body of reports: two of the three parts of this project quote a command with `issues-reviewer-2` in it.
 That is the likeliest way a writer came to run one (not verified: comment 1027 says "by my mistake" and no more).
 
 **The session file cannot be told from the owner's tab, by anything a Worker could be changed to
@@ -104,7 +104,7 @@ with the kernel's session key, which is in `.emitted/cb4.json`. Whatever mark a 
 session made by sign-in, the file could sign the same. 78 events are `via session`:
 
 ```
-28  key policy/…           the service's own swaps of two migrations
+28  key policy/…           27 swaps of a migration, and policy event 12
 28  key a UUID             the panel
  5  key orch/<id>/approve-for-owner-1   events 577, 649, 650, 651, 675
 17  other keys             9 tests, 2 installs, 3 annotations, 3 of one review's fixes
@@ -173,7 +173,11 @@ loop-agents                      parent; scope issue.*; cap delegate; made by th
   `dig`, `out`. It is what `by.holder` shows (R1, R3). The 6 hex are random; the `cost` comment
   gains a field `"token"` beside `agent` and `session`, which joins the name to a transcript.
 - **Made by** a new command, `brain.ts agent-token <role>`: `delegation.create` with the parent's
-  secret, scope `issue.*`, `until` 48 hours on, `note` the role. It writes the child's secret to
+  secret, scope `issue.*`, `until` 48 hours on, `note` the role. 48 is a choice: the longest stay
+  measured in a state an agent waits through is 2.6 h (`awaiting-approval`; `in-review` 2.1 h,
+  `spec-review` 0.8 h; `issue-stats.ts` at event 1156), and in-progress has stayed 15.2 h. A token
+  that ends while its issue is still out is the dead writer's case of the table below. The core
+  drops a maker's ended tokens when it next makes one (`brain-core.ojs` line 1023). It writes the child's secret to
   `.emitted/<base>-agent-tokens.json` (mode 600) and prints the name only. `agent-token revoke
   NAME` ends one. `issue-as.sh` reads that file after the one it reads now.
 - **Given to the agent** as a name in its prompt: "your token is `impl-3fa2c1`". The briefs say
@@ -198,7 +202,7 @@ What changes for the loop, and how it goes on (R6):
 | `SKILL.md` step 3 reads "started by the implementer token" | It reads the start event's `by.holder`: the prefix is the role |
 | `issue-stats.ts` `openers` counts by token name | It counts by the prefix, and prints the names under each |
 | The overseer's limit of 3 filed in an oversight is read from the role token | It is read from that overseer's own token, so an outside session's issues are not in it |
-| A `security` issue is read by the owner present or `caller.actor == issue.opener`: any agent with the opener's role token | Only the agent that opened it, until its token ends. Narrower. 9 events are hidden to the implementer token today, so no writer of the loop reads those now either |
+| A `security` issue is read by the owner present or `caller.actor == issue.opener`: any agent with the opener's role token | Only the agent that opened it, and once its token ends the owner present alone. Narrower. 9 events are hidden to the implementer token today, so no writer of the loop reads those now either |
 
 ### What is not checked
 
@@ -228,8 +232,8 @@ What changes for the loop, and how it goes on (R6):
    forgotten lives until someone revokes it by name.
 3. **Make the tracker's actor the role and keep the agent as a second name** (`issueActor` reads a
    prefix of `holder`). A dead writer's successor could then submit. But it is a deploy of
-   `brain-x-issues` that changes how `issue.verify?guards=true` judges all 1158 past events, and it
-   would let a second writer agent pass nothing it cannot pass now. The `back` move costs one event.
+   `brain-x-issues` that changes how `issue.verify?guards=true` judges all 1158 past events. The
+   `back` move costs one event and no deploy.
 4. **A mark on a session made from the file.** Not possible while the file holds the kernel's
    session key ("What exists today"). Taking the key out of the file is option (a) of comment 133,
    which the owner did not take at event 150; it also ends `brain.ts` installing a policy. A token
