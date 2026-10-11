@@ -8,6 +8,16 @@ The design's two edits were made in the worktree, run, and taken back
 `kernel.diff` (130 lines) and `page-2.diff` (71 lines; `page.diff` is an earlier one, replaced).
 What was run and what was not is said at each claim.
 
+**Round 2**, 2026-10-11 from 21:36 to 21:43 CEST (both from `date`), in a worktree at `f7d03412`. The two seeds are the
+same there as at `0ee963af` (`git diff --stat 0ee963af HEAD -- tools/cloud-brain/brain-kernel.ojs
+tools/cloud-brain/cloud-brain.ojs` printed nothing), so every `file:line` holds. The review of round 1
+(event 2289) held the spec for one thing, answered under "Round 2: a guest who asked for more" below.
+The diffs of this round are `kernel-3.diff` (173 lines, sha256 `a78d52c3…`) and `page-3.diff` (73 lines,
+`1ae34b10…`); an attachment's name is taken once, so `kernel.diff`, `kernel-2.diff` (the same code as
+`kernel-3.diff` with one line of the test in another place, below) and `page-2.diff` stay on the issue
+and are not the ones to build from. Every count under "How each requirement is known to be
+met" is of a round 2 run.
+
 ## What was asked
 
 The owner, 2026-10-11 21:16:43 CEST, in a note on the Brain's page at the text "Copy Guest Invite"
@@ -50,6 +60,73 @@ turned by a word on the issue.
 - **At most 20 people a link.** Discord's invites take 0 to 100 uses, 0 for no limit (below). The
   owner named no number; 20 is a round number above any group named so far (none), and a cap is
   one constant, `USES`.
+
+## Round 2: a guest who asked for more
+
+The finding of review 2289: R6 was not met for a guest whose token was replaced after asking for
+more. `token.approve` (`brain-kernel.ojs:659-682`) names the replacing token `NAME-YYYY` and wrote
+a link row with no group, the POST made it with the note "sign-in link", and so
+`token.revoke { name: NAME }` did not end it and `token.list` gave it no group. The invite's own
+note tells each guest how to ask. The review offered two answers: the upgrade keeps the group, or
+R6 says such a token is ended by its own name and the owner approves that.
+
+**Taken: the upgrade keeps the group.** The kernel's deploy is the owner's in either case, so the
+first costs him nothing more, and the second leaves `token.list` showing a `team-XXXX` token made
+by a link with no group. Four edits to the kernel, all in `kernel-3.diff`:
+
+```js
+token.approve   // upgrade: group = groupOf(old); the link's row gains { group } when there is one
+POST /auth/link // note: place ? LINK + " " + made.name : made.group ? LINK + " " + made.group : LINK
+token.revoke    // a link row goes when r.value.name === name || r.value.group === name
+token.link      // refused 400 while a live token of the owner has groupOf(d) === name
+```
+
+The third was not in the review. Without it a link approved for a guest of the group and not yet
+used outlives a revoke of the group for its 30 minutes: its row is named `team-YYYY`, the POST
+does not ask whether the token it replaces is alive (`:552`), and a token of the group is made
+after the group was ended. The run with that one edit left out:
+
+```
+passed 28, failed 1   test_a_link_for_several_gives_each_a_token_of_their_own
+-     "revoked": 4,
++     "revoked": 3,
+```
+
+and with all four left out (round 1's code under round 2's test), 28 passed and 1 failed at the
+line before: `token.list` gave one token of group `team`, `["link"]`, where two were expected
+(the third guest's, and the one that replaced the second's). With the four
+edits: 29 passed, 0 failed. These three runs 21:38 CEST, with `kernel-2.diff`.
+
+The fourth answers the review's second note. A link named `team` made while tokens of an earlier
+`team` link lived would have taken them into its group; now it is refused with the words a taken
+name gets today, "a token or a link is named team; token.revoke ends it". The page revokes before
+it links and does not meet it. In `kernel-2.diff` the test asked for a second `team` link while the
+first link's row was alive, which is refused without this edit too. `kernel-3.diff` moves the line:
+the link `pair` is past its `until` with one token given, and a new link named `pair` is asked for.
+With the edit, 29 passed and 0 failed; without it (21:42 CEST):
+
+```
+passed 28, failed 1   test_a_link_for_several_gives_each_a_token_of_their_own
+Expected: 400
+Received: 200
+```
+
+What the fix leaves as it was:
+
+- A token revoked by its own name while a link approved for it waits: that link gives a token for
+  its 30 minutes. It is so for one guest's token today (`:552`, `:558`) and is not changed here;
+  the group's revoke is the case R6 names.
+- A guest of a group may ask for a cap (`deploy`) as any token may, and the owner may approve it in
+  his tab. The replacing token is then of the group and deploys. R7 is of the link; what the owner
+  approves for one named guest is his act.
+- `token.approve` cuts the base of the new name to 30 characters (`:663`), so a group named with 31
+  to 35 has replacing tokens named from the first 30. The group is read from the note, not the
+  name, so the revoke still ends them. Read, not run: the test's group is `team`.
+
+The review's other notes: `guestLink`'s test now asserts the `minutes: 10080` and `hours: 168` it
+sends (`page-3.diff`, one line; R2). The 20 `INSERT OR IGNORE` of a POST to a full link are left.
+"24 lines added and 11 removed outside the test" was round 1's and uncounted; round 2's count is
+from `git diff --numstat`, under "The kernel" below.
 
 ## What exists today
 
@@ -144,7 +221,7 @@ against the pages themselves.
 
 One new field of `token.link`, `uses`, and a place counted for each POST. Two Workers change.
 
-### The kernel (`brain`), `kernel.diff`: 24 lines added and 11 removed outside the test, and one test cell of 33 lines
+### The kernel (`brain`), `kernel-3.diff`: 77 lines added and 14 removed (`git diff --numstat`), 47 of the added being the test cell and its separator
 
 ```js
 token.link { name, methods, minutes, hours, daily, uses }   // uses: a whole number 1 to 20; left out is 1
@@ -159,22 +236,30 @@ POST /auth/link?code=…                                        // a link with u
   // the core does not answer or refuses: the place is deleted, so the use is not spent
   // answers { name: "NAME-XXXX", token, methods, until, deploy: false, unattended: false, daily }
 
-token.revoke { name }    // also ends every token whose note is "sign-in link NAME", and deletes link-use/<hash>/
+token.revoke { name }    // also ends every token whose note is "sign-in link NAME", deletes link-use/<hash>/,
+                         // and deletes a link token.approve made for a token of the group
 token.list               // such a token has by: "link" and group: "NAME"
+token.approve { id }     // for a token of a group: the link's row carries group, and its POST writes the same note
+token.link { name }      // 400 while a live token has that name as its group
 ```
 
 - A link with `uses` of 1, or none, takes the code path it takes today: the row has no `uses`, the
   POST deletes the row, the token has the link's name. The 28 tests of today pass unchanged (run, below).
+  One thing differs for a caller of today: `token.link` of a name is refused while a live token has
+  that name as its group, and no token has a group until a link for several is used.
 - The link's row stays until `until` when its places are taken, and is swept with its places when
   the next link is made (`:499`, where ended links are deleted today). R2 is that `until`.
 - A place is a row and not a counter because a counter cannot give a use back in one step when the
   core fails, and a row can be deleted.
 - `token.revoke { name: "NAME-XXXX" }` ends one guest (R4). `token.revoke { name: "NAME" }` ends
   the link, the places and all of them (R6), within the 5 s a core instance remembers a row (`:38`).
+  "All of them" includes a token that replaced one after its guest asked for more, and a link
+  approved for one and not yet used ("Round 2", above).
 - The group is read from the delegation's `note`, which only `delegation.create` in the owner's
   session sets for the owner's tokens. No field is added to the core's record, so `brain-core` is
   not deployed.
-- Also in this task and not in `kernel.diff`: the reference cell (`:36` "The first POST answers …
+- Also in this task and not in `kernel-3.diff`: a sentence of the reference cell under "Asking for more"
+  (`:52`) that a token of a group is replaced by one of the same group; the reference cell (`:36` "The first POST answers …
   and deletes the link", `:50` "it is good once"), and one sentence of the GET text (`:512`
   "POST to this same address, with no body, once"): "A link made for several people gives each
   POST a token of its own, until its uses are given."
@@ -184,7 +269,7 @@ $0.10 that is 5 × $0.10 = $0.50 a day; at the most the kernel takes, with $0.10
 $2.00 a day and 20 × $0.10 × 7 = $14.00 over the tokens' lives. `daily` is the owner's to type,
 and the owner's own allowance bounds the sum (not read here).
 
-### The page (`brain-x-page`), `page-2.diff`
+### The page (`brain-x-page`), `page-3.diff` (`page-2.diff` with one line more in its test)
 
 - `guestInvite` gets a fourth field, "people", value `1`. The name field stays: it names the guest
   or the group (`guest-<name>`).
@@ -215,14 +300,17 @@ and the owner's own allowance bounds the sum (not read here).
 
 ## How each requirement is known to be met
 
-Every command here was run on 2026-10-11 between 21:23 and 21:27 CEST, in the worktree with the
-attached diff applied, and the result written is the one the run gave. `$W` is the task's worktree.
+The kernel's rows were run on 2026-10-11 at 21:42 CEST with `kernel-3.diff` applied, and the page's
+at 21:39 with `kernel-2.diff` and `page-3.diff` applied, in the round 2 worktree, and the result written is the one the run gave; the two
+rows "on today's code" are round 1's runs (21:23 to 21:27) and were not made again. The edits were
+then taken back (`git diff --stat -- tools/` printed nothing at 21:42:21). `$W` is the task's worktree.
 None needs a token.
 
 | | Check | Result |
 |---|---|---|
 | R1, R4, R5, R6, R7 | `cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html && bun tools/lope-reader.ts tools/cloud-brain/.emitted/cloud-brain.html --get-module @tomlarkworthy/brain-kernel > tools/cloud-brain/.emitted/k.js && (cd cloud-brain-dev && bun test.ts brain --with $W/tools/cloud-brain/.emitted/k.js)` | `"passed":29,"failed":0,"needsBrowser":0`. The 29th is `test_a_link_for_several_gives_each_a_token_of_their_own`. |
-| the same test, on today's kernel code | the test cell alone added to the seed at `0ee963af`, same command | `"passed":28,"failed":1`: `{ "uses": 0 }` expected 400, received 200 |
+| the same test, on today's kernel code | round 1's test cell alone added to the seed at `0ee963af`, same command (round 1's run; round 2's cell begins with the same line) | `"passed":28,"failed":1`: `{ "uses": 0 }` expected 400, received 200 |
+| R6 for a guest who asked for more | round 2's test on round 1's code, and on round 2's code less the edit to `token.revoke`, same command | each `"passed":28,"failed":1`, at the lines quoted under "Round 2" |
 | R3 | in the first run, the 28 tests of today | all `ok`; `uses: 1` answers with no `uses` (asserted in the new test) |
 | R3, R8 | the same build, `--get-module @tomlarkworthy/cloud-brain > p.js`, `bun test.ts brain-x-page --with $W/…/p.js` | `"passed":11,"failed":0,"needsBrowser":13`. The 11th is `test_a_guest_link_for_several_is_not_copied_from_a_kernel_that_makes_one`. |
 | the changed `guestBrief` test, on today's page code | the six added lines of the test alone, same command | `"passed":9,"failed":1`: expected "works for 5 people, once each, within 7 days" |
@@ -232,12 +320,18 @@ and `"3"`, `uses: 2` with `deploy`, `uses: 2` with a name of 36); a link with `u
 second of its name refused; **four POSTs sent together answer 200, 200, 200 and 401, with three
 different tokens and three different names `team-XXXX`, each with `daily` 0.1** (R4, R5); each
 token calls its method; `token.list` shows three with `group: "team"`; a revoke of one name ends
-that one and leaves another working; a revoke of `team` answers `{ revoked: 3 }` (the link and the
-two tokens left), leaves no `link-use/` row, and the next POST and the remaining token are 401
-(R6); a link past its `until` with a place free answers 401 (R2).
+that one and leaves another working; **one of the two left asks for `inbox.list`, the owner approves, and the POST of that link
+gives a token named `team-XXXX` with another name than the one it replaces, `daily` 0.1, the old
+one 401, and `token.list` shows two of group `team`; the other asks and is approved, and its link
+is left unused;** a revoke of `team` answers
+`{ revoked: 4 }` (the link, the approved link, the replacing token and the one that had asked),
+leaves no `link-use/` row and no delegation named `team…` in the rig's core, and the replacing
+token, the other token, the POST of the approved link and the next POST of the group's link are
+each 401 (R6); a link past its `until` with a place free answers 401 (R2), and a new link of its
+name is refused 400 while the token it gave lives.
 
-R2's seven days is the page's `minutes: 10080`, which `guestLink`'s test does not read back; the
-kernel's bound on it is tested today (`:1220`, `minutes: 10081` is 400).
+R2's seven days is the page's `minutes: 10080`, which `guestLink`'s test asserts as sent since
+round 2; the kernel's bound on it is tested today (`:1220`, `minutes: 10081` is 400).
 
 **Run only after the tasks are built, and where:**
 
@@ -245,7 +339,7 @@ kernel's bound on it is tested today (`:1220`, `minutes: 10081` is 400).
   `cd $W/cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev && bun test.ts brain`
   gives `"passed":29,"failed":0` with a hash that is not `b1049a69c17f`; and
   `curl -s https://cb4.endpointservices.workers.dev/auth/link | grep -c "for several people"` gives 1.
-  Today (21:27:08) the second gives 0. The sentence it counts is not in `kernel.diff`, so the 1 has
+  Today (21:27:08) the second gives 0. The sentence it counts is not in `kernel-3.diff`, so the 1 has
   no run behind it.
 - After the page's deploy (task 2):
   `curl -s "https://cb4.endpointservices.workers.dev/xrpc/com.lopecode.brain.getSource?worker=brain-x-page" | grep -c guestLink`
@@ -263,6 +357,8 @@ kernel's bound on it is tested today (`:1220`, `minutes: 10081` is 400).
   create to share a row, and was left.
 - Places taken by a POST that never returns (the Worker dies between the place and the core's
   answer): that use is spent.
+- A guest of a group approved for `deploy`, and a group whose name is over 30 characters asking
+  for more ("Round 2", what the fix leaves).
 - `guestInvite`'s field and the line after copying, in a browser. They are DOM and are the task's.
 - A real link for several, used by real people on cb4. Only the owner can make one: it is in his list.
 
@@ -270,8 +366,8 @@ kernel's bound on it is tested today (`:1220`, `minutes: 10081` is 400).
 
 | | Task | Who | Reaches cb4 |
 |---|---|---|---|
-| 1 | `gi-1-kernel-link-for-several`: `kernel.diff` with the reference cell and the GET sentence, the test, a record. Labels `major` (a method other callers use takes a new field, and a link gives more than one token) and `needs-owner`. | Under the rules in force the loop does not start it (`rules.md`, Never: "A fix that needs one of them is written up on the issue, which gets the label `needs-owner` and is not started"; a `test_*` cell of `brain-kernel.ojs` moves the kernel's hash). This spec and the attachment are the write-up. A session builds and deploys it on the owner's word, as `44f9e5d0` was ("you can fix all those things, deploy to cb4"). | the owner's deploy of `brain` |
-| 2 | `gi-2-page-invite-for-several`: `page-2.diff`, the line after copying, the Access row, `running-a-cloud-brain.md:133`, a record. | a writer of the loop | `brain-x-page`, which the loop deploys |
+| 1 | `gi-1-kernel-link-for-several`: `kernel-3.diff` with the reference cell and the GET sentence, the test, a record. Labels `major` (a method other callers use takes a new field, and a link gives more than one token) and `needs-owner`. | Under the rules in force the loop does not start it (`rules.md`, Never: "A fix that needs one of them is written up on the issue, which gets the label `needs-owner` and is not started"; a `test_*` cell of `brain-kernel.ojs` moves the kernel's hash). This spec and the attachment are the write-up. A session builds and deploys it on the owner's word, as `44f9e5d0` was ("you can fix all those things, deploy to cb4"). | the owner's deploy of `brain` |
+| 2 | `gi-2-page-invite-for-several`: `page-3.diff`, the line after copying, the Access row, `running-a-cloud-brain.md:133`, a record. | a writer of the loop | `brain-x-page`, which the loop deploys |
 
 Task 2 does not wait for task 1. Landed first, a press for one person works as today and a press
 for several fails with the sentence of R8; landed second, it works. Task 1 alone changes nothing a
