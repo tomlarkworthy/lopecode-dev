@@ -1,9 +1,11 @@
 #!/usr/bin/env bun
 // What the tracker's record says of the loop: where issues wait, which states hold them, how often work is sent back.
-//   bun tools/cloud-brain/issue-stats.ts [--token issues-overseer-1] [--after SEQ] [--window SEQ] [--idle HOURS] [--json]
+//   bun tools/cloud-brain/issue-stats.ts [--token issues-overseer-1] [--after SEQ] [--until SEQ] [--window SEQ] [--idle HOURS] [--json]
 // Read from issue.sync with a token, through issue-as.sh (run it from the main checkout: a worktree has no tokens).
 // --after counts only the issues opened after that event. Times are the events' own `at`.
 // --window counts the events after that one, whatever issue they are of: what an oversight judges its last edits by.
+// --until reads the record as it was at that event: a count written down with its event can be made again.
+// `report` and `text` take a list of events and call nothing: tests/tools/issue-stats.test.ts.
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 
@@ -12,18 +14,14 @@ const arg = (n: string, d: string) => {
   const at = process.argv.findIndex((a) => a === `--${n}` || a.startsWith(`--${n}=`));
   return at < 0 ? d : process.argv[at].includes("=") ? process.argv[at].split("=")[1] : process.argv[at + 1] ?? d;
 };
-const token = arg("token", "issues-overseer-1"), since = Number(arg("after", "0")), idleH = Number(arg("idle", "4"));
-const as = join(dirname(import.meta.path), "issue-as.sh");
 
-const events: any[] = [];
-for (let after = 0; ; ) {
-  const out = execFileSync(as, [token, `sync?after=${after}&limit=500`], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-  const page = JSON.parse(out).events || [];
-  events.push(...page);
-  if (page.length < 500) break;
-  after = page.at(-1).seq;
-}
+// The role in a token's name, `<role>-<6 hex>` as `brain.ts agent-token` makes it. Any other name is its own group:
+// the three role tokens of before, a session's own token, the owner.
+export const role = (name: string) => /^(orch|impl|rev|spec|over|dig|out)-[0-9a-f]{6}$/.exec(name)?.[1] ?? name;
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/, forOwner = /^orch\/.+\/approve-for-owner-\d+$/;
 
+export function report(record: any[], { since = 0, from = 0, until = 0, idleH = 4, now = Date.now() }: { since?: number; from?: number; until?: number; idleH?: number; now?: number } = {}) {
+const events = until ? record.filter((e) => e.seq <= until) : record;
 const who = (by: any) => ((by?.holder || "").startsWith("secret:") ? by.holder.slice(7) : by?.caller === "owner" ? (by.tab === false ? "owner (token)" : "owner") : by?.caller || "?");
 const workflows: Record<string, any> = {}, issues: Record<string, any> = {};
 for (const e of events) {
@@ -48,7 +46,7 @@ for (const e of events) {
   if (e.type === "linked") e.rel === "part-of" ? (i.parent = e.remove ? null : e.to) : (i.links += e.remove ? -1 : 1);
 }
 
-const now = Date.now(), H = (ms: number) => +(ms / 3600000).toFixed(1);
+const H = (ms: number) => +(ms / 3600000).toFixed(1);
 const all = Object.values(issues).filter((i: any) => i.seq > since && !/^test-/.test(i.id)) as any[];
 const closed = (i: any) => (workflows[i.workflow]?.closed || []).includes(i.state);
 const median = (l: number[]) => (l.length ? [...l].sort((a, b) => a - b)[l.length >> 1] : 0);
@@ -76,20 +74,39 @@ const ahead = (e: any) => [e.reason, e.body].some((text) => {
     return t.getTime() - e.at > 60000;
   });
 });
-const from = Number(arg("window", "0")), inWindow = events.filter((e) => e.seq > from && !e.hidden && !/^test-/.test(e.id || ""));
+const shown = events.filter((e) => !e.hidden && !/^test-/.test(e.id || ""));
+// An approve of the owner's session has the same `by` from his press in the panel and from a call made with his
+// session file. The key tells them apart: the panel writes a UUID, the loop `orch/<id>/approve-for-owner-<n>`.
+// Of the record up to --until, whatever --after is. A key of neither shape is listed by its event.
+const approves = shown.filter((e) => e.type === "moved" && e.move === "approve" && e.by?.via === "session");
+const approveBySession = {
+  pressed: approves.filter((e) => uuid.test(e.key || "")).length,
+  madeForOwner: approves.filter((e) => forOwner.test(e.key || "")).length,
+  other: approves.filter((e) => !uuid.test(e.key || "") && !forOwner.test(e.key || "")).map((e) => e.seq)
+};
+const openers: Record<string, { count: number; names: Record<string, number> }> = {};
+for (const i of all) {
+  const o = (openers[role(i.opener)] ||= { count: 0, names: {} });
+  o.count++;
+  o.names[i.opener] = (o.names[i.opener] || 0) + 1;
+}
+const inWindow = shown.filter((e) => e.seq > from);
+
 const moved = (m: string) => inWindow.filter((e) => e.type === "moved" && e.move === m).length;
 const windowReport = {
   after: from, events: inWindow.length, submits: moved("submit") + moved("submit-spec"), reworks: moved("rework") + moved("send-back"),
   verdicts: count(inWindow.filter((e) => e.type === "reviewed").map((e) => e.verdict)),
   withText: inWindow.filter((e) => `${e.reason || ""}${e.body || ""}`.trim()).length, timesAhead: inWindow.filter(ahead).map((e) => e.seq)
 };
-const report = {
-  window: windowReport,
+return {
+  window: windowReport, since, idleH,
   events: events.length,
   issues: all.length,
   states: count(all.map((i) => i.state)),
   kinds: count(all.map((i) => i.kind)),
-  openers: count(all.map((i) => i.opener)),
+  // By the role of the token that opened, with each name under it.
+  openers,
+  approveBySession,
   // Time spent in a state before the move out of it. An issue still in a state is under `waiting`.
   timeInState: Object.fromEntries(Object.entries(perState).map(([s, l]) => [s, { stays: l.length, medianMin: +(median(l) / 60000).toFixed(1), totalH: H(l.reduce((a, b) => a + b, 0)), maxH: H(Math.max(...l)) }])),
   done: { count: done.length, medianH: H(median(done.map((i) => i.since - i.at))), firstPass: done.filter((i) => !i.moves.includes("rework")).length, quick: done.filter((i) => !i.moves.includes("ready")).length },
@@ -99,12 +116,22 @@ const report = {
   // Not closed, and nothing has happened to it for --idle hours: the candidates for a trap.
   waiting: open.filter((i) => now - i.last > idleH * 3600000).map((i) => ({ id: i.id, kind: i.kind, state: i.state, idleH: H(now - i.last), labels: [...i.labels], opener: i.opener })).sort((a, b) => b.idleH - a.idleH)
 };
+}
 
-if (process.argv.includes("--json")) console.log(JSON.stringify(report));
-else {
+// The lines printed without --json.
+export function text(report: Report) {
+  const lines: string[] = [], console = { log: (...a: string[]) => void lines.push(a.join(" ")) };
+  const { since, idleH, window: windowReport } = report, from = windowReport.after, { submits, reworks } = report.review;
   const line = (k: string, v: any) => console.log(k.padEnd(14), typeof v === "string" ? v : JSON.stringify(v));
   line("record", `${report.events} events, ${report.issues} issues${since ? " opened after event " + since : ""}`);
-  for (const k of ["states", "kinds", "openers"]) line(k, (report as any)[k]);
+  for (const k of ["states", "kinds"]) line(k, (report as any)[k]);
+  console.log("openers, by the role of the token and then by its name");
+  for (const [r, o] of Object.entries(report.openers)) {
+    const names = Object.entries(o.names).filter(([n]) => n !== r).map(([n, c]) => `${n} ${c}`).join(", ");
+    console.log(`  ${r.padEnd(24)} ${String(o.count).padStart(3)}${names ? "  " + names : ""}`);
+  }
+  const a = report.approveBySession;
+  console.log(`approve by the session: ${a.pressed} pressed, ${a.madeForOwner} made for the owner${a.other.length ? `; ${a.other.length} with another key ${JSON.stringify(a.other)}` : ""}`);
   console.log("time in a state before the move out of it");
   for (const [s, t] of Object.entries(report.timeInState)) console.log(`  ${s.padEnd(18)} ${String(t.stays).padStart(3)} stays  median ${String(t.medianMin).padStart(6)} min  total ${String(t.totalH).padStart(5)} h  max ${t.maxH} h`);
   line("done", `${report.done.count}, median ${report.done.medianH} h from opened; ${report.done.firstPass} with no rework; ${report.done.quick} started without triage`);
@@ -114,4 +141,20 @@ else {
   line("feedback", `${report.feedback.open} open, ${report.feedback.gathered} with a parent or a link`);
   console.log(`open and idle for ${idleH} h or more`);
   for (const w of report.waiting) console.log(`  ${w.id.padEnd(40)} ${w.kind.padEnd(8)} ${w.state.padEnd(17)} ${String(w.idleH).padStart(5)} h  ${w.labels.join(",")}  by ${w.opener}`);
+  return lines;
+}
+type Report = ReturnType<typeof report>;
+
+if (import.meta.main) {
+  const token = arg("token", "issues-overseer-1"), as = join(dirname(import.meta.path), "issue-as.sh");
+  const events: any[] = [];
+  for (let after = 0; ; ) {
+    const out = execFileSync(as, [token, `sync?after=${after}&limit=500`], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    const page = JSON.parse(out).events || [];
+    events.push(...page);
+    if (page.length < 500) break;
+    after = page.at(-1).seq;
+  }
+  const r = report(events, { since: Number(arg("after", "0")), from: Number(arg("window", "0")), until: Number(arg("until", "0")), idleH: Number(arg("idle", "4")) });
+  console.log(process.argv.includes("--json") ? JSON.stringify(r) : text(r).join("\n"));
 }
