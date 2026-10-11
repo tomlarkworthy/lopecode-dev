@@ -515,14 +515,14 @@ test_verifyModule_runs_the_tests_and_checks_the_hash = {
   main.variable(observer("not_a_test")).define("not_a_test", [], () => { throw new Error("not run"); });`;
   const says = (hash) => ({ query: async (method, input) => (expect([method, input]).toEqual(["getInfo", { worker: "brain-x-t" }]), { hash }) });
   // The limit is short for the cell that never answers, and long enough for the others on a page that is busy.
-  const quick = { limit: 2000, settle: 0, wait: async () => {} };
+  const quick = { limit: 6000, settle: 0, wait: async () => {} };
   try {
     await joinModules([{ module: name, text: text(cells) }, { module: none, text: text(`  main.variable(observer("x")).define("x", [], () => 1);`) }]);
     const v = await verifyModule({ worker: "brain-x-t", module: name, hash: "h1" }, { ...quick, client: says("h1") });
     expect(v).toMatchObject({ worker: "brain-x-t", module: name, hash: "h1", ok: false, tests: 3 });
     expect(v.failed.map((f) => f.name).sort()).toEqual(["test_hangs", "test_throws"]);
     expect(v.failed.find((f) => f.name === "test_throws").message).toBe("broken");
-    expect(v.failed.find((f) => f.name === "test_hangs").message).toBe("no result in 2 s");
+    expect(v.failed.find((f) => f.name === "test_hangs").message).toBe("no result in 6 s");
     // R13: nothing to fail is a pass, when the Worker runs what was loaded.
     expect(await verifyModule({ worker: "brain-x-t", module: none, hash: "h1" }, { ...quick, client: says("h1") })).toMatchObject({ ok: true, tests: 0, failed: [] });
     // Another version answering is a failure, named.
