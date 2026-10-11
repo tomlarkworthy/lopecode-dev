@@ -477,7 +477,7 @@ probation = {
 // %%
 md`## Operator`
 // %%
-md`The Operator reads the tracker and writes little to it. Its tool \`brain_call\` makes every read of \`issue.*\` and three procedures, \`issue.open\`, \`issue.link\` and \`issue.attach\`. It refuses the other ten before any call: \`issue.move\` (an approval is a move), \`issue.swap\`, \`issue.label\`, \`issue.comment\`, \`issue.review\`, \`issue.install\`, \`issue.rebuild\`, \`issue.resign\`, \`issue.narrow\` and \`issue.lock\`. The \`brain_call\` of a turn that answers a message from a channel refuses the same ten. Both also refuse a method whose name has a character other than a letter, a digit, a dot or a hyphen, since a query string or a path in the name would reach a refused method under another name.
+md`The Operator reads the tracker and writes little to it. Its tool \`brain_call\` makes every read of \`issue.*\` and three procedures, \`issue.open\`, \`issue.link\` and \`issue.attach\`. It refuses the other ten before any call: \`issue.move\` (an approval is a move), \`issue.swap\`, \`issue.label\`, \`issue.comment\`, \`issue.review\`, \`issue.install\`, \`issue.rebuild\`, \`issue.resign\`, \`issue.narrow\` and \`issue.lock\`. The \`brain_call\` of a turn that answers a message from a channel refuses the same ten. Both also refuse a method whose name has a character other than a letter, a digit, a dot, a hyphen or a slash, or a part between slashes that is \`.\` or \`..\`, since a query string or such a path in the name would reach a refused method under another name.
 
 Each step the Operator is shown \`attention\`: the issue that the block "For your attention" of \`@tomlarkworthy/brain-issues\` shows on this page, its place among those waiting, what is asked of the owner and the text the ask is about, up to ${attentionLimits.about} characters of it. With no such block on the page, or nothing waiting, it reads "none shown". The tool \`attention_draft { id, text }\` puts a text in the box of a waiting issue and sends nothing: the owner reads the box and presses. It is refused when the box has text already. A turn that answers a message from a channel does not have this tool and is not shown \`attention\`.
 
@@ -1352,10 +1352,11 @@ assistantRule = {
 // Methods the operator's brain_call never makes: secret values, access and deploys are the owner's actions. So is
 // every write to the tracker but open, link and attach: a move, a comment, a label and a review are the owner's
 // presses or the loop's (issue.locks, a read, is not issue.lock). A name that is not a method's name is refused
-// whole, since the client puts it in an address as it is.
+// whole, since the client puts it in an address as it is. A slash is in three names, ai.v1/models among them.
 assistantRefuses = (method) =>
   typeof method !== "string" ||
-  !/^[A-Za-z0-9.-]+$/.test(method) ||
+  !/^[A-Za-z0-9.\/-]+$/.test(method) ||
+  /(^|\/)\.\.?(\/|$)/.test(method) ||
   /^(com\.lopecode\.brain\.)?(secret\.get|secret\.read|token\.|grant\.|people\.(put|remove|link|unlink)|rule\.put|rule\.delete|price\.put|price\.delete|quota\.put|quota\.setDefaults|settings?\.|infra\.|service\.|lease\.|inbox\.poll|issue\.(move|swap|label|comment|review|install|rebuild|resign|narrow|lock)(?![A-Za-z0-9-]))/.test(method)
 // %%
 // Puts a text in the box of a waiting issue, through the part the tracker's module offers. It is given the held
@@ -1553,9 +1554,11 @@ test_the_operator_moves_nothing_on_the_tracker = {
   const kept = ["get", "list", "sync", "open", "link", "attach", "locks", "policy", "snapshot", "key", "attachment", "verify"];
   expect(kept.map((m) => assistantRefuses("issue." + m))).toEqual(Array(12).fill(false));
   expect(kept.map((m) => assistantRefuses("com.lopecode.brain.issue." + m))).toEqual(Array(12).fill(false));
+  // The three deployed methods with a slash in the name (llms.txt of cb4, 2026-10-11) are still called.
+  expect(["ai.v1/models", "ai.v1/chat/completions", "com.lopecode.brain.ai.v1/embeddings"].map(assistantRefuses)).toEqual(Array(3).fill(false));
   // A name that is not a method's name is an address written by the model: a query string or a path in it would
   // reach a refused method by a name that is let through.
-  const odd = ["issue.move?x=1", "issue.locks/../issue.move", "com.lopecode.brain.getInfo/../com.lopecode.brain.issue.move", "issue.get#", " issue.move", "issue.move ", "issue%2Emove", "", null, undefined, 7, {}];
+  const odd = ["issue.move?x=1", "issue.locks/../issue.move", "com.lopecode.brain.getInfo/../com.lopecode.brain.issue.move", "./com.lopecode.brain.issue.move", "../xrpc/com.lopecode.brain.issue.move", "ai.v1/./../com.lopecode.brain.issue.move", "getInfo/..", "a\\..\\com.lopecode.brain.issue.move", "issue.get#", " issue.move", "issue.move ", "issue%2Emove", "", null, undefined, 7, {}];
   expect(odd.map(assistantRefuses)).toEqual(Array(odd.length).fill(true));
   // Both tools refuse before the call.
   const seen = [], turn = { call: { query: async (m) => (seen.push(m), {}), procedure: async (m) => (seen.push(m), {}) } }, tool = turnTool(turn);

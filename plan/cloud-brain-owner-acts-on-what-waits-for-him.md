@@ -244,7 +244,7 @@ Not chosen:
 (As built, `ow-3-operator-shown-the-issue`, 2026-10-11, where it differs from the five items above: the
 mirror is `attentionNow` and `attentionMirror`; the watch shows up to 3000 characters of the text asked
 about and names `issue.get` for the rest; `assistantRefuses` is also true for a method name with a
-character other than a letter, a digit, a dot or a hyphen; a turn that answers a message from a channel
+character other than a letter, a digit, a dot, a hyphen or a slash, and for one with a path part `.` or `..`; a turn that answers a message from a channel
 does not get `attention_draft`; the record, `tools/cloud-brain/records/ow-3-operator-shown-the-issue.md`.)
 
 Why the refusals (item 1). The watch puts text written by agents of the loop into the

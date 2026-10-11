@@ -15,8 +15,9 @@ In `cloud-brain.ojs`:
   short and as NSID. It has two callers, the Operator's `brain_call` (`assistantTools`) and the
   `brain_call` of a turn that answers a message from a channel (`turnTool`). `issue.locks`, a read, is
   not `issue.lock`: the ten end at a character that is not a letter, a digit or a hyphen.
-- `assistantRefuses` is also true for a method that is not a string, and for one with a character other
-  than a letter, a digit, a dot or a hyphen. Not in the spec; see "Readings" below.
+- `assistantRefuses` is also true for a method that is not a string, for one with a character other
+  than a letter, a digit, a dot, a hyphen or a slash, and for one with a part between slashes that is
+  `.` or `..`. Not in the spec; see "Readings" below.
 - `attentionParts = plugins.get("attention")`, mirrored into the constant `attentionNow` by
   `attentionMirror`, as `inboxNow` and `inboxMirror` do for the inbox.
 - `attentionSummary(parts)` makes the text of the watch from the first part: "none shown", or the id,
@@ -63,15 +64,18 @@ options and is cut at 400 as before; not changed here.
 
 ## Readings where the spec left room
 
-- **A method name with other characters is refused.** `xrpcClient` puts the name in the address as it
+- **A method name with other characters, or with a path part `.` or `..`, is refused.** `xrpcClient` puts the name in the address as it
   is (`root + "/xrpc/" + name`, `xrpc-client.ojs` line 22), and the core reads the method from the
   path. So `com.lopecode.brain.getInfo/../com.lopecode.brain.issue.move` is let through by a rule that
   reads the start of the name, and a browser's `fetch` sends it to `issue.move`. That the address is
   made shorter by `fetch` is how URLs are parsed; no such call was sent to cb4 to see it. The same
   holds of every method refused before this change (`secret.get` among them). The check narrows what a
   caller may do (line 1 of `philosophy.md`, "A change that only narrows what a caller may do is
-  taken"). A method name on cb4 with another character was not looked for; the names in `llms.txt`
-  were not read for this.
+  taken"). The first writing of the check took a letter, a digit, a dot and a hyphen only. `llms.txt`
+  of cb4, read with `curl` after it (150 names that start `com.lopecode.brain.`), has three it would
+  have refused: `ai.v1/chat/completions`, `ai.v1/embeddings` and `ai.v1/models`. So a slash is taken,
+  and a name with a part `.` or `..` is refused in its place; the test holds the three as not refused.
+  No other of the 150 has a character outside the set.
 - **A channel turn does not get `attention_draft`.** `answerTurn` gave the owner's turn over WhatsApp
   or Bluesky every tool of the Operator. With no change it would have had the new tool: a message sent
   from a phone would write in a box of a page its sender is not looking at. Left out, by line 1: it
@@ -92,7 +96,8 @@ Three new cells. `grep -c '^test_' tools/cloud-brain/cloud-brain.ojs`: 30 (27 on
 
 - `test_the_operator_moves_nothing_on_the_tracker` (R6): the ten are refused, short and as NSID; 12
   are not (`get`, `list`, `sync`, `open`, `link`, `attach`, `locks`, `policy`, `snapshot`, `key`,
-  `attachment`, `verify`), short and as NSID; 12 names that are not a method's name are refused;
+  `attachment`, `verify`), short and as NSID; nor are the three `ai.v1/…` names; 17 names that are
+  not a method's name are refused;
   `turnTool` over a client that lists its calls answers "not available" to each of the ten and makes
   2 calls of 12, `issue.get` and `issue.open`; the brief has the two pointers.
 - `test_the_operator_is_shown_the_issue_in_the_block` (R4): "none shown" for no set, an empty one, a
@@ -117,7 +122,9 @@ Before the change, on a build of the seed with the three tests and nothing else:
 expected. Why the tool lists one cell six times and counts 22 was not looked into
 (`records/ow-2-panel-offers-what-it-shows.md` met the same).
 
-With one part of the change taken out, same command, each on a build of its own, 22:52 CEST:
+With one part of the change taken out, same command, each on a build of its own, between 22:52:11
+(`git log --format=%ci` of the rebased seed commit) and 22:53:38 CEST (`date`), on the first writing
+of the name check:
 
 | taken out | printed |
 |---|---|
@@ -138,7 +145,9 @@ the last edit, 22:53 to 22:54 CEST (`date`):
 
 In a page: `bun tools/lope-browser-runner.ts <the build> --get-cell attentionMirror --wait 12000`, a
 local file with nobody signed in, printed `{ "parts": [ {} ] }` with the tracker's tab in the layout
-and with the layout the build opens with. So the mirror gets the part the tracker's module offers.
+and with the layout the build opens with: `mains` of the build's `bootconf.json` has
+`@tomlarkworthy/brain-issues`, so the module runs in a local file whichever tabs are open. So the
+mirror gets the part the tracker's module offers.
 
 ## Not tried
 
