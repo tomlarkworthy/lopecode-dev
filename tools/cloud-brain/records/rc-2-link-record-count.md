@@ -29,6 +29,21 @@ spec keeps that line: 15 events less one remove. That line was not edited.
 
 How 14 and 11 came to be written is not known. The record had no command.
 
+## The rest of the sentence
+
+Kept as it was, and read again at 21:11 CEST (`date`), not held by the test. "Three reports made
+parts": events 527, 528 and 529 of the 15, `part-of`, the overseer's. "Three closed as a `duplicate`
+or with their `cause` named": 519 and 521 (`duplicate`) and 523 (`cause`), the overseer's, and the
+three issues were closed before the cut. The same two reads, `select(.type=="moved" and (.id==…))` for the three ids:
+
+```
+[520,"seen-tests-swap-console-log","close","closed",1791711962991,"secret:issues-overseer-1"]
+[522,"seen-no-record-of-test-runs","close","closed",1791711963687,"secret:issues-overseer-1"]
+[542,"seen-seen-json-behind-after-sweep","close","closed",1791712222493,"secret:issues-implementer-2"]
+```
+
+The third close is not the overseer's; the sentence does not say whose it was.
+
 ## The test
 
 `tests/tools/rc-2-link-record-count.test.ts`, three tests. It reads the link record and no other
@@ -54,8 +69,6 @@ itself. Nothing else bore on it. The test follows `tests/tools/redistil-record-s
 ## Not tried
 
 - That the 14 links "are all between issues read by one rule" (the record's "Not tried"). Not read again.
-- The rest of the edited sentence was read from the 15 rows and not held by the test: three
-  `part-of` by the overseer (527, 528, 529), and a `duplicate`, a `duplicate` and a `cause` (519, 521, 523).
 - The other counts of the link record (21 of 21 tests, 456 events). Not this issue's.
 - The command with another token, or from a worktree, where `.emitted/` has no tokens.
 - `jq` is `/usr/bin/jq` here; the command on a machine without it.
