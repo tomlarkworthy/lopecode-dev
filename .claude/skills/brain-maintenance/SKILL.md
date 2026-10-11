@@ -97,10 +97,17 @@ Two files beside it, neither of them needed to resume:
    generic opening. role: reviewer task: ....", and of what was built for it: "ok please get that into production").
    It is a process of its own, started with Bash, `run_in_background: true`, `timeout: 3600000`:
    ```
-   TAB=1 <root>/cloud-brain-dev/agent.sh reviewer "review issue <id>"
+   <root>/cloud-brain-dev/agent.sh reviewer "review issue <id>"
    ```
-   with nothing added to the task. It has Bash, Read, Grep, Glob and the notebook tab tools, and its brief is on
-   the Brain (`cloud-brain-dev/README.md`, "A light agent for one role"). Its stdout is one JSON line,
+   with nothing added to the task. It has Bash, Read, Grep and Glob, and its brief is on
+   the Brain (`cloud-brain-dev/README.md`, "A light agent for one role").
+   Put `TAB=1 ` before the command, which adds the notebook tab tools, in three cases only (the owner,
+   2026-10-11: "Yes remove TAB for non notebooks"): `<root>/tools/cloud-brain/review-needs-tab.sh <repo@sha>…`,
+   run on every `commit` ref of the last `submit`, exits 0 (a seed, a notebook or a module; it prints the file)
+   or 2 (a commit it could not read); the issue has a `url` ref; or the reviewer's report begins
+   `needed a tab`, which is a review it did not write: start it once more with `TAB=1` and post both runs' costs.
+   The tab tools are 8,342 tokens in every request (18,106 at the first request of review 3 of
+   `light-reviewer-in-use` against 9,764 with none), and none of that issue's three reviews called one. Its stdout is one JSON line,
    `{ session, result, usd, usage, context, turns, ms }`: `result` is its report. In the `cost` comment
    `tokens` is `context`, `seconds` is `ms` over 1000, and the line has three more fields, `"usd"`, `"session"`
    (the `session` of that JSON, not yours) and `"light":true`; `tools` is left out. It is never sent

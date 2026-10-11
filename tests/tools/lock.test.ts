@@ -110,7 +110,7 @@ test("a call that names no lock, no holder or a holder with a space is a usage e
 // The briefs a writer may edit give the tool, and no bare rmdir of either lock. rules.md is the owner's and is not read here.
 test("the briefs name lock.sh for both locks", () => {
   const read = (f: string) => readFileSync(join(root, f), "utf8");
-  const briefs = [".claude/skills/brain-maintenance/agents/implementer.md", ".claude/skills/brain-maintenance/agents/overseer.md", "knowledge/working-with-cloud-brain-remote-lopecode-cluster.md"];
+  const briefs = [".claude/skills/brain-maintenance/agents/implementer.md", ".claude/skills/brain-maintenance/agents/overseer.md", "knowledge/changing-and-deploying-a-cloud-brain-worker.md"];
   for (const f of briefs) {
     const text = read(f);
     expect(text.includes("lock.sh take"), f + " names lock.sh take").toBe(true);

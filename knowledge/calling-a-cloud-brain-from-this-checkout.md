@@ -1,0 +1,118 @@
+---
+scope: [local-development]
+topics: Cloud Brain; cb4; brain.ts curl; the state file; a token for an agent; no --owner writes; the health check; brain-x-logs; knowledge-docs.ts
+triggers:
+  - "(^Bash |^|[;&|] )bun +tools/cloud-brain/brain\.ts( |$)"
+  - "(^Bash |^|[;&|] )BRAIN_BASE=[a-z0-9]+ +bun +tools/cloud-brain/brain\.ts( |$)"
+  - "(^Bash |^|[;&|] )bun +tools/cloud-brain/knowledge-docs\.ts( |$)"
+  - "(^Bash |^|[;&|] )BRAIN_BASE=[a-z0-9]+ +bun +tools/cloud-brain/knowledge-docs\.ts( |$)"
+---
+
+# Calling a Cloud Brain from this checkout
+
+Moved here on 2026-10-11 from `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md`, which was written 2026-10-08 from the session that
+built the cluster pairing. Each command was run that day against `cb4`, except where it says not run. The text is as it was there; a line carries its own date where it is later.
+The other pages are listed in that file, which is read first.
+
+## Access from this checkout
+
+Everything goes through one CLI, run on this machine:
+
+```
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts <command>
+```
+
+- `cb4` is the scratch Brain: `https://cb4.endpointservices.workers.dev/`. Owner
+  `larkworthy.bsky.social`.
+- State is `tools/cloud-brain/.emitted/cb4.json`, git-ignored: recovery key, deployer key, minted
+  sessions. The Cloudflare token is `tools/scratch/cloud-brain-experiments/.cf-token`, git-ignored
+  and temporary. **Never print or copy either.** If the state file is missing, there is no access;
+  ask Tom.
+- A `brain.ts` changed in a git worktree has neither file beside it. `BRAIN_STATE_DIR=<main checkout>/tools/cloud-brain/.emitted`
+  runs it on the main checkout's state without copying it there (2026-10-10, `records/worktree-rebase-and-state-gaps.md`;
+  run with `curl --as` only). The Cloudflare token is read when a command sends it, so `curl`, `token` and `saw` start without it.
+- The header comment of `brain.ts` lists the commands. The ones used daily:
+
+| Command | Use |
+|---|---|
+| `curl <path> --owner [curl args]` | Call the kernel with the owner's session. `--other` calls as a test member. stdout is the answer's body alone, so it pipes into a JSON parser; the status, ` [200]`, is written to stderr (since 2026-10-11, `issue-as.sh` the same; before that it followed the body on stdout). |
+| `curl <path> --as NAME [curl args]` | The same call with a token of that name. |
+| `token NAME <method…> [--daily=USD]`, `token list`, `token revoke NAME` | Make a token with the owner's session (`token.create`). Its value goes to `.emitted/<base>-tokens.json`, mode 600, and is not printed. |
+| `state` | What is deployed. |
+| `page up` / `page state` / `page down` | The Brain's page in a browser of the cluster (`knowledge/pairing-with-the-cloud-brain-page.md`). |
+
+`redistil`, `apply` and `saw` are in `knowledge/changing-and-deploying-a-cloud-brain-worker.md`, and `page` in
+`knowledge/pairing-with-the-cloud-brain-page.md`.
+
+**An agent writes with a token, not with `--owner`.** A session minted from the state file is the
+owner's own session, and a service cannot tell it from the owner in their tab: events 2 to 9 of
+cb4's issue record, made with `brain.ts curl --owner`, carry `"via":"session","tab":true`, the same
+as event 150, which Tom made in the page (read 2026-10-10 19:20 with `issue.sync?since=0`). So such
+a call passes `caller.present` and can approve, revert, install a policy and rebuild. Tom on that
+issue (`owner-session-file-is-present`, event 150): "external agents should prefer to us a token
+over masquerading as the owner. They can obtain a token using owner if they don;t have other
+options". In this checkout:
+
+```
+brain.ts token my-task quota.get knowledge.search   # once, with the owner's session; prints the name only
+brain.ts curl /xrpc/com.lopecode.brain.quota.get --as my-task
+brain.ts token revoke my-task                       # when the work is done
+```
+
+Run on cb4 2026-10-10 19:21 with a token for `quota.get`: `quota.get` 200, `inbox.list` 403 "this
+token does not name com.lopecode.brain.inbox.list", `revoke` `{"revoked":1}`. A token's call arrives
+`via delegation:<id>` with `tab: false`, so it is never the owner present. A token cannot name
+`infra`, `secret`, `token`, `grant`, `people` or `delegation` methods (the kernel's `token.create`
+answers 400); those and `apply` stay with the owner's session or the recovery key, and the reads
+in the health check below are still made with `--owner`. Nothing refuses a write sent with `--owner`: this is an agreement, as the deploy lock is.
+A method list also takes a prefix (`'browser.*'`), quoted: zsh stops on a bare one with "no matches found".
+`--as` also reads `.emitted/<base>-issues-tokens.json`, where the tokens of the issue loop are.
+
+**No token of your own for the tracker.** Until 2026-10-10 the example above made a token for
+`'issue.*'`. Each token is a delegation of its own, and the tracker takes each as another actor:
+on issue `doc-example-mints-tracker-token` event 234 is `via delegation:84cd2100b161` (holder
+`secret:issues-reviewer-2`) and event 236 `via delegation:b6559fa96c36` (holder
+`secret:issues-implementer-2`). The workflow's guard for a pass is
+`r.verdict == "pass" && r.actor != issue.by.start` (`tools/cloud-brain/brain-issues.ojs`), and
+between two tokens one agent made that keeps nothing apart. An agent of the
+issue loop writes to the tracker with its role's token through `tools/cloud-brain/issue-as.sh`
+(`.claude/skills/brain-maintenance/rules.md`, "Which token") and makes no other. This is an
+agreement: `token.create` does not refuse `issue.*` to a caller that holds one, which would be a
+change to the kernel and is the owner's (the triage of that issue, event 236).
+
+A health check that takes ten seconds:
+
+```
+brain.ts curl /xrpc/com.lopecode.brain.lease.get --owner     # {"held":true}
+brain.ts redistil | grep -c same                             # 20 on 2026-10-10 11:57 (18 on 2026-10-09)
+brain.ts curl /xrpc/com.lopecode.brain.browser.all --owner   # browsers that cost money
+brain.ts curl /xrpc/com.lopecode.brain.container.all --owner # containers that cost money
+brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
+```
+
+## Why did that happen: the logs
+
+`brain-x-logs` passes Cloudflare's log queries through, scoped to this Brain, owner's session only.
+One read is not the owner's alone (since 2026-10-11): `logs.deploys?from=MS&to=MS` answers what the deployer
+wrote about deploys (`at: "deploy.…"`) over a span, whole, with the test runs counted by Worker, hash and
+failed test. A token that names it reads it: `brain.ts curl "/xrpc/com.lopecode.brain.logs.deploys" --as loop-deploys`
+(the last 24 hours; the token is made once with the owner's session, `brain.ts token loop-deploys logs.deploys`).
+What its counts mean and do not is in `brain-logs.ojs`, "The deploys of a span": a member's line leaves without the member's DID and text, and `runs` is whole only for a span that starts at or after 2026-10-11 05:52:03 UTC (`from=1791697923049`).
+The core writes one line a call with keys `at ray caller via origin delegation holder method worker status
+error ms price rule by`. Three traps met on the first day:
+
+- `method` is the short name (`bluesky.poll`), not the NSID. A filter on the NSID returns nothing.
+- A `calculations` query with `groupBys`: set `limit` to 500. With 50 and more groups than that, a group of 19 calls was left out (2026-10-09).
+- `ray` is the `cf-ray` without the part after the hyphen.
+- Cloudflare stores the request's path and query string beside each line. Do not put a long-lived
+  secret in a query string. Short-lived single-use codes are acceptable.
+
+## The knowledge docs in the Brain's search
+
+`knowledge/*.md` are entries of kind `doc` in the Brain's knowledge base (`knowledge.search?semantic=true&kind=doc&q=`),
+entered 2026-10-10. A changed doc is not entered again by anything:
+
+```
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status        # fresh / stale (and for how long) / missing
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --stale   # the reindex; $0.00005 a doc whose text changed
+```

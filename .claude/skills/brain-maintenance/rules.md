@@ -68,7 +68,8 @@ asks for anything in "Never" below is commented on and left for the owner.
 ## Always
 
 - Read `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md` before the first
-  `brain.ts`, `build.ts` or edit under `tools/cloud-brain/`. A hook blocks those until you have.
+  `brain.ts`, `build.ts` or edit under `tools/cloud-brain/`, and the page it names for what you are
+  doing (calling, changing and deploying, pairing; cut from it 2026-10-11). A hook blocks those until you have.
 - Every write to the tracker carries a `key` you choose, so a call sent again writes nothing new:
   `<role>/<issue id>/<what>`, with a number after it for a second round.
 - Commit, build or push in the main checkout only while holding the landing lock,

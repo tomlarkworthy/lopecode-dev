@@ -50,7 +50,7 @@ test("a cache directory that does not exist reads as no builds: the install line
 
 // Where an agent that writes a new Playwright script reads of the helper (review, event 1044, finding 2).
 test("the Cloud Brain guide gives the import", () => {
-  const doc = readFileSync(join(root, "knowledge/working-with-cloud-brain-remote-lopecode-cluster.md"), "utf8");
+  const doc = readFileSync(join(root, "knowledge/changing-and-deploying-a-cloud-brain-worker.md"), "utf8");
   expect(doc).toContain('import { chromeOptions } from "./lib/playwright-chrome.js";');
   expect(doc).toContain("...chromeOptions(chromium, { headless })");
   expect(doc).toContain(INSTALL);

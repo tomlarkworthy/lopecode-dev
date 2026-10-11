@@ -11,7 +11,7 @@ const root = resolve(import.meta.dir, "../..");
 const read = (p: string) => readFileSync(resolve(root, p), "utf8");
 
 test("the redistil row says which swept Workers read MOVED", () => {
-  const row = read("knowledge/working-with-cloud-brain-remote-lopecode-cluster.md").split("\n").find((l) => l.startsWith("| `redistil` |"));
+  const row = read("knowledge/changing-and-deploying-a-cloud-brain-worker.md").split("\n").find((l) => l.startsWith("| `redistil` |"));
   expect(row).toBeDefined();
   expect(row).not.toContain("every swept Worker");
   expect(row).toContain("swept Worker that had an entry");
