@@ -5,6 +5,7 @@
 // --after counts only the issues opened after that event. Times are the events' own `at`.
 // --window counts the events after that one, whatever issue they are of: what an oversight judges its last edits by.
 // --until reads the record as it was at that event: a count written down with its event can be made again.
+// `statements only` counts the reviews whose body begins with those words, and what the round after a sent-back one cost.
 // The lines under `locks` are issue.locks?history=500, the holds of the landing lock and the deploy lock as the tracker
 // keeps them: read when the tool runs, of the newest 500 holds. They are rows and not events, so --after, --until and
 // --window do not reach them, and a count of them cannot be made again once the rows are trimmed.
@@ -111,12 +112,35 @@ for (const i of all) {
   o.names[i.opener] = (o.names[i.opener] || 0) + 1;
 }
 const inWindow = shown.filter((e) => e.seq > from);
+// A review whose body begins `statements only` says every finding or note of it is a statement, and none asks code, a
+// test or a tool to change; `statements only, record` that each is in the issue's own record. The mark is the
+// reviewer's own (step 7 of its brief), of either verdict. For a marked `changes` the round after is the issue's first
+// implementer `cost` comment whose `event` is after the review, and its first reviewer `cost` comment whose `event`
+// is after that one: by `event`, since a comment's own seq is when it was written (backfilled ones, long after) and
+// its `round` counts the writer's runs, not the reviews. A review with either missing is counted and left out of the sum.
+const costs: Record<string, any[]> = {};
+for (const e of shown) if (e.type === "commented" && /^cost \{/.test(e.body || "")) try { (costs[e.id] ||= []).push(JSON.parse(e.body.slice(5))); } catch {}
+const mark = (e: any) => /^statements only(, record)?(?![\w-])/.exec(String(e.body || "").trimStart());
+const after = (list: any[], r: string, n: number) => list.filter((c) => c.role === r && c.event > n && Number.isFinite(c.tokens)).sort((x, y) => x.event - y.event)[0];
+const statementsOnly = (list: any[]) => {
+  const tally = (reviews: any[]) => {
+    const round = { summed: 0, tokens: 0, leftOut: [] as number[] };
+    for (const e of reviews.filter((e) => e.verdict === "changes")) {
+      const writer = after(costs[e.id] || [], "implementer", e.seq), review = writer && after(costs[e.id], "reviewer", writer.event);
+      if (review) { round.summed++; round.tokens += writer.tokens + review.tokens; } else round.leftOut.push(e.seq);
+    }
+    return { reviews: reviews.length, verdicts: count(reviews.map((e) => e.verdict)), round };
+  };
+  const marked = list.filter((e) => e.type === "reviewed" && mark(e));
+  return { all: tally(marked), record: tally(marked.filter((e) => mark(e)![1])) };
+};
 
 const moved = (m: string) => inWindow.filter((e) => e.type === "moved" && e.move === m).length;
 const windowReport = {
   after: from, events: inWindow.length, submits: moved("submit") + moved("submit-spec"), reworks: moved("rework") + moved("send-back"),
   verdicts: count(inWindow.filter((e) => e.type === "reviewed").map((e) => e.verdict)),
-  withText: inWindow.filter((e) => `${e.reason || ""}${e.body || ""}`.trim()).length, timesAhead: inWindow.filter(ahead).map((e) => e.seq)
+  withText: inWindow.filter((e) => `${e.reason || ""}${e.body || ""}`.trim()).length, timesAhead: inWindow.filter(ahead).map((e) => e.seq),
+  statementsOnly: statementsOnly(inWindow)
 };
 return {
   window: windowReport, since, idleH,
@@ -131,6 +155,8 @@ return {
   timeInState: Object.fromEntries(Object.entries(perState).map(([s, l]) => [s, { stays: l.length, medianMin: +(median(l) / 60000).toFixed(1), totalH: H(l.reduce((a, b) => a + b, 0)), maxH: H(Math.max(...l)) }])),
   done: { count: done.length, medianH: H(median(done.map((i) => i.since - i.at))), firstPass: done.filter((i) => !i.moves.includes("rework")).length, quick: done.filter((i) => !i.moves.includes("ready")).length },
   review: { submits, reworks, verdicts: count(all.flatMap((i) => i.verdicts)) },
+  // Of the record up to --until, whatever --after is; `window.statementsOnly` is of the reviews after --window.
+  statementsOnly: statementsOnly(shown),
   needsOwner: { ever: asked.length, became: count(asked.map((i) => i.state)), waitingNow: open.filter((i) => i.labels.has("needs-owner")).length },
   feedback: { open: open.filter((i) => i.kind === "feedback").length, gathered: all.filter((i) => i.kind === "feedback" && (i.parent || i.links > 0)).length },
   // Absent when no answer of issue.locks was given.
@@ -162,6 +188,10 @@ export function text(report: Report) {
   line("done", `${report.done.count}, median ${report.done.medianH} h from opened; ${report.done.firstPass} with no rework; ${report.done.quick} started without triage`);
   line("review", `${submits} submits, ${reworks} sent back; verdicts ${JSON.stringify(report.review.verdicts)}`);
   if (from) line("window", `${windowReport.events} events after ${from}: ${windowReport.submits} submits, ${windowReport.reworks} sent back; verdicts ${JSON.stringify(windowReport.verdicts)}; ${windowReport.timesAhead.length} of ${windowReport.withText} texts name a time ahead of their own stamp ${JSON.stringify(windowReport.timesAhead)}`);
+  const marked = (t: Report["statementsOnly"]["all"]) => `${t.reviews} ${JSON.stringify(t.verdicts)}${t.round.summed + t.round.leftOut.length ? `, the rounds after ${t.round.summed} sent back: ${t.round.tokens} tokens${t.round.leftOut.length ? `, ${t.round.leftOut.length} more left out (no cost comment naming its event) ${JSON.stringify(t.round.leftOut)}` : ""}` : ""}`;
+  const statements = (s: Report["statementsOnly"]) => `${marked(s.all)}; of them \`statements only, record\`: ${marked(s.record)}`;
+  line("statements only", `reviews that begin with it: ${statements(report.statementsOnly)}`);
+  if (from) console.log(`  after ${from}: ${statements(windowReport.statementsOnly)}`);
   line("needs-owner", `${report.needsOwner.ever} issues ever; now ${JSON.stringify(report.needsOwner.became)}; ${report.needsOwner.waitingNow} open with the label`);
   line("feedback", `${report.feedback.open} open, ${report.feedback.gathered} with a parent or a link`);
   const l: any = report.locks;

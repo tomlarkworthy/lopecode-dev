@@ -174,3 +174,82 @@ test("an answer with no history is said and not counted; with no answer given th
   expect(lockLines(text(r))).toEqual([]);
   expect("locks" in JSON.parse(JSON.stringify(report(events, { now: 1e6, locks: cb4 })))).toBe(true);
 });
+
+// rc-3-record-only-count, R3 of plan/cloud-brain-record-checked-by-review-alone.md: the reviews that begin
+// `statements only`, and what the round after a sent-back one cost. The cost comments are the bodies cb4 has, whole,
+// at the seqs it has them (804 to 807 of redistil-apply-leaves-seen-json, 835 to 839 of verification-runs-are-not-kept;
+// read 2026-10-11 with issues-implementer-2). The reviews are 452 and 534 with the mark put before a body of this
+// file's own: no review on cb4 carried the mark when this was written.
+const rev = { caller: "owner", via: "delegation:84cd2100b161", holder: "secret:issues-reviewer-2", tab: false };
+const reviewed = (seq: number, id: string, verdict: string, body: string) => ({ seq, key: `rev/${id}/${seq}`, type: "reviewed", id, verdict, body, refs: [], by: rev, at: 1000 * seq });
+const cost = (seq: number, id: string, body: string) => ({ seq, key: `cost-${seq}`, type: "commented", id, body, by: token("issues-implementer-2"), at: 1000 * seq });
+const r534 = [
+  opened("verification-runs-are-not-kept", token("issues-overseer-1"), { seq: 412 }),
+  reviewed(534, "verification-runs-are-not-kept", "changes", "statements only\nFinding 1. Two sentences of the served reference."),
+  reviewed(562, "verification-runs-are-not-kept", "pass", "pass. Nothing found."),
+  cost(835, "verification-runs-are-not-kept", 'cost {"role":"implementer","round":1,"tokens":117836,"seconds":364,"tools":16,"outcome":"stopped","backfilled":true}'),
+  cost(836, "verification-runs-are-not-kept", 'cost {"role":"implementer","round":2,"tokens":175360,"seconds":1030,"tools":46,"outcome":"in-review","event":482,"backfilled":true}'),
+  cost(837, "verification-runs-are-not-kept", 'cost {"role":"reviewer","round":1,"tokens":145267,"seconds":402,"tools":27,"outcome":"changes","event":534,"backfilled":true}'),
+  cost(838, "verification-runs-are-not-kept", 'cost {"role":"implementer","round":3,"tokens":177525,"seconds":723,"tools":37,"outcome":"in-review","event":549,"backfilled":true}'),
+  cost(839, "verification-runs-are-not-kept", 'cost {"role":"reviewer","round":2,"tokens":132823,"seconds":376,"tools":26,"outcome":"pass","event":562,"backfilled":true}'),
+  // The billed usage of 838: a comment of another kind, which is no cost comment.
+  cost(1720, "verification-runs-are-not-kept", 'cost-usage {"of":838,"role":"implementer","round":3,"backfilled":true,"how":"matched by event 549","usage":{"input":74,"cacheWrite":168665,"cacheRead":4672271,"output":34500,"requests":34}}')
+];
+const r452 = [
+  opened("redistil-apply-leaves-seen-json", token("issues-overseer-1"), { seq: 411 }),
+  reviewed(452, "redistil-apply-leaves-seen-json", "changes", "statements only\nFinding 1. The record names the wrong failing test."),
+  cost(804, "redistil-apply-leaves-seen-json", 'cost {"role":"implementer","round":1,"tokens":119966,"seconds":367,"tools":21,"outcome":"in-review","event":449,"backfilled":true}'),
+  cost(805, "redistil-apply-leaves-seen-json", 'cost {"role":"reviewer","round":1,"tokens":109954,"seconds":299,"tools":19,"outcome":"changes","event":452,"backfilled":true}'),
+  cost(806, "redistil-apply-leaves-seen-json", 'cost {"role":"implementer","round":2,"tokens":103508,"seconds":218,"tools":16,"outcome":"in-review","event":462,"backfilled":true}'),
+  cost(807, "redistil-apply-leaves-seen-json", 'cost {"role":"reviewer","round":2,"tokens":77183,"seconds":95,"tools":7,"outcome":"pass","backfilled":true}')
+];
+const others = [
+  opened("p", token("issues-overseer-1"), { seq: 2000 }),
+  reviewed(2001, "p", "pass", "statements only\nNote 1. The record says bytes where wc -m counts characters."),
+  reviewed(2002, "p", "pass", "  statements only, record. Note 1. One count of the record is off by one."),
+  // In the issue's own record and sent back, with no cost comment after it yet.
+  reviewed(2003, "p", "changes", "statements only, record\nFinding 1. The record gives no test count."),
+  // Not marked: the words are not the first of the body, or go on as another word.
+  reviewed(2004, "p", "changes", "Verdict: changes.\nstatements only"),
+  reviewed(2005, "p", "pass", "statements only-ish, and a test to change"),
+  reviewed(2006, "p", "pass", "Statements only"),
+  reviewed(2007, "test-q", "pass", "statements only")
+].sort((a, b) => a.seq - b.seq);
+const marked = [...r452, ...r534, ...others].sort((a, b) => a.seq - b.seq);
+const statementsLine = (lines: string[]) => lines.filter((l) => /^statements only\b/.test(l) || /^  after \d+: /.test(l));
+
+test("review 534, marked, with its five cost comments: the round after it is 310,348 (R3)", () => {
+  const s = report(r534, { now: 1e7 }).statementsOnly;
+  expect(s.all).toEqual({ reviews: 1, verdicts: { changes: 1 }, round: { summed: 1, tokens: 310348, leftOut: [] } });
+  expect(177525 + 132823).toBe(310348);
+  expect(s.record).toEqual({ reviews: 0, verdicts: {}, round: { summed: 0, tokens: 0, leftOut: [] } });
+  expect(statementsLine(text(report(r534, { now: 1e7 })))).toEqual(['statements only reviews that begin with it: 1 {"changes":1}, the rounds after 1 sent back: 310348 tokens; of them `statements only, record`: 0 {}']);
+});
+
+test("review 452, marked: counted, and left out of the sum, since its reviewer's cost comment names no event", () => {
+  const s = report(r452, { now: 1e7 }).statementsOnly;
+  expect(s.all).toEqual({ reviews: 1, verdicts: { changes: 1 }, round: { summed: 0, tokens: 0, leftOut: [452] } });
+  expect(statementsLine(text(report(r452, { now: 1e7 })))).toEqual(['statements only reviews that begin with it: 1 {"changes":1}, the rounds after 0 sent back: 0 tokens, 1 more left out (no cost comment naming its event) [452]; of them `statements only, record`: 0 {}']);
+});
+
+test("a marked pass is counted and has no round after it; `statements only, record` is counted under both", () => {
+  const s = report(marked, { now: 1e7 }).statementsOnly;
+  expect(s.all).toEqual({ reviews: 5, verdicts: { changes: 3, pass: 2 }, round: { summed: 1, tokens: 310348, leftOut: [452, 2003] } });
+  expect(s.record).toEqual({ reviews: 2, verdicts: { pass: 1, changes: 1 }, round: { summed: 0, tokens: 0, leftOut: [2003] } });
+  expect(report(others, { now: 1e7 }).statementsOnly.all.verdicts).toEqual({ pass: 2, changes: 1 });
+});
+
+test("with no marked review the line reads 0", () => {
+  expect(statementsLine(text(report(events, { now: 1e6 })))).toEqual(["statements only reviews that begin with it: 0 {}; of them `statements only, record`: 0 {}"]);
+});
+
+test("--window counts the marked reviews after that event, with a line of its own; --until cuts the cost comments too", () => {
+  const w = report(marked, { now: 1e7, from: 500 });
+  expect(w.window.statementsOnly.all).toEqual({ reviews: 4, verdicts: { changes: 2, pass: 2 }, round: { summed: 1, tokens: 310348, leftOut: [2003] } });
+  expect(statementsLine(text(w))).toEqual([
+    'statements only reviews that begin with it: 5 {"changes":3,"pass":2}, the rounds after 1 sent back: 310348 tokens, 2 more left out (no cost comment naming its event) [452,2003]; of them `statements only, record`: 2 {"pass":1,"changes":1}, the rounds after 0 sent back: 0 tokens, 1 more left out (no cost comment naming its event) [2003]',
+    '  after 500: 4 {"changes":2,"pass":2}, the rounds after 1 sent back: 310348 tokens, 1 more left out (no cost comment naming its event) [2003]; of them `statements only, record`: 2 {"pass":1,"changes":1}, the rounds after 0 sent back: 0 tokens, 1 more left out (no cost comment naming its event) [2003]'
+  ]);
+  // At event 838 the reviewer's comment of the round after 534 was not written yet.
+  expect(report(marked, { now: 1e7, until: 838 }).statementsOnly.all).toEqual({ reviews: 2, verdicts: { changes: 2 }, round: { summed: 0, tokens: 0, leftOut: [452, 534] } });
+});
