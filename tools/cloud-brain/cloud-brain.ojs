@@ -425,43 +425,6 @@ test_the_guest_brief_says_what_a_guest_has_and_how_to_join = {
   return "ok";
 }
 // %%
-md`## Operator`
-// %%
-// The chat is offered by name, in the plugin set "operator": brain-operator, a module of the shell, draws it in a
-// tab of its own and cannot import this module, which a Worker serves after the shell has booted.
-// settings: the fold with endpoint, key, model and system prompt. One chat on a page can host it, so the
-// default layout does not also open the robocoop-5 module.
-operatorChat = {
-  const part = {
-    chat: ({ invalidation, height = 420 } = {}) =>
-      robocoop5({
-        group: "brain",
-        height,
-        persist: true,
-        settings: true,
-        // The operator's brief leads; the prompt typed in the settings fold follows it.
-        system: () => assistantPrompt + "\n\n" + (promptView.value || ""),
-        watches: () => [...defaultWatches(), ...assistantWatches()],
-        invalidation
-      })
-  };
-  plugins.add("operator", part, { invalidation });
-  return part;
-}
-// %%
-// Where the chat is. A shell that has brain-operator draws it there, and this section links to that tab. A shell
-// posted before 2026-10-11 has no such module, and this page is deployed without the shell: there the chat is here.
-operatorSection = (mains, part, { invalidation, link = moduleLink } = {}) =>
-  mains && mains.has("@tomlarkworthy/brain-operator")
-    ? htl.html`<div data-operator-section="link">The chat is in the tab ${link("@tomlarkworthy/brain-operator", "brain-operator")}.</div>`
-    : htl.html`<div data-operator-section="chat">${part.chat({ invalidation })}</div>`
-// %%
-operatorHere = operatorSection(runtime.mains, operatorChat, { invalidation })
-// %%
-assistantLine = htl.html`<div style="color:var(--theme-foreground-muted)">${
-  !brain ? "" : inboxPump.error ? "Inbox: " + inboxPump.error : inboxPump.answering ? "Answering messages in this tab." : "Standing by. Another tab is answering."
-}${brain && inboxPump.waiting ? ` ${inboxPump.waiting} waiting` : ""}</div>`
-// %%
 md`## Services`
 // %%
 viewof services = serviceList({ services: [...declaredWorkers, ...notLoaded(registered, brainJoined)], brain, moduleLink })
@@ -511,6 +474,43 @@ probation = {
   }
   return out;
 }
+// %%
+md`## Operator`
+// %%
+// The chat is offered by name, in the plugin set "operator": brain-operator, a module of the shell, draws it in a
+// tab of its own and cannot import this module, which a Worker serves after the shell has booted.
+// settings: the fold with endpoint, key, model and system prompt. One chat on a page can host it, so the
+// default layout does not also open the robocoop-5 module.
+operatorChat = {
+  const part = {
+    chat: ({ invalidation, height = 420 } = {}) =>
+      robocoop5({
+        group: "brain",
+        height,
+        persist: true,
+        settings: true,
+        // The operator's brief leads; the prompt typed in the settings fold follows it.
+        system: () => assistantPrompt + "\n\n" + (promptView.value || ""),
+        watches: () => [...defaultWatches(), ...assistantWatches()],
+        invalidation
+      })
+  };
+  plugins.add("operator", part, { invalidation });
+  return part;
+}
+// %%
+// Where the chat is. A shell that has brain-operator draws it there, and this section links to that tab. A shell
+// posted before 2026-10-11 has no such module, and this page is deployed without the shell: there the chat is here.
+operatorSection = (mains, part, { invalidation, link = moduleLink } = {}) =>
+  mains && mains.has("@tomlarkworthy/brain-operator")
+    ? htl.html`<div data-operator-section="link">The chat is in the tab ${link("@tomlarkworthy/brain-operator", "brain-operator")}.</div>`
+    : htl.html`<div data-operator-section="chat">${part.chat({ invalidation })}</div>`
+// %%
+operatorHere = operatorSection(runtime.mains, operatorChat, { invalidation })
+// %%
+assistantLine = htl.html`<div style="color:var(--theme-foreground-muted)">${
+  !brain ? "" : inboxPump.error ? "Inbox: " + inboxPump.error : inboxPump.answering ? "Answering messages in this tab." : "Standing by. Another tab is answering."
+}${brain && inboxPump.waiting ? ` ${inboxPump.waiting} waiting` : ""}</div>`
 // %%
 md`## Library
 
@@ -951,6 +951,23 @@ test_the_page_is_a_service = {
   const none = await sim.fetch("https://page.internal/");
   expect([none.status, await none.text()]).toEqual([503, "This Brain has no shell yet (static answered 404). Its owner puts one at shell/index.html."]);
   return meta.worker;
+}
+// %%
+// The order of the page's sections is the order of the cells in the source its Worker serves. Services is the
+// first section after Health, whose last cells are the two sign-in buttons (the owner's note, fb-a2b5yudl8s).
+// Each name is looked for as its definition is written, so this cell's own text is not what is found.
+test_services_is_the_first_section_after_health = {
+  const { source } = await page_service.emit();
+  const heading = (name) => source.text.indexOf("(md`## " + name + "`)");
+  const cell = (name) => source.text.indexOf(', "' + name + '", [');
+  const at = [heading("Health"), heading("Services"), heading("Operator"), cell("healthView"), cell("guestInvite"), cell("viewof services"), cell("probation"), cell("operatorChat")];
+  expect(at.filter((i) => i < 0)).toEqual([]);
+  const order = (list) => list.map(([name]) => name);
+  const headings = [["Health", at[0]], ["Services", at[1]], ["Operator", at[2]]];
+  const cells = [["healthView", at[3]], ["guestInvite", at[4]], ["viewof services", at[5]], ["probation", at[6]], ["operatorChat", at[7]]];
+  expect(order([...headings].sort((a, b) => a[1] - b[1]))).toEqual(order(headings));
+  expect(order([...cells].sort((a, b) => a[1] - b[1]))).toEqual(order(cells));
+  return order(headings).join(", ");
 }
 // %%
 fromBrain = ({})
