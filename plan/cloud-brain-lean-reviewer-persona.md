@@ -12,6 +12,17 @@ Tom, 2026-10-11, quoted in the issue's body (event 905), whole:
 
 > I think we need to move towards lighter agents, so I think reviewer becomes a persona with a smaller knowledge knowledgebase and reduced tooling. The difficulty is making sure we have a single maintanable knowledge base, not a ton of repatition, and ensuring that we are maintaining information flow. The overseer is well placed for this, and the knowledgebase has tags so we can tag "reviwer" on what it needs. Then a script sets it up properly, and the oversee debugs knowledge mistakes.
 
+A correction, in a comment on the issue (event 913, 2026-10-11, filed for him by the session that
+opened it):
+
+> you are talking about the cloud knowledgebase, I am talking about the lopecode-dev knowledge directory.
+
+So "the knowledgebase has tags" is `knowledge/*.md` and its frontmatter field `scope:`, not the
+Brain's `knowledge.*` service. The first writing of this spec (commit `75c04663`) was made before
+that comment was read: it marked a doc with a new key, `roles:`, and carried the mark to the Brain
+as a tag. Both are taken out here. The mark is a value of `scope:`, and nothing in the design
+touches the Brain's knowledge base.
+
 ## The reports gathered
 
 `list?parent=lean-reviewer-persona` answers `{"issues":[]}`: the feature has no parts. It was
@@ -25,8 +36,8 @@ is taken here as a report.
 | "A script that writes the agent type from what is marked, and with no arguments checks it and exits nonzero" | R3 |
 | "The overseer keeps it right" | R4 |
 | "The size of a marked thing" | settled under "The size of a marked thing": a document, and the long one is cut in two |
-| "Where the mark is and what the script reads" | the frontmatter of the file in git; the script reads files |
-| "What is in the body and what is searched for" | all of it in the body. A search by tag at the time of need is left out: `tag` is refused with `semantic=true`, see below |
+| "Where the mark is and what the script reads" | a value of `scope:` in the frontmatter (event 913); the script reads files |
+| "What is in the body and what is searched for" | all of it in the body. A search at the time of need is taken out by the correction (event 913) |
 | "The hook" | R5 |
 | "How a knowledge mistake is seen" | R4: a tool that reads the transcripts, and one line of the report |
 | "The proof before the switch" | R6 |
@@ -176,16 +187,16 @@ against the page's source).
 - "a `PreToolUse` hook in `settings.json` also runs before every tool a subagent uses".
 - `skills:` puts a skill's whole text into the subagent at start-up.
 
-### The knowledge base's tags
+### The tag: `scope:`
 
-- `knowledge-docs.ts` enters each `knowledge/*.md` as one entry and sends `tags: ["knowledge-doc"]`
-  (line 95). It reads `scope:` and `topics:` from the frontmatter and nothing else.
-- `knowledge.list?tag=` and the word search filter by tag. `knowledge.search?semantic=true` refuses
-  it: "semantic: the filters are kind and since" (`brain-knowledge.ojs`, line 420).
-- Tags "are only added to … the way to remove one is to delete the entry and put it again" (line 52).
-- `knowledge-docs.ts` calls with `--owner`. No token of the loop names `knowledge.put`.
-- The issue says "no token of the loop names `knowledge.search` today". `loop-knowledge` does, made
-  later the same day (`rules.md`, "Searching what the Brain knows").
+- `knowledge/` has 50 files and 812,983 bytes (the count in event 913; not counted again here).
+- `scope:` is a closed set, `local-development` and `in-notebook`, enforced by check 6 of
+  `scripts/check-learnings-triggers.sh` (lines 232 to 257): a doc with no scope, or a value outside
+  the set, is reported.
+- `tools/sync-wiki.ts` builds one thing from one value of it (`in-notebook`), and with no arguments
+  exits 1 on drift.
+- `rules.md`, `agents/reviewer.md` and `philosophy.md`, which a reviewer reads first, are outside
+  `knowledge/` and have no frontmatter.
 
 ### Past reviews that can be run again
 
@@ -236,24 +247,28 @@ taken.
 | `rules.md` | 9,939 | the same table: every role gets it whole |
 | `philosophy.md`, "The seven" | 587 | the same table, by heading. The one part that is not a whole file |
 | `agents/tests-in-a-tab.md` (new: step 8 of `implementer.md`, moved) | about 4,000 | the same table, for `reviewer` and `implementer` |
-| `knowledge/cloud-brain-access-for-the-loop.md` (new: cut from the Cloud Brain doc) | about 7,000 | frontmatter `roles: [reviewer]` |
+| `knowledge/cloud-brain-access-for-the-loop.md` (new: cut from the Cloud Brain doc) | about 7,000 | frontmatter `scope: [local-development, reviewer]` |
 
 About 31 KB. At four bytes a token that is about 8,000 tokens, an estimate. With the issue's 6,239
 the first turn would be near 14,000 against 41,105 today, before the MCP tools are counted.
 
 There are two kinds of mark, and the reason is who may edit what.
 
-- **A knowledge doc** carries `roles: [reviewer]` in its frontmatter, beside `scope:`. This is the
-  owner's tag. `check-learnings-triggers.sh` refuses a role with no entry in the script's table, as
-  it refuses an unknown scope. `knowledge-docs.ts` sends each role as a tag (`role-reviewer`: a tag
-  is `a-z 0-9 -`), so `knowledge.list?tag=role-reviewer` answers the documents the reviewer is
-  made from. The script reads the files, never the base: it runs offline and a stale entry cannot
-  reach an agent.
+- **A knowledge doc** carries `reviewer` as a value of `scope:`, beside `local-development`. This
+  is the owner's tag, and the third value of the set: check 6 of `check-learnings-triggers.sh`
+  takes its set of values from the script's table of roles, so a role with no entry is refused as
+  an unknown scope is today. The script reads the files and nothing else.
 - **A file of the loop** (`rules.md`, `philosophy.md`, a brief) has no frontmatter and is not a
   knowledge entry, and the overseer may not edit the first two. Which roles get them is a table of
   eight lines or so at the head of the script. `philosophy.md` is the owner's and is not cut: the
   script takes the text between "## The seven" and the next `##`, and fails when either heading is
   gone.
+
+The loop's files do not move into `knowledge/` (event 913 leaves this to the spec). `rules.md` and
+the briefs are named by path in `SKILL.md`, in each other and in the spawn prompt of every role;
+`philosophy.md` is a link into another repository. A move would change those paths for all five
+roles to save eight lines of a table, and would put files the overseer may not edit under a
+directory whose docs it does.
 
 ### The size of a marked thing
 
@@ -280,9 +295,8 @@ Not chosen:
 - *The `skills:` field*, with each part a skill. Claude Code would do the joining. Not taken: a
   skill is a directory with its own frontmatter, so each source would be copied into one, and that
   copy is the repetition R2 forbids.
-- *Search by tag when a fact is needed.* Not taken now: the semantic search refuses `tag`, a word
-  search by tag over five documents answers what the body already holds, and each search is a turn
-  at the full context.
+- *Search when a fact is needed.* Taken out by the correction: the source is the directory, read by
+  the script, and the agent calls no service for it.
 
 ### The script
 
@@ -304,7 +318,7 @@ the loop runs, fails when a source was changed and the script was not run.
 The two `brain.ts` triggers move from the Cloud Brain doc to the new doc; the trigger on an edit
 under `tools/cloud-brain/` stays. A caller of `brain.ts` is then asked for 7 KB in place of 27.
 
-The gate does not credit a body. So `--write` also writes the names of the `roles:` docs of each
+The gate does not credit a body. So `--write` also writes the names of the docs of each
 type to `.claude/agents/roles.json`, and `learnings-gate.sh` takes a doc as read when the call comes
 from an agent type that carries it. This needs the hook's input to say which type is calling. The
 docs say a hook receives `agent_type`; the keys recorded for a main-session call in
@@ -333,10 +347,6 @@ A file outside the body read by three runs or more, or named in a `Lacked:` line
 to add or a source to cut, then `agent-types.ts --write`, in the same commit. A part of the body
 that is a knowledge doc and whose commands appear in no run over 20 runs is a mark to take off.
 Three and 20 are first guesses, to be changed by the overseer from what it sees.
-
-Taking a mark off does not take the tag off the entry in the Brain (tags are only added). The
-script does not read the base, so no agent is affected; `knowledge.list?tag=role-reviewer` is then
-wrong until the entry is deleted and put again, which is the owner's.
 
 ### The proof before the switch (R6)
 
@@ -404,9 +414,11 @@ Each is one writer and one review. 1 and 2 are worth having if nothing after the
    briefs name it. Known by: over the next 10 reviews no reviewer reads `implementer.md`.
 2. **`agent-reads.ts`**, with a test over a fixture transcript. Its output for today's reviewers
    matches this spec, or the record says where this spec was wrong.
-3. **The doc cut and the marks.** `knowledge/cloud-brain-access-for-the-loop.md`, `roles:` in the
-   frontmatter, the check in `check-learnings-triggers.sh`, the two triggers moved, `roles` sent as
-   tags by `knowledge-docs.ts`, CLAUDE.md's table of knowledge docs.
+3. **The doc cut and the marks.** `knowledge/cloud-brain-access-for-the-loop.md` with `reviewer` in its
+   `scope:`, the value added to check 6 of `check-learnings-triggers.sh`, the two triggers moved,
+   CLAUDE.md's table of knowledge docs and its paragraph on `scope:`. The other readers of `scope:`
+   (`tools/sync-wiki.ts`, `tools/cloud-brain/knowledge-docs.ts`) are run with the new value in place;
+   how they take a third value was not read for this spec.
 4. **`agent-types.ts`** and its test; `.claude/agents/brain-reviewer.md` written by it; the start-up
    count of the type, with and without `ToolSearch`, in the record. The hook's input for a subagent
    is read, and the gate's change is made or the record says why not. `SKILL.md` is not changed.
@@ -422,13 +434,11 @@ Each is one writer and one review. 1 and 2 are worth having if nothing after the
 - Restart the orchestrating session once after task 4 lands: `.claude/agents/` is a new directory.
 - Approve the clause in `rules.md`, "Always", first line (R5). Without it a lean reviewer is still
   told to read the 27 KB doc, and reads it.
-- `BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --stale` after task 3, so the new doc
-  is an entry and the tag is on it. It calls with his session. Nothing in the design waits for it.
-- Delete and put an entry again when a role mark was taken off and the tag should go too.
 
 ## Read
 
-Searches of the Brain's knowledge base, 2026-10-11, `knowledge.search?semantic=true` with the token
+Searches of the Brain's knowledge base for prior art (step 4 of the spec writer's brief; the design
+calls no such search), 2026-10-11, `knowledge.search?semantic=true` with the token
 `loop-knowledge`:
 
 | Words | Found | Used |
@@ -438,7 +448,7 @@ Searches of the Brain's knowledge base, 2026-10-11, `knowledge.search?semantic=t
 | context engineering progressive disclosure skills | Memento-Skills 0.95; `web:weng-harness-engineering` 0.84 | see below |
 | token cost of agent startup system prompt | papers on other subjects (0.87 down); `doc:effective-use-of-fable` 0.66 | no |
 | retrieval vs long context for agent instructions | AutoManual 0.98; papers on embedding retrieval | no |
-| `q=reviewer&tag=reviewer` (words) | `{"entries":[]}` | confirms the issue: no entry has a role tag |
+| `q=reviewer&tag=reviewer` (words) | `{"entries":[]}` | no. Out of scope since event 913 |
 
 Read as the entry's text only, which is an abstract and a note, not the paper:
 
