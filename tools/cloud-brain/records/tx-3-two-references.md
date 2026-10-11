@@ -35,7 +35,7 @@ this round runs the core, and no such token was made on cb4.
 
 ## What changed
 
-Four sentences in `brain-browser.ojs` and one in `brain-blob.ojs`. The spec names three (lines 97, 131
+Three sentences in `brain-browser.ojs` and one in `brain-blob.ojs`, four in all. The spec names three (lines 97, 131
 and 36); the fourth is in the paragraph after line 97, "A person's own session, a token and a Worker
 keep the caller's name", untrue by the same cause, in the same cell, in the same deploy.
 
