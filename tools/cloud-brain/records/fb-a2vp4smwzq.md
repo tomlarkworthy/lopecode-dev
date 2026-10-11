@@ -12,8 +12,8 @@ Written 2026-10-11 by a writer of the issue loop, round 1. The seed commit's aut
 `tools/cloud-brain/cloud-brain.ojs`: one line added to `assistantPrompt`, after the line about
 `cloud-brain-docs`, and one test. No tool was added and `assistantRefuses` is as it was.
 
-The line, as the tab read it from `assistantPrompt` (`brainOrigin` is empty on a file address;
-on cb4 it is the Brain's address):
+The line, as the tab read it from `assistantPrompt` (`brainOrigin` is `null` on a file address, so the
+line reads `null/llms.txt` there; corrected in round 2, this said "empty". On cb4 it is the Brain's address):
 
 ```
 - What this brief does not say is read where it is kept, not remembered. What the Brain holds on a question (the guides to how this Brain and its notebooks are worked on, the designs, notebook modules, papers): brain_call knowledge.search { q, semantic: "true" }, with kind: "doc" for the guides alone, then knowledge.get { id } for an entry's text. One Worker's methods, inputs and answers as deployed: brain_call getSource { worker, part: "reference" }, before a method you have not called. How a program calls this Brain, and every method deployed: ${brainOrigin}/llms.txt. The files the agents that maintain this Brain read: ${brainOrigin}/static/cloud-brain-dev/index.md lists them. Those two are addresses, not methods: eval_js with (await fetch(address)).text().
@@ -55,7 +55,7 @@ has that list as `brain_services`. Not changed.
   `seen-operator-cannot-read-dev-repo` (event 1187), linked to this issue.
 - **The loop's rules and briefs** (`.claude/skills/brain-maintenance/`). `knowledge.search` with
   `kind=doc` and `q=cloud`, `limit=100`, answered 17 docs, all of `knowledge/` and `plan/`; none is
-  a brief, `rules.md` or `philosophy.md`.
+  a brief, `rules.md` or `philosophy.md`. 17 is that one search's answer and not what the Brain holds: see round 2.
 - **A full doc over 16000 characters.** An entry's `text` is cut there (the reference of
   `brain-x-knowledge`). Not measured which of the 17 are cut.
 
@@ -90,3 +90,81 @@ has that list as `brain_services`. Not changed.
   without the owner's own session"; that `knowledge.search` answers that caller was not tried.
 - `eval_js` fetching from the Brain's own address (the tab was on `file://`).
 - The cluster's browser (Chrome 128); the 20 runs were Chrome 151 on this machine.
+
+## Round 2, 2026-10-11
+
+The review at event 1259 sent it back with two findings. The seed commit's author time is
+18:48:45 +0200 (`git log --format=%ai`).
+
+### Finding 1: the operator was shown 8000 characters of an answer
+
+The page's agent loop shows 8000 characters of a tool's result, the first 4000 and the last 4000
+(`robocoop-5-core`, `toolOutputLimit = 8000`, `truncate`), unless the tool returns `outputLimit`.
+`brain_call` cut its answer at 20000 and returned none, so the 20000 was never shown. Round 1
+showed each pointer reachable with `brain.ts curl` and a `fetch`, which have no cap, and listed
+the tool's `execute` under "Not tried". That was the miss.
+
+Measured in a QA tab on the round's build (`r=7202`), with the reference of `brain-x-issues` read
+from cb4 and the notebook's own `truncate`:
+
+```
+{"ref":27094,"oldShown":8056,"oldMarker":"...[12000 bytes truncated — use grep/sed to narrow]...",
+ "newFirst":20076,"newSecond":7094,"whole":true,"cut":false,
+ "tail":"\n[characters 0 to 20000 of 27094. The rest: the same call with offset 20000]"}
+```
+
+`oldShown` is round 1's return (`.slice(0, 20000)`, no `outputLimit`) through `truncate(…, 8000)`.
+`newFirst` and `newSecond` are `turnTool`'s two answers through `truncate(output, outputLimit)`;
+`whole` is that the two, less the last line of the first, are the reference.
+
+What changed, in `cloud-brain.ojs`:
+
+| | |
+|---|---|
+| `callAnswer(out, offset)` (new) | `{ output, outputLimit: 20200 }`: 20000 characters of the answer from `offset`, and a last line when there is more. 20200 leaves room for that line. |
+| `turnTool`, and `brain_call` of `assistantTools` | both return `callAnswer(out, offset)`, take `offset` (a number) and say so in their description. |
+| `assistantPrompt` | the end of round 1's line: `eval_js with (await (await fetch(address)).text()).slice(0, 7000), then slice(7000, 14000) and on, since eval_js shows 8000 characters of a result with the middle cut out.` Round 1's `(await fetch(address)).text()` was also not JavaScript that answers a text. |
+| import | `truncate` from `@tomlarkworthy/robocoop-5-core`, read by the test. `robocoop-5` is not changed. |
+
+Both of the reviewer's ways were taken, each where it applies: `outputLimit` for `brain_call`,
+and the brief for `eval_js`, which is robocoop-5's tool and returns no `outputLimit`.
+
+`offset` makes the call again. For a query that is a second read. For a procedure it would be the
+act a second time; the description says "the same query", and nothing refuses `offset` with a
+procedure.
+
+`test_brain_call_shows_a_long_answer_in_parts_and_the_loop_cuts_none` gives `turnTool` a text of
+27094 characters, passes each answer through the loop's `truncate` with the `outputLimit`
+returned, and holds: the first is 20000 characters and the line, no "truncated"; the first and
+the second (`offset: 20000`) are the text; a short answer and an object are as before.
+`test_the_operator_is_pointed_at_what_the_brain_holds` also holds `.slice(0, 7000)` in the brief.
+The operator's own `brain_call` is made in `assistantTools`, which needs a session; no test calls
+it. It returns the same `callAnswer(out, offset)` (`cloud-brain.ojs`, the two lines `callAnswer(out`).
+
+### Finding 2: two wrong lines
+
+- The comment of round 1 said the Brain "holds 17 docs". 17 was one search's answer.
+  `BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status`, 2026-10-11 18:49 CEST:
+  `{"docs":63,"fresh":59,"stale":2,"missing":2,…}`, so 61 of 63 are entered. (The review read 62
+  and 1 missing at its time.) A comment is not edited; round 2's comment says so.
+- `brainOrigin` on a file address is `null`, not empty. Corrected above.
+
+### Tests, round 2
+
+- QA tab on the build (`r=7202`), the snippet of step 8: `[20, []]`.
+- `bun test.ts brain-x-page --with …/fb-a2vp4smwzq.js`: `passed` 9, `failed` 0, `needsBrowser` 11.
+  The new test is one of the 9. 9 + 11 = 20.
+- `verify-run.ts brain-x-page --shell <the build> --times 20`, ended 2026-10-11T16:49:06Z: first
+  line `mains` `["@tomlarkworthy/brain-shell", "@tomlarkworthy/cloud-brain"]`; last line `runs` 20,
+  `passed` 20, `failed` 0, `none` 0, `from` `["document"]`, `byChance` `[]`. Each of the 20 lines
+  has `tests` 20, `failed` `[]`.
+
+### Not tried, round 2
+
+- A turn with a model: whether the operator asks for the rest with `offset`, or slices in
+  `eval_js`, is not known.
+- `brain_call` of `assistantTools` through its `execute`, in a signed-in tab.
+- A guide over 16000 characters: `knowledge.get` answers a `text` cut there by the knowledge
+  service, which `offset` does not change. The entry's `file` in `brain-static` is the whole doc
+  where it has one; the brief does not say so.
+- `eval_js` itself with a result over 8000 characters; the 8000 is read from `robocoop-5-core`.
