@@ -18,6 +18,13 @@ asks for anything in "Never" below is commented on and left for the owner.
   token and no other.
 - Call `issue.install`, `issue.rebuild`, the `approve`, `revert` or `owner-reject` moves, a swap the
   workflow does not list, or remove the label `major`.
+  The `approve` move alone may be made for the owner by the orchestrating session with his
+  session, when he has said so of that issue in that session after being shown the passing
+  review. The move's reason quotes his words and names the review's event; the key is
+  `orch/<id>/approve-for-owner-<n>`. Not `install`, `rebuild`, `revert` or `owner-reject`, and not
+  on a word given for another issue. (Tom, 2026-10-11, asked "may a session make the approve
+  move for you on your word in chat?": "yes!". Issue `approve-made-for-the-owner-on-his-word`;
+  the first such move was event 577.)
 - Print, copy or log a secret: the recovery key, the deployer key, a session, a token, the
   Cloudflare token, an app password. Do not read `.emitted/cb4.json`, `cb4-tokens.json` or `cb4-issues-tokens.json`
   into your output.
