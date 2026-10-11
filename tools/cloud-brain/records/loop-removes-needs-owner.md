@@ -29,3 +29,11 @@ session and names no event that put the label on (142). `SKILL.md` lines 68 and 
 the label is the owner's alone to take off: bug `skill-md-needs-owner-removal-stale`.
 
 The second way of the issue body, a guard in the policy, is not taken: it needs an install.
+
+## Round 2, later the same day: the owner answers the open question
+
+Asked by the orchestrating session "does your word to me in chat, which I then quote on the
+issue, count as 'the owner has commented on the issue'?", the owner chose "Yes, it counts"
+(2026-10-11, about 14:55 CEST; the session's question form, not a tracker event). The sentence
+is back in the line, now with his answer quoted. "Not decided, the owner's" above is answered by
+this; the two cases the line does not cover are as they were.

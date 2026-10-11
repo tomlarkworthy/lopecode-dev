@@ -35,7 +35,9 @@ asks for anything in "Never" below is commented on and left for the owner.
   cluster, until `deployer-put-back-issues-worker` is closed. That browser is Chrome 128, which
   has no Ed25519: the page runs every Worker's tests on opening, the tracker's fail there, and
   the deployer puts `brain-x-issues` back to its previous version (it did at 19:32:38 on
-  2026-10-10, taking a reviewed fix off cb4 for 11 minutes).
+  2026-10-10, taking a reviewed fix off cb4 for 11 minutes). (Added by the orchestrating session
+  on 2026-10-10 with no issue; Tom, 2026-10-11, asked to keep it or revert it: "Keep it". Issue
+  `rules-never-line-added-unapproved`.)
 - Deploy text that was not built from a seed. A change goes seed, `build.ts`, tests, emit, apply.
 - Deploy the kernel (`brain`), `brain-core`, `brain-db` or the deployer. A fix that needs one of
   them is written up on the issue, which gets the label `needs-owner` and is not started.
@@ -50,7 +52,9 @@ asks for anything in "Never" below is commented on and left for the owner.
   `loop-removes-needs-owner`: "yes if the answer becomes clear from philosophy, or the owner has
   commented on the issue and clarified.") The removal follows a comment that names the event
   that put the label on and what ended its reason: the line of `philosophy.md`, or the owner's
-  comment.
+  comment. The owner's word to a session, quoted by that session in a comment on the issue,
+  counts as his comment (Tom, 2026-10-11, asked "does your word to me in chat, which I then quote
+  on the issue, count as 'the owner has commented on the issue'?": "Yes, it counts").
 - Submit, or record a `pass`, without a test count from a run you made yourself.
 
 ## Always
