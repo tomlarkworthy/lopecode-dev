@@ -88,7 +88,9 @@ module's name is what runs.
 
 In a browser, the notebook built in the worktree after the rebase, layout
 `C100(S70(@tomlarkworthy/brain-deployer),S30(@tomlarkworthy/claude-code-pairing))`, the snippet of
-step 8 of the implementer's brief, once: `[56,[],"Chrome/151.0.7922.34"]`. 56 tests, none failed.
+step 8 of the implementer's brief, in three fresh tabs (`r=3101`, `3104`, `3105`), 15:41 to 15:46 CEST:
+`[56,[]]` each, Chrome/151.0.7922.34. 56 tests, none failed. Two more tabs (`r=3102`, `3103`) were
+asked before they had connected and gave no count.
 
 `brain.ts`:
 
@@ -110,8 +112,9 @@ cd $W && bun test ./tests/tools                                                 
   together were not run. `verify-run.ts` opens `/` and was not changed.
 - `static.delete { path: "shell/verify.html" }` from the owner's session. The spec has it under "Not known"; it was not run here either.
 - Chrome 128, the cluster's browser. As in the spec, "Not known".
-- `verify-run.ts brain-deployer --shell … --times 1` (the brief's 20 runs at the deployer's
-  address): the page answers `"none":"the Worker did not say what it runs"`. The deployer is not
+- `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-deployer --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 1`
+  (the brief's 20 runs at the deployer's address; run at 15:41 CEST, exit 2, and the overseer's
+  event 844 has the same): the page answers `"none":"the Worker did not say what it runs"`. The deployer is not
   verified by a run, so the new cells have no run of that kind.
 - Whether the file is public, or is a shell, is not checked by the deployer. `infra.shell` always
   puts it public. A file made private afterwards (`static.setPublic`) answers the browser 401, the
