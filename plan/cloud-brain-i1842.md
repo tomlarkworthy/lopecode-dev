@@ -350,7 +350,10 @@ Searches of the Brain (`knowledge.search?semantic=true`, token `loop-knowledge`,
 
 `module:plugin-registry` was read in the built notebook (its "Contracts" cell: `add` returns a
 remove, `get(name)` yields again on every add). Nothing was searched outside the Brain: a layout
-string and a module split have no literature, and no round has failed.
+string and a module split have no literature. Round 1 was sent back (event 1958) on two checks,
+with the design and the four answers accepted, so no problem of the design has resisted a round.
+Round 2 searched nothing new: what it needed was in `brain-shell.ojs` and `verify-run.ts`, and in
+three runs at the address.
 
 `issue-stats.ts` was not run. It measures the loop, and this project is about the page.
 
