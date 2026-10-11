@@ -123,7 +123,7 @@ What changed, in `cloud-brain.ojs`:
 |---|---|
 | `callAnswer(out, offset)` (new) | `{ output, outputLimit: 20200 }`: 20000 characters of the answer from `offset`, and a last line when there is more. 20200 leaves room for that line. |
 | `turnTool`, and `brain_call` of `assistantTools` | both return `callAnswer(out, offset)`, take `offset` (a number) and say so in their description. |
-| `assistantPrompt` | the end of round 1's line: `eval_js with (await (await fetch(address)).text()).slice(0, 7000), then slice(7000, 14000) and on, since eval_js shows 8000 characters of a result with the middle cut out.` Round 1's `(await fetch(address)).text()` was also not JavaScript that answers a text. |
+| `assistantPrompt` | the end of round 1's line: `eval_js with (await (await fetch(address)).text()).slice(0, 7000), then slice(7000, 14000) and on, since eval_js shows 8000 characters of a result with the middle cut out.` (Wrong, and corrected in round 3: `eval_js` shows the first 6000 characters of a text.) Round 1's `(await fetch(address)).text()` was also not JavaScript that answers a text. |
 | import | `truncate` from `@tomlarkworthy/robocoop-5-core`, read by the test. `robocoop-5` is not changed. |
 
 Both of the reviewer's ways were taken, each where it applies: `outputLimit` for `brain_call`,
@@ -168,3 +168,78 @@ it. It returns the same `callAnswer(out, offset)` (`cloud-brain.ojs`, the two li
   service, which `offset` does not change. The entry's `file` in `brain-static` is the whole doc
   where it has one; the brief does not say so.
 - `eval_js` itself with a result over 8000 characters; the 8000 is read from `robocoop-5-core`.
+
+## Round 3, 2026-10-11
+
+The review at event 1308 sent it back with two findings. The seed commit's author time is
+19:05:45 +0200 (`git log --format=%ai`).
+
+### Finding 1: the brief's slices of 7000 lost 1000 characters each
+
+Round 2 wrote that `eval_js` shows 8000 characters with the middle cut out. That is the loop's
+cap, read from `robocoop-5-core`; the tool was not run. `eval_js` cuts a text itself, before the
+loop sees it: `summary(r.value, 6000)` keeps the first 6000 characters and ends ` …(+N chars)`
+(`robocoop-5-srctools`, `valueLib` and `tool_eval_js`). The same miss as round 1: a cap read, a
+tool not run.
+
+The brief now ends: `eval_js with (await (await fetch(address)).text()).slice(0, 6000), then
+slice(6000, 12000) and on, since eval_js shows the first 6000 characters of a text and drops the rest.`
+
+Run this time, in a QA tab on the round's build (`r=7301`): the page's own `tool_eval_js.execute`
+on module `@tomlarkworthy/cloud-brain`, with the brief's code on
+`https://cb4.endpointservices.workers.dev/llms.txt`, each output through the loop's `truncate`:
+
+```
+{"file":16745,"parts":[6000,6000,4745],"whole":true,"old7000":[6015,"` …(+1000 chars)"]}
+```
+
+`parts` are the slices from 0, 6000 and 12000; `whole` is that joined they are the file.
+`old7000` is round 2's `.slice(0, 7000)`: 6015 characters, ending in the marker.
+
+`test_eval_js_shows_the_slice_the_brief_names_whole` runs `tool_eval_js` on a text of 6000
+(shown whole, and whole through `truncate(…, 8000)`) and of 6001 (6000 and ` …(+1 chars)`), so a
+change of that number in robocoop-5 fails a test of the page.
+`test_the_operator_is_pointed_at_what_the_brain_holds` holds `.slice(0, 6000), then slice(6000, 12000)`.
+
+The test reads the tool with `runtime.module((await importShim("/@tomlarkworthy/robocoop-5-srctools.js?v=4")).default).value("tool_eval_js")`
+after a first line `document;`, and does not import it. Tried first as an import: with no browser
+the test then failed with "Text is not defined", from a cell the tool is built on, and `test.ts`
+counts that as `failed` (its `noDom` names `document`, `location` and five others, not `Text`).
+`test.ts` is in `cloud-brain-dev`, which the loop has no token to push. The form is the one
+`brain-shell.ojs` uses in its own test ("An import by path gets the same module").
+
+### Finding 2: `offset` with a procedure ran the write again
+
+Both `brain_call` tools now refuse `offset` when `kind` is not `query`, before the call:
+"offset is for a query. A procedure called again would run a second time, so it is not called."
+(`offsetRefused`). The last line of a procedure's long answer reads `The rest is not read: a
+procedure called again would run a second time`, and no longer names an offset. Both of the
+reviewer's ways, since the second alone leaves the call open and the first alone leaves a line
+that says to make it. The descriptions say "offset is refused with a procedure."
+
+`test_brain_call_never_runs_a_procedure_again_for_the_rest`: a fake whose procedure answers 25000
+characters, called once with no offset and once with `offset: 20000`; the second answers the
+refusal and the fake ran 1 time.
+
+Not changed: a procedure's answer over 20000 characters cannot be read past 20000. No method's
+reference was searched for a procedure that answers so much.
+
+### Tests, round 3
+
+- QA tab on the build (`r=7301`), the snippet of step 8: `[22, []]`.
+- `bun test.ts brain-x-page --with …/fb-a2vp4smwzq.js`: `passed` 10, `failed` 0, `needsBrowser` 12.
+  The procedure test is one of the 10, the `eval_js` test one of the 12. 10 + 12 = 22.
+- `verify-run.ts brain-x-page --shell <the build> --times 20`, ended 2026-10-11T17:06:07Z: first
+  line `mains` `["@tomlarkworthy/brain-shell", "@tomlarkworthy/cloud-brain"]`; last line `runs` 20,
+  `passed` 20, `failed` 0, `none` 0, `from` `["document"]`, `byChance` `[]`. Each of the 20 lines
+  has `tests` 22, `failed` `[]`. On that page `robocoop-5-srctools` is not a main, so the
+  `eval_js` test's read of it by path was run there 20 times.
+
+### Not tried, round 3
+
+- A turn with a model.
+- `brain_call` of `assistantTools` through its `execute`, in a signed-in tab. Its two changed
+  lines are the same as `turnTool`'s (`cloud-brain.ojs`, `offsetRefused` twice, `callAnswer(out, offset, kind)` twice).
+- `eval_js` from a tab on the Brain's own address; the tab was on `file://`.
+- `eval_js` on a value that is not a text (an object goes through `summarizeJS` with the same
+  6000); the brief's code answers a text.
