@@ -2,8 +2,9 @@
 
 Spec of the project `worker-machine-on-fly` (tracker of cb4, event 1628). Written 2026-10-11 22:20 to
 22:45 UTC (2026-10-12 00:20 to 00:45 CEST, from `date`) by the spec writer `spec-29ad08`. Round 1 was
-sent back by review 2886 (event 2887); round 2, written 2026-10-11 22:45 to 23:00 UTC, answers it under
-"Round 2" below, and each passage it changed is marked (round 2). In round 1 a fresh agent with the file alone read it before the landing (`/review-notebook`: FIX, 9
+sent back by review 2886 (event 2887); round 2, written 2026-10-11 22:45 to 22:57 UTC (the first writing committed 22:50:48, the fresh
+reader's findings taken by 22:57, from `date`), answers it under "Round 2" below, and the passages
+where the design moved are marked (round 2). In round 1 a fresh agent with the file alone read it before the landing (`/review-notebook`: FIX, 9
 findings and 7 minor, all taken; the last part says which changed the design).
 Nothing is built. No Fly.io account exists that the writer knows of, and no call to Fly.io was made:
 every statement about Fly.io below is from its documents, read through a tool that answers with a
@@ -244,6 +245,12 @@ One Fly.io app, one machine, one volume.
   `digest-<day>` and spawns no overseer; an issue whose check names one of those tokens gets the
   label `laptop` as a deploy does. Each of the six can be given to the machine later by a line in
   "What the orchestrator makes"; none is in this round, to keep what the machine holds short.
+- *A review that needs a tab (round 2).* `review-needs-tab.sh` exits 0 for a commit that touches a
+  seed, a notebook or a module, and such a review needs the channel server and a paired tab, which
+  the machine does not have in this spec. Its orchestrator spawns no reviewer for it and labels the
+  issue `laptop`, as for a deploy. Such a submit is a laptop writer's in any case: a seed's change
+  ends in a deploy, which the machine's writers do not make. `fly.work` counts it once at most,
+  before the label.
 
 The lock history gives the size of it and no more: 21 holds of `cb4` beside 96 of `land`, not joined.
 T6 counts the issues labeled `laptop`, which is the number.
@@ -258,32 +265,54 @@ adds `loop` there). A session that finds it held does no pass.
 
 **What keeps `loop` held (round 2).** Not a pass. A pass is not every 600 s: `SKILL.md` step 8 wakes
 the orchestrator on a line of the watch or an agent's report, and its fallback is `ScheduleWakeup`
-1800 s, so a live loop with one writer at work goes more than 10 minutes with no wake (the medians
-above: 8.1 min at `in-progress`, 5.8 at `in-review`). What does run all the while is the watch of
-that step: `issue-watch.sh`, armed as a `Monitor` with the orchestrator's token, reads the tracker
-every 30 s (`issue-watch.sh`, line 33, `sleep "$every"`) and ends when the session no longer arms it.
-T4 gives it a second argument, the holder's name: with it, every fourth read (120 s) it sends
-`lock.sh renew loop <who>` under its token, which is the holder's. So `loop` is held while a watch of
-that orchestrator runs, and ends 600 s after the last renew of a watch that died, was not armed again,
-or whose session was closed or slept. The watch ends itself after 30 minutes and is armed again "in
-the same turn"; a turn that takes more than 8 minutes to arm it loses the lock, and the orchestrator
-then finds its `renew` refused (exit 1) at the next pass and does no pass until it takes `loop`
-again. A session open on the laptop whose `/loop` the owner stopped arms no watch, so it holds
+1800 s, so a live loop whose one writer works for 20 minutes makes no call in that time. What does
+run all the while is the watch of that step: `issue-watch.sh`, armed as a `Monitor` with the
+orchestrator's token, reads the tracker every 30 s (`issue-watch.sh`, line 33, `sleep "$every"`).
+The script itself never exits (its line 4); the `Monitor`'s `timeout_ms` ends it after 30 minutes,
+and the orchestrator arms it again "in the same turn".
+
+T4 gives the watch a flag, `--hold <who>` (its second and third arguments are taken: `<token>
+[after-seq] [seconds]`). With it, every fourth read (120 s) it sends `lock.sh renew loop <who>` under
+its token, which is the holder's. So `loop` is held while a watch of that orchestrator runs, and ends
+600 s after the last renew of a watch that died, was not armed again, or whose session was closed or
+slept. A session open on the laptop whose `/loop` the owner stopped arms no watch, so it holds
 nothing 10 minutes later and the machine may start. 600 s is kept and not the method's 1800: it is
 how soon the cluster learns that a loop is gone.
 
-With that, the three rules that read the lock read a live watch: the tick's "not held" (On) is no
-orchestrator with a watch anywhere; a laptop session started between two passes of the machine finds
-`loop` held; and the tick's stop of a machine `started` with `loop` not held for 20 minutes fires
-only for a machine whose watch is gone, which is a `claude` that hung or died without `run.sh`
-ending. Whether `claude -p` keeps a `Monitor` running with no terminal is T1's to see; if it does
-not, `run.sh` runs the same renew beside `claude` for as long as that process lives, and the laptop
-is not changed by it.
+**When the hold lapses and the loop is still there.** A turn that takes more than 8 minutes to arm
+the watch again, or a laptop that slept and woke. A renew of a lock that ended and that nobody took
+is not refused: `lock.sh` answers exit 0 and "renewed after it had ended … nobody held it between"
+(its lines 141 and 142), and the loop goes on. The hazard is the time not held, in which the tick's
+"not held" is true. If the machine started in it and took `loop`, the laptop's renew is refused
+(exit 1). The watch then prints a line, `LOOP <holder> holds it`, which is a wake, and the rule for
+the orchestrator is: on any wake, whole pass or not, it starts nothing, resumes nothing and makes no
+move while it does not hold `loop`. Agents it already started finish and report. The laptop's then
+asks the machine to yield (below) and takes `loop` when it is released; the machine's, refused the
+same way, ends as at a yield. Two orchestrators at once are then bounded by one read of the watch
+after the wake of the laptop, 120 s, plus what the machine's agents had in hand.
 
- The
+With that, the three rules that read the lock read a live watch. The tick's "not held" (On) is no
+orchestrator with a watch anywhere. A laptop session started between two passes of the machine finds
+`loop` held. The tick's stop reads: the machine is `started`, and `loop` has not been held for 20
+minutes counted from the later of the machine's last start (the service's row) and the lock's last
+`until`. So a machine just started has 20 minutes to boot, pull and take the lock, and the stop fires
+only for a machine whose watch is gone: a `claude` that died without `run.sh` ending, or one that
+hung, whose `Monitor` ends at its 30 minutes with no turn to arm it again, so about an hour after
+the hang at the longest.
+
+Whether `claude -p` keeps a `Monitor` running with no terminal is T1's to see. If it does not, the
+keeper is `run.sh`, on the machine only. A renew under another token than the holder's is refused
+(`lock.sh`, line 22), so in that form `run.sh` makes the session's `orch` token itself before it
+starts `claude` (`agent-token orch fly:<machine id>`), gives the name to the session in its prompt,
+and renews with it every 120 s while two things hold: the `claude` process lives, and the session's
+transcript under `~/.claude` was written in the last 45 minutes. The second is what a hung `claude`
+fails, so the tick's stop still finds it. The laptop is not changed by this form.
+
+The
 laptop's loop, started by the owner, asks the machine's to yield with `fly.down`, which stops
-nothing at once: it sets a row, `yield`. The machine's watch reads `fly.status` with each renew (the token `fly-status`) and prints a line when `yield` is
-set, which is a wake (round 2: a pass may be 30 minutes off); with `yield` set the orchestrator starts nothing, waits for its running agents to report, ends
+nothing at once: it sets a row, `yield`. The machine's watch is armed with a second flag, `--yield-as fly-status`, which the
+laptop's call leaves out (it holds no such token): with it the watch reads `fly.status` with each
+renew and prints a line when `yield` is set, which is a wake (round 2: a pass may be 30 minutes off); with `yield` set the orchestrator starts nothing, waits for its running agents to report, ends
 their tokens, releases `loop` and ends. A writer between `take land` and its push finishes its
 landing first. The laptop's loop takes `loop` when it is released. If the machine is still `started`
 30 minutes after the yield, the tick stops it with `POST …/stop`; what that leaves is an issue at
@@ -293,7 +322,8 @@ agent-token --parent fly-agents revoke <name>` (round 2: the command reads `PARE
 today, `brain.ts` line 514, so from the laptop it neither lists nor ends a child of `fly-agents`; T4
 adds the flag. The laptop made `fly-agents` and keeps its value). His session has the state file and
 his attention, so it is the one that goes on. The owner's Stop button is `fly.down?now=true`: the
-stop at once.
+stop at once. The service clears `yield` when it sees the machine `stopped`, and `fly.up` and the
+tick's start clear it too, so a later start does not meet an old one.
 
 **On.** `brain-x-fly` (part 3) has a cron of 5 minutes. A tick starts the machine when all hold: the
 machine is `stopped`; the lock `loop` is not held; the day's hours are under the limit; and
@@ -309,10 +339,15 @@ cannot disagree.
 
 The function can still be wrong about what a loop does. So the service keeps the ids of `fly.work`
 at each start: when the machine stops with that set unchanged, the tick does not start it for the
-same set again. One wasted start a set, not one each 5 minutes until the day's limit.
+same set again for 4 hours (`config.sameSetHours`). One wasted start a set each 4 hours, not one
+each 5 minutes until the day's limit. (Round 2: the 4 hours. With no end, a stop for any other cause
+with the set unchanged left those issues to the laptop for good.)
 
-**Off (round 2: one pass, not three).** The loop ends itself: after one whole pass that started and
-resumed nothing, with no agent running. Three such passes are three fallback wakes, 90 minutes of a
+**Off (round 2: one pass, not three).** The loop ends itself: after one whole pass in
+which the table of step 3 had no row to act on, with no agent running. A pass that started nothing
+for another cause is not that pass: one that names a usage limit (`SKILL.md`, step 2), or one whose
+health step failed. The loop then waits for its next wake, and the machine idles at $0.035 an hour
+under the day's limit. Three such passes are three fallback wakes, 90 minutes of a
 machine doing nothing, and the tick asks the same `fly.work` 5 minutes after any stop, so the second
 and third bought nothing. At that pass (whether `claude -p` keeps the wakeups and the watch of `SKILL.md` step 8 going with
 no terminal is T1's to see) the orchestrator releases `loop` and ends its `/loop`. `claude -p` returns, `run.sh`
@@ -326,7 +361,8 @@ the tick's stop cannot come first while the watch runs.
 **The limit.** `config.maxHoursADay`, 8 when not set, changed with `config.set` and no deploy. The
 service keeps each start and stop it saw as a row and sums the day in UTC. At $0.035 an hour, 8 hours
 is $0.28 a day. What the loop spends on the model in those hours is the subscription's and is not
-counted here; a pass that names a usage limit already starts nothing new (`SKILL.md`, step 2), and such a pass ends the loop by the rule above.
+counted here; a pass that names a usage limit already starts nothing new (`SKILL.md`, step 2), and does not end
+the loop (above).
 
 ### 3. The service `brain-x-fly` (R3, R7). Answers "the proxy", "the secrets"
 
@@ -427,7 +463,7 @@ answered what "before" says.
 | R2, on | With `loop` not held and one issue at `ready` and not labeled: `fly.status` twice, 6 minutes apart; `machine.state` goes `stopped` to `started` | | after T4b. Not run |
 | R2, off | With `fly.work` answering `{"work":[]}`: `fly.status` each 5 minutes; `started` to `stopped` within 35 minutes of the last move of a token of the machine (one fallback wake and one tick), with `loop` held until the pass that ends it and no `fly.down` in the core's lines of that span (`metric.query` over `method: "fly.down"`, with `loop-dashboard`, if T3 defines the metric; else the rows `fly.status` sums) | | after T4b. Not run. If the machine does not reach `stopped` on the exit, the restart-policy page was read wrong and the tick's stop is what ends it: the check then says which |
 | R7 | On the machine, by the machine's own loop as a step of T4b's record: `ls tools/cloud-brain/.emitted/` holds `cb4-tokens.json`, `cb4-agent-tokens.json` and `issue-loop`, and no `cb4.json`; `env` has no name beginning `FLY_API` or `CF_` | | after T4b. Not run |
-| R8, apart (round 2) | `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh show loop`, asked each 5 minutes for 40 minutes while one writer of the machine works and no pass is made: exit 0 and `orchestrator-<the machine>` each time, the `until` later each time (the watch's renews); a `take loop` under another name exits 1. And in `tests/tools/`: the watch against a stand-in sends a renew at its fourth read and none without the holder's name | `LOCK_TOKEN=spec-29ad08 lock.sh show land`, run 22:49 UTC: `land is not held`, exit 1. `show loop`: refused by line 36, not run | after T4. Not run |
+| R8, apart (round 2) | `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh show loop`, asked each 5 minutes for the 25 minutes after a whole pass, while one writer of the machine works and before the next fallback wake: exit 0 and `orchestrator-<the machine>` each time, the `until` later each time (the watch's renews); a `take loop` under another name exits 1. And in `tests/tools/`: the watch against a stand-in sends a renew at its fourth read and none without `--hold`, and prints the `LOOP` line on a renew that exits 1 | `LOCK_TOKEN=spec-29ad08 lock.sh show land`, run 22:49 UTC: `land is not held`, exit 1. `show loop`: refused by line 36, not run | the test with T4; the 25 minutes after T4b. Not run |
 | R8, limit | `test_fly_up_refused_past_the_day` in the seed: with rows summing 8 hours, `fly.up` answers 409 and makes no upstream request | no seed | passes, T3 |
 | R4, R5 | Not an agent's: the owner's list | | |
 
@@ -437,7 +473,7 @@ do what they say with his session, that `fly ssh console` opens for him, and Fly
 
 ## The tasks, in the order they land
 
-Each is one writer and one review. T1 cannot start before the owner's list, items 1 to 5.
+Each is one writer and one review, but T4b, which is the owner's act and a record of it. T1 cannot start before the owner's list, items 1 to 5.
 
 1. **T1, by hand, a record and no code** (`tools/cloud-brain/records/fly-1-by-hand.md`). It is run
    in a session on the owner's laptop that he starts after `fly auth login`, with no other loop
@@ -446,9 +482,7 @@ Each is one writer and one review. T1 cannot start before the owner's list, item
    console -C`, with his login: the Machines API page has no `exec`. Install the tools, clone, run
    one pass of the loop with one `orch` token copied there for the hour and no state file, and one
    review with `cloud-brain-dev/agent.sh` (round 2; its brief is fetched with no token). A review
-   that needs a tab (`review-needs-tab.sh`, exit 0) needs the channel server and a paired tab, which
-   the machine does not have in this spec: the machine's loop leaves such a review with a `held:`
-   comment that names the laptop, and `fly.work` does not count it. It measures, each with its
+   that needs a tab is not tried there (part 2, the fifth thing the machine's loop does not do). It measures, each with its
    time from `date`: create to `started`; a start from `stopped`; whether exit 0 of the first process
    under policy `no` leaves the machine `stopped`; memory while a writer runs its tests; which
    permission mode lets a pass finish; whether a `Monitor` and a `ScheduleWakeup` run under `claude -p`; which hooks fail on Linux; whether a deploy token makes
@@ -465,7 +499,8 @@ Each is one writer and one review. T1 cannot start before the owner's list, item
    `brain.ts confirm` if on probation. Before the owner's secret is put, `fly.status` answers 400
    "the secret FLY_API_TOKEN is not set", and that is what its writer's check reads.
 4. **T4, the loop's own files, no seed and no deploy** (round 2: cut at the deploy): `loop` in
-   `lock.sh`; the renew and the line for `yield` in `issue-watch.sh`, with their tests; `SKILL.md`
+   `lock.sh`; `--hold` and `--yield-as` in `issue-watch.sh` (the renew, the `LOOP` line, the line for `yield`),
+   with their tests; no move without `loop` on any wake; `SKILL.md`
    steps 1 and 8 (the take, the second form of the health step, the one empty pass that ends a
    loop); the label `laptop` in the writer's brief and at triage; no digest, no overseer and no tab
    review with no state file; `agent-token --parent`; the tool that writes the machine's token file.
@@ -555,14 +590,20 @@ watch reads every 30 s, ends after 30 minutes, and "`ScheduleWakeup` 1800 s as t
 | Note 2: item 8 of the owner's list does not name `METADEV=1` | Named there |
 | Note 3: what the push key is worth | Part 3, under the table of secrets |
 | Note 4: T4 is seven things and has a deploy in it | `fly.work` is in T3 with the service; T4 is the loop's files with no deploy; the owner's making of the machine and the checks are T4b |
-| Note 5: T1 measures no review; a review with a tab needs the channel server | T1 runs one review with `agent.sh`; a review that needs a tab is left for the laptop with a `held:` comment |
+| Note 5: T1 measures no review; a review with a tab needs the channel server | T1 runs one review with `agent.sh`; a review that needs a tab gets the label `laptop` (part 2) |
 
 Not chosen for finding 1: a row of the service that the orchestrator writes at each wake, read stale
 after 45 minutes. It needs no change to the watch. It rests on the longest gap between two wakes,
 which is 1800 s and the length of the turn after it, and a turn has no bound; and a loop that died
 would be read as live for 45 minutes. And a renew of 1800 s at each pass: the fallback's own length,
-so it ends at the moment the next pass begins. A second fresh reader read the diff of this round
-before its landing; its line is in the Runs of `/review-notebook`.
+so it ends at the moment the next pass begins. A second fresh reader read the diff of this round before its landing (`/review-notebook`, changes
+since `728e3f11`: FIX, 12 findings and 6 minor, 119,461 tokens, 4m41s; all taken). What it found
+that the first writing of this round had wrong: a renew after the lock ended is not refused, so the
+orchestrator had no signal; a laptop that woke beside a started machine went on acting on wakes
+until its next whole pass; the watch's second argument is taken; `run.sh` could not renew a lock
+taken under the session's token, and would have hidden a hung `claude` if it could; one empty pass
+with a usage limit stopped the machine and the unchanged-set rule kept it stopped; the tick's 20
+minutes had no start; nothing cleared `yield`; and the tab-review rule was in T1's text only.
 
 ## What the fresh reader changed
 
