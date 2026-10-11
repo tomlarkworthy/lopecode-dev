@@ -11,7 +11,7 @@ Files kept by a Cloud Brain and served from its address.
 | \`static.tag\` | procedure. \`{ path, tags }\` replaces the file's labels. |
 | \`static.setPublic\` | procedure. \`{ path, public }\` adds or removes the \`public\` label. |
 | \`static.delete\` | procedure. \`{ path }\` drops one file. \`{ prefix, before }\` drops each file under the prefix that the caller may change, saved before \`before\` (an ISO date or milliseconds; all of them without it). Answers \`{ deleted, paths }\`. The prefix is a folder: it ends in \`/\`, and one that does not (\`"s"\`, \`""\`) is refused with 400. Nothing under \`shell/\` is dropped this way. |
-| \`GET /static/<path>\` | whoever may read the file by its tags. \`ETag\` is the SHA-256; \`If-None-Match\` answers 304. |
+| \`GET /static/<path>\` | whoever may read the file by its tags. \`ETag\` is the SHA-256; \`If-None-Match\` answers 304. A public file is sent with \`Access-Control-Allow-Origin: *\` (since 2026-10-11), so a page of another origin, or of none, reads it. |
 | Storage | bytes in \`blobs\` and one row per file in \`rows\`, both under \`f/<path>\` |
 
 A path is segments of \`A-Z a-z 0-9 @ . _ -\` joined by \`/\`, at most 200 characters. A file is at most 50 MB. Without \`type\`, and for a caller whose \`type\` is not taken, the content type comes from the extension (\`staticTypes\`), else \`application/octet-stream\`. A file is private until it is put or set public.
@@ -169,6 +169,9 @@ staticApp = {
     const headers = { "content-type": meta.type, etag, "cache-control": "no-cache", "x-content-type-options": "nosniff", "x-static-sha256": meta.sha256 };
     // Bytes somebody other than the owner last wrote are not the owner's to vouch for: a browser shows them with no script and no origin.
     if (!vouched(path, meta)) headers["content-security-policy"] = "sandbox; default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'";
+    // A public file is read by anyone who has its path. So is it by a page with no origin of its own: a library
+    // notebook the owner did not put is one (brain-library), and it reads the snapshot's files from here.
+    if (meta.public) headers["access-control-allow-origin"] = "*";
     // A file kept compressed is sent compressed, with no-transform so workers.dev leaves the ETag on it.
     const packed = meta.gzip && /\bgzip\b/.test(c.req.header("accept-encoding") || "");
     if (packed) Object.assign(headers, { "content-encoding": "gzip", "cache-control": "no-cache, no-transform", vary: "accept-encoding" });
@@ -470,6 +473,10 @@ test_static_a_files_tags_decide_who_reads_and_who_changes_it = {
   expect((await rig.post2(alice, "setPublic", { path: file, public: true })).status).toBe(200);
   const open = await rig.call2({ "x-brain-caller": "anonymous" }, "/static/" + file);
   expect([open.status, open.headers.get("content-security-policy").startsWith("sandbox")]).toEqual([200, true]);
+  // A public file may be read from another origin, or from none. A file that is not public says nothing of it.
+  expect(open.headers.get("access-control-allow-origin")).toBe("*");
+  await rig.put("owner", "site/private.html", "<p>");
+  expect([(await rig.call("owner", "/static/site/private.html")).status, (await rig.call("owner", "/static/site/private.html")).headers.get("access-control-allow-origin")]).toEqual([200, null]);
   await rig.put("owner", "site/a.html", "<p>", "&public=true");
   expect((await rig.call("anonymous", "/static/site/a.html")).headers.get("content-security-policy")).toBe(null);
   expect(rig.sim.rows.get("f/site/a.html").tags).toEqual(["by:owner", "public"]);
