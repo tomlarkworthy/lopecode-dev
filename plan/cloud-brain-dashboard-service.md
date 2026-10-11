@@ -56,8 +56,8 @@ The requirements. The numbering and the split are the writer's.
 ## What exists today
 
 **Where a chart is drawn.** One place: Health, in `tools/cloud-brain/cloud-brain.ojs`. Since
-`ds-1-split-healthview` (2026-10-11) it is four cells: `timeRange`, `callsRead`, `calls`,
-`healthView`. `callsRead` sends one `logs.query` with `view: "calculations"` (count, sum and max of
+`ds-1-split-healthview` (2026-10-11) it was four cells at `9b5a97bc`: `timeRange`, `callsRead`, `calls`,
+`healthView`. `ds-2` has since added `span` (a select, an hour by default) and `callsQuery`. `callsRead` sends one `logs.query` with `view: "calculations"` (count, sum and max of
 `ms`, grouped by `worker,method,status`, `limit` 500: lines 95 to 100) and `callsSeries`
 turns the answer into `{ since, until, step, series, groups }` with rows
 `{ t, worker, method, status, n, ms, max }` (line 120). Three functions draw those rows.
@@ -179,7 +179,8 @@ is, as read there and not tried, not put back by a failed test either.
 
 The gate there is, is the owner's approval of this spec, and it is the only one. What stands
 between the token and a caller after that is the method's rule and the service's own code, which
-is what tasks 1 and 2 test in the worktree before the apply (`bun test.ts brain-x-dashboard --with FILE`).
+is what tasks 1 and 2 test in the worktree before the apply
+(`cd cloud-brain-dev && bun test.ts brain-x-dashboard --with <the emitted .js>`, as `agents/implementer.md` runs it).
 His clarification of 2026-10-11 allows such a deploy by the loop "if its behind a multi tenant
 interface and thoroughly designed acording to the principles"; the group is one the deployer
 already mints, not a new permission. If he wants a second gate he says so with his letter (his
@@ -401,8 +402,12 @@ Each is one writer and one review. Tasks 1 to 4 change `brain-dashboard.ojs` and
 A writer's brief says to stop at a new Worker and at a `major` change
 (`agents/implementer.md` step 3). Task 1 is a new Worker, and tasks 1 and 2 are `major`: they add
 methods and let a member read counts of their own Workers' lines. The owner's approval of this
-spec is his word for both, and it is the one gate: no approval of a deploy follows it ("One new
-Worker"). The orchestrator opens tasks 1 and 2 with `major` and quotes the approval event in a
+spec is his word for both, and it is the one gate before the deploy ("One new Worker"). An
+approval follows the deploy and stops nothing: a `major` task that passes review goes to
+`awaiting-approval` and not to `done` (`brain-issues.ojs:216`, `pass` has the guard `!issue.major`),
+with its change live and pushed, and waits there for his `approve` (his list, item 6). His approval
+of the spec is not that word: `rules.md` lets a session make the move "not on a word given for
+another issue". The project does not finish while either is there. The orchestrator opens tasks 1 and 2 with `major` and quotes the approval event in a
 comment on each, so that `needs-owner` is not put on, or comes off by `rules.md`. If his approval
 asks for a second gate, task 1 is opened with `needs-owner` and no such comment, and waits for him.
 
@@ -449,8 +454,8 @@ Each task writes `tools/cloud-brain/records/<its id>.md`.
 
 ## What only the owner can do
 
-For a reader with none of this: the Brain draws one chart section, Health, from the last hour of
-its own logs. This project makes dashboards a service: a dashboard is a list of panels, a panel
+For a reader with none of this: the Brain draws one chart section, Health, from a span of its own
+logs that you choose (an hour by default). This project makes dashboards a service: a dashboard is a list of panels, a panel
 names a metric, a metric is lines a Worker already logs. You said metrics should be tailed from
 the logs into Cloudflare's metrics store and read through a proxy.
 
@@ -458,8 +463,10 @@ the logs into Cloudflare's metrics store and read through a proxy.
    changes to the deployer, which the loop may not deploy.
    - **A.** As written. The loop builds the proxy, the dashboards and Health over the logs
      (7 days kept, about 2.5 s for a day of deploy lines today). Your ingestion follows as items 4
-     and 5, behind the same method. For: tasks 1 to 6 land on their tests with nothing more from
-     you, and the logs side is measured first. What of A still waits for you: no check on cb4
+     and 5, behind the same method. For: tasks 1 to 6 are built, deployed and reviewed on
+     their tests with nothing more from you, and the logs side is measured first. What of A
+     still waits for you: tasks 1 and 2 are `major`, so each stops at "To approve" after its
+     review, already live, until you approve it (item 6); no check on cb4
      runs, and task 7 cannot be done at all, until you make the token of item 2 after task 1;
      no member reaches any of it until item 3. Against: until item 5 a metric is counted from log
      lines each time it is asked. And your "A" is the only stop before a new Worker that holds a
@@ -472,13 +479,14 @@ the logs into Cloudflare's metrics store and read through a proxy.
    - The writer takes A, by line 2 (the smaller side, easier to undo). Answer "A", "A, hold task
      1" or "B". Approval is taken as your word for two things the loop does not do on its own: a
      new Worker, and a member reading counts of their own Workers' lines (tasks 1 and 2,
-     `major`). There is no second approval of the deploy.
+     `major`). Nothing asks you again before the deploy; item 6 comes after it.
 2. **Make the token** the checks use, once, after task 1:
    `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-dashboard metric.query metric.list 'dashboard.*'`.
    By the rule it reads `deploys.*` and no other metric.
 3. **Grant a member the methods**, when you want one to use it: `grant.put` of the eight
-   (`metric.query`, `metric.list`, `metric.put`, `metric.delete` and the four `dashboard.*`) for
-   that DID, in your session. Until then R6 is tests only.
+   (`metric.query`, `metric.list`, `metric.put`, `metric.delete`, `dashboard.put`, `dashboard.get`,
+   `dashboard.list`, `dashboard.delete`) for that DID, in your session. Each is named whole:
+   `grant.put` refuses `dashboard.*` (`brain-kernel.ojs:824`). Until then R6 is tests only.
 4. **Measure the other store, outside the Brain**, as `logging-research.md` did with a scratch
    Worker: the CPU of a tail invocation, the seconds until a written point is read, and the time
    of a SQL read over an hour, a day and 30 days. A session with you runs it; the loop holds no
@@ -487,6 +495,9 @@ the logs into Cloudflare's metrics store and read through a proxy.
    Analytics Engine dataset, `Account Analytics Read` in `GROUPS` (a new permission), and
    `tail_consumers` with a `tail` handler in the wrapper. The wrapper is in every Worker's hash,
    so every Worker is deployed once, as for `observability` on 2026-10-08.
+6. **Approve tasks 1 and 2**, each when it shows under "To approve" on the tracker after its
+   review, or say so of each to a session. By then the change is deployed. The project stays at
+   `building` until both are approved.
 
 Items 4 and 5 are your direction of event 1209. They are kept in front of you by task 8, an issue
 labeled `needs-owner` that stays open, and holds the project open, until you say yes or no.
@@ -525,10 +536,17 @@ The reviewer's four findings, each read against the source before it was taken.
   tests), what waits for the token and when, what waits for grants, and that A is the one stop
   before the deploy.
 - **F3, nothing carried R2.** Task 8, a part labeled `needs-owner` that holds the project at
-  `building`. That the orchestrator's `decompose` row opens a part with a label was not tried; the
-  row says "Open each task the spec lists", and the label is one more call if it does not.
+  `building`. `issue.open` takes `labels` (`brain-issues.ojs:37`), so the
+  orchestrator opens it labeled in one call; that call was not made.
 - **F4.** (a) Eight methods, in both places. (b) `ds-2` is `done`; task 5 no longer waits for it
   and says why it does not wait for `ds-3`. (c) `metric.list` has a rule, and the text says it
   does not follow a `rule.put` on `metric.query`.
 
 His notes: a `price` for a member's query is left to task 2's writer; line 1391 is given at both commits.
+
+The fresh read of this round (one agent with the file only, 2026-10-11): 5 findings, all taken.
+The first was F2 again in the new text: A said tasks 1 to 6 need nothing more of him, and a
+`major` task waits at `awaiting-approval` for his `approve` (`brain-issues.ojs:216`). It is now in
+A, above the tasks and item 6 of his list. The others: the test command named no directory; his
+summary said "the last hour" of a page that has had a span since `ds-2`; `dashboard.*` in a grant
+is refused; the label on `issue.open` read from source.
