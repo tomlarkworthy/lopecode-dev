@@ -219,7 +219,7 @@ Seen and not acted on:
 - The deployer's own issue (event 381) has no `by.holder`; its body is JSON. It worked on its first real use only as test data.
 - Open for the owner and unanswered, as in the last entry, plus reference-holes-four-more-workers (needs-owner; deployed at event 375 and not moved) and digest-pass-has-no-test-count. n39625a1a is still at triaged with no label; brain-tests-fail-headless-unread and tests-replace-console-log are still in-progress.
 
-## 2026-10-11 11:47 CEST, events 417 to 540
+## 2026-10-11 11:47 CEST, events 417 to 533
 Issues looked at: redistil-apply-leaves-seen-json, preflight-ordering-test-fails-on-main, verification-runs-are-not-kept, review-the-default-workflow, link-issues-with-a-common-cause, brain-tests-fail-headless-unread, tests-replace-console-log, the six rejects of 417 to 421, and the sixteen feedback tickets open at event 518.
 Measured (`issue-stats.ts`, whole record at event 540):
 - `open  68 stays  median 3.7 min  total 53.3 h  max 8.9 h`; `ready  33 stays  median 2.4 min  total 41.6 h  max 17.7 h`
@@ -238,7 +238,7 @@ Edited:
 - 4cc2a293 reviewer.md, "If you see something": an id is 40 characters at most, and the ticket is opened before the review names it (event 480; events 322 to 325 on 2026-10-10; held since the entry of 21:08).
 - ec336fbe implementer.md step 6: `bun test ./tests/tools` with the `./`, and the comment gives the command as run (event 479: 153 pass 44 fail without it, 90 pass 0 fail with).
 Seen and not acted on:
-- Events 534, 535 and 540 arrived during this oversight and are not mine. The next oversight starts from 540.
+- Events 534, 535 and 540 arrived during this oversight and are not mine; I read 534 in part and 540 by its first line. My own are 519 to 533 and 536 to 539, and a correction after them. The next oversight starts from 533 and reads those three whole: 540 is the loop's token choosing a side on a finding review 534 wrote as "the owner's to say".
 - Held, the first edit of the next oversight: a writer that lands or deploys after its submit submits again with the refs of what runs (reviews 466 and 467; both reviewers: "step 3 of the brief covers another issue landing, not the same writer"). The writer here was the session with the owner, not one under the brief; one case.
 - Held: SKILL.md Triage, a gate that triage's reason names is settled from the source before a writer is spawned. verification-runs-are-not-kept round 1 cost 117,836 tokens to find that logs.query answers the owner's session only, which reason 432 already said (the orchestrator's journal: "the gate-2 round was mine to save"). One case.
 - redistil-apply-leaves-seen-json: 410,611 tokens in two rounds; the second (180,691) was for two sentences. The cause was a test that had failed on main since 812455dc (2026-08-17), which the writer took for one of its worktree; fixed by preflight-ordering-test-fails-on-main (169,619 tokens, one round). The six stale entries of seen.json are still there (reviewer, 11:27:36): `brain.ts saw brain brain-core brain-x-bluesky brain-x-browser brain-x-git brain-x-page`, for the orchestrator.
