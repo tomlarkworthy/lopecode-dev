@@ -8,6 +8,11 @@ the session: eight findings, all taken by 21:46 (`date`). Two changed the design
 the ten procedures it now refuses, and `draft` would have left the buttons disabled and written over
 what he had typed.
 
+Line numbers are those of `f7d03412`. While this was written `dsv-5-page-section` landed (`main` at
+`08d90f24`, 21:46 CEST): it put 341 lines into `cloud-brain.ojs` above every line cited here, so each
+is 341 further down there (`assistantRefuses` at 1554), and four tests (`grep -c '^test_'` answers
+27). `brain-issues.ojs` and `build.ts` did not change (`git diff f7d03412 08d90f24 --stat`).
+
 Where the files named here are: `SKILL.md`, `rules.md`, `philosophy.md` and `agents/*.md` are in
 `.claude/skills/brain-maintenance/`; the seeds (`*.ojs`), `build.ts` and `records/` in
 `tools/cloud-brain/`; `test.ts` and `sync.ts` in `cloud-brain-dev/`; `_orchestrator.md` in
@@ -281,7 +286,7 @@ Run before any task, in the worktree at `f7d03412`, 2026-10-11 21:37 CEST:
 | `grep -c 'label: "attention"' tools/cloud-brain/cloud-brain.ojs` | 0 | 1 (task 3) |
 | `grep -c 'attention_draft' tools/cloud-brain/cloud-brain.ojs` | 0 | more than 0 (task 3) |
 | `grep -c '^test_' tools/cloud-brain/brain-issues.ojs` | 32 | 32 and the tests below |
-| `grep -c '^test_' tools/cloud-brain/cloud-brain.ojs` | 23 | 23 and the tests below |
+| `grep -c '^test_' tools/cloud-brain/cloud-brain.ojs` | 23 (27 at `08d90f24`) | what it reads when task 3 starts, and the tests below |
 
 The "after" column was not run: the design's edits were not made in the worktree. Each is run by its
 task's writer in step 7, and the tests below cannot be run before they are written.
