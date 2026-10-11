@@ -547,7 +547,8 @@ md`## Logs
 
 What the Workers of this Brain wrote in the last 7 days, read from Cloudflare. Click a row to see each line of that call. Ray is the \`cf-ray\` header of an answer.`
 // %%
-logsPanel = logsView({ client: brain ? client : null })
+// The control itself, not its value: a change of the span does not make the panel again.
+logsPanel = logsView({ client: brain ? client : null, span: viewof span, invalidation })
 // %%
 // The body of logs.query for the panel's inputs. A ray is the cf-ray of an answer; a trace is Cloudflare's id for one call through each Worker.
 logsQuery = ({ minutes = 60, status = null, text = "", id = "", now = Date.now(), limit = 200 } = {}) => {
@@ -576,10 +577,12 @@ logsRows = (answer) =>
     return { time: e.timestamp, worker: (e.$workers || {}).scriptName || m.service || "", level: m.level || "", at: s.at || "", status: s.status ?? "", line: (rest || m.message || "").slice(0, 400), trace: m.traceId || "" };
   }).sort((a, b) => a.time - b.time)
 // %%
-logsView = ({ client, now = () => Date.now() } = {}) => {
+// span is a control the panel's "Last" is one value with (the one under Health); with none it has its own.
+logsView = ({ client, now = () => Date.now(), span, invalidation } = {}) => {
   const muted = "color:var(--theme-foreground-muted)", cell = "padding:2px 12px 2px 0;vertical-align:top";
   if (!client) return htl.html`<i style=${muted}>Sign in as the owner to read the logs.</i>`;
-  const range = Inputs.select(new Map([["15 minutes", 15], ["1 hour", 60], ["6 hours", 360], ["24 hours", 1440], ["7 days", 10080]]), { label: "Last", value: 60 });
+  const last = Inputs.select(spanOptions, { label: "Last", value: 60 });
+  const range = span ? Inputs.bind(last, span, invalidation) : last;
   const worker = Inputs.text({ label: "Worker", placeholder: "brain-core, brain-x-NAME" });
   const status = Inputs.number({ label: "Status ≥", min: 100, max: 599, step: 1 });
   const text = Inputs.text({ label: "Text" });
@@ -636,6 +639,20 @@ test_logs_panel_asks_cloudflare_and_a_row_filters_by_its_trace = {
   // The colo is taken off a cf-ray: Cloudflare keeps the id without it.
   expect(logsQuery({ id: "9a1f00aa11bb22cc-FRA", now: 0 }).parameters.filters[0].filters[1].value).toBe("9a1f00aa11bb22cc");
   expect(logsView({ client: null }).textContent).toBe("Sign in as the owner to read the logs.");
+  // The panel's "Last" and a shared control are one value, each way, and "Read" asks over it.
+  const shared = Inputs.select(spanOptions, { label: "Last", value: 60 });
+  const linked = logsView({ client, now: () => 100000000, span: shared, invalidation: new Promise(() => {}) });
+  const last = [...linked.querySelectorAll("label")].find((l) => l.textContent === "Last").parentElement;
+  const choose = (input, minutes) => { input.value = minutes; input.dispatchEvent(new Event("input", { bubbles: true })); };
+  expect(last.value).toBe(60);
+  choose(shared, 360);
+  expect(last.value).toBe(360);
+  choose(last, 1440);
+  expect(shared.value).toBe(1440);
+  calls.length = 0;
+  [...linked.querySelectorAll("button")].find((b) => b.textContent === "Read").click();
+  await new Promise((r) => setTimeout(r, 0));
+  expect(calls[0][1].timeframe).toEqual({ from: 100000000 - 1440 * 60000, to: 100000000 });
   return rows.length + " rows";
 }
 // %%
