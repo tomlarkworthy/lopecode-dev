@@ -95,7 +95,7 @@ test("the two sentences that list every act with his session name the leaves", (
   expect(never).not.toContain("And one act with his session that is no tracker call");
   expect(never).toContain('("Two standing leaves of the orchestrating session")');
   const token = flat(section(rules, "A token an approved spec names"));
-  expect(token).not.toContain("and every other act with his session but the `approve` move. No other agent");
+  expect(token).not.toContain("but the `approve` move. No other agent");
   expect(token).toContain("Still the owner's alone: a token no approved spec names, a scope wider than the spec's");
   expect(token).toContain('the two acts of "Two standing leaves of the orchestrating session"');
 });

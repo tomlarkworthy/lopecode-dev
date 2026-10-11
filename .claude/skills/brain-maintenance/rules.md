@@ -165,8 +165,8 @@ approval of the spec is his word for it. A spec writer lists such a token under 
 orchestrator makes, not under "What only the owner can do".
 
 Still the owner's alone: a token no approved spec names, a scope wider than the spec's, and every
-other act with his session but the `approve` move and the two acts of "Two standing leaves of the
-orchestrating session". No other agent of the loop makes a token of this kind.
+other act with his session or his key but the `approve` move and the two acts of "Two standing
+leaves of the orchestrating session". No other agent of the loop makes a token of this kind.
 
 The four of that day, each kept in `.emitted/cb4-tokens.json` and not printed:
 
@@ -207,8 +207,8 @@ this once: `brain.ts curl "/xrpc/com.lopecode.brain.git.token?name=cloud-brain-d
 then the push as cloud-brain-dev/README.md has it. The token is not printed or kept." The rest of
 this paragraph is the writer's reading, not his words. The leave is for a commit of
 `cloud-brain-dev` that adds his quoted words to `philosophy.md`, and for no other file and no
-other change of that repository: a change to `agent.sh` or the README there still waits for his
-push (`tools/cloud-brain/records/agent-sh-read-whole-before-run.md`). After the push the
+other change of that repository: a change to `agent.sh` there was left for his push that evening
+(`tools/cloud-brain/records/agent-sh-read-whole-before-run.md`). After the push the
 submodule's pointer is committed in `lopecode-dev` under the landing lock. First done for the
 quote of `rc-3-record-only-count`: `cloud-brain-dev` 726671a, and the pointer at `lopecode-dev`
 4af860c8 (the close of that issue, event 2225). It did not go into this file with
