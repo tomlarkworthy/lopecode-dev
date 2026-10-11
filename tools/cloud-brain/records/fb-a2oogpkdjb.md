@@ -37,7 +37,10 @@ One commit of the seed, `759325a8` (2026-10-11 21:50:18 +0200).
 - `healthStrip` is kept. `panelBody` draws it for a dashboard's panel with `draw: "faults"`, and the
   built-in dashboard `health` of `brain-dashboard.ojs` has such a panel, so the strip can still be
   read under Dashboards. That was not looked at on cb4 in this round.
-- Three comments that said "the three charts of Health" now name the dashboard `health`.
+- Three comments reworded. "calls, faults and methods are the three charts of Health" is now "the three
+  draws of the dashboard `health`"; "The three draws of Health take the rows of core.calls" (in a test) is now
+  "The three draws of the dashboard `health` take …"; "The charts of Health name the sum `ms`" is now "The
+  charts made for Health name the sum `ms`".
 - A new test, `test_health_draws_calls_and_methods_and_no_strip_of_faults`.
 
 ### The test failed before the change
@@ -60,7 +63,7 @@ Each from a run after the last edit of the seed.
 
 | command | result |
 |---|---|
-| `cd cloud-brain-dev && bun test.ts brain-x-page --with …/.emitted/fb-a2oogpkdjb.js` (in the worktree) | `passed` 12, `failed` 0, `needsBrowser` 16. The new test is one of the 16: `healthPanels` draws with Plot, which reads `document`. |
+| `cd cloud-brain-dev && bun test.ts brain-x-page --with …/.emitted/fb-a2oogpkdjb.js` (in the worktree) | `passed` 12, `failed` 0, `needsBrowser` 16. The new test is one of the 16; its line of the first run read `"state":"needs a browser","error":"document is not defined"`. |
 | the snippet of step 8 in a QA tab on the worktree's build | `[28, []]` |
 | `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-page --shell …/.emitted/cloud-brain.html --times 20` (19:48:25Z to 19:48:48Z) | `runs` 20, `passed` 20, `failed` 0, `none` 0, `byChance` `[]`, `from` `["document"]`, `mains` `["@tomlarkworthy/brain-shell","@tomlarkworthy/cloud-brain"]`, `tests` 28 in the first and the last two runs printed |
 
@@ -80,10 +83,19 @@ That tab was closed and the emit was made in another, so the stood-in `calls` is
 
 ### Not tried, not changed
 
-- The page on cb4 with the owner's session: the loop has none. What cb4 serves after the deploy
-  was read as source (see the issue's comment), not looked at drawn.
-- A resize, a change of the span and "Refresh" with the two panels: `healthView` names the same
-  inputs but for `requestsChart`, `healthStrip` and `methodTable`, which `healthPanels` now names; no run was made of them.
+- The page on cb4 with the owner's session: the loop has none. What cb4 runs after the deploy
+  (`brain-x-page` `51843bb7da90`, the apply's answer `"state":"verified","tests":28`) was read as source and not
+  looked at drawn: `getSource?worker=brain-x-page` at 21:52 CEST had `title: "Health", body` 0 times,
+  `healthPanels` 12 times and `healthStrip` 11 times (counted with `str.count` in python).
+- A resize, a change of the span and "Refresh" with the two panels: no run was made of them. The
+  compiled inputs, from `git -C lopebooks show <commit>:notebooks/@tomlarkworthy_cloud-brain.html | grep '"healthView", \[\|"healthPanels", \['`
+  at `7c7fb022` (before) and `6d314dc3` (after):
+
+  ```
+  before  "healthView", ["calls","htl","spanName","span","dashboard","requestsChart","width","healthStrip","methodTable","moduleLink","brainModules","services","callsNote"]
+  after   "healthView", ["calls","htl","spanName","span","dashboard","healthPanels","width","moduleLink","brainModules","services","callsNote"]
+          "healthPanels", ["requestsChart","methodTable"]
+  ```
 - `brain-dashboard.ojs` lines 212 and 778 say the built-in dashboard `health` is "the three panels
   the page draws today". The page draws two of them under Health now. Not changed: it is another
   Worker's source, and a change of it is a deploy of `brain-x-dashboard`.
