@@ -132,9 +132,10 @@ came to name the other file is not known; the name was not read from the output 
 anywhere.
 
 **The `redistil` row of the knowledge doc.** It said that before the change `saw` read `MOVED`
-"for every swept Worker". `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts saw`, 2026-10-11 11:20
-CEST: 6 `MOVED`, the six listed in round 1. The sweep moved 18 of 20 (event 375), and 8 Workers
-read `none`: a Worker with no entry has nothing to differ from. The row now says "a swept Worker
+"for every swept Worker". `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts saw`, 2026-10-11 11:22:04
+CEST, 22 lines: 6 `MOVED` (the six listed in round 1), 6 with an entry that matches, 8 `none`, 2
+`null` (`brain-x-verifycheck`, `cb4`). The sweep moved 18 of 20 (event 375). A Worker with no
+entry reads `none`: it has nothing to differ from. The row now says "a swept Worker
 that had an entry", with the count. Which 12 of the 18 read no `MOVED`, by having no entry or by
 an `apply` after the sweep, was not worked out.
 
