@@ -1,9 +1,9 @@
 # Cloud Brain: a paper summarizer, one subagent a paper, whose summary is what the entry's vector is made from
 
-Spec of the feature `paper-summarizer-persona` on cb4's tracker. Written 2026-10-11, 19:50 to 20:20
-CEST, from `lopecode-dev` `f7ecb131` and the tracker at event 1544. Nothing here is built. No
+Spec of the feature `paper-summarizer-persona` on cb4's tracker. Written 2026-10-11, from 19:50
+CEST to the time of its commit, from `lopecode-dev` `f7ecb131` and the tracker at event 1544. Nothing here is built. No
 summary has been written by the role, so every number under "The design" is an estimate and says
-so; every number under "What exists today" is from a command run in that half hour, named beside it.
+so; every number under "What exists today" is from a command run in that half hour, named beside it (the first writing of this file was committed at 20:03 CEST).
 
 The issue has no parts: it is the owner's request, filed for him by a session. So there are no
 gathered reports to list, and the eight questions the filing session left "for the spec to settle"
@@ -26,7 +26,8 @@ smaller knowledge knowledgebase and reduced tooling", `plan/cloud-brain-lean-rev
 What was built from it is `cloud-brain-dev/agent.sh ROLE "task"`: a `claude -p` with a four-line
 prompt whose brief is a file of the Brain, `brain/roles/ROLE.md`. So "a new persona" is read here
 as a second role of that kind, not a new brief under `.claude/skills/brain-maintenance/agents/`.
-That is this writer's reading, not his words.
+That is this writer's reading, not his words. If it is not what he meant, the approval of this
+spec is where he says so.
 
 ## The requirements
 
@@ -172,7 +173,8 @@ For one paper, `run`:
    and takes `result` from its one JSON line.
 4. Refuses the result when the lead is too long, a section is missing, or a number in it is not
    in the text read. A number is a run of digits with its `.`, `,` and `%`; it is looked for as
-   written. Refused once, the same agent is sent the list (`agent.sh --resume`); refused twice,
+   written, in the same `.txt` the agent was given and nowhere else (a TeX source's `28.2\%` is
+   written `28.2%` into that file by step 2). Refused once, the same agent is sent the list (`agent.sh --resume`); refused twice,
    the paper is skipped and named.
 5. Puts, with the token `loop-papers`: `{ id, text, tags: ["paper-summary"], method: "paper-summarizer" }`,
    where `text` is, in order: the lead; the sections; the line
@@ -184,7 +186,8 @@ For one paper, `run`:
    `context`, `ms`, the put's answer, the numbers refused.
 
 A paper whose entry already has the tag and whose line names the same hash is skipped, so a run
-that died is run again.
+that died is run again. The entries have 3 or 4 tags today and the limit is 16, so the tag fits
+(61 with 3, 2 with 4; counted 20:05 CEST).
 
 No change is made to `brain-x-knowledge`. Three things it does already carry R2 and R4, read in
 `brain-knowledge.ojs` on 2026-10-11:
@@ -270,9 +273,17 @@ after a put is not verified; task 3 finds out on ten.
    `check`; sets A and B asked again; the cost of the ten and what 53 more would cost at that
    rate. If that is over $50, the task ends there with the figure on the issue for the owner;
    otherwise task 4 goes on.
-4. **`ps-4-the-rest`**: `run` on the other 53; `check`; the doc line of R6; in `SKILL.md` step 5,
+4. **`ps-4-the-rest`**: `run` on the other 53, in the way described under the list; `check`; the doc line of R6; in `SKILL.md` step 5,
    `paper-summarizer` added to the roles of a `cost` comment, one comment a task with the sum of
    the journal's `usd` and `"light":true`.
+
+A run is longer than a writer's turn: ten papers at the reviewer's 320 s are 53 minutes and 53
+papers 4.7 hours, against a median of 538 s for an implementer of the loop (79 runs, the `cost`
+comments). So the writer of tasks 3 and 4 starts `run` as a background command, which outlives
+no session but its own, and reads `journal.jsonl` when it is told the command has ended. A
+writer that ends first leaves a run that stopped with it; the next writer starts the same
+command, which skips what is done. If the pilot measures more than 3 minutes a paper, task 4 is
+opened as tasks of 15 papers (`--ids`), each one writer and one review.
 
 Who puts the brief: `rules.md` says of the token `loop-roles`, "The overseer changes a brief with
 it; no other role does." The reviewer's brief was first put by the writer of its task
@@ -288,7 +299,6 @@ covering the first put too, the overseer puts the file task 2 wrote.
    the knowledge base, and `knowledge.put` by the owner's token changes any entry of the Brain's,
    not papers only: that the tool puts nothing but `{ id, text, tags, method }` of a paper entry
    is an agreement, as `loop-roles` is.
-2. Say so if "persona" did not mean a role run by `agent.sh`.
 
 ## Read
 
