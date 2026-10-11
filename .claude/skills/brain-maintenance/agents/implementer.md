@@ -185,7 +185,13 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
      three texts had the note "under the panels" as the spec does, and it is drawn above them;
      review 1250 of `verify-run-shell-runs-deployed`, "The page's module is then not booted", false
      for `brain-x-page`; review 1259 of `fb-a2vp4smwzq`, four pointers shown reachable with
-     `brain.ts curl`, and the operator's own tool cut three of them at 8000 characters). Not `spec-as-built.md`:
+     `brain.ts curl`, and the operator's own tool cut three of them at 8000 characters). What the
+     check finds is mended in the file, and that landed, before the submit: a comment that says a
+     sentence of the record goes further than what you saw, with the record left as it was, is sent
+     back for that sentence (review 1090 of `record-first-resumed-rework-round`, after comment 1027,
+     "Three smaller things in what landed, not changed"; review 1424 of `ds-3-logs-reads-the-span`,
+     finding 2, after comment 1411, "Two places where the record's words go further than what I
+     saw": a resumed round of 154,128 tokens and a second review for two lines). Not `spec-as-built.md`:
      every writer appended there and the cherry-picks met. The deploy hash and the commits are
      the refs of the submit, not part of the record. Commit it (a second commit is fine).
      The loop's reviewer is the record's fresh read; `/review-notebook` is not run on it.
