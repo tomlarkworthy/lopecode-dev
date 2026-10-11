@@ -59,17 +59,18 @@ Three things differ from the spec's sentence, each a choice of this task:
 through a `curl` first on `PATH` that sends cb4's address to the stand-in.
 
 ```
-$ cd <worktree> && BRAIN_TS=<root>/tools/cloud-brain/brain.ts ISSUE_AS_SH=<root>/tools/cloud-brain/issue-as.sh bun test ./tests/tools/agent-token.test.ts
+$ git show dd4b4e48:tools/cloud-brain/brain.ts > <tmp>/brain.ts; git show dd4b4e48:tools/cloud-brain/issue-as.sh > <tmp>/issue-as.sh
+$ cd <worktree> && BRAIN_TS=<tmp>/brain.ts ISSUE_AS_SH=<tmp>/issue-as.sh bun test ./tests/tools/agent-token.test.ts
  1 pass
- 15 fail                                   # main's copies, before
+ 15 fail                                   # the two tools as of dd4b4e48, the commit before the landing
 $ bun test ./tests/tools/agent-token.test.ts
  16 pass
  0 fail
  126 expect() calls                        # commit 3158d6d0
 $ bun test ./tests/tools
- 211 pass
+ 217 pass
  0 fail
-Ran 211 tests across 24 files.
+Ran 217 tests across 25 files.            # on main at 0894760e; 211 across 24 before ta-2's test file came in
 ```
 
 The one that passes before is `issue-as.sh` with no agent tokens file: the old behaviour, kept.
