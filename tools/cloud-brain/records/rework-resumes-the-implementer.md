@@ -124,7 +124,11 @@ nothing. Nothing was used.
 
 Written for `record-first-resumed-rework-round`, started 16:40 CEST (event 1017). Every count
 below was run at 16:40 CEST on this machine, after the tracker's event 1017. `ia` is
-`tools/cloud-brain/issue-as.sh issues-implementer-2`; `$A` is
+`tools/cloud-brain/issue-as.sh issues-implementer-2` and is what the commands should be run with.
+The tracker output quoted here is not from it: the 16:40 run read `sync` with the reviewer's token,
+`issues-reviewer-2`, by the writer's mistake (comment 1027; a read). The same commands with `ia`
+at 16:44 CEST gave 127 lines for the 126 below, one `cost` comment having been written between,
+and every other number the same. `$A` is
 `$CLAUDE_CONFIG_DIR/projects/-Users-tom-larkworthy-dev-lopecode-dev/$CLAUDE_CODE_SESSION_ID`, the
 orchestrating session's transcript directory, read in a subagent's Bash. Those files are local
 and are deleted after 30 days: the commands that read them cannot be run again after that.
@@ -214,7 +218,13 @@ writer's cache gone, and a resumed round saves the reading and the tool calls, n
 ### What the send answered, and what the run reported
 
 The message was not the one `SKILL.md` gives. It had the first line in other words and no second
-line: `Issue: annotations-file-feedback. The `reviewed` event is 992.` The agent's report still
+line:
+
+```
+Issue: annotations-file-feedback. The `reviewed` event is 992.
+```
+
+The agent's report still
 speaks of "A resumed round" by name; that it read the section in this round and not in round 2 was
 not checked.
 
@@ -228,8 +238,22 @@ The run reported all three numbers, in the notification of its end (14:36:19Z):
 What each counts differed between agents. `subagent_tokens` held the earlier rounds for all three.
 `tool_uses` and `duration_ms` were the round's own for `a48b041` (14, 283 s after 35, 645 s) and
 `a89422c` (5, 98 s after 35, 657 s), and running totals for `ab2bb0b` (55, 1,329 s after 47,
-934 s). `ab2bb0b` had also ended twice before its send, at 14:24:11Z and 14:26:57Z; why is not
-known. Its `cost` comment 997 has the difference (8, 395), which step 5 of `SKILL.md`, "as they
+934 s). `ab2bb0b` had ended twice before its send, at 14:24:11Z and 14:26:57Z. Its transcript says why
+(added in round 2, from review 1090):
+
+```
+jq -c 'select(.type=="user" and (.message.content|type=="string"))|[.timestamp,(.message.content|.[0:80])]' $A/subagents/agent-ab2bb0bbc2429cfcb.jsonl
+["2026-10-11T14:11:24.049Z","Working directory: /Users/tom.larkworthy/dev/lopecode-dev.\nRead /Users/tom.larkw"]
+["2026-10-11T14:24:47.717Z","[SYSTEM NOTIFICATION - NOT USER INPUT]\nThis is an automated background-task even"]
+["2026-10-11T14:31:14.355Z","The coordinator sent a message while you were working:\nIssue: lean-reviewer-pers"]
+["2026-10-11T14:37:27.158Z","The coordinator sent a message while you were working:\nIssue: lean-reviewer-pers"]
+```
+
+A background task of its own woke it 36 s after it first ended, with no send, and its `tool_uses`
+and `duration_ms` ran on from there: 47 and 934 s at the end of that second run, 55 and 1,329 s
+after the send. So in the one case seen, the two were running totals for an agent that had been
+woken by a notification before it was sent to, and the round's own for the two that had not.
+Whether the notification is the cause was not tested. Its `cost` comment 997 has the difference (8, 395), which step 5 of `SKILL.md`, "as they
 are", does not ask for; it is left as written.
 
 ### What the resumed agent said of the brief
@@ -260,8 +284,9 @@ compare. What was seen is compaction: `a48b041` began at 14:14:00Z, the session 
 ### Not tried
 
 - A refused send, and a resume after a restart of Claude Code.
-- Whether the resumed writer passes its next review more often. Round 3's review had not been
-  recorded at event 1017 (`ia "get?id=annotations-file-feedback"`: `in-review`).
+- Whether a resumed writer passes its next review more often. This one did: round 3's review had
+  not been recorded at event 1017, and review 1036 then passed it (`ia "get?id=annotations-file-feedback"`
+  at 17:57 CEST: `done`). One round is not a rate.
 - The cost in money of either round, and a resume inside 5 minutes by an implementer.
 - `agents/implementer.md` still says "No round had been run this way when this was written".
   It is true of when it was written and was left.

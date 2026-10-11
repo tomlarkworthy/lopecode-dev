@@ -201,7 +201,8 @@ answered "OK" with no tool call) the count was 40,982 after the first turn and 4
 second, so the number held the first turn's context. A resumed round's `tokens` is therefore not
 set beside a new agent's as it stands. `"resumed":true` marks it, and the `tokens` of the same
 agent's comment before it is what to take off. That difference is not what the round was charged.
-Of 3 resumes on 2026-10-11, the 2 sent more than 5 minutes after the agent's last request wrote
+Of the 3 agents resumed on 2026-10-11 before 14:32 UTC, on the first send to each (one of them was
+sent a second), the 2 sent more than 5 minutes after the agent's last request wrote
 the whole earlier context to the prompt cache again on their first request (144,096 and 171,072
 tokens of cache creation, where the differences were 24,455 and 15,833); the one sent 4 min 20 s
 after read it from the cache (2,084 written, 178,464 read). The record has the requests.

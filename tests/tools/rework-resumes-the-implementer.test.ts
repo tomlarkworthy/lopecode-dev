@@ -63,3 +63,13 @@ test("SKILL.md names the round, and does not state what was not seen or list as 
   expect(s.match(/Not tried:[^\n]*(\n[^\n]+)*/)?.[0] ?? "").not.toContain("compacted");
   for (const word of ["annotations-file-feedback", "has not been seen", "144,096"]) expect(s).toContain(word);
 });
+
+// Review 1090.
+test("the record says which token read the quoted counts, quotes the message whole, and says why ab2bb0b ended twice", () => {
+  const s = section(record, "The first resumed round, 2026-10-11");
+  expect(s).toContain("issues-reviewer-2");
+  expect(s).toContain("\n```\nIssue: annotations-file-feedback. The `reviewed` event is 992.\n```\n");
+  expect(s).not.toMatch(/why is not\s+known/);
+  expect(s).toContain("14:24:47.717Z");
+  expect(section(skill, "A rework round goes to the agent that wrote the change")).not.toContain("Of 3 resumes");
+});
