@@ -159,3 +159,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   stays open for a `major` issue: said in the prose). 241k subagent tokens, 10m06s. What the author had not seen: a link named a
   security issue to a caller who could not read it; a project had no way out once approved; the record's own count dropped an
   issue whose id begins `test`; and a second submit under the spec brief's key answered 200 and moved nothing.
+- 2026-10-11 `tools/cloud-brain/research-memento-3.md` (a reading of one paper and 25 related sources): FIX, 6 findings
+  (4 confirmed, 2 plausible) and 1 minor, all taken. 93k subagent tokens, 4m04s. It fetched the paper and one neighbour
+  again; what the author had not seen: the comparison quoted a neighbour's run with another model and left out its run
+  with the same model, which used fewer actions than the paper under review.
