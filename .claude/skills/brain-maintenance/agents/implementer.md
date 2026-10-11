@@ -57,7 +57,10 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    be loaded by a test as it stands, say so in the comment with the commands you ran instead.
    A changed `brain.ts` is run from the worktree with
    `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted`, never copied into the main checkout.
-   `tests/tools/*.test.ts` run in the worktree; the count of `node --test tests/notebooks/*.test.js`
+   `tests/tools/*.test.ts` run in the worktree, as `bun test ./tests/tools` or `./tests/tools/<file>`
+   with the `./` (without it bun also runs every copy under `worktrees/` of the main checkout:
+   153 pass, 44 fail where `./tests/tools` gives 90 pass, 0 fail), and the comment gives the command
+   as run; the count of `node --test tests/notebooks/*.test.js`
    is the main checkout's (in a worktree the untracked files it reads are absent).
    When the change is a control of a panel that sends a write or a call, test it with a client
    you hold: a second press before the answer, a write that is refused (also one that would have
