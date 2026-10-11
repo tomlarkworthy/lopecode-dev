@@ -61,6 +61,8 @@ Ran 269 tests across 32 files.
 ```
 
 The 32 are 16 of `lock.test.ts`, 12 of `knowledge-docs.test.ts` and 4 of the phrase test below.
+The three files again at 20:15:01 CEST, after words were changed in the tool's header, the guide and this
+file (an underscore is in the service's pattern; three texts had said it is not): 32 pass, 0 fail.
 `bun test ./tests/tools` needs a built notebook at `tools/cloud-brain/.emitted/cloud-brain.html`,
 which a new worktree does not have: `tests/tools/issue-lock-sql.test.ts` reads it. With the file moved
 aside, `bun test ./tests/tools/issue-lock-sql.test.ts` gave 0 pass, 1 fail; with it back, 7 pass
