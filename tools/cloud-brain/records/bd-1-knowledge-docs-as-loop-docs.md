@@ -14,7 +14,7 @@ by their `method` the tool had entered none of them.
 
 ## What changed
 
-Commit `71516c9f` (2026-10-11 19:45:20 +0200), in the worktree `bm/bd-1-knowledge-docs-as-loop-docs`.
+Written in the worktree of the branch `bm/bd-1-knowledge-docs-as-loop-docs`.
 
 - **The token.** A call is `brain.ts curl … --as loop-docs`. With the argument `--owner` it is the
   owner's session, as before. `grep -c -- '"--owner"' tools/cloud-brain/knowledge-docs.ts` is 1, the
@@ -53,7 +53,8 @@ the repository from its own place, so the copy needs no switch in the tool for t
 each call's arguments, body and `BRAIN_STATE_DIR` to a file; no case calls a Brain.
 `KNOWLEDGE_DOCS_TS=<path>` runs the cases on another copy of the tool.
 
-In the worktree, 2026-10-11 19:45 CEST:
+In the worktree. The first run 2026-10-11 19:45 CEST; the other two 19:47:19 CEST, after the
+worktree was brought up to `main` (which brought in one test file of another writer):
 
 ```
 $ KNOWLEDGE_DOCS_TS=<main checkout>/tools/cloud-brain/knowledge-docs.ts bun test ./tests/tools/knowledge-docs.test.ts
@@ -63,9 +64,9 @@ $ bun test ./tests/tools/knowledge-docs.test.ts
  11 pass
  0 fail
 $ bun test ./tests/tools
- 245 pass
+ 251 pass
  0 fail
-Ran 245 tests across 29 files.
+Ran 251 tests across 30 files.
 ```
 
 The first run is the tool as it was. The one case that passes there is the cut at 16,000 characters,
@@ -82,7 +83,7 @@ which the change keeps.
 
 ## On cb4
 
-From the worktree, 2026-10-11 19:44:03 CEST, before the commit and with the same text of the tool:
+From the worktree, 2026-10-11 19:44:03 CEST, with the text of the tool that was then committed:
 
 ```
 $ BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status --check
