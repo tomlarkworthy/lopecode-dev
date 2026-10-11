@@ -11,7 +11,7 @@ All of it is in `tools/cloud-brain/brain-issues.ojs`, a deploy of `brain-x-issue
 
 | | |
 |---|---|
-| `issuesOpenWork` | a new cell, the text `"open work"`: the value of the filter's first choice. No state has that name, since no state in the default policy has a space in it; nothing refuses a policy that names a state so. |
+| `issuesOpenWork` | a new cell, the text `"open work"`: the value of the filter's first choice. No state can have that name: `issuePolicyAct` takes a state named `a-z 0-9 -` only (`/^[a-z0-9][a-z0-9-]{0,39}$/`), and this has a space. |
 | the State filter | its choices are now `open work`, `all`, then each state an issue of the copy is at. The first is chosen at load. `all` is the choice that was blank before. |
 | what `open work` shows | every issue with `closed` false. `closed` is set on each issue by `issueApply` from the `closed` list of the issue's own workflow. |
 | `chooser` | takes a third argument, the text of a choice. Kind and the form's Kind do not pass one. |
@@ -61,9 +61,8 @@ the states change. The test now finds the element at each use.
 
 ## Not tried
 
-- The panel in the owner's own tab on cb4, with his 100 or so issues. The rows were read in the
-  test's rig only.
-- A policy with a state named `open work`. It would be read as the first choice.
+- The panel in the owner's own tab on cb4, on the real record. The rows were read in the test's
+  rig only, with four issues.
 - Whether an issue open in the pane under the table should close when a move takes its row out of
   the table. It stays open, as it did under a one-state filter.
 - The four cases of step 6 for a control that sends a write: the filter sends none.
