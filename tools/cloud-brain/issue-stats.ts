@@ -1,8 +1,9 @@
 #!/usr/bin/env bun
 // What the tracker's record says of the loop: where issues wait, which states hold them, how often work is sent back.
-//   bun tools/cloud-brain/issue-stats.ts [--token issues-overseer-1] [--after SEQ] [--idle HOURS] [--json]
+//   bun tools/cloud-brain/issue-stats.ts [--token issues-overseer-1] [--after SEQ] [--window SEQ] [--idle HOURS] [--json]
 // Read from issue.sync with a token, through issue-as.sh (run it from the main checkout: a worktree has no tokens).
 // --after counts only the issues opened after that event. Times are the events' own `at`.
+// --window counts the events after that one, whatever issue they are of: what an oversight judges its last edits by.
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 
@@ -60,7 +61,30 @@ const submits = all.reduce((n, i) => n + i.moves.filter((m: string) => m === "su
 const reworks = all.reduce((n, i) => n + i.moves.filter((m: string) => m === "rework").length, 0);
 const open = all.filter((i) => !closed(i));
 const asked = all.filter((i) => i.asked);
+// A time of day in a reason or a body that is more than a minute after the event's own `at`, in this machine's zone.
+// As issue-as.sh reads it: the date nearest the time says its day, and a time beside another day's date is not counted.
+// It counts a quote of such a time too (a correction, a review of one): read the seqs.
+const ahead = (e: any) => [e.reason, e.body].some((text) => {
+  if (typeof text !== "string") return false;
+  const day = new Date(e.at), today = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+  const dates = [...text.matchAll(/(?<!\d)\d{4}-\d{2}-\d{2}(?!\d)/g)].map((d) => ({ s: d.index!, e: d.index! + 10, v: d[0] }));
+  return [...text.matchAll(/(?<![\w:.+])([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?(?!\d|:\d)/g)].some((m) => {
+    const at = m.index!, gap = (d: any) => (d.e <= at ? at - d.e : d.s - (at + m[0].length) + 0.5);
+    const near = dates.sort((a, b) => gap(a) - gap(b))[0];
+    if (near && near.v !== today) return false;
+    const t = new Date(e.at); t.setHours(+m[1], +m[2], +(m[3] || 0), 0);
+    return t.getTime() - e.at > 60000;
+  });
+});
+const from = Number(arg("window", "0")), inWindow = events.filter((e) => e.seq > from && !e.hidden && !/^test-/.test(e.id || ""));
+const moved = (m: string) => inWindow.filter((e) => e.type === "moved" && e.move === m).length;
+const windowReport = {
+  after: from, events: inWindow.length, submits: moved("submit") + moved("submit-spec"), reworks: moved("rework") + moved("send-back"),
+  verdicts: count(inWindow.filter((e) => e.type === "reviewed").map((e) => e.verdict)),
+  withText: inWindow.filter((e) => `${e.reason || ""}${e.body || ""}`.trim()).length, timesAhead: inWindow.filter(ahead).map((e) => e.seq)
+};
 const report = {
+  window: windowReport,
   events: events.length,
   issues: all.length,
   states: count(all.map((i) => i.state)),
@@ -85,6 +109,7 @@ else {
   for (const [s, t] of Object.entries(report.timeInState)) console.log(`  ${s.padEnd(18)} ${String(t.stays).padStart(3)} stays  median ${String(t.medianMin).padStart(6)} min  total ${String(t.totalH).padStart(5)} h  max ${t.maxH} h`);
   line("done", `${report.done.count}, median ${report.done.medianH} h from opened; ${report.done.firstPass} with no rework; ${report.done.quick} started without triage`);
   line("review", `${submits} submits, ${reworks} sent back; verdicts ${JSON.stringify(report.review.verdicts)}`);
+  if (from) line("window", `${windowReport.events} events after ${from}: ${windowReport.submits} submits, ${windowReport.reworks} sent back; verdicts ${JSON.stringify(windowReport.verdicts)}; ${windowReport.timesAhead.length} of ${windowReport.withText} texts name a time ahead of their own stamp ${JSON.stringify(windowReport.timesAhead)}`);
   line("needs-owner", `${report.needsOwner.ever} issues ever; now ${JSON.stringify(report.needsOwner.became)}; ${report.needsOwner.waitingNow} open with the label`);
   line("feedback", `${report.feedback.open} open, ${report.feedback.gathered} with a parent or a link`);
   console.log(`open and idle for ${idleH} h or more`);
