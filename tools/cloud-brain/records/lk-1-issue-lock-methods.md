@@ -84,6 +84,62 @@ change to these lines, so a statement added later gets a plan or a failure.
 What this does not show is the same as in the spec: D1 plans with its own SQLite. The probes below
 are that test.
 
+## Deployed, and the probes against cb4
+
+`brain.ts apply lk-1-issue-lock-methods-brain-x-issues.json`, under `cb4.lock` from 19:56:36 to 19:57:21 CEST
+(`lock.sh`'s own lines), answered:
+
+```
+44308 ms [{"worker":"brain-x-issues","hash":"40a30d5d086f","state":"verified","version":"0a2326e8-2b4e-48b5-8a16-2e7bc44f3ad7","tests":32}]
+```
+
+`redistil` after it: `brain-x-issues     same  40a30d5d086f`. `issue.verify?guards=true`:
+`{"ok":true,"seq":1555,…,"checked":1555,"guards":true}`, so the record is as it was; the locks wrote no event.
+
+The probes of R1, R2 and R4, sent as `issues-implementer-2` through `issue-as.sh` by one script, whole
+as it printed. D1 took the first form of every statement: no answer is brain-db's `refused: …`, so the
+other two forms of the spec were not deployed. The names are `probe-lk-1-issue-lock-methods` and the
+same with `-20`; each has a row in `issues_locks` from now on, emptied.
+
+```
+# R1 2026-10-11 19:58:07 CEST
+lock {"name": "probe-lk-1-issue-lock-methods", "who": "a", "seconds": 30} -> 200 {"held": true, "name": "probe-lk-1-issue-lock-methods", "who": "a", "n": 1, "taken": 1791741487993, "until": 1791741517993}
+locks -> 200 {"locks": [{"name": "probe-lk-1-issue-lock-methods", "who": "a", "n": 1, "taken": 1791741487993, "until": 1791741517993}], "ended": [], "history": []}
+# R2
+lock {"name": "probe-lk-1-issue-lock-methods", "who": "b", "seconds": 30} -> 409 {"held": false, "holder": {"who": "a", "taken": 1791741487993, "until": 1791741517993}, "error": "Held", "message": "probe-lk-1-issue-lock-methods is held by a"}
+lock {"name": "probe-lk-1-issue-lock-methods", "who": "a", "seconds": 30} -> 409 {"held": false, "holder": {"who": "a", "taken": 1791741487993, "until": 1791741517993}, "error": "Held", "message": "probe-lk-1-issue-lock-methods is held by a"}
+lock {"name": "probe-lk-1-issue-lock-methods", "who": "b", "release": true} -> 403 {"holder": {"who": "a", "taken": 1791741487993, "until": 1791741517993}, "error": "Refused", "message": "probe-lk-1-issue-lock-methods is held by a, and not by this caller under the name b; left where it is"}
+lock {"name": "probe-lk-1-issue-lock-methods", "who": "a", "release": true} -> 200 {"held": false, "name": "probe-lk-1-issue-lock-methods", "who": "a", "n": 1, "taken": 1791741487993, "ended": 1791741489963, "how": "released"}
+locks -> 200 {"locks": [], "ended": [], "history": []}
+20 takes at once of probe-lk-1-issue-lock-methods-20: statuses ['200', '409', '409', '409', '409', '409', '409', '409', '409', '409', '409', '409', '409', '409', '409', '409', '409', '409', '409', '409'] held:true 1 holders named by the 409s ['w5'] winner w5
+lock {"name": "probe-lk-1-issue-lock-methods-20", "who": "w5", "release": true} -> 200 {"held": false, "name": "probe-lk-1-issue-lock-methods-20", "who": "w5", "n": 1, "taken": 1791741490601, "ended": 1791741491307, "how": "released"}
+# R4
+lock {"name": "probe-lk-1-issue-lock-methods", "who": "a", "seconds": 5} -> 200 {"held": true, "name": "probe-lk-1-issue-lock-methods", "who": "a", "n": 2, "taken": 1791741491641, "until": 1791741496641}
+6 s later, locks -> 200 {"locks": [], "ended": [{"name": "probe-lk-1-issue-lock-methods", "who": "a", "n": 2, "taken": 1791741491641, "until": 1791741496641}], "history": []} now 1791741498023
+lock {"name": "probe-lk-1-issue-lock-methods", "who": "b", "seconds": 30} -> 200 {"held": true, "name": "probe-lk-1-issue-lock-methods", "who": "b", "n": 3, "taken": 1791741498287, "until": 1791741528287, "over": {"who": "a", "until": 1791741496641}}
+lock {"name": "probe-lk-1-issue-lock-methods", "who": "a", "renew": true} -> 409 {"held": false, "holder": {"who": "b", "taken": 1791741498287, "until": 1791741528287}, "error": "Held", "message": "probe-lk-1-issue-lock-methods is held by b; not yours to renew"}
+lock {"name": "probe-lk-1-issue-lock-methods", "who": "b", "release": true} -> 200 {"held": false, "name": "probe-lk-1-issue-lock-methods", "who": "b", "n": 3, "taken": 1791741498287, "ended": 1791741498938, "how": "released"}
+locks?history=10 -> 200 {"locks": [], "ended": [], "history": [{"name": "probe-lk-1-issue-lock-methods", "who": "b", "n": 3, "taken": 1791741498287, "ended": 1791741498938, "how": "released"}, {"name": "probe-lk-1-issue-lock-methods", "who": "a", "n": 2, "taken": 1791741491641, "ended": 1791741496641, "how": "expired"}, {"name": "probe-lk-1-issue-lock-methods-20", "who": "w5", "n": 1, "taken": 1791741490601, "ended": 1791741491307, "how": "released"}, {"name": "probe-lk-1-issue-lock-methods", "who": "a", "n": 1, "taken": 1791741487993, "ended": 1791741489963, "how": "released"}]}
+lock {"name": "probe-lk-1-issue-lock-methods", "who": "c", "seconds": 5} -> 200 {"held": true, "name": "probe-lk-1-issue-lock-methods", "who": "c", "n": 4, "taken": 1791741499513, "until": 1791741504513}
+lock {"name": "probe-lk-1-issue-lock-methods", "who": "c", "release": true} -> 200 {"held": false, "name": "probe-lk-1-issue-lock-methods", "who": "c", "n": 4, "taken": 1791741499513, "ended": 1791741499867, "how": "released"}
+n: a 2 b 3 c 4 | over in c: False
+# done 2026-10-11 19:58:19 CEST
+```
+
+Read from it:
+
+- R1: the take is 200 `held: true`; `issue.locks` lists it; after the release it is in neither list.
+- R2: `b` is answered 409 naming `a`, and so is `a` again. Of 20 takes sent together for one free
+  name (20 threads, one `curl` each) one is 200 and 19 are 409, each naming the winner, `w5`. This is the
+  only run of the batch as a transaction beside other callers. It was made once.
+- R4: `a` took the name for 5 s. 6 s later it is in `ended` and not in `locks`. `b`'s take answers
+  `over: { who: "a", … }` with `n` 3 after `a`'s 2, and the history row of `a`'s lock is `how: "expired"`
+  with `ended` 1791741496641, its own `until`. `a`'s renew is then 409 naming `b`. After `b`'s release
+  the name is in neither list, and `c`'s take has `n` 4 and no `over`.
+- Beside the three: a release by another name is 403 with `holder`, and the lock stayed (R5).
+
+Not probed on cb4: a renew that succeeds, a release from another token, `force`, a 400.
+
 ## Not tried
 
 - Two machines.
