@@ -303,6 +303,10 @@ not labeled `needs-owner`, and not at a state where an agent is on it:
 `past 4 h, not started, no reason: <n>`. That count is R4's number. The tool's "idle" is time
 since the issue's last event, so a comment resets it; the new line counts from the last move
 instead, so a `held:` comment does not hide the issue for another 4 hours.
+(As built, `os-3-stats-past-four-hours`, 2026-10-11: a row is an issue at `open`, `triaged` or
+`ready`; a reason is read wherever it is in the issue's record; the line ends `(<m> more are
+held)` when a row is, and its rows are printed under it; 3 at event 2683, where the 1 of the table
+below was read from the list of the idle; the record.)
 
 A link that says one issue waits for another would let the tracker answer this itself. It is a
 change to `brain-issues.ojs` and the policy, and is not in this design.
