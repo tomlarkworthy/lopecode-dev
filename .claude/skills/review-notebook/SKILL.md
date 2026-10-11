@@ -177,3 +177,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   FIX, 8 findings (6 confirmed, 2 plausible), all taken (lopecode-dev `99cefd01`). 114k subagent tokens, 5m16s. What the author had not seen: the
   refusal list named 8 of the tracker's 13 procedures and left `issue.review` and `issue.lock` open, the refusing function has a second caller, and
   the draft into a row's box would have left its buttons disabled and written over what the owner had typed.
+- 2026-10-11 `plan/cloud-brain-worker-machine-on-fly.md` (the spec of a worker machine on Fly.io, first writing, before its landing): FIX, 9 findings
+  (5 confirmed, 4 plausible) and 7 minor, all taken (lopecode-dev `728e3f11`). 114,587 subagent tokens, 5m22s. What the author had not seen: the machine's
+  token file used names no brief or tool reads, the test that starts the machine was not the loop's own table of step 3, and `fly.down` stopped a loop in
+  the middle of a landing.
