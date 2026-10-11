@@ -323,7 +323,7 @@ Run in the worktree at 14:21 CEST, `bun test.ts brain-x-issues --with <the built
 `cloud-brain-dev`, against the other modules as cb4 runs them:
 
 ```
-the seed as committed (7697ee31)        passed 14  failed 0  needsBrowser 8
+the seed as committed                   passed 14  failed 0  needsBrowser 8
 the same file with the put-back cut out passed 13  failed 1  needsBrowser 8
   FAIL test_issues_migration_puts_back_links_under_one_rule
   - ["{id:f1,rel:duplicate,to:x2}", "{id:x1,rel:related,to:x2}"]   + []
