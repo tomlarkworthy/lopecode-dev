@@ -43,8 +43,8 @@ the arguments `agent.sh` gives `claude` and the JSON line it prints, and the ref
 ## Round 2: the review of event 1055
 
 The first review made by the light reviewer: `changes`, six findings, 91,046 at its end, 444 s, $2.27
-(78,915 written to the cache, 1,226,622 read from it, 24,084 out), session `925f727d`. The four reviews of
-2026-10-10 and 10-11 nearest in kind are 100,725, 93,203 (an implementer), 98,045 and 81,039, from the journal.
+(78,915 written to the cache, 1,226,622 read from it, 24,084 out), session `925f727d`. The 55 reviewer
+runs with a count in the loop's journal (2026-10-10 and 10-11) have a median of 107,955, lowest 72,754.
 
 | Finding | What was done |
 |---|---|
