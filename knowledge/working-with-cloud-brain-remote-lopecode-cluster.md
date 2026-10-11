@@ -153,7 +153,10 @@ brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
 2. `bun tools/cloud-brain/build.ts`. Beside the notebook it writes two files in `tools/cloud-brain/.emitted/`:
    `shell.html`, the notebook without the modules a Worker serves (what `brain.ts shell` posts), and since
    2026-10-11 `verify.html`, that shell with `mains` cut to `["@tomlarkworthy/brain-shell"]`
-   (`tools/cloud-brain/verify-shell.ts`). Nothing posts `verify.html` yet; it is read by `verify-run.ts --shell`.
+   (`tools/cloud-brain/verify-shell.ts`), read by `verify-run.ts --shell`. `brain.ts shell` posts both, `verify.html` first
+   (`infra.shell?name=verify`), and neither when one is not there; a deployer that has `shell/verify.html` in brain-static
+   opens it for a deploy's test run (`brain-deployer.ojs`, `verifyPage`; `tools/cloud-brain/records/dv-3-deployer-opens-verify-html.md`).
+   Against a deployer from before that change `brain.ts shell` exits 1 and says to install the deployer first.
 3. Run the tests in a local QA tab: `qa_open_notebook` on the file URL with
    `#view=…&cc=<pairing token>&r=<fresh number>`, then `run_tests`. `r` does nothing; a new value makes a new URL, so the tab
    loads the file again.

@@ -79,7 +79,7 @@ A new Brain:
 ```
 BRAIN_BASE=<base> bun tools/cloud-brain/brain.ts install-deployer   # <base>-deployer, a new recovery key in .emitted/<base>.json
 BRAIN_BASE=<base> bun tools/cloud-brain/brain.ts apply core.json --reason="why"   # refused with 400 without a reason, which the deployer logs; then kernel, db, static, inbox, the other services, page
-BRAIN_BASE=<base> bun tools/cloud-brain/brain.ts shell
+BRAIN_BASE=<base> bun tools/cloud-brain/brain.ts shell   # .emitted/verify.html (the page of a deploy's test run), then .emitted/shell.html
 BRAIN_BASE=<base> bun tools/cloud-brain/brain.ts confirm <worker>   # one Worker a call; `state` shows which are on probation
 ```
 
