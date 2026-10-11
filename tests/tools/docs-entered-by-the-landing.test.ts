@@ -30,3 +30,10 @@ test("the guide says what is not entered until the next landing", () => {
   const section = text.slice(text.indexOf("## The knowledge docs in the Brain's search"));
   for (const phrase of ["origin/main", "no landing", "`cloud-brain-dev` alone", "docs (cb4): not entered", "LOCK_DOCS=0"]) expect(section.includes(phrase), phrase).toBe(true);
 });
+
+// bd-3-guide-stub-line: the guide said a stub of lock.test.ts printed `nothing to put`. It names that test for a line only when the test holds it.
+test("the guide does not give lock.test.ts as the source of a line that test does not print", () => {
+  const guide = readFileSync(join(root, GUIDE), "utf8"), stub = readFileSync(join(root, "tests/tools/lock.test.ts"), "utf8");
+  if (/`nothing to put`\) was printed that day with a stub/.test(guide)) expect(stub.includes("nothing to put")).toBe(true);
+  expect(stub.includes(`docs (cb4): {"put":2,"entered":2}`)).toBe(true);
+});

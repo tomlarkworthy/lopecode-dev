@@ -134,8 +134,10 @@ docs (cb4): not entered (<why>)             the tool failed; the docs wait for t
 - With no `loop-docs` kept the tool exits 2 and the release prints, as it did at 20:05:34 that day with its lock and
   state in a temporary directory, in 1.2 s:
   `docs (cb4): not entered (no token "loop-docs" is kept. The owner makes it once: BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-docs knowledge.put knowledge.list)`.
-  The second line above (`nothing to put`) was printed that day with a stub in the tool's place (`tests/tools/lock.test.ts`),
-  and by the tool run by hand on cb4 at 20:50:20; no release was seen to print it.
+  The first line above was printed by cb4 at the release of 20:54:42 that day, for one changed doc:
+  `docs (cb4): {"put":1,"public":0,"private":1,"entered":0,"changed":1,"vectors":1,"ms":1597,"source":"origin/main@bd71b157"}`,
+  3.1 s for the release with its step. No release was seen to print the second (`nothing to put`): the tool printed it
+  run by hand on cb4 at 20:50:20, and the stub of `tests/tools/lock.test.ts` prints a put line, `{"put":2,"entered":2}`.
 - The source is `origin/main`, read with git. A file edited on disk and a commit not pushed are not seen, by
   `status` or by `put`.
 - Not entered until the next landing of anyone: a commit pushed with no landing, and a push of `cloud-brain-dev` alone
