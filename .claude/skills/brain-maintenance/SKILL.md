@@ -113,7 +113,9 @@ Two files beside it, neither of them needed to resume:
    `needed a tab`, which is a review it did not write: start it once more with `TAB=1` and post both runs' costs.
    The tab tools are 8,342 tokens in every request (18,106 at the first request of review 3 of
    `light-reviewer-in-use` against 9,764 with none), and none of that issue's three reviews called one. Its stdout is one JSON line,
-   `{ session, result, usd, usage, context, turns, ms }`: `result` is its report. In the `cost` comment
+   `{ session, result, usd, usage, context, turns, ms, legs }`: `result` is its report, of its last leg when it
+   waited on a background command (`legs` over 1; until 2026-10-11 the line was of the first leg, and a reviewer
+   that waited for the landing lock read as having stopped at "Still held"). In the `cost` comment
    `tokens` is `context`, `seconds` is `ms` over 1000, and the line has three more fields, `"usd"`, `"session"`
    (the `session` of that JSON, not yours) and `"light":true`; `tools` is left out. It is never sent
    `--resume`. When the command prints no JSON line, or exits 1 (the result was an error) or 2, spawn the reviewer once as an Agent, as above:

@@ -128,7 +128,29 @@ test("agent.sh ROLE task: a prompt of four lines, four tools, no MCP server, and
   expect([s[3].startsWith("scratch: /"), r.scratchWasThere, existsSync(scratch)]).toEqual([true, true, false]);
   expect([s.includes("--strict-mcp-config"), s.includes("--mcp-config"), s[s.indexOf("--tools") + 1], s[s.indexOf("--allowedTools") + 1], s[s.indexOf("--add-dir") + 1], s[s.indexOf("--model") + 1]])
     .toEqual([true, false, "Bash,Read,Grep,Glob", "Bash,Read,Grep,Glob", r.checkout, "opus"]);
-  expect(JSON.parse(r.out)).toEqual({ session: "s-1", result: "done", usd: 0.5, usage: { input: 4, cacheWrite: 20, cacheRead: 300, output: 9 }, context: 117, turns: 3, ms: 1200 });
+  expect(JSON.parse(r.out)).toEqual({ session: "s-1", result: "done", usd: 0.5, usage: { input: 4, cacheWrite: 20, cacheRead: 300, output: 9 }, context: 117, turns: 3, ms: 1200, legs: 1 });
+});
+
+// The review of fewer-review-rounds waited for the landing lock in the background: the stream had two result lines,
+// the launcher printed the first ("Still held by another landing") and the run went on to pass the issue.
+test("a run of two legs is reported at its end: the last result, usage summed", async () => {
+  const dir = root();
+  mkdirSync(join(dir, "bin"));
+  mkdirSync(join(dir, "checkout/tools/cloud-brain"), { recursive: true });
+  copyFileSync(join(dev, "agent.sh"), join(dir, "agent.sh"));
+  chmodSync(join(dir, "agent.sh"), 0o755);
+  const u = (i: number, cw: number, cr: number, o: number) => ({ input_tokens: i, cache_creation_input_tokens: cw, cache_read_input_tokens: cr, output_tokens: o });
+  const lines = [
+    { type: "assistant", message: { usage: u(1, 1, 1, 1) } },
+    { type: "result", session_id: "s-2", result: "WAITING", total_cost_usd: 0.4, num_turns: 2, duration_ms: 1000, usage: u(4, 20, 300, 9) },
+    { type: "assistant", message: { usage: u(2, 10, 100, 5) } },
+    { type: "result", session_id: "s-2", result: "DONE", total_cost_usd: 0.5, num_turns: 1, duration_ms: 200, usage: u(1, 2, 30, 4) },
+  ];
+  writeFileSync(join(dir, "bin/claude"), `#!/bin/bash\ncat <<'EOF'\n${lines.map((l) => JSON.stringify(l)).join("\n")}\nEOF\n`);
+  chmodSync(join(dir, "bin/claude"), 0o755);
+  const r = await run([join(dir, "agent.sh"), "reviewer", "t"], { PATH: `${join(dir, "bin")}:${process.env.PATH}`, CHECKOUT: join(dir, "checkout"), TAB: "", MODEL: "", ADVISOR: "" });
+  expect(r.code).toBe(0);
+  expect(JSON.parse(r.out)).toEqual({ session: "s-2", result: "DONE", usd: 0.5, usage: { input: 5, cacheWrite: 22, cacheRead: 330, output: 13 }, context: 117, turns: 3, ms: 1200, legs: 2 });
 });
 
 // The owner, 2026-10-11: "ok lets disable the advisor for review". The setting is the one that removed it in a real start.
