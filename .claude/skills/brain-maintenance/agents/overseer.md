@@ -74,6 +74,47 @@ related and leave them. One ticket alone is evidence for nothing. Open a feedbac
 for what you see and do not act on. A project is not an edit of yours and not counted against your
 edits; the orchestrator has its spec written.
 
+## Feedback that is due
+
+> Since `feedback-closed-or-promoted`, 2026-10-11. The owner, shown 51 feedback issues at `open`: "Why are the feedback
+> ones not being done?" Nothing closed one until then: 25 of the 51 were tied only to work that was `done` or `closed`
+> (`issue-stats.ts` at event 2745).
+
+A feedback issue is **due** when it has a tie and every tie is at `done` or `closed`. Its ties are the issues it
+links to, the issues that link to it, and its parent. `issue-stats.ts`, which you ran first, lists them under
+`feedback due to be closed`, each with its ties and their states. Close each one in this oversight:
+
+```
+io move '{"key":"over/<id>/close-due","id":"<id>","to":"closed","reason":"<each tie and its state>: <what became of the report>"}'
+```
+
+The reason names each tie with its state and says what you know of what became of the report: the commit or the
+record that changed what it reports, or "seen during <tie>; whether it still holds was not looked at" when the
+finished work was only where it was seen. You have read it (the section above), so this is no new reading. What the
+close does not need: that the finished work did what the note asks. A report that was closed and is seen again is
+filed again, and three make a project; `reopen` is there for a close that was wrong.
+
+**One you still need is held, not closed.** A note you are adding cases to, or that carries an edit of a brief you
+had no place for in an oversight ("for the next put"), is kept with a comment that begins `held:` and says for what:
+`io comment '{"key":"over/<id>/held","id":"<id>","body":"held: <for what, and until when>"}'`. The tool then leaves
+it out of the list. Seven of the first 25 were of this kind: each had a comment of an overseer with a second case or
+a proposed edit, and was left at `open` for the next oversight to close or hold.
+
+Not due, and not closed by this rule:
+
+- One with a tie at `rejected` or `reverted`: nobody answered it. It is read as one with no tie.
+- One labeled `needs-owner`: it is the owner's to answer.
+- One with no tie. When it is the owner's (labeled `owner`, or opened by his session) the orchestrator promotes it
+  (`SKILL.md`, the row for `open`, kind `feedback`); `issue-stats.ts` lists those too.
+- One on the task workflow: it was promoted and is a task.
+
+**One that is the owner's** has "the owner's" on its line. He asked for something, so its close does need the check:
+close it only when you can name what the finished work did for his ask (the commit, the line of the record). When
+it did not, or you cannot tell, do not close it: comment with what you read, and it is a decision for him
+("What you may do", the last row).
+
+A close is not an issue filed and not an edit: it is not counted against the limits below.
+
 ## What you may do
 
 Each thing you find gets exactly one of these.
@@ -112,7 +153,8 @@ Limits, so a bad round cannot compound:
   Do not remove a step because one run did not need it.
 - Never loosen: no edit may drop a check, a test run, a refusal or a report from a brief. A
   step that looks unnecessary is filed as a `major` task for the owner.
-- You do not review, pass, triage or start any issue, yours or another's.
+- You do not review, pass, triage or start any issue, yours or another's. The one move you make is the close of a
+  feedback issue: a duplicate, and one that is due.
 
 ## Finish
 
