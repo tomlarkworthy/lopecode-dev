@@ -291,7 +291,7 @@ is in his list. Adding them to `MEMBER` would move every Worker's hash and is no
 `dashboard.put`, `dashboard.get?name=`, `dashboard.list`, `dashboard.delete`, rows of the service,
 rule `caller.id == "owner" || caller.kind == "did"`. A member's is named `m-<id>-<name>`; a member
 lists, reads and writes their own and no other, held in the service. The owner and his tokens
-reach every one. A dashboard holds names only: the data is refused or answered by `metric.query`
+reach every one. (As built, `dsv-3-dashboards`, 2026-10-11: they read every one and write no member's and no built-in name; `tools/cloud-brain/records/dsv-3-dashboards.md`.) A dashboard holds names only: the data is refused or answered by `metric.query`
 for each panel, so a token that reads the dashboard `health` draws nothing from it.
 
 `draw` is one of five. `calls`, `faults` and `methods` are the three drawing functions Health has,

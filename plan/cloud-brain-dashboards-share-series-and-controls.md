@@ -240,7 +240,7 @@ and Health's is `view: "calculations"`, two different answers. Logs still reads 
   the number of rows and the time the query takes were not measured, and no agent of the loop can
   measure them: `logs.query` is `allow: "caller.session"` (`brain-logs.ojs` line 225), the owner in
   his own tab. So no task waits for that number. The select offers the five spans Logs offers
-  today, and the page says what it got: the note under the panels gives the span, the step and
+  today, and the page says what it got: the note above the panels gives the span, the step and
   `groups`, and when `groups` is not below the query's own `limit` (500) it adds "500 groups is the
   limit of one answer: some calls may be missing." A query that fails shows its error there, as
   today. That `groups` (the length of the count's `aggregates`) reaches 500 when Cloudflare cuts
@@ -322,7 +322,7 @@ Each is one writer and one review, and each deploys `brain-x-page` alone.
    and `healthView` drawing from `calls`. No control, no new behaviour. The test of `callsRead`.
    Check R2's `$def` line and the two counts after.
 2. **The two controls.** `viewof span` and `viewof asked` above the panels; `timeRange` reads them;
-   the note under the panels (line 42) and the line a visitor reads (line 35) name the span
+   the note above the panels (line 42) and the line a visitor reads (line 35) name the span
    instead of "the last hour". The select has the five spans of Logs. The note gives span, step and
    `groups`, with the line about the limit when `groups` is not below it, and its test. Nothing is
    measured on cb4: the writer cannot call `logs.query`.

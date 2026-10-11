@@ -6,7 +6,7 @@ with other issues gathered into it as its parts. You write its spec. You build n
 First written 2026-10-11, from the owner's words that day ("something consolodating isolated issues
 into one larger set of gather requirements for a large reenginneing project") and of 2026-10-10 on
 `ndd66a518` ("it needs specs, which need review, then approval, then task decomposition,
-implementation and review for each before merging"). Not yet run: say in your report what in it
+implementation and review for each before merging"). Run since 2026-10-11: say in your report what in it
 misled you.
 
 > In force on cb4 since the owner installed the policy of 2026-10-11 (event 483).

@@ -45,7 +45,7 @@ The other pages are listed in that file, which is read first.
    same one and nothing is made on this machine (since 2026-10-11, `tools/cloud-brain/records/lk-3-lock-sh-over-the-cluster.md`;
    before that it was a directory under `.emitted/`). `take` exits 1 and names the holder and until when, when another
    agent is deploying (wait, or `take … --wait`), and exits 2 when cb4 was not reached or refused the call: no apply then.
-   `release` refuses a name that is not the holder's; `renew` gives the holder 600 s more; `show` says who holds it. A lock
+   `release` refuses a name that is not the holder's; `renew` gives the holder 600 s from the renew; `show` says who holds it. A lock
    past its time is not held, and the next take takes it. The header of `lock.sh` is the reference.
    Nothing makes `apply` look at it. It is the agreement between agents, on every machine. The landing lock, `land`, is the same tool.
    Since 2026-10-11 07:51 CEST on cb4: every Worker with a version before it goes on probation, the deployer

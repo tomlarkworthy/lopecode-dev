@@ -275,7 +275,7 @@ token and ends it.
       `LOCK_TOKEN=<token> lock.sh renew land <id>` again, then push both. Exit 1 from this renew: no push; report
       what is committed in the main checkout and not pushed.
     - With no deploy: take, pull, rebase, renew, `merge --ff-only`, renew, push, release. No build, apply or `lopebooks` commit.
-    - `LOCK_TOKEN=<token> <root>/tools/cloud-brain/lock.sh release land <id>`. It prints when the lock was taken and when it went.
+    - `LOCK_TOKEN=<token> <root>/tools/cloud-brain/lock.sh release land <id>`. It prints when the lock was taken and when it went. Then one line `docs (cb4): …`: the docs step; `not entered (…)` is no failure of the landing (the exit is the release's; `knowledge/calling-a-cloud-brain-from-this-checkout.md`, "The knowledge docs in the Brain's search").
       Exit 1 names another holder: your lock ended while you worked and another writer took it.
       Stop there, push nothing more, and report what was pushed and what was not. Exit 2: cb4 was
       not reached; run the release again. A lock that is never released ends at its time.
