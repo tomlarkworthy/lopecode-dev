@@ -118,3 +118,12 @@ The spec says of the fetch and the `show`: "Not run". They are run here once, by
 - **The test reads the network.** With cb4 not answering, four of the five fail; no skip was written. The
   spec has such a `curl` in `lock.test.ts` from task 3 on, skipped with its reason; this file is where it is until then.
 - The kept copy was not restored, so a return to it is not shown.
+
+## The wait, behind this landing's own hold
+
+This writer took `land` for its landing at 19:42:54 CEST (`lock.sh take land`'s own line) and then started
+the brief's wait line, with `<checkout>` and `<token>` written out, as a background command. At 19:43:05
+`lock.sh show land` answered exit 0 ("land.lock is held by lk-2-reviewer-brief-waits-on-show") and the wait
+had not returned. This section was written then, inside the hold, so when the wait returned is not here: it
+is in the writer's comment on the issue, with the time of the release. One hold, on one machine, with
+today's script; the waiter was the writer's shell and not a reviewer.
