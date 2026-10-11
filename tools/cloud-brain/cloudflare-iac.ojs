@@ -88,7 +88,7 @@ serviceList = ({ services = [], brain = null, moduleLink = null } = {}) => {
     body.replaceChildren(htl.html`${table}
       <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${why}${apply}${again}<span style="color:var(--theme-foreground-muted)">${busy}</span></div>
       ${waiting.length ? htl.html`<div style="margin-top:6px;color:var(--theme-foreground-muted)">Waiting for approval: ${waiting.map((r) => r.worker).join(", ")}. ${brain && brain.deployerUrl ? htl.html`Approve on the <a href=${brain.deployerUrl} target="_blank" rel="noopener">deployer page</a>, then press Apply again.` : ""}</div>` : ""}
-      ${refused.map((r) => htl.html`<div style="margin-top:6px;color:#e5484d">${r.state === "refused" ? "Refused: " + r.reason : `${r.worker} failed its health check and was put back to ${short(r.previous)}. ${r.reason}`}</div>`)}`);
+      ${refused.map((r) => htl.html`<div style="margin-top:6px;color:#e5484d">${r.state === "refused" ? "Refused: " + r.reason : `${r.worker} was put back to ${short(r.previous)}: ${r.reason}`}</div>`)}`);
   };
   const refresh = async () => {
     emitted = await Promise.all(services.map((s) => s.emit().catch((e) => ({ name: s.name, error: String((e && e.message) || e) }))));

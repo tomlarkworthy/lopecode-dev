@@ -38,9 +38,12 @@ md`## Probation
 
 One transition function for a Worker on probation, driven by the deployer's one-minute cron, by a passing verdict and by \`infra.confirm\`. Times are milliseconds.`
 // %%
+// How long a Worker stays on probation with no verdict, unless the deployer's config sets probationMs.
+probationDefaultMs = 10 * 60 * 1000
+// %%
 nextKernelState = (s, event) => {
   // 10 minutes unless the deployer's config sets probationMs, which a test Brain does.
-  const PROBATION_MS = event.probationMs ?? 10 * 60 * 1000;
+  const PROBATION_MS = event.probationMs ?? probationDefaultMs;
   const span = PROBATION_MS % 60000 ? PROBATION_MS / 1000 + " seconds" : PROBATION_MS / 60000 + " minutes";
   if (s.state !== "probation") return s;
   if (event.type === "confirm") return { state: "confirmed", version: s.version, lastGood: s.version };
@@ -642,7 +645,7 @@ deployerOps = {
     const ks = await rows.get("kernelstate/" + logical);
     if (!ks || ks.state !== "probation") return null;
     if (recovery && over) return say({ at: "deploy.over-unverified", target: logical, hash: ks.hash, by: "recovery key" }), null;
-    const at = new Date(ks.since + (config.probationMs ?? 10 * 60 * 1000)).toISOString().slice(11, 19);
+    const at = new Date(ks.since + (config.probationMs ?? probationDefaultMs)).toISOString().slice(11, 19);
     return `${logical} is ${h12(ks.hash)} and not verified yet: its tests are running, and it is put back at ${at} if they have not passed. Deploy again after that.`;
   };
   // An approval is of one hash over one hash: it does not stand once the Worker has moved.
@@ -983,7 +986,7 @@ deployerOps = {
     kernel: Object.fromEntries(
       (await rows.list("kernelstate/")).map(({ key, value }) => [
         key.slice("kernelstate/".length),
-        value.state === "probation" ? { ...value, deadline: value.since + (config.probationMs ?? 10 * 60 * 1000) } : value
+        value.state === "probation" ? { ...value, deadline: value.since + (config.probationMs ?? probationDefaultMs) } : value
       ])
     ),
     confirmed: Object.fromEntries((await rows.list("confirmed/")).map(({ key, value }) => [key.slice("confirmed/".length), value])),
@@ -1384,7 +1387,9 @@ deployerModules = async (own, member = null) => {
     return out;
   }
   if (own && own.text) out.push({ module: own.module, worker: "brain-deployer", hash: deployerOps.self.hash, text: own.text, files: {} });
-  for (const { key, value } of await rows.list("source/")) if (!value.stale) out.push({ module: key.slice("source/".length), worker: value.worker, hash: value.hash, text: value.text, files: value.files || {} });
+  // Not the source of a Worker that was removed: its row is kept, and nothing runs it.
+  const runs = new Set((await rows.list("worker/")).filter((r) => r.value && r.value.hash).map((r) => r.key.slice("worker/".length)));
+  for (const { key, value } of await rows.list("source/")) if (!value.stale && runs.has(value.worker)) out.push({ module: key.slice("source/".length), worker: value.worker, hash: value.hash, text: value.text, files: value.files || {} });
   return out;
 }
 // %%
@@ -2694,7 +2699,10 @@ test_getModules_lists_what_the_deployer_owns_and_what_runs = {
   // The key the deployer made for that Worker is not in the answer.
   expect(JSON.stringify(await list()).includes(rig.sim.rows.get("worker/brain-x-static").key)).toBe(false);
   expect((await rig.sim.fetch(U, { method: "POST" })).status).toBe(401);
-  return first.length + " then 3";
+  // A Worker that was removed: its source is kept and is not listed (18 such rows on cb4, 2026-10-10).
+  expect((await rig.recover({ remove: ["brain-x-static"] })).results[0].state).toBe("removed");
+  expect([rig.sim.rows.has("source/@tomlarkworthy/brain-static"), (await list()).length]).toEqual([true, 2]);
+  return first.length + " then 3, then 2";
 }
 // %%
 // A small service of this module, for the distil test.

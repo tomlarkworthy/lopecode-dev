@@ -1222,13 +1222,16 @@ test_settings_are_stored_by_the_owner_and_sent_with_each_forwarded_call = {
   expect((await rig.anonymous("config.get?worker=brain-x-conf")).status).toBe(401);
   await rig.owner("conf.go", {});
   expect(got.pop()).toEqual({});
-  const log = console.log;
-  console.log = (line) => void (line && line.at === "config" ? logged.push(line) : null);
+  // Lines given to console.log while a test listens. It is never put back: two tests that each put back the value
+  // they saved, out of order, left console.log as a function that kept every later line from everyone (2026-10-10).
+  const before = console.log;
+  let listening = true;
+  console.log = (...a) => (listening && a[0] && a[0].at === "config" && a[0].worker === "brain-x-conf" ? logged.push(a[0]) : null, before.apply(console, a));
   try {
     expect((await set(rig.owner, S)).data).toEqual({ ...S, old: null });
     expect((await set(rig.owner, { ...S, value: 45000 })).data).toEqual({ ...S, value: 45000, old: 60000 });
   } finally {
-    console.log = log;
+    listening = false;
   }
   expect(logged.map((l) => [l.worker, l.key, l.old, l.value, l.by])).toEqual([["brain-x-conf", "pollMs", null, 60000, "owner"], ["brain-x-conf", "pollMs", 60000, 45000, "owner"]]);
   await rig.owner("conf.go", {});
