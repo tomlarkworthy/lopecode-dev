@@ -64,7 +64,10 @@ opened in a new context of a local HeadlessChrome 151.0.7922.34 for each run, re
 | Hash on cb4 | When (CEST) | Runs | Failed | The test named |
 |---|---|---|---|---|
 | `a20b957dc536`, before | 14:03:45 to 14:05:08 | 40 | 14 | this one, 14 of 14, the message above |
-| AFTER_HASH, after | AFTER_WHEN | AFTER_RUNS | AFTER_FAILED | AFTER_NAMED |
+| `45a1464a3573`, after | 14:07:04 to 14:08:25 | 40 | 0 | none |
+
+The deployer's own run at the apply (14:06 CEST, the cluster's browser): `"state":"verified","tests":10`.
+With a rate of 14 in 40 unchanged, 40 runs with no failure have a chance of about 3 in 100 million (0.65^40).
 
 ### Counts after the change
 
