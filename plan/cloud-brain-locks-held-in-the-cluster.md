@@ -381,7 +381,7 @@ answers for such a row:
 
 **The tool.** `lock.sh` keeps its name, its arguments and its exit codes, with the cluster behind it.
 It sends no `seconds`, so a lock taken with it is 600 s; the 1800 is for a caller of the method.
-Each call is `curl -s -m 30`, the limit `issue-as.sh` has (its lines 46 and 47). On a take that
+Each call is `curl -s -m 30`, the limit `issue-as.sh` has (its lines 60 and 61 at `1985c56e`). On a take that
 answers `over` it prints `took over <who>'s lock, which ended at <until>` and exits 0:
 
 ```
@@ -417,6 +417,14 @@ itself, with `curl`, and does not go through `issue-as.sh`.
 - `BRAIN_STATE_DIR` therefore means one thing to the new script: where the token file is read.
   Nothing is written there. "It makes no directory and reads none" in round 2 was of the lock;
   the token file is the one thing it reads.
+- A second token file came to `main` while round 4 was written (`issue-as.sh` lines 3 to 5 at
+  `1985c56e`, the issue `ta-1-agent-token-command`): `cb4-agent-tokens.json`, "one for each agent
+  or session, made by `brain.ts agent-token <role>`", read after the roles' file. `lock.sh` reads
+  the two files in that order, as `issue-as.sh` does. This spec does not rest on it: the three
+  role tokens are enough for every check above. What it would change if the briefs come to give
+  each agent a token of its own: `via` then names one session, and the case left open under "The
+  design" (two sessions under one role name) is closed by the holder's `via` with no change here.
+  Not tried: whether such a token arrives with a `via` of its own was not read.
 - The address is `LOCK_BASE`, `https://cb4.endpointservices.workers.dev` when unset. Only the
   tests set it.
 - The exit code is read from the HTTP status, which `curl` gives with `-o <file> -w '%{http_code}'`:
