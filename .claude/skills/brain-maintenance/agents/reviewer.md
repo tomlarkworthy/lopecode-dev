@@ -95,11 +95,13 @@ seen, when, where to read it, which line. No fix in it (2026-10-11, `philosophy.
 ## A digest
 
 An issue labeled `digest` is a published notebook, not a change to a service. Steps 2 to 6 are
-replaced by these; steps 1 and 7 hold. Written 2026-10-11; no digest has been reviewed by it yet.
+replaced by these; steps 1 and 7 hold. Written 2026-10-11; first used that day on `digest-2026-10-11` (event 404).
 
-1. Open the `url` ref with no session, in a QA tab of your own. Count the variables, those with
-   an error, the items loaded and the `picks` found among them, and compare with the writer's
-   four numbers.
+1. Open the `url` ref with no session, in a QA tab of your own, opened with
+   `chromium_args: ["--disable-features=LocalNetworkAccessChecks"]` (without it the tab does not
+   pair). Count the variables, those with an error, the items loaded and the `picks` found among
+   them, and compare with the writer's four numbers. How each is counted is in the writer's
+   brief, `agents/digest.md`, steps 6 and 8.
 2. For every number the prose quotes, find it in the stored summary
    (`/static/snapshot/<day>/<source>.json`) or on the linked page. A number in neither is a
    finding. So is an item described past its title when the digest's own "What was not read"
