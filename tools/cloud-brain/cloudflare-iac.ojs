@@ -515,7 +515,8 @@ workerRuntime = (AsyncLocalStorage = null) => {
     return new Request(request, { headers });
   };
   // The text of every prose cell (a cell that returns one md`…`) in a module's source, in order, with the escapes of a
-  // template literal undone. A method table in a later cell is part of the reference too.
+  // template literal undone. A method table in a later cell is part of the reference too. For a Worker emitted
+  // before 2026-10-11, which carries no reference of its own; a hole in it is not filled.
   const referenceOf = (text) =>
     [...text.matchAll(/\{\s*return \(\s*md`((?:[^`\\]|\\[\s\S])*)`/g)].map((m) => m[1].replace(/\\([`\\$])/g, "$1")).join("\n\n");
   const bindingName = (name) => "X_" + name.toUpperCase().replace(/[^A-Z0-9]/g, "_");
@@ -699,7 +700,7 @@ workerRuntime = (AsyncLocalStorage = null) => {
         const describes = url.pathname === "/xrpc/com.lopecode.brain.getInfo" ? "info" : url.pathname === "/xrpc/com.lopecode.brain.getSource" ? "source" : null;
         // part=reference: the module's prose cells, which hold its method tables, as text.
         if (describes === "source" && url.searchParams.get("part") === "reference" && request.method === "GET" && (!asked || asked === info().name) && (inside || edge || keyed))
-          return new Response(referenceOf(source ? source.text : ""), { headers: { "content-type": "text/plain; charset=utf-8", "access-control-allow-origin": "*" } });
+          return new Response(source ? source.reference ?? referenceOf(source.text) : "", { headers: { "content-type": "text/plain; charset=utf-8", "access-control-allow-origin": "*" } });
         if (describes && request.method === "GET" && (!asked || asked === info().name) && (inside || edge || keyed))
           return new Response(JSON.stringify(describes === "info" ? info() : { worker: info().name, hash: info().hash, module: source ? source.module : null, text: source ? source.text : null }), {
             headers: { "content-type": "application/json", "access-control-allow-origin": "*" }
@@ -954,6 +955,27 @@ emit = async (service) => {
   // The module the service's cell is in, as source. The Worker serves it, and it is part of what is hashed, so
   // what runs and what it was made from are deployed and put back together.
   const source = await moduleSource(root._module);
+  // The reference a Worker serves: the module's prose cells as text, each hole filled with the value its cell has
+  // here. Made at the emit, in the tab and in the deployer's QuickJS alike, because a Worker holds the cells'
+  // source and does not run them: served from source, a hole read as ${gitDefaults.seconds} (40 of them in four
+  // Workers on 2026-10-10). A cell whose hole cannot be computed here keeps its source text.
+  if (source) {
+    const filled = (strings, ...values) => strings.reduce((a, t, i) => a + t + (i < values.length ? String(values[i]) : ""), "");
+    const prose = [];
+    // The whole definition is one md`…`: a cell that only holds such text in a string (a test's fixture) is not
+    // prose, and calling it here would run it (the library's tests ran themselves without end, 2026-10-11).
+    for (const v of [...runtime._variables]) {
+      const written = v._module === root._module && typeof v._definition === "function" ? /^function[^(]*\([^)]*\)\s*\{\s*return \(\s*md`((?:[^`\\]|\\[\s\S])*)`\s*\)?;?\s*\}$/.exec(String(v._definition)) : null;
+      if (!written) continue;
+      const names = (v._inputs || []).map((i) => i._name);
+      prose.push(
+        await Promise.all(names.map((n) => (n === "md" ? filled : v._module.value(n))))
+          .then((inputs) => String(v._definition(...inputs)))
+          .catch(() => written[1].replace(/\\([`\\$])/g, "$1"))
+      );
+    }
+    source.reference = prose.join("\n\n");
+  }
   if (source) lines.push(`import __source from "./source.js";`);
   // The interpreter's WebAssembly is a part of the Worker. Cloudflare compiles it at upload.
   if (used.has("quickjs")) lines.push(`import __quickjs_wasm from "./quickjs.wasm";`, `const __quickjs = { module: async () => __quickjs_wasm };`);
@@ -1215,7 +1237,7 @@ logged = {
 // %%
 md`## Fixtures and tests
 
-Cells named \`fx_*\` exist for the tests. Three of them are services the emit must refuse.`
+Cells named \`fx_*\` exist for the tests. Three of them are services the emit must refuse. Every Worker emitted here runs with the compatibility flags ${wrapperFlags.map((f) => "\`" + f + "\`").join(", ")}.`
 // %%
 fx_double = (x) => x * 2
 // %%
@@ -2052,13 +2074,19 @@ test_a_worker_serves_its_manifest_and_its_source = {
   // Every response says which Worker and version produced it.
   expect(got.headers.get("x-brain-served-by")).toBe("brain-x-fixture@" + e.hash.slice(0, 12));
   expect(body.text).toBe(e.source.text);
-  // part=reference: the prose cells of the module as text, with the escapes of their templates undone.
+  // part=reference: the prose cells of the module as text, with the escapes of their templates undone and each
+  // hole filled with its cell's value at the emit. It is part of the source that is hashed.
   const reference = await sim.fetch("https://cb.sub.workers.dev/xrpc/com.lopecode.brain.getSource?part=reference");
   expect(reference.headers.get("content-type")).toMatch(/^text\/plain/);
   const said = await reference.text();
   expect(said.length).toBeGreaterThan(100);
   expect(body.text).toContain(said.slice(0, 60).replace(/[`\\$]/g, "\\$&"));
   expect(said).not.toMatch(/\\`/);
+  expect(said).toBe(e.source.reference);
+  expect(body.text).toContain("compatibility flags ${wrapperFlags.map(");
+  expect(said).toContain("compatibility flags " + wrapperFlags.map((f) => "`" + f + "`").join(", ") + ".");
+  expect(said).not.toContain("${wrapperFlags");
+  expect(body.reference).toBeUndefined();
   // A question about another Worker is not this Worker's to answer.
   expect((await sim.fetch("https://cb.sub.workers.dev/xrpc/com.lopecode.brain.getSource?worker=brain-x-other")).status).not.toBe(200);
   // A recipe does not answer the internet at all; over a binding it does.
