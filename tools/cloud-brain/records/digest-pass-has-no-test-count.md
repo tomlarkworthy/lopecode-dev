@@ -47,7 +47,8 @@ Commit `5aa0ea0c` (2026-10-11 18:00:53 +0200, `git log -1 --format=%ci`). The li
   a test can be written for it (`agents/implementer.md`, "The tracker's write calls").
 ```
 
-Three parts of it are not his words, and the line says which:
+Three parts of it are not his words. (As first written this sentence ended "and the line says
+which". The line marked one of the three; review 1148 found it, and round 2 below changed the line.)
 
 - "made by you, where the act took effect" keeps the first sentence's "a run you made yourself".
   Without it a submitter could cite a count another agent made.
@@ -101,3 +102,79 @@ step 8 loses its count. It does not show that an agent follows the line.
   tests", "confirmation of an action as a test", "digest published library count"): the answers
   were the modules `@tomlarkworthy/tester` and `@tomlarkworthy/tests`, a paper on test-time world
   models and the digest of 2026-10-11 itself. None bore on the wording of a rule.
+
+## Round 2, 2026-10-11
+
+The submit of round 1 was event 1116 (18:01:55 CEST). Review 1148 (18:07:32) sent it back with two
+findings, both in the words; it got the same test counts.
+
+**1. The marker covered one part of three.** The line's one marker, "The reading from here is the
+writer's, not his words:", stood after "it is made by you, where the act took effect" and after the
+digest's four numbers. The first of those stood directly before "(Tom, 2026-10-11, event 1093 …)"
+and read as what he said. The record said the line marked all three. The reviewer cut the marker
+from the line and round 1's test gave 5 pass 0 fail: nothing held it.
+
+**2. The closing reading left out the digest.** "a change to a file is not such a task, since a
+test can be written for it": a digest adds `tools/cloud-brain/digests/<day>.ojs`, and the issue's
+own body proposes a test for it. So the sentence before said a digest is such a task and this one
+said it is not. The owner's condition is "does not have tests"; the sentence had made it "a test
+can be written".
+
+Commit `e62efcd3` (2026-10-11 18:10:35 +0200). The item now reads:
+
+```
+- Submit, or record a `pass`, without a test count from a run you made yourself. Tom, 2026-10-11,
+  event 1093 of `digest-pass-has-no-test-count`, of a digest submitted and passed with no tests:
+  "the test is clearly that the digest was published. Maybe say confirmation of action can be a
+  test if the task does not have tests." The rest of this item is the writer's reading, not his
+  words. When a task is an act (a notebook published, a message sent) and has no tests, the
+  confirmation that the act happened is the test: it is made by you, where the act took effect,
+  and what you counted there is the count you give. A confirmation another agent made is not
+  yours. A digest is such a task, though it also adds a seed: its act is the publish, and its
+  count is the four numbers of `agents/digest.md` step 8, counted at the library address. A task
+  that ends with the files it changed, nothing published and nothing sent, is not: a doc alone
+  still gets a test file (`agents/implementer.md`, "The tracker's write calls").
+```
+
+Before the marker: the rule as it stood before this issue, and his words. After it: every sentence
+is a reading. The other way, to leave the line and correct the record's sentence, was not taken:
+the owner approves the line as it reads, and he would have read "made by you, where the act took
+effect" as his own.
+
+For finding 2 the reading names the act and not the file, as the review suggested. A consequence:
+"is an act … and has no tests" is narrower than his "the task does not have tests". A task that is
+neither an act nor a change to files is not named by the item. None is known.
+
+The test file was rewritten to hold what the reviewer showed it did not. It compares the text
+before the marker with the rule and the quote, letter for letter, and reads the sentences after it.
+Run in the worktree by the writer, 2026-10-11:
+
+```
+bun test ./tests/tools/rules-count-for-a-task-with-no-tests.test.ts
+  against the line of 5aa0ea0c (git stash of rules.md)   3 pass  3 fail
+  against the line of e62efcd3                            6 pass  0 fail  17 expect() calls
+bun test ./tests/tools                                    186 pass  0 fail  22 files
+```
+
+The line altered ten ways, one a run, the same command (of 6 tests):
+
+```
+marker cut                               5 pass 1 fail
+marker moved to the end                  5 pass 1 fail
+'made by you' cut                        5 pass 1 fail
+another-agent sentence cut               5 pass 1 fail
+digest sentence cut                      4 pass 2 fail
+doc-alone sentence cut                   4 pass 2 fail
+owner's quote cut                        5 pass 1 fail
+first sentence widened                   5 pass 1 fail
+a reading put before the marker          5 pass 1 fail
+round 1's closing sentence put back      5 pass 1 fail
+```
+
+Round 1's test passed all of its 5 on three of these in the reviewer's run: the marker cut, both
+closing readings cut, the first sentence widened.
+
+Not tried in round 2: a sentence added after the marker that contradicts the rule is not caught,
+since the test reads for sentences there and does not compare the whole. The "Not tried" list of
+round 1 stands, but for one line the review settled: no copy of `rules.md` is kept on the Brain
+(the reviewer read `brain/index.md`, which lists `roles/reviewer.md` alone).
