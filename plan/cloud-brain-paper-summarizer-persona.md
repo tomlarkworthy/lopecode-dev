@@ -9,7 +9,7 @@ Amended the same evening, after the submit (event 1578): the comment of event 15
 this file was being written and was read only afterwards. It says the owner installed poppler,
 in his words "ok I also installed poppler for the big ones". `which pdftotext` answered "not
 found" at 19:53 CEST and `/opt/homebrew/bin/pdftotext`, version 26.10.0, at 20:06. The first
-writing (`2a6b756d`) read the four papers without arXiv HTML from arXiv's TeX source and the
+writing (`7482d829`, 20:03:37, to `2a6b756d`, 20:05:48) read the four papers without arXiv HTML from arXiv's TeX source and the
 publisher's page; this one reads them from the kept PDF, and the token names `static.get` too.
 
 **Round 2, 2026-10-11 20:12 to the time of its commit, after review 1611 (verdict `changes`).**
@@ -53,11 +53,11 @@ spec is where he says so.
 |---|---|---|
 | R1 | A standard prompt exists for the role `paper-summarizer`, and one subagent is run for one paper. | "a standard prompt for the subagent", "subagents on one paper at a time" |
 | R2 | Each kept paper's entry holds a detailed summary of the whole paper, and the entry's vector is made from that summary. | "a detailed summary of the whole paper as the embedded text" |
-| R3 | A summary states nothing the paper does not state. | the filing session's eighth question; `philosophy.md` line 5 (reliable) |
+| R3 | A summary states nothing the paper does not state. | the filing session's eighth question; `philosophy.md`, the fifth of the seven (reliable) |
 | R4 | The entry says its text is a model's summary, of what and when. | the filing session's fourth question |
 | R5 | What the search finds today it still finds. | measured below: the search is near its ceiling on what is kept |
 | R6 | The loop can run it again on papers entered later, with no session's memory. | "Our task loop can do" |
-| R7 | The agent that reads a paper can read no file of the checkout or the machine but its own directory and the paper's text. | review 1611, finding 1; `philosophy.md` line 1; `rules.md`, Never, "Print, copy or log a secret" |
+| R7 | The agent that reads a paper can read no file of the checkout or the machine but its own directory and the paper's text. | review 1611, finding 1; `philosophy.md`, the first of the seven ("secure from outsides and between members"); `rules.md`, Never, "Print, copy or log a secret" |
 | R8 | The text of each entry as it was before its first summary is kept, and one command puts it back. | review 1611, finding 2; `SKILL.md`, Triage, "deletes or rewrites kept data" |
 
 The eight questions of the issue's body, each in one line:
@@ -181,10 +181,12 @@ With `READS=DIR` set, `agent.sh`:
 - passes `--tools "Read"`, no `--allowedTools`, and `--add-dir "$DIR"` in place of the checkout;
 - writes no `checkout:` line in the prompt, and `scratch: $DIR`; it neither makes nor removes `DIR`;
 - does the same on `--resume`, whose flags today are the same line;
-- adds `tools` to its JSON line, from the first line `claude` prints (`"type":"system","subtype":"init"`).
+- adds `toolset` to its JSON line, from the first line `claude` prints (`"type":"system","subtype":"init"`,
+  its `tools`). Not `tools`: a `cost` comment has that name for a count (`SKILL.md`, step 5);
+- with `DRY=1`, set or unset, prints the arguments it would give `claude`, one a line, and starts nothing.
 
 One variable and not two (`TOOLS`, `ADD`): a caller that set the tools and forgot the directory
-would have round 1's defect. With `READS` unset nothing changes for the reviewer.
+would have round 1's defect. With `READS` unset the reviewer's line is as it was, with `toolset` added to what is printed.
 
 What the summarizer can then read, and so what a paper can have copied into an entry:
 
@@ -194,15 +196,18 @@ What the summarizer can then read, and so what a paper can have copied into an e
   hook, `.git` (one line, the path of the repository's directory, which is outside), `.gitignore`,
   `agent.sh`, `AGENTS.md`, `all.ts`, `CLAUDE.md`, `philosophy.md`, `put.sh`, `README.md`, `sync.ts`,
   `test.ts`, `brain/` (files of the Brain, served to anyone at `/static/cloud-brain-dev/`) and
-  `deploy/` (the modules cb4 runs, as `sync.ts` read them). No token is kept there: the
+  `deploy/` (the modules cb4 runs: `sync.ts` lines 25 to 27 fetch them from `infra.getModules` and
+  `getSource` with no header, so they are what the Brain answers to anyone). No token is kept there: the
   repository's config has no `extraHeader` line (`grep -c` answered 0), and it is outside the directory anyway.
-  The files under `deploy/` were not opened for this.
+  The files under `deploy/` were not opened for this; the fresh read of this round found the words
+  `secret`, `bearer` or `password` in `shared.json` and nine modules and did not open them either.
 - What `claude` puts in every agent's context on this machine: the user's own instructions and
-  memory for that directory. Not read for this; the reviewer of the loop has had the same since 2026-10-11.
+  memory for that directory. On 2026-10-11 there is neither: no `CLAUDE.md` in `~/.claude` or
+  `~/.claude-personal` (`ls`), and no memory file for `cloud-brain-dev` (the fresh read's finding, not checked again).
 
 So the sentence is now: **the worst a paper can do is a wrong or misleading summary, up to the
 6,500 characters the tool accepts, made of the paper's words and of the files listed above.** None
-of those is a secret. Two things this does not close. A summary is read later by agents that
+of those is known to hold a secret: `deploy/` is public by how it is fetched and was not read. Two things this does not close. A summary is read later by agents that
 search the knowledge base, and those have Bash: a paper that addresses them is quoted into an
 entry by rule 3 of the brief, not removed. That is so today, without a summarizer: 57 entries
 hold up to 16,000 characters of a paper's body as fetched. And the boundary is `claude`'s
@@ -242,13 +247,20 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts restore --ids a,b      
 ```
 
 `text` also writes each entry as it reads it to `.emitted/papers/<id>.entry.json` (`title`, `text`,
-`tags`, `changed`, and the SHA-256 of `text`), once: a file that is there is never written again.
-It needs `loop-knowledge` only, so the 63 files exist before a token that can put does.
+`tags`, `changed`, and the SHA-256 of `text`), once: a file that is there is never written again, and none is written for an entry that has the
+line `Summary by paper-summarizer` or the tag `paper-summary`, which is named instead (its text as
+entered is gone from the entry). It needs `loop-knowledge` only, so the 63 files exist before a
+token that can put does.
+
+`.emitted/papers/` and `.emitted/canary.txt` are the main checkout's, from whichever worktree the
+tool is run: it finds them as `knowledge-docs.ts` line 44 finds the state (`BRAIN_STATE_DIR`, else
+the directory above git's common directory). A writer's worktree has no `.emitted/` and is
+removed when its task lands; files written there would go with it.
 
 Before its first paper, `run` reads for a canary. It writes a new random line to
 `tools/cloud-brain/.emitted/canary.txt`, which is beside the token files, starts
 `READS=<an empty directory> MODEL=haiku agent.sh paper-summarizer "read <that path> and answer with its content"`,
-and stops with nothing put when the answer holds the line or when `tools` is not `["Read"]`.
+and stops with nothing put when the answer holds the line or when `toolset` is not `["Read"]`.
 About $0.003 a run by e4's price. The token files themselves are never the subject of a test: a
 test that failed would have read one into an output.
 
@@ -264,7 +276,7 @@ For one paper, `run`:
    5000 characters is a failed fetch: the paper is skipped and named.
 3. Copies the text into a new directory `D` outside the checkout and starts
    `READS=D cloud-brain-dev/agent.sh paper-summarizer "summarize D/<id>.txt; the title is <n> characters"`.
-   It takes `result` from the one JSON line, and nothing when `tools` is not `["Read"]`.
+   It takes `result` from the one JSON line, and nothing when `toolset` is not `["Read"]`.
 4. Refuses the result when the lead is too long, a section is missing, the sections are over
    5000 characters, or a number in it is not in the text read. A number is a run of digits with
    its `.`, `,` and `%`; it is looked for in the same `.txt` the agent was given and nowhere else,
@@ -385,9 +397,9 @@ Each is run by an agent of the loop with `loop-knowledge` or no token, but the r
 | R3 | The journal has no put with a refused number. The reviewer takes five entries (the first five by SHA-256 of the id), and for each locates three claims of the sections in `.emitted/papers/<id>.txt`, which `summarize-papers.ts text --ids …` writes again; the hash in the entry's line is the file's. |
 | R4 | In `check`, above: the method, the tag and the line. |
 | R5 | Set A asked again, both ways it was measured: `semantic=true`, no wanted entry lower than third (today: 9 first, 1 second); and by words alone with `kind=paper`, the same bound (today: 10 first). Five of its questions are from character 13600 of the kept text, which the cut removes from an entry at the limit, so the second is where a loss would show. Measured in the pilot, whose ten papers are the sets' ten. |
-| R6 | `summarize-papers.ts run --tag awesome-rsi` a second time starts no agent but the canary's and puts nothing: its last line counts 63 as summarized, refused before, or excepted. The command is in `knowledge/calling-a-cloud-brain-from-this-checkout.md`, beside `knowledge-docs.ts`. |
-| R7 | Task 2's tests, each a run of `agent.sh` with `READS` and `MODEL=haiku`, by e4's method: a canary at `tools/cloud-brain/.emitted/canary.txt` is not in the result; a file in `READS` is; the same two on `--resume`; `tools` is `["Read"]`. And with `READS` unset the line `agent.sh` builds is today's (a test of the flags, no agent started). In every `run` after: the journal's first line is the canary's, `"canary":"refused"`. |
-| R8 | `ls .emitted/papers/*.entry.json | wc -l` answers 63 before task 3 starts, and each file's hash is the one in task 1's record. In the pilot: one of the ten is restored, `knowledge.search` answers its `text` with the record's SHA-256 and the put answered `vectors: 1`, and it is summarized again. |
+| R6 | `summarize-papers.ts run --tag awesome-rsi` a second time starts no agent but the canary's and puts nothing: its last line counts 63 as summarized or refused before. For papers entered later it is `text` and then `run`: `run` skips an entry with no `.entry.json`. The command is in `knowledge/calling-a-cloud-brain-from-this-checkout.md`, beside `knowledge-docs.ts`. |
+| R7 | Task 2's tests, each a run of `agent.sh` with `READS` and `MODEL=haiku`, by e4's method: a canary at `tools/cloud-brain/.emitted/canary.txt` is not in the result; a file in `READS` is; the same two on `--resume`; `toolset` is `["Read"]`. And with `READS` unset `DRY=1 agent.sh reviewer x` prints today's arguments, and with it set no `--allowedTools` and no checkout (no agent started). In every `run` after: the journal's first line is the canary's, `"canary":"refused"`. |
+| R8 | `ls <main checkout>/tools/cloud-brain/.emitted/papers/*.entry.json | wc -l` answers 63 before task 3 starts, and each file's hash is the one in task 1's record. In the pilot: one of the ten is restored, `knowledge.search` answers its `text` with the record's SHA-256 and the put answered `vectors: 1`, and it is summarized again. |
 
 Reported and not a condition of landing: set B asked again (0.753 today), and the cost a paper.
 If set B does not rise, the record says so. The owner asked for the summary as the embedded text;
@@ -406,7 +418,8 @@ after a put is not verified; task 3 finds out on ten.
    a kept PDF, and the comparison of the two routes on three papers, are run when the token exists.
 2. **`ps-2-summarizer-role`**: `READS` in `agent.sh`, with the tests of R7; the brief, put with
    `put.sh`; `run --dry`, `check` and `restore`, with tests of the assembly, the length rule, the
-   number rule (`1,000` against `1000`, a number not in the text), the second-run rule, the
+   number rule (`1,000` against `1000`, a number not in the text), the second-run rule, no
+   `.entry.json` written for a summarized entry, the main checkout's `.emitted/` found from a worktree, the
    canary's stop and the refusal of a put with no `.entry.json`. Run dry on three papers; the
    record has the three summaries' lengths, the numbers refused, and `usd` of each. No put to the
    knowledge base. `agent.sh` is in the repository `cloud-brain-dev`, which the loop pushes.
