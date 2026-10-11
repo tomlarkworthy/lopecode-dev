@@ -1,5 +1,5 @@
 // Step 3 of the reviewer's brief waits for a landing by asking `lock.sh show land`, not by looking for the
-// directory, and compares against origin/main after a fetch. Issue lk-2-reviewer-brief-waits-on-show, task 2 of
+// directory, and compares against a build of origin/main after a fetch. Issue lk-2-reviewer-brief-waits-on-show, task 2 of
 // plan/cloud-brain-locks-held-in-the-cluster.md (R3's check of the Brain's copy).
 //
 //   bun test ./tests/tools/reviewer-brief-waits-on-show.test.ts
@@ -35,12 +35,15 @@ test("the wait asks lock.sh show land, on one line, and goes on at exit 1 only (
   expect(step3(text)).toContain(wait);
 });
 
-test("after the wait it fetches both repositories and compares against origin/main, not HEAD", async () => {
+// Since notebook-commit-once-a-day a submit names no lopebooks commit: the notebook compared is a build of origin/main.
+test("after the wait it fetches and compares against a build of origin/main, not HEAD and not a lopebooks commit", async () => {
   const s = step3(await brief());
-  expect(s).toContain("git -C <checkout> fetch origin && git -C <checkout>/lopebooks fetch origin");
-  expect(s).toContain("merge-base --is-ancestor <sha> origin/main");
-  expect(s).toContain("show origin/main:notebooks/@tomlarkworthy_cloud-brain.html");
-  expect(s).not.toMatch(/is-ancestor <sha> HEAD|show HEAD:/);
+  expect(lines(s, /fetch origin/).map((l) => l.trim())).toEqual(["git -C <checkout> fetch origin"]);
+  expect(s).toContain("git merge-base --is-ancestor <sha> origin/main");
+  expect(s).toContain("git -C $W checkout -q --detach origin/main; tools/cloud-brain/worktree.sh rev-<id>");
+  expect(s).toContain("bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html");
+  expect(s).toContain("lope-reader.ts $W/tools/cloud-brain/.emitted/cloud-brain.html --get-module <module>");
+  expect(s).not.toMatch(/is-ancestor <sha> HEAD|show HEAD:|git -C (<checkout>\/)?lopebooks/);
   expect(s.indexOf("fetch origin")).toBeGreaterThan(s.indexOf("lock.sh show land"));
 });
 
