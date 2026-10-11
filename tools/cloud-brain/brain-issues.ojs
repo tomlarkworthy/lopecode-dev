@@ -158,8 +158,9 @@ issues_service = cloudflare.Service("issues", issuesApp, {
   methods: Object.fromEntries(
     [["open", "procedure"], ["comment", "procedure"], ["label", "procedure"], ["review", "procedure"], ["move", "procedure"], ["swap", "procedure"], ["narrow", "procedure"], ["install", "procedure"], ["rebuild", "procedure"], ["resign", "procedure"], ["policy", "query"], ["snapshot", "query"], ["sync", "query"], ["get", "query"], ["list", "query"], ["verify", "query"], ["key", "query"]].map(([name, type]) => [
       "com.lopecode.brain.issue." + name,
-      // The owner, a token and a Worker of the Brain. A member's Worker calls as its author's DID and is not let in.
-      name === "key" ? { type, who: "anyone" } : { type, allow: 'caller.kind in ["owner", "token", "worker"]' }
+      // The owner, a token, a Worker of the Brain and the deployer, which opens an issue when it puts a Worker back
+      // on its tests. A member's Worker calls as its author's DID and is not let in.
+      name === "key" ? { type, who: "anyone" } : { type, allow: 'caller.kind in ["owner", "token", "worker", "deployer"]' }
     ])
   )
 })
@@ -1571,7 +1572,7 @@ test_issues_declares_what_it_needs = {
   const methods = Object.keys(meta.access).sort().map((m) => m.replace("com.lopecode.brain.issue.", ""));
   expect(methods).toEqual(["comment", "get", "install", "key", "label", "list", "move", "narrow", "open", "policy", "rebuild", "resign", "review", "snapshot", "swap", "sync", "verify"]);
   const let_in = (who) => decide(meta.access["com.lopecode.brain.issue.open"], { caller: callerOf({ caller: who }), request: {} }).allow;
-  expect(["owner", "token:a", "worker:brain-x-echo", "did:plc:other", "anonymous"].map(let_in)).toEqual([true, true, true, false, false]);
+  expect(["owner", "token:a", "worker:brain-x-echo", "deployer", "did:plc:other", "anonymous"].map(let_in)).toEqual([true, true, true, true, false, false]);
   // The default policy passes its own check.
   expect(Object.keys((await issuePolicyAct(issuesDefaultPolicy)).hashes)).toEqual(["task", "security", "feedback"]);
   // Without the key a write is refused and says which secret.

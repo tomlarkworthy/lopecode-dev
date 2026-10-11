@@ -140,7 +140,7 @@ verifyModule = async ({ worker, module, hash }, { client = brainClient, rt = run
   const failed = [];
   await Promise.all(
     names.map((name) =>
-      Promise.race([mod.value(name), new Promise((_, no) => setTimeout(() => no(new Error(`no result in ${limit / 1000} s`)), limit))]).catch((e) => failed.push({ name, message: String((e && e.message) || e).slice(0, 300) }))
+      Promise.race([mod.value(name), new Promise((_, no) => setTimeout(() => no(new Error(`no result in ${limit / 1000} s`)), limit))]).catch((e) => failed.push({ name, message: String((e && e.message) || e).slice(0, 300), stack: String((e && e.stack) || "").slice(0, 600) }))
     )
   );
   // What the Worker says it runs has to be what was loaded and tested. A new version takes some seconds to reach
@@ -154,7 +154,9 @@ verifyModule = async ({ worker, module, hash }, { client = brainClient, rt = run
   if (running == null) return { worker, module, hash, none: "the Worker did not say what it runs" };
   if (running !== hash) failed.push({ name: "the Worker reports the hash that was loaded", message: `loaded ${String(hash).slice(0, 12)}, running ${String(running).slice(0, 12)}` });
   const otherTestsRan = [...rt._variables].filter((v) => v._module !== mod && isTest(v) && v._version > 0 && v._value !== undefined).length;
-  return { worker, module, hash, ok: failed.length === 0, tests: names.length, failed, otherTestsRan, ms: Date.now() - began, heapMB: globalThis.performance && performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1e6) : null };
+  // agent: the browser of the run. The deployer's is not the one a change was tested in (Chrome 128 against 151 on
+  // 2026-10-11, when a test of brain-container failed in the first alone).
+  return { worker, module, hash, ok: failed.length === 0, tests: names.length, failed, otherTestsRan, agent: globalThis.navigator ? navigator.userAgent : null, ms: Date.now() - began, heapMB: globalThis.performance && performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1e6) : null };
 }
 // %%
 // For the deployer's run of this page, whose address ends &verify=brain-x-NAME: the verdict on that Worker's

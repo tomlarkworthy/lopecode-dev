@@ -99,7 +99,7 @@ The kernel is not run this way, because it serves the page of the run, and a Wor
 | the run gave | the deployer | the result's \`state\` | log line |
 |---|---|---|---|
 | a pass for the hash that runs | ends the probation, tells the core (\`deploy.report\`) | \`verified\` | \`deploy.verified\` |
-| a fail for the hash that runs | puts the version before back at once | \`put-back\`, reason \`its tests failed: NAME: MESSAGE; …\` (200 characters) | \`deploy.failed\`, \`deploy.put-back\` |
+| a fail for the hash that runs | puts the version before back at once | \`put-back\`, reason \`its tests failed: NAME: MESSAGE; …\` (200 characters). One issue is opened in the tracker (\`issue.open\`, kind \`bug\`, id \`fix-tests-WORKER-HASH8\`) whose body is the facts as JSON: Worker, module, both hashes, the run's address, the browser, each failed test with its message and stack. \`deploy.issue.none\` when the tracker refuses | \`deploy.failed\`, \`deploy.put-back\` |
 | a fail, and no version before | leaves it running, tells the core | \`failing\` | \`deploy.failed\` |
 | a verdict for another hash | nothing | \`probation\` | \`deploy.verify.stale\` |
 | no verdict: no browser, no time bought, the wait passed, the page could not judge | nothing | \`probation\` | \`deploy.verify.none\` with the reason |
@@ -968,6 +968,10 @@ deployerOps = {
     }
     say({ at: "deploy.failed", target: logical, hash, failed, otherTestsRan, ms });
     const out = await verdictOf({ worker: logical, hash, ok: false, reason }, rec);
+    // An issue for the tests, with what a reader needs to find the rest. The key is the Worker and the hash, so a
+    // second apply of the same version adds nothing. A tracker that is down or refuses changes nothing here.
+    const facts = { worker: logical, module, failedHash: hash, putBackTo: out.previous || null, state: out.state, at: new Date().toISOString(), run: url, browser: v.agent || null, tests, otherTestsRan, ms, deployer: self.hash, logs: ["deploy.verify", "deploy.failed", "deploy.put-back"], failed: v.failed.map((f) => ({ name: String(f.name), message: String(f.message || "").slice(0, 300), stack: String(f.stack || "").slice(0, 600) })) };
+    await viaCore("issue.open", { key: `deployer/tests/${logical}/${hash}`, id: ("fix-tests-" + logical).slice(0, 31) + "-" + String(hash).slice(0, 8), kind: "bug", about: logical, title: `Fix tests: ${logical} ${String(hash).slice(0, 12)} failed ${failed.length} of ${tests} after its deploy`, body: JSON.stringify(facts, null, 1) }).then((r) => r && r.status !== 200 && say({ at: "deploy.issue.none", target: logical, hash, reason: `issue.open answered ${r.status} ${r.data.message || r.data.error || ""}`.slice(0, 300) }), () => null);
     if (out.state === "put-back") return { state: "put-back", previous: out.previous, reason: "its tests failed: " + reason.slice(0, 200) };
     // Nothing before it to go back to: it runs, and the core's route says its tests fail.
     await toCore("deploy.report", { worker: logical, hash, ok: false, tests, failed, reason: reason.slice(0, 300) }).catch(() => null);
@@ -2159,8 +2163,8 @@ test_deployer_pass_ends_probation = {
 // %%
 // R7
 test_deployer_fail_puts_back_at_once = {
-  const failed = [{ name: "test_x", message: "expected 1" }, { name: "test_y", message: "no result in 30 s" }];
-  const t = await verifyRig({ run: () => t.verdict(t.v2.hash, { ok: false, failed }) });
+  const failed = [{ name: "test_x", message: "expected 1", stack: "at line 5" }, { name: "test_y", message: "no result in 30 s" }];
+  const t = await verifyRig({ run: () => t.verdict(t.v2.hash, { ok: false, failed, agent: "Chrome/128" }) });
   const { rig, A, v1, v2, ks, running } = t;
   const why = "its tests failed: test_x: expected 1; test_y: no result in 30 s";
   const lines = await rig.saidIn(async () => expect((await rig.recover({ workers: [v2] })).results[0]).toMatchObject({ worker: A, hash: v2.hash, state: "put-back", previous: v1.hash, reason: why }));
@@ -2170,6 +2174,12 @@ test_deployer_fail_puts_back_at_once = {
   // The core is told the routes of the version put back, and no report of the one that is gone.
   expect(rig.fake.calls.filter((c) => c.nsid === "service.register" && c.body.worker === A).at(-1).body).toMatchObject({ hash: v1.hash, methods: { "com.lopecode.brain.a.one": { type: "query", who: "owner" } } });
   expect(rig.fake.calls.filter((c) => c.nsid === "deploy.report")).toEqual([]);
+  // One issue for the tests, with the facts as data. The same version applied again writes with the same key.
+  const opened = rig.fake.calls.filter((c) => c.nsid === "issue.open").map((c) => c.body);
+  expect(opened.map(({ key, id, kind, about, title }) => ({ key, id, kind, about, title }))).toEqual([{ key: `deployer/tests/${A}/${v2.hash}`, id: "fix-tests-brain-x-a-" + v2.hash.slice(0, 8), kind: "bug", about: A, title: `Fix tests: ${A} ${v2.hash.slice(0, 12)} failed 2 of 3 after its deploy` }]);
+  expect(JSON.parse(opened[0].body)).toMatchObject({ worker: A, module: t.M, failedHash: v2.hash, putBackTo: v1.hash, state: "put-back", browser: "Chrome/128", tests: 3, otherTestsRan: 132, failed: [{ name: "test_x", message: "expected 1", stack: "at line 5" }, { name: "test_y", message: "no result in 30 s", stack: "" }] });
+  expect(JSON.parse(opened[0].body).run).toContain("&verify=" + A);
+  expect(opened[0].id.length).toBeLessThanOrEqual(40);
   // ok: true with a failed test named is a fail.
   rig.fake.browser.run = () => t.verdict(t.v3.hash, { ok: true, failed: [failed[0]] });
   expect((await rig.recover({ workers: [t.v3] })).results[0].state).toBe("put-back");

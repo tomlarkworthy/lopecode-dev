@@ -260,7 +260,9 @@ containerBox = {
     }
     // A request to a port of the container, with the path as the caller gave it.
     if (!s.up || !c.running) if (!(await up(ctx, s)).up) return json(down(s), 503);
-    const send = (r) => c.getTcpPort(port).fetch(new Request("http://box" + url.pathname + url.search, r));
+    // The parts are named, with duplex beside a body: a Request passed whole as the init is refused with a body where
+    // Request has no duplex of its own (Chrome 128, the browser the deployer runs the tests in).
+    const send = (r) => c.getTcpPort(port).fetch(new Request("http://box" + url.pathname + url.search, { method: r.method, headers: r.headers, ...(r.body ? { body: r.body, duplex: "half" } : {}) }));
     // Just after a start the process may not listen yet: the request is kept and tried again. After that it is passed once, unread.
     const fresh = Date.now() - s.startedAt < L.listenGrace;
     const kept = fresh && request.body ? await request.arrayBuffer() : null;
