@@ -3,6 +3,8 @@
 Spec of the project `dashboard-service` on cb4's tracker. Written 2026-10-11 from the seeds at
 `lopecode-dev` `9b5a97bc` and from what cb4 answered between 16:32 and 16:40 UTC that day. Nothing
 here is built, and no cell or method named in "The design" was run. Names are proposals.
+Round 2, the same day at 18:59 CEST: the four findings of review 1282 are answered at the end, and
+the text they name is changed.
 
 ## What was asked
 
@@ -143,7 +145,7 @@ the spec before this one.
 
 Two stages. Stage 1 is built by the loop and meets R1 and R3 to R8 over the logs, which keep 7
 days. Stage 2 is his ingestion (R2): it puts Cloudflare's metrics store behind the same method, and
-every part of it needs the deployer, so it is in the owner's list and not in the tasks.
+every part of it needs the deployer, so it is in the owner's list, kept open as task 8, and built by no writer of the loop.
 
 The order is the writer's choice, by line 2 of the philosophy (the smaller side, easier to undo):
 a caller of stage 1 sends a query as data, not Cloudflare's body, so the store behind it changes
@@ -154,10 +156,34 @@ can time a logs-backed metric on cb4 before anything is spent on the other store
 
 `brain-x-dashboard`, module `@tomlarkworthy/brain-dashboard`, seed `tools/cloud-brain/brain-dashboard.ojs`.
 It declares `cloudflare: ["Workers Observability Read"]`, a group the deployer already mints, and
-uses `rows`. It is a new Worker with a Cloudflare permission, so the deployer holds its first
-deploy for the owner (`brain-deployer.ojs` line 69). No service has both `rows` and a Cloudflare
+uses `rows`. No service has both `rows` and a Cloudflare
 token today (`brain-logs` has no rows); the code allows it (`cloudflare-iac.ojs:1048`,
 `brain-deployer.ojs:393`) and it is untried.
+
+**Nothing in the deployer stops the loop's deploy of it.** Round 1 of this spec said the deployer
+holds it for the owner. That was false (review 1282, F1). A writer deploys with
+`brain.ts apply`, which is "infra.apply with the recovery key" (`brain.ts` line 6), and:
+
+```
+brain-deployer.ojs:666   const free = recovery || !!by;
+brain-deployer.ojs:710   else if ((approval || (w.meta.cloudflare || []).length) && !free && !(await approvedOver(w.hash, rec))) {
+```
+
+The hold of line 710 is for a caller that is not `free`: the owner's session from the page. It was
+the same for `brain-x-git`: "deployed in 12.1 s (the token minted, not held for approval)"
+(`records/brain-git.md` line 24). So when the writer of task 1 applies, a Worker that holds a token
+reading every log line of the account is live, before that task's review (a submit needs the
+deploy as its ref, `SKILL.md`, Triage). Probation is for "every Worker with a version before it"
+(`knowledge/changing-and-deploying-a-cloud-brain-worker.md` line 43), so a Worker's first version
+is, as read there and not tried, not put back by a failed test either.
+
+The gate there is, is the owner's approval of this spec, and it is the only one. What stands
+between the token and a caller after that is the method's rule and the service's own code, which
+is what tasks 1 and 2 test in the worktree before the apply (`bun test.ts brain-x-dashboard --with FILE`).
+His clarification of 2026-10-11 allows such a deploy by the loop "if its behind a multi tenant
+interface and thoroughly designed acording to the principles"; the group is one the deployer
+already mints, not a new permission. If he wants a second gate he says so with his letter (his
+list, item 1), and task 1 keeps `needs-owner` until he takes it off.
 
 Not `brain-x-logs` with more methods: that service "keeps nothing and has no query language of its
 own" (its first cell), and this one keeps definitions and dashboards and writes the query.
@@ -232,14 +258,20 @@ Its time is Cloudflare's timestamp of the line. Nothing is added to any service.
   since `ds-2`.
 - A span older than 7 days answers what the logs have. Stage 2 is the way past it.
 
-`metric.list` answers the definitions a caller may query. `metric.put` and `metric.delete` write a
+`metric.list` answers names and definitions, no data. Its rule is
+`caller.session || caller.id == "owner" || caller.kind == "did"`. Which names it answers is decided
+in the service and not by the rule of `metric.query`: a DID is answered `m.<their id>.…` and no
+other, the owner and his tokens every definition. It does not follow a `rule.put` on
+`metric.query`, since a service cannot read another method's rule: a name listed is not a metric
+the caller may query. A token is listed `core.calls` and refused it. That is the same as a
+dashboard, which holds names only. `metric.put` and `metric.delete` write a
 member's own; their rule is `caller.kind == "did"`.
 
 **A member reaches none of this on cb4 without the owner.** The kernel refuses a DID before the
 rule runs unless the method is in the `MEMBER` list of `cloudflare-iac.ojs` (line 1738), is
 `com.lopecode.brain.m.*`, or the owner granted it to that DID (`brain-kernel.ojs:354` to 357, 820
 to 825). So `caller.kind == "did"` in a rule means a DID he granted the method. R6 is built and
-tested in the service; on cb4 it holds for a member after his `grant.put` of the six methods, which
+tested in the service; on cb4 it holds for a member after his `grant.put` of the eight methods (four `metric.*`, four `dashboard.*`), which
 is in his list. Adding them to `MEMBER` would move every Worker's hash and is not proposed.
 
 ### A dashboard (R4, R5, R8)
@@ -266,13 +298,13 @@ and `table` (one row a group: n, sum, max) draw any metric.
 and the panels of the chosen one, drawn from one `metric.query` for each distinct
 `(metric, by, filter)` over `timeRange`, the range `ds-2` gave the page. The choice is kept in the
 address as `dashboard=NAME`, one more pair of the hash that `notebookHtml` already splits on `&`
-(line 1391), so a dashboard has a link. Health stays where it is and is that same cell drawing
+(line 1391 at `9b5a97bc`, 1422 at `2edceb8e`), so a dashboard has a link. Health stays where it is and is that same cell drawing
 `health`: `callsRead` sends `metric.query?metric=core.calls&by=worker,method,status` in place of
 `logs.query`. A visitor reads the line a visitor reads today.
 
 ### What happens to `ds-2` to `ds-4`
 
-- `ds-2` (in review at event 1242) and `ds-3` stand as written. The span, "Refresh" and
+- `ds-2` (`done`, read 2026-10-11 18:55 CEST) and `ds-3` (`triaged`) stand as written. The span, "Refresh" and
   `timeRange` are what every dashboard here reads.
 - `ds-4` (triaged) waits for task 5 below and is then built on it. Its `healthPanels` entries
   `{ draw, worker }` become panels of this spec, and its question (instances made with
@@ -336,7 +368,7 @@ from a cell that reads the page's own client.
 - **test**: a `test_*` cell of `brain-dashboard.ojs`, on `simulate(dashboard_service, …)` with a
   stand-in for Cloudflare's answer, as `logsRig` is in `brain-logs.ojs`. Run with
   `bun test.ts brain-x-dashboard --with FILE` and then in a tab.
-- **token**: a call on cb4 with `--as loop-dashboard`, a token the owner makes once (his list).
+- **token**: a call on cb4 with `--as loop-dashboard`, a token the owner makes once (his list, item 2).
   Until it exists a task lands on its tests and says "not run on cb4".
 - **source**: a line read in the built module.
 - **tab**: a local QA tab on the built notebook with `client` and `session` stood in by
@@ -356,7 +388,7 @@ from a cell that reads the page's own client.
 | R7 | token: `deploys.confirmed` by `target` over 15 minutes, 1 hour, 6 hours, 24 hours and 7 days. Cold is a span not asked before: `until` moved back one minute for each of 5 asks. Warm is the last of those asked 5 more times. `cost.ms`, `cost.cached`, `groups` and the wall time of each, in the task's record. | `logs.deploys`, 24 hours: 2.5 to 3.1 s wall, 0.45 s the floor. |
 | R8 | test: `dashboard.get?name=health` with no row answers three panels over `core.calls`. tab: under "Health", the stand-in sees `metric.query` with `metric=core.calls` and no `logs.query`; the three panels draw; with no session, 0 `.observablehq--error` between the headings "Health" and "Operator". | `callsRead` sends `logs.query`. |
 | all | `bun test.ts brain-x-page`: `failed 0`, `passed` not below what `main` gives then. `test_calls_from_the_logs_become_chart_rows` passes with the drawing functions unchanged. | 7 passed, 10 need a browser, after `ds-1`. |
-| R2 | Not checked by the loop. See the owner's list. | Nothing tails. |
+| R2 | Not checked by the loop. Task 8 is open with `needs-owner` until he answers: `get?id=ds-ingestion-tail-to-analytics-engine`. | Nothing tails. |
 
 What only the owner can see: Health on cb4 drawn through `metric.query` in his tab, and the time
 its query takes. Neither is a condition of a task landing.
@@ -369,21 +401,27 @@ Each is one writer and one review. Tasks 1 to 4 change `brain-dashboard.ojs` and
 A writer's brief says to stop at a new Worker and at a `major` change
 (`agents/implementer.md` step 3). Task 1 is a new Worker, and tasks 1 and 2 are `major`: they add
 methods and let a member read counts of their own Workers' lines. The owner's approval of this
-spec is his word for both, which is said in his list. The orchestrator quotes the approval event
-in a comment on tasks 1 and 2 when it opens them, so that `needs-owner` comes off by `rules.md`.
+spec is his word for both, and it is the one gate: no approval of a deploy follows it ("One new
+Worker"). The orchestrator opens tasks 1 and 2 with `major` and quotes the approval event in a
+comment on each, so that `needs-owner` is not put on, or comes off by `rules.md`. If his approval
+asks for a second gate, task 1 is opened with `needs-owner` and no such comment, and waits for him.
 
 1. **The service and the built-in metrics.** The seed, the service with its Cloudflare group, the
    built-in definitions, `metric.list`, `metric.query` over the logs, the method's rule. The tests
-   of R1 and R3. Its first deploy is held for the owner (his list, item 2).
+   of R1 and R3. Its apply is not held: the Worker and its token are live when it lands.
 2. **A member's metrics.** `metric.put` and `metric.delete`, the member's id, the tenancy in
-   `metric.query` and `metric.list`. The metric half of R6's test.
+   `metric.query` and `metric.list`. The metric half of R6's test. Whether a member's
+   `metric.query` carries a `price`, as a method of `brain-ai.ojs` does, is the writer's: each new
+   minute and span is one paid logs query on the owner's account (a note of review 1282).
 3. **Dashboards.** `dashboard.put`, `get`, `list`, `delete`, the built-in `health`, a member's
    names. The tests of R4 and R8 for the service, and the dashboard half of R6's.
 4. **Cost.** The minutes, the 60 s of memory, `cost` in the answer. The test of R7; then, with
    the token, the five spans, how many warm asks were `cached`, and the comparison with
    `logs.deploys` of R3.
-5. **The page's section.** After `ds-2` is done. "Dashboards", the hash, `dashboardView`, the two
-   generic draws. The tab checks of R5 and R7. Health is not touched. A line for the service in
+5. **The page's section.** "Dashboards", the hash, `dashboardView`, the two
+   generic draws. The tab checks of R5 and R7. Health is not touched. It reads `timeRange`, which
+   `ds-2` gave the page and is done; it does not wait for `ds-3`, which changes what `callsRead`
+   sends and is met again in task 6, whichever lands second. A line for the service in
    `cloud-brain-docs.ojs` and in `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md`.
 6. **Health through the service.** `callsRead` sends `metric.query`, and the section "Health"
    draws the dashboard `health`. The tab check of R8. Alone because it moves a section the owner
@@ -391,7 +429,21 @@ in a comment on tasks 1 and 2 when it opens them, so that `needs-owner` comes of
 7. **A second dashboard, as data.** `dashboard.put` of `deploys` with the token. No commit to a
    seed and no deploy; the check of R4 is the test, and its count is what `dashboard.get` answers.
 
-After task 7 the issue's "Done when" holds. `ds-4` and `flow-metrics` can start.
+8. **His ingestion, kept open** (`ds-ingestion-tail-to-analytics-engine`, a part of this project,
+   opened with the others). It is built by no writer of the loop. It holds stage 2 of this spec
+   and items 4 and 5 of his list. The orchestrator opens it with `needs-owner`, since it asks an
+   act of him from its first day (item 4 needs nothing of stage 1), and with a comment in the
+   order `philosophy.md` gives for that label: what the project is for with its numbers, where
+   this fits, the choice as letters (measure and then deploy the deployer; or leave the logs as
+   the store and close), what the writer would take, how to answer. Task 4's writer adds the
+   logs side's measured times to it as a comment. It is closed by his answer, or by the deploy.
+
+After task 7 the issue's "Done when" holds: that is stage 1. `ds-4` and `flow-metrics` can start.
+The project does not go to `done` then. `SKILL.md` moves a project at `building` to `done` when
+no part is open, and task 8 is open until he has said yes or no to R2. Round 1 left R2 in this
+file alone, which nobody reads after a project closes (review 1282, F3). Not chosen: a second
+project for stage 2, which would let this one close with his direction of event 1209 unmet and
+no line saying so on it.
 
 Each task writes `tools/cloud-brain/records/<its id>.md`.
 
@@ -405,31 +457,39 @@ the logs into Cloudflare's metrics store and read through a proxy.
 1. **Approve this spec, or send it back, with one letter.** The store you named needs three
    changes to the deployer, which the loop may not deploy.
    - **A.** As written. The loop builds the proxy, the dashboards and Health over the logs
-     (7 days kept, about 2.5 s for a day of deploy lines today). Your ingestion follows as items 5
-     and 6, behind the same method. For: lands without you, and gives measured numbers for the
-     logs side first. Against: until item 6 a metric is counted from log lines each time it is asked.
-   - **B.** Analytics Engine first. Nothing of this project lands until items 5 and 6 are done by
+     (7 days kept, about 2.5 s for a day of deploy lines today). Your ingestion follows as items 4
+     and 5, behind the same method. For: tasks 1 to 6 land on their tests with nothing more from
+     you, and the logs side is measured first. What of A still waits for you: no check on cb4
+     runs, and task 7 cannot be done at all, until you make the token of item 2 after task 1;
+     no member reaches any of it until item 3. Against: until item 5 a metric is counted from log
+     lines each time it is asked. And your "A" is the only stop before a new Worker that holds a
+     token reading every log line of the account is live: the loop's apply is not held by the
+     deployer, and task 1 deploys before its review. To have a second stop, answer "A, hold task
+     1": task 1 then waits with `needs-owner` until you take it off.
+   - **B.** Analytics Engine first. Nothing of this project lands until items 4 and 5 are done by
      you or a session with you. For: one store, the one you named. Against: no agent can build or
      check it, and Health changes store with no number from cb4.
-   - The writer takes A, by line 2 (the smaller side, easier to undo). Answer "A" or "B".
-2. **Approve the first deploy of `brain-x-dashboard`** when task 1 lands: the deployer holds it
-   because it declares `Workers Observability Read`. Approval of the spec is taken as your word
-   for two things the loop does not do on its own: a new Worker, and a member reading counts of
-   their own Workers' lines (tasks 1 and 2, `major`).
-3. **Make the token** the checks use, once, after task 1:
+   - The writer takes A, by line 2 (the smaller side, easier to undo). Answer "A", "A, hold task
+     1" or "B". Approval is taken as your word for two things the loop does not do on its own: a
+     new Worker, and a member reading counts of their own Workers' lines (tasks 1 and 2,
+     `major`). There is no second approval of the deploy.
+2. **Make the token** the checks use, once, after task 1:
    `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-dashboard metric.query metric.list 'dashboard.*'`.
    By the rule it reads `deploys.*` and no other metric.
-4. **Grant a member the methods**, when you want one to use it: `grant.put` of `metric.query`,
-   `metric.list`, `metric.put`, `metric.delete` and the four `dashboard.*` for that DID, in your
-   session. Until then R6 is tests only.
-5. **Measure the other store, outside the Brain**, as `logging-research.md` did with a scratch
+3. **Grant a member the methods**, when you want one to use it: `grant.put` of the eight
+   (`metric.query`, `metric.list`, `metric.put`, `metric.delete` and the four `dashboard.*`) for
+   that DID, in your session. Until then R6 is tests only.
+4. **Measure the other store, outside the Brain**, as `logging-research.md` did with a scratch
    Worker: the CPU of a tail invocation, the seconds until a written point is read, and the time
    of a SQL read over an hour, a day and 30 days. A session with you runs it; the loop holds no
    Cloudflare token.
-6. **Deploy the deployer with three changes**, written by a session with you: a binding for an
+5. **Deploy the deployer with three changes**, written by a session with you: a binding for an
    Analytics Engine dataset, `Account Analytics Read` in `GROUPS` (a new permission), and
    `tail_consumers` with a `tail` handler in the wrapper. The wrapper is in every Worker's hash,
    so every Worker is deployed once, as for `observability` on 2026-10-08.
+
+Items 4 and 5 are your direction of event 1209. They are kept in front of you by task 8, an issue
+labeled `needs-owner` that stays open, and holds the project open, until you say yes or no.
 
 No task of the loop installs a policy, adds a rule to `rules.md` or a secret, or deploys the
 kernel, the core, the database or the deployer.
@@ -450,3 +510,25 @@ One reader with no context read the first draft against the seeds: 8 findings, a
 - **Left to guess**: sampling of `calculations`, dimension types, where `step` comes from, the
   member's id, the rule test's parameters, what "cold" is. Each is now in the text.
 - **Line numbers** of `request.params`, `limit` and the five callers.
+
+## Review 1282, round 2 (2026-10-11)
+
+The reviewer's four findings, each read against the source before it was taken.
+
+- **F1, the deployer does not hold the loop's deploy.** True: lines 666 and 710 of
+  `brain-deployer.ojs` and line 6 of `brain.ts`, quoted under "One new Worker". Every sentence that
+  said it was held is gone (that section, task 1, his item 2, which is removed). The gate named is
+  his approval of the spec, with "A, hold task 1" for a second. "First deploy" is gone too: on the
+  held path the hold is of each new hash. Added on reading, not asked: a first version has no
+  probation, by the knowledge page's line 43; not tried.
+- **F2, letter A said "lands without you".** A now says what lands without him (tasks 1 to 6, on
+  tests), what waits for the token and when, what waits for grants, and that A is the one stop
+  before the deploy.
+- **F3, nothing carried R2.** Task 8, a part labeled `needs-owner` that holds the project at
+  `building`. That the orchestrator's `decompose` row opens a part with a label was not tried; the
+  row says "Open each task the spec lists", and the label is one more call if it does not.
+- **F4.** (a) Eight methods, in both places. (b) `ds-2` is `done`; task 5 no longer waits for it
+  and says why it does not wait for `ds-3`. (c) `metric.list` has a rule, and the text says it
+  does not follow a `rule.put` on `metric.query`.
+
+His notes: a `price` for a member's query is left to task 2's writer; line 1391 is given at both commits.
