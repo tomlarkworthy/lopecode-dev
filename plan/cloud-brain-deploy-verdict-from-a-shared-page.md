@@ -95,7 +95,8 @@ ran:  svg-lens 60, robocoop-5-engine 37, robocoop-5-srctools 12, brain-shell 8, 
 defined and not run: cloudflare-iac 26, observablejs-toolchain 124, exporter-3 49, cell-map 30, … (imported only)
 ```
 
-None is a test of another Worker. The file at `/` carries `bootconf.json` with 20 `mains`, and the bootloader
+None is a test of another Worker, so the deployer's own text, "no other module of the Brain is loaded"
+(`brain-deployer.ojs:95`), was true. The file at `/` carries `bootconf.json` with 20 `mains`, and the bootloader
 boots each of them before any cell of brain-shell reads the address. `#view=` decides which of the Brain's
 modules brain-shell joins (`brainJoined`) and nothing else. A module that is only imported computes no test,
 which `test_page_loads_only_the_modules_in_view` already holds.
@@ -130,8 +131,10 @@ brain-shell alone   94 of 95    9               214          1036 ms           4
 18 Workers passed 5 of 5 both ways, among them brain-x-issues (21 tests, with the caret test) and brain-x-page.
 Two take their time from their own tests, the same both ways: brain-x-browser 10.3 s, brain-x-bluesky 5.4 s.
 
-Not measured: any of this in the cluster's Chrome 128. No token of the loop names `browser.run` (`brain.ts token
-list`, kept: `loop-bluesky`, `loop-library`, `loop-deploys`, `mem-research`), and making one is the owner's. What
+Not measured: any of this in the cluster's Chrome 128. No kept token names `browser.run` (`brain.ts token
+list`, kept: `loop-bluesky`, `loop-library`, `loop-deploys`, `mem-research`) and none was made: the short boot
+list there also needs the changed document written into that browser's page (`document.write`, as the probe of
+2026-10-10 did), and task 5 sees the same thing on real runs with a way back. What
 there is from that browser is one row of 2026-10-10 (`tools/scratch/cloud-brain-experiments/verify-page/README.md`):
 brain-x-issues alone in a file of its own, 19 of 19 in 3784 ms, 93 MB, 0 other tests; in the whole notebook, 1 of
 19 inside 60 s, 640 MB.
@@ -144,7 +147,7 @@ finding it, between 11:59 and 12:09 CEST:
 ```
 brain-x-snapshot a20b957dc536   32 runs, 10 failed
   as served 4 of 12   without tests 3 of 7   lopepage-2 and brain-shell 1 of 1   brain-shell alone 2 of 12
-test_a_run_that_kept_items_opens_one_task_for_the_days_digest (9 of the 10; the first run printed no name)
+test_a_run_that_kept_items_opens_one_task_for_the_days_digest (7 of the 10; the 3 of 11:59 printed no name)
   - Expected  + Received   Array [ + undefined, "issue.open 404" ]
 ```
 
@@ -212,7 +215,9 @@ tests. R1 is asked for by the owner's words and pays in what the page loads (var
 1. **A second file, `shell/verify.html`: the shell with `mains` cut to `["@tomlarkworthy/brain-shell"]`.**
    `build.ts` writes it beside `.emitted/shell.html`, with the block tools it already uses for the shell. No seed
    changes, so no Worker's hash moves. `brain-static` already serves a file under `shell/` to anyone, with scripts
-   and the Brain's origin when the owner or the deployer wrote it (`brain-static.ojs:171`, `vouched`); the address
+   and the Brain's origin when the owner or the deployer wrote it (`brain-static.ojs:155`, `vouched`), and every
+   file with `cache-control: no-cache` (line 169), so a new one is not answered from an old copy. What line 220
+   does for `shell/index.html` alone is keep a second copy under its hash. The address
    `/static/shell/index.html#view=…&verify=brain-x-logs` gave a verdict of 7 of 7 at 12:09:42 CEST.
 2. **The deployer opens it when it is there.** Before a run `verifyDeploy` asks `static.get` for
    `shell/verify.html` through the core. 200: the run's address is `/static/shell/verify.html#view=…`. Anything
@@ -280,7 +285,7 @@ second line and may be nothing.
    both.** The seed is the deployer's, so by `rules.md` a writer does not start it. Written and tested on a
    branch by a writer only if the owner says so when he approves this; deployed by him either way. Tests in the
    seed: the address with and without the file; `infra.shell` with and without a name; a name other than
-   `verify` refused.
+   `verify` refused; the file is put `public` (a file that is not answers 401 to the browser, `brain-static.ojs:394`).
 4. **The owner's two commands** (below).
 5. **Read the first 20 runs.** Loop. `logs.deploys --as loop-deploys`: `otherTestsRan`, `ms`, `none`, against the
    45 before. Written in `tools/cloud-brain/records/deploy-verdict-from-a-shared-page.md`. A `none` or a new
@@ -296,8 +301,6 @@ second line and may be nothing.
 - Deploy the deployer with task 3: `brain.ts install-deployer`.
 - Put the files, which turns it on: `brain.ts shell` (the recovery key; `shell/` takes no token).
 - Turn it off, if task 5 says so: `static.delete { path: "shell/verify.html" }` in his own session.
-- Not needed by this design, and named so it is not asked again: a token for `browser.run`, which a measure in
-  Chrome 128 before task 4 would need.
 
 ## Not known
 
