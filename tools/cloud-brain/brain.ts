@@ -6,7 +6,7 @@
  *   bun tools/cloud-brain/brain.ts apply core.json [...] --reason="why"   # infra.apply with the recovery key; --reason= is required here and by redistil --apply, remove and rollback
  *   bun tools/cloud-brain/brain.ts saw [name…]   # seen.json: the hash each seed here is built on, sent as `was` by apply and remove; with names, record what runs now (after comparing its source with the emitted record, or merging it). A Worker with no entry: its first apply is refused and says what to compare
  *   bun tools/cloud-brain/brain.ts state | confirm <worker> | approval on|off | approve | rollback | remove <name>
- *   bun tools/cloud-brain/brain.ts redistil | distil | bindings | shell   # redistil: each Worker against its source, "same" when healthy
+ *   bun tools/cloud-brain/brain.ts redistil | distil | bindings | shell   # redistil: each Worker against its source, "same" when healthy; --apply deploys the ones that differ and moves the seen.json entry of each one whose entry was the hash before
  *   bun tools/cloud-brain/brain.ts curl <path> [--owner] [-X POST -d '{}']   # the kernel; --owner or --other sends a minted session as Authorization: Bearer
  *   bun tools/cloud-brain/brain.ts curl <path> --as NAME [-X POST -d '{}']       # the same call with the token NAME of .emitted/<base>-tokens.json. A token is not the owner present; an agent's writes go this way
  *   bun tools/cloud-brain/brain.ts token NAME <method…> [--daily=USD] | token list | token revoke NAME   # token.create as the owner; the value goes to .emitted/<base>-tokens.json (mode 600) and is not printed
@@ -122,6 +122,8 @@ const sawOf = (worker: string, running: any[], file?: string, hash?: string): { 
   if (file && statSync(E(file)).mtimeMs < rec.at) return { refused: `${file} was emitted before ${worker} last changed (${new Date(rec.at).toLocaleString()}): build and emit again` };
   return { was: rec.hash };
 };
+// The states of a deploy after which the Worker runs the hash in the result. put-back, refused and waiting are not among them.
+const STANDS = ["deployed", "probation", "verified", "failing", "same", "unchanged"];
 const MOVED = (worker: string) => `  ${worker} is not what the seed in this checkout is built on. ${HOW(worker)}`;
 const brief = (s: any) => ({ approval: s.approval, workers: (s.workers || []).map((w: any) => `${w.worker} ${String(w.hash).slice(0, 12)} ${w.state}${w.lastError ? " ERR " + w.lastError : ""}`), kernel: Object.fromEntries(Object.entries(s.kernel || {}).map(([k, v]: any) => [k, `${v.state} ${String(v.hash).slice(0, 12)} ${v.reason || ""}${v.deadline ? " until " + new Date(v.deadline).toISOString() : ""}`])), pending: (s.pending || []).map((p: any) => p.worker) });
 
@@ -221,7 +223,7 @@ export class Rows {
     console.log(f, Math.round(performance.now() - t) + " ms", JSON.stringify(out.results ? out.results.map((r: any) => ({ ...r, hash: String(r.hash).slice(0, 12) })) : out));
     for (const r of out.results || []) if (r.hash && r.hash !== e.hash) console.log(`  the deployer distilled ${String(r.hash).slice(0, 12)}; the browser emitted ${e.hash.slice(0, 12)}`);
     for (const r of out.results || []) {
-      if (["deployed", "probation", "verified", "failing", "same", "unchanged"].includes(r.state) && r.hash) sawPut(r.worker, r.hash);
+      if (STANDS.includes(r.state) && r.hash) sawPut(r.worker, r.hash);
       if (r.state === "refused" && "running" in r) console.log(MOVED(r.worker));
     }
   }
@@ -231,6 +233,16 @@ export class Rows {
   console.log("distiller", String(out.distiller).slice(0, 12));
   for (const r of out.results || []) console.log(" ", r.worker.padEnd(18), r.state, r.from ? String(r.from).slice(0, 12) + " -> " : "", String(r.hash || "").slice(0, 12), r.applied || "", r.reason || "");
   if (!out.results) console.log(JSON.stringify(out).slice(0, 400));
+  // A Worker this moved was distilled again from the source the deployer keeps, so a seed built on the hash before
+  // is built on the new one: its entry follows. Until 2026-10-11 nothing was written, and after a sweep every entry
+  // read MOVED. An entry that was not at the hash before is left, and none is made: either would pass was for a
+  // source this checkout has not compared.
+  for (const r of out.results || []) {
+    if (r.state !== "changes" || !STANDS.includes(r.applied) || !r.hash) continue;
+    const rec = sawGet(r.worker);
+    if (rec && rec.hash === r.from) sawPut(r.worker, r.hash);
+    else console.log(`  ${r.worker} moved from ${String(r.from).slice(0, 12)} and seen.json has ${rec ? `${String(rec.hash).slice(0, 12)} for it: the entry is left` : "no entry for it: none is made"}. Compare what runs (${SOURCE(r.worker)}) with the seed, then: saw ${r.worker}`);
+  }
 } else if (cmd === "shell") {
   // The notebook file goes to blob storage as the request's body, not inside JSON. The deployer passes it on.
   const file = Bun.file(resolve(import.meta.dir, args[0] || E("shell.html")));

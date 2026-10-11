@@ -1,5 +1,6 @@
 // brain.ts apply, remove and saw against seen.json, with a local stand-in for the deployer.
 // Issue seen-json-6-of-19-workers: a Worker with no entry was refused with advice to merge, when the seed was ahead.
+// Issue redistil-apply-leaves-seen-json: redistil --apply moved a Worker and left its entry at the hash before.
 //
 //   cd tests/tools && bun test brain-seen.test.ts      # not from the repo root, see brain-cli.test.ts
 //   BRAIN_TS=/path/to/another/brain.ts bun test …
@@ -12,7 +13,8 @@ import { resolve, join } from "node:path";
 const script = process.env.BRAIN_TS || resolve(import.meta.dir, "../../tools/cloud-brain/brain.ts");
 const RUNS = "a".repeat(64), BUILT = "b".repeat(64), DEPLOYED = Date.parse("2026-10-10T12:00:00Z");
 
-const rig = (seen?: any) => {
+// redistil: the rows the stand-in answers infra.redistil with.
+const rig = (seen?: any, redistil?: any[]) => {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "brain-seen-")));
   copyFileSync(script, join(dir, "brain.ts"));
   if (seen) writeFileSync(join(dir, "seen.json"), JSON.stringify({ t: seen }));
@@ -21,6 +23,7 @@ const rig = (seen?: any) => {
     if (req.url.endsWith("infra.getState")) return Response.json({ workers: [{ worker: "brain-x-w", hash: RUNS, deployedAt: DEPLOYED }] });
     const body: any = await req.json();
     posts.push(body);
+    if (req.url.endsWith("infra.redistil")) return Response.json({ distiller: "d".repeat(64), results: redistil });
     return Response.json({ results: (body.workers || []).map(() => ({ worker: "brain-x-w", state: "deployed", hash: BUILT })) });
   } });
   writeFileSync(join(dir, "t.json"), JSON.stringify({ recoveryKey: "key-for-the-test", deployerScript: "t-deployer", subdomain: "none", deployerUrl: `http://127.0.0.1:${server.port}` }));
@@ -101,5 +104,71 @@ test("saw NAME records the hash that runs with the time it was deployed; a recor
     expect(r.posts[0].workers[0].was).toBe(RUNS);
     expect(r.seenNow()["brain-x-w"].hash).toBe(BUILT);
     expect(r.seenNow()["brain-x-w"].at).toBeGreaterThan(DEPLOYED + 60_000);
+  } finally { r.stop(); }
+});
+
+// The deployer's rows (brain-deployer.ojs, redistil): a Worker it deployed is state "changes" with from, hash and
+// applied, the state of that deploy; one it left is "same".
+const CHANGES = (applied?: string) => [{ worker: "brain-x-w", module: "@t/w", state: "changes", from: RUNS, hash: BUILT, ...(applied ? { applied } : {}) }];
+
+for (const applied of ["deployed", "probation", "verified", "failing"])
+  test(`redistil --apply records the hash of a Worker it moved (${applied})`, async () => {
+    const r = rig({ "brain-x-w": { hash: RUNS, at: DEPLOYED } }, CHANGES(applied));
+    try {
+      const out = await r.run("redistil", "--apply", "--reason=test");
+      expect(r.posts).toEqual([{ apply: true, reason: "test" }]);
+      expect(out).toMatch(/brain-x-w\s+changes aaaaaaaaaaaa ->\s+bbbbbbbbbbbb/);
+      expect(r.seenNow()["brain-x-w"].hash).toBe(BUILT);
+      expect(r.seenNow()["brain-x-w"].at).toBeGreaterThan(DEPLOYED);
+    } finally { r.stop(); }
+  });
+
+for (const applied of ["put-back", "refused", "waiting"])
+  test(`redistil --apply leaves the entry of a Worker whose deploy did not stand (${applied})`, async () => {
+    const r = rig({ "brain-x-w": { hash: RUNS, at: DEPLOYED } }, CHANGES(applied));
+    try {
+      await r.run("redistil", "--apply", "--reason=test");
+      expect(r.seenNow()).toEqual({ "brain-x-w": { hash: RUNS, at: DEPLOYED } });
+    } finally { r.stop(); }
+  });
+
+test("redistil with no --apply writes nothing: the row says changes and nothing was deployed", async () => {
+  const r = rig({ "brain-x-w": { hash: RUNS, at: DEPLOYED } }, CHANGES());
+  try {
+    await r.run("redistil");
+    expect(r.posts).toEqual([{ apply: false }]);
+    expect(r.seenNow()).toEqual({ "brain-x-w": { hash: RUNS, at: DEPLOYED } });
+  } finally { r.stop(); }
+});
+
+test("redistil --apply leaves a Worker that is the same: an entry that differs from what runs still reads MOVED", async () => {
+  const OTHER = "c".repeat(64);
+  const r = rig({ "brain-x-w": { hash: OTHER, at: DEPLOYED } }, [{ worker: "brain-x-w", module: "@t/w", state: "same", hash: RUNS }]);
+  try {
+    await r.run("redistil", "--apply", "--reason=test");
+    expect(r.seenNow()).toEqual({ "brain-x-w": { hash: OTHER, at: DEPLOYED } });
+    expect(await r.run("saw")).toMatch(/brain-x-w\s+cccccccccccc MOVED: runs aaaaaaaaaaaa/);
+  } finally { r.stop(); }
+});
+
+test("redistil --apply of a Worker whose entry is not the hash it moved from leaves the entry and says how to record it", async () => {
+  const OTHER = "c".repeat(64);
+  const r = rig({ "brain-x-w": { hash: OTHER, at: DEPLOYED } }, CHANGES("verified"));
+  try {
+    const out = await r.run("redistil", "--apply", "--reason=test");
+    expect(r.seenNow()).toEqual({ "brain-x-w": { hash: OTHER, at: DEPLOYED } });
+    expect(out).toContain("brain-x-w moved from aaaaaaaaaaaa and seen.json has cccccccccccc for it: the entry is left.");
+    expect(out).toContain("then: saw brain-x-w");
+  } finally { r.stop(); }
+});
+
+test("redistil --apply of a Worker with no entry makes none, so its first apply is still refused", async () => {
+  const r = rig(undefined, CHANGES("verified"));
+  try {
+    const out = await r.run("redistil", "--apply", "--reason=test");
+    expect(r.seenNow()).toBeUndefined();
+    expect(out).toContain("brain-x-w moved from aaaaaaaaaaaa and seen.json has no entry for it: none is made.");
+    r.emit("w.json", BUILT);
+    expect(await r.run("apply", "w.json", "--reason=test")).toContain("w.json not sent: brain-x-w runs");
   } finally { r.stop(); }
 });
