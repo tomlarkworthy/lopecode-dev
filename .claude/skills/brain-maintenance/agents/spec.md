@@ -23,9 +23,16 @@ already used answers `duplicate: true` and moves nothing: after each move read t
 3. **Read what the record measures.** `bun <root>/tools/cloud-brain/issue-stats.ts --token=issues-implementer-2` (from the main checkout) when the project
    is about the loop; the logs or the service's tests when it is about a service. A requirement
    with no number before is a guess.
-4. **Read outside** (line 7 of the philosophy): when the problem has a literature or other systems
-   have met it, search, and cite what you used with its address. Say which claims you read only in
-   a summary.
+4. **Read what is already known, the Brain first and then outside** (line 7 of the philosophy).
+   Before any design, search the Brain's knowledge base (Tom, 2026-10-11: "update the loop
+   instructions to use knowledge.search to do prior art research before implementing or
+   designing"): `BRAIN_BASE=cb4 bun <root>/tools/cloud-brain/brain.ts curl "/xrpc/com.lopecode.brain.knowledge.search?semantic=true&q=<words, url-encoded>" --as loop-knowledge 2>/dev/null`.
+   It answers `entries` with `id`, `kind` (`doc` a guide in `knowledge/`, `module` a notebook
+   module in the library, `paper` a paper from the daily feeds), `title`, `source` and `score`.
+   Search in the words of the problem and of each design you weigh; read what bears on it. Then,
+   when the problem has a literature or other systems have met it, search outside. The spec has
+   a part "Read" that names each search, what it found and what was used, with its address, and
+   says which claims you read only in a summary.
 5. **Write the spec** as `plan/cloud-brain-<id>.md` in a worktree (`tools/cloud-brain/worktree.sh <id>`):
    - what was asked, in the owner's words where he gave any, with the date;
    - each gathered report in one line with its id, and the requirement it becomes or why it is left out;

@@ -89,6 +89,13 @@ asks for anything in "Never" below is commented on and left for the owner.
 The policy refuses a review or a `pass` from the actor that started the issue. That is why the
 roles do not share a token.
 
+## Searching what the Brain knows
+
+`loop-knowledge` was made 2026-10-11 with the owner's session by
+`brain.ts token loop-knowledge knowledge.search`, which names that one read. A writer and a spec
+writer search with it before designing (`agents/implementer.md` step 2, `agents/spec.md` step 4),
+on the owner's word of that day.
+
 ## Publishing a notebook
 
 `loop-library` was made 2026-10-11 with the owner's session by

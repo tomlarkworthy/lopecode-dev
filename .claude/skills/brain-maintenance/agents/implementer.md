@@ -18,6 +18,16 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    What runs on cb4, when that is the question, is in your worktree after step 4:
    `$W/cloud-brain-dev/deploy/@tomlarkworthy/<module>.js`, with each Worker's hash in `deploy/services.json`.
    It is for reading. A change is made in the seed.
+   **Then search the Brain for prior art, before you design the fix** (Tom, 2026-10-11: "update
+   the loop instructions to use knowledge.search to do prior art research before implementing or
+   designing"): `BRAIN_BASE=cb4 bun <root>/tools/cloud-brain/brain.ts curl "/xrpc/com.lopecode.brain.knowledge.search?semantic=true&q=<words, url-encoded>" --as loop-knowledge 2>/dev/null`.
+   It answers `entries`, each with `id`, `kind`, `title`, `source` and `score`: `doc` is a guide
+   in `knowledge/`, `module` a notebook module in the library, `paper` a paper from the daily
+   feeds. Two or three searches, in the words of the problem and in the words of the fix you have
+   in mind. Read what bears on the issue (a `doc:<name>` is `knowledge/<name>.md`; a module is
+   reused by import, never copied). In the comment of step 12 say what you searched for and what
+   you used, or that nothing bore on it. The token names that one read; it was made 2026-10-11
+   with `brain.ts token loop-knowledge knowledge.search`.
 3. **Decide whether it is yours.** Stop, comment with what you found, add the label
    `needs-owner`, and report, when any of these is true:
    - the fix needs something in the Never list of the rules. A change to a `test_*` cell counts:
