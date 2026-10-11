@@ -32,7 +32,7 @@ case "$CMD" in
     until mkdir "$LOCK" 2>/dev/null; do
       [ -d "$LOCK" ] || { echo "lock.sh: cannot make $LOCK" >&2; exit 2; }
       [ -n "$EVERY" ] || { echo "lock.sh: $NAME.lock is held by $(held). Not taken; do not remove it." >&2; exit 1; }
-      sleep "$EVERY"
+      sleep "$EVERY" || { echo "lock.sh: sleep refused $EVERY seconds. Not taken." >&2; exit 2; }
     done
     printf '%s\t%s\n' "$WHO" "$(date '+%Y-%m-%d %H:%M:%S %Z')" > "$LOCK/holder"
     echo "$NAME.lock taken by $WHO at $(since)"

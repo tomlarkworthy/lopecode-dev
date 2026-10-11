@@ -23,3 +23,15 @@ bare `--wait` is 20 s as before.
 
 - `--wait` with a valid number against a real holder for longer than the test's 0.5 s.
 - What `sleep` accepts on Linux that this check refuses (`1s`, `1e-1`, `inf`): they are usage errors here.
+
+## Round 2
+
+Review 927, changes: the check was before the loop and the exit of `sleep` was still ignored.
+Two kinds of value passed the check and were refused by `sleep` (macOS `/bin/sleep`), so the
+loop spun as before: a number of 2^31 or more (`2147483648`: 538 lines of `usage: sleep` in the
+reviewer's 3 s), and a value with a newline (`$'abc\n5'`), since `grep` matches per line.
+
+The loop now leaves with exit 2 when `sleep` exits nonzero, whatever the check let through. The
+check stays, so that a bad value is refused when the lock is free too.
+
+Runs, the orchestrator's own, main checkout: `bun test ./tests/tools/lock.test.ts` gave 12 pass  0 fail; the same file against the tool of `273f81a2` gave (fail) take --wait leaves with exit 2 when sleep refuses the seconds the check let through [5000.81ms]  11 pass  1 fail; `bun test ./tests/tools` at 16:22:29 CEST gave 147 pass  0 fail. Not tried: Linux `sleep`; `--wait 1 junk`, which still ignores the sixth argument.

@@ -132,3 +132,14 @@ test("take --wait with seconds that sleep would refuse is a usage error, at once
   expect(Date.now() - t).toBeLessThan(2000);
   expect(lock("show", "land").out).toContain("writer-a");
 });
+
+test("take --wait leaves with exit 2 when sleep refuses the seconds the check let through", () => {
+  const { lock } = fresh();
+  lock("take", "land", "writer-a");
+  for (const bad of ["2147483648", "99999999999999999999", "$'abc\\n5'", "$'5\\nabc'"]) {
+    const t = Date.now();
+    expect(lock("take", "land", "writer-b", "--wait", bad).code).toBe(2);
+    expect(Date.now() - t).toBeLessThan(2000);
+  }
+  expect(lock("show", "land").out).toContain("writer-a");
+});
