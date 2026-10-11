@@ -13,7 +13,7 @@ only, and a token that names it. This round built the method. The seed commit is
 
 ### What changed
 
-`tools/cloud-brain/brain-logs.ojs`, and six lines of
+`tools/cloud-brain/brain-logs.ojs`, and five lines (round 1 wrote six; `git show 98ea3738 --stat -- knowledge/` reads 5 insertions) of
 `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md` ("Why did that happen: the logs").
 
 - `com.lopecode.brain.logs.deploys`, a query: `?from=MS&to=MS`, the last 24 hours with neither,
@@ -163,3 +163,156 @@ what it guards was seen on cb4, above.
 - The fake Cloudflare of the tests samples by the length of a window. What Cloudflare samples by
   is not known; only the five measurements above.
 - The time a 7-day call takes on cb4 is in the issue's comment, read after the deploy, not here.
+
+## Round 2, 2026-10-11: a member's DID and text do not leave, and `runs` says from when it is whole
+
+The review (event 534, verdict changes) found three things. The tests and the deploy of round 1
+stood: 6 of 6, and what ran was what was committed. The seed commit of this round is dated
+2026-10-11 11:54:06 +0200.
+
+### Three sentences of round 1 that were false
+
+- This file, "Three choices": "Both are about the deploy and neither is what a caller of a method
+  sent." `reason` of `deploy.reason` is the `reason` a caller sent to `infra.apply`,
+  `member.deploy` or `member.remove`, and `by` is who sent it.
+- `brain-logs.ojs`, "Who can call": "The deploy lines hold what the deployer wrote about a Worker
+  and nothing a caller of a method sent". The same sentence was the comment on the method's rule.
+- `brain-logs.ojs`, the table of lines: "`reason` and `last` can hold Cloudflare's text or a
+  health check's answer about the code deployed, not what a caller of a method sent".
+
+What the deployer writes, read this round (`tools/cloud-brain/brain-deployer.ojs`):
+
+```
+580   const because = (reason, by, targets) => say({ at: "deploy.reason", reason, by, targets: … });
+1087  because(reasonOf(request.reason), author, [String(request.module || request.name || "?")]);     member.deploy
+1181  because(reasonOf(request.reason), author, ["remove " + logical]);                               member.remove
+1171  say({ at: "deploy.put-back", target: logical, hash, previous: …, reason });                     member.deploy, reason = the error's message
+170   say({ at: "deploy.unhealthy", target: logical, hash, version: …, last: lastHealth });
+```
+
+`author` is the member's DID (`memberDeploy` refuses one that does not start `did:`). Event 517
+of round 1 has "whether a member deploy writes the member DID in `by` was not read". It was in
+the file the lines come from.
+
+The two sentences of the seed are rewritten. "Who can call" keeps a line saying what its first
+text claimed and that it was false. The sentence of this file stands above as written, with this
+section against it.
+
+### Finding 1: what leaves of a member's line
+
+The review left a choice: say that a token reads a member's DID and reason, or leave them out.
+Event 540 chose the second by line 1 of `philosophy.md`, the side that narrows, and named `by`
+and `reason`. Built in a cell of its own, `deployLine`, which `deployLines` calls on each line
+before it is kept, so `lines`, `workers` and `tests` are all made from what leaves.
+
+| Line | Kept |
+|---|---|
+| `deploy.reason` whose `by` is not `owner`, `recovery key` or `token:NAME` | `at`, `by: "member"`, the `targets` of the shape `remove brain-m-ID-NAME`, `t` |
+| a line whose `target` starts `brain-m-` | `at target hash version previous first t` |
+
+Both keep `deployer worker ray`, which the `log` cell adds to every line.
+
+Three things here go past the two fields event 540 named. Each is the narrowing side of line 1,
+and each is this writer's choice:
+
+- **`targets` of a member's deploy is left out.** It is `request.module || request.name`: text
+  the member sent, 80 characters of it. The target of a removal is `"remove " + logical`, a name
+  the deployer made after finding the Worker's row, and stays. The other way was to keep
+  `targets` whole, since event 540 says "the Worker stays"; the Worker is still named, by the
+  `deploy.deployed` line that follows.
+- **A line of a member's Worker keeps a list of fields, not everything but two.** The put-back
+  of a member's deploy has the error's message as `reason`, and `deploy.unhealthy` has the
+  health check's answer as `last` ("threw …", 120 characters): both can quote the member's code.
+  A list also holds for a field the deployer adds later. Cost: a fixer of a member's service
+  reads that it was put back and not why. Event 540 keeps "failed test names" of a member's
+  service; a member's deploy runs no tests (`memberDeploy` does not call `verifyDeploy`), so
+  there are none to keep or drop today, and `failed` is not in the list.
+- **A `deploy.reason` is a member's unless `by` is one of three.** The other way was `by`
+  starting `did:`. With the list, a fourth kind of `by` added to the deployer leaves as
+  `"member"` until this cell is changed, which is wrong in name and leaks nothing.
+
+`by` of the owner's deploys stays as round 1 left it: `recovery key`, `owner`, or `token:NAME`,
+a token's name and not its value.
+
+### Finding 2: from when `runs` is whole
+
+Read on 2026-10-11 at 11:51:36 CEST with the token (`brain.ts curl
+"/xrpc/com.lopecode.brain.logs.deploys?from=…&to=…" --as loop-deploys`), the 7 days before:
+
+```
+1325 lines, 3 queries
+deploy.verify    45   first 10-11 05:52:03 UTC  brain-core     (t = 1791697923049)
+deploy.verified  38   first 10-11 05:52:15 UTC  brain-core
+deploy.failed     7   first 10-11 06:01:50 UTC  brain-x-verifycheck
+put-backs "its tests failed: …" before the first deploy.verify: 9
+  brain-x-browser 10-09 07:46:12, 08:16:01, 08:32:00, 09:01:40; 10-10 08:50:41, 10:24:12
+  brain 10-10 08:41:56;  brain-x-issues 10-10 17:32:38, 10-11 05:50:48
+deploy.confirmed before it: 111
+brain            runs 1, verified 0, failed 1
+brain-x-browser  runs 7, verified 1, failed 6
+```
+
+Before 05:52:03 UTC a page ran the tests. Its failed verdict is a put-back in the lines, which
+round 1's rule counts as a failed run; its pass wrote no line. So the passes of that time are
+missing from `runs`. The review wrote 05:51 UTC and the knowledge doc has "07:51 CEST"; the cell has the time of
+the first line.
+
+The cell now says this under "What is counted", with the time, the two rows above, the dates
+until which the default day (2026-10-12 05:52 UTC) and a 7-day span (2026-10-18) reach before
+it, and the `from` to give. The knowledge doc has one clause.
+
+Not built: the review's other way, a field of its own for a page's put-backs, outside `runs`.
+Event 540 chose the sentence. The answer therefore does not mark a span that reaches before the
+time, and a caller who gives no `from` before 2026-10-12 05:52 UTC gets the high rate with
+nothing in the answer saying so.
+
+### Finding 3
+
+- The `fails` row of the table now names the put-back with no failed line.
+- "six lines" of the knowledge doc was five; corrected above, in place.
+- "No token was made" and "the read with a token was not run on cb4" (round 1, "Not tried")
+  were so when written, at the seed commit of 11:28:56. The token `loop-deploys` was made at
+  11:41:29 CEST by the orchestrating session with the owner's session, on his word (event 518).
+  Neither writer made it. The read with it was run by that session (event 518), by the reviewer
+  (event 534) and for the table above. That the kernel refuses `loop-deploys` the other methods
+  was run by the reviewer: `logs.query`, `logs.keys` and `quota.get` each 403.
+
+### Tests
+
+One test added, `test_deploys_leaves_out_who_a_member_is_and_what_they_sent`; 7 in the module.
+
+Before the fix, with the test in the seed and `deployLine` as round 1 behaved (`{ ...s, t }`),
+`bun test.ts brain-x-logs --with …` in the worktree's `cloud-brain-dev/`: 6 passed, 1 failed.
+
+```
+FAIL test_deploys_leaves_out_who_a_member_is_and_what_they_sent
+     Expected value not to match: /did:|alice|clinic|password|closed|does not write/
+     Received: "{…\"lines\":[{\"at\":\"deploy.reason\",\"reason\":\"the list of my clinic\",\"by\":\"did:plc:alicemember\",\"targets\":[\"@alice/clinic-todo\"],…
+```
+
+A first run of it failed on `deployLine is not defined`, which is not the reviewed reason; the
+stand-in was added to see this one.
+
+After: `test.ts` 7 passed, 0 failed, 0 needing a browser. In a QA tab (session `impl-vrnk-2`) on
+the notebook built in the worktree, each `test_*` cell forced from a module of its own: 7 of 7,
+no failure. The rebase of 11:54 brought in `oversight.md` and `seen.json` and no seed, so
+neither run was made again.
+
+The fixture: a member's `deploy.reason` three times (two deploys, one removal), and three lines
+of the member's Worker: `deploy.deployed`, a put-back whose reason starts `its tests failed:`
+and quotes code, and `deploy.unhealthy` with a `last` and a field the deployer does not write.
+With round 1's code that put-back was counted a failed run of the member's Worker, and the test
+name in its reason was a line of `tests`. Four lines of the owner's (`recovery key`,
+`token:NAME`, `owner`, a put-back on a test) come through as written.
+
+### Not tried
+
+- No member has deployed on cb4: in the 1325 lines no `by` starts `did:` and no `target` starts
+  `brain-m-`. The redaction is shown by the fixture and by no line of cb4. No member deploy was
+  made to see one.
+- That `by` of a member's line is always a DID was read from `memberDeploy`, not from a line.
+- The lines of `token.…` (`token.mint`, `token.roll`) are not in the answer and were not read
+  for what they hold.
+- `ray` of a member's line stays. It is the id of the member's call; with `logs.query`, which
+  this token is refused, it finds the core's line of that call.
+- A field for a page's put-backs (above).
