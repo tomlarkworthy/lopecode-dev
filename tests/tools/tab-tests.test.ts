@@ -3,12 +3,18 @@
 //
 //   bun test ./tests/tools/tab-tests.test.ts          # from the repo root, with the ./
 // No browser is launched: the in-page functions are run here against a real @observablehq/runtime.
-import { test, expect } from "bun:test";
-import { readFileSync } from "node:fs";
+import { expect } from "bun:test";
+import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { Runtime } from "../../tools/node_modules/@observablehq/runtime";
+import { testNeeding } from "./needs.ts";
 import { parseArgs, address, ready, runTests, emitCell, report } from "../../tools/cloud-brain/tab-tests.ts";
 import { wakesOf } from "../../tools/cloud-brain/channel-wakes.ts";
+
+// tools/node_modules is not in git. In a checkout without it (a plain `git worktree add`) every test here is skipped,
+// with one line, and the runtime is not imported. Issue plain-worktree-tab-tests-no-node-modules.
+const RUNTIME = resolve(import.meta.dir, "../../tools/node_modules/@observablehq/runtime");
+const test = testNeeding("tab-tests.test.ts", [RUNTIME], "link the main checkout's: ln -s <main checkout>/tools/node_modules tools/node_modules");
+const { Runtime } = existsSync(RUNTIME) ? await import(RUNTIME) : ({} as any);
 
 const M = "@t/w";
 

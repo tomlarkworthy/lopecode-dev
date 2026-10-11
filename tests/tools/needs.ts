@@ -10,10 +10,13 @@ export const COMMITTED = "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html";
 export const notebookOf = ({ named, worktree, built }: { named?: string; worktree: boolean; built: boolean }) =>
   named || (worktree && built ? BUILT : COMMITTED);
 
-// `test` when every path is there. Otherwise test.skip, and one line that names the file and what it lacks.
-export const testNeeding = (file: string, paths: string[]) => {
+// How a checkout that is not from worktree.sh gets what a submodule holds.
+export const SUBMODULES = "git submodule update --init cloud-brain-dev lopebooks lopecode";
+
+// `test` when every path is there. Otherwise test.skip, and one line that names the file, what it lacks and `how` to get it.
+export const testNeeding = (file: string, paths: string[], how = SUBMODULES) => {
   const lacks = paths.filter((p) => !existsSync(p));
   if (!lacks.length) return test;
-  console.log(`skipped: ${file}: no ${lacks.join(", ")}. tools/cloud-brain/worktree.sh makes a worktree that has it; in another checkout, git submodule update --init cloud-brain-dev lopebooks lopecode`);
+  console.log(`skipped: ${file}: no ${lacks.join(", ")}. tools/cloud-brain/worktree.sh makes a worktree that has it; in another checkout, ${how}`);
   return test.skip;
 };
