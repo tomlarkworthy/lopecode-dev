@@ -2,8 +2,8 @@
 
 2026-10-11. Task 1 of `plan/cloud-brain-owner-acts-on-what-waits-for-him.md`: the block "For your
 attention" of the tracker's panel (`issuesPanel`, `tools/cloud-brain/brain-issues.ojs`) shows one
-waiting issue at a time. Seed commit `0930f193` (`git log -1 --format='%h %ci'`: 2026-10-11 22:05:36 +0200).
-The panel only: no handler, SQL or policy of the service changed.
+waiting issue at a time. The seed's commit is the first ref of the issue's submit; it was first made at
+2026-10-11 22:05:36 +0200 (`git log -1 --format='%h %ci'`, before the rebase onto `main`). The panel only: no handler, SQL or policy of the service changed.
 
 ## What the owner said
 
@@ -73,7 +73,7 @@ tab (Chrome 151) on a build of the seed with the test and without the change:
 
 It stops at its first line there, so that run does not show that its later lines fail on five rows.
 
-After the change, the same snippet, first thing run in a fresh tab on the build of `0930f193`: `[33,[]]`.
+After the change, the same snippet, first thing run in a fresh tab on the build of the seed as committed: `[33,[]]`.
 
 A build with the one expression that shows the issue of a refused press again taken out
 (`&& (at = i.id)` made `&& false`), same snippet in a fresh tab:
@@ -84,13 +84,24 @@ A build with the one expression that shows the issue of a refused press again ta
 
 both on `expect(received).toBe(expected)`, `Expected: true`, `Received: false`.
 
+The rebase onto `main` (`8c837a66`) brought in `cloud-brain.ojs`, which this module imports from, so
+the three runs below were made again on a build of the rebased worktree, 2026-10-11 22:06 to 22:07
+CEST (`date`). They are the counts submitted.
+
 `cd cloud-brain-dev && bun test.ts brain-x-issues --with <the built module>`: `passed 21, failed 0,
 needsBrowser 12`. The 12 are the panel's tests (`location is not defined`), the new one among them.
 
+`bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/brain-issues --emit issues_service=…`:
+`tests 33, passed 33, failed []`, exit 0.
+
 `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-issues --shell <the build> --times 20`,
-2026-10-11 22:05 CEST, last line: `runs 20, passed 20, failed 0, none 0, from ["document"],
-byChance []`; `mains` of its first line is brain-shell and brain-issues; `tests: 33` in the first
-and the last run's line, which is 21 + 12.
+last line: `runs 20, passed 20, failed 0, none 0, from ["document"], byChance []`; `mains` of its
+first line starts with brain-shell. Before the rebase the same command gave the same line, with
+`tests: 33` in the first and the last run's line, which is 21 + 12.
+
+The three runs in a paired QA tab above were made before this session had read that a writer's
+paired tab wakes the orchestrating session (`records/writers-qa-tabs-wake-the-orchestrator.md`,
+which landed while this was written); `tab-tests.ts` is the tool for it now.
 
 Of the brief's cases for a control that writes, where they are held now that one issue is shown:
 a second press before the answer (`…a_second_press_writes_once`, unchanged, and Answer in
