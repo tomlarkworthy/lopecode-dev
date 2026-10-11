@@ -73,3 +73,16 @@ test("the record says which token read the quoted counts, quotes the message who
   expect(s).toContain("14:24:47.717Z");
   expect(section(skill, "A rework round goes to the agent that wrote the change")).not.toContain("Of 3 resumes");
 });
+
+// Review 1122: a fourth agent had been resumed before the three.
+test("the count of agents resumed is taken from the answers to the sends, and a216c74 is a row", () => {
+  const s = section(record, "The first resumed round, 2026-10-11");
+  expect(s).toMatch(/\na216c74 +10:23:50\.912Z +12:03:08\.236Z +5,958 s +114,548 \/ 6,267\n/);
+  expect(s).toContain('test("Resuming agent")');
+  expect(s).not.toContain("The three agents resumed that day");
+  expect(s).not.toContain("for all three");
+  const k = section(skill, "A rework round goes to the agent that wrote the change");
+  expect(k).not.toContain("Of the 3 agents resumed");
+  expect(k).not.toContain("running totals for the third");
+  expect(k).toContain("114,548");
+});

@@ -199,18 +199,33 @@ cache as 6,267. It then read about half as much from the cache (1.96 M against 3
 half the requests, and wrote two thirds of the output. So the 24,455 understates the round and
 the 175,404 is nearer: the earlier context was paid for again once, as a cache write.
 
-The three agents resumed that day, by the time between the agent's last request and its first
-after the send (the same `jq` over `.timestamp`, with `fromdate`):
+The agents this session had resumed before 14:32 UTC, by the time between the agent's last request
+and its first after the send (the same `jq` over `.timestamp`, with `fromdate`). There are four.
+Rounds 1 and 2 of this section said three: `a216c74` was left out, an implementer of
+`snapshot-digest-test-fails-by-chance` whose run had stopped and which the orchestrator sent to at
+12:03:03Z ("You stopped at about 12:35 CEST waiting on two probe arms"). That was not a rework
+round and has no `cost` line with `resumed`, which is how the first count missed it; review 1122
+found it. The list is from the answers to the sends, not from the `cost` lines:
+
+```
+jq -c 'select(.type=="user")|.timestamp as $t|.message.content[]?|select(type=="object" and .type=="tool_result")|(.content|tostring)|select(test("Resuming agent"))|[$t,(capture("Resuming agent (?<a>[0-9a-f]+)").a)]' $A.jsonl      (18:05 CEST, the lines before 14:32Z)
+["2026-10-11T12:03:03.926Z","a216c74"] ["2026-10-11T14:18:14.386Z","a89422c"] ["2026-10-11T14:31:14.412Z","ab2bb0b"] ["2026-10-11T14:31:36.018Z","a48b041"]
+```
+
+A fifth line, at 13:56:36Z, is a tool result that quotes the words and has no agent. After 14:32Z
+there are sends to `ab2bb0b` again, `a80fa84`, `a48b041` again, `a873aa0` and `a216c74` again, to
+18:05 CEST; none of those is measured here.
 
 ```
 agent     last request      first after the send   gap      first request: cache written / read
+a216c74   10:23:50.912Z     12:03:08.236Z          5,958 s  114,548 / 6,267
 a89422c   14:08:42.737Z     14:18:17.758Z          575 s    171,072 / 6,267
 a48b041   14:24:45.302Z     14:31:37.649Z          412 s    144,096 / 6,267
 ab2bb0b   14:26:57.682Z     14:31:17.805Z          260 s      2,084 / 178,464
 ```
 
-The two that waited more than 5 minutes wrote their context again; the one that waited 260 s read
-it. Three runs, one day, one model. That 5 minutes is the limit was not tested, and nothing here
+The three that waited more than 5 minutes wrote their context again; the one that waited 260 s read
+it. Four runs, one day, one model. That 5 minutes is the limit was not tested, and nothing here
 says what a write and a read each cost in money. If it holds, a review that takes longer than
 that (the two reviews of `annotations-file-feedback` took 659 s and 386 s) always ends with the
 writer's cache gone, and a resumed round saves the reading and the tool calls, not the context.
@@ -235,7 +250,7 @@ jq -c 'select(.type=="user")|.timestamp as $t|.message.content[]?|select(type=="
 
 The run reported all three numbers, in the notification of its end (14:36:19Z):
 `<subagent_tokens>175404</subagent_tokens><tool_uses>14</tool_uses><duration_ms>283489</duration_ms>`.
-What each counts differed between agents. `subagent_tokens` held the earlier rounds for all three.
+What each counts differed between agents. `subagent_tokens` held the earlier rounds for all four.
 `tool_uses` and `duration_ms` were the round's own for `a48b041` (14, 283 s after 35, 645 s) and
 `a89422c` (5, 98 s after 35, 657 s), and running totals for `ab2bb0b` (55, 1,329 s after 47,
 934 s). `ab2bb0b` had ended twice before its send, at 14:24:11Z and 14:26:57Z. Its transcript says why
@@ -251,9 +266,23 @@ jq -c 'select(.type=="user" and (.message.content|type=="string"))|[.timestamp,(
 
 A background task of its own woke it 36 s after it first ended, with no send, and its `tool_uses`
 and `duration_ms` ran on from there: 47 and 934 s at the end of that second run, 55 and 1,329 s
-after the send. So in the one case seen, the two were running totals for an agent that had been
-woken by a notification before it was sent to, and the round's own for the two that had not.
-Whether the notification is the cause was not tested. Its `cost` comment 997 has the difference (8, 395), which step 5 of `SKILL.md`, "as they
+after the send. That does not explain the running totals. `a216c74` reported them too, and no
+notification had woken it (round 3, from review 1122):
+
+```
+jq -c 'select(.type=="user" and (.message.content|type=="string"))|[.timestamp,(.message.content|.[0:80])]' $A/subagents/agent-a216c7469a0554062.jsonl
+["2026-10-11T10:18:09.284Z","Working directory: /Users/tom.larkworthy/dev/lopecode-dev.\nRead /Users/tom.larkw"]
+["2026-10-11T12:03:03.844Z","The coordinator sent a message while you were working:\nYou stopped at about 12:3"]
+
+its two ends, from the notifications in $A.jsonl that name it and have subagent_tokens:
+2026-10-11T10:23:50.929Z  <subagent_tokens>121385</subagent_tokens><tool_uses>31</tool_uses><duration_ms>341645</duration_ms>
+2026-10-11T12:09:44.084Z  <subagent_tokens>145279</subagent_tokens><tool_uses>49</tool_uses><duration_ms>6694796</duration_ms>
+```
+
+6,695 s is the time from its spawn at 10:18:09Z. So of the four, two gave the round's own
+(`a89422c`, `a48b041`) and two gave running totals (`a216c74`, `ab2bb0b`), and one of those two
+had a notification and the other had not. What decides it is not known. Round 2 of this section
+said the two with no notification gave the round's own; with `a216c74` that is false. Its `cost` comment 997 has the difference (8, 395), which step 5 of `SKILL.md`, "as they
 are", does not ask for; it is left as written.
 
 ### What the resumed agent said of the brief

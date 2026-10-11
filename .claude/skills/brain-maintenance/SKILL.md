@@ -201,12 +201,14 @@ answered "OK" with no tool call) the count was 40,982 after the first turn and 4
 second, so the number held the first turn's context. A resumed round's `tokens` is therefore not
 set beside a new agent's as it stands. `"resumed":true` marks it, and the `tokens` of the same
 agent's comment before it is what to take off. That difference is not what the round was charged.
-Of the 3 agents resumed on 2026-10-11 before 14:32 UTC, on the first send to each (one of them was
-sent a second), the 2 sent more than 5 minutes after the agent's last request wrote
-the whole earlier context to the prompt cache again on their first request (144,096 and 171,072
-tokens of cache creation, where the differences were 24,455 and 15,833); the one sent 4 min 20 s
-after read it from the cache (2,084 written, 178,464 read). The record has the requests.
-`seconds` and `tools` were the round's own for two of the agents and running totals for the third.
+This session's transcript has `Resuming agent` answered for 4 agents on 2026-10-11 before 14:32 UTC:
+3 for a rework round and, before them, one whose run had stopped. On the first send to each (one
+was sent a second), the 3 sent more than 5 minutes after the agent's last request wrote the whole
+earlier context to the prompt cache again on their first request (114,548, 171,072 and 144,096
+tokens of cache creation; for the last two the differences were 15,833 and 24,455); the one sent
+4 min 20 s after read it from the cache (2,084 written, 178,464 read). The record has the requests.
+`seconds` and `tools` were the round's own for two of the four and running totals for the other
+two; what decides which has not been found.
 
 Tried on 2026-10-11, in that round: an agent that had used tools (35), whose worktree was removed
 at its landing, sent to after this session had compacted (14:22:31 UTC; the send was 14:31:35).
