@@ -62,8 +62,19 @@ test("an attachment emitted after its module violates the ordering rule", () => 
 
 test("ordering applies to blocks a module reads off the DOM, not just its loader map", () => {
   // markdown-wiki finds its own docs by querySelectorAll, so they are never in a map
+  const after = (src: string) => kinds(boot(["@a/b"]) + mod("@a/b", src) + att("@a/b/undeclared.md"));
+  expect(after(`const docs = document.querySelectorAll('script[type="text/plain"]');`)).toEqual(["attachment-after-module"]);
+  expect(after(`const doc = lopecode.contentSync("@a/b/undeclared.md");`)).toEqual(["attachment-after-module"]);
+  expect(after(`main.variable().define(["FileAttachment"], (FileAttachment) => 1);`)).toEqual(["attachment-after-module"]);
+});
+
+test("a module that reads no block during define() may come before blocks under its id", () => {
+  // thetarot.online's deck is hoisted ahead of 1.5 MB of scans that a consumer reads later (812455dc)
   const html = boot(["@a/b"]) + mod("@a/b", "function define(){}") + att("@a/b/undeclared.md");
-  expect(kinds(html)).toEqual(["attachment-after-module"]);
+  expect(kinds(html)).toEqual([]);
+  // prose about the mechanisms is not a call
+  const prose = "const note = 'uses contentSync and querySelectorAll on a FileAttachment';";
+  expect(kinds(boot(["@a/b"]) + mod("@a/b", prose) + att("@a/b/undeclared.md"))).toEqual([]);
 });
 
 test("a block reachable both ways is reported once", () => {
