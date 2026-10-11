@@ -2,6 +2,8 @@
  * Builds lopebooks/notebooks/@tomlarkworthy_cloud-brain.html from the seeds in this directory.
  *   bun tools/cloud-brain/build.ts [--out path] [--token LOPE-…]
  * While the notebook is built from seeds, the seeds are the source and the HTML is regenerated.
+ * Beside it, in .emitted/ here: shell.html (the notebook without the modules a Brain's Workers serve) and
+ * verify.html (the shell with mains cut to brain-shell, verify-shell.ts).
  */
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -9,6 +11,7 @@ import { createHash } from "node:crypto";
 import { blockSpans, blockContent, findSpan } from "../lib/notebook-blocks.ts";
 import { compiler, moduleSource, splitSeed } from "../spec-notebook.ts";
 import { carryCells, patchSpec } from "./spec-patch.ts";
+import { verifyShell, VERIFY_MAINS } from "./verify-shell.ts";
 
 const ROOT = resolve(import.meta.dir, "../..");
 const HERE = import.meta.dir;
@@ -211,6 +214,9 @@ writeFileSync(out, html);
   const text = shellOf(html, OWNED);
   writeFileSync(resolve(HERE, ".emitted/shell.html"), text);
   console.error(`shell: ${text.length} bytes without ${OWNED.length} modules`);
+  // The page a deploy's verdict comes from: the shell, booting brain-shell alone.
+  writeFileSync(resolve(HERE, ".emitted/verify.html"), verifyShell(text));
+  console.error(`verify: the shell with mains ${JSON.stringify(VERIFY_MAINS)}`);
 }
 const token = arg("token");
 console.log(JSON.stringify({ out, bytes: html.length, mains: conf.mains }, null, 1));

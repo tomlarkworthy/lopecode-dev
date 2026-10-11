@@ -150,7 +150,10 @@ brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
 ## Changing it
 
 1. Edit the seed in `tools/cloud-brain/*.ojs`. Never the notebook HTML.
-2. `bun tools/cloud-brain/build.ts`.
+2. `bun tools/cloud-brain/build.ts`. Beside the notebook it writes two files in `tools/cloud-brain/.emitted/`:
+   `shell.html`, the notebook without the modules a Worker serves (what `brain.ts shell` posts), and since
+   2026-10-11 `verify.html`, that shell with `mains` cut to `["@tomlarkworthy/brain-shell"]`
+   (`tools/cloud-brain/verify-shell.ts`). Nothing posts `verify.html` yet; it is read by `verify-run.ts --shell`.
 3. Run the tests in a local QA tab: `qa_open_notebook` on the file URL with
    `#view=…&cc=<pairing token>&r=<fresh number>`, then `run_tests`. `r` does nothing; a new value makes a new URL, so the tab
    loads the file again.
