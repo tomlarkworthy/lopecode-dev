@@ -157,11 +157,50 @@ from the file the receiver saved: hash `41a68d588088…`, `meta.resources` `["ro
 `meta.cloudflare` `["Workers Observability Read"]`, eight methods, a reference of 23482
 characters, no `test_` and no `sampledAnswer` in `parts[0].text`.
 
+## On cb4, after the deploy
+
+`brain-x-dashboard` at `41a68d588088` (the apply's answer: `"state":"verified"`, `"tests":11`;
+`brain.ts redistil`: `brain-x-dashboard  same  41a68d588088`). Asked on 2026-10-11 between
+19:28:40 and 19:30:16 UTC (the `at` of the script's first and last line), one ask at a time from
+one machine, `metric.query?metric=deploys.confirmed&by=target` with `--as loop-dashboard` and
+`logs.deploys` with `--as loop-deploys`, the same `since` and `until` to both. `U` is
+1791746820000 (19:27:00 UTC). The script and its 17 lines are attached to the issue as
+`after.py` and `after.jsonl`; each number below is read from those lines.
+
+| span, ending at `U` | `sampled` | `cost.queries` | `cost.ms` | `step` | `groups` | sum of `n`, targets | `logs.deploys`, lines confirmed, targets | by target |
+|---|---|---|---|---|---|---|---|---|
+| 1 hour | 1 | 1 | 346 | 60000 | 2 | 3, 2 | not asked | |
+| 24 hours | 1 | 1 | 787 | 1440000 | 22 | 64, 22 | not asked | |
+| 4 days | 1 | 5 | 9703 | 1440000 | 22 | 175, 22 | 175, 22 | equal |
+| 7 days | 1 | 8 | 11232 | 1440000 | 22 | 175, 22 | 175, 22 | equal |
+| 6 days and 30 minutes | 1 | 8 | 8881 | 1440000 | 22 | 175, 22 | 175, 22 | equal |
+| 7 days, asked again after the asks of the row above | 1 | 0, `cached` | 0 | 1440000 | 22 | 175, 22 | | |
+| 7 days, ending a minute earlier | 1 | 8 | 10391 | 1440000 | 22 | 175, 22 | not asked | |
+| 7 days, ending two minutes earlier | 1 | 8 | 10007 | 1440000 | 22 | 175, 22 | not asked | |
+| 8 days and a minute | **10** | 1 | 7968 | 10078000 | 22 | 160, 7 | not asked | |
+
+What these show, and no more:
+
+- **Cloudflare's `calculations` answer does carry the statement.** The 8-day ask is more than 8
+  parts, so it is the one answer as Cloudflare gave it: `sampled` 10, and the same 160 over the
+  same 7 targets that `dsv-4-cost-on-cb4` counted (`brain` 20, `brain-core` 40,
+  `brain-x-dashboard` 10, `brain-x-issues` 50, `brain-x-knowledge` 10, `brain-x-logs` 10,
+  `brain-x-page` 20). Which of the two numbers said 10 is not seen through the service.
+- **A sampled span is asked again and comes back whole.** `cost.queries` above 1 says the first
+  answer of that span had `sampled` above 1. Five such asks (4 days, three of 7 days, 6 days and
+  30 minutes): each answered `sampled` 1, and the three that were compared with the lines were
+  equal to them target by target, 175 over 22 targets.
+- **It costs time.** A 7-day ask sent to Cloudflare took 10007 to 11232 ms of `cost.ms`, three
+  asks, where the one query took 5949 to 8302 ms before the change (`records/dsv-4-cost.md`, five
+  asks, with one of 1097). The 4-day ask: 9703 ms where the one query took 6273 (`measure2.jsonl` of `dsv-4-cost-on-cb4`, one ask).
+- 5 days was not asked, so a span of days that Cloudflare answers whole in one query was not seen
+  after the deploy; 24 hours was, with one query.
+
 ## Not tried
 
 - An answer of Cloudflare's read raw: which of the two numbers it carries for a sampled
-  `calculations` query. Through the service only the highest of them is seen, and for a span that
-  was asked again the first answer's is not seen at all.
+  `calculations` query. Through the service only the highest of them is seen (10, "On cb4"), and
+  for a span that was asked again the first answer's is not seen at all.
 - A line at the millisecond where one part ends and the next starts. The stand-in counts it in
   the later part only. Whether Cloudflare counts it in both was not read; the seven 1-day asks of
   `dsv-4-cost-on-cb4` that summed to 173 held no such line that is known of.
