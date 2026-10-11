@@ -222,7 +222,8 @@ feedbackApp = ({ client, store, kept = { get: () => null, set: () => {} }, about
         els.delete(id);
         store.remove(id);
       }
-      for (const id of els.keys()) draw(id);
+      // A draft shows nothing of the tracker, and drawing it again would take the box out from under the caret.
+      for (const id of els.keys()) if (of.has(id)) draw(id);
     } finally {
       busy = false;
     }
@@ -583,6 +584,23 @@ test_feedback_kept_is_one_item_of_the_browser_for_an_address = {
     ls.removeItem(k.name);
   }
   return "one item for an address, read by any app on it; an empty copy is removed; text that is not JSON reads as none";
+}
+// %%
+// feedbackSync asks every 30 s, and each ask drew every note again: a box being typed in was put in the place of a new one.
+test_feedback_an_ask_leaves_a_draft_box_as_it_is = {
+  const rig = feedbackRig(), anchor = { cell: "services", surface: "element", frac: { fx: 0.1, fy: 0.2 } };
+  await rig.client.procedure("issue.open", { id: "fb-other", title: "Other", body: feedbackBody("Other", { anchor }), kind: "feedback", about: "brain", labels: ["annotation"] });
+  const app = rig.app();
+  await app.sync();
+  const a = rig.store.create(anchor, { kind: "feedback" }), el = app.note(a.id), box = el.querySelector("textarea");
+  const other = app.note([...app.of.keys()][0]), drawn = other.firstElementChild;
+  box.value = "Half a sentence";
+  box.dispatchEvent(new Event("input", { bubbles: true }));
+  // Another caller's event on another note, read by the next ask: that note is drawn again, the draft's box is the same element.
+  rig.say("fb-other", { type: "moved", from: "open", to: "triaged", reason: "Real." }, { state: "triaged" });
+  await app.sync();
+  expect([other.firstElementChild === drawn, other.querySelector("b").textContent, el.querySelector("textarea") === box, box.value]).toEqual([false, "triaged", true, "Half a sentence"]);
+  return "an ask draws the notes of issues again and leaves the box of a draft, with its caret, as it is";
 }
 // %%
 test_feedback_load_places_a_note_for_each_labeled_issue = {
