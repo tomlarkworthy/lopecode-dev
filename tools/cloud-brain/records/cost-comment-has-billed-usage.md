@@ -99,7 +99,45 @@ The submit of round 1 said the count of `./tests/tools` was in the record; it wa
 ## Not done, not tried
 
 - No cost comment with `usage` has been posted by the loop; its orchestrator has to read step 5 again.
-- The 190 comments already on the tracker were not given a `usage`. The transcripts of this machine are there to do it from.
+- (Done after the pass; see "The backfill".)
 - The advisor's cached input, if it has any, is added into `advisor.input`; in the transcripts read it was 0.
 - What a token of each kind costs is not in the tool, so it prints no dollars.
 - A subagent of a subagent, and a transcript after a compaction, were not read.
+
+## The backfill (after the pass; the owner: "I think they should be backfilled if we have the data.")
+
+2026-10-11. A cost comment cannot be changed, so each got a second comment, `cost-usage {"of":<the cost
+comment's seq>,"role":…,"round":…,"backfilled":true,"how":…,"agent":…,"session":…,"usage":{…}}`, under the key
+`cost-usage-<id>-<role>-<round>-<seq>`. Its body does not begin `cost {`, so a count of cost comments is as it
+was. The script is beside this file, `cost-comment-has-billed-usage.backfill.py`; it posts nothing without `--post`.
+
+```
+230 cost comments
+ 25 had usage already
+172 posted:  39 the light reviewer's, by its session
+             44 by the agent and session of the comment, the run by the round's place among that agent's comments
+             89 with no agent in the comment: the one transcript of that role and issue that holds the tracker's
+                answer to the comment's event ("seq":N,"event":), and has one run
+ 33 not posted: 20 no agent and no event to match by, 11 no transcript holds the event's answer,
+                1 matched transcript has several runs, 1 agent whose runs and comments differ in number
+```
+
+No transcript run was given to two comments. The 89 were matched, not named: the match is on the event the
+run wrote, which only that run was answered.
+
+What the 198 comments with a usage give, at the fitted prices above (median, range, runs):
+
+```
+implementer  first run   fresh    $5.40  1.94-14.55  47
+implementer  later run   fresh    $3.79  1.03-7.22   10
+implementer  later run   resumed  $1.97  1.33-3.82   16
+spec-writer  later run   fresh    $4.01  2.89-8.36    6
+spec-writer  later run   resumed  $1.62  0.87-2.37    2
+reviewer     first run   fresh    $2.47  0.53-5.86   37
+reviewer     first run   light    $2.85  1.17-5.28   27
+reviewer     later run   fresh    $2.79  1.01-5.92   21
+reviewer     later run   light    $2.16  0.62-3.89   26
+```
+
+A fresh implementer's later run called the advisor 1.3 times a run and a resumed one never; a light
+reviewer's first run 1.6 times against a fresh one's 0.9. The issues are not the same between rows.

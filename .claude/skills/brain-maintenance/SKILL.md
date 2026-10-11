@@ -144,7 +144,8 @@ Two files beside it, neither of them needed to resume:
    to an agent add `--last-run`, which counts that round and not the ones before it (run it when the round
    reports: once a later round is sent, `--last-run` is that one, and an earlier one is `--run N`, the agent's Nth). For the light reviewer it is
    `--session <the session of its JSON line>` with no `--agent`. When the command exits 1 (no transcript) leave
-   `usage` out. `tokens` stays: it is the size of the last request, which says how full the agent was, not what
+   `usage` out. A comment from before 2026-10-11 has its `usage` in a second comment, `cost-usage {"of":<its seq>,…}`
+   (`tools/cloud-brain/records/cost-comment-has-billed-usage.md`, "The backfill"). `tokens` stays: it is the size of the last request, which says how full the agent was, not what
    it was billed. A run that was stopped or died gets its comment too. No time
    of day goes in the body. An overseer's run is on no issue: its line goes in `_oversight.md` in
    the same form, and yours for the pass, with the role `orchestrator`, in `_orchestrator.md`
