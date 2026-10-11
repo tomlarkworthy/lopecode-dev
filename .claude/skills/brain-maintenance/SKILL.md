@@ -52,15 +52,19 @@ Two files beside it, neither of them needed to resume:
 ## One pass
 
 1. **Health.** `brain.ts redistil` shows every Worker `same`; `brain.ts state` shows each `brain-x-*` Worker at the hash `tools/cloud-brain/seen.json` holds for it (`redistil` cannot show a put-back: the kept source goes back with the Worker, so it read `same` through the one of 19:32 on 2026-10-10); `lease.get` is held or the page is
-   not needed; no `cb4.lock` or `land.lock` older than 20 minutes (`tools/cloud-brain/lock.sh show land`, `show cb4`: the holder and since when; exit 1 is not held). If the cluster is not healthy, file or find
-   the issue for it and do nothing else this pass. A stale lock is the owner's to remove (`rm -r`; it holds a file since 2026-10-11): say so
-   in step 7 each pass until it is gone. A commit of your own in the main checkout is made between
-   `tools/cloud-brain/lock.sh take land orchestrator` and `lock.sh release land orchestrator`.
-2. **Count your running agents.** Keep up to 4 implementers and 2 reviewers running (4 since 19:28 2026-10-10, Tom: "maybe we do another 2 in parrallel"; they land one at a time, so past 4 they queue on `land.lock`), and at
+   not needed; `tools/cloud-brain/lock.sh show land` and `show cb4` each answer exit 0 (the holder, since when and until when) or exit 1 (not held), and exit 2 is cb4 not saying: not healthy. If the cluster is not healthy, file or find
+   the issue for it and do nothing else this pass. Since `lk-3-lock-sh-over-the-cluster` both locks are held in the cluster, for 600 s from the take or the last renew.
+   A lock past its time is not held: `show` exits 1 and says whose lock ended and when, and the next take takes it. That holder died or overran:
+   look at its issue (step 3). Nothing is the owner's to remove. A commit of your own in the main checkout is made between
+   `tools/cloud-brain/lock.sh take land orchestrator-$(hostname -s)` and `lock.sh release land orchestrator-$(hostname -s)`.
+   The name carries the machine, so an orchestrator on another machine is another holder. Two sessions under one role name on one machine are not
+   told apart: the first's take refuses the second's, but a `renew` by either is answered as the holder's, and so is the renew `take --wait` sends
+   after an attempt of its own that got no answer. One orchestrator and one overseer a machine.
+2. **Count your running agents.** Keep up to 4 implementers and 2 reviewers running (4 since 19:28 2026-10-10, Tom: "maybe we do another 2 in parrallel"; they land one at a time, so past 4 they queue on the landing lock), and at
    most one agent on any issue. Each pass, fill the free places from step 3; with none free, do
    the triage rows only. (Tom, 2026-10-10: "try to have 1-2 writers and 1-2 reviewers active at
    all times".) What makes that safe: a writer edits and builds in a worktree of its own and
-   lands under `land.lock`; a reviewer tests the notebook of the commit, not the working file.
+   lands under the landing lock; a reviewer tests the notebook of the commit, not the working file.
 3. **List the open issues and take the first that matches**, in this order. Finishing comes
    before starting. Among issues on the same row, one the owner opened or moved goes first, then the oldest.
 
@@ -154,7 +158,7 @@ Two files beside it, neither of them needed to resume:
    (100 on 37 issues, read from the journal's headings) carry `"backfilled":true`.
 6. **Oversight.** Spawn the overseer, beside the others, when either 3 issues have
    reached `done`, `rejected` or `needs-owner` since the last entry of `oversight.md`, or one
-   issue hit the rework cap. One overseer at a time; it commits under `land.lock`.
+   issue hit the rework cap. One overseer at a time; it commits under the landing lock.
 7. **Tell the user** in a few lines: what moved this pass, what is waiting for the owner and
    why, what is running. Nothing moved is one line.
 8. **Watch, then schedule** (only under `/loop`). The tracker wakes you, not the clock (the
@@ -250,7 +254,7 @@ deploy: `start` from `open` with the reason triage would have given, make the ch
 write its record (`tools/cloud-brain/records/<id>.md`, as `agents/implementer.md` step 9 says; a
 change to a doc alone has one too: reviews 642, 645 and 686 each sent a quick win of yours back
 with "no record" among the findings),
-land it under `land.lock`, `submit` with the commit. Any submit of your own, a quick win or work
+land it under the landing lock (`lock.sh take land <who>`, `agents/implementer.md` step 10), `submit` with the commit. Any submit of your own, a quick win or work
 a session did on the owner's word, is sent after the push and after the lock is released: one
 `commit` ref for each commit the landing added, read then with `git log`, and a `deploy` ref
 (`<worker>@<hash>`) for each thing put on cb4; and it has its record first, as above. (Submit 1042

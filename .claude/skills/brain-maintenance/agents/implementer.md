@@ -204,22 +204,40 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
      A change with no deploy (a doc, a local tool, a test file under `tests/`) emits nothing.
      A changed `test_*` cell of a seed is a deploy of that seed's Worker: emit and apply it.
 10. **Land it. One writer lands at a time, in the main checkout.** Note `date` when you take the
-    lock and when you remove it, and put both in your report.
-    - Take the landing lock: `<root>/tools/cloud-brain/lock.sh take land <id>`. Exit 0 is yours;
-      exit 1 names the writer that is landing: wait with a background command
+    lock and when you release it, and put both in your report.
+    - Take the landing lock: `<root>/tools/cloud-brain/lock.sh take land <id>`. Since
+      `lk-3-lock-sh-over-the-cluster` the lock is held in the cluster (a row `brain-x-issues` keeps,
+      for 600 s from the take), so a writer in another checkout or on another machine meets the
+      same one, and nothing is made on this machine for it. Exit 0 is yours.
+      Exit 1 names the writer that is landing and until when: wait with a background command
       (`<root>/tools/cloud-brain/lock.sh take land <id> --wait`, `run_in_background`; a foreground
-      `sleep` is blocked) and carry on when it returns 0. The tool writes your issue's id into the
-      lock (`.emitted/land.lock/holder`) and `lock.sh release land <id>` refuses any other name.
-      Never `mkdir` or `rmdir` the directory yourself, and never put the release after a `;`
-      that follows a take which may have failed: on 2026-10-11 15:25 a session ran `mkdir … && …; rmdir …`
-      on the landing lock, the mkdir failed, and the rmdir removed the lock of a writer that was landing
-      (`records/land-lock-any-session-can-remove.md`). `lock.sh show land` says who holds it.
+      `sleep` is blocked) and carry on when it returns 0.
+      Exit 2: cb4 was not reached, or refused the call. Nothing is landed and nothing is deployed
+      without the lock, and nothing local stands in for it: wait with `--wait`, which also asks
+      again while cb4 is not reached, or stop and report. After a plain take that exited 2 run
+      `lock.sh renew land <id>` before you take again: the call may have arrived, and exit 0 from
+      the renew says the lock is yours (exit 1: it is not, so take).
+      `lock.sh release land <id>` is refused to any other name, and to your name sent with another
+      token. Never put the release after a `;` that follows a take which may have failed
+      (`records/land-lock-any-session-can-remove.md`). `lock.sh show land` says who holds it and
+      until when. A lock is released by its holder or ends at its time; nobody removes another's.
+    - `git -C <root> pull --ff-only`, and `git -C <root>/lopebooks pull --ff-only`: a writer on
+      another machine may have landed. With every writer on one machine it brings nothing in. Git
+      refuses it in two cases and each is a stop (`lock.sh release land <id>`, report, no merge):
+      the checkout's `main` and origin's have each a commit the other has not, or the pull brings
+      in a file that is changed in the checkout (`seen.json`, and the notebook in `lopebooks`,
+      are often changed there).
     - `tools/cloud-brain/worktree.sh --rebase <id>` again: a writer that landed while you waited
       moved `main`. Look at what came in as in step 9. If it changed what your module is built from, what you emitted
       is stale: `lock.sh release land <id>`, build, test and emit again, and come back. Never apply a file
       emitted before such a change; it would deploy the Worker without the other writer's work.
       Anything else: keep the lock and carry on.
-    - `git -C <root> merge --ff-only bm/<id>`. Then the notebook, built from committed seeds: the
+    - `lock.sh renew land <id>`, then `git -C <root> merge --ff-only bm/<id>`. The renew gives
+      600 s from now and says the lock is still yours. Exit 1 is a stop before the checkout is
+      written to: your 600 s ended and another writer has the lock, or has had it. No merge;
+      report. Exit 0 with the line `renewed after it had ended … nobody held it between` is
+      yours: go on. Exit 2: cb4 was not reached; ask again, and do not merge until it answers 0.
+      Then the notebook, built from committed seeds: the
       worktree is at `main`'s commit now, so
       `cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html && cp tools/cloud-brain/.emitted/cloud-brain.html "<root>/lopebooks/notebooks/@tomlarkworthy_cloud-brain.html"`.
       Never `build.ts` in the main checkout: another session may have seeds open there, uncommitted
@@ -229,14 +247,19 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
       If `git -C <root> diff --quiet -- tools/cloud-brain/brain.ts` fails, `brain.ts` there is
       someone's edit: run the worktree's, `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted bun $W/tools/cloud-brain/brain.ts …`.
       The tests are not run again: the seeds are the ones you tested.
-    - Deploy under the deploy lock (inside the landing lock: `lock.sh take cb4 <id>`, and `lock.sh release cb4 <id>` when the apply has answered), with a reason that names the issue:
+    - Deploy under the deploy lock (inside the landing lock: `lock.sh take cb4 <id>`, and `lock.sh release cb4 <id>` when the apply has answered; an exit 1 or 2 from that take is no apply), with a reason that names the issue:
       `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts apply <id>-<worker>.json --reason="<id>: …"`.
       Then `redistil` (the Worker's line reads `same`), `saw <worker>`, and for the tracker
       `curl "/xrpc/com.lopecode.brain.issue.verify?guards=true" --owner` (a read).
     - Commit `lopebooks` first (its hook may rewrite the `.json` beside the notebook; stage that
-      and commit again), then `seen.json` and the `lopebooks` pointer in `lopecode-dev`. Push both.
-    - With no deploy: lock, rebase, `merge --ff-only`, push, unlock. No build, apply or `lopebooks` commit.
+      and commit again), then `seen.json` and the `lopebooks` pointer in `lopecode-dev`.
+      `lock.sh renew land <id>` again, then push both. Exit 1 from this renew: no push; report
+      what is committed in the main checkout and not pushed.
+    - With no deploy: take, pull, rebase, renew, `merge --ff-only`, renew, push, release. No build, apply or `lopebooks` commit.
     - `<root>/tools/cloud-brain/lock.sh release land <id>`. It prints when the lock was taken and when it went.
+      Exit 1 names another holder: your lock ended while you worked and another writer took it.
+      Stop there, push nothing more, and report what was pushed and what was not. Exit 2: cb4 was
+      not reached; run the release again. A lock that is never released ends at its time.
     - After a deploy, with the lock gone and before the worktree goes: `cd $W/cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev && bun test.ts <worker>`.
       Its JSON line is the report of what now runs: `hash` is the hash you deployed, `failed` is 0.
       Put the line's counts in your comment. A `failed` here is a deployed defect: say so on the issue first.

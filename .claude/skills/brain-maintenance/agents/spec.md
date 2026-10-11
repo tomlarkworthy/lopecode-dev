@@ -47,7 +47,7 @@ already used answers `duplicate: true` and moves nothing: after each move read t
    - the tasks, in the order they land, each small enough for one writer and one review;
    - what only the owner can do (a deploy of the kernel, core, database or deployer; a policy
      install; a rule), as one list.
-6. **Land it** under `land.lock` as `agents/implementer.md` step 10 says: the file only.
+6. **Land it** under the landing lock (`lock.sh take land <id>`) as `agents/implementer.md` step 10 says: the file only.
 7. **Submit**: `ia move '{"key":"spec/<id>/submit-<round>","id":"<id>","to":"spec-review","refs":[{"kind":"commit","value":"<sha>"}]}'`,
    with `<round>` 1 the first time. Read the issue again and see `spec-review`.
    Sent back (`spec` again), you answer each finding in the file and submit again with the next round's key.

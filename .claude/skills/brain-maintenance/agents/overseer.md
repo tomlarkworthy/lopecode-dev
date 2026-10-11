@@ -90,9 +90,13 @@ Limits, so a bad round cannot compound:
   commit, each of them only the brief:
   `git commit -m "brain-maintenance: <what changed> (<issue id>, event <seq>: <what happened>)" -- <the file>`. Push.
   Writers land in the same checkout: take the landing lock round each commit and push
-  (`tools/cloud-brain/lock.sh take land overseer`; exit 1 is a writer landing, so wait in the background with
-  `--wait` after it), and `tools/cloud-brain/lock.sh release land overseer` after. Not `mkdir` and `rmdir`:
-  the tool refuses to release a lock another name holds (`land-lock-any-session-can-remove`, event 730).
+  (`LOCK_TOKEN=issues-overseer-1 tools/cloud-brain/lock.sh take land overseer-$(hostname -s)`; exit 1 is a writer
+  landing, so wait in the background with `--wait` after it; exit 2 is cb4 not reached, and no commit), and
+  `LOCK_TOKEN=issues-overseer-1 tools/cloud-brain/lock.sh release land overseer-$(hostname -s)` after.
+  The lock is held in the cluster since `lk-3-lock-sh-over-the-cluster`, for 600 s from the take. `LOCK_TOKEN=issues-overseer-1 `
+  is written before each call and not exported (a shell keeps nothing between two commands): the holder is the name
+  with the token, and a release sent with another token is refused, exit 1, with "held under your name by another token".
+  The name carries the machine, so an overseer on another machine is another holder.
   The reviewer's brief is not in git since 2026-10-11. It is a file of the Brain, and its edit is a put, not a
   commit: `cloud-brain-dev/put.sh --get roles/reviewer.md`, edit `cloud-brain-dev/brain/roles/reviewer.md`, then
   `cloud-brain-dev/put.sh roles/reviewer.md` (token `loop-roles`; the copy before is kept on the Brain under

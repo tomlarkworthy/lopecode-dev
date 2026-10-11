@@ -35,11 +35,14 @@ The other pages are listed in that file, which is read first.
    own tests fail with "invalid redefinition of global identifier", and a record emitted in that tab carries the
    test cells into the deployed Worker's kept source (seen in the deployer, 2026-10-09 23:33).
 4. Deploy under the lock: `tools/cloud-brain/lock.sh take cb4 <who>`, `apply … --reason="why"`,
-   `tools/cloud-brain/lock.sh release cb4 <who>`. The lock is the directory `tools/cloud-brain/.emitted/cb4.lock`
-   with the holder's name in it; `take` exits 1 and names the holder when another agent is deploying (wait), and
-   `release` refuses a name that is not the holder's (since 2026-10-11, `tools/cloud-brain/records/land-lock-any-session-can-remove.md`;
-   before that it was a bare `mkdir` and `rmdir`, and a session removed a lock it had failed to take).
-   Nothing makes `apply` look at it. It is the agreement between agents in this checkout.
+   `tools/cloud-brain/lock.sh release cb4 <who>`. The lock is held in the cluster: a row `brain-x-issues` keeps
+   (`issue.lock`, `issue.locks`), for 600 s from the take, so agents in other checkouts and on other machines meet the
+   same one and nothing is made on this machine (since 2026-10-11, `tools/cloud-brain/records/lk-3-lock-sh-over-the-cluster.md`;
+   before that it was a directory under `.emitted/`). `take` exits 1 and names the holder and until when, when another
+   agent is deploying (wait, or `take … --wait`), and exits 2 when cb4 was not reached or refused the call: no apply then.
+   `release` refuses a name that is not the holder's; `renew` gives the holder 600 s more; `show` says who holds it. A lock
+   past its time is not held, and the next take takes it. The header of `lock.sh` is the reference.
+   Nothing makes `apply` look at it. It is the agreement between agents, on every machine. The landing lock, `land`, is the same tool.
    Since 2026-10-11 07:51 CEST on cb4: every Worker with a version before it goes on probation, the deployer
    runs its tests in the Brain's browser inside the apply (20 to 55 s an apply that morning), and the result's
    state is `verified`, `put-back` (its tests failed; `reason` names them) or `probation` (no verdict).
