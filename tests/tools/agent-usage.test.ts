@@ -32,10 +32,20 @@ test("--last-run counts from the last prompt, and a tool result is not a prompt"
 // Review 1454, finding 1: a Skill call writes a user row of text, which is not a prompt.
 test("a row a tool wrote is not a prompt", () => {
   const skill = JSON.stringify({ type: "user", isMeta: true, sourceToolUseID: "toolu_1", message: { content: [{ type: "text", text: "Base directory for this skill: /x" }] } });
-  const sent = JSON.stringify({ type: "user", isMeta: true, message: { content: "round 2" } });
+  const sent = JSON.stringify({ type: "user", isMeta: true, origin: { kind: "coordinator" }, message: { content: "The coordinator sent a message: round 2" } });
   const t = [prompt("round 1"), asst("m1", u(1, 1, 1, 1)), skill, asst("m2", u(1, 1, 1, 1)), sent, asst("m3", u(7, 7, 7, 7)), skill, asst("m4", u(1, 1, 1, 1))].join("\n");
   expect(usageOf(t, "last")!.requests).toBe(2);
   expect(usageOf(t, 1)!.requests).toBe(2);
+});
+
+// Review 1499: the row of a background task's notification split round 3 of fb-a2vp4smwzq in three.
+test("a background task's notification is not a prompt", () => {
+  const note = JSON.stringify({ type: "user", isMeta: true, origin: { kind: "task-notification" }, message: { content: "[SYSTEM NOTIFICATION - NOT USER INPUT]" } });
+  const sent = JSON.stringify({ type: "user", isMeta: true, origin: { kind: "coordinator" }, message: { content: "round 2" } });
+  const t = [prompt("round 1"), asst("m1", u(1, 1, 1, 1)), note, asst("m2", u(1, 1, 1, 1)), sent, asst("m3", u(2, 2, 2, 2)), note, asst("m4", u(2, 2, 2, 2)), note, asst("m5", u(2, 2, 2, 2))].join("\n");
+  expect(usageOf(t, 1)!.requests).toBe(2);
+  expect(usageOf(t, "last")).toEqual({ input: 6, cacheWrite: 6, cacheRead: 6, output: 6, requests: 3, advisor: zero });
+  expect(usageOf(t, 3)).toBeNull();
 });
 
 // Review 1454, finding 2: the last run is not round N once a later round has been sent.
@@ -71,6 +81,7 @@ test("the transcript of a session and of a subagent are found; the command print
   expect(run().code).toBe(1);
   expect(run(join(p, "S1.jsonl"), "--run", "1").code).toBe(0);
   for (const bad of ["2", "0", "x", "-1"]) expect(run(join(p, "S1.jsonl"), "--run", bad).code).toBe(1);
+  expect(run(join(p, "S1.jsonl"), "--run").code).toBe(1);
   const dir = Bun.spawnSync(["bun", tool, home]);
   expect(dir.exitCode).toBe(1);
   expect(dir.stderr.toString()).toContain("no transcript");

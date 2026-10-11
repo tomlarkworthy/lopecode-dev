@@ -31,7 +31,7 @@ No such figure exists for a subagent to check against; the tool reads its transc
 
 ## What it shows on the eight implementers that were sent a later round
 
-Read 2026-10-11 with `--run N` (round 2 of this issue), every run of each agent. `$` is not Claude Code's
+Read 2026-10-11 with `--run N` (rounds 2 and 3 of this issue), every run of each agent. `$` is not Claude Code's
 figure: it is the four sums and the advisor's two at prices fitted to the six light reviews whose cost Claude
 Code reported (input 3.222 a million, cache write twice that, cache read a tenth, output five times; the
 advisor 10.36 and five times; the worst of the six is off by $0.04).
@@ -54,16 +54,14 @@ ds-2-span-and-refresh-controls     1    42        154,704     5,464,361  33,155 
                                    2    21        186,988     3,588,372  19,389  0        2.67
 verify-run-shell-runs-deployed     1    48        187,626     7,106,727  55,560  2        8.35
                                    2    10        211,956     1,884,936  15,465  0        2.22
-fb-a2vp4smwzq                      1    44        152,023     5,412,227  26,687  1        4.70
-                                   2    11         11,235     1,954,169   7,495  1        2.77
-                                   3    18        193,321     3,196,570  18,885  0        2.58
-                                   4    21        231,988     4,544,160  16,575  0        3.23
-                                   5     6          5,911     1,441,200   5,871  0        0.60
+fb-a2vp4smwzq                      1    55        163,258     7,366,396  34,182  2        7.47
+                                   2    18        193,321     3,196,570  18,885  0        2.58
+                                   3    27        237,899     5,985,360  22,446  0        3.82
 ```
 
 A later run's cache write is about the size of all the agent had read (140,198 where its `tokens` was
-141,921): the resume writes it to the cache again. Two runs did not (11,235 and 5,911), sent soon after the
-one before. The 13 later runs are $0.60 to $3.23, median $2.01; the 8 first runs $1.94 to $8.35, median $4.95.
+141,921): the resume writes it to the cache again. The 11 later runs are $1.33 to $3.82, median $2.01; the
+8 first runs $1.94 to $8.35, median $5.48.
 A first run is the whole change and a later one a rework, so this does not say what a fresh agent's rework
 round is billed: those posted before 2026-10-11 carry no `agent`, and none was read. Six first runs of
 implementers that were never sent a second round were $4.83 to $12.47, median $6.47, of which the advisor's
@@ -71,8 +69,8 @@ calls were about half ($3.21 without them).
 
 ## Tests
 
-`tests/tools/agent-usage.test.ts`, 7 tests, 32 expects: a request on two lines counted once, the advisor kept
-apart, `--last-run`, a row a tool wrote, `--run N`, a broken line, and the command's exits.
+`tests/tools/agent-usage.test.ts`, 8 tests, 36 expects: a request on two lines counted once, the advisor kept
+apart, `--last-run`, a row a tool wrote, a task's notification, `--run N`, a broken line, and the command's exits.
 
 ## Round 2 (review 1454)
 
@@ -84,6 +82,19 @@ apart, `--last-run`, a row a tool wrote, `--run N`, a broken line, and the comma
 3. A directory given as the transcript ended in bun's EISDIR; it is "no transcript", exit 1.
 
 The submit of round 1 said the count of `./tests/tools` was in the record; it was not. It was 229 pass, 0 fail.
+
+## Round 3 (review 1499)
+
+1. The row of a background task's notification (`origin.kind` "task-notification") was taken for a prompt:
+   round 3 of `fb-a2vp4smwzq` read as 6 requests where it has 27, and that agent as five runs where the tracker
+   has three rounds. Round 2 had named one kind of row that is not a prompt; this was a second. The rule is
+   now what a prompt is: a plain row (no `origin`, not `isMeta`, not written by a tool) or one the coordinator
+   sent (`origin.kind` "coordinator"). In the 105 subagent transcripts of session `f501a8e8` the user rows that
+   are no tool result are of four kinds and no other: 105 first prompts, 30 Skill rows, 18 sent by the
+   coordinator, 13 notifications. One test.
+2. The table's rows for that agent and the medians under it were made from the wrong split and are replaced
+   (three runs; 11 later runs, not 13).
+3. `--run` with no value printed the whole file; it is "no run", exit 1.
 
 ## Not done, not tried
 

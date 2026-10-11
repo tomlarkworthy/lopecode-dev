@@ -5,7 +5,8 @@
 // over the requests of the run. A request is one message id; its last usage line is the whole of it. --last-run
 // counts from the last prompt in the file, which for an agent that was sent a second round is that round alone;
 // --run N counts the Nth prompt's run, from 1, up to the next prompt. A prompt is a user row that is no tool
-// result and was not written by a tool (a Skill call writes one, with sourceToolUseID).
+// result and is either plain (no origin, not isMeta, not written by a tool) or sent by the coordinator
+// (origin.kind "coordinator"). A Skill call's row and a background task's notification are neither.
 // The advisor's tokens are another model's and are not in the four sums. Exit 1: no transcript, or no request in it.
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -16,7 +17,8 @@ export function usageOf(text: string, run?: boolean | "last" | number) {
   const rows = text.split("\n").filter(Boolean).flatMap((l) => { try { return [JSON.parse(l)]; } catch { return []; } });
   const prompts: number[] = [];
   rows.forEach((o, i) => {
-    const c = o.type === "user" && !o.sourceToolUseID && o.message?.content;
+    const mine = o.origin ? o.origin.kind === "coordinator" : !o.isMeta && !o.sourceToolUseID;
+    const c = o.type === "user" && mine && o.message?.content;
     if (typeof c === "string" || (Array.isArray(c) && !c.some((x) => x.type === "tool_result"))) prompts.push(i);
   });
   let from = 0, to = rows.length;
@@ -61,7 +63,7 @@ if (import.meta.main) {
   const session = opt("--session"), agent = opt("--agent");
   const file = session ? find(session, agent) : a.find((x, i) => !x.startsWith("--") && !["--session", "--agent", "--run"].includes(a[i - 1]));
   if (!file || !existsSync(file) || !statSync(file).isFile()) { console.error("agent-usage.ts: no transcript" + (session ? " for session " + session + (agent ? " agent " + agent : "") : "; give a file or --session")); process.exit(1); }
-  const n = opt("--run");
+  const n = a.includes("--run") ? opt("--run") ?? "" : undefined;
   const u = usageOf(readFileSync(file, "utf8"), n !== undefined ? (/^[0-9]+$/.test(n) ? Number(n) : NaN) : a.includes("--last-run") ? "last" : undefined);
   if (!u) { console.error("agent-usage.ts: no run " + n + " in " + file); process.exit(1); }
   if (!u.requests) { console.error("agent-usage.ts: no request in " + file); process.exit(1); }
