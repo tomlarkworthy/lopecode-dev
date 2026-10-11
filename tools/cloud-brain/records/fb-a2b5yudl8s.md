@@ -95,6 +95,25 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-page --shell …/.emi
 
 27 is step 7's 13 passed and 14 that need a browser.
 
+### The deploy had no test run of the deployer's
+
+The apply (22:36:37 to 22:36:52 CEST, `lock.sh`) answered `"state":"probation"` for hash
+`d7139dacd483`. The deployer's line of it, read with `logs.deploys?worker=brain-x-page` (`--as loop-deploys`):
+
+```
+deploy.verify.none  brain-x-page  d7139dacd483…  reason: browser.extend answered 402 owner has made 2000
+priced calls today, which is the most for one day. The count is new at 00:00 UTC
+```
+
+So the deployer leased no browser and ran no test, as for `brain-x-issues` five minutes before
+(`records/ow-2-panel-offers-what-it-shows.md`). `brain.ts state` read
+`probation d7139dacd483  until 2026-10-11T20:46:51.408Z`. At 22:37:47 CEST (`date`)
+`brain.ts confirm brain-x-page` answered `{"confirmed":["brain-x-page"]}`, the step
+`knowledge/changing-and-deploying-a-cloud-brain-worker.md` gives for a probation whose reason was
+read. The version stands on the runs under "Counts", all in Chrome 151 on this machine, and on none
+in the cluster's browser. Not taken: letting it be put back, which leaves `main` and the notebook
+ahead of cb4 until a deploy after 00:00 UTC. To undo: `brain.ts rollback`.
+
 ### What was looked at on the page
 
 The build opened from the file in a local headless Chrome (1400 by 900, the layout
