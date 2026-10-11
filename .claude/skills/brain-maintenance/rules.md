@@ -14,9 +14,10 @@ asks for anything in "Never" below is commented on and left for the owner.
 ## Never
 
 - Act as the owner present. Do not call the tracker with `brain.ts curl … --owner` for a write.
-  Writes to the tracker go through `tools/cloud-brain/issue-as.sh <token> …` with your role's
-  token and no other. One exception, under the next line: the `approve` move made for the owner
-  on his word.
+  Writes to the tracker go through `tools/cloud-brain/issue-as.sh <token> …` with the token your
+  prompt names and no other ("Which token"). One exception, under the next line: the `approve` move
+  made for the owner on his word. And one act with his session that is no tracker call: the
+  orchestrating session makes a token that an approved spec names ("A token an approved spec names").
 - Call `issue.install`, `issue.rebuild`, the `approve`, `revert` or `owner-reject` moves, a swap the
   workflow does not list, or remove the label `major`.
   The `approve` move alone may be made for the owner by the orchestrating session with his
@@ -29,8 +30,8 @@ asks for anything in "Never" below is commented on and left for the owner.
   move for you on your word in chat?": "yes!". Issue `approve-made-for-the-owner-on-his-word`;
   the first such move was event 577.)
 - Print, copy or log a secret: the recovery key, the deployer key, a session, a token, the
-  Cloudflare token, an app password. Do not read `.emitted/cb4.json`, `cb4-tokens.json` or `cb4-issues-tokens.json`
-  into your output.
+  Cloudflare token, an app password. Do not read `.emitted/cb4.json`, `cb4-tokens.json`, `cb4-issues-tokens.json`
+  or `cb4-agent-tokens.json` into your output.
 - Run `brain.ts page up`, or open the Brain's own page (`https://cb4…/`) in a browser of the
   cluster, until `deployer-put-back-issues-worker` is closed. That browser is Chrome 128, which
   has no Ed25519: the page runs every Worker's tests on opening, the tracker's fail there, and
@@ -93,14 +94,39 @@ asks for anything in "Never" below is commented on and left for the owner.
 
 ## Which token
 
-| Role | Token name |
-|---|---|
-| Triage and implementing | `issues-implementer-2` |
-| Reviewing | `issues-reviewer-2` |
-| Overseeing | `issues-overseer-1` |
+Since 2026-10-11 each agent and each session has a token of its own for the tracker, so that an
+event's `by.holder` names the one that wrote it
+(`plan/cloud-brain-record-names-token-not-agent.md`, approved by the owner at event 1285; this
+section is its task 3, `ta-3-orchestrator-steps`). The first part of the name is the role.
 
-The policy refuses a review or a `pass` from the actor that started the issue. That is why the
-roles do not share a token.
+| Who | Its token | Made by |
+|---|---|---|
+| An orchestrating session | `orch-` and six hex digits | itself, when it starts |
+| A writer (triage is the orchestrating session's) | `impl-…` | the orchestrating session, before the spawn |
+| A reviewer | `rev-…` | the same |
+| A spec writer, a digest writer, an overseer | `spec-…`, `dig-…`, `over-…` | the same |
+| A session outside the loop | `out-…` | itself, before its first write to the tracker |
+
+Each is made with `brain.ts agent-token <role> [what for]`, as a child of the token `loop-agents`,
+for `issue.*`, for 48 hours, and ended with `brain.ts agent-token revoke NAME`.
+
+- You write to the tracker with the token your prompt names and with no other. An agent the
+  orchestrating session spawned does not make itself a token, and nobody calls the tracker with
+  `loop-agents` itself.
+- The policy refuses a review or a `pass` from the actor that started the issue, and lets only
+  that actor submit. An actor is one token, so it is now one agent: a writer whose issue another
+  token started does not submit it. The orchestrating session makes `back`, and the writer makes
+  `start` (`SKILL.md`, step 3).
+- The role in a name is what its maker typed. The policy does not read it, and nothing on cb4
+  keeps an agent from the file the tokens are in: what this gives is a record that names the
+  agent, not a wall between agents (the spec, "What is not checked").
+- Until that day three tokens, one a role, wrote the record: `issues-implementer-2` (triage and
+  implementing), `issues-reviewer-2` (reviewing) and `issues-overseer-1` (overseeing). They are
+  kept until the owner revokes them, which the spec puts after the first check of
+  `ta-6-checks-after-three-issues`; until then a brief names one for an agent whose prompt names
+  no token, and for nothing else. From his revoke each is refused, and an issue then `in-progress`
+  or at `spec` that was started with one is started by a token no agent holds: it needs the
+  orchestrating session's `back` and a new `start` or `spec` before anyone can submit it.
 
 ## Searching what the Brain knows
 
@@ -116,7 +142,50 @@ on the owner's word of that day.
 ("we hook reads to file names to the cluster, so that becomes the source of truth"; "ok please get that
 into production"). It is used through `cloud-brain-dev/put.sh` and for nothing else, and only under
 `cloud-brain-dev/` and `cloud-brain-dev-history/` of the file store: the token itself is not held to those
-paths, so this is an agreement. The overseer changes a brief with it; no other role does.
+paths, so this is an agreement. The overseer changes a brief with it. So does a writer whose issue
+is a task of a spec the owner approved (Tom, 2026-10-11, event 1406 of
+`ta-4-reviewer-brief-names-token`: "A, narrowed to "a writer may put a brief when its issue is a
+task of a spec you approved""). No other role does.
+
+## A token an approved spec names
+
+On 2026-10-11 the loop had put four tokens to the owner as `needs-owner`, each named with its
+methods under "What only the owner can do" of a spec he had approved. He made one and said of the
+rest, in the session: "I did not do the others, can you jsut do it", and then: "Why do I need to
+even do it? It seems like common sense to issue scoped tokens that follow a spec." (Comment 1961
+of `ta-3-orchestrator-steps` has both.) What follows is the orchestrating session's reading.
+
+A token that an approved spec names, with the methods that spec gives and no more, is made by the
+orchestrating session with the owner's session, from the main checkout, when the task that needs
+it is next: `brain.ts token NAME METHODS`. The command and the spec's line are quoted in a comment
+on that task. The token is never printed or read. It is not put to the owner as `needs-owner`: his
+approval of the spec is his word for it. A spec writer lists such a token under what the
+orchestrator makes, not under "What only the owner can do".
+
+Still the owner's alone: a token no approved spec names, a scope wider than the spec's, and every
+other act with his session but the `approve` move. No other agent of the loop makes a token of
+this kind.
+
+The four of that day, each kept in `.emitted/cb4-tokens.json` and not printed:
+
+- `loop-agents` names `issue.*` and has the cap `delegate`: it makes the tokens of "Which token"
+  and ends them, through `brain.ts agent-token`, and is used for nothing else. No call to the
+  tracker is made with it. Spec: `plan/cloud-brain-record-names-token-not-agent.md`. Made by the
+  orchestrating session (comment 1954 of `ta-1b-agent-token-on-cb4`).
+- `loop-docs` names `knowledge.put` and `knowledge.list`. It is used through
+  `tools/cloud-brain/knowledge-docs.ts`, which the release of the landing lock runs, and for
+  nothing else, and only for entries of kind `doc`: the token itself is not held to that kind, so
+  this is an agreement. Spec: `plan/cloud-brain-brain-docs-entered-by-hand.md`, whose words these
+  are. Made by the orchestrating session (comment 1952 of `bd-3-first-run-of-the-docs-step`).
+- `loop-papers` names `knowledge.put`, `knowledge.search` and `static.get`. It is held by
+  `tools/cloud-brain/summarize-papers.ts` and never by a summarizer. `static.get` by a token reads
+  every file of the store; the tool reads only the `file` of a paper's entry, so that too is an
+  agreement. Spec: `plan/cloud-brain-paper-summarizer-persona.md`. Made by the orchestrating
+  session (comment 1953 of `ps-3-pilot-ten`).
+- `loop-dashboard` names `metric.query`, `metric.list` and `dashboard.*`. It is what the checks of
+  the dashboard tasks call with (`--as loop-dashboard`). Spec:
+  `plan/cloud-brain-dashboard-service.md`. Made by the owner himself (comment 1946 of
+  `dsv-7-second-dashboard-as-data`).
 
 ## Publishing a notebook
 

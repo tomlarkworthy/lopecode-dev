@@ -3,8 +3,11 @@
 You look at how the issue loop did its recent work and make the next round go better. You fix
 no issue yourself. Read `.claude/skills/brain-maintenance/rules.md` first; it overrides this file.
 
-Your token is `issues-overseer-1`. Shorthand: `io` is
-`tools/cloud-brain/issue-as.sh issues-overseer-1`.
+Your token is the one your prompt names, `over-` and six hex digits (`issues-overseer-1` when it
+names none). `<token>` below is that name, written out in each command, with no variable for it.
+Shorthand: `io` is `tools/cloud-brain/issue-as.sh <token>`. A name the tool does not keep is exit 2
+with nothing sent: write nothing with another token, and say so in your report. You do not run
+`brain.ts agent-token`.
 
 Your prompt gives the sequence number the last oversight ended at, and the path of the journal.
 
@@ -28,7 +31,7 @@ want of a decision.
 
 ## Measure first
 
-Run `bun <root>/tools/cloud-brain/issue-stats.ts --token=issues-overseer-1` from the main checkout
+Run `bun <root>/tools/cloud-brain/issue-stats.ts --token=<token>` from the main checkout
 before anything else, and put four of its lines in your entry of `oversight.md`: `time in a state`
 for `open` and `ready`, `done`, `review`, `needs-owner`. They are what the last entry's edits are
 judged by: an edit that was meant to cut rework and did not is said so, with both numbers. The tool
@@ -49,7 +52,7 @@ solution"). Read every open one, each oversight, with the events, and the open t
 beside them. Then say what you found in the record, with `issue.link`:
 
 ```
-io() { <root>/tools/cloud-brain/issue-as.sh issues-overseer-1 "$@"; }
+io() { <root>/tools/cloud-brain/issue-as.sh <token> "$@"; }
 io link '{"key":"over/<a>/dup","id":"<a>","to":"<b>","rel":"duplicate"}'     a is the same report as b
 io link '{"key":"over/<a>/cause","id":"<a>","to":"<b>","rel":"cause"}'       b is why a happens
 ```
@@ -85,15 +88,18 @@ Each thing you find gets exactly one of these.
 Limits, so a bad round cannot compound:
 
 - At most 3 issues filed and 2 edits to briefs in one oversight. Take the ones with the most
-  evidence; list the rest in your report.
+  evidence; list the rest in your report. The 3 are counted from your own token: the `opened`
+  events of `io "sync?after=<seq>"` whose `by.holder` is `secret:<token>`. An issue another
+  overseer or a session outside the loop filed is not among them, as it was while all wrote
+  with one token (at event 1156, 2 of the 32 issues the overseer's token had opened were a session's outside the loop: the spec, "What exists today").
 - An edit needs evidence from at least one issue, quoted in the commit message. One edit, one
   commit, each of them only the brief:
   `git commit -m "brain-maintenance: <what changed> (<issue id>, event <seq>: <what happened>)" -- <the file>`. Push.
   Writers land in the same checkout: take the landing lock round each commit and push
-  (`LOCK_TOKEN=issues-overseer-1 tools/cloud-brain/lock.sh take land overseer-$(hostname -s)`; exit 1 is a writer
+  (`LOCK_TOKEN=<token> tools/cloud-brain/lock.sh take land overseer-$(hostname -s)`; exit 1 is a writer
   landing, so wait in the background with `--wait` after it; exit 2 is cb4 not reached, and no commit), and
-  `LOCK_TOKEN=issues-overseer-1 tools/cloud-brain/lock.sh release land overseer-$(hostname -s)` after.
-  The lock is held in the cluster since `lk-3-lock-sh-over-the-cluster`, for 600 s from the take. `LOCK_TOKEN=issues-overseer-1 `
+  `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh release land overseer-$(hostname -s)` after.
+  The lock is held in the cluster since `lk-3-lock-sh-over-the-cluster`, for 600 s from the take. `LOCK_TOKEN=<token> `
   is written before each call and not exported (a shell keeps nothing between two commands): the holder is the name
   with the token, and a release sent with another token is refused, exit 1, with "held under your name by another token".
   The name carries the machine, so an overseer on another machine is another holder.

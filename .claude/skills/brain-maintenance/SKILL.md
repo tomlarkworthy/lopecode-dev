@@ -1,6 +1,6 @@
 ---
 name: brain-maintenance
-description: Use when the user asks to "work the tracker", "run the issue loop", "/brain-maintenance", "/loop /brain-maintenance", or wants the issues of the Cloud Brain tracker on cb4 triaged, fixed, reviewed and closed without being asked for each one. Polls the tracker, keeps up to four implementers (each in its own git worktree) and two reviewers running, and after every few issues spawns an overseer that files cluster issues or edits the role briefs.
+description: Use when the user asks to "work the tracker", "run the issue loop", "/brain-maintenance", "/loop /brain-maintenance", or wants the issues of the Cloud Brain tracker on cb4 triaged, fixed, reviewed and closed without being asked for each one. Polls the tracker, keeps up to eight implementers (each in its own git worktree) and four reviewers running, each with a tracker token of its own, and after every few issues spawns an overseer that files cluster issues or edits the role briefs.
 version: 0.1.0
 ---
 
@@ -36,8 +36,8 @@ There is no state file. What is true is in the tracker:
 
 | Question | Where |
 |---|---|
-| What is there to do | `issue-as.sh issues-implementer-2 "list"`, the issues not `done`, `rejected`, `closed` or `reverted` |
-| Who has an issue | `issue.by.start` in `get?id=` |
+| What is there to do | `issue-as.sh <your token> "list"` ("A token for each agent", below), the issues not `done`, `rejected`, `closed` or `reverted` |
+| Who has an issue | `issue.by.start` in `get?id=`, and the `by.holder` of its last `start` event: `secret:` and the starter's token |
 | What a reviewer found | the `reviewed` events of the issue |
 | How many times it bounced | the `moved` events with `move: "rework"` |
 | Where oversight got to | the last heading of `oversight.md` |
@@ -49,6 +49,54 @@ Two files beside it, neither of them needed to resume:
   report whole. The overseer reads it. An overseer's own report goes in `_oversight.md` there.
 - `oversight.md` in this directory: one entry per oversight, written by the overseer.
 
+## A token for each agent
+
+Since 2026-10-11 (`ta-3-orchestrator-steps`, task 3 of `plan/cloud-brain-record-names-token-not-agent.md`,
+which the owner approved at event 1285) each agent and each session writes to the tracker with a
+token of its own. An event's `by.holder` then names the one agent that wrote it, and the first part
+of the name is its role. Before it three tokens, one a role, wrote 1047 of the first 1158 events, and
+you, every writer and every spec writer were one actor (the spec, "What exists today").
+
+Each token is a child of the token `loop-agents`, for `issue.*`, for 48 hours. The three commands
+are run from the main checkout, and none prints a token's value:
+
+```
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token <role> <what for>   # stdout is the name alone, <role>-<6 hex>
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token list                # a JSON line a live child: name, note, made, until, kept
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # prints `401: …` and exits 0 when the name is refused from then
+```
+
+- **Yours.** Before the first tracker call of a session: `agent-token orch "$CLAUDE_CODE_SESSION_ID"`.
+  The name it prints, `orch-` and six hex digits, is `<your token>` wherever this file says so: every
+  `issue-as.sh` of yours, the `--token=` of `issue-stats.ts`, the first argument of `issue-watch.sh`,
+  and `LOCK_TOKEN=` before every `lock.sh`. Write it out in each command: no shell state lasts
+  between calls. After a compaction `agent-token list` has it, in the line whose `note` is
+  `orch; <your session id>`. It ends 48 hours after it was made; a call with it is then refused, and
+  you make another.
+- **An agent's.** Before each spawn (step 4): `agent-token <role> <issue id>`, with the role `impl`
+  for a writer, `rev` for a reviewer, `spec` for a spec writer, `dig` for a digest writer and `over`
+  for an overseer, whose second argument is `oversight-after-<seq>`. The name goes in the agent's
+  prompt, and in the `token` field of its `cost` line (step 5). A round sent to an agent by message
+  makes no token: the agent has the one of its first round.
+- **Ended** by you, `agent-token revoke <name>`, when you write the run's `cost` comment. Not then
+  for a writer's or a digest writer's run whose outcome is `in-review`, nor for a spec writer's that
+  ended at `spec-review`: only the starter submits, and it may be sent a rework round. That token is
+  ended when the issue leaves `in-review` for good (a `pass`, `to-approval`, a reject), a spec writer's when
+  the project is `approved`, since the owner's `send-back` from `awaiting-approval` puts a project at
+  `spec` again. One that is forgotten ends at its 48 hours. After a revoke `issue-as.sh <name>` is
+  exit 2 here and sends nothing, and cb4 answers the value 401.
+- **No agent makes itself a token**, and none calls with `loop-agents`. Nothing on cb4 refuses
+  either: the parent is in a file every agent's shell reads (the spec, "What is not checked"). What
+  shows it afterwards is a name that wrote an event and is the `token` of no `cost` line, so a `cost`
+  line you write without its `token` hides it. A session outside the loop makes its own, `out-…`.
+- **The three tokens of a role** (`issues-implementer-2`, `issues-reviewer-2`, `issues-overseer-1`)
+  are kept until the owner revokes them, which the spec puts after the first check of
+  `ta-6-checks-after-three-issues`. A brief names one only for an agent whose prompt names no token.
+  At his revoke an issue then `in-progress`, or a project at `spec`, whose `start` or `spec` was made
+  with one of them is started by a token no agent holds, and nobody can submit it: you make `back`,
+  and a writer makes the second `start` or `spec` with its own (step 3, the row of a starter that
+  cannot go on). Review 1273 of the spec has it under "For whoever builds it".
+
 ## One pass
 
 1. **Health.** `brain.ts redistil` shows every Worker `same`; `brain.ts state` shows each `brain-x-*` Worker at the hash `tools/cloud-brain/seen.json` holds for it (`redistil` cannot show a put-back: the kept source goes back with the Worker, so it read `same` through the one of 19:32 on 2026-10-10); `lease.get` is held or the page is
@@ -56,12 +104,21 @@ Two files beside it, neither of them needed to resume:
    the issue for it and do nothing else this pass. Since `lk-3-lock-sh-over-the-cluster` both locks are held in the cluster, for 600 s from the take or the last renew.
    A lock past its time is not held: `show` exits 1 and says whose lock ended and when, and the next take takes it. That holder died or overran:
    look at its issue (step 3). Nothing is the owner's to remove. A commit of your own in the main checkout is made between
-   `tools/cloud-brain/lock.sh take land orchestrator-$(hostname -s)` and `lock.sh release land orchestrator-$(hostname -s)`.
-   The name carries the machine, so an orchestrator on another machine is another holder. Two sessions under one role name on one machine are not
+   `LOCK_TOKEN=<your token> tools/cloud-brain/lock.sh take land orchestrator-$(hostname -s)` and `LOCK_TOKEN=<your token> tools/cloud-brain/lock.sh release land orchestrator-$(hostname -s)`.
+   Every `lock.sh` of yours has `LOCK_TOKEN=<your token> ` before it, `show` among them: with none the call is made with a role's token (`lock.sh`, line 52),
+   and the holder of a lock is the name with the token of the call.
+   The name carries the machine, so an orchestrator on another machine is another holder. It is that name and no other: on 2026-10-11 `land` was held as
+   `orch2-adv` and as `i1842`, which `lock.sh show` and the history trace to no issue and no role (`seen-land-held-under-other-names`).
+   Two sessions under one role name on one machine are not
    told apart: the first's take refuses the second's, but a `renew` by either is answered as the holder's, and so is the renew `take --wait` sends
-   after an attempt of its own that got no answer. One orchestrator and one overseer a machine.
-2. **Count your running agents.** Keep up to 4 implementers and 2 reviewers running (4 since 19:28 2026-10-10, Tom: "maybe we do another 2 in parrallel"; they land one at a time, so past 4 they queue on the landing lock), and at
-   most one agent on any issue. Each pass, fill the free places from step 3; with none free, do
+   after an attempt of its own that got no answer. One orchestrator and one overseer a machine. (That was written when both called with one token.
+   With a token each, a renew or a release under the other's token is refused in `tests/tools/lock.test.ts`, against a stand-in; not tried on cb4.)
+2. **Count your running agents.** Keep up to 8 implementers and 4 reviewers running (Tom, 2026-10-11, in the session: "can we increase the parrallism twofold?"; it was 4 and 2 since 19:28 2026-10-10, Tom: "maybe we do another 2 in parrallel"), and at
+   most one agent on any issue. They land one at a time, so they queue on the landing lock. Seen of that queue on 2026-10-11, after his word:
+   the cluster has kept the lock's history since 20:37 CEST that day, and in the 44 minutes from then to 21:22 `land` was taken 25 times (the holds numbered 1 to 25 of `issue.locks?history=200`) and held 731 s in all,
+   2.5 to 141 s a hold; 9 of the 24 takes after the first came less than 20 s after the release before, and 20 s is how often `take --wait` asks.
+   The history has the holds, not who waited or for how long, and how many writers ran in those minutes was not counted
+   (`tools/cloud-brain/records/ta-3-orchestrator-steps.md` has the command). Each pass, fill the free places from step 3; with none free, do
    the triage rows only. (Tom, 2026-10-10: "try to have 1-2 writers and 1-2 reviewers active at
    all times".) What makes that safe: a writer edits and builds in a worktree of its own and
    lands under the landing lock; a reviewer tests the notebook of the commit, not the working file.
@@ -74,36 +131,45 @@ Two files beside it, neither of them needed to resume:
    | at `awaiting-approval` | Nothing, unless the owner has said in this session that he approves that issue, after its passing review was shown to him: then you make the `approve` move for him (`rules.md`, Never, the `approve` line). |
    | labeled `needs-owner` | Read it again each pass: the events since the label was put on, and what the owner has said in this session. When he has answered (a comment of his on the issue, or his word to you, which you quote in a comment first), or `philosophy.md` now answers it (say what changed), comment with the event that put the label on and what ended its reason, take the label off (`rules.md`, Never, the `needs-owner` line), and take the issue again from this table. Otherwise nothing: it is the owner's, and it is named in step 7. |
    | `in-review`, and no review since it came into that state | Spawn the reviewer. |
-   | `in-progress`, started by the implementer token, no agent running | Resume or spawn the implementer: it was sent back ("A rework round goes to the agent that wrote the change", below), or an agent died (spawn). Do not, and instead comment with the open findings and label `needs-owner`, when the last implementer you spawned for it finished without a new `submit`, or when it has 3 `rework` moves and the rounds are not getting anywhere. At 3 you judge (Tom, 2026-10-10: "make a judgment call when the 3 retries is hit, has genuine progress been made?"): go on when each review closed what the one before found and the new findings are narrower; stop when a finding came back, or the rounds are trading one defect for another of the same size. Write the judgment and its reason in the journal and as a comment on the issue. |
+   | `in-progress`, started by a writer or a digest writer (the `by.holder` of its last `start` event is `secret:impl-…` or `secret:dig-…`, or a role's token, for a start made before each agent had its own), sent back, no agent running | Send the round to the agent that started it ("A rework round goes to the agent that wrote the change", below): its token is still kept, and only the starter submits (`caller.actor == issue.by.start`). When it cannot be sent one, the next row. Do not, and instead comment with the open findings and label `needs-owner`, when the last implementer you spawned for it finished without a new `submit`, or when it has 3 `rework` moves and the rounds are not getting anywhere. At 3 you judge (Tom, 2026-10-10: "make a judgment call when the 3 retries is hit, has genuine progress been made?"): go on when each review closed what the one before found and the new findings are narrower; stop when a finding came back, or the rounds are trading one defect for another of the same size. Write the judgment and its reason in the journal and as a comment on the issue. |
+   | `in-progress`, no agent running, and its starter cannot go on: the writer died or cannot be sent a message, its token has ended (`agent-token list` has no line for it), or the `start` was made with a role's token and its writer cannot be sent one (after the owner's revoke of those: every such issue) | **A dead writer.** You end its token (`agent-token revoke <name>`; a role's token is the owner's to end), then you make `back` to `ready` with the reason. The issue is then `ready`: the writer you spawn makes the second `start` with its own token, which replaces `issue.by.start`, and it alone submits. Two more moves. A submit by any token but the last starter's is refused 403. |
+   | `in-progress`, started by you (`secret:orch-…`: a quick win, or work on the owner's word), sent back | **A quick win of your own, sent back.** Do the round yourself and submit: no more moves. Or hand it over: you make `back`, the writer you spawn makes `start` and then submits. Two more moves. Your own token is not ended, so after the `back` the policy no longer refuses you a review of that issue: "You review nothing yourself" is what holds. (Submits 622, 935 and 1002 were a writer's on an issue you had started; each answered 200 because both were one token.) |
+   | `in-progress`, the change is landed, and its writer finished with no `submit` | **A submit made for a writer.** Ask the writer to submit, by message, when it can be sent one. Else you end its token, make `back`, make `start` with your own token, and submit with the refs: the starter is then you, and the review is a reviewer's. Two more moves. (Submit 516 was yours for a writer's start.) |
    | labeled `digest`, opened by `worker:brain-x-snapshot` (`opener` in `get?id=`), at `open` | When several are open, the newest is the one written: `reject` each older one with the reason `covered by digest-<newest day>`, and comment on the newest with the days it covers. Then `triage` and `ready` it, the reason "the day's digest, opened by the snapshot's run"; the three questions of Triage are not asked. |
    | labeled `digest`, at `ready` | Spawn the digest writer (role `digest`). |
    | kind `project` or `feature`, at `spec-review`, no review since it came there | Spawn the reviewer; it follows "A spec" in its brief. |
-   | kind `project` or `feature`, at `spec`, no agent running | Spawn the spec writer (role `spec`): it was sent back, or an agent died. |
-   | kind `project` or `feature`, at `approved` | Open each task the spec lists, with `parent` the project, and move it to `building` (`decompose`). Close each gathered report that is still open with the reason `in the spec of <id>`. |
+   | kind `project` or `feature`, at `spec`, no agent running | **A spec sent back.** Send the round to the spec writer by message, as a writer of a task is sent one (the `agent` and `session` of its last `cost` line; `agents/spec.md`, "A resumed round"). When it cannot be sent one, or it died: you end its token and make `back` from `spec` to `open`; the spec writer you spawn makes `spec` with its own token (key `spec/<id>/spec-<round>`), which replaces `issue.by.spec`, and then `submit-spec`. Two more moves. |
+   | kind `project` or `feature`, at `approved` | Open each task the spec lists, with `parent` the project, and move it to `building` (`decompose`). A task has the labels the spec gives it: `major` on each task of a spec that says its tasks are (bd-2 and bd-3 were opened with none from a spec approved as `major`, and a reviewer's `pass` of bd-2 would have gone to `done` with no approval; `seen-bd-2-opened-without-major`). Close each gathered report that is still open with the reason `in the spec of <id>`. |
    | kind `project` or `feature`, at `building`, no open part | Move it to `done` (`finish`). |
    | kind `project` or `feature`, at `open`, with three parts or more, or opened by the owner | Spawn the spec writer (role `spec`). With fewer it is still gathering: nothing. |
    | `ready` | Spawn the implementer. |
    | `triaged`, no open children | Move to `ready`. |
    | `open`, kind `task` or `bug` | Triage it yourself (below), or take it as a quick win. |
    | `open`, kind `feedback` | Nothing, unless it is the owner's and asks for a change: then `promote` it. Feedback is filed by agents for anything that seems off against `philosophy.md` (Tom, 2026-10-11: "only feedback so we can identify patterns and check before writing a solution"), and the overseer reads it together. It is not counted as work waiting. |
-   | Anything else: `in-review` with a review and no move after it, `in-progress` started by another actor | Comment with what you see, label `needs-owner`, and say so in step 7. |
+   | Anything else: `in-review` with a review and no move after it, a state or a starter no row above names | Comment with what you see, label `needs-owner`, and say so in step 7. |
 
-4. **Spawn** with the `Agent` tool: `subagent_type: general-purpose`, `model: opus`, never
+4. **Spawn.** First make the agent's token, from the main checkout ("A token for each agent"):
+   `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token <impl|spec|dig|over|rev> <id>`. Its stdout is the name.
+   On exit 1 what it printed is not a name: no agent is spawned, and it is said in step 7.
+   Then the `Agent` tool: `subagent_type: general-purpose`, `model: opus`, never
    `fork`, and this prompt with nothing added. An agent that knows what you expect confirms it.
    ```
    Working directory: <absolute repo root>.
    Read <root>/.claude/skills/brain-maintenance/agents/<role>.md and follow it.
    Issue: <id>
+   Your token is <name>.
    ```
-   For the overseer the last line is `Last oversight ended at event <seq>. Journal: <root>/tools/cloud-brain/.emitted/issue-loop/`.
+   For the overseer the third line is `Last oversight ended at event <seq>. Journal: <root>/tools/cloud-brain/.emitted/issue-loop/`,
+   and the token's line follows it.
 
    **The reviewer is not an Agent call** (the owner, 2026-10-11: "the skill spawns a super light claude with a
    generic opening. role: reviewer task: ....", and of what was built for it: "ok please get that into production").
    It is a process of its own, started with Bash, `run_in_background: true`, `timeout: 3600000`:
    ```
-   <root>/cloud-brain-dev/agent.sh reviewer "review issue <id>"
+   <root>/cloud-brain-dev/agent.sh reviewer "review issue <id>; your token is <name>"
    ```
-   with nothing added to the task. It has Bash, Read, Grep and Glob, no advisor (the owner, 2026-10-11:
+   with `<name>` the `rev-` token you made for it, and nothing else added to the task. Its brief reads the name from that line
+   (`tests/tools/reviewer-brief-names-token.test.ts`). It has Bash, Read, Grep and Glob, no advisor (the owner, 2026-10-11:
    "ok lets disable the advisor for review"; `agent.sh` sees to it), and its brief is on
    the Brain (`cloud-brain-dev/README.md`, "A light agent for one role").
    Put `TAB=1 ` before the command, which adds the notebook tab tools, in three cases only (the owner,
@@ -118,7 +184,7 @@ Two files beside it, neither of them needed to resume:
    that waited for the landing lock read as having stopped at "Still held"). In the `cost` comment
    `tokens` is `context`, `seconds` is `ms` over 1000, and the line has three more fields, `"usd"`, `"session"`
    (the `session` of that JSON, not yours) and `"light":true`; `tools` is left out. It is never sent
-   `--resume`. When the command prints no JSON line, or exits 1 (the result was an error) or 2, spawn the reviewer once as an Agent, as above:
+   `--resume`. When the command prints no JSON line, or exits 1 (the result was an error) or 2, spawn the reviewer once as an Agent, as above, with the same token in its prompt:
    the file `agents/reviewer.md` says where the brief is. Say so in the journal and in step 7.
    Measured before the switch: 25,212 after it had read its brief, the rules and `philosophy.md`, where an
    Agent told to answer "OK" is 40,842; one review replayed at 69,440 against 100,725 (the README has both,
@@ -130,20 +196,22 @@ Two files beside it, neither of them needed to resume:
    tracker says what happened, not the report: an implementer that says "submitted" with the
    issue still `in-progress` did not submit.
    Then put what the run cost on the issue, so that cost per issue is read from the tracker and
-   not parsed from the journal (the owner, 2026-10-11): one comment, with the token you triage
-   with, whose body is the word `cost` and one line of JSON,
-   `cost {"role":"implementer","round":1,"tokens":177525,"seconds":723,"tools":37,"outcome":"in-review","event":205,"agent":"af49053b540d9c3f5","session":"f501a8e8-b922-4e11-a581-2b725efd6272"}`,
+   not parsed from the journal (the owner, 2026-10-11): one comment, with your own token
+   (`orch-…`), whose body is the word `cost` and one line of JSON,
+   `cost {"role":"implementer","round":1,"tokens":177525,"seconds":723,"tools":37,"outcome":"in-review","event":205,"agent":"af49053b540d9c3f5","session":"f501a8e8-b922-4e11-a581-2b725efd6272","token":"impl-3fa2c1"}`,
    under the key `cost-<id>-<role>-<round>`, which a second post of the same run does not repeat.
    `role` is `implementer`, `reviewer`, `spec-writer`, `digest`, `overseer` or `triage`; `round`
    counts the runs of that role on that issue from 1; `tokens`, `seconds` and `tools` are the
    Agent result's numbers as integers, a missing one left out and none estimated; `outcome` is
    `in-review`, `pass`, `changes`, `stopped` or `no-submit`; `event` is the submit or the review
-   the run made, when it made one. An implementer's line also has `agent`, the `agentId` of the
+   the run made, when it made one. `token` is the name of the token the agent wrote with, the one you made for it and put in its
+   prompt; a run that had none (a prompt from before this field, a triage of your own) leaves it out. It is what joins a
+   `by.holder` of the record to a transcript. An implementer's line also has `agent`, the `agentId` of the
    Agent result as it is written there, and `session`, the output of `echo $CLAUDE_CODE_SESSION_ID`
    in your Bash: the two say where the agent can be sent its next round (below, "A rework round
    goes to the agent that wrote the change"). A round that was sent to an agent and not spawned
    has `"resumed":true` and the same `agent`:
-   `cost {"role":"implementer","round":2,"resumed":true,"tokens":201310,"seconds":410,"tools":19,"outcome":"in-review","event":231,"agent":"af49053b540d9c3f5","session":"f501a8e8-b922-4e11-a581-2b725efd6272"}`.
+   `cost {"role":"implementer","round":2,"resumed":true,"tokens":201310,"seconds":410,"tools":19,"outcome":"in-review","event":231,"agent":"af49053b540d9c3f5","session":"f501a8e8-b922-4e11-a581-2b725efd6272","token":"impl-3fa2c1"}`.
    Its numbers are the ones the resumed run reported, as they are; what `tokens` counts there is
    said in that section.
    Every line also has `usage`, what the run was billed (the owner, 2026-10-11: "yes lets post  billed tokens
@@ -157,11 +225,12 @@ Two files beside it, neither of them needed to resume:
    `usage` out. A comment from before 2026-10-11 has its `usage` in a second comment, `cost-usage {"of":<its seq>,…}`
    (`tools/cloud-brain/records/cost-comment-has-billed-usage.md`, "The backfill"). `tokens` stays: it is the size of the last request, which says how full the agent was, not what
    it was billed. A run that was stopped or died gets its comment too. No time
-   of day goes in the body. An overseer's run is on no issue: its line goes in `_oversight.md` in
+   of day goes in the body. With the comment written, end the run's token unless it is one of those kept for a rework round
+   ("A token for each agent", Ended); and when the issue has just left `in-review` for good, end its writer's. An overseer's run is on no issue: its line goes in `_oversight.md` in
    the same form, and yours for the pass, with the role `orchestrator`, in `_orchestrator.md`
    when the session shows a count. The journal is written as before. The runs before this
    (100 on 37 issues, read from the journal's headings) carry `"backfilled":true`.
-6. **Oversight.** Spawn the overseer, beside the others, when either 3 issues have
+6. **Oversight.** Spawn the overseer (its token: `agent-token over oversight-after-<seq>`), beside the others, when either 3 issues have
    reached `done`, `rejected` or `needs-owner` since the last entry of `oversight.md`, or one
    issue hit the rework cap. One overseer at a time; it commits under the landing lock.
 7. **Tell the user** in a few lines: what moved this pass, what is waiting for the owner and
@@ -170,8 +239,9 @@ Two files beside it, neither of them needed to resume:
    owner, 2026-10-11: "The self pacing mechanism is quite slow, I think you need a background
    tasks notifying you of new issues as they come in"). Keep one `Monitor` armed, `timeout_ms`
    1800000, with the command
-   `tools/cloud-brain/issue-watch.sh issues-implementer-2 <the last seq you have read>`.
-   It reads `sync?after=` every 30 s and prints a line for each issue another caller opened and
+   `tools/cloud-brain/issue-watch.sh <your token> <the last seq you have read>`.
+   It reads `sync?after=` every 30 s and prints a line for each issue another caller opened (any holder but the one token it is given:
+   with a token an agent, an issue a writer or an overseer of yours opens is such a line too, where it printed nothing when all wrote with one) and
    for each event made with the owner's session (a comment, a label, a move, an approval in the
    panel). A line is a wake: read that issue and take it from the table of step 3, without a
    whole pass. An agent's own writes print nothing; its report wakes you as before. The monitor
@@ -193,8 +263,10 @@ was round 3 of `annotations-file-feedback` the same day (cost comment 1003); its
 For an issue at `in-progress` whose last move is `rework`, with no agent running:
 
 1. Read its last comment whose body starts `cost {"role":"implementer"`.
-2. When that line has an `agent`, and its `session` is the output of `echo $CLAUDE_CODE_SESSION_ID`
-   in your Bash, send the round to that agent: `SendMessage` (load it with `ToolSearch`,
+2. When that line has an `agent`, its `session` is the output of `echo $CLAUDE_CODE_SESSION_ID`
+   in your Bash, and the agent's token is live, send the round to that agent (live: the line's `token` is a
+   `name` of `agent-token list`; a line with no `token` is of a writer that wrote with a role's
+   token, which is live until the owner's revoke): `SendMessage` (load it with `ToolSearch`,
    `select:SendMessage`) with `to` the `agent` value and this message, with nothing added:
    ```
    Issue: <id>, sent back by the review at event <seq of the `reviewed` event>.
@@ -202,10 +274,13 @@ For an issue at `in-progress` whose last move is `rework`, with no agent running
    ```
    The answer to a send that was taken is `{"success":true,"message":"Resuming agent …"}`. The
    agent runs in the background and reports as a spawned one does; step 5 is the same, with
-   `"resumed":true`. It is one of the 4 implementers of step 2 while it runs.
-3. Anything else, spawn as step 4: no such comment, a line with no `agent` (every run before
-   2026-10-11), another session's agent, or a send that is refused (an agent the user stopped
-   refuses a message; a transcript is deleted after 30 days). A refused send is not tried twice.
+   `"resumed":true`. It is one of the 8 implementers of step 2 while it runs.
+3. Anything else, spawn as step 4, after the two moves of "A dead writer" in step 3's table (you end
+   the starter's token and make `back`; the writer you spawn makes `start`): no such comment, a line
+   with no `agent` (every run before 2026-10-11), another session's agent, a token that has ended,
+   or a send that is refused (an agent the user stopped refuses a message; a transcript is deleted
+   after 30 days). A refused send is not tried twice. Until 2026-10-11 the new writer submitted with
+   no move between, being the same actor as the one that started.
 
 An agent's transcript is kept under the session that spawned it
 (`$CLAUDE_CONFIG_DIR/projects/<project>/<session>/subagents/agent-<agentId>.jsonl`), which is why
@@ -222,7 +297,10 @@ variable in the path and see the `agent-<agentId>.jsonl` of an agent you spawned
 there, every round of the session is a spawn, and say so in step 7.
 
 The reviewer is never resumed: a review is by an agent that has not read the work before, and a
-resumed reviewer has. The spec writer, the digest writer and the overseer are spawned as before.
+resumed reviewer has. The overseer is spawned as before. A spec writer and a digest writer are
+sent their round as a writer is, from their own `cost` line (`"role":"spec-writer"`, `"role":"digest"`),
+and when they cannot be it is `back` and a spawn (step 3's rows). Three spec writers had been sent a
+round by 2026-10-11 (`cost` comments 926, 997 and 1015, as the spec counts them); no digest writer.
 
 What `tokens` is for a resumed round: on the one resume tried (2026-10-11, an agent that had
 answered "OK" with no tool call) the count was 40,982 after the first turn and 41,056 after the
@@ -255,11 +333,11 @@ should jsut do it as a quick win while it is there." That is said of every agent
 Triage has you read the issue and the code; sometimes you then hold the whole fix, and spawning a
 writer to find it again was 167,000 tokens at the least on 2026-10-10. Take it yourself when the
 fix is in a brief, a doc, a record or a local tool, is one change, and needs no seed built and no
-deploy: `start` from `open` with the reason triage would have given, make the change in a worktree,
+deploy: `start` from `open` with your own token and the reason triage would have given, make the change in a worktree,
 write its record (`tools/cloud-brain/records/<id>.md`, as `agents/implementer.md` step 9 says; a
 change to a doc alone has one too: reviews 642, 645 and 686 each sent a quick win of yours back
 with "no record" among the findings),
-land it under the landing lock (`lock.sh take land <who>`, `agents/implementer.md` step 10), `submit` with the commit. Any submit of your own, a quick win or work
+land it under the landing lock (`LOCK_TOKEN=<your token> lock.sh take land <who>`, `agents/implementer.md` step 10), `submit` with the commit. Any submit of your own, a quick win or work
 a session did on the owner's word, is sent after the push and after the lock is released: one
 `commit` ref for each commit the landing added, read then with `git log`, and a `deploy` ref
 (`<worker>@<hash>`) for each thing put on cb4; and it has its record first, as above. (Submit 1042
@@ -305,7 +383,7 @@ has not been run.
 
 ## Triage
 
-Done by you with `issues-implementer-2`, every `open` issue in a pass, and also while an agent
+Done by you with your own token, every `open` issue in a pass, and also while an agent
 runs: triage builds nothing. (Until 2026-10-10 18:43 it was one a pass and never beside an agent;
 five issues then sat `open` for two hours behind three reviews of one.) Read the issue and enough of the
 code to answer three questions, then write the answers as the `reason` of the move.
@@ -333,7 +411,8 @@ A time you write in an issue's body, a comment or a reason is read from `date` o
      a deletion of kept data). Decide from the seven whether it should be done, and comment
      with the plan and the one command or word he would give. Do not ask him which side.
      `philosophy.md` has a proposal to build such a change first, under a label of its own;
-     it is not in force.
+     it is not in force. A token that an approved spec names is not such a secret: you make it
+     ("A token an approved spec names", below).
 3. Is it one change? More than one becomes subtasks (`open` with `parent`), and the parent goes
    to `ready` when they are closed. More than a handful, or a change of design: it is a `project`.
 
@@ -344,10 +423,29 @@ after review is then of a change that is already deployed and pushed, since a su
 refs; the plan is where the owner stops it. Add `security` and take the `escalate` swap when the body describes a
 way past an access rule; the issue is then the owner's.
 
+## A token an approved spec names
+
+Until 2026-10-11 a token a task needed was put to the owner as `needs-owner`, with the command.
+Four were that day (`loop-agents`, `loop-dashboard`, `loop-docs`, `loop-papers`), each named with
+its methods under "What only the owner can do" of a spec he had approved. He made one and said of
+the rest, in the session: "I did not do the others, can you jsut do it", and then: "Why do I need to
+even do it? It seems like common sense to issue scoped tokens that follow a spec." (Comment 1961 of
+`ta-3-orchestrator-steps` has both; `rules.md`, "A token an approved spec names", is the rule.)
+
+So, when the task that needs such a token is next: you make it, with the owner's session, from the
+main checkout, `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token NAME METHODS`, with the name
+and the methods the spec gives and no more. Then one comment on that task with the command as
+run, the spec's line that names the token, and what the command answered (`made "NAME" for …`).
+The token is never printed or read. It is not put to the owner, and the task does not get
+`needs-owner` for it. His approval of the spec is his word for it.
+
+Still his alone: a token no approved spec names, a method or a scope the spec does not give, and
+every other act with his session but the `approve` move (`rules.md`, Never).
+
 ## What the loop does not do
 
 - Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md`, which has one exception since 2026-10-11: the `approve` move on the owner's word of that issue in the session.
-- More than 4 writers or 2 reviewers at once, or two agents on one issue.
+- More than 8 writers or 4 reviewers at once, or two agents on one issue.
 - Issues whose fix is in `exporter-3`, `robocoop-5`, the channel server or `lopecode`. Comment with the change wanted and label `needs-owner`.
 - Carry on past a cluster that is not healthy.
 

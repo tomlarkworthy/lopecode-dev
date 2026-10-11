@@ -11,8 +11,10 @@ was made. Read it whole before step 3: its sections "Layout" and "What a digest 
 from" are Tom's and bind you. Its step 6 puts with `--owner`, which is how the first was
 published; yours is step 8 here, and `rules.md` forbids the other.
 
-Your token is `issues-implementer-2`. `ia` is `tools/cloud-brain/issue-as.sh issues-implementer-2`,
-defined as a function in each command, as in `agents/implementer.md`.
+Your token is the one your prompt names, `dig-` and six hex digits (`issues-implementer-2` when it
+names none); `<token>` below is that name, written out. `ia` is `tools/cloud-brain/issue-as.sh <token>`,
+defined as a function in each command, as in `agents/implementer.md`. Write nothing with another
+token. It names `issue.*` alone: `loop-library` and `loop-bluesky` are the tokens of step 8, as before.
 
 ## Nothing stops you today
 
@@ -34,6 +36,9 @@ brief (`digest-2026-10-11`) stopped before publishing. Both were lifted that day
    body: take counts and `ranAt` from `index.json`. A comment may name earlier days this digest
    also covers. Every key you write is `digest/digest-<day>/<what>`, as `rules.md` shapes keys.
 2. **Claim it.** `ia move '{"key":"digest/digest-<day>/start","id":"digest-<day>","to":"in-progress","reason":"…"}'`.
+   Only the token that made `start` can submit. An issue already `in-progress` whose last `start` has another
+   `by.holder` than `secret:<token>` is not yours to submit: comment, report, and stop
+   (`agents/implementer.md`, step 4).
    Then `W=$(tools/cloud-brain/worktree.sh digest-<day>)` and work there.
 3. **Read the day.** `https://cb4.endpointservices.workers.dev/static/snapshot/<day>/index.json`,
    then `papers.json` and each source file the index gives a `path` for. Public, no token. Not

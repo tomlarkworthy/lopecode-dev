@@ -393,7 +393,8 @@ test("R3: the briefs name lock.sh for both locks, and no directory, mkdir, rmdir
   // the two role names carry the machine, so one orchestrator a machine is one holder
   expect(read(skill + "SKILL.md")).toContain("lock.sh take land orchestrator-$(hostname -s)");
   expect(read(skill + "agents/overseer.md")).toContain("lock.sh take land overseer-$(hostname -s)");
-  expect(read(skill + "agents/overseer.md")).toContain("LOCK_TOKEN=issues-overseer-1 ");
+  // the token of the call is the one the overseer's prompt names (ta-3-orchestrator-steps)
+  expect(read(skill + "agents/overseer.md")).toContain("LOCK_TOKEN=<token> ");
   // step 10 of the writer's brief: the pull, the renew before the merge and the push
   const writer = read(skill + "agents/implementer.md");
   for (const phrase of ["pull --ff-only", "lock.sh renew land <id>", "lock.sh take land <id>", "lock.sh take cb4 <id>"]) expect(writer.includes(phrase), phrase).toBe(true);

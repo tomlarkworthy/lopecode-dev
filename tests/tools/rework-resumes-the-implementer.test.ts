@@ -33,8 +33,9 @@ test("a resumed round's cost example says so, and names the round whose count it
 });
 
 test("the row for an issue sent back reads the cost comment and resumes with SendMessage, or spawns", () => {
-  const row = skill.split("\n").find((l) => l.trim().startsWith("| `in-progress`, started by the implementer token")) ?? "";
-  expect(row).toContain("Resume or spawn the implementer");
+  // since ta-3-orchestrator-steps the row reads the starter from the start event, and a spawn is the row after it
+  const row = skill.split("\n").find((l) => l.trim().startsWith("| `in-progress`, started by a writer or a digest writer")) ?? "";
+  expect(row).toContain("Send the round to the agent that started it");
   const s = section(skill, "A rework round goes to the agent that wrote the change");
   for (const word of ["SendMessage", "CLAUDE_CODE_SESSION_ID", "`session`", "`agent`", "spawn as step 4"]) expect(s).toContain(word);
 });
