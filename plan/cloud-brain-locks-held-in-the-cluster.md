@@ -16,6 +16,13 @@ tool" (`lock.sh` makes the call itself and reads the token from the main checkou
 place, and "Review 1236, answered" says where. One thing was measured that rounds 1 and 2 left
 as not known: `brain-db`'s check lets the lock's statements through, on plans made here.
 
+Round 4, 2026-10-11 18:56 to @@END@@ CEST (`date`), from `2edceb8e` and the tracker at event 1280:
+review 1277 sent it back with one finding and three notes. The finding is answered by a new part
+of the design, "A lock past its `until`", which says what every call answers for such a row.
+Writing it found one more case of the same kind, which no review named: `lock.sh renew` was the
+same call as a take, and so could take a name it no longer held. It now sends `renew: true`.
+"Review 1277, answered" says where each thing is.
+
 ## What was asked
 
 Tom, 2026-10-11, comment 1099 on `rules-md-names-lock-sh`, whole. He had been offered three wordings
@@ -216,14 +223,21 @@ Outside. Each of these three was read as a summary a fetch tool made of the page
 **Where.** Two methods on `brain-x-issues`, and one table of its own.
 
 ```
-issue.lock    procedure  { name, who, seconds }            take, or renew when who already holds it
-                         { name, who, release: true }      release
+issue.lock    procedure  { name, who, seconds }                 take, or renew when who already holds it
+                         { name, who, seconds, renew: true }    renew only: never takes a name that is free or another's
+                         { name, who, release: true }           release
                          -> { held: true, name, who, n, taken, until }
                          -> 409 Held  { held: false, holder: { who, taken, until } }      another holds it
                          -> 403 Refused { holder }                                        a release by another
 issue.locks   query      ?history=N
-                         -> { now, locks: [{ name, who, n, taken, until }], history: [{ name, who, n, taken, ended, how }] }
+                         -> { now, locks:   [{ name, who, n, taken, until }],      held at `now`
+                                   ended:   [{ name, who, n, taken, until }],      past their `until`, not taken since
+                                   history: [{ name, who, n, taken, ended, how }] }
 ```
+
+The 409 and the 403 carry `holder`, so the method returns them (`c.json(body, 409)`). A refusal
+thrown with `refuse(status, code, message)` answers `error` and `message` only
+(`brain-issues.ojs` lines 642 and 722; review 1277, note a).
 
 - `name`: `a-z 0-9 -`, 40 at most. `who`: as `lock.sh` takes today, `a-z A-Z 0-9 . _ -`.
 - `seconds`: 5 to 1800, 600 when left out. 600 is three times the longest hold measured (203 s) and
@@ -252,14 +266,56 @@ issue.locks   query      ?history=N
 - Nothing is written to the signed record. A landing with a deploy would add four events to a
   record that `issue.verify` checks whole.
 
+**A lock past its `until`** (review 1277, the finding). A row of `issues_locks` whose `until` is
+before the Worker's `Date.now()` is not a lock. Rounds 1 to 3 said so of a take and of nothing
+else, and the row stays until the name is taken again or its holder releases it. What each call
+answers for such a row:
+
+| Call | For a row past its `until` |
+|---|---|
+| `issue.locks` | The row is not in `locks`. It is in `ended`, with `who` and `until`. `now` is the time it was compared with |
+| `lock.sh show <name>` | Exit 1, as for a name with no row. Stderr: `land is not held; <who>'s lock ended at <until>` |
+| a take by another | As rounds 1 to 3 had it: `held: true`, `over: { who, until }`, `n` up by one, a history row `how: "expired"` |
+| a take, or a `renew: true`, by the row's holder | Renewed. `held: true`, `n` as it was, `over: { who, until }` with the caller's own `who`, no history row. Nobody held the name between: a take by another would have changed the row's `who`, and a release deletes the row. `lock.sh` exits 0 and prints `renewed after it had ended at <until>; nobody held it between` |
+| a release by the row's holder | 200. The row is deleted and the history row has `how: "released"`, `ended` the time of the release |
+| a release by another | 403 with `holder`, as for a live lock: the row is not the caller's to delete. Exit 1 |
+| `force: true`, the owner present | The row is deleted, `how: "forced"` |
+
+- The comparison is one line of the method, in JS, over the rows of one read of the table with
+  no `WHERE` (two names, and a probe's). It is `until < now`, the same as the take's `WHERE`, so a
+  row is ended for a reader at the instant it can be taken over. It is not in the SQL because the
+  tracker's test cells run on `issuesFakeSql`, which answers only for statements it was written
+  for (`brain-issues.ojs` line 1280): a filter in JS is the same line under the fake and on cb4
+  (review 1277, note b). A read with no `WHERE` is not among the eight statements of "What
+  `brain-db`'s check says"; task 1's plan test has it.
+- It is in the service and not in `lock.sh` because every reader of a lock asks `issue.locks`:
+  `lock.sh show`, the reviewer's wait, the orchestrator's check of `SKILL.md` step 1, the
+  `ia "locks"` of R1 and `issue-stats.ts`. None of them then compares a time of the Worker's with
+  a clock of its own machine.
+- A lock that ended and that nobody takes or releases has no history row: `how: "expired"` is
+  written by the next take. Until then it is in `ended`, which is where R8 and the orchestrator
+  read that a holder died. `land` and `cb4` are taken at every landing, so it stays there until
+  the next one.
+- `renew: true` is new in round 4. In rounds 1 to 3 `lock.sh renew` sent a take. The case that
+  was open: A's lease ends, B takes `land`, lands and releases, and A's `renew` before its merge
+  is then a take of a free name, answered `held: true`, exit 0. The stop that the renew is for
+  (under "When the lease ends under a live holder") does not happen. On one machine A's
+  `merge --ff-only` is refused next, since `main` has B's commit; on two, A's merge goes through
+  and its push is refused. With `renew: true` a row that is not the caller's, or no row, answers
+  409 with the holder or `holder: null`, and A stops at the renew. Not seen on the record; found
+  while writing the table above.
+- `take --wait` asks with a take, not with `show`, and is as it was.
+
 **The tool.** `lock.sh` keeps its name, its arguments and its exit codes, with the cluster behind it:
 
 ```
 lock.sh take land|cb4 <who> [--wait [seconds]]   exit 0 yours, 1 held (stderr names the holder and until when),
                                                  2 the cluster was not reached or refused the call
-lock.sh renew land|cb4 <who>                     the same call; for a hold that nears its end
+lock.sh renew land|cb4 <who>                     the call with `renew: true`, for a hold that nears its end;
+                                                 exit 1, and nothing is taken, when <who> does not hold it
 lock.sh release land|cb4 <who>                   exit 1, and the lock stays, when <who> does not hold it
-lock.sh show land|cb4                            the holder, since when, until when; exit 1 when nobody
+lock.sh show land|cb4                            the holder, since when, until when; exit 1 when nobody,
+                                                 also when the last holder's lock has ended
 ```
 
 It calls as the token named in `LOCK_TOKEN`, `issues-implementer-2` when unset; the overseer's
@@ -286,9 +342,12 @@ itself, with `curl`, and does not go through `issue-as.sh`.
 - The exit code is read from the HTTP status, which `curl` gives with `-o <file> -w '%{http_code}'`:
 
 ```
-200                              0   (show: 0 when the name is in `locks`, 1 when it is not)
-409                              1   stderr names the holder and until when, or "not held; nothing released"
-403 with `holder` in the body    1   a release or a renew by another; stderr names the holder
+200                              0   (show: 0 when the name is in `locks`; 1 when it is not, and when it is
+                                     in `ended` stderr says whose lock ended and when. `show` reads no clock:
+                                     the service has sorted the rows by its own)
+409                              1   stderr names the holder and until when, or "not held; nothing released",
+                                     or for a renew "not yours to renew" with the holder if there is one
+403 with `holder` in the body    1   a release by another; stderr names the holder (a renew by another is a 409)
 403 without, 4xx, 5xx            2   stderr has the status and the body
 curl exits non-zero (000)        2   a closed port answers ` [000]` and curl exit 7 (tried 18:35, 127.0.0.1:9)
 no token file, or no such token  2   before any call
@@ -312,7 +371,9 @@ none (`lock.sh` line 49) and ignores `LOCK_TOKEN`; the cluster's script answers 
 `issue.locks`, which the reviewer's token reaches through `issue.*`. So the same three lines are
 right before and after `lock.sh` changes, and the brief is changed first (task 2) with no moment
 at which it waits on nothing. With the cluster not reached the wait does not end; the review
-needs cb4 for `redistil` and `getSource` in any case.
+needs cb4 for `redistil` and `getSource` in any case. The lock of a writer that died is exit 1
+from its `until` on ("A lock past its `until`"), so the wait is 600 s at the most behind it, or
+what the writer asked for, 1800 s at the most. The directory of today has no such end.
 
 After the wait the reviewer compares against `origin/main`, not `HEAD`
 (`git -C <checkout>/lopebooks show origin/main:notebooks/@tomlarkworthy_cloud-brain.html`, saved
@@ -337,7 +398,10 @@ refused: both building the notebook into one main checkout, which needs both on 
 holder's `release` then answers exit 1 with the new holder; the brief says to stop and report, not
 to push. The margin is 600 s against 203 s, from 9 holds. Step 10 of the writer's brief runs
 `lock.sh renew land <id>` before the merge and again before the push: a renew that answers exit 1
-is the same stop, met before the checkout is written to and not after. That narrows the case and
+is the same stop, met before the checkout is written to and not after. The renew sends
+`renew: true`, so it answers exit 1 also when the second writer has come and gone and the name
+is free. A renew that prints `renewed after it had ended` is exit 0 and the writer goes on:
+nobody held the lock between. That narrows the case and
 does not close it. Closing it means the thing written to checks `n`, and for a deploy that is the
 deployer, which is the owner's (his list, below).
 
@@ -381,6 +445,15 @@ exits 2 and nobody lands until the Worker is forward again. The tracker's other 
   merge, which has neither variable, so `lock.test.ts` could not pass in the worktree. The cost
   of the way taken: a second place that reads the token file, four lines or so.
 - **The reviewer pulls after its wait** (round 2). Above, under "The reviewer's wait".
+- **`lock.sh show` compares `until` with the answer's `now` and exits 1 past it** (the second of
+  the two ways review 1277 gave). `issue.locks` would still list a dead writer's lock as a lock
+  to `ia "locks"`, to `issue-stats.ts` and to any reader that is not `lock.sh`, each of which
+  would need the comparison too.
+- **`issue.locks` leaves an ended row out and names it nowhere** (the first of the two, alone).
+  It meets the finding. A dead writer's lock is then in no answer until the next take writes its
+  history row, and `show` cannot say whose lock ended. `ended` is the same read, sorted in two.
+- **`issue.locks` deletes the rows that have ended.** A query that writes, and the next take
+  would have no row to write `how: "expired"` from.
 - **A heartbeat process that renews.** An agent of the loop has no process between its commands.
   `renew` is a command it runs before a long step.
 - **The writer of the `lock.sh` task puts the reviewer's brief in the same landing.** One landing
@@ -401,7 +474,7 @@ their own (`probe-<issue id>`), never `land` or `cb4`.
 | R1 | `ia lock '{"name":"probe-x","who":"a","seconds":30}'` answers `held: true`; `ia "locks"` lists it; after `ia lock '{"name":"probe-x","who":"a","release":true}'` it does not. And `test_*` cells of `brain-issues.ojs`, run with `bun test.ts brain-x-issues --with <built module>` in the worktree's `cloud-brain-dev/` |
 | R2 | With `a` holding `probe-x`, the same call with `who: "b"` answers 409 and names `a`. The call carries nothing of the machine it is made from, so one made from another is the same call. 20 takes of the one free `name`, each with a `who` of its own (`w1` to `w20`), sent together: the count of `held: true` is 1 (a test cell against the fake, and once against cb4) |
 | R3 | After task 3: `grep -c "mkdir\|rmdir" tools/cloud-brain/lock.sh` is 0. A test in `lock.test.ts`: after `take` with `BRAIN_STATE_DIR` at a directory that holds a token file of the test's and nothing else, and `LOCK_BASE` at the stand-in, the directory holds that file and nothing else. The test "the briefs name lock.sh for both locks" reads `SKILL.md`, `agents/spec.md` and the knowledge page too, and fails on a code span with `mkdir`, `rmdir` or `rm -r` of either lock or a path that ends `land.lock` or `cb4.lock`. It does not read `rules.md` until task 4 (R7). After task 2, the Brain's copy, a public read: `curl -s https://cb4.endpointservices.workers.dev/static/cloud-brain-dev/roles/reviewer.md \| grep -c "land\.lock\|cb4\.lock"` is 0 (it is 2 today, 18:22) and `grep -c "lock.sh show land"` of the same is 1. The same `curl` is a test in `lock.test.ts` from task 3 on, skipped with its reason printed when cb4 does not answer |
-| R4 | A test cell with the clock moved past `until`: `b` takes, the answer has `over`, the history has `how: "expired"`. On cb4: `a` takes `probe-x` for 5 s, and 6 s later `b` takes it |
+| R4 | For the next taker: a test cell with the clock moved past `until`: `b` takes, the answer has `over`, the history has `how: "expired"`. For a reader (review 1277): in the same cell, after the clock passes `until` and before `b` takes, `issue.locks` answers the name in `ended` and not in `locks`; a second cell for the other rows of "A lock past its `until`" (the holder's own take and its `renew: true` answer `over` with its own `who` and the same `n`; its release is 200; `renew: true` on a row that is another's is 409 with the holder, and on no row 409 with `holder: null`). In `lock.test.ts`, against the stand-in: with the name in `ended` and not in `locks`, `show` exits 1 and stderr has the holder's name and the `until`; a `renew` answered 409 exits 1. On cb4: `a` takes `probe-x` for 5 s; 6 s later `ia "locks"` has `probe-x` in `ended` and not in `locks`; then `b` takes it and the answer has `over`; `b` releases, and `probe-x` is in neither list |
 | R5 | In `lock.test.ts`, against a stand-in for the service: `take land a`, then `take land b && echo landed; release land b` prints no `landed`, exits 1, and `show land` names `a`. A test cell: a release with `a`'s name by the reviewer's token is 403 |
 | R6 | In `lock.test.ts`: with `LOCK_BASE` at a closed port, `take` and `show` exit 2 within the call's time limit and make nothing under `BRAIN_STATE_DIR`; with `BRAIN_STATE_DIR` at an empty directory `take` exits 2 and the stand-in got no call; a 500 and a 403 with no `holder` from the stand-in are exit 2 |
 | R7 | After task 4, and not before: `rules.md` is added to the files the brief test of R3 reads, in the commit that changes the two sentences, and the test passes. With today's `rules.md` in the list it fails, on lines 79 and 83 |
@@ -418,12 +491,18 @@ is the owner's to see (below).
 ## The tasks, in the order they land
 
 1. **`issue.lock` and `issue.locks` on `brain-x-issues`.** The two tables in `issuesSchema`, the two
-   methods, their rows in the method reference, test cells for R1, R2, R4, R5 and R8. Deployed by
+   methods, their rows in the method reference, test cells for R1, R2, R4, R5 and R8 (R4's are a
+   cell for the next taker and the reader, and a cell for the rest of the table of "A lock past
+   its `until`"). The 409 and the 403 are returned, not thrown (under the method table). Deployed by
    the loop under the directory lock, which is still the lock. `major` by `SKILL.md`'s reading: it
    adds something callers may do. Then the probes of R1, R2 and R4 against cb4.
    Before any deploy the writer gives the plan of each statement it wrote to `sqlNeeds` of the
    deployed `brain-db`, as round 3 did ("What `brain-db`'s check says"), in a test under `tests/`
    that makes the plans with `bun:sqlite` and imports the module with `tools/notebook-import.ts`.
+   The same test runs the take's batch itself on that `bun:sqlite` database: two holders of one
+   name (one row after, the first's), and a lock that has ended (the second holder's after, `n`
+   up by one, one history row). The test cells cannot show this: they run on `issuesFakeSql`,
+   whose reading of a `WHERE` is written by the hand that wrote the statement (review 1277, note b).
    Every form passed there on 2026-10-11, so one deploy is expected, not three.
    The first probe after the deploy is still the test on D1's own plans. A refusal is `issue.lock`
    answering `brain-db`'s `refused: …`, which names the opcode; the other methods of the tracker
@@ -445,10 +524,10 @@ is the owner's to see (below).
 3. **`lock.sh` over the cluster, and the briefs** (task 2 of round 1). `lock.sh` as above, with
    the call, the token file and `LOCK_BASE` of "How it finds the token and the address";
    `issue-as.sh` is not changed.
-   `lock.test.ts` rewritten against the stand-in (R3, R5, R6) with the `curl` of the Brain's copy;
+   `lock.test.ts` rewritten against the stand-in (R3, R4's two lines, R5, R6) with the `curl` of the Brain's copy;
    `agents/implementer.md` step 10 (the pull, `renew` before the merge and before the push, exit 2,
    what to do when a release or a renew answers exit 1), `agents/overseer.md` (`LOCK_TOKEN`),
-   `agents/spec.md` step 6, `SKILL.md` step 1 (a lock past its time is not held; nothing is the
+   `agents/spec.md` step 6, `SKILL.md` step 1 (a lock past its time is not held, and `show` says whose it was; nothing is the
    owner's to remove) and its five other lines, and step 4 of
    `knowledge/changing-and-deploying-a-cloud-brain-worker.md`. Writers call the main checkout's
    `lock.sh` by its path, so the change holds for every writer from the merge on.
@@ -472,7 +551,9 @@ is the owner's to see (below).
    files the brief test reads (R7), and `rules-md-names-lock-sh` is closed with this spec as its
    answer.
 5. **`issue-stats.ts` prints the holds** (R8), and the oversight reads them in place of the
-   writers' "LOCK TIMES" lines. The first numbers are compared with the nine above.
+   writers' "LOCK TIMES" lines. The first numbers are compared with the nine above. A row of
+   `ended` is printed as a line of its own (the name, who, when it ended): it is a holder that
+   died or overran, and has no history row yet.
 
 Task 3 needs 1 deployed and 2 put. Task 4 needs 3. Task 5 needs 1. Task 2 needs nothing.
 
@@ -540,3 +621,23 @@ scripts of this checkout and no design changed. The fetch and the `git show orig
 reviewer's wait were not run. The exit-code table was not run against anything: of its rows only
 the closed port was tried, with `curl` alone. Task 3's two-lock landing was not acted out, and
 whether a running bash goes on with the script it started is still assumed the worse way.
+
+## Review 1277, answered
+
+Round 4. The review is event 1277, verdict `changes`, at `760c76a6`.
+
+| | What it found | Answer |
+|---|---|---|
+| 1 | The spec does not say what `issue.locks` and `lock.sh show` answer for a lock past its `until`; as written a dead writer's lock reads as held, and the reviewer's wait and the check of `SKILL.md` step 1 wait with it | "A lock past its `until`", under "The design": the review's first way, in the service. `issue.locks` sorts the rows by the Worker's clock into `locks` and `ended`; `show` exits 1 for a name in `ended` and says whose lock ended and when. The exit-code table's row for 200 says it, "The reviewer's wait" gives the longest wait behind a dead writer, and R4 has a check for a reader: a test cell, a line of `lock.test.ts`, and a read on cb4 between the end of `a`'s lock and `b`'s take. The second way, and the first without `ended`, are under "Not chosen" |
+| a | A 409 or a 403 that carries `holder` is returned by the method, not thrown | Under the method table, and in task 1 |
+| b | The test cells run on `issuesFakeSql`, so they test the fake's reading of the `WHERE` | The filter of `issue.locks` is in JS, the same line under the fake and on cb4. Task 1's test under `tests/` runs the take's batch on `bun:sqlite` for two holders and for an ended lock |
+| c | The eight statements of the `brain-db` check are written with `…` and the script is not kept | Not changed. They were not made again: the review says a second making would test other statements than the writer's, and task 1 makes them as a test that is kept. "One deploy is expected" rests on round 3's word until then. Round 4 adds two statements that are not among the eight: the read of `issues_locks` with no `WHERE`, and the `UPDATE` of a `renew: true`, whose `WHERE` is the release's (`name`, `who`, `via`) |
+
+Not asked by the review and changed: `lock.sh renew` sends `renew: true` (the last bullet but one
+of "A lock past its `until`"). It is a third body of `issue.lock`, no new method.
+
+Not done in round 4: no new search of the Brain or outside; the finding is about what one read
+answers, and the lease of round 1 is the design still. Nothing was run against cb4 or against
+SQLite: the two new statements have no plan made, and every row of the table of "A lock past its
+`until`" is a proposal that task 1's cells test. The three lines of the reviewer's wait were not
+run again. Rounds 1 to 3 gave no `how` for a release with `force`; `"forced"` is new here.
