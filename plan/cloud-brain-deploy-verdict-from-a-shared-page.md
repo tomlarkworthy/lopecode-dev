@@ -42,7 +42,7 @@ where that is said."
 | `seen-flaky-timing-tests` (part) | brain-x-snapshot put back twice on a 50 ms wait; brain-x-issues once on the caret test, "nobody looked at why". | R3. The snapshot failures were 2 of 2 on one hash, not chance. The caret put-back was made by the mechanism the deployer replaced an hour later. |
 | `seen-two-chrome-versions` (part) | The deployer's browser is HeadlessChrome 128, a writer's is 151, and nothing said so. | R4, which is met since 09:20 the same day. A newer Chrome cannot be asked for (below). |
 | `verification-runs-are-not-kept` (related, in rework) | No count of runs and fails by test. | Used as what exists: `logs.deploys` gave the counts below. Not a part of this. |
-| `tests-replace-console-log` (related, `needs-owner`) | Three test cells assign `console.log`. | Left out: see "Not chosen". |
+| `tests-replace-console-log` (related; `needs-owner` when this was begun, `in-review` at 12:17 CEST) | Three test cells assign `console.log` or `console.error`. | Left out: see "Not chosen". |
 | `deployer-put-back-issues-worker` (related, `needs-owner`) | A page opened in the cluster put a Worker back. | Left out: the page sends no report since 07:51 CEST (event 427); what is left is the owner's press of rejected. |
 | `seen-a-guess-reported-as-a-cause` (related) | Two put-backs were called "timing" unchecked; one was not. | R3: a number from repeated runs in place of the word. |
 | `seen-a-small-either-or-put-to-the-owner` (related) | The owner was asked "the retry, or only the counting?" | "Not chosen", the retry, with the count that decides it. |
@@ -260,7 +260,9 @@ locally (11 s for brain-browser), so 20.
 - **`tests-replace-console-log`.** With brain-shell alone the tests of another Worker are not on the page, so
   what one Worker's test does to the console no longer reaches another's verdict. Within a module it still
   does, as the snapshot's test shows with `logged`; that is fixed test by test, and its issue is filed. The
-  branch stays the owner's: it moves the kernel, the core and the deployer.
+  three cells themselves were changed while this was written, with no change to `cloudflare-iac`: the core's
+  and the kernel's by `44f9e5d0`, the browser's by the round submitted at event 573 (read 12:17 CEST, not
+  checked here).
 
 ## How each is known to be met
 
