@@ -1,7 +1,7 @@
 # Cloud Brain: Cloudflare's Markdown conversion as a method of `brain-x-ai`
 
-Spec of the issue `ai-tomarkdown-pass-through` on cb4's tracker. Written 2026-10-12 from 00:05 to
-00:45 CEST (`date`), from the seeds at `lopecode-dev` `038c25bd` and from what cb4 answered that
+Spec of the issue `ai-tomarkdown-pass-through` on cb4's tracker. Written 2026-10-12 between 00:25 CEST (the
+move to `spec`, event 2875) and 00:36 CEST (`date`), from the seeds at `lopecode-dev` `038c25bd` and from what cb4 answered that
 night. Nothing in "The design" is deployed. The design's edit was made in a worktree, its tests
 were run, and the edit was taken back (see "How each requirement is known to be met").
 No call was made to Cloudflare's conversion: no agent of the loop holds a Cloudflare token, and no
@@ -73,7 +73,7 @@ The counts of the kept PDFs are the report's. I did not count them again.
 ## What exists today, measured
 
 `brain-x-ai` on cb4 is hash `e5b71e79…` (`cloud-brain-dev/deploy/services.json` after
-`worktree.sh`, 2026-10-12 00:10 CEST).
+`worktree.sh`, 2026-10-12 00:29 CEST).
 
 - No method reaches the conversion. `curl -s ".../xrpc/com.lopecode.brain.getSource?worker=brain-x-ai&part=reference" | grep -c tomarkdown`
   answered `0` (status 200) at 00:31 CEST. The service's handler sends to three addresses,
@@ -121,7 +121,7 @@ Also read in the checkout: `tools/cloud-brain/brain-ai.ojs` whole, `records/ps-1
 `spec-as-built.md` at 2026-10-09 23:35 (why the service uses a minted token and not the `AI` binding).
 
 **Outside.** Four pages of Cloudflare's documents, each through a fetch tool that answers a
-summary with quotes, 2026-10-11 about 22:35 UTC. I read no page whole.
+summary with quotes, 2026-10-11 about 22:28 UTC. I read no page whole.
 
 | page | what the summary gave |
 |---|---|
@@ -285,7 +285,8 @@ C1, then the deploy of `brain-x-ai` and C2 to C6. A record, `tools/cloud-brain/r
 - First branch. If C2 or C3 answers 401 or 403 from Cloudflare (the body is Cloudflare's
   `{ success: false, errors: […] }`, not the Brain's `{ error, message }`): `Workers AI Read` does
   not reach the conversion. The writer puts the Worker back (`brain.ts rollback brain-x-ai --reason=…`),
-  lands nothing but the record, comments with Cloudflare's error text, and the issue gets
+  lands the record and not the seed (a seed ahead of a Worker that was put back is deployed again
+  by the next `redistil --apply`), comments with Cloudflare's error text, and the issue gets
   `needs-owner`: a permission that is not one of the deployer's three is his (the list below).
 - The token `loop-markdown` is made before this task starts (below).
 
