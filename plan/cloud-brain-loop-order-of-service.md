@@ -257,6 +257,13 @@ before a start, in that order. The sentence becomes:
 and the rows for `in-progress` after a `rework` and for `spec` after a `respec` move above the
 row for `in-review`. Since writers and reviewers are different agents, the first two do not take
 each other's place; the order says which the orchestrator spawns first in a pass.
+(As built, `os-2-order-and-pool`, 2026-10-11: four rows went above the row for `in-review`, not
+two. The row "A dead writer" went with the row of a writer sent back, which ends "When it cannot be
+sent one, the next row" and means that one; the row "A quick win of your own, sent back" is also
+an `in-progress` after a `rework`. The row for `spec-review` went to stand under the row for
+`in-review`, above the rows of the digest, which are starts. The row that spawns a spec writer for
+a project at `open` went under the row for `ready`, for "a bug or a task before a project or a
+feature"; the record.)
 
 **"Smallest first" is not taken as asked.** Nothing in the record gives a size before the work:
 the kind is the one thing known at triage. A bug or a task is one writer and one review by the
@@ -279,6 +286,12 @@ than 4 writers or 2 reviewers at once" under "What the loop does not do" are rep
 > waits without a reviewer and no sent-back round waits without a writer. Start nothing new in a
 > pass in which an agent's report or your own session names a rate limit or a usage limit, or in
 > which `lock.sh show land` has named the same holder for two passes. One agent on an issue, as before.
+
+(As built, `os-2-order-and-pool`, 2026-10-11: the two texts read "8 implementers and 4 reviewers"
+and "More than 8 writers or 4 reviewers" when the task was taken. `ta-3-orchestrator-steps`
+(`e2efdd14`, 22:01) had written into `SKILL.md` the owner's word of comment 1533, "can we increase
+the parrallism twofold?", 7 minutes after this spec was committed. Those were replaced, and the
+number in the skill's `description` and in "one of the 8 implementers of step 2"; the record.)
 
 The first sentence is the measured gain: a reviewer is a process of its own that lands nothing,
 and the cap of 2 held a review back for 100 of 453 minutes. The second is what he was shown and
@@ -389,7 +402,7 @@ command is one an agent of the loop runs with its own token, except where it say
 | R1 | `ia "list?label=owner&limit=100"`, the count of `issues` | 0 (run 21:53 CEST) | 8 or 9 after os-1, each id in the list of part 1. Cannot be run before the task labels them. (As built, `os-1-owner-label`, 2026-10-11: 7, run 22:36 CEST; the record.) |
 | R1 | `bun test tests/tools/issue-watch.test.ts` | no such file | passes; one test feeds the filter an `opened` event with the label and the watch's own holder and sees a line. Run in the task's worktree |
 | R2 | `grep -c "A place goes, in this order" .claude/skills/brain-maintenance/SKILL.md` | 0 (run 21:53) | 1 |
-| R3 | `grep -c "up to 4 implementers\|More than 4 writers" .claude/skills/brain-maintenance/SKILL.md` | 2 (run 21:53) | 0 |
+| R3 | `grep -c "up to 4 implementers\|More than 4 writers" .claude/skills/brain-maintenance/SKILL.md` | 2 (run 21:53) | 0. (As built, `os-2-order-and-pool`, 2026-10-11: this was 0 before the task, at `85880f72`, since the file read 8 and 4 by then. The count that the task moved is `grep -c "up to 8 implementers\|More than 8 writers\|one of the 8 implementers\|up to eight implementers"`, 4 before and 0 after; the record.) |
 | R3 | `issue-stats.ts --token=<own> --window <seq of the landing of os-2>`, the line `in-review`, once 40 stays are in the window | median 6.3 min, 147 stays, whole record | read by the overseer at its next oversight; no figure is a condition of a task landing. A median over 6.3 is a finding for it |
 | R4 | `issue-stats.ts --token=<own>`, the line `past 4 h, not started, no reason` | no such line. By hand at event 2310: 1 (`annotate-home-not-on-observable`) | the line is printed (os-3, with `bun test tests/tools/issue-stats.test.ts`); 0 two passes after os-2. Cannot be run before os-3 |
 | R5 | on this machine, the orchestrator: the first request after each of the five trial rounds' `reviewed` event, `cache_read_input_tokens` against `cache_creation_input_tokens` | 0 of 16 read more than they wrote | 4 of 5. Not a loop-token check: it is in the owner's list as the orchestrator's report to him |

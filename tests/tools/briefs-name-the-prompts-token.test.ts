@@ -82,10 +82,10 @@ test("step 3 has the four rows that add moves, each with who makes back and who 
   expect(rows.find((l) => l.includes("sent back, no agent running")) ?? "").toContain("`by.holder` of its last `start` event");
 });
 
-test("the limits are 8 and 4, with the owner's words", () => {
-  expect(skill).toContain('Keep up to 8 implementers and 4 reviewers running (Tom, 2026-10-11, in the session: "can we increase the parrallism twofold?"');
-  expect(skill).toContain("- More than 8 writers or 4 reviewers at once");
-  expect(skill).not.toMatch(/4 implementers|4 writers or 2 reviewers/);
+// Until os-2-order-and-pool this held the limits 8 and 4. No number is set since; tests/tools/os-2-order-and-pool.test.ts holds the rule.
+test("the owner's words on the number of agents are kept, and no limit is stated as in force", () => {
+  expect(skill).toContain('"can we increase the parrallism twofold?"');
+  expect(skill).not.toMatch(/Keep up to \d+ implementers|More than \d+ writers or \d+ reviewers at once/);
 });
 
 test("the writer's brief: an issue another started is not its to submit, and every lock.sh call names the token", () => {

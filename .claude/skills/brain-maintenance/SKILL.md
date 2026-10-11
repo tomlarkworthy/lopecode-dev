@@ -1,6 +1,6 @@
 ---
 name: brain-maintenance
-description: Use when the user asks to "work the tracker", "run the issue loop", "/brain-maintenance", "/loop /brain-maintenance", or wants the issues of the Cloud Brain tracker on cb4 triaged, fixed, reviewed and closed without being asked for each one. Polls the tracker, keeps up to eight implementers (each in its own git worktree) and four reviewers running, each with a tracker token of its own, and after every few issues spawns an overseer that files cluster issues or edits the role briefs.
+description: Use when the user asks to "work the tracker", "run the issue loop", "/brain-maintenance", "/loop /brain-maintenance", or wants the issues of the Cloud Brain tracker on cb4 triaged, fixed, reviewed and closed without being asked for each one. Polls the tracker, gives every review that waits a reviewer and every sent-back round its writer, starts new implementers (each in its own git worktree) when none of those waits, with no fixed number of either and a tracker token for each, and after every few issues spawns an overseer that files cluster issues or edits the role briefs.
 version: 0.1.0
 ---
 
@@ -113,17 +113,48 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    told apart: the first's take refuses the second's, but a `renew` by either is answered as the holder's, and so is the renew `take --wait` sends
    after an attempt of its own that got no answer. One orchestrator and one overseer a machine. (That was written when both called with one token.
    With a token each, a renew or a release under the other's token is refused in `tests/tools/lock.test.ts`, against a stand-in; not tried on cb4.)
-2. **Count your running agents.** Keep up to 8 implementers and 4 reviewers running (Tom, 2026-10-11, in the session: "can we increase the parrallism twofold?"; it was 4 and 2 since 19:28 2026-10-10, Tom: "maybe we do another 2 in parrallel"), and at
-   most one agent on any issue. They land one at a time, so they queue on the landing lock. Seen of that queue on 2026-10-11, after his word:
+   **Past 4 hours.** Then `bun tools/cloud-brain/issue-stats.ts --token=<your token>` and its line
+   `past 4 h, not started, no reason: <n>`, with one row under it for each issue counted: a task, bug, project or
+   feature that is not labeled `needs-owner`, is at `open`, `triaged` or `ready`, and has had no move for 4 hours
+   (`tools/cloud-brain/records/os-3-stats-past-four-hours.md` says what a row is and what a reason is). For each row:
+   when it can be started, it goes before every younger start of this pass (step 3, the order of a free place);
+   when it cannot, comment once with why and what would start it, the body beginning `held:`:
+   `issue-as.sh <your token> comment '{"key":"orch/<id>/held-1","id":"<id>","body":"held: …"}'`. The tool then
+   leaves the issue out of the count and prints `(<m> more are held)` at the end of the line. The count is from the issue's
+   last move and not its last event: a comment or a label does not take an issue off it, and a `held:` reason does. (`plan/cloud-brain-loop-order-of-service.md`, part 4, R4: no task, bug, project or
+   feature stays unstarted for 4 hours without a start or a written reason. First read by an orchestrator: not yet, when this was written.)
+2. **Count your running agents. No number is set.** Every review that waits gets a reviewer, and every round sent back goes to
+   its writer, in the pass that sees it. A new writer is started only when, after that, no review
+   waits without a reviewer and no sent-back round waits without a writer. Start nothing new in a
+   pass in which an agent's report or your own session names a rate limit or a usage limit, or in
+   which `lock.sh show land` has named the same holder for two passes. One agent on an issue, as before.
+   In a pass that starts nothing new, the rows of step 3 that spawn no agent are still done, triage among them.
+   (`plan/cloud-brain-loop-order-of-service.md`, part 3, approved for the owner at event 2611. His words, of the
+   proposal that became it: "Maybe we let it manage its own pool size and not worry about optimality". Measured there,
+   over 453 minutes of 2026-10-11: a review waited with no reviewer on it for 195 minutes, 100 of
+   them with 2 or more reviewers running.)
+   The numbers this replaces, each the owner's word and none in force since `os-2-order-and-pool`: 1 to 2 of each
+   (2026-10-10: "try to have 1-2 writers and 1-2 reviewers active at all times"); 4 writers and 2 reviewers from 19:28 that day
+   ("maybe we do another 2 in parrallel"); 8 and 4 on 2026-10-11 ("can we increase the parrallism twofold?").
+   What stops growth is the two things more agents would wait on: a limit of the account, and the landing lock,
+   since writers land one at a time. The spec had seen neither bind. Seen of the lock's queue on 2026-10-11, after his word of that day:
    the cluster has kept the lock's history since 20:37 CEST that day, and in the 44 minutes from then to 21:22 `land` was taken 25 times (the holds numbered 1 to 25 of `issue.locks?history=200`) and held 731 s in all,
    2.5 to 141 s a hold; 9 of the 24 takes after the first came less than 20 s after the release before, and 20 s is how often `take --wait` asks.
    The history has the holds, not who waited or for how long, and how many writers ran in those minutes was not counted
-   (`tools/cloud-brain/records/ta-3-orchestrator-steps.md` has the command). Each pass, fill the free places from step 3; with none free, do
-   the triage rows only. (Tom, 2026-10-10: "try to have 1-2 writers and 1-2 reviewers active at
-   all times".) What makes that safe: a writer edits and builds in a worktree of its own and
+   (`tools/cloud-brain/records/ta-3-orchestrator-steps.md` has the command).
+   Not known: how many writers this machine carries. If memory or the browser tabs of writers bind before a limit or the lock does,
+   this rule does not see it; the overseer adds the sign that would have.
+   What makes several at once safe: a writer edits and builds in a worktree of its own and
    lands under the landing lock; a reviewer tests the notebook of the commit, not the working file.
-3. **List the open issues and take the first that matches**, in this order. Finishing comes
-   before starting. Among issues on the same row, one the owner opened or moved goes first, then the oldest.
+3. **List the open issues and take the first that matches**, in this order.
+   A place goes, in this order, to: a round that was sent back (a writer's or a spec's); a review
+   that waits; a start. Among starts: the owner's before the loop's own; then an issue past 4 hours
+   (step 1, "Past 4 hours"); then a bug or a task before a project or a feature; then the oldest.
+   A writer and a reviewer are different agents and do not take each other's place: the order says which you spawn
+   or send first in a pass. Kind stands for size, since nothing in the record gives a size before the work.
+   (Until `os-2-order-and-pool`, 2026-10-11: "Finishing comes before starting. Among issues on the same row, one the
+   owner opened or moved goes first, then the oldest", and the row for a review stood above the rows for a round sent back, the row for a project at `open` above the row for `ready`.
+   `plan/cloud-brain-loop-order-of-service.md`, part 2.)
    **The owner's**, in this table and wherever the procedure says it of an issue: opened by his
    session (`by.via` of its `opened` event is `session`), or labeled `owner`. A session that opens
    an issue on his word puts `owner` in `labels` at the open, and you add it when he asks for an
@@ -139,19 +170,19 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    | `hidden: true`, or kind or label `security` | Nothing. It is the owner's. |
    | at `awaiting-approval` | Nothing, unless the owner has said in this session that he approves that issue, after its passing review was shown to him: then you make the `approve` move for him (`rules.md`, Never, the `approve` line). |
    | labeled `needs-owner` | Read it again each pass: the events since the label was put on, and what the owner has said in this session. When he has answered (a comment of his on the issue, or his word to you, which you quote in a comment first), or `philosophy.md` now answers it (say what changed), comment with the event that put the label on and what ended its reason, take the label off (`rules.md`, Never, the `needs-owner` line), and take the issue again from this table. Otherwise nothing: it is the owner's, and it is named in step 7. |
-   | `in-review`, and no review since it came into that state | Spawn the reviewer. |
    | `in-progress`, started by a writer or a digest writer (the `by.holder` of its last `start` event is `secret:impl-…` or `secret:dig-…`, or a role's token, for a start made before each agent had its own), sent back, no agent running | Send the round to the agent that started it ("A rework round goes to the agent that wrote the change", below): its token is still kept, and only the starter submits (`caller.actor == issue.by.start`). When it cannot be sent one, the next row. Do not, and instead comment with the open findings and label `needs-owner`, when the last implementer you spawned for it finished without a new `submit`, or when it has 3 `rework` moves and the rounds are not getting anywhere. At 3 you judge (Tom, 2026-10-10: "make a judgment call when the 3 retries is hit, has genuine progress been made?"): go on when each review closed what the one before found and the new findings are narrower; stop when a finding came back, or the rounds are trading one defect for another of the same size. Write the judgment and its reason in the journal and as a comment on the issue. |
    | `in-progress`, no agent running, and its starter cannot go on: the writer died or cannot be sent a message, its token has ended (`agent-token list` has no line for it), or the `start` was made with a role's token and its writer cannot be sent one (after the owner's revoke of those: every such issue) | **A dead writer.** You end its token (`agent-token revoke <name>`; a role's token is the owner's to end), then you make `back` to `ready` with the reason. The issue is then `ready`: the writer you spawn makes the second `start` with its own token, which replaces `issue.by.start`, and it alone submits. Two more moves. A submit by any token but the last starter's is refused 403. |
    | `in-progress`, started by you (`secret:orch-…`: a quick win, or work on the owner's word), sent back | **A quick win of your own, sent back.** Do the round yourself and submit: no more moves. Or hand it over: you make `back`, the writer you spawn makes `start` and then submits. Two more moves. Your own token is not ended, so after the `back` the policy no longer refuses you a review of that issue: "You review nothing yourself" is what holds. (Submits 622, 935 and 1002 were a writer's on an issue you had started; each answered 200 because both were one token.) |
+   | kind `project` or `feature`, at `spec`, no agent running | **A spec sent back.** Send the round to the spec writer by message, as a writer of a task is sent one (the `agent` and `session` of its last `cost` line; `agents/spec.md`, "A resumed round"). When it cannot be sent one, or it died: you end its token and make `back` from `spec` to `open`; the spec writer you spawn makes `spec` with its own token (key `spec/<id>/spec-<round>`), which replaces `issue.by.spec`, and then `submit-spec`. Two more moves. |
+   | `in-review`, and no review since it came into that state | Spawn the reviewer. |
+   | kind `project` or `feature`, at `spec-review`, no review since it came there | Spawn the reviewer; it follows "A spec" in its brief. |
    | `in-progress`, the change is landed, and its writer finished with no `submit` | **A submit made for a writer.** Ask the writer to submit, by message, when it can be sent one. Else you end its token, make `back`, make `start` with your own token, and submit with the refs: the starter is then you, and the review is a reviewer's. Two more moves. (Submit 516 was yours for a writer's start.) |
    | labeled `digest`, opened by `worker:brain-x-snapshot` (`opener` in `get?id=`), at `open` | When several are open, the newest is the one written: `reject` each older one with the reason `covered by digest-<newest day>`, and comment on the newest with the days it covers. Then `triage` and `ready` it, the reason "the day's digest, opened by the snapshot's run"; the three questions of Triage are not asked. |
    | labeled `digest`, at `ready` | Spawn the digest writer (role `digest`). |
-   | kind `project` or `feature`, at `spec-review`, no review since it came there | Spawn the reviewer; it follows "A spec" in its brief. |
-   | kind `project` or `feature`, at `spec`, no agent running | **A spec sent back.** Send the round to the spec writer by message, as a writer of a task is sent one (the `agent` and `session` of its last `cost` line; `agents/spec.md`, "A resumed round"). When it cannot be sent one, or it died: you end its token and make `back` from `spec` to `open`; the spec writer you spawn makes `spec` with its own token (key `spec/<id>/spec-<round>`), which replaces `issue.by.spec`, and then `submit-spec`. Two more moves. |
    | kind `project` or `feature`, at `approved` | Open each task the spec lists, with `parent` the project, and move it to `building` (`decompose`). A task has the labels the spec gives it: `major` on each task of a spec that says its tasks are (bd-2 and bd-3 were opened with none from a spec approved as `major`, and a reviewer's `pass` of bd-2 would have gone to `done` with no approval; `seen-bd-2-opened-without-major`). Close each gathered report that is still open with the reason `in the spec of <id>`. |
    | kind `project` or `feature`, at `building`, no open part | Move it to `done` (`finish`). |
-   | kind `project` or `feature`, at `open`, with three parts or more, or the owner's | Spawn the spec writer (role `spec`). With fewer it is still gathering: nothing. |
    | `ready` | Spawn the implementer. |
+   | kind `project` or `feature`, at `open`, with three parts or more, or the owner's | Spawn the spec writer (role `spec`). With fewer it is still gathering: nothing. |
    | `triaged`, no open children | Move to `ready`. |
    | `open`, kind `task` or `bug` | Triage it yourself (below), or take it as a quick win. |
    | `open`, kind `feedback` | Nothing, but for one case: it is the owner's ("The owner's", above), asks for a change, and has no parent and no link either way. Then `promote` it, `issue-as.sh <your token> swap '{"key":"orch/<id>/promote","id":"<id>","swap":"promote","reason":"…"}'`, and triage it in the same pass. A promoted issue keeps the kind `feedback` and is on the task workflow from then on (`workflow` in `get?id=` is the task's): it is taken by the rows for a task, this row no longer. One of his that has a parent or a link is not promoted, since the work it is tied to is already under way and a second task would do it twice (`philosophy.md`, line 2: the smaller side); it is closed with that work. Who closes: the overseer, each oversight, closes a feedback issue when every issue it is tied to is at `done` or `closed` (`agents/overseer.md`, "Feedback that is due"). `bun tools/cloud-brain/issue-stats.ts --token=<your token>` prints both lists, `feedback due to be closed` and `feedback of the owner's with no tie, to promote`; the second is this row's. Feedback is filed by agents for anything that seems off against `philosophy.md` (Tom, 2026-10-11: "only feedback so we can identify patterns and check before writing a solution"), and the overseer reads it together. It is not counted as work waiting. (Until `feedback-closed-or-promoted`, 2026-10-11, nothing closed one: 51 were at `open` at event 2745, 25 of them tied only to work that was `done` or `closed`. The owner: "Why are the feedback ones not being done?") |
@@ -288,7 +319,7 @@ For an issue at `in-progress` whose last move is `rework`, with no agent running
    ```
    The answer to a send that was taken is `{"success":true,"message":"Resuming agent …"}`. The
    agent runs in the background and reports as a spawned one does; step 5 is the same, with
-   `"resumed":true`. It is one of the 8 implementers of step 2 while it runs.
+   `"resumed":true`. While it runs it is the agent on that issue, and a writer at work for step 2.
 3. Anything else, spawn as step 4, after the two moves of "A dead writer" in step 3's table (you end
    the starter's token and make `back`; the writer you spawn makes `start`): no such comment, a line
    with no `agent` (every run before 2026-10-11), another session's agent, a token that has ended,
@@ -459,7 +490,7 @@ every other act with his session but the `approve` move (`rules.md`, Never).
 ## What the loop does not do
 
 - Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md`, which has one exception since 2026-10-11: the `approve` move on the owner's word of that issue in the session.
-- More than 8 writers or 4 reviewers at once, or two agents on one issue.
+- Two agents on one issue. (No number of writers or reviewers is set: step 2.)
 - Issues whose fix is in `exporter-3`, `robocoop-5`, the channel server or `lopecode`. Comment with the change wanted and label `needs-owner`.
 - Carry on past a cluster that is not healthy.
 
