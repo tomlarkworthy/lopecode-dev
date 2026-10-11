@@ -67,7 +67,8 @@ case 3 it reads the deployed number on a run that tested the build.
   when brain-shell joined it (`data-brain`), null with no block. The last line has each `from`
   seen. With a file that holds the module, a run whose `from` is not `document` is counted in
   `notTheFiles` and the exit is 3, before 1 and 2.
-- `agents/implementer.md` step 8 says to read `from`, and no longer that the cause is not known.
+- `agents/implementer.md` step 8 says to read `mains` and `from`, and no longer that the cause is not known.
+  `knowledge/changing-and-deploying-a-cloud-brain-worker.md` says what `--shell` does with a whole build.
 
 Two sides were open (`philosophy.md` line 2). The issue's triage took the smaller, a last line
 that says which module ran, because the cause was not known. With the cause known, cutting the
@@ -108,5 +109,3 @@ start line's `mains`; what `otherModules` read there was not looked at.
   `dv-3-deployer-opens-verify-html`. A test that fails only in that company is not met here.
 - `assembled` and `brainVerdict` on the owner's own page, where both still run: the owner's page
   holds the deployed modules, so `loadService` finds them the same and writes nothing. Not run.
-- `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md` names `--shell` in one line
-  and was left: the main checkout has that file open with uncommitted edits.
