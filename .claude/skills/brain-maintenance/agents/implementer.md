@@ -133,8 +133,8 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    It opens the deployer's run address 20 times with your build as the document, and reads only.
    The tool serves a build with its boot list cut to brain-shell and the Worker's module (`mains`
    in its first line), so your build's module runs, as the deployer's page runs a deployed one.
-   Read `from` in the last line first: `["document"]` says the module of each run was your
-   build's, and `tests` of a run then equals step 7's `passed + needsBrowser`. A `from` that
+   Read `mains` in the first line and `from` in the last: a list, and `["document"]`, say the
+   module of each run was your build's, and `tests` of a run then equals step 7's `passed + needsBrowser`. A `from` that
    names `brain`, or exit 3, says it was not: the 20 say nothing of your change, pass or fail.
    Say so in your comment and file it. (Until `verify-run-shell-runs-deployed` the whole build
    was served as it was. The page's own module, `assembled` of `cloud-brain.ojs`, then wrote the
@@ -147,7 +147,7 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    (`brain-deployer`: "the Worker did not say what it runs", exit 2) this command does not
    apply, so run the snippet in three fresh tabs and say so in your comment.
    `hash` is the deployed Worker's and not your build's. (`attention-block-unreadable-to-owner`: the writer's one pass gave `[23,[]]`,
-   review 698 failed the new test in 2 of 2 fresh tabs, and this command on that build,
+   review 698 failed the new test in 2 of 2 fresh tabs, and this command on that build, served whole as it then was,
    `lopebooks@07cc2ef2`, gave 5 failed of 10 and named it.)
    `run_tests` hangs on this notebook; do not use it. Do not define the observers inside the
    module under test: they would be written into the deployed source.
