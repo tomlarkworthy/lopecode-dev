@@ -9,7 +9,9 @@ the seed, not from a run, and no loss had been reported by the owner.
 The change is in `tools/cloud-brain/brain-feedback.ojs` alone. No Worker's module changed and nothing
 was deployed. **It is not on cb4 until the shell is posted**, which is done with the recovery key:
 `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts shell tools/cloud-brain/.emitted/feedback-draft-lost-on-reload-shell.html tools/cloud-brain/.emitted/feedback-draft-lost-on-reload-verify.html`.
-Those two files are the landing's build of `main`, copied there from the worktree. The command was not run.
+Those two files are the landing's build of `main`, copied there from the worktree. The command was not run
+by the writer: since event 2465 of `seen-shell-docs-behind-main` the orchestrating session posts the shell
+after each reviewed change to a module of it, on the owner's A (event 2395 there).
 
 Times are CEST, from `date` printed before each run.
 
@@ -97,15 +99,22 @@ Runs:
   copy in the first two; `feedbackKept is not defined` in the third). The extension of the fourth
   cell was written after the fix and was not run without it.
 - After, on the last build (the worktree rebased onto `e393a6b2`, which brought in `brain-issues.ojs`,
-  a seed this module does not import, and no other seed), 22:13:50:
+  a seed this module does not import, and no other seed), three times from 22:21:00:
   `bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/brain-feedback`:
-  `"tests":14,"passed":14,"failed":[]`. 14 is `grep -c "^test_" tools/cloud-brain/brain-feedback.ojs`:
+  `"tests":14,"passed":14,"failed":[]` each time. 14 is `grep -c "^test_" tools/cloud-brain/brain-feedback.ojs`:
   the 10 before, these 3, and 1 of `feedback-draft-box-redrawn-on-ask`, landed with this.
-- `bun tools/lope-tests.ts tools/cloud-brain/.emitted/cloud-brain.html --filter test_feedback`, 22:13:53:
+- `bun tools/lope-tests.ts tools/cloud-brain/.emitted/cloud-brain.html --filter test_feedback`, 22:21:09:
   `Tests: 14 passed, 0 failed, 0 timed out, 0 skipped, 14 total`.
-- The same `tab-tests.ts` command three times at 22:13:13, on the same seed before the rebase: 14 of
-  14 each time. `verify-run.ts --times 20`, which the brief asks for after a changed test, opens a
-  Worker's run address, and no Worker runs this module.
+- Two assertions were added to the new cells after the fix and were not run without it: a box moved
+  with `store.patch` after the last keystroke comes back with the box of that keystroke; and a draft
+  whose issue was opened before the page was loaded is, after one `sync`, one note, the issue's.
+- `verify-run.ts --times 20`, which the brief asks for after a changed test, opens a Worker's run
+  address, and no Worker runs this module. In its place: the three `tab-tests.ts` runs above.
+- The page a deploy's test run opens, on the built `verify.html`, 22:21:28, from the main checkout:
+  `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-page --shell $W/tools/cloud-brain/.emitted/verify.html --times 3`:
+  `"runs":3,"passed":3,"failed":0,"none":0,"from":["brain"],"hashes":["dedc19e1935b"],"byChance":[]`.
+  `from` is `brain`: the Worker's module was the deployed one. It shows the built verify page still
+  passes that run; it runs no test of `brain-feedback`.
 
 ### A real reload, in a headless Chrome
 
@@ -114,8 +123,9 @@ pane. `feedbackOn` is false on a file, so it redefines the cell `feedback` as th
 it, with the rig's tracker in the place of `brainClient`, annotate's own `a2Store`, and
 `feedbackKept("reload-check")`, the browser's `localStorage`. Then: `a2Layer.arm("note")` and a real
 click on the heading, the text typed with the keyboard, `page.reload()`, `feedback` redefined again.
-Run at 22:16:57 on the last build (Chrome 151.0.7922.34, the browser `tab-tests.ts` named), cut to
-what each line shows:
+Run at 22:16:57 (Chrome 151.0.7922.34, the browser `tab-tests.ts` named), on the build before the
+two assertions above were added to the tests; `feedbackApp` did not change after it. Cut to what each
+line shows:
 
 | Line | Notes in annotate's store | The box | `localStorage` |
 |---|---|---|---|
@@ -127,22 +137,24 @@ what each line shows:
 | 6 File pressed | `issue: fb-a2ldvubpaa` | `open fb-a2ldvubpaa` and the text | none; the rig got one `issue.open`, key `annotation/a2ldvubpaa` |
 | 7 after a second reload | none | none | none |
 
-`page errors: []`. Line 7 has no note because the rig's tracker is made new with the app and has no
+`page errors: []`. A screenshot of an earlier run at line 4 (22:14:13) has the box beside the
+heading that was clicked, with the text in it and File under it. Line 7 has no note because the rig's tracker is made new with the app and has no
 issue; on cb4 the list would give the filed one.
 
 ### Not tried
 
 - The owner's page. It needs the shell posted and the owner signed in; `feedbackOn` true was not
   seen with this change, and neither was the item `brain_feedback_drafts https://cb4…`.
-- Two tabs on one address. On the rig: a draft whose issue appears in the list becomes that issue's
-  note. Not run: two tabs typing in the same draft (the last keystroke is what is kept), and a tab
-  opened while another has a draft, which places that draft as a note of its own once.
+- Two tabs on one address, in a browser. On the rig: a draft whose issue appears in the list becomes
+  that issue's note. Read and not run: two tabs typing in the same draft (the last keystroke is what
+  is kept), and a tab opened while another has a draft, which places that draft as a note of its own once.
 - A kept anchor whose cell is gone or changed after a deploy of the page. The note is created with
   the anchor as kept; where annotate then draws it was not looked at.
 - A browser that refuses `localStorage`. The rig's `kept` throws in the test; a private window or a
   full store was not run.
 - The cluster's Chrome 128.
-- A box moved after the last keystroke: the copy has the box of that keystroke. Read, not run.
+- A box moved after the last keystroke, by hand in a browser. On the rig the note comes back with
+  the box of that keystroke.
 - Signing out. The item stays in the browser. With another account signed in `feedbackOn` is false
   and no app is made, so nothing reads it; that was read, not run. Any script of the page can read
   the item, as it can the session token beside it.

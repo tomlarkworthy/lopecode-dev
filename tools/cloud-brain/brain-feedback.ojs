@@ -480,11 +480,13 @@ test_feedback_a_draft_is_kept_over_a_rebuild_and_a_reload = {
   // Typed on: kept under the name it had, so there is one copy and the next load has the later text.
   type(el2, "The list is too long.");
   expect(rig.kept.get()).toEqual({ [a.id]: { text: "The list is too long.", anchor, box } });
+  // The box moved after the last keystroke: the copy has the box of that keystroke, and the note comes back there.
+  rig.store.patch(b.id, { box: { dx: 1, dy: 2, w: 300 } });
   rig.reload();
   const third = rig.app();
   await third.sync();
   const c = rig.store.all()[0], el3 = third.note(c.id);
-  expect([rig.cells.size, c.draft, el3.querySelector("textarea").value]).toEqual([1, a.id, "The list is too long."]);
+  expect([rig.cells.size, c.draft, c.box, el3.querySelector("textarea").value]).toEqual([1, a.id, box, "The list is too long."]);
   // Filed: the issue is named for the note the text was first typed in, the copy goes, and the next load places the issue's note alone.
   el3.querySelector("button").click();
   expect(await until(() => el3.querySelector("[data-feedback=open]"))).toBe(true);
@@ -541,6 +543,13 @@ test_feedback_a_kept_draft_goes_with_its_note_and_a_bad_copy_places_nothing = {
   await rig.client.procedure("issue.open", { id: "fb-" + c.id, title: "Refused once.", body: feedbackBody("Refused once.", { anchor, box: d.box }), kind: "feedback", about: "brain", labels: ["annotation"] });
   await tab.sync();
   expect([rig.store.all().map((n) => [n.id, n.issue]), tab.of.get(d.id), eld.querySelector("[data-feedback]").dataset.feedback, !!eld.querySelector("textarea"), rig.kept.get()]).toEqual([[[d.id, "fb-" + c.id]], "fb-" + c.id, "open", false, {}]);
+  // Filed from another tab before this page was loaded, with the copy still here: one ask, one note, the issue's.
+  const late = feedbackRig(), e = late.store.create(anchor, { kind: "feedback" });
+  type(late.app().note(e.id), "Filed elsewhere.");
+  await late.client.procedure("issue.open", { id: "fb-" + e.id, title: "Filed elsewhere.", body: feedbackBody("Filed elsewhere.", { anchor }), kind: "feedback", about: "brain", labels: ["annotation"] });
+  late.reload();
+  await late.app().sync();
+  expect([late.store.all().map((n) => [n.draft, n.issue]), late.kept.get()]).toEqual([[[e.id, "fb-" + e.id]], {}]);
   // A copy that is not what this module wrote places nothing and stops nothing.
   const anchor2 = { cell: "x" };
   for (const bad of ["text", 7, [1], { x: null }, { x: "s" }, { x: { text: 5, anchor: anchor2 } }, { x: { text: "  ", anchor: anchor2 } }, { x: { text: "t" } }, { x: { text: "t", anchor: "s" } }, { x: { text: "t", anchor: null } }]) {

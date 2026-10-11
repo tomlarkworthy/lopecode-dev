@@ -25,8 +25,8 @@ element and reads `triaged`; the draft's textarea is the same element with its t
 
 - Before the change, 22:13:08, `bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/brain-feedback`
   in the worktree: `"tests":14,"passed":13`, this one failed, the third value `false` where `true` was expected.
-- After, on the last build, 22:13:50, the same command: `"tests":14,"passed":14,"failed":[]`.
-  `bun tools/lope-tests.ts tools/cloud-brain/.emitted/cloud-brain.html --filter test_feedback`, 22:13:53: `Tests: 14 passed, 0 failed`.
+- After, on the last build, three times from 22:21:00, the same command: `"tests":14,"passed":14,"failed":[]` each time.
+  `bun tools/lope-tests.ts tools/cloud-brain/.emitted/cloud-brain.html --filter test_feedback`, 22:21:09: `Tests: 14 passed, 0 failed, 0 timed out, 0 skipped, 14 total`.
 
 ### Not tried
 
