@@ -670,7 +670,9 @@ groupTable = (data, { by = [] } = {}) => {
 }
 // %%
 // The body of one panel, from the answer of its query. A query that failed, a draw this page does not have, a draw
-// whose rows the panel's `by` does not give, and a span with no line are each said in the panel's place.
+// whose rows the panel's `by` does not give, and a span with no line are each said in the panel's place. An answer
+// Cloudflare made from a sample (`sampled` above 1, A query) says so under the panel, and beside "No lines" too:
+// a sample can leave a group with few lines out whole.
 panelBody = (panel, answer, { width } = {}) => {
   const line = (text) => htl.html`<i style="color:var(--theme-foreground-muted)">${text}</i>`;
   if (!answer) return line("metric.query was not asked.");
@@ -679,12 +681,14 @@ panelBody = (panel, answer, { width } = {}) => {
   if (!needs) return line(`This page has no draw "${panel.draw}".`);
   const lacks = needs.filter((k) => !by.includes(k));
   if (lacks.length) return line(`The draw "${panel.draw}" takes rows by ${needs.join(", ")}, and this panel's by has no ${lacks.join(", ")}.`);
-  if (!answer.series.length) return line("No lines in this span.");
+  const sample = answer.sampled > 1 ? `Cloudflare answered this from a sample of the lines (sampled ${answer.sampled}): each number is its estimate, and a group with few lines may be missing.` : null;
+  if (!answer.series.length) return line("No lines in this span." + (sample ? " " + sample : ""));
   const data = { since: answer.since, until: answer.until, step: answer.step, series: answer.series };
   // The charts made for Health name the sum `ms`.
   const calls = () => ({ ...data, series: answer.series.map((r) => ({ ...r, ms: r.sum || 0, max: r.max || 0 })) });
   const body = panel.draw === "bars" ? barsChart(data, { by, width }) : panel.draw === "table" ? groupTable(data, { by }) : panel.draw === "calls" ? requestsChart(calls(), { width }) : panel.draw === "faults" ? healthStrip(calls(), { width }) : methodTable(calls());
-  return answer.groups >= dashboardGroupLimit ? htl.html`<div>${body}<div style="color:var(--theme-foreground-muted)">${dashboardGroupLimit} groups is the limit of one answer: some lines may be missing.</div></div>` : body;
+  const under = [answer.groups >= dashboardGroupLimit ? `${dashboardGroupLimit} groups is the limit of one answer: some lines may be missing.` : null, sample].filter(Boolean);
+  return under.length ? htl.html`<div>${body}${under.map((text) => htl.html`<div style="color:var(--theme-foreground-muted)">${text}</div>`)}</div>` : body;
 }
 // %%
 // The line above the panels: the span, how many queries the panels were drawn from, and how many of those the
@@ -1535,6 +1539,15 @@ test_bars_and_a_table_draw_any_metric_and_a_panel_says_what_it_cannot_draw = {
   expect(dashboardGroupLimit).toBe(500);
   expect(panelBody(panel("table"), { ...counted, groups: 500 }).textContent).toContain("500 groups is the limit of one answer: some lines may be missing.");
   expect(panelBody(panel("table"), { ...counted, groups: 499 }).textContent).not.toContain("limit");
+  // dashboard-panel-does-not-say-sampled: an answer Cloudflare made from a sample says so, and one counted from every line does not.
+  const sampled = "Cloudflare answered this from a sample of the lines (sampled 10): each number is its estimate, and a group with few lines may be missing.";
+  expect([1, undefined, null, 0].map((n) => panelBody(panel("table"), { ...counted, sampled: n }).textContent.includes("sample"))).toEqual([false, false, false, false]);
+  expect(panelBody(panel("table"), { ...counted, sampled: 10 }).textContent).toContain(sampled);
+  expect(marks(panelBody(panel("bars"), { ...counted, sampled: 10 }, { width: 600 }), "rect")).toBeGreaterThan(2);
+  expect(panelBody(panel("bars"), { ...counted, sampled: 10 }, { width: 600 }).textContent).toContain(sampled);
+  expect(panelBody(panel("bars"), { ...counted, sampled: 10, series: [] }).textContent).toBe("No lines in this span. " + sampled);
+  // Both lines under one panel, the limit first.
+  expect([...panelBody(panel("table"), { ...counted, groups: 500, sampled: 2 }).querySelectorAll(":scope > div")].map((d) => d.textContent)).toEqual(["500 groups is the limit of one answer: some lines may be missing.", sampled.replace("sampled 10", "sampled 2")]);
   return "2 draws for any metric, 3 for core.calls, 5 lines";
 }
 // %%
