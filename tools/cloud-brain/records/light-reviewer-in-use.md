@@ -23,18 +23,37 @@ the same verdict, one of the two findings of event 195 and two that no round had
 
 ## Tests
 
-`bun test ./tests/tools/light-agent.test.ts`: 9 pass, 0 fail, 19 expects (2026-10-11). `bun test ./tests/tools`:
-169 pass, 0 fail, 20 files. The Brain in them is a server of the test process and `claude` a stand-in on PATH.
+`bun test ./tests/tools/light-agent.test.ts`: 12 pass, 0 fail, 35 expects (2026-10-11, round 2; 9 and 19 at the
+first submit). `bun test ./tests/tools`: 172 pass, 0 fail, 20 files. The Brain in them is a server of the test process and `claude` a stand-in on PATH.
 They cover the hook (a fetch each read, a 404, a Brain that does not answer, a path outside `brain/`, `..`),
 the arguments `agent.sh` gives `claude` and the JSON line it prints, and the refusals of `agent.sh` and `put.sh`.
 
 ## Not tried, not known
 
-- `put.sh` past its refusals has no test: its put, delete, history and index were run once each on cb4
-  (the reviewer's brief put; five files deleted; `static.list` showed six kept copies, not public).
+- `put.sh` on cb4: the put, the delete and the kept copy were run with the text of `4f14fc8` but for one line, the
+  date of the index, which was changed after those runs (review 1055, finding 1). The index was written by the
+  committed text in round 2. Its `--delete` on cb4 was not run again.
 - No review made this way was on the tracker when this was submitted. The review of this issue is the first.
 - A review that uses the tab. `TAB=1` opened and closed one tab.
 - Whether the hook fires for a `claude -p` of another version than 2.1.296.
 - The token `loop-roles` reaches every path of the file store; only `put.sh` uses it.
 - The rules ask for `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md` before `brain.ts`; no hook
   makes this reviewer read it, and the replayed one did not.
+
+## Round 2: the review of event 1055
+
+The first review made by the light reviewer: `changes`, six findings, 91,046 at its end, 444 s, $2.27
+(78,915 written to the cache, 1,226,622 read from it, 24,084 out), session `925f727d`. The four reviews of
+2026-10-10 and 10-11 nearest in kind are 100,725, 93,203 (an implementer), 98,045 and 81,039, from the journal.
+
+| Finding | What was done |
+|---|---|
+| 1. The index on cb4 was not written by the committed `put.sh` (a time in milliseconds) | The brief was put again with the committed script; the index reads `2026-10-11 15:01 UTC`. The line of this record that said otherwise is corrected above. |
+| 2. A kept copy could not be read back by any written step | `put.sh --history PATH` lists them, `put.sh --restore PATH NAME` makes one the file on disk. Run on cb4: the list gave two names; a restore of the first gave the brief as it was before the move; a name not there exits 1. `SKILL.md` and `agents/overseer.md` say so where they said `git revert`. |
+| 3. The brief names a scratchpad the process is not given | `agent.sh` makes a new directory and sends it as a fourth line, `scratch:`; the brief says `<your scratchpad>` is that line. |
+| 4. The hook fetched for one spelling of a path | The path is made plain (`os.path.normpath`, a relative one under the root) before it is compared. Five spellings are in the test. A path that leaves `brain/` by `..` is no longer refused: it is a path outside, and is not fetched. |
+| 5. No hook makes this process read the knowledge doc, and `rules.md` says one does | The brief now names the doc, says the hook is lopecode-dev's and does not run here, and that the read is the reviewer's to do before `brain.ts`. The sentence of `rules.md` is left: it is true of every other agent, and a change to that file is the owner's. |
+| 6. Two puts in one second gave the kept copy one name | The name ends with the first 8 of the copy's SHA-256. Two copies of different text in one second have two names; of the same text, one, which loses nothing. |
+
+Seen by the review and done: `SKILL.md` step 4 falls back to an Agent on exit 1 as well (a result that was an error).
+Seen and left: `put.sh --get` removes the local file on any answer but 200, as the hook does.

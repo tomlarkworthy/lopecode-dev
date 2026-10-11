@@ -5,7 +5,7 @@
 //   bun test ./tests/tools/light-agent.test.ts
 // No call leaves the machine: the Brain is a server of this process, and `claude` is a stand-in on PATH.
 import { test, expect, afterAll } from "bun:test";
-import { mkdtempSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, existsSync, chmodSync, realpathSync } from "node:fs";
+import { readdirSync, mkdtempSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, existsSync, chmodSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 
@@ -58,14 +58,25 @@ test("a Brain that does not answer is refused as that, not as a missing file", a
   expect([r.code, existsSync(join(dir, "brain/x.md")), /was not read/.test(r.err), /is not a file of/.test(r.err)]).toEqual([2, false, true, false]);
 });
 
-test("a path outside brain/ is not fetched, and .. is refused", async () => {
+test("a path outside brain/ is not fetched, also one that leaves it by ..", async () => {
   const dir = root();
   asked = [];
-  expect((await hook(dir, join(dir, "README.md"))).code).toBe(0);
-  expect((await hook(dir, "/etc/hosts")).code).toBe(0);
+  for (const file of [join(dir, "README.md"), "/etc/hosts", dir + "/brain/../../x", dir + "/brain/../README.md"]) expect((await hook(dir, file)).code).toBe(0);
   expect(asked).toEqual([]);
-  const r = await hook(dir, dir + "/brain/../../x");
-  expect([r.code, asked]).toEqual([2, []]);
+});
+
+// Review 1055, finding 4: three spellings of one file each read the old copy with no request.
+test("every spelling of a path under brain/ is fetched", async () => {
+  const dir = root();
+  files["roles/x.md"] = "new";
+  const base = dir.split("/").pop();
+  for (const file of [`${dir}/./brain/roles/x.md`, `${dir}//brain/roles/x.md`, `${dir}/../${base}/brain/roles/x.md`, "./brain/roles/x.md", `${dir}/brain/roles/../roles/x.md`]) {
+    mkdirSync(join(dir, "brain/roles"), { recursive: true });
+    writeFileSync(join(dir, "brain/roles/x.md"), "old");
+    asked = [];
+    const r = await hook(dir, file);
+    expect([file.replace(dir, ""), r.code, asked, readFileSync(join(dir, "brain/roles/x.md"), "utf8")]).toEqual([file.replace(dir, ""), 0, ["/static/cloud-brain-dev/roles/x.md"], "new"]);
+  }
 });
 
 // agent.sh with a `claude` that writes its arguments down and answers two lines of stream-json.
@@ -87,11 +98,14 @@ const rig = () => {
   };
 };
 
-test("agent.sh ROLE task: a prompt of three lines, four tools, no MCP server, and one JSON line back", async () => {
+test("agent.sh ROLE task: a prompt of four lines, four tools, no MCP server, and one JSON line back", async () => {
   const r = await rig()(["reviewer", "review issue x"]);
   expect(r.code).toBe(0);
   const s = r.sent!;
-  expect(s.slice(1, 4)).toEqual(["role: reviewer", `checkout: ${r.checkout}`, "task: review issue x"]);
+  expect([s[1], s[2], s[4]]).toEqual(["role: reviewer", `checkout: ${r.checkout}`, "task: review issue x"]);
+  // Review 1055, finding 3: the brief names a scratchpad and the prompt gave none.
+  const scratch = s[3].replace("scratch: ", "");
+  expect([s[3].startsWith("scratch: /"), existsSync(scratch), readdirSync(scratch)]).toEqual([true, true, []]);
   expect([s.includes("--strict-mcp-config"), s.includes("--mcp-config"), s[s.indexOf("--tools") + 1], s[s.indexOf("--allowedTools") + 1], s[s.indexOf("--add-dir") + 1], s[s.indexOf("--model") + 1]])
     .toEqual([true, false, "Bash,Read,Grep,Glob", "Bash,Read,Grep,Glob", r.checkout, "opus"]);
   expect(JSON.parse(r.out)).toEqual({ session: "s-1", result: "done", usd: 0.5, usage: { input: 4, cacheWrite: 20, cacheRead: 300, output: 9 }, context: 117, turns: 3, ms: 1200 });
@@ -129,4 +143,52 @@ test("put.sh refuses no path, a path with .., an absolute one and one written wi
   for (const args of [[], ["a/../b"], ["/etc/x"], ["brain/roles/x.md"], ["--delete"], ["--get", "../x"]])
     codes.push((await run([join(dev, "put.sh"), ...args], { PATH: `${join(dir, "bin")}:${process.env.PATH}` })).code);
   expect([codes, existsSync(join(dir, "called"))]).toEqual([[1, 1, 1, 1, 1, 1], false]);
+});
+
+// put.sh past its refusals, with stand-ins: `curl` answers what the Brain has now, `bun` (brain.ts) writes down each call.
+const putRig = () => {
+  const dir = root();
+  mkdirSync(join(dir, "bin"));
+  mkdirSync(join(dir, "dev/brain/roles"), { recursive: true });
+  copyFileSync(join(dev, "put.sh"), join(dir, "dev/put.sh"));
+  chmodSync(join(dir, "dev/put.sh"), 0o755);
+  writeFileSync(join(dir, "dev/brain/roles/x.md"), "edited");
+  writeFileSync(join(dir, "bin/curl"), `#!/bin/bash\nwhile [ $# -gt 0 ]; do [ "$1" = "-o" ] && cp "${dir}/now" "$2"; shift; done\nprintf 200\n`);
+  writeFileSync(join(dir, "bin/bun"), `#!/bin/bash\nprintf '%s\\n' "$3" >> "${dir}/calls"\ncase "$3" in *static.list*) cat "${dir}/list" ;; *static.get*) cat "${dir}/kept" ;; *) printf '{}' ;; esac\n`);
+  for (const tool of ["curl", "bun"]) chmodSync(join(dir, `bin/${tool}`), 0o755);
+  writeFileSync(join(dir, "list"), JSON.stringify({ files: [{ path: "cloud-brain-dev-history/roles/x.md/b", size: 1, savedAt: 0 }, { path: "cloud-brain-dev-history/roles/x.md/a", size: 1, savedAt: 0 }] }));
+  return {
+    dir,
+    put: (...args: string[]) => run([join(dir, "dev/put.sh"), ...args], { PATH: `${join(dir, "bin")}:${process.env.PATH}`, CHECKOUT: dir }),
+    calls: () => (existsSync(join(dir, "calls")) ? readFileSync(join(dir, "calls"), "utf8").trim().split("\n") : []),
+  };
+};
+
+// Review 1055, finding 6: two puts in one second gave the kept copy one name, and the second wrote over the first.
+test("put.sh keeps the copy before under its time and its content, so two puts in a second keep two", async () => {
+  const r = putRig();
+  const kept: string[] = [];
+  for (const now of ["first", "second"]) {
+    writeFileSync(join(r.dir, "now"), now);
+    expect((await r.put("roles/x.md")).code).toBe(0);
+    kept.push(r.calls().filter((c) => c.includes("put?path=cloud-brain-dev-history/")).pop()!);
+  }
+  const name = /put\?path=cloud-brain-dev-history\/roles\/x\.md\/\d{4}-\d\d-\d\dT\d\d-\d\d-\d\dZ-([0-9a-f]{8})$/;
+  const sha = (s: string) => new Bun.CryptoHasher("sha256").update(s).digest("hex").slice(0, 8);
+  expect(kept.map((k) => name.exec(k)?.[1])).toEqual([sha("first"), sha("second")]);
+  expect(r.calls().filter((c) => c.includes("put?path=cloud-brain-dev/roles/x.md&public=true")).length).toBe(2);
+  expect(r.calls().filter((c) => c.includes("put?path=cloud-brain-dev/index.md")).length).toBe(2);
+});
+
+// Review 1055, finding 2: a kept copy could not be read back by any written step.
+test("put.sh --history lists the kept copies, --restore makes one the file on disk and puts nothing", async () => {
+  const r = putRig();
+  expect((await r.put("--history", "roles/x.md")).out).toBe("a\nb\n");
+  writeFileSync(join(r.dir, "kept"), "as it was");
+  const got = await r.put("--restore", "roles/x.md", "a");
+  expect([got.code, readFileSync(join(r.dir, "dev/brain/roles/x.md"), "utf8"), r.calls().some((c) => c.includes("put?"))]).toEqual([0, "as it was", false]);
+  writeFileSync(join(r.dir, "kept"), JSON.stringify({ error: "NotFound" }));
+  const none = await r.put("--restore", "roles/x.md", "zz");
+  expect([none.code, readFileSync(join(r.dir, "dev/brain/roles/x.md"), "utf8")]).toEqual([1, "as it was"]);
+  expect((await r.put("--restore", "roles/x.md", "../a")).code).toBe(1);
 });

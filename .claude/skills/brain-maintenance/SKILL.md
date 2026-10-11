@@ -104,7 +104,7 @@ Two files beside it, neither of them needed to resume:
    `{ session, result, usd, usage, context, turns, ms }`: `result` is its report. In the `cost` comment
    `tokens` is `context`, `seconds` is `ms` over 1000, and the line has three more fields, `"usd"`, `"session"`
    (the `session` of that JSON, not yours) and `"light":true`; `tools` is left out. It is never sent
-   `--resume`. When the command prints no JSON line or exits 2, spawn the reviewer once as an Agent, as above:
+   `--resume`. When the command prints no JSON line, or exits 1 (the result was an error) or 2, spawn the reviewer once as an Agent, as above:
    the file `agents/reviewer.md` says where the brief is. Say so in the journal and in step 7.
    Measured before the switch: 25,212 after it had read its brief, the rules and `philosophy.md`, where an
    Agent told to answer "OK" is 40,842; one review replayed at 69,440 against 100,725 (the README has both,
@@ -320,7 +320,9 @@ Tom, 2026-10-10: the overseer "either files issues to improve the cluster OR twe
 to be better at doing their job". So it edits `agents/implementer.md`, the reviewer's brief (on the Brain
 since 2026-10-11, changed with `cloud-brain-dev/put.sh`, which keeps the copy before) and
 the procedure above directly, one commit an edit, each quoting the issue that showed the need.
-`git log -- .claude/skills/brain-maintenance` is the list; `git revert` undoes one.
+`git log -- .claude/skills/brain-maintenance` is the list; `git revert` undoes one. For the reviewer's brief the
+list is `cloud-brain-dev/put.sh --history roles/reviewer.md`, and `put.sh --restore roles/reviewer.md <name>` then
+`put.sh roles/reviewer.md` undoes one.
 
 It does not edit `rules.md` or its own brief, and it may not remove a check from any brief.
 Those go to the tracker as `major`, which lands at `awaiting-approval` for the owner. The cost of

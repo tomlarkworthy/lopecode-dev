@@ -96,7 +96,7 @@ Limits, so a bad round cannot compound:
   The reviewer's brief is not in git since 2026-10-11. It is a file of the Brain, and its edit is a put, not a
   commit: `cloud-brain-dev/put.sh --get roles/reviewer.md`, edit `cloud-brain-dev/brain/roles/reviewer.md`, then
   `cloud-brain-dev/put.sh roles/reviewer.md` (token `loop-roles`; the copy before is kept on the Brain under
-  `cloud-brain-dev-history/`). No lock. The entry in `oversight.md` carries what the commit message would have:
+  `cloud-brain-dev-history/`; `put.sh --history` lists them and `--restore` brings one back). No lock. The entry in `oversight.md` carries what the commit message would have:
   what changed, the issue, the event, what happened.
 - Edit by the smallest change that would have prevented what you saw. Do not rewrite a brief.
   Do not remove a step because one run did not need it.
