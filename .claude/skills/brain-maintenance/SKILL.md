@@ -113,6 +113,9 @@ Triage has you read the issue and the code; sometimes you then hold the whole fi
 writer to find it again was 167,000 tokens at the least on 2026-10-10. Take it yourself when the
 fix is in a brief, a doc, a record or a local tool, is one change, and needs no seed built and no
 deploy: `start` from `open` with the reason triage would have given, make the change in a worktree,
+write its record (`tools/cloud-brain/records/<id>.md`, as `agents/implementer.md` step 9 says; a
+change to a doc alone has one too: reviews 642, 645 and 686 each sent a quick win of yours back
+with "no record" among the findings),
 land it under `land.lock`, `submit` with the commit. The review is a reviewer's as for any issue.
 Anything in a seed goes to a writer. A writer does the same for what it meets beside its issue
 (`agents/implementer.md`, "A quick win"); a reviewer does not (it would be the writer).
