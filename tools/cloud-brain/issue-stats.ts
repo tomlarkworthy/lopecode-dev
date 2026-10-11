@@ -29,7 +29,7 @@ const workflows: Record<string, any> = {}, issues: Record<string, any> = {};
 for (const e of events) {
   if (e.type === "policy") for (const [n, h] of Object.entries(e.hashes)) workflows[h as string] = e.policy.workflows[n];
   if (!e.id || e.hidden || e.type === "policy") continue;
-  if (e.type === "opened") issues[e.id] = { id: e.id, kind: e.kind, opener: who(e.by), workflow: e.workflow, state: e.state, at: e.at, since: e.at, seq: e.seq, labels: new Set(e.labels || []), stays: [], moves: [], verdicts: [], asked: false, parent: e.parent, links: 0 };
+  if (e.type === "opened") issues[e.id] = { id: e.id, kind: e.kind, opener: who(e.by), workflow: e.workflow, state: e.state, at: e.at, since: e.at, seq: e.seq, labels: new Set(e.labels || []), stays: [], moves: [], verdicts: [], asked: (e.labels || []).includes("needs-owner"), parent: e.parent, links: 0 };
   const i = issues[e.id];
   if (!i) continue;
   i.last = e.at;
