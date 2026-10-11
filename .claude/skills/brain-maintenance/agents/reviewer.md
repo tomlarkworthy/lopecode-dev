@@ -110,6 +110,8 @@ would need a third agent to review it. Open the feedback ticket below, with the 
 Anything that seems off against one of the seven lines of `philosophy.md` and is not a finding on
 this issue: open a feedback ticket with `ir open`, kind `feedback`, id `seen-<short>`: what was
 seen, when, where to read it, which line. No fix in it (2026-10-11, `philosophy.md`, Clarifications).
+An id is 40 characters at most (`open` answers 400 for a longer one): open the ticket, or the
+issue above, before the body of your review names it, and name the id the call answered.
 
 ## A digest
 
