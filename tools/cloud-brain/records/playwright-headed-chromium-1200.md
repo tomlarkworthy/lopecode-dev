@@ -10,7 +10,7 @@ changed and nothing was deployed.
 ### What was wrong
 
 `tools/node_modules/playwright-core` is 1.57.0 and names build 1200. Run in `tools/` of the main
-checkout, 2026-10-11 16:22 CEST, before any change:
+checkout on 2026-10-11, before any change:
 
 ```
 headless=true  FAIL browserType.launch: Executable doesn't exist at …/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell
@@ -68,6 +68,7 @@ headless=false ok 151.0.7922.34
 
 `bun tools/lope-browser-runner.ts lopecode/notebooks/quick_start.html --list-cells` in the worktree
 printed the same stderr line, then `Variables: 4075`.
+`BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-logs --times 1` there: `passed` 1 of 1.
 
 | command, in the worktree | result |
 |---|---|
