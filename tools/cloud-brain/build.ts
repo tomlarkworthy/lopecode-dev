@@ -43,6 +43,7 @@ const MODULES = [
   { name: "@tomlarkworthy/cloud-brain", seed: "cloud-brain.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/cloud-brain-docs", seed: "cloud-brain-docs.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-secrets", seed: "brain-secrets.ojs", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-feedback", seed: "brain-feedback.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-db", seed: "brain-db.ojs", main: true, files: {} },
 ];
 // What a Worker of a Brain owns: the deployer's two, and one per service. The shell is the notebook without these.

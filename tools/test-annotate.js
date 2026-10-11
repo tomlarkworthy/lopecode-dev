@@ -1151,6 +1151,29 @@ try {
   check('a2-fold hides the bar and marks the box folded', boxLook.folded === 'true' && boxLook.bar === 'none', JSON.stringify(boxLook));
   await api(page, `store.remove(${JSON.stringify(stubRec.id)})`);
   await page.evaluate(() => window.__stubKindOff && window.__stubKindOff());
+
+  // A kind with a home keeps both cells in that module, at creation and after a patch, though the
+  // anchor names another module.
+  await page.evaluate(() => {
+    const rt = window.__ojs_runtime;
+    const mod = rt.mains.get('@tomlarkworthy/annotate');
+    const plugins = [...rt._variables].find((v) => v._module === mod && v._name === 'plugins')._value;
+    window.__homeKindOff = plugins.add('annotate-kinds', { id: 'homed', label: 'Homed', order: 6, home: '@tomlarkworthy/annotate-data', note: () => 'md`homed`' });
+  });
+  await page.waitForTimeout(600);
+  const homedId = await api(page, '(store.create({ module: "@tomlarkworthy/annotate", cell: "demoProse", surface: "element", frac: { x: 0.1, y: 0.1 } }, { kind: "homed" }) || {}).id');
+  await page.waitForTimeout(600);
+  const where = (id) => api(page, `({ home: (store.get(${JSON.stringify(id)}) || {}).home, inData: !!data._scope.get("annotation_${id}") && !!data._scope.get("annotation_${id}_note"), inAnchor: !!mod._scope.get("annotation_${id}") || !!mod._scope.get("annotation_${id}_note") })`);
+  const homedAt = await where(homedId);
+  check('a kind with a home places both cells in that module', homedAt.home === '@tomlarkworthy/annotate-data' && homedAt.inData && !homedAt.inAnchor, JSON.stringify(homedAt));
+  await api(page, `store.patch(${JSON.stringify(homedId)}, { box: { dx: 10, dy: 10, w: 200 } })`);
+  await page.waitForTimeout(600);
+  const homedAfter = await where(homedId);
+  check('a patch leaves them there', homedAfter.home === '@tomlarkworthy/annotate-data' && homedAfter.inData && !homedAfter.inAnchor, JSON.stringify(homedAfter));
+  const homedShown = await page.evaluate((id) => !!document.querySelector(`[data-ann-id="${id}"]`), homedId);
+  check('and the box is painted over the annotated module', homedShown);
+  await api(page, `store.remove(${JSON.stringify(homedId)})`);
+  await page.evaluate(() => window.__homeKindOff && window.__homeKindOff());
   await page.waitForTimeout(400);
   const kindIdsAfter = await api(page, 'mod._scope.get("a2KindsRef")._value.all().map((k) => k.id)');
   check('unregistering the kind removes it', JSON.stringify(kindIdsAfter) === '["note"]', JSON.stringify(kindIdsAfter));

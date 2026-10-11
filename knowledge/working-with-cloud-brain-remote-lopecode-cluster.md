@@ -59,7 +59,7 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
   `issue.verify?guards=true`; design and amendments in `plan/cloud-brain-issues.md`), git (repositories kept by Cloudflare Artifacts:
   `git.create?name=`, `git.token?name=&scope=&seconds=`, then plain `git` against Cloudflare's address with the token; a member's
   repository is their own; a repository the owner names in the setting `public` of `brain-x-git` is cloned by anyone from `/git/NAME.git`; record in `tools/cloud-brain/records/brain-git.md`). `<base>-x-page` is built from
-  `@tomlarkworthy/cloud-brain`. `brain-secrets` is a module of the page, not a Worker.
+  `@tomlarkworthy/cloud-brain`. `brain-secrets` is a module of the page, not a Worker. So is `brain-feedback` (since 2026-10-11): the owner annotates the page, the note is filed as a `feedback` issue with the label `annotation` and shows that issue from then on (`tools/cloud-brain/records/annotations-file-feedback.md`).
 - **Database** (`<base>-db`): the rows every Worker keeps go through it.
 - **Deployer** (`<base>-deployer`): the only holder of a Cloudflare token. It applies recipes,
   health-checks, puts a bad version back, and mints narrow tokens for services that declare them.

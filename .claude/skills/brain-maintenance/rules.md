@@ -131,3 +131,17 @@ BRAIN_BASE=cb4 bun <root>/tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.bra
   `author` to the owner or a member, not to a token of the loop. Until a read exists, a message
   for a member is a comment on the issue, for the owner to pass on.
 - First sent 2026-10-11 09:28 CEST, to the owner, answer `{"sent":true}`. A second at 10:48. Tom, the same day: "yes the messages got to me". Put the answer of your call in your report.
+
+## A feedback issue from a note on the page
+
+A `feedback` issue with the label `annotation` was written by the owner on the Brain's page, on the
+thing it is about (`tools/cloud-brain/brain-feedback.ojs`, since 2026-10-11). Its body ends with a
+sentence that says where (module, cell, the text there) and the anchor as JSON.
+
+- The owner reads the issue in a note on his page: the state, its parent and links, and the last
+  comment, move or review. Write those for him: a comment that says what was found, a close whose
+  reason says what changed and what runs now.
+- Never take the label `annotation` off, and never put it on another issue. Taking it off removes the
+  note from his page for good; that is his Remove, after the close.
+- Work on it as on any feedback: link it, make it part of a project, or close it with the reason.
+

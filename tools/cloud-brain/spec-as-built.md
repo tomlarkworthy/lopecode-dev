@@ -5132,3 +5132,12 @@ Tests: none run. No seed changed.
 Not tried: pressing the button on cb4; a page loaded with the default layout (the panel was put in
 view with `--view`; where the owner opens it from was not looked up); a screenshot (the QA
 screenshot tool reads a local browser, not the cluster's); a tab kept open across a deploy.
+
+## A note on the page files a feedback issue (2026-10-11 15:30 CEST): the shell, no Worker
+
+`@tomlarkworthy/brain-feedback`, a module of the page. The owner places a note of kind Feedback with
+`@tomlarkworthy/annotate`; File sends `issue.open` (kind `feedback`, label `annotation`, the anchor in
+the body); a page load reads `issue.list?label=annotation` and places a note for each; the note shows
+the issue's state and last event, reads Done when it is closed, and Remove takes the label off.
+`annotate` gained `home` for a kind. Record: `tools/cloud-brain/records/annotations-file-feedback.md`.
+
