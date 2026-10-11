@@ -1,0 +1,33 @@
+// The docs line on Health says where the note is drawn and what asks for the calls again, as the page's seed has
+// them. Round 1 of ds-2-span-and-refresh-controls wrote "under the charts" and "at no other time"; the note is
+// drawn before the panels, and `calls` also names assembled, session and client (review 1202).
+//
+//   bun test ./tests/tools/health-docs-say-what-the-page-does.test.ts
+import { test, expect } from "bun:test";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+const seed = (name: string) => readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain", name), "utf8");
+const cells = seed("cloud-brain.ojs").split("\n// %%\n");
+const cell = (start: string) => cells.map((c) => c.replace(/^(\/\/.*\n)+/, "")).find((c) => c.startsWith(start)) || "";
+const health = seed("cloud-brain-docs.ojs").split("\n").find((l) => l.includes("The Health section of the page")) || "";
+
+test("the cells the docs line is about are found in the seed", () => {
+  expect(cell("dashboard = ")).toContain("${note ?");
+  expect(cell("calls = ")).toContain("callsRead(");
+  expect(health).toContain("logs.query");
+});
+
+test("the docs say the note is where dashboard draws it: before the grid of panels", () => {
+  const d = cell("dashboard = ");
+  expect(d.indexOf("${note ?")).toBeLessThan(d.indexOf("display:grid"));
+  expect(health).toContain("The line above the charts");
+  expect(health).not.toContain("under the charts");
+});
+
+test("the docs do not say only the two controls ask again: calls names assembled, session and client", () => {
+  const c = cell("calls = ");
+  for (const name of ["assembled", "session", "client", "timeRange"]) expect(c).toContain(name);
+  expect(health).not.toContain("at no other time");
+  expect(health).toContain("signs in or assembles its Workers' modules again");
+});

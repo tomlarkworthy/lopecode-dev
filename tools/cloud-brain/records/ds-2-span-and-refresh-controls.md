@@ -168,7 +168,12 @@ record emitted in the tab had the hash cb4 runs, `b0482128c42c`. The notebook di
 | `cd $W/cloud-brain-dev && bun test.ts brain-x-page` (what cb4 runs, hash `b0482128c42c…`) | `passed` 8, `failed` 0, `needsBrowser` 11 |
 | `… bun test.ts brain-x-page --with $W/tools/cloud-brain/.emitted/ds-2.js` | `passed` 8, `failed` 0, `needsBrowser` 11 |
 | the snippet of the brief's step 8 in a fresh QA tab on the build (`r=8304`, 16:31:31 UTC) | `[19,[]]`. 19 is 8 + 11; the other writer's change added one test. |
+| `bun test ./tests/tools/health-docs-say-what-the-page-does.test.ts`, in the worktree | 3 pass, 0 fail. With `cloud-brain-docs.ojs` as round 1 left it (`git show 870cd992:…`) in its place: 1 pass, 2 fail. |
+| `bun test ./tests/tools`, in the worktree | 195 pass, 0 fail |
 
-Not tried in round 2: `verify-run.ts` (no `test_*` cell was added or changed); a test that holds
-the docs to the layout (none was written: the sentence is prose, and `tests/` has no file that
-reads `cloud-brain-docs.ojs`); the docs line on cb4, which is still the owner's `brain.ts shell`.
+The new file under `tests/tools/` reads the two seeds as text: `dashboard` has its note before
+the grid and the docs line says "The line above the charts"; `calls` names `assembled`,
+`session`, `client` and `timeRange` and the docs line does not say "at no other time". It holds
+the sentence to those words, not to what a reader understands by them.
+
+Not tried in round 2: `verify-run.ts` (no `test_*` cell was added or changed); the docs line on cb4, which is still the owner's `brain.ts shell`.
