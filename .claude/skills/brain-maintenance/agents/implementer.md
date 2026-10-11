@@ -125,6 +125,18 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    wall clock, assigns nothing to `console` or another global, counts calls and reads returns
    only on a panel made with `listen: false`, and does not rest on which of two calls of a fake
    answers first unless the rig holds one. One it does not meet goes in "not tried" by name.
+   One pass of the snippet does not show a test meets that. When you added or changed a
+   `test_*` cell, after the snippet and not in its place, from the main checkout
+   (`run_in_background`; 22 s a run on 2026-10-11, the whole page boots):
+   `cd <root> && BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts <worker> --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20`.
+   It opens the deployer's run address 20 times with your build as the document, and reads only.
+   Its last line is the result: `failed` is 0 and `byChance` is `[]`, and `passed` of `runs` goes
+   in your comment. A test named in `byChance` passed and failed on one build: back to step 6.
+   Do not read the exit code, which is 1 while any other module runs a test (`otherTestsRan`,
+   446 with a whole build as the document), nor `hash`, which is the deployed Worker's and not
+   your build's. (`attention-block-unreadable-to-owner`: the writer's one pass gave `[23,[]]`,
+   review 698 failed the new test in 2 of 2 fresh tabs, and this command on that build,
+   `lopebooks@07cc2ef2`, gave 5 failed of 10 and named it.)
    `run_tests` hangs on this notebook; do not use it. Do not define the observers inside the
    module under test: they would be written into the deployed source.
    The `bad` list has each failure's message. A count here that differs from step 7's
