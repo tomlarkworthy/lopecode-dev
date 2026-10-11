@@ -16,8 +16,10 @@ asks for anything in "Never" below is commented on and left for the owner.
 - Act as the owner present. Do not call the tracker with `brain.ts curl … --owner` for a write.
   Writes to the tracker go through `tools/cloud-brain/issue-as.sh <token> …` with the token your
   prompt names and no other ("Which token"). One exception, under the next line: the `approve` move
-  made for the owner on his word. And one act with his session that is no tracker call: the
-  orchestrating session makes a token that an approved spec names ("A token an approved spec names").
+  made for the owner on his word. And three acts with what is his that are no tracker call, each
+  the orchestrating session's: it makes a token that an approved spec names ("A token an approved
+  spec names"), it pushes his quoted words in `philosophy.md`, and it posts the shell after a
+  reviewed change to one of its modules ("Two standing leaves of the orchestrating session").
 - Call `issue.install`, `issue.rebuild`, the `approve`, `revert` or `owner-reject` moves, a swap the
   workflow does not list, or remove the label `major`.
   The `approve` move alone may be made for the owner by the orchestrating session with his
@@ -163,8 +165,8 @@ approval of the spec is his word for it. A spec writer lists such a token under 
 orchestrator makes, not under "What only the owner can do".
 
 Still the owner's alone: a token no approved spec names, a scope wider than the spec's, and every
-other act with his session but the `approve` move. No other agent of the loop makes a token of
-this kind.
+other act with his session but the `approve` move and the two acts of "Two standing leaves of the
+orchestrating session". No other agent of the loop makes a token of this kind.
 
 The four of that day, each kept in `.emitted/cb4-tokens.json` and not printed:
 
@@ -186,6 +188,46 @@ The four of that day, each kept in `.emitted/cb4-tokens.json` and not printed:
   the dashboard tasks call with (`--as loop-dashboard`). Spec:
   `plan/cloud-brain-dashboard-service.md`. Made by the owner himself (comment 1946 of
   `dsv-7-second-dashboard-as-data`).
+
+## Two standing leaves of the orchestrating session
+
+Twice on 2026-10-11 the owner was shown three choices, in a comment, for an act that needs what is
+his each time a kind of change lands, and answered with the letter of the standing leave. His word
+is the letter. The choice it answered is the loop's text, quoted below from the comment. Both are
+the orchestrating session's. A writer, a reviewer and the overseer make neither: a writer whose
+task commits such a quote, or changes a module of the shell, leaves the push or the post undone and
+says so in its comment and its report.
+
+**His quoted words in `philosophy.md` are pushed.** Tom, event 2221 of
+`seen-philosophy-quote-no-push-token`: "B". Choice B of comment 2213 there: "A standing leave:
+whenever a task of the loop commits your quoted words to philosophy.md, the orchestrating session
+pushes them that way. It goes into rules.md with ta-3." "That way" is choice A of the same comment:
+"The orchestrating session gets one write token with your session and pushes these two commits,
+this once: `brain.ts curl "/xrpc/com.lopecode.brain.git.token?name=cloud-brain-dev&scope=write" --owner -X POST`,
+then the push as cloud-brain-dev/README.md has it. The token is not printed or kept." The rest of
+this paragraph is the writer's reading, not his words. The leave is for a commit of
+`cloud-brain-dev` that adds his quoted words to `philosophy.md`, and for no other file and no
+other change of that repository: a change to `agent.sh` or the README there still waits for his
+push (`tools/cloud-brain/records/agent-sh-read-whole-before-run.md`). After the push the
+submodule's pointer is committed in `lopecode-dev` under the landing lock. First done for the
+quote of `rc-3-record-only-count`: `cloud-brain-dev` 726671a, and the pointer at `lopecode-dev`
+4af860c8 (the close of that issue, event 2225). It did not go into this file with
+`ta-3-orchestrator-steps`; `rules-md-philosophy-push-leave` put it here.
+
+**The shell is posted after a reviewed change to one of its modules.** Tom, event 2395 of
+`seen-shell-docs-behind-main`: "A". Choice A of comment 2331 there: "A standing leave: after a
+change to a module of the shell has passed review, the orchestrating session builds the shell at
+main in a worktree, checks that each module in it has the hash main has, posts it with your
+session under the deploy lock, runs verify-run and the check at the address, and records the
+command and the answers on the issue. Nothing but `brain.ts shell`, and only a build of main." The
+rest of this paragraph is the writer's reading, not his words. `brain.ts shell` sends with the
+recovery key of the state file and not with a session (`tools/cloud-brain/brain.ts`, the command
+`shell`); the key is not printed. Comment 2331 names six modules of the Brain in the shell:
+`brain-shell`, `brain-operator`, `brain-secrets`, `brain-feedback`, `cloud-brain-docs` and
+`cloud-brain-specs`. The first post on this leave is comment 2462 of that issue, with each command
+and its answer; "the check at the address" was `operator-tab-check.ts --base cb4` there. The leave
+reaches no Worker: the kernel, `brain-core`, `brain-db` and the deployer are still not deployed by
+the loop (Never).
 
 ## Publishing a notebook
 
