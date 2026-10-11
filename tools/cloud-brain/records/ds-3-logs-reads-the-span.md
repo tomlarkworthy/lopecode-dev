@@ -12,7 +12,7 @@ commit's author time is 19:15:34 +0200 (`git log --format=%ci`).
 |---|---|
 | `logsView` | Takes `span` and `invalidation` beside `client` and `now`. Its "Last" select is made from `spanOptions` (the literal `Map` of five spans it had is gone), and with a `span` it is `Inputs.bind(last, span, invalidation)`. With no `span` it is a select of its own, as before. |
 | `logsPanel` | `logsView({ client: brain ? client : null, span: viewof span, invalidation })`. |
-| `test_logs_panel_asks_cloudflare_and_a_row_filters_by_its_trace` | Seven lines added at its end, for R1 (below). Its earlier assertions are as they were. |
+| `test_logs_panel_asks_cloudflare_and_a_row_filters_by_its_trace` | 14 lines added at its end: one comment and 13 of code, 4 of them `expect`, for R1 (below). Its earlier assertions are as they were. |
 
 `logsPanel` names the control and not its value, so a change of the span does not make the panel
 again. The compiled inputs, `grep` on the module read out of the build with
@@ -94,8 +94,9 @@ Where they are: two labels "Last" on the page. The one of Health is at 126 px fr
 the `h2` "Health" (92). The one of Logs is at 2697 px, under the `h2` "Logs" (2596) and its line of
 text, the first control of the panel, where it was.
 
-In the stood-in tab the page had 5 `.observablehq--error`. They were not read; the spec expects
-other cells that read `client` to throw on this stand-in, and the tab with no session has none.
+In the stood-in tab the page had 5 `.observablehq--error`. They were not read, so which cells they
+are is not known. The spec says of this stand-in that "whether other cells of the page that read `client` throw on this
+stand-in was not tried; they may". The tab with no session has none.
 
 ## Not chosen
 
@@ -114,3 +115,26 @@ cell would hold the same number.
 - Whether the bind's listener is removed when `logsPanel` runs again (a sign-in or sign-out). The
   cell passes its `invalidation`; no count of listeners was made.
 - The page in two panes, or with the Logs section scrolled out of view when Health's select changes.
+
+## Round 2, 2026-10-11
+
+Review 1424 (19:26:08 +0200, the event's `at`) held the code, the deploy and the tests, and found two
+sentences of this record untrue. Both are changed above, in place. No seed changed, nothing was built or deployed.
+
+1. The table under "What changed" said "Seven lines added" to the test. The commit adds 14:
+
+   ```
+   git show eefc16a2 -- tools/cloud-brain/cloud-brain.ojs | awk '/^@@ -636/{f=1} f&&/^\+/' | wc -l      14
+   ```
+
+   Seven was not counted; it was written from memory of the test.
+2. "On the page, in a tab" said the spec expected other cells to throw on the stand-in. The spec says
+   they may and that it was not tried (lines 299 to 300 of the plan). The sentence now quotes it.
+
+The review also ran what round 1 listed as not tried, whether the bind is ended when `logsPanel` runs
+again: with the panel made again, a change under Health reached the new panel's select and not the
+old one's. That is the reviewer's run, not the writer's.
+
+`tests/tools/ds-3-record.test.ts` holds both sentences: the three numbers of the table's line against
+the lines of the seed's test, and the spec's own words in the record. `bun test ./tests/tools/ds-3-record.test.ts`
+before the edit: 0 pass, 2 fail. After: 2 pass, 0 fail.
