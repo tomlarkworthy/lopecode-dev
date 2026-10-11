@@ -5,7 +5,7 @@
 //   bun test ./tests/tools/light-agent.test.ts
 // No call leaves the machine: the Brain is a server of this process, and `claude` is a stand-in on PATH.
 import { test, expect, afterAll } from "bun:test";
-import { readdirSync, mkdtempSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, existsSync, chmodSync, realpathSync } from "node:fs";
+import { symlinkSync, mkdtempSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, existsSync, chmodSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 
@@ -79,6 +79,25 @@ test("every spelling of a path under brain/ is fetched", async () => {
   }
 });
 
+// Review 1059, finding 2: a path through a symlink read the old copy with no request.
+test("a path under brain/ reached through a symlink is fetched", async () => {
+  const dir = root();
+  const link = join(root(), "link");
+  symlinkSync(dir, link);
+  mkdirSync(join(dir, "brain/roles"), { recursive: true });
+  symlinkSync(join(dir, "brain"), join(dir, "b2"));
+  files["roles/x.md"] = "new";
+  // the file through a linked root; the project directory given as the link; brain through a link; /var for /private/var
+  const cases: [string, string][] = [[dir, `${link}/brain/roles/x.md`], [link, `${dir}/brain/roles/x.md`], [dir, `${dir}/b2/roles/x.md`]];
+  if (dir.startsWith("/private/")) cases.push([dir, `${dir.slice("/private".length)}/brain/roles/x.md`]);
+  for (const [project, file] of cases) {
+    writeFileSync(join(dir, "brain/roles/x.md"), "old");
+    asked = [];
+    const r = await hook(project, file);
+    expect([r.code, asked, readFileSync(join(dir, "brain/roles/x.md"), "utf8")]).toEqual([0, ["/static/cloud-brain-dev/roles/x.md"], "new"]);
+  }
+});
+
 // agent.sh with a `claude` that writes its arguments down and answers two lines of stream-json.
 const rig = () => {
   const dir = root();
@@ -90,11 +109,11 @@ const rig = () => {
     { type: "assistant", message: { usage: { input_tokens: 2, cache_creation_input_tokens: 10, cache_read_input_tokens: 100, output_tokens: 5 } } },
     { type: "result", session_id: "s-1", result: "done", total_cost_usd: 0.5, num_turns: 3, duration_ms: 1200, usage: { input_tokens: 4, cache_creation_input_tokens: 20, cache_read_input_tokens: 300, output_tokens: 9 } },
   ];
-  writeFileSync(join(dir, "bin/claude"), `#!/bin/bash\nprintf '%s\\n' "$@" > "${dir}/sent"\ncat <<'EOF'\n${lines.map((l) => JSON.stringify(l)).join("\n")}\nEOF\n`);
+  writeFileSync(join(dir, "bin/claude"), `#!/bin/bash\nprintf '%s\\n' "$@" > "${dir}/sent"\nS=$(printf '%s\\n' "$2" | sed -n 's/^scratch: //p'); [ -n "$S" ] && [ -d "$S" ] && [ -z "$(ls -A "$S")" ] && touch "${dir}/scratch-was-there"\ncat <<'EOF'\n${lines.map((l) => JSON.stringify(l)).join("\n")}\nEOF\n`);
   chmodSync(join(dir, "bin/claude"), 0o755);
   return async (args: string[], env: Record<string, string> = {}) => {
     const r = await run([join(dir, "agent.sh"), ...args], { PATH: `${join(dir, "bin")}:${process.env.PATH}`, CHECKOUT: join(dir, "checkout"), TAB: "", MODEL: "", ...env });
-    return { ...r, sent: existsSync(join(dir, "sent")) ? readFileSync(join(dir, "sent"), "utf8").split("\n") : null, checkout: join(dir, "checkout") };
+    return { ...r, scratchWasThere: existsSync(join(dir, "scratch-was-there")), sent: existsSync(join(dir, "sent")) ? readFileSync(join(dir, "sent"), "utf8").split("\n") : null, checkout: join(dir, "checkout") };
   };
 };
 
@@ -105,7 +124,8 @@ test("agent.sh ROLE task: a prompt of four lines, four tools, no MCP server, and
   expect([s[1], s[2], s[4]]).toEqual(["role: reviewer", `checkout: ${r.checkout}`, "task: review issue x"]);
   // Review 1055, finding 3: the brief names a scratchpad and the prompt gave none.
   const scratch = s[3].replace("scratch: ", "");
-  expect([s[3].startsWith("scratch: /"), existsSync(scratch), readdirSync(scratch)]).toEqual([true, true, []]);
+  // Review 1059, finding 3: nothing removed it. It is there and empty while claude runs, and gone after.
+  expect([s[3].startsWith("scratch: /"), r.scratchWasThere, existsSync(scratch)]).toEqual([true, true, false]);
   expect([s.includes("--strict-mcp-config"), s.includes("--mcp-config"), s[s.indexOf("--tools") + 1], s[s.indexOf("--allowedTools") + 1], s[s.indexOf("--add-dir") + 1], s[s.indexOf("--model") + 1]])
     .toEqual([true, false, "Bash,Read,Grep,Glob", "Bash,Read,Grep,Glob", r.checkout, "opus"]);
   expect(JSON.parse(r.out)).toEqual({ session: "s-1", result: "done", usd: 0.5, usage: { input: 4, cacheWrite: 20, cacheRead: 300, output: 9 }, context: 117, turns: 3, ms: 1200 });

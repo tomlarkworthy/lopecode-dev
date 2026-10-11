@@ -23,8 +23,8 @@ the same verdict, one of the two findings of event 195 and two that no round had
 
 ## Tests
 
-`bun test ./tests/tools/light-agent.test.ts`: 12 pass, 0 fail, 35 expects (2026-10-11, round 2; 9 and 19 at the
-first submit). `bun test ./tests/tools`: 172 pass, 0 fail, 20 files. The Brain in them is a server of the test process and `claude` a stand-in on PATH.
+`bun test ./tests/tools/light-agent.test.ts`: 13 pass, 0 fail (2026-10-11, round 3; 12 at round 2, 9 at the
+first submit). `bun test ./tests/tools`: 173 pass, 0 fail, 20 files. The Brain in them is a server of the test process and `claude` a stand-in on PATH.
 They cover the hook (a fetch each read, a 404, a Brain that does not answer, a path outside `brain/`, `..`),
 the arguments `agent.sh` gives `claude` and the JSON line it prints, and the refusals of `agent.sh` and `put.sh`.
 
@@ -43,8 +43,8 @@ the arguments `agent.sh` gives `claude` and the JSON line it prints, and the ref
 ## Round 2: the review of event 1055
 
 The first review made by the light reviewer: `changes`, six findings, 91,046 at its end, 444 s, $2.27
-(78,915 written to the cache, 1,226,622 read from it, 24,084 out), session `925f727d`. The 55 reviewer
-runs with a count in the loop's journal (2026-10-10 and 10-11) have a median of 107,955, lowest 72,754.
+(78,915 written to the cache, 1,226,622 read from it, 24,084 out), session `925f727d`. The reviewer
+runs of the loop before it have a median of about 109,000 by three counts (round 3 below).
 
 | Finding | What was done |
 |---|---|
@@ -57,3 +57,14 @@ runs with a count in the loop's journal (2026-10-10 and 10-11) have a median of 
 
 Seen by the review and done: `SKILL.md` step 4 falls back to an Agent on exit 1 as well (a result that was an error).
 Seen and left: `put.sh --get` removes the local file on any answer but 200, as the hook does.
+
+## Round 3: the review of event 1059
+
+`changes`, three findings, 86,421 at its end, 512 s, $2.43 (73,983 written to the cache, 1,584,136 read from it,
+21,454 out), session `a3c42656`. The six of round 1 were all answered.
+
+| Finding | What was done |
+|---|---|
+| 1. "55 reviewer runs, median 107,955" did not reproduce | The number was this session's count of the journal earlier in the day, with a script that is not in the repository, and the journal has grown since. It is taken out. The reviewer's three counts stand in its place: 79 journal headings that name a reviewer and a count, median 109,954; 73 that begin with "reviewer", median 109,954, lowest 72,754; 72 `cost` comments of role reviewer and not light over the 100 issues `list` answers, median 109,172.5, lowest 72,754 (event 1059). |
+| 2. Five spellings still skipped the fetch | The hook resolves the path and the root with `os.path.realpath`, which closes the four that go through a symlink (the root, `brain`, the project directory, `/var` for `/private/var`); each is in the test. `Brain/` in capitals on a disk that does not tell the two apart is not closed, and the hook's comment says so. |
+| 3. Nothing removed a scratch directory; the brief still called it shared | `agent.sh` removes it when the run ends (a trap). The brief's step 4 no longer says it is shared, and its header says what `<your scratchpad>` is for a reviewer spawned as an Agent, which has no `scratch:` line. The directories earlier runs left under `$TMPDIR` are not removed by this. |
