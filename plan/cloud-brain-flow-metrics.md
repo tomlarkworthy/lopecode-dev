@@ -248,6 +248,10 @@ shape `metric.query` answers, so the page's draws take it:
 
 `flow.stays` has one more value of `state`, `needs-owner`, with `waits: "owner"`.
 
+`flow.open` is of the moment `until`. It does not read `since`: an issue opened before the span
+and still open is a row, which is what R4 asks. Its check sends `until` alone. Once the rows of a
+step are added (no `id` in `by`), `t` is the start of the step.
+
 `by` and a filter name dimensions of the metric, as for `metric.query`; any other name is 400.
 With `by=id` a row is one issue, which is what a point and a percentile are made from. Without it
 the rows of a step are added: `n` the issues, `sum` and `max` of the value. So throughput a day is
