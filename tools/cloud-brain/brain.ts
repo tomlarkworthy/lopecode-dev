@@ -6,7 +6,7 @@
  *   bun tools/cloud-brain/brain.ts apply core.json [...] --reason="why"   # infra.apply with the recovery key; --reason= is required here and by redistil --apply, remove and rollback
  *   bun tools/cloud-brain/brain.ts saw [name…]   # seen.json: the hash each seed here is built on, sent as `was` by apply and remove; with names, record what runs now (after comparing its source with the emitted record, or merging it). A Worker with no entry: its first apply is refused and says what to compare
  *   bun tools/cloud-brain/brain.ts state | confirm <worker> | approval on|off | approve | rollback | remove <name>
- *   bun tools/cloud-brain/brain.ts redistil | distil | bindings | shell   # redistil: each Worker against its source, "same" when healthy; --apply deploys the ones that differ and moves the seen.json entry of each one whose entry was the hash before
+ *   bun tools/cloud-brain/brain.ts redistil | distil | bindings | shell [SHELL.html [VERIFY.html]]   # shell: posts .emitted/verify.html (infra.shell?name=verify, the page of a deploy's test run) and then .emitted/shell.html, with the recovery key; neither when one is not there. redistil: each Worker against its source, "same" when healthy; --apply deploys the ones that differ and moves the seen.json entry of each one whose entry was the hash before
  *   bun tools/cloud-brain/brain.ts curl <path> [--owner] [-X POST -d '{}']   # the kernel; --owner or --other sends a minted session as Authorization: Bearer. stdout is the body alone; the status, ` [200]`, is on stderr
  *   bun tools/cloud-brain/brain.ts curl <path> --as NAME [-X POST -d '{}']       # the same call with the token NAME of .emitted/<base>-tokens.json. A token is not the owner present; an agent's writes go this way
  *   bun tools/cloud-brain/brain.ts token NAME <method…> [--daily=USD] | token list | token revoke NAME   # token.create as the owner; the value goes to .emitted/<base>-tokens.json (mode 600) and is not printed
@@ -244,11 +244,38 @@ export class Rows {
     else console.log(`  ${r.worker} moved from ${String(r.from).slice(0, 12)} and seen.json has ${rec ? `${String(rec.hash).slice(0, 12)} for it: the entry is left` : "no entry for it: none is made"}. Compare what runs (${SOURCE(r.worker)}) with the seed, then: saw ${r.worker}`);
   }
 } else if (cmd === "shell") {
-  // The notebook file goes to blob storage as the request's body, not inside JSON. The deployer passes it on.
-  const file = Bun.file(resolve(import.meta.dir, args[0] || E("shell.html")));
-  const t = performance.now();
-  const r = await fetch(`${G()}/xrpc/com.lopecode.brain.infra.shell`, { method: "POST", headers: { authorization: "Bearer " + st.recoveryKey, "content-type": "text/html; charset=utf-8" }, body: file });
-  console.log(r.status, Math.round(performance.now() - t) + " ms", (await r.text()).slice(0, 300));
+  // Each notebook file goes to blob storage as the request's body, not inside JSON. The deployer passes it on.
+  // Two files, built together by build.ts: the page of a deploy's test run (shell/verify.html), then the shell, so a
+  // new shell is never left beside an old verify page. Neither is sent when one is not there.
+  // The verify page goes first because a deployer from before 2026-10-11 does not read ?name= and puts it as the
+  // shell: the shell sent after it is what is left at /.
+  const sends = [
+    { query: "?name=verify", path: "shell/verify.html", file: resolve(import.meta.dir, args[1] || E("verify.html")) },
+    { query: "", path: "shell/index.html", file: resolve(import.meta.dir, args[0] || E("shell.html")) }
+  ];
+  const absent = sends.filter((s) => !existsSync(s.file));
+  if (absent.length) {
+    console.error(`${absent.map((s) => s.file).join(" and ")} ${absent.length > 1 ? "are" : "is"} not there, and nothing was sent. bun tools/cloud-brain/build.ts writes both; or: brain.ts shell SHELL.html VERIFY.html`);
+    process.exit(1);
+  }
+  let old = false;
+  for (const s of sends) {
+    const t = performance.now();
+    const r = await fetch(`${G()}/xrpc/com.lopecode.brain.infra.shell${s.query}`, { method: "POST", headers: { authorization: "Bearer " + st.recoveryKey, "content-type": "text/html; charset=utf-8" }, body: Bun.file(s.file) });
+    const body = await r.text();
+    console.log(r.status, Math.round(performance.now() - t) + " ms", body.slice(0, 300));
+    let put: any = {};
+    try { put = JSON.parse(body); } catch {}
+    if (!r.ok) {
+      console.error(`${s.path} was not put (${r.status})${s.query ? ", and the shell was not sent" : ": the verify page is the new one and the shell is the one before"}.`);
+      process.exit(1);
+    }
+    if (put.path !== s.path) old = true;
+  }
+  if (old) {
+    console.error("This deployer does not take ?name=verify: it put the verify page as the shell, and the shell sent after it is at / again. shell/verify.html was not put. brain.ts install-deployer, then brain.ts shell again.");
+    process.exit(1);
+  }
 } else if (cmd === "distil") {
   // Sends each record's carried source to the deployer and compares what it distils with the browser's hash.
   for (const f of args) {
