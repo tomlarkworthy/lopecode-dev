@@ -99,7 +99,8 @@ Two files beside it, neither of them needed to resume:
    ```
    <root>/cloud-brain-dev/agent.sh reviewer "review issue <id>"
    ```
-   with nothing added to the task. It has Bash, Read, Grep and Glob, and its brief is on
+   with nothing added to the task. It has Bash, Read, Grep and Glob, no advisor (the owner, 2026-10-11:
+   "ok lets disable the advisor for review"; `agent.sh` sees to it), and its brief is on
    the Brain (`cloud-brain-dev/README.md`, "A light agent for one role").
    Put `TAB=1 ` before the command, which adds the notebook tab tools, in three cases only (the owner,
    2026-10-11: "Yes remove TAB for non notebooks"): `<root>/tools/cloud-brain/review-needs-tab.sh <repo@sha>…`,

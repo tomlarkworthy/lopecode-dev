@@ -112,7 +112,7 @@ const rig = () => {
   writeFileSync(join(dir, "bin/claude"), `#!/bin/bash\nprintf '%s\\n' "$@" > "${dir}/sent"\nS=$(printf '%s\\n' "$2" | sed -n 's/^scratch: //p'); [ -n "$S" ] && [ -d "$S" ] && [ -z "$(ls -A "$S")" ] && touch "${dir}/scratch-was-there"\ncat <<'EOF'\n${lines.map((l) => JSON.stringify(l)).join("\n")}\nEOF\n`);
   chmodSync(join(dir, "bin/claude"), 0o755);
   return async (args: string[], env: Record<string, string> = {}) => {
-    const r = await run([join(dir, "agent.sh"), ...args], { PATH: `${join(dir, "bin")}:${process.env.PATH}`, CHECKOUT: join(dir, "checkout"), TAB: "", MODEL: "", ...env });
+    const r = await run([join(dir, "agent.sh"), ...args], { PATH: `${join(dir, "bin")}:${process.env.PATH}`, CHECKOUT: join(dir, "checkout"), TAB: "", MODEL: "", ADVISOR: "", ...env });
     return { ...r, scratchWasThere: existsSync(join(dir, "scratch-was-there")), sent: existsSync(join(dir, "sent")) ? readFileSync(join(dir, "sent"), "utf8").split("\n") : null, checkout: join(dir, "checkout") };
   };
 };
@@ -129,6 +129,17 @@ test("agent.sh ROLE task: a prompt of four lines, four tools, no MCP server, and
   expect([s.includes("--strict-mcp-config"), s.includes("--mcp-config"), s[s.indexOf("--tools") + 1], s[s.indexOf("--allowedTools") + 1], s[s.indexOf("--add-dir") + 1], s[s.indexOf("--model") + 1]])
     .toEqual([true, false, "Bash,Read,Grep,Glob", "Bash,Read,Grep,Glob", r.checkout, "opus"]);
   expect(JSON.parse(r.out)).toEqual({ session: "s-1", result: "done", usd: 0.5, usage: { input: 4, cacheWrite: 20, cacheRead: 300, output: 9 }, context: 117, turns: 3, ms: 1200 });
+});
+
+// The owner, 2026-10-11: "ok lets disable the advisor for review". The setting is the one that removed it in a real start.
+test("no advisor unless ADVISOR=1: the run's settings empty advisorModel", async () => {
+  const off = (await rig()(["reviewer", "t"])).sent!;
+  expect(JSON.parse(off[off.indexOf("--settings") + 1])).toEqual({ advisorModel: "" });
+  const resumed = (await rig()(["--resume", "s-1", "more"])).sent!;
+  expect(JSON.parse(resumed[resumed.indexOf("--settings") + 1])).toEqual({ advisorModel: "" });
+  const on = (await rig()(["reviewer", "t"], { ADVISOR: "1" })).sent!;
+  expect(on.includes("--settings")).toBe(false);
+  expect([on[1], on[on.indexOf("--model") + 1]]).toEqual(["role: reviewer", "opus"]);
 });
 
 test("TAB=1 adds the checkout's channel server and allows its tools", async () => {
