@@ -130,8 +130,12 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    (`run_in_background`; 22 s a run on 2026-10-11, the whole page boots):
    `cd <root> && BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts <worker> --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20`.
    It opens the deployer's run address 20 times with your build as the document, and reads only.
-   Its last line is the result: `failed` is 0 and `byChance` is `[]`, and `passed` of `runs` goes
-   in your comment. A test named in `byChance` passed and failed on one build: back to step 6.
+   Its last line is the result: `passed` equals `runs` (so `failed` is 0 and `none` is 0) and
+   `byChance` is `[]`, and `passed` of `runs` goes in your comment. A test named in `byChance`
+   passed and failed on one build: back to step 6. A run counted under `none` gave no verdict
+   and is not a pass: a timeout is run again, and for a Worker that never gives one
+   (`brain-deployer`: "the Worker did not say what it runs", exit 2) this command does not
+   apply, so run the snippet in three fresh tabs and say so in your comment.
    Do not read the exit code, which is 1 while any other module runs a test (`otherTestsRan`,
    446 with a whole build as the document), nor `hash`, which is the deployed Worker's and not
    your build's. (`attention-block-unreadable-to-owner`: the writer's one pass gave `[23,[]]`,
