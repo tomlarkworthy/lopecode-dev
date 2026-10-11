@@ -119,3 +119,149 @@ nothing. Nothing was used.
   length of first round a new agent is cheaper. No threshold is in the procedure.
 - `issue-stats.ts` does not read `cost` comments (`grep -n cost tools/cloud-brain/issue-stats.ts`
   finds nothing), so nothing there reads the new fields or `resumed`.
+
+## The first resumed round, 2026-10-11
+
+Written for `record-first-resumed-rework-round`, started 16:40 CEST (event 1017). Every count
+below was run at 16:40 CEST on this machine, after the tracker's event 1017. `ia` is
+`tools/cloud-brain/issue-as.sh issues-implementer-2`; `$A` is
+`$CLAUDE_CONFIG_DIR/projects/-Users-tom-larkworthy-dev-lopecode-dev/$CLAUDE_CODE_SESSION_ID`, the
+orchestrating session's transcript directory, read in a subagent's Bash. Those files are local
+and are deleted after 30 days: the commands that read them cannot be run again after that.
+
+### Which round
+
+Round 3 of `annotations-file-feedback`: review 992 sent it back, the orchestrator sent it to
+agent `a48b041e17dc6f265`, which had written round 2 as a new agent (round 1 was another
+session's), the submit is event 1002 and the `cost` comment event 1003. It is the first
+implementer's. Two spec writers were resumed before it and one after; the issue asks for an
+implementer's round, so they are beside it here and not in its place.
+
+```
+costs() { for a in 0 500 1000; do ia "sync?after=$a&limit=500" 2>/dev/null; done | jq -s -c '[.[].events[] | select(.type=="commented" and (.body|startswith("cost {"))) | {seq, id} + (.body[5:]|fromjson)]'; }
+costs | jq -c '{lines:length, resumed:[.[]|select(.resumed)|[.seq,.id,.role,.round,.tokens,.seconds,.tools,.agent]]}'
+
+{"lines":126,"resumed":[
+ [926,"dashboards-share-series-and-controls","spec-writer",2,193142,98,5,"a89422c60dbc48dc3"],
+ [997,"lean-reviewer-persona","spec-writer",2,200150,395,8,"ab2bb0bbc2429cfcb"],
+ [1003,"annotations-file-feedback","implementer",3,175404,283,14,"a48b041e17dc6f265"],
+ [1015,"lean-reviewer-persona","spec-writer",3,216204,361,10,"ab2bb0bbc2429cfcb"]]}
+```
+
+### Its count beside a new agent's
+
+```
+costs | jq -c '[.[]|select(.agent=="a48b041e17dc6f265")|{seq,round,resumed,tokens,seconds,tools}]'
+[{"seq":936,"round":2,"resumed":null,"tokens":150949,"seconds":645,"tools":35},
+ {"seq":1003,"round":3,"resumed":true,"tokens":175404,"seconds":283,"tools":14}]
+
+costs | jq -c '[.[]|select(.role=="implementer" and .round==2 and (.resumed|not))] | {n:length, backfilled:(map(select(.backfilled))|length), tokens:(map(.tokens)|sort|{median:.[length/2|floor],min:.[0],max:.[-1]}), seconds:(map(.seconds)|sort|.[length/2|floor]), tools:(map(.tools|select(.))|sort|{n:length,median:.[length/2|floor]})}'
+{"n":11,"backfilled":10,"tokens":{"median":135293,"min":93203,"max":175360},"seconds":616,"tools":{"n":6,"median":35}}
+```
+
+```
+                                  tokens     seconds   tools
+resumed round 3, as reported      175,404    283       14
+  less the agent's line before    24,455     (150,949 at the end of its round 2)
+new-agent round 2, median of 11   135,293    616       35 (of the 6 lines that have it)
+  the least and the most          93,203 .. 175,360
+```
+
+As reported, the resumed round is above the median and above every one of the 11. Less the line
+before, it is below the least of them. Neither is what the round was charged; the next section is.
+
+The issue names round 2 and the resumed round is a round 3. With every new-agent round of 2 or
+more (`.round>=2` in the same command) there are 15 lines, the median is the same 135,293 and the
+most is 177,525. 10 of the 11 are `backfilled` from the journal's headings, and one issue is on
+both sides: the one line that is not backfilled is this agent's own round 2.
+
+### What the round was charged
+
+The record's first section left this as not known. Each request of an agent is in its transcript
+with its `usage`. Summed over the requests before the send and after it:
+
+```
+usage() { jq -s -c --arg cut "$2" '[.[]|select(.type=="assistant")|{t:.timestamp,id:.message.id,u:.message.usage}]|group_by(.id)|map(.[-1])|sort_by(.t)|group_by(.t>=$cut)[]|{from:.[0].t,requests:length,cache_creation:(map(.u.cache_creation_input_tokens)|add),cache_read:(map(.u.cache_read_input_tokens)|add),output:(map(.u.output_tokens)|add),first:[.[0].u.cache_creation_input_tokens,.[0].u.cache_read_input_tokens]}' $A/subagents/agent-$1.jsonl; }
+usage a48b041e17dc6f265 2026-10-11T14:31:35
+
+{"from":"2026-10-11T14:14:01.558Z","requests":29,"cache_creation":142305,"cache_read":3711251,"output":28121,"first":[34790,6267]}
+{"from":"2026-10-11T14:31:40.196Z","requests":13,"cache_creation":167146,"cache_read":1956246,"output":18576,"first":[144096,6267]}
+```
+
+The first line is round 2, a new agent; the second is the resumed round. **The resumed round
+wrote more to the prompt cache than the round before it, 167,146 tokens against 142,305**,
+because its first request wrote 144,096: the whole context of round 2, which it read from the
+cache as 6,267. It then read about half as much from the cache (1.96 M against 3.71 M) in under
+half the requests, and wrote two thirds of the output. So the 24,455 understates the round and
+the 175,404 is nearer: the earlier context was paid for again once, as a cache write.
+
+The three agents resumed that day, by the time between the agent's last request and its first
+after the send (the same `jq` over `.timestamp`, with `fromdate`):
+
+```
+agent     last request      first after the send   gap      first request: cache written / read
+a89422c   14:08:42.737Z     14:18:17.758Z          575 s    171,072 / 6,267
+a48b041   14:24:45.302Z     14:31:37.649Z          412 s    144,096 / 6,267
+ab2bb0b   14:26:57.682Z     14:31:17.805Z          260 s      2,084 / 178,464
+```
+
+The two that waited more than 5 minutes wrote their context again; the one that waited 260 s read
+it. Three runs, one day, one model. That 5 minutes is the limit was not tested, and nothing here
+says what a write and a read each cost in money. If it holds, a review that takes longer than
+that (the two reviews of `annotations-file-feedback` took 659 s and 386 s) always ends with the
+writer's cache gone, and a resumed round saves the reading and the tool calls, not the context.
+
+### What the send answered, and what the run reported
+
+The message was not the one `SKILL.md` gives. It had the first line in other words and no second
+line: `Issue: annotations-file-feedback. The `reviewed` event is 992.` The agent's report still
+speaks of "A resumed round" by name; that it read the section in this round and not in round 2 was
+not checked.
+
+```
+jq -c 'select(.type=="user")|.timestamp as $t|.message.content[]?|select(type=="object" and .type=="tool_result")|(.content|tostring)|select(test("Resuming agent a48b041"))|[$t,.[0:140]]' $A.jsonl
+["2026-10-11T14:31:36.018Z","[{\"type\":\"text\",\"text\":\"{\\\"success\\\":true,\\\"message\\\":\\\"Resuming agent a48b041\\\",\\\"resumedAgentId\\\":\\\"a48b041e17dc6f265\\\",\\\"pin\\\":{\\\"id\\\":\\\""]
+```
+
+The run reported all three numbers, in the notification of its end (14:36:19Z):
+`<subagent_tokens>175404</subagent_tokens><tool_uses>14</tool_uses><duration_ms>283489</duration_ms>`.
+What each counts differed between agents. `subagent_tokens` held the earlier rounds for all three.
+`tool_uses` and `duration_ms` were the round's own for `a48b041` (14, 283 s after 35, 645 s) and
+`a89422c` (5, 98 s after 35, 657 s), and running totals for `ab2bb0b` (55, 1,329 s after 47,
+934 s). `ab2bb0b` had also ended twice before its send, at 14:24:11Z and 14:26:57Z; why is not
+known. Its `cost` comment 997 has the difference (8, 395), which step 5 of `SKILL.md`, "as they
+are", does not ask for; it is left as written.
+
+### What the resumed agent said of the brief
+
+From the journal (`tools/cloud-brain/.emitted/issue-loop/annotations-file-feedback.md`, the entry
+reported 16:36:33 CEST): used from round 2 without reading again, the seed, the rig and the
+landing sequence; read again, the one-line change to `implementer.md`; stale, its saved copies of
+the two issues, fetched again; "wrong in the brief: nothing in the resumed-round section".
+
+### The session id after a restart
+
+Not seen. The issue asks for the comparison "when a session has been restarted and resumed", and
+this one was not, as far as its transcript shows:
+
+```
+jq -r '.sessionId|select(.)' $A.jsonl | sort | uniq -c      5123 f501a8e8-b922-4e11-a581-2b725efd6272
+jq -r 'select(.subtype=="compact_boundary")|.timestamp' $A.jsonl
+2026-10-11T10:50:41.342Z  2026-10-11T13:25:30.516Z  2026-10-11T14:22:31.004Z
+```
+
+One id on every line, the `session` of all four resumed `cost` lines and the value of
+`$CLAUDE_CODE_SESSION_ID` in this agent's Bash. The transcript has no line that marks a restart,
+so this shows no change of id and does not show that no restart happened. `SKILL.md` said a
+restarted session "keeps its id" as a fact; it now says that has not been seen and what to
+compare. What was seen is compaction: `a48b041` began at 14:14:00Z, the session compacted at
+14:22:31Z and the send at 14:31:35Z was taken, so `SKILL.md` no longer lists that as not tried.
+
+### Not tried
+
+- A refused send, and a resume after a restart of Claude Code.
+- Whether the resumed writer passes its next review more often. Round 3's review had not been
+  recorded at event 1017 (`ia "get?id=annotations-file-feedback"`: `in-review`).
+- The cost in money of either round, and a resume inside 5 minutes by an implementer.
+- `agents/implementer.md` still says "No round had been run this way when this was written".
+  It is true of when it was written and was left.

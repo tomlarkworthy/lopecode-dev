@@ -141,8 +141,9 @@ Tom, 2026-10-11: "resuming implementors is a good idea, not always possible if t
 different agents, but maybe we append session-id". Until then a rework round was a new agent,
 which read the brief, the issue and the code again: 10 of 36 issues had more than one implementer
 round, 46% of 12.06 M tokens (the journal of 2026-10-10 and 10-11, counted in the body of
-`rework-resumes-the-implementer`). Written 2026-10-11; no round has been run this way yet
-(`tools/cloud-brain/records/rework-resumes-the-implementer.md`).
+`rework-resumes-the-implementer`). Written 2026-10-11. The first implementer round run this way
+was round 3 of `annotations-file-feedback` the same day (cost comment 1003); its counts are in
+`tools/cloud-brain/records/rework-resumes-the-implementer.md`, "The first resumed round".
 
 For an issue at `in-progress` whose last move is `rework`, with no agent running:
 
@@ -165,8 +166,11 @@ An agent's transcript is kept under the session that spawned it
 (`$CLAUDE_CONFIG_DIR/projects/<project>/<session>/subagents/agent-<agentId>.jsonl`), which is why
 the session is compared: the id alone, read in another session, names nothing there. The id is on
 the issue and not in your memory because your context is compacted and the transcripts are not.
-A session that was resumed after a restart of Claude Code keeps its id; a new session does not,
-and spawns.
+A new session has another id, and spawns. Whether a session resumed after a restart of Claude Code
+keeps its id has not been seen: the one session that has sent rounds (`f501a8e8`, 2026-10-11) was
+not restarted between its first `cost` line and its last, and its transcript has one `sessionId`.
+After a restart, compare the variable with the `session` of a `cost` line written before it and
+write here what it was.
 That the variable gives that directory's name was read in a subagent's Bash on 2026-10-11, not in
 an orchestrator's. Before the first send of a session, `ls` that `subagents/` directory with the
 variable in the path and see the `agent-<agentId>.jsonl` of an agent you spawned; when it is not
@@ -179,11 +183,16 @@ What `tokens` is for a resumed round: on the one resume tried (2026-10-11, an ag
 answered "OK" with no tool call) the count was 40,982 after the first turn and 41,056 after the
 second, so the number held the first turn's context. A resumed round's `tokens` is therefore not
 set beside a new agent's as it stands. `"resumed":true` marks it, and the `tokens` of the same
-agent's comment before it is what to take off. Whether that difference is what the round was
-charged is not known.
+agent's comment before it is what to take off. That difference is not what the round was charged.
+Of 3 resumes on 2026-10-11, the 2 sent more than 5 minutes after the agent's last request wrote
+the whole earlier context to the prompt cache again on their first request (144,096 and 171,072
+tokens of cache creation, where the differences were 24,455 and 15,833); the one sent 4 min 20 s
+after read it from the cache (2,084 written, 178,464 read). The record has the requests.
+`seconds` and `tools` were the round's own for two of the agents and running totals for the third.
 
-Not tried: a resumed agent that had used tools, one whose worktree was removed between the rounds
-(every implementer's is, at landing), one resumed after this session compacted or was restarted.
+Tried on 2026-10-11, in that round: an agent that had used tools (35), whose worktree was removed
+at its landing, sent to after this session had compacted (14:22:31 UTC; the send was 14:31:35).
+Not tried: a resume after a restart, and a send that is refused.
 Not decided: when a long first round makes a resume dearer than a new agent, and whether a
 resumed writer passes its second review more often than a new one (7 of the 9 round-2 reviews
 readable in the journal on 2026-10-11 asked for changes again). The overseer compares the

@@ -10,6 +10,7 @@ import { resolve, join } from "node:path";
 const dir = resolve(import.meta.dir, "../../.claude/skills/brain-maintenance");
 const skill = readFileSync(join(dir, "SKILL.md"), "utf8");
 const brief = readFileSync(join(dir, "agents/implementer.md"), "utf8");
+const record = readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain/records/rework-resumes-the-implementer.md"), "utf8");
 
 // Every `cost {…}` example of SKILL.md, parsed.
 const costs = [...skill.matchAll(/`cost (\{[^`]*\})`/g)].map((m) => JSON.parse(m[1]));
@@ -45,4 +46,20 @@ test("the reviewer is never resumed", () => {
 test("the brief says what a resumed round does that a first round does not", () => {
   const s = section(brief, "A resumed round");
   for (const word of ["`reviewed`", "worktree.sh", "rules.md", "git -C <root> diff --stat"]) expect(s).toContain(word);
+});
+
+// Issue record-first-resumed-rework-round.
+test("the record has the first resumed round: its count, the line before and the median of a new agent's", () => {
+  const s = section(record, "The first resumed round, 2026-10-11");
+  for (const word of ["annotations-file-feedback", "a48b041e17dc6f265", "175,404", "150,949", "24,455", "135,293", "Resuming agent a48b041", "cache_creation", "### Not tried"]) expect(s).toContain(word);
+  expect(175404 - 150949).toBe(24455);
+});
+
+test("SKILL.md names the round, and does not state what was not seen or list as untried what was tried", () => {
+  const s = section(skill, "A rework round goes to the agent that wrote the change");
+  expect(s).not.toContain("no round has been run this way yet");
+  expect(s).not.toMatch(/resumed after a restart of Claude Code keeps its id;/);
+  expect(s).not.toContain("is not known");
+  expect(s.match(/Not tried:[^\n]*(\n[^\n]+)*/)?.[0] ?? "").not.toContain("compacted");
+  for (const word of ["annotations-file-feedback", "has not been seen", "144,096"]) expect(s).toContain(word);
 });
