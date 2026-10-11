@@ -129,7 +129,7 @@ sentences of this record untrue. Both are changed above, in place. No seed chang
 
    Seven was not counted; it was written from memory of the test.
 2. "On the page, in a tab" said the spec expected other cells to throw on the stand-in. The spec says
-   they may and that it was not tried (lines 299 to 300 of the plan). The sentence now quotes it.
+   they may and that it was not tried (lines 299 to 300 of the plan at `1e6aabbc`). The sentence now quotes it.
 
 The review also ran what round 1 listed as not tried, whether the bind is ended when `logsPanel` runs
 again: with the panel made again, a change under Health reached the new panel's select and not the

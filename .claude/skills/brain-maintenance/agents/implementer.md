@@ -409,6 +409,9 @@ closed (the submit is refused 403, `issue.children.open == 0`; `brain-tests-fail
 
 A change with no seed and no local tool in it (a doc alone) still needs a count for the submit:
 a test file under `tests/` that reads the doc and fails before the edit (`tests/tools/doc-token-example.test.ts`).
+A test that holds a sentence of a record reads the record and, for anything else, a file as a commit
+named in the record has it (`git show <commit>:<path>`; `tests/tools/ds-3-record.test.ts`), never the
+file as it is: a later line there fails the test while the record is true.
 
 ## What a reviewer will check
 
