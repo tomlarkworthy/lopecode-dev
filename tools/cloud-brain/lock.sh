@@ -27,6 +27,8 @@ case "$CMD" in
   take)
     named
     EVERY=""; if [ "$4" = "--wait" ]; then EVERY="${5:-20}"; elif [ -n "$4" ]; then usage; fi
+    # a number above 0 only: sleep refuses anything else, and the loop below would spin with no pause
+    if [ -n "$EVERY" ] && ! printf '%s' "$EVERY" | grep -Eq '^([0-9]*[1-9][0-9]*(\.[0-9]+)?|0*\.[0-9]*[1-9][0-9]*)$'; then usage; fi
     until mkdir "$LOCK" 2>/dev/null; do
       [ -d "$LOCK" ] || { echo "lock.sh: cannot make $LOCK" >&2; exit 2; }
       [ -n "$EVERY" ] || { echo "lock.sh: $NAME.lock is held by $(held). Not taken; do not remove it." >&2; exit 1; }

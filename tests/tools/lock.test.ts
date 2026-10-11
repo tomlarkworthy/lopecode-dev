@@ -118,3 +118,17 @@ test("the briefs name lock.sh for both locks", () => {
     for (const line of text.split("\n")) expect(/`(mkdir|rmdir) [^`]*(land|cb4)\.lock`/.test(line), f + ": " + line).toBe(false);
   }
 });
+
+test("take --wait with seconds that sleep would refuse is a usage error, at once, lock held or not", () => {
+  const { lock } = fresh();
+  for (const bad of ["abc", "0", "0.0", "-1", "1s", ""]) {
+    expect(lock("take", "land", "writer-b", "--wait", bad).code).toBe(bad === "" ? 0 : 2);
+    if (bad === "") lock("release", "land", "writer-b");
+  }
+  lock("take", "land", "writer-a");
+  const t = Date.now();
+  expect(lock("take", "land", "writer-b", "--wait", "abc").code).toBe(2);
+  expect(lock("take", "land", "writer-b", "--wait", "0").code).toBe(2);
+  expect(Date.now() - t).toBeLessThan(2000);
+  expect(lock("show", "land").out).toContain("writer-a");
+});
