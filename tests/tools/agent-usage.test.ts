@@ -48,6 +48,19 @@ test("a background task's notification is not a prompt", () => {
   expect(usageOf(t, 3)).toBeNull();
 });
 
+// i1519: the row a compaction writes is plain by every other mark, and nobody sent it.
+test("a compaction's summary row is not a prompt", () => {
+  const summary = JSON.stringify({ type: "user", isCompactSummary: true, isVisibleInTranscriptOnly: true, message: { content: "This session is being continued from a previous conversation that ran out of context." } });
+  const sent = JSON.stringify({ type: "user", isMeta: true, origin: { kind: "coordinator" }, message: { content: "round 2" } });
+  const t = [prompt("round 1"), asst("m1", u(1, 1, 1, 1)), sent, asst("m2", u(2, 2, 2, 2)), summary, asst("m3", u(3, 3, 3, 3)), result(), asst("m4", u(3, 3, 3, 3))].join("\n");
+  expect(usageOf(t, "last")).toEqual({ input: 8, cacheWrite: 8, cacheRead: 8, output: 8, requests: 3, advisor: zero });
+  expect(usageOf(t, 2)).toEqual(usageOf(t, "last"));
+  expect(usageOf(t, 3)).toBeNull();
+  const one = [prompt("round 1"), asst("m1", u(1, 1, 1, 1)), summary, asst("m2", u(2, 2, 2, 2))].join("\n");
+  expect(usageOf(one, "last")!.requests).toBe(2);
+  expect(usageOf(one, 2)).toBeNull();
+});
+
 // Review 1454, finding 2: the last run is not round N once a later round has been sent.
 test("--run N counts the Nth prompt's run, and there is none past the last", () => {
   const t = [prompt("1"), asst("m1", u(1, 10, 100, 1)), result(), asst("m2", u(1, 0, 110, 1)), prompt("2"), asst("m3", u(2, 20, 200, 2)), prompt("3"), asst("m4", u(3, 30, 300, 3))].join("\n");
