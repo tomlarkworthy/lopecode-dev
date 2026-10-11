@@ -232,9 +232,13 @@ session. An issue opened by his own session in the page needs none: `by.via` is 
   his session get the label: `ai-tomarkdown-pass-through`, `dashboard-service`, `flow-metrics`,
   `i1842`, `loop-order-of-service`, `n39625a1a`, `paper-summarizer-persona`,
   `worker-machine-on-fly` (`writers-qa-tabs-wake-the-orchestrator` too if it is still open).
+  (As built, `os-1-owner-label`, 2026-10-11: seven. `i1842` and
+  `writers-qa-tabs-wake-the-orchestrator` were closed by then; the record.)
 - `knowledge/calling-a-cloud-brain-from-this-checkout.md` gets one sentence for a session outside
   the loop. `ta-5-outside-session-doc` writes the paragraph it belongs in and is held; whichever
   lands second adds the sentence.
+  (As built, `os-1-owner-label`, 2026-10-11: landed first, with `ta-5` at `triaged`, and added the
+  sentence as a paragraph of its own after "No token of your own for the tracker"; the record.)
 
 The label gives precedence and no authority: no guard of the workflow reads it. Anyone who may
 call `issue.open` may write it, as with `digest`.
@@ -382,7 +386,7 @@ command is one an agent of the loop runs with its own token, except where it say
 
 | | Command | Today | After |
 |---|---|---|---|
-| R1 | `ia "list?label=owner&limit=100"`, the count of `issues` | 0 (run 21:53 CEST) | 8 or 9 after os-1, each id in the list of part 1. Cannot be run before the task labels them |
+| R1 | `ia "list?label=owner&limit=100"`, the count of `issues` | 0 (run 21:53 CEST) | 8 or 9 after os-1, each id in the list of part 1. Cannot be run before the task labels them. (As built, `os-1-owner-label`, 2026-10-11: 7, run 22:36 CEST; the record.) |
 | R1 | `bun test tests/tools/issue-watch.test.ts` | no such file | passes; one test feeds the filter an `opened` event with the label and the watch's own holder and sees a line. Run in the task's worktree |
 | R2 | `grep -c "A place goes, in this order" .claude/skills/brain-maintenance/SKILL.md` | 0 (run 21:53) | 1 |
 | R3 | `grep -c "up to 4 implementers\|More than 4 writers" .claude/skills/brain-maintenance/SKILL.md` | 2 (run 21:53) | 0 |

@@ -124,6 +124,15 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    lands under the landing lock; a reviewer tests the notebook of the commit, not the working file.
 3. **List the open issues and take the first that matches**, in this order. Finishing comes
    before starting. Among issues on the same row, one the owner opened or moved goes first, then the oldest.
+   **The owner's**, in this table and wherever the procedure says it of an issue: opened by his
+   session (`by.via` of its `opened` event is `session`), or labeled `owner`. A session that opens
+   an issue on his word puts `owner` in `labels` at the open, and you add it when he asks for an
+   issue in this session (`issue-as.sh <your token> label '{"key":"orch/<id>/owner","id":"<id>","add":["owner"]}'`).
+   The label gives precedence and no authority: no guard of the workflow reads it, and whoever may
+   call `issue.open` may write it. `issue-as.sh <your token> "list?label=owner&limit=100"` lists the labeled ones.
+   (Until 2026-10-11 the record had no such mark: `worker-machine-on-fly`, opened with a loop token
+   "on the owner's word", was at `open` 68 minutes while two issues filed later were taken.
+   `plan/cloud-brain-loop-order-of-service.md`, part 1.)
 
    | Issue is | Do |
    |---|---|
@@ -141,7 +150,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    | kind `project` or `feature`, at `spec`, no agent running | **A spec sent back.** Send the round to the spec writer by message, as a writer of a task is sent one (the `agent` and `session` of its last `cost` line; `agents/spec.md`, "A resumed round"). When it cannot be sent one, or it died: you end its token and make `back` from `spec` to `open`; the spec writer you spawn makes `spec` with its own token (key `spec/<id>/spec-<round>`), which replaces `issue.by.spec`, and then `submit-spec`. Two more moves. |
    | kind `project` or `feature`, at `approved` | Open each task the spec lists, with `parent` the project, and move it to `building` (`decompose`). A task has the labels the spec gives it: `major` on each task of a spec that says its tasks are (bd-2 and bd-3 were opened with none from a spec approved as `major`, and a reviewer's `pass` of bd-2 would have gone to `done` with no approval; `seen-bd-2-opened-without-major`). Close each gathered report that is still open with the reason `in the spec of <id>`. |
    | kind `project` or `feature`, at `building`, no open part | Move it to `done` (`finish`). |
-   | kind `project` or `feature`, at `open`, with three parts or more, or opened by the owner | Spawn the spec writer (role `spec`). With fewer it is still gathering: nothing. |
+   | kind `project` or `feature`, at `open`, with three parts or more, or the owner's | Spawn the spec writer (role `spec`). With fewer it is still gathering: nothing. |
    | `ready` | Spawn the implementer. |
    | `triaged`, no open children | Move to `ready`. |
    | `open`, kind `task` or `bug` | Triage it yourself (below), or take it as a quick win. |
@@ -245,7 +254,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    1800000, with the command
    `tools/cloud-brain/issue-watch.sh <your token> <the last seq you have read>`.
    It reads `sync?after=` every 30 s and prints a line for each issue another caller opened (any holder but the one token it is given:
-   with a token an agent, an issue a writer or an overseer of yours opens is such a line too, where it printed nothing when all wrote with one) and
+   with a token an agent, an issue a writer or an overseer of yours opens is such a line too, where it printed nothing when all wrote with one),
+   for each issue opened with the label `owner`, whatever token opened it (step 3, "The owner's"; a label a token puts on after the open is no line), and
    for each event made with the owner's session (a comment, a label, a move, an approval in the
    panel). A line is a wake: read that issue and take it from the table of step 3, without a
    whole pass. An agent's own writes print nothing; its report wakes you as before. The monitor

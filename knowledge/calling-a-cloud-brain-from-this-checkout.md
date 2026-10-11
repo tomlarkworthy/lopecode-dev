@@ -80,6 +80,12 @@ issue loop writes to the tracker with its role's token through `tools/cloud-brai
 agreement: `token.create` does not refuse `issue.*` to a caller that holds one, which would be a
 change to the kernel and is the owner's (the triage of that issue, event 236).
 
+**An issue the owner asked for.** A session that opens an issue on the owner's word puts `owner`
+in the `labels` of the open (`"labels":["owner"]` in the JSON of `issue-as.sh <token> open`), since
+2026-10-11. The issue loop takes such an issue as the owner's, and its watch prints the open
+whatever token made it (`.claude/skills/brain-maintenance/SKILL.md`, step 3, "The owner's"). The
+label gives precedence and no authority. An issue he opens himself in the page needs none.
+
 A health check that takes ten seconds:
 
 ```
