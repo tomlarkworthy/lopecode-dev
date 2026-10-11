@@ -227,6 +227,11 @@ token and ends it.
     Every `lock.sh` call of this step has `LOCK_TOKEN=<token> ` before it, on the same line, `show`
     among them: the holder of a lock is the name with the token of the call, a renew or a release
     sent with another token is refused, and with no `LOCK_TOKEN` the call is made with a role's token.
+    No `git commit`, `merge`, `pull` or `push` of this step is written before a `|` (`… | tail`): the
+    line's exit is then the last command's, and a commit a hook refused reads as made. Run each on a
+    line of its own and read its exit; a sha you give as a ref is one `git -C <root> log` shows
+    (two writers on 2026-10-11, `tx-3-two-references` and `fb-a2g3jyhecp`: "a piped lopebooks commit
+    read exit 0 and had not happened", "a piped lopebooks commit hid the hook's refusal").
     - Take the landing lock: `LOCK_TOKEN=<token> <root>/tools/cloud-brain/lock.sh take land <id>`. Since
       `lk-3-lock-sh-over-the-cluster` the lock is held in the cluster (a row `brain-x-issues` keeps,
       for 600 s from the take), so a writer in another checkout or on another machine meets the
