@@ -176,6 +176,12 @@ brain.ts curl /xrpc/com.lopecode.brain.quota.get --owner     # today's spend
    `http://127.0.0.1:47814/NAME.json`, which `bun tools/cloud-brain/test-receiver.ts` saves in `.emitted/`.
    `redistil --apply` does not do this: it distils again the source the deployer already keeps. It is for after
    `install-deployer`, which is how a change to the wrapper (`workerRuntime` in `cloudflare-iac.ojs`) reaches the Workers.
+   The same run on this machine, reading only: `bun tools/cloud-brain/verify-run.ts WORKER [--times N] [--shell FILE]`
+   opens the deployer's run address N times in a local headless Chrome (151 on 2026-10-11, not the cluster's 128)
+   and prints each verdict with the tests that ran beside it, by module. Exit 1: a test passed and failed on one
+   hash, or a module other than brain-shell and the Worker's ran a test, which is every run of `/` until
+   `shell/verify.html` is served (132 other tests in 95 of 95 runs, 2026-10-11); exit 2: a run failed or gave no
+   verdict. `--shell` puts a built file in the document's place. `tools/cloud-brain/records/dv-1-verify-run-tool.md`.
 5. Update the as-built record and the backlog in the same change.
 6. Run `/review-notebook` on what changed. The two logging reviews on 2026-10-08 found 15 real
    defects the authoring session had not seen.
