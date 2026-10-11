@@ -181,3 +181,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   (5 confirmed, 4 plausible) and 7 minor, all taken (lopecode-dev `728e3f11`). 114,587 subagent tokens, 5m22s. What the author had not seen: the machine's
   token file used names no brief or tool reads, the test that starts the machine was not the loop's own table of step 3, and `fly.down` stopped a loop in
   the middle of a landing.
+- 2026-10-11 `plan/cloud-brain-worker-machine-on-fly.md`, changes since `728e3f11` (round 2 of the spec, after review 2886 on cb4, before its landing):
+  FIX, 12 findings (8 confirmed, 4 plausible) and 6 minor, all taken (lopecode-dev `59da6348`). 119,461 subagent tokens, 4m41s. Not run again after the
+  fixes, which rewrote the section it read. What the author had not seen: `lock.sh renew` answers exit 0 for a lock that ended and nobody took, so the
+  round's signal of a lost lock never came; the watch's second argument was taken; and one empty pass under a usage limit stopped the machine for good.
