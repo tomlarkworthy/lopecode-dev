@@ -12,7 +12,7 @@ md`## What the owner can do
 |---|---|
 | See what runs. Deploy a change. | **Services** in ${mod("cloud-brain")}: one row per Worker, its version, its state, and **Apply**. |
 | See calls, latency and faults. | **Health** in ${mod("cloud-brain")}. |
-| See a dashboard. | **Dashboards** in ${mod("cloud-brain")}, under Health: the dashboards ${mod("brain-dashboard")} keeps. |
+| See a dashboard. | The select at the top of ${mod("brain-dashboard")}: the dashboards that service keeps. The span and "Refresh" are under **Health** in ${mod("cloud-brain")}. |
 | Ask for a change in words. | The tab ${mod("brain-operator")}, under this one when the page opens. On a page whose shell has no such tab the chat is under **Operator** in ${mod("cloud-brain")}. The assistant needs a model: a paired Claude Code session, or a key in its settings. |
 | Set a secret. | ${mod("brain-secrets")}. |
 | Add a member. Set the member's methods, limits and file tags. | **People** in ${mod("cloud-brain")}. |
@@ -271,7 +271,7 @@ md`## Calls and faults
 
 The core writes one log line for each call that it answers or forwards: who called, the method, the Worker, the status, the time taken. Cloudflare keeps the lines 7 days. The Health section of the page counts them over a span chosen there (15 minutes, 1 hour, 6 hours, 24 hours or 7 days; an hour when the page opens) with one \`logs.query\`, by Worker, method and status, for the owner. It asks again when the span is changed or "Refresh" is pressed, and when the page signs in or assembles its Workers' modules again. A resize draws again and does not ask. The line above the charts, under the two controls, gives the span, the step and the number of groups, and says so when the answer has 500 groups, the most one answer holds. A visitor sees no chart.
 
-The Dashboards section of the page, under Health, draws one dashboard of ${mod("brain-dashboard")} for the owner. A dashboard is a list of panels kept as data, each over a metric, and a metric is lines a Worker already logs. The select of the section lists what \`dashboard.list\` answers, and the choice is in the address as \`dashboard=NAME\`, so a dashboard has a link. The panels are drawn from one \`metric.query\` for each distinct metric, \`by\` and filter among them, over the span chosen under Health; "Refresh" there asks for them again, and so does a change of the span, of the dashboard, or of the page's session. A resize draws again and does not ask. A visitor is shown no dashboard and sends nothing.
+The select and the panels at the top of ${mod("brain-dashboard")} draw one dashboard of that service for the owner (until 2026-10-11 they were a section of this page, under Health). A dashboard is a list of panels kept as data, each over a metric, and a metric is lines a Worker already logs. The select of the section lists what \`dashboard.list\` answers, and the choice is in the address as \`dashboard=NAME\`, so a dashboard has a link. The panels are drawn from one \`metric.query\` for each distinct metric, \`by\` and filter among them, over the span chosen under Health in ${mod("cloud-brain")}; "Refresh" there asks for them again, and so does a change of the span, of the dashboard, or of the page's session. That module has no span and no "Refresh" of its own. A resize draws again and does not ask. A visitor is shown no dashboard and sends nothing.
 
 A fault is a status of 500 or above, except 501.
 
@@ -301,7 +301,7 @@ Each is an owner service. Its module documents it.
 | ${mod("brain-ai")} | Open models from Cloudflare Workers AI. One call runs one model one time: the body is the model's input as Cloudflare documents it and the answer is Cloudflare's, a stream included. The caller names what the call may cost, and the service holds Cloudflare's cost under it from Cloudflare's own price list. It keeps nothing. |
 | ${mod("brain-proxy")} | Outbound requests with a secret added. |
 | ${mod("brain-logs")} | The logs of this Brain's Workers, read from Cloudflare Workers Logs with Cloudflare's own query bodies. The core writes one line a call; the Logs panel of the page reads them. |
-| ${mod("brain-dashboard")} | Metrics and dashboards kept as data. A metric is a definition over lines a Worker already logs, and \`metric.query\` counts them from Cloudflare Workers Logs. A dashboard is a list of panels, each naming a metric and how it is drawn. The Dashboards section of the page draws one. |`
+| ${mod("brain-dashboard")} | Metrics and dashboards kept as data. A metric is a definition over lines a Worker already logs, and \`metric.query\` counts them from Cloudflare Workers Logs. A dashboard is a list of panels, each naming a metric and how it is drawn. The select at the top of its module draws one. |`
 // %%
 // A module's name as a link that opens its tab beside the ones already open.
 mod = (name, label) => {

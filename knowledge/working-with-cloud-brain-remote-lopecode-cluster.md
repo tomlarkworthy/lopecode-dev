@@ -68,8 +68,8 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
   `git.create?name=`, `git.token?name=&scope=&seconds=`, then plain `git` against Cloudflare's address with the token; a member's
   repository is their own; a repository the owner names in the setting `public` of `brain-x-git` is cloned by anyone from `/git/NAME.git`; record in `tools/cloud-brain/records/brain-git.md`), dashboard (since 2026-10-11: a metric is a definition over lines a Worker already logs, read with
   `metric.query?metric=&since=&until=&by=`, which the service turns into one query of Cloudflare's logs; a dashboard is a row, a list of panels over metrics,
-  `dashboard.put`, `get`, `list`, `delete`; the page's section Dashboards draws the one its select names, kept in the address as `dashboard=NAME`; the token `loop-dashboard`
-  reads `deploys.*` and the dashboards; design in `plan/cloud-brain-dashboard-service.md`, the method reference is the first cell of `tools/cloud-brain/brain-dashboard.ojs`). `<base>-x-page` is built from
+  `dashboard.put`, `get`, `list`, `delete`; the select at the top of its module draws the one it names, kept in the address as `dashboard=NAME`, over the span chosen under Health of the page; the token `loop-dashboard`
+  reads `deploys.*` and the dashboards; design in `plan/cloud-brain-dashboard-service.md`, the method reference is the prose of `tools/cloud-brain/brain-dashboard.ojs` from `## Methods`). `<base>-x-page` is built from
   `@tomlarkworthy/cloud-brain`. `brain-secrets` is a module of the page, not a Worker. So is `brain-feedback` (since 2026-10-11): the owner annotates the page, the note is filed as a `feedback` issue with the label `annotation` and shows that issue from then on (`tools/cloud-brain/records/annotations-file-feedback.md`).
 - **Database** (`<base>-db`): the rows every Worker keeps go through it.
 - **Deployer** (`<base>-deployer`): the only holder of a Cloudflare token. It applies recipes,
