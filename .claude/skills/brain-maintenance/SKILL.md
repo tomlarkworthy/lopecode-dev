@@ -92,6 +92,23 @@ Two files beside it, neither of them needed to resume:
    Issue: <id>
    ```
    For the overseer the last line is `Last oversight ended at event <seq>. Journal: <root>/tools/cloud-brain/.emitted/issue-loop/`.
+
+   **The reviewer is not an Agent call** (the owner, 2026-10-11: "the skill spawns a super light claude with a
+   generic opening. role: reviewer task: ....", and of what was built for it: "ok please get that into production").
+   It is a process of its own, started with Bash, `run_in_background: true`, `timeout: 3600000`:
+   ```
+   TAB=1 <root>/cloud-brain-dev/agent.sh reviewer "review issue <id>"
+   ```
+   with nothing added to the task. It has Bash, Read, Grep, Glob and the notebook tab tools, and its brief is on
+   the Brain (`cloud-brain-dev/README.md`, "A light agent for one role"). Its stdout is one JSON line,
+   `{ session, result, usd, usage, context, turns, ms }`: `result` is its report. In the `cost` comment
+   `tokens` is `context`, `seconds` is `ms` over 1000, and the line has three more fields, `"usd"`, `"session"`
+   (the `session` of that JSON, not yours) and `"light":true`; `tools` is left out. It is never sent
+   `--resume`. When the command prints no JSON line or exits 2, spawn the reviewer once as an Agent, as above:
+   the file `agents/reviewer.md` says where the brief is. Say so in the journal and in step 7.
+   Measured before the switch: 25,212 after it had read its brief, the rules and `philosophy.md`, where an
+   Agent told to answer "OK" is 40,842; one review replayed at 69,440 against 100,725 (the README has both,
+   and what was not tried). First real review by it: not yet.
 5. **When an agent reports**, append the report to the journal, then read the issue again. The
    tracker says what happened, not the report: an implementer that says "submitted" with the
    issue still `in-progress` did not submit.
@@ -300,7 +317,8 @@ way past an access rule; the issue is then the owner's.
 ## Why the overseer may edit briefs and not rules
 
 Tom, 2026-10-10: the overseer "either files issues to improve the cluster OR tweaks the skills
-to be better at doing their job". So it edits `agents/implementer.md`, `agents/reviewer.md` and
+to be better at doing their job". So it edits `agents/implementer.md`, the reviewer's brief (on the Brain
+since 2026-10-11, changed with `cloud-brain-dev/put.sh`, which keeps the copy before) and
 the procedure above directly, one commit an edit, each quoting the issue that showed the need.
 `git log -- .claude/skills/brain-maintenance` is the list; `git revert` undoes one.
 

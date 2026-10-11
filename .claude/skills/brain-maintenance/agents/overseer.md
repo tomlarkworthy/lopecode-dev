@@ -78,7 +78,7 @@ Each thing you find gets exactly one of these.
 | It is | Do |
 |---|---|
 | A defect or a gap in the cluster, a service, a tool or a doc | File it: `io open` with `kind` `bug` or `task`, `about` the Worker or `brain`, and a body that quotes the evidence (issue id, event seq, the line of the journal). Search the open issues first (`io "list"`); comment on an existing one instead of filing a second. |
-| A brief that misled an agent or left something out | Edit `agents/implementer.md` or `agents/reviewer.md`, or the procedure in `SKILL.md`. |
+| A brief that misled an agent or left something out | Edit `agents/implementer.md` or the reviewer's brief (on the Brain, below), or the procedure in `SKILL.md`. |
 | A rule in `rules.md` that is wrong, or anything about this file | File a `task` with the label `major` and the proposed text in the body. Do not edit either file. |
 | A decision only the owner can take | Comment on the issue it blocks, with the choice and the cost of each side. |
 
@@ -93,6 +93,11 @@ Limits, so a bad round cannot compound:
   (`tools/cloud-brain/lock.sh take land overseer`; exit 1 is a writer landing, so wait in the background with
   `--wait` after it), and `tools/cloud-brain/lock.sh release land overseer` after. Not `mkdir` and `rmdir`:
   the tool refuses to release a lock another name holds (`land-lock-any-session-can-remove`, event 730).
+  The reviewer's brief is not in git since 2026-10-11. It is a file of the Brain, and its edit is a put, not a
+  commit: `cloud-brain-dev/put.sh --get roles/reviewer.md`, edit `cloud-brain-dev/brain/roles/reviewer.md`, then
+  `cloud-brain-dev/put.sh roles/reviewer.md` (token `loop-roles`; the copy before is kept on the Brain under
+  `cloud-brain-dev-history/`). No lock. The entry in `oversight.md` carries what the commit message would have:
+  what changed, the issue, the event, what happened.
 - Edit by the smallest change that would have prevented what you saw. Do not rewrite a brief.
   Do not remove a step because one run did not need it.
 - Never loosen: no edit may drop a check, a test run, a refusal or a report from a brief. A

@@ -96,6 +96,15 @@ roles do not share a token.
 writer search with it before designing (`agents/implementer.md` step 2, `agents/spec.md` step 4),
 on the owner's word of that day.
 
+## The files of the Brain an agent reads
+
+`loop-roles` was made 2026-10-11 with the owner's session by
+`brain.ts token loop-roles static.put static.get static.list static.delete`, on the owner's word that day
+("we hook reads to file names to the cluster, so that becomes the source of truth"; "ok please get that
+into production"). It is used through `cloud-brain-dev/put.sh` and for nothing else, and only under
+`cloud-brain-dev/` and `cloud-brain-dev-history/` of the file store: the token itself is not held to those
+paths, so this is an agreement. The overseer changes a brief with it; no other role does.
+
 ## Publishing a notebook
 
 `loop-library` was made 2026-10-11 with the owner's session by
