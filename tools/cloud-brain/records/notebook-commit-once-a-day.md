@@ -118,7 +118,13 @@ day, an `origin/main` notebook that lacks the change.
   now has none.
 
 Not tried: a review made this way. `build.ts --out` at a commit giving the committed notebook's
-bytes is the issue's own measurement (its body: "the same, byte for byte (`cmp`)"), not run again here.
+bytes is the issue's own measurement (its body: "the same, byte for byte (`cmp`)"); the one run of it
+here is under "The tool on the checkout's own `lopebooks`".
+
+"The notebook of a change is the build of its `lopecode-dev` commit" has one qualifier: `build.ts`
+reads `lopebooks/notebooks/quick_start.html` as its frame (`build.ts`, the line `let html = readFileSync(…quick_start.html…)`),
+and in a worktree `lopebooks` is a link to the main checkout's. A build of an old commit made after
+that file changed has the new frame.
 
 ## For the owner
 

@@ -248,7 +248,7 @@ token and ends it.
       refuses it in two cases and each is a stop (`LOCK_TOKEN=<token> lock.sh release land <id>`, report, no merge):
       the checkout's `main` and origin's have each a commit the other has not, or the pull brings
       in a file that is changed in the checkout (`seen.json` is often changed there). The notebook in
-      `lopebooks` is changed there after every landing of a day but the first (below), so a pull that
+      `lopebooks` is changed there after every landing that builds but the day's first (below), so a pull that
       brings in a commit of it from another machine is refused for that file: it is a build and nothing
       of it is lost, so `git -C <root>/lopebooks checkout -- notebooks/@tomlarkworthy_cloud-brain.html notebooks/@tomlarkworthy_cloud-brain.json`
       and pull again (run on two scratch repositories on 2026-10-11, not in `lopebooks`; the record of
@@ -271,7 +271,7 @@ token and ends it.
       earlier day. Its one line is `committed <sha> <day>`, `not due: …` or `same: …`
       (the header of `notebook-backup.sh`). Since `notebook-commit-once-a-day` (the owner, 2026-10-11:
       "we don't need to commit  @tomlarkworthy_cloud-brain.html all the time, that can be a once a day
-      thing for backups"); until then every landing committed it, 53 commits of an 8.7 MB file on that day.
+      thing for backups"); until then every landing that built committed it (the issue's count at about 22:30 CEST that day: 53 commits of an 8.7 MB file).
       The notebook of a change is the build of its `lopecode-dev` commit (`build.ts --out`, the same bytes),
       so nothing waits on the backup.
       Never `build.ts` in the main checkout: another session may have seeds open there, uncommitted
