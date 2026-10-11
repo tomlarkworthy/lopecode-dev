@@ -548,7 +548,10 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
     const took = Date.now() - from;
     if (status !== 401) stop(`${status}: "${name}" still answers a read of issue.policy after its revoke, on read ${reads}, ${took} ms after. Its entry is kept`);
     try { await changeAgentTokens((t) => { delete t[name]; }); } catch (e: any) { stop(`"${name}" is revoked and its value is refused (401), and its entry could not be removed (${e.message}). When that is mended: agent-token revoke ${name}`); }
-    console.log(`401: "${name}" is revoked and its value is refused, on read ${reads} of issue.policy, ${took} ms after the revoke${row ? "" : " (none was sent: it was no row)"}. Its entry is gone: issue-as.sh ${name} is exit 2`);
+    // With no row there was nothing to revoke: the line says so, and its time is counted from the first read.
+    console.log(row
+      ? `401: "${name}" is revoked and its value is refused, on read ${reads} of issue.policy, ${took} ms after the revoke. Its entry is gone: issue-as.sh ${name} is exit 2`
+      : `401: "${name}" was no row under ${PARENT} any more, so no revoke was sent; its value is refused, on read ${reads} of issue.policy, ${took} ms after the first read was sent. Its entry is gone: issue-as.sh ${name} is exit 2`);
   } else {
     const role = args[0], name = `${role}-${hex(3)}`, note = [role, args.slice(1).join(" ")].filter(Boolean).join("; ").slice(0, 300);
     const until = Date.now() + HOURS * 3600e3;

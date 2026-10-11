@@ -332,6 +332,10 @@ test("agent-token revoke: a child that has gone already (ended, or revoked elsew
   const gone = await r.brain("agent-token", "revoke", name);
   expect(gone.code).toBe(0);
   expect(sent("delegation.revoke")).toEqual([]);
+  // The line does not say "is revoked" or "after the revoke" of a revoke that was not sent.
+  expect(gone.out).toMatch(/^401: .* was no row under loop-agents any more, so no revoke was sent; its value is refused, on read 1 of issue\.policy, \d+ ms after the first read was sent\. /);
+  expect(gone.out).not.toContain("is revoked");
+  expect(gone.out).not.toContain("after the revoke");
   expect(r.kept("cb4-agent-tokens.json")).toEqual({});
   const none = await r.brain("agent-token", "revoke", "impl-000000");
   expect(none.code).toBe(1);

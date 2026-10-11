@@ -180,8 +180,10 @@ review 1456); nothing on cb4.
 ## Part two, 2026-10-11: four children made on cb4, and the two R6 checks (issue `ta-1b-agent-token-on-cb4`)
 
 The owner's `A` is event 1942; the parent `loop-agents` was made by the orchestrating session on
-his word (comment 1954). Every call to cb4 below was made 2026-10-11 from 20:51:46 to 20:52:41 CEST
-(`date` before the first command and after the last), with `issue-as.sh` of the main checkout and
+his word (comment 1954). The four children were made, used and revoked, and the 16 events written,
+2026-10-11 from 20:51:46 to 20:52:41 CEST (`date` before the first of those commands and after the
+last). The read of the whole record further down was made later, at event 2052 (its `at` is
+21:00:15 CEST). All with `issue-as.sh` of the main checkout and
 `brain.ts` of the worktree on the main checkout's state (`BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted`).
 The two runs of `bun test` under "fails before" were made before those calls, the same evening, and
 their times were not written down.
@@ -295,9 +297,48 @@ line. They are this check's and not an agent's run; R1's third check will name t
 
 - **That `token revoke loop-agents` ends the parent, and with it a child.** It is a write with the
   owner's session, and the parent is the one tasks 3, 5 and 6 need. Still as the stand-in has it.
+  Kept since round 2 as the issue `ta-1c-parent-revoke-on-cb4`, with the commands.
 - A child after its `until` (48 h), and the core dropping a maker's ended tokens.
 - A read of a revoked child from another place than this machine, or more than 130 ms after the revoke.
 - `agent-token revoke` of a name that is kept and no longer a row, on cb4.
 - Two `agent-token` at once on cb4 (the three of the R6 check were made one after another).
 - The `pass` and `to-approval` moves with a child: the checks end at `close`.
 - Whether the orchestrator's poll saw either check issue while it was open (8 s for both, `date`).
+
+## Part two, round 2, 2026-10-11: the span, an issue for the parent's revoke, the line of a child that was no row
+
+Review 2128 (`changes`, three findings; it read the 16 events back on cb4 and found them as written).
+
+1. **The span was said of every call to cb4 and held for the children and the 16 events only.** The
+   read "at event 2052" in the same section was after 21:00:15. The sentence at the top of part two
+   now says which calls the span covers and gives the later read its own time.
+2. **"That token revoke ends the parent" had nothing to carry it.** Opened as
+   `ta-1c-parent-revoke-on-cb4` (opened at event 2140; a task, part of `record-names-token-not-agent`,
+   linked `related` to `ta-1b-agent-token-on-cb4`). Its body has the six commands and when they can
+   be run: after ta-6, with no live child. It is the owner's act and was not run.
+3. **The revoke's line for a name that is kept and no longer a row** read "is revoked … N ms after the
+   revoke (none was sent: it was no row)", after a read that was sent, with N counted from the first
+   read. No test read it. It is now a line of its own:
+
+   ```
+   401: "<name>" was no row under loop-agents any more, so no revoke was sent; its value is refused, on read 1 of issue.policy, <N> ms after the first read was sent. Its entry is gone: issue-as.sh <name> is exit 2
+   ```
+
+   The test of a child that has gone already asserts it, and that it has neither "is revoked" nor
+   "after the revoke":
+
+   ```
+   $ bun test ./tests/tools/agent-token.test.ts      # the new assertions, brain.ts as of 41e72b7e
+   (fail) agent-token revoke: a child that has gone already (ended, or revoked elsewhere) loses its entry; a name nobody has is exit 1
+    19 pass
+    1 fail
+   $ bun test ./tests/tools/agent-token.test.ts      # with the change
+    20 pass
+    0 fail
+    158 expect() calls
+   ```
+
+   The line of a child that was a row is as it was in the four revokes above.
+
+Not tried in this round: the new line on cb4 (it needs a child kept here and revoked from
+elsewhere, and none was made); the six commands of `ta-1c-parent-revoke-on-cb4`.
