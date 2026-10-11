@@ -153,6 +153,26 @@ and with the layout the build opens with: `mains` of the build's `bootconf.json`
 `@tomlarkworthy/brain-issues`, so the module runs in a local file whichever tabs are open. So the
 mirror gets the part the tracker's module offers.
 
+## The deploy had no test run of the deployer's
+
+The apply (23:03:03 to 23:03:18 CEST, `lock.sh`) answered `"state":"probation"` for hash
+`8028f6d28439`. The deployer's line, read with `logs.deploys?from=` (`--as loop-deploys`):
+
+```
+deploy.verify.none  brain-x-page  8028f6d28439…  reason: browser.extend answered 402 owner has made 2000
+priced calls today, which is the most for one day. The count is new at 00:00 UTC
+```
+
+So the deployer leased no browser and ran no test, as for the two deploys before this one
+(`records/fb-a2b5yudl8s.md`, `records/ow-2-panel-offers-what-it-shows.md`). Then
+`BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-page --times 5`, with no `--shell`, so the
+module is the one cb4 serves: `"runs":5,"passed":5,"failed":0,"none":0,"from":["brain"],"hashes":["8028f6d28439"]`,
+ended 23:04:11 CEST (`date`). At 23:04:17 `brain.ts confirm brain-x-page` answered
+`{"confirmed":["brain-x-page"]}`, the step `knowledge/changing-and-deploying-a-cloud-brain-worker.md`
+gives for a probation whose reason was read. The version stands on runs in Chrome 151 on this machine
+and on none in the cluster's browser. Not taken: letting it be put back, which leaves `main` and the
+notebook ahead of cb4 until a deploy after 00:00 UTC. To undo: `brain.ts rollback`.
+
 ## Not tried
 
 - **A turn of the Operator.** No agent runs one: it needs the owner's tab and his model. Not seen:
