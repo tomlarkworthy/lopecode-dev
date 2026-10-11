@@ -289,6 +289,14 @@ token and ends it.
       `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts apply <id>-<worker>.json --reason="<id>: …"`.
       Then `redistil` (the Worker's line reads `same`), `saw <worker>`, and for the tracker
       `curl "/xrpc/com.lopecode.brain.issue.verify?guards=true" --owner` (a read).
+      When the apply answers `probation`, the deployer gave no verdict: read `deploy.verify.none` for
+      why (`brain.ts curl "/xrpc/com.lopecode.brain.logs.deploys" --as loop-deploys`). Its tests did
+      not run on this version. Before `brain.ts confirm <worker>` (within 10 minutes, or the version is
+      put back) run `verify-run.ts <worker>` on what cb4 serves and read 0 failed; a fail is no
+      confirm. Your comment and the reason of the submit say that the deployer ran no test, the
+      words of `deploy.verify.none`, and the runs of yours the version stands on (three writers on
+      2026-10-11, `ow-2-panel-offers-what-it-shows`, `fb-a2b5yudl8s` and `ow-3-operator-shown-the-issue`,
+      after "browser.extend answered 402 owner has made 2000 priced calls today"; this step had no line for it).
     - Commit `seen.json` in `lopecode-dev`. After `not due: …` or `same: …` there is no `lopebooks` commit,
       no pointer to commit and no push of `lopebooks`. After `committed <sha> <day>` (the first landing of a
       day that builds) the tool has made the `lopebooks` commit: `git -C <root> add lopebooks` goes in the
