@@ -131,6 +131,14 @@ uses it: the shell is zsh, which does not word-split a variable and stops on an 
    (`run_in_background`; 22 s a run on 2026-10-11, the whole page boots):
    `cd <root> && BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts <worker> --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20`.
    It opens the deployer's run address 20 times with your build as the document, and reads only.
+   Read `tests` in the line of each run first: it is the number of `test_*` cells of the module
+   that ran, and it equals step 7's `passed + needsBrowser` when that module is your build's.
+   When it is the deployed module's number, your change was not run and the 20 say nothing of it,
+   pass or fail: say so in your comment with both numbers, and run the 20 again after step 10's
+   deploy, with no `--shell`, and give that count as made after the deploy. (`n9e1c1256`, event
+   948: `brain-x-issues`, `tests` 23 where the build had 26, passed 0 of 20 on a build that gave
+   20 of 20 once deployed. `ds-1-split-healthview`, event 1049: `brain-x-page`, whose module is
+   the document's main, `tests` 17 of the build's 17. Why the two differ is not known.)
    Its last line is the result: `passed` equals `runs` (so `failed` is 0 and `none` is 0) and
    `byChance` is `[]`, and `passed` of `runs` goes in your comment. A test named in `byChance`
    passed and failed on one build: back to step 6. A run counted under `none` gave no verdict
