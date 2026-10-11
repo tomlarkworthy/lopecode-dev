@@ -75,3 +75,46 @@ and the caret are in the two tests named for them and were not repeated for `Ans
   and reads, it does not press Answer.
 - Whether "by id" is the order he wants inside a group. It is the one that does not move.
 - Chrome 128, the cluster's browser, before the deploy. The deployer runs the tests there after it.
+
+## Round 2, 2026-10-11: the new test failed by chance beside the others
+
+The review (event 698, 2026-10-11 15:19:48 +0200) found one thing: `test_issues_panel_attention_rows_say_what_is_asked`
+failed in the page's own first run, 2 of 2 fresh tabs, on
+
+```
+expect([said("q1", "Take the first way"), b1.value]).toEqual([1, ""])   received [1, "Take the first way"]
+```
+
+The wait before that line was `!row("q1") && kept("q1").labels.length === 0`. Both are true before the
+press has ended: the row leaves the block when the pending label event is drawn, and `kept()` reads the
+rig's database, which is written before `client.procedure` answers. The box is emptied in `once()`, after
+that answer. The panel was right and the test read too early. The `[23,[]]` of round 1 above was one first
+run that happened to pass.
+
+Changed, seed commit `39fab5cc` (`git log -1 --format='%h %ci'`: 2026-10-11 15:24:22 +0200), the test only:
+the wait now includes `b1.value === ""`, the last thing the press does, and the line after it reads the
+count of comments alone. No cell of the panel changed.
+
+Counted where it was met, the snippet of step 8 of `agents/implementer.md` as the first thing run in a
+fresh headless QA tab (Chrome), each tab a new `r=`:
+
+```
+before  lopebooks@07cc2ef2 notebook, 3 tabs   [23,[that test]] 3 of 3   (the reviewer's 2 of 2 beside them)
+after   worktree build of 39fab5cc,  4 tabs   [23,[]]          0 of 4
+```
+
+Where it did not fail before the fix, so these are no measure of it:
+- the 23 definitions called together again in the first "before" tab, 10 rounds after the first run: 0 of 10
+  (the reviewer had 1 of 5);
+- `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-issues --times 10` on `30c47e98f364`, 15:21 CEST:
+  10 of 10 `ok: true`, `@tomlarkworthy/brain-issues: 22` in each run's `ran`. Which of the 23 had no value
+  when the verdict was read was not looked at.
+
+`cd cloud-brain-dev && bun test.ts brain-x-issues --with <built module>`: `passed 14, failed 0, needsBrowser 9`.
+
+Not tried in round 2:
+- The last step of the test (approve `a1`) waits on `!row("a1") && kept("a1").state === "done"` and then reads
+  the rows and headings, which do not change when the press ends. It was left as it is; the test ends the
+  panel while that press may still be on its way.
+- More than 4 fresh tabs after the fix. 3 of 3 before against 0 of 4 after is the whole count.
+- Chrome 128 before the deploy.
