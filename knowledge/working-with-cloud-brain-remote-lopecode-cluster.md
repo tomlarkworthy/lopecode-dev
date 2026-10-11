@@ -204,6 +204,11 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --stale   # the reind
 ## Why did that happen: the logs
 
 `brain-x-logs` passes Cloudflare's log queries through, scoped to this Brain, owner's session only.
+One read is not the owner's alone (since 2026-10-11): `logs.deploys?from=MS&to=MS` answers what the deployer
+wrote about deploys (`at: "deploy.…"`) over a span, whole, with the test runs counted by Worker, hash and
+failed test. A token that names it reads it: `brain.ts curl "/xrpc/com.lopecode.brain.logs.deploys" --as loop-deploys`
+(the last 24 hours; the token is made once with the owner's session, `brain.ts token loop-deploys logs.deploys`).
+What its counts mean and do not is in `brain-logs.ojs`, "The deploys of a span".
 The core writes one line a call with keys `at ray caller via origin delegation holder method worker status
 error ms price rule by`. Three traps met on the first day:
 
