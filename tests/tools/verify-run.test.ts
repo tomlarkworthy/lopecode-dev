@@ -10,7 +10,8 @@ import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 
 const script = process.env.VERIFY_RUN_TS || resolve(import.meta.dir, "../../tools/cloud-brain/verify-run.ts");
-const { judge, parseArgs, runAddress, chromeFor } = await import(script);
+const { judge, parseArgs, runAddress, chromeFor, shellDocument } = await import(script);
+const { blockContent, blockSpans } = await import(resolve(import.meta.dir, "../../tools/lib/notebook-blocks.ts"));
 
 const M = "@t/w", SHELL = "@tomlarkworthy/brain-shell", H1 = "a".repeat(64), H2 = "b".repeat(64);
 const names = ["test_a", "test_b"];
@@ -105,6 +106,40 @@ test("the Chrome: CHROME, then the build Playwright names, then the newest compl
   expect(() => chromeFor("/usr/bin/chrome")).toThrow("no Playwright cache in /usr/bin/chrome");
 });
 
+// Issue verify-run-shell-runs-deployed. A whole build as --shell booted the page's module, whose `assembled` cell
+// wrote the Worker's source over the file's copy of the module while its tests ran (0 of 20 on n9e1c1256).
+const block = (id: string, text: string, more = "") => `<script id="${id}" ${more}\n  type="text/plain"\n>\n${text}\n</script>`;
+const BUILD_CONF = { mains: ["@a/lopepage", SHELL, M, "@t/page"], hash: "#view=C100(S70(@t/page))", headless: true };
+// Its boot script makes a runtime from the boot list: every main but brain-shell and the Worker's module has 3 tests.
+const build = (more = "") => ["<!doctype html><html><head>", block("bootconf.json", JSON.stringify(BUILD_CONF, null, 2)), block(SHELL, "S"), block(M, "W", more), block("@t/page", "P"), `<script>
+  const mains = JSON.parse(document.getElementById("bootconf.json").textContent).mains, mods = new Map(mains.map((k) => [k, {}])), vars = new Set();
+  mods.set("@t/w", mods.get("@t/w") || {});
+  const add = (name, mod) => vars.add({ _name: name, _module: mods.get(mod), _version: 1, _value: "ok" });
+  for (const m of mains) if (m !== "@t/w" && m !== "${SHELL}") for (let i = 0; i < 3; i++) add("test_" + i, m);
+  add("test_a", "@t/w"); add("test_b", "@t/w");
+  window.__ojs_runtime = { mains: mods, _variables: vars };
+  fetch("/next").then((r) => r.json()).then((v) => setTimeout(() => (window.__brainVerdict = v), 20));
+</scr` + `ipt></head></html>`].join("\n");
+
+test("--shell: a file that holds the module is served with the boot list cut to brain-shell and the module", () => {
+  const html = build(), { body, mains } = shellDocument(html, M);
+  expect(mains).toEqual([SHELL, M]);
+  expect(JSON.parse(blockContent(body, "bootconf.json")!)).toEqual({ ...BUILD_CONF, mains: [SHELL, M] });
+  expect(blockSpans(body).map((b: any) => b.id)).toEqual(blockSpans(html).map((b: any) => b.id));
+  expect(blockContent(body, M)).toBe(blockContent(html, M));
+  // A file without the module (verify.html) is served as it is: brain-shell joins what the Worker runs.
+  expect(shellDocument(html, "@t/not-in-the-file")).toEqual({ body: html, mains: null });
+});
+
+test("a run whose module was not the file's, when the file holds it: exit 3 whatever the runs count", () => {
+  const out = judge([pass({ from: "document" }), pass({ from: "brain" }), fail({ from: "brain" })], { module: M, expect: "document" });
+  expect([out.from, out.notTheFiles, out.byChance.length, out.exit]).toEqual([["document", "brain"], 2, 1, 3]);
+  expect(judge([pass({ from: "document" })], { module: M, expect: "document" })).toMatchObject({ from: ["document"], notTheFiles: 0, exit: 0 });
+  // With no file that holds the module there is nothing to expect: the Worker's module is the one to run.
+  const joined = judge([pass({ from: "brain" })], { module: M });
+  expect([joined.from, "notTheFiles" in joined, joined.exit]).toEqual([["brain"], false, 0]);
+});
+
 // A stand-in for the Brain: the kernel's DID document, the deployer's module list, a page at / that leaves a
 // verdict and a runtime of the shape brain-shell's page has, and /next, which says how each run in turn ends.
 const page = (ran: Record<string, number>) => `<!doctype html><script>
@@ -189,6 +224,28 @@ test("in a browser: every run fails, exit 2 and not by chance", async () => {
     const { code, summary } = await r.run("brain-x-w", "--times", "2", "--shell", r.shell);
     expect(summary).toMatchObject({ passed: 0, failed: 2, byChance: [], everyTime: [{ name: "test_b", passed: 0, failed: 2 }], exit: 2 });
     expect(code).toBe(2);
+  } finally { r.stop(); }
+}, 60000);
+
+test("in a browser: a whole build as --shell boots the module and brain-shell, not the page's module, exit 0", async () => {
+  const r = rig([true]);
+  try {
+    const file = join(realpathSync(mkdtempSync(join(tmpdir(), "verify-run-build-"))), "cloud-brain.html");
+    writeFileSync(file, build());
+    const { code, err, start, runs, summary } = await r.run("brain-x-w", "--times", "2", "--shell", file);
+    expect(err).toBe("");
+    expect(start.mains).toEqual([SHELL, M]);
+    expect(runs.map((x: any) => [x.ok, x.tests, x.from, x.ran])).toEqual([[true, 2, "document", { [M]: 2 }], [true, 2, "document", { [M]: 2 }]]);
+    expect(summary).toMatchObject({ runs: 2, passed: 2, failed: 0, from: ["document"], notTheFiles: 0, otherModules: {}, exit: 0 });
+    expect(code).toBe(0);
+    // The module's block is another's text on the page (a join's): the runs are not of the file's module.
+    writeFileSync(file, build("data-brain"));
+    const other = await r.run("brain-x-w", "--times", "2", "--shell", file);
+    expect(other.summary).toMatchObject({ passed: 2, from: ["brain"], notTheFiles: 2, exit: 3 });
+    expect(other.code).toBe(3);
+    // The short document holds no copy: served as it is, and the page has no block of the module.
+    const short = await r.run("brain-x-w", "--shell", r.shell);
+    expect([short.start.mains, short.runs[0].from, short.summary.from, "notTheFiles" in short.summary]).toEqual([null, null, [null], false]);
   } finally { r.stop(); }
 }, 60000);
 

@@ -8,13 +8,22 @@
 //   bun tools/cloud-brain/verify-run.ts brain-x-logs --shell tools/cloud-brain/.emitted/verify.html
 //
 // --shell FILE   answer the document at BASE/ with this file; every other request goes to the Brain.
+//                A file that holds the Worker's module (a whole build, .emitted/cloud-brain.html) is served with its
+//                boot list cut to brain-shell and that module, so the file's module is what runs. Served as it is,
+//                the page's own module (cloud-brain, `assembled`) writes what the Worker runs over the file's copy
+//                while the tests run. A file without the module (.emitted/verify.html) is served as it is, and
+//                brain-shell joins the module the Worker runs. The start line's `mains` is the list, or null.
 // --base         cb4 (the default, or BRAIN_BASE), or a whole address.
 // --timeout      how long one run waits for a verdict, 150 s by default.
 // CHROME=path    another Chrome than Playwright's own. With none, and Playwright's own build not installed, the
 //                newest chromium_headless_shell-N beside where it would be is used; the start line names the version.
 //
 // stdout: one line of JSON for the start, one a run, one summary. A run's `ran` is the test_ cells that had a
-// value when the verdict was read, by module.
+// value when the verdict was read, by module. `from` is whose text the module's block on the page is: "document"
+// (the file's own), "brain" (joined by brain-shell: what the Worker runs), null (no block). The summary's `from`
+// is each one seen.
+// Exit 3: --shell named a file that holds the Worker's module and a run's module was not the file's. The runs say
+//         nothing of the file's module, whatever they count.
 // Exit 1: a test passed and failed on one hash, or a module other than brain-shell and the Worker's ran a test.
 //         A module named @test/… is a fixture a test of brain-shell joins to the page, and is not counted.
 // Exit 2: neither of those, and a run failed or gave no verdict.
@@ -23,6 +32,8 @@
 // Spec: plan/cloud-brain-deploy-verdict-from-a-shared-page.md, design 3. Record: records/dv-1-verify-run-tool.md.
 import { readFileSync } from "node:fs";
 import { chromeFor as sharedChromeFor } from "../lib/playwright-chrome.js";
+import { findSpan } from "../lib/notebook-blocks.ts";
+import { verifyShell, VERIFY_MAINS } from "./verify-shell.ts";
 
 export const SHELL = "@tomlarkworthy/brain-shell";
 export const FIXTURE = /^@test\//;
@@ -34,6 +45,7 @@ export type Run = {
   names?: string[]; // every test_ cell of the Worker's module
   failed?: { name: string; message?: string }[];
   ran?: Record<string, number>; // module -> test_ cells that had a value
+  from?: "document" | "brain" | null; // whose text the module's block is
   otherTestsRan?: number | null;
   ms?: number | null; // the verdict's own time
   wall?: number; // goto to verdict
@@ -68,13 +80,21 @@ export function parseArgs(argv: string[], env: Record<string, string | undefined
 // The address of a run, as verifyDeploy writes it.
 export const runAddress = (base: string, module: string, worker: string) => `${base}/#view=C100(S100(${module},${SHELL}))&verify=${worker}`;
 
+// The document --shell answers with. A file that holds the module boots brain-shell and that module alone.
+export function shellDocument(html: string, module: string): { body: string; mains: string[] | null } {
+  if (!findSpan(html, module)) return { body: html, mains: null };
+  const mains = [...new Set([...VERIFY_MAINS, module])];
+  return { body: verifyShell(html, mains), mains };
+}
+
 const median = (xs: (number | null | undefined)[]) => {
   const s = xs.filter((x): x is number => typeof x === "number").sort((a, b) => a - b);
   return s.length ? s[(s.length - 1) >> 1] : null;
 };
 
 // What N runs say. A test is compared with itself on one hash only: a deploy between two runs is other code.
-export function judge(runs: Run[], { module }: { module: string }) {
+// expect: "document" when --shell's file holds the module.
+export function judge(runs: Run[], { module, expect = null }: { module: string; expect?: "document" | null }) {
   const tests = new Map<string, { hash: string; name: string; passed: number; failed: number; message: string }>();
   const other: Record<string, number> = {};
   let passed = 0, failed = 0, none = 0;
@@ -94,9 +114,11 @@ export function judge(runs: Run[], { module }: { module: string }) {
   const byChance = all.filter((t) => t.passed && t.failed);
   const everyTime = all.filter((t) => !t.passed && t.failed);
   const judged = runs.filter((r) => !r.none && typeof r.ok === "boolean");
-  const exit = byChance.length || Object.keys(other).length ? 1 : failed || none ? 2 : 0;
+  const notTheFiles = expect ? judged.filter((r) => r.from !== expect).length : 0;
+  const exit = notTheFiles ? 3 : byChance.length || Object.keys(other).length ? 1 : failed || none ? 2 : 0;
   return {
     runs: runs.length, passed, failed, none,
+    from: [...new Set(judged.map((r) => r.from ?? null))], ...(expect ? { notTheFiles } : {}),
     hashes: [...new Set(judged.map((r) => String(r.hash).slice(0, 12)))],
     byChance, everyTime, otherModules: other,
     otherTestsRan: [...new Set(judged.map((r) => r.otherTestsRan ?? null))],
@@ -119,8 +141,8 @@ const read = () => {
     if (v._module === mod) names.push(v._name);
     if (v._version > 0 && v._value !== undefined) { const n = nameOf.get(v._module) || "(unnamed)"; ran[n] = (ran[n] || 0) + 1; }
   }
-  const memory = (performance as any).memory;
-  return { verdict, names, ran, variables: rt._variables.size, heapMB: memory ? Math.round(memory.usedJSHeapSize / 1e6) : null };
+  const memory = (performance as any).memory, block = document.getElementById(verdict.module);
+  return { verdict, names, ran, from: block ? (block.hasAttribute("data-brain") ? "brain" : "document") : null, variables: rt._variables.size, heapMB: memory ? Math.round(memory.usedJSHeapSize / 1e6) : null };
 };
 
 // The module of a Worker and the hash it runs, from the deployer, where brain-shell reads them.
@@ -145,12 +167,12 @@ async function main() {
   let args;
   try { args = parseArgs(process.argv.slice(2), process.env); } catch (e: any) { console.error(`${e.message}\n${usage}`); process.exit(64); }
   const { worker, times, shell, base, timeout } = args;
-  const body = shell ? readFileSync(shell, "utf8") : null;
   const { module, hash } = await moduleOf(base, worker);
+  const { body, mains } = shell ? shellDocument(readFileSync(shell, "utf8"), module) : { body: null, mains: null };
   const address = runAddress(base, module, worker);
   const { chromium } = await import("playwright");
   const browser = await chromium.launch({ headless: true, executablePath: chromeFor(chromium.executablePath(), process.env) });
-  console.log(JSON.stringify({ worker, module, deployed: hash.slice(0, 12), address, shell, times, browser: browser.version(), at: new Date().toISOString() }));
+  console.log(JSON.stringify({ worker, module, deployed: hash.slice(0, 12), address, shell, mains, times, browser: browser.version(), at: new Date().toISOString() }));
   const runs: Run[] = [];
   try {
     for (let i = 0; i < times; i++) {
@@ -164,7 +186,7 @@ async function main() {
         await page.goto(address, { waitUntil: "load" });
         const got: any = await (await page.waitForFunction(read, null, { timeout: timeout * 1000 })).jsonValue();
         const v = got.verdict;
-        run = { hash: v.hash ?? null, ok: v.ok, none: v.none, names: got.names, failed: (v.failed || []).map((f: any) => ({ name: String(f.name), message: String(f.message || "") })), ran: got.ran, otherTestsRan: v.otherTestsRan ?? null, ms: v.ms ?? null, wall: Date.now() - t0, heapMB: got.heapMB ?? null, variables: got.variables ?? null };
+        run = { hash: v.hash ?? null, ok: v.ok, none: v.none, names: got.names, failed: (v.failed || []).map((f: any) => ({ name: String(f.name), message: String(f.message || "") })), ran: got.ran, from: got.from ?? null, otherTestsRan: v.otherTestsRan ?? null, ms: v.ms ?? null, wall: Date.now() - t0, heapMB: got.heapMB ?? null, variables: got.variables ?? null };
       } catch (e: any) {
         run = { none: "no verdict: " + String(e.message || e).split("\n")[0].slice(0, 200), wall: Date.now() - t0 };
       }
@@ -176,7 +198,7 @@ async function main() {
   } finally {
     await browser.close();
   }
-  const summary = judge(runs, { module });
+  const summary = judge(runs, { module, expect: mains ? "document" : null });
   console.log(JSON.stringify({ worker, ...summary, at: new Date().toISOString() }));
   process.exit(summary.exit);
 }

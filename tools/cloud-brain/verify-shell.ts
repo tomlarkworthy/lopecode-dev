@@ -6,11 +6,12 @@ import { blockContent, findSpan } from "../lib/notebook-blocks.ts";
 
 export const VERIFY_MAINS = ["@tomlarkworthy/brain-shell"];
 
-export function verifyShell(shell: string): string {
+// mains: another boot list than brain-shell alone (verify-run.ts adds the module of the Worker a build is run for).
+export function verifyShell(shell: string, mains: string[] = VERIFY_MAINS): string {
   const span = findSpan(shell, "bootconf.json");
   if (!span) throw new Error("no bootconf.json block");
   for (const m of VERIFY_MAINS) if (!findSpan(shell, m)) throw new Error(`no block ${m}`);
-  const conf = { ...JSON.parse(blockContent(shell, "bootconf.json")!), mains: VERIFY_MAINS };
+  const conf = { ...JSON.parse(blockContent(shell, "bootconf.json")!), mains };
   const raw = shell.slice(span.start, span.end);
   return shell.slice(0, span.start) + raw.slice(0, raw.indexOf(">") + 1) + "\n" + JSON.stringify(conf, null, 2) + "\n</script>" + shell.slice(span.end);
 }
