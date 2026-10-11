@@ -97,3 +97,48 @@ of the parent ends a child.
   values answer 401. No command clears the file.
 - `issue-as.sh` still names cb4 and its two files; `<base>` in the spec is cb4 there.
 - The briefs, the docs and `issue-stats.ts` are tasks 2 to 5. No brief names the new command yet.
+
+## Round 2, 2026-10-11: a lock left behind that cannot be removed
+
+Review 1420 (`changes`, one finding). In `changeAgentTokens` the branch for a lock older than 10 s
+was `try { rmdirSync(lock); } catch {} continue;`, which passed over both the limit of 400 tries
+and the sleep. With a file in the lock directory the `rmdir` fails each time, so `agent-token <role>`
+went round with no end, after `delegation.create` had been sent: a child on the Brain, not kept and
+not revoked. Nothing of the tools writes into the directory, so the reviewer made the case by hand.
+
+The same case as a test, before the fix (the test kills a run at 20 s):
+
+```
+$ bun test ./tests/tools/agent-token.test.ts
+(fail) agent-token: a lock left behind that cannot be removed is exit 1, and the child that was made is revoked and not kept [20024.96ms]
+(fail) brain.ts curl --as a name that is not kept names both ways to make one [18.65ms]
+ 17 pass
+ 2 fail
+```
+
+After: the limit is counted on every try, a removed stale lock goes on to the sleep and the next
+`mkdir`, and an `rmdir` that fails with anything but `ENOENT` is an error at once. The create's
+`catch` then revokes the child and prints `"<name>" was made and could not be kept (<lock> was left
+more than 10 s ago and cannot be removed (ENOTEMPTY)); it is revoked`, exit 1. The lock is left as
+it was found: what wrote into it is not known to the tool.
+
+```
+$ bun test ./tests/tools/agent-token.test.ts
+ 19 pass
+ 0 fail
+ 143 expect() calls
+$ bun test ./tests/tools
+ 220 pass
+ 0 fail
+Ran 220 tests across 25 files.
+```
+
+Part one's sentence "A lock older than 10 s is taken as left by a dead process" holds for an empty
+one, and a second new test holds that (taken in under 5 s, the child kept).
+
+The review's second note, taken: `brain.ts curl <path> --as NAME` for a name that is not kept
+now ends `…, or for an agent's tracker calls: agent-token <role>`. The third new test.
+
+Not tried in this round: a lock held by a live process for longer than 400 tries (about 10 s),
+which ends the same way through `is held`; an `rmdir` refused for another reason than a file in
+the directory (permissions). Nothing on cb4, as before.
