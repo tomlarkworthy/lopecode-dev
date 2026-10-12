@@ -712,7 +712,7 @@ A time you write in an issue's body, a comment or a reason is read from `date` o
      and leave the gathering to the overseer (below, "Links, and projects").
    - `needs-owner`, left at `triaged`: only when the seven do not answer it, when two of them
      pull apart with a real cost on each side, or when the issue proposes to change one of them
-     or a line of `rules.md`. The comment is written as `rules.md`, "What the owner is asked to decide", has it: what it is, whether it is live, the one flaw, a line a choice, the pick. (Until `owner-decisions-written-dense`, 2026-10-12: "in the form `philosophy.md` gives", the longer order of 2026-10-11.)
+     or a line of `rules.md`. The comment is written as `rules.md`, "What the owner is asked to decide", has it: what it is, what its project is for, whether it is live, the one flaw, a line a choice, the pick. (Until `owner-decisions-written-dense`, 2026-10-12: "in the form `philosophy.md` gives", the longer order of 2026-10-11.)
    - Also `needs-owner`, until the owner changes `rules.md`: the change needs something only he
      may do (a policy install, a new secret, a deploy of the kernel, core, database or deployer,
      a deletion of kept data). Decide from the seven whether it should be done, and comment
