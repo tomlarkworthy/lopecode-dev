@@ -161,7 +161,7 @@ Who may triage, label and narrow: the owner or a token; taking the label \`major
 // %%
 md`## The flow of work
 
-Two cells make the times work took from the record. No method answers them yet: a cell or a test calls them (since 2026-10-12; \`plan/cloud-brain-flow-metrics.md\`, task 1 of 6).
+Two cells make the times work took from the record. No method answers them yet: a cell or a test calls them (since 2026-10-12; \`plan/cloud-brain-flow-metrics.md\`, tasks 1 and 2 of 6).
 
 \`issueFlow(events, { metric, since, until, by, filter })\`. \`events\` is the record in the order of \`seq\`, as \`issue.sync\` answers it to a caller. \`since\` and \`until\` are milliseconds since 1970; left out they are 0 and the \`at\` of the last event. \`by\` is a list of dimensions, or their names with commas between. \`filter\` is \`{ DIM: "value" }\`. The answer has the fields of an answer of \`metric.query\` (\`brain-dashboard.ojs\`), with \`unit\` and \`summaries\` beside them:
 
@@ -175,10 +175,19 @@ Two cells make the times work took from the record. No method answers them yet: 
 | metric | a row is | \`t\` | value (\`sum\`, \`max\`), \`unit\` | dimensions |
 |---|---|---|---|---|
 | \`flow.lead\` | an issue that reached a clock inside the span, \`since\` and \`until\` among its moments | when it reached it | ms since it was opened, \`ms\` | \`to\`, \`id\`, \`kind\`, \`opener\`, \`for\` |
+| \`flow.open\` | an issue that is not closed at \`until\` | when it was opened | its age at \`until\` in ms, \`ms\` | \`id\`, \`kind\`, \`state\`, \`waits\`, \`for\` |
+| \`flow.stays\` | the part of a stay that is inside the span | the end of that part | its ms, \`ms\` | \`state\`, \`waits\`, \`kind\`, \`ended\` |
+| \`flow.submits\` | a \`submit\` or a \`submit-spec\` move inside the span, both ends among its moments | the move | 1 when it was sent back, else 0, \`count\` | \`move\`, \`kind\`, \`id\` |
 
-\`to\` is the clock: \`response\`, \`submit\`, \`deploy\` or \`done\`. With \`id\` in \`by\` a row is one issue at one clock, with \`n\` 1. Without it the rows of a step and a group are added: \`n\` the issues, \`sum\` and \`max\` of the value, \`t\` the start of the step. \`step\` is an hour, 3600000, for a span of up to 48 hours and a day (UTC) beyond it. Rows are oldest first. \`summaries\` has one entry for each group of the dimensions asked other than \`id\`, made by \`flowSummary\` from the value of each row before any is added, and \`groups\` is how many entries. No row is left out of an answer. An event whose \`at\` is after \`until\` is not read, so the answer is of the record as it stood then; \`cost.events\` is how many were read.
+\`to\` is the clock: \`response\`, \`submit\`, \`deploy\` or \`done\`. With \`id\` in \`by\` a row is one issue at one clock (\`flow.lead\`), one issue (\`flow.open\`) or one submit (\`flow.submits\`), with \`n\` 1. Without it the rows of a step and a group are added: \`n\` how many, \`sum\` and \`max\` of the value, \`t\` the start of the step. A stay has no \`id\`, so the rows of \`flow.stays\` are always added: \`n\` is the stays. \`step\` is an hour, 3600000, for a span of up to 48 hours and a day (UTC) beyond it. Rows are oldest first. \`summaries\` has one entry for each group of the dimensions asked other than \`id\`, made by \`flowSummary\` from the value of each row before any is added, and \`groups\` is how many entries. No row is left out of an answer. An event whose \`at\` is after \`until\` is not read, so the answer is of the record as it stood then; \`cost.events\` is how many were read.
 
 It throws an error with \`status\` 400 for a metric that is not in the table, a name in \`by\` or in \`filter\` that is not a dimension of the metric, a name twice in \`by\`, a filter value that is not text or is empty, and a \`since\` or \`until\` that is not a number or a \`since\` after \`until\`. A filter value that matches no row is an answer with no rows.
+
+\`flow.open\` is of the moment \`until\`: the state and the age an issue had then. It does not read \`since\` for its rows, so an issue opened before the span and still open is a row; \`since\` decides the step, as for every metric, and one after \`until\` is still 400. Work in progress is \`n\` by \`state\`.
+
+\`flow.stays\`: a stay that was over by \`since\` is no row, and one that began inside the span is a row whatever its length, 0 ms for one that began at \`until\`. \`ended\` is \`yes\` when a move ended the stay at or before \`until\`, else \`no\`: then the part ends at \`until\`. The hours of a wait with the label \`needs-owner\` are also in the rows of the state the issue was in, so a sum over every \`state\` counts them twice.
+
+\`flow.submits\`: \`sum / n\` of the added rows is the share sent back. Its \`summaries\` are of the values 1 and 0.
 
 \`flowSummary(values)\` answers \`{ n, median, p85, max }\`, and is the one place a percentile is computed. A percentile is nearest rank: the value at place ceil(p × n) of the sorted list, so the median of two values is the lower one. (\`tools/cloud-brain/issue-stats.ts\` takes the upper of two for its own medians.) What is not a finite number is not counted; of no values \`n\` is 0 and the other three are \`null\`.
 
@@ -198,6 +207,11 @@ The names of moves, states and kinds are read as the record has them: the move \
 - **\`kind\`** is the kind the issue was opened with. No event changes it.
 - **\`opener\`**, who opened it: for a token with a name, the role in the name when it is \`orch\`, \`impl\`, \`rev\`, \`spec\`, \`over\`, \`dig\` or \`out\`, a hyphen and six hex digits (\`impl-0a1b2c\` is \`impl\`), else the name whole (as \`role\` of \`tools/cloud-brain/issue-stats.ts\`); \`token\` for a delegation whose holder has no name; else the caller as the core named it: \`owner\` for his session, \`deployer\`, \`worker:NAME\`.
 - **\`for\`**, for whom: \`owner\` when the owner opened it present (his session, in a tab, as \`caller.present\` of a guard, which a session made from a Brain's state file also is), or when the issue has the label \`owner\` or \`annotation\`; else \`loop\`.
+- **Closed** is a state the issue's workflow lists as closed, by the workflow it was on then. The age of an issue that was closed and opened again is from when it was first opened.
+- **A stay** is the time between two moves of an issue, the first from when it was opened, or from its last move to \`until\` when it has not ended. A swap is a move: one that leaves the issue in a state of the same name (\`promote\`, each swap of an install's \`migrate\`) ends a stay and begins another, as \`time in a state\` of \`tools/cloud-brain/issue-stats.ts\` counts them. A stay in a closed state (before a \`reopen\` or a \`revert\`) is in no row.
+- **\`waits\`**, what a state waits for: \`start\` at \`open\`, \`triaged\` or \`ready\`; \`owner\` at \`awaiting-approval\`; \`work\` at any other state that is not closed (\`approved\` and \`building\` of a project among them). The states are read by name. The label \`needs-owner\` does not change the \`waits\` of a row of \`flow.open\`.
+- **\`needs-owner\`** is counted beside the states, as one more value of \`state\` of \`flow.stays\`, with \`waits\` \`owner\`: the time an issue that is not closed has the label. From the event that put it on (the \`opened\` event when it was opened with it) to the one that took it off, to the move that closed the issue, or to \`until\`. An issue opened again with the label still on waits again from that move. The label put on an issue that has it begins nothing.
+- **Sent back**, of a \`submit\` or a \`submit-spec\` move: the first move named \`rework\`, \`respec\`, \`send-back\`, \`pass\` or \`to-approval\` that the issue made after it, and before its next submit, was one of the first three. With no such move at \`until\` it is not sent back. So a spec that passed its review (\`to-approval\`) and was then sent back by the owner (\`send-back\`) is not counted: its review did not send it back.
 - **The clock is the wall's.** A lead time holds the hours the loop was stopped.
 - **An issue the caller may not read** is in no row: the events \`issue.sync\` answered as \`hidden\` are passed over, so such an issue is followed by none either. An issue whose id starts \`test-\` is in no row.`
 // %%
@@ -522,7 +536,12 @@ issueApply = (view, e) => {
 }
 // %%
 // The metrics issueFlow answers: the unit of a row's value, and the dimensions `by` and a filter may name.
-issueFlowMetrics = ({ "flow.lead": { unit: "ms", dims: ["to", "id", "kind", "opener", "for"] } })
+issueFlowMetrics = ({
+  "flow.lead": { unit: "ms", dims: ["to", "id", "kind", "opener", "for"] },
+  "flow.open": { unit: "ms", dims: ["id", "kind", "state", "waits", "for"] },
+  "flow.stays": { unit: "ms", dims: ["state", "waits", "kind", "ended"] },
+  "flow.submits": { unit: "count", dims: ["move", "kind", "id"] }
+})
 // %%
 // How many values, their median, their 85th percentile and the longest: { n, median, p85, max }. A percentile is nearest
 // rank, the value at place ceil(p * n) of the sorted list, with the place counted in whole numbers (85 * n / 100) so that
@@ -558,6 +577,9 @@ issueFlow = (events, { metric, since = 0, until, by = [], filter = {} } = {}) =>
   // The view at `until`, made as the service makes it, and beside it what the view does not keep: who opened each issue
   // and when, each of its moves, and every workflow a policy named for the kind feedback.
   const view = issueView(), opened = new Map(), moves = new Map(), feedbackFlows = new Set();
+  // The stays: each one that ended, where each issue is now and since when, and since when it has the label needs-owner
+  // while it is not closed. A stay is { id, state, closed, from, to }; `to` is null for one that has not ended.
+  const stays = [], now = new Map(), asked = new Map();
   let read = 0;
   for (const e of record) {
     if (!e || !(e.at <= end)) continue;
@@ -565,9 +587,22 @@ issueFlow = (events, { metric, since = 0, until, by = [], filter = {} } = {}) =>
     if (e.hidden) continue;
     if (e.type === "policy" && e.policy.kinds && issueAt(e.hashes, e.policy.kinds.feedback)) feedbackFlows.add(e.hashes[e.policy.kinds.feedback]);
     issueApply(view, e);
+    const move = e.type === "moved" || e.type === "swapped";
     if (e.type === "opened") opened.set(e.id, e), moves.set(e.id, []);
-    else if ((e.type === "moved" || e.type === "swapped") && moves.has(e.id)) moves.get(e.id).push(e);
+    else if (move && moves.has(e.id)) moves.get(e.id).push(e);
+    const i = opened.has(e.id) ? issueAt(view.issues, e.id) : null;
+    if (!i) continue;
+    if (e.type === "opened" || move) {
+      if (now.has(i.id)) stays.push({ ...now.get(i.id), to: e.at });
+      now.set(i.id, { id: i.id, state: i.state, closed: i.closed, from: e.at });
+    }
+    // The label counts while the issue is not closed: put on (or opened with), taken off, the close, opened again with it.
+    const asks = !i.closed && (i.labels || []).includes("needs-owner");
+    if (asks && !asked.has(i.id)) asked.set(i.id, e.at);
+    if (!asks && asked.has(i.id)) stays.push({ id: i.id, state: "needs-owner", closed: false, from: asked.get(i.id), to: e.at }), asked.delete(i.id);
   }
+  for (const stay of now.values()) stays.push({ ...stay, to: null });
+  for (const [id, from] of asked) stays.push({ id, state: "needs-owner", closed: false, from, to: null });
   const issues = Object.values(view.issues).filter((i) => opened.has(i.id));
   const kids = new Map();
   for (const i of issues) if (i.parent) kids.set(i.parent, [...(kids.get(i.parent) || []), i.id]);
@@ -588,9 +623,12 @@ issueFlow = (events, { metric, since = 0, until, by = [], filter = {} } = {}) =>
     const c = callerOf(by), role = /^(orch|impl|rev|spec|over|dig|out)-[0-9a-f]{6}$/.exec(c.token);
     return c.token ? (role ? role[1] : c.token) : /^delegation:/.test((by && by.via) || "") ? "token" : c.id;
   };
+  // What a state waits for: a start, the owner, or it is at work.
+  const waitsOf = (state) => (["open", "triaged", "ready"].includes(state) ? "start" : state === "awaiting-approval" || state === "needs-owner" ? "owner" : "work");
+  const forWhom = (i) => (issueCaller(opened.get(i.id).by).present || (i.labels || []).some((l) => l === "owner" || l === "annotation") ? "owner" : "loop");
+  const counted = issues.filter((i) => !/^test-/.test(i.id));
   const rows = [];
-  for (const i of issues) {
-    if (/^test-/.test(i.id)) continue;
+  if (metric === "flow.lead") for (const i of counted) {
     const o = opened.get(i.id), own = [i.id];
     const clocks = { response: first(own, () => true), submit: first(own, isSubmit), deploy: first(own, isDeploy), done: first(own, isDone) };
     if (i.kind === "feedback" && feedbackFlows.has(i.workflow)) {
@@ -598,8 +636,27 @@ issueFlow = (events, { metric, since = 0, until, by = [], filter = {} } = {}) =>
       const follows = [...new Set([i.parent, ...(i.links || []).map((l) => l.to)])].filter((id) => opened.has(id));
       Object.assign(clocks, { deploy: first([...follows, ...parts(follows)], isDeploy, o.at), done: first(follows, isDone, o.at) });
     } else if (i.kind === "project" || i.kind === "feature") clocks.deploy = first(parts(own), isDeploy, o.at);
-    const who = { id: i.id, kind: i.kind, opener: openerOf(o.by), for: issueCaller(o.by).present || (i.labels || []).some((l) => l === "owner" || l === "annotation") ? "owner" : "loop" };
+    const who = { id: i.id, kind: i.kind, opener: openerOf(o.by), for: forWhom(i) };
     for (const [to, t] of Object.entries(clocks)) if (t !== null && t >= since) rows.push({ t, value: t - o.at, to, ...who });
+  }
+  // An issue not closed at `until`, with its age then. `since` is not read.
+  if (metric === "flow.open") for (const i of counted) if (!i.closed) rows.push({ t: opened.get(i.id).at, value: end - opened.get(i.id).at, id: i.id, kind: i.kind, state: i.state, waits: waitsOf(i.state), for: forWhom(i) });
+  // The part of a stay inside the span. One that was over by `since` is no row; one that began in the span is, whatever
+  // its length. A stay in a closed state is no row.
+  if (metric === "flow.stays") for (const stay of stays) {
+    const i = issueAt(view.issues, stay.id), till = stay.to === null ? end : stay.to;
+    if (stay.closed || /^test-/.test(stay.id) || !(till > since || stay.from >= since)) continue;
+    rows.push({ t: till, value: till - Math.max(stay.from, since), state: stay.state, waits: waitsOf(stay.state), kind: i.kind, ended: stay.to === null ? "no" : "yes" });
+  }
+  // A submit, and whether the next verdict on it was a sending back: the first of these five moves of the issue after
+  // it and before its next submit. With none read yet it is 0.
+  if (metric === "flow.submits") {
+    const sent = ["submit", "submit-spec"], back = ["rework", "respec", "send-back"], named = (e, names) => e.type === "moved" && names.includes(e.move);
+    for (const i of counted) (moves.get(i.id) || []).forEach((e, k, own) => {
+      if (!named(e, sent) || e.at < since) return;
+      const next = own.slice(k + 1).find((m) => named(m, [...sent, ...back, "pass", "to-approval"]));
+      rows.push({ t: e.at, value: next && named(next, back) ? 1 : 0, move: e.move, kind: i.kind, id: i.id });
+    });
   }
   const kept = rows.filter((r) => Object.entries(filter).every(([d, v]) => r[d] === v)).sort((a, b) => a.t - b.t);
   const step = end - since <= 48 * H ? H : 24 * H;
@@ -4117,8 +4174,8 @@ test_issues_flow_lead_has_the_four_clocks_of_an_issue = {
   expect(lead({ by: "" }).series).toEqual(lead({}).series);
   // What it refuses, each as an error with status 400: the method that answers it will say so to its caller.
   const refused = (more) => { try { issueFlow(record, more); return "answered"; } catch (e) { return [e.status, e.message]; } };
-  expect(refused({ metric: "flow.nope" })).toEqual([400, "no such metric: flow.nope. One of: flow.lead"]);
-  expect(refused({})).toEqual([400, "no such metric: undefined. One of: flow.lead"]);
+  expect(refused({ metric: "flow.nope" })).toEqual([400, "no such metric: flow.nope. One of: flow.lead, flow.open, flow.stays, flow.submits"]);
+  expect(refused({})).toEqual([400, "no such metric: undefined. One of: flow.lead, flow.open, flow.stays, flow.submits"]);
   expect(refused({ metric: "constructor" })[0]).toBe(400);
   expect(refused({ metric: "flow.lead", by: ["state"] })).toEqual([400, "by: state is not a dimension of flow.lead. One of: to, id, kind, opener, for"]);
   expect(refused({ metric: "flow.lead", by: ["to", "to"] })).toEqual([400, "by: to is named twice"]);
@@ -4296,7 +4353,265 @@ test_issues_flow_leaves_out_what_the_caller_may_not_read = {
   const shown = issueFlow(b, { metric: "flow.lead", by: ["id", "to", "kind", "opener", "for"] });
   expect(JSON.stringify(shown)).not.toContain("sec");
   expect([shown.series.length, shown.cost.events]).toEqual([1, b.length]);
-  return "token b: 1 issue of 3 in the rows; its opener and the owner: 3";
+  // The same of every metric: an open issue, its stays and its submits. The hidden events are still counted as read.
+  for (const [metric, m] of Object.entries(issueFlowMetrics)) {
+    const [toB, toOwner] = [b, owner].map((record) => issueFlow(record, { metric, by: m.dims }));
+    expect([metric, JSON.stringify(toB).includes("sec"), toB.cost.events]).toEqual([metric, false, b.length]);
+    expect([metric, toOwner.series.some((r) => r.kind === "security")]).toEqual([metric, metric !== "flow.submits"]);
+  }
+  expect(issueFlow(b, { metric: "flow.open", by: ["id"] }).series.map((r) => r.id)).toEqual(["pub"]);
+  expect(issueFlow(owner, { metric: "flow.open", by: ["id"] }).series.map((r) => r.id)).toEqual(["pub", "sec", "esc"]);
+  return "token b: 1 issue of 3 in the rows of each metric; its opener and the owner: 3";
+}
+// %%
+// R4: an issue that is not closed at `until` is a row of flow.open, with its state, what it waits for and its age.
+// `since` is not read; closed four ways is no row; closed and opened again is one.
+test_issues_flow_open_is_each_issue_not_closed_at_until = {
+  const rig = await issuesRig(), H = 3600000, T0 = Date.UTC(2026, 9, 1), commit = { kind: "commit", value: "abc" };
+  const seq = async (call) => ((r) => (expect(r.status).toBe(200), r.data.seq))(await call);
+  const s = {};
+  // One issue in each state of a task that is not closed, a report and a project.
+  s.o1 = await seq(rig.a("open", { id: "o1", title: "Open", kind: "bug" }));
+  s.o2 = await seq(rig.owner("open", { id: "o2", title: "Triaged", kind: "task" }));
+  s.o2triaged = await seq(rig.owner("move", { id: "o2", to: "triaged", reason: "real" }));
+  s.o3 = await seq(rig.a("open", { id: "o3", title: "Ready", kind: "task" }));
+  await seq(rig.owner("move", { id: "o3", to: "triaged", reason: "real" }));
+  await seq(rig.owner("move", { id: "o3", to: "ready" }));
+  s.o4 = await seq(rig.a("open", { id: "o4", title: "At work", kind: "bug" }));
+  await seq(rig.a("move", { id: "o4", to: "in-progress", reason: "real, one line" }));
+  s.o5 = (await rig.inReview("o5")).data.seq - 4;
+  s.o6 = (await rig.inReview("o6", { labels: ["major"] })).data.seq - 4;
+  await seq(rig.b("review", { id: "o6", verdict: "pass" }));
+  await seq(rig.b("move", { id: "o6", to: "awaiting-approval" }));
+  s.f1 = await seq(rig.a("open", { id: "f1", title: "A report", kind: "feedback", labels: ["annotation"] }));
+  s.p1 = await seq(rig.a("open", { id: "p1", title: "A project", kind: "project" }));
+  await seq(rig.a("move", { id: "p1", to: "spec", reason: "one report" }));
+  // Closed four ways: done, closed, rejected, reverted. c1 is in review until its last move.
+  s.c1 = (await rig.inReview("c1")).data.seq - 4;
+  await seq(rig.b("review", { id: "c1", verdict: "pass" }));
+  s.c1done = await seq(rig.b("move", { id: "c1", to: "done" }));
+  await seq(rig.a("open", { id: "c2", title: "Answered", kind: "bug" }));
+  await seq(rig.a("move", { id: "c2", to: "closed", reason: "answered" }));
+  await seq(rig.a("open", { id: "c3", title: "Not real", kind: "bug" }));
+  await seq(rig.a("move", { id: "c3", to: "rejected", reason: "not real" }));
+  await rig.inReview("c4");
+  await seq(rig.b("review", { id: "c4", verdict: "pass" }));
+  await seq(rig.b("move", { id: "c4", to: "done" }));
+  await seq(rig.owner("move", { id: "c4", to: "reverted", reason: "broke", refs: [commit] }));
+  // r1: closed and opened again. Its age is from when it was first opened.
+  s.r1 = await seq(rig.a("open", { id: "r1", title: "Again", kind: "bug" }));
+  s.r1closed = await seq(rig.a("move", { id: "r1", to: "closed", reason: "answered" }));
+  s.r1reopened = await seq(rig.a("move", { id: "r1", to: "open", reason: "met again" }));
+  // An issue of a test is in no row.
+  s.last = await seq(rig.a("open", { id: "test-o", title: "A test's", kind: "task" }));
+  const record = issuesFlowRecord(rig.db.events), at = (name) => T0 + s[name] * H, end = at("last");
+  const open = (more) => issueFlow(record, { metric: "flow.open", ...more });
+  const want = [
+    ["o1", "bug", "open", "start", "loop"], ["o2", "task", "triaged", "start", "owner"], ["o3", "task", "ready", "start", "loop"], ["o4", "bug", "in-progress", "work", "loop"],
+    ["o5", "task", "in-review", "work", "owner"], ["o6", "task", "awaiting-approval", "owner", "owner"], ["f1", "feedback", "open", "start", "owner"], ["p1", "project", "spec", "work", "loop"],
+    ["r1", "bug", "open", "start", "loop"]
+  ];
+  const age = (id) => end - at(id);
+  // With `id` in `by` a row is one issue: t when it was opened, and its age at `until` as sum and max. Oldest first.
+  const all = open({ by: ["id", "kind", "state", "waits", "for"] });
+  expect(all.series).toEqual(want.map(([id, kind, state, waits, whom]) => ({ t: at(id), id, kind, state, waits, for: whom, n: 1, sum: age(id), max: age(id) })));
+  expect(Object.keys(all.series[0]).join()).toBe("t,id,kind,state,waits,for,n,sum,max");
+  // o1 and r1 are one group of the four dimensions other than id: 8 summaries of 9 rows.
+  expect({ ...all, series: 0, summaries: 0, cost: 0 }).toEqual({ metric: "flow.open", since: 0, until: end, step: 24 * H, groups: 8, sampled: 1, unit: "ms", series: 0, summaries: 0, cost: 0 });
+  expect(all.summaries[0]).toEqual({ kind: "bug", state: "open", waits: "start", for: "loop", ...flowSummary([age("o1"), age("r1")]) });
+  // Without `id` the rows of a step are added: n the issues, sum and max of their ages, t the start of the step.
+  const count = (answer, dim) => answer.series.reduce((m, r) => ({ ...m, [r[dim]]: (m[r[dim]] || 0) + r.n }), {});
+  const byState = open({ by: ["state"] });
+  expect(count(byState, "state")).toEqual({ open: 3, triaged: 1, ready: 1, "in-progress": 1, "in-review": 1, "awaiting-approval": 1, spec: 1 });
+  const day = (id) => Math.floor(s[id] / 24);
+  expect(byState.series.length).toBe(new Set(want.map((w) => day(w[0]) + " " + w[2])).size);
+  for (const r of byState.series) {
+    const ages = want.filter((w) => w[2] === r.state && day(w[0]) === (r.t - T0) / (24 * H)).map((w) => age(w[0]));
+    expect([r.state, r.n, r.sum, r.max]).toEqual([r.state, ages.length, ages.reduce((a, b) => a + b, 0), Math.max(...ages)]);
+  }
+  // What it waits for: a start (open, triaged, ready), the owner (awaiting-approval), or it is at work (any other state).
+  const byWaits = open({ by: ["waits"] });
+  expect(byWaits.summaries).toEqual(["start", "work", "owner"].map((waits) => ({ waits, ...flowSummary(want.filter((w) => w[3] === waits).map((w) => age(w[0]))) })));
+  expect(byWaits.summaries.map((x) => x.n)).toEqual([5, 3, 1]);
+  expect(open({ by: ["id"], filter: { for: "owner", waits: "start" } }).series.map((r) => r.id)).toEqual(["o2", "f1"]);
+  // It is of the moment `until`: the state and the age are the ones it had then, and an issue closed later is a row.
+  expect(open({ by: ["id", "state"], until: at("o2triaged") - 1 }).series.map((r) => [r.id, r.state, r.sum])).toEqual([["o1", "open", at("o2triaged") - 1 - at("o1")], ["o2", "open", H - 1]]);
+  const ids = (until) => open({ by: ["id"], until }).series.map((r) => r.id);
+  expect([ids(at("c1done") - 1).includes("c1"), ids(at("c1done")).includes("c1")]).toEqual([true, false]);
+  expect([ids(at("r1closed") - 1).includes("r1"), ids(at("r1closed")).includes("r1"), ids(at("r1reopened")).includes("r1")]).toEqual([true, false, true]);
+  // `since` is not read for the rows: an issue opened before it is a row. It decides the step, as for every metric.
+  expect(open({ by: ["id"], since: end }).series).toEqual(open({ by: ["id"] }).series);
+  const hourly = open({ by: ["state"], since: end - 48 * H });
+  expect([hourly.step, count(hourly, "state"), hourly.series.every((r) => (r.t - T0) % H === 0)]).toEqual([H, count(byState, "state"), true]);
+  // The dimensions are its own. A value no row has is an answer with no rows.
+  const refused = (more) => { try { issueFlow(record, more); return "answered"; } catch (e) { return [e.status, e.message]; } };
+  expect(refused({ metric: "flow.open", by: ["to"] })).toEqual([400, "by: to is not a dimension of flow.open. One of: id, kind, state, waits, for"]);
+  expect(refused({ metric: "flow.open", filter: { opener: "orch" } })).toEqual([400, "opener is not a dimension of flow.open. One of: id, kind, state, waits, for"]);
+  expect(open({ by: ["id"], filter: { state: "done" } }).series).toEqual([]);
+  return `${all.series.length} issues not closed of ${want.length + 5}; 4 closed and 1 of a test in no row`;
+}
+// %%
+// R4, R5: a stay is the time between two moves of an issue, or to `until` when it has not ended. A swap, a reopen and a
+// revert; a stay in a closed state is no row; needs-owner beside the states, from the open, to the close and to `until`;
+// the part of a stay inside the span.
+test_issues_flow_stays_are_the_time_between_two_moves = {
+  const rig = await issuesRig(), H = 3600000, T0 = Date.UTC(2026, 9, 1), commit = { kind: "commit", value: "abc" };
+  const seq = async (call) => ((r) => (expect(r.status).toBe(200), r.data.seq))(await call);
+  const s = {};
+  // a1: a task sent back once, done, then reverted.
+  s.a = await seq(rig.a("open", { id: "a1", title: "Task", kind: "task" }));
+  s.aTriaged = await seq(rig.owner("move", { id: "a1", to: "triaged", reason: "real" }));
+  s.aReady = await seq(rig.owner("move", { id: "a1", to: "ready" }));
+  s.aStart = await seq(rig.a("move", { id: "a1", to: "in-progress" }));
+  s.aSubmit = await seq(rig.a("move", { id: "a1", to: "in-review", refs: [commit] }));
+  await seq(rig.b("review", { id: "a1", verdict: "changes", body: "no test" }));
+  s.aRework = await seq(rig.b("move", { id: "a1", to: "in-progress" }));
+  s.aAgain = await seq(rig.a("move", { id: "a1", to: "in-review", refs: [commit] }));
+  await seq(rig.b("review", { id: "a1", verdict: "pass" }));
+  s.aDone = await seq(rig.b("move", { id: "a1", to: "done" }));
+  await seq(rig.owner("move", { id: "a1", to: "reverted", reason: "broke", refs: [commit] }));
+  // c1: closed and opened again. The time it was closed is no stay.
+  s.c = await seq(rig.a("open", { id: "c1", title: "Again", kind: "bug" }));
+  s.cClosed = await seq(rig.a("move", { id: "c1", to: "closed", reason: "answered" }));
+  s.cReopened = await seq(rig.a("move", { id: "c1", to: "open", reason: "met again" }));
+  // f1: a report that became a task. The swap is a move: it ends one stay at `open` and begins another.
+  s.f = await seq(rig.a("open", { id: "f1", title: "A bug, in fact", kind: "feedback" }));
+  s.fPromoted = await seq(rig.a("swap", { id: "f1", swap: "promote" }));
+  // m1: major, so it waits for the owner at awaiting-approval, who approves it.
+  s.m = (await rig.inReview("m1", { labels: ["major"] })).data.seq - 4;
+  await seq(rig.b("review", { id: "m1", verdict: "pass" }));
+  s.mAsked = await seq(rig.b("move", { id: "m1", to: "awaiting-approval" }));
+  s.mApproved = await seq(rig.owner("move", { id: "m1", to: "done" }));
+  // needs-owner. n1: opened with it, then taken off. n2: put on (twice: one wait), closed with it on, opened again
+  // with it still on. n3: put on and still on.
+  s.n1 = await seq(rig.a("open", { id: "n1", title: "Which way", kind: "project", labels: ["needs-owner"] }));
+  s.n1off = await seq(rig.a("label", { id: "n1", remove: ["needs-owner"] }));
+  s.n2 = await seq(rig.a("open", { id: "n2", title: "Which of two", kind: "feature" }));
+  s.n2on = await seq(rig.a("label", { id: "n2", add: ["needs-owner"] }));
+  await seq(rig.a("label", { id: "n2", add: ["needs-owner", "ui"] }));
+  s.n2closed = await seq(rig.a("move", { id: "n2", to: "closed", reason: "overtaken" }));
+  s.n2reopened = await seq(rig.a("move", { id: "n2", to: "open", reason: "met again" }));
+  s.n3 = await seq(rig.a("open", { id: "n3", title: "A rule", kind: "bug" }));
+  s.n3on = await seq(rig.a("label", { id: "n3", add: ["needs-owner"] }));
+  // An issue of a test has no stay.
+  s.last = await seq(rig.a("open", { id: "test-s", title: "A test's", kind: "task", labels: ["needs-owner"] }));
+  const record = issuesFlowRecord(rig.db.events), at = (name) => T0 + s[name] * H, end = at("last");
+  const stays = (more) => issueFlow(record, { metric: "flow.stays", ...more });
+  // Every stay of the record: state, what it waited for, kind, whether it ended, from, to.
+  const want = [
+    ["open", "start", "task", "yes", s.a, s.aTriaged], ["triaged", "start", "task", "yes", s.aTriaged, s.aReady], ["ready", "start", "task", "yes", s.aReady, s.aStart],
+    ["in-progress", "work", "task", "yes", s.aStart, s.aSubmit], ["in-review", "work", "task", "yes", s.aSubmit, s.aRework], ["in-progress", "work", "task", "yes", s.aRework, s.aAgain], ["in-review", "work", "task", "yes", s.aAgain, s.aDone],
+    ["open", "start", "bug", "yes", s.c, s.cClosed], ["open", "start", "bug", "no", s.cReopened, s.last],
+    ["open", "start", "feedback", "yes", s.f, s.fPromoted], ["open", "start", "feedback", "no", s.fPromoted, s.last],
+    ["open", "start", "task", "yes", s.m, s.m + 1], ["triaged", "start", "task", "yes", s.m + 1, s.m + 2], ["ready", "start", "task", "yes", s.m + 2, s.m + 3], ["in-progress", "work", "task", "yes", s.m + 3, s.m + 4],
+    ["in-review", "work", "task", "yes", s.m + 4, s.mAsked], ["awaiting-approval", "owner", "task", "yes", s.mAsked, s.mApproved],
+    ["open", "start", "project", "no", s.n1, s.last], ["needs-owner", "owner", "project", "yes", s.n1, s.n1off],
+    ["open", "start", "feature", "yes", s.n2, s.n2closed], ["open", "start", "feature", "no", s.n2reopened, s.last],
+    ["needs-owner", "owner", "feature", "yes", s.n2on, s.n2closed], ["needs-owner", "owner", "feature", "no", s.n2reopened, s.last],
+    ["open", "start", "bug", "no", s.n3, s.last], ["needs-owner", "owner", "bug", "no", s.n3on, s.last]
+  ];
+  const dims = ["state", "waits", "kind", "ended"], key = (x) => dims.filter((d) => d in x).map((d) => x[d]).join(" ");
+  const groups = new Map();
+  for (const [state, waits, kind, ended, from, to] of want) groups.set([state, waits, kind, ended].join(" "), [...(groups.get([state, waits, kind, ended].join(" ")) || []), (to - from) * H]);
+  const all = stays({ by: dims });
+  // One summary for each group, over each stay before any is added: no stay at done, closed or reverted is among them.
+  expect(Object.fromEntries(all.summaries.map((x) => [key(x), [x.n, x.median, x.p85, x.max]]))).toEqual(Object.fromEntries([...groups].map(([k, v]) => [k, Object.values(flowSummary(v))])));
+  expect({ ...all, series: 0, summaries: 0, cost: 0 }).toEqual({ metric: "flow.stays", since: 0, until: end, step: 24 * H, groups: groups.size, sampled: 1, unit: "ms", series: 0, summaries: 0, cost: 0 });
+  // The rows of a step and a group are added: n the stays, sum and max their ms, t the start of the step the stay ended in.
+  const added = (answer) => answer.series.reduce((m, r) => ({ ...m, [key(r)]: [((m[key(r)] || [])[0] || 0) + r.n, ((m[key(r)] || [])[1] || 0) + r.sum] }), {});
+  expect(added(all)).toEqual(Object.fromEntries([...groups].map(([k, v]) => [k, [v.length, v.reduce((a, b) => a + b, 0)]])));
+  expect(all.series.every((r) => (r.t - T0) % (24 * H) === 0 && Object.keys(r).join() === "t,state,waits,kind,ended,n,sum,max")).toBe(true);
+  expect(all.series.reduce((n, r) => n + r.n, 0)).toBe(want.length);
+  // The owner's: the stays at awaiting-approval and the waits with the label, which are beside the states.
+  const hours = (answer) => Object.fromEntries(Object.entries(added(answer)).map(([k, [n, sum]]) => [k, [n, sum / H]]));
+  expect(hours(stays({ by: ["state"], filter: { waits: "owner" } }))).toEqual({ "awaiting-approval": [1, s.mApproved - s.mAsked], "needs-owner": [4, s.n1off - s.n1 + (s.n2closed - s.n2on) + (s.last - s.n2reopened) + (s.last - s.n3on)] });
+  expect(hours(stays({ by: ["ended"], filter: { state: "needs-owner" } }))).toEqual({ yes: [2, s.n1off - s.n1 + (s.n2closed - s.n2on)], no: [2, s.last - s.n2reopened + (s.last - s.n3on)] });
+  // A stay cut at `until`: half an hour into a1's work it has not ended, and the three stays before it have.
+  const half = stays({ by: ["state", "ended"], until: at("aStart") + H / 2 });
+  expect(half.series.map((r) => [r.state, r.ended, r.n, r.sum])).toEqual([["open", "yes", 1, H], ["triaged", "yes", 1, H], ["ready", "yes", 1, H], ["in-progress", "no", 1, H / 2]]);
+  expect(half.summaries.at(-1)).toEqual({ state: "in-progress", ended: "no", n: 1, median: H / 2, p85: H / 2, max: H / 2 });
+  // A stay cut at `since`: the part inside the span. One that was over by `since` is no row; one that began at `until` is, of 0 ms.
+  const part = stays({ by: ["state", "ended"], since: at("aStart") + H / 4, until: at("aSubmit") });
+  expect(part.series.map((r) => [r.state, r.ended, r.n, r.sum, r.t])).toEqual([["in-progress", "yes", 1, at("aSubmit") - at("aStart") - H / 4, at("aSubmit")], ["in-review", "no", 1, 0, at("aSubmit")]]);
+  expect(stays({ by: ["state"], since: at("aStart"), until: at("aStart") + 1 }).series.map((r) => [r.state, r.sum])).toEqual([["in-progress", 1]]);
+  // A stay of no length inside the span is a row: the span that is the moment of a1's start has the stay that began then.
+  expect(stays({ by: ["state", "ended"], since: at("aStart"), until: at("aStart") }).series.map((r) => [r.state, r.ended, r.sum])).toEqual([["in-progress", "no", 0]]);
+  // A wait with the label cut at `until`, before it was taken off.
+  expect(hours(stays({ by: ["ended"], filter: { state: "needs-owner" }, until: at("n1off") - 1 }))).toEqual({ no: [1, (at("n1off") - 1 - at("n1")) / H] });
+  // The dimensions are its own: a stay has no id.
+  const refused = (more) => { try { issueFlow(record, more); return "answered"; } catch (e) { return [e.status, e.message]; } };
+  expect(refused({ metric: "flow.stays", by: ["id"] })).toEqual([400, "by: id is not a dimension of flow.stays. One of: state, waits, kind, ended"]);
+  expect(stays({ filter: { state: "done" } }).series).toEqual([]);
+  return `${want.length} stays in ${groups.size} groups, of 7 issues; none at done, closed or reverted`;
+}
+// %%
+// R3: a submit or a submit-spec is a row of flow.submits, 1 when the next verdict on it was a sending back.
+test_issues_flow_submits_count_the_ones_sent_back = {
+  const rig = await issuesRig(), H = 3600000, T0 = Date.UTC(2026, 9, 1), commit = { kind: "commit", value: "abc" };
+  const seq = async (call) => ((r) => (expect(r.status).toBe(200), r.data.seq))(await call);
+  const s = {};
+  // u1: sent back, submitted again and passed.
+  s.u1a = (await rig.inReview("u1")).data.seq;
+  await seq(rig.b("review", { id: "u1", verdict: "changes", body: "no test" }));
+  s.u1rework = await seq(rig.b("move", { id: "u1", to: "in-progress" }));
+  s.u1b = await seq(rig.a("move", { id: "u1", to: "in-review", refs: [commit] }));
+  await seq(rig.b("review", { id: "u1", verdict: "pass" }));
+  await seq(rig.b("move", { id: "u1", to: "done" }));
+  // u2: major, passed on to the owner. u3: nobody has reviewed it.
+  s.u2 = (await rig.inReview("u2", { labels: ["major"] })).data.seq;
+  await seq(rig.b("review", { id: "u2", verdict: "pass" }));
+  await seq(rig.b("move", { id: "u2", to: "awaiting-approval" }));
+  s.u3 = (await rig.inReview("u3", { kind: "bug" })).data.seq;
+  // u4: rejected by the owner out of review, opened again, submitted again and sent back. The rework is the second submit's.
+  s.u4a = (await rig.inReview("u4", { kind: "bug" })).data.seq;
+  await seq(rig.owner("move", { id: "u4", to: "rejected", reason: "not this way" }));
+  await seq(rig.owner("move", { id: "u4", to: "open", reason: "this way" }));
+  await seq(rig.a("move", { id: "u4", to: "in-progress", reason: "real, one line" }));
+  s.u4b = await seq(rig.a("move", { id: "u4", to: "in-review", refs: [commit] }));
+  await seq(rig.b("review", { id: "u4", verdict: "block", body: "wrong" }));
+  await seq(rig.b("move", { id: "u4", to: "in-progress" }));
+  // p1: a spec sent back at its review (respec); passed and then sent back by the owner, which is not the review's; submitted a third time.
+  await seq(rig.a("open", { id: "p1", title: "A project", kind: "project" }));
+  await seq(rig.a("move", { id: "p1", to: "spec", reason: "one report" }));
+  s.p1a = await seq(rig.a("move", { id: "p1", to: "spec-review", refs: [commit] }));
+  await seq(rig.b("review", { id: "p1", verdict: "changes", body: "thin" }));
+  await seq(rig.b("move", { id: "p1", to: "spec" }));
+  s.p1b = await seq(rig.a("move", { id: "p1", to: "spec-review", refs: [commit] }));
+  await seq(rig.b("review", { id: "p1", verdict: "pass" }));
+  await seq(rig.b("move", { id: "p1", to: "awaiting-approval" }));
+  await seq(rig.owner("move", { id: "p1", to: "spec", reason: "not yet" }));
+  s.p1c = await seq(rig.a("move", { id: "p1", to: "spec-review", refs: [commit] }));
+  // A submit of a test's issue is no row.
+  s.last = (await rig.inReview("test-u")).data.seq;
+  const record = issuesFlowRecord(rig.db.events), at = (name) => T0 + s[name] * H;
+  expect(record.filter((e) => e.type === "moved").map((e) => e.move).filter((m) => ["rework", "respec", "send-back", "pass", "to-approval", "owner-reject"].includes(m))).toEqual(["rework", "pass", "to-approval", "owner-reject", "rework", "respec", "to-approval", "send-back"]);
+  const submits = (more) => issueFlow(record, { metric: "flow.submits", ...more });
+  // With `id` in `by` a row is one submit: t the move, and 1 or 0 as sum and max.
+  const all = submits({ by: ["id", "move", "kind"] });
+  expect(all.series.map((r) => [r.id, r.move, r.kind, (r.t - T0) / H, r.n, r.sum, r.max])).toEqual([
+    ["u1", "submit", "task", s.u1a, 1, 1, 1], ["u1", "submit", "task", s.u1b, 1, 0, 0], ["u2", "submit", "task", s.u2, 1, 0, 0], ["u3", "submit", "bug", s.u3, 1, 0, 0],
+    ["u4", "submit", "bug", s.u4a, 1, 0, 0], ["u4", "submit", "bug", s.u4b, 1, 1, 1],
+    ["p1", "submit-spec", "project", s.p1a, 1, 1, 1], ["p1", "submit-spec", "project", s.p1b, 1, 0, 0], ["p1", "submit-spec", "project", s.p1c, 1, 0, 0]
+  ]);
+  expect(Object.keys(all.series[0]).join()).toBe("t,id,move,kind,n,sum,max");
+  expect({ ...all, series: 0, summaries: 0, cost: 0 }).toEqual({ metric: "flow.submits", since: 0, until: at("last"), step: 24 * H, groups: 3, sampled: 1, unit: "count", series: 0, summaries: 0, cost: 0 });
+  // Without `id` the rows of a step are added: n the submits and sum the ones sent back, so sum / n is the share.
+  const added = (answer, dim) => answer.series.reduce((m, r) => ({ ...m, [r[dim]]: [((m[r[dim]] || [])[0] || 0) + r.n, ((m[r[dim]] || [])[1] || 0) + r.sum] }), {});
+  expect(added(submits({ by: ["move"] }), "move")).toEqual({ submit: [6, 2], "submit-spec": [3, 1] });
+  expect(added(submits({ by: ["kind"] }), "kind")).toEqual({ task: [3, 1], bug: [3, 1], project: [3, 1] });
+  const whole = submits({});
+  expect([whole.series.reduce((n, r) => n + r.n, 0), whole.series.reduce((n, r) => n + r.sum, 0), whole.summaries]).toEqual([9, 3, [flowSummary([1, 0, 0, 0, 0, 1, 1, 0, 0])]]);
+  expect(whole.series.every((r) => (r.t - T0) % (24 * H) === 0 && Object.keys(r).join() === "t,n,sum,max")).toBe(true);
+  // Events after `until` are not read: before its rework u1's first submit is not sent back yet.
+  expect(submits({ by: ["id"], until: at("u1rework") - 1 }).series.map((r) => [r.id, r.sum])).toEqual([["u1", 0]]);
+  expect(submits({ by: ["id"], until: at("u1rework") }).series.map((r) => [r.id, r.sum])).toEqual([["u1", 1]]);
+  // The span is of the submit: both ends are inside, and the verdict may be after `since` or before it.
+  expect(submits({ by: ["id"], since: at("u1b"), until: at("u2") }).series.map((r) => [r.id, (r.t - T0) / H, r.sum])).toEqual([["u1", s.u1b, 0], ["u2", s.u2, 0]]);
+  expect(submits({ by: ["id"], since: at("u1a") + 1, until: at("u1b") - 1 }).series).toEqual([]);
+  expect(submits({ by: ["id"], filter: { move: "submit-spec" } }).series.map((r) => r.sum)).toEqual([1, 0, 0]);
+  const refused = (more) => { try { issueFlow(record, more); return "answered"; } catch (e) { return [e.status, e.message]; } };
+  expect(refused({ metric: "flow.submits", by: ["state"] })).toEqual([400, "by: state is not a dimension of flow.submits. One of: move, kind, id"]);
+  return "9 submits of 5 issues, 3 sent back; 1 of a test in no row";
 }
 // %%
 import {cloudflare, sql, blobs, secrets, config, hono, simulate, decide, checkedRule, callerOf, callerFrom, originFrom, sha256} from "@tomlarkworthy/cloudflare-iac"
