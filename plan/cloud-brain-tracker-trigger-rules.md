@@ -2,7 +2,9 @@
 
 Spec of the feature `tracker-trigger-rules` on cb4's tracker. Written 2026-10-12, begun 21:46 CEST
 (the `spec` move, event 4535), from `lopecode-dev` `48be7b03` and the tracker at event 4538.
-Round 1. Nothing here is built, and no method or cell named in "The design" was run.
+Round 2, 2026-10-12 22:15 CEST: the finding of review 4786 and its four notes are answered at the
+end, and the text they name is changed. Nothing here is built, and no method or cell named in
+"The design" was run.
 
 Three findings change what the issue asks for, and they come first:
 
@@ -13,8 +15,8 @@ Three findings change what the issue asks for, and they come first:
   at the 85th percentile (n=215). A trigger does not shorten a review. What this design changes is
   who knows that a writer waits, and which rounds reach a writer whose context is still cached.
 - **The first example has no data yet.** The record has 0 `after` links (`bk-5-holds-become-links`
-  is at `triaged`). A task that is released when the one before it ends is `issue.queue` of
-  `bookkeeping-in-the-tracker` (`bk-3-queue-and-hold`, at `triaged`), and the line the orchestrator
+  is at `triaged`; the states of the `bk` tasks are as `list?parent=bookkeeping-in-the-tracker` answered at 22:15 CEST, round 2). A task that is released when the one before it ends is `issue.queue` of
+  `bookkeeping-in-the-tracker` (`bk-3-queue-and-hold`, at `in-progress`), and the line the orchestrator
   is printed is its `bk-6`. This spec builds neither again. It adds the case those leave: a taker
   that has started and waits.
 - **A push reaches no agent of the loop.** A push subscription of a topic calls a method named
@@ -166,7 +168,7 @@ the largest thing the design buys, and it is the one role that has no wait today
 - `issueReplay` answers "no such type of event" for a type its table lacks, so a new type of event
   joins that table or `issue.verify?guards=true` fails at the first one.
 - `append` already acts after a write: the `finish` of `bk-2-finish-by-the-service`, as the call's
-  caller, with `auto`. `bk-2` is `in-review`; its code is on `main` at `48be7b03`.
+  caller, with `auto`. `bk-2` is `done`.
 - `ia "verify?guards=true"` at 21:56 CEST: `{"ok":true,"seq":4617,…,"checked":4617,"guards":true}`.
 - `bun test.ts brain-x-issues` in the worktree's `cloud-brain-dev` (`ca5299a`), 21:56 CEST:
   `"hash":"8e9dc07f…","passed":39,"failed":0,"needsBrowser":15`.
@@ -238,8 +240,10 @@ issue.wait { key, id, remove: true }           →  the event `waits` with remov
 - The issue's row gains `waits: [{ actor, holder, when, until, note, seq, at }]`. `actor` is
   `issueActor` of the caller, the name the policy knows an agent by; `holder` is the token's name
   as events have it. An actor has one wait on an issue: a second replaces the first. The row keeps
-  the waits of 10 actors: the wait of an eleventh takes the place of the oldest, live or not. No
-  write is refused for the count, so the judgment of a write reads no clock. `issue.get`, `issue.list` and `issue.snapshot`
+  the waits of 10 actors: the wait of an eleventh takes the place of the one whose `until` is the
+  earliest, so a wait that is past its time goes before one that is live, and the wait of the
+  issue's own writer is not taken out by ten that have ended. No write is refused for the count,
+  and the choice compares the `until` of the waits and reads no clock. `issue.get`, `issue.list` and `issue.snapshot`
   show `waits` with the row.
 - A wait **is live** from its event until `until`, its `remove`, or the same actor's next
   `issue.wait` on that issue. Nothing is written when it ends. `issueApply` keeps a wait until its `remove` or its replacement, and reads no clock: the view is
@@ -304,14 +308,23 @@ has no CEL to find it with.
 ### 3. The tool and the briefs (R3, R6)
 
 **`tools/cloud-brain/issue-wait.sh <token> <id> --when '<CEL>' [seconds] [--until <minutes>]`.**
-At its first run for a key it writes the wait (`key` `<role of the token>/<id>/wait-<the issue's last seq>`,
-`until` the minutes from now, 25 by default; a run that is repeated writes nothing new). Then it
+At its first run for a key it writes the wait (`key` `<role of the token>/<id>/wait-<issue.last.at>`,
+the time of the issue's last move, 0 for an issue that has none; `until` the minutes from now, 25
+by default; a run that is repeated writes nothing new). The key is not made from the row's `seq`,
+which is the seq of the issue's last event of any type: the `waits` event itself moves it, the
+second run would write a second wait with a new `until`, and exit 5 would never come (note 1 of
+review 4786). Then it
 reads `wakes?id=<id>` every 15 s for the seconds, 240 by default.
 
-- Exit 0: the due entry, one line of JSON. The tool has then written what the waiter does next:
-  with `--then-work` and an issue at `in-progress` or `spec`, a new wait
-  `{ when: 'issue.state != "<that state>"', until: 60 minutes on, note: "at work on the round" }`;
-  otherwise the `remove`.
+- Exit 0: the due entry, one line of JSON. The tool then writes the `remove`, but for one case:
+  the issue is at `in-progress` or `spec` (a round was sent back) and the run has no `--no-round`.
+  Then it writes nothing, the wait stands as it is, and stderr names the two commands below, one
+  of which is the waiter's next call. The tool never says that an agent is at work: only the agent
+  that takes the round says so.
+- `issue-wait.sh <token> <id> --work` writes the wait
+  `{ when: 'issue.state != "<the state the issue is in>"', until: 60 minutes on, note: "at work on the round" }`,
+  in the place of the one that stood. `issue-wait.sh <token> <id> --remove` writes the `remove`.
+  Each is one call and waits for nothing.
 - Exit 3: not due in the seconds. Run it again. With `--last`, the tool writes the `remove` before
   this exit: the waiter stops listening, and the queue stops saying it listens. Exit 5: the wait
   has ended (past `until`): report.
@@ -319,13 +332,18 @@ reads `wakes?id=<id>` every 15 s for the seconds, 240 by default.
   stay until task 3 has changed the brief, and are then removed.
 - `--left` is short for the `when` of the state the issue is in at the first run.
 
-**`agents/implementer.md`, step 13** runs `issue-wait.sh <token> <id> --left --then-work`. The rest
+**`agents/implementer.md`, step 13** runs `issue-wait.sh <token> <id> --left`. The rest
 of the step stands: the Bash timeout, 5 runs, one round, the judgment at 3 `rework` moves. The
-fifth run has `--last`. The two
+fifth run has `--last`. At a `changes` with the issue at `in-progress`: a writer that takes the
+round runs `--work` before anything else, and one that does not (the issue has 3 `rework` moves or
+more) runs `--remove` and reports. The wait after the round's own submit is run with `--no-round`:
+that writer takes no second round, so at a second `changes` the tool has written the `remove`
+before the writer reads the verdict, and the round is in the queue with no `waiter`. The two
 cases "one line" and "a second line" go: the state is the condition.
 
 **`agents/spec.md`, step 7** gains the same wait after `submit-spec`, with the same bounds: up to 5
-runs, and one round taken by the writer itself ("A resumed round" from its first item). A spec
+runs, and one round taken by the writer itself ("A resumed round" from its first item), with
+`--work` before it and `--no-round` on the wait after its submit, as for a writer. A spec
 writer whose review comes after that reports as today.
 
 **`issue.queue` (`bk-3`).** An entry of `queue` or `waiting` gains `waiter: { actor, holder, until }`
@@ -336,7 +354,9 @@ Step 2, "A writer that waits", loses its inference and reads: a writer or a spec
 has a wait on its issue, and the queue says so.
 
 This is a narrow lease: an agent says it listens, or is at work, until a time. A dead agent is
-believed until that time, 25 minutes for a listener and 60 for a round. The row "A dead writer" of
+believed until that time, 25 minutes for a listener and 60 for a round. So is a waiter that was
+handed a round (exit 0 with the wait left standing) and ran neither `--work` nor `--remove`: the
+wait it left is the listener's, and ends at its `until`, 25 minutes from its first run at most. The row "A dead writer" of
 `SKILL.md` then applies as it does today.
 
 **`issue-watch.sh`** asks `wakes` with each read and prints `WAKE <id> <when>` once for each due
@@ -431,10 +451,11 @@ count that a run would have to match.
 | R2 | `ia "wakes?id=test-tr-1-a"` | 501 `MethodNotImplemented` `com.lopecode.brain.issue.wakes` | tr-1: with `when` `issue.state != "open"` the wait is in `waiting`; after the writer's `triage` move of that issue it is in `due`, with `issue.state` `triaged`. A wait written after the move, with the same `when`, is in `due` at the first read |
 | R2 | the same, with `when` `issue.after.open == 0` on `test-tr-1-a` after a link `after` to `test-tr-1-b` | 501 | tr-1: `waiting` while b is open, `due` after `close` of b. Both issues closed after |
 | R3 | `grep -c "issue-wait.sh" .claude/skills/brain-maintenance/agents/spec.md` | 0 | 1 with one line of the wait in the file (run 21:57 CEST with a draft line, then taken back). The task's count is the lines it writes that name the tool |
-| R3 | `bun test ./tests/tools/issue-wait.test.ts` | 13 pass, 0 fail | tr-2: passes with tests of `--when` against a stand-in for `issue-as.sh`: exit 0 with the due entry and the `remove` sent, `--then-work` with the second wait sent, exit 3, exit 3 with `--last` and the `remove` sent, exit 5 |
+| R3 | `bun test ./tests/tools/issue-wait.test.ts` | 13 pass, 0 fail | tr-2: passes with tests of `--when` against a stand-in for `issue-as.sh`: exit 0 with the due entry and the `remove` sent, exit 3, exit 3 with `--last` and the `remove` sent, exit 5; at exit 0 with the issue at `in-progress` nothing is sent, and with `--no-round` the `remove` is; `--work` and `--remove` each send one call |
 | R4 | `/usr/bin/time -p` of one read a waiter makes, and its bytes | `sync?after=4538`, 79 events behind: 0.36 to 0.51 s, about 134,000 bytes | tr-2: `wakes?id=<id>` with one wait: the time and the bytes, in the task's record. Not run: the method is not there |
 | R5 | `ia "sync?after=<seq before>"` after the `close` of `test-tr-1-b` above | not run: the two test issues and their wait are tr-1's to make | tr-1: the events after that seq are the writer's own; none has `by.caller` `worker:brain-x-issues` and none has `auto` |
 | R6 | `ia "queue"`, the entry of an issue whose starter waits | 501 (`bk-3` is not built) | tr-3, in the module's rig: an issue at `in-progress` after a `rework`, whose starter has a live wait, is a `round` with `waiter`; past `until` it has none. On cb4: the entry of the task's own issue while its writer waits for the review, read by the reviewer |
+| R6 | `ia "queue"`, the `round` entry of an issue after a second `changes` | 501 | tr-3, in the module's rig, with the calls the tool sends in that order (a wait, `--work`, a submit, a wait, the `remove` of `--no-round` at the second `rework`): the `round` entry has no `waiter`. And with the `remove` of `--remove` after a first `rework` at 3 `rework` moves: none either |
 | R7 | `bun tools/cloud-brain/issue-stats.ts --token=<own token>`, the line of wakes | no such line | tr-5: a line `wakes <n> median <s> s`, from the `waits` events of the record |
 | part 4 | `/usr/bin/time -p ia "wakes?id=<id>&seconds=25"` with a wait that is not due | 501 | tr-4: about 25 s and 200 with `due: []`; and with the condition made true by a second shell 5 s in, an answer under 10 s. A call that is cut before 25 s: the tool sends no `seconds` and the record says what cut it |
 
@@ -447,7 +468,7 @@ Each seed task is labeled `major`: it changes a method other callers use.
    the method reference in the seed's prose. Tests of each refusal, of each row of the table of
    conditions, of a wait written after its condition, and of `issue.verify?guards=true` over a
    record with waits. A deploy of `brain-x-issues`. After `bk-3-queue-and-hold` (the same seed).
-2. **tr-2-issue-wait-over-wakes.** `issue-wait.sh` with `--when`, `--left`, `--then-work`, and
+2. **tr-2-issue-wait-over-wakes.** `issue-wait.sh` with `--when`, `--left`, `--last`, `--no-round`, `--work`, `--remove`, and
    `issue-watch.sh` with its `WAKE` line; their tests. No deploy. After tr-1.
 3. **tr-3-briefs-and-queue.** `waiter` in `issueQueue` (a deploy, `major`), step 13 of
    `agents/implementer.md`, step 7 of `agents/spec.md`, steps 2 and 3 of `SKILL.md`; the three
@@ -466,7 +487,8 @@ writer's wait is this one.
 ## What only the owner can do
 
 - Approve this spec. The comment for his approval says that it has no install, no token and no
-  rule for him, and one choice he may want the other way: rules in the policy, which are his alone
+  rule for him, that tr-4 (the held read, a `major` deploy for 2 s in place of 15 s) can be left
+  out with a word, and one choice he may want the other way: rules in the policy, which are his alone
   to change, in place of waits a token writes ("Not chosen", the first).
 - Approve each of tr-1, tr-3 and tr-4 after its review, as for any `major` task.
 
@@ -529,3 +551,22 @@ held; it had no token and read nothing from the tracker.
 - "4,478 events of the 4,538" read as the count left out: reworded.
 - The fallback guard was quoted without its second half: quoted whole.
 - The three `resumed` runs printed were not accounted for: named.
+
+## Round 2: review 4786 (2026-10-12, 22:15 CEST)
+
+The review was `changes`, with one finding and four notes. A resumed round: the writer of round 1,
+with the same token. Nothing on `main` that the spec rests on had changed since `b7ab88aa`
+(`worktree.sh --rebase` left the worktree at that commit).
+
+- **The finding: the tool said a writer was at work on a round the writer does not take.** With
+  `--then-work` the tool wrote the 60 minute wait at every exit 0, also at a second `changes` and
+  at 3 `rework` moves, where the writer reports. `--then-work` is gone. The tool never writes that
+  wait: the agent that takes a round runs `--work`, one that does not runs `--remove`, and the wait
+  after a round's own submit has `--no-round`, with which the tool writes the `remove` itself
+  (part 3). A waiter that does neither leaves the listener's wait, 25 minutes at most, which part 3
+  now says beside the dead agent. The row asked for is the second R6 row of the checks.
+- **Note 1, the key.** It is made from `issue.last.at`, not the row's `seq` (part 3).
+- **Note 2, ten waits past their time take out a live one.** The eleventh takes the place of the
+  wait with the earliest `until` (part 1).
+- **Note 3, tr-4 is small.** The comment for his approval says it can be left out.
+- **Note 4, the states of `bk-2` and `bk-3`.** Read again and changed.
