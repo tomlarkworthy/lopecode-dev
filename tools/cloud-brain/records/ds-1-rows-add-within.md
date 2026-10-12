@@ -22,7 +22,7 @@ is the answer. Otherwise nothing is written and the answer is `null`.
 |---|---|
 | `workerRuntime`, a new `within` | `check(add, max)` throws; `sql(n)` is the statement for `n` numbers; `next(row, add, max)` is the row after the add, or `null`. Returned beside `platform`, `fetch`, `serve`, `Rows` |
 | `platform.rows.addWithin` | `within.check`, then `rowsCall("addWithin", key, { add, max })` |
-| `sqlCall`, D1 | one statement, `within.sql(add.length)`, bound after the Worker's name and the key as add 0, max 0, add 1, max 1, …; the answer is `RETURNING v` parsed, or `null` when `.first()` gives no row |
+| `sqlCall`, D1 | one statement, `within.sql(add.length)`, bound after the Worker's name and the key as add 0, max 0, add 1, max 1, …; the answer is `RETURNING v` parsed, or `null` when `.first()` gives no row. (Not so as round 1 landed it: the key was not bound. Round 2, below) |
 | `Rows.fetch`, the deployer's Durable Object | `within.next` of what `storage.get` gave, then `storage.put` when it is not `null` |
 | `simulate`, `rowsOp` | `rowsWithin.next` on the rig's Map |
 | the `rows` cell and `backend.rowsAddWithin` | the notebook's own store: `rowsWithin.check`, then `rowsWithin.next` |
@@ -147,3 +147,70 @@ none. The apply is not refused for it, by the same reading.
 - **Sums past `Number.MAX_SAFE_INTEGER`.** The check bounds `add` and `max`, not the row.
 - **The time of the statement.** The spec measured its own script; the kept test measures nothing.
 - **An apply from `main` by another writer**, as the section above says.
+
+## Round 2, 2026-10-12: the D1 place did not bind the key
+
+Review 3837 found it, with a probe. As landed in round 1 the D1 branch of `sqlCall` was
+
+```
+q(within.sql(value.add.length), ...value.add.flatMap((a, j) => [a, value.max[j]]))
+```
+
+and `q` binds the Worker's name and then what it is given. So the statement got the name and the
+numbers, the first number in the key's place, one value short. Every other operation gives `q` the
+key first. On `bun:sqlite` the call threw (the table below). What D1 does with it was not read; the
+key was not among the values whatever it does. The row for `sqlCall` in the table above ("bound after the Worker's name and the key") was not
+true of round 1. It is true of the seed now: the line has `key` after the statement.
+
+No test of round 1 ran that line. The bun test bound the statement itself, in the order the line
+should have had, under a comment that said "As sqlCall binds it". The test cell reaches `sqlCall`
+only under `simulate`, where `ENV.SQL.sim` answers before any statement. The four stores the cell
+runs are the rig, the Durable Object's class, the notebook's store and the function: the D1 branch
+was the one place of the six that nothing ran.
+
+**The test that holds it.** `tests/tools/rows-add-within-sql.test.ts` has an eleventh test, the
+first in the file. It makes the wrapper (`workerRuntime()` of the compiled seed), gives it an `env`
+whose `SQL` has D1's shape (`prepare`, `bind`, `first`, `run`, `all`) over `bun:sqlite`, and calls
+`platform.rows.addWithin`, so the call goes through `rowsCall` and `sqlCall`. It reads what was
+bound, `["w", "spent", 900, 1000, 1, 7]`, the answers, and the rows under the Worker's name. A put,
+a get, an append and a list go through the same stand-in first. The stand-in is mine, written from
+the calls `sqlCall` makes; it is not D1.
+
+| Command, 2026-10-12 | Result |
+|---|---|
+| `bun test ./tests/tools/rows-add-within-sql.test.ts`, the seed as round 1 landed it | 10 pass, 1 fail: `SQLite query expected 6 values, received 5`, the new test |
+| the same with `key` on the line | 11 pass, 0 fail, 214 `expect()` calls |
+| `cd cloud-brain-dev && bun test.ts @tomlarkworthy/cloudflare-iac --with …/.emitted/ds-1-rows-add-within.js` | `"passed":25,"failed":0,"needsBrowser":2` |
+| `bun test ./tests/tools` | 525 pass, 0 fail, 525 tests across 58 files, no `skipped:` line |
+| `bun tools/cloud-brain/tab-tests.ts …/cloud-brain.html @tomlarkworthy/cloudflare-iac`, nine runs | six gave `"tests":27,"passed":27`; three gave `"passed":26`, each failing `test_the_wrapper_passes_the_origin_reference_on` |
+
+**A test of this module that fails by chance, and is not this change's.** The three failures are one
+expectation of a cell from before this issue: after two asks, a third from the first origin is
+expected to send no `secret.get`, because the wrapper holds a secret for 5 s. In each failure
+`secret.get` was sent again. Six of the nine runs were interleaved with six of a build of the seed
+as it was before round 1 (`61f74c22^`, 26 tests): those six gave 26 of 26. To see the clock, a
+build of each seed with that expectation made to print the time since the cell's first ask, four
+runs each, interleaved:
+
+```
+before this issue   6583 held   6461 held   6796 asked again   6487 held
+with this change    6955 asked again   6362 held   6758 asked again   6525 held
+```
+
+Milliseconds from before the first ask to after the third, on the page while every other test cell
+computes. The hold begins inside the first ask, so the edge is somewhere between 6583 and 6758 on
+this scale. The cell is at that edge with and without this change, and failed once without it. Whether the new
+cell makes it fail more often is not shown: 3 of 9 against 0 of 6 plain runs, and 2 of 4 against
+1 of 4 with the clock printed, are too few to say. Round 1's three runs and the reviewer's one were
+27 of 27. `test.ts`, which runs one cell at a time, passed it in each run.
+
+Not fixed here. It is a `test_*` cell of `cloudflare-iac.ojs` that the approved spec does not name,
+and the brief's step 3 keeps such a change for the owner. Filed as
+`iac-origin-test-secret-held-by-clock`, with these numbers.
+
+**Not tried in round 2.** D1 still: no statement was sent to it, and `sqlCall`'s line for
+`addWithin` has run on the stand-in above and nowhere else. What D1 answers for a value short of
+the parameters (round 1's defect) was not read. The rest of "Not tried" above stands.
+
+**What round 1 got wrong in its own account.** It listed six places and ran four stores, and
+the D1 branch was in none of the four.

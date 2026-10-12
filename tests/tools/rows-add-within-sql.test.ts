@@ -1,5 +1,6 @@
 // rows.addWithin(key, add, max) of cloudflare-iac.ojs: the statement a Worker sends to D1, run on a SQLite, beside
-// the function the Durable Object, the test rig and the notebook's store answer with (`within.next`).
+// the function the Durable Object, the test rig and the notebook's store answer with (`within.next`). The first test
+// sends it as a Worker does, platform.rows through sqlCall to a binding of D1's shape; the others bind the statement here.
 // The statement is read from the seed of this checkout, compiled as build.ts compiles it, never retyped.
 // D1 has its own SQLite and binds a number its own way: a pass here is not a pass there.
 // plan/cloud-brain-day-spend-not-bounded-by-one-row.md, task 1; tools/cloud-brain/records/ds-1-rows-add-within.md.
@@ -12,15 +13,32 @@ import { testNeedingSeed } from "./needs.ts";
 const { test, module } = await testNeedingSeed("rows-add-within-sql.test.ts", "cloudflare-iac.ojs");
 const SPEC = resolve(import.meta.dir, "../../plan/cloud-brain-day-spend-not-bounded-by-one-row.md");
 
-let within: any = null;
-const load = async () => (within ??= (await (await importNotebookModule(module)).value("workerRuntime"))().within);
+let within: any = null, runtime: any = null;
+const load = async () => (within ??= (runtime = await (await importNotebookModule(module)).value("workerRuntime"))().within);
+
+// A Worker's own rows over a SQLite: the wrapper with an SQL binding shaped as D1's (prepare, bind, first, run, all),
+// so platform.rows goes through sqlCall and its statements, with what each statement was bound.
+const worker = async (name = "w") => {
+  const db = new Database(":memory:"), binds: any[][] = [];
+  const made = (sql: string, args: any[]) => ({
+    bind: (...next: any[]) => made(sql, next),
+    first: async () => (binds.push(args), db.query(sql).get(...args) ?? null),
+    run: async () => (binds.push(args), { meta: { changes: db.query(sql).run(...args).changes } }),
+    all: async () => (binds.push(args), { results: db.query(sql).all(...args) })
+  });
+  const rt = runtime(), env = { SQL: { prepare: (sql: string) => made(sql, []) }, BRAIN_INFO: { name, role: "recipe" } };
+  // The wrapper learns its bindings from the first request it answers.
+  const health = await rt.serve(async () => ({ options: {} })).fetch(new Request("https://w.internal/xrpc/_health"), env, {});
+  expect(await health.json()).toEqual({ ok: true, name });
+  return { db, binds, rows: rt.platform.rows };
+};
 
 const fresh = () => {
   const db = new Database(":memory:");
   db.run("CREATE TABLE IF NOT EXISTS kv (t TEXT NOT NULL, k TEXT NOT NULL, v TEXT NOT NULL, PRIMARY KEY (t, k)) WITHOUT ROWID");
   return db;
 };
-// As sqlCall binds it: the Worker's name, the key, then each number with its bound.
+// The statement alone, bound as the test above saw sqlCall bind it: the Worker's name, the key, then each number with its bound.
 const sent = (db: Database, key: string, add: number[], max: number[]) => {
   const r = db.query(within.sql(add.length)).get("w", key, ...add.flatMap((a, j) => [a, max[j]])) as any;
   return r ? JSON.parse(r.v) : null;
@@ -45,6 +63,36 @@ const both = () => {
     }
   };
 };
+
+test("a Worker's rows.addWithin on its SQL binding sends the key and each number in its place", async () => {
+  await load();
+  const w = await worker();
+  // The stand-in is D1's shape for the operations that were there before: a put, a get, an append, a list.
+  expect([await w.rows.put("p", { a: 1 }), await w.rows.get("p"), await w.rows.append("l", "x"), await w.rows.list("l")]).toEqual([true, { a: 1 }, 1, [{ key: "l", value: ["x"] }]]);
+  w.binds.length = 0;
+  expect(await w.rows.addWithin("spent", [900, 1], [1000, 7])).toEqual([900, 1]);
+  expect(w.binds).toEqual([["w", "spent", 900, 1000, 1, 7]]);
+  expect(await w.rows.get("spent")).toEqual([900, 1]);
+  expect(await w.rows.addWithin("spent", [200, 1], [1000, 7])).toBe(null);
+  expect(await w.rows.addWithin("spent", [200, 1], [2000, 7])).toEqual([1100, 2]);
+  expect(await w.rows.addWithin("first", [2000, 1], [1000, 7])).toBe(null);
+  expect(await w.rows.get("first")).toBe(null);
+  expect([await w.rows.addWithin("c", [1, 1], [1000, 2]), await w.rows.addWithin("c", [1, 1], [1000, 2]), await w.rows.addWithin("c", [1, 1], [1000, 2])]).toEqual([[1, 1], [2, 2], null]);
+  expect([await w.rows.addWithin("one", [4], [5]), await w.rows.addWithin("three", [1, 2, 3], [1, 2, 3])]).toEqual([[4], [1, 2, 3]]);
+  // Ten at once with room for three. On this SQLite a statement runs whole before the next; that is not D1.
+  const ten = await Promise.all(Array.from({ length: 10 }, () => w.rows.addWithin("ten", [1, 1], [1000, 3])));
+  expect(ten.filter(Boolean).length).toBe(3);
+  // A pair that is no pair is thrown at with no statement sent.
+  w.binds.length = 0;
+  await expect(w.rows.addWithin("bad", [1, 1], [9])).rejects.toThrow("of one length of 1 or more");
+  expect(w.binds).toEqual([]);
+  // The rows are under the Worker's name and each key, and another Worker's are its own.
+  expect(w.db.query("SELECT t, k, v FROM kv WHERE k IN ('spent', 'c', 'ten') ORDER BY k").all()).toEqual([
+    { t: "w", k: "c", v: "[2,2]" },
+    { t: "w", k: "spent", v: "[1100,2]" },
+    { t: "w", k: "ten", v: "[3,3]" }
+  ]);
+});
 
 test("the statement for two numbers is the one the spec gives", async () => {
   await load();

@@ -523,7 +523,7 @@ workerRuntime = (AsyncLocalStorage = null) => {
       return n;
     }
     if (op === "addWithin") {
-      const r = await q(within.sql(value.add.length), ...value.add.flatMap((a, j) => [a, value.max[j]])).first();
+      const r = await q(within.sql(value.add.length), key, ...value.add.flatMap((a, j) => [a, value.max[j]])).first();
       return r ? JSON.parse(r.v) : null;
     }
     if (op === "deletePrefix") return (await q("DELETE FROM kv WHERE t = ?1 AND k >= ?2 AND k < ?3", key || "", hi(key || "")).run()).meta.changes;
