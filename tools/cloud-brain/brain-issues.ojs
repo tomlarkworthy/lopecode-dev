@@ -53,6 +53,7 @@ md`## Methods
 | Settings | \`syncMs\` (5000): what \`issue.sync\` and \`issue.snapshot\` answer as \`wait\`. Changed with \`config.set\` on the core, no deploy. |
 | \`issue.get\` | query. \`?id=\`. \`{ issue, children, events, cost }\`. \`cost\` is the totals of the issue's runs (\`issue.cost\`), from \`runs\` of the issue's row (since 2026-10-12): \`{ runs, seconds, billed, input, cacheWrite, cacheRead, output, requests, advisor: { calls, input, output }, usd, usdRuns, byRole }\`. \`runs\`: how many. \`seconds\`: their sum. \`billed\`: how many of the runs have a \`usage\`; the five sums and \`advisor\` are of those runs alone. \`usd\`: the sum of what the runs that have a \`usd\` reported, to a millionth, and \`usdRuns\` how many they are; both are left out when no run has one. \`context\` is not summed. \`byRole\`: the same totals for each role, \`{ implementer: { … }, reviewer: { … } }\`, in the order of each role's first run in \`runs\`. An issue with no run has \`cost.runs\` 0, every sum 0 and \`byRole: {}\`. For an issue the caller may not read the answer is \`{ issue, children: [], events: [] }\`, with no \`cost\`. |
 | \`issue.runs\` | query, since 2026-10-12. \`?id=&role=&how=&round=&after=<seq>&limit=500\`. The runs (\`issue.cost\`) of every issue the caller may read: \`{ runs, total, more }\`. \`runs\`: \`[{ id, …the run as the issue's row has it }]\`, \`id\` the issue's, in the order of \`seq\`, the seq of the \`cost\` event in force for the run. Each filter is left out or left empty to ask for nothing. \`id\`: one issue; \`role\`: a name, \`a-z 0-9 -\`, 30 at most; \`how\`: one of \`fresh\`, \`resumed\`, \`light\`; \`round\`: \`first\` (round 1), \`later\` (any round after it) or a whole number, 1 to 1000; \`after\`: a whole number, 0 or more, and only the runs whose \`seq\` is past it are answered; \`limit\`: a whole number, 1 to 500, 500 when left out. A value that is none of those is 400 \`InvalidRequest\` naming the field: read as no filter it would answer every run. A name that is not one of the six is not read. \`total\`: the totals of every run that matches \`id\`, \`role\`, \`how\` and \`round\`, in the shape of \`cost\` of \`issue.get\` without \`byRole\`; \`after\` and \`limit\` do not change it, so it is the same on every page. \`more\`: runs past this page match; the next page is \`after=\` the \`seq\` of the last run read. A run written again between two pages has a new \`seq\` and is read again on a later page. An issue the caller may not read has no run in \`runs\` and none in \`total\`, and an \`id\` that names such an issue, or none, answers \`{ runs: [], total: { runs: 0, … }, more: false }\`. The rows are in the answer so that a median is the caller's to take. |
+| \`issue.flow\` | query, since 2026-10-12. \`?metric=&since=MS&until=MS&by=dim,dim&DIM=value\`. The times work took, as rows: what \`issueFlow\` answers ("The flow of work", below, which has the metrics, their dimensions, the clocks and the shape of the answer) over every event of the record as \`issue.sync\` answers it to this caller. So an issue the caller may not read is in no row; that is judged by the issue as it is at the call, whatever \`until\` is. \`metric\`: one of \`flow.lead\`, \`flow.open\`, \`flow.stays\`, \`flow.submits\`. \`since\` and \`until\`: milliseconds since 1970, whole numbers of 15 digits at most; left out or left empty they are 0 and the \`at\` of the record's last event, and the answer says both. \`by\`: dimensions of the metric with commas between. Every other parameter is a filter: a dimension, and the value a row has to have. 400 \`InvalidRequest\` for whatever \`issueFlow\` refuses and for a \`since\` or an \`until\` that is not such a number, before the record is read. It reads every event at each call and keeps nothing between two calls. \`cost.ms\` is the time the whole call took in this Worker, the read and then the rows; \`cost.events\` is how many events \`issueFlow\` read. |
 | \`issue.list\` | query. \`?state=&kind=&about=&parent=&label=&link=&limit=100\`. \`{ issues }\`, last changed first. \`link=ID\`: the issues that are part of \`ID\`, say a link of it, or have one said of them by it. |
 | \`issue.verify\` | query. \`?after=<seq>\`. Checks \`seq\`, \`prev\`, \`hash\` and \`sig\` of each event after \`after\`. \`{ ok, seq, head, checked, guards }\`, or \`{ ok: false, seq, why, checked }\` at the first that fails; \`checked\` is how many passed. With \`guards=true\` it starts at 1 and also judges each event against the workflow in force when it was written. |
 | \`issue.key\` | query, anyone. \`{ alg: "ES256", key }\`: the public key, a JWK. |
@@ -161,7 +162,7 @@ Who may triage, label and narrow: the owner or a token; taking the label \`major
 // %%
 md`## The flow of work
 
-Two cells make the times work took from the record. No method answers them yet: a cell or a test calls them (since 2026-10-12; \`plan/cloud-brain-flow-metrics.md\`, tasks 1 and 2 of 6).
+Two cells make the times work took from the record, and \`issue.flow\` (in the table of methods) answers the first of them to a caller (since 2026-10-12; \`plan/cloud-brain-flow-metrics.md\`, tasks 1 to 3 of 6).
 
 \`issueFlow(events, { metric, since, until, by, filter })\`. \`events\` is the record in the order of \`seq\`, as \`issue.sync\` answers it to a caller. \`since\` and \`until\` are milliseconds since 1970; left out they are 0 and the \`at\` of the last event. \`by\` is a list of dimensions, or their names with commas between. \`filter\` is \`{ DIM: "value" }\`. The answer has the fields of an answer of \`metric.query\` (\`brain-dashboard.ojs\`), with \`unit\` and \`summaries\` beside them:
 
@@ -233,7 +234,7 @@ issuesExampleText = {
 // %%
 issues_service = cloudflare.Service("issues", issuesApp, {
   methods: Object.fromEntries(
-    [["open", "procedure"], ["comment", "procedure"], ["label", "procedure"], ["link", "procedure"], ["attach", "procedure"], ["cost", "procedure"], ["review", "procedure"], ["move", "procedure"], ["swap", "procedure"], ["narrow", "procedure"], ["install", "procedure"], ["rebuild", "procedure"], ["resign", "procedure"], ["lock", "procedure"], ["locks", "query"], ["policy", "query"], ["snapshot", "query"], ["sync", "query"], ["get", "query"], ["runs", "query"], ["attachment", "query"], ["list", "query"], ["verify", "query"], ["key", "query"]].map(([name, type]) => [
+    [["open", "procedure"], ["comment", "procedure"], ["label", "procedure"], ["link", "procedure"], ["attach", "procedure"], ["cost", "procedure"], ["review", "procedure"], ["move", "procedure"], ["swap", "procedure"], ["narrow", "procedure"], ["install", "procedure"], ["rebuild", "procedure"], ["resign", "procedure"], ["lock", "procedure"], ["locks", "query"], ["policy", "query"], ["snapshot", "query"], ["sync", "query"], ["get", "query"], ["runs", "query"], ["flow", "query"], ["attachment", "query"], ["list", "query"], ["verify", "query"], ["key", "query"]].map(([name, type]) => [
       "com.lopecode.brain.issue." + name,
       // The owner, a token, a Worker of the Brain and the deployer, which opens an issue when it puts a Worker back
       // on its tests. A member's Worker calls as its author's DID and is not let in.
@@ -1158,6 +1159,8 @@ issuesApp = {
   }));
   // What a caller is shown of an issue its workflow's read guard refuses.
   const shown = (view, by, i) => (issueAllowed(view, by, { type: "read", id: i.id }).allow ? i : { id: i.id, kind: i.kind, state: i.state, closed: i.closed, parent: i.parent, hidden: true });
+  // An event as a caller is answered it: whole, or what is left of one of an issue the caller may not read.
+  const shownEvent = (view, by) => (e) => (e.type === "policy" || !issueAt(view.issues, e.id) || !shown(view, by, view.issues[e.id]).hidden ? e : { seq: e.seq, id: e.id, type: e.type, at: e.at, hash: e.hash, hidden: true, issue: shown(view, by, view.issues[e.id]) });
   const current = (view) => (view.policy ? Object.fromEntries(Object.values(view.policy.names).map((h) => [h, view.workflows[h]])) : {});
   app.get(NS + "snapshot", run(async (c) => {
     const view = await load([S.all]), { by } = who(c);
@@ -1170,8 +1173,7 @@ issuesApp = {
     // A copy from another record, or from past this one's head: the page starts again from a snapshot.
     const at = !q.head || !after || after > view.seq ? "" : after === view.seq ? view.head : (((await sql.exec(S.one, after)).rows[0] || {}).event || "");
     if (after > view.seq || (q.head && after && (at === view.head ? at : at && J(at).hash) !== q.head)) return { seq: view.seq, wait: wait(), reset: true, events: [] };
-    const seen = (e) => e.type === "policy" || !issueAt(view.issues, e.id) || !shown(view, by, view.issues[e.id]).hidden;
-    return { seq: view.seq, wait: wait(), events: events.map((e) => (seen(e) ? e : { seq: e.seq, id: e.id, type: e.type, at: e.at, hash: e.hash, hidden: true, issue: shown(view, by, view.issues[e.id]) })) };
+    return { seq: view.seq, wait: wait(), events: events.map(shownEvent(view, by)) };
   }));
   app.get(NS + "get", run(async (c, q) => {
     const view = await load([S.near, String(q.id || ""), ""]), { by } = who(c), i = issueAt(view.issues, q.id);
@@ -1238,6 +1240,25 @@ issuesApp = {
       }
     }
   };
+  // issue.flow: every event of the record, as issue.sync answers it to this caller, given to issueFlow. What the ask
+  // gets wrong is refused before the record is read (issueFlow over no events). The events are read before the view, so
+  // the view has every issue they name. cost.ms is the whole call's here: the read, then the rows.
+  app.get(NS + "flow", run(async (c, { metric, since, until, by: dims = [], ...filter }) => {
+    const began = Date.now();
+    const ms = (name, text, left) => {
+      if (text == null || text === "") return left;
+      if (!/^\d{1,15}$/.test(text)) throw refuse(400, "InvalidRequest", `${name}: milliseconds since 1970, a whole number`);
+      return Number(text);
+    };
+    const ask = { metric, since: ms("since", since, 0), until: ms("until", until, undefined), by: dims, filter };
+    issueFlow([], { ...ask, until: ask.until ?? Number.MAX_SAFE_INTEGER });
+    await schema();
+    const events = [];
+    await walk(0, async (e) => void events.push(e));
+    const view = await load([S.all]), { by } = who(c);
+    const answer = issueFlow(events.map(shownEvent(view, by)), ask);
+    return { ...answer, cost: { ms: Date.now() - began, events: answer.cost.events } };
+  }));
   app.get(NS + "verify", run(async (c, q) => {
     await schema();
     const sign = await signer(), guards = q.guards === "true", view = issueView();
@@ -2815,7 +2836,7 @@ test_issues_declares_what_it_needs = {
   const { meta } = await issues_service.emit();
   expect(meta).toMatchObject({ worker: "brain-x-issues", role: "recipe", module: "@tomlarkworthy/brain-issues", resources: ["blobs", "sql"], secrets: ["ISSUES_SIGNING_KEY"] });
   const methods = Object.keys(meta.access).sort().map((m) => m.replace("com.lopecode.brain.issue.", ""));
-  expect(methods).toEqual(["attach", "attachment", "comment", "cost", "get", "install", "key", "label", "link", "list", "lock", "locks", "move", "narrow", "open", "policy", "rebuild", "resign", "review", "runs", "snapshot", "swap", "sync", "verify"]);
+  expect(methods).toEqual(["attach", "attachment", "comment", "cost", "flow", "get", "install", "key", "label", "link", "list", "lock", "locks", "move", "narrow", "open", "policy", "rebuild", "resign", "review", "runs", "snapshot", "swap", "sync", "verify"]);
   const let_in = (who) => decide(meta.access["com.lopecode.brain.issue.open"], { caller: callerOf({ caller: who }), request: {} }).allow;
   expect(["owner", "token:a", "worker:brain-x-echo", "deployer", "did:plc:other", "anonymous"].map(let_in)).toEqual([true, true, true, true, false, false]);
   // The default policy passes its own check.
@@ -2859,6 +2880,8 @@ test_issues_reference_states_each_value_and_has_no_hole = {
     "`?history=N`, 0 to " + L.lockHistory + ", 0 when left out",
     "the newest " + L.lockHistory + " kept",
     "| " + issuesDefaultPolicy.workflows.task.states.join(" → ") + ". Listed swap",
+    "| `issue.flow` | query, since 2026-10-12. `?metric=&since=MS&until=MS&by=dim,dim&DIM=value`.",
+    "`metric`: one of " + ticked(Object.keys(issueFlowMetrics)) + ".",
     "## The flow of work",
     "### The clocks",
     ...Object.entries(issueFlowMetrics).flatMap(([name, m]) => ["| `" + name + "` | ", ", `" + m.unit + "` | " + ticked(m.dims) + " |"]),
@@ -4613,6 +4636,70 @@ test_issues_flow_submits_count_the_ones_sent_back = {
   const refused = (more) => { try { issueFlow(record, more); return "answered"; } catch (e) { return [e.status, e.message]; } };
   expect(refused({ metric: "flow.submits", by: ["state"] })).toEqual([400, "by: state is not a dimension of flow.submits. One of: move, kind, id"]);
   return "9 submits of 5 issues, 3 sent back; 1 of a test in no row";
+}
+// %%
+// The method: issue.flow answers what issueFlow makes of the record as issue.sync answers it to the caller, with the
+// query's parameters. What an ask gets wrong is a 400 before the record is read.
+test_issues_flow_method_answers_the_rows_a_caller_may_read = {
+  const rig = await issuesRig(), S = issuesSql;
+  await rig.owner("open", { id: "pub", title: "Typo", kind: "task" });
+  await rig.owner("move", { id: "pub", to: "triaged", reason: "real" });
+  await rig.owner("move", { id: "pub", to: "ready" });
+  await rig.a("move", { id: "pub", to: "in-progress" });
+  await rig.a("move", { id: "pub", to: "in-review", refs: [{ kind: "deploy", value: "brain-x-a@0123456789ab" }] });
+  await rig.a("open", { id: "sec", title: "Key in a log", body: "the key is …", kind: "security" });
+  await rig.a("move", { id: "sec", to: "triaged", reason: "real" });
+  const synced = async (who) => (await who("sync?after=0&limit=500")).data.events;
+  const clocks = (answer) => answer.series.map((r) => r.id + " " + r.to).sort();
+  // To the opener of the security report: both issues, and the answer is issueFlow's of what sync answers it.
+  const [got, record] = [await rig.a("flow?metric=flow.lead&by=id,to"), await synced(rig.a)];
+  expect(got.status).toBe(200);
+  const { cost, ...rows } = got.data, { cost: _, ...made } = issueFlow(record, { metric: "flow.lead", by: "id,to" });
+  expect(rows).toEqual(JSON.parse(JSON.stringify(made)));
+  expect(clocks(rows)).toEqual(["pub deploy", "pub response", "pub submit", "sec response"]);
+  expect([Object.keys(cost), cost.events, typeof cost.ms, cost.ms >= 0]).toEqual([["ms", "events"], record.length, "number", true]);
+  expect([rows.since, rows.until, rows.unit]).toEqual([0, record.at(-1).at, "ms"]);
+  // To another token the report is in no row, and its events are still counted as read. To the owner present it is.
+  const [toB, toOwner] = [await rig.b("flow?metric=flow.lead&by=id,to"), await rig.owner("flow?metric=flow.lead&by=id,to")];
+  expect([clocks(toB.data), JSON.stringify(toB.data).includes("sec"), toB.data.cost.events]).toEqual([["pub deploy", "pub response", "pub submit"], false, record.length]);
+  expect((await synced(rig.b)).filter((e) => e.hidden).length).toBe(2);
+  expect(clocks(toOwner.data)).toEqual(clocks(rows));
+  // Every other parameter is a filter, and each metric answers.
+  const one = (await rig.a("flow?metric=flow.lead&by=id&to=deploy&kind=task")).data;
+  expect([one.series.map((r) => [r.id, r.n]), one.summaries.length, one.groups]).toEqual([[["pub", 1]], 1, 1]);
+  const states = async (who) => Object.fromEntries((await who("flow?metric=flow.open&by=state")).data.series.map((r) => [r.state, r.n]));
+  expect([await states(rig.a), await states(rig.b)]).toEqual([{ "in-review": 1, triaged: 1 }, { "in-review": 1 }]);
+  for (const [metric, m] of Object.entries(issueFlowMetrics)) {
+    const r = await rig.b(`flow?metric=${metric}&by=${m.dims.join(",")}`);
+    expect([metric, r.status, r.data.unit, r.data.series.length > 0, JSON.stringify(r.data).includes("sec")]).toEqual([metric, 200, m.unit, true, false]);
+  }
+  // since and until: left empty is left out; an until before the first event reads none; a since after the last has no row.
+  const first = record[0].at, last = record.at(-1).at, plain = ({ cost, ...rest }) => rest;
+  expect(plain((await rig.a("flow?metric=flow.lead&by=id,to&since=&until=")).data)).toEqual(plain(got.data));
+  expect(plain((await rig.a(`flow?metric=flow.lead&by=id,to&since=0&until=${last}`)).data)).toEqual(plain(got.data));
+  const before = (await rig.a(`flow?metric=flow.lead&by=id&until=${first - 1}`)).data, after = (await rig.a(`flow?metric=flow.lead&by=id&since=${last + 1}&until=${last + 2}`)).data;
+  expect([before.series, before.cost.events, before.until, after.series, after.cost.events]).toEqual([[], 0, first - 1, [], record.length]);
+  // Nothing is kept between two calls: an issue opened since is in the next answer.
+  await rig.owner("open", { id: "late", title: "Later", kind: "bug" });
+  expect(await states(rig.b)).toEqual({ "in-review": 1, open: 1 });
+  // A 400 for each ask that is wrong, and the record is not read for it: the statement that reads events is not run.
+  let read = 0;
+  const wrong = ["", "metric=flow.nope", "metric=flow.lead&by=nope", "metric=flow.lead&by=id,id", "metric=flow.lead&nope=1", "metric=flow.lead&kind=", "metric=flow.lead&since=abc", "metric=flow.lead&until=1.5", "metric=flow.lead&since=-1", "metric=flow.lead&since=%20", "metric=flow.lead&until=1e3", "metric=flow.lead&until=" + "9".repeat(16), "metric=flow.lead&since=2&until=1", "metric=flow.open&since=" + (last + 86400000)];
+  for (const ask of wrong.slice(0, -1)) {
+    rig.db.before.push([S.after, () => void read++]);
+    const r = await rig.a("flow?" + ask);
+    expect([ask, r.status, r.data.error, typeof r.data.message, read]).toEqual([ask, 400, "InvalidRequest", "string", 0]);
+    rig.db.before.length = 0;
+  }
+  // A since after the record's last event, with no until: known only once the record is read.
+  const lastAsk = await rig.a("flow?" + wrong.at(-1));
+  expect([lastAsk.status, lastAsk.data.error]).toEqual([400, "InvalidRequest"]);
+  expect((await rig.a("flow?metric=flow.lead&since=abc")).data.message).toBe("since: milliseconds since 1970, a whole number");
+  // Who is let in is the rule of every read of the tracker.
+  const { meta } = await issues_service.emit();
+  const let_in = (who) => decide(meta.access["com.lopecode.brain.issue.flow"], { caller: callerOf({ caller: who }), request: {} }).allow;
+  expect(["owner", "token:a", "worker:brain-x-echo", "deployer", "did:plc:other", "anonymous"].map(let_in)).toEqual([true, true, true, true, false, false]);
+  return `issue.flow: ${rows.series.length} rows to the opener, ${toB.data.series.length} to another token; ${wrong.length} asks refused 400`;
 }
 // %%
 import {cloudflare, sql, blobs, secrets, config, hono, simulate, decide, checkedRule, callerOf, callerFrom, originFrom, sha256} from "@tomlarkworthy/cloudflare-iac"
