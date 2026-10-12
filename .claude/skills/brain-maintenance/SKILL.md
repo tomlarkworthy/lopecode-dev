@@ -260,6 +260,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    | `in-progress`, the change is landed, and its writer finished with no `submit` | **A submit made for a writer.** Ask the writer to submit, by message, when it can be sent one. Else you end its token, make `back`, make `start` with your own token, and submit with the refs: the starter is then you, and the review is a reviewer's. Two more moves. (Submit 516 was yours for a writer's start.) |
    | labeled `digest`, opened by `worker:brain-x-snapshot` (`opener` in `get?id=`), at `open` | When several are open, the newest is the one written: `reject` each older one with the reason `covered by digest-<newest day>`, and comment on the newest with the days it covers. Then `triage` and `ready` it, the reason "the day's digest, opened by the snapshot's run"; the three questions of Triage are not asked. |
    | labeled `digest`, at `ready` | Spawn the digest writer (role `digest`). |
+   | labeled `post-mortem`, at `open` | Triage it by its one question ("A post mortem", below): `issue-as.sh <your token> "list?label=post-mortem&limit=100"`, and when another of that list is of the same thing, link this one to it as `duplicate` and `close` it. Else `triage`, then `ready`. Never a quick win of yours: your open, your spawn and your comment for him are steps of its trace (in the first, events 4246 and 4344). |
+   | labeled `post-mortem`, at `ready` | Spawn the implementer, with the prompt of step 4 and nothing added: no line of what you think went wrong. It follows "A post mortem" in `agents/implementer.md`. When it has passed its review and its writer has reported, see that its actions are filed ("A post mortem", below). |
    | kind `project` or `feature`, at `approved` | Open each task the spec lists, with `parent` the project, and move it to `building` (`decompose`). A task has the labels the spec gives it: `major` on each task of a spec that says its tasks are (bd-2 and bd-3 were opened with none from a spec approved as `major`, and a reviewer's `pass` of bd-2 would have gone to `done` with no approval; `seen-bd-2-opened-without-major`). Close each gathered report that is still open with the reason `in the spec of <id>`. |
    | kind `project` or `feature`, at `building`, no open part | Move it to `done` (`finish`). Since `bk-2-finish-by-the-service` (2026-10-12) the service makes this move itself, in the call that ends the last open part, so a project in this row is one it did not make. A task opened as a part after that is a part of a project that stays `done`: open every task of a spec before the last of them can end. |
    | kind `project` or `feature`, at `open`, with three parts or more, or the owner's | Spawn the spec writer (role `spec`). With fewer it is still gathering: nothing. |
@@ -531,6 +533,10 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    verdict's one sentence, and `reverted` when he has undone it. Nothing printed is none, which is every pass until
    he installs a policy that lets the approver approve. An issue that waits for him at `awaiting-approval` with an
    approver's verdict is named with the verdict's first two lines (`plan/cloud-brain-approver-persona.md`, part 5).
+   Then the post mortems ("A post mortem", below), each said once, in the pass that first reads it so: one that has
+   reached `done`, with its cause in the sentence its file has under `## The root cause` and its actions by id, or its
+   "None"; one that a later post mortem names again; one with an action at `rejected`; and, when you have declared
+   more post mortems than the record has events of the one case you declare for, that, with both numbers.
 8. **Watch, then schedule** (only under `/loop`). The tracker wakes you, not the clock (the
    owner, 2026-10-11: "The self pacing mechanism is quite slow, I think you need a background
    tasks notifying you of new issues as they come in"). Keep one `Monitor` armed, `timeout_ms`
@@ -688,6 +694,87 @@ follows "A digest" in `agents/reviewer.md`. First pass over one: 2026-10-11, `di
 whose writer stopped before publishing under the rules of that morning; the reviewer's section
 has not been run.
 
+## A post mortem
+
+Since `pm-2-brief-and-procedure` (2026-10-12; task 2 of `plan/cloud-brain-post-mortems-declared-and-kept.md`, which
+was approved for the owner at event 4737 on his "4 A" of comment 4736). The owner, 2026-10-12, of a spec he had
+sent back after its review had passed it: "We need this to be a general mechnism, declare a post mortem to prevent
+someting from never happening again", and in his next message: "no you don;t do it, file
+issues to create a post mortem task, the loop itself should do the post mortem and decide next actions. These
+post mortems should be files for future reference somewhere."
+
+**What one is.** An issue of kind `task`, id `pm-<short>`, labeled `post-mortem`, with one link
+`{id: pm-<short>, to: <the issue it is of>, rel: "cause"}`. Its body has what is examined (the issue, the events,
+the commit), the words of whoever asked, and pointers to where the trace starts. It names no cause: the writer
+finds it, and one that was told what to find confirms it. The label says which part of the brief, as `digest`
+says which brief: a writer follows "A post mortem" in `agents/implementer.md`, and writes
+`tools/cloud-brain/post-mortems/<id>.md`, which the Brain's search answers as `doc:<id>`. Two exist as this is
+written: `pm-second-summarizer-role`, `done`, written before this section and not labeled yet (you label it when
+this task is done: the body of `pm-2-brief-and-procedure`), and `pm-approver-leaves-everything`, declared by the
+owner through a session at event 4906, labeled, and at `open`.
+
+**Who declares one.** Two, and nobody else.
+
+- **The owner**, through any session on his word. The session puts `owner` beside `post-mortem` in `labels` and
+  quotes him, whole, in the body.
+- **You, with no word of his, in one case: he undid work that had passed a review.** That is one of three moves
+  made with his session (`by.via` is `session`; the watch of step 8 prints the line with `OWNER`): his `send-back`
+  of a spec; his `owner-reject` of an issue that has a `reviewed` event with the verdict `pass`; his `revert`.
+  You open it in the pass that reads the event, with your own token and without the label `owner`, after
+  `list?label=post-mortem&limit=100` has shown none of the same thing. The open's body is a file of the scratchpad
+  (`agents/implementer.md`, "The tracker's write calls"),
+  `{"key":"orch/pm-<short>/open","id":"pm-<short>","kind":"task","labels":["post-mortem"],"title":"Post mortem: …","body":"…"}`:
+  ```
+  issue-as.sh <your token> open @<file>
+  issue-as.sh <your token> link '{"key":"orch/pm-<short>/cause","id":"pm-<short>","to":"<the issue it is of>","rel":"cause"}'
+  ```
+  The body quotes his reason for the move with its event, and says "I give no cause here", as the body of
+  `pm-second-summarizer-role` does. The record had 1 such move in its first 2.4 days (the
+  `send-back` of event 4434; no `owner-reject` and no `revert`, as the spec counted its first 4,493 events).
+  First post mortem declared by you: not yet, when this was written.
+
+An agent that sees something off files feedback, as before (`philosophy.md`, "If You See Something, Say
+Something"), the overseer among them. Not a case: a reviewer's `changes` (75 `rework` and `respec` moves in those
+2.4 days, which is the review working), a failed test, a put-back by the deployer (it opens its `fix-tests-…`
+issue), a line of Never crossed (filed as feedback, as `seen-never-crossed-on-chat-word` was). When you have
+declared more than the record has such moves, step 7 says so to him.
+
+**Triage of one** asks one question in place of the three of "Triage": does a post mortem of the same thing exist
+(`issue-as.sh <your token> "list?label=post-mortem&limit=100"`, each with its `cause` link)? Then
+`issue-as.sh <your token> link '{"key":"orch/<id>/duplicate","id":"<id>","to":"<the one that exists>","rel":"duplicate"}'`
+and `close` it with that id as the reason. Else `triage`, then `ready`, and step 3 gives it a writer.
+
+**Its writer and its review.** An implementer, spawned as step 4 has it: the four lines, and nothing of what you
+think went wrong. Never you, as a quick win or otherwise. It lands one file with no deploy, attaches it to the
+issue, and submits. The review is a reviewer's as for any issue at `in-review`; the part "A post mortem" of its
+brief is task 3 of the spec (`pm-3-reviewer-brief`) and was not on the Brain when this was written.
+
+**The actions are filed at `done`.** The file lists them under `## Next actions`, 3 at most, or says "None". The
+writer waits for its review (`agents/implementer.md`, step 13) and after the `pass` opens each as an issue of its
+own, linked `{id: <action>, to: pm-<short>, rel: "cause"}`, and gives the ids in its report. So a post mortem at
+`done` whose writer has reported has as many `cause` links to it (`linked` of `get?id=pm-<short>`, the entries
+with `"rel":"cause"`) as its file has actions, before step 7 tells the owner of it. When it has fewer (the
+writer's run ended, or it reported with no `pass` read), you open the ones that lack from the file, as written
+there: the title, the kind, a body that quotes the file's cause and names the file, `"labels":["major"]` on one
+that changes `rules.md`, `philosophy.md` or who may do what, then the `cause` link; each is then triaged as any
+issue. You do not choose between them and you add none. (`pm-second-summarizer-role` filed its three before its
+review, linked `related`; their `cause` links are events 4909 to 4911, made by the writer of this section, and
+`linked` there has three with `"rel":"cause"`.)
+
+**Known later.** `issue-stats.ts` is to print one block, `post mortems`, with a row for each: its state, the issue
+it is of, its actions with their states, and `named again by`, each later post mortem with a `related` link to it.
+That block is task 4 of the spec (`pm-4-stats-block`) and the tool printed none when this was written; until it
+does, the same is read from `list?label=post-mortem&limit=100` and `get?id=` of each. Step 7 says what of it the
+owner is told.
+
+**The read after three.** When three post mortems are at `done` (the block's first line, or that list until the
+block is printed) and no issue `pm-read-after-three` exists, open it: a `task`, linked `related` to
+`post-mortems-declared-and-kept`, no part of that project. A read, no build. For each of the three: did the review
+send it back, and for which of its four questions; what became of its actions; was it answered to a later search
+(the comments of later writers name what they searched and used); did the overseer act on the block. What it
+finds is a comment on `post-mortems-declared-and-kept` and, where a brief is at fault, a task, `major` when the
+brief is the overseer's.
+
 ## Triage
 
 Done by you with your own token, every `open` issue in a pass, and also while an agent
@@ -722,6 +809,9 @@ A time you write in an issue's body, a comment or a reason is read from `date` o
      ("A token an approved spec names", below).
 3. Is it one change? More than one becomes subtasks (`open` with `parent`), and the parent goes
    to `ready` when they are closed. More than a handful, or a change of design: it is a `project`.
+
+An issue labeled `post-mortem` is asked one question in place of the three: whether a post mortem of the same
+thing exists ("A post mortem", above).
 
 Anything else: `triage`, then `ready`. Add the labels `major` and `needs-owner` when the change
 alters who may do what, deletes or rewrites kept data, or changes a method other callers use,

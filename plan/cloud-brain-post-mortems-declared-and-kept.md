@@ -253,7 +253,9 @@ passes, so that no issue is opened from a cause the review then sends back. (The
 before its submit, events 4497 to 4501, and linked them `related`. They stand. A `related` link does
 not say which way it runs, and the first is `related` to this project too, so the block of part 7
 cannot read actions from it: task 4's writer adds the three `cause` links, or says what the tracker
-answered.)
+answered. As built, `pm-2-brief-and-procedure`, 2026-10-12: the writer of task 2 added them, events 4909 to
+4911, each answered 200, on note 1 of review 4602 and comment 4621, so that the line of `SKILL.md` does not
+read the first as lacking three; the record.)
 
 - The writer waits for its review (step 13). On `pass` it opens each action and links it, and says the
   ids in its report. When it cannot (its run ended), the orchestrating session opens them from the
@@ -387,7 +389,8 @@ what, and no file of the owner's is edited.
    writer (`rules.md`: a writer whose issue is a task of an approved spec may), with the kept copy
    `tests/tools/fixtures/reviewer-brief.md` and a test of the four questions.
 4. **`pm-4-stats-block`.** `issue-stats.ts` prints the block of part 7 and the two numbers of R8; its test.
-   The three `cause` links of the first's actions (part 5).
+   The three `cause` links of the first's actions (part 5). (As built, `pm-2-brief-and-procedure`, 2026-10-12: made in
+   task 2, events 4909 to 4911; the record.)
 
 **The read after three is not a part of this project**, so the project is `done` when the four are.
 A part opened now would hold the project at `building` until three post mortems exist, and the record
