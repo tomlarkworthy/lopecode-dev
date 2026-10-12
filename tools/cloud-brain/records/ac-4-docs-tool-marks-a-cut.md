@@ -97,11 +97,27 @@ Which four are new was not looked at. The shortest whole of the 43 is
   both failed on the certificate ("unable to get local issuer certificate", 20:28:42), for two of
   the addresses. The spec's writer fetched one such address the same day. Whether a page of the
   Brain's origin may read it (CORS) is untried, as in the spec.
-- **A writer in a worktree behind this commit unmarks a doc.** The release of a landing runs the
-  `knowledge-docs.ts` beside its `lock.sh`. An older copy puts a changed cut doc as its first 16,000
-  with no line. `status` from a copy that has this change then counts it under `unmarked`; nothing
-  puts it again until its file next changes or someone runs `put <name>`. Not seen; read from
-  `lock.sh` line 171.
+- **A writer in a worktree behind this change unmarks a doc. Seen once, the same evening.** The
+  release of a landing runs the `knowledge-docs.ts` beside its `lock.sh` (`lock.sh` line 171). An
+  older copy puts a changed cut doc as its first 16,000 with no line. Between the put above and
+  this change's own release, another landing's release entered
+  `plan/cloud-brain-answers-cut-and-not-said.md`, changed by `c95a8c56` (on `origin/main`, of
+  `ac-3-operator-tools-through-call-answer`); which release it was, was not read:
+
+  ```
+  20:33:37  the release of this landing:   docs (cb4): nothing to put
+  20:33:46  $ … knowledge-docs.ts status --check
+            fresh    private cloud-brain-answers-cut-and-not-said cut 15760 of 32715, unmarked
+            {"docs":85,"fresh":85,"stale":0,"missing":0,"cut":43,"unmarked":1,…,"source":"origin/main@cd2f97e8"}
+  20:33:56  $ … knowledge-docs.ts put cloud-brain-answers-cut-and-not-said
+            {"put":1,"public":0,"private":1,"cut":1,"entered":0,"changed":1,"vectors":1,"ms":1895,…}
+  20:33:59  $ … knowledge-docs.ts status --check        exit 0
+            {"docs":85,"fresh":85,"stale":0,"missing":0,"cut":43,"unmarked":0,…,"source":"origin/main@cd2f97e8"}
+  ```
+
+  It can happen again while a worktree that lands is behind this change, and nothing then puts the
+  doc but its next change or a `put <name>` by hand. `unmarked` is what shows it. Not mended here:
+  `put --stale` could also pick the unmarked, which the spec does not ask for.
 - `knowledge.get` was not called (`loop-docs` and `loop-knowledge` do not name it). The two entries
   above were read through `knowledge.search`.
 - A whole so short that its part and line pass a digit boundary (the first number going from five
