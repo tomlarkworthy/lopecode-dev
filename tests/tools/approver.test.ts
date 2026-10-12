@@ -44,7 +44,7 @@ put(root, BRIEF, "The brief, as the owner's install names it.\n");
 put(root, TOOL, readFileSync(tool, "utf8"));
 put(root, TEST, "the test\n");
 for (const f of ["brain-core", "brain-topic"]) put(root, `tools/cloud-brain/${f}.ojs`, f + "\n");
-// The tracker's seed as cells: the six the tool names as the judge, a cell the judge names (issueActor), the two routes,
+// The tracker's seed as cells: the seven the tool names as the judge, a cell the judge names (issueActor), the two routes,
 // a cell the app alone names (issueFlow), a panel, a test, prose and an import.
 const SEED = "tools/cloud-brain/brain-issues.ojs";
 const CELLS: Record<string, string | null> = {
@@ -56,6 +56,7 @@ const CELLS: Record<string, string | null> = {
   issuePolicyAct: "issuePolicyAct = async (policy) => ({ policy })",
   issueApply: "issueApply = (view, e) => view",
   issueAct: "issueAct = (type, b) => ({ type, ...b })",
+  issueEvent: "issueEvent = (view, act, verdict) => ({ type: act.type })",
   issueFlow: "issueFlow = (events) => events.length",
   issuesApp: "issuesApp = {\n  return (c) => issueAllowed(c.view, c.by, issueAct(c.type, c.body)) && issueFlow(c.events);\n}",
   issues_service: "issues_service = ({ app: issuesApp, allow: \"caller.kind in ['owner','token']\" })",
@@ -95,6 +96,7 @@ const cell = {
   issuePolicyAct: seedCommit({ issuePolicyAct: "issuePolicyAct = async (policy) => ({ policy, checked: false })" }),
   issueApply: seedCommit({ issueApply: "issueApply = (view, e) => ({ ...view, policy: e.policy })" }),
   issueAct: seedCommit({ issueAct: 'issueAct = (type, b) => ({ type: "read", ...b })' }),
+  issueEvent: seedCommit({ issueEvent: "issueEvent = (view, act, verdict) => ({ type: act.type, policy: {} })" }),
   issuesApp: seedCommit({ issuesApp: "issuesApp = {\n  return (c) => issueFlow(c.events);\n}" }),
   issues_service: seedCommit({ issues_service: 'issues_service = ({ app: issuesApp, who: "anyone" })' }),
   imports: seedCommit({ imports: 'import {decide} from "@someone/else"' }),
@@ -104,6 +106,11 @@ const cell = {
   // The judge stops naming it in the commit that changes it: the side before still has the call.
   unhooked: seedCommit({ issueAllowed: "issueAllowed = (view, by, act) => true", issueMay: "issueMay = (by) => 1" }),
   free: seedCommit({ issueMay: "issueMay = (by) => 2" }),
+  // The judge reaches a cell by a spread and by nothing else (review 5470: the walk dropped a name after `...`).
+  spread: seedCommit({ issueAllowed: "issueAllowed = (view, by, act) => ({ ...issueSpread(by) }).allow", issueSpread: "issueSpread = (by) => ({ allow: false })" }),
+  spreadAlone: seedCommit({ issueSpread: "issueSpread = (by) => ({ allow: true })" }),
+  // Prose that runs an expression is code with no name.
+  proseRuns: seedCommit({ prose: 'md`# brain-issues ${(issuesDefaultPolicy.approve = "true", "")}`' }),
   twice: seedCommit({ again: "issueAllowed = () => true" }),
   renamed: seedCommit({ again: null, issueAllowed: null, issueJudge: "issueJudge = (view, by, act) => true" }),
   afterRename: seedCommit({ issuesPanel: 'issuesPanel = () => "panel 3"' }),
@@ -329,7 +336,7 @@ test("approve (R7): a ref that touches the tracker's seed and no policy cell of 
     expect(seedTouch(git, cell[name]), name).toEqual([]);
   }
   // Each cell the tool names, changed alone.
-  expect(Object.keys(JUDGE)).toEqual(["issuesDefaultPolicy", "issueAllowed", "issueReplay", "issuePolicyAct", "issueApply", "issueAct"]);
+  expect(Object.keys(JUDGE)).toEqual(["issuesDefaultPolicy", "issueAllowed", "issueReplay", "issuePolicyAct", "issueApply", "issueAct", "issueEvent"]);
   expect(Object.keys(ROUTES)).toEqual(["issuesApp", "issues_service"]);
   for (const name of [...Object.keys(JUDGE), ...Object.keys(ROUTES)]) {
     expect(seedTouch(git, (cell as any)[name]), name).toEqual([name]);
@@ -338,12 +345,19 @@ test("approve (R7): a ref that touches the tracker's seed and no policy cell of 
   // A comment of a policy cell is the cell; a cell the judge names is the judge; an import has no name to tell it by.
   expect(seedTouch(git, cell.comment)).toEqual(["issueAllowed"]);
   expect(seedTouch(git, cell.issueActor)).toEqual(["issueActor"]);
-  expect(seedTouch(git, cell.imports)).toEqual(["a cell with no name (an import)"]);
+  const loose = "a cell with no name (an import, or prose with ${ in it)";
+  expect(seedTouch(git, cell.imports)).toEqual([loose]);
+  expect(seedTouch(git, cell.proseRuns)).toEqual([loose]);
+  refused(run({ ref: `lopecode-dev@${cell.proseRuns}` }).j, /its policy cells \(a cell with no name/);
   // A cell the judge comes to name is one from that commit on, and in the commit that takes the call away; after that it is not.
   expect(seedTouch(git, cell.helper)).toEqual(["issueAllowed", "issueMay"]);
   expect(seedTouch(git, cell.helperAlone)).toEqual(["issueMay"]);
   expect(seedTouch(git, cell.unhooked)).toEqual(["issueAllowed", "issueMay"]);
   expect(seedTouch(git, cell.free)).toEqual([]);
+  // A cell the judge reaches by a spread alone is followed as one it calls plainly.
+  expect(seedTouch(git, cell.spread)).toEqual(["issueAllowed", "issueSpread"]);
+  refused(run({ ref: `lopecode-dev@${cell.spreadAlone}` }).j, /its policy cells \(issueSpread\)/);
+  expect(seedTouch(git, cell.spreadAlone)).toEqual(["issueSpread"]);
   // A cell the app alone names is not followed: the app names nearly every cell.
   expect(seedNow.issuesApp).toContain("issueFlow");
   // Where the tool cannot tell, it refuses: a named cell written twice, or gone under another name, and every commit after
@@ -353,7 +367,7 @@ test("approve (R7): a ref that touches the tracker's seed and no policy cell of 
   expect(seedTouch(git, cell.renamed)).toEqual([absent]);
   expect(seedTouch(git, cell.afterRename)).toEqual([absent]);
   refused(run({ ref: `lopecode-dev@${cell.afterRename}` }).j, /its policy cells \(issueAllowed \(not there once on each side of the commit\)\)/);
-  expect(seedTouch(git, cell.noCells)).toEqual([...Object.keys({ ...JUDGE, ...ROUTES }).map((n) => `${n} (not there once on each side of the commit)`), "a cell with no name (an import)"]);
+  expect(seedTouch(git, cell.noCells)).toEqual([...Object.keys({ ...JUDGE, ...ROUTES }).map((n) => `${n} (not there once on each side of the commit)`), loose]);
   expect(seedTouch(git, seedDeleted)).toEqual([whole]);
   refused(run({ ref: `lopecode-dev@${seedDeleted}` }).j, /its policy cells \(the whole file/);
   expect(policyCells(null, seedOf(CELLS))).toEqual([whole]);
@@ -388,9 +402,9 @@ test("the policy cells the tool names are cells of tools/cloud-brain/brain-issue
   // A change of one character in a cell is that cell's, and in a test cell or the panel is none.
   const changed = (name: string) => policyCells(seed, seed.replace(new RegExp(`^${name} = `, "m"), `${name} =  `));
   for (const name of [...Object.keys(JUDGE), ...Object.keys(ROUTES)]) expect(changed(name), name).toEqual([name]);
-  // What the six name, however far, on the seed of 2026-10-13.
+  // What the seven name, however far, on the seed of 2026-10-13.
   for (const name of ["issuesLimits", "issueAt", "issueActor", "issueCaller", "issueFacts", "issueWhen", "issueWaitFacts", "issueAfterWalk", "issueRunOf", "issueCanon", "issueBytes"]) expect(changed(name), name).toEqual([name]);
-  for (const name of ["issuesPanel", "issueFlow", "issueQueue", "issueWakes", "issueEvent", "issueCheck", "issuesAttention", "test_issues_declares_what_it_needs"]) expect(changed(name), name).toEqual([]);
+  for (const name of ["issuesPanel", "issueFlow", "issueQueue", "issueWakes", "issueCheck", "issueKeys", "issuesAttention", "test_issues_declares_what_it_needs"]) expect(changed(name), name).toEqual([]);
 });
 
 // An issue sent back once: its first submit names `first`, its second `second`, and the verdict is of round 2.

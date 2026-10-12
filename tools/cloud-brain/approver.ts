@@ -115,21 +115,22 @@ export const JUDGE: Record<string, string> = {
   issueReplay: "should this event have been refused: what issue.verify?guards=true asks",
   issuePolicyAct: "a policy checked, as the act that installs it",
   issueApply: "the view a guard is asked of: the policy an event installs, and an issue's by, reviews and added guards",
-  issueAct: "a request's body as the act that is judged"
+  issueAct: "a request's body as the act that is judged",
+  issueEvent: "an allowed act as its event: the policy, and the guard added to an issue, that issueApply then keeps"
 };
 // These two are not followed: issuesApp names nearly every cell of the seed, and issues_service names issuesApp.
 export const ROUTES: Record<string, string> = {
   issuesApp: "the routes install, rebuild and resign, each for the owner present, and the refusal on a guard's answer",
   issues_service: "who may call each method of the tracker: the rule the core asks before any guard is"
 };
-// A seed as its cells. A cell's name is read after its leading comment lines; prose (md`…`) has none and is left out;
-// code with no name that is read (an import) is `loose`.
+// A seed as its cells. A cell's name is read after its leading comment lines; prose (md`…` with no ${ in it) has none
+// and is left out; code with no name that is read (an import, prose that runs an expression) is `loose`.
 function cellsOf(text: string) {
   const cells = new Map<string, string>(), count = new Map<string, number>(), loose: string[] = [];
   for (const chunk of text.split(/^\/\/ %%.*$/m).map((s) => s.trim()).filter(Boolean)) {
     const code = chunk.replace(/^(?:[ \t]*(?:\/\/.*)?\n)*/, "");
     const name = (/^(?:(?:viewof|mutable)\s+)?([A-Za-z_$][\w$]*)\s*=(?![=>])/.exec(code) || /^(?:async\s+)?function\*?\s+([A-Za-z_$][\w$]*)/.exec(code))?.[1];
-    if (!name) { if (!/^md`/.test(code)) loose.push(chunk); continue; }
+    if (!name) { if (!/^md`/.test(code) || code.includes("${")) loose.push(chunk); continue; }
     cells.set(name, cells.has(name) ? cells.get(name) + "\n// %%\n" + chunk : chunk);
     count.set(name, (count.get(name) || 0) + 1);
   }
@@ -138,12 +139,14 @@ function cellsOf(text: string) {
 // The policy cells that differ between two texts of the seed, by name; [] when none does. Where it cannot tell, it
 // names one: a side that is not read (the file added or deleted, a commit with no parent), a cell of JUDGE or ROUTES
 // that a side does not have once (a rename leaves the tool not knowing the judge), and code with no name.
+// The walk takes every word of a policy cell that is a cell's name, whatever stands before it: `x.name` too, since
+// `...name(by)` has a dot before it as well (review 5470). It does not see a cell that writes into a policy cell.
 export function policyCells(before: string | null, after: string | null): string[] {
   if (before == null || after == null) return ["the whole file (it is not read on one side of the commit)"];
   const a = cellsOf(before), b = cellsOf(after), policy = new Set([...Object.keys(JUDGE), ...Object.keys(ROUTES)]), out: string[] = [];
   for (const side of [a, b]) {
     for (const seen = new Set(Object.keys(JUDGE)), queue = [...seen]; queue.length; ) {
-      for (const word of (side.cells.get(queue.pop()!) || "").match(/(?<![\w$.])[A-Za-z_$][\w$]*/g) || []) if (side.cells.has(word) && !seen.has(word)) { seen.add(word); policy.add(word); queue.push(word); }
+      for (const word of (side.cells.get(queue.pop()!) || "").match(/(?<![\w$])[A-Za-z_$][\w$]*/g) || []) if (side.cells.has(word) && !seen.has(word)) { seen.add(word); policy.add(word); queue.push(word); }
     }
   }
   for (const name of policy) {
@@ -151,7 +154,7 @@ export function policyCells(before: string | null, after: string | null): string
     if (known && !once) out.push(`${name} (not there once on each side of the commit)`);
     else if (a.cells.get(name) !== b.cells.get(name)) out.push(name);
   }
-  if (a.loose !== b.loose) out.push("a cell with no name (an import)");
+  if (a.loose !== b.loose) out.push("a cell with no name (an import, or prose with ${ in it)");
   return out;
 }
 // The policy cells of the seed that a commit of lopecode-dev touches, against each of its parents.
