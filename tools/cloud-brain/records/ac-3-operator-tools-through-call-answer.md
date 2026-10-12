@@ -1,7 +1,7 @@
 # ac-3-operator-tools-through-call-answer
 
-Task 3 of `plan/cloud-brain-answers-cut-and-not-said.md`. Written 2026-10-12, about 20:30 CEST
-(`date` at the rebase before this file: 20:25:43). One file changed, `tools/cloud-brain/cloud-brain.ojs`.
+Task 3 of `plan/cloud-brain-answers-cut-and-not-said.md`. Written 2026-10-12, after 20:25:43 CEST
+(`date` at the rebase before this file) and before the landing lock was taken at 20:27:08. One file changed, `tools/cloud-brain/cloud-brain.ojs`.
 
 ## What was wrong
 
@@ -66,7 +66,7 @@ It holds:
 - with `brain: null` each of the three answers "No owner session…" and makes no call.
 
 The test was run without the `callAnswer` returns (the failure above), and then on a build with one
-line taken out of the finished seed, each put back after (same command, 2026-10-12 about 20:35 CEST):
+line taken out of the finished seed, each put back after (same command, 2026-10-12, between those two times):
 
 ```
 without the guard of brain_apply   14 passed, 1 failed   Expected: "Error: offset is for a query. …"  Received: "[\n {\n  \"worker\": \"brain-x-echo\", …"
