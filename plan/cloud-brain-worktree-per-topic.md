@@ -24,6 +24,8 @@ Three findings of the reading change what the issue's body supposed:
   root copy of `cloud-brain-dev` and was never pushed (`git -C cloud-brain-dev rev-list --count
   main..agent-sh-read-whole-before-run` gives 1; `agent.sh` at `3801492` has no block). It waits
   on the letter asked for in comment 2434 of `seen-submodule-landing-unsaid`. Task 1 lands it.
+  (As built, `wt-1-land-the-agent-sh-block`, 2026-10-12 08:34 CEST: pushed with `loop-git`, and the
+  pointer is `d6f4632`; the record, `tools/cloud-brain/records/wt-1-land-the-agent-sh-block.md`.)
 
 ## What was asked
 
@@ -394,6 +396,9 @@ Each is run by an agent with its own token, from any worktree. `<root>` is the m
 1. **`wt-1-land-the-agent-sh-block`.** Rebase `d6f4632` on `cloud-brain-dev` `main`, run
    `tests/tools/light-agent.test.ts`, push it and the pointer. Needs `loop-git`. Then delete the
    root copy's two branches (check 4).
+   (As built, 2026-10-12: `d6f4632` was already one commit on `main`, so no rebase was made. The two
+   branches are deleted. A third, `test-ts-cuts-returned-value`, was made at 05:51 that day with a
+   commit that is not pushed, and stays: check 4 gives 2 until it is pushed. The record.)
 2. **`wt-2-worktree-sh`.** `worktree.sh`: `origin/main` as the base, the clone, the
    `lopecode-plugin` link, `--fresh … --for`, `--leave`, `--at`, `--list`, `--push-dev`, and
    `--remove` refusing a worktree that is not clean without `--force`. `issue-as.sh` reads

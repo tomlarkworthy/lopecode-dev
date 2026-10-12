@@ -101,3 +101,10 @@ agent.sh of 3801492, as any writer runs it       18 pass, 1 skip, 0 fail
 
 The whole directory, `bun test ./tests/tools` with the branch's `agent.sh`: 344 pass, 4 fail. The four
 are in `atproto-publish.test.ts`, each at its 5000 ms limit; that file alone, straight after: 5 pass, 0 fail.
+
+## In force, 2026-10-12 08:34 CEST
+
+`d6f4632` is `main` of `cloud-brain-dev` on the cluster and the pointer of `lopecode-dev` since
+`wt-1-land-the-agent-sh-block`, pushed with the loop's token `loop-git` and not the owner's session
+(`tools/cloud-brain/records/wt-1-land-the-agent-sh-block.md`). "Not in force" at the top was true until then.
+The test is no longer skipped: its condition and `AGENT_SH_WRITTEN_OVER` were taken out with that landing.
