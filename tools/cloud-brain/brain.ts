@@ -10,7 +10,7 @@
  *   bun tools/cloud-brain/brain.ts curl <path> [--owner] [-X POST -d '{}']   # the kernel; --owner or --other sends a minted session as Authorization: Bearer. stdout is the body alone; the status, ` [200]`, is on stderr
  *   bun tools/cloud-brain/brain.ts curl <path> --as NAME [-X POST -d '{}']       # the same call with the token NAME of .emitted/<base>-tokens.json, -issues-tokens.json or -agent-tokens.json. A token is not the owner present; an agent's writes go this way
  *   bun tools/cloud-brain/brain.ts token NAME <method…> [--daily=USD] [--delegate] | token list | token revoke NAME   # token.create as the owner; the value goes to .emitted/<base>-tokens.json (mode 600) and is not printed. --delegate: a token that makes tokens inside its own methods (delegation.create with the cap delegate)
- *   bun tools/cloud-brain/brain.ts agent-token <role> [what for] | agent-token list | agent-token revoke NAME   # a token for one agent or session, for issue.*, 48 hours: a child of the token loop-agents, which the owner makes once (token loop-agents 'issue.*' --delegate). role: orch impl rev spec over dig out. stdout is the name, <role>-<6 hex>; the value goes to .emitted/<base>-agent-tokens.json (mode 600), where issue-as.sh reads it. plan/cloud-brain-record-names-token-not-agent.md
+ *   bun tools/cloud-brain/brain.ts agent-token <role> [what for] | agent-token list | agent-token revoke NAME   # a token for one agent or session, for issue.*, 48 hours: a child of the token loop-agents, which the owner makes once (token loop-agents 'issue.*' --delegate). role: orch impl rev spec over dig appr out (appr: one run of an approver, plan/cloud-brain-approver-persona.md). stdout is the name, <role>-<6 hex>; the value goes to .emitted/<base>-agent-tokens.json (mode 600), where issue-as.sh reads it. plan/cloud-brain-record-names-token-not-agent.md
  *   bun tools/cloud-brain/brain.ts session [did]                               # mint a session token for the owner, or for another DID
  *   bun tools/cloud-brain/brain.ts page up [--minutes N] [--token LOPE-…] [--url https://…] [--keep] | page state | page down   # the Brain's page in a browser of the cluster, signed in and paired with a channel on this machine
  * State (recovery key, deployer key, session tokens) is in .emitted/<base>.json, git-ignored. The Cloudflare token is never printed.
@@ -511,7 +511,7 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
 } else if (cmd === "agent-token") {
   // One token for each agent and each session, so an event's by.holder names who wrote it. Each is made under the
   // token loop-agents (scope issue.*, cap delegate), which the owner makes once; this command uses no session.
-  const ROLES = ["orch", "impl", "rev", "spec", "over", "dig", "out"], PARENT = "loop-agents", HOURS = 48;
+  const ROLES = ["orch", "impl", "rev", "spec", "over", "dig", "appr", "out"], PARENT = "loop-agents", HOURS = 48;
   const stop = (text: string): never => { console.log(text); process.exit(1); };
   const usage = `agent-token <role> [what for] | agent-token list | agent-token revoke NAME   (role: ${ROLES.join(" ")})`;
   const known = args[0] === "list" || (args[0] === "revoke" && !!args[1]) || ROLES.includes(args[0]);

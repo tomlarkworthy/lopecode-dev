@@ -160,7 +160,7 @@ test("agent-token <role> [what for]: a child of the parent for issue.*, 48 hours
   expect(made.all).not.toContain(parent.secret);
 });
 
-test("agent-token: a role that is not one of the seven, or no parent kept, stops before anything is sent", async () => {
+test("agent-token: a role that is not one of the eight, or no parent kept, stops before anything is sent", async () => {
   const r = rig();
   const none = await r.brain("agent-token", "impl", "x");
   expect(none.code).toBe(1);
@@ -171,7 +171,7 @@ test("agent-token: a role that is not one of the seven, or no parent kept, stops
   for (const role of ["implementer", "IMPL", "impl-1", ""]) {
     const bad = await r.brain("agent-token", ...(role ? [role] : []));
     expect(bad.code).toBe(1);
-    expect(bad.all).toContain("orch impl rev spec over dig out");
+    expect(bad.all).toContain("orch impl rev spec over dig appr out");
   }
   expect(calls).toEqual([]);
   expect(r.kept("cb4-agent-tokens.json")).toEqual({});
@@ -180,12 +180,12 @@ test("agent-token: a role that is not one of the seven, or no parent kept, stops
 test("agent-token: every role makes a name with its prefix, and a note with no second argument is the role", async () => {
   const r = rig();
   await r.parent();
-  for (const role of ["orch", "impl", "rev", "spec", "over", "dig", "out"]) {
+  for (const role of ["orch", "impl", "rev", "spec", "over", "dig", "appr", "out"]) {
     const made = await r.brain("agent-token", role);
     expect(made.out.trim()).toMatch(new RegExp(`^${role}-[0-9a-f]{6}$`));
     expect(rows.at(-1)!.note).toBe(role);
   }
-  expect(Object.keys(r.kept("cb4-agent-tokens.json")).length).toBe(7);
+  expect(Object.keys(r.kept("cb4-agent-tokens.json")).length).toBe(8);
 });
 
 test("agent-token: eight made at once are all kept", async () => {

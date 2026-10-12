@@ -32,7 +32,7 @@ const whole = (n: string) => {
 };
 
 const OLD = ["issues-implementer-2", "issues-reviewer-2", "issues-overseer-1"];
-const agentName = /^(orch|impl|rev|spec|over|dig|out)-[0-9a-f]{6}$/;
+const agentName = /^(orch|impl|rev|spec|over|dig|appr|out)-[0-9a-f]{6}$/;
 const name = (e: any) => String(e.by?.holder || "").replace(/^secret:/, "");
 const prefix = (n: string) => agentName.exec(n)?.[1] ?? "";
 

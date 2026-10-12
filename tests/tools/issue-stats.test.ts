@@ -45,7 +45,7 @@ const events = [
 ];
 
 test("a name of the shape <role>-<6 hex> has that role; any other name is its own", () => {
-  expect(["impl-3fa2c1", "rev-90b7d2", "spec-51aa0e", "over-0000ff", "dig-abcdef", "orch-7c1e04", "out-e4410b"].map(role)).toEqual(["impl", "rev", "spec", "over", "dig", "orch", "out"]);
+  expect(["impl-3fa2c1", "rev-90b7d2", "spec-51aa0e", "over-0000ff", "dig-abcdef", "orch-7c1e04", "out-e4410b", "appr-0a1b2c"].map(role)).toEqual(["impl", "rev", "spec", "over", "dig", "orch", "out", "appr"]);
   for (const name of ["issues-implementer-2", "issues-overseer-1", "claude-mv2fpk63-c9a3", "owner", "owner (token)", "impl-3fa2c", "impl-3fa2c1x", "impl-3FA2C1", "implement-3fa2c1", "loop-agents"]) expect(role(name)).toBe(name);
 });
 
@@ -91,9 +91,12 @@ test("the lines printed: a role with its names under it, and the approve line", 
   const at = lines.findIndex((l: string) => /^openers\b/.test(l));
   expect(lines.slice(at + 1, at + 3)).toEqual(["  impl                       3  impl-3fa2c1 2, impl-90b7d2 1", "  rev                        1  rev-51aa0e 1"]);
   expect(lines).toContain("  issues-implementer-2       2");
-  expect(lines).toContain("approve by the session: 2 pressed, 3 made for the owner; 1 with another key [20]");
+  expect(lines).toContain("approve by the session: 2 pressed, 3 made for the owner; by the approver: 1; 1 with another key [20]");
   const none = text(report(events, { now: 1e6, until: 17 }), {});
-  expect(none).toContain("approve by the session: 2 pressed, 1 made for the owner");
+  expect(none).toContain("approve by the session: 2 pressed, 1 made for the owner; by the approver: 0");
+  // Event 21 of the list, an approve a token made (`via delegation:…`): the one the line counts as the approver's.
+  expect(report(events, { now: 1e6 }).approveByApprover).toBe(1);
+  expect(report(events, { now: 1e6, until: 20 }).approveByApprover).toBe(0);
 });
 
 // lk-5-stats-print-the-holds, R8 of plan/cloud-brain-locks-held-in-the-cluster.md.

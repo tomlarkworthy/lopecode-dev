@@ -50,7 +50,7 @@ const arg = (n: string, d: string) => {
 
 // The role in a token's name, `<role>-<6 hex>` as `brain.ts agent-token` makes it. Any other name is its own group:
 // the three role tokens of before, a session's own token, the owner.
-export const role = (name: string) => /^(orch|impl|rev|spec|over|dig|out)-[0-9a-f]{6}$/.exec(name)?.[1] ?? name;
+export const role = (name: string) => /^(orch|impl|rev|spec|over|dig|appr|out)-[0-9a-f]{6}$/.exec(name)?.[1] ?? name;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/, forOwner = /^orch\/.+\/approve-for-owner-\d+$/;
 
 const median = (l: number[]) => (l.length ? [...l].sort((a, b) => a - b)[l.length >> 1] : 0);
@@ -168,6 +168,9 @@ const approveBySession = {
   madeForOwner: approves.filter((e) => forOwner.test(e.key || "")).length,
   other: approves.filter((e) => !uuid.test(e.key || "") && !forOwner.test(e.key || "")).map((e) => e.seq)
 };
+// An approve a token made. The policy takes one from a single delegation, the approver's, once the owner has installed
+// that guard (plan/cloud-brain-approver-persona.md, R2; ap-1-approver-tool); `approver.ts list` has each one's line.
+const approveByApprover = shown.filter((e) => e.type === "moved" && e.move === "approve" && String(e.by?.via || "").startsWith("delegation:")).length;
 const openers: Record<string, { count: number; names: Record<string, number> }> = {};
 for (const i of all) {
   const o = (openers[role(i.opener)] ||= { count: 0, names: {} });
@@ -241,6 +244,7 @@ return {
   // By the role of the token that opened, with each name under it.
   openers,
   approveBySession,
+  approveByApprover,
   // Time spent in a state before the move out of it. An issue still in a state is under `waiting`.
   timeInState: timeIn(perState),
   done: { count: done.length, medianH: H(median(done.map((i) => i.since - i.at))), firstPass: done.filter((i) => !i.moves.includes("rework")).length, quick: done.filter((i) => !i.moves.includes("ready")).length },
@@ -276,7 +280,7 @@ export function text(report: Report) {
     console.log(`  ${r.padEnd(24)} ${String(o.count).padStart(3)}${names ? "  " + names : ""}`);
   }
   const a = report.approveBySession;
-  console.log(`approve by the session: ${a.pressed} pressed, ${a.madeForOwner} made for the owner${a.other.length ? `; ${a.other.length} with another key ${JSON.stringify(a.other)}` : ""}`);
+  console.log(`approve by the session: ${a.pressed} pressed, ${a.madeForOwner} made for the owner; by the approver: ${report.approveByApprover}${a.other.length ? `; ${a.other.length} with another key ${JSON.stringify(a.other)}` : ""}`);
   console.log("time in a state before the move out of it");
   const stays = (of: Report["timeInState"]) => { for (const [s, t] of Object.entries(of)) console.log(`  ${s.padEnd(18)} ${String(t.stays).padStart(3)} stays  median ${String(t.medianMin).padStart(6)} min  total ${String(t.totalH).padStart(5)} h  max ${t.maxH} h`); };
   stays(report.timeInState);
