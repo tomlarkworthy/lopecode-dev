@@ -5,8 +5,9 @@ Spec of the feature `approver-persona` on cb4's tracker (opened by the orchestra
 `lopecode-dev` `25cff25a` and the tracker at event 4115, read whole with `spec-309f89`
 (`sync?after=0&limit=500`, nine calls). Nothing here is built. Before the submit the draft
 (`95094c33`) was read by an agent with no context of the session: ten findings, answered under "The
-read before the submit" at the end. Three changed the design: where the delegation's id comes from,
-the label `security`, and what holds an issue that was left.
+read before the submit" at the end. Two changed the design as it stands: where the delegation's id
+comes from, and what holds an issue that was left. A third, on the label `security`, was answered
+and then went with the list (next paragraph).
 
 Then, at the reading of the issue that comes before a submit, a comment was found that had come
 one minute after the take: the owner's word on the list of what the approver may not approve
@@ -199,8 +200,9 @@ answers 0 for `rules.md`, `SKILL.md` and `issue-stats.ts`; the roles of `brain.t
   nothing else.
 - **R6.** An approval by the approver is not a word of his. No verdict rests on one: the words it
   quotes are his own.
-- **R7.** The approver's brief changes only by a change he approved. A verdict formed from another
-  text makes no move.
+- **R7.** The approver does not approve a change to itself: its brief, its tool, the `approve`
+  guard and the line that pins the brief change only by an approval `via session`. A verdict
+  formed from another text than the pinned one makes no move.
 - **R8.** He reads each approval made for him in one line, undoes one with one move, and ends all
   of it with one command.
 - **R9.** Before the policy is installed the approver has judged 20 issues in the open, moving
@@ -319,13 +321,15 @@ approver reads the diff of each ref and, for a spec, the file whole. `approver.t
 lists the files of each `commit` ref of the last submit and marks the ones `rules.md` names in its
 Never list (the kernel, the core, the database, the deployer, `exporter-3`, `robocoop-5`, the
 channel server) and `rules.md`, `philosophy.md`, the policy and the approver's own files. A mark
-refuses nothing. The verdict says of each marked file which of his words asked for that.
+refuses nothing, with the one exception of part 4 (the approver's own files). The verdict says of
+each marked file which of his words asked for that.
 
 **The verdict carries the proof.** It has a line `asked: <where> "<his words>"`, with `<where>` an
 event's number or a file's path. `approver.ts approve` reads that event or that file at
 `origin/main` and makes no move unless the quotation is in it, letter for letter, and, for an
 event, unless the event is of the issue, its parent or the parent of that. So a verdict cannot
-approve on words nobody wrote down. The tool does not judge whether the words ask for the change:
+approve on words nobody wrote down. The tool reads the kind from the event and not from the
+verdict: `by.via` of `session` with a key that is a UUID is kind 1, any other event kind 4. The tool does not judge whether the words ask for the change:
 that is the approver's, and his to read in the line he is shown.
 
 What the test does not hold. Words of kind 4 are text a token wrote. An agent that writes "The
@@ -400,8 +404,16 @@ The brief, `agents/approver.md`, in outline. Task 2 writes it.
 **The brief is pinned (R7).** `rules.md` gets a line with the git blob hash of
 `agents/approver.md`. `approver.ts approve` compares the blob the verdict names, and the blob of
 the file at `origin/main`, with that line, and makes no move when either differs. A change to the
-brief is then a change to `rules.md`, which is `major` and so comes to `awaiting-approval`, where
-it is judged as any issue is: on his words for it. The overseer
+brief is then a change to `rules.md`, which is `major` and so comes to `awaiting-approval`.
+
+There the approver does not judge it. `approver.ts approve` refuses an issue of which a ref touches
+`agents/approver.md`, `tools/cloud-brain/approver.ts`, its test, a
+`plan/cloud-brain-issues-policy-*.json`, the policy cells of `brain-issues.ojs`, or the pin line of
+`rules.md` (another line of `rules.md` is judged as anything is). This is the one place the spec
+narrows his word of event 4115, and it is in his list to strike. The reason: with the test of part
+2 alone, a change that loosens the brief could be approved by a run of the brief on an `asked:`
+line that quotes event 4115 itself, pinned, and read by the next run. He was asked about kinds of
+change, not about the judge of its own instrument. The overseer
 edits the other briefs by rule today (`SKILL.md`, "Why the overseer may edit briefs and not
 rules"); task 6 writes into `rules.md` that it does not edit this one. If it does, the approver
 makes no move until the new blob is pinned by an approved change: the edit stops approvals and
@@ -412,8 +424,8 @@ passes none.
 - The reason of an `approve` by the approver is the first 200 characters of its verdict, then
   `verdict <seq>, brief <blob>`.
 - `approver.ts list [--since=<hours>]` prints one line for each: the id, the time, the verdict's
-  first sentence, whether it rests on an event of his or on words a session quoted, and whether he
-  has reverted it. The orchestrating session puts those lines in
+  first sentence, whether it rests on an event of his or on words a session quoted (read from the
+  event, as the tool does), and whether he has reverted it. The orchestrating session puts those lines in
   what it tells him each pass (`SKILL.md`, step 7). `issue-stats.ts` gains the count:
   `approve by the session: N pressed, N made for the owner; by the approver: N`.
 - The panel's block "For your attention" gains a group, "Approved for you": the `approve` moves of
@@ -486,8 +498,9 @@ writer, the two of the installed policy by any agent after his install.
 
 `tests/tools/approver.test.ts`, against a record in a file and a git repository the test makes:
 `facts` marks a commit that touches `rules.md` and one that touches `brain-core.ojs` and not one
-that touches `brain-topic.ojs`; `approve` sends the move for a marked ref whose verdict has a true
-`asked:` line (R3: no kind is refused); it sends nothing when the verdict has no `asked:` line,
+that touches `brain-topic.ojs`; `approve` sends the move for a ref that touches `brain-core.ojs` when the verdict has a true
+`asked:` line (R3: no kind is refused); it sends nothing when a ref touches `agents/approver.md`
+or the pin line of `rules.md` (R7), when the verdict has no `asked:` line,
 when the quotation is not in the event or the file it names, when the event is of another issue,
 when the event it names is an `approve` made `via delegation` (R6), when a ref is not in the
 checkout, when the verdict begins `approver: leave`, when an earlier verdict of the issue does,
@@ -553,7 +566,9 @@ only; neither is `major`, and each goes to `done` on a reviewer's `pass` as any 
 
 ## What only the owner can do
 
-- Approve this spec, or say what to change. The choices in it: the approver takes approvals and no
+- Approve this spec, or say what to change. One thing in it narrows his word of event 4115: the
+  approver does not approve a change to its own brief, tool, guard or pin (R7, part 4). Striking
+  it is one sentence of his. The other choices in it: the approver takes approvals and no
   choice; words a session quoted count as his, and are marked apart from his own events; a spec
   the approver approved is his word for a token only when his quoted words ask for what the token
   serves; 20 verdicts before the install.
@@ -655,6 +670,9 @@ at that event and its body was not read until the reading before the submit, at 
 - The six replays were approved issues that the list made his. They are six issues made for the
   test.
 - The tasks are no longer his by a line of a list. Four are `major` and land before the install.
+
+Kept against the letter of his word, and put to him: the approver does not approve a change to
+itself (R7).
 
 Not changed: the guard that names one delegation, the two tokens, the pin of the brief, the narrow
 on an issue that is left, what he sees after, the trial of 20, and that choices and acts stay his.
