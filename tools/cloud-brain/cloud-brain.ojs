@@ -78,7 +78,7 @@ panelInstances = (entries, { template, instantiate, Inspector, watch = null, sha
 panelTemplate = {
   const found = () => viewof myModule.value;
   const module = found() || (await new Promise((resolve) => viewof myModule.addEventListener("input", resolve, { once: true })), found());
-  return lookupVariable(["viewof panelDraw", "panelDraw", "viewof panelWorker", "panelWorker", "panelBody", "panel"], module);
+  return lookupVariable(["viewof panelDraw", "panelDraw", "viewof panelWorker", "panelWorker", "panelDrawing", "panel"], module);
 }
 // %%
 md`### One panel
@@ -100,9 +100,9 @@ viewof panelWorker = {
   return Inputs.select(panelWorkers(calls, chosen), { label: "Worker", format: (worker) => worker || "all", value: chosen });
 }
 // %%
-panelBody = panelView(calls, { draw: panelDraw, worker: panelWorker, width: width - 40, link: workerLink })
+panelDrawing = panelView(calls, { draw: panelDraw, worker: panelWorker, width: width - 40, link: workerLink })
 // %%
-panel = htl.html`<div><div style="display:flex;flex-wrap:wrap;gap:4px 16px;margin-bottom:6px">${viewof panelDraw}${viewof panelWorker}</div>${panelBody}</div>`
+panel = htl.html`<div><div style="display:flex;flex-wrap:wrap;gap:4px 16px;margin-bottom:6px">${viewof panelDraw}${viewof panelWorker}</div>${panelDrawing}</div>`
 // %%
 // What a panel draws of an answer of callsRead: the calls, the strip of faults or the table by method, of one Worker's
 // rows or of all. With no answer (a visitor) it is one line, and no drawing function is called.
@@ -339,7 +339,7 @@ test_health_panels_are_instances_of_one_template = {
   const since = Date.UTC(2026, 9, 9, 7, 0), until = Date.UTC(2026, 9, 9, 8, 0);
   const row = (minute, worker, method, status, n) => ({ t: since + minute * 60000, worker, method, status, n, ms: 10 * n, max: 10 });
   const first = { since, until, step: 60000, groups: 2, series: [row(1, "brain-x-inbox", "inbox.poll", 200, 2), row(2, "brain-x-inbox", "inbox.poll", 502, 1), row(1, "brain-core", "rule.list", 401, 1)] };
-  expect(panelTemplate.map((v) => v._name)).toEqual(["viewof panelDraw", "panelDraw", "viewof panelWorker", "panelWorker", "panelBody", "panel"]);
+  expect(panelTemplate.map((v) => v._name)).toEqual(["viewof panelDraw", "panelDraw", "viewof panelWorker", "panelWorker", "panelDrawing", "panel"]);
   const module = panelTemplate[0]._module;
   const bridges = () => [...module._scope.keys()].filter((name) => name.startsWith("dynamic bridge ")).map((name) => name.split(" ")[2]).sort();
   // The answers an instance reads, handed over one at a time: what a "Refresh" does to calls.

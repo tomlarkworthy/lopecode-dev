@@ -209,6 +209,7 @@ import {runtime, createModule, lookupVariable, thisModule, onCodeChange} from "@
 
 viewof myModule = thisModule()
 healthPanels = [{ draw: "calls", worker: "" }, { draw: "faults", worker: "" }, { draw: "table", worker: "" }]
+// (As built, ds-4-panels-from-a-template, 2026-10-12: two entries, calls and table. The owner took the strip off Health on 2026-10-11, fb-a2oogpkdjb; "Show" offers it and no entry is it. The cell that draws is panelDrawing: brain-dashboard has a function panelBody. The visitor's line and the note are a cell of their own, healthNote, so that healthView names neither calls nor span; tools/cloud-brain/records/ds-4-panels-from-a-template.md.)
 healthView = …
   // for each entry: instantiateDataflow(template, { params: { panelStart: entry }, observers: (name) => name === "panel" ? new Inspector(box) : null, watch: onCodeChange })
   // dispose each on invalidation; lay the boxes out with dashboard()
@@ -251,10 +252,12 @@ and Health's is `view: "calculations"`, two different answers. Logs still reads 
   changes. `viewof panelWorker` reads `calls` for its list of Workers, so as written it is made again
   on each answer and falls back to its start. Task 4 either keeps the choice across an answer (the
   select made once, its options set in place) or shows that losing it is what happens, and says which.
+  (As built, `ds-4-panels-from-a-template`, 2026-10-12: the choice is kept. The select is made again for each answer and starts at the value of the one before it, which the cell reads as `this`; it offers the Workers of the new answer and the chosen one; the record.)
 - Whether `Inputs.bind` of two selects whose values come from a `Map` carries the choice both
   ways. Not run. Task 3 tests it.
 - Whether `test.ts` (no browser) can run a test that instances a dataflow. Today the Health test
   needs a browser already, so nothing is lost if it cannot.
+  (As built, `ds-4-panels-from-a-template`, 2026-10-12: it does not; the test is one of its `needsBrowser`; the record.)
 
 ## Not chosen
 

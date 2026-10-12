@@ -319,6 +319,10 @@ address as `dashboard=NAME`, one more pair of the hash that `notebookHtml` alrea
   `{ draw, worker }` become panels of this spec, and its question (instances made with
   `instantiateDataflow`) is how `dashboardView` makes a panel. Task 5 draws with a plain loop over
   the panels, which `ds-4` replaces. It is not dropped here: the owner approved it at event 946.
+  (As built, `ds-4-panels-from-a-template`, 2026-10-12: neither. The panels instanced are the two of Health in
+  `cloud-brain.ojs`, as the issue and task 4 of its own spec say. Their entries are `{ draw, worker }` and are no
+  panels of a dashboard, and `dashboardView`, since `fb-a2g3jyhecp` a cell of `brain-dashboard.ojs`, still draws
+  with its loop; `tools/cloud-brain/records/ds-4-panels-from-a-template.md`, "Not chosen".)
 
 ### Stage 2, his ingestion (R2): designed, not built by the loop
 
