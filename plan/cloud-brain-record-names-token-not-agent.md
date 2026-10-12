@@ -376,6 +376,10 @@ None needs the owner's tab, `logs.query` or a QA tab.
    comment on each of the three reports that names the record. The reports are closed before
    that, by the orchestrator at `decompose`, with the reason `in the spec of
    record-names-token-not-agent` (`SKILL.md` line 78); this task closes nothing.
+   (As built, `ta-6-checks-after-three-issues`, 2026-10-12: the checks of R1 and the parent are
+   `bun tools/cloud-brain/token-checks.ts --token NAME`, with N the event before the first `start`
+   by an `impl-` token on an issue, 2666. At event 3988 the first check of R1 did not pass, so the
+   revoke below waits; the record.)
 
 ## What only the owner can do
 
