@@ -114,6 +114,8 @@ built from (`brain-topic.ojs`, `build.ts`, `tests/tools/topic-sql.test.ts`, a pl
   process compiles one seed only so far. A test file that asks for a second seed will load it
   again and may meet this. A script outside `bun test` that loaded it three times in a row, each
   disposed, printed no error.
+  (Ended 2026-10-12, `ds-1-rows-add-within`: `rows-add-within-sql.test.ts` asked for a second seed and met it; `seedModule`
+  now keeps one compiler a process. `tools/cloud-brain/records/ds-1-rows-add-within.md`.)
 - `rework-resumes-the-implementer.test.ts` and `issue-lock-sql.test.ts` read modules from
   `deploy/` too and were not changed.
 - `bun sync.ts` in the main checkout. Its `deploy/` is as it was.
