@@ -70,8 +70,9 @@ and its reference; none was seen with `core.calls`, which no token reads.
   so the calls of the minute that has not ended are not in the answer. `logs.query` was asked up
   to the millisecond of the press. `callsRows` takes the answer's `since` and `until`, so the
   chart's axis and the note are of what was counted.
-- **"Refresh" inside the same minute is answered from the service's memory** (60 s unless the
-  setting `memoryMs` says other), and the note then ends "Answered from the service's memory."
+- **"Refresh" inside the same minute may be answered from the service's memory** (60 s unless the
+  setting `memoryMs` says other; the memory is one instance's of the Worker, and another instance
+  asks Cloudflare again). The note of such an answer ends "Answered from the service's memory."
 - **A sampled span of more than a day is asked again a day at a time** by the service, and an
   answer that is still sampled says so in the note.
 - **The lines counted are the definition's**: `brain-core`'s lines with `at: "call"`. The page's
@@ -134,6 +135,8 @@ ignored), opens the build in a local headless Chrome (151.0.7922.34, 1280 by 800
 does, with the page's module in the one pane and no pairing. It then stands in
 `mod.redefine("session", { signedIn: true, owner: true })` and a `client` whose `query` answers
 `metric.query` from a fixture of four rows and pushes every call, `procedure` too, to `window.seen`.
+Both scripts and the log are attached to the issue (`dsv-6-tab.ts`, `dsv-6-span.ts`,
+`dsv-6-tab-log.jsonl`), since the worktree and its `.emitted/` go with the landing.
 One run, ended 00:17:05 UTC, on the build of the seed commit before the rebase (the page's seed is the
 same after it); each row is a line of
 `.emitted/dsv-6-tab-log.jsonl`.
@@ -185,8 +188,8 @@ The select asks once for each of the two events, and Playwright's `selectOption`
 `ds-2`, whose record counted 1 with one `input` event; it was not run on the build before this
 change, and a choice made by a person's hand was not made. Filed as
 `span-change-asks-twice`. What this task adds to it: the second ask is in the same minute as the
-first, so on cb4 the service would answer it from its memory, and the note after a change of the
-span would end "Answered from the service's memory." Not seen on cb4.
+first, so on cb4 the service may answer it from its memory (when the same instance is asked), and the
+note after a change of the span would then end "Answered from the service's memory." Not seen on cb4.
 
 ## Prior art searched
 
@@ -206,6 +209,10 @@ to the minute memory refresh stale". Used: `doc:cloud-brain-dashboard-service` (
   beside the approved sentences), `tests/tools/health-docs-say-what-the-page-does.test.ts`.
 - Left: the records of `ds-1` and `ds-2` and `spec-as-built.md` line 2917, which say what was built
   on their day.
+- The docs paragraph drawn: the build opened with `@tomlarkworthy/cloud-brain-docs` in the one pane
+  (`.emitted/dsv-6-docs.ts`, attached; one run): 0 `.observablehq--error` in the document, 16 `h2`,
+  and the paragraph has "with one metric.query of the metric core.calls" and one link, "brain-dashboard".
+  The module has no `test_` cell (`tab-tests.ts` on it is exit 70), so this is its only run.
 - `cloud-brain-docs` is a module of the shell. The paragraph reaches cb4 with `brain.ts shell`,
   which is the orchestrating session's (`rules.md`, "Two standing leaves").
 
