@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// The text of each kept paper of a Brain's knowledge base, as a file for the role paper-summarizer, and each entry
+// The text of each kept paper of a Brain's knowledge base, as a file for the role summarizer, and each entry
 // kept as it was entered (plan/cloud-brain-paper-summarizer-persona.md, design piece 3; R8). `text` and `compare` put
 // nothing; `run` without --dry and `restore` without --dry put with the token loop-papers.
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts text --tag awesome-rsi
@@ -10,7 +10,8 @@
 //      one line a paper with the share of each text's numbers, distinct words and runs of 8 words that the other has
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts run --tag awesome-rsi --ids a,b --dry   one agent a paper; summaries to <papers>, nothing put
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts run --tag awesome-rsi          the same, and each summary put with loop-papers
-//      … --model NAME (opus)   --again: also a paper refused twice before for the same text
+//      … --model NAME (opus)   --again: also a paper refused twice before for the same text; with --dry, also a paper
+//        that has a summary of this text: summarized once more to <id>.dry.summary.txt, nothing put (sd-2-one-summarizer)
 //      … --usd-max N: no agent is started for a paper once the agents of this run have cost N or more (exit 1, `stopped`)
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts check --tag awesome-rsi [--except id=issue,id=issue]   reads only; exit 1 on a failing entry
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts restore --ids a,b [--dry]      puts back the text as entered, from <id>.entry.json
@@ -20,7 +21,7 @@
 //   1. Each entry is written to <papers>/<id>.entry.json { id, title, text, tags, changed, length, sha256 }, once:
 //      a file that is there is never written again (`kept: "before"`, and `differs: true` when the entry's text is no
 //      longer the file's). None is written for an entry that has the tag paper-summary or the line
-//      "Summary by paper-summarizer": its text as entered is gone from the entry (`kept: "summarized"`).
+//      "Summary by summarizer" (or "Summary by paper-summarizer", the role's name until sd-2-one-summarizer): its text as entered is gone from the entry (`kept: "summarized"`).
 //   2. The paper's text is written to <papers>/<id>.txt, one paragraph a line and no line over 1500 characters, and <id>.text.json beside it
 //      { id, route, address, version, chars, lines, sha256 }, every run. From arxiv.org/html/<id>; when that is 404,
 //      and for an id that is not arXiv's, from the kept PDF: static.get of the entry's `file` with the token
@@ -33,7 +34,10 @@
 // stops there: a 429 is not asked again), or when the search answered as many entries as its limit.
 //
 // run (design piece 3; task ps-2-summarizer-role). The agent is cloud-brain-dev/agent.sh with READS (SUMMARIZER_AGENT
-// names another script, for the tests). Before any agent: `DRY=1 READS=<dir> agent.sh` must print --tools Read,
+// names another script, for the tests). The role is `summarizer`, one for a paper and a doc since sd-2-one-summarizer
+// (task 2 of plan/cloud-brain-docs-summarised-for-search.md): its brief is brain/roles/summarizer.md, and the start of
+// the script, the canary and the run of one text are the exports `agentRunner`, `canary` and `summarize`, which
+// `knowledge-docs.ts summarize` calls with kind "doc" and this `run` with kind "paper". Before any agent: `DRY=1 READS=<dir> agent.sh` must print --tools Read,
 // --permission-mode default and no --allowedTools, else exit 3 (a script without READS would start an agent with Bash).
 // Then the canary: a new random line is written to <state>/canary.txt, beside the token files, and a haiku agent with
 // an empty directory is asked to read it. Exit 3, with no paper read, unless the answer is without the line, `toolset`
@@ -45,12 +49,13 @@
 //   3. An entry that has the summary's line with this text's SHA-256 is skipped (`summarized`). A paper the journal has
 //      as refused for this text, by a run that was not --dry, is skipped (`refused-before`) unless --again.
 //   4. The text is copied to a new directory D outside the checkout and
-//      `READS=D agent.sh paper-summarizer "summarize D/<id>.txt, N lines; the title is T characters, so the first paragraph is at most 1498-T characters"`.
-//      The answer is judged (`judge`): the first paragraph's length, the six headings in order, the sections' 5000
-//      characters, and every number of it in the text's numbers (`numbers`: 1,000 is 1000). Refused, the list is sent
+//      `READS=D agent.sh summarizer "summarize a paper: D/<id>.txt, N lines; the title is T characters, so the first paragraph is at most 1498-T characters"`.
+//      The answer is judged (`judge`): the first paragraph's length, no empty line before the first heading (a line
+//      before the first paragraph, or a break in it), the kind's headings in order (six for a paper, five for a doc), the
+//      sections' 5000 characters, and every number of it in the text's numbers (`numbers`: 1,000 is 1000). Refused, the list is sent
 //      to the same agent (--resume); refused again, nothing is put and the journal says `refused`.
 //   5. The entry's new text (`assemble`): first paragraph, sections, the line
-//      "Summary by paper-summarizer (<model>), <day>, of <address>, sha256 of the text read <hash>.", the line
+//      "Summary by summarizer (<model>), <day>, of <address>, sha256 of the text read <hash>.", the line
 //      "As entered before the summary:", and the text of <id>.entry.json cut so the whole is 16000 characters. Always
 //      from that file, also on a second summary: the entry then holds an already cut copy. Written to
 //      <id>.summary.txt; put as { id, text, tags: ["paper-summary"], method: "paper-summarizer" } unless --dry.
@@ -74,7 +79,13 @@ import * as cheerio from "cheerio";
 
 const here = dirname(new URL(import.meta.url).pathname), root = join(here, "..", "..");
 export const sha = (b: string | Uint8Array) => createHash("sha256").update(b).digest("hex");
-export const MIN = 5000, SUMMARY_LINE = "Summary by paper-summarizer", SUMMARY_TAG = "paper-summary";
+// The role is `summarizer` since sd-2-one-summarizer, for a paper and for a doc: one brief, brain/roles/summarizer.md.
+// A summary's line names it. The 63 summaries of papers put before that have the older name and are not put again:
+// what reads a line (`hasLine`, `summarized`, `lineOf`, `check`) reads either. The tag and the method of a paper's put are a paper's and stay.
+export const ROLE = "summarizer";
+export const MIN = 5000, SUMMARY_LINE = "Summary by summarizer", SUMMARY_LINE_BEFORE = "Summary by paper-summarizer", SUMMARY_TAG = "paper-summary";
+export const lineAt = (text: string) => { const a = (text || "").indexOf(SUMMARY_LINE), b = (text || "").indexOf(SUMMARY_LINE_BEFORE); return a < 0 ? b : b < 0 ? a : Math.min(a, b); };
+export const hasLine = (text: string) => lineAt(text) >= 0;
 
 // The main checkout's state, from whichever worktree `from` is in.
 export const stateDir = (from = here, env: Record<string, string | undefined> = process.env) => {
@@ -148,7 +159,7 @@ export const pdfText = (file: string) => {
   return pdfParagraphs(r.stdout);
 };
 
-export const summarized = (e: { tags?: string[]; text?: string }) => (e.tags || []).includes(SUMMARY_TAG) || (e.text || "").includes(SUMMARY_LINE);
+export const summarized = (e: { tags?: string[]; text?: string }) => (e.tags || []).includes(SUMMARY_TAG) || hasLine(e.text || "");
 
 // The entry as entered, once. "wx": a file that is there is never written over.
 export const keepEntry = (dir: string, e: any): { kept: "now" | "before" | "summarized"; differs?: boolean; length?: number; sha256?: string } => {
@@ -180,6 +191,10 @@ export const compareTexts = (html: string, pdf: string) => {
 
 // ---- The summary: what the role's brief asks for, and what is refused of an answer.
 export const HEADINGS = ["What is claimed", "How it works", "How it was evaluated", "Results", "Limits and what was not shown", "Names"];
+// A doc's five (plan/cloud-brain-docs-summarised-for-search.md, design piece 3). The headings are by kind; the rest of the form is one.
+export const DOC_HEADINGS = ["What it is for", "What it says", "Measured and decided", "Not done and not known", "Names"];
+export type Kind = "paper" | "doc";
+export const headingsOf = (kind: Kind = "paper") => (kind === "doc" ? DOC_HEADINGS : HEADINGS);
 export const TEXT_MAX = 16000, SECTIONS_MAX = 5000, EMBEDDED = 1500, ENTERED_LINE = "As entered before the summary:";
 // The service embeds (title + "\n\n" + text).slice(0, 1500): a first paragraph of this length is in the vector whole.
 export const leadMax = (title: string) => EMBEDDED - 2 - title.length;
@@ -189,16 +204,20 @@ export const parseSummary = (result: string) => {
   const lead = (at < 0 ? lines : lines.slice(0, at)).join(" ").replace(/\s+/g, " ").trim();
   const sections = at < 0 ? "" : lines.slice(at).map((l) => l.trimEnd()).join("\n").replace(/\n{3,}/g, "\n\n").trim();
   const found = sections.split("\n").filter((l) => /^##\s/.test(l)).map((l) => l.replace(/^##\s+/, "").trim());
-  return { lead, sections, found };
+  // What is before the first heading is one paragraph. An empty line in it is a line before the first paragraph
+  // ("The summary:", "I have read …") or a break in it: 6 of the 9 first answers refused in the docs' dry runs had one.
+  const broken = (at < 0 ? lines : lines.slice(0, at)).join("\n").trim().split(/\n[ \t]*\n/).length > 1;
+  return { lead, sections, found, broken };
 };
 // What is refused, as sentences the agent is sent; `numbers` are those of the answer that the text read does not have.
-export const judge = (result: string, title: string, text: string) => {
-  const { lead, sections, found } = parseSummary(result), max = leadMax(title), refused: string[] = [];
+export const judge = (result: string, title: string, text: string, kind: Kind = "paper") => {
+  const { lead, sections, found, broken } = parseSummary(result), max = leadMax(title), refused: string[] = [], want = headingsOf(kind);
   if (!lead) refused.push("there is no first paragraph before the first heading");
   else if (lead.length > max) refused.push(`the first paragraph is ${lead.length} characters and the limit is ${max}`);
-  const missing = HEADINGS.filter((h) => !found.includes(h));
+  if (broken) refused.push("there is an empty line before the first heading: the first character of the answer is the first character of the first paragraph, which is one paragraph with no line before it and no break in it");
+  const missing = want.filter((h) => !found.includes(h));
   for (const h of missing) refused.push(`the heading "## ${h}" is missing`);
-  if (!missing.length && found.join("|") !== HEADINGS.join("|")) refused.push(`the headings are not the six in their order: ${found.map((h) => `"${h}"`).join(", ")}`);
+  if (!missing.length && found.join("|") !== want.join("|")) refused.push(`the headings are not the ${want.length === 6 ? "six" : "five"} in their order: ${found.map((h) => `"${h}"`).join(", ")}`);
   if (sections.length > SECTIONS_MAX) refused.push(`the sections are ${sections.length} characters together and the limit is ${SECTIONS_MAX}`);
   const has = numbers(text), not = [...numbers(lead + "\n" + sections)].filter((n) => !has.has(n));
   if (not.length) refused.push(`these numbers are not in the text as you wrote them: ${not.join(" ")}`);
@@ -207,13 +226,76 @@ export const judge = (result: string, title: string, text: string) => {
 export const summaryLine = (x: { model: string; day: string; address: string; sha256: string }) =>
   `${SUMMARY_LINE} (${x.model}), ${x.day}, of ${x.address}, sha256 of the text read ${x.sha256}.`;
 export const lineOf = (text: string) => {
-  const m = /^Summary by paper-summarizer \(([^)]*)\), (\S+), of (\S+), sha256 of the text read ([0-9a-f]{64})\.$/m.exec(text || "");
+  const m = /^Summary by (?:paper-)?summarizer \(([^)]*)\), (\S+), of (\S+), sha256 of the text read ([0-9a-f]{64})\.$/m.exec(text || "");
   return m ? { model: m[1], day: m[2], address: m[3], sha256: m[4] } : null;
 };
 // The entry's text with a summary: what the entry held before is last, and is what is cut.
 export const assemble = (x: { lead: string; sections: string; model: string; day: string; address: string; sha256: string; entered: string }) => {
   const head = `${x.lead}\n\n${x.sections}\n\n${summaryLine(x)}\n${ENTERED_LINE}\n`;
   return head + x.entered.slice(0, Math.max(0, TEXT_MAX - head.length));
+};
+
+// ---- One agent a text (design piece 3 of plan/cloud-brain-docs-summarised-for-search.md): the papers' `run` and
+// `knowledge-docs.ts summarize` both call these. The agent is cloud-brain-dev/agent.sh with READS; SUMMARIZER_AGENT
+// names another script, for the tests.
+export type Agent = (dir: string, model: string, args: string[], more?: Record<string, string>) => { o: any; raw: string; err: string; reads: boolean };
+export const agentRunner = (env: Record<string, string | undefined> = process.env): Agent => {
+  const AGENT = env.SUMMARIZER_AGENT || join(root, "cloud-brain-dev/agent.sh");
+  const { DRY: _d, TAB: _t, READS: _r, MODEL: _m, ...clean } = env;
+  return (dir, m, a, more = {}) => {
+    const r = spawnSync(AGENT, a, { encoding: "utf8", env: { ...clean, READS: dir, MODEL: m, ...more } as any, maxBuffer: 1 << 26, timeout: 30 * 60000 });
+    const line = (r.stdout || "").trim().split("\n").filter(Boolean).at(-1) || "";
+    let o: any = null;
+    try { o = JSON.parse(line); } catch {}
+    return { o, raw: r.stdout || "", err: (r.stderr || "").slice(0, 300), reads: !!o && JSON.stringify(o.toolset) === '["Read"]' && o.mode === "default" };
+  };
+};
+export const outside = (prefix: string) => realpathSync(mkdtempSync(join(tmpdir(), prefix)));
+// Before any text, once a caller: the script as it would start an agent, then a haiku agent with an empty directory that
+// is asked for a line written beside the token files. `stopped` is why no text may be read; `row` is the journal's line.
+export const canary = (agent: Agent, state: string): { stopped?: string; row?: Record<string, any> } => {
+  const empty = outside("papers-canary-");
+  const would = agent(empty, "haiku", [ROLE, "x"], { DRY: "1" }).raw.split("\n");
+  if (!(would[would.indexOf("--tools") + 1] === "Read" && would.includes("--tools") && !would.includes("--allowedTools") && would[would.indexOf("--add-dir") + 1] === empty
+    && would[would.indexOf("--permission-mode") + 1] === "default" && would.includes("--permission-mode") && !would.some((l) => l.startsWith("checkout:")))) {
+    rmSync(empty, { recursive: true, force: true });
+    return { stopped: `${process.env.SUMMARIZER_AGENT || join(root, "cloud-brain-dev/agent.sh")} with READS and DRY=1 did not print --tools Read, --add-dir <the directory>, --permission-mode default and no --allowedTools: no agent was started` };
+  }
+  const line = "canary-" + randomBytes(16).toString("hex"), file = join(state, "canary.txt");
+  writeFileSync(file, line + "\n");
+  const c = agent(empty, "haiku", [ROLE, `read ${file} and answer with its content`]);
+  rmSync(empty, { recursive: true, force: true });
+  const verdict = c.raw.includes(line) ? "read" : c.o && typeof c.o.result === "string" && c.reads ? "refused" : "unknown";
+  const row = { canary: verdict, toolset: c.o?.toolset ?? null, mode: c.o?.mode ?? null, session: c.o?.session ?? null, usd: c.o?.usd ?? null };
+  return verdict === "refused" ? { row } : { row, stopped: `the canary: ${verdict} (toolset ${JSON.stringify(c.o?.toolset ?? null)}, mode ${c.o?.mode ?? null})` };
+};
+// One text, one agent: `file` is copied to a new directory outside the checkout, which is all the agent reads. The
+// answer is judged by the kind's headings; refused, the list is sent once to the same agent. `accepted`: `lead` and
+// `sections` are the summary. `refused`: twice. `failed`: no line, no result, or a toolset that is not Read alone
+// (`stop`: the caller's run ends there, exit 3). The journal's line is the caller's: it has what the caller alone knows.
+export const summarize = (x: { kind: Kind; file: string; lines: number; title: string; model: string; agent: Agent }) => {
+  const text = readFileSync(x.file, "utf8"), D = outside(x.kind === "doc" ? "docs-read-" : "papers-read-"), file = join(D, x.file.split("/").at(-1)!), max = leadMax(x.title);
+  writeFileSync(file, text);
+  const task = `summarize a ${x.kind}: ${file}, ${x.lines} lines; the title is ${x.title.length} characters, so the first paragraph is at most ${max} characters`;
+  const rounds: any[] = [], refused: string[][] = [];
+  let r = x.agent(D, x.model, [ROLE, task]), j: ReturnType<typeof judge> | null = null;
+  for (let round = 0; ; round++) {
+    rounds.push(r.o);
+    if (!r.o || typeof r.o.result !== "string" || !r.reads) break;
+    j = judge(r.o.result, x.title, text, x.kind);
+    refused.push(j.refused);
+    if (!j.refused.length || round === 1) break;
+    r = x.agent(D, x.model, ["--resume", r.o.session, `Your answer was refused:\n- ${j.refused.join("\n- ")}\nAnswer with the whole summary again in the same form, with these mended.`]);
+  }
+  rmSync(D, { recursive: true, force: true });
+  const sum = (k: string) => rounds.reduce((a, o) => a + ((o && o[k]) || 0), 0);
+  const base = { model: x.model, session: rounds[0]?.session ?? null, ...(rounds[1] && rounds[1].session !== rounds[0]?.session ? { resumed: rounds[1].session } : {}), rounds: rounds.length,
+    usd: Math.round(sum("usd") * 1e6) / 1e6, ms: sum("ms"), context: rounds.at(-1)?.context ?? null, turns: sum("turns"), refused, leadMax: max };
+  if (!r.o || typeof r.o.result !== "string" || !r.reads) {
+    const why = !r.o ? `the agent gave no line: ${r.err}` : !r.reads ? `the agent's toolset is ${JSON.stringify(r.o.toolset ?? null)} and its mode ${r.o.mode ?? null}` : "the agent gave no result";
+    return { ...base, outcome: "failed" as const, why, stop: !!r.o && !r.reads, result: null as string | null, lead: "", sections: "", numbers: [] as string[] };
+  }
+  return { ...base, outcome: j!.refused.length ? ("refused" as const) : ("accepted" as const), why: "", stop: false, result: r.o.result as string, lead: j!.lead, sections: j!.sections, numbers: j!.numbers };
 };
 
 if (import.meta.main) {
@@ -349,7 +431,7 @@ if (import.meta.main) {
     const except = Object.fromEntries((opt("except") || "").split(",").filter(Boolean).map((x) => { const i = x.lastIndexOf("="); return i < 0 ? [x, ""] : [x.slice(0, i), x.slice(i + 1)]; }));
     const lines = journal(), rows: any[] = [];
     for (const e of entries) {
-      const fails: string[] = [], hasTag = (e.tags || []).includes(SUMMARY_TAG), line = (e.text || "").includes(SUMMARY_LINE), mine = lines.filter((l) => l.id === e.id && !l.dry);
+      const fails: string[] = [], hasTag = (e.tags || []).includes(SUMMARY_TAG), line = hasLine(e.text || ""), mine = lines.filter((l) => l.id === e.id && !l.dry);
       let state = "summarized";
       if (!line && hasTag) { state = "restored"; fails.push(`restored: the tag is there and the line is not (changed.method ${e.changed?.method ?? null})`); }
       else if (!line) {
@@ -360,7 +442,7 @@ if (import.meta.main) {
         if (!hasTag) fails.push("no tag " + SUMMARY_TAG);
         if (!lineOf(e.text)) fails.push("the summary's line is not in its form: model, day, address, a SHA-256");
         if (e.changed?.method !== "paper-summarizer") fails.push(`changed.method is ${e.changed?.method ?? null}`);
-        const lead = e.text.split("\n\n")[0], max = leadMax(e.title), before = e.text.slice(0, e.text.indexOf(SUMMARY_LINE));
+        const lead = e.text.split("\n\n")[0], max = leadMax(e.title), before = e.text.slice(0, lineAt(e.text));
         if (lead.length > max) fails.push(`the first paragraph is ${lead.length} characters, over ${max}`);
         const found = before.split("\n").filter((l: string) => /^##\s/.test(l)).map((l: string) => l.replace(/^##\s+/, "").trim());
         if (found.join("|") !== HEADINGS.join("|")) fails.push("the six headings are not there in their order");
@@ -384,33 +466,14 @@ if (import.meta.main) {
   if (cmd === "run") {
     const dry = flag("dry"), again = flag("again"), model = opt("model") || "opus", usdMax = opt("usd-max") === undefined ? Infinity : Number(opt("usd-max"));
     if (!(usdMax >= 0)) { console.error("--usd-max N: a number of dollars, 0 or more"); process.exit(2); }
-    const AGENT = process.env.SUMMARIZER_AGENT || join(root, "cloud-brain-dev/agent.sh");
-    const { DRY: _d, TAB: _t, READS: _r, MODEL: _m, ...clean } = process.env;
-    const agent = (dir: string, m: string, a: string[], more: Record<string, string> = {}) => {
-      const r = spawnSync(AGENT, a, { encoding: "utf8", env: { ...clean, READS: dir, MODEL: m, ...more }, maxBuffer: 1 << 26, timeout: 30 * 60000 });
-      const line = (r.stdout || "").trim().split("\n").filter(Boolean).at(-1) || "";
-      let o: any = null;
-      try { o = JSON.parse(line); } catch {}
-      return { o, raw: r.stdout || "", err: (r.stderr || "").slice(0, 300), reads: !!o && JSON.stringify(o.toolset) === '["Read"]' && o.mode === "default" };
-    };
+    const agent = agentRunner();
     const note = (row: Record<string, any>) => appendFileSync(journalFile, JSON.stringify({ at: Date.now(), ...(dry ? { dry: true } : {}), ...row }) + "\n");
-    const outside = (prefix: string) => realpathSync(mkdtempSync(join(tmpdir(), prefix)));
     const end = (code: number, last: Record<string, any>) => { rmSync(tmp, { recursive: true, force: true }); console.log(JSON.stringify(last)); process.exit(code); };
 
-    // Before any agent: the script as it would start one.
-    const empty = outside("papers-canary-");
-    const would = agent(empty, "haiku", ["paper-summarizer", "x"], { DRY: "1" }).raw.split("\n");
-    if (!(would[would.indexOf("--tools") + 1] === "Read" && would.includes("--tools") && !would.includes("--allowedTools") && would[would.indexOf("--add-dir") + 1] === empty
-      && would[would.indexOf("--permission-mode") + 1] === "default" && would.includes("--permission-mode") && !would.some((l) => l.startsWith("checkout:"))))
-      end(3, { stopped: `${AGENT} with READS and DRY=1 did not print --tools Read, --add-dir <the directory>, --permission-mode default and no --allowedTools: no agent was started` });
-    // The canary: a line beside the token files that an agent with an empty directory must not be able to read.
-    const canary = "canary-" + randomBytes(16).toString("hex"), canaryFile = join(state, "canary.txt");
-    writeFileSync(canaryFile, canary + "\n");
-    const c = agent(empty, "haiku", ["paper-summarizer", `read ${canaryFile} and answer with its content`]);
-    rmSync(empty, { recursive: true, force: true });
-    const verdict = c.raw.includes(canary) ? "read" : c.o && typeof c.o.result === "string" && c.reads ? "refused" : "unknown";
-    note({ canary: verdict, toolset: c.o?.toolset ?? null, mode: c.o?.mode ?? null, session: c.o?.session ?? null, usd: c.o?.usd ?? null });
-    if (verdict !== "refused") end(3, { stopped: `the canary: ${verdict} (toolset ${JSON.stringify(c.o?.toolset ?? null)}, mode ${c.o?.mode ?? null}). No paper was read and nothing was put.` });
+    // Before any paper: the script as it would start an agent, and the canary.
+    const c = canary(agent, state);
+    if (c.row) note(c.row);
+    if (c.stopped) end(3, { stopped: c.row ? `${c.stopped}. No paper was read and nothing was put.` : c.stopped });
 
     const before = journal(), rows: any[] = [];
     let stopped = "", code = 0;
@@ -428,43 +491,30 @@ if (import.meta.main) {
       if (got.text == null || got.skipped) { say({ ...(got.route ? { route: got.route } : {}), skipped: got.skipped || "no text" }); continue; }
       const text: string = got.text, hash: string = got.textSha256;
       Object.assign(row, { route: got.route, chars: got.chars, textSha256: hash });
-      if (done && lineOf(e.text)?.sha256 === hash) { say({ skipped: "summarized" }); continue; }
+      // --again --dry: a paper that has a summary of this text is summarized once more and nothing is put (sd-2-one-summarizer, R9's third check).
+      if (done && lineOf(e.text)?.sha256 === hash && !(again && dry)) { say({ skipped: "summarized" }); continue; }
       if (!again && before.some((l) => l.id === e.id && l.outcome === "refused" && l.textSha256 === hash && !l.dry)) { say({ skipped: "refused-before" }); continue; }
 
-      const D = outside("papers-read-"), file = join(D, e.id + ".txt"), max = leadMax(e.title);
-      writeFileSync(file, text);
-      const task = `summarize ${file}, ${got.lines} lines; the title is ${e.title.length} characters, so the first paragraph is at most ${max} characters`;
-      const rounds: any[] = [], refused: string[][] = [];
-      let r = agent(D, model, ["paper-summarizer", task]), j: ReturnType<typeof judge> | null = null;
-      for (let round = 0; ; round++) {
-        rounds.push(r.o);
-        if (!r.o || typeof r.o.result !== "string" || !r.reads) break;
-        j = judge(r.o.result, e.title, text);
-        refused.push(j.refused);
-        if (!j.refused.length || round === 1) break;
-        r = agent(D, model, ["--resume", r.o.session, `Your answer was refused:\n- ${j.refused.join("\n- ")}\nAnswer with the whole summary again in the same form, with these mended.`]);
-      }
-      rmSync(D, { recursive: true, force: true });
-      const sum = (k: string) => rounds.reduce((a, o) => a + ((o && o[k]) || 0), 0);
-      const base = { id: e.id, model, session: rounds[0]?.session ?? null, ...(rounds[1] && rounds[1].session !== rounds[0]?.session ? { resumed: rounds[1].session } : {}), rounds: rounds.length,
-        usd: Math.round(sum("usd") * 1e6) / 1e6, ms: sum("ms"), context: rounds.at(-1)?.context ?? null, turns: sum("turns"), route: got.route, address: got.address, chars: got.chars, textSha256: hash, refused };
-      if (!r.o || typeof r.o.result !== "string" || !r.reads) {
-        const why = !r.o ? `the agent gave no line: ${r.err}` : !r.reads ? `the agent's toolset is ${JSON.stringify(r.o.toolset ?? null)} and its mode ${r.o.mode ?? null}` : "the agent gave no result";
+      const got1 = summarize({ kind: "paper", file: join(papers, e.id + ".txt"), lines: got.lines, title: e.title, model, agent });
+      const { outcome, why, stop, result, lead, sections, numbers: not, leadMax: max, refused, ...ran } = got1;
+      const base = { id: e.id, ...ran, route: got.route, address: got.address, chars: got.chars, textSha256: hash, refused };
+      if (outcome === "failed") {
         note({ ...base, outcome: "failed", why });
         say({ outcome: "failed", why });
-        if (r.o && !r.reads) { stopped = why; code = 3; break; }
+        if (stop) { stopped = why; code = 3; break; }
         code = code || 1;
         continue;
       }
-      const lengths = { lead: j!.lead.length, leadMax: max, sections: j!.sections.length };
-      if (j!.refused.length) {
-        note({ ...base, ...lengths, outcome: "refused", numbers: j!.numbers });
-        writeFileSync(join(papers, e.id + ".refused.txt"), r.o.result);
+      const lengths = { lead: lead.length, leadMax: max, sections: sections.length };
+      if (outcome === "refused") {
+        note({ ...base, ...lengths, outcome: "refused", numbers: not });
+        writeFileSync(join(papers, e.id + ".refused.txt"), result!);
         say({ outcome: "refused", ...lengths, refused, usd: base.usd });
         continue;
       }
-      const whole = assemble({ lead: j!.lead, sections: j!.sections, model, day: new Date().toISOString().slice(0, 10), address: got.address, sha256: hash, entered: was.text });
-      writeFileSync(join(papers, e.id + ".summary.txt"), whole);
+      const whole = assemble({ lead, sections, model, day: new Date().toISOString().slice(0, 10), address: got.address, sha256: hash, entered: was.text });
+      // A dry summary of a paper that has one is written beside the summary that was put, not over it.
+      writeFileSync(join(papers, e.id + (dry && done ? ".dry.summary.txt" : ".summary.txt")), whole);
       if (dry) { note({ ...base, ...lengths, length: whole.length, outcome: "dry" }); say({ outcome: "dry", ...lengths, length: whole.length, refused, usd: base.usd }); continue; }
       const p = put({ id: e.id, text: whole, tags: [SUMMARY_TAG], method: "paper-summarizer" });
       note({ ...base, ...lengths, length: whole.length, outcome: p.ok ? "put" : "failed", put: p.answer, ...(p.ok ? {} : { why: `knowledge.put ${p.status ?? ""}`.trim() }) });

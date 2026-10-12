@@ -49,7 +49,7 @@
 // The id is the file's name in lower case. A name that gives no id knowledge.put takes (a space, a
 // character outside ASCII, anything but a-z 0-9 . _ : -), or a path static.put does not take (a `:`, over 200 characters), is `badname` in status and `badNames` in the last line, and is in no put (i1546).
 // tests/tools/knowledge-docs.test.ts
-import { writeFileSync, mkdtempSync } from "node:fs";
+import { writeFileSync, mkdtempSync, mkdirSync, existsSync, readFileSync, appendFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createHash } from "node:crypto";
 import { join, dirname } from "node:path";
@@ -60,7 +60,10 @@ const BASE = process.env.BRAIN_BASE;
 if (!BASE) throw new Error("BRAIN_BASE");
 const [cmd, ...args] = process.argv.slice(2);
 const flag = (f: string) => args.includes(f);
-const names = args.filter((a) => !a.startsWith("--"));
+// --name VALUE or --name=VALUE; the value of the first form is no doc's name.
+const VALUED = ["--except", "--usd-max", "--model"];
+const opt = (f: string) => { const eq = args.find((a) => a.startsWith(f + "=")), i = args.indexOf(f); return eq ? eq.slice(f.length + 1) : i >= 0 ? args[i + 1] : undefined; };
+const names = args.filter((a, i) => !a.startsWith("--") && !VALUED.includes(args[i - 1]));
 const limit = (args.find((a) => /^--limit=\d+$/.test(a)) || "--limit=120").slice(8);
 const REPO = "https://github.com/tomlarkworthy/lopecode-dev/blob/main/", TEXT = 16000, SRC = "origin/main", TOKEN = "loop-docs", METHODS = "knowledge.put knowledge.list static.put static.list";
 // Where a doc's file is kept in brain-static: FILES<source>/<path>. 53 docs had a file there, put on 2026-10-10,
@@ -75,7 +78,7 @@ const common = line(here, "rev-parse", "--path-format=absolute", "--git-common-d
 const state = process.env.BRAIN_STATE_DIR || (common ? join(dirname(common), "tools/cloud-brain/.emitted") : "");
 const who = flag("--owner") ? ["--owner"] : ["--as", TOKEN];
 
-const tmp = join(mkdtempSync(join(tmpdir(), "kdocs-")), "body.json");
+const tmpDir = mkdtempSync(join(tmpdir(), "kdocs-")), tmp = join(tmpDir, "body.json");
 // body: JSON for the service. file: a file's bytes, sent as they are.
 const call = (path: string, body?: any, file?: Uint8Array) => {
   if (file) writeFileSync(tmp, file);
@@ -113,7 +116,10 @@ const marked = (whole: string, where: string) => {
   while (n > 0 && n + mark(n).length > TEXT) n--;
   return { text: whole.slice(0, n) + mark(n), mark: mark(n), shown: n };
 };
-type Doc = { name: string; id: string; named: boolean; file: string; bytes: Uint8Array; public: boolean; scoped: boolean; title: string; text: string; cut: { mark: string; shown: number; of: number } | null; sha256: string; url: string; source: string; at: string; rev: string; path: string };
+// text and cut: the entry's text with no summary, cut when long. whole: the text this tool makes, uncut. body: the file
+// with its frontmatter taken off, which a summarizer reads. chars and lines are the file's.
+type Doc = { name: string; id: string; named: boolean; file: string; bytes: Uint8Array; public: boolean; scoped: boolean; title: string; text: string; cut: { mark: string; shown: number; of: number } | null; sha256: string; url: string; source: string; at: string; rev: string; path: string;
+  whole: string; long: boolean; body: string; chars: number; lines: number };
 const doc = (name: string, bytes: Uint8Array, more: { at: string; rev: string; path: string; url: string; source: string; private?: boolean }): Doc => {
   const raw = Buffer.from(bytes).toString("utf8");
   const fm = /^---\n([\s\S]*?)\n---\n/.exec(raw), top = fm ? fm[1] : "", body = fm ? raw.slice(fm[0].length) : raw;
@@ -125,8 +131,23 @@ const doc = (name: string, bytes: Uint8Array, more: { at: string; rev: string; p
   const m = whole.length > TEXT ? marked(whole, `the file ${file} in this Brain's brain-static: static.get?path=${file}` + (open ? `, and /static/${file} at the Brain's address` : "")) : null;
   const id = "doc:" + name.toLowerCase();
   return { name, id, named: ID.test(id) && id.length <= ID_MAX && PATH.test(file) && file.length <= PATH_MAX, file, bytes, public: open, scoped: !!more.private || /^scope:/m.test(top),
-    title: (h1 ? h1[1] : name).slice(0, 500), text: m ? m.text : whole, cut: m && { mark: m.mark, shown: m.shown, of: whole.length }, sha256: sha(bytes), url: more.url, source: more.source, at: more.at, rev: more.rev, path: more.path };
+    title: (h1 ? h1[1] : name).slice(0, 500), text: m ? m.text : whole, cut: m && { mark: m.mark, shown: m.shown, of: whole.length }, sha256: sha(bytes), url: more.url, source: more.source, at: more.at, rev: more.rev, path: more.path,
+    whole, long: !!m, body, chars: raw.length, lines: raw.split("\n").length - (raw.endsWith("\n") ? 1 : 0) };
 };
+
+// ---- A long doc's entry with a summary (sd-2-one-summarizer; design piece 2 of plan/cloud-brain-docs-summarised-for-search.md):
+//   <first paragraph>\n\n<sections>\n\n<LINE>\n<the second line>\n\n<the doc's start, cut so the whole is TEXT>
+// The head, to the end of LINE, is the summarizer's and is carried over a put as it is kept; the rest is made anew.
+const SUMMARY = "Summary by summarizer";
+const LINE = /^Summary by summarizer \(([^)]*)\), (\S+), of (\S+) as it was with sha256 ([0-9a-f]{64})\.$/m;
+const summaryOf = (text: unknown) => {
+  const m = typeof text === "string" ? LINE.exec(text) : null;
+  return m ? { head: (text as string).slice(0, m.index + m[0].length), at: m.index, model: m[1], day: m[2], path: m[3], sha256: m[4] } : null;
+};
+const headOf = (x: { lead: string; sections: string; model: string; day: string; path: string; sha256: string }) =>
+  `${x.lead}\n\n${x.sections}\n\n${SUMMARY} (${x.model}), ${x.day}, of ${x.path} as it was with sha256 ${x.sha256}.`;
+const second = (d: Doc) => `The whole doc is the file ${d.file} in this Brain's brain-static, ${d.chars} characters: static.get?path=${d.file}${d.public ? `, and /static/${d.file} at the Brain's address` : ""}. Its start follows.`;
+const withSummary = (d: Doc, head: string) => { const top = `${head}\n${second(d)}\n\n`; return top + d.whole.slice(0, Math.max(0, TEXT - top.length)); };
 
 // plan/cloud-brain-*.md: the designs and the backlog. They have no frontmatter, so they are entered private.
 // tools/cloud-brain/post-mortems/*.md: one file a post mortem, private the same way. A doc's name is its file's
@@ -178,54 +199,216 @@ const staleSince = (d: Doc, entrySha: string) => {
 };
 
 const age = (ms: number) => { const h = (Date.now() - ms) / 36e5; return h < 48 ? h.toFixed(1) + " h" : (h / 24).toFixed(1) + " d"; };
+// summary: the kept entry's, of a long doc. noText: a long doc whose kept entry was answered with no text, so that
+// nothing says whether it holds a summary. unmarked: a long doc with no summary whose entry does not end with the cut's line.
 const rowsOf = (have: Map<string, any>, files: Map<string, any>) => docs.map((d) => {
-  const e = have.get(d.id), f = files.get(d.file);
-  return { ...d, entry: e, unmarked: !!d.cut && !!e && !(typeof e.text === "string" && e.text.endsWith(d.cut.mark)),
+  const e = have.get(d.id), f = files.get(d.file), noText = d.long && !!e && typeof e.text !== "string", summary = d.long && e ? summaryOf(e.text) : null;
+  return { ...d, entry: e, summary, noText, unmarked: d.long && !!e && !noText && !summary && !e.text.endsWith(d.cut!.mark),
     // The kept file is the doc's when it has the doc's bytes and visibility. A badname has none and is not counted.
     fileIs: !d.named ? "none" : !f ? "not kept" : f.sha256 === d.sha256 && !!f.public === d.public ? "right" : "differs",
     state: !d.named ? "badname" : !e ? "missing" : e.sha256 === d.sha256 && !!e.public === d.public && e.file === d.file ? "fresh" : "stale" };
 });
+type Row = ReturnType<typeof rowsOf>[number];
+
+// ---- When a summary is due. The state of the summarizer's runs is <state>/docs: journal.jsonl, <name>.running.
+const stateDocs = state ? join(state, "docs") : "";
+const journalFile = stateDocs ? join(stateDocs, "journal.jsonl") : "";
+const journal = (): any[] => (journalFile && existsSync(journalFile) ? readFileSync(journalFile, "utf8").split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return {}; } }) : []);
+// Refused twice for this file, by a run that was not --dry: no agent is started for it again without --again.
+const refusedAt = (lines: any[], r: { name: string; sha256: string }) => lines.some((l) => l.name === r.name && l.outcome === "refused" && l.sha256 === r.sha256 && !l.dry);
+const RUNNING_MS = 10 * 60000;
+const runningFile = (name: string) => join(stateDocs, name + ".running");
+const running = (name: string) => { try { return !!stateDocs && Date.now() - Number(readFileSync(runningFile(name), "utf8")) < RUNNING_MS; } catch { return false; } };
+// null when no summary is due. `since` is the clock --check-summaries counts 24 hours from; `stale` is the entry's staleSince
+// (0 for a doc that never had a summary: knowledge.list?stale=true answers the docs whose summary is due again).
+//   no summary: due since the file's last commit;
+//   a summary of another version of the file: due when the lines added and deleted since that version (git diff --numstat)
+//   are over a tenth of the file's lines, since the first commit that took it over; and when no commit has that version.
+const dueOf = (r: Row): { since: number; stale: number; why: string } | null => {
+  if (!r.long || !r.named || r.noText) return null;
+  const log = line(r.at, "log", "--format=%H %ct", r.rev, "--", r.path).split("\n").filter(Boolean).map((l) => l.split(" "));
+  const last = log.length ? Number(log[0][1]) * 1000 : 0;
+  if (!r.summary) return { since: last, stale: 0, why: "no summary" };
+  if (r.summary.sha256 === r.sha256) return null;
+  const i = log.findIndex(([h]) => sha(git(r.at, "show", `${h}:${r.path}`).stdout) === r.summary!.sha256);
+  if (i < 0) return { since: last, stale: last, why: "no commit has the version summarized" };
+  for (let k = i - 1; k >= 0; k--) {
+    const [a, d] = line(r.at, "diff", "--numstat", log[i][0], log[k][0], "--", r.path).split("\t").map(Number), n = (a || 0) + (d || 0);
+    if (n > r.lines / 10) return { since: Number(log[k][1]) * 1000, stale: Number(log[k][1]) * 1000, why: `${n} lines added and deleted since the version summarized, over a tenth of ${r.lines} (commit ${log[k][0].slice(0, 8)})` };
+  }
+  return null;
+};
 const wrong = (rows: { fileIs: string }[]) => rows.filter((r) => r.fileIs === "not kept" || r.fileIs === "differs");
 const badNames = docs.filter((d) => !d.named).map((d) => d.name);
-const cutOf = (rows: { cut: Doc["cut"] }[]) => rows.filter((r) => r.cut).length;
+const cutOf = (rows: { long: boolean; summary: unknown }[]) => rows.filter((r) => r.long && !r.summary).length;
 const read = { ...(badNames.length ? { badNames } : {}), source: `${SRC}@${head.slice(0, 8)}`, ...(devLeft ? { cloudBrainDev: devLeft } : {}) };
 const BAD = `its id is not one knowledge.put takes (${ID.source}, ${ID_MAX} characters at most), or its path not one static.put takes: not entered until the file has another name`;
 
-if (cmd === "status") {
-  const have = kept(), rows = rowsOf(have, keptFiles());
+// The entry of a put. A long doc whose entry has a summary keeps it: the head as kept, the second line and the doc's
+// start as they are now, staleSince the time its summary came due (0: not due). plain: a long doc as it was put before
+// summaries, cut, whatever the entry holds. A doc that fits is entered whole, and a summary or a staleSince it had is dropped.
+const entryOf = (r: Row, plain = false) => {
+  const base = { id: r.id, kind: "doc", public: r.public, title: r.title, url: r.url, source: r.source, file: r.file, sha256: r.sha256, method: "knowledge-docs", tags: ["knowledge-doc"] };
+  if (!r.long) return { ...base, text: r.whole, ...(r.entry && (r.entry.staleSince || summaryOf(r.entry.text)) ? { staleSince: 0 } : {}) };
+  if (plain) return { ...base, text: r.text, staleSince: 0 };
+  if (r.summary) return { ...base, text: withSummary(r, r.summary.head), staleSince: dueOf(r)?.stale ?? 0 };
+  return { ...base, text: r.text };
+};
+// 25 entries a call, after their files. The file first: when the entry's put then fails, the entry has the older sha256, is stale, and the next put sends both.
+const send = (batch: { d: Doc; entry: Record<string, any> }[]) => {
+  let entered = 0, changed = 0, vectors = 0;
+  for (let i = 0; i < batch.length; i += 25) {
+    const part = batch.slice(i, i + 25);
+    for (const { d } of part) {
+      const f = call(`static.put?path=${d.file}&public=${d.public}&tags=${FILE_TAG}`, undefined, d.bytes);
+      if (f.sha256 !== d.sha256 || !!f.public !== d.public) throw new Error(`static.put: ${d.file} was kept with sha256 ${f.sha256} and public ${f.public}, not the doc's ${d.sha256} and ${d.public}`);
+    }
+    const r = call("knowledge.put", { entries: part.map((x) => x.entry) });
+    entered += r.entered; changed += r.changed; vectors += r.vectors ?? 0;
+  }
+  return { entered, changed, vectors };
+};
+
+if (cmd === "status" && flag("--check-summaries")) {
+  // Reads only. The long docs, or the named ones. A doc fails when its entry has a summary that is not in its form, when
+  // its summary has been due for over 24 hours, and when the journal has it refused at this file; --except name=issue names one that may.
+  const { leadMax, DOC_HEADINGS } = await import("./summarize-papers.ts");
+  const except = Object.fromEntries((opt("--except") || "").split(",").filter(Boolean).map((x) => { const i = x.lastIndexOf("="); return i < 0 ? [x, ""] : [x.slice(0, i), x.slice(i + 1)]; }));
+  const lines = journal(), all = rowsOf(kept(), keptFiles()), out: any[] = [];
+  const unknown = names.filter((n) => !all.some((r) => r.name === n));
+  for (const r of names.length ? all.filter((r) => names.includes(r.name)) : all.filter((r) => r.long)) {
+    const fails: string[] = [], due = dueOf(r), e = r.entry;
+    if (r.summary) {
+      const lead = e.text.split("\n\n")[0], max = leadMax(e.title ?? r.title), found = e.text.slice(0, r.summary.at).split("\n").filter((l: string) => /^##\s/.test(l)).map((l: string) => l.replace(/^##\s+/, "").trim());
+      if (lead.length > max) fails.push(`the first paragraph is ${lead.length} characters, over ${max}`);
+      if (found.join("|") !== DOC_HEADINGS.join("|")) fails.push("the five headings are not there in their order");
+      if (!e.text.slice(r.summary.head.length).startsWith(`\nThe whole doc is the file ${e.file} in `)) fails.push(`the line after the summary's does not name the entry's file ${e.file}`);
+      if (e.text.length > TEXT) fails.push(`the text is ${e.text.length} characters, over ${TEXT}`);
+    }
+    if (due && Date.now() - due.since > 24 * 36e5) fails.push(`a summary has been due for ${age(due.since)}: ${due.why}`);
+    if (refusedAt(lines, r)) fails.push("refused twice at this file (the journal)");
+    const row = { name: r.name, state: !r.long ? "short" : r.noText ? "no text" : r.summary ? (r.summary.sha256 === r.sha256 ? "summarized" : "behind") : "no summary", ...(due ? { due: age(due.since) } : {}),
+      ...(fails.length ? { fails } : {}), ...(fails.length && r.name in except ? { except: except[r.name] } : {}) };
+    out.push(row);
+    console.log(JSON.stringify(row));
+  }
+  const failing = out.filter((r) => r.fails && !("except" in r)).map((r) => r.name);
+  console.log(JSON.stringify({ checked: out.length, summarized: out.filter((r) => (r.state === "summarized" || r.state === "behind") && !r.fails).length, excepted: out.filter((r) => "except" in r).map((r) => r.name), failing, ...(unknown.length ? { unknown } : {}), ...read }));
+  process.exit(failing.length || unknown.length ? 1 : 0);
+} else if (cmd === "status") {
+  const have = kept(), rows = rowsOf(have, keptFiles()), lines = journal();
+  const dues = new Map(rows.map((r) => [r.name, dueOf(r)] as const));
   for (const r of rows) {
     const s = r.state === "stale" && r.entry.sha256 !== r.sha256 ? staleSince(r, r.entry.sha256) : null;
     const why = r.state !== "stale" || s ? [] : [!!r.entry.public !== r.public ? "visibility differs" : "", r.entry.file !== r.file ? (r.entry.file ? `the entry names the file ${r.entry.file}` : "the entry names no file") : ""];
     const note = s ? `stale ${age(s.at)} (since ${new Date(s.at).toISOString().slice(0, 16)}Z, ${s.from})` : r.state === "badname" ? BAD : why.filter(Boolean).join(", ");
-    console.log(r.state.padEnd(8), (r.public ? "public " : "private"), r.name, [note, r.cut ? `cut ${r.cut.shown} of ${r.cut.of}${r.unmarked ? ", unmarked" : ""}` : "", r.fileIs === "not kept" || r.fileIs === "differs" ? "file " + r.fileIs : ""].filter(Boolean).join("; "));
+    const sum = r.summary ? `summary by ${r.summary.model} of ${r.summary.day}${r.summary.sha256 === r.sha256 ? "" : ", behind"}` : r.noText ? "long, the entry was answered with no text" : r.long ? `cut ${r.cut!.shown} of ${r.cut!.of}${r.unmarked ? ", unmarked" : ""}` : "";
+    console.log(r.state.padEnd(8), (r.public ? "public " : "private"), r.name, [note, sum, r.fileIs === "not kept" || r.fileIs === "differs" ? "file " + r.fileIs : ""].filter(Boolean).join("; "));
   }
   const n = (s: string) => rows.filter((r) => r.state === s).length;
   // Only an entry this tool entered: kind `doc` is also filled by other methods, whose entries have no file here.
   const gone = [...have.values()].filter((e) => e.method === "knowledge-docs" && !docs.some((d) => d.id === e.id) && !(devLeft && devIds.includes(e.id))).map((e) => e.id);
+  const noText = rows.filter((r) => r.noText).map((r) => r.name);
   console.log(JSON.stringify({ docs: rows.length, fresh: n("fresh"), stale: n("stale"), missing: n("missing"), cut: cutOf(rows), unmarked: rows.filter((r) => r.unmarked).length,
+    long: rows.filter((r) => r.long).length, summarized: rows.filter((r) => r.summary).length, behind: rows.filter((r) => r.summary && r.summary.sha256 !== r.sha256).length,
+    due: rows.filter((r) => dues.get(r.name)).map((r) => r.name), refused: rows.filter((r) => dues.get(r.name) && refusedAt(lines, r)).map((r) => r.name), ...(noText.length ? { noText } : {}),
     files: rows.filter((r) => r.fileIs === "right").length, filesWrong: wrong(rows).map((r) => r.name), entriesWithNoFile: gone, ...read }));
   if (flag("--check") && n("stale") + n("missing") + badNames.length > 0) process.exit(1);
 } else if (cmd === "put") {
-  const rows = rowsOf(kept(), keptFiles()).filter((r) => r.named);
-  const pick = flag("--all") ? rows : flag("--stale") ? rows.filter((r) => r.state !== "fresh" || r.unmarked || r.fileIs !== "right") : rows.filter((r) => names.includes(r.name));
-  const left = badNames.length ? `not entered, ${BAD.replace("its id is", "the id is")}: ${badNames.join(", ")}` : "";
+  const rows = rowsOf(kept(), keptFiles()).filter((r) => r.named), plain = flag("--plain");
+  if (plain && (!names.length || flag("--all") || flag("--stale"))) { console.error("put --plain <name>…: the named docs, each as it is put with no summary"); process.exit(1); }
+  const picked = flag("--all") ? rows : flag("--stale") ? rows.filter((r) => r.state !== "fresh" || r.unmarked || r.fileIs !== "right") : rows.filter((r) => names.includes(r.name));
+  // Left as they are by the docs step (--stale), and named: a long doc whose entry was answered with no text (nothing says
+  // whether it holds a summary; a put by name enters it cut), and a doc a summarizer is running on (its summary would
+  // land between this read and this put).
+  const noText = flag("--stale") ? rows.filter((r) => r.noText) : [], busy = flag("--stale") ? picked.filter((r) => !r.noText && running(r.name)) : [];
+  const pick = picked.filter((r) => !noText.includes(r) && !busy.includes(r));
+  const left = [badNames.length ? `not entered, ${BAD.replace("its id is", "the id is")}: ${badNames.join(", ")}` : "",
+    noText.length ? `left as they are, long and the entry answered with no text (put <name> enters one cut): ${noText.map((r) => r.name).join(", ")}` : "",
+    busy.length ? `left for the next put, a summarizer is running on them: ${busy.map((r) => r.name).join(", ")}` : ""].filter(Boolean).join("; ");
   const unscoped = pick.filter((r) => !r.scoped).map((r) => r.name);
   if (unscoped.length) console.log("no scope in frontmatter, entered private:", unscoped.join(", "));
   if (!pick.length) { console.log("nothing to put" + (left ? "; " + left : "")); process.exit(0); }
-  let entered = 0, changed = 0, vectors = 0;
-  const t0 = Date.now();
-  for (let i = 0; i < pick.length; i += 25) {
-    const batch = pick.slice(i, i + 25);
-    // The file first: when the entry's put then fails, the entry has the older sha256, is stale, and the next put sends both.
-    for (const d of batch) {
-      const f = call(`static.put?path=${d.file}&public=${d.public}&tags=${FILE_TAG}`, undefined, d.bytes);
-      if (f.sha256 !== d.sha256 || !!f.public !== d.public) throw new Error(`static.put: ${d.file} was kept with sha256 ${f.sha256} and public ${f.public}, not the doc's ${d.sha256} and ${d.public}`);
-    }
-    const r = call("knowledge.put", { entries: batch.map((d) => ({ id: d.id, kind: "doc", public: d.public, title: d.title, text: d.text, url: d.url, source: d.source, file: d.file, sha256: d.sha256, method: "knowledge-docs", tags: ["knowledge-doc"] })) });
-    entered += r.entered; changed += r.changed; vectors += r.vectors ?? 0;
+  const t0 = Date.now(), keeps = (r: Row) => !plain && !!r.summary;
+  const { entered, changed, vectors } = send(pick.map((r) => ({ d: r, entry: entryOf(r, plain) })));
+  console.log(JSON.stringify({ put: pick.length, public: pick.filter((d) => d.public).length, private: pick.filter((d) => !d.public).length, cut: pick.filter((r) => r.long && !keeps(r)).length, unmarked: pick.filter((r) => r.unmarked).length,
+    summarized: pick.filter(keeps).length, ...(plain ? { plain: true } : {}), ...(noText.length ? { noText: noText.map((r) => r.name) } : {}), ...(busy.length ? { running: busy.map((r) => r.name) } : {}),
+    filesWrong: wrong(pick).length, entered, changed, vectors, ms: Date.now() - t0, ...read }));
+} else if (cmd === "summarize") {
+  // One agent a doc, one after another (design piece 3). --due: the docs whose summary is due and that the journal has
+  // not as refused at this file; names: those docs, due or not. --again: also one refused twice at this file.
+  // --dry: the summary to <state>/docs/<name>.summary.txt and nothing put. --model (haiku). --usd-max N.
+  const { agentRunner, canary, summarize, wrap } = await import("./summarize-papers.ts");
+  const dry = flag("--dry"), again = flag("--again"), model = opt("--model") || "haiku", usdMax = opt("--usd-max") === undefined ? Infinity : Number(opt("--usd-max"));
+  if (!(usdMax >= 0)) { console.error("--usd-max N: a number of dollars, 0 or more"); process.exit(2); }
+  if (!flag("--due") === !names.length) { console.error("summarize --due | <name>…   [--again] [--dry] [--model M] [--usd-max N]"); process.exit(1); }
+  if (!stateDocs) throw new Error("no state directory: not in a git checkout and no BRAIN_STATE_DIR");
+  mkdirSync(stateDocs, { recursive: true });
+  const before = journal(), all = rowsOf(kept(), keptFiles()).filter((r) => r.named);
+  const note = (row: Record<string, any>) => appendFileSync(journalFile, JSON.stringify({ at: Date.now(), ...(dry ? { dry: true } : {}), ...row }) + "\n");
+  const rows: any[] = [], todo: Row[] = [];
+  const say = (row: Record<string, any>) => { rows.push(row); console.log(JSON.stringify(row)); };
+  const end = (code: number, last: Record<string, any>) => { rmSync(tmpDir, { recursive: true, force: true }); console.log(JSON.stringify(last)); process.exit(code); };
+  const unknown = names.filter((n) => !all.some((r) => r.name === n));
+  for (const r of names.length ? all.filter((r) => names.includes(r.name)) : all.filter((r) => dueOf(r))) {
+    const skipped = !r.long ? `${r.whole.length} characters: it fits an entry and is entered whole` : r.noText ? "the entry was answered with no text" : running(r.name) ? "a summarizer is running on it" : !again && refusedAt(before, r) ? "refused-before" : "";
+    // --due leaves a doc refused before unsaid; a named one is said.
+    if (!skipped) todo.push(r); else if (names.length || skipped !== "refused-before") say({ name: r.name, skipped }); else rows.push({ name: r.name, skipped });
   }
-  console.log(JSON.stringify({ put: pick.length, public: pick.filter((d) => d.public).length, private: pick.filter((d) => !d.public).length, cut: cutOf(pick), unmarked: pick.filter((r) => r.unmarked).length, filesWrong: wrong(pick).length, entered, changed, vectors, ms: Date.now() - t0, ...read }));
+  let stopped = "", code = 0;
+  const spent = () => Math.round(rows.reduce((a, r) => a + (r.usd || 0), 0) * 1e6) / 1e6;
+  const last = () => ({ docs: stateDocs, ...(dry ? { dry: true } : {}), picked: todo.length, put: rows.filter((r) => r.outcome === "put").length, dry_written: rows.filter((r) => r.outcome === "dry").length, refused: rows.filter((r) => r.outcome === "refused").length,
+    failed: rows.filter((r) => r.outcome === "failed").length, refusedBefore: rows.filter((r) => r.skipped === "refused-before").map((r) => r.name), skipped: rows.filter((r) => r.skipped && r.skipped !== "refused-before").map((r) => r.name),
+    usd: spent(), ...(unknown.length ? { unknown } : {}), ...(stopped ? { stopped } : {}), ...read });
+  // No doc to run: no agent is started, the canary's neither.
+  if (!todo.length) end(unknown.length ? 1 : 0, last());
+  const agent = agentRunner();
+  const c = canary(agent, state);
+  if (c.row) note(c.row);
+  if (c.stopped) { stopped = c.row ? `${c.stopped}. No doc was read and nothing was put.` : c.stopped; end(3, last()); }
+  for (const r of todo) {
+    if (spent() >= usdMax) { stopped = `--usd-max ${usdMax}: the agents of this run have cost $${spent()}; ${r.name} and the docs after it were not started`; break; }
+    // What the agent reads: the file as git has it, its frontmatter taken off, no line over 1500 characters.
+    const text = r.body.split("\n").flatMap((l: string) => (l.length > 1500 ? wrap(l) : [l])).join("\n"), file = join(tmpDir, r.name + ".md");
+    writeFileSync(file, text);
+    writeFileSync(runningFile(r.name), String(Date.now()));
+    let got: ReturnType<typeof summarize>;
+    try { got = summarize({ kind: "doc", file, lines: text.split("\n").length - (text.endsWith("\n") ? 1 : 0), title: r.title, model, agent }); } finally { rmSync(runningFile(r.name), { force: true }); }
+    const { outcome, why, stop, result, lead, sections, numbers: not, refused, ...ran } = got;
+    const base = { name: r.name, id: r.id, ...ran, chars: text.length, sha256: r.sha256, lead: lead.length, sections: sections.length, refused };
+    if (outcome === "failed") {
+      note({ ...base, outcome, why });
+      say({ name: r.name, outcome, why, usd: ran.usd });
+      if (stop) { stopped = why; code = 3; break; }
+      code = code || 1;
+      continue;
+    }
+    if (outcome === "refused") {
+      note({ ...base, outcome, numbers: not });
+      writeFileSync(join(stateDocs, r.name + ".refused.txt"), result!);
+      say({ name: r.name, outcome, lead: lead.length, leadMax: ran.leadMax, sections: sections.length, refused, usd: ran.usd });
+      continue;
+    }
+    // The file is read again: when origin/main has moved on, the summary's line names the version it was made from, and the start and the sha256 are the newer file's.
+    const bytes = git(r.at, "show", `${r.rev}:${r.path}`);
+    if (bytes.status !== 0) { note({ ...base, outcome: "failed", why: "the file is no longer there" }); say({ name: r.name, outcome: "failed", why: "the file is no longer there", usd: ran.usd }); code = code || 1; continue; }
+    const now = doc(r.name, bytes.stdout, { at: r.at, rev: r.rev, path: r.path, url: r.url, source: r.source, private: r.source === DEV });
+    const head = headOf({ lead, sections, model, day: new Date().toISOString().slice(0, 10), path: `${r.source}/${r.path}`, sha256: r.sha256 });
+    const whole = now.long ? withSummary(now, head) : now.whole;
+    if (dry) {
+      writeFileSync(join(stateDocs, r.name + ".summary.txt"), whole);
+      note({ ...base, length: whole.length, outcome: "dry" });
+      say({ name: r.name, outcome: "dry", lead: lead.length, leadMax: ran.leadMax, sections: sections.length, length: whole.length, refused, usd: ran.usd });
+      continue;
+    }
+    let put: any, bad = "";
+    try { put = send([{ d: now, entry: { ...entryOf({ ...r, ...now, summary: null } as Row), text: whole, staleSince: 0 } }]); } catch (x: any) { bad = String(x?.message || x).slice(0, 300); }
+    note({ ...base, length: whole.length, outcome: bad ? "failed" : "put", put: put ?? null, ...(now.sha256 !== r.sha256 ? { putSha256: now.sha256 } : {}), ...(bad ? { why: bad } : {}) });
+    say({ name: r.name, outcome: bad ? "failed" : "put", lead: lead.length, leadMax: ran.leadMax, sections: sections.length, length: whole.length, refused, usd: ran.usd, put: put ?? null, ...(bad ? { why: bad } : {}) });
+    if (bad) { stopped = `${bad}: ${r.name} was not put and the docs after it were not started`; break; }
+  }
+  end(code || (stopped || unknown.length ? 1 : 0), last());
 } else {
-  console.error("usage: knowledge-docs.ts status [--check] | put --all | --stale | <name>…   [--owner] [--limit=SECONDS]");
+  console.error("usage: knowledge-docs.ts status [--check] | status --check-summaries [<name>…] [--except name=issue,…] | put --all | --stale | <name>… | --plain <name>… | summarize --due | <name>… [--again] [--dry] [--model M] [--usd-max N]   [--owner] [--limit=SECONDS]");
   process.exit(1);
 }

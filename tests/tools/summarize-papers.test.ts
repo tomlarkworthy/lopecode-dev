@@ -24,7 +24,8 @@ import { resolve, join, dirname } from "node:path";
 
 const root = resolve(import.meta.dir, "../..");
 const tool = process.env.SUMMARIZE_PAPERS_TS || join(root, "tools/cloud-brain/summarize-papers.ts");
-const { htmlText, pdfText, pdfParagraphs, wrap, keepEntry, stateDir, numbers, compareTexts, WIDTH, HEADINGS, judge, parseSummary, assemble, lineOf, leadMax, summaryLine } = await import(tool);
+const P = await import(tool);
+const { htmlText, pdfText, pdfParagraphs, wrap, keepEntry, stateDir, numbers, compareTexts, WIDTH, HEADINGS, judge, parseSummary, assemble, lineOf, leadMax, summaryLine } = P;
 const FIX = join(import.meta.dir, "fixtures/summarize-papers");
 const HTML = join(FIX, "arxiv-2603.06333v1.html"), PDF = join(FIX, "arxiv-2308.10144v3-page2.pdf");
 const sha = (s: string | Uint8Array) => createHash("sha256").update(s).digest("hex");
@@ -371,7 +372,7 @@ test("judge, the number rule: 1,000 is 1000 both ways; a number not in the text,
 test("assemble: first paragraph, sections, the line, what the entry held, 16000 at most with the old text cut; lineOf reads the line back", () => {
   const x = { lead: "The lead.", sections: SECTIONS(), model: "opus", day: "2026-10-11", address: "https://arxiv.org/html/2603.06333", sha256: "ab".repeat(32), entered: "the abstract as entered\nits second line" };
   const t = assemble(x);
-  expect(t).toBe(`The lead.\n\n${SECTIONS()}\n\nSummary by paper-summarizer (opus), 2026-10-11, of https://arxiv.org/html/2603.06333, sha256 of the text read ${"ab".repeat(32)}.\nAs entered before the summary:\nthe abstract as entered\nits second line`);
+  expect(t).toBe(`The lead.\n\n${SECTIONS()}\n\nSummary by summarizer (opus), 2026-10-11, of https://arxiv.org/html/2603.06333, sha256 of the text read ${"ab".repeat(32)}.\nAs entered before the summary:\nthe abstract as entered\nits second line`);
   expect(lineOf(t)).toEqual({ model: "opus", day: "2026-10-11", address: x.address, sha256: x.sha256 });
   expect(lineOf("no line here")).toBe(null);
   const long = assemble({ ...x, entered: "e".repeat(16000) });
@@ -401,7 +402,7 @@ test("run --dry: the canary first, one agent that reads one new directory with t
     // The paper's agent: a directory outside the repository that held the text and nothing else, and is gone.
     expect(paper.files).toEqual(["arxiv:2603.06333.txt"]);
     expect([paper.reads.startsWith(t.repo), existsSync(paper.reads), existsSync(canary.reads)]).toEqual([false, false, false]);
-    expect(paper.args).toEqual(["paper-summarizer", `summarize ${paper.reads}/arxiv:2603.06333.txt, ${text.split("\n").length - 1} lines; the title is 5 characters, so the first paragraph is at most 1493 characters`]);
+    expect(paper.args).toEqual(["summarizer", `summarize a paper: ${paper.reads}/arxiv:2603.06333.txt, ${text.split("\n").length - 1} lines; the title is 5 characters, so the first paragraph is at most 1493 characters`]);
     // What would be put is on disk, from the entry as kept; no put was sent and the entry is as it was.
     const whole = readFileSync(join(t.papers, "arxiv:2603.06333.summary.txt"), "utf8");
     expect(whole).toBe(assemble({ ...parseSummary(GOOD), model: "opus", day: new Date().toISOString().slice(0, 10), address: lineOf(whole)!.address, sha256: sha(text), entered: "abstract of the first" }));
@@ -510,7 +511,7 @@ test("a second summary is made from the entry as kept, not from the cut copy the
     expect(r.lines[0]).toMatchObject({ outcome: "put" });
     const second = t.entry("arxiv:2603.06333").text, tail = second.slice(second.indexOf("As entered before the summary:\n") + 31);
     // More of the entry as entered than the first summary left, and one summary, not two.
-    expect([second.length, long.startsWith(tail), tail.length > first.length - first.indexOf("As entered before the summary:\n") - 31, second.split("Summary by paper-summarizer").length]).toEqual([16000, true, true, 2]);
+    expect([second.length, long.startsWith(tail), tail.length > first.length - first.indexOf("As entered before the summary:\n") - 31, second.split("Summary by summarizer").length]).toEqual([16000, true, true, 2]);
   } finally { t.stop(); }
 });
 
@@ -597,7 +598,7 @@ test("restore: the text as entered is put back from the kept file; refused with 
     await kept(t);
     t.answers([{ result: GOOD }]);
     await t.cmd("run", ["--ids", "arxiv:2603.06333"]);
-    expect(t.entry("arxiv:2603.06333").text).toContain("Summary by paper-summarizer");
+    expect(t.entry("arxiv:2603.06333").text).toContain("Summary by summarizer (opus)");
     const d = await t.cmd("restore", ["--ids", "arxiv:2603.06333", "--dry"]);
     expect([d.code, d.lines[0], t.puts().length]).toEqual([0, { id: "arxiv:2603.06333", dry: true, length: 21, sha256: sha("abstract of the first"), now: t.entry("arxiv:2603.06333").text.length }, 1]);
     // One with a file, one the Brain has and no file is kept for: the first is put, the second refused, exit 1.
@@ -653,5 +654,106 @@ test("check: a summarized entry passes; not summarized, restored, refused twice,
     await t.cmd("restore", ["--ids", "arxiv:2603.06333"]);
     const res = await t.cmd("check", ["--ids", "arxiv:2603.06333"]);
     expect([res.code, res.lines[0].state, res.lines[0].fails]).toEqual([1, "restored", ["restored: the tag is there and the line is not (changed.method paper-summarizer:restore)"]]);
+  } finally { t.stop(); }
+});
+
+// ---- sd-2-one-summarizer, task 2 of plan/cloud-brain-docs-summarised-for-search.md: one role for a paper and a doc (R9).
+test("sd-2: judge is by kind: a paper by the six headings, a doc by the five; with no kind it is a paper's", () => {
+  const five = P.DOC_HEADINGS.map((h: string) => `## ${h}\nx`).join("\n"), six = HEADINGS.map((h: string) => `## ${h}\nx`).join("\n");
+  expect(P.DOC_HEADINGS).toEqual(["What it is for", "What it says", "Measured and decided", "Not done and not known", "Names"]);
+  expect([P.headingsOf("paper"), P.headingsOf("doc"), P.headingsOf()]).toEqual([HEADINGS, P.DOC_HEADINGS, HEADINGS]);
+  expect([judge(`lead\n\n${six}`, "T", "").refused, judge(`lead\n\n${six}`, "T", "", "paper").refused, judge(`lead\n\n${five}`, "T", "", "doc").refused]).toEqual([[], [], []]);
+  // A doc's answer under a paper's headings, and a paper's under a doc's: each names the headings its kind lacks.
+  expect(judge(`lead\n\n${six}`, "T", "", "doc").refused).toEqual(P.DOC_HEADINGS.slice(0, 4).map((h: string) => `the heading "## ${h}" is missing`));
+  expect(judge(`lead\n\n${five}`, "T", "", "paper").refused).toEqual(HEADINGS.slice(0, 5).map((h: string) => `the heading "## ${h}" is missing`));
+  const swapped = [P.DOC_HEADINGS[1], P.DOC_HEADINGS[0], ...P.DOC_HEADINGS.slice(2)].map((h: string) => `## ${h}\nx`).join("\n");
+  expect(judge(`lead\n\n${swapped}`, "T", "", "doc").refused[0]).toStartWith("the headings are not the five in their order");
+});
+
+test("sd-2: an answer with a line before its first paragraph is refused, for either kind; a first paragraph over several lines with none empty is not", () => {
+  const said = "there is an empty line before the first heading: the first character of the answer is the first character of the first paragraph, which is one paragraph with no line before it and no break in it";
+  const six = HEADINGS.map((h: string) => `## ${h}\nx`).join("\n"), five = P.DOC_HEADINGS.map((h: string) => `## ${h}\nx`).join("\n");
+  // As haiku wrote one in the docs' dry runs: its number is refused too, as before.
+  const pre = "The brief and the whole of the 494-line document are read. Summary:\n\nThe doc is about locks.";
+  expect(judge(`${pre}\n\n${five}`, "T", "The doc is about locks.", "doc").refused).toEqual([said, "these numbers are not in the text as you wrote them: 494"]);
+  expect(judge(`Here is the summary.\n\nThe paper is about locks.\n\n${six}`, "T", "").refused).toEqual([said]);
+  expect(judge(`The paper is about locks,\nand keys.\n\n${six}`, "T", "").refused).toEqual([]);
+  expect(judge(`\n\nThe paper is about locks.\n\n\n${six}`, "T", "").refused).toEqual([]);
+});
+
+test("sd-2: a summary's line is written with the role's name, summarizer, and read in either name: lineOf, summarized, hasLine, lineAt", () => {
+  const x = { model: "opus", day: "2026-10-12", address: "https://arxiv.org/html/1", sha256: "ab".repeat(32) };
+  const now = summaryLine(x), was = now.replace("Summary by summarizer", "Summary by paper-summarizer");
+  expect([P.ROLE, P.SUMMARY_LINE, P.SUMMARY_LINE_BEFORE]).toEqual(["summarizer", "Summary by summarizer", "Summary by paper-summarizer"]);
+  expect(now).toBe(`Summary by summarizer (opus), 2026-10-12, of https://arxiv.org/html/1, sha256 of the text read ${"ab".repeat(32)}.`);
+  for (const l of [now, was]) {
+    const text = `a lead\n\n## Names\nx\n\n${l}\nAs entered before the summary:\nold`;
+    expect([lineOf(text), P.summarized({ tags: [], text }), P.hasLine(text), P.lineAt(text)]).toEqual([x, true, true, text.indexOf("Summary by")]);
+  }
+  expect([lineOf("Summary by another (opus), d, of a, sha256 of the text read " + "ab".repeat(32) + "."), P.summarized({ tags: [], text: "no line" }), P.lineAt("no line")]).toEqual([null, false, -1]);
+});
+
+test("sd-2: check passes an entry whose line has the older name, as the 63 put before it have", async () => {
+  const t = await fresh();
+  try {
+    await kept(t);
+    t.answers([{ result: GOOD }]);
+    await t.cmd("run", ["--ids", "arxiv:2603.06333"]);
+    const all = JSON.parse(readFileSync(join(t.fake, "entries.json"), "utf8"));
+    writeFileSync(join(t.fake, "entries.json"), JSON.stringify(all.map((e: any) => (e.id === "arxiv:2603.06333" ? { ...e, text: e.text.replace("Summary by summarizer (", "Summary by paper-summarizer (") } : e))));
+    expect(t.entry("arxiv:2603.06333").text).toContain("\nSummary by paper-summarizer (opus), ");
+    const one = await t.cmd("check", ["--ids", "arxiv:2603.06333"]);
+    expect([one.code, one.lines]).toEqual([0, [{ id: "arxiv:2603.06333", state: "summarized" }, { entries: 1, summarized: 1, excepted: [], failing: [] }]]);
+    // And run skips it as summarized: no agent but the canary's.
+    const n = t.started().length;
+    expect((await t.cmd("run", ["--ids", "arxiv:2603.06333"])).lines[0]).toMatchObject({ skipped: "summarized" });
+    expect(t.started().length - n).toBe(1);
+  } finally { t.stop(); }
+});
+
+test("sd-2: run --again --dry summarizes a paper that has a summary of this text, puts nothing and leaves the summary that was put on disk; --again alone and --dry alone skip it", async () => {
+  const t = await fresh();
+  try {
+    await kept(t);
+    t.answers([{ result: GOOD }]);
+    await t.cmd("run", ["--ids", "arxiv:2603.06333"]);
+    const put = readFileSync(join(t.papers, "arxiv:2603.06333.summary.txt"), "utf8"), entry = t.entry("arxiv:2603.06333").text;
+    for (const flags of [["--again"], ["--dry"]]) expect((await t.cmd("run", ["--ids", "arxiv:2603.06333", ...flags])).lines[0]).toMatchObject({ skipped: "summarized" });
+    const n = t.started().length;
+    t.answers([{ result: GOOD.replace("SAHOO watches", "Again: SAHOO watches") }]);
+    const r = await t.cmd("run", ["--ids", "arxiv:2603.06333", "--again", "--dry"]);
+    expect(r.code).toBe(0);
+    expect(r.lines[0]).toMatchObject({ id: "arxiv:2603.06333", outcome: "dry", refused: [[]] });
+    // The canary's agent and the paper's, under the one role.
+    expect(t.started().slice(n).map((a: any) => a.args[0])).toEqual(["summarizer", "summarizer"]);
+    expect(t.started().at(-1).args[1]).toStartWith("summarize a paper: ");
+    expect([t.puts().length, t.entry("arxiv:2603.06333").text === entry, readFileSync(join(t.papers, "arxiv:2603.06333.summary.txt"), "utf8") === put]).toEqual([1, true, true]);
+    expect(readFileSync(join(t.papers, "arxiv:2603.06333.dry.summary.txt"), "utf8")).toStartWith("Again: SAHOO watches");
+    expect(t.journal().at(-1)).toMatchObject({ dry: true, id: "arxiv:2603.06333", outcome: "dry" });
+  } finally { t.stop(); }
+});
+
+test("sd-2: summarize, the one exported function: a doc's file is copied to a new directory, the agent is started as the role with the kind in its task line, and the answer judged by the five", async () => {
+  const t = await fresh();
+  try {
+    const file = join(t.dir, "a-doc.md"), text = "A doc of 2 lines.\nIts second line.\n";
+    writeFileSync(file, text);
+    const five = P.DOC_HEADINGS.map((h: string) => `## ${h}\nx`).join("\n");
+    const agent = P.agentRunner({ ...process.env, FAKE_DIR: t.fake, SUMMARIZER_AGENT: join(t.fake, "agent.mjs"), DRY: "1", READS: "/elsewhere", MODEL: "opus", TAB: "1" });
+    t.answers([{ result: `The doc has 2 lines.\n\n${five}` }]);
+    const ok = P.summarize({ kind: "doc", file, lines: 2, title: "A doc", model: "haiku", agent });
+    expect(ok).toMatchObject({ outcome: "accepted", lead: "The doc has 2 lines.", sections: five, rounds: 1, usd: 0.25, refused: [[]], leadMax: 1493, model: "haiku", stop: false });
+    const a = t.started().at(-1);
+    expect(a.args).toEqual(["summarizer", `summarize a doc: ${a.reads}/a-doc.md, 2 lines; the title is 5 characters, so the first paragraph is at most 1493 characters`]);
+    expect([a.files, a.model, a.dry, a.tab, a.reads === "/elsewhere", existsSync(a.reads)]).toEqual([["a-doc.md"], "haiku", null, null, false, false]);
+    // A paper's six under kind doc: refused, sent back once, refused again.
+    const six = HEADINGS.map((h: string) => `## ${h}\nx`).join("\n");
+    t.answers([{ result: `lead\n\n${six}` }, { result: `lead\n\n${six}` }]);
+    const no = P.summarize({ kind: "doc", file, lines: 2, title: "A doc", model: "haiku", agent });
+    expect([no.outcome, no.rounds, no.refused.map((r: string[]) => r.length), no.usd]).toEqual(["refused", 2, [4, 4], 0.5]);
+    // A toolset that is not Read alone: failed, and the caller's run stops.
+    t.answers([{ result: "x", toolset: ["Read", "Bash"] }]);
+    expect(P.summarize({ kind: "paper", file, lines: 2, title: "A doc", model: "opus", agent })).toMatchObject({ outcome: "failed", stop: true, why: 'the agent\'s toolset is ["Read","Bash"] and its mode default' });
+    expect(t.started().at(-1).args[1]).toStartWith("summarize a paper: ");
   } finally { t.stop(); }
 });

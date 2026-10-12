@@ -375,9 +375,10 @@ test("ac-4: status and put count the cut docs, and status counts and names those
   const s2 = t.kdocs(["status"]);
   expect(t.summary(s2.out)).toMatchObject({ cut: 2, unmarked: 1 });
   expect(row(s2.out, "over")).toMatch(/^fresh\s+private over cut \d+ of 16001$/);
-  // An entry answered with no text is not known to end with the line; a cut doc with no entry is missing, not unmarked.
+  // An entry answered with no text is not known to end with the line, nor to hold no summary: named, and since
+  // sd-2-one-summarizer not counted unmarked. A cut doc with no entry is missing, not unmarked.
   t.keep([...t.all(), t.entry("over", over)]);
-  expect(t.summary(t.kdocs(["status"]).out)).toMatchObject({ missing: 1, cut: 2, unmarked: 1 });
+  expect(t.summary(t.kdocs(["status"]).out)).toMatchObject({ missing: 1, cut: 2, unmarked: 0, noText: ["over"] });
   // With no doc over the limit both are 0.
   const none = fresh();
   expect(none.summary(none.kdocs(["status"]).out)).toMatchObject({ cut: 0, unmarked: 0 });
@@ -413,20 +414,37 @@ test("put --stale also puts a fresh doc whose entry is unmarked, and its last li
   expect(t.puts().length).toBe(2);
 });
 
-test("put --stale: an entry with another line, with no text or with a text that is no string is put; a missing cut doc is not counted unmarked", () => {
+test("put --stale: an entry with another line is put; one with no text or with a text that is no string is left and named (sd-2: it may hold a summary) and put by name; a missing cut doc is not counted unmarked", () => {
   const { t, over, more, bare, ids } = twoCut();
   expect(t.summary(t.kdocs(["put", "over", "more"]).out)).toMatchObject({ put: 2, cut: 2, unmarked: 0 });
   const sent = (id: string) => t.puts().find((e: any) => e.id === id).text;
   const marked = [...t.all(), t.entry("over", over, { text: sent("doc:over") }), t.entry("more", more, { text: sent("doc:more") })];
-  // An entry that ends with another line (the numbers of an older text), one answered with no text, and one whose
-  // text is no string are unmarked to status, and are put.
+  // An entry that ends with another line (the numbers of an older text) is unmarked to status, and is put.
   const other = sent("doc:over").replace(/of 16001 characters/, "of 16002 characters");
   expect(other).not.toBe(sent("doc:over"));
-  for (const more1 of [{ text: other }, {}, { text: 7 }]) {
+  {
     const n = t.puts().length;
-    t.keep([...marked.filter((e) => e.id !== "doc:over"), t.entry("over", over, more1)]);
+    t.keep([...marked.filter((e) => e.id !== "doc:over"), t.entry("over", over, { text: other })]);
     expect(t.summary(t.kdocs(["put", "--stale"]).out)).toMatchObject({ put: 1, cut: 1, unmarked: 1 });
     expect(ids(n)).toEqual(["doc:over"]);
+  }
+  // One answered with no text, and one whose text is no string: until sd-2-one-summarizer unmarked and put
+  // (knowledge-docs-put-stale-skips-unmarked). Nothing says whether such an entry holds a summary, so the docs step
+  // leaves it and names it; status names it and does not count it unmarked; a put by name enters it cut.
+  for (const more1 of [{}, { text: 7 }]) {
+    const n = t.puts().length;
+    t.keep([...marked.filter((e) => e.id !== "doc:over"), t.entry("over", over, more1)]);
+    const st = t.summary(t.kdocs(["status"]).out);
+    expect([st.unmarked, st.noText, st.due]).toEqual([0, ["over"], ["more"]]);
+    const p = t.kdocs(["put", "--stale"]);
+    expect([p.code, p.out, t.puts().length - n]).toEqual([0, "nothing to put; left as they are, long and the entry answered with no text (put <name> enters one cut): over", 0]);
+    // Beside a doc that is put, the last line names it.
+    t.keep([...marked.filter((e) => e.id !== "doc:over" && e.id !== "doc:b"), t.entry("over", over, more1)]);
+    expect(t.summary(t.kdocs(["put", "--stale"]).out)).toMatchObject({ put: 1, cut: 0, noText: ["over"] });
+    expect(ids(n)).toEqual(["doc:b"]);
+    t.keep([...marked.filter((e) => e.id !== "doc:over"), t.entry("over", over, more1)]);
+    expect(t.summary(t.kdocs(["put", "over"]).out)).toMatchObject({ put: 1, cut: 1, unmarked: 0 });
+    expect(t.puts().at(-1).text).toBe(sent("doc:over"));
   }
   // A cut doc with no entry is missing: put, and not counted unmarked.
   const n = t.puts().length;
