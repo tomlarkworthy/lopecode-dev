@@ -108,7 +108,7 @@ SQLite `[]`.
 and with one call run whole before the next the second take's call is behind it in the rig's queue
 for as long as that takes. A longer turn changes nothing. **What the fail on M14 rests on:** that the
 second take's four statements, whose call has arrived and is not held, run within that one turn. In
-the stand-in a statement is answered with no timer and no I/O. It was so in 40 of 40 headless runs
+the stand-in a statement is answered with no timer and no I/O. It was so in 60 of 60 headless runs (M14a, M14b and SPLIT, 20 each)
 and 5 of 5 in Chrome 151.
 
 ## Counts
@@ -120,7 +120,7 @@ or `cloudflare-iac*.ojs`. The second, under the landing lock at 21:46:45, printe
 `tests/tools/topic-sql.test.ts` among them: the lock was released at 21:46:57 with nothing landed, and
 the build, the headless run, the SQLite test, the browser run with its emit and the suite were made
 again. The emitted record's `hash` was `89f54186cea0…` before that rebase and after it. `verify-run`
-was not run again.
+was run again after the landing, on the build of the landed seed.
 
 ```
 cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html && … && (cd cloud-brain-dev && bun test.ts brain-x-topic --with $W/tools/cloud-brain/.emitted/tp-3b.js)
@@ -131,7 +131,8 @@ cd $W && bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-bra
   "tests":18,"passed":18,"failed":[]     Chrome 151.0.7922.34, ended 21:47:43; the run that emitted
 cd <root> && BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-topic --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20
   "mains":["@tomlarkworthy/brain-shell","@tomlarkworthy/brain-topic"]
-  "runs":20,"passed":20,"failed":0,"none":0,"from":["document"],"byChance":[]     (each run: "tests":18), ended 2026-10-12T19:32:12Z, before both rebases
+  "runs":20,"passed":20,"failed":0,"none":0,"from":["document"],"byChance":[]     (each run: "tests":18), ended 2026-10-12T19:55:25Z, after the landing; deployed 89f54186cea0
+  the same, before both rebases, ended 2026-10-12T19:32:12Z: runs 20, passed 20, failed 0, none 0, byChance []
 cd $W && tests/tools/suite.sh        (bun test --parallel=4 --timings=tests/tools/timings.json --timeout=30000 ./tests/tools)
   695 pass, 0 fail, 4635 expect() calls, 695 tests across 70 files, 149.08 s; no line "skipped:"; ended 21:50:18
 ```
