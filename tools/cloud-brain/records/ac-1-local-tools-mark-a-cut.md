@@ -79,10 +79,10 @@ on 2026-10-12 with Chrome 151.0.7922.34). The tests name them in a constant and 
 text first, so another prefix fails there by name.
 
 The whole directory, `tests/tools/suite.sh` in the worktree after the last edit of a tool or a test,
-20:25:49 to 20:27:22 CEST:
+20:28:23 to 20:30:03 CEST:
 
 ```
-667 pass, 0 fail, 667 tests in 67 files, 92.97 s
+667 pass, 0 fail, 667 tests in 67 files, 100.03 s
 ```
 
 No line `skipped:` in its output.
