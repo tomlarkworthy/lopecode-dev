@@ -2,7 +2,7 @@
 
 2026-10-12. Task 4 of `plan/cloud-brain-worktree-per-topic.md`, part 4 of its design: the orchestrator makes
 a view for each review and starts the reviewer from it, and the reviewer's brief on the Brain makes no
-worktree and writes nothing in the main checkout. Two briefs, the spec, three test files. No seed and no
+worktree and writes nothing in the main checkout. Two briefs, the spec, two test files. No seed and no
 deploy. Every command below was run on the owner's laptop after the issue's `start` (event 3997; `date`
 after it printed 12:25:47 CEST), in the writer's worktree `.claude/worktrees/bm-worktree-per-topic` or in a
 view made from it, unless it says otherwise.
