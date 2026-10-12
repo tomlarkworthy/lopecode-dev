@@ -1,6 +1,6 @@
 # fly-1-by-hand: one Fly.io machine by hand
 
-T1 of `plan/cloud-brain-worker-machine-on-fly.md`. Run 2026-10-12 from 20:08 to 20:22 CEST by the
+T1 of `plan/cloud-brain-worker-machine-on-fly.md`. Run 2026-10-12 from 20:08 to 20:22 and from 21:06 to 22:53 CEST by the
 writer `impl-ebb0f2`, an agent of the orchestrating session on the owner's laptop, with his
 `fly auth login` (`fly v0.4.115`). Every time below is from `date` on the laptop, from the machine's
 `date -u`, or from Fly.io's own event list, and says which.
@@ -91,7 +91,8 @@ below). From a bare `ubuntu:24.04`:
 ## Not measured in the first sitting
 
 Each needs a machine that runs more than 5 minutes, or a tool the stop took away. The second
-sitting, at the end, has each of these but a set of a secret through the Machines API; what it left
+sitting, at the end, has each of these but three: a set of a secret through the Machines API, the clone of
+`lopecode`, and a start of a machine with the tools in its image (there is no image). What it left
 is under "Not tried, both sittings".
 
 - One pass of the loop under `claude -p`, and which permission mode lets it finish. `claude` runs as
@@ -364,7 +365,7 @@ What it said the machine changed, each in its words and none checked again by th
 
 The owner asked that the machine be used or stopped (comment 4916). `fly machine stop`, 22:52:52
 CEST; `stopped` at 22:52:57.35. The token's file was still on the volume (the command that removed
-it had killed itself: `pkill -f "sleep 2147483648"` matched its own shell), so the machine was
+it printed nothing after its first part; read as: its `pkill -f "sleep 2147483648"` matched its own shell), so the machine was
 started once more, 22:53:06.557, the file removed and `ls` of `.emitted` read without it, and
 stopped at 22:53:08.774. That start, with 4.9G on the volume: `fly machine start` returned in 2.76 s.
 
@@ -393,7 +394,8 @@ second sitting   shared-cpu-2x, 4 GB    21:07:28 to 21:36:35        $0.017
                  of which idle, waiting for comment 4921: 22:21 to 22:43
 ```
 
-About $0.14 of machine time, and $1.50 a month for the volume while it is kept. The `usd` that the
+About $0.14 of machine time, and $1.50 a month for the volume while it is kept, with $0.15 a GB a
+month for the stopped machine's root file system, whose billed size was not read. The `usd` that the
 `claude` runs printed (0.76 the pass, 2.31 the review, 0.73 summed over the seven probes) is the
 subscription's, not a bill.
 

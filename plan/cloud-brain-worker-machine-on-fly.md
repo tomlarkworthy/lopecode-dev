@@ -167,7 +167,7 @@ in a summary; T1 is where each one that the design rests on is tried.
 
 | Page | What it gave |
 |---|---|
-| https://docs.fly.io/machines/api/machines-resource/ | Under `/v1/apps/{app}/machines`: list, create (`skip_launch`), get, update, `DELETE`, `/start`, `/stop`, `/suspend`, `/wait?state=` (60 s by default), `/lease`, `/metadata`. `config`: `image` (required), `guest`, `mounts`, `init` (`exec`, `entrypoint`, `cmd`), `files` (`guest_path`, and `raw_value` or `secret_name`, base64), `env`, `auto_destroy`, `restart`, `metadata`. No `exec` endpoint is on the page |
+| https://docs.fly.io/machines/api/machines-resource/ | Under `/v1/apps/{app}/machines`: list, create (`skip_launch`), get, update, `DELETE`, `/start`, `/stop`, `/suspend`, `/wait?state=` (60 s by default), `/lease`, `/metadata`. `config`: `image` (required), `guest`, `mounts`, `init` (`exec`, `entrypoint`, `cmd`), `files` (`guest_path`, and `raw_value` or `secret_name`, base64), `env`, `auto_destroy`, `restart`, `metadata`. No `exec` endpoint is on the page (As built, `fly-1-by-hand`, 2026-10-12: `POST /v1/apps/{app}/machines/{id}/exec` answered 200 with a command's output; the record.) |
 | https://docs.fly.io/machines/api/working-with-machines-api/ | `https://api.machines.dev` from outside, `Authorization: Bearer`. 1 request a second an action, 3 in a burst; get a machine 5 and 10. Its example makes the token with `fly tokens deploy` |
 | https://docs.fly.io/machines/api/volumes-resource/ | Create: `name`, `region`, `size_gb` (3 by default), `encrypted` (true), `snapshot_retention` (5), `auto_backup_enabled` (true). "you can't make a volume smaller." One `attached_machine_id` |
 | https://docs.fly.io/machines/api/apps-resource/ | `POST /v1/apps` with `app_name` and `org_slug`. Which token may: not said |
@@ -402,7 +402,7 @@ filled in (the volume, the machine, a change of image), shown to the owner signe
 |---|---|---|
 | Fly.io deploy token, one app, 90 days | the Brain's secret `FLY_API_TOKEN`, rule `caller.worker in ["brain-x-fly"]` | the owner, on the Brain's page |
 | `CLAUDE_CODE_OAUTH_TOKEN` (one year, model requests only) | a secret of the Fly.io app, an environment variable at boot | the owner |
-| Two GitHub deploy keys with write, `lopecode-dev` and `lopebooks` | secrets of the Fly.io app, written to `~/.ssh` by `files` with `secret_name`. GitHub takes the first key SSH offers, so each repository has a host alias in `~/.ssh/config` and its remote names the alias (T2); `lopecode-plugin` is fetched by `https` | the owner |
+| Two GitHub deploy keys with write, `lopecode-dev` and `lopebooks` | secrets of the Fly.io app, written to `~/.ssh` by `files` with `secret_name`. GitHub takes the first key SSH offers, so each repository has a host alias in `~/.ssh/config` and its remote names the alias (T2); `lopecode-plugin` is fetched by `https` (As built, `fly-1-by-hand`, 2026-10-12: `.gitmodules` names it by `git@github.com:`, and it was cloned with a third, read-only key, `DEPLOY_KEY_LOPECODE_PLUGIN`, and its own alias; the record.) | the owner |
 | The Brain's tokens for the machine (below) | one secret of the Fly.io app, written as `.emitted/cb4-tokens.json` by `files` | the orchestrating session on the laptop makes the file; how it is set is under "What only the owner can do" |
 
 An agent on the machine can read all of the last three: they are in its environment and its files,
@@ -479,7 +479,7 @@ Each is one writer and one review, but T4b, which is the owner's act and a recor
    in a session on the owner's laptop that he starts after `fly auth login`, with no other loop
    running (the lock `loop` does not exist before T4). With his deploy token in that shell and `curl`
    against `api.machines.dev`: a volume and a machine of `ubuntu:24.04`. The shell on it is `fly ssh
-   console -C`, with his login: the Machines API page has no `exec`. Install the tools, clone, run
+   console -C`, with his login: the Machines API page has no `exec`. (As built, `fly-1-by-hand`, 2026-10-12: the API has one, and `fly machine exec` was the shell used most; the record.) Install the tools, clone, run
    one pass of the loop with one `orch` token copied there for the hour and no state file, and one
    review with `cloud-brain-dev/agent.sh` (round 2; its brief is fetched with no token). A review
    that needs a tab is not tried there (part 2, the fifth thing the machine's loop does not do). It measures, each with its
