@@ -2,8 +2,15 @@
 
 2026-10-12. Task 2 of `plan/cloud-brain-worktree-per-topic.md`. Two local tools,
 `tools/cloud-brain/worktree.sh` and `tools/cloud-brain/issue-as.sh`, and their test file. No seed, no
-deploy, no brief changed. Every command below was run on the owner's laptop between 08:50 and 09:12 CEST
-(`date`), in the writer's worktree unless it says the main checkout.
+deploy, no brief changed. Every command below was run on the owner's laptop after the issue's `start`
+(event 3823, `at` 08:47:08 CEST), in the writer's worktree unless it says the main checkout. A time is one
+`date` printed beside the command, or an event's `at`.
+
+Read first, in the Brain (`knowledge.search?semantic=true`, as `loop-knowledge`): "git worktree per topic
+occupant one agent", "clone cloud-brain-dev push with loop-git token", "worktree.sh rebase origin/main
+submodule links". The spec of this task was the first entry of the first and the third, and
+`doc:cloud-brain-dev-readme` of the second, which has the push as the script now makes it. Nothing else
+bore on it.
 
 ## What changed
 
@@ -61,8 +68,9 @@ issue-as.sh: no token named impl-nobody is kept; nothing was sent          exit 
 - **The base when the main checkout is ahead.** The spec says step 10 of the writer's brief still works
   "since its pull makes the root's `main` equal to `origin/main`". It does not when a session committed in
   the main checkout and did not push: the worktree is then rebased on `origin/main`, and `merge --ff-only
-  bm/<id>` there is refused. `--rebase` says so on stderr with the count (a test). At 08:47 CEST
-  `git rev-list --count origin/main..main` in the main checkout gave 0. `philosophy.md` line 3.
+  bm/<id>` there is refused. `--rebase` says so on stderr with the count (a test). At 09:16:11 CEST, after a
+  fetch, `git rev-list --left-right --count origin/main...main` in the main checkout gave `0 0`.
+  `philosophy.md` line 3.
 - **`--push-dev` runs `git fetch origin main` and `git rebase origin/main`** in the clone where the spec has
   `git pull --rebase origin main`: the clone's `HEAD` is detached, and `sync.ts` has written over tracked
   files under `deploy/`, which a rebase refuses. `deploy/` is put back (`git checkout -- deploy`,
@@ -107,6 +115,14 @@ bun test ./tests/tools   (09:11:19 CEST at its end)                        553 p
 bun test ./tests/tools   before any edit, second run                       524 pass, 0 fail, 58 files
 ```
 
+After `worktree.sh --rebase` at 09:16 CEST, which brought in `tests/tools/rows-add-within-sql.test.ts`,
+`cloudflare-iac.ojs` and a record, with the two scripts and the test file as they are committed:
+
+```
+bun test ./tests/tools/worktree.test.ts   (09:17:35 CEST at its end)       36 pass, 0 fail, 302 expects
+bun test ./tests/tools                    (09:20:40 CEST at its end)       554 pass, 0 fail, 58 files
+```
+
 The five that pass on the scripts of `ab4ef9c2` (the names `comm -23` printed of all 36 against the 31
 failed): "--rebase of a worktree that does not exist stops", "a commit that carries a link in a
 submodule's place is refused", "step 10 of the writer's brief as written still lands", "the main
@@ -145,8 +161,10 @@ took 7.4 s (3.04 s in the spec's measurement of the script before); an occupant 
 rev-wt-2-try` made a view whose clone was at `d6f4632`, the pointer of that commit, and `--at ab4ef9c2`
 on it removed a new file and a changed `CLAUDE.md`; `--list` then had `rev-wt-2-try clean … branch=detached`.
 
-`git -C cloud-brain-dev worktree list | wc -l` in the main checkout was 5 before and 4 after: the writers'
-worktrees made before this change. Check 4 of the spec reads 1 there when they are gone.
+`git -C cloud-brain-dev worktree list | wc -l` in the main checkout was 5 at 09:02 and 4 at 09:08: the
+writers' worktrees made before this change, one fewer because `ds-1-rows-add-within`, in `--list` at 09:02
+and not at 09:08, was removed by its writer between the two. The clones add none (a test). Check 4 of the
+spec reads 1 there when the old ones are gone.
 
 ## What misled, and one mistake of the writer's
 
