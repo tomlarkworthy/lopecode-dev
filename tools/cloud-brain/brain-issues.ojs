@@ -17,10 +17,10 @@ issuesJoinedAt = (listed, loaded = {}, worker = "brain-x-issues") =>
 // %%
 md`The panel above is for the owner, signed in. It answers from a copy of the view that the page keeps, one for each Brain's address, in \`localStorage\` under \`brain_issues2 ADDRESS\` (\`brain_issues ADDRESS\` until 2026-10-12; a copy under that name is not read): one \`issue.snapshot\`, then \`issue.sync\` every \`wait\` milliseconds while the tab is visible.
 
-- **For your attention**, above the filters: the open issues that wait for the owner. One waits when it has the label \`needs-owner\` or \`security\`, is at \`awaiting-approval\`, is of kind \`security\`, or is not shown to this caller. They are in four groups, in this order: **To approve** (at \`awaiting-approval\`), **To answer** (labelled \`needs-owner\`), **Security** (the rest that are read), **Not shown to this caller**; inside a group by id, so an issue does not move when something is said on it. The block shows one of them at a time (since 2026-10-11; before that every one was a row of the block, each event in a box seven lines high that scrolled). Its first line has **‹ back**, the place (\`2 of 5\`) and **forward ›**, disabled at the two ends, then the name of each group that has an issue with its count, the group of the shown issue in bold; with nothing waiting it reads "Nothing waits for you." and has no buttons. Under that line is the shown issue alone, each event whole, with no height limit. The issue shown stays the one shown while it waits, whatever comes to wait before it; when it stops waiting, the one that was after it is shown, or the last. The box of an issue that is not shown is kept out of the page, and has what was typed in it when the issue is shown again. \`panel.waiting()\` answers the ids in order, \`panel.shown()\` the id shown or \`null\`, and \`panel.scrub(id)\` shows an issue by id and answers the id shown; an id that does not wait changes nothing. \`panel.row(id)\` answers a waiting issue as its row has it, \`{ issue, group, ask, about, box }\`, or \`null\`. A row starts with the issue's id, then one line that says what is asked, then the title (which opens the issue), its state, kind, labels and the project it is part of. Under that is what the ask is about: for an approval the review that passed; for an answer the comment the label was put on with (the last one by whoever added the label, before the labelling) or the body of an issue opened with the label; then the last comment, or the last event when nothing else is shown. Then one box and the buttons. A move's button is named for the move the owner would make, not for the state it leads to: **approve**, **reject** (the owner's \`owner-reject\`), **triage**, **close**; its tooltip names the state. The one that is asked comes first, in bold: **approve** on an approval, **Answer** on an answer. **Answer** sends the text of the box as a comment and then takes \`needs-owner\` off, two events for one press; where the comment is taken and the label is refused, the box is emptied and **take needs-owner off** is pressed again. After those, **Comment**, and **take needs-owner off** where the issue has that label. The text of the box is the reason of a move or the body of the comment, and the box is emptied when the service has taken it. A write that is refused, or that the network drops, leaves the text: where the press had taken the issue out of the block, the next one was shown meanwhile, and the issue of the press is shown again with the same box and its buttons can be pressed again. Until the service has answered a press, the buttons of that row are disabled, so a second press is not a second event; the box can still be typed in, and it keeps the caret when another caller's event draws its row again. A move that needs a reason is disabled until the box has text. A move the guard would refuse whatever the reason has no button there, nor has a swap, nor a move that needs refs: those are in the open issue, which the row's title opens and where the buttons have the same names. What is under a row is one \`issue.get\` for each listed issue, asked again when the issue changes. The record has no link that says one issue waits for another, so a row the owner cannot act on yet is not told apart.
+- **For your attention**, above the filters: the open issues that wait for the owner. One waits when it has the label \`needs-owner\` or \`security\`, is at \`awaiting-approval\`, is of kind \`security\`, or is not shown to this caller. They are in four groups, in this order: **To approve** (at \`awaiting-approval\`), **To answer** (labelled \`needs-owner\`), **Security** (the rest that are read), **Not shown to this caller**; inside a group by id, so an issue does not move when something is said on it. The block shows one of them at a time (since 2026-10-11; before that every one was a row of the block, each event in a box seven lines high that scrolled). Its first line has **‹ back**, the place (\`2 of 5\`) and **forward ›**, disabled at the two ends, then the name of each group that has an issue with its count, the group of the shown issue in bold; with nothing waiting it reads "Nothing waits for you." and has no buttons. Under that line is the shown issue alone, each event whole, with no height limit. The issue shown stays the one shown while it waits, whatever comes to wait before it; when it stops waiting, the one that was after it is shown, or the last. The box of an issue that is not shown is kept out of the page, and has what was typed in it when the issue is shown again. \`panel.waiting()\` answers the ids in order, \`panel.shown()\` the id shown or \`null\`, and \`panel.scrub(id)\` shows an issue by id and answers the id shown; an id that does not wait changes nothing. \`panel.row(id)\` answers a waiting issue as its row has it, \`{ issue, group, ask, about, box }\`, or \`null\`. A row starts with the issue's id, then one line that says what is asked, then the title (which opens the issue), its state, kind, labels and the project it is part of. Under that is what the ask is about: for an approval the review that passed; for an answer the comment the label was put on with (the last one by whoever added the label, before the labelling) or the body of an issue opened with the label; then the last comment, or the last event when nothing else is shown (an event of type \`cost\` is passed over, since 2026-10-12: with no comment, the last event that is not one). Then one box and the buttons. A move's button is named for the move the owner would make, not for the state it leads to: **approve**, **reject** (the owner's \`owner-reject\`), **triage**, **close**; its tooltip names the state. The one that is asked comes first, in bold: **approve** on an approval, **Answer** on an answer. **Answer** sends the text of the box as a comment and then takes \`needs-owner\` off, two events for one press; where the comment is taken and the label is refused, the box is emptied and **take needs-owner off** is pressed again. After those, **Comment**, and **take needs-owner off** where the issue has that label. The text of the box is the reason of a move or the body of the comment, and the box is emptied when the service has taken it. A write that is refused, or that the network drops, leaves the text: where the press had taken the issue out of the block, the next one was shown meanwhile, and the issue of the press is shown again with the same box and its buttons can be pressed again. Until the service has answered a press, the buttons of that row are disabled, so a second press is not a second event; the box can still be typed in, and it keeps the caret when another caller's event draws its row again. A move that needs a reason is disabled until the box has text. A move the guard would refuse whatever the reason has no button there, nor has a swap, nor a move that needs refs: those are in the open issue, which the row's title opens and where the buttons have the same names. What is under a row is one \`issue.get\` for each listed issue, asked again when the issue changes. The record has no link that says one issue waits for another, so a row the owner cannot act on yet is not told apart.
 - **The block as data**, for a module that cannot import this one (the page's, which this one imports from): \`issuesAttention(panel)\` answers \`{ shown, draft }\`, and the cell \`issues_attention\` adds that of the panel above to the plugin set \`"attention"\` of \`@tomlarkworthy/plugin-registry\` (since 2026-10-11; nothing reads it yet). \`shown()\` is \`null\` with nothing waiting or no owner signed in, else \`{ id, title, state, kind, group, ask, about, place, of }\`: \`group\` is \`approve\`, \`answer\`, \`security\` or \`hidden\`; \`ask\` the line of the group; \`about\` the whole text of what the ask is about (the passing review as "pass: …", the comment the label was put on with, or the body of an issue opened with the label), \`null\` for a security report, for an issue opened with the label and no body, and until \`issue.get\` has answered; \`place\` of \`of\` is the "2 of 5" of the first line. An issue not shown to this caller has \`title: null\` and \`ask: ""\`. \`draft(id, text)\` puts \`text\` in the box of that issue, arms its buttons as typing does, shows the issue and answers \`{ id, drafted: true }\`. It calls no method of the service: the text is sent by a press, as a typed one is. Line breaks in \`text\` become spaces, since the box is one line. It throws, and changes nothing, for an id that does not wait (an issue a press has taken out of the block and whose write is on its way among them), for an issue with no box, for a text that is not a string or is empty, and for a box that has any text already, with that text in the message: what was typed is not written over. It shows the issue whichever one was shown, so a draft made while the owner types in another issue's box takes that box out of the page with its text kept.
 - **State, Kind, Find** filter the table from the copy, with no call. State starts at **open work**: every issue whose workflow does not list its state under \`closed\` (in the default policy that leaves out \`done\`, \`closed\`, \`rejected\` and \`reverted\`), so a state a later policy adds is in it unless that policy closes it. **every issue** is the whole copy; after it, each state that an issue of the copy is at. Neither text can be a state's name, which has no space. The choice is not kept over a reload. The line under the table counts the whole copy, not the rows shown. Find reads the title, \`about\`, the labels and the id.
-- **A row** opens that issue: its body, its links (what it says of other issues, and what they say of it; each opens that issue), its children, its events, and a button for each state it can move to and each swap its workflow lists. A button the guard would refuse is disabled, and its tooltip is the refusal. Reason and Refs are sent with a move, so a button can come alive as they are typed.
+- **A row** opens that issue: its body, its links (what it says of other issues, and what they say of it; each opens that issue), its children, its events, and a button for each state it can move to and each swap its workflow lists. A button the guard would refuse is disabled, and its tooltip is the refusal. Reason and Refs are sent with a move, so a button can come alive as they are typed. Since 2026-10-12 an issue that has a run (\`issue.cost\`) has one line under its links, the totals of its runs from the row (\`issueCost\`): \`cost 3 runs · 1,820 s · 2 with a usage: in 122, written 283,746, read 7,122,698, out 35,770, 58 requests · advisor 4 calls · $0.3 of 2 runs\`. The five sums are of the runs that have a \`usage\`, and read \`no usage\` when none has; the advisor's calls are left out at 0; the dollars are the sum of what runs reported of themselves and are left out when none did. An issue with no run has no such line. An event of type \`cost\` is a line of the events: \`implementer round 2, resumed, in-review · 410 s · context 201,310 · billed in 61, written 141,873, read 3,561,349, out 17,885, 29 requests · advisor 2 calls\`, with \`no usage\` in place of the sums for a run sent without one, then \`$N\` when the run reported one and \`replaces N\` when it took the place of the run of event N. \`tools\`, \`event\`, \`of\`, \`agent\`, \`session\`, \`token\` and \`backfilled\` of a run are not drawn, nor the totals by role: \`issue.get\` and \`issue.runs\` answer them.
 - **Refs**: entries separated by commas. \`kind:value\` is a ref of that kind (\`commit:abc\`, \`deploy:brain-x-a@hash\`); an address (\`https://…\`) or a text with no colon is a \`url\`.
 - **Review** sends the verdict with the Comment text and the Refs. **Comment** and **Add label** each send their own. The **×** after a label of the open issue removes that label; where the label guard refuses (\`major\`, for anyone but the owner present) it is disabled and its tooltip is the refusal. An attachment of the open issue is a line under its body: its name, type and size. The name asks \`issue.attachment\` and saves the bytes as a file of that name; it is not opened in the page. A second press before the answer asks nothing. \`issue.narrow\`, \`issue.link\` and \`issue.attach\` have no control: each is a call.
 - **New issue** opens one with an id the page makes. **Refresh** asks for the events since the copy now.
@@ -414,6 +414,19 @@ issueCost = (runs) => {
     ...(paid.length ? { usd: Math.round(sum(paid, (r) => r.usd) * 1e6) / 1e6, usdRuns: paid.length } : {})
   };
 }
+// %%
+// A whole number as the panel writes it, with a comma at each thousand. Not toLocaleString: the text is the same in every browser.
+issueCount = (n, of = "") => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",") + (of ? " " + of + (n === 1 ? "" : "s") : "")
+// %%
+// The sums of a usage, or of the totals of some runs, as text: the same five words in a run's line and in the totals.
+issueUsageSaid = (u) => `in ${issueCount(u.input)}, written ${issueCount(u.cacheWrite)}, read ${issueCount(u.cacheRead)}, out ${issueCount(u.output)}, ${issueCount(u.requests, "request")}${u.advisor.calls ? ` · advisor ${issueCount(u.advisor.calls, "call")}` : ""}`
+// %%
+// A run as one line of text: a cost event, or a run of an issue's row. No I/O. usd is what the run reported, as it was
+// sent. `replaced` is of the event alone.
+issueRunSaid = (e) => [`${e.role} round ${e.round}, ${e.how}, ${e.outcome}`, issueCount(e.seconds) + " s", "context " + issueCount(e.context), e.usage ? "billed " + issueUsageSaid(e.usage) : "no usage", ...(e.usd !== undefined ? ["$" + e.usd] : []), ...(e.replaced ? ["replaces " + e.replaced] : [])].join(" · ")
+// %%
+// The totals of some runs (issueCost) as one line of text. No I/O.
+issueCostSaid = (c) => [issueCount(c.runs, "run"), issueCount(c.seconds) + " s", c.billed ? `${issueCount(c.billed)} with a usage: ${issueUsageSaid(c)}` : "no usage", ...(c.usdRuns ? [`$${c.usd} of ${issueCount(c.usdRuns, "run")}`] : [])].join(" · ")
 // %%
 // The view after one more event. No I/O: the service, issue.rebuild, issue.verify and the page all make the view with it.
 issueApply = (view, e) => {
@@ -1342,13 +1355,13 @@ issuesPanel = ({ client, owner = false, by = { caller: "owner", via: "session" }
       // Under the line that says what is asked, what it is asked about. An approval: the review that passed. An answer:
       // the comment the label was put on with (the last one by whoever added it, at or before the labelling), or the
       // body of an issue opened with the label. Then the last comment, when that is another event; with no comment at
-      // all, the last event.
+      // all, the last event that is not what a run cost.
       const events = [...((got && got.events) || []), ...mine], who = (e) => e.by.holder || e.by.caller, comments = events.filter((e) => e.type === "commented");
       const labelled = events.findLastIndex((e) => e.type === "labelled" && (e.add || []).includes("needs-owner"));
       const about = group === "approve" ? events.findLast((e) => e.type === "reviewed" && e.verdict === "pass")
         : group === "answer" ? (labelled < 0 ? events.find((e) => e.type === "opened" && (e.labels || []).includes("needs-owner") && e.body) : events.slice(0, labelled).findLast((e) => e.type === "commented" && who(e) === who(events[labelled])))
         : null;
-      const shown = [...new Set([about, comments.at(-1) || (about ? null : events.at(-1))].filter(Boolean))];
+      const shown = [...new Set([about, comments.at(-1) || (about ? null : events.findLast((e) => e.type !== "cost"))].filter(Boolean))];
       // What is asked about, as text: the row draws it and root.row answers it.
       const asked = about ? (about.type === "opened" ? about.body : said(about)) : null;
       const line = (e) => htl.html`<div data-said=${e.type} style="white-space:pre-wrap;margin:2px 0"><span style=${muted}>${when(e.at)} ${who(e)}${e.type === "commented" ? "" : " " + e.type}</span> ${e === about ? asked : said(e)}</div>`;
@@ -1391,7 +1404,7 @@ issuesPanel = ({ client, owner = false, by = { caller: "owner", via: "session" }
     fetching.add(k);
     return client.query("issue.attachment", { id, name: a.name }).then((r) => (save(a.name, r.text != null ? new TextEncoder().encode(r.text) : issueBytes.of(r.base64)), true), (e) => ((note.textContent = `issue.attachment was refused: ${e.message}`), false)).finally(() => fetching.delete(k));
   };
-  const said = (e) => (e.type === "moved" ? `${e.from} → ${e.to}${e.reason ? ": " + e.reason : ""}` : e.type === "swapped" ? `to ${e.to.state}${e.swap ? " by " + e.swap : ""}` : e.type === "reviewed" ? `${e.verdict}${e.body ? ": " + e.body : ""}` : e.type === "labelled" ? [...(e.add || []).map((l) => "+" + l), ...(e.remove || []).map((l) => "-" + l)].join(" ") : e.type === "narrowed" ? (e.remove != null ? "removed guard " + e.remove : `${e.move}: ${e.guard}`) : e.type === "linked" ? `${e.remove ? "no longer " : ""}${e.rel} ${e.to}` : e.type === "attached" ? `${e.name} · ${e.mimeType} · ${e.size} bytes` : e.type === "opened" ? e.title : e.body || "");
+  const said = (e) => (e.type === "moved" ? `${e.from} → ${e.to}${e.reason ? ": " + e.reason : ""}` : e.type === "swapped" ? `to ${e.to.state}${e.swap ? " by " + e.swap : ""}` : e.type === "reviewed" ? `${e.verdict}${e.body ? ": " + e.body : ""}` : e.type === "labelled" ? [...(e.add || []).map((l) => "+" + l), ...(e.remove || []).map((l) => "-" + l)].join(" ") : e.type === "narrowed" ? (e.remove != null ? "removed guard " + e.remove : `${e.move}: ${e.guard}`) : e.type === "linked" ? `${e.remove ? "no longer " : ""}${e.rel} ${e.to}` : e.type === "attached" ? `${e.name} · ${e.mimeType} · ${e.size} bytes` : e.type === "cost" ? issueRunSaid(e) : e.type === "opened" ? e.title : e.body || "");
   const refsOf = (text) => text.split(",").map((s) => s.trim()).filter(Boolean).map((s) => (/^[a-z]+:\/\//.test(s) || !s.includes(":") ? { kind: "url", value: s } : { kind: s.slice(0, s.indexOf(":")), value: s.slice(s.indexOf(":") + 1) }));
   // The open issue is drawn again only when it, its children or its timeline changed: what is being typed is kept.
   let drawn = "";
@@ -1415,9 +1428,10 @@ issuesPanel = ({ client, owner = false, by = { caller: "owner", via: "session" }
       <b>${i.title}</b> <code>${i.id}</code> <span style=${muted}>${i.state} · ${i.kind} · ${i.about}${i.labels.map((l) => htl.html` · ${l}${unlabel(i, l)}`)}${i.parent ? " · part of " + i.parent : ""}</span>
       <div style="white-space:pre-wrap;margin:6px 0">${(got && got.issue && got.issue.body) || i.body || ""}</div>
       ${[...(i.links || []).map((l) => [l.rel, l.to]), ...(i.linked || []).map((l) => [l.rel + " of", l.id])].map(([rel, id]) => htl.html`<div data-link=${id}><span style=${muted}>${rel}</span> <a href="#" onclick=${(ev) => (ev.preventDefault(), (open = id), drawOne())}>${id}</a> ${(view.issues[id] || {}).title || ""} <span style=${muted}>${(view.issues[id] || {}).state || ""}</span></div>`)}
+      ${(i.runs || []).length ? htl.html`<div data-cost=${i.runs.length}><span style=${muted}>cost</span> ${issueCostSaid(issueCost(i.runs))}</div>` : ""}
       ${(i.attachments || []).map((a) => htl.html`<div data-attachment=${a.name}><span style=${muted}>attached</span> <a href="#" title="Save it as a file." onclick=${(ev) => (ev.preventDefault(), fetchOne(i.id, a))}>${a.name}</a> <span style=${muted}>${a.mimeType} · ${a.size} bytes</span></div>`)}
       ${kids.length ? htl.html`<div>${kids.map((k) => htl.html`<div><a href="#" onclick=${(ev) => (ev.preventDefault(), (open = k.id), drawOne())}>${k.id}</a> ${k.title || ""} <span style=${muted}>${k.state}</span></div>`)}</div>` : ""}
-      <div style="margin:6px 0">${events.map((e) => htl.html`<div style=${e.pending ? muted : ""}><span style=${muted}>${when(e.at)} ${e.by.holder || e.by.caller}</span> <b>${e.type}</b> ${said(e)}${(e.refs || []).map((r) => ` [${r.kind}:${r.value}]`).join("")}</div>`)}</div>
+      <div style="margin:6px 0">${events.map((e) => htl.html`<div data-event=${e.type} style=${e.pending ? muted : ""}><span style=${muted}>${when(e.at)} ${e.by.holder || e.by.caller}</span> <b>${e.type}</b> ${said(e)}${(e.refs || []).map((r) => ` [${r.kind}:${r.value}]`).join("")}</div>`)}</div>
       ${reason}${refs}${acts}
       <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:6px">${verdict}${Inputs.button("Review", { reduce: () => send("review", { type: "review", id: i.id, verdict: verdict.value, body: comment.value, refs: refsOf(refs.value) }, { id: i.id, verdict: verdict.value, body: comment.value, refs: refsOf(refs.value) }) })}</div>
       ${comment}${Inputs.button("Comment", { reduce: () => comment.value.trim() && send("comment", { type: "comment", id: i.id, body: comment.value }, { id: i.id, body: comment.value }) })}
@@ -2653,6 +2667,78 @@ test_issues_reference_states_each_value_and_has_no_hole = {
   ];
   for (const s of stated) expect(text).toContain(s);
   return stated.length + " values stated, no hole";
+}
+// %%
+// The texts the panel draws of a run and of an issue's totals, with no page.
+test_issues_cost_is_said_as_a_line = {
+  expect([0, 1, 12, 999, 1000, 12345, 123456, 1234567, 628778702].map((n) => issueCount(n))).toEqual(["0", "1", "12", "999", "1,000", "12,345", "123,456", "1,234,567", "628,778,702"]);
+  expect([issueCount(0, "run"), issueCount(1, "run"), issueCount(1000, "request")]).toEqual(["0 runs", "1 run", "1,000 requests"]);
+  const usage = { input: 61, cacheWrite: 141873, cacheRead: 3561349, output: 17885, requests: 29, advisor: { calls: 2, input: 5, output: 6 } };
+  const run = { role: "implementer", round: 2, how: "resumed", outcome: "in-review", seconds: 410, context: 201310 };
+  // The line of the spec, "The page (R5)".
+  expect(issueRunSaid({ ...run, usage, replaced: 1203 })).toBe("implementer round 2, resumed, in-review · 410 s · context 201,310 · billed in 61, written 141,873, read 3,561,349, out 17,885, 29 requests · advisor 2 calls · replaces 1203");
+  // With no usage it says so. An advisor that was not called is left out. A usd of 0 is one that was reported.
+  expect(issueRunSaid(run)).toBe("implementer round 2, resumed, in-review · 410 s · context 201,310 · no usage");
+  expect(issueRunSaid({ ...run, seconds: 0, context: 0, usd: 0, usage: { ...usage, requests: 1, advisor: { calls: 0, input: 0, output: 0 } } })).toBe("implementer round 2, resumed, in-review · 0 s · context 0 · billed in 61, written 141,873, read 3,561,349, out 17,885, 1 request · $0");
+  expect(issueRunSaid({ ...run, usd: 0.25, usage: { ...usage, advisor: { calls: 1, input: 0, output: 0 } } })).toContain("29 requests · advisor 1 call · $0.25");
+  // The totals: of no run, of runs with no usage, and of runs of which some have one.
+  expect(issueCostSaid(issueCost([]))).toBe("0 runs · 0 s · no usage");
+  expect(issueCostSaid(issueCost([run]))).toBe("1 run · 410 s · no usage");
+  expect(issueCostSaid(issueCost([run, { ...run, round: 3, seconds: 1000, usage, usd: 0.1 }, { ...run, round: 4, usage, usd: 0.2 }]))).toBe("3 runs · 1,820 s · 2 with a usage: in 122, written 283,746, read 7,122,698, out 35,770, 58 requests · advisor 4 calls · $0.3 of 2 runs");
+  return "a run and the totals as text: with a usage and with none, one request and many, what it replaces";
+}
+// %%
+// R5 of plan/cloud-brain-run-cost-is-part-of-the-issue-model.md: the page shows a run as a line of the issue, and the
+// totals of the open issue.
+test_issues_panel_draws_a_run_and_the_totals = {
+  const rig = await issuesRig();
+  await rig.owner("open", { id: "r1", title: "Costed", kind: "task" });
+  await rig.owner("open", { id: "r0", title: "No run", kind: "task" });
+  // It waits for an answer, with no body and no comment: the block shows its last event.
+  await rig.owner("open", { id: "q1", title: "Asked", kind: "task", labels: ["needs-owner"] });
+  const usage = { input: 61, cacheWrite: 141873, cacheRead: 3561349, output: 17885, requests: 29, advisor: { calls: 2, input: 5, output: 6 } };
+  const run = (id, role, round, more) => ({ id, role, round, how: "fresh", outcome: "in-review", seconds: 410, context: 201310, ...more });
+  const first = (await rig.a("cost", run("r1", "implementer", 1))).data.seq;
+  expect((await rig.a("cost", run("r1", "reviewer", 1, { how: "light", outcome: "pass", seconds: 90, context: 5000, usage: { ...usage, requests: 1, advisor: { calls: 0, input: 0, output: 0 } }, usd: 0.25 }))).status).toBe(200);
+  expect((await rig.a("cost", run("q1", "implementer", 1))).status).toBe(200);
+  const ok = (r) => (r.status < 400 ? r.data : Promise.reject(new Error(r.data.message)));
+  const client = { query: (name, params = {}) => rig.owner(name.replace("issue.", "") + "?" + new URLSearchParams(params)).then(ok), procedure: (name, body) => rig.owner(name.replace("issue.", ""), body).then(ok) };
+  let end = null;
+  const panel = issuesPanel({ client, owner: true, every: 1e9, listen: false, invalidation: new Promise((r) => (end = r)), store: { get: () => null, set: () => null } });
+  const until = async (fn) => {
+    for (let n = 0; n < 300 && !fn(); n++) await new Promise((r) => setTimeout(r, 10));
+    return fn();
+  };
+  const lines = () => [...panel.querySelectorAll('[data-event="cost"]')].map((d) => d.textContent), total = () => panel.querySelector("[data-cost]");
+  try {
+    await panel.sync();
+    panel.show("r1");
+    // The totals are of the row, drawn with the issue. The events are issue.get's, drawn when it has answered.
+    expect([total().dataset.cost, total().textContent]).toEqual(["2", "cost 2 runs · 500 s · 1 with a usage: in 61, written 141,873, read 3,561,349, out 17,885, 1 request · $0.25 of 1 run"]);
+    expect(await until(() => lines().length === 2)).toBe(true);
+    // A run's line has the role and the seconds. One with no usage says so.
+    expect(lines().map((t) => t.slice(t.indexOf(" cost ") + 1))).toEqual([
+      "cost implementer round 1, fresh, in-review · 410 s · context 201,310 · no usage",
+      "cost reviewer round 1, light, pass · 90 s · context 5,000 · billed in 61, written 141,873, read 3,561,349, out 17,885, 1 request · $0.25"
+    ]);
+    // R2 on the page: the run written again with its usage. Its line says which event it replaces, and the totals are
+    // still of two runs.
+    expect((await rig.a("cost", run("r1", "implementer", 1, { usage }))).data.event.replaced).toBe(first);
+    await panel.sync();
+    expect(await until(() => lines().length === 3)).toBe(true);
+    expect(lines()[2].slice(lines()[2].indexOf(" cost ") + 1)).toBe(`cost implementer round 1, fresh, in-review · 410 s · context 201,310 · billed in 61, written 141,873, read 3,561,349, out 17,885, 29 requests · advisor 2 calls · replaces ${first}`);
+    expect([total().dataset.cost, total().textContent]).toEqual(["2", "cost 2 runs · 500 s · 2 with a usage: in 122, written 283,746, read 7,122,698, out 35,770, 30 requests · advisor 2 calls · $0.25 of 1 run"]);
+    // An issue with no run has no such line.
+    panel.show("r0");
+    expect([total(), panel.textContent.includes("No run")]).toEqual([null, true]);
+    // What a run cost is not the last thing said of a waiting issue: the block shows the event before it.
+    const row = () => panel.attention.querySelector('[data-attention="q1"]');
+    expect(await until(() => !!row() && !!row().querySelector("[data-said]"))).toBe(true);
+    expect([...row().querySelectorAll("[data-said]")].map((d) => d.dataset.said)).toEqual(["opened"]);
+  } finally {
+    end();
+  }
+  return "2 runs as lines of the open issue with its totals; a run written again says what it replaces; no line of totals with no run";
 }
 // %%
 test_issues_panel_draws_and_applies_a_write_before_the_answer = {
