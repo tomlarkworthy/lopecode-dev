@@ -92,6 +92,49 @@ Ten changes of one line each were made to the seeds in turn, each built and run 
 | dashboard: `since` and `until` sent in place of `from` and `to` | |
 | dashboard: the `id` has the whole hash | |
 
+## On cb4
+
+Under the landing lock, 2026-10-12. `brain.ts apply` of each emitted record under the deploy lock,
+`brain-x-logs` first:
+
+```
+fm-6-restores-brain-x-logs.json 26758 ms       brain-x-logs       e00abe5cbf8f  "state":"verified"  "tests":8
+fm-6-restores-brain-x-dashboard.json 19502 ms  brain-x-dashboard  bc77a8665233  "state":"verified"  "tests":18
+```
+
+`brain.ts redistil` after both read `same` for the two and for `brain-x-page`, at `595290468923`
+as before: the page's Worker did not move.
+
+**The read (the spec's check for R6).** `brain.ts curl "/xrpc/com.lopecode.brain.logs.deploys?from=1791172202000&to=1791777002000" --as loop-deploys`,
+the 7 days to 03:50:02 UTC, sent twice and timed with `time -p`: 17.94 s and 17.86 s, `queries` 5,
+1659 lines, 548,648 bytes. Before the deploy the same call over the 7 days to 03:32 UTC (the time of the file it was kept in)
+answered the keys `from to queries lines workers tests`, and 30 lines `deploy.put-back`.
+
+```
+keys       from to queries lines workers tests restores
+put-backs  30 lines deploy.put-back      restores  30 rows, in the lines' order with their target, hash and t
+restored   28                            null       2: brain-x-logcheck@ab5d2ccf, brain-x-verifycheck@319604f7
+ms         0.01 h shortest, 49.63 h longest
+```
+
+So the panel has 28 rows for these 7 days and its line under them counts 2. The spec read 27 of 29
+on 2026-10-11, with the same longest. The two with no end are scratch Workers, as there. The
+page's call is this one with the owner's session: about 18 s for the 7-day span, against 0.4 to
+0.7 s for an `issue.flow` (the record of `fm-5-page-and-dashboard`).
+
+**The put.** Each call `--as loop-dashboard`, 03:49:50 to 03:49:51 UTC (`date -u` before and after):
+
+| call | answer |
+|---|---|
+| `dashboard.get?name=flow` | 10 panels |
+| `POST dashboard.put`, the ten panels of `fm-5-page-and-dashboard` and `{"title":"Time to restore","metric":"deploys.restore","by":["id","target"],"draw":"points"}` | the dashboard as kept |
+| `dashboard.get?name=flow` | the same object as the put's answer; **11 panels of 11**, each with the `title`, `metric`, `by`, `filter` and `draw` sent, the last `{"title":"Time to restore","metric":"deploys.restore","by":["id","target"],"filter":{},"draw":"points"}` |
+| `dashboard.list` | `health`, `deploys`, `flow` |
+| `metric.query?metric=deploys.restore&by=id` | `NotFound`, "metric is one of core.calls, deploys.confirmed, deploys.put-back, deploys.failed, or a member's (metric.list)" |
+
+The last is what a page from before this deploy is told for the panel. The put was made after
+both applies, so that the page in service was the one that sends `logs.deploys`.
+
 ## Prior art searched
 
 `knowledge.search?semantic=true` with `--as loop-knowledge`, three searches:
