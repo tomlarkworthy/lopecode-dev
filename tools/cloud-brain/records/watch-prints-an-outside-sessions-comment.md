@@ -73,6 +73,10 @@ Two other files read this script or the step, run after the change with the same
 The three files together: 46 pass, 0 fail. The second reads the script of `45687267` with
 `git show` and still sees no line for 4916 there.
 
+The whole suite, `tests/tools/suite.sh` in the worktree after its rebase on `origin/main` (which
+brought in a change to `SKILL.md` by another writer), ended 23:42:33 CEST: 818 pass, 0 fail in 85
+files, 217 s, the load 8.72 at its start (`uptime`).
+
 ## On cb4
 
 Reads alone, with this writer's token; nothing was written for the check.
