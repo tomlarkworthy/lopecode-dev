@@ -56,10 +56,13 @@
 //            before it names the file in its reason or by a commit ref that touches it; the quotation is in the file
 //            at a commit that submit names. Any other <where> is refused.
 //          The move's key is approver/<id>/approve-<round>, its reason the verdict's first 200 characters, a new line,
-//          and `verdict <seq>, brief <blob>`. Exit 0: the tracker wrote it. Exit 2: no loop-approver is kept (the
+//          and `verdict <seq>, brief <blob>`. Exit 0: the tracker wrote it, or kept it before as this same actor's
+//          (`sent before`). Exit 2: no loop-approver is kept (the
 //          orchestrating session makes it, `brain.ts token loop-approver issue.move issue.comment`; the owner ends
 //          every approval with `brain.ts token revoke loop-approver`, which also takes the kept value away), origin
-//          was not fetched, or the tracker was not reached. Exit 4: the tracker refused the move, with its answer.
+//          was not fetched, or the tracker was not reached. Exit 4: the tracker refused the move, with its answer, or
+//          keeps the move's key as an event another actor wrote, so no approve was made by this run (with --json
+//          the line is the judgment and the tracker's `answer`; its `exit` is the judgment's, 0, and the run's is 4).
 //          Not judged by the tool: whether the words ask for the change, and whether they are his (an event a token
 //          wrote, and a sentence of rules.md that is the loop's reading, are found as his own are).
 // check    Each `approve` the record has `via delegation:…`, judged again as it stood before the move, with the policy
@@ -70,6 +73,8 @@
 // list     One line for each such approve, newest first: the time, the id, `on your words of event N` (his own event),
 //          `on the spec you approved`, `on your words in <file>` or `on words a session quoted at event N`, the
 //          verdict's first sentence, and `reverted` when a `revert` or an `owner-reject` of the issue follows it.
+//          --since=<hours> lists those of the last hours: a number above 0, as 24 or 0.5. Anything else given for it
+//          (abc, 0, nothing) is exit 2 before the record is read; with no --since every one is listed.
 // trial    The verdicts in the open: every comment keyed approver/<id>/verdict-<n> whose id does not begin `test-`,
 //          counted as the spec's part 6 gives it, then each one's first line. A `leave` is counted by its line
 //          `why: <reason>`: `no word of his`, `more than the words`, `not secure`, `could not tell`, anything else
@@ -147,7 +152,8 @@ const sentence = (body: string) => body.replace(/^approver: (approve|leave)[.:,]
 const stamp = (ms: number) => { const d = new Date(ms), p = (n: number) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 
 // An issue as the events before `before` leave it. `rounds` is the count of its moves to awaiting-approval.
-function issueAt(record: Event[], id: string, before = Infinity) {
+// `workflow` is the one its last event leaves it on: of a swap, the one the swap names.
+export function issueAt(record: Event[], id: string, before = Infinity) {
   const i = { seen: false, state: "", workflow: "", parent: null as string | null, rounds: 0, toApproval: 0, extra: [] as { n: number; move: string; guard: string }[] };
   for (const e of record) {
     if (e.id !== id || e.seq >= before || e.hidden) continue;
@@ -155,7 +161,9 @@ function issueAt(record: Event[], id: string, before = Infinity) {
     if (e.workflow) i.workflow = e.workflow;
     if (e.type === "opened") { i.state = e.state || "open"; i.parent = e.parent || null; }
     if (e.type === "moved") { i.state = e.to; if (e.to === "awaiting-approval") { i.rounds++; i.toApproval = e.seq; } }
+    // A swap's own `workflow` is the one the issue leaves; `to` has where it is from then (the migrate of an install).
     if (e.type === "swapped" && e.to?.state) i.state = e.to.state;
+    if (e.type === "swapped" && e.to?.workflow) i.workflow = e.to.workflow;
     if (e.type === "linked" && e.rel === "part-of") i.parent = e.remove ? null : e.to;
     if (e.type === "narrowed") i.extra = e.remove != null ? i.extra.filter((x) => x.n !== e.remove) : [...i.extra, { n: e.seq, move: e.move, guard: e.guard }];
   }
@@ -408,13 +416,17 @@ if (import.meta.main) {
     if (files.record || files.policy) { out(j, [`not sent (read from a file): ${JSON.stringify(j.send)}`]); process.exit(0); }
     const r = await send("move", j.send);
     if (r.status !== 200 || !r.body?.seq) stop(4, `approver.ts: the tracker refused the move: ${r.status} ${JSON.stringify(r.body)}`);
+    // A key kept before answers its event to the actor that wrote it, and to anyone else the place alone.
+    if (r.body.duplicate && !r.body.event) { if (json) console.log(JSON.stringify({ ...j, answer: r.body })); stop(4, `approver.ts: no approve was made for ${id}: the key ${j.send!.key} is kept already as event ${r.body.seq}, which another actor wrote. Read the issue`); }
     out({ ...j, answer: r.body }, [`approved ${id}: event ${r.body.seq}${r.body.duplicate ? " (sent before; nothing new was written)" : ""}, to ${j.send!.to}, ${j.asked.map((a) => a.said).join("; ")}`]);
   } else if (cmd === "check") {
     const c = check(record(), git);
     out(c, [...c.failed.flatMap((f) => [`approve ${f.seq} of ${f.id}:`, ...f.why.map((w) => "  " + w)]), `${c.approves} approves by a delegation, ${c.failed.length} that do not stand`]);
     if (c.failed.length) process.exit(1);
   } else if (cmd === "list") {
-    const hours = Number(arg("since", "0")), rows = list(record(), git, { since: hours > 0 ? Date.now() - hours * 3600e3 : 0 });
+    const given = argv.some((a) => a === "--since" || a.startsWith("--since=")), raw = arg("since"), hours = /^\d+(\.\d+)?$/.test(raw) ? Number(raw) : 0;
+    if (given && !(hours > 0 && Number.isFinite(hours * 3600e3))) stop(2, `approver.ts: the hours of --since were not read (${JSON.stringify(raw)}); nothing was listed`, "  --since=<hours> takes a number above 0, as 24 or 0.5; with no --since every approve is listed");
+    const rows = list(record(), git, { since: given ? Date.now() - hours * 3600e3 : 0 });
     out(rows, listText(rows));
   } else if (cmd === "trial") {
     const t = trial(record(), git);

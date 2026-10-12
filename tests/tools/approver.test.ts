@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
 const tool = process.env.APPROVER_TS || resolve(import.meta.dir, "../../tools/cloud-brain/approver.ts");
-const { judge, facts, factsText, check, list, listText, trial, trialText, gitOf, marks, own, policyOf, BRIEF, TOOL, TEST } = await import(tool);
+const { judge, issueAt, facts, factsText, check, list, listText, trial, trialText, gitOf, marks, own, policyOf, BRIEF, TOOL, TEST } = await import(tool);
 
 // ---- the repository
 const root = realpathSync(mkdtempSync(join(tmpdir(), "approver-")));
@@ -360,6 +360,37 @@ const approved = (w: ReturnType<typeof world>, o: { reason?: string; who?: any; 
   return seq;
 };
 
+test("a swap: an issue the migrate of an install moved is judged on the workflow the swap names, before any later event of it", () => {
+  // As issue.install writes it (brain-issues.ojs, issueEvent): the policy event, then one `swapped` event an open issue.
+  // The event's own `workflow` is the one the issue leaves; the one it is on from then is `to.workflow`.
+  const NEW = "N".repeat(64), w = world(), n = w.record.length;
+  const install = { ...policyEvent(n + 1), hashes: { ...HASH, task: NEW } };
+  w.record.push(install);
+  // Not yet swapped: the issue is on a workflow the policy in force no longer has, and nothing is sent.
+  expect(policyOf(install).workflows[HASH.task]).toBe(undefined);
+  expect(judge(w.record, install, git, { id: "task", verdict: w.s.verdict }).exit).toBe(3);
+  w.record.push({ seq: n + 2, key: `policy/${n + 1}/task`, id: "task", type: "swapped", workflow: HASH.task, swap: null, policy: n + 1, from: { workflow: HASH.task, state: "awaiting-approval" }, to: { workflow: NEW, state: "awaiting-approval" }, reason: "", by: SESSION, at: (n + 2) * 1000 });
+  const j = judge(w.record, install, git, { id: "task", verdict: w.s.verdict });
+  expect(j.why).toEqual([]);
+  expect(j.exit).toBe(0);
+  expect(j.send).toMatchObject({ key: "approver/task/approve-1", id: "task", to: "done" });
+  expect(issueAt(w.record, "task")).toMatchObject({ workflow: NEW, state: "awaiting-approval", rounds: 1 });
+  // As the issue stood before the swap, which is what `check` reads of an approve made before it.
+  expect(issueAt(w.record, "task", n + 2).workflow).toBe(HASH.task);
+  // The same policy as issue.policy answers it.
+  expect(judge(w.record, policyAnswer(install), git, { id: "task", verdict: w.s.verdict }).exit).toBe(0);
+  // The swap is no move to awaiting-approval: the round and the verdict's key are as before it.
+  expect(facts(w.record, git, "task")).toMatchObject({ state: "awaiting-approval", round: 1, verdictKey: "approver/task/verdict-1" });
+  // A swap that lands in another state is read for its state, as before.
+  const moved = world();
+  moved.record.push({ seq: moved.record.length + 1, key: "k", id: "task", type: "swapped", workflow: HASH.task, swap: "escalate", from: { workflow: HASH.task, state: "awaiting-approval" }, to: { workflow: HASH.task, state: "triaged" }, reason: "", by: SESSION, at: 0 });
+  refused(judge(moved.record, moved.policy, git, { id: "task", verdict: moved.s.verdict }), /the issue is at triaged, not awaiting-approval/);
+  // check: an approve made after the swap is judged with the policy of the install, and stands.
+  w.record.push({ seq: n + 3, key: "approver/task/approve-1", id: "task", type: "moved", move: "approve", to: "done", by: LOOP, workflow: NEW, at: (n + 3) * 1000, reason: j.send?.reason ?? `approver: approve\nverdict ${w.s.verdict}, brief ${briefBlob}`, refs: [] });
+  w.record.push({ seq: n + 4, key: "cost/task/approver/1", id: "task", type: "cost", role: "approver", round: 1, token: "appr-0a1b2c", by: ORCH, workflow: NEW, at: (n + 4) * 1000 });
+  expect(check(w.record, git)).toEqual({ approves: 1, failed: [] });
+});
+
 test("check: an approve that stands has no line; one with no verdict, no cost event, an approver's words or a ref in its own files has one", () => {
   const good = world();
   approved(good);
@@ -461,7 +492,7 @@ test("trial: the verdicts in the open, counted by what followed and by whose wor
 
 // ---- the tool as it is run: the reads through issue-as.sh, the two sends with loop-approver
 const VALUE = { appr: "value-of-the-run-7f3a", loop: "value-of-loop-approver-9c1d" };
-let served: { record: any[]; policy: any; refuse?: number; idHolder?: string; again?: boolean } = { record: [], policy: {} }, calls: { method: string; bearer: string; body: any }[] = [];
+let served: { record: any[]; policy: any; refuse?: number; idHolder?: string; again?: boolean; heldByOther?: number } = { record: [], policy: {} }, calls: { method: string; bearer: string; body: any }[] = [];
 const server = Bun.serve({ port: 0, hostname: "127.0.0.1", async fetch(req) {
   const url = new URL(req.url), method = url.pathname.replace("/xrpc/com.lopecode.brain.issue.", ""), bearer = (req.headers.get("authorization") || "").replace("Bearer ", "");
   const body = req.method === "POST" ? await req.json() : null;
@@ -469,6 +500,8 @@ const server = Bun.serve({ port: 0, hostname: "127.0.0.1", async fetch(req) {
   if (served.refuse && req.method === "POST") return Response.json({ error: "AuthRequired", message: "unknown token" }, { status: served.refuse });
   if (method === "sync") { const after = Number(url.searchParams.get("after") || 0), limit = Number(url.searchParams.get("limit") || 200); return Response.json({ events: served.record.filter((e) => e.seq > after).slice(0, limit) }); }
   if (method === "policy") return Response.json(served.policy);
+  // A key another actor holds: its place and no more (brain-issues.ojs, `wrote`).
+  if (method === "move" && served.heldByOther) return Response.json({ id: body.id, seq: served.heldByOther, duplicate: true });
   if (method === "move") return Response.json({ id: body.id, seq: 9001, ...(served.again ? { duplicate: true } : {}), event: { seq: 9001, ...body, type: "moved", by: LOOP } });
   // A key another delegation holds answers no event.
   if (method === "comment") return Response.json(body.key === "approver/id" && served.idHolder ? { id: body.id, seq: 7, duplicate: true } : { id: body.id, seq: 9002, event: { seq: 9002, ...body, type: "commented", by: LOOP } });
@@ -516,6 +549,57 @@ test("approve, run: the reads are the run's own token, the one move is loop-appr
   served.again = true;
   const twice = await cli(["approve", "task", String(w.s.verdict), "--token", "appr-0a1b2c"]);
   expect([twice.code, twice.out]).toEqual([0, `approved task: event 9001 (sent before; nothing new was written), to done, on your words of event ${w.s.wish}\n`]);
+});
+
+test("approve, run: a key another actor holds already is exit 4 and is not said to be approved", async () => {
+  const w = world();
+  serve(w);
+  served.heldByOther = 41;
+  const r = await cli(["approve", "task", String(w.s.verdict), "--token", "appr-0a1b2c"]);
+  expect(calls.map((c) => c.method)).toEqual(["policy", "sync", "move"]);
+  expect(r.all).not.toContain("approved task");
+  expect([r.code, r.out]).toEqual([4, ""]);
+  expect(r.err).toContain("no approve was made for task: the key approver/task/approve-1 is kept already as event 41, which another actor wrote");
+  expect(r.all).not.toContain(VALUE.loop);
+  // With --json what was judged and the tracker's answer are printed, and the exit is the same.
+  serve(w);
+  served.heldByOther = 41;
+  const asJson = await cli(["approve", "task", String(w.s.verdict), "--token", "appr-0a1b2c", "--json"]);
+  expect(asJson.code).toBe(4);
+  expect(JSON.parse(asJson.out)).toMatchObject({ exit: 0, send: { key: "approver/task/approve-1" }, answer: { id: "task", seq: 41, duplicate: true } });
+});
+
+test("list --since: hours that are not a number above 0 are exit 2, and nothing is read or listed", async () => {
+  const w = world();
+  serve(w);
+  approved(w);
+  writeFileSync(join(state, "since.json"), JSON.stringify(w.record));
+  const from = ["--record", join(state, "since.json")], line = `task  on your words of event ${w.s.wish}  The core answers`;
+  for (const [args, said] of [[["--since=abc"], '"abc"'], [["--since=-1"], '"-1"'], [["--since=0"], '"0"'], [["--since="], '""'], [["--since", "abc"], '"abc"'], [["--since=Infinity"], '"Infinity"'], [["--since=1h"], '"1h"'], [["--since=1e2"], '"1e2"'], [["--since=" + "9".repeat(400)], '"' + "9".repeat(400) + '"']] as const) {
+    const r = await cli(["list", ...args, ...from]);
+    expect([args, r.code, r.out]).toEqual([args, 2, ""]);
+    expect(r.err).toContain(`the hours of --since were not read (${said}); nothing was listed`);
+  }
+  // --since with nothing after it, and with another flag after it.
+  for (const args of [[...from, "--since"], ["--since", ...from], ["--since", "--json", ...from]]) {
+    const r = await cli(["list", ...args]);
+    expect([args, r.code, r.out]).toEqual([args, 2, ""]);
+    expect(r.err).toContain("the hours of --since were not read");
+  }
+  // Refused before the record is read: no call with the run's token.
+  expect((await cli(["list", "--since=abc", "--token", "appr-0a1b2c"])).code).toBe(2);
+  expect(calls).toEqual([]);
+  // Hours that are read: the approve of the record is from 1970, so it is in no span, and in the list with none.
+  for (const args of [["--since=1"], ["--since", "1"], ["--since=0.5"], ["--since=100000"]]) {
+    const r = await cli(["list", ...args, ...from]);
+    expect([args, r.code, r.out, r.err]).toEqual([args, 0, "", ""]);
+  }
+  expect((await cli(["list", ...from])).out).toContain(line);
+  // Hours that reach back past it list it.
+  w.record.at(-2).at = Date.now() - 2 * 3600e3;
+  writeFileSync(join(state, "since.json"), JSON.stringify(w.record));
+  expect((await cli(["list", "--since=3", ...from])).out).toContain(line);
+  expect((await cli(["list", "--since=1", ...from])).out).toBe("");
 });
 
 test("approve, run: exit 3 and nothing sent while no approve guard names a delegation; exit 1 with each reason; exit 2 with no token", async () => {
