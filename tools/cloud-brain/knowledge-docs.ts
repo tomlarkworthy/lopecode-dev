@@ -18,6 +18,14 @@
 // The file is not copied: the entry's url is the doc on GitHub's main (the repo is public) and sha256 is of that file.
 // A doc whose frontmatter scope has `in-notebook` is public (it already ships in the markdown-wiki notebook);
 // one that is `local-development` only is the Brain's and private. The three of cloud-brain-dev are private.
+// An entry's text is TEXT characters at most (the service refuses more). A longer one is cut by this tool, and its last
+// line then says so: `[the first N of M characters of this entry's text. The whole is the file <path>: <address>]`, with
+// the text and that line TEXT characters together. N and M count the text this tool makes (the topics first, the
+// heading taken out), not the file. The address is the file on raw.githubusercontent.com; a file of cloud-brain-dev has
+// none, and is named with its repository. A doc's line of status ends with `cut N of M`, and `, unmarked` when the
+// entry kept does not end with that line. The last line of status and of put has `cut`, the docs whose text was cut;
+// that of status also `unmarked`. An entry is fresh by its file's hash, so a change to the line here moves no entry:
+// `put <name>…` of the unmarked ones does (ac-4-docs-tool-marks-a-cut).
 // The id is the file's name in lower case. A name that gives no id knowledge.put takes (a space, a
 // character outside ASCII, anything but a-z 0-9 . _ : -) is `badname` in status and `badNames` in the last line, and is in no put (i1546).
 // tests/tools/knowledge-docs.test.ts
@@ -34,7 +42,7 @@ const [cmd, ...args] = process.argv.slice(2);
 const flag = (f: string) => args.includes(f);
 const names = args.filter((a) => !a.startsWith("--"));
 const limit = (args.find((a) => /^--limit=\d+$/.test(a)) || "--limit=120").slice(8);
-const REPO = "https://github.com/tomlarkworthy/lopecode-dev/blob/main/", TEXT = 16000, SRC = "origin/main", TOKEN = "loop-docs";
+const REPO = "https://github.com/tomlarkworthy/lopecode-dev/blob/main/", RAW = "https://raw.githubusercontent.com/tomlarkworthy/lopecode-dev/main/", TEXT = 16000, SRC = "origin/main", TOKEN = "loop-docs";
 const sha = (b: string | Uint8Array) => createHash("sha256").update(b).digest("hex");
 const git = (at: string, ...a: string[]) => spawnSync("git", ["-C", at, ...a], { encoding: "buffer", maxBuffer: 1 << 26 });
 const line = (at: string, ...a: string[]) => { const r = git(at, ...a); return r.status === 0 ? r.stdout.toString().trim() : ""; };
@@ -65,17 +73,26 @@ if (!head) throw new Error(`no ${SRC} in ${root}`);
 // What knowledge.put takes as an id (brain-knowledge.ojs, knowledgePatterns.id and knowledgeLimits.id, read 2026-10-11). One id
 // outside it has the whole call refused 400, so a doc with such a name is named and left out of the put.
 const ID = /^[a-z0-9][a-z0-9._:-]*$/, ID_MAX = 100;
-type Doc = { name: string; id: string; named: boolean; public: boolean; scoped: boolean; title: string; text: string; sha256: string; url: string; source: string; at: string; rev: string; path: string };
-const doc = (name: string, bytes: Uint8Array, more: { at: string; rev: string; path: string; url: string; source: string; private?: boolean }): Doc => {
+// A text over TEXT, cut so that it and its last line are TEXT characters. The line holds its own first number, so the
+// longest part that fits is looked for from above.
+const marked = (whole: string, where: string) => {
+  const mark = (n: number) => `\n\n[the first ${n} of ${whole.length} characters of this entry's text. The whole is ${where}]`;
+  let n = TEXT - mark(0).length;
+  while (n > 0 && n + mark(n).length > TEXT) n--;
+  return { text: whole.slice(0, n) + mark(n), mark: mark(n), shown: n };
+};
+type Doc = { name: string; id: string; named: boolean; public: boolean; scoped: boolean; title: string; text: string; cut: { mark: string; shown: number; of: number } | null; sha256: string; url: string; source: string; at: string; rev: string; path: string };
+const doc = (name: string, bytes: Uint8Array, more: { at: string; rev: string; path: string; url: string; source: string; whole: string; private?: boolean }): Doc => {
   const raw = Buffer.from(bytes).toString("utf8");
   const fm = /^---\n([\s\S]*?)\n---\n/.exec(raw), top = fm ? fm[1] : "", body = fm ? raw.slice(fm[0].length) : raw;
   const h1 = /^# +(.+)$/m.exec(body);
   const topics = (/^topics: *(.+)$/m.exec(top) || [])[1] || "";
   // Topics first: the service embeds the first 1500 characters of title and text.
-  const text = [topics && "Topics: " + topics, body.replace(/^# +.+\n/m, "").trim()].filter(Boolean).join("\n\n").slice(0, TEXT);
+  const whole = [topics && "Topics: " + topics, body.replace(/^# +.+\n/m, "").trim()].filter(Boolean).join("\n\n");
+  const m = whole.length > TEXT ? marked(whole, more.whole) : null;
   const id = "doc:" + name.toLowerCase();
   return { name, id, named: ID.test(id) && id.length <= ID_MAX, public: !more.private && /^scope:.*\bin-notebook\b/m.test(top), scoped: !!more.private || /^scope:/m.test(top),
-    title: (h1 ? h1[1] : name).slice(0, 500), text, sha256: sha(bytes), url: more.url, source: more.source, at: more.at, rev: more.rev, path: more.path };
+    title: (h1 ? h1[1] : name).slice(0, 500), text: m ? m.text : whole, cut: m && { mark: m.mark, shown: m.shown, of: whole.length }, sha256: sha(bytes), url: more.url, source: more.source, at: more.at, rev: more.rev, path: more.path };
 };
 
 // plan/cloud-brain-*.md: the designs and the backlog. They have no frontmatter, so they are entered private.
@@ -83,7 +100,7 @@ const doc = (name: string, bytes: Uint8Array, more: { at: string; rev: string; p
 const listed = git(root, "ls-tree", "-r", "-z", "--name-only", SRC, "knowledge/", "plan/");
 const docs: Doc[] = (listed.status === 0 ? listed.stdout.toString("utf8") : "").split("\0")
   .filter((p) => /^knowledge\/[^/]+\.md$/.test(p) || /^plan\/cloud-brain-[^/]*\.md$/.test(p))
-  .map((p) => doc(p.split("/")[1].slice(0, -3), git(root, "show", `${SRC}:${p}`).stdout, { at: root, rev: SRC, path: p, url: REPO + p, source: "lopecode-dev" }));
+  .map((p) => doc(p.split("/")[1].slice(0, -3), git(root, "show", `${SRC}:${p}`).stdout, { at: root, rev: SRC, path: p, url: REPO + p, source: "lopecode-dev", whole: `the file ${p}: ${RAW}${p}` }));
 
 // The three files of cloud-brain-dev, at the commit origin/main records: a landing fetches nothing of that repository.
 const DEV = "cloud-brain-dev", DEV_FILES: [string, string][] = [["AGENTS.md", "agents"], ["README.md", "readme"], ["philosophy.md", "philosophy"]];
@@ -96,7 +113,7 @@ else {
   const url = line(root, "config", "--blob", `${SRC}:.gitmodules`, `submodule.${DEV}.url`);
   for (const [f, n] of DEV_FILES) {
     const r = git(join(root, DEV), "show", `${pin}:${f}`);
-    if (r.status === 0) docs.push(doc(`${DEV}-${n}`, r.stdout, { at: join(root, DEV), rev: pin, path: f, url, source: DEV, private: true }));
+    if (r.status === 0) docs.push(doc(`${DEV}-${n}`, r.stdout, { at: join(root, DEV), rev: pin, path: f, url, source: DEV, whole: `the file ${f} of the repository ${url}`, private: true }));
   }
 }
 
@@ -124,9 +141,10 @@ const staleSince = (d: Doc, entrySha: string) => {
 const age = (ms: number) => { const h = (Date.now() - ms) / 36e5; return h < 48 ? h.toFixed(1) + " h" : (h / 24).toFixed(1) + " d"; };
 const rowsOf = (have: Map<string, any>) => docs.map((d) => {
   const e = have.get(d.id);
-  return { ...d, entry: e, state: !d.named ? "badname" : !e ? "missing" : e.sha256 === d.sha256 && !!e.public === d.public ? "fresh" : "stale" };
+  return { ...d, entry: e, unmarked: !!d.cut && !!e && !(typeof e.text === "string" && e.text.endsWith(d.cut.mark)), state: !d.named ? "badname" : !e ? "missing" : e.sha256 === d.sha256 && !!e.public === d.public ? "fresh" : "stale" };
 });
 const badNames = docs.filter((d) => !d.named).map((d) => d.name);
+const cutOf = (rows: { cut: Doc["cut"] }[]) => rows.filter((r) => r.cut).length;
 const read = { ...(badNames.length ? { badNames } : {}), source: `${SRC}@${head.slice(0, 8)}`, ...(devLeft ? { cloudBrainDev: devLeft } : {}) };
 const BAD = `its id is not one knowledge.put takes (${ID.source}, ${ID_MAX} characters at most): not entered until the file has another name`;
 
@@ -134,12 +152,13 @@ if (cmd === "status") {
   const have = kept(), rows = rowsOf(have);
   for (const r of rows) {
     const s = r.state === "stale" && r.entry.sha256 !== r.sha256 ? staleSince(r, r.entry.sha256) : null;
-    console.log(r.state.padEnd(8), (r.public ? "public " : "private"), r.name, s ? `stale ${age(s.at)} (since ${new Date(s.at).toISOString().slice(0, 16)}Z, ${s.from})` : r.state === "stale" ? "visibility differs" : r.state === "badname" ? BAD : "");
+    const note = s ? `stale ${age(s.at)} (since ${new Date(s.at).toISOString().slice(0, 16)}Z, ${s.from})` : r.state === "stale" ? "visibility differs" : r.state === "badname" ? BAD : "";
+    console.log(r.state.padEnd(8), (r.public ? "public " : "private"), r.name, [note, r.cut ? `cut ${r.cut.shown} of ${r.cut.of}${r.unmarked ? ", unmarked" : ""}` : ""].filter(Boolean).join("; "));
   }
   const n = (s: string) => rows.filter((r) => r.state === s).length;
   // Only an entry this tool entered: kind `doc` is also filled by other methods, whose entries have no file here.
   const gone = [...have.values()].filter((e) => e.method === "knowledge-docs" && !docs.some((d) => d.id === e.id) && !(devLeft && devIds.includes(e.id))).map((e) => e.id);
-  console.log(JSON.stringify({ docs: rows.length, fresh: n("fresh"), stale: n("stale"), missing: n("missing"), entriesWithNoFile: gone, ...read }));
+  console.log(JSON.stringify({ docs: rows.length, fresh: n("fresh"), stale: n("stale"), missing: n("missing"), cut: cutOf(rows), unmarked: rows.filter((r) => r.unmarked).length, entriesWithNoFile: gone, ...read }));
   if (flag("--check") && n("stale") + n("missing") + badNames.length > 0) process.exit(1);
 } else if (cmd === "put") {
   const rows = rowsOf(kept()).filter((r) => r.named);
@@ -154,7 +173,7 @@ if (cmd === "status") {
     const r = call("knowledge.put", { entries: pick.slice(i, i + 25).map((d) => ({ id: d.id, kind: "doc", public: d.public, title: d.title, text: d.text, url: d.url, source: d.source, sha256: d.sha256, method: "knowledge-docs", tags: ["knowledge-doc"] })) });
     entered += r.entered; changed += r.changed; vectors += r.vectors ?? 0;
   }
-  console.log(JSON.stringify({ put: pick.length, public: pick.filter((d) => d.public).length, private: pick.filter((d) => !d.public).length, entered, changed, vectors, ms: Date.now() - t0, ...read }));
+  console.log(JSON.stringify({ put: pick.length, public: pick.filter((d) => d.public).length, private: pick.filter((d) => !d.public).length, cut: cutOf(pick), entered, changed, vectors, ms: Date.now() - t0, ...read }));
 } else {
   console.error("usage: knowledge-docs.ts status [--check] | put --all | --stale | <name>…   [--owner] [--limit=SECONDS]");
   process.exit(1);

@@ -228,19 +228,96 @@ test("R6: when the submodule's checkout lacks the recorded commit the three are 
   expect(t.puts().map((e: any) => e.id).sort()).toEqual(["doc:a", "doc:b", "doc:cloud-brain-design"]);
 });
 
-test("R6: a file over 16,000 characters is sent as its first 16,000, with the hash of the whole file", () => {
-  const t = fresh();
-  const long = "# Long\n\n" + "x".repeat(16000) + "THE-END-OF-THE-FILE\n";
-  t.write("knowledge/long.md", long);
-  t.git(t.repo, "add", "knowledge/long.md");
-  t.git(t.repo, "commit", "-q", "-m", "long");
+// ac-4-docs-tool-marks-a-cut, task 4 of plan/cloud-brain-answers-cut-and-not-said.md (R1). Until it the tool sent the
+// first 16,000 characters of a longer text with no sign that there were more.
+const RAW = "https://raw.githubusercontent.com/tomlarkworthy/lopecode-dev/main/";
+const LINE = /\n\n\[the first (\d+) of (\d+) characters of this entry's text\. The whole is ([^\n]+)\]$/;
+const pushed = (t: ReturnType<typeof fresh>, files: Record<string, string>) => {
+  for (const [f, text] of Object.entries(files)) { t.write(f, text); t.git(t.repo, "add", f); }
+  t.git(t.repo, "commit", "-q", "-m", "docs");
   t.git(t.repo, "push", "-q", "origin", "main");
+};
+
+test("ac-4: a text of 16,001 characters is put as 16,000 that end with the line; one of 16,000 is put as it is", () => {
+  const t = fresh();
+  const over = "# Over\n\n" + "y".repeat(16001) + "\n", at = "# At\n\n" + "z".repeat(16000) + "\n";
+  pushed(t, { "knowledge/over.md": over, "knowledge/at.md": at });
+  expect(t.kdocs(["put", "over", "at"]).code).toBe(0);
+  const sent = t.puts(), o = sent.find((e: any) => e.id === "doc:over"), a = sent.find((e: any) => e.id === "doc:at");
+  expect(a.text).toBe("z".repeat(16000));
+  expect(o.text.length).toBe(16000);
+  const m = LINE.exec(o.text)!;
+  expect(m).not.toBeNull();
+  expect([m[2], m[3]]).toEqual(["16001", `the file knowledge/over.md: ${RAW}knowledge/over.md`]);
+  // The first number is what stands before the line, and that part is the start of the whole.
+  expect(Number(m[1])).toBe(16000 - m[0].length);
+  expect(o.text.slice(0, Number(m[1]))).toBe("y".repeat(Number(m[1])));
+  expect(o.sha256).toBe(sha(over));
+});
+
+test("ac-4: the two numbers are of the text the tool makes, topics first and the heading out, also when the whole has six digits", () => {
+  const t = fresh();
+  const body = "The start. " + "w".repeat(120000) + " THE-END-OF-THE-FILE";
+  const long = "---\nscope: [local-development]\ntopics: one; two\n---\n\n# Long\n\n" + body + "\n";
+  pushed(t, { "knowledge/long.md": long });
   expect(t.kdocs(["put", "long"]).code).toBe(0);
   const sent = t.puts();
   expect(sent.length).toBe(1);
+  const whole = "Topics: one; two\n\n" + body, m = LINE.exec(sent[0].text)!;
   expect(sent[0].text.length).toBe(16000);
   expect(sent[0].text).not.toContain("THE-END");
+  expect(Number(m[2])).toBe(whole.length);
+  expect(sent[0].text.slice(0, Number(m[1])) + m[0]).toBe(sent[0].text);
+  expect(sent[0].text.slice(0, Number(m[1]))).toBe(whole.slice(0, Number(m[1])));
   expect(sent[0].sha256).toBe(sha(long));
+});
+
+test("ac-4: a cut file of cloud-brain-dev names the file and its repository, since no address gives it", () => {
+  const t = fresh();
+  const ph = "# What it is for\n\n" + "p".repeat(17000) + "\n";
+  t.write("philosophy.md", ph, t.sub);
+  t.git(t.sub, "commit", "-q", "-am", "long");
+  t.git(join(t.repo, "cloud-brain-dev"), "pull", "-q");
+  t.git(t.repo, "update-index", "--cacheinfo", `160000,${t.git(t.sub, "rev-parse", "HEAD")},cloud-brain-dev`);
+  t.git(t.repo, "commit", "-q", "-m", "pointer moved");
+  t.git(t.repo, "push", "-q", "origin", "main");
+  expect(t.kdocs(["put", "cloud-brain-dev-philosophy"]).code).toBe(0);
+  const sent = t.puts();
+  expect(sent.map((e: any) => e.id)).toEqual(["doc:cloud-brain-dev-philosophy"]);
+  const m = LINE.exec(sent[0].text)!;
+  expect([sent[0].text.length, m[2], m[3]]).toEqual([16000, "17000", `the file philosophy.md of the repository ${DEV_URL}`]);
+});
+
+test("ac-4: status and put count the cut docs, and status counts and names those whose entry does not end with the line", () => {
+  const t = fresh();
+  const over = "# Over\n\n" + "y".repeat(16001) + "\n", more = "# More\n\n" + "v".repeat(30000) + "\n";
+  pushed(t, { "knowledge/over.md": over, "knowledge/more.md": more });
+  // As cb4 was before this task: each entry holds the first 16,000 characters and no line.
+  t.keep([...t.all(), t.entry("over", over, { text: "y".repeat(16000) }), t.entry("more", more, { text: "v".repeat(16000) })]);
+  const s = t.kdocs(["status", "--check"]);
+  expect(s.code).toBe(0);
+  expect(t.summary(s.out)).toMatchObject({ docs: 8, fresh: 8, stale: 0, missing: 0, cut: 2, unmarked: 2 });
+  const row = (out: string, name: string) => out.split("\n").find((l) => l.split(/\s+/)[2] === name)!;
+  expect(row(s.out, "over")).toMatch(/^fresh\s+private over cut \d+ of 16001, unmarked$/);
+  expect(row(s.out, "more")).toMatch(/^fresh\s+private more cut \d+ of 30000, unmarked$/);
+  expect(row(s.out, "a")).not.toContain("cut");
+  // Fresh by the file's hash, so the release's put leaves them; the put by name sends them.
+  expect(t.kdocs(["put", "--stale"]).out).toBe("nothing to put");
+  const p = t.kdocs(["put", "over", "a"]);
+  expect(t.summary(p.out)).toMatchObject({ put: 2, cut: 1 });
+  const sent = t.puts().find((e: any) => e.id === "doc:over");
+  t.keep([...t.all(), t.entry("over", over, { text: sent.text }), t.entry("more", more, { text: "v".repeat(16000) })]);
+  const s2 = t.kdocs(["status"]);
+  expect(t.summary(s2.out)).toMatchObject({ cut: 2, unmarked: 1 });
+  expect(row(s2.out, "over")).toMatch(/^fresh\s+private over cut \d+ of 16001$/);
+  // An entry answered with no text is not known to end with the line; a cut doc with no entry is missing, not unmarked.
+  t.keep([...t.all(), t.entry("over", over)]);
+  expect(t.summary(t.kdocs(["status"]).out)).toMatchObject({ missing: 1, cut: 2, unmarked: 1 });
+  // With no doc over the limit both are 0.
+  const none = fresh();
+  expect(none.summary(none.kdocs(["status"]).out)).toMatchObject({ cut: 0, unmarked: 0 });
+  none.keep([]);
+  expect(none.summary(none.kdocs(["put", "--all"]).out)).toMatchObject({ put: 6, cut: 0 });
 });
 
 test("--limit=SECONDS is the time one call may take", () => {
