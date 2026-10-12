@@ -6,7 +6,7 @@ changes to files: two stops in `summarize-papers.ts run`, a section of
 `knowledge/calling-a-cloud-brain-from-this-checkout.md`, and a paragraph of step 5 of the loop's `SKILL.md`. No seed, no deploy.
 
 `P` is `<main checkout>/tools/cloud-brain/.emitted/papers`. Every command was run from the task's worktree
-(`lopecode-dev` at `bb5efaea`, the first commit of this task on `64502c5d`), with `claude` under `~/.claude-personal`.
+(`lopecode-dev` at the first commit of this task, then on `64502c5d`; it landed as `724f13ab` after two rebases), with `claude` under `~/.claude-personal`.
 Times are `date` on this machine, or a journal line's `at`.
 
 ## What the task asked, and the answer to each
