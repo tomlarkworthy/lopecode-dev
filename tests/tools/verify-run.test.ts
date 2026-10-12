@@ -12,6 +12,7 @@ import { resolve, join } from "node:path";
 const script = process.env.VERIFY_RUN_TS || resolve(import.meta.dir, "../../tools/cloud-brain/verify-run.ts");
 const { judge, parseArgs, runAddress, chromeFor, shellDocument } = await import(script);
 const { blockContent, blockSpans } = await import(resolve(import.meta.dir, "../../tools/lib/notebook-blocks.ts"));
+const { cut } = await import(resolve(import.meta.dir, "../../tools/cloud-brain/cut.ts"));
 
 const M = "@t/w", SHELL = "@tomlarkworthy/brain-shell", H1 = "a".repeat(64), H2 = "b".repeat(64);
 const names = ["test_a", "test_b"];
@@ -64,9 +65,20 @@ test("a failure that is not a test cell (the hash check) is compared the same wa
   expect(out.exit).toBe(2);
 });
 
+// Issue ac-1-local-tools-mark-a-cut. The message in the count by test was cut at 200 with no mark.
+test("a failed test's message in the count by test: 200 characters as it is, 201 cut with the mark, whole as it is", () => {
+  const at = "expected\n  " + "m".repeat(191), over = at + "X"; // 200 and 201 once each run of white space is one space
+  const of = (message: string, more = {}) => judge([fail({ failed: [{ name: "test_b", message }] })], { module: M, ...more }).everyTime[0].message;
+  expect(of(at)).toBe("expected " + "m".repeat(191));
+  expect(of(over)).toBe("expected " + "m".repeat(191) + "… (cut: 200 of 201 characters; --whole prints all)");
+  expect(of(over)).toBe(cut("expected " + "m".repeat(191) + "X", 200));
+  expect(of(over, { whole: true })).toBe("expected " + "m".repeat(191) + "X");
+  expect(of(over, { whole: false })).toBe(of(over));
+});
+
 test("the arguments: one Worker, --times, --shell, --base as a name or an address", () => {
-  expect(parseArgs(["brain-x-logs"])).toEqual({ worker: "brain-x-logs", times: 1, shell: null, base: "https://cb4.endpointservices.workers.dev", timeout: 150 });
-  expect(parseArgs(["--times", "20", "brain-x-logs", "--shell=a/verify.html"], { BRAIN_BASE: "cb9" })).toEqual({ worker: "brain-x-logs", times: 20, shell: "a/verify.html", base: "https://cb9.endpointservices.workers.dev", timeout: 150 });
+  expect(parseArgs(["brain-x-logs"])).toEqual({ worker: "brain-x-logs", times: 1, shell: null, base: "https://cb4.endpointservices.workers.dev", timeout: 150, whole: false });
+  expect(parseArgs(["--times", "20", "brain-x-logs", "--shell=a/verify.html"], { BRAIN_BASE: "cb9" })).toEqual({ worker: "brain-x-logs", times: 20, shell: "a/verify.html", base: "https://cb9.endpointservices.workers.dev", timeout: 150, whole: false });
   expect(parseArgs(["w", "--base", "http://127.0.0.1:8123/", "--timeout=9"]).base).toBe("http://127.0.0.1:8123");
   expect(() => parseArgs([])).toThrow("no Worker named");
   expect(() => parseArgs(["a", "b"])).toThrow("one Worker a call: a, then b");
@@ -74,6 +86,9 @@ test("the arguments: one Worker, --times, --shell, --base as a name or an addres
   expect(() => parseArgs(["a", "--times=two"])).toThrow("--times takes a whole number above 0");
   expect(() => parseArgs(["a", "--shell"])).toThrow("--shell takes a value");
   expect(() => parseArgs(["a", "--time", "3"])).toThrow("unknown option --time");
+  // --whole takes no value: what follows it is still the Worker.
+  expect(parseArgs(["--whole", "brain-x-logs", "--times", "2"])).toMatchObject({ worker: "brain-x-logs", times: 2, whole: true });
+  expect(() => parseArgs(["a", "--whole=1"])).toThrow("--whole takes no value");
 });
 
 // When this fails the deployer opens another address than the tool does: change runAddress with it.
@@ -159,9 +174,9 @@ const page = (ran: Record<string, number>) => `<!doctype html><script>
 const SERVED = page({ [SHELL]: 8, "@tomlarkworthy/svg-lens": 60 });
 const SHORT = page({ [SHELL]: 8, "@test/verify-abc123": 1 });
 
-const rig = (ends: boolean[]) => {
+const rig = (ends: boolean[], { message = "Expected one line", more = "" } = {}) => {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "verify-run-")));
-  writeFileSync(join(dir, "verify.html"), SHORT);
+  writeFileSync(join(dir, "verify.html"), SHORT + more);
   let call = 0;
   const asked: string[] = [];
   const server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: (req) => {
@@ -172,7 +187,7 @@ const rig = (ends: boolean[]) => {
     if (url.pathname === "/xrpc/com.lopecode.brain.getSource") return Response.json({ worker: "brain-x-w", module: M, hash: H1, text: "what the Worker runs" });
     if (url.pathname === "/next") {
       const ok = ends[call++ % ends.length];
-      return Response.json({ worker: "brain-x-w", module: M, hash: H1, ok, tests: 2, failed: ok ? [] : [{ name: "test_b", message: "Expected one line" }], otherTestsRan: 9, ms: 5 });
+      return Response.json({ worker: "brain-x-w", module: M, hash: H1, ok, tests: 2, failed: ok ? [] : [{ name: "test_b", message }], otherTestsRan: 9, ms: 5 });
     }
     if (url.pathname === "/") return new Response(SERVED, { headers: { "content-type": "text/html" } });
     return new Response("not found", { status: 404 });
@@ -253,6 +268,45 @@ test("in a browser: a whole build as --shell boots the module and brain-shell, n
     // The short document holds no copy: served as it is, and the page has no block of the module.
     const short = await r.run("brain-x-w", "--shell", r.shell);
     expect([short.start.mains, short.runs[0].from, short.summary.from, "notTheFiles" in short.summary]).toEqual([null, null, [null], false]);
+  } finally { r.stop(); }
+}, 60000);
+
+// Issue ac-1-local-tools-mark-a-cut. The four texts the tool cut with no mark: a failed test's message at 160 in a
+// run's line and at 200 in the count by test, a page error at 160, and why a run had no verdict at 200.
+test("in a browser: a failed test's message and a page error over their bounds are cut and say so; --whole prints each whole", async () => {
+  const message = "f".repeat(200) + "X", error = "p".repeat(153) + "X"; // a page error is printed as "Error: " and its message: 161
+  const r = rig([false], { message, more: `<script>throw new Error(${JSON.stringify(error)});</scr` + `ipt>` });
+  try {
+    const short = await r.run("brain-x-w", "--shell", r.shell);
+    expect(short.runs[0].failed).toEqual(["test_b: " + "f".repeat(160) + "… (cut: 160 of 201 characters; --whole prints all)"]);
+    expect(short.runs[0].errors).toEqual(["Error: " + "p".repeat(153) + "… (cut: 160 of 161 characters; --whole prints all)"]);
+    expect(short.summary.everyTime[0].message).toBe("f".repeat(200) + "… (cut: 200 of 201 characters; --whole prints all)");
+    const whole = await r.run("brain-x-w", "--shell", r.shell, "--whole");
+    expect([whole.runs[0].failed, whole.runs[0].errors, whole.summary.everyTime[0].message]).toEqual([["test_b: " + message], ["Error: " + error], message]);
+    expect([short.code, whole.code]).toEqual([2, 2]);
+  } finally { r.stop(); }
+}, 60000);
+
+test("in a browser: a failed test's message of 161 characters is cut in a run's line and whole in the count by test", async () => {
+  const message = "f".repeat(160) + "X";
+  const r = rig([false], { message });
+  try {
+    const { runs, summary } = await r.run("brain-x-w", "--shell", r.shell);
+    expect(runs[0].failed).toEqual(["test_b: " + "f".repeat(160) + "… (cut: 160 of 161 characters; --whole prints all)"]);
+    expect(summary.everyTime[0].message).toBe(message);
+  } finally { r.stop(); }
+}, 60000);
+
+test("in a browser: why a run had no verdict, one over 200, is cut and says so; --whole prints it whole", async () => {
+  // What Playwright puts before the page's message, as the tool printed it on 2026-10-12. With another, the --whole text below names it.
+  const before = "forFunction: Error: ", thrown = "v".repeat(200 - before.length) + "X";
+  const r = rig([true], { more: `<script>Object.defineProperty(window, "__brainVerdict", { get() { throw new Error(${JSON.stringify(thrown)}); }, set() {} });</scr` + `ipt>` });
+  try {
+    const whole = await r.run("brain-x-w", "--shell", r.shell, "--whole");
+    expect(whole.runs[0].none).toBe("no verdict: " + before + thrown);
+    const short = await r.run("brain-x-w", "--shell", r.shell);
+    expect(short.runs[0].none).toBe("no verdict: " + before + "v".repeat(200 - before.length) + "… (cut: 200 of 201 characters; --whole prints all)");
+    expect([short.summary.none, short.code, whole.code]).toEqual([1, 2, 2]);
   } finally { r.stop(); }
 }, 60000);
 

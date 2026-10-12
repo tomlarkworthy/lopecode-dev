@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// verify-run.ts WORKER [--times N] [--shell FILE] [--base NAME|URL] [--timeout SECONDS]
+// verify-run.ts WORKER [--times N] [--shell FILE] [--base NAME|URL] [--timeout SECONDS] [--whole]
 //
 // Opens the address the deployer opens to verify a deploy of WORKER (brain-deployer.ojs, verifyDeploy), N times,
 // in a local headless Chrome, and reads the verdict brain-shell leaves at window.__brainVerdict. It reads only.
@@ -18,6 +18,12 @@
 //                Worker runs. The start line's `mains` is the list, or null.
 // --base         cb4 (the default, or BRAIN_BASE), or a whole address.
 // --timeout      how long one run waits for a verdict, 150 s by default.
+// --whole        print every text whole. Without it a failed test's message is cut at 160 characters in a run's line and
+//                at 200 in the summary's count by test, a page error at 160 and why a run had no verdict at 200, and
+//                a text that was cut ends "… (cut: 160 of 300 characters; --whole prints all)" (cut.ts). It takes no
+//                value. A failed test's message reaches the tool from brain-shell, which keeps its first 300
+//                characters and marks nothing (brain-shell.ojs, `message: String(…).slice(0, 300)`): the mark's
+//                second number is the length of what the tool received, and --whole prints that, 300 at most.
 // CHROME=path    another Chrome than Playwright's own. With none, and Playwright's own build not installed, the
 //                newest chromium_headless_shell-N beside where it would be is used; the start line names the version.
 //
@@ -38,6 +44,7 @@ import { readFileSync } from "node:fs";
 import { chromeFor as sharedChromeFor } from "../lib/playwright-chrome.js";
 import { findSpan } from "../lib/notebook-blocks.ts";
 import { verifyShell, VERIFY_MAINS } from "./verify-shell.ts";
+import { cut } from "./cut.ts";
 
 export const SHELL = "@tomlarkworthy/brain-shell";
 export const FIXTURE = /^@test\//;
@@ -58,15 +65,18 @@ export type Run = {
   variables?: number | null;
 };
 
-export const usage = "verify-run.ts WORKER [--times N] [--shell FILE] [--base NAME|URL] [--timeout SECONDS]";
+export const usage = "verify-run.ts WORKER [--times N] [--shell FILE] [--base NAME|URL] [--timeout SECONDS] [--whole]";
 
 export function parseArgs(argv: string[], env: Record<string, string | undefined> = {}) {
-  const out = { worker: "", times: 1, shell: null as string | null, base: env.BRAIN_BASE || "cb4", timeout: 150 };
+  const out = { worker: "", times: 1, shell: null as string | null, base: env.BRAIN_BASE || "cb4", timeout: 150, whole: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i], eq = a.indexOf("=");
     const flag = a.startsWith("--") ? (eq > 0 ? a.slice(2, eq) : a.slice(2)) : null;
     const value = () => (eq > 0 ? a.slice(eq + 1) : argv[++i]);
-    if (flag === "times" || flag === "timeout") {
+    if (flag === "whole") {
+      if (eq > 0) throw new Error("--whole takes no value");
+      out.whole = true;
+    } else if (flag === "times" || flag === "timeout") {
       const n = Number(value());
       if (!Number.isInteger(n) || n < 1) throw new Error(`--${flag} takes a whole number above 0`);
       out[flag] = n;
@@ -109,8 +119,8 @@ const median = (xs: (number | null | undefined)[]) => {
 };
 
 // What N runs say. A test is compared with itself on one hash only: a deploy between two runs is other code.
-// expect: "document" when --shell's file holds the module.
-export function judge(runs: Run[], { module, expect = null }: { module: string; expect?: "document" | null }) {
+// expect: "document" when --shell's file holds the module. whole: a failed test's message is not cut at 200.
+export function judge(runs: Run[], { module, expect = null, whole = false }: { module: string; expect?: "document" | null; whole?: boolean }) {
   const tests = new Map<string, { hash: string; name: string; passed: number; failed: number; message: string }>();
   const other: Record<string, number> = {};
   let passed = 0, failed = 0, none = 0;
@@ -121,7 +131,7 @@ export function judge(runs: Run[], { module, expect = null }: { module: string; 
     for (const name of new Set([...(r.names || []), ...bad.keys()])) {
       const key = hash + " " + name;
       const t = tests.get(key) || { hash: hash.slice(0, 12), name, passed: 0, failed: 0, message: "" };
-      if (bad.has(name)) { t.failed++; t.message ||= bad.get(name)!.replace(/\s+/g, " ").slice(0, 200); } else t.passed++;
+      if (bad.has(name)) { t.failed++; t.message ||= cut(bad.get(name)!.replace(/\s+/g, " "), 200, whole); } else t.passed++;
       tests.set(key, t);
     }
     for (const [m, n] of Object.entries(r.ran || {})) if (m !== module && m !== SHELL && !FIXTURE.test(m)) other[m] = Math.max(other[m] || 0, n);
@@ -182,7 +192,7 @@ export const chromeFor = (own: string, env: Record<string, string | undefined> =
 async function main() {
   let args;
   try { args = parseArgs(process.argv.slice(2), process.env); } catch (e: any) { console.error(`${e.message}\n${usage}`); process.exit(64); }
-  const { worker, times, shell, base, timeout } = args;
+  const { worker, times, shell, base, timeout, whole } = args;
   const { module, hash } = await moduleOf(base, worker);
   const { body, mains } = shell ? shellDocument(readFileSync(shell, "utf8"), module) : { body: null, mains: null };
   const address = runAddress(base, module, worker);
@@ -194,7 +204,7 @@ async function main() {
     for (let i = 0; i < times; i++) {
       const context = await browser.newContext(), page = await context.newPage();
       const errors: string[] = [];
-      page.on("pageerror", (e) => errors.push(String(e).slice(0, 160)));
+      page.on("pageerror", (e) => errors.push(cut(String(e), 160, whole)));
       const seen = await routes(page, base, body, !!mains);
       const t0 = Date.now();
       let run: Run;
@@ -204,17 +214,17 @@ async function main() {
         const v = got.verdict;
         run = { hash: v.hash ?? null, ok: v.ok, none: v.none, names: got.names, failed: (v.failed || []).map((f: any) => ({ name: String(f.name), message: String(f.message || "") })), ran: got.ran, from: got.from ?? null, ...(mains ? { refused: seen.refused } : {}), otherTestsRan: v.otherTestsRan ?? null, ms: v.ms ?? null, wall: Date.now() - t0, heapMB: got.heapMB ?? null, variables: got.variables ?? null };
       } catch (e: any) {
-        run = { none: "no verdict: " + String(e.message || e).split("\n")[0].slice(0, 200), wall: Date.now() - t0 };
+        run = { none: "no verdict: " + cut(String(e.message || e).split("\n")[0], 200, whole), wall: Date.now() - t0 };
       }
       runs.push(run);
       const { names, failed, hash: h, ...rest } = run;
-      console.log(JSON.stringify({ run: i + 1, hash: h ? String(h).slice(0, 12) : h, ...rest, tests: names?.length, failed: (failed || []).map((f) => f.name + ": " + String(f.message).replace(/\s+/g, " ").slice(0, 160)), ...(errors.length ? { errors: errors.slice(0, 3) } : {}) }));
+      console.log(JSON.stringify({ run: i + 1, hash: h ? String(h).slice(0, 12) : h, ...rest, tests: names?.length, failed: (failed || []).map((f) => f.name + ": " + cut(String(f.message).replace(/\s+/g, " "), 160, whole)), ...(errors.length ? { errors: errors.slice(0, 3) } : {}) }));
       await context.close();
     }
   } finally {
     await browser.close();
   }
-  const summary = judge(runs, { module, expect: mains ? "document" : null });
+  const summary = judge(runs, { module, expect: mains ? "document" : null, whole });
   console.log(JSON.stringify({ worker, ...summary, at: new Date().toISOString() }));
   process.exit(summary.exit);
 }

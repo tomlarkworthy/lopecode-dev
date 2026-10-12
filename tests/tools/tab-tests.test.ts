@@ -4,11 +4,13 @@
 //   bun test ./tests/tools/tab-tests.test.ts          # from the repo root, with the ./
 // No browser is launched: the in-page functions are run here against a real @observablehq/runtime.
 import { expect } from "bun:test";
-import { readFileSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, existsSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { testNeeding } from "./needs.ts";
 import { parseArgs, address, ready, runTests, emitCell, report } from "../../tools/cloud-brain/tab-tests.ts";
 import { wakesOf } from "../../tools/cloud-brain/channel-wakes.ts";
+import { cut } from "../../tools/cloud-brain/cut.ts";
 
 // tools/node_modules is not in git. In a checkout without it (a plain `git worktree add`) every test here is skipped,
 // with one line, and the runtime is not imported. Issue plain-worktree-tab-tests-no-node-modules.
@@ -87,6 +89,63 @@ test("an emit is the service cell's record as text; a cell that is not there thr
   await expect(emitCell({ module: M, cell: "nope_service" })).rejects.toThrow(/nope_service/);
 });
 
+// Issue ac-1-local-tools-mark-a-cut. The three texts the tool cut with no mark: a failed test's message at 400, a
+// page error at 160, and the first line of why a cell did not emit at 300.
+test("a failed test's message of 400 characters is as it was; one of 401 is cut and says so; whole: as it was", async () => {
+  const at = "m".repeat(400), over = at + "X";
+  const rt: any = new Runtime({});
+  const mod = rt.module();
+  mod.variable().define("test_at", [], () => { throw new Error(at); });
+  mod.variable().define("test_over", [], () => { throw new Error(over); });
+  rt.mains = new Map([[M, mod]]);
+  (globalThis as any).window = { __ojs_runtime: rt };
+  const [, bad] = await runTests({ module: M, ms: 2000 });
+  expect(bad.sort()).toEqual(["test_at " + at, "test_over " + at + "… (cut: 400 of 401 characters; --whole prints all)"]);
+  // The expression is written out in runTests, which runs in the page where cut.ts is not in scope: the two texts are held equal.
+  expect(bad[1]).toBe("test_over " + cut(over, 400));
+  const [, all] = await runTests({ module: M, ms: 2000, whole: true });
+  expect(all.sort()).toEqual(["test_at " + at, "test_over " + over]);
+});
+
+// A page of the shape runTests and emitCell read, with no notebook: one test, a service cell whose emit throws, and
+// an error nothing catches. The tool is run on it in a headless Chrome.
+const fake = ({ test: message, emit, error }: { test?: string; emit: string; error: string }) => `<!doctype html><script>
+  const mod = { value: async () => ({ emit: async () => { throw new Error(${JSON.stringify(emit)}); } }) };
+  window.__ojs_runtime = { mains: new Map([["${M}", mod]]), _variables: new Set([{ _name: "test_a", _module: mod }]),
+    module: () => ({ variable: (o) => ({ import() { return this; }, define() { o && (${JSON.stringify(message ?? null)} == null ? o.fulfilled(1) : o.rejected(new Error(${JSON.stringify(message ?? null)}))); return this; } }) }) };
+</scr` + `ipt><script>throw new Error(${JSON.stringify(error)});</scr` + `ipt>`;
+const tool = resolve(import.meta.dir, "../../tools/cloud-brain/tab-tests.ts");
+const onPage = async (html: string, ...flags: string[]) => {
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "tab-tests-cut-")));
+  writeFileSync(join(dir, "nb.html"), html);
+  const p = Bun.spawn(["bun", tool, join(dir, "nb.html"), M, "--emit", `w_service=${join(dir, "w.json")}`, ...flags], { stdout: "pipe", stderr: "pipe" });
+  const [out, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
+  if (!out.trim()) throw new Error(`tab-tests.ts printed no line, exit ${code}: ${err.slice(0, 2000)}`);
+  return { code, line: JSON.parse(out.trim()), written: existsSync(join(dir, "w.json")) };
+};
+
+test("in a browser: a failed test's message one over 400 and a page error one over 160 are cut and say so; --whole prints each whole", async () => {
+  const message = "m".repeat(400) + "X", error = "p".repeat(153) + "X"; // a page error is printed as "Error: " and its message: 161
+  const html = fake({ test: message, emit: "not asked", error });
+  const short = await onPage(html);
+  expect(short.line.failed).toEqual(["test_a " + "m".repeat(400) + "… (cut: 400 of 401 characters; --whole prints all)"]);
+  expect(short.line.errors).toEqual(["Error: " + "p".repeat(153) + "… (cut: 160 of 161 characters; --whole prints all)"]);
+  expect([short.code, short.line.notEmitted, short.written]).toEqual([1, ["w_service a test failed"], false]);
+  const whole = await onPage(html, "--whole");
+  expect([whole.line.failed, whole.line.errors, whole.code]).toEqual([["test_a " + message], ["Error: " + error], 1]);
+}, 60000);
+
+test("in a browser: the first line of why a cell did not emit, one over 300, is cut and says so; --whole prints it whole", async () => {
+  // What Playwright puts before the page's message, as the tool printed it on 2026-10-12. With another, the --whole text below names it.
+  const before = "evaluate: Error: ", emit = "e".repeat(300 - before.length) + "X\nits second line";
+  const html = fake({ emit, error: "short" });
+  const whole = await onPage(html, "--whole");
+  expect([whole.line.notEmitted, whole.line.errors, whole.code, whole.written]).toEqual([["w_service " + before + emit.split("\n")[0]], ["Error: short"], 2, false]);
+  const short = await onPage(html);
+  expect(short.line.notEmitted).toEqual(["w_service " + before + "e".repeat(300 - before.length) + "… (cut: 300 of 301 characters; --whole prints all)"]);
+  expect([short.line.passed, short.line.failed, short.code]).toEqual([1, [], 2]);
+}, 60000);
+
 test("the exit: 1 for a failed test, 2 for an emit not written with the tests passed, 0 otherwise", () => {
   const e = [{ cell: "w_service", file: "/x.json", hash: "abc", bytes: 9 }];
   expect(report(["test_a", "test_b"], [], e, [])).toEqual({ tests: 2, passed: 2, failed: [], emitted: e, notEmitted: [], exit: 0 });
@@ -97,10 +156,14 @@ test("the exit: 1 for a failed test, 2 for an emit not written with the tests pa
 });
 
 test("the arguments: a notebook, one module by its whole name, --emit CELL=FILE any number of times", () => {
-  expect(parseArgs(["nb.html", M])).toEqual({ notebook: "nb.html", module: M, emit: [], timeout: 90, boot: 120 });
+  expect(parseArgs(["nb.html", M])).toEqual({ notebook: "nb.html", module: M, emit: [], timeout: 90, boot: 120, whole: false });
   expect(parseArgs(["nb.html", M, "--emit", "a_service=/x/a=b.json", "--emit=b_service=b.json", "--timeout", "5", "--boot=7"])).toEqual({
-    notebook: "nb.html", module: M, emit: [{ cell: "a_service", file: "/x/a=b.json" }, { cell: "b_service", file: "b.json" }], timeout: 5, boot: 7,
+    notebook: "nb.html", module: M, emit: [{ cell: "a_service", file: "/x/a=b.json" }, { cell: "b_service", file: "b.json" }], timeout: 5, boot: 7, whole: false,
   });
+  // --whole takes no value: what follows it is still the next argument.
+  expect(parseArgs(["--whole", "nb.html", M])).toMatchObject({ notebook: "nb.html", module: M, whole: true });
+  expect(parseArgs(["nb.html", "--whole", M, "--timeout", "5"])).toMatchObject({ notebook: "nb.html", module: M, timeout: 5, whole: true });
+  expect(() => parseArgs(["nb.html", M, "--whole=1"])).toThrow("--whole takes no value");
   for (const bad of [[], ["nb.html"], ["nb.html", M, "@t/x"], ["nb.html", "brain-static"], ["nb.html", M, "--emit", "a_service"], ["nb.html", M, "--emit", "=x.json"], ["nb.html", M, "--emit", "a_service="], ["nb.html", M, "--emit"], ["nb.html", M, "--timeout", "0"], ["nb.html", M, "--timeout", "1.5"], ["nb.html", M, "--cc", "LOPE"]])
     expect(() => parseArgs(bad)).toThrow();
 });

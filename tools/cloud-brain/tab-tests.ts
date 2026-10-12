@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// tab-tests.ts NOTEBOOK MODULE [--emit CELL=FILE]… [--timeout SECONDS] [--boot SECONDS]
+// tab-tests.ts NOTEBOOK MODULE [--emit CELL=FILE]… [--timeout SECONDS] [--boot SECONDS] [--whole]
 //
 // Opens a built notebook in a local headless Chrome, runs every test_ cell of MODULE there, and writes what a
 // service cell emits to a file. It is the browser run of a writer of the issue loop (implementer.md, steps 8
@@ -15,6 +15,9 @@
 //            written when a test failed (a record of a failing build is not left where apply reads) or the emit throws.
 // --timeout  how long one test may take, 90 s by default.
 // --boot     how long the page may take to define the module, 120 s by default.
+// --whole    print every text whole. Without it a failed test's message is cut at 400 characters, a page error at 160
+//            and the first line of why a cell did not emit at 300, and a text that was cut ends
+//            "… (cut: 400 of 1421 characters; --whole prints all)" (cut.ts). It takes no value.
 //
 // The tests are read as the paired snippet read them: each test_ cell is imported into a module of the tool's
 // own and observed there, so the value is that of the page's first run, made while the other test cells compute,
@@ -31,17 +34,21 @@ import { existsSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromeFor } from "../lib/playwright-chrome.js";
+import { cut } from "./cut.ts";
 
-export const usage = "tab-tests.ts NOTEBOOK MODULE [--emit CELL=FILE]… [--timeout SECONDS] [--boot SECONDS]";
+export const usage = "tab-tests.ts NOTEBOOK MODULE [--emit CELL=FILE]… [--timeout SECONDS] [--boot SECONDS] [--whole]";
 
 export function parseArgs(argv: string[]) {
-  const out = { notebook: "", module: "", emit: [] as { cell: string; file: string }[], timeout: 90, boot: 120 };
+  const out = { notebook: "", module: "", emit: [] as { cell: string; file: string }[], timeout: 90, boot: 120, whole: false };
   const rest: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i], eq = a.indexOf("=");
     const flag = a.startsWith("--") ? (eq > 0 ? a.slice(2, eq) : a.slice(2)) : null;
     const value = () => (eq > 0 ? a.slice(eq + 1) : argv[++i]);
-    if (flag === "timeout" || flag === "boot") {
+    if (flag === "whole") {
+      if (eq > 0) throw new Error("--whole takes no value");
+      out.whole = true;
+    } else if (flag === "timeout" || flag === "boot") {
       const n = Number(value());
       if (!Number.isInteger(n) || n < 1) throw new Error(`--${flag} takes a whole number above 0`);
       out[flag] = n;
@@ -72,7 +79,9 @@ export const ready = (module: string) => {
 };
 
 // In the page: every test_ cell of the module, observed from a module of its own. [names, bad].
-export const runTests = async ({ module, ms }: { module: string; ms: number }) => {
+// A message over 400 characters is cut as cut.ts cuts one, which is not in scope in the page: the expression is written out here.
+export const runTests = async ({ module, ms, whole = false }: { module: string; ms: number; whole?: boolean }) => {
+  const cut = (text: string, n: number) => (whole || text.length <= n ? text : `${text.slice(0, n)}… (cut: ${n} of ${text.length} characters; --whole prints all)`);
   const rt = (window as any).__ojs_runtime, mod = rt.mains.get(module);
   const names: string[] = [...rt._variables].filter((v: any) => v._module === mod && v._name && v._name.startsWith("test_")).map((v: any) => v._name);
   const side = rt.module(), bad: string[] = [];
@@ -82,7 +91,7 @@ export const runTests = async ({ module, ms }: { module: string; ms: number }) =
     const verdict = (message?: string) => { if (done) return; done = true; clearTimeout(t); if (message != null) bad.push(n + " " + message); res(); };
     const t = setTimeout(() => verdict("TIMEOUT"), ms);
     side.variable().import(n, "s_" + n, mod);
-    side.variable({ fulfilled: () => verdict(), rejected: (e: any) => verdict(String((e && e.message) || e).slice(0, 400)) }).define(null, ["s_" + n], (x: any) => x);
+    side.variable({ fulfilled: () => verdict(), rejected: (e: any) => verdict(cut(String((e && e.message) || e), 400)) }).define(null, ["s_" + n], (x: any) => x);
   })));
   return [names, bad] as [string[], string[]];
 };
@@ -102,18 +111,18 @@ export function report(names: string[], bad: string[], emitted: { cell: string; 
 async function main() {
   let args;
   try { args = parseArgs(process.argv.slice(2)); } catch (e: any) { console.error(`${e.message}\n${usage}`); process.exit(64); }
-  const { notebook, module, emit, timeout, boot } = args;
+  const { notebook, module, emit, timeout, boot, whole } = args;
   if (!existsSync(notebook)) throw new Error(`no file ${notebook}`);
   const { chromium } = await import("playwright");
   const browser = await chromium.launch({ headless: true, executablePath: chromeFor(chromium.executablePath(), process.env, { headless: true }) });
   const t0 = Date.now(), errors: string[] = [];
   try {
     const page = await (await browser.newContext()).newPage();
-    page.on("pageerror", (e) => errors.push(String(e).slice(0, 160)));
+    page.on("pageerror", (e) => errors.push(cut(String(e), 160, whole)));
     await page.goto(address(notebook, module), { waitUntil: "load" });
     try { await page.waitForFunction(ready, module, { timeout: boot * 1000 }); }
     catch { throw new Error(`${module} was not defined with a test_ cell in ${boot} s; it is named as in the notebook's boot list`); }
-    const [names, bad] = await page.evaluate(runTests, { module, ms: timeout * 1000 });
+    const [names, bad] = await page.evaluate(runTests, { module, ms: timeout * 1000, whole });
     const emitted = [], notEmitted: string[] = [];
     for (const { cell, file } of emit) {
       if (bad.length) { notEmitted.push(cell + " a test failed"); continue; }
@@ -121,7 +130,7 @@ async function main() {
         const text = await page.evaluate(emitCell, { module, cell });
         writeFileSync(file, text);
         emitted.push({ cell, file: resolve(file), hash: JSON.parse(text)?.hash ?? null, bytes: Buffer.byteLength(text) });
-      } catch (e: any) { notEmitted.push(cell + " " + String((e && e.message) || e).split("\n")[0].slice(0, 300)); }
+      } catch (e: any) { notEmitted.push(cell + " " + cut(String((e && e.message) || e).split("\n")[0], 300, whole)); }
     }
     const { exit, ...line } = report(names, bad, emitted, notEmitted);
     console.log(JSON.stringify({ notebook: resolve(notebook), module, ...line, errors: errors.slice(0, 3), browser: browser.version(), ms: Date.now() - t0 }));
