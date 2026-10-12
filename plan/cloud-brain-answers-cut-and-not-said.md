@@ -362,7 +362,8 @@ the file: an offset into one is not an offset into the other, and the line does 
 `The whole is the file <file> in this Brain's brain-static: static.get?path=<file>`; `tools/cloud-brain/records/sd-1-doc-files.md`.)
 
 For the three files of `cloud-brain-dev` the whole is named as the file and its repository
-(`philosophy.md` of `<the submodule's url>`), since no address gives it.
+(`philosophy.md` of `<the submodule's url>`), since no address gives it. (Until `sd-1-doc-files`, 2026-10-12: since it
+they are named as any doc is, by the file the Brain keeps, `docs/cloud-brain-dev/philosophy.md`.)
 
 `status` and `put` count them: the last line of each gains `cut`, the docs whose text was cut, and
 `status` gains `unmarked`, the cut docs whose entry does not end with the line the tool would put.
