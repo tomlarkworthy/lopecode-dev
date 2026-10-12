@@ -189,3 +189,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   `18d8c32c`): FIX, 11 findings (7 confirmed, 4 plausible), all taken. 129,699 subagent tokens, 6m54s. What the author had not seen: an overseer is on
   no issue and so could not have the event the design reads for "which agents run"; the rows that start an agent did not say that none runs on the
   issue already; and the event that records a run named the pid of a process not yet started.
+- 2026-10-12 `plan/cloud-brain-orchestrator-as-steps.md` (round 2 of that spec, the diff since `1904d03d`, draft `eb4784e0`): FIX, 10 findings and 4
+  smaller, all taken. 118,280 subagent tokens, 4m28s. What the author had not seen: the bound on writers started again counted runs the view keeps
+  one of a role and round; a second resume of one token in one round had the first one's key; and an issue labeled `needs-owner` at `in-progress`
+  stays in the queue, so the row that reads the owner's answer never took it.
