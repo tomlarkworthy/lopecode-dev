@@ -657,7 +657,14 @@ a session did on the owner's word, is sent after the push and after the lock is 
 (`<worker>@<hash>`) for each thing put on cb4; and it has its record first, as above. (Submit 1042
 named another issue's HEAD, sent while the lock was held; reviews 1032 and 1052 of
 `dv-4-owner-install-and-shell` each sent back a submit with no deploy ref, the first with no
-record.) The review is a reviewer's as for any issue.
+record.) It has a test count from a run of your own too, as a writer's submit has (`rules.md`, Never, the last
+item): a change to a doc alone, your edit of `philosophy.md` on the standing leave among them, gets a test file
+under `tests/tools` that reads the doc and fails on the text of before, and the submit gives the count and the
+command. (Review 4830 sent `philosophy-one-role-for-one-job` back for this alone: your submit 4814 said "No
+deploy, no test run (prose in one file", the text was right, and the round cost a second review and the bug
+`philosophy-test-no-skip-without-clone` of the test written for round 2, which failed where `cloud-brain-dev` is
+empty: a test that reads a file of the submodule skips there, with a `skipped:` line.)
+The review is a reviewer's as for any issue.
 Anything in a seed goes to a writer. A writer does the same for what it meets beside its issue
 (`agents/implementer.md`, "A quick win"); a reviewer does not (it would be the writer).
 
