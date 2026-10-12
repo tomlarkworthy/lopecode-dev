@@ -33,18 +33,22 @@ const built = new Map<string, Promise<string>>();
 // "RequireError: invalid module" between tests, and the file that asked for a second seed registered no test
 // (cost-events.test.ts with rows-add-within-sql.test.ts, 2026-10-12).
 let compiling: Promise<any> | null = null, last: Promise<any> = Promise.resolve();
-export const seedModule = (seed: string): Promise<string> => {
-  if (!built.has(seed)) built.set(seed, (last = last.catch(() => {}).then(async () => {
+// Where a checkout's modules are written: one directory a checkout, written over by each run, so a run leaves nothing new behind it.
+export const SEEDS = join(tmpdir(), "seed-module-" + createHash("sha1").update(ROOT).digest("hex").slice(0, 12));
+export const seedModule = (seed: string, into = SEEDS): Promise<string> => {
+  const key = `${into}\n${seed}`;
+  if (!built.has(key)) built.set(key, (last = last.catch(() => {}).then(async () => {
     const { compiler, moduleSource, splitSeed } = await import(resolve(ROOT, "tools/spec-notebook.ts"));
     const { compile } = await (compiling ??= compiler());
-    // One directory a checkout, written over by each run: a run leaves nothing new behind it.
-    const dir = join(tmpdir(), "seed-module-" + createHash("sha1").update(ROOT).digest("hex").slice(0, 12)), file = join(dir, seed.replace(/\.ojs$/, ".js"));
+    // A directory of its own for each seed. bun 1.4.0 does not find, by import(), a file written into a directory after
+    // it imported another file of that directory (issue rows-add-within-sql-fails-once-in-suite).
+    const name = seed.replace(/\.ojs$/, ""), dir = join(into, name), file = join(dir, name + ".js");
     mkdirSync(dir, { recursive: true });
     writeFileSync(`${file}.${process.pid}`, moduleSource(splitSeed(readFileSync(resolve(ROOT, "tools/cloud-brain", seed), "utf8")), compile));
     renameSync(`${file}.${process.pid}`, file);
     return file;
   })));
-  return built.get(seed)!;
+  return built.get(key)!;
 };
 
 // `test` and the built module's path. With no toolchain notebook to compile with: test.skip and a line. Any other failure is thrown.

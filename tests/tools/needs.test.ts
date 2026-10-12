@@ -6,8 +6,10 @@
 //   bun test ./tests/tools/needs.test.ts
 // The four files are run as they are, each pointed at a place that has nothing.
 import { test, expect } from "bun:test";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { BUILT, COMMITTED, notebookOf, seedModule, testNeedingSeed } from "./needs.ts";
 
 const here = import.meta.dir;
@@ -75,6 +77,24 @@ test("a module is compiled from the seed of this checkout, once, into a file tha
   const fields = readFileSync(resolve(here, "../../tools/cloud-brain/brain-issues.ojs"), "utf8").match(/ cost: \[("[a-z]+"(, )?)+\]/)![0];
   expect(readFileSync(file, "utf8")).toContain(fields);
   expect((await testNeedingSeed("needs.test.ts", "brain-issues.ojs")).module).toBe(file);
+}, 60000);
+
+// Issue rows-add-within-sql-fails-once-in-suite: in the first run of the suite in a checkout, cost-events.test.ts imported
+// brain-issues.js, cloudflare-iac.js was then written beside it, and every test of rows-add-within-sql.test.ts failed with
+// "Cannot find module". A directory that is new to this process is that first run.
+test("a second seed, compiled after the first seed's module was imported, is found by import()", async () => {
+  const into = mkdtempSync(join(tmpdir(), "seed-module-test-"));
+  try {
+    const first = await seedModule("xrpc-client.ojs", into);
+    expect(first.startsWith(into)).toBe(true);
+    expect(typeof (await import(pathToFileURL(first).href)).default).toBe("function");
+    const second = await seedModule("brain-operator.ojs", into);
+    expect(typeof (await import(pathToFileURL(second).href)).default).toBe("function");
+    expect(dirname(second)).not.toBe(dirname(first));
+    expect(await seedModule("xrpc-client.ojs", into)).toBe(first);
+  } finally {
+    rmSync(into, { recursive: true, force: true });
+  }
 }, 60000);
 
 test("with no toolchain notebook the tests of a seed are skipped with a line, and any other failure of the build is thrown", async () => {

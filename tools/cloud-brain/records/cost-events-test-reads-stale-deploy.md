@@ -43,6 +43,7 @@ The second row is the test that fails without the fix.
   the checkout the test is in, with `compiler`, `splitSeed` and `moduleSource` of
   `tools/spec-notebook.ts` (the three `build.ts` compiles a module with), writes the module to
   `<temp directory>/seed-module-<12 hex of the checkout's path>/<seed>.js` and answers the path.
+  (As built, `rows-add-within-sql-fails-once-in-suite`, 2026-10-12: `…/<seed>/<seed>.js`, a directory for each seed; the record.)
   One compile a seed a process: the promise is kept. `testNeedingSeed(file, seed)` answers
   `{ test, module }`. When the compile fails for want of the toolchain notebook (the message of
   `compiler()` that begins `no @tomlarkworthy_observablejs-toolchain.html`) it prints a `skipped:`
