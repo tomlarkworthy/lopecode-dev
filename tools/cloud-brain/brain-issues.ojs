@@ -43,7 +43,7 @@ md`## Methods
 | \`issue.attachment\` | query. \`?id=&name=\`. \`{ id, name, mimeType, size, sha256, seq, text }\` when the bytes are UTF-8, else \`base64\` in place of \`text\`. Read by whoever reads the issue; 404 \`NotFound\` for anyone else, as for a name the issue lacks. The answer is JSON whatever was attached, so no attachment is opened as a page of this Brain. The bytes are hashed again before they are answered: 500 \`BytesChanged\` when they are not the ones the record names, 404 \`BytesNotKept\` when the bucket has none. |
 | \`issue.cost\` | procedure. What one run of an agent on the issue cost, as an event of type \`cost\` (since 2026-10-12; the design is \`plan/cloud-brain-run-cost-is-part-of-the-issue-model.md\`). \`{ key, id, role, round, how, outcome, seconds, context, tools, event, of, agent, session, token, usage, usd, backfilled }\`. Required: \`role\` and \`outcome\`, each a name, \`a-z 0-9 -\`, 30 at most; \`round\`, a whole number, 1 to 1000; \`how\`: \`fresh\`, \`resumed\`, \`light\` (spawned; sent to an agent that was there; run by \`agent.sh\`); \`seconds\` and \`context\` (the size of the run's last request, in tokens), whole numbers, 0 or more. Optional: \`tools\`, a whole number, 0 or more; \`event\` (the submit or the review the run made) and \`of\` (the comment the run was first written as), each the seq of an event before this one; \`agent\`, \`session\` and \`token\`, text of 1 to 100 characters; \`usage\`, all of \`{ input, cacheWrite, cacheRead, output, requests, advisor: { calls, input, output } }\`, whole numbers, and nothing else; \`usd\`, a number, 0 or more: what the process reported of itself; \`backfilled\`, \`true\`. A field that is missing, of another type (\`null\` is one) or not in this list is 400 \`InvalidRequest\` naming it, before the issue is looked for, and nothing is written; an \`event\` or \`of\` past the record's head is 403 \`Refused\`. A run is an issue, a \`role\` and a \`round\`. The issue lists one for each, in the order of their events: \`runs: [{ …the fields sent, seq, at }]\` in \`issue.get\`, \`issue.list\` and \`issue.snapshot\`; an issue with no \`cost\` event has no \`runs\`. A second event for a role and round the issue has takes that run's place, whole, and the service writes \`replaced\`, the seq of the event it replaces, into the new one: the usage of a run written without one, or a corrected number, is the same call again with every field, under another key. Both events stay in the record. The event moves the issue's \`seq\` and leaves its \`updated_at\`. Not checked: that \`event\` or \`of\` is an event of this issue, that \`round\` is the next, that a number is true, that a second event for a run was meant. Guard: the workflow's \`cost\`, and \`label\` where a workflow has none. |
 | \`issue.review\` | procedure. \`{ key, id, verdict, body, refs }\`. \`verdict\`: \`pass\`, \`changes\`, \`block\`. What each does is the policy's: in the default, \`changes\` and \`block\` both let the issue be sent back, and a \`block\` also stops a pass until it is. |
-| \`issue.move\` | procedure. \`{ key, id, to, reason, refs }\`. \`to\` is a state. Approval and revert are moves. |
+| \`issue.move\` | procedure. \`{ key, id, to, reason, refs }\`. \`to\` is a state. Approval and revert are moves. A move the service makes itself is under "A move made by the service". |
 | \`issue.swap\` | procedure. \`{ key, id, swap, reason }\`: a swap the issue's workflow lists. \`{ key, id, workflow, state, reason }\`: any other, the owner present. |
 | \`issue.narrow\` | procedure. \`{ key, id, move, guard, reason }\` adds a guard to one move of one issue. \`{ key, id, remove, reason }\` removes guard number \`remove\`, the owner present. |
 | \`issue.install\` | procedure, the owner present. \`{ key, policy, migrate, reason }\`. \`reason\`, required, text of 1 to 2000 characters, is kept in the policy event: who asked for the install and why. It is read back as \`policy.reason\` of \`issue.policy\` and \`issue.snapshot\` while that policy is in force, and in the policy event that \`issue.sync\` answers. Without one the answer is 400 and nothing is written. The default policy has none, nor has an install from before one was required (on cb4, the deploy of 2026-10-10 16:10 CEST); for those \`policy\` has no \`reason\`. \`migrate\`: \`{ HASH: { workflow, states: { old: new } } }\` moves the open issues of workflow \`HASH\`, each with its own event, keyed \`policy/<seq>/<id>\`. \`HASH\` is a workflow hash the record keeps (\`issue.policy\` answers those in force); anything else is 400 before the policy is written, and so is a \`states\` that names a state \`HASH\` lacks or maps one to something that is not a state of \`workflow\`, whether or not an issue is in it, and an entry with no \`workflow\`. An issue already on the workflow and in the state it would land in gets no event and is in neither list. With the view lost the answer is 503 \`ViewLost\`. A \`migrate\` that names a workflow the policy lacks, or would land an issue in a state its new workflow lacks, is refused with 400 before the policy is written. The issues are read again once the policy is written, and each again before its own event: one opened on \`HASH\` meanwhile is moved, and one closed or moved meanwhile is left where it is. \`{ seq, hashes, moved, left, relinked, unlinked }\`; \`left\` is \`[{ id, why }]\` of those not moved, empty when all were. A \`migrate\` under a policy that changes a \`read\` guard moves two linked issues one after the other, and the first swap drops their link (\`issue.link\`). After each swap the install writes again, as a link event keyed \`policy/<seq>/link/<n>\` and judged as any \`issue.link\` of the caller's, each link its swaps dropped whose two issues are now read by one rule: \`relinked\`, \`[{ id, rel, to }]\`. One that stays dropped is in \`unlinked\`, \`[{ id, rel, to, why }]\` with the refusal: its other issue is closed (a closed issue is not moved), was left, or is on a workflow read by another rule. Both are empty when the policy changes no \`read\` guard. The \`key\` is looked up before anything else in the body is read. One that a policy event holds, sent with the same policy, answers that event with \`duplicate: true\`, \`moved: []\`, \`left: []\`, \`relinked: []\`, \`unlinked: []\` and the \`reason\` that was kept, and moves nothing. The \`reason\` sent with it is not read: one that is missing is not answered 400, and one that differs is not written. A migration cut short is finished by the owner's own swaps. Sent with another policy it is 400, and so is a \`key\` another kind of event holds. |
@@ -64,7 +64,9 @@ md`## Methods
 | Storage | \`sql\`: \`issues_events\` (the record), \`issues_view\`, \`issues_meta\` (the policy and every workflow by hash); \`issues_locks\` (a row for each name ever taken) and \`issues_lock_history\`, made at the first call of \`issue.lock\` or \`issue.locks\` and read by no other method. \`blobs\`: \`a/HASH\`, the bytes of each attachment, once for the same bytes on two issues. \`issue.rebuild\` does not read them, and nothing deletes them. |
 | Secret | \`ISSUES_SIGNING_KEY\`: an ECDSA P-256 private key as a JWK. Without it a write, \`issue.verify\` and \`issue.key\` answer 503 \`NotConfigured\`; the other queries answer. |
 
-Every write takes a \`key\`. A key is kept once: a second write with it answers \`duplicate: true\`, with the first event when the same actor wrote it and with \`{ id, seq }\` alone for anyone else. A write answers \`{ id, seq, event }\`. A key that starts \`policy/\` is the service's own (the default policy's, and each swap of a migration) and is refused with 400.
+Every write takes a \`key\`. A key is kept once: a second write with it answers \`duplicate: true\`, with the first event when the same actor wrote it and with \`{ id, seq }\` alone for anyone else. A write answers \`{ id, seq, event }\`. A key that starts \`policy/\` is the service's own (the default policy's, and each swap of a migration) and is refused with 400. So is one that starts \`auto/\` (a move made by the service).
+
+**A move made by the service** (since 2026-10-12; \`plan/cloud-brain-bookkeeping-in-the-tracker.md\`, part 4). After a write of any type but a policy, the service looks at up to three issues: the issue of the event, what it was part of before the event, and what it is part of after. For each, when its workflow has a move named \`finish\` from the state it is in, and the policy lets the caller of this call make that move, the service writes the move in the same call: \`key\` is \`auto/<seq of the event that caused it>/<id>\`, \`by\` is this call's caller, \`reason\` is \`no part holds it after event <seq>\`, and the event has \`auto: <seq>\`, which is in its hash. So a project at \`building\` is \`done\` in the call that ended its last part, or took it off, and \`issue.by.finish\` is then whoever made that call. The write's answer has \`auto: [{ id, seq, move }]\` beside \`event\` when a move was made, the move that one caused among them (a project that was the last part of another; 20 deep at most, \`issuesLimits.autoDepth\`). The guard is asked twice, with that reason and with none, and both must pass: a \`finish\` whose guard wants a reason (the example policy below) is somebody's to decide and is not made by the service. A caller the guard refuses makes none, and neither does a write answered \`duplicate\`. A follow-on that is refused or fails changes nothing of the write that caused it and is not in its answer; the issue stays where it was and the move is still made by hand, or at the next event. \`issue.verify?guards=true\` judges the event as any move of that caller: that it was allowed, not that it was due. A caller's \`auto\` in the body of \`issue.move\` is not read. A task opened as a part of a project that is already \`done\` is opened and worked as any other, and the project stays \`done\`: the default workflow has no move out of it.
 
 **The signing key** is made by the owner, once, outside the Worker: \`crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"])\`, the private key exported as a JWK, stored with \`secret.put\`, and let to this Worker alone with \`secret.setRule { name: "ISSUES_SIGNING_KEY", allow: 'caller.worker == "brain-x-issues"' }\`. Without the rule the Worker reads nothing and answers 503 (cb4, 2026-10-10). A refused act answers 403 \`Refused\` with the guard that refused it.
 
@@ -129,7 +131,7 @@ That is the cell \`issuesExamplePolicy\`, and \`issue.install\` takes it as it i
 | \`issue.by\` | a map: the name of a move → the actor who last made it. \`issue.by.start\` is the implementer in the default workflow. A move not made yet is an error, so the guard refuses. |
 | \`issue.reviews\` | \`[{ actor, verdict }]\` since the issue came into its state |
 | \`issue.links\` | \`[{ rel, to }]\`: what this issue says of others. Its parent is \`issue.parent\`. |
-| \`issue.children.total\`, \`.open\` | issues whose \`parent\` this is, and those not in a closed state |
+| \`issue.children.total\`, \`.open\`, \`.work\` | issues whose \`parent\` this is; those not in a closed state; and of those, the ones not on the workflow the policy in force names for the kind \`feedback\` (since 2026-10-12: an open note does not hold a project) |
 | \`event.to\`, \`.rel\`, \`.reason\`, \`.refs\`, \`.refKinds\`, \`.verdict\`, \`.add\`, \`.remove\` | the act asked for |
 
 Every fact is in the record, so \`issue.verify?guards=true\` can judge every event again.
@@ -156,7 +158,7 @@ Moves of \`task\` beside the straight path, each with a reason:
 | \`close\` | open, triaged, ready, in-progress → closed | Ended with no change of its own: answered, a duplicate, gathered into a project, overtaken. \`rejected\` is for what is not real or will not be done. |
 | \`reopen\` | closed, rejected → open | The evidence a reject asked for arrived. An issue the owner present has ever rejected (\`owner-reject\`, the name of any reject by the owner present) is opened again by the owner present only, for as long as it exists: \`issue.by\` keeps the name. |
 
-A \`project\`: \`spec\` (someone takes it, with a reason), \`submit-spec\` by that actor with a ref to the spec, a \`pass\` review by another actor and \`to-approval\`, \`approve\` by the owner present (or \`send-back\` with a reason), \`decompose\` once it has an open part, \`finish\` when none is open, \`close\` with a reason from \`open\`, \`spec\`, \`approved\` or \`building\`. A \`changes\` or \`block\` review lets it be sent back to \`spec\` (\`respec\`).
+A \`project\`: \`spec\` (someone takes it, with a reason), \`submit-spec\` by that actor with a ref to the spec, a \`pass\` review by another actor and \`to-approval\`, \`approve\` by the owner present (or \`send-back\` with a reason), \`decompose\` once it has an open part that is not feedback, \`finish\` when it has none (\`issue.children.work\`; until 2026-10-12 both read \`.open\`, and a Brain whose policy was installed before then reads that until the owner installs this one; the service makes \`finish\` itself, "A move made by the service"), \`close\` with a reason from \`open\`, \`spec\`, \`approved\` or \`building\`. A \`changes\` or \`block\` review lets it be sent back to \`spec\` (\`respec\`).
 
 Who may triage, label and narrow: the owner or a token; taking the label \`major\` off is the owner present. A reviewer and whoever passes the issue is not the implementer, and nobody passes it while a review says \`block\`. A guard added to one move of an issue does not stop another move to the same state: the owner's \`owner-reject\` goes ahead whatever is added to \`reject\`. \`approve\`, \`revert\` and a reject from any state that is not closed are the owner present. The guards are the cell \`issuesDefaultPolicy\`.`
 // %%
@@ -248,7 +250,7 @@ issues_announce = {
   return "announced issues_service";
 }
 // %%
-issuesLimits = ({ rels: ["part-of", "duplicate", "cause", "related", "after"], afterWalk: 50, body: 20000, title: 300, reason: 2000, key: 100, refs: 20, labels: 20, attachment: 1048576, attachments: 20, policy: 100000, page: 500, syncMs: 5000, syncPage: 200, rebuildRounds: 5, verdicts: ["pass", "changes", "block"], lockName: 40, lockWho: 64, lockMin: 5, lockMax: 1800, lockSeconds: 600, lockHistory: 500, hows: ["fresh", "resumed", "light"], role: 30, outcome: 30, rounds: 1000, costText: 100, cost: ["role", "round", "how", "outcome", "seconds", "context", "tools", "event", "of", "agent", "session", "token", "usage", "usd", "backfilled"] })
+issuesLimits = ({ rels: ["part-of", "duplicate", "cause", "related", "after"], afterWalk: 50, auto: ["finish"], autoDepth: 20, body: 20000, title: 300, reason: 2000, key: 100, refs: 20, labels: 20, attachment: 1048576, attachments: 20, policy: 100000, page: 500, syncMs: 5000, syncPage: 200, rebuildRounds: 5, verdicts: ["pass", "changes", "block"], lockName: 40, lockWho: 64, lockMin: 5, lockMax: 1800, lockSeconds: 600, lockHistory: 500, hows: ["fresh", "resumed", "light"], role: 30, outcome: 30, rounds: 1000, costText: 100, cost: ["role", "round", "how", "outcome", "seconds", "context", "tools", "event", "of", "agent", "session", "token", "usage", "usd", "backfilled"] })
 // %%
 // The guards of a Brain that has installed no policy. Written 2026-10-10 from the state table of plan/cloud-brain-issues.md.
 issuesDefaultPolicy = {
@@ -286,7 +288,8 @@ issuesDefaultPolicy = {
   ];
   const closed = ["done", "closed", "rejected", "reverted"];
   // A project: issues are gathered into it (issue.link, part-of) while it is open; then a spec, its review, the owner's
-  // approval, tasks opened as its parts, and done when none of them is open.
+  // approval, tasks opened as its parts, and done when none of them is open. An open part that is feedback is not
+  // counted (issue.children.work): the note is closed once what it is tied to is done.
   const writer = "caller.actor != issue.by.spec";
   const specLive = ["open", "spec", "spec-review", "awaiting-approval", "approved", "building"];
   const project = {
@@ -300,8 +303,8 @@ issuesDefaultPolicy = {
       { name: "to-approval", from: "spec-review", to: "awaiting-approval", guard: `issue.reviews.exists(r, r.verdict == "pass" && r.actor != issue.by.spec) && !issue.reviews.exists(r, r.verdict == "block") && ${writer}` },
       { name: "approve", from: "awaiting-approval", to: "approved", guard: "caller.present" },
       { name: "send-back", from: "awaiting-approval", to: "spec", guard: 'caller.present && event.reason != ""' },
-      { name: "decompose", from: "approved", to: "building", guard: `${triage} && issue.children.open > 0` },
-      { name: "finish", from: "building", to: "done", guard: `${triage} && issue.children.open == 0` },
+      { name: "decompose", from: "approved", to: "building", guard: `${triage} && issue.children.work > 0` },
+      { name: "finish", from: "building", to: "done", guard: `${triage} && issue.children.work == 0` },
       // Also once approved: a spec with nothing to build, or a build given up.
       { name: "close", from: ["open", "spec", "approved", "building"], to: "closed", guard: said },
       { name: "reject", from: ["open", "spec"], to: "rejected", guard: said },
@@ -715,7 +718,9 @@ issueAllowed = (view, by, act) => {
   if (!view.policy) return no("no policy is installed");
   const facts = (i) => {
     const kids = Object.values(view.issues).filter((k) => k.parent === i.id);
-    return { id: i.id, kind: i.kind, about: i.about, state: i.state, labels: i.labels, parent: i.parent || "", opener: i.opener, major: i.labels.includes("major"), by: i.by, reviews: i.reviews, links: i.links || [], children: { total: kids.length, open: kids.filter((k) => !k.closed).length } };
+    // work: the open parts that are not on the workflow the policy in force names for feedback. A note does not hold a project.
+    const notes = issueAt(view.policy.names, issueAt(view.policy.kinds, "feedback"));
+    return { id: i.id, kind: i.kind, about: i.about, state: i.state, labels: i.labels, parent: i.parent || "", opener: i.opener, major: i.labels.includes("major"), by: i.by, reviews: i.reviews, links: i.links || [], children: { total: kids.length, open: kids.filter((k) => !k.closed).length, work: kids.filter((k) => !k.closed && k.workflow !== notes).length } };
   };
   const refs = act.refs || [];
   const event = { type: act.type, rel: act.rel || "", to: typeof act.to === "string" ? act.to : "", reason: act.reason || "", refs, refKinds: refs.map((r) => r.kind), verdict: act.verdict || "", add: act.add || [], remove: Array.isArray(act.remove) ? act.remove : [] };
@@ -814,7 +819,7 @@ issueEvent = (view, act, verdict) => {
   // replaced: the seq of the run this one takes the place of, read from the view as a move's from is.
   if (act.type === "cost") return { type: "cost", ...base, ...Object.fromEntries(issuesLimits.cost.filter((k) => act[k] !== undefined).map((k) => [k, act[k]])), ...(issueRunOf(i, act) ? { replaced: issueRunOf(i, act).seq } : {}) };
   if (act.type === "review") return { type: "reviewed", ...base, verdict: act.verdict, body: act.body || "", refs };
-  if (act.type === "move") return { type: "moved", ...base, move: verdict.name, from: i.state, to: act.to, reason, refs };
+  if (act.type === "move") return { type: "moved", ...base, move: verdict.name, from: i.state, to: act.to, reason, refs, ...(act.auto ? { auto: act.auto } : {}) };
   if (act.type === "swap") return { type: "swapped", ...base, swap: verdict.name, from: { workflow: i.workflow, state: i.state }, to: verdict.to, reason, ...(act.policy ? { policy: act.policy } : {}) };
   return act.remove != null ? { type: "narrowed", ...base, remove: act.remove, reason } : { type: "narrowed", ...base, move: act.move, guard: act.guard, reason };
 }
@@ -1041,7 +1046,7 @@ issuesApp = {
     if (!verdict.allow) throw refuse(verdict.missing ? 404 : 403, verdict.missing ? "NotFound" : "Refused", verdict.why);
     return [act, verdict];
   };
-  const append = async (ctx, key, given) => {
+  const write = async (ctx, key, given) => {
     if (typeof key !== "string" || !key || key.length > L.key) throw refuse(400, "InvalidRequest", `key: text, ${L.key} characters at most`);
     const sign = await signer();
     for (let attempt = 0; ; attempt++) {
@@ -1067,23 +1072,52 @@ issuesApp = {
         // Judged first against the default as it would stand: a write it refuses leaves the record empty.
         const first = await issuePolicyAct(issuesDefaultPolicy);
         judge(issueApply(issueView(), { seq: 1, hash: "", type: "policy", policy: first.policy, hashes: first.hashes }), ctx.by, given);
-        await append({ by: { caller: "worker:brain-x-issues", via: "" }, origin: ctx.origin, ray: ctx.ray }, "policy/default", first);
+        await write({ by: { caller: "worker:brain-x-issues", via: "" }, origin: ctx.origin, ray: ctx.ray }, "policy/default", first);
         continue;
       }
       const seq = view.seq + 1, [act, verdict] = judge(view, ctx.by, given);
       const e = { seq, key, ...issueEvent(view, act, verdict), by: ctx.by, origin: ctx.origin, ray: ctx.ray, at: Date.now(), prev: view.head };
       e.hash = await sha256(issueCanon(e));
       e.sig = await sign.sign(e.hash);
+      // What the issue was part of before this event, for the follow-on of append.
+      const was = (issueAt(view.issues, e.id) || {}).parent || null;
       issueApply(view, e);
       try {
         await sql.batch([[S.insert, seq, key, e.id || null, e.type, e.at, e.hash, JSON.stringify(e)], ...(e.type === "policy" ? metaRows(view) : [issueRow(view.issues[e.id]), ...(e.type === "linked" && e.rel !== "part-of" && issueAt(view.issues, e.to) ? [issueRow(view.issues[e.to])] : []), ...ends.filter((id) => issueAt(view.issues, id)).map((id) => issueRow(view.issues[id]))])]);
-        return { event: e };
+        return { event: e, was, due: e.type !== "policy" && autoFrom(view, view.issues[e.id]).length > 0 };
       } catch (err) {
         // Another writer took this seq, or this key: go round again. Anything else is an error.
         const head = (await sql.exec(S.head)).rows[0];
         if (attempt >= 5 || ((head ? head.seq : 0) < seq && !(await sql.exec(S.byKey, key)).rows[0])) throw err;
       }
     }
+  };
+  // The states a move the service makes itself (issuesLimits.auto) would take this issue to, by its workflow.
+  const autoFrom = (view, i) => [...new Set((((i && issueAt(view.workflows, i.workflow)) || {}).moves || []).filter((m) => L.auto.includes(m.name) && (m.from === "*" || [].concat(m.from).includes(i.state))).map((m) => m.to))];
+  // One event more, and after it the moves the service makes itself: for the issue of the event, what it was part of
+  // before the event and what it is part of after, a move named in issuesLimits.auto that the workflow has from the
+  // issue's state and that the policy lets this call's caller make is written in the same call, as that caller, with
+  // `auto`, the seq of the event that caused it. So a project is done in the call that ended its last part. Each is
+  // read again from the view the first write left. A follow-on that is refused or fails leaves the first write as it
+  // was written and is not said: the issue stays where it was, and the move is still anyone's to make.
+  const append = async (ctx, key, given, depth = 0) => {
+    const r = await write(ctx, key, given), e = r.event, auto = [];
+    if (r.duplicate || e.type === "policy" || depth >= L.autoDepth) return r;
+    const now = e.type === "opened" ? e.parent : e.type === "linked" && e.rel === "part-of" ? (e.remove ? null : e.to) : r.was;
+    for (const id of [...new Set([r.due ? e.id : null, r.was, now])].filter(Boolean)) {
+      try {
+        const view = await load([S.near, id, ""]);
+        for (const to of autoFrom(view, issueAt(view.issues, id))) {
+          const act = { type: "move", id, to, reason: `no part holds it after event ${e.seq}`, refs: [], auto: e.seq };
+          // Asked with no reason too: a move whose guard wants one is somebody's to decide, and the service has none.
+          if (![act, { ...act, reason: "" }].every((a) => L.auto.includes(issueAllowed(view, ctx.by, a).name))) continue;
+          const made = await append(ctx, `auto/${e.seq}/${id}`, act, depth + 1);
+          if (!made.duplicate) auto.push({ id, seq: made.event.seq, move: made.event.move }, ...(made.auto || []));
+          break;
+        }
+      } catch (err) {}
+    }
+    return { ...r, auto };
   };
   const run = (fn) => async (c) => {
     try {
@@ -1094,9 +1128,10 @@ issuesApp = {
     }
   };
   // Keys under policy/ are the service's own: the default policy's, and each swap of a migration. A caller who took
-  // one ahead of an install would hold that issue out of it.
-  const callerKey = (key) => (typeof key === "string" && key.startsWith("policy/") ? Promise.reject(refuse(400, "InvalidRequest", "key: policy/ is the service's own")) : key);
-  const wrote = (r) => ({ id: r.event.id, seq: r.event.seq, ...(r.duplicate ? { duplicate: true } : {}), ...(r.duplicate && !r.mine ? {} : { event: r.event }) });
+  // one ahead of an install would hold that issue out of it. So are keys under auto/: a caller who took one would hold
+  // a project back from the finish the service makes.
+  const callerKey = (key) => ((own) => (own ? Promise.reject(refuse(400, "InvalidRequest", `key: ${own} is the service's own`)) : key))(typeof key === "string" && ["policy/", "auto/"].find((p) => key.startsWith(p)));
+  const wrote = (r) => ({ id: r.event.id, seq: r.event.seq, ...(r.duplicate ? { duplicate: true } : {}), ...(r.duplicate && !r.mine ? {} : { event: r.event }), ...(r.auto && r.auto.length ? { auto: r.auto } : {}) });
   for (const type of ["open", "comment", "label", "link", "cost", "review", "move", "swap", "narrow"])
     app.post(NS + type, run(async (c, b) => wrote(await append(who(c), await callerKey(b && b.key), issueAct(type, b)))));
   // The bytes are kept under their hash and the event names the hash. They are kept before the event is written, so
@@ -2077,7 +2112,8 @@ test_issues_links_parts_and_the_moves_that_end_a_trap = {
   // A part taken off again: the call the record lacked when a follow-up opened as a child held its parent (event 296 on cb4).
   expect((await rig.a("link", { id: "t2", rel: "part-of", remove: true })).status).toBe(200);
   expect((await rig.a("link", { id: "t2", rel: "part-of", remove: true })).data.message).toBe("the issue is part of nothing");
-  expect((await rig.a("move", { id: "p1", to: "done" })).data.event.move).toBe("finish");
+  // With its last part taken off the project was finished by that call (test_issues_project_is_finished_by_the_service).
+  expect([(await rig.a("get?id=p1")).data.issue.state, (await rig.a("move", { id: "p1", to: "done" })).data.message]).toEqual(["done", "no move from done to done"]);
   // A project given up after its approval is closed, with a reason.
   await rig.a("open", { id: "p2", title: "Given up", kind: "project" });
   await rig.a("move", { id: "p2", to: "spec", reason: "one report" });
@@ -2112,6 +2148,167 @@ test_issues_links_parts_and_the_moves_that_end_a_trap = {
   expect((await rig.owner("get?id=f2")).data.issue).toEqual(before);
   expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: true, guards: true });
   return "links on both issues; parts set after opening and taken off; a project's path; start from open; back, close and reopen";
+}
+// %%
+// Part 4 and part 5 of plan/cloud-brain-bookkeeping-in-the-tracker.md: the finish the service makes, and the fact
+// issue.children.work. Every case is entered through a call of the service.
+test_issues_project_is_finished_by_the_service = {
+  const rig = await issuesRig(), ref = [{ kind: "commit", value: "abc" }];
+  const events = () => rig.db.events.map((e) => JSON.parse(e.event));
+  const state = async (id) => (await rig.owner("get?id=" + id)).data.issue.state;
+  const finishes = (id) => events().filter((e) => e.id === id && e.move === "finish");
+  const approved = async (id, more = {}) => {
+    await rig.a("open", { id, title: id, kind: "project", ...more });
+    await rig.a("move", { id, to: "spec", reason: "reports" });
+    await rig.a("move", { id, to: "spec-review", refs: ref });
+    await rig.b("review", { id, verdict: "pass" });
+    await rig.b("move", { id, to: "awaiting-approval" });
+    return rig.owner("move", { id, to: "approved" });
+  };
+  // A project at building with these tasks as its parts, each open.
+  const building = async (id, parts) => {
+    await approved(id);
+    for (const t of parts) await rig.a("open", { id: t, title: t, kind: "task", parent: id });
+    expect((await rig.a("move", { id, to: "building" })).status).toBe(200);
+  };
+  // A task taken to in-review by token a, with a pass review of `by`. The move to done is the test's.
+  const reviewed = async (id, by = rig.b) => {
+    await rig.a("move", { id, to: "triaged", reason: "real" });
+    await rig.a("move", { id, to: "ready" });
+    await rig.a("move", { id, to: "in-progress" });
+    await rig.a("move", { id, to: "in-review", refs: ref });
+    expect((await by("review", { id, verdict: "pass" })).status).toBe(200);
+  };
+  // 1. The call that ends the last part finishes the project, as that call's caller.
+  await building("p", ["t1", "t2"]);
+  await reviewed("t1");
+  const first = (await rig.b("move", { id: "t1", to: "done" })).data;
+  expect([first.event.move, first.auto, await state("p")]).toEqual(["pass", undefined, "building"]);
+  await reviewed("t2");
+  const last = (await rig.b("move", { key: "pass-t2", id: "t2", to: "done" })).data, s = last.seq;
+  expect([last.event.move, last.auto]).toEqual(["pass", [{ id: "p", seq: s + 1, move: "finish" }]]);
+  expect(finishes("p")).toEqual([expect.objectContaining({ seq: s + 1, key: `auto/${s}/p`, type: "moved", move: "finish", from: "building", to: "done", reason: `no part holds it after event ${s}`, refs: [], auto: s, by: last.event.by })]);
+  const p = (await rig.owner("get?id=p")).data.issue;
+  expect([p.state, p.closed, p.by.finish, p.last.move]).toEqual(["done", true, "token:b", "finish"]);
+  // auto is in the event's hash.
+  const row = rig.db.events.find((e) => e.seq === s + 1), kept = row.event;
+  row.event = kept.replace(`"auto":${s}`, `"auto":${s - 1}`);
+  expect(row.event).not.toBe(kept);
+  expect((await rig.owner("verify")).data).toMatchObject({ ok: false, seq: s + 1, why: "hash" });
+  row.event = kept;
+  // The same call sent again writes nothing, and the move by hand has nowhere to go from.
+  const again = (await rig.b("move", { key: "pass-t2", id: "t2", to: "done" })).data;
+  expect([again.duplicate, again.auto, finishes("p").length]).toEqual([true, undefined, 1]);
+  expect((await rig.a("move", { id: "p", to: "done" })).data.message).toBe("no move from done to done");
+  // The keys under auto/ are the service's, and a caller's auto is not read.
+  expect((await rig.a("comment", { key: "auto/5/p", id: "t1", body: "claim" })).data).toEqual({ error: "InvalidRequest", message: "key: auto/ is the service's own" });
+  await rig.a("open", { id: "z", title: "z", kind: "task" });
+  expect("auto" in (await rig.a("move", { id: "z", to: "triaged", reason: "real", auto: 3 })).data.event).toBe(false);
+  // 2. A late task: opened as a part of the project that is done. It is worked as any other; the project stays done.
+  expect((await rig.a("open", { id: "t9", title: "late", kind: "task", parent: "p" })).status).toBe(200);
+  expect((await rig.a("move", { id: "p", to: "building" })).data.message).toBe("no move from done to building");
+  await reviewed("t9");
+  const late = (await rig.b("move", { id: "t9", to: "done" })).data;
+  expect([late.event.move, late.auto, await state("p"), finishes("p").length]).toEqual(["pass", undefined, "done", 1]);
+  expect((await rig.a("get?id=p")).data.children.map((k) => [k.id, k.state])).toEqual([["t1", "done"], ["t2", "done"], ["t9", "done"]]);
+  // 3. A caller the guard of finish refuses makes none: a member passes the last part, a Worker comments on it. Then
+  // the first event of the part by a caller the guard lets finishes the project.
+  await building("q", ["u1"]);
+  await reviewed("u1", rig.member);
+  const byMember = (await rig.member("move", { key: "pass-u1", id: "u1", to: "done" })).data;
+  expect([byMember.event.move, byMember.auto, await state("q")]).toEqual(["pass", undefined, "building"]);
+  // A write answered duplicate is no event: token a, who may finish, sends the member's key and nothing is made.
+  expect([(await rig.a("move", { key: "pass-u1", id: "u1", to: "done" })).data, await state("q")]).toEqual([{ id: "u1", seq: byMember.seq, duplicate: true }, "building"]);
+  expect([(await rig.worker("comment", { id: "u1", body: "seen" })).data.auto, await state("q")]).toEqual([undefined, "building"]);
+  const said = (await rig.a("comment", { id: "u1", body: "seen" })).data;
+  expect([said.auto, finishes("q").map((e) => [e.key, e.auto, e.by.caller])]).toEqual([[{ id: "q", seq: said.seq + 1, move: "finish" }], [[`auto/${said.seq}/q`, said.seq, "token:a"]]]);
+  // An event of the project itself does the same.
+  await building("q2", ["u2"]);
+  await reviewed("u2", rig.member);
+  await rig.member("move", { id: "u2", to: "done" });
+  const own = (await rig.a("comment", { id: "q2", body: "is it done?" })).data;
+  expect([await state("q2"), own.auto]).toEqual(["done", [{ id: "q2", seq: own.seq + 1, move: "finish" }]]);
+  // 4. The last part taken off, and the last part made part of another project: what it was part of is finished.
+  await building("r", ["v1"]);
+  await building("r2", ["v2", "v3"]);
+  const off = (await rig.a("link", { id: "v1", rel: "part-of", remove: true })).data;
+  expect([off.auto, await state("r")]).toEqual([[{ id: "r", seq: off.seq + 1, move: "finish" }], "done"]);
+  await rig.a("link", { id: "v3", rel: "part-of", remove: true });
+  const over = (await rig.a("link", { id: "v2", to: "q2", rel: "part-of" })).data;
+  expect([over.auto, await state("r2"), await state("q2")]).toEqual([[{ id: "r2", seq: over.seq + 1, move: "finish" }], "done", "done"]);
+  // 5. Feedback does not hold a project (issue.children.work). A project is not decomposed on feedback alone, a task
+  // with an open feedback part still waits for it (issue.children.open is as it was), and a project whose last task
+  // ends is done with the note open.
+  await approved("w");
+  await rig.a("open", { id: "wf", title: "a note", kind: "feedback", parent: "w" });
+  expect((await rig.a("move", { id: "w", to: "building" })).data.message).toBe("the guard of decompose refuses");
+  await rig.a("open", { id: "w1", title: "w1", kind: "task", parent: "w" });
+  expect((await rig.a("move", { id: "w", to: "building" })).status).toBe(200);
+  await rig.a("open", { id: "w1f", title: "a note on the task", kind: "feedback", parent: "w1" });
+  await rig.a("move", { id: "w1", to: "triaged", reason: "real" });
+  expect((await rig.a("move", { id: "w1", to: "ready" })).data.message).toBe("the guard of ready refuses");
+  await rig.a("move", { id: "w1f", to: "closed" });
+  await rig.a("move", { id: "w1", to: "ready" });
+  await rig.a("move", { id: "w1", to: "in-progress" });
+  await rig.a("move", { id: "w1", to: "in-review", refs: ref });
+  await rig.b("review", { id: "w1", verdict: "pass" });
+  const withNote = (await rig.b("move", { id: "w1", to: "done" })).data;
+  expect([withNote.auto, await state("w"), await state("wf")]).toEqual([[{ id: "w", seq: withNote.seq + 1, move: "finish" }], "done", "open"]);
+  // A note promoted to a task is work: it holds the project. A note opened as a part of a project that nothing holds
+  // is an event of a part, and finishes it.
+  await building("x", ["x1"]);
+  await rig.a("open", { id: "xf", title: "a note", kind: "feedback", parent: "x" });
+  expect((await rig.a("swap", { id: "xf", swap: "promote" })).status).toBe(200);
+  await reviewed("x1");
+  expect([(await rig.b("move", { id: "x1", to: "done" })).data.auto, await state("x")]).toEqual([undefined, "building"]);
+  expect((await rig.a("move", { id: "x", to: "done" })).data.message).toBe("the guard of finish refuses");
+  const shut = (await rig.a("move", { id: "xf", to: "closed", reason: "answered" })).data;
+  expect([shut.auto, await state("x")]).toEqual([[{ id: "x", seq: shut.seq + 1, move: "finish" }], "done"]);
+  await building("y", ["y1"]);
+  await reviewed("y1", rig.member);
+  await rig.member("move", { id: "y1", to: "done" });
+  // Not by the member's own note, and not by its key sent again by token a: a duplicate is no event.
+  const theirs = (await rig.member("open", { key: "note-y", id: "ym", title: "a member's note", kind: "feedback", parent: "y" })).data;
+  expect([theirs.auto, (await rig.a("open", { key: "note-y", id: "ym", title: "a member's note", kind: "feedback", parent: "y" })).data, await state("y")]).toEqual([undefined, { id: "ym", seq: theirs.seq, duplicate: true }, "building"]);
+  const noted = (await rig.a("open", { id: "yf", title: "a note", kind: "feedback", parent: "y" })).data;
+  expect([noted.auto, await state("y"), await state("yf")]).toEqual([[{ id: "y", seq: noted.seq + 1, move: "finish" }], "done", "open"]);
+  // 6. A project that is the last part of another: both are finished by the one call, the second caused by the first.
+  await approved("big");
+  await approved("small", { parent: "big" });
+  await rig.a("open", { id: "s1", title: "s1", kind: "task", parent: "small" });
+  await rig.a("move", { id: "small", to: "building" });
+  await rig.a("move", { id: "big", to: "building" });
+  await reviewed("s1");
+  const both = (await rig.b("move", { id: "s1", to: "done" })).data;
+  expect(both.auto).toEqual([{ id: "small", seq: both.seq + 1, move: "finish" }, { id: "big", seq: both.seq + 2, move: "finish" }]);
+  expect(finishes("big").map((e) => [e.key, e.auto])).toEqual([[`auto/${both.seq + 1}/big`, both.seq + 1]]);
+  // 7. The second write fails: the first stands and is answered, the project stays, and the next event of a part makes it.
+  await building("g", ["g1"]);
+  await reviewed("g1");
+  rig.db.hooks.push(() => {}, () => Promise.reject(new Error("the database is gone")));
+  const lost = await rig.b("move", { id: "g1", to: "done" });
+  expect([lost.status, lost.data.event.move, lost.data.auto, await state("g"), rig.db.hooks.length]).toEqual([200, "pass", undefined, "building", 0]);
+  const healed = (await rig.a("comment", { id: "g1", body: "seen" })).data;
+  expect([healed.auto, await state("g")]).toEqual([[{ id: "g", seq: healed.seq + 1, move: "finish" }], "done"]);
+  // Another writer finishes it by hand between the two writes: one finish, the writer's, and no error.
+  await building("h", ["h1"]);
+  await reviewed("h1");
+  rig.db.hooks.push(() => {}, async () => void expect((await rig.a("move", { id: "h", to: "done" })).status).toBe(200));
+  const raced = await rig.b("move", { id: "h1", to: "done" });
+  expect([raced.status, raced.data.auto, await state("h"), finishes("h").map((e) => [e.auto, e.by.caller])]).toEqual([200, undefined, "done", [[undefined, "token:a"]]]);
+  // 8. A finish whose guard wants a reason is not the service's: the example policy has one, from open.
+  const other = await issuesRig();
+  await other.owner("install", { policy: issuesExamplePolicy });
+  await other.a("open", { id: "e1", title: "e1", kind: "bug" });
+  await other.a("open", { id: "e2", title: "e2", kind: "bug", parent: "e1" });
+  const plain = (await other.a("comment", { id: "e2", body: "x" })).data;
+  expect([plain.auto, (await other.a("get?id=e1")).data.issue.state, (await other.a("move", { id: "e1", to: "done", reason: "said" })).data.event.move]).toEqual([undefined, "open", "finish"]);
+  // The record judged again, and the view made again from it.
+  const before = await Promise.all(["p", "q", "w", "big", "h"].map(async (id) => (await rig.owner("get?id=" + id)).data.issue));
+  expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: true, guards: true });
+  await rig.owner("rebuild", {});
+  expect(await Promise.all(["p", "q", "w", "big", "h"].map(async (id) => (await rig.owner("get?id=" + id)).data.issue))).toEqual(before);
+  return `${events().filter((e) => e.auto).length} finishes made by the service, each in the call that left nothing holding its project; none for a caller the guard refuses, a duplicate, or a finish that wants a reason`;
 }
 // %%
 test_issues_swaps_and_guards_of_one_issue = {
@@ -4415,7 +4612,9 @@ test_issues_flow_lead_of_a_project_and_of_feedback = {
   s.tbAgain = await seq(rig.a("move", { id: "tb", to: "in-review", refs: [deploy] }));
   await seq(rig.b("review", { id: "tb", verdict: "pass" }));
   s.tbDone = await seq(rig.b("move", { id: "tb", to: "done" }));
-  s.p1done = await seq(rig.a("move", { id: "p1", to: "done" }));
+  // The service finished the project in the call that ended part b.
+  s.p1done = s.tbDone + 1;
+  expect(JSON.parse(rig.db.events.find((e) => e.seq === s.p1done).event)).toMatchObject({ id: "p1", move: "finish", auto: s.tbDone });
   // A feature that nobody moved, with a part of a part that was deployed. The task between them has no deploy of its own.
   s.p2 = await seq(rig.a("open", { id: "p2", title: "Another", kind: "feature" }));
   await seq(rig.a("open", { id: "ua", title: "Part", kind: "task", parent: "p2" }));

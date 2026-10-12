@@ -337,6 +337,11 @@ When the second write fails (the Worker ends between the two, or six writers rac
 stays at `building`, and the queue lists it as `finish` at its next read. That entry is also how
 the projects that are due on the day of the deploy are finished: no event of theirs is coming.
 
+(As built, `bk-2-finish-by-the-service`, 2026-10-12: the service also looks at the issue of the event itself, which
+is what part 5 says of "the first event of `group-invites`"; it asks the guard with the reason above and with none,
+and makes the move only when both pass, so a `finish` that wants a reason is not made; a move it made is looked at
+in turn, 20 deep at most; the write's answer names what was made, `auto: [{ id, seq, move }]`; the record.)
+
 **Who wakes.** A follower that becomes free is a property of the read and needs no one awake. A
 finish needs the call that ended the last part and no session. The third "Not known" of the body
 (the session asleep, 53 minutes with no event) is mended for those two and for nothing else.

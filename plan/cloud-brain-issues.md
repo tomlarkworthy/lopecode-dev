@@ -404,7 +404,10 @@ approved. `spec` is taken by one actor with a reason;
 `to-approval`; `approve` is the owner present. `decompose` needs an open part and `finish` none. A gathered report that is still open is such a
 part, so the guards alone do not put the tasks before `building`: the orchestrator closes each
 report ("in the spec of P") and opens the tasks, in that order (`SKILL.md`). `finish` is what the
-guard holds until every part is closed. `close` leaves from `open`, `spec`, `approved` and `building`.
+guard holds until every part is closed. (As built, `bk-2-finish-by-the-service`, 2026-10-12: the service makes
+`finish` in the call that ends the last part, and the default policy's two guards read `issue.children.work`,
+which leaves open feedback out; cb4's policy reads `.open` until the owner installs it;
+`tools/cloud-brain/records/bk-2-finish-by-the-service.md`.) `close` leaves from `open`, `spec`, `approved` and `building`.
 The proposal of 2026-10-10 for the kind `feature` (`plan/cloud-brain-issues-feature-policy.json`,
 never installed) is this workflow without the gathering and is removed.
 
