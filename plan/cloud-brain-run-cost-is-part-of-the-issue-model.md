@@ -305,6 +305,11 @@ In `issuesPanel`: `said(e)` gets a line for the type, `implementer round 2, resu
 advisor 2 calls`, with `replaces 1203` when it does. The open issue gets one line of totals under
 its links, from the row. Today a `cost` event would draw as its type and nothing after it
 (`said` falls to `e.body || ""`, line 1278).
+(As built, `cm-6-panel-draws-a-run`, 2026-10-12: a run sent with no `usage` reads `no usage` where
+the sums are; the advisor's calls are left out at 0; `$N` follows when the run reported a `usd`. The
+totals line is `cost 3 runs · 1,820 s · 2 with a usage: in …, written …, read …, out …, 58 requests ·
+advisor 4 calls · $0.3 of 2 runs`, and an issue with no run has none. In the block "For your
+attention" a `cost` event is passed over where the last event is shown; the record.)
 
 `brain-feedback.ojs` needs no change of code. `lastOf` (line 65) takes an event only when `said(e)`
 is not empty, and `said` (line 63) is `e.body || e.reason || …` with a text for `linked` and
