@@ -15,8 +15,9 @@ alone. `rules.md` is not changed.
 
 ## What was done
 
-Built at `main` `e24b06e4` (the three commits `main` gained before the install change `brain.ts`
-alone, no seed).
+Built at `main` `e24b06e4` (the three commits `main` gained before the install change no seed: of
+what a deploy runs `brain.ts` alone, the role `appr` of `agent-token`, and beside it `approver.ts`,
+`issue-stats.ts`, three tests, a plan and a record).
 
 | Step | At | What | Result |
 |---|---|---|---|
