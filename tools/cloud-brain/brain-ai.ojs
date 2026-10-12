@@ -1,6 +1,6 @@
 md`# brain-ai
 
-Open models for a Cloud Brain, from [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/). One call runs one model one time. The body goes to Cloudflare as the caller wrote it, but for one field, \`max_tokens\`, of a text model priced by the token (see The price), and at the \`ai.v1\` address a second, \`max_completion_tokens\`, which is taken out and written as \`max_tokens\` (see An OpenAI client). The answer comes back as Cloudflare gave it: JSON, bytes, or a stream of server-sent events. The service keeps nothing: no conversation, no loop, no tool calls of its own. A model name is Cloudflare's, and the list of models is Cloudflare's own list.
+Open models for a Cloud Brain, from [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/). One call runs one model one time, or since 2026-10-12 converts the caller's files to Markdown (\`ai.tomarkdown\`, below). The body of a model's call goes to Cloudflare as the caller wrote it, but for one field, \`max_tokens\`, of a text model priced by the token (see The price), and at the \`ai.v1\` address a second, \`max_completion_tokens\`, which is taken out and written as \`max_tokens\` (see An OpenAI client). The answer comes back as Cloudflare gave it: JSON, bytes, or a stream of server-sent events. The service keeps nothing: no conversation, no loop, no tool calls of its own. A model name is Cloudflare's, and the list of models is Cloudflare's own list.
 
 Built and deployed to cb4 on 2026-10-09. The Workers AI documents were read that day; what was measured is in \`aiMeasured\`. Through the Brain a call took about 60 ms more than at Cloudflare's own address (${aiMeasured.latency}).`
 // %%
@@ -13,8 +13,10 @@ md`## Methods
 | Worker | \`brain-x-ai\` |
 | \`ai.run\` | procedure, with a price (the two \`ai.v1\` procedures are the others). \`?model=&usd=\` in the query string, and the body is the model's input as [Cloudflare documents it for that model](https://developers.cloudflare.com/workers-ai/models/): \`{ "messages": [...] }\`, \`{ "prompt": "…" }\`, \`{ "text": ["…"] }\`, with \`"stream": true\` for server-sent events. \`usd\` is what the call costs the caller, in US dollars, and the most Cloudflare may be made to spend on it. The answer is Cloudflare's, with its status, and two headers more: \`x-ai-neurons\`, when Cloudflare gave the count, and \`x-ai-usd\`, that count at Cloudflare's rate. |
 | \`ai.models\` | query. Cloudflare's [model search](https://developers.cloudflare.com/api/resources/ai/subresources/models/methods/list/) with the caller's query string: \`?search=&task=&per_page=&page=\`. Each model has \`name\`, \`task\`, \`description\` and \`properties\`, where \`price\` is Cloudflare's price. |
+| \`ai.tomarkdown\` | procedure, with a price. \`?usd=\` in the query string, and the body is the multipart body of Cloudflare's [Markdown conversion](https://developers.cloudflare.com/workers-ai/features/markdown-conversion/usage/rest-api/): a part \`files\` for each file and, when wanted, a part \`conversionOptions\`. The body and its \`content-type\` are sent as they came and are not parsed. The answer is Cloudflare's, with its status. Added 2026-10-12 (see A conversion to Markdown). |
+| \`ai.tomarkdown/supported\` | query. Cloudflare's list of the formats it converts. Nothing of the caller's query string is sent. |
 | \`ai.v1/chat/completions\`, \`ai.v1/embeddings\`, \`ai.v1/models\` | the same models at an address an OpenAI client can be given (see An OpenAI client). Added 2026-10-10. |
-| Storage | none. One log line a priced call, a refused one too: \`at\` (\`"ai.run"\`, \`"ai.v1/chat/completions"\`, \`"ai.v1/embeddings"\`), \`model\`, \`usd\`, \`neurons\`, \`status\`, and \`error\` when this service refused. |
+| Storage | none. One log line a priced call, a refused one too: \`at\` (\`"ai.run"\`, \`"ai.v1/chat/completions"\`, \`"ai.v1/embeddings"\`), \`model\`, \`usd\`, \`neurons\`, \`status\`, and \`error\` when this service refused. A conversion's line has \`at: "ai.tomarkdown"\`, no \`model\`, and \`bytes\`, the size of the body, when it was sent to Cloudflare. |
 
 \`\`\`js
 await client.procedure("ai.run", { messages: [{ role: "user", content: "Say hi." }] }, { params: { model: "@cf/meta/llama-3.2-1b-instruct", usd: 0.0001 } })
@@ -28,6 +30,23 @@ curl -N -X POST -H "Authorization: Bearer $BRAIN_TOKEN" -H "content-type: applic
 \`\`\`
 
 A refusal of this service is JSON \`{ error, message }\`: 400 \`InvalidRequest\`, 404 \`UnknownModel\`, 402 \`BudgetTooSmall\` with \`needs\`, 413 \`TooLarge\`, 502 \`ModelListUnavailable\` when Cloudflare's model list did not answer. Anything else is Cloudflare's answer, a 413 of its own among them.`
+// %%
+md`## A conversion to Markdown
+
+\`\`\`
+curl -X POST -H "Authorization: Bearer $BRAIN_TOKEN" \\
+  "https://HOST/xrpc/com.lopecode.brain.ai.tomarkdown?usd=0.01" \\
+  -F "files=@paper.pdf" -F 'conversionOptions={"pdf":{"metadata":false}}'
+// { "result": [{ "name": "paper.pdf", "mimeType": "application/pdf", "format": "markdown", "tokens": …, "data": "…" }], "success": true, … }
+\`\`\`
+
+The shape of the answer above is from Cloudflare's page as read on 2026-10-11, not from a run. What cb4 answered on the day the method was deployed is in \`tools/cloud-brain/records/tm-1-ai-tomarkdown-method.md\`.
+
+- **The body is the caller's.** The service reads it whole to count its bytes and sends them with the caller's \`content-type\`, boundary and all. A body that is not multipart, an empty one, and more than one file in a call are Cloudflare's to take or refuse.
+- **The price** is \`usd\`, and \`usd\` is at least \`flatUsd\` (${aiDefaults.flatUsd}), the floor of a model the service cannot bound (The price). Under it, or with no number, the answer is 402 \`BudgetTooSmall\` with \`needs\`. **This does not hold Cloudflare's cost under the charge**: the parts are not counted, and Cloudflare's page says the conversion of an image runs models that are billed. When Cloudflare gives \`cf-ai-neurons\` it is in the log line and in \`x-ai-neurons\` and \`x-ai-usd\`; whether it gives it for a conversion was not known when this was written.
+- **The size.** A body over \`markdownMaxBody\` (${aiDefaults.markdownMaxBody} bytes, the largest file \`brain-static\` keeps) is refused 413 \`TooLarge\` and not sent. \`maxBody\` does not count here. The largest body Cloudflare takes was not measured.
+- **\`ai.tomarkdown/supported\`** answers \`{ result: [{ extension, mimeType }] }\` as Cloudflare gives it, and has no price.
+- A token for it: \`token.create\` with \`methods: ["ai.tomarkdown", "ai.tomarkdown/supported"]\`.`
 // %%
 md`## An OpenAI client
 
@@ -66,6 +85,8 @@ The core charges a call before it forwards it, and what a model costs is known o
 
 **Any other model** (images, speech, a model with no price in the list). The service cannot bound it. \`usd\` must be at least ${aiDefaults.flatUsd}, and the body is passed on untouched.
 
+**A conversion** (\`ai.tomarkdown\`) has the same floor and is not bounded either (A conversion to Markdown).
+
 The error of this, in two parts.
 
 - **What the caller guessed.** \`usd\` is a ceiling and the whole of it is charged. Three runs with a \`usd\` picked by eye were charged 22 to 79 times what Cloudflare counted (\`aiMeasured.loose\`). A caller that sets \`max_tokens\` and a \`usd\` to match pays for the over-count of the input and for the output the model did not write: 1.03 to 1.21 times in three runs that wrote to the limit or near it, 7.5 times in one that stopped after 2 tokens of 20 (\`aiMeasured.tight\`).
@@ -73,11 +94,11 @@ The error of this, in two parts.
 
 Each run logs \`usd\` and \`neurons\`, so the two can be compared (\`logs.query\`; \`at\` is the method, \`ai.run\`, \`ai.v1/chat/completions\` or \`ai.v1/embeddings\`). A neuron is $0.000011. The header \`cf-ai-neurons\`, which \`x-ai-neurons\` repeats, is rounded to two places; \`usage.neurons\` in a text answer is not. Cloudflare gives the account 10 000 neurons a day at no charge; a caller is charged \`usd\` all the same.
 
-Settings, stored with \`config.set\` for \`brain-x-ai\`, read with no deploy: \`bytesPerToken\` (${aiDefaults.bytesPerToken}), \`templateTokens\` (${aiDefaults.templateTokens}), \`flatUsd\` (${aiDefaults.flatUsd}), \`maxBody\` (${aiDefaults.maxBody} bytes), \`maxTokens\` (${aiDefaults.maxTokens}). A setting counts when it is a number over 0, also one written as text; any other value is the default.`
+Settings, stored with \`config.set\` for \`brain-x-ai\`, read with no deploy: \`bytesPerToken\` (${aiDefaults.bytesPerToken}), \`templateTokens\` (${aiDefaults.templateTokens}), \`flatUsd\` (${aiDefaults.flatUsd}), \`maxBody\` (${aiDefaults.maxBody} bytes), \`maxTokens\` (${aiDefaults.maxTokens}), \`markdownMaxBody\` (${aiDefaults.markdownMaxBody} bytes, of a conversion alone). A setting counts when it is a number over 0, also one written as text; any other value is the default.`
 // %%
 md`## Who can call
 
-\`ai.run\`, \`ai.models\` and the three \`ai.v1\` methods, each on its own: the owner, a Worker of this Brain, and a token or a member the owner gave the method. The owner can set another rule (\`rule.put\`) or another price (\`price.put\`). **A price the owner puts must still be \`double(request.params.usd)\` or more**, and for an \`ai.v1\` procedure \`v1Usd\` or more when there is no \`usd\`. The core does not tell a Worker what it charged (it sets \`x-brain-price\` on the answer only, read in \`forward\` and \`priced\` of brain-core, 2026-10-09), so this service budgets from \`usd\` in the query string: with a price under \`usd\` a caller is charged less than Cloudflare may be made to spend. The most one call may cost is the core's (\`quota.setDefaults\`, \`perCall\`), and each account's spend for a day is the core's too.
+\`ai.run\`, \`ai.models\`, \`ai.tomarkdown\`, \`ai.tomarkdown/supported\` and the three \`ai.v1\` methods, each on its own: the owner, a Worker of this Brain, and a token or a member the owner gave the method. The owner can set another rule (\`rule.put\`) or another price (\`price.put\`). **A price the owner puts must still be \`double(request.params.usd)\` or more**, and for an \`ai.v1\` procedure \`v1Usd\` or more when there is no \`usd\`. The core does not tell a Worker what it charged (it sets \`x-brain-price\` on the answer only, read in \`forward\` and \`priced\` of brain-core, 2026-10-09), so this service budgets from \`usd\` in the query string: with a price under \`usd\` a caller is charged less than Cloudflare may be made to spend. The most one call may cost is the core's (\`quota.setDefaults\`, \`perCall\`), and each account's spend for a day is the core's too.
 
 ## The Cloudflare token
 
@@ -88,11 +109,11 @@ The \`AI\` binding of a Worker was not used. It needs no token, and it cannot li
 ## Limits
 
 - Cloudflare's [limits](https://developers.cloudflare.com/workers-ai/platform/limits/) are the account's: 300 text generations a minute, 3000 embeddings; the page read on 2026-10-10 gives 20 a minute for a model that needs the Workers Paid plan, and does not list which those are. An answer over one is passed on.
-- A body is ${aiDefaults.maxBody} bytes at most. It is read whole before it is sent, to count it. The answer is not read: it is streamed to the caller.
+- A body is ${aiDefaults.maxBody} bytes at most, and the body of a conversion ${aiDefaults.markdownMaxBody}. It is read whole before it is sent, to count it. The answer is not read: it is streamed to the caller.
 - \`max_tokens\` is the one field the service writes in a body, as The price says, and \`max_completion_tokens\` the one it takes out. A model that names its output limit otherwise is not bounded by it.
 - A model the list does not have is refused, also one Cloudflare would run.`
 // %%
-aiDefaults = ({ bytesPerToken: 3, templateTokens: 64, flatUsd: 0.01, maxBody: 1000000, maxTokens: 4096, v1Usd: 0.01, usdPerNeuron: 0.000011, modelMs: 600000 })
+aiDefaults = ({ bytesPerToken: 3, templateTokens: 64, flatUsd: 0.01, maxBody: 1000000, maxTokens: 4096, markdownMaxBody: 50000000, v1Usd: 0.01, usdPerNeuron: 0.000011, modelMs: 600000 })
 // %%
 // Measured on cb4, 2026-10-09. latency and stream are from tools/cloud-brain/rpc-performance.md; rounding and window from spec-as-built.md.
 aiMeasured = ({
@@ -230,8 +251,24 @@ ai_service = {
         // The list as an OpenAI client reads it: the id is Cloudflare's name.
         return new Response(JSON.stringify({ object: "list", data: ((await r.json()).result || []).map((m) => ({ id: m.name, object: "model", created: Math.floor(Date.parse(m.created_at) / 1000) || 0, owned_by: m.name.split("/")[1] || "" })) }), { headers: type });
       }
+      if (what === "tomarkdown/supported") {
+        const r = await cloudflareApi.fetch("/ai/tomarkdown/supported");
+        return new Response(r.body, { status: r.status, headers: { "content-type": r.headers.get("content-type") || "application/json" } });
+      }
+      if (what === "tomarkdown") {
+        // Cloudflare's conversion of files to Markdown. The multipart body is not parsed: the files, their count and the options are the caller's.
+        const usd = Number(url.searchParams.get("usd")), s = aiSettings({ flatUsd: config.flatUsd, markdownMaxBody: config.markdownMaxBody });
+        const said = (status, error, message, more = {}) => (log({ at: "ai.tomarkdown", usd, neurons: null, status, error }), json(status, error, message, more));
+        if (!(usd >= s.flatUsd)) return said(402, "BudgetTooSmall", `a conversion is not priced by the token: usd is at least ${s.flatUsd}`, { needs: s.flatUsd });
+        const bytes = new Uint8Array(await request.arrayBuffer());
+        if (bytes.byteLength > s.markdownMaxBody) return said(413, "TooLarge", `the body is ${bytes.byteLength} bytes, at most ${s.markdownMaxBody}`);
+        const r = await cloudflareApi.fetch("/ai/tomarkdown", { method: "POST", body: bytes, headers: { "content-type": request.headers.get("content-type") || "" } });
+        const neurons = r.headers.has("cf-ai-neurons") ? Number(r.headers.get("cf-ai-neurons")) : null;
+        log({ at: "ai.tomarkdown", usd, neurons, status: r.status, bytes: bytes.byteLength });
+        return new Response(r.body, { status: r.status, headers: { "content-type": r.headers.get("content-type") || "application/json", "cache-control": "no-store", ...(neurons !== null && neurons >= 0 ? { "x-ai-neurons": String(neurons), "x-ai-usd": (neurons * aiDefaults.usdPerNeuron).toFixed(8) } : {}) } });
+      }
       const v1 = ["v1/chat/completions", "v1/embeddings"].includes(what), at = v1 ? "ai." + what : "ai.run";
-      if (what !== "run" && !v1) return json(404, "MethodNotImplemented", "ai.run, ai.models, ai.v1/chat/completions, ai.v1/embeddings and ai.v1/models");
+      if (what !== "run" && !v1) return json(404, "MethodNotImplemented", "ai.run, ai.models, ai.tomarkdown, ai.tomarkdown/supported, ai.v1/chat/completions, ai.v1/embeddings and ai.v1/models");
       let name = url.searchParams.get("model") || "";
       const usd = v1 && !url.searchParams.has("usd") ? aiDefaults.v1Usd : Number(url.searchParams.get("usd"));
       // The core charged this call before it came here: a refusal is logged like a run.
@@ -268,6 +305,8 @@ ai_service = {
       methods: {
         "com.lopecode.brain.ai.run": { type: "procedure", who: "workers", price: "double(request.params.usd)" },
         "com.lopecode.brain.ai.models": { type: "query", who: "workers" },
+        "com.lopecode.brain.ai.tomarkdown": { type: "procedure", who: "workers", price: "double(request.params.usd)" },
+        "com.lopecode.brain.ai.tomarkdown/supported": { type: "query", who: "workers" },
         // An OpenAI client is given the address up to ai.v1 and adds the rest. It sends no usd: v1Usd then.
         "com.lopecode.brain.ai.v1/chat/completions": { type: "procedure", who: "workers", price: aiV1Price },
         "com.lopecode.brain.ai.v1/embeddings": { type: "procedure", who: "workers", price: aiV1Price },
@@ -346,6 +385,7 @@ aiRig = async ({ config = {} } = {}) => {
       const url = new URL(request.url);
       const entry = { url: request.url, method: request.method, authorization: request.headers.get("authorization"), type: request.headers.get("content-type"), body: request.method === "POST" ? new Uint8Array(await request.arrayBuffer()) : null };
       seen.push(entry);
+      if (url.pathname.endsWith("/ai/tomarkdown/supported")) return new Response(JSON.stringify({ success: true, result: [{ extension: ".pdf", mimeType: "application/pdf" }, { extension: ".png", mimeType: "image/png" }] }), { headers: { "content-type": "application/json" } });
       if (url.pathname.endsWith("/ai/models/search") && url.searchParams.get("search") === "broken") return new Response('{"success":false}', { status: 500 });
       if (url.pathname.endsWith("/ai/models/search")) return new Response(JSON.stringify({ success: true, result: aiModels.filter((m) => m.name.includes(url.searchParams.get("search") || "")) }), { headers: { "content-type": "application/json" } });
       const text = entry.body ? new TextDecoder().decode(entry.body) : "";
@@ -363,6 +403,8 @@ aiRig = async ({ config = {} } = {}) => {
         return new Response(body, { headers: { "content-type": "text/event-stream" } });
       }
       if (text.includes("refuse me")) return new Response('{"success":false,"errors":[{"code":3040,"message":"Capacity temporarily exceeded"}]}', { status: 429, headers: { "content-type": "application/json" } });
+      // A conversion: the neurons header only for a body that names a picture, since it is not known when Cloudflare gives it.
+      if (url.pathname.endsWith("/ai/tomarkdown")) return new Response(JSON.stringify({ success: true, result: [{ name: "paper.pdf", mimeType: "application/pdf", format: "markdown", tokens: 4, data: "# A paper" }] }), { headers: { "content-type": "application/json", ...(text.includes("picture.png") ? { "cf-ai-neurons": "12.50" } : {}) } });
       if (url.pathname.includes("flux")) return new Response(new Uint8Array([137, 80, 78, 71]), { headers: { "content-type": "image/png" } });
       return new Response('{"result":{"response":"Hi.","usage":{"prompt_tokens":17,"completion_tokens":3,"neurons":0.0965}},"success":true}', { headers: { "content-type": "application/json", "cf-ai-neurons": "0.10" } });
     }
@@ -597,6 +639,64 @@ test_ai_v1_answers_an_openai_client = {
   return "an OpenAI client";
 }
 // %%
+test_ai_tomarkdown_passes_the_files_on_and_gives_cloudflares_answer = {
+  const rig = await aiRig();
+  const at = (i = rig.seen.length - 1) => rig.seen[i].url.replace("https://api.cloudflare.com/client/v4/accounts/acct", "");
+  // The body as a client writes it: one file and the options, in multipart with a boundary of the client's.
+  const multipart = async (name) => {
+    const form = new FormData();
+    form.append("files", new Blob([new Uint8Array([37, 80, 68, 70, 45, 0, 255, 10])], { type: "application/pdf" }), name);
+    form.append("conversionOptions", '{"pdf":{"metadata":false}}');
+    const made = new Request("https://client.internal/", { method: "POST", body: form });
+    return { type: made.headers.get("content-type"), bytes: new Uint8Array(await made.arrayBuffer()) };
+  };
+  const convert = (query, { type, bytes }) => rig.sim.fetch("https://ai.internal/xrpc/com.lopecode.brain.ai.tomarkdown" + query, { method: "POST", headers: { "x-brain-caller": "token:laptop", ...(type ? { "content-type": type } : {}) }, body: bytes });
+  const pdf = await multipart("paper.pdf");
+  expect(pdf.type).toMatch(/^multipart\/form-data; boundary=/);
+  const r = await convert("?usd=0.01", pdf);
+  // Cloudflare's answer and status. It gave no neurons, so there is no header of them.
+  expect([r.status, r.headers.get("content-type"), r.headers.get("x-ai-neurons"), r.headers.get("x-ai-usd")]).toEqual([200, "application/json", null, null]);
+  expect(await r.json()).toEqual({ success: true, result: [{ name: "paper.pdf", mimeType: "application/pdf", format: "markdown", tokens: 4, data: "# A paper" }] });
+  // One request, to the conversion, with the minted token: the type with its boundary and each byte are the caller's.
+  expect([rig.seen.length, rig.seen[0].method, at(0), rig.seen[0].authorization, rig.seen[0].type]).toEqual([1, "POST", "/ai/tomarkdown", "Bearer minted-1", pdf.type]);
+  expect([...rig.seen[0].body]).toEqual([...pdf.bytes]);
+  // When Cloudflare gives the neurons they are passed on, as ai.run does.
+  const png = await convert("?usd=0.02", await multipart("picture.png"));
+  expect([png.status, png.headers.get("x-ai-neurons"), png.headers.get("x-ai-usd")]).toEqual([200, "12.5", "0.00013750"]);
+  // Cloudflare's refusal is the answer, with its status.
+  const refused = await convert("?usd=0.01", await multipart("refuse me.pdf"));
+  expect([refused.status, (await refused.json()).errors[0].code]).toEqual([429, 3040]);
+  // A body that is no multipart, and an empty one, are Cloudflare's to refuse: sent as they came.
+  await convert("?usd=0.01", { type: "application/pdf", bytes: new Uint8Array([1, 2, 3]) });
+  expect([at(), rig.seen.at(-1).type, [...rig.seen.at(-1).body]]).toEqual(["/ai/tomarkdown", "application/pdf", [1, 2, 3]]);
+  await convert("?usd=0.01", { type: pdf.type, bytes: new Uint8Array(0) });
+  expect([at(), rig.seen.at(-1).body.byteLength]).toEqual(["/ai/tomarkdown", 0]);
+  // Under the floor of a model the service cannot bound, or no usd: refused with what it needs, and Cloudflare is not asked.
+  const before = rig.seen.length;
+  for (const query of ["?usd=0.009", "?usd=0", "?usd=-1", "?usd=free", "?usd=", ""]) {
+    const low = await convert(query, pdf);
+    expect([query, low.status, await low.json()]).toEqual([query, 402, { error: "BudgetTooSmall", message: "a conversion is not priced by the token: usd is at least 0.01", needs: 0.01 }]);
+  }
+  expect(rig.seen.length).toBe(before);
+  // The largest body is a setting of its own. ai.run's does not count here, and this one does not count there.
+  const set = await aiRig({ config: { markdownMaxBody: 10, maxBody: 2, flatUsd: "0.05" } });
+  const to = (query, bytes) => set.sim.fetch("https://ai.internal/xrpc/com.lopecode.brain.ai.tomarkdown" + query, { method: "POST", headers: { "x-brain-caller": "owner", "content-type": pdf.type }, body: bytes });
+  const big = await to("?usd=0.05", new Uint8Array(11));
+  expect([big.status, await big.json(), set.seen.length]).toEqual([413, { error: "TooLarge", message: "the body is 11 bytes, at most 10" }, 0]);
+  expect([(await to("?usd=0.05", new Uint8Array(10))).status, set.seen.length, set.seen[0].body.byteLength]).toEqual([200, 1, 10]);
+  // The stored floor is the one ai.run has.
+  expect([(await to("?usd=0.01", new Uint8Array(1))).status, set.seen.length]).toEqual([402, 1]);
+  expect((await aiRig({ config: { markdownMaxBody: 10 } }).then((other) => other.run("model=@cf/openai/whisper&usd=0.01", new Uint8Array(11)))).status).toBe(200);
+  // The formats are Cloudflare's list, asked with nothing of the caller's query.
+  const formats = await rig.sim.fetch("https://ai.internal/xrpc/com.lopecode.brain.ai.tomarkdown/supported?usd=1&extension=.pdf", { headers: { "x-brain-caller": "token:laptop" } });
+  expect([formats.status, (await formats.json()).result.map((f) => f.extension), rig.seen.at(-1).method, at(), rig.seen.at(-1).authorization]).toEqual([200, [".pdf", ".png"], "GET", "/ai/tomarkdown/supported", "Bearer minted-1"]);
+  // The price the core charges is usd as the caller gave it; with none the rule cannot be decided. The list has no price.
+  expect([(await rig.price({ usd: "0.01" }, "tomarkdown")).usd, (await rig.price({ usd: "0.25" }, "tomarkdown")).usd]).toEqual([0.01, 0.25]);
+  for (const params of [{}, { usd: "soon" }]) expect((await rig.price(params, "tomarkdown")).error).toBeTruthy();
+  expect((await ai_service.emit()).meta.access["com.lopecode.brain.ai.tomarkdown/supported"].price).toBe(undefined);
+  return "a file passed on, 6 refusals of usd, 1 of size";
+}
+// %%
 test_ai_models_is_cloudflares_list_and_the_service_declares_one_permission = {
   const rig = await aiRig();
   const r = await rig.sim.fetch("https://ai.internal/xrpc/com.lopecode.brain.ai.models?search=bge&per_page=5", { headers: { "x-brain-caller": "owner" } });
@@ -606,10 +706,10 @@ test_ai_models_is_cloudflares_list_and_the_service_declares_one_permission = {
   const { meta } = await ai_service.emit();
   expect([meta.worker, meta.cloudflare, meta.resources, meta.secrets, meta.calls]).toEqual(["brain-x-ai", ["Workers AI Read"], [], [], []]);
   const N = "com.lopecode.brain.ai.";
-  expect(Object.keys(meta.access).filter((k) => meta.access[k].price).map((k) => k.slice(N.length))).toEqual(["run", "v1/chat/completions", "v1/embeddings"]);
+  expect(Object.keys(meta.access).filter((k) => meta.access[k].price).map((k) => k.slice(N.length))).toEqual(["run", "tomarkdown", "v1/chat/completions", "v1/embeddings"]);
   // The owner, a token and an account the kernel passed for the method, and a Worker of the Brain; not a stranger.
   const ask = (m, who) => decide(meta.access[N + m], { caller: callerOf(who), origin: callerOf(who), request: { params: { usd: "0.001" } } }).allow;
-  for (const m of ["run", "models", "v1/chat/completions", "v1/embeddings", "v1/models"]) expect([m, ask(m, { caller: "owner", via: "session" }), ask(m, { caller: "token:laptop" }), ask(m, { caller: "did:plc:ada" }), ask(m, { caller: "worker:brain-x-snapshot" }), ask(m, { caller: "anonymous" })]).toEqual([m, true, true, true, true, false]);
+  for (const m of ["run", "models", "tomarkdown", "tomarkdown/supported", "v1/chat/completions", "v1/embeddings", "v1/models"]) expect([m, ask(m, { caller: "owner", via: "session" }), ask(m, { caller: "token:laptop" }), ask(m, { caller: "did:plc:ada" }), ask(m, { caller: "worker:brain-x-snapshot" }), ask(m, { caller: "anonymous" })]).toEqual([m, true, true, true, true, false]);
   return meta.cloudflare[0];
 }
 // %%
