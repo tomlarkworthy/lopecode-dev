@@ -73,9 +73,10 @@ In the worktree, 2026-10-12.
 | `bun test ./tests/tools/rules-md-owners-word-not-secrets.test.ts`, with `rules.md` and `SKILL.md` as `origin/main` had them | 1 pass, 6 fail |
 | `bun test ./tests/tools/rules-md-owners-word-not-secrets.test.ts ./tests/tools/rules-md-acts-on-the-owners-word.test.ts`, with the edit | 15 pass, 0 fail |
 | `tests/tools/suite.sh`, with the edit (`date`: 21:02:44 to 21:04:27 CEST) | 681 pass, 0 fail, 68 files; no `skipped:` line |
+| `tests/tools/suite.sh`, with the edit, after `worktree.sh --rebase` brought in `main` (`tests/tools/knowledge-docs.test.ts` among what came in, neither doc of this change; `date`: 21:05:19 to 21:06:58 CEST) | 682 pass, 0 fail, 68 files; no `skipped:` line |
 
 The one test that passes without the edit is the test of the file's helper `items()`. The suite was
-not run before the edit, so there is no count of it without the change. No test reads this record.
+not run before the edit, so there is no count of it without the change. No test reads this record, so the last run is after the last change it counts.
 
 ## Not known
 
