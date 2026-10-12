@@ -328,7 +328,10 @@ issues_service = cloudflare.Service("issues", issuesApp, {
       "com.lopecode.brain.issue." + name,
       // The owner, a token, a Worker of the Brain and the deployer, which opens an issue when it puts a Worker back
       // on its tests. A member's Worker calls as its author's DID and is not let in.
-      name === "key" ? { type, who: "anyone" } : { type, allow: 'caller.kind in ["owner", "token", "worker", "deployer"]' }
+      // Written with single quotes and no spaces: the deployer binds every method's rule into one variable of the Worker
+      // (BRAIN_INFO), which Cloudflare refuses past 5.1 kB, and a double quote is two bytes there.
+      // test_issues_declares_what_it_needs holds the size.
+      name === "key" ? { type, who: "anyone" } : { type, allow: "caller.kind in ['owner','token','worker','deployer']" }
     ])
   )
 })
@@ -4182,12 +4185,18 @@ test_issues_list_and_sync_say_when_more_remain = {
 }
 // %%
 test_issues_declares_what_it_needs = {
-  const { meta } = await issues_service.emit();
+  const { meta, hash } = await issues_service.emit();
   expect(meta).toMatchObject({ worker: "brain-x-issues", role: "recipe", module: "@tomlarkworthy/brain-issues", resources: ["blobs", "sql"], secrets: ["ISSUES_SIGNING_KEY"] });
   const methods = Object.keys(meta.access).sort().map((m) => m.replace("com.lopecode.brain.issue.", ""));
   expect(methods).toEqual(["attach", "attachment", "comment", "cost", "flow", "get", "hold", "install", "key", "label", "link", "list", "lock", "locks", "move", "narrow", "open", "policy", "queue", "rebuild", "resign", "review", "runs", "snapshot", "swap", "sync", "verify", "wait", "wakes"]);
   const let_in = (who) => decide(meta.access["com.lopecode.brain.issue.open"], { caller: callerOf({ caller: who }), request: {} }).allow;
   expect(["owner", "token:a", "worker:brain-x-echo", "deployer", "did:plc:other", "anonymous"].map(let_in)).toEqual([true, true, true, true, false, false]);
+  // Every method but key has that one rule, so each lets in whom issue.open does.
+  expect([...new Set(Object.entries(meta.access).filter(([m]) => !m.endsWith(".key")).map(([, r]) => r.allow))]).toEqual(["caller.kind in ['owner','token','worker','deployer']"]);
+  // What the deployer binds as BRAIN_INFO (brain-deployer.ojs, the bindings of a Worker), in bytes. On 2026-10-13
+  // Cloudflare refused 5274 of them, "exceeds the limit of 5.1 kB", and a version that had 4930 runs.
+  const bound = { name: meta.worker, hash, role: meta.role, module: meta.module || null, methods: meta.methods, access: meta.access || {}, calls: meta.calls || [], paths: meta.paths, secrets: meta.secrets, resources: meta.resources, cloudflare: meta.cloudflare || [], deployedAt: new Date(0).toISOString() };
+  expect([typeof hash, new TextEncoder().encode(JSON.stringify(bound)).length <= 5100]).toEqual(["string", true]);
   // The default policy passes its own check.
   expect(Object.keys((await issuePolicyAct(issuesDefaultPolicy)).hashes)).toEqual(["task", "security", "feedback", "project"]);
   // Without the key a write is refused and says which secret.

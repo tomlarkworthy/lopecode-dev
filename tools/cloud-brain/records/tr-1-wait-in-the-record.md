@@ -14,7 +14,7 @@ Commands below are run in the worktree `bm-tracker-trigger-rules` unless one say
 | Place | What |
 |---|---|
 | `issuesLimits` | `waitDays: 30`, `when: 500`, `note: 200`, `waits: 10`, `wakeAfter: 20` |
-| `issues_service` | two methods more, `issue.wait` (procedure) and `issue.wakes` (query), under the rule the others have |
+| `issues_service` | two methods more, `issue.wait` (procedure) and `issue.wakes` (query), under the rule the others have. That rule is written `caller.kind in ['owner','token','worker','deployer']`: the same four kinds, with single quotes and no spaces ("The first apply", below) |
 | `issueAct` | the body of a wait: `when` (text, 1 to 500, parsed by `checkedRule`), `until` (as a hold's), `note` (200 at most), or `remove: true` |
 | `issueFacts` | a cell now. It was `facts` inside `issueAllowed`, which calls it; the text is the same |
 | `issueWaitFacts`, `issueWhen` | new. What a `when` reads: the facts and `closed`, `last`, `after`. And a `when` asked of an issue: `{ due, error }` |
@@ -107,15 +107,67 @@ security report: `Expected 200, Received 400 "h is after 21 issues: a wait and i
 at most"`, said to a token that may not read `h`. (The seed first had `ahead` with no such guard;
 it was added before the landing.) The same was not done for the other new lines.
 
-Counts, each from a run after the last edit of the seed (2026-10-12 23:56 CEST) and after the rebase
-of 23:43 CEST, which brought in no file the module is built from:
+Counts, each from a run after the last edit of the seed (2026-10-13 00:08 CEST) and after the rebase
+under the lock of 00:02 CEST, which brought in no file the module is built from:
 
 | Command | Result |
 |---|---|
 | `bun tools/cloud-brain/build.ts --out …` then `(cd cloud-brain-dev && bun test.ts brain-x-issues --with …/tr-1.js)` | `passed 48, failed 0, needsBrowser 15` |
 | `bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/brain-issues` | `"tests":63,"passed":63,"failed":[]`, Chrome 151.0.7922.34 |
-| main checkout: `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-issues --shell <the build> --times 20` | 23:58 CEST: `"runs":20,"passed":20,"failed":0,"none":0,"from":["document"],"byChance":[]`. Of the three runs of the command on the build before the last edit, two read the same and one, at 23:46 while the suite was starting, `"passed":19,"failed":0,"none":1`: one run with no verdict and no failed test |
-| `tests/tools/suite.sh` | 2026-10-13 00:01 CEST: `818 pass, 0 fail` in 85 files, 182.98 s. The run before the last edit had `816 pass, 2 fail` at load 8.58 by `uptime`, both at the 30 s timeout, in `knowledge-docs.test.ts` and `summarize-papers.test.ts`, which this change does not touch; each alone was `29 pass` and `26 pass`, 0 fail |
+| main checkout: `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-issues --shell <the build> --times 20` | 00:10 CEST: `"runs":20,"passed":20,"failed":0,"none":0,"from":["document"],"byChance":[]`. Of the four runs of the command on earlier builds of this change, three read the same and one, at 23:46 while a run of the suite was starting, `"passed":19,"failed":0,"none":1`: one run with no verdict and no failed test |
+| `tests/tools/suite.sh` | 00:13 CEST: `863 pass, 0 fail` in 89 files, 119.74 s |
+
+## The first apply
+
+2026-10-13 00:03:05 CEST, under both locks, the build of the seed as it then was (hash `36c15fa382ff`):
+
+```
+[{"worker":"brain-x-issues","hash":"36c15fa382ff","state":"put-back","previous":"40e024c3bfbe…","reason":"POST /workers/scripts/cb4-x-issues/versions 400 [{\"code\":10054,\"message\":\"Text binding 'BRAIN_INFO' is too large, its size of 5.3 kB exceeds the limit of 5.1 kB. Please use a smaller value and try again.\"}]"}]
+```
+
+Cloudflare took no version: `getInfo?worker=brain-x-issues` answered `40e024c3…` after it, so cb4 never
+ran `36c15fa3`. Both locks were released (land 00:02:16 to 00:04:05, cb4 00:02:52 to 00:03:12) and
+nothing was pushed.
+
+`BRAIN_INFO` is one JSON variable the deployer binds to a Worker (`brain-deployer.ojs`, the bindings
+of a Worker): its name, hash, the list of its methods and the rule of each. The same object made from
+an emitted record, with a `deployedAt` of 24 characters, by a script of this writing:
+
+```
+the version that runs (27 methods)                    4930 bytes   (getInfo answers 4930 too)
+with issue.wait and issue.wakes, the rule as it was   5274 bytes   refused
+the same, the rule with single quotes and no spaces   4966 bytes   28 rules, 11 bytes each
+```
+
+Each method costs about 172 bytes there: its name twice and its rule. In JSON a `"` inside the rule
+is two bytes, so the rule is written with CEL's single quotes. It names the same four kinds.
+
+What that rests on, since the core asks a method's rule and no test of this module calls the core:
+
+- `test_issues_declares_what_it_needs` asks `decide` the rule for six callers and reads the six
+  answers it read before (owner, a token, a Worker and the deployer let in; a member's DID and
+  `anonymous` not), and that every method but `key` has that rule. `bun test.ts brain-x-issues --with`
+  runs it on the modules cb4 serves, `cloudflare-iac` and its `cel.js` among them.
+- `cmp` of `tools/cloud-brain/cel.js` and `cloud-brain-dev/deploy/@tomlarkworthy/cloudflare-iac/cel.js`
+  as `sync.ts` read it at 00:02: the same 82,554 bytes after one leading newline of the served copy.
+  `git log -- tools/cloud-brain/cel.js` has one commit, of 2026-10-08, and `getInfo?worker=brain-core`
+  answers `deployedAt` 2026-10-12T17:36:52Z.
+- Not shown before the deploy: that the core cb4 runs parses it. The first `issue.*` call after the
+  apply shows it, and is in the comment of the issue.
+
+The same test holds the size: the object above in at most 5100 bytes. With the rule as it was the test
+fails at the line before, which holds the rule's text; the size line was not seen to fail by itself.
+4966 leaves room for no further method of this rule (one costs about 172). That is filed as feedback,
+`seen-brain-info-binding-at-its-limit`: the fix is the deployer's, which the loop does not deploy.
+
+Not changed: three texts that quote the rule as it was, each a dated reading of the seed
+(`plan/cloud-brain-flow-metrics.md` line 286, `plan/cloud-brain-locks-held-in-the-cluster.md` line 331,
+`tools/cloud-brain/records/fm-3-issue-flow-method.md` line 14).
+
+The first apply's build was written to `lopebooks` and committed there as the day's backup
+(`21117b9c`, "built from the seeds of lopecode-dev@96c0911c", a commit that was never pushed). It was
+not pushed. The second landing takes it back under the lock and makes the backup again from the build
+it deploys; what it did is in the comment of the issue.
 
 ## Not tried
 
