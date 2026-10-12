@@ -1,11 +1,14 @@
 // philosophy.md has the owner's two sentences of 2026-10-12 on a second thing beside one with the same job.
 // Issue philosophy-one-role-for-one-job. PHILOSOPHY=/path/to/another/philosophy.md bun test …
 //   bun test ./tests/tools/philosophy-one-role.test.ts
-import { expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { expect } from "bun:test";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { testNeeding } from "./needs";
 
-const text = readFileSync(process.env.PHILOSOPHY || resolve(import.meta.dir, "../../cloud-brain-dev/philosophy.md"), "utf8");
+const path = process.env.PHILOSOPHY || resolve(import.meta.dir, "../../cloud-brain-dev/philosophy.md");
+const test = testNeeding("philosophy-one-role.test.ts", [path]);
+const text = existsSync(path) ? readFileSync(path, "utf8") : "";
 const clar = text.slice(text.indexOf("\n## Clarifications\n"), text.indexOf("\n## Not settled\n"));
 const para = clar.slice(clar.indexOf("**2026-10-12, on a second thing made beside one that has the same job.**"));
 
