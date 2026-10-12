@@ -343,11 +343,28 @@ The four of that day, each kept in `.emitted/cb4-tokens.json` and not printed:
   and ends them, through `brain.ts agent-token`, and is used for nothing else. No call to the
   tracker is made with it. Spec: `plan/cloud-brain-record-names-token-not-agent.md`. Made by the
   orchestrating session (comment 1954 of `ta-1b-agent-token-on-cb4`).
-- `loop-docs` names `knowledge.put` and `knowledge.list`. It is used through
+- `loop-docs` names `knowledge.put`, `knowledge.list`, `static.put` and `static.list`. Until
+  2026-10-12 it named the first two. Tom, 2026-10-12, whole, as comment 4734 of
+  `docs-summarised-for-search` has it: "1 A 2 A 3 B 4 A 5 B". That issue was number 3 of the list
+  he answered. B of comment 4633 there: "Approve, and widen `loop-docs` in place of a second
+  token: one token for one job." The `approve` move made for him on that word is event 4735. The
+  rest of this item is the writer's reading, not his words. It is used through
   `tools/cloud-brain/knowledge-docs.ts`, which the release of the landing lock runs, and for
-  nothing else, and only for entries of kind `doc`: the token itself is not held to that kind, so
-  this is an agreement. Spec: `plan/cloud-brain-brain-docs-entered-by-hand.md`, whose words these
-  are. Made by the orchestrating session (comment 1952 of `bd-3-first-run-of-the-docs-step`).
+  nothing else, and only for entries of kind `doc` and files under `docs/`: the token itself is
+  held to neither, so this is an agreement. The tool puts a file for each doc as well as its
+  entry of kind `doc`: the file first, with `static.put`, at `docs/<source>/<path>` of the file
+  store, then the entry, which names that file. `static.put`
+  by a token reaches the paths the owner does but `shell/` and `library/`
+  (`tools/cloud-brain/brain-static.ojs`, "A token is the owner's"). It names no `static.get` and
+  no `static.delete`. The agreement as first written (comment 4775 of `sd-1-doc-files`) reads
+  "for files only under `knowledge-docs/`", the prefix of the spec. The tool puts under `docs/`,
+  where 53 of the docs had a file already; `static.list?prefix=knowledge-docs/` answered 0 files
+  that day (`tools/cloud-brain/records/sd-1-doc-files.md`). Specs:
+  `plan/cloud-brain-brain-docs-entered-by-hand.md` for the two methods, and
+  `plan/cloud-brain-docs-summarised-for-search.md` for the files; the second names a token
+  `loop-doc-files` for them, which was not made. Made by the orchestrating session on 2026-10-11
+  (comment 1952 of `bd-3-first-run-of-the-docs-step`), and made again by it with the four, a
+  revoke and a make, on 2026-10-12 at 22:11:52 CEST (comment 4775 of `sd-1-doc-files`).
 - `loop-papers` names `knowledge.put`, `knowledge.search` and `static.get`. It is held by
   `tools/cloud-brain/summarize-papers.ts` and never by a summarizer. `static.get` by a token reads
   every file of the store; the tool reads only the `file` of a paper's entry, so that too is an

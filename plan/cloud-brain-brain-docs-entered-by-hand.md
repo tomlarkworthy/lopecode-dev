@@ -338,6 +338,8 @@ Each is one writer and one review. No Worker is deployed by any of them.
   "`loop-docs` names `knowledge.put` and `knowledge.list`. It is used through
   `tools/cloud-brain/knowledge-docs.ts` and for nothing else, and only for entries of kind `doc`:
   the token itself is not held to that kind, so this is an agreement."
+  (As built, `rules-md-loop-docs-names-four-methods`, 2026-10-13: the item of `rules.md` has four
+  methods and files under `docs/` since `sd-1-doc-files`; the record.)
 - Once, in his tab: ask the page's operator what `philosophy.md` of `cloud-brain-dev` says, and see
   that it answers from the entry.
 
