@@ -1269,10 +1269,10 @@ inboxHandlers = plugins.get("inbox")
 // A call made as the sender of one inbox entry: that entry's turn token, and never this tab's own session.
 turnClient = (token) => xrpcClient(brainOrigin, { namespace: "com.lopecode.brain", headers: { authorization: "Bearer " + token } })
 // %%
-// What brain_call shows of an answer: 20000 characters from offset, and a last line when there is more. The loop
+// What a tool of the operator shows of an answer: 20000 characters from offset, and a last line when there is more. The loop
 // shows 8000 characters of a tool's result, the first and last 4000, unless the tool returns outputLimit.
 callAnswer = (out, offset, kind) => {
-  const text = typeof out === "string" ? out : JSON.stringify(out, null, 1);
+  const text = typeof out === "string" ? out : JSON.stringify(out, null, 1) ?? "";
   const from = Math.min(text.length, Math.max(0, Math.floor(Number(offset) || 0))), end = Math.min(text.length, from + 20000);
   const more = end >= text.length ? "" : `\n[characters ${from} to ${end} of ${text.length}. ${kind === "procedure" ? "The rest is not read: a procedure called again would run a second time" : "The rest: the same call with offset " + end}]`;
   return { output: text.slice(from, end) + more, outputLimit: 20200 };
@@ -1562,37 +1562,39 @@ attentionDraftTool = (held) =>
     }
   })
 // %%
-assistantTools = {
+// The operator's tools, as a function of what they close over: the owner's session, its client, the services view,
+// the declared services, the Brain's address and the held parts. The page calls it with its own, a test with fakes.
+operatorTools = ({ brain, client, services, declared, origin, attention }) => {
   const need = () => {
     if (!brain) throw new Error("No owner session: this notebook is not signed in to a Brain.");
   };
-  const tools = [
+  return [
     defineTool({
       id: "brain_services",
-      description: "List the Cloud Brain's declared services: Worker name, methods, paths, secrets, the hash this notebook would deploy, the hash running, and the state (in sync, changed, not installed, skewed, failing, cannot deploy).",
-      parameters: { type: "object", properties: {} },
-      execute: async () => {
+      description: "List the Cloud Brain's declared services: Worker name, methods, paths, secrets, the hash this notebook would deploy, the hash running, and the state (in sync, changed, not installed, skewed, failing, cannot deploy). An answer is shown 20000 characters at a time and its last line says when there is more: make the same call again with offset.",
+      parameters: { type: "object", properties: { offset: { type: "number" } } },
+      execute: async ({ offset } = {}) => {
         need();
-        await viewof services.refresh();
-        return { title: "services", output: JSON.stringify(viewof services.value, null, 1) };
+        await services.refresh();
+        return { title: "services", ...callAnswer(services.value, offset, "query") };
       }
     }),
     defineTool({
       id: "brain_status",
-      description: "The Cloud Brain's state in one call: every Worker with the version running and whether it is healthy, kernel and core probation with the deadline, deploys held for approval, when the deployer's clock last ran, secrets a service names that are not set, and inbox entries waiting. Call this first for any question about what is running.",
-      parameters: { type: "object", properties: {} },
-      execute: async () => {
+      description: "The Cloud Brain's state in one call: every Worker with the version running and whether it is healthy, kernel and core probation with the deadline, deploys held for approval, when the deployer's clock last ran, secrets a service names that are not set, and inbox entries waiting. Call this first for any question about what is running. An answer is shown 20000 characters at a time and its last line says when there is more: make the same call again with offset. The seconds in it are counted at each call.",
+      parameters: { type: "object", properties: { offset: { type: "number" } } },
+      execute: async ({ offset } = {}) => {
         need();
         const [state, secretList, inbox] = await Promise.all([
           brain.state(),
           client.query("secret.list").catch((e) => ({ error: e.message })),
           client.query("inbox.list").catch((e) => ({ error: e.message }))
         ]);
-        await viewof services.refresh();
-        const rows = viewof services.value || [];
+        await services.refresh();
+        const rows = services.value || [];
         const set = new Set((secretList.secrets || []).map((s) => s.name));
         const out = {
-          brain: brainOrigin,
+          brain: origin,
           approvalNeeded: state.approval,
           deployerClock: state.tick ? { secondsAgo: Math.round((Date.now() - state.tick.at) / 1000), error: state.tick.error || null } : "never ran",
           workers: rows.map((r) => ({ worker: r.worker, state: r.state, note: r.note || null, running: r.running || null, notebook: r.hash ? String(r.hash).slice(0, 12) : null })),
@@ -1601,7 +1603,7 @@ assistantTools = {
           secretsNotSet: [...new Set(rows.flatMap((r) => r.secrets || []))].filter((n) => !/^(BRAIN_|CF_|COOKIE_KEY$|SESSION_KEY$|RECOVERY_KEY$)/.test(n) && !set.has(n)),
           inboxWaiting: inbox.error ? inbox.error : (inbox.entries || []).filter((e) => !e.done).length
         };
-        return { title: "brain status", output: JSON.stringify(out, null, 1) };
+        return { title: "brain status", ...callAnswer(out, offset, "query") };
       }
     }),
     defineTool({
@@ -1622,19 +1624,24 @@ assistantTools = {
     }),
     defineTool({
       id: "brain_apply",
-      description: "Ask the deployer to deploy one declared service as it is in this notebook now. worker is its Worker name from brain_services, e.g. brain-x-echo. reason says why it is changed, in 3 to 300 characters; the deployer logs it and refuses a deploy without one. was is the hash brain_services gave as running for this worker when you read it, or an empty string when it gave none; the deployer refuses when the Worker has changed since, and you then read brain_services again. Returns deployed, probation, waiting (the owner must approve on the deployer page), refused or put-back with the reason.",
+      description: "Ask the deployer to deploy one declared service as it is in this notebook now. worker is its Worker name from brain_services, e.g. brain-x-echo. reason says why it is changed, in 3 to 300 characters; the deployer logs it and refuses a deploy without one. was is the hash brain_services gave as running for this worker when you read it, or an empty string when it gave none; the deployer refuses when the Worker has changed since, and you then read brain_services again. Returns deployed, probation, waiting (the owner must approve on the deployer page), refused or put-back with the reason. An answer over 20000 characters is shown to there and is not read further: an offset is refused, since the same call again would deploy again.",
       parameters: { type: "object", properties: { worker: { type: "string" }, reason: { type: "string" }, was: { type: "string" } }, required: ["worker", "reason", "was"] },
-      execute: async ({ worker, reason, was }) => {
+      execute: async ({ worker, reason, was, offset }) => {
         need();
-        const emitted = (await Promise.all(declaredWorkers.map((s) => s.emit().catch((e) => ({ error: String(e.message || e), name: s.name }))))).find((e) => e.meta && e.meta.worker === worker);
+        if (offset) throw new Error(offsetRefused);
+        const emitted = (await Promise.all(declared.map((s) => s.emit().catch((e) => ({ error: String(e.message || e), name: s.name }))))).find((e) => e.meta && e.meta.worker === worker);
         if (!emitted) throw new Error(`No declared service deploys as ${worker}. brain_services lists them.`);
         const out = await brain.apply(emitted, { reason, was: was || null });
-        viewof services.refresh();
-        return { title: "apply " + worker, output: JSON.stringify(out.results, null, 1) };
+        services.refresh();
+        return { title: "apply " + worker, ...callAnswer(out.results, 0, "procedure") };
       }
     }),
-    attentionDraftTool(attentionNow)
+    attentionDraftTool(attention)
   ];
+}
+// %%
+assistantTools = {
+  const tools = operatorTools({ brain, client, services: viewof services, declared: declaredWorkers, origin: brainOrigin, attention: attentionNow });
   tools.forEach((t) => registerTool(t));
   invalidation.then(() => tools.forEach((t) => unregisterTool(t.id, t)));
   return tools.map((t) => t.id);
@@ -1696,6 +1703,74 @@ test_brain_call_never_runs_a_procedure_again_for_the_rest = {
   expect(ran).toBe(1);
   expect(callAnswer("q".repeat(25000), 0, "query").output).toContain("The rest: the same call with offset 20000]");
   return "1 procedure for 2 calls";
+}
+// %%
+// brain_services, brain_status and brain_apply, reached through operatorTools with a session, a client and a
+// services view of the test's own. `loop` is what the loop does with a tool's return: truncate at the
+// outputLimit returned, at 8000 with none. 300 rows stand in for the services, which were not measured.
+test_the_operators_other_tools_show_a_long_answer_in_parts_and_the_loop_cuts_none = {
+  const rows = Array.from({ length: 300 }, (_, i) => ({ worker: "brain-x-w" + i, state: "in sync", note: "", hash: "h".repeat(64), running: "r" + i, methods: ["a.get", "a.put", "a.list"], secrets: ["S" + i] }));
+  const count = { refreshed: 0, applied: 0 }, asked = [], applies = [];
+  const results = Array.from({ length: 400 }, (_, i) => ({ worker: "brain-x-echo", step: i, state: "deployed" }));
+  const fake = {
+    brain: {
+      state: async () => ({ approval: false, tick: null, kernel: {}, pending: [{ worker: "brain-x-w1", hash: "p".repeat(64) }] }),
+      apply: async (emitted, o) => (count.applied++, applies.push([emitted.meta.worker, o]), { results })
+    },
+    client: { query: async (m) => (asked.push(m), m === "secret.list" ? { secrets: [{ name: "S0" }] } : { entries: [{ done: false }, { done: true }] }) },
+    services: { value: rows, refresh: async () => void count.refreshed++ },
+    declared: [{ name: "echo", emit: async () => ({ meta: { worker: "brain-x-echo" } }) }],
+    origin: "https://brain.example",
+    attention: { parts: [] }
+  };
+  const tools = operatorTools(fake), tool = (id, from = tools) => from.find((t) => t.id === id);
+  expect(tools.map((t) => t.id)).toEqual(["brain_services", "brain_status", "brain_call", "brain_apply", "attention_draft"]);
+  const loop = (r) => truncate(r.output, Number(r.outputLimit) > 0 ? Number(r.outputLimit) : 8000);
+  // Reads a tool as its last line says to: the same call with the offset it names, until no such line.
+  const read = async (id) => {
+    const parts = [];
+    for (let offset = 0; parts.length < 20; ) {
+      const shown = loop(await tool(id).execute(parts.length ? { offset } : {}));
+      expect(shown).not.toContain("bytes truncated");
+      const m = /\n\[characters (\d+) to (\d+) of (\d+)\. The rest: the same call with offset (\d+)\]$/.exec(shown);
+      parts.push(m ? shown.slice(0, m.index) : shown);
+      if (!m) break;
+      expect([Number(m[1]), m[2]]).toEqual([offset, m[4]]);
+      offset = Number(m[4]);
+    }
+    return parts;
+  };
+  const services = await read("brain_services"), whole = JSON.stringify(rows, null, 1);
+  expect(whole.length).toBeGreaterThan(20000);
+  expect(services.join("")).toBe(whole);
+  expect(services.length).toBe(Math.ceil(whole.length / 20000));
+  const status = await read("brain_status"), said = JSON.parse(status.join(""));
+  expect(status.length).toBeGreaterThan(1);
+  expect([said.brain, said.workers.length, said.workers[299], said.deployerClock, said.heldForApproval, said.secretsNotSet.length, said.inboxWaiting]).toEqual(["https://brain.example", 300, { worker: "brain-x-w299", state: "in sync", note: null, running: "r299", notebook: "h".repeat(12) }, "never ran", [{ worker: "brain-x-w1", hash: "p".repeat(12) }], 299, 1]);
+  expect(count.refreshed).toBe(services.length + status.length);
+  // brain_apply is a procedure: its long answer does not say to call again, and an offset deploys nothing.
+  const call = { worker: "brain-x-echo", reason: "a test", was: "" }, applied = loop(await tool("brain_apply").execute(call));
+  const text = JSON.stringify(results, null, 1);
+  expect(applied).toBe(text.slice(0, 20000) + `\n[characters 0 to 20000 of ${text.length}. The rest is not read: a procedure called again would run a second time]`);
+  expect(applies).toEqual([["brain-x-echo", { reason: "a test", was: null }]]);
+  expect((await tool("brain_apply").execute({ ...call, offset: 20000 })).output).toBe("Error: " + offsetRefused);
+  expect(count.applied).toBe(1);
+  expect((await tool("brain_apply").execute({ ...call, worker: "brain-x-none" })).output).toContain("No declared service deploys as brain-x-none");
+  // A short answer is as it was; the two reads take offset in their schema and the deploy does not.
+  const few = operatorTools({ ...fake, services: { value: rows.slice(0, 2), refresh: async () => {} }, brain: { ...fake.brain, state: async () => ({ approval: true, tick: { at: 0 }, kernel: { core: { state: "probation", deadline: 0 } }, pending: [] }) } });
+  expect(await tool("brain_services", few).execute({})).toMatchObject({ title: "services", output: JSON.stringify(rows.slice(0, 2), null, 1), outputLimit: 20200 });
+  const short = JSON.parse((await tool("brain_status", few).execute({})).output);
+  expect([short.approvalNeeded, typeof short.deployerClock.secondsAgo, short.deployerClock.error, short.probation]).toEqual([true, "number", null, { core: { state: "probation", reason: null, secondsLeft: null } }]);
+  expect(["brain_services", "brain_status", "brain_apply"].map((id) => tool(id).parameters.properties.offset)).toEqual([{ type: "number" }, { type: "number" }, undefined]);
+  for (const id of ["brain_services", "brain_status"]) expect(tool(id).description).toContain("An answer is shown 20000 characters at a time and its last line says when there is more: make the same call again with offset.");
+  // A view with no value yet, and an apply that answers no results, show nothing and do not throw.
+  const empty = operatorTools({ ...fake, services: { refresh: async () => {} }, brain: { ...fake.brain, apply: async () => ({}) } });
+  expect([(await tool("brain_services", empty).execute({})).output, (await tool("brain_apply", empty).execute(call)).output]).toEqual(["", ""]);
+  // With no session none of the three calls anything.
+  const none = operatorTools({ ...fake, brain: null }), before = [count.refreshed, asked.length];
+  for (const id of ["brain_services", "brain_status", "brain_apply"]) expect((await tool(id, none).execute(call)).output).toBe("Error: No owner session: this notebook is not signed in to a Brain.");
+  expect([count.refreshed, asked.length]).toEqual(before);
+  return `${whole.length} characters of services in ${services.length} calls, a status in ${status.length}, none cut; 1 apply for 2 calls`;
 }
 // %%
 // The slice the brief names is what eval_js shows whole: robocoop-5 keeps the first 6000 characters of a text.
