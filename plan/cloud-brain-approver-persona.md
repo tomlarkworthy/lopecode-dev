@@ -319,7 +319,10 @@ that spec's own verdict quoted, and the task must be inside them.
 **Is it secure.** Does the change let a caller do what it could not, show one member's data to
 another, send a secret anywhere, or widen a token, beyond what his words ask for by name? The
 approver reads the diff of each ref and, for a spec, the file whole. `approver.ts facts <id>`
-lists the files of each `commit` ref of the last submit and marks the ones `rules.md` names in its
+lists the files of each `commit` ref of the last submit (As built,
+`approver-reads-only-last-submit-refs`, 2026-10-12: of every submit the issue has, since a submit
+after a send-back names the commits of its round alone, and `approve` holds the refs of them all
+against the files of part 4; the record.) and marks the ones `rules.md` names in its
 Never list (the kernel, the core, the database, the deployer, `exporter-3`, `robocoop-5`, the
 channel server) and `rules.md`, `philosophy.md`, the policy and the approver's own files. A mark
 refuses nothing, with the one exception of part 4 (the approver's own files). The verdict says of

@@ -67,7 +67,9 @@ nothing, and report it.
    `bun <V>/tools/cloud-brain/approver.ts facts <id> --token <token>` prints its state, the round,
    the key your verdict takes, its parent and that one's parent as they were when it was started,
    the last submit, the passing review, the verdicts it has, any guard added to it, and each
-   `commit` ref of the last submit with its files. Stop, write nothing and report, when:
+   `commit` ref of every submit the issue has, with its files: after a send-back the last submit
+   names the commits of its round alone, and a ref it does not name has `(of the submit of event
+   N, not of the last)` after it. Read the diff of each. Stop, write nothing and report, when:
    - the state is not `awaiting-approval` (unless your prompt says to judge it as at that state);
    - the line of verdicts says `left to the owner at`: an approver left it, in this round or an
      earlier one, and he approves it or nobody does;

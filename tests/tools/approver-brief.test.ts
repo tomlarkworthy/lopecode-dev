@@ -8,7 +8,7 @@
 import { expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { asked, judge, list, listText, trial, BRIEF, TOOL } from "../../tools/cloud-brain/approver.ts";
+import { asked, facts, factsText, judge, list, listText, trial, BRIEF, TOOL } from "../../tools/cloud-brain/approver.ts";
 
 const dir = process.env.BRIEFS || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance");
 const read = (f: string) => (existsSync(join(dir, f)) ? readFileSync(join(dir, f), "utf8") : "");
@@ -99,18 +99,28 @@ test("each `asked:` form of the brief is read by the tool as its kind", () => {
 });
 
 test("the leave verdict of the brief is counted by `trial` under each reason the brief names, and holds the issue", () => {
-  const form = block("approver: leave\n"), whys = [...flat(brief).matchAll(/`why: ([a-z ]+)`/g)].map((m) => m[1]);
+  const form = block("approver: leave\n"), whys = [...flat(brief).matchAll(/`why: ([^`<]+)`/g)].map((m) => m[1]);
   expect(form.split("\n").find((l) => l.startsWith("why: "))).toBe("why: <reason>");
-  expect(whys).toEqual(["no word of his", "more than the words", "not secure", "could not tell"]);
+  // Five: the first is of step 6 and has no count of its own in `trial`, which puts it under `other`.
+  const OWN = "the approver's own files";
+  expect(whys).toEqual([OWN, "no word of his", "more than the words", "not secure", "could not tell"]);
   for (const w of whys) {
     const t = trial(base(form.replace("<reason>", w).replace("<blob>", B)), git);
-    expect([t.leave, t.whys[w], t.whys.other], w).toEqual([1, 1, 0]);
+    expect([t.leave, t.whys[w], t.whys.other], w).toEqual(w === OWN ? [1, undefined, 1] : [1, 1, 0]);
   }
   // R4: an approve verdict after a leave of the same issue sends nothing
   const rec = [...base(form.replace("<blob>", B)), { seq: 10, type: "commented", id: "t1", key: "x", body: fill(block("approver: approve\n"), `asked: 3 "${HIS}"`), by: by("appr-999999", "delegation:eeeeeeeeeeee") }];
   expect(judge(rec, policy, git, { id: "t1", verdict: 10 }).why.join(" ")).toContain("was left to the owner");
   // the narrow that follows a leave: the call, with the guard only the owner present passes
   expect(flat(brief)).toMatch(/narrow '\{"key":"approver\/<id>\/narrow-<n>","id":"<id>","move":"approve","guard":"caller\.present","reason":"[^"]+"\}'/);
+});
+
+test("the brief says of `facts` what the tool prints of a ref the last submit does not name", () => {
+  const rec = [...base("approver: leave"), { seq: 10, type: "moved", id: "t1", move: "submit", to: "in-review", refs: [{ kind: "deploy", value: "brain-x-topic@abc" }], by: by("impl-222222") }];
+  const line = factsText(facts(rec, git, "t1")).find((l) => l.includes("not of the last")) ?? "";
+  expect(line).toMatch(/^commit \S+: .* \(of the submit of event \d+, not of the last\)$/);
+  expect(flat(brief)).toContain(line.slice(line.indexOf("(of the submit")).replace(/\d+/, "N"));
+  expect(flat(brief)).toContain("each `commit` ref of every submit the issue has");
 });
 
 test("`list` prints the brief's one sentence for an approve made on such a verdict", () => {

@@ -263,6 +263,69 @@ test("approve sends nothing (R7): a ref that touches one of the approver's own f
   expect(run({ ref: `lopecode-dev@${touched.rules}` }).j.exit).toBe(0);
 });
 
+// An issue sent back once: its first submit names `first`, its second `second`, and the verdict is of round 2.
+const twice = (first: string | string[], second: string | string[], o: World = {}) => world({
+  ...o, ref: first, verdictKey: "approver/task/verdict-2",
+  extra: ({ push, s }) => {
+    push({ type: "moved", move: "rework", to: "in-progress", by: REV, refs: [] });
+    s.submit2 = push({ type: "moved", move: "submit", to: "in-review", by: IMPL, refs: [second].flat().map((value) => ({ kind: "commit", value })) });
+    s.review2 = push({ type: "reviewed", by: REV, verdict: "pass", body: "pass" });
+    push({ type: "moved", move: "to-approval", to: "awaiting-approval", by: REV, refs: [] });
+  }
+});
+const judged = (w: ReturnType<typeof world>) => judge(w.record, w.policy, git, { id: "task", verdict: w.s.verdict });
+
+test("approve sends nothing (R7): a ref of an earlier submit touches the approver's own files, and the last submit leaves it out", () => {
+  for (const [name, file] of [["brief", BRIEF], ["tool", TOOL], ["test", TEST], ["policy", "plan/cloud-brain-issues-policy-v3.json"], ["seed", "tools/cloud-brain/brain-issues.ojs"]] as const) {
+    const j = judged(twice(`lopecode-dev@${touched[name]}`, `lopecode-dev@${touched.core}`));
+    refused(j, new RegExp(`the ref lopecode-dev@${touched[name]} touches ${file.replaceAll(".", "\\.")}: the approver does not approve a change to itself \\(R7\\)`));
+    expect(j.why.length).toBe(1);
+  }
+  // Two rounds with none of those files are approved, and the key is the second round's.
+  const clean = judged(twice(`lopecode-dev@${touched.core}`, `lopecode-dev@${touched.topic}`));
+  expect(clean.why).toEqual([]);
+  expect(clean.send).toMatchObject({ key: "approver/task/approve-2", id: "task" });
+  // A ref both submits name is read once.
+  expect(judged(twice(`lopecode-dev@${touched.tool}`, [`lopecode-dev@${touched.tool}`, `lopecode-dev@${touched.core}`])).why.length).toBe(1);
+  // An earlier ref the checkout does not have is said, as one of the last submit is.
+  refused(judged(twice("lopecode-dev@" + "0".repeat(40), `lopecode-dev@${touched.core}`)), /the ref lopecode-dev@0{40} is not a commit the checkout has/);
+  // The last submit still needs a commit ref of its own.
+  refused(judged(twice(`lopecode-dev@${touched.core}`, [])), /the last submit of the issue \(event \d+\) has no commit ref to read/);
+  // A submit of another issue is not this one's: the project's submit-spec names the spec's commit, and is not read for the task.
+  const other = twice(`lopecode-dev@${touched.core}`, `lopecode-dev@${touched.topic}`);
+  other.record.find((e: any) => e.seq === other.s.submitSpec).refs.push({ kind: "commit", value: `lopecode-dev@${touched.tool}` });
+  expect(judged(other).why).toEqual([]);
+});
+
+test("check: a submit made after an approve is not held against it", () => {
+  const w = world();
+  approved(w);
+  w.record.push({ seq: w.record.length + 1, key: "later-submit", id: "task", type: "moved", move: "submit", to: "in-review", by: IMPL, workflow: HASH.task, at: 0, refs: [{ kind: "commit", value: `lopecode-dev@${touched.tool}` }] });
+  expect(check(w.record, git)).toEqual({ approves: 1, failed: [] });
+  // One made before it, in an earlier round, is.
+  const t = twice(`lopecode-dev@${touched.tool}`, `lopecode-dev@${touched.core}`);
+  t.record.push({ seq: t.record.length + 1, key: "approver/task/approve-2", at: 0, id: "task", workflow: HASH.task, type: "moved", move: "approve", to: "done", by: LOOP, reason: `approver: approve\nverdict ${t.s.verdict}, brief ${briefBlob}`, refs: [] });
+  t.record.push({ seq: t.record.length + 1, key: "cost", at: 0, id: "task", workflow: HASH.task, type: "cost", role: "approver", round: 2, token: "appr-0a1b2c", by: ORCH });
+  const c = check(t.record, git);
+  expect(c.approves).toBe(1);
+  expect(c.failed.map((f: any) => f.why)).toEqual([[`the ref lopecode-dev@${touched.tool} touches ${TOOL}: the approver does not approve a change to itself (R7)`]]);
+});
+
+test("facts: the refs of every submit of the issue, each once, and an earlier one says which submit named it", () => {
+  const w = twice([`lopecode-dev@${touched.tool}`, `lopecode-dev@${touched.rules}`], [`lopecode-dev@${touched.rules}`, `lopecode-dev@${touched.core}`]);
+  const f = facts(w.record, git, "task");
+  expect(f).toMatchObject({ round: 2, verdictKey: "approver/task/verdict-2", submit: w.s.submit2, review: w.s.review2 });
+  expect(f.refs.map((r: any) => [r.kind, r.value, r.submit, r.files?.map((x: any) => x.marks.join())])).toEqual([
+    ["commit", `lopecode-dev@${touched.tool}`, w.s.submit, ["approver"]], ["commit", `lopecode-dev@${touched.rules}`, w.s.submit2, ["rules"]],
+    ["deploy", "brain-x-topic@abc", w.s.submit, undefined], ["commit", `lopecode-dev@${touched.core}`, w.s.submit2, ["never"]]
+  ]);
+  const text = factsText(f);
+  expect(text).toContain(`commit lopecode-dev@${touched.tool}: 1 file (of the submit of event ${w.s.submit}, not of the last)`);
+  expect(text).toContain(`deploy brain-x-topic@abc (of the submit of event ${w.s.submit}, not of the last)`);
+  expect(text).toContain(`commit lopecode-dev@${touched.rules}: 1 file`);
+  expect(text).toContain(`  [approver] ${TOOL}`);
+});
+
 test("approve sends nothing (R7): the brief or the tool is not the one the installed policy names", () => {
   const other = "1".repeat(40);
   refused(run({ brief: other }).j, /the verdict ends brief 1{40}, and the policy names the brief/);

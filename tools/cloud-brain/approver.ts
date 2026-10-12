@@ -23,8 +23,8 @@
 //          origin/main has no such file.
 // facts    The issue as the approver needs it: its state, the round (the count of its moves to `awaiting-approval`),
 //          the key the verdict takes, the parent and that one's parent as they were when it was started, the passing
-//          review, any guard added to it, and each `commit` ref of its last submit with its files. A file is marked
-//          `never` (a seed of the kernel, the core, the database or the deployer, cloudflare-iac, exporter-3,
+//          review, any guard added to it, and each ref of every submit it has, once, a `commit` with its files; one
+//          the last submit does not name says which submit did. A file is marked `never` (a seed of the kernel, the core, the database or the deployer, cloudflare-iac, exporter-3,
 //          robocoop-5, the channel server, the `lopecode` pointer), `rules` (rules.md, philosophy.md), `policy` (a
 //          plan/cloud-brain-issues-policy-*.json, brain-issues.ojs) or `approver` (the brief, this tool, its test).
 //          A mark refuses nothing but the last two, which `approve` refuses (below).
@@ -40,9 +40,11 @@
 //          - the policy's reason ends `approver brief <blob> tool <blob>`; the verdict ends `brief <blob>` with the
 //            first; origin/main, fetched, has the brief and this tool at those two blobs; and the file that runs is
 //            that tool (R7);
-//          - the last `submit` or `submit-spec` has a `commit` ref, each is a commit the checkout has, and none touches
-//            the brief, this tool, tests/tools/approver.test.ts, a plan/cloud-brain-issues-policy-*.json or
-//            brain-issues.ojs (R7; the whole seed, not its policy cells alone);
+//          - the last `submit` or `submit-spec` of the issue has a `commit` ref; each `commit` ref of every submit the
+//            issue has, of this round or one before a send-back, is a commit the checkout has; and none touches the
+//            brief, this tool, tests/tools/approver.test.ts, a plan/cloud-brain-issues-policy-*.json or
+//            brain-issues.ojs (R7; the whole seed, not its policy cells alone). A submit of another issue, its
+//            parent's `submit-spec` among them, is not read for it;
 //          - the verdict has a line `asked: <where> "<his words>"`, and each such line holds (R3, R6):
 //            <where> a number: an event before the verdict, of the issue or of what was its parent or that one's
 //            parent when the issue was first started (a part-of made later is not followed); not written by an `appr-`
@@ -176,7 +178,14 @@ function family(record: Event[], id: string) {
   return [parent, grand].filter(Boolean) as string[];
 }
 const commitRef = (value: string) => { const m = /^(?:([a-z][a-z0-9-]*)[@ ])?([0-9a-f]{7,40})$/.exec(String(value).trim()); return m ? { repo: m[1] || "", sha: m[2] } : null; };
-const lastSubmit = (record: Event[], id: string, before = Infinity) => record.filter((e) => e.id === id && e.seq < before && isMove(e, "submit", "submit-spec")).at(-1);
+const submits = (record: Event[], id: string, before = Infinity) => record.filter((e) => e.id === id && e.seq < before && isMove(e, "submit", "submit-spec"));
+// Each ref of every submit of the issue, once, in the order first named; `submit` is the last submit that names it.
+// A later round's submit names the commits of that round alone, so the last submit does not have them all.
+function submitted(record: Event[], id: string, before = Infinity) {
+  const refs = new Map<string, { kind: string; value: string; submit: number }>();
+  for (const e of submits(record, id, before)) for (const r of e.refs || []) refs.set(`${r.kind} ${r.value}`, { kind: String(r.kind), value: String(r.value), submit: e.seq });
+  return [...refs.values()];
+}
 
 type Asked = { where: string; quote: string; kind: 1 | 2 | 3 | 4; said: string };
 // One `asked:` line of a verdict, held against the record and the files: what it rests on, or why it does not hold.
@@ -251,8 +260,9 @@ export function judge(record: Event[], policyRead: any, git: Git, { id, verdict,
     if (live && git.blob(TOOL) !== pins.tool) why.push(`${TOOL} at ${git.main} is ${git.blob(TOOL) ?? "absent"}, and the policy names ${pins.tool} (R7)`);
     if (live && git.self() !== pins.tool) why.push(`the tool that runs is ${git.self() ?? "not hashed"}, and the policy names ${pins.tool} (R7)`);
   }
-  const submit = lastSubmit(record, id, before), refs = (submit?.refs || []).filter((r: any) => r.kind === "commit");
+  const last = submits(record, id, before).at(-1)?.seq ?? 0, refs = submitted(record, id, before).filter((r) => r.kind === "commit");
   if (!refs.length) why.push(`the issue has no submit with a commit ref to read`);
+  else if (!refs.some((r) => r.submit === last)) why.push(`the last submit of the issue (event ${last}) has no commit ref to read`);
   for (const r of refs) {
     const c = commitRef(r.value), files = c ? git.files(c.repo, c.sha) : null;
     if (!files) { why.push(`the ref ${r.value} is not a commit the checkout has`); continue; }
@@ -267,10 +277,10 @@ export function judge(record: Event[], policyRead: any, git: Git, { id, verdict,
 
 // What an approver reads of an issue before it judges.
 export function facts(record: Event[], git: Git, id: string) {
-  const i = issueAt(record, id), mine = record.filter((e) => e.id === id && !e.hidden), submit = lastSubmit(record, id);
-  const refs = (submit?.refs || []).map((r: any) => {
+  const i = issueAt(record, id), mine = record.filter((e) => e.id === id && !e.hidden), submit = submits(record, id).at(-1);
+  const refs = submitted(record, id).map((r) => {
     const c = r.kind === "commit" ? commitRef(r.value) : null, files = c ? git.files(c.repo, c.sha) : null;
-    return { kind: r.kind as string, value: r.value as string, files: files ? files.map((file) => ({ file, marks: marks(file) })) : null };
+    return { ...r, files: files ? files.map((file) => ({ file, marks: marks(file) })) : null };
   });
   return {
     id, seen: i.seen, state: i.state, round: i.rounds, verdictKey: `approver/${id}/verdict-${i.rounds}`, family: family(record, id),
@@ -285,7 +295,7 @@ export function factsText(f: ReturnType<typeof facts>) {
     `last submit: event ${f.submit || "none"}; passing review: event ${f.review || "none"}; verdicts: ${f.verdicts.join(", ") || "none"}${f.left.length ? `; left to the owner at ${f.left.join(", ")}` : ""}`,
     ...f.extra.map((x) => `guard added to ${x.move} (event ${x.n}): ${x.guard}`)];
   for (const r of f.refs) {
-    lines.push(`${r.kind} ${r.value}${r.kind !== "commit" ? "" : r.files ? `: ${r.files.length} file${r.files.length === 1 ? "" : "s"}` : ": not a commit the checkout has"}`);
+    lines.push(`${r.kind} ${r.value}${r.kind !== "commit" ? "" : r.files ? `: ${r.files.length} file${r.files.length === 1 ? "" : "s"}` : ": not a commit the checkout has"}${r.submit === f.submit ? "" : ` (of the submit of event ${r.submit}, not of the last)`}`);
     for (const x of r.files || []) lines.push(`  ${x.marks.length ? ("[" + x.marks.join(",") + "]").padEnd(10) : "".padEnd(10)} ${x.file}`);
   }
   return lines;
