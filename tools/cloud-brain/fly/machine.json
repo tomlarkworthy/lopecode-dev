@@ -1,0 +1,17 @@
+{
+  "name": "loop",
+  "region": "ams",
+  "config": {
+    "image": "registry.fly.io/cloudbrain:<label>",
+    "guest": { "cpu_kind": "performance", "cpus": 2, "memory_mb": 4096 },
+    "restart": { "policy": "no" },
+    "auto_destroy": false,
+    "mounts": [{ "volume": "<volume id>", "path": "/data" }],
+    "files": [
+      { "guest_path": "/root/.ssh/lopecode-dev.key", "secret_name": "DEPLOY_KEY_LOPECODE_DEV" },
+      { "guest_path": "/root/.ssh/lopebooks.key", "secret_name": "DEPLOY_KEY_LOPEBOOKS" },
+      { "guest_path": "/root/.ssh/lopecode-plugin.key", "secret_name": "DEPLOY_KEY_LOPECODE_PLUGIN" },
+      { "guest_path": "/root/cb4-tokens.json", "secret_name": "BRAIN_TOKENS" }
+    ]
+  }
+}

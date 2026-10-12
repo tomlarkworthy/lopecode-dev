@@ -1,0 +1,20 @@
+# /etc/ssh/ssh_config.d/github.conf of the worker machine. A deploy key is of one repository, and GitHub takes
+# the first key SSH offers, so each repository is reached by an alias with its own key (run.sh sets the remotes).
+# The key files are written by the machine's `files` (machine.json), not by the image.
+Host github-lopecode-dev
+  HostName github.com
+  User git
+  IdentityFile /root/.ssh/lopecode-dev.key
+  IdentitiesOnly yes
+
+Host github-lopebooks
+  HostName github.com
+  User git
+  IdentityFile /root/.ssh/lopebooks.key
+  IdentitiesOnly yes
+
+Host github-lopecode-plugin
+  HostName github.com
+  User git
+  IdentityFile /root/.ssh/lopecode-plugin.key
+  IdentitiesOnly yes

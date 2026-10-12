@@ -201,7 +201,9 @@ One Fly.io app, one machine, one volume.
   hand on `ubuntu:24.04`: git, bun, node, poppler-utils, jq, python3, Claude Code, and the Chromium
   that Playwright 1.57 names. The tools are in the image because a stopped machine starts again from
   its image (the issue's body, from Fly.io's page). Where the image is built is T2's to measure: the
-  body's "Fly builds a Dockerfile on its own builders" is from memory.
+  body's "Fly builds a Dockerfile on its own builders" is from memory. (As built,
+  `fly-2-image-and-run-sh`, 2026-10-12: built on Fly.io's builder by `tools/cloud-brain/fly/build.sh`
+  and kept in the app's registry, `registry.fly.io/cloudbrain:<label>`; the record.)
 - **Volume**: 10 GB at `/data`, $1.50 a month whether the machine runs or not. A stopped machine is
   billed for its root file system as well, $0.15 a GB a month; the image's size is not known before
   T2. It holds the checkout
@@ -212,7 +214,8 @@ One Fly.io app, one machine, one volume.
   hour (my arithmetic from the listed prices, over 730 hours). A pass runs writers, reviewers and a
   headless Chrome for a seed's tests; what that takes in memory was not measured on the laptop, and
   T1 reads it on the machine (`free -m` while one writer runs its tests). The body's shared-cpu-4x with 8 GB at $0.0706 an
-  hour is the next size.
+  hour is the next size. (As built, `fly-2-image-and-run-sh`, 2026-10-12: `tools/cloud-brain/fly/machine.json`
+  names performance-2x with 4096 MB, the size `fly-1-by-hand` ended on; the records of both.)
 - **Stop, not suspend**: suspend is for 2 GB or less, and the checkout and the transcripts are on
   the volume, so a cold start loses nothing the loop kept.
 - **Region**: `ams`. The owner is in CEST and cb4's containers are in `WEUR`. Not measured.
@@ -224,6 +227,11 @@ One Fly.io app, one machine, one volume.
   `METADEV=1` is set because the hook asks for it, and the knowledge page that names `metadev` gets a
   line saying so (T5). `<mode>` is what T1 finds lets a pass finish with nobody to answer a prompt.
   Not `--bare`: bare mode reads no `CLAUDE_CODE_OAUTH_TOKEN` and no skill.
+  (As built, `fly-2-image-and-run-sh`, 2026-10-12: the machine starts a copy of `run.sh` that is in the
+  image, by the image's `CMD` and with no `init.exec`, since a new volume has no checkout; that copy clones
+  when there is none, pulls `main` and starts the checkout's copy. Three submodules, not `lopecode`. The
+  mode is `bypassPermissions` with `IS_SANDBOX=1`. It asks `fly.work` after the pull and before the
+  submodules; the record.)
 
 ### 2. The loop there, and its end (R2, R8). Answers "who turns it on and off", "how the two loops keep apart"
 

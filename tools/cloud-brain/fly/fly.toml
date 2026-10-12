@@ -1,0 +1,7 @@
+# Read by build.sh alone, for `fly deploy --build-only --push`: the app whose registry keeps the image.
+# No machine is made from this file. The machine's config is machine.json, sent through the Machines API.
+app = "cloudbrain"
+primary_region = "ams"
+
+[build]
+  dockerfile = "Dockerfile"
