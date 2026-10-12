@@ -52,7 +52,8 @@ ignored insert was not known when the seed was written, and the answer does not 
 
 - *A topic that is not there.* 404 to a caller who could create the name (the owner; a member under
   their own `m.<id>.`), and to anyone else the same 403 and message a refused rule answers. A 404 for
-  all would tell one member which names another has (line 1 of the philosophy).
+  all would tell one member which names another has (line 1 of the philosophy). As first deployed this
+  held for append, read and delete and not for `topic.create`: round 2, below.
 - *`topic.create` again.* By the creator or the owner it changes the rules and answers
   `created: false`; a rule left out stays as it is. The other reading, that a rule left out goes back
   to the default, would close a topic that a caller meant only to open further.
@@ -211,3 +212,86 @@ no table, took 188 ms the same way. `check.time` was then deleted with the token
 - 10,000 entries in a topic, and the time of `topic.list` with many topics. It has no limit.
 - The tests run together on the owner's page, and whether the page on cb4 boots the new module:
   `brain.ts shell` is the orchestrating session's.
+
+## Round 2, 2026-10-12: `topic.create` said which names another member has
+
+Review 3602, verdict `changes`, one finding. The round was resumed by the agent that wrote the first.
+The seed commit's author time is 04:16:22 +0200.
+
+**The finding, as the reviewer's probe read it** on the Worker of round 1 (`d61233bea3c6`), member A
+having made `m.<ia>.x` and member B calling:
+
+```
+B create m.<ia>.x    -> 403 "the creator or the owner changes a topic's rules"
+B create m.<ia>.nope -> 403 "a member creates m.<their id>.NAME"
+```
+
+The two messages differ, so B learned that `m.<ia>.x` is there. The first cell of the seed and this
+record said no answer did that. In `topicApp` the row was read first and a caller who was not its
+creator was answered a message of that branch's own.
+
+**The change.** `topic.create` answers a caller who neither owns the name nor created the topic one
+403 from one function, `notYours`, which is given the caller and not the row: "a member creates
+m.<their id>.NAME" to a DID, "the owner or a member creates a topic" to a Worker. The owner is the
+admin of every topic, so the owner's third message is met only for a name under `m.` that is not
+there. Not taken: the message of `REFUSED`, which append, read and delete answer. It would be right
+for a topic that is there and say nothing useful to a member who mistyped their own prefix.
+
+`test_topic_member_has_names_of_their_own` gains the create of both names, with and without a rule,
+by member B and by a Worker: eight answers, each `[403, { error: "Forbidden", message }]` with the
+caller's one message, and no topic made. It fails on the create of round 1 and passes on this:
+
+```
+cd cloud-brain-dev && bun test.ts brain-x-topic --with <the build with round 1's line put back>
+  "passed":6,"failed":1      (test_topic_member_has_names_of_their_own)
+cd cloud-brain-dev && bun test.ts brain-x-topic --with <the build of this round>
+  'passed': 7, 'failed': 0, 'needsBrowser': 0
+```
+
+The first cell's paragraph under "Rules" now says which methods answer 404 or the rule's 403, what
+`topic.create` answers, and that until this round its message told the two apart.
+
+**Counts**, each from a run after the last edit of the seed (the emit and the two `bun test` after
+the rebase, which brought nothing in):
+
+```
+cd $W && bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/brain-topic --emit …
+  "tests":7,"passed":7,"failed":[]   emitted hash 77b565be4ca0…993c87ad, 255467 bytes, Chrome 151.0.7922.34
+cd <root> && BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-topic --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20
+  "mains":["@tomlarkworthy/brain-shell","@tomlarkworthy/brain-topic"]
+  "runs":20,"passed":20,"failed":0,"none":0,"from":["document"],"byChance":[]
+cd $W && bun test ./tests/tools/topic-sql.test.ts
+  5 pass, 0 fail
+cd $W && bun test ./tests/tools
+  488 pass, 1 skip, 0 fail, 489 tests across 53 files
+```
+
+`verify-run.ts` ran this round, since the Worker is on cb4; so does step 7's `test.ts --with`.
+
+**The apply**, under the deploy lock (04:19:12 to 04:20:04 CEST, the lock's own times):
+
+```
+tp-1-topics-append-read-brain-x-topic.json 40762 ms [{"worker":"brain-x-topic","hash":"77b565be4ca0","state":"verified","version":"b63ee4ca-a04c-4856-a244-6b7d0adb036b","tests":7}]
+```
+
+`brain.ts redistil` after it: `brain-x-topic  same  77b565be4ca0`, no line `differs` or `MOVED`. With
+`--as loop-topic`, 04:20 CEST: `topic.read?topic=check.one&after=1` answered `seq` 2 and 3 and
+`next: 3`, the entries of round 1, so the redeploy kept the tables; `topic.create` of
+`m.0000000000.x` answered 403 "a name under m. is created by its member".
+
+**Two things of round 1's record that the review named**, mended here and not above:
+
+- The 482 pass of `bun test ./tests/tools` was from a run before the landing's second rebase, which
+  brought in `tests/tools/issue-stats.test.ts`; the reviewer's run at `dd117b4b` gave 486.
+- "Step 7 of the brief as written does not run" was true before the first deploy and is not now.
+
+**Not tried in this round**
+
+- The two creates by a member on cb4: a member reaches no `topic.*` there until the owner's grant,
+  and the token `loop-topic` calls as the owner, who is the admin of every topic. The eight answers
+  are from the cell, with `x-brain-caller` a DID or a Worker.
+- How long each of the two creates takes. Both ask for the row; for the name that is not there the
+  service then hashes the DID before the 403 (`owns`), and for the one that is there it does not. A
+  caller who times many calls was not looked at.
+- `topic.read?after=Infinity`, which the review notes answers `next: null`. Not a finding and not
+  changed: a round fixes its findings.
