@@ -81,6 +81,9 @@ const LEAD = "A long doc of lines, for a reader who wants every line. It decides
 // "Line 200 of the doc" is in a doc of 200 lines; 99999 is in none.
 const GOOD = `${LEAD} It ends at Line 200.\n\n${SECTIONS}`, BAD = `${LEAD} It has 99999 lines.\n\n${SECTIONS}`;
 const FILE = "docs/lopecode-dev/knowledge/long.md";
+// A case starts the tool 10 to 25 times, about a second each on an idle machine: with four suites beside it one case
+// passed 30 s (the suite's limit for a test that names none) at a load of 7.
+const T = 120000;
 
 const fresh = (docs: Record<string, string> = { "knowledge/long.md": longDoc(200), "knowledge/short.md": SHORT }, when?: string) => {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "bm-ksum-")));
@@ -163,12 +166,13 @@ test("summarize <name>: the canary first, one agent that reads a new directory w
   // The journal: the canary's line, then the doc's.
   expect(t.journal()).toMatchObject([{ canary: "refused", toolset: ["Read"], mode: "default" }, { name: "long", id: "doc:long", outcome: "put", model: "haiku", session: "s-3", rounds: 1, usd: 0.25, sha256: sha(doc), length: 16000, put: { vectors: 1 } }]);
   // After it: summarized, no longer cut or due, and the docs step puts nothing.
-  expect(t.kdocs(["status"]).last).toMatchObject({ fresh: 2, cut: 0, unmarked: 0, long: 1, summarized: 1, behind: 0, due: [] });
-  expect(t.kdocs(["status"]).out).toContain(`long summary by haiku of ${day()}`);
+  const after = t.kdocs(["status"]);
+  expect(after.last).toMatchObject({ fresh: 2, cut: 0, unmarked: 0, long: 1, summarized: 1, behind: 0, due: [] });
+  expect(after.out).toContain(`long summary by haiku of ${day()}`);
   expect(t.kdocs(["put", "--stale"]).out).toBe("nothing to put");
   const chk = t.kdocs(["status", "--check-summaries", "long"]);
   expect([chk.code, chk.lines[0], chk.last.failing]).toEqual([0, { name: "long", state: "summarized" }, []]);
-});
+}, T);
 
 test("a put of a changed doc keeps the summary and its line, with the second line and the start made anew; due only over a tenth of the lines, then staleSince", () => {
   const t = summarized();
@@ -178,9 +182,10 @@ test("a put of a changed doc keeps the summary and its line, with the second lin
   const more = (k: number) => was + Array.from({ length: k }, (_, i) => `Added ${i + 1}. ` + "more ".repeat(30).trim()).join("\n") + "\n";
   t.write("knowledge/long.md", more(23));
   t.push("23 lines more");
-  expect(t.kdocs(["status"]).last).toMatchObject({ fresh: 1, stale: 1, cut: 0, unmarked: 0, summarized: 1, behind: 1, due: [] });
-  expect(t.kdocs(["status"]).out).toContain(`long stale`);
-  expect(t.kdocs(["status"]).out).toContain(`summary by haiku of ${day()}, behind`);
+  const st = t.kdocs(["status"]);
+  expect(st.last).toMatchObject({ fresh: 1, stale: 1, cut: 0, unmarked: 0, summarized: 1, behind: 1, due: [] });
+  expect(st.out).toContain(`long stale`);
+  expect(st.out).toContain(`summary by haiku of ${day()}, behind`);
   const p = t.kdocs(["put", "--stale"]);
   expect(p.last).toMatchObject({ put: 1, cut: 0, unmarked: 0, summarized: 1 });
   const e = t.puts().at(-1);
@@ -204,7 +209,7 @@ test("a put of a changed doc keeps the summary and its line, with the second lin
   expect(t.kdocs(["summarize", "--due"]).last).toMatchObject({ picked: 1, put: 1 });
   expect([t.entry().staleSince, t.entry().text.includes(lineOfDoc(sha(more(24))))]).toEqual([null, true]);
   expect(t.kdocs(["status"]).last).toMatchObject({ summarized: 1, behind: 0, due: [] });
-});
+}, T);
 
 test("a summary of a version no commit has is due; a doc that shrinks to fit is entered whole with staleSince 0 and no summary", () => {
   const t = summarized();
@@ -222,7 +227,7 @@ test("a summary of a version no commit has is due; a doc that shrinks to fit is 
   t.push("short changed");
   t.kdocs(["put", "--stale"]);
   expect("staleSince" in t.puts().at(-1)).toBe(false);
-});
+}, T);
 
 test("put --plain <name>: a summarized doc as it is put with no summary, cut, its last line the cut's; due again; --plain with no name puts nothing", () => {
   const t = summarized();
@@ -236,7 +241,7 @@ test("put --plain <name>: a summarized doc as it is put with no summary, cut, it
   expect(t.puts().at(-1)).toMatchObject({ text: cut.text, staleSince: 0 });
   expect([cut.text.includes("Summary by summarizer"), cut.text.endsWith(`The whole is the file ${FILE} in this Brain's brain-static: static.get?path=${FILE}]`)]).toEqual([false, true]);
   expect(t.kdocs(["status"]).last).toMatchObject({ cut: 1, unmarked: 0, summarized: 0, due: ["long"] });
-});
+}, T);
 
 test("the docs step leaves a doc with a .running file under ten minutes old and names it; an older file does not hold it; summarize skips such a doc and starts no agent", () => {
   const t = summarized();
@@ -259,7 +264,7 @@ test("the docs step leaves a doc with a .running file under ten minutes old and 
   t.push("changed again");
   writeFileSync(join(t.state, "long.running"), String(Date.now() - 11 * 60000));
   expect(t.kdocs(["put", "--stale"]).last).toMatchObject({ put: 1, summarized: 1 });
-});
+}, T);
 
 test("summarize --dry: the summary to a file and nothing put; refused once, the same agent is sent the list; refused twice dry holds a later --dry and not a run that puts", () => {
   const t = entered();
@@ -289,7 +294,7 @@ test("summarize --dry: the summary to a file and nothing put; refused once, the 
   expect(t.puts().length).toBe(2);
   expect(t.kdocs(["summarize", "--due"]).lines[0]).toMatchObject({ name: "long", outcome: "put" });
   expect(t.puts().length).toBe(3);
-});
+}, T);
 
 test("refused twice: nothing is put, status lists the doc under refused, a later --due starts no agent (the canary's neither) until --again; --check-summaries fails it unless --except names it", () => {
   const t = entered();
@@ -314,7 +319,7 @@ test("refused twice: nothing is put, status lists the doc under refused, a later
   // The file changes: the refusal was of another file. --again: the same file once more.
   const more = t.kdocs(["summarize", "long", "--again", "--model", "opus"]);
   expect([more.lines[0].outcome, t.started().at(-1).model, t.entry().text.includes(lineOfDoc(sha(t.doc()), "opus"))]).toEqual(["put", "opus", true]);
-});
+}, T);
 
 test("summarize: the file is read again before the put: when origin/main moved while the agent read, the line names the version read and the start and sha256 are the newer file's", () => {
   const t = entered();
@@ -331,7 +336,7 @@ test("summarize: the file is read again before the put: when origin/main moved w
   expect(t.journal().at(-1)).toMatchObject({ outcome: "put", sha256: sha(was), putSha256: sha(now) });
   // The entry is fresh by the newer file, and its summary behind by one line of 207: not due.
   expect(t.kdocs(["status"]).last).toMatchObject({ fresh: 2, summarized: 1, behind: 1, due: [] });
-});
+}, T);
 
 test("--usd-max stops before the next doc; a put that is refused stops the run; the canary's stop is exit 3 with no doc read; a short doc and an unknown name start no agent", () => {
   const two = { "knowledge/long.md": longDoc(200), "knowledge/longer.md": longDoc(200).replace("# A long doc", "# A longer doc"), "knowledge/short.md": SHORT };
@@ -352,7 +357,7 @@ test("--usd-max stops before the next doc; a put that is refused stops the run; 
   const c = leak.kdocs(["summarize", "long"]);
   expect([c.code, c.last.stopped, leak.started().length, leak.puts().length, leak.journal()[0].canary]).toEqual([3, 'the canary: read (toolset ["Read"], mode default). No doc was read and nothing was put.', 1, 2, "read"]);
   expect(c.out + readFileSync(join(leak.state, "journal.jsonl"), "utf8")).not.toContain(readFileSync(join(leak.repo, "tools/cloud-brain/.emitted/canary.txt"), "utf8").trim());
-});
+}, T);
 
 test("status --check-summaries: a doc with no summary fails once it has been due for over 24 hours, from its file's last commit; a summary not in its form fails; with names only those are read", () => {
   const old = new Date(Date.now() - 3 * 864e5).toISOString();
@@ -373,4 +378,4 @@ test("status --check-summaries: a doc with no summary fails once it has been due
   const f = t.kdocs(["status", "--check-summaries", "long"]);
   expect(bad.length).toBeGreaterThan(16000);
   expect([f.code, f.lines[0].fails]).toEqual([1, ["the first paragraph is 1489 characters, over 1488", "the five headings are not there in their order", `the line after the summary's does not name the entry's file ${FILE}`, `the text is ${bad.length} characters, over 16000`]]);
-});
+}, T);

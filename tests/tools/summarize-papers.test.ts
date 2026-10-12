@@ -709,7 +709,7 @@ test("sd-2: check passes an entry whose line has the older name, as the 63 put b
     expect((await t.cmd("run", ["--ids", "arxiv:2603.06333"])).lines[0]).toMatchObject({ skipped: "summarized" });
     expect(t.started().length - n).toBe(1);
   } finally { t.stop(); }
-});
+}, 120000);
 
 test("sd-2: run --again --dry summarizes a paper that has a summary of this text, puts nothing and leaves the summary that was put on disk; --again alone and --dry alone skip it", async () => {
   const t = await fresh();
@@ -731,7 +731,7 @@ test("sd-2: run --again --dry summarizes a paper that has a summary of this text
     expect(readFileSync(join(t.papers, "arxiv:2603.06333.dry.summary.txt"), "utf8")).toStartWith("Again: SAHOO watches");
     expect(t.journal().at(-1)).toMatchObject({ dry: true, id: "arxiv:2603.06333", outcome: "dry" });
   } finally { t.stop(); }
-});
+}, 120000);
 
 test("sd-2: summarize, the one exported function: a doc's file is copied to a new directory, the agent is started as the role with the kind in its task line, and the answer judged by the five", async () => {
   const t = await fresh();

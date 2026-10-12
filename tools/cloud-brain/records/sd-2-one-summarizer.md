@@ -101,7 +101,20 @@ because the spec changes what it held:
 - `knowledge-docs.test.ts`, two cases of an entry answered with no text: `status` read it `unmarked: 1` and
   `put --stale` put it. The spec: "its test of that case changes with it in task 2".
 
-The count of the whole suite and of `sd-2-one-summarizer.test.ts`, which reads this file, are in the issue's comment.
+`tests/tools/suite.sh`, the whole of `tests/tools`, after the rebase on `origin/main`, twice, with other suites
+running on the machine (load 6 to 7 by `uptime`):
+
+```
+23:59:39 to 00:02:26   866 pass, 1 fail of 867   "a put of a changed doc keeps the summary …" of the new file, timed out at 30 s
+00:03:52 to 00:06:41   866 pass, 1 fail of 867   "the transcript of a session and of a subagent are found …" of agent-usage.test.ts, timed out at 30 s
+```
+
+The first is this task's: a case of the new file starts the tool 10 to 25 times, and at that load one passed the
+30 s the suite gives a test that names none. Every case of the file now names 120 s, as do the two added cases of
+the papers' test that start the tool, and two repeated `status` calls were taken out. The second run has that
+mend. Its failure is a file this task does not touch; alone, straight after, it is 13 pass, 0 fail in 241 ms. No
+run of the whole suite passed all 867. `sd-2-one-summarizer.test.ts` (3 tests) holds the sentences of the guide,
+the spec's note and this file's headings.
 
 ## R9's other two checks, on cb4
 
