@@ -125,6 +125,77 @@ rest of this section is the writer's reading, not his words. Both answers are of
   and four `approve` moves on one word, "I approve those first 4", events 2608 to 2611, each with
   the reason "he was shown its title and not its text".
 
+## What the owner is asked to decide
+
+Tom, 2026-10-12 20:57 CEST, to a session outside the loop, with ten issues waiting for him: "I am so
+fucking bored of approving stuff, please tell all the things that are awaiting approval and a summary
+of the change and impact. They are unreadable." That session read the ten comments the loop had
+written for him and gave him the ten as one list. He answered all ten in one message at 21:02 CEST,
+which ends: "This simple summary is much better for making decisions so can we please add a rule to
+write human reviews more in this dense style." Both are in the body of
+`owner-decisions-written-dense` (event 4388), written by the session he said them to, with the
+list. The rest of this section is the writer's reading, not his words.
+
+Three of the ten items, as he read them. "I" in them is that session:
+
+> 5. **`bk-1-after-link`**: the tracker can record "this issue waits for that one". Already live on cb4; nothing reads the link yet, a later task builds the queue on it.
+
+> 7. **`tp-3-take-and-done`** (live on cb4). Topics get a pull side: a worker takes entries, holds them for a time, and says done. The reviewer found that the test for "two takers never get the same entry" still passes when that promise is broken.
+>    - **A**: approve.
+>    - **B**: approve, plus a task for a test that can fail. No deploy.
+>    - **C**: reject.
+>    - The loop picks B, and so do I.
+
+> 10. **`iac-origin-test-secret-held-by-clock`**. One test in the deployer's seed fails about a third of the time because it depends on the wall clock. Nothing in the product is wrong.
+>    - **A**: the loop fixes the test cell, and it goes out with your next deployer install.
+>    - **B**: leave it.
+>    - The loop picks A, and so do I.
+
+The three are 167, 392 and 331 characters. The comment the loop had written for the decision of item 7,
+4060 of `tp-3-take-and-done`, is 2,318 (`issue.get`, the `body` of that event, read 2026-10-12):
+a hash, two event numbers, what the reviewer ran, five things not shown and what the check left on
+cb4 stand in it before the choice.
+
+- **What it holds for.** A comment written for the owner to decide by, whoever writes it: the
+  comment that goes with `needs-owner`, the comment of a `major` issue that waits for his approval,
+  the overseer's of a decision only he can take. And the list of what waits for him, when a session
+  tells him (`SKILL.md`, step 7). It does not hold for a move's reason, a review, a writer's comment
+  or a record: those are the evidence, and are written as before.
+- **What it is, first.** One or two sentences, in words of what the thing does for him, with where
+  it fits when that bears on the choice ("a later task builds the queue on it"). The issue's id is
+  the one name in them: no event number, commit, hash, file path or test count.
+- **Live, and what it costs.** Whether cb4 runs it already, in a few words ("live on cb4"), and
+  what it costs a day when it costs money.
+- **The one flaw.** The risk or flaw that bears on the choice, and no other. With none, nothing is
+  said of one.
+- **The choices.** A letter each, one line each. Then the pick, one line: which, with the reason in
+  a clause when the flaw above does not already give it. An approval with nothing to choose between
+  has no letters: the sentences say that it is built and reviewed, and it goes in the first group
+  of the list.
+- **Where the rest goes.** What the reviewer ran, what was not shown, what a check left on cb4, the
+  hashes, the events and the counts stay where they are: the review, the writer's comment and the
+  record. Nothing of them stands before the choice. The comment may end with one line that says
+  where they are. (The issue left this to the writer of this section. Taken by line 4 as
+  `philosophy.md` reads it: what he is shown "is short and can be answered in a word".)
+- **The list.** One list of all that waits for him, numbered, that he can answer in one message
+  with a letter for each number. Those that need no thought come first, as one group that is said
+  to be so with the answer the loop would give ("Rubber stamps (already built and reviewed; all
+  recommended A)"), so that one word answers them all. Then the real choices, each as above.
+- **A comment a tool reads.** The approver's `leave` (`agents/approver.md`, step 9) is not changed
+  by this section: `approver.ts` reads its first line and its `why:` line, and its second line is
+  already one sentence of what the change does and what stopped the approval. Step 7 of `SKILL.md`
+  tells him those two lines.
+- **Beside `philosophy.md`.** His words of 2026-10-11 there stand: "a summary of the overall
+  project goals, and how the decision fits in with pros and cons". The first sentences are that
+  summary and the fit, and a choice's line has what is for it or against it. The order the
+  orchestrating session read from them ("What `needs-owner` means": the project "with its measured
+  numbers", each choice "with what is for it and against it", "the line it takes it by", "how to
+  answer") is longer than what he was given on 2026-10-12. Where the two differ this section holds,
+  as that file says of `rules.md`.
+- **Not in his words, and not done.** Whether a session gives him the list unasked, at a count of
+  waiting issues or at an hour. Nothing checks a comment against this section: it is held by the
+  agent that writes one.
+
 ## Always
 
 - Read `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md` before the first
@@ -168,6 +239,8 @@ rest of this section is the writer's reading, not his words. Both answers are of
   `tools/cloud-brain/worktree.sh --push-dev <name>`, under the landing lock and before that push;
   no branch is made in the main checkout's copy. `lopebooks` is pushed from the main checkout, on
   the day's first landing that builds, when `notebook-backup.sh` has committed there.
+- Write what the owner is asked to decide short and plain: what it is, whether it is live, the one
+  flaw, a line a choice, the pick ("What the owner is asked to decide").
 - Before finishing: the QA tab you opened is closed by name; `browser.all` and `container.all`
   show nothing you started.
 - Your last message is a report the overseer will read: what you did, each command whose result

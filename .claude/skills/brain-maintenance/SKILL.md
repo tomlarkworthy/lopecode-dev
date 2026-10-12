@@ -518,6 +518,12 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    lands from it by a push under the landing lock.
 7. **Tell the user** in a few lines: what moved this pass, what is waiting for the owner and
    why, what is running. Nothing moved is one line.
+   What waits for him is told as one list, in the form of `rules.md`, "What the owner is asked to decide": numbered, those
+   that need no thought first as one group with the answer you would give, then each real choice with a line a
+   letter and your pick, so that he can answer all of it in one message. So is the list he asks for. The comment you
+   write on an issue for him to decide by (with `needs-owner`, or when a `major` issue has passed its review) is
+   written by the same section. (The owner, 2026-10-12, of such a list: "This simple summary is much better for
+   making decisions".)
    Then what was approved for him since you last told him: the lines of
    `bun tools/cloud-brain/approver.ts list --since=<hours since you last told him> --token <your token>`, as they
    are (the hours a number above 0, as `24` or `0.5`; the tool is exit 2 for any other). Each is one `approve` the approver made: the time, the issue, the words of his it rests on (`on your words
@@ -706,7 +712,7 @@ A time you write in an issue's body, a comment or a reason is read from `date` o
      and leave the gathering to the overseer (below, "Links, and projects").
    - `needs-owner`, left at `triaged`: only when the seven do not answer it, when two of them
      pull apart with a real cost on each side, or when the issue proposes to change one of them
-     or a line of `rules.md`. The comment is in the form `philosophy.md` gives.
+     or a line of `rules.md`. The comment is written as `rules.md`, "What the owner is asked to decide", has it: what it is, whether it is live, the one flaw, a line a choice, the pick. (Until `owner-decisions-written-dense`, 2026-10-12: "in the form `philosophy.md` gives", the longer order of 2026-10-11.)
    - Also `needs-owner`, until the owner changes `rules.md`: the change needs something only he
      may do (a policy install, a new secret, a deploy of the kernel, core, database or deployer,
      a deletion of kept data). Decide from the seven whether it should be done, and comment
@@ -719,7 +725,7 @@ A time you write in an issue's body, a comment or a reason is read from `date` o
 
 Anything else: `triage`, then `ready`. Add the labels `major` and `needs-owner` when the change
 alters who may do what, deletes or rewrites kept data, or changes a method other callers use,
-and comment with the plan. The owner takes `needs-owner` off to let it be built, or answers and you take it off (`rules.md`, Never, the `needs-owner` line). The approval
+and comment with the plan, written as `rules.md`, "What the owner is asked to decide", has it. The owner takes `needs-owner` off to let it be built, or answers and you take it off (`rules.md`, Never, the `needs-owner` line). The approval
 after review is then of a change that is already deployed and pushed, since a submit needs its
 refs; the plan is where the owner stops it. Add `security` and take the `escalate` swap when the body describes a
 way past an access rule; the issue is then the owner's.

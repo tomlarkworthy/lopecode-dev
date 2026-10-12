@@ -94,7 +94,8 @@ each command; no shell state lasts between calls.
    you used, or that nothing bore on it. The token names that one read; it was made 2026-10-11
    with `brain.ts token loop-knowledge knowledge.search`.
 3. **Decide whether it is yours.** Stop, comment with what you found, add the label
-   `needs-owner`, and report, when any of these is true:
+   `needs-owner`, and report, when any of these is true (the comment is for the owner to decide by: it is
+   written as `rules.md`, "What the owner is asked to decide", has it, short, with what you found in a second comment or after the choice):
    - the fix needs something in the Never list of the rules. A change to a `test_*` cell counts:
      a Worker's hash covers its module's source with the test cells, so a test changed in
      `brain-kernel.ojs`, `brain-core.ojs`, `brain-db.ojs`, `brain-deployer.ojs` or
