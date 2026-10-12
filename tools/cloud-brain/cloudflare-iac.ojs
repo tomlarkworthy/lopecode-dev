@@ -199,6 +199,12 @@ backend = {
     rowsPutIfAbsent: async (key, value) => (store.rows.has(key) ? false : (store.rows.set(key, value), true)),
     rowsIncrement: async (key) => (store.rows.set(key, (store.rows.get(key) || 0) + 1), store.rows.get(key)),
     rowsAppend: async (key, item, max = 1000) => (store.rows.set(key, [...(store.rows.get(key) || []), item].slice(-max)), store.rows.get(key).length),
+    rowsAddWithin: async (key, add, max) => {
+      rowsWithin.check(add, max);
+      const next = rowsWithin.next(store.rows.get(key), add, max);
+      if (next) store.rows.set(key, next);
+      return next;
+    },
     rowsDeletePrefix: async (prefix) => [...store.rows.keys()].filter((k) => k.startsWith(prefix)).map((k) => store.rows.delete(k)).length,
     sqlRun: async () => {
       throw new Error("sql runs in a Worker, or under simulate with a sql function");
@@ -250,8 +256,15 @@ rows = ({
   increment: (key) => backend.rowsIncrement(key),
   // One step each, so two callers cannot interleave: push onto the list at key (keeping the last max), and delete every key under a prefix.
   append: (key, item, max) => backend.rowsAppend(key, item, max),
+  // add and max are lists of whole numbers of one length; the row is such a list, zeros when there is none. When every
+  // row[j] + add[j] <= max[j] the row becomes the sums and is the answer. Otherwise nothing is written: null.
+  addWithin: (key, add, max) => backend.rowsAddWithin(key, add, max),
   deletePrefix: (prefix) => backend.rowsDeletePrefix(prefix)
 })
+// %%
+// What rows.addWithin does, as the wrapper has it: sql(n) is the statement a Worker sends to D1 for n numbers,
+// next(row, add, max) the row after the add or null, check(add, max) throws at what is no pair of lists.
+rowsWithin = workerRuntime().within
 // %%
 // SQL tables in the Brain's one table database. A Worker has no binding to it: each call is db.sql on brain-db, which
 // decides per table from the statement's plan (the rules are in @tomlarkworthy/brain-db). A Worker owns the tables
@@ -453,6 +466,30 @@ workerRuntime = (AsyncLocalStorage = null) => {
   const blobKey = (key) => (ENV.BRAIN_INFO && ENV.BRAIN_INFO.role === "recipe" ? ENV.BRAIN_INFO.name + "/" : "") + key;
   // rows on D1: one database per Brain, one table, a Worker's rows under its own name. Each op is one statement,
   // so two callers cannot interleave inside one. Nothing is billed while no statement runs.
+  // rows.addWithin. sql(n): one statement for n numbers, bound after the Worker's name and the key as add 0, max 0,
+  // add 1, max 1, …; it answers the new row, or no row when a sum would pass its bound, and then writes nothing.
+  // next(row, add, max): the same decision for a store that reads and then writes.
+  const within = {
+    check: (add, max) => {
+      const whole = (list) => Array.isArray(list) && list.every((x) => Number.isSafeInteger(x) && x >= 0);
+      if (!whole(add) || !whole(max) || add.length !== max.length || !add.length) throw new TypeError("rows.addWithin: add and max are lists of whole numbers, of one length of 1 or more");
+      return true;
+    },
+    sql: (n) => {
+      const each = (f, by) => Array.from({ length: n }, (_, j) => f(j, "?" + (3 + 2 * j), "?" + (4 + 2 * j))).join(by);
+      const sum = (j, a) => "json_extract(v, '$[" + j + "]') + " + a;
+      return (
+        "INSERT INTO kv (t, k, v) SELECT ?1, ?2, json_array(" + each((j, a) => a, ",") + ") WHERE " + each((j, a, m) => a + " <= " + m, " AND ") +
+        " ON CONFLICT (t, k) DO UPDATE SET v = json_array(" + each(sum, ", ") + ") WHERE " + each((j, a, m) => sum(j, a) + " <= " + m, " AND ") + " RETURNING v"
+      );
+    },
+    next: (row, add, max) => {
+      const now = row == null ? add.map(() => 0) : row;
+      if (!Array.isArray(now) || !add.every((_, j) => typeof now[j] === "number")) return null;
+      const sums = add.map((a, j) => now[j] + a);
+      return sums.every((v, j) => v <= max[j]) ? sums : null;
+    }
+  };
   let sqlReady = null;
   const sqlCall = async (op, key, value) => {
     const t = info().name || "";
@@ -484,6 +521,10 @@ workerRuntime = (AsyncLocalStorage = null) => {
       let n = (await q("INSERT INTO kv (t, k, v) VALUES (?1, ?2, json_array(json(?3))) ON CONFLICT (t, k) DO UPDATE SET v = json_insert(v, '$[#]', json(?3)) RETURNING json_array_length(v) AS n", key, item).first()).n;
       for (; n > max; n--) await q("UPDATE kv SET v = json_remove(v, '$[0]') WHERE t = ?1 AND k = ?2", key).run();
       return n;
+    }
+    if (op === "addWithin") {
+      const r = await q(within.sql(value.add.length), ...value.add.flatMap((a, j) => [a, value.max[j]])).first();
+      return r ? JSON.parse(r.v) : null;
     }
     if (op === "deletePrefix") return (await q("DELETE FROM kv WHERE t = ?1 AND k >= ?2 AND k < ?3", key || "", hi(key || "")).run()).meta.changes;
     throw new Error("rows: no op " + op);
@@ -592,6 +633,7 @@ workerRuntime = (AsyncLocalStorage = null) => {
       putIfAbsent: (key, value) => rowsCall("putIfAbsent", key, value),
       increment: (key) => rowsCall("increment", key),
       append: (key, item, max = 1000) => rowsCall("append", key, { item, max }),
+      addWithin: async (key, add, max) => within.check(add, max) && rowsCall("addWithin", key, { add, max }),
       deletePrefix: (prefix) => rowsCall("deletePrefix", prefix)
     },
     sql: {
@@ -781,6 +823,12 @@ workerRuntime = (AsyncLocalStorage = null) => {
         const list = [...((await s.get(key)) || []), value.item].slice(-(value.max || 1000));
         return await s.put(key, list), Response.json({ value: list.length });
       }
+      // Read, then written, as increment is.
+      if (op === "addWithin") {
+        const next = within.next(await s.get(key), value.add, value.max);
+        if (next) await s.put(key, next);
+        return Response.json({ value: next });
+      }
       if (op === "deletePrefix") {
         const keys = [...(await s.list({ prefix: key })).keys()].filter((k) => !k.startsWith("__tick_"));
         for (let i = 0; i < keys.length; i += 128) await s.delete(keys.slice(i, i + 128));
@@ -789,7 +837,7 @@ workerRuntime = (AsyncLocalStorage = null) => {
       return Response.json({ value: null }, { status: 400 });
     }
   }
-  return { platform, fetch, serve, Rows };
+  return { platform, fetch, serve, Rows, within };
 }
 // %%
 // Compatibility flags the wrapper needs. The deployer sets them on every Worker; a service does not declare them.
@@ -1102,6 +1150,11 @@ simulate = async (service, { secrets = {}, stored = {}, fetch, config = {}, info
     if (op === "putIfAbsent") return r.has(key) ? false : (r.set(key, value), true);
     if (op === "increment") return r.set(key, (r.get(key) || 0) + 1), r.get(key);
     if (op === "append") return r.set(key, [...(r.get(key) || []), value.item].slice(-(value.max || 1000))), r.get(key).length;
+    if (op === "addWithin") {
+      const next = rowsWithin.next(r.get(key), value.add, value.max);
+      if (next) r.set(key, next);
+      return next;
+    }
     if (op === "deletePrefix") return [...r.keys()].filter((k) => k.startsWith(key)).map((k) => r.delete(k)).length;
     return [...r].filter(([k]) => k.startsWith(key)).sort(([a], [b]) => (a < b ? -1 : 1)).map(([key, value]) => ({ key, value }));
   };
@@ -2211,6 +2264,66 @@ test_hash_is_stable_and_per_service = {
 }
 // %%
 iac_tests = tests({ filter: (t) => t.name.includes("@tomlarkworthy/cloudflare-iac") })
+// %%
+// A service that passes its body to rows.addWithin and answers what it gave, or what it threw.
+fx_within = cloudflare.Service("within", async (request) => {
+  const { key, add, max } = await request.json();
+  try {
+    return Response.json({ value: await rows.addWithin(key, add, max) });
+  } catch (e) {
+    return Response.json({ thrown: e.message }, { status: 400 });
+  }
+})
+// %%
+test_rows_addWithin_adds_inside_its_bounds_and_writes_nothing_past_them = {
+  // Four stores answer one script the same: the rig's rows under simulate (a Worker's code, through the wrapper), the
+  // deployer's Durable Object over a Map, the notebook's own store, and the function alone. D1's statement is run on
+  // a SQLite by tests/tools/rows-add-within-sql.test.ts; no SQL engine runs here.
+  const script = [
+    ["a", [900, 1], [1000, 7], [900, 1]],
+    ["a", [200, 1], [1000, 7], null],
+    ["a", [200, 1], [2000, 7], [1100, 2]],
+    ["b", [2000, 1], [1000, 7], null],
+    ["c", [1, 1], [1000, 2], [1, 1]],
+    ["c", [1, 1], [1000, 2], [2, 2]],
+    ["c", [1, 1], [1000, 2], null],
+    ["c", [0, 0], [2, 2], [2, 2]]
+  ];
+  const after = { a: [1100, 2], b: undefined, c: [2, 2] };
+  const run = async (call, read) => {
+    for (const [key, add, max, want] of script) expect([key, add, max, await call(key, add, max)]).toEqual([key, add, max, want]);
+    for (const [key, want] of Object.entries(after)) expect([key, await read(key)]).toEqual([key, want]);
+  };
+  const post = (body) => ({ method: "POST", body: JSON.stringify(body) });
+  const sim = await simulate(fx_within);
+  expect(sim.emitted.meta.bindings).toEqual([{ name: "SQL", type: "d1" }]);
+  await run(async (key, add, max) => (await (await sim.fetch("https://brain.internal/", post({ key, add, max }))).json()).value, (key) => sim.rows.get(key));
+  // What is no pair of lists is thrown at in the wrapper, and no row is made.
+  for (const [add, max] of [[[1, 1], [9]], [[], []], [[-1], [9]], [[1.5], [9]], [[1], null], ["1", "9"]]) {
+    const r = await sim.fetch("https://brain.internal/", post({ key: "bad", add, max }));
+    expect([add, max, r.status, (await r.json()).thrown]).toEqual([add, max, 400, "rows.addWithin: add and max are lists of whole numbers, of one length of 1 or more"]);
+  }
+  expect(sim.rows.has("bad")).toBe(false);
+  // Ten adds sent at once with room for three: three are answered, and the row is theirs.
+  const ten = await Promise.all(Array.from({ length: 10 }, () => sim.fetch("https://brain.internal/", post({ key: "ten", add: [1, 1], max: [1000, 3] })).then((r) => r.json())));
+  expect(ten.filter((r) => r.value).length).toBe(3);
+  expect(sim.rows.get("ten")).toEqual([3, 3]);
+  const kept = new Map();
+  const object = new (workerRuntime().Rows)({ storage: { get: async (k) => kept.get(k), put: async (k, v) => void kept.set(k, v) } }, {});
+  await run(async (key, add, max) => (await (await object.fetch(new Request("https://rows.internal/", post({ op: "addWithin", key, value: { add, max } })))).json()).value, (key) => kept.get(key));
+  const own = "within-test/" + Math.random().toString(36).slice(2) + "/";
+  await run((key, add, max) => rows.addWithin(own + key, add, max), async (key) => (await rows.get(own + key)) ?? undefined);
+  await expect(rows.addWithin(own + "bad", [1, 1], [9])).rejects.toThrow("of one length of 1 or more");
+  await rows.deletePrefix(own);
+  const plain = new Map();
+  await run((key, add, max) => {
+    const next = rowsWithin.next(plain.get(key), add, max);
+    if (next) plain.set(key, next);
+    return next;
+  }, (key) => plain.get(key));
+  expect(rowsWithin.sql(2)).toContain("ON CONFLICT (t, k) DO UPDATE SET v = json_array(json_extract(v, '$[0]') + ?3, json_extract(v, '$[1]') + ?5)");
+  return script.length + " adds, the same in the rig, the object, the notebook's store and the function";
+}
 // %%
 test_settings_reads_rows_through_memory = {
   const key = "settings-test/" + Math.random().toString(36).slice(2);

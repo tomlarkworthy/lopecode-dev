@@ -146,6 +146,9 @@ not tried on D1.
 The operation is written in the five places the others are: the `rows` cell and the local store
 (`cloudflare-iac.ojs` lines 200 and 243), the D1 path (469), the deployer's Durable Object (761,
 read then write, as `increment` is there) and the test rig (1099).
+(As built, `ds-1-rows-add-within`, 2026-10-12: six places. The sixth is `platform.rows` of the wrapper, which is what a
+Worker's code calls; the statement and the decision of the other stores are `within.sql(n)` and `within.next(row, add, max)`
+of `workerRuntime`, read by the notebook as the cell `rowsWithin`; the record.)
 
 ### The core
 

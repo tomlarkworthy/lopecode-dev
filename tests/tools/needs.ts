@@ -29,21 +29,21 @@ export const testNeeding = (file: string, paths: string[], how = SUBMODULES) => 
 // sync.ts, and a copy from before a method fails the test of it (issue cost-events-test-reads-stale-deploy).
 const ROOT = resolve(import.meta.dir, "../..");
 const built = new Map<string, Promise<string>>();
+// One compiler a process, and one seed at a time. A second compiler() after the first was disposed threw
+// "RequireError: invalid module" between tests, and the file that asked for a second seed registered no test
+// (cost-events.test.ts with rows-add-within-sql.test.ts, 2026-10-12).
+let compiling: Promise<any> | null = null, last: Promise<any> = Promise.resolve();
 export const seedModule = (seed: string): Promise<string> => {
-  if (!built.has(seed)) built.set(seed, (async () => {
+  if (!built.has(seed)) built.set(seed, (last = last.catch(() => {}).then(async () => {
     const { compiler, moduleSource, splitSeed } = await import(resolve(ROOT, "tools/spec-notebook.ts"));
-    const { compile, dispose } = await compiler();
-    try {
-      // One directory a checkout, written over by each run: a run leaves nothing new behind it.
-      const dir = join(tmpdir(), "seed-module-" + createHash("sha1").update(ROOT).digest("hex").slice(0, 12)), file = join(dir, seed.replace(/\.ojs$/, ".js"));
-      mkdirSync(dir, { recursive: true });
-      writeFileSync(`${file}.${process.pid}`, moduleSource(splitSeed(readFileSync(resolve(ROOT, "tools/cloud-brain", seed), "utf8")), compile));
-      renameSync(`${file}.${process.pid}`, file);
-      return file;
-    } finally {
-      dispose();
-    }
-  })());
+    const { compile } = await (compiling ??= compiler());
+    // One directory a checkout, written over by each run: a run leaves nothing new behind it.
+    const dir = join(tmpdir(), "seed-module-" + createHash("sha1").update(ROOT).digest("hex").slice(0, 12)), file = join(dir, seed.replace(/\.ojs$/, ".js"));
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(`${file}.${process.pid}`, moduleSource(splitSeed(readFileSync(resolve(ROOT, "tools/cloud-brain", seed), "utf8")), compile));
+    renameSync(`${file}.${process.pid}`, file);
+    return file;
+  })));
   return built.get(seed)!;
 };
 
