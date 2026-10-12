@@ -53,6 +53,14 @@ each command; no shell state lasts between calls.
 - `git status` fails in the worktree (`lopebooks`, `lopecode` and `lopecode-plugin` are links);
   `git diff`, `git add <file>` and `git commit` work. Never `git commit -a` or `git add -A` there:
   the commit records the links in the submodules' place, which the landing would push to `main`.
+  `git fetch origin` there prints the same error of the link and is exit 128;
+  `git fetch --no-recurse-submodules origin` is exit 0 (four writers met the first by 2026-10-12, the last of
+  `ap-1-approver-tool`: "the brief warns of status only").
+- The shell of a command is zsh: an unquoted variable is one word, so `for f in $FILES` runs once with the whole
+  string and `$CMD` is not a command with its arguments. Write the names out, or use an array (`F=(a b); for f in $F`).
+  (The writer of `suite-tests-read-the-live-brief`, 2026-10-12: a loop over four names in one variable left an empty
+  file named by all four in `tests/tools`, two runs of the suite counted it, and the landing took a second commit and a
+  second take of the lock.)
 - **A worktree that holds work when you come to it.** When your prompt says so, a writer of this
   issue before you died or was sent back, and its commits and edits stand:
   `git -C $W log --oneline origin/main..HEAD` and `git -C $W diff --stat HEAD` show them. Go on
