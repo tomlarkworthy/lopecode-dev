@@ -112,13 +112,18 @@ are no change.
 the file has `cells`. `marks(file)` and `own(file)` with no cells given answer as before, `policy`
 and `true`.
 
-**`trial`** counts `why: the approver's own files` under that name. At 01:10 CEST on cb4:
+**`trial`** counts `why: the approver's own files` under that name, and `why: his to weigh` under
+its own. The second is the reason `approver-brief-his-test` put in the brief (on `main` at `8eca9cad`,
+which came in at this change's rebase) in place of `more than the words`; that record has "The tool
+counts the new reason as `other`". It is named here, with this change, because a later change to the
+tool is one more install. `more than the words` is still counted, for the verdicts written before. At
+01:29 CEST on cb4:
 
 ```
-of leave:     no word of his 1   more than the words 4   not secure 0   could not tell 4   the approver's own files 3   other 0
+of leave:     no word of his 1   his to weigh 0   more than the words 4   not secure 0   could not tell 4   the approver's own files 3   other 0
 ```
 
-The `--json` answer has one more key in `whys`.
+The `--json` answer has two more keys in `whys`.
 
 ## Until the owner installs again
 
@@ -134,7 +139,7 @@ line above its answer.
 
 ```
 $ bun test --timeout=30000 ./tests/tools/approver.test.ts ./tests/tools/approver-brief.test.ts
- 44 pass
+ 48 pass
  0 fail
 ```
 
@@ -147,11 +152,12 @@ error: panel
 ```
 
 The refusal of a ref that touches a policy cell held on the tool as it was, for the whole file; what
-is new of it is the names in the reason. `tests/tools/approver-brief.test.ts` changed in one
-expectation: `trial` counts the brief's first reason by its name.
+is new of it is the names in the reason. `tests/tools/approver-brief.test.ts` is not changed: as
+`approver-brief-his-test` landed it, it takes a reason of the brief under its name where the tool has
+one and under `other` where it has not.
 
 The 52 commits, by `seedTouch` over `git log --format=%h -- tools/cloud-brain/brain-issues.ojs`
-at `3afef03f`: `{"commits":52,"noPolicyCell":20,"policy":32}`. One of the 32 is the commit that
+at `3afef03f`, before the rebase: `{"commits":52,"noPolicyCell":20,"policy":32}`. One of the 32 is the commit that
 added the file, and two are named for the import alone (`bb626621`, `a789dae5`, both of the panel).
 
 On cb4, read only, 01:10 CEST: `facts ow-2-panel-offers-what-it-shows` and

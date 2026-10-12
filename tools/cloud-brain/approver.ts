@@ -81,8 +81,9 @@
 //          (abc, 0, nothing) is exit 2 before the record is read; with no --since every one is listed.
 // trial    The verdicts in the open: every comment keyed approver/<id>/verdict-<n> whose id does not begin `test-`,
 //          counted as the spec's part 6 gives it, then each one's first line. A `leave` is counted by its line
-//          `why: <reason>`: `no word of his`, `more than the words`, `not secure`, `could not tell`,
-//          `the approver's own files`, anything else `other`. The verdicts of `test-` issues are one line of their own.
+//          `why: <reason>`: `no word of his`, `his to weigh` (the brief's since 2026-10-13), `more than the words`
+//          (the brief's before), `not secure`, `could not tell`, `the approver's own files`, anything else `other`.
+//          The verdicts of `test-` issues are one line of their own.
 // id       Sends one comment with loop-approver, keyed approver/id, to <issue> (ap-4-policy-v3 with none) and prints
 //          the `by.via` of the event that answers: the delegation's id, which the policy of task 4 names. A key another
 //          delegation holds already (a loop-approver made before) answers no event: the next key, approver/id-2, is tried.
@@ -404,7 +405,7 @@ export function trial(record: Event[], git: Git) {
     const line = String(e.body).split("\n").find((l) => l.startsWith("asked: ")), a = line ? asked(record, git, line, { id: e.id, verdict: e.seq, delegation: "" }) : { why: "" };
     kinds["why" in a ? 0 : a.kind]++;
   }
-  const whys = { "no word of his": 0, "more than the words": 0, "not secure": 0, "could not tell": 0, "the approver's own files": 0, other: 0 } as Record<string, number>;
+  const whys = { "no word of his": 0, "his to weigh": 0, "more than the words": 0, "not secure": 0, "could not tell": 0, "the approver's own files": 0, other: 0 } as Record<string, number>;
   for (const e of leave) { const w = /^why: (.*)$/m.exec(String(e.body))?.[1].trim() || ""; whys[w in whys ? w : "other"]++; }
   return {
     verdicts: open.length, approve: approve.length, leave: leave.length, neither: open.length - approve.length - leave.length,
@@ -419,7 +420,7 @@ export function trialText(t: ReturnType<typeof trial>) {
     `verdicts ${t.verdicts}   approve ${t.approve}   leave ${t.leave}${t.neither ? `   neither ${t.neither}` : ""}`,
     `of approve:   he approved ${t.approved}   he sent back, rejected or reverted ${t.undone}   still waiting ${t.waiting}`,
     `of approve:   on an event of his ${t.kinds.event}   on a spec he approved ${t.kinds.spec}   on his words in a file ${t.kinds.file}   on words a session quoted ${t.kinds.quoted}${t.kinds.none ? `   on no words the tool finds ${t.kinds.none}` : ""}`,
-    `of leave:     no word of his ${t.whys["no word of his"]}   more than the words ${t.whys["more than the words"]}   not secure ${t.whys["not secure"]}   could not tell ${t.whys["could not tell"]}   the approver's own files ${t.whys["the approver's own files"]}   other ${t.whys.other}`,
+    `of leave:     no word of his ${t.whys["no word of his"]}   his to weigh ${t.whys["his to weigh"]}   more than the words ${t.whys["more than the words"]}   not secure ${t.whys["not secure"]}   could not tell ${t.whys["could not tell"]}   the approver's own files ${t.whys["the approver's own files"]}   other ${t.whys.other}`,
     `made issues (test-): verdicts ${t.made.verdicts}   approve ${t.made.approve}   leave ${t.made.leave}`,
     ...t.lines
   ];

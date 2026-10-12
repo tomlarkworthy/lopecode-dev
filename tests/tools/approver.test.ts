@@ -656,26 +656,27 @@ test("trial: the verdicts in the open, counted by what followed and by whose wor
   add("h", 1, "approver: leave\nThe review names something not tried.\nwhy: the review names something not tried");
   add("i", 1, "approver: leave\nNo reason line.");
   add("j", 1, "approver: leave\nThe change is to the policy.\nwhy: the approver's own files");
+  add("k", 1, "approver: leave\nA cost a day.\nwhy: his to weigh");
   add("test-approver-1", 1, "approver: leave\nwhy: no word of his");
   add("test-approver-2", 1, "approver: approve\nWrong.");
   add("task", 3, "approver: approve", { hidden: true });
   w.record.push({ seq: w.record.length + 1, key: "orch/task/note", id: "task", type: "commented", by: ORCH, at: 0, body: "approver: approve, says the orchestrator" });
   const t = trial(w.record, git);
   expect(t).toMatchObject({
-    verdicts: 11, approve: 4, leave: 7, neither: 0, approved: 0, undone: 2, waiting: 2,
+    verdicts: 12, approve: 4, leave: 8, neither: 0, approved: 0, undone: 2, waiting: 2,
     kinds: { event: 1, spec: 0, file: 1, quoted: 1, none: 1 },
-    whys: { "no word of his": 1, "more than the words": 1, "not secure": 1, "could not tell": 1, "the approver's own files": 1, other: 2 },
+    whys: { "no word of his": 1, "his to weigh": 1, "more than the words": 1, "not secure": 1, "could not tell": 1, "the approver's own files": 1, other: 2 },
     made: { verdicts: 2, approve: 1, leave: 1 }
   });
   const text = trialText(t);
   expect(text.slice(0, 5)).toEqual([
-    "verdicts 11   approve 4   leave 7",
+    "verdicts 12   approve 4   leave 8",
     "of approve:   he approved 0   he sent back, rejected or reverted 2   still waiting 2",
     "of approve:   on an event of his 1   on a spec he approved 0   on his words in a file 1   on words a session quoted 1   on no words the tool finds 1",
-    "of leave:     no word of his 1   more than the words 1   not secure 1   could not tell 1   the approver's own files 1   other 2",
+    "of leave:     no word of his 1   his to weigh 1   more than the words 1   not secure 1   could not tell 1   the approver's own files 1   other 2",
     "made issues (test-): verdicts 2   approve 1   leave 1"
   ]);
-  expect(text.length).toBe(16);
+  expect(text.length).toBe(17);
   expect(text[5]).toBe(`${w.s.verdict}  task  approver: approve`);
   // He approved it, and nothing undid it.
   const yes = world();
