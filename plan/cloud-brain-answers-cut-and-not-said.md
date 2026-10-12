@@ -311,6 +311,10 @@ Neither is `major`: no caller's call changes and no answer loses a field. The pa
 (`issuesPanel`) reads `wait`, `reset` and `events` of a sync and is not changed. No test compares a
 whole answer of either method with `toEqual` (read by the fresh review, below).
 
+(As built, `ac-2-tracker-lists-say-more`, 2026-10-12: as above. `total` counts the issues answered
+as `hidden` with the rest, since they are listed; the default of the list is a name,
+`issuesLimits.list`; the record.)
+
 ### The operator's tools (R1)
 
 In `cloud-brain.ojs`, `brain_services` and `brain_status` take `offset` and return
