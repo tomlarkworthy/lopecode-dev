@@ -113,10 +113,14 @@ and 5 of 5 in Chrome 151.
 
 ## Counts
 
-Each from a run after the last edit of the seed and after the rebase on `origin/main`, which brought
-in no seed, `build.ts` or `cloudflare-iac*.ojs` (`worktree.sh --rebase topics-service` printed seven
-files: `agents/spec.md`, a knowledge doc, two tests under `tests/tools`, `knowledge-docs.ts` and two
-records).
+Each from a run after the last edit of the seed. There were two rebases on `origin/main`. The first
+(`worktree.sh --rebase topics-service`, before the landing) printed seven files and no seed, `build.ts`
+or `cloudflare-iac*.ojs`. The second, under the landing lock at 21:46:45, printed 20, with
+`tools/cloud-brain/cloudflare-iac.ojs`, `tools/cloud-brain/brain-issues.ojs` and
+`tests/tools/topic-sql.test.ts` among them: the lock was released at 21:46:57 with nothing landed, and
+the build, the headless run, the SQLite test, the browser run with its emit and the suite were made
+again. The emitted record's `hash` was `89f54186cea0…` before that rebase and after it. `verify-run`
+was not run again.
 
 ```
 cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html && … && (cd cloud-brain-dev && bun test.ts brain-x-topic --with $W/tools/cloud-brain/.emitted/tp-3b.js)
@@ -124,19 +128,20 @@ cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-b
 cd $W && bun test ./tests/tools/topic-sql.test.ts
   8 pass, 0 fail, 245 expect() calls
 cd $W && bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/brain-topic --emit topic_service=…
-  "tests":18,"passed":18,"failed":[]     Chrome 151.0.7922.34, ended 21:42:36; the run that emitted
+  "tests":18,"passed":18,"failed":[]     Chrome 151.0.7922.34, ended 21:47:43; the run that emitted
 cd <root> && BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-topic --shell $W/tools/cloud-brain/.emitted/cloud-brain.html --times 20
   "mains":["@tomlarkworthy/brain-shell","@tomlarkworthy/brain-topic"]
-  "runs":20,"passed":20,"failed":0,"none":0,"from":["document"],"byChance":[]     (each run: "tests":18), ended 2026-10-12T19:32:12Z, before the rebase
+  "runs":20,"passed":20,"failed":0,"none":0,"from":["document"],"byChance":[]     (each run: "tests":18), ended 2026-10-12T19:32:12Z, before both rebases
 cd $W && tests/tools/suite.sh        (bun test --parallel=4 --timings=tests/tools/timings.json --timeout=30000 ./tests/tools)
-  692 pass, 0 fail, 4599 expect() calls, 692 tests across 69 files, 156.25 s; no line "skipped:"; ended 21:45:18
+  695 pass, 0 fail, 4635 expect() calls, 695 tests across 70 files, 149.08 s; no line "skipped:"; ended 21:50:18
 ```
 
-The suite was run twice after the rebase. The first, ended 21:37:19, was 689 pass, 3 fail in 298.60 s:
+The suite was run three times, the last after the second rebase. The second, ended 21:45:18, was 692
+pass, 0 fail. The first, after the first rebase and ended 21:37:19, was 689 pass, 3 fail in 298.60 s:
 three tests of `tests/tools/summarize-papers.test.ts`, each at the 30 s a test has, with the machine's
 load at 12 to 18 (`uptime`). That file alone, `bun test --timeout=30000 ./tests/tools/summarize-papers.test.ts`:
 26 pass, 0 fail in 131.56 s. This change names nothing that file reads. The record was edited after the
-second run; no seed and no test was.
+last run; no seed and no test was.
 
 ## On cb4
 
