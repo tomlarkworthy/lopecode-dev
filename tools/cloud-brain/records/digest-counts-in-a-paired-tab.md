@@ -54,9 +54,11 @@ pair.
 
 ## What was run
 
-All in the worktree `bm-digest-counts-in-a-paired-tab`, 2026-10-12 between 10:16 and 10:25 CEST
-(`date`), after the last change to `count.ts`. The built file is the main checkout's
-`tools/cloud-brain/digests/research-2026-10-12.html`, the one published that morning.
+All in the worktree `bm-digest-counts-in-a-paired-tab`, 2026-10-12. The lines quoted are of one
+batch begun at 10:19:04 CEST (`date`), after the last change to the code of `count.ts`; a sentence
+of its header comment was changed after it. One more run of the library address of 12 October at
+10:30:19, from the pushed commit, printed the same numbers. The built file is the main checkout's
+`tools/cloud-brain/digests/research-2026-10-12.html`.
 
 ```
 $ bun tools/cloud-brain/digests/count.ts <root>/tools/cloud-brain/digests/research-2026-10-12.html      (3 runs)
@@ -118,6 +120,9 @@ in its place the test file gave `0 pass 1 fail 1 error`.
   A page that draws a cell later than that pass was not made.
 - `research-2026-10-09`, written before `picksFound` was a cell: exit 70 after 120 s, as above.
   Its seed was not changed.
+- An address with no digest, `…/library/research-2026-10-13 --boot 5` at 10:32 CEST: exit 70,
+  "was not defined with a cell picksFound in 5 s". The tool does not say that the address answered
+  no notebook; it waits its `--boot` and says the module was not defined.
 - A digest that covers two days, and a pick that is a paper, on a build of this session: the
   published digest of 11 October has both and gave its submit's numbers; none was built here.
 - A page whose snapshot does not load (the Brain not reached). The digest then has 0 items and

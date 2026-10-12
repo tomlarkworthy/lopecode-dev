@@ -118,6 +118,8 @@ edit of a file it reads: 330 pass, 0 fail, 38 files (326 and 37 before the rebas
 - No writer has made a round with the new brief. A writer spawned before this landed has the old step 8 in
   its context and opens a tab as before.
 - The digest writer's brief (`agents/digest.md`, steps 6 and 8) opens a paired tab once a day. Not changed.
+  (Changed 2026-10-12, `digest-counts-in-a-paired-tab`: both steps count with `digests/count.ts`, and no tab is
+  opened; `records/digest-counts-in-a-paired-tab.md`.)
 - "When a deploy is put back on a test" in the writer's brief still says to open the run address in a QA tab.
   Not changed: the address is the Brain's and the tool takes a file.
 - A test that depends on the pairing pane or on `cc=` in the address would differ between the tool and a
