@@ -4,6 +4,8 @@
 // SKILL.md and the briefs that say how such a comment is written. Issue owner-decisions-written-dense.
 // He approved it with B, "Approve, and add one line: what the project is for." The item of that line, his answer
 // before the marker and the two places that list the parts are held too. Issue dense-rule-says-what-project-is-for.
+// He approved that with B again, "Approve, with the line first, before what the thing is." The order of the two items,
+// their heads and the order of the two lists are held. Issue dense-rule-project-line-first.
 //
 //   bun test ./tests/tools/owner-decisions-written-dense.test.ts
 import { test, expect } from "bun:test";
@@ -57,6 +59,10 @@ const second = '"This simple summary is much better for making decisions so can 
 // and the choice he named, as comment 4784 there has it.
 const third = '"1 A 2 B 3 What suggestion is being made? 0.3 minutes is not fast anyway, but whats the extra task 5 has?"';
 const choiceB = '"Approve, and add one line: what the project is for."';
+// His answer to the three choices of that line as it landed, whole, as comment 5025 of the second issue has it, and
+// the choice he named, as comment 4964 there has it.
+const fourth = '"B but I am so fucking tired of tired of this endless set of approvals about basically the same thing"';
+const choiceFirst = '"Approve, with the line first, before what the thing is."';
 const evidence = /\bevent \d|\b\d{4}\b|\b[0-9a-f]{8,}\b|\.(md|ojs|ts|sh|json)\b|\b\d+ (of \d+|tests?|pass)/;
 
 test("the helpers cut a list, a quoted block and a section as the tests below read them", () => {
@@ -101,14 +107,14 @@ test("three items of the list he was given are quoted, and each is a short part 
   expect(flat(sec)).toContain("4060 of `tp-3-take-and-done`, is 2,318");
 });
 
-test("the reading says what such a comment has, in the order he was given it", () => {
+test("the reading says what such a comment has, in the order it has them", () => {
   const holds = item(sec, "What it holds for.");
   expect(holds).toContain("`needs-owner`");
   expect(holds).toContain("waits for his approval");
   expect(holds).toContain("the list of what waits for him");
   expect(holds).toContain("whoever writes it");
 
-  const what = item(sec, "What it is, first.");
+  const what = item(sec, "What it is.");
   expect(what).toContain("One or two sentences");
   expect(what).toContain("what the thing does for him");
   expect(what).toContain("no event number, commit, hash, file path or test count");
@@ -120,21 +126,31 @@ test("the reading says what such a comment has, in the order he was given it", (
   expect(choices).toContain("A letter each, one line each");
   expect(choices).toContain("the pick, one line");
 
-  const order = ["What it holds for.", "What it is, first.", "What the project is for.", "Live, and what it costs.", "The one flaw.", "The choices.", "Where the rest goes.", "The list."];
+  const order = ["What it holds for.", "What the project is for.", "What it is.", "Live, and what it costs.", "The one flaw.", "The choices.", "Where the rest goes.", "The list."];
   const at = order.map((h) => sec.indexOf(`- **${h}**`));
   expect(at.every((n) => n > 0)).toBe(true);
   expect([...at].sort((a, b) => a - b)).toEqual(at);
 });
 
-test("his B: one line of what the project is for, after the first sentences", () => {
+test("his two Bs: one line of what the project is for, and it stands first", () => {
   // His answer and the choice it names stand with his other words, before the marker.
   expect(his).toContain(third);
   expect(his).toContain(choiceB);
   expect(his).toContain("comment 4884");
   expect(his).toContain("comment 4784");
+  // The second B, of where the line stands, with the choice it names.
+  expect(his).toContain(fourth);
+  expect(his).toContain(choiceFirst);
+  expect(his).toContain("comment 5025");
+  expect(his).toContain("comment 4964");
 
   const project = item(sec, "What the project is for.");
-  expect(project).toContain("One line");
+  expect(project).toContain("One line, first");
+  expect(project).toContain("before the sentences of what the thing is");
+  expect(project).not.toContain("after those sentences");
+  // The other item is no longer the first part, and its head does not say so.
+  expect(sec).not.toContain("- **What it is, first.**");
+  expect(sec.indexOf("- **What the project is for.**")).toBeLessThan(sec.indexOf("- **What it is.**"));
   expect(project).toContain("what the project the issue is part of is for");
   expect(project).toContain("in plain words");
   // What the project is, how it is named, and the issue that has none.
@@ -189,13 +205,13 @@ test("Always has an item that names the section", () => {
   const always = items(section(rules, "Always"));
   const it = always.find((i) => i.includes(ref)) ?? "";
   expect(it).toContain("short and plain");
-  expect(it).toContain("what it is, what its project is for, whether it is live");
+  expect(it).toContain("what its project is for, what it is, whether it is live");
 });
 
 test("SKILL.md names the section where it says how a comment for him and the list are written", () => {
   const triage = lineWith(skill, "or a line of `rules.md`. The comment is");
   expect(triage).toContain(ref);
-  expect(triage).toContain("what it is, what its project is for, whether it is live");
+  expect(triage).toContain("what its project is for, what it is, whether it is live");
   expect(skill).not.toContain("The comment is in the form `philosophy.md` gives.");
 
   const major = lineWith(skill, "and comment with the plan, written as");

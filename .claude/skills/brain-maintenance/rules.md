@@ -138,7 +138,12 @@ list. The section as it first landed was put to him with three choices (comment 
 of which B was: "Approve, and add one line: what the project is for." Tom, 2026-10-12, before 22:34
 CEST, to that session, of three decisions it gave him as one numbered list with this one as number 2,
 whole, as comment 4884 there has it: "1 A 2 B 3 What suggestion is being made? 0.3 minutes is not
-fast anyway, but whats the extra task 5 has?" The rest of this section is the writer's reading, not his words.
+fast anyway, but whats the extra task 5 has?" The item of that line landed second, after the
+sentences of what the thing is, and was put to him with three choices (comment 4964 of
+`dense-rule-says-what-project-is-for`), of which B was: "Approve, with the line first, before what
+the thing is." Tom, 2026-10-12, before 23:05 CEST, to that session, whole, as comment 5025 there has
+it: "B but I am so fucking tired of tired of this endless set of approvals about basically the same
+thing" The rest of this section is the writer's reading, not his words.
 
 Three of the ten items, as he read them. "I" in them is that session:
 
@@ -165,15 +170,16 @@ cb4 stand in it before the choice.
   the overseer's of a decision only he can take. And the list of what waits for him, when a session
   tells him (`SKILL.md`, step 7). It does not hold for a move's reason, a review, a writer's comment
   or a record: those are the evidence, and are written as before.
-- **What it is, first.** One or two sentences, in words of what the thing does for him, with where
+- **What the project is for.** One line, first, before the sentences of what the thing is: what the
+  project the issue is part of is for, in plain words. The project is its parent, or the spec it is
+  a task of, named by its id or its title and never by a path, and the line has no number of an
+  event, a commit or a test. An issue that is part of no project has no such line: its first
+  sentences say what it is for. The three items above have none: he read them before he asked for
+  the line. (His two Bs, 2026-10-12, above: the line, issue `dense-rule-says-what-project-is-for`,
+  and that it stands first, issue `dense-rule-project-line-first`.)
+- **What it is.** One or two sentences, in words of what the thing does for him, with where
   it fits when that bears on the choice ("a later task builds the queue on it"). The issue's id is
   the one name in them: no event number, commit, hash, file path or test count.
-- **What the project is for.** One line, after those sentences: what the project the issue is part
-  of is for, in plain words. The project is its parent, or the spec it is a task of, named by its id
-  or its title and never by a path, and the line has no number of an event, a commit or a test. An
-  issue that is part of no project has no such line: its first sentences say what it is for. The
-  three items above have none: he read them before he asked for the line. (His B, 2026-10-12, above;
-  issue `dense-rule-says-what-project-is-for`.)
 - **Live, and what it costs.** Whether cb4 runs it already, in a few words ("live on cb4"), and
   what it costs a day when it costs money.
 - **The one flaw.** The risk or flaw that bears on the choice, and no other. With none, nothing is
@@ -197,11 +203,11 @@ cb4 stand in it before the choice.
   tells him those two lines.
 - **Beside `philosophy.md`.** His words of 2026-10-11 there stand: "a summary of the overall
   project goals, and how the decision fits in with pros and cons". The line of what the project is for is that
-  summary, the first sentences are the fit, and a choice's line has what is for it or against it.
+  summary, the sentences of what it is are the fit, and a choice's line has what is for it or against it.
   The order the orchestrating session read from them ("What `needs-owner` means": the project "with
   its measured numbers", each choice "with what is for it and against it", "the line it takes it
-  by", "how to answer") puts the project first and is longer than what he was given on 2026-10-12
-  with that one line added. Where the two differ this section holds, as that file says of `rules.md`.
+  by", "how to answer") puts the project first, as this section does since his second B, and is
+  longer than what he was given on 2026-10-12 with that one line added. Where the two differ this section holds, as that file says of `rules.md`.
 - **Not in his words, and not done.** Whether a session gives him the list unasked, at a count of
   waiting issues or at an hour. Nothing checks a comment against this section: it is held by the
   agent that writes one.
@@ -249,7 +255,7 @@ cb4 stand in it before the choice.
   `tools/cloud-brain/worktree.sh --push-dev <name>`, under the landing lock and before that push;
   no branch is made in the main checkout's copy. `lopebooks` is pushed from the main checkout, on
   the day's first landing that builds, when `notebook-backup.sh` has committed there.
-- Write what the owner is asked to decide short and plain: what it is, what its project is for,
+- Write what the owner is asked to decide short and plain: what its project is for, what it is,
   whether it is live, the one flaw, a line a choice, the pick ("What the owner is asked to decide").
 - Before finishing: the QA tab you opened is closed by name; `browser.all` and `container.all`
   show nothing you started.
