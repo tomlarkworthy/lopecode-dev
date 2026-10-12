@@ -2,8 +2,10 @@
 
 Task 4 of `plan/cloud-brain-dashboards-share-series-and-controls.md`, after
 `ds-3-logs-reads-the-span`. Built 2026-10-12 by a writer of the issue loop, round 1. Every run
-quoted here was made that day between 10:28 and 11:10 UTC (`date -u` beside each command), on the
-seed as it is committed.
+quoted here was made that day between 10:28 and 11:10 UTC (`date -u` beside each command). Each
+count is of the seed as it is committed; the screenshots under "Seen and not explained" were of
+builds before the last three edits (the kept choice in the test, the test of a panel with no title,
+the name `panelDrawing`).
 
 ## What changed
 
