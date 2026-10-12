@@ -30,8 +30,9 @@ from comment 4884, and the choice from comment 4784, both read with
   - The item of "Always" that names the section lists the part: "what it is, what its project is for,
     whether it is live, …".
 - `.claude/skills/brain-maintenance/SKILL.md`, the Triage line that lists the parts: the same four words.
-- `tests/tools/owner-decisions-written-dense.test.ts`: one test more, and one assertion more in
-  three others.
+- `tests/tools/owner-decisions-written-dense.test.ts`: one test more (19 `expect()` calls), one
+  assertion more in the test of "Always" and in the test of `SKILL.md`, and the new head in the list of
+  heads whose order a fourth test holds.
 
 Four choices his B does not make, each the writer's:
 
