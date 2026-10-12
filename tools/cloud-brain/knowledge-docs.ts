@@ -125,6 +125,9 @@ const state = process.env.BRAIN_STATE_DIR || (common ? join(dirname(common), "to
 const who = flag("--owner") ? ["--owner"] : ["--as", TOKEN];
 
 const tmpDir = mkdtempSync(join(tmpdir(), "kdocs-")), tmp = join(tmpDir, "body.json");
+// Removed at every end of the process, a process.exit and an error thrown among them (28,603 of them were in the
+// system's temporary directory on 2026-10-13: only `end` of summarize removed it; issue tmpdir-entries-slow-every-bun-start).
+process.on("exit", () => rmSync(tmpDir, { recursive: true, force: true }));
 // body: JSON for the service. file: a file's bytes, sent as they are.
 const call = (path: string, body?: any, file?: Uint8Array) => {
   if (file) writeFileSync(tmp, file);

@@ -6,7 +6,7 @@
 // Every case makes a repository of its own in a temporary directory, with a copy of the tool at
 // tools/cloud-brain/knowledge-docs.ts and a fake brain.ts beside it, so no case calls a Brain.
 import { test, expect } from "bun:test";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, copyFileSync, realpathSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, copyFileSync, realpathSync, readdirSync, rmSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { resolve, join, dirname } from "node:path";
@@ -108,6 +108,32 @@ const fresh = () => {
   const filePuts = () => calls().filter((c) => c.args[1].includes("static.put")).map((c) => c.sent);
   return { dir, repo, sub, subSha, fake, git, write, all, entry, keep, keepFiles, filesOf, fileOf, kdocs, calls, puts, filePuts, summary };
 };
+
+// Issue tmpdir-entries-slow-every-bun-start: the tool made a directory `kdocs-…` in the temporary directory at each
+// start and removed it at one end of `summarize` alone; 28,603 were in the system's on 2026-10-13.
+test("no call of the tool leaves anything in the temporary directory: each end by an exit, and an error thrown", () => {
+  const t = fresh(), tmp = join(t.dir, "tmp");
+  mkdirSync(tmp);
+  const go = (args: string[], env: Record<string, string | undefined> = {}) => { const r = t.kdocs(args, { TMPDIR: tmp, ...env }); return [r.code, readdirSync(tmp)]; };
+  expect(go(["status"])).toEqual([0, []]);
+  expect(go(["put", "--stale"])).toEqual([0, []]);
+  expect(go(["no-such-command"])).toEqual([1, []]);
+  expect(go(["summarize"])).toEqual([1, []]);
+  t.write("knowledge/a.md", A + "more\n");
+  t.git(t.repo, "commit", "-q", "-am", "second");
+  t.git(t.repo, "push", "-q");
+  expect(go(["status", "--check"])).toEqual([1, []]);
+  writeFileSync(join(t.fake, "no-token"), "");
+  expect(go(["status"])).toEqual([2, []]);
+  rmSync(join(t.fake, "no-token"));
+  writeFileSync(join(t.fake, "static-refused"), "");
+  const refused = t.kdocs(["put", "--stale"], { TMPDIR: tmp });
+  expect(refused.err).toContain("error: ");
+  expect([refused.code, readdirSync(tmp)]).toEqual([1, []]);
+  rmSync(join(t.fake, "static-refused"));
+  expect(go(["put", "--stale"])).toEqual([0, []]);
+  expect(t.puts().map((e: any) => e.id)).toEqual(["doc:a"]);
+});
 
 test("every doc of origin/main is read: knowledge/*.md, plan/cloud-brain-*.md and the three files of cloud-brain-dev (no post mortem here: the directory is absent)", () => {
   const t = fresh();

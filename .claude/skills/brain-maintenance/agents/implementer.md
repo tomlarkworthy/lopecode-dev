@@ -188,6 +188,9 @@ each command; no shell state lasts between calls.
    sum of them. 583 pass in 60 files in 93 to 95 s over six runs on 2026-10-12, where the same files with no flag took 207 s, past the 120 s that is
    the default timeout of a command. The counts are those of the run with no flag. The script's header says why
    four workers and why 30 s for a test that names no timeout.
+   Since `tmpdir-entries-slow-every-bun-start` (2026-10-13) the script gives the run a `TMPDIR` of its own, a new directory
+   of `/tmp` that it removes at the end and names in its second line on stderr; its last line there is the count of entries of the
+   temporary directory it was called with. One file run alone makes its rigs in that directory, and what a test does not remove stays.
    The tests that hold lines of the reviewer's brief (`reviewer-brief-*.test.ts`, `reviewer-in-a-view.test.ts`, the last of
    `lock.test.ts`) read `tests/tools/fixtures/reviewer-brief.md`, a copy of the commit, and not the Brain: a put of the brief
    moves no count of the suite (`suite-tests-read-the-live-brief`, 2026-10-12; before it a worktree behind `origin/main` had a fail after a put).

@@ -13,7 +13,29 @@
 # A flag given here comes after these and is bun's to take: `suite.sh --parallel=1` is the serial run.
 # One file is `bun test ./tests/tools/<file>`, with the `./`.
 # Issue tests-tools-suite-three-minutes; tools/cloud-brain/records/tests-tools-suite-three-minutes.md has the runs.
+# The run has a TMPDIR of its own, `t` in a new directory of /tmp (SUITE_TMP_BASE names another place), removed when
+# bun ends or the script is told to stop: what the tests make with mkdtemp(tmpdir()) is made there and goes with it.
+# The system's temporary directory had 200,884 entries on 2026-10-13, most of them rigs of these tests, and a bun
+# started under it took 740 ms where 13 ms in /tmp. The second line on stderr names the directory, and the last the
+# entries of the caller's own. One file run alone, `bun test ./tests/tools/<file>`, has the TMPDIR of its caller.
+# Issue tmpdir-entries-slow-every-bun-start; tools/cloud-brain/records/tmpdir-entries-slow-every-bun-start.md has the runs.
 cd "$(dirname "$0")/../.." || exit 2
 set -- bun test --parallel=4 --timings=tests/tools/timings.json --timeout=30000 "$@" ./tests/tools
 echo "+ $* (in $PWD)" >&2
-exec "$@"
+# The caller's temporary directory, which a file run alone and a tool still write to: its entries are counted while
+# bun runs and said in the last line on stderr, so that its growth is seen before a test times out.
+SYS="${TMPDIR:-$(getconf DARWIN_USER_TEMP_DIR 2>/dev/null)}"; SYS="${SYS%/}"
+P="$(mktemp -d "${SUITE_TMP_BASE:-/tmp}/bm-suite-run.XXXXXX")" || { echo "suite.sh: no temporary directory in ${SUITE_TMP_BASE:-/tmp}; nothing was run" >&2; exit 2; }
+P="$(cd "$P" && pwd -P)"; D="$P/t"
+trap 'rm -rf "$P"' EXIT
+mkdir "$D" || exit 2
+trap 'exit 130' INT
+trap 'exit 143' TERM
+echo "+ TMPDIR=$D, removed at the end" >&2
+[ -d "$SYS" ] && { ls -f "$SYS" | wc -l > "$P/count"; } 2>/dev/null &
+TMPDIR="$D" "$@"
+CODE=$?
+wait
+N="$(tr -d ' \n' < "$P/count" 2>/dev/null)"
+[ -n "$N" ] && echo "+ $SYS, the temporary directory of the caller, has $((N - 2)) entries" >&2
+exit $CODE
