@@ -49,8 +49,9 @@ Run on the two post mortems of the directory under other names (`POST_MORTEMS_DI
 `pm-first-as-a-later-one.md` and `pm-second-as-a-later-one.md`), it gave the first line for each:
 neither has the column. Under their own names they pass, because the test does not ask the column
 of three files, by name: the two on `main`, and `pm-agent-request-not-seen-fly-idle.md`, which the
-issue's body says was being written under the instructions as they were. That third file was not
-on `origin/main` when this was written, and was not read.
+issue's body says was being written under the instructions as they were. That third file came in
+with the rebase under the landing lock (23:06 CEST). Its table has three columns, `Issue`, `What
+changes` and `The part of the trace it answers`, and no `Held by`; the five files below passed with it.
 
 Not held by the test, and left to the reviewer of a post mortem:
 
@@ -86,8 +87,9 @@ Each run in the worktree on 2026-10-12, after the last edit of a file a test rea
 | Command | Result |
 |---|---|
 | `bun test --timeout=30000 ./tests/tools/post-mortem-actions-prefer-guards.test.ts ./tests/tools/post-mortems.test.ts ./tests/tools/pm-2-brief-and-procedure.test.ts ./tests/tools/pm-1-file-and-search.test.ts` | 20 pass, 0 fail, 4 files |
+| The same four and `./tests/tools/pm-agent-request-not-seen-fly-idle.test.ts`, after the rebase under the lock | 25 pass, 0 fail, 5 files |
 | The first of those files with `BRIEF`, `SKILL`, `SPEC` and `FORM` as `git show 9109a9d9:<path>` wrote them | 0 pass, 4 fail |
-| `tests/tools/suite.sh`, started 23:02 CEST at load 8.09 (`uptime`) | 773 pass, 0 fail, 82 files, 187.67 s |
+| `tests/tools/suite.sh`, before that rebase, started 23:02 CEST at load 8.09 (`uptime`) | 773 pass, 0 fail, 82 files, 187.67 s |
 
 `post-mortems.test.ts` had 4 tests before and has 6.
 
