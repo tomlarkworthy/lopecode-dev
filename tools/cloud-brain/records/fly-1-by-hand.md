@@ -204,7 +204,7 @@ of a shared CPU is, and how it comes back, was not read. The writer changed the 
 `fly machine update --vm-size performance-2x --vm-memory 4096`, 21:36:35 to 21:36:49 CEST, which
 restarts the machine (`started` 21:36:47.084) and so empties the root file system. Every number below
 is of performance-2x, 2 CPUs and 4096 MB, and none is of the size part 1 of the spec names. Its price
-was not read.
+is under "What the two sittings cost".
 
 ### The install, whole (`/data/install-b.log`, UTC)
 
@@ -367,7 +367,7 @@ The owner asked that the machine be used or stopped (comment 4916). `fly machine
 CEST; `stopped` at 22:52:57.35. The token's file was still on the volume (the command that removed
 it printed nothing after its first part; read as: its `pkill -f "sleep 2147483648"` matched its own shell), so the machine was
 started once more, 22:53:06.557, the file removed and `ls` of `.emitted` read without it, and
-stopped at 22:53:08.774. That start, with 4.9G on the volume: `fly machine start` returned in 2.76 s.
+asked to stop at 22:53:08.774 (`stopped` 22:53:10.637, Fly.io's event list). That start, with 4.9G on the volume: `fly machine start` returned in 2.76 s.
 
 Read at that start: `/root/.claude`, `/root/.bun` and `/usr/bin/node` absent, `/` at 33M; `/data`
 with the checkout (4.9G) and `/data/t1` (1.1M: the streams of every `claude` run above, the logs).
