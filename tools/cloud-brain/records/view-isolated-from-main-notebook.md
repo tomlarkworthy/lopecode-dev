@@ -85,7 +85,19 @@ build was then removed, so the runs below had none.
 | `needs.test.ts`, after | the same | 9 pass, 0 fail |
 | The suite, with no build in the worktree, 21:19:34 to 21:22:09 CEST | `tests/tools/suite.sh` | 685 pass, 0 fail, 68 files, 154.73 s |
 
-The suite's count after the last rebase is in the comment of the submit.
+After the worktree was brought up to `origin/main` (seven files came in, two of them tests), with
+no build in it:
+
+| When (CEST) | `uptime`, load of 1 minute | `tests/tools/suite.sh` |
+|---|---|---|
+| 21:23:42 to 21:28:27 | 27.33 at 21:28:32 | 690 pass, 1 fail, 69 files, 284.83 s. The one: `summarize-papers.test.ts`, "check: a summarized entry passes…", timed out at 30 s |
+| 21:36:14 to 21:39:46 | 16.51 before, 10.26 after | 691 pass, 0 fail, 69 files, 211.38 s |
+
+`summarize-papers.test.ts` imports nothing of `needs.ts` (`git grep -n -e needs.ts -e seedModule
+tests/tools/summarize-papers.test.ts` prints nothing). Alone at 21:31:31, with `--timeout=30000`: 23
+pass, 3 fail, each a timeout at 30 s, 271.17 s for a file of 26 tests. What else ran on the machine
+was not read (`ps` is refused here). A count of a later run, when a rebase under the landing lock
+brings more in, is in the comment of the submit.
 
 ## Not changed, not tried
 
@@ -105,8 +117,8 @@ The suite's count after the last rebase is in the comment of the submit.
   landing that wrote the file during a run.
 - **With no toolchain notebook** the two files were not run; the helper was given a build that
   throws that message.
-- The suite took 154.73 s where the writer's brief has 93 to 95 s. Why was not looked for; the two
-  files took 0.7 s more together.
+- The suite took 154.73 s, 284.83 s and 211.38 s where the writer's brief has 93 to 95 s. The two
+  files took 0.7 s more together; the rest was not looked for beyond the load above.
 - The reviewer's brief on the Brain, step 4, still says a test that reads the notebook reads the
   main checkout's in a view with no build, and to run it again after a build. No test of the suite
   does now. The brief is the overseer's; the comment of the submit has the lines.
