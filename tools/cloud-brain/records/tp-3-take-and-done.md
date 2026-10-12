@@ -254,7 +254,9 @@ one in `check.a` and `check.b` each, beside what task 2 left.
   on cb4, and neither did this task.
 - **Two takes that overlap in `brain-db`.** The two on cb4 were started together and answered apart;
   nothing read whether they overlapped. That a batch is one transaction is `brain-db`'s, and no test
-  of this module holds it (M14, above).
+  of this module holds it (M14, above). (Since `tp-3b-take-is-one-transaction-test`, 2026-10-12, a cell fails
+  when two takes mix in the stand-in, and M14 fails it; `brain-db` is still not called by a test.
+  `records/tp-3b-take-is-one-transaction-test.md`.)
 - **The `read` rule refusing a take on cb4**, `topic.take` by a caller that is not the subscription's
   creator there, and `topic.unsubscribe` and `topic.delete` of a subscription with claims there: cells only.
 - **`failed: true` on cb4**, an entry at 8 hops given up by its takers there, and a `failed` topic that
