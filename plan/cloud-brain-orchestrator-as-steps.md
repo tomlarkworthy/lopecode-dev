@@ -6,7 +6,9 @@ Nothing here is built. Three probes were run for it and are in "What exists toda
 Round 2, 2026-10-12 23:32 CEST: the two findings of review 5194 and its three notes are answered
 at the end, and the text they name is changed in parts 2, 3 and 4, in the table of what is used,
 in the checks and in the tasks `st-2`, `st-3` and `st-8`. A fresh reader of that change had 10
-findings more, answered in the last section.
+findings more, answered in the section after it.
+Round 3, 2026-10-12 23:49 CEST: the one finding of review 5247 and its notes are answered in the
+last section; the condition above the step's table is read by role.
 
 Three findings change what the issue asks for, and they come first:
 
@@ -313,6 +315,11 @@ the process began is compared with the file's.
 `_oversight.md`"). Its run has the file and no event, so R4 does not hold for it. That one runs is
 read from `agent-token list`: a live token whose note begins `over;`. `ended` writes its line to
 `_oversight.md` and ends the token.
+An overseer that died (round 3) is read from its file, since no `cost` event says it: the pid of
+the file is gone and there is no result. The step ends its token and writes `stopped` in the
+file. The row that starts one counts those files since the last heading of `oversight.md`, and at
+2 starts no third: `status.md` names it. This count is of the files of one machine and cannot be
+made again from the record; with the files lost, two more are started at most.
 
 `loop.ts ended <token>`, when the run has returned: the report appended to the journal
 (`.emitted/issue-loop/<id>.md`, as today); the `cost` event sent again under `…/<round>/<token>/end` with
@@ -388,11 +395,18 @@ make again from the record. In order:
    of the table.
 2. **Runs**, as part 2: `ended` for each run that returned, the dead ones marked.
 3. **The queue.** `issue.queue`, and for each entry, in the service's order. One condition holds
-   for every row that starts or resumes an agent and is not written in each: the issue has no
-   `running` run, and for an approver none of that round (`runs?id=&role=approver&round=<n>`), as
-   `SKILL.md` has it ("One agent on an issue"). A reviewer's issue stays a `review` entry until
-   its review lands and a writer's stays a `start` until the writer's own `start` move, and the
-   driver steps at every event, so without it a second agent is started. A second condition
+   for every row that starts or resumes an agent and is not written in each, and it is read by
+   the role the row starts (round 3): the issue has no `running` run of that role, and for a
+   reviewer and an approver none of that round (`runs?id=&role=<role>&round=<n>`). The roles of a
+   writer are one for this: `implementer`, `digest` and `spec`. So a `review` entry beside a
+   `running` writer gets its reviewer. A writer does not end at its submit: it waits up to 20
+   minutes for its review (`agents/implementer.md`, step 13), its process has not returned and
+   its event is `running`, and `SKILL.md`, step 2, has that it "is not counted as a writer at
+   work … and the review is then yours to start". The `round` row is the other way: a `running`
+   writer takes the round itself, and the step sends it nothing. A reviewer's issue stays a
+   `review` entry until its review lands and a writer's stays a `start` until the writer's own
+   `start` move, and the driver steps at every event, so without the condition a second agent of
+   one role is started. A second condition
    holds for the same rows: fewer than 2 dead runs of that role and round (part 2), or the verdict
    `go-on` for the last of them (below). A reviewer, a
    spec writer or a writer that dies before its first move leaves the entry as it was, and with
@@ -410,10 +424,10 @@ make again from the record. In order:
 | `start` | `start`, role implementer, or digest with the label `digest` | no |
 | `spec` | `start`, role spec | no |
 | in `waiting`, `owner`, at `awaiting-approval`, and `approver.ts facts` says no verdict of this round and no `leave` | `start`, role approver | no |
-| in `waiting`, `work`, with no `running` run and no `waiter` | "A dead writer": the token ended, `back`, whatever the count of dead runs: the bound holds at the `start` entry the `back` leaves | no |
+| in `waiting`, `work`, with no `running` run of a writer and no `waiter` | "A dead writer": the token ended, `back`, whatever the count of dead runs: the bound holds at the `start` entry the `back` leaves | no |
 | 2 dead runs: an entry of a row that starts or resumes an agent, with 2 dead runs or more of that role and round, and no verdict `go-on` for this `<at>`. A `round` whose last run ended `no-submit` is the `round` row's and not this one's | given to the judgment: `go-on` for one run more, or the label `needs-owner` with what the two runs left | yes |
 | a digest opened by `worker:brain-x-snapshot`, at `open` | the older ones rejected, `triage`, `ready` | no |
-| 3 issues at `done`, `rejected` or `needs-owner` since the last heading of `oversight.md`, or one issue at 3 `rework` moves since then; and no live token `over-…` | `start`, role over | no |
+| 3 issues at `done`, `rejected` or `needs-owner` since the last heading of `oversight.md`, or one issue at 3 `rework` moves since then; no live token `over-…`; and fewer than 2 files of `runs/` of the role `over` marked `stopped` since that heading | `start`, role over | no |
 | `triage`, `decompose`, `promote`, `look` | given to the orchestrator's judgment | yes |
 | labeled `needs-owner`, in `waiting`, `owner` or a `round` of the queue (the label leaves an issue at `in-progress` or `spec` in the queue), with an event of his session or of an `out-` token after the label | the same: has he answered | yes |
 | labeled `asks-orchestrator` (the first action of `pm-agent-request-not-seen-fly-idle`, when it is built) | the same: answer it | yes |
@@ -431,7 +445,9 @@ make again from the record. In order:
    run, is not read by the program; the `uptime` rule was written for the same load.
 5. **The judgment.** The entries of the rows marked "yes", 5 at most a step, are the task of one
    process: `WORK=<the worktree bm-orch-<host>> agent.sh orchestrator "<do> <id>; …"`, with a token
-   `orch-…` made for it and a `running` event on the first of its issues. Its brief is
+   `orch-…` made for it and a `running` event on the first of its issues, with the role
+   `orchestrator` and the round one more than the `cost` events of that role the issue has (1 to
+   1,000, the service's limit), so no judgment run takes another's place in `runs` or in `total`. Its brief is
    `agents/orchestrator.md`: "Triage", "A quick win", the `decompose` row, "A post mortem" (who
    declares one), the 3-rework judgment, and the comment for the owner, moved there from
    `SKILL.md` as they are written. It does those entries and ends. It starts no agent: it makes
@@ -583,6 +599,8 @@ approver, digest, implementer, overseer, reviewer, spec, and no orchestrator), i
 | The lock `loop` | `land` and `cb4` in `lock.sh`; `loop` in the Fly spec, approved | The Fly spec's lock, built here first |
 | A token for the driver, and one for each judgment run | `agent-token orch` | The same command and role. No new parent and no new method |
 | `loop.sh`, which starts the driver in the sandbox | `metadev`, which starts `claude` in `safehouse` | Not extended: it is the owner's file, it passes its arguments to `claude`, and it has a change of his that is not committed. `loop.sh` reads the arguments it gives `safehouse` and adds nothing to it |
+| `status.md` | `issue.queue`, `waiting` with `why: owner`, and the page's "For your attention" | Not extended: both are of the record, and the file has what is not in it: the health of the last step, the runs of another host, the entries judged and left. What waits for the owner is copied from the queue and not kept |
+| `loop.ts compare` | `issue-stats.ts`, which reads the record's moves | Not extended: it reads `steps.jsonl`, a file of one machine, beside the record, for `st-6` and `st-8`. It is a subcommand and no tool of its own |
 | The comments `given-…` and `verdict-…` | The comment with a key that says what it is (`orch/<topic>/worktree-<n>`, `approver/<id>/verdict-<n>`, which `approver.ts` reads) | The same form. No label: a label stands until it is taken off, so it would stand for the next round too |
 
 No Worker, no method, no event type, no policy and no store on cb4 is added.
@@ -653,6 +671,7 @@ which task runs it, and gives no count a run would have to match.
 | R6 | `python3 measure.py <transcript> <sync>`, the events by an `orch-` token | 1,015, of them 180 `cost`, 102 `ready`, 7 `finish` | st-8: of the three days after the switch, those three kinds by the driver's token and none by a judgment run's |
 | R6 | a judgment that leaves the entry: `loop.test.ts` | no such test | st-3, against the stand-in: an entry of each row marked "yes" is given at one step and not at the next with the same answers; a `round` at 3 `rework` moves with the comment `verdict-round-<at>` `go-on` is a `resume`, and after one more `rework` it is given again; a `round` whose run ended `no-submit` is given, with `go-on` it is a `resume`, and after a second `no-submit` of that round it is given again; a `needs-owner` entry with `not-answered` is given again only for an event of his with a later seq, and a `round` labeled `needs-owner` is given when he has written after the label; an entry whose judgment run ended `stopped` is given once more and not a third time; a `triage` that got a link `after` and came back is given again |
 | R6 | an agent that dies before its first move: `loop.test.ts` | no such test | st-3: a `review`, a `spec` and a `start` entry each with 2 dead runs of the role and round start no agent and are given as `dead`; with 1 they start one |
+| R6 | a `review` entry beside a `running` writer: `loop.test.ts` | no such test | st-3: an issue at `in-review` whose `runs` has an implementer `running` and no reviewer of that round starts a reviewer; with a `running` reviewer of that round it starts none; a `round` entry with a `running` writer is sent nothing |
 | R6 | the dead run: `loop.test.ts` | no such test | st-3: a `running` run of this host whose pid is not alive and has no result is replaced with `stopped` and the issue gets `back`; one of another host is left |
 | R7 | `cat tools/cloud-brain/.emitted/issue-loop/status.md` | no such file | st-3: after `step --dry`, the file names each entry of `waiting` with `why: owner` that `ia "queue"` has at that seq |
 | R8 | `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh show loop` | exit 2, the usage | st-5: exit 1 `loop is not held`; while `loop.ts run` runs, exit 0 and `orchestrator-<host>`; `run --dry` beside it takes none |
@@ -671,7 +690,10 @@ Ids begin `st-`. None is `major` but `st-7`. No seed changes and nothing is depl
    `context`, `usd` and the usage beside an `Agent` run of the same role; one `--resume` of each;
    the detach of probe 1 from a shell that is not `claude`; which MCP tools writers called in the
    transcripts of 2026-10-12. After nothing.
-2. **st-2-loop-start-and-end.** `loop.ts start`, `ended`, `resume`, the `running` event with its
+2. **st-2-loop-start-and-end.** `loop.ts start --token <t>` takes a token already made, and the
+   check on cb4 is run with it: `rules.md`, "Which token", gives `agent-token` to the
+   orchestrating session, which makes the two tokens for `test-st-2-a` when the writer asks in a
+   comment. No writer runs `agent-token`. `loop.ts start`, `ended`, `resume`, the `running` event with its
    keys, the count of dead runs, the files of `runs/`; `tests/tools/loop.test.ts`; the check on cb4. After st-1.
 3. **st-3-step.** `loop.ts step` and `--dry`: health, runs, the table, what stops a start,
    `steps.jsonl`, `status.md`; the `given` comments and the reading of a verdict; a test a row
@@ -688,7 +710,8 @@ Ids begin `st-`. None is `major` but `st-7`. No seed changes and nothing is depl
    as today for a day. A record: the two lists of the R8 check, and each row of the table that was
    wrong. A row that was wrong is mended in this task. After st-4 and st-5.
 7. **st-7-switch-and-texts.** `major`. `rules.md` ("a session the owner is in" for the standing
-   leaves and the spec's tokens; "Which token", the driver's line); `SKILL.md`, "Run it" and
+   leaves and the spec's tokens; "Which token", the driver's line; the item of "Always" on the two pulls, which are the
+   driver's too); `SKILL.md`, "Run it" and
    "Runs"; the knowledge page of the loop; the "As amended" notes of part 6 in
    `plan/cloud-brain-worker-machine-on-fly.md` and in `fly-2` and `fly-4`. Then the switch, which
    is the owner's (below). After st-6.
@@ -719,7 +742,7 @@ No deploy of the kernel, the core, the database or the deployer. No `issue.insta
 
 ## What the orchestrator makes
 
-Nothing. The driver's token and each judgment run's are `brain.ts agent-token orch …`, children of
+Two tokens for the check of `st-2` on cb4, when its writer asks. Else nothing. The driver's token and each judgment run's are `brain.ts agent-token orch …`, children of
 `loop-agents`, as a session's is today.
 
 ## Not tried, not known
@@ -830,3 +853,21 @@ they were acted on: `runs` keeps one run a role and round (`brain-issues.ojs:590
   counts; the second R4 check row is beside the first; the header names all that changed.
 
 Not read by a third fresh reader: the text of this last answer. The tracker's review reads it next.
+
+## Round 3: review 5247 (2026-10-12, 23:49 CEST)
+
+The review was `changes`: the two findings of review 5194 hold against the seed, one thing of part
+3 held the change, and there were four notes. A resumed round, the same writer and token.
+
+- **The finding: no reviewer while the writer waits for its review.** The condition above the
+  table is read by the role the row starts. A `review` entry beside a `running` writer starts its
+  reviewer; a `round` beside one is left to the writer (part 3, item 3). The test row asked for is
+  the R6 row "a `review` entry beside a `running` writer".
+- **A dead overseer had no rule.** Part 2, "An overseer that died", and the count in its row.
+- **`loop.ts compare` and `status.md`** have their rows in the table of what is used.
+- **The round of a judgment run's `cost` event** is one more than the events of that role on the
+  issue (part 3, item 5).
+- **Who runs the check of `st-2` on cb4**: the writer, with two tokens the orchestrating session
+  makes; `start` takes `--token`. The pulls of "Always" are in the list of `st-7`.
+
+Not read by a fresh reader: this round's change, 9 passages. The tracker's review reads it next.
