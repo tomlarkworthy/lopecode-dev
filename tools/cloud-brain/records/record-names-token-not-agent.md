@@ -162,6 +162,21 @@ $ jq -c 'select(.by.holder=="secret:loop-agents")' events.jsonl | wc -l
 
 over the 3988 events, and the tool's last line. `ta-1b` counted the same 0 at event 2052.
 
+## The three reports
+
+Each of the reports the project gathered has a comment that names this file, written with
+`impl-c49ff3` (the answers of `issue.comment`, 200 each):
+
+| Report | Comment | Requirements |
+|---|---|---|
+| `seen-outside-session-overseer-token` | event 4002 | R1, R3 |
+| `seen-writer-read-with-reviewer-token` | event 4003 | R2, R4 |
+| `seen-by-hides-session-file-write` | event 4004 | R5, which has no check in this task |
+
+Comment 4002 says "each over- name since is one overseer's". That goes further than what was read:
+an overseer's run has no cost line, so nothing in the record sets an `over-` name beside an agent.
+What was read is that five `over-` names wrote after N and `issues-overseer-1` did not.
+
 ## Not tried
 
 - `brain.ts agent-token list`, and so the live children and the notes of the `orch-` names.
