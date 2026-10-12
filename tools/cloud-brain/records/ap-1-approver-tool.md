@@ -24,8 +24,6 @@ guard, the token `loop-approver` is not made, and `agents/approver.md` is task 2
 - `tools/cloud-brain/issue-stats.ts`: `role()` knows `appr`; the report has `approveByApprover`,
   the `approve` moves whose `by.via` begins `delegation:`; the line is
   `approve by the session: N pressed, N made for the owner; by the approver: N`.
-- `tools/cloud-brain/token-checks.ts`: `agentName` knows `appr`. No count of that tool reads the
-  role; a holder `appr-…` was `""` to `prefix` before.
 - `tests/tools/agent-token.test.ts` (the usage line, eight roles for seven) and
   `tests/tools/issue-stats.test.ts` (the role, the line, and the count: event 21 of its list, an
   approve a token made, is the 1).
@@ -100,21 +98,32 @@ two), and passed with them.
 
 ## On cb4
 
-Read only, with `impl-16ee12`, 19:03 CEST. No move and no comment was sent by the tool.
+Read only, with `impl-16ee12`, between 19:18:55 and 19:19:33 CEST (`date` before the first and
+after the last), with `approver.ts` as it is landed.
 
 ```
+approver.ts brief                         approver.ts: origin/main has no .claude/skills/brain-maintenance/agents/approver.md   exit 1
 approver.ts approve ap-1-approver-tool 4146 --token impl-16ee12
-  approver.ts: no approve guard of the policy in force (event 483) names a delegation; nothing was sent. …   exit 3
+  approver.ts: no approve guard of the policy in force (event 483) names a delegation; nothing was sent. The verdict comment stands as the run's result   exit 3
 approver.ts check --token impl-16ee12     0 approves by a delegation, 0 that do not stand                  exit 0
-approver.ts list --token impl-16ee12      (no line)                                                        exit 0
-approver.ts trial --token impl-16ee12     verdicts 0   approve 0   leave 0  (and four lines of 0)          exit 0
-approver.ts brief                         approver.ts: origin/main has no …/agents/approver.md             exit 1
+approver.ts list --token impl-16ee12      (nothing printed)                                                exit 0
+approver.ts trial --token impl-16ee12     verdicts 0   approve 0   leave 0  (the first of its lines)       exit 0
 approver.ts facts rules-md-philosophy-push-leave --token impl-16ee12
-  … at done, round 1 …  commit lopecode-dev@0197c1cf…: 2 files   [rules]    .claude/skills/brain-maintenance/rules.md
+  rules-md-philosophy-push-leave: at done, round 1; the verdict's key is approver/rules-md-philosophy-push-leave/verdict-1
+  commit lopecode-dev@0197c1cfa8a12f7d1569f5dad77222c1c26b25e8: 2 files
+    [rules]    .claude/skills/brain-maintenance/rules.md
 issue-stats.ts --token impl-16ee12        approve by the session: 31 pressed, 20 made for the owner; by the approver: 0
 ```
 
-The `approve` line stops at the read of `issue.policy`: the one call it made.
+Of the `approve` line, what was seen on cb4 is the exit and the message. That the tool then has
+made one call, the read of `issue.policy`, and no other is the test's: its stand-in tracker kept
+the calls of that run, `["policy"]`. The token it was run with is the writer's own, which no
+`approve` guard takes in any case.
+
+A first run of the same commands at 19:03 CEST found two faults, mended before the run above:
+`brief` was exit 2, "origin/main was not fetched" (a plain `git fetch` stops in a worktree on the
+submodule links; it is now `--no-recurse-submodules`, as `worktree.sh` has it), and `list` printed
+an empty line for no approve.
 
 One run of `judge` on the record as cb4 has it (4146 events, in a file) with one event added, a
 made verdict on `wt-4-reviewer-in-a-view`, and the policy with a guard and two blobs written in:
@@ -165,3 +174,7 @@ the run has role `approver` and the run's token as `token`, written by the orche
 - `tools/cloud-brain/brain-issues.ojs:624`, `openerOf` of `issue.flow`: its list of roles has no
   `appr`, so an issue an `appr-` token opened would be counted under the token's whole name. An
   approver opens none. Not changed: it is a deploy of `brain-x-issues`.
+- `tools/cloud-brain/token-checks.ts:35`, `agentName`: its list of roles has no `appr` either, so
+  that tool passes over an `appr-` holder (`if (!prefix(n)) continue`). Left as it was: whether an
+  approver's token belongs among the roles its R3 check asks a cost line of is task 2's, with the
+  `cost` event of role `approver`.

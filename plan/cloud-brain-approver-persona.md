@@ -514,8 +514,8 @@ Each check is a command an agent runs with its own token, or a test file. Run at
 |---|---|---|---|
 | R1 | `issue-as.sh <token> policy`, the `approve` guards that are `caller.present` alone | 3 of 3 | 1 of 3, the `security` one (after his install) |
 | R1 | the guard, by `cel.js`, four callers | true, true, false, false | the same, in the rig of task 4 |
-| R2, R8 | `bun tools/cloud-brain/issue-stats.ts --token=<token>`, the line `approve by the session` | `28 pressed, 20 made for the owner` | the same line with `; by the approver: N` (task 1) |
-| R2 to R8 | `bun test ./tests/tools/approver.test.ts` | no such file | passes, with the cases below (task 1); not run |
+| R2, R8 | `bun tools/cloud-brain/issue-stats.ts --token=<token>`, the line `approve by the session` | `28 pressed, 20 made for the owner` | the same line with `; by the approver: N` (task 1). (As built, `ap-1-approver-tool`, 2026-10-12: `31 pressed, 20 made for the owner; by the approver: 0`, run 19:19 CEST with `--token impl-16ee12`; the record.) |
+| R2 to R8 | `bun test ./tests/tools/approver.test.ts` | no such file | passes, with the cases below (task 1); not run. (As built, `ap-1-approver-tool`, 2026-10-12: 24 pass, 0 fail, 354 expect() calls; the record.) |
 | R4 | `test_issues_an_approver_delegation_approves_and_no_other_token`, the narrowed issue | no such cell | 403 in the rig, and 403 again after a send-back and a new pass (task 4); not run |
 | R5 | `grep -c '"appr"' tools/cloud-brain/brain.ts` | 0 | 1, run with the role added to `ROLES` and the edit taken back, 16:36 CEST (task 1) |
 | R8 | `test_issues_panel_approved_for_you` (task 5) | no such cell | passes on a panel with a client of its own; not run |
@@ -577,6 +577,8 @@ only; neither is `major`, and each goes to `done` on a reviewer's `pass` as any 
 1. **`ap-1-approver-tool`**: `tools/cloud-brain/approver.ts` (`brief`, `facts`, `id`, `approve`,
    `check`, `list`, `trial`), its test, the role `appr` in `brain.ts agent-token`, the line of
    `issue-stats.ts`. No deploy. `approve` is refused by cb4 until the install. `major`.
+   (As built, `ap-1-approver-tool`, 2026-10-12: cb4 is not asked. The tool reads `issue.policy`, and while no
+   `approve` guard names a delegation it sends no move, exit 3; the record.)
 2. **`ap-2-brief-and-shadow-step`**: `agents/approver.md`; the row of `SKILL.md` step 3 for an
    issue at `awaiting-approval` with no verdict (spawn the approver; until his install its tool sends no move);
    the `cost` event of role `approver`; in step 7, the lines of `approver.ts list` in what the
