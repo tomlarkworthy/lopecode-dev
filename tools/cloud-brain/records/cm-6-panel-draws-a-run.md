@@ -8,7 +8,8 @@ totals of the open issue. Written 2026-10-12; the seed's commit reads 02:53:54 +
 On cb4 no issue has a run yet: `issue-as.sh impl-1be9d6 "runs?limit=1"` answered
 `{"runs":[],"total":{"runs":0,…},"more":false}` on 2026-10-12, before this was built. So nothing of
 this change is drawn on cb4 until task 4 (`cm-4-enter-the-runs-again`) writes the events. Everything
-below was seen on a rig, in a headless Chrome of this machine.
+under "Tests" was seen on a rig, in a headless Chrome of this machine. Task 4 wrote its events while
+this landed; "On cb4, after the deploy" has what the deployed cells make of them.
 
 ## What changed
 
@@ -101,12 +102,40 @@ What the panel test holds, on a rig with a token writing the runs and the owner'
 - An issue labelled `needs-owner`, with no body, no comment and a `cost` event last: its row in the
   block has one line, of type `opened`.
 
+## On cb4, after the deploy
+
+The apply answered `"state":"verified","tests":42` for hash `0f7eb7a35b38` (32.7 s): the deployer
+ran the 42 tests in the cluster's browser. `bun sync.ts … && bun test.ts brain-x-issues` after it:
+that hash, `passed` 27, `failed` 0, `needsBrowser` 15.
+
+Between 02:57:21 and 02:58:11 CEST on 2026-10-12 (`date` before the first call and after the
+second) `runs?limit=1` answered `total.runs` 300 and then `runs?limit=500` answered 362 runs:
+another writer was entering them. The page was not opened (it needs the
+owner's session). In its place the text cells of the deployed module were run over what cb4
+answered: `getSource?worker=brain-x-issues` written to a file, loaded with
+`tools/notebook-import.ts`, and `issueRunSaid`, `issueCost` and `issueCostSaid` called on the
+answers of `get?id=record-first-resumed-rework-round` and `runs?limit=500`, both read with the
+writer's token. The script was in the session's scratch directory and is not kept.
+
+```
+cost 8 runs · 2,004 s · 8 with a usage: in 251, written 902,028, read 10,607,797, out 113,376, 116 requests · advisor 7 calls · $8.96 of 4 runs
+8 cost events; 8 runs
+implementer round 1, fresh, in-review · 514 s · context 128,564 · billed in 61, written 119,786, read 2,850,853, out 26,352, 28 requests · advisor 2 calls
+reviewer round 1, light, changes · 290 s · context 87,067 · billed in 30, written 76,302, read 927,944, out 16,225, 13 requests · advisor 2 calls · $2.97
+362 runs read; 0 lines with undefined, NaN, null or [object; 33 no usage; 160 longest
+all: 362 runs · 198,111 s · 329 with a usage: in 19,373, written 41,881,263, read 925,042,922, out 7,352,214, 7,883 requests · advisor 358 calls · $215 of 125 runs
+```
+
+The first line has the four numbers of the spec's check of R3 (8 runs, 2,004 s, 10,607,797 read,
+7 advisor calls). It is the text the totals line would have for that issue, not the line as the
+page draws it.
+
 ## Not tried
 
-- The page on cb4 with a run in the record. None is there until task 4. No tab was opened, here or
-  in the cluster, and the two lines were not looked at by eye: the tests read their text.
+- The page on cb4. No tab was opened, here or in the cluster, and the two lines were not looked at
+  by eye on any page: the tests read their text.
 - A browser other than Chrome 151 for the panel test. The deployer's is Chrome 128 and runs the
-  test in the apply; what it answered is in the issue's comment.
+  tests in the apply, which answered `verified` with 42.
 - The width of the lines on the page. The spec's example with `replaces 1203` is 172 characters
   (`len()` of the string in Python), in a `div` with no style of its own; whether it wraps well in
   the panel was not looked at.
