@@ -519,10 +519,10 @@ Each check is a command an agent runs with its own token, or a test file. Run at
 | requirement | command | before | after its task |
 |---|---|---|---|
 | R1 | `issue-as.sh <token> policy`, the `approve` guards that are `caller.present` alone | 3 of 3 | 1 of 3, the `security` one (after his install) |
-| R1 | the guard, by `cel.js`, four callers | true, true, false, false | the same, in the rig of task 4 |
+| R1 | the guard, by `cel.js`, four callers | true, true, false, false | the same, in the rig of task 4. (As built, `ap-4-policy-v3`, 2026-10-12: the guard of the file, with the id `eb3db9d0c6a5`, gives the four by `cel.js` in `tests/tools/issues-policy-v3.test.ts`, and the rig has the policy with a stand-in id; the record.) |
 | R2, R8 | `bun tools/cloud-brain/issue-stats.ts --token=<token>`, the line `approve by the session` | `28 pressed, 20 made for the owner` | the same line with `; by the approver: N` (task 1). (As built, `ap-1-approver-tool`, 2026-10-12: `31 pressed, 20 made for the owner; by the approver: 0`, run 19:19 CEST with `--token impl-16ee12`; the record.) |
 | R2 to R8 | `bun test ./tests/tools/approver.test.ts` | no such file | passes, with the cases below (task 1); not run. (As built, `ap-1-approver-tool`, 2026-10-12: 24 pass, 0 fail, 354 expect() calls; the record.) |
-| R4 | `test_issues_an_approver_delegation_approves_and_no_other_token`, the narrowed issue | no such cell | 403 in the rig, and 403 again after a send-back and a new pass (task 4); not run |
+| R4 | `test_issues_an_approver_delegation_approves_and_no_other_token`, the narrowed issue | no such cell | 403 in the rig, and 403 again after a send-back and a new pass (task 4); not run. (As built, `ap-4-policy-v3`, 2026-10-12: run, 403 both times with `this issue's guard N on approve refuses`; the narrowed issue is a spec, since a task has no move back from `awaiting-approval`; the record.) |
 | R5 | `grep -c '"appr"' tools/cloud-brain/brain.ts` | 0 | 1, run with the role added to `ROLES` and the edit taken back, 16:36 CEST (task 1) |
 | R8 | `test_issues_panel_approved_for_you` (task 5) | no such cell | passes on a panel with a client of its own; not run |
 | R7 | `test -f .claude/skills/brain-maintenance/agents/approver.md; echo $?` | 1 | 0 (task 2). That the file exists and no more; R7 is held by the tool's test and by `check`. (As built, `ap-2-brief-and-shadow-step`, 2026-10-12: 0 in the writer's worktree, and `bun test ./tests/tools/approver-brief.test.ts` gives the brief's verdicts to the tool; the record.) |
@@ -596,7 +596,8 @@ only; neither is `major`, and each goes to `done` on a reviewer's `pass` as any 
 4. **`ap-4-policy-v3`**: `plan/cloud-brain-issues-policy-v3.json` (the body of `issue.install`:
    the policy of event 483 with the two `approve` guards, `migrate` for the open issues of the two workflows,
    state for state, and a `reason` with his words that ends with the two blobs of part 4), the rig test, the paragraph of the first `md`
-   cell on who approves. Deploys `brain-x-issues` for the test cell. After the token is made
+   cell on who approves. (As built, `ap-4-policy-v3`, 2026-10-12: the paragraph is "Who approves", at the end of the cell `## A policy`,
+   the second `md` cell, where the default policy's guards are said; the record.) Deploys `brain-x-issues` for the test cell. After the token is made
    (below), since the file holds its id, and after tasks 1 and 2, whose files it pins. A later
    change to the brief or the tool is a new file of this kind and a new install. `major`.
 5. **`ap-5-panel-approved-for-you`**: the group in the block, with a `test_issues_panel_*` cell on
@@ -805,3 +806,24 @@ says what it left open:
   third check of R1 of `plan/cloud-brain-record-names-token-not-agent.md`), which task 1 left to this task.
 - The brief has the approver write a `leave` as one comment, the verdict, in the form `philosophy.md` gives for
   a comment that waits for the owner. It puts no label on.
+
+**Task 4, `ap-4-policy-v3`, 2026-10-12.** The record is `tools/cloud-brain/records/ap-4-policy-v3.md`. Where what
+was built differs from the text above, or says what it left open:
+
+- The id of `loop-approver` is `eb3db9d0c6a5`: `approver.ts id`, run by the task's writer, wrote event 4475 on the
+  task's issue, whose `by` is `via delegation:eb3db9d0c6a5`, `holder secret:loop-approver`. A token made again has
+  another id, and the file is then written again.
+- `migrate` names the two hashes `issue.policy` answered for `task` and `project` under the policy of event 483,
+  each to the workflow of its name with no state mapped. An install after a later policy has other hashes to name.
+- The swap of a `migrate` empties the reviews of its issue (`issueApply`). An issue at `in-review` or
+  `spec-review` whose passing review is written and whose move is not made needs that review again after the
+  install: the rig test has one. The install is made when none waits there, as `plan/cloud-brain-issues.md` says
+  of the policy before this one.
+- A closed issue is not migrated. One opened again later is on the workflow it was closed under, whose `approve`
+  is `caller.present`. Read in `judge` of `approver.ts`, and not run: `issue.policy` answers the workflows in
+  force, the issue's hash is not among them, and the tool then reads no delegation and sends nothing (exit 3).
+- The file's `reason` is 1,103 characters of the 2,000 an install takes. It has his three sentences (the body of
+  event 4112, comment 4115, the reason of event 4123), the guard, and the two blobs last.
+- `tests/tools/issues-policy-v3.test.ts` holds the file: it is the policy of the v2 file with the two guards
+  changed, the guard's eight callers by `cel.js`, the two blobs as the commit of the file has the brief and the
+  tool, and that `judge` of `approver.ts` reads the delegation from it and none from the v2 file.

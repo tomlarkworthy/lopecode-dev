@@ -160,7 +160,9 @@ Moves of \`task\` beside the straight path, each with a reason:
 
 A \`project\`: \`spec\` (someone takes it, with a reason), \`submit-spec\` by that actor with a ref to the spec, a \`pass\` review by another actor and \`to-approval\`, \`approve\` by the owner present (or \`send-back\` with a reason), \`decompose\` once it has an open part that is not feedback, \`finish\` when it has none (\`issue.children.work\`; until 2026-10-12 both read \`.open\`, and a Brain whose policy was installed before then reads that until the owner installs this one; the service makes \`finish\` itself, "A move made by the service"), \`close\` with a reason from \`open\`, \`spec\`, \`approved\` or \`building\`. A \`changes\` or \`block\` review lets it be sent back to \`spec\` (\`respec\`).
 
-Who may triage, label and narrow: the owner or a token; taking the label \`major\` off is the owner present. A reviewer and whoever passes the issue is not the implementer, and nobody passes it while a review says \`block\`. A guard added to one move of an issue does not stop another move to the same state: the owner's \`owner-reject\` goes ahead whatever is added to \`reject\`. \`approve\`, \`revert\` and a reject from any state that is not closed are the owner present. The guards are the cell \`issuesDefaultPolicy\`.`
+Who may triage, label and narrow: the owner or a token; taking the label \`major\` off is the owner present. A reviewer and whoever passes the issue is not the implementer, and nobody passes it while a review says \`block\`. A guard added to one move of an issue does not stop another move to the same state: the owner's \`owner-reject\` goes ahead whatever is added to \`reject\`. \`approve\`, \`revert\` and a reject from any state that is not closed are the owner present. The guards are the cell \`issuesDefaultPolicy\`.
+
+**Who approves.** In the default policy the owner present, and nobody else. A policy can give the \`approve\` of a workflow to one token beside him, named by its delegation: \`caller.present || caller.actor == "delegation:<id>"\`, with \`<id>\` read from \`by.via\` of an event that token wrote (the core makes it; it is not the token's name). \`plan/cloud-brain-issues-policy-v3.json\` in \`lopecode-dev\` is the body of such an \`issue.install\`, written 2026-10-12 for cb4 (\`plan/cloud-brain-approver-persona.md\`, task 4): the default policy with that guard on \`approve\` of \`task\` and of \`project\`, for the token \`loop-approver\`, a \`migrate\` of the open issues of those two workflows state for state, and a \`reason\` that ends \`approver brief <blob> tool <blob>\`, which \`tools/cloud-brain/approver.ts\` reads from \`issue.policy\`. It is in force on a Brain from its owner's install and not before; \`issue.policy\` says which guard is. Under it, as \`test_issues_an_approver_delegation_approves_and_no_other_token\` has it in a rig: that token's \`approve\` of an issue at \`awaiting-approval\` is taken, of one that waited at the install and of one opened after; every other token is refused as before; an issue of \`security\` is not read by the token and answers it 404; an issue with the guard \`caller.present\` added to its \`approve\` (\`issue.narrow\`) refuses the token, also after a send-back and a new pass, until the owner present takes the guard off; \`revert\`, \`owner-reject\`, the install itself and taking \`major\` off are refused to it. A \`migrate\` moves an issue with a swap, and a swap empties \`issue.reviews\`: an issue at \`in-review\` or \`spec-review\` whose passing review is written and whose move is not yet made needs its review again after such an install.`
 // %%
 md`## The flow of work
 
@@ -2599,6 +2601,128 @@ test_issues_policy_is_installed_by_the_owner_and_migrates = {
     expect(on.db.events.length).toBe(events);
   }
   return `installed by the owner present; ${policies} policies and ${refusals} installs refused; 1 open issue migrated, and not again onto where it is; ${accepted.length} installs sent again and answered as before; the example installs; a refused first write leaves the record empty`;
+}
+// %%
+// The policy of plan/cloud-brain-issues-policy-v3.json, with a stand-in for the id: the default policy with the
+// `approve` guard of task and of project naming one delegation beside the owner present. The security workflow is as it is.
+test_issues_an_approver_delegation_approves_and_no_other_token = {
+  const rig = await issuesRig(), ref = [{ kind: "commit", value: "abc" }], id = "0123456789ab";
+  // A token's call as it reaches the service on cb4: the owner, via its delegation, in no tab.
+  const token = (d, name) => rig.as("owner", "delegation:" + d, { "x-brain-holder": "secret:" + name, "x-brain-tab": "0" });
+  const approver = token(id, "loop-approver"), run = token("aaaaaaaaaaaa", "appr-0a1b2c"), writer = token("bbbbbbbbbbbb", "impl-0a1b2c"), reviewer = token("cccccccccccc", "rev-0a1b2c");
+  const others = { run, writer, reviewer, "token:a": rig.a, worker: rig.worker, member: rig.member, "the owner in no tab": rig.as("owner", "session", { "x-brain-tab": "0" }) };
+  // Counted here, not written by hand.
+  let refused = 0, approved = 0;
+  const no = async (sent, status = 403, message) => {
+    const r = await sent;
+    expect([r.status, r.data.error]).toEqual([status, status === 404 ? "NotFound" : "Refused"]);
+    if (message) expect(r.data.message).toBe(message);
+    refused++;
+  };
+  const yes = async (sent, move) => {
+    const r = await sent;
+    expect(r.status).toBe(200);
+    expect(r.data.event).toMatchObject({ move, by: { caller: "owner", via: "delegation:" + id, holder: "secret:loop-approver", tab: false } });
+    approved++;
+  };
+  const ok = async (sent) => expect((await sent).status).toBe(200);
+  // A major task and a spec, each taken to awaiting-approval by a writer and a reviewer that are tokens.
+  const taskWaits = async (t, kind = "task") => {
+    const pass = kind === "security" ? rig.owner : reviewer;
+    await ok((kind === "security" ? writer : rig.owner)("open", { id: t, title: t, kind, labels: ["major"] }));
+    await ok(rig.owner("move", { id: t, to: "triaged", reason: "real" }));
+    await ok(rig.owner("move", { id: t, to: "ready" }));
+    await ok(writer("move", { id: t, to: "in-progress" }));
+    await ok(writer("move", { id: t, to: "in-review", refs: ref }));
+    await ok(pass("review", { id: t, verdict: "pass" }));
+    await ok(pass("move", { id: t, to: "awaiting-approval" }));
+  };
+  const specPasses = async (p) => {
+    await ok(writer("move", { id: p, to: "spec-review", refs: ref }));
+    await ok(reviewer("review", { id: p, verdict: "pass" }));
+    await ok(reviewer("move", { id: p, to: "awaiting-approval" }));
+  };
+  const specWaits = async (p) => {
+    await ok(rig.owner("open", { id: p, title: p, kind: "project" }));
+    await ok(writer("move", { id: p, to: "spec", reason: "taken" }));
+    await specPasses(p);
+  };
+  await taskWaits("t-old");
+  await specWaits("p-old");
+  await specWaits("p-left");
+  await taskWaits("s-old", "security");
+  // And a task whose passing review is written and whose move is not made yet.
+  await rig.inReview("t-mid", { labels: ["major"] });
+  await ok(reviewer("review", { id: "t-mid", verdict: "pass" }));
+  // Under the default policy the approver's token is one more token: refused, as it is on cb4 until the install.
+  await no(approver("move", { id: "t-old", to: "done" }), 403, "the guard of approve refuses");
+  await no(approver("move", { id: "p-old", to: "approved" }), 403, "the guard of approve refuses");
+  const guard = `caller.present || caller.actor == "delegation:${id}"`;
+  const named = (w) => ({ ...w, moves: w.moves.map((m) => (m.name === "approve" ? { ...m, guard } : m)) });
+  const policy = { ...issuesDefaultPolicy, workflows: { ...issuesDefaultPolicy.workflows, task: named(issuesDefaultPolicy.workflows.task), project: named(issuesDefaultPolicy.workflows.project) } };
+  const was = (await rig.owner("policy")).data.policy.names;
+  const migrate = { [was.task]: { workflow: "task" }, [was.project]: { workflow: "project" } };
+  // The install is the owner present: not the approver's token, which would name itself, nor any other.
+  await no(approver("install", { key: "v3", policy, migrate }), 403, "the owner, present");
+  for (const other of Object.values(others)) await no(other("install", { key: "v3", policy, migrate }), 403, "the owner, present");
+  const installed = (await rig.owner("install", { key: "v3", policy, migrate, reason: "a test. approver brief " + "a".repeat(40) + " tool " + "b".repeat(40) })).data;
+  // The open issues of the two workflows are moved state for state; security and feedback keep their hash, and s-old its place.
+  expect([installed.moved.slice().sort(), installed.left, installed.relinked, installed.unlinked]).toEqual([["p-left", "p-old", "t-mid", "t-old"], [], [], []]);
+  expect([installed.hashes.security, installed.hashes.feedback, installed.hashes.task === was.task, installed.hashes.project === was.project]).toEqual([was.security, was.feedback, false, false]);
+  for (const [i, state] of [["t-old", "awaiting-approval"], ["p-old", "awaiting-approval"], ["p-left", "awaiting-approval"]]) expect((await rig.owner("get?id=" + i)).data.issue).toMatchObject({ state, workflow: installed.hashes[i[0] === "t" ? "task" : "project"] });
+  expect((await rig.owner("get?id=s-old")).data.issue).toMatchObject({ state: "awaiting-approval", workflow: was.security });
+  // The swap of a migrate empties the reviews of its issue: the one passed and not yet moved needs its review again.
+  await no(reviewer("move", { id: "t-mid", to: "awaiting-approval" }), 403, "the guard of to-approval refuses");
+  await ok(reviewer("review", { id: "t-mid", verdict: "pass" }));
+  await ok(reviewer("move", { id: "t-mid", to: "awaiting-approval" }));
+  // Every other token is refused as before, on the task and on the spec.
+  for (const other of Object.values(others)) {
+    await no(other("move", { id: "t-old", to: "done" }), 403, "the guard of approve refuses");
+    await no(other("move", { id: "p-old", to: "approved" }), 403, "the guard of approve refuses");
+  }
+  // An issue the approver left: its run adds the owner present to approve of that one issue.
+  const narrowed = (await run("narrow", { id: "p-left", move: "approve", guard: "caller.present", reason: "left to the owner" })).data.event;
+  expect(narrowed).toMatchObject({ type: "narrowed", move: "approve", guard: "caller.present" });
+  const held = `this issue's guard ${narrowed.seq} on approve refuses`;
+  await no(approver("move", { id: "p-left", to: "approved" }), 403, held);
+  // Nor does a token take that guard off: not the approver's, not the run's that put it on.
+  await no(approver("narrow", { id: "p-left", remove: narrowed.seq }), 403, "the owner, present");
+  await no(run("narrow", { id: "p-left", remove: narrowed.seq }), 403, "the owner, present");
+  // Sent back by the owner, submitted and passed anew: the guard is the issue's still.
+  await ok(rig.owner("move", { id: "p-left", to: "spec", reason: "say what it costs" }));
+  await specPasses("p-left");
+  await no(approver("move", { id: "p-left", to: "approved" }), 403, held);
+  expect((await rig.owner("move", { id: "p-left", to: "approved" })).data.event).toMatchObject({ move: "approve", by: { via: "session" } });
+  // The approver's token approves the task and the spec that were waiting at the install.
+  await yes(approver("move", { id: "t-old", to: "done", reason: "approver: approve" }), "approve");
+  await yes(approver("move", { id: "p-old", to: "approved", reason: "approver: approve" }), "approve");
+  // And one opened under the new policy, but not while it is anywhere but awaiting-approval, and it takes nothing else of the owner's.
+  await ok(rig.owner("open", { id: "t-new", title: "t-new", kind: "task", labels: ["major"] }));
+  await no(approver("move", { id: "t-new", to: "done" }), 403, "no move from open to done");
+  await ok(rig.owner("move", { id: "t-new", to: "triaged", reason: "real" }));
+  await ok(rig.owner("move", { id: "t-new", to: "ready" }));
+  await ok(writer("move", { id: "t-new", to: "in-progress" }));
+  await ok(writer("move", { id: "t-new", to: "in-review", refs: ref }));
+  await no(approver("move", { id: "t-new", to: "done" }), 403, "the guard of pass refuses");
+  await ok(reviewer("review", { id: "t-new", verdict: "pass" }));
+  await ok(reviewer("move", { id: "t-new", to: "awaiting-approval" }));
+  await no(approver("label", { id: "t-new", remove: ["major"] }), 403, "the workflow's label guard refuses");
+  await no(approver("move", { id: "t-new", to: "rejected", reason: "not this" }), 403, "the guard of owner-reject refuses");
+  await yes(approver("move", { id: "t-new", to: "done", reason: "approver: approve" }), "approve");
+  // What undoes an approval is the owner present: not the token that made it.
+  await no(approver("move", { id: "t-old", to: "reverted", reason: "undo", refs: ref }), 403, "the guard of revert refuses");
+  await no(approver("move", { id: "p-old", to: "rejected", reason: "undo" }), 403, "the guard of owner-reject refuses");
+  expect((await rig.owner("move", { id: "t-old", to: "reverted", reason: "not what I asked", refs: ref })).data.event.move).toBe("revert");
+  expect((await rig.owner("move", { id: "p-old", to: "rejected", reason: "not what I asked" })).data.event.move).toBe("owner-reject");
+  // An issue of the security workflow is not read by the token: it is not there for it, and the owner approves it.
+  expect((await approver("get?id=s-old")).data.issue).toEqual({ id: "s-old", kind: "security", state: "awaiting-approval", closed: false, parent: null, hidden: true });
+  await no(approver("move", { id: "s-old", to: "done" }), 404, "no such issue");
+  await no(approver("narrow", { id: "s-old", move: "approve", guard: "true" }), 404, "no such issue");
+  expect((await rig.owner("move", { id: "s-old", to: "done" })).data.event.move).toBe("approve");
+  // The reason the install was given is what issue.policy answers: where a tool reads the two blobs it ends with.
+  expect((await approver("policy")).data.policy.reason).toMatch(/approver brief a{40} tool b{40}$/);
+  expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: true, guards: true });
+  return `the named delegation approved ${approved} (2 that waited at the install, 1 opened after); ${refused} acts refused: the install, an approve by ${Object.keys(others).length} other callers, a narrowed issue before and after a send-back, the removal of its guard, revert, owner-reject, major taken off, and a security issue (404)`;
 }
 // %%
 test_issues_hidden_from_who_may_not_read = {
