@@ -49,6 +49,10 @@
 // and beside it the events of the one case a session declares for: each `send-back` move, each `owner-reject` of an
 // issue that had a review with the verdict `pass` before it, each `revert`, by the move's name (the policy of 5166 events
 // lets only a caller who is present make the three). Both are of the record up to --until, whatever --after and --window are.
+// `decision comment and verdict` counts, for each verdict of an approver (a comment keyed approver/<id>/verdict-<n>),
+// whether the session's comment for the owner of that round (orch/<id>/decision-<n>) is before it, after it or not
+// there, with the seq of each verdict that had it before (approver-before-decision-comment: SKILL.md, step 3, has the
+// verdict first). Of the record up to --until, whatever --after is; a `test-` issue is not counted.
 // ISSUE_AS names another issue-as.sh: the test's stand-in, or the main checkout's when the tool is run from a worktree.
 // `report`, `holds`, `flow`, `flowAsks` and `text` take what was read and call nothing: tests/tools/issue-stats.test.ts.
 import { execFileSync } from "node:child_process";
@@ -186,6 +190,23 @@ const approveBySession = {
 // An approve a token made. The policy takes one from a single delegation, the approver's, once the owner has installed
 // that guard (plan/cloud-brain-approver-persona.md, R2; ap-1-approver-tool); `approver.ts list` has each one's line.
 const approveByApprover = shown.filter((e) => e.type === "moved" && e.move === "approve" && String(e.by?.via || "").startsWith("delegation:")).length;
+// The orchestrating session's comment for the owner on an issue at `awaiting-approval` (key orch/<id>/decision-<n>) is
+// written after the approver's verdict of that round (approver/<id>/verdict-<n>) and not before: SKILL.md, step 3, the
+// row at `awaiting-approval` (approver-before-decision-comment). `before` has the seq of each verdict whose round had
+// that comment first; one after the event that change landed at is a round the row was not followed in. Of the record
+// up to --until, whatever --after is.
+const decisionKey = /^orch\/(.+)\/decision-(\d+)$/, verdictKey = /^approver\/(.+)\/verdict-(\d+)$/;
+// The issue and the round a comment's key names, when the key is of the issue the comment is on.
+const roundOf = (e: any, key: RegExp) => { const m = e.type === "commented" ? key.exec(e.key || "") : null; return m && m[1] === e.id ? `${e.id} ${m[2]}` : ""; };
+const decisionAt = new Map<string, number>();
+for (const e of shown) { const r = roundOf(e, decisionKey); if (r && !decisionAt.has(r)) decisionAt.set(r, e.seq); }
+const decisionAndVerdict = { verdicts: 0, before: [] as number[], after: 0, none: 0 };
+for (const e of shown) {
+  const r = roundOf(e, verdictKey), d = decisionAt.get(r);
+  if (!r) continue;
+  decisionAndVerdict.verdicts++;
+  d === undefined ? decisionAndVerdict.none++ : d < e.seq ? decisionAndVerdict.before.push(e.seq) : decisionAndVerdict.after++;
+}
 const openers: Record<string, { count: number; names: Record<string, number> }> = {};
 for (const i of all) {
   const o = (openers[role(i.opener)] ||= { count: 0, names: {} });
@@ -282,6 +303,7 @@ return {
   openers,
   approveBySession,
   approveByApprover,
+  decisionAndVerdict,
   // Time spent in a state before the move out of it. An issue still in a state is under `waiting`.
   timeInState: timeIn(perState),
   done: { count: done.length, medianH: H(median(done.map((i) => i.since - i.at))), firstPass: done.filter((i) => !i.moves.includes("rework")).length, quick: done.filter((i) => !i.moves.includes("ready")).length },
@@ -320,6 +342,8 @@ export function text(report: Report) {
   }
   const a = report.approveBySession;
   console.log(`approve by the session: ${a.pressed} pressed, ${a.madeForOwner} made for the owner; by the approver: ${report.approveByApprover}${a.other.length ? `; ${a.other.length} with another key ${JSON.stringify(a.other)}` : ""}`);
+  const d = report.decisionAndVerdict;
+  console.log(`decision comment and verdict: ${d.verdicts} verdicts of an approver; the session's comment for the owner before the verdict ${d.before.length}${d.before.length ? " " + JSON.stringify(d.before) : ""}, after it ${d.after}, none ${d.none}`);
   console.log("time in a state before the move out of it");
   const stays = (of: Report["timeInState"]) => { for (const [s, t] of Object.entries(of)) console.log(`  ${s.padEnd(18)} ${String(t.stays).padStart(3)} stays  median ${String(t.medianMin).padStart(6)} min  total ${String(t.totalH).padStart(5)} h  max ${t.maxH} h`); };
   stays(report.timeInState);

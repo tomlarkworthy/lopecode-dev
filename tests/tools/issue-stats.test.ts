@@ -699,3 +699,27 @@ test("post mortems: a record with none has the first line and the line of R8, wi
   ]);
   expect(report([], { now: 1e6 }).postMortems).toEqual({ count: 0, done: 0, notDone: 0, rows: [], bySession: [], undone: { count: 0, sendBack: [], ownerRejectAfterPass: [], revert: [] } });
 });
+
+// approver-before-decision-comment: SKILL.md, step 3, has the approver's verdict before the session's comment for the
+// owner. The keys are those of cb4: orch/bk-3-queue-and-hold/decision-1 (4846) before approver/…/verdict-1 (4858), and
+// approver/dense-rule-project-line-first/verdict-1 (5169) with no such comment.
+test("decision comment and verdict: each verdict counted by where the session's comment of its round is", () => {
+  const says = (id: string, key: string) => ({ seq: ++seq, key, type: "commented", id, body: "x", by: token("orch-7c1e04"), at: 1000 * seq });
+  const first = seq + 1;
+  const list = [
+    opened("p", token("impl-3fa2c1")), opened("q", token("impl-3fa2c1")), opened("r", token("impl-3fa2c1")), opened("test-s", token("impl-3fa2c1")),
+    says("p", "orch/p/decision-1"), says("p", "approver/p/verdict-1"),           // before
+    says("q", "approver/q/verdict-1"), says("q", "orch/q/decision-1"),           // after
+    says("r", "approver/r/verdict-1"),                                           // none
+    says("p", "approver/p/verdict-2"), says("p", "orch/p/decision-2"),           // a second round, after: round 1's comment is not round 2's
+    says("q", "orch/r/decision-1"), says("q", "impl/q/decision-1"), says("q", "orch/q/decision-1-more"),   // of another issue, another role, another key: none is a decision comment of q or r
+    says("test-s", "orch/test-s/decision-1"), says("test-s", "approver/test-s/verdict-1")    // a test issue is not counted
+  ];
+  const before = first + 5, r = report(list, { now: 1e9 });
+  expect(r.decisionAndVerdict).toEqual({ verdicts: 4, before: [before], after: 2, none: 1 });
+  expect(text(r, {})).toContain(`decision comment and verdict: 4 verdicts of an approver; the session's comment for the owner before the verdict 1 [${before}], after it 2, none 1`);
+  // --until reads the record as it was: before q's comment was written its verdict had none.
+  expect(report(list, { now: 1e9, until: first + 6 }).decisionAndVerdict).toEqual({ verdicts: 2, before: [before], after: 0, none: 1 });
+  // With no verdict the line has no list.
+  expect(text(report(events, { now: 1e6 }), {})).toContain("decision comment and verdict: 0 verdicts of an approver; the session's comment for the owner before the verdict 0, after it 0, none 0");
+});

@@ -413,7 +413,10 @@ one Agent for an issue that is at `awaiting-approval` and has no comment keyed
 run of role `approver` of that round; review 4118 found that this rule alone starts a second approver after
 a send-back on an issue that was left, which the tool refuses; the record.) The prompt is three lines:
 the brief to read, the issue's id, the token. The orchestrator adds no summary and no opinion; the
-decision comment it wrote is on the issue as data. `approver.ts approve` refuses when the holder of
+decision comment it wrote is on the issue as data. (As built, `approver-before-decision-comment`, 2026-10-12:
+the orchestrator writes that comment after the verdict and not before, from the verdict when it is a leave, and
+writes none after an approval the tool made; `SKILL.md`, step 3, the row at `awaiting-approval`; the record.)
+`approver.ts approve` refuses when the holder of
 the verdict comment is the holder of any `start`, `spec`, `submit`, `submit-spec` or `reviewed`
 event of the issue, or begins with anything but `secret:appr-`.
 
