@@ -2,13 +2,12 @@
 
 An action of the post mortem `tools/cloud-brain/post-mortems/pm-approver-leaves-everything.md` (the
 root cause, and 3 and 4 beside it). Round 1, by a writer of the issue loop, token `impl-d69992`, on
-2026-10-13; its `start` is event 5378, 00:20:42 CEST. A text an agent follows, the test file of its
+2026-10-13; its `start` is event 5378, 01:00:42 CEST. A text an agent follows, the test file of its
 lines and three notes in the approved spec. No seed, no tool, no deploy.
 
 **No approver makes a move after this lands, until the owner installs a policy whose reason names
 the new blob of the brief.** `approver.ts` holds the brief at `origin/main` against the blob in the
-reason of the policy in force (line 259, R7), which is `9956b9aa…` (`issue.policy`, read 00:16
-CEST). The file as committed is another:
+reason of the policy in force (line 259, R7), which is `9956b9aa…` (`issue.policy`, read 2026-10-13). The file as committed is another:
 
 ```
 $ git hash-object .claude/skills/brain-maintenance/agents/approver.md
@@ -30,7 +29,7 @@ hold something his words do not say, so the step was a leave for each.
 ## What changed
 
 `.claude/skills/brain-maintenance/agents/approver.md`. The text is the one the issue's body
-proposes, which review 5052 of the post mortem read; where it differs is listed under it.
+proposes; where it differs is listed under it.
 
 - **The opening.** In place of "a `leave` costs him one press, and an `approve` that he would not
   have made costs him a revert of work that others have built on": the eight left, the eight he
@@ -89,7 +88,7 @@ them (line 346). The brief's reason is now `his to weigh`. The tool was not chan
 keeps this writer to the brief, and the other action changes the same function.
 
 ```
-$ bun <scratchpad>/impl-d69992-trial.ts      (01:00 CEST; `trial` on a record of one leave)
+$ bun <scratchpad>/impl-d69992-trial.ts      (2026-10-13; `trial` on a record of one leave)
 "his to weigh" {"no word of his":0,"more than the words":0,"not secure":0,"could not tell":0,"other":1}
 "more than the words" {"no word of his":0,"more than the words":1,"not secure":0,"could not tell":0,"other":0}
 ```
