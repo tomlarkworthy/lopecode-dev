@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // What the tracker's record says of the loop: where issues wait, which states hold them, how often work is sent back.
 //   bun tools/cloud-brain/issue-stats.ts --token NAME [--after SEQ] [--until SEQ] [--window SEQ] [--idle HOURS] [--json]
-// Read from issue.sync with a token, through issue-as.sh (run it from the main checkout: a worktree has no tokens).
+// Read from issue.sync with a token, through issue-as.sh (run it from the main checkout, or with ISSUE_AS: a worktree has no tokens).
 // --token is the caller's own token, the one its prompt names, and has no default: with none the tool prints the line
 // above and exits 2, and nothing is sent (issue-stats-default-token-r4; until then it read as a role's token).
 // --after counts only the issues opened after that event. Times are the events' own `at`.

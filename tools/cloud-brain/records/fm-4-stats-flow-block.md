@@ -131,9 +131,10 @@ each copy with `ISSUE_STATS_TS`. Each failed a test:
 | A failed ask thrown again | 31, 1 |
 | `ISSUE_AS` not read | 31, 1 |
 
-`bun test` runs in UTC and does not put that in `process.env`, so the tool spawned by the last
-test printed this machine's zone and the test's own `local` printed UTC: 31 pass, 1 fail on the
-first run. The test now gives the spawned tool the zone the file's `local` has.
+On its first run the last test failed, 31 pass and 1 fail: the tool it spawned, given the test's
+`process.env` as it was, printed the heading's time as 22:51:51, this machine's zone, and the test's
+own `local` gave 20:51:51. `echo $TZ` in the shell printed nothing. The test now gives the spawned
+tool `TZ`, the zone `Intl.DateTimeFormat()` names in the test.
 
 ## On cb4
 
@@ -149,9 +150,12 @@ The run the spec names, from the main checkout after the landing, is in the comm
 
 ## The whole suite
 
-`bun test ./tests/tools` in the worktree, after the last edit and before the rebase of the landing:
-497 pass, 1 skip, 0 fail, 498 tests in 54 files. The run did not name the skipped test.
-`tests/tools/needs.ts` is the one file there with a skip in it (`grep -ln "skipIf\|test\.skip\|\.skip(" tests/tools/*.ts`).
+`bun test ./tests/tools` in the worktree, after the last edit of the test file and before the rebase
+of the landing: 497 pass, 1 skip, 0 fail, 498 tests in 54 files. Each file run alone
+(`for f in tests/tools/*.test.ts; do bun test ./$f; done`), `tests/tools/light-agent.test.ts` is the
+one that reports a skip: 18 pass, 1 skip, 0 fail. Its line 230 skips the test "agent.sh written over
+while claude runs" unless `AGENT_SH_WRITTEN_OVER` is set or `agent.sh` is read whole. Not looked at
+further.
 
 ## Not tried
 
