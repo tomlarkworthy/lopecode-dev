@@ -155,7 +155,12 @@ each command; no shell state lasts between calls.
    `bun test ./tests/tools/<file>`
    with the `./` (without it bun also runs every copy under `worktrees/` of the main checkout:
    153 pass, 44 fail where `./tests/tools` gave 90 pass, 0 fail, event 479), and the comment gives the command
-   as run. The script runs `bun test --parallel=4 --timings=tests/tools/timings.json --timeout=30000 ./tests/tools`
+   as run. One file is run with the suite's timeout, `bun test --timeout=30000 ./tests/tools/<file>`: with no flag a
+   test has bun's 5 s and not the script's 30 s, and while other agents' suites load the machine a file fails at 5 s
+   that the change did not touch (2026-10-12, the journal: `summarize-papers.test.ts` "alone failed 12 of 26 at load 11",
+   the writer of `iac-origin-test-secret-held-by-clock`; "15 fails without", the spec writer of
+   `post-mortems-declared-and-kept`). A fail at the timeout is given in the comment with the first number of `uptime`.
+   The script runs `bun test --parallel=4 --timings=tests/tools/timings.json --timeout=30000 ./tests/tools`
    at the root of the checkout it is in, from any directory, and prints that line first: four worker processes
    and the slowest files first, so the suite takes as long as its slowest file, `worktree.test.ts`, and not the
    sum of them. 583 pass in 60 files in 93 to 95 s over six runs on 2026-10-12, where the same files with no flag took 207 s, past the 120 s that is
