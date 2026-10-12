@@ -17,6 +17,8 @@ const RUNS = "a".repeat(64), BUILT = "b".repeat(64), DEPLOYED = Date.parse("2026
 const rig = (seen?: any, redistil?: any[]) => {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "brain-seen-")));
   copyFileSync(script, join(dir, "brain.ts"));
+  // apply imports it from beside the script.
+  copyFileSync(resolve(script, "../brain-info-size.ts"), join(dir, "brain-info-size.ts"));
   if (seen) writeFileSync(join(dir, "seen.json"), JSON.stringify({ t: seen }));
   const posts: any[] = [];
   const server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: async (req) => {

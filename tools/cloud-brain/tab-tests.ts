@@ -12,7 +12,9 @@
 // NOTEBOOK   a file, opened by its file: address.
 // MODULE     a module of the notebook's boot list, by its whole name.
 // --emit     after the tests, `(await module.value(CELL)).emit()` as JSON, written to FILE as it is. FILE is not
-//            written when a test failed (a record of a failing build is not left where apply reads) or the emit throws.
+//            written when a test failed (a record of a failing build is not left where apply reads), when the emit
+//            throws, or when the BRAIN_INFO the deployer would bind from the record is over Cloudflare's limit:
+//            `notEmitted` then has the size, the limit and the Worker (brain-info-size.ts; since 2026-10-13).
 // --timeout  how long one test may take, 90 s by default.
 // --boot     how long the page may take to define the module, 120 s by default.
 // --whole    print every text whole. Without it a failed test's message is cut at 400 characters, a page error at 160
@@ -35,6 +37,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromeFor } from "../lib/playwright-chrome.js";
 import { cut } from "./cut.ts";
+import { infoRefusal } from "./brain-info-size.ts";
 
 export const usage = "tab-tests.ts NOTEBOOK MODULE [--emit CELL=FILE]… [--timeout SECONDS] [--boot SECONDS] [--whole]";
 
@@ -102,6 +105,24 @@ export const emitCell = async ({ module, cell }: { module: string; cell: string 
   return JSON.stringify(await (await mod.value(cell)).emit());
 };
 
+// Each --emit written to its file, or why it was not. read: the text a cell emits. No file is written after a
+// failed test, when the emit throws, or when the record's BRAIN_INFO would be over Cloudflare's limit
+// (brain-info-size.ts): the apply of such a record is refused under both locks, and here no lock is held.
+export async function emitAll(emit: { cell: string; file: string }[], bad: string[], read: (cell: string) => Promise<string>, whole = false) {
+  const emitted: { cell: string; file: string; hash: string | null; bytes: number }[] = [], notEmitted: string[] = [];
+  for (const { cell, file } of emit) {
+    if (bad.length) { notEmitted.push(cell + " a test failed"); continue; }
+    try {
+      const text = await read(cell), record = JSON.parse(text), big = infoRefusal(record);
+      // Not cut: the size, the limit and the Worker are the message.
+      if (big) { notEmitted.push(cell + " " + big); continue; }
+      writeFileSync(file, text);
+      emitted.push({ cell, file: resolve(file), hash: record?.hash ?? null, bytes: Buffer.byteLength(text) });
+    } catch (e: any) { notEmitted.push(cell + " " + cut(String((e && e.message) || e).split("\n")[0], 300, whole)); }
+  }
+  return { emitted, notEmitted };
+}
+
 // The line of a run and its exit, from what the page gave.
 export function report(names: string[], bad: string[], emitted: { cell: string; file: string; hash: string | null; bytes: number }[], notEmitted: string[]) {
   const failed = [...bad].sort();
@@ -123,15 +144,7 @@ async function main() {
     try { await page.waitForFunction(ready, module, { timeout: boot * 1000 }); }
     catch { throw new Error(`${module} was not defined with a test_ cell in ${boot} s; it is named as in the notebook's boot list`); }
     const [names, bad] = await page.evaluate(runTests, { module, ms: timeout * 1000, whole });
-    const emitted = [], notEmitted: string[] = [];
-    for (const { cell, file } of emit) {
-      if (bad.length) { notEmitted.push(cell + " a test failed"); continue; }
-      try {
-        const text = await page.evaluate(emitCell, { module, cell });
-        writeFileSync(file, text);
-        emitted.push({ cell, file: resolve(file), hash: JSON.parse(text)?.hash ?? null, bytes: Buffer.byteLength(text) });
-      } catch (e: any) { notEmitted.push(cell + " " + cut(String((e && e.message) || e).split("\n")[0], 300, whole)); }
-    }
+    const { emitted, notEmitted } = await emitAll(emit, bad, (cell) => page.evaluate(emitCell, { module, cell }), whole);
     const { exit, ...line } = report(names, bad, emitted, notEmitted);
     console.log(JSON.stringify({ notebook: resolve(notebook), module, ...line, errors: errors.slice(0, 3), browser: browser.version(), ms: Date.now() - t0 }));
     return exit;
