@@ -325,6 +325,12 @@ short line, and the grep and sed marker is shown for an answer of none of them. 
 throws is still cut by the loop at 8000 with that marker (`robocoop-5-core`, the `catch` of the
 tool call); none of that length was seen.
 
+(As built, `ac-3-operator-tools-through-call-answer`, 2026-10-12: as above, and two things more.
+`brain_apply` refuses an `offset` before it emits or applies, as `brain_call` does for a procedure;
+`callAnswer` shows an answer of `undefined` as an empty text. The function is `operatorTools({ brain,
+client, services, declared, origin, attention })`. The three tools were not run in the owner's tab;
+the record.)
+
 The three tools are closures in the cell `assistantTools` over `brain`, `client` and
 `viewof services`, and each calls `need()` first, which throws with no owner session. A test
 cannot reach them. So the task moves the list into a function of what they close over, as
@@ -413,7 +419,7 @@ the answer must hold, since none of the tasks is built.
 | R2, task 2 | `issue-as.sh <token> "list?limit=100"` and `"sync?after=0"`, on cb4 | keys `issues`; keys `seq, wait, events` | cannot be run before task 2 is deployed. Then: `list?limit=100` has `more: true` and `total` equal to the count of `issues` in `list?limit=500` while that is under 500; `list?state=spec` has `more: false`; `sync?after=0` has `more: true`; `sync?after=<seq>` has `more: false` and no events |
 | R2, R4, task 2 | `bun test.ts brain-x-issues --with <the built module>` in the worktree's `cloud-brain-dev` | as deployed, `d53d1c8d7e47`: 36 passed, 0 failed, 15 need a browser | run in the task's worktree: no test that passes today fails, and a test of the two fields is among the passed (it needs no browser: it calls the service's rig) |
 | R1, task 3 | `bun test.ts brain-x-page --with <the built module>` | as deployed, `595290468923`: 14 passed, 0 failed, 16 need a browser | run in the task's worktree: a test that gives `brain_services` a list of rows over 20000 characters and passes each answer through the loop's `truncate` with the `outputLimit` returned, as `test_brain_call_shows_a_long_answer_in_parts_and_the_loop_cuts_none` does; the parts joined are the whole and none holds "bytes truncated". The tools are reached through the function "The operator's tools" names, with a `brain`, a `client` and a `services` of the test's own, so no session is read. If the cell reads `brainOrigin` it is among those that need a browser, and is then run in a QA tab on the build |
-| R1, task 3 | `grep -c "outputLimit\|callAnswer(" tools/cloud-brain/cloud-brain.ojs` | 4 and 6 (two commands, run apart) | not a count to meet; the writer gives the count of its run. What is checked is the test above |
+| R1, task 3 | `grep -c "outputLimit\|callAnswer(" tools/cloud-brain/cloud-brain.ojs` | 4 and 6 (two commands, run apart) | not a count to meet; the writer gives the count of its run. What is checked is the test above. (As built, `ac-3-operator-tools-through-call-answer`, 2026-10-12: 7 and 9; the record.) |
 | R1, task 4 | `BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status`, last line | `{"docs":82,"fresh":82,"stale":0,"missing":0,…}`, no `cut` | cannot be run before task 4. Then: `cut` is the number of docs over `TEXT` at that commit (39 at `5351e624`, by the run above) and `unmarked` is 0 after the put. It reads `knowledge.list` with `loop-docs`, which answers each entry's text |
 | R1, task 4 | `bun test ./tests/tools/knowledge-docs.test.ts` | in the 40 above | a doc of 16001 characters is put as 16000 that end with the line; one of 16000 is put as it is |
 | R3, task 5 | `grep -n "more" .claude/skills/brain-maintenance/agents/overseer.md` at the lines of `sync?after=` | no line | the lines of "The prose" are there, and what cb4 answers is quoted from a call the writer made after task 2 |
