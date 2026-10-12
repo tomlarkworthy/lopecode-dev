@@ -116,6 +116,23 @@ test("a second seed, compiled after the first seed's module was imported, is fou
   }
 }, 60000);
 
+// Issue bk-4-install-the-project-workflow: issues-policy-v4.test.ts runs a cell that is not in the seed, in the seed's rig.
+test("a seed compiled with an edit of its text is another file under the edit's name, and the seed's own module is as it was", async () => {
+  const into = mkdtempSync(join(tmpdir(), "seed-module-test-"));
+  try {
+    const plain = await seedModule("xrpc-client.ojs", into);
+    const edit = { name: "xrpc-client-and-one", text: (seed: string) => seed + "\n// %%\none_more_cell_of_a_test = 41 + 1\n" };
+    const edited = await seedModule("xrpc-client.ojs", into, edit);
+    expect(edited).toEndWith("/xrpc-client-and-one/xrpc-client-and-one.js");
+    expect(readFileSync(edited, "utf8")).toContain("one_more_cell_of_a_test");
+    expect(readFileSync(plain, "utf8")).not.toContain("one_more_cell_of_a_test");
+    // Asked again, each is the file it was.
+    expect([await seedModule("xrpc-client.ojs", into, edit), await seedModule("xrpc-client.ojs", into)]).toEqual([edited, plain]);
+  } finally {
+    rmSync(into, { recursive: true, force: true });
+  }
+}, 60000);
+
 test("with no toolchain notebook the tests of a seed are skipped with a line, and any other failure of the build is thrown", async () => {
   const lines: string[] = [], log = console.log;
   console.log = (l: string) => void lines.push(l);

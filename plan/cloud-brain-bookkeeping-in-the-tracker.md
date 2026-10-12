@@ -378,6 +378,13 @@ empties `issue.reviews`, so the install is made when no project is at `spec-revi
 Until the install, parts 1 to 4 work and a feedback part still holds its project. After it, the
 first event of `group-invites` or of its parts makes the finish, or the queue lists it.
 
+(As built, `bk-4-install-the-project-workflow`, 2026-10-12: the body is `plan/cloud-brain-issues-policy-v4.json`. It
+is made from the policy in force that day, the one of event 4668, and not from the cell alone, so the two `approve`
+guards of that install stay; its `migrate` names `9011113c…`, the hash of the project workflow since event 4668, where
+`39d9f385…` was. In the rig the swap of `group-invites` is that first event: the finish is made in the install's own
+call, as the owner present, and the queue has no `finish` to list. Not installed on cb4 when this was written; the
+record.)
+
 The overseer then closes the feedback issue as it does today: its tie is `done`. (As built,
 `owners-feedback-held-by-related-links`, 2026-10-12: one that is the owner's is then a `promote` of the queue, the
 orchestrator's to promote or to close; the record.)
@@ -512,7 +519,10 @@ Each seed task is labeled `major`: it changes a method other callers use.
    cell (`{ key, policy, migrate: { "39d9f385…": { workflow: "project" } }, reason }`), installs it
    in the module's rig over a copy of cb4's open projects and reads `moved`, and writes the one
    command in a comment in the form `philosophy.md` gives. Then it is the owner's: label
-   `needs-owner`. After bk-2.
+   `needs-owner`. After bk-2. (As built, 2026-10-12: the body is made from the policy of event 4668 with the cell's
+   two guards, `migrate` from `9011113c…`, in `plan/cloud-brain-issues-policy-v4.json`; the rig is run by
+   `tests/tools/issues-policy-v4.test.ts`, with no cell added to the seed and no deploy; the comment is in the form of
+   `rules.md`, "What the owner is asked to decide", which is later than the spec; the record.)
 5. **bk-5-holds-become-links.** An act on cb4, no seed: the 13 links of "Holds"; a hold with a time
    and the command to read for `dv-5-read-first-20-runs` and `os-5-trial-read`; `needs-owner`, with
    the comment its form asks for, on `cu-1-deployer-gains-billing-read` and
@@ -542,7 +552,8 @@ Nothing. Every call of this design is `issue.*`, which each agent's token alread
 ## Not tried, not known
 
 - Whether `brain.ts curl … -d @file` sends a file as the body: bk-4 finds out before it writes the
-  command.
+  command. (As built, `bk-4-install-the-project-workflow`, 2026-10-12: it does. The install of event 4668 was sent that
+  way, `-d @plan/cloud-brain-issues-policy-v3.json`, and answered 200: comment 4725 of `ap-4-policy-v3`.)
 - The time `issue.queue` takes on cb4. It reads every row of the view, as `issue.list` does (339
   issues today), and the watch asks every 30 s.
 - A follow-on that fails. The design says what then lists the project; no such failure was made.

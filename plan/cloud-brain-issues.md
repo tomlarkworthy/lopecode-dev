@@ -441,7 +441,11 @@ reviews on a swap): install with none waiting there. Closed issues are not migra
 `rejected` on cb4 at event 449): each stays on its old workflow, which has no `reopen`, and opening
 one again is the owner's own swap. (2026-10-12: `plan/cloud-brain-issues-policy-v3.json` is the next such body, not installed when
 this was written: that policy with the `approve` of `task` and of `project` given to one token beside the
-owner present, `plan/cloud-brain-approver-persona.md`, task 4.)
+owner present, `plan/cloud-brain-approver-persona.md`, task 4. It was installed that day, event 4668.
+`plan/cloud-brain-issues-policy-v4.json` is the one after it, not installed when this was written: the policy of event
+4668 with `decompose` and `finish` of `project` reading `issue.children.work`, and a `migrate` of the project workflow
+alone, `plan/cloud-brain-bookkeeping-in-the-tracker.md`, task 4. Each body is made from the policy in force when it
+is written, since an install writes the whole policy.)
 
 Installed by the owner on cb4 2026-10-11, event 483. The 27 open issues were all moved to the new
 workflows; `issue.verify?guards=true` answered ok over 511 events afterwards.

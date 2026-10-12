@@ -1,0 +1,103 @@
+// One cell, compiled at the end of brain-issues.ojs by tests/tools/issues-policy-v4.test.ts and run by cloud-brain-dev/test.ts.
+// It asserts nothing: it returns what the rig answered, as JSON, and the test reads it. The string of `data` is replaced by
+// { v3, v4, projects, approver }: the two install bodies of plan/, the fixture's projects, the approver's delegation id.
+test_bk4_install_in_the_rig = {
+  const data = "__DATA__";
+  const rig = await issuesRig(), ref = [{ kind: "commit", value: "abc" }];
+  // A token's call as it reaches the service on cb4: the owner, via its delegation, in no tab.
+  const token = (d, name) => rig.as("owner", "delegation:" + d, { "x-brain-holder": "secret:" + name, "x-brain-tab": "0" });
+  const writer = token("bbbbbbbbbbbb", "impl-0a1b2c"), reviewer = token("cccccccccccc", "rev-0a1b2c"), other = token("dddddddddddd", "impl-0d0d0d");
+  const approver = token(data.approver, "loop-approver");
+  const ok = async (sent, what) => {
+    const r = await sent;
+    if (r.status !== 200) throw new Error(`${what}: ${r.status} ${JSON.stringify(r.data)}`);
+    return r.data;
+  };
+  const answer = async (sent) => { const r = await sent; return { status: r.status, message: r.data.message, move: r.data.event && r.data.event.move, to: r.data.event && r.data.event.to, via: r.data.event && r.data.event.by.via, auto: r.data.auto }; };
+  const move = (who, id, to, more = {}) => ok(who("move", { id, to, ...more }), `${id} to ${to}`);
+  const issue = async (id) => (await ok(rig.owner("get?id=" + id), "get " + id)).issue;
+  const states = async (ids) => Object.fromEntries(await Promise.all(ids.map(async (id) => [id, (await issue(id)).state])));
+  const queued = async (who, what) => (await ok(who("queue"), "queue")).queue.filter((q) => q.do === what).map((q) => q.id).sort();
+
+  // 1. The policy cb4 has in force, the v3 file's, as the first event of the record.
+  const v3 = await ok(rig.owner("install", { key: "v3", reason: data.v3.reason, policy: data.v3.policy }), "install v3");
+
+  // 2. The copy: each project to its state, each part opened under it, closed or taken to its state.
+  const waits = async (id, kind, labels = []) => {
+    await ok(rig.owner("open", { id, title: id, kind, labels }), "open " + id);
+    await move(writer, id, "spec", { reason: "taken" });
+    await move(writer, id, "spec-review", { refs: ref });
+    await ok(reviewer("review", { id, verdict: "pass" }), "review " + id);
+    await move(reviewer, id, "awaiting-approval");
+  };
+  const walk = { open: [], triaged: ["triaged"], ready: ["triaged", "ready"], "in-progress": ["triaged", "ready", "in-progress"] };
+  for (const p of data.projects) {
+    if (!["approved", "building"].includes(p.state)) throw new Error(`${p.id}: no way here to ${p.state}`);
+    await waits(p.id, p.kind, p.labels);
+    await move(rig.owner, p.id, "approved");
+    for (const part of p.parts) await ok(rig.owner("open", { id: part.id, title: part.id, kind: part.kind, parent: p.id }), "open " + part.id);
+    if (p.state === "building") await move(writer, p.id, "building");
+    for (const part of p.parts) {
+      if (part.closed) { await move(writer, part.id, "closed", { reason: "closed on cb4" }); continue; }
+      if (part.workflow === "feedback" && part.state === "open") continue;
+      if (part.workflow !== "task" || !walk[part.state]) throw new Error(`${part.id}: no way here to ${part.workflow} ${part.state}`);
+      for (const to of walk[part.state]) await move(writer, part.id, to, to === "triaged" ? { reason: "real" } : {});
+    }
+  }
+  const ids = data.projects.map((p) => p.id);
+  // Two that are not of cb4: a spec and a major task that wait for an approval, for the approver's guard.
+  await waits("x-spec-waits", "project");
+  await ok(rig.owner("open", { id: "x-task-waits", title: "x-task-waits", kind: "task", labels: ["major"] }), "open x-task-waits");
+  for (const to of walk["in-progress"]) await move(writer, "x-task-waits", to, to === "triaged" ? { reason: "real" } : {});
+  await move(writer, "x-task-waits", "in-review", { refs: ref });
+  await ok(reviewer("review", { id: "x-task-waits", verdict: "pass" }), "review x-task-waits");
+  await move(reviewer, "x-task-waits", "awaiting-approval");
+
+  const due = data.projects.filter((p) => p.state === "building" && p.parts.every((x) => x.closed || x.workflow === "feedback")).map((p) => p.id);
+  const held = data.projects.filter((p) => p.state === "building" && !due.includes(p.id)).map((p) => p.id);
+  const before = {
+    names: v3.hashes,
+    states: await states(ids),
+    finishQueued: await queued(writer, "finish"),
+    finishByHand: await Promise.all(due.map((id) => answer(writer("move", { id, to: "done" })))),
+    events: rig.db.events.length
+  };
+
+  // 3. The install, with the body as the file has it.
+  const sent = await rig.owner("install", data.v4);
+  const installed = { status: sent.status, ...sent.data };
+  const policy = (await ok(rig.owner("policy"), "policy")).policy;
+  const swaps = rig.db.events.slice(before.events).map((e) => JSON.parse(e.event)).filter((e) => e.type === "swapped");
+  const after = {
+    policy,
+    events: rig.db.events.length - before.events,
+    swaps: swaps.map((e) => [e.id, e.policy, e.from.workflow === before.names.project, e.to.workflow === policy.names.project, e.from.state === e.to.state]),
+    states: await states(ids),
+    verify: await ok(rig.owner("verify?guards=true"), "verify"),
+    finishQueued: await queued(writer, "finish")
+  };
+
+  // 4. What the install is for. The swap of a project that only feedback held is an event of that project, and the
+  // service makes the finish after it, in the install's own call: read here, with nothing sent in between.
+  const finished = [];
+  for (const id of due) {
+    const p = await ok(rig.owner("get?id=" + id), "get " + id), last = p.events.at(-1), swap = p.events.at(-2);
+    finished.push({ id, state: p.issue.state, swap: { type: swap.type, seq: swap.seq, policy: swap.policy }, last: { key: last.key, move: last.move, auto: last.auto, via: last.by.via, caller: last.by.caller, reason: last.reason } });
+  }
+  // A project with an open task part is not finished by hand, and one with no part is not decomposed.
+  const stillHeld = await Promise.all(held.map((id) => answer(writer("move", { id, to: "done" }))));
+  const noParts = data.projects.filter((p) => p.state === "approved" && !p.parts.length).map((p) => p.id);
+  const notDecomposed = await Promise.all(noParts.map((id) => answer(writer("move", { id, to: "building" }))));
+
+  // 5. The approve of event 4668 stands: the named delegation approves a spec and a task, and another token does not.
+  const approves = {
+    otherSpec: await answer(other("move", { id: "x-spec-waits", to: "approved" })),
+    otherTask: await answer(other("move", { id: "x-task-waits", to: "done" })),
+    spec: await answer(approver("move", { id: "x-spec-waits", to: "approved" })),
+    task: await answer(approver("move", { id: "x-task-waits", to: "done" }))
+  };
+  // 6. The body sent again is the install it was.
+  const again = await rig.owner("install", data.v4);
+  const end = { states: await states(ids), verify: await ok(rig.owner("verify?guards=true"), "verify"), finishQueued: await queued(writer, "finish") };
+  return JSON.stringify({ due, held, noParts, before, installed, after, finished, stillHeld, notDecomposed, approves, again: { status: again.status, ...again.data }, end });
+}

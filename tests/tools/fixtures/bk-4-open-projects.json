@@ -1,0 +1,694 @@
+{
+ "what": "cb4's open issues of the project workflow with their parts, from issue.snapshot as the token impl-284cb7 reads it, 2026-10-12 22:40:08 CEST. A closed part has no state here: it is closed. Made for tests/tools/issues-policy-v4.test.ts (issue bk-4-install-the-project-workflow).",
+ "seq": 4903,
+ "policy": 4668,
+ "names": {
+  "task": "5eb1623a624e13065bc38dc55a0ffbbf7466a6ccf88261c56ae3fa718fdac52c",
+  "security": "119b3c46da49674c7c4f0caaa82a09e3dd9710014bb063d19d6b139809bcd7de",
+  "feedback": "f0eab0a2346eb9dae2c74b2aee7904e984c0976e3b0863ed4567eebf521f5265",
+  "project": "9011113c423d643de477f9e8fb494e26cc44b5a8d97f9991fe1e1323d3ab7f13"
+ },
+ "atReview": [
+  "put-sh-in-a-worktree-finds-no-token"
+ ],
+ "projects": [
+  {
+   "id": "answers-cut-and-not-said",
+   "kind": "project",
+   "state": "building",
+   "labels": [],
+   "parts": [
+    {
+     "id": "seen-operator-tools-capped-at-8000",
+     "kind": "feedback",
+     "closed": false,
+     "workflow": "feedback",
+     "state": "open"
+    },
+    {
+     "id": "seen-knowledge-get-cuts-long-guides",
+     "kind": "feedback",
+     "closed": true
+    },
+    {
+     "id": "test-ts-cuts-returned-value",
+     "kind": "bug",
+     "closed": true
+    },
+    {
+     "id": "ac-1-local-tools-mark-a-cut",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "ac-2-tracker-lists-say-more",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "ac-3-operator-tools-through-call-answer",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "ac-4-docs-tool-marks-a-cut",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "ac-5-prose-names-the-two-shapes",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "knowledge-docs-put-stale-skips-unmarked",
+     "kind": "bug",
+     "closed": true
+    }
+   ]
+  },
+  {
+   "id": "approver-persona",
+   "kind": "feature",
+   "state": "building",
+   "labels": [
+    "owner"
+   ],
+   "parts": [
+    {
+     "id": "ap-1-approver-tool",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "ap-2-brief-and-shadow-step",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "ap-3-trial",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "ready"
+    },
+    {
+     "id": "ap-4-policy-v3",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "ap-5-panel-approved-for-you",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "ap-6-rules-and-live-step",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "approver-ts-review-notes-of-ap-1",
+     "kind": "bug",
+     "closed": true
+    }
+   ]
+  },
+  {
+   "id": "bookkeeping-in-the-tracker",
+   "kind": "feature",
+   "state": "building",
+   "labels": [
+    "owner"
+   ],
+   "parts": [
+    {
+     "id": "bk-1-after-link",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "bk-2-finish-by-the-service",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "bk-3-queue-and-hold",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "bk-4-install-the-project-workflow",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "ready"
+    },
+    {
+     "id": "bk-5-holds-become-links",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "bk-6-skill-watch-and-stats",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "bk-7-read-after-two-days",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    }
+   ]
+  },
+  {
+   "id": "cloudflare-usage-read",
+   "kind": "feature",
+   "state": "building",
+   "labels": [],
+   "parts": [
+    {
+     "id": "cu-1-deployer-gains-billing-read",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "cu-2-usage-service",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "cu-3-figures-and-the-price",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "cu-4-price-on-a-stored-write",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    }
+   ]
+  },
+  {
+   "id": "dashboard-service",
+   "kind": "project",
+   "state": "building",
+   "labels": [
+    "owner"
+   ],
+   "parts": [
+    {
+     "id": "dsv-1-service-and-built-in-metrics",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "dsv-2-member-metrics",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "dsv-3-dashboards",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "dsv-4-cost",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "dsv-5-page-section",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "dsv-6-health-through-the-service",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "dsv-7-second-dashboard-as-data",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "ds-ingestion-tail-to-analytics-engine",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "dsv-4-cost-on-cb4",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "metric-query-sampled-unsaid",
+     "kind": "bug",
+     "closed": true
+    },
+    {
+     "id": "dashboard-waits-for-its-slowest-query",
+     "kind": "feedback",
+     "closed": false,
+     "workflow": "feedback",
+     "state": "open"
+    }
+   ]
+  },
+  {
+   "id": "deploy-verdict-from-a-shared-page",
+   "kind": "project",
+   "state": "building",
+   "labels": [],
+   "parts": [
+    {
+     "id": "seen-every-test-runs-at-once",
+     "kind": "feedback",
+     "closed": true
+    },
+    {
+     "id": "seen-flaky-timing-tests",
+     "kind": "feedback",
+     "closed": true
+    },
+    {
+     "id": "seen-two-chrome-versions",
+     "kind": "feedback",
+     "closed": true
+    },
+    {
+     "id": "dv-1-verify-run-tool",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "dv-2-build-writes-verify-html",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "dv-3-deployer-opens-verify-html",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "dv-4-owner-install-and-shell",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "dv-5-read-first-20-runs",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "dv-6-brief-step-8-runs-verify-run",
+     "kind": "task",
+     "closed": true
+    }
+   ]
+  },
+  {
+   "id": "docs-summarised-for-search",
+   "kind": "feature",
+   "state": "building",
+   "labels": [
+    "owner"
+   ],
+   "parts": [
+    {
+     "id": "sd-1-doc-files",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "ready"
+    },
+    {
+     "id": "sd-2-one-summarizer",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "sd-3-pilot-ten",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "sd-4-the-rest-and-the-release-line",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    }
+   ]
+  },
+  {
+   "id": "group-invites",
+   "kind": "feature",
+   "state": "building",
+   "labels": [],
+   "parts": [
+    {
+     "id": "fb-a24kt7jw3q",
+     "kind": "feedback",
+     "closed": false,
+     "workflow": "feedback",
+     "state": "open"
+    },
+    {
+     "id": "gi-1-kernel-link-for-several",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "gi-2-page-invite-for-several",
+     "kind": "task",
+     "closed": true
+    }
+   ]
+  },
+  {
+   "id": "loop-order-of-service",
+   "kind": "project",
+   "state": "building",
+   "labels": [
+    "owner"
+   ],
+   "parts": [
+    {
+     "id": "os-1-owner-label",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "os-2-order-and-pool",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "os-3-stats-past-four-hours",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "os-4-writer-waits",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "os-5-trial-read",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    }
+   ]
+  },
+  {
+   "id": "post-mortems-declared-and-kept",
+   "kind": "feature",
+   "state": "building",
+   "labels": [
+    "owner"
+   ],
+   "parts": [
+    {
+     "id": "pm-1-file-and-search",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "pm-2-brief-and-procedure",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "ready"
+    },
+    {
+     "id": "pm-3-reviewer-brief",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "pm-4-stats-block",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    }
+   ]
+  },
+  {
+   "id": "record-names-token-not-agent",
+   "kind": "project",
+   "state": "building",
+   "labels": [],
+   "parts": [
+    {
+     "id": "seen-by-hides-session-file-write",
+     "kind": "feedback",
+     "closed": true
+    },
+    {
+     "id": "seen-outside-session-overseer-token",
+     "kind": "feedback",
+     "closed": true
+    },
+    {
+     "id": "seen-writer-read-with-reviewer-token",
+     "kind": "feedback",
+     "closed": true
+    },
+    {
+     "id": "ta-1-agent-token-command",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "ta-2-stats-by-prefix",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "ta-3-orchestrator-steps",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "ta-4-reviewer-brief-names-token",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "ta-5-outside-session-doc",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "ta-6-checks-after-three-issues",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "ta-1b-agent-token-on-cb4",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "ta-1c-parent-revoke-on-cb4",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "open"
+    },
+    {
+     "id": "seen-outside-session-wrote-as-impl-2",
+     "kind": "feedback",
+     "closed": false,
+     "workflow": "feedback",
+     "state": "open"
+    }
+   ]
+  },
+  {
+   "id": "tracker-trigger-rules",
+   "kind": "feature",
+   "state": "approved",
+   "labels": [
+    "owner",
+    "needs-owner"
+   ],
+   "parts": []
+  },
+  {
+   "id": "worker-machine-on-fly",
+   "kind": "project",
+   "state": "building",
+   "labels": [
+    "infra",
+    "owner"
+   ],
+   "parts": [
+    {
+     "id": "fly-1-by-hand",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "in-progress"
+    },
+    {
+     "id": "fly-2-image-and-run-sh",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "fly-3-brain-fly-service",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "fly-4-loop-files",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "fly-4b-first-run",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "fly-5-docs",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "fly-6-after-seven-days",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    }
+   ]
+  },
+  {
+   "id": "worktree-per-topic",
+   "kind": "feature",
+   "state": "building",
+   "labels": [
+    "owner"
+   ],
+   "parts": [
+    {
+     "id": "seen-worktree-left-after-landing",
+     "kind": "feedback",
+     "closed": false,
+     "workflow": "feedback",
+     "state": "open"
+    },
+    {
+     "id": "seen-agent-sh-changed-under-a-run",
+     "kind": "feedback",
+     "closed": false,
+     "workflow": "feedback",
+     "state": "open"
+    },
+    {
+     "id": "seen-main-checkout-edited-outside-lock",
+     "kind": "feedback",
+     "closed": false,
+     "workflow": "feedback",
+     "state": "open"
+    },
+    {
+     "id": "wt-1-land-the-agent-sh-block",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "wt-2-worktree-sh",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "wt-3-land-by-push",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "wt-4-reviewer-in-a-view",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "wt-5-docs",
+     "kind": "task",
+     "closed": true
+    },
+    {
+     "id": "wt-6-check-after-a-day",
+     "kind": "task",
+     "closed": false,
+     "workflow": "task",
+     "state": "triaged"
+    },
+    {
+     "id": "seen-fresh-exit-3-writes-no-occupant",
+     "kind": "feedback",
+     "closed": false,
+     "workflow": "feedback",
+     "state": "open"
+    },
+    {
+     "id": "seen-view-suite-reads-linked-notebook",
+     "kind": "feedback",
+     "closed": false,
+     "workflow": "feedback",
+     "state": "open"
+    }
+   ]
+  }
+ ]
+}
