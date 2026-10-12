@@ -149,13 +149,22 @@ The first four after the landing's rebase and the last change to the seed, 2026-
 | `bun test ./tests/tools/issues-policy-v3.test.ts` | 5 pass, 0 fail, 29 expect() calls |
 | `tests/tools/suite.sh`, 21:31:26 to 21:36:19 CEST | 686 pass, 4 fail, 2 errors, 690 tests in 69 files, 293 s. The 4 are tests of `summarize-papers.test.ts` (3) and `knowledge-docs.test.ts` (1), each "timed out after 30000ms"; the 2 errors are of those tests. `uptime` after it: load averages 17.03 20.04 19.29 |
 | `bun test --timeout=30000 ./tests/tools/summarize-papers.test.ts ./tests/tools/knowledge-docs.test.ts`, after it | 42 pass, 0 fail, in 258 s |
+| `tests/tools/suite.sh` on the landed tree (`origin/main` after the push, the worktree `clean`, `ahead=0`), 21:50:50 to 21:54:12 CEST | 708 pass, 0 fail, 4712 expect() calls, 708 tests in 72 files, 202 s |
 
 55 is 40 + 15: the browser's count equals the headless `passed + needsBrowser`. Before the rebase the three were 39 and 15, 54, and 20 of 20 with 54 a run: `bk-2-finish-by-the-service` added a test cell.
 
-The suite did not give 0 fail on this machine that evening. A run before it (ended about 21:31) gave
-the same four numbers with a timeout in a test of the same two files; other agents of the loop were
-running. Neither file reads anything this change touches, and the two pass alone. The suite with 0
-fail was not seen; a later run is in the issue's comment when one was made.
+The two runs before the landing did not give 0 fail. The first (ended about 21:31) gave the same
+four numbers as the second, with a timeout in a test of the same two files; other agents of the loop
+were running. Neither file reads anything this change touches, and the two pass alone. The run on
+the landed tree, the last row, is the count of the submit: 0 fail. The only change after it is this
+paragraph and that row.
+
+**The deploy.** `brain.ts apply ap-4-policy-v3-brain-x-issues.json`, 21:49 CEST, under both locks:
+`"state":"verified"`, `"tests":55`, hash `c69efaaea659`, 43,938 ms. After it `redistil` reads `same`
+for `brain-x-issues`, `issue.verify?guards=true` answered `ok: true` over 4,547 events, and
+`cd cloud-brain-dev && bun sync.ts … && bun test.ts brain-x-issues` gave that hash with `passed` 40,
+`failed` 0. `issue.policy` after it: `seq` 483, every `approve` guard `caller.present`.
+`approver.ts check --token impl-17c3c7`: `0 approves by a delegation, 0 that do not stand`.
 
 ## What an install does that is not the guard
 
@@ -213,8 +222,8 @@ comment on `bk-4-install-the-project-workflow`.
 - **A second install of the same file** after `loop-approver` is revoked and made again was not
   tried; the id would be another and the file is written again.
 - **The cluster's browser** (Chrome 128). The 20 runs of `verify-run.ts` are Chrome 151 on this
-  machine. The deployer's own run at the apply is the one run of the new cell there; its verdict is
-  in the issue's comment.
+  machine. The deployer's own run at the apply is the one run of the new cell there (`verified`, 55
+  tests, above).
 
 ## Read
 
