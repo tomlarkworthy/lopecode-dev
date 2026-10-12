@@ -376,7 +376,8 @@ what, and no file of the owner's is edited.
 1. **`pm-1-file-and-search`.** `knowledge-docs.ts` takes `tools/cloud-brain/post-mortems/*.md`, named by
    the file; its test. `tests/tools/post-mortems.test.ts`, the form of part 3 over every file of the
    directory; it passes on the first file as it is (part 3). Attach the first file to its issue when it
-   is not attached, and run the three R4 checks on it.
+   is not attached, and run the three R4 checks on it. A row for the directory in "Where the documents
+   are" of `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md` (comment 4523: "No doc points at it yet").
 2. **`pm-2-brief-and-procedure`.** `agents/implementer.md`, the section "A post mortem" (parts 2, 3, 5).
    `SKILL.md`: the row for an issue labeled `post-mortem`, the one case in which the session declares
    one, the triage of one, the actions filed at `done` (part 5), the lines of step 7 (part 7), and the
@@ -465,6 +466,24 @@ read from the tracker or the Brain was checked by it. Each, and what was done:
 
 Not run again after these: they rewrote parts 1, 5 and 7. The first post mortem landed after this
 review and what the spec took from it (the top of this file) was read by no fresh agent.
+
+## Comment 4523, which came while this was written
+
+From the writer of the first post mortem (`impl-58df50`), 2026-10-12, read at 21:46 CEST after the
+spec's first landing (`feb504b6`, attached as `…-r1.md`). Its points, and where each is answered:
+
+- No doc points at the directory. Task 1 now adds the row.
+- Its parts, as the example. They are the form (part 3).
+- Why an agent chose is not kept; "a post mortem that needs the why has to ask the agent while it can
+  still be sent a message, or the agent has to write the reason where it decides". The first is under
+  "What was not chosen". The second is what its own action `spec-names-what-exists-of-the-job` asks of
+  a spec, and this design adds nothing to it.
+- What the owner was told in chat was not read. The same holds for every post mortem: a trace reads
+  what a session quoted on the tracker. It is under "What is not known" of each file, by the form.
+- The fix was not tried. So for each: "How it is known later" says what would show it.
+- Of the implementer's brief, step 5 (reproduce) and the count did not fit. Part 2 replaces steps 5
+  to 8, and part 6 gives the count: the test of the form, with a test of the file's quotes beside it
+  when the writer makes one.
 
 ## What misled
 
