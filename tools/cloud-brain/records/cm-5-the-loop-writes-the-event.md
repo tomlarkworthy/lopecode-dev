@@ -159,6 +159,10 @@ tool.
 | `bun test ./tests/tools` | 469 pass, 1 skip, 0 fail, 470 tests across 50 files |
 
 Before the change `bun test ./tests/tools` gave 464 pass, 1 skip, 0 fail in the same worktree.
+At the landing the worktree was rebased onto `main` at `3b221e0f`, which had the commits of two other writers
+(`lock-sh-default-token-r4`, `overseer-md-lacks-order-of-service-reads`, which changed `SKILL.md`
+too, with no conflict); `bun test ./tests/tools` there, at 2026-10-12 03:40 CEST (`date`), gave
+474 pass, 1 skip, 0 fail, 475 tests across 51 files, and R7's grep 0 and 0.
 No line beginning `skipped:` was printed by the last; which test is the one skip was not looked
 for.
 
