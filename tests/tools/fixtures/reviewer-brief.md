@@ -197,15 +197,22 @@ document when you mend a note in it ("What holds a change, and what is a note", 
    `bun test ./tests/tools` is run in your view, with the `./` (the whole suite as `tests/tools/suite.sh` when the view has that file: four workers, and
    `.claude/skills/brain-maintenance/agents/implementer.md` step 6 has what it took); since `tests-tools-fail-in-a-fresh-worktree`
    (lopecode-dev 5e7e04a1) a checkout that lacks a submodule or a build gives skips and no fail, each named by
-   a line `skipped: <file>: no <path>`. A test there that reads this brief from the Brain
-   (`reviewer-brief-*.test.ts`, `reviewer-in-a-view.test.ts`) holds lines of it as they were at its commit: in a view at a commit
-   from before the brief's last change it fails for that and not for the change under review. At a commit from before
+   a line `skipped: <file>: no <path>`. A test there that holds lines of this brief
+   (`reviewer-brief-*.test.ts`, `reviewer-in-a-view.test.ts`, the last of `lock.test.ts`) reads `tests/tools/fixtures/reviewer-brief.md`,
+   a copy of its commit, since `suite-tests-read-the-live-brief` (2026-10-12): a put of this brief moves no count there. In a view at a
+   commit from before that change (`git -C <checkout> log --oneline -1 -- tests/tools/reviewer-brief.ts` prints nothing) such a test
+   still fetches this brief, and fails for a line changed since and not for the change under review. At a commit from before
    `wt-4-reviewer-in-a-view` landed (2026-10-12; `git -C <checkout> log --oneline -1 -- tests/tools/reviewer-in-a-view.test.ts`
    prints nothing there) `reviewer-brief-waits-on-show.test.ts` has 1 fail, "after the wait it fetches and compares…":
    it goes in the review by name and holds nothing. A fail there is a finding or a defect of the suite, not the view.
    A file that fails in one run of the suite, passes in the next and passes alone: read the run whole and keep
    the failure's message (a run read through a filter for the `(fail)` lines loses it), run the file alone and the
-   suite again, and give the count of each run in the review. When the diff of the change names nothing that file
+   suite again, and give the count of each run in the review. Alone, a file is run with the suite's timeout,
+   `bun test --timeout=30000 ./tests/tools/<file>`: with no flag a test has bun's 5 s and not the suite's 30 s, and on a
+   machine other agents load a file fails there that the change did not touch (2026-10-12, `uptime` at 15 to 25 on 18 cores:
+   `knowledge-docs.test.ts` alone gave 12 pass, 7 fail and 3 pass, 16 fail with no flag, 19 pass, 0 fail with it; two reviewers,
+   tickets 4517 and 4518). A fail at the timeout goes in the review with the first number of `uptime` beside its count.
+   When the diff of the change names nothing that file
    reads, it is a defect of the suite and holds nothing: `ir "list"` for an open ticket of that file and comment
    there with your runs, or open one. (2026-10-12: the reviewer of `skill-step-2-advisor-rate-limit`, five runs,
    one with 10 fail and its message not kept; the reviewer of `wt-2-worktree-sh`, three runs, 11 fail, 1 fail,
@@ -367,7 +374,7 @@ file. Read the issues that are its parts (`ir "list?parent=<id>"`, closed ones t
 
 1. Is every gathered report answered by a requirement, or said to be left out with a reason?
 2. Does each requirement say how it will be known to be met (a test, a count from `issue-stats.ts`, a command and its result)?
-3. Is the smallest version that meets them the one proposed, and what was not chosen?
+3. Is the smallest version that meets them the one proposed, and what was not chosen? List the standing things the design adds (a role and its brief, a tool, a token, a Worker, a method, a store). For each, read the sentence of the spec that names what exists today that does the same job for the same purpose and says under "Not chosen" why that is not extended, or that nothing exists, with the search or the listing that showed it (step 5 of the spec writer's brief, `agents/spec.md`). A thing the design adds with no such sentence is a `no` to this question. (Review 4341 of `docs-summarised-for-search` answered "yes" from the twelve ways the spec listed; a second summarizer role was in none of them and the owner sent the spec back: `tools/cloud-brain/post-mortems/pm-second-summarizer-role.md`.)
 4. Can it be cut into tasks that each land alone? The spec lists them.
 
 `pass`, then `ir move '{…"to":"awaiting-approval"}'`: the approval is the owner's. `changes` and

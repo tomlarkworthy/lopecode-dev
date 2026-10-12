@@ -3,8 +3,9 @@
 // The brief is a file of the Brain (/static/cloud-brain-dev/roles/reviewer.md), changed by a put and not by a commit.
 // Until suite-tests-read-the-live-brief each test fetched it, so the count of the suite at a commit changed with
 // each put: a worktree behind origin/main failed tests of a brief it did not have (2026-10-12, three reports).
-// A test now reads fixtures/reviewer-brief.md, the brief as cb4 served it on 2026-10-12 at 13:34:15 CEST
-// (sha256 52bfc2e5…6a00a3, 37,481 bytes). It is what these tests hold, at their commit. No agent follows it.
+// A test now reads fixtures/reviewer-brief.md, the brief as cb4 served it on 2026-10-12 at 22:31:41 CEST
+// (sha256 ea4040e6…3de911, 39,022 bytes, 423 lines; written again by reviewer-q3-reads-what-exists, three puts after
+// the first copy, 52bfc2e5…6a00a3 of 13:34:15). It is what these tests hold, at their commit. No agent follows it.
 //
 //   BRIEF=<file> bun test …      a file in its place: the edited brief, before its put
 //   BRAIN=<address> bun test …   what that Brain serves now (https://cb4.endpointservices.workers.dev), after it
