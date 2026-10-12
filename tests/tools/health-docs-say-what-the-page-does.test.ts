@@ -15,7 +15,17 @@ const health = seed("cloud-brain-docs.ojs").split("\n").find((l) => l.includes("
 test("the cells the docs line is about are found in the seed", () => {
   expect(cell("dashboard = ")).toContain("${note ?");
   expect(cell("calls = ")).toContain("callsRead(");
-  expect(health).toContain("logs.query");
+  // Since dsv-6-health-through-the-service the calls are one metric.query of core.calls, and no logs.query.
+  expect(cell("callsRead = ")).toContain('client.query("metric.query", { metric: "core.calls"');
+  expect(cell("callsRead = ")).not.toContain("logs.query");
+  expect(health).toContain("with one \\`metric.query\\` of the metric \\`core.calls\\`");
+  expect(health).not.toContain("with one \\`logs.query\\`");
+});
+
+test("the docs say what the note says of an answer, as callsNote writes it", () => {
+  const note = cell("callsNote = ");
+  for (const said of ["groups is the limit of one answer", "from a sample of the lines", "Answered from the service's memory."]) expect(note).toContain(said);
+  expect(health).toContain("when Cloudflare made it from a sample of the lines, and when it came from the service's memory");
 });
 
 test("the docs say the note is where dashboard draws it: before the grid of panels", () => {

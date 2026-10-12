@@ -151,6 +151,7 @@ viewof span = Inputs.select(new Map([["15 minutes", 15], ["1 hour", 60], ["6 hou
 viewof asked = Inputs.button("Refresh")
 timeRange = (asked, { since: Date.now() - span * 60000, until: Date.now() })   // the one place the clock is read
 callsRead = async ({ client, range }) => …   // a function. No client: null, nothing sent. Else one logs.query of callsQuery(range), through callsSeries; a failure answers { ...range, step, series: [], error } as today.
+// (As built, dsv-6-health-through-the-service, 2026-10-12: callsRead sends one metric.query of core.calls, and callsQuery and callsSeries are gone; tools/cloud-brain/records/dsv-6-health-through-the-service.md.)
 calls = (assembled, callsRead({ client: session.owner ? client : null, range: timeRange }))   // inputs: assembled, client, session, timeRange, callsRead
 ```
 

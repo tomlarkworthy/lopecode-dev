@@ -306,7 +306,7 @@ and the panels of the chosen one, drawn from one `metric.query` for each distinc
 address as `dashboard=NAME`, one more pair of the hash that `notebookHtml` already splits on `&`
 (line 1391 at `9b5a97bc`, 1422 at `2edceb8e`), so a dashboard has a link. Health stays where it is and is that same cell drawing
 `health`: `callsRead` sends `metric.query?metric=core.calls&by=worker,method,status` in place of
-`logs.query`. A visitor reads the line a visitor reads today.
+`logs.query`. A visitor reads the line a visitor reads today. (As built, `dsv-6-health-through-the-service`, 2026-10-12: `callsRead` sends that `metric.query`, and Health draws its own two panels from the answer, not the panels of the dashboard `health`. The owner took the strip of faults off Health on 2026-10-11, `fb-a2oogpkdjb`, and the select and panels of a dashboard are since `fb-a2g3jyhecp` cells of `brain-dashboard`, which imports from the page; `tools/cloud-brain/records/dsv-6-health-through-the-service.md`.)
 
 ### What happens to `ds-2` to `ds-4`
 
@@ -392,7 +392,7 @@ from a cell that reads the page's own client.
 | R6 | test, in `simulate` with `x-brain-caller` a DID: `metric.put` over `brain-m-<another id>-x` is 403 and over their own is 200; `metric.query` of their own metric is 200, of another member's 403, of `deploys.confirmed` 403; `dashboard.put` is kept as `m-<id>-NAME`; another member's `get` and `delete` of it are 403. Not checked on cb4: a member there needs the owner's grants. | Members read no logs. |
 | R7 | test: the same query twice within 60 s sends Cloudflare 1 body, and the second answer has `cost.cached: true`. tab: a dashboard of 3 panels over one `(metric, by)` sends 1 `metric.query`; "Refresh" adds 1; a resize adds 0. | Health: 1 `logs.query` a load, 0 a resize, since `ds-1`. |
 | R7 | token: `deploys.confirmed` by `target` over 15 minutes, 1 hour, 6 hours, 24 hours and 7 days. Cold is a span not asked before: `until` moved back one minute for each of 5 asks. Warm is the last of those asked 5 more times. `cost.ms`, `cost.cached`, `groups` and the wall time of each, in the task's record. | `logs.deploys`, 24 hours: 2.5 to 3.1 s wall, 0.45 s the floor. |
-| R8 | test: `dashboard.get?name=health` with no row answers three panels over `core.calls`. tab: under "Health", the stand-in sees `metric.query` with `metric=core.calls` and no `logs.query`; the three panels draw; with no session, 0 `.observablehq--error` between the headings "Health" and "Operator". | `callsRead` sends `logs.query`. |
+| R8 | test: `dashboard.get?name=health` with no row answers three panels over `core.calls`. tab: under "Health", the stand-in sees `metric.query` with `metric=core.calls` and no `logs.query`; the three panels draw; with no session, 0 `.observablehq--error` between the headings "Health" and "Operator". (As built, `dsv-6-health-through-the-service`, 2026-10-12: the two panels Health has since `fb-a2oogpkdjb` draw; the record.) | `callsRead` sends `logs.query`. |
 | all | `bun test.ts brain-x-page`: `failed 0`, `passed` not below what `main` gives then. `test_calls_from_the_logs_become_chart_rows` passes with the drawing functions unchanged. | 7 passed, 10 need a browser, after `ds-1`. |
 | R2 | Not checked by the loop. Task 8 is open with `needs-owner` until he answers: `get?id=ds-ingestion-tail-to-analytics-engine`. | Nothing tails. |
 
@@ -436,6 +436,8 @@ asks for a second gate, task 1 is opened with `needs-owner` and no such comment,
 6. **Health through the service.** `callsRead` sends `metric.query`, and the section "Health"
    draws the dashboard `health`. The tab check of R8. Alone because it moves a section the owner
    reads onto a path only his tab can try on cb4: one commit to put back.
+   (As built, `dsv-6-health-through-the-service`, 2026-10-12: the first half; Health keeps its own
+   two panels and reads no dashboard; the record.)
 7. **A second dashboard, as data.** `dashboard.put` of `deploys` with the token. No commit to a
    seed and no deploy; the check of R4 is the test, and its count is what `dashboard.get` answers.
 

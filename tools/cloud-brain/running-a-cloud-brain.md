@@ -25,7 +25,7 @@ Since 2026-10-11 it also refuses ten procedures of the tracker: `issue.move`, `i
 
 ## Checking how it is running
 
-The Health section of the page, for the owner: calls of the last hour by Worker, the share that were faults, and a table by method. It is one `logs.query` over the core's log lines (`callsQuery` and `callsSeries` in the module `@tomlarkworthy/cloud-brain`). The same counts from a terminal:
+The Health section of the page, for the owner: calls over the span chosen there by Worker, and a table by method with the refused and the faults. Since 2026-10-12 it is one `metric.query` of the metric `core.calls`, which `brain-x-dashboard` turns into one query of the core's log lines (`callsRead` and `callsRows` in the module `@tomlarkworthy/cloud-brain`; `tools/cloud-brain/records/dsv-6-health-through-the-service.md`). The same counts from a terminal:
 
 ```
 bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.logs.query --owner -X POST -H 'content-type: application/json' \
