@@ -80,6 +80,19 @@ and the timings file was written again. Five runs of `suite.sh`, 11:35:37 to 11:
 each, 92.72 to 94.52 s. `worktree.test.ts` is 94,083 ms in that timings file: the suite's time is that
 file's time, which was 80 to 94 s through the morning as the machine was more or less busy.
 
+## Why 30 s for every test that names no timeout, and not a timeout on the two tests
+
+`philosophy.md`, Clarifications, 2026-10-10: a check whose result depends on what runs beside it "is
+moved to where it runs alone; it is not made tolerant of the company." The flag makes tolerant, so the
+choice is said here. The suite cannot be moved to run alone: a writer's run and a reviewer's are made
+on one machine by agents that do not know of each other. The 5 s is bun's own and no test's writer
+chose it. The two tests that passed it took 1.87 and 2.82 s in the serial run at `440173cb`. The other way was 30 s
+named on those two tests in `summarize-papers.test.ts`; it mends the two that were seen and leaves each
+other test of the kind to fail once before it is found (the serial run at `440173cb` has 13 tests
+over 2.5 s; which of them name a timeout was not counted). The flag is one word of one script, and it is
+taken out by deleting it (`philosophy.md`, line 2: the side that is smaller and easier to undo). What it
+costs: a test that hangs and names no timeout is reported after 30 s and not 5.
+
 ## What was checked of the flags
 
 - **The counts are the serial run's.** 555 and 555 at `5351e624`, 574 and 574 at `440173cb`.
@@ -89,7 +102,8 @@ file's time, which was 80 to 94 s through the morning as the machine was more or
   The 12 that fail there fail both ways. They are of a checkout `worktree.sh` did not make, and were not looked at.
 - **A failure's message is printed**, above its `(fail)` line and under a line that names the file
   (read in that run's output).
-- **A later flag wins.** `bun test --parallel=4 --parallel=1 <file>` prints `1x PARALLEL`.
+- **A later flag wins.** `bun test --parallel=4 --parallel=1 <file>` prints `1x PARALLEL`. The whole suite
+  as `tests/tools/suite.sh --parallel=1`, 11:46:49 to 11:50:41: `1x PARALLEL`, 583 pass, 0 fail, 231.88 s.
 - **`--timeout` leaves a named timeout alone.** A test that sleeps 6 s and names none passed with
   `--timeout=30000`; one that sleeps 3 s and names 1000 failed at 1001 ms.
 - **A timings file that is not there, or names a file that is gone**, is nothing to bun: the run is made
@@ -112,7 +126,22 @@ SUITE_SH=<a script that runs `bun test ./tests/tools`> bun test …             
 SUITE_SH=<the script with its `cd` taken out> bun test …                       8 pass, 1 fail
 ```
 
-The suite, as the brief now gives it, after the last edit of a file a test reads: under "The landing" below.
+## The landing
+
+`worktree.sh --rebase` before the lock, 11:46: nothing came in. Then, at the commit of the change,
+`tests/tools/suite.sh`, 11:50:41 to 11:52:15:
+
+```
++ bun test --parallel=4 --timings=tests/tools/timings.json --timeout=30000 ./tests/tools (in <the worktree>)
+bun test v1.4.0 (1381054db) 4x PARALLEL
+ 583 pass
+ 0 fail
+Ran 583 tests across 60 files. [93.77s]
+```
+
+No line `skipped:`. That run is after the last edit of a file a test reads; this record was written after
+it, and no test reads this record. A rebase under the lock that brings in a file of `tests/` or a file
+a test reads is followed by another run, and its line is in the comment of the submit.
 
 ## Not done, not tried
 
@@ -132,7 +161,6 @@ The suite, as the brief now gives it, after the last edit of a file a test reads
 - **Another machine.** Fewer cores, Linux, a bun before `--parallel`: none run. The test file fails
   on a bun whose `test --help` lacks one of the three flags.
 - **More than two suites at once**, and a suite beside a build or a browser run.
-- **`--parallel=1` on the whole suite through the script.** Run on one file and on three.
 - **Whether a load of two suites was the cause of `seen-atproto-publish-times-out-in-suite`.** Not
   looked at. What was seen here is of the same kind: a test with bun's 5 s that takes 3 s alone.
 - An exit status printed in my own loops was `date`'s and not bun's for the runs before 10:55; the
