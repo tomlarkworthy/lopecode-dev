@@ -4447,6 +4447,7 @@ test_issues_flow_open_is_each_issue_not_closed_at_until = {
   const refused = (more) => { try { issueFlow(record, more); return "answered"; } catch (e) { return [e.status, e.message]; } };
   expect(refused({ metric: "flow.open", by: ["to"] })).toEqual([400, "by: to is not a dimension of flow.open. One of: id, kind, state, waits, for"]);
   expect(refused({ metric: "flow.open", filter: { opener: "orch" } })).toEqual([400, "opener is not a dimension of flow.open. One of: id, kind, state, waits, for"]);
+  expect(refused({ metric: "flow.open", since: end + 1, until: end })).toEqual([400, "since and until: milliseconds since 1970, since not after until"]);
   expect(open({ by: ["id"], filter: { state: "done" } }).series).toEqual([]);
   return `${all.series.length} issues not closed of ${want.length + 5}; 4 closed and 1 of a test in no row`;
 }

@@ -221,6 +221,10 @@ These are the definitions. They go, as they are built, into the reference cell o
   (before a `reopen` or a `revert`) is in no row. `needs-owner` is
   counted beside the states, from the event that put the label on (the `opened` event when it was
   opened with it) to the one that took it off, to the close, or to `until`.
+  (As built, `fm-2-open-stays-submits`, 2026-10-12: a swap that leaves the state's name ends a stay and
+  begins another, as `issue-stats.ts` counts; an issue opened again with the label still on waits
+  again from that move; a stay that was over by `since` is no row and one that began in the span is,
+  whatever its length; the record.)
 - **A percentile** is nearest rank: the value at place `ceil(p * n)` of the sorted list. The
   median is `p = 0.5`. (`issue-stats.ts` takes `l[n >> 1]` for its own medians, which is the upper
   of two for an even `n`.)
@@ -252,9 +256,14 @@ shape `metric.query` answers, so the page's draws take it:
 | `flow.submits` | a `submit` or `submit-spec` inside the span | the move | 1 when the next of `rework`, `respec`, `send-back`, `pass`, `to-approval` was a sending back, else 0; `count` | `move`, `kind`, `id` |
 
 `flow.stays` has one more value of `state`, `needs-owner`, with `waits: "owner"`.
+(As built, `fm-2-open-stays-submits`, 2026-10-12: a row of `flow.submits` is 1 when the first of the
+five moves after it and before the issue's next submit was a sending back, and 0 with none yet; the
+record.)
 
 `flow.open` is of the moment `until`. It does not read `since`: an issue opened before the span
-and still open is a row, which is what R4 asks. Its check sends `until` alone. Once the rows of a
+and still open is a row, which is what R4 asks. Its check sends `until` alone.
+(As built, `fm-2-open-stays-submits`, 2026-10-12: `since` decides the step, as for the other
+metrics, and one after `until` is 400; the record.) Once the rows of a
 step are added (no `id` in `by`), `t` is the start of the step.
 
 `by` and a filter name dimensions of the metric, as for `metric.query`; any other name is 400.
