@@ -159,6 +159,48 @@ A \`project\`: \`spec\` (someone takes it, with a reason), \`submit-spec\` by th
 
 Who may triage, label and narrow: the owner or a token; taking the label \`major\` off is the owner present. A reviewer and whoever passes the issue is not the implementer, and nobody passes it while a review says \`block\`. A guard added to one move of an issue does not stop another move to the same state: the owner's \`owner-reject\` goes ahead whatever is added to \`reject\`. \`approve\`, \`revert\` and a reject from any state that is not closed are the owner present. The guards are the cell \`issuesDefaultPolicy\`.`
 // %%
+md`## The flow of work
+
+Two cells make the times work took from the record. No method answers them yet: a cell or a test calls them (since 2026-10-12; \`plan/cloud-brain-flow-metrics.md\`, task 1 of 6).
+
+\`issueFlow(events, { metric, since, until, by, filter })\`. \`events\` is the record in the order of \`seq\`, as \`issue.sync\` answers it to a caller. \`since\` and \`until\` are milliseconds since 1970; left out they are 0 and the \`at\` of the last event. \`by\` is a list of dimensions, or their names with commas between. \`filter\` is \`{ DIM: "value" }\`. The answer has the fields of an answer of \`metric.query\` (\`brain-dashboard.ojs\`), with \`unit\` and \`summaries\` beside them:
+
+\`\`\`
+{ metric, since, until, step, groups, sampled: 1, unit,
+  series: [{ t, …the dimensions asked, n, sum, max }],
+  summaries: [{ …the dimensions asked but id, n, median, p85, max }],
+  cost: { ms, events } }
+\`\`\`
+
+| metric | a row is | \`t\` | value (\`sum\`, \`max\`), \`unit\` | dimensions |
+|---|---|---|---|---|
+| \`flow.lead\` | an issue that reached a clock inside the span, \`since\` and \`until\` among its moments | when it reached it | ms since it was opened, \`ms\` | \`to\`, \`id\`, \`kind\`, \`opener\`, \`for\` |
+
+\`to\` is the clock: \`response\`, \`submit\`, \`deploy\` or \`done\`. With \`id\` in \`by\` a row is one issue at one clock, with \`n\` 1. Without it the rows of a step and a group are added: \`n\` the issues, \`sum\` and \`max\` of the value, \`t\` the start of the step. \`step\` is an hour, 3600000, for a span of up to 48 hours and a day (UTC) beyond it. Rows are oldest first. \`summaries\` has one entry for each group of the dimensions asked other than \`id\`, made by \`flowSummary\` from the value of each row before any is added, and \`groups\` is how many entries. No row is left out of an answer. An event whose \`at\` is after \`until\` is not read, so the answer is of the record as it stood then; \`cost.events\` is how many were read.
+
+It throws an error with \`status\` 400 for a metric that is not in the table, a name in \`by\` or in \`filter\` that is not a dimension of the metric, a name twice in \`by\`, a filter value that is not text or is empty, and a \`since\` or \`until\` that is not a number or a \`since\` after \`until\`. A filter value that matches no row is an answer with no rows.
+
+\`flowSummary(values)\` answers \`{ n, median, p85, max }\`, and is the one place a percentile is computed. A percentile is nearest rank: the value at place ceil(p × n) of the sorted list, so the median of two values is the lower one. (\`tools/cloud-brain/issue-stats.ts\` takes the upper of two for its own medians.) What is not a finite number is not counted; of no values \`n\` is 0 and the other three are \`null\`.
+
+### The clocks
+
+The names of moves, states and kinds are read as the record has them: the move \`submit\`, the state \`done\`, the kinds \`feedback\`, \`project\` and \`feature\`.
+
+- **Opened** is the \`at\` of the issue's \`opened\` event. Every lead time starts there.
+- **A move** is a \`moved\` or a \`swapped\` event.
+- **Response** is the issue's first move of any name. For a feedback issue that is its close, unless it was promoted first.
+- **Submit** is the first \`submit\` move. \`submit-spec\` of a project is not one, so a project has no row for this clock.
+- **Deploy** is the first \`submit\` move that carries a ref of kind \`deploy\`. A \`revert\` that carries one is not a deploy. An issue with no such submit has no row for this clock.
+- **Done** is the first move into the state \`done\`. \`closed\` and \`rejected\` are not done. An issue that was done and then reverted keeps its row.
+- **A project or a feature** (the kind) has no deploy of its own. Its deploy is the first submit with a deploy ref, made after the project was opened, of any of its parts, and of theirs in turn. Its done is its own move to \`done\`.
+- **A feedback issue** follows the work it went into: its parent, and each issue it says a link of, whether or not it is closed. One step: what a followed issue follows is not followed. Its deploy is the first submit with a deploy ref, made after the feedback was opened, of any of those issues or of their parts (and theirs in turn); so a followed task that was deployed before the feedback was opened and again after it counts with the later one. Its done is the first move to \`done\`, after it was opened, of an issue it follows; the parts are not read for this. Its response is its own. A feedback issue that is no longer on a workflow some policy of the record named for the kind \`feedback\` (the swap \`promote\`) follows nothing and has its own four clocks; its \`kind\` stays \`feedback\`.
+- **The parent, the links and the labels** are the ones the issue has at \`until\`. A link taken off before then is not followed.
+- **\`kind\`** is the kind the issue was opened with. No event changes it.
+- **\`opener\`**, who opened it: for a token with a name, the role in the name when it is \`orch\`, \`impl\`, \`rev\`, \`spec\`, \`over\`, \`dig\` or \`out\`, a hyphen and six hex digits (\`impl-0a1b2c\` is \`impl\`), else the name whole (as \`role\` of \`tools/cloud-brain/issue-stats.ts\`); \`token\` for a delegation whose holder has no name; else the caller as the core named it: \`owner\` for his session, \`deployer\`, \`worker:NAME\`.
+- **\`for\`**, for whom: \`owner\` when the owner opened it present (his session, in a tab, as \`caller.present\` of a guard, which a session made from a Brain's state file also is), or when the issue has the label \`owner\` or \`annotation\`; else \`loop\`.
+- **The clock is the wall's.** A lead time holds the hours the loop was stopped.
+- **An issue the caller may not read** is in no row: the events \`issue.sync\` answered as \`hidden\` are passed over, so such an issue is followed by none either. An issue whose id starts \`test-\` is in no row.`
+// %%
 // The smallest policy with a listed swap: two workflows of two states. Written out in the prose above, and installed by a test.
 issuesExamplePolicy = {
   const team = 'caller.kind in ["owner", "token"]';
@@ -477,6 +519,103 @@ issueApply = (view, e) => {
   if (e.type === "narrowed") i.extra = e.remove != null ? i.extra.filter((x) => x.n !== e.remove) : [...i.extra, { n: e.seq, move: e.move, guard: e.guard }];
   i.closed = closed(i);
   return view;
+}
+// %%
+// The metrics issueFlow answers: the unit of a row's value, and the dimensions `by` and a filter may name.
+issueFlowMetrics = ({ "flow.lead": { unit: "ms", dims: ["to", "id", "kind", "opener", "for"] } })
+// %%
+// How many values, their median, their 85th percentile and the longest: { n, median, p85, max }. A percentile is nearest
+// rank, the value at place ceil(p * n) of the sorted list, with the place counted in whole numbers (85 * n / 100) so that
+// no float decides it. The one place a percentile of the flow is computed. What is not a finite number is not counted;
+// of no values, n is 0 and the rest null. No I/O; the list given is left as it was.
+flowSummary = (values) => {
+  const sorted = (Array.isArray(values) ? values : []).filter((v) => typeof v === "number" && Number.isFinite(v)).sort((a, b) => a - b), n = sorted.length;
+  const place = (percent) => (n ? sorted[Math.ceil((n * percent) / 100) - 1] : null);
+  return { n, median: place(50), p85: place(85), max: place(100) };
+}
+// %%
+// The flow of the Brain's work as rows, from the record: events in the order of seq, as issue.sync answers them to a
+// caller. plan/cloud-brain-flow-metrics.md; the clocks are in the prose above, "The flow of work". No I/O but the clock
+// for cost.ms. An event sync answered as hidden is passed over, so an issue the caller may not read is in no row and is
+// followed by none. It throws an error with status 400 for a metric, a dimension or a span it does not have.
+issueFlow = (events, { metric, since = 0, until, by = [], filter = {} } = {}) => {
+  const began = Date.now(), H = 3600000;
+  const bad = (message) => Object.assign(new Error(message), { status: 400, code: "InvalidRequest" });
+  const def = issueAt(issueFlowMetrics, metric);
+  if (!def) throw bad(`no such metric: ${metric}. One of: ${Object.keys(issueFlowMetrics).join(", ")}`);
+  const dims = typeof by === "string" ? by.split(",").filter(Boolean) : by, known = (d) => typeof d === "string" && def.dims.includes(d), oneOf = `is not a dimension of ${metric}. One of: ${def.dims.join(", ")}`;
+  if (!Array.isArray(dims)) throw bad("by: a list of dimensions, or their names with commas between");
+  for (const d of dims) if (!known(d)) throw bad(`by: ${d} ${oneOf}`);
+  for (const d of dims) if (dims.indexOf(d) !== dims.lastIndexOf(d)) throw bad(`by: ${d} is named twice`);
+  if (!filter || typeof filter !== "object" || Array.isArray(filter)) throw bad("filter: an object, a dimension to its value");
+  for (const [d, v] of Object.entries(filter)) {
+    if (!known(d)) throw bad(`${d} ${oneOf}`);
+    if (typeof v !== "string" || !v) throw bad(`${d}: a value to match, text that is not empty`);
+  }
+  const record = Array.isArray(events) ? events : [];
+  const end = until === undefined ? record.reduce((t, e) => Math.max(t, (e && e.at) || 0), 0) : until;
+  if (![since, end].every((t) => typeof t === "number" && Number.isFinite(t)) || since > end) throw bad("since and until: milliseconds since 1970, since not after until");
+  // The view at `until`, made as the service makes it, and beside it what the view does not keep: who opened each issue
+  // and when, each of its moves, and every workflow a policy named for the kind feedback.
+  const view = issueView(), opened = new Map(), moves = new Map(), feedbackFlows = new Set();
+  let read = 0;
+  for (const e of record) {
+    if (!e || !(e.at <= end)) continue;
+    read++;
+    if (e.hidden) continue;
+    if (e.type === "policy" && e.policy.kinds && issueAt(e.hashes, e.policy.kinds.feedback)) feedbackFlows.add(e.hashes[e.policy.kinds.feedback]);
+    issueApply(view, e);
+    if (e.type === "opened") opened.set(e.id, e), moves.set(e.id, []);
+    else if ((e.type === "moved" || e.type === "swapped") && moves.has(e.id)) moves.get(e.id).push(e);
+  }
+  const issues = Object.values(view.issues).filter((i) => opened.has(i.id));
+  const kids = new Map();
+  for (const i of issues) if (i.parent) kids.set(i.parent, [...(kids.get(i.parent) || []), i.id]);
+  // The parts of some issues, and theirs in turn.
+  const parts = (ids) => {
+    const seen = new Set(), todo = [...ids];
+    while (todo.length) for (const k of kids.get(todo.pop()) || []) if (!seen.has(k)) seen.add(k), todo.push(k);
+    return [...seen];
+  };
+  const isSubmit = (e) => e.type === "moved" && e.move === "submit";
+  const isDeploy = (e) => isSubmit(e) && (e.refs || []).some((r) => r && r.kind === "deploy");
+  const isDone = (e) => (e.type === "moved" ? e.to : (e.to || {}).state) === "done";
+  // When the first of some issues' moves that passes `is` was made, after `after`. null when there is none.
+  const first = (ids, is, after = -Infinity) => ids.flatMap((id) => moves.get(id) || []).filter((e) => is(e) && e.at > after).reduce((t, e) => (t === null || e.at < t ? e.at : t), null);
+  // Who opened it: the role in the name of the token, or that name whole (`role` of tools/cloud-brain/issue-stats.ts);
+  // `token` for a delegation whose holder has no name; else the caller as the core named it.
+  const openerOf = (by) => {
+    const c = callerOf(by), role = /^(orch|impl|rev|spec|over|dig|out)-[0-9a-f]{6}$/.exec(c.token);
+    return c.token ? (role ? role[1] : c.token) : /^delegation:/.test((by && by.via) || "") ? "token" : c.id;
+  };
+  const rows = [];
+  for (const i of issues) {
+    if (/^test-/.test(i.id)) continue;
+    const o = opened.get(i.id), own = [i.id];
+    const clocks = { response: first(own, () => true), submit: first(own, isSubmit), deploy: first(own, isDeploy), done: first(own, isDone) };
+    if (i.kind === "feedback" && feedbackFlows.has(i.workflow)) {
+      // Feedback follows the work it went into: its parent and each issue it says a link of, and the parts of those.
+      const follows = [...new Set([i.parent, ...(i.links || []).map((l) => l.to)])].filter((id) => opened.has(id));
+      Object.assign(clocks, { deploy: first([...follows, ...parts(follows)], isDeploy, o.at), done: first(follows, isDone, o.at) });
+    } else if (i.kind === "project" || i.kind === "feature") clocks.deploy = first(parts(own), isDeploy, o.at);
+    const who = { id: i.id, kind: i.kind, opener: openerOf(o.by), for: issueCaller(o.by).present || (i.labels || []).some((l) => l === "owner" || l === "annotation") ? "owner" : "loop" };
+    for (const [to, t] of Object.entries(clocks)) if (t !== null && t >= since) rows.push({ t, value: t - o.at, to, ...who });
+  }
+  const kept = rows.filter((r) => Object.entries(filter).every(([d, v]) => r[d] === v)).sort((a, b) => a.t - b.t);
+  const step = end - since <= 48 * H ? H : 24 * H;
+  const grouped = (list, names, t) => {
+    const groups = new Map();
+    for (const r of list) {
+      const at = t(r), key = JSON.stringify([at, ...names.map((d) => r[d])]);
+      if (!groups.has(key)) groups.set(key, { t: at, dims: Object.fromEntries(names.map((d) => [d, r[d]])), values: [] });
+      groups.get(key).values.push(r.value);
+    }
+    return [...groups.values()];
+  };
+  // With `id` a row is one issue at one clock. Without it the rows of a step and group are added.
+  const series = grouped(kept, dims, dims.includes("id") ? (r) => r.t : (r) => Math.floor(r.t / step) * step).map((g) => ({ t: g.t, ...g.dims, n: g.values.length, sum: g.values.reduce((a, b) => a + b, 0), max: Math.max(...g.values) }));
+  const summaries = grouped(kept, dims.filter((d) => d !== "id"), () => 0).map((g) => ({ ...g.dims, ...flowSummary(g.values) }));
+  return { metric, since, until: end, step, groups: summaries.length, sampled: 1, unit: def.unit, series, summaries, cost: { ms: Date.now() - began, events: read } };
 }
 // %%
 // May this caller do this act, by the policy in the view? { allow, why }, and for a move or a swap which one.
@@ -2663,6 +2802,9 @@ test_issues_reference_states_each_value_and_has_no_hole = {
     "`?history=N`, 0 to " + L.lockHistory + ", 0 when left out",
     "the newest " + L.lockHistory + " kept",
     "| " + issuesDefaultPolicy.workflows.task.states.join(" → ") + ". Listed swap",
+    "## The flow of work",
+    "### The clocks",
+    ...Object.entries(issueFlowMetrics).flatMap(([name, m]) => ["| `" + name + "` | ", ", `" + m.unit + "` | " + ticked(m.dims) + " |"]),
     "```js\n" + issuesExampleText + "\n```"
   ];
   for (const s of stated) expect(text).toContain(s);
@@ -3864,6 +4006,297 @@ test_issues_lock_release_is_the_holders = {
   expect([late.status, late.data.holder, none.status, none.data.error]).toEqual([409, null, 409, "NotHeld"]);
   expect((await rig.a("locks?history=5")).data.history.map((h) => [h.name, h.who, h.how])).toEqual([["land", "lk-1", "forced"]]);
   return "403 with the holder to another name, another token and a Worker; force is the owner present";
+}
+// %%
+// plan/cloud-brain-flow-metrics.md, task 1 (fm-1-lead-times). A record as the service wrote it (rig.db) or as issue.sync
+// answered it to a caller, with the `at` of event n set to t0 + n hours: a lead time is then a difference of two seqs in
+// hours, and no test of the flow reads the clock.
+issuesFlowRecord = (events, { t0 = Date.UTC(2026, 9, 1), ms = 3600000 } = {}) => events.map((e) => ({ ...(typeof e.event === "string" ? JSON.parse(e.event) : e), at: t0 + e.seq * ms }))
+// %%
+// "A percentile" of The clocks: nearest rank, the value at place ceil(p * n) of the sorted list.
+test_issues_flow_summary_is_nearest_rank = {
+  expect(flowSummary([])).toEqual({ n: 0, median: null, p85: null, max: null });
+  expect(flowSummary([7])).toEqual({ n: 1, median: 7, p85: 7, max: 7 });
+  // Of two the median is the lower (place 1) and the 85th the upper (place ceil(1.7) = 2).
+  expect(flowSummary([3, 1])).toEqual({ n: 2, median: 1, p85: 3, max: 3 });
+  // Of 20: places 10 and 17. The list is not sorted for the caller, and is left as it was given.
+  const twenty = [20, 3, 17, 1, 9, 12, 5, 14, 2, 19, 7, 10, 16, 4, 11, 18, 6, 13, 8, 15], given = [...twenty];
+  expect(flowSummary(twenty)).toEqual({ n: 20, median: 10, p85: 17, max: 20 });
+  expect(twenty).toEqual(given);
+  // Numbers are sorted as numbers. What is not a finite number is not counted. What is not a list is no values.
+  expect(flowSummary([10, 9, 100])).toEqual({ n: 3, median: 10, p85: 100, max: 100 });
+  expect(flowSummary([2, null, "5", NaN, Infinity, undefined, 4])).toEqual({ n: 2, median: 2, p85: 4, max: 4 });
+  expect([flowSummary(undefined).n, flowSummary("12").n, flowSummary(5).n]).toEqual([0, 0, 0]);
+  // The place is counted in whole numbers: 85 of 100 values is place 85, whatever 0.85 * 100 is as a float.
+  for (const n of [7, 20, 40, 60, 100, 300]) expect(flowSummary(Array.from({ length: n }, (_, k) => k + 1))).toEqual({ n, median: Math.ceil(n / 2), p85: Math.ceil((n * 85) / 100), max: n });
+  return "0, 1, 2, 3 and 20 values; 7 to 300 by place";
+}
+// %%
+// R1: each clock of an issue. A move sent back, a revert with a deploy ref, a reopen, a reject; the span; the rows of a step.
+test_issues_flow_lead_has_the_four_clocks_of_an_issue = {
+  const rig = await issuesRig(), H = 3600000, T0 = Date.UTC(2026, 9, 1), commit = { kind: "commit", value: "abc" }, deploy = { kind: "deploy", value: "brain-x-a@0123456789ab" };
+  const seq = async (call) => ((r) => (expect(r.status).toBe(200), r.data.seq))(await call);
+  const s = {};
+  // t1: its first submit has a commit alone, is sent back, and the second names a deploy.
+  s.t1 = await seq(rig.owner("open", { id: "t1", title: "Task", kind: "task" }));
+  s.t1response = await seq(rig.owner("move", { id: "t1", to: "triaged", reason: "real" }));
+  await seq(rig.owner("move", { id: "t1", to: "ready" }));
+  await seq(rig.a("move", { id: "t1", to: "in-progress" }));
+  s.t1submit = await seq(rig.a("move", { id: "t1", to: "in-review", refs: [commit] }));
+  await seq(rig.b("review", { id: "t1", verdict: "changes", body: "no test" }));
+  await seq(rig.b("move", { id: "t1", to: "in-progress" }));
+  s.t1deploy = await seq(rig.a("move", { id: "t1", to: "in-review", refs: [commit, deploy] }));
+  await seq(rig.b("review", { id: "t1", verdict: "pass" }));
+  s.t1done = await seq(rig.b("move", { id: "t1", to: "done" }));
+  // t2: done with a commit alone, then reverted with a deploy ref. A revert is not a deploy, and the issue was done.
+  s.t2 = (await rig.inReview("t2")).data.seq - 4;
+  await seq(rig.b("review", { id: "t2", verdict: "pass" }));
+  s.t2done = await seq(rig.b("move", { id: "t2", to: "done" }));
+  await seq(rig.owner("move", { id: "t2", to: "reverted", reason: "broke", refs: [deploy] }));
+  // t3: closed, opened again, then built. Its response is the close; closed is not done.
+  s.t3 = await seq(rig.a("open", { id: "t3", title: "Again", kind: "bug" }));
+  s.t3response = await seq(rig.a("move", { id: "t3", to: "closed", reason: "answered" }));
+  await seq(rig.a("move", { id: "t3", to: "open", reason: "met again" }));
+  await seq(rig.a("move", { id: "t3", to: "in-progress", reason: "real, one line" }));
+  s.t3submit = await seq(rig.a("move", { id: "t3", to: "in-review", refs: [deploy] }));
+  await seq(rig.b("review", { id: "t3", verdict: "pass" }));
+  s.t3done = await seq(rig.b("move", { id: "t3", to: "done" }));
+  // t4: rejected, which is not done. t5: nothing moved it, so it has reached no clock. test-x: in no row.
+  s.t4 = await seq(rig.a("open", { id: "t4", title: "Not real", kind: "bug" }));
+  s.t4response = await seq(rig.a("move", { id: "t4", to: "rejected", reason: "not real" }));
+  await seq(rig.a("open", { id: "t5", title: "Untouched", kind: "task" }));
+  await seq(rig.a("open", { id: "test-x", title: "A test's", kind: "task" }));
+  s.last = await seq(rig.a("move", { id: "test-x", to: "closed", reason: "done with" }));
+  const record = issuesFlowRecord(rig.db.events);
+  expect(record.length).toBe(s.last);
+  const lead = (more) => issueFlow(record, { metric: "flow.lead", ...more });
+  const said = (r) => [r.id, r.to, (r.t - T0) / H, r.sum / H];
+  const row = (id, to, at) => [id, to, s[at], s[at] - s[id]];
+  const all = lead({ by: ["id", "to"] });
+  // With `id` in `by` a row is one issue at one clock: t when it reached it, and the ms since it was opened as sum and max.
+  expect(all.series.map(said)).toEqual([
+    row("t1", "response", "t1response"), row("t1", "submit", "t1submit"), row("t1", "deploy", "t1deploy"), row("t1", "done", "t1done"),
+    ["t2", "response", s.t2 + 1, 1], ["t2", "submit", s.t2 + 4, 4], row("t2", "done", "t2done"),
+    row("t3", "response", "t3response"), row("t3", "submit", "t3submit"), row("t3", "deploy", "t3submit"), row("t3", "done", "t3done"),
+    row("t4", "response", "t4response")
+  ]);
+  expect(all.series.every((r) => r.n === 1 && r.max === r.sum && Object.keys(r).join() === "t,id,to,n,sum,max")).toBe(true);
+  expect({ ...all, series: 0, summaries: 0, cost: 0 }).toEqual({ metric: "flow.lead", since: 0, until: T0 + s.last * H, step: 24 * H, groups: 4, sampled: 1, unit: "ms", series: 0, summaries: 0, cost: 0 });
+  expect([all.cost.events, typeof all.cost.ms]).toEqual([s.last, "number"]);
+  // One summary for each group of the dimensions asked other than id, from the rows before any is added: here by `to`.
+  const hours = (to) => all.series.filter((r) => r.to === to).map((r) => r.sum);
+  expect(all.summaries).toEqual(["response", "submit", "deploy", "done"].map((to) => ({ to, ...flowSummary(hours(to)) })));
+  expect(all.summaries.map((x) => [x.to, x.n])).toEqual([["response", 4], ["submit", 3], ["deploy", 2], ["done", 3]]);
+  // A filter names a dimension and a value. Without `id` the rows of a step are added: n issues, sum and max, t the step's start.
+  const done = lead({ by: ["kind"], filter: { to: "done" } });
+  const day = (at) => T0 + Math.floor((s[at] * H) / (24 * H)) * 24 * H;
+  const added = new Map();
+  for (const [kind, at, id] of [["task", "t1done", "t1"], ["task", "t2done", "t2"], ["bug", "t3done", "t3"]]) {
+    const k = day(at) + " " + kind, ms = (s[at] - s[id]) * H, had = added.get(k) || { t: day(at), kind, n: 0, sum: 0, max: 0 };
+    added.set(k, { ...had, n: had.n + 1, sum: had.sum + ms, max: Math.max(had.max, ms) });
+  }
+  expect(done.series).toEqual([...added.values()].sort((a, b) => a.t - b.t));
+  expect(done.summaries.map((x) => [x.kind, x.n])).toEqual([["task", 2], ["bug", 1]]);
+  expect(done.groups).toBe(2);
+  // With no `by` the rows of a step are one row, and the summary is one, of every row the filter passes.
+  const one = lead({ filter: { to: "response", kind: "bug" } });
+  expect([one.series.reduce((n, r) => n + r.n, 0), one.series.every((r) => Object.keys(r).join() === "t,n,sum,max"), one.summaries]).toEqual([2, true, [flowSummary([(s.t3response - s.t3) * H, (s.t4response - s.t4) * H])]]);
+  // The span. A clock reached before `since` or after `until` is no row; both ends are inside. Up to 48 hours a step is an hour.
+  const at = (name) => T0 + s[name] * H;
+  const cut = lead({ by: ["id", "to"], filter: { id: "t1" }, since: at("t1submit"), until: at("t1deploy") });
+  expect([cut.series.map(said), cut.step, cut.since, cut.until]).toEqual([[row("t1", "submit", "t1submit"), row("t1", "deploy", "t1deploy")], H, at("t1submit"), at("t1deploy")]);
+  expect(lead({ by: ["id", "to"], filter: { id: "t1" }, since: at("t1submit") + 1, until: at("t1deploy") - 1 }).series).toEqual([]);
+  // Events after `until` are not read: the record up to t1's first submit knows of no deploy and no later issue.
+  const early = lead({ by: ["id", "to"], until: at("t1submit") });
+  expect([early.series.map(said), early.cost.events]).toEqual([[row("t1", "response", "t1response"), row("t1", "submit", "t1submit")], s.t1submit]);
+  const hourly = lead({ by: ["to"], since: at("t1"), until: at("t1") + 48 * H });
+  expect([hourly.step, hourly.series.every((r) => (r.t - T0) % H === 0 && r.n === 1)]).toEqual([H, true]);
+  expect(lead({ by: ["to"], since: at("t1"), until: at("t1") + 48 * H + 1 }).step).toBe(24 * H);
+  // `by` may be the text of a query, and an empty one is none.
+  expect(lead({ by: "id,to" }).series).toEqual(all.series);
+  expect(lead({ by: "" }).series).toEqual(lead({}).series);
+  // What it refuses, each as an error with status 400: the method that answers it will say so to its caller.
+  const refused = (more) => { try { issueFlow(record, more); return "answered"; } catch (e) { return [e.status, e.message]; } };
+  expect(refused({ metric: "flow.nope" })).toEqual([400, "no such metric: flow.nope. One of: flow.lead"]);
+  expect(refused({})).toEqual([400, "no such metric: undefined. One of: flow.lead"]);
+  expect(refused({ metric: "constructor" })[0]).toBe(400);
+  expect(refused({ metric: "flow.lead", by: ["state"] })).toEqual([400, "by: state is not a dimension of flow.lead. One of: to, id, kind, opener, for"]);
+  expect(refused({ metric: "flow.lead", by: ["to", "to"] })).toEqual([400, "by: to is named twice"]);
+  expect(refused({ metric: "flow.lead", by: 5 })).toEqual([400, "by: a list of dimensions, or their names with commas between"]);
+  expect(refused({ metric: "flow.lead", filter: { waits: "owner" } })).toEqual([400, "waits is not a dimension of flow.lead. One of: to, id, kind, opener, for"]);
+  expect(refused({ metric: "flow.lead", filter: { to: "" } })).toEqual([400, "to: a value to match, text that is not empty"]);
+  expect(refused({ metric: "flow.lead", filter: { to: ["done"] } })[0]).toBe(400);
+  expect(refused({ metric: "flow.lead", filter: "to=done" })).toEqual([400, "filter: an object, a dimension to its value"]);
+  expect(refused({ metric: "flow.lead", since: "yesterday" })).toEqual([400, "since and until: milliseconds since 1970, since not after until"]);
+  expect(refused({ metric: "flow.lead", since: 2, until: 1 })[0]).toBe(400);
+  expect(refused({ metric: "flow.lead", until: null })[0]).toBe(400);
+  // A value that names no row is no error. No events is an answer with no rows.
+  expect(lead({ filter: { to: "live" } }).series).toEqual([]);
+  expect([issueFlow([], { metric: "flow.lead" }), issueFlow(undefined, { metric: "flow.lead" })].map((a) => [a.series, a.summaries, a.groups, a.until, a.cost.events])).toEqual(Array(2).fill([[], [], 0, 0, 0]));
+  // The record is not changed by being read.
+  expect(record).toEqual(issuesFlowRecord(rig.db.events));
+  return `${all.series.length} rows of 4 issues that reached a clock; 3 that are in none`;
+}
+// %%
+// R1: a project's deploy is its parts' and its done its own; a feedback issue follows its parent and what it says a link
+// of, one step, and their parts, from when it was opened; a swap is a move, and a promoted feedback issue has its own clocks.
+test_issues_flow_lead_of_a_project_and_of_feedback = {
+  const rig = await issuesRig(), H = 3600000, T0 = Date.UTC(2026, 9, 1), commit = { kind: "commit", value: "abc" }, deploy = { kind: "deploy", value: "brain-x-a@0123456789ab" };
+  const seq = async (call) => ((r) => (expect(r.status).toBe(200), r.data.seq))(await call);
+  const s = {};
+  const built = async (id, refs) => {
+    await seq(rig.a("move", { id, to: "in-progress", reason: "real, one line" }));
+    const at = await seq(rig.a("move", { id, to: "in-review", refs }));
+    await seq(rig.b("review", { id, verdict: "pass" }));
+    return [at, await seq(rig.b("move", { id, to: "done" }))];
+  };
+  // f1: a report gathered into the project before anything was built.
+  s.f1 = await seq(rig.a("open", { id: "f1", title: "It is slow", kind: "feedback" }));
+  s.p1 = await seq(rig.a("open", { id: "p1", title: "Make it fast", kind: "project" }));
+  await seq(rig.a("link", { id: "f1", to: "p1", rel: "part-of" }));
+  s.f1response = await seq(rig.a("move", { id: "f1", to: "closed" }));
+  s.p1response = await seq(rig.a("move", { id: "p1", to: "spec", reason: "one report" }));
+  await seq(rig.a("move", { id: "p1", to: "spec-review", refs: [commit] }));
+  await seq(rig.b("review", { id: "p1", verdict: "pass" }));
+  await seq(rig.b("move", { id: "p1", to: "awaiting-approval" }));
+  await seq(rig.owner("move", { id: "p1", to: "approved" }));
+  s.ta = await seq(rig.a("open", { id: "ta", title: "Part a", kind: "task", parent: "p1" }));
+  s.tb = await seq(rig.a("open", { id: "tb", title: "Part b", kind: "task", parent: "p1" }));
+  await seq(rig.a("move", { id: "p1", to: "building" }));
+  [s.taDeploy, s.taDone] = await built("ta", [commit, deploy]);
+  // Opened after part a was deployed: f2 is part of the project, f3 says a link of f1, f4 of part b, f6 of part b and takes it off.
+  s.f2 = await seq(rig.a("open", { id: "f2", title: "Still slow", kind: "feedback", parent: "p1" }));
+  s.f2response = await seq(rig.a("move", { id: "f2", to: "closed" }));
+  s.f3 = await seq(rig.a("open", { id: "f3", title: "Same as f1", kind: "feedback" }));
+  await seq(rig.a("link", { id: "f3", to: "f1", rel: "duplicate" }));
+  s.f3response = await seq(rig.a("move", { id: "f3", to: "closed" }));
+  s.f4 = await seq(rig.a("open", { id: "f4", title: "Slow in b", kind: "feedback" }));
+  await seq(rig.a("link", { id: "f4", to: "tb", rel: "related" }));
+  s.f6 = await seq(rig.a("open", { id: "f6", title: "Not b after all", kind: "feedback" }));
+  await seq(rig.a("link", { id: "f6", to: "tb", rel: "related" }));
+  await seq(rig.a("link", { id: "f6", to: "tb", rel: "related", remove: true }));
+  // f5: feedback that became a task (promote), and was built as one.
+  s.f5 = await seq(rig.a("open", { id: "f5", title: "A bug, in fact", kind: "feedback" }));
+  s.f5response = await seq(rig.a("swap", { id: "f5", swap: "promote" }));
+  [s.f5submit, s.f5done] = await built("f5", [commit]);
+  // Part b is deployed, sent back and deployed again. f7 says a link of it between the two, f8 of part a after it was done.
+  await seq(rig.a("move", { id: "tb", to: "in-progress", reason: "real, one line" }));
+  s.tbDeploy = await seq(rig.a("move", { id: "tb", to: "in-review", refs: [deploy] }));
+  await seq(rig.b("review", { id: "tb", verdict: "changes", body: "no test" }));
+  await seq(rig.b("move", { id: "tb", to: "in-progress" }));
+  s.f7 = await seq(rig.a("open", { id: "f7", title: "Slow in b, still", kind: "feedback" }));
+  await seq(rig.a("link", { id: "f7", to: "tb", rel: "related" }));
+  s.f8 = await seq(rig.a("open", { id: "f8", title: "Slow in a", kind: "feedback" }));
+  await seq(rig.a("link", { id: "f8", to: "ta", rel: "related" }));
+  s.tbAgain = await seq(rig.a("move", { id: "tb", to: "in-review", refs: [deploy] }));
+  await seq(rig.b("review", { id: "tb", verdict: "pass" }));
+  s.tbDone = await seq(rig.b("move", { id: "tb", to: "done" }));
+  s.p1done = await seq(rig.a("move", { id: "p1", to: "done" }));
+  // A feature that nobody moved, with a part of a part that was deployed. The task between them has no deploy of its own.
+  s.p2 = await seq(rig.a("open", { id: "p2", title: "Another", kind: "feature" }));
+  await seq(rig.a("open", { id: "ua", title: "Part", kind: "task", parent: "p2" }));
+  await seq(rig.a("open", { id: "ub", title: "Part of the part", kind: "task", parent: "ua" }));
+  [s.ubDeploy] = await built("ub", [deploy]);
+  const record = issuesFlowRecord(rig.db.events);
+  const lead = (more) => issueFlow(record, { metric: "flow.lead", ...more });
+  const said = (r) => [r.id, r.to, (r.t - T0) / H, r.sum / H];
+  const row = (id, to, at) => [id, to, s[at], s[at] - s[id]];
+  const of = (id) => lead({ by: ["id", "to"], filter: { id } }).series.map(said);
+  // The project: no submit of its own (submit-spec is not one); its deploy is the first of a part; its done its own.
+  expect(of("p1")).toEqual([row("p1", "response", "p1response"), row("p1", "deploy", "taDeploy"), row("p1", "done", "p1done")]);
+  // Feedback gathered before the build: the first deploy among the project's parts, and the project's done.
+  expect(of("f1")).toEqual([row("f1", "response", "f1response"), row("f1", "deploy", "taDeploy"), row("f1", "done", "p1done")]);
+  // Opened after part a's deploy: the next one, part b's. Part a's done is not f2's: it follows the project, not its parts' ends.
+  expect(of("f2")).toEqual([row("f2", "response", "f2response"), row("f2", "deploy", "tbDeploy"), row("f2", "done", "p1done")]);
+  // One step: f3 follows f1, which has no deploy of its own and is closed, not done. What f1 follows is not f3's.
+  expect(of("f3")).toEqual([row("f3", "response", "f3response")]);
+  // A link said of a task, with the feedback still open: the task's deploy and done, and no response yet.
+  expect(of("f4")).toEqual([row("f4", "deploy", "tbDeploy"), row("f4", "done", "tbDone")]);
+  // A link taken off is not followed. f6 was never moved: no row at all.
+  expect(of("f6")).toEqual([]);
+  // A followed task deployed before the feedback was opened and again after: the later one. Part b's own deploy is its first.
+  expect(of("f7")).toEqual([row("f7", "deploy", "tbAgain"), row("f7", "done", "tbDone")]);
+  expect(of("tb").filter((r) => r[1] === "deploy")).toEqual([row("tb", "deploy", "tbDeploy")]);
+  // A followed task deployed and done before the feedback was opened, and not since: neither is the feedback's.
+  expect(of("f8")).toEqual([]);
+  // The parts of a part are a project's parts. A task does not take the deploy of its part.
+  expect([of("p2"), of("ua")]).toEqual([[row("p2", "deploy", "ubDeploy")], []]);
+  // Promoted: the swap is its first move, and the clocks are its own. Its kind is the one it was opened with.
+  expect(of("f5")).toEqual([row("f5", "response", "f5response"), row("f5", "submit", "f5submit"), row("f5", "done", "f5done")]);
+  expect(lead({ by: ["id", "kind"], filter: { id: "f5", to: "done" } }).series.map((r) => r.kind)).toEqual(["feedback"]);
+  // The panel "Feedback to deploy" of the spec: one row an issue, and a summary for each `for`.
+  const panel = lead({ by: ["id", "for"], filter: { kind: "feedback", to: "deploy" } });
+  expect(panel.series.map((r) => [r.id, r.for, r.sum / H])).toEqual([["f1", "loop", s.taDeploy - s.f1], ["f2", "loop", s.tbDeploy - s.f2], ["f4", "loop", s.tbDeploy - s.f4], ["f7", "loop", s.tbAgain - s.f7]]);
+  expect(panel.summaries).toEqual([{ for: "loop", ...flowSummary(panel.series.map((r) => r.sum)) }]);
+  // Before the project's part was deployed, nothing has a deploy; the parts are read as of `until`.
+  expect(lead({ by: ["id"], filter: { to: "deploy" }, until: T0 + (s.taDeploy - 1) * H }).series).toEqual([]);
+  expect(lead({ by: ["id"], filter: { to: "deploy" }, until: T0 + s.taDeploy * H }).series.map((r) => r.id)).toEqual(["f1", "p1", "ta"]);
+  return "a project of two parts and a feature with a part of a part; feedback gathered before and after a deploy, linked to a task before, between and after its deploys, linked one step off, unlinked and promoted";
+}
+// %%
+// R1, by who opened it and for whom.
+test_issues_flow_lead_by_opener_and_for_whom = {
+  const rig = await issuesRig(), token = (name) => rig.as("owner", "delegation:" + name, { "x-brain-holder": "secret:" + name, "x-brain-tab": "0" });
+  const open = async (id, as, more = {}) => {
+    expect((await as("open", { id, title: id, kind: "task", ...more })).status).toBe(200);
+    expect((await rig.owner("move", { id, to: "triaged", reason: "real" })).status).toBe(200);
+  };
+  await open("o-impl", token("impl-0a1b2c"));
+  await open("o-orch", token("orch-d97e0e"));
+  await open("o-rev", token("rev-123abc"));
+  // A token's name of another shape is itself: a role's token of before, six characters that are not hex.
+  await open("o-old", token("issues-implementer-2"));
+  await open("o-odd", token("impl-zzzzzz"));
+  // A delegation whose holder has no name (every token on cb4 on 2026-10-10), and a token that is the caller itself.
+  await open("o-bare", rig.as("owner", "delegation:d1", { "x-brain-holder": "secret", "x-brain-tab": "0" }));
+  await open("o-a", rig.a);
+  await open("o-owner", rig.owner);
+  // His session with no tab (a call made with his session file's key marked so) is his, and not him at the page.
+  await open("o-file", rig.as("owner", "session", { "x-brain-tab": "0" }));
+  await open("o-worker", rig.worker);
+  await open("o-deployer", rig.as("deployer"));
+  // For the owner by its label, whoever opened it; a label put on later counts, one taken off does not.
+  await open("o-note", token("out-00ff00"), { labels: ["annotation"] });
+  await open("o-his", token("orch-d97e0e"));
+  expect((await rig.a("label", { id: "o-his", add: ["owner"] })).status).toBe(200);
+  await open("o-was", token("orch-d97e0e"), { labels: ["owner"] });
+  expect((await rig.a("label", { id: "o-was", remove: ["owner"] })).status).toBe(200);
+  const record = issuesFlowRecord(rig.db.events);
+  const rows = issueFlow(record, { metric: "flow.lead", by: ["id", "opener", "for"], filter: { to: "response" } });
+  expect(rows.series.map((r) => [r.id, r.opener, r.for])).toEqual([
+    ["o-impl", "impl", "loop"], ["o-orch", "orch", "loop"], ["o-rev", "rev", "loop"], ["o-old", "issues-implementer-2", "loop"], ["o-odd", "impl-zzzzzz", "loop"],
+    ["o-bare", "token", "loop"], ["o-a", "a", "loop"], ["o-owner", "owner", "owner"], ["o-file", "owner", "loop"], ["o-worker", "worker:brain-x-echo", "loop"], ["o-deployer", "deployer", "loop"],
+    ["o-note", "out", "owner"], ["o-his", "orch", "owner"], ["o-was", "orch", "loop"]
+  ]);
+  // Every lead here is one hour (the move follows the open), so each group's summary is its count.
+  const by = (dim) => Object.fromEntries(issueFlow(record, { metric: "flow.lead", by: [dim], filter: { to: "response" } }).summaries.map((x) => [x[dim], [x.n, x.median / 3600000]]));
+  expect(by("for")).toEqual({ loop: [11, 1], owner: [3, 1] });
+  expect(by("opener")).toMatchObject({ orch: [3, 1], impl: [1, 1], owner: [2, 1], token: [1, 1], "worker:brain-x-echo": [1, 1] });
+  expect(issueFlow(record, { metric: "flow.lead", filter: { to: "response", opener: "orch", for: "owner" } }).summaries[0].n).toBe(1);
+  return "14 issues by 11 openers; 3 of them for the owner";
+}
+// %%
+// "An issue the caller may not read" of The clocks: the events issue.sync answers as hidden give no row, and nothing of
+// such an issue is in a row of another.
+test_issues_flow_leaves_out_what_the_caller_may_not_read = {
+  const rig = await issuesRig(), ref = [{ kind: "deploy", value: "brain-x-a@0123456789ab" }];
+  await rig.a("open", { id: "pub", title: "Typo", kind: "bug" });
+  await rig.a("move", { id: "pub", to: "triaged", reason: "real" });
+  await rig.a("open", { id: "sec", title: "Key in a log", body: "the key is …", kind: "security" });
+  await rig.a("move", { id: "sec", to: "triaged", reason: "real" });
+  // A task that becomes a security report after it was deployed: every event of it is hidden then, the earlier ones too.
+  await rig.a("open", { id: "esc", title: "Leak", kind: "task", labels: ["security"] });
+  await rig.a("move", { id: "esc", to: "triaged", reason: "real" });
+  expect((await rig.a("swap", { id: "esc", swap: "escalate" })).status).toBe(200);
+  const as = async (who) => issuesFlowRecord((await who("sync?after=0&limit=500")).data.events);
+  const ids = (record) => [...new Set(issueFlow(record, { metric: "flow.lead", by: ["id", "to"] }).series.map((r) => r.id))];
+  const [b, a, owner] = [await as(rig.b), await as(rig.a), await as(rig.owner)];
+  expect(b.filter((e) => e.hidden).map((e) => e.id)).toEqual(["sec", "sec", "esc", "esc", "esc"]);
+  expect([ids(b), ids(a), ids(owner)]).toEqual([["pub"], ["pub", "sec", "esc"], ["pub", "sec", "esc"]]);
+  const shown = issueFlow(b, { metric: "flow.lead", by: ["id", "to", "kind", "opener", "for"] });
+  expect(JSON.stringify(shown)).not.toContain("sec");
+  expect([shown.series.length, shown.cost.events]).toEqual([1, b.length]);
+  return "token b: 1 issue of 3 in the rows; its opener and the owner: 3";
 }
 // %%
 import {cloudflare, sql, blobs, secrets, config, hono, simulate, decide, checkedRule, callerOf, callerFrom, originFrom, sha256} from "@tomlarkworthy/cloudflare-iac"
