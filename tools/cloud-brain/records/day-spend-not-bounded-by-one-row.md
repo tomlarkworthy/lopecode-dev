@@ -3,7 +3,7 @@
 Task 3 of `plan/cloud-brain-day-spend-not-bounded-by-one-row.md` (`ds-3-record-and-after`): the
 deployer, every Worker and the core were deployed on cb4 with the seeds of `ds-1-rows-add-within`
 (`92f3d259`) and `ds-2-core-spends-by-row` (`32d62f24`), and the check of the spec was made.
-Written 2026-10-12 19:45 CEST. Times are UTC, from `date -u` beside each command.
+Written 2026-10-12 19:38 CEST. Times are UTC, from `date -u` beside each command.
 
 ## Who did it
 
