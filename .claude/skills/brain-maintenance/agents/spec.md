@@ -43,7 +43,10 @@ already used answers `duplicate: true` and moves nothing: after each move read t
    when the problem has a literature or other systems have met it, search outside. The spec has
    a part "Read" that names each search, what it found and what was used, with its address, and
    says which claims you read only in a summary.
-5. **Write the spec** as `plan/cloud-brain-<id>.md` in a worktree (`tools/cloud-brain/worktree.sh <id>`):
+5. **Write the spec** as `plan/cloud-brain-<id>.md` in your worktree, `$W`: the directory the first line of your
+   prompt names (`Working directory: <W>`, `…/.claude/worktrees/bm-<tree>`), which the orchestrator made at
+   `origin/main` before it spawned you (`agents/implementer.md`, "Where you work", has `$W`, `<tree>` and `<root>`,
+   and the prompt that names the main checkout: then `W=$(tools/cloud-brain/worktree.sh <id>)`, and `<tree>` is `<id>`):
    - what was asked, in the owner's words where he gave any, with the date;
    - each gathered report in one line with its id, and the requirement it becomes or why it is left out;
    - what exists today, measured;
@@ -70,9 +73,15 @@ already used answers `duplicate: true` and moves nothing: after each move read t
      2026-10-11: "Why do I need to even do it? It seems like common sense to issue scoped tokens that
      follow a spec."; `rules.md`, "A token an approved spec names"). So say in the comment for his
      approval that the spec names a token, and which.
-6. **Land it** under the landing lock (`LOCK_TOKEN=<token> lock.sh take land <id>`) as `agents/implementer.md` step 10 says: the file only,
+6. **Land it** by a push from the worktree, under the landing lock, as `agents/implementer.md` step 10 lands a change
+   with no deploy: `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh take land <id>`,
+   `$W/tools/cloud-brain/worktree.sh --rebase <tree>`, `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh renew land <id>`,
+   `git -C $W push origin HEAD:main`, `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh release land <id>`, each on a line
+   of its own with its exit read; that step says what each exit is. Nothing is merged or committed in the main checkout
+   (since `wt-3-land-by-push`, 2026-10-12). The commit is the file only,
    added by its name (`git add plan/cloud-brain-<id>.md`, then `git commit` with no `-a`: in a worktree `-a` stages
    `lopebooks` and `lopecode`, which are links there; the writers of `record-checked-by-review-alone` and `i1842`).
+   You do not remove the worktree: the round after a review is written in it.
 7. **Submit**. First read the issue again (`ia "get?id=<id>"`): a comment that came while you wrote is answered in
    the file, and landed, before the move. `<sha>` is the last commit of the file on `origin/main`; the refs of a move
    cannot be changed after it (`paper-summarizer-persona`: comment 1571 came mid-writing, the submit 1578 named the
@@ -80,7 +89,7 @@ already used answers `duplicate: true` and moves nothing: after each move read t
    `ia move '{"key":"spec/<id>/submit-<round>","id":"<id>","to":"spec-review","refs":[{"kind":"commit","value":"<sha>"}]}'`,
    with `<round>` 1 the first time. Read the issue again and see `spec-review`.
    Sent back (`spec` again): read the review whole before the file (the `reviewed` event the `respec` move names),
-   work in a worktree (`worktree.sh <id>` again when the one before is gone), answer each finding in the file, and
+   work in your worktree, brought up with `$W/tools/cloud-brain/worktree.sh --rebase <tree>`, answer each finding in the file, and
    submit again with the next round's key. Steps 2 to 4 are done again for what a finding asks to be read or
    measured and for a part gathered since, not from the start; steps 5 to 7 hold for the round as for the first.
 
@@ -93,9 +102,11 @@ Since 2026-10-11 a spec that was sent back comes to the agent that wrote it, as 
 can be sent one (`SKILL.md`, step 3, "A spec sent back"). You then have the first round in your
 context. Read the issue again and take the findings from the `reviewed` event the message names,
 not from what you expected. Your token is the one of your first round; when `ia "get?id=<id>"` is
-exit 2 or answers 401 it has ended: write nothing, and report it. Make the worktree again
-(`tools/cloud-brain/worktree.sh <id>`): the landing removed yours. Read again what has changed since
-your submit and the round rests on, as "A resumed round" of `agents/implementer.md` says. Then
+exit 2 or answers 401 it has ended: write nothing, and report it. Your worktree is the one the
+message names in a line `Working directory: <W>`, or with no such line the one you landed from, which
+nobody removed; `$W/tools/cloud-brain/worktree.sh --rebase <tree>` brings it up to `origin/main`. Read
+again what has changed since your submit and the round rests on, from `origin/main` in `$W` after that
+fetch, as "A resumed round" of `agents/implementer.md` says. Then
 steps 5 to 7, with the next round's key. In your report say that the round was resumed.
 
 Your last message is the report `rules.md` asks for.

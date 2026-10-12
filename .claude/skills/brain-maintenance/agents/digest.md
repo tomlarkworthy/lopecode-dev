@@ -39,7 +39,9 @@ brief (`digest-2026-10-11`) stopped before publishing. Both were lifted that day
    Only the token that made `start` can submit. An issue already `in-progress` whose last `start` has another
    `by.holder` than `secret:<token>` is not yours to submit: comment, report, and stop
    (`agents/implementer.md`, step 4).
-   Then `W=$(tools/cloud-brain/worktree.sh digest-<day>)` and work there.
+   Then work in your worktree, `$W`: the directory the first line of your prompt names, which the
+   orchestrator made (`agents/implementer.md`, "Where you work"; when the prompt names the main checkout,
+   `W=$(tools/cloud-brain/worktree.sh digest-<day>)`). `<root>` below is the main checkout.
 3. **Read the day.** `https://cb4.endpointservices.workers.dev/static/snapshot/<day>/index.json`,
    then `papers.json` and each source file the index gives a `path` for. Public, no token. Not
    `arxiv.json` whole: it is marked `lookup`. For each day the digest covers, the same.
@@ -68,7 +70,7 @@ brief (`digest-2026-10-11`) stopped before publishing. Both were lifted that day
    day: 55, 0, 216 items and 14 papers, 28 of 28). Do not publish a digest whose picks are
    not all found. Close the tab by name.
 7. **Land the seed.** Commit it in the worktree. Copy the built file to
-   `<root>/tools/cloud-brain/digests/` before the worktree goes: it is git-ignored, and the
+   `<root>/tools/cloud-brain/digests/`: it is git-ignored, and the
    publish command reads it from the main checkout. Land as `agents/implementer.md` step 10
    lands a change with no deploy.
 8. **Publish, count, tell the owner, submit.** From the main checkout:

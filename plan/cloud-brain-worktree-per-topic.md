@@ -420,6 +420,15 @@ Each is run by an agent with its own token, from any worktree. `<root>` is the m
    the orchestrator's and the overseer's own worktrees, the removal, the health step's
    `seen.json` from `origin/main`, and the pull of the root copy of `cloud-brain-dev` with its
    refusal (check 9; tested on scratch repositories).
+   (As built, `wt-3-land-by-push`, 2026-10-12: all of it. Where the build is not these sentences: with a
+   deploy, a renew of the lock and a pull of the main checkout's `lopebooks` come before the build of part 1
+   step 3, kept from step 10 as it was; the pointer of part 1 step 4 is given by the whole sha, read with `git -C
+   <root>/lopebooks rev-parse HEAD`, since `update-index` refuses the 8 characters the backup prints;
+   `notebook-backup.sh` names the commit of the checkout it is run from in the backup's message, where it named the
+   main checkout's; a writer whose prompt names the main checkout still makes a worktree itself; the message of a
+   resumed round names the worktree, after a second `--fresh`; the removal leaves a worktree that has an occupant;
+   `agents/overseer.md` and step 2 of `agents/digest.md` changed too. `verify-run.ts` and `issue-stats.ts` are still
+   run from the main checkout. The record, `tools/cloud-brain/records/wt-3-land-by-push.md`.)
 4. **`wt-4-reviewer-in-a-view`.** `SKILL.md` step 4 starts the reviewer as part 4; the
    reviewer's brief on the Brain loses its worktree steps (`put.sh roles/reviewer.md`, by the
    writer of a task of an approved spec, `rules.md`). The brief's

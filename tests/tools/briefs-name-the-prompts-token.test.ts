@@ -110,7 +110,8 @@ test("the spec writer's brief: back is the orchestrator's and the second spec is
 test("the overseer's brief: its own token in each call, and its 3 issues counted from it", () => {
   const text = read("agents/overseer.md");
   expect(text).toContain('io() { <root>/tools/cloud-brain/issue-as.sh <token> "$@"; }');
-  expect(text.match(/LOCK_TOKEN=<token> /g)?.length).toBe(3);
+  // take, renew and release of a landing by push from its own worktree (wt-3-land-by-push), and the sentence on the variable
+  expect(text.match(/LOCK_TOKEN=<token> /g)?.length).toBe(4);
   expect(flat(text)).toContain("The 3 are counted from your own token");
 });
 

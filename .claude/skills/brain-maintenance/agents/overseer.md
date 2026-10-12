@@ -150,11 +150,20 @@ Limits, so a bad round cannot compound:
   with one token (at event 1156, 2 of the 32 issues the overseer's token had opened were a session's outside the loop: the spec, "What exists today").
 - An edit needs evidence from at least one issue, quoted in the commit message. One edit, one
   commit, each of them only the brief:
-  `git commit -m "brain-maintenance: <what changed> (<issue id>, event <seq>: <what happened>)" -- <the file>`. Push.
-  Writers land in the same checkout: take the landing lock round each commit and push
-  (`LOCK_TOKEN=<token> tools/cloud-brain/lock.sh take land overseer-$(hostname -s)`; exit 1 is a writer
-  landing, so wait in the background with `--wait` after it; exit 2 is cb4 not reached, and no commit), and
-  `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh release land overseer-$(hostname -s)` after.
+  `git -C $W commit -m "brain-maintenance: <what changed> (<issue id>, event <seq>: <what happened>)" -- <the file>`.
+  Since `wt-3-land-by-push` (2026-10-12) you commit in a worktree of your own and nothing in the main checkout:
+  `$W` is the directory the first line of your prompt names, `…/.claude/worktrees/bm-over-<host>`, which the
+  orchestrator brought up to `origin/main` before it spawned you (a prompt that names the main checkout is from a
+  session of before that day: `W=$(tools/cloud-brain/worktree.sh --fresh over-$(hostname -s))`). The briefs and
+  `oversight.md` you edit are the files of `$W`. Each commit, or several, is landed by a push from it, as
+  `agents/implementer.md` step 10 lands a change with no deploy:
+  `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh take land overseer-$(hostname -s)` (exit 1 is a writer
+  landing, so wait in the background with `--wait` after it; exit 2 is cb4 not reached, and no push),
+  `$W/tools/cloud-brain/worktree.sh --rebase over-$(hostname -s)`,
+  `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh renew land overseer-$(hostname -s)`,
+  `git -C $W push origin HEAD:main`, and
+  `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh release land overseer-$(hostname -s)` after.
+  (Until that day: a commit in the main checkout, where writers landed too, with the lock round it.)
   The lock is held in the cluster since `lk-3-lock-sh-over-the-cluster`, for 600 s from the take. `LOCK_TOKEN=<token> `
   is written before each call and not exported (a shell keeps nothing between two commands): the holder is the name
   with the token, and a release sent with another token is refused, exit 1, with "held under your name by another token".
@@ -173,7 +182,7 @@ Limits, so a bad round cannot compound:
 
 ## Finish
 
-Append one entry to `.claude/skills/brain-maintenance/oversight.md` and commit it:
+Append one entry to `.claude/skills/brain-maintenance/oversight.md` in `$W`, commit it there and land it as above:
 
 ```
 ## <date and time from `date`>, events <from> to <to>

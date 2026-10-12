@@ -136,6 +136,32 @@ test("no build, an empty build and no argument are exit 1 and write nothing", ()
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// wt-3-land-by-push: a landing runs the tool from its worktree and commits nothing in the main checkout, whose HEAD
+// is then behind the seeds of the build. The message named the main checkout's HEAD until that change.
+test("the backup's message names the commit of the checkout the tool is run from, a worktree's and not the main checkout's", () => {
+  const dir = repo("2026-10-11");
+  const main = mkdtempSync(join(tmpdir(), "nb-backup-checkout-"));
+  try {
+    sh(["git", "init", "-q", "-b", "main"], main);
+    mkdirSync(join(main, "tools/cloud-brain"), { recursive: true });
+    writeFileSync(join(main, "tools/cloud-brain/notebook-backup.sh"), readFileSync(TOOL));
+    writeFileSync(join(main, "seed.ojs"), "base\n");
+    sh(["git", "add", "-A"], main);
+    sh(["git", "commit", "-q", "-m", "base"], main);
+    const wt = join(main, "wt");
+    expect(sh(["git", "worktree", "add", "-q", "-b", "bm/x", wt], main).code).toBe(0);
+    writeFileSync(join(wt, "seed.ojs"), "the writer's\n");
+    sh(["git", "commit", "-q", "-m", "mine", "seed.ojs"], wt);
+    const mainHead = sh(["git", "rev-parse", "--short", "HEAD"], main).out, wtHead = sh(["git", "rev-parse", "--short", "HEAD"], wt).out;
+    expect(mainHead).not.toBe(wtHead);
+    const r = sh(["bash", "tools/cloud-brain/notebook-backup.sh", built(dir, "<html>two</html>\n")], wt, { NOTEBOOK_REPO: dir, NOTEBOOK_TODAY: "2026-10-12" });
+    expect(r.out).toMatch(/^committed [0-9a-f]{8} 2026-10-12$/);
+    const subject = sh(["git", "log", "-1", "--format=%s"], dir).out;
+    expect(subject).toContain(`built from the seeds of lopecode-dev@${wtHead} `);
+    expect(subject).not.toContain(mainHead);
+  } finally { rmSync(dir, { recursive: true, force: true }); rmSync(main, { recursive: true, force: true }); }
+});
+
 const flat = (s: string) => s.replace(/\s+/g, " ");
 const brief = () => readFileSync(join(ROOT, ".claude/skills/brain-maintenance/agents/implementer.md"), "utf8");
 const step = (s: string, n: number) => s.slice(s.indexOf(`\n${n}. **`), s.indexOf(`\n${n + 1}. **`));

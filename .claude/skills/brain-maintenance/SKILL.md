@@ -1,6 +1,6 @@
 ---
 name: brain-maintenance
-description: Use when the user asks to "work the tracker", "run the issue loop", "/brain-maintenance", "/loop /brain-maintenance", or wants the issues of the Cloud Brain tracker on cb4 triaged, fixed, reviewed and closed without being asked for each one. Polls the tracker, gives every review that waits a reviewer and every sent-back round its writer, starts new implementers (each in its own git worktree) when none of those waits, with no fixed number of either and a tracker token for each, and after every few issues spawns an overseer that files cluster issues or edits the role briefs.
+description: Use when the user asks to "work the tracker", "run the issue loop", "/brain-maintenance", "/loop /brain-maintenance", or wants the issues of the Cloud Brain tracker on cb4 triaged, fixed, reviewed and closed without being asked for each one. Polls the tracker, gives every review that waits a reviewer and every sent-back round its writer, starts new implementers (each in a git worktree of its topic, made by the orchestrator) when none of those waits, with no fixed number of either and a tracker token for each, and after every few issues spawns an overseer that files cluster issues or edits the role briefs.
 version: 0.1.0
 ---
 
@@ -99,11 +99,65 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
 
 ## One pass
 
-1. **Health.** `brain.ts redistil` shows every Worker `same`; `brain.ts state` shows each `brain-x-*` Worker at the hash `tools/cloud-brain/seen.json` holds for it (`redistil` cannot show a put-back: the kept source goes back with the Worker, so it read `same` through the one of 19:32 on 2026-10-10); `lease.get` is held or the page is
+1. **Health.** First the main checkout, `<root>`, which nothing else brings up. Since `wt-3-land-by-push`
+   (2026-10-12; `plan/cloud-brain-worktree-per-topic.md`, part 1) no landing pulls, merges or commits there, and no
+   agent of yours writes a tracked file there. Two pulls, each on a line of its own, its exit read:
+   ```
+   git -C <root> pull --ff-only
+   git -C <root>/cloud-brain-dev pull --ff-only
+   ```
+   The first is for what you read here: this skill, and what an issue names. The second because the first moves the
+   submodule's pointer and not its files, and four things are read from that copy: `philosophy.md` of this skill (a
+   link into it), `put.sh`, `summarize-papers.ts` (it starts `agent.sh` there), and the reviewer's `agent.sh` (step 4).
+   Git refuses the first when it would write over a file that is changed there (another session's edit), when `main`
+   there has a commit `origin/main` has not (a session committed and did not push), or while another git process
+   holds `index.lock`. Nothing is lost in any of them and the pass goes on: say which in step 7, and the next pass
+   tries again. The main checkout then stays behind until that session or the owner acts. No agent you spawn is
+   held up by it: each reads its brief and runs its tools in a worktree at `origin/main` (step 4). You are: this
+   file is then the one of the commit the main checkout is at.
+   Git refuses the second when it would write over a file `sync.ts` wrote under `deploy/`, one that is tracked or
+   one that a landing has added since. `deploy/` is a read of cb4 and nothing of it is kept, so then:
+   ```
+   git -C <root>/cloud-brain-dev checkout -- deploy
+   git -C <root>/cloud-brain-dev clean -fd deploy
+   git -C <root>/cloud-brain-dev pull --ff-only
+   (cd <root>/cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev)
+   ```
+   Refused for anything else (a commit there that is not pushed, `index.lock`): step 7, and the next pass.
+   Then two reads, check 9 of the spec:
+   ```
+   git -C <root>/cloud-brain-dev rev-list --count HEAD..origin/main
+   git -C <root>/cloud-brain-dev merge-base --is-ancestor $(git -C <root> ls-tree origin/main cloud-brain-dev | awk '{print $3}') HEAD
+   ```
+   `0`, and exit 0: the copy is at what the cluster has, and it has the commit that `origin/main` of `lopecode-dev`
+   records. Anything else is said in step 7. Each of the three blocks was run as written here on scratch
+   repositories, with the refusals (`tests/tools/worktree.test.ts`, the tests named `SKILL.md step 1`). On the main
+   checkout the two reads gave `0` and exit 0 on 2026-10-12 at 09:58 CEST, with no pull before them (the cluster's
+   `main`, the pointer and the copy were each `06a4a2b`); the pulls and the four commands were not run there by the
+   writer of this step, being yours.
+   **You write nothing else there.** A commit of your own (a brief, this file, a record, a quick win) is made in a
+   worktree of your own, `tools/cloud-brain/worktree.sh --fresh orch-$(hostname -s)`, which prints its path, at
+   `origin/main`, and is landed from it by a push as `agents/implementer.md` step 10 lands a change with no deploy,
+   the lock taken as `orchestrator-$(hostname -s)`. Exit 3 from that `--fresh`: a commit or an edit of yours stands
+   there unlanded; land it or take it back, the loop removes nothing of it.
+   **The worktrees of the loop.** `tools/cloud-brain/worktree.sh --list` prints a line for each `bm-*` worktree: its
+   name, `clean` or `not-clean`, five counts, `occupant=`, `branch=`, `head=`. `orch-*`, `over-*` and `out-*` are of
+   no issue and are left. For each other line that reads `clean` and `occupant=-`, the issue is the name with `rev-`
+   taken off the front and `.2` (or a higher number) off the end: read its state,
+   `issue-as.sh <your token> "get?id=<that id>"`.
+   A worktree of a topic or of an issue, at `done`, `closed` or `rejected`: `tools/cloud-brain/worktree.sh --remove <tree>`,
+   with `<tree>` the name in the line, then one comment on that issue, key `orch/<topic>/worktree-removed-<n>`, body
+   `worktree removed {"topic":"<topic>","machine":"<hostname -s>","path":"<the path it had>"}`.
+   A view (`rev-<id>`, made for a review) whose issue is not at `spec-review` or `in-review`: removed the same way,
+   whoever made it, with no comment. A line that reads `not-clean` is somebody's unlanded work: you never remove
+   it (`--remove` refuses it, exit 3) and you name it in step 7 with its counts. So is one whose id the tracker
+   does not have. (Before this, each writer removed its own at its landing, and a worktree of a `done` issue still
+   stood on 2026-10-12: `seen-worktree-left-after-landing`.)
+   Then the cluster. `brain.ts redistil` shows every Worker `same`; `brain.ts state` shows each `brain-x-*` Worker at the hash that `seen.json` of `origin/main` holds for it, read with `git -C <root> show origin/main:tools/cloud-brain/seen.json` after the pull above, or after `git -C <root> fetch origin main` when it was refused: a landing commits that file in its worktree and pushes it, so the main checkout's own copy is behind whenever its pull was refused (`redistil` cannot show a put-back: the kept source goes back with the Worker, so it read `same` through the one of 19:32 on 2026-10-10); `lease.get` is held or the page is
    not needed; `LOCK_TOKEN=<your token> tools/cloud-brain/lock.sh show land` and `show cb4` each answer exit 0 (the holder, since when and until when) or exit 1 (not held), and exit 2 is cb4 not saying: not healthy. If the cluster is not healthy, file or find
    the issue for it and do nothing else this pass. Since `lk-3-lock-sh-over-the-cluster` both locks are held in the cluster, for 600 s from the take or the last renew.
    A lock past its time is not held: `show` exits 1 and says whose lock ended and when, and the next take takes it. That holder died or overran:
-   look at its issue (step 3). Nothing is the owner's to remove. A commit of your own in the main checkout is made between
+   look at its issue (step 3). Nothing is the owner's to remove. A landing of your own, from your worktree `bm-orch-<host>` (above), is made between
    `LOCK_TOKEN=<your token> tools/cloud-brain/lock.sh take land orchestrator-$(hostname -s)` and `LOCK_TOKEN=<your token> tools/cloud-brain/lock.sh release land orchestrator-$(hostname -s)`.
    Every `lock.sh` of yours has `LOCK_TOKEN=<your token> ` before it, `show` among them: with none the script sends nothing and is exit 2, with its usage (since `lock-sh-default-token-r4`; until then such a call was made with a role's token),
    and the holder of a lock is the name with the token of the call.
@@ -157,8 +211,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    (`tools/cloud-brain/records/ta-3-orchestrator-steps.md` has the command).
    Not known: how many writers this machine carries. If memory or the browser tabs of writers bind before a limit or the lock does,
    this rule does not see it; the overseer adds the sign that would have.
-   What makes several at once safe: a writer edits and builds in a worktree of its own and
-   lands under the landing lock; a reviewer tests the notebook of the commit, not the working file.
+   What makes several at once safe: a writer edits and builds in a worktree no other agent is in (step 4) and
+   lands from it by a push under the landing lock; a reviewer tests the notebook of the commit, not the working file.
 3. **List the open issues and take the first that matches**, in this order.
    A place goes, in this order, to: a round that was sent back (a writer's or a spec's); a review
    that waits; a start. Among starts: the owner's before the loop's own; then an issue past 4 hours
@@ -207,18 +261,57 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
 4. **Spawn.** First make the agent's token, from the main checkout ("A token for each agent"):
    `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token <impl|spec|dig|over|rev> <id>`. Its stdout is the name.
    On exit 1 what it printed is not a name: no agent is spawned, and it is said in step 7.
-   Then the `Agent` tool: `subagent_type: general-purpose`, `model: opus`, never
-   `fork`, and this prompt with nothing added. An agent that knows what you expect confirms it.
+   **Then a worktree for it** (since `wt-3-land-by-push`, 2026-10-12; `plan/cloud-brain-worktree-per-topic.md`,
+   part 3; the reviewer is not put in one yet, below). The topic of an issue is its `parent` when it has one, and
+   otherwise the issue itself: a task's is its project, a project's or a digest's is itself. From the main checkout:
    ```
-   Working directory: <absolute repo root>.
-   Read <root>/.claude/skills/brain-maintenance/agents/<role>.md and follow it.
+   tools/cloud-brain/worktree.sh --fresh <topic> --for <the agent's token>
+   ```
+   - Exit 0: stdout is the path, `<W>`, and `<tree>` is `<topic>`. With none there it made one at `origin/main`;
+     one that stood with nothing unlanded it brought up to `origin/main`. The token is written in it as its
+     occupant, so that a second session of yours, or you after a compaction, does not put another agent there.
+   - Exit 3: work stands there that is not landed (its counts are on stderr), and nothing was touched. Whose it is:
+     the `for` of the last comment of the topic that names this path (below). When it is of the issue you are
+     starting (a round sent back, a `back`, a writer that died), the writer is put in it as it is: `<W>` is
+     `<root>/.claude/worktrees/bm-<topic>`, and the prompt gets a fifth line,
+     `The worktree holds unlanded work of this issue.` Otherwise take the next name, as for exit 4, and say so in a
+     comment on the issue whose work stands there. You delete nothing of a writer's.
+   - Exit 4: another agent is in it (stderr names its token), nothing was touched. Run the command again with
+     `<topic>.2` in place of `<topic>`, then `<topic>.3`, and take the first that answers 0: `<tree>` is that name.
+     (On 2026-10-11 two tasks of one project were written at once in 21 of 64 spans; the spec, "What exists today".)
+   - Exit 2: origin was not reached. No agent is spawned, and it is said in step 7.
+   Then one comment on the topic's issue, with your token, so that where the topic's work stands is read from the
+   tracker and not from your memory. The body has quotes in it, so it goes in a file of the scratchpad and is sent
+   with `@` (`agents/implementer.md`, "The tracker's write calls"): `issue-as.sh <your token> comment @<file>`, the
+   file `{"key":"orch/<topic>/worktree-<n>","id":"<topic>","body":"…"}` with `<n>` one more than the topic's
+   comments of that key so far, and the body, its quotes escaped in the file:
+   ```
+   worktree {"topic":"<topic>","branch":"bm/<tree>","machine":"<hostname -s>","path":"<W>","at":"<sha of origin/main>","for":"<id>"}
+   ```
+   `at` is `git -C <W> rev-parse origin/main`. The branch is local and is not pushed: what reaches another machine
+   is `origin/main`, and the comment tells an orchestrator there that unlanded work may stand on the machine it
+   names. The next agent of the topic, and you, read these with `issue-as.sh <token> "get?id=<topic>"`: the
+   `commented` events whose key begins `orch/<topic>/worktree-`.
+   When the agent has reported (step 5): `tools/cloud-brain/worktree.sh --leave <tree>`, which takes the occupant
+   out. Not for a writer that waits for its review (step 2): it has not reported.
+   Then the `Agent` tool: `subagent_type: general-purpose`, `model: opus`, never
+   `fork`, and this prompt with nothing added but the fifth line of exit 3. An agent that knows what you expect confirms it.
+   ```
+   Working directory: <W>.
+   Read <W>/.claude/skills/brain-maintenance/agents/<role>.md and follow it.
    Issue: <id>
    Your token is <name>.
    ```
-   For the overseer the third line is `Last oversight ended at event <seq>. Journal: <root>/tools/cloud-brain/.emitted/issue-loop/`,
-   and the token's line follows it.
+   The brief is the worktree's copy, at `origin/main` as it was when the worktree was brought up: it does not
+   change under the agent, where the main checkout's did (`seen-briefs-change-under-a-writer`, eight cases).
+   For the overseer the worktree is `tools/cloud-brain/worktree.sh --fresh over-$(hostname -s) --for <its token>`,
+   with no comment (it is of no topic), the third line is `Last oversight ended at event <seq>. Journal: <root>/tools/cloud-brain/.emitted/issue-loop/`,
+   and the token's line follows it. Exit 3 there is an overseer's edit that was not landed: named in step 7, and
+   no overseer is spawned until it is landed or taken back.
+   (First spawn made this way: not yet, when this was written. `--fresh`, `--leave`, the exits and the occupant are
+   the tests of `tests/tools/worktree.test.ts`; check 7 of the spec is the first topic's comment.)
 
-   **The reviewer is not an Agent call** (the owner, 2026-10-11: "the skill spawns a super light claude with a
+   **The reviewer is not an Agent call**, and is started from the main checkout until `wt-4-reviewer-in-a-view` (the owner, 2026-10-11: "the skill spawns a super light claude with a
    generic opening. role: reviewer task: ....", and of what was built for it: "ok please get that into production").
    It is a process of its own, started with Bash, `run_in_background: true`, `timeout: 3600000`:
    ```
@@ -249,7 +342,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    Measured before the switch: 25,212 after it had read its brief, the rules and `philosophy.md`, where an
    Agent told to answer "OK" is 40,842; one review replayed at 69,440 against 100,725 (the README has both,
    and what was not tried). First real review by it: not yet.
-5. **When an agent reports**, append the report to the journal, then read the issue again.
+5. **When an agent reports**, append the report to the journal, free its worktree
+   (`tools/cloud-brain/worktree.sh --leave <tree>`, step 4; a light reviewer has none), then read the issue again.
    A reviewer may have made a commit of its own since 2026-10-11: a note mended in a document of the change
    (its brief, "What holds a change, and what is a note"; the owner: "Lets do  1,2,3"). It is named in the
    review's body and needs no review and no move from you. The
@@ -333,7 +427,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    yourself before the call (`tools/cloud-brain/records/ps-4-the-rest.md` has the command).
 6. **Oversight.** Spawn the overseer (its token: `agent-token over oversight-after-<seq>`), beside the others, when either 3 issues have
    reached `done`, `rejected` or `needs-owner` since the last entry of `oversight.md`, or one
-   issue hit the rework cap. One overseer at a time; it commits under the landing lock.
+   issue hit the rework cap. One overseer at a time; it commits in its own worktree, `bm-over-<host>` (step 4), and
+   lands from it by a push under the landing lock.
 7. **Tell the user** in a few lines: what moved this pass, what is waiting for the owner and
    why, what is running. Nothing moved is one line.
 8. **Watch, then schedule** (only under `/loop`). The tracker wakes you, not the clock (the
@@ -372,11 +467,16 @@ sent no message. What follows is for a writer that has reported: after its secon
 2. When that run has an `agent`, its `session` is the output of `echo $CLAUDE_CODE_SESSION_ID`
    in your Bash, and the agent's token is live, send the round to that agent (live: the run's `token` is a
    `name` of `agent-token list`; a run with no `token` is of a writer that wrote with a role's
-   token, which is live until the owner's revoke): `SendMessage` (load it with `ToolSearch`,
+   token, which is live until the owner's revoke): first put it in a worktree again, as step 4 does, with the
+   name of the topic's last `worktree {` comment whose `for` is this issue:
+   `tools/cloud-brain/worktree.sh --fresh <tree> --for <the agent's token>`. Exit 4 (a later task of the topic is
+   being written there) or exit 3 with another issue's work: the next free name, and the comment of step 4.
+   Then `SendMessage` (load it with `ToolSearch`,
    `select:SendMessage`) with `to` the `agent` value and this message, with nothing added:
    ```
    Issue: <id>, sent back by the review at event <seq of the `reviewed` event>.
-   A resumed round: read "A resumed round" in <root>/.claude/skills/brain-maintenance/agents/implementer.md and follow it.
+   Working directory: <W>.
+   A resumed round: read "A resumed round" in <W>/.claude/skills/brain-maintenance/agents/implementer.md and follow it.
    ```
    The answer to a send that was taken is `{"success":true,"message":"Resuming agent …"}`. The
    agent runs in the background and reports as a spawned one does; step 5 is the same, with
@@ -439,11 +539,11 @@ should jsut do it as a quick win while it is there." That is said of every agent
 Triage has you read the issue and the code; sometimes you then hold the whole fix, and spawning a
 writer to find it again was 167,000 tokens at the least on 2026-10-10. Take it yourself when the
 fix is in a brief, a doc, a record or a local tool, is one change, and needs no seed built and no
-deploy: `start` from `open` with your own token and the reason triage would have given, make the change in a worktree,
+deploy: `start` from `open` with your own token and the reason triage would have given, make the change in your own worktree (`bm-orch-<host>`, step 1),
 write its record (`tools/cloud-brain/records/<id>.md`, as `agents/implementer.md` step 9 says; a
 change to a doc alone has one too: reviews 642, 645 and 686 each sent a quick win of yours back
 with "no record" among the findings),
-land it under the landing lock (`LOCK_TOKEN=<your token> lock.sh take land <who>`, `agents/implementer.md` step 10), `submit` with the commit. Any submit of your own, a quick win or work
+land it by a push from that worktree under the landing lock (`LOCK_TOKEN=<your token> lock.sh take land <who>`, `agents/implementer.md` step 10), `submit` with the commit. Any submit of your own, a quick win or work
 a session did on the owner's word, is sent after the push and after the lock is released: one
 `commit` ref for each commit the landing added, read then with `git log`, and a `deploy` ref
 (`<worker>@<hash>`) for each thing put on cb4; and it has its record first, as above. (Submit 1042

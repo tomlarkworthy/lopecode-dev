@@ -8,12 +8,62 @@ name, `impl-` and six hex digits. The orchestrator made it for this run, and it 
 (`rules.md`, "Which token"). `issues-implementer-2` when the prompt names none. `<token>` below is
 that name, written out. Shorthand below: `ia` is `tools/cloud-brain/issue-as.sh <token>`. Define it
 as a function, `ia() { <root>/tools/cloud-brain/issue-as.sh <token> "$@"; }`, in each command that
-uses it, with the name in place of `<token>` and no variable for it: the shell is zsh, which does
+uses it (the copy in your worktree, `$W/tools/cloud-brain/issue-as.sh`, does the same: "Where you work"),
+with the name in place of `<token>` and no variable for it: the shell is zsh, which does
 not word-split a variable and stops on an unquoted `*` or `?` that matches no file, and no shell
 state lasts between calls. Quote the method and the JSON.
 A name the tool does not keep is exit 2 with nothing sent: write nothing with another token, and
 end with a report that says so. You do not run `brain.ts agent-token`: the orchestrator makes a
 token and ends it.
+
+## Where you work
+
+Since `wt-3-land-by-push` (2026-10-12; `plan/cloud-brain-worktree-per-topic.md`, parts 1 and 3) the
+orchestrator puts you in a git worktree before it spawns you. You make none and you remove none.
+The first line of your prompt names it, `Working directory: <W>`, a directory
+`…/.claude/worktrees/bm-<tree>`. Below, `$W` is that path and `<tree>` is what follows `bm-` in its
+name: the topic of your issue (its parent, or the issue itself when it has none), with `.2` or a
+higher number after it when the topic's first worktree was not free. Its branch is `bm/<tree>`.
+`<root>` is the main checkout the worktree is of:
+`dirname "$(git -C $W rev-parse --path-format=absolute --git-common-dir)"`. Write the paths out in
+each command; no shell state lasts between calls.
+
+- **You edit, build, test, commit and push in `$W`.** In `<root>` you write no tracked file and run
+  no `git commit`, `merge` or `pull` and no `build.ts`. What `<root>` is to you: the place of
+  `tools/cloud-brain/.emitted` (the state, the tokens, the files you emit; none of it tracked) and
+  of `lopebooks`, where step 10 writes the built notebook under the lock.
+- **Tools are run from `$W`**, by their path there: the copy is the one of the commit you are at,
+  and it changes only at your own rebase. `issue-as.sh`, `lock.sh`, `issue-wait.sh` and
+  `worktree.sh` find the main checkout's tokens and worktrees from there. `brain.ts` finds the
+  state with `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted` before it, and not without. Run
+  2026-10-12 from this change's worktree: `issue-as.sh <token> "get?id=…"` answered 200,
+  `LOCK_TOKEN=<token> lock.sh show land` answered `land is not held`, `issue-wait.sh` waited, and
+  `brain.ts curl … --as loop-knowledge` answered entries with the variable and
+  `no token "loop-knowledge" is kept` with none. Two tools were not moved and are run from `<root>`
+  as their steps say: `verify-run.ts` (step 8) and `issue-stats.ts`.
+- **`$W/cloud-brain-dev` is where you test** (Tom, 2026-10-10: the loop is "to prefer using that
+  directory in a worktree when solving tasks"). It is a clone of the repository `cloud-brain-dev`
+  from the cluster's git, yours alone, at the commit your worktree's `HEAD` names, and
+  `worktree.sh` has read what cb4 runs into its `deploy/` (about 1 s;
+  `bun sync.ts https://cb4.endpointservices.workers.dev` there reads it again and loses any edit
+  under `deploy/`; `worktree.sh --rebase <tree>` does it too). `bun test.ts <worker>` there runs
+  that service's tests as deployed, with no browser, in about 2 s; `--with FILE` runs your built
+  module in its place. A change to that repository is committed in the clone, never in
+  `<root>/cloud-brain-dev`, and landed by `worktree.sh --push-dev` (step 10).
+- `git status` fails in the worktree (`lopebooks`, `lopecode` and `lopecode-plugin` are links);
+  `git diff`, `git add <file>` and `git commit` work. Never `git commit -a` or `git add -A` there:
+  the commit records the links in the submodules' place, which the landing would push to `main`.
+- **A worktree that holds work when you come to it.** When your prompt says so, a writer of this
+  issue before you died or was sent back, and its commits and edits stand:
+  `git -C $W log --oneline origin/main..HEAD` and `git -C $W diff --stat HEAD` show them. Go on
+  from them (step 4 says how the round is counted). You are put in no worktree that holds
+  another issue's unlanded work; if those two commands show some that is not this issue's, write
+  nothing there, and say so in a comment and your report.
+- **A prompt whose first line names the main checkout** (no `.claude/worktrees/bm-` in the path)
+  is from an orchestrating session that still runs the procedure of before that day. Then you
+  make the worktree yourself, after the claim of step 4:
+  `W=$(<root>/tools/cloud-brain/worktree.sh <id>)`. `<tree>` is then `<id>`, and all else is as
+  written here. (The writer of `wt-3-land-by-push` was started that way.)
 
 ## Steps
 
@@ -22,12 +72,12 @@ token and ends it.
    If you wrote the round before and this one came to you as a message, read "A resumed round" below first.
 2. **Read the code it is about.** The source of a service is its seed, `tools/cloud-brain/<name>.ojs`.
    The first `md` cell is its method reference. `spec-as-built.md` and `tools/cloud-brain/records/` have the history.
-   What runs on cb4, when that is the question, is in your worktree after step 4:
+   What runs on cb4, when that is the question, is in your worktree:
    `$W/cloud-brain-dev/deploy/@tomlarkworthy/<module>.js`, with each Worker's hash in `deploy/services.json`.
    It is for reading. A change is made in the seed.
    **Then search the Brain for prior art, before you design the fix** (Tom, 2026-10-11: "update
    the loop instructions to use knowledge.search to do prior art research before implementing or
-   designing"): `BRAIN_BASE=cb4 bun <root>/tools/cloud-brain/brain.ts curl "/xrpc/com.lopecode.brain.knowledge.search?semantic=true&q=<words, url-encoded>" --as loop-knowledge 2>/dev/null`.
+   designing"): `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted BRAIN_BASE=cb4 bun $W/tools/cloud-brain/brain.ts curl "/xrpc/com.lopecode.brain.knowledge.search?semantic=true&q=<words, url-encoded>" --as loop-knowledge 2>/dev/null`.
    It answers `entries`, each with `id`, `kind`, `title`, `source` and `score`: `doc` is a guide
    in `knowledge/`, `module` a notebook module in the library, `paper` a paper from the daily
    feeds. Two or three searches, in the words of the problem and in the words of the fix you have
@@ -60,20 +110,10 @@ token and ends it.
    makes `start`. An issue at `ready` whose events have a `back` move had a writer before you:
    make `start` as above, read that writer's comments and the commits they name, and go on from
    what is landed; your round is still the count of `rework` moves plus one.
-   **Then work in a worktree of your own**, because another writer may be working at the same
-   time and `build.ts` in the main checkout rewrites the notebook every agent reads:
-   `W=$(tools/cloud-brain/worktree.sh <id>)`. Steps 5 to 9 happen in `$W`. Tools that read the
-   cluster (`brain.ts`, `issue-as.sh`) are always run from the main checkout by absolute path.
-   **`$W/cloud-brain-dev` is where you test** (Tom, 2026-10-10: the loop is "to prefer using that
-   directory in a worktree when solving tasks"). It is a worktree of the repository
-   `cloud-brain-dev`, yours alone, and `worktree.sh` has read what cb4 runs into its `deploy/`
-   (about 1 s; `bun sync.ts https://cb4.endpointservices.workers.dev` there reads it again and
-   loses any edit under `deploy/`; `worktree.sh --rebase <id>` does it too, and gives a worktree
-   made before 2026-10-10 23:10 its `cloud-brain-dev/`). `bun test.ts <worker>` there runs that service's tests as
-   deployed, with no browser, in about 2 s; `--with FILE` runs your built module in its place.
-   `git status` fails in the worktree (`lopebooks` and `lopecode` are links); `git diff`, `git add <file>`
-   and `git commit` work. Never `git commit -a` or `git add -A` there: the commit records the
-   links in the submodules' place, which the landing would take to `main`.
+   **Then work in your worktree, `$W`** ("Where you work", above): the orchestrator made it at
+   `origin/main` and wrote your token in it as its occupant, so no other agent is put there while
+   you work. Steps 5 to 10 happen in it. (Until `wt-3-land-by-push`, 2026-10-12, each writer made
+   a worktree of its own here, one an issue, and removed it at its landing.)
 5. **Reproduce before fixing**, where the issue describes behaviour: a test that fails for the
    reason the issue gives. Write it in the seed and run it with step 7's loop: it fails against
    what is deployed, before you change anything else. If you cannot reproduce it, say so on the issue and stop.
@@ -137,7 +177,7 @@ token and ends it.
    and `failed`, a list of each failed test's name and message (`TIMEOUT` after 90 s). Exit 0 is
    every test passed, 1 a test failed, 70 the module was not found: it is named whole, as in the
    notebook's boot list. A worktree made before the tool landed gets it with
-   `tools/cloud-brain/worktree.sh --rebase <id>`.
+   `tools/cloud-brain/worktree.sh --rebase <tree>`.
    Do not open a paired tab for this (`qa_open_notebook` with `cc=`). You are an agent of the
    orchestrating session, so your tab pairs through its channel server, and each `connected`,
    `variable_update`, `cell_change` and `disconnected` of the tab is sent to that session, which
@@ -186,9 +226,10 @@ token and ends it.
 9. **Make it ready to land, still in the worktree and with no lock.** Since 2026-10-10 19:33 the
    lock covers the deploy and the push only; before that the second test run, the emit and the
    record were inside it and writers queued (Tom: "Issue completetion is bottlneck").
-   - **Bring the worktree up to `main`:** `tools/cloud-brain/worktree.sh --rebase <id>`, never
-     `git rebase main` there (after a conflict `git rebase --continue` fails on the submodule
-     links). It prints the files that came in from `main`, and nothing when `main` had not moved.
+   - **Bring the worktree up to `origin/main`:** `$W/tools/cloud-brain/worktree.sh --rebase <tree>`
+     (a fetch, then the rebase), never `git rebase` there (after a conflict `git rebase --continue`
+     fails on the submodule links). It prints the files that came in, and nothing when
+     `origin/main` had not moved. Exit 2: origin was not reached, and nothing changed.
      Exit 1 is a conflict: another writer changed the same lines. Resolve it in the seed, never in
      the notebook, `git add` each file by name, and run the same command again.
    - **If the rebase changed what your module is built from** (the files it printed
@@ -236,22 +277,39 @@ token and ends it.
      `git_service` for `brain-x-git`. The command that gave your count and the one that emitted may be one.
      A change with no deploy (a doc, a local tool, a test file under `tests/`) emits nothing.
      A changed `test_*` cell of a seed is a deploy of that seed's Worker: emit and apply it.
-10. **Land it. One writer lands at a time, in the main checkout.** Note `date` when you take the
+10. **Land it. One writer lands at a time, by a push from the worktree.** Note `date` when you take the
     lock and when you release it, and put both in your report.
+    Since `wt-3-land-by-push` (2026-10-12; `plan/cloud-brain-worktree-per-topic.md`, part 1) a landing writes no
+    tracked file of the main checkout: nothing is pulled, merged or committed there. Until then a landing pulled
+    and merged its branch in `<root>` (174 such merges in its reflog of 2026-10-11), and another session's
+    uncommitted file there refused a writer's merge for 19 minutes (`seen-main-checkout-edited-outside-lock`).
+    `lock.sh` in this step is your worktree's, `$W/tools/cloud-brain/lock.sh`: it finds the main checkout's
+    tokens, and its release enters the docs from the checkout it is in, which has the commit you pushed.
     Every `lock.sh` call of this step has `LOCK_TOKEN=<token> ` before it, on the same line, `show`
     among them: the holder of a lock is the name with the token of the call, a renew or a release
     sent with another token is refused, and with no `LOCK_TOKEN` the script sends nothing: exit 2, with its usage (since `lock-sh-default-token-r4`; until then such a call was made with a role's token).
-    No `git commit`, `merge`, `pull` or `push` of this step is written before a `|` (`… | tail`): the
+    No `git commit` or `push` of this step is written before a `|` (`… | tail`): the
     line's exit is then the last command's, and a commit a hook refused reads as made. Run each on a
-    line of its own and read its exit; a sha you give as a ref is one `git -C <root> log` shows
-    (two writers on 2026-10-11, `tx-3-two-references` and `fb-a2g3jyhecp`: "a piped lopebooks commit
+    line of its own and read its exit; a sha you give as a ref is one `git -C $W log origin/main` shows
+    after your push (two writers on 2026-10-11, `tx-3-two-references` and `fb-a2g3jyhecp`: "a piped lopebooks commit
     read exit 0 and had not happened", "a piped lopebooks commit hid the hook's refusal").
-    - Take the landing lock: `LOCK_TOKEN=<token> <root>/tools/cloud-brain/lock.sh take land <id>`. Since
+    A landing with no deploy (a doc, a local tool, a test file under `tests/`) is these five lines, each run on
+    its own and its exit read before the next:
+    ```
+    LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh take land <id>
+    $W/tools/cloud-brain/worktree.sh --rebase <tree>
+    LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh renew land <id>
+    git -C $W push origin HEAD:main
+    LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh release land <id>
+    ```
+    No build, apply or `lopebooks` commit. With a deploy, the build, the apply and their commits come between
+    the rebase and that renew. Each line, and what comes between, in order:
+    - Take the landing lock: `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh take land <id>`. Since
       `lk-3-lock-sh-over-the-cluster` the lock is held in the cluster (a row `brain-x-issues` keeps,
       for 600 s from the take), so a writer in another checkout or on another machine meets the
       same one, and nothing is made on this machine for it. Exit 0 is yours.
       Exit 1 names the writer that is landing and until when: wait with a background command
-      (`LOCK_TOKEN=<token> <root>/tools/cloud-brain/lock.sh take land <id> --wait`, `run_in_background`; a foreground
+      (`LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh take land <id> --wait`, `run_in_background`; a foreground
       `sleep` is blocked) and carry on when it returns 0.
       Exit 2: cb4 was not reached, or refused the call. Nothing is landed and nothing is deployed
       without the lock, and nothing local stands in for it: wait with `--wait`, which also asks
@@ -262,29 +320,27 @@ token and ends it.
       token. Never put the release after a `;` that follows a take which may have failed
       (`records/land-lock-any-session-can-remove.md`). `LOCK_TOKEN=<token> lock.sh show land` says who holds it and
       until when. A lock is released by its holder or ends at its time; nobody removes another's.
-    - `git -C <root> pull --ff-only`, and `git -C <root>/lopebooks pull --ff-only`: a writer on
-      another machine may have landed. With every writer on one machine it brings nothing in. Git
-      refuses it in two cases and each is a stop (`LOCK_TOKEN=<token> lock.sh release land <id>`, report, no merge):
-      the checkout's `main` and origin's have each a commit the other has not, or the pull brings
-      in a file that is changed in the checkout (`seen.json` is often changed there). The notebook in
-      `lopebooks` is changed there after every landing that builds but the day's first (below), so a pull that
-      brings in a commit of it from another machine is refused for that file: it is a build and nothing
-      of it is lost, so `git -C <root>/lopebooks checkout -- notebooks/@tomlarkworthy_cloud-brain.html notebooks/@tomlarkworthy_cloud-brain.json`
-      and pull again (run on two scratch repositories on 2026-10-11, not in `lopebooks`; the record of
-      `notebook-commit-once-a-day`).
-    - `tools/cloud-brain/worktree.sh --rebase <id>` again: a writer that landed while you waited
-      moved `main`. Look at what came in as in step 9. If it changed what your module is built from, what you emitted
+    - `$W/tools/cloud-brain/worktree.sh --rebase <tree>`: a fetch, then a rebase on `origin/main`, which a
+      writer on this machine or another moved if it landed while you waited. Exit 2: origin was not reached and
+      nothing changed (`LOCK_TOKEN=<token> lock.sh release land <id>`, report, no push). Exit 1 is a conflict, as in
+      step 9. Look at what came in as in step 9. If it changed what your module is built from, what you emitted
       is stale: `LOCK_TOKEN=<token> lock.sh release land <id>`, build, test and emit again, and come back. Never apply a file
       emitted before such a change; it would deploy the Worker without the other writer's work.
       Anything else: keep the lock and carry on.
-    - `LOCK_TOKEN=<token> lock.sh renew land <id>`, then `git -C <root> merge --ff-only bm/<id>`. The renew gives
-      600 s from now and says the lock is still yours. Exit 1 is a stop before the checkout is
-      written to: your 600 s ended and another writer has the lock, or has had it. No merge;
-      report. Exit 0 with the line `renewed after it had ended … nobody held it between` is
-      yours: go on. Exit 2: cb4 was not reached; ask again, and do not merge until it answers 0.
-      Then the notebook, built from committed seeds: the
-      worktree is at `main`'s commit now, so
-      `cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html && <root>/tools/cloud-brain/notebook-backup.sh "$W/tools/cloud-brain/.emitted/cloud-brain.html"`.
+    - **With a deploy: the notebook, built from committed seeds.** First `LOCK_TOKEN=<token> lock.sh renew land <id>`. The renew gives
+      600 s from now and says the lock is still yours. Exit 1 is a stop before anything of the main checkout is
+      written to: your 600 s ended and another writer has the lock, or has had it. No build there; report.
+      Exit 0 with the line `renewed after it had ended … nobody held it between` is
+      yours: go on. Exit 2: cb4 was not reached; ask again, and do not go on until it answers 0.
+      Then `git -C <root>/lopebooks pull --ff-only`: a writer on another machine may have made the day's backup.
+      With every writer on one machine it brings nothing in. The notebook in `lopebooks` is changed there after
+      every landing that builds but the day's first (below), so a pull that brings in a commit of it from another
+      machine is refused for that file: it is a build and nothing of it is lost, so
+      `git -C <root>/lopebooks checkout -- notebooks/@tomlarkworthy_cloud-brain.html notebooks/@tomlarkworthy_cloud-brain.json`
+      and pull again (run on two scratch repositories on 2026-10-11, not in `lopebooks`; the record of
+      `notebook-commit-once-a-day`). Any other refusal of it is a stop: release, report.
+      Then the build, from your worktree, which is at the commit you will push:
+      `cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html && tools/cloud-brain/notebook-backup.sh "$W/tools/cloud-brain/.emitted/cloud-brain.html"`.
       The tool writes the build over `<root>/lopebooks/notebooks/@tomlarkworthy_cloud-brain.html`, where the
       owner and a session read it, and commits it there only when the file's last commit is of an
       earlier day. Its one line is `committed <sha> <day>`, `not due: …` or `same: …`
@@ -293,15 +349,19 @@ token and ends it.
       thing for backups"); until then every landing that built committed it (the issue's count at about 22:30 CEST that day: 53 commits of an 8.7 MB file).
       The notebook of a change is the build of its `lopecode-dev` commit (`build.ts --out`, the same bytes),
       so nothing waits on the backup.
+      That file, and its commit in `lopebooks` once a day, is all a landing writes in the main checkout: one
+      file, written whole from committed seeds by the lock's holder.
       Never `build.ts` in the main checkout: another session may have seeds open there, uncommitted
       and with no lock, and that build writes them into the notebook (six such files
       on 2026-10-10 23:29; one writer built them in and had to undo it).
-      If `git -C <root> diff --quiet -- tools/cloud-brain/brain.ts` fails, `brain.ts` there is
-      someone's edit: run the worktree's, `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted bun $W/tools/cloud-brain/brain.ts …`.
       The tests are not run again: the seeds are the ones you tested.
     - Deploy under the deploy lock (inside the landing lock: `LOCK_TOKEN=<token> lock.sh take cb4 <id>`, and `LOCK_TOKEN=<token> lock.sh release cb4 <id>` when the apply has answered; an exit 1 or 2 from that take is no apply), with a reason that names the issue:
-      `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts apply <id>-<worker>.json --reason="<id>: …"`.
-      Then `redistil` (the Worker's line reads `same`), `saw <worker>`, and for the tracker
+      `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted BRAIN_BASE=cb4 bun $W/tools/cloud-brain/brain.ts apply <id>-<worker>.json --reason="<id>: …"`.
+      `brain.ts` is your worktree's, with the main checkout's state: it reads the file you emitted from that
+      `.emitted`, and it keeps `seen.json` beside itself, so the entry it moves is the one of `$W`, which is
+      `origin/main`'s after the rebase (`brain.ts`, lines 24 and 136: read, and its `curl` run that way; an
+      `apply` from a worktree was not run when this was written).
+      Then `redistil` (the Worker's line reads `same`), `saw <worker>`, each with the same two variables before it, and for the tracker
       `curl "/xrpc/com.lopecode.brain.issue.verify?guards=true" --owner` (a read).
       When the apply answers `probation`, the deployer gave no verdict: read `deploy.verify.none` for
       why (`brain.ts curl "/xrpc/com.lopecode.brain.logs.deploys" --as loop-deploys`). Its tests did
@@ -311,23 +371,47 @@ token and ends it.
       words of `deploy.verify.none`, and the runs of yours the version stands on (three writers on
       2026-10-11, `ow-2-panel-offers-what-it-shows`, `fb-a2b5yudl8s` and `ow-3-operator-shown-the-issue`,
       after "browser.extend answered 402 owner has made 2000 priced calls today"; this step had no line for it).
-    - Commit `seen.json` in `lopecode-dev`. After `not due: …` or `same: …` there is no `lopebooks` commit,
+    - Commit `seen.json` in the worktree: `git -C $W add tools/cloud-brain/seen.json`, then
+      `git -C $W commit -m "<id>: seen.json after the deploy of <worker>"`.
+      After `not due: …` or `same: …` there is no `lopebooks` commit,
       no pointer to commit and no push of `lopebooks`. After `committed <sha> <day>` (the first landing of a
-      day that builds) the tool has made the `lopebooks` commit: `git -C <root> add lopebooks` goes in the
-      same `lopecode-dev` commit, and `lopebooks` is pushed first. Exit 3 from the tool is no
+      day that builds) the tool has made the `lopebooks` commit, in the main checkout's `lopebooks`. It is pushed
+      first, and then its pointer is committed in the worktree:
+      ```
+      git -C <root>/lopebooks push
+      git -C $W update-index --cacheinfo 160000,$(git -C <root>/lopebooks rev-parse HEAD),lopebooks
+      git -C $W commit -m "<id>: the lopebooks pointer, the notebook's backup of <day>"
+      ```
+      Never `git add lopebooks` in the worktree: it is a link there, and the commit would record the link. The
+      sha is the whole one: `update-index` refuses the 8 characters the tool prints. Exit 3 from the tool is no
       stop of the landing: the backup was not made, say so in your comment with the hook's words.
-      `LOCK_TOKEN=<token> lock.sh renew land <id>` again, then push. Exit 1 from this renew: no push; report
-      what is committed in the main checkout and not pushed.
-    - With no deploy: take, pull, rebase, renew, `merge --ff-only`, renew, push, release. No build, apply or `lopebooks` commit.
-    - `LOCK_TOKEN=<token> <root>/tools/cloud-brain/lock.sh release land <id>`. It prints when the lock was taken and when it went. Then one line `docs (cb4): …`: the docs step; `not entered (…)` is no failure of the landing (the exit is the release's; `knowledge/calling-a-cloud-brain-from-this-checkout.md`, "The knowledge docs in the Brain's search").
+    - **A change to `cloud-brain-dev`**, committed in the clone `$W/cloud-brain-dev` (on a branch of the clone
+      when you want one): `$W/tools/cloud-brain/worktree.sh --push-dev <tree>`, here, before the push of
+      `lopecode-dev`. It rebases the clone's commits on the cluster's `main`, pushes them there with a write token
+      of 60 s (`git.token`, called as `loop-git`; never printed), commits the pointer in `$W` itself and prints
+      the commit. Exit 1: nothing was pushed, and stderr says why. `--push-dev <tree> --dry-run` tries the token
+      and the address with nothing written. No branch is made in `<root>/cloud-brain-dev` and none is pushed to
+      the cluster. A real push by it: not yet, when this was written
+      (`tools/cloud-brain/records/wt-2-worktree-sh.md`, "Not done, not tried"); say in your report how the first went.
+    - `LOCK_TOKEN=<token> lock.sh renew land <id>` again, then `git -C $W push origin HEAD:main`. Exit 1 from
+      this renew: no push; report what is committed in `$W` and not pushed, and what you deployed.
+      The push is a fast-forward or it is refused. A refusal under the lock means someone pushed `main` with
+      no lock since your rebase: run `worktree.sh --rebase <tree>` again, and push. What you deployed stands;
+      when that second rebase changes what your module is built from, say so on the issue and build, test, emit
+      and apply again before the push.
+    - `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh release land <id>`. It prints when the lock was taken and when it went. Then one line `docs (cb4): …`: the docs step; `not entered (…)` is no failure of the landing (the exit is the release's; `knowledge/calling-a-cloud-brain-from-this-checkout.md`, "The knowledge docs in the Brain's search").
       Exit 1 names another holder: your lock ended while you worked and another writer took it.
       Stop there, push nothing more, and report what was pushed and what was not. Exit 2: cb4 was
       not reached; run the release again. A lock that is never released ends at its time.
-    - After a deploy, with the lock gone and before the worktree goes: `cd $W/cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev && bun test.ts <worker>`.
+    - After a deploy, with the lock gone: `cd $W/cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev && bun test.ts <worker>`.
       Its JSON line is the report of what now runs: `hash` is the hash you deployed, `failed` is 0.
       Put the line's counts in your comment. A `failed` here is a deployed defect: say so on the issue first.
       No JSON line: `sync.ts` printed `left out: <worker> …` (another deploy of it is under way); run both again.
-    - `tools/cloud-brain/worktree.sh --remove <id>`.
+    - **The worktree stays.** You do not remove it: the next task of the topic, or your own next round, is
+      written in it, and the orchestrator removes it when the topic is done (`SKILL.md`, step 1). Leave it with
+      nothing unlanded: the line of `$W/tools/cloud-brain/worktree.sh --list` that begins `<tree> ` reads `clean`
+      and `ahead=0`. What else it reads goes in your report. (Until `wt-3-land-by-push` the writer removed its
+      worktree here, with its branch.)
       If you stop for any reason while holding the lock, release it first (`LOCK_TOKEN=<token> lock.sh release`, with your id) and say so in your report.
 11. **Check it where it runs**, after the lock is gone, when that needs no owner act: one call
     that shows the new behaviour on cb4. When it needs one (`issue.rebuild`, `issue.install`, a move the workflow
@@ -369,10 +453,10 @@ token and ends it.
     request every 4 minutes keeps it. With the submit of step 12 answered (`seq` of its answer is
     the submit's):
     ```
-    <root>/tools/cloud-brain/issue-wait.sh <token> <id> <seq of your submit>
+    $W/tools/cloud-brain/issue-wait.sh <token> <id> <seq of your submit>
     ```
-    in the foreground, with the Bash `timeout` at 280000, from the main checkout by its absolute path
-    (a worktree keeps no token). It reads `sync?after=` every 15 s and writes nothing.
+    in the foreground, with the Bash `timeout` at 280000, by its absolute path (from a worktree it
+    reads the main checkout's tokens, as `issue-as.sh` beside it does). It reads `sync?after=` every 15 s and writes nothing.
     - **Exit 3**, nothing printed: no review in 240 s. Run the same command again, up to 5 runs in
       all (20 minutes). After the fifth, report as step 12 left it: the orchestrator sends the round or judges, as before.
     - **Exit 0**: the first line is the `reviewed` event, with its `verdict` and `body`. The second
@@ -420,17 +504,24 @@ What a resumed round does that a first round does not:
 - **Read the issue again**, `ia "get?id=<id>"`. The message names a `reviewed` event by its seq:
   its findings are the round, and nothing else is. Read them from the event, not from what you
   expected a reviewer to say. The other events since your submit may be the owner's.
-- **Make the worktree again.** Step 10 removed yours with its branch.
-  `W=$(tools/cloud-brain/worktree.sh <id>)` gives a new one at `main`, where your change now is,
-  with what cb4 runs today in `cloud-brain-dev/deploy/`. There is nothing to rebase before step 9.
+- **Your worktree is the one the message names**, in a line `Working directory: <W>`: the
+  orchestrator has put you in it again, and it may be another than the one you landed from, when a
+  later task of the topic is being written there. With no such line (a round you took yourself
+  after step 13, or a message from a session that runs the procedure of before
+  `wt-3-land-by-push`), it is the one you landed from, which nobody removed: `ls` it, and when it
+  is gone, `W=$(<root>/tools/cloud-brain/worktree.sh <id>)`. Then
+  `$W/tools/cloud-brain/worktree.sh --rebase <tree>`: a fetch and a rebase on `origin/main`, where
+  your change now is, with what cb4 runs today read into `$W/cloud-brain-dev/deploy/`.
 - **Do not trust what you read of a file that has changed.** Other writers landed while the
-  review ran. `git -C <root> diff --stat <sha> main`, with `<sha>` the last `commit` ref of your
-  submit, names every file changed since. Read again each file of that list that this round rests
-  on. `rules.md` and this brief are among them when the overseer or the owner changed them: read
-  the diff (`git -C <root> diff <sha> main -- .claude/skills/brain-maintenance`), which is short.
-  `philosophy.md` is in the submodule: `git -C <root>/cloud-brain-dev log --since=<the date of your submit> -- philosophy.md`.
+  review ran. After that fetch, `git -C $W diff --stat <sha> origin/main`, with `<sha>` the last
+  `commit` ref of your submit, names every file changed since. Read again each file of that list
+  that this round rests on. `rules.md` and this brief are among them when the overseer or the
+  owner changed them: read the diff
+  (`git -C $W diff <sha> origin/main -- .claude/skills/brain-maintenance`), which is short.
+  `philosophy.md` is in the clone, which the rebase put at the commit `origin/main` records:
+  `git -C $W/cloud-brain-dev log --since=<the date of your submit> -- philosophy.md`.
   A file the list does not name is as you read it.
-- **Nothing outside your context was kept.** No shell state, no lock, no tab you opened.
+- **Nothing outside your context was kept**, but the worktree. No shell state, no lock, no tab you opened.
 - **Your token is the one of your first round**, and the message names no other. It is kept for
   48 hours from its making. When `ia "get?id=<id>"` is exit 2, or answers 401, it has ended: write
   nothing with another token, and report it. The orchestrator then gives the round to a new writer.

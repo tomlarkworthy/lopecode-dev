@@ -84,7 +84,7 @@ test("the reviewer is never resumed", () => {
 
 test("the brief says what a resumed round does that a first round does not", () => {
   const s = section(brief, "A resumed round");
-  for (const word of ["`reviewed`", "worktree.sh", "rules.md", "git -C <root> diff --stat"]) expect(s).toContain(word);
+  for (const word of ["`reviewed`", "worktree.sh", "rules.md", "git -C $W diff --stat <sha> origin/main"]) expect(s).toContain(word);
 });
 
 // Issue record-first-resumed-rework-round.

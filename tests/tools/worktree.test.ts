@@ -4,6 +4,8 @@
 // nothing still named the files of the one before.
 // Issue wt-2-worktree-sh (plan/cloud-brain-worktree-per-topic.md, check 6 and check 8): origin/main as the base,
 // the clone, --fresh --for, --leave, --at, --list, --push-dev, --remove, and issue-as.sh from a worktree.
+// Issue wt-3-land-by-push (the same spec, parts 1 to 3 and check 9): the commands the briefs and SKILL.md give for a
+// landing and for the start of a pass are read out of those files and run here as they are written (the last part).
 // Every case is a checkout made in a new temporary directory from a bare repository that stands for origin, with
 // no file of the main checkout but the two scripts under test.
 //
@@ -266,7 +268,8 @@ test("origin not reached: --rebase, --fresh and a new worktree are exit 2 and ch
   expect(existsSync(join(root, ".claude/worktrees/bm-t3"))).toBe(false);
 }, 60000);
 
-test("step 10 of the writer's brief as written still lands: pull in the main checkout, --rebase, merge --ff-only, push", () => {
+// Step 10 as it was until wt-3-land-by-push. A writer that read the brief before that day still lands this way.
+test("step 10 of the writer's brief as it was before wt-3 still lands: pull in the main checkout, --rebase, merge --ff-only, push", () => {
   const { root, wt, land, writer, originMain } = repo();
   const w = writer("t1");
   land("other.txt", "theirs\n");
@@ -818,4 +821,240 @@ test("issue-as.sh in no git repository reads .emitted beside itself", async () =
 
 test("the scripts name no path of one machine", () => {
   for (const f of [script, issueAs]) expect(readFileSync(f, "utf8")).not.toContain("/Users/");
+});
+
+// ---- wt-3-land-by-push: the commands of the briefs, read from the files and run as written ----
+// A fenced block of a brief is taken by a command only it has, and each of its lines is run by bash in a scratch
+// checkout with the placeholders filled in. A brief that loses the block, or changes a command so that it no longer
+// does what the test sees, fails here. BRIEFS names another directory of briefs (the one before the change fails).
+const BRIEFS = process.env.BRIEFS || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance");
+const brief = (f: string) => readFileSync(join(BRIEFS, f), "utf8");
+const flat = (t: string) => t.replace(/\s+/g, " ");
+const fenced = (t: string) => [...t.matchAll(/^[ \t]*```[^\n]*\n([\s\S]*?)^[ \t]*```/gm)].map((m) => m[1].split("\n").map((l) => l.trim()).filter(Boolean));
+const block = (f: string, has: string, not = "\u0000") => {
+  const b = fenced(brief(f)).filter((l) => l.some((x) => x.includes(has)) && !l.some((x) => x.includes(not)));
+  if (b.length !== 1) throw new Error(`${f}: ${b.length} fenced block(s) with '${has}', 1 wanted`);
+  return b[0];
+};
+const fill = (line: string, subs: Record<string, string>) => Object.entries(subs).reduce((l, [k, v]) => l.split(k).join(v), line);
+const bash = (cwd: string, line: string, subs: Record<string, string>) => sh(cwd, "bash", "-c", fill(line, subs));
+const section = (t: string, from: string, to: string) => { const a = t.indexOf(from), b = t.indexOf(to, a + 1); if (a < 0 || b < 0) throw new Error(`no part from '${from}' to '${to}'`); return t.slice(a, b); };
+
+test("SKILL.md step 1, the two pulls at the start of a pass: the main checkout and its cloud-brain-dev come up to origin, and check 9 reads 0 and exit 0", () => {
+  const { root, land, landDev, originMain } = repo();
+  const dev = join(root, "cloud-brain-dev");
+  land("other.txt", "theirs\n");
+  const sha = landDev("two\n");
+  expect(git(root, "rev-parse", "main")).not.toBe(originMain());
+  const check = block("SKILL.md", "merge-base --is-ancestor");
+  expect(check.length).toBe(2);
+  // Before the pulls the root copy has not fetched: the pointer of origin/main is a commit it lacks.
+  git(root, "fetch", "-q", "origin", "main");
+  expect(bash(root, check[1], { "<root>": root }).code).not.toBe(0);
+  const pulls = block("SKILL.md", "cloud-brain-dev pull --ff-only", "checkout -- deploy");
+  expect(pulls).toEqual(["git -C <root> pull --ff-only", "git -C <root>/cloud-brain-dev pull --ff-only"]);
+  for (const l of pulls) expect([l, bash(root, l, { "<root>": root }).code]).toEqual([l, 0]);
+  expect(git(root, "rev-parse", "main")).toBe(originMain());
+  // The root's pull moved the pointer and not the submodule's files; the second pull did.
+  expect(git(dev, "rev-parse", "HEAD")).toBe(sha);
+  expect(bash(root, check[0], { "<root>": root }).out.trim()).toBe("0");
+  expect(bash(root, check[1], { "<root>": root }).code).toBe(0);
+});
+
+// A landing of cloud-brain-dev that changes a tracked file under deploy/ and adds one there.
+const landDeploy = (r: ReturnType<typeof repo>, files: Record<string, string>) => {
+  git(r.devSrc, "pull", "-q", "--ff-only", "origin", "main");
+  for (const [f, t] of Object.entries(files)) writeFileSync(join(r.devSrc, f), t);
+  git(r.devSrc, "add", ".");
+  git(r.devSrc, "commit", "-q", "-m", "dev deploy");
+  git(r.devSrc, "push", "-q", "origin", "main");
+  const sha = git(r.devSrc, "rev-parse", "HEAD");
+  git(r.other, "pull", "-q", "--ff-only");
+  git(r.other, "update-index", "--cacheinfo", `160000,${sha},cloud-brain-dev`);
+  git(r.other, "commit", "-q", "-m", "pointer");
+  git(r.other, "push", "-q", "origin", "main");
+  return sha;
+};
+
+test("SKILL.md step 1, the pull of cloud-brain-dev refused for a file sync.ts wrote under deploy/: the four commands bring it up and deploy/ is read again", () => {
+  const subs = (root: string) => ({ "<root>": root });
+  const pulls = block("SKILL.md", "cloud-brain-dev pull --ff-only", "checkout -- deploy");
+  const four = block("SKILL.md", "checkout -- deploy");
+  const check = block("SKILL.md", "merge-base --is-ancestor");
+  expect(four.length).toBe(4);
+  // A tracked file that sync.ts wrote over, changed by the landing.
+  {
+    const r = repo(), dev = join(r.root, "cloud-brain-dev");
+    sh(dev, "bun", "sync.ts", "before");
+    expect(git(dev, "status", "--porcelain")).toBe("M deploy/shared.js");
+    const sha = landDeploy(r, { "deploy/shared.js": "committed again\n" });
+    expect(bash(r.root, pulls[0], subs(r.root)).code).toBe(0);
+    const refused = bash(r.root, pulls[1], subs(r.root));
+    expect(refused.code).not.toBe(0);
+    expect(refused.err).toContain("would be overwritten");
+    expect(bash(r.root, check[0], subs(r.root)).out.trim()).toBe("1");
+    for (const l of four) { const x = bash(r.root, l, subs(r.root)); expect([l, x.code, x.code ? x.err : ""]).toEqual([l, 0, ""]); }
+    expect(git(dev, "rev-parse", "HEAD")).toBe(sha);
+    expect(readFileSync(join(dev, "deploy/shared.js"), "utf8")).toBe("read from https://cb4.endpointservices.workers.dev\n");
+    expect(bash(r.root, check[0], subs(r.root)).out.trim()).toBe("0");
+    expect(bash(r.root, check[1], subs(r.root)).code).toBe(0);
+  }
+  // A file sync.ts made that a landing has since added: untracked there. `checkout -- deploy` alone does not free the pull.
+  {
+    const r = repo(), dev = join(r.root, "cloud-brain-dev");
+    writeFileSync(join(dev, "deploy/new.js"), "read from cb4\n");
+    const sha = landDeploy(r, { "deploy/new.js": "committed\n" });
+    expect(bash(r.root, pulls[0], subs(r.root)).code).toBe(0);
+    const refused = bash(r.root, pulls[1], subs(r.root));
+    expect(refused.code).not.toBe(0);
+    expect(refused.err).toContain("untracked working tree files would be overwritten");
+    expect(bash(r.root, four[0], subs(r.root)).code).toBe(0);
+    expect(bash(r.root, pulls[1], subs(r.root)).code).not.toBe(0);
+    for (const l of four.slice(1)) expect([l, bash(r.root, l, subs(r.root)).code]).toEqual([l, 0]);
+    expect(git(dev, "rev-parse", "HEAD")).toBe(sha);
+    expect(bash(r.root, check[0], subs(r.root)).out.trim()).toBe("0");
+    expect(bash(r.root, check[1], subs(r.root)).code).toBe(0);
+  }
+}, 60000);
+
+test("SKILL.md step 1, the main checkout's pull refused: a changed file the landing changes, or a commit that is not pushed; nothing is lost and the second pull still runs", () => {
+  const pulls = block("SKILL.md", "cloud-brain-dev pull --ff-only", "checkout -- deploy");
+  // Another session's edit, not committed, of a file a landing changed.
+  {
+    const r = repo();
+    writeFileSync(join(r.root, "other.txt"), "the owner's, open\n");
+    r.land("other.txt", "theirs\n");
+    const sha = r.landDev("two\n");
+    const main = git(r.root, "rev-parse", "main");
+    const refused = bash(r.root, pulls[0], { "<root>": r.root });
+    expect(refused.code).not.toBe(0);
+    expect(refused.err).toContain("would be overwritten");
+    expect(readFileSync(join(r.root, "other.txt"), "utf8")).toBe("the owner's, open\n");
+    expect(git(r.root, "rev-parse", "main")).toBe(main);
+    expect(bash(r.root, pulls[1], { "<root>": r.root }).code).toBe(0);
+    expect(git(join(r.root, "cloud-brain-dev"), "rev-parse", "HEAD")).toBe(sha);
+  }
+  // A commit made in the main checkout and not pushed.
+  {
+    const r = repo();
+    writeFileSync(join(r.root, "seed.ojs"), "the owner's, committed\n");
+    git(r.root, "commit", "-q", "-m", "not pushed", "seed.ojs");
+    const main = git(r.root, "rev-parse", "main");
+    r.land("other.txt", "theirs\n");
+    const refused = bash(r.root, pulls[0], { "<root>": r.root });
+    expect(refused.code).not.toBe(0);
+    expect(git(r.root, "rev-parse", "main")).toBe(main);
+    expect(bash(r.root, pulls[1], { "<root>": r.root }).code).toBe(0);
+  }
+});
+
+test("SKILL.md step 1, the health step reads seen.json as origin/main has it, which a main checkout that is behind does not", () => {
+  const r = repo();
+  const one = flat(section(brief("SKILL.md"), "\n1. **", "\n2. **"));
+  const cmd = "git -C <root> show origin/main:tools/cloud-brain/seen.json";
+  expect(one).toContain("`" + cmd + "`");
+  expect(one).not.toContain("at the hash `tools/cloud-brain/seen.json` holds for it");
+  writeFileSync(join(r.root, "other.txt"), "the owner's, open\n");
+  r.land("other.txt", "theirs\n");
+  r.land("tools/cloud-brain/seen.json", '{"brain-x-static":{"hash":"abc"}}\n');
+  const pulls = block("SKILL.md", "cloud-brain-dev pull --ff-only", "checkout -- deploy");
+  expect(bash(r.root, pulls[0], { "<root>": r.root }).code).not.toBe(0);
+  expect(existsSync(join(r.root, "tools/cloud-brain/seen.json"))).toBe(false);
+  expect(bash(r.root, cmd, { "<root>": r.root }).out).toBe('{"brain-x-static":{"hash":"abc"}}\n');
+});
+
+// lock.sh is held in the cluster: here a program that writes each call down and answers 0.
+const lockStub = (base: string) => {
+  const p = join(base, "lock-stub.sh");
+  writeFileSync(p, `#!/bin/bash\necho "$LOCK_TOKEN $*" >> "${join(base, "lock-calls")}"\n`);
+  chmodSync(p, 0o755);
+  return p;
+};
+
+test("implementer.md step 10, a landing with no deploy, run as written: the lock, --rebase, a push of HEAD to main; the main checkout is not written and the worktree stays, clean", () => {
+  const { base, root, wt, land, writer, originMain } = repo();
+  const w = writer("topic-a");
+  land("other.txt", "theirs\n");
+  const rootMain = git(root, "rev-parse", "main");
+  const steps = block("agents/implementer.md", "push origin HEAD:main", "update-index");
+  expect(steps.map((l) => l.replace(/^LOCK_TOKEN=<token> /, "").replace("$W/tools/cloud-brain/", "").split(" ").slice(0, 2).join(" "))).toEqual(["lock.sh take", "worktree.sh --rebase", "lock.sh renew", "git -C", "lock.sh release"]);
+  const subs = { "$W/tools/cloud-brain/lock.sh": lockStub(base), "$W": w, "<token>": "impl-000001", "<id>": "task-1", "<tree>": "topic-a" };
+  for (const l of steps) { const x = bash(root, l, subs); expect([l, x.code]).toEqual([l, 0]); }
+  expect(lines(readFileSync(join(base, "lock-calls"), "utf8"))).toEqual(["impl-000001 release land task-1", "impl-000001 renew land task-1", "impl-000001 take land task-1"]);
+  expect(originMain()).toBe(git(w, "rev-parse", "HEAD"));
+  expect(git(w, "show", "HEAD:other.txt")).toBe("theirs");
+  expect(git(w, "show", "HEAD:seed.ojs")).toBe("mine");
+  expect(git(root, "rev-parse", "main")).toBe(rootMain);
+  expect(git(root, "status", "--porcelain", "--untracked-files=no", "--ignore-submodules")).toBe("");
+  // The writer removes nothing: the worktree is there, on its branch, with nothing unlanded.
+  expect(existsSync(w)).toBe(true);
+  expect(wt("--list").out).toMatch(/^topic-a clean changed=0 untracked=0 ahead=0 /m);
+  const ten = flat(section(brief("agents/implementer.md"), "\n10. **", "\n11. **"));
+  for (const gone of ["merge --ff-only bm/", "git -C <root> pull --ff-only", "worktree.sh --remove <id>", "worktree.sh --remove <tree>"]) expect(ten).not.toContain(gone);
+}, 60000);
+
+test("implementer.md step 10, the day's backup: the lopebooks pointer is committed in the worktree by the full sha, and lands with the links kept", () => {
+  const { base, root, wt, writer, origin, originMain } = repo();
+  const w = writer("topic-a");
+  const lb = join(root, "lopebooks"), lbOrigin = join(base, "lopebooks.git");
+  git(base, "init", "-q", "--bare", "-b", "main", lbOrigin);
+  git(lb, "remote", "add", "origin", lbOrigin);
+  const branch = git(lb, "symbolic-ref", "--short", "HEAD");
+  git(lb, "push", "-q", "-u", "origin", "HEAD");
+  // What notebook-backup.sh does on the day's first landing that builds: a commit in the main checkout's lopebooks.
+  git(lb, "commit", "-q", "--allow-empty", "-m", "the day's backup");
+  const sha = git(lb, "rev-parse", "HEAD");
+  // The tool prints 8 characters of it, which update-index does not take.
+  expect(sh(w, "git", "update-index", "--cacheinfo", `160000,${sha.slice(0, 8)},lopebooks`).code).not.toBe(0);
+  const steps = block("agents/implementer.md", "update-index --cacheinfo");
+  expect(steps.length).toBe(3);
+  const subs = { "$W": w, "<root>": root, "<id>": "task-1", "<day>": "2026-10-12" };
+  for (const l of steps) { const x = bash(root, l, subs); expect([l, x.code, x.code ? x.err : ""]).toEqual([l, 0, ""]); }
+  expect(git(lbOrigin, "rev-parse", branch)).toBe(sha);
+  expect(git(w, "show", "--name-only", "--format=", "HEAD")).toBe("lopebooks");
+  expect(git(w, "ls-tree", "HEAD", "lopebooks")).toBe(`160000 commit ${sha}\tlopebooks`);
+  expect(gitlinks(w)).toBe(true);
+  expect(linked(w)).toBe(true);
+  expect(sh(w, "git", "push", "-q", "origin", "HEAD:main").code).toBe(0);
+  expect(git(origin, "ls-tree", "main", "lopebooks")).toBe(`160000 commit ${sha}\tlopebooks`);
+  expect(originMain()).toBe(git(w, "rev-parse", "HEAD"));
+  expect(wt("--list").out).toMatch(/^topic-a clean changed=0 untracked=0 ahead=0 /m);
+});
+
+test("the briefs after wt-3: a writer is put in a worktree and does not make or remove one; the orchestrator assigns, writes it on the topic, frees and removes", () => {
+  const impl = brief("agents/implementer.md"), spec = brief("agents/spec.md"), digest = brief("agents/digest.md"), skill = flat(brief("SKILL.md")), over = flat(brief("agents/overseer.md"));
+  const resumed = flat(impl.slice(impl.indexOf("\n## A resumed round"), impl.indexOf("\n## A quick win")));
+  expect(resumed).not.toContain("Make the worktree again");
+  expect(resumed).not.toContain("diff --stat <sha> main");
+  expect(resumed).toContain("git -C $W diff --stat <sha> origin/main");
+  expect(resumed).toContain("git -C $W/cloud-brain-dev log --since=");
+  expect(resumed).not.toContain("git -C <root>/cloud-brain-dev log");
+  const specResumed = flat(spec.slice(spec.indexOf("\n## A resumed round")));
+  expect(specResumed).not.toContain("Make the worktree again");
+  expect(specResumed).not.toContain("the landing removed yours");
+  expect(flat(spec)).toContain("git -C $W push origin HEAD:main");
+  expect(flat(digest)).not.toContain("before the worktree goes");
+  for (const has of [
+    "tools/cloud-brain/worktree.sh --fresh <topic> --for <the agent's token>",
+    '"key":"orch/<topic>/worktree-<n>"',
+    'worktree {"topic":"<topic>","branch":"bm/<tree>","machine":"<hostname -s>","path":"<W>","at":"<sha of origin/main>","for":"<id>"}',
+    "Working directory: <W>.",
+    "Read <W>/.claude/skills/brain-maintenance/agents/<role>.md and follow it.",
+    "tools/cloud-brain/worktree.sh --leave <tree>",
+    "tools/cloud-brain/worktree.sh --list",
+    "tools/cloud-brain/worktree.sh --remove <tree>",
+    "worktree removed {",
+    "tools/cloud-brain/worktree.sh --fresh orch-$(hostname -s)",
+    "tools/cloud-brain/worktree.sh --fresh over-$(hostname -s) --for <its token>"
+  ]) expect([has, skill.includes(has)]).toEqual([has, true]);
+  expect(skill).not.toContain("A commit of your own in the main checkout is made between");
+  expect(over).not.toContain("Writers land in the same checkout");
+  expect(over).toContain("git -C $W push origin HEAD:main");
+});
+
+test("check 8: no brief and no tool of the landing names a path of one machine", () => {
+  const tools = resolve(import.meta.dir, "../../tools/cloud-brain");
+  const files = ["SKILL.md", "agents/digest.md", "agents/implementer.md", "agents/overseer.md", "agents/reviewer.md", "agents/spec.md"].map((f) => join(BRIEFS, f))
+    .concat(["worktree.sh", "lock.sh", "issue-as.sh", "notebook-backup.sh"].map((f) => join(tools, f)));
+  for (const f of files) expect([f, readFileSync(f, "utf8").includes("/Users/")]).toEqual([f, false]);
 });
