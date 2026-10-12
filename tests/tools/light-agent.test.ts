@@ -378,3 +378,40 @@ test("put.sh gives brain.ts the main checkout's state directory from a worktree,
   // In no git repository nothing is set, and brain.ts reads the .emitted beside itself, as before.
   expect(await state(plain)).toEqual([0, "\n"]);
 });
+
+// Issue role-brief-not-there-for-cat: three reviewers' first read of the brief was a `cat` or an `ls`, which found no
+// file, and CLAUDE.md did not say that only the Read tool fetches it.
+const brief = () => readFileSync(join(dev, "CLAUDE.md"), "utf8").replace(/\s+/g, " ");
+
+test("CLAUDE.md says the brief is read with the Read tool, that a shell command fetches nothing, and names put.sh --get", () => {
+  const text = brief();
+  expect(text).toContain("read `brain/roles/<role>.md` before anything else");
+  expect(text).toContain("with the Read tool");
+  expect(text).toMatch(/`cat`[^.]*`ls`[^.]*fetch(es)? nothing/);
+  expect(text).toContain("`./put.sh --get roles/<role>.md`");
+  // "fetches nothing" of a tool that is not Read: the one hook of the directory is on Read.
+  const hooks = JSON.parse(readFileSync(join(dev, ".claude/settings.json"), "utf8")).hooks;
+  expect([Object.keys(hooks), hooks.PreToolUse.map((h: any) => h.matcher)]).toEqual([["PreToolUse"], ["Read"]]);
+});
+
+// What the sentence says, run: no file for a shell before the fetch, one after the hook of a Read, and one after
+// put.sh --get, which is the command CLAUDE.md gives with `<role>` filled in.
+test("a shell finds no brief until a Read's hook or put.sh --get has fetched it", async () => {
+  const base = `http://127.0.0.1:${brain.port}`;
+  files["roles/x.md"] = "the brief";
+  const command = /`(\.\/put\.sh --get roles\/<role>\.md)`/.exec(brief())![1].replace("<role>", "x");
+  const cat = (dir: string) => run(["/bin/sh", "-c", `cd '${dir}' && ls brain >/dev/null && cat brain/roles/x.md`]);
+  const a = root();
+  expect((await cat(a)).code).not.toBe(0);
+  expect((await hook(a, "brain/roles/x.md")).code).toBe(0);
+  expect([(await cat(a)).code, (await cat(a)).out]).toEqual([0, "the brief"]);
+  const b = root();
+  copyFileSync(join(dev, "put.sh"), join(b, "put.sh"));
+  chmodSync(join(b, "put.sh"), 0o755);
+  expect((await cat(b)).code).not.toBe(0);
+  const got = await run(["/bin/sh", "-c", `cd '${b}' && ${command}`], { BRAIN: base });
+  expect([got.code, got.out.trim(), (await cat(b)).out]).toEqual([0, "brain/roles/x.md", "the brief"]);
+  // A role the Brain does not have: exit 1 and no file left for a later cat.
+  const none = await run(["/bin/sh", "-c", `cd '${b}' && ./put.sh --get roles/none.md`], { BRAIN: base });
+  expect([none.code, existsSync(join(b, "brain/roles/none.md"))]).toEqual([1, false]);
+});
