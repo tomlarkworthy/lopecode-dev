@@ -100,12 +100,12 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
 ## One pass
 
 1. **Health.** `brain.ts redistil` shows every Worker `same`; `brain.ts state` shows each `brain-x-*` Worker at the hash `tools/cloud-brain/seen.json` holds for it (`redistil` cannot show a put-back: the kept source goes back with the Worker, so it read `same` through the one of 19:32 on 2026-10-10); `lease.get` is held or the page is
-   not needed; `tools/cloud-brain/lock.sh show land` and `show cb4` each answer exit 0 (the holder, since when and until when) or exit 1 (not held), and exit 2 is cb4 not saying: not healthy. If the cluster is not healthy, file or find
+   not needed; `LOCK_TOKEN=<your token> tools/cloud-brain/lock.sh show land` and `show cb4` each answer exit 0 (the holder, since when and until when) or exit 1 (not held), and exit 2 is cb4 not saying: not healthy. If the cluster is not healthy, file or find
    the issue for it and do nothing else this pass. Since `lk-3-lock-sh-over-the-cluster` both locks are held in the cluster, for 600 s from the take or the last renew.
    A lock past its time is not held: `show` exits 1 and says whose lock ended and when, and the next take takes it. That holder died or overran:
    look at its issue (step 3). Nothing is the owner's to remove. A commit of your own in the main checkout is made between
    `LOCK_TOKEN=<your token> tools/cloud-brain/lock.sh take land orchestrator-$(hostname -s)` and `LOCK_TOKEN=<your token> tools/cloud-brain/lock.sh release land orchestrator-$(hostname -s)`.
-   Every `lock.sh` of yours has `LOCK_TOKEN=<your token> ` before it, `show` among them: with none the call is made with a role's token (`lock.sh`, line 52),
+   Every `lock.sh` of yours has `LOCK_TOKEN=<your token> ` before it, `show` among them: with none the script sends nothing and is exit 2, with its usage (since `lock-sh-default-token-r4`; until then such a call was made with a role's token),
    and the holder of a lock is the name with the token of the call.
    The name carries the machine, so an orchestrator on another machine is another holder. It is that name and no other: on 2026-10-11 `land` was held as
    `orch2-adv` and as `i1842`, which `lock.sh show` and the history trace to no issue and no role (`seen-land-held-under-other-names`).

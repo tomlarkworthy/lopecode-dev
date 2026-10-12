@@ -394,7 +394,7 @@ lock.sh show land|cb4                            the holder, since when, until w
                                                  also when the last holder's lock has ended
 ```
 
-It calls as the token named in `LOCK_TOKEN`, `issues-implementer-2` when unset; the overseer's
+It calls as the token named in `LOCK_TOKEN`, `issues-implementer-2` when unset (As built, `lock-sh-default-token-r4`, 2026-10-12: `LOCK_TOKEN` has no default, and with none or an empty one the script sends nothing and is exit 2 with its usage; the record.); the overseer's
 brief sets `issues-overseer-1` and the reviewer's `issues-reviewer-2`, written before each call
 (`LOCK_TOKEN=issues-overseer-1 lock.sh …`) and not as an `export`: an agent's shell keeps nothing
 between two commands, and a release sent with another token than the take's is a 403 that names

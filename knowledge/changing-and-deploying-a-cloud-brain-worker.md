@@ -39,8 +39,10 @@ The other pages are listed in that file, which is read first.
    JSON (`tests`, `passed`, `failed`); `--emit` writes `NAME_service`'s record to FILE when every test passed. An agent
    spawned by another session uses it in place of a tab: its tab pairs through that session's channel server, and every
    update of the tab is sent to that session (`tools/cloud-brain/records/writers-qa-tabs-wake-the-orchestrator.md`).
-4. Deploy under the lock: `tools/cloud-brain/lock.sh take cb4 <who>`, `apply … --reason="why"`,
-   `tools/cloud-brain/lock.sh release cb4 <who>`. The lock is held in the cluster: a row `brain-x-issues` keeps
+4. Deploy under the lock: `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh take cb4 <who>`, `apply … --reason="why"`,
+   `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh release cb4 <who>`. `<token>` is the name of your own token for the
+   tracker, one `issue-as.sh` keeps; with no `LOCK_TOKEN` the script sends nothing and is exit 2 (since 2026-10-12,
+   `tools/cloud-brain/records/lock-sh-default-token-r4.md`). The lock is held in the cluster: a row `brain-x-issues` keeps
    (`issue.lock`, `issue.locks`), for 600 s from the take, so agents in other checkouts and on other machines meet the
    same one and nothing is made on this machine (since 2026-10-11, `tools/cloud-brain/records/lk-3-lock-sh-over-the-cluster.md`;
    before that it was a directory under `.emitted/`). `take` exits 1 and names the holder and until when, when another

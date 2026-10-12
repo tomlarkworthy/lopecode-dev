@@ -120,7 +120,7 @@ error ms price rule by`. Three traps met on the first day:
 The first were entered 2026-10-10. The tool is `tools/cloud-brain/knowledge-docs.ts`; its header is the reference.
 
 **What enters a changed doc** (since 2026-10-11, `plan/cloud-brain-brain-docs-entered-by-hand.md`): the last
-command of every landing, `tools/cloud-brain/lock.sh release land <who>`. With the lock gone it runs
+command of every landing, `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh release land <who>`. With the lock gone it runs
 `knowledge-docs.ts put --stale --limit=30` and prints one more line. The release is exit 0 whatever that line says.
 
 ```

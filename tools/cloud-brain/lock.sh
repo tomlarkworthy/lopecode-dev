@@ -14,7 +14,7 @@
 # lock.sh show land|cb4                            the holder, since when and until when. Exit 1 when nobody holds it, also
 #                                                  when the last holder's lock has ended. Exit 2: cb4 did not say.
 # <who> is the issue id for a writer, or the role and the machine (overseer-$(hostname -s)): a-z A-Z 0-9 . _ -
-# LOCK_TOKEN=<name> before the command is the token the call is made as; issues-implementer-2 with none.
+# LOCK_TOKEN=<name> before the command is the token the call is made as, your own. It has no default: exit 2 with none.
 #
 # The lock is a row cb4 keeps: issue.lock and issue.locks of brain-x-issues (records/lk-1-issue-lock-methods.md). Nothing
 # is made on this machine, so an agent in another checkout or on another machine meets the same lock. A lock ends at its
@@ -49,7 +49,9 @@ case "$CMD" in
 esac
 # The main checkout's state, also when the copy that runs is a worktree's own. BRAIN_STATE_DIR as brain.ts reads it.
 DIR="${BRAIN_STATE_DIR:-$(dirname "$(git -C "$(dirname "$0")" rev-parse --path-format=absolute --git-common-dir)")/tools/cloud-brain/.emitted}"
-AS="${LOCK_TOKEN:-issues-implementer-2}"
+# No default (issue lock-sh-default-token-r4; until then a call with none was made as a role's token). Empty is none.
+AS="${LOCK_TOKEN:-}"
+[ -n "$AS" ] || { echo "lock.sh: no LOCK_TOKEN; nothing was sent" >&2; usage; }
 BASE="${LOCK_BASE:-https://cb4.endpointservices.workers.dev}"
 TOK=$(python3 - "$AS" "$DIR" <<'PY'
 import json, os, sys

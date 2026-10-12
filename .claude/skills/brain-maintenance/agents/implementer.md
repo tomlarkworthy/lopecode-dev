@@ -226,7 +226,7 @@ token and ends it.
     lock and when you release it, and put both in your report.
     Every `lock.sh` call of this step has `LOCK_TOKEN=<token> ` before it, on the same line, `show`
     among them: the holder of a lock is the name with the token of the call, a renew or a release
-    sent with another token is refused, and with no `LOCK_TOKEN` the call is made with a role's token.
+    sent with another token is refused, and with no `LOCK_TOKEN` the script sends nothing: exit 2, with its usage (since `lock-sh-default-token-r4`; until then such a call was made with a role's token).
     No `git commit`, `merge`, `pull` or `push` of this step is written before a `|` (`… | tail`): the
     line's exit is then the last command's, and a commit a hook refused reads as made. Run each on a
     line of its own and read its exit; a sha you give as a ref is one `git -C <root> log` shows

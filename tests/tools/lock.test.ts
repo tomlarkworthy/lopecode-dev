@@ -81,11 +81,13 @@ const standIn = () => {
 };
 
 // LOCK_DOCS=0: a release of land runs no docs step, so no case here calls a Brain. The cases of the step set a stub.
+// LOCK_TOKEN is set for every case, as each brief sets it: the script has no default (lock-sh-default-token-r4). The
+// names of TOKENS are this file's own, of the stand-in's token file, and nothing is sent to cb4 with them.
 const fresh = (env: Record<string, string | undefined> = {}) => {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "bm-lock-")));
   writeFileSync(join(dir, "cb4-issues-tokens.json"), JSON.stringify(TOKENS));
   const svc = standIn();
-  const full = { ...process.env, TZ: "UTC", LOCK_TOKEN: undefined, BRAIN_STATE_DIR: dir, LOCK_BASE: svc.base, LOCK: script, LOCK_DOCS: "0", ...env };
+  const full = { ...process.env, TZ: "UTC", LOCK_TOKEN: "issues-implementer-2", BRAIN_STATE_DIR: dir, LOCK_BASE: svc.base, LOCK: script, LOCK_DOCS: "0", ...env };
   // The stand-in is in this process, so a command is awaited, never run with spawnSync.
   const sh = async (cmd: string, more: Record<string, string | undefined> = {}) => {
     const p = Bun.spawn(["bash", "-c", cmd], { env: { ...full, ...more }, stdout: "pipe", stderr: "pipe" });
@@ -293,6 +295,32 @@ test("LOCK_TOKEN names the token of the call; a release or a renew under another
   expect(svc.calls.length).toBe(n);
   for (const r of [took, release, renew, shown, none]) expect(r.out + r.err).not.toMatch(/secret-/);
   expect(svc.rows.get("land")!.who).toBe("overseer-m1");
+});
+
+test("with no LOCK_TOKEN, or an empty one, every command is exit 2 with the cause and the usage, and nothing is sent", async () => {
+  const { sh, svc } = fresh();
+  // The script names no role's token: the check of R4 (plan/cloud-brain-record-names-token-not-agent.md) greps it.
+  expect(readFileSync(script, "utf8").match(/issues-(implementer|reviewer|overseer)-[0-9]/g) ?? []).toEqual([]);
+  for (const args of ["take land a", "take land a --wait 1", "renew land a", "release land a", "show land", "show cb4"]) {
+    for (const [how, more] of [["unset", { LOCK_TOKEN: undefined }], ["empty", { LOCK_TOKEN: "" }]] as const) {
+      const r = await sh(`bash "$LOCK" ${args}`, more);
+      expect(r.code, `${args}, ${how}`).toBe(2);
+      expect(r.out, `${args}, ${how}`).toBe("");
+      expect(r.err.split("\n")[0], `${args}, ${how}`).toBe("lock.sh: no LOCK_TOKEN; nothing was sent");
+      expect(r.err).toContain("lock.sh take land|cb4 <who> [--wait [seconds]]");
+      expect(r.err).toContain("LOCK_TOKEN=<name> before the command is the token the call is made as, your own. It has no default: exit 2 with none.");
+      expect(r.out + r.err).not.toMatch(/secret-/);
+    }
+  }
+  expect(svc.calls).toEqual([]);
+  expect(svc.rows.size).toBe(0);
+  // the same call with a token is sent
+  expect((await sh(`bash "$LOCK" take land a`)).code).toBe(0);
+  expect(svc.calls.map((c) => c.token)).toEqual(["secret-impl"]);
+  // a command the script does not have gets the usage alone, token or none
+  const bad = await sh(`bash "$LOCK" steal land a`, { LOCK_TOKEN: undefined });
+  expect(bad.code).toBe(2);
+  expect(bad.err).not.toContain("no LOCK_TOKEN");
 });
 
 test("R6: with the cluster not reached take, renew, release and show exit 2 and make nothing; a refusal with no holder is exit 2", async () => {
