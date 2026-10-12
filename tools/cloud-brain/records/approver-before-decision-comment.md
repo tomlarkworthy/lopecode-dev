@@ -79,26 +79,29 @@ cause.
 
 ## The tests
 
-Run in the worktree after the last edit of a tested file, 2026-10-12, the suite from 23:35 to 23:39 CEST (`uptime` before it: load 4.13):
+Run in the worktree on 2026-10-12 after its rebase on `c58f35c0` (`pm-4-stats-block`, which changed
+`issue-stats.ts`, its test and `SKILL.md`; both sides of the two conflicts were kept). The single
+files at 23:40 CEST, the suite from 23:40 to 23:43 (`uptime` before it: load 8.33):
 
 ```
 $ bun test --timeout=30000 ./tests/tools/approver-before-decision-comment.test.ts
  9 pass  0 fail
-$ SKILL=<SKILL.md of a746feaa> SPEC=<the spec of a746feaa> bun test --timeout=30000 ./tests/tools/approver-before-decision-comment.test.ts
+$ SKILL=<SKILL.md of c58f35c0> SPEC=<the spec of c58f35c0> bun test --timeout=30000 ./tests/tools/approver-before-decision-comment.test.ts
  1 pass  8 fail
 $ bun test --timeout=30000 ./tests/tools/issue-stats.test.ts
- 33 pass  0 fail
-$ ISSUE_STATS_TS=<issue-stats.ts of a746feaa> bun test --timeout=30000 ./tests/tools/issue-stats.test.ts
- 32 pass  1 fail      "decision comment and verdict: each verdict counted by where the session's comment of its round is"
+ 36 pass  0 fail
+$ ISSUE_STATS_TS=<issue-stats.ts of c58f35c0> bun test --timeout=30000 ./tests/tools/issue-stats.test.ts
+ 35 pass  1 fail      "decision comment and verdict: each verdict counted by where the session's comment of its round is"
 $ tests/tools/suite.sh
- 818 pass  0 fail     Ran 818 tests across 86 files. [203.59s]
+ 821 pass  0 fail     Ran 821 tests across 86 files. [214.72s]
 ```
 
-`a746feaa` is the commit of `origin/main` the worktree was at before the change; the copies were
-made with `git show a746feaa:<path>`. The one test of the first file that passes on the old text
-holds that the row is there, on one line.
+`c58f35c0` is the commit of `origin/main` the change is on; the copies were made with
+`git show c58f35c0:<path>`. The one test of the first file that passes on the old text holds that
+the row is there, on one line. The tool on the record, after the rebase, at event 5235: the line
+under "The case, counted", with the same ten verdicts.
 
-Four files that read the same steps were run one at a time after the edit of `SKILL.md`, each 0
+Four files that read the same steps were run one at a time after the rebase, each 0
 fail: `approver-brief.test.ts` (12 pass), `owner-decisions-written-dense.test.ts` (11),
 `pm-2-brief-and-procedure.test.ts` (7), `os-2-order-and-pool.test.ts` (6).
 
