@@ -369,6 +369,8 @@ None needs the owner's tab, `logs.query` or a QA tab.
 5. **The doc for a session outside the loop**: `knowledge/calling-a-cloud-brain-from-this-checkout.md`
    says to run `brain.ts agent-token out` before a first write to the tracker, in place of a
    role's token. A test file that reads the doc. With task 3.
+   (As built, `ta-5-outside-session-doc`, 2026-10-12: after task 3, not with it; the three lines
+   of the doc were run by nobody, since its writer was an agent of the loop; the record.)
 6. **The checks of R1, R2 and the parent**, run after the first three issues that went round on
    the new tokens, written to `tools/cloud-brain/records/record-names-token-not-agent.md`, with a
    comment on each of the three reports that names the record. The reports are closed before

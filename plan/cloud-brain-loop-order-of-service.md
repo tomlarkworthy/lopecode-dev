@@ -239,6 +239,9 @@ session. An issue opened by his own session in the page needs none: `by.via` is 
   lands second adds the sentence.
   (As built, `os-1-owner-label`, 2026-10-11: landed first, with `ta-5` at `triaged`, and added the
   sentence as a paragraph of its own after "No token of your own for the tracker"; the record.)
+  (As built, `ta-5-outside-session-doc`, 2026-10-12: the sentence is in the part "A session outside
+  the loop makes itself a token before its first write to the tracker", as its last item, and the
+  paragraph "An issue the owner asked for" is gone; the record.)
 
 The label gives precedence and no authority: no guard of the workflow reads it. Anyone who may
 call `issue.open` may write it, as with `digest`.

@@ -1,6 +1,6 @@
 ---
 scope: [local-development]
-topics: Cloud Brain; cb4; brain.ts curl; the state file; a token for an agent; no --owner writes; the health check; brain-x-logs; knowledge-docs.ts; what enters a doc into the Brain's search (lock.sh release land, loop-docs)
+topics: Cloud Brain; cb4; brain.ts curl; the state file; a token for an agent; no --owner writes; brain.ts agent-token out, the tracker token of a session outside the issue loop; the health check; brain-x-logs; knowledge-docs.ts; what enters a doc into the Brain's search (lock.sh release land, loop-docs)
 triggers:
   - "(^Bash |^|[;&|] )bun +tools/cloud-brain/brain\.ts( |$)"
   - "(^Bash |^|[;&|] )BRAIN_BASE=[a-z0-9]+ +bun +tools/cloud-brain/brain\.ts( |$)"
@@ -66,25 +66,61 @@ token does not name com.lopecode.brain.inbox.list", `revoke` `{"revoked":1}`. A 
 answers 400); those and `apply` stay with the owner's session or the recovery key, and the reads
 in the health check below are still made with `--owner`. Nothing refuses a write sent with `--owner`: this is an agreement, as the deploy lock is.
 A method list also takes a prefix (`'browser.*'`), quoted: zsh stops on a bare one with "no matches found".
-`--as` also reads `.emitted/<base>-issues-tokens.json`, where the tokens of the issue loop are.
+`--as` also reads `.emitted/<base>-issues-tokens.json` and `.emitted/<base>-agent-tokens.json`, where the tokens of the issue loop are.
 
-**No token of your own for the tracker.** Until 2026-10-10 the example above made a token for
+**No token for the tracker from `brain.ts token`.** Until 2026-10-10 the example above made a token for
 `'issue.*'`. Each token is a delegation of its own, and the tracker takes each as another actor:
 on issue `doc-example-mints-tracker-token` event 234 is `via delegation:84cd2100b161` (holder
 `secret:issues-reviewer-2`) and event 236 `via delegation:b6559fa96c36` (holder
 `secret:issues-implementer-2`). The workflow's guard for a pass is
 `r.verdict == "pass" && r.actor != issue.by.start` (`tools/cloud-brain/brain-issues.ojs`), and
-between two tokens one agent made that keeps nothing apart. An agent of the
-issue loop writes to the tracker with its role's token through `tools/cloud-brain/issue-as.sh`
-(`.claude/skills/brain-maintenance/rules.md`, "Which token") and makes no other. This is an
-agreement: `token.create` does not refuse `issue.*` to a caller that holds one, which would be a
+between two tokens one agent made that keeps nothing apart. This is an agreement: `token.create` does not refuse `issue.*` to a caller that holds one, which would be a
 change to the kernel and is the owner's (the triage of that issue, event 236).
 
-**An issue the owner asked for.** A session that opens an issue on the owner's word puts `owner`
-in the `labels` of the open (`"labels":["owner"]` in the JSON of `issue-as.sh <token> open`), since
-2026-10-11. The issue loop takes such an issue as the owner's, and its watch prints the open
-whatever token made it (`.claude/skills/brain-maintenance/SKILL.md`, step 3, "The owner's"). The
-label gives precedence and no authority. An issue he opens himself in the page needs none.
+Since 2026-10-11 a token for the tracker is made with `brain.ts agent-token`, one for each agent and
+each session, as a child of the token `loop-agents` and with no session of the owner
+(`plan/cloud-brain-record-names-token-not-agent.md`; `.claude/skills/brain-maintenance/rules.md`,
+"Which token"). An agent of the issue loop writes through `tools/cloud-brain/issue-as.sh` with the
+token its prompt names and makes none: the orchestrating session made it. Until that day each
+role had one token, which every agent of the role wrote with.
+
+**A session outside the loop makes itself a token before its first write to the tracker**, and
+writes with that one, not with a role's token (`issues-implementer-2`, `issues-reviewer-2`,
+`issues-overseer-1`). Outside the loop is any session that is not the orchestrating session of
+`/brain-maintenance` and was not started by it. From the main checkout, whose `.emitted/` has the
+parent:
+
+```
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token out "a few words on what the session is for"   # stdout is the name alone, out- and six hex digits
+tools/cloud-brain/issue-as.sh out-xxxxxx comment '{"key":"out/<issue id>/note-1","id":"<issue id>","body":"…"}'
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke out-xxxxxx                               # when the session has no more to write
+```
+
+- The token names `issue.*` and ends 48 hours after it is made. Its value goes to
+  `.emitted/cb4-agent-tokens.json`, mode 600, where `issue-as.sh` and `brain.ts curl --as` read it,
+  and is not printed. The words after the role are the token's note, which `agent-token list`
+  prints (`ROLES`, `HOURS` and `AGENTS` of `tools/cloud-brain/brain.ts`; what each command sends and
+  keeps is the table of `tools/cloud-brain/records/ta-1-agent-token-command.md`).
+- With no `loop-agents` kept the command is exit 1 with
+  `no token "loop-agents" is kept. The owner makes it once: token loop-agents 'issue.*' --delegate`
+  (that record, of a run on 2026-10-11 before the owner made it). The parent is the owner's to make.
+  A role's token is not used in its place: `rules.md` keeps the three "for an agent whose prompt
+  names no token, and for nothing else".
+- Why: an event's `by.holder` is the token that wrote it. Event 3993 of the record, written with
+  the writer's token `impl-cdf92d`, has `"holder":"secret:impl-cdf92d"`. 10 events of
+  `issues-overseer-1` were a session's outside the loop, a review and a move among them, and the
+  record cannot tell them from the overseer's (the spec, "What exists today"; issue
+  `seen-outside-session-overseer-token`).
+- Not run as written: the writer of this paragraph was an agent of the loop, which makes no token.
+  On 2026-10-12 12:23 CEST no event of the record had a holder that starts `out-` (3995 events,
+  read with `issue.sync`). The first session to run the three lines says here how they went.
+- A session that opens an issue on the owner's word puts `owner` in the `labels` of the open
+  (`"labels":["owner"]` in the JSON of `issue-as.sh <token> open`), since 2026-10-11. The issue
+  loop takes such an issue as the owner's, and its watch prints the open whatever token made it
+  (`.claude/skills/brain-maintenance/SKILL.md`, step 3, "The owner's"). The label gives precedence
+  and no authority. An issue he opens himself in the page needs none. (Until 2026-10-12 a
+  paragraph of its own here, "An issue the owner asked for"; the heading above it was "No token of
+  your own for the tracker".)
 
 A health check that takes ten seconds:
 
