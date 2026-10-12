@@ -200,7 +200,10 @@ The trace, in the section's words to be:
 - **The cause is something a change can be made to:** a line of a brief, a prompt, a tool's answer, a
   check nobody makes, a question the review does not ask. "The spec writer did not think of it" is not
   one: the next spec writer is a new agent with the same brief. An agent is named by its role and the
-  event of its run, and the file says what it was given.
+  event of its run, and the file says what it was given. (As built, `post-mortem-actions-prefer-guards`,
+  2026-10-12: the brief adds two items after this one. A guard of the installed policy, a state or a move
+  of a workflow, a refusal of a service or a tool and a test are named as things a change can be made to;
+  and a trace that reaches no cause writes "Not found" with the step where it stopped; the record.)
 - One cause is written as the root, with the others that were weighed and what in the trace rules each
   out. Where two things each had to be so, both are written.
 - Before the cause is written, `knowledge.search` for earlier post mortems in the words of the cause.
@@ -272,6 +275,14 @@ read the first as lacking three; the record.)
   than a second case (`philosophy.md`, line 5), with what would reopen it.
 
 The limit of 3 is the overseer's, for the overseer's reason: "so a bad round cannot compound".
+
+(As built, `post-mortem-actions-prefer-guards`, 2026-10-12, on the owner's words of that day, "generally fixes
+are better as guards" and "if the cause cannot be determined the action would be to increase observability in
+the problem area": the file's actions are one table with a column `Held by`, whose cell starts with `guard`,
+`workflow`, `refusal`, `test`, `observability` or `text`. The first of them that can hold the cause is taken, a
+`text` cell says why none of the first four can, and a trace that reached no cause has an `observability` action
+and no "None". `tests/tools/post-mortems.test.ts` holds the column for a file written after the first three.
+Question 3 of part 6 is as written; what it reads of the column is a comment on `pm-3-reviewer-brief`; the record.)
 
 ### 6. Reviewed (R2, R5)
 

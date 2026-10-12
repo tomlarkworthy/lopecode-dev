@@ -14,6 +14,11 @@
 //   - something stands under each heading;
 //   - it is 16,000 characters at most, counted as knowledge-docs.ts counts a text (`.length`), over the whole file: an
 //     entry's text is the file with its first line out, so a file that passes is entered whole.
+//   - under `## Next actions` stands a table of the actions with a column `Held by`, or the word "None". Each action's
+//     cell there starts with one of `guard`, `workflow`, `refusal`, `test`, `observability`, `text`, and a `text` cell
+//     goes on with why none of the first four can hold the cause (issue post-mortem-actions-prefer-guards, 2026-10-12:
+//     the owner, "generally fixes are better as guards"). Not asked of the three files written before that day's
+//     change, BEFORE_HELD_BY. Not held: that the kind named is the kind the action is, and that the why is true.
 // Not held: the line under the title (the first has four lines there), what a part says, and that an issue of the name exists.
 import { test, expect } from "bun:test";
 import { readdirSync, readFileSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -23,7 +28,40 @@ import { tmpdir } from "node:os";
 const root = resolve(import.meta.dir, "../..");
 const DIR = process.env.POST_MORTEMS_DIR || join(root, "tools/cloud-brain/post-mortems");
 const PARTS = ["What happened", "The trace", "The root cause", "What is not known", "What it cost", "Next actions", "How it is known later"];
+const KINDS = ["guard", "workflow", "refusal", "test", "observability", "text"];
+// Written under the brief as it was before `Held by`: two landed, the third was in progress (the body of the issue).
+const BEFORE_HELD_BY = ["pm-second-summarizer-role.md", "pm-approver-leaves-everything.md", "pm-agent-request-not-seen-fly-idle.md"];
 const LIMIT = 16000, NAME = /^pm-[a-z0-9]+(-[a-z0-9]+)*\.md$/, ID_MAX = 40;
+
+// What the first table under `## Next actions` lacks of the column `Held by`; with no table, the word "None".
+const cells = (l: string) => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+const heldBy = (lines: string[]): string[] => {
+  const out: string[] = [];
+  let from = -1, to = lines.length, fence = false;
+  for (const [i, l] of lines.entries()) {
+    if (/^(```|~~~)/.test(l)) fence = !fence;
+    if (fence || !/^## /.test(l)) continue;
+    if (from >= 0) { to = i; break; }
+    if (/^## Next actions(?![A-Za-z0-9])/.test(l)) from = i;
+  }
+  if (from < 0) return out;
+  const body = lines.slice(from + 1, to);
+  const first = body.findIndex((l) => l.startsWith("|"));
+  if (first < 0) return /\bNone\b/.test(body.join("\n")) ? out : ['`## Next actions` has no table of actions and no "None"'];
+  let end = first;
+  while (end < body.length && body[end].startsWith("|")) end++;
+  const table = body.slice(first, end), col = cells(table[0]).indexOf("Held by");
+  if (col < 0) return ["the table of `## Next actions` has no column `Held by`"];
+  const rows = table.slice(2);
+  if (!rows.length) out.push("the table of `## Next actions` has no action");
+  for (const r of rows) {
+    const c = cells(r), action = c[0], held = (c[col] ?? "").replace(/`/g, "");
+    const kind = KINDS.find((k) => held === k || (held.startsWith(k) && !/[A-Za-z0-9-]/.test(held[k.length])));
+    if (!kind) out.push(`${action}: \`Held by\` starts with none of ${KINDS.join(", ")}`);
+    else if (kind === "text" && !/[A-Za-z0-9]/.test(held.slice(kind.length))) out.push(`${action}: \`Held by\` is text and does not say why no guard, workflow, refusal or test can hold the cause`);
+  }
+  return out;
+};
 
 const problems = (name: string, text: string): string[] => {
   const out: string[] = [];
@@ -51,6 +89,7 @@ const problems = (name: string, text: string): string[] => {
   const found = at.filter((x) => x >= 0);
   for (let i = 1; i < found.length; i++) if (found[i] < found[i - 1]) out.push(`\`## ${PARTS[found[i]]}\` stands after \`## ${PARTS[found[i - 1]]}\``);
   for (const [i, h] of heads.entries()) if (at[i] >= 0 && !h.body) out.push(`nothing under \`## ${h.text}\``);
+  if (!BEFORE_HELD_BY.includes(name)) out.push(...heldBy(lines));
   return out;
 };
 
@@ -58,9 +97,9 @@ const problems = (name: string, text: string): string[] => {
 const check = (dir: string): Record<string, string[]> =>
   Object.fromEntries(readdirSync(dir).filter((f) => f.endsWith(".md")).sort().map((f) => [f, problems(f, readFileSync(join(dir, f), "utf8"))]));
 
-const good = (over: { title?: string; parts?: string[]; body?: (p: string) => string } = {}) =>
+const good = (over: { title?: string; parts?: string[]; body?: (p: string) => string; actions?: string } = {}) =>
   [over.title ?? "# Post mortem: a second role was made where one exists (`pm-x`)", "", "Of `some-issue`, declared 2026-10-12 by the owner, written that day.", "",
-    ...(over.parts ?? PARTS).flatMap((p) => ["## " + p, "", (over.body ?? (() => "What is under it."))(p), ""])].join("\n");
+    ...(over.parts ?? PARTS).flatMap((p) => ["## " + p, "", (p.startsWith("Next actions") ? over.actions ?? "None: the cause is already changed.\n\n" : "") + (over.body ?? (() => "What is under it."))(p), ""])].join("\n");
 
 test("every file of the directory meets the form", () => {
   const found = check(DIR);
@@ -111,4 +150,35 @@ test("the title, the name, a heading of another name, one twice and one with not
   expect(problems("pm-x.md", good({ body: (p) => (p === "What it cost" ? "" : "Text.") }))).toEqual(["nothing under `## What it cost`"]);
   // A level below is no heading of the form: `### The trace` does not stand for `## The trace`.
   expect(problems("pm-x.md", good().replace("## The trace", "### The trace"))).toEqual(["no heading `## The trace`"]);
+});
+
+const actions = (...rows: string[]) => ["| Issue | Kind | Held by | What changes | The part of the trace it answers |", "|---|---|---|---|---|", ...rows.map((r) => `| \`an-action\` | task | ${r} | What. | The root cause. |`), "", ""].join("\n");
+
+test("under `## Next actions`: a table with `Held by`, each cell one of the six kinds, a `text` cell with its why; or \"None\"", () => {
+  expect(KINDS).toEqual(["guard", "workflow", "refusal", "test", "observability", "text"]);
+  for (const k of KINDS.slice(0, 5)) expect(problems("pm-x.md", good({ actions: actions(k) }))).toEqual([]);
+  expect(problems("pm-x.md", good({ actions: actions("`guard`: `submit` of the policy reads `issue.children.open`", "`observability`, a line logged at the take", "text: nothing of the record has what a spec adds, so no guard reads it") }))).toEqual([]);
+  expect(problems("pm-x.md", good({ parts: PARTS.map((p) => (p === "Next actions" ? "Next actions, filed" : p)), actions: actions("test") }))).toEqual([]);
+  // the table's place among the columns is read from its header
+  expect(problems("pm-x.md", good({ actions: "| Issue | Held by |\n|---|---|\n| `an-action` | refusal |\n\n" }))).toEqual([]);
+  expect(problems("pm-x.md", good({ actions: "" }))).toEqual(['`## Next actions` has no table of actions and no "None"']);
+  expect(problems("pm-x.md", good({ actions: "Nonesuch.\n\n" }))).toEqual(['`## Next actions` has no table of actions and no "None"']);
+  expect(problems("pm-x.md", good({ actions: "| Issue | Kind | What changes |\n|---|---|---|\n| `an-action` | task | What. |\n\n" }))).toEqual(["the table of `## Next actions` has no column `Held by`"]);
+  // "None" beside a table does not stand for the column
+  expect(problems("pm-x.md", good({ actions: "None of these is done here.\n\n| Issue | Kind |\n|---|---|\n| `an-action` | task |\n\n" }))).toEqual(["the table of `## Next actions` has no column `Held by`"]);
+  expect(problems("pm-x.md", good({ actions: actions("") }))).toEqual(["`an-action`: `Held by` starts with none of guard, workflow, refusal, test, observability, text"]);
+  expect(problems("pm-x.md", good({ actions: actions("a step of the brief") }))).toEqual(["`an-action`: `Held by` starts with none of guard, workflow, refusal, test, observability, text"]);
+  expect(problems("pm-x.md", good({ actions: actions("tests") }))).toEqual(["`an-action`: `Held by` starts with none of guard, workflow, refusal, test, observability, text"]);
+  expect(problems("pm-x.md", good({ actions: actions("guard", "text") }))).toEqual(["`an-action`: `Held by` is text and does not say why no guard, workflow, refusal or test can hold the cause"]);
+  expect(problems("pm-x.md", good({ actions: actions("`text`.") }))).toEqual(["`an-action`: `Held by` is text and does not say why no guard, workflow, refusal or test can hold the cause"]);
+  expect(problems("pm-x.md", good({ actions: "| Issue | Held by |\n|---|---|\n\n" }))).toEqual(["the table of `## Next actions` has no action"]);
+  // a table of another part, and one inside a fence, are not read
+  expect(problems("pm-x.md", good({ body: (p) => (p === "The trace" ? "| Event | What |\n|---|---|\n| 1 | opened |" : "Text.") }))).toEqual([]);
+});
+
+test("the three files written before `Held by` are not asked for it, by name, and any other file is", () => {
+  const old = good({ actions: "| Issue | Kind | What changes |\n|---|---|---|\n| `an-action` | task | What. |\n\n" });
+  for (const name of BEFORE_HELD_BY) expect(problems(name, old)).toEqual([]);
+  expect(BEFORE_HELD_BY.length).toBe(3);
+  expect(problems("pm-a-later-one.md", old)).toEqual(["the table of `## Next actions` has no column `Held by`"]);
 });

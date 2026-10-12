@@ -757,7 +757,12 @@ with `"rel":"cause"`) as its file has actions, before step 7 tells the owner of 
 writer's run ended, or it reported with no `pass` read), you open the ones that lack from the file, as written
 there: the title, the kind, a body that quotes the file's cause and names the file, `"labels":["major"]` on one
 that changes `rules.md`, `philosophy.md` or who may do what, then the `cause` link; each is then triaged as any
-issue. You do not choose between them and you add none. (`pm-second-summarizer-role` filed its three before its
+issue. You do not choose between them and you add none. Since `post-mortem-actions-prefer-guards` (2026-10-12; the
+owner: "generally fixes are better as guards") the file's table has a column `Held by` for each action, one of
+`guard`, `workflow`, `refusal`, `test`, `observability`, `text`, which `tests/tools/post-mortems.test.ts` holds:
+a `guard` or a `workflow` row changes the installed policy, so it is opened `major` and is his to install, and
+the body you write for it has that row whole. A file whose cause is "Not found" has an `observability` action
+and no "None". (`pm-second-summarizer-role` filed its three before its
 review, linked `related`; their `cause` links are events 4909 to 4911, made by the writer of this section, and
 `linked` there has three with `"rel":"cause"`.)
 
