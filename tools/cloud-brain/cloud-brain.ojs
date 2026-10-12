@@ -38,18 +38,85 @@ viewof span = Inputs.select(spanOptions, { label: "Last", value: 60 })
 // A press asks for the calls again, over the same span ending now. Nothing asks on a timer.
 viewof asked = Inputs.button("Refresh")
 // %%
+// The line above the panels, under the two controls. For the owner: what callsNote says of the answer that is drawn.
+// A visitor is shown no chart, and no made-up one. A cell of its own since ds-4-panels-from-a-template, so that
+// healthView names neither calls nor span.
+healthNote = htl.html`<div style="font:13px/1.45 var(--sans-serif, system-ui, sans-serif);color:var(--theme-foreground-muted)">${calls ? callsNote(calls) : htl.html`<i>Sign in as the owner to see the calls of the last ${spanName(span)}.</i>`}</div>`
+// %%
+// The panels: one instance of the cells under "One panel" for each entry of healthPanels, each in a box of its own.
+// It names neither calls nor width nor span: an answer, a resize or a change of span is read by each instance, and the
+// instances are not made again, so each keeps what was chosen in it. A visitor has none. They are ended when this
+// cell runs again (a change of the session or of the list).
 healthView = {
-  // A visitor is shown no chart, and no made-up one.
-  if (!calls) return htl.html`<i style="color:var(--theme-foreground-muted)">Sign in as the owner to see the calls of the last ${spanName(span)}.</i>`;
-  return dashboard(healthPanels(calls, { width: width - 40, link: (worker, label) => ((row) => (row && row.module ? moduleLink(row.module, label) : null))([...((brainModules && brainModules.modules) || []), ...(services || [])].find((r) => r.worker === worker)) }), { note: callsNote(calls) });
+  if (!client || !session.owner) return htl.html`<div></div>`;
+  const made = panelInstances(healthPanels, { template: panelTemplate, instantiate: instantiateDataflow, Inspector, watch: onCodeChange });
+  invalidation.then(made.dispose);
+  return dashboard(made.boxes.map((body) => ({ body, wide: true })));
 }
 // %%
-// The panels under Health, in order. The strip of faults by Worker (healthStrip) was the second until 2026-10-11,
-// when the owner took it off the page; a dashboard draws it still, as "faults".
-healthPanels = (data, { width, link = null } = {}) => [
-  { title: "Calls", body: requestsChart(data, { width }), wide: true },
-  { title: "By method", body: methodTable(data, { link }), wide: true }
-]
+// The panels under Health, in order: what each shows when the page opens. A panel is one more entry.
+// draw is a value of panelDraws, and worker is a Worker's name, or "" for all of them.
+// The strip of faults by Worker was the second until 2026-10-11, when the owner took it off the page (fb-a2oogpkdjb):
+// no entry is "faults", and the "Show" of a panel still offers it.
+healthPanels = [{ draw: "calls", worker: "" }, { draw: "table", worker: "" }]
+// %%
+// One instance of the template for each entry, in a second runtime (instantiateDataflow of dataflow-templating): the
+// entry is the instance's panelStart, and its cell "panel" is drawn into a box by an Inspector. Every other name the
+// template's cells read (calls, width, the drawing functions) is the page's own cell, one for all the instances,
+// unless shared gives a value for it. watch is onCodeChange of runtime-sdk: with it an instance follows a cell of the
+// template that is defined again. dispose ends each instance.
+panelInstances = (entries, { template, instantiate, Inspector, watch = null, shared = {} }) => {
+  const live = entries.map((entry) => {
+    const box = htl.html`<div></div>`;
+    return { entry, box, instance: instantiate(template, { params: { ...shared, panelStart: entry }, observers: (name) => (name === "panel" ? new Inspector(box) : null), watch }) };
+  });
+  return { live, boxes: live.map((made) => made.box), dispose: () => live.forEach((made) => made.instance.dispose()) };
+}
+// %%
+// The cells a panel is an instance of, as variables of this module. panelStart is not among them: each instance is given its own.
+// The module is asked for through the control itself: its value is not there until the runtime has been searched.
+panelTemplate = {
+  const found = () => viewof myModule.value;
+  const module = found() || (await new Promise((resolve) => viewof myModule.addEventListener("input", resolve, { once: true })), found());
+  return lookupVariable(["viewof panelDraw", "panelDraw", "viewof panelWorker", "panelWorker", "panelBody", "panel"], module);
+}
+// %%
+md`### One panel
+
+Each panel above is an instance of the cells below from \`viewof panelDraw\` to \`panel\`, which are a panel too, drawn here from the same calls. What a panel shows when the page opens is its entry in \`healthPanels\`.`
+// %%
+// What a panel shows when it is made. An instance has its entry of healthPanels in this cell's place.
+panelStart = ({ draw: "calls", worker: "" })
+// %%
+// What "Show" offers: the name, and the draw panelView knows it by.
+panelDraws = new Map([["Calls", "calls"], ["Faults by Worker", "faults"], ["By method", "table"]])
+// %%
+viewof panelDraw = Inputs.select(panelDraws, { label: "Show", value: panelStart.draw })
+// %%
+// Made again for each answer, since the Workers it offers are the answer's, and it starts at what the one before
+// it had: a "Refresh" does not undo the choice.
+viewof panelWorker = {
+  const chosen = this && typeof this.value === "string" ? this.value : panelStart.worker;
+  return Inputs.select(panelWorkers(calls, chosen), { label: "Worker", format: (worker) => worker || "all", value: chosen });
+}
+// %%
+panelBody = panelView(calls, { draw: panelDraw, worker: panelWorker, width: width - 40, link: workerLink })
+// %%
+panel = htl.html`<div><div style="display:flex;flex-wrap:wrap;gap:4px 16px;margin-bottom:6px">${viewof panelDraw}${viewof panelWorker}</div>${panelBody}</div>`
+// %%
+// What a panel draws of an answer of callsRead: the calls, the strip of faults or the table by method, of one Worker's
+// rows or of all. With no answer (a visitor) it is one line, and no drawing function is called.
+panelView = (data, { draw = "calls", worker = "", width, link = null } = {}) => {
+  if (!data) return htl.html`<i style="color:var(--theme-foreground-muted)">Sign in as the owner to see a panel.</i>`;
+  const shown = worker ? { ...data, series: data.series.filter((d) => d.worker === worker) } : data;
+  return draw === "table" ? methodTable(shown, { link }) : draw === "faults" ? healthStrip(shown, { width }) : requestsChart(shown, { width });
+}
+// %%
+// The Workers a panel's select offers: "" for all, then each Worker of the answer, and the one that is chosen when the answer has no call of it.
+panelWorkers = (data, chosen = "") => ["", ...[...new Set([...((data && data.series) || []).map((d) => d.worker), chosen])].filter(Boolean).sort()]
+// %%
+// A Worker's name as a link to its module's tab, for the table by method; null for a Worker this page does not know.
+workerLink = (worker, label) => ((row) => (row && row.module ? moduleLink(row.module, label) : null))([...((brainModules && brainModules.modules) || []), ...(services || [])].find((r) => r.worker === worker))
 // %%
 // The range the panels of Health read: the chosen span, ending when it was chosen or "Refresh" was last pressed.
 // The one place the clock is read.
@@ -155,12 +222,12 @@ methodTable = (data, { link = null } = {}) =>
     { select: false, rows: 12, layout: "auto", format: link ? { worker: (v) => link(v, v) || v } : {} }
   )
 // %%
-// A grid of titled panels. wide: true spans the row.
+// A grid of panels, each with its title when it has one. wide: true spans the row.
 dashboard = (panels, { note = "" } = {}) => htl.html`<div style="font:13px/1.45 var(--sans-serif, system-ui, sans-serif);color:var(--theme-foreground)">
   ${note ? htl.html`<div style="color:var(--theme-foreground-muted);margin-bottom:8px">${note}</div>` : ""}
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px">
     ${panels.map((p) => htl.html`<div style=${`border:1px solid var(--theme-foreground-faintest);border-radius:6px;padding:10px 12px;min-width:0;overflow:auto;${p.wide ? "grid-column:1/-1;" : ""}`}>
-      <div style="font-weight:600;margin-bottom:6px">${p.title}</div>${p.body}</div>`)}
+      ${p.title ? htl.html`<div style="font-weight:600;margin-bottom:6px">${p.title}</div>` : ""}${p.body}</div>`)}
   </div>
 </div>`
 // %%
@@ -200,20 +267,155 @@ test_health_draws_calls_and_methods_and_no_strip_of_faults = {
     { t: since + 120000, worker: "brain-x-inbox", method: "inbox.poll", status: 502, n: 1, ms: 900, max: 900 },
     { t: since + 60000, worker: "brain-core", method: "rule.list", status: 401, n: 1, ms: 3, max: 3 }
   ] };
-  const panels = healthPanels(data, { width: 600, link: (worker, label) => (worker === "brain-core" ? htl.html`<a href="#core">${label}</a>` : null) });
-  expect(panels.map((p) => [p.title, p.wide])).toEqual([["Calls", true], ["By method", true]]);
-  // No panel has the legend of the strip, and the strip is not a panel under another title.
-  const drawn = dashboard(panels);
+  // The panels under Health are a list: the calls and the table by method, each of every Worker. No entry is the strip.
+  expect(healthPanels).toEqual([{ draw: "calls", worker: "" }, { draw: "table", worker: "" }]);
+  const link = (worker, label) => (worker === "brain-core" ? htl.html`<a href="#core">${label}</a>` : null);
+  const bodies = (rows) => healthPanels.map((entry) => panelView(rows, { ...entry, width: 600, link }));
+  // No panel has the legend of the strip.
+  const drawn = dashboard(bodies(data).map((body) => ({ body, wide: true })));
   expect(drawn.querySelectorAll("div[style*=border]").length).toBe(2);
   expect(drawn.textContent).not.toContain("share of calls that were faults");
+  // A panel is given no title, since its "Show" says what it is, and has no line for one; a panel with a title has.
+  expect([drawn, dashboard([{ title: "a", body: "x" }])].map((el) => el.querySelectorAll("div[style*=font-weight]").length)).toEqual([0, 1]);
   // The faults are still read under Health, by method: 1 of inbox.poll's 3 calls.
-  const rows = [...panels[1].body.querySelectorAll("tbody tr")].map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent.trim()).filter(Boolean));
-  expect(rows.map((r) => r.slice(0, 5))).toEqual([["brain-x-inbox", "inbox.poll", "3", "0", "1"], ["brain-core", "rule.list", "1", "1", "0"]]);
+  const rowsOf = (table) => [...table.querySelectorAll("tbody tr")].map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent.trim()).filter(Boolean));
+  const [chart, table] = bodies(data);
+  expect(chart.querySelectorAll("rect").length + [...chart.querySelectorAll("svg")].reduce((n, svg) => n + svg.querySelectorAll("rect").length, 0)).toBeGreaterThan(2);
+  expect(rowsOf(table).map((r) => r.slice(0, 5))).toEqual([["brain-x-inbox", "inbox.poll", "3", "0", "1"], ["brain-core", "rule.list", "1", "1", "0"]]);
   // link is handed to the table: a Worker it knows is a link, another is its name.
-  expect([...panels[1].body.querySelectorAll("tbody a")].map((a) => a.textContent)).toEqual(["brain-core"]);
-  // With no rows: the same two panels.
-  expect(healthPanels({ since, until, step: 60000, groups: 0, series: [] }, { width: 600 }).map((p) => p.title)).toEqual(["Calls", "By method"]);
+  expect([...table.querySelectorAll("tbody a")].map((a) => a.textContent)).toEqual(["brain-core"]);
+  // With no rows: the same two panels, and the table says it has none.
+  const none = bodies({ since, until, step: 60000, groups: 0, series: [] });
+  expect(none.length).toBe(2);
+  expect(rowsOf(none[1])).toEqual([["No results."]]);
   return "2 panels under Health";
+}
+// %%
+test_a_panel_draws_one_of_three_for_one_worker_or_all = {
+  const since = Date.UTC(2026, 9, 9, 7, 0), until = Date.UTC(2026, 9, 9, 8, 0);
+  const data = { since, until, step: 60000, groups: 2, series: [
+    { t: since + 60000, worker: "brain-x-inbox", method: "inbox.poll", status: 200, n: 2, ms: 80, max: 50 },
+    { t: since + 120000, worker: "brain-x-inbox", method: "inbox.poll", status: 502, n: 1, ms: 900, max: 900 },
+    { t: since + 60000, worker: "brain-core", method: "rule.list", status: 401, n: 1, ms: 3, max: 3 }
+  ] };
+  const rowsOf = (table) => [...table.querySelectorAll("tbody tr")].map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent.trim()).filter(Boolean).slice(0, 5));
+  const strip = "share of calls that were faults";
+  // What "Show" offers, by the name a panel's entry gives it.
+  expect([...panelDraws]).toEqual([["Calls", "calls"], ["Faults by Worker", "faults"], ["By method", "table"]]);
+  // Each draw is the function that drew it before: the table, the strip (its legend), the chart of calls (no such legend).
+  expect(rowsOf(panelView(data, { draw: "table" }))).toEqual([["brain-x-inbox", "inbox.poll", "3", "0", "1"], ["brain-core", "rule.list", "1", "1", "0"]]);
+  expect(panelView(data, { draw: "faults", width: 600 }).textContent).toContain(strip);
+  const calls = panelView(data, { draw: "calls", width: 600 });
+  expect(calls.textContent).not.toContain(strip);
+  expect(calls.querySelector("table")).toBe(null);
+  // A draw it does not know, and none: the chart of calls.
+  for (const body of [panelView(data, { draw: "other", width: 600 }), panelView(data, { width: 600 }), panelView(data)]) expect([body.textContent.includes(strip), !!body.querySelector("table"), body.outerHTML.includes("<svg")]).toEqual([false, false, true]);
+  // One Worker: its rows and no other's. A Worker with no row draws: the table says it has none.
+  expect(rowsOf(panelView(data, { draw: "table", worker: "brain-core" }))).toEqual([["brain-core", "rule.list", "1", "1", "0"]]);
+  expect(rowsOf(panelView(data, { draw: "table", worker: "brain-x-none" }))).toEqual([["No results."]]);
+  for (const draw of ["calls", "faults"]) expect(panelView(data, { draw, worker: "brain-x-none", width: 600 }).outerHTML).toContain("<svg");
+  // The rows that were given are not changed by the filter.
+  expect(data.series.length).toBe(3);
+  // link reaches the table.
+  expect([...panelView(data, { draw: "table", link: (worker, label) => (worker === "brain-core" ? htl.html`<a href="#core">${label}</a>` : null) }).querySelectorAll("tbody a")].map((a) => a.textContent)).toEqual(["brain-core"]);
+  // No answer (a visitor): the line, and nothing drawn, whatever was asked for.
+  for (const draw of ["calls", "faults", "table"]) {
+    const body = panelView(null, { draw, worker: "brain-core", width: 600 });
+    expect([body.textContent, body.querySelectorAll("svg, table").length]).toEqual(["Sign in as the owner to see a panel.", 0]);
+  }
+  // The Workers a panel's select offers: all (""), then each Worker of the answer once, then the one that is chosen though the answer has none of it.
+  expect(panelWorkers(data)).toEqual(["", "brain-core", "brain-x-inbox"]);
+  expect(panelWorkers(data, "brain-core")).toEqual(["", "brain-core", "brain-x-inbox"]);
+  expect(panelWorkers(data, "brain-x-gone")).toEqual(["", "brain-core", "brain-x-gone", "brain-x-inbox"]);
+  expect(panelWorkers(null)).toEqual([""]);
+  expect(panelWorkers(null, "brain-core")).toEqual(["", "brain-core"]);
+  expect(panelWorkers({ ...data, series: [] }, "")).toEqual([""]);
+  return "3 draws, 1 Worker or all";
+}
+// %%
+// R4 of plan/cloud-brain-dashboards-share-series-and-controls.md: the panels are instances of the cells under "One panel".
+// calls, width and workerLink are given to each instance here, so nothing drawn is the page's own answer.
+test_health_panels_are_instances_of_one_template = {
+  const since = Date.UTC(2026, 9, 9, 7, 0), until = Date.UTC(2026, 9, 9, 8, 0);
+  const row = (minute, worker, method, status, n) => ({ t: since + minute * 60000, worker, method, status, n, ms: 10 * n, max: 10 });
+  const first = { since, until, step: 60000, groups: 2, series: [row(1, "brain-x-inbox", "inbox.poll", 200, 2), row(2, "brain-x-inbox", "inbox.poll", 502, 1), row(1, "brain-core", "rule.list", 401, 1)] };
+  expect(panelTemplate.map((v) => v._name)).toEqual(["viewof panelDraw", "panelDraw", "viewof panelWorker", "panelWorker", "panelBody", "panel"]);
+  const module = panelTemplate[0]._module;
+  const bridges = () => [...module._scope.keys()].filter((name) => name.startsWith("dynamic bridge ")).map((name) => name.split(" ")[2]).sort();
+  // The answers an instance reads, handed over one at a time: what a "Refresh" does to calls.
+  let answer = null;
+  const answers = Generators.observe((change) => ((answer = change), change(first), () => {}));
+  const given = { template: panelTemplate, instantiate: instantiateDataflow, Inspector, shared: { calls: answers, width: 600, workerLink: () => null } };
+  // Nothing awaits between these lines, so no other cell of the page adds or removes a variable among them.
+  const one = panelInstances([{ draw: "table", worker: "brain-core" }], given);
+  const bridged = bridges(), variables = runtime._variables.size;
+  const two = panelInstances([{ draw: "table", worker: "" }, { draw: "calls", worker: "" }], { ...given, shared: { ...given.shared, calls: first } });
+  // The second and the third instance add no variable to the page: each reads the page through the bridges of the first.
+  expect(runtime._variables.size).toBe(variables);
+  expect(bridges()).toEqual(bridged);
+  expect([one.live.length, two.live.length, two.boxes.length]).toEqual([1, 2, 2]);
+  // What an instance takes from the page, and what it was given in its place.
+  const captures = one.live[0].instance.captures;
+  expect(captures).toEqual(expect.arrayContaining(["Inputs", "Generators", "htl", "panelDraws", "panelWorkers", "panelView"]));
+  for (const name of ["calls", "width", "workerLink", "panelStart"]) expect(captures).not.toContain(name);
+  for (const name of captures) expect(bridged).toContain(name.replace(/[^\w$]/g, "_"));
+  // With nothing given but the entry, an instance reads the page's calls, width and workerLink. Made and ended at once.
+  const plain = panelInstances([{ draw: "calls", worker: "" }], { ...given, shared: {} });
+  expect(plain.live[0].instance.captures).toEqual(expect.arrayContaining(["calls", "width", "workerLink"]));
+  expect(bridges()).toEqual(expect.arrayContaining(["calls", "width", "workerLink"]));
+  plain.dispose();
+  expect(bridges()).toEqual(bridged);
+  // A box is drawn when its instance's panel has a value: wait for what is looked for, with no clock.
+  // The observer is taken from document, so a runner with no browser reads "document is not defined" and counts
+  // this test as one that needs a browser (cloud-brain-dev/test.ts knows that name and not MutationObserver).
+  const until_ = (box, found) => new Promise((resolve) => {
+    const look = () => { const got = found(box); if (got) { seen.disconnect(); resolve(got); } };
+    const seen = new document.defaultView.MutationObserver(look);
+    seen.observe(box, { childList: true, subtree: true });
+    look();
+  });
+  const selects = (box) => [...box.querySelectorAll("select")];
+  const chosen = (box) => selects(box).map((s) => s.options[s.selectedIndex].textContent);
+  const offered = (box) => [...selects(box)[1].options].map((o) => o.textContent);
+  const methods = (box) => [...box.querySelectorAll("tbody tr")].map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent.trim()).filter(Boolean).slice(0, 3).join(" "));
+  const table = (rows) => (box) => selects(box).length === 2 && box.querySelector("table") && methods(box).join() === rows.join();
+  // Each instance starts as its entry says.
+  const [boxA] = one.boxes, [boxB, boxC] = two.boxes;
+  await until_(boxA, table(["brain-core rule.list 1"]));
+  expect(chosen(boxA)).toEqual(["By method", "brain-core"]);
+  expect(offered(boxA)).toEqual(["all", "brain-core", "brain-x-inbox"]);
+  await until_(boxB, table(["brain-x-inbox inbox.poll 3", "brain-core rule.list 1"]));
+  expect(chosen(boxB)).toEqual(["By method", "all"]);
+  await until_(boxC, (box) => selects(box).length === 2 && box.querySelector("svg"));
+  expect([chosen(boxC), boxC.querySelector("table")]).toEqual([["Calls", "all"], null]);
+  // A choice made in one instance is that instance's: the other with the same draw is as it was.
+  const pick = (select, text) => { select.selectedIndex = [...select.options].findIndex((o) => o.textContent === text); select.dispatchEvent(new Event("input", { bubbles: true })); };
+  pick(selects(boxB)[1], "brain-x-inbox");
+  await until_(boxB, table(["brain-x-inbox inbox.poll 3"]));
+  expect(chosen(boxB)).toEqual(["By method", "brain-x-inbox"]);
+  expect([chosen(boxA), methods(boxA)]).toEqual([["By method", "brain-core"], ["brain-core rule.list 1"]]);
+  pick(selects(boxC)[0], "Faults by Worker");
+  await until_(boxC, (box) => box.textContent.includes("share of calls that were faults"));
+  expect(chosen(boxB)).toEqual(["By method", "brain-x-inbox"]);
+  // A new answer (a "Refresh") after a choice that is not the entry's: the Worker stays chosen, and the select offers
+  // the Workers of the new answer. Each wait is for rows of the new answer, whichever Worker's they are.
+  pick(selects(boxA)[1], "brain-x-inbox");
+  await until_(boxA, table(["brain-x-inbox inbox.poll 3"]));
+  const rowsEnd = (ends) => (box) => selects(box).length === 2 && box.querySelector("table") && methods(box).every((line) => ends.test(line));
+  answer({ ...first, series: [row(3, "brain-core", "rule.list", 200, 5), row(3, "brain-x-inbox", "inbox.poll", 200, 6), row(3, "brain-x-static", "static.get", 200, 4)] });
+  await until_(boxA, rowsEnd(/ [564]$/));
+  expect([chosen(boxA), methods(boxA)]).toEqual([["By method", "brain-x-inbox"], ["brain-x-inbox inbox.poll 6"]]);
+  expect(offered(boxA)).toEqual(["all", "brain-core", "brain-x-inbox", "brain-x-static"]);
+  // An answer with no call of that Worker: still chosen and still offered, and the table says it has no row.
+  answer({ ...first, series: [row(4, "brain-x-static", "static.get", 200, 7)] });
+  await until_(boxA, rowsEnd(/ 7$|^No results\.$/));
+  expect([chosen(boxA), methods(boxA)]).toEqual([["By method", "brain-x-inbox"], ["No results."]]);
+  expect(offered(boxA)).toEqual(["all", "brain-x-inbox", "brain-x-static"]);
+  // Ended: each instance once.
+  one.dispose();
+  two.dispose();
+  expect([...one.live, ...two.live].map((made) => made.instance.dispose())).toEqual([false, false, false]);
+  return "3 instances of 6 cells, 0 variables for the second and third";
 }
 // %%
 test_calls_are_read_once_for_a_range_and_not_without_a_client = {
@@ -960,6 +1162,9 @@ test_services_is_the_first_section_after_health = {
 }
 // %%
 fromBrain = ({})
+// %%
+// This module, for the cells that look up its own variables (panelTemplate). thisModule of runtime-sdk.
+viewof myModule = thisModule()
 // %%
 // Loads source text over a module of this page, cell by cell, creating the module when the page has none.
 applySource = async (module, text) => {
@@ -1920,7 +2125,11 @@ import {exportToHTML, exportModuleJS} from "@tomlarkworthy/exporter-3"
 // %%
 import {jbApply, probeDefine} from "@tomlarkworthy/file-sync"
 // %%
-import {runtime, createModule} from "@tomlarkworthy/runtime-sdk"
+import {runtime, createModule, lookupVariable, thisModule, onCodeChange} from "@tomlarkworthy/runtime-sdk"
+// %%
+import {instantiateDataflow} from "@tomlarkworthy/dataflow-templating"
+// %%
+import {Inspector} from "@tomlarkworthy/inspector"
 // %%
 import {expect} from "@tomlarkworthy/jest-expect-standalone"
 
