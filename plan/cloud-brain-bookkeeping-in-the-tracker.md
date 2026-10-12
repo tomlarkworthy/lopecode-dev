@@ -13,8 +13,8 @@ Three findings change what the issue asks for, and they come first:
   issue is a new fact and a changed guard, and a guard is installed by the owner.
 - **Nothing else here needs an install.** The order, the queue, the hold on a time and the finish
   made by the service are a deploy of `brain-x-issues`, which the loop makes.
-- **A finish made under the Worker's own name is refused by the policy in force.** Every guard
-  of a move reads `caller.kind in ["owner", "token"]`. The service makes the move inside the call
+- **A finish made under the Worker's own name is refused by the policy in force.** The guard of
+  `finish` reads `caller.kind in ["owner", "token"] && issue.children.open == 0`. The service makes the move inside the call
   that ended the last part, as that call's caller, the way `issue.install` writes the swaps of a
   migration.
 
@@ -68,8 +68,10 @@ that says one issue waits for another would let the tracker answer this itself. 
 
 The record was read whole on 2026-10-12 at 12:21 CEST: `sync?after=` to event 3990, `snapshot` and
 `policy`, with the token `spec-8717a9`. `issue-stats.ts` is the kept tool. A number that is not on
-a line it prints is from one of two scripts of this writing, not kept (`measure.py`, `replay.py`);
-the paragraph says what the script did.
+a line it prints is from one of two scripts of this writing, `measure.py` and `replay.py`. They
+are attachments of the issue (events 4016 and 4017; `ia "attachment?id=bookkeeping-in-the-tracker&name=replay.py"`),
+and each reads a directory that holds the answers of `snapshot` and of `sync?after=`. The
+paragraph says what the script did.
 
 `bun tools/cloud-brain/issue-stats.ts --token=spec-8717a9`, from the main checkout, 12:21 CEST:
 
@@ -108,10 +110,12 @@ rows 28 held-in-words 20 of them naming an issue 17 of them every named issue cl
   each with the reason "Late by 13 hours", "by 16 hours", "by 8 hours". `ta-6-checks-after-three-issues`
   went with them: its count was met at 37 starts and no pass read it.
 
-This answers the first "Not known" of the body. Of the 13 tasks of `worker-machine-on-fly`,
-`cloudflare-usage-read` and `topics-service` at `triaged`: `fly-2` to `fly-6` (six) are behind
-`fly-1-by-hand` and `cu-2` to `cu-4` (three) behind `cu-1`, and both roots are the owner's. `tp-4`
-is behind `tp-3`, which is `ready`. None can be started today.
+This answers the first "Not known" of the body. Of the tasks of `worker-machine-on-fly`,
+`cloudflare-usage-read` and `topics-service`, 12 were at `triaged` at event 3990 (the body counted
+13 two hours before; `tp-3-take-and-done` has gone to `ready` since). Two are roots and the
+owner's, `fly-1-by-hand` and `cu-1-deployer-gains-billing-read`. `fly-2` to `fly-6` (six) are
+behind the first and `cu-2` to `cu-4` (three) behind the second. `tp-4` is behind `tp-3`. None of
+the 12 can be started by the loop today.
 
 ### Finishes
 
@@ -157,9 +161,12 @@ moves whose guard reads children.open: 590 ; verdict would differ with feedback 
 `ia "verify?guards=true"` at 12:26 CEST: `{"ok":true,"seq":3997,…,"checked":3997,"guards":true}`.
 With the meaning of `.open` changed it would answer `ok: false` at 3740.
 
-The policy in force is the one of event 483, the same as the cell `issuesDefaultPolicy`. Every move
-guard but `submit`, `submit-spec` and the review guards begins `caller.kind in ["owner", "token"]`
-or `caller.present`. `by.caller` of the 3978 events read: `owner` 3974, `worker:brain-x-snapshot` 2,
+The policy in force is the one of event 483, the same as the cell `issuesDefaultPolicy`. In it
+`finish` reads `caller.kind in ["owner", "token"] && issue.children.open == 0`, and so does every
+move that closes an issue or ends a part but `pass` and `to-approval` (the reviewer's, by a token)
+and `approve`, `owner-reject` and `revert` (`caller.present`). `start` from `ready` is open to any
+caller. Of the 3990 events, 12 are of issues this token may not read; `by.caller` of the other
+3978: `owner` 3974, `worker:brain-x-snapshot` 2,
 `worker:brain-x-issues` 1 (the default policy), `deployer` 1.
 
 ### Step 3
@@ -229,10 +236,13 @@ label `owner` gives precedence and no authority. A guard would be `issue.after.o
 most 30 days after it; `reason`, required, says what to read when the issue comes back.
 `{ key, id, remove: true }` takes it off. The event is `held`; the issue's row has
 `hold: { until, reason, seq }`. Guard: the workflow's `hold`, and `label` where a workflow has none
-(as `attach` falls to `comment`). No guard reads the hold.
+(as `attach` falls to `comment`). No guard reads the hold. `held` joins the table of event types
+in `issueReplay`, which answers "no such type of event" for one it does not have, and
+`issue.verify?guards=true` would fail at the first hold without it.
 
 Until `until` the issue is in `waiting`. After it the issue is in the queue again, as `look`, with
-its reason. The time is judged against the Worker's clock at the read; a Worker has no timer and
+its reason. A hold ends at `remove` or at the issue's next move (`issueApply` takes `hold` off the
+row at a `moved` event), so an issue that was started is not a `look`. The time is judged against the Worker's clock at the read; a Worker has no timer and
 none is added.
 
 This is the answer to part 5 of the issue: a time, not "no such holds". A writer spawned to find
@@ -252,7 +262,9 @@ view, `issueQueue(view, by, now)`, with no I/O of its own:
 ```
 
 `do` is what the entry wants. The names of states and moves are read as the record has them, as
-`issueFlow` reads them.
+`issueFlow` reads them. An issue is tested against the rows of `waiting` first, in their order; one
+that none of them holds is tested against the rows of `do`, in the order of this table, and has the
+first that matches. So "waits for nothing" below is: no row of `waiting` holds it.
 
 | `do` | The issue is | Group |
 |---|---|---|
@@ -262,8 +274,8 @@ view, `issueQueue(view, by, now)`, with no I/O of its own:
 | `ready` | at `triaged` and waits for nothing | 3 |
 | `decompose` | at `approved` | 3 |
 | `finish` | at `building`, and the guard of `finish` passes for this caller (part 4 did not make it) | 3 |
-| `promote` | feedback, at `open`, the owner's, with no parent and no link either way | 3 |
-| `look` | a hold whose time has passed; `in-review` or `spec-review` with a review and no move after it; a state no row names | 3 |
+| `promote` | on the feedback workflow, at `open`, the owner's, with no parent and no link either way | 3 |
+| `look` | a hold whose time has passed; `in-review` or `spec-review` with a review and no move after it; a state no row names. Tested before every other row of this table | 3 |
 | `start` | at `ready` and waits for nothing | 4 |
 | `spec` | a project or feature at `open`, the owner's or with three parts or more | 4 |
 
@@ -274,18 +286,20 @@ group 4: `for` `owner` first; then `late`; then `start` before `spec`; then the 
 `annotation`, as `for` of `issue.flow`. `since` is the time of the issue's last move, and `late` is
 true when that is 4 hours or more before `now`.
 
-`waiting` has every issue that is not closed and not in `queue`, with one `why`, the first that holds:
+`waiting`, with one `why` an issue, the first that holds:
 
 | `why` | The issue |
 |---|---|
-| `owner` | has the label `needs-owner`, or is at `awaiting-approval`, or is on the security workflow |
+| `owner` | has the label `needs-owner` and is not at `in-progress`, `in-review`, `spec` or `spec-review`; or is at `awaiting-approval`; or is on the security workflow |
 | `until` | has a hold whose time has not come; `until` is the time |
 | `after` | is after an issue that is not closed; `on` lists those |
-| `parts` | has an open part: a task at `open`, `triaged` or `ready`, or a project at `building`; `on` lists them |
-| `work` | is at `in-progress` or `spec` and was not sent back: an agent has it, or had |
+| `parts` | is on the task workflow at `open`, `triaged` or `ready` with an open part, or is a project at `building` whose `finish` guard refuses; `on` lists the open parts |
+| `work` | is at `in-progress` or `spec` and its last move is not one of `round`'s: an agent has it, or had |
 | `gathering` | is a project at `open` that is not the owner's and has fewer than three parts |
 
-An open feedback issue that is not a `promote` is in neither list. An issue the caller may not
+An open issue on the feedback workflow that is not a `promote` is in neither list, and `waiting`
+is every other issue that is not closed and not in `queue`. A feedback issue that was promoted is
+on the task workflow and is listed as a task. An issue the caller may not
 read is in neither.
 
 **The last move.** The row of an issue has no time of its last move and no name of it. `issueApply`
@@ -423,7 +437,7 @@ for `issue.queue` in the shape's list (`working-with-cloud-brain-remote-lopecode
   and no install. A rule in prose that nothing reads again is what this issue is about, and six
   such parts exist.
 - **The finish written under the Worker's name.** The record would name the service as the writer.
-  Every guard refuses a Worker, so it needs the install before any finish is made, where the
+  The guard of `finish` refuses a Worker, so it needs the install before any finish is made, where the
   design above works from the deploy.
 - **`ready` made by the service too.** With holds as links and times, a session makes `triage` and
   `ready` together and nothing stays at `triaged` but what waits for the owner or a part. The
@@ -451,9 +465,9 @@ in step 11 of its brief, and the table says which task.
 | R2 | `bun test.ts brain-x-issues --with <build>` in the worktree's `cloud-brain-dev` | 36 passed, 0 failed, 15 need a browser, at `d53d1c8d` | bk-2: more passed, 0 failed; a new test closes the last part of a project in the rig and reads the project `done`, the event's `auto`, and `issue.verify?guards=true` `ok` |
 | R2 | `ia "verify?guards=true"` | `ok: true`, 3997 checked | `ok: true` after each of bk-1, bk-2, bk-3 and after the install |
 | R2 | `ia "queue"`, the entries with `do` `finish` | 501 | bk-3: none two passes after the deploy. A `finish` entry seen later is a follow-on that failed: its id goes in the task's record |
-| R3 | `ia "queue"` | 501 | bk-3: 200; every issue of `ia "list?state=ready"` that has no label `needs-owner` is in `queue` or in `waiting` |
+| R3 | `ia "queue"` | 501 | bk-3: 200. Placement, read by the writer against `ia "list?state=ready"`: an issue there with no label `needs-owner`, no hold, no open part and no link `after` to an open issue is in `queue` with `do` `start`, and each other one is in `waiting` with the `why` its row gives. Order: of two `start` entries, one with the label `owner` is before one without. In the rig, a test of each row of the two tables and of the order of group 4 |
 | R4 | `ia "get?id=group-invites"`, `issue.state` | `building`, one open part, `fb-a24kt7jw3q` | bk-4, after the owner's install: `done`. Cannot be run before he installs |
-| R5 | `ia hold '{"key":"…","id":"…","until":1,"reason":"probe"}'` | 501 | bk-3: 400 for an `until` in the past; with a time 60 s on, the issue is in `waiting` with `why` `until`, and in `queue` as `look` after it |
+| R5 | `ia hold '{"key":"…","id":"…","until":1,"reason":"probe"}'` | 501 | bk-3: 400 for an `until` in the past; with a time 60 s on, the issue is in `waiting` with `why` `until`, and in `queue` as `look` after it; `ia "verify?guards=true"` then `ok: true` |
 | R6 | the rows of step 3's tables: `awk '/^3\. \*\*/{on=1} /^4\. \*\*Spawn/{on=0} on && /^   \| /' .claude/skills/brain-maintenance/SKILL.md \| grep -v -c -E '^   \| (\`do\`\|In \`waiting\`\|Issue is\|---)'` | 20 | 13, with the draft of part 6 in the file (run 12:32 CEST, then taken back). The task's count may differ by the rows it adds |
 | R6 | `grep -c "A place goes, in this order" .claude/skills/brain-maintenance/SKILL.md` | 1 | 0 (the same run) |
 | R6 | `ia "queue"`, `waiting` with `why` `after` | 501 | bk-5: 13 entries, the links of "Holds" above, less any whose issue has ended by then |
@@ -523,3 +537,19 @@ Nothing. Every call of this design is `issue.*`, which each agent's token alread
   `issue.verify` at one event of the record, which only a replay showed.
 - `git diff --stat` in the worktree lists `lopebooks`, `lopecode` and `lopecode-plugin` as changed
   after a clean checkout: they are the links. The brief says so of `git status`, not of `diff`.
+
+## The fresh review before submitting (2026-10-12, answered by 12:55 CEST)
+
+One agent with the file and nothing else (`/review-notebook`): FIX, 6 findings, all taken.
+
+- The rows of `do` had no order between them and "waits for nothing" meant the link alone: the
+  rows of `waiting` are now tested first, the rows of `do` in the table's order, `look` first, and
+  a hold ends at the issue's next move.
+- The check of R3 could not fail (`waiting` was defined as what is not in `queue`): it now names
+  where an issue is placed and one case of the order.
+- The two scripts were not kept: they are attachments of the issue.
+- "Every guard of a move reads `caller.kind`" was false (`start` from `ready`, the moves of the
+  owner present): the sentences now speak of `finish`.
+- `held` was not said to join `issueReplay`: said, and in the check of R5.
+- "13 tasks" named 10, and 3978 events stood beside 3990: both explained.
+
