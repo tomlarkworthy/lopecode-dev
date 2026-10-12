@@ -96,17 +96,18 @@ $ bun count.ts research-2099-01-02.html      (3 runs)
 throwing cell with no name each named; a pick in neither list; a list that is not a list), the
 exit, the address, the arguments with `cc=` refused, the tool's exits 64 and 70, and steps 6 and
 8 of the brief. Before the brief was edited the last of them failed, on the built-file command
-that step 6 did not have; before `count.ts` existed the file could not be imported.
+that step 6 did not have.
 
 ```
 $ bun test ./tests/tools/digest-count.test.ts
  10 pass  0 fail  45 expect() calls
 $ bun test ./tests/tools
- 574 pass  0 fail  3604 expect() calls   Ran 574 tests across 59 files. [194.12s]
+ 574 pass  0 fail   Ran 574 tests across 59 files. [195.63s]
 ```
 
-The count of the whole directory was run before the record and the README section were written;
-the count in the issue's comment is from a run after them and after the rebase.
+Both from 10:26 to 10:29 CEST (`date`), after the last change to the tool, its test, the brief and
+the README, with the worktree at `f4428237` of `origin/main` under its commits. Without `count.ts`
+in its place the test file gave `0 pass 1 fail 1 error`.
 
 ## Not tried, and what the tool does not see
 
