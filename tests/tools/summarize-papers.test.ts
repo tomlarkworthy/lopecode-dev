@@ -5,7 +5,7 @@
 //
 //   bun test ./tests/tools/summarize-papers.test.ts
 //   SUMMARIZE_PAPERS_TS=/path/to/another/summarize-papers.ts bun test …
-// The cases that run the tool make a repository of their own in a temporary directory, with a copy of the tool at
+// The cases that run the tool make a repository of their own in a new directory (ROOT, below), with a copy of the tool at
 // tools/cloud-brain/summarize-papers.ts, a fake brain.ts beside it and a server in arXiv's place: no case calls a
 // Brain or arXiv. The PDF cases need pdftotext (poppler) on the PATH, as the tool does.
 //
@@ -16,8 +16,8 @@
 //   fixtures/summarize-papers/arxiv-2308.10144v3-page2.pdf  page 2 of https://arxiv.org/pdf/2308.10144, two columns,
 //     written again as one page by `pdftocairo -pdf -f 2 -l 2` (the page cut by pdfseparate was 10 MB).
 //     "ExpeL: LLM Agents Are Experiential Learners", Andrew Zhao, Daniel Huang, Quentin Xu, Matthieu Lin, Yong-Jin Liu, Gao Huang.
-import { test, expect } from "bun:test";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, copyFileSync, realpathSync, symlinkSync, readdirSync, chmodSync } from "node:fs";
+import { test, expect, afterAll } from "bun:test";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, copyFileSync, realpathSync, symlinkSync, readdirSync, chmodSync, rmSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { resolve, join, dirname } from "node:path";
@@ -29,6 +29,12 @@ const { htmlText, pdfText, pdfParagraphs, wrap, keepEntry, stateDir, numbers, co
 const FIX = join(import.meta.dir, "fixtures/summarize-papers");
 const HTML = join(FIX, "arxiv-2603.06333v1.html"), PDF = join(FIX, "arxiv-2308.10144v3-page2.pdf");
 const sha = (s: string | Uint8Array) => createHash("sha256").update(s).digest("hex");
+// Where every rig of this file is made, and what a tool it starts has as TMPDIR: a directory of this checkout that git
+// ignores, removed when the file's tests have run, and each rig at its stop. Not under the system's temporary directory:
+// that one had 194,370 entries on 2026-10-13, and a bun whose script or working directory was under it took about 400 ms
+// to start, where 12 to 48 ms in this checkout (issue summarize-papers-test-over-30s-in-suite; its record has the runs).
+const ROOT = (() => { const base = join(root, "tools/cloud-brain/.emitted/test-tmp"); mkdirSync(base, { recursive: true }); return realpathSync(mkdtempSync(join(base, "papers-"))); })();
+afterAll(() => rmSync(ROOT, { recursive: true, force: true }));
 // The copy of the tool imports cheerio: the temporary repository is given the node_modules this checkout resolves it in.
 const modules = (() => { const p = Bun.resolveSync("cheerio", dirname(tool)); return p.slice(0, p.lastIndexOf("/node_modules/") + "/node_modules".length); })();
 
@@ -76,7 +82,7 @@ test("wrap: no line over the width, cut after a sentence, and never inside a num
 });
 
 test("keepEntry: written once; never for a summarized entry; a file that is there is not written again", () => {
-  const dir = mkdtempSync(join(tmpdir(), "bm-papers-keep-"));
+  const dir = mkdtempSync(join(ROOT, "keep-"));
   const e = { id: "arxiv:0000.00001", title: "T", text: "as entered", tags: ["awesome-rsi"], changed: { by: "owner", method: null, at: 5 } };
   expect(keepEntry(dir, e)).toEqual({ kept: "now", length: 10, sha256: sha("as entered") });
   const file = join(dir, "arxiv:0000.00001.entry.json"), first = readFileSync(file, "utf8");
@@ -151,10 +157,10 @@ const ENTRIES = [
 ];
 
 const fresh = async () => {
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), "bm-papers-")));
+  const dir = mkdtempSync(join(ROOT, "rig-"));
   const repo = join(dir, "repo"), fake = join(dir, "fake");
   const run = async (cwd: string, cmd: string[], env: Record<string, string | undefined> = {}) => {
-    const p = Bun.spawn(cmd, { cwd, env: { ...process.env, BRAIN_BASE: "cbtest", BRAIN_STATE_DIR: undefined, FAKE_DIR: fake, ...env }, stdout: "pipe", stderr: "pipe" });
+    const p = Bun.spawn(cmd, { cwd, env: { ...process.env, BRAIN_BASE: "cbtest", BRAIN_STATE_DIR: undefined, FAKE_DIR: fake, TMPDIR: ROOT, ...env }, stdout: "pipe", stderr: "pipe" });
     const [out, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
     return { code, out: out.trim(), err: err.trim(), lines: out.trim().split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return l; } }) };
   };
@@ -188,7 +194,7 @@ const fresh = async () => {
   const jsonl = (f: string) => (existsSync(f) ? readFileSync(f, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
   const calls = () => (existsSync(join(fake, "calls.jsonl")) ? readFileSync(join(fake, "calls.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l)) : []);
   const papers = join(repo, "tools/cloud-brain/.emitted/papers");
-  return { dir, repo, fake, git, text, calls, asked, papers, stop: () => server.stop(true), setStatus: (n: number) => { status = n; }, short,
+  return { dir, repo, fake, git, text, calls, asked, papers, stop: () => { server.stop(true); rmSync(dir, { recursive: true, force: true }); }, setStatus: (n: number) => { status = n; }, short,
     cmd: (c: string, args: string[], env: Record<string, string | undefined> = {}) => text(args, env, repo, [c, "--delay=0"]),
     answers: (list: any[]) => writeFileSync(join(fake, "answers.json"), JSON.stringify(list)),
     agents: () => jsonl(join(fake, "agent.jsonl")), started: () => jsonl(join(fake, "agent.jsonl")).filter((l: any) => l.dry !== "1"),
@@ -382,6 +388,19 @@ test("assemble: first paragraph, sections, the line, what the entry held, 16000 
 });
 
 const kept = async (t: any, ids = "arxiv:2603.06333") => { const r = await t.text(["--ids", ids]); expect(r.code).toBe(0); };
+
+test("the rig: no directory of it, and none an agent is given, is under the system's temporary directory; stop removes it", async () => {
+  const t = await fresh(), sys = realpathSync(tmpdir()) + "/";
+  try {
+    expect([t.dir.startsWith(sys), existsSync(t.repo)]).toEqual([false, true]);
+    await kept(t);
+    t.answers([{ result: GOOD }]);
+    expect((await t.cmd("run", ["--ids", "arxiv:2603.06333", "--dry"])).code).toBe(0);
+    // The canary's directory and the paper's are the tool's own, made where its TMPDIR says.
+    expect(t.started().map((a: any) => a.reads.startsWith(sys))).toEqual([false, false]);
+  } finally { t.stop(); }
+  expect(existsSync(t.dir)).toBe(false);
+});
 
 test("run --dry: the canary first, one agent that reads one new directory with the paper's text alone, the summary written, nothing put", async () => {
   const t = await fresh();
