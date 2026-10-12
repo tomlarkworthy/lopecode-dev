@@ -2,7 +2,8 @@
 
 Task 4 of `plan/cloud-brain-flow-metrics.md` (approved for the owner at event 3379), "The tool"
 (R7): `issue-stats.ts` prints a block `flow` from the method `issue.flow` of task 3. Written
-2026-10-12. The tool's commit was made at 05:10:45 CEST that day (`git log --format=%ci`). A local
+2026-10-12. The tool's commit was made at 05:10:45 CEST that day (`git log --format=%ai`, the author's date; the
+rebase of the landing gave it the committer's date 05:16:14). A local
 tool and its test file: nothing was built, emitted or deployed.
 
 ## What changed
