@@ -9,6 +9,10 @@
 // alone, are not entered until the next landing of anyone.
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status [--check]      --check: exit 1 when a doc is stale, missing or badname
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --all | --stale | <name>…
+//   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --plain <name>…         a long doc as it is put with no summary: the way an entry is put back
+//   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize --due [--usd-max N] [--model M] [--dry]   one agent a due doc, one after another
+//   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize <name>… [--again] [--dry]                 the named docs, due or not
+//   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status --check-summaries [<name>…] [--except name=issue,…]   reads only; exit 1 on a failing doc
 //   … --owner            call with the owner's session, for the owner's own use; an agent does not
 //   … --limit=SECONDS    the time one call may take (120)
 // The source is origin/main of this repository, read with git: an edit on disk and a commit not pushed are not seen,
@@ -46,6 +50,48 @@
 // behind a3e883dc), leave a fresh entry with no line (ac-4-docs-tool-marks-a-cut). `put --stale` puts an unmarked doc
 // as it does a stale or missing one, so the next release of anyone enters it with the line; an entry that
 // knowledge.list answers with no text is among them (knowledge-docs-put-stale-skips-unmarked).
+// A long doc's summary (sd-2-one-summarizer, task 2 of plan/cloud-brain-docs-summarised-for-search.md; design pieces 2 and 3).
+// The entry of a doc over TEXT may hold a summary of the whole doc, written by the role `summarizer` (the papers' role,
+// made to take a doc; its brief is brain/roles/summarizer.md). Its text is then, TEXT characters in all:
+//   <the first paragraph, 1498 less the title's length at most: the service embeds the title and the first 1500 characters>
+//   <five sections under ## headings, 5000 at most: What it is for, What it says, Measured and decided, Not done and not known, Names>
+//   Summary by summarizer (<model>), <day>, of <source>/<path> as it was with sha256 <the file the agent read>.
+//   The whole doc is the file <file> in this Brain's brain-static, <the file's characters>: static.get?path=<file>[, and /static/<file> at the Brain's address]. Its start follows.
+//   <the text this tool makes of the doc, from its start, cut so the whole is TEXT>
+// `put` keeps a summary it did not write: for a long doc whose kept entry has the line "Summary by summarizer …", it
+// puts the kept text to the end of that line, the second line and the doc's start as they are now, and the new file's
+// sha256. Such an entry is neither cut nor unmarked: `cut` counts the long docs with no summary and `unmarked` those of
+// them whose entry does not end with the cut's line. A long doc whose entry knowledge.list answers with no text may hold
+// a summary: `put --stale` leaves it and names it (`noText`), and a put by name enters it cut. A doc that shrinks to
+// TEXT or under is entered whole and its put sends staleSince: 0.
+// A summary is due (`due` in the last line of status, by name) for a long doc with no summary, since its file's last
+// commit; and for one whose summary's line names another sha256 than the file's when the lines added and deleted since
+// that version (git diff --numstat) are over a tenth of the file's lines, since the first commit that took it over, or
+// when no commit has that version. A put of a doc that is due and has a summary sends that time as staleSince, and 0
+// when it is not due, so knowledge.list?stale=true&kind=doc answers the docs whose summary is due again. The last line
+// of status also has `long`, `summarized`, `behind` (summarized, of another version of the file) and `refused` (due,
+// and refused twice at this file by a run that was not --dry).
+// summarize: nothing is fetched; the docs are origin/main's. Before the first doc, the canary of summarize-papers.ts
+// (exit 3 unless a haiku agent with an empty directory fails to read a line beside the token files); with no doc to run,
+// no agent is started. For a doc: its file with the frontmatter taken off and no line over 1500 characters is written
+// to a new directory outside the checkout, and `summarize` of summarize-papers.ts runs one agent of the role on it
+// (kind "doc", model haiku unless --model): judged, sent back once, as a paper's. Accepted, the file is read again from
+// origin/main and the doc is put as put does, file then entry, with staleSince: 0; when origin/main moved meanwhile
+// the line names the version read and the start and sha256 are the newer file's. Refused twice, nothing is put, and no
+// agent is started for that doc at that file again without --again (a refusal of a --dry run holds a --dry run alone); the answer is <state>/docs/<name>.refused.txt, and
+// a first answer that was sent back is <name>.first-answer.txt. --dry writes <state>/docs/<name>.summary.txt and
+// puts nothing. One line a doc to <state>/docs/journal.jsonl (name, outcome put | dry | refused | failed, model,
+// session, usd, context, ms, the lengths, what each round refused, the put's answer), after the canary's.
+// While an agent reads a doc, <state>/docs/<name>.running holds the time: a summarize that finds one under ten minutes
+// old skips the doc, and so does put --stale, which names it (`running`) and leaves it for the next put, since it read
+// the kept text before a summary that lands in between. <state> is one machine's.
+// status --check-summaries: the long docs, or the named ones. It fails a doc whose entry has the line and not a first
+// paragraph within its limit, the five headings in order, a next line that names the entry's own file and a text of
+// TEXT at most; a doc whose summary has been due for over 24 hours; and one refused twice at this file. One line of
+// JSON a doc and a last line { checked, summarized, excepted, failing }. status --check is as it was.
+// summarize-papers.ts is loaded by summarize and --check-summaries alone: status and put, which a release runs, load no
+// other file of the repository.
+// tests/tools/knowledge-docs-summaries.test.ts
 // The id is the file's name in lower case. A name that gives no id knowledge.put takes (a space, a
 // character outside ASCII, anything but a-z 0-9 . _ : -), or a path static.put does not take (a `:`, over 200 characters), is `badname` in status and `badNames` in the last line, and is in no put (i1546).
 // tests/tools/knowledge-docs.test.ts
@@ -214,8 +260,9 @@ type Row = ReturnType<typeof rowsOf>[number];
 const stateDocs = state ? join(state, "docs") : "";
 const journalFile = stateDocs ? join(stateDocs, "journal.jsonl") : "";
 const journal = (): any[] => (journalFile && existsSync(journalFile) ? readFileSync(journalFile, "utf8").split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return {}; } }) : []);
-// Refused twice for this file, by a run that was not --dry: no agent is started for it again without --again.
-const refusedAt = (lines: any[], r: { name: string; sha256: string }) => lines.some((l) => l.name === r.name && l.outcome === "refused" && l.sha256 === r.sha256 && !l.dry);
+// Refused twice for this file: no agent is started for it again without --again. A refusal of a --dry run holds a
+// later --dry run and no other: it is not in `refused` of status, and a run that puts is not held by it.
+const refusedAt = (lines: any[], r: { name: string; sha256: string }, dry = false) => lines.some((l) => l.name === r.name && l.outcome === "refused" && l.sha256 === r.sha256 && (dry || !l.dry));
 const RUNNING_MS = 10 * 60000;
 const runningFile = (name: string) => join(stateDocs, name + ".running");
 const running = (name: string) => { try { return !!stateDocs && Date.now() - Number(readFileSync(runningFile(name), "utf8")) < RUNNING_MS; } catch { return false; } };
@@ -351,7 +398,7 @@ if (cmd === "status" && flag("--check-summaries")) {
   const end = (code: number, last: Record<string, any>) => { rmSync(tmpDir, { recursive: true, force: true }); console.log(JSON.stringify(last)); process.exit(code); };
   const unknown = names.filter((n) => !all.some((r) => r.name === n));
   for (const r of names.length ? all.filter((r) => names.includes(r.name)) : all.filter((r) => dueOf(r))) {
-    const skipped = !r.long ? `${r.whole.length} characters: it fits an entry and is entered whole` : r.noText ? "the entry was answered with no text" : running(r.name) ? "a summarizer is running on it" : !again && refusedAt(before, r) ? "refused-before" : "";
+    const skipped = !r.long ? `${r.whole.length} characters: it fits an entry and is entered whole` : r.noText ? "the entry was answered with no text" : running(r.name) ? "a summarizer is running on it" : !again && refusedAt(before, r, dry) ? "refused-before" : "";
     // --due leaves a doc refused before unsaid; a named one is said.
     if (!skipped) todo.push(r); else if (names.length || skipped !== "refused-before") say({ name: r.name, skipped }); else rows.push({ name: r.name, skipped });
   }
@@ -374,7 +421,9 @@ if (cmd === "status" && flag("--check-summaries")) {
     writeFileSync(runningFile(r.name), String(Date.now()));
     let got: ReturnType<typeof summarize>;
     try { got = summarize({ kind: "doc", file, lines: text.split("\n").length - (text.endsWith("\n") ? 1 : 0), title: r.title, model, agent }); } finally { rmSync(runningFile(r.name), { force: true }); }
-    const { outcome, why, stop, result, lead, sections, numbers: not, refused, ...ran } = got;
+    const { outcome, why, stop, result, answers, lead, sections, numbers: not, refused, ...ran } = got;
+    // A first answer that was refused is kept, whatever the second was: what it was refused for is read from it.
+    if (answers.length > 1) writeFileSync(join(stateDocs, r.name + ".first-answer.txt"), answers[0]);
     const base = { name: r.name, id: r.id, ...ran, chars: text.length, sha256: r.sha256, lead: lead.length, sections: sections.length, refused };
     if (outcome === "failed") {
       note({ ...base, outcome, why });

@@ -274,6 +274,27 @@ it put whose entry did not end with the line the tool now puts. A changed doc ov
 its entry ending with the line of the older text: the release of 21:05:09 CEST that day put the two docs its landing
 changed and printed `"put":2,…,"cut":2,"unmarked":2`.
 
+Since `sd-2-one-summarizer` (2026-10-12, task 2 of `plan/cloud-brain-docs-summarised-for-search.md`) the tool knows a
+summary in the entry of a doc over 16,000 characters. None was on cb4 when this was written: `status` there answered
+`"long":48,"summarized":0` at 23:45 CEST, and the first are put by task 3 of that plan. What changed in the two commands above:
+
+- An entry that holds the line `Summary by summarizer (…)` is neither cut nor unmarked. A put of its doc keeps the
+  text to the end of that line and makes the line after it and the doc's start anew. The last line of `put` counts
+  such docs as `summarized`.
+- `put --stale` leaves a long doc whose entry `knowledge.list` answered with no text, which until then it counted
+  unmarked and put, and a doc that has a file `<name>.running` under ten minutes old in `.emitted/docs/` of the main
+  checkout. Its last line names them, `noText` and `running`.
+- The last line of `status` has `long`, `summarized`, `behind`, and by name `due` and `refused`.
+
+The commands that came with it, each said in the header of `tools/cloud-brain/knowledge-docs.ts`:
+
+```
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize <name>… --dry        # one agent a doc (haiku); the summary to .emitted/docs/<name>.summary.txt, nothing put
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize --due --usd-max 1    # every doc whose summary is due; puts each with loop-docs
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status --check-summaries       # reads only; exit 1 on a summary not in its form, due for over 24 hours, or refused twice
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --plain <name>…            # a long doc as it is put with no summary: the way one is put back
+```
+
 `status --check` exits 0 when no doc is behind, 1 when one is, and 2 with the owner's command when no `loop-docs` is
 kept. A tool that threw also exits 1 (seen with no `BRAIN_BASE`; a refused call throws the same way, not run): the
 last line is then bun's and not the JSON. `badname` is a doc whose file name gives no id the service takes
@@ -283,7 +304,10 @@ last line is then bun's and not the JSON. `badname` is a doc whose file name giv
 ## The summaries of the kept papers
 
 Each kept paper with the tag `awesome-rsi` has, first in its entry's text, a summary written by one light agent of
-the role `paper-summarizer`, and the entry's vector is made from the summary's first paragraph
+the role `paper-summarizer`, and the entry's vector is made from the summary's first paragraph. (The role is named
+`summarizer` since `sd-2-one-summarizer`, 2026-10-12, and takes a doc as well: its brief is `brain/roles/summarizer.md`,
+`run` starts it with a task line `summarize a paper: …`, and a summary written from then on has the line
+`Summary by summarizer (…)`. The 63 put before have `Summary by paper-summarizer (…)`, which `check` reads as before.)
 (`plan/cloud-brain-paper-summarizer-persona.md`; the runs are `tools/cloud-brain/records/ps-3-pilot-ten.md` and
 `ps-4-the-rest.md`). For papers entered later, or another tag, it is two commands and then the check, from the main
 checkout or a worktree. The header of `tools/cloud-brain/summarize-papers.ts` is the reference.

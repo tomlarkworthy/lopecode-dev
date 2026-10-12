@@ -151,7 +151,7 @@ test("summarize <name>: the canary first, one agent that reads a new directory w
   expect([pre.dry, pre.args[0], canary.args[0], canary.model, canary.files, one.model, one.dry]).toEqual(["1", "summarizer", "summarizer", "haiku", [], "haiku", null]);
   // The doc's agent: a directory outside the repository that held the one file, its frontmatter taken off, and is gone.
   const body = doc.slice(doc.indexOf("\n---\n") + 5);
-  expect(one.args).toEqual(["summarizer", `summarize a doc: ${one.reads}/long.md, ${body.split("\n").length - 1} lines; the title is 10 characters, so the first paragraph is at most 1488 characters`]);
+  expect(one.args).toEqual(["summarizer", `read your brief, brain/roles/summarizer.md, then summarize a doc: ${one.reads}/long.md, ${body.split("\n").length - 1} lines; the title is 10 characters, so the first paragraph is at most 1488 characters`]);
   expect([one.files, one.first, one.reads.startsWith(t.repo), existsSync(one.reads)]).toEqual([["long.md"], "", false, false]);
   // The calls after the lists: the file, then the entry, each with loop-docs.
   const mine = t.calls().slice(n);
@@ -261,7 +261,7 @@ test("the docs step leaves a doc with a .running file under ten minutes old and 
   expect(t.kdocs(["put", "--stale"]).last).toMatchObject({ put: 1, summarized: 1 });
 });
 
-test("summarize --dry: the summary to a file and nothing put; refused once, the same agent is sent the list; a dry refusal does not count", () => {
+test("summarize --dry: the summary to a file and nothing put; refused once, the same agent is sent the list; refused twice dry holds a later --dry and not a run that puts", () => {
   const t = entered();
   const n = t.calls().length;
   t.answers([{ result: BAD }, { result: GOOD }]);
@@ -276,12 +276,19 @@ test("summarize --dry: the summary to a file and nothing put; refused once, the 
   const whole = readFileSync(join(t.state, "long.summary.txt"), "utf8");
   expect([whole.length, whole.includes(lineOfDoc(sha(t.doc()))), whole.includes(secondLine(t.doc()))]).toEqual([16000, true, true]);
   expect(t.journal()).toMatchObject([{ dry: true, canary: "refused" }, { dry: true, name: "long", outcome: "dry", rounds: 2, usd: 0.5 }]);
-  // Refused twice, dry: the journal says so, and a later --due still starts an agent for it.
+  // The first answer, which was sent back, is kept beside the summary.
+  expect(readFileSync(join(t.state, "long.first-answer.txt"), "utf8")).toBe(BAD);
+  // Refused twice, dry: a second --due --dry starts no agent for it, the canary's neither; status does not list it
+  // under refused, and a run that puts is not held.
   t.answers([{ result: BAD }, { result: BAD }, { result: GOOD }]);
   expect(t.kdocs(["summarize", "long", "--dry"]).lines[0]).toMatchObject({ outcome: "refused" });
+  const started = t.agents().length, held = t.kdocs(["summarize", "--due", "--dry"]);
+  expect([held.code, held.last.picked, held.last.refusedBefore, t.agents().length - started]).toEqual([0, 0, ["long"], 0]);
+  expect(t.kdocs(["summarize", "long", "--dry"]).lines[0]).toEqual({ name: "long", skipped: "refused-before" });
   expect(t.kdocs(["status"]).last).toMatchObject({ due: ["long"], refused: [] });
-  expect(t.kdocs(["summarize", "--due", "--dry"]).lines[0]).toMatchObject({ name: "long", outcome: "dry" });
   expect(t.puts().length).toBe(2);
+  expect(t.kdocs(["summarize", "--due"]).lines[0]).toMatchObject({ name: "long", outcome: "put" });
+  expect(t.puts().length).toBe(3);
 });
 
 test("refused twice: nothing is put, status lists the doc under refused, a later --due starts no agent (the canary's neither) until --again; --check-summaries fails it unless --except names it", () => {

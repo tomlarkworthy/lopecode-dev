@@ -402,7 +402,7 @@ test("run --dry: the canary first, one agent that reads one new directory with t
     // The paper's agent: a directory outside the repository that held the text and nothing else, and is gone.
     expect(paper.files).toEqual(["arxiv:2603.06333.txt"]);
     expect([paper.reads.startsWith(t.repo), existsSync(paper.reads), existsSync(canary.reads)]).toEqual([false, false, false]);
-    expect(paper.args).toEqual(["summarizer", `summarize a paper: ${paper.reads}/arxiv:2603.06333.txt, ${text.split("\n").length - 1} lines; the title is 5 characters, so the first paragraph is at most 1493 characters`]);
+    expect(paper.args).toEqual(["summarizer", `read your brief, brain/roles/summarizer.md, then summarize a paper: ${paper.reads}/arxiv:2603.06333.txt, ${text.split("\n").length - 1} lines; the title is 5 characters, so the first paragraph is at most 1493 characters`]);
     // What would be put is on disk, from the entry as kept; no put was sent and the entry is as it was.
     const whole = readFileSync(join(t.papers, "arxiv:2603.06333.summary.txt"), "utf8");
     expect(whole).toBe(assemble({ ...parseSummary(GOOD), model: "opus", day: new Date().toISOString().slice(0, 10), address: lineOf(whole)!.address, sha256: sha(text), entered: "abstract of the first" }));
@@ -726,7 +726,7 @@ test("sd-2: run --again --dry summarizes a paper that has a summary of this text
     expect(r.lines[0]).toMatchObject({ id: "arxiv:2603.06333", outcome: "dry", refused: [[]] });
     // The canary's agent and the paper's, under the one role.
     expect(t.started().slice(n).map((a: any) => a.args[0])).toEqual(["summarizer", "summarizer"]);
-    expect(t.started().at(-1).args[1]).toStartWith("summarize a paper: ");
+    expect(t.started().at(-1).args[1]).toStartWith("read your brief, brain/roles/summarizer.md, then summarize a paper: ");
     expect([t.puts().length, t.entry("arxiv:2603.06333").text === entry, readFileSync(join(t.papers, "arxiv:2603.06333.summary.txt"), "utf8") === put]).toEqual([1, true, true]);
     expect(readFileSync(join(t.papers, "arxiv:2603.06333.dry.summary.txt"), "utf8")).toStartWith("Again: SAHOO watches");
     expect(t.journal().at(-1)).toMatchObject({ dry: true, id: "arxiv:2603.06333", outcome: "dry" });
@@ -744,7 +744,7 @@ test("sd-2: summarize, the one exported function: a doc's file is copied to a ne
     const ok = P.summarize({ kind: "doc", file, lines: 2, title: "A doc", model: "haiku", agent });
     expect(ok).toMatchObject({ outcome: "accepted", lead: "The doc has 2 lines.", sections: five, rounds: 1, usd: 0.25, refused: [[]], leadMax: 1493, model: "haiku", stop: false });
     const a = t.started().at(-1);
-    expect(a.args).toEqual(["summarizer", `summarize a doc: ${a.reads}/a-doc.md, 2 lines; the title is 5 characters, so the first paragraph is at most 1493 characters`]);
+    expect(a.args).toEqual(["summarizer", `read your brief, brain/roles/summarizer.md, then summarize a doc: ${a.reads}/a-doc.md, 2 lines; the title is 5 characters, so the first paragraph is at most 1493 characters`]);
     expect([a.files, a.model, a.dry, a.tab, a.reads === "/elsewhere", existsSync(a.reads)]).toEqual([["a-doc.md"], "haiku", null, null, false, false]);
     // A paper's six under kind doc: refused, sent back once, refused again.
     const six = HEADINGS.map((h: string) => `## ${h}\nx`).join("\n");
@@ -754,6 +754,6 @@ test("sd-2: summarize, the one exported function: a doc's file is copied to a ne
     // A toolset that is not Read alone: failed, and the caller's run stops.
     t.answers([{ result: "x", toolset: ["Read", "Bash"] }]);
     expect(P.summarize({ kind: "paper", file, lines: 2, title: "A doc", model: "opus", agent })).toMatchObject({ outcome: "failed", stop: true, why: 'the agent\'s toolset is ["Read","Bash"] and its mode default' });
-    expect(t.started().at(-1).args[1]).toStartWith("summarize a paper: ");
+    expect(t.started().at(-1).args[1]).toStartWith("read your brief, brain/roles/summarizer.md, then summarize a paper: ");
   } finally { t.stop(); }
 });

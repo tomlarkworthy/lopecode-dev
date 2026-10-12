@@ -49,7 +49,7 @@
 //   3. An entry that has the summary's line with this text's SHA-256 is skipped (`summarized`). A paper the journal has
 //      as refused for this text, by a run that was not --dry, is skipped (`refused-before`) unless --again.
 //   4. The text is copied to a new directory D outside the checkout and
-//      `READS=D agent.sh summarizer "summarize a paper: D/<id>.txt, N lines; the title is T characters, so the first paragraph is at most 1498-T characters"`.
+//      `READS=D agent.sh summarizer "read your brief, brain/roles/summarizer.md, then summarize a paper: D/<id>.txt, N lines; the title is T characters, so the first paragraph is at most 1498-T characters"`.
 //      The answer is judged (`judge`): the first paragraph's length, no empty line before the first heading (a line
 //      before the first paragraph, or a break in it), the kind's headings in order (six for a paper, five for a doc), the
 //      sections' 5000 characters, and every number of it in the text's numbers (`numbers`: 1,000 is 1000). Refused, the list is sent
@@ -272,11 +272,14 @@ export const canary = (agent: Agent, state: string): { stopped?: string; row?: R
 // One text, one agent: `file` is copied to a new directory outside the checkout, which is all the agent reads. The
 // answer is judged by the kind's headings; refused, the list is sent once to the same agent. `accepted`: `lead` and
 // `sections` are the summary. `refused`: twice. `failed`: no line, no result, or a toolset that is not Read alone
-// (`stop`: the caller's run ends there, exit 3). The journal's line is the caller's: it has what the caller alone knows.
+// (`stop`: the caller's run ends there, exit 3). `answers` is each round's answer as the agent gave it. The journal's
+// line is the caller's: it has what the caller alone knows.
 export const summarize = (x: { kind: Kind; file: string; lines: number; title: string; model: string; agent: Agent }) => {
   const text = readFileSync(x.file, "utf8"), D = outside(x.kind === "doc" ? "docs-read-" : "papers-read-"), file = join(D, x.file.split("/").at(-1)!), max = leadMax(x.title);
   writeFileSync(file, text);
-  const task = `summarize a ${x.kind}: ${file}, ${x.lines} lines; the title is ${x.title.length} characters, so the first paragraph is at most ${max} characters`;
+  // The task line names the brief: of three haiku agents started on a doc with no such words (2026-10-12, the dry runs
+  // of sd-2-one-summarizer), one read the doc and not brain/roles/summarizer.md, and answered a paragraph with no heading.
+  const task = `read your brief, brain/roles/${ROLE}.md, then summarize a ${x.kind}: ${file}, ${x.lines} lines; the title is ${x.title.length} characters, so the first paragraph is at most ${max} characters`;
   const rounds: any[] = [], refused: string[][] = [];
   let r = x.agent(D, x.model, [ROLE, task]), j: ReturnType<typeof judge> | null = null;
   for (let round = 0; ; round++) {
@@ -291,11 +294,12 @@ export const summarize = (x: { kind: Kind; file: string; lines: number; title: s
   const sum = (k: string) => rounds.reduce((a, o) => a + ((o && o[k]) || 0), 0);
   const base = { model: x.model, session: rounds[0]?.session ?? null, ...(rounds[1] && rounds[1].session !== rounds[0]?.session ? { resumed: rounds[1].session } : {}), rounds: rounds.length,
     usd: Math.round(sum("usd") * 1e6) / 1e6, ms: sum("ms"), context: rounds.at(-1)?.context ?? null, turns: sum("turns"), refused, leadMax: max };
+  const answers = rounds.map((o) => (o && typeof o.result === "string" ? (o.result as string) : ""));
   if (!r.o || typeof r.o.result !== "string" || !r.reads) {
     const why = !r.o ? `the agent gave no line: ${r.err}` : !r.reads ? `the agent's toolset is ${JSON.stringify(r.o.toolset ?? null)} and its mode ${r.o.mode ?? null}` : "the agent gave no result";
-    return { ...base, outcome: "failed" as const, why, stop: !!r.o && !r.reads, result: null as string | null, lead: "", sections: "", numbers: [] as string[] };
+    return { ...base, outcome: "failed" as const, why, stop: !!r.o && !r.reads, result: null as string | null, answers, lead: "", sections: "", numbers: [] as string[] };
   }
-  return { ...base, outcome: j!.refused.length ? ("refused" as const) : ("accepted" as const), why: "", stop: false, result: r.o.result as string, lead: j!.lead, sections: j!.sections, numbers: j!.numbers };
+  return { ...base, outcome: j!.refused.length ? ("refused" as const) : ("accepted" as const), why: "", stop: false, result: r.o.result as string, answers, lead: j!.lead, sections: j!.sections, numbers: j!.numbers };
 };
 
 if (import.meta.main) {
@@ -496,7 +500,7 @@ if (import.meta.main) {
       if (!again && before.some((l) => l.id === e.id && l.outcome === "refused" && l.textSha256 === hash && !l.dry)) { say({ skipped: "refused-before" }); continue; }
 
       const got1 = summarize({ kind: "paper", file: join(papers, e.id + ".txt"), lines: got.lines, title: e.title, model, agent });
-      const { outcome, why, stop, result, lead, sections, numbers: not, leadMax: max, refused, ...ran } = got1;
+      const { outcome, why, stop, result, answers: _a, lead, sections, numbers: not, leadMax: max, refused, ...ran } = got1;
       const base = { id: e.id, ...ran, route: got.route, address: got.address, chars: got.chars, textSha256: hash, refused };
       if (outcome === "failed") {
         note({ ...base, outcome: "failed", why });

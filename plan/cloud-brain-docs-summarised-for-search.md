@@ -40,6 +40,27 @@ places that say otherwise have a note "As built"; the other lines are read by th
   tool puts there and no second place was made (`philosophy.md`, Clarifications, 2026-10-12). Where
   a line below says `knowledge-docs/<source>/<path>`, read `docs/<source>/<path>`.
 
+**As built, task 2 (`sd-2-one-summarizer`, 2026-10-12).** The record is `tools/cloud-brain/records/sd-2-one-summarizer.md`,
+which has each of these with why. Where a line below says otherwise, read these:
+
+- **`summarize` takes the agent and writes no journal.** `summarize({ kind, file, lines, title, model, agent })`, with
+  `agent` from the export `agentRunner()`; it answers `lead`, `sections`, `numbers` and `answers` beside what piece 3
+  lists. The journal's line is its caller's. The canary is the export `canary(agent, state)`.
+- **The task line names the brief**: `read your brief, brain/roles/summarizer.md, then summarize a <kind>: <file>, …`.
+  Of the first three haiku agents started on a doc through `agent.sh`, one read the doc and no brief.
+- **"A line before the first paragraph" is, to the judge, an empty line before the first heading.** A preface on
+  the first paragraph's own line is not seen by it.
+- **The second line of a summarized entry** has `, and /static/<file> at the Brain's address` only for a public
+  doc, as the cut's line has since task 1, and does not say "when the doc is public".
+- **A long doc whose entry is answered with no text** is left by `put --stale` alone; `put <name>` and `put --all`
+  enter it cut.
+- **`put`'s last line has no `due`**: `summarized`, and `noText` and `running` by name. `due` and `refused` are in
+  the last line of `status`. The line of piece 4 is task 4's to make.
+- **`run --again --dry` of a summarized paper** writes `<id>.dry.summary.txt` and leaves `<id>.summary.txt`.
+- **R9's first check**: four assertions of `summarize-papers.test.ts` that hold the role's name or its task line
+  were changed with the name, and two cases of `knowledge-docs.test.ts` with the entry answered with no text.
+- **A refusal of a `--dry` run** holds a later `--dry` run of that doc at that file, and no run that puts.
+
 The tasks are `sd-1` to `sd-4` on the tracker, where this file says `ds-1` to `ds-4`.
 
 Sections 1 to 3 and 5 of "What exists today", the question sets and "Read" are round 1's and were
@@ -720,6 +741,7 @@ task 1 makes. 1 waits for the token.
    carried over a put, `due`, `staleSince`, `--plain`, the four counts and `refused`, what `cut`
    and `unmarked` count ("What `ac-4` left"), `summarize`, `status --check-summaries`. Tests, and the three checks of R9. `summarize --dry` on three docs.
    No summary is put, of a doc or of a paper.
+   (As built, `sd-2-one-summarizer`, 2026-10-12: the note at the head of this file; the record.)
 3. **`ds-3-pilot-ten`**, `major`. `summarize` on the ten docs of the sets, with haiku.
    `status --check-summaries` of the ten. One of the ten put back with `put --plain`, read to be
    the text the tool makes today, and summarized again. Sets K and L asked again, both ways. The
