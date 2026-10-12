@@ -2,7 +2,12 @@
 // No case calls a Brain.
 import { test, expect } from "bun:test";
 import { readFileSync } from "node:fs";
-import { parseSets, rankOf, score, held, PLAN } from "../../tools/cloud-brain/knowledge-eval/paper-sets.ts";
+import { spawnSync } from "node:child_process";
+import { dirname, join } from "node:path";
+import { parseSets, rankOf, score, held, armsOf, PLAN } from "../../tools/cloud-brain/knowledge-eval/paper-sets.ts";
+
+const root = join(dirname(new URL(import.meta.url).pathname), "..", "..");
+const DOCS_PLAN = join(root, "plan/cloud-brain-docs-summarised-for-search.md"), TOOL = join(root, "tools/cloud-brain/knowledge-eval/paper-sets.ts");
 
 test("the plan's two sets: ten questions each, of the same ten papers in the same order", () => {
   const { A, B } = parseSets(readFileSync(PLAN, "utf8"));
@@ -43,3 +48,41 @@ test("held: a question's numbers, read as the number rule reads them, against a 
   expect(held("1,000 runs", "1000 runs").held).toEqual(["1000"]);
   expect(held("no number here", "12").numbers).toEqual([]);
 });
+
+// sd-3-pilot-ten: --plan FILE --kind doc, the sets K and L of the docs' plan.
+test("sd-3: the docs' plan has two sets of ten questions, of the same ten docs in the same order, and its ranks by meaning score as it says", () => {
+  const { A: K, B: L } = parseSets(readFileSync(DOCS_PLAN, "utf8"));
+  expect(K.length).toBe(10);
+  expect(L.length).toBe(10);
+  expect(K.map((x) => x.want)).toEqual(L.map((x) => x.want));
+  expect(new Set(K.map((x) => x.want)).size).toBe(10);
+  expect(K.every((x) => x.want.startsWith("doc:"))).toBe(true);
+  expect(K[0].want).toBe("doc:vendoring-npm-dependencies");
+  expect(L[9]).toMatchObject({ want: "doc:cloud-brain-locks-held-in-the-cluster", was: 6 });
+  // "(0.656, 0.517 and 0.594 at 20:43)": set L by words is the first and is not in the blocks; these are the other two.
+  // A rank written 0 is "not among the 20" and counts 0, as a null does.
+  expect(score(L.map((x) => x.was || null)).mrr).toBe(0.517);
+  expect(score(K.map((x) => x.was || null)).mrr).toBe(0.594);
+});
+
+test("sd-3: a doc's arms are both sets by words (kind=doc) and by meaning; a paper's are the three they were", () => {
+  const sets = parseSets(readFileSync(DOCS_PLAN, "utf8"));
+  expect(armsOf(sets, "doc").map(([name, qs, more]) => [name, qs === sets.A ? "first" : "second", more])).toEqual([
+    ["K by words", "first", "kind=doc"], ["K by meaning", "first", "semantic=true"], ["L by words", "second", "kind=doc"], ["L by meaning", "second", "semantic=true"]]);
+  expect(armsOf(sets, "paper").map(([name, , more]) => [name, more])).toEqual([["A by meaning", "semantic=true"], ["A by words", "kind=paper"], ["B by meaning", "semantic=true"]]);
+});
+
+test("sd-3: --kind takes paper or doc, --held is not a doc's, and a plan that is not there is said: each before any call", () => {
+  const run = (...a: string[]) => spawnSync("bun", [TOOL, ...a], { encoding: "utf8", env: { ...process.env, BRAIN_BASE: "", BRAIN_STATE_DIR: "/nonexistent" } });
+  const bad = run("--kind", "module");
+  expect(bad.status).toBe(2);
+  expect(bad.stderr).toContain("--kind paper | doc");
+  const held = run("--kind", "doc", "--held");
+  expect(held.status).toBe(2);
+  expect(held.stderr).toContain("not with --kind doc");
+  expect(run("--plan", "/nonexistent/plan.md", "--kind", "doc").status).not.toBe(0);
+  // With the docs' plan and no BRAIN_BASE it reads the sets and stops before the first search.
+  const none = run("--plan", DOCS_PLAN, "--kind", "doc");
+  expect(none.status).not.toBe(0);
+  expect(none.stderr).toContain("BRAIN_BASE");
+}, 60000);

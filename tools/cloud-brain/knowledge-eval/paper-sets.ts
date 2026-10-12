@@ -6,8 +6,11 @@
 //   … --out FILE       the same lines, written to FILE as one JSON document
 //   … --held           no search: for each question of set B, which of its numbers the summary of its paper holds
 //                      (<papers>/<id>.summary.txt up to the line "Summary by paper-summarizer")
+//   … --plan FILE --kind doc     the two sets of another plan, of entries of kind doc (sd-3-pilot-ten: sets K and L of
+//                      plan/cloud-brain-docs-summarised-for-search.md). Four arms: each set by words and by meaning.
+//                      FILE is a path from the working directory. --kind is paper with none; --held is the papers' alone.
 // by meaning: knowledge.search?semantic=true&limit=20&q=   (all kinds, as the plan measured it)
-// by words:   knowledge.search?kind=paper&limit=20&q=
+// by words:   knowledge.search?kind=<paper|doc>&limit=20&q=
 // A rank is the place of the wanted id in the answer, from 1; null when it is not in the 20.
 // tests/tools/paper-sets.test.ts
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -40,6 +43,12 @@ export const score = (ranks: (number | null)[]) => {
   return { n, mrr: n ? Math.round((ranks.reduce((a: number, r) => a + (r ? 1 / r : 0), 0) / n) * 1000) / 1000 : null, first: at(1), in3: at(3), in10: at(10), notFound: ranks.filter((r) => r == null).length,
     lowest: ranks.some((r) => r == null) ? null : Math.max(...(ranks as number[])) };
 };
+// The arms asked, each a name, its questions and the search's parameters. A paper's are the three the papers' plan
+// measured. A doc's are both sets both ways: the first set (K) by words is the gate of R5 in the docs' plan.
+export const armsOf = (sets: { A: Question[]; B: Question[] }, kind: "paper" | "doc"): [string, Question[], string][] =>
+  kind === "doc"
+    ? [["K by words", sets.A, "kind=doc"], ["K by meaning", sets.A, "semantic=true"], ["L by words", sets.B, "kind=doc"], ["L by meaning", sets.B, "semantic=true"]]
+    : [["A by meaning", sets.A, "semantic=true"], ["A by words", sets.A, "kind=paper"], ["B by meaning", sets.B, "semantic=true"]];
 // Which numbers of a question the summary holds, read as summarize-papers.ts reads a number.
 export const held = (q: string, summary: string) => {
   const has = numbers(summary), of = [...numbers(q)];
@@ -48,7 +57,10 @@ export const held = (q: string, summary: string) => {
 
 if (import.meta.main) {
   const arg = (k: string) => { const i = process.argv.indexOf("--" + k); return i < 0 ? undefined : process.argv[i + 1]; };
-  const sets = parseSets(readFileSync(PLAN, "utf8")), state = stateDir();
+  const kind = arg("kind") ?? "paper";
+  if (kind !== "paper" && kind !== "doc") { console.error("--kind paper | doc"); process.exit(2); }
+  if (kind === "doc" && process.argv.includes("--held")) { console.error("--held reads the summaries of papers: not with --kind doc"); process.exit(2); }
+  const sets = parseSets(readFileSync(arg("plan") ?? PLAN, "utf8")), state = stateDir();
   if (process.argv.includes("--held")) {
     const rows = sets.B.map((x) => {
       const f = join(state, "papers", x.want + ".summary.txt");
@@ -72,7 +84,7 @@ if (import.meta.main) {
       if (n >= 2) throw new Error(`knowledge.search answered ${st ? st[1] : (r.stderr || r.stdout || "").slice(0, 200)}`);
     }
   };
-  const arms: [string, Question[], string][] = [["A by meaning", sets.A, "semantic=true"], ["A by words", sets.A, "kind=paper"], ["B by meaning", sets.B, "semantic=true"]];
+  const arms = armsOf(sets, kind);
   const doc: Record<string, any> = { at: new Date().toISOString(), base: process.env.BRAIN_BASE };
   for (const [name, qs, more] of arms) {
     const ranks = qs.map((x) => rankOf(ask(more, x.q), x.want));
