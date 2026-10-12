@@ -53,6 +53,8 @@ test("each cost example is a call the tracker takes: its key, the required field
   const built = resolve(import.meta.dir, "../../cloud-brain-dev/deploy/@tomlarkworthy/brain-issues.js");
   const { existsSync } = await import("node:fs");
   if (!existsSync(built)) return void console.log(`skipped: rework-resumes-the-implementer.test.ts: no ${built}`);
+  // deploy/ is as old as the checkout's last sync.ts: a copy from before issue.cost (2026-10-12) is not asked.
+  if (!readFileSync(built, "utf8").includes('cost: ["role"')) return void console.log(`skipped: rework-resumes-the-implementer.test.ts: ${built} is from before issue.cost; bun sync.ts in cloud-brain-dev reads what cb4 runs`);
   const { importNotebookModule } = await import("../../tools/notebook-import.ts");
   const m = await importNotebookModule(built, { overrides: { checkedRule: () => { throw new Error("no rule is checked here"); } } });
   const act = await m.value("issueAct");

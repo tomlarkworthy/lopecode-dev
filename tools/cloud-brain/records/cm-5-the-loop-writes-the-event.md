@@ -95,14 +95,20 @@ worktree's copy, read from cb4 when the worktree was made, is 359,589 bytes. The
 `deploy/` is as old as its last `sync.ts`. The overseer opened
 `cost-events-test-reads-stale-deploy` at event 3368 while this ran.
 
-**The orchestrator that was running wrote those six comments, and may write more.** It read
-`SKILL.md` before this landing. Until it reads step 5 again its runs are comments; the tool passes
+**The orchestrator that was running wrote those six comments, and may write more.** Their
+`by.holder` is `secret:orch-d97e0e`. That session read `SKILL.md` before this landing. Until it reads step 5 again its runs are comments; the tool passes
 a comment over when a `cost` event of that run with no `of` is there already, and enters it
-otherwise. `bun tools/cloud-brain/cost-events.ts --token NAME` says how many wait.
+otherwise. `bun tools/cloud-brain/cost-events.ts --token NAME` says how many wait. A writer whose
+run is still a comment has no run in `issue.runs`, and the rework section then spawns where it
+could have sent the round: the tool is run with `--post` before a round is sent, until the
+orchestrator has read step 5 again.
 
 **The rework section's read.** `runs?id=cm-4-enter-the-runs-again&role=implementer` answered one
 run with `"agent":"a8654e1bb30e786ae"`, `"session":"f501a8e8-…"` and `"token":"impl-b645a6"`
 (event 3372). `runs?role=spec-writer&limit=1` answered `total.runs` 36.
+
+**Every run.** `runs?limit=500` at event 3383: 389 runs, `more: false`, each with `of`, 100 with
+`backfilled`.
 
 **`issue-stats.ts`, the tool before against the tool after, over cb4's record at event 3376.**
 A script of the session (not kept) read `issue.sync` once and gave the events to `report` of the
@@ -124,8 +130,8 @@ the same: true
 
 `leftOut` is printed as its length; the two lists are the same (`the same` compares them whole).
 
-**Three bodies the service refuses**, each 400 and nothing written (the head was 3367 before and
-the next event, 3368, is another caller's): the one with `rounds` above; one with no `context`
+**Three bodies the service refuses**, each 400 and nothing written (no event of 3359 to 3383 has
+the role `probe` the three were sent with; `sync?after=3358`): the one with `rounds` above; one with no `context`
 (`context: a whole number, 0 or more`); one with `"agent":null` (`agent: text, 1 to 100
 characters`). `issue-as.sh` exits 0 on each: the answer is what says it was refused.
 
@@ -168,10 +174,15 @@ What the tests hold:
   key, the six required fields and no field outside the list of `issuesLimits.cost`, which the
   test reads from the seed; `issueAct` of `cloud-brain-dev/deploy/@tomlarkworthy/brain-issues.js`
   takes both and refuses each with `rounds` or `tokens` added (that half is skipped with a line in
-  a checkout that lacks the file); R7's pattern matches no line of `SKILL.md` or `issue-stats.ts`;
+  a checkout that lacks the file, or whose copy is from before `issue.cost`: the main checkout's was,
+  above); R7's pattern matches no line of `SKILL.md` or `issue-stats.ts`;
   the rework section names the read.
 - `issue-wait.test.ts` and `briefs-name-the-prompts-token.test.ts`: the sentence on a run of two
   rounds, and the examples' `token`, in the new form.
+
+With the main checkout's copy of `brain-issues.js` (2026-10-11) put in the worktree's `deploy/`,
+`bun test ./tests/tools/rework-resumes-the-implementer.test.ts` gave 11 pass, 0 fail and the line
+`skipped: … is from before issue.cost`; the fresh copy was put back before the counts above.
 
 **The tests fail without the change.** The new fixtures against `issue-stats.ts` as `main` had it
 (`git stash -- tools/cloud-brain/issue-stats.ts`): 17 pass, 7 fail of 24. The two files that read
@@ -192,5 +203,7 @@ changed; that is how it was found.
   round was sent.
 - `issue-stats.ts` run as a command. Before the landing only its `report` was called, by the
   script; the run from the main checkout after the landing is in the issue's comment.
-- The briefs on the Brain (`roles/reviewer.md`) were not read for a mention of the cost comment;
-  `git grep` over `cloud-brain-dev` in the checkout found none.
+- The reviewer's brief as the Brain serves it was not read for a mention of the cost comment. The
+  main checkout's `cloud-brain-dev/`, with its `brain/roles/` and without `deploy/`, was:
+  `grep -rn -E 'cost \{|cost comment|cost line|cost-usage' --include='*.md' --include='*.sh' --include='*.ts'`
+  printed no line.
