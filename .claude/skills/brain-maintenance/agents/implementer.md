@@ -329,7 +329,37 @@ each command; no shell state lasts between calls.
     line of its own and read its exit; a sha you give as a ref is one `git -C $W log origin/main` shows
     after your push (two writers on 2026-10-11, `tx-3-two-references` and `fb-a2g3jyhecp`: "a piped lopebooks commit
     read exit 0 and had not happened", "a piped lopebooks commit hid the hook's refusal").
-    A landing with no deploy (a doc, a local tool, a test file under `tests/`) is these five lines, each run on
+    A landing with no deploy (a doc, a local tool, a test file under `tests/`) is one command since
+    `landing-steps-in-one-script` (2026-10-13), and the command also writes the comment and the submit of step 12.
+    Run it once the change and its record are committed, step 11's read "as the reviewer will" is made (the
+    submit is in the command) and the comment is written to a file. Bash `timeout` at 600000: it waits up to
+    300 s for a lock another writer holds, and with a shorter timeout the call is cut while it waits.
+    ```
+    $W/tools/cloud-brain/land.sh <token> <id> --reason @<scratchpad>/<token>-reason.txt --comment @<scratchpad>/<token>-comment.md --test "bun test --timeout=30000 ./tests/tools/<file>"
+    ```
+    The two files are text as it is to be read, not JSON: the tool makes the keys `impl/<id>/comment-<round>` and
+    `impl/<id>/submit-<round>`, the round from the issue's `rework` moves, and one `commit` ref for each commit
+    it pushed. `--reason "<text>"` is the reason inline. `--test` is a command run at the root of the worktree
+    after the rebase and under the lock, as many as are given: the test files of the change, not the whole suite,
+    whose count is from your run before this (step 6). The header of the script has each step and each exit.
+    - **Exit 0**: landed and submitted. Its four lines go in your report: the first and the last have the times
+      the lock was taken and released, the second the commits, and the third ends `seq=`, the seq of the submit
+      that step 13 waits from. Go to step 13.
+    - **Exit 1**: it stopped before the push, and released the lock if it had it. Stdout is the output of the
+      step that failed and nothing else, and stderr names the step. Nothing is on `origin/main` and nothing was
+      written to the issue: mend, commit, and run the command again. After a conflict, resolve as step 9 says first.
+    - **Exit 5**: the commits are pushed and the comment or the submit was not written (a time ahead of the clock
+      in the text, a key used before, a refusal). Do not run the command again: write what is missing with `ia`
+      as step 12 has it, with the refs stderr gives.
+    - **Exit 64**: nothing was written and no lock taken; stderr says what was wrong (a file not committed, of which
+      `tests/tools/timings.json` after a run of the suite is one: `git -C $W checkout -- tests/tools/timings.json`;
+      an issue whose last `start` is not your token's; a commit that changes a seed).
+    - `--no-submit`, with no `--reason` and no `--comment`, is the landing alone, for a change whose submit
+      waits for something after the landing (a post mortem's file is attached between the two).
+    A landing with a deploy is not this command: it refuses a commit that changes a seed, and that landing is
+    the steps below, one at a time. (`--seed-lands-undeployed` is for the seed whose deploy is the owner's, step 3.)
+    First landing made with it: this change's own (`tools/cloud-brain/records/landing-steps-in-one-script.md`).
+    What the command runs for the landing is these five lines, which are also the landing by hand, each run on
     its own and its exit read before the next:
     ```
     LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh take land <id>
@@ -477,7 +507,8 @@ each command; no shell state lasts between calls.
       comment what you searched for and how many lines it printed.
     Since that day a reviewer holds a change only for what it does, its tests and what is claimed of it, and
     mends a small thing in a document itself (its brief, "What holds a change, and what is a note").
-12. **Say it on the issue, then submit.**
+12. **Say it on the issue, then submit.** A landing made with `land.sh` (step 10) has written both, from the two
+    files you gave it; what follows is their content, and the two calls for a landing made by hand.
     `ia comment '{"key":"impl/<id>/comment-<round>","id":"<id>","body":"…"}'` (the field is `body`; `text` is refused 400) with the fix, the test count and what was not tried, then
     `ia move '{"key":"impl/<id>/submit-<round>","id":"<id>","to":"in-review","reason":"…","refs":[{"kind":"commit","value":"lopecode-dev@<sha of the seed commit>"},{"kind":"deploy","value":"<worker>@<hash>"}]}'`.
     A key used before answers 200 with `duplicate: true` and moves nothing: read the issue
