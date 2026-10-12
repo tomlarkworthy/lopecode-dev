@@ -25,7 +25,7 @@ BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted BRAIN_BASE=cb4 bun tools/cloud
 (`deploy.verify`, `verified`, `failed`, `verify.none`, `put-back`, `confirmed`; the fields `at target hash run
 tests otherTestsRan ms failed reason previous deployer t`) are kept in
 `tests/tools/fixtures/dv-5-deploy-lines.json`. Every count below is printed by `bun tests/tools/dv-5-runs.ts`
-from that file, run 2026-10-12 23:37 CEST. Times in its output are UTC.
+from that file, as run again at 23:47:29 CEST that day (`date` before it). Times in its output are UTC.
 
 A run is a `deploy.verified`, `deploy.failed` or `deploy.verify.none` line. Its page is read from the `run` of
 the `deploy.verify` line of that Worker and hash before it: 129 such lines, 52 with `/#view=` and 77 with
