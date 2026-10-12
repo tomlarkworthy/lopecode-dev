@@ -407,10 +407,12 @@ deployerOps = {
     out.push({ type: "secret_text", name: "BRAIN_KEY", text: key });
     // The account id goes only to a Worker that holds a Cloudflare token: its cloudflareApi cell calls /accounts/ID.
     out.push({ type: "json", name: "BRAIN_CONFIG", json: { base: config.base, subdomain: config.subdomain, host: `${config.base}.${config.subdomain}.workers.dev`, owner: config.owner || null, deployer: `https://${selfScript()}.${config.subdomain}.workers.dev`, ...(token.length ? { account: config.account } : {}) } });
+    // Not the methods and not their rules: Cloudflare refuses a variable over 5 KB, and those grew with every method
+    // (the tracker, 2026-10-13). The core has them from service.register and answers them at service.list.
     out.push({
       type: "json",
       name: "BRAIN_INFO",
-      json: { name: m.worker, hash: w.hash, role: m.role, module: m.module || null, methods: m.methods, access: m.access || {}, calls: m.calls || [], paths: m.paths, secrets: m.secrets, resources: m.resources, cloudflare: m.cloudflare || [], deployedAt: new Date().toISOString() }
+      json: { name: m.worker, hash: w.hash, role: m.role, module: m.module || null, calls: m.calls || [], paths: m.paths, secrets: m.secrets, resources: m.resources, cloudflare: m.cloudflare || [], deployedAt: new Date().toISOString() }
     });
     return out;
   };
@@ -1993,6 +1995,31 @@ test_deploys_a_recipe_and_registers_it = {
   expect((await rig.recover({ workers: [recipe] })).results[0].state).toBe("unchanged");
   expect(rig.fake.log.length).toBe(before);
   return coreBindings.join(" ");
+}
+// %%
+// The variable Cloudflare holds to 5 KB has neither the methods nor their rules, so a method adds nothing to it. The
+// core still gets each rule, from service.register.
+test_a_workers_variable_does_not_grow_with_its_methods = {
+  const rig = await deployerRig();
+  await rig.recover({ workers: [await rig.made("brain-core", "core", "c1", { resources: ["rows", "workers"] })] });
+  const rule = { type: "procedure", who: "owner", allow: "caller.kind in ['owner','token','worker','deployer']" };
+  // Two Workers whose names are as long as each other, one with 1 method and one with 60.
+  const bound = async (short, n) => {
+    const NS = "com.lopecode.brain." + short + ".", access = Object.fromEntries(Array.from({ length: n }, (_, i) => [NS + "m" + i, rule]));
+    const out = await rig.recover({ workers: [await rig.made("brain-x-" + short, "recipe", short, { resources: ["rows"], calls: [NS + "m0"], methods: Object.keys(access), access })] });
+    expect(out.results[0].state).toBe("deployed");
+    const registered = rig.fake.calls.filter((c) => c.nsid === "service.register" && c.body.worker === "brain-x-" + short).at(-1).body;
+    return { info: rig.fake.live("cb-x-" + short).metadata.bindings.find((b) => b.name === "BRAIN_INFO").json, registered };
+  };
+  const one = await bound("wa", 1), many = await bound("wb", 60);
+  expect(Object.keys(many.info)).toEqual(["name", "hash", "role", "module", "calls", "paths", "secrets", "resources", "cloudflare", "deployedAt"]);
+  const size = (info) => new TextEncoder().encode(JSON.stringify({ ...info, deployedAt: "" })).length;
+  expect(size(many.info)).toBe(size(one.info));
+  // What the wrapper and the core read of it is still there.
+  expect([many.info.name, many.info.role, many.info.calls, many.info.hash.length]).toEqual(["brain-x-wb", "recipe", ["com.lopecode.brain.wb.m0"], 64]);
+  // The 60 rules reached the core, which judges a call by them.
+  expect([Object.keys(many.registered.methods).length, many.registered.methods["com.lopecode.brain.wb.m59"]]).toEqual([60, rule]);
+  return size(many.info) + " bytes with 1 method and with 60";
 }
 // %%
 test_the_page_worker_is_on_timed_probation = {
