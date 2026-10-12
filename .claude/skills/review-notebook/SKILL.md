@@ -193,3 +193,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   smaller, all taken. 118,280 subagent tokens, 4m28s. What the author had not seen: the bound on writers started again counted runs the view keeps
   one of a role and round; a second resume of one token in one round had the first one's key; and an issue labeled `needs-owner` at `in-progress`
   stays in the queue, so the row that reads the owner's answer never took it.
+- 2026-10-12 `plan/cloud-brain-orchestrator-as-steps.md` (round 3 of that spec, the diff since `41d44c77`, draft `6ff3ad66`): FIX, 7 findings (4
+  confirmed, 3 plausible) and 2 smaller, all taken. 123,933 subagent tokens, 4m19s. What the author had not seen: the role of a run in the record
+  (`spec-writer`, `overseer`) is not the prefix of its token (`spec`, `over`), so the condition the round was written to mend read a role no run
+  has; and a task told its writer to ask "in a comment", the form the same spec says nothing reads.
