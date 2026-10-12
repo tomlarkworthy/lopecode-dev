@@ -7,7 +7,7 @@ A Cloud Brain recipe: the logs of this Brain's Workers, read from Cloudflare Wor
 | \`logs.query\` | \`POST /accounts/ACCOUNT/workers/observability/telemetry/query\`: events, invocations, traces or calculations |
 | \`logs.keys\` | \`…/telemetry/keys\`: the field names seen in a time range |
 | \`logs.values\` | \`…/telemetry/values\`: the values of one field |
-| \`logs.deploys?from=&to=\` | \`…/telemetry/query\`, with a body of the service's own: what the deployer wrote about deploys, and the test runs counted. See "The deploys of a span" |
+| \`logs.deploys?from=&to=\` | \`…/telemetry/query\`, with a body of the service's own: what the deployer wrote about deploys, the test runs counted, and each put-back with the next deploy that stood. See "The deploys of a span" |
 
 The body is Cloudflare's: [the query API](https://developers.cloudflare.com/api/resources/workers/subresources/observability/subresources/telemetry/methods/query/). The service changes two things in it (\`logsScope\`). \`datasets\` is \`["cloudflare-workers"]\`. The filters are put inside one filter on the script name, joined with AND, so a query reads only the Workers of this Brain: the base name, and every name that starts with the base name and a hyphen. A base name therefore has no hyphen: the Brain \`cb4\` would read the scripts of a Brain \`cb4-test\` on the same account. The installer refuses such a name (\`installBrain\`, \`brain.ts\`); nothing checks a Brain installed before 2026-10-08. With \`?worker=brain-x-NAME\` in the address the filter is that one Worker.
 
@@ -44,7 +44,8 @@ Cloudflare keeps what a Worker writes with \`console.log\`, 7 days on Workers Pa
 { from, to, queries,                       // queries: how many Cloudflare was asked
   lines: [{ at, target, hash, …, t }],     // each line as the deployer wrote it, oldest first; t is Cloudflare's time, ms
   workers: [{ worker, runs, verified, failed, none, stale, putBack, hashes: [{ hash, verified, failed }] }],
-  tests: [{ worker, test, fails, runs, passedOnSameHash, passedLater, hashes, last }] }
+  tests: [{ worker, test, fails, runs, passedOnSameHash, passedLater, hashes, last }],
+  restores: [{ target, hash, putBack, restored, ms }] }  // a row for each put-back of the lines: see "Time to restore"
 \`\`\`
 
 A line is the deployer's own object and its time. What Cloudflare stores beside it (the URL and path of the call, the ids) is left out. \`reason\` of \`deploy.reason\` is what whoever deployed gave as the reason, \`by\` is \`owner\`, \`recovery key\` or \`token:NAME\`, and \`targets\` the modules and Workers named; \`run\` of \`deploy.verify\` is the address the tests ran at.
@@ -63,6 +64,8 @@ Both keep the three fields the \`log\` cell adds (\`deployer worker ray\`). So w
 **What is counted** (\`deployRuns\`). A run is a \`deploy.verified\` or a \`deploy.failed\` line: the tests of one Worker at one hash, run by the deployer after a deploy. A put-back whose reason starts \`its tests failed:\` with no \`deploy.failed\` line of that Worker and hash before it is a failed run as well, with the first test its reason names and no other: the put-back of brain-x-issues at 05:50:48 UTC on 2026-10-11 has no such line, its verdict came from a page. \`none\` and \`stale\` are runs that gave no verdict for the hash deployed, \`putBack\` every put-back, for a test or not.
 
 **\`runs\` is whole only for a span that starts at or after 2026-10-11 05:52:03 UTC**, the first \`deploy.verify\` line on cb4. Before it a page ran the tests: its failed verdict is in the lines as a put-back and is counted, and its pass wrote no line, so the passes are missing from \`runs\` and \`fails / runs\` is too high. The 7 days to 09:51 UTC of 2026-10-11 hold 9 such put-backs and 111 \`deploy.confirmed\` before that time, and read brain-x-browser \`runs 7, verified 1, failed 6\` and brain \`runs 1, failed 1\`. The default 24 hours reach before it until 2026-10-12 05:52 UTC, and a 7-day span until 2026-10-18. The answer does not mark such a span: give \`from=1791697923049\` or later.
+
+**Time to restore** (\`deployRestores\`, since 2026-10-12, \`plan/cloud-brain-flow-metrics.md\`, R6). \`restores\` has one row for each \`deploy.put-back\` line that names a Worker, oldest first: \`target\` the Worker, \`hash\` the hash that was put back (the version that did not stand), \`putBack\` the time of the line. \`restored\` is the time of the first \`deploy.confirmed\` or \`deploy.verified\` line of that Worker later than the put-back whose hash is not the one put back to (\`previous\` of the put-back), and \`ms\` is \`restored - putBack\`; both are \`null\` when the lines of the span have no such line. The deployer puts the version before back inside the apply, so the service runs again from the put-back: what \`ms\` measures is how long the next version took to stand. Two put-backs of a Worker with no deploy that stood between them have the one \`restored\`. A put-back whose next deploy is after \`to\` reads \`null\`, and a put-back before \`from\` has no row. The rows of a member's Worker carry its name and the hash, as its lines do. The page draws these as the metric \`deploys.restore\` (\`brain-dashboard\`, \`restoreRows\`).
 
 A line of \`tests\` is one test that failed in the span:
 
@@ -186,6 +189,18 @@ deployRuns = (lines) => {
   };
 }
 // %%
+// A row for each put-back in the deployer's lines: the Worker, the hash that was put back, when, and the first deploy of that
+// Worker that stood after it (deploy.confirmed or deploy.verified) at a hash other than the one put back to; null when the
+// lines have none. See "Time to restore".
+deployRestores = (lines) => {
+  const sorted = lines.filter((l) => l && typeof l.target === "string").sort((a, b) => a.t - b.t);
+  const stood = sorted.filter((l) => l.at === "deploy.confirmed" || l.at === "deploy.verified");
+  return sorted.filter((l) => l.at === "deploy.put-back").map((p) => {
+    const next = stood.find((l) => l.target === p.target && l.t > p.t && l.hash !== p.previous);
+    return { target: p.target, hash: p.hash, putBack: p.t, restored: next ? next.t : null, ms: next ? next.t - p.t : null };
+  });
+}
+// %%
 logs_service = cloudflare.Service(
   "logs",
   async (request) => {
@@ -205,7 +220,7 @@ logs_service = cloudflare.Service(
       };
       try {
         const lines = await deployLines(ask, config.base, from, to);
-        return new Response(JSON.stringify({ from, to, queries, lines, ...deployRuns(lines) }), { headers: { "content-type": "application/json" } });
+        return new Response(JSON.stringify({ from, to, queries, lines, ...deployRuns(lines), restores: deployRestores(lines) }), { headers: { "content-type": "application/json" } });
       } catch (e) {
         return json(502, "UpstreamFailure", String((e && e.message) || e));
       }
@@ -382,6 +397,8 @@ test_deploys_answers_the_deployers_lines_of_a_span_whole = {
   expect(JSON.stringify(out.data)).not.toMatch(/secret=1|\$workers|\$metadata|token\.minted|h9/);
   expect(out.data.workers).toEqual([{ worker: "brain-x-echo", runs: 2, verified: 1, failed: 1, none: 0, stale: 0, putBack: 1, hashes: [{ hash: "h1", verified: 0, failed: 1 }, { hash: "h2", verified: 1, failed: 0 }] }]);
   expect(out.data.tests).toEqual([{ worker: "brain-x-echo", test: "test_a", fails: 1, runs: 2, passedOnSameHash: 0, passedLater: 1, hashes: ["h1"], last: from + 12 * H }]);
+  // fm-6-restores: the put-back of h1, and the next deploy of that Worker that stood, 11 hours less a millisecond after it.
+  expect(out.data.restores).toEqual([{ target: "brain-x-echo", hash: "h1", putBack: from + 12 * H + 1, restored: from + 23 * H, ms: 11 * H - 1 }]);
   // With no span, the 24 hours before now.
   const now = await rig.get("");
   expect(now.data.to - now.data.from).toBe(24 * H);
@@ -454,6 +471,52 @@ test_deploy_runs_counts_by_worker_hash_and_failed_test = {
   return "3 Workers, 3 tests";
 }
 // %%
+// fm-6-restores, R6 of plan/cloud-brain-flow-metrics.md: a row for each put-back, with the next deploy of that Worker that stood.
+test_deploy_restores_pairs_each_put_back_with_the_next_deploy_that_stood = {
+  const line = (t, at, target, hash, more = {}) => ({ at, target, hash, t, ...more });
+  const lines = [
+    // Put back to e0. e0 confirmed again is the version put back to and is no restore; a probation and a failed run are none; e2 verified is.
+    line(10, "deploy.put-back", "brain-x-echo", "e1", { previous: "e0", reason: "its tests failed: test_a: no" }),
+    line(12, "deploy.confirmed", "brain-x-echo", "e0", { version: "v0" }),
+    line(14, "deploy.probation", "brain-x-echo", "e2"),
+    line(15, "deploy.failed", "brain-x-echo", "e2", { failed: ["test_a"] }),
+    line(20, "deploy.verified", "brain-x-echo", "e2", { tests: 3 }),
+    line(25, "deploy.confirmed", "brain-x-echo", "e2", { version: "v2" }),
+    // Two put-backs before one fix have the one restore, and the hash that was put back may be the one that stands.
+    line(30, "deploy.put-back", "brain-x-git", "g1", { previous: "g0", reason: "not confirmed in 10 minutes" }),
+    line(40, "deploy.put-back", "brain-x-git", "g1", { previous: "g0", reason: "not confirmed in 10 minutes" }),
+    line(50, "deploy.confirmed", "brain-x-git", "g1", { version: "v1" }),
+    // A first version put back has nothing before it: any deploy of the Worker that stood after it is the restore.
+    line(60, "deploy.put-back", "brain-x-new", "n1", { previous: null, reason: "health check failed after go-live" }),
+    line(61, "deploy.confirmed", "brain-x-other", "o1", { version: "v1" }),
+    line(70, "deploy.confirmed", "brain-x-new", "n2", { version: "v2" }),
+    // No deploy stood after it in the lines; a line at the put-back's own time is not after it.
+    line(80, "deploy.confirmed", "brain-x-static", "s2", { version: "v2" }),
+    line(80, "deploy.put-back", "brain-x-static", "s1", { previous: "s0", reason: "health check failed after go-live" }),
+    // A member's Worker: the name and the hash, which its lines leave with.
+    line(90, "deploy.put-back", "brain-m-0123456789-todo", "m2", { previous: "m1" }),
+    line(95, "deploy.confirmed", "brain-m-0123456789-todo", "m3", { version: "v3" }),
+    // No row: a put-back with no Worker, and a line that is no put-back.
+    line(96, "deploy.put-back", undefined, "x1", { previous: "x0" }),
+    line(97, "deploy.unhealthy", "brain-x-echo", "e2")
+  ];
+  const want = [
+    { target: "brain-x-echo", hash: "e1", putBack: 10, restored: 20, ms: 10 },
+    { target: "brain-x-git", hash: "g1", putBack: 30, restored: 50, ms: 20 },
+    { target: "brain-x-git", hash: "g1", putBack: 40, restored: 50, ms: 10 },
+    { target: "brain-x-new", hash: "n1", putBack: 60, restored: 70, ms: 10 },
+    { target: "brain-x-static", hash: "s1", putBack: 80, restored: null, ms: null },
+    { target: "brain-m-0123456789-todo", hash: "m2", putBack: 90, restored: 95, ms: 5 }
+  ];
+  expect(deployRestores(lines)).toEqual(want);
+  // The order given does not matter: it is paired by time, and answered oldest put-back first.
+  expect(deployRestores([...lines].reverse())).toEqual(want);
+  // One row for each put-back that names a Worker, restored or not.
+  expect(want.length).toBe(lines.filter((l) => l.at === "deploy.put-back" && typeof l.target === "string").length);
+  expect([deployRestores([]), deployRestores([line(1, "deploy.confirmed", "brain-x-echo", "e1")])]).toEqual([[], []]);
+  return "6 put-backs, 5 restored";
+}
+// %%
 test_deploys_leaves_out_who_a_member_is_and_what_they_sent = {
   const from = 1791676800000, to = from + 3600000, m = "brain-m-0123456789-todo", did = "did:plc:alicemember";
   const own = { deployer: "f9007d2d", worker: "brain-deployer", ray: "a48bd6e14a6acc97" };
@@ -488,6 +551,8 @@ test_deploys_leaves_out_who_a_member_is_and_what_they_sent = {
   // The Worker, its hashes and its put-back stay. Its put-back is no test run: a member's service has none.
   expect(out.data.workers.find((w) => w.worker === m)).toEqual({ worker: m, runs: 0, verified: 0, failed: 0, none: 0, stale: 0, putBack: 1, hashes: [] });
   expect(out.data.tests).toEqual([{ worker: "brain-x-echo", test: "test_a", fails: 1, runs: 1, passedOnSameHash: 0, passedLater: 0, hashes: ["h1"], last: from + 10 }]);
+  // Its put-back is a row of restores with the Worker's name and the hash, as its line has them, and nothing more.
+  expect(out.data.restores).toEqual([{ target: m, hash: "m2", putBack: from + 4, restored: null, ms: null }, { target: "brain-x-echo", hash: "h1", putBack: from + 10, restored: null, ms: null }]);
   expect(out.data.lines.slice(6).map((l) => [l.by, l.reason, l.targets])).toEqual([["recovery key", "previews off", ["@tomlarkworthy/brain-echo", "remove " + m]], ["token:claude-1", "a link made to deploy", ["brain-x-echo"]], ["owner", "from the page", ["roll back brain-x-echo"]], [undefined, "its tests failed: test_a: no", undefined]]);
   // A `by` the deployer does not write is taken for a member's, and a name that is not a Worker's is no target.
   expect(deployLine({ at: "deploy.reason", reason: "r", by: "someone", targets: ["remove brain-m-0123456789-todo and more", "remove brain-x-echo", 7] }, 1)).toEqual({ at: "deploy.reason", by: "member", targets: [], t: 1 });

@@ -22,7 +22,7 @@ dashboardView = {
   return dashboard(chosen.panels.map((p) => ({ title: p.title, body: panelBody(p, answers.get(panelQuery(p).key), { width: width - 40 }), wide: true })), { note: dashboardNote(dashboardData) });
 }
 // %%
-md`The select and the panels above are for the owner, signed in; anyone else is shown one line and nothing is asked. The select lists what \`dashboard.list\` answers, and the choice is in the address as \`dashboard=NAME\`, so a dashboard has a link. The panels are drawn from one call for each distinct metric, \`by\` and filter among them, over the span chosen under Health in the module \`@tomlarkworthy/cloud-brain\`: \`metric.query\` of this service, or \`issue.flow\` of the tracker for a metric whose name starts \`flow.\` (Dashboards, below). This module has no span and no "Refresh" of its own: "Refresh" under Health asks for the panels again, and so does a change of the span there. In a layout without that module its two controls are not on the page, and the panels read the span it opens with, the last hour. The cells that read and draw are after \`dashboard_announce\`, from \`dashboardList\` to \`dashboardNote\`; the functions \`dashboard\`, \`requestsChart\`, \`healthStrip\` and \`methodTable\` that they draw with are the page's, imported with \`chartBase\` and \`spanName\`.`
+md`The select and the panels above are for the owner, signed in; anyone else is shown one line and nothing is asked. The select lists what \`dashboard.list\` answers, and the choice is in the address as \`dashboard=NAME\`, so a dashboard has a link. The panels are drawn from one call for each distinct metric, \`by\` and filter among them, over the span chosen under Health in the module \`@tomlarkworthy/cloud-brain\`: \`metric.query\` of this service, \`issue.flow\` of the tracker for a metric whose name starts \`flow.\`, or \`logs.deploys\` of brain-logs for the metric \`deploys.restore\` (Dashboards, below). This module has no span and no "Refresh" of its own: "Refresh" under Health asks for the panels again, and so does a change of the span there. In a layout without that module its two controls are not on the page, and the panels read the span it opens with, the last hour. The cells that read and draw are after \`dashboard_announce\`, from \`dashboardList\` to \`dashboardNote\`; the functions \`dashboard\`, \`requestsChart\`, \`healthStrip\` and \`methodTable\` that they draw with are the page's, imported with \`chartBase\` and \`spanName\`.`
 // %%
 md`## Methods
 
@@ -163,7 +163,7 @@ What holds one member's counts from another: the script Cloudflare is asked for 
 
 ## Dashboards
 
-A dashboard is a row of this service, added and changed with no deploy. It holds names only: no data, and no rule. The data of a panel is asked of \`metric.query\` by whoever draws it, and is answered or refused there for that caller, so a caller that reads a dashboard reads nothing of a metric by it. A panel whose metric starts \`flow.\` is asked of \`issue.flow\` of the tracker (brain-issues) in the same way, with the same parameters, and is answered or refused by that method's rule: this service defines no such metric, \`metric.list\` names none, and it sends the tracker nothing. The service does not look whether a panel's \`metric\` is defined, or whether its \`by\` and \`filter\` name dimensions of it.
+A dashboard is a row of this service, added and changed with no deploy. It holds names only: no data, and no rule. The data of a panel is asked of \`metric.query\` by whoever draws it, and is answered or refused there for that caller, so a caller that reads a dashboard reads nothing of a metric by it. A panel whose metric starts \`flow.\` is asked of \`issue.flow\` of the tracker (brain-issues) in the same way, with the same parameters, and is answered or refused by that method's rule: this service defines no such metric, \`metric.list\` names none, and it sends the tracker nothing. A panel whose metric is \`deploys.restore\` (since 2026-10-12) is drawn from \`logs.deploys?from=&to=\` of brain-logs, sent once for a dashboard with its span and answered or refused by that method's rule (the owner, or a token of the owner that names it): the page makes a row for each of the answer's \`restores\` that has an end, \`{ t: restored, id, target, n: 1, sum: ms, max: ms }\` with \`id\` the Worker, \`@\` and the first 8 of the hash put back (\`restoreRows\`), takes the panel's \`filter\` on \`target\` or \`id\` there, and says under the panel how many put-backs of the span have no later deploy that stood by its end. That name is no metric of this service either: \`metric.query\` answers it as a name it does not define. The service does not look whether a panel's \`metric\` is defined, or whether its \`by\` and \`filter\` name dimensions of it.
 
 \`\`\`js
 POST /xrpc/com.lopecode.brain.dashboard.put
@@ -177,7 +177,7 @@ POST /xrpc/com.lopecode.brain.dashboard.put
       "draw": "bars" }] }                       // one of ${dashboardDraws.join(", ")}
 \`\`\`
 
-The answer is the dashboard as kept: \`name\`, \`title\` and, for each panel, \`title\`, \`metric\`, \`by\`, \`filter\` and \`draw\`, with \`by\` a list and \`filter\` an object when they were left out. Any other field of the body or of a panel is not kept. A name in \`by\` and a key of \`filter\` is a field's name as a metric's dimension is, and a key is not \`metric\`, \`since\`, \`until\` or \`by\`; a value of \`filter\` is text of 200 characters at most, or a number. \`draw\` names how the page draws the panel: \`calls\`, \`faults\` and \`methods\` are for the rows of \`core.calls\`, \`bars\` and \`table\` for any metric. \`points\` needs \`id\` in \`by\`: a dot for each row at its time and value, and for an answer with \`summaries\` (\`issue.flow\`) a rule at the median and a dashed one at the 85th percentile of each, with a line of text for each under the chart. \`share\` is for a metric with a value: a line a group with \`n\`, \`sum\` and \`sum / n\`. A value whose \`unit\` is \`ms\` (\`issue.flow\`) is written in hours with one decimal by \`table\` and \`points\`, and \`table\` adds the median and the 85th percentile of each group when the answer has \`summaries\` and \`by\` has no \`id\`. A body that is not this is answered 400 and nothing is kept.
+The answer is the dashboard as kept: \`name\`, \`title\` and, for each panel, \`title\`, \`metric\`, \`by\`, \`filter\` and \`draw\`, with \`by\` a list and \`filter\` an object when they were left out. Any other field of the body or of a panel is not kept. A name in \`by\` and a key of \`filter\` is a field's name as a metric's dimension is, and a key is not \`metric\`, \`since\`, \`until\` or \`by\`; a value of \`filter\` is text of 200 characters at most, or a number. \`draw\` names how the page draws the panel: \`calls\`, \`faults\` and \`methods\` are for the rows of \`core.calls\`, \`bars\` and \`table\` for any metric. \`points\` needs \`id\` in \`by\`: a dot for each row at its time and value, and for an answer with \`summaries\` (\`issue.flow\`) a rule at the median and a dashed one at the 85th percentile of each, with a line of text for each under the chart. \`share\` is for a metric with a value: a line a group with \`n\`, \`sum\` and \`sum / n\`. An answer with no \`summaries\` (\`deploys.restore\`) is the dots, with \`n\` and the longest under them and no rule. A value whose \`unit\` is \`ms\` (\`issue.flow\`, \`deploys.restore\`) is written in hours with one decimal by \`table\` and \`points\`, and \`table\` adds the median and the 85th percentile of each group when the answer has \`summaries\` and \`by\` has no \`id\`. A body that is not this is answered 400 and nothing is kept.
 
 The dashboards that are built in are a value of this module (\`dashboardDefinitions\`), as the Brain's own metrics are, and no method writes one: \`dashboard.put\` and \`dashboard.delete\` of a built-in name are answered 403 for every caller, and \`dashboard.get\` answers the module's value whatever row is kept under that name.
 
@@ -617,17 +617,39 @@ panelQuery = (panel) => {
 dashboardQueries = (panels) => [...new Map((panels || []).map(panelQuery).map((q) => [q.key, q])).values()]
 // %%
 // The method a metric is read with: issue.flow of the tracker for a name that starts flow. (the times work took, computed from
-// the tracker's record: plan/cloud-brain-flow-metrics.md), and metric.query of this service for every other.
-panelMethod = (metric) => (typeof metric === "string" && metric.startsWith("flow.") ? "issue.flow" : "metric.query")
+// the tracker's record: plan/cloud-brain-flow-metrics.md), logs.deploys of brain-logs for the one name deploys.restore (the time
+// from a put-back to the next deploy that stood, restoreRows), and metric.query of this service for every other.
+panelMethod = (metric) => (metric === "deploys.restore" ? "logs.deploys" : typeof metric === "string" && metric.startsWith("flow.") ? "issue.flow" : "metric.query")
+// %%
+// The answer of logs.deploys as an answer a panel draws, for the metric deploys.restore: a row for each of its `restores` that
+// has an end, { t: restored, id: the Worker and the first 8 of the hash put back, target, n: 1, sum: ms, max: ms }, with
+// unit "ms" and no summaries (a percentile is computed in the tracker's module alone). `unrestored` counts the put-backs of the
+// span with no end in it, which have no row. A filter is taken on the rows: `target` or `id`, and a name no row has keeps
+// none. The rows are not in steps; `step` is an hour, which is how wide `bars` draws one. An answer with no `restores` is { error }.
+restoreRows = (answer, filter = {}) => {
+  if (!answer || !Array.isArray(answer.restores)) return { error: "its answer has no restores" };
+  const kept = answer.restores.map((r) => ({ ...r, id: r.target + "@" + String(r.hash).slice(0, 8) })).filter((r) => Object.entries(filter).every(([k, v]) => String(r[k]) === String(v)));
+  const series = kept.filter((r) => r.restored != null).map((r) => ({ t: r.restored, id: r.id, target: r.target, n: 1, sum: r.ms, max: r.ms }));
+  return { metric: "deploys.restore", since: answer.from, until: answer.to, step: 3600000, unit: "ms", series, unrestored: kept.length - series.length };
+}
 // %%
 // The data of a dashboard over a range: one call for each of its queries, sent together, to the method panelMethod names for
-// its metric, with the same parameters whichever that is. Answers { dashboard, range, answers }, with answers a Map from a
-// query's key to what the method answered, or to { error } for one that failed. No client or no dashboard: null, and nothing is sent.
-// A filter is written first, so it stands in for none of metric, since, until and by.
+// its metric, with the same parameters for metric.query and issue.flow. Answers { dashboard, range, answers }, with answers a
+// Map from a query's key to what the method answered, or to { error } for one that failed. No client or no dashboard: null, and
+// nothing is sent. A filter is written first, so it stands in for none of metric, since, until and by.
+// logs.deploys takes the range as from and to and nothing of a panel, so it is sent once for a dashboard, however many of its
+// queries are of deploys.restore (it reads the deployer's lines of the span whole: 5 queries of Cloudflare for 7 days on
+// 2026-10-12), and each such query's answer is restoreRows of that one answer with the query's filter.
 dashboardRead = async ({ client, dashboard, range }) => {
   if (!client || !dashboard) return null;
   const queries = dashboardQueries(dashboard.panels);
-  const answers = await Promise.all(queries.map((q) => client.query(panelMethod(q.metric), { ...q.filter, metric: q.metric, since: range.since, until: range.until, by: q.by.length ? q.by.join(",") : undefined }).then((a) => a, (e) => ({ error: String((e && e.message) || e) }))));
+  let deploys = null;
+  const ask = (q) => {
+    const method = panelMethod(q.metric);
+    if (method === "logs.deploys") return (deploys = deploys || client.query(method, { from: range.since, to: range.until })).then((a) => restoreRows(a, q.filter));
+    return client.query(method, { ...q.filter, metric: q.metric, since: range.since, until: range.until, by: q.by.length ? q.by.join(",") : undefined });
+  };
+  const answers = await Promise.all(queries.map((q) => ask(q).then((a) => a, (e) => ({ error: String((e && e.message) || e) }))));
   return { dashboard, range, answers: new Map(queries.map((q, i) => [q.key, answers[i]])) };
 }
 // %%
@@ -643,7 +665,7 @@ dashboardGroupLimit = 500
 panelNeeds = ({ calls: ["worker"], faults: ["worker", "status"], methods: ["worker", "method", "status"], bars: [], table: [], points: ["id"], share: [] })
 // %%
 // Any metric as bars: the lines of each step, stacked and coloured by the first dimension of `by` when there is one.
-// `label` names what is counted: lines of a log for metric.query, rows for issue.flow.
+// `label` names what is counted: lines of a log for metric.query, rows for issue.flow and logs.deploys.
 barsChart = (data, { by = [], label = "lines", ...options } = {}) => {
   const key = by[0] || null, rows = new Map();
   for (const d of data.series) {
@@ -728,10 +750,12 @@ shareTable = (data, { by = [] } = {}) => {
 // whose rows the panel's `by` does not give, and a span with no line are each said in the panel's place, with the name of
 // the method that was asked (panelMethod). An answer Cloudflare made from a sample (`sampled` above 1, A query) says so
 // under the panel, and beside "No lines" too: a sample can leave a group with few lines out whole. The limit of groups is
-// said of an answer of metric.query only: issue.flow leaves no row out, and its `groups` counts its summaries.
+// said of an answer of metric.query only: issue.flow leaves no row out, and its `groups` counts its summaries. An answer of
+// metric.query has lines and the other two methods' have rows. An answer with `unrestored` (restoreRows) says how many put-backs
+// have no row, under the panel and beside "No rows" too.
 panelBody = (panel, answer, { width } = {}) => {
   const line = (text) => htl.html`<i style="color:var(--theme-foreground-muted)">${text}</i>`;
-  const method = panelMethod(panel.metric), flow = method === "issue.flow";
+  const method = panelMethod(panel.metric), lines = method === "metric.query";
   if (!answer) return line(method + " was not asked.");
   if (answer.error) return line(method + " failed: " + answer.error);
   const by = panel.by || [], needs = panelNeeds[panel.draw];
@@ -739,13 +763,14 @@ panelBody = (panel, answer, { width } = {}) => {
   const lacks = needs.filter((k) => !by.includes(k));
   if (lacks.length) return line(`The draw "${panel.draw}" takes rows by ${needs.join(", ")}, and this panel's by has no ${lacks.join(", ")}.`);
   const sample = answer.sampled > 1 ? `Cloudflare answered this from a sample of the lines (sampled ${answer.sampled}): each number is its estimate, and a group with few lines may be missing.` : null;
-  if (!answer.series.length) return line((flow ? "No rows in this span." : "No lines in this span.") + (sample ? " " + sample : ""));
+  const open = answer.unrestored > 0 ? `Put-backs of this span with no later deploy that stood by its end, and so no row: ${answer.unrestored}.` : null;
+  if (!answer.series.length) return line([lines ? "No lines in this span." : "No rows in this span.", open, sample].filter(Boolean).join(" "));
   if (panel.draw === "share" && answer.series.every((r) => r.sum == null)) return line(`The draw "share" takes a metric with a value, and ${panel.metric} is counted.`);
   const data = { since: answer.since, until: answer.until, step: answer.step, series: answer.series, unit: answer.unit, summaries: answer.summaries };
   // The charts made for Health name the sum `ms`.
   const calls = () => ({ ...data, series: answer.series.map((r) => ({ ...r, ms: r.sum || 0, max: r.max || 0 })) });
-  const body = panel.draw === "bars" ? barsChart(data, { by, width, ...(flow ? { label: "rows" } : {}) }) : panel.draw === "table" ? groupTable(data, { by }) : panel.draw === "points" ? pointsChart(data, { by, width }) : panel.draw === "share" ? shareTable(data, { by }) : panel.draw === "calls" ? requestsChart(calls(), { width }) : panel.draw === "faults" ? healthStrip(calls(), { width }) : methodTable(calls());
-  const under = [!flow && answer.groups >= dashboardGroupLimit ? `${dashboardGroupLimit} groups is the limit of one answer: some lines may be missing.` : null, sample].filter(Boolean);
+  const body = panel.draw === "bars" ? barsChart(data, { by, width, ...(lines ? {} : { label: "rows" }) }) : panel.draw === "table" ? groupTable(data, { by }) : panel.draw === "points" ? pointsChart(data, { by, width }) : panel.draw === "share" ? shareTable(data, { by }) : panel.draw === "calls" ? requestsChart(calls(), { width }) : panel.draw === "faults" ? healthStrip(calls(), { width }) : methodTable(calls());
+  const under = [lines && answer.groups >= dashboardGroupLimit ? `${dashboardGroupLimit} groups is the limit of one answer: some lines may be missing.` : null, open, sample].filter(Boolean);
   return under.length ? htl.html`<div>${body}${under.map((text) => htl.html`<div style="color:var(--theme-foreground-muted)">${text}</div>`)}</div>` : body;
 }
 // %%
@@ -1609,7 +1634,7 @@ test_bars_and_a_table_draw_any_metric_and_a_panel_says_what_it_cannot_draw = {
   return "2 draws for any metric, 3 for core.calls, 5 lines";
 }
 // %%
-// The dashboard `flow` of plan/cloud-brain-flow-metrics.md ("The dashboard, as data") without its last row, which is task 6's.
+// The dashboard `flow` of plan/cloud-brain-flow-metrics.md ("The dashboard, as data"): its eleven rows, the last since fm-6-restores.
 // It is a row on a Brain, put with dashboard.put, and no value of this module: the tests below hold that the service keeps it
 // and that each of its panels has the dimensions its draw takes.
 flowDashboardBody = ({
@@ -1625,7 +1650,8 @@ flowDashboardBody = ({
     { title: "Hours by state", metric: "flow.stays", by: ["waits", "state"], draw: "table" },
     { title: "Sent back at review", metric: "flow.submits", by: ["move"], draw: "share" },
     { title: "Deploys, by Worker", metric: "deploys.confirmed", by: ["target"], draw: "bars" },
-    { title: "Put back, by Worker", metric: "deploys.put-back", by: ["target"], draw: "table" }
+    { title: "Put back, by Worker", metric: "deploys.put-back", by: ["target"], draw: "table" },
+    { title: "Time to restore", metric: "deploys.restore", by: ["id", "target"], draw: "points" }
   ]
 })
 // %%
@@ -1666,11 +1692,12 @@ test_a_flow_panel_is_asked_of_issue_flow_and_the_service_keeps_points_and_share 
   const kept = { ...flowDashboardBody, panels: flowDashboardBody.panels.map((p) => ({ title: p.title, metric: p.metric, by: p.by, filter: p.filter || {}, draw: p.draw })) };
   expect(await post(flowDashboardBody)).toEqual({ status: 200, data: { dashboard: kept } });
   expect(await rig.call("dashboard.get", "?name=flow")).toEqual({ status: 200, data: { dashboard: kept } });
-  expect(kept.panels.map((p) => p.draw)).toEqual(["points", "points", "points", "bars", "table", "table", "table", "share", "bars", "table"]);
-  // Each of its panels has what its draw takes, and eight of the ten are the tracker's.
+  expect(kept.panels.map((p) => p.draw)).toEqual(["points", "points", "points", "bars", "table", "table", "table", "share", "bars", "table", "points"]);
+  // Each of its panels has what its draw takes; eight of the eleven are the tracker's and the last is read from logs.deploys.
   expect(kept.panels.filter((p) => !panelNeeds[p.draw].every((k) => p.by.includes(k))).map((p) => p.title)).toEqual([]);
   expect(kept.panels.filter((p) => panelMethod(p.metric) === "issue.flow").length).toBe(8);
-  expect(dashboardQueries(kept.panels).length).toBe(10);
+  expect(kept.panels.filter((p) => panelMethod(p.metric) === "logs.deploys").map((p) => p.title)).toEqual(["Time to restore"]);
+  expect(dashboardQueries(kept.panels).length).toBe(11);
   // A draw that is none of the seven is still refused, and the refusal names the seven.
   const pie = await post({ name: "wrong", title: "Wrong", panels: [{ title: "Pie", metric: "flow.lead", draw: "pie" }] });
   expect([pie.status, pie.data.message]).toEqual([400, "panel 1: draw is one of calls, faults, methods, bars, table, points, share"]);
@@ -1744,6 +1771,74 @@ test_points_share_and_hours_are_drawn_from_an_answer_of_issue_flow = {
   const label = (el) => [...el.querySelectorAll("svg text")].map((t) => t.textContent).filter((t) => /rows|lines/.test(t)).join();
   expect([count(panelBody(panel("bars", "flow.lead", ["kind"]), done, { width: 600 }), "rect") >= 2, label(panelBody(panel("bars", "flow.lead", ["kind"]), done, { width: 600 })), label(panelBody(panel("bars", "deploys.confirmed", ["target"]), counted, { width: 600 }))]).toEqual([true, "↑ rows", "↑ lines"]);
   return "3 dots and 4 rules; 2 shares; a table in hours";
+}
+// %%
+// fm-6-restores, R6 of plan/cloud-brain-flow-metrics.md: the metric deploys.restore is read from logs.deploys of brain-logs, with
+// the range as from and to, and restoreRows makes its `restores` the rows a panel draws: one for each restore that has an end.
+test_time_to_restore_is_read_from_logs_deploys_and_drawn_as_points = {
+  const H = 3600000, range = { since: Date.UTC(2026, 9, 5, 7, 0) + 123, until: Date.UTC(2026, 9, 12, 7, 0) + 123 };
+  const restore = (target, letter, putBack, hours) => ({ target, hash: letter.repeat(64), putBack, restored: hours == null ? null : putBack + hours * H, ms: hours == null ? null : hours * H });
+  const deploys = { from: range.since, to: range.until, queries: 5, lines: [], workers: [], tests: [], restores: [restore("brain-x-git", "a", range.since + H, 1.5), restore("brain-x-git", "b", range.since + 3 * H, 3), restore("brain-x-page", "c", range.since + 4 * H, 0.5), restore("brain-x-page", "d", range.until - H, null)] };
+  // Only that name is read from the logs service: the other deploys. metrics are metric.query's.
+  expect(["deploys.restore", "deploys.restores", "deploys.restore.x", "deploys.confirmed", "deploys.put-back", "flow.deploys.restore", "m.0123456789.deploys.restore"].map(panelMethod)).toEqual(["logs.deploys", "metric.query", "metric.query", "metric.query", "metric.query", "issue.flow", "metric.query"]);
+  // A row for each restore that has an end, at its end, with the Worker and the first 8 of the hash put back as its id. The
+  // put-back with no end has no row and is counted. No summaries: this page computes no percentile.
+  const row = (target, id, t, hours) => ({ t, id, target, n: 1, sum: hours * H, max: hours * H });
+  const series = [row("brain-x-git", "brain-x-git@aaaaaaaa", range.since + 2.5 * H, 1.5), row("brain-x-git", "brain-x-git@bbbbbbbb", range.since + 6 * H, 3), row("brain-x-page", "brain-x-page@cccccccc", range.since + 4.5 * H, 0.5)];
+  expect(restoreRows(deploys)).toEqual({ metric: "deploys.restore", since: range.since, until: range.until, step: H, unit: "ms", series, unrestored: 1 });
+  // A panel's filter is taken on the rows, the count of those with no end too; a name no row has keeps none.
+  expect(((a) => [a.series, a.unrestored])(restoreRows(deploys, { target: "brain-x-page" }))).toEqual([[series[2]], 1]);
+  expect(((a) => [a.series, a.unrestored])(restoreRows(deploys, { target: "brain-x-git", id: "brain-x-git@bbbbbbbb" }))).toEqual([[series[1]], 0]);
+  expect(((a) => [a.series, a.unrestored])(restoreRows(deploys, { kind: "bug" }))).toEqual([[], 0]);
+  expect(restoreRows({ ...deploys, restores: [] })).toEqual({ metric: "deploys.restore", since: range.since, until: range.until, step: H, unit: "ms", series: [], unrestored: 0 });
+  // An answer with no restores (a brain-x-logs from before this) is an error of the query, not rows.
+  const none = { error: "its answer has no restores" };
+  expect([restoreRows({ from: 1, to: 2, lines: [] }), restoreRows(null), restoreRows({ restores: "x" }), restoreRows({ error: "AuthRequired" })]).toEqual([none, none, none, none]);
+  // dashboardRead: one logs.deploys for the dashboard, with from and to and nothing of the panel; every other query as before.
+  const seen = [];
+  const client = { query: async (name, params) => (seen.push([name, params]), name === "logs.deploys" ? deploys : { from: name, metric: params.metric, series: [] }) };
+  const panels = [
+    { title: "Time to restore", metric: "deploys.restore", by: ["id", "target"], filter: {}, draw: "points" },
+    { title: "Put back, by Worker", metric: "deploys.put-back", by: ["target"], filter: {}, draw: "table" },
+    { title: "The page", metric: "deploys.restore", by: ["id"], filter: { target: "brain-x-page" }, draw: "points" },
+    { title: "By Worker", metric: "deploys.restore", by: ["target"], filter: {}, draw: "table" }
+  ];
+  const data = await dashboardRead({ client, dashboard: { name: "flow", title: "Flow", panels }, range });
+  expect(seen).toEqual([["logs.deploys", { from: range.since, to: range.until }], ["metric.query", { metric: "deploys.put-back", since: range.since, until: range.until, by: "target" }]]);
+  const answer = (i) => data.answers.get(panelQuery(panels[i]).key);
+  expect([answer(0), answer(1), answer(2), answer(3)]).toEqual([restoreRows(deploys), { from: "metric.query", metric: "deploys.put-back", series: [] }, restoreRows(deploys, { target: "brain-x-page" }), restoreRows(deploys)]);
+  expect(dashboardNote(data)).toBe("The last 7 days: 4 panels from 4 queries.");
+  // A read that failed is the error of each query that is drawn from it, and the others are answered.
+  const refused = await dashboardRead({ client: { query: async (name, params) => (name === "logs.deploys" ? Promise.reject(new Error("AuthRequired")) : { from: name, metric: params.metric, series: [] }) }, dashboard: { panels }, range });
+  expect(panels.map((p) => ((a) => a.error || a.from)(refused.answers.get(panelQuery(p).key)))).toEqual(["AuthRequired", "metric.query", "AuthRequired", "AuthRequired"]);
+  const old = await dashboardRead({ client: { query: async () => ({ from: range.since, to: range.until, lines: [] }) }, dashboard: { panels: [panels[0]] }, range });
+  expect(panelBody(panels[0], old.answers.get(panelQuery(panels[0]).key)).textContent).toBe("logs.deploys failed: its answer has no restores");
+  // Drawn: a dot a restore in hours, named by its id, with n and the longest under them and no rule; then the put-backs with no end.
+  const count = (el, sel) => Math.max(...[el, ...el.querySelectorAll("svg")].map((n) => n.querySelectorAll(sel).length));
+  const open = "Put-backs of this span with no later deploy that stood by its end, and so no row: 1.";
+  const drawn = panelBody(panels[0], answer(0), { width: 600 });
+  expect([count(drawn, "circle"), count(drawn, 'g[aria-label="rule"] line')]).toEqual([3, 0]);
+  expect([...drawn.querySelectorAll("circle title")].map((t) => t.textContent)).toEqual(["brain-x-git@aaaaaaaa\n1.5 h", "brain-x-git@bbbbbbbb\n3.0 h", "brain-x-page@cccccccc\n0.5 h"]);
+  expect([drawn.firstElementChild.lastElementChild.textContent, drawn.lastElementChild.textContent]).toEqual(["n 3, longest 3.0 h", open]);
+  // With every put-back restored nothing is said under the dots.
+  expect(panelBody(panels[0], restoreRows(deploys, { target: "brain-x-git" }), { width: 600 }).textContent).not.toContain("Put-backs");
+  // No restore in the span, and one put-back that has none yet: both said in the panel's place, with the method's name where it failed.
+  const cells = (el) => [...el.querySelectorAll("tbody tr")].map((tr) => [...tr.querySelectorAll("td")].slice(1).map((td) => td.textContent));
+  const heads = (el) => [...el.querySelectorAll("thead th")].slice(1).map((th) => th.textContent.trim());
+  expect([
+    panelBody(panels[0], restoreRows({ ...deploys, restores: [] })),
+    panelBody(panels[0], restoreRows({ ...deploys, restores: [deploys.restores[3]] })),
+    panelBody(panels[0], { error: "AuthRequired" }),
+    panelBody(panels[0], undefined),
+    panelBody({ ...panels[0], by: ["target"] }, answer(0))
+  ].map((el) => el.textContent)).toEqual(["No rows in this span.", "No rows in this span. " + open, "logs.deploys failed: AuthRequired", "logs.deploys was not asked.", 'The draw "points" takes rows by id, and this panel\'s by has no id.']);
+  // As a table: hours by Worker, and no median. As bars: rows. Neither says the limit of metric.query's groups.
+  const table = panelBody(panels[3], { ...answer(3), groups: 500 });
+  expect([heads(table), cells(table)]).toEqual([["target", "n", "sum h", "max h"], [["brain-x-git", "2", "4.5", "3.0"], ["brain-x-page", "1", "0.5", "0.5"]]]);
+  expect([table.textContent.includes("limit"), table.lastElementChild.textContent]).toEqual([false, open]);
+  const bars = panelBody({ ...panels[3], draw: "bars" }, answer(3), { width: 600 });
+  expect([count(bars, "rect") >= 2, [...bars.querySelectorAll("svg text")].map((t) => t.textContent).filter((t) => /rows|lines/.test(t)).join()]).toEqual([true, "↑ rows"]);
+  return "1 logs.deploys for 3 panels; 3 dots of 4 put-backs";
 }
 // %%
 import {cloudflare, cloudflareApi, rows, config, simulate, decide, callerOf, sha256} from "@tomlarkworthy/cloudflare-iac"
