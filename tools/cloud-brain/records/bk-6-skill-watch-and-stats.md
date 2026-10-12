@@ -43,7 +43,8 @@ carry: a spec sent back, a digest at `open`, the owner's feedback, "Anything els
 a digest at `ready` is a sentence of the row `start`.
 
 **The step is longer than it was, not shorter.** `awk '/^3\. \*\*/{on=1} /^4\. \*\*Spawn/{on=0} on' … | wc -lc`:
-48 lines and 17,944 bytes at the commit before, 77 lines and 22,512 bytes now. What went is the
+48 lines and 18,411 bytes at the commit before, 77 lines and 22,979 bytes now (both after the rebase, in which
+`wait-says-what-runs-and-until-when` had added to the row of `asks-orchestrator`). What went is the
 matching and the order: a session reads an entry's `do` and goes to one row. What stayed is every
 case a row sends it to. Whether that is less to hold in mind was not measured; no pass has been
 made from it ("Not tried").
@@ -69,7 +70,8 @@ in the line of the tracker, beside `issue.flow`.
 keeps the entries of the last answer in a file of its own (`mktemp`), removed at its end. The first
 answer is printed whole. The lines for an open (another caller's, or with the label `owner`) and
 for a `submit` or `submit-spec` are taken out. Kept: an event of the owner's session, the label
-`asks-orchestrator` put on, a comment of an `out-` token. `--queue <file>` reads one answer of
+`asks-orchestrator` put on, a comment of an `out-` token, and the line `asks-still`, which
+`wait-says-what-runs-and-until-when` landed while this was written. `--queue <file>` reads one answer of
 `queue` from stdin and makes no call, as `--filter` does for `sync`; an answer that is not the
 queue's prints nothing and leaves the file.
 
@@ -84,15 +86,18 @@ still need is held, not closed"): a feedback issue at `open` is in neither list 
 `--json` has `unstarted.noReason`, each row with `do`, and `unstarted.held`, each with `why` and
 `on` or `until`; `unstarted.notRead` in their place.
 
-**Two other specs, one sentence each made untrue by this.** `plan/cloud-brain-loop-order-of-service.md`
+**Two other specs, in the sentences this made untrue.** `plan/cloud-brain-loop-order-of-service.md`
 gains three notes "(Since `bk-6-skill-watch-and-stats` …)": at the watch's line for an open with
 the label, at its line for a submit, and at the `held:` comment. `plan/cloud-brain-worker-machine-on-fly.md`
 cites the script by line and says the tool reads `held:` comments: both mended in place
-(`grep -n 'sleep "\$every"\|never exits' tools/cloud-brain/issue-watch.sh`: lines 63 and 5).
+(`grep -n 'sleep "\$every"\|never exits' tools/cloud-brain/issue-watch.sh`: lines 84 and 5, after the rebase).
 The spec of this task gains three notes "As built" in part 6 and one in each of two rows of its
 table of checks.
 
 ## On cb4
+
+The first four runs were made before the rebase, with the script and the tool as this change first had
+them; the last is of the files as they land.
 
 **The tool as it was and as it is, one after the other**, 00:00:12 on 2026-10-13, from the worktree
 (the record at event 5281):
@@ -134,31 +139,78 @@ kinds kept. After the alarm ended it, `find "$TMPDIR" -maxdepth 1 -name 'issue-w
 **`--queue` on two answers of cb4**, between the `start` (23:57:45) and 00:00:12: the first printed 17 lines, the second, a few seconds
 later with the same entries, none.
 
+**After the rebase, the files as they land**, 00:22:02 to 00:22:09. The same command for the loop, from event
+5300: 17 lines, each `QUEUE …` (7 `ready`, 8 `triage`, 2 `review`), exit 142 (the alarm), no file of `mktemp`
+left. `ia "queue"` then: `seq` 5321, 17 entries in `queue` (the same three counts), 40 in `waiting`
+(`after` 16, `parts` 12, `owner` 4, `until` 4, `work` 4). And the tool:
+
+```
+bun tools/cloud-brain/issue-stats.ts --token impl-5c7990 | sed -n '/^past/,$p'
+past 4 h, not started, no reason: 4 (20 more are held)
+  ta-1c-parent-revoke-on-cb4               task     open               27.2 h with no move  triage
+  ap-5-panel-approved-for-you              task     triaged             5.6 h with no move  ready
+  ap-6-rules-and-live-step                 task     triaged             5.6 h with no move  ready
+  ac-5-prose-names-the-two-shapes          task     triaged             4.1 h with no move  ready
+```
+
+20 is `after` 16 and `until` 4 of that read.
+
 ## Tests
 
-In the worktree, each as `bun test --timeout=30000 ./tests/tools/<file>`, after the last edit of any
-file they read. `grep -c '^test(' <file>` at the commit before and now:
+In the worktree, each as `bun test --timeout=30000 ./tests/tools/<file>`. `grep -c '^test(' <file>` at
+the commit this one stands on (`git show HEAD~1:<file>`, after the rebase) and now:
 
 | File | Before | Now | What changed |
 |---|---|---|---|
-| `issue-watch.test.ts` | 28 | 32 | six tests of `--queue`, R7's among them ("two answers of queue: the first is printed whole, the second prints one line, for the entry that is new"); one of the texts beside step 3; the four of an open are two (none is a line; one of his session is) and the two of a submit are one; two pins of step 8 |
+| `issue-watch.test.ts` | 32 | 37 | six tests of `--queue`, R7's among them ("two answers of queue: the first is printed whole, the second prints one line, for the entry that is new"); one of the loop, with a stand-in for `issue-as.sh`; one of the texts beside step 3; the four of an open are two (none is a line; one of his session is) and the two of a submit are one; two pins of step 8 |
 | `issue-stats.test.ts` | 36 | 37 | the four of the past-4-hours line are five, fed an answer of `queue`; the test of the whole tool has `queue` as its last call and reads the last line |
 | `os-2-order-and-pool.test.ts` | 6 | 6 | the two of step 3 and the one of step 1 are rewritten for the queue; one reads the names of `do` and `why` from the prose of `brain-issues.ojs`, so a row the service gains fails it |
 | `issue-wait.test.ts` | 13 | 13 | one pin: the watch's line for a submit |
 | `pm-2-brief-and-procedure.test.ts` | 7 | 7 | the post mortem's rows are named by the rows `triage` and `start` |
 
-**They fail on the files as they were.** With `SKILL=`, `ISSUE_WATCH_SH=` and `ISSUE_STATS_TS=`
-naming the files of `git show HEAD:`, between 00:06 and 00:11: `os-2-order-and-pool` 3 fail of 6;
-`issue-stats` 6 fail of 37; `issue-wait` 1 of 13; `pm-2-brief-and-procedure` 1 of 7;
-`issue-watch` 9 fail, read from the `(fail)` lines of a run that did not end by itself. Five of
-those nine are the tests of `--queue`, each at the 30 s timeout: the script as it was takes
-`--queue` for a token and starts its loop, which never exits, and the run was ended by hand.
-(`issue-as.sh` keeps no token of that name, so that loop sent nothing.) The sixth test of
-`--queue` was not reached in that run, and the last test of the file was added after it: neither was
-run against the old files.
+**They fail on the files as they were.** After the rebase, 00:21:44 to 00:21:52, with `SKILL=`,
+`SPEC_BRIEF=`, `IMPLEMENTER=`, `CLUSTER_GUIDE=`, `ISSUE_WATCH_SH=` and `ISSUE_STATS_TS=` naming the files of
+`git show HEAD~1:`:
 
-The whole suite and the five files, after the last edit and the rebase, are under "The counts at
-the landing", below.
+```
+os-2-order-and-pool.test.ts        3 pass  3 fail
+issue-wait.test.ts                12 pass  1 fail
+pm-2-brief-and-procedure.test.ts   6 pass  1 fail
+issue-stats.test.ts               31 pass  6 fail
+issue-watch.test.ts, with -t 'an open is no line|no move is a line|SKILL.md, step 8|SKILL.md says once|agents/spec.md has each task'    0 pass  5 fail
+```
+
+The seven tests of `--queue` and of the loop were not run against the script as it was, for this
+reason: it has no such mode, takes `--queue` for a token and starts its loop, which never exits.
+Before the rebase five of them were run so, by mistake: each failed at the 30 s timeout, and the run
+was ended by hand. (`issue-as.sh` keeps no token of that name, so that loop sent nothing.)
+
+**The counts at the landing.** In the worktree, after the rebase and after the last edit of a file a
+test reads; this record and two cells of the spec's table of checks were written after it, and no
+test reads either:
+
+```
+tests/tools/suite.sh        00:18:14 to 00:21:28, uptime's first number 5.90 before it
+ 888 pass
+ 0 fail
+Ran 888 tests across 91 files. [193.95s]
+```
+
+No `skipped:` line (`grep '^skipped'` of the whole output). Before the rebase, 00:11:40 to 00:13:26:
+853 pass, 0 fail, 88 files, 106.16 s. The five files alone are in that run; `issue-watch.test.ts`
+by itself gave 37 pass, 0 fail at the continue of the rebase.
+
+## The rebase
+
+`worktree.sh --rebase` stopped once, on four files that `wait-says-what-runs-and-until-when` had
+changed since this worktree was brought up: `issue-watch.sh` (its `--still` mode and the read of
+`list?label=asks-orchestrator`), `SKILL.md` (the row of `asks-orchestrator` and a line of step 8),
+`tests/tools/issue-watch.test.ts`, and the line numbers in `plan/cloud-brain-worker-machine-on-fly.md`.
+Each was taken as `origin/main` has it and this change made on it again: the queue's function and
+its read in the loop beside `still`; the rows of step 3 moved as they stand on `main`; step 8 with
+the line `asks-still` kept. `diff` of `SKILL.md` before and after that: the row, the line of step 8
+and main's new section, and nothing else. The loop now makes three reads at each turn: `sync`,
+`list?label=asks-orchestrator`, `queue`.
 
 ## Read before the work
 
@@ -188,9 +240,11 @@ the sentences they hold.
 - **A watch armed before this landing** runs the script as it was until it is armed again: the main
   checkout's file changes at the session's next pull, and a running bash keeps the file it opened.
   Not tried.
+- **Three calls every 30 s.** What the third costs cb4 was not measured. `issue.queue` reads every row of the view
+  (the spec, "Not tried, not known").
 - **A queue of more than 200 entries.** The watch asks with no `limit`. An entry past the cut is not
   in the answer, and is printed when it comes in. `issue-stats.ts` says so in its line (`more`),
-  from a test; cb4 had 16 to 19 entries.
+  from a test; cb4 had 16 to 19 entries in each read here.
 - **`issue.queue` refused or not there.** The line `not read:` is from tests with a stand-in for
   `issue-as.sh`; the watch's silence on such an answer from `--queue` with a refusal's body. Neither
   was met on cb4.
