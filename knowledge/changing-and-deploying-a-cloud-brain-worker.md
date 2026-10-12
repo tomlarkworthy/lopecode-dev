@@ -23,7 +23,7 @@ checkout (`.claude/skills/brain-maintenance/rules.md`, "Always"; `plan/cloud-bra
 (for a writer of the loop the orchestrating session has made it, with `worktree.sh --fresh`). There `lopebooks`,
 `lopecode` and `lopecode-plugin` are links to the main checkout's, `cloud-brain-dev/` is a clone of its own, and
 `tools/cloud-brain/.emitted/` has no state: `brain.ts` is run with `BRAIN_STATE_DIR=<main checkout>/tools/cloud-brain/.emitted`
-before it. The order of a landing, with each command, is step 10 of `.claude/skills/brain-maintenance/agents/implementer.md`.
+before it. The order of a landing, with each command, is step 10 of the implementer's brief, on its page `.claude/skills/brain-maintenance/agents/implementer/landing.md`.
 The steps below were written for the main checkout, and a line says where a worktree differs. Whether a session of the
 owner's works in one is his to say: the spec does not ask it ("the main checkout is his").
 

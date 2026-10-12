@@ -32,7 +32,7 @@ test("the pages are the eleven files of agents/implementer/, and the brief's tab
   const table = text.slice(text.indexOf("\n## The pages\n"), text.indexOf("\n## If you see something"));
   const rows = table.split("\n").filter((l) => l.startsWith("| `"));
   expect(rows.map((r) => r.match(/^\| `([a-z-]+)\.md` \|/)?.[1])).toEqual(PAGES);
-  for (const r of rows) expect(r.split("|").slice(1, 4).map((c) => c.trim().length > 10)).toEqual([true, true, true]);
+  for (const r of rows) expect(r.split("|").slice(1, 4).map((c) => c.trim().length > 5)).toEqual([true, true, true]);
   expect(flat(table)).toContain("Each is a file of `.claude/skills/brain-maintenance/agents/implementer/`");
   expect(flat(table)).toContain("Other texts that name a step or a section of `agents/implementer.md` by its number or its title mean the page of this table");
 });

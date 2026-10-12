@@ -86,7 +86,7 @@ brief (`digest-2026-10-11`) stopped before publishing. Both were lifted that day
 7. **Land the seed.** Commit it in the worktree. Copy the built file to
    `<root>/tools/cloud-brain/digests/`: it is git-ignored, and the
    publish command reads it from the main checkout. Land as `agents/implementer.md` step 10
-   lands a change with no deploy.
+   lands a change with no deploy (the five lines by hand, on its page `agents/implementer/landing.md`).
 8. **Publish, count, tell the owner, submit.** From the main checkout:
    ```
    BRAIN_BASE=cb4 bun <root>/tools/cloud-brain/brain.ts curl "/xrpc/com.lopecode.brain.library.put?name=research-<day>&public=true" \

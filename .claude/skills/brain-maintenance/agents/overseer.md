@@ -145,7 +145,7 @@ Each thing you find gets exactly one of these.
 | It is | Do |
 |---|---|
 | A defect or a gap in the cluster, a service, a tool or a doc | File it: `io open` with `kind` `bug` or `task`, `about` the Worker or `brain`, and a body that quotes the evidence (issue id, event seq, the line of the journal). Search the open issues first (`io "list"`); comment on an existing one instead of filing a second. |
-| A brief that misled an agent or left something out | Edit `agents/implementer.md` or the reviewer's brief (on the Brain, below), or the procedure in `SKILL.md`. |
+| A brief that misled an agent or left something out | Edit `agents/implementer.md` or the reviewer's brief (on the Brain, below), or the procedure in `SKILL.md`. `agents/implementer.md` is what every task needs and is held to 20,000 characters (`tests/tools/implementer-brief-core.test.ts`): what one kind of task needs goes on its page of `agents/implementer/`, which the brief's table "The pages" names. |
 | A rule in `rules.md` that is wrong, or anything about this file | File a `task` with the label `major` and the proposed text in the body. Do not edit either file. |
 | A decision only the owner can take | Comment on the issue it blocks, with the choice and the cost of each side, written as `rules.md`, "What the owner is asked to decide", has it: a line a choice, and your pick. |
 

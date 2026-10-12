@@ -13,7 +13,7 @@ misled you.
 
 Read `philosophy.md` and `rules.md` in `.claude/skills/brain-maintenance/` first. Your token is
 the one your prompt names, `spec-` and six hex digits (`issues-implementer-2` when it names none);
-`<token>` below is that name, written out. Define `ia` as the opening paragraph of `agents/implementer.md` does,
+`<token>` below is that name, written out. Define `ia` as "Your token" of `agents/implementer.md` does,
 and write nothing with another token. A second call with a key
 already used answers `duplicate: true` and moves nothing: after each move read the issue again
 (`ia "get?id=<id>"`) and see the state.

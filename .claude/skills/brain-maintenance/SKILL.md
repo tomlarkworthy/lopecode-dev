@@ -138,7 +138,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    writer of this step, being yours.
    **You write nothing else there.** A commit of your own (a brief, this file, a record, a quick win) is made in a
    worktree of your own, `tools/cloud-brain/worktree.sh --fresh orch-$(hostname -s)`, which prints its path, at
-   `origin/main`, and is landed from it by a push as `agents/implementer.md` step 10 lands a change with no deploy,
+   `origin/main`, and is landed from it by a push as `agents/implementer.md` step 10 lands a change with no deploy
+   (the five lines by hand, on its page `agents/implementer/landing.md`),
    the lock taken as `orchestrator-$(hostname -s)`. Exit 3 from that `--fresh`: a commit or an edit of yours stands
    there unlanded; land it or take it back, the loop removes nothing of it.
    **The worktrees of the loop.** `tools/cloud-brain/worktree.sh --list` prints a line for each `bm-*` worktree: its
@@ -658,7 +659,7 @@ sent no message. What follows is for a writer that has reported: after its secon
    ```
    Issue: <id>, sent back by the review at event <seq of the `reviewed` event>.
    Working directory: <W>.
-   A resumed round: read "A resumed round" in <W>/.claude/skills/brain-maintenance/agents/implementer.md and follow it.
+   A resumed round: read <W>/.claude/skills/brain-maintenance/agents/implementer/resumed-round.md, "A resumed round", and follow it.
    ```
    The answer to a send that was taken is `{"success":true,"message":"Resuming agent …"}`. The
    agent runs in the background and reports as a spawned one does; step 5 is the same, with
