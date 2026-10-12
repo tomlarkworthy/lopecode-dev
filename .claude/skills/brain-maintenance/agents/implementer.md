@@ -802,8 +802,8 @@ refuses, exit 64 with nothing sent, an ask with no minutes, one with neither `--
 `--runs`, and a `--stop-in` past the wait. It writes the two times from the clock in the comment,
 under your ask: "Waits until …" and "Billed while it waits: …". Its line of JSON has `until` and
 `stop`: stop the thing by `stop`. Exit 1 says which write was not made. Do not write the comment and
-the label with `ia`: `issue-as.sh` refuses a body that names a time ahead of the clock (exit 3), and
-the wait's end is one (`tests/tools/issue-ask.test.ts` has both).
+the label with `ia`: `issue-as.sh` refuses a body that names a time of the same day ahead of the clock (exit 3), and
+the wait's end is one, but in the last 10 minutes of a day (`tests/tools/issue-ask.test.ts` has both).
 
 `tools/cloud-brain/issue-watch.sh` prints a `labelled` event that adds that name, whatever token wrote
 it, and the line wakes the session; the comment alone prints nothing (`tests/tools/issue-watch.test.ts`).

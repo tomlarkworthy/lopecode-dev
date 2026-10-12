@@ -139,8 +139,10 @@ test("a token issue-as.sh does not keep is exit 2, with its line", () => {
   expect(r.err).toContain("no token named impl-bbbbbb is kept");
 });
 
-// The real issue-as.sh, with the machine's clock: it refuses the comment the brief had a writer send with `ia`
-// (a body that names the wait's end), and sends the tool's.
+// The real issue-as.sh, with both clocks at NOW (ISSUE_AS_NOW is its own): it refuses the comment the brief had a
+// writer send with `ia` (a body that names the wait's end), and sends the tool's. The clocks are set because the
+// refusal reads a time beside its date: in the last 10 minutes of a day the wait's end is the next day's, and
+// issue-as.sh does not compare it (this test failed so at 23:50 CEST on 2026-10-12, run with the machine's clock).
 test("through the real issue-as.sh the tool's comment arrives, and the same body sent with issue-as.sh alone is exit 3", async () => {
   const got: { path: string; body: any }[] = [];
   const server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: async (req) => {
@@ -151,16 +153,17 @@ test("through the real issue-as.sh the tool's comment arrives, and the same body
     const state = realpathSync(mkdtempSync(join(tmpdir(), "issue-ask-state-")));
     mkdirSync(join(state, ".emitted"));
     writeFileSync(join(state, ".emitted", "cb4-agent-tokens.json"), JSON.stringify({ "impl-bbbbbb": "not-a-token" }));
-    const env = { ...process.env, BRAIN_STATE_DIR: join(state, ".emitted"), ISSUE_AS_BASE: `http://127.0.0.1:${server.port}`, ISSUE_AS_SH: "", ISSUE_ASK_NOW: "", ISSUE_AS_NOW: "", ISSUE_AS_TIME_AHEAD: "" };
+    const env = { ...process.env, BRAIN_STATE_DIR: join(state, ".emitted"), ISSUE_AS_BASE: `http://127.0.0.1:${server.port}`, ISSUE_AS_SH: "", ISSUE_ASK_NOW: NOW, ISSUE_AS_NOW: NOW, ISSUE_AS_TIME_AHEAD: "", TZ: "Europe/Berlin" };
     const run = async (cmd: string[]) => {
       const p = Bun.spawn(cmd, { env, stdout: "pipe", stderr: "pipe" });
       const [out, err] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text()]);
       return { code: await p.exited, out, err };
     };
-    const r = await run(["bash", script, ...head, "10", "--runs", "a Fly machine", "--since", "00:00", "--stop-in", "10", "a go-ahead"]);
+    const r = await run(["bash", script, ...head, "10", "--runs", "a Fly machine", "--since", "21:36", "--stop-in", "10", "a go-ahead"]);
     expect([r.code, r.err]).toEqual([0, ""]);
     expect(got.map((g) => g.path)).toEqual(["/xrpc/com.lopecode.brain.issue.comment", "/xrpc/com.lopecode.brain.issue.label"]);
-    expect(JSON.parse(r.out)).toMatchObject({ comment: 101, label: 102 });
+    expect(JSON.parse(r.out)).toMatchObject({ comment: 101, label: 102, until: "2026-10-12 22:31:06 CEST" });
+    expect(got[0].body.body).toContain("Waits until 2026-10-12 22:31:06 CEST");
     const plain = await run(["bash", join(root, "tools/cloud-brain/issue-as.sh"), "impl-bbbbbb", "comment", JSON.stringify(got[0].body)]);
     expect(plain.code).toBe(3);
     expect(plain.err).toContain("ahead of the clock");
