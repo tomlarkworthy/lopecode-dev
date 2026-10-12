@@ -67,7 +67,7 @@ Both under the landing lock and the deploy lock, by `impl-45e3d0`.
 |---|---|---|
 | before | `e5b71e79cf8f` | |
 | first, 2026-10-12 03:43 CEST | `cd14b32950d2` | `"state":"verified","version":"fe90c57e-255a-4272-8bfe-be6c896eeee0","tests":10`, 18976 ms |
-| second | the `deploy` ref of the submit | in the comment of the submit |
+| second, 2026-10-12 03:48 CEST | `41bc808efa00` | `"state":"verified","version":"56062e4d-0c17-4e35-8ff2-5e934aa20cb9","tests":10`, 15761 ms |
 
 The first apply was not sent at once: `seen.json` had no entry for `brain-x-ai`. The deployed
 module (`cloud-brain-dev/deploy/@tomlarkworthy/brain-ai.js`, read by `worktree.sh --rebase` under
