@@ -297,6 +297,18 @@ third makes the papers' role and its runner general: one brief, one function, no
 fourth is one printed line and a sentence in each of two briefs. The fifth is the token. Nothing
 in a Worker changes.
 
+**What the design adds that stands after it, and what exists of the same job.** Round 1 added a
+role where one existed and did not write it as a choice
+(`tools/cloud-brain/post-mortems/pm-second-summarizer-role.md`). Each standing thing of this round:
+
+| Added | What exists of the same job | Extended, or why not |
+|---|---|---|
+| No role, no brief of a second name | `paper-summarizer`, `roles/paper-summarizer.md` | Extended and renamed `summarizer` (piece 3) |
+| No tool | `summarize-papers.ts`, `knowledge-docs.ts` | Both extended: one function exported by the first, three commands in the second |
+| A token, `loop-doc-files` | `loop-docs` (`knowledge.put`, `knowledge.list`), held by the same tool; `loop-roles` (`static.put`, `get`, `list`, `delete`), held by `put.sh` | Not extended. This is the writer's choice and not the owner's word: `loop-docs` can be widened only by a revoke and a make, and a release between the two enters no doc; `loop-roles` can delete and is held to `cloud-brain-dev/`. One token for the one tool is the other way, under "Not chosen" |
+| A prefix of `brain-static`, `knowledge-docs/` | `cloud-brain-dev/`, where `put.sh` keeps the briefs, all public | Not used: 49 of the 87 docs are private (`status` at `88fc2add`, 21:53; then 46 are cut, where sections 1 to 3 have the 85 and 43 of `9185a722`) (piece 1) |
+| A file of state, `<state>/docs/<name>.running` | none: the papers' runner writes a journal and has no second writer of an entry | New (piece 3, step 5) |
+
 ### 1. Every doc's file is put to `brain-static` (R1, R4)
 
 In `knowledge-docs.ts`, a put of a doc is two calls, in this order:
@@ -617,8 +629,12 @@ file". Task 4 here rewrites that paragraph.
 - **Written again at every change.** 198 runs in three days against 30. In money that is now
   about $0.80 a day against $0.12; in an agent's waiting it is 198 times 21 s to 107 s, at landings
   that changed nine lines.
-- **Widening `loop-docs`** in place of a second token. `brain.ts token` refuses a kept name, and
-  the revoke between would stop the docs step of every landing.
+- **Widening `loop-docs`** in place of a second token: one token for the one tool, which is what
+  his words on the role would say of a token too. `brain.ts token` refuses a kept name, so it is a
+  revoke and then a make, by the orchestrating session; a release between the two enters no doc and
+  the next one enters it. That cost is small. It is taken as the larger of the two because a
+  second token is ended by one revoke that touches nothing in use. His approval is where he says
+  otherwise, and the comment for it should name this.
 - **`knowledge.get?whole=true` answering the file.** `brain-x-knowledge` calls `ai.v1/embeddings`
   and nothing else; this is a call to `brain-x-static`, a rule for it, and an answer of 186,433
   characters. The entry names the file and the method that reads it.
@@ -709,7 +725,9 @@ agent reads"): task 2's two puts under `roles/`, and task 4's two sentences.
 - Approve this spec, knowing that tasks 3 and 4 put a summary in the place of 4,700 to 6,600
   characters of each of 43 kept entries, that the papers' role and its brief are changed to take a
   doc (the 63 summaries of papers are not put again), that a summary of a doc cost 1 to 6 cents in
-  19 dry runs with haiku and 18 to 82 cents with opus, and that the spec names a token.
+  19 dry runs with haiku and 18 to 82 cents with opus, and that the spec names a token,
+  `loop-doc-files`, a second one for `knowledge-docs.ts` where `loop-docs` could be widened ("Not
+  chosen").
 - Approve task 3 and task 4, each after its review: they are `major`.
 
 Nothing else. No kernel, core, database or deployer is changed, no Worker is deployed, no policy
