@@ -2018,14 +2018,26 @@ test_the_wrapper_passes_the_origin_reference_on = {
   const took = () => heard.splice(0).map((h) => [h.nsid, h.context]);
   const O = { "x-brain-context": "c-owner", "x-brain-origin": "owner", "x-brain-origin-via": "session" }, M = { "x-brain-context": "c-member", "x-brain-origin": "did:plc:m" };
   // Every call made while the Worker answers one carries the reference that came with it.
+  const since = Date.now();
   await ask("all=1", O);
   expect(took()).toEqual([["fx.who", "c-owner"], ["secret.get", "c-owner"], ["db.sql", "c-owner"], ["inbox.append", "c-owner"], ["fx.raw", "c-owner"]]);
+  // Held for 5 s for one origin, by the wrapper's own Date.now(). The page computes its other test cells beside this
+  // one, and the third ask came 6.4 to 7.0 s after the first there. So an ask is expected to send no secret.get only
+  // when it ended within 5 s of `since`, read before the ask that got the secret: the wrapper's interval is inside it.
+  const rest = ["fx.who", "db.sql", "inbox.append", "fx.raw"], hold = [];
+  const again = async (when) => {
+    await ask("all=1", O);
+    const names = took().map((h) => h[0]), ms = Date.now() - since;
+    expect(names.filter((n) => n !== "secret.get")).toEqual(rest);
+    if (ms < 5000) expect(names).toEqual(rest);
+    hold.push(when + (ms < 5000 ? ", held at " + ms + " ms" : ", not looked at: " + ms + " ms had passed"));
+  };
+  await again("asked again at once");
   // A call that came with none passes none on. The secret is asked again: it was held for the owner.
   await ask("all=1");
   expect(took()).toEqual([["fx.who", null], ["secret.get", null], ["db.sql", null], ["inbox.append", null], ["fx.raw", null]]);
-  // Held for 5 s for one origin; another origin asks again.
-  await ask("all=1", O);
-  expect(took().map((h) => h[0])).toEqual(["fx.who", "db.sql", "inbox.append", "fx.raw"]);
+  // Still held for the owner after that; another origin asks again.
+  await again("after an ask with no origin");
   await ask("all=1", M);
   expect(took().filter((h) => h[0] === "secret.get")).toEqual([["secret.get", "c-member"]]);
   // The schedule answers nobody.
@@ -2039,7 +2051,7 @@ test_the_wrapper_passes_the_origin_reference_on = {
   expect(heard.splice(0).map((h) => [h.tag, h.context])).toEqual([["cron", null], ["slow", null]]);
   await ask("tag=after", M);
   expect(took()).toEqual([["fx.who", "c-member"]]);
-  return "passed on; none for a schedule; none when two overlap";
+  return "passed on; none for a schedule; none when two overlap; the secret " + hold.join("; ");
 }
 // %%
 fx_conf = cloudflare.Service(
