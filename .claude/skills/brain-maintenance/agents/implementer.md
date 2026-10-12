@@ -724,8 +724,9 @@ asked to pick between them.
   is the reviewer's to read.
 - **When the trace reached no cause, the action is `observability`** in the place where it stopped: what the next
   case will have logged, kept or counted that this one did not, said so that a second trace gets past that step.
-  "None" is then no answer, and neither is a guard against a cause that was guessed. It counts among the 3 (his
-  words do not say; the limit is kept as it is, the smaller of the two). An entry of `## What is not known` that
+  "None" is then no answer, and neither is a guard against a cause that was guessed. It counts among the 3 (the
+  owner, 2026-10-12, comment 4999 of `post-mortem-actions-prefer-guards`: "yes it would count towards the three";
+  until `seen-pm-brief-three-is-his-word` this line said his words did not say). An entry of `## What is not known` that
   did not stop the trace needs no action; one set aside under "what is not filed" for its cost says what smaller
   thing would show it (the first set aside "Keeping an agent's reasoning. It would have answered "why", at an
   unknown cost", with no smaller thing named).
