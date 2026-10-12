@@ -102,6 +102,22 @@ test("a path under brain/ reached through a symlink is fetched", async () => {
   }
 });
 
+// Issue view-reviewer-reads-lopecode-dev-claude: a reviewer started in a view had the view's copy of lopecode-dev's
+// CLAUDE.md (22 KB) in its first request, since the one pattern named the main checkout's. This holds the file's
+// patterns with Bun's glob, which is not Claude Code's matcher: the record has the two starts that asked claude itself.
+test("settings.json leaves out lopecode-dev's CLAUDE.md, the main checkout's and a worktree's, and not this directory's own", () => {
+  const patterns: string[] = JSON.parse(readFileSync(join(dev, ".claude/settings.json"), "utf8")).claudeMdExcludes;
+  const out = (path: string) => patterns.some((p) => new Bun.Glob(p).match(path));
+  const main = "/Users/someone/dev/lopecode-dev";
+  expect([
+    `${main}/CLAUDE.md`,
+    `${main}/.claude/worktrees/bm-rev-some-issue/CLAUDE.md`,
+    `${main}/.claude/worktrees/bm-some-topic.2/CLAUDE.md`,
+    `${main}/cloud-brain-dev/CLAUDE.md`,
+    `${main}/.claude/worktrees/bm-rev-some-issue/cloud-brain-dev/CLAUDE.md`,
+  ].map(out)).toEqual([true, true, true, false, false]);
+});
+
 // agent.sh with a `claude` that writes its arguments down and answers two lines of stream-json.
 const rig = (hold = false) => {
   const dir = root();
