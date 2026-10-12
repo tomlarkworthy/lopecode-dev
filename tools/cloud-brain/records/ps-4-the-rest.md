@@ -5,7 +5,7 @@ writer. The task is an act, 53 puts of a summary to the knowledge base of cb4 wi
 changes to files: two stops in `summarize-papers.ts run`, a section of
 `knowledge/calling-a-cloud-brain-from-this-checkout.md`, and a paragraph of step 5 of the loop's `SKILL.md`. No seed, no deploy.
 
-`P` is `<main checkout>/tools/cloud-brain/.emitted/papers`. Every command was run from the task's worktree
+`P` is `<main checkout>/tools/cloud-brain/.emitted/papers`. Every command but the last two (below, "After the landing") was run from the task's worktree
 (`lopecode-dev` at the first commit of this task, then on `64502c5d`; it landed as `724f13ab` after two rebases), with `claude` under `~/.claude-personal`.
 Times are `date` on this machine, or a journal line's `at`.
 
@@ -52,8 +52,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts run --tag awesome-rsi -
 
 Started as a background command; model opus, the tool's default. Given the tag and not 53 ids: the ten of the pilot
 were skipped as `summarized`, each after its text was fetched and its hash found in the entry's line. The journal's
-lines of this task are those with `at >= 1791769945091`, the canary of this run: 55 lines when the run ended, 53 of a
-paper and 2 canaries (the second is the second run's, below). Summed with:
+lines of this task are those with `at >= 1791769945091`, the canary of this run: 54 lines when the run ended and 55 after the second run (below): 53 of a
+paper and 2 canaries. Summed with:
 
 ```
 python3 -c "
@@ -165,7 +165,19 @@ cd <worktree> && bun test ./tests/tools/ps-4-docs.test.ts
 ```
 
 The two read the doc's command lines against the commands and flags the tool reads, and the paragraph of step 5 for
-the key and each required field. They fail on the files as they were: neither text was there.
+the key and each required field. On the files as they were (a detached worktree at `b794683d`, the commit before this task's, with the test file
+copied in; 04:50 CEST): `0 pass  2 fail`.
+
+## After the landing
+
+From the main checkout at `f16f479c`, 04:47:35 CEST: `summarize-papers.ts check --tag awesome-rsi` answered
+`{"entries":63,"summarized":63,"excepted":[],"failing":[]}`, exit 0, and
+`bun test ./tests/tools/summarize-papers.test.ts ./tests/tools/ps-4-docs.test.ts` gave `28 pass  0 fail  291 expect() calls`.
+The whole directory, in the worktree after its rebase on `b794683d` (04:46 CEST): `bun test ./tests/tools`,
+`492 pass  1 skip  0 fail`, with the line `skipped: rework-resumes-the-implementer.test.ts: no …/cloud-brain-dev/deploy/@tomlarkworthy/brain-issues.js`
+(the rebase's read of cb4 left that module out: `left out: brain-x-issues …, a deploy under way?`).
+The release of the lock printed `docs (cb4): {"put":2,…,"changed":2,…,"source":"origin/main@f16f479c"}`.
+The title of commit `f0cabeb2` reads `(.25, check 63 of 63)`: the shell took `$40` out of a message in double quotes.
 
 ## Not tried
 
