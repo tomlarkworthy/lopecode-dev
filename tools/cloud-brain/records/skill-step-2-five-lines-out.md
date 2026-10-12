@@ -63,6 +63,10 @@ Each run in the worktree on 2026-10-12, after the last edit of the two files.
 | `bun test ./tests/tools/os-2-order-and-pool.test.ts` | 6 pass, 0 fail |
 | `tests/tools/suite.sh`, 21:41:17 to 21:44:18 CEST | 690 pass, 0 fail, 69 files, 180 s; no `skipped:` line |
 
+The suite's run was made before the rebase of the landing, which brought in other writers' tests (16
+files, `SKILL.md` among them in other lines); the count after it is in the comment of the submit. The
+two files of the first and third rows were run again after that rebase, under the lock: 9 pass, 0 fail.
+
 A run of the suite before that one, 21:32:42 to 21:37:36, gave 687 pass, 3 fail in 294 s. The three
 were tests of `summarize-papers.test.ts`, each stopped at the 30 s the script gives a test
 (`[30003.98ms]`, `[30001.38ms]`, `[30001.67ms]`). `uptime` after it: load averages 11.23, 16.97,
