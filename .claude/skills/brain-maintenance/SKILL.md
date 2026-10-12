@@ -184,7 +184,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    | Issue is | Do |
    |---|---|
    | `hidden: true`, or kind or label `security` | Nothing. It is the owner's. |
-   | at `awaiting-approval` | Nothing, unless the owner has said in this session that he approves that issue, after its passing review was shown to him: then you make the `approve` move for him (`rules.md`, Never, the `approve` line). |
+   | at `awaiting-approval` | Nothing, unless the owner has said in this session that he approves that issue, or several issues he was shown by title: then you make the `approve` move for him, one move an issue, each for an issue with a passing review and each with a reason that quotes his word, names that review's event and says what he was shown (`rules.md`, Never, the `approve` line, and "An act of Never, on the owner's word"). |
    | labeled `needs-owner` | Read it again each pass: the events since the label was put on, and what the owner has said in this session. When he has answered (a comment of his on the issue, or his word to you, which you quote in a comment first), or `philosophy.md` now answers it (say what changed), comment with the event that put the label on and what ended its reason, take the label off (`rules.md`, Never, the `needs-owner` line), and take the issue again from this table. Otherwise nothing: it is the owner's, and it is named in step 7. |
    | `in-progress`, started by a writer or a digest writer (the `by.holder` of its last `start` event is `secret:impl-…` or `secret:dig-…`, or a role's token, for a start made before each agent had its own), sent back, no agent running | Send the round to the agent that started it ("A rework round goes to the agent that wrote the change", below): its token is still kept, and only the starter submits (`caller.actor == issue.by.start`). When it cannot be sent one, the next row. Do not, and instead comment with the open findings and label `needs-owner`, when the last implementer you spawned for it finished without a new `submit`, or when it has 3 `rework` moves and the rounds are not getting anywhere. At 3 you judge (Tom, 2026-10-10: "make a judgment call when the 3 retries is hit, has genuine progress been made?"): go on when each review closed what the one before found and the new findings are narrower; stop when a finding came back, or the rounds are trading one defect for another of the same size. Write the judgment and its reason in the journal and as a comment on the issue. |
    | `in-progress`, no agent running, and its starter cannot go on: the writer died or cannot be sent a message, its token has ended (`agent-token list` has no line for it), or the `start` was made with a role's token and its writer cannot be sent one (after the owner's revoke of those: every such issue) | **A dead writer.** You end its token (`agent-token revoke <name>`; a role's token is the owner's to end), then you make `back` to `ready` with the reason. The issue is then `ready`: the writer you spawn makes the second `start` with its own token, which replaces `issue.by.start`, and it alone submits. Two more moves. A submit by any token but the last starter's is refused 403. |
@@ -546,11 +546,13 @@ The token is never printed or read. It is not put to the owner, and the task doe
 `needs-owner` for it. His approval of the spec is his word for it.
 
 Still his alone: a token no approved spec names, a method or a scope the spec does not give, and
-every other act with his session but the `approve` move (`rules.md`, Never).
+every other act with his session but the `approve` move, the two standing leaves, and an act he
+gives his word for in this session (`rules.md`, Never, "Two standing leaves of the orchestrating
+session" and "An act of Never, on the owner's word").
 
 ## What the loop does not do
 
-- Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md`, which has one exception since 2026-10-11: the `approve` move on the owner's word of that issue in the session.
+- Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md` for what you do of these on his word: the `approve` move since 2026-10-11, and since 2026-10-12 an act of its Never list that he gives his word for in this session, quoted on the issue with its date ("An act of Never, on the owner's word"). An agent you spawn does none of them.
 - Two agents on one issue. (No number of writers or reviewers is set: step 2.)
 - Issues whose fix is in `exporter-3`, `robocoop-5`, the channel server or `lopecode`. Comment with the change wanted and label `needs-owner`.
 - Carry on past a cluster that is not healthy.
