@@ -37,6 +37,7 @@ description, as this writer's own prompt had it on 2026-10-13:
 ```
 bun test --timeout=30000 ./tests/tools/brief-one-advisor-call.test.ts   before the edit of the briefs: 0 pass, 8 fail
 the same, after                                                         8 pass, 0 fail
+the same with BRIEFS=<the two briefs as origin/main had them>          0 pass, 8 fail
 tests/tools/suite.sh, after the last edit of a brief or a test          930 pass, 0 fail, 96 files, 209 s (load 8.03)
 ```
 
@@ -45,7 +46,7 @@ tests/tools/suite.sh, after the last edit of a brief or a test          930 pass
 - **Take the tool away from a writer**, as `agent.sh` does for a reviewer (`--settings {"advisorModel":""}`;
   `tests/tools/light-agent.test.ts`). It would hold the count at 0 with no agent's judgment. Not taken: the issue
   asks for one call and not none, and a writer is started by the `Agent` tool of the orchestrating session
-  (`SKILL.md`, step 3), whose settings are the session's. Whether an `Agent` call can be given a setting of its own
+  (`SKILL.md`, step 4, "Spawn"), whose settings are the session's. Whether an `Agent` call can be given a setting of its own
   was not looked for.
 - **Change the tool's description.** It is not a file of this repository.
 - **A pointer at step 11 alone.** By step 11 a writer has made the first call. The part stands before the steps.
