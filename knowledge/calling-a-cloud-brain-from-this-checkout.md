@@ -193,6 +193,11 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status --check   # fresh 
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --stale      # what the release runs; $0.00005 a doc whose text changed
 ```
 
+`put --stale` puts a doc that `status` reads `stale` or `missing`, and since 2026-10-12 one whose line ends `, unmarked`:
+a doc over 16,000 characters whose entry is fresh by its file's hash and does not end with the line that says it was cut
+(`tools/cloud-brain/records/knowledge-docs-put-stale-skips-unmarked.md`). The last line of the put has `unmarked`, how many
+of the docs it put were such.
+
 `status --check` exits 0 when no doc is behind, 1 when one is, and 2 with the owner's command when no `loop-docs` is
 kept. A tool that threw also exits 1 (seen with no `BRAIN_BASE`; a refused call throws the same way, not run): the
 last line is then bun's and not the JSON. `badname` is a doc whose file name gives no id the service takes

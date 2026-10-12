@@ -363,7 +363,8 @@ For the three files of `cloud-brain-dev` the whole is named as the file and its 
 An entry is `fresh` by the SHA-256 of its file and by `public`, which a change to the tool does not
 move, so the
 task puts the cut docs once (`put <name>…`, $0.00005 a doc whose text changed) and `unmarked` is
-what shows it was done.
+what shows it was done. (As built, `knowledge-docs-put-stale-skips-unmarked`, 2026-10-12: `put --stale`,
+which every release of a landing runs, also puts an unmarked doc; the record.)
 
 The line adds its words ("first", "characters", "whole", the path) to 39 entries of the search by
 words. A match in the text counts once against four for the title and the id; no question set was

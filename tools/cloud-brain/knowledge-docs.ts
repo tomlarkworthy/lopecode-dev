@@ -24,8 +24,11 @@
 // heading taken out), not the file. The address is the file on raw.githubusercontent.com; a file of cloud-brain-dev has
 // none, and is named with its repository. A doc's line of status ends with `cut N of M`, and `, unmarked` when the
 // entry kept does not end with that line. The last line of status and of put has `cut`, the docs whose text was cut;
-// that of status also `unmarked`. An entry is fresh by its file's hash, so a change to the line here moves no entry:
-// `put <name>…` of the unmarked ones does (ac-4-docs-tool-marks-a-cut).
+// that of status also `unmarked`, and that of put the unmarked among the docs it put. An entry is fresh by its file's
+// hash, so a change to the line here, and a put by a copy of this tool from before the line (a release from a worktree
+// behind a3e883dc), leave a fresh entry with no line (ac-4-docs-tool-marks-a-cut). `put --stale` puts an unmarked doc
+// as it does a stale or missing one, so the next release of anyone enters it with the line; an entry that
+// knowledge.list answers with no text is among them (knowledge-docs-put-stale-skips-unmarked).
 // The id is the file's name in lower case. A name that gives no id knowledge.put takes (a space, a
 // character outside ASCII, anything but a-z 0-9 . _ : -) is `badname` in status and `badNames` in the last line, and is in no put (i1546).
 // tests/tools/knowledge-docs.test.ts
@@ -162,7 +165,7 @@ if (cmd === "status") {
   if (flag("--check") && n("stale") + n("missing") + badNames.length > 0) process.exit(1);
 } else if (cmd === "put") {
   const rows = rowsOf(kept()).filter((r) => r.named);
-  const pick = flag("--all") ? rows : flag("--stale") ? rows.filter((r) => r.state !== "fresh") : rows.filter((r) => names.includes(r.name));
+  const pick = flag("--all") ? rows : flag("--stale") ? rows.filter((r) => r.state !== "fresh" || r.unmarked) : rows.filter((r) => names.includes(r.name));
   const left = badNames.length ? `not entered, ${BAD.replace("its id is", "the id is")}: ${badNames.join(", ")}` : "";
   const unscoped = pick.filter((r) => !r.scoped).map((r) => r.name);
   if (unscoped.length) console.log("no scope in frontmatter, entered private:", unscoped.join(", "));
@@ -173,7 +176,7 @@ if (cmd === "status") {
     const r = call("knowledge.put", { entries: pick.slice(i, i + 25).map((d) => ({ id: d.id, kind: "doc", public: d.public, title: d.title, text: d.text, url: d.url, source: d.source, sha256: d.sha256, method: "knowledge-docs", tags: ["knowledge-doc"] })) });
     entered += r.entered; changed += r.changed; vectors += r.vectors ?? 0;
   }
-  console.log(JSON.stringify({ put: pick.length, public: pick.filter((d) => d.public).length, private: pick.filter((d) => !d.public).length, cut: cutOf(pick), entered, changed, vectors, ms: Date.now() - t0, ...read }));
+  console.log(JSON.stringify({ put: pick.length, public: pick.filter((d) => d.public).length, private: pick.filter((d) => !d.public).length, cut: cutOf(pick), unmarked: pick.filter((r) => r.unmarked).length, entered, changed, vectors, ms: Date.now() - t0, ...read }));
 } else {
   console.error("usage: knowledge-docs.ts status [--check] | put --all | --stale | <name>…   [--owner] [--limit=SECONDS]");
   process.exit(1);

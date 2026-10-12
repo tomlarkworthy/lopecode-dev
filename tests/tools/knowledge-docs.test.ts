@@ -301,8 +301,7 @@ test("ac-4: status and put count the cut docs, and status counts and names those
   expect(row(s.out, "over")).toMatch(/^fresh\s+private over cut \d+ of 16001, unmarked$/);
   expect(row(s.out, "more")).toMatch(/^fresh\s+private more cut \d+ of 30000, unmarked$/);
   expect(row(s.out, "a")).not.toContain("cut");
-  // Fresh by the file's hash, so the release's put leaves them; the put by name sends them.
-  expect(t.kdocs(["put", "--stale"]).out).toBe("nothing to put");
+  // The put by name sends them (so does put --stale, since knowledge-docs-put-stale-skips-unmarked: the case below).
   const p = t.kdocs(["put", "over", "a"]);
   expect(t.summary(p.out)).toMatchObject({ put: 2, cut: 1 });
   const sent = t.puts().find((e: any) => e.id === "doc:over");
@@ -318,6 +317,55 @@ test("ac-4: status and put count the cut docs, and status counts and names those
   expect(none.summary(none.kdocs(["status"]).out)).toMatchObject({ cut: 0, unmarked: 0 });
   none.keep([]);
   expect(none.summary(none.kdocs(["put", "--all"]).out)).toMatchObject({ put: 6, cut: 0 });
+});
+
+// knowledge-docs-put-stale-skips-unmarked. Until it `put --stale` picked by the file's hash and `public` alone, so a cut
+// entry that an older copy of the tool had entered with no line stayed so until its file changed or a put by name.
+test("put --stale also puts a fresh doc whose entry is unmarked, and its last line counts them", () => {
+  const t = fresh();
+  const over = "# Over\n\n" + "y".repeat(16001) + "\n", more = "# More\n\n" + "v".repeat(30000) + "\n";
+  pushed(t, { "knowledge/over.md": over, "knowledge/more.md": more });
+  const ids = (from = 0) => t.puts().slice(from).map((e: any) => e.id).sort();
+  // Both entries hold the first 16,000 characters and no line; the six short docs are fresh.
+  t.keep([...t.all(), t.entry("over", over, { text: "y".repeat(16000) }), t.entry("more", more, { text: "v".repeat(16000) })]);
+  const p = t.kdocs(["put", "--stale"]);
+  expect(p.code).toBe(0);
+  expect(t.summary(p.out)).toMatchObject({ put: 2, cut: 2, unmarked: 2 });
+  expect(ids()).toEqual(["doc:more", "doc:over"]);
+  for (const e of t.puts()) expect([e.text.length, LINE.test(e.text)]).toEqual([16000, true]);
+  // With what was put as the entries nothing is unmarked, and the next put --stale sends nothing.
+  const sent = (id: string) => t.puts().find((e: any) => e.id === id).text;
+  const marked = [...t.all(), t.entry("over", over, { text: sent("doc:over") }), t.entry("more", more, { text: sent("doc:more") })];
+  t.keep(marked);
+  expect(t.summary(t.kdocs(["status"]).out)).toMatchObject({ fresh: 8, cut: 2, unmarked: 0 });
+  expect(t.kdocs(["put", "--stale"]).out).toBe("nothing to put");
+  expect(t.puts().length).toBe(2);
+  // An entry that ends with another line (the numbers of an older text), one answered with no text, and one whose
+  // text is no string are unmarked to status, and are put.
+  const other = sent("doc:over").replace(/of 16001 characters/, "of 16002 characters");
+  expect(other).not.toBe(sent("doc:over"));
+  for (const more1 of [{ text: other }, {}, { text: 7 }]) {
+    const n = t.puts().length;
+    t.keep([...marked.filter((e) => e.id !== "doc:over"), t.entry("over", over, more1)]);
+    expect(t.summary(t.kdocs(["put", "--stale"]).out)).toMatchObject({ put: 1, cut: 1, unmarked: 1 });
+    expect(ids(n)).toEqual(["doc:over"]);
+  }
+  // A stale short doc beside an unmarked one: both are put, and one is counted unmarked. A cut doc with no entry
+  // is missing: put, and not counted unmarked.
+  let n = t.puts().length;
+  t.keep([...marked.filter((e) => e.id !== "doc:b" && e.id !== "doc:more"), t.entry("b", "an older b"), t.entry("more", more, { text: "v".repeat(16000) })]);
+  expect(t.summary(t.kdocs(["put", "--stale"]).out)).toMatchObject({ put: 2, cut: 1, unmarked: 1 });
+  expect(ids(n)).toEqual(["doc:b", "doc:more"]);
+  n = t.puts().length;
+  t.keep(marked.filter((e) => e.id !== "doc:more"));
+  expect(t.summary(t.kdocs(["put", "--stale"]).out)).toMatchObject({ put: 1, cut: 1, unmarked: 0 });
+  expect(ids(n)).toEqual(["doc:more"]);
+  // The other two ways to pick are as they were, and count the same way.
+  n = t.puts().length;
+  t.keep([...marked.filter((e) => e.id !== "doc:more"), t.entry("more", more, { text: "v".repeat(16000) })]);
+  expect(t.summary(t.kdocs(["put", "a"]).out)).toMatchObject({ put: 1, cut: 0, unmarked: 0 });
+  expect(t.summary(t.kdocs(["put", "--all"]).out)).toMatchObject({ put: 8, cut: 2, unmarked: 1 });
+  expect(t.puts().length).toBe(n + 9);
 });
 
 test("--limit=SECONDS is the time one call may take", () => {
