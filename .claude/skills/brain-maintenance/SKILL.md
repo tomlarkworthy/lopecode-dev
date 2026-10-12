@@ -647,7 +647,8 @@ Anything in a seed goes to a writer. A writer does the same for what it meets be
 > In force on cb4 since the owner installed the policy of 2026-10-11 (event 483).
 
 Since 2026-10-11 (`plan/cloud-brain-issues.md`, "Amended 2026-10-11"): `issue.link { key, id, to, rel }`
-with `rel` one of `duplicate`, `cause`, `related`, `part-of`. Use it at triage instead of an id in
+with `rel` one of `duplicate`, `cause`, `related`, `part-of`, and since `bk-1-after-link` (2026-10-12) `after`: `id` comes
+after `to`, an order that no guard reads (`plan/cloud-brain-bookkeeping-in-the-tracker.md`, part 1). Use it at triage instead of an id in
 prose: a duplicate is linked and then `close`d (`reject` is for what is not real); an issue that
 exists because of another names it as its `cause`. `part-of` makes an issue a part of another after
 it was opened, and `{ id, rel: "part-of", remove: true }` takes it off. That lets the parent be
