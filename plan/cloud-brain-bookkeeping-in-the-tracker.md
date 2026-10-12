@@ -538,7 +538,7 @@ Nothing. Every call of this design is `issue.*`, which each agent's token alread
 - `git diff --stat` in the worktree lists `lopebooks`, `lopecode` and `lopecode-plugin` as changed
   after a clean checkout: they are the links. The brief says so of `git status`, not of `diff`.
 
-## The fresh review before submitting (2026-10-12, answered by 12:55 CEST)
+## The fresh review before submitting (2026-10-12, answered by 12:42 CEST)
 
 One agent with the file and nothing else (`/review-notebook`): FIX, 6 findings, all taken.
 
