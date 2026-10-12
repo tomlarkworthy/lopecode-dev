@@ -1,0 +1,495 @@
+md`# brain-topic
+
+Named, ordered logs kept by a Cloud Brain. Each topic has a rule for who appends and a rule for who reads.
+
+\`\`\`js
+await client.procedure("topic.create", { topic: "builds", write: 'caller.kind == "worker"', read: "true" }) // rules are CEL over caller and origin
+await client.procedure("topic.append", { topic: "builds", key: "run-41", body: { ok: true } })               // { seq: 1, duplicate: false }
+await client.procedure("topic.append", { topic: "builds", key: "run-41", body: { ok: false } })              // { seq: 1, duplicate: true }: nothing written
+await client.query("topic.read", { topic: "builds", after: 0, limit: 50 })                                   // { entries: [{ topic, seq, key, sender, at, body, hops }], next: 1 }
+\`\`\`
+
+The reader keeps \`next\` and sends it as \`after\`. Nothing is kept for a reader, and \`topic.read\` does not wait: a reader polls.
+
+| | |
+|---|---|
+| Worker | \`brain-x-topic\` |
+| \`topic.create\` | procedure. \`{ topic, write, read }\` → \`{ topic, creator, write, read, created }\`. A rule left out is \`caller.id == "<the creator>"\`. Sent again by the creator or the owner it changes the rules, a rule left out staying as it is, and answers \`created: false\`. A rule that does not parse is 400. |
+| \`topic.append\` | procedure. \`{ topic, key, body }\` → \`{ seq, duplicate }\`. Needs the topic's \`write\` rule. \`key\` is 1 to 200 characters and is kept once for a topic. \`body\` is any JSON, at most \`bodyBytes\`; left out, it is \`null\`. |
+| \`topic.read\` | query. \`?topic=&after=0&limit=50\` → \`{ entries, next }\`, in \`seq\` order, \`limit\` at most 200. Needs the topic's \`read\` rule. With no entry after \`after\`, \`next\` is \`after\`. |
+| \`topic.list\` | query. \`{ topics: [{ topic, creator, write, read, last, created }] }\`: the topics the caller created; for the owner, all. \`last\` is the \`seq\` of the newest append. |
+| \`topic.delete\` | procedure. \`{ topic }\` → \`{ deleted: true }\`. The creator or the owner. The topic and its entries; a topic made again with the name starts at \`seq\` 1. |
+| Settings | \`bodyBytes\` (100000). \`keepDays\` (30) and \`keepEntries\` (10000): what the clock removes. \`topicsPerCreator\` (50): the topics one member has. Changed with \`config.set\` on the core, no deploy. |
+| Storage | \`sql\`: \`topic_topics\`, \`topic_entries\` |
+
+## Names
+
+| caller | names it may create |
+|---|---|
+| the owner, or a token of the owner's (the core names its caller \`owner\`) | \`a-z 0-9 . -\`, 1 to 60 characters, starting with a letter or a digit, and not starting \`m.\` |
+| a member, or a member's Worker (it calls as its author) | \`m.<id>.NAME\`, where \`<id>\` is the first 10 hex digits of the SHA-256 of the DID, as the core names a member's Worker |
+| a Worker of the Brain, the deployer, anyone else | none |
+
+The creator and the owner are the two who change a topic's rules and delete it. The owner does not create a name under \`m.\`.
+
+## Rules
+
+A rule reads \`caller\` and \`origin\`, the fields a method's rule reads (*Access rules* in \`@tomlarkworthy/cloudflare-iac\`). The rule alone decides an append or a read: the creator of a topic whose \`write\` is \`caller.kind == "worker"\` is refused an append, and changes the rule to be let in. A token of the owner's is \`owner\` to a rule, so the default rule lets every such token in; a topic that one of them must not reach has a rule that reads \`caller.session\` or \`caller.token\`.
+
+A topic that does not exist answers 404 to a caller who could create that name, and to anyone else the 403 a refused rule answers, so a name under \`m.<id>.\` is not shown to exist to another member.
+
+## An entry
+
+\`{ topic, seq, key, sender, at, body, hops }\`. \`sender\` is the caller the core named, not what the caller wrote. \`hops\` is \`x-brain-hops\` of the append: how long the chain of delegated calls was that it came by, 0 for a call from outside.
+
+\`seq\` counts from 1 and is never used twice in a topic: it is taken from the topic's own count (\`last\`) in the transaction that writes the entry, and that count stays when entries are removed. Of two appends at once one is written after the other.
+
+## What the clock removes
+
+Once an hour for a running instance: entries older than \`keepDays\`, and those more than \`keepEntries\` behind the topic's \`last\`. A removed entry's \`key\` can then be appended again, as a new entry. The clock reads the settings the instance was last sent with a call (the core sends them with each one), so a setting changed with \`config.set\` is followed by the removal after the next call the instance answers.
+
+## Not built
+
+Subscriptions, push to a method named \`NAME.receive\`, and taking (\`topic.subscribe\`, \`unsubscribe\`, \`subs\`, \`receive\`, \`take\`, \`done\`) are tasks 2 and 3 of \`plan/cloud-brain-topics-service.md\`. This module was first built 2026-10-12 as task 1, \`tp-1-topics-append-read\`.`
+// %%
+topicRule = 'caller.kind in ["owner", "token", "did", "worker"]'
+// %%
+topic_service = cloudflare.Service("topic", topicApp, {
+  crons: ["* * * * *"],
+  // A cron event carries its time; a test gives one.
+  scheduled: (event) => topicOps.tick((event && event.scheduledTime) || Date.now()),
+  // The topic's own rule is the decision, made in the service, as brain-db decides per table.
+  methods: {
+    "com.lopecode.brain.topic.create": { type: "procedure", allow: topicRule },
+    "com.lopecode.brain.topic.append": { type: "procedure", allow: topicRule },
+    "com.lopecode.brain.topic.read": { type: "query", allow: topicRule },
+    "com.lopecode.brain.topic.list": { type: "query", allow: topicRule },
+    "com.lopecode.brain.topic.delete": { type: "procedure", allow: topicRule }
+  }
+})
+// %%
+topic_announce = {
+  plugins.add("workers", topic_service, { invalidation });
+  return "announced topic_service";
+}
+// %%
+topicLimits = ({ name: /^[a-z0-9][a-z0-9.-]{0,59}$/, key: 200, rule: 500, bodyBytes: 100000, keepDays: 30, keepEntries: 10000, topicsPerCreator: 50, page: 50, maxPage: 200, trimMs: 3600000 })
+// %%
+// Each is sent in a call of its own: brain-db reads the plan of a whole batch before any of it runs.
+topicSchema = [
+  "CREATE TABLE IF NOT EXISTS topic_topics (topic TEXT NOT NULL, creator TEXT NOT NULL, write TEXT NOT NULL, read TEXT NOT NULL, last INTEGER NOT NULL, created INTEGER NOT NULL, PRIMARY KEY (topic)) WITHOUT ROWID",
+  "CREATE INDEX IF NOT EXISTS topic_topics_creator ON topic_topics (creator)",
+  "CREATE TABLE IF NOT EXISTS topic_entries (topic TEXT NOT NULL, seq INTEGER NOT NULL, key TEXT NOT NULL, sender TEXT NOT NULL, at INTEGER NOT NULL, body TEXT NOT NULL, hops INTEGER NOT NULL, PRIMARY KEY (topic, seq)) WITHOUT ROWID",
+  "CREATE UNIQUE INDEX IF NOT EXISTS topic_entries_key ON topic_entries (topic, key)"
+]
+// %%
+topicSql = ({
+  one: "SELECT topic, creator, write, read, last, created FROM topic_topics WHERE topic = ?1",
+  all: "SELECT topic, creator, write, read, last, created FROM topic_topics ORDER BY topic",
+  mine: "SELECT topic, creator, write, read, last, created FROM topic_topics WHERE creator = ?1 ORDER BY topic",
+  owned: "SELECT COUNT(*) AS n FROM topic_topics WHERE creator = ?1",
+  make: "INSERT OR IGNORE INTO topic_topics (topic, creator, write, read, last, created) VALUES (?1, ?2, ?3, ?4, 0, ?5)",
+  rules: "UPDATE topic_topics SET write = ?2, read = ?3 WHERE topic = ?1",
+  // An append is byKey, append, counted, byKey as one transaction. The seq is the topic's count plus one, and the
+  // count moves only when that entry was written: a key that is kept, or a topic that is gone, writes nothing.
+  // Not MAX(seq) + 1 of the entries: after the clock has removed every entry of a topic that would be 1 again.
+  append: "INSERT OR IGNORE INTO topic_entries (topic, seq, key, sender, at, body, hops) SELECT ?1, last + 1, ?2, ?3, ?4, ?5, ?6 FROM topic_topics WHERE topic = ?1",
+  counted: "UPDATE topic_topics SET last = last + 1 WHERE topic = ?1 AND EXISTS (SELECT 1 FROM topic_entries WHERE topic = ?1 AND seq = topic_topics.last + 1)",
+  byKey: "SELECT seq FROM topic_entries WHERE topic = ?1 AND key = ?2",
+  read: "SELECT seq, key, sender, at, body, hops FROM topic_entries WHERE topic = ?1 AND seq > ?2 ORDER BY seq LIMIT ?3",
+  dropEntries: "DELETE FROM topic_entries WHERE topic = ?1",
+  drop: "DELETE FROM topic_topics WHERE topic = ?1",
+  old: "DELETE FROM topic_entries WHERE at < ?1",
+  over: "DELETE FROM topic_entries WHERE seq <= (SELECT last FROM topic_topics WHERE topic_topics.topic = topic_entries.topic) - ?1"
+})
+// %%
+// What the app and the clock share: the tables, made once an instance, and the removal.
+topicOps = {
+  const S = topicSql, L = topicLimits;
+  let made = null, trimmed = 0;
+  const schema = () =>
+    (made ||= (async () => {
+      for (const s of topicSchema) await sql.exec(s);
+    })().catch((e) => {
+      made = null;
+      throw e;
+    }));
+  // A setting that is not a number above 0 is the default.
+  const setting = (name) => ((n) => (Number.isFinite(n) && n > 0 ? n : L[name]))(Number(config[name] ?? L[name]));
+  const trim = async (now) => {
+    await schema();
+    const [old, over] = await sql.batch([[S.old, now - setting("keepDays") * 86400000], [S.over, Math.floor(setting("keepEntries"))]]);
+    const removed = (old.changes || 0) + (over.changes || 0);
+    if (removed) log({ at: "topic.trim", removed });
+    return { removed };
+  };
+  // The clock ticks each minute; the removal runs on the first tick of an instance and then once an hour.
+  const tick = async (now = Date.now()) => {
+    if (now - trimmed < L.trimMs) return { skipped: true };
+    const before = trimmed;
+    trimmed = now;
+    return trim(now).catch((e) => {
+      trimmed = before;
+      throw e;
+    });
+  };
+  return { schema, setting, trim, tick };
+}
+// %%
+topicApp = {
+  const app = new hono.Hono();
+  const NS = "/xrpc/com.lopecode.brain.topic.", S = topicSql, L = topicLimits;
+  const fail = (c, status, error, message) => c.json({ error, message }, status);
+  const REFUSED = "the topic's rule does not let this caller in";
+  // Who the core says is calling and who started the chain: what a topic's rule reads.
+  const who = (c) => ({ caller: callerOf(callerFrom(c.req.raw.headers)), origin: callerOf(originFrom(c.req.raw.headers)) });
+  const sent = (c) => c.req.json().then((b) => (b && typeof b === "object" ? b : {}), () => ({}));
+  const named = (topic) => typeof topic === "string" && L.name.test(topic);
+  const badName = (c) => fail(c, 400, "InvalidRequest", "topic: a-z 0-9 . - , 1 to 60 characters, starting with a letter or a digit");
+  // The names a caller may create: the owner's are every name outside m., a member's are under m.<their id>.
+  const owns = async (caller, topic) => {
+    if (caller.id === "owner") return !topic.startsWith("m.");
+    if (caller.kind !== "did") return false;
+    const prefix = `m.${(await sha256(caller.id)).slice(0, 10)}.`;
+    return topic.startsWith(prefix) && topic.length > prefix.length;
+  };
+  const admin = (caller, row) => caller.id === "owner" || caller.id === row.creator;
+  // 404 for a caller the name is not hidden from; for anyone else what a refused rule answers.
+  const absent = async (c, caller, topic) => (caller.id === "owner" || (await owns(caller, topic)) ? fail(c, 404, "NotFound", "no such topic") : fail(c, 403, "Forbidden", REFUSED));
+  const shown = (row) => ({ topic: row.topic, creator: row.creator, write: row.write, read: row.read, last: row.last, created: row.created });
+  app.onError((e, c) => fail(c, 500, "InternalError", String((e && e.message) || e).slice(0, 300)));
+
+  app.post(NS + "create", async (c) => {
+    const { caller } = who(c), b = await sent(c), topic = b.topic;
+    if (!named(topic)) return badName(c);
+    for (const k of ["write", "read"]) {
+      if (b[k] === undefined || b[k] === null) continue;
+      if (typeof b[k] !== "string" || !b[k].trim() || b[k].length > L.rule) return fail(c, 400, "InvalidRequest", `${k}: a CEL expression of at most ${L.rule} characters`);
+      try {
+        checkedRule(k, b[k]);
+      } catch (e) {
+        return fail(c, 400, "InvalidRequest", String(e.message).slice(0, 300));
+      }
+    }
+    await topicOps.schema();
+    // Twice: a create that another call got in ahead of is then a change of that topic's rules, or refused.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const row = (await sql.exec(S.one, topic)).rows[0];
+      if (row) {
+        if (!admin(caller, row)) return fail(c, 403, "Forbidden", "the creator or the owner changes a topic's rules");
+        const next = { write: b.write ?? row.write, read: b.read ?? row.read };
+        await sql.exec(S.rules, topic, next.write, next.read);
+        return c.json({ topic, creator: row.creator, ...next, created: false });
+      }
+      if (!(await owns(caller, topic))) return fail(c, 403, "Forbidden", caller.kind === "did" ? "a member creates m.<their id>.NAME" : caller.id === "owner" ? "a name under m. is created by its member" : "the owner or a member creates a topic");
+      const most = Math.floor(topicOps.setting("topicsPerCreator"));
+      if (caller.id !== "owner" && (await sql.exec(S.owned, caller.id)).rows[0].n >= most) return fail(c, 400, "InvalidRequest", `a member has at most ${most} topics`);
+      const mine = `caller.id == ${JSON.stringify(caller.id)}`, rules = { write: b.write ?? mine, read: b.read ?? mine };
+      const made = await sql.exec(S.make, topic, caller.id, rules.write, rules.read, Date.now());
+      if (made.changes) return c.json({ topic, creator: caller.id, ...rules, created: true });
+    }
+    return fail(c, 409, "Conflict", "another call made this topic at the same time; send it again");
+  });
+
+  app.post(NS + "append", async (c) => {
+    const w = who(c), b = await sent(c), topic = b.topic;
+    if (!named(topic)) return badName(c);
+    if (typeof b.key !== "string" || !b.key || b.key.length > L.key) return fail(c, 400, "InvalidRequest", `key: 1 to ${L.key} characters`);
+    const text = JSON.stringify(b.body ?? null), most = Math.floor(topicOps.setting("bodyBytes"));
+    if (new TextEncoder().encode(text).length > most) return fail(c, 400, "InvalidRequest", `body: at most ${most} bytes of JSON`);
+    await topicOps.schema();
+    const row = (await sql.exec(S.one, topic)).rows[0];
+    if (!row) return absent(c, w.caller, topic);
+    if (!decide({ allow: row.write }, w).allow) return fail(c, 403, "Forbidden", REFUSED);
+    const hops = Math.max(0, Math.floor(Number(c.req.header("x-brain-hops")) || 0));
+    // Whether the key was kept before is read in the transaction, not from the insert's count of changes.
+    const [before, , , kept] = await sql.batch([[S.byKey, topic, b.key], [S.append, topic, b.key, w.caller.id, Date.now(), text, hops], [S.counted, topic], [S.byKey, topic, b.key]]);
+    // Deleted between the rule and the write.
+    if (!kept.rows[0]) return fail(c, 404, "NotFound", "no such topic");
+    return c.json({ seq: kept.rows[0].seq, duplicate: before.rows.length > 0 });
+  });
+
+  app.get(NS + "read", async (c) => {
+    const w = who(c), topic = c.req.query("topic");
+    if (!named(topic)) return badName(c);
+    const after = Math.max(0, Math.floor(Number(c.req.query("after")) || 0));
+    const limit = Math.min(L.maxPage, Math.max(1, Math.floor(Number(c.req.query("limit")) || L.page)));
+    await topicOps.schema();
+    // One call for the rule and the entries; the entries are answered only after the rule.
+    const [one, found] = await sql.batch([[S.one, topic], [S.read, topic, after, limit]]);
+    const row = one.rows[0];
+    if (!row) return absent(c, w.caller, topic);
+    if (!decide({ allow: row.read }, w).allow) return fail(c, 403, "Forbidden", REFUSED);
+    const entries = found.rows.map((r) => ({ topic, seq: r.seq, key: r.key, sender: r.sender, at: r.at, body: JSON.parse(r.body), hops: r.hops }));
+    return c.json({ entries, next: entries.length ? entries.at(-1).seq : after });
+  });
+
+  app.get(NS + "list", async (c) => {
+    const { caller } = who(c);
+    await topicOps.schema();
+    const found = caller.id === "owner" ? await sql.exec(S.all) : await sql.exec(S.mine, caller.id);
+    return c.json({ topics: found.rows.map(shown) });
+  });
+
+  app.post(NS + "delete", async (c) => {
+    const { caller } = who(c), b = await sent(c), topic = b.topic;
+    if (!named(topic)) return badName(c);
+    await topicOps.schema();
+    const row = (await sql.exec(S.one, topic)).rows[0];
+    if (!row) return absent(c, caller, topic);
+    if (!admin(caller, row)) return fail(c, 403, "Forbidden", REFUSED);
+    await sql.batch([[S.dropEntries, topic], [S.drop, topic]]);
+    return c.json({ deleted: true });
+  });
+
+  app.all("*", (c) => fail(c, 404, "MethodNotImplemented", "topic.create, append, read, list and delete"));
+  return app;
+}
+// %%
+md`## Tests
+
+No SQL engine runs in a page. \`topicFakeSql\` answers for the statements of \`topicSql\` from a map of topics and a list of entries, and refuses any other statement; each \`WHERE\` is written again in JS. The statements themselves are run by \`tests/tools/topic-sql.test.ts\` on a SQLite, where their plans are also given to the check of the deployed \`brain-db\`.`
+// %%
+topicFakeSql = () => {
+  const topics = new Map(), entries = [], S = topicSql;
+  const row = (rows, changes = 0) => ({ rows, changes });
+  const remove = (gone) => {
+    const n = entries.length;
+    entries.splice(0, n, ...entries.filter((e) => !gone(e)));
+    return row([], n - entries.length);
+  };
+  const run = async (statement, a) => {
+    if (topicSchema.includes(statement)) return row([]);
+    const t = topics.get(a[0]);
+    if (statement === S.one) return row(t ? [{ ...t }] : []);
+    if (statement === S.all || statement === S.mine) return row([...topics.values()].filter((x) => statement === S.all || x.creator === a[0]).sort((x, y) => (x.topic < y.topic ? -1 : 1)).map((x) => ({ ...x })));
+    if (statement === S.owned) return row([{ n: [...topics.values()].filter((x) => x.creator === a[0]).length }]);
+    if (statement === S.make) return t ? row([]) : (topics.set(a[0], { topic: a[0], creator: a[1], write: a[2], read: a[3], last: 0, created: a[4] }), row([], 1));
+    if (statement === S.rules) return t ? (Object.assign(t, { write: a[1], read: a[2] }), row([], 1)) : row([]);
+    if (statement === S.append) {
+      if (!t || entries.some((e) => e.topic === a[0] && (e.key === a[1] || e.seq === t.last + 1))) return row([]);
+      entries.push({ topic: a[0], seq: t.last + 1, key: a[1], sender: a[2], at: a[3], body: a[4], hops: a[5] });
+      return row([], 1);
+    }
+    if (statement === S.counted) return t && entries.some((e) => e.topic === a[0] && e.seq === t.last + 1) ? ((t.last += 1), row([], 1)) : row([]);
+    if (statement === S.byKey) return row(entries.filter((e) => e.topic === a[0] && e.key === a[1]).map((e) => ({ seq: e.seq })));
+    if (statement === S.read) return row(entries.filter((e) => e.topic === a[0] && e.seq > a[1]).sort((x, y) => x.seq - y.seq).slice(0, a[2]).map(({ topic, ...e }) => e));
+    if (statement === S.dropEntries) return remove((e) => e.topic === a[0]);
+    if (statement === S.drop) return row([], topics.delete(a[0]) ? 1 : 0);
+    if (statement === S.old) return remove((e) => e.at < a[0]);
+    if (statement === S.over) return remove((e) => topics.has(e.topic) && e.seq <= topics.get(e.topic).last - a[0]);
+    throw new Error("topicFakeSql: " + statement);
+  };
+  return { run, topics, entries };
+}
+// %%
+topicRig = async () => {
+  const db = topicFakeSql();
+  const sim = await simulate(topic_service, { sql: db.run });
+  const X = "/xrpc/com.lopecode.brain.topic.";
+  const as = (who, more = {}) => async (path, body) => {
+    const r = await sim.fetch("https://topic.internal" + X + path, {
+      method: body === undefined ? "GET" : "POST",
+      headers: { "x-brain-caller": who, ...more, ...(body === undefined ? {} : { "content-type": "application/json" }) },
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    return { status: r.status, data: await r.json() };
+  };
+  const settings = (o) => ({ "x-brain-settings": encodeURIComponent(JSON.stringify(o)) });
+  // A token of the owner's, as the core names it: the owner, under a delegation a secret holds, not in a tab.
+  const token = { "x-brain-via": "delegation:0007ea9d1903", "x-brain-holder": "secret:loop-topic", "x-brain-tab": "0" };
+  return { sim, db, as, settings, id: async (did) => (await sha256(did)).slice(0, 10), owner: as("owner", { "x-brain-via": "session", "x-brain-tab": "1" }), token: as("owner", token), worker: as("worker:brain-x-echo"), other: as("worker:brain-x-other") };
+}
+// %%
+test_topic_append_is_kept_once_for_a_key_and_read_from_a_position = {
+  const rig = await topicRig();
+  expect((await rig.token("create", { topic: "check.one" })).data).toEqual({ topic: "check.one", creator: "owner", write: 'caller.id == "owner"', read: 'caller.id == "owner"', created: true });
+  const seqs = [];
+  for (const k of ["k1", "k2", "k3"]) seqs.push((await rig.token("append", { topic: "check.one", key: k, body: { n: k } })).data);
+  expect(seqs).toEqual([{ seq: 1, duplicate: false }, { seq: 2, duplicate: false }, { seq: 3, duplicate: false }]);
+  // The same key again: the first seq, and nothing written.
+  expect((await rig.token("append", { topic: "check.one", key: "k2", body: { n: "again" } })).data).toEqual({ seq: 2, duplicate: true });
+  expect(rig.db.entries.length).toBe(3);
+  expect(rig.db.topics.get("check.one").last).toBe(3);
+  const read = (await rig.token("read?topic=check.one&after=1")).data;
+  expect(read.entries.map((e) => [e.seq, e.key, e.body])).toEqual([[2, "k2", { n: "k2" }], [3, "k3", { n: "k3" }]]);
+  expect(read.next).toBe(3);
+  expect(Object.keys(read.entries[0]).sort()).toEqual(["at", "body", "hops", "key", "sender", "seq", "topic"]);
+  expect([read.entries[0].topic, read.entries[0].sender, read.entries[0].hops]).toEqual(["check.one", "owner", 0]);
+  // Nothing after the position: the position stays.
+  expect((await rig.token("read?topic=check.one&after=3")).data).toEqual({ entries: [], next: 3 });
+  expect((await rig.token("read?topic=check.one&limit=1")).data.next).toBe(1);
+  expect((await rig.token("read?topic=check.one&limit=100000&after=-5")).data.entries.length).toBe(3);
+  // A key is kept for its topic: the same key in another topic is an entry there.
+  await rig.token("create", { topic: "check.two" });
+  expect((await rig.token("append", { topic: "check.two", key: "k2" })).data).toEqual({ seq: 1, duplicate: false });
+  // The hops of the append are the core's header, and the sender is the caller the core named.
+  await rig.token("create", { topic: "check.two", write: "true" });
+  expect((await rig.as("worker:brain-x-echo", { "x-brain-hops": "3" })("append", { topic: "check.two", key: "pushed", body: { sender: "owner" } })).data.seq).toBe(2);
+  expect((await rig.token("read?topic=check.two&after=1")).data.entries.map((e) => [e.sender, e.hops, e.body])).toEqual([["worker:brain-x-echo", 3, { sender: "owner" }]]);
+  return "3 entries from 4 appends, read from 1";
+}
+// %%
+test_topic_rules_decide_who_appends_and_who_reads = {
+  const rig = await topicRig();
+  const made = await rig.owner("create", { topic: "news", write: 'caller.worker == "brain-x-echo"', read: 'caller.id == "owner" || caller.worker == "brain-x-echo"' });
+  expect(made.status).toBe(200);
+  expect((await rig.worker("append", { topic: "news", key: "a", body: 1 })).data).toEqual({ seq: 1, duplicate: false });
+  // The rule alone decides: another Worker is refused, and so is the creator.
+  expect((await rig.other("append", { topic: "news", key: "b", body: 1 })).status).toBe(403);
+  expect((await rig.owner("append", { topic: "news", key: "b", body: 1 })).status).toBe(403);
+  expect((await rig.other("read?topic=news")).status).toBe(403);
+  expect((await rig.owner("read?topic=news")).data.entries.length).toBe(1);
+  expect(rig.db.entries.length).toBe(1);
+  // A rule that does not parse is 400 and changes nothing; so is one that is not text, is empty or is too long.
+  for (const write of ["caller.id ==", "", "   ", 7, "true || ".repeat(70) + "true"]) expect([write, (await rig.owner("create", { topic: "news", write })).status]).toEqual([write, 400]);
+  expect((await rig.owner("create", { topic: "fresh", read: "caller.id ==" })).status).toBe(400);
+  expect(rig.db.topics.has("fresh")).toBe(false);
+  expect(rig.db.topics.get("news").write).toBe('caller.worker == "brain-x-echo"');
+  // The creator changes one rule; the other stays, and the next call follows the new one.
+  expect((await rig.owner("create", { topic: "news", write: "true" })).data).toEqual({ topic: "news", creator: "owner", write: "true", read: 'caller.id == "owner" || caller.worker == "brain-x-echo"', created: false });
+  expect((await rig.other("append", { topic: "news", key: "b", body: 1 })).data).toEqual({ seq: 2, duplicate: false });
+  expect((await rig.other("read?topic=news")).status).toBe(403);
+  // A Worker is no creator's and changes no rule.
+  expect((await rig.worker("create", { topic: "news", read: "true" })).status).toBe(403);
+  expect((await rig.worker("delete", { topic: "news" })).status).toBe(403);
+  // A token of the owner's is the owner to the default rule. A rule that reads caller.session keeps it out.
+  await rig.owner("create", { topic: "mine" });
+  expect((await rig.token("append", { topic: "mine", key: "t", body: 1 })).status).toBe(200);
+  await rig.owner("create", { topic: "mine", write: "caller.session", read: 'caller.token != "loop-topic"' });
+  expect((await rig.token("append", { topic: "mine", key: "u", body: 1 })).status).toBe(403);
+  expect((await rig.token("read?topic=mine")).status).toBe(403);
+  expect((await rig.owner("append", { topic: "mine", key: "u", body: 1 })).status).toBe(200);
+  // A rule that reads what no caller has refuses, and is no error of the service.
+  await rig.owner("create", { topic: "mine", read: "caller.nothing == 1" });
+  expect((await rig.owner("read?topic=mine")).status).toBe(403);
+  return "the rules of news and of mine";
+}
+// %%
+test_topic_member_has_names_of_their_own = {
+  const rig = await topicRig();
+  const A = "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa", B = "did:plc:bbbbbbbbbbbbbbbbbbbbbbbb";
+  const a = rig.as(A), b = rig.as(B), ia = await rig.id(A), ib = await rig.id(B);
+  expect(ia).toMatch(/^[0-9a-f]{10}$/);
+  const mine = `m.${ia}.x`;
+  expect((await a("create", { topic: mine })).data).toEqual({ topic: mine, creator: A, write: `caller.id == "${A}"`, read: `caller.id == "${A}"`, created: true });
+  // Another member's name, a name of the owner's, and the prefix with no name after it.
+  for (const topic of [`m.${ib}.x`, "x", `m.${ia}.`, `m.${ia}`, "m.x"]) expect([topic, (await a("create", { topic })).status]).toEqual([topic, 403]);
+  expect((await a("append", { topic: mine, key: "k", body: "private" })).data).toEqual({ seq: 1, duplicate: false });
+  // Under the default rules another member reads, appends, changes and deletes nothing of it.
+  const refused = [await b("read?topic=" + mine), await b("append", { topic: mine, key: "k2", body: 1 }), await b("create", { topic: mine, read: "true" }), await b("delete", { topic: mine })];
+  expect(refused.map((r) => r.status)).toEqual([403, 403, 403, 403]);
+  expect(rig.db.topics.get(mine).read).toBe(`caller.id == "${A}"`);
+  expect(rig.db.entries.length).toBe(1);
+  // A name that is not there answers another member what a refused rule answers, and its own member 404.
+  const hidden = [await b("read?topic=" + mine), await b(`read?topic=m.${ia}.nope`), await b("append", { topic: `m.${ia}.nope`, key: "k", body: 1 }), await b("delete", { topic: `m.${ia}.nope` })];
+  expect(new Set(hidden.map((r) => JSON.stringify([r.status, r.data]))).size).toBe(1);
+  expect((await a(`read?topic=m.${ia}.nope`)).status).toBe(404);
+  // Each lists their own; the owner lists all.
+  await rig.owner("create", { topic: "x" });
+  expect((await a("list")).data.topics.map((t) => [t.topic, t.creator, t.last])).toEqual([[mine, A, 1]]);
+  expect((await b("list")).data.topics).toEqual([]);
+  expect((await rig.worker("list")).data.topics).toEqual([]);
+  expect((await rig.owner("list")).data.topics.map((t) => t.topic)).toEqual([mine, "x"]);
+  // The creator's own rule lets another member in.
+  await a("create", { topic: mine, read: `caller.id == "${B}" || caller.id == "${A}"` });
+  expect((await b("read?topic=" + mine)).data.entries.map((e) => e.body)).toEqual(["private"]);
+  expect((await b("append", { topic: mine, key: "k2", body: 1 })).status).toBe(403);
+  // The owner creates no name under m., and changes and deletes a member's topic.
+  expect((await rig.owner("create", { topic: `m.${ia}.y` })).status).toBe(403);
+  expect((await rig.owner("create", { topic: mine, read: "false" })).data.created).toBe(false);
+  expect((await b("read?topic=" + mine)).status).toBe(403);
+  // A member has topicsPerCreator topics; the owner's are not counted.
+  const two = rig.settings({ topicsPerCreator: 2 });
+  expect((await rig.as(A, two)("create", { topic: `m.${ia}.y` })).status).toBe(200);
+  expect((await rig.as(A, two)("create", { topic: `m.${ia}.z` })).data).toEqual({ error: "InvalidRequest", message: "a member has at most 2 topics" });
+  expect((await rig.as(A, two)("create", { topic: mine, read: "true" })).status).toBe(200);
+  for (const topic of ["o1", "o2", "o3"]) expect((await rig.as("owner", two)("create", { topic })).status).toBe(200);
+  expect((await rig.owner("delete", { topic: mine })).data).toEqual({ deleted: true });
+  expect((await a("list")).data.topics.map((t) => t.topic)).toEqual([`m.${ia}.y`]);
+  return "one member's topic, kept from another";
+}
+// %%
+test_topic_delete_takes_the_entries_and_the_name_starts_again = {
+  const rig = await topicRig();
+  await rig.owner("create", { topic: "gone" });
+  await rig.owner("create", { topic: "stays" });
+  for (const key of ["a", "b"]) for (const topic of ["gone", "stays"]) await rig.owner("append", { topic, key, body: key });
+  expect((await rig.owner("delete", { topic: "gone" })).data).toEqual({ deleted: true });
+  expect(rig.db.entries.map((e) => [e.topic, e.seq])).toEqual([["stays", 1], ["stays", 2]]);
+  expect((await rig.owner("read?topic=gone")).status).toBe(404);
+  expect((await rig.owner("append", { topic: "gone", key: "c", body: 1 })).status).toBe(404);
+  expect((await rig.owner("delete", { topic: "gone" })).status).toBe(404);
+  await rig.owner("create", { topic: "gone" });
+  expect((await rig.owner("append", { topic: "gone", key: "a", body: 1 })).data).toEqual({ seq: 1, duplicate: false });
+  return "2 entries removed with the topic";
+}
+// %%
+test_topic_clock_removes_old_entries_and_no_seq_is_used_twice = {
+  const rig = await topicRig();
+  const day = 86400000, now = Date.parse("2026-10-12T02:00:00Z");
+  await rig.owner("create", { topic: "log" });
+  await rig.owner("create", { topic: "busy" });
+  for (const key of ["a", "b", "c"]) await rig.owner("append", { topic: "log", key, body: key });
+  for (let i = 0; i < 5; i++) await rig.as("owner", rig.settings({ keepEntries: 2 }))("append", { topic: "busy", key: "k" + i, body: i });
+  // Two entries of log were written 31 days before the tick; all of busy is new, and keepEntries is 2.
+  rig.db.entries.forEach((e) => (e.at = e.topic === "log" && e.seq < 3 ? now - 31 * day : now - 1000));
+  await rig.sim.scheduled({ scheduledTime: now });
+  expect(rig.db.entries.map((e) => [e.topic, e.seq])).toEqual([["log", 3], ["busy", 4], ["busy", 5]]);
+  expect((await rig.owner("read?topic=log")).data).toMatchObject({ entries: [{ seq: 3, key: "c" }], next: 3 });
+  // The next tick, a minute on, removes nothing; the one an hour on does.
+  rig.db.entries.forEach((e) => (e.at = now - 31 * day));
+  await rig.sim.scheduled({ scheduledTime: now + 60000 });
+  expect(rig.db.entries.length).toBe(3);
+  await rig.sim.scheduled({ scheduledTime: now + 3600000 });
+  expect(rig.db.entries.length).toBe(0);
+  // Every entry of log is gone. Its next seq is 4, so a reader at 3 reads it; a removed key is appended again.
+  expect((await rig.owner("append", { topic: "log", key: "a", body: "again" })).data).toEqual({ seq: 4, duplicate: false });
+  expect((await rig.owner("read?topic=log&after=3")).data.entries.map((e) => [e.seq, e.body])).toEqual([[4, "again"]]);
+  return "5 removed for age, 3 for the count";
+}
+// %%
+test_topic_refuses_what_is_no_name_no_key_and_too_long_a_body = {
+  const rig = await topicRig();
+  for (const topic of ["Upper", ".dot", "-dash", "a b", "a/b", "", "x".repeat(61), 7, null, undefined]) {
+    expect([topic, (await rig.owner("create", { topic })).status]).toEqual([topic, 400]);
+    expect([topic, (await rig.owner("append", { topic, key: "k", body: 1 })).status]).toEqual([topic, 400]);
+    expect([topic, (await rig.owner("delete", { topic })).status]).toEqual([topic, 400]);
+  }
+  expect((await rig.owner("read")).status).toBe(400);
+  expect((await rig.owner("read?topic=Upper")).status).toBe(400);
+  expect((await rig.owner("create", { topic: "x".repeat(60) })).status).toBe(200);
+  await rig.owner("create", { topic: "t" });
+  for (const key of ["", "k".repeat(201), 7, null, undefined]) expect([key, (await rig.owner("append", { topic: "t", key, body: 1 })).status]).toEqual([key, 400]);
+  expect((await rig.owner("append", { topic: "t", key: "k".repeat(200), body: 1 })).status).toBe(200);
+  // A body is counted in bytes of its JSON; left out, it is null.
+  const ten = rig.as("owner", rig.settings({ bodyBytes: 10 }));
+  expect((await ten("append", { topic: "t", key: "long", body: "123456789" })).data).toEqual({ error: "InvalidRequest", message: "body: at most 10 bytes of JSON" });
+  expect((await ten("append", { topic: "t", key: "fits", body: "12345678" })).status).toBe(200);
+  expect((await ten("append", { topic: "t", key: "wide", body: "éééé" })).status).toBe(200);
+  expect((await ten("append", { topic: "t", key: "wider", body: "ééééé" })).status).toBe(400);
+  expect((await rig.owner("append", { topic: "t", key: "none" })).status).toBe(200);
+  expect((await rig.owner("read?topic=t&after=1")).data.entries.map((e) => [e.key, e.body])).toEqual([["fits", "12345678"], ["wide", "éééé"], ["none", null]]);
+  // No such topic, and no such method: 404.
+  expect((await rig.owner("append", { topic: "nope", key: "k", body: 1 })).status).toBe(404);
+  expect((await rig.owner("subscribe", { topic: "t" })).data.error).toBe("MethodNotImplemented");
+  return "10 names, 5 keys and 2 bodies refused";
+}
+// %%
+test_topic_declares_what_it_needs = {
+  const { meta } = await topic_service.emit();
+  expect(meta).toMatchObject({ worker: "brain-x-topic", role: "recipe", module: "@tomlarkworthy/brain-topic", resources: ["sql"], secrets: [], calls: [], crons: ["* * * * *"] });
+  const N = "com.lopecode.brain.topic.";
+  expect(Object.keys(meta.access).sort().map((m) => m.replace(N, ""))).toEqual(["append", "create", "delete", "list", "read"]);
+  // The method's rule lets in whoever a topic's rule could name, and nobody the core does not know.
+  const callers = { owner: { caller: "owner", via: "session" }, token: { caller: "owner", via: "delegation:0007ea9d1903", holder: "secret:loop-topic" }, member: { caller: "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa" }, worker: { caller: "worker:brain-x-echo" }, deployer: { caller: "deployer" }, anonymous: {} };
+  const through = (m) => Object.entries(callers).filter(([, w]) => decide(meta.access[N + m], { caller: callerOf(w), origin: callerOf(w), request: { params: {} } }).allow).map(([k]) => k);
+  for (const m of ["append", "create", "delete", "list", "read"]) expect([m, through(m)]).toEqual([m, ["owner", "token", "member", "worker"]]);
+  return Object.keys(meta.access).length + " methods";
+}
+// %%
+import {cloudflare, sql, config, log, hono, simulate, decide, checkedRule, callerOf, callerFrom, originFrom, sha256} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"
