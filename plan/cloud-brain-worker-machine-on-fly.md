@@ -522,7 +522,7 @@ Each is one writer and one review, but T4b, which is the owner's act and a recor
 | `loop-fly` | `fly.status fly.work fly.up fly.down` | `brain.ts token loop-fly fly.status fly.work fly.up fly.down` | T3's checks; the laptop's loop, to yield | The methods reach no further: `fly.get` and `fly.post` are refused to every token |
 | `fly-agents` | `issue.*`, `--delegate` | `brain.ts token fly-agents 'issue.*' --delegate` | T4b: the machine's `agent-token` | It is the parent of the machine's agents and of nothing on the laptop, so the machine's are told from the laptop's |
 | `fly-knowledge` | `knowledge.search` | `brain.ts token fly-knowledge knowledge.search` | T4b | One read |
-| `fly-docs` | `knowledge.put knowledge.list` | `brain.ts token fly-docs knowledge.put knowledge.list` | T4b: the docs step of a landing there | As `loop-docs`: not held to kind `doc`, an agreement (`rules.md`) |
+| `fly-docs` | `knowledge.put knowledge.list` | `brain.ts token fly-docs knowledge.put knowledge.list` | T4b: the docs step of a landing there | As `loop-docs`: not held to kind `doc`, an agreement (`rules.md`). (Since `sd-1-doc-files`, 2026-10-12, the docs step also puts each doc's file: `knowledge-docs.ts` calls `static.put` and `static.list` too, and `loop-docs` names the four. A token of two methods is exit 2 at the step; `tools/cloud-brain/records/sd-1-doc-files.md`.) |
 | `fly-status` | `fly.status fly.work` | `brain.ts token fly-status fly.status fly.work` | T4b: `run.sh`, the watch and the health step on the machine | Two reads. The machine gets no `fly.up` and no `fly.down` |
 
 The last four are what the machine holds. The briefs and the tools read three names literally:

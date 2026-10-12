@@ -194,6 +194,8 @@ Outside, 19:20 CEST:
 **`lock.sh release land` enters what is behind, with a token made for it.**
 
 1. **The token**, made once by the owner: `brain.ts token loop-docs knowledge.put knowledge.list`.
+   (Since `sd-1-doc-files`, 2026-10-12, it names `static.put` and `static.list` as well, for the file of each
+   doc; `tools/cloud-brain/records/sd-1-doc-files.md`.)
    `knowledge-docs.ts` calls with `--as loop-docs` and finds the main checkout's state as `lock.sh`
    does (`git rev-parse --git-common-dir`), so it runs from a worktree. With `--owner` given it
    calls as now, for the owner's own use. With no `loop-docs` kept it prints the command above and

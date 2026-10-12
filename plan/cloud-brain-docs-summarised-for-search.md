@@ -24,6 +24,24 @@ the notes of review 4341, which passed round 1:
 | Note 5: a doc that shrinks keeps its `staleSince` | Its put sends `staleSince: 0` | Piece 2 |
 | Note 6: `lock.sh` line 171 is the docs step and the exit is line 180 | Both lines named | "What exists today", 6 |
 
+**As built, task 1 (`sd-1-doc-files`, 2026-10-12).** Two things are not as written below. Ten
+places that say otherwise have a note "As built"; the other lines are read by the two rules here. The record is `tools/cloud-brain/records/sd-1-doc-files.md`.
+
+- **One token.** The owner chose B of comment 4734 (the approve is event 4735): no `loop-doc-files`.
+  `loop-docs` names `knowledge.put knowledge.list static.put static.list` since 22:11:52 CEST
+  (comment 4775 of `sd-1-doc-files`), and where a line below says `loop-doc-files`, read `loop-docs`.
+- **The prefix is `docs/`, not `knowledge-docs/`.** Section 5 says an entry's `file` is empty. It
+  was not for 53 of the 89 docs' entries: each named `docs/lopecode-dev/<path>`, and
+  `static.list?prefix=docs/` answered those 53 files, private, put between 12:01 and 12:05 CEST on
+  2026-10-10 under a delegation of the owner's (`writer`: `owner by d:56b22a77aae2`). What put them is
+  not known: no file of the repository names `docs/lopecode-dev`, and the tool's header said "The
+  file is not copied" from its first commit (`a30d2cd0`, 10:31 CEST that day). The spec asked
+  only the address under `knowledge-docs/`. The place existed with this job and this shape, so the
+  tool puts there and no second place was made (`philosophy.md`, Clarifications, 2026-10-12). Where
+  a line below says `knowledge-docs/<source>/<path>`, read `docs/<source>/<path>`.
+
+The tasks are `sd-1` to `sd-4` on the tracker, where this file says `ds-1` to `ds-4`.
+
 Sections 1 to 3 and 5 of "What exists today", the question sets and "Read" are round 1's and were
 not measured again. Each number under "What exists today" has the command that gave
 it, run by the writer with the token `spec-6ac003` or `loop-knowledge`. Every number under "The
@@ -253,7 +271,8 @@ sonnet, 3 docs   $0.58 in all   opus, 3 docs   $1.29 in all   the 19 runs: $2.06
 ### 5. Where the whole of a doc is today
 
 The entry's `url`: the file's page on GitHub, or for the three of `cloud-brain-dev` the Brain's git
-address, which gives no file. The entry's `file` is empty and its `sha256` is the file's. The field
+address, which gives no file. The entry's `file` is empty and its `sha256` is the file's. (As built, `sd-1-doc-files`, 2026-10-12:
+not so for 53 entries, which named a file under `docs/`; the note at the head of this file.) The field
 is made for this (`brain-knowledge.ojs`, "An entry"):
 
 > `file`, `sha256` | the path of the kept copy in `brain-static`, 200 characters at most, and the SHA-256 of its bytes
@@ -305,8 +324,8 @@ role where one existed and did not write it as a choice
 |---|---|---|
 | No role, no brief of a second name | `paper-summarizer`, `roles/paper-summarizer.md` | Extended and renamed `summarizer` (piece 3) |
 | No tool | `summarize-papers.ts`, `knowledge-docs.ts` | Both extended: one function exported by the first, three commands in the second |
-| A token, `loop-doc-files` | `loop-docs` (`knowledge.put`, `knowledge.list`), held by the same tool; `loop-roles` (`static.put`, `get`, `list`, `delete`), held by `put.sh` | Not extended. This is the writer's choice and not the owner's word: `loop-docs` can be widened only by a revoke and a make, and a release between the two enters no doc; `loop-roles` can delete and is held to `cloud-brain-dev/`. One token for the one tool is the other way, under "Not chosen" |
-| A prefix of `brain-static`, `knowledge-docs/` | `cloud-brain-dev/`, where `put.sh` keeps the briefs, all public | Not used: 49 of the 87 docs are private (`status` at `88fc2add`, 21:53; then 46 are cut, where sections 1 to 3 have the 85 and 43 of `9185a722`) (piece 1) |
+| A token, `loop-doc-files` | `loop-docs` (`knowledge.put`, `knowledge.list`), held by the same tool; `loop-roles` (`static.put`, `get`, `list`, `delete`), held by `put.sh` | (As built, `sd-1-doc-files`, 2026-10-12: extended. The owner chose the widened `loop-docs`, and no second token was made.) Not extended. This is the writer's choice and not the owner's word: `loop-docs` can be widened only by a revoke and a make, and a release between the two enters no doc; `loop-roles` can delete and is held to `cloud-brain-dev/`. One token for the one tool is the other way, under "Not chosen" |
+| A prefix of `brain-static`, `knowledge-docs/` | `cloud-brain-dev/`, where `put.sh` keeps the briefs, all public. (As built, `sd-1-doc-files`, 2026-10-12: also `docs/`, with 53 of the docs' files, which this row did not know; that prefix is the one used.) | Not used: 49 of the 87 docs are private (`status` at `88fc2add`, 21:53; then 46 are cut, where sections 1 to 3 have the 85 and 43 of `9185a722`) (piece 1) |
 | A file of state, `<state>/docs/<name>.running` | none: the papers' runner writes a journal and has no second writer of an entry | New (piece 3, step 5) |
 
 ### 1. Every doc's file is put to `brain-static` (R1, R4)
@@ -319,7 +338,10 @@ knowledge.put { …as now, file: "knowledge-docs/<source>/<path>" }
 ```
 
 `<source>/<path>` is `lopecode-dev/knowledge/<name>.md`, `lopecode-dev/plan/<name>.md` or
-`cloud-brain-dev/<FILE>.md`. `public` is the entry's own (`in-notebook` in the frontmatter's scope)
+`cloud-brain-dev/<FILE>.md`. (As built, `sd-1-doc-files`, 2026-10-12: the first segment is `docs/`, and a post mortem is
+`lopecode-dev/tools/cloud-brain/post-mortems/<name>.md`. `put --stale` also puts a doc that `status` names in
+`filesWrong`, and its last line counts them: a copy of the tool from before this task puts a changed doc's entry
+and no file. `status --check` does not fail for one. The `put --all` took 69.6 s for 89 docs.) `public` is the entry's own (`in-notebook` in the frontmatter's scope)
 and is sent on every put, as `true` or `false`: with `tags` given, the file's labels are replaced
 by them (`brain-static.ojs` line 199, "`?tags=a,b` replaces them, `?public=` adds or removes that
 one"), so a put that left `public` out would make a public doc's file private, and `public=false`
@@ -548,7 +570,8 @@ renamed for the one role and says that the events of the papers' tasks carry the
 
 ### 5. A token, `loop-doc-files`
 
-`static.put` and `static.list`. Under "What the orchestrator makes".
+`static.put` and `static.list`. Under "What the orchestrator makes". (As built, `sd-1-doc-files`, 2026-10-12: not made. `loop-docs`
+names these two as well.)
 
 ### What it costs
 
@@ -654,8 +677,8 @@ hold, and says where it is run.
 
 | | Check | Today | After its task |
 |---|---|---|---|
-| R1, task 1 | `BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status`, last line | 20:43, at `9185a722`: `{"docs":85,"fresh":85,"stale":0,"missing":0,"cut":43,"unmarked":0,…}`, no `files` | cannot be run before task 1 and its token. Then, after the task's `put --all`: `files` equals `docs` and `filesWrong` is empty |
-| R1, R4, task 1 | `curl -s https://cb4.endpointservices.workers.dev/static/knowledge-docs/lopecode-dev/knowledge/notebook-programming-concepts.md \| shasum -a 256` (a public doc), and `curl -s -o /dev/null -w '%{http_code}'` of `…/knowledge-docs/lopecode-dev/plan/cloud-brain-backlog.md` (a private one), no token | 20:32: the first address answers 404; the second was not asked | after task 1: the first hash is that of `git show origin/main:knowledge/notebook-programming-concepts.md \| shasum -a 256`; the second is not 200 |
+| R1, task 1 | `BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status`, last line | 20:43, at `9185a722`: `{"docs":85,"fresh":85,"stale":0,"missing":0,"cut":43,"unmarked":0,…}`, no `files` | cannot be run before task 1 and its token. Then, after the task's `put --all`: `files` equals `docs` and `filesWrong` is empty. (As built, `sd-1-doc-files`, 2026-10-12: so after a `put --stale` by a copy of the tool that has the task; a release by an older copy leaves a changed doc in `filesWrong` until then) |
+| R1, R4, task 1 | `curl -s https://cb4.endpointservices.workers.dev/static/knowledge-docs/lopecode-dev/knowledge/notebook-programming-concepts.md \| shasum -a 256` (a public doc), and `curl -s -o /dev/null -w '%{http_code}'` of `…/knowledge-docs/lopecode-dev/plan/cloud-brain-backlog.md` (a private one), no token | 20:32: the first address answers 404; the second was not asked | after task 1: the first hash is that of `git show origin/main:knowledge/notebook-programming-concepts.md \| shasum -a 256`; the second is not 200. (As built, `sd-1-doc-files`, 2026-10-12: the two addresses are under `/static/docs/`, not `/static/knowledge-docs/`. At 22:52:44 CEST the first hash was git's, `496ebd6e…`, and the second answered 401) |
 | R4, task 1 | `bun test ./tests/tools/knowledge-docs.test.ts` | 21:26 to 21:35, at `1d545375`, with the two files of the next row: 47 pass, 0 fail | run in the task's worktree: tests added that a private doc is put with `public=false` and a public one with `public=true`, on every put, and that the file is put before the entry; each fails on the tool of `1d545375` |
 | R9, task 2 | `bun test --timeout 60000 ./tests/tools/summarize-papers.test.ts ./tests/tools/paper-sets.test.ts ./tests/tools/knowledge-docs.test.ts` | 21:26 to 21:35: 47 pass, 0 fail. Without `--timeout`, at 21:22 and 21:24, 8 and then 13 of the first file's 26 failed, each at bun's 5 s: the machine's load was 19.9 (`uptime`) | run in the task's worktree: no test that passes today fails. Added: `summarize` with `kind: "paper"` judges by the six headings and with `kind: "doc"` by the five; an answer with a line before its first paragraph is refused; `summarized()` and `lineOf` read a line of either name; the assembly of piece 2 from a summary and a doc of 40,000 characters is 16000 and has the two lines; a put of a changed doc keeps the summary and its line and has the new start; a doc of 16000 has no summary and its put has `staleSince: 0`; `due` at a tenth of the lines and not under; `--plain`; the docs step leaves a doc with a `.running` file under ten minutes old |
 | R9, task 2 | `BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts check --tag awesome-rsi`, last line | 21:22:02: `{"entries":63,"summarized":63,"excepted":[],"failing":[]}`, exit 0 | the same line and exit, run with the tool of the task's worktree after the brief is put. It reads with `loop-knowledge` |
@@ -689,6 +712,7 @@ task 1 makes. 1 waits for the token.
    `fresh` by it, the cut doc's last line names the Brain's file, `files` and `filesWrong` in
    `status`; tests; `put --all` once by hand, and the two `curl` checks. The tool's header and the
    paragraph of `knowledge/calling-a-cloud-brain-from-this-checkout.md` on what the tool calls with.
+   (As built, `sd-1-doc-files`, 2026-10-12: `sd-1-doc-files` on the tracker; the note at the head of this file.)
 2. **`ds-2-one-summarizer`.** The brief `roles/summarizer.md`, and `roles/paper-summarizer.md` as
    the three lines that point at it, both put with `put.sh`. In `summarize-papers.ts`: `summarize`
    as one exported function, the headings by kind, the role's name, a summary's line read in either
@@ -731,13 +755,17 @@ agent reads"): task 2's two puts under `roles/`, and task 4's two sentences.
   doc (the 63 summaries of papers are not put again), that a summary of a doc cost 1 to 6 cents in
   19 dry runs with haiku and 18 to 82 cents with opus, and that the spec names a token,
   `loop-doc-files`, a second one for `knowledge-docs.ts` where `loop-docs` could be widened ("Not
-  chosen").
+  chosen"). (As built, `sd-1-doc-files`, 2026-10-12: he chose the widened `loop-docs`, his "3 B" of comment 4734.)
 - Approve task 3 and task 4, each after its review: they are `major`.
 
 Nothing else. No kernel, core, database or deployer is changed, no Worker is deployed, no policy
 and no rule.
 
 ## What the orchestrator makes
+
+(As built, `sd-1-doc-files`, 2026-10-12: not this token. The orchestrating session revoked `loop-docs` and made it again with
+`knowledge.put knowledge.list static.put static.list`, comment 4775 of `sd-1-doc-files`. What is said below of
+`loop-doc-files` is that token's now, with `docs/` where it says `knowledge-docs/`.)
 
 One token, when task 1 is next, from the main checkout:
 

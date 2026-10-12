@@ -379,6 +379,9 @@ knowledge.stats before    473 entries, 473 vectors   -> 523 after
   (`gh api repos/tomlarkworthy/lopecode-dev` answers `"visibility":"public"`, and the unauthenticated
   API answers 200), so the address already serves the file. Cost: the address shows `main`, so between
   an edit here and its push the entry's `sha256` is of a file the address does not yet serve.
+  (Since `sd-1-doc-files`, 2026-10-12, the file is copied: the owner asked for "a link to the original in
+  file/blob storage", and `knowledge-docs.ts` puts each doc's file to `brain-static` at `docs/<source>/<path>`
+  before its entry, which names it in `file`. `url` is as above. `tools/cloud-brain/records/sd-1-doc-files.md`.)
 - **Who reads one:** `scope:` with `in-notebook` is public, 38 docs; those already ship inside the
   public markdown-wiki notebook. `local-development` alone is the Brain's and private, 12 docs. The
   private ones are still readable on GitHub by anyone with the address; private here means a member's

@@ -354,6 +354,8 @@ the line's own length):
 
 The two numbers are of the text the tool makes (the topics first, the heading taken out), not of
 the file: an offset into one is not an offset into the other, and the line does not say it is.
+(Since `sd-1-doc-files`, 2026-10-12, the line names the file the Brain keeps in place of that address:
+`The whole is the file <file> in this Brain's brain-static: static.get?path=<file>`; `tools/cloud-brain/records/sd-1-doc-files.md`.)
 
 For the three files of `cloud-brain-dev` the whole is named as the file and its repository
 (`philosophy.md` of `<the submodule's url>`), since no address gives it.

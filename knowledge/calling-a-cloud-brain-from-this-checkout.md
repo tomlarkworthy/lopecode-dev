@@ -184,6 +184,37 @@ For a file of this repository an entry's id is `doc:` and the file's name in low
 `doc:pm-second-summarizer-role` for `tools/cloud-brain/post-mortems/pm-second-summarizer-role.md`. The three of `cloud-brain-dev` are
 `doc:cloud-brain-dev-agents`, `-readme` and `-philosophy`.
 
+**The whole of a doc is a file the Brain keeps** (since 2026-10-12, issue `sd-1-doc-files`, task 1 of
+`plan/cloud-brain-docs-summarised-for-search.md`). A put of a doc is two calls with `loop-docs`, the file first:
+
+```
+static.put?path=docs/<source>/<path>&public=<true|false>&tags=knowledge-doc     the file's bytes, as git has them
+knowledge.put { …, file: "docs/<source>/<path>", sha256 }                        25 entries a call, after their files
+```
+
+- `<source>/<path>` is `lopecode-dev/<the path in this repository>` or `cloud-brain-dev/<FILE>.md`:
+  `docs/lopecode-dev/knowledge/notebook-programming-concepts.md`, `docs/cloud-brain-dev/philosophy.md`.
+- The file is public when the entry is (`in-notebook` in the frontmatter's scope), and `public` is sent on every put.
+  Read with no token at 22:52:44 CEST that day: `https://cb4.endpointservices.workers.dev/static/docs/lopecode-dev/knowledge/notebook-programming-concepts.md`
+  answered 200 with the bytes of `git show origin/main:knowledge/notebook-programming-concepts.md` (one SHA-256,
+  `496ebd6e…`) and `access-control-allow-origin: *`; `…/static/docs/lopecode-dev/plan/cloud-brain-backlog.md` and
+  `…/static/docs/cloud-brain-dev/philosophy.md`, both private, answered 401. A private file is read with
+  `static.get?path=<file>` by a caller that may read it; not run, `loop-docs` does not name that method.
+- An entry is `fresh` when it has the file's `sha256`, the same `public` and that `file`. A doc's line of `status`
+  ends `file not kept` or `file differs` when the kept file has not the doc's `sha256` and `public`, and the last line
+  has `files`, the docs whose file is right, and `filesWrong`, the names of the others. `status --check` does not
+  fail for a wrong file. `put --stale` puts such a doc, fresh or not, and counts them in `filesWrong` of its last line.
+- A doc over 16,000 characters is cut, and its last line names the file:
+  `[the first N of M characters of this entry's text. The whole is the file <file> in this Brain's brain-static: static.get?path=<file>]`,
+  with `, and /static/<file> at the Brain's address` before the bracket for a public doc. Until this change it named
+  an address on `raw.githubusercontent.com`.
+- Nothing is deleted: the token names no `static.delete`. A doc removed from the repository keeps its entry and its file.
+- The prefix is `docs/` and not the `knowledge-docs/` of the spec: 53 docs had a file there already, put on
+  2026-10-10 under a delegation of the owner's, which their entries named (`tools/cloud-brain/records/sd-1-doc-files.md`).
+- All 89 docs were put this way by hand at 22:51:07 CEST, before the landing: 69.6 s for 89 files and 4 calls of
+  `knowledge.put`, 2.1 MB. A copy of the tool from before this change puts a changed doc's entry and no file, and
+  puts a cut doc with the older line; the next release by a copy that has the change puts both again.
+
 **What enters a changed doc** (since 2026-10-11, `plan/cloud-brain-brain-docs-entered-by-hand.md`): the last
 command of every landing, `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh release land <who>`. With the lock gone it runs
 `knowledge-docs.ts put --stale --limit=30` and prints one more line. The release is exit 0 whatever that line says.
@@ -196,7 +227,11 @@ docs (cb4): not entered (<why>)             the tool failed; the docs wait for t
 
 - The name in brackets is the Brain: `BRAIN_BASE`, and `cb4` when the caller's shell has none.
 - The call is made with the token `loop-docs`, which the owner makes once:
-  `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-docs knowledge.put knowledge.list`. An agent does not
+  `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-docs knowledge.put knowledge.list static.put static.list`
+  (four methods since 2026-10-12, for the file of each doc: the orchestrating session revoked the token of two methods
+  and made this one at 22:11:52 CEST on the owner's choice of one token over a second, comment 4775 of
+  `sd-1-doc-files`; `brain.ts token` refuses a name that is kept). A token that does not name a method the tool calls
+  is exit 2 with those two commands, as the tests have it; not seen on cb4. An agent does not
   make it and does not pass `--owner` to the tool. It was made 2026-10-11, by the orchestrating session on the owner's
   word (`bd-3-first-run-of-the-docs-step`, event 1952). The first put with it was a release's, not a put by hand:
   12 entries carry `at` 2026-10-11 20:48:28 CEST (`knowledge.list` with `loop-docs`), 9 of them new and 3 changed, after
@@ -205,6 +240,7 @@ docs (cb4): not entered (<why>)             the tool failed; the docs wait for t
 - With no `loop-docs` kept the tool exits 2 and the release prints, as it did at 20:05:34 that day with its lock and
   state in a temporary directory, in 1.2 s:
   `docs (cb4): not entered (no token "loop-docs" is kept. The owner makes it once: BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-docs knowledge.put knowledge.list)`.
+  Since `sd-1-doc-files` the command in that line ends `knowledge.put knowledge.list static.put static.list`.
   The first line above was printed by cb4 at the release of 20:54:42 that day, for one changed doc:
   `docs (cb4): {"put":1,"public":0,"private":1,"entered":0,"changed":1,"vectors":1,"ms":1597,"source":"origin/main@bd71b157"}`,
   3.1 s for the release with its step. No release was seen to print the second (`nothing to put`): the tool printed it
@@ -222,7 +258,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status --check   # fresh 
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --stale      # what the release runs; $0.00005 a doc whose text changed
 ```
 
-`put --stale` puts a doc that `status` reads `stale` or `missing`, and since 2026-10-12 one whose line ends `, unmarked`:
+`put --stale` puts a doc that `status` reads `stale` or `missing`, one whose kept file is not the doc's (above), and since 2026-10-12 one whose line ends `, unmarked`:
 a doc over 16,000 characters whose entry is fresh by its file's hash and does not end with the line that says it was cut
 (`tools/cloud-brain/records/knowledge-docs-put-stale-skips-unmarked.md`). The last line of the put has `unmarked`, the docs
 it put whose entry did not end with the line the tool now puts. A changed doc over 16,000 characters is counted there too,
