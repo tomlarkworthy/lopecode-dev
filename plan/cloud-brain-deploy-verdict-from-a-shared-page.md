@@ -292,6 +292,10 @@ second line and may be nothing.
 5. **Read the first 20 runs.** Loop. `logs.deploys --as loop-deploys`: `otherTestsRan`, `ms`, `none`, against the
    45 before. Written in `tools/cloud-brain/records/deploy-verdict-from-a-shared-page.md`. A `none` or a new
    failure: the file is deleted (the owner's `static.delete`), and the record says what was seen.
+   (As built, `dv-5-read-first-20-runs`, 2026-10-12: the record is
+   `tools/cloud-brain/records/dv-5-read-first-20-runs.md`, under the issue's id as the other tasks' are. The first
+   20 runs were 20 verified with `otherTestsRan` 9 and a median of 6655 ms, so the file was not deleted; the
+   record.)
 6. **The writer's step 8 runs `verify-run.ts MODULE --times 20`.** A line of `agents/implementer.md`, which is
    the overseer's to edit.
 
@@ -308,6 +312,8 @@ second line and may be nothing.
 
 - Whether Chrome 128 gives the same verdicts with the short boot list. Task 5 is where it is first seen; deleting
   the file is how it is undone.
+  (As built, `dv-5-read-first-20-runs`, 2026-10-12: 77 runs of the deployer on the file to 21:16:52 UTC that day,
+  77 verified; the record.)
 - Whether `static.delete` takes a path under `shell/` from the owner's session. Read: only the owner writes
   there (`brain-static.ojs:19`), and a token's delete is refused (its test, line 385). Not run.
 - Why the caret test lost characters at 05:50:48 UTC. The page that ran it is gone.
