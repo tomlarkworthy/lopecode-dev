@@ -171,7 +171,13 @@ Limits, so a bad round cannot compound:
   The reviewer's brief is not in git since 2026-10-11. It is a file of the Brain, and its edit is a put, not a
   commit: `cloud-brain-dev/put.sh --get roles/reviewer.md`, edit `cloud-brain-dev/brain/roles/reviewer.md`, then
   `cloud-brain-dev/put.sh roles/reviewer.md` (token `loop-roles`; the copy before is kept on the Brain under
-  `cloud-brain-dev-history/`; `put.sh --history` lists them and `--restore` brings one back). No lock. The entry in `oversight.md` carries what the commit message would have:
+  `cloud-brain-dev-history/`; `put.sh --history` lists them and `--restore` brings one back). No lock.
+  Before the put, the tests that hold lines of the brief are run on the edited file:
+  `BRIEF=$W/cloud-brain-dev/brain/roles/reviewer.md bun test ./tests/tools/reviewer-brief-waits-on-show.test.ts ./tests/tools/reviewer-in-a-view.test.ts ./tests/tools/reviewer-brief-names-token.test.ts ./tests/tools/lock.test.ts`,
+  0 fail, with the count in the entry. Since `suite-tests-read-the-live-brief` (2026-10-12) the suite reads a copy kept in
+  the repository, `tests/tools/fixtures/reviewer-brief.md`, and not the Brain, so this run is the one that shows a put
+  took out a line a test holds: with a fail, the line stays, or the test and the kept copy change in a commit a writer lands
+  (`tests/tools/reviewer-brief.ts`). The entry in `oversight.md` carries what the commit message would have:
   what changed, the issue, the event, what happened.
 - Edit by the smallest change that would have prevented what you saw. Do not rewrite a brief.
   Do not remove a step because one run did not need it.

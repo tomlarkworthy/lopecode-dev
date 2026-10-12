@@ -4,24 +4,20 @@
 // plan/cloud-brain-worktree-per-topic.md (part 4).
 //
 //   bun test ./tests/tools/reviewer-in-a-view.test.ts
-// The brief has one copy, a public file of the Brain, so its tests read it over the network (no token).
-// BRIEF=<file> reads a file in its place, SKILL=<file> another SKILL.md. The last test starts nothing: DRY=1.
+// The brief is a file of the Brain. Its tests read the copy kept beside them (reviewer-brief.ts, which has why):
+// BRIEF=<file> reads a file in its place, BRAIN=<address> what that Brain serves now. SKILL=<file> reads another
+// SKILL.md. The last test starts nothing: DRY=1.
 import { test, expect } from "bun:test";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 
 import { testNeeding } from "./needs.ts";
+import { briefOf } from "./reviewer-brief.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const agentSh = join(process.env.CLOUD_BRAIN_DEV || join(root, "cloud-brain-dev"), "agent.sh");
-const url = `${process.env.BRAIN || "https://cb4.endpointservices.workers.dev"}/static/cloud-brain-dev/roles/reviewer.md`;
-const brief = async () => {
-  if (process.env.BRIEF) return readFileSync(process.env.BRIEF, "utf8");
-  const r = await fetch(url);
-  if (r.status !== 200) throw new Error(`${url} answered ${r.status}`);
-  return r.text();
-};
+const brief = () => briefOf();
 const skill = readFileSync(process.env.SKILL || join(root, ".claude/skills/brain-maintenance/SKILL.md"), "utf8");
 const flat = (s: string) => s.replace(/\s+/g, " ");
 const lines = (s: string, re: RegExp) => s.split("\n").filter((l) => re.test(l)).map((l) => l.trim());

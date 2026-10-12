@@ -3,20 +3,17 @@
 // plan/cloud-brain-locks-held-in-the-cluster.md (R3's check of the Brain's copy).
 //
 //   bun test ./tests/tools/reviewer-brief-waits-on-show.test.ts
-// The brief has one copy, a public file of the Brain, so the first four tests read it over the network (no token).
-// BRIEF=<file> reads a file in its place. The last test runs the brief's own wait line on a stand-in lock.sh.
+// The brief is a file of the Brain. The tests read the copy kept beside them (reviewer-brief.ts, which has why):
+// BRIEF=<file> reads a file in its place, BRAIN=<address> what that Brain serves now.
+// The last test runs the brief's own wait line on a stand-in lock.sh.
 import { test, expect } from "bun:test";
 import { mkdtempSync, writeFileSync, readFileSync, chmodSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const url = `${process.env.BRAIN || "https://cb4.endpointservices.workers.dev"}/static/cloud-brain-dev/roles/reviewer.md`;
-const brief = async () => {
-  if (process.env.BRIEF) return readFileSync(process.env.BRIEF, "utf8");
-  const r = await fetch(url);
-  if (r.status !== 200) throw new Error(`${url} answered ${r.status}`);
-  return r.text();
-};
+import { briefOf } from "./reviewer-brief.ts";
+
+const brief = () => briefOf();
 const flat = (s: string) => s.replace(/\s+/g, " ");
 const lines = (s: string, re: RegExp) => s.split("\n").filter((l) => re.test(l));
 // step 3 alone: from its number to step 4's

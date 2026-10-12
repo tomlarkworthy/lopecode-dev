@@ -6,13 +6,15 @@
 //   bun test ./tests/tools/lock.test.ts
 //   LOCK_SH=/path/to/another/lock.sh bun test …
 // Every case has a stand-in for the service (LOCK_BASE) and a state directory with a token file of its own
-// (BRAIN_STATE_DIR). No case calls cb4 but the last, a public read of the reviewer's brief. The stand-in answers the
+// (BRAIN_STATE_DIR). No case calls cb4: the last reads the reviewer's brief as reviewer-brief.ts has it. The stand-in answers the
 // shapes brain-x-issues answers (records/lk-1-issue-lock-methods.md); it is not the service's code, which its own
 // test cells test.
 import { test, expect, afterAll } from "bun:test";
 import { mkdtempSync, existsSync, readFileSync, readdirSync, realpathSync, writeFileSync, chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
+
+import { briefOf } from "./reviewer-brief.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const script = process.env.LOCK_SH || join(root, "tools/cloud-brain/lock.sh");
@@ -533,19 +535,10 @@ test("the step is for a release of land that happened: not LOCK_DOCS=0, not cb4,
   expect(docs.calls().length).toBe(1);
 }, 20000);
 
-// R3's read of the Brain's copy of the reviewer's brief (put by task 2; tests/tools/reviewer-brief-waits-on-show.test.ts
-// has the rest). With cb4 not answering it is skipped, and says so.
-test("R3: the reviewer's brief on the Brain names neither lock directory and waits on lock.sh show land", async () => {
-  const url = "https://cb4.endpointservices.workers.dev/static/cloud-brain-dev/roles/reviewer.md";
-  let text: string;
-  try {
-    const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
-    if (r.status !== 200) throw new Error("status " + r.status);
-    text = await r.text();
-  } catch (e) {
-    console.log(`skipped: ${url} did not answer (${String((e as Error).message || e)}); the brief was not read`);
-    return;
-  }
+// R3's read of the reviewer's brief (put by task 2; tests/tools/reviewer-brief-waits-on-show.test.ts has the rest).
+// Since suite-tests-read-the-live-brief it reads the copy kept beside the tests; BRAIN=<address> reads the Brain's.
+test("R3: the reviewer's brief names neither lock directory and waits on lock.sh show land", async () => {
+  const text = await briefOf();
   const count = (re: RegExp) => text.split("\n").filter((l) => re.test(l)).length;
   expect(count(/land\.lock|cb4\.lock/)).toBe(0);
   expect(count(/lock\.sh show land/)).toBe(1);

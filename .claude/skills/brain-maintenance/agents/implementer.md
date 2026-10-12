@@ -152,6 +152,11 @@ each command; no shell state lasts between calls.
    sum of them. 583 pass in 60 files in 93 to 95 s over six runs on 2026-10-12, where the same files with no flag took 207 s, past the 120 s that is
    the default timeout of a command. The counts are those of the run with no flag. The script's header says why
    four workers and why 30 s for a test that names no timeout.
+   The tests that hold lines of the reviewer's brief (`reviewer-brief-*.test.ts`, `reviewer-in-a-view.test.ts`, the last of
+   `lock.test.ts`) read `tests/tools/fixtures/reviewer-brief.md`, a copy of the commit, and not the Brain: a put of the brief
+   moves no count of the suite (`suite-tests-read-the-live-brief`, 2026-10-12; before it a worktree behind `origin/main` had a fail after a put).
+   A writer whose task puts the brief runs them on the edited file first (`BRIEF=<file>`), and writes the copy again in the
+   commit that changes a test of it (`tests/tools/reviewer-brief.ts` has the line).
    A failure's message is printed above its `(fail)` line, under the name of its file. `tests/tools/suite.sh --parallel=1`
    is the run of one file after another, for a failure you want to see with no other file running beside it
    (`records/tests-tools-suite-three-minutes.md`). A worktree fresh from `worktree.sh`, with nothing built, gave 0 fail there on 2026-10-11

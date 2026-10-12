@@ -1,7 +1,9 @@
 # Reviewer brief
 
 Moved 2026-10-11. The reviewer's brief is a file of the Brain,
-`https://cb4.endpointservices.workers.dev/static/cloud-brain-dev/roles/reviewer.md`, and that is the only copy.
+`https://cb4.endpointservices.workers.dev/static/cloud-brain-dev/roles/reviewer.md`, and that is the only copy an agent follows.
+(Since `suite-tests-read-the-live-brief`, 2026-10-12, the tests of it read `tests/tools/fixtures/reviewer-brief.md`, the
+text those tests hold at their commit; `tests/tools/reviewer-brief.ts` says how it is written again.)
 The loop starts its reviewer in a view, a detached worktree at the commit under review, with that view's
 `cloud-brain-dev/agent.sh reviewer "review issue <id>; your token is <name>"` (`SKILL.md`, step 4, since
 `wt-4-reviewer-in-a-view`, 2026-10-12), which reads it as `brain/roles/reviewer.md`.

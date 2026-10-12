@@ -2,24 +2,20 @@
 // the task names none. Issue ta-4-reviewer-brief-names-token, task 4 of plan/cloud-brain-record-names-token-not-agent.md.
 //
 //   bun test ./tests/tools/reviewer-brief-names-token.test.ts
-// The brief has one copy, a public file of the Brain, so the first three tests read it over the network (no token).
-// BRIEF=<file> reads a file in its place. The last test sends nothing: `claude` is a stand-in on PATH.
+// The brief is a file of the Brain. The first three tests read the copy kept beside them (reviewer-brief.ts, which
+// has why): BRIEF=<file> reads a file in its place, BRAIN=<address> what that Brain serves now.
+// The last test sends nothing: `claude` is a stand-in on PATH.
 import { test, expect } from "bun:test";
 import { mkdtempSync, writeFileSync, readFileSync, chmodSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 
 import { testNeeding } from "./needs.ts";
+import { briefOf } from "./reviewer-brief.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const agentSh = join(process.env.CLOUD_BRAIN_DEV || join(root, "cloud-brain-dev"), "agent.sh");
-const url = `${process.env.BRAIN || "https://cb4.endpointservices.workers.dev"}/static/cloud-brain-dev/roles/reviewer.md`;
-const brief = async () => {
-  if (process.env.BRIEF) return readFileSync(process.env.BRIEF, "utf8");
-  const r = await fetch(url);
-  if (r.status !== 200) throw new Error(`${url} answered ${r.status}`);
-  return r.text();
-};
+const brief = () => briefOf();
 const flat = (s: string) => s.replace(/\s+/g, " ");
 
 test("the brief says the token is the one the task names, and the role's when it names none", async () => {
