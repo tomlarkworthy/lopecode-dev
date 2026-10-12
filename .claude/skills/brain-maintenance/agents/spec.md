@@ -50,7 +50,22 @@ already used answers `duplicate: true` and moves nothing: after each move read t
    - what was asked, in the owner's words where he gave any, with the date;
    - each gathered report in one line with its id, and the requirement it becomes or why it is left out;
    - what exists today, measured;
-   - the smallest design that meets the requirements, and what was not chosen and why;
+   - the smallest design that meets the requirements, and what was not chosen and why.
+     For each standing thing the design adds (a role and its brief, a tool, a token, a Worker, a method, a
+     store), the spec names what exists today that does the same job for the same purpose, and says
+     under "Not chosen" why that is not extended. It is looked for in the searches of step 4, in
+     `.claude/skills/brain-maintenance/agents/` (the loop's roles), in the list of the Brain's own roles
+     (`curl -s https://cb4.endpointservices.workers.dev/static/cloud-brain-dev/index.md`) and in
+     `tools/cloud-brain/` (the tools, and a seed a Worker with its methods and stores). "Nothing exists"
+     is said with the search or the listing that showed it. One sentence a thing, so that one role
+     against two is written as two ways and its reviewer can read it. (The owner, 2026-10-12, comment
+     4463 of `docs-summarised-for-search`, of a spec that added a role `doc-summarizer` and a tool
+     `summarize-docs.ts` beside `paper-summarizer` and `summarize-papers.ts`: "yeah I think we don;t
+     have two seperate roles, we just make the summarizer more general as it has the same basic job for
+     the same purpose". The spec's writer had read the papers' spec and said the design was the same;
+     none of its twelve items under "Not chosen" was one role for both, and the review answered from
+     those twelve: `tools/cloud-brain/post-mortems/pm-second-summarizer-role.md`. First spec written
+     under this item: none yet, when it was written);
    - how each requirement will be known to be met, by a check an agent of the loop can run with
      its own token: a call that answers the owner's session only (`allow: "caller.session"`, as
      `logs.query`) or needs his tab is not one, and neither is a count read in a QA tab from a cell
