@@ -454,6 +454,44 @@ test("run: the summary is put with loop-papers; a second run starts no agent but
   } finally { t.stop(); }
 });
 
+// ps-4-the-rest: the two stops of a run over many papers. The PDF paper is first by id; PLAIN has no number.
+const PLAIN = `A first paragraph with no figure.\n\n${SECTIONS()}`;
+test("--usd-max: no agent for a paper once this run's agents have cost that much; under it the run goes on; not a number is exit 2", async () => {
+  const t = await fresh();
+  try {
+    await kept(t, "arxiv:2308.10144,arxiv:2603.06333");
+    t.answers([{ result: PLAIN }, { result: GOOD }]);
+    const bad = await t.cmd("run", ["--ids", "arxiv:2308.10144,arxiv:2603.06333", "--usd-max", "lots"]);
+    expect([bad.code, t.started().length]).toEqual([2, 0]);
+    // Each agent of the stand-in costs 0.25: at a limit of 0.25 the first paper is put and the second is not started.
+    const r = await t.cmd("run", ["--ids", "arxiv:2308.10144,arxiv:2603.06333", "--usd-max", "0.25"]);
+    expect(r.code).toBe(1);
+    expect(r.lines.slice(0, -1).map((l: any) => [l.id, l.outcome])).toEqual([["arxiv:2308.10144", "put"]]);
+    expect(r.lines.at(-1)).toMatchObject({ entries: 2, put: 1, usd: 0.25 });
+    expect((r.lines.at(-1) as any).stopped).toBe("--usd-max 0.25: the agents of this run have cost $0.25; arxiv:2603.06333 and the papers after it were not started");
+    expect([t.started().length, t.puts().map((p: any) => p.id)]).toEqual([2, ["arxiv:2308.10144"]]);
+    // The same command again counts from 0: the first is skipped at no cost and the second is put. A limit above the sum stops nothing.
+    const r2 = await t.cmd("run", ["--ids", "arxiv:2308.10144,arxiv:2603.06333", "--usd-max", "0.26"]);
+    expect([r2.code, (r2.lines.at(-1) as any).stopped, r2.lines.slice(0, -1).map((l: any) => l.outcome || l.skipped)]).toEqual([0, undefined, ["summarized", "put"]]);
+  } finally { t.stop(); }
+});
+
+test("a put that is refused stops the run: the paper is failed in the journal and no agent is started for the next", async () => {
+  const t = await fresh();
+  try {
+    await kept(t, "arxiv:2308.10144,arxiv:2603.06333");
+    t.answers([{ result: PLAIN }, { result: GOOD }]);
+    writeFileSync(join(t.fake, "put-fails"), "");
+    const r = await t.cmd("run", ["--ids", "arxiv:2308.10144,arxiv:2603.06333"]);
+    expect(r.code).toBe(1);
+    expect(r.lines.slice(0, -1).map((l: any) => [l.id, l.outcome])).toEqual([["arxiv:2308.10144", "failed"]]);
+    expect(r.lines.at(-1)).toMatchObject({ put: 0, failed: 1, stopped: "knowledge.put 400 for arxiv:2308.10144: the papers after it were not started" });
+    // The canary's agent and one paper's; the second paper's answer is still in the stand-in's queue.
+    expect([t.started().length, JSON.parse(readFileSync(join(t.fake, "answers.json"), "utf8")).length]).toEqual([2, 1]);
+    expect(t.journal().at(-1)).toMatchObject({ id: "arxiv:2308.10144", outcome: "failed", why: "knowledge.put 400" });
+  } finally { t.stop(); }
+});
+
 test("a second summary is made from the entry as kept, not from the cut copy the entry holds", async () => {
   const t = await fresh();
   try {

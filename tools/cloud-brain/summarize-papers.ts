@@ -11,6 +11,7 @@
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts run --tag awesome-rsi --ids a,b --dry   one agent a paper; summaries to <papers>, nothing put
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts run --tag awesome-rsi          the same, and each summary put with loop-papers
 //      … --model NAME (opus)   --again: also a paper refused twice before for the same text
+//      … --usd-max N: no agent is started for a paper once the agents of this run have cost N or more (exit 1, `stopped`)
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts check --tag awesome-rsi [--except id=issue,id=issue]   reads only; exit 1 on a failing entry
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts restore --ids a,b [--dry]      puts back the text as entered, from <id>.entry.json
 //
@@ -55,7 +56,8 @@
 //      <id>.summary.txt; put as { id, text, tags: ["paper-summary"], method: "paper-summarizer" } unless --dry.
 //   6. One line to <papers>/journal.jsonl: id, outcome (put | dry | refused | failed), session, usd, context, ms, the
 //      lengths, what each round refused, the put's answer. One line a paper, so one `session` an id.
-// An agent whose `toolset` is not ["Read"] stops the run (exit 3) and its answer is not used.
+// An agent whose `toolset` is not ["Read"] stops the run (exit 3) and its answer is not used. A put that is refused
+// stops it too (exit 1): the agent of each paper after it would be paid for a summary that is not kept.
 // check: every entry of the tag is summarized (the tag, the line, changed.method, a first paragraph within its length,
 // the six headings, a put with vectors: 1 in the journal, and the semantic search of the first 300 characters of its
 // first paragraph answers it first), or is named in --except. A restored entry and a refused paper fail it.
@@ -380,7 +382,8 @@ if (import.meta.main) {
   }
 
   if (cmd === "run") {
-    const dry = flag("dry"), again = flag("again"), model = opt("model") || "opus";
+    const dry = flag("dry"), again = flag("again"), model = opt("model") || "opus", usdMax = opt("usd-max") === undefined ? Infinity : Number(opt("usd-max"));
+    if (!(usdMax >= 0)) { console.error("--usd-max N: a number of dollars, 0 or more"); process.exit(2); }
     const AGENT = process.env.SUMMARIZER_AGENT || join(root, "cloud-brain-dev/agent.sh");
     const { DRY: _d, TAB: _t, READS: _r, MODEL: _m, ...clean } = process.env;
     const agent = (dir: string, m: string, a: string[], more: Record<string, string> = {}) => {
@@ -411,7 +414,9 @@ if (import.meta.main) {
 
     const before = journal(), rows: any[] = [];
     let stopped = "", code = 0;
+    const spent = () => Math.round(rows.reduce((a, r) => a + (r.usd || 0), 0) * 1e6) / 1e6;
     for (const e of entries) {
+      if (spent() >= usdMax) { stopped = `--usd-max ${usdMax}: the agents of this run have cost $${spent()}; ${e.id} and the papers after it were not started`; break; }
       const row: Record<string, any> = { id: e.id };
       const say = (more: Record<string, any>) => { Object.assign(row, more); rows.push(row); console.log(JSON.stringify(row)); };
       const was = kept(e.id), done = summarized(e);
@@ -464,12 +469,12 @@ if (import.meta.main) {
       const p = put({ id: e.id, text: whole, tags: [SUMMARY_TAG], method: "paper-summarizer" });
       note({ ...base, ...lengths, length: whole.length, outcome: p.ok ? "put" : "failed", put: p.answer, ...(p.ok ? {} : { why: `knowledge.put ${p.status ?? ""}`.trim() }) });
       say({ outcome: p.ok ? "put" : "failed", ...lengths, length: whole.length, refused, usd: base.usd, put: p.answer });
-      if (!p.ok) code = code || 1;
+      if (!p.ok) { stopped = `knowledge.put ${p.status ?? ""} for ${e.id}: the papers after it were not started`; break; }
     }
     const n = (f: (r: any) => boolean) => rows.filter(f).length;
     end(code || (stopped || missing.length ? 1 : 0), { papers, ...(dry ? { dry: true } : {}), entries: entries.length, put: n((r) => r.outcome === "put"), dry_written: n((r) => r.outcome === "dry"), refused: n((r) => r.outcome === "refused"), failed: n((r) => r.outcome === "failed"),
       summarizedBefore: n((r) => r.skipped === "summarized"), refusedBefore: n((r) => r.skipped === "refused-before"), skipped: rows.filter((r) => r.skipped && r.skipped !== "summarized" && r.skipped !== "refused-before").map((r) => r.id),
-      usd: Math.round(rows.reduce((a, r) => a + (r.usd || 0), 0) * 1e6) / 1e6, ...(missing.length ? { missing } : {}), ...(stopped ? { stopped } : {}) });
+      usd: spent(), ...(missing.length ? { missing } : {}), ...(stopped ? { stopped } : {}) });
   }
 
   let stopped = "";
