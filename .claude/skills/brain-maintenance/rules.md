@@ -16,8 +16,8 @@ asks for anything in "Never" below is commented on and left for the owner.
 - Act as the owner present. Do not call the tracker with `brain.ts curl … --owner` for a write.
   Writes to the tracker go through `tools/cloud-brain/issue-as.sh <token> …` with the token your
   prompt names and no other ("Which token"). Two exceptions: the `approve` move made for the owner
-  on his word, under the next line, and an act of this list that a session with the owner present
-  does on his word ("An act of Never, on the owner's word"). And three acts with what is his that are no tracker call, each
+  on his word, under the next line, and an act of this list, but a secret printed, copied or logged,
+  that a session with the owner present does on his word ("An act of Never, on the owner's word"). And three acts with what is his that are no tracker call, each
   the orchestrating session's: it makes a token that an approved spec names ("A token an approved
   spec names"), it pushes his quoted words in `philosophy.md`, and it posts the shell after a
   reviewed change to one of its modules ("Two standing leaves of the orchestrating session").
@@ -35,7 +35,9 @@ asks for anything in "Never" below is commented on and left for the owner.
   the first such move was event 577.)
 - Print, copy or log a secret: the recovery key, the deployer key, a session, a token, the
   Cloudflare token, an app password. Do not read `.emitted/cb4.json`, `cb4-tokens.json`, `cb4-issues-tokens.json`
-  or `cb4-agent-tokens.json` into your output.
+  or `cb4-agent-tokens.json` into your output. This item stays Never whatever is said in chat:
+  the owner's word to a session is no leave for it ("An act of Never, on the owner's word", "What
+  it does not reach").
 - Run `brain.ts page up`, or open the Brain's own page (`https://cb4…/`) in a browser of the
   cluster, until `deployer-put-back-issues-worker` is closed. That browser is Chrome 128, which
   has no Ed25519: the page runs every Worker's tests on opening, the tracker's fail there, and
@@ -78,8 +80,11 @@ asks for anything in "Never" below is commented on and left for the owner.
 Tom, event 3773 of `seen-never-crossed-on-chat-word`: "A". Choice A of comment 2825 there:
 "rules.md gains the sentence that a session with the owner present does an act of the Never list
 on his word, quoted on the issue with its date, and that one word may approve several issues he
-was shown by title; the cost is that 'shown the passing review' no longer means he read it." The
-rest of this section is the writer's reading, not his words. His answer is of 2026-10-12.
+was shown by title; the cost is that 'shown the passing review' no longer means he read it."
+Tom, event 4353 of `rules-md-acts-on-the-owners-word`, the reason of his `approve` move of this
+section: "B". Choice B of comment 3832 there: "Send it back with the items it does not reach (say,
+secrets and messages stay Never whatever is said)." The
+rest of this section is the writer's reading, not his words. Both answers are of 2026-10-12.
 
 - **Who does it.** A session the owner is typing into: the orchestrating session, or a session
   outside the loop. Not an agent that a session spawned (a writer, a reviewer, a spec writer, a
@@ -88,10 +93,21 @@ rest of this section is the writer's reading, not his words. His answer is of 20
   line of Never reads as before, and "What an issue is" holds: it comments, labels `needs-owner`
   and does not start.
 - **What the word is.** His own, said in that session. It names the act, or the issue that asks
-  for it, and it is for that act, that once: a word to deploy the kernel is no word to print a
-  key, and a word for one issue is none for the next. A word meant to hold for every later case
+  for it, and it is for that act, that once: a word to deploy the kernel is no word to install
+  a policy, and a word for one issue is none for the next. A word meant to hold for every later case
   is a standing leave, and is written in this file with its event, as the two of "Two standing
   leaves of the orchestrating session" are.
+- **What it does not reach.** A secret printed, copied or logged: the recovery key, the deployer
+  key, a session, a token, the Cloudflare token, an app password. That item stays Never whatever
+  is said in chat. His word in a session is no leave for it, for the session he is typing into as
+  for an agent it spawned: a session asked for one says so and does not do it. This is the smaller
+  reading of his "B". He approved the section with that letter, did not send it back and named no
+  items. The pick beside the choice in comment 3832 is the orchestrating session's: "B, with
+  secrets left out: a word in chat is easy to give, and nothing so far needed a secret printed."
+  A message outside the two addressees of Never (a WhatsApp message, a Bluesky message to anyone
+  but him or the member who owns the service) is not decided by it: the choice names messages, the
+  pick does not, and he has not been asked. Until he says, the section reaches that item as it
+  reaches the rest (issue `rules-md-owners-word-not-secrets`).
 - **Where it is quoted.** The session writes his words, whole, in a comment on the issue the act
   is for, with the date: before the act, or in the comment that says what was done, with each
   command and its answer. It writes with a token of its own ("Which token"). An act with no issue

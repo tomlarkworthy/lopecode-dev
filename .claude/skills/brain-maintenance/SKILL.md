@@ -737,12 +737,12 @@ The token is never printed or read. It is not put to the owner, and the task doe
 
 Still his alone: a token no approved spec names, a method or a scope the spec does not give, and
 every other act with his session but the `approve` move, the two standing leaves, and an act he
-gives his word for in this session (`rules.md`, Never, "Two standing leaves of the orchestrating
+gives his word for in this session, which a secret printed, copied or logged never is (`rules.md`, Never, "Two standing leaves of the orchestrating
 session" and "An act of Never, on the owner's word").
 
 ## What the loop does not do
 
-- Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md` for what you do of these on his word: the `approve` move since 2026-10-11, and since 2026-10-12 an act of its Never list that he gives his word for in this session, quoted on the issue with its date ("An act of Never, on the owner's word"). An agent you spawn does none of them; an approver makes the `approve` move through `approver.ts` alone, which sends none until the owner has installed a policy that names its delegation (step 3, the row for `awaiting-approval`).
+- Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md` for what you do of these on his word: the `approve` move since 2026-10-11, and since 2026-10-12 an act of its Never list that he gives his word for in this session, quoted on the issue with its date, but a secret printed, copied or logged, which no word of his in a session gives leave for ("An act of Never, on the owner's word"). An agent you spawn does none of them; an approver makes the `approve` move through `approver.ts` alone, which sends none until the owner has installed a policy that names its delegation (step 3, the row for `awaiting-approval`).
 - Two agents on one issue. (No number of writers or reviewers is set: step 2.)
 - Issues whose fix is in `exporter-3`, `robocoop-5`, the channel server or `lopecode`. Comment with the change wanted and label `needs-owner`.
 - Carry on past a cluster that is not healthy.

@@ -82,8 +82,9 @@ test("Never agrees: the approve line, the first line and the line of the four Wo
   expect(never).not.toContain("One exception, under the next line");
   expect(never).toContain("or of several issues he was shown by title");
   expect(never).toContain("names the review's event and says what he was shown");
-  // The section is named in the first line, the approve line and the line of the kernel, core, db and deployer.
-  expect(never.split(ref).length - 1).toBe(3);
+  // The section is named in the first line, the approve line and the line of the kernel, core, db and deployer,
+  // and since rules-md-owners-word-not-secrets in the line of the secrets, which it does not reach.
+  expect(never.split(ref).length - 1).toBe(4);
   expect(never).toContain(`and is not started. A session with the owner present deploys one on his word (${ref}).`);
 });
 
