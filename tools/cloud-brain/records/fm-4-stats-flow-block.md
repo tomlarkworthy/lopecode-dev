@@ -96,8 +96,11 @@ Against what is written elsewhere of that event:
 
 ## Tests
 
-Each count is from the command beside it, run in the worktree after the last edit of the tool and
-of the test file.
+Each count is from the command beside it, run in the worktree after the last edit of the test file
+and of a line of code of the tool. One line of the tool's header comment was edited after them, and
+the rebase of the landing brought in four files of `fm-5-page-and-dashboard` (two specs, a seed,
+`seen.json`); after both, `bun test ./tests/tools/issue-stats.test.ts` gave 32 pass, 0 fail. The other
+commands were not run again.
 
 | Command | Result |
 |---|---|
