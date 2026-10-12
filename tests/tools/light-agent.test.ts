@@ -4,7 +4,7 @@
 //
 //   bun test ./tests/tools/light-agent.test.ts
 // No call leaves the machine: the Brain is a server of this process, and `claude` is a stand-in on PATH.
-import { test as always, expect, afterAll } from "bun:test";
+import { expect, afterAll } from "bun:test";
 import { symlinkSync, mkdtempSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, existsSync, chmodSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
@@ -223,11 +223,10 @@ test("no advisor unless ADVISOR=1: the run's settings empty advisorModel", async
 // Issue agent-sh-read-whole-before-run: three light reviewers printed their JSON line and then ended exit 2 on
 // "unexpected EOF while looking for matching", with the scratch directory left, after agent.sh was written over
 // during the run. `claude` here waits for the file `go`, so the write is made while agent.sh runs.
-// Skipped while the agent.sh under test has no block with its exit inside (the fix is a commit of cloud-brain-dev
-// that only the owner pushes); AGENT_SH_WRITTEN_OVER=1 runs it on any agent.sh.
+// Not skipped since wt-1-land-the-agent-sh-block (2026-10-12), when the block came into the pointer: an agent.sh
+// with no block fails here. Until then it ran only on a file that had one, or with AGENT_SH_WRITTEN_OVER=1.
 const agentSh = existsSync(join(dev, "agent.sh")) ? readFileSync(join(dev, "agent.sh"), "utf8") : "";
-const readWhole = /\n\{\n[\s\S]*\nexit\n\}\n*$/.test(agentSh);
-(readWhole || process.env.AGENT_SH_WRITTEN_OVER ? test : always.skip)("agent.sh written over while claude runs: exit 0, the JSON line, no scratch directory left", async () => {
+test("agent.sh written over while claude runs: exit 0, the JSON line, no scratch directory left", async () => {
   const lines = agentSh.split("\n");
   const over: Record<string, string> = {
     longer: [lines[0], "# a line that was not there when the run began", ...lines.slice(1)].join("\n"),
