@@ -1938,11 +1938,8 @@ issuesPanel = ({ client, owner = false, by = { caller: "owner", via: "session" }
       };
       const made = () => actButtons(i, { reason: text.value.trim(), refs: [{ kind: "event", value: String(e.seq) }], swaps: false, likely: true, only: undoes, via: once });
       const line = { key: null, text, issue: i, event: e, undo: [] };
-      const buttons = () => {
-        const all = made();
-        acts.replaceChildren(...all);
-        if (sending.has(i.id)) for (const b of all) Object.assign(b, { disabled: true, title: "Being sent." });
-      };
+      // No button is drawn while a write is on its way: the copy has the move already, and its state has no undo.
+      const buttons = () => acts.replaceChildren(...made());
       text.oninput = buttons;
       buttons();
       // What undoes it, as the names of the moves: none once it is undone, and none while the undo is on its way.
