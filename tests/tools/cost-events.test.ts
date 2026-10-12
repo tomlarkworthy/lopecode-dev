@@ -4,14 +4,15 @@
 //   bun test ./tests/tools/cost-events.test.ts
 //   COST_EVENTS_TS=/path/to/another/cost-events.ts bun test …
 // No call leaves the machine: the events are the list below, and the sender of `post` is a function here.
-// The last two tests give the calls to `issueAct` of the tracker as cb4 runs it, which a worktree of worktree.sh has
-// in cloud-brain-dev/deploy/ and another checkout has after `bun sync.ts` there.
+// The last three tests give the calls to `issueAct` of the tracker as the seed of this checkout has it
+// (tools/cloud-brain/brain-issues.ojs, compiled here by needs.ts), and not as cloud-brain-dev/deploy/ has it: that copy
+// is as old as the checkout's last `bun sync.ts` (issue cost-events-test-reads-stale-deploy).
 import { expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { testNeeding } from "./needs.ts";
+import { testNeedingSeed } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../.."), tool = process.env.COST_EVENTS_TS || resolve(root, "tools/cloud-brain/cost-events.ts");
 const { plan, checked, post, summary } = await import(tool);
@@ -226,11 +227,10 @@ test("the tool as run: a refusal stops the sending, exit 1, and a comment left o
   expect(dry.lines[2]).toEndWith("2 cost comments: 0 entered already, 0 passed over for a later cost event, 1 left out; of those to enter, 0 with a usage, 0 with a usd, 1 fresh, 0 resumed, 0 light; 1 to enter");
 });
 
-const deployed = resolve(root, "cloud-brain-dev/deploy/@tomlarkworthy/brain-issues.js");
-const withTracker = testNeeding("cost-events.test.ts, its two tests with issueAct", [deployed], "cd cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev");
+const { test: withTracker, module: tracker } = await testNeedingSeed("cost-events.test.ts, its three tests with issueAct", "brain-issues.ojs");
 const issueAct = async () => {
   const { importNotebookModule } = await import(resolve(root, "tools/notebook-import.ts"));
-  return (await importNotebookModule(deployed, { overrides: { checkedRule: () => { throw new Error("no rule is checked here"); } } })).value("issueAct");
+  return (await importNotebookModule(tracker, { overrides: { checkedRule: () => { throw new Error("no rule is checked here"); } } })).value("issueAct");
 };
 
 withTracker("the tracker's own shape check takes each call made from the fixed list", async () => {
@@ -239,15 +239,15 @@ withTracker("the tracker's own shape check takes each call made from the fixed l
 
 withTracker("the tool as run with --check: a refused body is named, exit 1, and --post then sends nothing", () => {
   const s = standIn([cost("k", { role: "reviewer", round: 1, tokens: 1, seconds: 2, outcome: "pass" }), cost("k", { role: "reviewer", round: 2, tokens: 1.5, seconds: 2, outcome: "pass" })]);
-  const r = s.run("--check", deployed, "--post");
+  const r = s.run("--check", tracker, "--post");
   expect(r.status).toBe(1);
   expect(r.lines[0]).toStartWith(`refused by issueAct: cost/k/reviewer/2, comment ${seq}: context`);
-  expect(r.lines[1]).toBe(`checked with issueAct of ${deployed}: 1 taken, 1 refused`);
+  expect(r.lines[1]).toBe(`checked with issueAct of ${tracker}: 1 taken, 1 refused`);
   expect(r.lines.length).toBe(3);
   expect(s.written()).toEqual([]);
-  const ok = standIn([cost("k", { role: "reviewer", round: 1, tokens: 1, seconds: 2, outcome: "pass" })]).run("--check", deployed);
+  const ok = standIn([cost("k", { role: "reviewer", round: 1, tokens: 1, seconds: 2, outcome: "pass" })]).run("--check", tracker);
   expect(ok.status).toBe(0);
-  expect(ok.lines[1]).toBe(`checked with issueAct of ${deployed}: 1 taken, 0 refused`);
+  expect(ok.lines[1]).toBe(`checked with issueAct of ${tracker}: 1 taken, 0 refused`);
 });
 
 withTracker("and refuses, with the field named, a call made from a line of the wrong type", async () => {

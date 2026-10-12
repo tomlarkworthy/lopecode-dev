@@ -6,8 +6,9 @@
 //   bun test ./tests/tools/needs.test.ts
 // The four files are run as they are, each pointed at a place that has nothing.
 import { test, expect } from "bun:test";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { BUILT, COMMITTED, notebookOf } from "./needs.ts";
+import { BUILT, COMMITTED, notebookOf, seedModule, testNeedingSeed } from "./needs.ts";
 
 const here = import.meta.dir;
 const none = resolve(here, "no-such-place");
@@ -61,4 +62,31 @@ test("atproto-publish.test.ts with no atproto.html leaves fetch a function for t
   const out = p.stdout.toString() + p.stderr.toString();
   expect(out).toContain("fetch after: function");
   expect(p.exitCode).toBe(0);
+}, 60000);
+
+// Issue cost-events-test-reads-stale-deploy: cost-events.test.ts asked issueAct of cloud-brain-dev/deploy/, and failed 3
+// in a checkout whose copy was from before issue.cost.
+test("a module is compiled from the seed of this checkout, once, into a file that is not in the checkout", async () => {
+  const file = await seedModule("brain-issues.ojs");
+  expect(file).toEndWith("/brain-issues.js");
+  expect(file.startsWith(resolve(here, "../.."))).toBe(false);
+  expect(await seedModule("brain-issues.ojs")).toBe(file);
+  // The list of issue.cost's fields, as the seed has it, is in what was compiled.
+  const fields = readFileSync(resolve(here, "../../tools/cloud-brain/brain-issues.ojs"), "utf8").match(/ cost: \[("[a-z]+"(, )?)+\]/)![0];
+  expect(readFileSync(file, "utf8")).toContain(fields);
+  expect((await testNeedingSeed("needs.test.ts", "brain-issues.ojs")).module).toBe(file);
+}, 60000);
+
+test("with no toolchain notebook the tests of a seed are skipped with a line, and any other failure of the build is thrown", async () => {
+  const lines: string[] = [], log = console.log;
+  console.log = (l: string) => void lines.push(l);
+  try {
+    const none = await testNeedingSeed("a.test.ts, its tests of x", "x.ojs", async () => { throw new Error("no @tomlarkworthy_observablejs-toolchain.html in lopecode/ or lopebooks/"); });
+    expect(none.test).toBe(test.skip);
+    expect(lines).toEqual(["skipped: a.test.ts, its tests of x: x.ojs was not compiled: no @tomlarkworthy_observablejs-toolchain.html in lopecode/ or lopebooks/. tools/cloud-brain/worktree.sh makes a worktree that has it; in another checkout, git submodule update --init cloud-brain-dev lopebooks lopecode"]);
+    expect(testNeedingSeed("a.test.ts", "x.ojs", async () => { throw new Error("cell 3: Unexpected token"); })).rejects.toThrow("cell 3: Unexpected token");
+    expect(lines.length).toBe(1);
+  } finally {
+    console.log = log;
+  }
 }, 60000);
