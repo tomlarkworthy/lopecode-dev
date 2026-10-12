@@ -514,6 +514,11 @@ a test file under `tests/` that reads the doc and fails before the edit (`tests/
 A test that holds a sentence of a record reads the record and, for anything else, a file as a commit
 named in the record has it (`git show <commit>:<path>`; `tests/tools/ds-3-record.test.ts`), never the
 file as it is: a later line there fails the test while the record is true.
+A task that is an act on cb4 and ends with nothing but its record (a row put, a notebook published) is not
+this case. Its count is the one `rules.md` gives (Never, the last item): the confirmation that the act
+happened, made by you where it took effect, which is the check the spec names for the task when it names one.
+Give that count in the submit, and the suite's beside it when the landing has a record
+(`dsv-7-second-dashboard-as-data`, 2026-10-12: this paragraph, `rules.md` and the spec each gave another count).
 
 ## What a reviewer will check
 
