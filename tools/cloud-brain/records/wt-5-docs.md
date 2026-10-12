@@ -88,7 +88,7 @@ worktree; the README's part and the line of `AGENTS.md`. The ninth reads the clo
 `skipped: wt-5-docs.test.ts, its test of cloud-brain-dev: no <file>` in a checkout that has none.
 They hold words: none of them runs a landing.
 
-Five files of the suite hold other sentences of `rules.md` or of the guide. Run with the new test
+Eight files of the suite hold other sentences of `rules.md` or of the guides, or enter the docs. Run with the new test
 after the edits, 21:20: `bun test ./tests/tools/wt-5-docs.test.ts ./tests/tools/rules-md-acts-on-the-owners-word.test.ts
 ./tests/tools/rules-md-lock-sh-lines-name-token.test.ts ./tests/tools/rules-md-owners-word-not-secrets.test.ts
 ./tests/tools/rules-md-philosophy-push-leave.test.ts ./tests/tools/rules-count-for-a-task-with-no-tests.test.ts
@@ -149,6 +149,13 @@ header still has), and `oversight.md`.
 - **Other lines of `rules.md` that speak of the main checkout** ("A token an approved spec names":
   "from the main checkout"; "A Bluesky DM": "Run it from the main checkout, by its absolute path").
   Both are a tool run there that writes no tracked file. They are outside "Always" and were left.
+- **The ninth test in the main checkout before its copy of `cloud-brain-dev` is pulled.** It reads
+  the working file of the checkout it is in. With the main checkout's copy named, at `ca5299a`
+  (21:45, before this landing):
+  `README=<root>/cloud-brain-dev/README.md AGENTS=<root>/cloud-brain-dev/AGENTS.md bun test ./tests/tools/wt-5-docs.test.ts`
+  gave 8 pass, 1 fail. So the suite run in the main checkout fails that test from this landing
+  until the orchestrating session's pull of that copy. A worktree or a view made after the landing
+  has its clone at the pointer, which names the commit with the lines. The test was left as it is.
 - **A reader with the files alone.** `/review-notebook` was not run: the loop's reviewer is the
   fresh read (`agents/implementer.md`, step 9).
 
