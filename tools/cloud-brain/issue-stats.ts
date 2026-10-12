@@ -6,6 +6,10 @@
 // above and exits 2, and nothing is sent (issue-stats-default-token-r4; until then it read as a role's token).
 // --after counts only the issues opened after that event. Times are the events' own `at`.
 // --window counts the events after that one, whatever issue they are of: what an oversight judges its last edits by.
+// With --window, the lines under `time in a state, of the stays that began after <SEQ>` are made as the ones of the whole
+// record are, from the stays whose first event (the open, or the move into the state) is after that event and whose move
+// out is in the record read. They are of every issue but a `test-` one, whatever --after is, as the `window` line is; a
+// state with no such stay has no line, and with none at all the line under the heading says so (stats-window-time-in-a-state).
 // --until reads the record as it was at that event: a count written down with its event can be made again.
 // `statements only` counts the reviews whose body begins with those words, and what the round after a sent-back one cost:
 // the `context` of two `cost` events, the writer's run and the reviewer's (the line says `tokens`, as it did).
@@ -65,16 +69,16 @@ const workflows: Record<string, any> = {}, issues: Record<string, any> = {}, fee
 for (const e of events) {
   if (e.type === "policy") for (const [n, h] of Object.entries(e.hashes)) { workflows[h as string] = e.policy.workflows[n]; if (n === e.policy.kinds?.feedback) feedbackFlows.add(h as string); }
   if (!e.id || e.hidden || e.type === "policy") continue;
-  if (e.type === "opened") issues[e.id] = { id: e.id, kind: e.kind, opener: who(e.by), workflow: e.workflow, state: e.state, at: e.at, since: e.at, seq: e.seq, labels: new Set(e.labels || []), stays: [], moves: [], verdicts: [], asked: (e.labels || []).includes("needs-owner"), parent: e.parent, links: 0, to: [] as string[], bySession: e.by?.via === "session", heldBy: { comment: false, triage: false } };
+  if (e.type === "opened") issues[e.id] = { id: e.id, kind: e.kind, opener: who(e.by), workflow: e.workflow, state: e.state, at: e.at, since: e.at, sinceSeq: e.seq, seq: e.seq, labels: new Set(e.labels || []), stays: [], moves: [], verdicts: [], asked: (e.labels || []).includes("needs-owner"), parent: e.parent, links: 0, to: [] as string[], bySession: e.by?.via === "session", heldBy: { comment: false, triage: false } };
   const i = issues[e.id];
   if (!i) continue;
   i.last = e.at;
   if (e.type === "moved" || e.type === "swapped") {
     const to = e.type === "moved" ? e.to : e.to.state;
-    i.stays.push([i.state, e.at - i.since]);
+    i.stays.push([i.state, e.at - i.since, i.sinceSeq]);
     if (e.move === "triage") i.heldBy.triage = /\bheld\b/i.test(e.reason || "");
     i.moves.push(e.move || e.swap || "swap");
-    Object.assign(i, { state: to, since: e.at }, e.type === "swapped" ? { workflow: e.to.workflow } : {});
+    Object.assign(i, { state: to, since: e.at, sinceSeq: e.seq }, e.type === "swapped" ? { workflow: e.to.workflow } : {});
   }
   if (e.type === "commented" && /^held:/i.test(String(e.body || "").trimStart())) i.heldBy.comment = true;
   if (e.type === "reviewed") i.verdicts.push(e.verdict);
@@ -92,8 +96,11 @@ const all = Object.values(issues).filter((i: any) => i.seq > since && !/^test-/.
 const closed = (i: any) => (workflows[i.workflow]?.closed || []).includes(i.state);
 const count = (l: string[]) => l.reduce((m: Record<string, number>, k) => ((m[k] = (m[k] || 0) + 1), m), {});
 
-const perState: Record<string, number[]> = {};
+const perState: Record<string, number[]> = {}, perStateInWindow: Record<string, number[]> = {};
 for (const i of all) for (const [s, ms] of i.stays) (perState[s] ||= []).push(ms);
+// A stay is in the window when it began after --window: the event that put the issue in the state, not the move out.
+if (from) for (const i of Object.values(issues) as any[]) if (!/^test-/.test(i.id)) for (const [s, ms, began] of i.stays) if (began > from) (perStateInWindow[s] ||= []).push(ms);
+const timeIn = (per: Record<string, number[]>) => Object.fromEntries(Object.entries(per).map(([s, l]) => [s, { stays: l.length, medianMin: +(median(l) / 60000).toFixed(1), totalH: H(l.reduce((a, b) => a + b, 0)), maxH: H(Math.max(...l)) }]));
 const done = all.filter((i) => i.state === "done");
 const submits = all.reduce((n, i) => n + i.moves.filter((m: string) => m === "submit").length, 0);
 const reworks = all.reduce((n, i) => n + i.moves.filter((m: string) => m === "rework").length, 0);
@@ -184,7 +191,9 @@ const windowReport = {
   after: from, events: inWindow.length, submits: moved("submit") + moved("submit-spec"), reworks: moved("rework") + moved("send-back"),
   verdicts: count(inWindow.filter((e) => e.type === "reviewed").map((e) => e.verdict)),
   withText: inWindow.filter((e) => `${e.reason || ""}${e.body || ""}`.trim()).length, timesAhead: inWindow.filter(ahead).map((e) => e.seq),
-  statementsOnly: statementsOnly(inWindow)
+  statementsOnly: statementsOnly(inWindow),
+  // Of the stays that began after --window and ended in the record read; {} with no --window.
+  timeInState: timeIn(perStateInWindow)
 };
 return {
   window: windowReport, since, idleH,
@@ -196,7 +205,7 @@ return {
   openers,
   approveBySession,
   // Time spent in a state before the move out of it. An issue still in a state is under `waiting`.
-  timeInState: Object.fromEntries(Object.entries(perState).map(([s, l]) => [s, { stays: l.length, medianMin: +(median(l) / 60000).toFixed(1), totalH: H(l.reduce((a, b) => a + b, 0)), maxH: H(Math.max(...l)) }])),
+  timeInState: timeIn(perState),
   done: { count: done.length, medianH: H(median(done.map((i) => i.since - i.at))), firstPass: done.filter((i) => !i.moves.includes("rework")).length, quick: done.filter((i) => !i.moves.includes("ready")).length },
   review: { submits, reworks, verdicts: count(all.flatMap((i) => i.verdicts)) },
   // Of the record up to --until, whatever --after is; `window.statementsOnly` is of the reviews after --window.
@@ -230,9 +239,15 @@ export function text(report: Report) {
   const a = report.approveBySession;
   console.log(`approve by the session: ${a.pressed} pressed, ${a.madeForOwner} made for the owner${a.other.length ? `; ${a.other.length} with another key ${JSON.stringify(a.other)}` : ""}`);
   console.log("time in a state before the move out of it");
-  for (const [s, t] of Object.entries(report.timeInState)) console.log(`  ${s.padEnd(18)} ${String(t.stays).padStart(3)} stays  median ${String(t.medianMin).padStart(6)} min  total ${String(t.totalH).padStart(5)} h  max ${t.maxH} h`);
+  const stays = (of: Report["timeInState"]) => { for (const [s, t] of Object.entries(of)) console.log(`  ${s.padEnd(18)} ${String(t.stays).padStart(3)} stays  median ${String(t.medianMin).padStart(6)} min  total ${String(t.totalH).padStart(5)} h  max ${t.maxH} h`); };
+  stays(report.timeInState);
   line("done", `${report.done.count}, median ${report.done.medianH} h from opened; ${report.done.firstPass} with no rework; ${report.done.quick} started without triage`);
   line("review", `${submits} submits, ${reworks} sent back; verdicts ${JSON.stringify(report.review.verdicts)}`);
+  if (from) {
+    console.log(`time in a state, of the stays that began after ${from}`);
+    stays(windowReport.timeInState);
+    if (!Object.keys(windowReport.timeInState).length) console.log("  none: no stay began after it and ended");
+  }
   if (from) line("window", `${windowReport.events} events after ${from}: ${windowReport.submits} submits, ${windowReport.reworks} sent back; verdicts ${JSON.stringify(windowReport.verdicts)}; ${windowReport.timesAhead.length} of ${windowReport.withText} texts name a time ahead of their own stamp ${JSON.stringify(windowReport.timesAhead)}`);
   const marked = (t: Report["statementsOnly"]["all"]) => `${t.reviews} ${JSON.stringify(t.verdicts)}${t.round.summed + t.round.leftOut.length ? `, the rounds after ${t.round.summed} sent back: ${t.round.tokens} tokens${t.round.leftOut.length ? `, ${t.round.leftOut.length} more left out (no cost event naming its event) ${JSON.stringify(t.round.leftOut)}` : ""}` : ""}`;
   const statements = (s: Report["statementsOnly"]) => `${marked(s.all)}; of them \`statements only, record\`: ${marked(s.record)}`;

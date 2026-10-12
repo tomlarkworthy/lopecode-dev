@@ -3,13 +3,14 @@
 // writers (part 3, "Not known"). Issue overseer-md-lacks-order-of-service-reads.
 //
 //   bun test ./tests/tools/overseer-md-order-of-service-reads.test.ts
-//   BRIEF=<file> reads another copy of the brief (the one before the change fails the first three; the fourth reads the spec).
+//   BRIEF=<file> reads another copy of the brief (the one before that issue's change fails the first three; the fourth reads the spec).
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dir, "../..");
 const brief = readFileSync(process.env.BRIEF || resolve(root, ".claude/skills/brain-maintenance/agents/overseer.md"), "utf8");
+const stats = readFileSync(resolve(root, "tools/cloud-brain/issue-stats.ts"), "utf8");
 const spec = readFileSync(resolve(root, "plan/cloud-brain-loop-order-of-service.md"), "utf8").replace(/\s+/g, " ");
 const from = brief.indexOf("\n## Measure first"), to = brief.indexOf("\n## ", from + 1);
 const section = brief.slice(from, to).replace(/\s+/g, " ");
@@ -28,9 +29,13 @@ test("Measure first asks for the median stay at in-review after os-2, once, afte
 test("the figure it is read against has where it is from, and when a median is a finding", () => {
   expect(section).toContain("6.3 min over 147 stays");
   expect(section).toContain("Once 40 stays are in the window, a median over 6.3 is a finding.");
-  // the tool has no such line for a window; the brief says so and how the line is made
-  expect(section).toContain("`issue-stats.ts --window=2849` printed one `window` line and no time in a state");
-  expect(section).toContain('io "sync?after=2849"');
+  // the line is the tool's since stats-window-time-in-a-state; the brief names it, and no count made by hand
+  expect(section).toContain("with `--window=2849` it prints `time in a state, of the stays that began after 2849`, and the row `in-review` under that heading");
+  expect(section).not.toContain('io "sync?after=2849"');
+});
+
+test("the heading the brief names is one issue-stats.ts prints", () => {
+  expect(stats).toContain("`time in a state, of the stays that began after ${from}`");
 });
 
 test("Measure first names the sign of a machine that carries no more writers, and where it goes", () => {

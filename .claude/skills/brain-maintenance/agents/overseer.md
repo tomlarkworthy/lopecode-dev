@@ -43,11 +43,12 @@ fixed pool and gives a place to a review before a new start
 line in your entry: the median stay at `in-review` of the stays that began after event 2849, with
 the number of stays. The spec's figure to read it against is 6.3 min over 147 stays, the whole
 record when the spec was written on 2026-10-11. Once 40 stays are in the window, a median over 6.3
-is a finding. On 2026-10-12 `issue-stats.ts --window=2849` printed one `window` line and no time in
-a state, so until the tool has that line it is made from the events: `io "sync?after=2849"`, which
-answers 200 events a call (ask again from the last `seq` until none come), and for each move to
-`in-review` the time to the next move of that issue out of it. That gave 10 stays, median 4.6 min,
-at event 3367. When a report or the journal shows a machine that carried no more writers (memory,
+is a finding. The line is the tool's: with `--window=2849` it prints
+`time in a state, of the stays that began after 2849`, and the row `in-review` under that heading
+has the stays and the median (since `stats-window-time-in-a-state`, 2026-10-12; until then it was
+made by hand from `sync`). At event 3367 it read 10 stays, median 4.8 min; of an even number of
+stays the tool's median is the upper of the two middle ones. When a report or the journal shows a
+machine that carried no more writers (memory,
 the channel rows of QA tabs, a tab that did not open), name the sign in your entry and add it to
 `SKILL.md` step 2 as one of your two edits (the spec, part 3, "Not known").
 

@@ -392,3 +392,72 @@ test("--idle is the hours of both; with nothing past them the line reads 0", () 
   const before = report(past4, { now: NOW, until: past4.find((e: any) => e.id === "h-comment" && e.type === "commented")!.seq - 1 });
   expect(before.unstarted.noReason.some((w: any) => w.id === "h-comment")).toBe(true);
 });
+
+// stats-window-time-in-a-state: with --window, the time in a state of the stays that began after that event.
+// R3 of the table of checks of plan/cloud-brain-loop-order-of-service.md reads the line `in-review` of it.
+const min = 60000;
+const ev = (seq: number, type: string, id: string, minutes: number, more: any = {}) => ({ seq, key: `w${seq}`, type, id, by: token("impl-3fa2c1"), at: minutes * min, ...more });
+const mv = (seq: number, id: string, move: string, from: string, state: string, minutes: number) => ev(seq, "moved", id, minutes, { move, from, to: state });
+const windowed = [
+  ev(1, "opened", "wa", 0, { kind: "bug", state: "open", labels: [] }),
+  mv(2, "wa", "start", "open", "in-progress", 1),
+  mv(3, "wa", "submit", "in-progress", "in-review", 11),   // began before the window (10), ends after it: 9 min, not of it
+  ev(4, "opened", "wb", 12, { kind: "bug", state: "open", labels: [] }),
+  mv(5, "wb", "start", "open", "in-progress", 13),
+  mv(6, "wb", "submit", "in-progress", "in-review", 15),   // began before the window too: 30 min
+  mv(10, "wa", "rework", "in-review", "in-progress", 20),
+  mv(11, "wa", "submit", "in-progress", "in-review", 22),  // 2 min at in-progress from event 10 itself (not after it), then 4 min at in-review
+  mv(12, "wa", "pass", "in-review", "done", 26),
+  ev(13, "opened", "wc", 27, { kind: "bug", state: "open", labels: [] }),
+  mv(14, "wc", "start", "open", "in-progress", 30),        // 3 min at open
+  mv(15, "wc", "submit", "in-progress", "in-review", 40),  // 10 min at in-progress, then 8 min at in-review
+  mv(16, "wb", "pass", "in-review", "done", 45),
+  mv(17, "wc", "pass", "in-review", "done", 48),
+  ev(18, "opened", "wd", 50, { kind: "bug", state: "open", labels: [] }),
+  mv(19, "wd", "start", "open", "in-progress", 51),        // 1 min at open
+  mv(20, "wd", "submit", "in-progress", "in-review", 53),  // 2 min at in-progress; still at in-review: no stay
+  ev(21, "opened", "test-we", 54, { kind: "bug", state: "open", labels: [] }),
+  mv(22, "test-we", "start", "open", "in-progress", 99),   // a test- issue: not counted
+  ev(23, "opened", "wf", 60, { kind: "bug", state: "open", labels: [] }),
+  mv(24, "wf", "start", "open", "in-progress", 61),
+  mv(25, "wf", "submit", "in-progress", "in-review", 62),
+  { ...mv(26, "wf", "pass", "in-review", "done", 92), hidden: true } // a hidden move ends no stay
+];
+const inReviewLines = (lines: string[]) => lines.filter((l) => /^  in-review /.test(l) || /^time in a state/.test(l) || /^  none: /.test(l));
+
+test("--window: the stays that began after the event, by state; one that began before it is of the whole record only", () => {
+  const r = report(windowed, { now: 1e7, from: 10 });
+  expect(r.timeInState["in-review"]).toEqual({ stays: 4, medianMin: 9, totalH: 0.8, maxH: 0.5 });
+  expect(r.window.timeInState).toEqual({
+    "in-progress": { stays: 3, medianMin: 2, totalH: 0.2, maxH: 0.2 },
+    "in-review": { stays: 2, medianMin: 8, totalH: 0.2, maxH: 0.1 },
+    open: { stays: 3, medianMin: 1, totalH: 0.1, maxH: 0.1 }
+  });
+  // The event --window names is not after itself: the stay that began at 11 is in from 10 and out from 11.
+  expect(report(windowed, { now: 1e7, from: 11 }).window.timeInState["in-review"]).toEqual({ stays: 1, medianMin: 8, totalH: 0.1, maxH: 0.1 });
+  expect(report(windowed, { now: 1e7, from: 2 }).window.timeInState["in-review"].stays).toBe(4);
+});
+
+test("--window with --until: a stay whose move out is after --until is not counted; --after does not cut the window", () => {
+  expect(report(windowed, { now: 1e7, from: 10, until: 16 }).window.timeInState["in-review"]).toEqual({ stays: 1, medianMin: 4, totalH: 0.1, maxH: 0.1 });
+  expect(report(windowed, { now: 1e7, from: 10, until: 11 }).window.timeInState["in-review"]).toBeUndefined();
+  const cut = report(windowed, { now: 1e7, from: 10, since: 12 });
+  expect(cut.timeInState["in-review"].stays).toBe(1);
+  expect(cut.window.timeInState["in-review"].stays).toBe(2);
+});
+
+test("the lines printed: with --window a second list under its own heading, above the window line; with none, no heading", () => {
+  const lines = text(report(windowed, { now: 1e7, from: 10 }));
+  expect(inReviewLines(lines)).toEqual([
+    "time in a state before the move out of it",
+    "  in-review            4 stays  median      9 min  total   0.8 h  max 0.5 h",
+    "time in a state, of the stays that began after 10",
+    "  in-review            2 stays  median      8 min  total   0.2 h  max 0.1 h"
+  ]);
+  expect(lines.findIndex((l) => l.startsWith("window "))).toBe(lines.indexOf("time in a state, of the stays that began after 10") + 4);
+  expect(inReviewLines(text(report(windowed, { now: 1e7 }))).length).toBe(2);
+  expect(report(windowed, { now: 1e7 }).window.timeInState).toEqual({});
+  // A window with no stay in it says so.
+  expect(inReviewLines(text(report(windowed, { now: 1e7, from: 25 }))).slice(2)).toEqual(["time in a state, of the stays that began after 25", "  none: no stay began after it and ended"]);
+  expect(report(windowed, { now: 1e7, from: 25 }).window.timeInState).toEqual({});
+});
