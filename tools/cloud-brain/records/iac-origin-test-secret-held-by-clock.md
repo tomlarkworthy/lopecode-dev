@@ -27,8 +27,8 @@ ten runs one after another on a build of the seed as `origin/main` had it (`1d54
 headless Chrome 151.0.7922.34, 21:14:32 to 21:18:13 CEST: nine gave `"tests":27,"passed":27`, one
 gave `"passed":26` and named this test (`expect(received).toEqual(expected)`).
 
-With no browser the defect does not show: `test.ts` runs one cell at a time and the three asks are
-2 ms apart there (the value below).
+With no browser the defect did not show: `test.ts` runs one cell at a time, and on the changed seed
+both later asks as the owner ended 2 ms after `since` there (the value below).
 
 ### What changed
 
@@ -83,10 +83,10 @@ Not taken:
 | `bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/cloudflare-iac`, ten runs, 21:22:14 to 21:26:39 CEST | `"tests":27,"passed":27,"failed":[]` in each of the ten |
 | `cd cloud-brain-dev && bun test.ts @tomlarkworthy/cloudflare-iac --with …/.emitted/iac-origin-test-secret-held-by-clock.js` | `"passed":25,"failed":0,"needsBrowser":2` |
 
-`tests/tools/suite.sh`, ended 21:37 CEST, after the seed's last change and before this file was
-written: `688 pass`, `3 fail`, `2 errors`, 691 tests in 69 files, 299.52 s where the brief gives 93
-to 95 s. The three are of `tests/tools/summarize-papers.test.ts`, each `timed out after 30000ms`
-(`--usd-max`, `refused once`, `check`). That file reads neither file of this change. `uptime` at
+`tests/tools/suite.sh`, run twice after the seed's last change: `688 pass`, `3 fail`, `2 errors`,
+691 tests in 69 files both times, in 305.44 s and 299.52 s where the brief gives 93 to 95 s. The
+second ended at 21:37:19 CEST, while this file was being written; neither was run after it. The three of the second run are of `tests/tools/summarize-papers.test.ts`, each `timed out after 30000ms`
+(`--usd-max`, `refused once`, `check`). The names of the first run's three were not read. That file reads neither file of this change. `uptime` at
 21:38 gave load averages of 11.42, 17.11 and 18.26; the file alone at that time gave 14 pass and
 12 fail, each `timed out after 5000ms`. Whether it passes on a machine at rest was not run. The
 three files of the suite that name `cloudflare-iac` (`rows-add-within-sql`, `needs`, `approver`),
