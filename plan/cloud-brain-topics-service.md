@@ -161,7 +161,8 @@ the quotes are that summary's; none was read in full by the writer.
 The proposal's review left two things "not checked by anyone". The comparison with Pub/Sub and SNS
 is checked as far as the table above. `key` as a column name against `db.sql`: the tracker's table
 `issues_events` has a column `key` on cb4 (`brain-issues.ojs:266`), so the name passes. `sender` is
-in no table today and is first tried by task 1.
+in no table today and is first tried by task 1. (As built, `tp-1-topics-append-read`, 2026-10-12: `topic_entries`
+has the columns `key` and `sender`; what D1 answered is in the record.)
 
 ## The design
 
@@ -170,7 +171,8 @@ in no table today and is first tried by task 1.
 `brain-x-topic`, module `@tomlarkworthy/brain-topic`, seed `tools/cloud-brain/brain-topic.ojs`, and two
 lines of `tools/cloud-brain/build.ts`: the module's entry, and its name in `OWNED`, which the build
 reads to cut the shell (as `brain-dashboard` was added, commit `6ddf9eb0`: the seed and those two
-lines, no other file). It uses `sql`, `xrpc` and `config`, declares no Cloudflare
+lines, no other file). It uses `sql`, `xrpc` and `config` (As built, `tp-1-topics-append-read`, 2026-10-12: `sql` and `config`;
+nothing of task 1 calls another method, so `xrpc` is not declared until task 2; the record.), declares no Cloudflare
 permission and no secret, has `crons: ["* * * * *"]`, and lists no `calls`: every call it makes
 to another method is under `x-brain-as`, which the core does not hold to that list, and `db.sql`
 is implicit (`brain-core.ojs`, `IMPLICIT`). Its tables are `topic_*`, which `brain-db` gives a
@@ -218,7 +220,10 @@ core sent it, and `hops` is `x-brain-hops` of the append. The `seq` is taken in 
 (`INSERT … SELECT COALESCE(MAX(seq), 0) + 1 … WHERE topic = ?`, primary key `(topic, seq)`, unique
 `(topic, key)`), so of two appends at once one writes after the other. Whether `brain-db`'s plan
 check passes that statement is not tried; if it does not, the writer takes the `seq` from a
-counter row in the same batch.
+counter row in the same batch. (As built, `tp-1-topics-append-read`, 2026-10-12: the check of the deployed
+`brain-db` passes the plan of that statement on a SQLite, and the counter was taken all the same, as
+a column `last` of the topic's row: after the clock has removed every entry of a topic,
+`MAX(seq) + 1` is 1 again and a reader's position is past it; the record.)
 
 Entries are kept `config.keepDays ?? 30` days and `config.keepEntries ?? 10000` to a topic, and
 removed by the clock. Both numbers are the proposal's guesses and are settings.

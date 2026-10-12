@@ -46,7 +46,7 @@ A topic that does not exist answers 404 to a caller who could create that name, 
 
 ## What the clock removes
 
-Once an hour for a running instance: entries older than \`keepDays\`, and those more than \`keepEntries\` behind the topic's \`last\`. A removed entry's \`key\` can then be appended again, as a new entry. The clock reads the settings the instance was last sent with a call (the core sends them with each one), so a setting changed with \`config.set\` is followed by the removal after the next call the instance answers.
+Entries older than \`keepDays\`, and those more than \`keepEntries\` behind the topic's \`last\`. The removal runs on the first tick of the clock an instance is given, and then on the first tick an hour or more after the last removal (\`test_topic_clock_removes_old_entries_and_no_seq_is_used_twice\`, where the test gives the ticks). On a Brain the tick is Cloudflare's cron trigger, \`* * * * *\`; no removal had been seen on cb4 when this was written, 2026-10-12. A removed entry's \`key\` can then be appended again, as a new entry. The clock reads the settings the instance was last sent with a call (the core sends them with each one), so a setting changed with \`config.set\` is followed by the removal after the next call the instance answers.
 
 ## Not built
 
@@ -123,7 +123,7 @@ topicOps = {
     if (removed) log({ at: "topic.trim", removed });
     return { removed };
   };
-  // The clock ticks each minute; the removal runs on the first tick of an instance and then once an hour.
+  // The removal runs on the first tick an instance is given, and then on the first tick trimMs or more after it.
   const tick = async (now = Date.now()) => {
     if (now - trimmed < L.trimMs) return { skipped: true };
     const before = trimmed;
