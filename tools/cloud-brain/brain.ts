@@ -3,7 +3,7 @@
  *   bun tools/cloud-brain/brain.ts install-deployer [--token] # --token: send .cf-token as the deployer's Cloudflare token; without it an update keeps the one the Worker has. Uploads .emitted/deployer.json as the deployer: <base>-deployer, or <base>-guard on a Brain from before 2026-10-08
  *   bun tools/cloud-brain/brain.ts migrate-deployer         # an old Brain: installs <base>-deployer, copies the rows of <base>-guard to it, and marks <base>-guard replaced
  *   bun tools/cloud-brain/brain.ts retire-guard             # after every Worker is deployed again: <base>-guard becomes a stub with no token and no recovery key
- *   bun tools/cloud-brain/brain.ts apply core.json [...] --reason="why"   # infra.apply with the recovery key; --reason= is required here and by redistil --apply, remove and rollback; a record whose BRAIN_INFO would be over Cloudflare's 5 KB is not sent, exit 1 (brain-info-size.ts, which apply needs beside this file)
+ *   bun tools/cloud-brain/brain.ts apply core.json [...] --reason="why"   # infra.apply with the recovery key; --reason= is required here and by redistil --apply, remove and rollback; a record whose BRAIN_INFO would be over Cloudflare's 5 KB is not sent and the command is then exit 1, the other files given are still sent (brain-info-size.ts, which apply needs beside this file)
  *   bun tools/cloud-brain/brain.ts saw [name…]   # seen.json: the hash each seed here is built on, sent as `was` by apply and remove; with names, record what runs now (after comparing its source with the emitted record, or merging it). A Worker with no entry: its first apply is refused and says what to compare
  *   bun tools/cloud-brain/brain.ts state | confirm <worker> | approval on|off | approve | rollback | remove <name>
  *   bun tools/cloud-brain/brain.ts redistil | distil | bindings | shell [SHELL.html [VERIFY.html]]   # shell: posts .emitted/verify.html (infra.shell?name=verify, the page of a deploy's test run) and then .emitted/shell.html, with the recovery key; neither when one is not there. redistil: each Worker against its source, "same" when healthy; --apply deploys the ones that differ and moves the seen.json entry of each one whose entry was the hash before
@@ -246,11 +246,12 @@ export class Rows {
   // it: the apply would answer put-back (cb4, 2026-10-13). No flag passes it. Imported here, so that the other
   // commands run from this file alone.
   const { infoRefusal } = await import("./brain-info-size.ts");
-  const big = new Map<string, string | null>(files.map((f) => [f, infoRefusal(emitted(f))]));
-  const seen = files.some((f) => !big.get(f)) ? (await deployer("getState")).workers || [] : [];
+  const read = new Map<string, any>(files.map((f) => [f, emitted(f)]));
+  const big = (f: string) => infoRefusal(read.get(f));
+  const seen = files.some((f) => !big(f)) ? (await deployer("getState")).workers || [] : [];
   for (const f of files) {
-    const e = emitted(f);
-    if (big.get(f)) { console.log(f, "not sent:", big.get(f)); process.exitCode = 1; continue; }
+    const e = read.get(f);
+    if (big(f)) { console.log(f, "not sent:", big(f)); process.exitCode = 1; continue; }
     // Source, not code: the deployer distils it. The record's parts are not sent; its hash is only compared.
     const saw: any = sawOf(e.meta.worker, seen, f, e.hash);
     if (saw.refused) { console.log(f, "not sent:", saw.refused); continue; }

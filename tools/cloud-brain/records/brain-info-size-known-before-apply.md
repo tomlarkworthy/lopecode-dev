@@ -5,7 +5,7 @@
 ## What was wrong
 
 The deployer binds one JSON variable to each Worker it deploys, `BRAIN_INFO`
-(`tools/cloud-brain/brain-deployer.ojs`, the last binding of `bindingsOf`): the Worker's name, hash, the list
+(`tools/cloud-brain/brain-deployer.ojs`, the last binding of `bindingsFor`): the Worker's name, hash, the list
 of its methods and the rule of each. Cloudflare refuses a version whose variable is too large. The feedback
 issue `seen-brain-info-binding-at-its-limit` (event 5300) has the refusal the writer of
 `tr-1-wait-in-the-record` met at 2026-10-13 00:03:05 CEST, under both locks:
@@ -24,7 +24,7 @@ the apply: not `build.ts`, not the emit, not `brain.ts apply`.
 |---|---|
 | `tools/cloud-brain/brain-info-size.ts` (new) | `boundInfo(record)`: the object the deployer binds, from a record's `meta` and `hash`. `infoSize`: its bytes as JSON. `infoRefusal`: the sentence a record over `LIMIT` (5100) is refused with, or null. As a command: `FILE…` prints a line a record, `--live` a line for each Worker a Brain runs. Exit 1 when one is over |
 | `tools/cloud-brain/tab-tests.ts` | `--emit` writes no file for a record `infoRefusal` names. The sentence goes in `notEmitted`, whole, and the run is exit 2 as for any emit not written. The loop over the `--emit` arguments is now a function, `emitAll`, so that a test enters it |
-| `tools/cloud-brain/brain.ts` | `apply` does not send such a record: `FILE not sent: …`, exit 1. The check is made for every file before `infra.getState` is asked, and with only such files nothing is asked of the deployer. `--force` and `--over-unverified` do not pass it. `brain-info-size.ts` is imported inside `apply`, so the other commands still run from `brain.ts` alone |
+| `tools/cloud-brain/brain.ts` | `apply` does not send such a record: `FILE not sent: …`, exit 1. The check is made for every file before `infra.getState` is asked, and with only such files nothing is asked of the deployer. `--force` and `--over-unverified` do not pass it. Of several files the ones that fit are still sent, and the exit is 1. Every file is read before the first is sent, so a file that is not there now stops the command before anything is sent, where it stopped it after the files before it (read in the code, not run). `brain-info-size.ts` is imported inside `apply`, so the other commands still run from `brain.ts` alone |
 | `tests/tools/brain-info-size.test.ts` (new) | 7 tests, below |
 | `tests/tools/brain-seen.test.ts` | its rig copies `brain-info-size.ts` beside the copy of `brain.ts` it runs |
 | `knowledge/changing-and-deploying-a-cloud-brain-worker.md` | the line of `tab-tests.ts --emit` and the row of `apply` say the refusal |
@@ -124,6 +124,7 @@ named `issue.m00`, `m01`, …, 164 bytes as is):
 | B | the seed: `who: "workers"` and no `allow` on the 28 | the loop's deploy, and `major` | 3258 | 18 |
 | C | the deployer leaves `methods` out of the variable | the owner's deploy | 3993 | 8 |
 | D | the deployer leaves `methods` and `access` out | the owner's deploy | 1266 | 122 |
+| E | split: the deployer binds `access` as a second variable, and the wrapper joins the two at `getInfo` | the owner's deploy of the deployer, and of the wrapper | 3690 for `access` alone | 10 |
 
 **B changes who may call.** `who: "workers"` is `caller.trusted || caller.kind in ["worker", "deployer"]`
 (`ruleExpression`, `cloudflare-iac.ojs`), and `trusted` is the owner, a token, or a `did` (`callerOf`
@@ -134,6 +135,10 @@ owner granted an `issue.*` method to. That is his to approve, not a shorter spel
 **A shorter rule with the same meaning was looked for and not found.** `caller.did==''&&caller.kind!='anonymous'`
 is 12 characters shorter, 336 bytes over 28 rules, two methods. It names who is refused where the rule
 today names who is let in, so a caller of a kind neither lists is let in by it and refused today. Not taken.
+
+**E keeps what `getInfo` answers and costs the most.** The second variable has the same limit, and `access` alone is 3690 bytes. The wrapper (`workerRuntime` in `cloudflare-iac.ojs`) reads one variable, so it changes too: the hash of the kernel, the core and the deployer covers that seed, and each Worker gets the wrapper at a `redistil --apply` after `install-deployer`.
+
+**The pick is D.** It is the one that ends the limit for the tracker (122 further methods, where C gives 8 and E 10), and what it takes out of `getInfo` is answered by `service.list` today. Its cost is that a public answer loses two fields.
 
 **C and D are one line of `brain-deployer.ojs`**, which the loop does not deploy (`rules.md`, Never). D:
 
@@ -148,11 +153,14 @@ C keeps `access: m.access || {},` in that line. Neither was built or run. What w
 - The rules the core judges by do not come from the variable. The deployer sends them with
   `service.register` (`register` in `brain-deployer.ojs`: `methods: access || {}`), and `service.list`
   answered 29 methods for `brain-x-issues` with the rule of each (read 2026-10-13, no session).
+  `/llms.txt` is written from the core's rows `route/` (`brain-core.ojs`, the comment above the route).
 - In a Worker the wrapper reads `name`, `hash`, `role`, `secrets` and `cloudflare` of the variable
   (`info()` in `cloudflare-iac.ojs`). The core reads `calls` and `hash` from a Worker's `getInfo`
   (`callsOf`, `brain-core.ojs`). The page reads `name` and `hash` (`cloudflare-iac.ojs`, the Services
-  list; `brain-shell.ojs`; `brain-issues.ojs`). `grep` of `tools/cloud-brain/*.ojs` and
-  `cloud-brain-dev/*.ts` for a read of `access`, `methods` or `paths` of the variable printed nothing.
+  list; `brain-shell.ojs`; `brain-issues.ojs`). `grep -n "getInfo" tools/cloud-brain/*.ojs` was read line by line for a caller that reads `access` or
+  `methods` of the answer, and `grep` for `info.access`, `info.methods` and `info().access` there and in
+  `cloud-brain-dev/*.ts`: none was found. The owner's assistant may call `getInfo` as a tool (`cloud-brain.ojs`),
+  and what a model then reads of it is not known.
 - `getInfo?worker=` is public and answers the variable whole, and the core's reference says it answers
   "who may call each method (`access`)" (`brain-core.ojs`, the line of `getInfo`). After D it answers
   neither field for a Worker deployed since, and that line is changed with it, in the core's seed, which
@@ -184,6 +192,6 @@ too, and is exit 1; of two records it sends the one that fits.
   measures it here. `install-deployer` and a member's deploy (`member.deploy`) bind a variable of another
   shape and are not measured. `brain-info-size.ts FILE` on the deployer's own record prints the size of
   the deployer's shape, which is not what `install-deployer` binds.
-- Options B, C and D: none was built, and no test of the deployer was run with the diff.
+- Options B, C, D and E: none was built, and no test of the deployer was run with the diff.
 - A record whose `meta` the deployer would distil otherwise than the page emitted it. `brain.ts apply`
   prints a line when the two hashes differ; the size is then of the emitted one.
