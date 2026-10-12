@@ -1,5 +1,6 @@
 // issue-watch.sh: which events of an answer of `sync?after=` the watch prints. A line wakes the orchestrator.
 // Issue os-1-owner-label, task 1 of plan/cloud-brain-loop-order-of-service.md. The label asks-orchestrator: issue asks-orchestrator-label-and-watch.
+// A comment of an out- token: issue watch-prints-an-outside-sessions-comment.
 //
 //   bun test ./tests/tools/issue-watch.test.ts
 //   ISSUE_WATCH_SH=/path/to/another/issue-watch.sh bun test …
@@ -123,6 +124,56 @@ test("the two events cb4 recorded for a label put on and taken off: the first is
   const r = watch([cb4(5125, "impl/asks-orchestrator-label-and-watch/check-add-1", ["asks-orchestrator"], []),
     cb4(5126, "impl/asks-orchestrator-label-and-watch/check-remove-1", [], ["asks-orchestrator"])], ["--filter", "orch-d97e0e"]);
   expect(r.lines).toEqual(["5125 labelled asks-orchestrator-label-and-watch impl-0f0bf1 ['asks-orchestrator'] ", "LAST 5126"]);
+});
+
+// Issue watch-prints-an-outside-sessions-comment: a session outside the loop writes with a token out- and six hex digits
+// (rules.md, "Which token"), and the owner may be in it. Its comment is a line.
+const commented = (seq: number, id: string, holder: unknown, body = `words of ${seq}`, via = "delegation:931272f8f20c") =>
+  ({ seq, type: "commented", id, key: `k/${seq}`, body, by: { caller: "owner", via, holder, tab: false } });
+
+// Comment 4916 of fly-1-by-hand, as cb4 has it (the fields the filter reads, and key; the body is its first line).
+test("the comment cb4 recorded from a session outside the loop, event 4916, is a line", () => {
+  const owners = { seq: 4916, type: "commented", id: "fly-1-by-hand", key: "out/fly-1-by-hand/owner-idle-machine-1", body: "From a session with the owner",
+    by: { caller: "owner", via: "delegation:931272f8f20c", holder: "secret:out-5f56b2", tab: false } };
+  expect(watch([owners], ["--filter", "orch-d97e0e"]).lines).toEqual(["4916 commented fly-1-by-hand out-5f56b2  From a session with the owner", "LAST 4916"]);
+});
+
+test("a comment of an out- token is a line; a comment of a writer, a reviewer or the watch's own token is none", () => {
+  const r = watch([commented(100, "a", "secret:out-0a1b2c"), commented(101, "a", "secret:impl-bbbbbb"), commented(102, "a", "secret:rev-dddddd"),
+    commented(103, "a", "secret:orch-aaaaaa"), commented(104, "b", "secret:out-ffffff", "two\nlines")]);
+  expect(r.lines).toEqual(["100 commented a out-0a1b2c  words of 100", "104 commented b out-ffffff  two lines", "LAST 104"]);
+});
+
+test("a watch given an out- token prints no comment of that token, and prints another out- token's", () => {
+  const r = watch([commented(110, "a", "secret:out-0a1b2c"), commented(111, "a", "secret:out-ffffff")], ["--filter", "out-0a1b2c"]);
+  expect(r.lines).toEqual(["111 commented a out-ffffff  words of 111", "LAST 111"]);
+});
+
+test("the name is out- and six hex digits, whole: no other length, case, prefix, role or type of holder is read as it", () => {
+  const not = ["secret:out-abcde", "secret:out-abcdefa", "secret:out-ABCDEF", "secret:out-abcdeg", "secret:xout-abcdef", "secret:outside-abcdef",
+    "secret:out-", "secret:out-abcdef ", "secret:out-abcdef\n", "out-abcdef", "session:out-abcdef", "secret:impl-abcdef", "secret:out-abcdef-2", "", null, 7,
+    ["secret:out-abcdef"], { name: "secret:out-abcdef" }];
+  const r = watch([...not.map((h, i) => commented(120 + i, "a", h)), { seq: 140, type: "commented", id: "a", body: "no holder", by: { caller: "owner", via: "delegation:x" } },
+    { seq: 141, type: "commented", id: "a", body: "no by" }]);
+  expect(r.lines).toEqual(["LAST 141"]);
+});
+
+test("no other event of an out- token is a line for its token: a move, a label, a link, a review", () => {
+  const out = by("out-0a1b2c");
+  const r = watch([{ ...move(150, "a", "start", "in-progress", "x"), by: out }, { ...labelled(151, "a", "x", ["needs-owner"]), by: out },
+    { seq: 152, type: "linked", id: "a", rel: "related", to: "b", by: out }, { seq: 153, type: "reviewed", id: "a", verdict: "pass", body: "x", by: out }]);
+  expect(r.lines).toEqual(["LAST 153"]);
+});
+
+test("a comment made with the owner's session is one line with OWNER, whatever holder it has", () => {
+  const r = watch([commented(160, "a", "secret:out-0a1b2c", "his words", "session")]);
+  expect(r.lines).toEqual(["160 commented a OWNER  his words", "LAST 160"]);
+});
+
+test("SKILL.md, step 8, has the comment of an out- token among what the watch prints", () => {
+  const flat = readFileSync(process.env.SKILL || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/SKILL.md"), "utf8").replace(/\s+/g, " ");
+  expect(flat).toMatch(/issue-watch\.sh <your token>[^|]*for each comment written with a token `out-` and six hex digits, but the one the watch is given/);
+  expect(flat).toMatch(/A line is a wake: read that issue and take it from the table of step 3, without a whole pass\. An agent's other writes print nothing/);
 });
 
 // SKILL=<file> and IMPLEMENTER=<file> read another copy (the files before the change).

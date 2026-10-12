@@ -269,7 +269,8 @@ the orchestrator on a line of the watch or an agent's report, and its fallback i
 run all the while is the watch of that step: `issue-watch.sh`, armed as a `Monitor` with the
 orchestrator's token, reads the tracker every 30 s (`issue-watch.sh`, line 33, `sleep "$every"`).
 The script itself never exits (its line 4; lines 35 and 5 since `asks-orchestrator-label-and-watch`,
-2026-10-12, which added a line to the header and a line to the filter); the `Monitor`'s `timeout_ms` ends it after 30 minutes,
+2026-10-12, which added a line to the header and a line to the filter; lines 38 and 7 since
+`watch-prints-an-outside-sessions-comment`, the same day, which added two to the header and one to the filter); the `Monitor`'s `timeout_ms` ends it after 30 minutes,
 and the orchestrator arms it again "in the same turn".
 
 T4 gives the watch a flag, `--hold <who>` (its second and third arguments are taken: `<token>

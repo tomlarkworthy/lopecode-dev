@@ -121,6 +121,15 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke out-xxxxxx     
   and no authority. An issue he opens himself in the page needs none. (Until 2026-10-12 a
   paragraph of its own here, "An issue the owner asked for"; the heading above it was "No token of
   your own for the tracker".)
+- A comment written with an `out-` token is printed by the issue loop's watch, since 2026-10-12
+  (issue `watch-prints-an-outside-sessions-comment`): each one wakes the orchestrating session,
+  which reads it. So one comment for one thing the loop should read, with the owner's words whole
+  when it carries them. A move, a label or a link by that token prints no line. Until then such a
+  comment was read at the loop's next whole pass: comment 4916 of `fly-1-by-hand`, the owner's
+  question about a billed machine, was no line of the watch
+  (`tools/cloud-brain/post-mortems/pm-agent-request-not-seen-fly-idle.md`). The watch reads the
+  name of the token: a session that writes with a role's token, or with a name of another form,
+  is not printed.
 - A change to a tracked file by such a session can be made as an agent of the loop makes one since
   2026-10-12: in a worktree of its own, landed by a push, with nothing committed in the main
   checkout (`plan/cloud-brain-worktree-per-topic.md`, task 5). From the main checkout:
