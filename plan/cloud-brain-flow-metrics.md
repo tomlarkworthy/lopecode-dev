@@ -314,6 +314,10 @@ In `brain-dashboard.ojs`:
 The service takes `points` and `share` in a `dashboard.put` once `dashboardDraws` has them, which
 is a deploy of `brain-x-dashboard`. Nothing else of the service changes: no definition, no rule, no
 call from it to the tracker.
+(As built, `fm-5-page-and-dashboard`, 2026-10-12: `table` adds the median and the 85th only when `by`
+has no `id`, since a row is then a group of the summaries; a panel of a `flow.` metric that failed or
+has no row says `issue.flow` and "No rows in this span."; `bars` of one is labelled `rows`; `share` of
+a counted metric says so in the panel's place; the record.)
 
 ### The dashboard, as data
 

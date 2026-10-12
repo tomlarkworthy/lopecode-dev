@@ -297,12 +297,15 @@ for each panel, so a token that reads the dashboard `health` draws nothing from 
 `draw` is one of five. `calls`, `faults` and `methods` are the three drawing functions Health has,
 which need the rows of `core.calls`. `bars` (the count over time, coloured by the first of `by`)
 and `table` (one row a group: n, sum, max) draw any metric.
+(As built, `fm-5-page-and-dashboard`, 2026-10-12: seven, with `points` and `share` of
+`plan/cloud-brain-flow-metrics.md`, "The page"; the record.)
 
 `health` is built in: three panels over `core.calls`, the ones of today.
 
 **On the page.** A section "Dashboards" of `cloud-brain.ojs`: a select filled from `dashboard.list`,
 and the panels of the chosen one, drawn from one `metric.query` for each distinct
-`(metric, by, filter)` over `timeRange`, the range `ds-2` gave the page. The choice is kept in the
+`(metric, by, filter)` over `timeRange`, the range `ds-2` gave the page. (As built, `fm-5-page-and-dashboard`,
+2026-10-12: a metric whose name starts `flow.` is asked of `issue.flow` of the tracker in its place; the record.) The choice is kept in the
 address as `dashboard=NAME`, one more pair of the hash that `notebookHtml` already splits on `&`
 (line 1391 at `9b5a97bc`, 1422 at `2edceb8e`), so a dashboard has a link. Health stays where it is and is that same cell drawing
 `health`: `callsRead` sends `metric.query?metric=core.calls&by=worker,method,status` in place of
