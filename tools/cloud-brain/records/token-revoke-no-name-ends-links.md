@@ -119,3 +119,7 @@ and the waiting links are as before it.
 - The page's Copy Guest Invite and `brain.ts token revoke` against a kernel with the check.
 - The test with the pattern and no `typeof`: that `{name:5}` and `{name:["one"]}` then fail it is
   read from the line, not run.
+  Run by the reviewer of round 1 (2026-10-12, `bun test.ts brain --with <a copy without the
+  typeof>`): `passed 29, failed 1`, and the test stops at its first body, `{}`, with 200 and both
+  links gone. `undefined` is the text `undefined` to `RegExp.test` and passes the pattern, so
+  without the `typeof` the defect itself is still there.
