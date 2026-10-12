@@ -1917,14 +1917,16 @@ issuesPanel = ({ client, owner = false, by = { caller: "owner", via: "session" }
     for (const i of Object.values(view.issues)) {
       // An approve of the last 7 days is an event of the last 7 days: issue.get is asked of no older issue.
       if (i.hidden || !/^delegation:/.test((i.by || {}).approve || "") || !(i.updated_at >= since)) continue;
-      const got = load(i), e = ((got && got.events) || []).findLast((x) => x.type === "moved" && x.move === "approve");
+      // The panel forgets what it has of an issue when a write of its own is answered, and asks again. Until that
+      // answer the line is drawn from the event it had.
+      const got = load(i), e = got ? got.events.findLast((x) => x.type === "moved" && x.move === "approve") : (lines.get(i.id) || {}).event;
       if (e && /^delegation:/.test((e.by || {}).via || "") && e.at >= since) found.push({ i, e, got });
     }
     found.sort((a, b) => b.e.at - a.e.at || b.e.seq - a.e.seq);
     for (const id of [...lines.keys()]) if (!found.some((f) => f.i.id === id) && !sending.has(id)) lines.delete(id);
     const doc = attention.ownerDocument, active = doc && doc.activeElement, caret = active && active.tagName === "INPUT" && approvedList.contains(active) ? [active.selectionStart, active.selectionEnd, active.selectionDirection] : null;
     for (const { i, e, got } of found) {
-      const key = [i.seq, i.state, i.workflow, got.seq, e.seq, pending.filter((x) => x.id === i.id).length].join("|"), had = lines.get(i.id);
+      const key = [i.seq, i.state, i.workflow, (got || {}).seq, e.seq, pending.filter((x) => x.id === i.id).length].join("|"), had = lines.get(i.id);
       if (had && had.key === key) continue;
       const text = (had && had.text) || htl.html`<input type="text" placeholder="Why it is undone" style="flex:1;min-width:14em">`;
       const acts = htl.html`<span style="display:flex;gap:6px;flex-wrap:wrap"></span>`;
@@ -5294,9 +5296,16 @@ test_issues_panel_approved_for_you = {
   await ok(rig.owner("move", { id: "t3", to: "reverted", reason: "not what I asked", refs: ref }));
   const ap = (await ok(approver("move", { id: "p1", to: "approved", reason: verdict(5) }))).event;
   const answer = (r) => (r.status < 400 ? r.data : Promise.reject(new Error(r.data.message)));
-  const held = [], gets = [];
+  const held = [], gets = [], parked = [];
+  let park = false;
   const client = {
-    query: (name, params = {}) => (name === "issue.get" && gets.push(params.id), rig.owner(name.replace("issue.", "") + "?" + new URLSearchParams(params)).then(answer)),
+    // While `park` is set an issue.get waits until the test lets it go.
+    query: (name, params = {}) => {
+      const ask = () => rig.owner(name.replace("issue.", "") + "?" + new URLSearchParams(params)).then(answer);
+      if (name !== "issue.get") return ask();
+      gets.push(params.id);
+      return park ? new Promise((go) => parked.push(go)).then(ask) : ask();
+    },
     // Each write waits until the test sends it on, or fails it as a network that dropped it.
     procedure: (name, body) => new Promise((go, fail) => held.push({ name, body, go, fail: () => fail(new Error("Failed to fetch")) })).then(() => rig.owner(name.replace("issue.", ""), body).then(answer))
   };
@@ -5314,9 +5323,10 @@ test_issues_panel_approved_for_you = {
     box(i).value = text;
     box(i).dispatchEvent(new Event("input", { bubbles: true }));
   };
+  // No bound of its own: on a busy page a wait of 3 s ends before the answer, and the run's own limit is the bound.
   const until = async (fn) => {
-    for (let n = 0; n < 300 && !fn(); n++) await new Promise((r) => setTimeout(r, 10));
-    return fn();
+    while (!fn()) await new Promise((r) => setTimeout(r, 10));
+    return true;
   };
   const kept = (i) => JSON.parse(rig.db.view.get(i).issue).state;
   const moved = (i) => rig.db.events.map((e) => JSON.parse(e.event)).filter((e) => e.id === i && e.type === "moved").at(-1);
@@ -5361,8 +5371,13 @@ test_issues_panel_approved_for_you = {
     type("p1", "not this either");
     press("p1").click();
     expect(held.map((h) => [h.body.id, h.body.to])).toEqual([["t1", "reverted"], ["p1", "rejected"]]);
+    // An answered write has the panel ask issue.get of its issue again. Until that is answered the line is still there.
+    park = true;
     held.pop().go();
-    expect(await until(() => kept("p1") === "rejected" && panel.approved().find((a) => a.id === "p1").state === "rejected")).toBe(true);
+    expect(await until(() => kept("p1") === "rejected" && parked.length === 1)).toBe(true);
+    expect([ids(), panel.approved().map((a) => [a.id, a.seq, a.state, a.undo.length])[0]]).toEqual([["p1", "t3", "t1"], ["p1", ap.seq, "rejected", 0]]);
+    park = false;
+    parked.shift()();
     expect([kept("t1"), moved("p1").move, moved("p1").reason, moved("p1").by.via]).toEqual(["done", "owner-reject", "not this either", "session"]);
     held.pop().go();
     expect(await until(() => kept("t1") === "reverted" && held.length === 0)).toBe(true);
@@ -5386,6 +5401,8 @@ test_issues_panel_approved_for_you = {
 // %%
 // The box of a line keeps the caret when another caller's event makes its line again. The caret is the document's.
 test_issues_panel_approved_for_you_keeps_the_caret = {
+  // A document has one caret, and the page runs its test cells together: this one starts when the other that takes it has ended.
+  test_issues_panel_keeps_the_caret_in_a_row_box;
   const { rig, approver, ok, taskWaits } = await issuesApproverRig();
   await taskWaits("t1");
   await taskWaits("t2");
@@ -5399,8 +5416,8 @@ test_issues_panel_approved_for_you_keeps_the_caret = {
   const panel = issuesPanel({ client, owner: true, every: 1e9, listen: false, invalidation: new Promise((r) => (end = r)), store: { get: () => null, set: () => null } });
   const at = (i) => [...panel.attention.querySelectorAll("[data-approved]")].find((l) => l.dataset.approved === i);
   const until = async (fn) => {
-    for (let n = 0; n < 300 && !fn(); n++) await new Promise((r) => setTimeout(r, 10));
-    return fn();
+    while (!fn()) await new Promise((r) => setTimeout(r, 10));
+    return true;
   };
   document.body.append(panel);
   try {
