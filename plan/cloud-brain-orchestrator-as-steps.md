@@ -4,7 +4,9 @@ Spec of the feature `orchestrator-as-steps` on cb4's tracker. Written 2026-10-12
 (the `spec` move, event 5021), from `lopecode-dev` `56ea28e4` and the tracker at event 5126.
 Nothing here is built. Three probes were run for it and are in "What exists today".
 Round 2, 2026-10-12 23:32 CEST: the two findings of review 5194 and its three notes are answered
-at the end, and the text they name is changed in parts 2, 3 and 4.
+at the end, and the text they name is changed in parts 2, 3 and 4, in the table of what is used,
+in the checks and in the tasks `st-2`, `st-3` and `st-8`. A fresh reader of that change had 10
+findings more, answered in the last section.
 
 Three findings change what the issue asks for, and they come first:
 
@@ -330,8 +332,18 @@ one run, so no two runs share a key. The service finds the run by role and round
 (`issueRunOf`), so the second run's `running` event takes the dead run's place in `runs`, which is
 what the rows read. The cost of that: the dead run's event stays in the record with its usage and
 is no longer in the issue's `total`, as today when a run's event is sent again. `st-8` counts
-those. A round sent by `resume` to the same token has the key `…/<round>/<token>/resumed`, and
-its end `…/resumed/end`.
+those. A round sent by `resume` to the same token has the key
+`…/<round>/<token>/resumed-<at>`, and its end that key and `/end`. `<at>` is the seq of the event
+the resume is made for: the `rework` or `respec` move, or the `go-on` verdict of part 3 when it is
+the later. One token can be resumed twice in one round (a run with no submit, then `go-on`), and
+the seq keeps the two keys apart. For a writer the round is the `rework` moves plus one; for a
+spec writer the `respec` moves plus one.
+
+**How many runs of a role and round died** is not in `runs`, which keeps one run a role and
+round. It is counted in the events of `get?id=`: the `cost` events of that role and round whose
+outcome is `stopped` or `no-submit`. Each run that died has one such event, the one its `running`
+event was replaced with, and it stays in the record when the next run's event takes its place in
+`runs`. Part 3 names this count "the dead runs".
 
 `loop.ts resume <id>` is "A rework round goes to the agent that wrote the change": the last run of
 the role from `runs?id=`, its token live, its `agent` naming this machine: `agent.sh --resume
@@ -380,25 +392,30 @@ make again from the record. In order:
    `running` run, and for an approver none of that round (`runs?id=&role=approver&round=<n>`), as
    `SKILL.md` has it ("One agent on an issue"). A reviewer's issue stays a `review` entry until
    its review lands and a writer's stays a `start` until the writer's own `start` move, and the
-   driver steps at every event, so without it a second agent is started.
+   driver steps at every event, so without it a second agent is started. A second condition
+   holds for the same rows: fewer than 2 dead runs of that role and round (part 2), or the verdict
+   `go-on` for the last of them (below). A reviewer, a
+   spec writer or a writer that dies before its first move leaves the entry as it was, and with
+   no bound the step would start one at every read. With 2 or more and no such verdict the entry is
+   the row "2 dead runs" and no agent is started by rule.
 
 | The entry | The step does | A model |
 |---|---|---|
 | `review` | `start`, role reviewer | no |
-| `round`, fewer than 3 `rework` moves; or with the verdict `go-on` for this round (below) | `resume`; with a `waiter` (tr-3), nothing | no |
-| `round`, 3 `rework` moves or more, or the last run of the role ended with the outcome `no-submit`; no verdict for this round, and no label `needs-owner` | the judgment of `SKILL.md` step 3: the verdict `go-on`, or the open findings in a comment and the label `needs-owner` | yes |
-| `round`, labeled `needs-owner` | nothing: it is the owner's, and is in `status.md` | no |
+| `round`, fewer than 3 `rework` moves; or with the verdict `go-on` for this `<at>` (below) | `resume`; with a `waiter` (tr-3), nothing | no |
+| `round`, 3 `rework` moves or more, or the last run of the role ended with the outcome `no-submit`; no verdict for this `<at>`, and no label `needs-owner` | the judgment of `SKILL.md` step 3: the verdict `go-on`, or the open findings in a comment and the label `needs-owner` | yes |
+| `round`, labeled `needs-owner`, with no event of his session or of an `out-` token after the label | nothing: it is the owner's, and is in `status.md` | no |
 | `ready` | the move, reason `waits for nothing, by the queue at <seq>` | no |
 | `finish` | the move | no |
 | `start` | `start`, role implementer, or digest with the label `digest` | no |
 | `spec` | `start`, role spec | no |
 | in `waiting`, `owner`, at `awaiting-approval`, and `approver.ts facts` says no verdict of this round and no `leave` | `start`, role approver | no |
-| in `waiting`, `work`, with no `running` run and no `waiter`; fewer than 2 runs of this role and round ended `stopped` or `no-submit` | "A dead writer": the token ended, `back` | no |
-| the same, with 2 such runs or more | the judgment of the `round` row above: a third writer is not started by rule | yes |
+| in `waiting`, `work`, with no `running` run and no `waiter` | "A dead writer": the token ended, `back` | no |
+| 2 dead runs: an entry of a row that starts or resumes an agent, or of the row above, with 2 dead runs or more of that role and round, and no verdict `go-on` for this `<at>`. A `round` whose last run ended `no-submit` is the `round` row's and not this one's | given to the judgment: `go-on` for one run more, or the label `needs-owner` with what the two runs left | yes |
 | a digest opened by `worker:brain-x-snapshot`, at `open` | the older ones rejected, `triage`, `ready` | no |
 | 3 issues at `done`, `rejected` or `needs-owner` since the last heading of `oversight.md`, or one issue at 3 `rework` moves since then; and no live token `over-…` | `start`, role over | no |
 | `triage`, `decompose`, `promote`, `look` | given to the orchestrator's judgment | yes |
-| in `waiting`, `owner`, labeled `needs-owner`, with an event of his session or of an `out-` token after the label | the same: has he answered | yes |
+| labeled `needs-owner`, in `waiting`, `owner` or a `round` of the queue (the label leaves an issue at `in-progress` or `spec` in the queue), with an event of his session or of an `out-` token after the label | the same: has he answered | yes |
 | labeled `asks-orchestrator` (the first action of `pm-agent-request-not-seen-fly-idle`, when it is built) | the same: answer it | yes |
 | a move made with his session that is a `send-back`, an `owner-reject` of a passed issue or a `revert`, with no post mortem of it | the same: declare it | yes |
 | the cluster is not healthy, and no open issue names what failed | the same: file it | yes |
@@ -422,27 +439,45 @@ make again from the record. In order:
    while one runs.
 
    **An entry is given to a model once (round 2).** Each row marked "yes" is due because of one
-   event of its issue, and that event's seq is `<at>`: the last `rework` move or the `cost` event
-   of the run that ended `no-submit` or `stopped`; the owner's event after the label; the
-   `labelled` event of `asks-orchestrator`; his move, for a post mortem; and for `triage`,
-   `decompose`, `promote` and `look` the issue's last move, swap, hold or open. Before the run is
-   started the program writes one comment on each issue it gives, key `orch/<id>/given-<do>-<at>`,
-   body `given <do> at <at> to <token>`. A row marked "yes" is given only when the issue has no
-   comment of that key. So the same unchanged fact starts a model once, whatever the model did.
-   The judgment's answer is a fact a row reads:
+   event of its issue. That event's seq is `<at>`, and the row has one word, `<do>`:
+
+   | The row | `<do>` | `<at>`, the seq of |
+   |---|---|---|
+   | `round` at 3 `rework` moves, or after a run with no submit | `round` | the last `rework` or `respec` move, or the `cost` event of the run that ended `no-submit`, the later |
+   | 2 dead runs | `dead` | the last `cost` event of that role and round with the outcome `stopped` or `no-submit` |
+   | `triage`, `decompose`, `promote`, `look` | the queue's `do` | the issue's last `opened`, `moved`, `swapped`, `held`, `linked` or `labelled` event |
+   | labeled `needs-owner`, with an event of his | `answer` | his last event after the label |
+   | labeled `asks-orchestrator` | `asks` | the `labelled` event |
+   | his move with no post mortem | `pm` | the move |
+
+   The event names of the third row are the types the seed writes (`brain-issues.ojs`); a link
+   `after` and a label are among them because a judgment's answer can be either, and an issue that
+   comes back to `triage` after one is a new entry.
+
+   Before the run is started the program writes one comment on each issue it gives, key
+   `orch/<id>/given-<do>-<at>`, body `given <do> at <at> to <token>, its run on <the issue that
+   has the run's cost event>`. A row marked "yes" is given only when the issue has no comment of
+   that key. So the same unchanged fact starts a model once, whatever the model did. The
+   judgment's answer is a fact a row reads:
    - a move, a swap, a link `after`, a hold (`issue.hold`) or the label `needs-owner`, each of
      which the queue answers differently at the next read. A triage that is not ready to go on
      ends in one of these and never in a comment alone (`bk-6`: "The `held:` comment is no longer
      written"). An `open` task with a hold is in `waiting`, `until`, and comes back as a `look`,
      which has a new `<at>`;
-   - or one comment, key `orch/<id>/verdict-<do>-<at>`, whose first line is one word:
-     `go-on` (a `round` at 3 `rework` moves or after a run with no submit: the `resume` row then
-     takes it, for this `<at>` and no later one), `not-answered` (a `needs-owner` issue: nothing
-     more until an event of his with a later seq), or `left` with the reason.
+   - or one comment, key `orch/<id>/verdict-<do>-<at>`, whose first line is one word: `go-on`
+     (for `round`: the `resume` row then takes it, for this `<at>` and no later one; for `dead`:
+     the row that starts or resumes takes it for one run more, and when that run dies the count
+     has a later `<at>` and the entry is given again), `not-answered` (for `answer`: nothing more
+     until an event of his with a later seq), or `left` with the reason.
+
    An entry that was given, whose run has ended, and that has neither changed in the queue nor a
-   verdict is given to no second model: it is in `status.md` under "judged and left as it was",
-   for a session with the owner. The step reads the two comments with `get?id=` of an entry of a
-   row marked "yes"; it reads no other comment.
+   verdict, is read by how the run ended. The run is the `cost` event of the token the `given`
+   comment names, on the issue it names. Ended `stopped`, or with `is_error` in its result: the
+   model did not judge it, and it is given once more, key `orch/<id>/given-<do>-<at>-2`. Ended
+   another way, or after that second give: it is given to no model again and is in `status.md`
+   under "judged and left as it was", or "the judgment run died twice", for a session with the
+   owner. The step reads these comments with `get?id=` of an entry of a row marked "yes"; it
+   reads no other comment.
    The cluster not healthy is of no issue: it is given in a whole step only, so once in 1,800 s.
 6. **What it did.** Every act is an event of the tracker with a reason. One line of JSON a step is
    appended to `.emitted/issue-loop/steps.jsonl` (`at`, `seq`, the acts, what was skipped and
@@ -471,8 +506,12 @@ any step, which a reader of the table can tell.
 - It runs a step when any of three is so: `sync?after=<the last seq it read>` has an event (asked
   every 30 s; 0.31 to 0.39 s and 49 bytes when there is none, 23:12 CEST), a file of `runs/` has a
   result it has not ended, or 1,800 s have passed. One step at a time. An event whose
-  `by.holder` is the driver's own token is no reason: a step that acted would else be followed by
-  one more for its own writes. The token of a judgment run is another's, and its writes are a reason.
+  `by.holder` is the driver's own token is no reason by itself. In its place: a step that made a
+  move (`ready`, `finish`, `back`, a digest's) is followed at once by one more step for an event,
+  and so on until a step makes no move. A `ready` leaves a `start` entry and a `back` leaves one
+  too, and without the step after it they would wait for another's event, up to 1,800 s. A step
+  that wrote only comments and `cost` events is followed by none. The token of a judgment run is
+  another's, and its writes are a reason.
 - A step that fails (cb4 not reached, a command of health that exits 2) writes its line and the
   driver goes on at the next reason.
 - `loop.ts run --dry` runs `step --dry` at each reason and takes no lock: it can run beside the
@@ -544,7 +583,7 @@ approver, digest, implementer, overseer, reviewer, spec, and no orchestrator), i
 | The lock `loop` | `land` and `cb4` in `lock.sh`; `loop` in the Fly spec, approved | The Fly spec's lock, built here first |
 | A token for the driver, and one for each judgment run | `agent-token orch` | The same command and role. No new parent and no new method |
 | `loop.sh`, which starts the driver in the sandbox | `metadev`, which starts `claude` in `safehouse` | Not extended: it is the owner's file, it passes its arguments to `claude`, and it has a change of his that is not committed. `loop.sh` reads the arguments it gives `safehouse` and adds nothing to it |
-| The comments `given-…` and `verdict-…` | The comment with a key that says what it is (`orch/<topic>/worktree-<n>`, `approver/<id>/verdict-<n>`, which `approver.ts` reads) | The same form. No label, since a label has no seq and would stand for the next round too |
+| The comments `given-…` and `verdict-…` | The comment with a key that says what it is (`orch/<topic>/worktree-<n>`, `approver/<id>/verdict-<n>`, which `approver.ts` reads) | The same form. No label: a label stands until it is taken off, so it would stand for the next round too |
 
 No Worker, no method, no event type, no policy and no store on cb4 is added.
 
@@ -609,10 +648,11 @@ which task runs it, and gives no count a run would have to match.
 | R3 | `DRY=1 CHECKOUT=<W> cloud-brain-dev/agent.sh implementer "Issue: x"`, the line after `--tools` | `Bash,Read,Grep,Glob` | st-1: with `WORK=<W>` no `--tools` line is printed, and `--session-id` is followed by the `SESSION` given |
 | R4 | `ia "runs?id=<id>"` while an agent runs on it | `{"runs":[], …}` for this issue, whose spec writer was at work (23:12 CEST) | st-2, on cb4, an issue `test-st-2-a` the writer opens: after `start` with a stand-in agent, one run with the outcome `running`, the `token` and the `session`; after `ended`, one run, another outcome, `replaced` in its event. The issue closed after |
 | R4 | `ia "verify?guards=true"` | `"ok":true,"seq":5137, … "checked":5137,"guards":true` (23:16 CEST) | st-2: `ok: true` after those two events |
+| R4 | the same issue, a second run of one role and round | no such test | st-2, on cb4, `test-st-2-a`: after the first run is ended with the outcome `stopped`, a second `start` of the same role with another token; `ia "runs?id=test-st-2-a"` has one run of that role, its outcome `running` and its `token` the second. The dead runs counted from `get?id=test-st-2-a` are 1, and 2 after the second is ended `stopped`. And in `loop.test.ts`: the two keys differ, and two resumes of one token in one round have two keys |
 | R5 | `claude -p … --session-id <uuid>`, then from another directory `claude -p … --resume <uuid>` | `heron`, the same `session_id` (probe 2) | st-1: `agent.sh --resume` of a run begun with `WORK` and `SESSION`, from another directory, answers from the first run. st-2: `loop.ts resume` against the stand-in sends `--resume` with the `session` of the last run |
 | R6 | `python3 measure.py <transcript> <sync>`, the events by an `orch-` token | 1,015, of them 180 `cost`, 102 `ready`, 7 `finish` | st-8: of the three days after the switch, those three kinds by the driver's token and none by a judgment run's |
-| R4 | the same issue, a second run of one role and round | no such test | st-2, on cb4, `test-st-2-a`: after the first run is ended with the outcome `stopped`, a second `start` of the same role with another token; `ia "runs?id=test-st-2-a"` has one run of that role, its outcome `running` and its `token` the second. And in `loop.test.ts`: the two keys differ |
-| R6 | a judgment that leaves the entry: `loop.test.ts` | no such test | st-3, against the stand-in: an entry of each row marked "yes" is given at one step and not at the next with the same answers; a `round` at 3 `rework` moves with the comment `verdict-round-<at>` `go-on` is a `resume`, and after one more `rework` it is given again; a `needs-owner` entry with `not-answered` is given again only for an event of his with a later seq |
+| R6 | a judgment that leaves the entry: `loop.test.ts` | no such test | st-3, against the stand-in: an entry of each row marked "yes" is given at one step and not at the next with the same answers; a `round` at 3 `rework` moves with the comment `verdict-round-<at>` `go-on` is a `resume`, and after one more `rework` it is given again; a `round` whose run ended `no-submit` is given, with `go-on` it is a `resume`, and after a second `no-submit` of that round it is given again; a `needs-owner` entry with `not-answered` is given again only for an event of his with a later seq, and a `round` labeled `needs-owner` is given when he has written after the label; an entry whose judgment run ended `stopped` is given once more and not a third time; a `triage` that got a link `after` and came back is given again |
+| R6 | an agent that dies before its first move: `loop.test.ts` | no such test | st-3: a `review`, a `spec` and a `start` entry each with 2 dead runs of the role and round start no agent and are given as `dead`; with 1 they start one |
 | R6 | the dead run: `loop.test.ts` | no such test | st-3: a `running` run of this host whose pid is not alive and has no result is replaced with `stopped` and the issue gets `back`; one of another host is left |
 | R7 | `cat tools/cloud-brain/.emitted/issue-loop/status.md` | no such file | st-3: after `step --dry`, the file names each entry of `waiting` with `why: owner` that `ia "queue"` has at that seq |
 | R8 | `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh show loop` | exit 2, the usage | st-5: exit 1 `loop is not held`; while `loop.ts run` runs, exit 0 and `orchestrator-<host>`; `run --dry` beside it takes none |
@@ -631,11 +671,12 @@ Ids begin `st-`. None is `major` but `st-7`. No seed changes and nothing is depl
    `context`, `usd` and the usage beside an `Agent` run of the same role; one `--resume` of each;
    the detach of probe 1 from a shell that is not `claude`; which MCP tools writers called in the
    transcripts of 2026-10-12. After nothing.
-2. **st-2-loop-start-and-end.** `loop.ts start`, `ended`, `resume`, the `running` event, the files
-   of `runs/`; `tests/tools/loop.test.ts`; the check on cb4. After st-1.
+2. **st-2-loop-start-and-end.** `loop.ts start`, `ended`, `resume`, the `running` event with its
+   keys, the count of dead runs, the files of `runs/`; `tests/tools/loop.test.ts`; the check on cb4. After st-1.
 3. **st-3-step.** `loop.ts step` and `--dry`: health, runs, the table, what stops a start,
-   `steps.jsonl`, `status.md`; a test a row. The judgment rows print their entries and start
-   nothing until st-4. After st-2.
+   `steps.jsonl`, `status.md`; the `given` comments and the reading of a verdict; a test a row
+   and the R6 tests of the checks. The judgment rows write `given`, print their entries and
+   start no run until st-4. After st-2.
 4. **st-4-orchestrator-brief.** `agents/orchestrator.md` from the sections of `SKILL.md` named in
    part 3, moved and not rewritten; the step starts the run; `SKILL.md` keeps a pass by hand. A
    test that each moved heading is in one file and not the other. After st-3 and after
@@ -653,7 +694,8 @@ Ids begin `st-`. None is `major` but `st-7`. No seed changes and nothing is depl
    is the owner's (below). After st-6.
 8. **st-8-read-after-three-days.** A record: the R1 and R6 rows; the minutes from an event to the
    step that acted on it; each thing that waited in `status.md` for a session with him, and how
-   long; each run found dead and whether it was. After st-7, held with `issue.hold` for three days.
+   long; each run found dead and whether it was; the dead runs whose usage left an issue's `total`;
+   each entry under "judged and left as it was". After st-7, held with `issue.hold` for three days.
 
 **The switch itself.** The owner stops the session's `/loop`; its writers go on as `Agent` calls
 only while that session is open, so he leaves it open until they have reported, or closes it and
@@ -760,5 +802,31 @@ had changed since `1904d03d`.
   after that it is the judgment's.
 - **Note 3.** An event by the driver's own token is no reason for a step (part 4).
 
-Not run again for this round: `/review-notebook`. The round changes two passages and four rows,
-and the review that asked for them reads them next.
+### The fresh review of round 2 (run 23:35 CEST on `eb4784e0`, answered by 23:41 CEST)
+
+One agent with the diff since `1904d03d` and the file (`/review-notebook`): FIX, 10 findings and 4
+smaller ones, all taken. 118,280 tokens, 4m28s. Two of its claims were read in the seed before
+they were acted on: `runs` keeps one run a role and round (`brain-issues.ojs:590`), and a label
+`needs-owner` leaves an issue at `in-progress`, `in-review`, `spec` or `spec-review` in the queue
+(`:895`).
+
+- The bound of note 2 counted runs `runs` does not hold: the count is of `cost` events in
+  `get?id=` (part 2, "How many runs of a role and round died"), with a check on cb4.
+- Two resumes of one token in one round had one key: the key has the seq the resume is made for.
+  How a spec writer's round is counted is said there.
+- A `round` labeled `needs-owner` never came back when the owner answered: the row of his answer
+  takes an issue in `waiting` or in the queue.
+- An agent that dies before its first move was started again at every step, for a `review`, a
+  `spec` and a `start` entry: the bound is a condition of every row that starts an agent, and the
+  row "2 dead runs" takes the rest.
+- A `ready` or a `back` by the driver waited for another's event before its `start`: a step that
+  made a move is followed by one more (part 4).
+- A judgment run that died left its entries as judged: given once more, then named apart.
+- `<at>` for `triage` did not move for a link or a label, `<do>` had no word for four rows, and
+  `go-on` was "for this round" in the table: the table of `<do>` and `<at>`.
+- What `go-on` does for the row of dead runs: one run more.
+- "Not run again for this round" was false and is gone.
+- Smaller: the wording about a label; the tasks `st-2`, `st-3` and `st-8` name the new tests and
+  counts; the second R4 check row is beside the first; the header names all that changed.
+
+Not read by a third fresh reader: the text of this last answer. The tracker's review reads it next.
