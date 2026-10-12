@@ -98,3 +98,9 @@ is quoted.
   the words that say what choice B was, past "Choice B, not taken,".
 - `oversight.md` line 634 says of this issue "Not edited by me" and "Not known". It is the overseer's
   note of that day and was left as it is.
+
+## 2026-10-12, later: the five lines are out
+
+The owner approved this issue with the reason "B" (event 4354), choice B of comment 3851: the five
+lines out, the test kept. `skill-step-2-five-lines-out` took them out and the test file has three
+tests since: `tools/cloud-brain/records/skill-step-2-five-lines-out.md`. What is above is the record of `9fae78a0`.
