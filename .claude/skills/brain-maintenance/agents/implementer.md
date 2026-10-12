@@ -29,7 +29,7 @@ measured 2026-10-12). So:
 
 - **The issue is read in its short form**, `ia "get?id=<id>" --short`: the issue, its links and children,
   and one line an event with its seq, key, type, move, `by` (the caller's name: `impl-…`, `rev-…`, `orch-…`)
-  and `at` (a time in UTC), and its body, reason, verdict and refs. Without `--short` each event also has
+  and `at` (a time in UTC), and its body, reason, verdict and refs. Its first key, `short`, says what was left out. Without `--short` each event also has
   `prev`, `hash`, `sig`, `ray`, `origin` and `workflow`, and `by` is an object with the `holder`, `secret:<name>`.
 - **An output the harness saved to a file, because it was too large to show, is searched and not read
   whole**: `grep -n` for the words you look for, or a range of lines (`sed -n '200,260p'`, or Read with

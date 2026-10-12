@@ -76,10 +76,13 @@ test("--short: one read of the same address, one JSON value, the status on stder
   expect(r.err).toBe(" [200]\n");
   expect(r.got).toEqual([{ method: "GET", path: "/get?id=ds-1-rows-add-within" }]);
   const short = JSON.parse(r.out);
-  expect(Object.keys(short)).toEqual(["issue", "children", "events"]);
+  expect(Object.keys(short)).toEqual(["short", "issue", "children", "events"]);
+  // an answer that was cut says so, what was left out, and how the whole is read
+  expect(short.short).toMatch(/^cut by issue-as\.sh --short: of each event prev, hash, sig, ray, origin, workflow and id; .* The same call with no --short prints the whole answer\.$/);
+  expect("short" in whole).toBe(false);
   expect(short.children).toEqual(whole.children);
   expect(r.out.length).toBeLessThan(kept.length * 0.75);
-  expect([kept.length, r.out.length]).toEqual([37804, 26695]);
+  expect([kept.length, r.out.length]).toEqual([37804, 26928]);
 });
 
 test("--short: every event is there, one a line, with what the brief reads and none of the six fields", async () => {
@@ -141,7 +144,7 @@ test("--short: a cost event keeps who ran and how it ended, not its usage; the a
 test("--short: a session's write is named by its caller, another holder as it is, and what is no time or no object is left", async () => {
   const r = await call(["get?id=edge", "--short"]);
   const short = JSON.parse(r.out);
-  expect(Object.keys(short)).toEqual(["issue", "children", "more", "events"]);
+  expect(Object.keys(short)).toEqual(["short", "issue", "children", "more", "events"]);
   expect(short.more).toBe(true);
   expect(short.issue).toEqual({ id: "e", title: "now", body: "the body", last: { move: "ready", at: "1970-01-01T00:00:00Z" }, opened_at: "2026-10-12T06:52:16Z" });
   expect(short.events).toEqual([
@@ -168,7 +171,7 @@ test("--short: a name the tool does not keep is exit 2 and nothing is sent", asy
 
 test("the script's header says what --short leaves out, and the brief has the call in step 1", () => {
   const head = readFileSync(script, "utf8").split("\n").filter((l) => l.startsWith("#")).map((l) => l.replace(/^# ?/, "")).join(" ");
-  for (const k of ["`--short`", "`prev`", "`hash`", "`sig`", "`ray`", "`origin`", "`workflow`", "times in UTC", "One event a line"]) expect(head).toContain(k);
+  for (const k of ["`--short`", "`prev`", "`hash`", "`sig`", "`ray`", "`origin`", "`workflow`", "times in UTC", "One event a line", "whose first key, `short`, says that it was cut"]) expect(head).toContain(k);
   const brief = readFileSync(join(root, ".claude/skills/brain-maintenance/agents/implementer.md"), "utf8").replace(/\s+/g, " ");
   expect(brief).toContain('`ia "get?id=<id>" --short`');
   expect(brief).toContain("1. **Read the issue**, in its short form");

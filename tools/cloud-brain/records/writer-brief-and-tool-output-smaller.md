@@ -8,11 +8,11 @@ the brief read whole, 10% `issue-as.sh get` and 9% an output the harness had sav
 
 ## What changed
 
-**1. The brief is a file of 19,842 characters, and eleven pages.**
+**1. The brief is a file of 19,890 characters, and eleven pages.**
 
 ```
 before  .claude/skills/brain-maintenance/agents/implementer.md   87,858 bytes   git show origin/main:<path> | wc -c
-after   the same file                                            19,852 bytes   wc -c   (19,842 characters)
+after   the same file                                            19,900 bytes   wc -c   (19,890 characters)
         agents/implementer/*.md, eleven pages                    93,395 bytes   wc -c
 ```
 
@@ -42,7 +42,9 @@ that says for each page when a writer reads it.
 | `tracker-calls.md` | 3,716 | "The tracker's write calls", "What a reviewer will check" |
 
 A writer of a seed with a deploy is sent to four of them, `seed-tests`, `ready-to-land`, `landing` and
-`submit-and-wait`: 44,285 bytes beside the 19,852, so 64,137 where it read 87,858.
+`submit-and-wait`: 44,285 bytes beside the 19,900, so 64,185 where it read 87,858.
+
+The file is 110 characters under the 20,000 the test holds: a line added to it wants one taken out, or moved to its page.
 
 **The choice, and what it costs.** The other way was to cut the brief into a short file and pages with no
 sentence in both. It was not taken: a change with no deploy needs a part of nearly every step (the record's rules
@@ -55,17 +57,21 @@ the other is not caught by any test here, but for the lines the tests name.
 Left out: of each event `prev`, `hash`, `sig`, `ray`, `origin`, `workflow` and `id`; of the `opened` event its
 `title` and `body` when they are the issue's; of a `cost` event its usage; of the issue `workflow` and `runs`; the
 answer's `cost`. `by` is the caller's name and `at` a time in UTC. One event a line, the whole one JSON value.
+Its first key, `short`, is a sentence that says the answer was cut, what was left out and that the same call with
+no `--short` prints the whole: R1 of `plan/cloud-brain-answers-cut-and-not-said.md`, which the search of the Brain
+gave first for the words of this fix (score 0.959), "A text that was cut says so where it was cut". As a field and
+not a last line, since the answer is one a program may parse (that spec, "The design"). It is 233 characters a read.
 The fields are left out by name, so an event of a type the script does not know keeps what else it has. With no
 `--short` the answer is printed as it came.
 
-Five issues read both ways on cb4, 2026-10-13 01:46 CEST, characters (`ia "get?id=<id>" | wc -m`, then with `--short`):
+Five issues read both ways on cb4, 2026-10-13 01:54 CEST, characters (`ia "get?id=<id>" | wc -m`, then with `--short`):
 
 ```
-writer-brief-and-tool-output-smaller   10,708 ->  4,813   45%
-implementer-one-advisor-call           24,091 -> 13,913   58%
-wt-3-land-by-push                      34,074 -> 21,660   64%
-tp-3-take-and-done                     33,352 -> 21,849   66%
-ds-1-rows-add-within                   37,972 -> 26,695   70%
+writer-brief-and-tool-output-smaller   10,708 ->  5,046   47%
+implementer-one-advisor-call           24,091 -> 14,146   59%
+wt-3-land-by-push                      34,074 -> 21,893   64%
+tp-3-take-and-done                     33,352 -> 22,082   66%
+ds-1-rows-add-within                   37,972 -> 26,928   71%
 ```
 
 What is left is the comments, the reasons and the reviews, which a writer reads. The issue's own number is 5,486
@@ -86,8 +92,8 @@ means the page of that row.
 
 ## Tests
 
-`tests/tools/suite.sh`, after the rebase and the last change of a test or a tool, 2026-10-13 01:48 CEST:
-969 pass, 0 fail, 99 files, 75.34 s. No `skipped:` line.
+`tests/tools/suite.sh`, after the rebase and the last change of a test or a tool, 2026-10-13 01:56 CEST:
+969 pass, 0 fail, 99 files, 153.38 s (75.34 s in the run before it, at 01:48). No `skipped:` line.
 
 Two new files, `cd $W && bun test --timeout=30000 ./tests/tools/issue-as-short.test.ts ./tests/tools/implementer-brief-core.test.ts`:
 17 pass, 0 fail.

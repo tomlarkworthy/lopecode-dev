@@ -26,7 +26,8 @@
 # when they are the issue's; of a `cost` event all but seq, key, type, at, by, role, round, how, outcome, token and event;
 # of the issue `workflow` and `runs`; and the answer's `cost`. `by` is the caller's name (the holder with no `secret:`, or
 # the caller when a session wrote it), and `at`, `opened_at`, `updated_at` and `last.at` are times in UTC. One event a
-# line, the whole still one JSON value. An answer with no `events` (another method, a refusal) is printed as it came.
+# line, the whole still one JSON value, whose first key, `short`, says that it was cut, what was left out and how the
+# whole is read (R1 of plan/cloud-brain-answers-cut-and-not-said.md: an answer that was cut says so). An answer with no `events` (another method, a refusal) is printed as it came.
 # tests/tools/issue-as-short.test.ts; records/writer-brief-and-tool-output-smaller.md.
 D="$(cd "$(dirname "$0")" && pwd)"
 DIR="${BRAIN_STATE_DIR:-}"
@@ -122,7 +123,7 @@ for e in a["events"]:
     if "at" in s: s["at"] = when(s["at"])
     if "by" in s: s["by"] = who(s["by"])
     events.append(s)
-parts = ['"issue":' + dump(issue)]
+parts = ['"short":' + dump("cut by issue-as.sh --short: of each event prev, hash, sig, ray, origin, workflow and id; of a cost event its usage; of the issue workflow and runs; the answer's cost. The same call with no --short prints the whole answer."), '"issue":' + dump(issue)]
 parts += ['"%s":%s' % (k, dump(v)) for k, v in a.items() if k not in ("issue", "events", "cost")]
 parts.append('"events":[\n' + ",\n".join(dump(e) for e in events) + "\n]")
 sys.stdout.write("{" + ",\n".join(parts) + "}\n")
