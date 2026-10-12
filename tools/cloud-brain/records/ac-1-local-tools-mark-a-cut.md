@@ -41,7 +41,8 @@ After the edit the same grep prints no line of a text in either file (what is le
 The header of `verify-run.ts` says what its mark does not cover: a failed test's message reaches the
 tool from `brain-shell`, which keeps the first 300 characters and marks nothing (`brain-shell.ojs`
 line 163, `message: String((e && e.message) || e).slice(0, 300)`, read at `1b0d0553`). So "of N" in a
-mark of `verify-run.ts` is the length of what the tool received, and `--whole` prints that. The cut in
+mark of `verify-run.ts` is the length of what the tool received, with its white space made one space
+as above, and `--whole` prints that. The cut in
 `brain-shell` is not in this task (the spec, "The local tools").
 
 ## Tests
@@ -50,8 +51,8 @@ mark of `verify-run.ts` is the length of what the tool received, and `--whole` p
 in the worktree, the check the spec names:
 
 ```
-with cut.ts, and the two tools as at 1b0d0553 (20:23 CEST)    29 pass, 9 fail, 38 tests in 3 files
-after the edit (20:24 CEST)                                    38 pass, 0 fail
+with cut.ts, and the two tools as at 1b0d0553    29 pass, 9 fail, 38 tests in 3 files
+after the edit                                   38 pass, 0 fail
 ```
 
 Before `cut.ts` was written the three files failed to load (`Cannot find module … cut.ts`, 0 pass).
@@ -79,10 +80,10 @@ on 2026-10-12 with Chrome 151.0.7922.34). The tests name them in a constant and 
 text first, so another prefix fails there by name.
 
 The whole directory, `tests/tools/suite.sh` in the worktree after the last edit of a tool or a test,
-20:28:23 to 20:30:03 CEST:
+20:31:45 to 20:33:12 CEST:
 
 ```
-667 pass, 0 fail, 667 tests in 67 files, 100.03 s
+667 pass, 0 fail, 667 tests in 67 files, 87.24 s
 ```
 
 No line `skipped:` in its output.
