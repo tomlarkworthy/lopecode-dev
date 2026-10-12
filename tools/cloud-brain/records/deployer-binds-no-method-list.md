@@ -50,7 +50,7 @@ service's own handler, which is passed it as `info` or as `env.BRAIN_INFO` (the 
 | Search, over the 33 seeds `tools/cloud-brain/*.ojs` | Lines | What they read |
 |---|---|---|
 | `grep -cE 'BRAIN_INFO'` | 19 in 4 seeds | `cloudflare-iac`: `info()`, the blob key (`role`, `name`), `simulate`. `brain-deployer`: the two bindings, and the test fake, which reads `hash` and `name`. `brain-issues`: two comments and the test below. `cloud-brain`: the Clone form's binding of the deployer |
-| `grep -nE 'info\(\)'` in `cloudflare-iac.ojs` | 14 | `name`, `hash`, `role`, `secrets`, `cloudflare`, and the whole object passed on at `getInfo` and to the handler |
+| `grep -cE 'info\(\)'` in `cloudflare-iac.ojs` | 15 | `name`, `hash`, `role`, `secrets`, `cloudflare`, and the whole object passed on at `getInfo` and to the handler |
 | `grep -nE '\binfo\b'` in the other seeds | read line by line | `brain-core`, `callsOf`: `info.calls`, `info.hash` of a Worker's `getInfo`. `brain-deployer`: `context.info.hash`. The rest are other things named info (`blob.info`, `info/refs`, a WhatsApp media answer) |
 | `grep -cE 'getInfo'` | 44 in 8 seeds | the callers keep `hash` or `name`: `brain-shell` (`i.hash`), `brain-issues` (`r.hash`), the Services list of `cloudflare-iac` (`[i.name, i.hash]`), `callsOf` |
 | `grep -nE '(info(\(\))?\|INFO\|json)\??\.(methods\|access)\b'` in the seeds, `tools/cloud-brain/*.ts`, `cloud-brain-dev/*.ts` | 0 | |
@@ -224,7 +224,9 @@ the size of one of none, and what it refuses names a path or a secret; a file th
 or binds no name is taken for a deployer of before, and the refusal says so; `BRAIN_DEPLOYER_JS` and the
 default path; the five of before on sizes, the emit and `brain.ts apply`; and one record that the emit writes
 and `apply` sends under the seed's deployer and does not under the one of before. The tests name their
-deployer file and none reads `cloud-brain-dev/deploy`.
+deployer file, set as `BRAIN_DEPLOYER_JS` for this file's tests and put back after the last. One calls
+`deployerFrom()` with no file named and holds that its sentence names the default path, whether the file is
+there or not; no size of a test comes from `cloud-brain-dev/deploy`.
 
 ## Not tried
 

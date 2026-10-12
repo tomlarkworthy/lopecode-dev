@@ -6,7 +6,7 @@
 // No browser and no Brain: the emit is given a record's text, and brain.ts a local stand-in for the deployer.
 // Which deployer the size is computed by is a file's to say (deployer-binds-no-method-list): the tests name it, the
 // seed as it was at 938b1b59 or the seed of this checkout, and none reads cloud-brain-dev/deploy.
-import { test, expect } from "bun:test";
+import { test, expect, beforeAll, afterAll } from "bun:test";
 import { mkdtempSync, writeFileSync, readFileSync, copyFileSync, existsSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -22,8 +22,11 @@ const BEFORE = join(realpathSync(mkdtempSync(join(tmpdir(), "brain-info-deployer
   if (show.exitCode !== 0) throw new Error("git show 938b1b59:tools/cloud-brain/brain-deployer.ojs: " + show.stderr.toString());
   writeFileSync(BEFORE, show.stdout);
 }
-// Every test below this line that names no deployer computes by the one before: the sizes of `sized` are its sizes.
-process.env.BRAIN_DEPLOYER_JS = BEFORE;
+// Every test of this file that names no deployer computes by the one before: the sizes of `sized` are its sizes.
+// Put back after the last: the suite runs several files in one process.
+const WAS = process.env.BRAIN_DEPLOYER_JS;
+beforeAll(() => { process.env.BRAIN_DEPLOYER_JS = BEFORE; });
+afterAll(() => { if (WAS === undefined) delete process.env.BRAIN_DEPLOYER_JS; else process.env.BRAIN_DEPLOYER_JS = WAS; });
 const under = async <T>(file: string, fn: () => Promise<T> | T) => { const was = process.env.BRAIN_DEPLOYER_JS; process.env.BRAIN_DEPLOYER_JS = file; try { return await fn(); } finally { process.env.BRAIN_DEPLOYER_JS = was; } };
 const NS = "com.lopecode.brain.issue.";
 // A record as the tracker declares its methods: one rule for each, written as tr-1 wrote it.
