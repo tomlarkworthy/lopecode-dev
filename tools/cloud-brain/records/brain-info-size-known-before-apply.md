@@ -124,7 +124,7 @@ named `issue.m00`, `m01`, …, 164 bytes as is):
 | A | nothing | | 4966 | 0 |
 | B | the seed: `who: "workers"` and no `allow` on the 28 | the loop's deploy, and `major` | 3258 | 18 |
 | C | the deployer leaves `methods` out of the variable | the owner's deploy | 3993 | 8 |
-| D | the deployer leaves `methods` and `access` out | the owner's deploy | 1266 | 122 |
+| D | the deployer leaves `methods` and `access` out | the owner's deploy | 293 | no limit: a method then adds nothing to the variable |
 | E | split: the deployer binds `access` as a second variable, and the wrapper joins the two at `getInfo` | the owner's deploy of the deployer, and of the wrapper | 3690 for `access` alone | 10 |
 
 **B changes who may call.** `who: "workers"` is `caller.trusted || caller.kind in ["worker", "deployer"]`
@@ -139,7 +139,7 @@ today names who is let in, so a caller of a kind neither lists is let in by it a
 
 **E keeps what `getInfo` answers and costs the most.** The second variable has the same limit, and `access` alone is 3690 bytes. The wrapper (`workerRuntime` in `cloudflare-iac.ojs`) reads one variable, so it changes too: the hash of the kernel, the core and the deployer covers that seed, and each Worker gets the wrapper at a `redistil --apply` after `install-deployer`.
 
-**The pick is D.** It is the one that ends the limit for the tracker (122 further methods, where C gives 8 and E 10), and what it takes out of `getInfo` is answered by `service.list` today. Its cost is that a public answer loses two fields.
+**The pick is D.** It is the one that ends the limit for the tracker (a method then adds nothing to the variable, where C gives 8 further methods and E 10; 1266 and 122, which this row had until the review, are the size and the count with `access` out and `methods` kept), and what it takes out of `getInfo` is answered by `service.list` today. Its cost is that a public answer loses two fields.
 
 **C and D are one line of `brain-deployer.ojs`**, which the loop does not deploy (`rules.md`, Never). D:
 
