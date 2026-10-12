@@ -279,11 +279,18 @@ under the old name was opened; the record.)
 - **`issue.get`** answers `cost: { …the totals, byRole: { implementer: {…}, reviewer: {…} } }`
   beside `issue`, `children` and `events`, from the row it already reads. An issue with no run has
   `cost.runs` 0. A hidden issue has none.
+  (As built, `cm-2-cost-reads`, 2026-10-12: `usd` is the sum to a millionth, so 0.1 and 0.2 read
+  0.3; `byRole` is in the order of each role's first run in the row; the record.)
 - **`issue.runs`**, a query: `?id=&role=&how=&round=&after=<seq>&limit=500`. `{ runs: [{ id, …the
   run }], total: {…the totals of every run the query matches, not of this page}, more }`. `round` is a number, or `first`, or `later`. It
   reads the rows as `issue.list` does and leaves out an issue the caller may not read. The rows
   are in the answer so that a median is the caller's to take: a sum is not what the comparison of
   the issue's body needs.
+  (As built, `cm-2-cost-reads`, 2026-10-12: the runs are in the order of `seq`; a `how`, `round`,
+  `role`, `after` or `limit` that is not one of the field's values is 400 `InvalidRequest`, and one
+  left empty asks for nothing; `limit` is 1 to 500; `total` is the same on every page, `after` and
+  `limit` do not change it; an `id` that names a hidden issue, or none, answers no runs and not
+  404; the record.)
 - `issue.list` and `issue.snapshot` carry `runs` with the rest of the row, with no code of their own.
 
 What that adds, from `proto.py` over the 288 runs entered as the design has them: 90,490 characters
