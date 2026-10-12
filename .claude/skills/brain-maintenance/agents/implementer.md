@@ -99,6 +99,12 @@ each command; no shell state lasts between calls.
      `brain.ts` says is not kept, say so in a comment and in your report, with no label, and do
      not make it.
    Do not `start` such an issue.
+   An issue that comes back with the owner's answer to land such a seed, or a task of an approved
+   spec that says the deploy is his, is started: the seed is landed on `main` by step 10 with no
+   deploy, steps 7 and 8 run on the build of your worktree, and you build, apply and probe nothing
+   of it on cb4. The first line of your comment and the reason of your submit say that cb4 does
+   not run the change and whose act the deploy is. Three writers did so from their issue alone on
+   2026-10-12 (`token-revoke-no-name-ends-links`, `ds-1-rows-add-within`, `ds-2-core-spends-by-row`).
 4. **Claim it.** `ia move '{"key":"impl/<id>/start","id":"<id>","to":"in-progress","reason":"…"}'`.
    Whoever starts an issue is the only one who can submit it: the policy lets the token of its
    last `start` submit and refuses every other, 403. An issue that is already `in-progress` is
@@ -614,7 +620,10 @@ Each is `ia <call> '<json>'`, and each takes a `key`. The shapes, from the track
 | `move` | `{ key, id, to, reason, refs }` |
 
 A body with an apostrophe, or of more than a few lines, is written to a file in the scratchpad (the
-Write tool) and sent with `@`: `ia comment @<scratchpad>/comment.json`. An apostrophe ends the quoting
+Write tool) and sent with `@`: `ia comment @<scratchpad>/<token>-comment.json`. The scratchpad is one
+directory for every agent of the session, so each file you write there begins with your token: on
+2026-10-12 a writer's call sent another writer's `comment.json` and `submit.json` with its own token
+(`wt-4-reviewer-in-a-view`; both keys were used already, so nothing was written). An apostrophe ends the quoting
 of an inline `'<json>'` and zsh sends nothing; a body over ARG_MAX (1048576 bytes here) is "argument
 list too long". The file's bytes are the body as they are, the time check reads them, and a file that
 is absent or empty is exit 4 with nothing sent (`records/issue-as-body-from-a-file.md`).
