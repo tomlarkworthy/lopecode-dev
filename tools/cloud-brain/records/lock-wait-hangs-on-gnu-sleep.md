@@ -40,8 +40,10 @@ The check of the seconds no longer leaves anything to `sleep`:
 - The number is 600 at most, compared by `awk`. 600 s is the time a lock is held for (the
   header of `lock.sh`, line 2), and a taker that asks less often than that can sleep through a
   whole hold and the free time after it. `philosophy.md` line 2 decided it ("good common sense
-  principles without micro-management"); no brief or doc gives a number above 300 after
-  `--wait` (`oversight.md` has one `--wait 300`).
+  principles without micro-management"). Of the lines that
+  `git grep -n -E -- '--wait +[0-9]' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'`
+  printed, those of `lock.sh` give it 300 at the most (`oversight.md`, `--wait 300`); the
+  `--wait 12000` of `records/ow-3-operator-shown-the-issue.md` is `lope-browser-runner.ts`'s.
 - A refused value is exit 2 before a token is read or a call is sent, with one line above the
   usage: `lock.sh: --wait takes seconds above 0 and at most 600; nothing was sent`.
 - The exit of `sleep` is still read in the loop (`sleep refused … Not taken.`, exit 2).
