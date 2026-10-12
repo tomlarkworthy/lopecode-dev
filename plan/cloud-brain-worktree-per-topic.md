@@ -3,7 +3,7 @@
 Spec of the feature `worktree-per-topic` on cb4's tracker (opened at event 2456, taken at event
 3358, 2026-10-12 03:14:39 CEST by `spec-19144c`). Written 2026-10-12 from 03:14 CEST (the take's `at`) to the first commit's author time
 (`git log --format=%ai`), from `lopecode-dev` `origin/main` at `e6cbcadf`. Nothing here is built. Every number
-below is from a command run in that span on the owner's laptop, written beside it. A fresh agent
+below is from a command run on the owner's laptop, in that span or at the time written beside it. A fresh agent
 with the file alone read the first writing before the landing (`/review-notebook`: BLOCK, 10
 findings, all taken; the last part says which changed the design). Round 1 was sent back by
 review 3510; round 2, written from 03:41 CEST by the same writer, resumed, answers it under
@@ -146,7 +146,11 @@ bun test ./tests/tools/worktree.test.ts                 7 pass, 0 fail
 ### 1. A landing is a push from the worktree (R1, R7)
 
 Under the landing lock, in its worktree `$W`, in this order. `<root>` appears only as the place
-of `.emitted`, which is state and not tracked.
+of `.emitted`, which is state and not tracked. `lock.sh` is the worktree's own,
+`$W/tools/cloud-brain/lock.sh`: its release runs `knowledge-docs.ts` beside itself, which reads
+the three docs of `cloud-brain-dev` from the checkout it is in, and the clone in `$W` has the
+commit just pushed where the root copy has not (`lock.sh` line 171, `knowledge-docs.ts` line 93:
+read, not run from a worktree).
 
 1. `LOCK_TOKEN=<token> lock.sh take land <id>`.
 2. `tools/cloud-brain/worktree.sh --rebase <name>`: a fetch, then a rebase on `origin/main`. When
@@ -199,17 +203,22 @@ the copy was then removed. `git fetch origin` there took 1.55 s.
   --get submodule.recurse` there prints nothing, exit 1), and after task 3 no landing commits in
   the root copy, so without this it would stay where it was. Four things of the loop read it
   there: `philosophy.md` of the skill, a link into it; `summarize-papers.ts`, which starts its
-  `agent.sh`; `put.sh`; and `agents/implementer.md` line 417. The root copy is on `main` and
+  `agent.sh`; `put.sh`; and `agents/implementer.md` line 417. A fifth until task 4 lands:
+  `SKILL.md` step 4 starts every reviewer with `<root>/cloud-brain-dev/agent.sh`. The root copy is on `main` and
   fetches from the cluster, where a landing pushes before the pointer is committed (part 2), so
   after the pull it is at the pointer or past it by a landing whose `lopecode-dev` push is next.
   Git refuses the pull when it would write over one of the files `sync.ts` changed under
-  `deploy/` (4 of 140 tracked there at 03:41): then `git checkout -- deploy`, the pull, and `bun
+  `deploy/` (4 of 140 tracked there at 03:41): then `git checkout -- deploy`, `git clean -fd deploy` (a file `sync.ts` made that a
+  landing has since added is untracked there and refuses the pull too), the pull, and `bun
   sync.ts`, since `deploy/` is a read of cb4 and nothing of it is kept. A light agent that runs
   from the root copy at that moment (a summarizer) has `agent.sh` written over under it: after
   task 1 that does not end its run, which is why task 1 is first; its brief is a file of the
   Brain, read once at its start. Run at 03:41: the root copy is 0 commits behind its
   `origin/main` and at the pointer (`3801492`), so the pull would have brought nothing; the
-  refusal and its three commands were not run, and task 3 tests them on scratch repositories. The health step, which today compares `brain.ts state` with the root's `seen.json`,
+  refusal and its four commands were not run, and task 3 tests them on scratch repositories,
+  the untracked file among them.
+- Either pull refused for `index.lock` (another session, or a second orchestrating session, is
+  writing there) is as the other refusals: said in step 7, tried again at the next pass. The health step, which today compares `brain.ts state` with the root's `seen.json`,
   reads `git show origin/main:tools/cloud-brain/seen.json` after a fetch.
 
 ### 2. `cloud-brain-dev` is a clone (R4)
@@ -252,14 +261,16 @@ touched. `worktree.sh --leave <name>` removes the file; the orchestrator runs it
 has reported. On exit 4, as on exit 3, the orchestrator takes the first of `<topic>.2`,
 `<topic>.3` and so on that answers 0. A file that names a token with which `issue-as.sh <token>
 "get?id=<topic>"` is exit 2 (ended with `agent-token revoke`, which takes it out of the file
-`issue-as.sh` reads) or answers 401 (its 48 hours ended) is of an agent that is gone, and
-`--fresh` takes the worktree over. That a lapsed token answers 401 is from `agents/spec.md`, "A
-resumed round"; task 2's tests try both. So two orchestrating sessions on one machine do not put two agents in one
+`issue-as.sh` reads) or answers 401 is of an agent that is gone, and `--fresh` takes the
+worktree over. `issue-as.sh` prints the status on stderr as ` [401]`, which `--fresh` reads.
+`SKILL.md` line 87 has the 401 for a token that was revoked; that one whose 48 hours ended
+answers 401 too is inferred and was not seen. Task 2's tests give the 401 from a stub in cb4's
+place, as `lock.test.ts` does with `LOCK_BASE`. So two orchestrating sessions on one machine do not put two agents in one
 worktree, with nothing kept in a session's memory. Not built and not run.
 
 Exit 3 is a writer that died or was sent back. When the unlanded work is of the issue being
 started (a rework, a resumed round, a `back`), the writer is put in it as it is and told so.
-Otherwise the orchestrator takes the next free number, as below, and says so in a comment on the issue whose work
+Otherwise the orchestrator takes the next free number, as above, and says so in a comment on the issue whose work
 stands there. It deletes nothing of a writer's.
 
 Then one comment on the topic's issue, with its own token, key `orch/<topic>/worktree-<n>`:
@@ -286,7 +297,10 @@ counts. For one that is clean, the orchestrator reads `ia "get?id=<topic>"`; at 
 `closed` or `rejected` it runs `worktree.sh --remove <name>` and comments `worktree removed
 {…}`. One that is not clean is never removed by the loop: it is named in step 7. Only `bm-*`
 under `.claude/worktrees` is listed (a view is one of them: `worktree.sh --at <sha> rev-<id>`
-makes the directory `bm-rev-<id>`, as `worktree.sh rev-<id>` does today): 20 of the 22 worktrees at 03:15 were not the loop's.
+makes the directory `bm-rev-<id>`, as `worktree.sh rev-<id>` does today). The issue of a name:
+`rev-` taken off the front and `.N` off the end. A clean view whose issue is not at `spec-review`
+or `in-review` is removed, whoever made it. `bm-orch-*`, `bm-over-*` and `bm-out-*` are of no
+issue: they are listed, and neither removed nor counted in check 3. Of the rest: 20 of the 22 worktrees at 03:15 were not the loop's.
 
 ### 4. A reviewer is started in a view (R3, R6)
 
@@ -385,7 +399,10 @@ Each is run by an agent with its own token, from any worktree. `<root>` is the m
    `--remove` refusing a worktree that is not clean without `--force`. `issue-as.sh` reads
    `.emitted` through the common directory, as `lock.sh` line 51. Tests as check 6. No brief changes: step 10 as
    written still works, since its pull makes the root's `main` equal to `origin/main`.
-3. **`wt-3-land-by-push`.** Step 10 of `agents/implementer.md` and step 6 of `agents/spec.md` become part 1 and part 2
+3. **`wt-3-land-by-push`.** Step 10 of `agents/implementer.md` and step 6 of `agents/spec.md` become part 1 and part 2;
+   "A resumed round" of both loses "make the worktree again" and reads `origin/main` after a
+   fetch in `$W` where it reads the root's `main` today (`implementer.md` lines 409 to 417, the
+   log of `philosophy.md` in the clone; `spec.md` line 97)
    (`agents/digest.md` step 7 lands by step 10 and copies its build to the root's `.emitted`, which stays); the writer no longer removes its
    worktree. `SKILL.md`: the pull at the start of a pass, the assignment and comment of part 3,
    the orchestrator's and the overseer's own worktrees, the removal, the health step's
@@ -436,9 +453,18 @@ Read whole at event 3510 before the file. Resumed by the writer of round 1, 2026
 - **Finding 1, nobody moves the root copy of `cloud-brain-dev`.** True, and the sentence "nothing
   of the loop may need the root to be current" was false of the four readers the review names.
   Taken as a third named write, in R1 and in part 1, with what it does when a light agent runs
-  from the root copy, and check 9. Not chosen: moving the four readers off the root.
-  `philosophy.md` of the skill is a link the orchestrating session reads from its own checkout,
-  and that session is in the root by R1's second write already.
+  from the root copy, and check 9. Not chosen: moving every reader off the root.
+  One is moved: `implementer.md` line 417 is run by a writer, which has a clone in `$W` (task
+  3). `philosophy.md` of the skill is a link the orchestrating session reads from its own
+  checkout, which is the root by R1's second write already. `put.sh` and `summarize-papers.ts`
+  are run by the orchestrating session or the overseer with no worktree of a topic; giving each
+  a clone was not costed.
+- **The fresh reader of this round** (`/review-notebook`, changes since `3b221e0f`, 03:43 to
+  03:48): FIX, 9 findings, all taken: "A resumed round" of two briefs read the root's `main` and
+  no task changed them; the reviewer's launch is a fifth reader until task 4; the release's docs
+  step reads the root copy unless `lock.sh` is the worktree's; a name in `--list` had no rule to
+  its issue; the 401 of a lapsed token was cited to a line that does not say it; an untracked
+  file under `deploy/`; `index.lock` on the pulls. Not read again after these.
 - **Finding 2, R7 has no check.** Check 8.
 - **Notes.** The view's directory is `bm-rev-<id>` and is in `--list` as a `bm-*` (parts 3 and
   4). The 20 minute wait is a report left out, and the table says so. The next free number after
