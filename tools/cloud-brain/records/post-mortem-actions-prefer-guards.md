@@ -65,7 +65,10 @@ Not held by the test, and left to the reviewer of a post mortem:
 
 - **An observability action counts among the 3.** Comment 4983: "Whether an observability action
   counts among the three is not in his words." Taken by `philosophy.md`, line 2 (the smaller side,
-  easier to undo): the overseer's limit is not changed.
+  easier to undo): the overseer's limit is not changed. (The reviewer, round 1: his words do say.
+  Comment 4999 of the issue, 2026-10-12 22:59 CEST, before the `start` of this writer, quotes him
+  whole: "yes it would count towards the three". The choice is his and not this writer's; the brief's
+  "his words do not say" is not mended here, see `seen-pm-brief-three-is-his-word`.)
 - **The three earlier files are not rewritten and not asked.** Two are records of what was filed; a
   third had a writer. The cost: the list in the test is three names that stay.
 - **The four questions are not changed.** `tests/tools/pm-2-brief-and-procedure.test.ts` reads them
