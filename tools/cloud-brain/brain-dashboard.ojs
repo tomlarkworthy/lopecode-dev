@@ -22,7 +22,7 @@ dashboardView = {
   return dashboard(chosen.panels.map((p) => ({ title: p.title, body: panelBody(p, answers.get(panelQuery(p).key), { width: width - 40 }), wide: true })), { note: dashboardNote(dashboardData) });
 }
 // %%
-md`The select and the panels above are for the owner, signed in; anyone else is shown one line and nothing is asked. The select lists what \`dashboard.list\` answers, and the choice is in the address as \`dashboard=NAME\`, so a dashboard has a link. The panels are drawn from one \`metric.query\` for each distinct metric, \`by\` and filter among them, over the span chosen under Health in the module \`@tomlarkworthy/cloud-brain\`. This module has no span and no "Refresh" of its own: "Refresh" under Health asks for the panels again, and so does a change of the span there. In a layout without that module its two controls are not on the page, and the panels read the span it opens with, the last hour. The cells that read and draw are after \`dashboard_announce\`, from \`dashboardList\` to \`dashboardNote\`; the functions \`dashboard\`, \`requestsChart\`, \`healthStrip\` and \`methodTable\` that they draw with are the page's, imported with \`chartBase\` and \`spanName\`.`
+md`The select and the panels above are for the owner, signed in; anyone else is shown one line and nothing is asked. The select lists what \`dashboard.list\` answers, and the choice is in the address as \`dashboard=NAME\`, so a dashboard has a link. The panels are drawn from one call for each distinct metric, \`by\` and filter among them, over the span chosen under Health in the module \`@tomlarkworthy/cloud-brain\`: \`metric.query\` of this service, or \`issue.flow\` of the tracker for a metric whose name starts \`flow.\` (Dashboards, below). This module has no span and no "Refresh" of its own: "Refresh" under Health asks for the panels again, and so does a change of the span there. In a layout without that module its two controls are not on the page, and the panels read the span it opens with, the last hour. The cells that read and draw are after \`dashboard_announce\`, from \`dashboardList\` to \`dashboardNote\`; the functions \`dashboard\`, \`requestsChart\`, \`healthStrip\` and \`methodTable\` that they draw with are the page's, imported with \`chartBase\` and \`spanName\`.`
 // %%
 md`## Methods
 
@@ -163,7 +163,7 @@ What holds one member's counts from another: the script Cloudflare is asked for 
 
 ## Dashboards
 
-A dashboard is a row of this service, added and changed with no deploy. It holds names only: no data, and no rule. The data of a panel is asked of \`metric.query\` by whoever draws it, and is answered or refused there for that caller, so a caller that reads a dashboard reads nothing of a metric by it. The service does not look whether a panel's \`metric\` is defined, or whether its \`by\` and \`filter\` name dimensions of it.
+A dashboard is a row of this service, added and changed with no deploy. It holds names only: no data, and no rule. The data of a panel is asked of \`metric.query\` by whoever draws it, and is answered or refused there for that caller, so a caller that reads a dashboard reads nothing of a metric by it. A panel whose metric starts \`flow.\` is asked of \`issue.flow\` of the tracker (brain-issues) in the same way, with the same parameters, and is answered or refused by that method's rule: this service defines no such metric, \`metric.list\` names none, and it sends the tracker nothing. The service does not look whether a panel's \`metric\` is defined, or whether its \`by\` and \`filter\` name dimensions of it.
 
 \`\`\`js
 POST /xrpc/com.lopecode.brain.dashboard.put
@@ -177,7 +177,7 @@ POST /xrpc/com.lopecode.brain.dashboard.put
       "draw": "bars" }] }                       // one of ${dashboardDraws.join(", ")}
 \`\`\`
 
-The answer is the dashboard as kept: \`name\`, \`title\` and, for each panel, \`title\`, \`metric\`, \`by\`, \`filter\` and \`draw\`, with \`by\` a list and \`filter\` an object when they were left out. Any other field of the body or of a panel is not kept. A name in \`by\` and a key of \`filter\` is a field's name as a metric's dimension is, and a key is not \`metric\`, \`since\`, \`until\` or \`by\`; a value of \`filter\` is text of 200 characters at most, or a number. \`draw\` names how the page draws the panel: \`calls\`, \`faults\` and \`methods\` are for the rows of \`core.calls\`, \`bars\` and \`table\` for any metric. A body that is not this is answered 400 and nothing is kept.
+The answer is the dashboard as kept: \`name\`, \`title\` and, for each panel, \`title\`, \`metric\`, \`by\`, \`filter\` and \`draw\`, with \`by\` a list and \`filter\` an object when they were left out. Any other field of the body or of a panel is not kept. A name in \`by\` and a key of \`filter\` is a field's name as a metric's dimension is, and a key is not \`metric\`, \`since\`, \`until\` or \`by\`; a value of \`filter\` is text of 200 characters at most, or a number. \`draw\` names how the page draws the panel: \`calls\`, \`faults\` and \`methods\` are for the rows of \`core.calls\`, \`bars\` and \`table\` for any metric. \`points\` needs \`id\` in \`by\`: a dot for each row at its time and value, and for an answer with \`summaries\` (\`issue.flow\`) a rule at the median and a dashed one at the 85th percentile of each, with a line of text for each under the chart. \`share\` is for a metric with a value: a line a group with \`n\`, \`sum\` and \`sum / n\`. A value whose \`unit\` is \`ms\` (\`issue.flow\`) is written in hours with one decimal by \`table\` and \`points\`, and \`table\` adds the median and the 85th percentile of each group when the answer has \`summaries\` and \`by\` has no \`id\`. A body that is not this is answered 400 and nothing is kept.
 
 The dashboards that are built in are a value of this module (\`dashboardDefinitions\`), as the Brain's own metrics are, and no method writes one: \`dashboard.put\` and \`dashboard.delete\` of a built-in name are answered 403 for every caller, and \`dashboard.get\` answers the module's value whatever row is kept under that name.
 
@@ -238,8 +238,9 @@ dashboardDefinitions = [
   { name: "health", title: "Health", panels: ["calls", "faults", "methods"].map((draw, i) => ({ title: ["Calls", "Health", "By method"][i], metric: "core.calls", by: ["worker", "method", "status"], filter: {}, draw })) }
 ]
 // %%
-// How a panel is drawn. calls, faults and methods need the rows of core.calls; bars and table draw any metric.
-dashboardDraws = ["calls", "faults", "methods", "bars", "table"]
+// How a panel is drawn. calls, faults and methods need the rows of core.calls; bars and table draw any metric; points draws a row
+// an id and share a metric with a value (panelNeeds, pointsChart and shareTable, with the cells that read and draw).
+dashboardDraws = ["calls", "faults", "methods", "bars", "table", "points", "share"]
 // %%
 // The built-in dashboards as rows of the reference's table, a row a panel. A cell of its own, as metricTable is.
 dashboardTable = {
@@ -615,14 +616,18 @@ panelQuery = (panel) => {
 // The queries of a list of panels: one for each distinct metric, by and filter, in the order first met.
 dashboardQueries = (panels) => [...new Map((panels || []).map(panelQuery).map((q) => [q.key, q])).values()]
 // %%
-// The data of a dashboard over a range: one metric.query for each of its queries, sent together. Answers
-// { dashboard, range, answers }, with answers a Map from a query's key to what metric.query answered, or to
-// { error } for one that failed. No client or no dashboard: null, and nothing is sent.
+// The method a metric is read with: issue.flow of the tracker for a name that starts flow. (the times work took, computed from
+// the tracker's record: plan/cloud-brain-flow-metrics.md), and metric.query of this service for every other.
+panelMethod = (metric) => (typeof metric === "string" && metric.startsWith("flow.") ? "issue.flow" : "metric.query")
+// %%
+// The data of a dashboard over a range: one call for each of its queries, sent together, to the method panelMethod names for
+// its metric, with the same parameters whichever that is. Answers { dashboard, range, answers }, with answers a Map from a
+// query's key to what the method answered, or to { error } for one that failed. No client or no dashboard: null, and nothing is sent.
 // A filter is written first, so it stands in for none of metric, since, until and by.
 dashboardRead = async ({ client, dashboard, range }) => {
   if (!client || !dashboard) return null;
   const queries = dashboardQueries(dashboard.panels);
-  const answers = await Promise.all(queries.map((q) => client.query("metric.query", { ...q.filter, metric: q.metric, since: range.since, until: range.until, by: q.by.length ? q.by.join(",") : undefined }).then((a) => a, (e) => ({ error: String((e && e.message) || e) }))));
+  const answers = await Promise.all(queries.map((q) => client.query(panelMethod(q.metric), { ...q.filter, metric: q.metric, since: range.since, until: range.until, by: q.by.length ? q.by.join(",") : undefined }).then((a) => a, (e) => ({ error: String((e && e.message) || e) }))));
   return { dashboard, range, answers: new Map(queries.map((q, i) => [q.key, answers[i]])) };
 }
 // %%
@@ -634,11 +639,12 @@ dashboardData = dashboardRead({ client: session.owner ? client : null, dashboard
 dashboardGroupLimit = 500
 // %%
 // The dimensions a draw takes its rows by. calls, faults and methods are the three draws of the dashboard `health`, over the rows
-// of core.calls; bars and table draw any metric.
-panelNeeds = ({ calls: ["worker"], faults: ["worker", "status"], methods: ["worker", "method", "status"], bars: [], table: [] })
+// of core.calls; bars and table draw any metric; points takes a row an id; share takes any rows with a value.
+panelNeeds = ({ calls: ["worker"], faults: ["worker", "status"], methods: ["worker", "method", "status"], bars: [], table: [], points: ["id"], share: [] })
 // %%
 // Any metric as bars: the lines of each step, stacked and coloured by the first dimension of `by` when there is one.
-barsChart = (data, { by = [], ...options } = {}) => {
+// `label` names what is counted: lines of a log for metric.query, rows for issue.flow.
+barsChart = (data, { by = [], label = "lines", ...options } = {}) => {
   const key = by[0] || null, rows = new Map();
   for (const d of data.series) {
     const group = key ? String(d[key]) : "", id = JSON.stringify([d.t, group]);
@@ -646,7 +652,7 @@ barsChart = (data, { by = [], ...options } = {}) => {
   }
   return Plot.plot({
     ...chartBase(data, options),
-    y: { label: "lines", grid: true },
+    y: { label, grid: true },
     ...(key ? { color: { legend: true } } : {}),
     marks: [
       Plot.rectY([...rows.values()], Plot.stackY({ x1: (d) => new Date(d.t), x2: (d) => new Date(d.t + data.step), y: "n", ...(key ? { fill: "group" } : {}), insetRight: 1, tip: true })),
@@ -656,38 +662,90 @@ barsChart = (data, { by = [], ...options } = {}) => {
 }
 // %%
 // Any metric as a table: one row a group of the dimensions asked, most lines first, with n, and for a metric with a
-// value its sum and max. A counted metric has no sum and max, and no column for them.
+// value its sum and max. A counted metric has no sum and max, and no column for them. An answer whose `unit` is "ms"
+// (issue.flow) is written in hours with one decimal, in columns named for it. An answer with `summaries` (issue.flow) has
+// the median and the 85th percentile of each group beside them, read from the summary of that group: this page computes
+// neither. Not with `id` in by: a row is then one issue, and a summary is of a group of them.
 groupTable = (data, { by = [] } = {}) => {
-  const out = new Map();
+  const out = new Map(), of = (d) => JSON.stringify(by.map((k) => d[k]));
   let valued = false;
   for (const d of data.series) {
-    const id = JSON.stringify(by.map((k) => d[k]));
-    const m = out.get(id) || { ...Object.fromEntries(by.map((k) => [k, d[k]])), n: 0, sum: 0, max: null };
+    const m = out.get(of(d)) || { ...Object.fromEntries(by.map((k) => [k, d[k]])), n: 0, sum: 0, max: null };
     if (d.sum != null) valued = true;
-    out.set(id, { ...m, n: m.n + d.n, sum: m.sum + (d.sum || 0), max: d.max == null ? m.max : m.max == null ? d.max : Math.max(m.max, d.max) });
+    out.set(of(d), { ...m, n: m.n + d.n, sum: m.sum + (d.sum || 0), max: d.max == null ? m.max : m.max == null ? d.max : Math.max(m.max, d.max) });
   }
-  return Inputs.table([...out.values()].sort((a, b) => b.n - a.n), { select: false, rows: 12, layout: "auto", columns: [...by, "n", ...(valued ? ["sum", "max"] : [])] });
+  const summary = Array.isArray(data.summaries) && !by.includes("id") ? new Map(data.summaries.map((s) => [of(s), s])) : null;
+  const hours = data.unit === "ms", name = (k) => (hours ? k + " h" : k), shown = (v) => (v == null ? null : hours ? v / 3600000 : v);
+  const values = [...(valued ? ["sum", "max"] : []), ...(summary ? ["median", "p85"] : [])];
+  const rows = [...out.values()].sort((a, b) => b.n - a.n).map((m) => {
+    const s = (summary && summary.get(of(m))) || {};
+    return { ...m, ...Object.fromEntries(values.map((k) => [name(k), shown(k === "sum" || k === "max" ? m[k] : s[k])])) };
+  });
+  return Inputs.table(rows, { select: false, rows: 12, layout: "auto", columns: [...by, "n", ...values.map(name)], ...(hours ? { format: Object.fromEntries(values.map((k) => [name(k), (v) => (v == null ? "" : v.toFixed(1))])) } : {}) });
+}
+// %%
+// The rows of an answer as points: a dot for each row at its `t` and its value (`sum`: with `id` in by a row is one thing),
+// coloured by the dimensions of `by` other than id. For each of the answer's `summaries` (issue.flow) a rule at its median, a
+// dashed one at its 85th percentile, and a line under the chart with n, both and the longest. The percentiles are the answer's:
+// this page computes none. An answer with no summaries is the dots, with n and the longest of its rows under them and no rule.
+// A value whose `unit` is "ms" is drawn and written in hours with one decimal.
+pointsChart = (data, { by = [], ...options } = {}) => {
+  const hours = data.unit === "ms", value = (v) => (hours ? v / 3600000 : v), said = (v) => (hours ? (v / 3600000).toFixed(1) + " h" : String(v));
+  const dims = by.filter((k) => k !== "id"), group = (d) => dims.map((k) => String(d[k])).join(", ");
+  const dots = data.series.map((d) => ({ t: new Date(d.t), id: d.id, group: group(d), value: value(d.sum) }));
+  const summaries = (data.summaries || []).map((s) => ({ ...s, group: group(s) }));
+  const colour = dims.length ? { stroke: "group" } : {};
+  const chart = Plot.plot({
+    ...chartBase(data, options),
+    y: { label: hours ? "hours" : "value", grid: true },
+    ...(dims.length ? { color: { legend: true } } : {}),
+    marks: [
+      Plot.dot(dots, { x: "t", y: "value", ...colour, title: (d) => `${d.id}\n${hours ? d.value.toFixed(1) + " h" : d.value}` }),
+      Plot.ruleY(summaries, { y: (s) => value(s.median), ...colour }),
+      Plot.ruleY(summaries, { y: (s) => value(s.p85), ...colour, strokeDasharray: "4 3" })
+    ]
+  });
+  const most = hours ? "longest" : "most";
+  const lines = summaries.length
+    ? summaries.map((s) => `${s.group ? s.group + ": " : ""}n ${s.n}, median ${said(s.median)}, 85th percentile ${said(s.p85)}, ${most} ${said(s.max)}`)
+    : [`n ${data.series.reduce((n, d) => n + d.n, 0)}, ${most} ${said(Math.max(...data.series.map((d) => d.max)))}`];
+  return htl.html`<div>${chart}${lines.map((text) => htl.html`<div style="color:var(--theme-foreground-muted)">${text}</div>`)}</div>`;
+}
+// %%
+// The rows of a metric with a value as shares: one line a group of the dimensions asked, most rows first, with n, the sum of
+// the value and sum / n. For flow.submits, whose value is 1 for a submit that was sent back, that is the share sent back.
+shareTable = (data, { by = [] } = {}) => {
+  const out = new Map();
+  for (const d of data.series) {
+    const id = JSON.stringify(by.map((k) => d[k]));
+    const m = out.get(id) || { ...Object.fromEntries(by.map((k) => [k, d[k]])), n: 0, sum: 0 };
+    out.set(id, { ...m, n: m.n + d.n, sum: m.sum + (d.sum || 0) });
+  }
+  return Inputs.table([...out.values()].sort((a, b) => b.n - a.n).map((m) => ({ ...m, share: m.sum / m.n })), { select: false, rows: 12, layout: "auto", columns: [...by, "n", "sum", "share"], format: { share: (v) => v.toFixed(2) } });
 }
 // %%
 // The body of one panel, from the answer of its query. A query that failed, a draw this page does not have, a draw
-// whose rows the panel's `by` does not give, and a span with no line are each said in the panel's place. An answer
-// Cloudflare made from a sample (`sampled` above 1, A query) says so under the panel, and beside "No lines" too:
-// a sample can leave a group with few lines out whole.
+// whose rows the panel's `by` does not give, and a span with no line are each said in the panel's place, with the name of
+// the method that was asked (panelMethod). An answer Cloudflare made from a sample (`sampled` above 1, A query) says so
+// under the panel, and beside "No lines" too: a sample can leave a group with few lines out whole. The limit of groups is
+// said of an answer of metric.query only: issue.flow leaves no row out, and its `groups` counts its summaries.
 panelBody = (panel, answer, { width } = {}) => {
   const line = (text) => htl.html`<i style="color:var(--theme-foreground-muted)">${text}</i>`;
-  if (!answer) return line("metric.query was not asked.");
-  if (answer.error) return line("metric.query failed: " + answer.error);
+  const method = panelMethod(panel.metric), flow = method === "issue.flow";
+  if (!answer) return line(method + " was not asked.");
+  if (answer.error) return line(method + " failed: " + answer.error);
   const by = panel.by || [], needs = panelNeeds[panel.draw];
   if (!needs) return line(`This page has no draw "${panel.draw}".`);
   const lacks = needs.filter((k) => !by.includes(k));
   if (lacks.length) return line(`The draw "${panel.draw}" takes rows by ${needs.join(", ")}, and this panel's by has no ${lacks.join(", ")}.`);
   const sample = answer.sampled > 1 ? `Cloudflare answered this from a sample of the lines (sampled ${answer.sampled}): each number is its estimate, and a group with few lines may be missing.` : null;
-  if (!answer.series.length) return line("No lines in this span." + (sample ? " " + sample : ""));
-  const data = { since: answer.since, until: answer.until, step: answer.step, series: answer.series };
+  if (!answer.series.length) return line((flow ? "No rows in this span." : "No lines in this span.") + (sample ? " " + sample : ""));
+  if (panel.draw === "share" && answer.series.every((r) => r.sum == null)) return line(`The draw "share" takes a metric with a value, and ${panel.metric} is counted.`);
+  const data = { since: answer.since, until: answer.until, step: answer.step, series: answer.series, unit: answer.unit, summaries: answer.summaries };
   // The charts made for Health name the sum `ms`.
   const calls = () => ({ ...data, series: answer.series.map((r) => ({ ...r, ms: r.sum || 0, max: r.max || 0 })) });
-  const body = panel.draw === "bars" ? barsChart(data, { by, width }) : panel.draw === "table" ? groupTable(data, { by }) : panel.draw === "calls" ? requestsChart(calls(), { width }) : panel.draw === "faults" ? healthStrip(calls(), { width }) : methodTable(calls());
-  const under = [answer.groups >= dashboardGroupLimit ? `${dashboardGroupLimit} groups is the limit of one answer: some lines may be missing.` : null, sample].filter(Boolean);
+  const body = panel.draw === "bars" ? barsChart(data, { by, width, ...(flow ? { label: "rows" } : {}) }) : panel.draw === "table" ? groupTable(data, { by }) : panel.draw === "points" ? pointsChart(data, { by, width }) : panel.draw === "share" ? shareTable(data, { by }) : panel.draw === "calls" ? requestsChart(calls(), { width }) : panel.draw === "faults" ? healthStrip(calls(), { width }) : methodTable(calls());
+  const under = [!flow && answer.groups >= dashboardGroupLimit ? `${dashboardGroupLimit} groups is the limit of one answer: some lines may be missing.` : null, sample].filter(Boolean);
   return under.length ? htl.html`<div>${body}${under.map((text) => htl.html`<div style="color:var(--theme-foreground-muted)">${text}</div>`)}</div>` : body;
 }
 // %%
@@ -1343,7 +1401,7 @@ test_dashboard_declares_one_cloudflare_permission_and_its_rows = {
   // The dashboards: the four rules, a row a panel of each built-in one, the draws and the limits.
   for (const name of ["list", "get", "put", "delete"]) expect(source.reference).toContain("| `dashboard." + name + "` | `" + dashboardRules[name] + "` |");
   for (const d of dashboardDefinitions) for (const p of d.panels) expect(source.reference).toContain("| `" + d.name + "` | " + d.title + " | " + p.title + " | `" + p.metric + "` | " + p.by.map((k) => "`" + k + "`").join(", ") + " | `" + p.draw + "` |");
-  expect(source.reference).toContain("// one of calls, faults, methods, bars, table");
+  expect(source.reference).toContain("// one of calls, faults, methods, bars, table, points, share\n");
   expect(source.reference).toContain("// 1 to " + dashboardLimits.panels + "\n");
   expect(source.reference).toContain("A caller keeps " + dashboardLimits.kept + " dashboards");
   // Who the service answers: a member's Worker is the member (review 1615), and the reference says so.
@@ -1549,6 +1607,143 @@ test_bars_and_a_table_draw_any_metric_and_a_panel_says_what_it_cannot_draw = {
   // Both lines under one panel, the limit first.
   expect([...panelBody(panel("table"), { ...counted, groups: 500, sampled: 2 }).querySelectorAll(":scope > div")].map((d) => d.textContent)).toEqual(["500 groups is the limit of one answer: some lines may be missing.", sampled.replace("sampled 10", "sampled 2")]);
   return "2 draws for any metric, 3 for core.calls, 5 lines";
+}
+// %%
+// The dashboard `flow` of plan/cloud-brain-flow-metrics.md ("The dashboard, as data") without its last row, which is task 6's.
+// It is a row on a Brain, put with dashboard.put, and no value of this module: the tests below hold that the service keeps it
+// and that each of its panels has the dimensions its draw takes.
+flowDashboardBody = ({
+  name: "flow",
+  title: "Flow",
+  panels: [
+    { title: "Feedback to deploy", metric: "flow.lead", by: ["id", "for"], filter: { kind: "feedback", to: "deploy" }, draw: "points" },
+    { title: "Opened to deploy", metric: "flow.lead", by: ["id", "kind"], filter: { to: "deploy" }, draw: "points" },
+    { title: "Opened to done", metric: "flow.lead", by: ["id", "kind"], filter: { to: "done" }, draw: "points" },
+    { title: "Done a day", metric: "flow.lead", by: ["kind"], filter: { to: "done" }, draw: "bars" },
+    { title: "Open work, by state", metric: "flow.open", by: ["state", "waits"], draw: "table" },
+    { title: "Open work, by age", metric: "flow.open", by: ["waits", "kind"], draw: "table" },
+    { title: "Hours by state", metric: "flow.stays", by: ["waits", "state"], draw: "table" },
+    { title: "Sent back at review", metric: "flow.submits", by: ["move"], draw: "share" },
+    { title: "Deploys, by Worker", metric: "deploys.confirmed", by: ["target"], draw: "bars" },
+    { title: "Put back, by Worker", metric: "deploys.put-back", by: ["target"], draw: "table" }
+  ]
+})
+// %%
+// fm-5-page-and-dashboard, R8 of plan/cloud-brain-flow-metrics.md: a panel whose metric starts flow. is asked of the tracker's
+// issue.flow, every other of metric.query, and the service keeps the draws points and share.
+test_a_flow_panel_is_asked_of_issue_flow_and_the_service_keeps_points_and_share = {
+  const range = { since: Date.UTC(2026, 9, 11, 7, 0) + 123, until: Date.UTC(2026, 9, 12, 7, 0) + 456 };
+  const panels = [
+    { title: "Opened to deploy", metric: "flow.lead", by: ["id", "kind"], filter: { to: "deploy" }, draw: "points" },
+    { title: "Deploys, by Worker", metric: "deploys.confirmed", by: ["target"], filter: {}, draw: "bars" },
+    { title: "Sent back at review", metric: "flow.submits", by: ["move"], filter: {}, draw: "share" },
+    { title: "Again", metric: "flow.lead", by: ["id", "kind"], filter: { to: "deploy" }, draw: "table" },
+    { title: "A member's", metric: "m.0123456789.flow.x", by: [], filter: {}, draw: "table" }
+  ];
+  expect(panels.map((p) => panelMethod(p.metric))).toEqual(["issue.flow", "metric.query", "issue.flow", "issue.flow", "metric.query"]);
+  // Only a name that starts flow. is the tracker's.
+  expect([undefined, null, "", "flow", "xflow.lead", "Flow.lead", "deploys.flow.x", 5].map(panelMethod)).toEqual(Array(8).fill("metric.query"));
+  const seen = [];
+  const client = { query: async (name, params) => (seen.push([name, params]), params.metric === "flow.submits" ? Promise.reject(new Error("AuthRequired")) : { from: name, metric: params.metric, series: [] }) };
+  const data = await dashboardRead({ client, dashboard: { name: "flow", title: "Flow", panels }, range });
+  // One call a distinct metric, by and filter, with the same parameters whichever method it is sent to; the span is sent as it is.
+  expect(seen).toEqual([
+    ["issue.flow", { to: "deploy", metric: "flow.lead", since: range.since, until: range.until, by: "id,kind" }],
+    ["metric.query", { metric: "deploys.confirmed", since: range.since, until: range.until, by: "target" }],
+    ["issue.flow", { metric: "flow.submits", since: range.since, until: range.until, by: "move" }],
+    ["metric.query", { metric: "m.0123456789.flow.x", since: range.since, until: range.until }]
+  ]);
+  // Both kinds of answer are in the one Map, and a call that failed is that query's error.
+  expect(panels.map((p) => ((a) => a.error || a.from)(data.answers.get(panelQuery(p).key)))).toEqual(["issue.flow", "metric.query", "AuthRequired", "issue.flow", "metric.query"]);
+  expect(dashboardNote(data)).toBe("The last 24 hours: 5 panels from 4 queries, 1 failed.");
+  // The service: seven draws, each with the dimensions it takes.
+  expect(dashboardDraws).toEqual(["calls", "faults", "methods", "bars", "table", "points", "share"]);
+  expect(Object.keys(panelNeeds)).toEqual(dashboardDraws);
+  expect([panelNeeds.points, panelNeeds.share]).toEqual([["id"], []]);
+  // The dashboard `flow` is kept as it was put, with points and share, and read back the same.
+  const rig = await dashboardRig();
+  const post = (body) => rig.call("dashboard.put", "", { verb: "POST", body });
+  const kept = { ...flowDashboardBody, panels: flowDashboardBody.panels.map((p) => ({ title: p.title, metric: p.metric, by: p.by, filter: p.filter || {}, draw: p.draw })) };
+  expect(await post(flowDashboardBody)).toEqual({ status: 200, data: { dashboard: kept } });
+  expect(await rig.call("dashboard.get", "?name=flow")).toEqual({ status: 200, data: { dashboard: kept } });
+  expect(kept.panels.map((p) => p.draw)).toEqual(["points", "points", "points", "bars", "table", "table", "table", "share", "bars", "table"]);
+  // Each of its panels has what its draw takes, and eight of the ten are the tracker's.
+  expect(kept.panels.filter((p) => !panelNeeds[p.draw].every((k) => p.by.includes(k))).map((p) => p.title)).toEqual([]);
+  expect(kept.panels.filter((p) => panelMethod(p.metric) === "issue.flow").length).toBe(8);
+  expect(dashboardQueries(kept.panels).length).toBe(10);
+  // A draw that is none of the seven is still refused, and the refusal names the seven.
+  const pie = await post({ name: "wrong", title: "Wrong", panels: [{ title: "Pie", metric: "flow.lead", draw: "pie" }] });
+  expect([pie.status, pie.data.message]).toEqual([400, "panel 1: draw is one of calls, faults, methods, bars, table, points, share"]);
+  for (const draw of ["Points", "point", "", null, ["points"]]) expect([JSON.stringify(draw), (await post({ name: "wrong", title: "Wrong", panels: [{ title: "x", metric: "flow.lead", by: ["id"], draw }] })).status]).toEqual([JSON.stringify(draw), 400]);
+  expect([...rig.sim.rows.keys()]).toEqual(["dashboard/flow"]);
+  expect(rig.seen.length).toBe(0);
+  return "2 issue.flow and 2 metric.query for 5 panels; 7 draws";
+}
+// %%
+// fm-5-page-and-dashboard: what points, share and a table draw from an answer of issue.flow. The median and the 85th percentile
+// drawn are the answer's own `summaries`; this page computes neither.
+test_points_share_and_hours_are_drawn_from_an_answer_of_issue_flow = {
+  const H = 3600000, since = Date.UTC(2026, 9, 11, 7, 0), until = since + 24 * H;
+  const flow = (metric, unit, series, summaries) => ({ metric, since, until, step: H, groups: (summaries || []).length, sampled: 1, unit, series, ...(summaries ? { summaries } : {}), cost: { ms: 400, events: 3652 } });
+  const one = (hour, id, kind, hours) => ({ t: since + hour * H, id, kind, n: 1, sum: hours * H, max: hours * H });
+  const lead = flow("flow.lead", "ms", [one(1, "a", "bug", 1.5), one(2, "b", "bug", 3), one(5, "c", "task", 0.5)], [{ kind: "bug", n: 2, median: 1.5 * H, p85: 3 * H, max: 3 * H }, { kind: "task", n: 1, median: 0.5 * H, p85: 0.5 * H, max: 0.5 * H }]);
+  const count = (el, sel) => Math.max(...[el, ...el.querySelectorAll("svg")].map((n) => n.querySelectorAll(sel).length));
+  const under = (el) => [...el.querySelectorAll(":scope > div")].map((d) => d.textContent);
+  const panel = (draw, metric, by) => ({ title: draw, metric, by, filter: {}, draw });
+  // points: a dot a row, a rule at the median and one at the 85th percentile of each of the answer's summaries, and a line for each.
+  const points = pointsChart(lead, { by: ["id", "kind"], width: 600 });
+  expect([count(points, "circle"), count(points, 'g[aria-label="rule"] line')]).toEqual([3, 4]);
+  // A dot is at its row's value in hours, and names its id.
+  expect([...points.querySelectorAll("circle title")].map((t) => t.textContent)).toEqual(["a\n1.5 h", "b\n3.0 h", "c\n0.5 h"]);
+  expect(under(points)).toEqual(["bug: n 2, median 1.5 h, 85th percentile 3.0 h, longest 3.0 h", "task: n 1, median 0.5 h, 85th percentile 0.5 h, longest 0.5 h"]);
+  // With id alone there is one summary and no name before its line; a value that is not ms is written as it is.
+  const whole = pointsChart({ ...lead, summaries: [{ n: 3, median: 1.5 * H, p85: 3 * H, max: 3 * H }] }, { by: ["id"], width: 600 });
+  expect([count(whole, "circle"), count(whole, 'g[aria-label="rule"] line'), under(whole)]).toEqual([3, 2, ["n 3, median 1.5 h, 85th percentile 3.0 h, longest 3.0 h"]]);
+  expect(under(pointsChart(flow("flow.submits", "count", [{ t: since + H, id: "a", n: 1, sum: 1, max: 1 }], [{ n: 1, median: 1, p85: 1, max: 1 }]), { by: ["id"] }))).toEqual(["n 1, median 1, 85th percentile 1, most 1"]);
+  // An answer with no summaries is dots, with n and the longest of its rows under them, and no rule.
+  const bare = pointsChart(flow("deploys.restore", "ms", lead.series), { by: ["id"], width: 600 });
+  expect([count(bare, "circle"), count(bare, 'g[aria-label="rule"] line'), under(bare)]).toEqual([3, 0, ["n 3, longest 3.0 h"]]);
+  // As a panel: the same drawing; without id in by the panel says so.
+  const drawn = panelBody(panel("points", "flow.lead", ["id", "kind"]), lead, { width: 600 });
+  expect([count(drawn, "circle"), count(drawn, 'g[aria-label="rule"] line'), under(drawn).length]).toEqual([3, 4, 2]);
+  expect(panelBody(panel("points", "flow.lead", ["kind"]), lead).textContent).toBe('The draw "points" takes rows by id, and this panel\'s by has no id.');
+  // share: a line a group with n, sum and sum / n.
+  const cells = (el) => [...el.querySelectorAll("tbody tr")].map((tr) => [...tr.querySelectorAll("td")].slice(1).map((td) => td.textContent));
+  const heads = (el) => [...el.querySelectorAll("thead th")].slice(1).map((th) => th.textContent.trim());
+  const sent = (hour, move, n, sum) => ({ t: since + hour * H, move, n, sum, max: sum ? 1 : 0 });
+  const submits = flow("flow.submits", "count", [sent(1, "submit", 8, 4), sent(2, "submit", 2, 1), sent(1, "submit-spec", 3, 0)], [{ move: "submit", n: 10, median: 0.5, p85: 1, max: 1 }, { move: "submit-spec", n: 3, median: 0, p85: 0, max: 0 }]);
+  const share = shareTable(submits, { by: ["move"] });
+  expect([heads(share), cells(share)]).toEqual([["move", "n", "sum", "share"], [["submit", "10", "5", "0.50"], ["submit-spec", "3", "0", "0.00"]]]);
+  expect(cells(shareTable(submits))).toEqual([["13", "5", "0.38"]]);
+  expect(cells(panelBody(panel("share", "flow.submits", ["move"]), submits))).toEqual(cells(share));
+  // A counted metric has no value to take a share of, and the panel says so.
+  const counted = { metric: "deploys.confirmed", since, until, step: H, groups: 1, series: [{ t: since + H, target: "brain-x-git", n: 2, sum: null, max: null }] };
+  expect(panelBody(panel("share", "deploys.confirmed", ["target"]), counted).textContent).toBe('The draw "share" takes a metric with a value, and deploys.confirmed is counted.');
+  // A table of an answer in ms is in hours with one decimal, with the median and the 85th of each group from the answer's summaries.
+  const stay = (hour, state, waits, n, sum, max) => ({ t: since + hour * H, state, waits, n, sum: sum * H, max: max * H });
+  const open = flow("flow.open", "ms", [stay(1, "open", "start", 3, 9, 4), stay(2, "open", "start", 1, 1, 1), stay(1, "building", "work", 1, 2.5, 2.5)], [{ state: "open", waits: "start", n: 4, median: 2 * H, p85: 4 * H, max: 4 * H }, { state: "building", waits: "work", n: 1, median: 2.5 * H, p85: 2.5 * H, max: 2.5 * H }]);
+  const table = panelBody(panel("table", "flow.open", ["state", "waits"]), open);
+  expect([heads(table), cells(table)]).toEqual([["state", "waits", "n", "sum h", "max h", "median h", "p85 h"], [["open", "start", "4", "10.0", "4.0", "2.0", "4.0"], ["building", "work", "1", "2.5", "2.5", "2.5", "2.5"]]]);
+  // A group the summaries do not have has no median; with id in by a row is an issue and there is no column for them.
+  expect(cells(groupTable({ ...open, summaries: [open.summaries[1]] }, { by: ["state", "waits"] })).map((r) => r.slice(-2))).toEqual([["", ""], ["2.5", "2.5"]]);
+  expect(heads(groupTable(lead, { by: ["id", "kind"] }))).toEqual(["id", "kind", "n", "sum h", "max h"]);
+  // An answer of metric.query has no unit and no summaries, and is written as before.
+  expect(heads(groupTable({ ...counted, series: [{ ...counted.series[0], sum: 80, max: 50 }] }, { by: ["target"] }))).toEqual(["target", "n", "sum", "max"]);
+  // What is said in the place of a panel of the tracker's names the method that was asked.
+  expect([
+    panelBody(panel("points", "flow.lead", ["id"]), { error: "AuthRequired" }),
+    panelBody(panel("points", "flow.lead", ["id"]), undefined),
+    panelBody(panel("points", "flow.lead", ["id"]), { ...lead, series: [] }),
+    panelBody(panel("table", "deploys.confirmed", ["target"]), { ...counted, series: [] })
+  ].map((el) => el.textContent)).toEqual(["issue.flow failed: AuthRequired", "issue.flow was not asked.", "No rows in this span.", "No lines in this span."]);
+  // The limit of 500 groups is Cloudflare's, of metric.query: an answer of issue.flow leaves no row out and says nothing of it.
+  expect(panelBody(panel("table", "flow.open", ["state", "waits"]), { ...open, groups: 500 }).textContent).not.toContain("limit");
+  expect(panelBody(panel("table", "deploys.confirmed", ["target"]), { ...counted, groups: 500 }).textContent).toContain("500 groups is the limit of one answer");
+  // Bars count rows of the tracker's answer, and lines of a log for metric.query.
+  const done = flow("flow.lead", "ms", [{ t: since + H, kind: "bug", n: 2, sum: 3 * H, max: 2 * H }, { t: since + 2 * H, kind: "task", n: 1, sum: H, max: H }], []);
+  const label = (el) => [...el.querySelectorAll("svg text")].map((t) => t.textContent).filter((t) => /rows|lines/.test(t)).join();
+  expect([count(panelBody(panel("bars", "flow.lead", ["kind"]), done, { width: 600 }), "rect") >= 2, label(panelBody(panel("bars", "flow.lead", ["kind"]), done, { width: 600 })), label(panelBody(panel("bars", "deploys.confirmed", ["target"]), counted, { width: 600 }))]).toEqual([true, "↑ rows", "↑ lines"]);
+  return "3 dots and 4 rules; 2 shares; a table in hours";
 }
 // %%
 import {cloudflare, cloudflareApi, rows, config, simulate, decide, callerOf, sha256} from "@tomlarkworthy/cloudflare-iac"
