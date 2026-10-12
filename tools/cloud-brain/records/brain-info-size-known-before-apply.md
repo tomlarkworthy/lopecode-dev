@@ -14,8 +14,8 @@ issue `seen-brain-info-binding-at-its-limit` (event 5300) has the refusal the wr
 "state":"put-back" … 400 [{"code":10054,"message":"Text binding 'BRAIN_INFO' is too large, its size of 5.3 kB exceeds the limit of 5.1 kB. Please use a smaller value and try again."}]
 ```
 
-That apply was not seen by this writer; the line is read from that writer's record in its worktree
-(`bm-tracker-trigger-rules`, not on `origin/main` when this was written). Nothing computed the size before
+That apply was not seen by this writer; the line is read from that writer's record
+(`tools/cloud-brain/records/tr-1-wait-in-the-record.md`, "The first apply"). Nothing computed the size before
 the apply: not `build.ts`, not the emit, not `brain.ts apply`.
 
 ## What changed
@@ -173,10 +173,10 @@ C keeps `access: m.access || {},` in that line. Neither was built or run. What w
 |---|---|
 | `bun test --timeout=30000 ./tests/tools/brain-info-size.test.ts` | 7 pass, 0 fail, 44 expect() calls |
 | the same with the line of the refusal taken out of `tab-tests.ts` and out of `brain.ts apply` | 4 pass, 3 fail: the emit's test and the two of `brain.ts apply` |
-| `bun test --timeout=30000 ./tests/tools/brain-seen.test.ts` | 16 pass, 0 fail |
-| `bun test --timeout=30000 ./tests/tools/tab-tests.test.ts` | 13 pass, 0 fail |
-| `tests/tools/suite.sh` (00:26 CEST, `uptime` 10.91) | 888 pass, 1 fail, 889 tests across 92 files, 366 s. The fail is a test of `knowledge-docs.test.ts` at the 30 s timeout, a file this change does not touch |
-| `bun test --timeout=30000 ./tests/tools/knowledge-docs.test.ts` (00:32 CEST, `uptime` 9.53) | 29 pass, 0 fail, 207 s |
+| `bun test --timeout=30000 ./tests/tools/brain-info-size.test.ts ./tests/tools/brain-seen.test.ts ./tests/tools/tab-tests.test.ts ./tests/tools/brain-cli.test.ts`, after the last edit of `brain.ts` | 45 pass, 0 fail, 4 files |
+| `tests/tools/suite.sh`, before the last edit of `brain.ts` (00:26 CEST, `uptime` 10.91) | 888 pass, 1 fail, 889 tests across 92 files, 366 s. The fail is a test of `knowledge-docs.test.ts` at the 30 s timeout |
+| `tests/tools/suite.sh`, after it and after the rebase (00:41 CEST, `uptime` 10.81) | 915 pass, 3 fail, 918 tests across 94 files, 501 s. The three are at the 30 s timeout, in `knowledge-docs.test.ts` and `knowledge-docs-summaries.test.ts`, files this change does not touch |
+| `bun test --timeout=30000 ./tests/tools/knowledge-docs.test.ts ./tests/tools/knowledge-docs-summaries.test.ts` (00:50 CEST, `uptime` 8.54) | 39 pass, 0 fail, 272 s |
 
 The 7: the deployer's own expression gives the same JSON as `boundInfo`; a record at 5100 fits and one at
 5101 is refused with the size, the limit and the Worker; the size is bytes and grows by a method's name
@@ -186,6 +186,7 @@ too, and is exit 1; of two records it sends the one that fits.
 
 ## Not tried
 
+- No run of the whole suite with 0 fail: both had tests at the timeout, which passed alone (the table above).
 - An apply of a record between 5101 and 5120 bytes on cb4, which would say whether Cloudflare's limit is 5120.
 - `tab-tests.ts --emit` in a browser on a record over the limit.
 - `redistil --apply`: the deployer distils the source it keeps, no emitted record is sent, and nothing
