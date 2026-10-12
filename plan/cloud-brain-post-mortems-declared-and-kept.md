@@ -1,0 +1,408 @@
+# Cloud Brain: a post mortem is a task with a label, written by a writer of the loop, kept as a file the search finds
+
+Spec of the feature `post-mortems-declared-and-kept` on cb4's tracker. Written 2026-10-12, begun
+21:20 CEST (the `spec` move, event 4492), from `lopecode-dev` `2be5f382`. Round 1. Nothing here is built.
+
+Three things a reader should know before the rest:
+
+- **Nothing in it needs the owner's hand but the approval.** No policy install, no new kind, no new
+  token, no new role, no service and no deploy. It is two briefs, the procedure, one line of a tool's
+  filter, one line of the stats tool and three test files.
+- **The first post mortem, `pm-second-summarizer-role`, was not written when this was.** At 21:27 CEST
+  it was at `ready` with no run (`runs?id=pm-second-summarizer-role` answered `"runs":[]`). The issue's
+  body says "its file is the example the spec is written from"; there was no file. The form below is
+  from the owner's words, the record and what was read, and task 1 brings the first file to it.
+- **Whether a thing "happened again" is not something the record can answer by itself.** The design
+  gives each post mortem a sentence that says what a second case would look like, and a list of its
+  actions with their states. That a second case is noticed still rests on an agent or the owner
+  seeing it. "What is not known" has this.
+
+## What was asked
+
+The owner, 2026-10-12, to a session outside the loop (token `out-5f56b2`), as the issue's body
+quotes him, two messages, each whole. The first was before 21:16:42 CEST and the second before
+21:18:50 CEST (comment 4483, the clock of that session):
+
+> Can we have a post mortem on how we had that dumb decision and trace where the decision making went wrong. It should use reflection and backtracing the tasks to identify the root cause of this bad decision. We need this to be a general mechnism, declare a post mortem to prevent someting from never happening again.
+
+> no you don;t do it, file issues to create a post mortem task, the loop itself should do the post mortem and decide next actions. These post mortems should be files for future reference somewhere.
+
+"That dumb decision" is the spec of `docs-summarised-for-search`, which made a role `doc-summarizer`
+beside `paper-summarizer`, passed its review (event 4341) and was sent back by him (event 4434). His
+words on it, before 21:15:10 CEST, bear on one choice of this spec (comments 4458 and 4463 of that issue):
+
+> yeah claude, don;t we have a summarizer persona, it should reuse that
+
+> yeah I think we don;t have two seperate roles, we just make the summarizer more general as it has the same basic job for the same purpose
+
+The issue carries the label `owner`.
+
+## The reports gathered
+
+None. `list?parent=post-mortems-declared-and-kept` answered `{"issues":[]}` at 21:19 CEST. One issue
+is linked, `related`: `pm-second-summarizer-role`, the first post mortem, a task at `ready`. The
+issue's body lists four things "Not in his words, for the spec". Each is taken as a question and
+answered by a requirement:
+
+| The body's question | Requirement |
+|---|---|
+| Where the files are kept and how a later agent finds one | R3, R4 |
+| Who does one: the overseer, or a role of its own | R2 |
+| What a post mortem must have to be one, and how it is known later that the thing did not happen again | R5, R7 |
+| Who may declare one beside him, and what keeps it from being declared for every send-back | R1, R8 |
+
+## Requirements
+
+- **R1. Declared.** The owner, by any session on his word, or the loop, declares a post mortem of one
+  decision or event. It is an issue of the tracker that names what it is of.
+- **R2. Done by the loop.** An agent of the loop that had no part in the decision writes it, from the
+  record backwards: "reflection and backtracing the tasks". The session that declares it gives no cause.
+- **R3. Kept as a file.** One file a post mortem, in one place, that the owner can read from the issue.
+- **R4. Found.** A writer or a spec writer that searches the Brain before a design (`agents/implementer.md`
+  step 2, `agents/spec.md` step 4) is answered the post mortem that bears on it.
+- **R5. A form.** The file has the trace with what each step is read from, the cause, what would have
+  caught it, the actions and what a second case would look like. It fits one entry of the knowledge base.
+- **R6. The loop decides the next actions.** They are filed as issues by the agent that wrote the post
+  mortem, tied to it in the record. The owner is not asked to pick between them.
+- **R7. Known later.** For each post mortem a reader can see, with one command, what became of its
+  actions and whether a later post mortem names it.
+- **R8. Not for every send-back.** What declares one is written down, counted on the record, and rare.
+
+## What exists today, measured
+
+All of 2026-10-12 between 21:19 and 21:32 CEST, with the token `spec-b08073`, unless a line says otherwise.
+
+**The record.** `sync?after=0`, paged to its end: 4,493 events, the first of 2026-10-10 11:53 CEST.
+
+```
+moves, by name     submit 243  rework 56  submit-spec 44  respec 19  approve 60  reject 25  send-back 1  owner-reject 0  revert 0
+opened             386, of them seen-… 83 and fix-tests-… 1
+```
+
+- The owner has undone work that passed a review **once** in the record: the `send-back` of event 4434.
+  Three `reject` moves are his session's (events 5, 147, 149, all 2026-10-10, at triage, before any work).
+- 56 of 243 submits and 19 of 44 spec submits were sent back by a reviewer. That is the loop's review
+  working. A trigger that counted them would have declared 75 post mortems in 2.4 days.
+
+**Who reflects today.** `agents/overseer.md`: the overseer "look[s] at how the issue loop did its recent
+work", from the events since the last oversight, files at most 3 issues and makes at most 2 edits of a
+brief. `oversight.md` has 26 entries. Its brief says: "You do not review, pass, triage or start any
+issue, yours or another's." `SKILL.md` step 6: "One overseer at a time". It is started by a count of
+finished issues, not by an issue. The record has no `cost` event of a role `overseer` (510 `cost`
+events: reviewer 271, implementer 192, spec-writer 43, digest 2, paper-summarizer 1, approver 1), so
+what an oversight costs is not in the tracker.
+
+**What a writer and a review cost.** From those `cost` events: an implementer's run has a median
+context of 169,679 tokens and 916 s; a reviewer's 88,219 tokens, 273 s and $1.19 (197 runs priced).
+
+**What a trace can be read from.** For the decision the first post mortem is of:
+
+- the issue and its events, `get?id=docs-summarised-for-search` (18 events when read at 21:21 CEST);
+- its runs, `runs?id=docs-summarised-for-search`: the spec writer's, `"agent":"a470d5baabd969ffd"`,
+  `"session":"f501a8e8-…"`, 1,683 s, 56 tool calls, `"advisor":{"calls":2,…}`; and the reviewer's;
+- the transcript of that agent, on the machine that ran it:
+  `~/.claude-personal/projects/-Users-tom-larkworthy-dev-lopecode-dev/<session>/subagents/agent-<agent>.jsonl`,
+  1,848,202 bytes for that one (`ls -la`, 21:22 CEST). It was not opened for this spec. It is the one
+  place the agent's reasoning is, and it is on one machine and in no repository;
+- the orchestrator's journal, `<root>/tools/cloud-brain/.emitted/issue-loop/<id>.md` (213 files, untracked);
+- the spec at its commit, the briefs at that commit (`git show <sha>:<path>`), the review (event 4341).
+
+**Where a file can be kept and found.**
+
+- `tools/cloud-brain/records/` has 179 files, one a change. None is in the Brain's search.
+- `tools/cloud-brain/knowledge-docs.ts`, its filter: `/^knowledge\/[^/]+\.md$/.test(p) || /^plan\/cloud-brain-[^/]*\.md$/.test(p)`,
+  and three files of `cloud-brain-dev`. Its status: `{"docs":86,"fresh":86,"stale":0,"missing":0,"cut":44,…}`.
+  An entry's text is 16,000 characters; 44 of the 86 are cut.
+- `issue.attach` takes a file of 1 MB on an issue, 20 an issue, and the page lists it. Since
+  `specs-kept-in-the-cluster` (the owner's "A" of comment 4085, 2026-10-12) a spec is attached to its issue.
+- `tools/cloud-brain/post-mortems/` does not exist (`git ls-tree -r origin/main tools/cloud-brain/post-mortems/`:
+  0 lines). Comment 4485 of `pm-second-summarizer-role`, the orchestrator's, tells its writer to write
+  `tools/cloud-brain/post-mortems/pm-second-summarizer-role.md` "until `post-mortems-declared-and-kept` says where".
+
+**What says which brief an issue gets.** A label does it once already: an issue labeled `digest` is
+given the digest writer (`SKILL.md`, step 3). A new kind is a new policy, and `issue.install` is the
+owner's (`rules.md`, Never). `issue.link` has the rel `cause`: "an issue that exists because of another
+names it as its `cause`" (`SKILL.md`). `pm-second-summarizer-role` has it to `docs-summarised-for-search`.
+
+**What nothing has today.** `list?label=post-mortem&limit=100` answered `{"issues":[]}`. A search of the
+Brain for "post mortem second summarizer role" answered 20 entries, the first three
+`doc:cloud-brain-paper-summarizer-persona`, `web:carbonell-1998-mmr` and
+`doc:cloud-brain-docs-summarised-for-search`. So a spec writer who searches today for a summarizer
+finds both designs and nothing that says the second was sent back.
+
+## The design
+
+### 1. Declared: a task with the label `post-mortem` and a `cause` link (R1, R8)
+
+A post mortem is an issue of kind `task`, id `pm-<short>`, labeled `post-mortem`, with one link
+`{id: pm-<short>, to: <the issue it is of>, rel: "cause"}`. The body has what is examined (the issue,
+the events, the commit), the words of whoever asked, and pointers to where the trace starts. It names
+no cause: comment 4485 and the body of `pm-second-summarizer-role` are the example ("I give no cause
+here: he asked that the loop find it").
+
+Who declares one:
+
+- **The owner**, through any session on his word. The session adds the label `owner` and quotes him.
+- **The orchestrating session, with no word of his, in one case:** the owner undid work that had passed
+  a review. That is his `send-back` of a spec, his `owner-reject` of an issue that has a `reviewed`
+  event with the verdict `pass`, or his `revert`. The record has 1 such event in 2.4 days. The session
+  opens it in the pass that reads the event.
+- **Nobody else declares.** An agent that sees something off files feedback, as now (`philosophy.md`,
+  "If You See Something, Say Something"). The overseer may file a post mortem as one of its 3 issues
+  when the feedback it gathered shows that reviewed work was undone by something other than the owner
+  (a put-back by the deployer of a change that passed its review, a line of Never crossed). Its
+  brief's table already lets it file a task; no line of that brief changes.
+
+What is not a trigger: a reviewer's `changes` (75 in the record), a `respec`, a failed test, a
+put-back that opened its `fix-tests-…` issue. Those are caught by the loop as built.
+
+Triage of one asks one question, whether a post mortem of the same thing exists
+(`list?label=post-mortem`): then it is linked `duplicate` and closed. Else `triage` and `ready`.
+
+### 2. Written by a writer, under a section of the implementer's brief (R2)
+
+The orchestrator spawns an implementer for an issue labeled `post-mortem` at `ready`, with an `impl-`
+token and the bare prompt: the working directory, the brief, the issue's id, the token. The prompt says
+nothing of what the session thinks went wrong. The writer follows a new section of
+`agents/implementer.md`, "A post mortem", which says which steps of the brief hold (1, 4, the record of
+9, the landing with no deploy of 10, 12, 13) and replaces 5 to 8 with the trace.
+
+The trace, in the section's words to be:
+
+- Start at the outcome and go backwards, one step at a time: the owner's words, the comment that put
+  the choice to him, the review, the submit, the run that wrote it, the brief and the prompt that run
+  was given, the issue as opened, and what it was opened from.
+- For each step: what was decided or passed on, what the agent had in front of it then (the brief at
+  that commit, the issue's body, what its searches answered), and what it did not have. Each is read
+  from an event by its seq, a commit, a file and line, a journal file, or the transcript of the run
+  (`runs?id=` gives `agent` and `session`; the path is above). A transcript is read for the agent's
+  reasoning. Nothing of a tool result in it that holds a token or a session is quoted.
+- A step that could not be read is written under "Not read" with why (the transcript is on another
+  machine; the run has no `cost` event).
+- **The cause is something a change can be made to:** a line of a brief, a prompt, a tool's answer, a
+  check nobody makes, a question the review does not ask. "The spec writer did not think of it" is not
+  one: the next spec writer is a new agent with the same brief. An agent is named by its role and the
+  event of its run, and the file says what it was given.
+- One cause is written as the root, with the others that were weighed and what in the trace rules each
+  out. Where two things each had to be so, both are written.
+- Before the cause is written, `knowledge.search` for earlier post mortems in the words of the cause.
+  One that names the same cause is linked `related`, and the file says what its actions were and why
+  they did not hold.
+
+The writer of a post mortem is not the agent of any run in its trace. With a token for each agent
+that is read from the record: `by.start` of the post mortem is no `token` of `runs?id=<the issue it is of>`.
+
+### 3. The file (R3, R5)
+
+`tools/cloud-brain/post-mortems/<id>.md`, with `<id>` the issue's id. Landed as a change with no
+deploy. Then attached to its issue before the submit, as `agents/spec.md` step 7 attaches a spec, under
+the name `<id>-r<round>.md`: the owner reads it from the issue on the page. It is 16,000 characters at
+most, so the Brain's entry holds it whole; longer evidence is a second attachment that the file names.
+
+Its parts, in order, each a `##` heading the test of task 1 reads:
+
+| Heading | What is under it |
+|---|---|
+| `# Post mortem: <one line>` | then one line: the issue it is of, the date declared and by whom, the date written |
+| `## What happened` | the outcome, with the owner's words whole and their event |
+| `## The trace` | the steps, newest first, each with what it is read from |
+| `## The cause` | one or two sentences; then what was weighed and ruled out |
+| `## What would have caught it` | the step of which brief, the question of which review, or "nothing as built" |
+| `## Actions` | each issue filed, by id, with what it changes; or "None", with why |
+| `## Seen again when` | what in the record a second case would look like, as exactly as it can be said |
+| `## Not read` | each source not read, and each thing not tried |
+
+### 4. Found by the search every design starts with (R4)
+
+`knowledge-docs.ts` gains the directory: the path in its `ls-tree` and one more pattern in its filter,
+`/^tools\/cloud-brain\/post-mortems\/[^/]+\.md$/`. The name of such a doc is the file's name, which is
+the issue's id, so the entry is `doc:pm-<short>`, private, entered at the release of the landing lock
+as every doc is. The tool takes the name today from `p.split("/")[1]`, which for this path is
+`cloud-brain`: task 1 takes the last part of the path. No brief changes for the finding: the search
+before a design is already a step of the writer's and the spec writer's.
+
+The title line is what the search weighs first, so it says the decision in the words a later design
+would be searched in ("a second summarizer role beside the one that exists"), not the issue's id.
+
+### 5. The next actions (R6)
+
+The writer files them, in the same run, before the submit:
+
+- At most 3 issues a post mortem, each a `task` or a `bug` whose body quotes the post mortem's cause
+  and names the file, linked `{id: <action>, to: pm-<short>, rel: "cause"}`. Not opened with `parent`:
+  a part holds its parent's submit (`agents/implementer.md`, "A quick win").
+- An action that changes `rules.md`, `philosophy.md` or who may do what is labeled `major` and has the
+  text proposed in its body. It reaches the owner at `awaiting-approval` as any `major` change does.
+  That is his approval of a change, not a choice between actions.
+- One action that is a line of a brief in a file the post mortem already has the writer reading, and
+  meets the three bounds of "A quick win", is made by the writer as a quick win of its own issue.
+- "None" is an answer: the cause is already changed (name the commit), or a change would cost more
+  than a second case (`philosophy.md`, line 5), with what would reopen it.
+
+The limit of 3 is the overseer's, for the overseer's reason: "so a bad round cannot compound".
+
+### 6. Reviewed (R2, R5)
+
+The post mortem goes to `in-review` with the commit of its file as the ref. The count of its submit
+is the run of `tests/tools/post-mortems.test.ts` (task 1), which holds the form of every file of the
+directory. The reviewer's brief gains a short part, "A post mortem", with four questions:
+
+1. Does each step of the trace say what its event, commit or line says? Read five of them, the cause's among them.
+2. Is the cause something a change can be made to, and does the trace reach it, or does it stop at an agent?
+3. Is each action filed, linked `cause`, and of the cause, and is "None" argued?
+4. Would a reader know a second case from "Seen again when"?
+
+A post mortem that fails 1 or 2 is sent back. A number that is inexact is a note (the owner, event 2099).
+
+### 7. Known later (R7)
+
+`issue-stats.ts` prints one block, which the overseer reads at each oversight since it runs the tool first:
+
+```
+post mortems       <n>: <done> done, <open> not done
+  pm-<short>   <state>   of <issue>   actions: <id> <state>, …   named again by: <pm id>, … | none
+```
+
+`named again by` is each later post mortem with a `related` link to this one (design part 2, the last
+item of the trace). A post mortem with an action at `rejected`, or named again, is what the overseer
+looks at. When the orchestrator's pass reads a post mortem reach `done`, step 7 of `SKILL.md` tells
+the owner its cause in the file's sentence and its actions by id.
+
+### What was not chosen
+
+- **The overseer writes it.** Its job is the nearest: the reflective line of `philosophy.md` is its.
+  Against: it starts on a count and reads a window of events, one at a time, where a post mortem
+  starts on an issue and reads one decision to its root; its brief forbids a `start` and its work is
+  not reviewed; and a change to its brief is `major` by that brief's own table. Making it do both is
+  three exceptions in one brief. The overseer keeps the part that is its own: it reads the block of
+  part 7.
+- **A role of its own, with a brief file and a token prefix `pm-`.** A row of the table of `rules.md`,
+  "Which token", which is the owner's file, and a second brief for a job whose path (start, a file
+  landed, submit, review) is the writer's. His words of 21:15 CEST on the summarizer are against it.
+- **A kind `post-mortem` with its own workflow.** A policy install, which is the owner's, for what a
+  label does for the digest.
+- **The file in `plan/` as `cloud-brain-pm-<id>.md`.** The filter takes it today with no change. Against:
+  `plan/` then lists designs and post mortems under one prefix, and the test of the form would have to
+  tell them apart by name.
+- **The file in `cloud-brain-dev`, the cluster's git.** Nearest to his "not in lopecode-dev, in the
+  cluster" of 2026-10-11 on specs. Against: a push there is a second landing with its own token
+  (`worktree.sh --push-dev`), and a real push by that command "not yet" had been made when
+  `agents/implementer.md` step 10 was written. He chose the attachment for specs the next day
+  (comment 4085, "A"); the same is taken here.
+- **The file only as an attachment.** In the cluster and on the page, and not in the search: R4 unmet.
+- **A post mortem of every send-back by a review.** 75 in 2.4 days, at a writer and a reviewer each.
+- **A recurrence check that runs.** A cause is a sentence; no query of the record matches "a second
+  role where one exists". Where a cause can be held by a test (a line of a brief, as
+  `tests/tools/spec-brief-attaches-the-spec.test.ts` holds one), the action is that test.
+
+### What is not known
+
+- Whether a writer reaches a cause that is not "the agent erred". A study of 127 failure logs of
+  multi-agent systems found the agent at fault named rightly 53.5% of the time and the step 14.2%
+  (Zhang et al., under "Read", from a summary). That is why each step cites what it is read from and a
+  reviewer reads five. The first three post mortems say whether it is enough (task 5).
+- Whether a post mortem is found by a search made in a later design's words. It is checked on the
+  first one in task 1 and again in task 5.
+- What reading a transcript of 1.8 MB costs a writer. Not tried.
+- That a second case is noticed. Nothing here watches for one.
+
+## How each requirement is known to be met
+
+Each command is run by an agent of the loop with its own token. `ia` is `tools/cloud-brain/issue-as.sh <token>`.
+
+| | Command | Today, 2026-10-12 | After |
+|---|---|---|---|
+| R1 | `ia "list?label=post-mortem&limit=100"` | `{"issues":[]}` | task 2: the orchestrator labels `pm-second-summarizer-role` and it is listed. Not runnable before task 2. |
+| R1 | `ia "get?id=pm-second-summarizer-role"`, `issue.links` | `{'rel': 'cause', 'to': 'docs-summarised-for-search'}` among them | the same, of each post mortem |
+| R2 | `ia "runs?id=<pm>"` against `ia "runs?id=<the issue it is of>"` | `"runs":[]` for the first | after a post mortem is written: one run of role `implementer` whose `token` is no `token` of the other list |
+| R3 | `git ls-tree -r --name-only origin/main tools/cloud-brain/post-mortems/` | 0 lines | one line a post mortem; and `attachments` of `get?id=<pm>` names `<pm>-r1.md` |
+| R4 | `BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status`, last line | `"docs":86,"fresh":86` | with the filter of part 4 put in the worktree and taken back, run 21:30 CEST: still `"docs":86,"fresh":86`, since `origin/main` has no such file. After task 1 and the first file's landing: one doc more for each file, with a line `fresh    private pm-<short>`. Run then, by task 1's writer. |
+| R4 | the search of `agents/implementer.md` step 2 with `q=post mortem second summarizer role` | no `doc:pm-…` among 20 entries | task 1, after the first file is entered: `doc:pm-second-summarizer-role` among the first five. Not runnable before. |
+| R5 | `bun test ./tests/tools/post-mortems.test.ts` | no such file | task 1: 0 fail, with a count. It fails on a file with a heading missing, out of order, or over 16,000 characters (the test has a file of each in a temporary directory). |
+| R5 | `bun test --timeout=30000 ./tests/tools/knowledge-docs.test.ts` | `19 pass, 0 fail`, 217 s, run 21:28 CEST (with bun's default timeout: 4 pass, 15 fail) | task 1: 0 fail, with a test more for the new path |
+| R6 | `ia "get?id=<pm>"`, `issue.linked` | `[]` for the first | each action as `{'rel': 'cause', 'id': <action>}`, 3 at most, or the file's "None" |
+| R7 | `bun <root>/tools/cloud-brain/issue-stats.ts --token=<token>` | no line `post mortems` | task 4: the block of part 7. Not runnable before. |
+| R8 | the same block's first line, against the count of the owner's `send-back`, `owner-reject` after a pass, and `revert` | 1 such event (4434), 1 post mortem opened | task 4 prints both numbers. More post mortems of the loop's own declaring than such events is a finding for the overseer. |
+
+Nothing here is the owner's to measure.
+
+## The tasks
+
+In the order they land. Each is one writer and one review. None is `major`: none changes who may do
+what, and no file of the owner's is edited.
+
+1. **`pm-1-file-and-search`.** `knowledge-docs.ts` takes `tools/cloud-brain/post-mortems/*.md`, named by
+   the file; its test. `tests/tools/post-mortems.test.ts`, the form of part 3 over every file of the
+   directory. If `pm-second-summarizer-role` has landed its file, bring it to the form in this landing
+   (headings and order; its words are its writer's), attach it to its issue when it is not, and run the
+   two R4 checks. If it has not landed, say so; the checks are then run by that issue's writer and
+   named in its comment.
+2. **`pm-2-brief-and-procedure`.** `agents/implementer.md`, the section "A post mortem" (parts 2, 3, 5).
+   `SKILL.md`: the row for an issue labeled `post-mortem`, the one case in which the session declares
+   one, the triage of one, the line of step 7. A test file that holds those lines. The session then
+   labels `pm-second-summarizer-role`.
+3. **`pm-3-reviewer-brief`.** The part "A post mortem" in the reviewer's brief on the Brain, put by the
+   writer (`rules.md`: a writer whose issue is a task of an approved spec may), with the kept copy
+   `tests/tools/fixtures/reviewer-brief.md` and a test of the four questions.
+4. **`pm-4-stats-block`.** `issue-stats.ts` prints the block of part 7 and the two numbers of R8; its test.
+5. **`pm-5-read-after-three`.** Opened `triaged` and held until three post mortems are `done`. A read,
+   no build: for each, did the review send it back and for which question; what became of its actions;
+   was it answered to a later search (the comments of later writers name what they searched and used).
+   What it finds is a comment on this project and, where a brief is at fault, a task.
+
+`pm-second-summarizer-role` is not a task of this spec and does not wait for it. Written before task
+2, it is written from its own body and comment 4485.
+
+## What only the owner can do
+
+- Approve this spec.
+
+## What the orchestrator makes
+
+Nothing. No token is named: the writer has its `impl-` token, the search is `loop-knowledge`, the
+entry is put by `loop-docs` at the release of the lock, the reviewer's brief by `loop-roles`.
+
+## Read
+
+**In the Brain**, `knowledge.search?semantic=true` with `loop-knowledge`, 21:24 CEST. Only the ids and
+titles the search answers were read, but for the docs named as files of this repository.
+
+| Searched | Found | Used |
+|---|---|---|
+| "post mortem root cause of a bad decision" | `arxiv:2509.26354` "Your Agent May Misevolve", 0.573; nothing of the loop's | no; title only |
+| "trace a decision back through issues events reviews" | `doc:cloud-brain-lean-reviewer-persona` 0.87, `doc:cloud-brain-run-cost-is-part-of-the-issue-model` 0.68, `doc:cloud-brain-record-names-token-not-agent` 0.655 | the last two are why a run's agent, session and token can be read from the record (parts 2 and "What exists") |
+| "overseer reflects on the record and edits briefs" | `doc:cloud-brain-texts-not-read-again-after-a-change` 0.931, `doc:cloud-brain-dev-philosophy` 0.608, `finding:2026-10-09:arxiv:2610.06406` "What Did the Agent Actually Do?" 0.5 | `philosophy.md`, read whole; the finding by title only |
+| "reuse an existing role instead of making a new one" | seven papers on self-evolving agents, the first `arxiv:2603.18000` 0.907 | no; titles only |
+| "incident review blameless postmortem learning" | `arxiv:2308.10144` "ExpeL: LLM Agents Are Experiential Learners" 0.608, surveys | no; titles only |
+| "where a file is kept so a later agent finds it" | `finding:2026-10-11:knowledge-search:any-word-and-name` 0.648, `doc:cloud-brain-docs-summarised-for-search` 0.435 | the title line of part 4 is written for the search because of the first; title only |
+
+**Outside.**
+
+- Google, *Site Reliability Engineering*, chapter 15, "Postmortem Culture: Learning from Failure",
+  https://sre.google/sre-book/postmortem-culture/ . Read through a fetch that answered questions of
+  the page, not the page whole. Used: triggers are written down before the event, and beside them "any
+  stakeholder may request a postmortem for an event" (part 1); a post mortem is reviewed, "An
+  unreviewed postmortem might as well never have existed", and one of the review's questions is "Was
+  the root cause sufficiently deep?" (part 6, question 2); it is kept in "a team or organization
+  repository of past incidents" (part 3); it names causes and not people, on the reading that
+  "everyone involved in an incident had good intentions and did the right thing with the information
+  they had" (part 2, the cause).
+- Zhang et al., "Which Agent Causes Task Failures and When? On Automated Failure Attribution of LLM
+  Multi-Agent Systems", ICML 2025, https://arxiv.org/abs/2505.00212 . **Read only in a search's
+  summary.** Used: the two figures under "What is not known".
+- Cemri et al., "Why Do Multi-Agent LLM Systems Fail?", https://arxiv.org/abs/2503.13657 . **Read only
+  in a search's summary**: a taxonomy of 14 failure modes in three groups (system design, inter-agent
+  misalignment, task verification). Not used in the design: a post mortem here names one cause in the
+  loop's own files, not a class.
+
+## What misled
+
+- The issue's body says the first post mortem's file "is the example the spec is written from". The
+  project was started (the owner's, so before a task) while that task had no writer. `SKILL.md` orders
+  starts and has no "after".
+- `bun test ./tests/tools/knowledge-docs.test.ts`, as `agents/implementer.md` gives the form for one
+  file, printed 4 pass and 15 fail in a fresh worktree. With `--timeout=30000`, which `suite.sh` passes,
+  19 pass. The brief gives the flag for the suite and not for one file.
+- `agents/spec.md` step 5 says the reports are gathered as parts. A feature the owner opens has none,
+  and the questions are in its body. The reviewer of `docs-summarised-for-search` took the body's
+  "Not known" in their place (review 4341), and so does this spec; the brief does not say so.
