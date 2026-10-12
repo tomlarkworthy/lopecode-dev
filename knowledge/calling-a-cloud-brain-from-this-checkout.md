@@ -121,6 +121,31 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke out-xxxxxx     
   and no authority. An issue he opens himself in the page needs none. (Until 2026-10-12 a
   paragraph of its own here, "An issue the owner asked for"; the heading above it was "No token of
   your own for the tracker".)
+- A change to a tracked file by such a session can be made as an agent of the loop makes one since
+  2026-10-12: in a worktree of its own, landed by a push, with nothing committed in the main
+  checkout (`plan/cloud-brain-worktree-per-topic.md`, task 5). From the main checkout:
+
+```
+W=$(tools/cloud-brain/worktree.sh out-<name>)      # prints the path: .claude/worktrees/bm-out-<name>, branch bm/out-<name>, at origin/main
+# edit in "$W", `git -C "$W" add <file>` each file by its name, `git -C "$W" commit`
+LOCK_TOKEN=out-xxxxxx tools/cloud-brain/lock.sh take land out-<name>
+tools/cloud-brain/worktree.sh --rebase out-<name>
+git -C "$W" push origin HEAD:main
+LOCK_TOKEN=out-xxxxxx tools/cloud-brain/lock.sh release land out-<name>
+tools/cloud-brain/worktree.sh --remove out-<name>
+```
+
+  The issue loop lists a `bm-out-*` worktree and leaves it (`SKILL.md`, step 1: "`orch-*`, `over-*`
+  and `out-*` are of no issue and are left"), so the last line is the session's own. Never
+  `git commit -a` or `git add -A` there: `lopebooks`, `lopecode` and `lopecode-plugin` are links in
+  a worktree, and the commit would record them. Run 2026-10-12 21:18 CEST by the writer of this
+  item, an agent of the loop, with the name `out-wt5-try`: the first line took its place in
+  `worktree.sh --list` as `out-wt5-try clean changed=0 untracked=0 ahead=0 dev-changed=0 dev-ahead=0 occupant=- branch=bm/out-wt5-try head=1d545375`,
+  and the last removed the directory and the branch, 20 s for the three. The four lines between
+  were not run in an `out-` worktree or with an `out-` token; the same four, with an `impl-` token,
+  landed this item from the worktree `bm-worktree-per-topic`
+  (`tools/cloud-brain/records/wt-5-docs.md`). The spec asks this of the loop's agents and not of
+  the owner's sessions: "This spec does not ask it of them: the main checkout is his."
 
 A health check that takes ten seconds:
 

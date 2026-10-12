@@ -445,6 +445,13 @@ Each is run by an agent with its own token, from any worktree. `<root>` is the m
    `cloud-brain-dev/README.md` and `rules.md`'s "Always" (the lines on the main checkout and the
    landing lock; a change to `rules.md` is `major`), and the line for a session outside the loop
    in the doc of `ta-5-outside-session-doc`: `worktree.sh out-<name>`, landed by push.
+   (As built, `wt-5-docs`, 2026-10-12: all of it. Where the build is not these sentences: "Always" has three
+   items changed and not two, the third being "Work on `main`", whose "Push `lopebooks` and `lopecode-dev`" the
+   landing by push made untrue; the hub `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md` and
+   `cloud-brain-dev/AGENTS.md` each had one line of the same kind and changed too; the line for a session outside
+   the loop is offered and not required, as "What only the owner can do" leaves it; of its seven commands the
+   writer ran the first and the last under an `out-` name, and none with an `out-` token. The change to `cloud-brain-dev` was
+   landed with `worktree.sh --push-dev`. The record, `tools/cloud-brain/records/wt-5-docs.md`.)
 6. **`wt-6-check-after-a-day`.** Checks 1 to 4 and 7 to 9 after one whole day of the loop, with the
    numbers in a record, and what they say against this spec.
 

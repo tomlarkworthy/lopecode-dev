@@ -1,6 +1,6 @@
 ---
 scope: [local-development]
-topics: Cloud Brain; changing a seed; build.ts; deploying a Worker; brain.ts apply, redistil, saw, confirm; the deploy lock; a Playwright script in tools; where a service keeps files
+topics: Cloud Brain; changing a seed; a git worktree for the change (worktree.sh), landed by a push; build.ts; deploying a Worker; brain.ts apply, redistil, saw, confirm; the deploy lock; a Playwright script in tools; where a service keeps files
 triggers:
   - "^(Edit|Write|MultiEdit) .*tools/cloud-brain/"
   - "(^Bash |^|[;&|] )bun +tools/cloud-brain/build\.ts( |$)"
@@ -17,6 +17,16 @@ The other pages are listed in that file, which is read first.
 
 ## Changing it
 
+Since 2026-10-12 an agent of the issue loop does these steps in a git worktree and writes no tracked file of the main
+checkout (`.claude/skills/brain-maintenance/rules.md`, "Always"; `plan/cloud-brain-worktree-per-topic.md`, R1).
+`tools/cloud-brain/worktree.sh <name>` makes one at `origin/main` and prints its path, `.claude/worktrees/bm-<name>`
+(for a writer of the loop the orchestrating session has made it, with `worktree.sh --fresh`). There `lopebooks`,
+`lopecode` and `lopecode-plugin` are links to the main checkout's, `cloud-brain-dev/` is a clone of its own, and
+`tools/cloud-brain/.emitted/` has no state: `brain.ts` is run with `BRAIN_STATE_DIR=<main checkout>/tools/cloud-brain/.emitted`
+before it. The order of a landing, with each command, is step 10 of `.claude/skills/brain-maintenance/agents/implementer.md`.
+The steps below were written for the main checkout, and a line says where a worktree differs. Whether a session of the
+owner's works in one is his to say: the spec does not ask it ("the main checkout is his").
+
 1. Edit the seed in `tools/cloud-brain/*.ojs`. Never the notebook HTML.
 2. `bun tools/cloud-brain/build.ts`. Beside the notebook it writes two files in `tools/cloud-brain/.emitted/`:
    `shell.html`, the notebook without the modules a Worker serves (what `brain.ts shell` posts), and since
@@ -25,6 +35,11 @@ The other pages are listed in that file, which is read first.
    (`infra.shell?name=verify`), and neither when one is not there; a deployer that has `shell/verify.html` in brain-static
    opens it for a deploy's test run (`brain-deployer.ojs`, `verifyPage`; `tools/cloud-brain/records/dv-3-deployer-opens-verify-html.md`).
    Against a deployer from before that change `brain.ts shell` exits 1 and says to install the deployer first.
+   In a worktree the build names its file: `bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html`.
+   With no `--out` there it writes nothing and is exit 1, `in a worktree: pass --out tools/cloud-brain/.emitted/cloud-brain.html`
+   (run 2026-10-12 21:18 CEST in `bm-worktree-per-topic`; `build.ts`, line 97): the default is the notebook in `lopebooks`,
+   which in a worktree is the main checkout's. `build.ts` is not run in the main checkout by the loop: a build there takes in
+   the seeds another session has open and uncommitted (six such files on 2026-10-10 23:29, step 10 of the implementer's brief).
 3. Run the tests in a local QA tab: `qa_open_notebook` on the file URL with
    `#view=…&cc=<pairing token>&r=<fresh number>`, then `run_tests`. `r` does nothing; a new value makes a new URL, so the tab
    loads the file again.
@@ -77,6 +92,17 @@ The other pages are listed in that file, which is read first.
    `lopebooks` with each change: `tools/cloud-brain/notebook-backup.sh FILE` writes a build over the file there and
    commits it when its last commit is of an earlier day (Tom that day: "that can be a once a day thing for backups";
    `tools/cloud-brain/records/notebook-commit-once-a-day.md`).
+   Since 2026-10-12 an agent of the loop commits in its worktree and lands from it, under the landing lock:
+   `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh take land <who>`, `tools/cloud-brain/worktree.sh --rebase <name>` (a fetch
+   and a rebase on `origin/main`), `git push origin HEAD:main` there, `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh release land <who>`.
+   Nothing is committed, merged or pulled in the main checkout, and the worktree's branch `bm/<name>` is not pushed, so the
+   work is still on `main`. With a deploy, `notebook-backup.sh` is run from the worktree with its build, and writes the main
+   checkout's `lopebooks` (the script's header; not run by the writer of this line); a change to `cloud-brain-dev` is committed in the worktree's clone and pushed by
+   `tools/cloud-brain/worktree.sh --push-dev <name>` before the push of `lopecode-dev`. Until then a landing pulled and merged
+   its branch in the main checkout: 174 such merges in its reflog of 2026-10-11, and another session's uncommitted file there
+   refused a writer's merge for 19 minutes (the spec, "What exists today" and "The reports gathered";
+   `tools/cloud-brain/records/wt-3-land-by-push.md`). A landing with no deploy, run this way on 2026-10-12, is in
+   `tools/cloud-brain/records/wt-5-docs.md`.
 
 ## The commands that deploy
 

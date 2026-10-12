@@ -133,19 +133,41 @@ rest of this section is the writer's reading, not his words. Both answers are of
   working-with-cloud-brain-remote-lopecode-cluster.md into more granular docs"). A hook blocks those until you have.
 - Every write to the tracker carries a `key` you choose, so a call sent again writes nothing new:
   `<role>/<issue id>/<what>`, with a number after it for a second round.
-- Commit, build or push in the main checkout only while holding the landing lock:
-  `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh take land <who>`, and
+- Write no tracked file of `lopecode-dev` in the main checkout: no edit, no `build.ts`, no
+  `git commit`, `merge` or `pull` there. Your edits, builds and commits are in a git worktree,
+  `.claude/worktrees/bm-<name>`, and need no lock. The orchestrating session makes the worktree of
+  a topic and puts one agent in it (`tools/cloud-brain/worktree.sh --fresh <topic> --for <token>`):
+  a writer whose prompt names a worktree makes none and removes none. The orchestrating session's
+  own commits are made in `bm-orch-<host>` and the overseer's in `bm-over-<host>`.
+  Three writes of the main checkout remain. A landing with a deploy, under the landing lock, pulls
+  the main checkout's `lopebooks` and writes the built notebook there with
+  `tools/cloud-brain/notebook-backup.sh`, which commits the file once a day; that commit is pushed.
+  The orchestrating session, at the start of a pass, makes a fast-forward pull of the main checkout
+  and one of its `cloud-brain-dev`. `tools/cloud-brain/.emitted` there is state and not tracked: the
+  tokens and the emitted files are read and written in it from a worktree.
+  (R1 of `plan/cloud-brain-worktree-per-topic.md`, which the owner approved at event 3737 of
+  `worktree-per-topic`; issue `wt-5-docs`, 2026-10-12. Until then this item read "Commit, build or
+  push in the main checkout only while holding the landing lock", and a writer made its own
+  worktree, one an issue.)
+- Land by a push from your worktree, and only while holding the landing lock:
+  `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh take land <who>`,
+  `tools/cloud-brain/worktree.sh --rebase <name>`, `git push origin HEAD:main` in the worktree, and
   `LOCK_TOKEN=<token> lock.sh release land <who>` when done. `<token>` is the name of your token
   for the tracker ("Which token"); with no `LOCK_TOKEN` the script sends nothing, exit 2. The
-  lock is held in the cluster; no directory is made or removed for it. A writer's own edits and
-  builds are in its worktree (`tools/cloud-brain/worktree.sh <id>`) and need no lock. A seed's tests are run
-  in that worktree's `cloud-brain-dev/` first (what cb4 runs, read by `sync.ts`), then in a browser.
+  lock is held in the cluster; no directory is made or removed for it. A seed's tests are run
+  in the worktree's `cloud-brain-dev/` first (a clone of its own; what cb4 runs, read by `sync.ts`), then in a browser.
   Nothing under a `deploy/` directory is edited to make a change, or committed when it is a service's.
 - Deploy under the lock: `LOCK_TOKEN=<token> lock.sh take cb4 <who>`, apply,
   `LOCK_TOKEN=<token> lock.sh release cb4 <who>`. Exit 1
   names the agent that is deploying: wait and look again. A lock is released by its holder or
   ends at its time. Nobody releases another's.
-- Work on `main`. Stage only the files you changed. Push `lopebooks` and `lopecode-dev`.
+- Work on `main`: the branch of a worktree, `bm/<name>`, is local and is not pushed. Stage only the
+  files you changed, each by its name: `git commit -a` and `git add -A` in a worktree record the
+  links that stand there in the submodules' place. Push `lopecode-dev` as the item on the landing
+  has it. A change to `cloud-brain-dev` is committed in the worktree's clone and pushed by
+  `tools/cloud-brain/worktree.sh --push-dev <name>`, under the landing lock and before that push;
+  no branch is made in the main checkout's copy. `lopebooks` is pushed from the main checkout, on
+  the day's first landing that builds, when `notebook-backup.sh` has committed there.
 - Before finishing: the QA tab you opened is closed by name; `browser.all` and `container.all`
   show nothing you started.
 - Your last message is a report the overseer will read: what you did, each command whose result
