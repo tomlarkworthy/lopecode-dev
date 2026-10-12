@@ -79,12 +79,15 @@ asks for anything in "Never" below is commented on and left for the owner.
 - Every write to the tracker carries a `key` you choose, so a call sent again writes nothing new:
   `<role>/<issue id>/<what>`, with a number after it for a second round.
 - Commit, build or push in the main checkout only while holding the landing lock:
-  `tools/cloud-brain/lock.sh take land <who>`, and `lock.sh release land <who>` when done. The
+  `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh take land <who>`, and
+  `LOCK_TOKEN=<token> lock.sh release land <who>` when done. `<token>` is the name of your token
+  for the tracker ("Which token"); with no `LOCK_TOKEN` the script sends nothing, exit 2. The
   lock is held in the cluster; no directory is made or removed for it. A writer's own edits and
   builds are in its worktree (`tools/cloud-brain/worktree.sh <id>`) and need no lock. A seed's tests are run
   in that worktree's `cloud-brain-dev/` first (what cb4 runs, read by `sync.ts`), then in a browser.
   Nothing under a `deploy/` directory is edited to make a change, or committed when it is a service's.
-- Deploy under the lock: `lock.sh take cb4 <who>`, apply, `lock.sh release cb4 <who>`. Exit 1
+- Deploy under the lock: `LOCK_TOKEN=<token> lock.sh take cb4 <who>`, apply,
+  `LOCK_TOKEN=<token> lock.sh release cb4 <who>`. Exit 1
   names the agent that is deploying: wait and look again. A lock is released by its holder or
   ends at its time. Nobody releases another's.
 - Work on `main`. Stage only the files you changed. Push `lopebooks` and `lopecode-dev`.

@@ -671,6 +671,9 @@ Task 3 needs 1 deployed and 2 put. Task 4 needs 3. Task 5 needs 1. Task 2 needs 
   - "Deploy under the lock: `lock.sh take cb4 <who>`, apply, `lock.sh release cb4 <who>`. Exit 1
     names the agent that is deploying: wait and look again. A lock is released by its holder or
     ends at its time. Nobody releases another's."
+  (As built, `rules-md-lock-sh-lines-name-no-token`, 2026-10-12: each of the four commands has
+  `LOCK_TOKEN=<token> ` before it in `rules.md`, and the first sentence says what `<token>` is;
+  the record.)
 - **A second machine.** The tokens of the loop are in `.emitted/cb4-issues-tokens.json`, which is
   not in git. Placing them on another machine is his, and so is seeing the first landing from it:
   machine A holds `land`, `lock.sh take land x` on machine B exits 1 and names A's holder.
