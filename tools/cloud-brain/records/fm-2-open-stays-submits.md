@@ -2,8 +2,9 @@
 
 Task 2 of `plan/cloud-brain-flow-metrics.md` (approved for the owner at event 3379): three more
 metrics of `issueFlow`, the cell of `@tomlarkworthy/brain-issues` that task 1 made. No method
-answers it yet; that is task 3. Written 2026-10-12, with the seed's commits of 04:16 CEST that day
-(`git log --format=%ci`; the commits and the deploy are refs of the submit).
+answers it yet; that is task 3. Written 2026-10-12, with the seed's two commits, made at 04:16 CEST
+that day and put on `main` at 04:22 (`git log --format='%ai %ci'`; the commits and the deploy are
+refs of the submit).
 
 ## What changed
 
@@ -50,7 +51,9 @@ Each by line 2 of `philosophy.md` (the smaller side, said here).
 ## Tests
 
 Each count is from the command beside it, run in the worktree after the last edit of the seed
-(commit `ab1a48f2`) and after `worktree.sh --rebase`, which brought nothing in.
+(on `main` as `6a152060`) and after a `worktree.sh --rebase` that brought nothing in. The rebase
+under the landing lock brought in `brain-topic.ojs`, a record and `seen.json`, none of which this
+module is built from: the module of the build made then was the file the tests had run on (`cmp`).
 
 | Command | Result |
 |---|---|
