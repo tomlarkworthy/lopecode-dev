@@ -1,12 +1,14 @@
 // issue-watch.sh: which events of an answer of `sync?after=` the watch prints. A line wakes the orchestrator.
 // Issue os-1-owner-label, task 1 of plan/cloud-brain-loop-order-of-service.md. The label asks-orchestrator: issue asks-orchestrator-label-and-watch.
 // A comment of an out- token: issue watch-prints-an-outside-sessions-comment.
+// The QUEUE lines, and no line for an open or a submit: issue bk-6-skill-watch-and-stats, part 6 and R7 of
+// plan/cloud-brain-bookkeeping-in-the-tracker.md.
 //
 //   bun test ./tests/tools/issue-watch.test.ts
 //   ISSUE_WATCH_SH=/path/to/another/issue-watch.sh bun test …
-// No call leaves the machine: `--filter <token>` reads the answer from stdin.
+// No call leaves the machine: `--filter <token>` reads an answer of sync from stdin, `--queue <file>` one of queue.
 import { test, expect } from "bun:test";
-import { readFileSync, writeFileSync, mkdtempSync, chmodSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdtempSync, chmodSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -20,25 +22,18 @@ const watch = (events: unknown[], args = ["--filter", me]) => {
   return { code: p.exitCode, lines: p.stdout.toString().split("\n").filter(Boolean) };
 };
 
-test("an issue another token opened is a line; one the watch's own token opened is none", () => {
-  const r = watch([opened(1, "theirs", "impl-bbbbbb"), opened(2, "mine", "orch-aaaaaa")]);
+// Until bk-6-skill-watch-and-stats an issue another token opened, and one opened with the label owner, was a line.
+// The queue has each as an entry (`triage`, `spec`, `promote`), and that entry is its line.
+test("an open is no line, whatever token made it and whatever its labels", () => {
+  const r = watch([opened(1, "theirs", "impl-bbbbbb"), opened(2, "mine", "orch-aaaaaa"), opened(3, "asked", "orch-aaaaaa", ["infra", "owner"]),
+    opened(5, "both", "impl-bbbbbb", ["owner"])]);
   expect(r.code).toBe(0);
-  expect(r.lines).toEqual(["1 opened theirs impl-bbbbbb  title of theirs", "LAST 2"]);
+  expect(r.lines).toEqual(["LAST 5"]);
 });
 
-test("an issue opened with the label owner is a line, though the watch's own token opened it", () => {
-  const r = watch([opened(3, "asked", "orch-aaaaaa", ["infra", "owner"]), opened(4, "mine", "orch-aaaaaa", ["infra"])]);
-  expect(r.lines).toEqual(["3 opened asked orch-aaaaaa  title of asked", "LAST 4"]);
-});
-
-test("the label is the name owner in a list: no other name, no part of a name, no string", () => {
-  const not = [["owners"], ["needs-owner"], ["Owner"], "owner", null, [["owner"]], { owner: true }];
-  const r = watch(not.map((l, i) => opened(10 + i, `n${i}`, "orch-aaaaaa", l)));
-  expect(r.lines).toEqual(["LAST 16"]);
-});
-
-test("an issue another token opened with the label is one line, not two", () => {
-  expect(watch([opened(5, "both", "impl-bbbbbb", ["owner"])]).lines).toEqual(["5 opened both impl-bbbbbb  title of both", "LAST 5"]);
+test("an open made with the owner's session is a line, as every event of his session is", () => {
+  const r = watch([{ ...opened(6, "his", "x"), by: { caller: "owner", via: "session", tab: true } }]);
+  expect(r.lines).toEqual(["6 opened his OWNER  title of his", "LAST 6"]);
 });
 
 test("a label put on later with the watch's own token is no line: the orchestrator made it", () => {
@@ -55,22 +50,15 @@ test("an event made with the owner's session is a line, whatever its type", () =
 const move = (seq: number, id: string, m: unknown, to: string, holder: string) =>
   ({ seq, type: "moved", id, move: m, from: "x", to, reason: `reason of ${id}`, refs: [], by: by(holder) });
 
-test("a submit and a submit-spec are a line each, whatever token made them, the watch's own too", () => {
+// Until bk-6-skill-watch-and-stats a submit and a submit-spec were a line each. The queue has the issue as `review`.
+test("no move is a line for its name: a submit, a submit-spec, a start, a rework, a pass", () => {
   const r = watch([move(20, "a", "submit", "in-review", "impl-bbbbbb"), move(21, "b", "submit-spec", "spec-review", "spec-cccccc"),
-    move(22, "c", "submit", "in-review", "orch-aaaaaa")]);
-  expect(r.lines).toEqual(["20 moved a impl-bbbbbb in-review reason of a", "21 moved b spec-cccccc spec-review reason of b",
-    "22 moved c orch-aaaaaa in-review reason of c", "LAST 22"]);
-});
-
-test("no other move is a line: it is the name of the move that is read, not the state it goes to", () => {
-  const r = watch([move(30, "a", "start", "in-progress", "impl-bbbbbb"), move(31, "a", "rework", "in-progress", "rev-dddddd"),
-    move(32, "a", "pass", "done", "rev-dddddd"), move(33, "a", "swap", "in-review", "impl-bbbbbb"), move(34, "a", "submits", "in-review", "impl-bbbbbb"),
-    move(35, "a", ["submit"], "in-review", "impl-bbbbbb"), move(36, "a", null, "in-review", "impl-bbbbbb"),
-    { seq: 37, type: "commented", id: "a", move: "submit", body: "x", by: by("impl-bbbbbb") }]);
+    move(22, "c", "submit", "in-review", "orch-aaaaaa"), move(30, "a", "start", "in-progress", "impl-bbbbbb"), move(31, "a", "rework", "in-progress", "rev-dddddd"),
+    move(32, "a", "pass", "done", "rev-dddddd"), { seq: 37, type: "commented", id: "a", move: "submit", body: "x", by: by("impl-bbbbbb") }]);
   expect(r.lines).toEqual(["LAST 37"]);
 });
 
-test("a submit made with the owner's session is one line, not two", () => {
+test("a submit made with the owner's session is a line", () => {
   const r = watch([{ ...move(40, "a", "submit", "in-review", "x"), by: { caller: "owner", via: "session", tab: true } }]);
   expect(r.lines).toEqual(["40 moved a OWNER in-review reason of a", "LAST 40"]);
 });
@@ -174,7 +162,9 @@ test("a comment made with the owner's session is one line with OWNER, whatever h
 test("SKILL.md, step 8, has the comment of an out- token among what the watch prints", () => {
   const flat = readFileSync(process.env.SKILL || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/SKILL.md"), "utf8").replace(/\s+/g, " ");
   expect(flat).toMatch(/issue-watch\.sh <your token>[^|]*for each comment written with a token `out-` and six hex digits, but the one the watch is given/);
-  expect(flat).toMatch(/A line is a wake: read that issue and take it from the table of step 3, without a whole pass\. An agent's other writes print nothing/);
+  expect(flat).toMatch(/issue-watch\.sh <your token>[^|]*`QUEUE <do> <id> <for> <title>` for each entry of the queue that is new/);
+  expect(flat).not.toMatch(/for each issue another caller opened|for each `submit` and `submit-spec` move, whatever token made it/);
+  expect(flat).toMatch(/A line is a wake: read that issue and take it from the table of step 3, without a whole pass\. A write of an agent's that makes no entry of the queue new prints nothing; its report wakes you as before\./);
 });
 
 // SKILL=<file> and IMPLEMENTER=<file> read another copy (the files before the change).
@@ -278,19 +268,130 @@ test("SKILL.md and the brief name the line asks-still where they describe the wa
 });
 
 // SKILL=<file> and GUIDE=<file> read another copy of the procedure and of the guide (the files before the change).
-test("SKILL.md says once what the owner's is, takes a project by it, and names the label where it describes the watch", () => {
+test("SKILL.md says once what the owner's is, takes a project by it, and names the label where it says what the queue reads", () => {
   const skill = readFileSync(process.env.SKILL || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/SKILL.md"), "utf8");
   const flat = skill.replace(/\s+/g, " ");
   expect(flat.split("**The owner's**").length - 1).toBe(1);
   expect(flat).toMatch(/\*\*The owner's\*\*[^|]*`by\.via` of its `opened` event is `session`\), or labeled `owner`/);
-  const row = skill.split("\n").filter((l) => l.includes("kind `project` or `feature`, at `open`"));
+  // Since bk-6-skill-watch-and-stats the project at `open` is the queue's entry `spec`, and the row is of that entry.
+  const row = skill.split("\n").filter((l) => l.startsWith("   | `spec` |"));
   expect(row.length).toBe(1);
-  expect(row[0]).toContain("with three parts or more, or the owner's |");
+  expect(row[0]).toContain("Spawn the spec writer");
   expect(skill).not.toContain("or opened by the owner |");
-  expect(flat).toMatch(/issue-watch\.sh <your token>[^|]*for each issue opened with the label `owner`, whatever token opened it/);
+  expect(flat).toMatch(/`for` of an entry is `owner` for an issue he opened himself or one labeled `owner` or `annotation`/);
 });
 
 test("the guide for calling a Brain tells a session that opens an issue on the owner's word to put the label on", () => {
   const guide = readFileSync(process.env.GUIDE || resolve(import.meta.dir, "../../knowledge/calling-a-cloud-brain-from-this-checkout.md"), "utf8").replace(/\s+/g, " ");
   expect(guide).toMatch(/opens an issue on the owner's word puts `owner` in the `labels` of the open \(`"labels":\["owner"\]`/);
+});
+
+// bk-6-skill-watch-and-stats, R7: `--queue <file>` reads one answer of issue.queue and prints a line for each entry whose
+// id and `do` were not in the answer before; <file> is what it keeps between two answers.
+const entry = (id: string, what: string, more: any = {}) => ({ id, do: what, kind: "task", state: "ready", title: `title of ${id}`, labels: [], for: "loop", since: 1, late: false, ...more });
+const queueOf = (file: string, answer: unknown) => {
+  const p = Bun.spawnSync(["bash", script, "--queue", file], { stdin: Buffer.from(typeof answer === "string" ? answer : JSON.stringify(answer)) });
+  return { code: p.exitCode, lines: p.stdout.toString().split("\n").filter(Boolean) };
+};
+const seenFile = () => resolve(mkdtempSync(resolve(tmpdir(), "issue-watch-queue-")), "seen");
+const answer = (...queue: unknown[]) => ({ seq: 9, now: 5, queue, waiting: [{ id: "w", kind: "task", state: "ready", why: "after", on: ["a"] }], more: false });
+
+test("two answers of queue: the first is printed whole, the second prints one line, for the entry that is new (R7)", () => {
+  const file = seenFile();
+  const first = queueOf(file, answer(entry("a", "review", { for: "owner" }), entry("b", "start")));
+  expect(first.code).toBe(0);
+  expect(first.lines).toEqual(["QUEUE review a owner title of a", "QUEUE start b loop title of b"]);
+  const second = queueOf(file, answer(entry("a", "review", { for: "owner" }), entry("b", "start"), entry("c", "triage")));
+  expect(second.lines).toEqual(["QUEUE triage c loop title of c"]);
+  // The same answer again: nothing.
+  expect(queueOf(file, answer(entry("a", "review"), entry("b", "start"), entry("c", "triage"))).lines).toEqual([]);
+});
+
+test("an entry that was absent from an answer is printed when it comes back, and one whose `do` changed is printed", () => {
+  const file = seenFile();
+  queueOf(file, answer(entry("a", "start"), entry("b", "start")));
+  expect(queueOf(file, answer(entry("b", "start"))).lines).toEqual([]);
+  expect(queueOf(file, answer(entry("a", "start"), entry("b", "start"))).lines).toEqual(["QUEUE start a loop title of a"]);
+  expect(queueOf(file, answer(entry("a", "review"), entry("b", "start"))).lines).toEqual(["QUEUE review a loop title of a"]);
+  // Back to `start` after a `review`: printed again, since the answer before did not have a as a start.
+  expect(queueOf(file, answer(entry("a", "start"), entry("b", "start"))).lines).toEqual(["QUEUE start a loop title of a"]);
+});
+
+test("an answer that is not the queue's prints nothing and leaves what is kept: the next answer prints only what is new", () => {
+  const file = seenFile();
+  queueOf(file, answer(entry("a", "start")));
+  const kept = readFileSync(file, "utf8");
+  for (const bad of ["not json", "", { error: "MethodNotImplemented", message: "no such method" }, { queue: { a: 1 } }, { queue: "a start" }, { waiting: [] }, [entry("z", "start")], null]) {
+    const r = queueOf(file, bad);
+    expect([JSON.stringify(bad), r.code, r.lines]).toEqual([JSON.stringify(bad), 0, []]);
+    expect(readFileSync(file, "utf8")).toBe(kept);
+  }
+  expect(queueOf(file, answer(entry("a", "start"), entry("b", "start"))).lines).toEqual(["QUEUE start b loop title of b"]);
+  // An empty queue is an answer: everything is absent from then on.
+  expect(queueOf(file, answer()).lines).toEqual([]);
+  expect(queueOf(file, answer(entry("a", "start"))).lines).toEqual(["QUEUE start a loop title of a"]);
+});
+
+test("a file that is not there yet is the first answer; a title is cut at 140 and on one line; an entry with no id or `do` is no line", () => {
+  const file = seenFile();
+  expect(existsSync(file)).toBe(false);
+  const r = queueOf(file, answer(entry("a", "look", { title: "two\nlines " + "x".repeat(200), for: undefined }), { do: "start", title: "no id" }, { id: "n", title: "no do" },
+    { id: 7, do: "start" }, "start", null, entry("b", "start", { title: null })));
+  expect(r.lines).toEqual([`QUEUE look a - ${("two lines " + "x".repeat(200)).slice(0, 140)}`, "QUEUE start b loop "]);
+  expect(readFileSync(file, "utf8")).toBe("a look\nb start");
+  // An id that is the start of another, and a `do` that is: each is its own entry.
+  writeFileSync(file, "ab start\na star");
+  expect(queueOf(file, answer(entry("a", "start"), entry("ab", "start"))).lines).toEqual(["QUEUE start a loop title of a"]);
+});
+
+test("--queue with no file is refused", () => {
+  expect(Bun.spawnSync(["bash", script, "--queue"], { stdin: Buffer.from(JSON.stringify(answer(entry("a", "start")))) }).exitCode).not.toBe(0);
+});
+
+// What cb4 answered at event 5275 (2026-10-12 23:58 CEST), the first two entries of `queue` with the fields the tool reads.
+test("two entries cb4 answered: a round of the owner's and a review", () => {
+  const cb4 = { seq: 5275, now: 1791842300000, more: false, waiting: [], queue: [
+    { id: "orchestrator-as-steps", do: "round", kind: "feature", state: "spec", title: "The orchestrator as steps: each wake a fresh process that reads its state from the tracker, with no context that grows", labels: ["owner"], for: "owner", since: 1791841687389, late: false },
+    { id: "fly-2-image-and-run-sh", do: "review", kind: "task", state: "in-review", title: "Fly: T2, the image and run.sh", labels: [], for: "loop", since: 1791841922255, late: false }] };
+  expect(queueOf(seenFile(), cb4).lines).toEqual([
+    "QUEUE round orchestrator-as-steps owner The orchestrator as steps: each wake a fresh process that reads its state from the tracker, with no context that grows",
+    "QUEUE review fly-2-image-and-run-sh loop Fly: T2, the image and run.sh"]);
+});
+
+// The loop itself, with a stand-in for issue-as.sh (ISSUE_AS_SH): no event, no ask, and a queue of one entry at each read.
+// Read every second for 4 s: the entry is printed once, not at each read.
+test("the watch's loop asks queue at each read and prints an entry that stays once", () => {
+  const dir = mkdtempSync(join(tmpdir(), "issue-watch-loop-"));
+  const sh = join(dir, "issue-as.sh");
+  writeFileSync(sh, `#!/bin/bash
+echo "$2" >> "${dir}/calls.log"
+case "$2" in
+  sync*) echo '{"events":[]}';;
+  list*) echo '{"issues":[]}';;
+  queue) echo '{"seq":9,"now":5,"more":false,"waiting":[],"queue":[{"id":"a","do":"start","for":"loop","title":"title of a"}]}';;
+esac
+echo " [200]" >&2
+`);
+  chmodSync(sh, 0o755);
+  const p = Bun.spawnSync(["bash", script, me, "0", "1"], { env: { ...process.env, ISSUE_AS_SH: sh }, timeout: 4000 });
+  expect(p.stdout.toString().split("\n").filter(Boolean)).toEqual(["QUEUE start a loop title of a"]);
+  const calls = readFileSync(join(dir, "calls.log"), "utf8").split("\n").filter(Boolean);
+  expect(calls.filter((c) => c === "queue").length).toBeGreaterThan(1);
+});
+
+// bk-6-skill-watch-and-stats, R6: the texts beside step 3. SPEC_BRIEF=, IMPLEMENTER= and CLUSTER_GUIDE= read another copy.
+test("agents/spec.md has each task name what it is after; the implementer's brief and the knowledge doc name the queue", () => {
+  const read = (env: string | undefined, path: string) => readFileSync(env || resolve(import.meta.dir, "../..", path), "utf8").replace(/\s+/g, " ");
+  const spec = read(process.env.SPEC_BRIEF, ".claude/skills/brain-maintenance/agents/spec.md");
+  expect(spec).toContain("Each task names the tasks it is after, by id");
+  expect(spec).toContain("a task that names none can be started at once");
+  expect(spec).toContain("The orchestrator writes one link `after` for each when it opens the tasks (`SKILL.md`, step 3, the row `decompose`)");
+  const brief = read(process.env.IMPLEMENTER, ".claude/skills/brain-maintenance/agents/implementer.md");
+  expect(brief).toContain("learns of your submit from its watch, which prints the queue's new entry for it, `QUEUE review <id>`");
+  expect(brief).not.toContain("which prints every `submit`");
+  const guide = read(process.env.CLUSTER_GUIDE, "knowledge/working-with-cloud-brain-remote-lopecode-cluster.md");
+  expect(guide).toContain("`issue.queue` answers what is next, in the service's order, and what waits and for what (`{ queue, waiting }`");
+  // The State table of SKILL.md reads the queue for what there is to do.
+  const skill = read(process.env.SKILL, ".claude/skills/brain-maintenance/SKILL.md");
+  expect(skill).toContain('| What is there to do, in order, and what waits and for what | `issue-as.sh <your token> "queue"`');
 });

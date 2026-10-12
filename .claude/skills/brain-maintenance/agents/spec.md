@@ -79,7 +79,15 @@ already used answers `duplicate: true` and moves nothing: after each move read t
      module draws is in it. A result with no run behind it is a round, the task's writer could not have
      met it (`record-checked-by-review-alone`, review 1929: `grep -c "read("` written as 2 after the
      task, 1 by the run; `i1842`, review 1951: a probe of a fetched copy, to find a chat that cannot be there);
-   - the tasks, in the order they land, each small enough for one writer and one review;
+   - the tasks, in the order they land, each small enough for one writer and one review. Each task names the tasks
+     it is after, by id ("After bk-2"), or says that it is after nothing: a task that names none can be started at
+     once, and two such tasks may be written at the same time. The orchestrator writes one link `after` for each when
+     it opens the tasks (`SKILL.md`, step 3, the row `decompose`), and the tracker's queue orders the starts by those
+     links and by nothing else of the spec: an order that is only in the numbering, or in a sentence, is not kept.
+     A wait that is not for a task (two days, a count) is said as that, with what is read when it ends: it becomes a
+     hold (`issue.hold`). (Since `bk-6-skill-watch-and-stats`, 2026-10-13; R6 of
+     `plan/cloud-brain-bookkeeping-in-the-tracker.md`. First spec decomposed with links by that row: not yet, when
+     this was written);
    - what only the owner can do (a deploy of the kernel, core, database or deployer; a policy
      install; a rule), as one list. A token the design needs is not in that list. It goes in a list of
      its own, "What the orchestrator makes": the name, the methods and no more, the command

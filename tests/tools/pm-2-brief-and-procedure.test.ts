@@ -118,8 +118,10 @@ test("SKILL.md step 3: a row for a post mortem at `open` and one at `ready`, abo
   };
   const open = at("| labeled `post-mortem`, at `open` |"), ready = at("| labeled `post-mortem`, at `ready` |");
   expect(ready).toBe(open + 1);
-  expect(ready).toBeLessThan(at("| `ready` |"));
-  expect(open).toBeLessThan(at("| `open`, kind `task` or `bug` |"));
+  // Since bk-6-skill-watch-and-stats a task is taken by the queue's rows `triage` and `start`, and each sends a post mortem to its own row.
+  expect(rows[at("| `triage` |")]).toContain("With the label `digest` or `post-mortem`: its row below.");
+  expect(rows[at("| `start` |")]).toContain("With the label `post-mortem`: its row below.");
+  expect(open).toBeGreaterThan(at("| `start` |"));
   has(rows[open], ['"list?label=post-mortem&limit=100"', "as `duplicate` and `close` it", "Else `triage`, then `ready`", "Never a quick win of yours"]);
   has(rows[ready], ["Spawn the implementer, with the prompt of step 4 and nothing added", 'It follows "A post mortem" in `agents/implementer.md`', "see that its actions are filed"]);
 });

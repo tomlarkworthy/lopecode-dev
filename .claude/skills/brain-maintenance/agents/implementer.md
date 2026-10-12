@@ -549,7 +549,7 @@ each command; no shell state lasts between calls.
     A round that came to you as a message does not wait: submit and report. Neither does a quick
     win: its review is the orchestrator's to hand out and to read. In your report say how many runs
     of the tool you made, what each exited with, and which rounds this run made. The orchestrator
-    learns of your submit from its watch, which prints every `submit`, not from your report.
+    learns of your submit from its watch, which prints the queue's new entry for it, `QUEUE review <id>`, not from your report.
     First run by a writer, of its own review: not yet, when this was written. Two things of it were
     seen: one run of 240 s in the foreground of a writer that was an agent of the orchestrating
     session ended with exit 3 and was not stopped (2026-10-11, 23:40:35 to 23:44:35 CEST), and five

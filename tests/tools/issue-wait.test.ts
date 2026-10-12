@@ -176,6 +176,7 @@ test("SKILL.md: a writer that waits is not a writer at work, its run of two roun
   expect(skill).toMatch(/gets one event, when it reports: `round` the number of the first of the two, `event` the last submit/);
   expect(skill).toMatch(/No field says it was two: `issue\.cost` refuses a field it does not list, `rounds` among them/);
   expect(skill).toMatch(/`agent-usage\.ts --session <session> --agent <agentId>` with no `--last-run`/);
-  expect(skill).toMatch(/issue-watch\.sh <your token>.*for each `submit` and `submit-spec` move, whatever token made it/);
+  // Since bk-6-skill-watch-and-stats the submit is the queue's entry `review`, and that line of the watch names it.
+  expect(skill).toMatch(/issue-watch\.sh <your token>.*a writer that waits has not reported \(`os-4-writer-waits`\), so the line `QUEUE review` is how you learn its review is wanted/);
   expect(skill).toMatch(/A writer that waits for its review \(step 2, "A writer that waits"\) is running: it takes that round itself and is sent no message/);
 });

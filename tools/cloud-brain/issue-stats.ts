@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // What the tracker's record says of the loop: where issues wait, which states hold them, how often work is sent back.
 //   bun tools/cloud-brain/issue-stats.ts --token NAME [--after SEQ] [--until SEQ] [--window SEQ] [--idle HOURS] [--json]
-// Read from issue.sync with a token, through issue-as.sh (run it from the main checkout, or with ISSUE_AS: a worktree has no tokens).
+// Read from issue.sync with a token, through issue-as.sh (the one beside this file; ISSUE_AS names another).
 // --token is the caller's own token, the one its prompt names, and has no default: with none the tool prints the line
 // above and exits 2, and nothing is sent (issue-stats-default-token-r4; until then it read as a role's token).
 // --after counts only the issues opened after that event. Times are the events' own `at`.
@@ -16,14 +16,17 @@
 // The lines under `locks` are issue.locks?history=500, the holds of the landing lock and the deploy lock as the tracker
 // keeps them: read when the tool runs, of the newest 500 holds. They are rows and not events, so --after, --until and
 // --window do not reach them, and a count of them cannot be made again once the rows are trimmed.
-// The last line, `past 4 h, not started, no reason: <n>`, is R4 of plan/cloud-brain-loop-order-of-service.md (os-3). Its
-// rows are the issues that are not closed, not feedback, not labeled `needs-owner` now, at `open`, `triaged` or `ready`
-// (no agent is on one there), and whose last move, or open when it never moved, is --idle hours ago or more. `idle` in
-// the list above it is since the last event of any kind, so a comment takes an issue out of that list and not out of
-// this count. A row has a reason, and is left out of <n>, when a comment of the issue begins `held:` or the reason of
-// its last `triage` move has the word `held`, with a capital or without; such a row carries `held` in the list of the idle. Both
-// are read wherever they are in the issue's record: a reason written before a later move still counts. The rows of <n>
-// are printed under the line. The clock of both lists is this machine's when the tool runs, with --until too.
+// The last line, `past 4 h, not started, no reason: <n>`, is R4 of plan/cloud-brain-loop-order-of-service.md (os-3), and
+// since bk-6-skill-watch-and-stats it is counted from one answer of issue.queue (plan/cloud-brain-bookkeeping-in-the-tracker.md,
+// part 6) and not from the record: <n> is the entries of `queue` that are `late` (the service's word: the last move, or
+// the open of an issue that never moved, is 4 hours or more before its `now`) and whose `do` is `start`, `spec`, `triage`
+// or `ready`, each printed under the line with its `do`. `(<m> more are held)` is the entries of `waiting` whose `why`
+// is `after` or `until`: an order or a time that the record has. Such an issue carries `held` in the list of the idle
+// above, which is still of the record and of --idle hours since the last event of any kind. A comment that begins
+// `held:` and a triage reason with the word are no reason any more: the wait they say is written as a link `after`, a
+// hold (issue.hold) or the label `needs-owner`. The 4 hours are the service's, so --idle does not move this line, and
+// the queue is of the time the tool runs, so --until and --after do not reach it. With no answer of issue.queue (a
+// Worker put back to before it, a refusal) the line says `not read:` and why, and no row of the idle list is marked.
 // `feedback due to be closed` lists the feedback at `open`, not the owner's, that has a tie and whose every tie (a link
 // either way, its parent) is at `done` or `closed`; `feedback of the owner's with no tie, or each tie done or closed` the
 // ones the orchestrator promotes or closes (feedback-closed-or-promoted; agents/overseer.md, "Feedback that is due", and
@@ -115,7 +118,7 @@ export function flow(answers: any) {
   return { lead: part(answers?.lead, ["to", "kind"]), deployFor: part(answers?.deployFor, ["for"]), open: part(answers?.open, ["waits"]), stays: part(answers?.stays, ["waits"], true) };
 }
 
-export function report(record: any[], { since = 0, from = 0, until = 0, idleH = 4, now = Date.now(), locks, flow: flowAnswers }: { since?: number; from?: number; until?: number; idleH?: number; now?: number; locks?: any; flow?: any } = {}) {
+export function report(record: any[], { since = 0, from = 0, until = 0, idleH = 4, now = Date.now(), locks, flow: flowAnswers, queue: queueAnswer }: { since?: number; from?: number; until?: number; idleH?: number; now?: number; locks?: any; flow?: any; queue?: any } = {}) {
 const events = until ? record.filter((e) => e.seq <= until) : record;
 const who = (by: any) => ((by?.holder || "").startsWith("secret:") ? by.holder.slice(7) : by?.caller === "owner" ? (by.tab === false ? "owner (token)" : "owner") : by?.caller || "?");
 const workflows: Record<string, any> = {}, issues: Record<string, any> = {}, feedbackFlows = new Set<string>();
@@ -124,14 +127,13 @@ const undone: { seq: number; id: string; move: string }[] = [];
 for (const e of events) {
   if (e.type === "policy") for (const [n, h] of Object.entries(e.hashes)) { workflows[h as string] = e.policy.workflows[n]; if (n === e.policy.kinds?.feedback) feedbackFlows.add(h as string); }
   if (!e.id || e.hidden || e.type === "policy") continue;
-  if (e.type === "opened") issues[e.id] = { id: e.id, kind: e.kind, opener: who(e.by), workflow: e.workflow, state: e.state, at: e.at, since: e.at, sinceSeq: e.seq, seq: e.seq, labels: new Set(e.labels || []), stays: [], moves: [], verdicts: [], asked: (e.labels || []).includes("needs-owner"), parent: e.parent, links: 0, to: [] as { id: string; rel: string }[], bySession: e.by?.via === "session", heldBy: { comment: false, triage: false } };
+  if (e.type === "opened") issues[e.id] = { id: e.id, kind: e.kind, opener: who(e.by), workflow: e.workflow, state: e.state, at: e.at, since: e.at, sinceSeq: e.seq, seq: e.seq, labels: new Set(e.labels || []), stays: [], moves: [], verdicts: [], asked: (e.labels || []).includes("needs-owner"), parent: e.parent, links: 0, to: [] as { id: string; rel: string }[], bySession: e.by?.via === "session", heldBy: { comment: false } };
   const i = issues[e.id];
   if (!i) continue;
   i.last = e.at;
   if (e.type === "moved" || e.type === "swapped") {
     const to = e.type === "moved" ? e.to : e.to.state;
     i.stays.push([i.state, e.at - i.since, i.sinceSeq]);
-    if (e.move === "triage") i.heldBy.triage = /\bheld\b/i.test(e.reason || "");
     i.moves.push(e.move || e.swap || "swap");
     if (!/^test-/.test(e.id) && (e.move === "send-back" || e.move === "revert" || (e.move === "owner-reject" && i.verdicts.includes("pass")))) undone.push({ seq: e.seq, id: e.id, move: e.move });
     Object.assign(i, { state: to, since: e.at, sinceSeq: e.seq }, e.type === "swapped" ? { workflow: e.to.workflow } : {});
@@ -243,11 +245,15 @@ const statementsOnly = (list: any[]) => {
   return { all: tally(marked), record: tally(marked.filter((e) => mark(e)![1])) };
 };
 
-// R4: not started and no agent on it, for --idle hours since its last move. `by` is the reason found, a comment first.
-const unstartedStates = ["open", "triaged", "ready"];
-const canWait = (i: any) => i.kind !== "feedback" && !i.labels.has("needs-owner") && unstartedStates.includes(i.state);
-const heldBy = (i: any) => (i.heldBy.comment ? "comment" : i.heldBy.triage ? "triage" : null);
-const past = open.filter((i) => canWait(i) && now - i.since >= idleH * 3600000).map((i) => ({ id: i.id, kind: i.kind, state: i.state, sinceMoveH: H(now - i.since), by: heldBy(i) })).sort((a, b) => b.sinceMoveH - a.sinceMoveH);
+// R4, from issue.queue: what is late and not started, and what waits on an order or a time. No answer, or one that is
+// not the queue's (no two lists), is said in the line and nothing is counted.
+const queueRead = queueAnswer && Array.isArray(queueAnswer.queue) && Array.isArray(queueAnswer.waiting);
+const notStarted = ["start", "spec", "triage", "ready"], heldWhy = ["after", "until"];
+const late = queueRead ? queueAnswer.queue.filter((q: any) => q.late === true && notStarted.includes(q.do)).map((q: any) => ({ id: q.id, kind: q.kind, state: q.state, do: q.do, sinceMoveH: H(queueAnswer.now - q.since) })).sort((a: any, b: any) => b.sinceMoveH - a.sinceMoveH) : [];
+const held = queueRead ? queueAnswer.waiting.filter((w: any) => heldWhy.includes(w.why)).map((w: any) => ({ id: w.id, kind: w.kind, state: w.state, why: w.why, ...(w.on ? { on: w.on } : {}), ...(w.until ? { until: w.until } : {}) })) : [];
+const heldIds = new Set(held.map((w: any) => w.id));
+const unstarted = queueRead ? { hours: 4, count: late.length, noReason: late, held, more: queueAnswer.more === true }
+  : { hours: 4, notRead: queueAnswer === undefined ? "no answer of issue.queue was given" : String(queueAnswer?.message || queueAnswer?.error || "the answer has no queue and waiting lists") };
 // Feedback that waits at `open` of a workflow a policy gave the kind `feedback` (one swapped to another workflow is a
 // task from then on, though its kind stays; an install that migrates swaps it to the new feedback workflow). Its ties: what it says of
 // other issues, what they say of it, and its parent. A `related` link is no tie when its other end is itself feedback at
@@ -318,10 +324,12 @@ return {
   locks: locks === undefined ? undefined : holds(locks),
   // Absent when no answer of issue.flow was given.
   flow: flowAnswers === undefined ? undefined : flow(flowAnswers),
-  // Not closed, and nothing has happened to it for --idle hours: the candidates for a trap. `held` is under `unstarted`.
-  waiting: open.filter((i) => now - i.last > idleH * 3600000).map((i) => ({ id: i.id, kind: i.kind, state: i.state, idleH: H(now - i.last), labels: [...i.labels], opener: i.opener, held: canWait(i) && !!heldBy(i) })).sort((a, b) => b.idleH - a.idleH),
-  // Past --idle hours since the last move, not started: `noReason` is R4's count, `held` the rows with a reason.
-  unstarted: { hours: idleH, count: past.filter((w) => !w.by).length, noReason: past.filter((w) => !w.by).map(({ by, ...w }) => w), held: past.filter((w) => w.by) }
+  // Not closed, and nothing has happened to it for --idle hours: the candidates for a trap. `held`: the queue has it in
+  // `waiting` for an order or a time (`unstarted.held`).
+  waiting: open.filter((i) => now - i.last > idleH * 3600000).map((i) => ({ id: i.id, kind: i.kind, state: i.state, idleH: H(now - i.last), labels: [...i.labels], opener: i.opener, held: heldIds.has(i.id) })).sort((a, b) => b.idleH - a.idleH),
+  // From issue.queue: `noReason` is R4's count, the late entries that are not started; `held` the ones that wait on an
+  // order or a time. `notRead` in their place when the queue was not read.
+  unstarted
 };
 }
 
@@ -394,9 +402,12 @@ export function text(report: Report) {
   }
   console.log(`open and idle for ${idleH} h or more`);
   for (const w of report.waiting) console.log(`  ${w.id.padEnd(40)} ${w.kind.padEnd(8)} ${w.state.padEnd(17)} ${String(w.idleH).padStart(5)} h  ${w.labels.join(",")}  by ${w.opener}${w.held ? "  held" : ""}`);
-  const u = report.unstarted;
-  console.log(`past ${u.hours} h, not started, no reason: ${u.count}${u.held.length ? ` (${u.held.length} more are held)` : ""}`);
-  for (const w of u.noReason) console.log(`  ${w.id.padEnd(40)} ${w.kind.padEnd(8)} ${w.state.padEnd(17)} ${String(w.sinceMoveH).padStart(5)} h with no move`);
+  const u: any = report.unstarted;
+  if (u.notRead) console.log(`past ${u.hours} h, not started, no reason: not read: ${u.notRead}`);
+  else {
+    console.log(`past ${u.hours} h, not started, no reason: ${u.count}${u.held.length ? ` (${u.held.length} more are held)` : ""}${u.more ? " (the queue was cut at its limit: more entries were not read)" : ""}`);
+    for (const w of u.noReason) console.log(`  ${w.id.padEnd(40)} ${w.kind.padEnd(8)} ${w.state.padEnd(17)} ${String(w.sinceMoveH).padStart(5)} h with no move  ${w.do}`);
+  }
   return lines;
 }
 type Report = ReturnType<typeof report>;
@@ -425,6 +436,10 @@ if (import.meta.main) {
     try { flow[name] = JSON.parse(execFileSync(as, [token, path], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })); }
     catch (e: any) { flow[name] = { message: String(e?.message || e).split("\n")[0] }; }
   }
-  const r = report(events, { locks, flow, since: Number(arg("after", "0")), from: Number(arg("window", "0")), until, idleH: Number(arg("idle", "4")) });
+  // And for issue.queue: one that is refused is said in the last line.
+  let queue: any;
+  try { queue = JSON.parse(execFileSync(as, [token, "queue"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })); }
+  catch (e: any) { queue = { message: String(e?.message || e).split("\n")[0] }; }
+  const r = report(events, { locks, flow, queue, since: Number(arg("after", "0")), from: Number(arg("window", "0")), until, idleH: Number(arg("idle", "4")) });
   console.log(process.argv.includes("--json") ? JSON.stringify(r) : text(r).join("\n"));
 }

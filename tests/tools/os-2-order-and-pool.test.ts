@@ -2,7 +2,8 @@
 // the issues past 4 hours in step 1. Issue os-2-order-and-pool, task 2 of plan/cloud-brain-loop-order-of-service.md.
 //
 //   bun test ./tests/tools/os-2-order-and-pool.test.ts
-//   SKILL=<file> reads another copy of the procedure (the one before the change fails the first five; the sixth reads the tool).
+//   SKILL=<file> reads another copy of the procedure (the one before os-2 fails the tests of steps 1 and 2; the one before
+//   bk-6-skill-watch-and-stats the two of step 3 and the one of step 1; the last reads the tool).
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -17,45 +18,58 @@ const step = (n: number) => {
 };
 const count = (text: string, part: string) => text.split(part).length - 1;
 
-test("step 3 has the order of a free place once, as the spec words it", () => {
-  expect(count(flat, "A place goes, in this order")).toBe(1);
-  expect(step(3)).toContain(
-    "A place goes, in this order, to: a round that was sent back (a writer's or a spec's); a review that waits; a start. " +
-      "Among starts: the owner's before the loop's own; then an issue past 4 hours",
-  );
-  expect(step(3)).toContain("then a bug or a task before a project or a feature; then the oldest.");
-  // the sentence it replaces is kept only as what was, in quotes
+// Until bk-6-skill-watch-and-stats (part 6 of plan/cloud-brain-bookkeeping-in-the-tracker.md) step 3 had the order as a
+// sentence ("A place goes, in this order, to: …") and a table whose rows were matched in turn. The order is the queue's
+// since, and the step says so: the sentence is gone (the spec's check of R6 counts 0) and the groups are named once.
+test("step 3 reads the queue, and names the service's order once, with the two levers and the hold", () => {
+  expect(count(flat, "A place goes, in this order")).toBe(0);
+  const three = step(3);
+  expect(three).toContain('3. **Read the queue and take its entries in order.** `issue-as.sh <your token> "queue"` answers `queue`');
+  expect(three).toContain("The order is the service's (`issueQueue` of `tools/cloud-brain/brain-issues.ojs`");
+  expect(three).toContain("a round that was sent back (a writer's or a spec's), a review that waits, your own acts, a start; among starts the owner's, then one past 4 hours");
+  expect(three).toContain("then a bug or a task before a project or a feature (a `start` before a `spec`), then the oldest.");
+  expect(three).toContain("You do not order anything");
+  expect(three).toContain(`link '{"key":"orch/<id>/after-<other>","id":"<id>","to":"<other>","rel":"after"}'`);
+  expect(three).toContain(`hold '{"key":"orch/<id>/hold-<n>","id":"<id>","until":<ms>,"reason":"<what to read when it comes back>"}'`);
+  expect(three).toContain("The record does not know which agents run: skip an entry an agent of yours is on (step 2).");
+  expect(three).toContain("a comment that begins `held:` is no longer written");
+  // the sentence os-2 replaced is kept only as what was, in quotes
   expect(count(flat, "Finishing comes before starting")).toBe(1);
   expect(flat).toContain('"Finishing comes before starting.');
 });
 
-test("the rows of a round sent back stand above the rows of a review, and those above the first row that starts", () => {
+test("step 3 has a row for each `do` of the queue and each `why` of `waiting`, and under them the rows they name", () => {
   const rows = skill.split("\n").filter((l) => l.startsWith("   | "));
   const at = (part: string) => {
     const found = rows.map((l, i) => (l.includes(part) ? i : -1)).filter((i) => i >= 0);
     expect([part, found.length]).toEqual([part, 1]);
     return found[0];
   };
+  // The ten values of `do` and the six of `why`, as the prose "The queue" of the seed has them.
+  const seed = readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain/brain-issues.ojs"), "utf8");
+  const prose = seed.slice(seed.indexOf("md`## The queue"), seed.indexOf("issueQueue = "));
+  const named = (head: string) => { const t = prose.slice(prose.indexOf(head)); return [...new Set([...t.slice(0, t.indexOf("\n\n")).matchAll(/^\| \\`([a-z]+)\\` \|/gm)].map((m) => m[1]))].filter((n) => n !== "do" && n !== "why"); };
+  const dos = named("| \\`do\\` | The issue is |"), whys = named("| \\`why\\` | The issue |");
+  expect(dos.sort()).toEqual(["decompose", "finish", "look", "promote", "ready", "review", "round", "spec", "start", "triage"]);
+  expect(whys.sort()).toEqual(["after", "gathering", "owner", "parts", "until", "work"]);
+  const head = at("| `do` | Do |"), waiting = at("| In `waiting`, `why` | Do |"), cases = at("| Issue is | Do |");
+  for (const d of dos) { const r = at(`| \`${d}\` |`); expect([d, r > head && r < waiting]).toEqual([d, true]); }
+  const between = rows.slice(waiting + 1, cases).join("\n");
+  for (const w of whys) expect([w, between.includes(`\`${w}\``)]).toEqual([w, true]);
+  expect(cases - waiting).toBe(4);
+  // The rows the two tables name stand under them, a round sent back first and the dead writer's next to it.
   const sentBack = at("sent back, no agent running");
   const dead = at("**A dead writer.**");
-  const quick = at("**A quick win of your own, sent back.**");
-  const spec = at("**A spec sent back.**");
-  const review = at("| `in-review`, and no review since it came into that state");
-  const specReview = at("at `spec-review`, no review since it came there");
-  const digest = at("labeled `digest`, at `ready`");
-  const ready = at("| `ready` |");
-  // "When it cannot be sent one, the next row" of the first names the dead writer's
   expect(rows[sentBack]).toContain("When it cannot be sent one, the next row");
   expect(dead).toBe(sentBack + 1);
-  for (const r of [sentBack, dead, quick, spec]) expect(r).toBeLessThan(review);
-  expect(specReview).toBe(review + 1);
-  for (const s of [digest, ready]) expect(s).toBeGreaterThan(specReview);
-  // the rows that start are not ordered by the table: a project at `open` stands above `ready`, and the sentence decides
-  expect(at("at `open`, with three parts or more, or the owner's")).toBeLessThan(ready);
-  const three = step(3);
-  expect(three).toContain("The rows that start an agent (a digest writer for a digest at `ready`, a spec writer for a project or feature at `open`, an implementer for `ready`) are one group");
-  expect(three).toContain("the order of those rows in the table decides nothing");
-  expect(three).toContain("So a project of the owner's at `open` is started before a task of the loop's at `ready`.");
+  for (const r of [sentBack, dead, at("**A quick win of your own, sent back.**"), at("**A spec sent back.**"), at("**A submit made for a writer.**"), at("| at `awaiting-approval`"), at("| labeled `needs-owner`")]) expect(r).toBeGreaterThan(cases);
+  for (const name of ['"A dead writer"', '"A quick win of your own, sent back"', '"A spec sent back"']) expect([name, rows[at("| `round` |")].includes(name)]).toEqual([name, true]);
+  for (const name of ['"A dead writer"', '"A submit made for a writer"', '"A quick win of your own, sent back"']) expect([name, rows[at("| `work`, and no agent of yours is on it |")].includes(name)]).toEqual([name, true]);
+  // No row is matched by a state any more: the rows the queue's entries took the place of are gone.
+  for (const gone of ["at `building`, no open part", "at `approved` |", "| `triaged`, no open children |", "| `open`, kind `task` or `bug` |", "| `in-review`, and no review since it came into that state", "labeled `digest`, at `ready`"])
+    expect([gone, rows.filter((l) => l.includes(gone)).length]).toEqual([gone, 0]);
+  expect(rows[at("| `decompose` |")]).toContain(`link '{"key":"orch/<task>/after-<other>","id":"<task>","to":"<other>","rel":"after"}'`);
+  expect(rows[at("| `start` |")]).toContain("With the label `digest`, the digest writer");
 });
 
 test("no number of writers or reviewers is stated as a limit, in the procedure or in the description", () => {
@@ -89,13 +103,17 @@ test("step 1 reads the line of issue-stats.ts for the issues past 4 hours, and s
   for (const part of [
     "bun tools/cloud-brain/issue-stats.ts --token=<your token>",
     "`past 4 h, not started, no reason: <n>`",
-    "it goes before every younger start of this pass",
-    "comment once with why and what would start it, the body beginning `held:`",
-    '"key":"orch/<id>/held-1"',
+    "a row is an entry of `queue` that is `late`",
+    "whose `do` is `start`, `spec`, `triage` or `ready`",
+    "a link `after` when it waits for an issue, a hold when it waits for a time or a count, `needs-owner` with its comment when it waits for him",
+    "`(<m> more are held)` with the entries whose `why` is `after` or `until`",
+    "A comment whose body begins `held:` is no longer written for this",
     "tools/cloud-brain/records/os-3-stats-past-four-hours.md",
   ]) expect(one).toContain(part);
+  // no call of the comment that was the reason until bk-6
+  expect(skill).not.toContain('"key":"orch/<id>/held-1"');
   // the order of step 3 names the place the list is read
-  expect(step(3)).toContain('(step 1, "Past 4 hours")');
+  expect(step(3)).toContain('(`late`; step 1, "Past 4 hours")');
 });
 
 test("the line step 1 names is the one issue-stats.ts prints", () => {

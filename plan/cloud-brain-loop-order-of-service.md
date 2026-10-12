@@ -228,6 +228,9 @@ session. An issue opened by his own session in the page needs none: `by.via` is 
 - `tools/cloud-brain/issue-watch.sh` prints an `opened` event that has the label, whatever token
   wrote it. Today it prints an open only when the holder is not the token it was started with, and
   an outside session writes with that same token.
+  (Since `bk-6-skill-watch-and-stats`, 2026-10-13, an open is no line of the watch, with the label or without: the
+  queue has the issue as an entry, `for` `owner`, and the watch prints `QUEUE <do> <id> owner <title>` for it.
+  The row of step 3 this item names is the row `spec` of the queue's table.)
 - The eight issues that are open, not feedback, and say "on the owner's word" or were opened by
   his session get the label: `ai-tomarkdown-pass-through`, `dashboard-service`, `flow-metrics`,
   `i1842`, `loop-order-of-service`, `n39625a1a`, `paper-summarizer-persona`,
@@ -323,6 +326,10 @@ not labeled `needs-owner`, and not at a state where an agent is on it:
 `past 4 h, not started, no reason: <n>`. That count is R4's number. The tool's "idle" is time
 since the issue's last event, so a comment resets it; the new line counts from the last move
 instead, so a `held:` comment does not hide the issue for another 4 hours.
+(Since `bk-6-skill-watch-and-stats`, 2026-10-13, the line is counted from `issue.queue`: the `late` entries that are
+not started, and as held the entries of `waiting` whose `why` is `after` or `until`. The `held:` comment is not
+written and not read for it, and step 3 has no order of its own: `plan/cloud-brain-bookkeeping-in-the-tracker.md`,
+part 6.)
 (As built, `os-3-stats-past-four-hours`, 2026-10-11: a row is an issue at `open`, `triaged` or
 `ready`; a reason is read wherever it is in the issue's record; the line ends `(<m> more are
 held)` when a row is, and its rows are printed under it; 3 at event 2683, where the 1 of the table
@@ -346,6 +353,8 @@ until its review is in, and takes the next round itself:
   today (the judgment at 3 reworks stays the orchestrator's).
 - `issue-watch.sh` prints a `submit` and a `submit-spec` move of any token. Today the
   orchestrator learns of a submit from the writer's report; a writer that waits has not reported.
+  (Since `bk-6-skill-watch-and-stats`, 2026-10-13, the line is `QUEUE review <id> <for> <title>`, the queue's entry
+  for the submit, and no line is printed for the move.)
 - `SKILL.md`, step 5: a run that made two submits gets one `cost` line with `"rounds":2` and
   `event` the last submit; `agent-usage.ts` needs no `--last-run` for it. A writer that waits is
   not counted as a writer at work in part 3.

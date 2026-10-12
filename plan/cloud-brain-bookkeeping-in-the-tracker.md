@@ -430,6 +430,13 @@ it as they stand.
 Step 1's "Past 4 hours" reads `late` of the queue. The `held:` comment is no longer written: a
 wait is a link, a hold or the label `needs-owner`.
 
+(As built, `bk-6-skill-watch-and-stats`, 2026-10-13: the two tables are in the file as drafted here, with the wording
+finished. Under them is a third, of 13 rows: the rows of the old table that the two name or that the queue does not
+read, as they stood. Five are the ones this part lists. Four were added to the old table after this draft, or added to (the approver at
+`awaiting-approval`, the label `asks-orchestrator`, the two of a post mortem). Four have text the draft's rows name
+and do not carry (a spec sent back, a digest at `open`, the owner's feedback, "Anything else"). The old row for a
+digest at `ready` is in the row `start`. The count of R6 is 26 where the draft gave 13, and the step is longer than it was; the record.)
+
 **`agents/spec.md`, step 5.** "the tasks, in the order they land" gains: each task names the tasks
 it is after, by id; a task that names none can be started at once.
 
@@ -438,9 +445,19 @@ it is after, by id; a task that names none can be started at once.
 was last absent. It keeps the line for an event made with the owner's session. The lines for an
 open and a submit go: `triage` and `review` are those. At its start it prints the whole queue.
 
+(As built, `bk-6-skill-watch-and-stats`, 2026-10-13: "last absent" is absent from the answer before, which is all the
+script keeps, in a file of its own for one run. The two lines landed after this spec stay too: the label
+`asks-orchestrator` and a comment of an `out-` token. `issue-watch.sh --queue <file>` reads one answer from stdin, for
+the test. A watch that is armed again prints the whole queue again; the record.)
+
 **`tools/cloud-brain/issue-stats.ts`.** The line `past 4 h, not started, no reason` counts the
 `late` entries of `queue` whose `do` is `start`, `spec`, `triage` or `ready`; `(<m> more are held)`
 counts `waiting` with `why` `after` or `until`.
+
+(As built, `bk-6-skill-watch-and-stats`, 2026-10-13: the tool asks `queue` once and reads the record for this line no
+more, so `--idle`, `--until` and `--after` do not reach it, and with no answer it prints `not read:` and why. The mark
+`held` in the list of the idle is the same entries of `waiting`. A `held:` comment is still read for one thing, a
+feedback issue the overseer keeps (`agents/overseer.md`), which is in neither list of the queue; the record.)
 
 **The method reference** is the prose of the seed, with each seed task. `knowledge/` has one line
 for `issue.queue` in the shape's list (`working-with-cloud-brain-remote-lopecode-cluster.md`).
