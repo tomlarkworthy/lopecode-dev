@@ -1,0 +1,228 @@
+md`## 1. A model that trains on its own team's work
+
+One research item is new in the snapshot of 12 October, and it continues the subject of the last two digests. Sakana AI and UC Berkeley, **[Recursive self-improvement through collective intelligence](https://pub.sakana.ai/mass/)** (93 points, 50 comments on Hacker News; the paper is arXiv 2610.12176, titled "Recursive Self-Improvement through Multi-Agent Self-Supervision"). What follows is from the authors' page, not from the paper.`
+// %%
+md`**The loop.** One model is the task solver, the optimizer of the team's workflow and the judge. A workflow is text added to the prompt: each subagent's role, its instruction, a *contract* (what it must return, with the checks required) and the *hops* (the order of calls). The inner loop searches for a workflow the model itself judges better. The outer loop runs the winning workflow 18 times a task, has the model rank the results, keeps up to 16 trajectories a task, removes the workflow text from the prompt and fine-tunes the model on them with LoRA.`
+// %%
+md`**Their results**, two rounds from Qwen3.6-27B on 12 synthetic research tasks (9 for training, 3 held out), judged by GPT-5.5 and Claude Opus 4.8, whose verdicts the loop never sees:
+
+- On the 3 held-out tasks the model wins 53.9% of comparisons against the base after one round and 69.9% after two.
+- The model's own judgments agree with the outside judges' 73% of the time at the start and 93% at the end.
+- Score per output token is 1.2 to 1.6 times the base on four research benchmarks, and 0.96 and 0.94 times on Terminal-Bench 2.0 and SWE-bench Verified. Their words: "transfer remains uneven".
+- With a stronger model as judge only, the workflow search improved little; with a stronger optimizer as well, it found a winning workflow for all 12 tasks within 5 iterations. The model alone reached 11 of 12, more slowly.
+- Over the search, the text that tells one task from another moves out of roles and instructions and into contracts and hops. They note the optimizer's prompt was told to emphasize those two.`
+// %%
+md`Their caution: "a shared blind spot could allow a flawed result to be produced, accepted as an improvement, and incorporated into the next model."`
+// %%
+md`**Reading for the Brain** (mine, not the authors'). The issue loop's briefs are workflows in their sense: a role, steps, what a writer must hand the reviewer, and the order of moves. Their finding says the part worth revising is the contract and the order,. The caution applies where a writer and its reviewer run on one model. Which model each agent of the loop ran on was not checked for this digest.`
+// %%
+md`## 2. When proofs stop being scarce
+
+**Terence Tao, [Math 2.0](https://teorth.github.io/tao-web/slides/math-2-0-caltech-2026.pdf)** (29 slides; 370 points, 404 comments on Hacker News). His argument: mathematics was organised around "proof scarcity". Proofs are objectively verifiable and digitizable, with a large literature, which is why the labs put that capability first, and "we are now entering an era of proof abundance". Solving problems was "a proxy for more valuable long-term goals", and optimizing it alone "is now actively harmful to the long-term health of mathematics".`
+// %%
+md`Two more points from the slides. On what is reported: most problems at the frontier remain unsolved "even with massive computational expenditure", failed attempts go unreported, and assessments "that fully report key statistics such as resource consumption and negative results, are urgently needed". On what to do with the tools: explanations of results whose proofs are opaque, a living network of interlinked results, ablations (can the theorem still be proved without this input?), and exploring what survives when a hypothesis is dropped. The last slide: "The primary bottleneck to achieving 'Math 2.0' is not technology, or even institutional culture. It is imagination."`
+// %%
+md`A guest post on his blog the same day, **[Illustration beyond Proof](https://terrytao.wordpress.com/2026/10/11/illustration-beyond-proof/)** by Kate Stange and Edmund Harriss (52 points, no comments), puts the same point through others' words: theorem production "has always been a proxy for something harder to measure: understanding", and "AI has broken that scarcity". Only its opening was read.`
+// %%
+md`**Andrej Karpathy**, [a post on X](https://twitter.com/karpathy/status/2109361546505966046) (373 points and 531 comments, the most discussed item of the day), on who has seen any of this. His "napkin math": about 6 billion people have barely met a language model; 1 to 2 billion use a free chatbot now and then; about 20 million use frontier models professionally in mathematics and code; about 5,000 have access to the labs' internal systems. Capability, he writes, peaks where work is "digital, verifiable and economically valuable", and "human review and comprehension are starting to fall behind". The numbers are his estimates and he gives no source for them.`
+// %%
+md`**Reading for the Brain** (mine). Tao and Karpathy name the same property, verifiability, as the reason one kind of work was automated first. The loop is built on it: a change stands on a test count. Tao's warning is what happens to the thing the count stood for. A record in \`tools/cloud-brain/records/\` is the loop's attempt to keep the understanding beside the pass; whether anyone reads them was not measured here.`
+// %%
+md`## 3. One search in place of forty reads
+
+**[Pensieve](https://tedhaley.ca/pensieve/)** (53 points, 12 comments on Hacker News; submitted by its author) is a local index for the Mac over files, repositories and past agent sessions, offered to a coding agent over MCP. It searches by meaning, by exact words, or both. Free and open source, by the page.`
+// %%
+md`The author's measurement, from the page: Claude Sonnet in Claude Code on 72 held-out code-finding tasks across four repositories (504 to 34,847 files), each run twice, with Pensieve 0.5.6.
+
+| | grep, glob and read | with Pensieve |
+|---|---|---|
+| runs that found the right file, of 144 | 123 | 131 |
+| tool calls a lookup | 3.4 | 2.0 |
+| cost a lookup | $0.050 | $0.041 |
+| seconds a lookup | 10.9 | 8.6 |
+
+He also says where it loses: "a single grep wins on exact error messages". The benchmark scripts are in the repository; they were not run for this digest.`
+// %%
+md`**Reading for the Brain** (mine). \`knowledge.search\` is the same offer to the loop's agents, and since 11 October a writer's brief has it search before designing. Nobody has counted what that search saves. Pensieve's table is the shape such a count would take: the same tasks with and without, tool calls and cost a lookup.`
+// %%
+md`## 4. Who holds the credential
+
+- **[Passkeys are a trap](https://nonfunctional.substack.com/p/passkeys-are-a-trap-do-not-use-them)** (453 points, 246 comments, top of Hacker News in this run). The argument is about one optional part of WebAuthn, remote attestation: a site may require proof of which device, operating system and passkey software hold the key, and refuse the rest. The author expects sites to "start off with very few constraints on your passkeys, and gradually add more". TOTP is his contrast: an open formula and a seed the user may store anywhere. About two thirds of the post was read.
+- **[Fingerprints are the new cookies](https://royfish.dev/fingerprints-are-the-new-cookies)** (246 points, 118 comments). The page computes a nickname from the visitor's browser that survives clearing cookies and a VPN. Of the defences it names, Brave adds noise to the readings, and Tor and Mullvad make every browser read alike. Only the first part was read.
+- **[HashiCorp archives the Boundary repository](https://github.com/hashicorp/boundary)** (62 points, 11 comments). GitHub's API on 12 October: \`archived: true\`, 4,063 stars, last push 9 October. Why was not read.`
+// %%
+md`**Reading for the Brain** (mine). An agent's token for the Brain is the copyable kind the first post argues for: a value in a file, named for the methods it may call, ended by revoking it. What it lacks is the thing attestation sells, any proof of who holds the file, and \`rules.md\` says so of the loop's tokens ("a record that names the agent, not a wall between agents").`
+// %%
+md`## 5. In the files since 11 October, not yet written up
+
+- [Consistency is not a localized property](https://n-the-loop.com/blog/consistency-is-not-a-localized-property/) (10 points on Lobsters). Kafka's exactly-once took years and new components, and its builders still call it "an end-to-end guarantee" the application must not break. The post's conclusion: "Component owners will each correctly say their part works. A global property needs a person who is liable for the whole thing". That is the overseer's job in the loop, and the owner's.
+- Simon Willison, [Dwarf Fortress uses version control now](https://simonwillison.net/2026/Oct/11/dwarf-fortress/): three quotes of Tarn Adams, from "I don't use version control" in 2013 to "version control stuff to use now" in 2023.
+- Simon Willison, [Python 3.15.0 added to actions/python-versions](https://simonwillison.net/2026/Oct/10/python-actions/). He had ChatGPT watch for it: "git pull once an hour until they add the stable 3.15 - then tell me about it".`
+// %%
+md`## 6. What people discussed
+
+Hacker News, titles only unless said:
+
+- [Total Annihilation, rebuilt for modern computers](https://nanolathe.gg) (437 points), [NYC's "Click to Cancel" rule is now in effect](https://www.nyc.gov/main/click-to-cancel) (427), [Google is illegaly cutting forest to build data centers](https://www.theguardian.com/technology/2026/oct/06/google-datacentres-finland-temporary-halt-environmental-impact-assessment) (325; the title is the submitter's).
+- [Valen's Memory Safety: A New Kind of Borrow Checking](https://verdagon.dev/blog/valen-group-borrowing) (153 points). Opening paragraph read: a borrow checker meant to be more relaxed than Rust's.
+- [Yandex bot traffic down 99% after data center attack](https://radar.cloudflare.com/bots/as13238?dateRange=7d#bot-traffic) (90 points). A Cloudflare Radar page; it answered 403, so the 99% is the submitter's title.
+- [Shredding JSON columns gave Logfire up to 1000x faster queries](https://pydantic.dev/articles/dynamic-shredding-2026-01-26) (16 points). The post is from January 2026. The Brain's logs are Cloudflare's, queried as they are, so nothing here applies today.`
+// %%
+md`## 7. Candidates for the Brain's backlog
+
+Flagged only. Tom decides.
+
+1. **Count what \`knowledge.search\` saves a writer.** Reason: section 3. The same issues with and without the search step, tool calls and tokens to the first edit.
+2. **Find out whether a writer and its reviewer share a model, and if so try a second model for the review of some rounds.** Reason: section 1, the shared blind spot, and their result that the outside judges agreed with the model 73% of the time before training.
+3. **Report the loop's failed and reworked rounds beside its closes.** Reason: Tao's slide on reporting. The tracker's \`issue.flow\` has had the times since 12 October; whether a panel shows rounds sent back was not checked.
+
+The candidates of 9 and 11 October: nothing recorded here says any was acted on.`
+// %%
+md`## What was not read
+
+- It was a Sunday's run. All 30 new items are from Hacker News. The 73 others loaded below were already in the files of 10 or 11 October; three of them that no digest had written up are in section 5.
+- arXiv: 438 items in the file, which the index marks \`lookup\`; not read and not loaded below. Hugging Face matched 0 of 50 again, so \`papers.json\` has two papers, both by mention and both in the digest of 11 October (Byte Language Models; Agentic Economies for Autonomous Scientific Discovery). The Sakana paper is in neither list and its arXiv page was not fetched.
+- Reddit: nothing, the feed answered 429.
+- Comments, on every item. Hacker News' API gave the Karpathy thread; it was not read.
+- Parts of pages: most of the guest post on Tao's blog, a third of the passkeys post, the later part of the fingerprints post, all of Valen but its opening.
+- radar.cloudflare.com answered 403.
+- No item in this run from Karpathy's two feeds (his post came by Hacker News), Lilian Weng, Sebastian Raschka, Eugene Yan, Chip Huyen, Hamel Husain, BAIR or Meta engineering.`
+// %%
+md`## The picks, as data`
+// %%
+day = "2026-10-12"
+// %%
+days = ["2026-10-12"]
+// %%
+picks = [
+  { id: "50048522", theme: 1, source: "hn", title: "Recursive self-improvement through collective intelligence", url: "https://pub.sakana.ai/mass/", why: "one model as solver, optimizer and judge; 69.9% against its base on held-out tasks after two rounds" },
+  { id: "50043026", theme: 2, source: "hn", title: "Terence Tao: Math 2.0", url: "https://teorth.github.io/tao-web/slides/math-2-0-caltech-2026.pdf", why: "proof abundance; problem solving was a proxy" },
+  { id: "50049133", theme: 2, source: "hn", title: "Illustration Beyond Proof", url: "https://terrytao.wordpress.com/2026/10/11/illustration-beyond-proof/", why: "theorems as a proxy for understanding" },
+  { id: "50047422", theme: 2, source: "hn", title: "The gap in shared understanding of LLM capability is widening", url: "https://twitter.com/karpathy/status/2109361546505966046", why: "Karpathy's funnel: 6B, 1 to 2B, 20M, 5,000" },
+  { id: "50049508", theme: 3, source: "hn", title: "Local Indexing to reduce tool calling and token usage", url: "https://tedhaley.ca/pensieve/", why: "Pensieve: 2.0 tool calls a lookup against 3.4, author's benchmark" },
+  { id: "50048312", theme: 4, source: "hn", title: "Passkeys are a trap", url: "https://nonfunctional.substack.com/p/passkeys-are-a-trap-do-not-use-them", why: "remote attestation lets a site refuse a device" },
+  { id: "50048642", theme: 4, source: "hn", title: "Fingerprints are the new cookies", url: "https://royfish.dev/fingerprints-are-the-new-cookies", why: "an identity that survives clearing cookies" },
+  { id: "50049498", theme: 4, source: "hn", title: "HashiCorp archives the Boundary open source repo", url: "https://github.com/hashicorp/boundary", why: "archived, by GitHub's API" },
+  { id: "rhy5zp", theme: 5, source: "lobsters-ai", title: "Consistency is not a localized property", url: "https://n-the-loop.com/blog/consistency-is-not-a-localized-property/", why: "a global property needs an owner outside the components" },
+  { id: "https://simonwillison.net/2026/Oct/11/dwarf-fortress/", theme: 5, source: "simon-willison", title: "Dwarf Fortress uses version control now", url: "https://simonwillison.net/2026/Oct/11/dwarf-fortress/", why: "three quotes, 2013 to 2023" },
+  { id: "https://simonwillison.net/2026/Oct/10/python-actions/", theme: 5, source: "simon-willison", title: "Python 3.15.0 added to actions/python-versions", url: "https://simonwillison.net/2026/Oct/10/python-actions/", why: "an hourly check handed to ChatGPT" },
+  { id: "50045984", theme: 6, source: "hn", title: "Total Annihilation, rebuilt for modern computers", url: "https://nanolathe.gg", why: "title only" },
+  { id: "50045946", theme: 6, source: "hn", title: "NYC's \"Click to Cancel\" rule is now in effect", url: "https://www.nyc.gov/main/click-to-cancel", why: "title only" },
+  { id: "50048638", theme: 6, source: "hn", title: "Google is illegaly cutting forest to build data centers", url: "https://www.theguardian.com/technology/2026/oct/06/google-datacentres-finland-temporary-halt-environmental-impact-assessment", why: "title only" },
+  { id: "50042362", theme: 6, source: "hn", title: "Valen's Memory Safety: A New Kind of Borrow Checking", url: "https://verdagon.dev/blog/valen-group-borrowing", why: "opening paragraph only" },
+  { id: "50051532", theme: 6, source: "hn", title: "Yandex bot traffic down 99% after data center attack", url: "https://radar.cloudflare.com/bots/as13238?dateRange=7d#bot-traffic", why: "title only; the page answered 403" },
+  { id: "50048490", theme: 6, source: "hn", title: "Shredding JSON columns gave Logfire up to 1000x faster queries", url: "https://pydantic.dev/articles/dynamic-shredding-2026-01-26", why: "a post of January 2026" }
+]
+// %%
+Inputs.table(picks, {
+  columns: ["theme", "title", "source", "why"],
+  format: { title: (t, i, data) => htl.html`<a href=${data[i].url} target=_blank rel=noopener>${t}</a>` },
+  layout: "auto"
+})
+// %%
+md`## Every item of the day
+
+Loaded when the page opens from the Brain's public files, \`/static/snapshot/${day}/\`. A source with no file that day is skipped, and so is one the index marks \`lookup\` (the whole of arXiv).`
+// %%
+snapshotBase = location.protocol === "file:" ? "https://cb4.endpointservices.workers.dev" : location.origin
+// %%
+snapshot = {
+  const get = async (path) => {
+    try {
+      const r = await fetch(`${snapshotBase}/static/${path}`);
+      return r.ok ? await r.json() : null;
+    } catch (e) {
+      return null;
+    }
+  };
+  const runs = [], items = new Map(), papers = new Map();
+  for (const d of days) {
+    const index = await get(`snapshot/${d}/index.json`);
+    if (!index) continue;
+    const [paperFile, ...files] = await Promise.all([
+      index.papers && index.papers.path ? get(index.papers.path) : null,
+      ...index.sources.filter((s) => s.path && !s.lookup).map((s) => get(s.path))
+    ]);
+    let n = 0;
+    for (const f of files.filter(Boolean)) for (const x of f.items) {
+      items.set(f.source + "|" + x.id, { ...x, source: f.source, tier: f.tier, day: d });
+      n++;
+    }
+    const ps = (paperFile && paperFile.papers) || [];
+    for (const p of ps) {
+      const was = papers.get(p.id);
+      papers.set(p.id, { ...was, ...p, title: p.title || (was && was.title) || "", day: d });
+    }
+    runs.push({ day: d, ranAt: index.ranAt, items: n, papers: ps.length, sources: index.sources.filter((s) => s.count > 0).length, of: index.sources.length });
+  }
+  return { runs, items: [...items.values()], papers: [...papers.values()] };
+}
+// %%
+items = snapshot.items
+// %%
+papers = snapshot.papers
+// %%
+picksFound = picks.filter((p) => (p.source === "papers" ? papers.some((q) => q.id === p.id) : items.some((d) => d.id === p.id)))
+// %%
+snapshot.runs.length
+  ? md`${items.length} items from ${new Set(items.map((d) => d.source)).size} sources and ${papers.length} papers with a signal, from the run of ${snapshot.runs[0].ranAt}. ${picksFound.length} of the ${picks.length} picks are among them.`
+  : md`The snapshot did not load from \`${snapshotBase}\`. ${location.protocol === "file:" ? "Opened as a local file, the Brain's files are not readable from here; open this notebook from the Brain's address." : "The day's files may be missing or the Brain unreachable."}`
+// %%
+Inputs.table(snapshot.runs, {
+  columns: ["day", "ranAt", "items", "papers", "sources", "of"],
+  header: { ranAt: "recorded", sources: "sources with items", of: "sources asked" },
+  layout: "auto"
+})
+// %%
+md`### Papers with a signal
+
+From \`papers.json\` of the day: a paper is there for votes on Hugging Face or a link from another source. A paper that came by a mention has no title in the file.`
+// %%
+Inputs.table(papers, {
+  columns: ["id", "title", "points", "signals"],
+  header: { points: "votes" },
+  format: {
+    id: (id, i, data) => htl.html`<a href=${data[i].url} target=_blank rel=noopener>${id}</a>`,
+    title: (t, i, data) => htl.html`<span title=${String(data[i].summary || "").slice(0, 900)}>${t || (data[i].via || []).map((v) => "via " + v.source + ": " + v.title).join("; ")}</span>`,
+    signals: (s) => (s || []).join(", ")
+  },
+  sort: "points",
+  reverse: true,
+  rows: 15
+})
+// %%
+md`### Items`
+// %%
+Plot.plot({
+  marginLeft: 130,
+  height: 300,
+  x: { label: "items", type: "sqrt" },
+  y: { label: null },
+  color: { legend: true, domain: ["research", "blogger", "aggregator"] },
+  marks: [
+    Plot.barX(items, Plot.groupY({ x: "count" }, { y: "source", fill: "tier", sort: { y: "-x" } })),
+    Plot.ruleX([0])
+  ]
+})
+// %%
+viewof tiers = Inputs.checkbox(["research", "blogger", "aggregator"], { label: "Tier", value: ["research", "blogger", "aggregator"] })
+// %%
+viewof sources = Inputs.select([...new Set(items.map((d) => d.source))].sort(), { label: "Source", multiple: true })
+// %%
+viewof found = Inputs.search(items.filter((d) => tiers.includes(d.tier) && (!sources.length || sources.includes(d.source))), { placeholder: "Search titles and summaries" })
+// %%
+Inputs.table(found, {
+  columns: ["title", "source", "points", "comments", "published"],
+  format: {
+    title: (t, i, data) => htl.html`<a href=${data[i].url || data[i].discussion} target=_blank rel=noopener title=${String(data[i].summary || "").replace(/<[^>]+>/g, " ").slice(0, 600)}>${t}</a>`,
+    published: (p) => String(p || "").slice(0, 10)
+  },
+  width: { source: 130, points: 60, comments: 80, published: 90 },
+  rows: 20
+})
+// %%
+md`## How this was written`
+// %%
+md`Written 2026-10-12 by Claude Code, as an agent of the Brain's issue loop working the task \`digest-2026-10-12\`, with no person choosing the leads. It covers one run of the snapshot, 2026-10-12T06:00:13.000Z. The index of that run counts 541 items from 10 of 21 sources; 438 of them are arXiv's, which this page does not load, so the table above has 103 items from 9 sources. \`papers.json\` has 2 papers. Reddit answered 429 and Hugging Face matched 0 of 50.`
+// %%
+md`15 addresses were fetched on 2026-10-12 at 08:25 CEST: the Sakana page, Tao's slides (all 29) and the guest post on his blog, Karpathy's post, Pensieve, the passkeys and fingerprints posts, the Boundary repository through GitHub's API, the consistency post, two posts of Simon Willison, the Valen and Logfire posts, the Karpathy thread through Hacker News' API (not read), and Cloudflare Radar, which answered 403. Points and comments are the snapshot's, from its \`hn.json\` and \`lobsters-ai.json\`. Every other number above is from a page fetched then. Each claim is the source's own. Nothing was reproduced: Pensieve ships a benchmark a machine could run, and it was not run.`
