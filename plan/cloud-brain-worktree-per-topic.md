@@ -3,7 +3,9 @@
 Spec of the feature `worktree-per-topic` on cb4's tracker (opened at event 2456, taken at event
 3358, 2026-10-12 03:14:39 CEST by `spec-19144c`). Written 2026-10-12 from 03:14 CEST (the take's `at`) to the first commit's author time
 (`git log --format=%ai`), from `lopecode-dev` `origin/main` at `e6cbcadf`. Nothing here is built. Every number
-below is from a command run in that span on the owner's laptop, written beside it.
+below is from a command run in that span on the owner's laptop, written beside it. A fresh agent
+with the file alone read the first writing before the landing (`/review-notebook`: BLOCK, 10
+findings, all taken; the last part says which changed the design).
 
 Three findings of the reading change what the issue's body supposed:
 
@@ -56,7 +58,9 @@ Parts (`ia "list?parent=worktree-per-topic"`), and the issues linked to it:
 ## Requirements
 
 - **R1.** No agent of the loop, and no orchestrating session, commits, merges, builds or edits a
-  tracked file in the main checkout. A landing writes nothing there.
+  tracked file of `lopecode-dev` in the main checkout. Two writes there remain, each named in
+  part 1: the built notebook copied into its `lopebooks` under the lock, and the orchestrator's
+  fast-forward pull.
 - **R2.** A topic has a worktree. The topic of an issue is its parent when it has one, and
   otherwise the issue. The orchestrator makes the worktree, brings it up to `origin/main` before
   an agent is put in it, and does not put an agent in one that holds another's unlanded work.
@@ -71,14 +75,14 @@ Parts (`ia "list?parent=worktree-per-topic"`), and the issues linked to it:
 
 ## What exists today, measured
 
-2026-10-12, 03:15 to 03:25 CEST, main checkout at `11be574c` then `e6cbcadf`.
+2026-10-12, 03:15 to 03:27 CEST, main checkout at `11be574c` then `e6cbcadf`.
 
 ```
 git reflog --date=iso main | grep 2026-10-11            174 merge bm/…, 164 commit
   of the 164, touching only seen.json or a submodule pointer    52
   of the other 112, touching .claude/skills alone               45
 git worktree list                                       23 lines at 03:15: the main checkout, 2 bm-*, 20 others; 27 and 6 bm-* at 03:26
-du -sh .git / lopebooks / a bm-* worktree               6.5 G / 863 M / 1.4 G (1.1 G of it scratch/)
+du -sh .git / lopebooks / a bm-* worktree               6.5 G (1.1 G of it .git/modules/lopebooks) / 863 M / 1.4 G (1.1 G of it scratch/)
 git -C cloud-brain-dev branch                           main, agent-sh-read-whole-before-run (1 commit not on main), rc-3-philosophy (0)
 time tools/cloud-brain/worktree.sh worktree-per-topic   3.04 s
 time git clone <cb4>/git/cloud-brain-dev.git            2.23 s, .git 2.2 MB, 24 commits; sync.ts in it 0.76 s
@@ -94,11 +98,14 @@ bun test ./tests/tools/worktree.test.ts                 7 pass, 0 fail
   shows 5) and `lopebooks`, `lopecode` as links.
 - **Two tasks of one project are written at once in a third of cases.** Of 64 spans from
   `in-progress` to the next move, over the 14 projects with a written task, 21 overlap a span of
-  another task of the same project (a script over `issue.get` of every project's parts; not kept).
+  another task of the same project (`overlap.py`, the last part of this file; run 03:21).
   So one worktree a topic with one writer in it would queue a third of the writing.
-- **Tools already find the state from a worktree.** `lock.sh` and `issue-as.sh` read the tokens
-  from the main checkout's `.emitted` through `git rev-parse --git-common-dir`; `brain.ts` does
-  with `BRAIN_STATE_DIR`, and writes `seen.json` beside itself (`brain.ts`, line 136: read, not run).
+- **Two of three tools find the state from a worktree.** `lock.sh` reads the tokens from the
+  main checkout's `.emitted` through `git rev-parse --git-common-dir` (its line 51). `brain.ts`
+  does with `BRAIN_STATE_DIR`, and writes `seen.json` beside itself (line 136: read, not run).
+  `issue-as.sh` does not: it reads `.emitted` beside itself (line 19), and run from this spec's
+  worktree at 03:34 it answered `no token named spec-19144c is kept; nothing was sent`. Task 2
+  changes it to read as `lock.sh` does.
 - **`origin` is GitHub over ssh** for `lopecode-dev` and `lopebooks`; for `cloud-brain-dev` the
   fetch address is cb4 and the push address Cloudflare's, with a token from `git.token`.
 - **`git.token`** is the owner's (`brain-git.ojs`, line 163, `who: "owner"`). A token that names
@@ -135,52 +142,69 @@ bun test ./tests/tools/worktree.test.ts                 7 pass, 0 fail
 
 ### 1. A landing is a push from the worktree (R1, R7)
 
-Under the landing lock, in its worktree `$W`:
+Under the landing lock, in its worktree `$W`, in this order. `<root>` appears only as the place
+of `.emitted`, which is state and not tracked.
 
-```
-tools/cloud-brain/worktree.sh --rebase <name>     # fetch, then rebase on origin/main
-LOCK_TOKEN=<token> lock.sh renew land <id>
-git -C $W push origin HEAD:main                   # a fast-forward or refused
-```
+1. `LOCK_TOKEN=<token> lock.sh take land <id>`.
+2. `tools/cloud-brain/worktree.sh --rebase <name>`: a fetch, then a rebase on `origin/main`. When
+   what came in changes what the module is built from: release, build, test and emit again, as
+   step 10 says today.
+3. With a deploy: `build.ts --out` in `$W`; `notebook-backup.sh` with that build; the deploy lock;
+   `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted bun $W/tools/cloud-brain/brain.ts apply …`,
+   then `redistil`, `saw` and the confirm of step 10; the deploy lock released; `git add
+   tools/cloud-brain/seen.json` and a commit in `$W`.
+4. When the backup printed `committed <sha> <day>`: `git -C <root>/lopebooks push`, then in `$W`
+   `git update-index --cacheinfo 160000,<sha>,lopebooks` and a commit. `git add lopebooks` there
+   would record the link. Tried at 03:34 in this spec's worktree with another commit of
+   `lopebooks`: `git diff --cached` showed the pointer and nothing else; then put back.
+5. A change to `cloud-brain-dev`: part 2, then the pointer committed in `$W`.
+6. `LOCK_TOKEN=<token> lock.sh renew land <id>`, then `git -C $W push origin HEAD:main`.
+7. `LOCK_TOKEN=<token> lock.sh release land <id>`.
 
-No `pull`, `merge` or `commit` in the root. `seen.json` is written by the worktree's own
-`brain.ts` (`BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted bun $W/tools/cloud-brain/brain.ts
-apply …`) and committed in `$W` before the push. The emitted file stays in the root's `.emitted`,
-which is state, named for the issue and not tracked.
+With no deploy: 1, 2, 6, 7.
 
-Run in this spec's worktree at 03:23: with `HEAD` one commit behind `origin/main`, `git push
---dry-run origin HEAD:main` was refused ("Note about fast-forwards"); after the rebase below it
-answered `Everything up-to-date`. So a worktree that is behind cannot land.
+The push is a fast-forward or it is refused. Run in this spec's worktree at 03:23: with `HEAD`
+one commit behind `origin/main`, `git push --dry-run origin HEAD:main` was refused ("Note about
+fast-forwards"); after the rebase below it answered `Everything up-to-date`. Under the lock a
+refusal at step 6 means someone pushed `main` with no lock, since step 2. The writer runs step 2
+again and pushes. What it deployed at step 3 stands; when the second rebase changes what its
+module is built from, it says so on the issue and builds, tests and applies again before the push.
 
 `worktree.sh` takes `origin/main` after a fetch as its base, for a new worktree and for
-`--rebase`, in place of the root's local `main`. With that edit made in the worktree's copy,
-`--rebase` took 1.32 s, brought in `e6cbcadf` and printed the one file it changed; the edit was
-then taken back. `git fetch origin` there took 1.55 s.
+`--rebase`, in place of the root's local `main`. With that edit made in a copy of the script in
+the worktree, `--rebase` took 1.32 s, brought in `e6cbcadf` and printed the one file it changed;
+the copy was then removed. `git fetch origin` there took 1.55 s.
 
 **What is still written in the root, and by whom:**
 
 - The built notebook, `<root>/lopebooks/notebooks/@tomlarkworthy_cloud-brain.html`, by
-  `notebook-backup.sh` under the lock, and its commit once a day. Left as it is. It is one file,
-  written whole from committed seeds, by the lock's holder; none of the reports names it. Moving
-  it needs a second working copy of an 863 MB repository or a sparse one, which nobody has tried.
-  Reopened by: a refused commit or an `index.lock` failure in `lopebooks` during a landing.
+  `notebook-backup.sh` at step 3, and its commit in `lopebooks` once a day. Left as it is. It is
+  one file, written whole from committed seeds, by the lock's holder; none of the reports names
+  it. Moving it needs a second working copy of an 863 MB repository or a sparse one, which
+  nobody has tried. Reopened by: a refused commit or an `index.lock` failure in `lopebooks`
+  during a landing.
 - `git -C <root> pull --ff-only`, by the orchestrator at the start of a pass, so that its own
-  skill and the owner's files are current. It is refused when it would write over a file changed
-  there, and then nothing is lost: it says so in step 7 and goes on. No agent reads its brief
-  from the root (part 3), so this pull changes nothing under a running agent.
+  skill and the owner's files are current. Git refuses it in two cases: it would write over a
+  file changed there, or the root's `main` has a commit `origin/main` has not (a session of the
+  owner's committed there and did not push). In both nothing is lost and the loop goes on: the
+  orchestrator says so in step 7 of its pass and the root stays behind until the owner acts. So
+  nothing of the loop may need the root to be current. No agent reads its brief from the root
+  (part 3). The health step, which today compares `brain.ts state` with the root's `seen.json`,
+  reads `git show origin/main:tools/cloud-brain/seen.json` after a fetch.
 
 ### 2. `cloud-brain-dev` is a clone (R4)
 
 In `worktree.sh`, `dev()` clones `https://<brain>/git/cloud-brain-dev.git` into
 `$W/cloud-brain-dev`, checks out the commit the worktree's `HEAD` names, detached, and runs
-`sync.ts`. Done by hand in this spec's worktree at 03:23: 1.87 s for the three; `bun test.ts
+`sync.ts`. For a clone that is there already it fetches first: the pointer may name a commit
+pushed after the clone was made. That case was not run; the rebase tried here did not move the pointer. Done by hand in this spec's worktree at 03:23: 1.87 s for the three; `bun test.ts
 brain-x-static` there gave 12 passed, 0 failed; the `--rebase` above ran with the clone in place.
 `worktree.sh --remove` deletes it with the worktree. The root copy has no worktree and no branch
 but `main`.
 
 A change to it is committed in the clone, on a branch of the clone when the writer wants one.
 Under the landing lock, before the `lopecode-dev` push: `git pull --rebase origin main` in the
-clone, a push of that commit to `main` at Cloudflare's address with a write token of 120 s from
+clone, a push of that commit to `main` at Cloudflare's address with a write token of 60 s from
 `git.token?name=cloud-brain-dev&scope=write` called `--as loop-git`, then the pointer committed
 in `$W`. The token is piped into `git -c http.extraHeader=…` and never printed. That is a new
 command, `worktree.sh --push-dev <name>`, so that the token's one use is in one place.
@@ -190,16 +214,25 @@ command, `worktree.sh --push-dev <name>`, so that the token's one use is in one 
 Before it spawns a writer for issue `<id>` of topic `<topic>`:
 
 ```
-tools/cloud-brain/worktree.sh --fresh <topic>        # or <topic>.2 when an agent of yours is in the first
+tools/cloud-brain/worktree.sh --fresh <topic> --for <the agent's token>
 ```
 
-`--fresh` makes the worktree when there is none. When there is one it fetches and asks three
-things: tracked files changed (`git diff --quiet HEAD -- . ':!lopebooks' ':!lopecode'
-':!cloud-brain-dev'`), untracked files but the `tools/node_modules` link, commits not on
-`origin/main` (`git rev-list --count origin/main..HEAD`), and the same two counts in the clone
-with `deploy/` left out. All none: it rebases on `origin/main`, exit 0. Any: exit 3, the list
-printed, nothing touched. Run by hand at 03:23 in this spec's clean worktree: exit 0 and four
-zeros; with one line added to a tracked file the first gave exit 1.
+`--fresh` makes the worktree when there is none. When there is one it fetches and reads five
+things: whether a tracked file is changed (`git diff --quiet HEAD -- . ':!lopebooks' ':!lopecode'
+':!cloud-brain-dev'`), the untracked files but the `tools/node_modules` link, the commits not on
+`origin/main` (`git rev-list --count origin/main..HEAD`), and in the clone the changed files with
+`deploy/` left out and the commits not on its `origin/main`. Nothing in any: it rebases on
+`origin/main`, exit 0. Something: exit 3, the list printed, nothing touched. Each command run by
+hand at 03:23 in this spec's clean worktree: `git diff --quiet` exit 0 and the four counts 0;
+with one line added to a tracked file `git diff --quiet` gave its own exit 1.
+
+**One agent in a worktree.** `--fresh … --for <token>` writes the token's name in a file of the
+worktree's git directory, `bm-occupant`, and exit 4 names the one already there, with nothing
+touched. `worktree.sh --leave <name>` removes the file; the orchestrator runs it when the agent
+has reported. On exit 4 the orchestrator takes `<topic>.2`. A file that names a token
+`issue-as.sh` no longer keeps (exit 2) is of an agent whose token was ended, and `--fresh` takes
+the worktree over. So two orchestrating sessions on one machine do not put two agents in one
+worktree, with nothing kept in a session's memory. Not built and not run.
 
 Exit 3 is a writer that died or was sent back. When the unlanded work is of the issue being
 started (a rework, a resumed round, a `back`), the writer is put in it as it is and told so.
@@ -233,28 +266,33 @@ under `.claude/worktrees` is listed: 20 of the 22 worktrees at 03:15 were not th
 
 ### 4. A reviewer is started in a view (R3, R6)
 
-Before a review of a submit whose last commit ref is `<sha>`:
+Before a review of issue `<id>` whose submit's last commit ref is `<sha>`:
 
 ```
-V=$(tools/cloud-brain/worktree.sh --at <sha> rev-<topic>)
+V=$(tools/cloud-brain/worktree.sh --at <sha> rev-<id>)
 CHECKOUT=$V $V/cloud-brain-dev/agent.sh reviewer "review issue <id>; your token is <name>"
 ```
 
-`--at` makes or resets a detached worktree at `<sha>` (`git checkout --detach -f`, `git clean
--fd` but for the links), with its clone. A view holds nothing kept. `DRY=1` of that `agent.sh`
-from this spec's worktree printed `checkout: …/bm-worktree-per-topic`: the launcher's default is
-already the directory above it. `worktree.sh` links `lopecode-plugin` as it links `lopebooks`,
-since `TAB=1` starts the channel server from the checkout and that directory is empty in a
-worktree today. Not run: a `TAB=1` review from a view; task 4 runs one.
+`--at` makes a detached worktree at `<sha>`, with its clone, or resets the one of that name
+(`git checkout --detach -f`, `git clean -fd` but for the links). The view is named for the
+issue, as the reviewer's own is today, so two reviews of one topic do not share one. The
+orchestrator removes it (`worktree.sh --remove rev-<id>`) when the reviewer has reported, and
+`--list` prints `rev-*` beside `bm-*` so that one left by a session that ended is seen.
+
+`DRY=1` of `agent.sh` from this spec's worktree printed `checkout: …/bm-worktree-per-topic`: the
+launcher's default is the directory above it. `worktree.sh` links `lopecode-plugin` as it links
+`lopebooks`, since `TAB=1` starts the channel server from the checkout and that directory is
+empty in a worktree today. Not run: any review started from a view, plain or with `TAB=1`. Task 4
+runs one of each.
 
 The reviewer's brief loses the steps that make and remove a worktree (`brain/roles/reviewer.md`
-names a worktree in 21 lines on 2026-10-12, `grep -c worktree`). A note it mends is committed in the view and
-pushed as part 1.
+names a worktree in 21 lines on 2026-10-12, `grep -c worktree`). A note it mends is committed in
+the view and pushed as part 1.
 
 ### Not chosen
 
-- **A clone of `lopecode-dev` and `lopebooks` for each topic.** 6.5 G and 1.1 G of history
-  against 2.2 MB. The owner's word was of `cloud-brain-dev`. Worktrees share one `.git`, and their
+- **A clone of `lopecode-dev` and `lopebooks` for each topic.** A `.git` of 6.5 G, 1.1 G of it
+  `lopebooks`, against 2.2 MB. The owner's word was of `cloud-brain-dev`. Worktrees share one `.git`, and their
   branches are local and deleted with them.
 - **A landing worktree kept at `main`.** A second shared working copy, with the same faults as
   the first. The push needs none.
@@ -274,11 +312,12 @@ Each is run by an agent with its own token, from any worktree. `<root>` is the m
 
 1. **R1.** `git -C <root> reflog --date=iso main | grep <day> | grep -c 'merge bm/'` and `… |
    grep -c ': commit'`. Run 03:25: 174 and 164 for 2026-10-11. After task 3, for a day the loop
-   ran whole: 0, and the commits that remain are a session's of the owner's. It cannot be run
-   before a day has passed; task 6 runs it.
+   ran whole, the first is 0: that is the condition. The second has no condition: the reflog
+   does not say whose a commit is, so task 6 reads each one that remains against the journal by
+   hand and gives the count that was the loop's. It cannot be run before a day has passed.
 2. **R1.** `bun tools/cloud-brain/issue-stats.ts --token=<token>`, the line `land`. Before: median
-   20.9 s, longest 323.1 s. Predicted lower, since the build and the merge leave the hold; no
-   number is promised.
+   20.9 s, longest 323.1 s. The pull and the merge leave the hold and the build stays in it (part 1, step 3), so no
+   change is promised: the number is read, and a longer median is a finding.
 3. **R2, R5.** `worktree.sh --list` names no `bm-*` worktree whose topic is `done`, `closed` or
    `rejected` and clean. Before, 03:15: 2 stood, of `dv-3-deployer-opens-verify-html` (`done`) and `flow-metrics`
    (`awaiting-approval`); whether they are clean was not read. The command is task 2's and does not exist yet.
@@ -286,10 +325,11 @@ Each is run by an agent with its own token, from any worktree. `<root>` is the m
    Run 03:23: 3 and 5. `git ls-remote <cb4>/git/cloud-brain-dev.git` lists `HEAD` and
    `refs/heads/main` only: so it did at 03:16.
 5. **R4.** `brain.ts curl "/xrpc/com.lopecode.brain.git.token?name=cloud-brain-dev&scope=write&seconds=60" --as loop-git -X POST`
-   answers 200, and with `name=` any other repository 403. Not run: the token does not exist.
+   answers 200, and with `name=` any other repository 403 once the owner's rule is put. Not run: the token does not exist.
 6. **R3, R6.** `bun test ./tests/tools/worktree.test.ts` in a fresh worktree: 7 pass today; the
-   tasks add tests for `--fresh` (clean, dirty, ahead), `--at`, `--list`, the clone and the push
-   refused when behind, on scratch repositories as the file's seven are.
+   tasks add tests for `--fresh` (clean, dirty, ahead, occupied), `--leave`, `--at`, `--list`,
+   the clone (made, and fetched when the pointer moved), the push refused when behind, and
+   `issue-as.sh` finding a token from a worktree, on scratch repositories as the file's seven are.
 7. **R5.** `ia "get?id=<topic>"` of the first topic assigned after task 3 has a `commented` event
    whose body begins `worktree {`.
 
@@ -299,16 +339,18 @@ Each is run by an agent with its own token, from any worktree. `<root>` is the m
    `tests/tools/light-agent.test.ts`, push it and the pointer. Needs `loop-git`. Then delete the
    root copy's two branches (check 4).
 2. **`wt-2-worktree-sh`.** `worktree.sh`: `origin/main` as the base, the clone, the
-   `lopecode-plugin` link, `--fresh`, `--at`, `--list`, `--push-dev`, and `--remove` refusing a
-   worktree that is not clean without `--force`. Tests as check 6. No brief changes: step 10 as
+   `lopecode-plugin` link, `--fresh … --for`, `--leave`, `--at`, `--list`, `--push-dev`, and
+   `--remove` refusing a worktree that is not clean without `--force`. `issue-as.sh` reads
+   `.emitted` through the common directory, as `lock.sh` line 51. Tests as check 6. No brief changes: step 10 as
    written still works, since its pull makes the root's `main` equal to `origin/main`.
 3. **`wt-3-land-by-push`.** Step 10 of `agents/implementer.md` and step 6 of `agents/spec.md` become part 1 and part 2
    (`agents/digest.md` step 7 lands by step 10 and copies its build to the root's `.emitted`, which stays); the writer no longer removes its
    worktree. `SKILL.md`: the pull at the start of a pass, the assignment and comment of part 3,
-   the orchestrator's and the overseer's own worktrees, the removal.
+   the orchestrator's and the overseer's own worktrees, the removal, and the health step's
+   `seen.json` from `origin/main`.
 4. **`wt-4-reviewer-in-a-view`.** `SKILL.md` step 4 starts the reviewer as part 4; the
    reviewer's brief on the Brain loses its worktree steps (`put.sh roles/reviewer.md`, by the
-   writer of a task of an approved spec, `rules.md`). One `TAB=1` review run from a view.
+   writer of a task of an approved spec, `rules.md`). One plain review and one `TAB=1` review run from a view.
 5. **`wt-5-docs`.** `knowledge/changing-and-deploying-a-cloud-brain-worker.md`,
    `cloud-brain-dev/README.md` and `rules.md`'s "Always" (the lines on the main checkout and the
    landing lock; a change to `rules.md` is `major`), and the line for a session outside the loop
@@ -342,3 +384,60 @@ Each is run by an agent with its own token, from any worktree. `<root>` is the m
   changed the other, and was taken back with `git checkout -- CLAUDE.md` in the worktree.
 - The issue's body says 29 worktrees stood at 22:00 on 2026-10-11. `git worktree list` gave 23 lines at 03:15, two of
   them the loop's.
+
+## What the fresh reader changed
+
+`/review-notebook` on the first writing (`db4cddf2`), 2026-10-12 03:28 to 03:34: BLOCK, 10
+findings. Each was checked and taken. Those that changed the design:
+
+- `issue-as.sh` does not find its tokens from a worktree. The first writing said it did. Run, and
+  it is as the reader said; task 2 mends it.
+- The view was named for the topic, so a second review of the topic would have reset it under
+  the first. It is named for the issue, and the orchestrator removes it.
+- The daily `lopebooks` pointer had no place in a landing with no commit in the root. Part 1,
+  step 4.
+- Part 1 gave three commands and no order for the build, the deploy and the backup, and check 2
+  promised a shorter hold while the build stayed in it. Part 1 is now the whole order.
+- R1 was broken by the design's own two exceptions; they are in R1. Check 1 no longer passes on
+  a count it cannot attribute.
+- The orchestrator's pull is also refused when the root has a commit of its own; the health
+  step no longer reads the root's `seen.json`.
+- Two orchestrating sessions on one machine could each find a clean worktree free: `bm-occupant`.
+- A clone that is there is fetched before its checkout.
+- The overlap count could not be run again: the script is below.
+
+## `overlap.py`
+
+Run from the main checkout with a token `issue-as.sh` keeps in `IA`'s second argument.
+
+```python
+import json, subprocess
+IA = '<root>/tools/cloud-brain/issue-as.sh'
+def ia(q):
+    t = subprocess.run([IA, '<token>', q], capture_output=True, text=True).stdout
+    return json.loads(t[:t.rindex('}') + 1])
+projs = []
+for k in ('project', 'feature'):
+    projs += [i['id'] for i in ia('list?kind=' + k + '&limit=500')['issues']]
+tot = over = withkids = 0
+for p in projs:
+    kids = [c for c in ia('get?id=' + p)['children'] if c['kind'] in ('task', 'bug')]
+    iv = []
+    for c in kids:
+        s = None
+        for e in ia('get?id=' + c['id'])['events']:
+            if e['type'] != 'moved': continue
+            if e['to'] == 'in-progress' and s is None: s = e['at']
+            if e['to'] in ('in-review', 'ready', 'open', 'done', 'rejected', 'closed') and s is not None:
+                iv.append((s, e['at'], c['id'])); s = None
+    if not iv: continue
+    withkids += 1; tot += len(iv); o = set()
+    for a in range(len(iv)):
+        for b in range(a + 1, len(iv)):
+            if iv[a][2] != iv[b][2] and iv[a][0] < iv[b][1] and iv[b][0] < iv[a][1]: o.add(a); o.add(b)
+    over += len(o)
+print('projects with a written task', withkids, 'spans', tot, 'spans that overlap a sibling', over)
+```
+
+At 03:21: `projects with a written task 14 spans 64 spans that overlap a sibling 21`.
+
