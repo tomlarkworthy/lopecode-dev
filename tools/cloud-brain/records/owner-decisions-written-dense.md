@@ -68,7 +68,10 @@ Four changes to the section, each made, run and put back; each gave `9 pass`, `1
 | "no event number, commit, hash, file path or test count" replaced by "few numbers" | "the reading says what such a comment has, in the order he was given it" |
 | The marker sentence taken out | "his words of 20:57 and of 21:02 stand before the one marker, with where they are quoted" |
 
-The whole suite, `tests/tools/suite.sh` in the worktree, is under "The suite at the landing" below.
+The whole suite, `tests/tools/suite.sh` in the worktree, started 21:58:31 CEST (`date`) after the
+rebase on `origin/main` that brought in 14 files, `SKILL.md` among them: `719 pass`, `0 fail`,
+`Ran 719 tests across 73 files`. A second run, of which only the count of
+lines that begin `skipped:` was read (`| grep -c '^skipped:'`), printed `0`.
 
 ## Prior art
 
@@ -95,11 +98,12 @@ printed; nothing of it is used.
 - **`agents/approver.md` is not changed.** Its `leave` is still written "in the form `philosophy.md`
   gives", with "the project: … with its measured numbers" and "what stopped it: … with the event,
   file and line".
-- **Four lines of three specs still name the form of `philosophy.md`**:
-  `plan/cloud-brain-approver-persona.md` 374 and 806, `plan/cloud-brain-bookkeeping-in-the-tracker.md`
-  499, `plan/cloud-brain-dashboard-service.md` 458 (`git grep -n -F 'philosophy.md` gives'`, 6 lines
-  before the edit, the other two `SKILL.md` 699 and `agents/approver.md` 165). They are not this
-  issue's specs.
+- **Four lines of three specs still name the form of `philosophy.md`**: two of
+  `plan/cloud-brain-approver-persona.md`, one of `plan/cloud-brain-bookkeeping-in-the-tracker.md` and
+  one of `plan/cloud-brain-dashboard-service.md`
+  (`git grep -n -F 'philosophy.md` gives' -- . ':!tools/cloud-brain/records'`, after the rebase: those
+  four, the line of `agents/approver.md`, the Triage line of `SKILL.md`, which now quotes the old
+  words, and a line of the test). They are not this issue's specs.
 - **The list given unasked.** Whether a session gives him the list at a count of waiting issues or
   at an hour is not in his words and is not built. Step 7 of `SKILL.md` already tells him what waits
   after each pass; it now says in what form. No orchestrating session has run that step as changed.
