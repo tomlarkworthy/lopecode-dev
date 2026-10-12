@@ -97,7 +97,7 @@ ISSUE_STATS_TS=<issue-stats.ts of origin/main> SKILL=<SKILL.md of origin/main> \
 tests/tools/suite.sh                                                             -> 673 pass, 0 fail, 67 files (21:01 to 21:03 CEST)
 ```
 
-A first run of the suite, begun about 20:46 CEST with its output through `| tail -6`, had not ended at
+A first run of the suite, begun before 20:49 CEST with its output through `| tail -6`, had not ended at
 21:01: one worker process was left, with no child. It was killed and the run above made with the output
 to a file. What it waited on was not found.
 
