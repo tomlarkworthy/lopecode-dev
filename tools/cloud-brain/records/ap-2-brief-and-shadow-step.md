@@ -91,13 +91,15 @@ forms of `asked:`), fills them in, and gives them to `judge`, `asked`, `trial` a
 - the lines of `SKILL.md`: the row, the prompt, the view, the role in the token section, the
   `cost` example, step 7.
 
-Before the edit: `11 fail, 0 pass` (the run at 19:39 CEST, with the test written and neither the
-brief nor `SKILL.md` changed). `token-checks.test.ts` with `token-checks.ts` put back
+Before the edit, with the test as it is landed and the skill's files as `origin/main` had them
+(`git archive origin/main .claude/skills/brain-maintenance` into a scratch directory, then
+`BRIEFS=<that directory>/.claude/skills/brain-maintenance bun test ./tests/tools/approver-brief.test.ts`,
+19:49 CEST): `0 pass, 11 fail`. `token-checks.test.ts` with `token-checks.ts` put back
 (`git stash push tools/cloud-brain/token-checks.ts`): `13 pass, 1 fail`, the new test.
 
 `rework-resumes-the-implementer.test.ts` gives each `cost` example of `SKILL.md` to `issueAct` of
 what cb4 runs (`cloud-brain-dev/deploy/@tomlarkworthy/brain-issues.js` of the worktree). With the
-third example it passes, 11 pass, so the deployed tracker's own check takes a run of role
+third example it passes, 11 pass and no `skipped:` line, so the deployed tracker's own check takes a run of role
 `approver` with the outcome `leave`. No `cost` call was sent to cb4.
 
 ## Run on cb4 and on this machine
