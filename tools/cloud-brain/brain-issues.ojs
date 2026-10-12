@@ -5297,14 +5297,15 @@ test_issues_panel_approved_for_you = {
   const ap = (await ok(approver("move", { id: "p1", to: "approved", reason: verdict(5) }))).event;
   const answer = (r) => (r.status < 400 ? r.data : Promise.reject(new Error(r.data.message)));
   const held = [], gets = [], parked = [];
-  let park = false;
+  let park = null;
   const client = {
-    // While `park` is set an issue.get waits until the test lets it go.
+    // While `park` names an issue, an issue.get of it waits until the test lets it go. Of that issue alone: the
+    // panel asks an issue again whenever an answer finds it at another seq, so a get of another line may come at any time.
     query: (name, params = {}) => {
       const ask = () => rig.owner(name.replace("issue.", "") + "?" + new URLSearchParams(params)).then(answer);
       if (name !== "issue.get") return ask();
       gets.push(params.id);
-      return park ? new Promise((go) => parked.push(go)).then(ask) : ask();
+      return park === params.id ? new Promise((go) => parked.push(go)).then(ask) : ask();
     },
     // Each write waits until the test sends it on, or fails it as a network that dropped it.
     procedure: (name, body) => new Promise((go, fail) => held.push({ name, body, go, fail: () => fail(new Error("Failed to fetch")) })).then(() => rig.owner(name.replace("issue.", ""), body).then(answer))
@@ -5372,12 +5373,12 @@ test_issues_panel_approved_for_you = {
     press("p1").click();
     expect(held.map((h) => [h.body.id, h.body.to])).toEqual([["t1", "reverted"], ["p1", "rejected"]]);
     // An answered write has the panel ask issue.get of its issue again. Until that is answered the line is still there.
-    park = true;
+    park = "p1";
     held.pop().go();
-    expect(await until(() => kept("p1") === "rejected" && parked.length === 1)).toBe(true);
+    expect(await until(() => kept("p1") === "rejected" && parked.length > 0)).toBe(true);
     expect([ids(), panel.approved().map((a) => [a.id, a.seq, a.state, a.undo.length])[0]]).toEqual([["p1", "t3", "t1"], ["p1", ap.seq, "rejected", 0]]);
-    park = false;
-    parked.shift()();
+    park = null;
+    for (const go of parked.splice(0)) go();
     expect([kept("t1"), moved("p1").move, moved("p1").reason, moved("p1").by.via]).toEqual(["done", "owner-reject", "not this either", "session"]);
     held.pop().go();
     expect(await until(() => kept("t1") === "reverted" && held.length === 0)).toBe(true);
