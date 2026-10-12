@@ -102,7 +102,8 @@ kept by that session's watch. That is the thing this issue takes apart. Its task
 
 `f501a8e8-b922-4e11-a581-2b725efd6272`, the session whose token is `orch-d97e0e` (`agent-token list`,
 the line with the note `orch; f501a8e8…`). `measure.py`, a script of this writing, reads its
-transcript and calls nothing; it is an attachment of the issue. Run 2026-10-12 23:13 CEST, while
+transcript and calls nothing; it is an attachment of the issue
+(`ia "attachment?id=orchestrator-as-steps&name=measure.py"`, event 5138). Run 2026-10-12 23:13 CEST, while
 the session was at work:
 
 ```
@@ -110,6 +111,7 @@ first 2026-10-11T08:52:13.753Z last 2026-10-12T21:12:30.299Z requests 2898 compa
 context of the last request before each compaction: [328225, 353190, 326922, 324583, 330174, 323340, 329368, 328205, 337476, 328213, 333846, 332638, 326269, 324872, 328780, 325541, 328137]
 2026-10-11 requests 1772 cacheWrite 3673512 cacheRead 417582280 output 877420 context median 236756 max 366830
 2026-10-12 requests 1126 cacheWrite 2314605 cacheRead 279724205 output 660731 context median 252466 max 366988
+2026-10-11 prompt rows {'human': 26, 'meta': 10, 'task-notification': 359, 'channel': 1135, 'plain': 5, 'compact': 10} | task-notifications: lines of a monitor 83 the end of an agent or a command 276
 2026-10-12 prompt rows {'task-notification': 266, 'plain': 32, 'meta': 32, 'compact': 7, 'channel': 8, 'human': 10} | task-notifications: lines of a monitor 160 the end of an agent or a command 106
     task-notification turns 263 requests 922 cacheRead 234608652 median cacheRead a turn 764862
     human turns 9 requests 44 cacheRead 9921600 median cacheRead a turn 791983
@@ -160,7 +162,7 @@ the fresh pass in the harness's own estimate of dollars. `st-1` measures both th
 ### The reviewer is already a process
 
 `cloud-brain-dev/agent.sh ROLE "task"` starts `claude -p` with four tools and prints one JSON line:
-`session`, `result`, `usd`, `usage`, `context`, `turns`, `ms`, `legs`. `--resume SESSION "message"`
+`session`, `result`, `usd`, `usage`, `context`, `turns`, `ms`, `legs`, `toolset`, `mode`. `--resume SESSION "message"`
 continues it. `SKILL.md` step 4 starts it with Bash in the background of the session, which is
 what ties it to the session today: the session waits for its line. Measured in its README: 25,212
 tokens after it had read its brief, the rules and `philosophy.md`, where an `Agent` told to answer
@@ -273,7 +275,9 @@ things are added to it, each an environment variable beside `TAB`, `READS` and `
   approver and an overseer are given today by the `Agent` call, less the session's MCP servers.
   The prompt is the four lines of `SKILL.md` step 4, unchanged, so the briefs are read as they are.
 - `SESSION=<uuid>`: passed as `--session-id`, so the id is known, and written, before the run.
-- With `--resume SESSION "message"` as today, a round is sent from any process.
+- `--resume SESSION "message"` as today, from any process. `WORK` holds for it too: the resume
+  branch of the script gives the four tools today (`GIVE=(--tools "Bash,Read,Grep,Glob" …)`), and a
+  writer's round needs the tools its first run had.
 
 `TAB` and `READS` stay as they are: the reviewer and the summarizer are not changed.
 
@@ -289,10 +293,22 @@ from the issue as the queue's `do` gives it:
 1. `brain.ts agent-token <role> <id>`; the worktree or the view (`worktree.sh --fresh … --for`,
    `--at <sha> rev-<id>`, `--at origin/main appr-<id>`) with each exit handled as step 4 says; the
    `worktree {…}` comment; `review-needs-tab.sh` for a reviewer.
-2. One `cost` event, before the spawn, key `cost/<id>/<role>/<round>`:
-   `{ role, round, how: "fresh", outcome: "running", seconds: 0, context: 0, token, session: <the uuid it chose>, agent: "<hostname -s>:<pid of the run>" }`.
-3. The run, detached, its standard output to `.emitted/issue-loop/runs/<token>.json`:
-   `agent.sh` and then `loop.ts ended <token>`.
+2. The file `.emitted/issue-loop/runs/<token>.json`: `{ id, role, round, session: <a uuid it chose> }`.
+3. The run, detached: a wrapper that runs `agent.sh`, its one line of JSON to
+   `runs/<token>.result.json`, and then `loop.ts ended <token>`. The wrapper's pid and the time the
+   process began (`ps -o lstart= -p <pid>`) are added to the file of 2.
+4. One `cost` event, key `cost/<id>/<role>/<round>`:
+   `{ role, round, how: "fresh", outcome: "running", seconds: 0, context: 0, token, session, agent: "<hostname -s>:<pid of the wrapper>" }`.
+
+A `start` that died between 2 and 4 left a file with no event: the next step writes the event when
+the process of the file lives, and treats it as a run that died when it does not. A pid alone is
+not the test of "lives": after a restart of the machine another process may have it, so the time
+the process began is compared with the file's.
+
+**An overseer is on no issue**, and a `cost` event needs one (`SKILL.md`, step 5: "its line goes in
+`_oversight.md`"). Its run has the file and no event, so R4 does not hold for it. That one runs is
+read from `agent-token list`: a live token whose note begins `over;`. `ended` writes its line to
+`_oversight.md` and ends the token.
 
 `loop.ts ended <token>`, when the run has returned: the report appended to the journal
 (`.emitted/issue-loop/<id>.md`, as today); the `cost` event sent again under `…/<round>/2` with
@@ -313,7 +329,7 @@ So the questions the session answered from memory are a read:
 | Question | Read |
 |---|---|
 | Which agents run | `runs` with the outcome `running` |
-| Whose process is it, and is it alive | `agent` of that run: this host, and `kill -0 <pid>` |
+| Whose process is it, and is it alive | `agent` of that run: this host, and the pid of `runs/<token>.json` with the time it began |
 | Where is a writer sent its next round | `session` of its last run |
 | Which token is to be ended | a live token of `agent-token list` whose issue has left `in-review` or `spec-review` for good and has no `running` run |
 | Which approver view was made and not started | `worktree.sh --list`, a view `appr-<id>` with no `running` run of that issue |
@@ -322,10 +338,17 @@ So the questions the session answered from memory are a read:
 the run, and a process has no `agentId`. `how` stays `light` for a run with the four tools.
 
 **A run that died.** A `running` event whose `agent` names this host and whose process is gone:
-when `runs/<token>.json` has a result line, `ended` was not run (the machine slept, the wrapper
-was killed) and is run now. With no result line the run is dead: the event is replaced with the
+when `runs/<token>.result.json` is there, `ended` was not run (the machine slept, the wrapper
+was killed) and is run now. With none the run is dead: the event is replaced with the
 outcome `stopped`, and the issue is taken as "A dead writer". No judgment, and no 20 minutes.
 A `running` event that names another host is left, and is named in the status after 4 hours.
+
+**An agent the program did not start.** A session that runs a pass by hand, or the session's loop
+on the day of the switch, has writers that are `Agent` calls with no `running` event. The step
+does not take those for dead. An issue in `work` with no run of its current round in the record
+is left while its starter's token is live (`agent-token list`), and is named in the status after
+4 hours; it is "A dead writer" when that token has ended. From `st-7` a pass by hand starts its
+agents with `loop.ts start`, so the case is the day of the switch and no later.
 
 ### 3. The step (R2, R6)
 
@@ -337,13 +360,18 @@ make again from the record. In order:
    `seen.json` of `origin/main`, both locks. Not healthy: nothing is started; see the last row
    of the table.
 2. **Runs**, as part 2: `ended` for each run that returned, the dead ones marked.
-3. **The queue.** `issue.queue`, and for each entry, in the service's order:
+3. **The queue.** `issue.queue`, and for each entry, in the service's order. One condition holds
+   for every row that starts or resumes an agent and is not written in each: the issue has no
+   `running` run, and for an approver none of that round (`runs?id=&role=approver&round=<n>`), as
+   `SKILL.md` has it ("One agent on an issue"). A reviewer's issue stays a `review` entry until
+   its review lands and a writer's stays a `start` until the writer's own `start` move, and the
+   driver steps at every event, so without it a second agent is started.
 
 | The entry | The step does | A model |
 |---|---|---|
 | `review` | `start`, role reviewer | no |
 | `round`, fewer than 3 `rework` moves | `resume`; with a `waiter` (tr-3), nothing | no |
-| `round`, 3 `rework` moves or more | the judgment of `SKILL.md` step 3 | yes |
+| `round`, 3 `rework` moves or more, or the last run of the role ended with the outcome `no-submit` | the judgment of `SKILL.md` step 3 (go on, or the open findings in a comment and `needs-owner`) | yes |
 | `ready` | the move, reason `waits for nothing, by the queue at <seq>` | no |
 | `finish` | the move | no |
 | `start` | `start`, role implementer, or digest with the label `digest` | no |
@@ -351,17 +379,22 @@ make again from the record. In order:
 | in `waiting`, `owner`, at `awaiting-approval`, and `approver.ts facts` says no verdict of this round and no `leave` | `start`, role approver | no |
 | in `waiting`, `work`, with no `running` run and no `waiter` | "A dead writer": the token ended, `back` | no |
 | a digest opened by `worker:brain-x-snapshot`, at `open` | the older ones rejected, `triage`, `ready` | no |
-| 3 issues at `done`, `rejected` or `needs-owner` since the last heading of `oversight.md`, and no overseer runs | `start`, role over | no |
+| 3 issues at `done`, `rejected` or `needs-owner` since the last heading of `oversight.md`, or one issue at 3 `rework` moves since then; and no live token `over-…` | `start`, role over | no |
 | `triage`, `decompose`, `promote`, `look` | given to the orchestrator's judgment | yes |
 | in `waiting`, `owner`, labeled `needs-owner`, with an event of his session or of an `out-` token after the label | the same: has he answered | yes |
 | labeled `asks-orchestrator` (the first action of `pm-agent-request-not-seen-fly-idle`, when it is built) | the same: answer it | yes |
 | a move made with his session that is a `send-back`, an `owner-reject` of a passed issue or a `revert`, with no post mortem of it | the same: declare it | yes |
 | the cluster is not healthy, and no open issue names what failed | the same: file it | yes |
 
-4. **What stops a start.** No `start` of a writer in a step in which `uptime`'s first number is
-   15 or more, a run of the last 30 minutes ended with a result that is an error, or `land` has
-   named one holder at two steps running; a review and a round are started as before (`SKILL.md`,
-   step 2, as it stands).
+4. **What stops a start.** `SKILL.md`, step 2, has four things, and the program reads three. No
+   new writer and no approver is started in a step in which `uptime`'s first number is 15 or more,
+   or `land` has named one holder at two steps 30 s or more apart. A review and a round are started
+   as before. The third, "an agent's report or your own session names a rate limit or a usage
+   limit", is a sentence of a report: the program reads `is_error` of a run's result line in its
+   place, and starts no new writer for 30 minutes after one. The 30 minutes and the reading are
+   this spec's and are not measured: what a result line says at a limit was not seen. The fourth,
+   a report that names a test of `tests/tools` that failed at its timeout and passed in the next
+   run, is not read by the program; the `uptime` rule was written for the same load.
 5. **The judgment.** The entries of the rows marked "yes", 5 at most a step, are the task of one
    process: `WORK=<the worktree bm-orch-<host>> agent.sh orchestrator "<do> <id>; …"`, with a token
    `orch-…` made for it and a `running` event on the first of its issues. Its brief is
@@ -387,8 +420,13 @@ any step, which a reader of the table can tell.
 `loop.ts run` is the loop: no model, one process, started by the owner and stopped with Ctrl-C.
 
 - It makes its token (`agent-token orch driver:<host>`), takes the lock `loop` as
-  `orchestrator-<host>` and renews it every 120 s. A take that is refused names the holder and the
+  `orchestrator-<host>` and renews it every 120 s. A token ends at 48 hours (`brain.ts`, `HOURS = 48`)
+  and a renew under another token is refused, so at 40 hours, between two steps, the driver
+  releases `loop`, makes a new token, takes `loop` with it and ends the old one. A take that is refused names the holder and the
   driver exits 1: one loop a cluster, as `worker-machine-on-fly` has it.
+- A step begun for the clock is whole. One begun for an event or a run that ended leaves out the
+  pulls, `redistil`, `state` and the removal of worktrees, as a line of the watch is taken today
+  "without a whole pass" (`SKILL.md`, step 8). How long the health commands take was not measured.
 - It runs a step when any of three is so: `sync?after=<the last seq it read>` has an event (asked
   every 30 s; 0.31 to 0.39 s and 49 bytes when there is none, 23:12 CEST), a file of `runs/` has a
   result it has not ended, or 1,800 s have passed. One step at a time.
@@ -468,7 +506,7 @@ No Worker, no method, no event type, no policy and no store on cb4 is added.
 ## Not chosen
 
 - **Every wake a fresh `claude -p "/brain-maintenance"`, the skill unchanged but for where it
-  reads.** No new tool. It meets R1. It pays the reading of `SKILL.md` (89,428 bytes), `rules.md`
+  reads.** No new tool. It meets R1. It pays the reading of `SKILL.md` (89,947 bytes at `56ea28e4`), `rules.md`
   and `philosophy.md` at each of some 260 wakes a day, where the one pass run this way took 10
   turns to finish step 1; an agent it starts with the `Agent` tool holds it open until the agent
   ends, by the harness's own page; and every row of step 3 stays a sentence a model follows. His
@@ -570,6 +608,11 @@ Ids begin `st-`. None is `major` but `st-7`. No seed changes and nothing is depl
    step that acted on it; each thing that waited in `status.md` for a session with him, and how
    long; each run found dead and whether it was. After st-7, held with `issue.hold` for three days.
 
+**The switch itself.** The owner stops the session's `/loop`; its writers go on as `Agent` calls
+only while that session is open, so he leaves it open until they have reported, or closes it and
+the step finds their tokens live and leaves them 4 hours (part 2, "An agent the program did not
+start"), after which he or a session ends the tokens and the step makes `back`.
+
 Going back, at any time after the switch: Ctrl-C, and `/loop /brain-maintenance` in a session.
 The skill's pass by hand is kept for that, and a `running` run a session did not start is ended by
 `loop.ts ended`, or left to end itself.
@@ -599,7 +642,8 @@ Nothing. The driver's token and each judgment run's are `brain.ts agent-token or
   child lived for the 150 s; nothing longer was tried.
 - What a judgment run costs. The estimate from bytes: the moved sections, `rules.md` and
   `philosophy.md` are under 100,000 bytes together. Not measured.
-- How often a step has nothing to do. 0.3 to 0.7 s of two reads when it has not.
+- How often a step has nothing to do, and what one costs then: 0.3 to 0.7 s for each of the two
+  reads, and the health commands of a whole step, not timed.
 - Whether 5 entries a judgment run is right.
 - A usage limit of the account: today a report names it. A process's result line has `is_error`;
   what it says at a limit was not seen.
@@ -620,3 +664,27 @@ Nothing. The driver's token and each judgment run's are `brain.ts agent-token or
   a body that contains ` [`.
 - Step 5 of the brief asks that each check's result be from a run. For a design whose every tool
   is new, the "Today" column is mostly "no such file", and the three probes are what could be run.
+
+## The fresh review before submitting (2026-10-12, answered by 23:30 CEST)
+
+One agent with the file and nothing else (`/review-notebook`): FIX, 11 findings (7 confirmed, 4
+plausible), all taken. 129,699 tokens, 6m54s. It read the `cost` check, `issueRunOf` and
+`issueQueue` of the seed and found the `running` event and every `do` and `why` of the step's
+table to hold; it had no token and ran no probe.
+
+- An overseer is on no issue, so it could have no `running` event and a second could be started:
+  its run is a file and a live `over-` token, said in part 2 and in its row.
+- The rows that start an agent did not say "and none runs on it": said once above the table.
+- A round resumed again and again after a run with no submit: that outcome goes to the judgment row.
+- "As it stands" of what stops a start was not as `SKILL.md` has it: the four conditions are
+  named, with the two the program does not read as written.
+- The `running` event had the pid of a process not yet started: the order is file, spawn, event,
+  with the time the process began against a pid used again.
+- The switch would have taken the session's `Agent` writers for dead: part 2, "An agent the
+  program did not start", and "The switch itself".
+- The driver's token ends at 48 hours: a new one at 40, with `loop` released and taken.
+- A step's cost left out the health commands: a step for an event leaves most of them out, and
+  they are not timed.
+- `--resume` gives the four tools: `WORK` holds for it.
+- Three numbers: the bytes of `SKILL.md`, the line the 1,135 is from, the keys of the JSON line.
+- `measure.py` was not named as an attachment: named.

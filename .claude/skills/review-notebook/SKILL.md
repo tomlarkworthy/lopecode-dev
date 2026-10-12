@@ -185,3 +185,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   FIX, 12 findings (8 confirmed, 4 plausible) and 6 minor, all taken (lopecode-dev `59da6348`). 119,461 subagent tokens, 4m41s. Not run again after the
   fixes, which rewrote the section it read. What the author had not seen: `lock.sh renew` answers exit 0 for a lock that ended and nobody took, so the
   round's signal of a lost lock never came; the watch's second argument was taken; and one empty pass under a usage limit stopped the machine for good.
+- 2026-10-12 `plan/cloud-brain-orchestrator-as-steps.md` (the spec of the issue loop's orchestrator as a program and processes, first writing, draft
+  `18d8c32c`): FIX, 11 findings (7 confirmed, 4 plausible), all taken. 129,699 subagent tokens, 6m54s. What the author had not seen: an overseer is on
+  no issue and so could not have the event the design reads for "which agents run"; the rows that start an agent did not say that none runs on the
+  issue already; and the event that records a run named the pid of a process not yet started.
