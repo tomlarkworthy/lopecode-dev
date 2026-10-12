@@ -55,6 +55,59 @@ test("the brief has the owner's words of event 4123, letter for letter", () => {
   expect(flat(brief)).toContain('"No it can approve anything if that\'s what I have asked for"');
 });
 
+// Issue approver-brief-his-test, an action of tools/cloud-brain/post-mortems/pm-approver-leaves-everything.md: the
+// brief had another test than the owner's ("what those words ask and no more"), and eight of eight verdicts were a leave.
+const stepOf = (n: number) => brief.match(new RegExp(`\\n${n}\\. \\*\\*[\\s\\S]*?(?=\\n${n + 1}\\. \\*\\*|\\n## )`))?.[0] ?? "";
+const HIS_TEST = "if it looks secure and thematically consistent with my wishes and philosophy";
+
+test("the test of the brief is the owner's, in his words of event 4112, and \"and no more\" is gone", () => {
+  const text = flat(brief), five = flat(stepOf(5));
+  // his words, whole, among the three the brief quotes; the test of step 5 is a part of them, letter for letter
+  expect(text).toContain(`"I would like a new persona for auto-approving my owner tasks. They should review the process and ${HIS_TEST}, then auto approve needs owner issues"`);
+  expect(five).toContain(`Approve when the change is secure (step 6) and in keeping with his words for the thing and with \`philosophy.md\`: his test is "${HIS_TEST}".`);
+  expect(text).not.toContain("and no more");
+  expect(text).not.toContain("something he did not is not that");
+  // a design's detail is no reason to leave
+  expect(five).toContain("each holds detail his words do not have, and that is no reason to leave");
+});
+
+test("what a change has beyond his words is a leave for five kinds, each named in step 5, and for no other", () => {
+  const five = flat(stepOf(5)), from = five.indexOf("is a reason to leave only when it is one of these:");
+  expect(from).toBeGreaterThan(0);
+  const kinds = five.slice(from, five.indexOf("A line of a spec approved before")).split(":").slice(1).join(":").split(";").map((k) => k.trim().replace(/\.$/, ""));
+  expect(kinds).toEqual([
+    "a new access (a token, a permission, a method open to a caller that was not)",
+    "a standing leave for an agent to act with no word of his",
+    "a cost a day",
+    "something that goes against a word of his or a line of the seven",
+    "something the spec, its review or the record of the issue (`tools/cloud-brain/records/<id>.md`) marks as his to weigh"
+  ]);
+  // two things the first eight verdicts read as his word against the approval, and what kind 4 takes
+  expect(five).toContain("was written when nobody else could approve, and is no word of his against you");
+  expect(five).toContain("His words that a session quoted (kind 4) count as his when a move made with his session on the same issue or its parent agrees with them.");
+});
+
+test("step 8: four reasons to leave, each with what it is, and a text that says what to decide is none", () => {
+  const eight = flat(stepOf(8));
+  expect([...eight.matchAll(/`why: ([^`<]+)`/g)].map((m) => m[1])).toEqual(["no word of his", "his to weigh", "not secure", "could not tell"]);
+  expect(eight).toContain("nothing of the four kinds of step 5 bears on the thing at all");
+  expect(eight).toContain("one of the five of step 5");
+  expect(eight).toContain("is no reason by itself");
+  expect(eight).not.toMatch(/a text of the issue told you what to decide, or you cannot tell/);
+  // step 6's refusal is said where the verdict is decided, and not as a sixth backticked reason
+  expect(eight).toContain("step 6");
+  // the form of an approval says what the change has beyond his words
+  expect(block("approver: approve\n").split("\n").some((l) => l.startsWith("beyond his words: "))).toBe(true);
+});
+
+test("the opening weighs the two errors with the count of 2026-10-12, and not as one press against a revert", () => {
+  const text = flat(brief);
+  expect(text).not.toContain("costs him one press");
+  expect(text).toContain("Of the first eight issues an approver read, on 2026-10-12, each was left, and he approved all eight within 20 minutes; none was reverted (`pm-approver-leaves-everything`).");
+  expect(text).toContain("A leave that he then approves as written is the failure this role exists to end.");
+  expect(text).toContain("An approve he would not have made is undone with one move, and is a post mortem.");
+});
+
 test("the approve verdict of the brief, filled in, is one the tool sends a move for", () => {
   const form = block("approver: approve\n");
   expect(form).not.toBe("");
@@ -101,12 +154,15 @@ test("each `asked:` form of the brief is read by the tool as its kind", () => {
 test("the leave verdict of the brief is counted by `trial` under each reason the brief names, and holds the issue", () => {
   const form = block("approver: leave\n"), whys = [...flat(brief).matchAll(/`why: ([^`<]+)`/g)].map((m) => m[1]);
   expect(form.split("\n").find((l) => l.startsWith("why: "))).toBe("why: <reason>");
-  // Five: the first is of step 6 and has no count of its own in `trial`, which puts it under `other`.
-  const OWN = "the approver's own files";
-  expect(whys).toEqual([OWN, "no word of his", "more than the words", "not secure", "could not tell"]);
+  // Five: the first is of step 6. A reason `trial` has no count for by name is counted under `other`: only these two
+  // may be, and three are counted by name whatever the tool does with those. (`his to weigh` is the brief's since
+  // approver-brief-his-test, 2026-10-13, in place of `more than the words`, which the tool counted.)
+  const OWN = "the approver's own files", WEIGH = "his to weigh";
+  expect(whys).toEqual([OWN, "no word of his", WEIGH, "not secure", "could not tell"]);
   for (const w of whys) {
     const t = trial(base(form.replace("<reason>", w).replace("<blob>", B)), git);
-    expect([t.leave, t.whys[w], t.whys.other], w).toEqual(w === OWN ? [1, undefined, 1] : [1, 1, 0]);
+    if (w !== OWN && w !== WEIGH) expect(w in t.whys, w).toBe(true);
+    expect([t.leave, t.whys[w], t.whys.other], w).toEqual(w in t.whys ? [1, 1, 0] : [1, undefined, 1]);
   }
   // R4: an approve verdict after a leave of the same issue sends nothing
   const rec = [...base(form.replace("<blob>", B)), { seq: 10, type: "commented", id: "t1", key: "x", body: fill(block("approver: approve\n"), `asked: 3 "${HIS}"`), by: by("appr-999999", "delegation:eeeeeeeeeeee") }];

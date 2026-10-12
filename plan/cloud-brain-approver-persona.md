@@ -312,7 +312,10 @@ them:
    (`rules.md` already takes these as his comment: "Yes, it counts").
 
 It approves when the change is what those words ask and no more. A change that does what he asked
-and also something he did not is not that. An approval by the approver, of a spec or of anything,
+and also something he did not is not that. (As built, `approver-brief-his-test`, 2026-10-13: the
+brief approves when the change is secure and in keeping with his words and `philosophy.md`, and
+what a change has beyond his words is a leave only for five kinds its step 5 names; under "and no
+more" the first eight verdicts were each a leave, `pm-approver-leaves-everything`; the record.) An approval by the approver, of a spec or of anything,
 is none of the four (R6): for a task of a spec that the approver approved, the words are the ones
 that spec's own verdict quoted, and the task must be inside them.
 
@@ -369,7 +372,9 @@ Three more that are not held, each named so that he can ask for it:
 
 It leaves the issue to him, with the reason, when: no word of his is found; the change is more
 than the words; it is not secure by the reading above; the passing review names something not tried that the change's safety
-rests on; a ref cannot be read in the checkout; or it cannot tell.
+rests on; a ref cannot be read in the checkout; or it cannot tell. (As built,
+`approver-brief-his-test`, 2026-10-13: in place of "more than the words" the brief's step 8 has
+`his to weigh`, one of the five kinds of its step 5, named in the verdict; the record.)
 
 An issue it leaves gets a comment in the form `philosophy.md` gives for `needs-owner`, with what
 stopped it, and `issue.narrow { id, move: "approve", guard: "caller.present" }`. A guard added to a
@@ -787,6 +792,8 @@ what the text left open:
 - A quotation of fewer than 20 characters is written `asked: <seq> "<words>" answers <seq of the comment>`.
 - `trial` counts a `leave` by a line of the verdict, `why: <reason>`, one of `no word of his`, `more than the
   words`, `not secure`, `could not tell`; anything else is `other`. Task 2's brief asks for that line.
+  (As built, `approver-brief-his-test`, 2026-10-13: the brief's reason is `his to weigh` where it was `more than
+  the words`. `trial` was not changed with it and counts a verdict with that line under `other`; the record.)
 - `approver.ts id` tries `approver/id-2` and on when the key `approver/id` is held by an earlier `loop-approver`,
   which answers no event to another delegation.
 
