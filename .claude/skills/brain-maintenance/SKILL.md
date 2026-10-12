@@ -76,9 +76,9 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
 - **An agent's.** Before each spawn (step 4): `agent-token <role> <issue id>`, with the role `impl`
   for a writer, `rev` for a reviewer, `spec` for a spec writer, `dig` for a digest writer and `over`
   for an overseer, whose second argument is `oversight-after-<seq>`. The name goes in the agent's
-  prompt, and in the `token` field of its `cost` line (step 5). A round sent to an agent by message
+  prompt, and in the `token` field of its run's `cost` event (step 5). A round sent to an agent by message
   makes no token: the agent has the one of its first round.
-- **Ended** by you, `agent-token revoke <name>`, when you write the run's `cost` comment. Not then
+- **Ended** by you, `agent-token revoke <name>`, when you write the run's `cost` event (step 5). Not then
   for a writer's or a digest writer's run whose outcome is `in-review`, nor for a spec writer's that
   ended at `spec-review`: only the starter submits, and it may be sent a rework round. That token is
   ended when the issue leaves `in-review` for good (a `pass`, `to-approval`, a reject), a spec writer's when
@@ -87,8 +87,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
   exit 2 here and sends nothing, and cb4 answers the value 401.
 - **No agent makes itself a token**, and none calls with `loop-agents`. Nothing on cb4 refuses
   either: the parent is in a file every agent's shell reads (the spec, "What is not checked"). What
-  shows it afterwards is a name that wrote an event and is the `token` of no `cost` line, so a `cost`
-  line you write without its `token` hides it. A session outside the loop makes its own, `out-…`.
+  shows it afterwards is a name that wrote an event and is the `token` of no `cost` event, so a `cost`
+  event you write without its `token` hides it. A session outside the loop makes its own, `out-…`.
 - **The three tokens of a role** (`issues-implementer-2`, `issues-reviewer-2`, `issues-overseer-1`)
   are kept until the owner revokes them, which the spec puts after the first check of
   `ta-6-checks-after-three-issues`. A brief names one only for an agent whose prompt names no token.
@@ -184,7 +184,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    | `in-progress`, started by a writer or a digest writer (the `by.holder` of its last `start` event is `secret:impl-…` or `secret:dig-…`, or a role's token, for a start made before each agent had its own), sent back, no agent running | Send the round to the agent that started it ("A rework round goes to the agent that wrote the change", below): its token is still kept, and only the starter submits (`caller.actor == issue.by.start`). When it cannot be sent one, the next row. Do not, and instead comment with the open findings and label `needs-owner`, when the last implementer you spawned for it finished without a new `submit`, or when it has 3 `rework` moves and the rounds are not getting anywhere. At 3 you judge (Tom, 2026-10-10: "make a judgment call when the 3 retries is hit, has genuine progress been made?"): go on when each review closed what the one before found and the new findings are narrower; stop when a finding came back, or the rounds are trading one defect for another of the same size. Write the judgment and its reason in the journal and as a comment on the issue. |
    | `in-progress`, no agent running, and its starter cannot go on: the writer died or cannot be sent a message, its token has ended (`agent-token list` has no line for it), or the `start` was made with a role's token and its writer cannot be sent one (after the owner's revoke of those: every such issue) | **A dead writer.** You end its token (`agent-token revoke <name>`; a role's token is the owner's to end), then you make `back` to `ready` with the reason. The issue is then `ready`: the writer you spawn makes the second `start` with its own token, which replaces `issue.by.start`, and it alone submits. Two more moves. A submit by any token but the last starter's is refused 403. |
    | `in-progress`, started by you (`secret:orch-…`: a quick win, or work on the owner's word), sent back | **A quick win of your own, sent back.** Do the round yourself and submit: no more moves. Or hand it over: you make `back`, the writer you spawn makes `start` and then submits. Two more moves. Your own token is not ended, so after the `back` the policy no longer refuses you a review of that issue: "You review nothing yourself" is what holds. (Submits 622, 935 and 1002 were a writer's on an issue you had started; each answered 200 because both were one token.) |
-   | kind `project` or `feature`, at `spec`, no agent running | **A spec sent back.** Send the round to the spec writer by message, as a writer of a task is sent one (the `agent` and `session` of its last `cost` line; `agents/spec.md`, "A resumed round"). When it cannot be sent one, or it died: you end its token and make `back` from `spec` to `open`; the spec writer you spawn makes `spec` with its own token (key `spec/<id>/spec-<round>`), which replaces `issue.by.spec`, and then `submit-spec`. Two more moves. |
+   | kind `project` or `feature`, at `spec`, no agent running | **A spec sent back.** Send the round to the spec writer by message, as a writer of a task is sent one (the `agent` and `session` of its last run, `issue-as.sh <your token> "runs?id=<id>&role=spec-writer"`; `agents/spec.md`, "A resumed round"). When it cannot be sent one, or it died: you end its token and make `back` from `spec` to `open`; the spec writer you spawn makes `spec` with its own token (key `spec/<id>/spec-<round>`), which replaces `issue.by.spec`, and then `submit-spec`. Two more moves. |
    | `in-review`, and no review since it came into that state | Spawn the reviewer. |
    | kind `project` or `feature`, at `spec-review`, no review since it came there | Spawn the reviewer; it follows "A spec" in its brief. |
    | `in-progress`, the change is landed, and its writer finished with no `submit` | **A submit made for a writer.** Ask the writer to submit, by message, when it can be sent one. Else you end its token, make `back`, make `start` with your own token, and submit with the refs: the starter is then you, and the review is a reviewer's. Two more moves. (Submit 516 was yours for a writer's start.) |
@@ -232,9 +232,9 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    `light-reviewer-in-use` against 9,764 with none), and none of that issue's three reviews called one. Its stdout is one JSON line,
    `{ session, result, usd, usage, context, turns, ms, legs }`: `result` is its report, of its last leg when it
    waited on a background command (`legs` over 1; until 2026-10-11 the line was of the first leg, and a reviewer
-   that waited for the landing lock read as having stopped at "Still held"). In the `cost` comment
-   `tokens` is `context`, `seconds` is `ms` over 1000, and the line has three more fields, `"usd"`, `"session"`
-   (the `session` of that JSON, not yours) and `"light":true`; `tools` is left out. It is never sent
+   that waited for the landing lock read as having stopped at "Still held"). In its `cost` event (step 5)
+   `context` is `context`, `seconds` is `ms` over 1000 as a whole number, `how` is `light`, and the call has `usd` and `session`
+   (the `session` of that JSON, not yours); `tools` and `agent` are left out. It is never sent
    `--resume`. When the command prints no JSON line, or exits 1 (the result was an error) or 2, spawn the reviewer once as an Agent, as above, with the same token in its prompt:
    the file `agents/reviewer.md` says where the brief is. Say so in the journal and in step 7.
    A JSON line and exit 2 together are not that case: the line is printed only when the run gave a result, so the
@@ -251,51 +251,70 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    tracker says what happened, not the report: an implementer that says "submitted" with the
    issue still `in-progress` did not submit.
    Then put what the run cost on the issue, so that cost per issue is read from the tracker and
-   not parsed from the journal (the owner, 2026-10-11): one comment, with your own token
-   (`orch-…`), whose body is the word `cost` and one line of JSON,
-   `cost {"role":"implementer","round":1,"tokens":177525,"seconds":723,"tools":37,"outcome":"in-review","event":205,"agent":"af49053b540d9c3f5","session":"f501a8e8-b922-4e11-a581-2b725efd6272","token":"impl-3fa2c1"}`,
-   under the key `cost-<id>-<role>-<round>`, which a second post of the same run does not repeat.
-   `role` is `implementer`, `reviewer`, `spec-writer`, `digest`, `overseer` or `triage`; `round`
+   not parsed from the journal (the owner, 2026-10-11): one call of `issue.cost`, with your own token
+   (`orch-…`), which writes an event of the type `cost`:
+   ```
+   issue-as.sh <your token> cost '{"key":"cost/<id>/implementer/1","id":"<id>","role":"implementer","round":1,"how":"fresh","outcome":"in-review","seconds":723,"context":177525,"tools":37,"event":205,"agent":"af49053b540d9c3f5","session":"f501a8e8-b922-4e11-a581-2b725efd6272","token":"impl-3fa2c1","usage":{"input":61,"cacheWrite":141873,"cacheRead":3561349,"output":17885,"requests":29,"advisor":{"calls":2,"input":254047,"output":13751}}}'
+   ```
+   The key is `cost/<id>/<role>/<round>`, which a second call for the same run does not repeat (`duplicate: true`).
+   (Since `cm-5-the-loop-writes-the-event`, 2026-10-12. Until then the run was a comment whose body was the word
+   `cost` and a line of JSON, and its usage, when found later, a second comment. Those comments stay in the record
+   and nothing reads them: `tools/cloud-brain/cost-events.ts` entered each as an event that names it in `of`.
+   The owner, 2026-10-11: "we should make them 1st class citizens of the model and not a JSON blob appended as a string".
+   `plan/cloud-brain-run-cost-is-part-of-the-issue-model.md`.)
+   The service checks the call (`getSource?worker=brain-x-issues&part=reference`, the row `issue.cost`): a field it
+   does not list, a required one that is missing, or one of another type is 400 `InvalidRequest` naming the field, and
+   nothing is written. Read the answer: `seq` is the event's.
+   Required: `role`, `round`, `how`, `outcome`, `seconds`, `context`.
+   `role` is `implementer`, `reviewer`, `spec-writer`, `digest`, `overseer` or `triage` (a name, a-z 0-9 -; the service keeps no list); `round`
    counts the runs of that role on that issue from 1 (a writer's is the round it wrote, the `rework` moves before it
-   plus one, as in its keys `comment-N` and `submit-N`; for a run of two rounds, below, the first of them); `tokens`, `seconds` and `tools` are the
-   Agent result's numbers as integers, a missing one left out and none estimated; `outcome` is
-   `in-review`, `pass`, `changes`, `stopped` or `no-submit`; `event` is the submit or the review
-   the run made, when it made one. `token` is the name of the token the agent wrote with, the one you made for it and put in its
-   prompt; a run that had none (a prompt from before this field, a triage of your own) leaves it out. It is what joins a
-   `by.holder` of the record to a transcript. An implementer's line also has `agent`, the `agentId` of the
+   plus one, as in its keys `comment-N` and `submit-N`; for a run of two rounds, below, the first of them);
+   `how` is `fresh` for an agent you spawned, `resumed` for a round you sent to an agent that was there, `light` for the
+   reviewer run by `agent.sh`; `outcome` is
+   `in-review`, `pass`, `changes`, `stopped` or `no-submit`; `seconds` and `context` are the Agent result's numbers as whole
+   numbers, `context` its count of tokens: the size of the agent's last request, which says how full the agent was, not what
+   it was billed (the field was `tokens` in the comments). Neither is estimated. An Agent result that lacks one has 0 for
+   it, said in the journal, since the service refuses a run without them and a run with no event is in no total (each of the 389
+   runs written as comments by event 3358 had both: `cost-events.ts` left none out).
+   Optional, a missing one left out and never sent as `null`: `tools`, the Agent result's count; `event`, the submit or the review
+   the run made, when it made one; `token`, the name of the token the agent wrote with, the one you made for it and put in its
+   prompt (a triage of your own has none). It is what joins a
+   `by.holder` of the record to a transcript. `agent`, the `agentId` of the
    Agent result as it is written there, and `session`, the output of `echo $CLAUDE_CODE_SESSION_ID`
-   in your Bash: the two say where the agent can be sent its next round (below, "A rework round
+   in your Bash, are in the event of every Agent run: the two say where a transcript is, and where a writer can be sent its next round (below, "A rework round
    goes to the agent that wrote the change"). A round that was sent to an agent and not spawned
-   has `"resumed":true` and the same `agent`:
-   `cost {"role":"implementer","round":2,"resumed":true,"tokens":201310,"seconds":410,"tools":19,"outcome":"in-review","event":231,"agent":"af49053b540d9c3f5","session":"f501a8e8-b922-4e11-a581-2b725efd6272","token":"impl-3fa2c1"}`.
-   Its numbers are the ones the resumed run reported, as they are; what `tokens` counts there is
-   said in that section.
+   has `"how":"resumed"` and the same `agent`:
+   ```
+   issue-as.sh <your token> cost '{"key":"cost/<id>/implementer/2","id":"<id>","role":"implementer","round":2,"how":"resumed","outcome":"in-review","seconds":410,"context":201310,"tools":19,"event":231,"agent":"af49053b540d9c3f5","session":"f501a8e8-b922-4e11-a581-2b725efd6272","token":"impl-3fa2c1"}'
+   ```
+   Its numbers are the ones the resumed run reported, as they are; what `context` counts there is
+   said in that section. (This example is written without its `usage`, for length.)
    A run in which the writer waited and took a round itself (step 2, "A writer that waits") made two submits and
-   gets one line, when it reports: `"rounds":2`, `round` the number of the first of the two, `event` the last submit,
-   `outcome` what the issue was at when it reported, no `"resumed"`, and the key `cost-<id>-<role>-<round>` with
-   that first number. The round after it is counted from the tracker as every round is (the `rework` moves plus one),
-   so its line is two on from this one. `usage` is `agent-usage.ts --session <session> --agent <agentId>` with no
-   `--last-run`: the agent was given one prompt, and both rounds are its run. `seconds` of such a line has the waits in it.
-   A run that waited and took no round (a `pass`, or no review in 20 minutes) has no `rounds`.
-   (`rounds` is a field of this comment because the comment is what a cost is today: the tasks of
-   `run-cost-is-part-of-the-issue-model`, `cm-1` to `cm-6`, were at `triaged` on 2026-10-11, and its spec names no such field.)
-   Every line also has `usage`, what the run was billed (the owner, 2026-10-11: "yes lets post  billed tokens
+   gets one event, when it reports: `round` the number of the first of the two, `event` the last submit,
+   `outcome` what the issue was at when it reported, `how` `fresh`, and the key `cost/<id>/<role>/<round>` with
+   that first number. No field says it was two: `issue.cost` refuses a field it does not list, `rounds` among them, and the
+   comment's `"rounds":2` (os-4) is not carried. That a run was of two is read from the record: the submit its `event` names
+   is the issue's second after the `start`, with a `rework` between them. (No such run was in the record at event 3358: no comment had `rounds`.) The round after it is counted from the tracker as every round is (the `rework` moves plus one),
+   so its event is two on from this one. `usage` is `agent-usage.ts --session <session> --agent <agentId>` with no
+   `--last-run`: the agent was given one prompt, and both rounds are its run. `seconds` of such a run has the waits in it.
+   Every event also has `usage`, what the run was billed (the owner, 2026-10-11: "yes lets post  billed tokens
    (input, cache reads, output) per run for subagents too"): the one line that
-   `bun tools/cloud-brain/agent-usage.ts --session <session> --agent <agentId>` prints, as it is,
-   `"usage":{"input":61,"cacheWrite":141873,"cacheRead":3561349,"output":17885,"requests":29,"advisor":{"calls":2,"input":254047,"output":13751}}`.
-   So every Agent run's line has `agent` and `session`, not the implementer's alone. For a round that was sent
+   `bun tools/cloud-brain/agent-usage.ts --session <session> --agent <agentId>` prints, as it is, all eight numbers of it.
+   For a round that was sent
    to an agent add `--last-run`, which counts that round and not the ones before it (run it when the round
    reports: once a later round is sent, `--last-run` is that one, and an earlier one is `--run N`, the agent's Nth). For the light reviewer it is
    `--session <the session of its JSON line>` with no `--agent`. When the command exits 1 (no transcript) leave
-   `usage` out. A comment from before 2026-10-11 has its `usage` in a second comment, `cost-usage {"of":<its seq>,…}`
-   (`tools/cloud-brain/records/cost-comment-has-billed-usage.md`, "The backfill"). `tokens` stays: it is the size of the last request, which says how full the agent was, not what
-   it was billed. A run that was stopped or died gets its comment too. No time
-   of day goes in the body. With the comment written, end the run's token unless it is one of those kept for a rework round
+   `usage` out. When the transcript is found later, or a number of an event was wrong, send the whole run again with
+   what is now known, under the key `cost/<id>/<role>/<round>/2` (then `/3`): the later event of an issue, role and round
+   takes the earlier one's place in the issue's totals and names it in `replaced`, and both stay in the record. A run that was stopped or died gets its event too. No time
+   of day goes in it. `issue-as.sh <your token> "get?id=<id>"` then answers the issue's totals in `cost`, and
+   `"runs?id=<id>"` each run (`&role=`, `&how=`, `&round=<n>|first|later` narrow it; with no `id`, the runs of every issue).
+   With the event written, end the run's token unless it is one of those kept for a rework round
    ("A token for each agent", Ended); and when the issue has just left `in-review` for good, end its writer's, once that writer has reported
-   (one that waits reads the tracker with it until then, and `issue-wait.sh` exits 2 at a read that is refused). An overseer's run is on no issue: its line goes in `_oversight.md` in
-   the same form, and yours for the pass, with the role `orchestrator`, in `_orchestrator.md`
-   when the session shows a count. The journal is written as before. The runs before this
-   (100 on 37 issues, read from the journal's headings) carry `"backfilled":true`.
+   (one that waits reads the tracker with it until then, and `issue-wait.sh` exits 2 at a read that is refused). An overseer's run is on no issue, and an event needs one: its line goes in `_oversight.md`,
+   the JSON of the call without `key` and `id`, and yours for the pass, with the role `orchestrator`, in `_orchestrator.md`
+   when the session shows a count. The journal is written as before. A run entered from a comment by `cost-events.ts`
+   has `of`, the comment's seq; of those, the 100 read from the journal's headings on 2026-10-11 carry `"backfilled":true`.
 6. **Oversight.** Spawn the overseer (its token: `agent-token over oversight-after-<seq>`), beside the others, when either 3 issues have
    reached `done`, `rejected` or `needs-owner` since the last entry of `oversight.md`, or one
    issue hit the rework cap. One overseer at a time; it commits under the landing lock.
@@ -333,10 +352,10 @@ waits for its review (step 2, "A writer that waits") is running: it takes that r
 sent no message. What follows is for a writer that has reported: after its second `changes`, after
 20 minutes with no review, or one spawned before `os-4-writer-waits`.
 
-1. Read its last comment whose body starts `cost {"role":"implementer"`.
-2. When that line has an `agent`, its `session` is the output of `echo $CLAUDE_CODE_SESSION_ID`
-   in your Bash, and the agent's token is live, send the round to that agent (live: the line's `token` is a
-   `name` of `agent-token list`; a line with no `token` is of a writer that wrote with a role's
+1. Read its runs, `issue-as.sh <your token> "runs?id=<id>&role=implementer"`, and take the one of the highest `round`.
+2. When that run has an `agent`, its `session` is the output of `echo $CLAUDE_CODE_SESSION_ID`
+   in your Bash, and the agent's token is live, send the round to that agent (live: the run's `token` is a
+   `name` of `agent-token list`; a run with no `token` is of a writer that wrote with a role's
    token, which is live until the owner's revoke): `SendMessage` (load it with `ToolSearch`,
    `select:SendMessage`) with `to` the `agent` value and this message, with nothing added:
    ```
@@ -345,10 +364,10 @@ sent no message. What follows is for a writer that has reported: after its secon
    ```
    The answer to a send that was taken is `{"success":true,"message":"Resuming agent …"}`. The
    agent runs in the background and reports as a spawned one does; step 5 is the same, with
-   `"resumed":true`. While it runs it is the agent on that issue, and a writer at work for step 2.
+   `"how":"resumed"`. While it runs it is the agent on that issue, and a writer at work for step 2.
 3. Anything else, spawn as step 4, after the two moves of "A dead writer" in step 3's table (you end
-   the starter's token and make `back`; the writer you spawn makes `start`): no such comment, a line
-   with no `agent` (every run before 2026-10-11), another session's agent, a token that has ended,
+   the starter's token and make `back`; the writer you spawn makes `start`): no such run, a run
+   with no `agent`, another session's agent, a token that has ended,
    or a send that is refused (an agent the user stopped refuses a message; a transcript is deleted
    after 30 days). A refused send is not tried twice. Until 2026-10-11 the new writer submitted with
    no move between, being the same actor as the one that started.
@@ -359,8 +378,8 @@ the session is compared: the id alone, read in another session, names nothing th
 the issue and not in your memory because your context is compacted and the transcripts are not.
 A new session has another id, and spawns. Whether a session resumed after a restart of Claude Code
 keeps its id has not been seen: the one session that has sent rounds (`f501a8e8`, 2026-10-11) was
-not restarted between its first `cost` line and its last, and its transcript has one `sessionId`.
-After a restart, compare the variable with the `session` of a `cost` line written before it and
+not restarted between the first run it wrote and the last, and its transcript has one `sessionId`.
+After a restart, compare the variable with the `session` of a run written before it and
 write here what it was.
 That the variable gives that directory's name was read in a subagent's Bash on 2026-10-11, not in
 an orchestrator's. Before the first send of a session, `ls` that `subagents/` directory with the
@@ -369,15 +388,15 @@ there, every round of the session is a spawn, and say so in step 7.
 
 The reviewer is never resumed: a review is by an agent that has not read the work before, and a
 resumed reviewer has. The overseer is spawned as before. A spec writer and a digest writer are
-sent their round as a writer is, from their own `cost` line (`"role":"spec-writer"`, `"role":"digest"`),
+sent their round as a writer is, from their own last run (`role=spec-writer`, `role=digest`),
 and when they cannot be it is `back` and a spawn (step 3's rows). Three spec writers had been sent a
 round by 2026-10-11 (`cost` comments 926, 997 and 1015, as the spec counts them); no digest writer.
 
-What `tokens` is for a resumed round: on the one resume tried (2026-10-11, an agent that had
+What `context` is for a resumed round (`tokens`, when a run was a comment): on the one resume tried (2026-10-11, an agent that had
 answered "OK" with no tool call) the count was 40,982 after the first turn and 41,056 after the
-second, so the number held the first turn's context. A resumed round's `tokens` is therefore not
-set beside a new agent's as it stands. `"resumed":true` marks it, and the `tokens` of the same
-agent's comment before it is what to take off. That difference is not what the round was charged.
+second, so the number held the first turn's context. A resumed round's `context` is therefore not
+set beside a new agent's as it stands. `"how":"resumed"` marks it, and the `context` of the same
+agent's run before it is what to take off. That difference is not what the round was charged.
 This session's transcript has `Resuming agent` answered for 4 agents on 2026-10-11 before 14:32 UTC:
 3 for a rework round and, before them, one whose run had stopped. On the first send to each (one
 was sent a second), the 3 sent more than 5 minutes after the agent's last request wrote the whole
@@ -393,7 +412,7 @@ Not tried: a resume after a restart, and a send that is refused.
 Not decided: when a long first round makes a resume dearer than a new agent, and whether a
 resumed writer passes its second review more often than a new one (7 of the 9 round-2 reviews
 readable in the journal on 2026-10-11 asked for changes again). The overseer compares the
-`"resumed":true` lines with the round-2 lines without it once there are some.
+resumed runs with the later rounds that are not (`runs?role=implementer&how=resumed&round=later`, and `how=fresh`) once there are some.
 
 ## A quick win
 

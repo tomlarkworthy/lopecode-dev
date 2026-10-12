@@ -59,11 +59,12 @@ test("the prompt of a spawn ends with the token's line, and the reviewer's task 
   expect(skill).not.toContain('agent.sh reviewer "review issue <id>"');
 });
 
-test("each cost example has the token of the run, and the comment is written with the session's own", () => {
-  const costs = [...skill.matchAll(/`cost (\{[^`]*\})`/g)].map((m) => JSON.parse(m[1]));
+// Since cm-5-the-loop-writes-the-event the run is an event written with issue.cost, and the example is the call.
+test("each cost example has the token of the run, and the event is written with the session's own", () => {
+  const costs = [...skill.matchAll(/^ *issue-as\.sh <your token> cost '(\{.*\})'$/gm)].map((m) => JSON.parse(m[1]));
   expect(costs.length).toBe(2);
   for (const c of costs) expect(c.token).toMatch(/^(impl|rev|spec|dig|over)-[0-9a-f]{6}$/);
-  expect(flat(skill)).toContain("one comment, with your own token (`orch-…`)");
+  expect(flat(skill)).toContain("one call of `issue.cost`, with your own token (`orch-…`)");
   expect(skill).not.toContain("with the token you triage");
 });
 

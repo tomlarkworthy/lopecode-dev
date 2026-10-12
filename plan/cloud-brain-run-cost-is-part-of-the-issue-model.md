@@ -381,6 +381,13 @@ The issues are not the same between rows, as the record of 2026-10-11 says of it
 - An overseer's run and the orchestrator's own pass are on no issue and stay in `_oversight.md` and
   `_orchestrator.md` as step 5 has them. An event needs an issue. Not changed here.
 
+(As built, `cm-5-the-loop-writes-the-event`, 2026-10-12: a spec writer's and a digest writer's round
+is read the same way, `issue.runs?id=<id>&role=spec-writer`. `issue-stats.ts` takes the last `cost`
+event of an issue, role and round in the record it read, and does not read `replaced`. A run of two
+rounds (os-4) is one event with no field for the count: `"rounds":2` of the comment is not carried,
+since `issue.cost` refuses a field it does not list. An Agent result with no `seconds` or no count
+of tokens has 0 for it. The line of `issue-stats.ts` still says `tokens`; the record.)
+
 ### Not chosen
 
 1. **The cost as a field of the move the run made.** 20 of 288 runs made no event (stopped, or
@@ -479,6 +486,12 @@ Each is one writer and one review. The ids are proposals.
    the two test files. Then `cost-events.ts --post` once more, for the comments written while 1 to
    4 landed, and R7's grep. After 4. No deploy. If `ta-3-orchestrator-steps` has landed, the
    `token` field is in the example lines.
+   (As built, `cm-5-the-loop-writes-the-event`, 2026-10-12: four test files changed. The two more are
+   `tests/tools/issue-wait.test.ts`, which held the sentence of step 5 on a run of two rounds, and
+   `tests/tools/briefs-name-the-prompts-token.test.ts`, which parsed the examples of step 5. An
+   orchestrator that read `SKILL.md` before the landing writes comments until it reads it again, so
+   `cost-events.ts --token NAME --post` is run again when its dry run says there is one to enter;
+   the record.)
 6. **`cm-6-panel-draws-a-run`.** `said` and the totals line in `issuesPanel`, with R5's test. A
    deploy of `brain-x-issues`. After 2; beside 4 and 5.
 

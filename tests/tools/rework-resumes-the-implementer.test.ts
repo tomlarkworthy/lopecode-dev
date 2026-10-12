@@ -1,6 +1,8 @@
 // The issue loop's procedure sends a rework round to the implementer that wrote the change (SendMessage),
-// and the cost comment of an implementer's run carries what is needed to find it: `agent` and `session`.
-// Issue rework-resumes-the-implementer.
+// and the cost event of an implementer's run carries what is needed to find it: `agent` and `session`.
+// Issue rework-resumes-the-implementer. Since cm-5-the-loop-writes-the-event the run is an event the orchestrator
+// writes with issue.cost and reads with issue.runs, and no comment (R7 of
+// plan/cloud-brain-run-cost-is-part-of-the-issue-model.md).
 //
 //   bun test ./tests/tools/rework-resumes-the-implementer.test.ts
 import { test, expect } from "bun:test";
@@ -12,8 +14,11 @@ const skill = readFileSync(join(dir, "SKILL.md"), "utf8");
 const brief = readFileSync(join(dir, "agents/implementer.md"), "utf8");
 const record = readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain/records/rework-resumes-the-implementer.md"), "utf8");
 
-// Every `cost {…}` example of SKILL.md, parsed.
-const costs = [...skill.matchAll(/`cost (\{[^`]*\})`/g)].map((m) => JSON.parse(m[1]));
+// Every example call of issue.cost in SKILL.md, parsed: a line `issue-as.sh <your token> cost '{…}'`.
+const costs = [...skill.matchAll(/^ *issue-as\.sh <your token> cost '(\{.*\})'$/gm)].map((m) => JSON.parse(m[1]));
+// The fields issue.cost takes beside key and id (issuesLimits.cost of brain-issues.ojs), and the ones it requires.
+const FIELDS = ["role", "round", "how", "outcome", "seconds", "context", "tools", "event", "of", "agent", "session", "token", "usage", "usd", "backfilled"];
+const REQUIRED = ["role", "round", "how", "outcome", "seconds", "context"];
 // A `## ` section, up to the next one.
 const section = (text: string, heading: string) => text.match(new RegExp(`\\n## ${heading}\\n[\\s\\S]*?(?=\\n## |$)`))?.[0] ?? "";
 
@@ -27,17 +32,48 @@ test("an implementer's cost example carries the agent id and the session", () =>
 });
 
 test("a resumed round's cost example says so, and names the round whose count it holds", () => {
-  const resumed = costs.filter((c) => c.resumed === true);
+  const resumed = costs.filter((c) => c.how === "resumed");
   expect(resumed.length).toBe(1);
   expect(resumed[0].round).toBeGreaterThan(1);
 });
 
-test("the row for an issue sent back reads the cost comment and resumes with SendMessage, or spawns", () => {
+// cm-5-the-loop-writes-the-event.
+test("each cost example is a call the tracker takes: its key, the required fields, and no field issue.cost does not list", async () => {
+  expect(costs.length).toBe(2);
+  for (const c of costs) {
+    expect(c.key).toBe(`cost/${c.id}/${c.role}/${c.round}`);
+    for (const k of REQUIRED) expect(c[k]).toBeDefined();
+    expect(Object.keys(c).filter((k) => k !== "key" && k !== "id" && !FIELDS.includes(k))).toEqual([]);
+    expect(["fresh", "resumed", "light"]).toContain(c.how);
+  }
+  expect(costs[0].usage).toEqual({ input: 61, cacheWrite: 141873, cacheRead: 3561349, output: 17885, requests: 29, advisor: { calls: 2, input: 254047, output: 13751 } });
+  // The list above is the seed's, and issueAct of what cb4 runs takes both examples (a checkout with no deploy/ skips this half with a line).
+  const seed = readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain/brain-issues.ojs"), "utf8");
+  expect(seed.includes(`cost: [${FIELDS.map((f) => JSON.stringify(f)).join(", ")}]`)).toBe(true);
+  const built = resolve(import.meta.dir, "../../cloud-brain-dev/deploy/@tomlarkworthy/brain-issues.js");
+  const { existsSync } = await import("node:fs");
+  if (!existsSync(built)) return void console.log(`skipped: rework-resumes-the-implementer.test.ts: no ${built}`);
+  const { importNotebookModule } = await import("../../tools/notebook-import.ts");
+  const m = await importNotebookModule(built, { overrides: { checkedRule: () => { throw new Error("no rule is checked here"); } } });
+  const act = await m.value("issueAct");
+  for (const c of costs) expect(act("cost", { ...c, id: "an-issue" })).toMatchObject({ type: "cost", role: "implementer", how: c.how });
+  expect(() => act("cost", { ...costs[0], id: "an-issue", rounds: 2 })).toThrow(/rounds: not a field of issue\.cost/);
+  expect(() => act("cost", { ...costs[0], id: "an-issue", tokens: 1 })).toThrow(/tokens: not a field of issue\.cost/);
+});
+
+test("SKILL.md and issue-stats.ts read no comment for a cost: R7's grep counts 0 in both", () => {
+  const stats = readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain/issue-stats.ts"), "utf8");
+  for (const text of [skill, stats]) expect(text.split("\n").filter((l) => /cost \\?\{|cost-usage/.test(l))).toEqual([]);
+});
+
+test("the row for an issue sent back reads the run and resumes with SendMessage, or spawns", () => {
   // since ta-3-orchestrator-steps the row reads the starter from the start event, and a spawn is the row after it
   const row = skill.split("\n").find((l) => l.trim().startsWith("| `in-progress`, started by a writer or a digest writer")) ?? "";
   expect(row).toContain("Send the round to the agent that started it");
   const s = section(skill, "A rework round goes to the agent that wrote the change");
-  for (const word of ["SendMessage", "CLAUDE_CODE_SESSION_ID", "`session`", "`agent`", "spawn as step 4"]) expect(s).toContain(word);
+  for (const word of ["SendMessage", "CLAUDE_CODE_SESSION_ID", "`session`", "`agent`", "spawn as step 4", '"runs?id=<id>&role=implementer"', "the highest `round`"]) expect(s).toContain(word);
+  // A spec writer's round is read the same way.
+  expect(skill).toContain('"runs?id=<id>&role=spec-writer"');
 });
 
 test("the reviewer is never resumed", () => {

@@ -230,7 +230,8 @@ loop-agents                      parent; scope issue.*; cap delegate; made by th
 - **Given to the agent** as a name in its prompt: "your token is `impl-3fa2c1`". The briefs say
   "the token your prompt names" where they now say `issues-implementer-2` (R4). The reviewer
   started with `agent.sh` gets it in the task text.
-- **Ended** by the orchestrator when it writes the run's `cost` comment, unless the outcome is
+- **Ended** by the orchestrator when it writes the run's `cost` comment (as built,
+  `cm-5-the-loop-writes-the-event`, 2026-10-12: the run's `cost` event, a call of `issue.cost`, which has the `token` field), unless the outcome is
   `in-review`: a writer may be resumed for a rework round and only the starter submits, so its
   token is ended when the issue leaves `in-review` for good (`pass`, `to-approval`). 48 hours ends
   what was forgotten. After that a command copied from an old event answers 401 (R2).

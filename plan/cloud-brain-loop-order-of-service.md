@@ -346,6 +346,10 @@ until its review is in, and takes the next round itself:
 - `SKILL.md`, step 5: a run that made two submits gets one `cost` line with `"rounds":2` and
   `event` the last submit; `agent-usage.ts` needs no `--last-run` for it. A writer that waits is
   not counted as a writer at work in part 3.
+  (As built, `cm-5-the-loop-writes-the-event`, 2026-10-12: the run is a `cost` event, which has no
+  `rounds`. `issue.cost` refuses a field it does not list, and a field more is a deploy of the
+  tracker. The run has `round` the first of the two and `event` the last submit; that it was two
+  is read from the issue's moves. `tools/cloud-brain/records/cm-5-the-loop-writes-the-event.md`.)
 
 (As built, `os-4-writer-waits`, 2026-10-11: the tool prints a second line when it reads one within
 30 s of the review, the first move of the issue after it, since the reviewer's `rework` is a later
@@ -416,7 +420,7 @@ command is one an agent of the loop runs with its own token, except where it say
 | R3 | `issue-stats.ts --token=<own> --window <seq of the landing of os-2>`, the line `in-review`, once 40 stays are in the window | median 6.3 min, 147 stays, whole record | read by the overseer at its next oversight; no figure is a condition of a task landing. A median over 6.3 is a finding for it. (As built, `overseer-md-lacks-order-of-service-reads`, 2026-10-12: `issue-stats.ts --window=2849` prints one `window` line and no time in a state, so the overseer's brief has the line made from `sync?after=2849`, 10 stays and a median of 4.6 min at event 3367; the record.) |
 | R4 | `issue-stats.ts --token=<own>`, the line `past 4 h, not started, no reason` | no such line. By hand at event 2310: 1 (`annotate-home-not-on-observable`) | the line is printed (os-3, with `bun test tests/tools/issue-stats.test.ts`); 0 two passes after os-2. Cannot be run before os-3 |
 | R5 | on this machine, the orchestrator: the first request after each of the five trial rounds' `reviewed` event, `cache_read_input_tokens` against `cache_creation_input_tokens` | 0 of 16 read more than they wrote | 4 of 5. Not a loop-token check: it is in the owner's list as the orchestrator's report to him |
-| R5 | `ia "get?id=<id>"`, the `cost` line with `"rounds":2` | none | `usage.cacheWrite` under 1.5 times the `tokens` of the same line: a run writes each token of its context about once, and a cold second round writes the first round's again. A weaker sign than the row above, and no run has shown where the line between them is. Read after the trial |
+| R5 | `ia "get?id=<id>"`, the `cost` line with `"rounds":2` (as built, `cm-5-the-loop-writes-the-event`, 2026-10-12: `ia "runs?id=<id>&role=implementer"`, the run whose `event` is the second submit after its `start`; `tokens` is `context` there) | none | `usage.cacheWrite` under 1.5 times the `tokens` of the same line: a run writes each token of its context about once, and a cold second round writes the first round's again. A weaker sign than the row above, and no run has shown where the line between them is. Read after the trial |
 | R6 | the rows of R3, R4 and R5 above | | |
 
 Run before this submit: the two `grep`s and the `list?label=owner` (their "Today" column), and
@@ -439,6 +443,8 @@ counts, which are what the replaced and added sentences give by reading.
 
 `run-cost-is-part-of-the-issue-model` is at `spec` and may change what a `cost` line is. os-4
 writes `"rounds"` in whichever form is current when it lands.
+(It landed first, in the comment. `cm-5-the-loop-writes-the-event`, 2026-10-12, then made the run
+an event, without the field: the note in part 5 of the design, above.)
 
 ## What only the owner can do
 

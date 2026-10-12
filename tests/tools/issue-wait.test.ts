@@ -169,10 +169,12 @@ test("the writer's brief has the wait as step 13: the command, the timeout, five
   expect(brief).toMatch(/## A resumed round A round you take yourself after step 13 is a resumed round too/);
 });
 
-test("SKILL.md: a writer that waits is not a writer at work, its run of two rounds has one cost line, and the watch names the submit", () => {
+test("SKILL.md: a writer that waits is not a writer at work, its run of two rounds has one cost event, and the watch names the submit", () => {
   const skill = flat(process.env.SKILL, "../../.claude/skills/brain-maintenance/SKILL.md");
   expect(skill).toMatch(/\*\*A writer that waits\.\*\*.*At `in-review` it is not counted as a writer at work; after the `rework` it is at work again\. In both it is still the agent on its issue/);
-  expect(skill).toMatch(/gets one line, when it reports: `"rounds":2`, `round` the number of the first of the two, `event` the last submit/);
+  // Since cm-5-the-loop-writes-the-event the run is a cost event, which has no field for the count of rounds.
+  expect(skill).toMatch(/gets one event, when it reports: `round` the number of the first of the two, `event` the last submit/);
+  expect(skill).toMatch(/No field says it was two: `issue\.cost` refuses a field it does not list, `rounds` among them/);
   expect(skill).toMatch(/`agent-usage\.ts --session <session> --agent <agentId>` with no `--last-run`/);
   expect(skill).toMatch(/issue-watch\.sh <your token>.*for each `submit` and `submit-spec` move, whatever token made it/);
   expect(skill).toMatch(/A writer that waits for its review \(step 2, "A writer that waits"\) is running: it takes that round itself and is sent no message/);

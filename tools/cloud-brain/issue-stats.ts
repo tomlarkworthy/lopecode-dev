@@ -7,7 +7,8 @@
 // --after counts only the issues opened after that event. Times are the events' own `at`.
 // --window counts the events after that one, whatever issue they are of: what an oversight judges its last edits by.
 // --until reads the record as it was at that event: a count written down with its event can be made again.
-// `statements only` counts the reviews whose body begins with those words, and what the round after a sent-back one cost.
+// `statements only` counts the reviews whose body begins with those words, and what the round after a sent-back one cost:
+// the `context` of two `cost` events, the writer's run and the reviewer's (the line says `tokens`, as it did).
 // The lines under `locks` are issue.locks?history=500, the holds of the landing lock and the deploy lock as the tracker
 // keeps them: read when the tool runs, of the newest 500 holds. They are rows and not events, so --after, --until and
 // --window do not reach them, and a count of them cannot be made again once the rows are trimmed.
@@ -133,19 +134,25 @@ const inWindow = shown.filter((e) => e.seq > from);
 // A review whose body begins `statements only` says every finding or note of it is a statement, and none asks code, a
 // test or a tool to change; `statements only, record` that each is in the issue's own record. The mark is the
 // reviewer's own (step 7 of its brief), of either verdict. For a marked `changes` the round after is the issue's first
-// implementer `cost` comment whose `event` is after the review, and its first reviewer `cost` comment whose `event`
-// is after that one: by `event`, since a comment's own seq is when it was written (backfilled ones, long after) and
-// its `round` counts the writer's runs, not the reviews. A review with either missing is counted and left out of the sum.
+// implementer run whose `event` is after the review, and its first reviewer run whose `event` is after that one: by
+// `event`, since a cost event's own seq is when it was written (the ones entered from comments, long after) and its
+// `round` counts the writer's runs, not the reviews. A review with either missing is counted and left out of the sum.
+// A run is a `cost` event (issue.cost), the one in force for its issue, role and round: the last of them in the record
+// read, which is the one the tracker's row keeps (a later one names the one it replaced). `context` is the size of the
+// run's last request, not what it was billed. No comment is read for a cost (cm-5-the-loop-writes-the-event; until
+// then the runs were comments, parsed here, and one that did not parse was dropped without a word).
+const inForce = new Map<string, any>();
+for (const e of shown) if (e.type === "cost") inForce.set(`${e.id} ${e.role} ${e.round}`, e);
 const costs: Record<string, any[]> = {};
-for (const e of shown) if (e.type === "commented" && /^cost \{/.test(e.body || "")) try { (costs[e.id] ||= []).push(JSON.parse(e.body.slice(5))); } catch {}
+for (const c of inForce.values()) (costs[c.id] ||= []).push(c);
 const mark = (e: any) => /^statements only(, record)?(?![\w-])/.exec(String(e.body || "").trimStart());
-const after = (list: any[], r: string, n: number) => list.filter((c) => c.role === r && c.event > n && Number.isFinite(c.tokens)).sort((x, y) => x.event - y.event)[0];
+const after = (list: any[], r: string, n: number) => list.filter((c) => c.role === r && c.event > n).sort((x, y) => x.event - y.event)[0];
 const statementsOnly = (list: any[]) => {
   const tally = (reviews: any[]) => {
     const round = { summed: 0, tokens: 0, leftOut: [] as number[] };
     for (const e of reviews.filter((e) => e.verdict === "changes")) {
       const writer = after(costs[e.id] || [], "implementer", e.seq), review = writer && after(costs[e.id], "reviewer", writer.event);
-      if (review) { round.summed++; round.tokens += writer.tokens + review.tokens; } else round.leftOut.push(e.seq);
+      if (review) { round.summed++; round.tokens += writer.context + review.context; } else round.leftOut.push(e.seq);
     }
     return { reviews: reviews.length, verdicts: count(reviews.map((e) => e.verdict)), round };
   };
@@ -227,7 +234,7 @@ export function text(report: Report) {
   line("done", `${report.done.count}, median ${report.done.medianH} h from opened; ${report.done.firstPass} with no rework; ${report.done.quick} started without triage`);
   line("review", `${submits} submits, ${reworks} sent back; verdicts ${JSON.stringify(report.review.verdicts)}`);
   if (from) line("window", `${windowReport.events} events after ${from}: ${windowReport.submits} submits, ${windowReport.reworks} sent back; verdicts ${JSON.stringify(windowReport.verdicts)}; ${windowReport.timesAhead.length} of ${windowReport.withText} texts name a time ahead of their own stamp ${JSON.stringify(windowReport.timesAhead)}`);
-  const marked = (t: Report["statementsOnly"]["all"]) => `${t.reviews} ${JSON.stringify(t.verdicts)}${t.round.summed + t.round.leftOut.length ? `, the rounds after ${t.round.summed} sent back: ${t.round.tokens} tokens${t.round.leftOut.length ? `, ${t.round.leftOut.length} more left out (no cost comment naming its event) ${JSON.stringify(t.round.leftOut)}` : ""}` : ""}`;
+  const marked = (t: Report["statementsOnly"]["all"]) => `${t.reviews} ${JSON.stringify(t.verdicts)}${t.round.summed + t.round.leftOut.length ? `, the rounds after ${t.round.summed} sent back: ${t.round.tokens} tokens${t.round.leftOut.length ? `, ${t.round.leftOut.length} more left out (no cost event naming its event) ${JSON.stringify(t.round.leftOut)}` : ""}` : ""}`;
   const statements = (s: Report["statementsOnly"]) => `${marked(s.all)}; of them \`statements only, record\`: ${marked(s.record)}`;
   line("statements only", `reviews that begin with it: ${statements(report.statementsOnly)}`);
   if (from) console.log(`  after ${from}: ${statements(windowReport.statementsOnly)}`);

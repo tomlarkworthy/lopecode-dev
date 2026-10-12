@@ -221,7 +221,8 @@ many reviews begin with each, of either verdict, and for the `changes` among the
 round after. That cost is the first implementer `cost` comment whose `event` is after the review's
 seq, and the first reviewer `cost` comment whose `event` is after that one; a review with either
 missing (100, 1032 and 1052 today) or with a comment that has no `event` (452 today: the reviewer's
-comment 807 was backfilled without one) is counted and left out of the sum, and the line says how
+comment 807 was backfilled without one; as built, `cm-5-the-loop-writes-the-event`, 2026-10-12: each
+is a `cost` event now, read as `issue.cost` wrote it, and no comment is read) is counted and left out of the sum, and the line says how
 many were. So on the record to event 1622, marked as the table above classes it, the line would sum
 seven rounds, 1,834,670 (the table's 2,015,361 less 180,691), and leave four out. Pairing by `round` is wrong: for review 534 it picks the
 writer's round 2, the one before the review. The reviewer's brief is a file of the Brain; the
