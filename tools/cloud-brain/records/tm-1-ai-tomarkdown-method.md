@@ -112,6 +112,9 @@ Priced calls made with `loop-markdown`: C3, C4 (charged `usd`, 0.001, by the cor
 refusal, as the seed's "The price" says of a refused call; the charge itself was not read), the
 2 MB file and the body that was no multipart.
 
+A fifth, after this table was written (the writer's comment, event 3544): on the second hash, 01:49 UTC,
+C3 again answered 200 with `x-brain-served-by: brain-x-ai@41bc808efa00`, C2 200 and C6 `10`.
+
 ## Read
 
 `knowledge.search?semantic=true` with `loop-knowledge`, three searches: "tomarkdown markdown
