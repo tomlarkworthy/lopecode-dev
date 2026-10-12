@@ -12,8 +12,9 @@ commit. `reviewer-brief-waits-on-show.test.ts`, `reviewer-in-a-view.test.ts` and
 `reviewer-brief-names-token.test.ts` each fetched it when `BRIEF` was not set, and the last test of
 `lock.test.ts` fetched it always. So a test file of one commit was run against the brief of another hour.
 
-Reproduced between 13:29:10 and 13:34:15, with the worktree at `59959915`: the test file as it was before the
-put of 12:44:50 (`ee2c86fc`, on `origin/main`), against the brief cb4 served.
+Reproduced between 13:29:10 and 13:34:15, with the worktree at `96b73640`: the test file at `ee2c86fc` (on
+`origin/main`; `d7cc9ed9`, which changed the file for the put of 12:44:50, is a later commit), against the brief
+cb4 served.
 
 ```
 $ git show ee2c86fc:tests/tools/reviewer-brief-waits-on-show.test.ts > tests/tools/zz-old-waits.test.ts
@@ -26,7 +27,7 @@ $ bun test ./tests/tools/zz-old-waits.test.ts
  1 fail
 ```
 
-That is the count the reviewer of `wt-4-reviewer-in-a-view` gave for that file (review 4046). The temporary
+That is the count the issue quotes from review 4046 of `wt-4-reviewer-in-a-view` for that file at that commit. The temporary
 file was removed after the run. The second way the count moved, a Brain that does not answer, in the same span
 and before any edit:
 
@@ -120,9 +121,14 @@ bun test --preload ./tests/tools/fixtures/no-fetch.ts <the three files>        1
 BRIEF=<an empty file> bun test ./tests/tools/reviewer-brief-names-token.test.ts  1 pass, 3 fail
 ```
 
-The whole suite, `tests/tools/suite.sh`, 13:36:57 to 13:38:26, before this file was written: 618 pass, 0 fail,
-65 files, no `skipped:` line. The count of the run made after it and after the rebase is in the comment on
-the issue and in the submit.
+The whole suite, `tests/tools/suite.sh`, 13:42:34 to 13:44:04, at `d448fbae` (the change as it is on
+`origin/main`): 618 pass, 0 fail, 64 files, no `skipped:` line.
+
+Two runs before the landing, at 13:36:57 and at 13:39:55, printed 618 pass, 0 fail in 65 files. The 65th was
+an empty file of the writer's own making: a loop over a shell variable of four file names, which zsh does not
+split, wrote `tests/tools/<the four names with spaces between>` at 13:35, a name that ends `lock.test.ts`. It
+was untracked, was not committed (`git ls-files 'tests/tools/*.test.ts' | wc -l` printed 64 with it there),
+and was removed before the run of 13:42:34. `worktree.sh --list` named it after the landing: `untracked=1`.
 
 ## Not done, not tried
 
