@@ -753,3 +753,27 @@ and what was done:
 - *Task 3 needed the policy of task 4; `brief` was in no task; a run could not know of the
   install.* The six issues are on cb4 and need no policy; `brief` is in task 1; the tool answers
   for the install.
+
+## As built
+
+**Task 1, `ap-1-approver-tool`, 2026-10-12.** The record is `tools/cloud-brain/records/ap-1-approver-tool.md`; the
+header of `tools/cloud-brain/approver.ts` is the reference. Where the tool differs from the text above, or says
+what the text left open:
+
+- Every command that reads the tracker takes `--token NAME`, the caller's own, and sends nothing without it. The
+  rows of the table that are written `approver.ts check` are run as `approver.ts check --token <token>`.
+- R8, "ends all of it with one command", has its check in `tests/tools/approver.test.ts`, the test "R8, ending all
+  of it": with no `loop-approver` in the kept tokens `approve` sends no move (exit 2), and a value the tracker
+  answers 401 for is exit 4 with nothing approved. `brain.ts token revoke NAME` sends `token.revoke` and takes the
+  kept value away (`brain.ts`, the branch `revoke` of `token`). `tests/tools/agent-token.test.ts`, "token revoke of
+  the parent ends its children", has that command leave the kept file `{}`, against a stand-in of the kernel and
+  for the token `loop-agents`. A revoke of `loop-approver` on cb4 was not run: the token is not made yet.
+- Part 4, "the policy cells of `brain-issues.ojs`": the tool refuses a ref that touches the file at all. It reads
+  no cell.
+- R7 has a fourth comparison: the file that runs is hashed (`git hash-object`) and is the tool blob of the
+  policy's reason, so a checkout behind `origin/main` makes no move.
+- A quotation of fewer than 20 characters is written `asked: <seq> "<words>" answers <seq of the comment>`.
+- `trial` counts a `leave` by a line of the verdict, `why: <reason>`, one of `no word of his`, `more than the
+  words`, `not secure`, `could not tell`; anything else is `other`. Task 2's brief asks for that line.
+- `approver.ts id` tries `approver/id-2` and on when the key `approver/id` is held by an earlier `loop-approver`,
+  which answers no event to another delegation.

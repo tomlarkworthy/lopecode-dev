@@ -178,6 +178,9 @@ test("approve: the four kinds of words, each read from where it is kept", () => 
   const short = run({}, (s) => [`asked: ${s.A} "A" answers ${s.choice}`]);
   expect(short.j.exit).toBe(0);
   expect(short.j.asked[0]).toMatchObject({ kind: 1, quote: "A" });
+  // Twenty characters is long enough; nineteen is not (the next test).
+  expect([..."answer within one se"].length).toBe(20);
+  expect(run({}, (s) => [`asked: ${s.wish} "answer within one se"`]).j.exit).toBe(0);
   // Two lines: both are held, and both are answered.
   expect(run({}, (s) => [`asked: ${s.wish} "the thing to answer within one second"`, `asked: rules.md "${HIS_RULE}"`]).j.asked.map((a: any) => a.kind)).toEqual([1, 3]);
 });
@@ -186,6 +189,7 @@ test("approve sends nothing (R3): the asked: line is absent, or its quotation is
   refused(run({ asked: [] }).j, /no line `asked:/);
   refused(run({ asked: ["asked: the owner said so"] }).j, /not read as asked:/);
   refused(run({}, (s) => [`asked: ${s.wish} "the thing to reply within one second"`]).j, /not in event \d+, letter for letter/);
+  expect([..."answer within one s"].length).toBe(19);
   refused(run({}, (s) => [`asked: ${s.wish} "answer within one s"`]).j, /fewer than 20 characters is the whole text of an event of his own/);
   refused(run({}, (s) => [`asked: ${s.other} "the other thing painted green all over"`]).j, /is of other: not the issue, nor its parent/);
   refused(run({}, (s) => [`asked: ${s.lateWish} "every Worker to deploy itself at midnight"`]).j, /is of late: not the issue/);
@@ -457,7 +461,7 @@ test("trial: the verdicts in the open, counted by what followed and by whose wor
 
 // ---- the tool as it is run: the reads through issue-as.sh, the two sends with loop-approver
 const VALUE = { appr: "value-of-the-run-7f3a", loop: "value-of-loop-approver-9c1d" };
-let served: { record: any[]; policy: any; refuse?: number; idHolder?: string } = { record: [], policy: {} }, calls: { method: string; bearer: string; body: any }[] = [];
+let served: { record: any[]; policy: any; refuse?: number; idHolder?: string; again?: boolean } = { record: [], policy: {} }, calls: { method: string; bearer: string; body: any }[] = [];
 const server = Bun.serve({ port: 0, hostname: "127.0.0.1", async fetch(req) {
   const url = new URL(req.url), method = url.pathname.replace("/xrpc/com.lopecode.brain.issue.", ""), bearer = (req.headers.get("authorization") || "").replace("Bearer ", "");
   const body = req.method === "POST" ? await req.json() : null;
@@ -465,7 +469,7 @@ const server = Bun.serve({ port: 0, hostname: "127.0.0.1", async fetch(req) {
   if (served.refuse && req.method === "POST") return Response.json({ error: "AuthRequired", message: "unknown token" }, { status: served.refuse });
   if (method === "sync") { const after = Number(url.searchParams.get("after") || 0), limit = Number(url.searchParams.get("limit") || 200); return Response.json({ events: served.record.filter((e) => e.seq > after).slice(0, limit) }); }
   if (method === "policy") return Response.json(served.policy);
-  if (method === "move") return Response.json({ id: body.id, seq: 9001, event: { seq: 9001, ...body, type: "moved", by: LOOP } });
+  if (method === "move") return Response.json({ id: body.id, seq: 9001, ...(served.again ? { duplicate: true } : {}), event: { seq: 9001, ...body, type: "moved", by: LOOP } });
   // A key another delegation holds answers no event.
   if (method === "comment") return Response.json(body.key === "approver/id" && served.idHolder ? { id: body.id, seq: 7, duplicate: true } : { id: body.id, seq: 9002, event: { seq: 9002, ...body, type: "commented", by: LOOP } });
   return Response.json({ error: "NotFound" }, { status: 404 });
@@ -507,6 +511,11 @@ test("approve, run: the reads are the run's own token, the one move is loop-appr
   expect(sends().map((c) => c.body)).toEqual([judge(w.record, w.policy, git, { id: "task", verdict: w.s.verdict }).send]);
   expect(r.all).not.toContain(VALUE.loop);
   expect(r.all).not.toContain(VALUE.appr);
+  // The same key answered as kept already (two runs at once): said, and exit 0.
+  serve(w);
+  served.again = true;
+  const twice = await cli(["approve", "task", String(w.s.verdict), "--token", "appr-0a1b2c"]);
+  expect([twice.code, twice.out]).toEqual([0, `approved task: event 9001 (sent before; nothing new was written), to done, on your words of event ${w.s.wish}\n`]);
 });
 
 test("approve, run: exit 3 and nothing sent while no approve guard names a delegation; exit 1 with each reason; exit 2 with no token", async () => {
