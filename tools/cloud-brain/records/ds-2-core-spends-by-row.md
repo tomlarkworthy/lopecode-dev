@@ -9,7 +9,7 @@ the owner's to deploy, after the deployer (`ds-1-rows-add-within`) and `redistil
 the core of hash `26486a49c85b`, which is the one from before this change.
 
 The writer's brief keeps a change to a `test_*` cell of `brain-core.ojs` for the owner (step 3). This
-task changes six. It was started because the spec says the seed lands and that its approval is his
+task changes five and adds two. It was started because the spec says the seed lands and that its approval is his
 word for that, and comment 3711 of the parent took it so.
 
 ## What changed
@@ -38,13 +38,14 @@ All in `brain-core.ojs`.
 - **`quota.ledger`** reads `spend/DAY/` by prefix, or for `who` the row `spend/DAY/WHO` and the
   prefix `spend/DAY/WHO/`. A list is a day in the old shape and is folded as before, with the 8000 it
   was written under (`LISTED`). An object is a line. `limit` is at most the setting.
-- **`prune`** deletes the same days under `spent/` as under `spend/`: 88 `deletePrefix` at the first
-  priced call of a day, where it was 44.
+- **`prune`** deletes the same days under `spent/` as under `spend/`: each of its two loops runs for
+  both names.
 - The constants `CHARGES` and `KEEP` are gone, and `rows.append` is no longer called for money.
 - The prose "Prices and credits" and the method table: `quota.list`, `quota.ledger`, `quota.put` and
   `quota.setDefaults` each have a row now, with what they answer.
 
-Three things the spec's list does not have. They are in the spec as an "(As built …)" paragraph.
+Three things the spec's list does not have. They are in the spec as an "(As built …)" paragraph,
+with a fourth, the upper bound of `charges`, which is above.
 
 - **A refusal after this instance's own last charge costs no statement.** The add that takes the
   last charge answers the row, so the instance knows the day is at the count. The spec's "`null`: one
@@ -115,8 +116,8 @@ temporary directory was not looked for. This change touches neither that test no
 ## What the owner's deploy will meet
 
 - **The order.** The deployer with the new `cloudflare-iac`, then `redistil --apply`, then the core.
-  A core that calls `rows.addWithin` on a wrapper without it answers a priced call 500, which is the
-  500 of the 15 above.
+  The spec has why: a core that calls `rows.addWithin` on a wrapper without it answers a priced call
+  500. The two failures of `test.ts` that were read above are that case.
 - **The day of the deploy starts at nothing.** The new row has no spend of the hours before, so each
   account can spend up to one more allowance that day. The spec chose this.
 - **That day's ledger has both shapes.** `quota.ledger` answers the list from before the deploy and
@@ -138,6 +139,8 @@ temporary directory was not looked for. This change touches neither that test no
 - **The 402 when the setting was lowered under what the day has.** The message is
   "`ACCOUNT` has made `N` priced calls today" with `N` the setting, not the day's count. The test
   reads the status and the row for that case and not the message.
+- **A `limit` over the setting.** `quota.ledger` cuts at `Math.min(charges, limit)`; no test asks for
+  more lines than the setting.
 - **A day of 100,000 lines read by `quota.ledger`**, and a `limit` that is negative or not a number
   (as before this change: `Number(limit) || 200`, then `slice`).
 - **A list of the old shape with an entry that is `null`.** `fold` would throw on it, as before.
