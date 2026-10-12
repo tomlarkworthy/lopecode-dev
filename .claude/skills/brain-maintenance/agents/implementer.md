@@ -796,7 +796,7 @@ $W/tools/cloud-brain/issue-ask.sh <token> <id> <n> <minutes> --runs "<what is bi
 ```
 
 `<minutes>` is how long you wait, 1 to 10. `--runs` names what you started that is billed and still
-runs, `--since` the time it was started (read from `date` or an event's `at`), and `--stop-in` the
+runs, `--since` the time it was started (read from `date` or an event's `at`, as a time of day of this machine), and `--stop-in` the
 minutes from now at which you stop it yourself, answered or not, the wait's at most. The tool
 refuses, exit 64 with nothing sent, an ask with no minutes, one with neither `--nothing-billed` nor
 `--runs`, and a `--stop-in` past the wait. It writes the two times from the clock in the comment,
@@ -808,6 +808,7 @@ the wait's end is one, but in the last 10 minutes of a day (`tests/tools/issue-a
 `tools/cloud-brain/issue-watch.sh` prints a `labelled` event that adds that name, whatever token wrote
 it, and the line wakes the session; the comment alone prints nothing (`tests/tools/issue-watch.test.ts`).
 It prints a second line, `asks-still`, when the label is still on and the issue has had no event for 5 minutes.
+(What it reads is the issue's `updated_at`, which a `cost` event does not move.)
 The session answers with a comment keyed `orch/<id>/answer-<n>` and then takes the label off
 (`SKILL.md`, step 3, the row of the label). You read for the label gone, once a minute:
 

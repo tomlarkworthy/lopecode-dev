@@ -86,8 +86,8 @@ and sends that one comment with `ISSUE_AS_TIME_AHEAD=1`.
 ## The tests
 
 `tests/tools/issue-ask.test.ts`, new, 11 tests, and `tests/tools/issue-watch.test.ts`, 28 tests on
-`origin/main` at `a73d397d` and 32 now. Both files, run in the worktree at 23:52 CEST after the last
-edit of either:
+`origin/main` at `a73d397d` and 32 now (`grep -c '^test('` of each). Both files, run in the worktree at 23:58 CEST on 2026-10-12, after the last
+edit of either and of the two texts they read:
 
 ```
 bun test --timeout=30000 ./tests/tools/issue-ask.test.ts ./tests/tools/issue-watch.test.ts     43 pass  0 fail
@@ -120,15 +120,18 @@ The tests of the two texts hold that the sentences are there. Whether an agent o
 them is not tested.
 
 **A test that failed by the clock, and was mended.** The test through the real `issue-as.sh` first ran
-with the machine's clock. At 23:50 CEST it failed: the wait's end was `2026-10-13 00:00:36`, and
-`issue-as.sh` does not compare a time that stands beside another day's date, so the plain send was
-not exit 3. Both clocks are now set in the test (`ISSUE_ASK_NOW`, `ISSUE_AS_NOW`). So the sentence of
+with the machine's clock. It failed in a run that ended at 23:50:36 CEST by `date`: the wait's end, 10 minutes on, was the next
+day's (not printed by the test; taken from that time), and `issue-as.sh` does not compare a time
+that stands beside another day's date, so the plain send was not exit 3. Both clocks are now set in the test (`ISSUE_ASK_NOW`, `ISSUE_AS_NOW`). So the sentence of
 the brief, "`issue-as.sh` refuses a body that names a time ahead of the clock (exit 3), and the wait's
 end is one", is of a wait that ends the same day; in the last 10 minutes of a day such a body would
 have been sent.
 
-The whole suite, `tests/tools/suite.sh` in the worktree: the counts are in the comment of the submit,
-from the run after the last edit.
+The whole suite, `tests/tools/suite.sh` in the worktree, begun at 23:58 CEST after those edits and ended
+at 00:01:32 CEST on 2026-10-13 (`uptime` at its start: load 3.90): `850 pass`, `0 fail`, "Ran 850 tests
+across 88 files. [185.93s]". Only this file was changed after it. An earlier run, at 23:45, had 1 fail:
+`briefs-name-the-prompts-token.test.ts` holds that every `lock.sh` call the brief quotes names its
+token, and a row of "Before a wait" quoted one without; the row was reworded.
 
 ## On cb4
 
