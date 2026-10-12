@@ -575,6 +575,10 @@ keeps both counts, and task 2 changes what they count: `cut` is the long docs wi
 (0 when every long doc has one), and `unmarked` counts only those. A summarized entry does not end
 with the cut's line and is not one that should.
 
+Comment 4514 of this issue (2026-10-12) asked that: an entry with a summary that is still counted
+unmarked "would be put again at every landing". The change is in task 2, with the first summary's
+tool, and not in task 4 as an earlier draft of this round had it.
+
 **A copy of the tool from before task 2 undoes a summary.** Since `73ad331f` (2026-10-12),
 `put --stale` also puts a fresh doc whose entry is `unmarked` (`knowledge-docs.ts`, the `pick` of
 `put`), and to a copy that knows no summary every summarized entry is unmarked: it would put the
