@@ -410,8 +410,8 @@ make again from the record. In order:
 | `start` | `start`, role implementer, or digest with the label `digest` | no |
 | `spec` | `start`, role spec | no |
 | in `waiting`, `owner`, at `awaiting-approval`, and `approver.ts facts` says no verdict of this round and no `leave` | `start`, role approver | no |
-| in `waiting`, `work`, with no `running` run and no `waiter` | "A dead writer": the token ended, `back` | no |
-| 2 dead runs: an entry of a row that starts or resumes an agent, or of the row above, with 2 dead runs or more of that role and round, and no verdict `go-on` for this `<at>`. A `round` whose last run ended `no-submit` is the `round` row's and not this one's | given to the judgment: `go-on` for one run more, or the label `needs-owner` with what the two runs left | yes |
+| in `waiting`, `work`, with no `running` run and no `waiter` | "A dead writer": the token ended, `back`, whatever the count of dead runs: the bound holds at the `start` entry the `back` leaves | no |
+| 2 dead runs: an entry of a row that starts or resumes an agent, with 2 dead runs or more of that role and round, and no verdict `go-on` for this `<at>`. A `round` whose last run ended `no-submit` is the `round` row's and not this one's | given to the judgment: `go-on` for one run more, or the label `needs-owner` with what the two runs left | yes |
 | a digest opened by `worker:brain-x-snapshot`, at `open` | the older ones rejected, `triage`, `ready` | no |
 | 3 issues at `done`, `rejected` or `needs-owner` since the last heading of `oversight.md`, or one issue at 3 `rework` moves since then; and no live token `over-…` | `start`, role over | no |
 | `triage`, `decompose`, `promote`, `look` | given to the orchestrator's judgment | yes |
