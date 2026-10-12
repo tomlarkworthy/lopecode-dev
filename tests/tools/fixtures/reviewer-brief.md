@@ -57,7 +57,8 @@
 You review one issue of the Cloud Brain tracker on `cb4` that sits at `in-review`. One that step 1
 shows at `spec-review` is a spec: go from step 1 to "A spec" below, which stands in place of steps 2 to 6 and
 names the move (three reviewers read steps 2 to 6 before they knew, 2026-10-11: `loop-order-of-service`,
-`run-cost-is-part-of-the-issue-model`, `flow-metrics`). Your prompt
+`run-cost-is-part-of-the-issue-model`, `flow-metrics`). One whose `labels` have `post-mortem` is a post mortem:
+read "A post mortem" below after step 1. Your prompt
 names the issue, and may name your token, and nothing else, by design: you did not see the work
 being done. Read `.claude/skills/brain-maintenance/rules.md` first; it overrides this file.
 
@@ -421,3 +422,61 @@ replaced by these; steps 1 and 7 hold. Written 2026-10-11; first used that day o
    theme, editing off, "How this was written" last, a link that leaves the Brain opens a new tab.
 4. Read the seed's commit: it adds `digests/<day>.ojs` and nothing else.
 
+## A post mortem
+
+An issue whose `labels` have `post-mortem` is no fix. Its writer traced one decision or event back through the
+record to a cause a change can be made to, wrote that as one file, `tools/cloud-brain/post-mortems/<id>.md` with
+`<id>` the issue's id, and landed it with no deploy (`plan/cloud-brain-post-mortems-declared-and-kept.md`, part 6;
+the writer's side is `.claude/skills/brain-maintenance/agents/implementer.md`, "A post mortem"). Steps 3, 5 and 6
+are replaced by these; steps 1, 2 and 7 hold, and of step 4 its case for a submit with no deploy ref and no seed.
+Written 2026-10-12 (`pm-3-reviewer-brief`).
+
+- **The file is its record**: there is none under `tools/cloud-brain/records/`, and that is no finding. The
+  writer attached the file to the issue as `<id>-r<round>.md` (step 2 has the read).
+- **The count** is `bun test --timeout=30000 ./tests/tools/post-mortems.test.ts`, in your view: it holds the name,
+  the first line, the seven headings and the length of every file of the directory. Beside it, the test of the
+  file's quotes when the writer added one. Run each yourself and give both counts.
+- **What the trace is read against.** The issue's `links` have one `cause` link, to the issue the post mortem is
+  of: `ir "get?id=<the issue it is of>" > <your scratchpad>/of-<id>.json` has its events, each by its `seq`. A
+  commit is `git -C <checkout> show <sha>`, and a spec, a brief or a tool as an agent had it
+  `git -C <checkout> show <sha>:<path>`. The orchestrator's journal is
+  `<root>/tools/cloud-brain/.emitted/issue-loop/<issue>.md`. The transcript of a run is on the machine that ran
+  it and in no repository; the writer's section has the path. A step you could not read where the file says it
+  was read is named in the review as not read, with why. Nothing of a transcript that holds a token or a session
+  is quoted in the review (`rules.md`, Never: "Print, copy or log a secret").
+
+Answer four things in the review's body. For the first, say which five steps you read and what each was read from:
+
+1. Does each step of the trace say what its event, commit or line says? Read five of them, the cause's among them.
+2. Is the cause something a change can be made to, and does the trace reach it, or does it stop at an agent?
+3. Is each action under "Next actions" of the cause, and one change, and is "None" argued?
+4. Would a reader know a second case from "How it is known later"?
+
+Under question 3, since `post-mortem-actions-prefer-guards` (2026-10-12; the owner that day: "generally fixes are
+better as guards", and "if the cause cannot be determined the action would be to increase observability in the
+problem area"), the actions of a file are one table with a column `Held by`, whose cell starts with `guard`,
+`workflow`, `refusal`, `test`, `observability` or `text` (the writer's section, "The next actions").
+`post-mortems.test.ts` holds the column, the word and that a `text` cell goes on, for every file but the three
+written before that change. It does not hold these, which are yours to read:
+
+- For each action held by `text`: could a guard of the installed policy, a state or a move of a workflow, a refusal
+  of a service or a tool, or a test have stopped the step the trace names? Read the cell's reason against the
+  trace. "It is shorter" and "it needs his install" are no reason.
+- For each action held by one of the first four: is the kind named the kind the action is? A test that holds a
+  sentence of a brief is `text`.
+- Where `## The root cause` is "Not found": is an action `observability` at the step where the trace stopped, and
+  would a second trace get past that step with it? "None" is then no answer.
+
+A post mortem that fails 1 or 2 is sent back. A number that is inexact is a note (the owner, event 2099). The spec
+says no more of a `no` to 3 or 4: it is a note, unless it is one of the six kinds of "What holds a change", which
+hold here as for any change (the count is not what your run gives, a ref names a commit that is not there).
+
+The next actions are filed after your `pass`, by the writer or by the orchestrating session, so that no issue is
+opened from a cause a review sends back: an action of the file that has no issue yet and no `cause` link to it is
+no finding. The verdict and the move are step 7's.
+
+Review 4541 of `pm-second-summarizer-role` (2026-10-12) passed the first post mortem before this part was
+written, by the steps of this brief as it then was: each row of the trace read against `get?id=` of two issues, the
+file's test run with the file aside and with two of its statements altered, and under "What I did not do" that
+whether the cause is the true one cannot be tested. First review under this part: not yet, when it was written;
+say in your report what of it was wrong.

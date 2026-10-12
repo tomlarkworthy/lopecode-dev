@@ -747,7 +747,8 @@ and `close` it with that id as the reason. Else `triage`, then `ready`, and step
 **Its writer and its review.** An implementer, spawned as step 4 has it: the four lines, and nothing of what you
 think went wrong. Never you, as a quick win or otherwise. It lands one file with no deploy, attaches it to the
 issue, and submits. The review is a reviewer's as for any issue at `in-review`; the part "A post mortem" of its
-brief is task 3 of the spec (`pm-3-reviewer-brief`) and was not on the Brain when this was written.
+brief is task 3 of the spec (`pm-3-reviewer-brief`) and was not on the Brain when this was written; it is since
+2026-10-12 23:02 CEST, the put of that task.
 
 **The actions are filed at `done`.** The file lists them under `## Next actions`, 3 at most, or says "None". The
 writer waits for its review (`agents/implementer.md`, step 13) and after the `pass` opens each as an issue of its

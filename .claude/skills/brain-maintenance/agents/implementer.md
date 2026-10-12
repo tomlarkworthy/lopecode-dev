@@ -751,7 +751,8 @@ asked to pick between them.
 ### Before the submit: the four questions
 
 The reviewer's part "A post mortem" is task 3 of the spec, `pm-3-reviewer-brief`, and was not on the Brain when this
-was written. Its questions, from the spec (part 6). A post mortem that fails 1 or 2 is sent back:
+was written. (It is since 2026-10-12 23:02 CEST, the put of that task; `tests/tools/reviewer-brief-post-mortem.test.ts`
+holds that its four are these four.) Its questions, from the spec (part 6). A post mortem that fails 1 or 2 is sent back:
 
 1. Does each step of the trace say what its event, commit or line says? Read five of them, the cause's among them.
 2. Is the cause something a change can be made to, and does the trace reach it, or does it stop at an agent?
