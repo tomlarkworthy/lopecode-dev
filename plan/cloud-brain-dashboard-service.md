@@ -387,7 +387,7 @@ from a cell that reads the page's own client.
 | R3 | test of the rule, five callers as `brain-logs.ojs:313` has them, each with `params: { metric }`: `core.calls` passes the owner in a tab only; `deploys.confirmed` passes the owner in a tab and a token; `m.x.y` passes the owner in a tab and a DID; no `metric` refuses all but the owner in a tab. | `logs.query`: the owner's tab only. |
 | R3 | test: `by=caller` on `core.calls` is 400; the service has no route `metric.put` that writes a definition for `x-brain-caller: owner` (it is refused). | |
 | R3 | token: `metric.query?metric=deploys.confirmed&by=target` over one hour and over 24 hours, `n` summed, against the lines `at: "deploy.confirmed"` of `logs.deploys` over the same span. Equal, or the record says by how much and the answer carries the difference as a known limit. | 52 in the 24 hours to 16:32 UTC. |
-| R4 | token: `dashboard.put` of `deploys`, then `dashboard.get?name=deploys` answers it and `dashboard.list` names it, with no commit and no deploy between (`deploy/services.json` hashes the same before and after). | No dashboard is data. |
+| R4 | token: `dashboard.put` of `deploys`, then `dashboard.get?name=deploys` answers it and `dashboard.list` names it, with no commit and no deploy between (`deploy/services.json` hashes the same before and after). (As built, `dsv-7-second-dashboard-as-data`, 2026-10-12: put on cb4 with `loop-dashboard`; `dashboard.get` answers its 2 panels and `dashboard.list` names `health` and `deploys`; `services.json` read before the put and 16 s after the last list, the same; the record.) | No dashboard is data. |
 | R5 | tab: the select lists 2 names from the stand-in; choosing the second draws its panels and puts `dashboard=NAME` in the hash; a tab opened with that hash shows it chosen. | One chart section, no link. |
 | R6 | test, in `simulate` with `x-brain-caller` a DID: `metric.put` over `brain-m-<another id>-x` is 403 and over their own is 200; `metric.query` of their own metric is 200, of another member's 403, of `deploys.confirmed` 403; `dashboard.put` is kept as `m-<id>-NAME`; another member's `get` and `delete` of it are 403. Not checked on cb4: a member there needs the owner's grants. | Members read no logs. |
 | R7 | test: the same query twice within 60 s sends Cloudflare 1 body, and the second answer has `cost.cached: true`. tab: a dashboard of 3 panels over one `(metric, by)` sends 1 `metric.query`; "Refresh" adds 1; a resize adds 0. | Health: 1 `logs.query` a load, 0 a resize, since `ds-1`. |
@@ -440,6 +440,9 @@ asks for a second gate, task 1 is opened with `needs-owner` and no such comment,
    two panels and reads no dashboard; the record.)
 7. **A second dashboard, as data.** `dashboard.put` of `deploys` with the token. No commit to a
    seed and no deploy; the check of R4 is the test, and its count is what `dashboard.get` answers.
+   (As built, `dsv-7-second-dashboard-as-data`, 2026-10-12: `deploys` is a row on cb4, 2 panels; the
+   commit of the task holds its record and these notes, no seed;
+   `tools/cloud-brain/records/dsv-7-second-dashboard-as-data.md`.)
 
 8. **His ingestion, kept open** (`ds-ingestion-tail-to-analytics-engine`, a part of this project,
    opened with the others). It is built by no writer of the loop. It holds stage 2 of this spec
