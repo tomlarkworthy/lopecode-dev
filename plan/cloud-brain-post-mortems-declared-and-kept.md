@@ -401,7 +401,10 @@ what, and no file of the owner's is edited.
    `tests/tools/fixtures/reviewer-brief.md` and a test of the four questions.
 4. **`pm-4-stats-block`.** `issue-stats.ts` prints the block of part 7 and the two numbers of R8; its test.
    The three `cause` links of the first's actions (part 5). (As built, `pm-2-brief-and-procedure`, 2026-10-12: made in
-   task 2, events 4909 to 4911; the record.)
+   task 2, events 4909 to 4911; the record.) (As built, `pm-4-stats-block`, 2026-10-12: the block is as part 7 has it,
+   with a last line for R8 that has three numbers and not two: the post mortems with no label `owner`, beside the
+   events of the one case, since the first line counts the owner's too. `actions: none` and `of no cause link` are
+   printed where there is none; the record.)
 
 **The read after three is not a part of this project**, so the project is `done` when the four are.
 A part opened now would hold the project at `building` until three post mortems exist, and the record

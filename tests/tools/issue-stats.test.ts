@@ -625,3 +625,77 @@ PY
   expect(lines).toContain("    owner                 11  median    0.67 h  85th    1.47 h");
   expect(partly.out).toContain("open and idle for 4 h or more");
 });
+
+// pm-4-stats-block, part 7 and R8 of plan/cloud-brain-post-mortems-declared-and-kept.md: the block `post mortems`, a row
+// for each with its state, the issue it is of, its actions and the later post mortems that name it, and the two numbers
+// of R8. The shapes are cb4's: the label at the open (4906) and by a later `labelled` (4975), a `cause` link from the post
+// mortem (4481) and to it (4909), a `related` link from a later post mortem (4973), from the first to its project (4482)
+// and from an issue that is no post mortem (5017), and the one `send-back` (4434).
+let n7 = 7000;
+const open7 = (id: string, more: any = {}) => ({ seq: ++n7, key: `k${n7}`, type: "opened", id, kind: "task", state: "open", labels: [], by: orch, at: 1000 * n7, ...more });
+const move7 = (id: string, move: string, to: string, more: any = {}) => ({ seq: ++n7, key: `k${n7}`, type: "moved", id, move, to, reason: "r", by: session, at: 1000 * n7, ...more });
+const link7 = (id: string, rel: string, to: string, more: any = {}) => ({ seq: ++n7, key: `k${n7}`, type: "linked", id, rel, to, by: orch, at: 1000 * n7, ...more });
+const label7 = (id: string, add: string[], remove: string[] = []) => ({ seq: ++n7, key: `k${n7}`, type: "labelled", id, add, remove, by: orch, at: 1000 * n7 });
+const review7 = (id: string, verdict: string) => ({ seq: ++n7, key: `k${n7}`, type: "reviewed", id, verdict, body: "", refs: [], by: rev, at: 1000 * n7 });
+const record7 = [
+  open7("spec-a"), open7("project"),
+  move7("spec-a", "send-back", "spec"),                                                  // 7003
+  open7("pm-first", { labels: ["owner"] }), link7("pm-first", "cause", "spec-a"), link7("pm-first", "related", "project"),
+  open7("act-1"), link7("act-1", "related", "pm-first"),
+  open7("pm-second", { labels: ["post-mortem"] }), link7("pm-second", "cause", "project"),
+  link7("act-1", "cause", "pm-first"), open7("act-2"), link7("act-2", "cause", "pm-first"),
+  link7("pm-second", "related", "pm-first"),
+  label7("pm-first", ["post-mortem"]),
+  move7("pm-first", "finish", "done"), move7("act-1", "finish", "done"), move7("act-2", "owner-reject", "rejected"),   // act-2 had no pass
+  open7("other"), link7("other", "related", "pm-second"),                               // no post mortem: names nothing again
+  link7("pm-first", "related", "pm-second"),                                            // an earlier one: not "again"
+  open7("pm-third", { labels: ["post-mortem", "owner"] }),                              // no cause link, no action
+  open7("was-pm", { labels: ["post-mortem"] }), label7("was-pm", [], ["post-mortem"]),  // the label taken off
+  open7("act-3"), link7("act-3", "cause", "pm-second"), link7("act-3", "cause", "pm-second", { remove: true }),
+  open7("test-pm", { labels: ["post-mortem"] }), open7("test-act"), link7("test-act", "cause", "pm-second"),
+  move7("test-pm", "revert", "reverted"),
+  open7("passed"), review7("passed", "changes"), review7("passed", "pass"), move7("passed", "owner-reject", "rejected"),
+  open7("failed"), review7("failed", "changes"), move7("failed", "owner-reject", "rejected"),
+  open7("landed"), move7("landed", "revert", "reverted"),
+  move7("landed", "revert", "reverted", { hidden: true }),
+  open7("late"), move7("late", "owner-reject", "rejected"), review7("late", "pass")      // the pass came after the reject
+];
+const seq7 = (id: string, move: string) => record7.find((e: any) => e.id === id && e.move === move && !e.hidden)!.seq;
+
+test("post mortems: a row for each, with what it is of, its actions and the later ones that name it (part 7)", () => {
+  const r = report(record7, { now: 1e9 }).postMortems;
+  expect([r.count, r.done, r.notDone]).toEqual([3, 1, 2]);
+  expect(r.rows).toEqual([
+    { id: "pm-first", state: "done", owner: true, of: ["spec-a"], actions: [{ id: "act-1", state: "done" }, { id: "act-2", state: "rejected" }], namedAgainBy: ["pm-second"] },
+    { id: "pm-second", state: "open", owner: false, of: ["project"], actions: [], namedAgainBy: [] },
+    { id: "pm-third", state: "open", owner: true, of: [], actions: [], namedAgainBy: [] }
+  ]);
+  const lines = text(report(record7, { now: 1e9 })), at = lines.findIndex((l: string) => l.startsWith("post mortems"));
+  expect(lines.slice(at, at + 5)).toEqual([
+    "post mortems   3: 1 done, 2 not done",
+    `  ${"pm-first".padEnd(40)} ${"done".padEnd(17)} of spec-a   actions: act-1 done, act-2 rejected   named again by: pm-second`,
+    `  ${"pm-second".padEnd(40)} ${"open".padEnd(17)} of project   actions: none   named again by: none`,
+    `  ${"pm-third".padEnd(40)} ${"open".padEnd(17)} of no cause link   actions: none   named again by: none`,
+    `  declared with no label \`owner\`: 1 pm-second; the owner undid work that had passed a review: 3 (send-back 1 [${seq7("spec-a", "send-back")}], owner-reject after a pass 1 [${seq7("passed", "owner-reject")}], revert 1 [${seq7("landed", "revert")}])`
+  ]);
+});
+
+test("post mortems: the two numbers of R8, and neither moves with --after or --window", () => {
+  const r = report(record7, { now: 1e9 }).postMortems;
+  expect(r.bySession).toEqual(["pm-second"]);
+  expect(r.undone).toEqual({ count: 3, sendBack: [seq7("spec-a", "send-back")], ownerRejectAfterPass: [seq7("passed", "owner-reject")], revert: [seq7("landed", "revert")] });
+  expect(report(record7, { now: 1e9, since: n7, from: n7 }).postMortems).toEqual(r);
+  // --until reads the record as it was: before the label of pm-first, and before any action reached a state but `open`.
+  const then = report(record7, { now: 1e9, until: record7.find((e: any) => e.type === "labelled")!.seq - 1 }).postMortems;
+  expect(then.rows).toEqual([{ id: "pm-second", state: "open", owner: false, of: ["project"], actions: [], namedAgainBy: [] }]);
+  expect([then.undone.count, then.undone.sendBack.length]).toEqual([1, 1]);
+});
+
+test("post mortems: a record with none has the first line and the line of R8, with 0", () => {
+  const lines = text(report(events, { now: 1e6 })), at = lines.findIndex((l: string) => l.startsWith("post mortems"));
+  expect(lines.slice(at, at + 2)).toEqual([
+    "post mortems   0: 0 done, 0 not done",
+    "  declared with no label `owner`: 0; the owner undid work that had passed a review: 0 (send-back 0, owner-reject after a pass 0, revert 0)"
+  ]);
+  expect(report([], { now: 1e6 }).postMortems).toEqual({ count: 0, done: 0, notDone: 0, rows: [], bySession: [], undone: { count: 0, sendBack: [], ownerRejectAfterPass: [], revert: [] } });
+});

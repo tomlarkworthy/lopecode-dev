@@ -39,6 +39,16 @@
 // SEQ (0 with none), and with no --until none is sent: the tracker then takes the `at` of its last event, which may be
 // after the last one this run read. --after and --window do not reach the block. An answer with no `summaries` (a
 // refusal, a Worker put back to before the method) is a line `not read: <why>` in its place, and the rest is printed.
+// The lines under `post mortems` are part 7 and R8 of plan/cloud-brain-post-mortems-declared-and-kept.md (pm-4-stats-block).
+// A post mortem is an issue that has the label `post-mortem` at the last event read, and is no `test-` one. The first
+// line has how many, how many at `done`, and the rest as `not done`, whatever state they are at; it is printed with 0
+// too. A row has the state, `of` the issue its own `cause` link names, `actions` each issue with a `cause` link to it and
+// that issue's state, and `named again by` each post mortem opened after it that has a `related` link to it (a `related`
+// link from any other issue, or from an earlier post mortem, is not one). The last line is R8: the post mortems that do
+// not have the label `owner`, which are the ones a session declared with no word of his (SKILL.md, "A post mortem"),
+// and beside it the events of the one case a session declares for: each `send-back` move, each `owner-reject` of an
+// issue that had a review with the verdict `pass` before it, each `revert`, by the move's name (the policy of 5166 events
+// lets only a caller who is present make the three). Both are of the record up to --until, whatever --after and --window are.
 // ISSUE_AS names another issue-as.sh: the test's stand-in, or the main checkout's when the tool is run from a worktree.
 // `report`, `holds`, `flow`, `flowAsks` and `text` take what was read and call nothing: tests/tools/issue-stats.test.ts.
 import { execFileSync } from "node:child_process";
@@ -105,6 +115,8 @@ export function report(record: any[], { since = 0, from = 0, until = 0, idleH = 
 const events = until ? record.filter((e) => e.seq <= until) : record;
 const who = (by: any) => ((by?.holder || "").startsWith("secret:") ? by.holder.slice(7) : by?.caller === "owner" ? (by.tab === false ? "owner (token)" : "owner") : by?.caller || "?");
 const workflows: Record<string, any> = {}, issues: Record<string, any> = {}, feedbackFlows = new Set<string>();
+// The owner undid work that had passed a review: the one case a session declares a post mortem for with no word of his.
+const undone: { seq: number; id: string; move: string }[] = [];
 for (const e of events) {
   if (e.type === "policy") for (const [n, h] of Object.entries(e.hashes)) { workflows[h as string] = e.policy.workflows[n]; if (n === e.policy.kinds?.feedback) feedbackFlows.add(h as string); }
   if (!e.id || e.hidden || e.type === "policy") continue;
@@ -117,6 +129,7 @@ for (const e of events) {
     i.stays.push([i.state, e.at - i.since, i.sinceSeq]);
     if (e.move === "triage") i.heldBy.triage = /\bheld\b/i.test(e.reason || "");
     i.moves.push(e.move || e.swap || "swap");
+    if (!/^test-/.test(e.id) && (e.move === "send-back" || e.move === "revert" || (e.move === "owner-reject" && i.verdicts.includes("pass")))) undone.push({ seq: e.seq, id: e.id, move: e.move });
     Object.assign(i, { state: to, since: e.at, sinceSeq: e.seq }, e.type === "swapped" ? { workflow: e.to.workflow } : {});
   }
   if (e.type === "commented" && /^held:/i.test(String(e.body || "").trimStart())) i.heldBy.comment = true;
@@ -234,6 +247,22 @@ const notes = open.filter((i) => i.kind === "feedback" && i.state === "open" && 
 const tiesOf = (i: any) => ({ id: i.id, ties: ties(i).map((t) => `${t} ${issues[t].state}`) });
 const feedbackDue = notes.filter((i) => !owners(i) && !i.heldBy.comment && ties(i).length && ties(i).every(ended)).map(tiesOf);
 const feedbackToPromote = notes.filter((i) => owners(i) && ties(i).every(ended)).map(tiesOf);
+// The post mortems, in the order they were opened. `said` has what other issues say of each.
+const isPm = (i: any) => !!i && i.labels.has("post-mortem") && !/^test-/.test(i.id);
+const pms = (Object.values(issues) as any[]).filter(isPm).sort((a, b) => a.seq - b.seq);
+const saidOf = (p: any, rel: string) => (said[p.id] || []).filter((l) => l.rel === rel && !/^test-/.test(l.id));
+const postMortems = {
+  count: pms.length, done: pms.filter((p) => p.state === "done").length, notDone: pms.filter((p) => p.state !== "done").length,
+  rows: pms.map((p) => ({
+    id: p.id, state: p.state as string, owner: p.labels.has("owner") as boolean,
+    of: p.to.filter((l: any) => l.rel === "cause").map((l: any) => l.id) as string[],
+    actions: saidOf(p, "cause").map((l) => ({ id: l.id, state: issues[l.id].state as string })),
+    namedAgainBy: saidOf(p, "related").filter((l) => isPm(issues[l.id]) && issues[l.id].seq > p.seq).map((l) => l.id)
+  })),
+  // R8: declared by a session with no word of the owner's, against the events of the one case it declares for.
+  bySession: pms.filter((p) => !p.labels.has("owner")).map((p) => p.id as string),
+  undone: { count: undone.length, sendBack: undone.filter((u) => u.move === "send-back").map((u) => u.seq), ownerRejectAfterPass: undone.filter((u) => u.move === "owner-reject").map((u) => u.seq), revert: undone.filter((u) => u.move === "revert").map((u) => u.seq) }
+};
 const moved = (m: string) => inWindow.filter((e) => e.type === "moved" && e.move === m).length;
 const windowReport = {
   after: from, events: inWindow.length, submits: moved("submit") + moved("submit-spec"), reworks: moved("rework") + moved("send-back"),
@@ -261,6 +290,8 @@ return {
   statementsOnly: statementsOnly(shown),
   needsOwner: { ever: asked.length, became: count(asked.map((i) => i.state)), waitingNow: open.filter((i) => i.labels.has("needs-owner")).length },
   feedback: { open: open.filter((i) => i.kind === "feedback").length, gathered: all.filter((i) => i.kind === "feedback" && (i.parent || i.links > 0)).length, due: feedbackDue, toPromote: feedbackToPromote },
+  // Of the record up to --until, whatever --after is.
+  postMortems,
   // Absent when no answer of issue.locks was given.
   locks: locks === undefined ? undefined : holds(locks),
   // Absent when no answer of issue.flow was given.
@@ -310,6 +341,10 @@ export function text(report: Report) {
   for (const d of report.feedback.due) console.log(`  ${d.id.padEnd(40)} ${d.ties.join(", ")}`);
   console.log(`feedback of the owner's with no tie, or each tie done or closed, to promote or to close: ${report.feedback.toPromote.length}`);
   for (const d of report.feedback.toPromote) console.log(`  ${d.id.padEnd(40)} ${d.ties.join(", ") || "no tie"}`);
+  const pm = report.postMortems, seqs = (l: number[]) => (l.length ? " " + JSON.stringify(l) : "");
+  line("post mortems", `${pm.count}: ${pm.done} done, ${pm.notDone} not done`);
+  for (const p of pm.rows) console.log(`  ${p.id.padEnd(40)} ${p.state.padEnd(17)} of ${p.of.join(", ") || "no cause link"}   actions: ${p.actions.map((a) => `${a.id} ${a.state}`).join(", ") || "none"}   named again by: ${p.namedAgainBy.join(", ") || "none"}`);
+  console.log(`  declared with no label \`owner\`: ${pm.bySession.length}${pm.bySession.length ? " " + pm.bySession.join(", ") : ""}; the owner undid work that had passed a review: ${pm.undone.count} (send-back ${pm.undone.sendBack.length}${seqs(pm.undone.sendBack)}, owner-reject after a pass ${pm.undone.ownerRejectAfterPass.length}${seqs(pm.undone.ownerRejectAfterPass)}, revert ${pm.undone.revert.length}${seqs(pm.undone.revert)})`);
   const l: any = report.locks;
   if (l?.unread) line("locks", `not read: ${l.unread}`);
   else if (l) {

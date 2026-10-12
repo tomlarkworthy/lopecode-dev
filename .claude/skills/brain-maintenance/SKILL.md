@@ -769,14 +769,15 @@ and no "None". (`pm-second-summarizer-role` filed its three before its
 review, linked `related`; their `cause` links are events 4909 to 4911, made by the writer of this section, and
 `linked` there has three with `"rel":"cause"`.)
 
-**Known later.** `issue-stats.ts` is to print one block, `post mortems`, with a row for each: its state, the issue
+**Known later.** `issue-stats.ts` prints one block, `post mortems`, with a row for each: its state, the issue
 it is of, its actions with their states, and `named again by`, each later post mortem with a `related` link to it.
-That block is task 4 of the spec (`pm-4-stats-block`) and the tool printed none when this was written; until it
-does, the same is read from `list?label=post-mortem&limit=100` and `get?id=` of each. Step 7 says what of it the
-owner is told.
+Its first line is `post mortems   <n>: <done> done, <open> not done`, and its last has the two numbers step 7 asks
+for: the post mortems with no label `owner`, which are the ones you declared, and the events of the one case you
+declare for (each `send-back`, each `owner-reject` of an issue a review had passed, each `revert`), with their seqs.
+(Since `pm-4-stats-block`, 2026-10-12, task 4 of the spec; until then the same was read from
+`list?label=post-mortem&limit=100` and `get?id=` of each.) Step 7 says what of it the owner is told.
 
-**The read after three.** When three post mortems are at `done` (the block's first line, or that list until the
-block is printed) and no issue `pm-read-after-three` exists, open it: a `task`, linked `related` to
+**The read after three.** When three post mortems are at `done` (the block's first line) and no issue `pm-read-after-three` exists, open it: a `task`, linked `related` to
 `post-mortems-declared-and-kept`, no part of that project. A read, no build. For each of the three: did the review
 send it back, and for which of its four questions; what became of its actions; was it answered to a later search
 (the comments of later writers name what they searched and used); did the overseer act on the block. What it
