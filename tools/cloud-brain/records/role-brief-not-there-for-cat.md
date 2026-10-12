@@ -35,8 +35,9 @@ and what the two new sentences are.
   `CLAUDE.md`, with `x` for `<role>`, is exit 0, prints `brain/roles/x.md`, and the `cat` then prints the file;
   `--get` of a role the Brain does not have is exit 1 and leaves no file.
 
-The second test passes without the change to `CLAUDE.md` once the command is written into it by hand: `put.sh` and the
-hook are not changed. It holds that the command the sentence gives works as the sentence says.
+The second test takes the command from `CLAUDE.md` and runs `put.sh` and the hook, neither of which this change
+touches: it holds that the command the sentence gives does what the sentence says. Without the change it fails for
+want of the command in the file (below); whether it would pass on the old file with the command put in was not run.
 
 ## Counts
 
