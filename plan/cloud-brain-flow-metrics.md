@@ -292,6 +292,9 @@ It reads every event at each call. At event 2727 the record is 4.38 MB as `issue
 bodies and reasons left out. Task 3 measures `cost.ms` on cb4. If it is over 1 s the writer reads
 the fields it needs with `json_extract` in place of the whole `event`, and says in the record what
 that gave. Not built until it is measured: an answer kept between calls.
+(As built, `fm-3-issue-flow-method`, 2026-10-12: `since` and `until` left out or empty are 0 and the
+`at` of the record's last event; `cost.ms` is the whole call in the Worker and was 374 to 716 on cb4
+at 3634 events, so the read is not narrowed; who may read an issue is judged at the call; the record.)
 
 ### The page (R8)
 
@@ -404,7 +407,7 @@ for: none has a run behind it, since each needs its task built, and the place it
 | | check | before | after, and where it is run |
 |---|---|---|---|
 | R1, R4, R5, R3 | test: `test_issues_flow_*` cells of `brain-issues.ojs` over a record written in the test: each clock of "The clocks" for an issue, a project with two parts, a feedback issue that follows a project; a stay cut at `until`; a swap, a `reopen` and a `revert`; `needs-owner` from the open; rows by `opener` and by `for`; a hidden issue in no row; `flowSummary` of 1, 2 and 20 values. `cd cloud-brain-dev && bun test.ts brain-x-issues --with FILE` | `grep -c "issueFlow\|flowSummary" tools/cloud-brain/brain-issues.ojs`: 0. `bun test.ts brain-x-issues`: 21 passed, 0 failed, at hash `e3b34e862cd1` | `failed` 0, `passed` above 21. Tasks 1 and 2, each in its worktree |
-| R1 | `ia "flow?metric=flow.lead&by=id&kind=feedback&to=deploy&since=0&until=1791751911704"` | 501 `MethodNotImplemented`, 23:00 CEST | 200; the rows' count and `flowSummary` against 25, 1.47 h and 7.26 h of the scripts. A difference is said in the task's record with its cause and is not a failed check: the scripts are not the definition. Task 3, on cb4 |
+| R1 | `ia "flow?metric=flow.lead&by=id&kind=feedback&to=deploy&since=0&until=1791751911704"` | 501 `MethodNotImplemented`, 23:00 CEST | 200; the rows' count and `flowSummary` against 25, 1.47 h and 7.26 h of the scripts. A difference is said in the task's record with its cause and is not a failed check: the scripts are not the definition. Task 3, on cb4. (As built, `fm-3-issue-flow-method`, 2026-10-12: 31 rows, 1.01 h and 7.26 h on cb4, as `fm-1-lead-times` had from the function; the cause was not found; the record.) |
 | R4 | `ia "flow?metric=flow.open&by=state&until=1791751911704"` | 501 | `n` by state: 58 `open`, 24 `triaged`, 10 `building`, 3 `spec`, 2 `awaiting-approval`, 2 `in-progress`, which is the line `states` of `issue-stats.ts --until 2727` less the closed. Task 3, on cb4 |
 | R5 | `ia "flow?metric=flow.stays&by=state&waits=owner&since=0&until=1791751911704"` | 501 | `sum` near 242.9 h for `needs-owner` and 8.5 h for `awaiting-approval` (the scripts, with the stays not ended). Task 3, on cb4. (As built, `fm-2-open-stays-submits`, 2026-10-12: over the record read with a token the function gave 192.49 h in 61 waits for `needs-owner`, 6 not ended, and 8.54 h for `awaiting-approval`; the 242.9 h was not reproduced; the record.) |
 | R3 | `ia "flow?metric=flow.submits&since=0&until=1791751911704"` | 501 | `n` near 202 and `sum` near 70. Task 3, on cb4 |
@@ -429,6 +432,8 @@ Each is one writer and one review, and writes `tools/cloud-brain/records/<its id
    their tests.
 3. **fm-3-issue-flow-method.** `issue.flow`, its line in the method table, the test of the count
    of methods (22 becomes 23), the four calls on cb4 and `cost.ms`.
+   (As built, `fm-3-issue-flow-method`, 2026-10-12: 24 becomes 25, four methods having been added
+   since the count; the record.)
 4. **fm-4-stats-flow-block.** The block `flow` of `issue-stats.ts` and its test.
 5. **fm-5-page-and-dashboard.** The branch in `dashboardRead`, `points`, `share`, hours for `ms`,
    the note of `panelBody`. A deploy of `brain-x-dashboard`, and of `brain-x-page` if the build
