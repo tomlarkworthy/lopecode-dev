@@ -499,7 +499,7 @@ in step 11 of its brief, and the table says which task.
 | R5 | `ia hold '{"key":"…","id":"…","until":1,"reason":"probe"}'` | 501 | bk-3: 400 for an `until` in the past; with a time 60 s on, the issue is in `waiting` with `why` `until`, and in `queue` as `look` after it; `ia "verify?guards=true"` then `ok: true` |
 | R6 | the rows of step 3's tables: `awk '/^3\. \*\*/{on=1} /^4\. \*\*Spawn/{on=0} on && /^   \| /' .claude/skills/brain-maintenance/SKILL.md \| grep -v -c -E '^   \| (\`do\`\|In \`waiting\`\|Issue is\|---)'` | 20 | 13, with the draft of part 6 in the file (run 12:32 CEST, then taken back). The task's count may differ by the rows it adds |
 | R6 | `grep -c "A place goes, in this order" .claude/skills/brain-maintenance/SKILL.md` | 1 | 0 (the same run) |
-| R6 | `ia "queue"`, `waiting` with `why` `after` | 501 | bk-5: 13 entries, the links of "Holds" above, less any whose issue has ended by then |
+| R6 | `ia "queue"`, `waiting` with `why` `after` | 501 | bk-5: 13 entries, the links of "Holds" above, less any whose issue has ended by then. (As built, 2026-10-12: 21 entries, 11 of them of the 13 links bk-5 wrote; `fly-1-by-hand` passed 49 s after the links of `fly-2` and `fly-3`, which were then `start` entries; the record.) |
 | R7 | `bun test ./tests/tools/issue-watch.test.ts` | 13 pass, 0 fail (12:34 CEST) | bk-6: passes with a test that feeds two answers of `queue` and sees one `QUEUE` line for the entry that is new |
 
 No "After" figure has a run behind it but the two of R6.
@@ -528,6 +528,12 @@ Each seed task is labeled `major`: it changes a method other callers use.
    the comment its form asks for, on `cu-1-deployer-gains-billing-read` and
    `ds-ingestion-tail-to-analytics-engine`; `ready` for each task that then waits by a link alone.
    Its count is the confirmation: `waiting` of the queue. After bk-3.
+   (As built, `bk-5-holds-become-links`, 2026-10-12: 13 links, 9 of them of "Holds" and 4 of tasks opened since;
+   the other 4 of "Holds" had ended, their issue or the one it waited for closed. Holds with a time on
+   `os-5-trial-read`, and on three this line does not name: `ap-3-trial`, `wt-6-check-after-a-day` and
+   `plain-worktree-outside-checkout-fails`. None on `dv-5-read-first-20-runs`: its 20 runs were there, and it went
+   to `ready`. `ready` for 9 that wait by a link alone; 4 that wait for more than their link stay at `triaged`.
+   `waiting` after it: `after` 21, 11 of them this task's, `until` 4, `owner` 2; the record.)
 6. **bk-6-skill-watch-and-stats.** Part 6: step 3 and step 1 of `SKILL.md`, the decompose row,
    `agents/spec.md`, `issue-watch.sh` and `issue-stats.ts` with their tests, the line in
    `knowledge/`. After bk-5: until then the table of 20 rows is what a session runs.
