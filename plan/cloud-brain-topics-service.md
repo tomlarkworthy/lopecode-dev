@@ -172,7 +172,7 @@ has the columns `key` and `sender`; what D1 answered is in the record.)
 lines of `tools/cloud-brain/build.ts`: the module's entry, and its name in `OWNED`, which the build
 reads to cut the shell (as `brain-dashboard` was added, commit `6ddf9eb0`: the seed and those two
 lines, no other file). It uses `sql`, `xrpc` and `config` (As built, `tp-1-topics-append-read`, 2026-10-12: `sql` and `config`;
-nothing of task 1 calls another method, so `xrpc` is not declared until task 2; the record.), declares no Cloudflare
+nothing of task 1 calls another method, so `xrpc` is not declared until task 2; the record. As built, `tp-2-push-to-receive`, 2026-10-12: `xrpc` is declared.), declares no Cloudflare
 permission and no secret, has `crons: ["* * * * *"]`, and lists no `calls`: every call it makes
 to another method is under `x-brain-as`, which the core does not hold to that list, and `db.sql`
 is implicit (`brain-core.ojs`, `IMPLICIT`). Its tables are `topic_*`, which `brain-db` gives a
@@ -240,6 +240,10 @@ topic.subscribe   { topic, name, target, delegation: id, params, failed }
 ```
 
 `topic.subscribe` needs the topic's `read` rule, and with `failed` that topic's `write` rule.
+(As built, `tp-2-push-to-receive`, 2026-10-12: a new subscription starts at the topic's `last`, so it is pushed what is appended after it;
+sent again by its creator it takes the new target, delegation, params and `failed`, keeps its position and is tried
+at once; a name another caller subscribed with is 403. Both rules are asked at the subscribe and not at each push;
+the record.)
 `target` is a method's name, whole or without `com.lopecode.brain.` as a token's list takes it
 (`topic.receive`); the service writes it whole and it must then match
 `^com\.lopecode\.brain\.[A-Za-z0-9]+(\.[A-Za-z0-9]+)*\.receive$`, the characters a delegation's
@@ -258,7 +262,9 @@ delegation. This is why the scope has `quota.get`. It is
 untried: a call with `x-brain-as` has not been sent on cb4, and that `quota.get` answers
 `who: "owner"` or the DID under one is read from the code. It is the first thing task 2 runs, on cb4
 with `loop-topic` and a child delegation, before the rest of the task is written; a stand-in for the core in
-`simulate` cannot settle it.
+`simulate` cannot settle it. (As built, `tp-2-push-to-receive`, 2026-10-12: run on cb4 at 07:08:50 CEST from a build with `topic.subscribe`
+alone. Under the child delegation `quota.get` answered for `owner` and the subscribe was 200; under an id that is
+nobody's, and under the token's own delegation, the core answered 403; the record.)
 
 Not chosen for this: a method `delegation.get` for a holder, in the core. It is the direct way and
 it is a deploy of the core, which the loop does not make; it would put push behind an act of his.
@@ -281,7 +287,7 @@ xrpc.fetch("<target>?<params>", { method: "POST",
 | answer | then |
 |---|---|
 | 2xx | the position moves to this `seq` |
-| 5xx, 429, 402, no answer in 10 s (a race in the service against a timer: `xrpc.fetch` takes no `signal`, `cloudflare-iac.ojs:447`, so the call itself is not ended and its late answer is not read) | a try. The subscription waits 1, 2, 4, 8 minutes, and after 5 tries the entry is given up |
+| 5xx, 429, 402, no answer in 10 s (a race in the service against a timer: `xrpc.fetch` takes no `signal`, `cloudflare-iac.ojs:447`, so the call itself is not ended and its late answer is not read; as built, `tp-2-push-to-receive`, 2026-10-12, the 10 s is the setting `pushMs`) | a try. The subscription waits 1, 2, 4, 8 minutes, and after 5 tries the entry is given up |
 | any other 4xx | given up at once (SNS's rule: it will not change by trying). 403 is what a revoked or ended delegation answers |
 | `entry.hops >= 8` | given up with no call: the core would refuse it |
 
@@ -315,7 +321,9 @@ subscriber) passes `B`'s `write` rule. It joins two topics, and it is what lets 
 loop check a push on cb4, where no other method named `receive` exists.
 
 `topic.subs?topic=` lists the caller's subscriptions (the owner: all) with `position`, `tries`,
-`dropped` and the last error. `topic.unsubscribe { topic, name }`. A push does not reach an agent
+`dropped` and the last error. `topic.unsubscribe { topic, name }`. (As built, `tp-2-push-to-receive`, 2026-10-12: the creator of a topic
+also reads who is subscribed to it and to what target, and ends such a subscription, since the `read` rule is not
+asked again at a push; the record.) A push does not reach an agent
 in a tab or in a shell. They read or take.
 
 ### Take (R8)

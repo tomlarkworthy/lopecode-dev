@@ -3634,7 +3634,7 @@ cb4-deployer       9f8c5de08825  199cd75c0aa5
 
 - **Tests**, local tab, one at a time: core 31, kernel 26, cloudflare-iac 26, db 11, container 8, blob 8, static 12, logs 3, all pass. Browser 16 of 17: `test_browser_tick_makes_rows_and_sessions_agree` gives 111 for "about 100" alone in a fresh tab, and gives the same in the notebook at `lopebooks` `e051dfbb`, from before step 1. It is not this work's and is not fixed here.
 - **Live on cb4, 11:14 CEST, as the owner**: `delegation.create` for `brain-x-feed` answered the record (`by: "session"`); holders `brain` and `brain-x-nope` 400; scope `secret.get` 400; a DID that is not a member 403 at the kernel; `delegation.list` one, `delegation.revoke`, then none. `redistil` all `same`.
-- **Not run live**: a call with `x-brain-as`. No Worker on cb4 sends one; the first will be `brain-x-topic`.
+- **Not run live**: a call with `x-brain-as`. No Worker on cb4 sends one; the first will be `brain-x-topic`. (Run live 2026-10-12 07:08 CEST by `brain-x-topic`: `records/tp-2-push-to-receive.md`.)
 - The six findings of step 1's fresh review (FIX) are in this change: three kernel messages name `delegation`; the rule table has `caller.delegation` and `caller.holder`; the four stores' prose names `d:<id>`; the browser test asserts the key `d:0a1b/default`; db has a `setRule` and a `sqlGrant` case; the count of Workers above was wrong and is corrected.
 
 ### After step 2's fresh review, and the browser tests (2026-10-10 11:26 CEST)
