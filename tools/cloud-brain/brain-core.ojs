@@ -108,7 +108,7 @@ A Worker that answers a call spends the credits of that call's origin, through a
 
 A priced call is charged when the core accepts it, before it is forwarded. The charge is not returned: not when the Worker answers an error, and not when it throws. A service whose call can fail after the charge gives its price to one method that does only the purchase. The answer to a priced call carries \`x-brain-price\`, what was charged.
 
-An account's day is one row, \`spend/DAY/ACCOUNT\`: a list that each charge is appended to in one statement. A charge counts when the charges that count before it, and it, are inside the allowance it was made under. The list alone decides that, so calls made at once do not spend past the allowance and no call holds a lock. A charge that lost to another made at the same time stays in the list and counts for nothing. A priced call is two statements (append, read). A day holds 2000 charges that count for one account; the next is refused. Spending only grows in a day, so a core that read an account as spent refuses it with no write until the day ends or the allowance grows. Days older than \`keepDays\` (30) are deleted at the first priced call of a UTC day; a Brain with no priced call keeps its rows until the next one.
+An account's day is one row, \`spend/DAY/ACCOUNT\`: a list that each charge is appended to in one statement. A charge counts when the charges that count before it, and it, are inside the allowance it was made under. The list alone decides that, so calls made at once do not spend past the allowance and no call holds a lock. A charge that lost to another made at the same time stays in the list and counts for nothing. A priced call is two statements (append, read). A day holds 8000 charges that count for one account; the next is refused (402, "has made 8000 priced calls today"). It was 2000 until 2026-10-12, and cb4 met it on 2026-10-11. Spending only grows in a day, so a core that read an account as spent refuses it with no write until the day ends or the allowance grows. Days older than \`keepDays\` (30) are deleted at the first priced call of a UTC day; a Brain with no priced call keeps its rows until the next one.
 
 Limits. A cost known only after the call, such as the tokens of a model call, has no method yet: a price is fixed before the call and nothing brings it down afterwards (Tom, 2026-10-08: no refunds), so it needs a design of its own. The allowance of a member's calls for a day (429) is a separate count.
 
@@ -680,7 +680,9 @@ coreApp = {
   // A charge counts when the charges that count before it, with it, are inside the allowance it was made under. That
   // is decided by the list alone, so calls made at once cannot spend past the allowance, and no call needs a lock.
   const PRICING = { owner: 1, member: 0.1, worker: 0.1, token: 0.1, perCall: 1, keepDays: 30 };
-  const MICRO = 1e6, CHARGES = 2000, KEEP = 100000;
+  // CHARGES: the charges of one account that count in a day. The day's list is one row of D1 (2 MB at most), read whole at each
+  // priced call: an entry was 163 bytes on cb4 on 2026-10-11, so 8000 are 1.3 MB. Was 2000 until 2026-10-12.
+  const MICRO = 1e6, CHARGES = 8000, KEEP = 100000;
   const micro = (usd) => Math.ceil(usd * MICRO - 1e-6);
   const usd = (u) => u / MICRO;
   const pricing = async () => ({ ...PRICING, ...((await settings.get("quota/defaults")) || {}) });
@@ -861,7 +863,7 @@ coreApp = {
     const lists = who ? [[who, await rows.get(base + who)]] : (await rows.list(base)).map(({ key, value }) => [key.slice(base.length), value]).filter(([w]) => !w.startsWith("delegation/"));
     const charges = lists.flatMap(([w, list]) => ledgerOf(w, list)).sort((a, b) => b.at - a.at);
     const sum = (by) => Object.entries(charges.reduce((t, e) => ((t[e[by]] = (t[e[by]] || 0) + e.cost), t), {})).map(([k, v]) => ({ [by]: k, cost: Number(v.toFixed(6)) }));
-    return c.json({ day, unit: "USD", charges: charges.slice(0, Math.min(2000, Number(c.req.query("limit")) || 200)), total: Number(charges.reduce((t, e) => t + e.cost, 0).toFixed(6)), byWho: sum("who"), byMethod: sum("method") });
+    return c.json({ day, unit: "USD", charges: charges.slice(0, Math.min(CHARGES, Number(c.req.query("limit")) || 200)), total: Number(charges.reduce((t, e) => t + e.cost, 0).toFixed(6)), byWho: sum("who"), byMethod: sum("method") });
   });
 
   // /llms.txt: how a program calls this Brain, for anyone. Written from config.host and the route table on each
@@ -1838,6 +1840,19 @@ test_calls_made_at_once_do_not_spend_past_the_allowance = {
   const mixed = await Promise.all(Array.from({ length: 30 }, (_, i) => ada("shop.buy" + (i % 2 ? "?status=500" : ""), {})));
   expect([mixed.filter((r) => r.status === 402).length, (await rig.day("did:plc:ada")).spent]).toEqual([20, 0.1]);
   return "33 of 50, then 10 of 30";
+}
+// %%
+test_a_day_holds_8000_charges_of_one_account_and_the_next_is_refused = {
+  const rig = await priceRig();
+  // 7999 charges of a millionth of a dollar are in the owner's day: the allowance is far off, the count is one short.
+  const day = new Date().toISOString().slice(0, 10);
+  rig.sim.rows.set(`spend/${day}/owner`, Array.from({ length: 7999 }, (_, n) => ({ t: 1, i: "e" + n, u: 1, A: 1000000, m: "m", c: "owner", o: "owner", v: "session" })));
+  const first = await rig.owner("shop.buy", {}), second = await rig.owner("shop.buy", {});
+  expect([first.status, second.status]).toEqual([200, 402]);
+  expect(second.data.message).toContain("owner has made 8000 priced calls today, which is the most for one day");
+  // The one that was refused is not written: the list is the 8000 that count.
+  expect(rig.sim.rows.get(`spend/${day}/owner`).length).toBe(8000);
+  return "7999 kept, 1 more passed, the next refused";
 }
 // %%
 test_a_new_day_starts_at_nothing_and_old_days_are_dropped = {
