@@ -665,7 +665,7 @@ Nothing. The driver's token and each judgment run's are `brain.ts agent-token or
 - Step 5 of the brief asks that each check's result be from a run. For a design whose every tool
   is new, the "Today" column is mostly "no such file", and the three probes are what could be run.
 
-## The fresh review before submitting (2026-10-12, answered by 23:30 CEST)
+## The fresh review before submitting (2026-10-12, answered by 23:25 CEST)
 
 One agent with the file and nothing else (`/review-notebook`): FIX, 11 findings (7 confirmed, 4
 plausible), all taken. 129,699 tokens, 6m54s. It read the `cost` check, `issueRunOf` and
