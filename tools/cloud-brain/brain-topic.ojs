@@ -100,7 +100,7 @@ A deliverer starts no push once it has worked \`deliverMs\`, and its claim of th
 
 A subscription with no \`target\` is taken from. Like a push subscription it starts at the topic's \`last\`: what is appended after it is there to take. It makes no call, so it has no delegation, and the clock and an append push it nothing.
 
-\`topic.take\` answers entries that no claim holds, and claims each for the subscription's \`seconds\`. First the entries whose claim has ended, the oldest first, then entries that were never handed out, in \`seq\` order; \`limit\` is of both together. A take is one transaction, so two takes at once are handed different entries (\`test_topic_take_hands_each_entry_to_one_taker\`). \`position\` of the subscription is the \`seq\` of the last entry handed out, not of the last one done: entries are done in any order.
+\`topic.take\` answers entries that no claim holds, and claims each for the subscription's \`seconds\`. First the entries whose claim has ended, the oldest first, then entries that were never handed out, in \`seq\` order; \`limit\` is of both together. A take is one call of \`db.sql\`, which a Brain runs as one transaction, so two takes at once are handed different entries. It needs that: \`fresh\` counts its entries from the position and \`handed\` moves the position, and a second take that ran between the two would be handed nothing while entries wait (\`test_topic_take_is_one_transaction\`). \`position\` of the subscription is the \`seq\` of the last entry handed out, not of the last one done: entries are done in any order.
 
 \`topic.done\` ends a claim. An entry that is not done before its claim ends is handed out again by a later take, with \`tries\` one higher, so a taker that must not act twice keeps the \`seq\` it has handled. A claim that has ended is still ended by \`topic.done\` while no take has taken its place, and after one has: several takers of one subscription are one caller, and nothing tells the first taker's \`topic.done\` from the second's.
 
@@ -666,7 +666,7 @@ md`## Tests
 
 No SQL engine runs in a page. \`topicFakeSql\` answers for the statements of \`topicSql\` from a map of topics, a list of entries and a map of subscriptions, and refuses any other statement; each \`WHERE\` is written again in JS. The statements themselves are run by \`tests/tools/topic-sql.test.ts\` on a SQLite, where their plans are also given to the check of the deployed \`brain-db\`.
 
-A call of \`db.sql\` is one transaction on a Brain; the rig runs each whole before the next, so two calls at once do not mix their statements. No test waits for a claim to end: it sets the claim's \`until\` in the stand-in (\`rig.lapse\`).
+A call of \`db.sql\` is one transaction on a Brain; the rig runs each whole before the next, so two calls at once do not mix their statements. \`test_topic_take_is_one_transaction\` holds two takes at their claim together and fails when they mix: a test may be asked as a call arrives (\`rig.arriving\`) and before a statement runs (\`rig.db.before\`), and keep either waiting. No test waits for a claim to end: it sets the claim's \`until\` in the stand-in (\`rig.lapse\`).
 
 The core is stood in as well (\`topicRig\`): a call with \`x-brain-as\` is answered as \`asHolder\` of \`@tomlarkworthy/brain-core\` answers it (the holder, the length of the chain, the scope) and sent on as the delegation's maker, to a target the test gives or back into this service for \`topic.receive\`. The core itself is not in these tests. A test gives the clock its ticks, and waits for the pushes of an append with what the Worker handed to \`waitUntil\`.`
 // %%
@@ -691,7 +691,7 @@ topicFakeSql = () => {
     entries.splice(0, n, ...entries.filter((e) => !gone(e)));
     return row([], n - entries.length);
   };
-  const run = async (statement, a) => {
+  const answer = async (statement, a) => {
     if (topicSchema.includes(statement)) return row([]);
     const t = topics.get(a[0]);
     if (statement === S.one) return row(t ? [{ ...t }] : []);
@@ -740,7 +740,9 @@ topicFakeSql = () => {
     if (statement === S.fresh) {
       if (!sub || sub.target !== "") return row([]);
       const left = Math.max(0, a[4] - claimsOf(a[0], a[1]).filter((x) => x.taker === a[3]).length);
-      const next = entries.filter((e) => e.topic === a[0] && e.seq > sub.pos && !claims.has(ck(a[0], a[1], e.seq))).sort((x, y) => x.seq - y.seq).slice(0, left);
+      // As the statement: what is left of the limit is counted from the position, and an entry of those that has a
+      // claim is ignored, not passed over for the next. No claim is past the position unless two takes mixed.
+      const next = entries.filter((e) => e.topic === a[0] && e.seq > sub.pos).sort((x, y) => x.seq - y.seq).slice(0, left).filter((e) => !claims.has(ck(a[0], a[1], e.seq)));
       for (const e of next) claims.set(ck(a[0], a[1], e.seq), { topic: a[0], name: a[1], seq: e.seq, until: a[2], tries: 1, taker: a[3] });
       return row([], next.length);
     }
@@ -756,7 +758,9 @@ topicFakeSql = () => {
     if (statement === S.orphans) return unclaim((x) => !entryOf(x));
     throw new Error("topicFakeSql: " + statement);
   };
-  return { run, topics, entries, subs, claims };
+  // before: a test sets it to be asked before each statement runs, and may keep the statement waiting there.
+  const db = { run: async (statement, a) => (db.before && (await db.before(statement, a)), answer(statement, a)), topics, entries, subs, claims, before: null };
+  return db;
 }
 // %%
 topicRig = async () => {
@@ -768,12 +772,13 @@ topicRig = async () => {
   // delegations: id -> { from, scope, holder }. targets: a method's whole name -> what it answers.
   // heard: each call that reached a target, with the headers the core would send it and the context the Worker sent.
   const delegations = new Map(), targets = new Map(), heard = [];
-  let sim = null, last = Promise.resolve();
+  let sim = null, last = Promise.resolve(), arrived = null;
   const core = async (request) => {
     const url = new URL(request.url), nsid = url.pathname.replace("/xrpc/", "");
     if (nsid === N + "db.sql") {
       // One call is one transaction, as brain-db runs it: of two calls at once one runs whole after the other.
       const { statements } = await request.json();
+      if (arrived) await arrived(statements);
       const batch = last.then(async () => {
         const results = [];
         for (const [statement, ...args] of statements) results.push(await db.run(statement, args));
@@ -823,6 +828,8 @@ topicRig = async () => {
     // Every push an append started has ended: what the Worker handed to waitUntil.
     pushed: () => simWaits.done(),
     tick: (scheduledTime) => sim.scheduled({ scheduledTime }),
+    // fn(statements) is asked as each call of db.sql arrives, before the call waits its turn, and may keep it there.
+    arriving: (fn) => void (arrived = fn),
     sub: (topic, name) => db.subs.get(topic + "\n" + name),
     claim: (topic, name, seq) => db.claims.get(topic + "\n" + name + "\n" + seq),
     // Every claim of a subscription has ended: what a test does in place of waiting its seconds.
@@ -1334,6 +1341,55 @@ test_topic_take_hands_each_entry_to_one_taker = {
   expect((await take(3)).data.entries.map((e) => [e.seq, e.tries])).toEqual([[4, 4], [6, 4], [7, 1]]);
   expect(rig.sub("work", "w").pos).toBe(7);
   return "5 entries to 2 takers, none twice";
+}
+// %%
+test_topic_take_is_one_transaction = {
+  const rig = await topicRig(), S = topicSql, TAKE = ["again", "fresh", "handed", "taken"];
+  const named = (statement) => TAKE.find((k) => S[k] === statement);
+  await rig.owner("create", { topic: "work" });
+  await rig.token("subscribe", { topic: "work", name: "w" });
+  for (const key of ["a", "b", "c", "d"]) await rig.token("append", { topic: "work", key, body: key });
+  await rig.pushed();
+  // Each call of db.sql that has a statement of a take, as it arrived. The first of the two waits there for the
+  // second, so both takes are at their claim together and neither is ahead of the other by chance.
+  const calls = [];
+  let both;
+  const two = new Promise((done) => (both = done));
+  rig.arriving(async (statements) => {
+    const names = statements.map(([s]) => named(s));
+    if (!names.some(Boolean)) return;
+    calls.push(names);
+    if (calls.filter((c) => c.includes("fresh")).length === 2) both();
+    if (names.includes("fresh")) await two;
+  });
+  // Each statement of a take as it ran, with its taker. The first take to come to handed, with its claims made and
+  // the position not yet moved, waits there for one turn of the event loop: whatever does not wait for it runs in
+  // that turn. With one call run whole before the next, as brain-db runs them, that is nothing.
+  const ran = [];
+  let held = null;
+  rig.db.before = async (statement, a) => {
+    const name = named(statement);
+    if (!name) return;
+    const taker = a[{ again: 4, fresh: 3, handed: 2, taken: 2 }[name]];
+    if (name === "handed" && !held) {
+      held = taker;
+      await new Promise((done) => setTimeout(done, 0));
+    }
+    ran.push([taker, name]);
+  };
+  const [x, y] = await Promise.all([rig.token("take", { topic: "work", name: "w", limit: 2 }), rig.owner("take", { topic: "work", name: "w", limit: 2 })]);
+  rig.arriving(null);
+  rig.db.before = null;
+  // Four entries waited and each take asked for two. A second take whose fresh ran before the first one's handed
+  // would count its two from the old position, find them claimed and be handed nothing.
+  expect([x.status, y.status, x.data.entries.length, y.data.entries.length]).toEqual([200, 200, 2, 2]);
+  expect([...x.data.entries, ...y.data.entries].map((e) => e.seq).sort()).toEqual([1, 2, 3, 4]);
+  expect(rig.sub("work", "w").pos).toBe(4);
+  // The service sent the four statements of each take as one call, and none of one take ran inside the other.
+  expect(calls).toEqual([TAKE, TAKE]);
+  const takers = [...new Set(ran.map(([taker]) => taker))];
+  expect(ran.map(([taker, name]) => [takers.indexOf(taker) + 1, name])).toEqual([...TAKE.map((name) => [1, name]), ...TAKE.map((name) => [2, name])]);
+  return "2 takes at their claim together: 4 statements of one, then 4 of the other";
 }
 // %%
 test_topic_claim_that_ended_is_handed_out_again_and_the_fifth_ending_fails_the_entry = {

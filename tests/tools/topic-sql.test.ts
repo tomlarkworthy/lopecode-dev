@@ -277,6 +277,30 @@ test("a take claims what no claim holds: ended claims first, then new entries, t
   expect([claims(db).map((c) => [c[0], c[1]]), batch(db, [[S.unclaimAll, "t", "w"]])[0].changes, claims(db).map((c) => [c[0], c[1]]), batch(db, [[S.dropClaims, "t"]])[0].changes]).toEqual([[["v", 7], ["v", 8], ["w", 7], ["w", 8]], 2, [["v", 7], ["v", 8]], 2]);
 });
 
+// What one transaction is for (tp-3b-take-is-one-transaction-test): fresh counts from the position, which handed moves.
+test("two takes whose statements mix: the second is handed nothing while entries wait, on the SQLite and on topicFakeSql", async () => {
+  const seqs = (r: any) => (r.rows as any[]).map((e) => e.seq);
+  const made = [[[S.make, "t", "owner", "true", "true", 1000]], subscribe("t", "w", "owner", "", "", 1000, 60), append("t", "a"), append("t", "b"), append("t", "c"), append("t", "d")];
+  const a = take("t", "w", "k1", 5000, 65000, 2), b = take("t", "w", "k2", 5000, 65000, 2);
+  // [the statements in the order they run, where the first take's taken and the second's are in it]
+  const orders: [any[][], number, number][] = [[[...a, ...b], 3, 7], [[a[0], b[0], a[1], b[1], a[2], a[3], b[2], b[3]], 5, 7], [[a[0], a[1], b[0], b[1], b[2], b[3], a[2], a[3]], 7, 5]];
+  const handed: any[] = [];
+  for (const [order, first, second] of orders) {
+    const db = fresh(), fake = fakeSql();
+    for (const list of made) {
+      batch(db, list);
+      for (const [s, ...args] of list) await fake.run(s, args);
+    }
+    // Each statement in a transaction of its own, as a Brain would run a take sent as four calls.
+    const real = order.map((one) => batch(db, [one])[0]), stood: any[] = [];
+    for (const [s, ...args] of order) stood.push(await fake.run(s, args));
+    expect([seqs(stood[first]), seqs(stood[second]), fake.subs.get("t\nw").pos, fake.claims.size]).toEqual([seqs(real[first]), seqs(real[second]), subOf(db, "t", "w").pos, claims(db).length]);
+    handed.push([seqs(real[first]), seqs(real[second]), subOf(db, "t", "w").pos]);
+  }
+  // One take whole and then the other: all four. Mixed: the first has two, the second none, and two entries wait.
+  expect(handed).toEqual([[[1, 2], [3, 4], 4], [[1, 2], [], 2], [[1, 2], [], 2]]);
+});
+
 test("topicFakeSql answers one list of calls as the SQLite does", async () => {
   const db = fresh(), fake = fakeSql();
   const calls: any[][][] = [
