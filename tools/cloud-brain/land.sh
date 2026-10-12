@@ -14,6 +14,7 @@
 #   4. test      each --test command, in the order given, with bash -c at the root of the worktree: the commits tested
 #                are the ones pushed. The lock is held meanwhile, for 600 s from the take: give the files of the change
 #                (bun test --timeout=30000 ./tests/tools/<file>), not a run that takes minutes.
+#                No `| tail` in one: the exit read is then tail's, and a failed test passes.
 #   5. renew     lock.sh renew land <id>.
 #   6. push      git push origin HEAD:main. Refused (a push of main with no lock since the rebase): steps 3 to 5 once
 #                more, then one more push.

@@ -341,10 +341,11 @@ each command; no shell state lasts between calls.
     `impl/<id>/submit-<round>`, the round from the issue's `rework` moves, and one `commit` ref for each commit
     it pushed. `--reason "<text>"` is the reason inline. `--test` is a command run at the root of the worktree
     after the rebase and under the lock, as many as are given: the test files of the change, not the whole suite,
-    whose count is from your run before this (step 6). The header of the script has each step and each exit.
-    - **Exit 0**: landed and submitted. Its four lines go in your report: the first and the last have the times
-      the lock was taken and released, the second the commits, and the third ends `seq=`, the seq of the submit
-      that step 13 waits from. Go to step 13.
+    whose count is from your run before this (step 6), and with no `| tail` in it (the exit read is then `tail`'s).
+    The header of the script has each step and each exit.
+    - **Exit 0**: landed and submitted. Its lines go in your report: the first has when the lock was taken, the
+      second the commits, the third ends `seq=`, the seq of the submit that step 13 waits from, the fourth has
+      when the lock was released, and the fifth is the docs step's. Go to step 13.
     - **Exit 1**: it stopped before the push, and released the lock if it had it. Stdout is the output of the
       step that failed and nothing else, and stderr names the step. Nothing is on `origin/main` and nothing was
       written to the issue: mend, commit, and run the command again. After a conflict, resolve as step 9 says first.
