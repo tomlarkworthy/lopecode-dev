@@ -35,7 +35,7 @@ is decided by code; the items are streamed; the bookkeeping is in the service.
 ## The reports gathered
 
 The feature has no parts: `ia "list?parent=bookkeeping-in-the-tracker"` answered `{"issues":[]}`
-at 12:19 CEST. Its body carries six observations. Each was measured again here (next section).
+before the `spec` move of 12:20 CEST. Its body carries six observations. Each was measured again here (next section).
 
 | Observation of the body | What it becomes |
 |---|---|
@@ -176,12 +176,12 @@ table of 20 rows. The order is one paragraph above it.
 
 ### The service's tests
 
-`bun test.ts brain-x-issues` in the worktree's `cloud-brain-dev`, 12:27 CEST:
+`bun test.ts brain-x-issues` in the worktree's `cloud-brain-dev`, between 12:26 and 12:30 CEST:
 `"hash":"d53d1c8d…","passed":36,"failed":0,"needsBrowser":15`.
 
 ## Read
 
-- **The Brain, 12:23 CEST, four searches** with `loop-knowledge` (`knowledge.search?semantic=true`):
+- **The Brain, 12:21 CEST, four searches** with `loop-knowledge` (`knowledge.search?semantic=true`):
   "issue tracker queue order dependencies between tasks blocked by", "work queue priority
   scheduling dependency graph ready set", "orchestrator cognitive load multi-agent task
   allocation", "service finishes project when all parts closed automatic state transition".
@@ -453,7 +453,7 @@ for `issue.queue` in the shape's list (`working-with-cloud-brain-remote-lopecode
 ## How each requirement is known to be met
 
 `ia` is `tools/cloud-brain/issue-as.sh <own token>`. Every command is one an agent of the loop runs
-with its own token. "Today" was run on 2026-10-12 between 12:21 and 12:40 CEST with `spec-8717a9`.
+with its own token. "Today" was run on 2026-10-12 between 12:21 and 12:34 CEST with `spec-8717a9`.
 An "After" on cb4 cannot be run before its task is deployed; it is run then, by the task's writer
 in step 11 of its brief, and the table says which task.
 
@@ -461,7 +461,7 @@ in step 11 of its brief, and the table says which task.
 |---|---|---|---|
 | R1 | `ia link '{"key":"…","id":"A","to":"B","rel":"after"}'` | 400 `rel: part-of, duplicate, cause, related` (run on this issue and `worker-machine-on-fly`; nothing written) | bk-1: 200 on two issues `test-bk-1-a`, `test-bk-1-b` the writer opens; the second link, B after A, 403; both closed after |
 | R1 | `ia "queue"`, `waiting` | 501 `MethodNotImplemented` | bk-3: `test-bk-1-a` has `why` `after` and `on` `["test-bk-1-b"]`; after `close` of b, a is in `queue` |
-| R1 | `ia "list?link=fly-1-by-hand"`, the ids | `[]` (12:40 CEST) | bk-5: `fly-2-image-and-run-sh` and `fly-3-brain-fly-service` among them |
+| R1 | `ia "list?link=fly-1-by-hand"`, the ids | `[]` (12:34 CEST) | bk-5: `fly-2-image-and-run-sh` and `fly-3-brain-fly-service` among them |
 | R2 | `bun test.ts brain-x-issues --with <build>` in the worktree's `cloud-brain-dev` | 36 passed, 0 failed, 15 need a browser, at `d53d1c8d` | bk-2: more passed, 0 failed; a new test closes the last part of a project in the rig and reads the project `done`, the event's `auto`, and `issue.verify?guards=true` `ok` |
 | R2 | `ia "verify?guards=true"` | `ok: true`, 3997 checked | `ok: true` after each of bk-1, bk-2, bk-3 and after the install |
 | R2 | `ia "queue"`, the entries with `do` `finish` | 501 | bk-3: none two passes after the deploy. A `finish` entry seen later is a follow-on that failed: its id goes in the task's record |
@@ -471,7 +471,7 @@ in step 11 of its brief, and the table says which task.
 | R6 | the rows of step 3's tables: `awk '/^3\. \*\*/{on=1} /^4\. \*\*Spawn/{on=0} on && /^   \| /' .claude/skills/brain-maintenance/SKILL.md \| grep -v -c -E '^   \| (\`do\`\|In \`waiting\`\|Issue is\|---)'` | 20 | 13, with the draft of part 6 in the file (run 12:32 CEST, then taken back). The task's count may differ by the rows it adds |
 | R6 | `grep -c "A place goes, in this order" .claude/skills/brain-maintenance/SKILL.md` | 1 | 0 (the same run) |
 | R6 | `ia "queue"`, `waiting` with `why` `after` | 501 | bk-5: 13 entries, the links of "Holds" above, less any whose issue has ended by then |
-| R7 | `bun test ./tests/tools/issue-watch.test.ts` | 13 pass, 0 fail (12:40 CEST) | bk-6: passes with a test that feeds two answers of `queue` and sees one `QUEUE` line for the entry that is new |
+| R7 | `bun test ./tests/tools/issue-watch.test.ts` | 13 pass, 0 fail (12:34 CEST) | bk-6: passes with a test that feeds two answers of `queue` and sees one `QUEUE` line for the entry that is new |
 
 No "After" figure has a run behind it but the two of R6.
 
@@ -535,10 +535,14 @@ Nothing. Every call of this design is `issue.*`, which each agent's token alread
   body is the report. The step has no line for that.
 - The issue's part 4 reads as a change of how parts are counted. That change breaks
   `issue.verify` at one event of the record, which only a replay showed.
+- Six times of day in the first writing of this file were written from memory and not from
+  `date`. They were found on a second read and replaced with the clock of the command, a file's
+  time or a commit's author date. The brief says it of a record; a writer needs a `date` in each
+  command it will quote.
 - `git diff --stat` in the worktree lists `lopebooks`, `lopecode` and `lopecode-plugin` as changed
   after a clean checkout: they are the links. The brief says so of `git status`, not of `diff`.
 
-## The fresh review before submitting (2026-10-12, answered by 12:42 CEST)
+## The fresh review before submitting (2026-10-12, answered by 12:43 CEST)
 
 One agent with the file and nothing else (`/review-notebook`): FIX, 6 findings, all taken.
 
