@@ -151,7 +151,7 @@ declared this. T1 came 22 minutes later to its pass, and the six tasks after it 
 
 ## Next actions
 
-Three, written here and filed when the review has passed (`plan/cloud-brain-post-mortems-declared-and-kept.md`,
+Three, each a `task`, written here and filed when the review has passed (`plan/cloud-brain-post-mortems-declared-and-kept.md`,
 part 5), each linked to this issue with the rel `cause`. None is done by this writer.
 
 | Issue | What changes | The part of the trace it answers |
