@@ -89,7 +89,7 @@ const fresh = () => {
   return { dir, repo, sub, subSha, fake, git, write, all, entry, keep, kdocs, calls, puts, summary };
 };
 
-test("every doc of origin/main is read: knowledge/*.md, plan/cloud-brain-*.md and the three files of cloud-brain-dev", () => {
+test("every doc of origin/main is read: knowledge/*.md, plan/cloud-brain-*.md and the three files of cloud-brain-dev (no post mortem here: the directory is absent)", () => {
   const t = fresh();
   const r = t.kdocs(["status"]);
   expect(r.code).toBe(0);
@@ -237,6 +237,47 @@ const pushed = (t: ReturnType<typeof fresh>, files: Record<string, string>) => {
   t.git(t.repo, "commit", "-q", "-m", "docs");
   t.git(t.repo, "push", "-q", "origin", "main");
 };
+
+// pm-1-file-and-search, task 1 of plan/cloud-brain-post-mortems-declared-and-kept.md (R4, design part 4). Until it the
+// directory was not listed, and a doc's name was the second part of its path with three characters cut: `cloud-br` here.
+test("pm-1: a file of tools/cloud-brain/post-mortems/ is a doc named by its file, private; a file below it, one that is no .md and a record are not", () => {
+  const t = fresh();
+  const PM = "tools/cloud-brain/post-mortems/", pm = "# Post mortem: a second role where one exists (`pm-x`)\n\nThe text of the post mortem.\n";
+  pushed(t, { [PM + "pm-x.md"]: pm, [PM + "pm-y.md"]: pm.replace("pm-x", "pm-y"), [PM + "evidence/pm-x-long.md"]: "# Below\n", [PM + "notes.txt"]: "no doc\n",
+    "tools/cloud-brain/records/pm-x.md": "# A record\n", "tools/cloud-brain/running.md": "# A guide beside the directory\n" });
+  const s = t.kdocs(["status", "--check"]);
+  expect(s.code).toBe(1);
+  expect(t.summary(s.out)).toMatchObject({ docs: 8, fresh: 6, stale: 0, missing: 2, entriesWithNoFile: [] });
+  const rows = s.out.split("\n").slice(0, -1).map((l) => l.trim().split(/\s+/).slice(0, 3).join(" "));
+  expect(rows.filter((l) => !l.startsWith("fresh"))).toEqual(["missing private pm-x", "missing private pm-y"]);
+  // The docs that were taken before keep their names: a, b and the design are still fresh by the entries of those ids.
+  expect(rows).toContain("fresh public a");
+  expect(rows).toContain("fresh private cloud-brain-design");
+  expect(s.out).not.toContain("cloud-br ");
+  const p = t.kdocs(["put", "--stale"]);
+  expect(p.code).toBe(0);
+  expect(p.out).toContain("no scope in frontmatter, entered private: pm-x, pm-y");
+  expect(t.summary(p.out)).toMatchObject({ put: 2, public: 0, private: 2, cut: 0 });
+  const x = t.puts().find((e: any) => e.id === "doc:pm-x");
+  expect(x).toMatchObject({ kind: "doc", public: false, title: "Post mortem: a second role where one exists (`pm-x`)", text: "The text of the post mortem.",
+    sha256: sha(pm), url: "https://github.com/tomlarkworthy/lopecode-dev/blob/main/" + PM + "pm-x.md", source: "lopecode-dev", method: "knowledge-docs" });
+  expect(t.puts().map((e: any) => e.id).sort()).toEqual(["doc:pm-x", "doc:pm-y"]);
+  // By name, as any doc; and with the entries kept nothing is behind.
+  expect(t.summary(t.kdocs(["put", "pm-y"]).out)).toMatchObject({ put: 1 });
+  t.keep([...t.all(), t.entry("pm-x", pm), t.entry("pm-y", pm.replace("pm-x", "pm-y"))]);
+  const s2 = t.kdocs(["status", "--check"]);
+  expect(s2.code).toBe(0);
+  expect(t.summary(s2.out)).toMatchObject({ docs: 8, fresh: 8, missing: 0 });
+});
+
+test("pm-1: a post mortem over 16,000 characters is cut with the line that names its file", () => {
+  const t = fresh();
+  const p = "tools/cloud-brain/post-mortems/pm-long.md";
+  pushed(t, { [p]: "# Post mortem: long\n\n" + "q".repeat(16001) + "\n" });
+  expect(t.kdocs(["put", "pm-long"]).code).toBe(0);
+  const m = LINE.exec(t.puts()[0].text)!;
+  expect([t.puts()[0].id, t.puts()[0].text.length, m[2], m[3]]).toEqual(["doc:pm-long", 16000, "16001", `the file ${p}: ${RAW}${p}`]);
+});
 
 test("ac-4: a text of 16,001 characters is put as 16,000 that end with the line; one of 16,000 is put as it is", () => {
   const t = fresh();

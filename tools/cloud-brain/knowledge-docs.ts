@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
-// Enters knowledge/*.md, the Cloud Brain designs (plan/cloud-brain-*.md) and three files of cloud-brain-dev (AGENTS.md,
+// Enters knowledge/*.md, the Cloud Brain designs (plan/cloud-brain-*.md), the post mortems of the issue loop
+// (tools/cloud-brain/post-mortems/*.md) and three files of cloud-brain-dev (AGENTS.md,
 // README.md, philosophy.md) into a Brain's knowledge base, one entry a doc (kind `doc`, id `doc:<name>`), so that
 // knowledge.search?semantic=true finds the doc for a task. `status` says which entries are behind their file and for
 // how long, `put` enters them. What enters a changed doc: `lock.sh release land`, the last command of a landing, runs
@@ -100,11 +101,14 @@ const doc = (name: string, bytes: Uint8Array, more: { at: string; rev: string; p
 };
 
 // plan/cloud-brain-*.md: the designs and the backlog. They have no frontmatter, so they are entered private.
+// tools/cloud-brain/post-mortems/*.md: one file a post mortem, private the same way. A doc's name is its file's
+// name, the last part of the path (pm-1-file-and-search; until it the second part, which here is `cloud-br`).
 // -z: without it git writes a path that has a character outside ASCII in quotes and escapes, and the doc matches no pattern (i1546).
-const listed = git(root, "ls-tree", "-r", "-z", "--name-only", SRC, "knowledge/", "plan/");
+const PM = "tools/cloud-brain/post-mortems/";
+const listed = git(root, "ls-tree", "-r", "-z", "--name-only", SRC, "knowledge/", "plan/", PM);
 const docs: Doc[] = (listed.status === 0 ? listed.stdout.toString("utf8") : "").split("\0")
-  .filter((p) => /^knowledge\/[^/]+\.md$/.test(p) || /^plan\/cloud-brain-[^/]*\.md$/.test(p))
-  .map((p) => doc(p.split("/")[1].slice(0, -3), git(root, "show", `${SRC}:${p}`).stdout, { at: root, rev: SRC, path: p, url: REPO + p, source: "lopecode-dev", whole: `the file ${p}: ${RAW}${p}` }));
+  .filter((p) => /^knowledge\/[^/]+\.md$/.test(p) || /^plan\/cloud-brain-[^/]*\.md$/.test(p) || /^tools\/cloud-brain\/post-mortems\/[^/]+\.md$/.test(p))
+  .map((p) => doc(p.split("/").at(-1)!.slice(0, -3), git(root, "show", `${SRC}:${p}`).stdout, { at: root, rev: SRC, path: p, url: REPO + p, source: "lopecode-dev", whole: `the file ${p}: ${RAW}${p}` }));
 
 // The three files of cloud-brain-dev, at the commit origin/main records: a landing fetches nothing of that repository.
 const DEV = "cloud-brain-dev", DEV_FILES: [string, string][] = [["AGENTS.md", "agents"], ["README.md", "readme"], ["philosophy.md", "philosophy"]];
