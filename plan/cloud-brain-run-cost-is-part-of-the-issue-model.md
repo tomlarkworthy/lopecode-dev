@@ -325,6 +325,11 @@ no `cost` event of that issue whose `of` is its seq, calls `issue.cost` with the
 cost comment's seq; `backfilled` from the cost comment alone. The `how` and the `backfilled` of a
 `cost-usage` comment are not carried: they say how a usage was found, and the comment stays to say it; key `cost/<id>/<role>/<round>`. With no flag it prints what it would send and what
 is missing. `--post` sends. It is run with the loop's token.
+(As built, `cm-4-enter-the-runs-again`, 2026-10-12: the tool takes `--token NAME` and has no
+default; a second comment of one issue, role and round has the key `cost/<id>/<role>/<round>/<n>`;
+a comment is passed over when a `cost` event of its run has no `of` or a later one; `--check
+MODULE.js` gives each body to the tracker's own `issueAct`; `--post` stops at the first answer that
+is not a new event. 383 comments were entered, as events 2953 to 3335; the record.)
 
 Run on the record at event 2304, in `proto.py`, with the shape check of "The event" written out:
 
@@ -468,6 +473,8 @@ Each is one writer and one review. The ids are proposals.
    `tests/tools/` (a fixed list of events: a line with its usage inline, one with a `cost-usage`,
    one with `agent: null`, one already entered). Then `--post` on cb4, and the checks of R3, R4,
    R6 and R8 in the record. After 2. No deploy.
+   (As built, `cm-4-enter-the-runs-again`, 2026-10-12: the check of R6 is
+   `bun tools/cloud-brain/cost-events.ts --token NAME`; the record.)
 5. **`cm-5-the-loop-writes-the-event`.** `SKILL.md` step 5 and the rework section, `issue-stats.ts`,
    the two test files. Then `cost-events.ts --post` once more, for the comments written while 1 to
    4 landed, and R7's grep. After 4. No deploy. If `ta-3-orchestrator-steps` has landed, the
