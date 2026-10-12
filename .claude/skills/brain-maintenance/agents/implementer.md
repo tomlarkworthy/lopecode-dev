@@ -212,7 +212,15 @@ token and ends it.
      finding 2, after comment 1411, "Two places where the record's words go further than what I
      saw": a resumed round of 154,128 tokens and a second review for two lines). Not `spec-as-built.md`:
      every writer appended there and the cherry-picks met. The deploy hash and the commits are
-     the refs of the submit, not part of the record. Commit it (a second commit is fine).
+     the refs of the submit, not part of the record. Of your own commits the record names neither
+     a sha nor a `%ci` while a rebase is still ahead of them (this step's, and step 10's under the
+     lock): a rebase gives each a new sha and a new committer date, and the record that quoted one
+     is then wrong and is mended (2026-10-12, five writers between events 3591 and 3662 said so:
+     `cost-events-test-reads-stale-deploy` and `fm-4-stats-flow-block` mended it before the push,
+     `fm-2-open-stays-submits` and `fm-3-issue-flow-method` took the lock a second time for it, and
+     `fm-5-page-and-dashboard` a second and a third). A time of your own
+     work is read from `date` or an event's `at`. A commit already on `origin/main` keeps its sha
+     and may be named. Commit it (a second commit is fine).
      The loop's reviewer is the record's fresh read; `/review-notebook` is not run on it.
    - **Emit** with the same tool, to a file named for the issue in the main checkout, where `apply` reads it:
      `cd $W && bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/<module> --emit <name>_service=<root>/tools/cloud-brain/.emitted/<id>-<worker>.json`.
