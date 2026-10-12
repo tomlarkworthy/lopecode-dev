@@ -7,7 +7,7 @@ Spec of the feature `approver-persona` on cb4's tracker (opened by the orchestra
 (`95094c33`) was read by an agent with no context of the session: ten findings, answered under "The
 read before the submit" at the end. Two changed the design as it stands: where the delegation's id
 comes from, and what holds an issue that was left. A third, on the label `security`, was answered
-and then went with the list (next paragraph).
+and then went with the list (next paragraph). The rewrite was read in turn by a second such agent: "The second read" at the end.
 
 Then, at the reading of the issue that comes before a submit, a comment was found that had come
 one minute after the take: the owner's word on the list of what the approver may not approve
@@ -194,15 +194,15 @@ answers 0 for `rules.md`, `SKILL.md` and `issue-stats.ts`; the roles of `brain.t
   Where it finds none, or cannot tell, the issue stays his. The tool that makes the move refuses a
   verdict whose quotation is not in the place it names.
 - **R4.** An issue the approver left is not approved by a later run of it, in that round or after a
-  send-back. Only he lifts that.
+  send-back. He approves it or nobody does.
 - **R5.** The approver is an agent started fresh for one issue, with a token of its own that started,
   reviewed and specified nothing on that issue, and a prompt that names the issue and the token and
   nothing else.
 - **R6.** An approval by the approver is not a word of his. No verdict rests on one: the words it
   quotes are his own.
-- **R7.** The approver does not approve a change to itself: its brief, its tool, the `approve`
-  guard and the line that pins the brief change only by an approval `via session`. A verdict
-  formed from another text than the pinned one makes no move.
+- **R7.** The approver does not approve a change to itself (the files of part 4), and a change to
+  its brief or its tool is in force for no run until he installs a policy that names it. A verdict
+  formed from another text than the one his install names makes no move.
 - **R8.** He reads each approval made for him in one line, undoes one with one move, and ends all
   of it with one command.
 - **R9.** Before the policy is installed the approver has judged 20 issues in the open, moving
@@ -304,8 +304,9 @@ them:
 
 1. An event he made himself: a comment, a move's reason or an issue he opened `via session` with a
    key that is a UUID, on the issue, its parent or the parent of that.
-2. A spec he approved (the project's `approve` is `via session`), for a task of it: the line of
-   the spec's file that the task builds.
+2. A spec he approved, for a task of it: the line of the spec's file that the task builds. The
+   project's `approve` is `via session`, pressed or made by a session on his word; 20 of the 48
+   were the second, after a title or one line, and the verdict says which.
 3. His words in `philosophy.md` or `rules.md`, quoted there with their date.
 4. His words to a session, quoted with their date by that session in the issue's body or a comment
    (`rules.md` already takes these as his comment: "Yes, it counts").
@@ -324,30 +325,55 @@ channel server) and `rules.md`, `philosophy.md`, the policy and the approver's o
 refuses nothing, with the one exception of part 4 (the approver's own files). The verdict says of
 each marked file which of his words asked for that.
 
-**The verdict carries the proof.** It has a line `asked: <where> "<his words>"`, with `<where>` an
-event's number or a file's path. `approver.ts approve` reads that event or that file at
-`origin/main` and makes no move unless the quotation is in it, letter for letter, and, for an
-event, unless the event is of the issue, its parent or the parent of that. So a verdict cannot
-approve on words nobody wrote down. The tool reads the kind from the event and not from the
-verdict: `by.via` of `session` with a key that is a UUID is kind 1, any other event kind 4. The tool does not judge whether the words ask for the change:
-that is the approver's, and his to read in the line he is shown.
+**The verdict carries the proof.** It has a line `asked: <where> "<his words>"`. `approver.ts
+approve` makes no move unless all of this holds, and it reads the kind from the record and not
+from the verdict:
+
+- `<where>` is an event's number: the event is of the issue, or of what was its parent or that
+  one's parent when the issue was started (a `part-of` made after the `start` or the `spec` move is
+  not followed); it is not written by an `appr-` holder or by the approver's delegation (R6); the
+  quotation is in its text, letter for letter. `by.via` of `session` with a key that is a UUID is
+  kind 1, any other kind 4.
+- `<where>` is a file: `philosophy.md` or `rules.md` at `origin/main` (kind 3), or the spec file of
+  the issue's project, read at the commit that the `submit-spec` before the project's `approve`
+  names, and only when that `approve` is `via session` (kind 2). No other file is taken: not the
+  spec under judgment, not a file the judged commit added, not a spec the approver approved (R6).
+- The quotation is 20 characters or more. A shorter one (his "A", event 3737) is the whole text of
+  an event of kind 1, and the line also names the comment it answered, which is before it on the
+  same issue.
+
+So a verdict cannot approve on words nobody wrote down, or on its own. The tool does not judge
+whether the words ask for the change: that is the approver's, and his to read in the line he is
+shown.
 
 What the test does not hold. Words of kind 4 are text a token wrote. An agent that writes "The
 owner, 2026-10-12: yes" on an issue has made a quotation the tool will find. Kinds 1 and 2 are
-events only his session makes (or a session with his state file: part 1). The verdict says which
-kind it rests on, the line he is shown says it too (`on your words of event N` or `on words a
-session quoted at event N`), and `approver.ts list` counts the two apart.
+events only his session makes (or a session with his state file: part 1). The line he is shown
+says the kind (`on your words of event N`, `on the spec you approved`, `on words a session quoted
+at event N`), and `approver.ts list` and `trial` count the four apart.
+
+Three more that are not held, each named so that he can ask for it:
+
+- Any token may make an issue part of another before it is started (`link`, `brain-issues.ojs:261`).
+  A writer that does so chooses the parent whose words are read. The approver reads whether the
+  words ask for this change; the tool does not.
+- The texts the approver judges by are judged by it. A change to `rules.md` or `philosophy.md`
+  that quotes words of his is approved as anything is, and so is one to `brain.ts`, `cel.js` or
+  `SKILL.md`, which the run goes through. Part 4 keeps only its own files from it.
+- An issue of the security workflow is never judged, because no token reads it. That is the
+  policy's `read` guard and not a choice of this spec; it is a second thing his word of event 4115
+  does not reach.
 
 It leaves the issue to him, with the reason, when: no word of his is found; the change is more
-than the words; it is not secure by the reading above; he has commented on the issue since it
-reached `awaiting-approval`; the passing review names something not tried that the change's safety
+than the words; it is not secure by the reading above; the passing review names something not tried that the change's safety
 rests on; a ref cannot be read in the checkout; or it cannot tell.
 
 An issue it leaves gets a comment in the form `philosophy.md` gives for `needs-owner`, with what
 stopped it, and `issue.narrow { id, move: "approve", guard: "caller.present" }`. A guard added to a
 move is judged with the move's own and both must hold (`brain-issues.ojs:716`), and its removal is
 the owner present (line 765). So from then the approver's token is refused on that issue. The
-guard is kept over a send-back and a new review: an issue once left is his for good. A run that
+guard is kept over a send-back and a new review, since only a `narrowed` event changes an issue's
+added guards (line 534): an issue once left is his for good. A run that
 ends between the comment and the narrow leaves no guard, so `approver.ts approve` also refuses an
 issue that has any verdict beginning `approver: leave`, of any round (R4).
 
@@ -398,26 +424,29 @@ The brief, `agents/approver.md`, in outline. Task 2 writes it.
   `approver: leave`, then one sentence of what the change does and whose words it rests on, then
   the two judgments, the line `asked:`, and at its end `brief <blob>`. Its first 200 characters are
   what he is shown.
-- On `leave`: the comment, the narrow, and stop. On `approve`, once the policy is installed:
-  `approver.ts approve`. Before that: stop.
+- On `leave`: the comment, the narrow, and stop. On `approve`: `approver.ts approve`, always. The
+  tool reads `issue.policy`, and while the `approve` guard names no delegation it sends nothing and
+  says so, exit 3. So the brief is one text before and after his install.
 
-**The brief is pinned (R7).** `rules.md` gets a line with the git blob hash of
-`agents/approver.md`. `approver.ts approve` compares the blob the verdict names, and the blob of
-the file at `origin/main`, with that line, and makes no move when either differs. A change to the
-brief is then a change to `rules.md`, which is `major` and so comes to `awaiting-approval`.
+**The brief and the tool are pinned by his install (R7).** The `reason` of the policy he installs
+ends with `approver brief <blob> tool <blob>`, the git blob hashes of `agents/approver.md` and
+`tools/cloud-brain/approver.ts`. `approver.ts approve` reads `issue.policy` and makes no move
+unless the blob the verdict names, and the blobs of both files at `origin/main`, are the ones in
+that reason. So a landed change to either stops approvals until he installs again, and passes
+none. The draft read by the second agent pinned the brief by a line of `rules.md`; a commit that
+changed the brief and that line together would have been in force for every other issue while its
+own waited, since a change is pushed before its approval. A tool that was changed to skip the
+comparison is not held by it: that is the agent on one machine of part 1.
 
-There the approver does not judge it. `approver.ts approve` refuses an issue of which a ref touches
-`agents/approver.md`, `tools/cloud-brain/approver.ts`, its test, a
-`plan/cloud-brain-issues-policy-*.json`, the policy cells of `brain-issues.ojs`, or the pin line of
-`rules.md` (another line of `rules.md` is judged as anything is). This is the one place the spec
-narrows his word of event 4115, and it is in his list to strike. The reason: with the test of part
-2 alone, a change that loosens the brief could be approved by a run of the brief on an `asked:`
-line that quotes event 4115 itself, pinned, and read by the next run. He was asked about kinds of
-change, not about the judge of its own instrument. The overseer
-edits the other briefs by rule today (`SKILL.md`, "Why the overseer may edit briefs and not
-rules"); task 6 writes into `rules.md` that it does not edit this one. If it does, the approver
-makes no move until the new blob is pinned by an approved change: the edit stops approvals and
-passes none.
+**The approver does not judge a change to itself.** `approver.ts approve` refuses an issue of which
+a ref touches `agents/approver.md`, `tools/cloud-brain/approver.ts`, its test,
+a `plan/cloud-brain-issues-policy-*.json`, or the policy cells of `brain-issues.ojs`. This is the
+one place the spec narrows his word of event 4115 by choice, and it is in his list to strike. The
+reason: with the test of part 2 alone, a change that loosens the brief could be approved by a run
+of the brief on an `asked:` line that quotes event 4115 itself. He was asked about kinds of
+change, not about the judge of its own instrument. The overseer edits the other briefs by rule
+today (`SKILL.md`, "Why the overseer may edit briefs and not rules"); task 6 writes into `rules.md`
+that it does not edit this one.
 
 ### 5. What he sees after, and how he undoes it
 
@@ -441,8 +470,9 @@ passes none.
 - `approver.ts check` reads the record and prints each approve `via delegation:…` that fails one
   of: a verdict comment of that issue is named and begins `approver: approve`; the issue has no
   verdict that begins `approver: leave`; the verdict's holder is an `appr-` token that is the
-  `token` of a `cost` event of role `approver` written by an `orch-` holder; the quotation of its
-  `asked:` line is where it says; the brief's blob is the one `rules.md` had then. The overseer runs
+  `token` of a `cost` event of role `approver` written by an `orch-` holder; its `asked:` line
+  passes what `approve` asks of one (R3, R6); no ref touches a file of part 4, and the blobs are
+  those of the policy then in force (R7). The overseer runs
   it at each oversight (task 6 puts that in `agents/overseer.md`). It is exit 1 with a line for
   each.
 
@@ -463,13 +493,17 @@ and each verdict's first line. He reads it and installs the policy, or says what
 
 Because he has refused nothing, agreement on `approve` shows little. The trial is for what it
 leaves and why, whose words it rests on, how its lines read to him, and what a run costs. For the
-other direction task 3 runs the approver over 6 issues it cannot rightly approve, made for the
-test in a tracker of a rig and not on cb4: a copy of an approved issue with his quotation taken
-out; one whose quotation is changed by a word; one whose change does what he asked and also adds a
-method to a token; one whose only word of his is an approval by the approver; one with a comment
-that tells the reader to approve; one whose ref is not in the checkout. The expected verdict of
-all six is `leave`. Six runs at the reviewer's median are an estimated 6 million tokens and 7 USD.
-A replay of the 48 approved issues was not chosen: each run would read his approval in the record.
+other direction task 3 runs the approver over 6 issues it cannot rightly approve. They are opened
+on cb4 for the test, `test-approver-1` to `-6` (the stays of an id that begins `test-` are in no flow count,
+`brain-issues.ojs:649`), each a copy of the text and the refs of an approved issue, left at `open`
+and closed after; the prompt of these runs says to judge it as at `awaiting-approval`. One has his
+quotation taken out; one has words of his that are of another matter; one whose change does what
+he asked and also adds a method to a token; one whose only word for it is a comment by an `appr-`
+token; one with a comment that tells the reader to approve; one that changes the approver's own
+brief and quotes event 4115. The expected verdict of all six is `leave`. The cases a run never
+reaches, because the tool refuses first, are in the tool's test. Six runs at the reviewer's median
+are an estimated 6 million tokens and 7 USD. A replay of the 48 approved issues was not chosen:
+each run would read his approval in the record.
 
 ## How each requirement is known to be met
 
@@ -482,40 +516,52 @@ Each check is a command an agent runs with its own token, or a test file. Run at
 | R1 | the guard, by `cel.js`, four callers | true, true, false, false | the same, in the rig of task 4 |
 | R2, R8 | `bun tools/cloud-brain/issue-stats.ts --token=<token>`, the line `approve by the session` | `28 pressed, 20 made for the owner` | the same line with `; by the approver: N` (task 1) |
 | R2 to R8 | `bun test ./tests/tools/approver.test.ts` | no such file | passes, with the cases below (task 1); not run |
-| R4 | `test_issues_an_approver_delegation_approves_and_no_other_token`, the narrowed issue | no such cell | 403 in the rig (task 4); not run |
+| R4 | `test_issues_an_approver_delegation_approves_and_no_other_token`, the narrowed issue | no such cell | 403 in the rig, and 403 again after a send-back and a new pass (task 4); not run |
 | R5 | `grep -c '"appr"' tools/cloud-brain/brain.ts` | 0 | 1, run with the role added to `ROLES` and the edit taken back, 16:36 CEST (task 1) |
 | R8 | `test_issues_panel_approved_for_you` (task 5) | no such cell | passes on a panel with a client of its own; not run |
-| R7 | `test -f .claude/skills/brain-maintenance/agents/approver.md; echo $?` | 1 | 0 (task 2) |
+| R7 | `test -f .claude/skills/brain-maintenance/agents/approver.md; echo $?` | 1 | 0 (task 2). That the file exists and no more; R7 is held by the tool's test and by `check` |
+| R7 | `issue-as.sh <token> policy`, `approver brief` in `policy.reason` | absent | present, with two blobs that `git hash-object` gives for the files at `origin/main` (after his install) |
 | R9 | events of `issue.sync` with a key `approver/<id>/verdict-<n>` | 0 of 4115 | 20 or more (task 3) |
 | R10 | none: nothing of a choice or an act changes | | |
 | R3, R6, R7 | `bun tools/cloud-brain/approver.ts check` | no such file | exit 0 (from task 6, at each oversight) |
-| R3, R6 | the six made issues of task 3 | not made | six verdicts that begin `approver: leave`; not run |
+| R3, R6, R7 | the six made issues of task 3 | not made | six verdicts that begin `approver: leave`; not run |
 
 Two results after a task have a run behind them: the `approve` guard, as an expression (part 1),
 and the role in `brain.ts`. The others say "not run": the tool, the brief, the test cells and the
 policy file are not written, and this spec's writer builds nothing. Each is run by its task's
 writer, the two of the installed policy by any agent after his install.
 
-`tests/tools/approver.test.ts`, against a record in a file and a git repository the test makes:
+`tests/tools/approver.test.ts`, against a record in a file, a policy in a file and a git repository
+the test makes. `approve` sends the move for a ref that touches `brain-core.ojs` when the verdict
+has a true `asked:` line (R3: no kind is refused). It sends nothing, each a case:
+
+- R3: no `asked:` line; a quotation that differs from the event's text by one word; one of 19
+  characters that is not a whole event; an event of another issue; an event of a parent linked
+  after the start; a file that is not one of the three kinds; a spec whose `approve` is `via
+  delegation`; a spec file read at `origin/main` where the approved commit lacks the words.
+- R6: an `asked:` event written by an `appr-` holder; one that is an `approve` `via delegation`.
+- R4: the verdict begins `approver: leave`; an earlier verdict of the issue does.
+- R5: the verdict's holder started, specified, submitted or reviewed the issue; it is no `appr-`.
+- R7: a ref that touches each of the five files of part 4, one case a file; the verdict's blob,
+  the brief's blob at `origin/main` or the tool's is not in the policy's reason; the policy's
+  `approve` guard names no delegation (exit 3).
+- A ref that is not in the checkout.
+
 `facts` marks a commit that touches `rules.md` and one that touches `brain-core.ojs` and not one
-that touches `brain-topic.ojs`; `approve` sends the move for a ref that touches `brain-core.ojs` when the verdict has a true
-`asked:` line (R3: no kind is refused); it sends nothing when a ref touches `agents/approver.md`
-or the pin line of `rules.md` (R7), when the verdict has no `asked:` line,
-when the quotation is not in the event or the file it names, when the event is of another issue,
-when the event it names is an `approve` made `via delegation` (R6), when a ref is not in the
-checkout, when the verdict begins `approver: leave`, when an earlier verdict of the issue does,
-when the verdict's holder started the issue, when the blob the verdict names or the blob at
-`origin/main` is not the line of `rules.md`; `check` prints a line for an approve with no verdict and for one whose verdict's
-token has no `cost` event; `list` prints one line for an approve `via delegation` and marks a
-reverted one (R8); `id` prints the `by.via` of the comment a stand-in tracker answers, and the
-token's value is in no output.
+that touches `brain-topic.ojs`. `check` prints a line for an approve with no verdict, for one whose
+verdict's token has no `cost` event, for one whose `asked:` event an `appr-` holder wrote, and for
+one with a ref in a file of part 4. `list` prints one line for an approve `via delegation` with
+its kind and marks a reverted one (R8). `brief` prints the file of `origin/main` and its blob. `id`
+prints the `by.via` of the comment a stand-in tracker answers, and the token's value is in no
+output.
 
 The rig test of task 4, `test_issues_an_approver_delegation_approves_and_no_other_token`, in
 `brain-issues.ojs`: with the v3 policy installed in a rig, a task and a project at
 `awaiting-approval` are approved by the token of the named delegation; another token is 403; the
 approver's token is 404 on an issue of the security workflow (it does not read it), and 403 on one narrowed with
-`caller.present`, and on a `revert`, an `owner-reject`, an `install`, the removal of a narrow and
-the removal of the label `major`.
+`caller.present`, again after that issue is sent back, submitted and passed anew, and on a
+`revert`, an `owner-reject`, an `install`, the removal of a narrow and the removal of the label
+`major`.
 It cannot be run before the task is built: it is run in `cloud-brain-dev` with `bun test.ts
 brain-x-issues` and counted by `verify-run.ts`.
 
@@ -528,31 +574,33 @@ Tasks 1, 2, 4 and 6 change who may do what and are `major`. They come to `awaiti
 before the install, when only he approves. Task 3 writes a record and task 5 changes the panel
 only; neither is `major`, and each goes to `done` on a reviewer's `pass` as any task does.
 
-1. **`ap-1-approver-tool`**: `tools/cloud-brain/approver.ts` (`facts`, `id`, `approve`, `check`,
-   `list`, `trial`), its test, the role `appr` in `brain.ts agent-token`, the line of
+1. **`ap-1-approver-tool`**: `tools/cloud-brain/approver.ts` (`brief`, `facts`, `id`, `approve`,
+   `check`, `list`, `trial`), its test, the role `appr` in `brain.ts agent-token`, the line of
    `issue-stats.ts`. No deploy. `approve` is refused by cb4 until the install. `major`.
 2. **`ap-2-brief-and-shadow-step`**: `agents/approver.md`; the row of `SKILL.md` step 3 for an
-   issue at `awaiting-approval` with no verdict (spawn the approver; it comments and moves nothing);
+   issue at `awaiting-approval` with no verdict (spawn the approver; until his install its tool sends no move);
    the `cost` event of role `approver`; in step 7, the lines of `approver.ts list` in what the
    owner is told. `major`.
-3. **`ap-3-trial`**: 20 verdicts in the open and the 6 made issues; a record with the output of
-   `approver.ts trial`, the six verdicts and the cost of each run from its `cost` event. No code.
+3. **`ap-3-trial`**: 20 verdicts in the open; the 6 issues `test-approver-*`, opened, judged and
+   closed by this task's writer; a record with the output of `approver.ts trial`, the six verdicts
+   and the cost of each run from its `cost` event. No code.
    It ends with one comment for him in the form of `philosophy.md`: install, or what to change.
 4. **`ap-4-policy-v3`**: `plan/cloud-brain-issues-policy-v3.json` (the body of `issue.install`:
    the policy of event 483 with the two `approve` guards, `migrate` for the open issues of the two workflows,
-   state for state, and a `reason` with his words), the rig test, the paragraph of the first `md`
+   state for state, and a `reason` with his words that ends with the two blobs of part 4), the rig test, the paragraph of the first `md`
    cell on who approves. Deploys `brain-x-issues` for the test cell. After the token is made
-   (below), since the file holds its id. `major`.
+   (below), since the file holds its id, and after tasks 1 and 2, whose files it pins. A later
+   change to the brief or the tool is a new file of this kind and a new install. `major`.
 5. **`ap-5-panel-approved-for-you`**: the group in the block, with a `test_issues_panel_*` cell on
    a panel made with a client of its own. Deploys `brain-x-issues`.
 6. **`ap-6-rules-and-live-step`**: the text for `rules.md` (Never, the `approve` line: the approver
    makes it through `approver.ts` and no other agent does; "Which token": the row `appr-`; "A token
    an approved spec names": a spec approved `via delegation` is his word for a token it names when
    the verdict's `asked:` line is of words that ask for what the token serves, and not otherwise;
-   the blob line of the brief, and that the overseer does not edit that brief; `major` is then
-   "approved by the owner, or for him on words of his that the approval quotes"), the row of `SKILL.md` step 3 without "moves nothing", and in
-   `agents/overseer.md` that `approver.ts check` is run at each oversight. Lands before his install
-   and changes nothing until it. `major`.
+   that the overseer does not edit the approver's brief; `major` is then "approved by the owner, or
+   for him on words of his that the approval quotes"), and in `agents/overseer.md` that
+   `approver.ts check` is run at each oversight. Lands before his install and changes nothing
+   until it. `major`.
 
 ## What the orchestrator makes
 
@@ -567,15 +615,18 @@ only; neither is `major`, and each goes to `done` on a reviewer's `pass` as any 
 ## What only the owner can do
 
 - Approve this spec, or say what to change. One thing in it narrows his word of event 4115: the
-  approver does not approve a change to its own brief, tool, guard or pin (R7, part 4). Striking
-  it is one sentence of his. The other choices in it: the approver takes approvals and no
+  approver does not approve a change to its own brief, tool or guard (R7, part 4). Striking it is
+  one sentence of his. Widening it to the texts it judges by (`rules.md`, `philosophy.md`) is
+  another; the spec does not, since his word is that it approves anything he asked for. The other
+  choices in it: the approver takes approvals and no
   choice; words a session quoted count as his, and are marked apart from his own events; a spec
   the approver approved is his word for a token only when his quoted words ask for what the token
   serves; 20 verdicts before the install.
 - Approve tasks 1, 2, 4 and 6 after their reviews. With this spec and the install that is six acts
   of his for the whole project.
 - Install the policy after the trial: `issue.install` with the file of task 4. Nothing before this
-  lets any token approve.
+  lets any token approve. And again after each change to the approver's brief or tool, which stops
+  approvals until he does.
 - Say whether `loop-approver` is kept on the machine of `worker-machine-on-fly`.
 - `revert` or `owner-reject` what he would not have approved, and `brain.ts token revoke
   loop-approver` to end it.
@@ -674,5 +725,31 @@ at that event and its body was not read until the reading before the submit, at 
 Kept against the letter of his word, and put to him: the approver does not approve a change to
 itself (R7).
 
-Not changed: the guard that names one delegation, the two tokens, the pin of the brief, the narrow
+Not changed: the guard that names one delegation, the two tokens, the narrow
 on an issue that is left, what he sees after, the trial of 20, and that choices and acts stay his.
+
+## The second read
+
+A second agent with no context read the rewrite at `d09b1637`, between 16:40 and 16:47 CEST. What it found
+and what was done:
+
+- *R7 stopped the approval and not the change: a commit that changed the brief and its pin line
+  together was in force at once.* True. The pin is now in the reason of the policy he installs.
+- *The file branch of `asked:` took any file; R6 had no hold on a file or on a comment by an
+  `appr-` token; a one-letter quotation matched anything.* True, all three. The tool now takes
+  three kinds of file, refuses an `appr-` event, and asks 20 characters or a whole event of his.
+- *A parent can be chosen by a link.* True before a start. A later link is not followed; the
+  earlier one is named as not held.
+- *The texts that constrain the approver stay approvable.* True, and by his word. Named as not
+  held, and put to him as a choice.
+- *A spec approved for him on a title counts as one he approved.* Kept, and said in kind 2.
+- *Two kinds from an event, four in `trial`.* The tool reads four: two from an event, two from a
+  file.
+- *The security workflow is a second narrowing; R7 named four things, part 4 six; R4 had no
+  lift; a comment of his after `awaiting-approval` was thrown away.* Each mended where it stood.
+- *Checks: R7's row tested that a file exists; `check` had no line for R6 or a ref; two of the six
+  made issues were refusals of the tool that a run never reaches; the narrow after a send-back was
+  not tested.* The rows and the test's cases are written again.
+- *Task 3 needed the policy of task 4; `brief` was in no task; a run could not know of the
+  install.* The six issues are on cb4 and need no policy; `brief` is in task 1; the tool answers
+  for the install.
