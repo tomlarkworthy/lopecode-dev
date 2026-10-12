@@ -136,10 +136,19 @@ each command; no shell state lasts between calls.
    be loaded by a test as it stands, say so in the comment with the commands you ran instead.
    A changed `brain.ts` is run from the worktree with
    `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted`, never copied into the main checkout.
-   `tests/tools/*.test.ts` run in the worktree, as `bun test ./tests/tools` or `./tests/tools/<file>`
+   `tests/tools/*.test.ts` run in the worktree: the whole suite as `tests/tools/suite.sh`, one file as
+   `bun test ./tests/tools/<file>`
    with the `./` (without it bun also runs every copy under `worktrees/` of the main checkout:
-   153 pass, 44 fail where `./tests/tools` gives 90 pass, 0 fail), and the comment gives the command
-   as run. A worktree fresh from `worktree.sh`, with nothing built, gave 0 fail there on 2026-10-11
+   153 pass, 44 fail where `./tests/tools` gave 90 pass, 0 fail, event 479), and the comment gives the command
+   as run. The script runs `bun test --parallel=4 --timings=tests/tools/timings.json --timeout=30000 ./tests/tools`
+   at the root of the checkout it is in, from any directory, and prints that line first: four worker processes
+   and the slowest files first, so the suite takes as long as its slowest file, `worktree.test.ts`, and not the
+   sum of them. 583 pass in 60 files in 93 to 95 s over six runs on 2026-10-12, where the same files with no flag took 207 s, past the 120 s that is
+   the default timeout of a command. The counts are those of the run with no flag. The script's header says why
+   four workers and why 30 s for a test that names no timeout.
+   A failure's message is printed above its `(fail)` line, under the name of its file. `tests/tools/suite.sh --parallel=1`
+   is the run of one file after another, for a failure you want to see with no other file running beside it
+   (`records/tests-tools-suite-three-minutes.md`). A worktree fresh from `worktree.sh`, with nothing built, gave 0 fail there on 2026-10-11
    (`records/tests-tools-fail-in-a-fresh-worktree.md`), so a fail in that count is looked at, not waved
    through; a line `skipped: <file>: no <path>` in the output names what did not run and the
    file the checkout lacks, and goes in the comment. The count of `node --test tests/notebooks/*.test.js`
