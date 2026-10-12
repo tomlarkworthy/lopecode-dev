@@ -266,5 +266,6 @@ one in `check.a` and `check.b` each, beside what task 2 left.
 - **What the second call of `db.sql` a minute costs** (`spentOf` at each tick).
 - **The tests run together on the owner's page, and the page on cb4 with the new module**:
   `brain.ts shell` is the orchestrating session's.
-- **The mutations were not run again** after the docs of the first cell were written and after the
-  rebase; the seed's code and tests did not change between (`diff` against the kept copy).
+- **The mutations after the commit.** They were run on the seed as it was last edited, before its
+  commit. The two rebases after them printed no seed, `build.ts` or `cloudflare-iac*.ojs` among
+  the files that came in, and they were not run again.
