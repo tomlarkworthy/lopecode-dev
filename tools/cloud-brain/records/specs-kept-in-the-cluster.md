@@ -52,8 +52,8 @@ notebook's files and did not bear on it.
 
 The searches also showed that one line of the issue's body no longer holds. It says "`plan/*.md` are
 not entered" in the knowledge base. The first 8 entries of the first search are each a
-`doc:cloud-brain-…` whose file is in `plan/` (`ls`, 8 of 8), and `tools/cloud-brain/knowledge-docs.ts` line 105 lists
-`plan/cloud-brain-*.md`. So files of `plan/` are among what the search answers. The body was not edited.
+`doc:cloud-brain-…` whose file is in `plan/` (`ls`, 8 of 8), and `tools/cloud-brain/knowledge-docs.ts` lists
+`plan/cloud-brain-*.md` (its filter, `/^plan\/cloud-brain-[^/]*\.md$/`). So files of `plan/` are among what the search answers. The body was not edited.
 
 Before this change a spec writer had attached files to a project at `spec`: events 4016 and 4017,
 `measure.py` and `replay.py` on `bookkeeping-in-the-tracker`, by `spec-8717a9`, before its
