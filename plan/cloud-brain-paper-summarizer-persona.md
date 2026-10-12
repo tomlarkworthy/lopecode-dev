@@ -434,6 +434,8 @@ after a put is not verified; task 3 finds out on ten.
    the journal's `usd` and `"light":true`.
    (Since `cm-5-the-loop-writes-the-event`, 2026-10-12, step 5 writes a `cost` event and no comment:
    the role is a name in a call of `issue.cost`, `"how":"light"` where the comment had `"light":true`.)
+   (As built, `ps-4-the-rest`, 2026-10-12: the 53 were put for $40.25 with none refused twice; `run` gained
+   `--usd-max N` and stops at a refused put; the record, `tools/cloud-brain/records/ps-4-the-rest.md`.)
 
 A run is longer than a writer's turn: ten papers at the reviewer's 320 s are 53 minutes and 53
 papers 4.7 hours, against a median of 538 s for an implementer of the loop (79 runs, the `cost`
