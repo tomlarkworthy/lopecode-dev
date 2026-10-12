@@ -36,7 +36,7 @@ The creator and the owner are the two who change a topic's rules and delete it. 
 
 A rule reads \`caller\` and \`origin\`, the fields a method's rule reads (*Access rules* in \`@tomlarkworthy/cloudflare-iac\`). The rule alone decides an append or a read: the creator of a topic whose \`write\` is \`caller.kind == "worker"\` is refused an append, and changes the rule to be let in. A token of the owner's is \`owner\` to a rule, so the default rule lets every such token in; a topic that one of them must not reach has a rule that reads \`caller.session\` or \`caller.token\`.
 
-A topic that does not exist answers 404 to a caller who could create that name, and to anyone else the 403 a refused rule answers, so a name under \`m.<id>.\` is not shown to exist to another member.
+To \`topic.append\`, \`topic.read\` and \`topic.delete\` a topic that does not exist answers 404 to a caller who could create that name, and to anyone else the 403 a refused rule answers. \`topic.create\` of a name the caller neither owns nor created answers one 403, whose message reads the caller alone, whether the topic is there or not. So no answer says to another member that a name under \`m.<id>.\` exists (until 2026-10-12 04:14 CEST \`topic.create\` did, by its message; review 3602).
 
 ## An entry
 
@@ -156,6 +156,8 @@ topicApp = {
   const admin = (caller, row) => caller.id === "owner" || caller.id === row.creator;
   // 404 for a caller the name is not hidden from; for anyone else what a refused rule answers.
   const absent = async (c, caller, topic) => (caller.id === "owner" || (await owns(caller, topic)) ? fail(c, 404, "NotFound", "no such topic") : fail(c, 403, "Forbidden", REFUSED));
+  // What topic.create answers for a name the caller neither owns nor created. It reads the caller alone.
+  const notYours = (c, caller) => fail(c, 403, "Forbidden", caller.kind === "did" ? "a member creates m.<their id>.NAME" : caller.id === "owner" ? "a name under m. is created by its member" : "the owner or a member creates a topic");
   const shown = (row) => ({ topic: row.topic, creator: row.creator, write: row.write, read: row.read, last: row.last, created: row.created });
   app.onError((e, c) => fail(c, 500, "InternalError", String((e && e.message) || e).slice(0, 300)));
 
@@ -176,12 +178,13 @@ topicApp = {
     for (let attempt = 0; attempt < 2; attempt++) {
       const row = (await sql.exec(S.one, topic)).rows[0];
       if (row) {
-        if (!admin(caller, row)) return fail(c, 403, "Forbidden", "the creator or the owner changes a topic's rules");
+        // One answer for a name that is another's, there or not: a create does not say which names a member has.
+        if (!admin(caller, row)) return notYours(c, caller);
         const next = { write: b.write ?? row.write, read: b.read ?? row.read };
         await sql.exec(S.rules, topic, next.write, next.read);
         return c.json({ topic, creator: row.creator, ...next, created: false });
       }
-      if (!(await owns(caller, topic))) return fail(c, 403, "Forbidden", caller.kind === "did" ? "a member creates m.<their id>.NAME" : caller.id === "owner" ? "a name under m. is created by its member" : "the owner or a member creates a topic");
+      if (!(await owns(caller, topic))) return notYours(c, caller);
       const most = Math.floor(topicOps.setting("topicsPerCreator"));
       if (caller.id !== "owner" && (await sql.exec(S.owned, caller.id)).rows[0].n >= most) return fail(c, 400, "InvalidRequest", `a member has at most ${most} topics`);
       const mine = `caller.id == ${JSON.stringify(caller.id)}`, rules = { write: b.write ?? mine, read: b.read ?? mine };
@@ -384,6 +387,12 @@ test_topic_member_has_names_of_their_own = {
   // A name that is not there answers another member what a refused rule answers, and its own member 404.
   const hidden = [await b("read?topic=" + mine), await b(`read?topic=m.${ia}.nope`), await b("append", { topic: `m.${ia}.nope`, key: "k", body: 1 }), await b("delete", { topic: `m.${ia}.nope` })];
   expect(new Set(hidden.map((r) => JSON.stringify([r.status, r.data]))).size).toBe(1);
+  // topic.create too, with an answer of its own: the same for a name that is there and one that is not, to a member and to a Worker.
+  for (const [who, message] of [[b, "a member creates m.<their id>.NAME"], [rig.worker, "the owner or a member creates a topic"]]) {
+    const made = [await who("create", { topic: mine }), await who("create", { topic: mine, read: "true" }), await who("create", { topic: `m.${ia}.nope` }), await who("create", { topic: `m.${ia}.nope`, read: "true" })];
+    expect(made.map((r) => [r.status, r.data])).toEqual(Array(4).fill([403, { error: "Forbidden", message }]));
+  }
+  expect(rig.db.topics.has(`m.${ia}.nope`)).toBe(false);
   expect((await a(`read?topic=m.${ia}.nope`)).status).toBe(404);
   // Each lists their own; the owner lists all.
   await rig.owner("create", { topic: "x" });
