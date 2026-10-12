@@ -26,8 +26,13 @@ rule of the pool as the spec words it, and the owner's numbers as what it replac
 for letter in its list (line 77 of the file at `7aa872af`). A second test of the same string alone
 would have passed before any change and added nothing.
 
-What no file said is that the advisor's limit is one of the limits meant. The overseer filed the
-issue for that reason, and the next one would have had the same question.
+No rule of the loop said that the advisor's limit is one of the limits meant. Searched in the commit
+before this change, in `knowledge`, `plan/cloud-brain-*.md`, the skill's directory, `tools/cloud-brain/*.md`
+and `tools/cloud-brain/records`, with
+`git grep -n -i -E "advisor.{0,80}limit|limit.{0,80}advisor"`: three lines, each in `oversight.md`
+(612, 634 and 651), the overseer's notes. Line 612 says a pass started nothing for the advisor's limit,
+"SKILL.md step 2, as written"; 634 and 651 name this issue as a question for the owner. A line in which
+"advisor" and "limit" stand more than 80 characters apart is not found by that search.
 
 ## What changed
 
