@@ -212,6 +212,16 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    (`tools/cloud-brain/records/ta-3-orchestrator-steps.md` has the command).
    Not known: how many writers this machine carries. If memory or the browser tabs of writers bind before a limit or the lock does,
    this rule does not see it; the overseer adds the sign that would have.
+   **The first sign seen is the processor, not memory or a tab** (the overseer, events 4252 to 4526, 2026-10-12 21:15 to 21:45 CEST,
+   with seven writers started at 21:15 after the owner's "double pool size", each of them and each reviewer running `tests/tools/suite.sh`).
+   `uptime` read 15 to 25 as its first number on 18 cores (`sysctl -n hw.ncpu`); the suite took 154 to 318 s in six runs where it
+   takes 93 to 95 s; tests that pass alone with a longer timeout failed at the suite's 30 s (`summarize-papers.test.ts`,
+   `knowledge-docs.test.ts`: 3, 4 and 3 fails in the first run of two reviewers and a writer, 0 in the second run of each reviewer);
+   two reviews took 1,457 and 1,168 s where the seven before them took 202 to 405 s (`seen-tool-tests-time-out-under-load`, event 4517,
+   and `seen-suite-times-out-under-load`, 4518, each with its `uptime`; the submit of `pm-second-summarizer-role`, 4525). So no new writer is
+   started in a pass in which `uptime`'s first number is 15 or more on this machine, the lowest at which such a fail was seen, or
+   in which a report names a test of `tests/tools` that failed at its timeout and passed in the next run. A review that waits and
+   a round sent back are started as before. Not known: the number on another machine, and what a suite costs beside a build.
    What makes several at once safe: a writer edits and builds in a worktree no other agent is in (step 4) and
    lands from it by a push under the landing lock; a reviewer tests the notebook of the commit, not the working file.
 3. **List the open issues and take the first that matches**, in this order.
