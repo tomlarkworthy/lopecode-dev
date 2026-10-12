@@ -113,7 +113,8 @@ total 4966   access 3690   methods 962   hash 66   module 29   deployedAt 26   s
 
 28 of its 29 rules are `caller.kind in ['owner','token','worker','deployer']`, the form `tr-1` shortened.
 One more method written that way costs 158 bytes (`issue.next`, a query) or 168 (`issue.archive`, a
-procedure). 134 are left, so no method fits.
+procedure). 134 are left, so none written that way fits. (A method with no `allow` would: `{"type":"query","who":"owner"}`
+is 30 bytes where the rule's entry is 93. None of the tracker's is written so but `issue.key`, which is `who: "anyone"`.)
 
 Four ways, with the count of further methods that then fit (the same script, each method a procedure
 named `issue.m00`, `m01`, …, 164 bytes as is):
