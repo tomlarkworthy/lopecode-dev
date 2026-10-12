@@ -43,7 +43,7 @@ kept in step with the code.
 | The spec Tom reviews (do not edit on disk while he may have it open; Claude does not set its status) | `plan/specs/cloud-brain.html` |
 | Requirements and open questions as cells | `tools/cloud-brain/cloud-brain-specs.ojs` |
 | User-facing docs module | `tools/cloud-brain/cloud-brain-docs.ojs` |
-| Measured records | `tools/cloud-brain/rpc-performance.md`, `websockets.md`, `logging-research.md`, `containers.md`, `ai-cache.md`, `knowledge-vectors.md`, `knowledge-reranking.md` (how `knowledge.search` orders its answers, and the question sets in `knowledge-eval/` to measure a change to it) |
+| Measured records | `tools/cloud-brain/rpc-performance.md`, `websockets.md`, `logging-research.md`, `containers.md`, `ai-cache.md`, `knowledge-vectors.md`, `knowledge-reranking.md` (how `knowledge.search` orders its answers, and the question sets in `knowledge-eval/` to measure a change to it), `tomarkdown.md` (what `ai.tomarkdown` took and gave on 2026-10-12: the largest body, a paper beside `pdftotext` and arXiv's HTML, an image file, a scanned page) |
 
 Each service documents its own methods in the first `md` cell of its seed (`brain-browser.ojs`,
 `brain-logs.ojs`, `brain-core.ojs`, …). That cell is the method reference.

@@ -66,7 +66,7 @@ The counts of the kept PDFs are the report's. I did not count them again.
   `POST /ai/tomarkdown` unchanged, and answers Cloudflare's body and status.
 - **R2.** `ai.tomarkdown/supported` answers Cloudflare's list of formats.
 - **R3.** A call is charged, and the charge is no less than for a model `ai.run` cannot bound.
-- **R4.** A body up to the largest file `brain-static` keeps (50 MB) is not refused by the Brain.
+- **R4.** A body up to the largest file `brain-static` keeps (50 MB) is not refused by the Brain. (As built, `tm-2-what-the-conversion-does`, 2026-10-12: the Brain passed bodies of up to 39,663,910 bytes on, and Cloudflare refused 38,500,116 and more, so the default of `markdownMaxBody` is 37,000,000 and a larger body is refused by the service, 413; `tools/cloud-brain/tomarkdown.md`.)
 - **R5.** The owner, a Worker of the Brain, and a token or member the owner gave the method may
   call it. A token that does not name it is refused.
 
@@ -133,6 +133,7 @@ summary with quotes, 2026-10-11 about 22:28 UTC. I read no page whole.
 One web search for a size limit of the conversion found none. The one number it gave, 4 MB, is of
 AI Search, another product. So three things are not known from reading: whether `Workers AI Read`
 reaches the address, the largest body Cloudflare takes, and what a PDF with images costs.
+(As built, `tm-2-what-the-conversion-does`, 2026-10-12: the largest body taken was 37,000,116 bytes. A PDF with 122 images came back in 1.6 s with none of them described. No answer had `cf-ai-neurons`, an image file's among them, so no cost was read; `tools/cloud-brain/tomarkdown.md`.)
 (As built, `tm-1-ai-tomarkdown-method`, 2026-10-12: `Workers AI Read` reaches both addresses, C2 and C3 answered 200. The other two are task 2's; the record.)
 
 No literature was searched. The design is one forwarded call.
@@ -165,7 +166,7 @@ if (what === "tomarkdown") {
 "com.lopecode.brain.ai.tomarkdown": { type: "procedure", who: "workers", price: "double(request.params.usd)" },
 "com.lopecode.brain.ai.tomarkdown/supported": { type: "query", who: "workers" },
 // in aiDefaults
-markdownMaxBody: 50000000
+markdownMaxBody: 50000000   // as built, tm-2-what-the-conversion-does, 2026-10-12: 37000000
 ```
 
 A caller's call:
@@ -293,6 +294,7 @@ C1, then the deploy of `brain-x-ai` and C2 to C6. A record, `tools/cloud-brain/r
 
 **`tm-2-what-the-conversion-does`.** Measurements through the deployed method, and what they change.
 A record, `tools/cloud-brain/tomarkdown.md`, and a cell `aiMeasured.markdown` in the seed.
+(As built, `tm-2-what-the-conversion-does`, 2026-10-12: `aiMeasured.markdown` is a key of the cell `aiMeasured`, not a cell. 15 calls were sent, $0.14. The paper of about 1 MB is `arxiv:2410.04444`, of about 10 MB `arxiv:2603.13131`. The scanned page is of a thesis in the checkout, not of a kept paper. The image cost is the issue `tomarkdown-image-cost-unread`; `tools/cloud-brain/records/tm-2-what-the-conversion-does.md`.)
 - Size: the PDF of `arxiv:2608.11350` (39,663,618 bytes as kept), one of about 10 MB, one of
   about 1 MB. The status of each and the time. `markdownMaxBody` is set to what was taken.
 - Cost: `x-ai-neurons` of a PDF of text, of a PDF with figures, of one `.png`, and of two `.png`
