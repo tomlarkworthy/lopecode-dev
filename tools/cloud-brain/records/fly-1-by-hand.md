@@ -91,7 +91,8 @@ below). From a bare `ubuntu:24.04`:
 ## Not measured in the first sitting
 
 Each needs a machine that runs more than 5 minutes, or a tool the stop took away. The second
-sitting has each but the pass and the review.
+sitting, at the end, has each of these but a set of a secret through the Machines API; what it left
+is under "Not tried, both sittings".
 
 - One pass of the loop under `claude -p`, and which permission mode lets it finish. `claude` runs as
   root there; whether `--permission-mode bypassPermissions` is refused to root was not tried.
@@ -308,8 +309,116 @@ No writer ran. The commands of steps 7 and 8 of the writer's brief were run by h
   notebook is the day's backup, behind the seeds); and `lock.test.ts`, "take --wait leaves with exit 2
   when sleep refuses the seconds the check let through", 30 s, a timeout: not read further.
 
-### Not done when this was written
+### One pass of the loop
 
-The pass of the loop on the machine and the review with `agent.sh`. The orchestrating session asked
-that both wait for its comment `orch/fly-1-by-hand/clear-for-machine-pass`, since the laptop's loop
-runs and the lock `loop` does not exist. No token of the Brain is on the machine.
+Held until the orchestrating session's comment 4921 (22:43 CEST), which named the token: `orch-5e4a0f`,
+made for this. Its one entry of `cb4-agent-tokens.json` was piped to the machine over `fly ssh
+console` (`jq … | fly ssh console -C "sh -c 'cat > …'"`), not printed and in no local file. No other
+token and no state file were there. Five writers and a reviewer of the laptop's loop were at work
+(the same comment), so "no other loop running" did not hold; the pass made no move.
+
+```
+IS_SANDBOX=1 METADEV=1 claude -p "/brain-maintenance" --model opus --permission-mode bypassPermissions
+```
+
+in `/data/lopecode-dev`, 20:44:03 to 20:44:39 UTC, exit 0: 10 turns, 34 s, `usd` 0.76 in its result
+line. It ended at step 1. Its own words: "I stopped the pass at step 1. This checkout can't reach the
+tracker." What it ran: the two pulls (`cloud-brain-dev` refused, a detached HEAD), then `brain.ts
+agent-token list`, which answered `No token "loop-agents" is kept`. It then read "If the state file
+is missing, there is no access; ask Tom" in the knowledge page and stopped: "I also didn't use the
+agent tokens left in `cb4-agent-tokens.json`, because none was made for this session." It asked for
+the state file to be copied there or the loop run on the laptop, and picked the laptop.
+
+- It wrote nothing to the tracker: `sync?after=4921` read after it has 0 events whose holder is
+  `orch-5e4a0f`.
+- So a session there does not know which token is its own unless its prompt says, and step 1 as
+  written ends a pass with no state file. Both are T4's (the second form of the health step, and
+  `run.sh` giving the name).
+- Every hook of the run answered exit 0 (16 `PreToolUse:Bash`, 16 `PostToolUse:Bash`, 2
+  `PostToolUse:Read`, `UserPromptSubmit`, `SessionStart`). The `lopecode` MCP server was `failed` in
+  this run and `connected` in the seven before it; not looked into.
+- Memory over it: most used 570 MB.
+- This is `bypassPermissions` letting a pass finish that started nothing. A pass that spawns a
+  writer was not run.
+
+### One review with `agent.sh`
+
+`CHECKOUT=/data/lopecode-dev ./agent.sh reviewer "review issue wt-3-land-by-push. …"` in
+`cloud-brain-dev`, 20:44:39 to 20:52:38 UTC, exit 0. The issue is closed; the task told the reviewer
+it had no token of its own and was to write nothing, and to read the issue with `orch-5e4a0f`. Its
+JSON line: `"turns":53,"ms":478671,"usd":2.31,"context":131212,"legs":1,"mode":"default"`, 4 tools.
+It fetched its brief, made a view with `worktree.sh --at`, ran the issue's tests there and gave a
+verdict ("pass. Nothing holds the change", 557 pass, 5 skip and 2 fail of 564 at that commit). So
+`agent.sh` runs as root in `default` mode with its four allowed tools, with no `IS_SANDBOX`.
+
+What it said the machine changed, each in its words and none checked again by the writer:
+
+- "`lock.sh --wait` doesn't work on Linux. It relies on `sleep` refusing a huge number of seconds.
+  GNU `sleep` 9.4 here accepts `2147483648` and `99999999999999999999` and just sleeps, so a bad
+  `--wait` value hangs instead of giving exit 2." Each run of the test leaves such a `sleep`. This is
+  the `lock.test.ts` failure of the suite above.
+- "`worktree.sh --at` took 25 s to make the view. The brief says 1 to 3 s."
+- The `topic-sql.test.ts` failure went when it built the notebook in its view.
+
+### The stop, and what it loses
+
+The owner asked that the machine be used or stopped (comment 4916). `fly machine stop`, 22:52:52
+CEST; `stopped` at 22:52:57.35. The token's file was still on the volume (the command that removed
+it had killed itself: `pkill -f "sleep 2147483648"` matched its own shell), so the machine was
+started once more, 22:53:06.557, the file removed and `ls` of `.emitted` read without it, and
+stopped at 22:53:08.774. That start, with 4.9G on the volume: `fly machine start` returned in 2.76 s.
+
+Read at that start: `/root/.claude`, `/root/.bun` and `/usr/bin/node` absent, `/` at 33M; `/data`
+with the checkout (4.9G) and `/data/t1` (1.1M: the streams of every `claude` run above, the logs).
+So a stop loses the tools, Playwright's Chromium and `~/.claude` (the transcripts and the session of
+the review), and keeps the checkout, its `node_modules` and what was written under `/data`. Getting
+the tools back by hand took 53 s to Claude Code (19:36:50 to 19:37:43 UTC), then the two `bun install` and 16 s of Chromium.
+
+Left on Fly.io: the machine `853145b4217618`, `stopped`, performance-2x with 4096 MB, and the volume
+`vol_vz8zplwz3eexegjv`, 10 GB. Neither is destroyed: T2 can start from the checkout. The four
+secrets are `Staged` as before. No token of the Brain and no deploy token of this task is anywhere.
+
+### What the two sittings cost
+
+Fly.io's price page, read 2026-10-12 through a fetch that answers with a summary, prices of `iad`
+(those of `ams` were not read): performance-2x with 4 GB $66.00 a month, shared-cpu-2x with 2 GB
+$13.39, more memory $6 a GB a month, a volume and a stopped root file system $0.15 a GB a month.
+Over 730 hours that is $0.090 and $0.035 an hour for the two sizes used. The writer's arithmetic
+from the event times above, not Fly.io's invoice:
+
+```
+first sitting    shared-cpu-2x, 4 GB    5 min 6 s + 1 min 18 s      $0.004
+second sitting   shared-cpu-2x, 4 GB    21:07:28 to 21:36:35        $0.017
+                 performance-2x, 4 GB   21:36:47 to 22:52:57        $0.115
+                 of which idle, waiting for comment 4921: 22:21 to 22:43
+```
+
+About $0.14 of machine time, and $1.50 a month for the volume while it is kept. The `usd` that the
+`claude` runs printed (0.76 the pass, 2.31 the review, 0.73 summed over the seven probes) is the
+subscription's, not a bill.
+
+### For the design, before T2
+
+- Part 1's size. shared-cpu-2x lost 90% and more of its CPU to the host after 5 minutes of work.
+  performance-2x with 4 GB ran one headless Chrome at 3.0 to 3.3 GB used and did not finish
+  `brain-issues` in the tool's 90 s. A machine that runs a seed's browser tests needs more of both;
+  the design gives those to the laptop (a seed's change ends in a deploy), and a reviewer's
+  `tests/tools` suite ran in 75 s with 1.3 GB.
+- Part 1's "what starts". `IS_SANDBOX=1` with `--permission-mode bypassPermissions`, or a user that
+  is not root. `HOME` set. Chromium installed with bun, not node 26.
+- The submodules. `lopecode` at the recorded commit is on no remote; `lopecode-plugin` needs its key
+  and alias (done here); the root `package.json` and `tools/package.json` each need `bun install`.
+- `lock.sh --wait` on GNU `sleep`.
+- The first sitting's: the Machines API has `exec`, and `files` writes a key with mode 0755.
+
+## Not tried, both sittings
+
+- A pass that starts an agent, and a pass under `/loop` to its own end. `/loop` with a small prompt
+  and a `Monitor` were each run apart from the skill.
+- A review that is recorded, and one with a tab.
+- Memory with a writer at work; the tests were run by hand, one at a time.
+- A set of a secret through the Machines API. Item 6 of the owner's list stays his until it is.
+- `shared-cpu-4x` and larger, and what a shared CPU gives after it has been idle.
+- The loop as a user that is not root.
+- Why Chromium is slow there, and why node 26.11.1 stops at the end of Playwright's download.
+- The same key's write to the other repository.
