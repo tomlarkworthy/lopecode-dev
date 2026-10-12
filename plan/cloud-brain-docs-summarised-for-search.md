@@ -572,8 +572,11 @@ own. A landing rebases its worktree under the lock, before the release (`agents/
 left is a release from a worktree not rebased since before task 2, which
 `records/ac-4-docs-tool-marks-a-cut.md` saw once for its own change ("A writer in a worktree behind
 this change unmarks a doc"). Not mended: such a release costs every summary again, about $0.60 for
-all 43 with haiku, and `status` shows it the same minute as `cut` risen from 0. Task 3 does not
-start while `worktree.sh` lists a worktree whose `HEAD` is before task 2's commit.
+all 43 with haiku, and `status` shows it the same minute as `cut` risen from 0. Task 3 puts
+no summary while a worktree is behind task 2's commit: for each name that `worktree.sh --list`
+prints, `git -C <root>/.claude/worktrees/bm-<name> merge-base --is-ancestor <task 2's sha> HEAD`
+exits 0, or the worktree is named in task 3's record with why it will make no release (`--list`
+prints `head=` as a short sha, which does not say before or after).
 
 `ac-5-prose-names-the-two-shapes` writes in the calling doc "that a cut doc's last line names its
 file". Task 4 here rewrites that paragraph.
@@ -681,7 +684,7 @@ task 1 makes. 1 waits for the token.
    are read. The task ends with the figures on the issue for the owner, and the ten put back plain,
    when both models fail a gate or the ten cost over $1 with haiku. A doc refused twice is run
    again as piece 3, step 2 says, before `status --check-summaries` is read. Before the first put:
-   no worktree is behind task 2 ("What `ac-4` left").
+   the check of "What `ac-4` left" that no worktree is behind task 2.
 4. **`ds-4-the-rest-and-the-release-line`**, `major`. `summarize --due` on the rest with the model
    task 3 kept, `--usd-max 2` for haiku and `--usd-max 20` for opus; `status --check-summaries`.
    The line of `lock.sh` with its test; the sentence in `agents/implementer.md` step 10 and the one
