@@ -500,8 +500,8 @@ task 1 makes. 1 waits for the token.
 4. **`ds-4-the-rest-and-the-release-line`**, `major`. `run --due` on the rest, `--usd-max 40`;
    `check`. The line of `lock.sh` with its test; the sentence in `agents/implementer.md` step 10
    and the one in `agents/spec.md` step 6; `doc-summarizer` beside `paper-summarizer` in `SKILL.md` step 5; the
-   calling doc's paragraph; `rules.md` is not edited (the orchestrator adds the token to "A token
-   an approved spec names" when it makes it). Closes this feature.
+   calling doc's paragraph; `rules.md` is not edited by any task (who records the token there is the orchestrating
+   session's, under "A token an approved spec names"). Closes this feature.
 
 Tasks 3 and 4 are `major`: they rewrite the text of kept entries (`SKILL.md`, Triage). As the
 papers' spec has it for its tasks 3 and 4: the owner's approval of this spec is his word for the
