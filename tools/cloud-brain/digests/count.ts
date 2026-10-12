@@ -17,7 +17,7 @@
 //
 // A variable is one the runtime holds for the module: those its cells define (`viewof x` and `x` are two) and one
 // for each name a cell reads that no cell defines (`md`, `Inputs`, `Plot`: 6 of the 53 of research-2026-10-12).
-// The digests of 9, 11 and 12 October were counted so. A named variable is imported into a module of the tool's
+// The digests of 11 and 12 October were counted so. A named variable is imported into a module of the tool's
 // own and observed there, so it is computed whether or not the page shows it. A cell with no name cannot be
 // imported: the promise the page holds for it is read, which is its value when the page observes the cell and
 // resolved when it does not.
