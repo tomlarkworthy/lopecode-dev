@@ -1,8 +1,8 @@
 # fly-3-brain-fly-service: the service `brain-x-fly`
 
-T3 of `plan/cloud-brain-worker-machine-on-fly.md`, written 2026-10-12 and 2026-10-13 (ENDTIME) by the writer `impl-bff9f0`, round 1. A new Worker with a secret: item 8 of the spec's
+T3 of `plan/cloud-brain-worker-machine-on-fly.md`, written 2026-10-13 from 00:04 CEST (the issue's start, event 5285) to 00:59 CEST (`date`) by the writer `impl-bff9f0`, round 1. A new Worker with a secret: item 8 of the spec's
 "What only the owner can do" reads the owner's approval (event 3380) as his word for both, and the
-issue's body says the same. The secret itself is not put: comment 5107 of the project has that an agent
+issue's body says the same. This change put no secret (one was on cb4 already; "On cb4"): comment 5107 of the project has that an agent
 makes no Fly.io credential, and the service was built to deploy and pass its tests with none.
 
 No call to Fly.io was made by this change, in a test or by hand. Every statement below about what
@@ -164,7 +164,47 @@ nothing was logged: under other cells it cannot.
 
 ## On cb4
 
-ON_CB4
+Deployed 2026-10-13 00:56:53 to 00:57:22 CEST under the deploy lock, inside the landing lock (taken 00:56:31).
+`brain-info-size.ts` on the record first: `brain-x-fly 1010 of 5100, 6 methods`.
+
+```
+brain.ts apply fly-3-brain-fly-service-brain-x-fly.json --reason="…"
+15155 ms [{"worker":"brain-x-fly","hash":"784746d841af","state":"verified","version":"1d12122c-…","tests":13}]
+brain.ts redistil        brain-x-fly        same  784746d841af
+```
+
+**The secret was already there.** The issue and the spec have that `fly.status` answers 400 "the secret
+FLY_API_TOKEN is not set" until the owner puts it. On cb4 it answered the next refusal:
+
+```
+brain.ts curl /xrpc/com.lopecode.brain.fly.status --as loop-fly
+{"error":"InvalidRequest","message":"the setting app is not set: config.set { worker: \"brain-x-fly\", key: \"app\", value: NAME }"} [400]
+brain.ts curl /xrpc/com.lopecode.brain.secret.list --owner        (a read: names and rules, no value)
+8 secrets … {'name': 'FLY_API_TOKEN', 'setAt': 1791825211173, 'rule': 'caller.worker in ["brain-x-fly"]'}
+```
+
+`setAt` is 2026-10-12 19:13:31 CEST (`date -r`), 4 h 51 min before this task was started; who put it was not read.
+So the Worker read the secret through `secret.get` by that rule on its first call, and the refusal
+for a secret that is not set was seen in the tests only. Neither `app` nor `machine` was set by this
+change: with `app` set, `fly.status` would be a call to Fly.io with the owner's token, and the tick would
+ask Fly.io for the machine each 5 minutes once `machine` is set too. Both are his, in the panel or with
+`config.set`.
+
+The other reads, 2026-10-13 00:57 to 00:58 CEST, each with the token `loop-fly` unless named:
+
+| The call | The answer |
+|---|---|
+| `fly.work` | 200, `{"work":[…]}` of 18 ids at 00:58. `issue.queue?limit=500` read with the writer's token the same minute had 18 in `queue` (8 `ready`, 7 `triage`, 3 `review`) and 38 in `waiting`; none of the 18 had one of the three labels, and the two lists of ids were equal, in order |
+| `fly.get?path=machines` | 403 "this token does not name com.lopecode.brain.fly.get" |
+| `fly.post?path=../../other`, POST | 403, the same for `fly.post`. The core refused it before the service was asked, so the service's own refusal of the path was not seen on cb4 |
+| `fly.up`, POST, with `loop-knowledge` | 403 "this token does not name com.lopecode.brain.fly.up" |
+| `getSource?worker=brain-x-fly&part=reference` | 403: `loop-fly` does not name `getSource`. Not read with another token |
+
+`fly.up` and `fly.down` with `loop-fly` were not sent: with no `app` set each would answer the 400 above,
+and they are writes.
+
+`cloud-brain-dev`'s `test.ts brain-x-fly` on what cb4 serves is run after the landing lock is gone; its line is
+in the comment of the submit.
 
 ## Not tried
 
@@ -175,10 +215,11 @@ ON_CB4
 - What `POST …/start` answers for a machine that is `started`, and `POST …/stop` for one `stopped`. The
   service asks the state first and sends neither then.
 - Fly.io's reading of an encoded slash in a path. `flyPath` refuses `%2f` and `%5c` whole.
-- The secret read by the Worker on cb4: no secret is set, and the rule
-  `caller.worker in ["brain-x-fly"]` is the owner's to put with it. In the tests the secret is a
-  bound value.
-- The tick on cb4 past "not set up": no `app` and no `machine` is set there.
+- The secret's value on cb4: that it is a token Fly.io takes. The Worker was given something by `secret.get`
+  (above); no call was sent with it. In the tests the secret is a bound value.
+- On cb4, a caller with no token and a member: who is refused there was read in the tests alone.
+- The tick on cb4 past "not set up": no `app` and no `machine` is set there. That the tick ran at all on cb4 was
+  not read (it writes no line when it does nothing).
 - The cron itself: that Cloudflare runs `*/5 * * * *` for this Worker. The tick is gated the same
   under the minute alarm.
 - `fly.status` after `config.set` on cb4, the panel on the owner's page, Start and Stop with his

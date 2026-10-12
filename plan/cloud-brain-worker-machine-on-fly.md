@@ -519,7 +519,9 @@ Each is one writer and one review, but T4b, which is the owner's act and a recor
    metric is a line of `metricDefinitions` in `brain-dashboard.ojs`, so a deploy of a second Worker, and a token reads
    only the metrics whose name starts `deploys.` (`metricRules.query`), so the check with `loop-dashboard` would also need
    that rule widened: a change of who reads what, which this spec did not put to the owner. The service writes a line
-   for each start, stop and yield, `at: "fly.start"`, `"fly.stop"`, `"fly.yield"`, which a definition can count later;
+   for each start, stop and yield, `at: "fly.start"`, `"fly.stop"`, `"fly.yield"`, which a definition can count later.
+   The secret was on cb4 before the deploy (`secret.list`: set 2026-10-12 19:13 CEST), so the first `fly.status` there
+   answered 400 "the setting app is not set" and the refusal for a secret not set was seen in the tests alone;
    the record.) It declares a secret and no Cloudflare permission.
    `brain.ts confirm` if on probation. Before the owner's secret is put, `fly.status` answers 400
    "the secret FLY_API_TOKEN is not set", and that is what its writer's check reads.
