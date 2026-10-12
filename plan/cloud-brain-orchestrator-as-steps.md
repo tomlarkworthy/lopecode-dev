@@ -296,7 +296,8 @@ writer calls it was not counted, and `st-1` reads it from the transcripts before
 `loop.ts start <id> [--role <role>]` is steps 4 and 5 of `SKILL.md` as code. With the role taken
 from the issue as the queue's `do` gives it:
 
-1. `brain.ts agent-token <role> <id>`; the worktree or the view (`worktree.sh --fresh … --for`,
+1. `brain.ts agent-token <role> <id>`, or with `--token <t>` a token made before (the check of
+   `st-2`); the worktree or the view (`worktree.sh --fresh … --for`,
    `--at <sha> rev-<id>`, `--at origin/main appr-<id>`) with each exit handled as step 4 says; the
    `worktree {…}` comment; `review-needs-tab.sh` for a reviewer.
 2. The file `.emitted/issue-loop/runs/<token>.json`: `{ id, role, round, session: <a uuid it chose> }`.
@@ -690,11 +691,12 @@ Ids begin `st-`. None is `major` but `st-7`. No seed changes and nothing is depl
    `context`, `usd` and the usage beside an `Agent` run of the same role; one `--resume` of each;
    the detach of probe 1 from a shell that is not `claude`; which MCP tools writers called in the
    transcripts of 2026-10-12. After nothing.
-2. **st-2-loop-start-and-end.** `loop.ts start --token <t>` takes a token already made, and the
-   check on cb4 is run with it: `rules.md`, "Which token", gives `agent-token` to the
-   orchestrating session, which makes the two tokens for `test-st-2-a` when the writer asks in a
-   comment. No writer runs `agent-token`. `loop.ts start`, `ended`, `resume`, the `running` event with its
-   keys, the count of dead runs, the files of `runs/`; `tests/tools/loop.test.ts`; the check on cb4. After st-1.
+2. **st-2-loop-start-and-end.** `loop.ts start`, `ended`, `resume`, the `running` event with its
+   keys, the count of dead runs, the files of `runs/`; `tests/tools/loop.test.ts`; the check on
+   cb4. That check is run with `loop.ts start --token <t>`, which takes a token already made:
+   `rules.md`, "Which token", gives `agent-token` to the orchestrating session, which makes the
+   two tokens for `test-st-2-a` when the writer asks in a comment. No writer runs `agent-token`.
+   After st-1.
 3. **st-3-step.** `loop.ts step` and `--dry`: health, runs, the table, what stops a start,
    `steps.jsonl`, `status.md`; the `given` comments and the reading of a verdict; a test a row
    and the R6 tests of the checks. The judgment rows write `given`, print their entries and
