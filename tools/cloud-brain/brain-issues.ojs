@@ -5627,7 +5627,8 @@ test_issues_lock_held_is_refused_to_every_taker = {
 // R4, the next taker and the reader: a lock past its until is in `ended` for a reader and is taken over by the next take.
 test_issues_lock_past_its_until_is_taken_over = {
   const rig = await issuesRig();
-  const first = (await rig.a("lock", { name: "land", who: "a", seconds: 5 })).data;
+  // Taken for the default: with 5 s a page that was busy for 5 s between this call and the next read an ended lock.
+  const first = (await rig.a("lock", { name: "land", who: "a" })).data;
   const live = (await rig.b("locks")).data;
   expect([live.locks.map((l) => l.who), live.ended]).toEqual([["a"], []]);
   // The holder died: its lock's end is in the past. A test does not wait for it (the prose above).
