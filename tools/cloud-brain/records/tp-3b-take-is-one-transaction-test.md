@@ -145,7 +145,16 @@ last run; no seed and no test was.
 
 ## On cb4
 
-DEPLOY-HERE
+The landing lock was taken at 21:51:12. The apply, under the deploy lock, 21:51:47 to 21:52:07 (the
+locks' own lines):
+
+```
+tp-3b-take-is-one-transaction-test-brain-x-topic.json 18553 ms [{"worker":"brain-x-topic","hash":"89f54186cea0","state":"verified","version":"9face5d2-…","tests":18}]
+```
+
+`verified`: the deployer ran the 18 cells in the cluster's browser, the new one among them. `brain.ts redistil`
+then read `brain-x-topic  same  89f54186cea0`. No call of `topic.*` was made on cb4 for this task: no
+method is changed.
 
 ## Not tried
 
