@@ -348,7 +348,10 @@ is that day, with one test for each row. Whether `issue.list` answers enough for
 `held:` comment is read from comments by `issue-stats.ts`; not for a task since `bk-6-skill-watch-and-stats`, 2026-10-13,
 when the tool took its count of what is late and what is held from `issue.queue`) was not checked; `calls` grows by what
 T3 finds it needs. The same function is the first thing `run.sh` asks, so the tick and the machine
-cannot disagree.
+cannot disagree. (As built, `fly-3-brain-fly-service`, 2026-10-13: the table as a function is the tracker's own, `issue.queue`,
+which landed after this spec was written (`plan/cloud-brain-bookkeeping-in-the-tracker.md`, part 3). `fly.work` asks it
+as the Worker and answers the ids of its `queue` without each issue labeled `needs-owner`, `laptop` or `digest`; no
+second table was written. The test has one entry for each `do` of the queue; the record.)
 
 The function can still be wrong about what a loop does. So the service keeps the ids of `fly.work`
 at each start: when the machine stops with that set unchanged, the tick does not start it for the
@@ -392,7 +395,11 @@ secret, `FLY_API_TOKEN`, and one host, `api.machines.dev`. The app's name is `co
 | `fly.down` | `workers` | procedure. Sets `yield`; the tick stops the machine 30 minutes later if it still runs. `?now=true`, the owner's own session: `POST …/stop` at once. `{ state, yield }` |
 | cron `*/5 * * * *` | | the tick of part 2 |
 
-`calls`: `issue.list`, `issue.locks`. `resources`: `rows`. Each method is free: the cost is Fly.io's
+`calls`: `issue.list`, `issue.locks`. `resources`: `rows`. (As built, `fly-3-brain-fly-service`, 2026-10-13: `calls` is `issue.queue` and
+`issue.locks`, and `resources` is `rows` and `xrpc`. The one machine is named by a setting, `machine`, beside `app`: with
+none set the tick does nothing, `fly.up` and `fly.down` answer 409, and `fly.status` answers `machine: null` with the
+app's machines by id, name and state. The app had a machine before this service did, the one of `fly-1-by-hand`, whose
+command is `sleep infinity`; a tick that took the app's one machine would have started it. The record.) Each method is free: the cost is Fly.io's
 bill to the owner and the limit is hours, not a price a call (nothing here spends the Brain's
 money).
 
@@ -471,13 +478,13 @@ answered what "before" says.
 |---|---|---|---|
 | R3 | `curl -s -o /dev/null -w "%{http_code}" "https://cb4.endpointservices.workers.dev/xrpc/com.lopecode.brain.getSource?worker=brain-x-fly&part=reference"` | `404` | `200`, after T3. Not run |
 | R3 | `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.fly.status --as loop-fly` | with `loop-knowledge`, there being no `loop-fly`: 403 "this token does not name com.lopecode.brain.fly.status" | 200 with `machine.state`, after T3 and the owner's secret. Not run |
-| R3, R7 | `bun test.ts brain-x-fly --with <built module>` in the worktree's `cloud-brain-dev/`: the tests of T3, among them that `fly.post?path=../../other` is refused with no upstream request, that a token is refused `fly.get`, that `meta.secrets` is `["FLY_API_TOKEN"]` and `meta.calls` the two of part 3 | no seed | every test passes; the writer of T3 gives the count its run gave |
+| R3, R7 | `bun test.ts brain-x-fly --with <built module>` in the worktree's `cloud-brain-dev/`: the tests of T3, among them that `fly.post?path=../../other` is refused with no upstream request, that a token is refused `fly.get`, that `meta.secrets` is `["FLY_API_TOKEN"]` and `meta.calls` the two of part 3 (As built, `fly-3-brain-fly-service`, 2026-10-13: `test.ts` takes no Worker that cb4 does not run yet, so the count before the deploy is `tab-tests.ts`'s; the two calls are `issue.queue` and `issue.locks`) | no seed | every test passes; the writer of T3 gives the count its run gave |
 | R1, R6 | `fly.status` answers `machine.image` as the image T2 pushed, `fly.status` answers `loop` as `orchestrator-<the machine's host>`, and the tracker has a `moved` event whose `by.holder` is the name of a line with the note `orch; fly:<machine id>` in `brain.ts agent-token --parent fly-agents list` (round 2: without the flag the list is of `loop-agents` and has no such line) | no such token, no such flag | after T4b. Not run |
 | R2, on | With `loop` not held and one issue at `ready` and not labeled: `fly.status` twice, 6 minutes apart; `machine.state` goes `stopped` to `started` | | after T4b. Not run |
-| R2, off | With `fly.work` answering `{"work":[]}`: `fly.status` each 5 minutes; `started` to `stopped` within 35 minutes of the last move of a token of the machine (one fallback wake and one tick), with `loop` held until the pass that ends it and no `fly.down` in the core's lines of that span (`metric.query` over `method: "fly.down"`, with `loop-dashboard`, if T3 defines the metric; else the rows `fly.status` sums) | | after T4b. Not run. If the machine does not reach `stopped` on the exit, the restart-policy page was read wrong and the tick's stop is what ends it: the check then says which |
+| R2, off | With `fly.work` answering `{"work":[]}`: `fly.status` each 5 minutes; `started` to `stopped` within 35 minutes of the last move of a token of the machine (one fallback wake and one tick), with `loop` held until the pass that ends it and no `fly.down` in the core's lines of that span (`metric.query` over `method: "fly.down"`, with `loop-dashboard`, if T3 defines the metric; else the rows `fly.status` sums. As built, `fly-3-brain-fly-service`, 2026-10-13: T3 defines none, so it is the rows, and the Worker's log lines `at: "fly.stop"`, which say why each stop was made; the record) | | after T4b. Not run. If the machine does not reach `stopped` on the exit, the restart-policy page was read wrong and the tick's stop is what ends it: the check then says which |
 | R7 | On the machine, by the machine's own loop as a step of T4b's record: `ls tools/cloud-brain/.emitted/` holds `cb4-tokens.json`, `cb4-agent-tokens.json` and `issue-loop`, and no `cb4.json`; `env` has no name beginning `FLY_API` or `CF_` | | after T4b. Not run |
 | R8, apart (round 2) | `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh show loop`, asked each 5 minutes for the 25 minutes after a whole pass, while one writer of the machine works and before the next fallback wake: exit 0 and `orchestrator-<the machine>` each time, the `until` later each time (the watch's renews); a `take loop` under another name exits 1. And in `tests/tools/`: the watch against a stand-in sends a renew at its fourth read and none without `--hold`, and prints the `LOOP` line on a renew that exits 1 | `LOCK_TOKEN=spec-29ad08 lock.sh show land`, run 22:49 UTC: `land is not held`, exit 1. `show loop`: refused by line 36, not run | the test with T4; the 25 minutes after T4b. Not run |
-| R8, limit | `test_fly_up_refused_past_the_day` in the seed: with rows summing 8 hours, `fly.up` answers 409 and makes no upstream request | no seed | passes, T3 |
+| R8, limit | `test_fly_up_refused_past_the_day` in the seed: with rows summing 8 hours, `fly.up` answers 409 and makes no upstream request | no seed | passes, T3 (As built, `fly-3-brain-fly-service`, 2026-10-13: the call reads the clock, so the cell's rows are the day so far and the setting is half their sum; the sum of 8 hours itself is held by `flyHours` at a fixed time, in that cell and in `test_fly_hours_are_the_runs_inside_the_day_of_utc`; the record.) |
 | R4, R5 | Not an agent's: the owner's list | | |
 
 What only the owner can measure, and no condition of a task landing: that Start and Stop on the page
@@ -508,7 +515,12 @@ Each is one writer and one review, but T4b, which is the owner's act and a recor
    `fly.work` is empty, without starting it.
 3. **T3, `brain-fly.ojs`**: the service of part 3 with its tests, `fly.work` from the table of
    step 3 with a test for each row (round 2: it was in T4, with a deploy of its own), the panel, the
-   metric of its calls; deployed by the loop on the laptop. It declares a secret and no Cloudflare permission.
+   metric of its calls; deployed by the loop on the laptop. (As built, `fly-3-brain-fly-service`, 2026-10-13: no metric was defined. A
+   metric is a line of `metricDefinitions` in `brain-dashboard.ojs`, so a deploy of a second Worker, and a token reads
+   only the metrics whose name starts `deploys.` (`metricRules.query`), so the check with `loop-dashboard` would also need
+   that rule widened: a change of who reads what, which this spec did not put to the owner. The service writes a line
+   for each start, stop and yield, `at: "fly.start"`, `"fly.stop"`, `"fly.yield"`, which a definition can count later;
+   the record.) It declares a secret and no Cloudflare permission.
    `brain.ts confirm` if on probation. Before the owner's secret is put, `fly.status` answers 400
    "the secret FLY_API_TOKEN is not set", and that is what its writer's check reads.
 4. **T4, the loop's own files, no seed and no deploy** (round 2: cut at the deploy): `loop` in

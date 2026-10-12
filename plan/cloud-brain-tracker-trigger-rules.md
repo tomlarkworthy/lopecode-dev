@@ -444,7 +444,8 @@ and `channel-wakes.ts`; the first two are changed and none is added.
   not wait either ("a reader polls"), so the waiter still asks. The tracker would need `topic.append`
   in its `calls`, the waiter a token for `topic.take` (an agent's token names `issue.*` alone), and
   a wake would be in two stores. It becomes the design when a Worker has a `receive` method that
-  starts an agent; `brain-x-fly` of `worker-machine-on-fly` is the candidate and is not built.
+  starts an agent; `brain-x-fly` of `worker-machine-on-fly` is the candidate and is not built. (Since
+  `fly-3-brain-fly-service`, 2026-10-13, that Worker is built, with no `receive` method.)
 - **`issue.sync` with a filter and a held call**, and the condition left in the script. No new event.
   The condition is then code in a client and nothing in the record says who waits: R1 and R6 unmet.
 - **Named conditions in place of CEL** (`review`, `free`, `closed`). Easier to list in a brief. A

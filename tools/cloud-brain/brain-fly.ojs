@@ -1,0 +1,958 @@
+md`# brain-fly
+
+A Cloud Brain recipe: one machine of [Fly.io](https://fly.io/docs/machines/api/) that runs the issue loop, started by this service when the tracker has work and no loop holds the lock \`loop\`, and stopped by its own exit. The service holds one secret, \`FLY_API_TOKEN\`, and reaches one host, \`api.machines.dev\`, under one app, the setting \`app\`. Design: \`plan/cloud-brain-worker-machine-on-fly.md\`, part 3; the record of what was built is \`tools/cloud-brain/records/fly-3-brain-fly-service.md\`.
+
+The panel under this text is for the owner, signed in.`
+// %%
+viewof flyView = flyPanel({ client, owner: !!(session && session.owner) })
+// %%
+md`## Methods
+
+| Method | Who | What |
+|---|---|---|
+| \`GET fly.get?path=\` | the owner's own session, a rule the service fixed | A GET of \`https://api.machines.dev/v1/apps/APP/PATH\`. The answer is Fly.io's, with its status |
+| \`POST fly.post?path=&method=\` | the same | The body as it is, sent with \`method\`: \`POST\` (when not given), \`PUT\` or \`DELETE\`. The answer is Fly.io's |
+| \`GET fly.status\` | the owner, a token that names it, a Worker of the Brain | \`{ app, machine: { id, state, region, image, guest }, volume, hoursToday, maxHoursADay, loop, yield, work }\`. \`loop\` is who holds the lock \`loop\`, or \`null\`; \`yield\` the time a yield was asked, or \`null\`; \`work\` a count. With no machine named, \`machine\` is \`null\` and \`machines\` lists \`{ id, name, state }\` of the app's |
+| \`GET fly.work\` | the same | \`{ work: [ids] }\`: the issues a loop on the machine would act on (below). It needs no secret and calls Fly.io for nothing |
+| \`POST fly.up\` | the same | Starts the machine when it is \`stopped\` and the day is under its limit: \`{ started: true, state: "starting" }\`. 409 with the reason otherwise |
+| \`POST fly.down\` | the same | Asks the loop on the machine to yield: \`{ state, yield }\`. Nothing is stopped by it; the tick stops a machine that still runs 30 minutes after. \`?now=true\`, the owner's own session only: \`POST …/stop\` at once |
+| cron \`*/5 * * * *\` | | The tick (below) |
+
+\`path\` is a path under the app and cannot leave it: no \`..\`, no leading \`/\`, no \`%2f\`, no \`\\\\\`. \`machines/ID/exec\` is under the app and runs a command on the machine as root (seen 2026-10-12, the record of \`fly-1-by-hand\`), which is why \`get\` and \`post\` are the owner's own session's and their rule is fixed: \`rule.put\` is refused for them, and the service itself refuses a caller that is not the owner in their tab. A redirect is handed back and not followed, so the token goes to no other host.
+
+No method has a price: what the machine costs is Fly.io's bill to the owner, and the limit is hours a day.
+
+Before the owner has put the secret, \`status\`, \`up\`, \`down\`, \`get\` and \`post\` answer 400 \`the secret FLY_API_TOKEN is not set\`, and the tick does nothing.
+
+## Settings
+
+Each is changed with \`config.set { worker: "brain-x-fly", key, value }\`, the owner's own session, no deploy.
+
+| Key | When not set | |
+|---|---|---|
+| \`app\` | nothing: 400 | The Fly.io app |
+| \`machine\` | nothing: the tick does nothing, \`up\` and \`down\` are 409 | The id of the one machine. The service starts and stops no machine the owner did not name |
+| \`maxHoursADay\` | 8 | Hours the machine may run in one day of UTC |
+| \`idleMinutes\` | 20 | A started machine is stopped when \`loop\` has not been held for this long |
+| \`yieldMinutes\` | 30 | A started machine is stopped this long after a yield |
+| \`sameSetHours\` | 4 | No second start for a set of work the machine already stopped on |
+
+## What is work
+
+\`fly.work\` asks the tracker's \`issue.queue\` as this Worker and answers the ids of its \`queue\`, in its order, without each issue that has the label \`needs-owner\`, \`laptop\` or \`digest\`. The tracker's queue is the table of the loop's step 3 as a function (\`brain-issues\`, "The queue"): what it lists under \`waiting\`, or in neither list, is not work. \`laptop\` is the label of an issue that needs what the machine does not hold (a deploy, a paired tab), and a digest is written on the laptop.
+
+## The tick
+
+Once in each 5 minutes of the clock, whichever of the cron and the wrapper's minute alarm comes first. With no secret, no \`app\` or no \`machine\` it ends there. Else it reads the machine, the queue and the lock, and does one thing or nothing (\`flyPlan\`):
+
+| The machine is | And | The tick |
+|---|---|---|
+| \`stopped\` | \`loop\` is not held, the day is under \`maxHoursADay\`, \`fly.work\` is not empty, and the machine did not stop on this same set in the last \`sameSetHours\` | \`POST …/start\` |
+| \`started\` | the day's hours have reached \`maxHoursADay\` | \`POST …/stop\` |
+| \`started\` | a yield was asked \`yieldMinutes\` ago or more | \`POST …/stop\` |
+| \`started\` | \`loop\` is not held, and has not been for \`idleMinutes\`, counted from the later of the machine's start and the lock's last end | \`POST …/stop\` |
+| anything else | | nothing |
+
+The service keeps what it saw as rows: \`open\` is \`{ started }\`, the run that is under way, written when the service starts the machine or first sees it running; \`run/<start>\` is \`{ started, stopped }\`, that run once the service has stopped the machine or first seen it not running; \`start\` is the time and the set of work at the last start; \`same\` marks a stop with that set unchanged; \`yield\` is \`{ since }\`. A stop the service did not make (the loop's own exit) is seen at the next tick or call, so a run can be counted up to 5 minutes long. \`hoursToday\` is the sum of the runs inside the day of UTC. Runs older than 2 days are deleted. A start and a stop each write one log line, \`at: "fly.start"\` and \`at: "fly.stop"\`, a yield \`at: "fly.yield"\`, and a tick that failed \`at: "fly.tick"\` with the error.`
+// %%
+flyDefaults = ({ host: "api.machines.dev", maxHoursADay: 8, idleMinutes: 20, yieldMinutes: 30, sameSetHours: 4, tickMinutes: 5, keepDays: 2, not: ["needs-owner", "laptop", "digest"] })
+// %%
+// The address of a path under the app, or null: a path that would leave /v1/apps/APP/ is no path. Fly.io's own reading
+// of an encoded slash was not tried, so one is refused.
+flyPath = (app, path) => {
+  if (typeof app !== "string" || !/^[a-z0-9][a-z0-9-]{0,62}$/.test(app) || typeof path !== "string") return null;
+  if (path.startsWith("/") || /\\|%2f|%5c/i.test(path)) return null;
+  let plain;
+  try {
+    plain = decodeURIComponent(path.split(/[?#]/)[0]);
+  } catch {
+    return null;
+  }
+  if (plain.split("/").some((s) => s === ".." || s === ".")) return null;
+  const root = "https://" + flyDefaults.host + "/v1/apps/" + app + "/";
+  let to;
+  try {
+    to = new URL(path, root);
+  } catch {
+    return null;
+  }
+  return to.href.startsWith(root) ? to.href.split("#")[0] : null;
+}
+// %%
+// The hours of the runs that are inside the day of UTC that `now` is in. An open run is counted to `now`.
+flyHours = (runs, now) => {
+  const day = Math.floor(now / 86400000) * 86400000;
+  let ms = 0;
+  for (const r of runs) {
+    const from = Math.max(r.started, day), to = Math.min(r.stopped == null ? now : r.stopped, now);
+    if (to > from) ms += to - from;
+  }
+  return ms / 3600000;
+}
+// %%
+// The ids of the tracker's queue that a loop on the machine acts on, in the queue's order.
+flyWork = (queue) => (Array.isArray(queue) ? queue : []).filter((e) => e && typeof e.id === "string" && !(Array.isArray(e.labels) ? e.labels : []).some((l) => flyDefaults.not.includes(l))).map((e) => e.id)
+// %%
+// Who holds the lock `loop`, and when it last ended, from the answer of issue.locks.
+flyLoop = (answer) => {
+  const named = (list) => (Array.isArray(list) ? list : []).find((l) => l && l.name === "loop");
+  const held = named(answer && answer.locks), ended = named(answer && answer.ended), was = named(answer && answer.history);
+  return { who: held ? String(held.who) : null, until: held ? held.until : Math.max(0, (ended && ended.until) || 0, (was && was.ended) || 0) };
+}
+// %%
+flySameSet = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b.length && [...a].sort().every((x, i) => x === [...b].sort()[i])
+// %%
+// What a tick does: { do: "start" | "stop" | null, why }. No I/O: the table of "The tick".
+flyPlan = ({ now, state, held, lastUntil = 0, startedAt = 0, hours, max, work, yieldSince = null, same = null, idleMinutes, yieldMinutes, sameSetHours }) => {
+  if (state === "started") {
+    if (!(hours < max)) return { do: "stop", why: "the day's limit" };
+    if (yieldSince != null && now - yieldSince >= yieldMinutes * 60000) return { do: "stop", why: "a yield" };
+    if (!held && now - Math.max(startedAt, lastUntil) >= idleMinutes * 60000) return { do: "stop", why: "loop is not held" };
+    return { do: null, why: "it runs" };
+  }
+  if (state !== "stopped") return { do: null, why: "the machine is " + state };
+  if (held) return { do: null, why: "loop is held" };
+  if (!(hours < max)) return { do: null, why: "the day's limit" };
+  if (!work.length) return { do: null, why: "no work" };
+  if (same && flySameSet(same.set, work) && now - same.at < sameSetHours * 3600000) return { do: null, why: "it stopped on this set" };
+  return { do: "start", why: "work" };
+}
+// %%
+// What fly.status says of a machine. Fly.io's answer has the machine's env, which is not passed on.
+flyMachine = (m) => ({ id: m.id, state: m.state, region: m.region ?? null, image: (m.config && m.config.image) || null, guest: (m.config && m.config.guest) || null })
+// %%
+flyOps = {
+  const D = flyDefaults, QUEUE = "com.lopecode.brain.issue.queue", LOCKS = "com.lopecode.brain.issue.locks";
+  const fail = (status, error, message) => {
+    throw Object.assign(new Error(message), { status, error });
+  };
+  const said = (e) => String((e && e.message) || e).slice(0, 200);
+  const set = (name) => (typeof config[name] === "number" && config[name] >= 0 ? config[name] : D[name]);
+  const round = (h) => Math.round(h * 1000) / 1000;
+  const running = (state) => ["starting", "started", "stopping"].includes(state);
+  const unnamed = 'no machine is named: config.set { worker: "brain-x-fly", key: "machine", value: ID }';
+  // The token, or a 400 that says what is missing. The secret first: before the owner puts it, that is the answer.
+  const reach = async () => {
+    const token = await secrets.FLY_API_TOKEN;
+    if (!token) fail(400, "InvalidRequest", "the secret FLY_API_TOKEN is not set");
+    if (!flyPath(config.app, "")) fail(400, "InvalidRequest", 'the setting app is not set: config.set { worker: "brain-x-fly", key: "app", value: NAME }');
+    return token;
+  };
+  // A redirect is handed back, not followed: no other host is sent the token.
+  const send = (token, path, method = "GET", body = null) => {
+    const to = flyPath(config.app, path);
+    if (!to) fail(400, "InvalidRequest", "path is a path under the app: no leading /, no .., no encoded slash");
+    return fetch(to, { method, redirect: "manual", headers: { authorization: "Bearer " + token, ...(body == null ? {} : { "content-type": "application/json" }) }, body: body == null ? undefined : body });
+  };
+  const named = () => (typeof config.machine === "string" && /^[a-z0-9]{6,40}$/.test(config.machine) ? config.machine : null);
+  const machine = async (token) => {
+    const id = named();
+    if (!id) return null;
+    const r = await send(token, "machines/" + id);
+    if (!r.ok) fail(502, "UpstreamFailure", "Fly.io answered " + r.status + " for the machine " + id);
+    return r.json();
+  };
+  const work = async () => {
+    let q;
+    try {
+      q = await xrpc.query(QUEUE, { limit: "500" });
+    } catch (e) {
+      fail(502, "UpstreamFailure", "issue.queue: " + said(e));
+    }
+    return flyWork(q && q.queue);
+  };
+  const loop = async (history) => flyLoop(await xrpc.query(LOCKS, history ? { history: "500" } : {}));
+  const key = (ms) => "run/" + String(ms).padStart(15, "0");
+  // The run that is open is one row, `open`, so two calls that see the machine running at once open one run.
+  const runs = async () => {
+    const open = await rows.get("open");
+    return [...(await rows.list("run/")).map((r) => r.value), ...(open ? [{ started: open.started, stopped: null }] : [])];
+  };
+  // The machine is not running: the open run ends at `now`, a yield is over, and the stop is marked when the work
+  // is the set the machine was started for.
+  const closed = async (now, ids) => {
+    const open = await rows.get("open");
+    if (open) {
+      await rows.put(key(open.started), { started: open.started, stopped: Math.max(now, open.started) });
+      await rows.delete("open");
+    }
+    await rows.delete("yield");
+    const started = await rows.get("start");
+    if (open && started && Array.isArray(started.set) && flySameSet(started.set, ids)) await rows.put("same", { at: now, set: [...ids].sort() });
+  };
+  // What was seen of the machine at `now`. A machine that runs with no open run was started by another hand.
+  const saw = async (state, now, ids) => {
+    if (!running(state)) return closed(now, ids);
+    if (await rows.putIfAbsent("open", { started: now })) await rows.put("start", { at: now, set: null });
+  };
+  const start = async (token, id, now, ids, by) => {
+    const r = await send(token, "machines/" + id + "/start", "POST");
+    if (!r.ok) fail(502, "UpstreamFailure", "Fly.io answered " + r.status + " to the start of " + id);
+    await rows.put("start", { at: now, set: [...ids].sort() });
+    await rows.delete("yield");
+    await rows.delete("same");
+    await rows.put("open", { started: now });
+    log({ at: "fly.start", by, machine: id, work: ids.length });
+  };
+  const stop = async (token, id, now, ids, why) => {
+    const r = await send(token, "machines/" + id + "/stop", "POST");
+    if (!r.ok) fail(502, "UpstreamFailure", "Fly.io answered " + r.status + " to the stop of " + id);
+    await closed(now, ids);
+    log({ at: "fly.stop", why, machine: id });
+  };
+  const pass = async (path, method, body) => {
+    const r = await send(await reach(), path, method, body);
+    const headers = { "content-type": r.headers.get("content-type") || "application/json", "x-fly-upstream": String(r.status) };
+    if (r.headers.get("location")) headers.location = r.headers.get("location");
+    return new Response(r.body, { status: r.status, headers });
+  };
+  const status = async (now = Date.now()) => {
+    const token = await reach(), m = await machine(token), ids = await work();
+    let machines = null;
+    if (m) await saw(m.state, now, ids);
+    else {
+      const r = await send(token, "machines");
+      if (!r.ok) fail(502, "UpstreamFailure", "Fly.io answered " + r.status + " for the machines of " + config.app);
+      machines = ((await r.json()) || []).map((x) => ({ id: x.id, name: x.name ?? null, state: x.state }));
+    }
+    const mount = m && m.config && Array.isArray(m.config.mounts) ? m.config.mounts[0] : null, y = await rows.get("yield");
+    return { app: config.app, machine: m ? flyMachine(m) : null, ...(m ? {} : { machines }), volume: (mount && mount.volume) || null, hoursToday: round(flyHours(await runs(), now)), maxHoursADay: set("maxHoursADay"), loop: (await loop(false)).who, yield: y ? y.since : null, work: ids.length };
+  };
+  // The day's limit is read from the rows before Fly.io is asked anything: past it, no request is made.
+  const up = async (now = Date.now()) => {
+    const token = await reach(), hours = flyHours(await runs(), now), max = set("maxHoursADay");
+    if (!(hours < max)) fail(409, "Conflict", `the day's limit is reached: ${round(hours)} h of ${max} h`);
+    const m = await machine(token);
+    if (!m) fail(409, "Conflict", unnamed);
+    const ids = await work();
+    await saw(m.state, now, ids);
+    if (m.state !== "stopped") fail(409, "Conflict", "the machine is " + m.state + ", and is started from stopped");
+    await start(token, m.id, now, ids, "fly.up");
+    return { started: true, state: "starting" };
+  };
+  const down = async (atOnce, now = Date.now()) => {
+    const token = await reach(), m = await machine(token);
+    if (!m) fail(409, "Conflict", unnamed);
+    const ids = await work();
+    await saw(m.state, now, ids);
+    if (!running(m.state)) return { state: m.state, yield: null };
+    if (atOnce) return await stop(token, m.id, now, ids, "fly.down now"), { state: "stopping", yield: null };
+    const y = (await rows.get("yield")) || { since: now };
+    await rows.put("yield", y);
+    log({ at: "fly.yield", machine: m.id, since: y.since });
+    return { state: m.state, yield: y.since };
+  };
+  const tick = async (now = Date.now()) => {
+    const slot = "tick/" + Math.floor(now / (D.tickMinutes * 60000));
+    if (!(await rows.putIfAbsent(slot, now))) return { do: null, why: "ticked" };
+    for (const r of await rows.list("tick/")) if (r.key !== slot) await rows.delete(r.key);
+    if (!named() || !flyPath(config.app, "")) return { do: null, why: "not set up" };
+    const token = await secrets.FLY_API_TOKEN;
+    if (!token) return { do: null, why: "no secret" };
+    try {
+      const m = await machine(token), ids = await work();
+      await saw(m.state, now, ids);
+      for (const r of await runs()) if (r.stopped != null && r.stopped < now - D.keepDays * 86400000) await rows.delete(key(r.started));
+      const l = await loop(m.state === "started"), started = await rows.get("start"), y = await rows.get("yield");
+      const plan = flyPlan({ now, state: m.state, held: !!l.who, lastUntil: l.until, startedAt: started ? started.at : 0, hours: flyHours(await runs(), now), max: set("maxHoursADay"), work: ids, yieldSince: y ? y.since : null, same: await rows.get("same"), idleMinutes: set("idleMinutes"), yieldMinutes: set("yieldMinutes"), sameSetHours: set("sameSetHours") });
+      if (plan.do === "start") await start(token, m.id, now, ids, "tick");
+      if (plan.do === "stop") await stop(token, m.id, now, ids, plan.why);
+      return plan;
+    } catch (e) {
+      log({ at: "fly.tick", error: said(e) });
+      return { do: null, why: "failed", error: said(e) };
+    }
+  };
+  return { pass, status, work, up, down, tick };
+}
+// %%
+fly_service = cloudflare.Service(
+  "fly",
+  async (request) => {
+    const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+    const refuse = (status, error, message) => json(status, { error, message });
+    const url = new URL(request.url), what = url.pathname.split(".").pop(), q = url.searchParams;
+    const verb = { get: "GET", status: "GET", work: "GET", post: "POST", up: "POST", down: "POST" }[what];
+    if (!verb) return refuse(404, "MethodNotImplemented", "fly.get, fly.post, fly.status, fly.work, fly.up and fly.down");
+    if (request.method !== verb) return refuse(405, "InvalidRequest", "fly." + what + " is sent with " + verb);
+    // The owner in their own tab, as the core says it. A token of the owner's is not.
+    const tab = request.headers.get("x-brain-caller") === "owner" && request.headers.get("x-brain-tab") === "1";
+    try {
+      if (what === "get" || what === "post") {
+        if (!tab) return refuse(403, "Forbidden", "fly." + what + " is the owner's own session's");
+        const method = what === "get" ? "GET" : q.get("method") || "POST";
+        if (what === "post" && !["POST", "PUT", "DELETE"].includes(method)) return refuse(400, "InvalidRequest", "method is POST, PUT or DELETE");
+        const body = what === "post" ? await request.text() : "";
+        return await flyOps.pass(q.get("path") ?? "", method, body === "" ? null : body);
+      }
+      if (what === "work") return json(200, { work: await flyOps.work() });
+      if (what === "status") return json(200, await flyOps.status());
+      if (what === "up") return json(200, await flyOps.up());
+      const atOnce = q.get("now") === "true";
+      if (atOnce && !tab) return refuse(403, "Forbidden", "fly.down?now=true is the owner's own session's");
+      if (q.get("now") !== null && !["true", "false"].includes(q.get("now"))) return refuse(400, "InvalidRequest", "now is true or false");
+      return json(200, await flyOps.down(atOnce));
+    } catch (e) {
+      return refuse((e && e.status) || 502, (e && e.error) || "UpstreamFailure", String((e && e.message) || e).slice(0, 300));
+    }
+  },
+  {
+    crons: ["*/5 * * * *"],
+    // A cron event carries its time; the wrapper's minute alarm does not.
+    scheduled: (event) => flyOps.tick((event && event.scheduledTime) || Date.now()),
+    calls: ["com.lopecode.brain.issue.queue", "com.lopecode.brain.issue.locks"],
+    methods: {
+      // get and post reach every path of the app, exec on the machine among them: the owner's own session, and no rule.put.
+      "com.lopecode.brain.fly.get": { type: "query", who: "owner", allow: "caller.session", fixed: true },
+      "com.lopecode.brain.fly.post": { type: "procedure", who: "owner", allow: "caller.session", fixed: true },
+      "com.lopecode.brain.fly.status": { type: "query", who: "workers" },
+      "com.lopecode.brain.fly.work": { type: "query", who: "workers" },
+      "com.lopecode.brain.fly.up": { type: "procedure", who: "workers" },
+      "com.lopecode.brain.fly.down": { type: "procedure", who: "workers" }
+    }
+  }
+)
+// %%
+fly_announce = {
+  plugins.add("workers", fly_service, { invalidation });
+  return "announced fly_service";
+}
+// %%
+// The three bodies of the set-up form, each a call of fly.post. `machine` is tools/cloud-brain/fly/machine.json
+// (tests/tools/fly-service.test.ts holds the two together); the owner writes the label and the ids in before sending.
+flyBodies = ({
+  volume: { path: "volumes", method: "POST", body: { name: "loop_data", region: "ams", size_gb: 10 } },
+  machine: {
+    path: "machines",
+    method: "POST",
+    body: {
+      name: "loop",
+      region: "ams",
+      config: {
+        image: "registry.fly.io/cloudbrain:<label>",
+        guest: { cpu_kind: "performance", cpus: 2, memory_mb: 4096 },
+        restart: { policy: "no" },
+        auto_destroy: false,
+        mounts: [{ volume: "<volume id>", path: "/data" }],
+        files: [
+          { guest_path: "/root/.ssh/lopecode-dev.key", secret_name: "DEPLOY_KEY_LOPECODE_DEV" },
+          { guest_path: "/root/.ssh/lopebooks.key", secret_name: "DEPLOY_KEY_LOPEBOOKS" },
+          { guest_path: "/root/.ssh/lopecode-plugin.key", secret_name: "DEPLOY_KEY_LOPECODE_PLUGIN" },
+          { guest_path: "/root/cb4-tokens.json", secret_name: "BRAIN_TOKENS" }
+        ]
+      }
+    }
+  },
+  image: { path: "machines/<machine id>", method: "POST", body: { config: { image: "registry.fly.io/cloudbrain:<label>" } } }
+})
+// %%
+// The machine for the owner: its state, the day's hours, who holds loop, the work, Start and Stop, and the set-up form.
+flyPanel = ({ client, owner = false } = {}) => {
+  const muted = "color:var(--theme-foreground-muted)";
+  if (!client || !owner) return Object.assign(htl.html`<i style=${muted}>Sign in to a Brain as the owner to see its worker machine.</i>`, { value: null });
+  const el = Object.assign(htl.html`<div></div>`, { value: null }), state = htl.html`<div style="margin:6px 0"></div>`;
+  const note = htl.html`<pre style="${muted};margin-top:6px;white-space:pre-wrap;overflow-wrap:anywhere"></pre>`;
+  const say = (text) => void (note.textContent = text);
+  const said = (e) => String((e && e.message) || e);
+  const app = Inputs.text({ label: "App", width: "14em" }), machine = Inputs.text({ label: "Machine id", width: "14em" });
+  const which = Inputs.select(Object.keys(flyBodies), { label: "Set up" }), path = Inputs.text({ label: "Path", width: "24em" });
+  const body = Inputs.textarea({ label: "Body", rows: 12, monospace: true, width: "40em" });
+  const fill = () => {
+    const b = flyBodies[which.value];
+    path.value = b.path;
+    body.value = JSON.stringify(b.body, null, 2);
+  };
+  fill();
+  which.addEventListener("input", fill);
+  // The answer of the last ask is the one drawn: an earlier one that arrives after it is dropped.
+  let asked = 0, busy = false;
+  const draw = async () => {
+    const mine = ++asked;
+    let s = null, error = null;
+    try {
+      s = await client.query("fly.status");
+    } catch (e) {
+      error = said(e);
+    }
+    if (mine !== asked) return;
+    el.value = s;
+    el.dispatchEvent(new Event("input"));
+    if (!s) return void state.replaceChildren("fly.status: " + error);
+    const m = s.machine;
+    state.replaceChildren(
+      m ? `The machine ${m.id} of ${s.app} is ${m.state}.` : `No machine of ${s.app} is named. It has: ${(s.machines || []).map((x) => `${x.id} (${x.name}, ${x.state})`).join(", ") || "none"}.`,
+      ` ${s.hoursToday} h of ${s.maxHoursADay} h today. loop is ${s.loop ? "held by " + s.loop : "not held"}. ${s.work} issues are work.${s.yield ? " A yield was asked at " + new Date(s.yield).toISOString() + "." : ""}`
+    );
+    if (m && !machine.value) machine.value = m.id;
+    if (!app.value) app.value = s.app || "";
+  };
+  // One call at a time: a press while one is out does nothing.
+  const buttons = [];
+  const run = (what, fn) => async () => {
+    if (busy) return;
+    busy = true;
+    for (const b of buttons) b.querySelector("button").disabled = true;
+    try {
+      say(what + "…");
+      say((await fn()) || "");
+    } catch (e) {
+      say(`${what} failed: ${said(e)}`);
+    }
+    busy = false;
+    for (const b of buttons) b.querySelector("button").disabled = false;
+    await draw();
+  };
+  const button = (label, fn) => {
+    const b = Inputs.button(label, { reduce: run(label, fn) });
+    buttons.push(b);
+    return b;
+  };
+  const refresh = button("Refresh", async () => "");
+  const start = button("Start", async () => JSON.stringify(await client.procedure("fly.up", {})));
+  const stop = button("Stop", async () => JSON.stringify(await client.procedure("fly.down", {}, { params: { now: "true" } })));
+  const save = button("Save settings", async () => {
+    for (const [key, input] of [["app", app], ["machine", machine]]) if (input.value) await client.procedure("config.set", { worker: "brain-x-fly", key, value: input.value });
+    return "saved";
+  });
+  const sendIt = button("Send", async () => {
+    const b = flyBodies[which.value];
+    let parsed;
+    try {
+      parsed = JSON.parse(body.value);
+    } catch (e) {
+      throw new Error("the body is not JSON: " + said(e));
+    }
+    return JSON.stringify(await client.procedure("fly.post", parsed, { params: { path: path.value, method: b.method } }), null, 2).slice(0, 4000);
+  });
+  // The inputs' own events stay in the panel: its one input event is the status drawn.
+  for (const input of [app, machine, which, path, body, ...buttons]) input.addEventListener("input", (e) => e.stopPropagation());
+  const rowOf = (...items) => htl.html`<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">${items}</div>`;
+  el.append(state, rowOf(refresh, start, stop), app, machine, rowOf(save), which, path, body, rowOf(sendIt), note);
+  el.ready = draw();
+  return el;
+}
+// %%
+md`## Tests
+
+The service runs here as the emitted Worker. Fly.io is a function of the test that keeps one machine's state; the tracker's \`issue.queue\` and \`issue.locks\` are answers the test gives. No test calls Fly.io.`
+// %%
+// A Brain with one machine at Fly.io. `fly` is the machine as the stand-in keeps it; `seen` each request Fly.io was sent.
+// The page runs every test cell at once and `logged` hears each Worker's lines, so a test that reads lines gives its
+// rig an `id` of its own and reads the lines of that machine (`rig.lines`).
+flyRig = async ({ secret = "FlyV1 t1", id = "853145b4217618", config = { app: "cloudbrain", machine: id }, state = "stopped", queue = [], locks = {}, rows = new Map(), queueStatus = 200, startStatus = 200 } = {}) => {
+  const seen = [], asked = [];
+  const fly = { state, env: { CLAUDE_CODE_OAUTH_TOKEN: "never-passed-on" } };
+  const rig = { seen, asked, fly, rows, queue, locks, id, redirects: [] };
+  rig.lines = async (fn) => (await logged(fn)).filter((l) => String(l.at).startsWith("fly.") && (l.machine === id || String(l.error).includes(id)));
+  const full = () => ({ id, name: "loop", state: fly.state, region: "ams", config: { image: "registry.fly.io/cloudbrain:fly-2-b", guest: { cpu_kind: "performance", cpus: 2, memory_mb: 4096 }, env: fly.env, mounts: [{ volume: "vol_1", path: "/data" }] } });
+  rig.sim = await simulate(fly_service, {
+    rows,
+    config,
+    secrets: { BRAIN_KEY: "k", ...(secret ? { FLY_API_TOKEN: secret } : {}) },
+    fetch: async (request) => {
+      const u = new URL(request.url), path = u.pathname.replace("/v1/apps/cloudbrain/", "");
+      rig.redirects.push(request.redirect);
+      seen.push({ verb: request.method, url: request.url, authorization: request.headers.get("authorization"), body: request.method === "GET" ? null : await request.text() });
+      if (u.host !== "api.machines.dev") return new Response("elsewhere", { status: 500 });
+      if (path === "moved") return new Response(null, { status: 302, headers: { location: "https://elsewhere.example/" } });
+      if (path === "machines") return Response.json([full()]);
+      if (path === "machines/" + id) return Response.json(full());
+      if (path === "machines/" + id + "/start") return startStatus === 200 ? ((fly.state = "started"), Response.json({ previous_state: "stopped" })) : new Response("no", { status: startStatus });
+      if (path === "machines/" + id + "/stop") return (fly.state = "stopped"), Response.json({ ok: true });
+      if (/^machines\/[a-z0-9]+$/.test(path)) return Response.json({ error: "machine not found" }, { status: 404 });
+      return Response.json({ path, method: request.method });
+    },
+    core: async (request) => {
+      const u = new URL(request.url), nsid = u.pathname.replace("/xrpc/com.lopecode.brain.", "");
+      asked.push({ nsid, params: Object.fromEntries(u.searchParams) });
+      if (nsid === "secret.get") return Response.json({ error: "NotFound", message: "no such secret" }, { status: 404 });
+      if (nsid === "issue.queue") return queueStatus === 200 ? Response.json({ seq: 1, now: 1, queue: rig.queue, waiting: [], more: false }) : Response.json({ error: "Forbidden", message: "refused" }, { status: queueStatus });
+      if (nsid === "issue.locks") return Response.json({ now: 1, locks: [], ended: [], history: [], ...rig.locks });
+      return Response.json({ error: "MethodNotImplemented" }, { status: 501 });
+    }
+  });
+  const tabHeaders = { "x-brain-caller": "owner", "x-brain-via": "session", "x-brain-tab": "1" };
+  const tokenHeaders = { "x-brain-caller": "owner", "x-brain-via": "delegation:d1", "x-brain-holder": "secret:loop-fly", "x-brain-tab": "0" };
+  rig.call = async (name, query = "", { as = tokenHeaders, body, verb = ["get", "status", "work"].includes(name) ? "GET" : "POST" } = {}) => {
+    const r = await rig.sim.fetch("https://fly.internal/xrpc/com.lopecode.brain.fly." + name + (query ? "?" + query : ""), { method: verb, headers: { "content-type": "application/json", ...as }, ...(verb === "GET" ? {} : { body: body === undefined ? "{}" : body }) });
+    const text = await r.text();
+    let data = text;
+    try {
+      data = JSON.parse(text);
+    } catch {}
+    return { status: r.status, data, upstream: r.headers.get("x-fly-upstream") };
+  };
+  rig.tab = tabHeaders;
+  rig.token = tokenHeaders;
+  rig.worker = { "x-brain-caller": "worker:brain-x-other", "x-brain-tab": "0" };
+  rig.to = () => seen.map((s) => s.verb + " " + s.url.replace("https://api.machines.dev/v1/apps/cloudbrain/", ""));
+  return rig;
+}
+// %%
+test_fly_declares_one_secret_one_cron_and_two_calls = {
+  const { meta, parts } = await fly_service.emit();
+  expect(meta.worker).toBe("brain-x-fly");
+  expect(meta.secrets).toEqual(["FLY_API_TOKEN"]);
+  expect(meta.calls).toEqual(["com.lopecode.brain.issue.locks", "com.lopecode.brain.issue.queue"]);
+  expect([meta.crons, meta.resources, meta.cloudflare || []]).toEqual([["*/5 * * * *"], ["rows", "xrpc"], []]);
+  const tabOnly = { who: "owner", allow: "caller.session", fixed: true };
+  expect(meta.access).toEqual({
+    "com.lopecode.brain.fly.down": { type: "procedure", who: "workers" },
+    "com.lopecode.brain.fly.get": { type: "query", ...tabOnly },
+    "com.lopecode.brain.fly.post": { type: "procedure", ...tabOnly },
+    "com.lopecode.brain.fly.status": { type: "query", who: "workers" },
+    "com.lopecode.brain.fly.up": { type: "procedure", who: "workers" },
+    "com.lopecode.brain.fly.work": { type: "query", who: "workers" }
+  });
+  // The rule of get and post, for the owner in their tab, a token of the owner's, a Worker and a member.
+  const ask = (who) => decide(tabOnly, { caller: callerOf(who), origin: callerOf(who), request: { params: {} } }).allow;
+  expect([ask({ caller: "owner", via: "session" }), ask({ caller: "owner", via: "delegation:d1", holder: "secret:loop-fly", tab: false }), ask({ caller: "worker:brain-x-other" }), ask({ caller: "did:plc:ada" })]).toEqual([true, false, false, false]);
+  // The host is in the source once, and no Cloudflare token is asked for.
+  expect(parts[0].text).toContain("api.machines.dev");
+  expect(parts[0].text).not.toContain("api.cloudflare.com");
+  return meta.secrets[0];
+}
+// %%
+test_fly_get_and_post_pass_a_path_of_the_app_and_no_other = {
+  const rig = await flyRig();
+  const got = await rig.call("get", "path=machines/853145b4217618/events%3Flimit%3D2", { as: rig.tab });
+  expect([got.status, got.upstream, got.data]).toEqual([200, "200", { path: "machines/853145b4217618/events", method: "GET" }]);
+  const made = await rig.call("post", "path=volumes", { as: rig.tab, body: '{"name":"loop_data","size_gb":10}' });
+  expect(made.data).toEqual({ path: "volumes", method: "POST" });
+  await rig.call("post", "path=machines/853145b4217618&method=DELETE", { as: rig.tab, body: "" });
+  expect(rig.seen).toEqual([
+    { verb: "GET", url: "https://api.machines.dev/v1/apps/cloudbrain/machines/853145b4217618/events?limit=2", authorization: "Bearer FlyV1 t1", body: null },
+    { verb: "POST", url: "https://api.machines.dev/v1/apps/cloudbrain/volumes", authorization: "Bearer FlyV1 t1", body: '{"name":"loop_data","size_gb":10}' },
+    { verb: "DELETE", url: "https://api.machines.dev/v1/apps/cloudbrain/machines/853145b4217618", authorization: "Bearer FlyV1 t1", body: "" }
+  ]);
+  // A redirect is handed back, and every request says it is not to be followed: the token is sent nowhere else.
+  const moved = await rig.call("get", "path=moved", { as: rig.tab });
+  expect([moved.status, rig.seen.length, rig.seen.every((s) => s.url.startsWith("https://api.machines.dev/v1/apps/cloudbrain/"))]).toEqual([302, 4, true]);
+  expect(rig.redirects).toEqual(["manual", "manual", "manual", "manual"]);
+  // A path that would leave the app is refused before Fly.io is asked.
+  const out = ["../../other", "../cloudbrain2/machines", "machines/../../../v1/apps/other", "%2e%2e/%2e%2e/other", "..%2f..%2fother", "machines/%2e%2e/%2E%2E/x", "/v1/apps/other/machines", "//evil.example/x", "https://evil.example/x", "machines\\..\\..\\x", "./machines", "%"];
+  for (const path of out) {
+    expect([path, (await rig.call("get", "path=" + encodeURIComponent(path), { as: rig.tab })).status]).toEqual([path, 400]);
+    expect([path, (await rig.call("post", "path=" + encodeURIComponent(path), { as: rig.tab, body: "{}" })).status]).toEqual([path, 400]);
+    expect(flyPath("cloudbrain", path)).toBe(null);
+  }
+  expect((await rig.call("post", "path=machines&method=GET", { as: rig.tab })).status).toBe(400);
+  expect((await rig.call("post", "path=machines&method=PATCH", { as: rig.tab })).status).toBe(400);
+  // A token of the owner's, a Worker and nobody are refused by the service itself, whatever the rule has become.
+  for (const as of [rig.token, rig.worker, { "x-brain-caller": "anonymous" }, { "x-brain-caller": "did:plc:ada", "x-brain-tab": "1" }]) {
+    expect((await rig.call("get", "path=machines", { as })).status).toBe(403);
+    expect((await rig.call("post", "path=machines/853145b4217618/exec", { as, body: '{"command":["id"]}' })).status).toBe(403);
+  }
+  expect((await rig.call("get", "path=machines", { as: rig.tab, verb: "POST" })).status).toBe(405);
+  expect((await rig.call("exec", "", { as: rig.tab })).status).toBe(404);
+  expect(rig.seen.length).toBe(4);
+  // An app's name that is no name gives no address.
+  for (const app of ["", "a/b", "..", "A", undefined, "x".repeat(64)]) expect(flyPath(app, "machines")).toBe(null);
+  expect(flyPath("cloudbrain", "")).toBe("https://api.machines.dev/v1/apps/cloudbrain/");
+  return `3 passed on, 1 redirect handed back, ${out.length} paths refused twice, 8 callers refused`;
+}
+// %%
+test_fly_status_says_the_secret_is_not_set_and_then_the_machine = {
+  // Before the owner has put the secret: 400 in these words, and nothing is asked of Fly.io.
+  const bare = await flyRig({ secret: null });
+  for (const [name, as] of [["status", bare.token], ["up", bare.token], ["down", bare.token], ["get", bare.tab], ["post", bare.tab]])
+    expect([name, await bare.call(name, name === "get" || name === "post" ? "path=machines" : "", { as })]).toEqual([name, { status: 400, data: { error: "InvalidRequest", message: "the secret FLY_API_TOKEN is not set" }, upstream: null }]);
+  expect(bare.seen.length).toBe(0);
+  // The secret and no app.
+  const noApp = await flyRig({ config: {} });
+  expect((await noApp.call("status")).data.message).toMatch(/^the setting app is not set: config\.set/);
+  expect(noApp.seen.length).toBe(0);
+  // The app and no machine named: the app's machines by id, name and state, and nothing of their env.
+  const unnamed = await flyRig({ config: { app: "cloudbrain" }, queue: [{ id: "a", labels: [] }] });
+  const listed = await unnamed.call("status");
+  expect(listed.data).toEqual({ app: "cloudbrain", machine: null, machines: [{ id: "853145b4217618", name: "loop", state: "stopped" }], volume: null, hoursToday: 0, maxHoursADay: 8, loop: null, yield: null, work: 1 });
+  expect((await unnamed.call("up")).data).toEqual({ error: "Conflict", message: 'no machine is named: config.set { worker: "brain-x-fly", key: "machine", value: ID }' });
+  expect((await unnamed.call("down")).status).toBe(409);
+  // A name that is no id is no machine: nothing is asked for under it.
+  const odd = await flyRig({ config: { app: "cloudbrain", machine: "../../other" } });
+  expect((await odd.call("status")).data.machine).toBe(null);
+  expect(odd.to()).toEqual(["GET machines"]);
+  // Named: the machine, the volume, the day, the lock and the work. A token and a Worker are answered alike.
+  const rig = await flyRig({ state: "started", queue: [{ id: "a", labels: [] }, { id: "b", labels: ["laptop"] }], locks: { locks: [{ name: "land", who: "impl-1", until: 9 }, { name: "loop", who: "orchestrator-mac", until: 9 }] }, config: { app: "cloudbrain", machine: "853145b4217618", maxHoursADay: 3 } });
+  const s = await rig.call("status");
+  expect(s.data).toEqual({ app: "cloudbrain", machine: { id: "853145b4217618", state: "started", region: "ams", image: "registry.fly.io/cloudbrain:fly-2-b", guest: { cpu_kind: "performance", cpus: 2, memory_mb: 4096 } }, volume: "vol_1", hoursToday: expect.any(Number), maxHoursADay: 3, loop: "orchestrator-mac", yield: null, work: 1 });
+  expect(JSON.stringify(s.data)).not.toContain("never-passed-on");
+  expect((await rig.call("status", "", { as: rig.worker })).status).toBe(200);
+  // A machine seen running with no run kept gets one, once.
+  expect([rig.rows.get("open"), [...rig.rows.keys()].filter((k) => k.startsWith("run/")).length]).toEqual([{ started: expect.any(Number) }, 0]);
+  expect(rig.rows.get("start")).toEqual({ at: rig.rows.get("open").started, set: null });
+  // Ten asks at once of a machine that runs: one run, and the day's hours are not counted ten times.
+  const many = await flyRig({ state: "started" });
+  const answers = await Promise.all(Array.from({ length: 10 }, () => many.call("status")));
+  expect([answers.every((a) => a.status === 200), [...many.rows.keys()].filter((k) => k === "open" || k.startsWith("run/"))]).toEqual([true, ["open"]]);
+  // Fly.io's refusal of the machine is a 502 that says its status.
+  const gone = await flyRig({ config: { app: "cloudbrain", machine: "aaaaaaaaaaaaaa" } });
+  for (const name of ["status", "up", "down"]) expect([name, await gone.call(name)]).toEqual([name, { status: 502, data: { error: "UpstreamFailure", message: "Fly.io answered 404 for the machine aaaaaaaaaaaaaa" }, upstream: null }]);
+  return "5 answers of no secret, 1 of no app, 1 list, 1 status";
+}
+// %%
+test_fly_work_is_the_trackers_queue_without_what_the_machine_does_not_take = {
+  // One entry for each `do` of the tracker's queue, and one for each label that is not the machine's.
+  const queue = [
+    { id: "r1", do: "round", kind: "task", state: "in-progress", labels: [] },
+    { id: "v1", do: "review", kind: "task", state: "in-review", labels: ["major"] },
+    { id: "l1", do: "look", kind: "task", state: "in-review", labels: [] },
+    { id: "t1", do: "triage", kind: "bug", state: "open", labels: [] },
+    { id: "y1", do: "ready", kind: "task", state: "triaged", labels: [] },
+    { id: "d1", do: "decompose", kind: "project", state: "approved", labels: [] },
+    { id: "f1", do: "finish", kind: "project", state: "building", labels: [] },
+    { id: "p1", do: "promote", kind: "feedback", state: "open", labels: ["owner"] },
+    { id: "s1", do: "start", kind: "task", state: "ready", labels: [] },
+    { id: "c1", do: "spec", kind: "project", state: "open", labels: ["owner"] },
+    { id: "lap", do: "start", kind: "task", state: "ready", labels: ["laptop"] },
+    { id: "own", do: "round", kind: "task", state: "in-progress", labels: ["needs-owner", "major"] },
+    { id: "digest-2026-10-12", do: "start", kind: "task", state: "ready", labels: ["digest"] },
+    { id: "bare", do: "start", kind: "task", state: "ready" },
+    { do: "start" },
+    null
+  ];
+  // No secret, no app and no machine: fly.work is the tracker's alone, and is asked as this Worker.
+  const rig = await flyRig({ secret: null, config: {}, queue });
+  const got = await rig.call("work");
+  expect(got).toEqual({ status: 200, data: { work: ["r1", "v1", "l1", "t1", "y1", "d1", "f1", "p1", "s1", "c1", "bare"] }, upstream: null });
+  expect(rig.asked).toEqual([{ nsid: "issue.queue", params: { limit: "500" } }]);
+  expect(rig.seen.length).toBe(0);
+  // Every `do` the tracker's table has is in the list above: a row added there is added here.
+  expect([...new Set(queue.filter(Boolean).map((e) => e.do))].sort()).toEqual(["decompose", "finish", "look", "promote", "ready", "review", "round", "spec", "start", "triage"]);
+  expect((await (await flyRig({ secret: null })).call("work")).data).toEqual({ work: [] });
+  expect([flyWork(null), flyWork({}), flyWork([{ id: 3 }])]).toEqual([[], [], []]);
+  // The tracker's refusal is a 502, not an empty list: run.sh starts no loop on it and exits 1.
+  const refused = await (await flyRig({ queueStatus: 403 })).call("work");
+  expect([refused.status, refused.data.error, refused.data.work]).toEqual([502, "UpstreamFailure", undefined]);
+  expect((await rig.call("work", "", { verb: "POST" })).status).toBe(405);
+  return "11 of 14 are work";
+}
+// %%
+test_fly_hours_are_the_runs_inside_the_day_of_utc = {
+  const H = 3600000, day = Date.UTC(2026, 9, 13), noon = day + 12 * H;
+  expect(flyHours([], noon)).toBe(0);
+  expect(flyHours([{ started: day + 1 * H, stopped: day + 3 * H }, { started: day + 5 * H, stopped: day + 5.5 * H }], noon)).toBe(2.5);
+  // A run that began yesterday counts from midnight; one still open counts to now; one of yesterday not at all.
+  expect(flyHours([{ started: day - 2 * H, stopped: day + 1 * H }], noon)).toBe(1);
+  expect(flyHours([{ started: day + 10 * H, stopped: null }], noon)).toBe(2);
+  expect(flyHours([{ started: day - 5 * H, stopped: day - 1 * H }], noon)).toBe(0);
+  expect(flyHours([{ started: day - 30 * H, stopped: null }], noon)).toBe(12);
+  // A run whose stop is after now (a clock that moved) is counted to now.
+  expect(flyHours([{ started: day + 11 * H, stopped: day + 20 * H }], noon)).toBe(1);
+  return "7 sums";
+}
+// %%
+test_fly_plan_is_one_row_of_the_table_for_each_case = {
+  const M = 60000, H = 3600000, now = Date.UTC(2026, 9, 13, 12);
+  const base = { now, held: false, lastUntil: 0, startedAt: 0, hours: 1, max: 8, work: ["a", "b"], yieldSince: null, same: null, idleMinutes: 20, yieldMinutes: 30, sameSetHours: 4 };
+  const plan = (over) => flyPlan({ ...base, ...over });
+  // Stopped: started only when all four hold.
+  expect(plan({ state: "stopped" })).toEqual({ do: "start", why: "work" });
+  expect(plan({ state: "stopped", held: true })).toEqual({ do: null, why: "loop is held" });
+  expect(plan({ state: "stopped", hours: 8 })).toEqual({ do: null, why: "the day's limit" });
+  expect(plan({ state: "stopped", hours: 7.999 }).do).toBe("start");
+  expect(plan({ state: "stopped", work: [] })).toEqual({ do: null, why: "no work" });
+  // The set it stopped on: not again for 4 hours, in any order; a set that changed, or 4 hours on, is started.
+  expect(plan({ state: "stopped", same: { at: now - 4 * H + 1, set: ["b", "a"] } })).toEqual({ do: null, why: "it stopped on this set" });
+  expect(plan({ state: "stopped", same: { at: now - 4 * H, set: ["a", "b"] } }).do).toBe("start");
+  expect(plan({ state: "stopped", same: { at: now - M, set: ["a"] } }).do).toBe("start");
+  expect(plan({ state: "stopped", same: { at: now - M, set: ["a", "b", "c"] } }).do).toBe("start");
+  // Started: stopped at the day's limit, 30 minutes after a yield, and when loop was not held for 20 minutes.
+  const on = { state: "started", held: true, startedAt: now - 3 * H };
+  expect(plan(on)).toEqual({ do: null, why: "it runs" });
+  expect(plan({ ...on, hours: 8 })).toEqual({ do: "stop", why: "the day's limit" });
+  expect(plan({ ...on, yieldSince: now - 30 * M })).toEqual({ do: "stop", why: "a yield" });
+  expect(plan({ ...on, yieldSince: now - 30 * M + 1 }).do).toBe(null);
+  // Not held: counted from the later of the start and the lock's last end.
+  expect(plan({ ...on, held: false, lastUntil: now - 20 * M })).toEqual({ do: "stop", why: "loop is not held" });
+  expect(plan({ ...on, held: false, lastUntil: now - 20 * M + 1 }).do).toBe(null);
+  expect(plan({ ...on, held: false, startedAt: now - 19 * M, lastUntil: now - 5 * H }).do).toBe(null);
+  expect(plan({ ...on, held: false, startedAt: now - 20 * M, lastUntil: 0 }).do).toBe("stop");
+  // Held: not stopped however long it runs under the limit, and with work or none.
+  expect(plan({ ...on, startedAt: now - 7 * H, hours: 7, work: [] }).do).toBe(null);
+  // Any other state: nothing.
+  for (const state of ["starting", "stopping", "created", "suspended", "destroyed", undefined]) expect(plan({ state }).do).toBe(null);
+  // Who holds loop, and when it last ended, as issue.locks answers it.
+  expect(flyLoop({ locks: [{ name: "land", who: "x", until: 5 }, { name: "loop", who: "orchestrator-fly", until: 7 }], ended: [], history: [] })).toEqual({ who: "orchestrator-fly", until: 7 });
+  expect(flyLoop({ locks: [{ name: "land", who: "x", until: 5 }], ended: [{ name: "loop", who: "o", until: 3 }], history: [{ name: "loop", ended: 2 }] })).toEqual({ who: null, until: 3 });
+  expect(flyLoop({ locks: [], ended: [], history: [{ name: "cb4", ended: 9 }, { name: "loop", ended: 6 }, { name: "loop", ended: 4 }] })).toEqual({ who: null, until: 6 });
+  expect([flyLoop({}), flyLoop(null)]).toEqual([{ who: null, until: 0 }, { who: null, until: 0 }]);
+  return "9 of stopped, 9 of started, 6 other states, 5 of the lock";
+}
+// %%
+test_fly_up_refused_past_the_day = {
+  // Rows that sum the whole of the day so far: with the limit under that sum, 409 and nothing is asked of Fly.io.
+  const now = Date.now(), day = Math.floor(now / 86400000) * 86400000, rows = new Map([["run/" + String(day - 3600000).padStart(15, "0"), { started: day - 3600000, stopped: now }]]);
+  const sofar = flyHours([...rows.values()], now);
+  const over = await flyRig({ rows, config: { app: "cloudbrain", machine: "853145b4217618", maxHoursADay: sofar / 2 }, queue: [{ id: "a", labels: [] }] });
+  const refused = await over.call("up");
+  expect([refused.status, refused.data.error]).toEqual([409, "Conflict"]);
+  expect(refused.data.message).toMatch(/^the day's limit is reached: /);
+  expect([over.seen.length, over.fly.state]).toEqual([0, "stopped"]);
+  // 8 hours of the day's 8, as the rows of a day that has them: the sum the limit is held against.
+  const H = 3600000, d = Date.UTC(2026, 9, 13);
+  expect(flyHours([{ started: d, stopped: d + 5 * H }, { started: d + 6 * H, stopped: d + 9 * H }], d + 10 * H)).toBe(flyDefaults.maxHoursADay);
+  // The same rows under a limit above their sum: started.
+  const under = await flyRig({ rows: new Map(rows), config: { app: "cloudbrain", machine: "853145b4217618", maxHoursADay: sofar + 1 }, queue: [{ id: "a", labels: [] }] });
+  expect(await under.call("up")).toEqual({ status: 200, data: { started: true, state: "starting" }, upstream: null });
+  expect(under.fly.state).toBe("started");
+  return "409 with no request, then a start";
+}
+// %%
+test_fly_up_starts_a_stopped_machine_once = {
+  const rows = new Map([["yield", { since: 5 }], ["same", { at: 5, set: ["a"] }]]);
+  const rig = await flyRig({ id: "aa11bb22cc3301", rows, queue: [{ id: "b", labels: [] }, { id: "a", labels: [] }] });
+  const lines = await rig.lines(async () => void (rig.first = await rig.call("up")));
+  expect(rig.first).toEqual({ status: 200, data: { started: true, state: "starting" }, upstream: null });
+  expect(rig.to()).toEqual(["GET machines/aa11bb22cc3301", "POST machines/aa11bb22cc3301/start"]);
+  expect([rig.seen[1].authorization, rig.redirects]).toEqual(["Bearer FlyV1 t1", ["manual", "manual"]]);
+  // A run is open, the set of work is kept, and an old yield and an old mark are gone.
+  expect(rows.get("open")).toEqual({ started: expect.any(Number) });
+  expect([rows.get("start"), rows.has("yield"), rows.has("same")]).toEqual([{ at: rows.get("open").started, set: ["a", "b"] }, false, false]);
+  expect(lines).toEqual([expect.objectContaining({ at: "fly.start", by: "fly.up", machine: "aa11bb22cc3301", work: 2 })]);
+  // Again, while it runs: 409, and no second start and no second run.
+  const again = await rig.call("up");
+  expect([again.status, again.data.message]).toEqual([409, "the machine is started, and is started from stopped"]);
+  expect([rig.to().filter((t) => t.endsWith("/start")).length, [...rows.keys()].sort()]).toEqual([1, ["open", "start"]]);
+  // A Worker of the Brain may start it; a start Fly.io refuses is a 502 and opens no run.
+  const other = await flyRig();
+  expect((await other.call("up", "", { as: other.worker })).status).toBe(200);
+  const refused = await flyRig({ startStatus: 422 });
+  expect([(await refused.call("up")).status, [...refused.rows.keys()]]).toEqual([502, []]);
+  expect((await rig.call("up", "", { verb: "GET" })).status).toBe(405);
+  return "1 start, 1 refusal while it runs, 1 by a Worker, 1 refused by Fly.io";
+}
+// %%
+test_fly_down_asks_for_a_yield_and_only_the_owners_tab_stops_at_once = {
+  const rig = await flyRig({ id: "aa11bb22cc3302", state: "started" });
+  const lines = await rig.lines(async () => void (rig.first = await rig.call("down")));
+  expect(rig.first).toEqual({ status: 200, data: { state: "started", yield: expect.any(Number) }, upstream: null });
+  // Nothing was stopped, and a second ask keeps the first time.
+  expect([rig.fly.state, rig.to().filter((t) => t.startsWith("POST")).length]).toEqual(["started", 0]);
+  expect((await rig.call("down", "now=false")).data.yield).toBe(rig.first.data.yield);
+  expect((await rig.call("status")).data.yield).toBe(rig.first.data.yield);
+  expect(lines.map((l) => [l.at, l.since])).toEqual([["fly.yield", rig.first.data.yield]]);
+  // now=true from a token, a Worker and a member: 403 before anything is read or sent.
+  const before = rig.seen.length;
+  for (const as of [rig.token, rig.worker, { "x-brain-caller": "did:plc:ada", "x-brain-tab": "1" }]) expect((await rig.call("down", "now=true", { as })).data).toEqual({ error: "Forbidden", message: "fly.down?now=true is the owner's own session's" });
+  expect((await rig.call("down", "now=1")).status).toBe(400);
+  expect([rig.seen.length, rig.fly.state]).toEqual([before, "started"]);
+  // From the owner's tab: the stop, the run closed, the yield gone.
+  const stopped = await rig.call("down", "now=true", { as: rig.tab });
+  expect(stopped.data).toEqual({ state: "stopping", yield: null });
+  expect([rig.fly.state, rig.to().at(-1), rig.rows.has("yield")]).toEqual(["stopped", "POST machines/aa11bb22cc3302/stop", false]);
+  expect([rig.rows.has("open"), [...rig.rows].filter(([k]) => k.startsWith("run/")).map(([, v]) => typeof v.stopped)]).toEqual([false, ["number"]]);
+  // A machine that is not running has nothing to yield, and now=true sends no stop.
+  const off = await flyRig();
+  expect((await off.call("down")).data).toEqual({ state: "stopped", yield: null });
+  expect((await off.call("down", "now=true", { as: off.tab })).data).toEqual({ state: "stopped", yield: null });
+  expect(off.to().filter((t) => t.startsWith("POST")).length).toBe(0);
+  return "1 yield kept, 4 refused, 1 stop";
+}
+// %%
+test_fly_tick_starts_for_work_once_in_five_minutes_and_not_beside_a_loop = {
+  const M = 60000, T = Date.UTC(2026, 9, 13, 12, 0, 0), queue = [{ id: "a", labels: [] }];
+  // Work, nothing holds loop, the machine is stopped: one start.
+  const rig = await flyRig({ id: "aa11bb22cc3303", queue });
+  const lines = await rig.lines(async () => void (await rig.sim.scheduled({ scheduledTime: T })));
+  expect(rig.to()).toEqual(["GET machines/aa11bb22cc3303", "POST machines/aa11bb22cc3303/start"]);
+  expect(rig.rows.get("start")).toEqual({ at: T, set: ["a"] });
+  expect(lines).toEqual([expect.objectContaining({ at: "fly.start", by: "tick", work: 1 })]);
+  expect(rig.asked.map((a) => a.nsid)).toEqual(["issue.queue", "issue.locks"]);
+  // The minute alarm in the same 5 minutes, and the cron again: nothing is read and nothing is sent.
+  for (const t of [T + 1, T + M, T + 4 * M + 59999]) await rig.sim.scheduled({ scheduledTime: t });
+  expect([rig.seen.length, rig.asked.length]).toEqual([2, 2]);
+  // The next 5 minutes: read again, and a machine that runs under a held lock is left.
+  rig.locks.locks = [{ name: "loop", who: "orchestrator-fly", until: T + 20 * M }];
+  await rig.sim.scheduled({ scheduledTime: T + 5 * M });
+  expect([rig.to().slice(2), rig.fly.state, [...rig.rows.keys()].filter((k) => k.startsWith("tick/")).length]).toEqual([["GET machines/aa11bb22cc3303"], "started", 1]);
+  // Each thing that keeps a stopped machine stopped: a held lock, no work, work that is the laptop's.
+  for (const over of [{ queue, locks: { locks: [{ name: "loop", who: "orchestrator-mac", until: T + M }] } }, { queue: [] }, { queue: [{ id: "x", labels: ["laptop"] }, { id: "y", labels: ["needs-owner"] }] }]) {
+    const quiet = await flyRig(over);
+    await quiet.sim.scheduled({ scheduledTime: T });
+    expect([quiet.to(), quiet.fly.state]).toEqual([["GET machines/853145b4217618"], "stopped"]);
+  }
+  // Not set up: no secret, no app, no machine named. Fly.io and the tracker are asked nothing.
+  for (const over of [{ secret: null }, { config: { machine: "853145b4217618" } }, { config: { app: "cloudbrain" } }, { config: { app: "cloudbrain", machine: "../x" } }]) {
+    const inert = await flyRig({ queue, ...over });
+    await inert.sim.scheduled({ scheduledTime: T });
+    expect([inert.seen.length, inert.asked.filter((a) => a.nsid !== "secret.get").length, inert.fly.state]).toEqual([0, 0, "stopped"]);
+  }
+  // Fly.io refuses the machine: one line with the error, and nothing is started.
+  const down = await flyRig({ id: "aa11bb22cc3304", queue, config: { app: "cloudbrain", machine: "aa11bb22cc3304x" } });
+  const failed = await down.lines(async () => void (await down.sim.scheduled({ scheduledTime: T })));
+  expect(failed.map((l) => [l.at, l.error])).toEqual([["fly.tick", "Fly.io answered 404 for the machine aa11bb22cc3304x"]]);
+  expect(down.to()).toEqual(["GET machines/aa11bb22cc3304x"]);
+  return "1 start, 3 ticks dropped, 3 kept stopped, 4 not set up";
+}
+// %%
+test_fly_tick_stops_an_idle_a_yielded_and_an_over_the_day_machine = {
+  const M = 60000, H = 3600000, T = Date.UTC(2026, 9, 13, 12, 0, 0), queue = [{ id: "a", labels: [] }];
+  const run = (started) => ["open", { started }], kept = (started) => "run/" + String(started).padStart(15, "0");
+  const tick = async (rig, t) => rig.lines(async () => void (await rig.sim.scheduled({ scheduledTime: t })));
+  // Started 19 minutes ago and nothing has held loop: left. At 20 minutes: stopped, the run closed, one line.
+  const idle = await flyRig({ id: "aa11bb22cc3305", state: "started", queue, rows: new Map([run(T - 19 * M), ["start", { at: T - 19 * M, set: ["a"] }]]) });
+  await tick(idle, T);
+  expect([idle.fly.state, idle.asked.at(-1)]).toEqual(["started", { nsid: "issue.locks", params: { history: "500" } }]);
+  const lines = await tick(idle, T + 5 * M);
+  expect([idle.fly.state, idle.to().at(-1)]).toEqual(["stopped", "POST machines/aa11bb22cc3305/stop"]);
+  expect(lines).toEqual([expect.objectContaining({ at: "fly.stop", why: "loop is not held", machine: "aa11bb22cc3305" })]);
+  expect([idle.rows.get(kept(T - 19 * M)), idle.rows.has("open")]).toEqual([{ started: T - 19 * M, stopped: T + 5 * M }, false]);
+  // It stopped with the set it was started for: no start for that set for 4 hours, then one. A new issue starts it at once.
+  expect(idle.rows.get("same")).toEqual({ at: T + 5 * M, set: ["a"] });
+  await tick(idle, T + 10 * M);
+  await tick(idle, T + 4 * H - 5 * M);
+  expect(idle.fly.state).toBe("stopped");
+  idle.queue.push({ id: "b", labels: [] });
+  await tick(idle, T + 4 * H);
+  expect([idle.fly.state, idle.rows.get("start"), idle.rows.has("same")]).toEqual(["started", { at: T + 4 * H, set: ["a", "b"] }, false]);
+  const waited = await flyRig({ queue, rows: new Map([["same", { at: T - 4 * H, set: ["a"] }]]) });
+  await tick(waited, T);
+  expect(waited.fly.state).toBe("started");
+  // The lock ended 10 minutes ago though the machine started hours ago: left. Its end is read from the lock's rows.
+  const live = await flyRig({ state: "started", queue, rows: new Map([run(T - 3 * H), ["start", { at: T - 3 * H, set: ["a"] }]]), locks: { ended: [{ name: "loop", who: "orchestrator-fly", until: T - 10 * M }] } });
+  await tick(live, T);
+  expect(live.fly.state).toBe("started");
+  live.locks.ended = [];
+  live.locks.history = [{ name: "loop", who: "orchestrator-fly", ended: T - 21 * M, how: "released" }];
+  await tick(live, T + 5 * M);
+  expect(live.fly.state).toBe("stopped");
+  // A yield 29 minutes old under a held lock: left. At 30: stopped, and the yield is gone.
+  const held = { locks: [{ name: "loop", who: "orchestrator-fly", until: T + H }] };
+  const yielded = await flyRig({ state: "started", queue, locks: held, rows: new Map([run(T - H), ["start", { at: T - H, set: ["a"] }], ["yield", { since: T - 29 * M }]]) });
+  await tick(yielded, T);
+  expect(yielded.fly.state).toBe("started");
+  await tick(yielded, T + 5 * M);
+  expect([yielded.fly.state, yielded.rows.has("yield")]).toEqual(["stopped", false]);
+  // The day's limit, under a held lock: a run of 3 hours against the setting 3.
+  const capped = await flyRig({ id: "aa11bb22cc3306", state: "started", queue, locks: held, config: { app: "cloudbrain", machine: "aa11bb22cc3306", maxHoursADay: 3 }, rows: new Map([run(T - 3 * H + 5 * M), ["start", { at: T - 3 * H + 5 * M, set: ["a"] }]]) });
+  await tick(capped, T);
+  expect(capped.fly.state).toBe("started");
+  const last = await tick(capped, T + 5 * M);
+  expect([capped.fly.state, last.map((l) => [l.at, l.why])]).toEqual(["stopped", [["fly.stop", "the day's limit"]]]);
+  // The loop's own exit, seen by the tick: the run is closed at the tick, with no request to stop.
+  const exited = await flyRig({ state: "stopped", queue, locks: held, rows: new Map([run(T - H), ["start", { at: T - H, set: ["z"] }], ["yield", { since: T - M }]]) });
+  await tick(exited, T);
+  expect([exited.to(), exited.rows.get(kept(T - H)).stopped, exited.rows.has("yield"), exited.rows.has("same")]).toEqual([["GET machines/853145b4217618"], T, false, false]);
+  // A run that ended more than 2 days ago is deleted.
+  const old = await flyRig({ rows: new Map([["run/" + String(T - 80 * H).padStart(15, "0"), { started: T - 80 * H, stopped: T - 49 * H }], ["run/" + String(T - 50 * H).padStart(15, "0"), { started: T - 50 * H, stopped: T - 47 * H }]]) });
+  await tick(old, T);
+  expect([...old.rows.keys()].filter((k) => k.startsWith("run/")).length).toBe(1);
+  return "idle at 20 minutes, the same set for 4 hours, a yield at 30 minutes, the day's limit, an exit seen, an old run deleted";
+}
+// %%
+test_fly_panel_shows_the_machine_and_sends_one_call_at_a_time = {
+  const calls = [], waits = [];
+  const status = { app: "cloudbrain", machine: { id: "853145b4217618", state: "stopped", region: "ams", image: "i", guest: {} }, volume: "vol_1", hoursToday: 1.5, maxHoursADay: 8, loop: "orchestrator-mac", yield: null, work: 3 };
+  let answer = async () => status;
+  const client = {
+    query: async (name) => (calls.push([name]), answer()),
+    procedure: async (name, input, opts) => {
+      calls.push([name, input, opts]);
+      if (name === "fly.up") await new Promise((r) => waits.push(r));
+      if (name === "fly.post") throw new Error("Fly.io answered 422");
+      return name === "fly.up" ? { started: true, state: "starting" } : { ok: true };
+    }
+  };
+  const settle = () => new Promise((r) => setTimeout(r, 0));
+  const el = flyPanel({ client, owner: true });
+  await el.ready;
+  const press = (label) => [...el.querySelectorAll("button")].find((b) => b.textContent === label).click();
+  expect([...el.querySelectorAll("button")].map((b) => b.textContent)).toEqual(["Refresh", "Start", "Stop", "Save settings", "Send"]);
+  expect(el.textContent).toContain("The machine 853145b4217618 of cloudbrain is stopped. 1.5 h of 8 h today. loop is held by orchestrator-mac. 3 issues are work.");
+  expect(el.value).toEqual(status);
+  // A second press before the answer, of the same button and of another: one call.
+  press("Start");
+  press("Start");
+  press("Stop");
+  await settle();
+  expect(calls.filter((c) => c[0] === "fly.up" || c[0] === "fly.down").map((c) => c[0])).toEqual(["fly.up"]);
+  expect([...el.querySelectorAll("button")].every((b) => b.disabled)).toBe(true);
+  waits.shift()();
+  await settle();
+  await settle();
+  expect(el.textContent).toContain('{"started":true,"state":"starting"}');
+  expect([...el.querySelectorAll("button")].some((b) => b.disabled)).toBe(false);
+  // Stop is the stop at once, which is the owner's own session's.
+  press("Stop");
+  await settle();
+  await settle();
+  expect(calls.find((c) => c[0] === "fly.down")).toEqual(["fly.down", {}, { params: { now: "true" } }]);
+  // The form: the machine's body as it stands is sent to fly.post with its path, and a refusal is shown.
+  const which = el.querySelector("select");
+  which.value = [...which.options].find((o) => o.textContent === "machine").value;
+  which.dispatchEvent(new Event("input", { bubbles: true }));
+  press("Send");
+  await settle();
+  await settle();
+  expect(calls.find((c) => c[0] === "fly.post")).toEqual(["fly.post", flyBodies.machine.body, { params: { path: "machines", method: "POST" } }]);
+  expect(el.textContent).toContain("Send failed: Fly.io answered 422");
+  // A body that is not JSON is said, and nothing is sent.
+  el.querySelector("textarea").value = "{";
+  el.querySelector("textarea").dispatchEvent(new Event("input", { bubbles: true }));
+  const sent = calls.length;
+  press("Send");
+  await settle();
+  await settle();
+  expect(el.textContent).toContain("Send failed: the body is not JSON");
+  expect(calls.slice(sent).map((c) => c[0])).toEqual(["fly.status"]);
+  // Two answers out of order: the later ask is the one drawn.
+  const held = [];
+  answer = () => new Promise((r) => held.push(r));
+  press("Refresh");
+  await settle();
+  answer = async () => ({ ...status, work: 7 });
+  press("Refresh");
+  await settle();
+  await settle();
+  held[0]({ ...status, work: 99 });
+  await settle();
+  expect([el.value.work, el.textContent.includes("7 issues are work."), el.textContent.includes("99 issues")]).toEqual([7, true, false]);
+  // The settings are two config.set calls for this Worker.
+  press("Save settings");
+  await settle();
+  await settle();
+  expect(calls.filter((c) => c[0] === "config.set").map((c) => c[1])).toEqual([{ worker: "brain-x-fly", key: "app", value: "cloudbrain" }, { worker: "brain-x-fly", key: "machine", value: "853145b4217618" }]);
+  // No machine named, a status that is refused, and a caller who is not the owner.
+  answer = async () => ({ ...status, machine: null, machines: [{ id: "aa11", name: "loop", state: "stopped" }] });
+  press("Refresh");
+  await settle();
+  await settle();
+  expect(el.textContent).toContain("No machine of cloudbrain is named. It has: aa11 (loop, stopped).");
+  answer = async () => { throw new Error("the secret FLY_API_TOKEN is not set"); };
+  press("Refresh");
+  await settle();
+  await settle();
+  expect([el.textContent.includes("fly.status: the secret FLY_API_TOKEN is not set"), el.value]).toEqual([true, null]);
+  expect(flyPanel({ client, owner: false }).textContent).toMatch(/Sign in to a Brain as the owner/);
+  expect(flyPanel({}).value).toBe(null);
+  return "5 buttons, 1 call for 3 presses, 1 refusal shown, the later answer drawn";
+}
+// %%
+// part=reference is the text of the prose cells as written: a hole in one would be shown unfilled. So the prose says
+// each default itself, and this holds the two together.
+test_fly_reference_says_each_default_and_has_no_hole = {
+  const rig = await flyRig(), d = flyDefaults;
+  const r = await rig.sim.fetch("https://fly.internal/xrpc/com.lopecode.brain.getSource?part=reference", { headers: { "x-brain-key": "k" } });
+  expect(r.status).toBe(200);
+  const said = await r.text();
+  expect(said).toContain("# brain-fly");
+  expect(said).not.toContain("${");
+  expect(said).toContain("`" + d.host + "`");
+  for (const [key, value] of [["maxHoursADay", d.maxHoursADay], ["idleMinutes", d.idleMinutes], ["yieldMinutes", d.yieldMinutes], ["sameSetHours", d.sameSetHours]]) expect(said).toContain("| `" + key + "` | " + value + " |");
+  expect(said).toContain("Once in each " + d.tickMinutes + " minutes of the clock");
+  expect(said).toContain("Runs older than " + d.keepDays + " days are deleted.");
+  expect(said).toContain("the label " + d.not.map((l) => "`" + l + "`").join(", ").replace(/, ([^,]*)$/, " or $1"));
+  expect(said).toContain("the secret FLY_API_TOKEN is not set");
+  for (const m of ["get", "post", "status", "work", "up", "down"]) expect(said).toContain("fly." + m);
+  expect(rig.seen.length).toBe(0);
+  return Object.keys(d).length + " defaults";
+}
+// %%
+import {cloudflare, secrets, rows, xrpc, config, log, simulate, logged, decide, callerOf} from "@tomlarkworthy/cloudflare-iac"
+// %%
+import {plugins} from "@tomlarkworthy/plugin-registry"
+// %%
+import {expect} from "@tomlarkworthy/jest-expect-standalone"
+// %%
+import {client, session} from "@tomlarkworthy/cloud-brain"

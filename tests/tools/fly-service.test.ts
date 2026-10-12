@@ -1,0 +1,40 @@
+// brain-x-fly (tools/cloud-brain/brain-fly.ojs), task 3 of plan/cloud-brain-worker-machine-on-fly.md, issue
+// fly-3-brain-fly-service. The service's own tests are its test_* cells. This holds what a cell cannot read: that the
+// machine body of the panel's set-up form is tools/cloud-brain/fly/machine.json, which a notebook cannot import, and
+// that the path a caller gives fly.get and fly.post stays under the app. The cells are read from the seed of this
+// checkout, compiled as build.ts compiles it, never retyped.
+import { expect, beforeAll } from "bun:test";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { importNotebookModule } from "../../tools/notebook-import.ts";
+import { testNeedingSeed } from "./needs.ts";
+
+const ROOT = resolve(import.meta.dir, "../..");
+const { test, module } = await testNeedingSeed("fly-service.test.ts", "brain-fly.ojs");
+
+let fly: any;
+beforeAll(async () => {
+  if (module) fly = await importNotebookModule(module);
+});
+
+test("the machine body of the set-up form is fly/machine.json", async () => {
+  const bodies = await fly.value("flyBodies");
+  expect(bodies.machine.body).toEqual(JSON.parse(readFileSync(resolve(ROOT, "tools/cloud-brain/fly/machine.json"), "utf8")));
+  expect(Object.keys(bodies)).toEqual(["volume", "machine", "image"]);
+  for (const b of Object.values<any>(bodies)) expect(["POST", "PUT", "DELETE"]).toContain(b.method);
+});
+
+test("a path stays under /v1/apps/APP/, by the address the service would fetch", async () => {
+  const flyPath = await fly.value("flyPath");
+  const root = "https://api.machines.dev/v1/apps/cloudbrain/";
+  for (const [path, to] of [["", root], ["machines", root + "machines"], ["machines/853145b4217618/start", root + "machines/853145b4217618/start"], ["machines?include_deleted=true", root + "machines?include_deleted=true"], ["volumes#x", root + "volumes"]])
+    expect(flyPath("cloudbrain", path)).toBe(to);
+  for (const path of ["..", "../", "../../other", "machines/..", "machines/../..", "%2e%2e/x", "%2E%2e", ".%2e/x", "..%2fx", "a%2F..%2F..", "/machines", "//evil.example", "https://evil.example/", "a\\..\\b", "%", "%zz", null, undefined, 3])
+    expect([path, flyPath("cloudbrain", path as any)]).toEqual([path, null]);
+});
+
+test("the ids of work are the queue's without the three labels, in its order", async () => {
+  const flyWork = await fly.value("flyWork"), d = await fly.value("flyDefaults");
+  expect(d.not).toEqual(["needs-owner", "laptop", "digest"]);
+  expect(flyWork([{ id: "b", labels: [] }, { id: "x", labels: ["laptop"] }, { id: "a", labels: ["major"] }, { id: "y", labels: ["digest"] }, { id: "z", labels: ["owner", "needs-owner"] }])).toEqual(["b", "a"]);
+});
