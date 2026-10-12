@@ -111,6 +111,8 @@ bun test ./tests/tools/worktree.test.ts                                         
 bun test ./tests/tools   before any edit                                                  555 pass, 0 fail, 58 files
 bun test ./tests/tools   after the commit of the change and --rebase (which brought
   nothing in), 10:03:18 to 10:06:49 CEST                                                  564 pass, 0 fail, 58 files
+bun test ./tests/tools   after the rebase under the lock, which brought in six lines of
+  step 6 of implementer.md (another's), 10:09:21 to 10:12:48 CEST                         564 pass, 0 fail, 58 files
 ```
 
 The seven that fail on the old briefs are the first seven of the table. `check 8` passes on both.
@@ -132,6 +134,9 @@ Check 8 of the spec, by its own command, after the last edit: `grep -c "/Users/"
   `origin/main` and the copy's `HEAD` were each `06a4a2b`, and `git -C cloud-brain-dev branch | wc -l` was 1.
 - **`worktree.sh --list`** from the worktree, 10:03 CEST: three lines, `dv-3-deployer-opens-verify-html`
   and `flow-metrics` both `clean` with `occupant=-`, and this task's own `not-clean` with `ahead=1`.
+- **The lock, taken once and given back.** 10:09:03 CEST: take, exit 0; `worktree.sh --rebase` printed
+  `.claude/skills/brain-maintenance/agents/implementer.md`, a brief, with no conflict; released at 10:09:21
+  with nothing pushed, and the suite run again (above), as step 10 says of a rebase that changes what was tested.
 - **This change is landed by step 10 as it now reads**: the five lines, from this worktree. How that went
   is in the comment of the submit, since the record is part of what is pushed.
 
