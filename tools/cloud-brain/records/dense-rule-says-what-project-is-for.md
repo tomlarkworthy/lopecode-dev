@@ -65,7 +65,9 @@ Four changes to the section, each made, run and put back:
 | The sentence of the issue with no project taken out | `10 pass`, `1 fail` | the same |
 | "of the project" written into quoted item 5 | `9 pass`, `2 fail` | "three items of the list he was given are quoted…" (the size the section gives), and "his B…" |
 
-The whole suite, `tests/tools/suite.sh` in the worktree after the rebase on `origin/main`: SUITE_LINE
+The whole suite, `tests/tools/suite.sh` in the worktree after the rebase on `origin/main` (which brought nothing in), started 22:42:27 CEST (`date`), with the texts as
+committed and this file complete but for this sentence: `751 pass`, `0 fail`, `Ran 751 tests across 79 files`, and no line
+that begins `skipped:`.
 
 ## Prior art
 
