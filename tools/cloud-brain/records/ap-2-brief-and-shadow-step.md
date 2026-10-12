@@ -68,12 +68,14 @@ answered `{"runs":[],…}` and the same with `role=reviewer` answered that issue
 
 ## Tests
 
-Each count is from the command beside it, run in the worktree after the last edit.
+Each count is from the command beside it, run in the worktree after the last edit and after the
+rebase that brought in `approver-ts-review-notes-of-ap-1` (three tests more in `approver.test.ts`,
+and `list --since` then takes a number above 0 alone, which step 7 says).
 
 ```
 bun test ./tests/tools/approver-brief.test.ts        11 pass, 0 fail, 59 expect() calls
 bun test ./tests/tools/token-checks.test.ts          14 pass, 0 fail, 95 expect() calls
-tests/tools/suite.sh                                 654 pass, 0 fail, 66 files
+tests/tools/suite.sh                                 657 pass, 0 fail, 66 files
 ```
 
 `approver-brief.test.ts` takes the fenced blocks of the brief (the approval, the leave, the five

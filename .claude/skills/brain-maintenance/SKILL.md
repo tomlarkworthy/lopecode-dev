@@ -515,7 +515,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    why, what is running. Nothing moved is one line.
    Then what was approved for him since you last told him: the lines of
    `bun tools/cloud-brain/approver.ts list --since=<hours since you last told him> --token <your token>`, as they
-   are. Each is one `approve` the approver made: the time, the issue, the words of his it rests on (`on your words
+   are (the hours a number above 0, as `24` or `0.5`; the tool is exit 2 for any other). Each is one `approve` the approver made: the time, the issue, the words of his it rests on (`on your words
    of event N`, `on the spec you approved`, `on your words in <file>`, `on words a session quoted at event N`), the
    verdict's one sentence, and `reverted` when he has undone it. Nothing printed is none, which is every pass until
    he installs a policy that lets the approver approve. An issue that waits for him at `awaiting-approval` with an
