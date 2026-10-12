@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
 const tool = process.env.APPROVER_TS || resolve(import.meta.dir, "../../tools/cloud-brain/approver.ts");
-const { judge, issueAt, facts, factsText, check, list, listText, trial, trialText, gitOf, marks, own, policyOf, BRIEF, TOOL, TEST } = await import(tool);
+const { judge, issueAt, facts, factsText, check, list, listText, trial, trialText, gitOf, marks, own, policyOf, policyCells, seedTouch, JUDGE, ROUTES, BRIEF, TOOL, TEST } = await import(tool);
 
 // ---- the repository
 const root = realpathSync(mkdtempSync(join(tmpdir(), "approver-")));
@@ -43,7 +43,28 @@ put(root, RULES, `Tom, 2026-10-11: "Why do I need to even do it? ${HIS_RULE}"\n`
 put(root, BRIEF, "The brief, as the owner's install names it.\n");
 put(root, TOOL, readFileSync(tool, "utf8"));
 put(root, TEST, "the test\n");
-for (const f of ["brain-core", "brain-topic", "brain-issues"]) put(root, `tools/cloud-brain/${f}.ojs`, f + "\n");
+for (const f of ["brain-core", "brain-topic"]) put(root, `tools/cloud-brain/${f}.ojs`, f + "\n");
+// The tracker's seed as cells: the six the tool names as the judge, a cell the judge names (issueActor), the two routes,
+// a cell the app alone names (issueFlow), a panel, a test, prose and an import.
+const SEED = "tools/cloud-brain/brain-issues.ojs";
+const CELLS: Record<string, string | null> = {
+  prose: "md`# brain-issues`",
+  issuesDefaultPolicy: '// The guards of a Brain that has installed no policy.\nissuesDefaultPolicy = ({ approve: "caller.present" })',
+  issueActor: "issueActor = (by) => by.via",
+  issueAllowed: "// May this caller do this act?\nissueAllowed = (view, by, act) => issueActor(by) === view.owner",
+  issueReplay: "issueReplay = (view, e) => issueAllowed(view, e.by, e)",
+  issuePolicyAct: "issuePolicyAct = async (policy) => ({ policy })",
+  issueApply: "issueApply = (view, e) => view",
+  issueAct: "issueAct = (type, b) => ({ type, ...b })",
+  issueFlow: "issueFlow = (events) => events.length",
+  issuesApp: "issuesApp = {\n  return (c) => issueAllowed(c.view, c.by, issueAct(c.type, c.body)) && issueFlow(c.events);\n}",
+  issues_service: "issues_service = ({ app: issuesApp, allow: \"caller.kind in ['owner','token']\" })",
+  issuesPanel: 'issuesPanel = () => "panel"',
+  test_issues_panel: "test_issues_panel = issuesPanel()",
+  imports: 'import {decide} from "@tomlarkworthy/cloudflare-iac"'
+};
+const seedOf = (cells: Record<string, string | null>) => Object.values(cells).filter((v) => v != null).join("\n// %%\n") + "\n";
+put(root, SEED, seedOf(CELLS));
 put(root, "plan/cloud-brain-issues-policy-v2.json", "{}\n");
 put(root, SPEC, "# The thing\n");
 sh(root, "add", ".gitignore", ".claude", "tools", "tests", "plan");
@@ -55,8 +76,42 @@ sh(root, "checkout", "-q", "-b", "side");
 const touched = {
   core: commit("tools/cloud-brain/brain-core.ojs", "core 2\n"), topic: commit("tools/cloud-brain/brain-topic.ojs", "topic 2\n"), rules: commit(RULES, "rules 2\n"),
   brief: commit(BRIEF, "a looser brief\n"), tool: commit(TOOL, "// a looser tool\n"), test: commit(TEST, "a looser test\n"),
-  policy: commit("plan/cloud-brain-issues-policy-v3.json", "{}\n"), seed: commit("tools/cloud-brain/brain-issues.ojs", "issues 2\n")
+  policy: commit("plan/cloud-brain-issues-policy-v3.json", "{}\n")
+} as Record<string, string>;
+// Commits of the seed, one after another: each is read against the one before it, so each changes what its line names
+// and nothing else. `touched.seed` is the one that changes the judge.
+let seedNow = { ...CELLS };
+const seedCommit = (cells: Record<string, string | null>) => { seedNow = { ...seedNow, ...cells }; return commit(SEED, seedOf(seedNow)); };
+const cell = {
+  panel: seedCommit({ issuesPanel: 'issuesPanel = () => "panel 2"' }),
+  testAndProse: seedCommit({ test_issues_panel: "test_issues_panel = issuesPanel() + 1", prose: "md`# brain-issues, said again`" }),
+  flow: seedCommit({ issueFlow: "issueFlow = (events) => events.length + 1" }),
+  added: seedCommit({ issuesSave: "issuesSave = () => 1" }),
+  issueAllowed: (touched.seed = seedCommit({ issueAllowed: "// May this caller do this act?\nissueAllowed = (view, by, act) => issueActor(by) !== view.owner" })),
+  comment: seedCommit({ issueAllowed: "// May this caller do this act, or not?\nissueAllowed = (view, by, act) => issueActor(by) !== view.owner" }),
+  issueActor: seedCommit({ issueActor: "issueActor = (by) => by.caller" }),
+  issuesDefaultPolicy: seedCommit({ issuesDefaultPolicy: 'issuesDefaultPolicy = ({ approve: "true" })' }),
+  issueReplay: seedCommit({ issueReplay: "issueReplay = (view, e) => null" }),
+  issuePolicyAct: seedCommit({ issuePolicyAct: "issuePolicyAct = async (policy) => ({ policy, checked: false })" }),
+  issueApply: seedCommit({ issueApply: "issueApply = (view, e) => ({ ...view, policy: e.policy })" }),
+  issueAct: seedCommit({ issueAct: 'issueAct = (type, b) => ({ type: "read", ...b })' }),
+  issuesApp: seedCommit({ issuesApp: "issuesApp = {\n  return (c) => issueFlow(c.events);\n}" }),
+  issues_service: seedCommit({ issues_service: 'issues_service = ({ app: issuesApp, who: "anyone" })' }),
+  imports: seedCommit({ imports: 'import {decide} from "@someone/else"' }),
+  // The judge names a new cell: from then on a change to that cell alone is a change to the judge.
+  helper: seedCommit({ issueAllowed: "issueAllowed = (view, by, act) => issueMay(by)", issueMay: "issueMay = (by) => false" }),
+  helperAlone: seedCommit({ issueMay: "issueMay = (by) => true" }),
+  // The judge stops naming it in the commit that changes it: the side before still has the call.
+  unhooked: seedCommit({ issueAllowed: "issueAllowed = (view, by, act) => true", issueMay: "issueMay = (by) => 1" }),
+  free: seedCommit({ issueMay: "issueMay = (by) => 2" }),
+  twice: seedCommit({ again: "issueAllowed = () => true" }),
+  renamed: seedCommit({ again: null, issueAllowed: null, issueJudge: "issueJudge = (view, by, act) => true" }),
+  afterRename: seedCommit({ issuesPanel: 'issuesPanel = () => "panel 3"' }),
+  noCells: commit(SEED, "issues 2\n")
 };
+sh(root, "rm", "-q", SEED);
+sh(root, "commit", "-q", "-m", "the seed, deleted");
+const seedDeleted = sh(root, "rev-parse", "HEAD");
 // A ref whose tree has no brief: main before task 2 lands.
 sh(root, "checkout", "-q", "-b", "nobrief", "main");
 sh(root, "rm", "-q", BRIEF);
@@ -252,7 +307,7 @@ test("approve sends nothing (R5): the verdict's holder worked on the issue, or i
 test("approve sends nothing (R7): a ref that touches one of the approver's own five files, each a case", () => {
   for (const [name, file] of [["brief", BRIEF], ["tool", TOOL], ["test", TEST], ["policy", "plan/cloud-brain-issues-policy-v3.json"], ["seed", "tools/cloud-brain/brain-issues.ojs"]] as const) {
     const { j } = run({ ref: `lopecode-dev@${touched[name]}` });
-    refused(j, new RegExp(`touches ${file.replaceAll(".", "\\.")}: the approver does not approve a change to itself \\(R7\\)`));
+    refused(j, new RegExp(`touches ${file.replaceAll(".", "\\.")}${name === "seed" ? ", its policy cells \\(issueAllowed\\)" : ""}: the approver does not approve a change to itself \\(R7\\)`));
     expect(j.why.length).toBe(1);
     expect(own(file)).toBe(true);
   }
@@ -261,6 +316,81 @@ test("approve sends nothing (R7): a ref that touches one of the approver's own f
   refused(run({ ref: touched.brief.slice(0, 8) }).j, /touches .*agents\/approver.md/);
   // rules.md is not one of them: a change to it is judged as anything is.
   expect(run({ ref: `lopecode-dev@${touched.rules}` }).j.exit).toBe(0);
+});
+
+// Issue approver-own-files-are-the-policy-cells: part 4 of the spec has "the policy cells of `brain-issues.ojs`", and until
+// 2026-10-13 the tool refused a ref that touched the file at all.
+test("approve (R7): a ref that touches the tracker's seed and no policy cell of it is sent; one that touches a policy cell is not", () => {
+  for (const name of ["panel", "testAndProse", "flow", "added"] as const) {
+    const { j } = run({ ref: `lopecode-dev@${cell[name]}` });
+    expect(j.why, name).toEqual([]);
+    expect(j.exit).toBe(0);
+    expect(j.send).toMatchObject({ key: "approver/task/approve-1", id: "task" });
+    expect(seedTouch(git, cell[name]), name).toEqual([]);
+  }
+  // Each cell the tool names, changed alone.
+  expect(Object.keys(JUDGE)).toEqual(["issuesDefaultPolicy", "issueAllowed", "issueReplay", "issuePolicyAct", "issueApply", "issueAct"]);
+  expect(Object.keys(ROUTES)).toEqual(["issuesApp", "issues_service"]);
+  for (const name of [...Object.keys(JUDGE), ...Object.keys(ROUTES)]) {
+    expect(seedTouch(git, (cell as any)[name]), name).toEqual([name]);
+    refused(run({ ref: `lopecode-dev@${(cell as any)[name]}` }).j, new RegExp(`touches ${SEED.replaceAll(".", "\\.")}, its policy cells \\(${name}\\): the approver does not approve a change to itself \\(R7\\)`));
+  }
+  // A comment of a policy cell is the cell; a cell the judge names is the judge; an import has no name to tell it by.
+  expect(seedTouch(git, cell.comment)).toEqual(["issueAllowed"]);
+  expect(seedTouch(git, cell.issueActor)).toEqual(["issueActor"]);
+  expect(seedTouch(git, cell.imports)).toEqual(["a cell with no name (an import)"]);
+  // A cell the judge comes to name is one from that commit on, and in the commit that takes the call away; after that it is not.
+  expect(seedTouch(git, cell.helper)).toEqual(["issueAllowed", "issueMay"]);
+  expect(seedTouch(git, cell.helperAlone)).toEqual(["issueMay"]);
+  expect(seedTouch(git, cell.unhooked)).toEqual(["issueAllowed", "issueMay"]);
+  expect(seedTouch(git, cell.free)).toEqual([]);
+  // A cell the app alone names is not followed: the app names nearly every cell.
+  expect(seedNow.issuesApp).toContain("issueFlow");
+  // Where the tool cannot tell, it refuses: a named cell written twice, or gone under another name, and every commit after
+  // that until the tool names the new one; a file with no cells; the file deleted, added, or of a commit with no parent.
+  const absent = "issueAllowed (not there once on each side of the commit)", whole = "the whole file (it is not read on one side of the commit)";
+  expect(seedTouch(git, cell.twice)).toEqual([absent]);
+  expect(seedTouch(git, cell.renamed)).toEqual([absent]);
+  expect(seedTouch(git, cell.afterRename)).toEqual([absent]);
+  refused(run({ ref: `lopecode-dev@${cell.afterRename}` }).j, /its policy cells \(issueAllowed \(not there once on each side of the commit\)\)/);
+  expect(seedTouch(git, cell.noCells)).toEqual([...Object.keys({ ...JUDGE, ...ROUTES }).map((n) => `${n} (not there once on each side of the commit)`), "a cell with no name (an import)"]);
+  expect(seedTouch(git, seedDeleted)).toEqual([whole]);
+  refused(run({ ref: `lopecode-dev@${seedDeleted}` }).j, /its policy cells \(the whole file/);
+  expect(policyCells(null, seedOf(CELLS))).toEqual([whole]);
+  expect(seedTouch({ ...git, parents: () => [] }, cell.panel)).toEqual([whole]);
+  expect(seedTouch({ ...git, parents: () => null }, cell.panel)).toEqual([whole]);
+  // Against each parent: a commit with two is read against both.
+  expect(seedTouch({ ...git, parents: () => [cell.testAndProse, cell.issueAllowed] }, cell.flow)).toEqual(["issueAllowed"]);
+  // The text alone: the same cells in another order touch nothing, and neither does the file against itself.
+  expect(policyCells(seedOf(CELLS), seedOf(Object.fromEntries(Object.entries(CELLS).reverse())))).toEqual([]);
+  expect(policyCells("", "")).toEqual(Object.keys({ ...JUDGE, ...ROUTES }).map((n) => `${n} (not there once on each side of the commit)`));
+  // With no cells given the seed is taken whole, as before.
+  expect([own(SEED), own(SEED, []), own(SEED, ["issueAllowed"])]).toEqual([true, false, true]);
+  expect([marks(SEED), marks(SEED, []), marks(SEED, ["issueAllowed"])]).toEqual([["policy"], ["tracker"], ["policy"]]);
+  // facts says which, and check judges an approve made on such a ref as approve does.
+  const w = world({ ref: [`lopecode-dev@${cell.panel}`, `lopecode-dev@${cell.helper}`] }), f = facts(w.record, git, "task");
+  expect(f.refs.slice(0, 2).map((r: any) => r.files)).toEqual([[{ file: SEED, marks: ["tracker"], cells: [] }], [{ file: SEED, marks: ["policy"], cells: ["issueAllowed", "issueMay"] }]]);
+  expect(factsText(f)).toContain(`  [tracker]  ${SEED}: no policy cell`);
+  expect(factsText(f)).toContain(`  [policy]   ${SEED}: issueAllowed, issueMay`);
+  const stands = world({ ref: `lopecode-dev@${cell.panel}` });
+  approved(stands);
+  expect(check(stands.record, git)).toEqual({ approves: 1, failed: [] });
+  const falls = world({ ref: `lopecode-dev@${cell.issueAllowed}` });
+  approved(falls);
+  expect(check(falls.record, git).failed[0].why.join("\n")).toMatch(/its policy cells \(issueAllowed\)/);
+});
+
+// The cells the tool names are cells of the seed as this checkout has it, each once, and its own text against itself
+// touches none: a name the seed no longer has would refuse every commit of it.
+test("the policy cells the tool names are cells of tools/cloud-brain/brain-issues.ojs as the checkout has it", () => {
+  const seed = readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain/brain-issues.ojs"), "utf8");
+  expect(policyCells(seed, seed)).toEqual([]);
+  // A change of one character in a cell is that cell's, and in a test cell or the panel is none.
+  const changed = (name: string) => policyCells(seed, seed.replace(new RegExp(`^${name} = `, "m"), `${name} =  `));
+  for (const name of [...Object.keys(JUDGE), ...Object.keys(ROUTES)]) expect(changed(name), name).toEqual([name]);
+  // What the six name, however far, on the seed of 2026-10-13.
+  for (const name of ["issuesLimits", "issueAt", "issueActor", "issueCaller", "issueFacts", "issueWhen", "issueWaitFacts", "issueAfterWalk", "issueRunOf", "issueCanon", "issueBytes"]) expect(changed(name), name).toEqual([name]);
+  for (const name of ["issuesPanel", "issueFlow", "issueQueue", "issueWakes", "issueEvent", "issueCheck", "issuesAttention", "test_issues_declares_what_it_needs"]) expect(changed(name), name).toEqual([]);
 });
 
 // An issue sent back once: its first submit names `first`, its second `second`, and the verdict is of round 2.
@@ -278,7 +408,7 @@ const judged = (w: ReturnType<typeof world>) => judge(w.record, w.policy, git, {
 test("approve sends nothing (R7): a ref of an earlier submit touches the approver's own files, and the last submit leaves it out", () => {
   for (const [name, file] of [["brief", BRIEF], ["tool", TOOL], ["test", TEST], ["policy", "plan/cloud-brain-issues-policy-v3.json"], ["seed", "tools/cloud-brain/brain-issues.ojs"]] as const) {
     const j = judged(twice(`lopecode-dev@${touched[name]}`, `lopecode-dev@${touched.core}`));
-    refused(j, new RegExp(`the ref lopecode-dev@${touched[name]} touches ${file.replaceAll(".", "\\.")}: the approver does not approve a change to itself \\(R7\\)`));
+    refused(j, new RegExp(`the ref lopecode-dev@${touched[name]} touches ${file.replaceAll(".", "\\.")}${name === "seed" ? ", its policy cells \\(issueAllowed\\)" : ""}: the approver does not approve a change to itself \\(R7\\)`));
     expect(j.why.length).toBe(1);
   }
   // Two rounds with none of those files are approved, and the key is the second round's.
@@ -525,26 +655,27 @@ test("trial: the verdicts in the open, counted by what followed and by whose wor
   add("g", 1, "approver: leave\nI cannot tell.\nwhy: could not tell");
   add("h", 1, "approver: leave\nThe review names something not tried.\nwhy: the review names something not tried");
   add("i", 1, "approver: leave\nNo reason line.");
+  add("j", 1, "approver: leave\nThe change is to the policy.\nwhy: the approver's own files");
   add("test-approver-1", 1, "approver: leave\nwhy: no word of his");
   add("test-approver-2", 1, "approver: approve\nWrong.");
   add("task", 3, "approver: approve", { hidden: true });
   w.record.push({ seq: w.record.length + 1, key: "orch/task/note", id: "task", type: "commented", by: ORCH, at: 0, body: "approver: approve, says the orchestrator" });
   const t = trial(w.record, git);
   expect(t).toMatchObject({
-    verdicts: 10, approve: 4, leave: 6, neither: 0, approved: 0, undone: 2, waiting: 2,
+    verdicts: 11, approve: 4, leave: 7, neither: 0, approved: 0, undone: 2, waiting: 2,
     kinds: { event: 1, spec: 0, file: 1, quoted: 1, none: 1 },
-    whys: { "no word of his": 1, "more than the words": 1, "not secure": 1, "could not tell": 1, other: 2 },
+    whys: { "no word of his": 1, "more than the words": 1, "not secure": 1, "could not tell": 1, "the approver's own files": 1, other: 2 },
     made: { verdicts: 2, approve: 1, leave: 1 }
   });
   const text = trialText(t);
   expect(text.slice(0, 5)).toEqual([
-    "verdicts 10   approve 4   leave 6",
+    "verdicts 11   approve 4   leave 7",
     "of approve:   he approved 0   he sent back, rejected or reverted 2   still waiting 2",
     "of approve:   on an event of his 1   on a spec he approved 0   on his words in a file 1   on words a session quoted 1   on no words the tool finds 1",
-    "of leave:     no word of his 1   more than the words 1   not secure 1   could not tell 1   other 2",
+    "of leave:     no word of his 1   more than the words 1   not secure 1   could not tell 1   the approver's own files 1   other 2",
     "made issues (test-): verdicts 2   approve 1   leave 1"
   ]);
-  expect(text.length).toBe(15);
+  expect(text.length).toBe(16);
   expect(text[5]).toBe(`${w.s.verdict}  task  approver: approve`);
   // He approved it, and nothing undid it.
   const yes = world();

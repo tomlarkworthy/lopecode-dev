@@ -26,8 +26,10 @@
 //          review, any guard added to it, and each ref of every submit it has, once, a `commit` with its files; one
 //          the last submit does not name says which submit did. A file is marked `never` (a seed of the kernel, the core, the database or the deployer, cloudflare-iac, exporter-3,
 //          robocoop-5, the channel server, the `lopecode` pointer), `rules` (rules.md, philosophy.md), `policy` (a
-//          plan/cloud-brain-issues-policy-*.json, brain-issues.ojs) or `approver` (the brief, this tool, its test).
-//          A mark refuses nothing but the last two, which `approve` refuses (below).
+//          plan/cloud-brain-issues-policy-*.json, and brain-issues.ojs when the commit touches a policy cell of it,
+//          named after the file), `tracker` (brain-issues.ojs when it touches none) or `approver` (the brief, this
+//          tool, its test). A mark refuses nothing but `policy` and `approver`, which `approve` refuses (below).
+//          The policy cells are JUDGE and ROUTES below, with what `policyCells` adds to them.
 // approve  Makes the `approve` move with the token loop-approver, or makes none and prints each reason. In this order:
 //          the `approve` guard of the issue's workflow names no delegation: exit 3, nothing sent, before anything else
 //          is judged. Then, every one of these or exit 1:
@@ -42,9 +44,9 @@
 //            that tool (R7);
 //          - the last `submit` or `submit-spec` of the issue has a `commit` ref; each `commit` ref of every submit the
 //            issue has, of this round or one before a send-back, is a commit the checkout has; and none touches the
-//            brief, this tool, tests/tools/approver.test.ts, a plan/cloud-brain-issues-policy-*.json or
-//            brain-issues.ojs (R7; the whole seed, not its policy cells alone). A submit of another issue, its
-//            parent's `submit-spec` among them, is not read for it;
+//            brief, this tool, tests/tools/approver.test.ts, a plan/cloud-brain-issues-policy-*.json or a policy
+//            cell of brain-issues.ojs (R7; a commit that changes other cells of the seed alone is not refused). A
+//            submit of another issue, its parent's `submit-spec` among them, is not read for it;
 //          - the verdict has a line `asked: <where> "<his words>"`, and each such line holds (R3, R6):
 //            <where> a number: an event before the verdict, of the issue or of what was its parent or that one's
 //            parent when the issue was first started (a part-of made later is not followed); not written by an `appr-`
@@ -79,8 +81,8 @@
 //          (abc, 0, nothing) is exit 2 before the record is read; with no --since every one is listed.
 // trial    The verdicts in the open: every comment keyed approver/<id>/verdict-<n> whose id does not begin `test-`,
 //          counted as the spec's part 6 gives it, then each one's first line. A `leave` is counted by its line
-//          `why: <reason>`: `no word of his`, `more than the words`, `not secure`, `could not tell`, anything else
-//          `other`. The verdicts of `test-` issues are one line of their own.
+//          `why: <reason>`: `no word of his`, `more than the words`, `not secure`, `could not tell`,
+//          `the approver's own files`, anything else `other`. The verdicts of `test-` issues are one line of their own.
 // id       Sends one comment with loop-approver, keyed approver/id, to <issue> (ap-4-policy-v3 with none) and prints
 //          the `by.via` of the event that answers: the delegation's id, which the policy of task 4 names. A key another
 //          delegation holds already (a loop-approver made before) answers no event: the next key, approver/id-2, is tried.
@@ -104,12 +106,67 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 type Event = any;
 export type Git = ReturnType<typeof gitOf>;
 
-// The marks of a file, and whether it is one of the approver's own (part 4 of the spec).
-export const own = (f: string) => f === BRIEF || f === TOOL || f === TEST || f === SEED || POLICY.test(f);
-export const marks = (f: string) => [
+// The policy cells of brain-issues.ojs (part 4 of the spec): the cells that hold the policy or judge a guard, each
+// with why. A cell that one of JUDGE names, however far, is a policy cell too: what the judge calls is part of it.
+export const JUDGE: Record<string, string> = {
+  issuesDefaultPolicy: "the guards of a Brain that has installed no policy",
+  issueAllowed: "may this caller do this act: each guard is asked here",
+  issueReplay: "should this event have been refused: what issue.verify?guards=true asks",
+  issuePolicyAct: "a policy checked, as the act that installs it",
+  issueApply: "the view a guard is asked of: the policy an event installs, and an issue's by, reviews and added guards",
+  issueAct: "a request's body as the act that is judged"
+};
+// These two are not followed: issuesApp names nearly every cell of the seed, and issues_service names issuesApp.
+export const ROUTES: Record<string, string> = {
+  issuesApp: "the routes install, rebuild and resign, each for the owner present, and the refusal on a guard's answer",
+  issues_service: "who may call each method of the tracker: the rule the core asks before any guard is"
+};
+// A seed as its cells. A cell's name is read after its leading comment lines; prose (md`…`) has none and is left out;
+// code with no name that is read (an import) is `loose`.
+function cellsOf(text: string) {
+  const cells = new Map<string, string>(), count = new Map<string, number>(), loose: string[] = [];
+  for (const chunk of text.split(/^\/\/ %%.*$/m).map((s) => s.trim()).filter(Boolean)) {
+    const code = chunk.replace(/^(?:[ \t]*(?:\/\/.*)?\n)*/, "");
+    const name = (/^(?:(?:viewof|mutable)\s+)?([A-Za-z_$][\w$]*)\s*=(?![=>])/.exec(code) || /^(?:async\s+)?function\*?\s+([A-Za-z_$][\w$]*)/.exec(code))?.[1];
+    if (!name) { if (!/^md`/.test(code)) loose.push(chunk); continue; }
+    cells.set(name, cells.has(name) ? cells.get(name) + "\n// %%\n" + chunk : chunk);
+    count.set(name, (count.get(name) || 0) + 1);
+  }
+  return { cells, count, loose: loose.sort().join("\n// %%\n") };
+}
+// The policy cells that differ between two texts of the seed, by name; [] when none does. Where it cannot tell, it
+// names one: a side that is not read (the file added or deleted, a commit with no parent), a cell of JUDGE or ROUTES
+// that a side does not have once (a rename leaves the tool not knowing the judge), and code with no name.
+export function policyCells(before: string | null, after: string | null): string[] {
+  if (before == null || after == null) return ["the whole file (it is not read on one side of the commit)"];
+  const a = cellsOf(before), b = cellsOf(after), policy = new Set([...Object.keys(JUDGE), ...Object.keys(ROUTES)]), out: string[] = [];
+  for (const side of [a, b]) {
+    for (const seen = new Set(Object.keys(JUDGE)), queue = [...seen]; queue.length; ) {
+      for (const word of (side.cells.get(queue.pop()!) || "").match(/(?<![\w$.])[A-Za-z_$][\w$]*/g) || []) if (side.cells.has(word) && !seen.has(word)) { seen.add(word); policy.add(word); queue.push(word); }
+    }
+  }
+  for (const name of policy) {
+    const known = name in JUDGE || name in ROUTES, once = a.count.get(name) === 1 && b.count.get(name) === 1;
+    if (known && !once) out.push(`${name} (not there once on each side of the commit)`);
+    else if (a.cells.get(name) !== b.cells.get(name)) out.push(name);
+  }
+  if (a.loose !== b.loose) out.push("a cell with no name (an import)");
+  return out;
+}
+// The policy cells of the seed that a commit of lopecode-dev touches, against each of its parents.
+export function seedTouch(git: Git, sha: string): string[] {
+  const parents = git.parents(sha);
+  if (!parents?.length) return policyCells(null, null);
+  return [...new Set(parents.flatMap((p) => policyCells(git.text(p, SEED), git.text(sha, SEED))))];
+}
+
+// The marks of a file, and whether it is one of the approver's own (part 4 of the spec). `cells` is what seedTouch
+// answers for the seed in a commit; with none given the seed is taken whole, as it was until 2026-10-13.
+export const own = (f: string, cells?: string[]) => f === BRIEF || f === TOOL || f === TEST || POLICY.test(f) || (f === SEED && (!cells || cells.length > 0));
+export const marks = (f: string, cells?: string[]) => [
   ...(NEVER.test(f) ? ["never"] : []),
   ...(f === RULES || PHILOSOPHY.includes(f) ? ["rules"] : []),
-  ...(f === SEED || POLICY.test(f) ? ["policy"] : []),
+  ...(POLICY.test(f) || (f === SEED && own(f, cells)) ? ["policy"] : f === SEED ? ["tracker"] : []),
   ...(f === BRIEF || f === TOOL || f === TEST ? ["approver"] : [])
 ];
 
@@ -125,6 +182,7 @@ export function gitOf(root: string, main = "origin/main", self = "") {
     fetch: () => { const m = /^([^/]+)\/(.+)$/.exec(main), once = () => !!m && run(root, "fetch", "-q", "--no-recurse-submodules", m[1], m[2]) !== null; return once() || once(); },
     blob: (path: string) => run(root, "rev-parse", "--verify", "-q", `${main}:${path}`)?.trim() || null,
     text: (rev: string, path: string) => run(root, "show", `${rev}:${path}`),
+    parents: (sha: string) => run(root, "rev-list", "--parents", "-n", "1", sha + "^{commit}")?.trim().split(/\s+/).slice(1) ?? null,
     files: (repo: string, sha: string) => {
       const dir = dirOf(repo), pre = dir === root ? "" : repo + "/";
       if (!existsSync(dir) || run(dir, "cat-file", "-e", sha + "^{commit}") === null) return null;
@@ -266,7 +324,10 @@ export function judge(record: Event[], policyRead: any, git: Git, { id, verdict,
   for (const r of refs) {
     const c = commitRef(r.value), files = c ? git.files(c.repo, c.sha) : null;
     if (!files) { why.push(`the ref ${r.value} is not a commit the checkout has`); continue; }
-    for (const f of files.filter(own)) why.push(`the ref ${r.value} touches ${f}: the approver does not approve a change to itself (R7)`);
+    for (const f of files) {
+      const cells = f === SEED ? seedTouch(git, c!.sha) : undefined;
+      if (own(f, cells)) why.push(`the ref ${r.value} touches ${f}${cells ? `, its policy cells (${cells.join(", ")})` : ""}: the approver does not approve a change to itself (R7)`);
+    }
   }
   const lines = body.split("\n").filter((l) => l.startsWith("asked: ")), found: Asked[] = [];
   if (!lines.length) why.push(`the verdict has no line \`asked: <where> "<his words>"\` (R3)`);
@@ -280,7 +341,7 @@ export function facts(record: Event[], git: Git, id: string) {
   const i = issueAt(record, id), mine = record.filter((e) => e.id === id && !e.hidden), submit = submits(record, id).at(-1);
   const refs = submitted(record, id).map((r) => {
     const c = r.kind === "commit" ? commitRef(r.value) : null, files = c ? git.files(c.repo, c.sha) : null;
-    return { ...r, files: files ? files.map((file) => ({ file, marks: marks(file) })) : null };
+    return { ...r, files: files ? files.map((file) => { const cells = file === SEED ? seedTouch(git, c!.sha) : undefined; return { file, marks: marks(file, cells), ...(cells ? { cells } : {}) }; }) : null };
   });
   return {
     id, seen: i.seen, state: i.state, round: i.rounds, verdictKey: `approver/${id}/verdict-${i.rounds}`, family: family(record, id),
@@ -296,7 +357,7 @@ export function factsText(f: ReturnType<typeof facts>) {
     ...f.extra.map((x) => `guard added to ${x.move} (event ${x.n}): ${x.guard}`)];
   for (const r of f.refs) {
     lines.push(`${r.kind} ${r.value}${r.kind !== "commit" ? "" : r.files ? `: ${r.files.length} file${r.files.length === 1 ? "" : "s"}` : ": not a commit the checkout has"}${r.submit === f.submit ? "" : ` (of the submit of event ${r.submit}, not of the last)`}`);
-    for (const x of r.files || []) lines.push(`  ${x.marks.length ? ("[" + x.marks.join(",") + "]").padEnd(10) : "".padEnd(10)} ${x.file}`);
+    for (const x of r.files || []) lines.push(`  ${x.marks.length ? ("[" + x.marks.join(",") + "]").padEnd(10) : "".padEnd(10)} ${x.file}${x.cells ? (x.cells.length ? `: ${x.cells.join(", ")}` : ": no policy cell") : ""}`);
   }
   return lines;
 }
@@ -343,7 +404,7 @@ export function trial(record: Event[], git: Git) {
     const line = String(e.body).split("\n").find((l) => l.startsWith("asked: ")), a = line ? asked(record, git, line, { id: e.id, verdict: e.seq, delegation: "" }) : { why: "" };
     kinds["why" in a ? 0 : a.kind]++;
   }
-  const whys = { "no word of his": 0, "more than the words": 0, "not secure": 0, "could not tell": 0, other: 0 } as Record<string, number>;
+  const whys = { "no word of his": 0, "more than the words": 0, "not secure": 0, "could not tell": 0, "the approver's own files": 0, other: 0 } as Record<string, number>;
   for (const e of leave) { const w = /^why: (.*)$/m.exec(String(e.body))?.[1].trim() || ""; whys[w in whys ? w : "other"]++; }
   return {
     verdicts: open.length, approve: approve.length, leave: leave.length, neither: open.length - approve.length - leave.length,
@@ -358,7 +419,7 @@ export function trialText(t: ReturnType<typeof trial>) {
     `verdicts ${t.verdicts}   approve ${t.approve}   leave ${t.leave}${t.neither ? `   neither ${t.neither}` : ""}`,
     `of approve:   he approved ${t.approved}   he sent back, rejected or reverted ${t.undone}   still waiting ${t.waiting}`,
     `of approve:   on an event of his ${t.kinds.event}   on a spec he approved ${t.kinds.spec}   on his words in a file ${t.kinds.file}   on words a session quoted ${t.kinds.quoted}${t.kinds.none ? `   on no words the tool finds ${t.kinds.none}` : ""}`,
-    `of leave:     no word of his ${t.whys["no word of his"]}   more than the words ${t.whys["more than the words"]}   not secure ${t.whys["not secure"]}   could not tell ${t.whys["could not tell"]}   other ${t.whys.other}`,
+    `of leave:     no word of his ${t.whys["no word of his"]}   more than the words ${t.whys["more than the words"]}   not secure ${t.whys["not secure"]}   could not tell ${t.whys["could not tell"]}   the approver's own files ${t.whys["the approver's own files"]}   other ${t.whys.other}`,
     `made issues (test-): verdicts ${t.made.verdicts}   approve ${t.made.approve}   leave ${t.made.leave}`,
     ...t.lines
   ];
