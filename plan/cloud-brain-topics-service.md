@@ -329,6 +329,9 @@ in a tab or in a shell. They read or take.
 ### Take (R8)
 
 `topic.subscribe { topic, name, seconds }` with no `target` is a subscription to take from.
+(As built, `tp-3-take-and-done`, 2026-10-12: it also takes `failed`; `seconds` is a whole number from 1 to 86400; it starts at
+the topic's `last`, as a push subscription does; `delegation` or `params` with it is 400, and a subscription sent again as
+the other kind is 400; the record.)
 
 | | |
 |---|---|
@@ -337,6 +340,10 @@ in a tab or in a shell. They read or take.
 
 Both are for the caller that made the subscription. Several agents that call with tokens of the
 owner are one caller, `owner`, and share a subscription; a member's is the member's own.
+(As built, `tp-3-take-and-done`, 2026-10-12: `limit` is 1 when left out; a taken entry carries `tries` and `until`; the
+topic's `read` rule is asked again at each take; `failed` of `topic.done` is `true` or text that says why; a `topic.done`
+ends a claim that has ended, and one that another take has taken over, since nothing tells two takers of one caller
+apart; the fifth ending is acted on at the next take of the subscription or the next tick of the clock; the record.)
 
 ### Who is kept from what (line 1 of the philosophy)
 

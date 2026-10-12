@@ -1,6 +1,6 @@
 md`# brain-topic
 
-Named, ordered logs kept by a Cloud Brain. Each topic has a rule for who appends and a rule for who reads, and pushes each entry to the methods subscribed to it.
+Named, ordered logs kept by a Cloud Brain. Each topic has a rule for who appends and a rule for who reads, pushes each entry to the methods subscribed to it, and hands each entry of a subscription to take from to one taker.
 
 \`\`\`js
 await client.procedure("topic.create", { topic: "builds", write: 'caller.kind == "worker"', read: "true" }) // rules are CEL over caller and origin
@@ -17,6 +17,14 @@ await client.procedure("topic.subscribe", { topic: "builds", name: "shop", targe
 // from then on, for each entry appended: POST m.0a1b.shop.receive?from=builds, body the entry, as the subscriber
 \`\`\`
 
+Work for one of several takers is a subscription with no target. Each take claims what it answers, for the subscription's \`seconds\`:
+
+\`\`\`js
+await client.procedure("topic.subscribe", { topic: "builds", name: "workers", seconds: 120, failed: "builds-failed" })
+const { entries } = await client.procedure("topic.take", { topic: "builds", name: "workers", limit: 1 }) // [{ topic, seq, key, sender, at, body, hops, tries: 1, until }]
+await client.procedure("topic.done", { topic: "builds", name: "workers", seq: entries[0].seq })           // { done: true }; with failed: "why", the entry goes to builds-failed
+\`\`\`
+
 | | |
 |---|---|
 | Worker | \`brain-x-topic\` |
@@ -24,13 +32,15 @@ await client.procedure("topic.subscribe", { topic: "builds", name: "shop", targe
 | \`topic.append\` | procedure. \`{ topic, key, body }\` → \`{ seq, duplicate }\`. Needs the topic's \`write\` rule. \`key\` is 1 to 200 characters and is kept once for a topic. \`body\` is any JSON, at most \`bodyBytes\`; left out, it is \`null\`. |
 | \`topic.read\` | query. \`?topic=&after=0&limit=50\` → \`{ entries, next }\`, in \`seq\` order, \`limit\` at most 200. Needs the topic's \`read\` rule. With no entry after \`after\`, \`next\` is \`after\`. |
 | \`topic.list\` | query. \`{ topics: [{ topic, creator, write, read, last, created }] }\`: the topics the caller created; for the owner, all. \`last\` is the \`seq\` of the newest append. |
-| \`topic.delete\` | procedure. \`{ topic }\` → \`{ deleted: true }\`. The creator or the owner. The topic, its entries and its subscriptions; a topic made again with the name starts at \`seq\` 1. |
-| \`topic.subscribe\` | procedure. \`{ topic, name, target, delegation, params, failed }\` → the subscription as \`topic.subs\` shows it, and \`subscribed\`: false when it was there and was changed. Needs the topic's \`read\` rule, and with \`failed\` that topic's \`write\` rule. \`target\` is a method named \`NAME.receive\`, whole or without \`com.lopecode.brain.\`. \`delegation\` is the id of one the caller made for \`brain-x-topic\`, with the target and \`quota.get\` in its scope. \`params\` is the query of each push. With no \`target\` it is 400: a subscription to take from is not built. |
-| \`topic.unsubscribe\` | procedure. \`{ topic, name }\` → \`{ unsubscribed: true }\`. Its creator, the creator of the topic or the owner; to anyone else it is 404. |
-| \`topic.subs\` | query. \`?topic=\` → \`{ subs: [{ topic, name, creator, target, delegation, params, failed, position, tries, waits, dropped, status, error, created }] }\`: the caller's own; for the owner, all. With \`topic\`, those of that topic, and its creator also reads \`{ topic, name, creator, target, position, created }\` of each other subscription to it. |
+| \`topic.delete\` | procedure. \`{ topic }\` → \`{ deleted: true }\`. The creator or the owner. The topic, its entries, its subscriptions and their claims; a topic made again with the name starts at \`seq\` 1. |
+| \`topic.subscribe\` | procedure. \`{ topic, name, target, delegation, params, failed }\` → the subscription as \`topic.subs\` shows it, and \`subscribed\`: false when it was there and was changed. Needs the topic's \`read\` rule, and with \`failed\` that topic's \`write\` rule. \`target\` is a method named \`NAME.receive\`, whole or without \`com.lopecode.brain.\`. \`delegation\` is the id of one the caller made for \`brain-x-topic\`, with the target and \`quota.get\` in its scope. \`params\` is the query of each push. With no \`target\` it is a subscription to take from: \`{ topic, name, seconds, failed }\`, where \`seconds\` is how long a claim lasts, a whole number from 1 to 86400, 300 when left out; \`delegation\` or \`params\` with it is 400, and so is \`seconds\` with a \`target\`. A subscription stays the kind it was made as: sent again as the other kind it is 400. |
+| \`topic.unsubscribe\` | procedure. \`{ topic, name }\` → \`{ unsubscribed: true }\`. Its creator, the creator of the topic or the owner; to anyone else it is 404. The subscription's claims go with it. |
+| \`topic.take\` | procedure. \`{ topic, name, limit }\` → \`{ entries: [{ topic, seq, key, sender, at, body, hops, tries, until }] }\`: at most \`limit\` entries (1 when left out, 200 at most) that no claim holds, each now claimed until \`until\`. \`tries\` is how many claims the entry has had. For the caller that made the subscription, to anyone else it is 404; needs the topic's \`read\` rule at each take. |
+| \`topic.done\` | procedure. \`{ topic, name, seq, failed }\` → \`{ done: true }\`: the claim is ended and the entry is not handed out again. With \`failed\`, \`true\` or text that says why, the entry goes where a failed push goes and the answer has \`failed\`: the topic it was appended to, or \`null\` when it was dropped. For the caller that made the subscription. A \`seq\` with no claim is 404. |
+| \`topic.subs\` | query. \`?topic=\` → \`{ subs: [{ topic, name, creator, target, delegation, params, failed, seconds, position, tries, waits, dropped, status, error, created }] }\`: the caller's own; for the owner, all. Of a subscription to take from \`target\` and \`delegation\` are \`null\`, \`seconds\` is a number and \`position\` is the \`seq\` of the last entry handed out; of a push subscription \`seconds\` is \`null\`. With \`topic\`, those of that topic, and its creator also reads \`{ topic, name, creator, target, position, created }\` of each other subscription to it. |
 | \`topic.receive\` | procedure. \`?topic=B\`, body an entry → \`{ seq, duplicate }\`. Appends the entry's \`body\` to \`B\` under the key \`<its topic>/<its seq>\`. Needs \`B\`'s \`write\` rule. It is the target that joins one topic to another. |
 | Settings | \`bodyBytes\` (100000). \`keepDays\` (30) and \`keepEntries\` (10000): what the clock removes. \`topicsPerCreator\` (50): the topics one member has. \`subsPerTopic\` (10): the subscriptions to one topic. \`pushMs\` (10000): how long one push is waited for. \`deliverMs\` (20000): how long one deliverer starts pushes for. Changed with \`config.set\` on the core, no deploy. |
-| Storage | \`sql\`: \`topic_topics\`, \`topic_entries\`, \`topic_subs\` |
+| Storage | \`sql\`: \`topic_topics\`, \`topic_entries\`, \`topic_subs\`, \`topic_claims\` |
 | Calls | With \`x-brain-as\` only: \`quota.get\` at \`topic.subscribe\`, and the target of each push. The manifest lists no \`calls\`: the core does not hold a call under a delegation to that list. |
 
 ## Names
@@ -57,7 +67,7 @@ To \`topic.append\`, \`topic.read\` and \`topic.delete\` a topic that does not e
 
 ## What the clock removes
 
-Entries older than \`keepDays\`, and those more than \`keepEntries\` behind the topic's \`last\`. The removal runs on the first tick of the clock an instance is given, and then on the first tick an hour or more after the last removal (\`test_topic_clock_removes_old_entries_and_no_seq_is_used_twice\`, where the test gives the ticks). On a Brain the tick is Cloudflare's cron trigger, \`* * * * *\`; no removal had been seen on cb4 when this was written, 2026-10-12. A removed entry's \`key\` can then be appended again, as a new entry. The clock reads the settings the instance was last sent with a call (the core sends them with each one), so a setting changed with \`config.set\` is followed by the removal after the next call the instance answers.
+Entries older than \`keepDays\`, and those more than \`keepEntries\` behind the topic's \`last\`; with them, each claim whose entry is gone. The removal runs on the first tick of the clock an instance is given, and then on the first tick an hour or more after the last removal (\`test_topic_clock_removes_old_entries_and_no_seq_is_used_twice\`, where the test gives the ticks). On a Brain the tick is Cloudflare's cron trigger, \`* * * * *\`; no removal had been seen on cb4 when this was written, 2026-10-12. A removed entry's \`key\` can then be appended again, as a new entry. The clock reads the settings the instance was last sent with a call (the core sends them with each one), so a setting changed with \`config.set\` is followed by the removal after the next call the instance answers.
 
 ## A push
 
@@ -82,13 +92,33 @@ Delivery is at least once: a deliverer that ends between the target's answer and
 
 **Whose delegation.** An id is not a secret, so \`topic.subscribe\` asks the core \`quota.get\` under it and keeps the subscription only when the answer's \`who\` is its caller. A delegation another account made, one made for another Worker, an id that is nobody's and one whose scope has no \`quota.get\` are 403. Every token of the owner's is \`owner\` here, so one of them can subscribe with a delegation the owner or another of his tokens made for this Worker.
 
-**What a rule change does not do.** The \`read\` rule, and the \`write\` rule of \`failed\`, are asked at \`topic.subscribe\` and not at each push. The creator of a topic who shuts a reader out also ends that reader's subscriptions: \`topic.subs?topic=\` lists them and \`topic.unsubscribe\` removes one. Nothing lists the subscriptions that name a topic as their \`failed\`.
+**What a rule change does not do.** For a push subscription the \`read\` rule, and the \`write\` rule of \`failed\`, are asked at \`topic.subscribe\` and not at each push. The creator of a topic who shuts a reader out also ends that reader's subscriptions: \`topic.subs?topic=\` lists them and \`topic.unsubscribe\` removes one. Nothing lists the subscriptions that name a topic as their \`failed\`.
 
 A deliverer starts no push once it has worked \`deliverMs\`, and its claim of the subscription ends 30 s after its last write, when another deliverer may claim it. A deliverer reads the settings its instance was last sent with a call.
 
-## Not built
+## Take
 
-Taking (\`topic.take\`, \`topic.done\`, a subscription with no \`target\`) is task 3 of \`plan/cloud-brain-topics-service.md\`. This module was first built 2026-10-12 as task 1, \`tp-1-topics-append-read\`; subscriptions and the push are task 2, \`tp-2-push-to-receive\`, of the same day.`
+A subscription with no \`target\` is taken from. Like a push subscription it starts at the topic's \`last\`: what is appended after it is there to take. It makes no call, so it has no delegation, and the clock and an append push it nothing.
+
+\`topic.take\` answers entries that no claim holds, and claims each for the subscription's \`seconds\`. First the entries whose claim has ended, the oldest first, then entries that were never handed out, in \`seq\` order; \`limit\` is of both together. A take is one transaction, so two takes at once are handed different entries (\`test_topic_take_hands_each_entry_to_one_taker\`). \`position\` of the subscription is the \`seq\` of the last entry handed out, not of the last one done: entries are done in any order.
+
+\`topic.done\` ends a claim. An entry that is not done before its claim ends is handed out again by a later take, with \`tries\` one higher, so a taker that must not act twice keeps the \`seq\` it has handled. A claim that has ended is still ended by \`topic.done\` while no take has taken its place, and after one has: several takers of one subscription are one caller, and nothing tells the first taker's \`topic.done\` from the second's.
+
+| | then |
+|---|---|
+| \`topic.done\` | the claim is removed |
+| \`topic.done\` with \`failed\` | given up: the claim is removed, and the entry goes where a failed push goes, with \`status\` 0 and the text as \`error\` (\`the taker gave it up\` for \`true\`; the first 300 characters of a text) |
+| the fifth claim of an entry ends | given up, with the error \`5 claims ended with no topic.done\`: at the next \`topic.take\` of the subscription, which is not handed it, or at the next tick of the clock, whichever is first |
+
+Given up is what it is for a push: with \`failed\` on the subscription, \`{ topic, name, seq, entry, status, error, tries }\` is appended to that topic under the key \`<topic>/<name>/<seq>\`, with the \`hops\` of the entry plus one, and the push subscriptions of that topic are started; with none, or when the entry's \`hops\` is 8 or more, or when that topic is gone, it is dropped and \`dropped\` of the subscription counts it. \`error\` of the subscription has the last one.
+
+\`topic.take\` and \`topic.done\` are for the caller that made the subscription: to anyone else, the owner and the creator of the topic among them, they answer the 404 of a subscription that is not there. Every token of the owner's and the owner's tab are one caller, \`owner\`, and share a subscription. The topic's \`read\` rule is asked at \`topic.subscribe\` and again at each \`topic.take\`, so a reader the creator has shut out takes no more; \`topic.done\` asks no rule. The \`write\` rule of \`failed\` is asked at \`topic.subscribe\` only.
+
+A claimed entry that the clock removes is not handed out again. Its claim is ended by \`topic.done\`, with nothing sent on whatever \`failed\` says, or removed with the clock's next removal.
+
+## Built
+
+2026-10-12, as three tasks of \`plan/cloud-brain-topics-service.md\`: topics, append and read (\`tp-1-topics-append-read\`); subscriptions and the push (\`tp-2-push-to-receive\`); take, done and claims (\`tp-3-take-and-done\`).`
 // %%
 topicRule = 'caller.kind in ["owner", "token", "did", "worker"]'
 // %%
@@ -106,7 +136,9 @@ topic_service = cloudflare.Service("topic", topicApp, {
     "com.lopecode.brain.topic.subscribe": { type: "procedure", allow: topicRule },
     "com.lopecode.brain.topic.unsubscribe": { type: "procedure", allow: topicRule },
     "com.lopecode.brain.topic.subs": { type: "query", allow: topicRule },
-    "com.lopecode.brain.topic.receive": { type: "procedure", allow: topicRule }
+    "com.lopecode.brain.topic.receive": { type: "procedure", allow: topicRule },
+    "com.lopecode.brain.topic.take": { type: "procedure", allow: topicRule },
+    "com.lopecode.brain.topic.done": { type: "procedure", allow: topicRule }
   }
 })
 // %%
@@ -119,7 +151,9 @@ topicLimits = ({ name: /^[a-z0-9][a-z0-9.-]{0,59}$/, key: 200, rule: 500, bodyBy
   // A push: the methods it may name, the most subscriptions to a topic, how long one call is waited for, the waits
   // after a try that may be tried again, how many tries, how long a chain is, how long one deliverer works and holds
   // its subscription, how many subscriptions one tick takes, and the lengths of what a subscriber sends.
-  receive: /^com\.lopecode\.brain\.[A-Za-z0-9]+(\.[A-Za-z0-9]+)*\.receive$/, subsPerTopic: 10, pushMs: 10000, waits: [60000, 120000, 240000, 480000], tries: 5, hops: 8, deliverMs: 20000, leaseMs: 30000, duePage: 50, params: 1000, error: 300 })
+  receive: /^com\.lopecode\.brain\.[A-Za-z0-9]+(\.[A-Za-z0-9]+)*\.receive$/, subsPerTopic: 10, pushMs: 10000, waits: [60000, 120000, 240000, 480000], tries: 5, hops: 8, deliverMs: 20000, leaseMs: 30000, duePage: 50, params: 1000, error: 300,
+  // A subscription to take from: how long a claim lasts when the subscription names no seconds, and the most it names.
+  seconds: 300, maxSeconds: 86400 })
 // %%
 // Each is sent in a call of its own: brain-db reads the plan of a whole batch before any of it runs.
 topicSchema = [
@@ -128,9 +162,13 @@ topicSchema = [
   "CREATE TABLE IF NOT EXISTS topic_entries (topic TEXT NOT NULL, seq INTEGER NOT NULL, key TEXT NOT NULL, sender TEXT NOT NULL, at INTEGER NOT NULL, body TEXT NOT NULL, hops INTEGER NOT NULL, PRIMARY KEY (topic, seq)) WITHOUT ROWID",
   "CREATE UNIQUE INDEX IF NOT EXISTS topic_entries_key ON topic_entries (topic, key)",
   // pos: the seq of the last entry pushed or given up. not_before: when the entry after it is next tried. lease and
-  // runner: the one deliverer that works on it, and until when. seconds is for a subscription to take from (task 3).
+  // runner: the one deliverer that works on it, and until when. A subscription to take from has no target: its
+  // seconds is how long a claim lasts, and its pos is the seq of the last entry handed to a taker.
   "CREATE TABLE IF NOT EXISTS topic_subs (topic TEXT NOT NULL, name TEXT NOT NULL, creator TEXT NOT NULL, target TEXT NOT NULL, delegation TEXT NOT NULL, params TEXT NOT NULL, failed TEXT NOT NULL, seconds INTEGER NOT NULL, pos INTEGER NOT NULL, tries INTEGER NOT NULL, not_before INTEGER NOT NULL, dropped INTEGER NOT NULL, status INTEGER NOT NULL, error TEXT NOT NULL, lease INTEGER NOT NULL, runner TEXT NOT NULL, created INTEGER NOT NULL, PRIMARY KEY (topic, name)) WITHOUT ROWID",
-  "CREATE INDEX IF NOT EXISTS topic_subs_creator ON topic_subs (creator)"
+  "CREATE INDEX IF NOT EXISTS topic_subs_creator ON topic_subs (creator)",
+  // An entry handed to a taker and not answered with topic.done. until: when the claim ends. tries: how many claims
+  // it has had. taker: the take that made the last one.
+  "CREATE TABLE IF NOT EXISTS topic_claims (topic TEXT NOT NULL, name TEXT NOT NULL, seq INTEGER NOT NULL, until INTEGER NOT NULL, tries INTEGER NOT NULL, taker TEXT NOT NULL, PRIMARY KEY (topic, name, seq)) WITHOUT ROWID"
 ]
 // %%
 topicSql = ({
@@ -151,28 +189,51 @@ topicSql = ({
   drop: "DELETE FROM topic_topics WHERE topic = ?1",
   old: "DELETE FROM topic_entries WHERE at < ?1",
   over: "DELETE FROM topic_entries WHERE seq <= (SELECT last FROM topic_topics WHERE topic_topics.topic = topic_entries.topic) - ?1",
-  sub: "SELECT topic, name, creator, target, delegation, params, failed, pos, tries, not_before, dropped, status, error, lease, runner, created FROM topic_subs WHERE topic = ?1 AND name = ?2",
-  subsOf: "SELECT topic, name, creator, target, delegation, params, failed, pos, tries, not_before, dropped, status, error, lease, runner, created FROM topic_subs WHERE topic = ?1 ORDER BY name",
-  subsBy: "SELECT topic, name, creator, target, delegation, params, failed, pos, tries, not_before, dropped, status, error, lease, runner, created FROM topic_subs WHERE creator = ?1 ORDER BY topic, name",
-  subsAll: "SELECT topic, name, creator, target, delegation, params, failed, pos, tries, not_before, dropped, status, error, lease, runner, created FROM topic_subs ORDER BY topic, name",
+  sub: "SELECT topic, name, creator, target, delegation, params, failed, seconds, pos, tries, not_before, dropped, status, error, lease, runner, created FROM topic_subs WHERE topic = ?1 AND name = ?2",
+  subsOf: "SELECT topic, name, creator, target, delegation, params, failed, seconds, pos, tries, not_before, dropped, status, error, lease, runner, created FROM topic_subs WHERE topic = ?1 ORDER BY name",
+  subsBy: "SELECT topic, name, creator, target, delegation, params, failed, seconds, pos, tries, not_before, dropped, status, error, lease, runner, created FROM topic_subs WHERE creator = ?1 ORDER BY topic, name",
+  subsAll: "SELECT topic, name, creator, target, delegation, params, failed, seconds, pos, tries, not_before, dropped, status, error, lease, runner, created FROM topic_subs ORDER BY topic, name",
   subCount: "SELECT COUNT(*) AS n FROM topic_subs WHERE topic = ?1 AND name <> ?2",
   // A subscription is subscribe, resubscribe, sub as one transaction. A new one starts at the topic's last: it is
   // pushed what is appended after it. Sent again by its creator it takes the new target and is tried at once.
-  subscribe: "INSERT OR IGNORE INTO topic_subs (topic, name, creator, target, delegation, params, failed, seconds, pos, tries, not_before, dropped, status, error, lease, runner, created) SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, last, 0, 0, 0, 0, '', 0, '', ?8 FROM topic_topics WHERE topic = ?1",
-  resubscribe: "UPDATE topic_subs SET target = ?4, delegation = ?5, params = ?6, failed = ?7, tries = 0, not_before = 0 WHERE topic = ?1 AND name = ?2 AND creator = ?3",
+  subscribe: "INSERT OR IGNORE INTO topic_subs (topic, name, creator, target, delegation, params, failed, seconds, pos, tries, not_before, dropped, status, error, lease, runner, created) SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?9, last, 0, 0, 0, 0, '', 0, '', ?8 FROM topic_topics WHERE topic = ?1",
+  resubscribe: "UPDATE topic_subs SET target = ?4, delegation = ?5, params = ?6, failed = ?7, seconds = ?8, tries = 0, not_before = 0 WHERE topic = ?1 AND name = ?2 AND creator = ?3",
   unsubscribe: "DELETE FROM topic_subs WHERE topic = ?1 AND name = ?2",
   dropSubs: "DELETE FROM topic_subs WHERE topic = ?1",
   // Behind, not waiting and with no deliverer: what an append and a tick of the clock start a deliverer for.
-  due: "SELECT topic, name FROM topic_subs WHERE lease <= ?1 AND not_before <= ?1 AND pos < (SELECT last FROM topic_topics WHERE topic_topics.topic = topic_subs.topic) ORDER BY topic, name LIMIT ?2",
-  dueOf: "SELECT topic, name FROM topic_subs WHERE topic = ?2 AND lease <= ?1 AND not_before <= ?1 AND pos < (SELECT last FROM topic_topics WHERE topic_topics.topic = ?2) ORDER BY name",
+  // Never a subscription to take from, which has no target.
+  due: "SELECT topic, name FROM topic_subs WHERE target <> '' AND lease <= ?1 AND not_before <= ?1 AND pos < (SELECT last FROM topic_topics WHERE topic_topics.topic = topic_subs.topic) ORDER BY topic, name LIMIT ?2",
+  dueOf: "SELECT topic, name FROM topic_subs WHERE topic = ?2 AND target <> '' AND lease <= ?1 AND not_before <= ?1 AND pos < (SELECT last FROM topic_topics WHERE topic_topics.topic = ?2) ORDER BY name",
   // One deliverer a subscription: of two that claim at once one changes the row, and the other reads a runner that is not its own.
-  claim: "UPDATE topic_subs SET lease = ?4, runner = ?3 WHERE topic = ?1 AND name = ?2 AND lease <= ?5 AND not_before <= ?5 AND pos < (SELECT last FROM topic_topics WHERE topic_topics.topic = ?1)",
+  claim: "UPDATE topic_subs SET lease = ?4, runner = ?3 WHERE topic = ?1 AND name = ?2 AND target <> '' AND lease <= ?5 AND not_before <= ?5 AND pos < (SELECT last FROM topic_topics WHERE topic_topics.topic = ?1)",
   next: "SELECT seq, key, sender, at, body, hops FROM topic_entries WHERE topic = ?1 AND seq > (SELECT pos FROM topic_subs WHERE topic = ?1 AND name = ?2) ORDER BY seq LIMIT 1",
   // Each of the three is the runner's alone. settled: an entry pushed or given up. waiting: a try that is tried again.
   // rest: none is behind (the position goes to the topic's last, past entries the clock removed) or the time is up.
   settled: "UPDATE topic_subs SET pos = ?4, tries = 0, not_before = 0, status = ?5, error = ?6, dropped = dropped + ?7, lease = ?8 WHERE topic = ?1 AND name = ?2 AND runner = ?3",
   waiting: "UPDATE topic_subs SET tries = ?4, not_before = ?5, status = ?6, error = ?7, lease = 0, runner = '' WHERE topic = ?1 AND name = ?2 AND runner = ?3",
-  rest: "UPDATE topic_subs SET pos = MAX(pos, ?4), lease = 0, runner = '' WHERE topic = ?1 AND name = ?2 AND runner = ?3"
+  rest: "UPDATE topic_subs SET pos = MAX(pos, ?4), lease = 0, runner = '' WHERE topic = ?1 AND name = ?2 AND runner = ?3",
+  // A take is again, fresh, handed, taken as one transaction, under one taker id. again: the claims that ended, the
+  // oldest first, each claimed once more. fresh: the entries after the position, for what is left of the limit.
+  // handed: the position goes to the last entry handed out. taken: what this take claimed, read by its taker id and
+  // not from a count of changes. A claim that has had ?7 claims is not made again, and one whose entry the clock
+  // removed is not handed out.
+  again: "UPDATE topic_claims SET until = ?4, tries = tries + 1, taker = ?5 WHERE topic = ?1 AND name = ?2 AND seq IN (SELECT c.seq FROM topic_claims c WHERE c.topic = ?1 AND c.name = ?2 AND c.until <= ?3 AND c.tries < ?7 AND EXISTS (SELECT 1 FROM topic_entries e WHERE e.topic = c.topic AND e.seq = c.seq) ORDER BY c.seq LIMIT ?6)",
+  fresh: "INSERT OR IGNORE INTO topic_claims (topic, name, seq, until, tries, taker) SELECT ?1, ?2, e.seq, ?3, 1, ?4 FROM topic_entries e WHERE e.topic = ?1 AND e.seq > (SELECT pos FROM topic_subs WHERE topic = ?1 AND name = ?2 AND target = '') ORDER BY e.seq LIMIT MAX(0, ?5 - (SELECT COUNT(*) FROM topic_claims WHERE topic = ?1 AND name = ?2 AND taker = ?4))",
+  handed: "UPDATE topic_subs SET pos = MAX(pos, COALESCE((SELECT MAX(seq) FROM topic_claims WHERE topic = ?1 AND name = ?2 AND taker = ?3), 0)) WHERE topic = ?1 AND name = ?2",
+  taken: "SELECT e.seq, e.key, e.sender, e.at, e.body, e.hops, c.tries, c.until FROM topic_claims c JOIN topic_entries e ON e.topic = c.topic AND e.seq = c.seq WHERE c.topic = ?1 AND c.name = ?2 AND c.taker = ?3 ORDER BY e.seq",
+  // One claim, with its entry; the entry's columns are null when the clock removed it.
+  claimOf: "SELECT c.seq, c.tries, c.until, e.key, e.sender, e.at, e.body, e.hops FROM topic_claims c LEFT JOIN topic_entries e ON e.topic = c.topic AND e.seq = c.seq WHERE c.topic = ?1 AND c.name = ?2 AND c.seq = ?3",
+  // The claims that ended ?4 times: of one subscription with their entries, and the subscriptions that have one.
+  spent: "SELECT c.seq, c.tries, c.until, e.key, e.sender, e.at, e.body, e.hops FROM topic_claims c JOIN topic_entries e ON e.topic = c.topic AND e.seq = c.seq WHERE c.topic = ?1 AND c.name = ?2 AND c.until <= ?3 AND c.tries >= ?4 ORDER BY c.seq LIMIT ?5",
+  spentOf: "SELECT DISTINCT topic, name FROM topic_claims WHERE until <= ?1 AND tries >= ?2 ORDER BY topic, name LIMIT ?3",
+  // A claim given up is lost, unclaim as one transaction: the subscription counts and says it only while the claim
+  // is there, so of two that give one claim up one counts it.
+  lost: "UPDATE topic_subs SET dropped = dropped + ?4, status = 0, error = ?5 WHERE topic = ?1 AND name = ?2 AND EXISTS (SELECT 1 FROM topic_claims WHERE topic = ?1 AND name = ?2 AND seq = ?3)",
+  unclaim: "DELETE FROM topic_claims WHERE topic = ?1 AND name = ?2 AND seq = ?3",
+  unclaimAll: "DELETE FROM topic_claims WHERE topic = ?1 AND name = ?2",
+  dropClaims: "DELETE FROM topic_claims WHERE topic = ?1",
+  // What the clock removes with the entries: a claim whose entry is gone.
+  orphans: "DELETE FROM topic_claims WHERE NOT EXISTS (SELECT 1 FROM topic_entries e WHERE e.topic = topic_claims.topic AND e.seq = topic_claims.seq)"
 })
 // %%
 // What the app and the clock share: the tables, made once an instance, the removal, an append and the push.
@@ -190,7 +251,7 @@ topicOps = {
   const setting = (name) => ((n) => (Number.isFinite(n) && n > 0 ? n : L[name]))(Number(config[name] ?? L[name]));
   const trim = async (now) => {
     await schema();
-    const [old, over] = await sql.batch([[S.old, now - setting("keepDays") * 86400000], [S.over, Math.floor(setting("keepEntries"))]]);
+    const [old, over] = await sql.batch([[S.old, now - setting("keepDays") * 86400000], [S.over, Math.floor(setting("keepEntries"))], [S.orphans]]);
     const removed = (old.changes || 0) + (over.changes || 0);
     if (removed) log({ at: "topic.trim", removed });
     return { removed };
@@ -234,6 +295,10 @@ topicOps = {
       clearTimeout(timer);
     }
   };
+  // An entry given up, by a push or by its takers. To the failed topic as one more link of the chain it came by.
+  // null: dropped, because the subscription names no failed topic, the entry is at the end of a chain, or that topic is gone.
+  const failedTo = async (sub, entry, status, error, tries) =>
+    sub.failed && entry.hops < L.hops ? append(sub.failed, `${sub.topic}/${sub.name}/${entry.seq}`, ME, JSON.stringify({ topic: sub.topic, name: sub.name, seq: entry.seq, entry, status, error, tries }), entry.hops + 1) : null;
   // Deliverers that were started and have not ended. A call and a tick end when all of them have.
   const running = new Set();
   const start = (p) => {
@@ -272,8 +337,7 @@ topicOps = {
         else {
           const tries = sub.tries + 1;
           if (out.again && tries < L.tries) return void (await sql.exec(S.waiting, topic, name, runner, tries, now + L.waits[tries - 1], out.status, out.error));
-          // Given up. To the failed topic as one more link of the chain it came by; an entry at the end of a chain is dropped.
-          const kept = sub.failed && e.hops < L.hops ? await append(sub.failed, `${topic}/${name}/${e.seq}`, ME, JSON.stringify({ topic, name, seq: e.seq, entry, status: out.status, error: out.error, tries }), e.hops + 1) : null;
+          const kept = await failedTo(sub, entry, out.status, out.error, tries);
           v = await look([S.settled, topic, name, runner, e.seq, out.status, out.error, kept ? 0 : 1, clock() + L.leaseMs]);
           log({ at: "topic.push.gaveup", topic, name, seq: e.seq, status: out.status, tries, failed: kept ? sub.failed : "" });
           if (kept && !kept.duplicate && sub.failed !== topic) start(pushOf(sub.failed, clock()));
@@ -298,12 +362,44 @@ topicOps = {
     start(pushOf(topic, Date.now()));
     await drained();
   };
-  // The push each tick; the removal when it is due. A push that failed does not hold the removal back.
-  const tick = async (now = Date.now()) => {
-    const pushed = await pushDue(now).catch((e) => ({ error: String((e && e.message) || e).slice(0, L.error) }));
-    return { ...(await trimDue(now)), pushed };
+  // A claim given up, by topic.done { failed } or because its last claim ended: the entry goes where a failed push
+  // goes, and the claim is removed. c is a row of claimOf or spent. Answers the failed topic when the entry is now
+  // in it, and whether it was appended by this call, which then starts that topic's pushes.
+  const giveUp = async (sub, c, error) => {
+    const entry = { topic: sub.topic, seq: c.seq, key: c.key, sender: c.sender, at: c.at, body: JSON.parse(c.body), hops: c.hops };
+    const kept = await failedTo(sub, entry, 0, error, c.tries);
+    await sql.batch([[S.lost, sub.topic, sub.name, c.seq, kept ? 0 : 1, error], [S.unclaim, sub.topic, sub.name, c.seq]]);
+    log({ at: "topic.take.gaveup", topic: sub.topic, name: sub.name, seq: c.seq, tries: c.tries, failed: kept ? sub.failed : "" });
+    return { failed: kept ? sub.failed : null, appended: !!kept && !kept.duplicate };
   };
-  return { schema, setting, trim, tick, append, pushAfter };
+  // The claims of one subscription that have ended for the last time. Answers the failed topics that were appended to.
+  const expire = async (sub, now) => {
+    const to = new Set();
+    for (const c of (await sql.exec(S.spent, sub.topic, sub.name, now, L.tries, L.duePage)).rows) {
+      const out = await giveUp(sub, c, `${L.tries} claims ended with no topic.done`);
+      if (out.appended) to.add(out.failed);
+    }
+    return [...to];
+  };
+  // At a tick, for every subscription: an entry whose takers have all gone reaches its failed topic with no take.
+  const expireDue = async (now) => {
+    await schema();
+    const due = (await sql.exec(S.spentOf, now, L.tries, L.duePage)).rows;
+    for (const d of due) {
+      const sub = (await sql.exec(S.sub, d.topic, d.name)).rows[0];
+      if (sub) await expire(sub, now);
+    }
+    return { due: due.length };
+  };
+  const caught = (e) => ({ error: String((e && e.message) || e).slice(0, L.error) });
+  // Each tick: the claims that ended for the last time, then the push, which has what those appended; the removal
+  // when it is due. A push or a claim that failed does not hold the removal back.
+  const tick = async (now = Date.now()) => {
+    const expired = await expireDue(now).catch(caught);
+    const pushed = await pushDue(now).catch(caught);
+    return { ...(await trimDue(now)), pushed, expired };
+  };
+  return { schema, setting, trim, tick, append, pushAfter, giveUp, expire };
 }
 // %%
 topicApp = {
@@ -364,6 +460,13 @@ topicApp = {
     return fail(c, 409, "Conflict", "another call made this topic at the same time; send it again");
   });
 
+  // The push of a topic that was just appended to. It does not hold the answer back.
+  const pushLater = (c, topic) => {
+    const pushed = topicOps.pushAfter(topic).catch((e) => void log({ at: "topic.push.error", topic, error: String((e && e.message) || e).slice(0, 300) }));
+    try {
+      c.executionCtx.waitUntil(pushed);
+    } catch {}
+  };
   // What topic.append and topic.receive share: the size, the rule, the write, and the push after the answer.
   const put = async (c, w, topic, key, body) => {
     const text = JSON.stringify(body ?? null), most = Math.floor(topicOps.setting("bodyBytes"));
@@ -376,13 +479,8 @@ topicApp = {
     const kept = await topicOps.append(topic, key, w.caller.id, text, hops);
     // Deleted between the rule and the write.
     if (!kept) return fail(c, 404, "NotFound", "no such topic");
-    // The push does not hold the answer back. A key sent again starts none: the clock has what is behind.
-    if (!kept.duplicate) {
-      const pushed = topicOps.pushAfter(topic).catch((e) => void log({ at: "topic.push.error", topic, error: String((e && e.message) || e).slice(0, 300) }));
-      try {
-        c.executionCtx.waitUntil(pushed);
-      } catch {}
-    }
+    // A key sent again starts no push: the clock has what is behind.
+    if (!kept.duplicate) pushLater(c, topic);
     return c.json(kept);
   };
 
@@ -430,7 +528,7 @@ topicApp = {
     const row = (await sql.exec(S.one, topic)).rows[0];
     if (!row) return absent(c, caller, topic);
     if (!admin(caller, row)) return fail(c, 403, "Forbidden", REFUSED);
-    await sql.batch([[S.dropEntries, topic], [S.dropSubs, topic], [S.drop, topic]]);
+    await sql.batch([[S.dropEntries, topic], [S.dropSubs, topic], [S.dropClaims, topic], [S.drop, topic]]);
     return c.json({ deleted: true });
   });
 
@@ -453,19 +551,24 @@ topicApp = {
   // A subscription as its creator and the owner read it; the creator of the topic reads who is subscribed and to what.
   const subShown = (r, whole) =>
     whole
-      ? { topic: r.topic, name: r.name, creator: r.creator, target: r.target, delegation: r.delegation, params: JSON.parse(r.params), failed: r.failed || null, position: r.pos, tries: r.tries, waits: r.not_before || null, dropped: r.dropped, status: r.status, error: r.error, created: r.created }
-      : { topic: r.topic, name: r.name, creator: r.creator, target: r.target, position: r.pos, created: r.created };
+      ? { topic: r.topic, name: r.name, creator: r.creator, target: r.target || null, delegation: r.delegation || null, params: JSON.parse(r.params), failed: r.failed || null, seconds: r.target ? null : r.seconds, position: r.pos, tries: r.tries, waits: r.not_before || null, dropped: r.dropped, status: r.status, error: r.error, created: r.created }
+      : { topic: r.topic, name: r.name, creator: r.creator, target: r.target || null, position: r.pos, created: r.created };
   const NO_SUB = "no such subscription";
 
   app.post(NS + "subscribe", async (c) => {
     const w = who(c), b = await sent(c), topic = b.topic, failed = b.failed ?? "";
     if (!named(topic)) return badName(c);
     if (!named(b.name)) return fail(c, 400, "InvalidRequest", "name: a-z 0-9 . - , 1 to 60 characters, starting with a letter or a digit");
-    if (b.target === undefined || b.target === null) return fail(c, 400, "InvalidRequest", "target: a method named NAME.receive; a subscription to take from is not built");
-    const target = targetOf(b.target), params = paramsOf(b.params);
-    if (!target) return fail(c, 400, "InvalidRequest", "target: a method named NAME.receive");
-    if (typeof b.delegation !== "string" || !/^[0-9a-f]{12}$/.test(b.delegation)) return fail(c, 400, "InvalidRequest", "delegation: the id of one made for brain-x-topic");
+    // With a target it is pushed; with none it is taken from, and each claim lasts its seconds.
+    const takes = b.target === undefined || b.target === null, given = (k) => b[k] !== undefined && b[k] !== null;
+    const target = takes ? "" : targetOf(b.target), params = paramsOf(takes ? null : b.params), delegation = takes ? "" : b.delegation;
+    const seconds = takes ? (given("seconds") ? b.seconds : L.seconds) : 0;
+    if (!takes && !target) return fail(c, 400, "InvalidRequest", "target: a method named NAME.receive");
+    if (!takes && (typeof delegation !== "string" || !/^[0-9a-f]{12}$/.test(delegation))) return fail(c, 400, "InvalidRequest", "delegation: the id of one made for brain-x-topic");
     if (params === null) return fail(c, 400, "InvalidRequest", `params: names with text, a number or a boolean, at most ${L.params} characters as JSON`);
+    if (takes && (given("delegation") || given("params"))) return fail(c, 400, "InvalidRequest", "delegation and params are a push subscription's: with no target the subscription is taken from");
+    if (!takes && given("seconds")) return fail(c, 400, "InvalidRequest", "seconds is how long a claim lasts: with a target the subscription is pushed, and nothing is taken from it");
+    if (takes && !(Number.isInteger(seconds) && seconds >= 1 && seconds <= L.maxSeconds)) return fail(c, 400, "InvalidRequest", `seconds: a whole number from 1 to ${L.maxSeconds}`);
     if (failed !== "" && !named(failed)) return fail(c, 400, "InvalidRequest", "failed: a topic's name");
     await topicOps.schema();
     const [one, other, was, count] = await sql.batch([[S.one, topic], [S.one, failed], [S.sub, topic, b.name], [S.subCount, topic, b.name]]);
@@ -474,11 +577,14 @@ topicApp = {
     if (failed !== "" && !other.rows[0]) return absent(c, w.caller, failed);
     if (failed !== "" && !decide({ allow: other.rows[0].write }, w).allow) return fail(c, 403, "Forbidden", "failed: " + REFUSED);
     if (was.rows[0] && was.rows[0].creator !== w.caller.id) return fail(c, 403, "Forbidden", "that name is another subscriber's");
+    // A subscription stays what it was made as: its position means another thing for each kind.
+    if (was.rows[0] && !was.rows[0].target !== takes) return fail(c, 400, "InvalidRequest", was.rows[0].target ? "that subscription is pushed to its target; unsubscribe it to make one to take from" : "that subscription is taken from; unsubscribe it to make one that is pushed");
     const most = Math.floor(topicOps.setting("subsPerTopic"));
     if (!was.rows[0] && count.rows[0].n >= most) return fail(c, 400, "InvalidRequest", `a topic has at most ${most} subscriptions`);
-    const made = await madeBy(b.delegation);
-    if (made.who !== w.caller.id) return fail(c, 403, "Forbidden", made.who === null ? `the core answered ${made.status} to quota.get under that delegation: it is one this caller made for brain-x-topic, with quota.get in its scope` : "that delegation was made by another account");
-    const [, , kept] = await sql.batch([[S.subscribe, topic, b.name, w.caller.id, target, b.delegation, params, failed, Date.now()], [S.resubscribe, topic, b.name, w.caller.id, target, b.delegation, params, failed], [S.sub, topic, b.name]]);
+    // A subscription to take from makes no call, and so has no delegation to ask of.
+    const made = takes ? { who: w.caller.id } : await madeBy(delegation);
+    if (made.who !== w.caller.id) return fail(c, 403, "Forbidden", made.who === null ? `the core answered ${made.status} to quota.get under that delegation; a subscription takes one that this caller made for brain-x-topic, with quota.get in its scope` : "that delegation was made by another account");
+    const [, , kept] = await sql.batch([[S.subscribe, topic, b.name, w.caller.id, target, delegation, params, failed, Date.now(), seconds], [S.resubscribe, topic, b.name, w.caller.id, target, delegation, params, failed, seconds], [S.sub, topic, b.name]]);
     // Deleted, or taken by another subscriber, between the checks and the write.
     if (!kept.rows[0]) return fail(c, 404, "NotFound", "no such topic");
     if (kept.rows[0].creator !== w.caller.id) return fail(c, 403, "Forbidden", "that name is another subscriber's");
@@ -493,8 +599,53 @@ topicApp = {
     const [one, was] = await sql.batch([[S.one, topic], [S.sub, topic, b.name]]);
     // Its creator, the creator of the topic and the owner. To anyone else it is not there.
     if (!was.rows[0] || !(was.rows[0].creator === caller.id || (one.rows[0] && admin(caller, one.rows[0])))) return fail(c, 404, "NotFound", NO_SUB);
-    await sql.exec(S.unsubscribe, topic, b.name);
+    await sql.batch([[S.unsubscribe, topic, b.name], [S.unclaimAll, topic, b.name]]);
     return c.json({ unsubscribed: true });
+  });
+
+  // topic.take and topic.done are for the caller that made the subscription. To anyone else it is not there.
+  const NO_CLAIM = "no such claim";
+
+  app.post(NS + "take", async (c) => {
+    const w = who(c), b = await sent(c), topic = b.topic;
+    if (!named(topic)) return badName(c);
+    if (!named(b.name)) return fail(c, 404, "NotFound", NO_SUB);
+    const limit = Math.min(L.maxPage, Math.max(1, Math.floor(Number(b.limit)) || 1));
+    await topicOps.schema();
+    const [one, was] = await sql.batch([[S.one, topic], [S.sub, topic, b.name]]);
+    const row = one.rows[0], sub = was.rows[0];
+    if (!row || !sub || sub.creator !== w.caller.id) return fail(c, 404, "NotFound", NO_SUB);
+    if (sub.target) return fail(c, 400, "InvalidRequest", "that subscription is pushed to its target; nothing is taken from it");
+    // The read rule is asked at each take: the caller is here to ask it of, as at topic.read.
+    if (!decide({ allow: row.read }, w).allow) return fail(c, 403, "Forbidden", REFUSED);
+    const now = Date.now(), taker = crypto.randomUUID(), until = now + sub.seconds * 1000;
+    // First the claims that ended for the last time: they go to the failed topic and are not handed out.
+    for (const to of await topicOps.expire(sub, now)) pushLater(c, to);
+    const [, , , taken] = await sql.batch([[S.again, topic, b.name, now, until, taker, limit, L.tries], [S.fresh, topic, b.name, until, taker, limit], [S.handed, topic, b.name, taker], [S.taken, topic, b.name, taker]]);
+    return c.json({ entries: taken.rows.map((r) => ({ topic, seq: r.seq, key: r.key, sender: r.sender, at: r.at, body: JSON.parse(r.body), hops: r.hops, tries: r.tries, until: r.until })) });
+  });
+
+  app.post(NS + "done", async (c) => {
+    const { caller } = who(c), b = await sent(c), topic = b.topic, f = b.failed;
+    if (!named(topic)) return badName(c);
+    if (!named(b.name)) return fail(c, 404, "NotFound", NO_SUB);
+    if (!Number.isInteger(b.seq) || b.seq < 1) return fail(c, 400, "InvalidRequest", "seq: the seq of an entry that topic.take answered");
+    // failed: true, or text that says why. false, null or left out: the entry was handled.
+    const gaveUp = !(f === undefined || f === null || f === false);
+    if (gaveUp && !(f === true || (typeof f === "string" && f.trim()))) return fail(c, 400, "InvalidRequest", "failed: true, or text that says why");
+    await topicOps.schema();
+    const [was, held] = await sql.batch([[S.sub, topic, b.name], [S.claimOf, topic, b.name, b.seq]]);
+    const sub = was.rows[0], claim = held.rows[0];
+    if (!sub || sub.creator !== caller.id) return fail(c, 404, "NotFound", NO_SUB);
+    if (!claim) return fail(c, 404, "NotFound", NO_CLAIM);
+    // Handled, or an entry the clock removed, of which nothing is left to send on.
+    if (!gaveUp || claim.key === null) {
+      await sql.exec(S.unclaim, topic, b.name, b.seq);
+      return c.json({ done: true });
+    }
+    const out = await topicOps.giveUp(sub, claim, f === true ? "the taker gave it up" : f.trim().slice(0, L.error));
+    if (out.appended) pushLater(c, out.failed);
+    return c.json({ done: true, failed: out.failed });
   });
 
   app.get(NS + "subs", async (c) => {
@@ -507,7 +658,7 @@ topicApp = {
     return c.json({ subs: found.rows.filter((r) => all || r.creator === caller.id).map((r) => subShown(r, caller.id === "owner" || r.creator === caller.id)) });
   });
 
-  app.all("*", (c) => fail(c, 404, "MethodNotImplemented", "topic.create, append, read, list, delete, subscribe, unsubscribe, subs and receive"));
+  app.all("*", (c) => fail(c, 404, "MethodNotImplemented", "topic.create, append, read, list, delete, subscribe, unsubscribe, subs, receive, take and done"));
   return app;
 }
 // %%
@@ -515,15 +666,23 @@ md`## Tests
 
 No SQL engine runs in a page. \`topicFakeSql\` answers for the statements of \`topicSql\` from a map of topics, a list of entries and a map of subscriptions, and refuses any other statement; each \`WHERE\` is written again in JS. The statements themselves are run by \`tests/tools/topic-sql.test.ts\` on a SQLite, where their plans are also given to the check of the deployed \`brain-db\`.
 
+A call of \`db.sql\` is one transaction on a Brain; the rig runs each whole before the next, so two calls at once do not mix their statements. No test waits for a claim to end: it sets the claim's \`until\` in the stand-in (\`rig.lapse\`).
+
 The core is stood in as well (\`topicRig\`): a call with \`x-brain-as\` is answered as \`asHolder\` of \`@tomlarkworthy/brain-core\` answers it (the holder, the length of the chain, the scope) and sent on as the delegation's maker, to a target the test gives or back into this service for \`topic.receive\`. The core itself is not in these tests. A test gives the clock its ticks, and waits for the pushes of an append with what the Worker handed to \`waitUntil\`.`
 // %%
 topicFakeSql = () => {
-  const topics = new Map(), entries = [], subs = new Map(), S = topicSql;
-  const COLS = ["topic", "name", "creator", "target", "delegation", "params", "failed", "pos", "tries", "not_before", "dropped", "status", "error", "lease", "runner", "created"];
+  const topics = new Map(), entries = [], subs = new Map(), claims = new Map(), S = topicSql;
+  const COLS = ["topic", "name", "creator", "target", "delegation", "params", "failed", "seconds", "pos", "tries", "not_before", "dropped", "status", "error", "lease", "runner", "created"];
   const sk = (topic, name) => topic + "\n" + name;
   const seen = (list) => row(list.sort((x, y) => (sk(x.topic, x.name) < sk(y.topic, y.name) ? -1 : 1)).map((r) => Object.fromEntries(COLS.map((k) => [k, r[k]]))));
   const behind = (x) => topics.has(x.topic) && x.pos < topics.get(x.topic).last;
-  const due = (now) => [...subs.values()].filter((x) => x.lease <= now && x.not_before <= now && behind(x));
+  const due = (now) => [...subs.values()].filter((x) => x.target !== "" && x.lease <= now && x.not_before <= now && behind(x));
+  // The claims of one subscription in seq order, the entry of a claim, and a claim as claimOf and spent answer it.
+  const ck = (topic, name, seq) => topic + "\n" + name + "\n" + seq;
+  const claimsOf = (topic, name) => [...claims.values()].filter((x) => x.topic === topic && x.name === name).sort((x, y) => x.seq - y.seq);
+  const entryOf = (x) => entries.find((e) => e.topic === x.topic && e.seq === x.seq);
+  const claimed = (x, e = entryOf(x)) => ({ seq: x.seq, tries: x.tries, until: x.until, key: e ? e.key : null, sender: e ? e.sender : null, at: e ? e.at : null, body: e ? e.body : null, hops: e ? e.hops : null });
+  const unclaim = (gone) => row([], [...claims.values()].filter(gone).map((x) => claims.delete(ck(x.topic, x.name, x.seq))).length);
   // The row a deliverer's statement changes: the subscription, when the runner is its own.
   const held = (a, change) => ((x) => (x && x.runner === a[2] ? (change(x), row([], 1)) : row([])))(subs.get(sk(a[0], a[1])));
   const row = (rows, changes = 0) => ({ rows, changes });
@@ -560,22 +719,44 @@ topicFakeSql = () => {
     if (statement === S.subCount) return row([{ n: [...subs.values()].filter((x) => x.topic === a[0] && x.name !== a[1]).length }]);
     if (statement === S.subscribe) {
       if (!t || sub) return row([]);
-      subs.set(sk(a[0], a[1]), { topic: a[0], name: a[1], creator: a[2], target: a[3], delegation: a[4], params: a[5], failed: a[6], seconds: 0, pos: t.last, tries: 0, not_before: 0, dropped: 0, status: 0, error: "", lease: 0, runner: "", created: a[7] });
+      subs.set(sk(a[0], a[1]), { topic: a[0], name: a[1], creator: a[2], target: a[3], delegation: a[4], params: a[5], failed: a[6], seconds: a[8], pos: t.last, tries: 0, not_before: 0, dropped: 0, status: 0, error: "", lease: 0, runner: "", created: a[7] });
       return row([], 1);
     }
-    if (statement === S.resubscribe) return sub && sub.creator === a[2] ? (Object.assign(sub, { target: a[3], delegation: a[4], params: a[5], failed: a[6], tries: 0, not_before: 0 }), row([], 1)) : row([]);
+    if (statement === S.resubscribe) return sub && sub.creator === a[2] ? (Object.assign(sub, { target: a[3], delegation: a[4], params: a[5], failed: a[6], seconds: a[7], tries: 0, not_before: 0 }), row([], 1)) : row([]);
     if (statement === S.unsubscribe) return row([], subs.delete(sk(a[0], a[1])) ? 1 : 0);
     if (statement === S.dropSubs) return row([], [...subs.values()].filter((x) => x.topic === a[0]).map((x) => subs.delete(sk(x.topic, x.name))).length);
     if (statement === S.due) return row(seen(due(a[0])).rows.slice(0, a[1]).map((x) => ({ topic: x.topic, name: x.name })));
     if (statement === S.dueOf) return row(seen(due(a[0]).filter((x) => x.topic === a[1])).rows.map((x) => ({ topic: x.topic, name: x.name })));
-    if (statement === S.claim) return sub && sub.lease <= a[4] && sub.not_before <= a[4] && behind(sub) ? (Object.assign(sub, { lease: a[3], runner: a[2] }), row([], 1)) : row([]);
+    if (statement === S.claim) return sub && sub.target !== "" && sub.lease <= a[4] && sub.not_before <= a[4] && behind(sub) ? (Object.assign(sub, { lease: a[3], runner: a[2] }), row([], 1)) : row([]);
     if (statement === S.next) return row(sub ? entries.filter((e) => e.topic === a[0] && e.seq > sub.pos).sort((x, y) => x.seq - y.seq).slice(0, 1).map(({ topic, ...e }) => e) : []);
     if (statement === S.settled) return held(a, (x) => Object.assign(x, { pos: a[3], tries: 0, not_before: 0, status: a[4], error: a[5], dropped: x.dropped + a[6], lease: a[7] }));
     if (statement === S.waiting) return held(a, (x) => Object.assign(x, { tries: a[3], not_before: a[4], status: a[5], error: a[6], lease: 0, runner: "" }));
     if (statement === S.rest) return held(a, (x) => Object.assign(x, { pos: Math.max(x.pos, a[3]), lease: 0, runner: "" }));
+    if (statement === S.again) {
+      const ended = claimsOf(a[0], a[1]).filter((x) => x.until <= a[2] && x.tries < a[6] && entryOf(x)).slice(0, a[5]);
+      for (const x of ended) Object.assign(x, { until: a[3], tries: x.tries + 1, taker: a[4] });
+      return row([], ended.length);
+    }
+    if (statement === S.fresh) {
+      if (!sub || sub.target !== "") return row([]);
+      const left = Math.max(0, a[4] - claimsOf(a[0], a[1]).filter((x) => x.taker === a[3]).length);
+      const next = entries.filter((e) => e.topic === a[0] && e.seq > sub.pos && !claims.has(ck(a[0], a[1], e.seq))).sort((x, y) => x.seq - y.seq).slice(0, left);
+      for (const e of next) claims.set(ck(a[0], a[1], e.seq), { topic: a[0], name: a[1], seq: e.seq, until: a[2], tries: 1, taker: a[3] });
+      return row([], next.length);
+    }
+    if (statement === S.handed) return sub ? ((sub.pos = Math.max(sub.pos, ...claimsOf(a[0], a[1]).filter((x) => x.taker === a[2]).map((x) => x.seq))), row([], 1)) : row([]);
+    if (statement === S.taken) return row(claimsOf(a[0], a[1]).filter((x) => x.taker === a[2] && entryOf(x)).map((x) => (({ seq, key, sender, at, body, hops, tries, until }) => ({ seq, key, sender, at, body, hops, tries, until }))(claimed(x))));
+    if (statement === S.claimOf) return row(claimsOf(a[0], a[1]).filter((x) => x.seq === a[2]).map((x) => claimed(x)));
+    if (statement === S.spent) return row(claimsOf(a[0], a[1]).filter((x) => x.until <= a[2] && x.tries >= a[3] && entryOf(x)).slice(0, a[4]).map((x) => claimed(x)));
+    if (statement === S.spentOf) return row([...new Set([...claims.values()].filter((x) => x.until <= a[0] && x.tries >= a[1]).map((x) => sk(x.topic, x.name)))].sort().slice(0, a[2]).map((k) => ({ topic: k.split("\n")[0], name: k.split("\n")[1] })));
+    if (statement === S.lost) return sub && claims.has(ck(a[0], a[1], a[2])) ? (Object.assign(sub, { dropped: sub.dropped + a[3], status: 0, error: a[4] }), row([], 1)) : row([]);
+    if (statement === S.unclaim) return unclaim((x) => x.topic === a[0] && x.name === a[1] && x.seq === a[2]);
+    if (statement === S.unclaimAll) return unclaim((x) => x.topic === a[0] && x.name === a[1]);
+    if (statement === S.dropClaims) return unclaim((x) => x.topic === a[0]);
+    if (statement === S.orphans) return unclaim((x) => !entryOf(x));
     throw new Error("topicFakeSql: " + statement);
   };
-  return { run, topics, entries, subs };
+  return { run, topics, entries, subs, claims };
 }
 // %%
 topicRig = async () => {
@@ -587,13 +768,19 @@ topicRig = async () => {
   // delegations: id -> { from, scope, holder }. targets: a method's whole name -> what it answers.
   // heard: each call that reached a target, with the headers the core would send it and the context the Worker sent.
   const delegations = new Map(), targets = new Map(), heard = [];
-  let sim = null;
+  let sim = null, last = Promise.resolve();
   const core = async (request) => {
     const url = new URL(request.url), nsid = url.pathname.replace("/xrpc/", "");
     if (nsid === N + "db.sql") {
-      const results = [];
-      for (const [statement, ...args] of (await request.json()).statements) results.push(await db.run(statement, args));
-      return reply({ results });
+      // One call is one transaction, as brain-db runs it: of two calls at once one runs whole after the other.
+      const { statements } = await request.json();
+      const batch = last.then(async () => {
+        const results = [];
+        for (const [statement, ...args] of statements) results.push(await db.run(statement, args));
+        return results;
+      });
+      last = batch.catch(() => null);
+      return reply({ results: await batch });
     }
     const as = request.headers.get("x-brain-as"), d = delegations.get(as), hops = Number(request.headers.get("x-brain-hops") || 0);
     if (!as) return reply({ error: "MethodNotImplemented", message: nsid }, 501);
@@ -636,7 +823,10 @@ topicRig = async () => {
     // Every push an append started has ended: what the Worker handed to waitUntil.
     pushed: () => simWaits.done(),
     tick: (scheduledTime) => sim.scheduled({ scheduledTime }),
-    sub: (topic, name) => db.subs.get(topic + "\n" + name)
+    sub: (topic, name) => db.subs.get(topic + "\n" + name),
+    claim: (topic, name, seq) => db.claims.get(topic + "\n" + name + "\n" + seq),
+    // Every claim of a subscription has ended: what a test does in place of waiting its seconds.
+    lapse: (topic, name) => [...db.claims.values()].filter((x) => x.topic === topic && x.name === name).forEach((x) => (x.until = Date.now() - 1))
   };
 }
 // %%
@@ -817,7 +1007,7 @@ test_topic_refuses_what_is_no_name_no_key_and_too_long_a_body = {
   expect((await rig.owner("read?topic=t&after=1")).data.entries.map((e) => [e.key, e.body])).toEqual([["fits", "12345678"], ["wide", "éééé"], ["none", null]]);
   // No such topic, and no such method: 404.
   expect((await rig.owner("append", { topic: "nope", key: "k", body: 1 })).status).toBe(404);
-  expect((await rig.owner("take", { topic: "t" })).data.error).toBe("MethodNotImplemented");
+  expect((await rig.owner("nope", { topic: "t" })).data.error).toBe("MethodNotImplemented");
   return "10 names, 5 keys and 2 bodies refused";
 }
 // %%
@@ -875,8 +1065,8 @@ test_topic_subscribe_takes_only_a_method_named_receive = {
   for (const topic of ["a", "b", "f"]) await rig.owner("create", { topic });
   const sub = (more) => rig.token("subscribe", { topic: "a", name: "s", target: "topic.receive", delegation: d, ...more });
   for (const target of [N + "browser.open", N + "topic.append", N + "m.0a.x.receiver", "https://example.com/receive", "com.evil.x.receive", "receive", "topic.receive.", "topic-x.receive", "", 7, {}]) expect([target, (await sub({ target })).status]).toEqual([target, 400]);
-  // With no target it would be a subscription to take from, which is not built.
-  expect((await sub({ target: undefined })).data.message).toBe("target: a method named NAME.receive; a subscription to take from is not built");
+  // With no target it is a subscription to take from, which has no delegation.
+  expect((await sub({ target: undefined })).data).toEqual({ error: "InvalidRequest", message: "delegation and params are a push subscription's: with no target the subscription is taken from" });
   expect(rig.db.subs.size).toBe(0);
   // Short or whole, the one whole name is kept.
   for (const target of ["topic.receive", N + "topic.receive", N + "m.0a1b.shop.receive"]) expect([target, (await sub({ target, name: "n" + target.length })).data.target]).toEqual([target, target.startsWith("com.") ? target : N + target]);
@@ -1068,13 +1258,13 @@ test_topic_subs_are_read_and_ended_by_their_creator_and_the_topics = {
   for (const [who, topic, name, delegation] of [[a, own, "mine", da], [b, own, "theirs", db], [b, "o", "theirs", db], [rig.token, "o", "mine", dow]]) expect((await who("subscribe", { topic, name, target: "shop.receive", delegation, params: { p: name } })).status).toBe(200);
   const names = async (who, path) => (await who(path)).data.subs.map((s) => [s.topic, s.name, Object.keys(s).length]);
   // Each reads their own, whole; the owner all. Of a topic, its creator also reads who is subscribed and to what, and no more of it.
-  expect(await names(b, "subs")).toEqual([[own, "theirs", 14], ["o", "theirs", 14]]);
-  expect(await names(a, "subs")).toEqual([[own, "mine", 14]]);
-  expect(await names(rig.owner, "subs")).toEqual([[own, "mine", 14], [own, "theirs", 14], ["o", "mine", 14], ["o", "theirs", 14]]);
-  expect(await names(a, "subs?topic=" + own)).toEqual([[own, "mine", 14], [own, "theirs", 6]]);
+  expect(await names(b, "subs")).toEqual([[own, "theirs", 15], ["o", "theirs", 15]]);
+  expect(await names(a, "subs")).toEqual([[own, "mine", 15]]);
+  expect(await names(rig.owner, "subs")).toEqual([[own, "mine", 15], [own, "theirs", 15], ["o", "mine", 15], ["o", "theirs", 15]]);
+  expect(await names(a, "subs?topic=" + own)).toEqual([[own, "mine", 15], [own, "theirs", 6]]);
   expect((await a("subs?topic=" + own)).data.subs[1]).toEqual({ topic: own, name: "theirs", creator: B, target: N + "shop.receive", position: 0, created: rig.sub(own, "theirs").created });
-  expect(await names(b, "subs?topic=" + own)).toEqual([[own, "theirs", 14]]);
-  expect(await names(b, "subs?topic=o")).toEqual([["o", "theirs", 14]]);
+  expect(await names(b, "subs?topic=" + own)).toEqual([[own, "theirs", 15]]);
+  expect(await names(b, "subs?topic=o")).toEqual([["o", "theirs", 15]]);
   expect(await names(a, "subs?topic=o")).toEqual([]);
   expect(await names(a, "subs?topic=nope")).toEqual([]);
   expect((await a("subs?topic=Upper")).status).toBe(400);
@@ -1102,15 +1292,256 @@ test_topic_subs_are_read_and_ended_by_their_creator_and_the_topics = {
   return "4 subscriptions, each ended";
 }
 // %%
+test_topic_take_hands_each_entry_to_one_taker = {
+  const rig = await topicRig();
+  const take = (limit, who = rig.token) => who("take", { topic: "work", name: "w", limit });
+  await rig.owner("create", { topic: "work" });
+  // An entry from before the subscription is not taken: a subscription starts at the topic's last.
+  await rig.token("append", { topic: "work", key: "old", body: 0 });
+  const made = await rig.token("subscribe", { topic: "work", name: "w" });
+  expect(made.data).toEqual({ topic: "work", name: "w", creator: "owner", target: null, delegation: null, params: {}, failed: null, seconds: 300, position: 1, tries: 0, waits: null, dropped: 0, status: 0, error: "", created: rig.sub("work", "w").created, subscribed: true });
+  expect((await take(5)).data).toEqual({ entries: [] });
+  for (const key of ["a", "b", "c", "d", "e"]) await rig.token("append", { topic: "work", key, body: { job: key } });
+  // A subscription to take from is pushed nothing, by an append or by a tick, and its position is not moved by either.
+  await rig.pushed();
+  await rig.tick(Date.now() + 1000);
+  expect([rig.heard.length, rig.sub("work", "w")]).toMatchObject([0, { pos: 1, lease: 0, runner: "", status: 0 }]);
+  // Two takers at once, a token and the owner's tab, are one caller and are handed different entries.
+  const before = Date.now();
+  const [x, y] = await Promise.all([take(2), take(2, rig.owner)]);
+  const after = Date.now();
+  expect([x.status, y.status, x.data.entries.length, y.data.entries.length]).toEqual([200, 200, 2, 2]);
+  expect([...x.data.entries, ...y.data.entries].map((e) => e.seq).sort()).toEqual([2, 3, 4, 5]);
+  // An entry as topic.read answers it, with how many claims it has had and when this one ends.
+  const first = [...x.data.entries, ...y.data.entries].find((e) => e.seq === 2);
+  expect(Object.keys(first).sort()).toEqual(["at", "body", "hops", "key", "sender", "seq", "topic", "tries", "until"]);
+  expect(first).toMatchObject({ topic: "work", seq: 2, key: "a", sender: "owner", body: { job: "a" }, hops: 0, tries: 1 });
+  expect(first.until).toBeGreaterThanOrEqual(before + 300000);
+  expect(first.until).toBeLessThanOrEqual(after + 300000);
+  // The position is the last entry handed out. What is claimed is not handed out while its claim lasts.
+  expect((await rig.token("subs?topic=work")).data.subs[0]).toMatchObject({ position: 5, seconds: 300, target: null });
+  expect((await take(200)).data.entries.map((e) => [e.seq, e.tries])).toEqual([[6, 1]]);
+  expect((await take(200)).data.entries).toEqual([]);
+  expect(rig.db.claims.size).toBe(5);
+  // The limit: 1 when it is left out or is no number above 0, and what is there when it is more than that.
+  await rig.lapse("work", "w");
+  for (const [limit, seqs] of [[undefined, [2]], [0, [3]], ["x", [4]], [-3, [5]], ["1", [6]]]) expect([limit, (await take(limit)).data.entries.map((e) => e.seq)]).toEqual([limit, seqs]);
+  await rig.lapse("work", "w");
+  expect((await take(1000)).data.entries.map((e) => [e.seq, e.tries])).toEqual([[2, 3], [3, 3], [4, 3], [5, 3], [6, 3]]);
+  // Claims that ended come before entries that were never handed out, the oldest first, and the limit is of both together.
+  for (const key of ["f", "g"]) await rig.token("append", { topic: "work", key, body: key });
+  rig.claim("work", "w", 4).until = rig.claim("work", "w", 6).until = Date.now() - 1;
+  expect((await take(3)).data.entries.map((e) => [e.seq, e.tries])).toEqual([[4, 4], [6, 4], [7, 1]]);
+  expect(rig.sub("work", "w").pos).toBe(7);
+  return "5 entries to 2 takers, none twice";
+}
+// %%
+test_topic_claim_that_ended_is_handed_out_again_and_the_fifth_ending_fails_the_entry = {
+  const rig = await topicRig(), N = rig.N;
+  const d = rig.delegate("0000000000a1", "owner", ["shop.receive", "quota.get"]), shop = rig.target("shop.receive");
+  const take = (name, limit = 5) => rig.token("take", { topic: "work", name, limit }).then((r) => r.data.entries.map((e) => [e.seq, e.tries]));
+  for (const topic of ["work", "f"]) await rig.owner("create", { topic });
+  // A push subscription to the failed topic hears what the takers give up.
+  await rig.token("subscribe", { topic: "f", name: "hear", target: "shop.receive", delegation: d });
+  expect((await rig.token("subscribe", { topic: "work", name: "w", seconds: 60, failed: "f" })).data).toMatchObject({ seconds: 60, failed: "f", target: null });
+  await rig.token("subscribe", { topic: "work", name: "bare", seconds: 86400 });
+  for (const key of ["a", "b"]) await rig.token("append", { topic: "work", key, body: key });
+  const before = Date.now();
+  expect(await take("w", 1)).toEqual([[1, 1]]);
+  expect(rig.claim("work", "w", 1).until).toBeGreaterThanOrEqual(before + 60000);
+  expect(rig.claim("work", "w", 1).until).toBeLessThanOrEqual(Date.now() + 60000);
+  // While the claim lasts the entry is not handed out. When it has ended it is, with one more claim counted.
+  expect(await take("w")).toEqual([[2, 1]]);
+  rig.claim("work", "w", 1).until = Date.now() - 1;
+  expect(await take("w")).toEqual([[1, 2]]);
+  for (const tries of [3, 4, 5]) {
+    rig.claim("work", "w", 1).until = Date.now() - 1;
+    expect(await take("w")).toEqual([[1, tries]]);
+  }
+  await rig.pushed();
+  expect([(await rig.owner("read?topic=f")).data.entries, shop.length]).toEqual([[], 0]);
+  // The fifth ending: the next take is not handed it. It is in the failed topic, as a failed push is.
+  rig.claim("work", "w", 1).until = Date.now() - 1;
+  expect(await take("w")).toEqual([]);
+  await rig.pushed();
+  const failed = (await rig.owner("read?topic=f")).data.entries;
+  expect(failed.map((e) => [e.key, e.sender, e.hops, e.body.topic, e.body.name, e.body.seq, e.body.status, e.body.error, e.body.tries, e.body.entry.key, e.body.entry.body])).toEqual([["work/w/1", "worker:brain-x-topic", 1, "work", "w", 1, 0, "5 claims ended with no topic.done", 5, "a", "a"]]);
+  expect(Object.keys(failed[0].body).sort()).toEqual(["entry", "error", "name", "seq", "status", "topic", "tries"]);
+  expect([rig.claim("work", "w", 1), rig.sub("work", "w")]).toMatchObject([undefined, { dropped: 0, pos: 2, error: "5 claims ended with no topic.done" }]);
+  expect(shop.map((h) => h.body.key)).toEqual(["work/w/1"]);
+  // With no take at all the clock does it: the other entry's fifth claim ends and a tick sends it on.
+  for (const tries of [2, 3, 4, 5]) {
+    rig.claim("work", "w", 2).until = Date.now() - 1;
+    expect(await take("w")).toEqual([[2, tries]]);
+  }
+  await rig.tick(Date.now() + 1000);
+  expect(rig.db.claims.size).toBe(1);
+  await rig.tick(rig.claim("work", "w", 2).until);
+  expect([rig.db.claims.size, (await rig.owner("read?topic=f")).data.entries.map((e) => e.key), shop.map((h) => h.body.key)]).toEqual([0, ["work/w/1", "work/w/2"], ["work/w/1", "work/w/2"]]);
+  // With no failed topic the entry is dropped and counted, once.
+  for (const tries of [1, 2, 3, 4, 5]) {
+    expect(await take("bare", 1)).toEqual([[1, tries]]);
+    await rig.lapse("work", "bare");
+  }
+  expect(await take("bare", 1)).toEqual([[2, 1]]);
+  expect(rig.sub("work", "bare")).toMatchObject({ dropped: 1, error: "5 claims ended with no topic.done" });
+  await rig.tick(Date.now() + 1000);
+  expect([rig.sub("work", "bare").dropped, rig.db.topics.get("f").last]).toEqual([1, 2]);
+  // An entry at the end of a chain is dropped whatever the subscription names: the way to failed ends.
+  await rig.owner("create", { topic: "work", write: "true" });
+  await rig.as("worker:brain-x-echo", { "x-brain-hops": "8" })("append", { topic: "work", key: "far", body: 1 });
+  for (const tries of [1, 2, 3, 4, 5]) {
+    expect(await take("w")).toEqual([[3, tries]]);
+    await rig.lapse("work", "w");
+  }
+  expect(await take("w")).toEqual([]);
+  expect([rig.sub("work", "w").dropped, rig.db.topics.get("f").last]).toEqual([1, 2]);
+  // A failed topic that is its own: what the takers give up is taken again, one link on, and ends at 8.
+  await rig.owner("create", { topic: "own" });
+  await rig.token("subscribe", { topic: "own", name: "w", failed: "own" });
+  await rig.token("append", { topic: "own", key: "start", body: "x" });
+  for (let i = 0; i < 12; i++) for (const e of (await rig.token("take", { topic: "own", name: "w" })).data.entries) await rig.token("done", { topic: "own", name: "w", seq: e.seq, failed: true });
+  expect([(await rig.owner("read?topic=own")).data.entries.map((e) => e.hops), rig.sub("own", "w").dropped, [...rig.db.claims.values()].filter((x) => x.topic === "own").length]).toEqual([[0, 1, 2, 3, 4, 5, 6, 7, 8], 1, 0]);
+  return "5 claims of one entry, then the failed topic";
+}
+// %%
+test_topic_done_ends_a_claim_and_failed_sends_the_entry_on = {
+  const rig = await topicRig();
+  const take = (limit = 1) => rig.token("take", { topic: "work", name: "w", limit }).then((r) => r.data.entries.map((e) => e.seq));
+  const done = (seq, more = {}) => rig.token("done", { topic: "work", name: "w", seq, ...more });
+  const gone = { error: "NotFound", message: "no such claim" };
+  for (const topic of ["work", "f"]) await rig.owner("create", { topic });
+  await rig.token("subscribe", { topic: "work", name: "w", failed: "f" });
+  for (const key of ["a", "b", "c", "d", "e", "g", "h"]) await rig.token("append", { topic: "work", key, body: key });
+  // Take 1 of 2, done, and the next take answers the other.
+  expect(await take()).toEqual([1]);
+  expect((await done(1)).data).toEqual({ done: true });
+  expect(rig.db.claims.size).toBe(0);
+  expect(await take()).toEqual([2]);
+  // Sent again there is no claim; neither is there for an entry that was not taken, or that is not there.
+  expect([(await done(1)).data, (await done(3)).data, (await done(99)).data]).toEqual([gone, gone, gone]);
+  expect((await done(1)).status).toBe(404);
+  for (const seq of [0, -1, 1.5, "2", null, undefined]) expect([seq, (await done(seq)).status]).toEqual([seq, 400]);
+  for (const failed of ["", "   ", 0, 1, 7, {}, []]) expect([failed, (await done(2, { failed })).status]).toEqual([failed, 400]);
+  expect(rig.db.claims.size).toBe(1);
+  // failed: false is done, and nothing goes to the failed topic.
+  expect((await done(2, { failed: false })).data).toEqual({ done: true });
+  expect(rig.db.topics.get("f").last).toBe(0);
+  // failed with text, and failed: true. The entry is in the failed topic with the text and the claims it had.
+  expect(await take(2)).toEqual([3, 4]);
+  expect((await done(3, { failed: "  no parser for it " })).data).toEqual({ done: true, failed: "f" });
+  expect((await done(4, { failed: true })).data).toEqual({ done: true, failed: "f" });
+  expect((await done(4, { failed: true })).data).toEqual(gone);
+  expect((await rig.owner("read?topic=f")).data.entries.map((e) => [e.key, e.sender, e.hops, e.body.status, e.body.error, e.body.tries, e.body.entry.key])).toEqual([["work/w/3", "worker:brain-x-topic", 1, 0, "no parser for it", 1, "c"], ["work/w/4", "worker:brain-x-topic", 1, 0, "the taker gave it up", 1, "d"]]);
+  expect(rig.sub("work", "w")).toMatchObject({ dropped: 0, error: "the taker gave it up", pos: 4 });
+  // A text is kept to 300 characters.
+  expect(await take()).toEqual([5]);
+  await done(5, { failed: "y".repeat(400) });
+  expect((await rig.owner("read?topic=f&after=2")).data.entries[0].body.error).toBe("y".repeat(300));
+  // A claim that has ended is still done. One that was handed out again is done by either taker's call: nothing tells them apart.
+  expect(await take()).toEqual([6]);
+  await rig.lapse("work", "w");
+  expect((await done(6)).data).toEqual({ done: true });
+  expect(await take()).toEqual([7]);
+  await rig.lapse("work", "w");
+  expect((await rig.token("take", { topic: "work", name: "w" })).data.entries.map((e) => [e.seq, e.tries])).toEqual([[7, 2]]);
+  expect([(await done(7)).data, (await done(7)).data, rig.db.claims.size]).toEqual([{ done: true }, gone, 0]);
+  // With no failed topic, or one that is gone, the entry is dropped and counted, and the answer says so.
+  await rig.owner("delete", { topic: "f" });
+  await rig.token("append", { topic: "work", key: "i", body: "i" });
+  expect(await take()).toEqual([8]);
+  expect((await done(8, { failed: "nowhere to go" })).data).toEqual({ done: true, failed: null });
+  expect(rig.sub("work", "w")).toMatchObject({ dropped: 1, error: "nowhere to go" });
+  // An entry the clock removed while it was claimed: it is not handed out again, and its claim is done or goes with the next removal.
+  for (const key of ["j", "k"]) await rig.token("append", { topic: "work", key, body: key });
+  expect(await take(2)).toEqual([9, 10]);
+  rig.db.entries.splice(0, rig.db.entries.length);
+  await rig.lapse("work", "w");
+  expect([await take(5), rig.db.claims.size]).toEqual([[], 2]);
+  expect([(await done(9, { failed: true })).data, rig.sub("work", "w").dropped, rig.db.claims.size]).toEqual([{ done: true }, 1, 1]);
+  await rig.tick(Date.now() + 1000);
+  expect(rig.db.claims.size).toBe(0);
+  // topic.unsubscribe takes the subscription's claims, and topic.delete the topic's.
+  await rig.token("subscribe", { topic: "work", name: "v" });
+  for (const key of ["l", "m"]) await rig.token("append", { topic: "work", key, body: key });
+  expect([await take(2), (await rig.token("take", { topic: "work", name: "v", limit: 2 })).data.entries.length, rig.db.claims.size]).toEqual([[11, 12], 2, 4]);
+  await rig.token("unsubscribe", { topic: "work", name: "w" });
+  expect([...rig.db.claims.values()].map((x) => [x.name, x.seq])).toEqual([["v", 11], ["v", 12]]);
+  await rig.owner("delete", { topic: "work" });
+  expect(rig.db.claims.size).toBe(0);
+  return "12 entries taken; 8 done, 4 given up";
+}
+// %%
+test_topic_take_is_for_the_caller_that_subscribed = {
+  const rig = await topicRig(), N = rig.N;
+  const A = "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa", B = "did:plc:bbbbbbbbbbbbbbbbbbbbbbbb", a = rig.as(A), b = rig.as(B), ia = await rig.id(A);
+  const own = `m.${ia}.x`, none = { error: "NotFound", message: "no such subscription" };
+  await a("create", { topic: own, read: `caller.id == "${A}" || caller.id == "${B}"` });
+  expect((await a("subscribe", { topic: own, name: "w" })).data).toMatchObject({ creator: A, seconds: 300, subscribed: true });
+  expect((await b("subscribe", { topic: own, name: "theirs", seconds: 10 })).data).toMatchObject({ creator: B, seconds: 10 });
+  for (const key of ["a", "b", "c"]) await a("append", { topic: own, key, body: key });
+  expect((await a("take", { topic: own, name: "w" })).data.entries.map((e) => e.seq)).toEqual([1]);
+  // Another member, and the owner, take and end nothing of it: to them the subscription is not there, as one with no such name is not.
+  for (const who of [b, rig.owner, rig.worker]) {
+    const answers = [await who("take", { topic: own, name: "w" }), await who("take", { topic: own, name: "nope" }), await who("done", { topic: own, name: "w", seq: 1 }), await who("done", { topic: own, name: "nope", seq: 1 }), await who("done", { topic: own, name: "w", seq: 1, failed: true })];
+    expect(answers.map((r) => [r.status, r.data])).toEqual(Array(5).fill([404, none]));
+  }
+  expect([rig.db.claims.size, rig.sub(own, "w").pos]).toEqual([1, 1]);
+  // Each subscription has its own claims of the same entries.
+  expect((await b("take", { topic: own, name: "theirs", limit: 2 })).data.entries.map((e) => e.seq)).toEqual([1, 2]);
+  expect((await b("done", { topic: own, name: "theirs", seq: 1 })).data).toEqual({ done: true });
+  expect(rig.claim(own, "w", 1).tries).toBe(1);
+  // The read rule is asked at each take: a reader the creator shut out takes no more, and still ends a claim it has.
+  await a("create", { topic: own, read: `caller.id == "${A}"` });
+  expect((await b("take", { topic: own, name: "theirs" })).data).toEqual({ error: "Forbidden", message: "the topic's rule does not let this caller in" });
+  expect((await b("done", { topic: own, name: "theirs", seq: 2 })).data).toEqual({ done: true });
+  // A topic the caller may not read takes no subscription to take from, and one that is not there answers them the same.
+  const kept = [await b("subscribe", { topic: own, name: "more" }), await b("subscribe", { topic: `m.${ia}.nope`, name: "more" })];
+  expect(kept.map((r) => [r.status, r.data.message])).toEqual(Array(2).fill([403, "the topic's rule does not let this caller in"]));
+  expect(rig.db.subs.size).toBe(2);
+  // Its creator reads who is subscribed, as of a push subscription, and ends it; the claims go with it.
+  expect((await a("subs?topic=" + own)).data.subs.map((s) => [s.name, s.creator, s.target, s.seconds, Object.keys(s).length])).toEqual([["theirs", B, null, undefined, 6], ["w", A, null, 300, 15]]);
+  // What is no subscription to take from: seconds that is no whole number from 1 to a day, and what a push subscription has.
+  const d = rig.delegate("0000000000a1", A, ["shop.receive", "quota.get"]), sub = (more) => a("subscribe", { topic: own, name: "s", ...more });
+  for (const seconds of [0, -1, 1.5, "60", 86401, true, {}]) expect([seconds, (await sub({ seconds })).status]).toEqual([seconds, 400]);
+  for (const more of [{ delegation: d }, { params: { x: 1 } }, { target: "shop.receive", delegation: d, seconds: 60 }, { failed: "Upper" }]) expect([more, (await sub(more)).status]).toEqual([more, 400]);
+  expect((await sub({ failed: `m.${ia}.nope` })).status).toBe(404);
+  expect(rig.db.subs.size).toBe(2);
+  for (const seconds of [1, 86400, null]) expect([seconds, (await sub({ seconds })).data.seconds]).toEqual([seconds, seconds ?? 300]);
+  // Sent again by its creator it takes the new seconds and failed topic, and keeps its position and its claims. It stays what it was made as.
+  await a("create", { topic: `m.${ia}.f` });
+  expect((await a("subscribe", { topic: own, name: "w", seconds: 5, failed: `m.${ia}.f` })).data).toMatchObject({ seconds: 5, failed: `m.${ia}.f`, position: 1, subscribed: false });
+  expect(rig.claim(own, "w", 1)).toMatchObject({ tries: 1 });
+  const before = Date.now();
+  expect((await a("take", { topic: own, name: "w" })).data.entries.map((e) => [e.seq, e.until >= before + 5000 && e.until <= Date.now() + 5000])).toEqual([[2, true]]);
+  expect((await a("subscribe", { topic: own, name: "w", target: "shop.receive", delegation: d })).data).toEqual({ error: "InvalidRequest", message: "that subscription is taken from; unsubscribe it to make one that is pushed" });
+  expect((await a("subscribe", { topic: own, name: "p", target: "shop.receive", delegation: d })).status).toBe(200);
+  expect((await a("subscribe", { topic: own, name: "p" })).data).toEqual({ error: "InvalidRequest", message: "that subscription is pushed to its target; unsubscribe it to make one to take from" });
+  expect(rig.sub(own, "p")).toMatchObject({ target: N + "shop.receive", seconds: 0 });
+  // Nothing is taken from a push subscription, and none of its entries is claimed.
+  expect((await a("take", { topic: own, name: "p" })).data).toEqual({ error: "InvalidRequest", message: "that subscription is pushed to its target; nothing is taken from it" });
+  expect((await a("done", { topic: own, name: "p", seq: 1 })).data).toEqual({ error: "NotFound", message: "no such claim" });
+  // What is no topic and no name.
+  expect([(await a("take", { topic: "Upper", name: "w" })).status, (await a("take", { topic: own, name: "Upper" })).status, (await a("take", { topic: own })).status, (await a("done", { topic: "Upper", name: "w", seq: 1 })).status, (await a("done", { topic: own, name: 7, seq: 1 })).status]).toEqual([400, 404, 404, 400, 404]);
+  // Tokens of the owner and the owner's tab are one caller and share a subscription; it counts among the subscriptions of its topic.
+  await rig.owner("create", { topic: "o" });
+  expect((await rig.as("owner", rig.settings({ subsPerTopic: 1 }))("subscribe", { topic: "o", name: "w" })).status).toBe(200);
+  expect((await rig.as("owner", rig.settings({ subsPerTopic: 1 }))("subscribe", { topic: "o", name: "w2" })).data.message).toBe("a topic has at most 1 subscriptions");
+  await rig.token("append", { topic: "o", key: "k", body: 1 });
+  expect((await rig.token("take", { topic: "o", name: "w" })).data.entries.map((e) => e.seq)).toEqual([1]);
+  expect((await rig.owner("done", { topic: "o", name: "w", seq: 1 })).data).toEqual({ done: true });
+  return "a member's subscription, kept from another member and from the owner";
+}
+// %%
 test_topic_declares_what_it_needs = {
   const { meta } = await topic_service.emit();
   expect(meta).toMatchObject({ worker: "brain-x-topic", role: "recipe", module: "@tomlarkworthy/brain-topic", resources: ["sql", "xrpc"], secrets: [], calls: [], crons: ["* * * * *"] });
   const N = "com.lopecode.brain.topic.";
-  expect(Object.keys(meta.access).sort().map((m) => m.replace(N, ""))).toEqual(["append", "create", "delete", "list", "read", "receive", "subs", "subscribe", "unsubscribe"]);
+  expect(Object.keys(meta.access).sort().map((m) => m.replace(N, ""))).toEqual(["append", "create", "delete", "done", "list", "read", "receive", "subs", "subscribe", "take", "unsubscribe"]);
   // The method's rule lets in whoever a topic's rule could name, and nobody the core does not know.
   const callers = { owner: { caller: "owner", via: "session" }, token: { caller: "owner", via: "delegation:0007ea9d1903", holder: "secret:loop-topic" }, member: { caller: "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa" }, worker: { caller: "worker:brain-x-echo" }, deployer: { caller: "deployer" }, anonymous: {} };
   const through = (m) => Object.entries(callers).filter(([, w]) => decide(meta.access[N + m], { caller: callerOf(w), origin: callerOf(w), request: { params: {} } }).allow).map(([k]) => k);
-  for (const m of ["append", "create", "delete", "list", "read", "receive", "subs", "subscribe", "unsubscribe"]) expect([m, through(m)]).toEqual([m, ["owner", "token", "member", "worker"]]);
+  for (const m of ["append", "create", "delete", "done", "list", "read", "receive", "subs", "subscribe", "take", "unsubscribe"]) expect([m, through(m)]).toEqual([m, ["owner", "token", "member", "worker"]]);
   return Object.keys(meta.access).length + " methods";
 }
 // %%
