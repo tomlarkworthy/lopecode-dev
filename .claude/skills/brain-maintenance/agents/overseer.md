@@ -37,6 +37,20 @@ for `open` and `ready`, `done`, `review`, `needs-owner`. They are what the last 
 judged by: an edit that was meant to cut rework and did not is said so, with both numbers. The tool
 is the loop's own (`issue-stats.ts`); a number it lacks is a change you may make to it.
 
+Since `os-2-order-and-pool` (submitted at event 2844, `done` at 2849, 2026-10-11) the loop has no
+fixed pool and gives a place to a review before a new start
+(`plan/cloud-brain-loop-order-of-service.md`, R3, and its row in the table of checks). Put a fifth
+line in your entry: the median stay at `in-review` of the stays that began after event 2849, with
+the number of stays. The spec's figure to read it against is 6.3 min over 147 stays, the whole
+record when the spec was written on 2026-10-11. Once 40 stays are in the window, a median over 6.3
+is a finding. On 2026-10-12 `issue-stats.ts --window=2849` printed one `window` line and no time in
+a state, so until the tool has that line it is made from the events: `io "sync?after=2849"`, which
+answers 200 events a call (ask again from the last `seq` until none come), and for each move to
+`in-review` the time to the next move of that issue out of it. That gave 10 stays, median 4.6 min,
+at event 3367. When a report or the journal shows a machine that carried no more writers (memory,
+the channel rows of QA tabs, a tab that did not open), name the sign in your entry and add it to
+`SKILL.md` step 2 as one of your two edits (the spec, part 3, "Not known").
+
 The owner, 2026-10-11: "we want a system that self adapt and gets better over time, at the moment
 the system is quite ineffecient". On that day 57 issues had spent 47.4 h waiting in `open`,
 `triaged` and `ready` and 9.1 h being worked; 15 of 37 submits were sent back
