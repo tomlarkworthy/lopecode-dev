@@ -186,8 +186,10 @@ Before the rebase five of them were run so, by mistake: each failed at the 30 s 
 was ended by hand. (`issue-as.sh` keeps no token of that name, so that loop sent nothing.)
 
 **The counts at the landing.** In the worktree, after the rebase and after the last edit of a file a
-test reads; this record and two cells of the spec's table of checks were written after it, and no
-test reads either:
+test reads but one: two cells of the spec's table of checks were written after it, and
+`tests/tools/pm-agent-request-not-seen-fly-idle.test.ts` reads that spec for one sentence (line 86).
+That file is in the second and third runs below. No test reads this record
+(`grep -l 'records/bk-6' tests/tools/*.ts`: none).
 
 ```
 tests/tools/suite.sh        00:18:14 to 00:21:28, uptime's first number 5.90 before it
@@ -196,7 +198,23 @@ tests/tools/suite.sh        00:18:14 to 00:21:28, uptime's first number 5.90 bef
 Ran 888 tests across 91 files. [193.95s]
 ```
 
-No `skipped:` line (`grep '^skipped'` of the whole output). Before the rebase, 00:11:40 to 00:13:26:
+No `skipped:` line (`grep '^skipped'` of the whole output).
+
+**A second run of the suite, on the two commits as they land, had 2 fail.** 00:24:32 to 00:30:43,
+uptime's first number 7.30 before it and 10.13 after: `886 pass`, `2 fail`,
+`Ran 888 tests across 91 files. [370.30s]`. Both are a test ended at the 30 s timeout, in
+`tests/tools/knowledge-docs.test.ts` ("put --stale: an entry with another line is put; …") and
+`tests/tools/summarize-papers.test.ts` ("check: a summarized entry passes; …"), files of `sd-2-one-summarizer`
+that this change does not touch and that name none of the files it changes (`grep -c` of their ten
+names in the two: 0 and 0). Then, 00:30:51 to 00:36:41: `summarize-papers.test.ts` alone, 32 pass, 0 fail,
+89.73 s; `knowledge-docs.test.ts` alone, 28 pass, 1 fail, the same test at the timeout, 260.98 s. That
+one test by itself, 00:37:12 to 00:37:36 at 7.65: 1 pass, 24 s. It passed in the run of 00:18 at 5.90. So
+it is seen to pass in under 30 s on this machine only when little else runs; five other writers ran
+through these. It was not looked into further and nothing of it was changed.
+
+The seven files that read what this change touches (`issue-watch`, `issue-stats`, `os-2-order-and-pool`,
+`issue-wait`, `pm-2-brief-and-procedure`, `issues-policy-v4`, `pm-agent-request-not-seen-fly-idle`), in
+one run after the last edit of the spec, 00:36:41: 113 pass, 0 fail, 7 files, 23.56 s. Before the rebase, 00:11:40 to 00:13:26:
 853 pass, 0 fail, 88 files, 106.16 s. The five files alone are in that run; `issue-watch.test.ts`
 by itself gave 37 pass, 0 fail at the continue of the rebase.
 
