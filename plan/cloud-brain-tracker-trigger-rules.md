@@ -363,6 +363,25 @@ waits, and the fixture that does (`fx_chain` of `cloudflare-iac.ojs`, `?wait=`) 
 task's first act on cb4 after its deploy is that probe. When a held call is cut, the tool is
 landed without `seconds` and the record says what cut it.
 
+## What exists today for the same job, and why it is not extended
+
+`agents/spec.md` gained this item while this spec was written (it came with the rebase of the
+landing, 22:08 CEST). The design adds two methods and one field of a row. It adds no role, no
+brief, no tool, no token, no Worker and no store: `ls .claude/skills/brain-maintenance/agents/`
+(six briefs) and the Brain's list of roles (`curl -s https://cb4.endpointservices.workers.dev/static/cloud-brain-dev/index.md`:
+`paper-summarizer` and `reviewer`) were read at 22:09 CEST, and none is a role that waits or wakes.
+`ls tools/cloud-brain` has four tools of this kind, `issue-wait.sh`, `issue-watch.sh`, `lock.sh`
+and `channel-wakes.ts`; the first two are changed and none is added.
+
+| Added | What exists for the same job | Why that is not extended |
+|---|---|---|
+| `issue.wait`, the event `waits` | `issue.hold` of `bk-3` (specified, not built: `grep -c "issue.hold\|issueQueue" tools/cloud-brain/brain-issues.ojs` is 0): a time at which an issue is listed again, with a reason | A hold is of the issue, one at a time, ended by the issue's next move, and it has a time and no condition. A wait is of an actor, several an issue, and has a condition. One method for both would give `hold` an actor and a `when` it does not use, and `bk-3` is approved as it is. They share the shape `{ key, id, until, … }` and the guard's fallback |
+| the same | the link `after` (`bk-1`, built) | It is the dependency, and `issue.after` of a `when` reads it. It names no one who listens |
+| `issue.wakes` | `issue.sync` with `issue-wait.sh` over it | "Not chosen", the fourth |
+| the same | `issue.queue` of `bk-3` | It answers what is next for an orchestrator, by rows in the service's code. It is extended, by `waiter` (part 3). A due wait is not a row of it: a writer would read every entry to find its own |
+| the same | `topic.take` of `brain-x-topic` | "Not chosen", the third |
+| `waits` of an issue's row | `issue.by.start`, the actor that started an issue | It says who may submit, and not whether that agent still runs. The orchestrator's inference of step 2 is made from it today |
+
 ## Not chosen
 
 - **Rules in the policy**, a list `triggers` a workflow carries, each `{ on, when, wake }`. It is
@@ -483,6 +502,9 @@ Nothing. Every call of this design is `issue.*`, which each agent's token alread
 - `cost` events were written after the runs they describe, 100 of them backfilled, so a run cannot
   be dated by its event's seq. The first count of "runs since os-4" here was wrong for that reason
   (90 at `in-review`); a run is dated by the submit its `event` names.
+- The brief changed under the writing: the item of step 5 on what exists for the same job landed
+  between the read of the brief (21:45 CEST) and the landing, and was seen only in the list of files
+  the rebase printed. The section above was written after the first push (`8bf41ee9`), before the submit.
 - `agents/spec.md` step 2 expects parts, and step 5 a line for each gathered report. A feature of
   the owner's is given with none. The bookkeeping spec said the same.
 - The brief of a spec writer has no line on `issue-as.sh` sending `issue.*` only, so a probe of
