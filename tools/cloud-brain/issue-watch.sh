@@ -5,8 +5,12 @@
 # it, any caller: an agent that still runs asks this session), each comment written with a token out- and six hex digits
 # but the one given here (a session outside the loop, which the owner may be in: rules.md, "Which token") and each event
 # made with the owner's session; never exits.
+# With each read it also reads list?label=asks-orchestrator and prints `<seq> asks-still <id> <N> min …` for an issue that has
+# the label and whose updated_at is 5 minutes old or more, once at each 5 minutes: an ask this session did not answer.
 # Usage: issue-watch.sh <token> [after-seq] [seconds]   (after-seq defaults to the tracker's last)
 #        issue-watch.sh --filter <token> < an answer of sync?after=   (the lines of that answer, then LAST <seq>; no call)
+#        issue-watch.sh --still <now, ms> < an answer of list?label=asks-orchestrator   (the asks-still lines of it; no call)
+# ISSUE_AS_SH names another issue-as.sh: the test's.
 cd "$(dirname "$0")/../.." || exit 70
 filter() {
   python3 -I -c '
@@ -27,13 +31,30 @@ for e in ev:
         print(e["seq"],e["type"],e.get("id"),"OWNER" if own else by.get("holder","")[7:],x,t,flush=True)
 if ev: print("LAST",ev[-1]["seq"],flush=True)' "$@"
 }
+still() {
+  python3 -I -c '
+import sys,json
+try: iss=json.load(sys.stdin).get("issues",[]); now=int(sys.argv[1])
+except Exception: sys.exit()
+for i in iss if isinstance(iss,list) else []:
+    if not isinstance(i,dict): continue
+    labels=i.get("labels"); at=i.get("updated_at")
+    if not isinstance(labels,list) or "asks-orchestrator" not in labels or isinstance(at,bool) or not isinstance(at,(int,float)): continue
+    m=int((now-at)//60000)
+    if m>=5: print(i.get("seq"),"asks-still",i.get("id"),m//5*5,"min with the label asks-orchestrator and no event of the issue: answer it",flush=True)' "$@"
+}
 if [ "$1" = "--filter" ]; then filter "${2:?token}"; exit; fi
-token=${1:?token}; last=${2:-}; every=${3:-30}
-read_new() { tools/cloud-brain/issue-as.sh "$token" "sync?after=$1" 2>/dev/null | filter "$token" $2; }
+if [ "$1" = "--still" ]; then still "${2:?now}"; exit; fi
+token=${1:?token}; last=${2:-}; every=${3:-30}; as=${ISSUE_AS_SH:-tools/cloud-brain/issue-as.sh}; told="|"
+read_new() { "$as" "$token" "sync?after=$1" 2>/dev/null | filter "$token" $2; }
 if [ -z "$last" ]; then last=$(read_new 0 quiet | awk '/^LAST/{print $2}'); last=${last:-0}; fi
 while true; do
   out=$(read_new "$last") || true
   n=$(printf '%s\n' "$out" | awk '/^LAST/{print $2}'); [ -n "$n" ] && last=$n
   printf '%s\n' "$out" | grep -v '^LAST' | grep --line-buffered .
+  while IFS= read -r l; do
+    [ -z "$l" ] && continue
+    case "$told" in *"|$l|"*) ;; *) echo "$l"; told="$told$l|";; esac
+  done <<< "$("$as" "$token" "list?label=asks-orchestrator&limit=100" 2>/dev/null | still "$(date +%s)000")"
   sleep "$every"
 done

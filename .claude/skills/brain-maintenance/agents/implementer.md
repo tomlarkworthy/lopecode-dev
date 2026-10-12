@@ -487,7 +487,8 @@ each command; no shell state lasts between calls.
     cache for 5 minutes after your last request, and all 16 rounds sent to a writer by message before that
     day came later than that and wrote the whole context again, 111,329 to 203,811 tokens each. A
     request every 4 minutes keeps it. With the submit of step 12 answered (`seq` of its answer is
-    the submit's):
+    the submit's). First stop what you started that is billed ("Before a wait", below): this wait is up
+    to 20 minutes, and the tool takes no word of what runs.
     ```
     $W/tools/cloud-brain/issue-wait.sh <token> <id> <seq of your submit>
     ```
@@ -786,16 +787,27 @@ does, and it resumes you by message with the answer, as it did that writer at 21
 which stays. No label then.
 
 **The label `asks-orchestrator` is for a run that cannot end**: what the answer is for would be lost
-with the run. Two writes, the comment first, since the session's watch prints the label and the
-session then reads the comment:
+with the run. One call makes the two writes, the comment first, since the session's watch prints the
+label and the session then reads the comment:
 
 ```
-ia comment '{"key":"impl/<id>/ask-<n>","id":"<id>","body":"<the ask, as the first line>\n<what you hold, and until when you wait>"}'
-ia label '{"key":"impl/<id>/asks-<n>","id":"<id>","add":["asks-orchestrator"]}'
+$W/tools/cloud-brain/issue-ask.sh <token> <id> <n> <minutes> --nothing-billed <the ask>
+$W/tools/cloud-brain/issue-ask.sh <token> <id> <n> <minutes> --runs "<what is billed>" --since <HH:MM> --stop-in <minutes> <the ask>
 ```
+
+`<minutes>` is how long you wait, 1 to 10. `--runs` names what you started that is billed and still
+runs, `--since` the time it was started (read from `date` or an event's `at`), and `--stop-in` the
+minutes from now at which you stop it yourself, answered or not, the wait's at most. The tool
+refuses, exit 64 with nothing sent, an ask with no minutes, one with neither `--nothing-billed` nor
+`--runs`, and a `--stop-in` past the wait. It writes the two times from the clock in the comment,
+under your ask: "Waits until …" and "Billed while it waits: …". Its line of JSON has `until` and
+`stop`: stop the thing by `stop`. Exit 1 says which write was not made. Do not write the comment and
+the label with `ia`: `issue-as.sh` refuses a body that names a time ahead of the clock (exit 3), and
+the wait's end is one (`tests/tools/issue-ask.test.ts` has both).
 
 `tools/cloud-brain/issue-watch.sh` prints a `labelled` event that adds that name, whatever token wrote
 it, and the line wakes the session; the comment alone prints nothing (`tests/tools/issue-watch.test.ts`).
+It prints a second line, `asks-still`, when the label is still on and the issue has had no event for 5 minutes.
 The session answers with a comment keyed `orch/<id>/answer-<n>` and then takes the label off
 (`SKILL.md`, step 3, the row of the label). You read for the label gone, once a minute:
 
@@ -804,14 +816,36 @@ ia "get?id=<id>" 2>/dev/null | python3 -I -c 'import sys,json; sys.exit(0 if "as
 ```
 
 Exit 0: still on. Exit 3: off, and the answer is the comment of that key in the same read. Any other
-exit: the read gave no issue, and says nothing of the label. The
-comment of your ask says until when you wait, a time read from `date` and 10 minutes at most. At that
-time, with the label still on, take it off yourself (`"remove":["asks-orchestrator"]`, key
+exit: the read gave no issue, and says nothing of the label. At the
+time the tool gave as `until`, with the label still on, take it off yourself (`"remove":["asks-orchestrator"]`, key
 `impl/<id>/asks-<n>-off`) and take the first choice. The 10 minutes are this section's writer's and are
-not measured; what a billed thing does through a wait is `wait-says-what-runs-and-until-when`, not
-written when this was. Seen on cb4, 2026-10-12 23:12 CEST: a writer's token put the label on its own
+not measured. (The tool, since `wait-says-what-runs-and-until-when`, 2026-10-12: until then the ask was
+two calls of `ia`, and the first would have been refused for its time.) Seen on cb4, 2026-10-12 23:12 CEST: a writer's token put the label on its own
 issue and took it off (events 5125 and 5126), `list?label=asks-orchestrator` listed the issue between
 the two, and the watch's filter printed 5125 and not 5126. First ask made this way: not yet.
+
+## Before a wait
+
+Since `wait-says-what-runs-and-until-when` (2026-10-12). The case: the Fly machine of `fly-1-by-hand`,
+`started` and idle for the 22 minutes its writer waited, while no text said what a billed thing does
+through a wait (`tools/cloud-brain/post-mortems/pm-agent-request-not-seen-fly-idle.md`, "The root cause", 2).
+`rules.md` has the check for the end of a run ("Before finishing"); this is the one for a wait inside it.
+
+Before you wait for anyone (the owner, the orchestrating session, your review, a lock another holds),
+stop what you started that is billed by the minute: a Fly machine, a browser or a container of the
+cluster. What must run through the wait, because the answer is for it, is said in the request:
+what runs, since when, and the time at which you stop it yourself, answered or not.
+
+| The wait | What holds it |
+|---|---|
+| for the orchestrating session, with the label | `issue-ask.sh` refuses the ask without `--nothing-billed` or `--runs … --since … --stop-in …`, and writes the times ("When you need the orchestrating session") |
+| for your review (step 13) | this sentence: `issue-wait.sh` reads the tracker and knows nothing of what you started. Nothing billed runs through it |
+| for the owner (`needs-owner`, step 3) | the run ends: `rules.md`, "Before finishing" |
+| for a lock another holds (step 10, the take with `--wait`) | this sentence |
+
+A message of the session that tells you to wait names a time (`SKILL.md`, "A message that asks an
+agent to wait"). One that names none, or a condition ("when no other agent runs"): ask it for the
+time in your report or your ask, and wait 10 minutes at most.
 
 ## A quick win
 

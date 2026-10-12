@@ -6,8 +6,9 @@
 //   ISSUE_WATCH_SH=/path/to/another/issue-watch.sh bun test …
 // No call leaves the machine: `--filter <token>` reads the answer from stdin.
 import { test, expect } from "bun:test";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, writeFileSync, mkdtempSync, chmodSync } from "node:fs";
+import { resolve, join } from "node:path";
+import { tmpdir } from "node:os";
 
 const script = process.env.ISSUE_WATCH_SH || resolve(import.meta.dir, "../../tools/cloud-brain/issue-watch.sh");
 const me = "orch-aaaaaa";
@@ -196,7 +197,7 @@ test("SKILL.md has the row of the label above the in-progress rows, the watch's 
   expect(flat).toMatch(/that wake is a whole pass, health first, with the read of `list\?label=asks-orchestrator`/);
 });
 
-test("the implementer's brief names the report first and the label for a run that cannot end, with the two writes in order", () => {
+test("the implementer's brief names the report first and the label for a run that cannot end, written by the tool", () => {
   const brief = readFileSync(process.env.IMPLEMENTER || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/agents/implementer.md"), "utf8");
   const from = brief.indexOf("\n## When you need the orchestrating session\n");
   expect(from).toBeGreaterThan(-1);
@@ -206,9 +207,9 @@ test("the implementer's brief names the report first and the label for a run tha
   expect(label).toBeGreaterThan(end);
   const flat = part.replace(/\s+/g, " ");
   expect(flat).toMatch(/Stop what you started that is billed .* end with a report whose first line is the ask\. A report wakes the session/);
-  const comment = part.indexOf(`ia comment '{"key":"impl/<id>/ask-<n>"`), add = part.indexOf(`ia label '{"key":"impl/<id>/asks-<n>","id":"<id>","add":["asks-orchestrator"]}'`);
-  expect(comment).toBeGreaterThan(label);
-  expect(add).toBeGreaterThan(comment);
+  // Since wait-says-what-runs-and-until-when the two writes are one call of issue-ask.sh (tests/tools/issue-ask.test.ts has their order).
+  expect(part.indexOf("$W/tools/cloud-brain/issue-ask.sh <token> <id> <n> <minutes>")).toBeGreaterThan(label);
+  expect(flat).toContain("One call makes the two writes, the comment first");
   expect(brief).toContain(`"When you need the orchestrating session", below.`);
 });
 
@@ -221,6 +222,59 @@ test("the brief's read of the label is exit 0 with the label on the issue, 3 wit
   expect([read(["x", "asks-orchestrator"]), read([]), read(["asks-orchestrator-2"])]).toEqual([0, 3, 3]);
   const none = (text: string) => Bun.spawnSync(["bash", "-c", m![1]], { stdin: Buffer.from(text) }).exitCode;
   expect([none(""), none("not json"), none("{}")].every((c) => c !== 0 && c !== 3)).toBe(true);
+});
+
+// Issue wait-says-what-runs-and-until-when: an ask the session did not answer is printed again, from list?label=asks-orchestrator.
+const MIN = 60000, NOW_MS = 1791840000000;
+const listed = (id: string, seq: number, minutes: number, labels: unknown = ["asks-orchestrator"]) => ({ id, seq, labels, updated_at: NOW_MS - minutes * MIN, state: "in-progress" });
+const still = (issues: unknown, now: string[] = [String(NOW_MS)]) => {
+  const p = Bun.spawnSync(["bash", script, "--still", ...now], { stdin: Buffer.from(typeof issues === "string" ? issues : JSON.stringify({ issues, total: 0, more: false })) });
+  return { code: p.exitCode, lines: p.stdout.toString().split("\n").filter(Boolean) };
+};
+
+test("an issue with the label and no event for 5 minutes is a line asks-still, with the minutes in fives; a younger one is none", () => {
+  const r = still([listed("a", 40, 4.99), listed("b", 41, 5), listed("c", 42, 9.99), listed("d", 43, 10), listed("e", 44, 22), listed("f", 45, 0), listed("g", 46, -3)]);
+  const tail = "min with the label asks-orchestrator and no event of the issue: answer it";
+  expect(r.lines).toEqual([`41 asks-still b 5 ${tail}`, `42 asks-still c 5 ${tail}`, `43 asks-still d 10 ${tail}`, `44 asks-still e 20 ${tail}`]);
+});
+
+test("--still prints nothing for an issue without the label in a list, one with no updated_at, an answer that is not a list of issues, or no clock", () => {
+  const not = [listed("a", 1, 9, []), listed("b", 2, 9, ["asks-orchestrator-2"]), listed("c", 3, 9, "asks-orchestrator"), listed("d", 4, 9, null),
+    { id: "e", seq: 5, labels: ["asks-orchestrator"] }, { id: "f", seq: 6, labels: ["asks-orchestrator"], updated_at: "1" },
+    { id: "g", seq: 7, labels: ["asks-orchestrator"], updated_at: true }, "h", null];
+  expect(still(not).lines).toEqual([]);
+  for (const text of ["", "not json", "[]", "{}", `{"issues":{"a":1}}`, `{"issues":null}`]) expect([text, still(text).lines]).toEqual([text, []]);
+  expect(still([listed("a", 1, 9)], ["soon"]).lines).toEqual([]);
+  expect(still([listed("a", 1, 9)], []).code).not.toBe(0);
+});
+
+// The loop itself, with a stand-in for issue-as.sh (ISSUE_AS_SH): no event in any read of sync, and a list with one issue
+// labelled 6 minutes before. Read every second for 4 s: the line is printed once, not at each read.
+test("the watch's loop prints an ask that is still on once for its 5 minutes, not at each read", () => {
+  const dir = mkdtempSync(join(tmpdir(), "issue-watch-"));
+  const sh = join(dir, "issue-as.sh");
+  writeFileSync(sh, `#!/bin/bash
+echo "$2" >> "${dir}/calls.log"
+case "$2" in
+  sync*) echo '{"events":[]}';;
+  list\\?label=asks-orchestrator*) echo '{"issues":[{"id":"a","seq":9,"labels":["asks-orchestrator"],"updated_at":'$(( ($(date +%s) - 360) * 1000 ))'}]}';;
+esac
+echo " [200]" >&2
+`);
+  chmodSync(sh, 0o755);
+  const p = Bun.spawnSync(["bash", script, me, "0", "1"], { env: { ...process.env, ISSUE_AS_SH: sh }, timeout: 4000 });
+  expect(p.stdout.toString().split("\n").filter(Boolean)).toEqual(["9 asks-still a 5 min with the label asks-orchestrator and no event of the issue: answer it"]);
+  const calls = readFileSync(join(dir, "calls.log"), "utf8").split("\n").filter(Boolean);
+  expect(calls.filter((c) => c === "list?label=asks-orchestrator&limit=100").length).toBeGreaterThan(1);
+  expect(calls.filter((c) => c.startsWith("sync?after=")).length).toBeGreaterThan(1);
+});
+
+test("SKILL.md and the brief name the line asks-still where they describe the watch", () => {
+  const skill = readFileSync(process.env.SKILL || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/SKILL.md"), "utf8").replace(/\s+/g, " ");
+  expect(skill).toMatch(/issue-watch\.sh <your token>[^|]*a line `<seq> asks-still <id> <N> min …` for each issue that has that label and has had no event for 5 minutes, once at each 5 minutes/);
+  expect(skill).toContain("A line `asks-still` of the watch names an issue of this row");
+  const brief = readFileSync(process.env.IMPLEMENTER || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/agents/implementer.md"), "utf8").replace(/\s+/g, " ");
+  expect(brief).toContain("It prints a second line, `asks-still`, when the label is still on and the issue has had no event for 5 minutes.");
 });
 
 // SKILL=<file> and GUIDE=<file> read another copy of the procedure and of the guide (the files before the change).
