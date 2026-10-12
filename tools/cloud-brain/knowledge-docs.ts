@@ -24,7 +24,8 @@
 // heading taken out), not the file. The address is the file on raw.githubusercontent.com; a file of cloud-brain-dev has
 // none, and is named with its repository. A doc's line of status ends with `cut N of M`, and `, unmarked` when the
 // entry kept does not end with that line. The last line of status and of put has `cut`, the docs whose text was cut;
-// that of status also `unmarked`, and that of put the unmarked among the docs it put. An entry is fresh by its file's
+// that of status also `unmarked`, and that of put the unmarked among the docs it put (a changed cut doc is one too,
+// its entry ending with the line of the older text). An entry is fresh by its file's
 // hash, so a change to the line here, and a put by a copy of this tool from before the line (a release from a worktree
 // behind a3e883dc), leave a fresh entry with no line (ac-4-docs-tool-marks-a-cut). `put --stale` puts an unmarked doc
 // as it does a stale or missing one, so the next release of anyone enters it with the line; an entry that

@@ -195,8 +195,10 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --stale      # what t
 
 `put --stale` puts a doc that `status` reads `stale` or `missing`, and since 2026-10-12 one whose line ends `, unmarked`:
 a doc over 16,000 characters whose entry is fresh by its file's hash and does not end with the line that says it was cut
-(`tools/cloud-brain/records/knowledge-docs-put-stale-skips-unmarked.md`). The last line of the put has `unmarked`, how many
-of the docs it put were such.
+(`tools/cloud-brain/records/knowledge-docs-put-stale-skips-unmarked.md`). The last line of the put has `unmarked`, the docs
+it put whose entry did not end with the line the tool now puts. A changed doc over 16,000 characters is counted there too,
+its entry ending with the line of the older text: the release of 21:05:09 CEST that day put the two docs its landing
+changed and printed `"put":2,…,"cut":2,"unmarked":2`.
 
 `status --check` exits 0 when no doc is behind, 1 when one is, and 2 with the owner's command when no `loop-docs` is
 kept. A tool that threw also exits 1 (seen with no `BRAIN_BASE`; a refused call throws the same way, not run): the

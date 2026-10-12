@@ -321,13 +321,19 @@ test("ac-4: status and put count the cut docs, and status counts and names those
 
 // knowledge-docs-put-stale-skips-unmarked. Until it `put --stale` picked by the file's hash and `public` alone, so a cut
 // entry that an older copy of the tool had entered with no line stayed so until its file changed or a put by name.
-test("put --stale also puts a fresh doc whose entry is unmarked, and its last line counts them", () => {
+// Two cut docs pushed, and their entries as this tool puts them (read from a put --all, which is then forgotten by index).
+const twoCut = () => {
   const t = fresh();
   const over = "# Over\n\n" + "y".repeat(16001) + "\n", more = "# More\n\n" + "v".repeat(30000) + "\n";
   pushed(t, { "knowledge/over.md": over, "knowledge/more.md": more });
-  const ids = (from = 0) => t.puts().slice(from).map((e: any) => e.id).sort();
+  const bare = { over: t.entry("over", over, { text: "y".repeat(16000) }), more: t.entry("more", more, { text: "v".repeat(16000) }) };
+  return { t, over, more, bare, ids: (from = 0) => t.puts().slice(from).map((e: any) => e.id).sort() };
+};
+
+test("put --stale also puts a fresh doc whose entry is unmarked, and its last line counts them", () => {
+  const { t, over, more, bare, ids } = twoCut();
   // Both entries hold the first 16,000 characters and no line; the six short docs are fresh.
-  t.keep([...t.all(), t.entry("over", over, { text: "y".repeat(16000) }), t.entry("more", more, { text: "v".repeat(16000) })]);
+  t.keep([...t.all(), bare.over, bare.more]);
   const p = t.kdocs(["put", "--stale"]);
   expect(p.code).toBe(0);
   expect(t.summary(p.out)).toMatchObject({ put: 2, cut: 2, unmarked: 2 });
@@ -335,11 +341,17 @@ test("put --stale also puts a fresh doc whose entry is unmarked, and its last li
   for (const e of t.puts()) expect([e.text.length, LINE.test(e.text)]).toEqual([16000, true]);
   // With what was put as the entries nothing is unmarked, and the next put --stale sends nothing.
   const sent = (id: string) => t.puts().find((e: any) => e.id === id).text;
-  const marked = [...t.all(), t.entry("over", over, { text: sent("doc:over") }), t.entry("more", more, { text: sent("doc:more") })];
-  t.keep(marked);
+  t.keep([...t.all(), t.entry("over", over, { text: sent("doc:over") }), t.entry("more", more, { text: sent("doc:more") })]);
   expect(t.summary(t.kdocs(["status"]).out)).toMatchObject({ fresh: 8, cut: 2, unmarked: 0 });
   expect(t.kdocs(["put", "--stale"]).out).toBe("nothing to put");
   expect(t.puts().length).toBe(2);
+});
+
+test("put --stale: an entry with another line, with no text or with a text that is no string is put; a missing cut doc is not counted unmarked", () => {
+  const { t, over, more, bare, ids } = twoCut();
+  expect(t.summary(t.kdocs(["put", "over", "more"]).out)).toMatchObject({ put: 2, cut: 2, unmarked: 0 });
+  const sent = (id: string) => t.puts().find((e: any) => e.id === id).text;
+  const marked = [...t.all(), t.entry("over", over, { text: sent("doc:over") }), t.entry("more", more, { text: sent("doc:more") })];
   // An entry that ends with another line (the numbers of an older text), one answered with no text, and one whose
   // text is no string are unmarked to status, and are put.
   const other = sent("doc:over").replace(/of 16001 characters/, "of 16002 characters");
@@ -350,22 +362,41 @@ test("put --stale also puts a fresh doc whose entry is unmarked, and its last li
     expect(t.summary(t.kdocs(["put", "--stale"]).out)).toMatchObject({ put: 1, cut: 1, unmarked: 1 });
     expect(ids(n)).toEqual(["doc:over"]);
   }
-  // A stale short doc beside an unmarked one: both are put, and one is counted unmarked. A cut doc with no entry
-  // is missing: put, and not counted unmarked.
-  let n = t.puts().length;
-  t.keep([...marked.filter((e) => e.id !== "doc:b" && e.id !== "doc:more"), t.entry("b", "an older b"), t.entry("more", more, { text: "v".repeat(16000) })]);
-  expect(t.summary(t.kdocs(["put", "--stale"]).out)).toMatchObject({ put: 2, cut: 1, unmarked: 1 });
-  expect(ids(n)).toEqual(["doc:b", "doc:more"]);
-  n = t.puts().length;
+  // A cut doc with no entry is missing: put, and not counted unmarked.
+  const n = t.puts().length;
   t.keep(marked.filter((e) => e.id !== "doc:more"));
   expect(t.summary(t.kdocs(["put", "--stale"]).out)).toMatchObject({ put: 1, cut: 1, unmarked: 0 });
   expect(ids(n)).toEqual(["doc:more"]);
-  // The other two ways to pick are as they were, and count the same way.
-  n = t.puts().length;
-  t.keep([...marked.filter((e) => e.id !== "doc:more"), t.entry("more", more, { text: "v".repeat(16000) })]);
+});
+
+test("put --stale puts a stale short doc beside an unmarked one; put <name> and put --all pick as before and count the same way", () => {
+  const { t, over, bare, ids } = twoCut();
+  // more is unmarked, b is stale, over has no entry yet for the first put.
+  t.keep([...t.all().filter((e) => e.id !== "doc:b"), t.entry("b", "an older b"), bare.more, bare.over]);
   expect(t.summary(t.kdocs(["put", "a"]).out)).toMatchObject({ put: 1, cut: 0, unmarked: 0 });
+  expect(t.summary(t.kdocs(["put", "over"]).out)).toMatchObject({ put: 1, cut: 1, unmarked: 1 });
+  const marked = t.entry("over", over, { text: t.puts()[1].text });
+  t.keep([...t.all().filter((e) => e.id !== "doc:b"), t.entry("b", "an older b"), bare.more, marked]);
+  let n = t.puts().length;
+  expect(t.summary(t.kdocs(["put", "--stale"]).out)).toMatchObject({ put: 2, cut: 1, unmarked: 1 });
+  expect(ids(n)).toEqual(["doc:b", "doc:more"]);
+  n = t.puts().length;
   expect(t.summary(t.kdocs(["put", "--all"]).out)).toMatchObject({ put: 8, cut: 2, unmarked: 1 });
-  expect(t.puts().length).toBe(n + 9);
+  expect(t.puts().length).toBe(n + 8);
+});
+
+test("a cut doc whose file changed is stale, its entry ends with the line of the older text, and put counts it unmarked too", () => {
+  const t = fresh();
+  const over = "# Over\n\n" + "y".repeat(16001) + "\n";
+  pushed(t, { "knowledge/over.md": over });
+  expect(t.summary(t.kdocs(["put", "over"]).out)).toMatchObject({ put: 1, cut: 1, unmarked: 0 });
+  const first = t.puts()[0];
+  pushed(t, { "knowledge/over.md": over + "one more line\n" });
+  t.keep([...t.all(), t.entry("over", over, { text: first.text })]);
+  expect(t.summary(t.kdocs(["status"]).out)).toMatchObject({ fresh: 6, stale: 1, cut: 1, unmarked: 1 });
+  expect(t.summary(t.kdocs(["put", "--stale"]).out)).toMatchObject({ put: 1, cut: 1, unmarked: 1 });
+  expect(t.puts().slice(1).map((e: any) => e.id)).toEqual(["doc:over"]);
+  expect(t.puts()[1].text).not.toBe(first.text);
 });
 
 test("--limit=SECONDS is the time one call may take", () => {
