@@ -16,6 +16,7 @@ The test file as it is now, run against the tool as `origin/main` had it
 ```
 $ bun test ./tests/tools/token-checks.test.ts
 + R1, first check: pass
++ R1, second check: not seen; 0 holders that start out-
 + R1, third check: pass, of what the record has (the live children are agent-token list's)
 + the parent: pass; secret:loop-agents wrote 0 events after N, 0 in all
 (fail) an --after or --until that is no whole number is exit 2, with nothing read and no check printed
@@ -25,7 +26,9 @@ $ bun test ./tests/tools/token-checks.test.ts
  3 fail
 ```
 
-The three `+` lines are the stdout of `--after abc` where the test expects none.
+The block is the run's output cut to its `+`, `(fail)`, `pass` and `fail` lines
+(`grep -E "^\(fail|^ *[0-9]+ (pass|fail)|^\+ R1|^\+ the parent"`). The four `+` lines are of the stdout of
+`--after abc`, where the test expects none.
 
 ## What changed
 
@@ -99,14 +102,19 @@ Ran 612 tests across 63 files. [94.01s]
 
 Four of the 13 are new. A run of the suite before that rebase (ended 12:48:14 CEST) gave 601 pass
 and 1 fail in 62 files: the third test of `tests/tools/reviewer-brief-waits-on-show.test.ts`, which
-reads the reviewer's brief as the Brain has it. `d7cc9ed9` (`wt-4-reviewer-in-a-view`) had put a new
-brief and landed that test's new lines, and the worktree did not yet have them.
+reads the reviewer's brief as the Brain has it. `d7cc9ed9` (`wt-4-reviewer-in-a-view`) changed that
+test file (9 lines, `git show d7cc9ed9 --stat`) and its message says "the tests of the brief as put"; the
+worktree did not yet have it. The put of the brief itself was not looked at.
 
 ## Not tried
 
 - `checks` called by another program with `after: NaN`. The refusal is where the argument is read;
-  `checks` itself still answers a pass for a `NaN`, with `afterN` 0 and so with the new words.
-- `--json` beside a refused flag, and the words of `text` are not in `--json`: one run,
+  `checks` itself still answers a pass for a `NaN`, with the new words: one run with `bun -e` (12:52:35 CEST
+  by `date`) on a list of three events, the third an `issues-implementer-2` event after an `impl-` start,
+  printed `N = NaN; no event is after N` and `R1, first check: pass (no event is after N)` for `{ after: NaN }`,
+  where the same list with no `after` does not pass. No test holds it, and no guard was added.
+- `--json` beside a refused flag. `--json` prints the object of `checks` and not the lines of `text` (the
+  tool's last lines, as read), so the words "no event is after N" are not in it: one run,
   `--after 99999 --json`, printed `"afterN":0` and `"after":99999` at 4031 events. No test reads `--json`.
 - A number of more than 15 digits. It is accepted and made a float; every such N is past the last event.
 - `--token` given a flag as its value (`--token --after`): as before, the tool's first refusal.
