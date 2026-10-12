@@ -132,8 +132,8 @@ directory of `/tmp`.
 - **Other tools that make a directory in `T`**, read with `git grep -n -E "mkdtemp|mktemp" -- tools cloud-brain-dev`
   and not changed: `summarize-papers.ts` (`papers-`, which five lines of it remove; `papers-canary-`, `papers-read-`,
   `docs-read-`: 549 `papers` and 584 `papers-canary` were in `T` at 01:00), `digests/keep.ts` (`keep-`), and outside
-  `tools/cloud-brain`, `atproto-publish.ts` (`atpub-`, 707). `land.sh` and `issue-watch.sh` make one each and were not
-  read: another writer was in them.
+  `tools/cloud-brain`, `atproto-publish.ts` (`atpub-`, 707). `land.sh` (a directory) and `issue-watch.sh` (a file) each
+  remove theirs in a trap on EXIT, as read in the two scripts; neither was changed or run for this.
 - **Names the issue does not list** were not removed, whatever their age: `nbblocks` 2,936, `cost-events` 2,332,
   `issue-ask` 2,677, `syncmod` 2,205, `nbstage` 2,202, `atpub-test` 1,728, `brain-state` 1,538 and the rest. Which
   test or tool makes `nbblocks`, `syncmod`, `nbstage` and `brain-state` was not read.
