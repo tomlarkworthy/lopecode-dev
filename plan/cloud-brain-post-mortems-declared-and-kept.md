@@ -8,10 +8,13 @@ Three things a reader should know before the rest:
 - **Nothing in it needs the owner's hand but the approval.** No policy install, no new kind, no new
   token, no new role, no service and no deploy. It is two briefs, the procedure, three edits of the docs
   tool (the path it lists, its filter, how it names a doc), one block of the stats tool and their tests.
-- **The first post mortem, `pm-second-summarizer-role`, was not written when this was.** At 21:27 CEST
-  it was at `ready` with no run (`runs?id=pm-second-summarizer-role` answered `"runs":[]`). The issue's
-  body says "its file is the example the spec is written from"; there was no file. The form below is
-  from the owner's words, the record and what was read, and task 1 brings the first file to it.
+- **The first post mortem, `pm-second-summarizer-role`, landed while this was written** (`lopecode-dev`
+  `2939a2c0`, which came into the worktree at the rebase of 21:43 CEST, after the fresh review). The
+  design was written without it: at 21:27 CEST it had no run. It was then read whole and the spec
+  changed in four places, each marked "(the first)": the headings of the form are its headings, the
+  transcript is said to hold no reasoning, its actions are linked `related` and were filed before its
+  review, and it has a record and a test of its own. Where the design differs from what it did, the
+  design says why.
 - **Whether a thing "happened again" is not something the record can answer by itself.** The design
   gives each post mortem a sentence that says what a second case would look like, and a list of its
   actions with their states. That a second case is noticed still rests on an agent or the owner
@@ -104,8 +107,10 @@ context of 169,679 tokens and 916 s; a reviewer's 88,219 tokens, 273 s and $1.19
   `~/.claude-personal/projects/-Users-tom-larkworthy-dev-lopecode-dev/<session>/subagents/agent-<agent>.jsonl`,
   1,848,202 bytes for that one (`ls -la`, 21:22 CEST), and 2,000,518 at 21:36 as the fresh review
   read it: the file is added to while that agent writes its second round, so a trace reads it up to
-  the time of the submit it is tracing. It was not opened for this spec. It is the one
-  place the agent's reasoning is, and it is on one machine and in no repository;
+  the time of the submit it is tracing. It was not opened for this spec. It is on one machine
+  and in no repository. It has what the agent called and was answered, and its prompt. It does not
+  have why (the first, "What is not known": "every `thinking` block in it has length 0 (46, read
+  21:24) and both answers of its advisor are `advisor_redacted_result`");
 - the orchestrator's journal, `<root>/tools/cloud-brain/.emitted/issue-loop/<id>.md` (213 files, untracked). It has each
   agent's report. It does not have the prompt an agent was started with (`grep -ci prompt` of the one for
   `docs-summarised-for-search`: 0, the fresh review's run); that is in the transcript alone;
@@ -119,8 +124,10 @@ context of 169,679 tokens and 916 s; a reviewer's 88,219 tokens, 273 s and $1.19
   An entry's text is 16,000 characters; 44 of the 86 are cut.
 - `issue.attach` takes a file of 1 MB on an issue, 20 an issue, and the page lists it. Since
   `specs-kept-in-the-cluster` (the owner's "A" of comment 4085, 2026-10-12) a spec is attached to its issue.
-- `tools/cloud-brain/post-mortems/` does not exist (`git ls-tree -r origin/main tools/cloud-brain/post-mortems/`:
-  0 lines). Comment 4485 of `pm-second-summarizer-role`, the orchestrator's, tells its writer to write
+- `tools/cloud-brain/post-mortems/` did not exist at 21:30 CEST (`git ls-tree -r origin/main tools/cloud-brain/post-mortems/`:
+  0 lines) and has one file since `2939a2c0`, the first: 12,664 bytes, 12,662 characters (`wc -m`), with a record
+  (`records/pm-second-summarizer-role.md`) and a test that holds its quotes (4 pass, its record).
+  It is in no search: the filter does not take the directory. Comment 4485 of `pm-second-summarizer-role`, the orchestrator's, tells its writer to write
   `tools/cloud-brain/post-mortems/pm-second-summarizer-role.md` "until `post-mortems-declared-and-kept` says where".
 
 **What says which brief an issue gets.** A label does it once already: an issue labeled `digest` is
@@ -184,9 +191,11 @@ The trace, in the section's words to be:
 - For each step: what was decided or passed on, what the agent had in front of it then (the brief at
   that commit, the issue's body, what its searches answered), and what it did not have. Each is read
   from an event by its seq, a commit, a file and line, a journal file, or the transcript of the run
-  (`runs?id=` gives `agent` and `session`; the path is above). A transcript is read for the agent's
-  reasoning. Nothing of a tool result in it that holds a token or a session is quoted.
-- A step that could not be read is written under "Not read" with why (the transcript is on another
+  (`runs?id=` gives `agent` and `session`; the path is above). A transcript is read for what the
+  agent was given, searched and was answered, in order. It keeps no reasoning (the first), so why an
+  agent chose is written under "What is not known" unless the agent wrote it down. Nothing of a tool
+  result in it that holds a token or a session is quoted.
+- A step that could not be read is written under "What is not known" with why (the transcript is on another
   machine; the run has no `cost` event).
 - **The cause is something a change can be made to:** a line of a brief, a prompt, a tool's answer, a
   check nobody makes, a question the review does not ask. "The spec writer did not think of it" is not
@@ -214,12 +223,16 @@ Its parts, in order, each a `##` heading the test of task 1 reads:
 |---|---|
 | `# Post mortem: <one line>` | then one line: the issue it is of, the date declared and by whom, the date written |
 | `## What happened` | the outcome, with the owner's words whole and their event |
-| `## The trace` | the steps, newest first, each with what it is read from |
-| `## The cause` | one or two sentences; then what was weighed and ruled out |
-| `## What would have caught it` | the step of which brief, the question of which review, or "nothing as built" |
-| `## Actions` | 3 at most, each with the title of the issue to be filed, its kind and what it changes; or "None", with why |
-| `## Seen again when` | what in the record a second case would look like, as exactly as it can be said |
-| `## Not read` | each source not read, and each thing not tried |
+| `## The trace` | the steps in a table of events, then what the writer had in hand, where the choice was made, and what each check after it read |
+| `## The root cause` | one or two sentences; what the texts an agent follows have and lack; then what else let it pass and did not make it |
+| `## What is not known` | each source not read, each thing not tried, and why an agent chose when nothing kept it |
+| `## What it cost` | from the `cost` events of the issue it is of, and the owner's answers |
+| `## Next actions` | 3 at most, each with the title of the issue, what it changes and the part of the trace it answers; then what was not filed, and why; or "None", with why |
+| `## How it is known later` | what in the record a second case would look like, as exactly as it can be said |
+
+These are the headings of the first, read with `grep -n "^## "` at `2939a2c0`. Its seventh is
+`## Next actions, filed`, and the test takes a heading that begins with the words of the table. So the
+first file meets the form as it is, and task 1 changes no word of it.
 
 ### 4. Found by the search every design starts with (R4)
 
@@ -235,8 +248,12 @@ would be searched in ("a second summarizer role beside the one that exists"), no
 
 ### 5. The next actions (R6)
 
-The writer decides them and writes them in the file under "Actions". They are filed after the review
-passes, so that no issue is opened from a cause the review then sends back:
+The writer decides them and writes them in the file under "Next actions". They are filed after the review
+passes, so that no issue is opened from a cause the review then sends back. (The first filed its three
+before its submit, events 4497 to 4501, and linked them `related`. They stand. A `related` link does
+not say which way it runs, and the first is `related` to this project too, so the block of part 7
+cannot read actions from it: task 4's writer adds the three `cause` links, or says what the tracker
+answered.)
 
 - The writer waits for its review (step 13). On `pass` it opens each action and links it, and says the
   ids in its report. When it cannot (its run ended), the orchestrating session opens them from the
@@ -262,8 +279,8 @@ directory. The reviewer's brief gains a short part, "A post mortem", with four q
 
 1. Does each step of the trace say what its event, commit or line says? Read five of them, the cause's among them.
 2. Is the cause something a change can be made to, and does the trace reach it, or does it stop at an agent?
-3. Is each action under "Actions" of the cause, and one change, and is "None" argued?
-4. Would a reader know a second case from "Seen again when"?
+3. Is each action under "Next actions" of the cause, and one change, and is "None" argued?
+4. Would a reader know a second case from "How it is known later"?
 
 A post mortem that fails 1 or 2 is sent back. A number that is inexact is a note (the owner, event 2099).
 
@@ -307,6 +324,14 @@ to ask for, with the cases.
   (comment 4085, "A"); the same is taken here.
 - **The file only as an attachment.** In the cluster and on the page, and not in the search: R4 unmet.
 - **A post mortem of every send-back by a review.** 75 in 2.4 days, at a writer and a reviewer each.
+- **The agent that made the decision is asked why.** His word is "reflection", and the first found
+  that nothing kept the spec writer's reasoning. Against: an agent's account of itself after the fact
+  is what the overseer's brief sets aside ("Work from the record, not from what an agent said of
+  itself"), only the orchestrating session can send a run a message, and the first reached a cause
+  that a change can be made to without it. Keeping an agent's reasoning is a matter of the harness and
+  not of the loop's files; the first names it as "Not filed", and so does this.
+- **A record and a test of its own for each post mortem**, as the first has. The file is the record.
+  A test of its quotes at a commit is a writer's choice and is counted beside the test of the form.
 - **A recurrence check that runs.** A cause is a sentence; no query of the record matches "a second
   role where one exists". Where a cause can be held by a test (a line of a brief, as
   `tests/tools/spec-brief-attaches-the-spec.test.ts` holds one), the action is that test.
@@ -319,7 +344,7 @@ to ask for, with the cases.
   reviewer reads five. The first three post mortems say whether it is enough (the read after three).
 - Whether a post mortem is found by a search made in a later design's words. It is checked on the
   first one in task 1, with a query in a design's words, and again in the read after three.
-- What reading a transcript of 1.8 MB costs a writer. Not tried.
+- Why an agent chose what it chose. The first could not read it, and nothing here keeps it.
 - That a second case is noticed. Nothing here watches for one.
 
 ## How each requirement is known to be met
@@ -330,14 +355,14 @@ Each command is run by an agent of the loop with its own token. `ia` is `tools/c
 |---|---|---|---|
 | R1 | `ia "list?label=post-mortem&limit=100"` | `{"issues":[]}` | task 2: the orchestrator labels `pm-second-summarizer-role` and it is listed. Not runnable before task 2. |
 | R1 | `ia "get?id=pm-second-summarizer-role"`, `issue.links` | `{'rel': 'cause', 'to': 'docs-summarised-for-search'}` among them | the same, of each post mortem |
-| R2 | `ia "runs?id=<pm>"` against `ia "runs?id=<the issue it is of>"` | `"runs":[]` for the first | after a post mortem is written: one run of role `implementer` whose `token` is no `token` of the other list |
-| R3 | `git ls-tree -r --name-only origin/main tools/cloud-brain/post-mortems/` | 0 lines | one line a post mortem; and `attachments` of `get?id=<pm>` names `<pm>-r1.md` |
+| R2 | `ia "runs?id=<pm>"` against `ia "runs?id=<the issue it is of>"` | `"runs":[]` for the first at 21:27 CEST; its `start` (event 4495) is by `impl-58df50`, and the two runs of `docs-summarised-for-search` are of `spec-6ac003` and `rev-e6fc59` | after a post mortem is written: one run of role `implementer` whose `token` is no `token` of the other list |
+| R3 | `git ls-tree -r --name-only origin/main tools/cloud-brain/post-mortems/` | 0 lines at 21:30 CEST; 1 at 21:44, `…/pm-second-summarizer-role.md`, and `attachments` of its issue is `[]` | one line a post mortem; and `attachments` of `get?id=<pm>` names `<pm>-r1.md` |
 | R4 | `BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status`, last line | `"docs":86,"fresh":86` | with the filter of part 4 put in the worktree and taken back, run 21:30 CEST: still `"docs":86,"fresh":86`, since `origin/main` has no such file. After task 1 and the first file's landing: one doc more for each file, with a line `fresh    private pm-<short>`. Run then, by task 1's writer. |
 | R4 | the search of `agents/implementer.md` step 2 with `q=post mortem second summarizer role` | no `doc:pm-…` among 20 entries | task 1, after the first file is entered: `doc:pm-second-summarizer-role` among the first five. Not runnable before. |
 | R4 | the same search with `q=summarise knowledge docs for search, which role writes the summary`, the words of a later design and not of the post mortem | run 21:42 CEST: the first three are `doc:cloud-brain-docs-summarised-for-search`, `web:carbonell-1998-mmr`, `doc:cloud-brain-paper-summarizer-persona`; no `doc:pm-…` | task 1, after the first file is entered: `doc:pm-second-summarizer-role` among the first five. When it is not, the writer says so with the list; that is the finding R4 exists for and it goes to the title line of the file, not to this check. Not runnable before. |
 | R5 | `bun test ./tests/tools/post-mortems.test.ts` | no such file | task 1: 0 fail, with a count. It fails on a file with a heading missing, out of order, or over 16,000 characters (the test has a file of each in a temporary directory). |
 | R5 | `bun test --timeout=30000 ./tests/tools/knowledge-docs.test.ts` | `19 pass, 0 fail`, 217 s, run 21:28 CEST, and 81 s in the fresh review's run (with bun's default timeout: 4 pass, 15 fail, 91 s) | task 1: 0 fail, with a test more for the new path |
-| R6 | `ia "get?id=<pm>"`, `issue.linked` | `[]` for the first | once it is `done`: one `{'rel': 'cause', 'id': <action>}` for each action of the file, 3 at most, or the file's "None" |
+| R6 | `ia "get?id=<pm>"`, `issue.linked` | `[]` at 21:21 CEST; at 21:44 three, each `'rel': 'related'` (the first's actions) | once it is `done`: one `{'rel': 'cause', 'id': <action>}` for each action of the file, 3 at most, or the file's "None" |
 | R7 | `bun <root>/tools/cloud-brain/issue-stats.ts --token=<token>` | no line `post mortems` | task 4: the block of part 7. Not runnable before. |
 | R8 | the same block's first line, against the count of the owner's `send-back`, `owner-reject` after a pass, and `revert` | 1 such event (4434), 1 post mortem opened | task 4 prints both numbers. More post mortems of the session's own declaring than such events is said to the owner in step 7. |
 
@@ -350,10 +375,8 @@ what, and no file of the owner's is edited.
 
 1. **`pm-1-file-and-search`.** `knowledge-docs.ts` takes `tools/cloud-brain/post-mortems/*.md`, named by
    the file; its test. `tests/tools/post-mortems.test.ts`, the form of part 3 over every file of the
-   directory. If `pm-second-summarizer-role` has landed its file, bring it to the form in this landing
-   (headings and order; its words are its writer's), attach it to its issue when it is not, and run the
-   two R4 checks. If it has not landed, say so; the checks are then run by that issue's writer and
-   named in its comment.
+   directory; it passes on the first file as it is (part 3). Attach the first file to its issue when it
+   is not attached, and run the three R4 checks on it.
 2. **`pm-2-brief-and-procedure`.** `agents/implementer.md`, the section "A post mortem" (parts 2, 3, 5).
    `SKILL.md`: the row for an issue labeled `post-mortem`, the one case in which the session declares
    one, the triage of one, the actions filed at `done` (part 5), the lines of step 7 (part 7), and the
@@ -363,6 +386,7 @@ what, and no file of the owner's is edited.
    writer (`rules.md`: a writer whose issue is a task of an approved spec may), with the kept copy
    `tests/tools/fixtures/reviewer-brief.md` and a test of the four questions.
 4. **`pm-4-stats-block`.** `issue-stats.ts` prints the block of part 7 and the two numbers of R8; its test.
+   The three `cause` links of the first's actions (part 5).
 
 **The read after three is not a part of this project**, so the project is `done` when the four are.
 A part opened now would hold the project at `building` until three post mortems exist, and the record
@@ -373,8 +397,8 @@ of its actions; was it answered to a later search (the comments of later writers
 searched and used); did the overseer act on the block. What it finds is a comment on this project
 and, where a brief is at fault, a task, `major` when the brief is the overseer's.
 
-`pm-second-summarizer-role` is not a task of this spec and does not wait for it. Written before task
-2, it is written from its own body and comment 4485.
+`pm-second-summarizer-role` is not a task of this spec and did not wait for it: it was written from
+its own body and comment 4485, and was `in-progress` with its file landed at 21:44 CEST.
 
 ## What only the owner can do
 
@@ -439,13 +463,16 @@ read from the tracker or the Brain was checked by it. Each, and what was done:
 10. Three inexact statements (the count of edits, the tool's expression for a name, the transcript's
     size). **Taken:** each reworded with what the review read.
 
-Not run again after these: they rewrote parts 1, 5 and 7.
+Not run again after these: they rewrote parts 1, 5 and 7. The first post mortem landed after this
+review and what the spec took from it (the top of this file) was read by no fresh agent.
 
 ## What misled
 
 - The issue's body says the first post mortem's file "is the example the spec is written from". The
-  project was started (the owner's, so before a task) while that task had no writer. `SKILL.md` orders
-  starts and has no "after".
+  project was started (the owner's, so before a task) while that task had no writer, and the two were
+  written side by side: the file came in at this spec's rebase under the landing lock, which was
+  released with nothing pushed, and the spec was changed and landed at a second take. `SKILL.md`
+  orders starts and has no "after".
 - `bun test ./tests/tools/knowledge-docs.test.ts`, as `agents/implementer.md` gives the form for one
   file, printed 4 pass and 15 fail in a fresh worktree. With `--timeout=30000`, which `suite.sh` passes,
   19 pass. The brief gives the flag for the suite and not for one file.
