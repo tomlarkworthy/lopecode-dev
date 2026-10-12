@@ -786,7 +786,11 @@ what the text left open:
   the parent ends its children", has that command leave the kept file `{}`, against a stand-in of the kernel and
   for the token `loop-agents`. A revoke of `loop-approver` on cb4 was not run: the token is not made yet.
 - Part 4, "the policy cells of `brain-issues.ojs`": the tool refuses a ref that touches the file at all. It reads
-  no cell.
+  no cell. (As built, `approver-own-files-are-the-policy-cells`, 2026-10-13: the tool reads the seed before and
+  after each commit, as cells, and refuses a commit that changes one of eight cells it names, a cell one of six of
+  those names, or code with no name. A commit that changes other cells of the seed alone is not refused, and
+  `facts` marks the file `tracker` for it. The commits of `bk-2-finish-by-the-service`, `bk-3-queue-and-hold` and
+  `tr-1-wait-in-the-record` are still refused: each changes `issueAllowed`. The record.)
 - R7 has a fourth comparison: the file that runs is hashed (`git hash-object`) and is the tool blob of the
   policy's reason, so a checkout behind `origin/main` makes no move.
 - A quotation of fewer than 20 characters is written `asked: <seq> "<words>" answers <seq of the comment>`.
