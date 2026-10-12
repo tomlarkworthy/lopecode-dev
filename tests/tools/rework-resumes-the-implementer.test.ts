@@ -6,12 +6,13 @@
 //
 //   bun test ./tests/tools/rework-resumes-the-implementer.test.ts
 import { test, expect } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 
 const dir = resolve(import.meta.dir, "../../.claude/skills/brain-maintenance");
 const skill = readFileSync(join(dir, "SKILL.md"), "utf8");
-const brief = readFileSync(join(dir, "agents/implementer.md"), "utf8");
+const brief = inFull(join(dir, "agents"));
 const record = readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain/records/rework-resumes-the-implementer.md"), "utf8");
 
 // Every example call of issue.cost in SKILL.md, parsed: a line `issue-as.sh <your token> cost '{…}'`.

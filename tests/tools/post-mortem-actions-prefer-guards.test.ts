@@ -7,12 +7,13 @@
 //   BRIEF=<file> SKILL=<file> SPEC=<file> FORM=<file> reads other copies (with those of 9109a9d9, the commit before
 //   the change, all four fail).
 import { expect, test } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dir, "../..");
 const dir = resolve(root, ".claude/skills/brain-maintenance");
-const brief = readFileSync(process.env.BRIEF || resolve(dir, "agents/implementer.md"), "utf8");
+const brief = (process.env.BRIEF ? readFileSync(process.env.BRIEF, "utf8") : inFull());
 const skill = readFileSync(process.env.SKILL || resolve(dir, "SKILL.md"), "utf8");
 const spec = readFileSync(process.env.SPEC || resolve(root, "plan/cloud-brain-post-mortems-declared-and-kept.md"), "utf8");
 const form = readFileSync(process.env.FORM || resolve(root, "tests/tools/post-mortems.test.ts"), "utf8");

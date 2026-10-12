@@ -12,6 +12,7 @@
 //   cd tests/tools && bun test worktree.test.ts       # not from the repo root, see brain-cli.test.ts
 //   WORKTREE_SH=/path/to/another/worktree.sh ISSUE_AS_SH=… bun test …
 import { test, expect } from "bun:test";
+import { inFull, PAGES } from "./implementer-brief";
 import { mkdtempSync, mkdirSync, copyFileSync, writeFileSync, lstatSync, realpathSync, chmodSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
@@ -828,7 +829,8 @@ test("the scripts name no path of one machine", () => {
 // checkout with the placeholders filled in. A brief that loses the block, or changes a command so that it no longer
 // does what the test sees, fails here. BRIEFS names another directory of briefs (the one before the change fails).
 const BRIEFS = process.env.BRIEFS || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance");
-const brief = (f: string) => readFileSync(join(BRIEFS, f), "utf8");
+// The writer's brief is read in full, its pages joined (tests/tools/implementer-brief.ts).
+const brief = (f: string) => f === "agents/implementer.md" ? inFull(join(BRIEFS, "agents")) : readFileSync(join(BRIEFS, f), "utf8");
 const flat = (t: string) => t.replace(/\s+/g, " ");
 const fenced = (t: string) => [...t.matchAll(/^[ \t]*```[^\n]*\n([\s\S]*?)^[ \t]*```/gm)].map((m) => m[1].split("\n").map((l) => l.trim()).filter(Boolean));
 const block = (f: string, has: string, not = "\u0000") => {
@@ -1054,7 +1056,7 @@ test("the briefs after wt-3: a writer is put in a worktree and does not make or 
 
 test("check 8: no brief and no tool of the landing names a path of one machine", () => {
   const tools = resolve(import.meta.dir, "../../tools/cloud-brain");
-  const files = ["SKILL.md", "agents/digest.md", "agents/implementer.md", "agents/overseer.md", "agents/reviewer.md", "agents/spec.md"].map((f) => join(BRIEFS, f))
+  const files = ["SKILL.md", "agents/digest.md", "agents/implementer.md", ...PAGES.map((p) => `agents/implementer/${p}.md`), "agents/overseer.md", "agents/reviewer.md", "agents/spec.md"].map((f) => join(BRIEFS, f))
     .concat(["worktree.sh", "lock.sh", "issue-as.sh", "notebook-backup.sh"].map((f) => join(tools, f)));
   for (const f of files) expect([f, readFileSync(f, "utf8").includes("/Users/")]).toEqual([f, false]);
 });

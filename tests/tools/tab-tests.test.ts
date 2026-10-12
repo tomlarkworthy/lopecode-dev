@@ -4,6 +4,7 @@
 //   bun test ./tests/tools/tab-tests.test.ts          # from the repo root, with the ./
 // No browser is launched: the in-page functions are run here against a real @observablehq/runtime.
 import { expect } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { readFileSync, existsSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -205,7 +206,7 @@ test("channel rows are counted by type and notebook, and the requests they start
 
 // The brief: a writer's browser run is the tool's, and no step of it pairs a tab with the session.
 test("the writer's brief runs the module's tests and the emit with tab-tests.ts, and opens no paired tab for them", () => {
-  const brief = readFileSync(resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/agents/implementer.md"), "utf8");
+  const brief = inFull();
   const step = (n: number) => brief.slice(brief.indexOf(`\n${n}. **`), brief.indexOf(`\n${n + 1}. **`));
   for (const n of [8, 9]) {
     expect(step(n)).toContain("tools/cloud-brain/tab-tests.ts");

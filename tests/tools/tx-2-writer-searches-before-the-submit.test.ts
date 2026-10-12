@@ -6,6 +6,7 @@
 //
 //   bun test ./tests/tools/tx-2-writer-searches-before-the-submit.test.ts
 import { test, expect } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -14,7 +15,7 @@ const root = resolve(import.meta.dir, "../..");
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 const count = (text: string, phrase: string) => text.split(phrase).length - 1;
 const flat = (text: string) => text.replace(/\s+/g, " ");
-const brief = () => read(".claude/skills/brain-maintenance/agents/implementer.md");
+const brief = () => inFull();
 const OPENING = "What you changed is spoken of elsewhere.";
 
 // The list of step 11: from its heading to step 12, one entry an item, each flattened to one line.
@@ -67,7 +68,7 @@ test("the command of the item runs as written, and each of its four paths names 
   const run = spawnSync("sh", ["-c", cmd.replace("<name>", "release land")], { cwd: root, encoding: "utf8" });
   expect(run.status).toBe(0);
   const files = new Set(run.stdout.trim().split("\n").map((l) => l.split(":")[0]));
-  expect(files.has(".claude/skills/brain-maintenance/agents/implementer.md")).toBe(true);
+  expect(files.has(".claude/skills/brain-maintenance/agents/implementer/landing.md")).toBe(true);
   expect(files.size).toBeGreaterThan(1);
   // A name that is in no file prints nothing and is exit 1, which is not a failure of the search.
   const none = spawnSync("sh", ["-c", cmd.replace("<name>", "zq-no-such-name-" + "7f3a")], { cwd: root, encoding: "utf8" });

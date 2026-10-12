@@ -8,6 +8,7 @@
 //   ISSUE_WATCH_SH=/path/to/another/issue-watch.sh bun test …
 // No call leaves the machine: `--filter <token>` reads an answer of sync from stdin, `--queue <file>` one of queue.
 import { test, expect } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { existsSync, readFileSync, writeFileSync, mkdtempSync, chmodSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
@@ -188,7 +189,7 @@ test("SKILL.md has the row of the label above the in-progress rows, the watch's 
 });
 
 test("the implementer's brief names the report first and the label for a run that cannot end, written by the tool", () => {
-  const brief = readFileSync(process.env.IMPLEMENTER || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/agents/implementer.md"), "utf8");
+  const brief = (process.env.IMPLEMENTER ? readFileSync(process.env.IMPLEMENTER, "utf8") : inFull());
   const from = brief.indexOf("\n## When you need the orchestrating session\n");
   expect(from).toBeGreaterThan(-1);
   const part = brief.slice(from + 1, brief.indexOf("\n## ", from + 1));
@@ -205,7 +206,7 @@ test("the implementer's brief names the report first and the label for a run tha
 
 // The read the brief gives a writer that waits: exit 0 while the label is on, 3 when it is off.
 test("the brief's read of the label is exit 0 with the label on the issue, 3 without, and neither for an answer with no issue", () => {
-  const brief = readFileSync(process.env.IMPLEMENTER || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/agents/implementer.md"), "utf8");
+  const brief = (process.env.IMPLEMENTER ? readFileSync(process.env.IMPLEMENTER, "utf8") : inFull());
   const m = brief.match(/ia "get\?id=<id>" 2>\/dev\/null \| (python3 -I -c '[^\n]*')\n/);
   expect(m).not.toBeNull();
   const read = (labels: unknown) => Bun.spawnSync(["bash", "-c", m![1]], { stdin: Buffer.from(JSON.stringify({ issue: { labels }, events: [{ type: "labelled", add: ["asks-orchestrator"] }] })) }).exitCode;
@@ -263,7 +264,7 @@ test("SKILL.md and the brief name the line asks-still where they describe the wa
   const skill = readFileSync(process.env.SKILL || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/SKILL.md"), "utf8").replace(/\s+/g, " ");
   expect(skill).toMatch(/issue-watch\.sh <your token>[^|]*a line `<seq> asks-still <id> <N> min …` for each issue that has that label and has had no event for 5 minutes, once at each 5 minutes/);
   expect(skill).toContain("A line `asks-still` of the watch names an issue of this row");
-  const brief = readFileSync(process.env.IMPLEMENTER || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/agents/implementer.md"), "utf8").replace(/\s+/g, " ");
+  const brief = (process.env.IMPLEMENTER ? readFileSync(process.env.IMPLEMENTER, "utf8") : inFull()).replace(/\s+/g, " ");
   expect(brief).toContain("It prints a second line, `asks-still`, when the label is still on and the issue has had no event for 5 minutes.");
 });
 
@@ -386,7 +387,7 @@ test("agents/spec.md has each task name what it is after; the implementer's brie
   expect(spec).toContain("Each task names the tasks it is after, by id");
   expect(spec).toContain("a task that names none can be started at once");
   expect(spec).toContain("The orchestrator writes one link `after` for each when it opens the tasks (`SKILL.md`, step 3, the row `decompose`)");
-  const brief = read(process.env.IMPLEMENTER, ".claude/skills/brain-maintenance/agents/implementer.md");
+  const brief = (process.env.IMPLEMENTER ? readFileSync(process.env.IMPLEMENTER, "utf8") : inFull()).replace(/\s+/g, " ");
   expect(brief).toContain("learns of your submit from its watch, which prints the queue's new entry for it, `QUEUE review <id>`");
   expect(brief).not.toContain("which prints every `submit`");
   const guide = read(process.env.CLUSTER_GUIDE, "knowledge/working-with-cloud-brain-remote-lopecode-cluster.md");

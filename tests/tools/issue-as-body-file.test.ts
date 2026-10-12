@@ -6,6 +6,7 @@
 //   bun test ./tests/tools/issue-as-body-file.test.ts
 //   ISSUE_AS_SH=/path/to/another/issue-as.sh bun test …
 import { test, expect, beforeAll, afterAll } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, chmodSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
@@ -134,7 +135,7 @@ test("the inline form is as before", async () => {
 });
 
 test("the implementer's brief says when a body goes in a file, under the write calls", () => {
-  const brief = readFileSync(join(root, ".claude/skills/brain-maintenance/agents/implementer.md"), "utf8");
+  const brief = inFull();
   const part = brief.slice(brief.indexOf("## The tracker's write calls"), brief.indexOf("## What a reviewer will check"));
   expect(part.length).toBeGreaterThan(100);
   expect(part).toMatch(/apostrophe/);

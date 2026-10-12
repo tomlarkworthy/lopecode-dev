@@ -10,6 +10,7 @@
 // shapes brain-x-issues answers (records/lk-1-issue-lock-methods.md); it is not the service's code, which its own
 // test cells test.
 import { test, expect, afterAll } from "bun:test";
+import { inFull, PAGES } from "./implementer-brief";
 import { mkdtempSync, existsSync, readFileSync, readdirSync, realpathSync, writeFileSync, chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
@@ -410,8 +411,8 @@ test("a plain take asks once: a lost answer is exit 2, and the renew the brief g
 test("R3: the briefs name lock.sh for both locks, and no directory, mkdir, rmdir or rm -r of either", () => {
   const read = (f: string) => readFileSync(join(root, f), "utf8");
   const skill = ".claude/skills/brain-maintenance/";
-  const named = [skill + "agents/implementer.md", skill + "agents/overseer.md", skill + "SKILL.md", skill + "rules.md", "knowledge/changing-and-deploying-a-cloud-brain-worker.md"];
-  for (const f of [...named, skill + "agents/spec.md"]) {
+  const named = [skill + "agents/implementer/landing.md", skill + "agents/overseer.md", skill + "SKILL.md", skill + "rules.md", "knowledge/changing-and-deploying-a-cloud-brain-worker.md"];
+  for (const f of [...named, skill + "agents/spec.md", skill + "agents/implementer.md", ...PAGES.map((p) => skill + "agents/implementer/" + p + ".md")]) {
     const text = read(f);
     if (named.includes(f)) {
       expect(text.includes("lock.sh take"), f + " names lock.sh take").toBe(true);
@@ -426,7 +427,7 @@ test("R3: the briefs name lock.sh for both locks, and no directory, mkdir, rmdir
   // the token of the call is the one the overseer's prompt names (ta-3-orchestrator-steps)
   expect(read(skill + "agents/overseer.md")).toContain("LOCK_TOKEN=<token> ");
   // step 10 of the writer's brief: the pull, the renew before the merge and the push
-  const writer = read(skill + "agents/implementer.md");
+  const writer = inFull();
   for (const phrase of ["pull --ff-only", "lock.sh renew land <id>", "lock.sh take land <id>", "lock.sh take cb4 <id>"]) expect(writer.includes(phrase), phrase).toBe(true);
 });
 

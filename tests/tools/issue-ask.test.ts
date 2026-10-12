@@ -7,6 +7,7 @@
 // No call leaves the machine. The tool calls a stand-in for issue-as.sh (ISSUE_AS_SH) that keeps each call's
 // arguments and ISSUE_AS_TIME_AHEAD, or the real issue-as.sh against a local server. ISSUE_ASK_NOW is the clock.
 import { test, expect } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, chmodSync, existsSync, realpathSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
@@ -180,7 +181,7 @@ const section = (text: string, title: string) => {
 };
 
 test("the implementer's brief: before a wait a writer stops what is billed or says what runs, since when and until when", () => {
-  const brief = readFileSync(process.env.IMPLEMENTER || join(root, ".claude/skills/brain-maintenance/agents/implementer.md"), "utf8");
+  const brief = (process.env.IMPLEMENTER ? readFileSync(process.env.IMPLEMENTER, "utf8") : inFull());
   const part = section(brief, "Before a wait").replace(/\s+/g, " ");
   expect(part).toMatch(/Before you wait for anyone \(the owner, the orchestrating session, your review, a lock another holds\), stop what you started that is billed by the minute: a Fly machine, a browser or a container of the cluster\./);
   expect(part).toContain("is said in the request: what runs, since when, and the time at which you stop it yourself, answered or not.");

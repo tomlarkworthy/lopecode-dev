@@ -6,6 +6,7 @@
 //
 //   bun test ./tests/tools/tx-1-six-lines.test.ts
 import { test, expect } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -34,7 +35,7 @@ test("the deploy guide says a renew is 600 s from the renew, as the header of lo
 });
 
 test("step 10 of the writer's brief names the docs line a release of land prints, once", () => {
-  const brief = read(".claude/skills/brain-maintenance/agents/implementer.md");
+  const brief = inFull();
   expect(count(brief, "docs (cb4)")).toBe(1);
   const line = brief.split("\n").find((l) => l.includes("docs (cb4)")) || "";
   expect(line).toContain("lock.sh release land <id>`. It prints when the lock was taken and when it went.");

@@ -7,6 +7,7 @@
 // (ISSUE_AS_SH) that gives the files 1.json, 2.json, … of a directory, the last one again after that, and
 // writes each call's arguments to calls.log. ISSUE_WAIT_EVERY and ISSUE_WAIT_MOVE make the tool's 15 s and 30 s short. IMPLEMENTER= and SKILL= read another copy of the two texts.
 import { test, expect } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { readFileSync, writeFileSync, mkdtempSync, chmodSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
@@ -157,7 +158,7 @@ test("a token that is not kept, and a read that is refused, are exit 2 after one
 const flat = (env: string | undefined, path: string) => readFileSync(env || resolve(import.meta.dir, path), "utf8").replace(/\s+/g, " ");
 
 test("the writer's brief has the wait as step 13: the command, the timeout, five runs, one round, and what one line means", () => {
-  const brief = flat(process.env.IMPLEMENTER, "../../.claude/skills/brain-maintenance/agents/implementer.md");
+  const brief = (process.env.IMPLEMENTER ? readFileSync(process.env.IMPLEMENTER, "utf8") : inFull()).replace(/\s+/g, " ");
   const step = brief.slice(brief.indexOf("13. **Wait for your review"), brief.indexOf("## A resumed round"));
   expect(step).toContain("tools/cloud-brain/issue-wait.sh <token> <id> <seq of your submit>");
   expect(step).toContain("with the Bash `timeout` at 280000");

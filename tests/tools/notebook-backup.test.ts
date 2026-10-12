@@ -5,6 +5,7 @@
 // The tool runs on a repository made here (NOTEBOOK_REPO) with the day given (NOTEBOOK_TODAY); nothing of the
 // checkout's lopebooks is read or written. The last three tests read the writer's brief and the knowledge doc.
 import { test, expect } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync, chmodSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -163,7 +164,7 @@ test("the backup's message names the commit of the checkout the tool is run from
 });
 
 const flat = (s: string) => s.replace(/\s+/g, " ");
-const brief = () => readFileSync(join(ROOT, ".claude/skills/brain-maintenance/agents/implementer.md"), "utf8");
+const brief = () => inFull();
 const step = (s: string, n: number) => s.slice(s.indexOf(`\n${n}. **`), s.indexOf(`\n${n + 1}. **`));
 
 test("step 10 of the writer's brief hands the build to the tool and commits lopebooks only on `committed`", () => {

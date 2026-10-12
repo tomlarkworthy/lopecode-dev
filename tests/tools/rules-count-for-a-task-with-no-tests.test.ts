@@ -6,6 +6,7 @@
 //
 //   bun test ./tests/tools/rules-count-for-a-task-with-no-tests.test.ts
 import { test, expect } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 
@@ -67,7 +68,7 @@ test("the brief it names for a digest has the four numbers counted at the librar
 
 test("the doc-alone sentence it names is in the implementer's brief", () => {
   expect(reading).toContain("(`agents/implementer.md`, \"The tracker's write calls\")");
-  const brief = readFileSync(join(skill, "agents/implementer.md"), "utf8");
+  const brief = inFull(join(skill, "agents"));
   const section = brief.slice(brief.indexOf("## The tracker's write calls"), brief.indexOf("## What a reviewer will check"));
   expect(section).toContain("(a doc alone) still needs a count for the submit");
 });

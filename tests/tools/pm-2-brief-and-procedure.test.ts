@@ -5,6 +5,7 @@
 //   bun test ./tests/tools/pm-2-brief-and-procedure.test.ts
 //   SKILL=<file> BRIEF=<file> reads other copies of the two (with those of the commit before the change, all seven fail).
 import { expect, test } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -12,7 +13,7 @@ const root = resolve(import.meta.dir, "../..");
 const dir = resolve(root, ".claude/skills/brain-maintenance");
 const read = (p: string) => readFileSync(resolve(root, p), "utf8");
 const skill = readFileSync(process.env.SKILL || resolve(dir, "SKILL.md"), "utf8");
-const brief = readFileSync(process.env.BRIEF || resolve(dir, "agents/implementer.md"), "utf8");
+const brief = (process.env.BRIEF ? readFileSync(process.env.BRIEF, "utf8") : inFull());
 const spec = read("plan/cloud-brain-post-mortems-declared-and-kept.md");
 const flat = (s: string) => s.replace(/\s+/g, " ");
 const count = (text: string, part: string) => text.split(part).length - 1;

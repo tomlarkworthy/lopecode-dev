@@ -5,6 +5,7 @@
 //   bun test --timeout=30000 ./tests/tools/brief-one-advisor-call.test.ts
 //   BRIEFS=<dir> reads another copy of the two files (the copy of before the issue fails every test).
 import { expect, test } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
@@ -12,7 +13,7 @@ const dir = process.env.BRIEFS || resolve(import.meta.dir, "../../.claude/skills
 const heading = "\n## The advisor: one call, before the submit\n";
 const count = (text: string, part: string) => text.split(part).length - 1;
 const brief = (name: string) => {
-  const text = readFileSync(join(dir, name), "utf8");
+  const text = name === "implementer.md" ? inFull(dir) : readFileSync(join(dir, name), "utf8");
   const from = text.indexOf(heading), to = from < 0 ? -1 : text.indexOf("\n## ", from + heading.length);
   const first = text.search(/\n1\. \*\*/);
   return { text, from, first, part: from < 0 ? "" : text.slice(from, to < 0 ? undefined : to).replace(/\s+/g, " ") };

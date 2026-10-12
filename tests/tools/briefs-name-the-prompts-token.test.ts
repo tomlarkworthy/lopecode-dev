@@ -6,6 +6,7 @@
 //   bun test ./tests/tools/briefs-name-the-prompts-token.test.ts
 // BRIEFS=<dir> reads a copy of .claude/skills/brain-maintenance in its place (the files before the change).
 import { test, expect } from "bun:test";
+import { inFull, PAGES } from "./implementer-brief";
 import { readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 
@@ -20,7 +21,7 @@ const section = (text: string, heading: string) => text.match(new RegExp(`\\n## 
 const rows = skill.split("\n").filter((l) => l.trim().startsWith("| "));
 
 test("no command of the procedure, a brief or the rules is written with a role's token", () => {
-  for (const f of ["SKILL.md", "rules.md", "agents/reviewer.md", ...briefs]) {
+  for (const f of ["SKILL.md", "rules.md", "agents/reviewer.md", ...briefs, ...PAGES.map((p) => `agents/implementer/${p}.md`)]) {
     const text = read(f);
     for (const bad of [/issue-as\.sh issues-/, /--token=issues-/, /LOCK_TOKEN=issues-/, /issue-watch\.sh issues-/]) expect(text.match(bad)?.[0] ?? "", f).toBe("");
   }
@@ -92,7 +93,7 @@ test("the owner's words on the number of agents are kept, and no limit is stated
 });
 
 test("the writer's brief: an issue another started is not its to submit, and every lock.sh call names the token", () => {
-  const brief = read("agents/implementer.md"), text = flat(brief);
+  const brief = inFull(join(dir, "agents")), text = flat(brief);
   expect(text).toContain("it is not yours to submit, whatever your prompt says: comment with what you read, say so in your report, and stop");
   expect(text).toContain("`secret:<token>`");
   const calls = (brief.match(/`[^`\n]*lock\.sh (?:take|renew|release|show)[^`\n]*`/g) ?? []);

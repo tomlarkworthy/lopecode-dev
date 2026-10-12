@@ -11,6 +11,7 @@
 // issue.comment; it is not the service's code. lock.sh, worktree.sh and issue-as.sh are the real ones, copied.
 // Before the change there was no land.sh: every case that runs it failed at the copy.
 import { test, expect, afterAll } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { mkdtempSync, mkdirSync, copyFileSync, writeFileSync, realpathSync, chmodSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
@@ -369,7 +370,7 @@ test("nothing ahead of origin/main: exit 64, nothing sent", async () => {
 
 // ---- the brief names the command ----
 
-const brief = readFileSync(join(here, ".claude/skills/brain-maintenance/agents/implementer.md"), "utf8");
+const brief = inFull();
 const flat = (t: string) => t.replace(/\s+/g, " ");
 const fenced = (t: string) => [...t.matchAll(/^[ \t]*```[^\n]*\n([\s\S]*?)^[ \t]*```/gm)].map((m) => m[1]);
 

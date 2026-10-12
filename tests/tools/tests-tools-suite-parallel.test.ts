@@ -8,12 +8,13 @@
 //   BRIEF=<file> reads another copy of the brief (the one before the change fails the two tests of the brief).
 //   SUITE_SH=<file> runs another copy of the script, as if it were at tests/tools/suite.sh of a scratch checkout.
 import { expect, test } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 const root = resolve(import.meta.dir, "../..");
-const brief = readFileSync(process.env.BRIEF || resolve(root, ".claude/skills/brain-maintenance/agents/implementer.md"), "utf8");
+const brief = (process.env.BRIEF ? readFileSync(process.env.BRIEF, "utf8") : inFull());
 const flat = brief.replace(/\s+/g, " ");
 const script = process.env.SUITE_SH || resolve(import.meta.dir, "suite.sh");
 const FLAGS = ["--parallel=4", "--timings=tests/tools/timings.json", "--timeout=30000"];

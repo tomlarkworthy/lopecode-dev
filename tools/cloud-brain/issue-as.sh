@@ -20,11 +20,21 @@
 # copy that runs is a worktree's own (as lock.sh; a worktree's .emitted has no token). A copy that is in no git repository
 # reads .emitted beside itself. ISSUE_AS_BASE is the address, https://cb4.endpointservices.workers.dev with none; only the
 # tests set it. tests/tools/worktree.test.ts; records/wt-2-worktree-sh.md.
+# A third argument `--short` is for a read of `get`: `issue-as.sh NAME "get?id=ID" --short`. The service's answer is whole
+# as before; what is printed is cut here, for an agent that reads it at every later request. Left out: of each event
+# `prev`, `hash`, `sig`, `ray`, `origin`, `workflow` and `id` (the issue's); of the `opened` event its `title` and `body`
+# when they are the issue's; of a `cost` event all but seq, key, type, at, by, role, round, how, outcome, token and event;
+# of the issue `workflow` and `runs`; and the answer's `cost`. `by` is the caller's name (the holder with no `secret:`, or
+# the caller when a session wrote it), and `at`, `opened_at`, `updated_at` and `last.at` are times in UTC. One event a
+# line, the whole still one JSON value. An answer with no `events` (another method, a refusal) is printed as it came.
+# tests/tools/issue-as-short.test.ts; records/writer-brief-and-tool-output-smaller.md.
 D="$(cd "$(dirname "$0")" && pwd)"
 DIR="${BRAIN_STATE_DIR:-}"
 if [ -z "$DIR" ]; then
   G="$(git -C "$D" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" && DIR="$(dirname "$G")/tools/cloud-brain/.emitted" || DIR="$D/.emitted"
 fi
+SHORT=""
+if [ "$3" = "--short" ]; then SHORT=1; set -- "$1" "$2"; fi
 F=""
 case "$3" in @*)
   F="${3#@}"
@@ -76,6 +86,50 @@ sys.exit(1)
 PY
 ) || exit 2
 U="${ISSUE_AS_BASE:-https://cb4.endpointservices.workers.dev}/xrpc/com.lopecode.brain.issue.$2"
+if [ -n "$SHORT" ]; then
+  read -r -d '' PY <<'PY'
+import json, sys
+from datetime import datetime, timezone
+raw = sys.stdin.read()
+try: a = json.loads(raw)
+except ValueError: a = None
+if not (isinstance(a, dict) and isinstance(a.get("events"), list) and isinstance(a.get("issue"), dict)):
+    sys.stdout.write(raw)
+    sys.exit(0)
+def when(ms):
+    return datetime.fromtimestamp(ms / 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ") if isinstance(ms, (int, float)) and not isinstance(ms, bool) else ms
+def who(by):
+    if not isinstance(by, dict): return by
+    h = by.get("holder")
+    if isinstance(h, str) and h: return h[7:] if h.startswith("secret:") else h
+    return "%s (tab)" % by.get("caller") if by.get("tab") else by.get("caller")
+LEFT = ("prev", "hash", "sig", "ray", "origin", "workflow", "id")
+COST = ("seq", "key", "type", "at", "by", "role", "round", "how", "outcome", "token", "event")
+dump = lambda v: json.dumps(v, ensure_ascii=False, separators=(",", ":"))
+issue = {k: v for k, v in a["issue"].items() if k not in ("workflow", "runs")}
+for k in ("opened_at", "updated_at"):
+    if k in issue: issue[k] = when(issue[k])
+if isinstance(issue.get("last"), dict) and "at" in issue["last"]: issue["last"] = dict(issue["last"], at=when(issue["last"]["at"]))
+events = []
+for e in a["events"]:
+    if not isinstance(e, dict):
+        events.append(e)
+        continue
+    s = {k: v for k, v in e.items() if k not in LEFT and (e.get("type") != "cost" or k in COST)}
+    if e.get("type") == "opened":
+        for k in ("title", "body"):
+            if k in s and s[k] == a["issue"].get(k): del s[k]
+    if "at" in s: s["at"] = when(s["at"])
+    if "by" in s: s["by"] = who(s["by"])
+    events.append(s)
+parts = ['"issue":' + dump(issue)]
+parts += ['"%s":%s' % (k, dump(v)) for k, v in a.items() if k not in ("issue", "events", "cost")]
+parts.append('"events":[\n' + ",\n".join(dump(e) for e in events) + "\n]")
+sys.stdout.write("{" + ",\n".join(parts) + "}\n")
+PY
+  curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" "$U" | python3 -c "$PY"
+  exit "${PIPESTATUS[0]}"
+fi
 if [ -n "$F" ]; then curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" -H 'content-type: application/json' -X POST --data-binary "@$F" "$U"
 elif [ -n "$3" ]; then curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" -H 'content-type: application/json' -X POST -d "$3" "$U"
 else curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" "$U"; fi

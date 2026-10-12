@@ -6,6 +6,7 @@
 // The brief is a file of the Brain. These tests read the copy kept beside them (reviewer-brief.ts, which has why):
 // BRIEF=<file> reads a file in its place, BRAIN=<address> what that Brain serves now.
 import { test, expect } from "bun:test";
+import { inFull } from "./implementer-brief";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -50,7 +51,7 @@ test("the four questions are those of part 6 of the spec, in order, and no fifth
 
 // The writer reads the same four before its submit: one rule in two texts.
 test("they are the four of the writer's brief as the checkout has it", () => {
-  const brief = read(".claude/skills/brain-maintenance/agents/implementer.md");
+  const brief = inFull();
   const from = brief.indexOf("\n### Before the submit: the four questions\n");
   expect(from).toBeGreaterThan(0);
   expect(numbered(brief.slice(from, brief.indexOf("\n## ", from)).split("\n"))).toEqual(FOUR);
@@ -86,7 +87,7 @@ test("under question 3: the six kinds of `Held by` as the form test has them, an
   expect(p).toContain('- Where `## The root cause` is "Not found": is an action `observability` at the step where the trace stopped');
   expect(p).toContain('"None" is then no answer.');
   // the same words in the writer's section
-  const writer = flat(read(".claude/skills/brain-maintenance/agents/implementer.md"));
+  const writer = flat(inFull());
   expect(writer).toContain('"It is shorter" and "it needs his install" are not that');
   expect(writer).toContain('"None" is then no answer');
 });
@@ -104,7 +105,7 @@ test("what the part names is there: the spec, the writer's section, the form's t
     expect(p, f).toContain(f + "`");
     expect(read(f).length, f).toBeGreaterThan(0);
   }
-  expect(read(".claude/skills/brain-maintenance/agents/implementer.md")).toContain("\n## A post mortem\n");
+  expect(inFull()).toContain("\n## A post mortem\n");
   expect(p).toContain("Review 4541 of `pm-second-summarizer-role`");
   expect(read("tools/cloud-brain/post-mortems/pm-second-summarizer-role.md")).toStartWith("# Post mortem: ");
 });
