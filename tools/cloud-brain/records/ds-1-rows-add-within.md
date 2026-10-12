@@ -87,7 +87,14 @@ Counts, each from a run after the last change to the seed and the tests:
 | `cd cloud-brain-dev && bun test.ts @tomlarkworthy/cloudflare-iac --with …/.emitted/ds-1-rows-add-within.js` | `"passed":25,"failed":0,"needsBrowser":2` |
 | `cd cloud-brain-dev && bun test.ts brain-deployer`, what cb4 runs, before the change | `"passed":24,"failed":0,"needsBrowser":2`, hash `4a25dc92cc07…` |
 | `bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/cloudflare-iac`, three runs | `"tests":27,"passed":27,"failed":[]` each, Chrome 151.0.7922.34 |
-| `bun test ./tests/tools` | 508 pass, 3 skip, 0 fail, 511 tests across 56 files; one line `skipped: test-ts-cut.test.ts: … test.ts has no --whole` |
+| `bun test ./tests/tools`, after the rebase onto `main` and a build there | 509 pass, 3 skip, 0 fail, 512 tests across 56 files; one line `skipped: test-ts-cut.test.ts: … test.ts has no --whole` |
+
+The rebase brought in a change to `brain-topic.ojs` and `tests/tools/topic-sql.test.ts`. The suite
+run before the worktree was built again gave 506 pass, 3 fail, the three in `topic-sql.test.ts`,
+which reads the worktree's build: it was the build from before the rebase. After
+`build.ts --out` the run is the row above. The browser runs and the `test.ts` run are from before
+the rebase; it changed nothing `cloudflare-iac` is built from (`worktree.sh --rebase` printed
+`brain-topic.ojs`, a digest, a spec, a test, a record, `seen.json` and `spec-as-built.md`).
 
 `verify-run.ts` was not run: the deployer gives no verdict for itself (the writer's brief, step 8),
 so `tab-tests.ts` was run three times in its place. `test.ts` takes the module's name with the
