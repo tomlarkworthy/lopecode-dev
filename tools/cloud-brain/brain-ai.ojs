@@ -44,9 +44,10 @@ curl -X POST -H "Authorization: Bearer $BRAIN_TOKEN" \\
 The answer is of a run on cb4 with a token for the two methods, 2026-10-12 01:44 UTC: a PDF of 624 bytes, one page with that one sentence, sent with \`-F\` alone. The other runs of that day are in \`tools/cloud-brain/records/tm-1-ai-tomarkdown-method.md\`.
 
 - **The body is the caller's.** The service reads it whole to count its bytes and sends them with the caller's \`content-type\`, boundary and all. A body that is not multipart, an empty one, and more than one file in a call are Cloudflare's to take or refuse.
-- **The price** is \`usd\`, and \`usd\` is at least \`flatUsd\` (${aiDefaults.flatUsd}), the floor of a model the service cannot bound (The price). Under it the answer is 402 \`BudgetTooSmall\` with \`needs\`; with no \`usd\` the core refuses the call before it comes here, 403, as it does for \`ai.run\`. **This does not hold Cloudflare's cost under the charge**: the parts are not counted, and Cloudflare's page says the conversion of an image runs models that are billed. When Cloudflare gives \`cf-ai-neurons\` it is in the log line and in \`x-ai-neurons\` and \`x-ai-usd\`; the run above, a PDF of text, came with neither header. An image was not sent.
-- **The size.** A body over \`markdownMaxBody\` (${aiDefaults.markdownMaxBody} bytes, the largest file \`brain-static\` keeps) is refused 413 \`TooLarge\` and not sent. \`maxBody\` does not count here: a PDF of 2,000,703 bytes was converted on cb4 that day. The largest body Cloudflare takes was not measured. A body that is not multipart came back 400 from Cloudflare, code 6005.
+- **The price** is \`usd\`, and \`usd\` is at least \`flatUsd\` (${aiDefaults.flatUsd}), the floor of a model the service cannot bound (The price). Under it the answer is 402 \`BudgetTooSmall\` with \`needs\`; with no \`usd\` the core refuses the call before it comes here, 403, as it does for \`ai.run\`. **This does not hold Cloudflare's cost under the charge**: the parts are not counted, and Cloudflare's page says the conversion of an image runs models that are billed. When Cloudflare gives \`cf-ai-neurons\` it is in the log line and in \`x-ai-neurons\` and \`x-ai-usd\`; Cloudflare gave it for none of the 14 conversions of 2026-10-12, one image file and two in a call among them (\`aiMeasured.markdown\`): what an image costs Cloudflare's account is not known from an answer. One image file took 20.8 s and two in a call 22.2 s; a paper took 1.6 to 10.5 s.
+- **The size.** A body over \`markdownMaxBody\` (${aiDefaults.markdownMaxBody} bytes) is refused 413 \`TooLarge\` and not sent. \`maxBody\` does not count here. The default is what Cloudflare was seen to take on 2026-10-12 (\`aiMeasured.markdown.size\`): a body of 37,000,116 bytes was converted, and bodies of 38,500,116 bytes and more came back from Cloudflare as 400, code 6006, \`Error converting to markdown\`, after 9 s. The largest paper converted was 31,751,676 bytes; the one of 39,663,618 bytes was refused that way. Until that day the default was 50,000,000. A stored \`markdownMaxBody\` over the default sends a larger body to the same refusal. A body that is not multipart came back 400 from Cloudflare, code 6005.
 - **\`ai.tomarkdown/supported\`** answers \`{ result: [{ extension, mimeType }] }\` as Cloudflare gives it, and has no price.
+- **What comes back for a paper** (three papers of 2026-10-12, beside \`pdftotext\` and arXiv's HTML; \`tools/cloud-brain/tomarkdown.md\`): the PDF's metadata as a list, then the text of each page under \`### Page N\`, with the PDF's line ends and the hyphens at them. Two columns came in reading order. A table is its rows as lines of text, not a Markdown table, and the paper's own headings are not headings. An image inside a PDF is not described, and a page that is a scan with no text came back 200 with an empty page: for such a file send the page as an image file, which is described by a model (not tried on a scan).
 - A token for it: \`token.create\` with \`methods: ["ai.tomarkdown", "ai.tomarkdown/supported"]\`.`
 // %%
 md`## An OpenAI client
@@ -114,7 +115,7 @@ The \`AI\` binding of a Worker was not used. It needs no token, and it cannot li
 - \`max_tokens\` is the one field the service writes in a body, as The price says, and \`max_completion_tokens\` the one it takes out. A model that names its output limit otherwise is not bounded by it.
 - A model the list does not have is refused, also one Cloudflare would run.`
 // %%
-aiDefaults = ({ bytesPerToken: 3, templateTokens: 64, flatUsd: 0.01, maxBody: 1000000, maxTokens: 4096, markdownMaxBody: 50000000, v1Usd: 0.01, usdPerNeuron: 0.000011, modelMs: 600000 })
+aiDefaults = ({ bytesPerToken: 3, templateTokens: 64, flatUsd: 0.01, maxBody: 1000000, maxTokens: 4096, markdownMaxBody: 37000000, v1Usd: 0.01, usdPerNeuron: 0.000011, modelMs: 600000 })
 // %%
 // Measured on cb4, 2026-10-09. latency and stream are from tools/cloud-brain/rpc-performance.md; rounding and window from spec-as-built.md.
 aiMeasured = ({
@@ -158,7 +159,33 @@ aiMeasured = ({
     { model: "@cf/meta/llama-4-scout-17b-16e-instruct", ms: [463, 287, 261, 394, 367] },
     { model: "@cf/meta/llama-3.2-1b-instruct", ms: [218, 195, 186, 276, 200] }
   ],
-  template: "a body of {prompt, stream, max_tokens}, 105 bytes, was 57 prompt tokens; {prompt: \"hi\"} was 45. A body of messages, 64 bytes, was 17."
+  template: "a body of {prompt, stream, max_tokens}, 105 bytes, was 57 prompt tokens; {prompt: \"hi\"} was 45. A body of messages, 64 bytes, was 17.",
+  // ai.tomarkdown, 2026-10-12 02:06Z to 02:12Z, through the Brain (brain-x-ai@41bc808efa00) with a token, usd=0.01, curl from Berlin.
+  // The whole of it, with the commands, is tools/cloud-brain/tomarkdown.md.
+  markdown: {
+    // One PDF a call. bytes is the multipart body as sent, ms is curl's time_total. "padded" is one page of one sentence and a
+    // stream of bytes no page uses. A refusal is Cloudflare's 400, code 6006, "Error converting to markdown".
+    size: [
+      { file: "arxiv:2410.04444", bytes: 1151126, status: 200, ms: 1589, tokens: 19686 },
+      { file: "arxiv:2603.13131", bytes: 10050461, status: 200, ms: 3912, tokens: 21167 },
+      { file: "arxiv:2602.07755", bytes: 22491633, status: 200, ms: 6676, tokens: 50638 },
+      { file: "arxiv:2605.09998", bytes: 31751886, status: 200, ms: 10486, tokens: 21775 },
+      { file: "padded", bytes: 33000116, status: 200, ms: 7342, tokens: 64 },
+      { file: "padded", bytes: 34000116, status: 200, ms: 8036, tokens: 64 },
+      { file: "padded", bytes: 37000116, status: 200, ms: 9840, tokens: 64 },
+      { file: "padded", bytes: 38500116, status: 400, ms: 8809, code: 6006 },
+      { file: "padded", bytes: 39663910, status: 400, ms: 9363, code: 6006 },
+      { file: "arxiv:2608.11350", bytes: 39663828, status: 400, ms: 9630, code: 6006 }
+    ],
+    // Image files, 1200 by 900 pixels, about 63,000 bytes each. tokens is one number a file of the answer.
+    images: [
+      { files: 1, bytes: 63420, status: 200, ms: 20840, tokens: [459] },
+      { files: 2, bytes: 126803, status: 200, ms: 22248, tokens: [412, 496] }
+    ],
+    neurons: "none of the 14 answers had cf-ai-neurons, so none had x-ai-neurons or x-ai-usd: 4 papers, 3 padded PDFs, a PDF with no image in it, a scanned page, 2 calls of image files, 3 refusals. What Cloudflare billed for the image files is not known from here.",
+    pdf: "a PDF's own images are not described: arxiv:2410.04444 has 122 and came back in 1589 ms as its text alone. A page that is one scanned image (no text in the file) answered 200 in 548 ms with nothing under its page heading: no OCR, and no error.",
+    text: "three papers against pdftotext and arXiv's HTML: about the same characters as pdftotext, columns in reading order, no Markdown table and no heading but one a page, the hyphen at a line's end kept (276 in the paper of two columns, where pdftotext left 5), an equation as its letters in a line with U+0000 and U+0001 where the tall brackets were."
+  }
 })
 // %%
 // What Cloudflare says a model costs, in dollars a token: { input, output }, or null when it is not priced by the token.
@@ -696,6 +723,19 @@ test_ai_tomarkdown_passes_the_files_on_and_gives_cloudflares_answer = {
   for (const params of [{}, { usd: "soon" }]) expect((await rig.price(params, "tomarkdown")).error).toBeTruthy();
   expect((await ai_service.emit()).meta.access["com.lopecode.brain.ai.tomarkdown/supported"].price).toBe(undefined);
   return "a file passed on, 6 refusals of usd, 1 of size";
+}
+// %%
+// The default of markdownMaxBody is a size Cloudflare was seen to take (aiMeasured.markdown.size), not one it refused.
+test_ai_markdown_default_size_is_one_cloudflare_took = {
+  const rows = (aiMeasured.markdown || { size: [] }).size;
+  const took = rows.filter((r) => r.status === 200).map((r) => r.bytes), refused = rows.filter((r) => r.status !== 200).map((r) => r.bytes);
+  expect([took.length > 0, refused.length > 0]).toEqual([true, true]);
+  // One edge: every body that was taken is smaller than every body that was refused.
+  expect(Math.max(...took)).toBeLessThan(Math.min(...refused));
+  expect(aiDefaults.markdownMaxBody).toBeLessThanOrEqual(Math.max(...took));
+  // With nothing stored the service counts by the default, and a stored number is still the owner's to set over it.
+  expect([aiSettings({}).markdownMaxBody, aiSettings({ markdownMaxBody: Math.min(...refused) }).markdownMaxBody]).toEqual([aiDefaults.markdownMaxBody, Math.min(...refused)]);
+  return `${aiDefaults.markdownMaxBody} bytes, at most the ${Math.max(...took)} that were taken, under the ${Math.min(...refused)} that were refused`;
 }
 // %%
 test_ai_models_is_cloudflares_list_and_the_service_declares_one_permission = {
