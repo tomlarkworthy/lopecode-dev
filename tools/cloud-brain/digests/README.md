@@ -73,6 +73,24 @@ the build, the check, the publish and the message
 - Something that reads past digests' `picks` back. Until then "self improve" is a person reading
   the backlog section of each digest.
 
+## Counting a digest
+
+```
+bun tools/cloud-brain/digests/count.ts tools/cloud-brain/digests/research-<day>.html
+bun tools/cloud-brain/digests/count.ts https://cb4.endpointservices.workers.dev/library/research-<day>
+```
+
+Opens the built file, or the library address with no session, in a local headless Chrome and prints
+one line of JSON with the numbers of step 7 above. Since 2026-10-12; the tab is not paired, so no
+session is sent its updates (`tools/cloud-brain/records/digest-counts-in-a-paired-tab.md`).
+
+```
+{"target":"https://cb4.endpointservices.workers.dev/library/research-2026-10-12","module":"@digest/research-2026-10-12","variables":53,"errors":[],"items":103,"sources":9,"papers":2,"picks":17,"picksFound":17,"notFound":[],"pageErrors":[],"browser":"151.0.7922.34","ms":620}
+```
+
+Exit 0 is no variable with an error and every pick found. `research-2026-10-09` has no cell
+`picksFound`, and the tool exits 70 on it after its 120 s for the module (2026-10-12).
+
 ## Layout, from Tom on 2026-10-09
 
 - The page opens on the first theme. The paragraph on how the digest was written (who, from which snapshot run, what was and was not reproduced) is the last section, "How this was written".

@@ -63,12 +63,26 @@ brief (`digest-2026-10-11`) stopped before publishing. Both were lifted that day
    (an item of `arxiv.json` has the feed's guid as its id, not that).
 6. **Build and check.**
    `bun tools/cloud-brain/digests/build.ts <day> "Research digest, <D Month YYYY>"` writes
-   `digests/research-<day>.html` (git-ignored). Open it in a QA tab under a session name of your
-   own and count four numbers: the module's variables, those with an error (0), the items
-   loaded, and the picks found among the items and papers. A `file://` page reads the
-   snapshot's public files since they allow any origin (2026-10-11, the built file of that
-   day: 55, 0, 216 items and 14 papers, 28 of 28). Do not publish a digest whose picks are
-   not all found. Close the tab by name.
+   `digests/research-<day>.html` (git-ignored). Count four numbers of it: the module's variables,
+   those with an error (0), the items loaded, and the picks found among the items and papers.
+   One command, in the worktree:
+   ```
+   bun tools/cloud-brain/digests/count.ts tools/cloud-brain/digests/research-<day>.html
+   ```
+   It opens the file in a local headless Chrome and prints one line of JSON: `variables` (all the
+   runtime holds for the module, the names it reads from the standard library among them),
+   `errors` (a list, each a variable's name and its message, `PENDING` for one with no value in
+   60 s), `items` with `sources`, `papers`, and `picksFound` of `picks`, with `notFound` the ids
+   of the picks that are in neither list. Exit 0 is no error and every pick found; 1 is an error
+   or a pick not found; 70 is the tool did not run. On the built file of 2026-10-12 it printed
+   53, `[]`, 103 items of 9 sources and 2 papers, 17 of 17, in under a second. A `file://` page
+   reads the snapshot's public files since they allow any origin. Do not publish a digest whose
+   picks are not all found.
+   Do not open a paired tab for the count (`qa_open_notebook` with `cc=`). You are an agent of the
+   orchestrating session, so each update of a tab you pair is sent to that session, which answers
+   it over its whole context (`tools/cloud-brain/records/writers-qa-tabs-wake-the-orchestrator.md`;
+   the writer of `digest-2026-10-12` counted in two paired tabs, before this tool). When you must
+   look at the page itself, open a tab, look, and close it by name at once.
 7. **Land the seed.** Commit it in the worktree. Copy the built file to
    `<root>/tools/cloud-brain/digests/`: it is git-ignored, and the
    publish command reads it from the main checkout. Land as `agents/implementer.md` step 10
@@ -80,10 +94,11 @@ brief (`digest-2026-10-11`) stopped before publishing. Both were lifted that day
    ```
    The answer has `"sandboxed":true`. `loop-library` names `library.put` alone; if `brain.ts`
    says no such token is kept, do not make one: comment, label `needs-owner`, report.
-   Open `https://cb4.endpointservices.workers.dev/library/research-<day>` with no session in a QA
-   tab (`chromium_args: ["--disable-features=LocalNetworkAccessChecks"]`, or the tab does not
-   pair) and count the same four numbers there; they are the ones you report. On 2026-10-11
-   they equalled the file's.
+   Then, at the library address and with no session,
+   `bun <root>/tools/cloud-brain/digests/count.ts https://cb4.endpointservices.workers.dev/library/research-<day>`
+   (the tool of step 6; its browser is new for the run and has no session): count the same four numbers there; they
+   are the ones you report, with the line the tool printed. On 2026-10-11 and 2026-10-12 they
+   equalled the file's. No tab is opened for it.
    Send the owner one Bluesky message (`rules.md`, "A Bluesky DM"): the summary, 300 characters
    at most, and the library address. Then one comment,
    `ia comment '{"key":"digest/digest-<day>/published","id":"digest-<day>","body":"…"}'`, with the
