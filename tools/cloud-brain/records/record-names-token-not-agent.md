@@ -2,8 +2,8 @@
 
 Task 6 of `plan/cloud-brain-record-names-token-not-agent.md` (issue `ta-6-checks-after-three-issues`).
 Read from cb4's tracker on 2026-10-12 at 12:20:57 CEST (`date`), when its last event was 3988
-(written 12:20:56 CEST, its `at`). Every count below is of the record to event 3988 and is made
-again with `--until 3988`.
+(written 12:20:56 CEST, its `at`). A count below is of the record to event 3988 and is made
+again with `--until 3988`, unless it names another event.
 
 **The first check of R1 does not pass.** `issues-implementer-2` wrote 20 events after the first
 round on the new tokens, the last at 12:18:25 CEST on 2026-10-12, two and a half minutes before
@@ -44,6 +44,23 @@ the parent: pass; secret:loop-agents wrote 0 events after N, 0 in all
 exit 1
 ```
 
+The tests, run in the worktree on 2026-10-12:
+
+```
+$ bun test ./tests/tools/token-checks.test.ts
+ 9 pass
+ 0 fail
+ 34 expect() calls
+$ bun test ./tests/tools/token-checks.test.ts      # with tools/cloud-brain/token-checks.ts moved away
+ 0 pass
+ 1 fail
+ 1 error                                           # the import of the tool fails; no assertion ran
+$ tests/tools/suite.sh
+ 598 pass
+ 0 fail
+Ran 598 tests across 62 files.                     # 12:34:56 CEST (`date`), after the rebase that brought in ta-5's test file
+```
+
 ## N
 
 The spec's N is "the event before the first round on the new tokens". Taken here as 2666: event
@@ -72,7 +89,7 @@ over the events read:
 
 | Events | Keys | What |
 |---|---|---|
-| 2682 to 2696 but 2695: 11 events, 22:36:43 to 22:42:46 CEST on 2026-10-11 | `impl/<issue>/…` on `ow-2-panel-offers-what-it-shows`, `fb-a2b5yudl8s`, `tests-tools-fail-in-a-fresh-worktree`, `reviewer-brief-suite-skips` | comments, an attachment, an open, a link and three submits, in the nine minutes after the first start on a new token. Read as writers that were started with the role token before the change and were finishing; the record does not say when each was started |
+| 2682 to 2696 but 2695: 11 events, 22:36:43 to 22:42:46 CEST on 2026-10-11 | `impl/<issue>/…` on `ow-2-panel-offers-what-it-shows`, `fb-a2b5yudl8s`, `tests-tools-fail-in-a-fresh-worktree`, `reviewer-brief-suite-skips` | comments, an attachment, an open, a link and three submits, in the nine minutes after the first start on a new token. The three issues submitted were each started with the role token before N (`start` at 2546, 2573 and 2619, each `secret:issues-implementer-2`), and only the starter submits |
 | 2695, 2718, 2719 | `orch2/cloudflare-usage-read/open`, `orch2/topics/open`, `orch2/topics/members` | 2026-10-11, 22:42 to 22:50 CEST |
 | 3524, 3525, 3526, 3549, 3550 | `orch2/priced-calls-of-the-day-used-up/…`, `orch2/day-count-not-one-row/open` | 2026-10-12 from 03:45:59 CEST: a comment, and the moves `ready`, `start` and `submit`. Already reported as `seen-outside-session-wrote-as-impl-2` (event 3567), whose body quotes event 3526: "Taken by a session outside the loop on the owner's word" |
 | 3962 | `orch2/bookkeeping-in-the-tracker/open` | 2026-10-12 12:18:25 CEST |
@@ -183,7 +200,8 @@ What was read is that five `over-` names wrote after N and `issues-overseer-1` d
 - Both checks of R2.
 - The first check on a record where the `orch2/` session has stopped using the role token. The
   tool's exit is 1 until then for N = 2666, since the 20 events stay after N. A later N, chosen by
-  whoever runs it (`--after 3962`), shows whether any has been written since: none was in the 35
-  events from 3963 to 3997 (`--after 3962`, the record at 3997, 12:26:45 CEST).
+  whoever runs it (`--after 3962`), shows whether any has been written since: none was in the 36
+  events from 3963 to 3998 (`--after 3962` printed `read 3998 events to 3998` and 0 for each of
+  the three; 12:28:05 CEST, `date`).
 - R3, R4, R5 and R6: tasks 1 to 5 have their checks.
 - Who wrote the `orch2/` events.
