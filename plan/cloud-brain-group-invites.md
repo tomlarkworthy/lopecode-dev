@@ -81,6 +81,11 @@ token.revoke    // a link row goes when r.value.name === name || r.value.group =
 token.link      // refused 400 while a live token of the owner has groupOf(d) === name
 ```
 
+(As built, `token-revoke-no-name-ends-links`, 2026-10-12: with the third line a `token.revoke` whose
+body had no `name` deleted every link row with no `group`, since `undefined === undefined`. The seed
+now answers 400 to a `name` that is not text of `/^[a-z0-9-]{1,40}$/`, before that line is reached;
+the record.)
+
 The third was not in the review. Without it a link approved for a guest of the group and not yet
 used outlives a revoke of the group for its 30 minutes: its row is named `team-YYYY`, the POST
 does not ask whether the token it replaces is alive (`:552`), and a token of the group is made
