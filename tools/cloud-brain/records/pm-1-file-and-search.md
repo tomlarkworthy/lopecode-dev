@@ -177,6 +177,22 @@ after it the three files were run together. The suite's run before the rebase, a
 took 88.01 s for 733 tests in 76 files; why the second took 153.67 s was not looked at.
 `scripts/check-learnings-triggers.sh`, 22:19: `0 error(s)`.
 
+## Two sentences of the docs mended before the submit, 22:26
+
+Both landed with `eb320720` and were found at the read before the submit.
+
+- The new row of "Where the documents are" said a file is an entry "from the landing after its own". The
+  release above entered the post mortem and changed two docs in one put, from `origin/main` as the push
+  had left it: a file is entered by the release of the landing that pushes it. The first was already on
+  `main`, so this change's release entered it. The row says that now.
+- "The knowledge docs in the Brain's search" said an entry's id is the file's name "whatever its
+  directory". The three files of `cloud-brain-dev` are `doc:cloud-brain-dev-agents`, `-readme` and
+  `-philosophy` (`status`, above). The sentence is of a file of this repository, and names the three.
+
+After the two edits, 22:26:27 to 22:28:01: `tests/tools/suite.sh`, `740 pass, 0 fail`, 77 files, 93.68 s;
+`bun test ./tests/tools/pm-1-file-and-search.test.ts`, `3 pass, 0 fail`; `scripts/check-learnings-triggers.sh`,
+`0 error(s)`. No test holds either sentence.
+
 ## Read before the design
 
 Four searches of the Brain at 22:13:10. Two are those above. "docs tool enters a directory of files

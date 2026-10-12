@@ -180,8 +180,9 @@ error ms price rule by`. Three traps met on the first day:
 2026-10-12, issue `pm-1-file-and-search`) and three files of `cloud-brain-dev` (`AGENTS.md`, `README.md`,
 `philosophy.md`) are entries of kind `doc` in the Brain's knowledge base (`knowledge.search?semantic=true&kind=doc&q=`).
 The first were entered 2026-10-10. The tool is `tools/cloud-brain/knowledge-docs.ts`; its header is the reference.
-An entry's id is `doc:` and the file's name in lower case with no `.md`, whatever its directory: `doc:pm-second-summarizer-role`
-for `tools/cloud-brain/post-mortems/pm-second-summarizer-role.md`.
+For a file of this repository an entry's id is `doc:` and the file's name in lower case with no `.md`, whatever its directory:
+`doc:pm-second-summarizer-role` for `tools/cloud-brain/post-mortems/pm-second-summarizer-role.md`. The three of `cloud-brain-dev` are
+`doc:cloud-brain-dev-agents`, `-readme` and `-philosophy`.
 
 **What enters a changed doc** (since 2026-10-11, `plan/cloud-brain-brain-docs-entered-by-hand.md`): the last
 command of every landing, `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh release land <who>`. With the lock gone it runs
