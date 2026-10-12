@@ -159,4 +159,34 @@ header still has), and `oversight.md`.
 - **A reader with the files alone.** `/review-notebook` was not run: the loop's reviewer is the
   fresh read (`agents/implementer.md`, step 9).
 
-LANDING
+### The landing
+
+No deploy. Under the landing lock, taken as `wt-5-docs` at 21:47:02 CEST after a wait behind three
+landings (the first take, 21:45:56, was exit 1).
+
+The change to `cloud-brain-dev` was landed by `worktree.sh --push-dev`, the second real push by the
+command (the first is the pointer commit `d448fbae` of 13:41:45 that day):
+
+```
+21:47:24  tools/cloud-brain/worktree.sh --push-dev worktree-per-topic
+          24 services, 78 shared modules, 62 files                 (stderr, sync.ts after the push)
+          d9957f81679b80d43a7221bec93f794f08f19f54                 (stdout)   exit 0
+21:47:28
+$ git ls-remote https://cb4.endpointservices.workers.dev/git/cloud-brain-dev.git
+d9957f81679b80d43a7221bec93f794f08f19f54	HEAD
+d9957f81679b80d43a7221bec93f794f08f19f54	refs/heads/main
+$ git ls-tree HEAD cloud-brain-dev                                  in the worktree
+160000 commit d9957f81679b80d43a7221bec93f794f08f19f54	cloud-brain-dev
+```
+
+4 s. The commit was made on the clone's detached `HEAD`, with no branch, and it was one commit on
+the cluster's `main` as it stood, so the command's rebase had nothing to move. It made the
+pointer's commit in the worktree itself, "cloud-brain-dev: the pointer at d9957f8, pushed by
+worktree.sh --push-dev". Not met: a rebase of the clone that moves a commit, a conflict, a push
+that is refused.
+
+`worktree.sh --rebase worktree-per-topic` under the lock refused once, exit 1, "cannot rebase: You
+have unstaged changes": two mends of this record stood uncommitted. Committed, it brought in 20
+files, among them `SKILL.md`, which the new test reads one sentence of; the test was run again
+after it, 9 pass, 0 fail (21:47:24). The whole suite was not run again after that rebase: its
+last run is the one of 21:38.
