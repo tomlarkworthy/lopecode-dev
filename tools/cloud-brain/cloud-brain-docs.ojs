@@ -292,6 +292,7 @@ Each is an owner service. Its module documents it.
 | module | purpose |
 |---|---|
 | ${mod("brain-inbox")} | Channels append entries. The page answers them. |
+| ${mod("brain-topic")} | Named, ordered logs. A topic has a rule for who appends and a rule for who reads. \`topic.append\` keeps a key once. \`topic.read\` answers the entries after a position that the reader keeps. \`topic.subscribe\` with a target sends each entry to a method named \`NAME.receive\`, as the subscriber. With no target, the subscription hands each entry to one taker: \`topic.take\`, then \`topic.done\`. |
 | ${mod("brain-issues")} | Issues about the Brain and its services: a signed record of events, and a workflow of guards that is installed as data. |
 | ${mod("brain-whatsapp")}, ${mod("brain-bluesky")} | Message channels. |
 | ${mod("brain-library")} | Notebooks that the Brain keeps and serves. |

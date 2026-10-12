@@ -1,5 +1,7 @@
 # Cloud Brain: topics, for messages between agents and Workers
 
+> Built 2026-10-12 as the Worker `brain-x-topic`, from the spec `plan/cloud-brain-topics-service.md`, which takes this file's place and says where the two differ. Its tasks: `tp-1-topics-append-read`, `tp-2-push-to-receive`, `tp-3-take-and-done`, `tp-3b-take-is-one-transaction-test`, `tp-4-docs`, each with a record in `tools/cloud-brain/records/`. The text below is the proposal as it was written.
+
 A proposal, not built. Written 2026-10-10 09:28 CEST for Tom to review. Nothing here has been
 measured on a Brain; each fact about the present code or about Cloudflare says where it was read.
 

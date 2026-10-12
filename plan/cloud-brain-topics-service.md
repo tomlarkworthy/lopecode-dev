@@ -431,7 +431,9 @@ approval event in a comment on each. A `major` task that passes review waits at
    `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md`; the first `md` cell of the
    seed is the method reference and is written with each task. The proposal
    `plan/cloud-brain-topics.md` gets one line at its head that names this file and the tasks. Not
-   `major`.
+   `major`. (As built, `tp-4-docs`, 2026-10-12: the knowledge page has the service in its line of services and, in its table of
+   documents, this file in the row that named the proposal alone; the line of `plan/cloud-brain-backlog.md` that said
+   "Not started" is mended; the method reference was not changed; the record.)
 
 After task 2 his words of 2026-10-10 and 2026-10-11 are met for the owner and for tokens; task 3
 adds taking. For a member they are met in tests until item 2 of his list.

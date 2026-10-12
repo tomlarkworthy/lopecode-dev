@@ -790,7 +790,7 @@ Built and on cb4: stored settings read through `config` (`config.set`, `config.g
 ## Designs in progress (2026-10-10)
 
 - `plan/cloud-brain-authority.md`: one record for delegated authority. ✅ All seven steps on cb4, 2026-10-10 (`spec-as-built.md`, "Authority, step 1 of 7" to "step 7 of 7"): a token, a sign-in link and a grant are each a delegation in the core, and a token with the cap `delegate` makes narrower ones.
-- `plan/cloud-brain-topics.md`: topics in place of one inbox. Not started. What it waited on (a Worker calling as a named subscriber; an agent's token making that delegation) is built. Four choices in it are Tom's.
+- `plan/cloud-brain-topics.md`: topics in place of one inbox. Built 2026-10-12 as the Worker `brain-x-topic`, from the spec `plan/cloud-brain-topics-service.md` (tasks `tp-1` to `tp-4`, each with a record). The inbox is as it was: the spec left "the inbox as a topic" out ("Not chosen"). (Until `tp-4-docs` this line read "Not started", and "Four choices in it are Tom's"; he answered them on 2026-10-11, as the spec quotes him.)
 
 ### Left open by the authority build (2026-10-10)
 
