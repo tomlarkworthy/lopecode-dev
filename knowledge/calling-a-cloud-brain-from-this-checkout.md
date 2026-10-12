@@ -276,7 +276,9 @@ changed and printed `"put":2,…,"cut":2,"unmarked":2`.
 
 Since `sd-2-one-summarizer` (2026-10-12, task 2 of `plan/cloud-brain-docs-summarised-for-search.md`) the tool knows a
 summary in the entry of a doc over 16,000 characters. None was on cb4 when this was written: `status` there answered
-`"long":48,"summarized":0` at 23:45 CEST, and the first are put by task 3 of that plan. What changed in the two commands above:
+`"long":48,"summarized":0` at 23:45 CEST, and the first are put by task 3 of that plan. (Task 3, `sd-3-pilot-ten`, put ten on
+2026-10-13 with haiku and then with opus and put them back with `put --plain`: with either, the search by words no longer found
+three and two of ten passages it found before. None is on cb4 since 01:08 CEST that day; `tools/cloud-brain/records/sd-3-pilot-ten.md`.) What changed in the two commands above:
 
 - An entry that holds the line `Summary by summarizer (…)` is neither cut nor unmarked. A put of its doc keeps the
   text to the end of that line and makes the line after it and the doc's start anew. The last line of `put` counts

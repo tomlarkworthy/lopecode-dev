@@ -61,6 +61,14 @@ which has each of these with why. Where a line below says otherwise, read these:
   were changed with the name, and two cases of `knowledge-docs.test.ts` with the entry answered with no text.
 - **A refusal of a `--dry` run** holds a later `--dry` run of that doc at that file, and no run that puts.
 
+**As built, task 3 (`sd-3-pilot-ten`, 2026-10-13): the pilot stopped, and no summary of a doc is on cb4.** The
+record is `tools/cloud-brain/records/sd-3-pilot-ten.md`. R5 failed with both models: set K by words was 0.950 with
+no summary, 0.652 with the ten haiku summaries (one wanted entry not among the 20, two more 9th and 14th) and 0.649
+with the ten of opus (20th and 9th). The ten were put back with `put --plain`, each to the bytes it had before. Set L
+rose by words and by meaning, and set K fell by meaning as well. The ten cost $0.14 with haiku and $3.61 with opus.
+Task 4 puts summaries of this shape on the other 38 long docs and is not run on this result: what is built in its
+place is the owner's to say ("Not chosen" names one, a summary made with no model).
+
 The tasks are `sd-1` to `sd-4` on the tracker, where this file says `ds-1` to `ds-4`.
 
 Sections 1 to 3 and 5 of "What exists today", the question sets and "Read" are round 1's and were
@@ -751,6 +759,7 @@ task 1 makes. 1 waits for the token.
    when both models fail a gate or the ten cost over $1 with haiku. A doc refused twice is run
    again as piece 3, step 2 says, before `status --check-summaries` is read. Before the first put:
    the check of "What `ac-4` left" that no worktree is behind task 2.
+   (As built, `sd-3-pilot-ten`, 2026-10-13: R5 failed with haiku and with opus, and the ten are plain; the note at the head of this file; the record.)
 4. **`ds-4-the-rest-and-the-release-line`**, `major`. `summarize --due` on the rest with the model
    task 3 kept, `--usd-max 2` for haiku and `--usd-max 20` for opus; `status --check-summaries`.
    The line of `lock.sh` with its test; the sentence in `agents/implementer.md` step 10 and the one
