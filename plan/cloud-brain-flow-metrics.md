@@ -365,6 +365,10 @@ and the 85th; the open issues by `waits` with the median and the longest age; th
 `flow.stays` by `waits`. `--until SEQ` sends the `at` of that event as `until`. The numbers are the
 answer's `summaries`; the tool computes none of them. One line more: `flow.lead` to `deploy` by
 `for`, which is his question for what he asked for himself.
+(As built, `fm-4-stats-flow-block`, 2026-10-12: four asks, one for each list; the times are printed
+in hours to two places; the hours of the stays are the `sum` of the answer's `series` rows, added by
+the tool for each `waits`, since a row of `summaries` has no sum; with no `--until` no `until` is
+sent; an ask that is refused is a line `not read` in its place; the record.)
 
 Its lines `time in a state` and `done … median` stay as they are. They answer another question
 (each ended stay as one number, the whole record) and three specs quote them.
@@ -416,7 +420,7 @@ for: none has a run behind it, since each needs its task built, and the place it
 | R5 | `ia "flow?metric=flow.stays&by=state&waits=owner&since=0&until=1791751911704"` | 501 | `sum` near 242.9 h for `needs-owner` and 8.5 h for `awaiting-approval` (the scripts, with the stays not ended). Task 3, on cb4. (As built, `fm-2-open-stays-submits`, 2026-10-12: over the record read with a token the function gave 192.49 h in 61 waits for `needs-owner`, 6 not ended, and 8.54 h for `awaiting-approval`; the 242.9 h was not reproduced; the record.) |
 | R3 | `ia "flow?metric=flow.submits&since=0&until=1791751911704"` | 501 | `n` near 202 and `sum` near 70. Task 3, on cb4 |
 | the method's cost | `cost.ms` of five asks of `flow.lead` over the whole record | not built | written in the task's record; over 1000 the writer narrows the read. Task 3, on cb4 |
-| R7 | `bun test tests/tools/issue-stats.test.ts`; `bun tools/cloud-brain/issue-stats.ts --token=<own> --until 2727` | 21 pass, 0 fail; no block `flow` | the tests pass with one more for the block; its line for feedback to deploy has the `n`, median and 85th of the R1 call, and it has a line by `for`. Task 4, main checkout for the run |
+| R7 | `bun test tests/tools/issue-stats.test.ts`; `bun tools/cloud-brain/issue-stats.ts --token=<own> --until 2727` | 21 pass, 0 fail; no block `flow` | the tests pass with one more for the block; its line for feedback to deploy has the `n`, median and 85th of the R1 call, and it has a line by `for`. Task 4, main checkout for the run. (As built, `fm-4-stats-flow-block`, 2026-10-12: 27 pass before, the file having grown since the count, and 32 after, five more; the line read `deploy    feedback    31  median    1.01 h  85th    7.26 h`; the record.) |
 | R8 | test: `test_*` cells of `brain-dashboard.ojs`: `dashboardRead` with a stand-in client sends `issue.flow` for `flow.lead` and `metric.query` for `deploys.confirmed`; `points` draws one dot a row and two rules for each of the `summaries`; a panel `points` with no `id` in `by` says so; `share` writes `sum / n`; `dashboard.put` keeps `draw: "points"`. `bun test.ts brain-x-dashboard --with FILE`, then `tab-tests.ts` | 13 passed, 2 need a browser | `failed` 0, `passed` above 13. Task 5 |
 | R8, R2, R3 | `brain.ts curl /xrpc/com.lopecode.brain.dashboard.list --as loop-dashboard`, then `dashboard.get?name=flow` | `{"dashboards":[{"name":"health","title":"Health"}]}` | `flow` is listed and answers the panels of the table. `deploy/services.json` is the same before and after. Task 5 |
 | R2, R3 | `metric.query?metric=deploys.confirmed&by=target` and `deploys.put-back` over 7 days `--as loop-dashboard` | 187 over 22 targets, 29 over 12 | nothing to build; the panels name them |

@@ -461,3 +461,164 @@ test("the lines printed: with --window a second list under its own heading, abov
   expect(inReviewLines(text(report(windowed, { now: 1e7, from: 25 }))).slice(2)).toEqual(["time in a state, of the stays that began after 25", "  none: no stay began after it and ended"]);
   expect(report(windowed, { now: 1e7, from: 25 }).window.timeInState).toEqual({});
 });
+
+// fm-4-stats-flow-block, R7 of plan/cloud-brain-flow-metrics.md, "The tool": the block `flow`, printed from four answers
+// of issue.flow. The answers below are made here; the numbers of the first are cb4's for `until` the `at` of event 2727.
+const { flow, flowAsks } = await import(tool);
+const U = 1791751911704, HR = 3600000;
+const answered = (summaries: any[], series: any[] = [], more: any = {}) => ({ metric: "flow.x", since: 0, until: U, step: 86400000, groups: summaries.length, sampled: 1, unit: "ms", series, summaries, cost: { ms: 400, events: 2727 }, ...more });
+const flowAnswers = {
+  // In the order the tracker gave them, which is not the order printed.
+  lead: answered([
+    { to: "done", kind: "task", n: 74, median: 2196412, p85: 8293247, max: 72863276 },
+    { to: "deploy", kind: "task", n: 27, median: 1530785, p85: 8682662, max: 55874574 },
+    { to: "deploy", kind: "feedback", n: 31, median: 3645001, p85: 26131642, max: 36012844 },
+    { to: "response", kind: "task", n: 105, median: 4361, p85: 187553, max: 32161954 },
+    { to: "later", kind: "bug", n: 1, median: HR, p85: HR, max: HR },
+    { to: "deploy", kind: "bug", n: 14, median: 1889455, p85: 7367102, max: 76532848 }
+  ]),
+  deployFor: answered([{ for: "loop", n: 69, median: 3354217, p85: 8894799, max: 55874574 }, { for: "owner", n: 11, median: 2394077, p85: 5294217, max: 76532848 }]),
+  open: answered([{ waits: "work", n: 15, median: 5825023, p85: 17181256, max: 39946175 }, { waits: "start", n: 82, median: 11701354, p85: 29960591, max: 99958064 }, { waits: "owner", n: 2, median: 2695513, p85: 8152521, max: 8152521 }]),
+  stays: answered(
+    [{ waits: "start", n: 568, median: 170353, p85: 8785331, max: 63722571 }, { waits: "work", n: 448, median: 388918, p85: 990301, max: 54831611 }, { waits: "owner", n: 95, median: 831031, p85: 4209763, max: 71976779 }],
+    [{ t: 1, waits: "start", n: 96, sum: 136795233, max: 1 }, { t: 1, waits: "work", n: 74, sum: 32864330, max: 1 }, { t: 1, waits: "owner", n: 10, sum: 23429030, max: 1 },
+     { t: 2, waits: "start", n: 472, sum: 2422284318, max: 1 }, { t: 2, waits: "work", n: 374, sum: 434313779, max: 1 }, { t: 2, waits: "owner", n: 85, sum: 700313234, max: 1 }]
+  )
+};
+const flowLines = (lines: string[]) => { const at = lines.findIndex((l) => /^flow\b/.test(l)), end = lines.findIndex((l) => /^open and idle/.test(l)); return at < 0 ? [] : lines.slice(at, end); };
+
+test("flow: the rows are the answer's summaries as they came, in the order printed; a stay's sum is its series added", () => {
+  const f = flow(flowAnswers);
+  expect(f.lead.rows.map((r: any) => `${r.to} ${r.kind}`)).toEqual(["response task", "deploy bug", "deploy feedback", "deploy task", "done task", "later bug"]);
+  // No number of a row is made here: each is the object the answer had.
+  for (const r of f.lead.rows) expect(flowAnswers.lead.summaries).toContainEqual(r);
+  expect(f.lead.rows[2]).toEqual({ to: "deploy", kind: "feedback", n: 31, median: 3645001, p85: 26131642, max: 36012844 });
+  expect(f.deployFor.rows).toEqual([flowAnswers.deployFor.summaries[1], flowAnswers.deployFor.summaries[0]]);
+  expect(f.open.rows.map((r: any) => r.waits)).toEqual(["start", "owner", "work"]);
+  expect(f.stays.rows).toEqual([
+    { ...flowAnswers.stays.summaries[0], sum: 136795233 + 2422284318 },
+    { ...flowAnswers.stays.summaries[2], sum: 23429030 + 700313234 },
+    { ...flowAnswers.stays.summaries[1], sum: 32864330 + 434313779 }
+  ]);
+  expect([f.lead.until, f.lead.events, f.lead.since]).toEqual([U, 2727, 0]);
+  // The answers are left as they were.
+  expect(flowAnswers.lead.summaries[0].to).toBe("done");
+});
+
+test("flow, the lines printed: hours to two places, feedback to deploy as the spec's check has it, and a line by `for`", () => {
+  const at = local(U);
+  expect(flowLines(text(report(events, { now: 1e6, flow: flowAnswers })))).toEqual([
+    "flow, as issue.flow answered: n, the median and the 85th of its summaries",
+    `  from opened to a clock, by kind, of 2727 events to ${at}`,
+    "    response  task       105  median    0.00 h  85th    0.05 h",
+    "    deploy    bug         14  median    0.52 h  85th    2.05 h",
+    "    deploy    feedback    31  median    1.01 h  85th    7.26 h",
+    "    deploy    task        27  median    0.43 h  85th    2.41 h",
+    "    done      task        74  median    0.61 h  85th    2.30 h",
+    "    later     bug          1  median    1.00 h  85th    1.00 h",
+    `  from opened to deploy, by whom it was for, of 2727 events to ${at}`,
+    "    owner                 11  median    0.67 h  85th    1.47 h",
+    "    loop                  69  median    0.93 h  85th    2.47 h",
+    `  open, by what it waits for: its age, of 2727 events to ${at}`,
+    "    start                 82  median    3.25 h  longest   27.77 h",
+    "    owner                  2  median    0.75 h  longest    2.26 h",
+    "    work                  15  median    1.62 h  longest   11.10 h",
+    `  stays, by what was waited for: the hours of them, added from its series, of 2727 events to ${at}`,
+    "    start                568  total   710.86 h",
+    "    owner                 95  total   201.04 h",
+    "    work                 448  total   129.77 h"
+  ]);
+});
+
+test("flow: an answer with no summaries is said in its place and the others are printed; with none given there is no block", () => {
+  const refused = { error: "MethodNotImplemented", message: "no method issue.flow" };
+  expect(flow({ ...flowAnswers, open: refused }).open).toEqual({ unread: "no method issue.flow" });
+  expect(flow({}).lead).toEqual({ unread: "no answer" });
+  expect(flow(undefined).stays).toEqual({ unread: "no answer" });
+  expect(flow({ lead: { error: "Gone" } }).lead).toEqual({ unread: "Gone" });
+  // `summaries` of another type is not read as rows.
+  expect(flow({ lead: { summaries: "x" } }).lead).toEqual({ unread: "no answer" });
+  const lines = flowLines(text(report(events, { now: 1e6, flow: { ...flowAnswers, open: refused, stays: answered([]) } })));
+  expect(lines).toContain("  open, by what it waits for: its age: not read: no method issue.flow");
+  expect(lines).toContain("    deploy    feedback    31  median    1.01 h  85th    7.26 h");
+  // An answer of no rows has its heading and no row under it.
+  expect(lines.at(-1)).toBe(`  stays, by what was waited for: the hours of them, added from its series, of 2727 events to ${local(U)}`);
+  expect(flowLines(text(report(events, { now: 1e6, flow: {} }))).length).toBe(5);
+  const r = report(events, { now: 1e6 });
+  expect(r.flow).toBeUndefined();
+  expect(flowLines(text(r))).toEqual([]);
+  // The lines above and below the block are the ones printed with no block.
+  const withBlock = text(report(events, { now: 1e6, flow: flowAnswers }));
+  expect(withBlock.filter((l: string) => !flowLines(withBlock).includes(l))).toEqual(text(r));
+});
+
+test("flowAsks: --until SEQ sends the `at` of the last event at or before it; with none no `until` is sent", () => {
+  const record = [{ seq: 1, at: 100 }, { seq: 2, at: 200 }, { seq: 5, at: 500 }];
+  expect(flowAsks(record)).toEqual({
+    lead: "flow?metric=flow.lead&by=to,kind&since=0",
+    deployFor: "flow?metric=flow.lead&by=for&to=deploy&since=0",
+    open: "flow?metric=flow.open&by=waits",
+    stays: "flow?metric=flow.stays&by=waits&since=0"
+  });
+  expect(flowAsks(record, 0)).toEqual(flowAsks(record));
+  expect(flowAsks(record, 2)).toEqual({
+    lead: "flow?metric=flow.lead&by=to,kind&since=0&until=200",
+    deployFor: "flow?metric=flow.lead&by=for&to=deploy&since=0&until=200",
+    open: "flow?metric=flow.open&by=waits&until=200",
+    stays: "flow?metric=flow.stays&by=waits&since=0&until=200"
+  });
+  // An event the record does not have, one past its last, and one before its first.
+  expect(flowAsks(record, 4).open).toBe("flow?metric=flow.open&by=waits&until=200");
+  expect(flowAsks(record, 9).open).toBe("flow?metric=flow.open&by=waits&until=500");
+  expect(flowAsks([{ seq: 3, at: 300 }], 2).open).toBe("flow?metric=flow.open&by=waits&until=0");
+  expect(flowAsks([], 2).lead).toBe("flow?metric=flow.lead&by=to,kind&since=0&until=0");
+  // The order of the record read is not relied on.
+  expect(flowAsks([...record].reverse(), 4).open).toBe("flow?metric=flow.open&by=waits&until=200");
+});
+
+// The tool run whole, with a stand-in for issue-as.sh (ISSUE_AS) that writes down each call and answers from a file.
+test("the tool asks issue.flow four times through issue-as.sh with its token, and prints the block; --json has it", async () => {
+  const { mkdtempSync, writeFileSync, readFileSync, chmodSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const dir = mkdtempSync(resolve(tmpdir(), "issue-stats-flow-"));
+  const record = [{ seq: 1, at: 100 }, { seq: 2, at: 200 }, { seq: 5, at: 500 }].map((e) => ({ ...opened(`s${e.seq}`, token("impl-3fa2c1")), ...e }));
+  const canned = (flowOf: any) => writeFileSync(resolve(dir, "answers.json"), JSON.stringify({ sync: { events: record }, locks: cb4, ...flowOf }));
+  writeFileSync(resolve(dir, "as.sh"), `#!/bin/bash
+echo "$1 $2" >> "${dir}/calls"
+exec python3 - "$2" "${dir}/answers.json" <<'PY'
+import json, sys
+path, answers = sys.argv[1], json.load(open(sys.argv[2]))
+name = "sync" if path.startswith("sync") else "locks" if path.startswith("locks") else "deployFor" if "by=for" in path else "lead" if "flow.lead" in path else "open" if "flow.open" in path else "stays"
+if name not in answers: sys.exit(7)
+print(json.dumps(answers[name]))
+PY
+`);
+  chmodSync(resolve(dir, "as.sh"), 0o755);
+  // `bun test` runs in UTC and does not say so in process.env: the tool is given the zone this file's `local` has.
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const run = (...args: string[]) => {
+    writeFileSync(resolve(dir, "calls"), "");
+    const r = Bun.spawnSync(["bun", tool, "--token", "impl-c0ffee", ...args], { env: { ...process.env, ISSUE_AS: resolve(dir, "as.sh"), TZ: zone } });
+    return { exit: r.exitCode, out: r.stdout.toString(), calls: readFileSync(resolve(dir, "calls"), "utf8").trim().split("\n") };
+  };
+  canned(flowAnswers);
+  const plain = run();
+  expect(plain.exit).toBe(0);
+  expect(plain.calls).toEqual(["impl-c0ffee sync?after=0&limit=500", "impl-c0ffee locks?history=500", ...Object.values(flowAsks(record)).map((p) => `impl-c0ffee ${p}`)]);
+  expect(flowLines(plain.out.split("\n"))).toEqual(flowLines(text(report(record, { flow: flowAnswers }))));
+  expect(plain.out).toContain("    deploy    feedback    31  median    1.01 h  85th    7.26 h");
+  const until = run("--until", "4", "--json");
+  expect(until.calls.slice(2)).toEqual(Object.values(flowAsks(record, 4)).map((p) => `impl-c0ffee ${p}`));
+  expect(until.calls[5]).toBe("impl-c0ffee flow?metric=flow.stays&by=waits&since=0&until=200");
+  expect(JSON.parse(until.out).flow).toEqual(JSON.parse(JSON.stringify(flow(flowAnswers))));
+  // One ask refused with a body, one that fails outright: each is said in its place, the tool is exit 0 and the rest is printed.
+  const { stays, ...three } = flowAnswers;
+  canned({ ...three, lead: { error: "InvalidRequest", message: "no such metric" } });
+  const partly = run();
+  expect(partly.exit).toBe(0);
+  const lines = flowLines(partly.out.split("\n"));
+  expect(lines[1]).toBe("  from opened to a clock, by kind: not read: no such metric");
+  expect(lines.at(-1)).toMatch(/^  stays, by what was waited for: the hours of them, added from its series: not read: Command failed/);
+  expect(lines).toContain("    owner                 11  median    0.67 h  85th    1.47 h");
+  expect(partly.out).toContain("open and idle for 4 h or more");
+});

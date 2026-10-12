@@ -29,7 +29,16 @@
 // agents/overseer.md, "Feedback that is due", and the row for `open`, kind `feedback` of SKILL.md). Neither list has an
 // issue labeled `needs-owner` or one that is on another workflow than the policy's for feedback (a promoted one), and
 // the first has none with a comment that begins `held:`.
-// `report`, `holds` and `text` take what was read and call nothing: tests/tools/issue-stats.test.ts.
+// The lines under `flow` are four answers of issue.flow (plan/cloud-brain-flow-metrics.md, "The tool"; fm-4-stats-flow-block),
+// asked when the tool runs, the paths as `flowAsks` writes them: flow.lead by `to` and `kind`, flow.lead to `deploy` by
+// `for`, flow.open by `waits`, flow.stays by `waits`. Each n, median, 85th and longest is a row of the answer's
+// `summaries`, in hours to two places; the tool computes no percentile. The hours of the stays are the `sum` of the
+// answer's `series` rows, added for each `waits`. --until SEQ sends `until=` the `at` of the last event read at or before
+// SEQ (0 with none), and with no --until none is sent: the tracker then takes the `at` of its last event, which may be
+// after the last one this run read. --after and --window do not reach the block. An answer with no `summaries` (a
+// refusal, a Worker put back to before the method) is a line `not read: <why>` in its place, and the rest is printed.
+// ISSUE_AS names another issue-as.sh: the test's stand-in, or the main checkout's when the tool is run from a worktree.
+// `report`, `holds`, `flow`, `flowAsks` and `text` take what was read and call nothing: tests/tools/issue-stats.test.ts.
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 
@@ -62,7 +71,35 @@ export function holds(answer: any) {
   return { now: answer.now, rows: history.length, held: answer.locks || [], ended: answer.ended || [], names: Object.fromEntries(names.map((n) => [n, of(n)])) };
 }
 
-export function report(record: any[], { since = 0, from = 0, until = 0, idleH = 4, now = Date.now(), locks }: { since?: number; from?: number; until?: number; idleH?: number; now?: number; locks?: any } = {}) {
+// The four asks of the block `flow`, each a path issue-as.sh takes. `until` is the `at` of the last event of the record
+// at or before --until, 0 when there is none, and is not sent with no --until.
+export function flowAsks(record: any[], untilSeq = 0) {
+  const last = record.filter((e) => e.seq <= untilSeq).reduce((a: any, e) => (a && a.seq > e.seq ? a : e), null);
+  const until = untilSeq ? `&until=${last?.at ?? 0}` : "";
+  return {
+    lead: `flow?metric=flow.lead&by=to,kind&since=0${until}`,
+    deployFor: `flow?metric=flow.lead&by=for&to=deploy&since=0${until}`,
+    open: `flow?metric=flow.open&by=waits${until}`,
+    stays: `flow?metric=flow.stays&by=waits&since=0${until}`
+  };
+}
+
+// What issue.flow answered to those four, put in the order printed. Every n, median, p85 and max is a row of an answer's
+// `summaries` as it came, in ms; `sum` of a row of `stays` is the `sum` of that answer's `series` rows of the same `waits`,
+// added. A value of a dimension that is not in the order below comes after the ones that are, by name.
+const flowOrder: Record<string, string[]> = { to: ["response", "submit", "deploy", "done"], waits: ["start", "owner", "work"], for: ["owner", "loop"] };
+export function flow(answers: any) {
+  const part = (answer: any, dims: string[], sums = false) => {
+    if (!answer || !Array.isArray(answer.summaries)) return { unread: String(answer?.message || answer?.error || "no answer") };
+    const place = (d: string, v: string) => { const at = (flowOrder[d] || []).indexOf(v); return at < 0 ? 99 : at; };
+    const rows = [...answer.summaries].sort((a, b) => dims.reduce((c, d) => c || place(d, a[d]) - place(d, b[d]) || String(a[d]).localeCompare(String(b[d])), 0));
+    const sum = (r: any) => (answer.series || []).filter((s: any) => dims.every((d) => s[d] === r[d])).reduce((n: number, s: any) => n + s.sum, 0);
+    return { since: answer.since, until: answer.until, events: answer.cost?.events, rows: sums ? rows.map((r) => ({ ...r, sum: sum(r) })) : rows };
+  };
+  return { lead: part(answers?.lead, ["to", "kind"]), deployFor: part(answers?.deployFor, ["for"]), open: part(answers?.open, ["waits"]), stays: part(answers?.stays, ["waits"], true) };
+}
+
+export function report(record: any[], { since = 0, from = 0, until = 0, idleH = 4, now = Date.now(), locks, flow: flowAnswers }: { since?: number; from?: number; until?: number; idleH?: number; now?: number; locks?: any; flow?: any } = {}) {
 const events = until ? record.filter((e) => e.seq <= until) : record;
 const who = (by: any) => ((by?.holder || "").startsWith("secret:") ? by.holder.slice(7) : by?.caller === "owner" ? (by.tab === false ? "owner (token)" : "owner") : by?.caller || "?");
 const workflows: Record<string, any> = {}, issues: Record<string, any> = {}, feedbackFlows = new Set<string>();
@@ -214,6 +251,8 @@ return {
   feedback: { open: open.filter((i) => i.kind === "feedback").length, gathered: all.filter((i) => i.kind === "feedback" && (i.parent || i.links > 0)).length, due: feedbackDue, toPromote: feedbackToPromote },
   // Absent when no answer of issue.locks was given.
   locks: locks === undefined ? undefined : holds(locks),
+  // Absent when no answer of issue.flow was given.
+  flow: flowAnswers === undefined ? undefined : flow(flowAnswers),
   // Not closed, and nothing has happened to it for --idle hours: the candidates for a trap. `held` is under `unstarted`.
   waiting: open.filter((i) => now - i.last > idleH * 3600000).map((i) => ({ id: i.id, kind: i.kind, state: i.state, idleH: H(now - i.last), labels: [...i.labels], opener: i.opener, held: canWait(i) && !!heldBy(i) })).sort((a, b) => b.idleH - a.idleH),
   // Past --idle hours since the last move, not started: `noReason` is R4's count, `held` the rows with a reason.
@@ -267,6 +306,21 @@ export function text(report: Report) {
     for (const h of l.held) console.log(`  held   ${h.name} by ${h.who} since ${stamp(h.taken)}, until ${stamp(h.until)}`);
     for (const h of l.ended) console.log(`  ended  ${h.name} by ${h.who} at ${stamp(h.until)}, taken ${stamp(h.taken)}; no row of the history yet`);
   }
+  const f: any = report.flow;
+  if (f) {
+    // ms as hours to two places: 1.01 h is 3,645,001 ms. A unit, not a statistic.
+    const h = (ms: number) => (ms / 3600000).toFixed(2).padStart(7) + " h";
+    const head = (p: any, what: string) => console.log(`  ${what}${p.unread ? `: not read: ${p.unread}` : `, of ${p.events} events to ${stamp(p.until)}`}`);
+    console.log("flow, as issue.flow answered: n, the median and the 85th of its summaries");
+    head(f.lead, "from opened to a clock, by kind");
+    for (const r of f.lead.rows || []) console.log(`    ${r.to.padEnd(9)} ${r.kind.padEnd(9)} ${String(r.n).padStart(4)}  median ${h(r.median)}  85th ${h(r.p85)}`);
+    head(f.deployFor, "from opened to deploy, by whom it was for");
+    for (const r of f.deployFor.rows || []) console.log(`    ${r.for.padEnd(19)} ${String(r.n).padStart(4)}  median ${h(r.median)}  85th ${h(r.p85)}`);
+    head(f.open, "open, by what it waits for: its age");
+    for (const r of f.open.rows || []) console.log(`    ${r.waits.padEnd(19)} ${String(r.n).padStart(4)}  median ${h(r.median)}  longest ${h(r.max)}`);
+    head(f.stays, "stays, by what was waited for: the hours of them, added from its series");
+    for (const r of f.stays.rows || []) console.log(`    ${r.waits.padEnd(19)} ${String(r.n).padStart(4)}  total  ${h(r.sum)}`);
+  }
   console.log(`open and idle for ${idleH} h or more`);
   for (const w of report.waiting) console.log(`  ${w.id.padEnd(40)} ${w.kind.padEnd(8)} ${w.state.padEnd(17)} ${String(w.idleH).padStart(5)} h  ${w.labels.join(",")}  by ${w.opener}${w.held ? "  held" : ""}`);
   const u = report.unstarted;
@@ -277,7 +331,7 @@ export function text(report: Report) {
 type Report = ReturnType<typeof report>;
 
 if (import.meta.main) {
-  const token = arg("token", ""), as = join(dirname(import.meta.path), "issue-as.sh");
+  const token = arg("token", ""), as = process.env.ISSUE_AS || join(dirname(import.meta.path), "issue-as.sh");
   if (!token || token.startsWith("--")) {
     console.error("issue-stats.ts: no --token; nothing was sent\n  bun tools/cloud-brain/issue-stats.ts --token NAME [--after SEQ] [--until SEQ] [--window SEQ] [--idle HOURS] [--json]\n  NAME is your own token, the one your prompt names (a name issue-as.sh keeps)");
     process.exit(2);
@@ -294,6 +348,12 @@ if (import.meta.main) {
   let locks: any;
   try { locks = JSON.parse(execFileSync(as, [token, "locks?history=500"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })); }
   catch (e: any) { locks = { message: String(e?.message || e).split("\n")[0] }; }
-  const r = report(events, { locks, since: Number(arg("after", "0")), from: Number(arg("window", "0")), until: Number(arg("until", "0")), idleH: Number(arg("idle", "4")) });
+  // The same for issue.flow, an ask at a time: one that is refused is said in its place.
+  const until = Number(arg("until", "0")), flow: Record<string, any> = {};
+  for (const [name, path] of Object.entries(flowAsks(events, until))) {
+    try { flow[name] = JSON.parse(execFileSync(as, [token, path], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })); }
+    catch (e: any) { flow[name] = { message: String(e?.message || e).split("\n")[0] }; }
+  }
+  const r = report(events, { locks, flow, since: Number(arg("after", "0")), from: Number(arg("window", "0")), until, idleH: Number(arg("idle", "4")) });
   console.log(process.argv.includes("--json") ? JSON.stringify(r) : text(r).join("\n"));
 }
