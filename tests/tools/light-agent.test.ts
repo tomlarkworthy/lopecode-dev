@@ -349,3 +349,32 @@ test("put.sh --history lists the kept copies, --restore makes one the file on di
   expect([none.code, readFileSync(join(r.dir, "dev/brain/roles/x.md"), "utf8")]).toEqual([1, "as it was"]);
   expect((await r.put("--restore", "roles/x.md", "../a")).code).toBe(1);
 });
+
+// Issue put-sh-in-a-worktree-finds-no-token: from a git worktree put.sh called the worktree's brain.ts with no state
+// directory, which then read the .emitted beside itself, where no token is kept.
+test("put.sh gives brain.ts the main checkout's state directory from a worktree, and keeps one that is given", async () => {
+  const dir = root();
+  const git = (...args: string[]) => run(["git", "-c", "user.name=t", "-c", "user.email=t@t", ...args]);
+  const main = join(dir, "main"), tree = join(dir, "tree"), plain = join(dir, "plain");
+  mkdirSync(join(dir, "bin"));
+  expect((await git("init", "-q", main)).code).toBe(0);
+  expect((await git("-C", main, "commit", "-q", "--allow-empty", "-m", "one")).code).toBe(0);
+  expect((await git("-C", main, "worktree", "add", "-q", tree)).code).toBe(0);
+  writeFileSync(join(dir, "bin/bun"), `#!/bin/bash\nprintf '%s\\n' "$BRAIN_STATE_DIR" >> "${dir}/state"\nprintf '{"files":[]}'\n`);
+  chmodSync(join(dir, "bin/bun"), 0o755);
+  const state = async (checkout: string, env: Record<string, string> = {}) => {
+    mkdirSync(join(checkout, "dev"), { recursive: true });
+    copyFileSync(join(dev, "put.sh"), join(checkout, "dev/put.sh"));
+    chmodSync(join(checkout, "dev/put.sh"), 0o755);
+    writeFileSync(join(dir, "state"), "");
+    const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== "BRAIN_STATE_DIR" && k !== "CHECKOUT"));
+    const p = Bun.spawn([join(checkout, "dev/put.sh"), "--history", "roles/x.md"], { env: { ...clean, PATH: `${join(dir, "bin")}:${process.env.PATH}`, ...env }, stdout: "pipe", stderr: "pipe" });
+    return [await p.exited, readFileSync(join(dir, "state"), "utf8")];
+  };
+  const emitted = join(main, "tools/cloud-brain/.emitted");
+  expect(await state(tree)).toEqual([0, emitted + "\n"]);
+  expect(await state(main)).toEqual([0, emitted + "\n"]);
+  expect(await state(tree, { BRAIN_STATE_DIR: "/given" })).toEqual([0, "/given\n"]);
+  // In no git repository nothing is set, and brain.ts reads the .emitted beside itself, as before.
+  expect(await state(plain)).toEqual([0, "\n"]);
+});

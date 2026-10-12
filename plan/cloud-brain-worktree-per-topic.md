@@ -494,7 +494,9 @@ Read whole at event 3510 before the file. Resumed by the writer of round 1, 2026
   3). `philosophy.md` of the skill is a link the orchestrating session reads from its own
   checkout, which is the root by R1's second write already. `put.sh` and `summarize-papers.ts`
   are run by the orchestrating session or the overseer with no worktree of a topic; giving each
-  a clone was not costed.
+  a clone was not costed. (As built, `put-sh-in-a-worktree-finds-no-token`, 2026-10-12: the
+  overseer works in a worktree, `bm-over-<host>`, and ran `put.sh` from its clone, where it found
+  no token; `put.sh` now gives `brain.ts` the main checkout's `.emitted`; the record.)
 - **The fresh reader of this round** (`/review-notebook`, changes since `3b221e0f`, 03:43 to
   03:48): FIX, 9 findings, all taken: "A resumed round" of two briefs read the root's `main` and
   no task changed them; the reviewer's launch is a fifth reader until task 4; the release's docs
