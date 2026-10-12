@@ -83,6 +83,15 @@ Not taken:
 | `bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/cloudflare-iac`, ten runs, 21:22:14 to 21:26:39 CEST | `"tests":27,"passed":27,"failed":[]` in each of the ten |
 | `cd cloud-brain-dev && bun test.ts @tomlarkworthy/cloudflare-iac --with …/.emitted/iac-origin-test-secret-held-by-clock.js` | `"passed":25,"failed":0,"needsBrowser":2` |
 
+`tests/tools/suite.sh`, ended 21:37 CEST, after the seed's last change and before this file was
+written: `688 pass`, `3 fail`, `2 errors`, 691 tests in 69 files, 299.52 s where the brief gives 93
+to 95 s. The three are of `tests/tools/summarize-papers.test.ts`, each `timed out after 30000ms`
+(`--usd-max`, `refused once`, `check`). That file reads neither file of this change. `uptime` at
+21:38 gave load averages of 11.42, 17.11 and 18.26; the file alone at that time gave 14 pass and
+12 fail, each `timed out after 5000ms`. Whether it passes on a machine at rest was not run. The
+three files of the suite that name `cloudflare-iac` (`rows-add-within-sql`, `needs`, `approver`),
+run together: `50 pass`, `0 fail`.
+
 `verify-run.ts` does not apply to the deployer (the writer's brief, step 8), so the ten runs of
 `tab-tests.ts` stand in its place.
 
