@@ -25,6 +25,6 @@ session, which the standing leave also allows: the narrower one did.
 
 ## Not tried
 
-- No test was run: the change is prose in one file, and no test of `tests/tools` reads `philosophy.md`'s Clarifications.
+- (Round 2, after review 4830: the round 1 submit had no test, which `rules.md` does not allow for a doc alone.) `tests/tools/philosophy-one-role.test.ts`, 3 tests: 3 pass on the file, 0 pass and 3 fail on `cloud-brain-dev@cc9cf7e^:philosophy.md` given as `PHILOSOPHY=`. Not tried: the whole suite of `tests/tools`; the test reads one file and no other test reads this one.
 - The fresh review (`/review-notebook`) was not run; the loop's reviewer reads it.
 - I did not hear his words. They are as two comments of a session he was in wrote them.
