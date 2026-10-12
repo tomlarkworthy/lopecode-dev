@@ -84,6 +84,12 @@ token and ends it.
    and both counts in the comment (`snapshot-digest-test-fails-by-chance`: 14 of 40, then 0 of 40).
 6. **Fix it in the seed.** Never the notebook HTML, never the deployed text. Add or change a
    `test_*` cell in the same module so the defect cannot return unseen.
+   When the change adds a branch beside others (one store's place in a call, a case of a switch), a test
+   enters that branch through the function that has it, so the new line itself runs. A test that makes the
+   call again in its own words passes with the line wrong. A new line that no test ran is named under "Not
+   tried" in the record. (`ds-1-rows-add-within`, review 3837, 2026-10-12: the D1 place of `rows.addWithin`
+   in `sqlCall` did not bind the key, five values for six parameters; the test bound the statement itself
+   under a comment "As sqlCall binds it", both test sets passed, and the change was sent back.)
    When the fix is in a local tool and no seed (`brain.ts`, `tools/lope-tests.ts`), the test is a
    file under `tests/` that `node --test` or `bun test` runs and that fails before the fix; its
    count is the one you submit, and steps 7 to 9 need no build, browser run or emit. If the tool cannot
