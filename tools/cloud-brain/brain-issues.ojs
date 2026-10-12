@@ -51,7 +51,8 @@ md`## Methods
 | \`issue.snapshot\` | query. \`{ seq, head, wait, policy, workflows, issues }\`: the whole view at \`seq\`. The \`body\` of a closed issue is left out (\`bodyLeftOut\`). An issue the caller may not read is \`{ id, kind, state, closed, parent, hidden: true }\`, here and in \`issue.list\` and \`issue.get\`. |
 | \`issue.sync\` | query. \`?after=<seq>&head=<hash>&limit=200\`. \`{ seq, wait, events }\`: the events after \`after\`, and the milliseconds the page waits before it asks again. An event of an issue the caller may not read is \`{ seq, id, type, at, hash, hidden: true, issue }\`. \`reset: true\` and no events when \`after\` is past the record's head, or \`head\` is not the hash of event \`after\`: the caller's copy is of another record, and it starts again from a snapshot. |
 | Settings | \`syncMs\` (5000): what \`issue.sync\` and \`issue.snapshot\` answer as \`wait\`. Changed with \`config.set\` on the core, no deploy. |
-| \`issue.get\` | query. \`?id=\`. \`{ issue, children, events }\` |
+| \`issue.get\` | query. \`?id=\`. \`{ issue, children, events, cost }\`. \`cost\` is the totals of the issue's runs (\`issue.cost\`), from \`runs\` of the issue's row (since 2026-10-12): \`{ runs, seconds, billed, input, cacheWrite, cacheRead, output, requests, advisor: { calls, input, output }, usd, usdRuns, byRole }\`. \`runs\`: how many. \`seconds\`: their sum. \`billed\`: how many of the runs have a \`usage\`; the five sums and \`advisor\` are of those runs alone. \`usd\`: the sum of what the runs that have a \`usd\` reported, to a millionth, and \`usdRuns\` how many they are; both are left out when no run has one. \`context\` is not summed. \`byRole\`: the same totals for each role, \`{ implementer: { … }, reviewer: { … } }\`, in the order of each role's first run in \`runs\`. An issue with no run has \`cost.runs\` 0, every sum 0 and \`byRole: {}\`. For an issue the caller may not read the answer is \`{ issue, children: [], events: [] }\`, with no \`cost\`. |
+| \`issue.runs\` | query, since 2026-10-12. \`?id=&role=&how=&round=&after=<seq>&limit=500\`. The runs (\`issue.cost\`) of every issue the caller may read: \`{ runs, total, more }\`. \`runs\`: \`[{ id, …the run as the issue's row has it }]\`, \`id\` the issue's, in the order of \`seq\`, the seq of the \`cost\` event in force for the run. Each filter is left out or left empty to ask for nothing. \`id\`: one issue; \`role\`: a name, \`a-z 0-9 -\`, 30 at most; \`how\`: one of \`fresh\`, \`resumed\`, \`light\`; \`round\`: \`first\` (round 1), \`later\` (any round after it) or a whole number, 1 to 1000; \`after\`: a whole number, 0 or more, and only the runs whose \`seq\` is past it are answered; \`limit\`: a whole number, 1 to 500, 500 when left out. A value that is none of those is 400 \`InvalidRequest\` naming the field: read as no filter it would answer every run. A name that is not one of the six is not read. \`total\`: the totals of every run that matches \`id\`, \`role\`, \`how\` and \`round\`, in the shape of \`cost\` of \`issue.get\` without \`byRole\`; \`after\` and \`limit\` do not change it, so it is the same on every page. \`more\`: runs past this page match; the next page is \`after=\` the \`seq\` of the last run read. A run written again between two pages has a new \`seq\` and is read again on a later page. An issue the caller may not read has no run in \`runs\` and none in \`total\`, and an \`id\` that names such an issue, or none, answers \`{ runs: [], total: { runs: 0, … }, more: false }\`. The rows are in the answer so that a median is the caller's to take. |
 | \`issue.list\` | query. \`?state=&kind=&about=&parent=&label=&link=&limit=100\`. \`{ issues }\`, last changed first. \`link=ID\`: the issues that are part of \`ID\`, say a link of it, or have one said of them by it. |
 | \`issue.verify\` | query. \`?after=<seq>\`. Checks \`seq\`, \`prev\`, \`hash\` and \`sig\` of each event after \`after\`. \`{ ok, seq, head, checked, guards }\`, or \`{ ok: false, seq, why, checked }\` at the first that fails; \`checked\` is how many passed. With \`guards=true\` it starts at 1 and also judges each event against the workflow in force when it was written. |
 | \`issue.key\` | query, anyone. \`{ alg: "ES256", key }\`: the public key, a JWK. |
@@ -176,7 +177,7 @@ issuesExampleText = {
 // %%
 issues_service = cloudflare.Service("issues", issuesApp, {
   methods: Object.fromEntries(
-    [["open", "procedure"], ["comment", "procedure"], ["label", "procedure"], ["link", "procedure"], ["attach", "procedure"], ["cost", "procedure"], ["review", "procedure"], ["move", "procedure"], ["swap", "procedure"], ["narrow", "procedure"], ["install", "procedure"], ["rebuild", "procedure"], ["resign", "procedure"], ["lock", "procedure"], ["locks", "query"], ["policy", "query"], ["snapshot", "query"], ["sync", "query"], ["get", "query"], ["attachment", "query"], ["list", "query"], ["verify", "query"], ["key", "query"]].map(([name, type]) => [
+    [["open", "procedure"], ["comment", "procedure"], ["label", "procedure"], ["link", "procedure"], ["attach", "procedure"], ["cost", "procedure"], ["review", "procedure"], ["move", "procedure"], ["swap", "procedure"], ["narrow", "procedure"], ["install", "procedure"], ["rebuild", "procedure"], ["resign", "procedure"], ["lock", "procedure"], ["locks", "query"], ["policy", "query"], ["snapshot", "query"], ["sync", "query"], ["get", "query"], ["runs", "query"], ["attachment", "query"], ["list", "query"], ["verify", "query"], ["key", "query"]].map(([name, type]) => [
       "com.lopecode.brain.issue." + name,
       // The owner, a token, a Worker of the Brain and the deployer, which opens an issue when it puts a Worker back
       // on its tests. A member's Worker calls as its author's DID and is not let in.
@@ -397,6 +398,22 @@ issueEnds = (i) => [...new Set([...(i.links || []).map((l) => l.to), ...(i.linke
 // %%
 // The run an issue keeps for a role and a round: what a cost event of that role and round replaces.
 issueRunOf = (i, e) => ((i && i.runs) || []).find((r) => r.role === e.role && r.round === e.round)
+// %%
+// The totals of some runs: of one issue (issue.get), of one role of it, of every run a query matches (issue.runs).
+// No I/O. The token sums are of the runs that have a usage, which `billed` counts. usd is the sum of what the runs
+// that have one reported, to a millionth; with no such run it is left out, with usdRuns.
+issueCost = (runs) => {
+  const all = runs || [], billed = all.filter((r) => r.usage), paid = all.filter((r) => r.usd !== undefined);
+  const sum = (rows, of) => rows.reduce((n, r) => n + of(r), 0);
+  return {
+    runs: all.length,
+    seconds: sum(all, (r) => r.seconds),
+    billed: billed.length,
+    ...Object.fromEntries(["input", "cacheWrite", "cacheRead", "output", "requests"].map((k) => [k, sum(billed, (r) => r.usage[k])])),
+    advisor: Object.fromEntries(["calls", "input", "output"].map((k) => [k, sum(billed, (r) => r.usage.advisor[k])])),
+    ...(paid.length ? { usd: Math.round(sum(paid, (r) => r.usd) * 1e6) / 1e6, usdRuns: paid.length } : {})
+  };
+}
 // %%
 // The view after one more event. No I/O: the service, issue.rebuild, issue.verify and the page all make the view with it.
 issueApply = (view, e) => {
@@ -952,7 +969,31 @@ issuesApp = {
     if (!i) throw refuse(404, "NotFound", "no such issue");
     const issue = shown(view, by, i);
     if (issue.hidden) return { issue, children: [], events: [] };
-    return { issue, children: Object.values(view.issues).filter((k) => k.parent === i.id).map((k) => shown(view, by, k)).map((k) => (k.hidden ? k : { id: k.id, title: k.title, kind: k.kind, state: k.state, closed: k.closed })), events: (await sql.exec(S.of, i.id)).rows.map((r) => J(r.event)) };
+    // What the issue's runs cost, from the row, and the same for each role in the order of its first run. A hidden issue has none.
+    const runs = i.runs || [], cost = { ...issueCost(runs), byRole: Object.fromEntries([...new Set(runs.map((r) => r.role))].map((role) => [role, issueCost(runs.filter((r) => r.role === role))])) };
+    return { issue, children: Object.values(view.issues).filter((k) => k.parent === i.id).map((k) => shown(view, by, k)).map((k) => (k.hidden ? k : { id: k.id, title: k.title, kind: k.kind, state: k.state, closed: k.closed })), events: (await sql.exec(S.of, i.id)).rows.map((r) => J(r.event)), cost };
+  }));
+  // The runs of every issue the caller reads, in the order of their events, a page at a time. A value that is not one
+  // of a field's is a 400: read as no filter it would answer every run, and the totals of them.
+  app.get(NS + "runs", run(async (c, q) => {
+    const given = (k) => (q[k] == null || q[k] === "" ? undefined : String(q[k]));
+    const whole = (k, min, max, or) => {
+      const v = given(k), n = Number(v);
+      if (v === undefined) return or;
+      if (!/^\d+$/.test(v) || !Number.isSafeInteger(n) || n < min || n > max) throw refuse(400, "InvalidRequest", `${k}: a whole number, ${min} ${max === Infinity ? "or more" : "to " + max}`);
+      return n;
+    };
+    const id = given("id"), role = given("role"), how = given("how"), round = given("round");
+    if (role !== undefined && !(role.length <= L.role && /^[a-z0-9][a-z0-9-]*$/.test(role))) throw refuse(400, "InvalidRequest", `role: a name, a-z 0-9 -, ${L.role} at most`);
+    if (how !== undefined && !L.hows.includes(how)) throw refuse(400, "InvalidRequest", "how: " + L.hows.join(", "));
+    if (round !== undefined && round !== "first" && round !== "later" && !(/^\d+$/.test(round) && Number(round) >= 1 && Number(round) <= L.rounds)) throw refuse(400, "InvalidRequest", `round: first, later, or a whole number, 1 to ${L.rounds}`);
+    const after = whole("after", 0, Infinity, 0), limit = whole("limit", 1, L.page, L.page);
+    const view = await load([S.all]), { by } = who(c);
+    const pass = (r) => (id === undefined || r.id === id) && (role === undefined || r.role === role) && (how === undefined || r.how === how) && (round === undefined || (round === "first" ? r.round === 1 : round === "later" ? r.round > 1 : r.round === Number(round)));
+    // An issue the caller may not read has no run here, and none in the totals.
+    const found = Object.values(view.issues).filter((i) => !shown(view, by, i).hidden).flatMap((i) => (i.runs || []).map((r) => ({ id: i.id, ...r }))).filter(pass).sort((a, b) => a.seq - b.seq);
+    const rest = found.filter((r) => r.seq > after);
+    return { runs: rest.slice(0, limit), total: issueCost(found), more: rest.length > limit };
   }));
   app.get(NS + "attachment", run(async (c, q) => {
     const view = await load([S.near, String(q.id || ""), ""]), { by } = who(c), i = issueAt(view.issues, q.id);
@@ -2423,6 +2464,88 @@ test_issues_cost_guard_is_the_policys_when_it_has_one = {
   return "cost is refused to a token that may label; with no cost guard whoever may label writes one";
 }
 // %%
+// R3 of the same spec: issue.get answers the totals of the issue's runs, and the same for each role.
+test_issues_cost_totals_are_in_get_with_each_role = {
+  const rig = await issuesRig();
+  await rig.owner("open", { id: "c0", title: "No run", kind: "task" });
+  await rig.owner("open", { id: "c1", title: "Costed", kind: "task" });
+  const zero = { runs: 0, seconds: 0, billed: 0, input: 0, cacheWrite: 0, cacheRead: 0, output: 0, requests: 0, advisor: { calls: 0, input: 0, output: 0 } };
+  expect([issueCost(undefined), issueCost([])]).toEqual([zero, zero]);
+  // An issue with no run has the totals, each 0, and no role.
+  const none = (await rig.b("get?id=c0")).data;
+  expect([Object.keys(none), none.cost]).toEqual([["issue", "children", "events", "cost"], { ...zero, byRole: {} }]);
+  const u = (n) => ({ input: n, cacheWrite: 10 * n, cacheRead: 100 * n, output: 2 * n, requests: n, advisor: { calls: n, input: 3 * n, output: 4 * n } });
+  const run = (role, round, more) => ({ id: "c1", role, round, how: "fresh", outcome: "in-review", seconds: 100 * round, context: 5, ...more });
+  // Two runs with a usage and a usd, one with a usage alone, one with neither, and one with a usd of 0 whose role is
+  // a name every object has.
+  for (const body of [run("implementer", 1, { usage: u(1) }), run("implementer", 2), run("reviewer", 1, { how: "light", usage: u(5), usd: 0.1 }), run("reviewer", 2, { how: "light", usage: u(7), usd: 0.2 }), run("constructor", 1, { usd: 0 })])
+    expect((await rig.a("cost", body)).status).toBe(200);
+  const sums = (n) => ({ input: n, cacheWrite: 10 * n, cacheRead: 100 * n, output: 2 * n, requests: n, advisor: { calls: n, input: 3 * n, output: 4 * n } });
+  const byRole = { implementer: { runs: 2, seconds: 300, billed: 1, ...sums(1) }, reviewer: { runs: 2, seconds: 300, billed: 2, ...sums(12), usd: 0.3, usdRuns: 2 }, constructor: { ...zero, runs: 1, seconds: 100, usd: 0, usdRuns: 1 } };
+  // The sums are of the runs that have a usage (billed); usd is of the runs that have one, and 0.1 + 0.2 reads 0.3.
+  const got = (await rig.b("get?id=c1")).data;
+  expect(got.cost).toEqual({ runs: 5, seconds: 700, billed: 3, ...sums(13), usd: 0.3, usdRuns: 3, byRole });
+  expect(Object.keys(got.cost.byRole)).toEqual(["implementer", "reviewer", "constructor"]);
+  // The totals are what issueCost makes of the row's runs, with no I/O.
+  expect(issueCost(got.issue.runs)).toEqual({ runs: 5, seconds: 700, billed: 3, ...sums(13), usd: 0.3, usdRuns: 3 });
+  // R2: the run written without a usage, written again with one: still five runs, one more of them billed.
+  expect((await rig.a("cost", run("implementer", 2, { usage: u(2) }))).data.event.replaced).toBe(5);
+  const again = (await rig.b("get?id=c1")).data.cost;
+  expect([again.runs, again.billed, again.input, again.byRole.implementer]).toEqual([5, 4, 15, { runs: 2, seconds: 300, billed: 2, ...sums(3) }]);
+  // The other issue's totals did not move.
+  expect((await rig.b("get?id=c0")).data.cost.runs).toBe(0);
+  return "an issue's totals: 5 runs, 3 then 4 billed, 3 roles; an issue with no run has totals of 0";
+}
+// %%
+// R4 of the same spec: one call reads the runs of every issue the caller reads, for a role, a kind of run or a round,
+// a page at a time, with the totals of all that match.
+test_issues_runs_answers_what_a_caller_reads_a_page_at_a_time = {
+  const rig = await issuesRig(), L = issuesLimits;
+  await rig.a("open", { id: "sec", title: "Key in a log", kind: "security" });
+  await rig.owner("open", { id: "p1", title: "One", kind: "task" });
+  await rig.owner("open", { id: "p2", title: "Two", kind: "task" });
+  const zero = { runs: 0, seconds: 0, billed: 0, input: 0, cacheWrite: 0, cacheRead: 0, output: 0, requests: 0, advisor: { calls: 0, input: 0, output: 0 } };
+  expect((await rig.b("runs")).data).toEqual({ runs: [], total: zero, more: false });
+  const usage = { input: 1, cacheWrite: 2, cacheRead: 3, output: 4, requests: 5, advisor: { calls: 6, input: 7, output: 8 } };
+  const run = (id, role, round, how, more) => ({ id, role, round, how, outcome: "pass", seconds: 10, context: 1, ...more });
+  const sent = [run("p1", "implementer", 1, "fresh"), run("p1", "reviewer", 1, "light", { usage }), run("sec", "implementer", 1, "fresh"), run("p2", "implementer", 1, "fresh"), run("p1", "implementer", 2, "resumed"), run("p2", "implementer", 3, "resumed")];
+  const made = [];
+  for (const body of sent) made.push((await rig.a("cost", body)).data.event);
+  const row = (n) => ({ ...sent[n], seq: made[n].seq, at: made[n].at }), rows = (...ns) => ns.map(row);
+  // Each run with its issue's id, in the order of the events. The security issue is read by its opener and by the
+  // owner present: its run is in no answer to another token or to a Worker, nor in their totals.
+  const all = (await rig.b("runs")).data;
+  expect(all).toEqual({ runs: rows(0, 1, 3, 4, 5), total: { ...zero, runs: 5, seconds: 50, billed: 1, ...usage }, more: false });
+  expect((await rig.worker("runs")).data).toEqual(all);
+  for (const who of [rig.a, rig.owner]) expect((await who("runs")).data).toEqual({ runs: rows(0, 1, 2, 3, 4, 5), total: { ...all.total, runs: 6, seconds: 60 }, more: false });
+  expect([(await rig.b("runs?id=sec")).data, (await rig.a("runs?id=sec")).data.runs, (await rig.b("runs?id=none")).data]).toEqual([{ runs: [], total: zero, more: false }, rows(2), { runs: [], total: zero, more: false }]);
+  expect(JSON.stringify((await rig.b("runs?role=implementer&round=first")).data)).not.toContain('"sec"');
+  // One role, one kind of run, one round, one issue, and several of them at once. A value left empty asks for nothing,
+  // and a name that is not a filter's is not read.
+  const asked = async (q) => (await rig.b("runs?" + q)).data.runs.map((r) => made.findIndex((e) => e.seq === r.seq));
+  const found = [];
+  for (const q of ["role=implementer", "role=reviewer", "role=nobody", "how=resumed", "how=light", "round=first", "round=later", "round=1", "round=2", "round=3", "round=4", "id=p1", "id=p2&round=later", "role=implementer&how=resumed&round=later", "role=implementer&how=light", "id=&role=&how=&round=&after=&limit=", "rol=reviewer"]) found.push([q, await asked(q)]);
+  expect(found).toEqual([["role=implementer", [0, 3, 4, 5]], ["role=reviewer", [1]], ["role=nobody", []], ["how=resumed", [4, 5]], ["how=light", [1]], ["round=first", [0, 1, 3]], ["round=later", [4, 5]], ["round=1", [0, 1, 3]], ["round=2", [4]], ["round=3", [5]], ["round=4", []], ["id=p1", [0, 1, 4]], ["id=p2&round=later", [5]], ["role=implementer&how=resumed&round=later", [4, 5]], ["role=implementer&how=light", []], ["id=&role=&how=&round=&after=&limit=", [0, 1, 3, 4, 5]], ["rol=reviewer", [0, 1, 3, 4, 5]]]);
+  // More runs than the limit: `more`, and the totals are of all that match, on every page. The next page is asked for
+  // with the seq of the last run read.
+  const page = async (q) => ((d) => [d.runs.map((r) => made.findIndex((e) => e.seq === r.seq)), d.total.runs, d.more])((await rig.b("runs?" + q)).data);
+  expect([await page("limit=2"), await page(`limit=2&after=${made[1].seq}`), await page(`limit=2&after=${made[4].seq}`), await page(`limit=2&after=${made[5].seq}`)]).toEqual([[[0, 1], 5, true], [[3, 4], 5, true], [[5], 5, false], [[], 5, false]]);
+  expect([await page("limit=5"), await page("limit=4"), await page("role=implementer&limit=1"), await page(`role=implementer&limit=3&after=${made[0].seq}`), await page("limit=1&after=0")]).toEqual([[[0, 1, 3, 4, 5], 5, false], [[0, 1, 3, 4], 5, true], [[0], 4, true], [[3, 4, 5], 4, false], [[0], 5, true]]);
+  // A value that is not one of a field's is refused, not read as no filter: the answer would be every run.
+  const whole = (k, from, to) => `${k}: a whole number, ${from} to ${to}`, round = `round: first, later, or a whole number, 1 to ${L.rounds}`;
+  const refused = [["how=warm", "how: " + L.hows.join(", ")], ["round=abc", round], ["round=0", round], ["round=" + (L.rounds + 1), round], ["round=1.5", round], ["round=-1", round], ["after=-1", "after: a whole number, 0 or more"], ["after=x", "after: a whole number, 0 or more"], ["after=1.5", "after: a whole number, 0 or more"], ["limit=0", whole("limit", 1, L.page)], ["limit=" + (L.page + 1), whole("limit", 1, L.page)], ["limit=2.5", whole("limit", 1, L.page)], ["limit=all", whole("limit", 1, L.page)], ["role=Implementer", `role: a name, a-z 0-9 -, ${L.role} at most`], ["role=" + "r".repeat(L.role + 1), `role: a name, a-z 0-9 -, ${L.role} at most`]];
+  for (const [q, message] of refused) expect([q, (await rig.b("runs?" + q)).status, (await rig.b("runs?" + q)).data]).toEqual([q, 400, { error: "InvalidRequest", message }]);
+  // The limit left out is the most a page has, and the most is taken.
+  expect((await page("limit=" + L.page))[2]).toBe(false);
+  // A run written again is read once, at its new place.
+  const again = (await rig.a("cost", { ...sent[0], seconds: 11 })).data.event;
+  const after = (await rig.b("runs")).data;
+  expect([after.runs.map((r) => r.seq), after.total.runs, after.total.seconds]).toEqual([[made[1].seq, made[3].seq, made[4].seq, made[5].seq, again.seq], 5, 51]);
+  // The reads wrote nothing: the record is the policy, three issues, six runs and the one written again.
+  expect(rig.db.events.length).toBe(11);
+  return `6 runs on 3 issues: 5 to a token that does not read one issue; ${found.length} queries, 9 pages, ${refused.length} refused`;
+}
+// %%
 test_issues_panel_saves_an_attachment_once_a_press = {
   const rig = await issuesRig();
   await rig.owner("open", { id: "p1", title: "With files", kind: "task" });
@@ -2482,7 +2605,7 @@ test_issues_declares_what_it_needs = {
   const { meta } = await issues_service.emit();
   expect(meta).toMatchObject({ worker: "brain-x-issues", role: "recipe", module: "@tomlarkworthy/brain-issues", resources: ["blobs", "sql"], secrets: ["ISSUES_SIGNING_KEY"] });
   const methods = Object.keys(meta.access).sort().map((m) => m.replace("com.lopecode.brain.issue.", ""));
-  expect(methods).toEqual(["attach", "attachment", "comment", "cost", "get", "install", "key", "label", "link", "list", "lock", "locks", "move", "narrow", "open", "policy", "rebuild", "resign", "review", "snapshot", "swap", "sync", "verify"]);
+  expect(methods).toEqual(["attach", "attachment", "comment", "cost", "get", "install", "key", "label", "link", "list", "lock", "locks", "move", "narrow", "open", "policy", "rebuild", "resign", "review", "runs", "snapshot", "swap", "sync", "verify"]);
   const let_in = (who) => decide(meta.access["com.lopecode.brain.issue.open"], { caller: callerOf({ caller: who }), request: {} }).allow;
   expect(["owner", "token:a", "worker:brain-x-echo", "deployer", "did:plc:other", "anonymous"].map(let_in)).toEqual([true, true, true, true, false, false]);
   // The default policy passes its own check.
@@ -2512,6 +2635,9 @@ test_issues_reference_states_each_value_and_has_no_hole = {
     "`{ key, id, " + L.cost.join(", ") + " }`. Required",
     "each a name, `a-z 0-9 -`, " + L.role + " at most; `round`, a whole number, 1 to " + L.rounds + "; `how`: " + ticked(L.hows) + " (",
     "text of 1 to " + L.costText + " characters; `usage`",
+    "`?id=&role=&how=&round=&after=<seq>&limit=" + L.page + "`",
+    "`role`: a name, `a-z 0-9 -`, " + L.role + " at most; `how`: one of " + ticked(L.hows) + "; `round`: `first` (round 1), `later` (any round after it) or a whole number, 1 to " + L.rounds + "; `after`",
+    "`limit`: a whole number, 1 to " + L.page + ", " + L.page + " when left out",
     "`rel`: " + ticked(L.rels.filter((r) => r !== "part-of")).replace(/, (`[a-z]+`)$/, ", $1,") + " and",
     "text of 1 to " + L.reason + " characters",
     "&limit=" + L.syncPage + "`",
