@@ -29,7 +29,7 @@ await client.procedure("topic.subscribe", { topic: "builds", name: "shop", targe
 | \`topic.unsubscribe\` | procedure. \`{ topic, name }\` → \`{ unsubscribed: true }\`. Its creator, the creator of the topic or the owner; to anyone else it is 404. |
 | \`topic.subs\` | query. \`?topic=\` → \`{ subs: [{ topic, name, creator, target, delegation, params, failed, position, tries, waits, dropped, status, error, created }] }\`: the caller's own; for the owner, all. With \`topic\`, those of that topic, and its creator also reads \`{ topic, name, creator, target, position, created }\` of each other subscription to it. |
 | \`topic.receive\` | procedure. \`?topic=B\`, body an entry → \`{ seq, duplicate }\`. Appends the entry's \`body\` to \`B\` under the key \`<its topic>/<its seq>\`. Needs \`B\`'s \`write\` rule. It is the target that joins one topic to another. |
-| Settings | \`bodyBytes\` (100000). \`keepDays\` (30) and \`keepEntries\` (10000): what the clock removes. \`topicsPerCreator\` (50): the topics one member has. \`subsPerTopic\` (10): the subscriptions to one topic. \`pushMs\` (10000): how long one push is waited for. Changed with \`config.set\` on the core, no deploy. |
+| Settings | \`bodyBytes\` (100000). \`keepDays\` (30) and \`keepEntries\` (10000): what the clock removes. \`topicsPerCreator\` (50): the topics one member has. \`subsPerTopic\` (10): the subscriptions to one topic. \`pushMs\` (10000): how long one push is waited for. \`deliverMs\` (20000): how long one deliverer starts pushes for. Changed with \`config.set\` on the core, no deploy. |
 | Storage | \`sql\`: \`topic_topics\`, \`topic_entries\`, \`topic_subs\` |
 | Calls | With \`x-brain-as\` only: \`quota.get\` at \`topic.subscribe\`, and the target of each push. The manifest lists no \`calls\`: the core does not hold a call under a delegation to that list. |
 
@@ -84,7 +84,7 @@ Delivery is at least once: a deliverer that ends between the target's answer and
 
 **What a rule change does not do.** The \`read\` rule, and the \`write\` rule of \`failed\`, are asked at \`topic.subscribe\` and not at each push. The creator of a topic who shuts a reader out also ends that reader's subscriptions: \`topic.subs?topic=\` lists them and \`topic.unsubscribe\` removes one. Nothing lists the subscriptions that name a topic as their \`failed\`.
 
-A deliverer starts no push once it has worked 20 s, and its claim of the subscription ends 30 s after its last write, when another deliverer may claim it. A deliverer reads the settings its instance was last sent with a call.
+A deliverer starts no push once it has worked \`deliverMs\`, and its claim of the subscription ends 30 s after its last write, when another deliverer may claim it. A deliverer reads the settings its instance was last sent with a call.
 
 ## Not built
 
@@ -258,7 +258,7 @@ topicOps = {
       let v = await look([S.claim, topic, name, runner, clock() + L.leaseMs, clock()]);
       if (!mine(v)) return;
       for (;;) {
-        const late = Date.now() - began >= L.deliverMs;
+        const late = Date.now() - began >= setting("deliverMs");
         if (!v.entry || late) {
           await sql.exec(S.rest, topic, name, runner, v.entry ? 0 : v.row.last);
           if (late) return;
@@ -612,12 +612,13 @@ topicRig = async () => {
   const as = (who, more = {}) => async (path, body) => {
     const r = await sim.fetch("https://topic.internal" + X + path, {
       method: body === undefined ? "GET" : "POST",
-      headers: { "x-brain-caller": who, ...more, ...(body === undefined ? {} : { "content-type": "application/json" }) },
+      headers: { "x-brain-caller": who, ...settings({}), ...more, ...(body === undefined ? {} : { "content-type": "application/json" }) },
       body: body === undefined ? undefined : JSON.stringify(body)
     });
     return { status: r.status, data: await r.json() };
   };
-  const settings = (o) => ({ "x-brain-settings": encodeURIComponent(JSON.stringify(o)) });
+  // No test rests on how fast the page is: unless a test says, a push is waited for and a deliverer works for 11 days.
+  const settings = (o) => ({ "x-brain-settings": encodeURIComponent(JSON.stringify({ pushMs: 1e9, deliverMs: 1e9, ...o })) });
   // A token of the owner's, as the core names it: the owner, under a delegation a secret holds, not in a tab.
   const token = { "x-brain-via": "delegation:0007ea9d1903", "x-brain-holder": "secret:loop-topic", "x-brain-tab": "0" };
   return {
