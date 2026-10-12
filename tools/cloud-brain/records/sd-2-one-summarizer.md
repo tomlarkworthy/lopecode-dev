@@ -171,6 +171,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize --due --dry --u
 ```
 
 It started the canary's agent and no other. The limit of 0 is what kept it from the other 47.
+That line of the journal holds a `--dry` run only while the doc is the file with that sha256. This task's landing
+changes the doc (the guide's mend), so a `--due --dry` after it starts an agent for it again.
 
 `status` and the check, read with the worktree's tool at 23:45:04, `origin/main@47816713`:
 
