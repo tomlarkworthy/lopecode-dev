@@ -85,7 +85,7 @@ and the orchestrator's own landing in `SKILL.md`, `agents/spec.md` (where `ia` i
 (the landing by hand), `agents/overseer.md` (that the brief is held to 20,000 characters and a kind of task has a
 page), and `knowledge/changing-and-deploying-a-cloud-brain-worker.md` (the order of a landing).
 `git grep -n -F 'implementer.md' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'`
-prints 279 lines outside the brief and its pages; those of `SKILL.md`, the other briefs, `rules.md` and the two
+prints 283 lines outside the brief and its pages, 4 of them this record's; those of `SKILL.md`, the other briefs, `rules.md` and the two
 knowledge docs were read as the search prints them, and the records and post mortems, which say what was so at their date, were not changed.
 The lines that name a step or a section and were left are answered by one sentence of the table: such a name
 means the page of that row.
