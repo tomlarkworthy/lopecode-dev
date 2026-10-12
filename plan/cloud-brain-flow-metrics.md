@@ -353,6 +353,7 @@ that has a `restored`, with `unit: "ms"` and no `summaries`. `points` draws an a
 `summaries` as dots, with `n` and the longest under them and no rule: a percentile is computed
 in the tracker's module alone, and 27 points in 7 days do not pay for a second place. A put-back near the start of the 7 days Cloudflare keeps is whole; one whose fix is later than
 `until` has no row, and the panel says how many those are.
+(As built, `fm-6-restores`, 2026-10-12: `hash` of a row is the hash that was put back; a restore may be at that same hash; `logs.deploys` is sent once for a dashboard, and a panel's `filter` is taken on the rows by `target` or `id`; the answer `restoreRows` makes has `unrestored`, the count the panel says; an answer with no `restores` is that query's error; the record.)
 
 This is the last task (6), and the one to drop if it costs more than it gives (line 5 of the
 philosophy): on cb4 it would have drawn 27 points.
@@ -450,6 +451,7 @@ Each is one writer and one review, and writes `tools/cloud-brain/records/<its id
 6. **fm-6-restores.** `restores` in `logs.deploys` (a deploy of `brain-x-logs`), the second branch
    and `restoreRows` in the page, and `dashboard.put` of `flow` again with the row "Time to
    restore".
+   (As built, `fm-6-restores`, 2026-10-12: two deploys, `brain-x-logs` and then `brain-x-dashboard`; the record.)
 
 Tasks 1 to 4 need nothing of `dashboard-service`. Task 5 changes the module that
 `dsv-6-health-through-the-service` (triaged) also reads; whichever lands second rebases. Task 5
