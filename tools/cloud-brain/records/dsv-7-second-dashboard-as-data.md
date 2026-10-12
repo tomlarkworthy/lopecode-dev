@@ -1,8 +1,9 @@
 # A second dashboard on cb4, put as data (`dsv-7-second-dashboard-as-data`)
 
 Task 7 of `plan/cloud-brain-dashboard-service.md`, the check of R4. Done 2026-10-12 by a writer of
-the issue loop, round 1. Every call below was made with `brain.ts curl … --as loop-dashboard` from
-the main checkout, and every time is this machine's `date -u` printed beside the call.
+the issue loop, round 1. Each `dashboard.*` and `metric.query` call below was made with `brain.ts curl … --as loop-dashboard`
+from the main checkout, but for two rows of the last table, which name their caller. Every time is
+this machine's `date -u` printed beside the call.
 
 ## What changed
 
@@ -66,8 +67,8 @@ After it, 00:48:06 to 00:48:09 UTC:
 
 | call | answer |
 |---|---|
-| `metric.query?metric=deploys.confirmed&by=target`, the 24 hours to 00:48 UTC | 200, 22 groups, 71 rows, `n` summed 80, `cost.cached` false |
-| `metric.query?metric=deploys.put-back&by=target`, the same span | 200, 5 groups, 6 rows, `n` summed 9, `cost.cached` false |
+| `metric.query?metric=deploys.confirmed&by=target`, the 24 hours to 00:48 UTC | 200, 22 groups, 71 rows, `n` summed 80, `sampled` 1, `cost.cached` false |
+| `metric.query?metric=deploys.put-back&by=target`, the same span | 200, 5 groups, 6 rows, `n` summed 9, `sampled` 1, `cost.cached` false |
 | `POST dashboard.put` of the body with the token `loop-knowledge` | 403 `this token does not name com.lopecode.brain.dashboard.put` |
 | `dashboard.get?name=deploys` with no token and no session (plain `curl`) | 401 `not allowed by the rule for this` |
 
