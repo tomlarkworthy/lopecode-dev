@@ -18,6 +18,7 @@ issuesJoinedAt = (listed, loaded = {}, worker = "brain-x-issues") =>
 md`The panel above is for the owner, signed in. It answers from a copy of the view that the page keeps, one for each Brain's address, in \`localStorage\` under \`brain_issues2 ADDRESS\` (\`brain_issues ADDRESS\` until 2026-10-12; a copy under that name is not read): one \`issue.snapshot\`, then \`issue.sync\` every \`wait\` milliseconds while the tab is visible.
 
 - **For your attention**, above the filters: the open issues that wait for the owner. One waits when it has the label \`needs-owner\` or \`security\`, is at \`awaiting-approval\`, is of kind \`security\`, or is not shown to this caller. They are in four groups, in this order: **To approve** (at \`awaiting-approval\`), **To answer** (labelled \`needs-owner\`), **Security** (the rest that are read), **Not shown to this caller**; inside a group by id, so an issue does not move when something is said on it. The block shows one of them at a time (since 2026-10-11; before that every one was a row of the block, each event in a box seven lines high that scrolled). Its first line has **‹ back**, the place (\`2 of 5\`) and **forward ›**, disabled at the two ends, then the name of each group that has an issue with its count, the group of the shown issue in bold; with nothing waiting it reads "Nothing waits for you." and has no buttons. Under that line is the shown issue alone, each event whole, with no height limit. The issue shown stays the one shown while it waits, whatever comes to wait before it; when it stops waiting, the one that was after it is shown, or the last. The box of an issue that is not shown is kept out of the page, and has what was typed in it when the issue is shown again. \`panel.waiting()\` answers the ids in order, \`panel.shown()\` the id shown or \`null\`, and \`panel.scrub(id)\` shows an issue by id and answers the id shown; an id that does not wait changes nothing. \`panel.row(id)\` answers a waiting issue as its row has it, \`{ issue, group, ask, about, box }\`, or \`null\`. A row starts with the issue's id, then one line that says what is asked, then the title (which opens the issue), its state, kind, labels and the project it is part of. Under that is what the ask is about: for an approval the review that passed; for an answer the comment the label was put on with (the last one by whoever added the label, before the labelling) or the body of an issue opened with the label; then the last comment, or the last event when nothing else is shown (an event of type \`cost\` is passed over, since 2026-10-12: with no comment, the last event that is not one). Then one box and the buttons. A move's button is named for the move the owner would make, not for the state it leads to: **approve**, **reject** (the owner's \`owner-reject\`), **triage**, **close**; its tooltip names the state. The one that is asked comes first, in bold: **approve** on an approval, **Answer** on an answer. **Answer** sends the text of the box as a comment and then takes \`needs-owner\` off, two events for one press; where the comment is taken and the label is refused, the box is emptied and **take needs-owner off** is pressed again. After those, **Comment**, and **take needs-owner off** where the issue has that label. The text of the box is the reason of a move or the body of the comment, and the box is emptied when the service has taken it. A write that is refused, or that the network drops, leaves the text: where the press had taken the issue out of the block, the next one was shown meanwhile, and the issue of the press is shown again with the same box and its buttons can be pressed again. Until the service has answered a press, the buttons of that row are disabled, so a second press is not a second event; the box can still be typed in, and it keeps the caret when another caller's event draws its row again. A move that needs a reason is disabled until the box has text. A move the guard would refuse whatever the reason has no button there, nor has a swap, nor a move that needs refs: those are in the open issue, which the row's title opens and where the buttons have the same names. What is under a row is one \`issue.get\` for each listed issue, asked again when the issue changes. The record has no link that says one issue waits for another, so a row the owner cannot act on yet is not told apart.
+- **Approved for you**, in the same block, under the issue shown (since 2026-10-13; \`plan/cloud-brain-approver-persona.md\`, task 5): the \`approve\` moves that a token made, which a policy allows when its guard of \`approve\` names a delegation ("Who approves", below). One line for each such move of the last 7 days, the newest first: the issue's id, when it was made, the state the issue has now, and the reason of the move, whole, which opens the issue. An issue is looked at when \`by.approve\` of its row in the copy is a delegation and its last event is of those 7 days; the line is read from the last \`approve\` event of its \`issue.get\`, asked again when the issue changes. Where the owner present can undo the approval the line has a box and one button, the move of \`revert\` and \`owner-reject\` that the issue's workflow lets him make from the state it is in: **revert** of a task at \`done\`, **reject** of a spec at \`approved\`. The text of the box is the reason. \`revert\` takes a ref, and the panel sends the approve itself, \`{ kind: "event", value: "<its seq>" }\`; the reject carries the same ref. The button is disabled until the box has text. From a press until the service has answered, the line has the state the move leads to and nothing to press, and a second press sends nothing; a write that is refused, or that the network drops, gives the box back with its text. An approval that is undone stays a line for its 7 days, with the state the issue has and neither box nor button. The group is not part of what waits: the place, the counts, \`panel.waiting()\`, \`panel.row(id)\` and \`issuesAttention\` do not have it, and with no such approval nothing of it is drawn. \`panel.approved()\` answers the lines as data, in their order: \`{ id, seq, at, via, holder, reason, state, undo }\`, where \`seq\`, \`at\`, \`via\`, \`holder\` and \`reason\` are the approve event's and \`undo\` has the names of the moves the line offers. The 7 days are counted back from the panel's clock at each draw (the option \`clock\` of \`issuesPanel\`, which a test sets), so a line leaves at the first draw after them and not at the hour.
 - **The block as data**, for a module that cannot import this one (the page's, which this one imports from): \`issuesAttention(panel)\` answers \`{ shown, draft }\`, and the cell \`issues_attention\` adds that of the panel above to the plugin set \`"attention"\` of \`@tomlarkworthy/plugin-registry\` (since 2026-10-11; nothing reads it yet). \`shown()\` is \`null\` with nothing waiting or no owner signed in, else \`{ id, title, state, kind, group, ask, about, place, of }\`: \`group\` is \`approve\`, \`answer\`, \`security\` or \`hidden\`; \`ask\` the line of the group; \`about\` the whole text of what the ask is about (the passing review as "pass: …", the comment the label was put on with, or the body of an issue opened with the label), \`null\` for a security report, for an issue opened with the label and no body, and until \`issue.get\` has answered; \`place\` of \`of\` is the "2 of 5" of the first line. An issue not shown to this caller has \`title: null\` and \`ask: ""\`. \`draft(id, text)\` puts \`text\` in the box of that issue, arms its buttons as typing does, shows the issue and answers \`{ id, drafted: true }\`. It calls no method of the service: the text is sent by a press, as a typed one is. Line breaks in \`text\` become spaces, since the box is one line. It throws, and changes nothing, for an id that does not wait (an issue a press has taken out of the block and whose write is on its way among them), for an issue with no box, for a text that is not a string or is empty, and for a box that has any text already, with that text in the message: what was typed is not written over. It shows the issue whichever one was shown, so a draft made while the owner types in another issue's box takes that box out of the page with its text kept.
 - **State, Kind, Find** filter the table from the copy, with no call. State starts at **open work**: every issue whose workflow does not list its state under \`closed\` (in the default policy that leaves out \`done\`, \`closed\`, \`rejected\` and \`reverted\`), so a state a later policy adds is in it unless that policy closes it. **every issue** is the whole copy; after it, each state that an issue of the copy is at. Neither text can be a state's name, which has no space. The choice is not kept over a reload. The line under the table counts the whole copy, not the rows shown. Find reads the title, \`about\`, the labels and the id.
 - **A row** opens that issue: its body, its links (what it says of other issues, and what they say of it; each opens that issue), its children, its events, and a button for each state it can move to and each swap its workflow lists. A button the guard would refuse is disabled, and its tooltip is the refusal. Reason and Refs are sent with a move, so a button can come alive as they are typed. Since 2026-10-12 an issue that has a run (\`issue.cost\`) has one line under its links, the totals of its runs from the row (\`issueCost\`): \`cost 3 runs · 1,820 s · 2 with a usage: in 122, written 283,746, read 7,122,698, out 35,770, 58 requests · advisor 4 calls · $0.3 of 2 runs\`. The five sums are of the runs that have a \`usage\`, and read \`no usage\` when none has; the advisor's calls are left out at 0; the dollars are the sum of what runs reported of themselves and are left out when none did. An issue with no run has no such line. An event of type \`cost\` is a line of the events: \`implementer round 2, resumed, in-review · 410 s · context 201,310 · billed in 61, written 141,873, read 3,561,349, out 17,885, 29 requests · advisor 2 calls\`, with \`no usage\` in place of the sums for a run sent without one, then \`$N\` when the run reported one and \`replaces N\` when it took the place of the run of event N. \`tools\`, \`event\`, \`of\`, \`agent\`, \`session\`, \`token\` and \`backfilled\` of a run are not drawn, nor the totals by role: \`issue.get\` and \`issue.runs\` answer them.
@@ -1759,7 +1760,7 @@ issuesEveryIssue = "every issue"
 // %%
 // The issues, from a copy the page keeps: one snapshot, then the events after it every few seconds. A list and its
 // filters are answered from the copy. A write is applied to the copy before it is sent, and withdrawn if refused.
-issuesPanel = ({ client, owner = false, by = { caller: "owner", via: "session" }, invalidation, store = issuesStore(String((client && client.base) || "")), every = null, joined = null, worker = "brain-x-issues", reload = () => location.reload(), listen = true, save = issuesSave } = {}) => {
+issuesPanel = ({ client, owner = false, by = { caller: "owner", via: "session" }, invalidation, store = issuesStore(String((client && client.base) || "")), every = null, joined = null, worker = "brain-x-issues", reload = () => location.reload(), listen = true, save = issuesSave, clock = () => Date.now() } = {}) => {
   const muted = "color:var(--theme-foreground-muted)";
   if (!client || !owner) return htl.html`<i style=${muted}>Sign in as the owner to see the issues.</i>`;
   let base = store.get() || issueView(), pending = [], open = null, wait = issuesLimits.syncMs;
@@ -1851,16 +1852,17 @@ issuesPanel = ({ client, owner = false, by = { caller: "owner", via: "session" }
   // and its tooltip is the refusal; with `likely`, one it would refuse whatever the reason is left out. A move's button
   // is named for the move this caller would make with a reason (approve, not done; the owner's owner-reject is reject),
   // and where none is allowed for the first move listed to that state. `asked` is the move that is asked of the caller:
-  // its button is marked and comes first.
-  const actButtons = (i, { reason = "", refs = [], swaps = true, likely = false, asked = null, via = (run) => run() } = {}) => {
+  // its button is marked and comes first. `only` keeps the moves of those names.
+  const actButtons = (i, { reason = "", refs = [], swaps = true, likely = false, asked = null, only = null, via = (run) => run() } = {}) => {
     const view = now(), wf = view.workflows[i.workflow] || { moves: [], swaps: [] };
     const from = wf.moves.filter((m) => m.from === "*" || [].concat(m.from).includes(i.state));
     const moves = [...new Set(from.map((m) => m.to))].map((to) => ({ to, first: from.find((m) => m.to === to).name, act: { type: "move", id: i.id, to, reason, refs }, call: ["move", { id: i.id, to, reason, refs }] }));
     const more = swaps ? wf.swaps.map((s) => ({ text: "swap: " + s.name, act: { type: "swap", id: i.id, swap: s.name, reason }, call: ["swap", { id: i.id, swap: s.name, reason }] })) : [];
-    return [...moves, ...more].map((b) => ({ ...b, would: issueAllowed(view, by, { ...b.act, reason: reason || "a reason" }) })).filter((b) => !likely || b.would.allow).map((b) => {
+    return [...moves, ...more].map((b) => ({ ...b, would: issueAllowed(view, by, { ...b.act, reason: reason || "a reason" }) })).filter((b) => (!likely || b.would.allow) && (!only || only.includes(b.would.name))).map((b) => {
       const v = issueAllowed(view, by, b.act), name = b.text ? "" : b.would.name || b.first, mine = !!asked && name === asked;
       const button = Object.assign(htl.html`<button data-to=${b.to || ""} disabled=${!v.allow} style=${mine ? "font-weight:bold" : ""} onclick=${() => via(() => send(b.call[0], b.act, b.call[1]))}>${b.text || name.replace(/^owner-/, "")}</button>`, { title: v.allow ? (b.to ? "To " + b.to + "." : "") : v.why, mine });
       if (mine) button.dataset.asked = asked;
+      if (name) button.dataset.move = name;
       return button;
     }).sort((a, b) => b.mine - a.mine);
   };
@@ -1893,12 +1895,72 @@ issuesPanel = ({ client, owner = false, by = { caller: "owner", via: "session" }
   const place = htl.html`<span data-scrub="place"></span>`, none = htl.html`<span style=${muted}></span>`, counts = htl.html`<span style="display:inline-flex;gap:10px;flex-wrap:wrap"></span>`;
   const bar = htl.html`<span style="display:none;gap:6px;align-items:center">${before}${place}${after}</span>`, slot = htl.html`<div></div>`;
   attention.append(htl.html`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><b>For your attention</b>${none}${bar}${counts}</div>`, slot);
+  // Under the issue shown: the group "Approved for you", made further down.
+  const under = htl.html`<div></div>`;
+  attention.append(under);
   // Shows the issue of that id, when it waits, and answers the id shown.
   const scrub = (id) => (order.includes(id) && id !== at && ((at = id), drawWaiting()), at);
   // A waiting issue as its row has it: the issue, its group, the line that says what is asked, the text it is asked
   // about (null with none, and until issue.get has answered) and its box (null for an issue not shown to this caller).
   const row = (id) => ((r) => (r && order.includes(id) ? { issue: r.issue, group: r.group, ask: r.ask, about: r.about, box: r.text || null } : null))(rows.get(id));
+  // Approved for you: the approve moves a token made, which is what a policy that names a delegation on `approve`
+  // allows beside the owner present. The copy says which issues (issue.by.approve is the delegation), issue.get has
+  // the move: its time, its reason and who. Of the last 7 days by `clock`, newest first, each a line with the move
+  // that undoes it: revert of a task, which takes a ref, here the approve itself, or the owner's reject of a spec.
+  // A list under the issue shown and not a group of it: an approved issue does not wait, and each is read in a line.
+  const undoes = ["revert", "owner-reject"], approvedFor = 7 * 864e5;
+  const lines = new Map(), sending = new Set();
+  const approvedHead = htl.html`<div style="margin-top:10px"></div>`, approvedList = htl.html`<div></div>`;
+  let approvedNow = [], approvedKey = "";
+  const drawApproved = () => {
+    const view = now(), since = clock() - approvedFor, found = [];
+    for (const i of Object.values(view.issues)) {
+      // An approve of the last 7 days is an event of the last 7 days: issue.get is asked of no older issue.
+      if (i.hidden || !/^delegation:/.test((i.by || {}).approve || "") || !(i.updated_at >= since)) continue;
+      const got = load(i), e = ((got && got.events) || []).findLast((x) => x.type === "moved" && x.move === "approve");
+      if (e && /^delegation:/.test((e.by || {}).via || "") && e.at >= since) found.push({ i, e, got });
+    }
+    found.sort((a, b) => b.e.at - a.e.at || b.e.seq - a.e.seq);
+    for (const id of [...lines.keys()]) if (!found.some((f) => f.i.id === id) && !sending.has(id)) lines.delete(id);
+    const doc = attention.ownerDocument, active = doc && doc.activeElement, caret = active && active.tagName === "INPUT" && approvedList.contains(active) ? [active.selectionStart, active.selectionEnd, active.selectionDirection] : null;
+    for (const { i, e, got } of found) {
+      const key = [i.seq, i.state, i.workflow, got.seq, e.seq, pending.filter((x) => x.id === i.id).length].join("|"), had = lines.get(i.id);
+      if (had && had.key === key) continue;
+      const text = (had && had.text) || htl.html`<input type="text" placeholder="Why it is undone" style="flex:1;min-width:14em">`;
+      const acts = htl.html`<span style="display:flex;gap:6px;flex-wrap:wrap"></span>`;
+      // One write of a line at a time, as of a row: a second press before the answer sends nothing. The box is emptied
+      // when the service took the write; a write that is refused or dropped leaves its text.
+      const once = (run) => {
+        if (sending.has(i.id)) return;
+        sending.add(i.id);
+        const was = text.value;
+        run().then((took) => took && text.value === was && (text.value = ""), () => null).then(() => (sending.delete(i.id), text.oninput(), drawApproved()));
+      };
+      const made = () => actButtons(i, { reason: text.value.trim(), refs: [{ kind: "event", value: String(e.seq) }], swaps: false, likely: true, only: undoes, via: once });
+      const line = { key: null, text, issue: i, event: e, undo: [] };
+      const buttons = () => {
+        const all = made();
+        acts.replaceChildren(...all);
+        if (sending.has(i.id)) for (const b of all) Object.assign(b, { disabled: true, title: "Being sent." });
+      };
+      text.oninput = buttons;
+      buttons();
+      // What undoes it, as the names of the moves: none once it is undone, and none while the undo is on its way.
+      const names = [...acts.querySelectorAll("button")].map((b) => b.dataset.move);
+      lines.set(i.id, Object.assign(line, { key, undo: names, node: htl.html`<div data-approved=${i.id} style="margin:6px 0"><div><code style="font-size:1em;font-weight:bold">${i.id}</code> <span style=${muted}>${when(e.at)} · <span data-state>${i.state}</span></span> <a href="#" title=${i.title || ""} onclick=${(ev) => (ev.preventDefault(), root.show(i.id))}>${e.reason || "approved with no reason"}</a></div>${names.length ? htl.html`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:2px">${text}${acts}</div>` : ""}</div>` }));
+    }
+    approvedNow = found.map(({ i }) => lines.get(i.id));
+    const key = approvedNow.map((l) => l.issue.id + " " + l.key).join("\n");
+    if (key === approvedKey) return;
+    approvedKey = key;
+    approvedHead.replaceChildren(...(approvedNow.length ? [htl.html`<b data-approved-head>Approved for you (${approvedNow.length})</b>`, htl.html` <span style=${muted}>by a token, in the last 7 days, newest first. To undo one, say why and press.</span>`] : []));
+    approvedList.replaceChildren(...approvedNow.map((l) => l.node));
+    if (caret && active !== doc.activeElement && approvedList.contains(active)) active.focus(), active.setSelectionRange(...caret);
+  };
+  // The approvals as the group has them, newest first.
+  const approved = () => approvedNow.map((l) => ({ id: l.issue.id, seq: l.event.seq, at: l.event.at, via: l.event.by.via, holder: l.event.by.holder || "", reason: l.event.reason || "", state: l.issue.state, undo: [...l.undo] }));
   const drawWaiting = () => {
+    drawApproved();
     // Making a row again takes its box out of the page for a moment, which takes the caret: read it before any row is made.
     const doc = attention.ownerDocument, active = doc && doc.activeElement, caret = active && active.tagName === "INPUT" && attention.contains(active) ? [active.selectionStart, active.selectionEnd, active.selectionDirection] : null;
     const view = now(), all = Object.values(view.issues).filter(waits).sort((a, b) => rank(a) - rank(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
@@ -2069,7 +2131,8 @@ issuesPanel = ({ client, owner = false, by = { caller: "owner", via: "session" }
     ${newer}
     ${policy}
   </div>`;
-  Object.assign(root, { value: base, send, sync, refsOf, fetchOne, show: (id) => ((open = id), drawOne()), waiting: () => [...order], shown: () => at, scrub, row, policy, attention, list, newer, check, form: { title, kind: newKind, open: create }, filters: { state, kind } });
+  Object.assign(root, { value: base, send, sync, refsOf, fetchOne, show: (id) => ((open = id), drawOne()), waiting: () => [...order], shown: () => at, scrub, row, approved, policy, attention, list, newer, check, form: { title, kind: newKind, open: create }, filters: { state, kind } });
+  under.append(approvedHead, approvedList);
   draw();
   const tick = () => (typeof document === "undefined" || document.visibilityState === "visible") && sync().catch((e) => (note.textContent = "issue.sync failed: " + e.message));
   // The service says how long to wait (its setting syncMs); `every` is a test's own.
@@ -5185,6 +5248,192 @@ test_issues_panel_attention_shows_one_issue = {
     end();
   }
   return "of five waiting issues one is in the block; back and forward with the place and the count of each group; a 30-line ask with no height limit; the box of an issue keeps its text while another is shown";
+}
+// %%
+// A rig whose policy gives the approve of task and of project to one delegation beside the owner present, as
+// plan/cloud-brain-issues-policy-v3.json does, and a task or a spec taken to awaiting-approval by tokens.
+issuesApproverRig = async () => {
+  const rig = await issuesRig(), ref = [{ kind: "commit", value: "abc" }], id = "0123456789ab";
+  const token = (d, name) => rig.as("owner", "delegation:" + d, { "x-brain-holder": "secret:" + name, "x-brain-tab": "0" });
+  const approver = token(id, "loop-approver"), writer = token("bbbbbbbbbbbb", "impl-0a1b2c"), reviewer = token("cccccccccccc", "rev-0a1b2c");
+  const ok = async (sent) => {
+    const r = await sent;
+    if (r.status !== 200) throw new Error(`${r.status} ${r.data.message}`);
+    return r.data;
+  };
+  const guard = `caller.present || caller.actor == "delegation:${id}"`;
+  const named = (w) => ({ ...w, moves: w.moves.map((m) => (m.name === "approve" ? { ...m, guard } : m)) });
+  await ok(rig.owner("install", { key: "v3", policy: { ...issuesDefaultPolicy, workflows: { ...issuesDefaultPolicy.workflows, task: named(issuesDefaultPolicy.workflows.task), project: named(issuesDefaultPolicy.workflows.project) } } }));
+  const taskWaits = async (t) => {
+    await ok(rig.owner("open", { id: t, title: "The task " + t, kind: "task", labels: ["major"] }));
+    await ok(rig.owner("move", { id: t, to: "triaged", reason: "real" }));
+    await ok(rig.owner("move", { id: t, to: "ready" }));
+    await ok(writer("move", { id: t, to: "in-progress" }));
+    await ok(writer("move", { id: t, to: "in-review", refs: ref }));
+    await ok(reviewer("review", { id: t, verdict: "pass" }));
+    await ok(reviewer("move", { id: t, to: "awaiting-approval" }));
+  };
+  const specWaits = async (p) => {
+    await ok(rig.owner("open", { id: p, title: "The spec " + p, kind: "project" }));
+    await ok(writer("move", { id: p, to: "spec", reason: "taken" }));
+    await ok(writer("move", { id: p, to: "spec-review", refs: ref }));
+    await ok(reviewer("review", { id: p, verdict: "pass" }));
+    await ok(reviewer("move", { id: p, to: "awaiting-approval" }));
+  };
+  return { rig, id, ref, approver, ok, taskWaits, specWaits };
+}
+// %%
+// R8 of plan/cloud-brain-approver-persona.md, the panel's part (task 5): the approvals a token made, each in a line,
+// newest first, with the move that undoes it. The panel has a client of its own, whose writes wait for the test.
+test_issues_panel_approved_for_you = {
+  const { rig, id, ref, approver, ok, taskWaits, specWaits } = await issuesApproverRig();
+  for (const t of ["t1", "t2", "t3", "t4"]) await taskWaits(t);
+  await specWaits("p1");
+  const verdict = (n) => `approver: approve. Asked for at event ${n}, and the change is that. verdict ${n}, brief ${"a".repeat(40)}`;
+  const a1 = (await ok(approver("move", { id: "t1", to: "done", reason: verdict(1) }))).event;
+  // t2 is approved by the owner present, t3 by the token and then reverted by him, p1 is a spec; t4 still waits.
+  await ok(rig.owner("move", { id: "t2", to: "done", reason: "mine" }));
+  const a3 = (await ok(approver("move", { id: "t3", to: "done", reason: verdict(3) }))).event;
+  await ok(rig.owner("move", { id: "t3", to: "reverted", reason: "not what I asked", refs: ref }));
+  const ap = (await ok(approver("move", { id: "p1", to: "approved", reason: verdict(5) }))).event;
+  const answer = (r) => (r.status < 400 ? r.data : Promise.reject(new Error(r.data.message)));
+  const held = [], gets = [];
+  const client = {
+    query: (name, params = {}) => (name === "issue.get" && gets.push(params.id), rig.owner(name.replace("issue.", "") + "?" + new URLSearchParams(params)).then(answer)),
+    // Each write waits until the test sends it on, or fails it as a network that dropped it.
+    procedure: (name, body) => new Promise((go, fail) => held.push({ name, body, go, fail: () => fail(new Error("Failed to fetch")) })).then(() => rig.owner(name.replace("issue.", ""), body).then(answer))
+  };
+  let end = null, ahead = 0;
+  const day = 864e5;
+  const panel = issuesPanel({ client, owner: true, every: 1e9, listen: false, clock: () => Date.now() + ahead, invalidation: new Promise((r) => (end = r)), store: { get: () => null, set: () => null } });
+  const lines = () => [...panel.attention.querySelectorAll("[data-approved]")];
+  const ids = () => lines().map((l) => l.dataset.approved);
+  const at = (i) => lines().find((l) => l.dataset.approved === i);
+  const head = () => ((h) => (h ? h.textContent : null))(panel.attention.querySelector("[data-approved-head]"));
+  const box = (i) => at(i).querySelector("input");
+  const buttons = (i) => [...at(i).querySelectorAll("button")].map((b) => [b.textContent, b.dataset.to, b.disabled]);
+  const press = (i) => at(i).querySelector("button");
+  const type = (i, text) => {
+    box(i).value = text;
+    box(i).dispatchEvent(new Event("input", { bubbles: true }));
+  };
+  const until = async (fn) => {
+    for (let n = 0; n < 300 && !fn(); n++) await new Promise((r) => setTimeout(r, 10));
+    return fn();
+  };
+  const kept = (i) => JSON.parse(rig.db.view.get(i).issue).state;
+  const moved = (i) => rig.db.events.map((e) => JSON.parse(e.event)).filter((e) => e.id === i && e.type === "moved").at(-1);
+  const redraw = async () => {
+    await ok(rig.a("comment", { id: "t4", body: "said on another issue" }));
+    await panel.sync();
+  };
+  try {
+    expect([ids(), panel.approved(), head()]).toEqual([[], [], null]);
+    await panel.sync();
+    // Three lines, the newest approval first. The owner's own approval is not one, and an issue that waits is not one.
+    expect(await until(() => lines().length === 3)).toBe(true);
+    expect([ids(), head(), panel.waiting()]).toEqual([["p1", "t3", "t1"], "Approved for you (3)", ["t4"]]);
+    const by = { via: "delegation:" + id, holder: "secret:loop-approver" };
+    expect(panel.approved()).toEqual([
+      { id: "p1", seq: ap.seq, at: ap.at, ...by, reason: verdict(5), state: "approved", undo: ["owner-reject"] },
+      { id: "t3", seq: a3.seq, at: a3.at, ...by, reason: verdict(3), state: "reverted", undo: [] },
+      { id: "t1", seq: a1.seq, at: a1.at, ...by, reason: verdict(1), state: "done", undo: ["revert"] }
+    ]);
+    // issue.get is asked of those three and of the issue that waits, and not of the one he approved himself.
+    expect([...new Set(gets)].sort()).toEqual(["p1", "t1", "t3", "t4"]);
+    // A line has the id, the reason of the approve whole and the state; the undo is named for the owner's move, and
+    // waits for a reason. One that is undone already has neither a box nor a button.
+    for (const [i, n, state] of [["t1", 1, "done"], ["t3", 3, "reverted"], ["p1", 5, "approved"]]) expect([at(i).textContent.includes(i), at(i).textContent.includes(verdict(n)), at(i).querySelector("[data-state]").textContent]).toEqual([true, true, state]);
+    expect([buttons("t1"), buttons("p1"), buttons("t3"), at("t3").querySelectorAll("input").length]).toEqual([[["revert", "reverted", true]], [["reject", "rejected", true]], [], 0]);
+    // A press of revert: one write, with the reason of the box and the approve as its ref. A second press sends nothing.
+    const b1 = box("t1");
+    type("t1", "not what I asked");
+    expect(buttons("t1")).toEqual([["revert", "reverted", false]]);
+    const first = press("t1");
+    first.click();
+    first.click();
+    if (press("t1")) press("t1").click();
+    expect(held.map((h) => [h.name, h.body.id, h.body.to, h.body.reason, h.body.refs])).toEqual([["issue.move", "t1", "reverted", "not what I asked", [{ kind: "event", value: String(a1.seq) }]]]);
+    expect(kept("t1")).toBe("done");
+    // The network drops it: the line has its box again, the same one with its text, and the button can be pressed.
+    held.shift().fail();
+    expect(await until(() => !!press("t1") && !press("t1").disabled)).toBe(true);
+    expect([box("t1") === b1, b1.value, kept("t1"), panel.textContent.includes("issue.move was refused: Failed to fetch"), panel.approved().find((a) => a.id === "t1").undo]).toEqual([true, "not what I asked", "done", true, ["revert"]]);
+    // Two lines send on their own, and the answers come in the other order: each line takes its own answer.
+    press("t1").click();
+    type("p1", "not this either");
+    press("p1").click();
+    expect(held.map((h) => [h.body.id, h.body.to])).toEqual([["t1", "reverted"], ["p1", "rejected"]]);
+    held.pop().go();
+    expect(await until(() => kept("p1") === "rejected" && panel.approved().find((a) => a.id === "p1").state === "rejected")).toBe(true);
+    expect([kept("t1"), moved("p1").move, moved("p1").reason, moved("p1").by.via]).toEqual(["done", "owner-reject", "not this either", "session"]);
+    held.pop().go();
+    expect(await until(() => kept("t1") === "reverted" && held.length === 0)).toBe(true);
+    expect([moved("t1").move, moved("t1").reason, moved("t1").refs, moved("t1").by.via]).toEqual(["revert", "not what I asked", [{ kind: "event", value: String(a1.seq) }], "session"]);
+    // Each is still a line, with the state it has now and nothing to press.
+    await panel.sync();
+    expect(await until(() => panel.approved().every((a) => a.undo.length === 0) && lines().every((l) => !l.querySelector("button, input")))).toBe(true);
+    expect([ids(), head(), panel.approved().map((a) => a.state)]).toEqual([["p1", "t3", "t1"], "Approved for you (3)", ["rejected", "reverted", "reverted"]]);
+    // The group is of the last 7 days, by the panel's clock: there at 6 days, gone at 8.
+    ahead = 6 * day;
+    await redraw();
+    expect([ids(), head()]).toEqual([["p1", "t3", "t1"], "Approved for you (3)"]);
+    ahead = 8 * day;
+    await redraw();
+    expect([ids(), head(), panel.approved(), panel.waiting()]).toEqual([[], null, [], ["t4"]]);
+  } finally {
+    end();
+  }
+  return "three approvals by a token are lines, newest first, and the owner's own is none; revert carries the approve as its ref and reject a reason; a second press sends nothing, a dropped write gives the box back, two answers out of order each land; gone after 7 days";
+}
+// %%
+// The box of a line keeps the caret when another caller's event makes its line again. The caret is the document's.
+test_issues_panel_approved_for_you_keeps_the_caret = {
+  const { rig, approver, ok, taskWaits } = await issuesApproverRig();
+  await taskWaits("t1");
+  await taskWaits("t2");
+  await ok(approver("move", { id: "t1", to: "done", reason: "approver: approve. The first." }));
+  await ok(approver("move", { id: "t2", to: "done", reason: "approver: approve. The second." }));
+  const answer = (r) => (r.status < 400 ? r.data : Promise.reject(new Error(r.data.message)));
+  // `got` has the id of each issue.get that was answered, written a task after the answer: the panel has drawn it by then.
+  const got = [], gets = (i) => got.filter((x) => x === i).length;
+  const client = { query: (name, params = {}) => { const r = rig.owner(name.replace("issue.", "") + "?" + new URLSearchParams(params)).then(answer); if (name === "issue.get") r.then(() => setTimeout(() => got.push(params.id), 0), () => null); return r; }, procedure: (name, body) => rig.owner(name.replace("issue.", ""), body).then(answer) };
+  let end = null;
+  const panel = issuesPanel({ client, owner: true, every: 1e9, listen: false, invalidation: new Promise((r) => (end = r)), store: { get: () => null, set: () => null } });
+  const at = (i) => [...panel.attention.querySelectorAll("[data-approved]")].find((l) => l.dataset.approved === i);
+  const until = async (fn) => {
+    for (let n = 0; n < 300 && !fn(); n++) await new Promise((r) => setTimeout(r, 10));
+    return fn();
+  };
+  document.body.append(panel);
+  try {
+    await panel.sync();
+    expect(await until(() => !!at("t1") && !!at("t2"))).toBe(true);
+    const box = at("t1").querySelector("input");
+    box.focus();
+    box.value = "half a line";
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+    box.setSelectionRange(2, 6);
+    const caret = () => [at("t1").querySelector("input") === box, box.value, document.activeElement === box, box.selectionStart, box.selectionEnd, at("t1").querySelector("button").disabled];
+    expect(caret()).toEqual([true, "half a line", true, 2, 6, false]);
+    // Another caller's comment on the issue being typed in: its line is made again by the sync, and once more when issue.get answers.
+    const asked = gets("t1");
+    await ok(rig.a("comment", { id: "t1", body: "said meanwhile" }));
+    await panel.sync();
+    expect(caret()).toEqual([true, "half a line", true, 2, 6, false]);
+    expect(await until(() => gets("t1") === asked + 1)).toBe(true);
+    expect(caret()).toEqual([true, "half a line", true, 2, 6, false]);
+    // And one on the line above it.
+    const above = gets("t2");
+    await ok(rig.a("comment", { id: "t2", body: "and here" }));
+    await panel.sync();
+    expect(await until(() => gets("t2") === above + 1)).toBe(true);
+    expect(caret()).toEqual([true, "half a line", true, 2, 6, false]);
+  } finally {
+    end();
+    panel.remove();
+  }
+  return "the box of a line keeps the caret, the selection and its armed button when its line, or the one above it, is made again";
 }
 // %%
 // The panel's half of R4 and R5 of plan/cloud-brain-owner-acts-on-what-waits-for-him.md: what the block shows, read
