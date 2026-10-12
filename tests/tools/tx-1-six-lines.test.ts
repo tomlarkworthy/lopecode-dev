@@ -51,7 +51,8 @@ test("step 10 of the writer's brief names the docs line a release of land prints
 test("the dashboard-service spec keeps the approved sentence and has what was built beside it", () => {
   const spec = read("plan/cloud-brain-dashboard-service.md");
   expect(count(spec, "reach every one")).toBe(1);
-  expect(count(spec, "As built")).toBe(1);
+  // Of this sentence. A later task adds its own "As built" elsewhere in the spec (dsv-6 added three), so the file is not counted whole.
+  expect(count(spec, "(As built, `dsv-3-dashboards`")).toBe(1);
   expect(spec).toContain(
     "reach every one. (As built, `dsv-3-dashboards`, 2026-10-11: they read every one and write no member's and no built-in name; `tools/cloud-brain/records/dsv-3-dashboards.md`.)",
   );
