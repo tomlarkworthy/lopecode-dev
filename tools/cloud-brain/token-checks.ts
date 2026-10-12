@@ -7,10 +7,14 @@
 // --after is the spec's N, the event before the first round on the new tokens. With none it is the event before the
 // first `start` by an `impl-` holder on an issue that is not one of the two `r6-check-` issues of ta-1b.
 // --until reads the record as it was at that event, so a count written down with its event can be made again.
+// --after and --until take a whole number, digits only. One that is given with anything else (abc, -5, 1.5, 1e3,
+// another flag, nothing) is exit 2 with nothing read: `e.seq > NaN` is false for every event, so each check
+// passed (issue token-checks-after-nan-reads-pass).
+// When no event is after N (an N at or past the last event read), each pass says so on its line; the exit is not changed.
 // A `cost` line is a `cost` event, or a comment whose key begins `cost` and whose body is `cost {json}` (the form of
 // before cm-5-the-loop-writes-the-event). Its writer is its own `by.holder`.
 // Not read here: `brain.ts agent-token list` (the live children; the parent's call) and both checks of R2.
-// Exit 0 when r1.first, r1.third and parent pass, 1 when one does not. `checks` and `text` call nothing:
+// Exit 0 when r1.first, r1.third and parent pass, 1 when one does not, 2 when nothing was read. `checks` and `text` call nothing:
 // tests/tools/token-checks.test.ts.
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
@@ -18,6 +22,13 @@ import { dirname, join } from "node:path";
 const arg = (n: string, d: string) => {
   const at = process.argv.findIndex((a) => a === `--${n}` || a.startsWith(`--${n}=`));
   return at < 0 ? d : process.argv[at].includes("=") ? process.argv[at].split("=")[1] : process.argv[at + 1] ?? d;
+};
+// The value of --n: undefined when it is not given, null when it is given and is not digits alone.
+const whole = (n: string) => {
+  const at = process.argv.findIndex((a) => a === `--${n}` || a.startsWith(`--${n}=`));
+  if (at < 0) return undefined;
+  const v = process.argv[at].includes("=") ? process.argv[at].slice(n.length + 3) : process.argv[at + 1] ?? "";
+  return /^[0-9]+$/.test(v) ? Number(v) : null;
 };
 
 const OLD = ["issues-implementer-2", "issues-reviewer-2", "issues-overseer-1"];
@@ -40,7 +51,7 @@ const many = (m: Map<string, Set<string>>) => [...m].filter(([, s]) => s.size > 
 const put = (m: Map<string, Set<string>>, k: string, v: string) => (m.get(k) || m.set(k, new Set()).get(k)!).add(v);
 
 export function checks(all: any[], opt: { after?: number; until?: number } = {}) {
-  const events = opt.until ? all.filter((e) => e.seq <= opt.until!) : all;
+  const events = opt.until != null ? all.filter((e) => e.seq <= opt.until!) : all;
   const firstStart = events.find((e) => e.type === "moved" && e.move === "start" && prefix(name(e)) === "impl" && !String(e.id).startsWith("r6-check-"));
   const after = opt.after ?? (firstStart ? firstStart.seq - 1 : 0);
   const since = events.filter((e) => e.seq > after);
@@ -73,7 +84,7 @@ export function checks(all: any[], opt: { after?: number; until?: number } = {})
   const out = of("out");
 
   return {
-    read: events.length, last: events.at(-1)?.seq ?? 0, after, firstStart: firstStart ? { seq: firstStart.seq, id: firstStart.id, by: name(firstStart) } : null,
+    read: events.length, last: events.at(-1)?.seq ?? 0, after, afterN: since.length, firstStart: firstStart ? { seq: firstStart.seq, id: firstStart.id, by: name(firstStart) } : null,
     r1: {
       first: {
         pass: !many(byToken).length && old.every((o) => !o.events),
@@ -96,11 +107,13 @@ const count = (l: string[]) => l.reduce((m: Record<string, number>, k) => ((m[k]
 type Checks = ReturnType<typeof checks>;
 
 export const passed = (c: Checks) => c.r1.first.pass && c.r1.third.pass && c.parent.pass;
-const word = (p: boolean | null) => (p === null ? "not seen" : p ? "pass" : "FAIL");
+const verdict = (p: boolean | null) => (p === null ? "not seen" : p ? "pass" : "FAIL");
 
 export function text(c: Checks) {
   const f = c.r1.first, t = c.r1.third, l: string[] = [];
-  l.push(`read ${c.read} events to ${c.last}; N = ${c.after}${c.firstStart ? ` (the first start by an impl- token on an issue is ${c.firstStart.seq}, ${c.firstStart.id}, ${c.firstStart.by})` : ""}`);
+  // A pass that no event after N was read for.
+  const none = c.afterN ? "" : "no event is after N", word = (p: boolean | null) => verdict(p) + (p && none ? ` (${none})` : "");
+  l.push(`read ${c.read} events to ${c.last}; N = ${c.after}${none && `; ${none}`}${c.firstStart ? ` (the first start by an impl- token on an issue is ${c.firstStart.seq}, ${c.firstStart.id}, ${c.firstStart.by})` : ""}`);
   l.push(`R1, first check: ${word(f.pass)}`);
   l.push(`  ${f.pairs} tokens beside an agent in a cost line; beside two agents: ${f.tokenBesideTwoAgents.length}; agents beside two tokens: ${f.agentBesideTwoTokens.length}; tokens on a line with no agent: ${f.tokenWithNoAgent}`);
   for (const m of [...f.tokenBesideTwoAgents, ...f.agentBesideTwoTokens]) l.push(`    ${m.name}: ${m.beside.join(" ")}`);
@@ -122,6 +135,11 @@ if (import.meta.main) {
     console.error("token-checks.ts: no --token; nothing was sent\n  bun tools/cloud-brain/token-checks.ts --token NAME [--after SEQ] [--until SEQ] [--json]\n  NAME is your own token, the one your prompt names (a name issue-as.sh keeps)");
     process.exit(2);
   }
+  const opt = { after: whole("after"), until: whole("until") };
+  for (const [n, v] of Object.entries(opt)) if (v === null) {
+    console.error(`token-checks.ts: --${n} is not a whole number; nothing was read\n  --${n} SEQ is the seq of an event of the record, digits only: --${n} 2666`);
+    process.exit(2);
+  }
   const events: any[] = [];
   for (let after = 0; ; ) {
     const page = JSON.parse(execFileSync(as, [token, `sync?after=${after}&limit=500`], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })).events || [];
@@ -129,8 +147,7 @@ if (import.meta.main) {
     if (page.length < 500) break;
     after = page.at(-1).seq;
   }
-  const a = arg("after", ""), u = arg("until", "");
-  const c = checks(events, { after: a ? Number(a) : undefined, until: u ? Number(u) : undefined });
+  const c = checks(events, { after: opt.after ?? undefined, until: opt.until ?? undefined });
   console.log(process.argv.includes("--json") ? JSON.stringify(c) : text(c).join("\n"));
   process.exit(passed(c) ? 0 : 1);
 }

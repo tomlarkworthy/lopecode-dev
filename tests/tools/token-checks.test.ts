@@ -2,9 +2,11 @@
 // list of events. Issue ta-6-checks-after-three-issues.
 //
 //   bun test ./tests/tools/token-checks.test.ts
-// No call leaves the machine but in the last test, which runs the tool with no token and sees that it sends nothing.
+// No call leaves the machine: the tests that run the tool give it a stand-in for issue-as.sh, or none.
 import { test, expect } from "bun:test";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 
 const tool = resolve(import.meta.dir, "../../tools/cloud-brain/token-checks.ts");
 const { checks, passed, text } = await import(tool);
@@ -139,4 +141,61 @@ test("with no --token the tool sends nothing and is exit 2", () => {
   expect(p.exitCode).toBe(2);
   expect(p.stderr.toString()).toContain("no --token; nothing was sent");
   expect(p.stdout.toString()).toBe("");
+});
+
+// Issue token-checks-after-nan-reads-pass. The stand-in for issue-as.sh writes a line to a file when it is called.
+const run = (...args: string[]) => {
+  const dir = mkdtempSync(join(tmpdir(), "token-checks-")), as = join(dir, "issue-as.sh"), called = join(dir, "called");
+  writeFileSync(as, `#!/bin/sh\necho "$@" >> "${called}"\necho '{"events":[]}'\n`, { mode: 0o755 });
+  const p = Bun.spawnSync(["bun", tool, "--token", "impl-aaaaaa", ...args], { env: { ...process.env, ISSUE_AS: as } });
+  const out = { exit: p.exitCode, stdout: p.stdout.toString(), stderr: p.stderr.toString(), calls: existsSync(called) ? readFileSync(called, "utf8").trim().split("\n").length : 0 };
+  rmSync(dir, { recursive: true });
+  return out;
+};
+
+test("an --after or --until that is no whole number is exit 2, with nothing read and no check printed", () => {
+  const after = [["--after", "abc"], ["--after", "-5"], ["--after", "1.5"], ["--after", "1e3"], ["--after", "0x10"], ["--after", " 7"], ["--after", ""], ["--after=abc"], ["--after="], ["--after"], ["--after", "--json"], ["--until", "12", "--after", "x"]];
+  const until = [["--until", "abc"], ["--until"], ["--until=1.5"], ["--after", "12", "--until", "x"]];
+  for (const [flag, list] of [["--after", after], ["--until", until]] as const) for (const args of list) {
+    const p = run(...args);
+    expect([args, p.exit, p.calls, p.stdout]).toEqual([args, 2, 0, ""]);
+    expect(p.stderr).toContain(`token-checks.ts: ${flag} is not a whole number; nothing was read`);
+  }
+});
+
+test("a whole number for --after and --until is read: one call, and the checks are printed", () => {
+  for (const args of [["--after", "0"], ["--after=12"], ["--until", "7"], ["--after", "3", "--until=9"], []]) {
+    const p = run(...args);
+    expect([args, p.exit, p.calls]).toEqual([args, 0, 1]);
+    expect(p.stdout).toContain("R1, first check: pass");
+  }
+  expect(run("--after", "12").stdout).toContain("read 0 events to 0; N = 12");
+});
+
+test("a pass with no event after N says so on its line, and a pass with one does not", () => {
+  const c = checks(good().list, { after: 99 });
+  expect([c.afterN, passed(c)]).toEqual([0, true]);
+  const l = text(c);
+  expect(l[0]).toBe("read 9 events to 9; N = 99; no event is after N (the first start by an impl- token on an issue is 4, a, impl-bbbbbb)");
+  expect(l).toContain("R1, first check: pass (no event is after N)");
+  expect(l).toContain("R1, third check: pass (no event is after N), of what the record has (the live children are agent-token list's)");
+  expect(l.at(-1)).toBe("the parent: pass (no event is after N); secret:loop-agents wrote 0 events after N, 0 in all");
+  // N at the last event, and N past it with --until, read the same way.
+  expect(checks(good().list, { after: 9 }).afterN).toBe(0);
+  expect(checks(good().list, { after: 5, until: 5 }).afterN).toBe(0);
+  // One event after N, and the default N: no such words.
+  expect(checks(good().list, { after: 8 }).afterN).toBe(1);
+  expect(text(checks(good().list, { after: 8 })).join("\n")).not.toContain("no event is after N");
+  const d = checks(good().list);
+  expect(d.afterN).toBe(6);
+  expect(text(d).join("\n")).not.toContain("no event is after N");
+  // A check that fails with no event after N (a token beside two agents is read from every cost line) is still FAIL.
+  const r = good();
+  r.cost("orch-dddddd", "impl-bbbbbb", "agent2");
+  expect(text(checks(r.list, { after: 99 }))).toContain("R1, first check: FAIL");
+});
+
+test("--until 0 is the record before its first event, not the whole record", () => {
+  const c = checks(good().list, { until: 0 });
+  expect([c.read, c.last, c.afterN]).toEqual([0, 0, 0]);
 });
