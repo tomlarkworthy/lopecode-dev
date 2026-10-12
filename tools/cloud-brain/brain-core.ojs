@@ -34,8 +34,10 @@ It answers bindings only. A caller is who the kernel says it is, and the kernel 
 | \`price.list\` | query, owner. \`{ prices: [{ target, worker, declared, set, setAt }], unit, defaults }\`. |
 | \`price.put\`, \`price.delete\` | procedure, the owner's own session. \`{ target, price }\`: a CEL expression in place of the price a service declared. |
 | \`quota.get\` | query, any account. \`{ who, day, spent, daily, remaining, resetsAt }\` for the caller's own account. The owner reads another with \`?who=\`. |
-| \`quota.list\`, \`quota.ledger\` | query, owner. Each account's day, and the charges of one day (\`?day=&who=&limit=\`) with totals by account and by method. |
-| \`quota.put\`, \`quota.setDefaults\` | procedure, the owner's own session. \`{ who, daily }\`, and \`{ owner, member, worker, token, perCall, keepDays }\`. \`null\` is the default again. |
+| \`quota.list\` | query, owner. \`{ day, unit, resetsAt, defaults, accounts: [{ who, daily, set, spent, charges }] }\`: each account's day, \`charges\` the number that counted. |
+| \`quota.ledger\` | query, owner. \`?day=&who=&limit=\`. \`{ day, unit, charges: [{ at, who, origin, caller, method, price, cost, counted }], total, byWho, byMethod }\`: the charges of one day, the newest first, with totals by account and by method over the whole day. \`limit\` is 200 when none is given and at most the setting \`charges\`. It reads the day whole. |
+| \`quota.put\` | procedure, the owner's own session. \`{ who, daily }\`. \`null\` is the default again. |
+| \`quota.setDefaults\` | procedure, the owner's own session. Any of \`{ owner, member, worker, token, perCall, keepDays, charges }\` → \`{ defaults }\`. The first five are US dollars, 0 or more. \`keepDays\` (30) and \`charges\` (8000, the most priced calls of one account that count in a day) are whole numbers of 1 or more. \`null\` is the default again. It holds from the next call, with no deploy. |
 | \`delegation.create\` | procedure, the owner's or a member's own session. \`{ name, holder: { worker }, scope, until, daily, note }\` → the record, with its \`id\`. With \`holder: { secret: true }\` and \`caps\` the answer has \`secret\`, once: a token. A member makes one for what they may call. The caps \`session\`, \`deploy\` and \`unattended\` are the owner's to give, \`delegate\` the owner's or a member's. The kernel's \`token.create\` and a sign-in link make these. |
 | \`delegation.resolve\`, \`delegation.adopt\` | procedures, the kernel. \`{ sha256 }\` of a secret, or \`{ did }\` for that DID's grant → \`{ delegation }\` or null; and a token from before 2026-10-10, handed over by its hash. |
 | \`delegation.list\`, \`delegation.revoke\` | query and procedure, the same callers. The owner reads and revokes any, a member their own. \`{ id }\`. |
@@ -108,7 +110,11 @@ A Worker that answers a call spends the credits of that call's origin, through a
 
 A priced call is charged when the core accepts it, before it is forwarded. The charge is not returned: not when the Worker answers an error, and not when it throws. A service whose call can fail after the charge gives its price to one method that does only the purchase. The answer to a priced call carries \`x-brain-price\`, what was charged.
 
-An account's day is one row, \`spend/DAY/ACCOUNT\`: a list that each charge is appended to in one statement. A charge counts when the charges that count before it, and it, are inside the allowance it was made under. The list alone decides that, so calls made at once do not spend past the allowance and no call holds a lock. A charge that lost to another made at the same time stays in the list and counts for nothing. A priced call is two statements (append, read). A day holds 8000 charges that count for one account; the next is refused (402, "has made 8000 priced calls today"). It was 2000 until 2026-10-12, and cb4 met it on 2026-10-11. Spending only grows in a day, so a core that read an account as spent refuses it with no write until the day ends or the allowance grows. Days older than \`keepDays\` (30) are deleted at the first priced call of a UTC day; a Brain with no priced call keeps its rows until the next one.
+An account's day is one row of two numbers, \`spent/DAY/ACCOUNT\`: the micro-dollars and the charges that count. A charge is one statement (\`rows.addWithin\`) that adds its price and 1 to them when both stay inside their bounds, and writes nothing otherwise. The bounds are the allowance the call was made under and the setting \`charges\`. The statement alone decides that, so calls made at once do not spend past the allowance and no call holds a lock. Each charge that counted is then written as a row of its own, \`spend/DAY/ACCOUNT/<t>-<i>\`, which is what \`quota.ledger\` reads. A refused call writes no line. An accepted priced call is those two statements, whatever the day holds. When the second fails the charge stands and the call is passed on: the day's sum has the money and the ledger is one line short.
+
+The most priced calls of one account that count in a day is the setting \`charges\`, 8000 unless the owner set another with \`quota.setDefaults { charges }\`; the next is refused (402, "has made 8000 priced calls today"). It guards storage: a line is a row kept for \`keepDays\`. The setting is read at each call, so a change holds from the next one. Until 2026-10-12 it was a constant, 2000 and then 8000, because a day was one list in one row (\`spend/DAY/ACCOUNT\`); cb4 met the 2000 on 2026-10-11. \`quota.ledger\` still reads a day kept as such a list, until it is deleted. A core starts the new row at nothing, so on the day it is first deployed what was spent before the deploy is not counted against the allowance.
+
+Spending only grows in a day, so a core that read an account as spent, or as at the count, refuses it with no statement until the day ends, the allowance grows or the count is raised. A delegation with a daily amount has a row of its own, \`spent/DAY/delegation/ID\`. Days older than \`keepDays\` (30) are deleted under both names at the first priced call of a UTC day; a Brain with no priced call keeps its rows until the next one.
 
 Limits. A cost known only after the call, such as the tokens of a model call, has no method yet: a price is fixed before the call and nothing brings it down afterwards (Tom, 2026-10-08: no refunds), so it needs a design of its own. The allowance of a member's calls for a day (429) is a separate count.
 
@@ -676,13 +682,15 @@ coreApp = {
   // request, which gives US dollars. The owner's price (price.put) stands in for the one a service declared. A call
   // with no price takes none of this. A priced call is charged to the account of its origin before it is forwarded,
   // and is refused when that leaves the account over its allowance for the UTC day.
-  // An account's day is one row: a list that each charge is appended to, in one statement.
-  // A charge counts when the charges that count before it, with it, are inside the allowance it was made under. That
-  // is decided by the list alone, so calls made at once cannot spend past the allowance, and no call needs a lock.
-  const PRICING = { owner: 1, member: 0.1, worker: 0.1, token: 0.1, perCall: 1, keepDays: 30 };
-  // CHARGES: the charges of one account that count in a day. The day's list is one row of D1 (2 MB at most), read whole at each
-  // priced call: an entry was 163 bytes on cb4 on 2026-10-11, so 8000 are 1.3 MB. Was 2000 until 2026-10-12.
-  const MICRO = 1e6, CHARGES = 8000, KEEP = 100000;
+  // An account's day is one row of two numbers, spent/DAY/ACCOUNT: the micro-dollars and the charges that count.
+  // A charge is one statement (rows.addWithin) that adds to both when both stay inside their bounds, the allowance
+  // the call was made under and the count, and writes nothing otherwise. So calls made at once cannot spend past the
+  // allowance, and no call needs a lock. Each charge that counted is then a row of its own for the ledger,
+  // spend/DAY/ACCOUNT/<t>-<i>. Until 2026-10-12 a day was one list at spend/DAY/ACCOUNT, read whole at each charge.
+  // charges: the most charges of one account that count in a day. It guards storage (a line is a row kept keepDays).
+  const PRICING = { owner: 1, member: 0.1, worker: 0.1, token: 0.1, perCall: 1, keepDays: 30, charges: 8000 };
+  // WHOLE: the settings that are whole numbers of 1 or more. LISTED: the charges a day's list held, for a day kept in that shape.
+  const MICRO = 1e6, WHOLE = ["keepDays", "charges"], LISTED = 8000, MOST = Number.MAX_SAFE_INTEGER;
   const micro = (usd) => Math.ceil(usd * MICRO - 1e-6);
   const usd = (u) => u / MICRO;
   const pricing = async () => ({ ...PRICING, ...((await settings.get("quota/defaults")) || {}) });
@@ -709,24 +717,41 @@ coreApp = {
       return { error: String((e && e.message) || e).split("\n")[0] };
     }
   };
-  // What a day's list comes to: what is spent, and the charges that count.
+  // What a day's list came to, for a day kept in the shape from before 2026-10-12: what was spent, and the charges that counted.
   const fold = (list) => {
     let spent = 0;
     const net = new Map();
-    for (const e of list || []) if (net.size < CHARGES && spent + e.u <= e.A) (net.set(e.i, e.u), (spent += e.u));
-    return { spent, net, full: net.size >= CHARGES };
+    for (const e of list || []) if (net.size < LISTED && spent + e.u <= e.A) (net.set(e.i, e.u), (spent += e.u));
+    return { spent, net };
   };
   const spendKey = (day, account) => `spend/${day}/${account}`;
-  // What this instance last read for an account. Spending only grows in a day, so an account read as spent is refused with no write.
+  const spentKey = (day, account) => `spent/${day}/${account}`;
+  // A day's row as { u, n }: micro-dollars and charges. No row, or a row that is not two numbers, is a day with nothing spent.
+  const spentOf = async (day, account) => {
+    const row = await rows.get(spentKey(day, account));
+    return Array.isArray(row) && Number.isFinite(row[0]) && Number.isFinite(row[1]) ? { u: row[0], n: row[1] } : { u: 0, n: 0 };
+  };
+  // What this instance last read for an account. Spending only grows in a day, so an account read as spent, or as at
+  // the count, is refused with no statement. It is compared with the allowance and the count of the call in hand.
   const known = new Map();
-  const charge = async (account, u, allowance, about) => {
-    const day = today(), key = spendKey(day, account), A = micro(allowance), k = known.get(account);
-    if (k && k.day === day && (k.full || k.spent + u > A)) return { ok: false, spent: k.spent, full: k.full };
-    const i = crypto.randomUUID().slice(0, 13);
-    await rows.append(key, { t: Date.now(), i, u, A, ...about }, KEEP);
-    const { spent, net, full } = fold(await rows.get(key));
-    known.set(account, { day, spent, full });
-    return { ok: net.has(i), spent, full: full && !net.has(i) };
+  const learn = (account, day, at) => {
+    const k = known.get(account);
+    if (!k || k.day !== day || at.n >= k.n) known.set(account, { day, ...at });
+    return at;
+  };
+  const charge = async (account, u, allowance, charges, about) => {
+    const day = today(), A = Math.min(micro(allowance), MOST), k = known.get(account);
+    const refused = (at) => ({ ok: false, spent: at.u, full: at.n >= charges });
+    if (k && k.day === day && (k.n >= charges || k.u + u > A)) return refused(k);
+    // A price over the whole allowance is refused by any day, so it is not sent: the add takes numbers up to MOST.
+    const row = u > A ? null : await rows.addWithin(spentKey(day, account), [u, 1], [A, charges]);
+    // Refused: one read, to say which bound it was.
+    if (!row) return refused(learn(account, day, await spentOf(day, account)));
+    learn(account, day, { u: row[0], n: row[1] });
+    // The line. The charge stands without it: the day's sum has the money and the ledger is one line short.
+    const t = Date.now(), i = crypto.randomUUID().slice(0, 13);
+    await rows.put(`${spendKey(day, account)}/${t}-${i}`, { t, i, u, ...about }).catch(() => null);
+    return { ok: true, spent: row[0] };
   };
   let pruned = "";
   const prune = async (keepDays) => {
@@ -734,9 +759,11 @@ coreApp = {
     pruned = today();
     const dayAgo = (d) => new Date(clock() - d * 86400000);
     // 31 days by name, then the month of the last of them and 12 before it: a Brain with no priced call for a year still loses its old days.
-    for (let d = keepDays + 1; d <= keepDays + 31; d++) await rows.deletePrefix(`spend/${dayAgo(d).toISOString().slice(0, 10)}/`);
     const edge = dayAgo(keepDays + 31);
-    for (let m = 0; m <= 12; m++) await rows.deletePrefix(`spend/${new Date(Date.UTC(edge.getUTCFullYear(), edge.getUTCMonth() - m, 1)).toISOString().slice(0, 7)}-`);
+    for (const kept of ["spend/", "spent/"]) {
+      for (let d = keepDays + 1; d <= keepDays + 31; d++) await rows.deletePrefix(kept + dayAgo(d).toISOString().slice(0, 10) + "/");
+      for (let m = 0; m <= 12; m++) await rows.deletePrefix(kept + new Date(Date.UTC(edge.getUTCFullYear(), edge.getUTCMonth() - m, 1)).toISOString().slice(0, 7) + "-");
+    }
   };
   const midnight = () => new Date(today() + "T00:00:00Z").getTime() + 86400000;
   const money = (n) => "$" + String(Number(n.toFixed(6)));
@@ -754,20 +781,20 @@ coreApp = {
     if (!workers.has(route.worker.replace(/^brain-(x-)?/, ""))) return forward(route, c);
     const allowance = await allowanceOf(account, p);
     // A chain under a delegation with a daily amount: refused when what it has spent, with this, is over the amount.
-    // Its count is written after the account has paid, so a call the account refused is not in it. The cost of that
-    // order: calls made at the same moment can each read the count before any is written, and pass the amount.
+    // Its row (spent/DAY/delegation/ID) is added to after the account has paid, so a call the account refused is not in
+    // it. The cost of that order: calls made at the same moment can each read the row before any has added, and pass the amount.
     // One made under another counts against that one's amount too, so making children does not make more to spend.
     const held = origin.d ? await settings.get("delegation/" + origin.d) : null, above = held && held.parent ? await settings.get("delegation/" + held.parent) : null;
     const capped = [held, above].filter((d) => d && Number.isFinite(d.daily));
     for (const d of capped) {
-      const { spent } = fold(await rows.get(spendKey(today(), "delegation/" + d.id)));
+      const { u: spent } = await spentOf(today(), "delegation/" + d.id);
       if (spent + u > micro(d.daily)) return fail(c, 402, "OutOfCredits", `${target} costs ${money(usd(u))}. Delegation ${d.name} has spent ${money(usd(spent))} of ${money(d.daily)} today`);
     }
-    const got = await charge(account, u, allowance, { m: target, c: c.get("who").caller, o: origin.caller, v: origin.via || "" });
-    if (got.ok) for (const d of capped) await rows.append(spendKey(today(), "delegation/" + d.id), { t: Date.now(), i: crypto.randomUUID().slice(0, 13), u, A: Number.MAX_SAFE_INTEGER, m: target }, KEEP);
+    const got = await charge(account, u, allowance, p.charges, { m: target, c: c.get("who").caller, o: origin.caller, v: origin.via || "" });
+    if (got.ok) for (const d of capped) await rows.addWithin(spentKey(today(), "delegation/" + d.id), [u, 1], [MOST, MOST]);
     if (!got.ok)
       return fail(c, 402, "OutOfCredits", got.full
-        ? `${account} has made ${CHARGES} priced calls today, which is the most for one day. The count is new at 00:00 UTC`
+        ? `${account} has made ${p.charges} priced calls today, which is the most for one day. The count is new at 00:00 UTC`
         : `${target} costs ${money(usd(u))}. ${account} has spent ${money(usd(got.spent))} of ${money(allowance)} today. The allowance is new at 00:00 UTC, in ${Math.ceil((midnight() - clock()) / 60000)} minutes`);
     const old = prune(p.keepDays).catch(() => null);
     try {
@@ -778,14 +805,16 @@ coreApp = {
     out.headers.set("x-brain-price", String(usd(u)));
     return out;
   };
-  // One account's day as the owner reads it. A charge that does not count was refused, and cost nothing.
+  // A charge as the owner reads it. A line is a charge that counted. In a day's list from before 2026-10-12 a charge
+  // that does not count was refused, and cost nothing.
+  const lineOf = (who, e, counted = true) => ({ at: e.t, who, origin: e.o + (e.v ? " (" + e.v + ")" : ""), caller: e.c, method: e.m, price: usd(e.u), cost: counted ? usd(e.u) : 0, counted });
   const ledgerOf = (who, list) => {
     const { net } = fold(list);
-    return (list || []).filter((e) => e.u != null).map((e) => ({ at: e.t, who, origin: e.o + (e.v ? " (" + e.v + ")" : ""), caller: e.c, method: e.m, price: usd(e.u), cost: net.has(e.i) ? usd(e.u) : 0, counted: net.has(e.i) }));
+    return list.filter((e) => e && e.u != null).map((e) => lineOf(who, e, net.has(e.i)));
   };
   const isAccount = (who) => who === "owner" || /^(did|token|worker):[^\s/]+$/.test(who || "");
   const dayOf = async (account, p, day = today()) => {
-    const { spent } = fold(await rows.get(spendKey(day, account))), daily = await allowanceOf(account, p);
+    const { u: spent } = await spentOf(day, account), daily = await allowanceOf(account, p);
     return { who: account, day, spent: usd(spent), daily, remaining: Math.max(0, Number((daily - usd(spent)).toFixed(6))), resetsAt: midnight() };
   };
   app.get(NS + "price.list", owner, async (c) => {
@@ -824,14 +853,15 @@ coreApp = {
     return c.json(await dayOf(asked || mine, await pricing()));
   });
   app.get(NS + "quota.list", owner, async (c) => {
-    const p = await pricing(), day = today(), base = `spend/${day}/`;
+    const p = await pricing(), day = today(), base = `spent/${day}/`;
     const set = new Map((await rows.list("quota/who/")).map(({ key, value }) => [key.slice("quota/who/".length), value]));
     // A delegation's own count is under delegation/<id>: delegation.list shows it, and it is no account.
-    const spent = new Map((await rows.list(base)).map(({ key, value }) => [key.slice(base.length), value]).filter(([who]) => !who.startsWith("delegation/")));
-    // The owner, each account with an allowance of its own, and each that has spent today. One whose every charge was refused is in the ledger only.
+    const spent = new Map((await rows.list(base)).map(({ key, value }) => [key.slice(base.length), value]).filter(([who, row]) => !who.startsWith("delegation/") && Array.isArray(row)));
+    // The owner, each account with an allowance of its own, and each that has spent today. One whose every charge was refused has no row.
     const accounts = [...new Set(["owner", ...set.keys(), ...spent.keys()])].sort().map((who) => {
       const daily = set.has(who) && Number.isFinite(set.get(who).daily) ? set.get(who).daily : p[kindOf(who)] ?? 0;
-      return { who, daily, set: set.has(who), spent: usd(fold(spent.get(who)).spent), charges: (spent.get(who) || []).filter((e) => e.u != null).length };
+      const [u = 0, n = 0] = spent.get(who) || [];
+      return { who, daily, set: set.has(who), spent: usd(u), charges: n };
     }).filter((a) => a.who === "owner" || a.set || a.spent > 0);
     return c.json({ day, unit: "USD", resetsAt: midnight(), defaults: p, accounts });
   });
@@ -848,8 +878,8 @@ coreApp = {
     for (const k of Object.keys(PRICING)) {
       if (!(k in b)) continue;
       if (b[k] === null) delete next[k];
-      else if (typeof b[k] === "number" && Number.isFinite(b[k]) && b[k] >= 0 && (k !== "keepDays" || (Number.isInteger(b[k]) && b[k] >= 1))) next[k] = b[k];
-      else return fail(c, 400, "InvalidRequest", `${k} is a number, 0 or more, or null for ${PRICING[k]}`);
+      else if (WHOLE.includes(k) ? Number.isSafeInteger(b[k]) && b[k] >= 1 : typeof b[k] === "number" && Number.isFinite(b[k]) && b[k] >= 0) next[k] = b[k];
+      else return fail(c, 400, "InvalidRequest", `${k} is a ${WHOLE.includes(k) ? "whole number, 1" : "number, 0"} or more, or null for ${PRICING[k]}`);
     }
     await settings.put("quota/defaults", next);
     return c.json({ defaults: await pricing() });
@@ -858,12 +888,18 @@ coreApp = {
     const day = c.req.query("day") || today(), who = c.req.query("who");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return fail(c, 400, "InvalidRequest", "day is YYYY-MM-DD");
     if (who && !isAccount(who)) return fail(c, 400, "InvalidRequest", "who is owner, did:…, token:NAME or worker:NAME");
-    const base = `spend/${day}/`;
-    // Not the delegations' own counts: each of those charges is in its account's list too.
-    const lists = who ? [[who, await rows.get(base + who)]] : (await rows.list(base)).map(({ key, value }) => [key.slice(base.length), value]).filter(([w]) => !w.startsWith("delegation/"));
-    const charges = lists.flatMap(([w, list]) => ledgerOf(w, list)).sort((a, b) => b.at - a.at);
+    const p = await pricing(), base = `spend/${day}/`;
+    // One account: the row of its name, which is a day's list from before 2026-10-12 when there is one, and its lines under NAME/.
+    const found = who ? [{ key: base + who, value: await rows.get(base + who) }, ...(await rows.list(base + who + "/"))] : await rows.list(base);
+    const charges = found.flatMap(({ key, value }) => {
+      const name = key.slice(base.length);
+      // A list is a day in the old shape. Not the delegations' own lists: each of those charges is in its account's list too.
+      if (Array.isArray(value)) return name.startsWith("delegation/") ? [] : ledgerOf(name, value);
+      // A line. Its account is the key without its last part: an account's name has no "/" (isAccount).
+      return value && typeof value === "object" && value.u != null ? [lineOf(name.slice(0, name.lastIndexOf("/")), value)] : [];
+    }).sort((a, b) => b.at - a.at);
     const sum = (by) => Object.entries(charges.reduce((t, e) => ((t[e[by]] = (t[e[by]] || 0) + e.cost), t), {})).map(([k, v]) => ({ [by]: k, cost: Number(v.toFixed(6)) }));
-    return c.json({ day, unit: "USD", charges: charges.slice(0, Math.min(CHARGES, Number(c.req.query("limit")) || 200)), total: Number(charges.reduce((t, e) => t + e.cost, 0).toFixed(6)), byWho: sum("who"), byMethod: sum("method") });
+    return c.json({ day, unit: "USD", charges: charges.slice(0, Math.min(p.charges, Number(c.req.query("limit")) || 200)), total: Number(charges.reduce((t, e) => t + e.cost, 0).toFixed(6)), byWho: sum("who"), byMethod: sum("method") });
   });
 
   // /llms.txt: how a program calls this Brain, for anyone. Written from config.host and the route table on each
@@ -1035,7 +1071,7 @@ ${deployed.join("\n\n")}
   app.get(NS + "delegation.list", delegating, async (c) => {
     const me = c.get("who").caller, day = today(), parent = c.get("parent");
     const mine = (await rows.list("delegation/")).map((r) => r.value).filter((d) => (parent ? d.parent === parent.id : me === "owner" || d.from === me)).sort((a, b) => a.created - b.created);
-    return c.json({ delegations: await Promise.all(mine.map(async (d) => ({ ...d, spentToday: usd(fold(await rows.get(spendKey(day, "delegation/" + d.id))).spent) }))) });
+    return c.json({ delegations: await Promise.all(mine.map(async (d) => ({ ...d, spentToday: usd((await spentOf(day, "delegation/" + d.id)).u) }))) });
   });
   app.post(NS + "delegation.revoke", delegating, async (c) => {
     const me = c.get("who").caller, { id } = (await c.req.json().catch(() => null)) || {}, parent = c.get("parent");
@@ -1698,8 +1734,18 @@ priceRig = async (config = {}) => {
     methods: { [P + "shop.buy"]: m("0.01"), [P + "shop.big"]: m("0.03"), [P + "shop.time"]: m("double(request.params.seconds) * 0.000025"), [P + "shop.free"]: m(null), [P + "shop.text"]: m('"a lot"'), [P + "shop.less"]: m("-0.01"), [P + "shop.nan"]: m("0.0 / 0.0"), [P + "shop.dear"]: m("2.0"), [P + "shop.whole"]: m("1"), [P + "shop.nil"]: m("0.0") }
   });
   const day = (who, as = rig.owner) => as("quota.get" + (who ? "?who=" + encodeURIComponent(who) : "")).then((r) => r.data);
-  const spends = () => [...rig.sim.rows.keys()].filter((k) => k.startsWith("spend/"));
-  return { ...rig, shop, day, spends, today: new Date().toISOString().slice(0, 10) };
+  // Every row of the money: a day's sum and count under spent/, a line a charge under spend/.
+  const spends = () => [...rig.sim.rows.keys()].filter((k) => /^spen[dt]\//.test(k));
+  // ops: each operation of rows the core sent on a row of the money. faults.lines: a put of a line throws.
+  const ops = [], faults = { lines: false }, sent = rig.sim.env.SQL.sim;
+  rig.sim.env.SQL.sim = async (op, key, value) => {
+    if (/^spen[dt]\//.test(key || "")) ops.push([op, key]);
+    if (faults.lines && op === "put" && String(key).startsWith("spend/")) throw new Error("the line was not written");
+    return sent(op, key, value);
+  };
+  // The operations on one account's rows since the last ask, by name. The deletes of old days name no account.
+  const opsOf = (account) => ops.splice(0).filter(([, key]) => key.split("/")[2] === account).map(([op]) => op);
+  return { ...rig, shop, day, spends, ops, opsOf, faults, today: new Date().toISOString().slice(0, 10) };
 }
 // %%
 test_a_call_with_no_price_writes_nothing = {
@@ -1727,7 +1773,11 @@ test_a_priced_call_is_charged_to_the_day_of_its_origin = {
   // $1 is the whole allowance and $0.011 of it is spent: refused.
   expect((await rig.owner("shop.whole", {})).status).toBe(402);
   expect(await rig.day()).toMatchObject({ who: "owner", day: rig.today, spent: 0.011, daily: 1, remaining: 0.989 });
-  expect(rig.spends()).toEqual([`spend/${rig.today}/owner`]);
+  // The day is one row of two numbers, micro-dollars and charges, and each charge that counted is a row of its own.
+  expect(rig.sim.rows.get(`spent/${rig.today}/owner`)).toEqual([11000, 2]);
+  const lines = rig.spends().filter((k) => k.startsWith("spend/"));
+  expect([rig.spends().length, lines.length, lines.every((k) => new RegExp(`^spend/${rig.today}/owner/\\d+-[0-9a-f-]{13}$`).test(k))]).toEqual([3, 2, true]);
+  expect(Object.keys(rig.sim.rows.get(lines[0])).sort()).toEqual(["c", "i", "m", "o", "t", "u", "v"]);
   const ledger = (await rig.owner("quota.ledger")).data;
   expect(ledger.charges.map((e) => [e.method.split(".").pop(), e.price, e.cost, e.counted, e.caller, e.origin]).reverse()).toEqual([["buy", 0.01, 0.01, true, "owner", "owner (session)"], ["time", 0.001, 0.001, true, "owner", "owner (session)"]]);
   expect([ledger.total, ledger.byWho, ledger.byMethod.length]).toEqual([0.011, [{ who: "owner", cost: 0.011 }], 2]);
@@ -1839,34 +1889,138 @@ test_calls_made_at_once_do_not_spend_past_the_allowance = {
   const ada = rig.as("did:plc:ada", "session");
   const mixed = await Promise.all(Array.from({ length: 30 }, (_, i) => ada("shop.buy" + (i % 2 ? "?status=500" : ""), {})));
   expect([mixed.filter((r) => r.status === 402).length, (await rig.day("did:plc:ada")).spent]).toEqual([20, 0.1]);
-  return "33 of 50, then 10 of 30";
+  // The count holds the same way: ten at once with room for three.
+  await rig.owner("quota.setDefaults", { charges: 3 });
+  const cron = rig.as("token:cron", "token"), before = rig.shop.length;
+  const ten = await Promise.all(Array.from({ length: 10 }, () => cron("shop.buy", {})));
+  expect([ten.filter((r) => r.status === 200).length, ten.filter((r) => r.status === 402).length, rig.shop.length - before, rig.sim.rows.get(`spent/${rig.today}/token:cron`)]).toEqual([3, 7, 3, [30000, 3]]);
+  // A refused call wrote no line: the lines are the calls that passed.
+  expect(rig.spends().filter((k) => k.startsWith("spend/")).length).toBe(33 + 10 + 3);
+  return "33 of 50, then 10 of 30, then 3 of 10";
 }
 // %%
-test_a_day_holds_8000_charges_of_one_account_and_the_next_is_refused = {
+test_a_day_holds_the_charges_the_owner_set_and_a_charge_is_two_operations_whatever_the_day_holds = {
+  const rig = await priceRig(), key = `spent/${rig.today}/owner`;
+  const bought = async () => ((r) => [r.status, rig.opsOf("owner")])(await rig.owner("shop.buy", {}));
+  expect((await rig.owner("quota.setDefaults", { charges: 20000 })).data.defaults.charges).toBe(20000);
+  // The first charge of a day: one add and one line.
+  expect(await bought()).toEqual([200, ["addWithin", "put"]]);
+  expect(rig.sim.rows.get(key)).toEqual([10000, 1]);
+  // 19999 charges of a millionth of a dollar are in the owner's day: the allowance is far off, the count is one short.
+  rig.sim.rows.set(key, [19999, 19999]);
+  expect(await bought()).toEqual([200, ["addWithin", "put"]]);
+  expect(rig.sim.rows.get(key)).toEqual([29999, 20000]);
+  // The next is refused with no operation: this core's own add answered the day as full.
+  const refused = await rig.owner("shop.buy", {});
+  expect([refused.status, refused.data.error, rig.opsOf("owner")]).toEqual([402, "OutOfCredits", []]);
+  expect(refused.data.message).toBe("owner has made 20000 priced calls today, which is the most for one day. The count is new at 00:00 UTC");
+  expect([rig.sim.rows.get(key), rig.shop.length]).toEqual([[29999, 20000], 2]);
+  // No row of the money is a day's list, and a refused call left no line.
+  const lines = () => rig.spends().filter((k) => k.startsWith("spend/"));
+  expect([lines().length, lines().map((k) => rig.sim.rows.get(k)).some(Array.isArray), (await rig.owner("quota.list")).data.accounts.find((a) => a.who === "owner")]).toEqual([2, false, { who: "owner", daily: 1, set: false, spent: 0.029999, charges: 20000 }]);
+  // The setting is read at each call. Raised by five, and another core made those five: this one learns it from a
+  // refused add and one read, which says which bound it was, and the call after that costs no operation.
+  await rig.owner("quota.setDefaults", { charges: 20005 });
+  rig.sim.rows.set(key, [30004, 20005]);
+  const late = await rig.owner("shop.buy", {});
+  expect([late.status, late.data.message.slice(0, 41), rig.opsOf("owner"), await bought()]).toEqual([402, "owner has made 20005 priced calls today, ", ["addWithin", "get"], [402, []]]);
+  // Raised by one more: one more passes.
+  await rig.owner("quota.setDefaults", { charges: 20006 });
+  expect([await bought(), await bought(), rig.sim.rows.get(key), lines().length]).toEqual([[200, ["addWithin", "put"]], [402, []], [40004, 20006], 3]);
+  // The allowance refuses the same way. A member has $0.10, and another core spent $0.095 of it.
+  const ada = rig.as("did:plc:ada", "session"), A = "did:plc:ada";
+  rig.sim.rows.set(`spent/${rig.today}/${A}`, [95000, 2]);
+  const poor = await ada("shop.buy", {}), again = await ada("shop.buy", {});
+  expect([poor.status, poor.data.message.slice(0, 91), again.status, rig.opsOf(A)]).toEqual([402, "com.lopecode.brain.shop.buy costs $0.01. did:plc:ada has spent $0.095 of $0.1 today. The al", 402, ["addWithin", "get"]]);
+  // An allowance past the largest whole number a row's add takes is bounded there. A price over the whole allowance
+  // is refused by any day, so no add is sent for it.
+  // quota.put answers the account's day, which is one read: asked for here so it is not counted below.
+  expect([(await rig.owner("quota.put", { who: "token:rich", daily: 1e13 })).data.daily, rig.opsOf("token:rich")]).toEqual([1e13, ["get"]]);
+  const rich = await rig.as("token:rich", "token")("shop.buy", {});
+  expect([rich.status, rig.opsOf("token:rich")]).toEqual([200, ["addWithin", "put"]]);
+  const dear = await rig.as("token:cron", "token")("shop.whole", {});
+  expect([dear.status, dear.data.message.slice(0, 82), rig.opsOf("token:cron")]).toEqual([402, "com.lopecode.brain.shop.whole costs $1. token:cron has spent $0 of $0.1 today. The", ["get"]]);
+  return "20000 charges in a row of two numbers, 2 operations a charge";
+}
+// %%
+test_the_count_of_a_day_is_a_setting_of_the_owners = {
   const rig = await priceRig();
-  // 7999 charges of a millionth of a dollar are in the owner's day: the allowance is far off, the count is one short.
-  const day = new Date().toISOString().slice(0, 10);
-  rig.sim.rows.set(`spend/${day}/owner`, Array.from({ length: 7999 }, (_, n) => ({ t: 1, i: "e" + n, u: 1, A: 1000000, m: "m", c: "owner", o: "owner", v: "session" })));
-  const first = await rig.owner("shop.buy", {}), second = await rig.owner("shop.buy", {});
-  expect([first.status, second.status]).toEqual([200, 402]);
-  expect(second.data.message).toContain("owner has made 8000 priced calls today, which is the most for one day");
-  // The one that was refused is not written: the list is the 8000 that count.
-  expect(rig.sim.rows.get(`spend/${day}/owner`).length).toBe(8000);
-  return "7999 kept, 1 more passed, the next refused";
+  const set = (charges) => rig.owner("quota.setDefaults", { charges });
+  // With no setting it is 8000.
+  expect((await rig.owner("quota.list")).data.defaults.charges).toBe(8000);
+  expect((await set(3)).data.defaults).toMatchObject({ charges: 3, owner: 1 });
+  const four = [];
+  for (let i = 0; i < 4; i++) four.push(await rig.owner("shop.buy", {}));
+  expect(four.map((r) => r.status)).toEqual([200, 200, 200, 402]);
+  expect(four[3].data.message).toContain("owner has made 3 priced calls today, which is the most for one day");
+  expect((await rig.owner("quota.list")).data.accounts.find((a) => a.who === "owner")).toMatchObject({ spent: 0.03, charges: 3 });
+  // Another account has its own count.
+  expect((await rig.as("did:plc:ada", "session")("shop.buy", {})).status).toBe(200);
+  // A whole number of 1 or more. Anything else is refused and the setting stands.
+  for (const bad of [0, -1, 1.5, "3", true, 2 ** 53, [3]]) {
+    const r = await set(bad);
+    expect([bad, r.status, r.data.message]).toEqual([bad, 400, "charges is a whole number, 1 or more, or null for 8000"]);
+  }
+  expect((await rig.owner("quota.list")).data.defaults.charges).toBe(3);
+  // null is the default again, and the owner's next call passes: no deploy, and no new day.
+  expect((await set(null)).data.defaults.charges).toBe(8000);
+  expect((await rig.owner("shop.buy", {})).status).toBe(200);
+  // Lowered under what the day has: refused, and nothing already counted is taken back.
+  await set(2);
+  expect([(await rig.owner("shop.buy", {})).status, rig.sim.rows.get(`spent/${rig.today}/owner`)]).toEqual([402, [40000, 4]]);
+  // Only the owner's own session sets it.
+  expect([(await rig.as("owner", "turn:7")("quota.setDefaults", { charges: 9 })).status, (await rig.as("did:plc:ada", "session")("quota.setDefaults", { charges: 9 })).status]).toEqual([401, 401]);
+  return "3, then the default, then 2";
+}
+// %%
+test_the_ledger_reads_a_day_of_lines_and_a_day_of_the_old_shape = {
+  const rig = await priceRig(), ada = rig.as("did:plc:ada", "session"), A = "did:plc:ada";
+  const y = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const read = async (q = "") => ((l) => ({ total: l.total, byWho: l.byWho, charges: l.charges.map((e) => [e.who, e.method.split(".").pop(), e.cost, e.counted, e.origin]) }))((await rig.owner("quota.ledger" + q)).data);
+  // Yesterday as a core before 2026-10-12 kept it: one list an account, and one for a delegation's own count.
+  const was = (i, t, u, m) => ({ t, i, u, A: 1000000, m: "com.lopecode.brain.shop." + m, c: "owner", o: "owner", v: "session" });
+  rig.sim.rows.set(`spend/${y}/owner`, [was("a", 5, 400000, "one"), was("b", 6, 700000, "two"), was("c", 7, 100000, "three")]);
+  rig.sim.rows.set(`spend/${y}/delegation/abc`, [{ t: 5, i: "d", u: 400000, A: Number.MAX_SAFE_INTEGER, m: "com.lopecode.brain.shop.one" }]);
+  const old = [["owner", "three", 0.1, true, "owner (session)"], ["owner", "two", 0, false, "owner (session)"], ["owner", "one", 0.4, true, "owner (session)"]];
+  expect(await read("?day=" + y)).toEqual({ total: 0.5, byWho: [{ who: "owner", cost: 0.5 }], charges: old });
+  expect((await read(`?day=${y}&who=owner`)).charges).toEqual(old);
+  // Today as lines: each charge that counted, with its method and origin.
+  expect([(await rig.owner("shop.buy", {})).status, (await ada("shop.big", {})).status, (await rig.chain(ada, "shop.buy")).status]).toEqual([200, 200, 200]);
+  const today = await read();
+  expect([today.total, today.byWho.sort((a, b) => (a.who < b.who ? -1 : 1))]).toEqual([0.05, [{ who: A, cost: 0.04 }, { who: "owner", cost: 0.01 }]]);
+  expect(today.charges.slice().sort((a, b) => (a[1] + a[4] < b[1] + b[4] ? -1 : 1))).toEqual([[A, "big", 0.03, true, A + " (session)"], [A, "buy", 0.01, true, A + " (session)"], ["owner", "buy", 0.01, true, "owner (session)"]]);
+  expect((await rig.owner("quota.ledger")).data.charges.find((e) => e.method.endsWith("shop.buy") && e.who === A)).toMatchObject({ caller: "worker:brain-x-a", price: 0.01 });
+  // One account's lines, and not those of an account whose name begins the same.
+  expect([(await rig.as("token:cron", "token")("shop.buy", {})).status, (await rig.as("token:cron2", "token")("shop.big", {})).status]).toEqual([200, 200]);
+  expect([(await read("?who=" + encodeURIComponent(A))).charges.map((e) => e[0]), (await read("?who=" + encodeURIComponent(A))).total, (await read("?who=token%3Acron")).charges, (await read("?who=token%3Anone")).charges]).toEqual([[A, A], 0.04, [["token:cron", "buy", 0.01, true, "token:cron (token)"]], []]);
+  // limit cuts the lines answered and not the totals.
+  expect(((l) => [l.charges.length, l.total])(await read("?limit=1"))).toEqual([1, 0.09]);
+  // The day of the deploy has both: the list from before it and the lines after.
+  rig.sim.rows.set(`spend/${rig.today}/owner`, [was("a", 5, 400000, "one")]);
+  expect(((l) => [l.total, l.charges.filter((e) => e[0] === "owner").map((e) => e[1]).sort()])(await read())).toEqual([0.49, ["buy", "one"]]);
+  // A line that was not written: the charge stands and the call is passed on. The day's sum has it and the ledger is one line short.
+  rig.faults.lines = true;
+  const lost = await rig.as("token:late", "token")("shop.buy", {});
+  rig.faults.lines = false;
+  expect([lost.status, lost.headers.get("x-brain-price"), (await rig.day("token:late")).spent, (await read("?who=token%3Alate")).charges]).toEqual([200, "0.01", 0.01, []]);
+  return "a list folded, lines counted";
 }
 // %%
 test_a_new_day_starts_at_nothing_and_old_days_are_dropped = {
   const config = {}, rig = await priceRig(config), DAY = 86400000;
   const at = (ms) => new Date(Date.now() + ms).toISOString().slice(0, 10), ago = (d) => at(-d * DAY);
   const full = [{ t: 1, i: "x", u: 1000000, A: 1000000, m: "m", c: "owner", o: "owner", v: "session" }];
-  for (const d of [1, 10, 30, 31, 37, 38, 61, 62, 65, 68, 200, 390]) rig.sim.rows.set(`spend/${ago(d)}/owner`, full);
-  expect((await rig.owner("quota.ledger?day=" + ago(1))).data.total).toBe(1);
+  // Each old day three ways: a list (a core before 2026-10-12), and the sum with a line, as now.
+  for (const d of [1, 10, 30, 31, 37, 38, 61, 62, 65, 68, 200, 390]) (rig.sim.rows.set(`spend/${ago(d)}/owner`, full), rig.sim.rows.set(`spent/${ago(d)}/owner`, [1000000, 1]), rig.sim.rows.set(`spend/${ago(d)}/owner/1-x`, full[0]));
+  expect((await rig.owner("quota.ledger?day=" + ago(1))).data.total).toBe(2);
   // Yesterday was spent to the last cent; today is new.
   expect(await rig.day()).toMatchObject({ day: rig.today, spent: 0, remaining: 1 });
   expect((await rig.owner("shop.buy", {})).status).toBe(200);
   await new Promise((r) => setTimeout(r, 30));
   // 30 days are kept. Older ones go at the first priced call of a day, however long ago the last one was.
-  const days = () => rig.spends().map((k) => k.split("/")[1]).sort();
+  // The days that have a row, read under spend/ and under spent/: one list when the two agree.
+  const under = (prefix) => [...new Set(rig.spends().filter((k) => k.startsWith(prefix)).map((k) => k.split("/")[1]))].sort();
+  const days = () => (expect(under("spent/")).toEqual(under("spend/")), under("spent/"));
   expect(days()).toEqual([ago(30), ago(10), ago(1), rig.today].sort());
   expect((await rig.owner("quota.ledger?day=yesterday")).status).toBe(400);
   // The clock moves. No priced call: nothing goes. Then one a day.
@@ -1888,7 +2042,7 @@ test_a_new_day_starts_at_nothing_and_old_days_are_dropped = {
   await rig.owner("shop.buy", {});
   await new Promise((r) => setTimeout(r, 30));
   expect(days()).toEqual([at(25 * DAY), at(30 * DAY), at(31 * DAY)].sort());
-  return "a day is a row, kept 30 days";
+  return "a day is kept 30 days, its sum and its lines";
 }
 // %%
 test_the_owner_sets_prices_and_allowances_in_their_own_session = {
@@ -1913,7 +2067,7 @@ test_the_owner_sets_prices_and_allowances_in_their_own_session = {
   expect([(await rig.owner("price.put", { target: P + "shop.buy", price: "0.01 *" })).status, (await rig.owner("price.put", { target: P + "no.such", price: "0.01" })).status, (await rig.owner("price.put", { target: P + "shop.buy" })).status]).toEqual([400, 404, 400]);
   // Allowances: one account, or the defaults for a kind of account.
   expect([(await rig.owner("quota.put", { who: "everyone", daily: 1 })).status, (await rig.owner("quota.put", { who: "owner", daily: -1 })).status, (await rig.owner("quota.setDefaults", { keepDays: 0 })).status]).toEqual([400, 400, 400]);
-  expect((await rig.owner("quota.setDefaults", { member: 0.5, perCall: 0.015 })).data.defaults).toEqual({ owner: 1, member: 0.5, worker: 0.1, token: 0.1, perCall: 0.015, keepDays: 30 });
+  expect((await rig.owner("quota.setDefaults", { member: 0.5, perCall: 0.015 })).data.defaults).toEqual({ owner: 1, member: 0.5, worker: 0.1, token: 0.1, perCall: 0.015, keepDays: 30, charges: 8000 });
   expect([(await rig.day(null, ada)).daily, (await rig.owner("shop.big", {})).data.error]).toEqual([0.5, "PriceOverCeiling"]);
   expect((await rig.owner("quota.setDefaults", { member: null, perCall: null })).data.defaults).toMatchObject({ member: 0.1, perCall: 1 });
   // An account reads its own day; only the owner reads another's, the list and the ledger.

@@ -180,6 +180,15 @@ of `workerRuntime`, read by the notebook as the cell `rowsWithin`; the record.)
 An accepted priced call is two statements, as today, and each touches one row of under 200 bytes
 whatever the day holds (R1, R4).
 
+(As built, `ds-2-core-spends-by-row`, 2026-10-12: four things are not as the list above has them. A
+refusal costs one `addWithin` and one `get` only when this instance did not already know the day as
+spent or at the count; the add that takes the last charge answers the row, so the refusal after it
+costs no statement. A price over the whole allowance is refused with one `get` and no `addWithin`.
+An allowance over `Number.MAX_SAFE_INTEGER` micro-dollars is bounded there, because `addWithin`
+throws past it. `charges` is a whole number from 1 to `Number.MAX_SAFE_INTEGER`. The test of R1 has
+a new name, `test_a_day_holds_the_charges_the_owner_set_and_a_charge_is_two_operations_whatever_the_day_holds`,
+and holds R4 too; the record.)
+
 ### What it costs
 
 - **The day of the deploy starts at zero.** The new row has no spend of the hours before, so an
