@@ -109,6 +109,7 @@ each command; no shell state lasts between calls.
      `brain.ts` says is not kept, say so in a comment and in your report, with no label, and do
      not make it.
    Do not `start` such an issue.
+   What you need of the orchestrating session, and not of the owner, once you work: "When you need the orchestrating session", below.
    An issue that comes back with the owner's answer to land such a seed, or a task of an approved
    spec that says the deploy is his, is started: the seed is landed on `main` by step 10 with no
    deploy, steps 7 and 8 run on the build of your worktree, and you build, apply and probe nothing
@@ -767,6 +768,49 @@ see that an action is `observability` at the step named there. (What the reviewe
 
 The comment of step 12 says what you searched for and what you read, and each source you could not read. The refs
 of the submit are the commits of the file.
+
+## When you need the orchestrating session
+
+Since `asks-orchestrator-label-and-watch` (2026-10-12). Something only the session that spawned you
+can give or say while you work: a go-ahead that rests on its other agents, a token it makes. What is
+the owner's is step 3 and `needs-owner`, not this. Until that day such a request had no form a tool
+read: the writer of `fly-1-by-hand` asked in comment 4816 at 22:21:06 CEST with a billed Fly machine
+running, and the answer came at 22:43:04, after the owner asked
+(`tools/cloud-brain/post-mortems/pm-agent-request-not-seen-fly-idle.md`).
+
+**First choice: end the run.** Stop what you started that is billed (a Fly machine, a browser or a
+container of the cluster), commit in `$W` what stands, comment on the issue with what you need, and
+end with a report whose first line is the ask. A report wakes the session, which no comment of yours
+does, and it resumes you by message with the answer, as it did that writer at 21:06, in the worktree,
+which stays. No label then.
+
+**The label `asks-orchestrator` is for a run that cannot end**: what the answer is for would be lost
+with the run. Two writes, the comment first, since the session's watch prints the label and the
+session then reads the comment:
+
+```
+ia comment '{"key":"impl/<id>/ask-<n>","id":"<id>","body":"<the ask, as the first line>\n<what you hold, and until when you wait>"}'
+ia label '{"key":"impl/<id>/asks-<n>","id":"<id>","add":["asks-orchestrator"]}'
+```
+
+`tools/cloud-brain/issue-watch.sh` prints a `labelled` event that adds that name, whatever token wrote
+it, and the line wakes the session; the comment alone prints nothing (`tests/tools/issue-watch.test.ts`).
+The session answers with a comment keyed `orch/<id>/answer-<n>` and then takes the label off
+(`SKILL.md`, step 3, the row of the label). You read for the label gone, once a minute:
+
+```
+ia "get?id=<id>" 2>/dev/null | python3 -I -c 'import sys,json; sys.exit(0 if "asks-orchestrator" in json.load(sys.stdin)["issue"]["labels"] else 3)'
+```
+
+Exit 0: still on. Exit 3: off, and the answer is the comment of that key in the same read. Any other
+exit: the read gave no issue, and says nothing of the label. The
+comment of your ask says until when you wait, a time read from `date` and 10 minutes at most. At that
+time, with the label still on, take it off yourself (`"remove":["asks-orchestrator"]`, key
+`impl/<id>/asks-<n>-off`) and take the first choice. The 10 minutes are this section's writer's and are
+not measured; what a billed thing does through a wait is `wait-says-what-runs-and-until-when`, not
+written when this was. Seen on cb4, 2026-10-12 23:12 CEST: a writer's token put the label on its own
+issue and took it off (events 5125 and 5126), `list?label=asks-orchestrator` listed the issue between
+the two, and the watch's filter printed 5125 and not 5126. First ask made this way: not yet.
 
 ## A quick win
 

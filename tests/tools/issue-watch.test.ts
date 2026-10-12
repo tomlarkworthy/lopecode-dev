@@ -1,5 +1,5 @@
 // issue-watch.sh: which events of an answer of `sync?after=` the watch prints. A line wakes the orchestrator.
-// Issue os-1-owner-label, task 1 of plan/cloud-brain-loop-order-of-service.md.
+// Issue os-1-owner-label, task 1 of plan/cloud-brain-loop-order-of-service.md. The label asks-orchestrator: issue asks-orchestrator-label-and-watch.
 //
 //   bun test ./tests/tools/issue-watch.test.ts
 //   ISSUE_WATCH_SH=/path/to/another/issue-watch.sh bun test …
@@ -81,6 +81,95 @@ test("an answer with no event prints nothing, and so does one that is not JSON",
 
 test("--filter with no token is refused", () => {
   expect(watch([opened(1, "theirs", "impl-bbbbbb")], ["--filter"]).code).not.toBe(0);
+});
+
+// Issue asks-orchestrator-label-and-watch: an agent that still runs asks the session with a label, and the watch prints it.
+const labelled = (seq: number, id: string, holder: string, add: unknown, remove: unknown = []) =>
+  ({ seq, type: "labelled", id, add, remove, by: by(holder) });
+
+test("the label asks-orchestrator put on an issue is a line, whatever token put it on, the watch's own too", () => {
+  const r = watch([labelled(50, "a", "impl-bbbbbb", ["asks-orchestrator"]), labelled(51, "b", "spec-cccccc", ["x", "asks-orchestrator"]),
+    labelled(52, "c", "orch-aaaaaa", ["asks-orchestrator"])]);
+  expect(r.lines).toEqual(["50 labelled a impl-bbbbbb ['asks-orchestrator'] ", "51 labelled b spec-cccccc ['x', 'asks-orchestrator'] ",
+    "52 labelled c orch-aaaaaa ['asks-orchestrator'] ", "LAST 52"]);
+});
+
+test("the comment with the ask is no line, alone or before the label; the label after it is one", () => {
+  const ask = { seq: 60, type: "commented", id: "a", key: "impl/a/ask-1", body: "asks-orchestrator: a go-ahead for the machine's pass", by: by("impl-bbbbbb") };
+  expect(watch([ask]).lines).toEqual(["LAST 60"]);
+  expect(watch([ask, labelled(61, "a", "impl-bbbbbb", ["asks-orchestrator"])]).lines).toEqual(["61 labelled a impl-bbbbbb ['asks-orchestrator'] ", "LAST 61"]);
+});
+
+test("the label taken off is no line, and no other label, part of the name, string or event type is read as it", () => {
+  const not = [labelled(70, "a", "orch-aaaaaa", [], ["asks-orchestrator"]), labelled(71, "a", "impl-bbbbbb", [], ["asks-orchestrator"]),
+    labelled(72, "a", "impl-bbbbbb", ["needs-owner"]), labelled(73, "a", "impl-bbbbbb", ["asks-orchestrator-2"]), labelled(74, "a", "impl-bbbbbb", ["asks"]),
+    labelled(75, "a", "impl-bbbbbb", "asks-orchestrator"), labelled(76, "a", "impl-bbbbbb", [["asks-orchestrator"]]), labelled(77, "a", "impl-bbbbbb", null),
+    labelled(78, "a", "impl-bbbbbb", { "asks-orchestrator": true }), labelled(79, "a", "impl-bbbbbb", ["Asks-Orchestrator"]),
+    { seq: 80, type: "commented", id: "a", add: ["asks-orchestrator"], body: "x", by: by("impl-bbbbbb") },
+    opened(81, "mine", "orch-aaaaaa", ["asks-orchestrator"])];
+  expect(watch(not).lines).toEqual(["LAST 81"]);
+});
+
+test("the label put on with the owner's session is one line, not two", () => {
+  const r = watch([{ ...labelled(90, "a", "x", ["asks-orchestrator"]), by: { caller: "owner", via: "session", tab: true } }]);
+  expect(r.lines).toEqual(["90 labelled a OWNER ['asks-orchestrator'] ", "LAST 90"]);
+});
+
+// What cb4 answered for the label put on and taken off by a writer's token, events 5125 and 5126 of 2026-10-12 (the fields the filter reads, and key).
+test("the two events cb4 recorded for a label put on and taken off: the first is a line", () => {
+  const cb4 = (seq: number, key: string, add: string[], remove: string[]) => ({ seq, key, type: "labelled", id: "asks-orchestrator-label-and-watch",
+    workflow: "5eb1623a624e13065bc38dc55a0ffbbf7466a6ccf88261c56ae3fa718fdac52c", add, remove,
+    by: { caller: "owner", via: "delegation:25065a55573c", holder: "secret:impl-0f0bf1", tab: false } });
+  const r = watch([cb4(5125, "impl/asks-orchestrator-label-and-watch/check-add-1", ["asks-orchestrator"], []),
+    cb4(5126, "impl/asks-orchestrator-label-and-watch/check-remove-1", [], ["asks-orchestrator"])], ["--filter", "orch-d97e0e"]);
+  expect(r.lines).toEqual(["5125 labelled asks-orchestrator-label-and-watch impl-0f0bf1 ['asks-orchestrator'] ", "LAST 5126"]);
+});
+
+// SKILL=<file> and IMPLEMENTER=<file> read another copy (the files before the change).
+test("SKILL.md has the row of the label above the in-progress rows, the watch's line in step 8 and the list in a whole pass", () => {
+  const skill = readFileSync(process.env.SKILL || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/SKILL.md"), "utf8");
+  const rows = skill.split("\n").filter((l) => l.trim().startsWith("|"));
+  const at = rows.findIndex((l) => l.trim().startsWith("| labeled `asks-orchestrator`"));
+  const first = rows.findIndex((l) => l.trim().startsWith("| `in-progress`"));
+  expect(at).toBeGreaterThan(-1);
+  expect(rows.filter((l) => l.trim().startsWith("| labeled `asks-orchestrator`")).length).toBe(1);
+  expect(first).toBeGreaterThan(at);
+  const row = rows[at];
+  expect(row).toContain("Answer in this wake");
+  expect(row).toContain(`"key":"orch/<id>/answer-<n>"`);
+  expect(row).toContain(`"remove":["asks-orchestrator"]`);
+  expect(row).toContain(`"list?label=asks-orchestrator&limit=100"`);
+  expect(row.indexOf("answer-<n>")).toBeLessThan(row.indexOf(`"remove":["asks-orchestrator"]`));
+  const flat = skill.replace(/\s+/g, " ");
+  expect(flat).toMatch(/issue-watch\.sh <your token>[^|]*for each label `asks-orchestrator` put on an issue, whatever token put it on/);
+  expect(flat).toMatch(/that wake is a whole pass, health first, with the read of `list\?label=asks-orchestrator`/);
+});
+
+test("the implementer's brief names the report first and the label for a run that cannot end, with the two writes in order", () => {
+  const brief = readFileSync(process.env.IMPLEMENTER || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/agents/implementer.md"), "utf8");
+  const from = brief.indexOf("\n## When you need the orchestrating session\n");
+  expect(from).toBeGreaterThan(-1);
+  const part = brief.slice(from + 1, brief.indexOf("\n## ", from + 1));
+  const end = part.indexOf("**First choice: end the run.**"), label = part.indexOf("**The label `asks-orchestrator` is for a run that cannot end**");
+  expect(end).toBeGreaterThan(-1);
+  expect(label).toBeGreaterThan(end);
+  const flat = part.replace(/\s+/g, " ");
+  expect(flat).toMatch(/Stop what you started that is billed .* end with a report whose first line is the ask\. A report wakes the session/);
+  const comment = part.indexOf(`ia comment '{"key":"impl/<id>/ask-<n>"`), add = part.indexOf(`ia label '{"key":"impl/<id>/asks-<n>","id":"<id>","add":["asks-orchestrator"]}'`);
+  expect(comment).toBeGreaterThan(label);
+  expect(add).toBeGreaterThan(comment);
+  expect(brief).toContain(`"When you need the orchestrating session", below.`);
+});
+
+// The read the brief gives a writer that waits: exit 0 while the label is on, 3 when it is off.
+test("the brief's read of the label is exit 0 with the label on the issue, 3 without, and neither for an answer with no issue", () => {
+  const brief = readFileSync(process.env.IMPLEMENTER || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/agents/implementer.md"), "utf8");
+  const m = brief.match(/ia "get\?id=<id>" 2>\/dev\/null \| (python3 -I -c '[^\n]*')\n/);
+  expect(m).not.toBeNull();
+  const read = (labels: unknown) => Bun.spawnSync(["bash", "-c", m![1]], { stdin: Buffer.from(JSON.stringify({ issue: { labels }, events: [{ type: "labelled", add: ["asks-orchestrator"] }] })) }).exitCode;
+  expect([read(["x", "asks-orchestrator"]), read([]), read(["asks-orchestrator-2"])]).toEqual([0, 3, 3]);
+  const none = (text: string) => Bun.spawnSync(["bash", "-c", m![1]], { stdin: Buffer.from(text) }).exitCode;
+  expect([none(""), none("not json"), none("{}")].every((c) => c !== 0 && c !== 3)).toBe(true);
 });
 
 // SKILL=<file> and GUIDE=<file> read another copy of the procedure and of the guide (the files before the change).
