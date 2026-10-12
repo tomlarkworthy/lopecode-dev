@@ -71,11 +71,15 @@ $ bun test ./tests/tools/spec-brief-names-what-exists.test.ts     # after it
  0 fail
 ```
 
-The whole suite, after the last edit of a file a test reads:
+The whole suite, after the last edit of a file a test reads and after the rebase of step 9 (which
+brought in `tests/tools/topic-sql.test.ts`; 712 pass before it):
 
 ```
 $ tests/tools/suite.sh
-SUITE_COUNT
+ 713 pass
+ 0 fail
+ 4753 expect() calls
+Ran 713 tests across 73 files. [111.71s]
 ```
 
 ## Read before the change
