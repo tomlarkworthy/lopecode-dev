@@ -752,6 +752,9 @@ test_feedback_a_close_waits_for_its_link_and_a_cost_comment_is_not_progress = {
   rig.say("proj", { type: "moved", from: "open", to: "awaiting-approval", reason: "pass (review round 2)." }, { state: "awaiting-approval" });
   rig.say("proj", { type: "commented", body: 'cost {"role":"reviewer","round":2,"tokens":106356}' });
   rig.say("fb-late", { type: "commented", body: 'cost {"role":"implementer","round":1}' });
+  // Since cm-1-cost-event the record is an event of type cost, with no body and no reason: it says nothing, and is passed over as the comments are.
+  rig.say("proj", { type: "cost", role: "reviewer", round: 2, how: "fresh", outcome: "pass", seconds: 410, context: 106356 });
+  rig.say("fb-late", { type: "cost", role: "implementer", round: 1, how: "resumed", outcome: "in-review", seconds: 977, context: 201310 });
   await app.sync();
   expect([late.textContent.includes("cost {"), feedbackProgress(app.tickets.get("fb-late"), [rig.issues.get("proj")]).last.text, late.querySelector("b").textContent]).toEqual([false, "proj: pass (review round 2).", "awaiting-approval"]);
   // An open issue that is part of another reads no state of it, and asks for nothing more.
