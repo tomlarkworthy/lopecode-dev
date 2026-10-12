@@ -188,11 +188,6 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    which `lock.sh show land` has named the same holder for two passes. One agent on an issue, as before.
    An approver (step 3, the row for `awaiting-approval`) is started after the reviewers and the rounds sent back and
    before a new writer, and not in a pass that names a limit: nothing waits on it but the owner, who approves as before.
-   A limit of the advisor tool is such a limit, also when every other call of the agent that names it was
-   answered: the pass starts nothing new. (The owner, 2026-10-12, event 3768 of `skill-step-2-advisor-rate-limit`: "A".
-   Choice A of comment 3682 there: "As written: any named limit stops new starts for that pass." Choice B, not taken,
-   had the advisor's limit alone written in the journal and not stop a start. Not known, the issue says: whether
-   the advisor's limit comes before the account's.)
    In a pass that starts nothing new, the rows of step 3 that spawn no agent are still done, triage among them.
    **A writer that waits.** Since `os-4-writer-waits` (2026-10-11) a writer does not report at its submit: it waits up to
    20 minutes for its review with `tools/cloud-brain/issue-wait.sh` and takes the first round of changes itself

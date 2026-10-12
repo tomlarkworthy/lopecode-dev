@@ -1,9 +1,11 @@
-// SKILL.md of the issue loop, step 2: a named rate limit stops new starts for the pass, and the advisor tool's
-// limit is one of them. The owner answered "A" (event 3768) to the choice of keeping the sentence or excepting
-// the advisor's limit; the sentence stays as it was and his answer stands beside it. Issue skill-step-2-advisor-rate-limit.
+// SKILL.md of the issue loop, step 2: a named rate limit stops new starts for the pass. The owner answered "A"
+// (event 3768 of skill-step-2-advisor-rate-limit) to the choice of keeping the sentence or excepting the advisor
+// tool's limit, so the sentence stays as it was. Five lines beside it (the advisor's limit named, his answer, the
+// choice quoted) were taken out on his "B" of event 4354: issue skill-step-2-five-lines-out. This file holds the
+// sentence alone, and that those lines are not in step 2.
 //
 //   bun test ./tests/tools/skill-step-2-advisor-rate-limit.test.ts
-//   SKILL=<file> reads another copy of the procedure (the one before the change fails the second and the third).
+//   SKILL=<file> reads another copy of the procedure (the one with the five lines fails the second).
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -23,16 +25,8 @@ test("step 2 has the sentence once, as it was before the choice", () => {
   expect(count(skill.replace(/\s+/g, " "), "Start nothing new in a pass")).toBe(1);
 });
 
-test("the advisor tool's limit is named as one that stops new starts, after the sentence", () => {
-  const line = "A limit of the advisor tool is such a limit, also when every other call of the agent that names it was answered: the pass starts nothing new.";
-  expect(count(two, line)).toBe(1);
-  expect(two.indexOf(line)).toBeGreaterThan(two.indexOf(sentence));
-});
-
-test("the owner's answer is beside it with its event, and the choice it answered in the loop's words", () => {
-  expect(two).toContain('(The owner, 2026-10-12, event 3768 of `skill-step-2-advisor-rate-limit`: "A".');
-  expect(two).toContain('Choice A of comment 3682 there: "As written: any named limit stops new starts for that pass."');
-  expect(two).toContain("Choice B, not taken,");
+test("step 2 has nothing beside the sentence on the advisor's limit, the owner's answer or the choice", () => {
+  for (const part of ["A limit of the advisor tool", "the advisor's limit", "event 3768", "comment 3682", "Choice A", "Choice B"]) expect(two).not.toContain(part);
 });
 
 test("step 2 has no exception for the advisor's limit: the words of choice B are not in it", () => {
