@@ -448,6 +448,10 @@ Each is one writer and one review. The ids are proposals.
 3. **`cm-3-feedback-test-has-a-cost-event`.** `brain-feedback.ojs`: the test of line 426 is given a
    `cost` event beside its two comments, and no other line changes. A changed `test_*` cell is a
    deploy of its Worker, `brain-x-page`. Beside any task after 1.
+   (As built, `cm-3-feedback-test-has-a-cost-event`, 2026-10-12: the test is at line 722, and two
+   `cost` events were added, one on each issue that has a cost comment. `brain-feedback` is a module
+   of the shell and of no Worker, so nothing was deployed; it is on cb4 when the shell is posted;
+   the record.)
 4. **`cm-4-enter-the-runs-again`.** `tools/cloud-brain/cost-events.ts` and its test under
    `tests/tools/` (a fixed list of events: a line with its usage inline, one with a `cost-usage`,
    one with `agent: null`, one already entered). Then `--post` on cb4, and the checks of R3, R4,
