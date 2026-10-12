@@ -124,11 +124,15 @@ nothing, and report it.
    show one member's data to another, send a secret anywhere, or widen a token, beyond what his
    words ask for by name? `facts` marks a file `never` (the kernel, the core, the database, the
    deployer, `cloudflare-iac`, `exporter-3`, `robocoop-5`, the channel server, the `lopecode`
-   pointer), `rules` (`rules.md`, `philosophy.md`) or `policy`. A mark refuses nothing: for each
+   pointer), `rules` (`rules.md`, `philosophy.md`), `policy` or `tracker`. A mark refuses nothing: for each
    marked file your verdict says which of his words asked for that. One mark is a refusal:
    `approver` (this brief, the tool, its test), and with it `policy` (a
-   `plan/cloud-brain-issues-policy-*.json`, `brain-issues.ojs`). An approver does not approve a
+   `plan/cloud-brain-issues-policy-*.json`, and `brain-issues.ojs` when the commit changes a policy
+   cell of it; `facts` names the cells after the file). An approver does not approve a
    change to itself; the verdict is `leave`, and its line is `why: the approver's own files`.
+   `tracker` is `brain-issues.ojs` in a commit that changes no policy cell (`no policy cell` after
+   the file), and is no refusal. The tool compared the text of those cells and nothing else: read
+   the diff for a cell that writes into one of them when it runs.
 7. **In keeping.** Any of the seven lines, or words of his, that the change pulls against.
 8. **Decide.** The refusal of step 6 is first: with a file marked `approver`, or `policy` with it,
    the verdict is `leave` with the line step 6 gives, whatever the rest of the change is. Else

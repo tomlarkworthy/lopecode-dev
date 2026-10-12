@@ -1,0 +1,466 @@
+{
+ "key": "policy-2026-10-12-project-children-work-v4",
+ "reason": "Tom, 2026-10-12, in chat, quoted in the body of bookkeeping-in-the-tracker (event 3962): \"Please file a ticket to move book keeping into the issue tracker as U suggested, the the goal of reducing cognitive burden of orchistrator\". The reason of his approve of the spec plan/cloud-brain-bookkeeping-in-the-tracker.md (event 4148): \"A\". Choice A of comment 4035 there: \"As written, with the install.\" Two guards of the policy of event 4668 change and nothing else, both of the project workflow: decompose reads issue.children.work > 0 and finish reads issue.children.work == 0, where each read issue.children.open. An open part that is feedback then no longer holds its project at building (part 5 of the spec, R4). Every approve guard is as event 4668 left it: of task and of project caller.present || caller.actor == \"delegation:eb3db9d0c6a5\", the token loop-approver. Task bk-4-install-the-project-workflow. Made again by policy-v5-names-the-approver-as-it-is, for the brief and the tool as main has them after approver-brief-his-test and approver-own-files-are-the-policy-cells. approver brief 0189a17f3d7aad4f30777b98dfe81149604919c8 tool 23e410a69c9a288aacc0bfb1badae25578380c9e",
+ "policy": {
+  "kinds": {
+   "bug": "task",
+   "task": "task",
+   "feedback": "feedback",
+   "security": "security",
+   "feature": "project",
+   "project": "project"
+  },
+  "workflows": {
+   "task": {
+    "states": [
+     "open",
+     "triaged",
+     "ready",
+     "in-progress",
+     "in-review",
+     "awaiting-approval",
+     "done",
+     "closed",
+     "rejected",
+     "reverted"
+    ],
+    "start": "open",
+    "closed": [
+     "done",
+     "closed",
+     "rejected",
+     "reverted"
+    ],
+    "read": "true",
+    "open": "true",
+    "comment": "true",
+    "label": "caller.kind in [\"owner\", \"token\"] && (!(\"major\" in event.remove) || caller.present)",
+    "link": "caller.kind in [\"owner\", \"token\"]",
+    "review": "issue.state == \"in-review\" && caller.actor != issue.by.start",
+    "narrow": "caller.kind in [\"owner\", \"token\"]",
+    "moves": [
+     {
+      "name": "owner-reject",
+      "from": [
+       "open",
+       "triaged",
+       "ready",
+       "in-progress",
+       "in-review",
+       "awaiting-approval"
+      ],
+      "to": "rejected",
+      "guard": "caller.present && event.reason != \"\""
+     },
+     {
+      "name": "triage",
+      "from": "open",
+      "to": "triaged",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
+     },
+     {
+      "name": "reject",
+      "from": [
+       "open",
+       "triaged",
+       "ready"
+      ],
+      "to": "rejected",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
+     },
+     {
+      "name": "ready",
+      "from": "triaged",
+      "to": "ready",
+      "guard": "caller.kind in [\"owner\", \"token\"] && issue.children.open == 0"
+     },
+     {
+      "name": "start",
+      "from": [
+       "open",
+       "triaged",
+       "ready"
+      ],
+      "to": "in-progress",
+      "guard": "issue.state == \"ready\" || (caller.kind in [\"owner\", \"token\"] && event.reason != \"\" && issue.children.open == 0 && !issue.major && !(\"needs-owner\" in issue.labels))"
+     },
+     {
+      "name": "back",
+      "from": "in-progress",
+      "to": "ready",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
+     },
+     {
+      "name": "submit",
+      "from": "in-progress",
+      "to": "in-review",
+      "guard": "caller.actor == issue.by.start && size(event.refs) > 0 && issue.children.open == 0"
+     },
+     {
+      "name": "pass",
+      "from": "in-review",
+      "to": "done",
+      "guard": "!issue.major && issue.reviews.exists(r, r.verdict == \"pass\" && r.actor != issue.by.start) && !issue.reviews.exists(r, r.verdict == \"block\") && caller.actor != issue.by.start"
+     },
+     {
+      "name": "to-approval",
+      "from": "in-review",
+      "to": "awaiting-approval",
+      "guard": "issue.major && issue.reviews.exists(r, r.verdict == \"pass\" && r.actor != issue.by.start) && !issue.reviews.exists(r, r.verdict == \"block\") && caller.actor != issue.by.start"
+     },
+     {
+      "name": "rework",
+      "from": "in-review",
+      "to": "in-progress",
+      "guard": "issue.reviews.exists(r, r.verdict in [\"changes\", \"block\"]) && caller.actor != issue.by.start"
+     },
+     {
+      "name": "approve",
+      "from": "awaiting-approval",
+      "to": "done",
+      "guard": "caller.present || caller.actor == \"delegation:eb3db9d0c6a5\""
+     },
+     {
+      "name": "close",
+      "from": [
+       "open",
+       "triaged",
+       "ready",
+       "in-progress"
+      ],
+      "to": "closed",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
+     },
+     {
+      "name": "reopen",
+      "from": [
+       "closed",
+       "rejected"
+      ],
+      "to": "open",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\" && (caller.present || !(\"owner-reject\" in issue.by))"
+     },
+     {
+      "name": "revert",
+      "from": "done",
+      "to": "reverted",
+      "guard": "caller.present && event.reason != \"\" && size(event.refs) > 0"
+     }
+    ],
+    "swaps": [
+     {
+      "name": "escalate",
+      "to": {
+       "workflow": "security",
+       "state": "triaged"
+      },
+      "guard": "caller.kind in [\"owner\", \"token\"] && \"security\" in issue.labels"
+     }
+    ]
+   },
+   "security": {
+    "states": [
+     "open",
+     "triaged",
+     "ready",
+     "in-progress",
+     "in-review",
+     "awaiting-approval",
+     "done",
+     "closed",
+     "rejected",
+     "reverted"
+    ],
+    "start": "open",
+    "closed": [
+     "done",
+     "closed",
+     "rejected",
+     "reverted"
+    ],
+    "read": "caller.present || caller.actor == issue.opener",
+    "open": "true",
+    "comment": "true",
+    "label": "caller.kind in [\"owner\", \"token\"] && (!(\"major\" in event.remove) || caller.present)",
+    "link": "caller.kind in [\"owner\", \"token\"]",
+    "review": "issue.state == \"in-review\" && caller.actor != issue.by.start",
+    "narrow": "caller.kind in [\"owner\", \"token\"]",
+    "moves": [
+     {
+      "name": "owner-reject",
+      "from": [
+       "open",
+       "triaged",
+       "ready",
+       "in-progress",
+       "in-review",
+       "awaiting-approval"
+      ],
+      "to": "rejected",
+      "guard": "caller.present && event.reason != \"\""
+     },
+     {
+      "name": "triage",
+      "from": "open",
+      "to": "triaged",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
+     },
+     {
+      "name": "reject",
+      "from": [
+       "open",
+       "triaged",
+       "ready"
+      ],
+      "to": "rejected",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
+     },
+     {
+      "name": "ready",
+      "from": "triaged",
+      "to": "ready",
+      "guard": "caller.kind in [\"owner\", \"token\"] && issue.children.open == 0"
+     },
+     {
+      "name": "start",
+      "from": [
+       "open",
+       "triaged",
+       "ready"
+      ],
+      "to": "in-progress",
+      "guard": "issue.state == \"ready\" || (caller.kind in [\"owner\", \"token\"] && event.reason != \"\" && issue.children.open == 0 && !issue.major && !(\"needs-owner\" in issue.labels))"
+     },
+     {
+      "name": "back",
+      "from": "in-progress",
+      "to": "ready",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
+     },
+     {
+      "name": "submit",
+      "from": "in-progress",
+      "to": "in-review",
+      "guard": "caller.actor == issue.by.start && size(event.refs) > 0 && issue.children.open == 0"
+     },
+     {
+      "name": "to-approval",
+      "from": "in-review",
+      "to": "awaiting-approval",
+      "guard": "issue.reviews.exists(r, r.verdict == \"pass\" && r.actor != issue.by.start) && !issue.reviews.exists(r, r.verdict == \"block\") && caller.actor != issue.by.start"
+     },
+     {
+      "name": "rework",
+      "from": "in-review",
+      "to": "in-progress",
+      "guard": "issue.reviews.exists(r, r.verdict in [\"changes\", \"block\"]) && caller.actor != issue.by.start"
+     },
+     {
+      "name": "approve",
+      "from": "awaiting-approval",
+      "to": "done",
+      "guard": "caller.present"
+     },
+     {
+      "name": "close",
+      "from": [
+       "open",
+       "triaged",
+       "ready",
+       "in-progress"
+      ],
+      "to": "closed",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
+     },
+     {
+      "name": "reopen",
+      "from": [
+       "closed",
+       "rejected"
+      ],
+      "to": "open",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\" && (caller.present || !(\"owner-reject\" in issue.by))"
+     },
+     {
+      "name": "revert",
+      "from": "done",
+      "to": "reverted",
+      "guard": "caller.present && event.reason != \"\" && size(event.refs) > 0"
+     }
+    ],
+    "swaps": []
+   },
+   "feedback": {
+    "states": [
+     "open",
+     "closed"
+    ],
+    "start": "open",
+    "closed": [
+     "closed"
+    ],
+    "read": "true",
+    "open": "true",
+    "comment": "true",
+    "label": "caller.kind in [\"owner\", \"token\"] && (!(\"major\" in event.remove) || caller.present)",
+    "link": "caller.kind in [\"owner\", \"token\"]",
+    "review": "issue.state == \"in-review\" && caller.actor != issue.by.start",
+    "narrow": "caller.kind in [\"owner\", \"token\"]",
+    "moves": [
+     {
+      "name": "close",
+      "from": "open",
+      "to": "closed",
+      "guard": "caller.kind in [\"owner\", \"token\"] && (event.reason != \"\" || issue.parent != \"\" || size(issue.links) > 0)"
+     },
+     {
+      "name": "reopen",
+      "from": "closed",
+      "to": "open",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\" && (caller.present || !(\"owner-reject\" in issue.by))"
+     }
+    ],
+    "swaps": [
+     {
+      "name": "promote",
+      "to": {
+       "workflow": "task",
+       "state": "open"
+      },
+      "guard": "caller.kind in [\"owner\", \"token\"]"
+     }
+    ]
+   },
+   "project": {
+    "states": [
+     "open",
+     "spec",
+     "spec-review",
+     "awaiting-approval",
+     "approved",
+     "building",
+     "done",
+     "closed",
+     "rejected"
+    ],
+    "start": "open",
+    "closed": [
+     "done",
+     "closed",
+     "rejected"
+    ],
+    "read": "true",
+    "open": "true",
+    "comment": "true",
+    "label": "caller.kind in [\"owner\", \"token\"] && (!(\"major\" in event.remove) || caller.present)",
+    "link": "caller.kind in [\"owner\", \"token\"]",
+    "review": "issue.state == \"spec-review\" && caller.actor != issue.by.spec",
+    "narrow": "caller.kind in [\"owner\", \"token\"]",
+    "moves": [
+     {
+      "name": "owner-reject",
+      "from": [
+       "open",
+       "spec",
+       "spec-review",
+       "awaiting-approval",
+       "approved",
+       "building"
+      ],
+      "to": "rejected",
+      "guard": "caller.present && event.reason != \"\""
+     },
+     {
+      "name": "spec",
+      "from": "open",
+      "to": "spec",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
+     },
+     {
+      "name": "back",
+      "from": "spec",
+      "to": "open",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
+     },
+     {
+      "name": "submit-spec",
+      "from": "spec",
+      "to": "spec-review",
+      "guard": "caller.actor == issue.by.spec && size(event.refs) > 0"
+     },
+     {
+      "name": "respec",
+      "from": "spec-review",
+      "to": "spec",
+      "guard": "issue.reviews.exists(r, r.verdict in [\"changes\", \"block\"]) && caller.actor != issue.by.spec"
+     },
+     {
+      "name": "to-approval",
+      "from": "spec-review",
+      "to": "awaiting-approval",
+      "guard": "issue.reviews.exists(r, r.verdict == \"pass\" && r.actor != issue.by.spec) && !issue.reviews.exists(r, r.verdict == \"block\") && caller.actor != issue.by.spec"
+     },
+     {
+      "name": "approve",
+      "from": "awaiting-approval",
+      "to": "approved",
+      "guard": "caller.present || caller.actor == \"delegation:eb3db9d0c6a5\""
+     },
+     {
+      "name": "send-back",
+      "from": "awaiting-approval",
+      "to": "spec",
+      "guard": "caller.present && event.reason != \"\""
+     },
+     {
+      "name": "decompose",
+      "from": "approved",
+      "to": "building",
+      "guard": "caller.kind in [\"owner\", \"token\"] && issue.children.work > 0"
+     },
+     {
+      "name": "finish",
+      "from": "building",
+      "to": "done",
+      "guard": "caller.kind in [\"owner\", \"token\"] && issue.children.work == 0"
+     },
+     {
+      "name": "close",
+      "from": [
+       "open",
+       "spec",
+       "approved",
+       "building"
+      ],
+      "to": "closed",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
+     },
+     {
+      "name": "reject",
+      "from": [
+       "open",
+       "spec"
+      ],
+      "to": "rejected",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\""
+     },
+     {
+      "name": "reopen",
+      "from": [
+       "closed",
+       "rejected"
+      ],
+      "to": "open",
+      "guard": "caller.kind in [\"owner\", \"token\"] && event.reason != \"\" && (caller.present || !(\"owner-reject\" in issue.by))"
+     }
+    ],
+    "swaps": []
+   }
+  }
+ },
+ "migrate": {
+  "9011113c423d643de477f9e8fb494e26cc44b5a8d97f9991fe1e1323d3ab7f13": {
+   "workflow": "project"
+  }
+ }
+}
