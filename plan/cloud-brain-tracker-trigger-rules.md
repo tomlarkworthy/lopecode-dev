@@ -236,6 +236,9 @@ issue.wait { key, id, remove: true }           →  the event `waits` with remov
   issues this one is after, as `issue.wakes` does (part 2), 20 at most. A `when` that answers an
   error at a later read, on a branch the write did not take, is not due and is listed in `waiting`
   with `error`.
+  (As built, `tr-1-wait-in-the-record`, 2026-10-12: a `when` that answers neither true nor false, a text or a
+  number, is 400 too; the guard is judged before the `when` is asked, so a caller it refuses is answered 403; and
+  `issue.verify?guards=true` asks the `when` again of each `waits` event, from the whole view; the record.)
 - `until`: milliseconds since 1970, after the call and at most 30 days after it. Required.
 - `note`: text of 200 characters at most, for a reader of the record. Optional.
 - The issue's row gains `waits: [{ actor, holder, when, until, note, seq, at }]`. `actor` is
@@ -246,6 +249,8 @@ issue.wait { key, id, remove: true }           →  the event `waits` with remov
   issue's own writer is not taken out by ten that have ended. No write is refused for the count,
   and the choice compares the `until` of the waits and reads no clock. `issue.get`, `issue.list` and `issue.snapshot`
   show `waits` with the row.
+  (As built, `tr-1-wait-in-the-record`, 2026-10-12: a `waits` event moves the issue's `seq` and leaves its
+  `updated_at`, as a `cost` event does, so a wait does not move an issue up `issue.list`; the record.)
 - A wait **is live** from its event until `until`, its `remove`, or the same actor's next
   `issue.wait` on that issue. Nothing is written when it ends. `issueApply` keeps a wait until its `remove` or its replacement, and reads no clock: the view is
   the same whenever it is made, by the service, by `issue.verify` or by the page. A read leaves out
@@ -301,6 +306,9 @@ every issue's. An issue the caller may no longer read is in neither.
 - One cell makes the answer, `issueWakes(view, actor, now, id)`, with no I/O. With `id` the service
   loads that issue, its parts and the issues it is after (`S.near` for each, 20 at most; an issue
   after more is answered 400 with the count). With none it loads the view whole, as `issue.list` does.
+  (As built, `tr-1-wait-in-the-record`, 2026-10-12: the cell is `issueWakes(view, by, now, id)`, with the caller in
+  the place of its actor, since whether the caller reads an issue is judged by the caller; an `id` that names no
+  issue, or one the caller may not read, answers both lists empty; the record.)
 
 **How long a wake took (R7)** is read from the record with no new field: from the event that made
 `when` true to the waiter's next `waits` event of that issue, which is its `remove` or the wait it
