@@ -210,6 +210,9 @@ issue.cost { key, id,
   `resumed` for all 288. Anything missing, of another type, or not in this list is 400
   `InvalidRequest` naming the field, from `issueAct`, where every other body is checked. A field
   that is not known is refused, not dropped: a misspelt `usage` would otherwise be a run with none.
+  (As built, `cm-1-cost-event`, 2026-10-12: an `event` or `of` past the record's head is 403
+  `Refused`, from `issueAllowed`, which has the head; `event` and `of` are 1 or more; a key that
+  `usage` does not list is refused inside it too; the record.)
 - `how` is one field where the comment had two booleans, `light` and `resumed`, and a third kind
   that was the absence of both.
 - `context` is the new name of `tokens`. The record `cost-comment-has-billed-usage.md` opens with
@@ -235,7 +238,8 @@ with no change of the code. No policy is installed for this.
 ### One run, and its correction (R2)
 
 A run is an issue, a role and a round. The issue's row keeps `runs`, a list of the events' own
-fields with `seq` and `at`, one for each role and round. A `cost` event for a role and round the
+fields with `seq` and `at`, one for each role and round (as built, `cm-1-cost-event`, 2026-10-12:
+without `replaced`, which is in the event, and in the order of the events in force; the record). A `cost` event for a role and round the
 issue already has takes that one's place, and the service writes `replaced: <its seq>` into the new
 event (`issueEvent` reads it from the view, as it reads `from` of a move). So:
 
@@ -258,6 +262,8 @@ The page keeps its copy of the view in `localStorage` and applies each event to 
 was open before task 1 would apply `cost` events with the old function, move `updated_at`, keep no
 `runs`, and store that. So task 1 changes the store's name (`issuesStoreName`, `brain_issues2 `): a
 page with the new module starts from a snapshot. Found by the fresh agent's review; not run.
+(As built, `cm-1-cost-event`, 2026-10-12: the name is `brain_issues2 ADDRESS`. No tab with a copy
+under the old name was opened; the record.)
 
 ### The reads (R3, R4)
 
