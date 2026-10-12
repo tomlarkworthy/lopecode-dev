@@ -299,8 +299,6 @@ test("LOCK_TOKEN names the token of the call; a release or a renew under another
 
 test("with no LOCK_TOKEN, or an empty one, every command is exit 2 with the cause and the usage, and nothing is sent", async () => {
   const { sh, svc } = fresh();
-  // The script names no role's token: the check of R4 (plan/cloud-brain-record-names-token-not-agent.md) greps it.
-  expect(readFileSync(script, "utf8").match(/issues-(implementer|reviewer|overseer)-[0-9]/g) ?? []).toEqual([]);
   for (const args of ["take land a", "take land a --wait 1", "renew land a", "release land a", "show land", "show cb4"]) {
     for (const [how, more] of [["unset", { LOCK_TOKEN: undefined }], ["empty", { LOCK_TOKEN: "" }]] as const) {
       const r = await sh(`bash "$LOCK" ${args}`, more);
@@ -321,6 +319,8 @@ test("with no LOCK_TOKEN, or an empty one, every command is exit 2 with the caus
   const bad = await sh(`bash "$LOCK" steal land a`, { LOCK_TOKEN: undefined });
   expect(bad.code).toBe(2);
   expect(bad.err).not.toContain("no LOCK_TOKEN");
+  // The script names no role's token: the check of R4 (plan/cloud-brain-record-names-token-not-agent.md) greps it.
+  expect(readFileSync(script, "utf8").match(/issues-(implementer|reviewer|overseer)-[0-9]/g) ?? []).toEqual([]);
 });
 
 test("R6: with the cluster not reached take, renew, release and show exit 2 and make nothing; a refusal with no holder is exit 2", async () => {

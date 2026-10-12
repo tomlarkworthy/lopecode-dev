@@ -62,8 +62,8 @@ cb4 is not held
 exit 1
 ```
 
-The take, the renews and the release of this change's own landing were made with the script as changed
-only from the merge on: the take and the first renew ran `main`'s copy before it.
+The landing of this change runs `main`'s copy for the take and the first renew and the changed copy from
+the merge on. What each answered is in the comment on the issue, not here: this file was written before it.
 
 ## The test
 
@@ -74,14 +74,17 @@ only from the merge on: the take and the first renew ran `main`'s copy before it
   test writes for its stand-in service (`TOKENS`, line 19), with the values `secret-impl` and `secret-rev`.
   No case sends them to cb4. R4 does not grep `tests/`.
 - One test added, "with no LOCK_TOKEN, or an empty one, every command is exit 2 with the cause and the
-  usage, and nothing is sent". It reads the script for a role token's name (none), then runs `take land a`,
+  usage, and nothing is sent". It runs `take land a`,
   `take land a --wait 1`, `renew land a`, `release land a`, `show land` and `show cb4`, each with
   `LOCK_TOKEN` unset and with it empty: exit 2, empty stdout, the first line of stderr, the usage's first
-  and last lines, and no call at the stand-in. Then the same take with a token is sent, and a command the
-  script does not have gets no "no LOCK_TOKEN" line.
+  and last lines, and no call at the stand-in. Then the same take with a token is sent, a command the
+  script does not have gets no "no LOCK_TOKEN" line, and the script has no role token's name in it.
 
 ```
 $ LOCK_SH=<root>/tools/cloud-brain/lock.sh bun test ./tests/tools/lock.test.ts     # main's script, e6cbcadf, before the merge
+error: take land a, unset
+Expected: 2
+Received: 0
 (fail) with no LOCK_TOKEN, or an empty one, every command is exit 2 with the cause and the usage, and nothing is sent
  23 pass
  1 fail
@@ -91,9 +94,9 @@ $ bun test ./tests/tools/lock.test.ts                                           
  320 expect() calls
 ```
 
-Against `main`'s script the new test stops at its first assertion, the two lines the grep finds. The
-behaviour with none, on that script, is the hand run under "What was wrong". The other 23 pass against
-it because the helper's token is the one it defaulted to.
+Against `main`'s script the new test stops at its first run: with `LOCK_TOKEN` unset, `take land a` is
+exit 0, taken as the role's name, which the stand-in's token file has. The other 23 pass against it
+because the helper's token is the one it defaulted to.
 
 The whole directory, in the worktree, before anything was changed (at `main` 11be574c) and after the
 rebase onto e6cbcadf with this record written:
@@ -115,7 +118,7 @@ Ran 466 tests across 50 files.
 ## Lines elsewhere that the change made untrue
 
 `git grep -n -F 'LOCK_TOKEN' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'`
-printed 56 lines before these edits. Mended in this landing:
+printed 56 lines after these edits. Mended in this landing:
 
 | File | Was | Now |
 |---|---|---|
@@ -136,8 +139,8 @@ for the overseer. Records and `oversight.md` keep their lines: they say what was
 
 - A session or an agent that read its brief before `ta-3-orchestrator-steps` (2026-10-11) and still calls
   `lock.sh` with no `LOCK_TOKEN`. The issue held the change back for that case. Whether one was running at
-  the merge was not read; what was read is that neither lock was held just before the take (the lines
-  above, and the take's own line). Such a caller now gets exit 2 and the line that says why.
+  the merge was not read; what was read is that neither lock was held at about 03:20 CEST (the lines
+  above). Such a caller now gets exit 2 and the line that says why.
 - A call with no `LOCK_TOKEN` after the owner's revoke, on the script before the change: the 401 the issue
   describes. Not reproduced, as said above.
 - `LOCK_TOKEN` of spaces alone (`LOCK_TOKEN=" "`): it is not empty, so the script goes on to the token
