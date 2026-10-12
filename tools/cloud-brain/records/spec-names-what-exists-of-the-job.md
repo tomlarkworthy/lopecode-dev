@@ -24,7 +24,7 @@ brief gives each as it is reached from a worktree:
 - `tools/cloud-brain/`, the same;
 - the roles of the Brain as an address, `https://cb4.endpointservices.workers.dev/static/cloud-brain-dev/index.md`.
   A worktree has no `cloud-brain-dev/brain/` until a file of it is read (`ls` of it in this worktree:
-  "No such file or directory"). The address answered 200 at 21:53 CEST with two rows,
+  "No such file or directory"). The address answered 200 at 22:03:25 CEST (`date`, then `curl -s -o /dev/null -w '%{http_code}'`) with two rows,
   `brain/roles/paper-summarizer.md` and `brain/roles/reviewer.md`.
 
 ## What did not change, and where it went
@@ -41,7 +41,7 @@ before the put would be a line no reviewer follows, held by a test.
 
 Filed as `reviewer-q3-reads-what-exists` (event 4591, linked `related` at 4592): the wording of
 question 3, the overseer's put, and after it a writer's commit of the kept copy with a test. The
-wording is in that issue's body and in comment 1 of this one, under "For the overseer".
+wording is in that issue's body and in comment 4654 of this one, under "For the overseer".
 
 So of "Done when" ("Both texts have the line, with a test under `tests/tools/` that holds each"),
 this landing has the first text and its test.
@@ -72,7 +72,8 @@ $ bun test ./tests/tools/spec-brief-names-what-exists.test.ts     # after it
 ```
 
 The whole suite, after the last edit of a file a test reads and after the rebase of step 9 (which
-brought in `tests/tools/topic-sql.test.ts`; 712 pass before it):
+brought in `tests/tools/topic-sql.test.ts`; 712 pass before it). A third run, after the rebase under
+the landing lock had brought in `SKILL.md` and a record, gave the same 713 and 0 in 142.14 s:
 
 ```
 $ tests/tools/suite.sh
@@ -92,11 +93,13 @@ Three searches of the Brain (`knowledge.search?semantic=true`, token `loop-knowl
 | "reuse an existing role or tool instead of adding a second" | `arxiv:2603.18000` 0.752, `arxiv:2510.04618` 0.597 | Not read. Titles only: papers on agents that change themselves. |
 | "what was not chosen and why in a spec" | `doc:cloud-brain-answers-cut-and-not-said` 0.806, `doc:cloud-brain-deploy-verdict-from-a-shared-page` 0.785 | Not used: specs that have a "Not chosen" part, not a rule for one. |
 
-`git grep -n -F 'Not chosen' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'`
-and the same for `smallest design` and `smallest version`: the lines outside the files of this
-change are parts of specs named "Not chosen", the post mortem's quotes of both texts "read at
-619354c2", and `tests/tools/pm-second-summarizer-role.test.ts` line 57, which reads the brief at
-that commit. None says what step 5 asks today, so none was mended.
+`git grep -n -F '<words>' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'`,
+run after the change: `Not chosen` 107 lines, `smallest design` 4, `smallest version` 2, `what was
+not chosen` 5. Of the 107, 73 are in `plan/` and none in `knowledge`. The 73 were not each read: a
+filter of them for `brief`, `spec.md`, `step 5` and `question 3` printed no line. The other 34, and
+the lines of the other three searches, were read. Outside the files of this change they are a
+record's or a spec's own "Not chosen", and the post mortem's quotes of both texts "read at
+619354c2". None says what step 5 asks today, so none was mended.
 
 ## Not tried
 
