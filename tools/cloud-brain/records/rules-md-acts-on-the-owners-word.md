@@ -69,8 +69,8 @@ and each of these is a place where he may want another:
   more than he was asked about (`philosophy.md`, the reading of line 1).
 - **The quote goes on the issue before the act, or in the comment that says what was done.** The
   choice says "quoted on the issue with its date" and gives no order. Comment 1020 of `dv-4` was
-  written at 14:43:28Z and says the install ran 16:41:08 to 16:41:15 CEST, so the first case quoted
-  him after the act; the section allows that.
+  written at 16:43:28 CEST (its `at`, 14:43:28Z) and says the install ran 16:41:08 to 16:41:15 CEST,
+  so the first case quoted him after the act; the section allows that.
 - **"An act with no issue gets one first"** follows from "quoted on the issue" and is not in the choice.
 - **An issue approved this way has a passing review for the move to name.** The line before this
   change asked for the review's event in the reason, and the four moves of events 2608 to 2611 each
@@ -94,8 +94,10 @@ when the whole suite started).
 | `bun test ./tests/tools`, before any edit | 499 pass, 3 skip, 0 fail |
 | `bun test ./tests/tools`, with the edit | 507 pass, 3 skip, 0 fail |
 
-The one test that passes without the edit is the test of the file's own two helpers. Both runs of
-the suite print `skipped: test-ts-cut.test.ts: … cloud-brain-dev/test.ts has no --whole`.
+The one test that passes without the edit is the test of the file's own two helpers. The first run of
+the suite printed `skipped: test-ts-cut.test.ts: … cloud-brain-dev/test.ts has no --whole`; of the
+second only the counts were read. No test reads this record, so the second run is after the last
+change it counts.
 
 The quote of choice A in the test was compared with the body of event 2825 as `get?id=` answered it:
 a script that tests `body.includes("A: " + text)` printed `exact in 2825: true`.
