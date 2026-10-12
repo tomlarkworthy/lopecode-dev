@@ -23,8 +23,9 @@ issue.sync   { seq, wait, events, more }   more:  events.length > 0 && events.at
   issue does not learn from `total` that it has a label.
 - The spec's sentence for `more` of a sync, "false with no events, and in the answer that has reset:
   true", is read as two cases that are both `false`. A reset answer has no events.
-- `more` of a sync is taken against the head read after the events (`load` runs second), so an
-  event written between the two reads gives `more: true` and is answered by the next call.
+- `more` of a sync is taken against the head read after the events (`load` runs second). Read from
+  that order, not run: an event written between the two reads gives `more: true` when the answer
+  has events. When it has none it is `false`, as the spec has it, and `seq` is then past `after`.
 - The default of the list was the literal `100` in the handler. It is `issuesLimits.list`, so the
   test of the reference holds the row's numbers against it.
 - The two rows of the reference (the first `md` cell) say the default, the most, how a `limit` out
