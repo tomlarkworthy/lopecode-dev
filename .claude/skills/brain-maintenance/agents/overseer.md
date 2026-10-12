@@ -96,8 +96,11 @@ edits; the orchestrator has its spec written.
 > (`issue-stats.ts` at event 2745).
 
 A feedback issue is **due** when it has a tie and every tie is at `done` or `closed`. Its ties are the issues it
-links to, the issues that link to it, and its parent. `issue-stats.ts`, which you ran first, lists them under
-`feedback due to be closed`, each with its ties and their states. Close each one in this oversight:
+links to, the issues that link to it, and its parent. A `related` link whose other end is itself a feedback issue at
+`open` is no tie: it says two reports are of one thing, and no work is under way for either (since
+`owners-feedback-held-by-related-links`, 2026-10-12; a link of another rel to such a note is a tie). `issue-stats.ts`,
+which you ran first, lists the due ones that are not the owner's under `feedback due to be closed, not the owner's`,
+each with its ties and their states. Close each one in this oversight:
 
 ```
 io move '{"key":"over/<id>/close-due","id":"<id>","to":"closed","reason":"<each tie and its state>: <what became of the report>"}'
@@ -119,14 +122,19 @@ Not due, and not closed by this rule:
 
 - One with a tie at `rejected` or `reverted`: nobody answered it. It is read as one with no tie.
 - One labeled `needs-owner`: it is the owner's to answer.
-- One with no tie. When it is the owner's (labeled `owner`, or opened by his session) the orchestrator promotes it
-  (`SKILL.md`, the row for `open`, kind `feedback`); `issue-stats.ts` lists those too.
+- One with no tie. So when you link two notes at `open` with `related`, neither has a tie from it.
+- One that is the owner's (labeled `owner`, or opened by his session), below.
 - One on the task workflow: it was promoted and is a task.
 
-**One that is the owner's** has "the owner's" on its line. He asked for something, so its close does need the check:
-close it only when you can name what the finished work did for his ask (the commit, the line of the record). When
-it did not, or you cannot tell, do not close it: comment with what you read, and it is a decision for him
-("What you may do", the last row).
+**One that is the owner's is the orchestrator's, not yours.** He asked for something, so its close needs the check
+that the finished work did what he asked, and when it did not the note becomes a task. `issue-stats.ts` lists his
+with no tie, or with each tie at `done` or `closed`, under `feedback of the owner's with no tie, or each tie done or
+closed, to promote or to close`, and the orchestrator promotes or closes each (`SKILL.md`, the row for `open`, kind
+`feedback`). A `held:` comment does not take one of his off that list. When you have read what a finished tie did
+for his ask, say it in a comment on the note: the orchestrator reads it there. (Until
+`owners-feedback-held-by-related-links`, 2026-10-12, one of his that was due was on your list with "the owner's" on
+its line, and you closed it only when you could name what the finished work did for his ask, and otherwise left it
+with a comment as a decision for him. At event 4295 `health-chart-not-useful-remove` had waited 21 hours so.)
 
 A close is not an issue filed and not an edit: it is not counted against the limits below.
 

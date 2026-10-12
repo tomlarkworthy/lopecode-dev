@@ -274,7 +274,7 @@ first that matches. So "waits for nothing" below is: no row of `waiting` holds i
 | `ready` | at `triaged` and waits for nothing | 3 |
 | `decompose` | at `approved` | 3 |
 | `finish` | at `building`, and the guard of `finish` passes for this caller (part 4 did not make it) | 3 |
-| `promote` | on the feedback workflow, at `open`, the owner's, with no parent and no link either way | 3 |
+| `promote` | on the feedback workflow, at `open`, the owner's, with no parent and no link either way (As built, `owners-feedback-held-by-related-links`, 2026-10-12: the owner's, with no tie or with each tie at `done` or `closed`, where a `related` link whose other end is a feedback issue at `open` is no tie; the record.) | 3 |
 | `look` | a hold whose time has passed; `in-review` or `spec-review` with a review and no move after it; a state no row names. Tested before every other row of this table | 3 |
 | `start` | at `ready` and waits for nothing | 4 |
 | `spec` | a project or feature at `open`, the owner's or with three parts or more | 4 |
@@ -358,7 +358,9 @@ empties `issue.reviews`, so the install is made when no project is at `spec-revi
 Until the install, parts 1 to 4 work and a feedback part still holds its project. After it, the
 first event of `group-invites` or of its parts makes the finish, or the queue lists it.
 
-The overseer then closes the feedback issue as it does today: its tie is `done`.
+The overseer then closes the feedback issue as it does today: its tie is `done`. (As built,
+`owners-feedback-held-by-related-links`, 2026-10-12: one that is the owner's is then a `promote` of the queue, the
+orchestrator's to promote or to close; the record.)
 
 ### 6. The texts and the tools (R6, R7)
 
@@ -386,7 +388,7 @@ it as they stand.
    | `ready` | Move it to `ready`. |
    | `decompose` | Open each task the spec lists, with `parent` the project and the labels the spec gives it, `triage` and `ready` each, write one `after` link for each "after" the spec gives a task, and move the project to `building`. Close each gathered report that is still open. |
    | `finish` | Move it to `done`. The service makes this move in the call that ends the last part; an entry here is one it did not make. |
-   | `promote` | A feedback issue of the owner's with no tie. When it asks for a change, `promote` it and triage it. |
+   | `promote` | A feedback issue of the owner's with no tie. When it asks for a change, `promote` it and triage it. (As built, `owners-feedback-held-by-related-links`, 2026-10-12: or with each tie at `done` or `closed`; then it is promoted when none of that work made the change, and closed when one did; the record.) |
    | `look` | A hold whose time has come, or a state the service has no row for. Read it, then start it, hold it again, or comment and label `needs-owner`. |
    | `start` | Spawn the implementer; with the label `digest`, the digest writer. |
    | `spec` | Spawn the spec writer. |

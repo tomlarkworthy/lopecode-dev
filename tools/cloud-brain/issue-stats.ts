@@ -24,11 +24,13 @@
 // its last `triage` move has the word `held`, with a capital or without; such a row carries `held` in the list of the idle. Both
 // are read wherever they are in the issue's record: a reason written before a later move still counts. The rows of <n>
 // are printed under the line. The clock of both lists is this machine's when the tool runs, with --until too.
-// `feedback due to be closed` lists the feedback at `open` whose every tie (a link either way, its parent) is at `done` or
-// `closed`, and `feedback of the owner's with no tie` the ones the orchestrator promotes (feedback-closed-or-promoted;
-// agents/overseer.md, "Feedback that is due", and the row for `open`, kind `feedback` of SKILL.md). Neither list has an
-// issue labeled `needs-owner` or one that is on another workflow than the policy's for feedback (a promoted one), and
-// the first has none with a comment that begins `held:`.
+// `feedback due to be closed` lists the feedback at `open`, not the owner's, that has a tie and whose every tie (a link
+// either way, its parent) is at `done` or `closed`; `feedback of the owner's with no tie, or each tie done or closed` the
+// ones the orchestrator promotes or closes (feedback-closed-or-promoted; agents/overseer.md, "Feedback that is due", and
+// the row for `open`, kind `feedback` of SKILL.md). A `related` link whose other end is a feedback issue at `open` is no
+// tie in either (owners-feedback-held-by-related-links). Neither list has an issue labeled `needs-owner` or one that is
+// on another workflow than the policy's for feedback (a promoted one), and the first has none with a comment that
+// begins `held:`.
 // The lines under `flow` are four answers of issue.flow (plan/cloud-brain-flow-metrics.md, "The tool"; fm-4-stats-flow-block),
 // asked when the tool runs, the paths as `flowAsks` writes them: flow.lead by `to` and `kind`, flow.lead to `deploy` by
 // `for`, flow.open by `waits`, flow.stays by `waits`. Each n, median, 85th and longest is a row of the answer's
@@ -106,7 +108,7 @@ const workflows: Record<string, any> = {}, issues: Record<string, any> = {}, fee
 for (const e of events) {
   if (e.type === "policy") for (const [n, h] of Object.entries(e.hashes)) { workflows[h as string] = e.policy.workflows[n]; if (n === e.policy.kinds?.feedback) feedbackFlows.add(h as string); }
   if (!e.id || e.hidden || e.type === "policy") continue;
-  if (e.type === "opened") issues[e.id] = { id: e.id, kind: e.kind, opener: who(e.by), workflow: e.workflow, state: e.state, at: e.at, since: e.at, sinceSeq: e.seq, seq: e.seq, labels: new Set(e.labels || []), stays: [], moves: [], verdicts: [], asked: (e.labels || []).includes("needs-owner"), parent: e.parent, links: 0, to: [] as string[], bySession: e.by?.via === "session", heldBy: { comment: false, triage: false } };
+  if (e.type === "opened") issues[e.id] = { id: e.id, kind: e.kind, opener: who(e.by), workflow: e.workflow, state: e.state, at: e.at, since: e.at, sinceSeq: e.seq, seq: e.seq, labels: new Set(e.labels || []), stays: [], moves: [], verdicts: [], asked: (e.labels || []).includes("needs-owner"), parent: e.parent, links: 0, to: [] as { id: string; rel: string }[], bySession: e.by?.via === "session", heldBy: { comment: false, triage: false } };
   const i = issues[e.id];
   if (!i) continue;
   i.last = e.at;
@@ -125,7 +127,7 @@ for (const e of events) {
     if ((e.add || []).includes("needs-owner")) i.asked = true;
   }
   if (e.type === "linked") e.rel === "part-of" ? (i.parent = e.remove ? null : e.to) : (i.links += e.remove ? -1 : 1);
-  if (e.type === "linked" && e.rel !== "part-of") e.remove ? i.to.splice(i.to.indexOf(e.to) >>> 0, 1) : i.to.push(e.to);
+  if (e.type === "linked" && e.rel !== "part-of") i.to = [...i.to.filter((l: any) => !(l.id === e.to && l.rel === e.rel)), ...(e.remove ? [] : [{ id: e.to, rel: e.rel }])];
 }
 
 const H = (ms: number) => +(ms / 3600000).toFixed(1);
@@ -214,18 +216,24 @@ const heldBy = (i: any) => (i.heldBy.comment ? "comment" : i.heldBy.triage ? "tr
 const past = open.filter((i) => canWait(i) && now - i.since >= idleH * 3600000).map((i) => ({ id: i.id, kind: i.kind, state: i.state, sinceMoveH: H(now - i.since), by: heldBy(i) })).sort((a, b) => b.sinceMoveH - a.sinceMoveH);
 // Feedback that waits at `open` of a workflow a policy gave the kind `feedback` (one swapped to another workflow is a
 // task from then on, though its kind stays; an install that migrates swaps it to the new feedback workflow). Its ties: what it says of
-// other issues, what they say of it, and its parent. `due`: it has a tie and each is at `done` or `closed`, so nothing
-// it was gathered into is still being worked; `rejected` is not counted (a note tied to a rejected issue was answered by
-// nobody) and an issue this token is not shown has no state here. One with a comment that begins `held:` is kept by
-// whoever wrote that, and is not due. `toPromote`: the owner's, with no tie.
-const said: Record<string, string[]> = {};
-for (const i of Object.values(issues) as any[]) for (const t of i.to) (said[t] ||= []).push(i.id);
-const ties = (i: any): string[] => [...new Set([...i.to, ...(i.parent ? [i.parent] : []), ...(said[i.id] || [])])];
+// other issues, what they say of it, and its parent. A `related` link is no tie when its other end is itself feedback at
+// `open` of that workflow: it says two reports are of one thing, and no work is under way for either (a link of another
+// rel to such a note is a tie, and so is one to an issue this token is not shown, whose kind is not known here).
+// `due`: not the owner's, it has a tie and each is at `done` or `closed`, so nothing it was gathered into is still
+// being worked; `rejected` is not counted (a note tied to a rejected issue was answered by nobody) and an issue this
+// token is not shown has no state here. One with a comment that begins `held:` is kept by whoever wrote that, and is
+// not due. `toPromote`: the owner's, with no tie or with each tie at `done` or `closed`, whatever its comments say.
+const atOpen = (id: string) => issues[id]?.kind === "feedback" && issues[id].state === "open" && feedbackFlows.has(issues[id].workflow);
+const said: Record<string, { id: string; rel: string }[]> = {};
+for (const i of Object.values(issues) as any[]) for (const l of i.to) (said[l.id] ||= []).push({ id: i.id, rel: l.rel });
+const tied = (links: { id: string; rel: string }[]) => links.filter((l) => !(l.rel === "related" && atOpen(l.id))).map((l) => l.id);
+const ties = (i: any): string[] => [...new Set([...tied(i.to), ...(i.parent ? [i.parent] : []), ...tied(said[i.id] || [])])];
 const ended = (id: string) => ["done", "closed"].includes(issues[id]?.state);
 const owners = (i: any) => i.bySession || i.labels.has("owner");
 const notes = open.filter((i) => i.kind === "feedback" && i.state === "open" && feedbackFlows.has(i.workflow) && !i.labels.has("needs-owner"));
-const feedbackDue = notes.filter((i) => !i.heldBy.comment && ties(i).length && ties(i).every(ended)).map((i) => ({ id: i.id, owners: owners(i), ties: ties(i).map((t) => `${t} ${issues[t].state}`) }));
-const feedbackToPromote = notes.filter((i) => owners(i) && !ties(i).length).map((i) => i.id);
+const tiesOf = (i: any) => ({ id: i.id, ties: ties(i).map((t) => `${t} ${issues[t].state}`) });
+const feedbackDue = notes.filter((i) => !owners(i) && !i.heldBy.comment && ties(i).length && ties(i).every(ended)).map(tiesOf);
+const feedbackToPromote = notes.filter((i) => owners(i) && ties(i).every(ended)).map(tiesOf);
 const moved = (m: string) => inWindow.filter((e) => e.type === "moved" && e.move === m).length;
 const windowReport = {
   after: from, events: inWindow.length, submits: moved("submit") + moved("submit-spec"), reworks: moved("rework") + moved("send-back"),
@@ -298,10 +306,10 @@ export function text(report: Report) {
   if (from) console.log(`  after ${from}: ${statements(windowReport.statementsOnly)}`);
   line("needs-owner", `${report.needsOwner.ever} issues ever; now ${JSON.stringify(report.needsOwner.became)}; ${report.needsOwner.waitingNow} open with the label`);
   line("feedback", `${report.feedback.open} open, ${report.feedback.gathered} with a parent or a link`);
-  console.log(`feedback due to be closed, each tie done or closed: ${report.feedback.due.length}`);
-  for (const d of report.feedback.due) console.log(`  ${d.id.padEnd(40)} ${d.owners ? "the owner's  " : ""}${d.ties.join(", ")}`);
-  console.log(`feedback of the owner's with no tie, to promote: ${report.feedback.toPromote.length}`);
-  for (const id of report.feedback.toPromote) console.log(`  ${id}`);
+  console.log(`feedback due to be closed, not the owner's, each tie done or closed: ${report.feedback.due.length}`);
+  for (const d of report.feedback.due) console.log(`  ${d.id.padEnd(40)} ${d.ties.join(", ")}`);
+  console.log(`feedback of the owner's with no tie, or each tie done or closed, to promote or to close: ${report.feedback.toPromote.length}`);
+  for (const d of report.feedback.toPromote) console.log(`  ${d.id.padEnd(40)} ${d.ties.join(", ") || "no tie"}`);
   const l: any = report.locks;
   if (l?.unread) line("locks", `not read: ${l.unread}`);
   else if (l) {
