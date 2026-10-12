@@ -37,14 +37,15 @@ md`## A conversion to Markdown
 curl -X POST -H "Authorization: Bearer $BRAIN_TOKEN" \\
   "https://HOST/xrpc/com.lopecode.brain.ai.tomarkdown?usd=0.01" \\
   -F "files=@paper.pdf" -F 'conversionOptions={"pdf":{"metadata":false}}'
-// { "result": [{ "name": "paper.pdf", "mimeType": "application/pdf", "format": "markdown", "tokens": …, "data": "…" }], "success": true, … }
+// {"success":true,"result":[{"id":"01M4PWG11F9HYT46EE05N5J8BD","name":"tm1.pdf","mimeType":"application/pdf","format":"markdown","tokens":62,"data":"# tm1.pdf\\n## Metadata\\n- PDFFormatVersion=1.4\\n…\\n## Contents\\n### Page 1\\nThe heron of tm-1 stands in the reed bed at dawn.\\n\\n"}]}
+// x-brain-price: 0.01
 \`\`\`
 
-The shape of the answer above is from Cloudflare's page as read on 2026-10-11, not from a run. What cb4 answered on the day the method was deployed is in \`tools/cloud-brain/records/tm-1-ai-tomarkdown-method.md\`.
+The answer is of a run on cb4 with a token for the two methods, 2026-10-12 01:44 UTC: a PDF of 624 bytes, one page with that one sentence, sent with \`-F\` alone. The other runs of that day are in \`tools/cloud-brain/records/tm-1-ai-tomarkdown-method.md\`.
 
 - **The body is the caller's.** The service reads it whole to count its bytes and sends them with the caller's \`content-type\`, boundary and all. A body that is not multipart, an empty one, and more than one file in a call are Cloudflare's to take or refuse.
-- **The price** is \`usd\`, and \`usd\` is at least \`flatUsd\` (${aiDefaults.flatUsd}), the floor of a model the service cannot bound (The price). Under it, or with no number, the answer is 402 \`BudgetTooSmall\` with \`needs\`. **This does not hold Cloudflare's cost under the charge**: the parts are not counted, and Cloudflare's page says the conversion of an image runs models that are billed. When Cloudflare gives \`cf-ai-neurons\` it is in the log line and in \`x-ai-neurons\` and \`x-ai-usd\`; whether it gives it for a conversion was not known when this was written.
-- **The size.** A body over \`markdownMaxBody\` (${aiDefaults.markdownMaxBody} bytes, the largest file \`brain-static\` keeps) is refused 413 \`TooLarge\` and not sent. \`maxBody\` does not count here. The largest body Cloudflare takes was not measured.
+- **The price** is \`usd\`, and \`usd\` is at least \`flatUsd\` (${aiDefaults.flatUsd}), the floor of a model the service cannot bound (The price). Under it the answer is 402 \`BudgetTooSmall\` with \`needs\`; with no \`usd\` the core refuses the call before it comes here, 403, as it does for \`ai.run\`. **This does not hold Cloudflare's cost under the charge**: the parts are not counted, and Cloudflare's page says the conversion of an image runs models that are billed. When Cloudflare gives \`cf-ai-neurons\` it is in the log line and in \`x-ai-neurons\` and \`x-ai-usd\`; the run above, a PDF of text, came with neither header. An image was not sent.
+- **The size.** A body over \`markdownMaxBody\` (${aiDefaults.markdownMaxBody} bytes, the largest file \`brain-static\` keeps) is refused 413 \`TooLarge\` and not sent. \`maxBody\` does not count here: a PDF of 2,000,703 bytes was converted on cb4 that day. The largest body Cloudflare takes was not measured. A body that is not multipart came back 400 from Cloudflare, code 6005.
 - **\`ai.tomarkdown/supported\`** answers \`{ result: [{ extension, mimeType }] }\` as Cloudflare gives it, and has no price.
 - A token for it: \`token.create\` with \`methods: ["ai.tomarkdown", "ai.tomarkdown/supported"]\`.`
 // %%

@@ -2,7 +2,7 @@
 
 Spec of the issue `ai-tomarkdown-pass-through` on cb4's tracker. Written 2026-10-12 between 00:25 CEST (the
 move to `spec`, event 2875) and 00:36 CEST (`date`), from the seeds at `lopecode-dev` `038c25bd` and from what cb4 answered that
-night. Nothing in "The design" is deployed. The design's edit was made in a worktree, its tests
+night. Nothing in "The design" is deployed. (As built, `tm-1-ai-tomarkdown-method`, 2026-10-12: the two methods are on cb4, `brain-x-ai` at hash `41bc808e…`; `tools/cloud-brain/records/tm-1-ai-tomarkdown-method.md`.) The design's edit was made in a worktree, its tests
 were run, and the edit was taken back (see "How each requirement is known to be met").
 No call was made to Cloudflare's conversion: no agent of the loop holds a Cloudflare token, and no
 method of the Brain reaches that address today. Every statement about Cloudflare's side is from a
@@ -75,7 +75,7 @@ The counts of the kept PDFs are the report's. I did not count them again.
 `brain-x-ai` on cb4 is hash `e5b71e79…` (`cloud-brain-dev/deploy/services.json` after
 `worktree.sh`, 2026-10-12 00:29 CEST).
 
-- No method reaches the conversion. `curl -s ".../xrpc/com.lopecode.brain.getSource?worker=brain-x-ai&part=reference" | grep -c tomarkdown`
+- No method reaches the conversion. (As built, `tm-1-ai-tomarkdown-method`, 2026-10-12: two do, and the same command answered `10`; the record.) `curl -s ".../xrpc/com.lopecode.brain.getSource?worker=brain-x-ai&part=reference" | grep -c tomarkdown`
   answered `0` (status 200) at 00:31 CEST. The service's handler sends to three addresses,
   `/ai/models/search`, `/ai/run/<model>` and `/ai/v1/<path>` (`brain-ai.ojs`, `ai_service`), and
   the model name is held to `^@[a-z0-9-]{1,20}(\/[A-Za-z0-9._-]{1,80}){1,3}$`.
@@ -133,6 +133,7 @@ summary with quotes, 2026-10-11 about 22:28 UTC. I read no page whole.
 One web search for a size limit of the conversion found none. The one number it gave, 4 MB, is of
 AI Search, another product. So three things are not known from reading: whether `Workers AI Read`
 reaches the address, the largest body Cloudflare takes, and what a PDF with images costs.
+(As built, `tm-1-ai-tomarkdown-method`, 2026-10-12: `Workers AI Read` reaches both addresses, C2 and C3 answered 200. The other two are task 2's; the record.)
 
 No literature was searched. The design is one forwarded call.
 
@@ -270,7 +271,7 @@ the main checkout with `--as loop-markdown`, after the deploy, and its answer go
 | C5 | C2 with `--as loop-knowledge` | 403 "this token does not name …" (R5). Today's answer is the same 403 (run 00:31 CEST), so this check shows a refusal only together with C2's 200. |
 | C6 | `curl -s ".../getSource?worker=brain-x-ai&part=reference" \| grep -c tomarkdown` | more than 0. Today 0. |
 
-That `brain.ts curl` passes `-F` on with no `content-type` of its own was not run. If it does not,
+That `brain.ts curl` passes `-F` on with no `content-type` of its own was not run. (As built, `tm-1-ai-tomarkdown-method`, 2026-10-12: it does; C3 was run that way; the record.) If it does not,
 the writer calls with `curl` and the token as `brain.ts` would send it, without printing it.
 
 R4 has no check an agent can run before task 2: C1's 413 shows the Brain's limit, and task 2
@@ -324,7 +325,7 @@ One token. The spec names it, and the approval comment should say so.
   `brain.ts token loop-markdown ai.tomarkdown ai.tomarkdown/supported --daily=0.5`.
 - Needed by `tm-1-ai-tomarkdown-method` (C2 to C5) and `tm-2-what-the-conversion-does`. It can be
   made before the deploy: a token names a method whether or not a Worker serves it yet. That was
-  not tried.
+  not tried. (As built, `tm-1-ai-tomarkdown-method`, 2026-10-12: it was made before the deploy, comment 3492, and C2 to C5 were called with it; the record.)
 - `--daily=0.5` is 50 calls at the floor: the two tasks are about 16, and a round of rework is
   not refused by the default of $0.10.
 - What holds it to its use: its two methods reach nothing else, and the day's $0.50. What it does

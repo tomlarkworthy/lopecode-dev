@@ -61,7 +61,7 @@ Each service documents its own methods in the first `md` cell of its seed (`brai
   to the library enters a card for each module that has none, and marks a kept card `staleSince` when the notebook's copy differs;
   `library.index { name }` writes the cards again, `{ name, modules }` the named ones; a card is public when its notebook is, and is deleted with it), container (leased Linux containers from Cloudflare Containers, for the owner
   and the Brain's Workers: `container.extend?seconds=`, `exec`, `get`/`post` to a port), ai (one call to an open model on Cloudflare Workers AI:
-  `ai.run?model=&usd=`, where `usd` is charged whole; `ai.models` is Cloudflare's list; an OpenAI client's base URL is
+  `ai.run?model=&usd=`, where `usd` is charged whole; `ai.models` is Cloudflare's list; since 2026-10-12 `ai.tomarkdown?usd=` passes a multipart body of files (a PDF, an office file, an image) to Cloudflare's Markdown conversion, $0.01 at least, and `ai.tomarkdown/supported` lists the formats; an OpenAI client's base URL is
   `/xrpc/com.lopecode.brain.ai.v1`, its key a Brain token, $0.01 a call with no `usd`), issues (a signed record of events
   about the Brain's work, with the workflow as CEL guards installed as data: `issue.open`, `issue.move`, `issue.list`,
   `issue.verify?guards=true`; design and amendments in `plan/cloud-brain-issues.md`), git (repositories kept by Cloudflare Artifacts:
