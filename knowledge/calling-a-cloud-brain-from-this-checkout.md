@@ -162,3 +162,30 @@ kept. A tool that threw also exits 1 (seen with no `BRAIN_BASE`; a refused call 
 last line is then bun's and not the JSON. `badname` is a doc whose file name gives no id the service takes
 (a space, a character outside ASCII, anything but `a-z 0-9 . _ : -` once in lower case): it is in no put until the file has another name. No doc of
 `origin/main` was one on 2026-10-11 20:04 CEST (67 docs, `status --check --owner`).
+
+## The summaries of the kept papers
+
+Each kept paper with the tag `awesome-rsi` has, first in its entry's text, a summary written by one light agent of
+the role `paper-summarizer`, and the entry's vector is made from the summary's first paragraph
+(`plan/cloud-brain-paper-summarizer-persona.md`; the runs are `tools/cloud-brain/records/ps-3-pilot-ten.md` and
+`ps-4-the-rest.md`). For papers entered later, or another tag, it is two commands and then the check, from the main
+checkout or a worktree. The header of `tools/cloud-brain/summarize-papers.ts` is the reference.
+
+```
+BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts text  --tag TAG                # keeps each entry as entered (<id>.entry.json) and fetches each text; puts nothing
+BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts run   --tag TAG --usd-max 50   # one agent a paper, one after another; puts each summary with loop-papers
+BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts check --tag TAG                # reads only; exit 1 and the ids when an entry is not summarized
+```
+
+- `text` first: `run` skips and names an entry with no `<id>.entry.json`, since `restore --ids a,b` puts an entry back
+  from that file and from nowhere else. The files are in `tools/cloud-brain/.emitted/papers/` of the main checkout,
+  git-ignored, on this machine only.
+- `run` is longer than an agent's turn and is started as a background command. It can be run again after it stopped
+  or died: an entry whose summary is of the same text is skipped at no cost, and a paper refused twice for that text is
+  not asked again without `--again`.
+- `--usd-max N` starts no agent for a paper once the agents of that run have cost N dollars or more; the count is
+  from 0 at each run. A put that is refused stops the run as well. Both are exit 1 with `stopped` in the last line.
+- It needs `pdftotext` on the machine for a paper arXiv has no HTML page of, and the tokens `loop-knowledge` and
+  `loop-papers`.
+- What a run cost is `usd` of its lines in `.emitted/papers/journal.jsonl`; it goes on the task's issue as one `cost`
+  event of the role `paper-summarizer` (`.claude/skills/brain-maintenance/SKILL.md`, step 5).
