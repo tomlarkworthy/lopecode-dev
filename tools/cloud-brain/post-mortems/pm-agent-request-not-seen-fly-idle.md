@@ -82,8 +82,7 @@ To event 4957: 117 comments are by a token of one agent (`impl-`, `spec-`, `dig-
 `comment-<n>` before a submit (the script attached to this issue as `q4.py`, over `sync?after=0`).
 Read one by one: 2927 and 4011 mend the writer's own comment, 3792 and 4818 come before its
 submit, 4523 tells a spec writer a file has landed, and 4816 asks the orchestrating session for
-something and waits. It is the one such request in the record, and the first time a writer was
-told to wait this way.
+something and waits. It is the one such request among those six.
 
 ## The root cause
 
