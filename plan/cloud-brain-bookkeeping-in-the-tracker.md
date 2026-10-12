@@ -245,6 +245,11 @@ its reason. A hold ends at `remove` or at the issue's next move (`issueApply` ta
 row at a `moved` event), so an issue that was started is not a `look`. The time is judged against the Worker's clock at the read; a Worker has no timer and
 none is added.
 
+(As built, `bk-3-queue-and-hold`, 2026-10-12: `until` is held to the Worker's clock in the call, 400 before the
+issue is looked for, and `issue.verify?guards=true` does not judge it again; a swap leaves a hold, a move alone
+takes it off; a hold whose time has passed makes a `look` only of an issue no row of `waiting` holds; a closed
+issue can be given one; the record.)
+
 This is the answer to part 5 of the issue: a time, not "no such holds". A writer spawned to find
 that 20 runs do not exist yet is 167,000 tokens at the least (`philosophy.md`, line 5). A count
 is read by the orchestrator when the time comes, with the command the reason names, and it starts
@@ -301,6 +306,16 @@ An open issue on the feedback workflow that is not a `promote` is in neither lis
 is every other issue that is not closed and not in `queue`. A feedback issue that was promoted is
 on the task workflow and is listed as a task. An issue the caller may not
 read is in neither.
+
+(As built, `bk-3-queue-and-hold`, 2026-10-12, each in the record. The row `after` does not hold an issue at
+`in-progress`, `in-review`, `spec` or `spec-review`, as the row `owner` does not: review 4032, and the body of
+the task. An issue on the feedback workflow is tested against the rows of `waiting` and for a hold whose time has
+passed as any other is, so one with the label `needs-owner` is in `waiting` and one that was held comes back as a
+`look`; it is in neither list when none of those and no `promote`. "On the task workflow" is read by the hash the
+policy in force names for the kind, so an issue left on a workflow no policy names any more, at `open`, is the
+"state no row names". `for` reads the row's `opener` and the two labels, and not whether the owner's call came
+from a tab, which the row does not keep. `limit` cuts `queue` alone and the answer has `more`. A row of
+`waiting` has no `since`.)
 
 **The last move.** The row of an issue has no time of its last move and no name of it. `issueApply`
 gains `last: { move, at }`, set by a `moved` event and by a swap the workflow lists, and left by a

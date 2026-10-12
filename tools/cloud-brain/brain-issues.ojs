@@ -42,6 +42,7 @@ md`## Methods
 | \`issue.attach\` | procedure. \`{ key, id, name, mimeType, text }\`, or \`base64\` in place of \`text\` for bytes that are not text: one of the two, not empty, 1048576 bytes at most. \`name\`: \`A-Z a-z 0-9 . _ -\`, 100 characters at most, the first not a dot. \`mimeType\` is \`type/subtype\`, \`text/plain\` when left out; it is a label, and nothing is served by it. The bytes are kept by this Worker under the SHA-256 of them (\`blobs\`, key \`a/HASH\`), and the event is \`attached\` with the SHA-256 as \`sha256\` (an event's \`hash\` is its own), in \`{ name, mimeType, size, sha256 }\`: the record signs what was attached and does not hold it. The issue then lists it: \`attachments: [{ name, mimeType, size, sha256, seq }]\` in \`issue.get\`, \`issue.list\` and \`issue.snapshot\`. An issue has 20 at most, and a name once: a second attachment of a name the issue has is refused 403, so a later version takes another name. Nothing takes one off. Guard: the workflow's \`attach\`, and \`comment\` where a workflow has none. A caller the guard refuses, or who may not read the issue, leaves no bytes kept. |
 | \`issue.attachment\` | query. \`?id=&name=\`. \`{ id, name, mimeType, size, sha256, seq, text }\` when the bytes are UTF-8, else \`base64\` in place of \`text\`. Read by whoever reads the issue; 404 \`NotFound\` for anyone else, as for a name the issue lacks. The answer is JSON whatever was attached, so no attachment is opened as a page of this Brain. The bytes are hashed again before they are answered: 500 \`BytesChanged\` when they are not the ones the record names, 404 \`BytesNotKept\` when the bucket has none. |
 | \`issue.cost\` | procedure. What one run of an agent on the issue cost, as an event of type \`cost\` (since 2026-10-12; the design is \`plan/cloud-brain-run-cost-is-part-of-the-issue-model.md\`). \`{ key, id, role, round, how, outcome, seconds, context, tools, event, of, agent, session, token, usage, usd, backfilled }\`. Required: \`role\` and \`outcome\`, each a name, \`a-z 0-9 -\`, 30 at most; \`round\`, a whole number, 1 to 1000; \`how\`: \`fresh\`, \`resumed\`, \`light\` (spawned; sent to an agent that was there; run by \`agent.sh\`); \`seconds\` and \`context\` (the size of the run's last request, in tokens), whole numbers, 0 or more. Optional: \`tools\`, a whole number, 0 or more; \`event\` (the submit or the review the run made) and \`of\` (the comment the run was first written as), each the seq of an event before this one; \`agent\`, \`session\` and \`token\`, text of 1 to 100 characters; \`usage\`, all of \`{ input, cacheWrite, cacheRead, output, requests, advisor: { calls, input, output } }\`, whole numbers, and nothing else; \`usd\`, a number, 0 or more: what the process reported of itself; \`backfilled\`, \`true\`. A field that is missing, of another type (\`null\` is one) or not in this list is 400 \`InvalidRequest\` naming it, before the issue is looked for, and nothing is written; an \`event\` or \`of\` past the record's head is 403 \`Refused\`. A run is an issue, a \`role\` and a \`round\`. The issue lists one for each, in the order of their events: \`runs: [{ …the fields sent, seq, at }]\` in \`issue.get\`, \`issue.list\` and \`issue.snapshot\`; an issue with no \`cost\` event has no \`runs\`. A second event for a role and round the issue has takes that run's place, whole, and the service writes \`replaced\`, the seq of the event it replaces, into the new one: the usage of a run written without one, or a corrected number, is the same call again with every field, under another key. Both events stay in the record. The event moves the issue's \`seq\` and leaves its \`updated_at\`. Not checked: that \`event\` or \`of\` is an event of this issue, that \`round\` is the next, that a number is true, that a second event for a run was meant. Guard: the workflow's \`cost\`, and \`label\` where a workflow has none. |
+| \`issue.hold\` | procedure, since 2026-10-12 (\`plan/cloud-brain-bookkeeping-in-the-tracker.md\`, part 2). A wait that is not for another issue is a time in the record. \`{ key, id, until, reason }\`: \`until\` is milliseconds since 1970, a whole number, after the call by this Worker's clock and at most 30 days after it; \`reason\`, required, says what to read when the issue comes back. \`{ key, id, remove: true }\` takes the hold off: 404 when the issue has none, 400 when \`remove\` is not a boolean. An \`until\` that is missing, not a whole number, not after the call or more than 30 days on, and a hold with no \`reason\`, is 400 \`InvalidRequest\` before the issue is looked for. The event is \`held\`, with \`until\` and \`reason\`, or with \`remove: true\`. The issue then has \`hold: { until, reason, seq }\` in \`issue.get\`, \`issue.list\` and \`issue.snapshot\`, \`seq\` the event's. An issue has one hold: a second takes the place of the first. It ends when it is taken off and at the issue's next move, which takes it off the row with no event of its own; a swap leaves it. No guard reads a hold, so it refuses nothing: it is what \`issue.queue\` reads. A closed issue can be given one, and nothing reads it. Guard: the workflow's \`hold\`, and \`label\` where a workflow has none. |
 | \`issue.review\` | procedure. \`{ key, id, verdict, body, refs }\`. \`verdict\`: \`pass\`, \`changes\`, \`block\`. What each does is the policy's: in the default, \`changes\` and \`block\` both let the issue be sent back, and a \`block\` also stops a pass until it is. |
 | \`issue.move\` | procedure. \`{ key, id, to, reason, refs }\`. \`to\` is a state. Approval and revert are moves. A move the service makes itself is under "A move made by the service". |
 | \`issue.swap\` | procedure. \`{ key, id, swap, reason }\`: a swap the issue's workflow lists. \`{ key, id, workflow, state, reason }\`: any other, the owner present. |
@@ -51,10 +52,11 @@ md`## Methods
 | \`issue.snapshot\` | query. \`{ seq, head, wait, policy, workflows, issues }\`: the whole view at \`seq\`. The \`body\` of a closed issue is left out (\`bodyLeftOut\`). An issue the caller may not read is \`{ id, kind, state, closed, parent, hidden: true }\`, here and in \`issue.list\` and \`issue.get\`. |
 | \`issue.sync\` | query. \`?after=<seq>&head=<hash>&limit=200\`. \`{ seq, wait, events }\`: the events after \`after\`, and the milliseconds the page waits before it asks again. An event of an issue the caller may not read is \`{ seq, id, type, at, hash, hidden: true, issue }\`. \`reset: true\` and no events when \`after\` is past the record's head, or \`head\` is not the hash of event \`after\`: the caller's copy is of another record, and it starts again from a snapshot. |
 | Settings | \`syncMs\` (5000): what \`issue.sync\` and \`issue.snapshot\` answer as \`wait\`. Changed with \`config.set\` on the core, no deploy. |
-| \`issue.get\` | query. \`?id=\`. \`{ issue, children, events, cost }\`. \`cost\` is the totals of the issue's runs (\`issue.cost\`), from \`runs\` of the issue's row (since 2026-10-12): \`{ runs, seconds, billed, input, cacheWrite, cacheRead, output, requests, advisor: { calls, input, output }, usd, usdRuns, byRole }\`. \`runs\`: how many. \`seconds\`: their sum. \`billed\`: how many of the runs have a \`usage\`; the five sums and \`advisor\` are of those runs alone. \`usd\`: the sum of what the runs that have a \`usd\` reported, to a millionth, and \`usdRuns\` how many they are; both are left out when no run has one. \`context\` is not summed. \`byRole\`: the same totals for each role, \`{ implementer: { … }, reviewer: { … } }\`, in the order of each role's first run in \`runs\`. An issue with no run has \`cost.runs\` 0, every sum 0 and \`byRole: {}\`. For an issue the caller may not read the answer is \`{ issue, children: [], events: [] }\`, with no \`cost\`. \`issue.last\` (since 2026-10-12) is \`{ move, at }\`: the name of the issue's last move, or of its last swap that the workflow lists, and the time of that event. A swap the workflow does not list (one of an install's \`migrate\`, or the owner's own) leaves it. An issue that has not moved since the deploy that added it has none. |
+| \`issue.get\` | query. \`?id=\`. \`{ issue, children, events, cost }\`. \`cost\` is the totals of the issue's runs (\`issue.cost\`), from \`runs\` of the issue's row (since 2026-10-12): \`{ runs, seconds, billed, input, cacheWrite, cacheRead, output, requests, advisor: { calls, input, output }, usd, usdRuns, byRole }\`. \`runs\`: how many. \`seconds\`: their sum. \`billed\`: how many of the runs have a \`usage\`; the five sums and \`advisor\` are of those runs alone. \`usd\`: the sum of what the runs that have a \`usd\` reported, to a millionth, and \`usdRuns\` how many they are; both are left out when no run has one. \`context\` is not summed. \`byRole\`: the same totals for each role, \`{ implementer: { … }, reviewer: { … } }\`, in the order of each role's first run in \`runs\`. An issue with no run has \`cost.runs\` 0, every sum 0 and \`byRole: {}\`. For an issue the caller may not read the answer is \`{ issue, children: [], events: [] }\`, with no \`cost\`. \`issue.last\` (since 2026-10-12) is \`{ move, at }\`: the name of the issue's last move, or of its last swap that the workflow lists, and the time of that event. A swap the workflow does not list (one of an install's \`migrate\`, or the owner's own) leaves it. An issue that has not moved since the deploy that added it has none. \`issue.hold\` is \`{ until, reason, seq }\` while the issue has a hold (\`issue.hold\`). |
 | \`issue.runs\` | query, since 2026-10-12. \`?id=&role=&how=&round=&after=<seq>&limit=500\`. The runs (\`issue.cost\`) of every issue the caller may read: \`{ runs, total, more }\`. \`runs\`: \`[{ id, …the run as the issue's row has it }]\`, \`id\` the issue's, in the order of \`seq\`, the seq of the \`cost\` event in force for the run. Each filter is left out or left empty to ask for nothing. \`id\`: one issue; \`role\`: a name, \`a-z 0-9 -\`, 30 at most; \`how\`: one of \`fresh\`, \`resumed\`, \`light\`; \`round\`: \`first\` (round 1), \`later\` (any round after it) or a whole number, 1 to 1000; \`after\`: a whole number, 0 or more, and only the runs whose \`seq\` is past it are answered; \`limit\`: a whole number, 1 to 500, 500 when left out. A value that is none of those is 400 \`InvalidRequest\` naming the field: read as no filter it would answer every run. A name that is not one of the six is not read. \`total\`: the totals of every run that matches \`id\`, \`role\`, \`how\` and \`round\`, in the shape of \`cost\` of \`issue.get\` without \`byRole\`; \`after\` and \`limit\` do not change it, so it is the same on every page. \`more\`: runs past this page match; the next page is \`after=\` the \`seq\` of the last run read. A run written again between two pages has a new \`seq\` and is read again on a later page. An issue the caller may not read has no run in \`runs\` and none in \`total\`, and an \`id\` that names such an issue, or none, answers \`{ runs: [], total: { runs: 0, … }, more: false }\`. The rows are in the answer so that a median is the caller's to take. |
 | \`issue.flow\` | query, since 2026-10-12. \`?metric=&since=MS&until=MS&by=dim,dim&DIM=value\`. The times work took, as rows: what \`issueFlow\` answers ("The flow of work", below, which has the metrics, their dimensions, the clocks and the shape of the answer) over every event of the record as \`issue.sync\` answers it to this caller. So an issue the caller may not read is in no row; that is judged by the issue as it is at the call, whatever \`until\` is. \`metric\`: one of \`flow.lead\`, \`flow.open\`, \`flow.stays\`, \`flow.submits\`. \`since\` and \`until\`: milliseconds since 1970, whole numbers of 15 digits at most; left out or left empty they are 0 and the \`at\` of the record's last event, and the answer says both. \`by\`: dimensions of the metric with commas between. Every other parameter is a filter: a dimension, and the value a row has to have. 400 \`InvalidRequest\` for whatever \`issueFlow\` refuses and for a \`since\` or an \`until\` that is not such a number, before the record is read. It reads every event at each call and keeps nothing between two calls. \`cost.ms\` is the time the whole call took in this Worker, the read and then the rows; \`cost.events\` is how many events \`issueFlow\` read. |
 | \`issue.list\` | query. \`?state=&kind=&about=&parent=&label=&link=&limit=100\`. \`{ issues }\`, last changed first. \`link=ID\`: the issues that are part of \`ID\`, say a link of it, or have one said of them by it. |
+| \`issue.queue\` | query, since 2026-10-12. \`?limit=200\`. \`{ seq, now, queue, waiting, more }\`: what is next, in order, and what waits and for what, as \`issueQueue\` makes them from the view for this caller at \`now\`, this Worker's time ("The queue", below, has the rows and the order). \`limit\`: how many entries of \`queue\` are answered, 500 at most, 200 when left out, 0 or not a number; \`more\` is \`true\` when the queue has entries past it. \`waiting\` is answered whole. It reads every row of the view at each call and writes nothing. |
 | \`issue.verify\` | query. \`?after=<seq>\`. Checks \`seq\`, \`prev\`, \`hash\` and \`sig\` of each event after \`after\`. \`{ ok, seq, head, checked, guards }\`, or \`{ ok: false, seq, why, checked }\` at the first that fails; \`checked\` is how many passed. With \`guards=true\` it starts at 1 and also judges each event against the workflow in force when it was written. |
 | \`issue.key\` | query, anyone. \`{ alg: "ES256", key }\`: the public key, a JWK. |
 | \`issue.resign\` | procedure, the owner present. Signs every event's \`hash\` again with the key the Worker holds now, for after the key is replaced. No hash changes: \`sig\` is outside it. \`{ seq, signed }\`. |
@@ -76,7 +78,7 @@ Every write takes a \`key\`. A key is kept once: a second write with it answers 
 
 \`\`\`
 seq, key        its place in the record, and the caller's key
-id, type        the issue; opened commented labelled linked attached cost reviewed moved swapped narrowed policy
+id, type        the issue; opened commented labelled linked attached cost held reviewed moved swapped narrowed policy
 workflow        the hash of the workflow the act was judged under
 …               the act's own fields (title, body, to, reason, refs, verdict, …)
 by, origin      { caller, via, holder, tab } as the core named them on this call, and the same for who started the chain
@@ -119,7 +121,7 @@ md`## A policy
       swaps: [] } } }
 \`\`\`
 
-That is the cell \`issuesExamplePolicy\`, and \`issue.install\` takes it as it is. A move's \`from\` is a state, a list of states, or \`"*"\`. A workflow may also have \`link\`, \`attach\` and \`cost\`: without them \`label\` guards a link, \`comment\` an attachment and \`label\` a cost. A guard is one CEL expression (*Access rules* in \`@tomlarkworthy/cloudflare-iac\`). It is true or the act is refused; an error refuses. A guard that does not parse refuses the install. A workflow is named in an event by the SHA-256 of its JSON, so an issue stays on the workflow it was opened under until a swap moves it.
+That is the cell \`issuesExamplePolicy\`, and \`issue.install\` takes it as it is. A move's \`from\` is a state, a list of states, or \`"*"\`. A workflow may also have \`link\`, \`attach\`, \`cost\` and \`hold\`: without them \`label\` guards a link, \`comment\` an attachment, \`label\` a cost and \`label\` a hold. A guard is one CEL expression (*Access rules* in \`@tomlarkworthy/cloudflare-iac\`). It is true or the act is refused; an error refuses. A guard that does not parse refuses the install. A workflow is named in an event by the SHA-256 of its JSON, so an issue stays on the workflow it was opened under until a swap moves it.
 
 | a guard reads | |
 |---|---|
@@ -220,6 +222,52 @@ The names of moves, states and kinds are read as the record has them: the move \
 - **The clock is the wall's.** A lead time holds the hours the loop was stopped.
 - **An issue the caller may not read** is in no row: the events \`issue.sync\` answered as \`hidden\` are passed over, so such an issue is followed by none either. An issue whose id starts \`test-\` is in no row.`
 // %%
+md`## The queue
+
+\`issueQueue(view, by, now)\` answers \`{ queue, waiting }\` from the view, for the caller \`by\`, at the time \`now\`, with no I/O. \`issue.queue\` (in the table of methods) answers it to a caller (since 2026-10-12; \`plan/cloud-brain-bookkeeping-in-the-tracker.md\`, part 3). The order is computed here and nowhere else: an orchestrator sets an order between two issues with an \`after\` link, delays one with \`issue.hold\`, and closes one.
+
+\`\`\`
+queue:   [{ id, do, kind, state, title, labels, for, since, late, hold }]
+waiting: [{ id, kind, state, why, on, until }]
+\`\`\`
+
+An issue that is not closed, and that the caller may read, is tested against the rows of \`waiting\` first, in the order of their table. One that none of them holds is tested against the rows of \`do\`, in the order of that table, and has the first that matches. So "waits for nothing" is: no row of \`waiting\` holds it. A state is read by its name, as the record has it. "On the task workflow" is on the workflow the policy in force names for the kind \`task\`, by its hash, and the same for \`feedback\`, \`security\` and \`project\`: a note that was promoted is on the task workflow and is listed as a task, whatever its kind.
+
+| \`why\` | The issue |
+|---|---|
+| \`owner\` | has the label \`needs-owner\` and is not at \`in-progress\`, \`in-review\`, \`spec\` or \`spec-review\`; or is at \`awaiting-approval\`; or is on the security workflow |
+| \`until\` | has a hold whose \`until\` is after \`now\`; \`until\` of the entry is that time |
+| \`after\` | says an \`after\` link of an issue that is not closed, and is not at \`in-progress\`, \`in-review\`, \`spec\` or \`spec-review\`; \`on\` lists those issues. Work that has begun is not held by an order put on it later: its review, or its round, is listed |
+| \`parts\` | is on the task workflow at \`open\`, \`triaged\` or \`ready\` with a part that is not closed; or is at \`building\` and the policy refuses this caller the move the service makes itself (\`finish\`); \`on\` lists the parts that are not closed, which may be none when the guard refuses for another reason |
+| \`work\` | is at \`in-progress\` and its last move is not \`rework\`, or at \`spec\` and its last move is neither \`respec\` nor \`send-back\`: an agent has it, or had |
+| \`gathering\` | is on the project workflow at \`open\`, is not the owner's, and has fewer than three parts, closed ones counted |
+
+| \`do\` | The issue is | Group |
+|---|---|---|
+| \`look\` | one with a hold whose time has passed, tested before every other row of this table; \`hold\` of the entry is the hold, with its reason | 3 |
+| \`look\` | at \`in-review\` or \`spec-review\` with a review and no move after it | 3 |
+| \`review\` | at \`in-review\` or \`spec-review\` with no review since it came there | 2 |
+| \`round\` | at \`in-progress\` and its last move is \`rework\`; at \`spec\` and its last move is \`respec\` or \`send-back\` | 1 |
+| \`triage\` | on the task workflow, at \`open\` | 3 |
+| \`ready\` | at \`triaged\` | 3 |
+| \`decompose\` | at \`approved\` | 3 |
+| \`finish\` | at \`building\`, and the policy lets this caller make \`finish\` with a reason: one the service did not make ("A move made by the service") | 3 |
+| \`promote\` | on the feedback workflow at \`open\`, the owner's, with no tie or with each tie at \`done\` or \`closed\`. Its ties are its parent and its links either way, but for a \`related\` link whose other end is itself on the feedback workflow at \`open\` | 3 |
+| \`start\` | at \`ready\` | 4 |
+| \`spec\` | on the project workflow, at \`open\` | 4 |
+| \`look\` | in a state no row names (an issue left on a workflow the policy no longer names, at \`open\`) | 3 |
+
+An issue on the feedback workflow at \`open\` that is not a \`promote\`, and that no row of \`waiting\` holds and no hold brings back, is in neither list. An issue the caller may not read is in neither. Every other issue that is not closed is in one of the two.
+
+**The order of \`queue\`.** By group: a round that was sent back, a review that waits, the orchestrator's own acts, a start. Inside groups 1 to 3 the oldest \`since\` is first. Inside group 4: \`for\` \`owner\` first; then \`late\`; then \`start\` before \`spec\`; then the oldest \`opened_at\`. Two that are still level are in the order of their ids. \`waiting\` has the oldest \`since\` first.
+
+- **\`for\`** is \`owner\` when the issue's \`opener\` is \`owner\` (he opened it himself, under no token), or it has the label \`owner\` or \`annotation\`; else \`loop\`. \`for\` of \`issue.flow\` also asks that his call came from a tab; the row of an issue does not keep that.
+- **\`since\`** is the time of the issue's last move (\`issue.last.at\`), or the time it was opened when it has made none. **\`late\`** is \`true\` when that is 4 hours or more before \`now\`.
+- **\`last\` of a row written before it was kept.** \`issue.last\` is on a row from the first move after the deploy that added it (2026-10-12). For an open issue whose row has none and that has made a move, \`issue.queue\` reads the issue's events at each call and takes \`last\` from them, so no \`issue.rebuild\` is needed. \`issueQueue\` itself reads the view it is given.
+- **A hold and the rows before it.** A hold whose time has passed makes a \`look\` only of an issue no row of \`waiting\` holds: one that is also after an open issue is listed as \`after\` until that ends, and one at \`in-progress\` with an agent on it as \`work\`.
+- **What the record does not know** is which agents run. \`round\`, \`review\` and \`work\` are of the record; the caller sets them beside the agents it has.
+- **Nothing is written.** A follower is in \`queue\` at the first read after what it was after is closed, and a held issue at the first read after its time. The time is this Worker's clock at the read; no timer runs.`
+// %%
 // The smallest policy with a listed swap: two workflows of two states. Written out in the prose above, and installed by a test.
 issuesExamplePolicy = {
   const team = 'caller.kind in ["owner", "token"]';
@@ -238,7 +286,7 @@ issuesExampleText = {
 // %%
 issues_service = cloudflare.Service("issues", issuesApp, {
   methods: Object.fromEntries(
-    [["open", "procedure"], ["comment", "procedure"], ["label", "procedure"], ["link", "procedure"], ["attach", "procedure"], ["cost", "procedure"], ["review", "procedure"], ["move", "procedure"], ["swap", "procedure"], ["narrow", "procedure"], ["install", "procedure"], ["rebuild", "procedure"], ["resign", "procedure"], ["lock", "procedure"], ["locks", "query"], ["policy", "query"], ["snapshot", "query"], ["sync", "query"], ["get", "query"], ["runs", "query"], ["flow", "query"], ["attachment", "query"], ["list", "query"], ["verify", "query"], ["key", "query"]].map(([name, type]) => [
+    [["open", "procedure"], ["comment", "procedure"], ["label", "procedure"], ["link", "procedure"], ["attach", "procedure"], ["cost", "procedure"], ["hold", "procedure"], ["review", "procedure"], ["move", "procedure"], ["swap", "procedure"], ["narrow", "procedure"], ["install", "procedure"], ["rebuild", "procedure"], ["resign", "procedure"], ["lock", "procedure"], ["locks", "query"], ["policy", "query"], ["snapshot", "query"], ["sync", "query"], ["get", "query"], ["runs", "query"], ["flow", "query"], ["queue", "query"], ["attachment", "query"], ["list", "query"], ["verify", "query"], ["key", "query"]].map(([name, type]) => [
       "com.lopecode.brain.issue." + name,
       // The owner, a token, a Worker of the Brain and the deployer, which opens an issue when it puts a Worker back
       // on its tests. A member's Worker calls as its author's DID and is not let in.
@@ -252,7 +300,7 @@ issues_announce = {
   return "announced issues_service";
 }
 // %%
-issuesLimits = ({ rels: ["part-of", "duplicate", "cause", "related", "after"], afterWalk: 50, auto: ["finish"], autoDepth: 20, body: 20000, title: 300, reason: 2000, key: 100, refs: 20, labels: 20, attachment: 1048576, attachments: 20, policy: 100000, page: 500, syncMs: 5000, syncPage: 200, rebuildRounds: 5, verdicts: ["pass", "changes", "block"], lockName: 40, lockWho: 64, lockMin: 5, lockMax: 1800, lockSeconds: 600, lockHistory: 500, hows: ["fresh", "resumed", "light"], role: 30, outcome: 30, rounds: 1000, costText: 100, cost: ["role", "round", "how", "outcome", "seconds", "context", "tools", "event", "of", "agent", "session", "token", "usage", "usd", "backfilled"] })
+issuesLimits = ({ rels: ["part-of", "duplicate", "cause", "related", "after"], afterWalk: 50, auto: ["finish"], autoDepth: 20, holdDays: 30, queue: 200, lateHours: 4, body: 20000, title: 300, reason: 2000, key: 100, refs: 20, labels: 20, attachment: 1048576, attachments: 20, policy: 100000, page: 500, syncMs: 5000, syncPage: 200, rebuildRounds: 5, verdicts: ["pass", "changes", "block"], lockName: 40, lockWho: 64, lockMin: 5, lockMax: 1800, lockSeconds: 600, lockHistory: 500, hows: ["fresh", "resumed", "light"], role: 30, outcome: 30, rounds: 1000, costText: 100, cost: ["role", "round", "how", "outcome", "seconds", "context", "tools", "event", "of", "agent", "session", "token", "usage", "usd", "backfilled"] })
 // %%
 // The guards of a Brain that has installed no policy. Written 2026-10-10 from the state table of plan/cloud-brain-issues.md.
 issuesDefaultPolicy = {
@@ -547,6 +595,9 @@ issueApply = (view, e) => {
   // last: the move the issue made last and when. A swap the workflow lists is one (it has a name); a swap of an
   // install's migrate, or the owner's own, has none and leaves it.
   if (e.type === "moved") Object.assign(i, { state: e.to, by: { ...i.by, [e.move]: actor }, reviews: [], last: { move: e.move, at: e.at } });
+  // hold: a wait until a time, with what to read then. It ends when it is taken off and at the issue's next move; a swap leaves it.
+  if (e.type === "held" && !e.remove) i.hold = { until: e.until, reason: e.reason, seq: e.seq };
+  if ((e.type === "held" && e.remove) || e.type === "moved") delete i.hold;
   if (e.type === "swapped") {
     Object.assign(i, { workflow: e.to.workflow, state: e.to.state, reviews: [], ...(e.swap ? { last: { move: e.swap, at: e.at } } : {}) });
     // A swap can change who reads the issue. A link is read with either issue, so one to an issue now read by another
@@ -710,8 +761,11 @@ issueFlow = (events, { metric, since = 0, until, by = [], filter = {} } = {}) =>
   return { metric, since, until: end, step, groups: summaries.length, sampled: 1, unit: def.unit, series, summaries, cost: { ms: Date.now() - began, events: read } };
 }
 // %%
+// The states a move the service makes itself (issuesLimits.auto) would take this issue to, by its workflow.
+issueAutoFrom = (view, i) => [...new Set((((i && issueAt(view.workflows, i.workflow)) || {}).moves || []).filter((m) => issuesLimits.auto.includes(m.name) && (m.from === "*" || [].concat(m.from).includes(i.state))).map((m) => m.to))]
+// %%
 // May this caller do this act, by the policy in the view? { allow, why }, and for a move or a swap which one.
-// act: { type: open | comment | label | link | attach | cost | review | move | swap | narrow | read | policy, id, … }.
+// act: { type: open | comment | label | link | attach | cost | hold | review | move | swap | narrow | read | policy, id, … }.
 issueAllowed = (view, by, act) => {
   const caller = issueCaller(by), no = (why, missing) => ({ allow: false, why, ...(missing ? { missing: true } : {}) });
   const present = () => (caller.present ? { allow: true } : no("the owner, present"));
@@ -803,9 +857,78 @@ issueAllowed = (view, by, act) => {
     // which the default policy gives to a Worker of the Brain and to the deployer.
     return test(wf.cost ?? wf.label, issue) ? { allow: true } : no("the workflow's cost guard refuses");
   }
+  if (act.type === "hold") {
+    // Taking a hold off needs that one is kept.
+    if (act.remove && !i.hold) return no("no such hold", true);
+    // A workflow written before holds has no guard for them: whoever may label may hold.
+    return test(wf.hold ?? wf.label, issue) ? { allow: true } : no("the workflow's hold guard refuses");
+  }
   if (act.type === "narrow" && act.remove != null) return i.extra.some((x) => x.n === act.remove) ? present() : no("no such guard", true);
   if (act.type === "narrow" && !wf.moves.some((m) => m.name === act.move)) return no("the workflow has no move " + act.move);
   return test(wf[act.type], issue) ? { allow: true } : no(`the workflow's ${act.type} guard refuses`);
+}
+// %%
+// What is next, in order, and what waits and for what: { queue, waiting }, from the view, for the caller `by`, at the
+// time `now`. plan/cloud-brain-bookkeeping-in-the-tracker.md, part 3; the rows are in the prose, "The queue". No I/O.
+// An issue is tested against the rows of `waiting` first, in their order, and then against the rows of `do`. A state
+// is read by its name. "On the task workflow" is the workflow the policy in force names for the kind `task`, by its
+// hash, and so for `feedback`, `security` and `project`: a note that was promoted is on the task workflow.
+issueQueue = (view, by, now) => {
+  const names = (view.policy || {}).names, kinds = (view.policy || {}).kinds, at = (id) => issueAt(view.issues, id);
+  const on = (i, kind) => !!issueAt(names, issueAt(kinds, kind)) && i.workflow === names[kinds[kind]];
+  const kids = new Map();
+  for (const k of Object.values(view.issues)) if (k.parent) kids.set(k.parent, [...(kids.get(k.parent) || []), k]);
+  const parts = (i) => kids.get(i.id) || [], open = (i) => parts(i).filter((k) => !k.closed).map((k) => k.id);
+  // Work that has begun is not held by a label or by an order: a review that waits, a round that was sent back.
+  const begun = ["in-progress", "in-review", "spec", "spec-review"];
+  // The moves that send work back to the state an agent has it in.
+  const sent = { "in-progress": ["rework"], spec: ["respec", "send-back"] };
+  const forWhom = (i) => (i.opener === "owner" || (i.labels || []).some((l) => l === "owner" || l === "annotation") ? "owner" : "loop");
+  const since = (i) => (i.last ? i.last.at : i.opened_at);
+  // May this caller make the move the service makes itself (finish)? null when the workflow has none from this state.
+  const finish = (i) => ((to) => (to === undefined ? null : issuesLimits.auto.includes(issueAllowed(view, by, { type: "move", id: i.id, to, reason: "by hand", refs: [] }).name)))(issueAutoFrom(view, i)[0]);
+  // A note's ties: its parent and its links either way. A `related` link to a note that is itself open is none.
+  const note = (id) => !!at(id) && on(at(id), "feedback") && at(id).state === "open";
+  const tied = (links, end) => (links || []).filter((l) => !(l.rel === "related" && note(l[end]))).map((l) => l[end]);
+  const ties = (i) => [...new Set([...(i.parent ? [i.parent] : []), ...tied(i.links, "to"), ...tied(i.linked, "id")])];
+  const waits = (i) => {
+    if (((i.labels || []).includes("needs-owner") && !begun.includes(i.state)) || i.state === "awaiting-approval" || on(i, "security")) return { why: "owner" };
+    if (i.hold && i.hold.until > now) return { why: "until", until: i.hold.until };
+    const ahead = (i.links || []).filter((l) => l.rel === "after" && at(l.to) && !at(l.to).closed).map((l) => l.to);
+    if (ahead.length && !begun.includes(i.state)) return { why: "after", on: ahead };
+    if (on(i, "task") && ["open", "triaged", "ready"].includes(i.state) && open(i).length) return { why: "parts", on: open(i) };
+    if (i.state === "building" && finish(i) === false) return { why: "parts", on: open(i) };
+    if (sent[i.state] && !(i.last && sent[i.state].includes(i.last.move))) return { why: "work" };
+    if (on(i, "project") && i.state === "open" && forWhom(i) !== "owner" && parts(i).length < 3) return { why: "gathering" };
+    return null;
+  };
+  // What an issue that waits for nothing wants. null: a note at open that is not the owner's to promote is in neither list.
+  const wants = (i) => {
+    if (i.hold) return "look";
+    if (i.state === "in-review" || i.state === "spec-review") return (i.reviews || []).length ? "look" : "review";
+    if (sent[i.state]) return "round";
+    if (on(i, "task") && i.state === "open") return "triage";
+    if (i.state === "triaged") return "ready";
+    if (i.state === "approved") return "decompose";
+    if (i.state === "building" && finish(i)) return "finish";
+    if (on(i, "feedback") && i.state === "open") return forWhom(i) === "owner" && ties(i).every((t) => ["done", "closed"].includes((at(t) || {}).state)) ? "promote" : null;
+    if (i.state === "ready") return "start";
+    if (on(i, "project") && i.state === "open") return "spec";
+    return "look";
+  };
+  const group = { round: 1, review: 2, start: 4, spec: 4 }, queue = [], waiting = [];
+  for (const i of Object.values(view.issues)) {
+    if (i.hidden || i.closed || !issueAllowed(view, by, { type: "read", id: i.id }).allow) continue;
+    const held = waits(i), what = held ? null : wants(i);
+    if (held) waiting.push({ id: i.id, kind: i.kind, state: i.state, ...held, since: since(i) });
+    if (what) queue.push({ id: i.id, do: what, kind: i.kind, state: i.state, title: i.title, labels: i.labels || [], for: forWhom(i), since: since(i), late: since(i) <= now - issuesLimits.lateHours * 3600000, ...(i.hold ? { hold: i.hold } : {}), opened_at: i.opened_at });
+  }
+  const first = (...keys) => (a, b) => keys.map((k) => k(a) - k(b)).find((d) => d) || (a.id < b.id ? -1 : 1);
+  const g = (e) => group[e.do] || 3;
+  // Groups 1 to 3: the oldest since first. Group 4: the owner's, then one that is late, then a start before a spec, then the oldest opened.
+  queue.sort(first(g, (e) => (g(e) < 4 ? e.since : 0), (e) => (e.for === "owner" ? 0 : 1), (e) => (e.late ? 0 : 1), (e) => (e.do === "start" ? 0 : 1), (e) => e.opened_at));
+  waiting.sort(first((e) => e.since));
+  return { queue: queue.map(({ opened_at, ...e }) => e), waiting: waiting.map(({ since, ...e }) => e) };
 }
 // %%
 // An allowed act as the fields of its event. The service adds seq, key, by, origin, ray, at, prev, hash and sig.
@@ -820,6 +943,7 @@ issueEvent = (view, act, verdict) => {
   if (act.type === "attach") return { type: "attached", ...base, name: act.name, mimeType: act.mimeType, size: act.size, sha256: act.sha256 };
   // replaced: the seq of the run this one takes the place of, read from the view as a move's from is.
   if (act.type === "cost") return { type: "cost", ...base, ...Object.fromEntries(issuesLimits.cost.filter((k) => act[k] !== undefined).map((k) => [k, act[k]])), ...(issueRunOf(i, act) ? { replaced: issueRunOf(i, act).seq } : {}) };
+  if (act.type === "hold") return { type: "held", ...base, ...(act.remove ? { remove: true } : { until: act.until, reason }) };
   if (act.type === "review") return { type: "reviewed", ...base, verdict: act.verdict, body: act.body || "", refs };
   if (act.type === "move") return { type: "moved", ...base, move: verdict.name, from: i.state, to: act.to, reason, refs, ...(act.auto ? { auto: act.auto } : {}) };
   if (act.type === "swap") return { type: "swapped", ...base, swap: verdict.name, from: { workflow: i.workflow, state: i.state }, to: verdict.to, reason, ...(act.policy ? { policy: act.policy } : {}) };
@@ -828,7 +952,7 @@ issueEvent = (view, act, verdict) => {
 // %%
 // Should this event have been refused, by the view before it? null, or why. What issue.verify?guards=true asks of each event.
 issueReplay = (view, e) => {
-  const type = { opened: "open", commented: "comment", labelled: "label", linked: "link", attached: "attach", cost: "cost", reviewed: "review", moved: "move", swapped: "swap", narrowed: "narrow", policy: "policy" }[e.type];
+  const type = { opened: "open", commented: "comment", labelled: "label", linked: "link", attached: "attach", cost: "cost", held: "hold", reviewed: "review", moved: "move", swapped: "swap", narrowed: "narrow", policy: "policy" }[e.type];
   if (!type) return "no such type of event";
   const act = { ...e, type, ...(e.type === "swapped" ? { workflow: e.to.workflow, state: e.to.state } : {}) };
   const i = issueAt(view.issues, e.id);
@@ -879,6 +1003,7 @@ issuePolicyAct = async (policy) => {
     if (w.link != null) guard("link", w.link);
     if (w.attach != null) guard("attach", w.attach);
     if (w.cost != null) guard("cost", w.cost);
+    if (w.hold != null) guard("hold", w.hold);
     for (const m of w.moves) {
       if (!m || !name.test(m.name || "")) bad(at + "a move needs a name");
       if (!(m.from === "*" || [].concat(m.from).every((s) => w.states.includes(s))) || !w.states.includes(m.to)) bad(at + `the move ${m.name} names a state it does not have`);
@@ -897,8 +1022,8 @@ issuePolicyAct = async (policy) => {
   return { type: "policy", policy, hashes };
 }
 // %%
-// A request's body as an act, or a 400.
-issueAct = (type, b) => {
+// A request's body as an act, or a 400. `now` is the time a hold's `until` is held to: the call's.
+issueAct = (type, b, now = Date.now()) => {
   const L = issuesLimits;
   const bad = (m) => {
     throw Object.assign(new Error(m), { status: 400, code: "InvalidRequest" });
@@ -970,6 +1095,12 @@ issueAct = (type, b) => {
     if (b.usd !== undefined) run.usd = typeof b.usd === "number" && Number.isFinite(b.usd) && b.usd >= 0 ? b.usd : bad("usd: a number, 0 or more");
     if (b.backfilled !== undefined) run.backfilled = b.backfilled === true ? true : bad("backfilled: true, or left out");
     return { type, id, ...run };
+  }
+  if (type === "hold") {
+    if (b.remove != null && typeof b.remove !== "boolean") bad("remove: true or false");
+    if (b.remove === true) return { type, id, remove: true };
+    if (!Number.isSafeInteger(b.until) || b.until <= now || b.until > now + L.holdDays * 86400000) bad(`until: milliseconds since 1970, a whole number, after this call and at most ${L.holdDays} days after it`);
+    return { type, id, until: b.until, reason: reason || bad("reason: what to read when the issue comes back") };
   }
   if (type === "review") return { type, id, verdict: L.verdicts.includes(b.verdict) ? b.verdict : bad("verdict: " + L.verdicts.join(", ")), body: text(b.body, L.body, "body"), refs: refs(b.refs) };
   if (type === "move") return { type, id, to: name(b.to, "to", true), reason, refs: refs(b.refs) };
@@ -1094,8 +1225,7 @@ issuesApp = {
       }
     }
   };
-  // The states a move the service makes itself (issuesLimits.auto) would take this issue to, by its workflow.
-  const autoFrom = (view, i) => [...new Set((((i && issueAt(view.workflows, i.workflow)) || {}).moves || []).filter((m) => L.auto.includes(m.name) && (m.from === "*" || [].concat(m.from).includes(i.state))).map((m) => m.to))];
+  const autoFrom = issueAutoFrom;
   // One event more, and after it the moves the service makes itself: for the issue of the event, what it was part of
   // before the event and what it is part of after, a move named in issuesLimits.auto that the workflow has from the
   // issue's state and that the policy lets this call's caller make is written in the same call, as that caller, with
@@ -1134,7 +1264,7 @@ issuesApp = {
   // a project back from the finish the service makes.
   const callerKey = (key) => ((own) => (own ? Promise.reject(refuse(400, "InvalidRequest", `key: ${own} is the service's own`)) : key))(typeof key === "string" && ["policy/", "auto/"].find((p) => key.startsWith(p)));
   const wrote = (r) => ({ id: r.event.id, seq: r.event.seq, ...(r.duplicate ? { duplicate: true } : {}), ...(r.duplicate && !r.mine ? {} : { event: r.event }), ...(r.auto && r.auto.length ? { auto: r.auto } : {}) });
-  for (const type of ["open", "comment", "label", "link", "cost", "review", "move", "swap", "narrow"])
+  for (const type of ["open", "comment", "label", "link", "cost", "hold", "review", "move", "swap", "narrow"])
     app.post(NS + type, run(async (c, b) => wrote(await append(who(c), await callerKey(b && b.key), issueAct(type, b)))));
   // The bytes are kept under their hash and the event names the hash. They are kept before the event is written, so
   // the record names no bytes that are not there, and after the act is judged, so a refused caller keeps none. append
@@ -1298,6 +1428,23 @@ issuesApp = {
     const pass = (i) => (!q.state || i.state === q.state) && (!q.kind || i.kind === q.kind) && (!q.about || i.about === q.about) && (!q.parent || i.parent === q.parent) && (!q.link || i.parent === q.link || (i.links || []).some((l) => l.to === q.link) || (i.linked || []).some((l) => l.id === q.link)) && (!q.label || (i.labels || []).includes(q.label));
     // What a caller may not read is matched by its state, kind and parent only: a label would say what it is.
     return { issues: Object.values(view.issues).map((i) => shown(view, by, i)).filter(pass).sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0)).slice(0, Math.min(L.page, Math.max(1, Number(q.limit) || 100))).map((i) => (i.hidden ? i : { ...i, body: undefined })) };
+  }));
+  // issue.queue: what issueQueue makes of the whole view, for this caller, at this Worker's time. A row written before
+  // `last` was kept has none until its issue moves: for those the issue's events are read and its row made from them as
+  // issueApply makes it, so no issue.rebuild is needed. An issue with no move in `by` that is on the workflow of its
+  // kind has made no move and no listed swap, and is not read.
+  app.get(NS + "queue", run(async (c, q) => {
+    const view = await load([S.all]), { by } = who(c), now = Date.now(), P = view.policy || {};
+    const lacks = Object.values(view.issues).filter((i) => !i.hidden && !i.closed && !i.last && (Object.keys(i.by || {}).length > 0 || i.workflow !== issueAt(P.names, issueAt(P.kinds, i.kind))));
+    for (let at = 0; at < lacks.length; at += 300) {
+      const some = lacks.slice(at, at + 300), found = await sql.batch(some.map((i) => [S.of, i.id]));
+      some.forEach((i, k) => {
+        const made = issueAt(found[k].rows.map((r) => J(r.event)).reduce((v, e) => issueApply(v, e), issueView()).issues, i.id);
+        if (made && made.last) i.last = made.last;
+      });
+    }
+    const { queue, waiting } = issueQueue(view, by, now), limit = Math.min(L.page, Math.max(1, Number(q.limit) || L.queue));
+    return { seq: view.seq, now, queue: queue.slice(0, limit), waiting, more: queue.length > limit };
   }));
   app.get(NS + "policy", run(async (c, q) => {
     const view = await load([S.near, "", ""]);
@@ -1698,7 +1845,7 @@ issuesPanel = ({ client, owner = false, by = { caller: "owner", via: "session" }
     fetching.add(k);
     return client.query("issue.attachment", { id, name: a.name }).then((r) => (save(a.name, r.text != null ? new TextEncoder().encode(r.text) : issueBytes.of(r.base64)), true), (e) => ((note.textContent = `issue.attachment was refused: ${e.message}`), false)).finally(() => fetching.delete(k));
   };
-  const said = (e) => (e.type === "moved" ? `${e.from} → ${e.to}${e.reason ? ": " + e.reason : ""}` : e.type === "swapped" ? `to ${e.to.state}${e.swap ? " by " + e.swap : ""}` : e.type === "reviewed" ? `${e.verdict}${e.body ? ": " + e.body : ""}` : e.type === "labelled" ? [...(e.add || []).map((l) => "+" + l), ...(e.remove || []).map((l) => "-" + l)].join(" ") : e.type === "narrowed" ? (e.remove != null ? "removed guard " + e.remove : `${e.move}: ${e.guard}`) : e.type === "linked" ? `${e.remove ? "no longer " : ""}${e.rel} ${e.to}` : e.type === "attached" ? `${e.name} · ${e.mimeType} · ${e.size} bytes` : e.type === "cost" ? issueRunSaid(e) : e.type === "opened" ? e.title : e.body || "");
+  const said = (e) => (e.type === "moved" ? `${e.from} → ${e.to}${e.reason ? ": " + e.reason : ""}` : e.type === "swapped" ? `to ${e.to.state}${e.swap ? " by " + e.swap : ""}` : e.type === "reviewed" ? `${e.verdict}${e.body ? ": " + e.body : ""}` : e.type === "labelled" ? [...(e.add || []).map((l) => "+" + l), ...(e.remove || []).map((l) => "-" + l)].join(" ") : e.type === "narrowed" ? (e.remove != null ? "removed guard " + e.remove : `${e.move}: ${e.guard}`) : e.type === "linked" ? `${e.remove ? "no longer " : ""}${e.rel} ${e.to}` : e.type === "attached" ? `${e.name} · ${e.mimeType} · ${e.size} bytes` : e.type === "cost" ? issueRunSaid(e) : e.type === "held" ? (e.remove ? "hold taken off" : `until ${new Date(e.until).toISOString()}: ${e.reason}`) : e.type === "opened" ? e.title : e.body || "");
   const refsOf = (text) => text.split(",").map((s) => s.trim()).filter(Boolean).map((s) => (/^[a-z]+:\/\//.test(s) || !s.includes(":") ? { kind: "url", value: s } : { kind: s.slice(0, s.indexOf(":")), value: s.slice(s.indexOf(":") + 1) }));
   // The open issue is drawn again only when it, its children or its timeline changed: what is being typed is kept.
   let drawn = "";
@@ -2459,6 +2606,286 @@ test_issues_row_names_its_last_move = {
   expect([(await got("t1")).issue.last, (await got("f1")).issue.last]).toEqual([{ move: ready.move, at: ready.at }, { move: "promote", at: swap.at }]);
   expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: true, guards: true });
   return "last is the move or the listed swap made last, with its time; a comment, a swap by hand and a migrate leave it";
+}
+// %%
+// plan/cloud-brain-bookkeeping-in-the-tracker.md, part 2: a wait that is not for an issue is a time in the record. Each
+// case is entered through issue.hold of the service. The time that passes is `now` of issueQueue, never the wall's.
+test_issues_hold_is_a_time_in_the_record = {
+  const rig = await issuesRig(), L = issuesLimits, H = 3600000, D = 24 * H, A = { caller: "token:a", via: "" };
+  const got = async (id) => (await rig.a("get?id=" + id)).data.issue;
+  const view = async () => ((s) => ({ ...s, issues: Object.fromEntries(s.issues.map((i) => [i.id, i])) }))((await rig.owner("snapshot")).data);
+  const placed = (r, id) => ((q, w) => (q ? ["queue", q.do] : w ? ["waiting", w.why] : null))(r.queue.find((e) => e.id === id), r.waiting.find((e) => e.id === id));
+  for (const id of ["t1", "t2"]) {
+    await rig.a("open", { id, title: id, kind: "task" });
+    await rig.a("move", { id, to: "triaged", reason: "real" });
+    await rig.a("move", { id, to: "ready" });
+  }
+  // What the body gets wrong is a 400 before the issue is looked for: `nope` is no issue.
+  const now = Date.now(), until = now + H, when = `until: milliseconds since 1970, a whole number, after this call and at most ${L.holdDays} days after it`;
+  const wrong = [[{ reason: "r" }, when], [{ until: now - 1, reason: "r" }, when], [{ until: 1, reason: "r" }, when], [{ until: 0, reason: "r" }, when], [{ until: now + (L.holdDays + 1) * D, reason: "r" }, when], [{ until: String(until), reason: "r" }, when], [{ until: until + 0.5, reason: "r" }, when], [{ until: null, reason: "r" }, when], [{ until }, "reason: what to read when the issue comes back"], [{ until, reason: "" }, "reason: what to read when the issue comes back"], [{ until, reason: "r", remove: "yes" }, "remove: true or false"], [{ until, reason: "r", remove: 1 }, "remove: true or false"]];
+  for (const [body, message] of wrong) expect([body, (await rig.a("hold", { id: "nope", ...body })).data]).toEqual([body, { error: "InvalidRequest", message }]);
+  expect((await rig.a("hold", { id: "nope", until, reason: "r" })).status).toBe(404);
+  // The two ends of the span, at a time that is given: the call's own millisecond is refused, the next is taken.
+  const act = (until, at) => {
+    try {
+      return issueAct("hold", { id: "t1", until, reason: "r" }, at).until;
+    } catch (e) {
+      return e.status;
+    }
+  };
+  expect([act(1000, 1000), act(1001, 1000), act(1000 + L.holdDays * D, 1000), act(1001 + L.holdDays * D, 1000)]).toEqual([400, 1001, 1000 + L.holdDays * D, 400]);
+  // remove: false is a hold, not a remove.
+  expect(issueAct("hold", { id: "t1", until: 2000, reason: "r", remove: false }, 1000)).toEqual({ type: "hold", id: "t1", until: 2000, reason: "r" });
+  // Whoever may label may hold, where the workflow has no guard of its own: a Worker may not.
+  expect((await rig.worker("hold", { id: "t1", until, reason: "r" })).data).toEqual({ error: "Refused", message: "the workflow's hold guard refuses" });
+  expect((await rig.a("hold", { id: "t1", remove: true })).data).toEqual({ error: "NotFound", message: "no such hold" });
+  // A hold: the event, and the row of the issue. Nothing else of the issue changes.
+  const held = (await rig.a("hold", { id: "t1", until, reason: "read the 20 runs" })).data;
+  expect(held.event).toMatchObject({ type: "held", id: "t1", until, reason: "read the 20 runs" });
+  expect("remove" in held.event).toBe(false);
+  const t1 = await got("t1");
+  expect([t1.hold, t1.state, t1.last.move]).toEqual([{ until, reason: "read the 20 runs", seq: held.seq }, "ready", "ready"]);
+  expect((await rig.a("list?state=ready")).data.issues.find((i) => i.id === "t1").hold).toEqual(t1.hold);
+  // The queue of the service, now: t1 waits until its time and t2 is a start.
+  const r = (await rig.a("queue")).data;
+  expect([placed(r, "t1"), placed(r, "t2")]).toEqual([["waiting", "until"], ["queue", "start"]]);
+  expect(r.waiting.find((e) => e.id === "t1")).toEqual({ id: "t1", kind: "task", state: "ready", why: "until", until });
+  // A millisecond before its time it waits. At its time it is a look, with the hold and its reason.
+  const before = issueQueue(await view(), A, until - 1), at = issueQueue(await view(), A, until);
+  expect([placed(before, "t1"), placed(at, "t1")]).toEqual([["waiting", "until"], ["queue", "look"]]);
+  expect(at.queue.find((e) => e.id === "t1")).toMatchObject({ do: "look", state: "ready", hold: { until, reason: "read the 20 runs", seq: held.seq } });
+  // A second hold takes the place of the first.
+  const later = (await rig.a("hold", { id: "t1", until: until + H, reason: "again" })).data;
+  expect((await got("t1")).hold).toEqual({ until: until + H, reason: "again", seq: later.seq });
+  expect(placed(issueQueue(await view(), A, until), "t1")).toEqual(["waiting", "until"]);
+  // Taken off: the event has remove and no time, the row has no hold, and the issue is a start again.
+  const off = (await rig.a("hold", { id: "t1", remove: true })).data;
+  expect([off.event.type, off.event.remove, "until" in off.event, "reason" in off.event]).toEqual(["held", true, false, false]);
+  expect([(await got("t1")).hold, placed((await rig.a("queue")).data, "t1")]).toEqual([undefined, ["queue", "start"]]);
+  expect((await rig.a("hold", { id: "t1", remove: true })).status).toBe(404);
+  // A hold ends at the issue's next move: started, it has none, and after the time it is work and no look.
+  await rig.a("hold", { id: "t1", until, reason: "wait" });
+  await rig.a("move", { id: "t1", to: "in-progress" });
+  expect([(await got("t1")).hold, placed(issueQueue(await view(), A, until + 1), "t1")]).toEqual([undefined, ["waiting", "work"]]);
+  expect((await rig.a("hold", { id: "t1", remove: true })).status).toBe(404);
+  // A swap leaves it: a note that is held and then promoted is still held.
+  await rig.a("open", { id: "f1", title: "f1", kind: "feedback" });
+  const note = (await rig.a("hold", { id: "f1", until, reason: "ask again" })).data;
+  await rig.a("swap", { id: "f1", swap: "promote" });
+  expect((await got("f1")).hold).toEqual({ until, reason: "ask again", seq: note.seq });
+  expect([placed(issueQueue(await view(), A, until - 1), "f1"), placed(issueQueue(await view(), A, until), "f1")]).toEqual([["waiting", "until"], ["queue", "look"]]);
+  // A closed issue can be given one. It is in neither list, as any closed issue.
+  await rig.a("open", { id: "x1", title: "x1", kind: "task" });
+  await rig.a("move", { id: "x1", to: "closed", reason: "answered" });
+  expect((await rig.a("hold", { id: "x1", until, reason: "nothing reads it" })).status).toBe(200);
+  expect([placed((await rig.a("queue")).data, "x1"), placed(issueQueue(await view(), A, until), "x1")]).toEqual([null, null]);
+  // The key writes once.
+  const again = (await rig.a("hold", { key: "once", id: "t2", until, reason: "one" })).data, twice = (await rig.a("hold", { key: "once", id: "t2", until: until + 5, reason: "two" })).data;
+  expect([twice.duplicate, twice.seq, (await got("t2")).hold]).toEqual([true, again.seq, { until, reason: "one", seq: again.seq }]);
+  // The record judged again, and the view made again from it: held is a type issue.verify knows.
+  const kept = [await got("t1"), await got("t2"), await got("f1"), await got("x1")];
+  await rig.owner("rebuild", {});
+  expect([await got("t1"), await got("t2"), await got("f1"), await got("x1")]).toEqual(kept);
+  const checked = (await rig.owner("verify?guards=true")).data;
+  expect(checked).toMatchObject({ ok: true, guards: true });
+  // A remove of a hold that is not kept, written past the service, is found.
+  const forged = await rig.forge({ id: "t1", type: "held", workflow: kept[0].workflow, remove: true });
+  expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: false, seq: forged.seq, why: "no such hold" });
+  return `a hold is kept with its time and reason, ${wrong.length} bodies refused; it ends at a remove and at a move; ${checked.checked} events judged again`;
+}
+// %%
+test_issues_hold_guard_is_the_policys_when_it_has_one = {
+  const rig = await issuesRig(), until = Date.now() + 3600000;
+  const flows = (hold) => Object.fromEntries(Object.entries(issuesExamplePolicy.workflows).map(([n, w]) => [n, { ...w, hold }]));
+  // A guard that does not parse refuses the install, as any other guard does.
+  expect((await rig.owner("install", { policy: { ...issuesExamplePolicy, workflows: flows("((") } })).status).toBe(400);
+  expect((await rig.owner("install", { policy: { ...issuesExamplePolicy, workflows: flows("caller.present") } })).status).toBe(200);
+  await rig.owner("open", { id: "g1", title: "Guarded", kind: "bug" });
+  // label lets a token in under this policy: it is hold that refuses it.
+  expect((await rig.a("label", { id: "g1", add: ["x"] })).status).toBe(200);
+  expect((await rig.a("hold", { id: "g1", until, reason: "r" })).data).toEqual({ error: "Refused", message: "the workflow's hold guard refuses" });
+  expect((await rig.owner("hold", { id: "g1", until, reason: "r" })).status).toBe(200);
+  expect((await rig.a("hold", { id: "g1", remove: true })).data.message).toBe("the workflow's hold guard refuses");
+  expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: true });
+  return "hold is refused to a token that may label; the owner present holds";
+}
+// %%
+// The same plan, part 3: one read answers what is next and what waits. An issue for each row of the two tables of
+// "The queue", each brought to its place by calls of the service, and the whole answer of issue.queue held to them:
+// an issue that is in the wrong list, or in both, or in neither when it should be in one, fails the comparison.
+test_issues_queue_places_each_issue_by_its_row = {
+  const rig = await issuesRig(), ref = [{ kind: "commit", value: "abc" }], until = Date.now() + 3600000;
+  const ok = async (call) => ((r) => (expect([r.status, r.data.message]).toEqual([200, undefined]), r.data))(await call);
+  const task = async (id, to = "ready", more = {}) => {
+    await ok(rig.a("open", { id, title: id, kind: "task", ...more }));
+    const path = [["triaged", () => rig.a("move", { id, to: "triaged", reason: "real" })], ["ready", () => rig.a("move", { id, to: "ready" })], ["in-progress", () => rig.a("move", { id, to: "in-progress" })], ["in-review", () => rig.a("move", { id, to: "in-review", refs: ref })], ["reviewed", () => rig.b("review", { id, verdict: "changes" })], ["rework", () => rig.b("move", { id, to: "in-progress" })]];
+    for (const [name, step] of path.slice(0, to === "open" ? 0 : path.findIndex(([n]) => n === to) + 1)) await ok(step());
+  };
+  const project = async (id, to, as = rig.a) => {
+    await ok(as("open", { id, title: id, kind: "project" }));
+    const path = [["spec", () => rig.a("move", { id, to: "spec", reason: "reports" })], ["spec-review", () => rig.a("move", { id, to: "spec-review", refs: ref })], ["passed", () => rig.b("review", { id, verdict: "pass" })], ["awaiting-approval", () => rig.b("move", { id, to: "awaiting-approval" })], ["approved", () => rig.owner("move", { id, to: "approved" })]];
+    for (const [name, step] of path.slice(0, to === "open" ? 0 : path.findIndex(([n]) => n === to) + 1)) await ok(step());
+  };
+  const note = (id, as = rig.a, more = {}) => ok(as("open", { id, title: id, kind: "feedback", ...more }));
+  // The rows of `do`.
+  await task("r-task", "rework");
+  await project("r-spec", "spec-review");
+  await ok(rig.b("review", { id: "r-spec", verdict: "changes" }));
+  await ok(rig.b("move", { id: "r-spec", to: "spec" }));
+  await project("r-back", "awaiting-approval");
+  await ok(rig.owner("move", { id: "r-back", to: "spec", reason: "again" }));
+  await task("v-task", "in-review");
+  await project("v-spec", "spec-review");
+  await task("l-rev", "reviewed");
+  await project("l-spec", "passed");
+  await task("g-open", "open");
+  await task("g-tri", "triaged");
+  await project("g-app", "approved");
+  // A project at building that the service did not finish: its own guard on finish lets token b alone make the move,
+  // and token a ends the last part.
+  await project("g-fin", "approved");
+  await task("g-fin-1", "open", { parent: "g-fin" });
+  await ok(rig.a("move", { id: "g-fin", to: "building" }));
+  await ok(rig.a("narrow", { id: "g-fin", move: "finish", guard: 'caller.actor == "token:b"', reason: "b alone" }));
+  expect((await ok(rig.a("move", { id: "g-fin-1", to: "closed", reason: "overtaken" }))).auto).toBe(undefined);
+  await note("n-own", rig.owner);
+  await note("n-loop");
+  await note("n-label", rig.a, { labels: ["owner"] });
+  await note("n-rel", rig.owner);
+  await ok(rig.owner("link", { id: "n-rel", to: "n-loop", rel: "related" }));
+  await task("x-closed", "open");
+  await ok(rig.a("move", { id: "x-closed", to: "closed", reason: "answered" }));
+  await note("n-done", rig.owner);
+  await ok(rig.owner("link", { id: "n-done", to: "x-closed", rel: "cause" }));
+  await note("n-cause", rig.owner);
+  await ok(rig.owner("link", { id: "n-cause", to: "n-loop", rel: "cause" }));
+  await task("s-ready");
+  await project("s-own", "open", rig.owner);
+  await project("s-three", "open");
+  for (const k of [1, 2, 3]) await note("s-three-" + k, rig.a, { parent: "s-three" });
+  // The rows of `waiting`.
+  await task("w-need", "triaged", { labels: ["needs-owner"] });
+  await task("v-need", "in-review", { labels: ["needs-owner"] });
+  await project("w-appr", "awaiting-approval");
+  await ok(rig.a("open", { id: "w-sec", title: "w-sec", kind: "security" }));
+  await task("w-until");
+  await ok(rig.a("hold", { id: "w-until", until, reason: "later" }));
+  await task("w-after");
+  await ok(rig.a("link", { id: "w-after", to: "s-ready", rel: "after" }));
+  await task("w-parts", "triaged");
+  await task("w-parts-1", "open", { parent: "w-parts" });
+  await project("w-build", "approved");
+  await task("w-build-1", "open", { parent: "w-build" });
+  await ok(rig.a("move", { id: "w-build", to: "building" }));
+  await task("k-task", "in-progress");
+  await project("k-spec", "spec");
+  await project("w-gath", "open");
+  await note("n-part", rig.owner, { parent: "w-gath" });
+  // Work that has begun, put after an open issue: its review and its round are listed, and one an agent has is work.
+  await task("v-after", "in-review");
+  await task("r-after", "rework");
+  await task("k-after", "in-progress");
+  for (const id of ["v-after", "r-after", "k-after"]) await ok(rig.a("link", { id, to: "s-ready", rel: "after" }));
+  const places = (r) => Object.fromEntries([...r.queue.map((e) => [e.id, e.do]), ...r.waiting.map((e) => [e.id, e.why])]);
+  const both = (r) => r.queue.map((e) => e.id).filter((id) => r.waiting.some((w) => w.id === id));
+  const want = {
+    "r-task": "round", "r-spec": "round", "r-back": "round", "r-after": "round",
+    "v-task": "review", "v-spec": "review", "v-need": "review", "v-after": "review",
+    "l-rev": "look", "l-spec": "look",
+    "g-open": "triage", "w-parts-1": "triage", "w-build-1": "triage", "g-tri": "ready", "g-app": "decompose",
+    "n-own": "promote", "n-label": "promote", "n-rel": "promote", "n-done": "promote",
+    "s-ready": "start", "s-own": "spec", "s-three": "spec",
+    "w-need": "owner", "w-appr": "owner", "w-sec": "owner", "w-until": "until", "w-after": "after", "w-parts": "parts", "w-build": "parts", "g-fin": "parts",
+    "k-task": "work", "k-spec": "work", "k-after": "work", "w-gath": "gathering"
+  };
+  const a = (await rig.a("queue")).data;
+  expect([places(a), both(a)]).toEqual([want, []]);
+  // In neither list: the notes at open that are not the owner's to promote (not his, tied to work that is open, or with
+  // a link to an open note that is not `related`), and what is closed.
+  const all = (await rig.owner("list?limit=500")).data.issues.map((i) => i.id);
+  expect(all.filter((id) => !(id in want)).sort()).toEqual(["g-fin-1", "n-cause", "n-loop", "n-part", "s-three-1", "s-three-2", "s-three-3", "x-closed"]);
+  // What an entry of each list has.
+  const ready = (await rig.a("get?id=s-ready")).data.issue;
+  expect(a.queue.find((e) => e.id === "s-ready")).toEqual({ id: "s-ready", do: "start", kind: "task", state: "ready", title: "s-ready", labels: [], for: "loop", since: ready.last.at, late: false });
+  expect(a.queue.find((e) => e.id === "s-own")).toMatchObject({ for: "owner", since: (await rig.a("get?id=s-own")).data.issue.opened_at });
+  expect(a.queue.find((e) => e.id === "n-label")).toMatchObject({ for: "owner", labels: ["owner"], kind: "feedback" });
+  expect([a.waiting.find((e) => e.id === "w-after"), a.waiting.find((e) => e.id === "w-parts"), a.waiting.find((e) => e.id === "g-fin"), a.waiting.find((e) => e.id === "w-need")]).toEqual([
+    { id: "w-after", kind: "task", state: "ready", why: "after", on: ["s-ready"] },
+    { id: "w-parts", kind: "task", state: "triaged", why: "parts", on: ["w-parts-1"] },
+    { id: "g-fin", kind: "project", state: "building", why: "parts", on: [] },
+    { id: "w-need", kind: "task", state: "triaged", why: "owner" }
+  ]);
+  expect([a.seq, a.more, typeof a.now]).toEqual([rig.db.events.at(-1).seq, false, "number"]);
+  // For the caller: token b may make the finish, and does not read the security report of token a. The owner reads it.
+  const b = (await rig.b("queue")).data, o = (await rig.owner("queue")).data;
+  expect([places(b)["g-fin"], places(b)["w-sec"], places(o)["w-sec"], places(o)["g-fin"]]).toEqual(["finish", undefined, "owner", "parts"]);
+  expect(places(b)).toEqual({ ...Object.fromEntries(Object.entries(want).filter(([id]) => id !== "w-sec")), "g-fin": "finish" });
+  // The wait ends with no write to the follower: what it was after is closed, and the next read lists it.
+  const seq = (await rig.a("get?id=w-after")).data.issue.seq;
+  await ok(rig.a("move", { id: "s-ready", to: "closed", reason: "overtaken" }));
+  const next = (await rig.a("queue")).data;
+  expect([places(next)["w-after"], places(next)["s-ready"], places(next)["k-after"], (await rig.a("get?id=w-after")).data.issue.seq]).toEqual(["start", undefined, "work", seq]);
+  // limit cuts the queue and says so; waiting is whole. One that is no number is the default.
+  const cut = (await rig.a("queue?limit=2")).data;
+  expect([cut.queue.map((e) => e.id), cut.more, cut.waiting.length]).toEqual([next.queue.slice(0, 2).map((e) => e.id), true, next.waiting.length]);
+  expect((await rig.a("queue?limit=abc")).data.queue.length).toBe(next.queue.length);
+  // A Worker of the Brain reads the queue as it reads the list. A member is not let in by the core, which the rig is not.
+  expect((await rig.worker("queue")).status).toBe(200);
+  expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: true, guards: true });
+  return `${Object.keys(want).length} issues, each where its row puts it: ${a.queue.length} in the queue, ${a.waiting.length} waiting`;
+}
+// %%
+// The order of the queue, a row that has no `last`, and a state no row names. The order is asked of issueQueue itself,
+// over the service's view with the times written in: two issues made in one millisecond have no order to test.
+test_issues_queue_order_and_a_row_with_no_last = {
+  const rig = await issuesRig(), ref = [{ kind: "commit", value: "abc" }], H = 3600000, A = { caller: "token:a", via: "" };
+  const ok = async (call) => ((r) => (expect([r.status, r.data.message]).toEqual([200, undefined]), r.data))(await call);
+  const task = async (id, steps, more = {}) => {
+    await ok(rig.a("open", { id, title: id, kind: "task", ...more }));
+    const path = [() => rig.a("move", { id, to: "triaged", reason: "real" }), () => rig.a("move", { id, to: "ready" }), () => rig.a("move", { id, to: "in-progress" }), () => rig.a("move", { id, to: "in-review", refs: ref }), () => rig.b("review", { id, verdict: "changes" }), () => rig.b("move", { id, to: "in-progress" })];
+    for (const step of path.slice(0, steps)) await ok(step());
+  };
+  await task("round", 6);
+  await task("rev-new", 4);
+  await task("rev-old", 4);
+  await task("tri-new", 0);
+  await task("rdy-old", 1);
+  for (const [id, more] of [["a", {}], ["b", {}], ["d", {}], ["g", { labels: ["owner"] }], ["h", { labels: ["owner"] }]]) await task(id, 2, more);
+  for (const [id, more] of [["c", {}], ["e", {}], ["f", { labels: ["owner"] }]]) {
+    await ok(rig.a("open", { id, title: id, kind: "project", ...more }));
+    for (const k of [1, 2, 3]) await ok(rig.a("open", { id: `${id}-${k}`, title: "part", kind: "feedback", parent: id }));
+  }
+  const view = ((s) => ({ ...s, issues: Object.fromEntries(s.issues.map((i) => [i.id, i])) }))((await rig.owner("snapshot")).data), now = Date.now() + 100 * H;
+  // since, as minutes before now, and when it was opened. Late is 4 hours or more.
+  const times = { round: [1, 9], "rev-new": [10, 8], "rev-old": [20, 7], "tri-new": [5, 6], "rdy-old": [300, 5], a: [1, 100], b: [1, 50], c: [1, 10], d: [241, 200], e: [600, 5], f: [1, 300], g: [1, 400], h: [240, 500] };
+  for (const [id, [minutes, opened]] of Object.entries(times)) Object.assign(view.issues[id], { last: { move: view.issues[id].last ? view.issues[id].last.move : "none", at: now - minutes * 60000 }, opened_at: opened });
+  const q = issueQueue(view, A, now);
+  // A round, the reviews by the oldest since, the orchestrator's own acts by the oldest since (a late one has no
+  // precedence there). Then the starts and specs: the owner's (late first, a start before a spec), the late ones (a
+  // start before a spec), the rest (starts by the oldest opened, then the spec).
+  expect(q.queue.map((e) => e.id)).toEqual(["round", "rev-old", "rev-new", "rdy-old", "tri-new", "h", "g", "f", "d", "e", "b", "a", "c"]);
+  expect(q.queue.map((e) => e.do)).toEqual(["round", "review", "review", "ready", "triage", "start", "start", "spec", "start", "spec", "start", "start", "spec"]);
+  expect(q.queue.filter((e) => e.late).map((e) => e.id)).toEqual(["rdy-old", "h", "d", "e"]);
+  expect(q.queue.filter((e) => e.for === "owner").map((e) => e.id)).toEqual(["h", "g", "f"]);
+  // A row written before `last` was kept: the service reads the issue's events for it. The cell alone, given that row,
+  // has no last move to read and lists a round as work.
+  const before = (await rig.a("queue")).data.queue.find((e) => e.id === "round"), row = rig.db.view.get("round"), kept = JSON.parse(row.issue);
+  row.issue = JSON.stringify({ ...kept, last: undefined });
+  expect((await rig.a("get?id=round")).data.issue.last).toBe(undefined);
+  const after = (await rig.a("queue")).data;
+  expect([after.queue.find((e) => e.id === "round"), kept.last.move]).toEqual([before, "rework"]);
+  const bare = ((s) => ({ ...s, issues: Object.fromEntries(s.issues.map((i) => [i.id, i])) }))((await rig.owner("snapshot")).data);
+  expect(issueQueue(bare, A, Date.now()).waiting.find((e) => e.id === "round")).toMatchObject({ why: "work" });
+  // The read wrote nothing: the row is as the test left it.
+  expect(JSON.parse(rig.db.view.get("round").issue).last).toBe(undefined);
+  // A state no row names: a policy installed with no migrate leaves the open issues on a workflow it does not name.
+  // A task at open is then on no task workflow, and is a look; one at triaged is read by its state.
+  const policy = structuredClone(issuesDefaultPolicy);
+  policy.workflows.task.states = [...policy.workflows.task.states, "parked"];
+  await ok(rig.owner("install", { key: "other", policy }));
+  const left = (await rig.a("queue")).data, at = (id) => (left.queue.find((e) => e.id === id) || {}).do;
+  expect([at("tri-new"), at("rdy-old"), at("a")]).toEqual(["look", "ready", "start"]);
+  return `${q.queue.length} entries in order; a row with no last is read from its events; a task on a workflow the policy no longer names is a look`;
 }
 // %%
 test_issues_policy_is_installed_by_the_owner_and_migrates = {
@@ -3301,7 +3728,7 @@ test_issues_declares_what_it_needs = {
   const { meta } = await issues_service.emit();
   expect(meta).toMatchObject({ worker: "brain-x-issues", role: "recipe", module: "@tomlarkworthy/brain-issues", resources: ["blobs", "sql"], secrets: ["ISSUES_SIGNING_KEY"] });
   const methods = Object.keys(meta.access).sort().map((m) => m.replace("com.lopecode.brain.issue.", ""));
-  expect(methods).toEqual(["attach", "attachment", "comment", "cost", "flow", "get", "install", "key", "label", "link", "list", "lock", "locks", "move", "narrow", "open", "policy", "rebuild", "resign", "review", "runs", "snapshot", "swap", "sync", "verify"]);
+  expect(methods).toEqual(["attach", "attachment", "comment", "cost", "flow", "get", "hold", "install", "key", "label", "link", "list", "lock", "locks", "move", "narrow", "open", "policy", "queue", "rebuild", "resign", "review", "runs", "snapshot", "swap", "sync", "verify"]);
   const let_in = (who) => decide(meta.access["com.lopecode.brain.issue.open"], { caller: callerOf({ caller: who }), request: {} }).allow;
   expect(["owner", "token:a", "worker:brain-x-echo", "deployer", "did:plc:other", "anonymous"].map(let_in)).toEqual([true, true, true, true, false, false]);
   // The default policy passes its own check.
@@ -3338,6 +3765,12 @@ test_issues_reference_states_each_value_and_has_no_hole = {
     "text of 1 to " + L.reason + " characters",
     "&limit=" + L.syncPage + "`",
     "`syncMs` (" + L.syncMs + ")",
+    "after the call by this Worker's clock and at most " + L.holdDays + " days after it",
+    "or more than " + L.holdDays + " days on",
+    "| `issue.queue` | query, since 2026-10-12. `?limit=" + L.queue + "`.",
+    "are answered, " + L.page + " at most, " + L.queue + " when left out, 0 or not a number",
+    "is `true` when that is " + L.lateHours + " hours or more before `now`",
+    "## The queue",
     "After " + (L.rebuildRounds + 1) + " writes",
     "not empty, " + L.attachment + " bytes at most",
     "An issue has " + L.attachments + " at most",
