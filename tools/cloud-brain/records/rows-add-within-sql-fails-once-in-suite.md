@@ -71,8 +71,9 @@ All in the writer's worktree, bun 1.4.0.
 | the change | the same | 9 pass, 0 fail |
 | the change, the checkout's directory removed first (`rm -rf`, then `ls`: absent) | `bun test ./tests/tools`, 09:22:37 to 09:24:32 CEST | 526 pass, 0 fail, 526 tests across 58 files; no line `skipped:` |
 | the change, right after | `bun test ./tests/tools`, to 09:26:19 CEST | 526 pass, 0 fail, 526 tests across 58 files |
+| the change, after `worktree.sh --rebase` brought in five files (`worktree.sh`, `issue-as.sh`, `tests/tools/worktree.test.ts`, a plan, a record) | `bun test ./tests/tools`, 09:27:07 to 09:30:04 CEST | 555 pass, 0 fail, 555 tests across 58 files; no line `skipped:` |
 
-After the third row the directory held `brain-issues/brain-issues.js` and
+The 29 tests more of the last row are of the files the rebase brought in. After the third row the directory held `brain-issues/brain-issues.js` and
 `cloudflare-iac/cloudflare-iac.js` (`find -type f`).
 
 The first row is not `needs.ts` of `92f3d259`: that one takes no `into`, so the test would write
