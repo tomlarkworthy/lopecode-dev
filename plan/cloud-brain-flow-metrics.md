@@ -204,13 +204,16 @@ These are the definitions. They go, as they are built, into the reference cell o
 - **Done** is the first move into the state `done`. `rejected` and `closed` are not done.
 - **A project or a feature** has no deploy of its own. Its deploy is the first deploy of any of
   its parts; its done is its own move to `done`, which the loop makes when no part is open.
+  (As built, `fm-1-lead-times`, 2026-10-12: the first deploy made after the project was opened, of
+  its parts and of theirs in turn; a project is an issue of kind `project` or `feature`; the record.)
 - **A feedback issue** follows the work it went into: its parent and each issue it says a link of,
   as `feedbackFollows` reads them but whether or not it is closed, and the parts of those. Its deploy is the first deploy among
   them after it was opened; its done is the first `done` after it was opened among the issues it follows. A feedback issue
   that became a task (`promote`) is counted as the kind it has at `until`, by its own clocks.
 - **Who opened** is the role in the name of the token (`impl`, `rev`, `orch`, `over`, `spec`,
   `out`, or the name whole, as `role` of `issue-stats.ts`), `owner` for his session, `deployer`,
-  `worker:NAME`. **For whom** is `owner` when he opened it in his tab or it has the label `owner`
+  `worker:NAME`. (As built, `fm-1-lead-times`, 2026-10-12: `dig` is a role too, as in that tool, and
+  a delegation whose holder has no name is `token`; the record.) **For whom** is `owner` when he opened it in his tab or it has the label `owner`
   or `annotation`, else `loop`.
 - **A stay** is the time between two moves of an issue, or from the last move to `until` when it
   has not ended. A state is **before a start** (`open`, `triaged`, `ready`), **the owner's**
@@ -229,7 +232,9 @@ These are the definitions. They go, as they are built, into the reference cell o
 ### The rows (R1, R3, R4, R5)
 
 `issueFlow(events, { metric, since, until, by, filter })`, a cell of `brain-issues.ojs` that reads
-no other cell but the helpers it is given. It replays the events up to `until` and answers the
+no other cell but the helpers it is given. (As built, `fm-1-lead-times`, 2026-10-12: it is given
+nothing and reads seven cells, `issueApply` among them, so the view at `until` is made by the code
+the service makes it with; the record.) It replays the events up to `until` and answers the
 shape `metric.query` answers, so the page's draws take it:
 
 ```js
