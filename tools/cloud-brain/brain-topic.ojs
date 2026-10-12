@@ -1,6 +1,6 @@
 md`# brain-topic
 
-Named, ordered logs kept by a Cloud Brain. Each topic has a rule for who appends and a rule for who reads.
+Named, ordered logs kept by a Cloud Brain. Each topic has a rule for who appends and a rule for who reads, and pushes each entry to the methods subscribed to it.
 
 \`\`\`js
 await client.procedure("topic.create", { topic: "builds", write: 'caller.kind == "worker"', read: "true" }) // rules are CEL over caller and origin
@@ -9,7 +9,13 @@ await client.procedure("topic.append", { topic: "builds", key: "run-41", body: {
 await client.query("topic.read", { topic: "builds", after: 0, limit: 50 })                                   // { entries: [{ topic, seq, key, sender, at, body, hops }], next: 1 }
 \`\`\`
 
-The reader keeps \`next\` and sends it as \`after\`. Nothing is kept for a reader, and \`topic.read\` does not wait: a reader polls.
+The reader keeps \`next\` and sends it as \`after\`. Nothing is kept for a reader, and \`topic.read\` does not wait: a reader polls. A push is the other way to hear of an entry, and it is two calls by the subscriber:
+
+\`\`\`js
+const { id } = await client.procedure("delegation.create", { name: "builds-push", holder: { worker: "brain-x-topic" }, scope: ["m.0a1b.shop.receive", "quota.get"] }) // a method of the core: what this Worker may call as you
+await client.procedure("topic.subscribe", { topic: "builds", name: "shop", target: "m.0a1b.shop.receive", delegation: id, params: { from: "builds" }, failed: "builds-failed" })
+// from then on, for each entry appended: POST m.0a1b.shop.receive?from=builds, body the entry, as the subscriber
+\`\`\`
 
 | | |
 |---|---|
@@ -18,9 +24,14 @@ The reader keeps \`next\` and sends it as \`after\`. Nothing is kept for a reade
 | \`topic.append\` | procedure. \`{ topic, key, body }\` → \`{ seq, duplicate }\`. Needs the topic's \`write\` rule. \`key\` is 1 to 200 characters and is kept once for a topic. \`body\` is any JSON, at most \`bodyBytes\`; left out, it is \`null\`. |
 | \`topic.read\` | query. \`?topic=&after=0&limit=50\` → \`{ entries, next }\`, in \`seq\` order, \`limit\` at most 200. Needs the topic's \`read\` rule. With no entry after \`after\`, \`next\` is \`after\`. |
 | \`topic.list\` | query. \`{ topics: [{ topic, creator, write, read, last, created }] }\`: the topics the caller created; for the owner, all. \`last\` is the \`seq\` of the newest append. |
-| \`topic.delete\` | procedure. \`{ topic }\` → \`{ deleted: true }\`. The creator or the owner. The topic and its entries; a topic made again with the name starts at \`seq\` 1. |
-| Settings | \`bodyBytes\` (100000). \`keepDays\` (30) and \`keepEntries\` (10000): what the clock removes. \`topicsPerCreator\` (50): the topics one member has. Changed with \`config.set\` on the core, no deploy. |
-| Storage | \`sql\`: \`topic_topics\`, \`topic_entries\` |
+| \`topic.delete\` | procedure. \`{ topic }\` → \`{ deleted: true }\`. The creator or the owner. The topic, its entries and its subscriptions; a topic made again with the name starts at \`seq\` 1. |
+| \`topic.subscribe\` | procedure. \`{ topic, name, target, delegation, params, failed }\` → the subscription as \`topic.subs\` shows it, and \`subscribed\`: false when it was there and was changed. Needs the topic's \`read\` rule, and with \`failed\` that topic's \`write\` rule. \`target\` is a method named \`NAME.receive\`, whole or without \`com.lopecode.brain.\`. \`delegation\` is the id of one the caller made for \`brain-x-topic\`, with the target and \`quota.get\` in its scope. \`params\` is the query of each push. With no \`target\` it is 400: a subscription to take from is not built. |
+| \`topic.unsubscribe\` | procedure. \`{ topic, name }\` → \`{ unsubscribed: true }\`. Its creator, the creator of the topic or the owner; to anyone else it is 404. |
+| \`topic.subs\` | query. \`?topic=\` → \`{ subs: [{ topic, name, creator, target, delegation, params, failed, position, tries, waits, dropped, status, error, created }] }\`: the caller's own; for the owner, all. With \`topic\`, those of that topic, and its creator also reads \`{ topic, name, creator, target, position, created }\` of each other subscription to it. |
+| \`topic.receive\` | procedure. \`?topic=B\`, body an entry → \`{ seq, duplicate }\`. Appends the entry's \`body\` to \`B\` under the key \`<its topic>/<its seq>\`. Needs \`B\`'s \`write\` rule. It is the target that joins one topic to another. |
+| Settings | \`bodyBytes\` (100000). \`keepDays\` (30) and \`keepEntries\` (10000): what the clock removes. \`topicsPerCreator\` (50): the topics one member has. \`subsPerTopic\` (10): the subscriptions to one topic. \`pushMs\` (10000): how long one push is waited for. Changed with \`config.set\` on the core, no deploy. |
+| Storage | \`sql\`: \`topic_topics\`, \`topic_entries\`, \`topic_subs\` |
+| Calls | With \`x-brain-as\` only: \`quota.get\` at \`topic.subscribe\`, and the target of each push. The manifest lists no \`calls\`: the core does not hold a call under a delegation to that list. |
 
 ## Names
 
@@ -48,9 +59,36 @@ To \`topic.append\`, \`topic.read\` and \`topic.delete\` a topic that does not e
 
 Entries older than \`keepDays\`, and those more than \`keepEntries\` behind the topic's \`last\`. The removal runs on the first tick of the clock an instance is given, and then on the first tick an hour or more after the last removal (\`test_topic_clock_removes_old_entries_and_no_seq_is_used_twice\`, where the test gives the ticks). On a Brain the tick is Cloudflare's cron trigger, \`* * * * *\`; no removal had been seen on cb4 when this was written, 2026-10-12. A removed entry's \`key\` can then be appended again, as a new entry. The clock reads the settings the instance was last sent with a call (the core sends them with each one), so a setting changed with \`config.set\` is followed by the removal after the next call the instance answers.
 
+## A push
+
+A subscription starts at the topic's \`last\`: it is pushed what is appended after it. After an append has answered, and again at each tick of the clock, each subscription of the topic that is behind and not waiting is worked on by one deliverer, which pushes its entries in \`seq\` order:
+
+\`\`\`
+POST <target>?<params>     x-brain-as: <delegation>     x-brain-hops: <entry.hops>     body: the entry
+\`\`\`
+
+The core makes that call the subscriber's: the target hears \`x-brain-caller\` the subscriber, \`x-brain-via delegation:<id>\` and \`x-brain-holder worker:brain-x-topic\`, and nothing of who appended but the entry itself. The body is the appender's: a \`receive\` method trusts \`entry.sender\` and nothing else in it.
+
+| the target answers | then |
+|---|---|
+| 2xx | the position moves to this \`seq\` |
+| 5xx, 429, 402, or nothing in \`pushMs\` | a try. The subscription waits 1, 2, 4 and 8 minutes, counted from the append or the tick that tried, and the fifth try that fails gives the entry up. The entries behind it wait with it. |
+| anything else | given up at once. 403 is what the core answers when the delegation's scope does not reach the target. |
+| (\`entry.hops\` is 8 or more) | given up with no call: the core refuses a chain that long |
+
+An entry given up moves the position. With \`failed\` on the subscription, \`{ topic, name, seq, entry, status, error, tries }\` is appended to that topic with the key \`<topic>/<name>/<seq>\`, the sender \`worker:brain-x-topic\` and the \`hops\` of the entry plus one; with none, or when the entry's \`hops\` is 8 or more, or when that topic is gone, it is dropped and \`dropped\` of the subscription counts it. So a failure is one more link of the chain it came by, and a subscription whose \`failed\` is its own topic writes it eight times for one append and stops (\`test_topic_chain_of_pushes_ends_at_eight\`).
+
+Delivery is at least once: a deliverer that ends between the target's answer and the write of the position pushes that entry again. A target that must not act twice keeps the \`seq\` it has handled; \`topic.receive\` does, by its key.
+
+**Whose delegation.** An id is not a secret, so \`topic.subscribe\` asks the core \`quota.get\` under it and keeps the subscription only when the answer's \`who\` is its caller. A delegation another account made, one made for another Worker, an id that is nobody's and one whose scope has no \`quota.get\` are 403. Every token of the owner's is \`owner\` here, so one of them can subscribe with a delegation the owner or another of his tokens made for this Worker.
+
+**What a rule change does not do.** The \`read\` rule, and the \`write\` rule of \`failed\`, are asked at \`topic.subscribe\` and not at each push. The creator of a topic who shuts a reader out also ends that reader's subscriptions: \`topic.subs?topic=\` lists them and \`topic.unsubscribe\` removes one. Nothing lists the subscriptions that name a topic as their \`failed\`.
+
+A deliverer starts no push once it has worked 20 s, and its claim of the subscription ends 30 s after its last write, when another deliverer may claim it. A deliverer reads the settings its instance was last sent with a call.
+
 ## Not built
 
-Subscriptions, push to a method named \`NAME.receive\`, and taking (\`topic.subscribe\`, \`unsubscribe\`, \`subs\`, \`receive\`, \`take\`, \`done\`) are tasks 2 and 3 of \`plan/cloud-brain-topics-service.md\`. This module was first built 2026-10-12 as task 1, \`tp-1-topics-append-read\`.`
+Taking (\`topic.take\`, \`topic.done\`, a subscription with no \`target\`) is task 3 of \`plan/cloud-brain-topics-service.md\`. This module was first built 2026-10-12 as task 1, \`tp-1-topics-append-read\`; subscriptions and the push are task 2, \`tp-2-push-to-receive\`, of the same day.`
 // %%
 topicRule = 'caller.kind in ["owner", "token", "did", "worker"]'
 // %%
@@ -65,7 +103,10 @@ topic_service = cloudflare.Service("topic", topicApp, {
     "com.lopecode.brain.topic.read": { type: "query", allow: topicRule },
     "com.lopecode.brain.topic.list": { type: "query", allow: topicRule },
     "com.lopecode.brain.topic.delete": { type: "procedure", allow: topicRule },
-    "com.lopecode.brain.topic.subscribe": { type: "procedure", allow: topicRule }
+    "com.lopecode.brain.topic.subscribe": { type: "procedure", allow: topicRule },
+    "com.lopecode.brain.topic.unsubscribe": { type: "procedure", allow: topicRule },
+    "com.lopecode.brain.topic.subs": { type: "query", allow: topicRule },
+    "com.lopecode.brain.topic.receive": { type: "procedure", allow: topicRule }
   }
 })
 // %%
@@ -74,14 +115,22 @@ topic_announce = {
   return "announced topic_service";
 }
 // %%
-topicLimits = ({ name: /^[a-z0-9][a-z0-9.-]{0,59}$/, key: 200, rule: 500, bodyBytes: 100000, keepDays: 30, keepEntries: 10000, topicsPerCreator: 50, page: 50, maxPage: 200, trimMs: 3600000 })
+topicLimits = ({ name: /^[a-z0-9][a-z0-9.-]{0,59}$/, key: 200, rule: 500, bodyBytes: 100000, keepDays: 30, keepEntries: 10000, topicsPerCreator: 50, page: 50, maxPage: 200, trimMs: 3600000,
+  // A push: the methods it may name, the most subscriptions to a topic, how long one call is waited for, the waits
+  // after a try that may be tried again, how many tries, how long a chain is, how long one deliverer works and holds
+  // its subscription, how many subscriptions one tick takes, and the lengths of what a subscriber sends.
+  receive: /^com\.lopecode\.brain\.[A-Za-z0-9]+(\.[A-Za-z0-9]+)*\.receive$/, subsPerTopic: 10, pushMs: 10000, waits: [60000, 120000, 240000, 480000], tries: 5, hops: 8, deliverMs: 20000, leaseMs: 30000, duePage: 50, params: 1000, error: 300 })
 // %%
 // Each is sent in a call of its own: brain-db reads the plan of a whole batch before any of it runs.
 topicSchema = [
   "CREATE TABLE IF NOT EXISTS topic_topics (topic TEXT NOT NULL, creator TEXT NOT NULL, write TEXT NOT NULL, read TEXT NOT NULL, last INTEGER NOT NULL, created INTEGER NOT NULL, PRIMARY KEY (topic)) WITHOUT ROWID",
   "CREATE INDEX IF NOT EXISTS topic_topics_creator ON topic_topics (creator)",
   "CREATE TABLE IF NOT EXISTS topic_entries (topic TEXT NOT NULL, seq INTEGER NOT NULL, key TEXT NOT NULL, sender TEXT NOT NULL, at INTEGER NOT NULL, body TEXT NOT NULL, hops INTEGER NOT NULL, PRIMARY KEY (topic, seq)) WITHOUT ROWID",
-  "CREATE UNIQUE INDEX IF NOT EXISTS topic_entries_key ON topic_entries (topic, key)"
+  "CREATE UNIQUE INDEX IF NOT EXISTS topic_entries_key ON topic_entries (topic, key)",
+  // pos: the seq of the last entry pushed or given up. not_before: when the entry after it is next tried. lease and
+  // runner: the one deliverer that works on it, and until when. seconds is for a subscription to take from (task 3).
+  "CREATE TABLE IF NOT EXISTS topic_subs (topic TEXT NOT NULL, name TEXT NOT NULL, creator TEXT NOT NULL, target TEXT NOT NULL, delegation TEXT NOT NULL, params TEXT NOT NULL, failed TEXT NOT NULL, seconds INTEGER NOT NULL, pos INTEGER NOT NULL, tries INTEGER NOT NULL, not_before INTEGER NOT NULL, dropped INTEGER NOT NULL, status INTEGER NOT NULL, error TEXT NOT NULL, lease INTEGER NOT NULL, runner TEXT NOT NULL, created INTEGER NOT NULL, PRIMARY KEY (topic, name)) WITHOUT ROWID",
+  "CREATE INDEX IF NOT EXISTS topic_subs_creator ON topic_subs (creator)"
 ]
 // %%
 topicSql = ({
@@ -101,12 +150,34 @@ topicSql = ({
   dropEntries: "DELETE FROM topic_entries WHERE topic = ?1",
   drop: "DELETE FROM topic_topics WHERE topic = ?1",
   old: "DELETE FROM topic_entries WHERE at < ?1",
-  over: "DELETE FROM topic_entries WHERE seq <= (SELECT last FROM topic_topics WHERE topic_topics.topic = topic_entries.topic) - ?1"
+  over: "DELETE FROM topic_entries WHERE seq <= (SELECT last FROM topic_topics WHERE topic_topics.topic = topic_entries.topic) - ?1",
+  sub: "SELECT topic, name, creator, target, delegation, params, failed, pos, tries, not_before, dropped, status, error, lease, runner, created FROM topic_subs WHERE topic = ?1 AND name = ?2",
+  subsOf: "SELECT topic, name, creator, target, delegation, params, failed, pos, tries, not_before, dropped, status, error, lease, runner, created FROM topic_subs WHERE topic = ?1 ORDER BY name",
+  subsBy: "SELECT topic, name, creator, target, delegation, params, failed, pos, tries, not_before, dropped, status, error, lease, runner, created FROM topic_subs WHERE creator = ?1 ORDER BY topic, name",
+  subsAll: "SELECT topic, name, creator, target, delegation, params, failed, pos, tries, not_before, dropped, status, error, lease, runner, created FROM topic_subs ORDER BY topic, name",
+  subCount: "SELECT COUNT(*) AS n FROM topic_subs WHERE topic = ?1 AND name <> ?2",
+  // A subscription is subscribe, resubscribe, sub as one transaction. A new one starts at the topic's last: it is
+  // pushed what is appended after it. Sent again by its creator it takes the new target and is tried at once.
+  subscribe: "INSERT OR IGNORE INTO topic_subs (topic, name, creator, target, delegation, params, failed, seconds, pos, tries, not_before, dropped, status, error, lease, runner, created) SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, last, 0, 0, 0, 0, '', 0, '', ?8 FROM topic_topics WHERE topic = ?1",
+  resubscribe: "UPDATE topic_subs SET target = ?4, delegation = ?5, params = ?6, failed = ?7, tries = 0, not_before = 0 WHERE topic = ?1 AND name = ?2 AND creator = ?3",
+  unsubscribe: "DELETE FROM topic_subs WHERE topic = ?1 AND name = ?2",
+  dropSubs: "DELETE FROM topic_subs WHERE topic = ?1",
+  // Behind, not waiting and with no deliverer: what an append and a tick of the clock start a deliverer for.
+  due: "SELECT topic, name FROM topic_subs WHERE lease <= ?1 AND not_before <= ?1 AND pos < (SELECT last FROM topic_topics WHERE topic_topics.topic = topic_subs.topic) ORDER BY topic, name LIMIT ?2",
+  dueOf: "SELECT topic, name FROM topic_subs WHERE topic = ?2 AND lease <= ?1 AND not_before <= ?1 AND pos < (SELECT last FROM topic_topics WHERE topic_topics.topic = ?2) ORDER BY name",
+  // One deliverer a subscription: of two that claim at once one changes the row, and the other reads a runner that is not its own.
+  claim: "UPDATE topic_subs SET lease = ?4, runner = ?3 WHERE topic = ?1 AND name = ?2 AND lease <= ?5 AND not_before <= ?5 AND pos < (SELECT last FROM topic_topics WHERE topic_topics.topic = ?1)",
+  next: "SELECT seq, key, sender, at, body, hops FROM topic_entries WHERE topic = ?1 AND seq > (SELECT pos FROM topic_subs WHERE topic = ?1 AND name = ?2) ORDER BY seq LIMIT 1",
+  // Each of the three is the runner's alone. settled: an entry pushed or given up. waiting: a try that is tried again.
+  // rest: none is behind (the position goes to the topic's last, past entries the clock removed) or the time is up.
+  settled: "UPDATE topic_subs SET pos = ?4, tries = 0, not_before = 0, status = ?5, error = ?6, dropped = dropped + ?7, lease = ?8 WHERE topic = ?1 AND name = ?2 AND runner = ?3",
+  waiting: "UPDATE topic_subs SET tries = ?4, not_before = ?5, status = ?6, error = ?7, lease = 0, runner = '' WHERE topic = ?1 AND name = ?2 AND runner = ?3",
+  rest: "UPDATE topic_subs SET pos = MAX(pos, ?4), lease = 0, runner = '' WHERE topic = ?1 AND name = ?2 AND runner = ?3"
 })
 // %%
-// What the app and the clock share: the tables, made once an instance, and the removal.
+// What the app and the clock share: the tables, made once an instance, the removal, an append and the push.
 topicOps = {
-  const S = topicSql, L = topicLimits;
+  const S = topicSql, L = topicLimits, ME = "worker:brain-x-topic";
   let made = null, trimmed = 0;
   const schema = () =>
     (made ||= (async () => {
@@ -125,7 +196,7 @@ topicOps = {
     return { removed };
   };
   // The removal runs on the first tick an instance is given, and then on the first tick trimMs or more after it.
-  const tick = async (now = Date.now()) => {
+  const trimDue = async (now) => {
     if (now - trimmed < L.trimMs) return { skipped: true };
     const before = trimmed;
     trimmed = now;
@@ -134,7 +205,105 @@ topicOps = {
       throw e;
     });
   };
-  return { schema, setting, trim, tick };
+  // Whether the key was kept before is read in the transaction, not from the insert's count of changes.
+  // null: the topic is not there.
+  const append = async (topic, key, sender, text, hops) => {
+    const [before, , , kept] = await sql.batch([[S.byKey, topic, key], [S.append, topic, key, sender, Date.now(), text, hops], [S.counted, topic], [S.byKey, topic, key]]);
+    return kept.rows[0] ? { seq: kept.rows[0].seq, duplicate: before.rows.length > 0 } : null;
+  };
+  // One call of the target, under the subscriber's delegation. Nothing of the call this Worker is answering goes with
+  // it: x-brain-context is sent empty. xrpc.fetch takes no signal, so a call that is not answered in pushMs is left
+  // and its late answer is not read.
+  const push = async (sub, entry) => {
+    const ms = setting("pushMs"), params = JSON.parse(sub.params);
+    let timer;
+    const late = new Promise((done) => (timer = setTimeout(() => done({ status: 0, error: `no answer in ${ms} ms`, again: true }), ms)));
+    const call = (async () => {
+      const r = await xrpc.fetch(sub.target, { method: "POST", params: Object.keys(params).length ? params : null, headers: { "x-brain-as": sub.delegation, "x-brain-hops": String(entry.hops), "x-brain-context": "", "content-type": "application/json" }, body: JSON.stringify(entry) });
+      const text = await r.text().catch(() => "");
+      if (r.ok) return { ok: true, status: r.status, error: "" };
+      let said = text;
+      try {
+        said = JSON.parse(text).message || text;
+      } catch {}
+      return { status: r.status, error: String(said).slice(0, L.error), again: r.status >= 500 || r.status === 429 || r.status === 402 };
+    })().catch((e) => ({ status: 0, error: String((e && e.message) || e).slice(0, L.error), again: true }));
+    try {
+      return await Promise.race([call, late]);
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  // Deliverers that were started and have not ended. A call and a tick end when all of them have.
+  const running = new Set();
+  const start = (p) => {
+    const q = Promise.resolve(p).then(() => null, (e) => void log({ at: "topic.push.error", error: String((e && e.message) || e).slice(0, L.error) })).then(() => void running.delete(q));
+    running.add(q);
+  };
+  const drained = async () => {
+    while (running.size) await Promise.all([...running]);
+  };
+  // One subscription's entries, in order, by the one deliverer that claimed it. `now` is the time of the append or of
+  // the tick: a wait is counted from it. It reads the next entry again after each one, so an entry appended while it
+  // works is pushed by it, and stops when none is behind, the head waits, or deliverMs have gone.
+  const deliver = async (topic, name, now) => {
+    const runner = crypto.randomUUID(), began = Date.now();
+    const clock = () => now + (Date.now() - began);
+    const look = async (first) => {
+      const [, sub, row, next] = await sql.batch([first, [S.sub, topic, name], [S.one, topic], [S.next, topic, name]]);
+      return { sub: sub.rows[0], row: row.rows[0], entry: next.rows[0] };
+    };
+    const mine = (v) => !!(v.sub && v.row && v.sub.runner === runner);
+    for (;;) {
+      let v = await look([S.claim, topic, name, runner, clock() + L.leaseMs, clock()]);
+      if (!mine(v)) return;
+      for (;;) {
+        const late = Date.now() - began >= L.deliverMs;
+        if (!v.entry || late) {
+          await sql.exec(S.rest, topic, name, runner, v.entry ? 0 : v.row.last);
+          if (late) return;
+          // Claimed again when an entry was appended between the read and the release.
+          break;
+        }
+        const sub = v.sub, e = v.entry, entry = { topic, seq: e.seq, key: e.key, sender: e.sender, at: e.at, body: JSON.parse(e.body), hops: e.hops };
+        // The core would refuse a chain this long, so no call is made.
+        const out = e.hops >= L.hops ? { status: 0, error: `a chain of pushes is at most ${L.hops} long` } : await push(sub, entry);
+        if (out.ok) v = await look([S.settled, topic, name, runner, e.seq, out.status, "", 0, clock() + L.leaseMs]);
+        else {
+          const tries = sub.tries + 1;
+          if (out.again && tries < L.tries) return void (await sql.exec(S.waiting, topic, name, runner, tries, now + L.waits[tries - 1], out.status, out.error));
+          // Given up. To the failed topic as one more link of the chain it came by; an entry at the end of a chain is dropped.
+          const kept = sub.failed && e.hops < L.hops ? await append(sub.failed, `${topic}/${name}/${e.seq}`, ME, JSON.stringify({ topic, name, seq: e.seq, entry, status: out.status, error: out.error, tries }), e.hops + 1) : null;
+          v = await look([S.settled, topic, name, runner, e.seq, out.status, out.error, kept ? 0 : 1, clock() + L.leaseMs]);
+          log({ at: "topic.push.gaveup", topic, name, seq: e.seq, status: out.status, tries, failed: kept ? sub.failed : "" });
+          if (kept && !kept.duplicate && sub.failed !== topic) start(pushOf(sub.failed, clock()));
+        }
+        if (!mine(v)) return;
+      }
+    }
+  };
+  // A deliverer for each subscription that is behind: of one topic after an append, of every topic at a tick.
+  const pushOf = async (topic, now) => {
+    for (const d of (await sql.exec(S.dueOf, now, topic)).rows) start(deliver(d.topic, d.name, now));
+  };
+  const pushDue = async (now) => {
+    await schema();
+    const due = (await sql.exec(S.due, now, L.duePage)).rows;
+    for (const d of due) start(deliver(d.topic, d.name, now));
+    await drained();
+    return { due: due.length };
+  };
+  // After an append has answered: the push of that topic, and of what it causes in this instance.
+  const pushAfter = async (topic) => {
+    start(pushOf(topic, Date.now()));
+    await drained();
+  };
+  // The push each tick; the removal when it is due. A push that failed does not hold the removal back.
+  const tick = async (now = Date.now()) => {
+    const pushed = await pushDue(now).catch((e) => ({ error: String((e && e.message) || e).slice(0, L.error) }));
+    return { ...(await trimDue(now)), pushed };
+  };
+  return { schema, setting, trim, tick, append, pushAfter };
 }
 // %%
 topicApp = {
@@ -195,22 +364,41 @@ topicApp = {
     return fail(c, 409, "Conflict", "another call made this topic at the same time; send it again");
   });
 
-  app.post(NS + "append", async (c) => {
-    const w = who(c), b = await sent(c), topic = b.topic;
-    if (!named(topic)) return badName(c);
-    if (typeof b.key !== "string" || !b.key || b.key.length > L.key) return fail(c, 400, "InvalidRequest", `key: 1 to ${L.key} characters`);
-    const text = JSON.stringify(b.body ?? null), most = Math.floor(topicOps.setting("bodyBytes"));
+  // What topic.append and topic.receive share: the size, the rule, the write, and the push after the answer.
+  const put = async (c, w, topic, key, body) => {
+    const text = JSON.stringify(body ?? null), most = Math.floor(topicOps.setting("bodyBytes"));
     if (new TextEncoder().encode(text).length > most) return fail(c, 400, "InvalidRequest", `body: at most ${most} bytes of JSON`);
     await topicOps.schema();
     const row = (await sql.exec(S.one, topic)).rows[0];
     if (!row) return absent(c, w.caller, topic);
     if (!decide({ allow: row.write }, w).allow) return fail(c, 403, "Forbidden", REFUSED);
     const hops = Math.max(0, Math.floor(Number(c.req.header("x-brain-hops")) || 0));
-    // Whether the key was kept before is read in the transaction, not from the insert's count of changes.
-    const [before, , , kept] = await sql.batch([[S.byKey, topic, b.key], [S.append, topic, b.key, w.caller.id, Date.now(), text, hops], [S.counted, topic], [S.byKey, topic, b.key]]);
+    const kept = await topicOps.append(topic, key, w.caller.id, text, hops);
     // Deleted between the rule and the write.
-    if (!kept.rows[0]) return fail(c, 404, "NotFound", "no such topic");
-    return c.json({ seq: kept.rows[0].seq, duplicate: before.rows.length > 0 });
+    if (!kept) return fail(c, 404, "NotFound", "no such topic");
+    // The push does not hold the answer back. A key sent again starts none: the clock has what is behind.
+    if (!kept.duplicate) {
+      const pushed = topicOps.pushAfter(topic).catch((e) => void log({ at: "topic.push.error", topic, error: String((e && e.message) || e).slice(0, 300) }));
+      try {
+        c.executionCtx.waitUntil(pushed);
+      } catch {}
+    }
+    return c.json(kept);
+  };
+
+  app.post(NS + "append", async (c) => {
+    const w = who(c), b = await sent(c), topic = b.topic;
+    if (!named(topic)) return badName(c);
+    if (typeof b.key !== "string" || !b.key || b.key.length > L.key) return fail(c, 400, "InvalidRequest", `key: 1 to ${L.key} characters`);
+    return put(c, w, topic, b.key, b.body);
+  });
+
+  // The one target this service has itself: a pushed entry's body, appended to ?topic= as the subscriber.
+  app.post(NS + "receive", async (c) => {
+    const w = who(c), e = await sent(c), topic = c.req.query("topic");
+    if (!named(topic)) return badName(c);
+    if (!named(e.topic) || !Number.isInteger(e.seq) || e.seq < 1) return fail(c, 400, "InvalidRequest", "the body is an entry: { topic, seq, body }");
+    return put(c, w, topic, `${e.topic}/${e.seq}`, e.body);
   });
 
   app.get(NS + "read", async (c) => {
@@ -242,47 +430,102 @@ topicApp = {
     const row = (await sql.exec(S.one, topic)).rows[0];
     if (!row) return absent(c, caller, topic);
     if (!admin(caller, row)) return fail(c, 403, "Forbidden", REFUSED);
-    await sql.batch([[S.dropEntries, topic], [S.drop, topic]]);
+    await sql.batch([[S.dropEntries, topic], [S.dropSubs, topic], [S.drop, topic]]);
     return c.json({ deleted: true });
   });
 
   // The whole name of a target, as a delegation's scope keeps it, when it is a method named NAME.receive.
-  const RECEIVE = /^com\.lopecode\.brain\.[A-Za-z0-9]+(\.[A-Za-z0-9]+)*\.receive$/;
-  const targetOf = (t) => ((whole) => (RECEIVE.test(whole) ? whole : null))(typeof t === "string" ? (t.startsWith("com.") ? t : "com.lopecode.brain." + t) : "");
-  // Whose delegation: quota.get under it answers for the account that made it. The appender's context is not sent on.
+  const targetOf = (t) => ((whole) => (L.receive.test(whole) ? whole : null))(typeof t === "string" ? (t.startsWith("com.") ? t : "com.lopecode.brain." + t) : "");
+  // The query of each push: a few names with text, a number or a boolean. null when it is not that.
+  const paramsOf = (p) => {
+    if (p === undefined || p === null) return "{}";
+    if (typeof p !== "object" || Array.isArray(p) || !Object.values(p).every((v) => ["string", "number", "boolean"].includes(typeof v))) return null;
+    const text = JSON.stringify(Object.fromEntries(Object.entries(p).map(([k, v]) => [k, String(v)])));
+    return text.length <= L.params ? text : null;
+  };
+  // Whose delegation: quota.get under it answers for the account that made it (brain-core, quota.get: the origin of
+  // a call under a delegation is its maker). Nothing of the call this Worker is answering goes with it.
   const madeBy = async (id) => {
     const r = await xrpc.fetch("com.lopecode.brain.quota.get", { headers: { "x-brain-as": id, "x-brain-hops": "0", "x-brain-context": "" } });
     const body = await r.json().catch(() => null);
     return { status: r.status, who: r.ok && body && typeof body.who === "string" ? body.who : null };
   };
+  // A subscription as its creator and the owner read it; the creator of the topic reads who is subscribed and to what.
+  const subShown = (r, whole) =>
+    whole
+      ? { topic: r.topic, name: r.name, creator: r.creator, target: r.target, delegation: r.delegation, params: JSON.parse(r.params), failed: r.failed || null, position: r.pos, tries: r.tries, waits: r.not_before || null, dropped: r.dropped, status: r.status, error: r.error, created: r.created }
+      : { topic: r.topic, name: r.name, creator: r.creator, target: r.target, position: r.pos, created: r.created };
+  const NO_SUB = "no such subscription";
 
-  // The probe of task 2 (plan/cloud-brain-topics-service.md): the checks of a push subscription, and nothing kept.
   app.post(NS + "subscribe", async (c) => {
-    const w = who(c), b = await sent(c), topic = b.topic;
+    const w = who(c), b = await sent(c), topic = b.topic, failed = b.failed ?? "";
     if (!named(topic)) return badName(c);
     if (!named(b.name)) return fail(c, 400, "InvalidRequest", "name: a-z 0-9 . - , 1 to 60 characters, starting with a letter or a digit");
-    const target = targetOf(b.target);
+    if (b.target === undefined || b.target === null) return fail(c, 400, "InvalidRequest", "target: a method named NAME.receive; a subscription to take from is not built");
+    const target = targetOf(b.target), params = paramsOf(b.params);
     if (!target) return fail(c, 400, "InvalidRequest", "target: a method named NAME.receive");
     if (typeof b.delegation !== "string" || !/^[0-9a-f]{12}$/.test(b.delegation)) return fail(c, 400, "InvalidRequest", "delegation: the id of one made for brain-x-topic");
+    if (params === null) return fail(c, 400, "InvalidRequest", `params: names with text, a number or a boolean, at most ${L.params} characters as JSON`);
+    if (failed !== "" && !named(failed)) return fail(c, 400, "InvalidRequest", "failed: a topic's name");
     await topicOps.schema();
-    const row = (await sql.exec(S.one, topic)).rows[0];
-    if (!row) return absent(c, w.caller, topic);
-    if (!decide({ allow: row.read }, w).allow) return fail(c, 403, "Forbidden", REFUSED);
+    const [one, other, was, count] = await sql.batch([[S.one, topic], [S.one, failed], [S.sub, topic, b.name], [S.subCount, topic, b.name]]);
+    if (!one.rows[0]) return absent(c, w.caller, topic);
+    if (!decide({ allow: one.rows[0].read }, w).allow) return fail(c, 403, "Forbidden", REFUSED);
+    if (failed !== "" && !other.rows[0]) return absent(c, w.caller, failed);
+    if (failed !== "" && !decide({ allow: other.rows[0].write }, w).allow) return fail(c, 403, "Forbidden", "failed: " + REFUSED);
+    if (was.rows[0] && was.rows[0].creator !== w.caller.id) return fail(c, 403, "Forbidden", "that name is another subscriber's");
+    const most = Math.floor(topicOps.setting("subsPerTopic"));
+    if (!was.rows[0] && count.rows[0].n >= most) return fail(c, 400, "InvalidRequest", `a topic has at most ${most} subscriptions`);
     const made = await madeBy(b.delegation);
-    if (made.who !== w.caller.id) return fail(c, 403, "Forbidden", made.who === null ? `the core answered ${made.status} to quota.get under that delegation` : "that delegation was made by another account");
-    return c.json({ topic, name: b.name, target, delegation: b.delegation, kept: false });
+    if (made.who !== w.caller.id) return fail(c, 403, "Forbidden", made.who === null ? `the core answered ${made.status} to quota.get under that delegation: it is one this caller made for brain-x-topic, with quota.get in its scope` : "that delegation was made by another account");
+    const [, , kept] = await sql.batch([[S.subscribe, topic, b.name, w.caller.id, target, b.delegation, params, failed, Date.now()], [S.resubscribe, topic, b.name, w.caller.id, target, b.delegation, params, failed], [S.sub, topic, b.name]]);
+    // Deleted, or taken by another subscriber, between the checks and the write.
+    if (!kept.rows[0]) return fail(c, 404, "NotFound", "no such topic");
+    if (kept.rows[0].creator !== w.caller.id) return fail(c, 403, "Forbidden", "that name is another subscriber's");
+    return c.json({ ...subShown(kept.rows[0], true), subscribed: !was.rows[0] });
   });
 
-  app.all("*", (c) => fail(c, 404, "MethodNotImplemented", "topic.create, append, read, list, delete and subscribe"));
+  app.post(NS + "unsubscribe", async (c) => {
+    const { caller } = who(c), b = await sent(c), topic = b.topic;
+    if (!named(topic)) return badName(c);
+    if (!named(b.name)) return fail(c, 404, "NotFound", NO_SUB);
+    await topicOps.schema();
+    const [one, was] = await sql.batch([[S.one, topic], [S.sub, topic, b.name]]);
+    // Its creator, the creator of the topic and the owner. To anyone else it is not there.
+    if (!was.rows[0] || !(was.rows[0].creator === caller.id || (one.rows[0] && admin(caller, one.rows[0])))) return fail(c, 404, "NotFound", NO_SUB);
+    await sql.exec(S.unsubscribe, topic, b.name);
+    return c.json({ unsubscribed: true });
+  });
+
+  app.get(NS + "subs", async (c) => {
+    const { caller } = who(c), topic = c.req.query("topic");
+    if (topic !== undefined && !named(topic)) return badName(c);
+    await topicOps.schema();
+    if (topic === undefined) return c.json({ subs: (caller.id === "owner" ? await sql.exec(S.subsAll) : await sql.exec(S.subsBy, caller.id)).rows.map((r) => subShown(r, true)) });
+    const [one, found] = await sql.batch([[S.one, topic], [S.subsOf, topic]]);
+    const all = !!one.rows[0] && admin(caller, one.rows[0]);
+    return c.json({ subs: found.rows.filter((r) => all || r.creator === caller.id).map((r) => subShown(r, caller.id === "owner" || r.creator === caller.id)) });
+  });
+
+  app.all("*", (c) => fail(c, 404, "MethodNotImplemented", "topic.create, append, read, list, delete, subscribe, unsubscribe, subs and receive"));
   return app;
 }
 // %%
 md`## Tests
 
-No SQL engine runs in a page. \`topicFakeSql\` answers for the statements of \`topicSql\` from a map of topics and a list of entries, and refuses any other statement; each \`WHERE\` is written again in JS. The statements themselves are run by \`tests/tools/topic-sql.test.ts\` on a SQLite, where their plans are also given to the check of the deployed \`brain-db\`.`
+No SQL engine runs in a page. \`topicFakeSql\` answers for the statements of \`topicSql\` from a map of topics, a list of entries and a map of subscriptions, and refuses any other statement; each \`WHERE\` is written again in JS. The statements themselves are run by \`tests/tools/topic-sql.test.ts\` on a SQLite, where their plans are also given to the check of the deployed \`brain-db\`.
+
+The core is stood in as well (\`topicRig\`): a call with \`x-brain-as\` is answered as \`asHolder\` of \`@tomlarkworthy/brain-core\` answers it (the holder, the length of the chain, the scope) and sent on as the delegation's maker, to a target the test gives or back into this service for \`topic.receive\`. The core itself is not in these tests. A test gives the clock its ticks, and waits for the pushes of an append with what the Worker handed to \`waitUntil\`.`
 // %%
 topicFakeSql = () => {
-  const topics = new Map(), entries = [], S = topicSql;
+  const topics = new Map(), entries = [], subs = new Map(), S = topicSql;
+  const COLS = ["topic", "name", "creator", "target", "delegation", "params", "failed", "pos", "tries", "not_before", "dropped", "status", "error", "lease", "runner", "created"];
+  const sk = (topic, name) => topic + "\n" + name;
+  const seen = (list) => row(list.sort((x, y) => (sk(x.topic, x.name) < sk(y.topic, y.name) ? -1 : 1)).map((r) => Object.fromEntries(COLS.map((k) => [k, r[k]]))));
+  const behind = (x) => topics.has(x.topic) && x.pos < topics.get(x.topic).last;
+  const due = (now) => [...subs.values()].filter((x) => x.lease <= now && x.not_before <= now && behind(x));
+  // The row a deliverer's statement changes: the subscription, when the runner is its own.
+  const held = (a, change) => ((x) => (x && x.runner === a[2] ? (change(x), row([], 1)) : row([])))(subs.get(sk(a[0], a[1])));
   const row = (rows, changes = 0) => ({ rows, changes });
   const remove = (gone) => {
     const n = entries.length;
@@ -309,15 +552,63 @@ topicFakeSql = () => {
     if (statement === S.drop) return row([], topics.delete(a[0]) ? 1 : 0);
     if (statement === S.old) return remove((e) => e.at < a[0]);
     if (statement === S.over) return remove((e) => topics.has(e.topic) && e.seq <= topics.get(e.topic).last - a[0]);
+    const sub = subs.get(sk(a[0], a[1]));
+    if (statement === S.sub) return seen(sub ? [sub] : []);
+    if (statement === S.subsOf) return seen([...subs.values()].filter((x) => x.topic === a[0]));
+    if (statement === S.subsBy) return seen([...subs.values()].filter((x) => x.creator === a[0]));
+    if (statement === S.subsAll) return seen([...subs.values()]);
+    if (statement === S.subCount) return row([{ n: [...subs.values()].filter((x) => x.topic === a[0] && x.name !== a[1]).length }]);
+    if (statement === S.subscribe) {
+      if (!t || sub) return row([]);
+      subs.set(sk(a[0], a[1]), { topic: a[0], name: a[1], creator: a[2], target: a[3], delegation: a[4], params: a[5], failed: a[6], seconds: 0, pos: t.last, tries: 0, not_before: 0, dropped: 0, status: 0, error: "", lease: 0, runner: "", created: a[7] });
+      return row([], 1);
+    }
+    if (statement === S.resubscribe) return sub && sub.creator === a[2] ? (Object.assign(sub, { target: a[3], delegation: a[4], params: a[5], failed: a[6], tries: 0, not_before: 0 }), row([], 1)) : row([]);
+    if (statement === S.unsubscribe) return row([], subs.delete(sk(a[0], a[1])) ? 1 : 0);
+    if (statement === S.dropSubs) return row([], [...subs.values()].filter((x) => x.topic === a[0]).map((x) => subs.delete(sk(x.topic, x.name))).length);
+    if (statement === S.due) return row(seen(due(a[0])).rows.slice(0, a[1]).map((x) => ({ topic: x.topic, name: x.name })));
+    if (statement === S.dueOf) return row(seen(due(a[0]).filter((x) => x.topic === a[1])).rows.map((x) => ({ topic: x.topic, name: x.name })));
+    if (statement === S.claim) return sub && sub.lease <= a[4] && sub.not_before <= a[4] && behind(sub) ? (Object.assign(sub, { lease: a[3], runner: a[2] }), row([], 1)) : row([]);
+    if (statement === S.next) return row(sub ? entries.filter((e) => e.topic === a[0] && e.seq > sub.pos).sort((x, y) => x.seq - y.seq).slice(0, 1).map(({ topic, ...e }) => e) : []);
+    if (statement === S.settled) return held(a, (x) => Object.assign(x, { pos: a[3], tries: 0, not_before: 0, status: a[4], error: a[5], dropped: x.dropped + a[6], lease: a[7] }));
+    if (statement === S.waiting) return held(a, (x) => Object.assign(x, { tries: a[3], not_before: a[4], status: a[5], error: a[6], lease: 0, runner: "" }));
+    if (statement === S.rest) return held(a, (x) => Object.assign(x, { pos: Math.max(x.pos, a[3]), lease: 0, runner: "" }));
     throw new Error("topicFakeSql: " + statement);
   };
-  return { run, topics, entries };
+  return { run, topics, entries, subs };
 }
 // %%
 topicRig = async () => {
   const db = topicFakeSql();
-  const sim = await simulate(topic_service, { sql: db.run });
-  const X = "/xrpc/com.lopecode.brain.topic.";
+  const X = "/xrpc/com.lopecode.brain.topic.", N = "com.lopecode.brain.";
+  const reply = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json" } });
+  // The core, stood in for the calls this Worker makes: db.sql, and a call under x-brain-as, which is answered as
+  // asHolder of brain-core answers it (the holder, the chain's length, the scope) and then sent on as its maker.
+  // delegations: id -> { from, scope, holder }. targets: a method's whole name -> what it answers.
+  // heard: each call that reached a target, with the headers the core would send it and the context the Worker sent.
+  const delegations = new Map(), targets = new Map(), heard = [];
+  let sim = null;
+  const core = async (request) => {
+    const url = new URL(request.url), nsid = url.pathname.replace("/xrpc/", "");
+    if (nsid === N + "db.sql") {
+      const results = [];
+      for (const [statement, ...args] of (await request.json()).statements) results.push(await db.run(statement, args));
+      return reply({ results });
+    }
+    const as = request.headers.get("x-brain-as"), d = delegations.get(as), hops = Number(request.headers.get("x-brain-hops") || 0);
+    if (!as) return reply({ error: "MethodNotImplemented", message: nsid }, 501);
+    if (!d || d.holder !== "brain-x-topic") return reply({ error: "Forbidden", message: "brain-x-topic holds no such delegation" }, 403);
+    if (!Number.isInteger(hops) || hops < 0 || hops >= 8) return reply({ error: "Forbidden", message: "a chain of calls under delegations is at most 8 long" }, 403);
+    if (!matches(d.scope, nsid)) return reply({ error: "Forbidden", message: `delegation does not reach ${nsid}` }, 403);
+    if (nsid === N + "quota.get") return reply({ who: d.from });
+    const headers = { "x-brain-caller": d.from, "x-brain-via": "delegation:" + as, "x-brain-holder": "worker:brain-x-topic", "x-brain-tab": "0", "x-brain-hops": String(hops + 1), "content-type": "application/json" };
+    const text = await request.text();
+    const call = { nsid, query: url.search, headers, context: request.headers.get("x-brain-context"), body: text ? JSON.parse(text) : null };
+    heard.push(call);
+    if (nsid.startsWith(N + "topic.")) return sim.fetch("https://topic.internal" + url.pathname + url.search, { method: "POST", headers, body: text });
+    return targets.has(nsid) ? targets.get(nsid)(call) : reply({ error: "MethodNotImplemented", message: nsid }, 501);
+  };
+  sim = await simulate(topic_service, { core });
   const as = (who, more = {}) => async (path, body) => {
     const r = await sim.fetch("https://topic.internal" + X + path, {
       method: body === undefined ? "GET" : "POST",
@@ -329,7 +620,23 @@ topicRig = async () => {
   const settings = (o) => ({ "x-brain-settings": encodeURIComponent(JSON.stringify(o)) });
   // A token of the owner's, as the core names it: the owner, under a delegation a secret holds, not in a tab.
   const token = { "x-brain-via": "delegation:0007ea9d1903", "x-brain-holder": "secret:loop-topic", "x-brain-tab": "0" };
-  return { sim, db, as, settings, id: async (did) => (await sha256(did)).slice(0, 10), owner: as("owner", { "x-brain-via": "session", "x-brain-tab": "1" }), token: as("owner", token), worker: as("worker:brain-x-echo"), other: as("worker:brain-x-other") };
+  return {
+    sim, db, as, settings, heard, reply, N,
+    id: async (did) => (await sha256(did)).slice(0, 10),
+    owner: as("owner", { "x-brain-via": "session", "x-brain-tab": "1" }), token: as("owner", token), worker: as("worker:brain-x-echo"), other: as("worker:brain-x-other"),
+    // A delegation made for this Worker, as delegation.create of the core would keep it.
+    delegate: (id, from, scope, holder = "brain-x-topic") => (delegations.set(id, { from, holder, scope: scope.map((m) => N + m) }), id),
+    // A method named NAME.receive of another service: fn(call) answers it; the calls it got are counted.
+    target: (name, fn = () => reply({ ok: true })) => {
+      const calls = [];
+      targets.set(N + name, (call) => (calls.push(call), fn(call, calls.length)));
+      return calls;
+    },
+    // Every push an append started has ended: what the Worker handed to waitUntil.
+    pushed: () => simWaits.done(),
+    tick: (scheduledTime) => sim.scheduled({ scheduledTime }),
+    sub: (topic, name) => db.subs.get(topic + "\n" + name)
+  };
 }
 // %%
 test_topic_append_is_kept_once_for_a_key_and_read_from_a_position = {
@@ -513,19 +820,300 @@ test_topic_refuses_what_is_no_name_no_key_and_too_long_a_body = {
   return "10 names, 5 keys and 2 bodies refused";
 }
 // %%
+test_topic_push_reaches_the_target_as_the_subscriber = {
+  const rig = await topicRig(), N = rig.N;
+  const A = "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa", a = rig.as(A), ia = await rig.id(A);
+  const shop = rig.target("shop.receive");
+  const mine = rig.delegate("0000000000a1", "owner", ["shop.receive", "quota.get"]), theirs = rig.delegate("0000000000a2", A, ["shop.receive", "quota.get"]);
+  await rig.owner("create", { topic: "a" });
+  // An entry from before the subscription is not pushed: a subscription starts at the topic's last.
+  await rig.token("append", { topic: "a", key: "old", body: 0 });
+  const made = await rig.token("subscribe", { topic: "a", name: "s", target: "shop.receive", delegation: mine, params: { x: 1, y: "z w" } });
+  expect(made.data).toMatchObject({ topic: "a", name: "s", creator: "owner", target: N + "shop.receive", delegation: mine, params: { x: "1", y: "z w" }, failed: null, position: 1, tries: 0, waits: null, dropped: 0, subscribed: true });
+  // The appender is a Worker, with a context of its own: none of it reaches the target.
+  await rig.owner("create", { topic: "a", write: "true" });
+  expect((await rig.as("worker:brain-x-echo", { "x-brain-context": "c1.appender.sig" })("append", { topic: "a", key: "new", body: { n: 1 } })).data).toEqual({ seq: 2, duplicate: false });
+  await rig.pushed();
+  expect(shop.length).toBe(1);
+  expect(shop[0]).toMatchObject({ nsid: N + "shop.receive", query: "?x=1&y=z+w", context: "", headers: { "x-brain-caller": "owner", "x-brain-via": "delegation:" + mine, "x-brain-holder": "worker:brain-x-topic", "x-brain-hops": "1" } });
+  expect(shop[0].body).toMatchObject({ topic: "a", seq: 2, key: "new", sender: "worker:brain-x-echo", body: { n: 1 }, hops: 0 });
+  expect(Object.keys(shop[0].body).sort()).toEqual(["at", "body", "hops", "key", "sender", "seq", "topic"]);
+  expect(rig.sub("a", "s")).toMatchObject({ pos: 2, status: 200, tries: 0, lease: 0, runner: "" });
+  // In order, and a key sent again is pushed once.
+  for (const key of ["k3", "k4", "k4", "k5"]) await rig.token("append", { topic: "a", key, body: key });
+  await rig.pushed();
+  expect(shop.map((h) => h.body.seq)).toEqual([2, 3, 4, 5]);
+  // Whose delegation: another account's, nobody's, another Worker's, and one whose scope has no quota.get, are refused and nothing is kept.
+  rig.delegate("0000000000a3", "owner", ["shop.receive", "quota.get"], "brain-x-echo");
+  rig.delegate("0000000000a4", "owner", ["shop.receive"]);
+  for (const delegation of [theirs, "0000000000ff", "0000000000a3", "0000000000a4"]) expect([delegation, (await rig.token("subscribe", { topic: "a", name: "t", target: "shop.receive", delegation })).status]).toEqual([delegation, 403]);
+  expect((await rig.token("subscribe", { topic: "a", name: "t", target: "shop.receive", delegation: theirs })).data.message).toBe("that delegation was made by another account");
+  await rig.owner("create", { topic: "a", read: "true" });
+  expect((await a("subscribe", { topic: "a", name: "t", target: "shop.receive", delegation: mine })).status).toBe(403);
+  expect(rig.db.subs.size).toBe(1);
+  // A member with a delegation of their own: the target hears the member.
+  expect((await a("subscribe", { topic: "a", name: "t", target: "shop.receive", delegation: theirs })).data).toMatchObject({ creator: A, position: 5, subscribed: true });
+  await rig.token("append", { topic: "a", key: "k6", body: 6 });
+  await rig.pushed();
+  expect(shop.slice(4).map((h) => [h.headers["x-brain-caller"], h.headers["x-brain-via"], h.body.seq]).sort()).toEqual([[A, "delegation:" + theirs, 6], ["owner", "delegation:" + mine, 6]]);
+  // A topic the caller may not read takes no subscription of theirs; to them one that is not there answers the same.
+  await rig.owner("create", { topic: "a", read: 'caller.id == "owner"' });
+  const kept = [await a("subscribe", { topic: "a", name: "u", target: "shop.receive", delegation: theirs }), await a("subscribe", { topic: "nope", name: "u", target: "shop.receive", delegation: theirs })];
+  expect(kept.map((r) => [r.status, r.data.message])).toEqual(Array(2).fill([403, "the topic's rule does not let this caller in"]));
+  expect((await rig.owner("subscribe", { topic: "nope", name: "u", target: "shop.receive", delegation: mine })).status).toBe(404);
+  // Another member's subscribe of a member's own topic, under the default rules.
+  const B = "did:plc:bbbbbbbbbbbbbbbbbbbbbbbb", own = `m.${ia}.x`;
+  await a("create", { topic: own });
+  expect((await rig.as(B)("subscribe", { topic: own, name: "s", target: "shop.receive", delegation: rig.delegate("0000000000b1", B, ["shop.receive", "quota.get"]) })).status).toBe(403);
+  return shop.length + " pushes, each as its subscriber";
+}
+// %%
+test_topic_subscribe_takes_only_a_method_named_receive = {
+  const rig = await topicRig(), N = rig.N;
+  const d = rig.delegate("0000000000a1", "owner", ["topic.receive", "shop.receive", "quota.get"]), narrow = rig.delegate("0000000000a2", "owner", ["quota.get"]);
+  for (const topic of ["a", "b", "f"]) await rig.owner("create", { topic });
+  const sub = (more) => rig.token("subscribe", { topic: "a", name: "s", target: "topic.receive", delegation: d, ...more });
+  for (const target of [N + "browser.open", N + "topic.append", N + "m.0a.x.receiver", "https://example.com/receive", "com.evil.x.receive", "receive", "topic.receive.", "topic-x.receive", "", 7, {}]) expect([target, (await sub({ target })).status]).toEqual([target, 400]);
+  // With no target it would be a subscription to take from, which is not built.
+  expect((await sub({ target: undefined })).data.message).toBe("target: a method named NAME.receive; a subscription to take from is not built");
+  expect(rig.db.subs.size).toBe(0);
+  // Short or whole, the one whole name is kept.
+  for (const target of ["topic.receive", N + "topic.receive", N + "m.0a1b.shop.receive"]) expect([target, (await sub({ target, name: "n" + target.length })).data.target]).toEqual([target, target.startsWith("com.") ? target : N + target]);
+  // What else is no subscription.
+  for (const more of [{ name: "Upper" }, { name: undefined }, { topic: "A" }, { delegation: "nope" }, { delegation: undefined }, { delegation: "0000000000A1" }, { params: "x=1" }, { params: [1] }, { params: { x: { y: 1 } } }, { params: { x: "y".repeat(1000) } }, { failed: "Upper" }, { failed: 7 }]) expect([more, (await sub(more)).status]).toEqual([more, 400]);
+  expect((await sub({ failed: "nope" })).status).toBe(404);
+  // failed needs that topic's write rule.
+  await rig.owner("create", { topic: "f", write: "caller.session" });
+  expect((await sub({ failed: "f" })).data).toEqual({ error: "Forbidden", message: "failed: the topic's rule does not let this caller in" });
+  await rig.owner("create", { topic: "f", write: "true" });
+  // The scope is the bound the core reads on every push: a delegation with quota.get alone is kept, and its first push is refused and given up.
+  expect((await sub({ name: "narrow", delegation: narrow, params: { topic: "b" }, failed: "f" })).data).toMatchObject({ target: N + "topic.receive", failed: "f", subscribed: true });
+  for (const name of ["n13", "n32", "n38"]) expect((await rig.token("unsubscribe", { topic: "a", name })).data).toEqual({ unsubscribed: true });
+  await rig.token("append", { topic: "a", key: "k", body: "x" });
+  await rig.pushed();
+  expect(rig.sub("a", "narrow")).toMatchObject({ pos: 1, status: 403, dropped: 0, tries: 0, not_before: 0 });
+  const failed = (await rig.owner("read?topic=f")).data.entries;
+  expect(failed.map((e) => [e.key, e.sender, e.hops, e.body.status, e.body.tries, e.body.topic, e.body.name, e.body.seq, e.body.entry.body])).toEqual([["a/narrow/1", "worker:brain-x-topic", 1, 403, 1, "a", "narrow", 1, "x"]]);
+  expect(failed[0].body.error).toBe("delegation does not reach " + N + "topic.receive");
+  expect((await rig.owner("read?topic=b")).data.entries).toEqual([]);
+  // A topic has subsPerTopic subscriptions; one that is there is changed all the same.
+  for (let i = 2; i <= 10; i++) expect([i, (await sub({ name: "s" + i })).status]).toEqual([i, 200]);
+  expect((await sub({ name: "s11" })).data).toEqual({ error: "InvalidRequest", message: "a topic has at most 10 subscriptions" });
+  expect((await sub({ name: "s10", target: "shop.receive" })).data).toMatchObject({ target: N + "shop.receive", subscribed: false });
+  expect((await rig.as("owner", rig.settings({ subsPerTopic: 11 }))("subscribe", { topic: "a", name: "s11", target: "topic.receive", delegation: d })).status).toBe(200);
+  return "11 targets refused, 11 subscriptions to a topic";
+}
+// %%
+test_topic_push_is_tried_five_times_and_then_goes_to_failed = {
+  const rig = await topicRig(), N = rig.N, min = 60000;
+  const d = rig.delegate("0000000000a1", "owner", ["*"]);
+  let answer = 500;
+  const shop = rig.target("shop.receive", () => rig.reply({ error: "Upstream", message: "down" }, answer));
+  for (const topic of ["a", "f"]) await rig.owner("create", { topic });
+  await rig.token("subscribe", { topic: "a", name: "s", target: "shop.receive", delegation: d, failed: "f" });
+  const before = Date.now();
+  for (const key of ["k1", "k2"]) await rig.token("append", { topic: "a", key, body: key });
+  await rig.pushed();
+  const after = Date.now();
+  // One try; the entry behind it is held.
+  expect(shop.map((h) => h.body.seq)).toEqual([1]);
+  expect(rig.sub("a", "s")).toMatchObject({ pos: 0, tries: 1, status: 500, error: "down", lease: 0, runner: "" });
+  expect(rig.sub("a", "s").not_before).toBeGreaterThanOrEqual(before + min);
+  expect(rig.sub("a", "s").not_before).toBeLessThanOrEqual(after + min);
+  expect((await rig.token("subs?topic=a")).data.subs[0]).toMatchObject({ position: 0, tries: 1, waits: rig.sub("a", "s").not_before, status: 500, error: "down" });
+  // A tick before the wait is over makes no call; an append while it waits makes none either.
+  await rig.tick(before + min - 1);
+  await rig.token("append", { topic: "a", key: "k3", body: "k3" });
+  await rig.pushed();
+  expect(shop.length).toBe(1);
+  // The waits are 1, 2, 4 and 8 minutes, each counted from the tick that tried.
+  let now = after + min;
+  for (const [tries, wait] of [[2, 2 * min], [3, 4 * min], [4, 8 * min]]) {
+    await rig.tick(now);
+    expect([shop.length, rig.sub("a", "s").tries, rig.sub("a", "s").not_before]).toEqual([tries, tries, now + wait]);
+    await rig.tick(now + wait - 1);
+    expect(shop.length).toBe(tries);
+    now += wait;
+  }
+  expect((await rig.owner("read?topic=f")).data.entries).toEqual([]);
+  // The fifth try gives the entry up: it is in the failed topic, and the entries behind it are tried in the same run.
+  answer = 200;
+  shop.length = 0;
+  rig.target("shop.receive", (call, n) => (shop.push(call), n === 1 ? rig.reply({ error: "Upstream", message: "still down" }, 503) : rig.reply({ ok: true })));
+  await rig.tick(now);
+  expect(shop.map((h) => h.body.seq)).toEqual([1, 2, 3]);
+  expect(rig.sub("a", "s")).toMatchObject({ pos: 3, tries: 0, not_before: 0, dropped: 0, status: 200, error: "" });
+  const failed = (await rig.owner("read?topic=f")).data.entries;
+  expect(failed.map((e) => [e.key, e.sender, e.hops, e.body.status, e.body.error, e.body.tries, e.body.entry.key])).toEqual([["a/s/1", "worker:brain-x-topic", 1, 503, "still down", 5, "k1"]]);
+  expect(Object.keys(failed[0].body).sort()).toEqual(["entry", "error", "name", "seq", "status", "topic", "tries"]);
+  // With no failed topic the entry is dropped and counted. A 400 is called once; 429 and 402 are tried again.
+  await rig.owner("create", { topic: "b" });
+  await rig.token("subscribe", { topic: "b", name: "s", target: "bad.receive", delegation: d });
+  const bad = rig.target("bad.receive", () => rig.reply({ error: "InvalidRequest", message: "not this" }, answer));
+  answer = 400;
+  await rig.token("append", { topic: "b", key: "k1", body: 1 });
+  await rig.pushed();
+  expect([bad.length, rig.sub("b", "s")]).toMatchObject([1, { pos: 1, dropped: 1, tries: 0, not_before: 0, status: 400, error: "not this" }]);
+  for (const status of [429, 402]) {
+    answer = status;
+    const at = Date.now();
+    await rig.token("append", { topic: "b", key: "k" + status, body: 1 });
+    await rig.pushed();
+    expect(rig.sub("b", "s")).toMatchObject({ tries: 1, status, dropped: 1 });
+    // Sent again by its creator a subscription is tried at once, and keeps its position.
+    answer = 200;
+    expect((await rig.token("subscribe", { topic: "b", name: "s", target: "bad.receive", delegation: d })).data).toMatchObject({ tries: 0, waits: null, subscribed: false });
+    await rig.tick(at);
+    expect(rig.sub("b", "s")).toMatchObject({ tries: 0, status: 200, pos: rig.db.topics.get("b").last });
+  }
+  // A target that does not answer is a try: the call is left after pushMs.
+  rig.target("slow.receive", () => new Promise(() => {}));
+  await rig.owner("create", { topic: "c" });
+  await rig.token("subscribe", { topic: "c", name: "s", target: "slow.receive", delegation: d });
+  await rig.as("owner", rig.settings({ pushMs: 5 }))("append", { topic: "c", key: "k", body: 1 });
+  await rig.pushed();
+  expect(rig.sub("c", "s")).toMatchObject({ pos: 0, tries: 1, status: 0, error: "no answer in 5 ms" });
+  return "5 tries of one entry, 1 of a 400";
+}
+// %%
+test_topic_chain_of_pushes_ends_at_eight = {
+  const rig = await topicRig(), N = rig.N;
+  const d = rig.delegate("0000000000a1", "owner", ["*"]);
+  const hops = async (topic) => (await rig.owner(`read?topic=${topic}&limit=200`)).data.entries.map((e) => e.hops);
+  // A topic pushed to itself: the ninth entry of the chain is kept and is not pushed.
+  await rig.owner("create", { topic: "loop" });
+  await rig.token("subscribe", { topic: "loop", name: "s", target: "topic.receive", delegation: d, params: { topic: "loop" } });
+  await rig.token("append", { topic: "loop", key: "start", body: "x" });
+  await rig.pushed();
+  expect(await hops("loop")).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+  expect(rig.heard.filter((h) => h.nsid === N + "topic.receive").map((h) => [h.headers["x-brain-hops"], h.body.hops])).toEqual([1, 2, 3, 4, 5, 6, 7, 8].map((n) => [String(n), n - 1]));
+  expect((await rig.owner("read?topic=loop&after=1&limit=2")).data.entries.map((e) => [e.key, e.sender, e.body])).toEqual([["loop/1", "owner", "x"], ["loop/2", "owner", "x"]]);
+  expect(rig.sub("loop", "s")).toMatchObject({ pos: 9, dropped: 1, status: 0, error: "a chain of pushes is at most 8 long" });
+  // The way to failed ends too. A subscription whose failed topic is its own, and a target that refuses.
+  const shop = rig.target("shop.receive", () => rig.reply({ error: "Forbidden", message: "no" }, 403));
+  await rig.owner("create", { topic: "f" });
+  await rig.token("subscribe", { topic: "f", name: "s", target: "shop.receive", delegation: d, failed: "f" });
+  await rig.token("append", { topic: "f", key: "start", body: "x" });
+  await rig.pushed();
+  expect(await hops("f")).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+  expect([shop.length, rig.sub("f", "s").dropped, rig.sub("f", "s").pos]).toEqual([8, 1, 9]);
+  // Two topics that name each other.
+  for (const [topic, failed] of [["g", "h"], ["h", "g"]]) await rig.owner("create", { topic });
+  for (const [topic, failed] of [["g", "h"], ["h", "g"]]) await rig.token("subscribe", { topic, name: "s", target: "shop.receive", delegation: d, failed });
+  await rig.token("append", { topic: "g", key: "start", body: "x" });
+  await rig.pushed();
+  expect([await hops("g"), await hops("h")]).toEqual([[0, 2, 4, 6, 8], [1, 3, 5, 7]]);
+  expect([rig.sub("g", "s").dropped, rig.sub("h", "s").dropped]).toEqual([1, 0]);
+  // A failed topic that is gone: the entry is dropped and counted.
+  await rig.owner("create", { topic: "i" });
+  await rig.owner("create", { topic: "gone" });
+  await rig.token("subscribe", { topic: "i", name: "s", target: "shop.receive", delegation: d, failed: "gone" });
+  await rig.owner("delete", { topic: "gone" });
+  await rig.token("append", { topic: "i", key: "start", body: "x" });
+  await rig.pushed();
+  expect(rig.sub("i", "s")).toMatchObject({ pos: 1, dropped: 1, status: 403, error: "no" });
+  shop.length -= 1;
+  // A tick of the clock, then and an hour on, adds none.
+  const counts = () => ["loop", "f", "g", "h"].map((t) => rig.db.topics.get(t).last);
+  expect(counts()).toEqual([9, 9, 5, 4]);
+  await rig.tick(Date.now() + 1000);
+  await rig.tick(Date.now() + 3600000);
+  expect(counts()).toEqual([9, 9, 5, 4]);
+  expect(shop.length).toBe(16);
+  return "3 chains of 9 entries";
+}
+// %%
+test_topic_receive_appends_a_pushed_entry_as_the_subscriber = {
+  const rig = await topicRig(), N = rig.N;
+  const A = "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa", a = rig.as(A);
+  const d = rig.delegate("0000000000a1", "owner", ["topic.receive", "quota.get"]), theirs = rig.delegate("0000000000a2", A, ["topic.receive", "quota.get"]);
+  await rig.owner("create", { topic: "a", read: "true" });
+  await rig.owner("create", { topic: "b" });
+  await rig.token("subscribe", { topic: "a", name: "join", target: "topic.receive", delegation: d, params: { topic: "b" } });
+  await rig.owner("append", { topic: "a", key: "k1", body: { n: 1 } });
+  await rig.pushed();
+  // The body, under a key made of where it came from; the sender is the subscriber, and the chain is one longer.
+  expect((await rig.owner("read?topic=b")).data.entries.map((e) => [e.seq, e.key, e.sender, e.hops, e.body])).toEqual([[1, "a/1", "owner", 1, { n: 1 }]]);
+  // A member subscribes a topic they read, and points topic.receive at one they may not write: the push is refused, and b is as it was.
+  await a("subscribe", { topic: "a", name: "theirs", target: "topic.receive", delegation: theirs, params: { topic: "b" } });
+  await rig.owner("append", { topic: "a", key: "k2", body: { n: 2 } });
+  await rig.pushed();
+  expect(rig.sub("a", "theirs")).toMatchObject({ pos: 2, dropped: 1, status: 403, error: "the topic's rule does not let this caller in" });
+  expect((await rig.owner("read?topic=b")).data.entries.map((e) => [e.key, e.sender])).toEqual([["a/1", "owner"], ["a/2", "owner"]]);
+  // A rule that reads caller.session keeps a push out: it is never the owner's tab.
+  await rig.owner("create", { topic: "b", write: "caller.session" });
+  await rig.owner("append", { topic: "a", key: "k3", body: { n: 3 } });
+  await rig.pushed();
+  expect([rig.sub("a", "join").status, rig.sub("a", "join").dropped, rig.db.topics.get("b").last]).toEqual([403, 1, 2]);
+  // Called by hand it is an append under that key: the same entry twice is kept once.
+  const entry = { topic: "a", seq: 7, key: "k7", sender: "anyone", at: 1, body: "seven", hops: 5 };
+  expect((await rig.owner("receive?topic=b", entry)).data).toEqual({ seq: 3, duplicate: false });
+  expect((await rig.owner("receive?topic=b", { ...entry, body: "again" })).data).toEqual({ seq: 3, duplicate: true });
+  expect((await rig.owner("read?topic=b&after=2")).data.entries.map((e) => [e.key, e.sender, e.hops, e.body])).toEqual([["a/7", "owner", 0, "seven"]]);
+  // What is no entry, no topic and no topic of the caller's.
+  for (const body of [{}, { topic: "a" }, { topic: "A", seq: 1 }, { topic: "a", seq: 0 }, { topic: "a", seq: 1.5 }, { topic: "a", seq: "1" }]) expect([body, (await rig.owner("receive?topic=b", body)).status]).toEqual([body, 400]);
+  expect([(await rig.owner("receive", entry)).status, (await rig.owner("receive?topic=nope", entry)).status, (await a("receive?topic=b", entry)).status, (await a("receive?topic=nope", entry)).status]).toEqual([400, 404, 403, 403]);
+  return "2 entries joined to b, 2 pushes refused";
+}
+// %%
+test_topic_subs_are_read_and_ended_by_their_creator_and_the_topics = {
+  const rig = await topicRig(), N = rig.N;
+  const A = "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa", B = "did:plc:bbbbbbbbbbbbbbbbbbbbbbbb", a = rig.as(A), b = rig.as(B), ia = await rig.id(A);
+  const shop = rig.target("shop.receive");
+  const da = rig.delegate("0000000000a1", A, ["shop.receive", "quota.get"]), db = rig.delegate("0000000000b1", B, ["shop.receive", "quota.get"]), dow = rig.delegate("0000000000c1", "owner", ["shop.receive", "quota.get"]);
+  const own = `m.${ia}.x`;
+  await a("create", { topic: own, read: "true" });
+  await rig.owner("create", { topic: "o", read: "true" });
+  for (const [who, topic, name, delegation] of [[a, own, "mine", da], [b, own, "theirs", db], [b, "o", "theirs", db], [rig.token, "o", "mine", dow]]) expect((await who("subscribe", { topic, name, target: "shop.receive", delegation, params: { p: name } })).status).toBe(200);
+  const names = async (who, path) => (await who(path)).data.subs.map((s) => [s.topic, s.name, Object.keys(s).length]);
+  // Each reads their own, whole; the owner all. Of a topic, its creator also reads who is subscribed and to what, and no more of it.
+  expect(await names(b, "subs")).toEqual([[own, "theirs", 14], ["o", "theirs", 14]]);
+  expect(await names(a, "subs")).toEqual([[own, "mine", 14]]);
+  expect(await names(rig.owner, "subs")).toEqual([[own, "mine", 14], [own, "theirs", 14], ["o", "mine", 14], ["o", "theirs", 14]]);
+  expect(await names(a, "subs?topic=" + own)).toEqual([[own, "mine", 14], [own, "theirs", 6]]);
+  expect((await a("subs?topic=" + own)).data.subs[1]).toEqual({ topic: own, name: "theirs", creator: B, target: N + "shop.receive", position: 0, created: rig.sub(own, "theirs").created });
+  expect(await names(b, "subs?topic=" + own)).toEqual([[own, "theirs", 14]]);
+  expect(await names(b, "subs?topic=o")).toEqual([["o", "theirs", 14]]);
+  expect(await names(a, "subs?topic=o")).toEqual([]);
+  expect(await names(a, "subs?topic=nope")).toEqual([]);
+  expect((await a("subs?topic=Upper")).status).toBe(400);
+  // A name that is another subscriber's is not taken over, by the owner either.
+  expect((await a("subscribe", { topic: own, name: "theirs", target: "shop.receive", delegation: da })).data).toEqual({ error: "Forbidden", message: "that name is another subscriber's" });
+  expect((await rig.token("subscribe", { topic: own, name: "theirs", target: "shop.receive", delegation: dow })).status).toBe(403);
+  expect(rig.sub(own, "theirs").creator).toBe(B);
+  // Ended by its creator, the creator of the topic and the owner; to anyone else it is not there.
+  const gone = { error: "NotFound", message: "no such subscription" };
+  expect([(await a("unsubscribe", { topic: "o", name: "theirs" })).data, (await a("unsubscribe", { topic: "o", name: "nope" })).data, (await b("unsubscribe", { topic: own, name: "mine" })).data, (await b("unsubscribe", { topic: own, name: "Upper" })).data]).toEqual([gone, gone, gone, gone]);
+  expect(rig.db.subs.size).toBe(4);
+  expect((await a("unsubscribe", { topic: own, name: "theirs" })).data).toEqual({ unsubscribed: true });
+  expect((await b("unsubscribe", { topic: "o", name: "theirs" })).data).toEqual({ unsubscribed: true });
+  expect((await b("unsubscribe", { topic: "o", name: "theirs" })).data).toEqual(gone);
+  // What is ended is pushed nothing.
+  await a("append", { topic: own, key: "k", body: 1 });
+  await rig.pushed();
+  expect(shop.map((h) => [h.headers["x-brain-caller"], h.query])).toEqual([[A, "?p=mine"]]);
+  // A deleted topic takes its subscriptions with it; made again, it has none.
+  expect((await rig.owner("unsubscribe", { topic: own, name: "mine" })).data).toEqual({ unsubscribed: true });
+  await rig.owner("delete", { topic: "o" });
+  expect(rig.db.subs.size).toBe(0);
+  await rig.owner("create", { topic: "o" });
+  expect((await rig.owner("subs?topic=o")).data).toEqual({ subs: [] });
+  return "4 subscriptions, each ended";
+}
+// %%
 test_topic_declares_what_it_needs = {
   const { meta } = await topic_service.emit();
   expect(meta).toMatchObject({ worker: "brain-x-topic", role: "recipe", module: "@tomlarkworthy/brain-topic", resources: ["sql", "xrpc"], secrets: [], calls: [], crons: ["* * * * *"] });
   const N = "com.lopecode.brain.topic.";
-  expect(Object.keys(meta.access).sort().map((m) => m.replace(N, ""))).toEqual(["append", "create", "delete", "list", "read", "subscribe"]);
+  expect(Object.keys(meta.access).sort().map((m) => m.replace(N, ""))).toEqual(["append", "create", "delete", "list", "read", "receive", "subs", "subscribe", "unsubscribe"]);
   // The method's rule lets in whoever a topic's rule could name, and nobody the core does not know.
   const callers = { owner: { caller: "owner", via: "session" }, token: { caller: "owner", via: "delegation:0007ea9d1903", holder: "secret:loop-topic" }, member: { caller: "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa" }, worker: { caller: "worker:brain-x-echo" }, deployer: { caller: "deployer" }, anonymous: {} };
   const through = (m) => Object.entries(callers).filter(([, w]) => decide(meta.access[N + m], { caller: callerOf(w), origin: callerOf(w), request: { params: {} } }).allow).map(([k]) => k);
-  for (const m of ["append", "create", "delete", "list", "read", "subscribe"]) expect([m, through(m)]).toEqual([m, ["owner", "token", "member", "worker"]]);
+  for (const m of ["append", "create", "delete", "list", "read", "receive", "subs", "subscribe", "unsubscribe"]) expect([m, through(m)]).toEqual([m, ["owner", "token", "member", "worker"]]);
   return Object.keys(meta.access).length + " methods";
 }
 // %%
-import {cloudflare, sql, xrpc, config, log, hono, simulate, decide, checkedRule, callerOf, callerFrom, originFrom, sha256} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, sql, xrpc, config, log, hono, simulate, simWaits, matches, decide, checkedRule, callerOf, callerFrom, originFrom, sha256} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {plugins} from "@tomlarkworthy/plugin-registry"
 // %%

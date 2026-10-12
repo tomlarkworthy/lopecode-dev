@@ -6,6 +6,7 @@
 //   2. One list of calls is run on a SQLite and on topicFakeSql, and each answer is compared.
 // The statements are read from the built module, never retyped, as tests/tools/issue-lock-sql.test.ts reads its own.
 // plan/cloud-brain-topics-service.md, task 1; tools/cloud-brain/records/tp-1-topics-append-read.md.
+// Task 2 (tp-2-push-to-receive) added topic_subs and the deliverer's statements.
 import { expect, beforeAll } from "bun:test";
 import { Database } from "bun:sqlite";
 import { existsSync, mkdtempSync, statSync, writeFileSync } from "node:fs";
@@ -58,7 +59,7 @@ test("brain-db's check passes the plan of each statement, and each opens only th
   const plan = (db: Database, s: string, args: any[]) => (db.query("EXPLAIN " + s).all(...args) as any[]).map((o) => [o.opcode, o.p1, o.p2, o.p3, o.p5]);
   // The schema statements, planned on a database that has none of the tables, each run before the next is planned.
   const empty = new Database(":memory:");
-  expect(schema.length).toBe(4);
+  expect(schema.length).toBe(6);
   for (const s of schema) {
     const shape = sqlShape(s), needs = sqlNeeds(plan(empty, s, []), empty.query(sqlMaster).all(), { schema: true });
     expect([s.slice(0, 50), shape.kind, shape.names.every((n: string) => n.startsWith("topic_")), needs.refused || null]).toEqual([s.slice(0, 50), "schema", true, null]);
@@ -68,7 +69,9 @@ test("brain-db's check passes the plan of each statement, and each opens only th
   // Every statement with as many arguments as the service gives it: a count of ?N that differs is an error here.
   const given: Record<string, any[]> = {
     one: ["t"], all: [], mine: ["owner"], owned: ["owner"], make: ["t", "owner", "true", "true", 1000], rules: ["t", "true", "true"],
-    append: ["t", "k", "owner", 1000, "1", 0], counted: ["t"], byKey: ["t", "k"], read: ["t", 0, 50], dropEntries: ["t"], drop: ["t"], old: [1000], over: [10000]
+    append: ["t", "k", "owner", 1000, "1", 0], counted: ["t"], byKey: ["t", "k"], read: ["t", 0, 50], dropEntries: ["t"], drop: ["t"], old: [1000], over: [10000],
+    sub: ["t", "s"], subsOf: ["t"], subsBy: ["owner"], subsAll: [], subCount: ["t", "s"], subscribe: ["t", "s", "owner", "x.receive", "0000000000a1", "{}", "", 1000], resubscribe: ["t", "s", "owner", "x.receive", "0000000000a1", "{}", ""],
+    unsubscribe: ["t", "s"], dropSubs: ["t"], due: [1000, 50], dueOf: [1000, "t"], claim: ["t", "s", "r", 31000, 1000], next: ["t", "s"], settled: ["t", "s", "r", 1, 200, "", 0, 31000], waiting: ["t", "s", "r", 1, 61000, 500, "down"], rest: ["t", "s", "r", 3]
   };
   expect(Object.keys(S).sort()).toEqual(Object.keys(given).sort());
   const says = Object.fromEntries(Object.keys(S).map((k) => [k, sqlShape(S[k]).kind + " " + sqlSignature(sqlNeeds(plan(db, S[k], given[k]), master))]));
@@ -86,7 +89,24 @@ test("brain-db's check passes the plan of each statement, and each opens only th
     dropEntries: "data w:topic_entries",
     drop: "data w:topic_topics",
     old: "data w:topic_entries",
-    over: "data r:topic_entries r:topic_topics w:topic_entries"
+    over: "data r:topic_entries r:topic_topics w:topic_entries",
+    sub: "data r:topic_subs",
+    subsOf: "data r:topic_subs",
+    subsBy: "data r:topic_subs",
+    subsAll: "data r:topic_subs",
+    subCount: "data r:topic_subs",
+    subscribe: "data r:topic_topics w:topic_subs",
+    resubscribe: "data w:topic_subs",
+    unsubscribe: "data w:topic_subs",
+    dropSubs: "data w:topic_subs",
+    due: "data r:topic_subs r:topic_topics",
+    dueOf: "data r:topic_subs r:topic_topics",
+    claim: "data r:topic_topics w:topic_subs",
+    next: "data r:topic_entries r:topic_subs",
+    settled: "data w:topic_subs",
+    waiting: "data w:topic_subs",
+    rest: "data w:topic_subs"
+
   });
 });
 
@@ -139,6 +159,62 @@ test("the clock's two removals: by age, and by how far behind the topic's last",
   expect((batch(db, [[S.all]])[0].rows as any[]).map((r) => [r.topic, r.last])).toEqual([["u", 1]]);
 });
 
+// topic.subscribe as the service sends it, and one row of topic_subs as the tests read it.
+const subscribe = (topic: string, name: string, creator = "owner", target = "x.receive", failed = "", at = 1000) => [[S.subscribe, topic, name, creator, target, "0000000000a1", "{}", failed, at], [S.resubscribe, topic, name, creator, target, "0000000000a1", "{}", failed], [S.sub, topic, name]];
+const subOf = (db: Database, topic: string, name: string) => db.query("SELECT creator, target, pos, tries, not_before, dropped, status, error, lease, runner FROM topic_subs WHERE topic = ?1 AND name = ?2").get(topic, name) as any;
+
+test("a subscription starts at the topic's last, is its creator's to change, and one deliverer claims it", () => {
+  const db = fresh();
+  batch(db, [[S.make, "t", "owner", "true", "true", 1000]]);
+  for (const k of ["a", "b"]) batch(db, append("t", k));
+  // No topic, no subscription.
+  expect(batch(db, subscribe("nope", "s"))[2].rows).toEqual([]);
+  expect(batch(db, subscribe("t", "s")).map((r) => r.changes)).toEqual([1, 1, 0]);
+  expect(subOf(db, "t", "s")).toEqual({ creator: "owner", target: "x.receive", pos: 2, tries: 0, not_before: 0, dropped: 0, status: 0, error: "", lease: 0, runner: "" });
+  // Nothing is behind: nothing is due and a claim changes nothing.
+  expect([batch(db, [[S.due, 5000, 50]])[0].rows, batch(db, [[S.claim, "t", "s", "r1", 35000, 5000]])[0].changes]).toEqual([[], 0]);
+  for (const k of ["c", "d", "e"]) batch(db, append("t", k));
+  expect(batch(db, [[S.due, 5000, 50], [S.dueOf, 5000, "t"], [S.dueOf, 5000, "u"]]).map((r) => r.rows)).toEqual([[{ topic: "t", name: "s" }], [{ topic: "t", name: "s" }], []]);
+  // Of two claims the first changes the row; the second reads a runner that is not its own, until the lease has ended.
+  expect([batch(db, [[S.claim, "t", "s", "r1", 35000, 5000]])[0].changes, batch(db, [[S.claim, "t", "s", "r2", 35000, 5000]])[0].changes]).toEqual([1, 0]);
+  expect([subOf(db, "t", "s").runner, batch(db, [[S.due, 5000, 50]])[0].rows]).toEqual(["r1", []]);
+  expect((batch(db, [[S.next, "t", "s"]])[0].rows as any[]).map((r) => [r.seq, r.key])).toEqual([[3, "c"]]);
+  // settled, waiting and rest are the runner's alone.
+  expect(batch(db, [[S.settled, "t", "s", "r2", 5, 200, "", 0, 40000], [S.waiting, "t", "s", "r2", 1, 65000, 500, "x"], [S.rest, "t", "s", "r2", 5]]).map((r) => r.changes)).toEqual([0, 0, 0]);
+  expect(batch(db, [[S.settled, "t", "s", "r1", 3, 200, "", 0, 40000]])[0].changes).toBe(1);
+  expect((batch(db, [[S.next, "t", "s"]])[0].rows as any[]).map((r) => r.seq)).toEqual([4]);
+  // A try that is tried again: the lease goes, and it is not due until the wait is over.
+  expect(batch(db, [[S.waiting, "t", "s", "r1", 1, 65000, 500, "down"]])[0].changes).toBe(1);
+  expect(subOf(db, "t", "s")).toMatchObject({ pos: 3, tries: 1, not_before: 65000, status: 500, error: "down", lease: 0, runner: "" });
+  expect([batch(db, [[S.due, 64999, 50]])[0].rows.length, batch(db, [[S.claim, "t", "s", "r3", 94999, 64999]])[0].changes, batch(db, [[S.due, 65000, 50]])[0].rows.length]).toEqual([0, 0, 1]);
+  // Sent again by its creator: the target changes and the wait is over; the position stays. Another creator changes nothing.
+  expect(batch(db, subscribe("t", "s", "other", "y.receive")).map((r) => r.changes)).toEqual([0, 0, 0]);
+  expect(batch(db, subscribe("t", "s", "owner", "z.receive", "f")).map((r) => r.changes)).toEqual([0, 1, 0]);
+  expect(subOf(db, "t", "s")).toMatchObject({ creator: "owner", target: "z.receive", pos: 3, tries: 0, not_before: 0 });
+  // Given up with nothing kept of it: dropped is counted. A lease that ended is claimed by another.
+  batch(db, [[S.claim, "t", "s", "r4", 95000, 65000]]);
+  expect(batch(db, [[S.settled, "t", "s", "r4", 4, 403, "no", 1, 95000]])[0].changes).toBe(1);
+  expect([batch(db, [[S.claim, "t", "s", "r5", 124999, 94999]])[0].changes, batch(db, [[S.claim, "t", "s", "r5", 125000, 95000]])[0].changes]).toEqual([0, 1]);
+  expect(batch(db, [[S.settled, "t", "s", "r4", 5, 200, "", 0, 0]])[0].changes).toBe(0);
+  // rest: the position is never moved back, and goes to the topic's last when the clock removed what was behind.
+  batch(db, [[S.old, 9000]]);
+  expect(batch(db, [[S.next, "t", "s"]])[0].rows).toEqual([]);
+  batch(db, [[S.rest, "t", "s", "r5", 0]]);
+  expect(subOf(db, "t", "s")).toMatchObject({ pos: 4, dropped: 1, lease: 0, runner: "" });
+  batch(db, [[S.claim, "t", "s", "r6", 200000, 100000], [S.rest, "t", "s", "r6", 5]]);
+  expect([subOf(db, "t", "s").pos, batch(db, [[S.due, 100000, 50]])[0].rows]).toEqual([5, []]);
+  // subCount leaves the name itself out. A deleted topic's subscriptions go with dropSubs, and a subscription
+  // whose topic is gone is never due.
+  batch(db, subscribe("t", "s2"));
+  expect(batch(db, [[S.subCount, "t", "s"], [S.subCount, "t", "nope"]]).map((r) => (r.rows[0] as any).n)).toEqual([1, 2]);
+  batch(db, [[S.make, "u", "owner", "true", "true", 1000]]);
+  batch(db, subscribe("u", "s"));
+  batch(db, append("u", "a"));
+  batch(db, [[S.drop, "u"]]);
+  expect([batch(db, [[S.due, 100000, 50]])[0].rows, batch(db, [[S.claim, "u", "s", "r7", 200000, 100000]])[0].changes]).toEqual([[], 0]);
+  expect(batch(db, [[S.dropSubs, "t"], [S.unsubscribe, "u", "s"], [S.unsubscribe, "u", "s"], [S.subsAll]]).map((r) => r.changes || r.rows.length)).toEqual([2, 1, 0, 0]);
+});
+
 test("topicFakeSql answers one list of calls as the SQLite does", async () => {
   const db = fresh(), fake = fakeSql();
   const calls: any[][][] = [
@@ -152,7 +228,25 @@ test("topicFakeSql answers one list of calls as the SQLite does", async () => {
     [[S.read, "t", 0, 50]], [[S.read, "t", 2, 2]], [[S.read, "t", 9, 50]], [[S.read, "nope", 0, 50]], [[S.all]],
     [[S.old, 2000], [S.over, 2]], [[S.read, "t", 0, 50]], [[S.read, "m.0a.x", 0, 50]],
     [[S.old, 9000]], [[S.read, "t", 0, 50]], append("t", "a", 9500), [[S.one, "t"]],
-    [[S.dropEntries, "t"], [S.drop, "t"]], [[S.dropEntries, "t"], [S.drop, "t"]], [[S.all]], [[S.read, "t", 0, 50]]
+    [[S.dropEntries, "t"], [S.drop, "t"]], [[S.dropEntries, "t"], [S.drop, "t"]], [[S.all]], [[S.read, "t", 0, 50]],
+    // Subscriptions and one deliverer's statements, on two topics.
+    [[S.make, "t", "owner", "true", "true", 1000]], [[S.make, "u", "did:plc:a", "true", "true", 1000]], append("t", "a"), append("t", "b"),
+    subscribe("t", "s"), subscribe("t", "r", "did:plc:a", "y.receive", "u", 2000), subscribe("u", "s", "did:plc:a"), subscribe("nope", "s"), subscribe("t", "s", "did:plc:a", "z.receive"), subscribe("t", "s", "owner", "z.receive", "u"),
+    [[S.subsOf, "t"]], [[S.subsOf, "nope"]], [[S.subsBy, "did:plc:a"]], [[S.subsBy, "nobody"]], [[S.subsAll]], [[S.subCount, "t", "s"]], [[S.subCount, "t", "nope"]], [[S.subCount, "nope", "s"]],
+    [[S.due, 5000, 50]], [[S.claim, "t", "s", "r1", 35000, 5000], [S.sub, "t", "s"], [S.one, "t"], [S.next, "t", "s"]],
+    append("t", "c"), append("t", "d"), append("u", "a"),
+    [[S.due, 5000, 50]], [[S.due, 5000, 1]], [[S.dueOf, 5000, "t"]], [[S.dueOf, 5000, "u"]], [[S.dueOf, 5000, "nope"]],
+    [[S.claim, "t", "s", "r1", 35000, 5000], [S.sub, "t", "s"], [S.one, "t"], [S.next, "t", "s"]],
+    [[S.claim, "t", "s", "r2", 35000, 5000], [S.sub, "t", "s"], [S.one, "t"], [S.next, "t", "s"]],
+    [[S.due, 5000, 50]], [[S.due, 35000, 50]],
+    [[S.settled, "t", "s", "r2", 3, 200, "", 0, 36000], [S.sub, "t", "s"], [S.next, "t", "s"]],
+    [[S.settled, "t", "s", "r1", 3, 200, "", 0, 36000], [S.sub, "t", "s"], [S.next, "t", "s"]],
+    [[S.waiting, "t", "s", "r2", 1, 66000, 500, "down"], [S.sub, "t", "s"]], [[S.waiting, "t", "s", "r1", 1, 66000, 500, "down"], [S.sub, "t", "s"]],
+    [[S.due, 65999, 50]], [[S.due, 66000, 50]], [[S.claim, "t", "s", "r3", 95999, 65999], [S.sub, "t", "s"]], [[S.claim, "t", "s", "r3", 96000, 66000], [S.sub, "t", "s"]],
+    [[S.settled, "t", "s", "r3", 4, 403, "no", 1, 96000], [S.sub, "t", "s"], [S.next, "t", "s"]],
+    [[S.rest, "t", "s", "r1", 9], [S.sub, "t", "s"]], [[S.rest, "t", "s", "r3", 0], [S.sub, "t", "s"]], [[S.claim, "t", "r", "r4", 96000, 66000], [S.rest, "t", "r", "r4", 4], [S.sub, "t", "r"]],
+    [[S.next, "t", "nope"]], [[S.next, "nope", "s"]], subscribe("t", "s", "owner", "x.receive"), [[S.subsAll]],
+    [[S.unsubscribe, "t", "r"]], [[S.unsubscribe, "t", "r"]], [[S.drop, "u"]], [[S.due, 99000, 50]], [[S.claim, "u", "s", "r5", 99000, 99000]], [[S.dropSubs, "u"]], [[S.dropSubs, "u"]], [[S.dropSubs, "t"]], [[S.subsAll]]
   ];
   let n = 0;
   for (const list of calls) {
@@ -163,5 +257,5 @@ test("topicFakeSql answers one list of calls as the SQLite does", async () => {
     expect([n, seen(stood)]).toEqual([n, seen(real)]);
     n++;
   }
-  expect(n).toBe(37);
+  expect(n).toBe(94);
 });
