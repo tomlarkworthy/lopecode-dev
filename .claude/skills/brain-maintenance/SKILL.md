@@ -107,8 +107,9 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    git -C <root>/cloud-brain-dev pull --ff-only
    ```
    The first is for what you read here: this skill, and what an issue names. The second because the first moves the
-   submodule's pointer and not its files, and four things are read from that copy: `philosophy.md` of this skill (a
-   link into it), `put.sh`, `summarize-papers.ts` (it starts `agent.sh` there), and the reviewer's `agent.sh` (step 4).
+   submodule's pointer and not its files, and three things are read from that copy: `philosophy.md` of this skill (a
+   link into it), `put.sh` and `summarize-papers.ts` (it starts `agent.sh` there). (Until `wt-4-reviewer-in-a-view`,
+   2026-10-12, a reviewer was started with that copy's `agent.sh` too; it is started with its view's, step 4.)
    Git refuses the first when it would write over a file that is changed there (another session's edit), when `main`
    there has a commit `origin/main` has not (a session committed and did not push), or while another git process
    holds `index.lock`. Nothing is lost in any of them and the pass goes on: say which in step 7, and the next pass
@@ -150,7 +151,9 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    `worktree removed {"topic":"<topic>","machine":"<hostname -s>","path":"<the path it had>"}`.
    A view (`rev-<id>`, made for a review) whose issue is not at `spec-review` or `in-review`: removed the same way,
    whoever made it, with no comment. A line that reads `not-clean` is somebody's unlanded work: you never remove
-   it (`--remove` refuses it, exit 3) and you name it in step 7 with its counts. So is one whose id the tracker
+   it (`--remove` refuses it, exit 3) and you name it in step 7 with its counts. One case is not that: a view
+   whose issue is not under review and whose line has `ahead=0` and `dev-ahead=0` holds a file a reviewer copied in for a test, and
+   goes with `--remove <tree> --force` (step 5). So is one whose id the tracker
    does not have. (Before this, each writer removed its own at its landing, and a worktree of a `done` issue still
    stood on 2026-10-12: `seen-worktree-left-after-landing`.)
    Then the cluster. `brain.ts redistil` shows every Worker `same`; `brain.ts state` shows each `brain-x-*` Worker at the hash that `seen.json` of `origin/main` holds for it, read with `git -C <root> show origin/main:tools/cloud-brain/seen.json` after the pull above, or after `git -C <root> fetch origin main` when it was refused: a landing commits that file in its worktree and pushes it, so the main checkout's own copy is behind whenever its pull was refused (`redistil` cannot show a put-back: the kept source goes back with the Worker, so it read `same` through the one of 19:32 on 2026-10-10); `lease.get` is held or the page is
@@ -262,7 +265,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token <impl|spec|dig|over|rev> <id>`. Its stdout is the name.
    On exit 1 what it printed is not a name: no agent is spawned, and it is said in step 7.
    **Then a worktree for it** (since `wt-3-land-by-push`, 2026-10-12; `plan/cloud-brain-worktree-per-topic.md`,
-   part 3; the reviewer is not put in one yet, below). The topic of an issue is its `parent` when it has one, and
+   part 3; a reviewer is put in a view, below). The topic of an issue is its `parent` when it has one, and
    otherwise the issue itself: a task's is its project, a project's or a digest's is itself. From the main checkout:
    ```
    tools/cloud-brain/worktree.sh --fresh <topic> --for <the agent's token>
@@ -311,21 +314,50 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    (First spawn made this way: not yet, when this was written. `--fresh`, `--leave`, the exits and the occupant are
    the tests of `tests/tools/worktree.test.ts`; check 7 of the spec is the first topic's comment.)
 
-   **The reviewer is not an Agent call**, and is started from the main checkout until `wt-4-reviewer-in-a-view` (the owner, 2026-10-11: "the skill spawns a super light claude with a
+   **The reviewer is not an Agent call**, and is started in a view (the owner, 2026-10-11: "the skill spawns a super light claude with a
    generic opening. role: reviewer task: ....", and of what was built for it: "ok please get that into production").
-   It is a process of its own, started with Bash, `run_in_background: true`, `timeout: 3600000`:
+   Since `wt-4-reviewer-in-a-view` (2026-10-12; `plan/cloud-brain-worktree-per-topic.md`, part 4) you first make
+   the view, from the main checkout: a detached worktree at the commit under review, named for the issue, so that
+   the reviewer reads and builds where nobody writes, and two reviews of one topic share none.
    ```
-   <root>/cloud-brain-dev/agent.sh reviewer "review issue <id>; your token is <name>"
+   V=$(tools/cloud-brain/worktree.sh --at <sha> rev-<id>)
    ```
-   with `<name>` the `rev-` token you made for it, and nothing else added to the task. Its brief reads the name from that line
+   `<sha>` is the last `commit` ref of the issue's last `submit` or `submit-spec` that is of `lopecode-dev`: what
+   follows `lopecode-dev@` in its value, or the whole value when it names no repository (a spec's ref is the sha
+   alone). When that move has no such ref (an act on cb4, a change to `cloud-brain-dev` alone):
+   `git -C <root> fetch --no-recurse-submodules origin main`, and `origin/main` in its place.
+   - Exit 0: stdout is the path, `<root>/.claude/worktrees/bm-rev-<id>` (4.5 s for a new one, 0.9 s for one that
+     stood, 2026-10-12). It has the links to the main checkout's `lopebooks`, `lopecode` and `lopecode-plugin`, and a
+     clone of `cloud-brain-dev` at the commit `<sha>` names with what cb4 runs read into its `deploy/`. A view of
+     that name that stood (the round before, a session that ended) is put at `<sha>`, and what was changed in it
+     is thrown away, a commit of a reviewer's that was not pushed among it (step 5 names one before that).
+   - Exit 1, and stderr says `no commit`: the ref names a commit that is neither here nor on `origin`. That is
+     the review's finding to make, so the view is made at `origin/main`, as for a move with no ref.
+   - Exit 1 for anything else (a rebase stopped there: a reviewer's mend that did not end; a worktree of that
+     name on a branch), or exit 2: no view and no reviewer this pass, and stderr goes in step 7.
+   Then the reviewer, a process of its own, started with Bash, `run_in_background: true`, `timeout: 3600000`, with
+   the path the first command printed written out for `$V` (no shell state lasts between your calls):
+   ```
+   CHECKOUT=$V $V/cloud-brain-dev/agent.sh reviewer "review issue <id>; your token is <name>"
+   ```
+   The launcher is the one of the view's clone, at the commit `<sha>` names, which no pull writes over;
+   `CHECKOUT` is the `checkout:` line of the reviewer's prompt, and its default (the directory above the
+   launcher) is the view too. The tools the reviewer runs are the view's, of the commit `<sha>`: a submit is
+   rebased on `origin/main` at its landing, so they are current, and its brief has the line for a view at an older commit.
+   Run by the writer of `wt-4-reviewer-in-a-view` on 2026-10-12, as two trials on issues already `done`, each
+   told to write nothing: one plain (266 s, $1.23) and one with `TAB=1` (441 s, $2.46, 30 `mcp__lopecode__` tools
+   in its `toolset`, a QA tab opened and closed by name). First review of an issue at `in-review` started this way: not yet,
+   when this was written (`tools/cloud-brain/records/wt-4-reviewer-in-a-view.md`).
+   `<name>` is the `rev-` token you made for it, and nothing else is added to the task. Its brief reads the name from that line
    (`tests/tools/reviewer-brief-names-token.test.ts`). It has Bash, Read, Grep and Glob, no advisor (the owner, 2026-10-11:
    "ok lets disable the advisor for review"; `agent.sh` sees to it), and its brief is on
    the Brain (`cloud-brain-dev/README.md`, "A light agent for one role").
-   Put `TAB=1 ` before the command, which adds the notebook tab tools, in three cases only (the owner,
+   Put `TAB=1 ` before the command (`TAB=1 CHECKOUT=$V $V/cloud-brain-dev/agent.sh …`), which adds the notebook tab tools
+   by starting the channel server in the view, through its link `lopecode-plugin`, in three cases only (the owner,
    2026-10-11: "Yes remove TAB for non notebooks"): `<root>/tools/cloud-brain/review-needs-tab.sh <repo@sha>…`,
    run on every `commit` ref of the last `submit`, exits 0 (a seed, a notebook or a module; it prints the file)
    or 2 (a commit it could not read); the issue has a `url` ref; or the reviewer's report begins
-   `needed a tab`, which is a review it did not write: start it once more with `TAB=1` and post both runs' costs.
+   `needed a tab`, which is a review it did not write: start it once more with `TAB=1`, the view made again with the same `--at` line, and post both runs' costs.
    The tab tools are 8,342 tokens in every request (18,106 at the first request of review 3 of
    `light-reviewer-in-use` against 9,764 with none), and none of that issue's three reviews called one. Its stdout is one JSON line,
    `{ session, result, usd, usage, context, turns, ms, legs }`: `result` is its report, of its last leg when it
@@ -333,8 +365,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    that waited for the landing lock read as having stopped at "Still held"). In its `cost` event (step 5)
    `context` is `context`, `seconds` is `ms` over 1000 as a whole number, `how` is `light`, and the call has `usd` and `session`
    (the `session` of that JSON, not yours); `tools` and `agent` are left out. It is never sent
-   `--resume`. When the command prints no JSON line, or exits 1 (the result was an error) or 2, spawn the reviewer once as an Agent, as above, with the same token in its prompt:
-   the file `agents/reviewer.md` says where the brief is. Say so in the journal and in step 7.
+   `--resume`. When the command prints no JSON line (a view whose clone was not made has no `agent.sh`: exit 127), or exits 1 (the result was an error) or 2, spawn the reviewer once as an Agent, as above, with the view as its `Working directory:` and the same token in its prompt:
+   the file `agents/reviewer.md` there says where the brief is. Say so in the journal and in step 7.
    A JSON line and exit 2 together are not that case: the line is printed only when the run gave a result, so the
    exit is from the script after it (three reviews on 2026-10-11, when `agent.sh` was written over during the run;
    `tools/cloud-brain/records/agent-sh-read-whole-before-run.md`). Read the issue: when the review is recorded
@@ -343,7 +375,11 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    Agent told to answer "OK" is 40,842; one review replayed at 69,440 against 100,725 (the README has both,
    and what was not tried). First real review by it: not yet.
 5. **When an agent reports**, append the report to the journal, free its worktree
-   (`tools/cloud-brain/worktree.sh --leave <tree>`, step 4; a light reviewer has none), then read the issue again.
+   (`tools/cloud-brain/worktree.sh --leave <tree>`, step 4), or for a reviewer remove its view
+   (`tools/cloud-brain/worktree.sh --remove rev-<id>`), then read the issue again.
+   Exit 3 from that `--remove` prints the view's counts and removes nothing: with `ahead=0` and `dev-ahead=0` what stands there is a file the
+   reviewer copied in or changed for a test, and `--remove rev-<id> --force` removes it; with a count there that is not 0 a commit of the reviewer's stands
+   that was not pushed (a note it mended, below): leave the view, and name it in step 7 with the commit.
    A reviewer may have made a commit of its own since 2026-10-11: a note mended in a document of the change
    (its brief, "What holds a change, and what is a note"; the owner: "Lets do  1,2,3"). It is named in the
    review's body and needs no review and no move from you. The

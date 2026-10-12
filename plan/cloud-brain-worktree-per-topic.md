@@ -433,6 +433,14 @@ Each is run by an agent with its own token, from any worktree. `<root>` is the m
    reviewer's brief on the Brain loses its worktree steps (`put.sh roles/reviewer.md`, by the
    writer of a task of an approved spec, `rules.md`). The brief's
    `brain.ts` lines get `BRAIN_STATE_DIR`. One plain review and one `TAB=1` review run from a view.
+   (As built, `wt-4-reviewer-in-a-view`, 2026-10-12: all of it. Where the build is not these sentences: the two
+   reviews were trials, on issues already `done`, with the writer's token and told to write nothing, since a
+   writer makes no `rev-` token and starts no review of an issue at `in-review`; the brief keeps one paragraph that
+   makes and removes a view, for a reviewer started in a checkout that is not one; the reviewer moves its view
+   with `--at` (to `origin/main`, to a parent commit) and its mend is rebased with `--rebase`; its fetch is
+   `git fetch --no-recurse-submodules origin main`, a plain `git fetch origin` being exit 128 in a view; `<sha>`
+   for a move with no `lopecode-dev` commit ref is `origin/main`; the orchestrator removes a view with `--force`
+   when it holds no commit. The record, `tools/cloud-brain/records/wt-4-reviewer-in-a-view.md`.)
 5. **`wt-5-docs`.** `knowledge/changing-and-deploying-a-cloud-brain-worker.md`,
    `cloud-brain-dev/README.md` and `rules.md`'s "Always" (the lines on the main checkout and the
    landing lock; a change to `rules.md` is `major`), and the line for a session outside the loop

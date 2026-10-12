@@ -36,15 +36,16 @@ test("the wait asks lock.sh show land, on one line, and goes on at exit 1 only (
 });
 
 // Since notebook-commit-once-a-day a submit names no lopebooks commit: the notebook compared is a build of origin/main.
+// Since wt-4-reviewer-in-a-view the reviewer is in a view: it moves that to origin/main, and its fetch stays out of the links.
 test("after the wait it fetches and compares against a build of origin/main, not HEAD and not a lopebooks commit", async () => {
   const s = step3(await brief());
-  expect(lines(s, /fetch origin/).map((l) => l.trim())).toEqual(["git -C <checkout> fetch origin"]);
+  expect(lines(s, /git -C <checkout> fetch/).map((l) => l.trim())).toEqual(["git -C <checkout> fetch --no-recurse-submodules origin main"]);
   expect(s).toContain("git merge-base --is-ancestor <sha> origin/main");
-  expect(s).toContain("git -C $W checkout -q --detach origin/main; tools/cloud-brain/worktree.sh rev-<id>");
+  expect(s).toContain("cd <checkout> && tools/cloud-brain/worktree.sh --at origin/main <view>");
   expect(s).toContain("bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html");
-  expect(s).toContain("lope-reader.ts $W/tools/cloud-brain/.emitted/cloud-brain.html --get-module <module>");
+  expect(s).toContain("lope-reader.ts tools/cloud-brain/.emitted/cloud-brain.html --get-module <module>");
   expect(s).not.toMatch(/is-ancestor <sha> HEAD|show HEAD:|git -C (<checkout>\/)?lopebooks/);
-  expect(s.indexOf("fetch origin")).toBeGreaterThan(s.indexOf("lock.sh show land"));
+  expect(s.indexOf("fetch --no-recurse-submodules origin main")).toBeGreaterThan(s.indexOf("lock.sh show land"));
 });
 
 test("it says what to do when the fetch fails", async () => {
