@@ -72,7 +72,7 @@ as `related`. Each line was checked here.
 | "writers ... do not outlive it and their reports land in its context" | True of an `Agent` call: the headless page says a `-p` run "stays open until that work completes". Not true of a process (probe 1) | R3 |
 | "the journal and the cost event of a run are written by the session from the report" | 180 `cost` events by an `orch-` token | R4 |
 | "a rework round is sent to an agent by an id only that session can use" | True of `SendMessage`. `claude --resume <session id>` is taken from any process (probe 2) | R5 |
-| `pm-agent-request-not-seen-fly-idle` (related; its file is on `main`) | Its cause: a request to the orchestrating session "has no form that a tool or a table of the loop reads", and the session's half was a note that a compaction shortened. Its first action is the label `asks-orchestrator` | R2, and one row of the step's table. The label itself is that post mortem's task and is not built here |
+| `pm-agent-request-not-seen-fly-idle` (related; its file is on `main`) | Its cause: a request to the orchestrating session "has no form that a tool or a table of the loop reads", and the session's half was a note that a compaction shortened. Its first action is the label `asks-orchestrator` | R2, and one row of the step's table. The label is that post mortem's task, landed as `ae5423a2` (the watch prints it), and is not built again |
 | `bookkeeping-in-the-tracker` (related, `building`) | `issue.queue` answered 200 in 0.44 to 0.70 s, 10,258 bytes, 29 entries in `queue` and 30 in `waiting` (23:12 CEST) | The step reads it. Not built again |
 | `tracker-trigger-rules` (related, `building`, five tasks at `triaged`) | `issue.wait` is not built. Its `waiter` in the queue says that a starter listens or is at work | The step reads `waiter` when it is there. Not built again |
 
@@ -293,11 +293,13 @@ writer calls it was not counted, and `st-1` reads it from the transcripts before
 
 ### 2. A run is started and ended by a program, and is in the record between (R4, R6)
 
-`loop.ts start <id> [--role <role>]` is steps 4 and 5 of `SKILL.md` as code. With the role taken
+`loop.ts start <id> [--role <role>] [--token <t>]` is steps 4 and 5 of `SKILL.md` as code. With the role taken
 from the issue as the queue's `do` gives it:
 
 1. `brain.ts agent-token <role> <id>`, or with `--token <t>` a token made before (the check of
-   `st-2`); the worktree or the view (`worktree.sh --fresh … --for`,
+   `st-2`): the program then ends no token, in `ended` or for a dead run, since it made none.
+   Its own writes (the `worktree {…}` comment, the `cost` events) are with the token it was
+   started under: the driver's in a step, the caller's in that check; the worktree or the view (`worktree.sh --fresh … --for`,
    `--at <sha> rev-<id>`, `--at origin/main appr-<id>`) with each exit handled as step 4 says; the
    `worktree {…}` comment; `review-needs-tab.sh` for a reviewer.
 2. The file `.emitted/issue-loop/runs/<token>.json`: `{ id, role, round, session: <a uuid it chose> }`.
@@ -307,19 +309,28 @@ from the issue as the queue's `do` gives it:
 4. One `cost` event, key `cost/<id>/<role>/<round>/<token>`:
    `{ role, round, how: "fresh", outcome: "running", seconds: 0, context: 0, token, session, agent: "<hostname -s>:<pid of the wrapper>" }`.
 
-A `start` that died between 2 and 4 left a file with no event: the next step writes the event when
+The role in a file, in a `cost` event and in `runs?role=` is the name `SKILL.md` gives a run; the
+prefix of a token is another word. Side by side, token and role: `impl` `implementer`, `dig`
+`digest`, `spec` `spec-writer`, `rev` `reviewer`, `appr` `approver`, `over` `overseer`, `orch`
+`orchestrator`.
+
+A `start` that died between 2 and 4 left a file with no event (of a role that is not `overseer`,
+below): the next step writes the event when
 the process of the file lives, and treats it as a run that died when it does not. A pid alone is
 not the test of "lives": after a restart of the machine another process may have it, so the time
 the process began is compared with the file's.
 
-**An overseer is on no issue**, and a `cost` event needs one (`SKILL.md`, step 5: "its line goes in
+**An overseer is on no issue**: `loop.ts start --role overseer` takes no id, and the file's `id`
+is empty. A `cost` event needs one (`SKILL.md`, step 5: "its line goes in
 `_oversight.md`"). Its run has the file and no event, so R4 does not hold for it. That one runs is
 read from `agent-token list`: a live token whose note begins `over;`. `ended` writes its line to
 `_oversight.md` and ends the token.
 An overseer that died (round 3) is read from its file, since no `cost` event says it: the pid of
 the file is gone and there is no result. The step ends its token and writes `stopped` in the
-file. The row that starts one counts those files since the last heading of `oversight.md`, and at
-2 starts no third: `status.md` names it. This count is of the files of one machine and cannot be
+file. One that returned with no new heading in `oversight.md` (a result with `is_error`) is as
+bad: its token is ended and the row would hold again. So the row that starts one counts the
+overseer files since the last heading of `oversight.md`, however they ended, and at 2 starts no
+third: `status.md` names it. This count is of the files of one machine and cannot be
 made again from the record; with the files lost, two more are started at most.
 
 `loop.ts ended <token>`, when the run has returned: the report appended to the journal
@@ -397,9 +408,10 @@ make again from the record. In order:
 2. **Runs**, as part 2: `ended` for each run that returned, the dead ones marked.
 3. **The queue.** `issue.queue`, and for each entry, in the service's order. One condition holds
    for every row that starts or resumes an agent and is not written in each, and it is read by
-   the role the row starts (round 3): the issue has no `running` run of that role, and for a
-   reviewer and an approver none of that round (`runs?id=&role=<role>&round=<n>`). The roles of a
-   writer are one for this: `implementer`, `digest` and `spec`. So a `review` entry beside a
+   the role the row starts (round 3): the issue has no `running` run of that role (`runs?id=&role=<role>`, the outcome `running`).
+   No round is in it: a run of an earlier round that still runs stops the start as well, and a
+   run that ended, whatever its outcome, does not. The roles of a writer are one for this:
+   `implementer`, `digest` and `spec-writer`. So a `review` entry beside a
    `running` writer gets its reviewer. A writer does not end at its submit: it waits up to 20
    minutes for its review (`agents/implementer.md`, step 13), its process has not returned and
    its event is `running`, and `SKILL.md`, step 2, has that it "is not counted as a writer at
@@ -423,15 +435,15 @@ make again from the record. In order:
 | `ready` | the move, reason `waits for nothing, by the queue at <seq>` | no |
 | `finish` | the move | no |
 | `start` | `start`, role implementer, or digest with the label `digest` | no |
-| `spec` | `start`, role spec | no |
+| `spec` | `start`, role spec-writer | no |
 | in `waiting`, `owner`, at `awaiting-approval`, and `approver.ts facts` says no verdict of this round and no `leave` | `start`, role approver | no |
 | in `waiting`, `work`, with no `running` run of a writer and no `waiter` | "A dead writer": the token ended, `back`, whatever the count of dead runs: the bound holds at the `start` entry the `back` leaves | no |
 | 2 dead runs: an entry of a row that starts or resumes an agent, with 2 dead runs or more of that role and round, and no verdict `go-on` for this `<at>`. A `round` whose last run ended `no-submit` is the `round` row's and not this one's | given to the judgment: `go-on` for one run more, or the label `needs-owner` with what the two runs left | yes |
 | a digest opened by `worker:brain-x-snapshot`, at `open` | the older ones rejected, `triage`, `ready` | no |
-| 3 issues at `done`, `rejected` or `needs-owner` since the last heading of `oversight.md`, or one issue at 3 `rework` moves since then; no live token `over-…`; and fewer than 2 files of `runs/` of the role `over` marked `stopped` since that heading | `start`, role over | no |
+| 3 issues at `done`, `rejected` or `needs-owner` since the last heading of `oversight.md`, or one issue at 3 `rework` moves since then; no live token `over-…`; and fewer than 2 files of `runs/` of the role `overseer` since that heading, however they ended | `start`, role overseer | no |
 | `triage`, `decompose`, `promote`, `look` | given to the orchestrator's judgment | yes |
 | labeled `needs-owner`, in `waiting`, `owner` or a `round` of the queue (the label leaves an issue at `in-progress` or `spec` in the queue), with an event of his session or of an `out-` token after the label | the same: has he answered | yes |
-| labeled `asks-orchestrator` (the first action of `pm-agent-request-not-seen-fly-idle`, when it is built) | the same: answer it | yes |
+| labeled `asks-orchestrator` (the first action of `pm-agent-request-not-seen-fly-idle`, landed as `ae5423a2`) | the same: answer it | yes |
 | a move made with his session that is a `send-back`, an `owner-reject` of a passed issue or a `revert`, with no post mortem of it | the same: declare it | yes |
 | the cluster is not healthy, and no open issue names what failed | the same: file it | yes |
 
@@ -447,8 +459,8 @@ make again from the record. In order:
 5. **The judgment.** The entries of the rows marked "yes", 5 at most a step, are the task of one
    process: `WORK=<the worktree bm-orch-<host>> agent.sh orchestrator "<do> <id>; …"`, with a token
    `orch-…` made for it and a `running` event on the first of its issues, with the role
-   `orchestrator` and the round one more than the `cost` events of that role the issue has (1 to
-   1,000, the service's limit), so no judgment run takes another's place in `runs` or in `total`. Its brief is
+   `orchestrator` and the round one more than the runs of that role the issue has (`runs?id=&role=orchestrator`: a
+   run's two events are one run; 1 to 1,000, the service's limit), so no judgment run takes another's place in `runs` or in `total`. Its brief is
    `agents/orchestrator.md`: "Triage", "A quick win", the `decompose` row, "A post mortem" (who
    declares one), the 3-rework judgment, and the comment for the owner, moved there from
    `SKILL.md` as they are written. It does those entries and ends. It starts no agent: it makes
@@ -600,7 +612,7 @@ approver, digest, implementer, overseer, reviewer, spec, and no orchestrator), i
 | The lock `loop` | `land` and `cb4` in `lock.sh`; `loop` in the Fly spec, approved | The Fly spec's lock, built here first |
 | A token for the driver, and one for each judgment run | `agent-token orch` | The same command and role. No new parent and no new method |
 | `loop.sh`, which starts the driver in the sandbox | `metadev`, which starts `claude` in `safehouse` | Not extended: it is the owner's file, it passes its arguments to `claude`, and it has a change of his that is not committed. `loop.sh` reads the arguments it gives `safehouse` and adds nothing to it |
-| `status.md` | `issue.queue`, `waiting` with `why: owner`, and the page's "For your attention" | Not extended: both are of the record, and the file has what is not in it: the health of the last step, the runs of another host, the entries judged and left. What waits for the owner is copied from the queue and not kept |
+| `status.md` | `issue.queue`, `waiting` with `why: owner`, and the page's "For your attention" | Not extended: both are of the record, and the file is one read of them with the health of the last step, which is in no record. The rest of it (what runs and where, the entries judged and left, what waits for the owner) is copied from the record at each step and not kept |
 | `loop.ts compare` | `issue-stats.ts`, which reads the record's moves | Not extended: it reads `steps.jsonl`, a file of one machine, beside the record, for `st-6` and `st-8`. It is a subcommand and no tool of its own |
 | The comments `given-…` and `verdict-…` | The comment with a key that says what it is (`orch/<topic>/worktree-<n>`, `approver/<id>/verdict-<n>`, which `approver.ts` reads) | The same form. No label: a label stands until it is taken off, so it would stand for the next round too |
 
@@ -695,7 +707,8 @@ Ids begin `st-`. None is `major` but `st-7`. No seed changes and nothing is depl
    keys, the count of dead runs, the files of `runs/`; `tests/tools/loop.test.ts`; the check on
    cb4. That check is run with `loop.ts start --token <t>`, which takes a token already made:
    `rules.md`, "Which token", gives `agent-token` to the orchestrating session, which makes the
-   two tokens for `test-st-2-a` when the writer asks in a comment. No writer runs `agent-token`.
+   two tokens for `test-st-2-a` when the writer asks with the label `asks-orchestrator`, and ends
+   them after the check. No writer runs `agent-token`, and under `--token` the program runs none.
    After st-1.
 3. **st-3-step.** `loop.ts step` and `--dry`: health, runs, the table, what stops a start,
    `steps.jsonl`, `status.md`; the `given` comments and the reading of a verdict; a test a row
@@ -870,6 +883,28 @@ The review was `changes`: the two findings of review 5194 hold against the seed,
 - **The round of a judgment run's `cost` event** is one more than the events of that role on the
   issue (part 3, item 5).
 - **Who runs the check of `st-2` on cb4**: the writer, with two tokens the orchestrating session
-  makes; `start` takes `--token`. The pulls of "Always" are in the list of `st-7`.
+  makes and ends; `start` takes `--token` and then ends none. The pulls of "Always" are in the list of `st-7`.
 
-Not read by a fresh reader: this round's change, 9 passages. The tracker's review reads it next.
+### The fresh review of round 3 (answered by 23:56 CEST)
+
+One agent with the diff since `41d44c77` and the file (`/review-notebook`), on `6ff3ad66`: FIX, 7
+findings (4 confirmed, 3 plausible) and 2 smaller, all taken. 123,933 tokens, 4m19s. It had no
+token and did not read `issueQueue`.
+
+- The role of a spec writer's run is `spec-writer` and an overseer's `overseer`; `spec` and `over`
+  are prefixes of tokens. As written a second spec writer was started beside one that ran. The
+  names are side by side in part 2.
+- "For a reviewer and an approver none of that round" had two readings: the condition is no
+  `running` run of the role, with no round in it.
+- Under `--token` the program would have ended tokens a writer may not end: it ends none, and
+  what it writes with is said.
+- The writer of `st-2` asked "in a comment", which nothing reads: the label `asks-orchestrator`,
+  which is built (`ae5423a2`); the two lines that said it was not are mended.
+- An overseer that returns with no heading was started at every step: the count is of its files
+  however they ended.
+- `start` for an overseer takes no id, and the rule of a file with no event leaves that role out.
+- The round of a judgment run counted two events a run: it counts runs.
+- Smaller: the `status.md` row claimed two things the record has; "9 passages" is gone.
+
+Not read by a fresh reader: the answers to this review, 15 replacements. The tracker's review
+reads them next.
