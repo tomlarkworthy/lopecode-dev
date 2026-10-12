@@ -117,10 +117,20 @@ restored   28                            null       2: brain-x-logcheck@ab5d2ccf
 ms         0.01 h shortest, 49.63 h longest
 ```
 
-So the panel has 28 rows for these 7 days and its line under them counts 2. The spec read 27 of 29
-on 2026-10-11, with the same longest. The two with no end are scratch Workers, as there. The
-page's call is this one with the owner's session: about 18 s for the 7-day span, against 0.4 to
-0.7 s for an `issue.flow` (the record of `fm-5-page-and-dashboard`).
+28 of the 30 have a `restored` and 2 have `null` (counted from the answer), which by `restoreRows`
+as its test holds it is 28 rows and `unrestored` 2; the function was not run on this answer and
+the panel was not drawn from it. The spec read 27 of 29 on 2026-10-11, with the same
+longest. The two with no end are scratch Workers, as there.
+
+**What the panel costs.** The page sends this method with its span as `from` and `to`; with the
+owner's session it was not sent. For 7 days the call took 18 s here, against 0.4 to 0.7 s for an
+`issue.flow` (the record of `fm-5-page-and-dashboard`), and `dashboardRead` awaits its queries
+together (`Promise.all`, read in the cell), so at that span the other ten panels of `flow` wait for
+it. The page opens on the last hour (the module's first prose cell). For 24 hours `plan/cloud-brain-dashboard-service.md` (its
+line 73, 2026-10-11) has 2.54 to 3.07 s and one query of Cloudflare; a span under 7 days was not
+timed here. The spec names this task as "the one to drop if it costs more than it gives": the 18 s
+at the longest span is that cost, and a panel drawn as its own answer arrives would end the wait
+for the others. Not built here.
 
 **The put.** Each call `--as loop-dashboard`, 03:49:50 to 03:49:51 UTC (`date -u` before and after):
 
@@ -132,8 +142,9 @@ page's call is this one with the owner's session: about 18 s for the 7-day span,
 | `dashboard.list` | `health`, `deploys`, `flow` |
 | `metric.query?metric=deploys.restore&by=id` | `NotFound`, "metric is one of core.calls, deploys.confirmed, deploys.put-back, deploys.failed, or a member's (metric.list)" |
 
-The last is what a page from before this deploy is told for the panel. The put was made after
-both applies, so that the page in service was the one that sends `logs.deploys`.
+The last is the answer to `metric.query` for this name, which is where `dashboardRead` of the module
+before this change sent every metric but a `flow.` one; a page from before the deploy was not
+opened. The put was made after both applies.
 
 ## Prior art searched
 
@@ -155,8 +166,7 @@ its check).
   `logs.deploys`. The spec leaves this to him.
 - The panel drawn from an answer of cb4. The tests draw a fixture of four put-backs.
 - How long the dashboard waits for this panel in a tab. `dashboardRead` awaits every query
-  together, so the ten other panels are drawn when `logs.deploys` has answered; the call alone is
-  timed under "On cb4".
+  together (read in the cell, not seen in a tab); the call alone is timed under "On cb4".
 - A span of the page under 7 days on cb4. A put-back before the span has no row and its restore
   inside the span is not drawn; the reference says so and no test holds it.
 - A member's dashboard with a `deploys.restore` panel. `logs.deploys` refuses a member
