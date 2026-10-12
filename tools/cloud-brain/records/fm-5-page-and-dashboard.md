@@ -35,9 +35,10 @@ and the commits are refs of the submit.
 - Two test cells more and one changed (the literal list of draws in
   `test_dashboard_declares_one_cloudflare_permission_and_its_rows`).
 
-The page computes no percentile. The hours are the answer's milliseconds divided by 3,600,000; the
-one number the page makes from rows is `sum / n` of `share`, and `n` with the largest `max` for an
-answer that has no `summaries`.
+The page computes no percentile: the median and the 85th percentile drawn are those of the
+answer's `summaries`. From the rows it makes the hours (milliseconds divided by 3,600,000), `sum / n`
+of `share`, and the `n`, `sum` and `max` of a group or a step, which `groupTable` and `barsChart`
+added up before this change and `shareTable` and the line of an answer with no `summaries` now do too.
 
 No rule, no definition of a metric, no method and no call from the service to the tracker changed.
 `brain-x-page` did not move: `brain.ts redistil` after the apply read `same` for it at `595290468923`.
