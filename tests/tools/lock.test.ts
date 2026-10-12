@@ -445,14 +445,61 @@ test("take --wait with seconds that sleep would refuse is a usage error, at once
   expect((await lock("show", "land")).out).toContain("writer-a");
 });
 
-test("take --wait leaves with exit 2 when sleep refuses the seconds the check let through", async () => {
-  const { lock } = fresh();
+// A `sleep` first on PATH in the place of the machine's own: it writes its arguments to a file and does as `then` says.
+// The machine's differ (lock-wait-hangs-on-gnu-sleep): /bin/sleep of macOS refuses 2147483648, GNU sleep 9 sleeps it.
+const sleepStub = (then: string) => {
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "bm-lock-sleep-")));
+  const seen = join(dir, "seen");
+  writeFileSync(join(dir, "sleep"), `#!/bin/bash\nprintf '%s\\n' "$*" >> "${seen}"\n${then}\n`);
+  chmodSync(join(dir, "sleep"), 0o755);
+  return { path: `${dir}:${process.env.PATH}`, calls: () => (existsSync(seen) ? readFileSync(seen, "utf8").trim().split("\n") : []) };
+};
+// One take as writer-b with the seconds as one argument, as they are. A run that has not left after 3 s is killed, and
+// its code is then not 2.
+const waitWith = async (env: Record<string, string | undefined>, seconds: string) => {
+  const p = Bun.spawn(["bash", script, "take", "land", "writer-b", "--wait", seconds], { env, stdout: "ignore", stderr: "pipe" });
+  const timer = setTimeout(() => p.kill(9), 3000);
+  const [err, code] = await Promise.all([new Response(p.stderr).text(), p.exited]);
+  clearTimeout(timer);
+  return { code, err };
+};
+
+test("take --wait with seconds no wait is for is a usage error before any call, with a sleep that would take them", async () => {
+  // this sleep takes whatever it is given, as GNU sleep takes the first two, and the loop would ask again after it
+  const sleep = sleepStub("exec /bin/sleep 0.05");
+  const { lock, svc, env } = fresh({ PATH: sleep.path });
   await lock("take", "land", "writer-a");
-  for (const bad of ["2147483648", "99999999999999999999", "$'abc\\n5'", "$'5\\nabc'"]) {
-    const t = Date.now();
-    expect((await lock("take", "land", "writer-b", "--wait", bad)).code).toBe(2);
-    expect(Date.now() - t).toBeLessThan(2000);
+  const n = svc.calls.length;
+  for (const bad of ["2147483648", "99999999999999999999", "601", "600.5", "1e3", "inf", "5s", "abc\n5", "5\nabc", "5\n"]) {
+    const r = await waitWith(env, bad);
+    expect(r.code, JSON.stringify(bad)).toBe(2);
+    expect(r.err).toContain("--wait takes seconds above 0 and at most 600; nothing was sent");
   }
+  expect(svc.calls.length).toBe(n);
+  expect(sleep.calls()).toEqual([]);
+  expect((await lock("show", "land")).out).toContain("writer-a");
+});
+
+test("take --wait takes 600 seconds, the time a lock is held for, and less", async () => {
+  const sleep = sleepStub("exit 0");
+  const { lock, env } = fresh({ PATH: sleep.path });
+  for (const good of ["600", "600.0", "0600", "599.9", "0.2", ".5"]) {
+    expect((await waitWith(env, good)).code, good).toBe(0);
+    await lock("release", "land", "writer-b");
+  }
+  expect(sleep.calls()).toEqual([]);
+});
+
+test("take --wait leaves with exit 2 when sleep refuses seconds the check let through", async () => {
+  const sleep = sleepStub("exit 1");
+  const { lock, svc, env } = fresh({ PATH: sleep.path });
+  await lock("take", "land", "writer-a");
+  const n = svc.calls.length;
+  const r = await waitWith(env, "5");
+  expect(r.code).toBe(2);
+  expect(r.err).toContain("sleep refused 5 seconds. Not taken.");
+  expect(sleep.calls()).toEqual(["5"]);
+  expect(svc.calls.length).toBe(n + 1);
   expect((await lock("show", "land")).out).toContain("writer-a");
 });
 

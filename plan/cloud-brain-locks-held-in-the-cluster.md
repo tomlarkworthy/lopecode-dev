@@ -400,7 +400,7 @@ brief sets `issues-overseer-1` and the reviewer's `issues-reviewer-2`, written b
 between two commands, and a release sent with another token than the take's is a 403 that names
 the caller's own `who`. For that 403 stderr says `held under your name by another token; this
 call used <the name in LOCK_TOKEN>` (the name of the token, never its value). `--wait` asks again every
-20 s as now, also while the cluster is not reached. `show` exits 2, not 1, when the cluster is not
+20 s as now, also while the cluster is not reached (As built, `lock-wait-hangs-on-gnu-sleep`, 2026-10-12: seconds given after `--wait` are above 0 and 600 at most, the time a lock is held for, and any other value is exit 2 with the usage before a call is sent; the record.). `show` exits 2, not 1, when the cluster is not
 reached, so that "nobody holds it" is never read from a call that failed.
 
 **How it finds the token and the address** (review 1236, the finding). `lock.sh` makes the call

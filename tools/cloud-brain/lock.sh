@@ -2,8 +2,8 @@
 # lock.sh take land|cb4 <who> [--wait [seconds]]   take the landing lock (land) or the deploy lock (cb4) as <who>, for 600 s.
 #                                                  Exit 0: yours. Exit 1: held, and stderr names the holder and until when.
 #                                                  Exit 2: cb4 was not reached, or refused the call. Nothing is taken here.
-#                                                  --wait asks again every 20 s (or the seconds given), while it is held
-#                                                  and while cb4 is not reached.
+#                                                  --wait asks again every 20 s, or the seconds given (above 0, 600 at
+#                                                  most), while it is held and while cb4 is not reached.
 # lock.sh renew land|cb4 <who>                     600 s from now for a lock <who> holds. Exit 1, and nothing is taken,
 #                                                  when <who> does not hold it. Exit 2 as for take.
 # lock.sh release land|cb4 <who>                   give it back. Exit 1, and the lock stays, when <who> is not its holder.
@@ -40,8 +40,12 @@ case "$CMD" in
   take)
     named
     if [ "$4" = "--wait" ]; then EVERY="${5:-20}"; elif [ -n "$4" ]; then usage; fi
-    # a number above 0 only: sleep refuses anything else, and the loop below would spin with no pause
-    if [ -n "$EVERY" ] && ! printf '%s' "$EVERY" | grep -Eq '^([0-9]*[1-9][0-9]*(\.[0-9]+)?|0*\.[0-9]*[1-9][0-9]*)$'; then usage; fi
+    # A number above 0 and at most 600, the time a lock is held for: checked here, whole (grep matched a line of it),
+    # and not left to sleep, which differs: GNU sleep takes 2147483648 and sleeps (issue lock-wait-hangs-on-gnu-sleep).
+    NUMBER='^([0-9]*[1-9][0-9]*(\.[0-9]+)?|0*\.[0-9]*[1-9][0-9]*)$'
+    if [ -n "$EVERY" ] && { ! [[ "$EVERY" =~ $NUMBER ]] || ! awk 'BEGIN { exit !(ARGV[1] + 0 <= 600) }' "$EVERY"; }; then
+      echo "lock.sh: --wait takes seconds above 0 and at most 600; nothing was sent" >&2; usage
+    fi
     ;;
   renew|release) named ;;
   show) ;;
