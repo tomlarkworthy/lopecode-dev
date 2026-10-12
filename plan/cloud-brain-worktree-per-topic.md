@@ -404,6 +404,13 @@ Each is run by an agent with its own token, from any worktree. `<root>` is the m
    `--remove` refusing a worktree that is not clean without `--force`. `issue-as.sh` reads
    `.emitted` through the common directory, as `lock.sh` line 51. Tests as check 6. No brief changes: step 10 as
    written still works, since its pull makes the root's `main` equal to `origin/main`.
+   (As built, `wt-2-worktree-sh`, 2026-10-12: all of it, with 36 tests. Where the build is not these
+   sentences: step 10 is refused its merge when the root's `main` has a commit that is not pushed, and
+   `--rebase` says so; `--push-dev` fetches and rebases where part 2 has `git pull --rebase`, gives the
+   token to git in the environment and not with `-c`, makes the pointer's commit itself, and takes the
+   push address from the root copy's `remote.origin.pushurl`, which a second machine may lack (R7);
+   `--for` is optional; `--remove` refuses with exit 3. The record,
+   `tools/cloud-brain/records/wt-2-worktree-sh.md`.)
 3. **`wt-3-land-by-push`.** Step 10 of `agents/implementer.md` and step 6 of `agents/spec.md` become part 1 and part 2;
    "A resumed round" of both loses "make the worktree again" and reads `origin/main` after a
    fetch in `$W` where it reads the root's `main` today (`implementer.md` lines 409 to 417, the

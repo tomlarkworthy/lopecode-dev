@@ -16,7 +16,15 @@
 # (one over ARG_MAX is "argument list too long"). The time check reads the file. A file that is absent or empty is exit 4
 # and nothing is sent. The path is relative to where the call is made; `@-` is a file named `-`, never stdin.
 # tests/tools/issue-as-body-file.test.ts; records/issue-as-body-from-a-file.md.
+# The token files are read from BRAIN_STATE_DIR, or with none the main checkout's tools/cloud-brain/.emitted, also when the
+# copy that runs is a worktree's own (as lock.sh; a worktree's .emitted has no token). A copy that is in no git repository
+# reads .emitted beside itself. ISSUE_AS_BASE is the address, https://cb4.endpointservices.workers.dev with none; only the
+# tests set it. tests/tools/worktree.test.ts; records/wt-2-worktree-sh.md.
 D="$(cd "$(dirname "$0")" && pwd)"
+DIR="${BRAIN_STATE_DIR:-}"
+if [ -z "$DIR" ]; then
+  G="$(git -C "$D" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" && DIR="$(dirname "$G")/tools/cloud-brain/.emitted" || DIR="$D/.emitted"
+fi
 F=""
 case "$3" in @*)
   F="${3#@}"
@@ -55,7 +63,7 @@ print("issue-as.sh: a time in a tracker write is read from `date` or an event's 
 sys.exit(3)
 PY
 [ $? -eq 3 ] && exit 3; fi
-tok=$(python3 - "$1" "$D/.emitted" <<'PY'
+tok=$(python3 - "$1" "$DIR" <<'PY'
 import json, os, sys
 for f in ("cb4-issues-tokens.json", "cb4-agent-tokens.json"):
     p = os.path.join(sys.argv[2], f)
@@ -67,7 +75,7 @@ print("issue-as.sh: no token named %s is kept; nothing was sent" % sys.argv[1], 
 sys.exit(1)
 PY
 ) || exit 2
-U="https://cb4.endpointservices.workers.dev/xrpc/com.lopecode.brain.issue.$2"
+U="${ISSUE_AS_BASE:-https://cb4.endpointservices.workers.dev}/xrpc/com.lopecode.brain.issue.$2"
 if [ -n "$F" ]; then curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" -H 'content-type: application/json' -X POST --data-binary "@$F" "$U"
 elif [ -n "$3" ]; then curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" -H 'content-type: application/json' -X POST -d "$3" "$U"
 else curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" "$U"; fi
