@@ -90,6 +90,19 @@ test("a token beside two agents fails the first check; an agent beside two token
   expect(d.r1.first.pass).toBe(true);
 });
 
+// ap-2-brief-and-shadow-step: an approver's token is held to a cost line as a writer's is.
+test("an appr- holder with no cost line an orch- token wrote fails the third check, and passes with one", () => {
+  const r = good(), before = checks(r.list).r1.third.holders;
+  r.ev("appr-aaaaaa", { key: "approver/a/verdict-1" });
+  const c = checks(r.list);
+  expect(c.r1.third.pass).toBe(false);
+  expect(c.r1.third.holders).toBe(before + 1);
+  expect(c.r1.third.noLine.map((h: any) => h.name)).toEqual(["appr-aaaaaa"]);
+  expect(text(c).join("\n")).toContain("that start impl-, rev-, spec-, over-, dig- or appr-;");
+  r.cost("orch-dddddd", "appr-aaaaaa", "agent9");
+  expect(checks(r.list).r1.third.pass).toBe(true);
+});
+
 test("a holder that is the token of no cost line an orch- token wrote fails the third check, with why it could be on none", () => {
   const r = good();
   r.ev("over-ffffff"); // 10: no line names an over- token

@@ -39,7 +39,8 @@ test("a resumed round's cost example says so, and names the round whose count it
 
 // cm-5-the-loop-writes-the-event.
 test("each cost example is a call the tracker takes: its key, the required fields, and no field issue.cost does not list", async () => {
-  expect(costs.length).toBe(2);
+  // Three since ap-2-brief-and-shadow-step: the third is an approver's run.
+  expect(costs.length).toBe(3);
   for (const c of costs) {
     expect(c.key).toBe(`cost/${c.id}/${c.role}/${c.round}`);
     for (const k of REQUIRED) expect(c[k]).toBeDefined();
@@ -58,7 +59,7 @@ test("each cost example is a call the tracker takes: its key, the required field
   const { importNotebookModule } = await import("../../tools/notebook-import.ts");
   const m = await importNotebookModule(built, { overrides: { checkedRule: () => { throw new Error("no rule is checked here"); } } });
   const act = await m.value("issueAct");
-  for (const c of costs) expect(act("cost", { ...c, id: "an-issue" })).toMatchObject({ type: "cost", role: "implementer", how: c.how });
+  for (const c of costs) expect(act("cost", { ...c, id: "an-issue" })).toMatchObject({ type: "cost", role: c.role, how: c.how });
   expect(() => act("cost", { ...costs[0], id: "an-issue", rounds: 2 })).toThrow(/rounds: not a field of issue\.cost/);
   expect(() => act("cost", { ...costs[0], id: "an-issue", tokens: 1 })).toThrow(/tokens: not a field of issue\.cost/);
 });

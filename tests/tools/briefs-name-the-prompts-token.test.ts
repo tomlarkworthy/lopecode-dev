@@ -34,6 +34,8 @@ test("a brief names a role's token once, for a prompt that names none; the revie
     expect(text, f).toMatch(/the (token|one) your prompt names/);
   }
   expect(read("agents/reviewer.md").match(role)).toBe(null);
+  // An approver's prompt always names its token (ap-2-brief-and-shadow-step): its brief has no role's token to fall back on.
+  expect(read("agents/approver.md").match(role)).toBe(null);
 });
 
 test("SKILL.md and rules.md name the three role tokens once each, where they say the owner revokes them", () => {
@@ -62,8 +64,8 @@ test("the prompt of a spawn ends with the token's line, and the reviewer's task 
 // Since cm-5-the-loop-writes-the-event the run is an event written with issue.cost, and the example is the call.
 test("each cost example has the token of the run, and the event is written with the session's own", () => {
   const costs = [...skill.matchAll(/^ *issue-as\.sh <your token> cost '(\{.*\})'$/gm)].map((m) => JSON.parse(m[1]));
-  expect(costs.length).toBe(2);
-  for (const c of costs) expect(c.token).toMatch(/^(impl|rev|spec|dig|over)-[0-9a-f]{6}$/);
+  expect(costs.length).toBe(3);
+  for (const c of costs) expect(c.token).toMatch(/^(impl|rev|spec|dig|over|appr)-[0-9a-f]{6}$/);
   expect(flat(skill)).toContain("one call of `issue.cost`, with your own token (`orch-…`)");
   expect(skill).not.toContain("with the token you triage");
 });

@@ -405,7 +405,10 @@ overrode were of one kind that a brief could name.
 
 `brain.ts agent-token` gains the role `appr`. The orchestrating session makes the token and spawns
 one Agent for an issue that is at `awaiting-approval` and has no comment keyed
-`approver/<id>/verdict-<n>`, `<n>` the count of its `to-approval` moves. The prompt is three lines:
+`approver/<id>/verdict-<n>`, `<n>` the count of its `to-approval` moves. (As built,
+`ap-2-brief-and-shadow-step`, 2026-10-12: and no comment of any round that begins `approver: leave`, and no
+run of role `approver` of that round; review 4118 found that this rule alone starts a second approver after
+a send-back on an issue that was left, which the tool refuses; the record.) The prompt is three lines:
 the brief to read, the issue's id, the token. The orchestrator adds no summary and no opinion; the
 decision comment it wrote is on the issue as data. `approver.ts approve` refuses when the holder of
 the verdict comment is the holder of any `start`, `spec`, `submit`, `submit-spec` or `reviewed`
@@ -519,7 +522,7 @@ Each check is a command an agent runs with its own token, or a test file. Run at
 | R4 | `test_issues_an_approver_delegation_approves_and_no_other_token`, the narrowed issue | no such cell | 403 in the rig, and 403 again after a send-back and a new pass (task 4); not run |
 | R5 | `grep -c '"appr"' tools/cloud-brain/brain.ts` | 0 | 1, run with the role added to `ROLES` and the edit taken back, 16:36 CEST (task 1) |
 | R8 | `test_issues_panel_approved_for_you` (task 5) | no such cell | passes on a panel with a client of its own; not run |
-| R7 | `test -f .claude/skills/brain-maintenance/agents/approver.md; echo $?` | 1 | 0 (task 2). That the file exists and no more; R7 is held by the tool's test and by `check` |
+| R7 | `test -f .claude/skills/brain-maintenance/agents/approver.md; echo $?` | 1 | 0 (task 2). That the file exists and no more; R7 is held by the tool's test and by `check`. (As built, `ap-2-brief-and-shadow-step`, 2026-10-12: 0 in the writer's worktree, and `bun test ./tests/tools/approver-brief.test.ts` gives the brief's verdicts to the tool; the record.) |
 | R7 | `issue-as.sh <token> policy`, `approver brief` in `policy.reason` | absent | present, with two blobs that `git hash-object` gives for the files at `origin/main` (after his install) |
 | R9 | events of `issue.sync` with a key `approver/<id>/verdict-<n>` | 0 of 4115 | 20 or more (task 3) |
 | R10 | none: nothing of a choice or an act changes | | |
@@ -779,3 +782,23 @@ what the text left open:
   words`, `not secure`, `could not tell`; anything else is `other`. Task 2's brief asks for that line.
 - `approver.ts id` tries `approver/id-2` and on when the key `approver/id` is held by an earlier `loop-approver`,
   which answers no event to another delegation.
+
+**Task 2, `ap-2-brief-and-shadow-step`, 2026-10-12.** The record is
+`tools/cloud-brain/records/ap-2-brief-and-shadow-step.md`. Where what was built differs from the text above, or
+says what it left open:
+
+- The spawn rule of part 4 has two more conditions (`SKILL.md`, step 3, the row for `awaiting-approval`): no
+  comment of the issue, of any round, begins `approver: leave`, and the issue has no run of role `approver` of
+  that round. The first is the mend of review 4118. The second keeps a run that ended with no verdict from being
+  started again each pass.
+- The approver runs in a view of its own, `bm-appr-<id>`, a detached worktree at `origin/main` made with
+  `worktree.sh --at`, and the first line of its prompt is `Run \`bun <V>/tools/cloud-brain/approver.ts brief\` and
+  follow what it prints.` The spec did not say where it runs.
+- The `cost` event of an approver's run has `round` the `<n>` of the verdict's key and `outcome` `approve`,
+  `leave` or `stopped`: the verdict, and not whether a move was made.
+- An issue whose refs touch the approver's own files or the policy is given an approver as any other is, and
+  the brief has it leave with the line `why: the approver's own files`, which `trial` counts under `other`.
+- `tools/cloud-brain/token-checks.ts` counts an `appr-` holder among those whose token a `cost` line names (the
+  third check of R1 of `plan/cloud-brain-record-names-token-not-agent.md`), which task 1 left to this task.
+- The brief has the approver write a `leave` as one comment, the verdict, in the form `philosophy.md` gives for
+  a comment that waits for the owner. It puts no label on.

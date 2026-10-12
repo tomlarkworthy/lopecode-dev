@@ -32,7 +32,8 @@ const whole = (n: string) => {
 };
 
 const OLD = ["issues-implementer-2", "issues-reviewer-2", "issues-overseer-1"];
-const agentName = /^(orch|impl|rev|spec|over|dig|out)-[0-9a-f]{6}$/;
+// appr: an approver, whose run has a cost line of role `approver` since ap-2-brief-and-shadow-step.
+const agentName = /^(orch|impl|rev|spec|over|dig|appr|out)-[0-9a-f]{6}$/;
 const name = (e: any) => String(e.by?.holder || "").replace(/^secret:/, "");
 const prefix = (n: string) => agentName.exec(n)?.[1] ?? "";
 
@@ -76,7 +77,7 @@ export function checks(all: any[], opt: { after?: number; until?: number } = {})
     h.events++; h.last = e.seq;
   }
   const of = (...p: string[]) => [...holders.values()].filter((h) => p.includes(prefix(h.name)));
-  const five = of("impl", "rev", "spec", "over", "dig");
+  const five = of("impl", "rev", "spec", "over", "dig", "appr");
   const noLine = five.filter((h) => !ofOrch.has(h.name));
   const firstToken: Record<string, number> = {};
   for (const l of lines) if (l.token && prefix(l.token) && !(prefix(l.token) in firstToken)) firstToken[prefix(l.token)] = l.seq;
@@ -121,7 +122,7 @@ export function text(c: Checks) {
   l.push(`R1, second check: ${word(c.r1.second.pass)}; ${c.r1.second.out.length} holders that start out-`);
   for (const h of c.r1.second.out) l.push(`  ${h.name}: ${h.events} events, ${h.first} to ${h.last}`);
   l.push(`R1, third check: ${word(t.pass)}, of what the record has (the live children are agent-token list's)`);
-  l.push(`  ${t.holders} holders after N that start impl-, rev-, spec-, over- or dig-; ${t.withLine} are the token of a cost line an orch- token wrote; ${t.noLine.length} are not`);
+  l.push(`  ${t.holders} holders after N that start impl-, rev-, spec-, over-, dig- or appr-; ${t.withLine} are the token of a cost line an orch- token wrote; ${t.noLine.length} are not`);
   for (const h of t.noLine) l.push(`    ${h.name}: ${h.events} events, ${h.first} to ${h.last}${h.anyWriter ? "; on a line another writer wrote" : ""}${h.before ? `; ${h.before}` : ""}`);
   l.push(`  cost lines: ${t.costLines}, ${t.withToken} with a token, by the writer's role ${JSON.stringify(t.writers)}; the first that names a token of a role ${JSON.stringify(t.firstToken)}`);
   for (const h of t.orch) l.push(`  ${h.name}: ${h.events} events, ${h.first} to ${h.last}; wrote ${h.costLines} cost lines; the session of those with an agent ${JSON.stringify(h.sessions)}`);

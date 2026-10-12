@@ -74,7 +74,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
   `orch; <your session id>`. It ends 48 hours after it was made; a call with it is then refused, and
   you make another.
 - **An agent's.** Before each spawn (step 4): `agent-token <role> <issue id>`, with the role `impl`
-  for a writer, `rev` for a reviewer, `spec` for a spec writer, `dig` for a digest writer and `over`
+  for a writer, `rev` for a reviewer, `spec` for a spec writer, `dig` for a digest writer, `appr` for an approver (step 4, "The approver") and `over`
   for an overseer, whose second argument is `oversight-after-<seq>`. The name goes in the agent's
   prompt, and in the `token` field of its run's `cost` event (step 5). A round sent to an agent by message
   makes no token: the agent has the one of its first round.
@@ -143,7 +143,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    there unlanded; land it or take it back, the loop removes nothing of it.
    **The worktrees of the loop.** `tools/cloud-brain/worktree.sh --list` prints a line for each `bm-*` worktree: its
    name, `clean` or `not-clean`, five counts, `occupant=`, `branch=`, `head=`. `orch-*`, `over-*` and `out-*` are of
-   no issue and are left. For each other line that reads `clean` and `occupant=-`, the issue is the name with `rev-`
+   no issue and are left. `appr-<id>` is an approver's view (step 4, "The approver"): left while an approver of yours
+   runs on that issue, and otherwise removed as step 5 removes one, with no comment. For each other line that reads `clean` and `occupant=-`, the issue is the name with `rev-`
    taken off the front and `.2` (or a higher number) off the end: read its state,
    `issue-as.sh <your token> "get?id=<that id>"`.
    A worktree of a topic or of an issue, at `done`, `closed` or `rejected`: `tools/cloud-brain/worktree.sh --remove <tree>`,
@@ -185,6 +186,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    waits without a reviewer and no sent-back round waits without a writer. Start nothing new in a
    pass in which an agent's report or your own session names a rate limit or a usage limit, or in
    which `lock.sh show land` has named the same holder for two passes. One agent on an issue, as before.
+   An approver (step 3, the row for `awaiting-approval`) is started after the reviewers and the rounds sent back and
+   before a new writer, and not in a pass that names a limit: nothing waits on it but the owner, who approves as before.
    A limit of the advisor tool is such a limit, also when every other call of the agent that names it was
    answered: the pass starts nothing new. (The owner, 2026-10-12, event 3768 of `skill-step-2-advisor-rate-limit`: "A".
    Choice A of comment 3682 there: "As written: any named limit stops new starts for that pass." Choice B, not taken,
@@ -241,7 +244,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    | Issue is | Do |
    |---|---|
    | `hidden: true`, or kind or label `security` | Nothing. It is the owner's. |
-   | at `awaiting-approval` | Nothing, unless the owner has said in this session that he approves that issue, or several issues he was shown by title: then you make the `approve` move for him, one move an issue, each for an issue with a passing review and each with a reason that quotes his word, names that review's event and says what he was shown (`rules.md`, Never, the `approve` line, and "An act of Never, on the owner's word"). |
+   | at `awaiting-approval` | **Spawn the approver** (step 4, "The approver"), when all three hold: the issue has no comment keyed `approver/<id>/verdict-<n>`, with `<n>` the count of its moves to `awaiting-approval`; no comment of the issue, of any round, begins `approver: leave`; and `issue-as.sh <your token> "runs?id=<id>&role=approver&round=<n>"` has no run. `bun tools/cloud-brain/approver.ts facts <id> --token <your token>` prints the key with its `<n>`, the verdicts the issue has, and `left to the owner at <seq>` when one stands. An issue an approver left is the owner's from then on: after his send-back and a new pass no second approver is started, which the tool would refuse (review 4118 of the spec; the rule of its part 4 read the round's verdict alone). A run that reported with no verdict is not started again in that round: it is said in step 7. Until the owner installs a policy whose `approve` guard names the approver's delegation, its tool sends no move and the verdict is all a run leaves; he approves as before. (Since `ap-2-brief-and-shadow-step`, 2026-10-12; `plan/cloud-brain-approver-persona.md`. First approver started by this row: not yet, when this was written.) You make no `approve` yourself, unless the owner has said in this session that he approves that issue, or several issues he was shown by title: then you make the `approve` move for him, one move an issue, each for an issue with a passing review and each with a reason that quotes his word, names that review's event and says what he was shown (`rules.md`, Never, the `approve` line, and "An act of Never, on the owner's word"). |
    | labeled `needs-owner` | Read it again each pass: the events since the label was put on, and what the owner has said in this session. When he has answered (a comment of his on the issue, or his word to you, which you quote in a comment first), or `philosophy.md` now answers it (say what changed), comment with the event that put the label on and what ended its reason, take the label off (`rules.md`, Never, the `needs-owner` line), and take the issue again from this table. Otherwise nothing: it is the owner's, and it is named in step 7. |
    | `in-progress`, started by a writer or a digest writer (the `by.holder` of its last `start` event is `secret:impl-…` or `secret:dig-…`, or a role's token, for a start made before each agent had its own), sent back, no agent running | Send the round to the agent that started it ("A rework round goes to the agent that wrote the change", below): its token is still kept, and only the starter submits (`caller.actor == issue.by.start`). When it cannot be sent one, the next row. Do not, and instead comment with the open findings and label `needs-owner`, when the last implementer you spawned for it finished without a new `submit`, or when it has 3 `rework` moves and the rounds are not getting anywhere. At 3 you judge (Tom, 2026-10-10: "make a judgment call when the 3 retries is hit, has genuine progress been made?"): go on when each review closed what the one before found and the new findings are narrower; stop when a finding came back, or the rounds are trading one defect for another of the same size. Write the judgment and its reason in the journal and as a comment on the issue. |
    | `in-progress`, no agent running, and its starter cannot go on: the writer died or cannot be sent a message, its token has ended (`agent-token list` has no line for it), or the `start` was made with a role's token and its writer cannot be sent one (after the owner's revoke of those: every such issue) | **A dead writer.** You end its token (`agent-token revoke <name>`; a role's token is the owner's to end), then you make `back` to `ready` with the reason. The issue is then `ready`: the writer you spawn makes the second `start` with its own token, which replaces `issue.by.start`, and it alone submits. Two more moves. A submit by any token but the last starter's is refused 403. |
@@ -262,7 +265,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    | Anything else: `in-review` with a review and no move after it, a state or a starter no row above names | Comment with what you see, label `needs-owner`, and say so in step 7. |
 
 4. **Spawn.** First make the agent's token, from the main checkout ("A token for each agent"):
-   `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token <impl|spec|dig|over|rev> <id>`. Its stdout is the name.
+   `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token <impl|spec|dig|over|rev|appr> <id>`. Its stdout is the name.
    On exit 1 what it printed is not a name: no agent is spawned, and it is said in step 7.
    **Then a worktree for it** (since `wt-3-land-by-push`, 2026-10-12; `plan/cloud-brain-worktree-per-topic.md`,
    part 3; a reviewer is put in a view, below). The topic of an issue is its `parent` when it has one, and
@@ -374,9 +377,39 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    Measured before the switch: 25,212 after it had read its brief, the rules and `philosophy.md`, where an
    Agent told to answer "OK" is 40,842; one review replayed at 69,440 against 100,725 (the README has both,
    and what was not tried). First real review by it: not yet.
+
+   **The approver** (since `ap-2-brief-and-shadow-step`, 2026-10-12; `plan/cloud-brain-approver-persona.md`, part 4)
+   is an Agent started fresh for one issue (the owner, at the approval of that spec, event 4123: "A the persona should
+   always be an isolated session that judges a ticket against cluster evidence itself (i.e. not a continuation of a
+   reviewer/writer agent session)"). It is never sent a message, never a fork, and never an agent that did other work
+   of the issue. Its token is `agent-token appr <id>`. It gets a view of its own at `origin/main`, from the main checkout:
+   ```
+   git -C <root> fetch --no-recurse-submodules origin main
+   V=$(tools/cloud-brain/worktree.sh --at $(git -C <root> rev-parse origin/main) appr-<id>)
+   ```
+   The exits are those of the reviewer's view, above; on any but 0 no approver is started this pass, and stderr goes
+   in step 7. At `origin/main` and not at the commit under review: the tool makes no move unless the file that runs
+   is the one the installed policy names, which is `origin/main`'s, and the commits of a submit are on `origin/main`
+   since its landing. Not the main checkout, which was the other side: it is behind whenever its pull was refused
+   (step 1), and a file another session has open there would be read as the rule. No `worktree {` comment: a view is
+   of no topic. (Made, read in and removed once by the writer of this step, 2026-10-12 19:40 CEST, as
+   `appr-ap-1-approver-tool`: 5 s to make, `approver.ts facts` answered there, `--list` read `clean`.)
+   Then the `Agent` tool, `subagent_type: general-purpose`, `model: opus`, with these three lines, the view's path
+   written out for `<V>`, and nothing added: no summary, no opinion, no line of what you expect. Your decision
+   comment on the issue is data there, as every comment is.
+   ```
+   Run `bun <V>/tools/cloud-brain/approver.ts brief` and follow what it prints.
+   Issue: <id>
+   Your token is <name>.
+   ```
+   The command prints `agents/approver.md` as `origin/main` has it after a fetch, and a last line `brief <blob>`, the
+   hash of that text, which the verdict ends with. The prompt names the command and not the file so that the text a
+   run follows is the one whose hash it writes: after the owner's install a verdict with another hash makes no move.
+   First approver started this way: not yet, when this was written.
 5. **When an agent reports**, append the report to the journal, free its worktree
    (`tools/cloud-brain/worktree.sh --leave <tree>`, step 4), or for a reviewer remove its view
-   (`tools/cloud-brain/worktree.sh --remove rev-<id>`), then read the issue again.
+   (`tools/cloud-brain/worktree.sh --remove rev-<id>`), or an approver's (`--remove appr-<id>`; an approver writes
+   no file there, so on exit 3 say in step 7 what the counts were, and then `--remove appr-<id> --force`), then read the issue again.
    Exit 3 from that `--remove` prints the view's counts and removes nothing: with `ahead=0` and `dev-ahead=0` what stands there is a file the
    reviewer copied in or changed for a test, and `--remove rev-<id> --force` removes it; with a count there that is not 0 a commit of the reviewer's stands
    that was not pushed (a note it mended, below): leave the view, and name it in step 7 with the commit.
@@ -401,7 +434,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    does not list, a required one that is missing, or one of another type is 400 `InvalidRequest` naming the field, and
    nothing is written. Read the answer: `seq` is the event's.
    Required: `role`, `round`, `how`, `outcome`, `seconds`, `context`.
-   `role` is `implementer`, `reviewer`, `spec-writer`, `digest`, `overseer`, `triage` or `paper-summarizer` (a name, a-z 0-9 -; the service keeps no list); `round`
+   `role` is `implementer`, `reviewer`, `spec-writer`, `digest`, `overseer`, `approver`, `triage` or `paper-summarizer` (a name, a-z 0-9 -; the service keeps no list); `round`
    counts the runs of that role on that issue from 1 (a writer's is the round it wrote, the `rework` moves before it
    plus one, as in its keys `comment-N` and `submit-N`; for a run of two rounds, below, the first of them);
    `how` is `fresh` for an agent you spawned, `resumed` for a round you sent to an agent that was there, `light` for the
@@ -461,12 +494,32 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    and they are in the journal. The task's lines are those with `at` from the first canary of the task's first `run`;
    the writer's comment gives that `at` and the three numbers, with the command that printed them. Check the sum
    yourself before the call (`tools/cloud-brain/records/ps-4-the-rest.md` has the command).
+   **The role `approver`** (since `ap-2-brief-and-shadow-step`, 2026-10-12; `plan/cloud-brain-approver-persona.md`, part 5).
+   One event a run of an approver, written as for any Agent run, with four things of its own:
+   ```
+   issue-as.sh <your token> cost '{"key":"cost/<id>/approver/1","id":"<id>","role":"approver","round":1,"how":"fresh","outcome":"leave","seconds":277,"context":98211,"tools":21,"event":4301,"agent":"a1c9e07d2b6f4d3a8","session":"f501a8e8-b922-4e11-a581-2b725efd6272","token":"appr-7c20fe"}'
+   ```
+   `round` is the `<n>` of the verdict's key, the count of the issue's moves to `awaiting-approval`, and not a count
+   of approvers: step 3 asks for the run of that round, so that a round gets one. `outcome` is `approve` or `leave`,
+   as the verdict begins, and `stopped` for a run that wrote none; it is the verdict and not the move, which is an
+   `approve` event `via delegation:…` in the record when the tool made one. `event` is the verdict's seq. `token` is
+   the `appr-` name and is never left out: `approver.ts check` holds an approval made by the approver to stand only
+   when its verdict's token is the `token` of a `cost` event of role `approver` that an `orch-` holder wrote. The
+   numbers of the example are made up, and its `usage` is left out for length. Then end the token
+   (`agent-token revoke <name>`): an approver is sent no second round.
 6. **Oversight.** Spawn the overseer (its token: `agent-token over oversight-after-<seq>`), beside the others, when either 3 issues have
    reached `done`, `rejected` or `needs-owner` since the last entry of `oversight.md`, or one
    issue hit the rework cap. One overseer at a time; it commits in its own worktree, `bm-over-<host>` (step 4), and
    lands from it by a push under the landing lock.
 7. **Tell the user** in a few lines: what moved this pass, what is waiting for the owner and
    why, what is running. Nothing moved is one line.
+   Then what was approved for him since you last told him: the lines of
+   `bun tools/cloud-brain/approver.ts list --since=<hours since you last told him> --token <your token>`, as they
+   are. Each is one `approve` the approver made: the time, the issue, the words of his it rests on (`on your words
+   of event N`, `on the spec you approved`, `on your words in <file>`, `on words a session quoted at event N`), the
+   verdict's one sentence, and `reverted` when he has undone it. Nothing printed is none, which is every pass until
+   he installs a policy that lets the approver approve. An issue that waits for him at `awaiting-approval` with an
+   approver's verdict is named with the verdict's first two lines (`plan/cloud-brain-approver-persona.md`, part 5).
 8. **Watch, then schedule** (only under `/loop`). The tracker wakes you, not the clock (the
    owner, 2026-10-11: "The self pacing mechanism is quite slow, I think you need a background
    tasks notifying you of new issues as they come in"). Keep one `Monitor` armed, `timeout_ms`
@@ -688,7 +741,7 @@ session" and "An act of Never, on the owner's word").
 
 ## What the loop does not do
 
-- Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md` for what you do of these on his word: the `approve` move since 2026-10-11, and since 2026-10-12 an act of its Never list that he gives his word for in this session, quoted on the issue with its date ("An act of Never, on the owner's word"). An agent you spawn does none of them.
+- Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md` for what you do of these on his word: the `approve` move since 2026-10-11, and since 2026-10-12 an act of its Never list that he gives his word for in this session, quoted on the issue with its date ("An act of Never, on the owner's word"). An agent you spawn does none of them; an approver makes the `approve` move through `approver.ts` alone, which sends none until the owner has installed a policy that names its delegation (step 3, the row for `awaiting-approval`).
 - Two agents on one issue. (No number of writers or reviewers is set: step 2.)
 - Issues whose fix is in `exporter-3`, `robocoop-5`, the channel server or `lopecode`. Comment with the change wanted and label `needs-owner`.
 - Carry on past a cluster that is not healthy.
