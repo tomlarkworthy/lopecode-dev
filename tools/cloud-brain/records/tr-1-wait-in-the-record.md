@@ -24,7 +24,7 @@ Commands below are run in the worktree `bm-tracker-trigger-rules` unless one say
 | `issueApply` | `waits: [{ actor, holder, when, until, note, seq, at }]` on the row; one an actor, ten actors an issue; `updated_at` is left by a `waits` event |
 | `issueLive` | new: a row without the waits past their `until` at a time. `issue.get`, `issue.list` and `issue.snapshot` answer rows through it |
 | `issueWakes` | new: `{ due, waiting }` from a view, a caller and a time. No I/O |
-| `issuesApp` | `ahead`, which reads the issues an issue is after into the view and answers 400 past 20; `write` calls it for a wait, after the key is looked up; the route `wakes` |
+| `issuesApp` | `ahead`, which reads the issues an issue is after into the view and answers 400 past 20; `write` calls it for a wait, after the key is looked up, and the route `wakes` for its `id`, each only for a caller who reads the issue; the route `wakes` |
 | `issuesPanel` | a `waits` event is one line of an open issue's events (`until …, when …`, or `wait taken off`). Nothing else of the panel changed |
 | prose | the rows `issue.wait` and `issue.wakes` of the method table, a section "A wait", `waits` among the types of an event, `wait` among the guards a workflow may have, `issue.waits` in the row of `issue.get` |
 
@@ -91,8 +91,9 @@ module's rig:
   `waiting` and then `due` after the call that made it true; a wait written after its condition;
   two actors on one issue; `since`; a `when` that answers an error on a branch its write did not
   take; `issueWakes` at `until - 1` and at `until`; an issue escalated to the security workflow; an
-  issue after 20 and after 21; that the one event after the close that made a wait due is the
-  caller's own, and that no `waits` event is the service's.
+  issue after 20 and after 21; a security report after 21, whose opener is answered the 400 and
+  another token 404 and two empty lists; that the one event after the close that made a wait due is
+  the caller's own, and that no `waits` event is the service's.
 
 **Without the change the three fail.** The seed as it was at `1904d03d` with the three cells added,
 `bun test.ts brain-x-issues --with`: `passed 45, failed 3`: `issueLive is not defined`,
@@ -101,18 +102,20 @@ not defined`.
 
 **One line taken out, to see a test enter it.** With `if (id !== undefined) await ahead(view, id)`
 out of the route `wakes`, the third test fails where `c2` waits for `c3`: `Expected "waiting",
-Received "due"`. The same was not done for the other new lines.
+Received "due"`. And with the read guard out of the two calls of `ahead`, the same test fails at the
+security report: `Expected 200, Received 400 "h is after 21 issues: a wait and issue.wakes read 20
+at most"`, said to a token that may not read `h`. (The seed first had `ahead` with no such guard;
+it was added before the landing.) The same was not done for the other new lines.
 
-Counts, each from a run after the last edit of the seed and after the rebase of 23:43 CEST, which
-brought in no file the module is built from:
+Counts, each from a run after the last edit of the seed (2026-10-12 23:56 CEST) and after the rebase
+of 23:43 CEST, which brought in no file the module is built from:
 
 | Command | Result |
 |---|---|
 | `bun tools/cloud-brain/build.ts --out …` then `(cd cloud-brain-dev && bun test.ts brain-x-issues --with …/tr-1.js)` | `passed 48, failed 0, needsBrowser 15` |
 | `bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/brain-issues` | `"tests":63,"passed":63,"failed":[]`, Chrome 151.0.7922.34 |
-| main checkout: `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-issues --shell <the build> --times 20` | three times. Before the rebase and at 23:54 CEST: `"runs":20,"passed":20,"failed":0,"none":0,"from":["document"],"byChance":[]`. Between them, at 23:46, while the suite below was starting: `"passed":19,"failed":0,"none":1,"byChance":[]`, one run with no verdict and no failed test |
-| `tests/tools/suite.sh` | `816 pass, 2 fail` of 818 in 85 files, 254.58 s, load 8.58 by `uptime`: the two fails are at the 30 s timeout, in `knowledge-docs.test.ts` and `summarize-papers.test.ts`, which this change does not touch |
-| `bun test --timeout=30000 ./tests/tools/knowledge-docs.test.ts`, and the same of `summarize-papers.test.ts`, each alone | `29 pass, 0 fail` and `26 pass, 0 fail`, load 5.57 |
+| main checkout: `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-issues --shell <the build> --times 20` | 23:58 CEST: `"runs":20,"passed":20,"failed":0,"none":0,"from":["document"],"byChance":[]`. Of the three runs of the command on the build before the last edit, two read the same and one, at 23:46 while the suite was starting, `"passed":19,"failed":0,"none":1`: one run with no verdict and no failed test |
+| `tests/tools/suite.sh` | 2026-10-13 00:01 CEST: `818 pass, 0 fail` in 85 files, 182.98 s. The run before the last edit had `816 pass, 2 fail` at load 8.58 by `uptime`, both at the 30 s timeout, in `knowledge-docs.test.ts` and `summarize-papers.test.ts`, which this change does not touch; each alone was `29 pass` and `26 pass`, 0 fail |
 
 ## Not tried
 

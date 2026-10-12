@@ -1331,7 +1331,8 @@ issuesApp = {
       // A key kept: the first event again, to whoever wrote it. Another caller is told its place and no more.
       if (kept) return ((e) => ({ event: e, duplicate: true, mine: issueActor(e.by) === issueActor(ctx.by) }))(J(kept.event));
       // What the `when` of a wait may read of other issues, so that it is asked here of the issues issue.verify asks it of.
-      if (given.type === "wait" && !given.remove) await ahead(view, given.id);
+      // Not for a caller who may not read the issue: that one is answered 404 by the judge, and told nothing of its links.
+      if (given.type === "wait" && !given.remove && issueAllowed(view, ctx.by, { type: "read", id: given.id }).allow) await ahead(view, given.id);
       // The default policy is written only into an empty record. A record with no policy in its view has lost the view.
       if (!view.policy && view.seq) throw refuse(503, "ViewLost", "the view has no policy: issue.rebuild makes it again from the record");
       if (!view.policy && given.type !== "policy") {
@@ -1587,7 +1588,8 @@ issuesApp = {
   // issue, its parts and what it is after are read; with none the whole view. It writes nothing.
   app.get(NS + "wakes", run(async (c, q) => {
     const id = q.id == null || q.id === "" ? undefined : String(q.id), view = await load(id === undefined ? [S.all] : [S.near, id, ""]), { by } = who(c), now = Date.now();
-    if (id !== undefined) await ahead(view, id);
+    // An issue the caller may not read is in neither list, and nothing of its links is said.
+    if (id !== undefined && issueAllowed(view, by, { type: "read", id }).allow) await ahead(view, id);
     return { seq: view.seq, now, ...issueWakes(view, by, now, id) };
   }));
   app.get(NS + "policy", run(async (c, q) => {
@@ -3099,6 +3101,16 @@ test_issues_wakes_answers_the_waits_that_are_due = {
   expect([(await rig.a("wakes?id=m")).data, (await rig.a("wait", { id: "m", when: "true", until })).data, (await rig.a("wait", { id: "m", when: "true", until })).status]).toEqual([over, over, 400]);
   expect((await ok(rig.a("wakes"))).waiting.find((e) => e.id === "m")).toEqual({ id: "m", when: wm.event.when, until, seq: wm.seq });
   expect((await ok(rig.a("wait", { id: "m", remove: true }))).event.remove).toBe(true);
+  // The count is said to a caller who reads the issue and to no other: a security report after 21 others answers
+  // its opener 400, and a token that may not read it 404 for a wait and two empty lists for issue.wakes.
+  await ok(rig.a("open", { id: "h", title: "h", kind: "security" }));
+  for (let k = 0; k <= L.wakeAfter; k++) {
+    await ok(rig.a("open", { id: "h" + k, title: "h" + k, kind: "security" }));
+    await ok(rig.a("link", { id: "h", to: "h" + k, rel: "after" }));
+  }
+  const overH = { error: "InvalidRequest", message: `h is after ${L.wakeAfter + 1} issues: a wait and issue.wakes read ${L.wakeAfter} at most` };
+  expect([(await rig.a("wait", { id: "h", when: "true", until })).data, (await rig.a("wakes?id=h")).data]).toEqual([overH, overH]);
+  expect([(await rig.b("wait", { id: "h", when: "true", until })).data, await ok(rig.b("wakes?id=h"))]).toEqual([{ error: "NotFound", message: "no such issue" }, { seq: (await ok(rig.a("wakes"))).seq, now: expect.any(Number), due: [], waiting: [] }]);
   // No read wrote anything, and the record is judged again whole.
   const waits = rig.db.events.map((e) => JSON.parse(e.event)).filter((e) => e.type === "waits");
   expect([waits.some((e) => "auto" in e || e.by.caller === "worker:brain-x-issues"), rig.db.events.filter((e) => /^worker:/.test(JSON.parse(e.event).by.caller)).map((e) => e.type)]).toEqual([false, ["policy"]]);
