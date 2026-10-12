@@ -36,16 +36,25 @@ the two `policy` objects, `git diff --no-index` of the two files:
 
 They are the `approve` of `task` and of `project`. The `approve` of `security` is `caller.present`.
 
-**The policy it starts from is the one in force.** Three comparisons, each run 2026-10-12:
+**The policy it starts from is the one in force**, as the spec's task 4 has it ("the policy of event
+483 with the two `approve` guards"). `issue-as.sh impl-17c3c7 policy`, 2026-10-12: `policy.seq` 483,
+and each of its 4 workflows equals the v2 file's, key for key; again 483 at 21:44 CEST.
+`tests/tools/issues-policy-v3.test.ts` holds the file against the v2 file.
+
+**It is not the seed's default policy any more.** When the file was written the cell
+`issuesDefaultPolicy` equalled the v2 file's policy (the built module, read with
+`tools/notebook-import.ts`: `true`). At the landing's rebase, 21:43 CEST, `bk-2-finish-by-the-service`
+had come in, and the same script printed the whole difference of the cell and this file:
 
 ```
-issue-as.sh impl-17c3c7 policy                   policy.seq 483; each of its 4 workflows equals the v2 file's, key for key
-the seed's issuesDefaultPolicy == v2's policy    true   (the built module, read with tools/notebook-import.ts)
-v3's policy, the two guards put back == default  true
+task.approve      default: caller.present                      v3: caller.present || caller.actor == "delegation:eb3db9d0c6a5"
+project.approve   default: caller.present                      v3: the same guard
+project.decompose default: … && issue.children.work > 0        v3: … && issue.children.open > 0
+project.finish    default: … && issue.children.work == 0       v3: … && issue.children.open == 0
 ```
 
-The first and the third are also what `tests/tools/issues-policy-v3.test.ts` holds, against the v2
-file.
+The last two are the other project's, and cb4 does not have them either: they wait for an install
+of their own ("Another install waits beside this one", below).
 
 **The id.** `eb3db9d0c6a5` is the delegation of `loop-approver`, read as the spec's part 1 has it:
 `bun tools/cloud-brain/approver.ts id`, run in the worktree at 21:17:54 CEST, printed
@@ -94,7 +103,7 @@ The call against cb4 was not made.
 ## The rig test
 
 `test_issues_an_approver_delegation_approves_and_no_other_token`. The policy is the cell
-`issuesDefaultPolicy` with the guard put on the two `approve` moves, for a stand-in id
+`issuesDefaultPolicy` (as the seed has it at the landing, with `issue.children.work`) with the guard put on the two `approve` moves, for a stand-in id
 `0123456789ab`; a Worker's test cannot read a file of `plan/`. Every token in it calls as a token
 reaches the service on cb4: `x-brain-caller: owner`, `x-brain-via: delegation:<id>`, a named holder,
 no tab. Its value: "the named delegation approved 3 (2 that waited at the install, 1 opened after);
@@ -121,7 +130,7 @@ no tab. Its value: "the named delegation approved 3 (2 that waited at the instal
 
 **It fails without the guard.** The built module with `named` made to return the workflow as it is
 (`sed` on the copy `--with` reads, the seed not touched): `bun test.ts brain-x-issues --with <copy>`
-gave `38 1 15`, the one failed this cell, at the first thing the policy changes (nothing moved by
+gave `39 1 15` (passed, failed, needsBrowser), the one failed this cell, at the first thing the policy changes (nothing moved by
 the `migrate`, since no hash changed).
 
 The spec's sentence was "403 on one narrowed with `caller.present`, again after that issue is sent
@@ -130,18 +139,18 @@ there are `approve` and `owner-reject`), so the narrowed issue is a spec, which 
 
 ## Counts
 
-Each after the last change to the seed, 2026-10-12.
+The first four after the landing's rebase and the last change to the seed, 2026-10-12, 21:44 to 21:46 CEST; the suite's two rows are from before that rebase.
 
 | command | result |
 |---|---|
-| `cd cloud-brain-dev && bun test.ts brain-x-issues --with <the built module>` | `passed` 39, `failed` 0, `needsBrowser` 15 |
-| `bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/brain-issues` | `tests` 54, `passed` 54, `failed` [] (Chrome 151) |
-| `cd <root> && BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-issues --shell <the build> --times 20` | `runs` 20, `passed` 20, `failed` 0, `none` 0, `from` `["document"]`, `byChance` `[]`; `tests` 54 a run |
+| `cd cloud-brain-dev && bun test.ts brain-x-issues --with <the built module>` | `passed` 40, `failed` 0, `needsBrowser` 15 |
+| `bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/brain-issues` | `tests` 55, `passed` 55, `failed` [] (Chrome 151) |
+| `cd <root> && BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-issues --shell <the build> --times 20` | `runs` 20, `passed` 20, `failed` 0, `none` 0, `from` `["document"]`, `byChance` `[]`; `tests` 55 a run |
 | `bun test ./tests/tools/issues-policy-v3.test.ts` | 5 pass, 0 fail, 29 expect() calls |
 | `tests/tools/suite.sh`, 21:31:26 to 21:36:19 CEST | 686 pass, 4 fail, 2 errors, 690 tests in 69 files, 293 s. The 4 are tests of `summarize-papers.test.ts` (3) and `knowledge-docs.test.ts` (1), each "timed out after 30000ms"; the 2 errors are of those tests. `uptime` after it: load averages 17.03 20.04 19.29 |
 | `bun test --timeout=30000 ./tests/tools/summarize-papers.test.ts ./tests/tools/knowledge-docs.test.ts`, after it | 42 pass, 0 fail, in 258 s |
 
-54 is 39 + 15: the browser's count equals the headless `passed + needsBrowser`.
+55 is 40 + 15: the browser's count equals the headless `passed + needsBrowser`. Before the rebase the three were 39 and 15, 54, and 20 of 20 with 54 a run: `bk-2-finish-by-the-service` added a test cell.
 
 The suite did not give 0 fail on this machine that evening. A run before it (ended about 21:31) gave
 the same four numbers with a timeout in a test of the same two files; other agents of the loop were
@@ -163,15 +172,38 @@ Read in `issueApply` and seen in the rig, and for the owner to know before he in
 - **A swap is a move to the flow counts.** The reference of `issue.flow` says a swap "ends a stay
   and begins another". The 55 open issues would each begin a new stay at the install. Not measured.
 
+## Another install waits beside this one
+
+`plan/cloud-brain-bookkeeping-in-the-tracker.md`, task 4 (`bk-4-install-the-project-workflow`, at
+`triaged` at 21:44 CEST): its writer "makes the body of the install from the built cell
+(`{ key, policy, migrate: { "39d9f385…": { workflow: "project" } }, reason }`)". That body is the
+default policy, whose `approve` guards are `caller.present`, and this file is the policy of event
+483, whose `decompose` and `finish` read `issue.children.open`. Each install writes the whole
+policy. So, read from the two files and `issue.install`, with neither install made:
+
+```
+this file first, then bk-4's body   the two approve guards go back to caller.present: no token approves
+bk-4's body first, then this file   decompose and finish read .open again; the open specs are on bk-4's
+                                    hash, which this file's migrate does not name, so they stay on a
+                                    workflow whose approve is caller.present
+```
+
+Whichever is installed second is written again from the policy then in force: its policy with the
+other's guards, and a `migrate` from the hashes `issue.policy` then answers. This task did not fold
+the two into one file. The spec the owner approved says "the policy of event 483 with the two
+`approve` guards", and a file that also changed when a project is done would be more than he was
+shown for this task. It is said in the issue's comment, to the owner and the orchestrator, and in a
+comment on `bk-4-install-the-project-workflow`.
+
 ## Not tried
 
 - **The install on cb4**, and so everything that follows from it there: a real `approve` by
   `loop-approver`, the 404 on a security issue, `approver.ts approve` passing its three blob
   comparisons against `issue.policy`.
 - **The file itself was installed in no rig.** The rig installs the seed's policy with a stand-in
-  id. What ties the two: the file's policy with the two guards put back equals the seed's default
-  policy (the comparison above, run once by a script that is not committed), and the test of the
-  file holds it against the v2 file.
+  id, and since `bk-2-finish-by-the-service` that policy also differs from the file's in `decompose`
+  and `finish` of `project` (the difference above). What ties the two is the guard's text and the
+  test of the file, which holds it against the v2 file.
 - **`approver.ts approve --policy <file>`** on a made record with this file was not run. The test
   calls `judge` with the file as a `policy` event and reads the delegation and exit 1 (no verdict),
   not a move it would send.

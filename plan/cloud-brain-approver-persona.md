@@ -822,6 +822,12 @@ was built differs from the text above, or says what it left open:
 - A closed issue is not migrated. One opened again later is on the workflow it was closed under, whose `approve`
   is `caller.present`. Read in `judge` of `approver.ts`, and not run: `issue.policy` answers the workflows in
   force, the issue's hash is not among them, and the tool then reads no delegation and sends nothing (exit 3).
+- The file is the policy of event 483 with the two guards, as task 4 says, and not the seed's default policy
+  with them: `bk-2-finish-by-the-service` landed between the writing and the push and changed `decompose` and
+  `finish` of the default `project`. `bk-4-install-the-project-workflow` of
+  `plan/cloud-brain-bookkeeping-in-the-tracker.md` is a second install that waits. Each writes the whole policy,
+  so the one installed second is written again from the policy then in force, with the other's guards (the
+  record, "Another install waits beside this one").
 - The file's `reason` is 1,103 characters of the 2,000 an install takes. It has his three sentences (the body of
   event 4112, comment 4115, the reason of event 4123), the guard, and the two blobs last.
 - `tests/tools/issues-policy-v3.test.ts` holds the file: it is the policy of the v2 file with the two guards
