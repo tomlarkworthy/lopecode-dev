@@ -202,7 +202,7 @@ One Fly.io app, one machine, one volume.
   that Playwright 1.57 names. The tools are in the image because a stopped machine starts again from
   its image (the issue's body, from Fly.io's page). Where the image is built is T2's to measure: the
   body's "Fly builds a Dockerfile on its own builders" is from memory. (As built,
-  `fly-2-image-and-run-sh`, 2026-10-12: built on Fly.io's builder by `tools/cloud-brain/fly/build.sh`
+  `fly-2-image-and-run-sh`, 2026-10-12: built on the builder `fly deploy` takes, which was Depot, by `tools/cloud-brain/fly/build.sh`
   and kept in the app's registry, `registry.fly.io/cloudbrain:<label>`; the record.)
 - **Volume**: 10 GB at `/data`, $1.50 a month whether the machine runs or not. A stopped machine is
   billed for its root file system as well, $0.15 a GB a month; the image's size is not known before

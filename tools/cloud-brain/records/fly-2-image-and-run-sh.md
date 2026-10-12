@@ -21,8 +21,9 @@ and `tests/tools/fly-run-sh.test.ts`.
 
 ## Where the image is built and kept
 
-On Fly.io's own builder, from the laptop with the owner's `fly auth login`, and in the registry of the
-app: `registry.fly.io/cloudbrain:<label>`. `tools/cloud-brain/fly/build.sh <label>` is the command.
+On the builder `fly deploy --remote-only` takes, which was Depot (the build's log: "Waiting for depot
+builder...", "==> Building image with Depot"), from the laptop with the owner's `fly auth login`, and in
+the registry of the app: `registry.fly.io/cloudbrain:<label>`. `tools/cloud-brain/fly/build.sh <label>` is the command.
 The last lines of the build that stands (`fly-2-b`, 23:32:37 to 23:33:56 CEST, 79 s with the first
 five layers from the builder's cache):
 
@@ -55,9 +56,9 @@ Not tried.
 
 **The first build hung, and why.** `bun x playwright@1.57.0 install --with-deps chromium` printed
 "100% of 164.7 MiB" at 21.59 s of its step and nothing after; the build was started 23:20:40 and
-killed at 23:32:25. That is the stop `fly-1-by-hand` saw under node 26.11.1: `bun x` runs a tool
-under the `node` its first line names when node is installed. With `bun x --bun` the step ended in
-30.2 s.
+killed at 23:32:25. That is the stop `fly-1-by-hand` saw under node 26.11.1. Read as: `bun x` runs a
+tool under the `node` its first line names when node is installed. What was seen is the two builds,
+one hung without `--bun` and one whose step ended in 30.2 s with it.
 
 ## One start of a machine with the image
 
@@ -115,8 +116,10 @@ worktree both gave `32a183b3…7fd47a87`: the image `fly-2-b` has the `run.sh` o
 
 The machine was `started` from 23:34:55 to 23:35:03 and from 23:35:29 to 23:35:35, about 14 s
 (about $0.0004 at the $0.09 an hour of the record of `fly-1-by-hand`; my arithmetic). It is
-`stopped` now, with the image `cloudbrain:fly-2-b` and `sleep infinity` still its command: a start of
-it starts no loop.
+`stopped` now, and a start of it starts no loop: `fly machine list -a cloudbrain --json`, read 23:46:06
+CEST after the last stop, has `"init":{"cmd":["sleep","infinity"]}`, `"restart":{"policy":"no"}` and the
+image `registry.fly.io/cloudbrain:fly-2-b@sha256:2ab46925…`. The update of the image did not put the
+image's `CMD` in the command's place.
 
 ## Choices that differ from the spec, each with an "As built" note there
 
@@ -163,6 +166,9 @@ submit, from the run made then.
 - The second half past the question on the machine: the submodules through the aliases of the
   image, the two `bun install`, `CLAUDE_CONFIG_DIR=/data/claude` kept over a stop.
 - A clone on an empty volume by the image's copy. The test clones from a directory.
+- A plain `fly deploy` in `tools/cloud-brain/fly/`. `fly.toml` there names the app for the build, and
+  without `--build-only` that command would make a machine from the image. `build.sh` is the one
+  reader of the file.
 - `machine.json` sent to the Machines API. Its fourth file names a secret `BRAIN_TOKENS` that is not
   set (item 6 of the owner's list); what a create answers with a `secret_name` that does not exist was
   not tried, and whether `files` may write under `/root` beside `.ssh` was not either.
@@ -176,7 +182,7 @@ submit, from the run made then.
 
 ## What misled the writer
 
-- `bun x` runs a tool under node when node is installed. The record of `fly-1-by-hand` says "installs
+- `bun x`, read as running a tool under node when node is installed (above). The record of `fly-1-by-hand` says "installs
   with bun", which was `bun node_modules/.bin/playwright` there; the first build stood 10 minutes on
   the difference.
 - In zsh `echo ==` between two searches is "= not found", and the second and third searches of step 2

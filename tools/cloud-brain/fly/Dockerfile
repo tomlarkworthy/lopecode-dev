@@ -2,7 +2,7 @@
 # The tools are here because a stopped machine starts again from its image: what a stop loses is in
 # tools/cloud-brain/records/fly-1-by-hand.md, "The stop, and what it loses". The checkout, its node_modules and
 # Claude Code's own directory are on the volume at /data, and run.sh puts them there.
-# Built and kept as README.md beside this file says. The build's context is this directory and nothing else of the checkout.
+# Built and kept by build.sh beside this file. The build's context is this directory and nothing else of the checkout.
 # The machine is x86_64: a build on an arm64 laptop's own docker is another image.
 FROM ubuntu:24.04
 
