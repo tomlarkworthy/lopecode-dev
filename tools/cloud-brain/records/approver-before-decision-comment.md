@@ -96,10 +96,16 @@ $ tests/tools/suite.sh
  821 pass  0 fail     Ran 821 tests across 86 files. [214.72s]
 ```
 
-`c58f35c0` is the commit of `origin/main` the change is on; the copies were made with
+`c58f35c0` is the commit of `origin/main` the change was on for these runs; the copies were made with
 `git show c58f35c0:<path>`. The one test of the first file that passes on the old text holds that
 the row is there, on one line. The tool on the record, after the rebase, at event 5235: the line
 under "The case, counted", with the same ten verdicts.
+
+Under the landing lock, at 23:44, a second rebase brought in `1f2978e7`, which changed `SKILL.md`
+again (and `agents/implementer.md`, `issue-watch.sh` and its test, no file of this change's but
+`SKILL.md`). The suite was not run again on it. Eight files were, one at a time, each 0 fail: the
+two above with the same counts (9 and 36), the four below, `issue-watch.test.ts` (28 pass) and
+`skill-step-2-advisor-rate-limit.test.ts` (3).
 
 Four files that read the same steps were run one at a time after the rebase, each 0
 fail: `approver-brief.test.ts` (12 pass), `owner-decisions-written-dense.test.ts` (11),
