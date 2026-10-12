@@ -93,10 +93,11 @@ when the whole suite started).
 | the same, with the edit | 8 pass, 0 fail |
 | `bun test ./tests/tools`, before any edit | 499 pass, 3 skip, 0 fail |
 | `bun test ./tests/tools`, with the edit | 507 pass, 3 skip, 0 fail |
+| `bun test ./tests/tools`, with the edit, after `worktree.sh --rebase` brought in `main` (`SKILL.md` and two test files among what came in; `date` at its end: 08:42:05 CEST) | 512 pass, 2 skip, 0 fail |
 
 The one test that passes without the edit is the test of the file's own two helpers. The first run of
 the suite printed `skipped: test-ts-cut.test.ts: … cloud-brain-dev/test.ts has no --whole`; of the
-second only the counts were read. No test reads this record, so the second run is after the last
+second only the counts were read, and the third printed the same line. No test reads this record, so the second run is after the last
 change it counts.
 
 The quote of choice A in the test was compared with the body of event 2825 as `get?id=` answered it:
