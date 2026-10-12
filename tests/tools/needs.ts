@@ -6,13 +6,6 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "bun:test";
 
-export const BUILT = "tools/cloud-brain/.emitted/cloud-brain.html";
-export const COMMITTED = "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html";
-
-// The notebook a test reads statements from: the one named, else a worktree's own build when it has one, else the committed one.
-export const notebookOf = ({ named, worktree, built }: { named?: string; worktree: boolean; built: boolean }) =>
-  named || (worktree && built ? BUILT : COMMITTED);
-
 // How a checkout that is not from worktree.sh gets what a submodule holds.
 export const SUBMODULES = "git submodule update --init cloud-brain-dev lopebooks lopecode";
 
@@ -60,4 +53,13 @@ export const testNeedingSeed = async (file: string, seed: string, build = seedMo
     console.log(`skipped: ${file}: ${seed} was not compiled: ${e.message}. tools/cloud-brain/worktree.sh makes a worktree that has it; in another checkout, ${SUBMODULES}`);
     return { test: test.skip, module: "" };
   }
+};
+
+// For a test that reads a module of this checkout's seed beside files of the checkout (`paths`): `test` and the module's
+// path, or test.skip and the line of the first thing lacking. No notebook is read: until view-isolated-from-main-notebook
+// the two SQL tests took their module from the built notebook under lopebooks/, which in a worktree is the main
+// checkout's file through a link, written by each landing that builds.
+export const testNeedingSeedAnd = async (file: string, seed: string, paths: string[], build = seedModule) => {
+  const needing = testNeeding(file, paths);
+  return needing === test ? testNeedingSeed(file, seed, build) : { test: needing, module: "" };
 };

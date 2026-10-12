@@ -4,33 +4,26 @@
 //      (cloud-brain-dev/deploy/@tomlarkworthy/brain-db.js: sqlShape, sqlNeeds, sqlSignature). D1 plans with its own
 //      SQLite, so a pass here is not a pass there: the first call on cb4 is that test.
 //   2. One list of calls is run on a SQLite and on topicFakeSql, and each answer is compared.
-// The statements are read from the built module, never retyped, as tests/tools/issue-lock-sql.test.ts reads its own.
+// The statements are read from the seed of this checkout (tools/cloud-brain/brain-topic.ojs), compiled as build.ts
+// compiles it, never retyped, and from no notebook, as tests/tools/issue-lock-sql.test.ts reads its own.
 // plan/cloud-brain-topics-service.md, task 1; tools/cloud-brain/records/tp-1-topics-append-read.md.
 // Task 2 (tp-2-push-to-receive) added topic_subs and the deliverer's statements.
 // Task 3 (tp-3-take-and-done) added topic_claims and the statements of a take.
 import { expect, beforeAll } from "bun:test";
 import { Database } from "bun:sqlite";
-import { existsSync, mkdtempSync, statSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { resolve, join } from "node:path";
+import { resolve } from "node:path";
 import { importNotebookModule } from "../../tools/notebook-import.ts";
-import { BUILT, notebookOf, testNeeding } from "./needs.ts";
+import { testNeedingSeedAnd } from "./needs.ts";
 
 const ROOT = resolve(import.meta.dir, "../..");
-const worktree = statSync(resolve(ROOT, ".git")).isFile();
-const NOTEBOOK = resolve(ROOT, notebookOf({ named: process.env.BRAIN_NOTEBOOK, worktree, built: existsSync(resolve(ROOT, BUILT)) }));
 const BRAIN_DB = resolve(ROOT, "cloud-brain-dev/deploy/@tomlarkworthy/brain-db.js");
-const test = testNeeding("topic-sql.test.ts", [NOTEBOOK, BRAIN_DB]);
+const { test, module } = await testNeedingSeedAnd("topic-sql.test.ts", "brain-topic.ojs", [BRAIN_DB]);
 
 let S: Record<string, string>, schema: string[], fakeSql: any, db_: any;
 
 beforeAll(async () => {
-  if (!existsSync(NOTEBOOK) || !existsSync(BRAIN_DB)) return;
-  const got = Bun.spawnSync(["bun", resolve(ROOT, "tools/lope-reader.ts"), NOTEBOOK, "--get-module", "@tomlarkworthy/brain-topic"]);
-  if (got.exitCode !== 0) throw new Error(`no module @tomlarkworthy/brain-topic in ${NOTEBOOK}: ${got.stderr.toString().slice(0, 300)}`);
-  const file = join(mkdtempSync(join(tmpdir(), "topic-sql-")), "brain-topic.js");
-  writeFileSync(file, got.stdout);
-  const topic = await importNotebookModule(file);
+  if (!module) return;
+  const topic = await importNotebookModule(module);
   S = await topic.value("topicSql");
   schema = await topic.value("topicSchema");
   fakeSql = await topic.value("topicFakeSql");

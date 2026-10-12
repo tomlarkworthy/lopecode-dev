@@ -4,13 +4,13 @@
 // atproto-publish.test.ts then left the run with no fetch, and the tests that read the reviewer's brief failed on that).
 //
 //   bun test ./tests/tools/needs.test.ts
-// The four files are run as they are, each pointed at a place that has nothing.
+// Three files are run as they are, each pointed at a place that has nothing.
 import { test, expect } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { BUILT, COMMITTED, notebookOf, seedModule, testNeedingSeed } from "./needs.ts";
+import { seedModule, testNeedingSeed, testNeedingSeedAnd } from "./needs.ts";
 
 const here = import.meta.dir;
 const none = resolve(here, "no-such-place");
@@ -21,21 +21,40 @@ const run = (file: string, env: Record<string, string>, ...more: string[]) => {
   return { code: p.exitCode, out, pass: n("pass"), skip: n("skip"), fail: n("fail"), errors: n("errors?") };
 };
 
-test("the notebook: the one named, a worktree's build when it has one, the committed one otherwise", () => {
-  expect(notebookOf({ worktree: true, built: false })).toBe(COMMITTED);
-  expect(notebookOf({ worktree: true, built: true })).toBe(BUILT);
-  expect(notebookOf({ worktree: false, built: true })).toBe(COMMITTED);
-  expect(notebookOf({ worktree: false, built: false })).toBe(COMMITTED);
-  expect(notebookOf({ named: "x.html", worktree: true, built: true })).toBe("x.html");
-  expect(notebookOf({ named: "", worktree: true, built: false })).toBe(COMMITTED);
+// Issue view-isolated-from-main-notebook: the two SQL tests took their module from a notebook, and in a worktree with no
+// build that was the main checkout's lopebooks/notebooks/@tomlarkworthy_cloud-brain.html through a link: a file of no
+// commit, written by each landing that builds (3 fails of topic-sql.test.ts in a reviewer's view, 12:55 CEST 2026-10-12).
+test("a test of a seed and of files: skipped for the first file lacking with nothing compiled, else as testNeedingSeed", async () => {
+  const lines: string[] = [], log = console.log, built: string[] = [];
+  const build = async (seed: string) => (built.push(seed), "/tmp/x.js");
+  console.log = (l: string) => void lines.push(l);
+  try {
+    const lacking = await testNeedingSeedAnd("a.test.ts", "x.ojs", [here, resolve(none, "brain-db.js")], build);
+    expect([lacking.test, lacking.module, built]).toEqual([test.skip, "", []]);
+    expect(lines).toEqual([`skipped: a.test.ts: no ${resolve(none, "brain-db.js")}. tools/cloud-brain/worktree.sh makes a worktree that has it; in another checkout, git submodule update --init cloud-brain-dev lopebooks lopecode`]);
+    const has = await testNeedingSeedAnd("a.test.ts", "x.ojs", [here], build);
+    expect([has.test, has.module, built]).toEqual([test, "/tmp/x.js", ["x.ojs"]]);
+    const none_ = await testNeedingSeedAnd("a.test.ts", "x.ojs", [], async () => { throw new Error("no @tomlarkworthy_observablejs-toolchain.html in lopecode/ or lopebooks/"); });
+    expect([none_.test, none_.module]).toEqual([test.skip, ""]);
+    expect(lines.length).toBe(2);
+  } finally {
+    console.log = log;
+  }
 });
 
-test("issue-lock-sql.test.ts with no notebook: every test skipped, none failed, and a line names the notebook", () => {
-  const r = run("issue-lock-sql.test.ts", { BRAIN_NOTEBOOK: resolve(none, "cloud-brain.html") });
-  expect([r.code, r.pass, r.fail, r.errors]).toEqual([0, 0, 0, 0]);
-  expect(r.skip).toBeGreaterThan(0);
-  expect(r.out).toContain(`skipped: issue-lock-sql.test.ts: no ${resolve(none, "cloud-brain.html")}`);
-}, 60000);
+test("the two SQL tests read their statements from the seed of the checkout, and no file of tests/tools names the built notebook to read it", async () => {
+  const needs = await import("./needs.ts");
+  expect(Object.keys(needs).filter((k) => /^(BUILT|COMMITTED|notebookOf)$/.test(k))).toEqual([]);
+  for (const [file, seed] of [["issue-lock-sql.test.ts", "brain-issues.ojs"], ["topic-sql.test.ts", "brain-topic.ojs"]]) {
+    const src = readFileSync(resolve(here, file), "utf8");
+    expect(src).toContain(`await testNeedingSeedAnd("${file}", "${seed}", [BRAIN_DB])`);
+    expect(src).toContain("importNotebookModule(module)");
+    expect(src).not.toMatch(/lope-reader|--get-module|BRAIN_NOTEBOOK(?! named another)|process\.env/);
+  }
+  // The link's file, by its name: nothing here reads it. notebook-backup.test.ts makes repositories of its own with a file of that name.
+  const naming = [...new Bun.Glob("*.ts").scanSync(here)].filter((f) => f !== "needs.test.ts" && readFileSync(resolve(here, f), "utf8").includes("lopebooks/notebooks/@tomlarkworthy_cloud-brain.html"));
+  expect(naming).toEqual([]);
+});
 
 test("light-agent.test.ts with no cloud-brain-dev: every test skipped, none failed, and a line names agent.sh and put.sh", () => {
   const r = run("light-agent.test.ts", { CLOUD_BRAIN_DEV: none });
