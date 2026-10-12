@@ -18,6 +18,26 @@ and write nothing with another token. A second call with a key
 already used answers `duplicate: true` and moves nothing: after each move read the issue again
 (`ia "get?id=<id>"`) and see the state.
 
+## The advisor: one call, before the submit
+
+Since `implementer-one-advisor-call` (2026-10-13). When your run has a tool `advisor`, its own description asks for
+two calls: "Call advisor BEFORE substantive work", and again "When you believe the task is complete" (read in a
+writer's prompt that day). This brief asks for one, and where the two differ this brief holds:
+
+- **The one call** is made before step 6: the spec is written and committed in `$W` and is not landed. The ref of
+  the submit cannot be changed after the move, so what the call finds is mended in the file before the landing.
+- **The call before the writing is left out**, unless the parts you read at step 2 do not say what the project is
+  to do: they can be read two ways, and neither they nor `philosophy.md` say which. That call is then named in the
+  comment of your submit, with what could not be planned.
+- A round after a review has one call too, before its landing.
+- Say in your report how many calls you made, and what each was for.
+
+Why: a call sends your whole context again at the full input price, and a reviewer reads the spec after the submit
+in any case. Measured 2026-10-12 by the opener of that issue, as its body has it, and not run again for this part:
+a mean 1.73 calls a run of a spec writer, 21% of what such a run cost.
+
+## Steps
+
 1. **Take it.** `ia move '{"key":"spec/<id>/spec","id":"<id>","to":"spec","reason":"<n> reports gathered; writing the spec"}'`.
    Whoever makes `spec` is the only one who can make `submit-spec`: the policy refuses every other token, 403.
    - Already at `spec`: read `by.holder` of its last `spec` move in `get?id=`. `secret:<token>` is you, sent
@@ -96,7 +116,7 @@ already used answers `duplicate: true` and moves nothing: after each move read t
      2026-10-11: "Why do I need to even do it? It seems like common sense to issue scoped tokens that
      follow a spec."; `rules.md`, "A token an approved spec names"). So say in the comment for his
      approval that the spec names a token, and which.
-6. **Land it** by a push from the worktree, under the landing lock, as `agents/implementer.md` step 10 lands a change
+6. **Land it**, after your one call of the advisor when your run has the tool ("The advisor: one call, before the submit", above), by a push from the worktree, under the landing lock, as `agents/implementer.md` step 10 lands a change
    with no deploy: `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh take land <id>`,
    `$W/tools/cloud-brain/worktree.sh --rebase <tree>`, `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh renew land <id>`,
    `git -C $W push origin HEAD:main`, `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh release land <id>`, each on a line

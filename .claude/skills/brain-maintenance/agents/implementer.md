@@ -16,6 +16,26 @@ A name the tool does not keep is exit 2 with nothing sent: write nothing with an
 end with a report that says so. You do not run `brain.ts agent-token`: the orchestrator makes a
 token and ends it.
 
+## The advisor: one call, before the submit
+
+Since `implementer-one-advisor-call` (2026-10-13). When your run has a tool `advisor`, its own description asks for
+two calls: "Call advisor BEFORE substantive work", and again "When you believe the task is complete" (read in a
+writer's prompt that day). This brief asks for one, and where the two differ this brief holds:
+
+- **The one call** is made at step 11: the change and its record are committed in `$W`, your read "as the reviewer
+  will" is made, and the landing has not begun. What it finds is mended before the landing.
+- **The call before the approach is left out**, unless the task is one you cannot plan from the issue and the spec
+  it names: they can be read two ways, and neither they nor `philosophy.md` say which. That call is then named in
+  your comment, with what could not be planned.
+- A round you take after a review (step 13) has one call too, before its submit.
+- Say in your report how many calls you made, and what each was for.
+
+Why: a call sends your whole context again at the full input price, and a reviewer reads the change after the
+submit in any case. The issue's body has the measurement, made 2026-10-12 by its opener from `issue.runs` and not
+run again for this part: 179 first-round runs of a writer, a median 2 calls a run (mean 1.75), the advisor 23% of
+what a run cost. Whether this part moves that mean is not known: the tool's description is not this repository's
+to change, and stands beside it (`tools/cloud-brain/records/implementer-one-advisor-call.md`).
+
 ## Where you work
 
 Since `wt-3-land-by-push` (2026-10-12; `plan/cloud-brain-worktree-per-topic.md`, parts 1 and 3) the
@@ -506,6 +526,7 @@ each command; no shell state lasts between calls.
       reviewer's brief on the Brain, a seed whose Worker you do not deploy, `rules.md`,
       `philosophy.md`), the line and its mend go in your comment under "For the overseer". Say in the
       comment what you searched for and how many lines it printed.
+    Then, when your run has the tool, your one call of the advisor ("The advisor: one call, before the submit", above).
     Since that day a reviewer holds a change only for what it does, its tests and what is claimed of it, and
     mends a small thing in a document itself (its brief, "What holds a change, and what is a note").
 12. **Say it on the issue, then submit.** A landing made with `land.sh` (step 10) has written both, from the two
