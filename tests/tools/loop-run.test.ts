@@ -283,11 +283,12 @@ test("loop.ts run --dry: `step --for clock --dry` with the caller's token, no to
 });
 
 // ---- loop.sh: safehouse with the arguments metadev gives it, then the driver
-test("loop.sh runs safehouse with the arguments of the main checkout's metadev and METADEV=1, then `bun tools/cloud-brain/loop.ts run` with what it was given", async () => {
+test("loop.sh runs safehouse with the arguments of the main checkout's metadev, METADEV=1 and what metadev exports, then `bun tools/cloud-brain/loop.ts run` with what it was given", async () => {
   const root = join(RIG, "checkout"), bin = join(RIG, "bin");
   mkdirSync(join(root, "tools/cloud-brain"), { recursive: true }); mkdirSync(bin, { recursive: true });
   writeFileSync(join(root, "metadev"), `#!/usr/bin/env zsh
 export METADEV=1
+export CLAUDE_CONFIG_DIR=~/.config-of-the-test
 echo "metadev was run" >> "${RIG}/metadev.log"
 ENV_PASS="METADEV,CLAUDE_CONFIG_DIR"
 mkdir -p "${RIG}/made by metadev"
@@ -302,16 +303,16 @@ SAFEHOUSE_ARGS=(
 echo "metadev was run" >> "${RIG}/metadev.log"
 safehouse "\${SAFEHOUSE_ARGS[@]}" claude
 `);
-  writeFileSync(join(bin, "safehouse"), `#!/bin/bash\nprintf '%s\\n' "METADEV=$METADEV" "PWD=$PWD" "$@" > "${RIG}/safehouse.log"\n`); chmodSync(join(bin, "safehouse"), 0o755);
+  writeFileSync(join(bin, "safehouse"), `#!/bin/bash\nprintf '%s\\n' "METADEV=$METADEV" "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "PWD=$PWD" "$@" > "${RIG}/safehouse.log"\n`); chmodSync(join(bin, "safehouse"), 0o755);
   const sh = (args: string[], env: Record<string, string>) => Bun.spawnSync([join(DIR, "loop.sh"), ...args], { env: { ...process.env, ...env }, stdout: "pipe", stderr: "pipe" });
-  const { METADEV: _, ...base } = process.env;
+  const { METADEV: _, CLAUDE_CONFIG_DIR: __, ...base } = process.env;
   const r = Bun.spawnSync([join(DIR, "loop.sh"), "--dry"], { env: { ...base, LOOP_ROOT: root, PATH: bin + ":" + process.env.PATH }, stdout: "pipe", stderr: "pipe" });
   expect([r.exitCode, r.stderr.toString()]).toEqual([0, ""]);
   // zsh leaves the ~ after a = as it is, in metadev as here: safehouse is given `~/.ssh` by both.
   const real = (p: string) => Bun.spawnSync(["zsh", "-c", 'print -r -- ${1:A}', "x", p]).stdout.toString().trim();
-  expect(readFileSync(join(RIG, "safehouse.log"), "utf8").trim().split("\n")).toEqual(["METADEV=1", "PWD=" + real(root), "--env-pass=METADEV,CLAUDE_CONFIG_DIR", "--add-dirs-ro=~/.ssh", "--add-dirs=/tmp/a dir",
+  expect(readFileSync(join(RIG, "safehouse.log"), "utf8").trim().split("\n")).toEqual(["METADEV=1", `CLAUDE_CONFIG_DIR=${process.env.HOME}/.config-of-the-test`, "PWD=" + real(root), "--env-pass=METADEV,CLAUDE_CONFIG_DIR", "--add-dirs-ro=~/.ssh", "--add-dirs=/tmp/a dir",
     `--append-profile=${real(root)}/tools/safehouse-adb.sb`, "bun", "tools/cloud-brain/loop.ts", "run", "--dry"]);
-  // The lines from ENV_PASS= to the ) are run, its mkdir among them; the lines before and after are not.
+  // The exports above ENV_PASS= and the lines from it to the ) are run, its mkdir among them; no other line is.
   expect([existsSync(join(RIG, "made by metadev")), existsSync(join(RIG, "metadev.log"))]).toEqual([true, false]);
   // No SAFEHOUSE_ARGS in the file, or no safehouse: exit 2 and nothing run.
   rmSync(join(RIG, "safehouse.log"));

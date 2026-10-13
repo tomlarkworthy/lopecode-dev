@@ -666,7 +666,8 @@ the text above names no choice, or the program differs from it:
 - At Ctrl-C the driver ends its token only when no run it started is still not ended: a run's `ended` is
   made with the token that started it ("or left to end itself", under "Going back").
 - `loop.sh` runs the lines of `metadev` from `ENV_PASS=` to the end of `SAFEHOUSE_ARGS=(`, which have the
-  `mkdir -p` of the directories the sandbox mounts. It does not run `caffeinate`, which `metadev` does.
+  `mkdir -p` of the directories the sandbox mounts, and the `export` lines above them (`CLAUDE_CONFIG_DIR`
+  among them, not `METADEV=1` alone). It does not run `caffeinate`, which `metadev` does.
 
 ### 5. The owner, and a session he is in (R7)
 

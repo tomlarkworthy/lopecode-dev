@@ -61,15 +61,20 @@ Each is in the spec's "As built" note too.
 - **The token at a stop.** `ended`, which a run's wrapper calls when the agent returns, is made with the
   token that started the run (`as` in its file). So at a stop the driver ends its token only when no run
   it started is still open, and else says on stderr which command ends it. At 40 hours the old token is
-  ended whatever runs it started: their wrappers' `ended` is then refused, and the driver's next step
-  for a run that returned makes it with the new token.
+  ended whatever runs it started. Not seen, and read from the code: such a run's wrapper then calls
+  `ended` with a token that is ended; `own()` takes `LOOP_TOKEN` before the file's `as`, so the driver's
+  next step, begun for a run that returned, would make the `ended` with the new token.
 
 ## `loop.sh` and `metadev`
 
 `loop.sh` does not copy the arguments. It reads the main checkout's `metadev` each time and runs its
 lines from `ENV_PASS=` to the `)` that ends `SAFEHOUSE_ARGS=(`, in a function whose `$0` is `metadev`
 (the file names `tools/safehouse-adb.sb` beside itself with `${0:A:h}`). Those lines have a `mkdir -p`
-of the directories the sandbox mounts, which is run. No other line of `metadev` is run.
+of the directories the sandbox mounts, which is run. Before them it runs each `export` line above
+`ENV_PASS=`: `metadev` sets `CLAUDE_CONFIG_DIR=~/.claude-personal` there, `--env-pass` names it, and
+without it a `claude` that a step starts would have the default directory and not the login (the
+advisor's finding, before the landing; no `claude` was started under `loop.sh` either way). No other
+line of `metadev` is run.
 
 With a stand-in `safehouse` that prints its arguments, on the `PATH` before the real one (run before 10:46:13 CEST,
 the `date` of the command after it):
@@ -93,6 +98,14 @@ sandbox that `mkdir` printed `Operation not permitted` on stderr and the script 
 
 zsh leaves the `~` after a `=` as it is (`--add-dirs-ro=~/.ssh`), in `metadev` and in `loop.sh` alike:
 `safehouse` is given the same text by both. The test has that case.
+
+With the exports, and a stand-in that prints three variables and the count of its arguments, the three
+unset in the caller (11:10:23 CEST):
+
+```
+$ env -u CLAUDE_CONFIG_DIR -u LOPECODE_LLM_RUNNER -u METADEV PATH=<stand-in>:$PATH tools/cloud-brain/loop.sh
+CLAUDE_CONFIG_DIR=/Users/tom.larkworthy/.claude-personal LLM=1 METADEV=1 n=29
+```
 
 `LINES` is a number in zsh (the height of the terminal): a variable of that name took the text of
 `metadev` as arithmetic and the script stopped at `METADEV: parameter not set`. It is `TEXT` now.
@@ -143,7 +156,7 @@ A dry step makes no pull. A whole step that is not dry makes the two pulls as we
 after the rebase (11:05 CEST): **77 pass, 0 fail**.
 
 The whole suite, `env -u WORK -u SESSION $W/tests/tools/suite.sh`, after the rebase and the last change to a
-program or a test (11:04 CEST): **1206 pass, 0 fail**, 123 files. Before the rebase it was 1184 pass, 0 fail, 121 files.
+program or a test (the run ended 11:12:47 CEST): **1206 pass, 0 fail**, 123 files. Before the rebase it was 1184 pass, 0 fail, 121 files.
 
 Without `env -u WORK -u SESSION` the suite before the rebase was 1181 pass and 3 fail (10:50 CEST): `agent.sh` tests
 of `reviewer-brief-names-token`, `reviewer-brief-kept-copy` and `reviewer-in-a-view`. They start
