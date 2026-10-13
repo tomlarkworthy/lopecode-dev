@@ -14,7 +14,7 @@ deployed.
 - `tools/cloud-brain/cloudflare-usage.ts`, new: prints the head, a row a product and the price from a kept answer.
   It calls nothing. `products`, `line`, `num` and `storedWritePrice` are exported for the test.
 - `knowledge/calling-a-cloud-brain-from-this-checkout.md`: a section of one line, "What Cloudflare bills the
-  account", and four words in the frontmatter's `topics`.
+  account", and a phrase in the frontmatter's `topics`.
 - `plan/cloud-brain-cloudflare-usage-read.md`: one "(As built …)" note under task 3.
 - `tests/tools/cu-3-cloudflare-usage.test.ts`, new.
 
@@ -73,8 +73,9 @@ the storage rows are left out of the cost        6 of 8   a bill with a cost is 
 a product's quantity is its last row's           7 of 8   the doc has a row for each product …
 ```
 
-The whole suite, `tests/tools/suite.sh`, after the last edit: the count is in the issue's comment, from the run made
-before the landing.
+The whole suite, `tests/tools/suite.sh`, run after the rebase and the last edit of a file it reads, ended 07:23:33
+CEST: `1090 pass`, `0 fail`, `Ran 1090 tests across 111 files`, and no line `skipped:`. A run before the rebase, ended
+07:19:33, had 1096 in 111 files: the rebase brought in changes to three test files.
 
 ## Not tried
 
@@ -85,8 +86,10 @@ before the landing.
 - A second read of the period under way, so whether a day's rows change after they first appear is not known.
 - What the Brain charged its callers over the same days: no token of the loop names `quota.list`.
 - Which rows are this Brain's and which another Worker's of the account.
-- The tool on an answer with a refusal in it, or with `rows` of another shape: it checks that `rows` is a list and
-  nothing more.
+- The tool on rows of another shape: it checks that `rows` is a list and nothing more. Run by hand at 07:21 CEST:
+  with no file and with `{"error":"Forbidden"}` it is exit 2 with one line; with `"rows":[]` it prints the head, no
+  product and `price "0.00018" (the bill gave nothing to divide)`, exit 0, so the price it prints for a range that
+  answered no rows is not a reading of a bill.
 - No row in the table "Measured records" of `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md`: the
   task names one line, in the calling page.
 - `/review-notebook` was not run on the doc: the loop's reviewer is its fresh read.
