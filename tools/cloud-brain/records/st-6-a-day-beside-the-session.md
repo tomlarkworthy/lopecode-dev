@@ -191,7 +191,8 @@ it does is held by the tests alone.
 
 ### Three more dry steps, read where they were written down
 
-Their lines were kept in no file, so `compare` did not read them.
+Their lines are in no file under `<root>/tools/cloud-brain/.emitted/issue-loop` (`grep -r -l` for their seqs printed
+nothing), so `compare` did not read them.
 
 - **The step by hand at event 6469**, 11:40:40 by comment 6470. It named `ready
   st-6-a-day-beside-the-session`. The session made that move at 6471, 11:41:07 (the event's `at`): 27 s. This
