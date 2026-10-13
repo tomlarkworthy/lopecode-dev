@@ -130,11 +130,12 @@ const rig = (hold = false) => {
     { type: "assistant", message: { usage: { input_tokens: 2, cache_creation_input_tokens: 10, cache_read_input_tokens: 100, output_tokens: 5 } } },
     { type: "result", session_id: "s-1", result: "done", total_cost_usd: 0.5, num_turns: 3, duration_ms: 1200, usage: { input_tokens: 4, cache_creation_input_tokens: 20, cache_read_input_tokens: 300, output_tokens: 9 } },
   ];
-  writeFileSync(join(dir, "bin/claude"), `#!/bin/bash\nprintf '%s\\n' "$@" > "${dir}/sent"\nS=$(printf '%s\\n' "$2" | sed -n 's/^scratch: //p'); [ -n "$S" ] && [ -d "$S" ] && [ -z "$(ls -A "$S")" ] && touch "${dir}/scratch-was-there"\n${hold ? `while [ ! -e "${dir}/go" ]; do sleep 0.02; done\n` : ""}cat <<'EOF'\n${lines.map((l) => JSON.stringify(l)).join("\n")}\nEOF\n`);
+  writeFileSync(join(dir, "bin/claude"), `#!/bin/bash\nprintf '%s\\n' "$@" > "${dir}/sent"\npwd -P > "${dir}/cwd"\nS=$(printf '%s\\n' "$2" | sed -n 's/^scratch: //p'); [ -n "$S" ] && [ -d "$S" ] && [ -z "$(ls -A "$S")" ] && touch "${dir}/scratch-was-there"\n${hold ? `while [ ! -e "${dir}/go" ]; do sleep 0.02; done\n` : ""}cat <<'EOF'\n${lines.map((l) => JSON.stringify(l)).join("\n")}\nEOF\n`);
   chmodSync(join(dir, "bin/claude"), 0o755);
   return Object.assign(async (args: string[], env: Record<string, string> = {}) => {
-    const r = await run([join(dir, "agent.sh"), ...args], { PATH: `${join(dir, "bin")}:${process.env.PATH}`, CHECKOUT: join(dir, "checkout"), TAB: "", MODEL: "", ADVISOR: "", READS: "", DRY: "", ...env });
-    return { ...r, scratchWasThere: existsSync(join(dir, "scratch-was-there")), sent: existsSync(join(dir, "sent")) ? readFileSync(join(dir, "sent"), "utf8").split("\n") : null, checkout: join(dir, "checkout") };
+    const r = await run([join(dir, "agent.sh"), ...args], { PATH: `${join(dir, "bin")}:${process.env.PATH}`, CHECKOUT: join(dir, "checkout"), TAB: "", MODEL: "", ADVISOR: "", READS: "", DRY: "", WORK: "", SESSION: "", ...env });
+    return { ...r, scratchWasThere: existsSync(join(dir, "scratch-was-there")), sent: existsSync(join(dir, "sent")) ? readFileSync(join(dir, "sent"), "utf8").split("\n") : null,
+      cwd: existsSync(join(dir, "cwd")) ? readFileSync(join(dir, "cwd"), "utf8").trim() : null, checkout: join(dir, "checkout") };
   }, { dir });
 };
 
@@ -266,6 +267,75 @@ test("agent.sh written over while claude runs: exit 0, the JSON line, no scratch
     got.push([args[0], how, r.code, result, r.err, scratch ? existsSync(scratch) : null]);
   }
   expect(got).toEqual(["reviewer", "--resume"].flatMap((form) => Object.keys(over).map((how) => [form, how, 0, "done", "", form === "reviewer" ? false : null])));
+});
+
+// Issue st-1-agent-sh-any-role (lopecode-dev plan/cloud-brain-orchestrator-as-steps.md, design part 1): a writer, a
+// spec writer and the other roles are started by agent.sh too, in their worktree, with what a session there has.
+const uuid = "11111111-2222-4333-8444-555555555555";
+const flags = ["--tools", "--allowedTools", "--strict-mcp-config", "--mcp-config", "--settings", "--add-dir"];
+test("WORK=DIR: claude is started in DIR with the prompt as given, no --tools, no --strict-mcp-config, the advisor left, bypassPermissions", async () => {
+  const a = rig();
+  const work = root();
+  const prompt = `Working directory: ${work}.\nRead agents/implementer.md and follow it.\nIssue: x\nYour token is impl-000000.`;
+  // CHECKOUT is not read: one that is no checkout does not refuse the run. ADVISOR does not change it.
+  for (const env of [{}, { CHECKOUT: tmpdir() }, { ADVISOR: "1" }, { ADVISOR: "0" }]) {
+    const r = await a(["implementer", prompt], { WORK: work, ...env });
+    const s = r.sent!;
+    expect([r.code, r.cwd, s[0], s.slice(1, 5).join("\n"), s.slice(5, -1)]).toEqual([0, work, "-p", prompt, ["--model", "opus", "--permission-mode", "bypassPermissions", "--output-format", "stream-json", "--verbose"]]);
+    expect([flags.filter((f) => s.includes(f)), s.some((l) => /^(role|checkout|scratch|task): /.test(l)), r.scratchWasThere]).toEqual([[], false, false]);
+    expect(JSON.parse(r.out).session).toBe("s-1");
+  }
+  // Without WORK the same call is the light agent's: started beside agent.sh, four tools.
+  const light = await rig()(["implementer", prompt]);
+  expect([light.cwd === work, light.sent![light.sent!.indexOf("--tools") + 1]]).toEqual([false, "Bash,Read,Grep,Glob"]);
+});
+
+test("WORK=DIR on --resume: the same flags in DIR, where it gave the four tools; a relative DIR is the caller's", async () => {
+  const a = rig();
+  const work = root();
+  const r = await a(["--resume", "s-1", "round 2"], { WORK: work });
+  expect([r.code, r.cwd, r.sent!.slice(0, -1)]).toEqual([0, work, ["-p", "round 2", "--resume", "s-1", "--model", "opus", "--permission-mode", "bypassPermissions", "--output-format", "stream-json", "--verbose"]]);
+  mkdirSync(join(work, "sub"));
+  const p = Bun.spawn([join(a.dir, "agent.sh"), "implementer", "t"], { cwd: work, env: { ...process.env, PATH: `${join(a.dir, "bin")}:${process.env.PATH}`, WORK: "sub", SESSION: "", READS: "", TAB: "", DRY: "", MODEL: "" }, stdout: "pipe", stderr: "pipe" });
+  expect([await p.exited, readFileSync(join(a.dir, "cwd"), "utf8").trim()]).toEqual([0, join(work, "sub")]);
+});
+
+test("SESSION=UUID is passed as --session-id, with WORK, for a light agent and with READS", async () => {
+  const work = root();
+  const at = (s: string[]) => [s[s.indexOf("--session-id") + 1], s.filter((l) => l === "--session-id").length, s.includes("--resume")];
+  expect(at((await rig()(["implementer", "t"], { WORK: work, SESSION: uuid })).sent!)).toEqual([uuid, 1, false]);
+  expect(at((await rig()(["reviewer", "t"], { SESSION: uuid.toUpperCase() })).sent!)).toEqual([uuid.toUpperCase(), 1, false]);
+  expect(at((await rig()(["paper-summarizer", "t"], { READS: work, SESSION: uuid })).sent!)).toEqual([uuid, 1, false]);
+  expect((await rig()(["reviewer", "t"])).sent!.includes("--session-id")).toBe(false);
+});
+
+test("DRY=1 with WORK prints no --tools line, and --session-id is followed by the SESSION given", async () => {
+  const a = rig();
+  const work = root();
+  const r = await a(["implementer", "Issue: x"], { DRY: "1", WORK: work, SESSION: uuid });
+  expect([r.code, r.sent, r.out.trimEnd().split("\n")]).toEqual([0, null, ["-p", "Issue: x", "--session-id", uuid, "--model", "opus", "--permission-mode", "bypassPermissions", "--output-format", "stream-json", "--verbose"]]);
+  const again = await a(["--resume", uuid, "more"], { DRY: "1", WORK: work });
+  expect(again.out.trimEnd().split("\n")).toEqual(["-p", "more", "--resume", uuid, "--model", "opus", "--permission-mode", "bypassPermissions", "--output-format", "stream-json", "--verbose"]);
+});
+
+test("WORK and SESSION are refused before claude is started: no directory, with READS or TAB, no prompt, no UUID, SESSION on --resume", async () => {
+  const a = rig();
+  const work = root();
+  const got = [
+    await a(["implementer", "t"], { WORK: join(work, "none") }),
+    await a(["implementer", "t"], { WORK: work, READS: work }),
+    await a(["implementer", "t"], { WORK: work, TAB: "1" }),
+    await a(["implementer"], { WORK: work }),
+    await a(["--resume", "s-1"], { WORK: work }),
+    await a(["implementer", "t"], { WORK: work, SESSION: "s-1" }),
+    await a(["reviewer", "t"], { SESSION: `${uuid}0` }),
+    await a(["reviewer", "t"], { SESSION: ` ${uuid}` }),
+    await a(["--resume", uuid, "more"], { SESSION: uuid }),
+    await a(["--resume", uuid, "more"], { WORK: work, SESSION: uuid }),
+  ];
+  expect(got.map((r) => [r.code, r.sent, r.out])).toEqual(got.map(() => [1, null, ""]));
+  expect(got.map((r) => r.err.trim().replace(/^agent\.sh: /, "").split(/[ :=]/)[0])).toEqual(["WORK", "WORK", "WORK", "WORK", "agent.sh", "SESSION", "SESSION", "SESSION", "SESSION", "SESSION"]);
+  expect([got[0].err.includes("is not a directory"), got[1].err.includes("READS or TAB"), got[5].err.includes("is not a UUID"), got[8].err.includes("first run")]).toEqual([true, true, true, true]);
 });
 
 test("TAB=1 adds the checkout's channel server and allows its tools", async () => {
