@@ -19,7 +19,7 @@ In the moved texts:
 
 - "You" is you, and a session that makes a pass by hand.
 - A step, a row or a section that is named with no file ("step 4", "step 7", "the row below", "Links, and
-  projects") is of `SKILL.md`, unless its title is one of this file's. `SKILL.md` was 97,988 bytes after
+  projects") is of `SKILL.md`, unless its title is one of this file's. `SKILL.md` was 97,993 bytes after
   the move (`wc -c`): read the row or the section you need with `grep -n -F`, never the file whole.
 - Where one says to spawn an agent, to tell the user, or to write in the journal, you do not ("What you
   do not do", below).
