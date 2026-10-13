@@ -15,7 +15,8 @@ session was held and no call of the owner reached cb4.
 ### What was found
 
 No loop. A page at rest computes nothing and draws nothing. What draws the section again is an entry of the
-deployer in the inbox, one for each deploy, and 22 Workers were deployed in the 8 minutes before the note.
+deployer in the inbox. The deployer writes one for a deploy, and 22 Workers were verified, which it does
+after a deploy, in the 8 minutes that ended 3 minutes before the note.
 
 At rest, on what cb4 served (`brain-x-page` 3e05ace86c0e), the shell's own layout, 90 s counted:
 

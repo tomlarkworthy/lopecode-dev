@@ -1457,8 +1457,8 @@ deployerInbox = {
 // %%
 // What the pump hands the deployer's entries to. An entry does not wait for the read it asks for, and the entries
 // that come while one read is going are one read more when it ends: a read puts the table in place three times
-// (serviceList of cloudflare-iac), and a deploy of 22 Workers by another session was 22 entries in 8 minutes
-// (cb4, 2026-10-13 06:41 to 06:49 UTC). A read that fails holds nothing back.
+// (serviceList of cloudflare-iac), the deployer writes an entry for a deploy, and 22 Workers of cb4 were verified
+// after one within 8 minutes (2026-10-13, 06:41 to 06:49 UTC). A read that fails holds nothing back.
 deployerEntries = (services) => {
   let going = false, again = false;
   const read = async () => {
