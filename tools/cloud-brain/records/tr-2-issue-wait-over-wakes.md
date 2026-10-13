@@ -17,9 +17,9 @@ Commands below are run in the worktree `bm-tr-2-issue-wait`.
 | `tools/cloud-brain/issue-watch.sh` | A fourth read at each turn of its loop, `wakes` with no `id`, and a mode `--wakes <file>` that prints `WAKE <id> <when>` from one answer on stdin, as `--queue <file>` does for the queue |
 | `tests/tools/issue-wait.test.ts` | 13 tests more, against a stand-in for `issue-as.sh` that keeps one issue's keys, wait, state and events in a file |
 | `tests/tools/issue-watch.test.ts` | 4 tests more: `--wakes` (two), the loop, and the three texts below |
-| `.claude/skills/brain-maintenance/SKILL.md`, step 8 | One sentence: the watch also reads `wakes` and prints `WAKE`, and no step writes a wait yet |
+| `.claude/skills/brain-maintenance/SKILL.md`, step 8 | Two sentences, four lines: the watch also reads `wakes` and prints `WAKE`, and no step writes a wait yet |
 | `plan/cloud-brain-worker-machine-on-fly.md` | It cites the watch by line; the `sleep` is line 111 now (`grep -n 'sleep "\$every"\|never exits' tools/cloud-brain/issue-watch.sh`: 5 and 111) |
-| `plan/cloud-brain-tracker-trigger-rules.md` | Two notes "As built", for the items of the next section |
+| `plan/cloud-brain-tracker-trigger-rules.md` | Two notes "As built" in part 3, for the items of the next section, and a third in the row R3 of "How each requirement is known to be met", which said `--work` sends one call |
 
 ## Where it differs from the spec
 
@@ -171,6 +171,7 @@ are that read. How many rows the tracker had then was not read; the read with an
   the old form's test of that bound was not written again for the new forms.
 - `--work` on an issue whose state is not one of a round (`done`, `in-review`): it writes the wait
   for whatever state it reads.
+- `--until 43200` on cb4: the tool takes it, and the service judges "at most 30 days" by its own clock.
 - An id of more than 40 characters, which the tool refused before this change too.
 - What the watch's two temp files are left as when it is killed by a signal it has no trap for.
   The trap removes four names where it removed two; the runs above ended by `alarm`.
