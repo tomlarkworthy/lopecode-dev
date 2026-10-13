@@ -31,6 +31,7 @@ test("SKILL.md, the spec and the knowledge page name the flag, the stop and the 
   expect(skill).toContain("no line has `unlogged`, and stderr has no `loop.ts run: no agent is started: …`");
   expect(spec).toContain("**As built (`loop-sh-sandbox-has-no-keychain`, 2026-10-13).**");
   expect(spec).toContain("A fifth thing stops a start, and it stops every role's");
+  expect(spec).toContain("one thing more stops a start, and of every role: a result that says its process is not logged in (part 4,");
   for (const t of [skill, spec, page]) expect(t).toContain("tools/cloud-brain/records/loop-sh-sandbox-has-no-keychain.md");
 });
 

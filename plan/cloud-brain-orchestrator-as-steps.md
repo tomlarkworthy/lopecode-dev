@@ -566,6 +566,8 @@ the six items or adds to them. The header of `loop.ts` is the reference.
 - `land` "at two steps" is this step's line and the last line of `steps.jsonl`, 30 s or more apart
   by the queue's `now`. The result that was an error is `runs/<token>.exit` holding 1 for a run
   ended less than 30 minutes ago by this machine's clock.
+- Since `loop-sh-sandbox-has-no-keychain` (2026-10-13) one thing more stops a start, and of every role: a
+  result that says its process is not logged in (part 4, the "As built" of that issue).
 - A `round` is given at 3 `respec` moves for a spec writer, as at 3 `rework` moves for a writer.
 - The `given` comment of this task names no run: `given <do> at <at> to no run: …`. An entry so
   given is in the status and is given to no model when `st-4` lands; the form `to <token>, its run

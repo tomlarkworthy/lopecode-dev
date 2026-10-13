@@ -48,7 +48,7 @@ That the profile is what brings the keychain is the issue's and the probe's; the
 | `tests/tools/loop-run.test.ts` | 1 test, and the argument in the test of `loop.sh` |
 | `tests/tools/loop-sh-sandbox-has-no-keychain.test.ts` | new, 4 tests of the texts |
 | `.claude/skills/brain-maintenance/SKILL.md` | "Run it": the flag, and a read of the first minutes |
-| `plan/cloud-brain-orchestrator-as-steps.md` | part 4, "As built (`loop-sh-sandbox-has-no-keychain`…)" |
+| `plan/cloud-brain-orchestrator-as-steps.md` | part 4, "As built (`loop-sh-sandbox-has-no-keychain`…)", and one line of part 3's "As built" that names it |
 | `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md` | the row of the loop names this record |
 
 `metadev` is not changed.
@@ -145,8 +145,8 @@ Ran 75 tests across 4 files. [128.91s]
 $ cd $W && bun test --timeout=30000 ./tests/tools/loop-sh-sandbox-has-no-keychain.test.ts
  4 pass
  0 fail
- 20 expect() calls
-Ran 4 tests across 1 file. [14.00ms]
+ 21 expect() calls
+Ran 4 tests across 1 file. [10.00ms]
 $ env -u WORK -u SESSION -u LOOP_TOKEN -u LOOP_RUN -u LOOP_RUN_TOKEN -u LOOP_TS $W/tests/tools/suite.sh      (14:22:49 to 14:24:56)
  1233 pass
  0 fail
@@ -155,7 +155,8 @@ Ran 1233 tests across 126 files. [123.52s]
 ```
 
 The four files of the first command were run after the last change to `loop.ts`, `loop.sh` and the two
-test files. The record was written after that run and the suite after the record, but for these counts.
+test files. The record was written after that run and the suite after the record, but for these counts
+and for one line of the spec with its `expect`, which the second command was run again for.
 
 The suite as the brief gives it, `$W/tests/tools/suite.sh` with nothing before it (14:20:24), was
 `1230 pass`, `3 fail`: `reviewer-brief-names-token.test.ts` and `reviewer-in-a-view.test.ts` run `agent.sh`,
