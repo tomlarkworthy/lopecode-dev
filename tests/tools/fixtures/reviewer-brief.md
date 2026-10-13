@@ -50,7 +50,7 @@
 > removed when you end. With no such line you were spawned as an Agent: it is your session's scratchpad directory,
 > shared, where the issue id keeps your files apart and you remove them.
 > Before your first `brain.ts`, read `knowledge/calling-a-cloud-brain-from-this-checkout.md` in the checkout
-> (8 KB; cut on 2026-10-11 from the file `rules.md`, Always, names, which you do not need for a `curl`; before a
+> (35 KB on 2026-10-13, 8 KB when it was cut on 2026-10-11 from the file `rules.md`, Always, names, which you do not need for a `curl`; before a
 > `redistil` read `knowledge/changing-and-deploying-a-cloud-brain-worker.md` too). The hook that line speaks of is lopecode-dev's and does not run for you: nothing will stop
 > you, so it is yours to do. A review that runs no `brain.ts` does not need the file.
 
@@ -99,7 +99,7 @@ document when you mend a note in it ("What holds a change, and what is a note", 
 
 1. **Read the issue and its events**: `ir "get?id=<id>" > <your scratchpad>/issue-<id>.json`, a command of
    its own, and read the file. The answer is up to 31 KB, since the `opened` event has the whole body again, and
-   printed in one command with `rules.md` (20 KB) it is over what one tool result holds: seven reviewers read it a
+   printed in one command with `rules.md` (50 KB on 2026-10-13, 20 KB two days before) it is over what one tool result holds: seven reviewers read it a
    second time from a saved file (2026-10-11 and 12; `plain-worktree-tab-tests-no-node-modules`,
    `worker-machine-on-fly` twice, `cm-3-feedback-test-has-a-cost-event` among them). Write down what the issue asked for
    before reading the implementer's comment. The comment is a claim to test, not evidence.
@@ -236,6 +236,17 @@ document when you mend a note in it ("What holds a change, and what is a note", 
    machine other agents load a file fails there that the change did not touch (2026-10-12, `uptime` at 15 to 25 on 18 cores:
    `knowledge-docs.test.ts` alone gave 12 pass, 7 fail and 3 pass, 16 fail with no flag, 19 pass, 0 fail with it; two reviewers,
    tickets 4517 and 4518). A fail at the timeout goes in the review with the first number of `uptime` beside its count.
+   A run of the suite that has printed its three first lines on stderr and nothing more after twice the time a run takes
+   (120 to 160 s on 2026-10-13) has a file that waits without end, which `--timeout=30000` does not stop: `kill -INT` the
+   `bun test --parallel=4` process, which then prints `Interrupted while still running:` and the file. Run the suite again,
+   give both runs in the review, and add the case as a comment to the open issue of that file
+   (`suite-hangs-in-brain-cli-test` for `brain-cli.test.ts`: the reviewers of `st-5-driver`, `st-6-a-day-beside-the-session`
+   and `st-7-switch-and-texts`, 2026-10-13, each of whom had a whole run at the next try). It holds nothing when the file
+   reads nothing the change touches. When your run was begun by `loop.ts start` (`echo ${LOOP_RUN:+set}` prints `set`), the
+   suite, and a file run alone, are run with six names of your own run taken out:
+   `env -u WORK -u SESSION -u LOOP_TOKEN -u LOOP_RUN -u LOOP_RUN_TOKEN -u LOOP_TS tests/tools/suite.sh`. With them three
+   tests that start `agent.sh` fail and none of the three is the change's (`suite-fails-under-a-loop-started-run`, open
+   on 2026-10-13: 1181 pass, 3 fail for the writer of `st-5-driver`, 0 fail with the names out).
    When the diff of the change names nothing that file
    reads, it is a defect of the suite and holds nothing: `ir "list"` for an open ticket of that file and comment
    there with your runs, or open one. (2026-10-12: the reviewer of `skill-step-2-advisor-rate-limit`, five runs,
