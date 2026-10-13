@@ -54,6 +54,8 @@ With the fix, each run after the last edit of the seed:
 | `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-issues --shell <the build> --times 20` | runs 20, passed 20, failed 0, none 0, `from: ["document"]`, `byChance: []` |
 | `tests/tools/suite.sh`, with the record written | 1009 pass, 0 fail, 103 files |
 
+The same call on cb4 after the deploy is in the comment on the issue, not here.
+
 ## Not tried
 
 - A SQLite was not run for the statement. That D1 refuses a `LIMIT` with a part is from the answer
@@ -61,4 +63,3 @@ With the fix, each run after the last edit of the seed:
 - `after` with a part (`after=1.5`). It is compared and not a `LIMIT`; nothing was changed for it.
 - `issue.queue` and `issue.runs` were read and called once each, above, and not changed. The row
   of `issue.queue` does not say how a limit with a part is read.
-- The call on cb4 after the deploy is not in this file: it is in the comment on the issue.
