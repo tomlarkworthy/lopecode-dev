@@ -1225,3 +1225,20 @@ Seen and not acted on:
 - The install of the v6 policy was made by the orchestrating session on his "1 A, you do the steps for me please", quoted whole in comment 6507 before the act, with A of 6457 naming both the approve and the install. As "An act of Never, on the owner's word" has it.
 - The implementer's 311,790 of context is one run kept over two rounds; no other writer of this issue to read it against.
 - Of my own run: the list of 500 had `more: true`, so the search before the two filings was of 500 issues and not of all; the tail of `oversight.md` was printed to take the form of an entry, and nothing of it is used as evidence here; `policyCells` and `remake` were read and not run. The advisor was called before the edits and after the landing.
+
+## 2026-10-13 19:39 CEST, issue git-status-answers-in-a-worktree, event 6634
+Looked at: implementer round 1, fresh (submit 6624, pass; 135,445 of context, 1457 s); reviewer round 1, light (review 6633, pass, move 6634 to done; 88,735 of context, 296 s). No rework and no approver. Open (6593) to done (6634) was 33 minutes.
+approver.ts check: 10 approves by a delegation, 1 that do not stand
+(Exit 1, the line and the count of the oversight before this one: `approve 6513 of st-7-switch-and-texts: the verdict's token appr-0051ce is the token of no cost event of role approver written by an orch- holder`. The bug `approver-check-wants-an-orch-starter` is open, at triaged, and has comment 6772 of it; no second bug and no second comment. The undo, if any, is the owner's.)
+Filed:
+- `overseer-md-git-status-form` (task, major, event 6796): agents/overseer.md has no line of `git status` in its worktree. The issue's body asked it, the triage (6604) left it "for the overseer's next oversight", and the writer's report said so again. Run by me in bm-over-Mac at f2cf7975, git 2.55.0: `git status --short` exit 128 on the lopebooks link, `git status --short --ignore-submodules=all` exit 0. The proposed sentence is in the body.
+- `learnings-gate-deploy-page-for-a-record` (task, event 6797): the first trigger of knowledge/changing-and-deploying-a-cloud-brain-worker.md, `^(Edit|Write|MultiEdit) .*tools/cloud-brain/`, refuses the write of a record until that page (21,109 bytes) is read; impl-7138a5 had no seed and no deploy and said so in its report. Every writer writes a record there.
+Edited: nothing.
+Seen and not acted on:
+- The reviewer's brief, line 15, has the form already (the kept copy and the Brain's are both b0449bebbab3); the writer and the reviewer each asked it of the overseer, and no put was needed.
+- The triage left two mends to "the overseer's next oversight". Since overseer-runs-too-often an oversight is one ending in 10 and reads one issue, so such a part waits for a draw. This one was drawn. agents/orchestrator.md is not a file the overseer edits; one case, not filed.
+- impl-7138a5: its first failing run printed whole briefs as "Received:", about 30 KB. implementer.md already has "A test run is read by its end (`2>&1 | tail -15`)"; the writer read no page, and the file is at 19,997 of 20,000 characters. No edit.
+- impl-7138a5: no scratchpad in its prompt, and three runs of the suite for the record's count. `loop-started-run-is-told-no-scratchpad` and `suite-count-in-the-record-loops` are both done.
+- rev-f41373: no ref names the commit the writer counted at. Step 4 of the reviewer's brief has that case ("That commit is seldom named"); the reviewer took e195761d and the 24 tests fit.
+- implementer.md line 12 says of a change written from that file alone "no writer had done so when this was written". This writer did ("Pages read: none of the eleven"). The sentence is dated by its own words; no edit.
+- Of my own run: the list of 500 had `more: true`, so the search before the two filings was of 500 issues and not of all. The first send of the second issue was refused (an id over 40 characters) and carried a size of the page I had not yet measured; the one that was written has the measured 21,109. The hook was read and not run. The advisor was called once before the filings and once after the landing.
