@@ -300,6 +300,34 @@ test("LOCK_TOKEN names the token of the call; a release or a renew under another
   expect(svc.rows.get("land")!.who).toBe("overseer-m1");
 });
 
+test("the name `loop` (st-5-driver): not held is exit 1; taken as orchestrator-<host> it is shown, renewed and released as land is, with no docs step; another name is the usage", async () => {
+  const docs = stub();
+  const { lock, svc } = fresh({ LOCK_DOCS: docs.program });
+  let r = await lock("show", "loop");
+  expect([r.code, r.out]).toEqual([1, "loop is not held"]);
+  r = await lock("take", "loop", "orchestrator-m1");
+  expect([r.code, r.out]).toEqual([0, `loop taken by orchestrator-m1 at ${at(svc.rows.get("loop")!.taken)}, until ${at(svc.rows.get("loop")!.until)}`]);
+  expect(svc.rows.get("loop")!.until - svc.rows.get("loop")!.taken).toBe(600000);
+  r = await lock("show", "loop");
+  expect([r.code, r.out.split(" since ")[0]]).toEqual([0, "loop is held by orchestrator-m1"]);
+  r = await lock("take", "loop", "orchestrator-m2");
+  expect([r.code, r.err.split(" since ")[0], r.err.endsWith("Not taken.")]).toEqual([1, "lock.sh: loop is held by orchestrator-m1", true]);
+  expect((await lock("renew", "loop", "orchestrator-m1")).code).toBe(0);
+  // A renew under another token is refused, which is why the driver takes the lock again when it has a new token.
+  r = await lock("renew", "loop", "orchestrator-m1").then(() => fresh({ LOCK_BASE: svc.base, LOCK_TOKEN: "issues-reviewer-2" }).lock("renew", "loop", "orchestrator-m1"));
+  expect([r.code, r.err]).toEqual([1, "lock.sh: loop is held under your name by another token; this call used issues-reviewer-2; not yours to renew. Nothing taken."]);
+  r = await lock("release", "loop", "orchestrator-m1");
+  expect([r.code, r.out.startsWith("loop released by orchestrator-m1 at "), r.out.includes("docs ("), docs.calls()]).toEqual([0, true, false, []]);
+  expect((await lock("show", "loop")).code).toBe(1);
+  expect(svc.locks().map((b) => b.name)).toEqual(Array(6).fill("loop"));
+  const n = svc.calls.length;
+  for (const args of ["show loops", "take loo a", "show", "take LOOP a"]) {
+    const bad = await lock(...args.split(" "));
+    expect([bad.code, bad.out, bad.err.split("\n")[0]], args).toEqual([2, "", "lock.sh take land|cb4|loop <who> [--wait [seconds]]   take the landing lock (land) or the deploy lock (cb4) as <who>, for 600 s."]);
+  }
+  expect(svc.calls.length).toBe(n);
+});
+
 test("with no LOCK_TOKEN, or an empty one, every command is exit 2 with the cause and the usage, and nothing is sent", async () => {
   const { sh, svc } = fresh();
   for (const args of ["take land a", "take land a --wait 1", "renew land a", "release land a", "show land", "show cb4"]) {
@@ -308,7 +336,7 @@ test("with no LOCK_TOKEN, or an empty one, every command is exit 2 with the caus
       expect(r.code, `${args}, ${how}`).toBe(2);
       expect(r.out, `${args}, ${how}`).toBe("");
       expect(r.err.split("\n")[0], `${args}, ${how}`).toBe("lock.sh: no LOCK_TOKEN; nothing was sent");
-      expect(r.err).toContain("lock.sh take land|cb4 <who> [--wait [seconds]]");
+      expect(r.err).toContain("lock.sh take land|cb4|loop <who> [--wait [seconds]]");
       expect(r.err).toContain("LOCK_TOKEN=<name> before the command is the token the call is made as, your own. It has no default: exit 2 with none.");
       expect(r.out + r.err).not.toMatch(/secret-/);
     }

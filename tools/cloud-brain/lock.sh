@@ -1,19 +1,20 @@
 #!/bin/bash
-# lock.sh take land|cb4 <who> [--wait [seconds]]   take the landing lock (land) or the deploy lock (cb4) as <who>, for 600 s.
+# lock.sh take land|cb4|loop <who> [--wait [seconds]]   take the landing lock (land) or the deploy lock (cb4) as <who>, for 600 s.
 #                                                  Exit 0: yours. Exit 1: held, and stderr names the holder and until when.
 #                                                  Exit 2: cb4 was not reached, or refused the call. Nothing is taken here.
 #                                                  --wait asks again every 20 s, or the seconds given (above 0, 600 at
 #                                                  most), while it is held and while cb4 is not reached.
-# lock.sh renew land|cb4 <who>                     600 s from now for a lock <who> holds. Exit 1, and nothing is taken,
+# lock.sh renew land|cb4|loop <who>                     600 s from now for a lock <who> holds. Exit 1, and nothing is taken,
 #                                                  when <who> does not hold it. Exit 2 as for take.
-# lock.sh release land|cb4 <who>                   give it back. Exit 1, and the lock stays, when <who> is not its holder.
+# lock.sh release land|cb4|loop <who>                   give it back. Exit 1, and the lock stays, when <who> is not its holder.
 #                                                  Exit 2: not reached, and not released. After a release of land it runs
 #                                                  `knowledge-docs.ts put --stale --limit=30` and prints `docs (<brain>): <its
 #                                                  last line>`, or `docs (<brain>): not entered (<why>)`; the exit is the
 #                                                  release's, 0, either way.
 #                                                  Then `waiting-deploys.ts --file <token>`, and `deploys (<brain>): …`.
-# lock.sh show land|cb4                            the holder, since when and until when. Exit 1 when nobody holds it, also
+# lock.sh show land|cb4|loop                            the holder, since when and until when. Exit 1 when nobody holds it, also
 #                                                  when the last holder's lock has ended. Exit 2: cb4 did not say.
+# loop is the lock of the one loop a cluster has: `loop.ts run` takes it as orchestrator-<host> and renews it every 120 s.
 # <who> is the issue id for a writer, or the role and the machine (overseer-$(hostname -s)): a-z A-Z 0-9 . _ -
 # LOCK_TOKEN=<name> before the command is the token the call is made as, your own. It has no default: exit 2 with none.
 #
@@ -42,9 +43,9 @@
 # `deploys (<brain>): <what waits>; <what was written>`, or `deploys (<brain>): not read (<why>)`; the exit is the
 # release's either way. LOCK_DEPLOYS=0 leaves the step out; LOCK_DEPLOYS=<program> runs that program in the tool's place.
 # With LOCK_BASE set the step is run only for such a program.
-usage() { sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }
+usage() { sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }
 CMD="$1"; NAME="$2"; WHO="$3"
-case "$NAME" in land|cb4) ;; *) usage ;; esac
+case "$NAME" in land|cb4|loop) ;; *) usage ;; esac
 named() { case "$WHO" in ""|*[!a-zA-Z0-9._-]*) usage ;; esac; }
 EVERY=""
 case "$CMD" in

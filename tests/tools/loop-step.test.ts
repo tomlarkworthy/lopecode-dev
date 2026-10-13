@@ -230,6 +230,45 @@ test("health: the two pulls are made by a step and not by a dry one; a refusal t
   g(ROOT, "reset", "-q", "--hard", "origin/main"); g(DEV, "reset", "-q", "--hard", "origin/main");
 });
 
+test("`step --for event` and `--for run`: no pull, no `worktree.sh --list`, no `redistil` and no `state`; the locks are read and the queue is acted on; `--for clock` is the whole step", async () => {
+  fresh();
+  const other = join(RIG, "other-for");
+  spawnSync("git", ["clone", "-q", join(RIG, "origin.git"), other]);
+  writeFileSync(join(other, "for.txt"), "x\n"); g(other, "add", "."); g(other, "commit", "-q", "-m", "for"); g(other, "push", "-q", "origin", "main");
+  const before = head(ROOT);
+  open("t-done", { state: "done" }); open("a", { state: "in-review" }); Q("a", "review");
+  flag("wt-list", "t-done clean changed=0 untracked=0 ahead=0 dev-changed=0 dev-ahead=0 occupant=- branch=bm/t-done head=abc1234\n");
+  // A Worker that is not `same`: a step that is not for the clock does not read it.
+  flag("redistil", "distiller abc\n  brain-x-issues      changes  aaaaaaaaaaaa -> dddddddddddd\n");
+  for (const why of ["event", "run"]) {
+    for (const f of ["brain.log", "worktree.log", "lock.log"]) rmSync(join(RIG, f), { force: true });
+    const r = await cli(["step", "--for", why]);
+    expect([r.code, r.line.for, r.line.health, head(ROOT)]).toEqual([0, why, { ok: true }, before]);
+    expect(acts(r.line)).toEqual(["start a reviewer"]);
+    expect([log("brain").filter((l) => /^(redistil|state)/.test(l)), log("worktree").filter((l) => /--list|--remove/.test(l)), log("lock")]).toEqual([[], [], [ME + " show land", ME + " show cb4"]]);
+    expect(status()).toContain(`- a step for ${why === "run" ? "a run that ended" : "an event"}: no pull, no removal of a worktree, no \`redistil\` and no \`state\`; the locks were read`);
+    expect(last(lines()).for).toBe(why);
+  }
+  // A lock cb4 did not say is not healthy in a step for an event too.
+  flag("lock-cb4", "2 lock.sh: cb4 did not say who holds cb4 [502]");
+  let r = await cli(["step", "--for", "event"]);
+  expect(r.line.health).toEqual({ ok: false, failed: ["lock.sh show cb4: exit 2 lock.sh: cb4 did not say who holds cb4 [502]"] });
+  rmSync(join(RIG, "lock-cb4"));
+  for (const f of ["brain.log", "worktree.log"]) rmSync(join(RIG, f), { force: true });
+  r = await cli(["step", "--for", "clock"]);
+  expect([r.code, "for" in r.line, r.line.health, head(ROOT) === head(other)]).toEqual([0, false, { ok: false, failed: ["redistil: brain-x-issues is changes"] }, true]);
+  expect([log("brain").filter((l) => /^(redistil|state)/.test(l)).length, log("worktree").filter((l) => /--list|--remove/.test(l))]).toEqual([2, ["--list", "--remove t-done"]]);
+  const n = lines().length;
+  for (const bad of [["step", "--for"], ["step", "--for", "soon"], ["step", "--for", "--dry"], ["step", "event"]]) {
+    const b = await cli(bad);
+    expect([b.code, b.out, b.err.trim()], bad.join(" ")).toEqual([2, "", "loop.ts: step [--dry] [--for clock|event|run]"]);
+  }
+  expect(lines().length).toBe(n);
+  r = await cli(["step", "--dry", "--for", "event"]);
+  expect([r.code, r.line.dry, r.line.for, lines().length]).toEqual([0, true, "event", n]);
+  g(ROOT, "reset", "-q", "--hard", "origin/main");
+});
+
 test("health: a worktree nobody is in is removed when its issue has ended, with a comment for a topic's and none for a view; unlanded work is named and left", async () => {
   fresh();
   const c = "changed=0 untracked=0 ahead=0 dev-changed=0 dev-ahead=0", l = (name: string, state = "clean", counts = c, occupant = "-") => `${name} ${state} ${counts} occupant=${occupant} branch=bm/${name} head=abc1234`;
@@ -653,7 +692,7 @@ test("step --dry twice over the same answers prints the same line twice, writes 
   expect(status()).toContain("## What waits for the owner\n\n- o1 (triaged)\n- o2 (triaged)\n- o3 (triaged)\n");
 });
 
-test("a read that is not answered ends the step with exit 1 and `error` in its line, which is written; step takes --dry and nothing else, and needs LOOP_TOKEN", async () => {
+test("a read that is not answered ends the step with exit 1 and `error` in its line, which is written; step takes --dry and --for and nothing else, and needs LOOP_TOKEN", async () => {
   fresh();
   open("a", { state: "in-review" }); Q("a", "review");
   T.fail = "queue";
@@ -670,7 +709,7 @@ test("a read that is not answered ends the step with exit 1 and `error` in its l
   expect([r.code, r.line.health, r.line.error.slice(0, 31), log("lock").length]).toEqual([1, { ok: true }, "queue?limit=1 answered nothing ", 2]);
   T.calls = [];
   r = await cli(["step", "--wet"]);
-  expect([r.code, r.err.trim(), T.calls]).toEqual([2, "loop.ts: step [--dry]", []]);
+  expect([r.code, r.err.trim(), T.calls]).toEqual([2, "loop.ts: step [--dry] [--for clock|event|run]", []]);
   const { LOOP_TOKEN: _, ...base } = process.env;
   const p = spawnSync("bun", [tool, "step"], { encoding: "utf8", env: { ...base, LOOP_ROOT: ROOT, BRAIN_STATE_DIR: STATE, ISSUE_AS_BASE: `http://127.0.0.1:${server.port}` } as any });
   expect([p.status, T.calls]).toEqual([2, []]);

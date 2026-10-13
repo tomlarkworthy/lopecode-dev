@@ -649,6 +649,25 @@ On the laptop the driver is started in the sandbox the sessions run in:
 `METADEV=1`, then `bun tools/cloud-brain/loop.ts run`. Not tried: `metadev` is the owner's file and
 has an uncommitted change in the main checkout; the task reads it and adds nothing to it.
 
+**As built (`st-5-driver`, 2026-10-13).** `tools/cloud-brain/records/st-5-driver.md` has the runs. Where
+the text above names no choice, or the program differs from it:
+
+- A step is told what it was begun for with `step --for clock|event|run`; `--for clock`, or none, is whole.
+- The 1,800 s are counted from the beginning of the last step for the clock, so a step for an event does not
+  put the whole step off. After a step that was not healthy, had an `error` or printed no line, the next
+  reason is taken as the clock's: a step for an event reads no Worker and would start agents on a cluster
+  the last whole step found unhealthy.
+- A `reject` of a digest is counted with the moves that are followed by a step. At most 20 steps follow one
+  another this way; then the driver waits for a reason and says so.
+- At 40 hours the new token is made before `loop` is released, not after: with no new token the lock is
+  kept and the old token goes on.
+- `run --dry` makes no token. It reads with `LOOP_TOKEN`, the caller's, and every event is a reason, the
+  caller's own too: a dry step writes nothing, so no event is its own.
+- At Ctrl-C the driver ends its token only when no run it started is still not ended: a run's `ended` is
+  made with the token that started it ("or left to end itself", under "Going back").
+- `loop.sh` runs the lines of `metadev` from `ENV_PASS=` to the end of `SAFEHOUSE_ARGS=(`, which have the
+  `mkdir -p` of the directories the sandbox mounts. It does not run `caffeinate`, which `metadev` does.
+
 ### 5. The owner, and a session he is in (R7)
 
 A step cannot hear him and has no one to tell. Three things follow.

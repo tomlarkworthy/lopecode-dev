@@ -3,9 +3,12 @@
 // Part 2 of plan/cloud-brain-orchestrator-as-steps.md (st-2-loop-start-and-end); tools/cloud-brain/records/st-2-loop-start-and-end.md.
 // `step` is part 3 of that spec, one pass made by a program (st-3-step; tools/cloud-brain/records/st-3-step.md), and
 // since st-4-orchestrator-brief it starts the judgment run (tools/cloud-brain/records/st-4-orchestrator-brief.md).
+// `run` is part 4, the driver that makes the steps (st-5-driver; tools/cloud-brain/records/st-5-driver.md).
 // Nothing of the loop calls it yet: SKILL.md steps 4 and 5 are as they were until st-7.
 //
-//   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts step [--dry]
+//   bun tools/cloud-brain/loop.ts run                                   (on the laptop: tools/cloud-brain/loop.sh)
+//   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts run --dry
+//   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts step [--dry] [--for clock|event|run]
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts start <id> [--role <role>] [--token <t>]
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts start --role overseer [--token <t>]
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts start [<id>] --role orchestrator --token <t> --give "<entries>"
@@ -112,12 +115,39 @@
 //         --dry prints the line and then the status, writes neither file, sends no write to the tracker, and runs no
 //         pull, no removal, no `ended`, no start. Exit 1 with `error` in the line when a read was not answered,
 //         the first of them `queue?limit=1`, before health: a token cb4 refuses is no cluster that is not healthy.
+//         --for event and --for run are the driver's, a step begun for an event or for a run that ended: it leaves
+//         out the two pulls, `worktree.sh --list` with its removals, `redistil` and `state`, reads the two locks, and
+//         has `for` in its line and a note in the status. --for clock, or no --for, is the whole step.
+//
+// run     The loop: no model, one process, stopped with Ctrl-C (SIGINT or SIGTERM). It needs no LOOP_TOKEN. In order:
+//         1. its token, `brain.ts agent-token orch driver:<host>`, and the lock `lock.sh take loop orchestrator-<host>`
+//            with it. A take that is refused: stderr names the holder, the token is ended, exit 1 and no step. No
+//            token, or cb4 not reached at the take: exit 2;
+//         2. a step for the clock, `loop.ts step --for clock` with its token, and its line printed. Then every 30 s
+//            it looks for a reason, and runs one step at a time: `event`, when `sync?after=<the last seq it read>` has
+//            an event whose `by.holder` is not a token of this driver; `run`, when a file of runs/ of this machine is
+//            not ended and has a result or a process that is gone, once a file; `clock`, 1,800 s after the last step
+//            for the clock began, and in the place of an `event` or a `run` after a step that was not healthy, had an
+//            `error` or printed no line. The last seq is the `seq` of a step's line, or the last event read;
+//         3. a step whose line has a move that was made (`ready`, `finish`, `back`, `digest`, `reject`, with an
+//            `event` and no `duplicate`) is followed at once by a step for an event, 20 one after another at most;
+//         4. the lock is renewed every 120 s, also while a step runs. A renew that is refused: no more steps after
+//            the one that runs, no release, exit 1. One cb4 did not answer is asked again in 30 s;
+//         5. at 40 hours of its token, between two steps: a new token, `loop` released, taken with the new one, and
+//            the old one ended. No new token: the old is kept and it is asked again in 30 s. A take that is refused
+//            there: both tokens ended, exit 1;
+//         6. a step that exits other than 0 or prints no line is said on stderr, and the driver goes on at the next
+//            reason. At a signal it waits for the step that runs, releases `loop`, ends its token and exits 0. The
+//            token is left, and stderr says so, when a run it started has not ended: the run's `ended` is made with it.
+//         --dry runs `step --dry` at each reason with LOOP_TOKEN, the caller's: no token is made, no lock asked, and
+//         every event is a reason, the caller's own too. It prints each step's line and not its status.
+//         stdout is one line of JSON a step; stderr has what the driver says, each line `loop.ts run: …`.
 //
 // The tools it runs, each named by an environment variable for tests/tools/loop.test.ts: ISSUE_AS (issue-as.sh),
 // LOOP_WORKTREE (worktree.sh), LOOP_BRAIN (`bun brain.ts`), LOOP_AGENT (agent.sh of the worktree or the view),
 // LOOP_USAGE (`bun agent-usage.ts`), LOOP_NEEDS_TAB (review-needs-tab.sh), LOOP_HOST (`hostname -s`), LOOP_ROOT (the
 // main checkout), and for `step` LOOP_LOCK (lock.sh), LOOP_UPTIME (`uptime`) and LOOP_SELF (`bun loop.ts`, for its
-// `start`, `resume` and `ended`). The files are under BRAIN_STATE_DIR, or the main checkout's tools/cloud-brain/.emitted.
+// `start`, `resume` and `ended`, and for the `step` of `run`). The files are under BRAIN_STATE_DIR, or the main checkout's tools/cloud-brain/.emitted.
 import { spawn, spawnSync } from "node:child_process";
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -235,6 +265,7 @@ const write = (token: string, method: string, body: any) => { const r = as(token
 // A token is live when a read sent with it is answered: issue-as.sh keeps it (not exit 2) and cb4 does not refuse it.
 const live = (token: string, id: string) => as(token, `get?id=${id}`).status === 200;
 
+const runFiles = () => (existsSync(RUNS()) ? (readdirSync(RUNS()).filter((f) => /^[a-z]+-[0-9a-f]{6}\.json$/.test(f)).sort().map((f) => load(f.slice(0, -5))).filter(Boolean) as Run[]) : []);
 const fileOf = (token: string) => join(RUNS(), token + ".json");
 const load = (token: string): Run | null => { try { return JSON.parse(readFileSync(fileOf(token), "utf8")); } catch { return null; } };
 const save = (run: Run) => { mkdirSync(RUNS(), { recursive: true }); writeFileSync(fileOf(run.token) + ".tmp", JSON.stringify(run, null, 1) + "\n"); renameSync(fileOf(run.token) + ".tmp", fileOf(run.token)); };
@@ -484,6 +515,7 @@ function dead(args: string[]) {
   say({ id, role, round, dead: d.length, events: d.map((e) => e.seq) });
 }
 
+const REASONS = ["clock", "event", "run"];
 // ---- the step: one pass (part 3 of the spec)
 export const GIVEN_MOST = 5, LOAD_MOST = 15, LAND_MS = 30000, ERROR_MS = 30 * 60000, LATE_MS = 4 * 3600000, DEAD_MOST = 2;
 const JUDGED = ["triage", "decompose", "promote", "look"], AT_TYPES = ["opened", "moved", "swapped", "held", "linked", "labelled"];
@@ -528,10 +560,10 @@ function statusText(line: Ev, S: Record<string, string[]>) {
 }
 
 async function step(args: string[]) {
-  const me = own(), dry = args.includes("--dry");
-  if (args.some((a) => a !== "--dry")) stop(2, "step [--dry]");
+  const me = own(), dry = args.includes("--dry"), fi = args.indexOf("--for"), why = fi < 0 ? "clock" : args[fi + 1], whole = why === "clock";
+  if (args.some((a, i) => a !== "--dry" && i !== fi && (fi < 0 || i !== fi + 1)) || !REASONS.includes(why)) stop(2, "step [--dry] [--for clock|event|run]");
   const root = ROOT(), host = HOST(), dev = join(root, "cloud-brain-dev"), skill = join(root, ".claude/skills/brain-maintenance");
-  const line: Ev = { at: Date.now(), seq: 0, ...(dry ? { dry: true } : {}), health: { ok: true }, acts: [], given: [], skipped: [] };
+  const line: Ev = { at: Date.now(), seq: 0, ...(dry ? { dry: true } : {}), ...(whole ? {} : { for: why }), health: { ok: true }, acts: [], given: [], skipped: [] };
   const S: Record<string, string[]> = { notes: [], runs: [], owner: [], given: [], norun: [], left: [], died: [], session: [] };
   const runsNow = new Map<string, string>();
   // An act is named in the line, and made when the step is not dry: what it answered is added to its entry.
@@ -553,7 +585,6 @@ async function step(args: string[]) {
     return cache.get(id)!;
   };
   const running = (G: Got, roles: string[]) => ((G.issue.runs || []) as Ev[]).filter((r) => roles.includes(r.role) && r.outcome === "running");
-  const runFiles = () => (existsSync(RUNS()) ? (readdirSync(RUNS()).filter((f) => /^[a-z]+-[0-9a-f]{6}\.json$/.test(f)).sort().map((f) => load(f.slice(0, -5))).filter(Boolean) as Run[]) : []);
   const end = (code: number) => {
     S.runs.push(...runsNow.values());
     const text = statusText(line, S);
@@ -598,7 +629,8 @@ async function step(args: string[]) {
     get("queue?limit=1");
     // ---- 1. health
     const git = (...a: string[]) => sh("git", a), failed: string[] = [];
-    if (!dry) {
+    if (!whole) S.notes.push(`a step for ${why === "run" ? "a run that ended" : "an event"}: no pull, no removal of a worktree, no \`redistil\` and no \`state\`; the locks were read`);
+    if (!dry && whole) {
       const a = git("-C", root, "pull", "--ff-only");
       if (a.code !== 0) { S.notes.push(`the main checkout was not pulled: ${tail(a)}`); git("-C", root, "fetch", "--no-recurse-submodules", "origin", "main"); }
       let b = git("-C", dev, "pull", "--ff-only");
@@ -613,7 +645,7 @@ async function step(args: string[]) {
     const has = !!pointer && git("-C", dev, "merge-base", "--is-ancestor", pointer, "HEAD").code === 0;
     if (behind !== "0" || !has) S.notes.push(`cloud-brain-dev of the main checkout: ${behind || "an unread count of"} commits behind its origin/main, and the commit origin/main of lopecode-dev records (${pointer.slice(0, 7) || "none read"}) is ${has ? "" : "not "}in it`);
     // The worktrees of the loop: one nobody is in, whose issue has ended, is removed; unlanded work is named and left.
-    const listed = worktree("--list");
+    const listed = whole ? worktree("--list") : { code: 0, out: "", err: "" };
     if (listed.code !== 0) S.notes.push(`worktree.sh --list: exit ${listed.code} ${tail(listed)}`);
     for (const l of listed.out.split("\n").filter(Boolean)) {
       const [name, state, ...rest] = l.split(" "), kv = Object.fromEntries(rest.map((x) => x.split("=")));
@@ -639,16 +671,18 @@ async function step(args: string[]) {
       });
     }
     // The cluster: every Worker `same`, each brain-x-* at the hash seen.json of origin/main holds for it, both locks said.
-    const rd = brain("redistil"), rows = rd.out.split("\n").filter((l) => /^\s+\S+\s+\S+/.test(l)).map((l) => l.trim().split(/\s+/));
-    if (rd.code !== 0 || !rows.length) failed.push(`brain.ts redistil: ${rd.code !== 0 ? `exit ${rd.code} ` : ""}${tail(rd) || "it named no Worker"}`);
-    for (const [w, st] of rows) if (st !== "same") failed.push(`redistil: ${w} is ${st}`);
-    const st = brain("state");
-    let workers: string[] = [], seen: Ev = {};
-    try { workers = JSON.parse(st.out).workers || []; } catch { failed.push(`brain.ts state: ${st.code !== 0 ? `exit ${st.code} ` : ""}${tail(st) || "it printed no JSON"}`); }
-    try { seen = JSON.parse(git("-C", root, "show", "origin/main:tools/cloud-brain/seen.json").out).cb4 || {}; } catch { failed.push("seen.json of origin/main was not read"); }
-    for (const w of workers) {
-      const [name, hash] = String(w).split(" "), kept = seen[name] && seen[name].hash;
-      if (/^brain-x-/.test(name) && kept && String(kept).slice(0, 12) !== hash) failed.push(`state: ${name} is at ${hash}, and seen.json of origin/main has ${String(kept).slice(0, 12)}`);
+    if (whole) {
+      const rd = brain("redistil"), rows = rd.out.split("\n").filter((l) => /^\s+\S+\s+\S+/.test(l)).map((l) => l.trim().split(/\s+/));
+      if (rd.code !== 0 || !rows.length) failed.push(`brain.ts redistil: ${rd.code !== 0 ? `exit ${rd.code} ` : ""}${tail(rd) || "it named no Worker"}`);
+      for (const [w, st] of rows) if (st !== "same") failed.push(`redistil: ${w} is ${st}`);
+      const st = brain("state");
+      let workers: string[] = [], seen: Ev = {};
+      try { workers = JSON.parse(st.out).workers || []; } catch { failed.push(`brain.ts state: ${st.code !== 0 ? `exit ${st.code} ` : ""}${tail(st) || "it printed no JSON"}`); }
+      try { seen = JSON.parse(git("-C", root, "show", "origin/main:tools/cloud-brain/seen.json").out).cb4 || {}; } catch { failed.push("seen.json of origin/main was not read"); }
+      for (const w of workers) {
+        const [name, hash] = String(w).split(" "), kept = seen[name] && seen[name].hash;
+        if (/^brain-x-/.test(name) && kept && String(kept).slice(0, 12) !== hash) failed.push(`state: ${name} is at ${hash}, and seen.json of origin/main has ${String(kept).slice(0, 12)}`);
+      }
     }
     for (const name of ["land", "cb4"]) {
       const r = sh(env.LOOP_LOCK || join(HERE, "lock.sh"), ["show", name], { LOCK_TOKEN: me });
@@ -885,6 +919,151 @@ async function step(args: string[]) {
   end(0);
 }
 
+// ---- the driver: the loop, with no model (part 4 of the spec)
+export const EVERY_MS = 30_000, CLOCK_MS = 1_800_000, RENEW_MS = 120_000, TOKEN_MS = 40 * 3_600_000, FOLLOW_MOST = 20;
+// The acts of a step that are a move of an issue. One that was made has an event and is no duplicate.
+const MOVES = ["ready", "finish", "back", "digest", "reject"];
+export const madeMove = (line: Ev | null) => !!line && ((line.acts || []) as Ev[]).some((a) => MOVES.includes(a.act) && a.event && !a.duplicate && !a.refused);
+// What the driver asks of the machine and the cluster: tests/tools/loop-run.test.ts gives a stand-in for each, the clock among them.
+export type Driver = {
+  dry: boolean; host: string;
+  now: () => number; sleep: (ms: number) => Promise<void>; stopped: () => boolean;
+  token: () => string;                                              // a token made for the driver, "" when none was
+  revoke: (token: string) => string;
+  lock: (cmd: "take" | "renew" | "release", token: string) => { code: number; said: string };
+  step: (token: string, why: string) => Promise<Ev | null>;         // the step's line, null when it printed none
+  seq: (token: string) => number | null;                            // the last seq of the record, null when not read
+  events: (token: string, after: number) => Ev[] | null;            // every event after a seq, null when not read
+  returned: () => string[];                                         // the runs of this machine that returned or are gone and are not ended
+  open: (token: string) => number;                                  // how many runs started with a token are not ended
+  note: (text: string) => void;
+};
+// Exit 0: stopped by a signal. 1: `loop` is another's, at the take or at a renew. 2: no token, or cb4 not reached at a take.
+export async function drive(d: Driver, given = ""): Promise<number> {
+  let token = given, made = d.now(), renewed = d.now(), lost = "";
+  const mine = new Set<string>();
+  const fresh = () => { const t = d.token(); if (t) mine.add(t); return t; };
+  if (!d.dry) {
+    token = fresh();
+    if (!token) { d.note("agent-token made no token for the driver: nothing was taken and no step made"); return 2; }
+    const t = d.lock("take", token);
+    if (t.code !== 0) { d.note(`\`loop\` was not taken: ${t.said}. No step was made; the token ${token} is ${d.revoke(token)}`); return t.code === 1 ? 1 : 2; }
+  }
+  const renew = () => {
+    if (d.dry || lost || d.now() - renewed < RENEW_MS) return;
+    const r = d.lock("renew", token);
+    if (r.code === 0) renewed = d.now();
+    else if (r.code === 1) lost = r.said;
+    else d.note(`\`loop\` was not renewed: ${r.said}. It is asked again in ${EVERY_MS / 1000} s`);
+  };
+  let after: number | null = null, clock = d.now(), healthy = true, follow = 0;
+  const tried = new Set<string>();
+  // One step at a time. The lock is renewed while it runs.
+  const one = async (why: string) => {
+    if (why === "clock") clock = d.now();
+    let line: Ev | null = null, done = false;
+    const p = d.step(token, why).then((l) => { line = l; done = true; });
+    // A driver told to stop waits for the step it began, and asks for no more renews: the lock has 600 s.
+    while (!done) { if (d.stopped()) { await p; break; } await Promise.race([p, d.sleep(EVERY_MS)]); renew(); }
+    const l = line as Ev | null;
+    if (l && Number(l.seq) > 0) after = Math.max(after ?? 0, Number(l.seq));
+    if (why === "clock" || !l || l.error || !(l.health && l.health.ok)) healthy = !!(l && !l.error && l.health && l.health.ok);
+    return l;
+  };
+  // An event that is not the driver's own, a run that returned, or the clock. A dry driver writes nothing: every event is a reason.
+  const reason = (): string | null => {
+    let why: string | null = null;
+    if (after === null) after = d.seq(token);
+    else {
+      const events = d.events(token, after);
+      if (events && events.length) {
+        if (events.some((e) => d.dry || !(e.by && mine.has(String(e.by.holder || e.by).replace(/^secret:/, ""))))) why = "event";
+        after = Math.max(after, ...events.map((e) => Number(e.seq) || 0));
+      }
+    }
+    const back = d.returned().filter((t) => !tried.has(t));
+    back.forEach((t) => tried.add(t));
+    if (!why && back.length) why = "run";
+    // A step that is not for the clock reads no Worker: after a step that was not healthy, or printed no line, the next is the clock's.
+    if (d.now() - clock >= CLOCK_MS || (why && !healthy)) why = "clock";
+    return why;
+  };
+  // At 40 hours, between two steps: a new token, `loop` released and taken with it, the old one ended. 0, or the exit.
+  const rotate = (): number => {
+    const next = fresh();
+    if (!next) { d.note(`no new token was made at ${Math.round((d.now() - made) / 3_600_000)} hours of ${token}; it is asked again in ${EVERY_MS / 1000} s`); return 0; }
+    const r = d.lock("release", token);
+    if (r.code !== 0) {
+      mine.delete(next);
+      d.note(`\`loop\` was not released for a new token: ${r.said}. The new token ${next} is ${d.revoke(next)}`);
+      if (r.code === 1) lost = r.said;
+      return 0;
+    }
+    const t = d.lock("take", next);
+    if (t.code !== 0) { d.note(`\`loop\` was released for a new token and not taken again: ${t.said}. The tokens: ${next} is ${d.revoke(next)}, ${token} is ${d.revoke(token)}`); return t.code === 1 ? 1 : 2; }
+    d.note(`a new token at 40 hours: ${next} holds \`loop\`, and ${token} is ${d.revoke(token)}`);
+    token = next; made = renewed = d.now();
+    return 0;
+  };
+  for (let why: string | null = "clock"; ; ) {
+    if (why) {
+      const line = await one(why);
+      if (lost || d.stopped()) break;
+      if (madeMove(line) && ++follow <= FOLLOW_MOST) { why = "event"; continue; }
+      if (follow > FOLLOW_MOST) d.note(`${FOLLOW_MOST} steps one after another each made a move: the next step waits for a reason`);
+      follow = 0;
+    }
+    if (!d.dry && d.now() - made >= TOKEN_MS) { const code = rotate(); if (code) return code; if (lost) break; }
+    await d.sleep(EVERY_MS);
+    if (d.stopped()) break;
+    renew();
+    if (lost) break;
+    why = reason();
+  }
+  if (d.dry) return 0;
+  if (lost) { d.note(`\`loop\` is no longer this driver's: ${lost}. No more steps; the token ${token} is ${d.open(token) ? "left, for the runs it started to end with" : d.revoke(token)}`); return 1; }
+  const r = d.lock("release", token), n = d.open(token);
+  d.note(`stopped. \`loop\`: ${r.said}. The token ${token} is ${n ? `left: ${n} run${n === 1 ? "" : "s"} it started ${n === 1 ? "has" : "have"} not ended, and each ends itself with it. It ends 48 hours after it was made, or with \`brain.ts agent-token revoke ${token}\`` : d.revoke(token)}`);
+  return 0;
+}
+
+async function run(args: string[]) {
+  const dry = args.includes("--dry"), host = HOST(), who = `orchestrator-${host}`;
+  if (args.some((a) => a !== "--dry")) stop(2, "run [--dry]");
+  const given = dry ? own() : "";
+  let stopping = false, wake = () => {};
+  for (const s of ["SIGINT", "SIGTERM"] as const) process.on(s, () => { stopping = true; wake(); });
+  const note = (text: string) => console.error("loop.ts run: " + text);
+  const said = (r: { out: string; err: string }) => (r.err + r.out).trim().split("\n").pop() || "it answered nothing";
+  const code = await drive({
+    dry, host, note,
+    now: () => Date.now(),
+    sleep: (ms) => new Promise<void>((done) => { const t = setTimeout(done, ms); wake = () => { clearTimeout(t); done(); }; if (stopping) wake(); }),
+    stopped: () => stopping,
+    token: () => { const t = brain("agent-token", "orch", `driver:${host}`), name = t.out.trim(); return t.code === 0 && /^orch-[0-9a-f]{6}$/.test(name) ? name : ""; },
+    revoke,
+    lock: (cmd, token) => { const r = sh(env.LOOP_LOCK || join(HERE, "lock.sh"), [cmd, "loop", who], { LOCK_TOKEN: token }); return { code: r.code, said: said(r).replace(/^lock\.sh: /, "") }; },
+    step: async (token, why) => {
+      const p = Bun.spawn([...words(env.LOOP_SELF, ["bun", import.meta.path]), "step", "--for", why, ...(dry ? ["--dry"] : [])], { env: { ...env, LOOP_TOKEN: token }, stdout: "pipe", stderr: "pipe" });
+      const [out, err, exit] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
+      let line: Ev | null = null;
+      try { line = JSON.parse(out.split("\n")[0]); } catch {}
+      if (line) say(line);
+      if ((exit !== 0 || !line) && !stopping) note(`a step for ${why === "clock" ? "the clock" : why === "run" ? "a run that ended" : "an event"} ${line ? "" : "printed no line and "}exited ${exit}: ${(line && line.error) || err.trim().split("\n").pop() || "it said nothing"}. The driver goes on at the next reason`);
+      return line;
+    },
+    seq: (token) => { const r = as(token, "queue?limit=1"); return r.status === 200 && r.data && Number(r.data.seq) >= 0 ? Number(r.data.seq) : null; },
+    events: (token, after) => {
+      const all: Ev[] = [];
+      for (let a = after, n = 0; n < 20; n++) { const r = as(token, `sync?after=${a}&limit=500`); if (r.status !== 200 || !r.data) return null; const page: Ev[] = r.data.events || []; all.push(...page); if (!r.data.more || !page.length) break; a = last(page)!.seq; }
+      return all;
+    },
+    returned: () => runFiles().filter((r) => r.host === host && !r.ended && (existsSync(join(RUNS(), r.token + ".result.json")) || !alive(r))).map((r) => r.token),
+    open: (token) => runFiles().filter((r) => r.host === host && !r.ended && r.as === token).length,
+  }, given);
+  process.exit(code);
+}
+
 if (import.meta.main) {
   const [cmd, ...args] = process.argv.slice(2);
   if (cmd === "start") start(args);
@@ -892,5 +1071,6 @@ if (import.meta.main) {
   else if (cmd === "resume") await resume(args);
   else if (cmd === "dead") dead(args);
   else if (cmd === "step") await step(args);
-  else stop(2, "start <id> [--role <role>] [--token <t>] | start [<id>] --role orchestrator --token <t> --give <entries> | ended <token> | resume <id> [--role <role>] | dead <id> --role <role> [--round <n>] | step [--dry]");
+  else if (cmd === "run") await run(args);
+  else stop(2, "run [--dry] | start <id> [--role <role>] [--token <t>] | start [<id>] --role orchestrator --token <t> --give <entries> | ended <token> | resume <id> [--role <role>] | dead <id> --role <role> [--round <n>] | step [--dry] [--for clock|event|run]");
 }
