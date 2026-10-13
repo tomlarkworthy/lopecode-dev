@@ -45,10 +45,11 @@ started, Fly.io's body and status passed on with `x-fly-upstream`, `fly.get` and
 a text of 500 characters at most, and a key of letters and digits (`brain-core.ojs`, the route
 `config.set`: `/^[A-Za-z][A-Za-z0-9]{0,63}$/`). The spec's sketch, `commands: { name: [texts] }`, is
 then all the commands in 500 characters, and taking one out is an edit of JSON by hand. With a key a
-command each has 500 characters, `config.set` with `value: null` takes one out, and `config.get` lists
-each naming as a change with its time. The key cannot hold a `.` or a `-`, which is why the name is
-joined to `command` by its upper-case letter. A Worker has 50 keys at most (the same route), of which
-this service reads 7 before the commands.
+command each has 500 characters, and `config.set` with `value: null` takes one out; by the row of
+`config.get` in the method table of `brain-core.ojs` its `changes` then has each naming with its time
+and who made it (read there, no call made). The key cannot hold a `.` or a `-`, which is why the name
+is joined to `command` by its upper-case letter. A Worker has 50 keys at most (the row of `config.set`
+in that table); the table "Settings" of this seed has seven keys beside the commands.
 
 **What a name is.** A lower-case letter, then letters and digits, 40 at most. The key is always
 `command` and something, so a name cannot reach another setting: `blessed`, `machine`, `constructor` and
@@ -103,9 +104,14 @@ anonymous      false   403                    403
 ```
 
 Three requests reach Fly.io from those eighteen calls, each `POST …/machines/aa11bb22cc3310/exec` with
-`authorization: Bearer …` and `redirect: "manual"`. The test's own last line counts the rest: 26 bodies
-of a blessed Worker refused, 11 settings that name nothing, 10 values of `blessed` that bless nothing,
-22 bodies of the owner's refused. Beside them: the values next to the limits (64 texts, 20,000
+`authorization: Bearer …` and `redirect: "manual"`. The test's value counts the rest
+(`grep -o '"value":"9 callers[^"]*"' cloud-brain-dev/reports/brain-x-fly.json`, after the first run below):
+
+```
+"value":"9 callers, 26 bodies of a blessed Worker refused, 11 settings that name nothing, 10 that bless nothing, 22 bodies of the owner's refused"
+```
+
+Beside them: the values next to the limits (64 texts, 20,000
 characters, a timeout of 1 and of 60) are 200; no machine named is 409 with nothing sent; a line a
 call with `by`, `name`, `program` cut at 80 and `texts`, and neither `s3cret`, `--token` nor the Fly.io
 token in a line; a 412 and a 500 of Fly.io's passed on with their status, and a request that throws a 502.

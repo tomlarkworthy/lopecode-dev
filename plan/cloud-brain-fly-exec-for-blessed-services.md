@@ -174,6 +174,12 @@ which cites UCAN for its narrowing rule.
 
 ### The method (R1, R5, R6)
 
+(As built, `fx-1-exec-method`, 2026-10-13, choice B: this section and "Who calls it" are choice A as
+it was written. The body `{ command, timeout }` is the owner's tab's alone, and in the table of nine
+callers `blessed` is 200 for a named command, `{ name, timeout }`, and 403 for a command of its own
+texts. What runs is in the method reference of `tools/cloud-brain/brain-fly.ojs`, "A command on the
+machine", and the table as built is in `tools/cloud-brain/records/fx-1-exec-method.md`, part 3.)
+
 `POST fly.exec`, body `{ command, timeout }`.
 
 - `command` is a list of 1 to 64 texts, 20,000 characters together at most, with no shell:
