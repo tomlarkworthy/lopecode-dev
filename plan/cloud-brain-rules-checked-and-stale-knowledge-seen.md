@@ -64,8 +64,9 @@ two others, read as evidence:
   given it, and by one command on the default policy of the seed.
 - **R3.** A write to an issue can name the last event of that issue its writer read, and is refused
   when the issue has an event after it that matters. The refusal lists those events.
-- **R4.** An agent's move and review carry that number with no line in a brief: the tool they write
-  through sends it.
+- **R4.** The move and the review of a writer, a spec writer and a reviewer carry that number with no
+  line in a brief: the tool they write through sends it, and the number is of what the agent was
+  shown. Not the approver's `approve` (section 3, "The approver").
 - **R5.** The record says what a task and a run were made from: for a task the spec's attachment, by
   its hash; for a run the brief, `rules.md` and `philosophy.md` as they were, by their blobs.
 - **R6.** After three days of R3 and R4 the refusals are counted and read: how many, and how many
@@ -318,7 +319,10 @@ count is of that example and no service has answered it.
 
 `since` is at most 20 entries, the newest; `issue.get` has the bodies. The check is in the judge, so
 it is made at the head the event is written at, as a guard is, and `issue.verify?guards=true` judges
-it again: the event keeps `asOf`, and the replay builds `said` as the view did. `issue.get` answers
+it again: the event keeps `asOf`, and the replay builds `said` as the view did. An issue's row
+written before the deploy has no `said`; as for `last` (the seed's prose, line 269, and `issue.queue`,
+line 1603), the service reads that issue's events when a write with `asOf` meets a row with none and
+makes `said` from them, so no `issue.rebuild` is needed and the replay agrees with the service. `issue.get` answers
 `touched` beside the issue's `seq`. A guard can read it as `event.asOf` (0 when none was sent), so a
 later policy may require it on a move; this spec's policy does not.
 
@@ -330,7 +334,16 @@ the number is looked at, as for every act.
 `issue-as.sh` keeps, for each token and issue, the `seq` of the issue in the last answer of `get` it
 printed to that token. The answer of a write is not kept: a writer that reads at 100, is commented to
 at 101 and attaches at 102 would then send 102 with its submit and never be shown 101, which is the
-order of the one known miss (comment 1571, submit 1578). The file is `.emitted/issue-loop/read/<token>.json`, beside the journal, git-ignored, removed
+order of the one known miss (comment 1571, submit 1578).
+
+**A read a tool makes for itself keeps no number.** Three tools read an issue with the agent's token
+and show the agent nothing of it, or one event of it: `land.sh` (line 111, its answer to a temporary
+file, before it sends the comment and the submit at line 176 with the same token), `issue-wait.sh`
+(line 118) and `worktree.sh` (line 134). Each sets `ISSUE_AS_KEEP=0` for that call, and `issue-as.sh`
+then keeps nothing of the answer. So the submit `land.sh` sends carries the number of the last `get`
+the agent itself ran, and a comment that came after that read refuses the submit: `land.sh` passes
+the tool's exit 5 and its lines on, and the landing it has made stands, as for any refused submit
+today. `loop.ts` is not such a tool: it is the reader of what it reads, and its `get` is kept. The file is `.emitted/issue-loop/read/<token>.json`, beside the journal, git-ignored, removed
 by `agent-token revoke`. For a `move` or a `review` whose body has no `asOf`, the tool adds the kept
 number. With none kept (the token never read the issue through this tool) it adds nothing.
 
@@ -345,6 +358,15 @@ the act, `asOf`, `touched` and the types in `since`. R6 is counted from that fil
 it made before it (line 362), with no change to `loop.ts`. A step that moves from a row of
 `issue.queue` alone carries none, since the tool keeps no number from a queue; the queue's rows
 saying each issue's `touched` is a later task and not in this spec.
+
+**The approver.** Its `approve` is a `fetch` of `approver.ts` with `loop-approver` (line 468), not a
+call of `issue-as.sh`, and its verdict before it is a comment: neither carries `asOf`, and this spec
+leaves both so. `approver.ts approve` reads the record whole at the call (`sync`, line 451) and judges
+it then, so what it acts on is seconds old; and the tool is pinned by its blob in the policy
+(`policy-pins.ts`), so a change to it stops every approval until an install. When `rk-2` is taken its
+install is the place for it: `approver.ts` would send the seq of the last event it read, and since
+the verdict is another actor's event (the `appr-` token's) before the move of `loop-approver`, that
+seq is at or after the verdict's. That is said in `rk-2` as a thing its writer may add, with the pin.
 
 No brief changes. The writer's and the spec writer's briefs keep their line "read the issue again
 before the submit"; a later oversight may take it out when R6 shows the refusal does the job.
@@ -475,7 +497,10 @@ is built says so.
 - **R4.** `tests/tools/issue-as-as-of.test.ts`, against a server of the test as the other
   `issue-as-*.test.ts` files have one: after a `get`, a `move` with no `asOf` is sent with the seq the
   `get` printed; a 409 exits 5, prints the events and appends one line to `stale.jsonl`; `--no-as-of`
-  sends none. Not run. Today: `grep -c asOf tools/cloud-brain/issue-as.sh` prints 0 (run 08:37 CEST).
+  sends none; a `get` with `ISSUE_AS_KEEP=0` keeps none. And in `tests/tools/land.test.ts`: a `get` by
+  the agent, then a comment by a second token, then `land.sh` to its submit, which is refused with the
+  comment shown, where `land.sh`'s own `get` came after the comment. Not run. Today:
+  `grep -c asOf tools/cloud-brain/issue-as.sh` prints 0 (run 08:37 CEST).
 - **R5.** A test cell: an issue opened with a ref answers it as `issue.from`; a `cost` with `from` of
   nine entries is 400. `tests/tools/loop.test.ts`: `start` writes the three blobs. Not run. On cb4, after the next decompose: `get?id=<task> --short` has
   `from`. Today: 0 of 458 `opened` events have refs (the record at event 5942).
@@ -494,14 +519,14 @@ Ids `rk-<n>-…`. Two can start at once: `rk-1` and `rk-3`.
   `respec`, and on the `issue.state == "ready"` side of `start`, in `issuesDefaultPolicy` and in a new
   `plan/cloud-brain-issues-policy-v6.json` (`policy-pins.ts remake` for its reason); the walk's test
   expects `moves-are-his-or-a-token` to hold; `issues-policy-v6.test.ts`. A deploy of `brain-x-issues`
-  by the loop for the cell. The install is the owner's. Left out under choice B.
+  by the loop for the cell. The install is the owner's, and with it `approver.ts` may send `asOf` (section 3, "The approver"), with its new pin in the same file. Left out under choice B.
 - **`rk-3-as-of`.** After nothing (when `rk-2` is opened it is after this, for the seed). The seed: `asOf` in `issueAct`, `touched` in `issueApply`, the
   refusal in `issueAllowed`, `event.asOf` for a guard, the 409 in the service, the method reference,
   the test cells of R3. A deploy of `brain-x-issues` by the loop. Not `major` in the writer's view:
   a call that sends no `asOf` is judged as today, so no caller of a method meets a change, and who may
   do what is as it was.
 - **`rk-4-issue-as-sends-as-of`.** After `rk-3`. `issue-as.sh`, its two files, `agent-token revoke`
-  removing the first, the test of R4, the line of `--short`'s header that says what the tool keeps.
+  removing the first, `ISSUE_AS_KEEP=0` in `land.sh`, `issue-wait.sh` and `worktree.sh`, the two tests of R4, the line of `--short`'s header that says what the tool keeps.
 - **`rk-5-made-from`.** After `rk-3`, and after `rk-2` when it is opened (the same seed). `refs` on `issue.open`, `from` on `issue.cost`, `loop.ts start`, the row
   `decompose` of `SKILL.md` with its two sentences, the tests of R5. A deploy of `brain-x-issues`.
   `major` if triage reads a row of `SKILL.md` as the loop's procedure, as `fly-4` was.
@@ -551,6 +576,20 @@ seq of a write's answer, which hides the event the write came after; `loop.ts` d
 walks; the default policy had not been walked (now run); `rk-2` and `rk-3` had no order; three line
 numbers. One call of the advisor before the landing: the time bound of R2, links said by another
 issue (left out of what matters), and why `rk-3` is not `major`.
+
+## Round 2: review 6159 (2026-10-13, 09:07 CEST)
+
+Taken with `issue-wait.sh … --work`; a resumed round. Two findings and a note, each answered in place.
+
+1. `land.sh` reads the issue itself with the writer's token, so the kept number was of a read the
+   writer never saw. Section 3 now has "A read a tool makes for itself keeps no number", for
+   `land.sh`, `issue-wait.sh` and `worktree.sh`, with a test through `land.sh` under R4, in `rk-4`.
+2. R4 said every agent's move; the approver's `approve` goes through no such tool. R4 names the three
+   roles it holds for, and section 3 has "The approver": left as it is, why, and where it would change.
+3. The note: a row written before the deploy has no `said`. Section 2 says what the service reads then.
+
+Read again for the round: `land.sh` lines 111 and 176, `issue-wait.sh` 118 (110 in the review, before
+`tr-4` landed), `worktree.sh` 134, `approver.ts` 451 and 468, the seed's lines 269 and 1603.
 
 ## The prototype
 
