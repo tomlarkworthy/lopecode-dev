@@ -144,7 +144,10 @@ each command; no shell state lasts between calls.
    beside its `--test` (without the flag it refuses a commit that changes a seed, exit 64). Steps 7
    and 8 run on the build of your worktree, and you emit, apply and probe nothing of it on cb4. The
    first line of your comment and the reason of your submit say that cb4 does not run the change
-   and that the deploy is the owner's, and the comment says what he is to apply. `seen.json` is
+   and that the deploy is the owner's, and the comment says what he is to apply. The release of
+   your landing prints `deploys (cb4): … deploy-waits-<worker> opened`, or `list changed`: the issue
+   his page shows him for that Worker (`tools/cloud-brain/waiting-deploys.ts`); it finds your
+   commit by the seed and your issue by the commit's subject, `<issue id>: …`. `seen.json` is
    not changed. Your record says what he is to run and what his deploy will meet, as far as you
    know it: `tools/cloud-brain/records/core-getinfo-line-says-access.md` has such a section, "For
    the owner: the deploy". A new policy, secret, permission or Worker that the fix also needs is

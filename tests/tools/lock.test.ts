@@ -636,3 +636,34 @@ test("with no LOCK_DOCS the command of the `summaries due` line names the copy o
   expect(r.out).toContain(`BRAIN_BASE=cb4 bun ${dir}/knowledge-docs.ts summarize --due --first-paragraph --usd-max 1 (`);
   expect(env.LOCK_DOCS).toBeUndefined();
 });
+
+// The deploys step of `release land`: issue undeployed-seeds-not-shown-to-owner. LOCK_BASE is set in every case here,
+// so the tool itself is never run: only a program LOCK_DEPLOYS names.
+test("a release of land runs the deploys tool with --file and the token of the release, after the docs step, and prints its last line", async () => {
+  const docs = stub(), deploys = stub(`echo "brain: same"; echo "deploys (cb4): brain-core behind main, the deploy is the owner's; deploy-waits-brain-core opened"`);
+  const { lock } = fresh({ LOCK_DOCS: docs.program, LOCK_DEPLOYS: deploys.program, BRAIN_BASE: undefined });
+  await lock("take", "land", "writer-a");
+  expect(deploys.calls()).toEqual([]);
+  const r = await lock("release", "land", "writer-a");
+  expect(r.code).toBe(0);
+  expect(deploys.calls()).toEqual(["--file issues-implementer-2|cb4"]);
+  expect(r.out.split("\n").slice(1)).toEqual([`docs (cb4): {"put":2,"entered":2}`, "deploys (cb4): brain-core behind main, the deploy is the owner's; deploy-waits-brain-core opened"]);
+});
+
+test("a deploys tool that fails does not fail the release, and the line says why; LOCK_DEPLOYS=0, a release of cb4 and a test's Brain with no program run none", async () => {
+  const deploys = stub(`echo "error: the Brain did not answer" >&2; exit 2`);
+  const { lock } = fresh({ LOCK_DEPLOYS: deploys.program });
+  await lock("take", "land", "writer-a");
+  const r = await lock("release", "land", "writer-a");
+  expect(r.code).toBe(0);
+  expect(r.out.split("\n").slice(1)).toEqual(["deploys (cb4): not read (the Brain did not answer)"]);
+  await lock("take", "cb4", "writer-a");
+  expect((await lock("release", "cb4", "writer-a")).out).not.toContain("deploys (");
+  expect(deploys.calls().length).toBe(1);
+  const off = fresh({ LOCK_DEPLOYS: "0" });
+  await off.lock("take", "land", "writer-a");
+  expect((await off.lock("release", "land", "writer-a")).out).not.toContain("deploys (");
+  const none = fresh();
+  await none.lock("take", "land", "writer-a");
+  expect((await none.lock("release", "land", "writer-a")).out).not.toContain("deploys (");
+});

@@ -635,6 +635,16 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    asked to decide", lists the parts of such a comment and has neither line: they are this step's, each one line,
    and where that section and this differ that section holds. First comment written with the two lines by this
    step: not yet, when this was written.)
+   **The deploys that wait for him.** The kernel, the core, the database and the deployer are deployed by him alone, and
+   a fix to one is landed on `main` with no deploy (`rules.md`, Never). `bun tools/cloud-brain/waiting-deploys.ts`
+   prints, for each of the four, `same` or `waits` with the issues of the commits between `origin/main` and what cb4
+   runs; it reads only and needs no token. Each that waits is an item of the list, in its first group: nothing to
+   choose, one deploy of that Worker. The release of every landing runs the same read with `--file` and keeps one issue
+   a Worker that waits, `deploy-waits-<worker>`, labelled `needs-owner`, which is how he meets it in "For your
+   attention" of his page. Such an issue is the tool's: it is not triaged, started or closed by you, the tool closes it
+   at the first release after cb4 runs the seed of `main`, and when he has answered on it and the label is off it stays
+   open until then. (Since `undeployed-seeds-not-shown-to-owner`, 2026-10-13; run that day on cb4, the core and the
+   deployer waited and the two issues were opened: `tools/cloud-brain/records/undeployed-seeds-not-shown-to-owner.md`.)
    Then what was approved for him since you last told him: the lines of
    `bun tools/cloud-brain/approver.ts list --since=<hours since you last told him> --token <your token>`, as they
    are (the hours a number above 0, as `24` or `0.5`; the tool is exit 2 for any other). Each is one `approve` the approver made: the time, the issue, the words of his it rests on (`on your words

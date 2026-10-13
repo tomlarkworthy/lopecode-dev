@@ -21,7 +21,8 @@
 #   7. comment   with --comment: issue.comment, key impl/<id>/comment-<round>, the file's bytes as the body.
 #   8. submit    issue.move to in-review, key impl/<id>/submit-<round>, the reason as given, one ref
 #                lopecode-dev@<sha> for each commit the push added. --no-submit leaves 7 and 8 out.
-#   9. release   lock.sh release land <id>, which also enters the docs (its line `docs (cb4): …`).
+#   9. release   lock.sh release land <id>, which also enters the docs (its line `docs (cb4): …`) and keeps the issues
+#                of the deploys that wait for the owner (its line `deploys (cb4): …`, waiting-deploys.ts).
 # It stops at the first step that fails, releases the lock when it holds it, and prints that step's output alone on
 # stdout; stderr has one line that names the step and what stands. With every step made, stdout is a line a step.
 #

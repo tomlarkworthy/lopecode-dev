@@ -11,6 +11,7 @@
 #                                                  `knowledge-docs.ts put --stale --limit=30` and prints `docs (<brain>): <its
 #                                                  last line>`, or `docs (<brain>): not entered (<why>)`; the exit is the
 #                                                  release's, 0, either way.
+#                                                  Then `waiting-deploys.ts --file <token>`, and `deploys (<brain>): …`.
 # lock.sh show land|cb4                            the holder, since when and until when. Exit 1 when nobody holds it, also
 #                                                  when the last holder's lock has ended. Exit 2: cb4 did not say.
 # <who> is the issue id for a writer, or the role and the machine (overseer-$(hostname -s)): a-z A-Z 0-9 . _ -
@@ -35,7 +36,13 @@
 # follows: `summaries due (<brain>): <names>. … BRAIN_BASE=<brain> bun <this directory>/knowledge-docs.ts summarize --due
 # --first-paragraph --usd-max 1 …`. The release starts no agent; who runs the command is in the line
 # (issue sd-4-the-rest-and-the-release-line; plan/cloud-brain-docs-summarised-for-search.md, design piece 4).
-usage() { sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }
+# The deploys step (issue undeployed-seeds-not-shown-to-owner), after the docs step: `waiting-deploys.ts --file <LOCK_TOKEN>`
+# reads whether cb4 runs the seed of origin/main for the kernel, the core, the database and the deployer, and keeps one
+# issue `deploy-waits-<worker>` for each that does not, labelled needs-owner. The line printed is the tool's last,
+# `deploys (<brain>): <what waits>; <what was written>`, or `deploys (<brain>): not read (<why>)`; the exit is the
+# release's either way. LOCK_DEPLOYS=0 leaves the step out; LOCK_DEPLOYS=<program> runs that program in the tool's place.
+# With LOCK_BASE set the step is run only for such a program.
+usage() { sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }
 CMD="$1"; NAME="$2"; WHO="$3"
 case "$NAME" in land|cb4) ;; *) usage ;; esac
 named() { case "$WHO" in ""|*[!a-zA-Z0-9._-]*) usage ;; esac; }
@@ -189,6 +196,15 @@ case "$CMD" in
         [ -n "$WHY" ] || WHY="$(printf '%s\n' "$OUT2" | grep -v '^[[:space:]]*$' | tail -1)"
         echo "docs ($BRAIN_BASE): not entered (${WHY:-exit $RC, and it printed nothing})" | cut -c1-400
       fi
+    fi
+    # The deploys that wait for the owner are put in his page now, as the token of the release. With LOCK_BASE set (a
+    # test's Brain) only a program LOCK_DEPLOYS names is run.
+    if [ "$NAME" = land ] && [ "${LOCK_DEPLOYS:-}" != 0 ] && { [ -n "${LOCK_DEPLOYS:-}" ] || [ -z "${LOCK_BASE:-}" ]; }; then
+      export BRAIN_BASE="${BRAIN_BASE:-cb4}"
+      if [ -n "${LOCK_DEPLOYS:-}" ]; then OUT3="$("$LOCK_DEPLOYS" --file "$LOCK_TOKEN" 2>&1)"; else OUT3="$(bun "$(dirname "$0")/waiting-deploys.ts" --file "$LOCK_TOKEN" 2>&1)"; fi
+      LAST="$(printf '%s\n' "$OUT3" | grep '^deploys (' | tail -1)"
+      if [ -n "$LAST" ]; then printf '%s\n' "$LAST" | cut -c1-600
+      else echo "deploys ($BRAIN_BASE): not read ($(printf '%s\n' "$OUT3" | grep -v '^[[:space:]]*$' | tail -1 | sed 's/^error: //' | cut -c1-300))"; fi
     fi
     exit 0
     ;;
