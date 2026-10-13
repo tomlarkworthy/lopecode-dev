@@ -13,7 +13,7 @@ test("the guide says what the docs tool does with a summary, and its four comman
   const guide = flat(read("knowledge/calling-a-cloud-brain-from-this-checkout.md"));
   expect(guide).toContain("An entry that holds the line `Summary by summarizer (…)` is neither cut nor unmarked.");
   expect(guide).toContain("`put --stale` leaves a long doc whose entry `knowledge.list` answered with no text");
-  for (const c of ["knowledge-docs.ts summarize <name>… --dry", "knowledge-docs.ts summarize --due --usd-max 1", "knowledge-docs.ts status --check-summaries", "knowledge-docs.ts put --plain <name>…"]) expect(guide).toContain(c);
+  for (const c of ["knowledge-docs.ts summarize <name>… --dry", "knowledge-docs.ts summarize --due --first-paragraph --usd-max 1", "knowledge-docs.ts status --check-summaries", "knowledge-docs.ts put --plain <name>…"]) expect(guide).toContain(c);
   expect(guide).toContain("The role is named `summarizer` since `sd-2-one-summarizer`");
 });
 

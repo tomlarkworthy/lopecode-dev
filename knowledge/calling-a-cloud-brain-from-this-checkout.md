@@ -191,12 +191,7 @@ an entry of kind doc over 16,000 characters              [the first N of M chara
   fourth is the line a test of `tools/cloud-brain/cloud-brain.ojs` expects of `callAnswer`, not one read in the page;
   for a procedure the same function ends the line `The rest is not read: a procedure called again would run a second time`.
 - A cut doc's last line names its file, which is the whole ("The knowledge docs in the Brain's search", below).
-  This page was such a doc: at 04:09 CEST that day its entry had the first 15727 of 26628 characters, by its last line.
-  Since 09:09 CEST that day a doc over 16,000 characters is cut only until its summary is written
-  (`sd-4-the-rest-and-the-release-line`): the entry then begins with a paragraph by the summarizer, and the second
-  line after the paragraph names the file. This page's entry, read at 09:11 with `knowledge.search`, was 16,000
-  characters with `The whole doc is the file docs/lopecode-dev/knowledge/calling-a-cloud-brain-from-this-checkout.md
-  in this Brain's brain-static, 30964 characters: static.get?path=… Its start follows.` after a paragraph of 892.
+  This page was such a doc until 09:09 CEST that day: a long doc's entry now begins with a summarizer's paragraph ("Every long doc", below).
 
 ## Why did that happen: the logs
 
@@ -346,7 +341,10 @@ entries, $0.674 with the two canaries (`.emitted/docs/journal.jsonl`; `tools/clo
 The owner was shown, before he chose, that the sets of ten questions measured no gain from the paragraph and one
 reading worse (comment 5898). A long doc that lands later is cut until the agent of its landing runs the command the
 release prints ("What enters a changed doc", above). `status` at 09:10 read `"long":51,"summarized":49,"cut":2`: two
-specs had landed during the run.
+specs had landed during the run. The entry of such a doc does not end with the cut's line: the second line after the
+paragraph names the file. This page's entry, read at 09:11 with `knowledge.search`, was 16,000 characters with `The
+whole doc is the file docs/lopecode-dev/knowledge/calling-a-cloud-brain-from-this-checkout.md in this Brain's
+brain-static, 30964 characters: static.get?path=… Its start follows.` after a paragraph of 892.
 
 The commands that came with it, each said in the header of `tools/cloud-brain/knowledge-docs.ts`:
 
@@ -367,11 +365,11 @@ last line is then bun's and not the JSON. `badname` is a doc whose file name giv
 ## The summaries of the kept papers
 
 Each kept paper with the tag `awesome-rsi` has, first in its entry's text, a summary written by one light agent of
-the role `summarizer`, and the entry's vector is made from the summary's first paragraph. (The role was named
-`paper-summarizer` until `sd-2-one-summarizer`, 2026-10-12, and takes a doc as well since: its brief is
-`brain/roles/summarizer.md`, `run` starts it with a task line `summarize a paper: …`, and a summary written from then
-on has the line `Summary by summarizer (…)`. The 63 put before have `Summary by paper-summarizer (…)`, which `check`
-reads as before.)
+the role `summarizer` (`paper-summarizer` when the first 63 were written), and the entry's vector is made from the
+summary's first paragraph. (The role is named
+`summarizer` since `sd-2-one-summarizer`, 2026-10-12, and takes a doc as well: its brief is `brain/roles/summarizer.md`,
+`run` starts it with a task line `summarize a paper: …`, and a summary written from then on has the line
+`Summary by summarizer (…)`. The 63 put before have `Summary by paper-summarizer (…)`, which `check` reads as before.)
 (`plan/cloud-brain-paper-summarizer-persona.md`; the runs are `tools/cloud-brain/records/ps-3-pilot-ten.md` and
 `ps-4-the-rest.md`). For papers entered later, or another tag, it is two commands and then the check, from the main
 checkout or a worktree. The header of `tools/cloud-brain/summarize-papers.ts` is the reference.
