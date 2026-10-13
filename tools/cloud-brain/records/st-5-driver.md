@@ -18,11 +18,11 @@ process started by `loop.ts start` in its sandbox, with the token `impl-e88c70`.
 | File | Change |
 |---|---|
 | `tools/cloud-brain/loop.ts` | the command `run [--dry]`; `drive`, `madeMove` and the five constants exported; `step` takes `--for clock\|event\|run`; `runFiles` moved out of `step` |
-| `tools/cloud-brain/lock.sh` | the name `loop` beside `land` and `cb4`; one line of the usage, which is 17 lines now |
+| `tools/cloud-brain/lock.sh` | the name `loop` beside `land` and `cb4`; one line of the usage, which is 18 lines now (`sed -n '2,19p' lock.sh | wc -l`) |
 | `tools/cloud-brain/loop.sh` | new, 22 lines, zsh: `safehouse` with the arguments `metadev` gives it, then the driver |
 | `tests/tools/loop-run.test.ts` | new: 18 tests |
 | `tests/tools/loop-step.test.ts` | 1 test more (28), and the usage line in one expectation |
-| `tests/tools/lock.test.ts` | 1 test more (29), and the usage line in one expectation |
+| `tests/tools/lock.test.ts` | 1 test more (31, with 2 that came in at the rebase), and the usage line in one expectation |
 | `plan/cloud-brain-orchestrator-as-steps.md` | part 4, "As built (`st-5-driver`…)": seven lines where the program chooses or differs |
 
 What `run` does, in order, is the header of `loop.ts` under `run`. `step --for event` and `--for run`
@@ -140,12 +140,12 @@ A dry step makes no pull, so a whole step that is not dry is longer than 37 s by
 ## Tests
 
 `cd $W && bun test --timeout=30000 ./tests/tools/loop-run.test.ts ./tests/tools/lock.test.ts ./tests/tools/loop-step.test.ts`,
-after the last change: **75 pass, 0 fail**.
+after the rebase (11:05 CEST): **77 pass, 0 fail**.
 
-The whole suite, `env -u WORK -u SESSION $W/tests/tools/suite.sh`, after the last change: **1184 pass, 0 fail**,
-121 files.
+The whole suite, `env -u WORK -u SESSION $W/tests/tools/suite.sh`, after the rebase and the last change to a
+program or a test (11:04 CEST): **1206 pass, 0 fail**, 123 files. Before the rebase it was 1184 pass, 0 fail, 121 files.
 
-Without `env -u WORK -u SESSION` the same suite was 1181 pass and 3 fail (10:50 CEST): `agent.sh` tests
+Without `env -u WORK -u SESSION` the suite before the rebase was 1181 pass and 3 fail (10:50 CEST): `agent.sh` tests
 of `reviewer-brief-names-token`, `reviewer-brief-kept-copy` and `reviewer-in-a-view`. They start
 `agent.sh` with the caller's environment, and this writer was started by `loop.ts start`, which sets
 `WORK` and `SESSION`: `agent.sh` then takes the test's reviewer for a run in a worktree. The three files
@@ -155,8 +155,15 @@ alone under `env -u WORK -u SESSION`: 20 pass, 0 fail. Filed as `seen-st5-work-e
 and the new files put back after, the three test files as they are now:
 
 - `loop-run.test.ts`: `SyntaxError: Export named 'drive' not found in module … loop.ts`, 0 pass, 1 error.
-- `lock.test.ts` and `loop-step.test.ts` together: 53 pass, 4 fail. The four are the two new tests (the
+- `lock.test.ts` and `loop-step.test.ts` together, before the rebase: 53 pass, 4 fail. The four are the two new tests (the
   name `loop`; `step --for event`) and the two whose expectation has the new usage line.
+
+## The rebase
+
+`worktree.sh --rebase` stopped on `lock.sh`: `undeployed-seeds-not-shown-to-owner` had added a line to its
+usage and a paragraph to its header. Both are kept, the usage is one line longer for each change
+(`sed -n '2,19p'`), and the suite above was run after it. The take, show, renew and release of `loop` on
+cb4 under "On cb4" were made with the `lock.sh` of before the rebase.
 
 ## Not tried
 
