@@ -6,8 +6,8 @@ and the Brain's own page in a browser of the cluster out in a worktree and did n
 owner was shown that it goes after one check, and the check is the act the line forbids. It wrote
 what was read in its place, how the check is made, and what the check has to show. The owner then
 answered that the check be run, a session he was in made it at 21:15, and the second writer
-(token `impl-206afa`) wrote "The check as it was made" and the sections after it, and landed the
-change. The sections before that one are the first writer's, as written before the check. Times
+(token `impl-206afa`) wrote "The check as it was made" and the sections after it, for the landing
+of the change. The sections before that one are the first writer's, as written before the check. Times
 are CEST, read from `date`, but for the times of the check, which are the session's.
 
 ## The line, and why it had no end
@@ -251,5 +251,6 @@ as written.
 ## Tests
 
 - `bun test --timeout=30000 ./tests/tools/never-page-up-line-after-a-check.test.ts ./tests/tools/never-list-three-reductions.test.ts`:
-  15 pass, 0 fail (21:30:44).
-- `tests/tools/suite.sh`, after the last edit of a file a test reads: 1312 pass, 0 fail, 138 files, no line `skipped:` (21:36:01 to 21:41:18).
+  15 pass, 0 fail (21:30:44, and 21:41:35 after the rebase). With `rules.md` as `origin/main` has it
+  and all else of the change: 13 pass, 2 fail, the first two tests of the new file (21:44:23).
+- `tests/tools/suite.sh`, after the last edit of a file a test reads: 1333 pass, 0 fail, 140 files, no line `skipped:` (21:44:32 to 21:49:14, after the rebase; before it, 1312 pass, 0 fail, 138 files).
