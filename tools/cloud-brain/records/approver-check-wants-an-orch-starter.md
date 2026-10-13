@@ -79,8 +79,8 @@ holder, the owner's session, or with no `by`: the line. Written by `out-5bc2ed` 
 **Two docs said the old rule** and are mended: `SKILL.md`, step 5 of "Run it" (the line on the
 `token` of an approver's `cost` event), and `plan/cloud-brain-approver-persona.md` at two places,
 each with an "As built" note. The search was
-``git grep -n -e 'orch- holder' -e '`orch-` holder' HEAD~1 -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'``
-(`HEAD~1` the commit before the change's): 11 lines, 8 of them in `oversight.md`, which are entries
+``git grep -n -e 'orch- holder' -e '`orch-` holder' <commit> -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'``,
+with `<commit>` the one before the change's: 11 lines, 8 of them in `oversight.md`, which are entries
 of past oversights and quote the tool's line as it was printed then. They are left. The other 3
 are the mended ones.
 
