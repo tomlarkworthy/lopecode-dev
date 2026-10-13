@@ -305,7 +305,10 @@ Since `sd-2-one-summarizer` (2026-10-12, task 2 of `plan/cloud-brain-docs-summar
 summary in the entry of a doc over 16,000 characters. None was on cb4 when this was written: `status` there answered
 `"long":48,"summarized":0` at 23:45 CEST, and the first are put by task 3 of that plan. (Task 3, `sd-3-pilot-ten`, put ten on
 2026-10-13 with haiku and then with opus and put them back with `put --plain`: with either, the search by words no longer found
-three and two of ten passages it found before. None is on cb4 since 01:08 CEST that day; `tools/cloud-brain/records/sd-3-pilot-ten.md`.) What changed in the two commands above:
+three and two of ten passages it found before; `tools/cloud-brain/records/sd-3-pilot-ten.md`. `sd-3b-first-paragraph-alone` put the same ten
+again that day with `summarize --first-paragraph`, haiku, and put them back: the search by words found all ten passages at the ranks
+of before, and the ten questions from past the kept text were not found better; `tools/cloud-brain/records/sd-3b-first-paragraph-alone.md`.
+None is on cb4 since 06:17 CEST that day.) What changed in the two commands above:
 
 - An entry that holds the line `Summary by summarizer (…)` is neither cut nor unmarked. A put of its doc keeps the
   text to the end of that line and makes the line after it and the doc's start anew. The last line of `put` counts
@@ -320,6 +323,7 @@ The commands that came with it, each said in the header of `tools/cloud-brain/kn
 ```
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize <name>… --dry        # one agent a doc (haiku); the summary to .emitted/docs/<name>.summary.txt, nothing put
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize --due --usd-max 1    # every doc whose summary is due; puts each with loop-docs
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize <name>… --first-paragraph   # the entry holds the summary's first paragraph and none of its five sections (2026-10-13)
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status --check-summaries       # reads only; exit 1 on a summary not in its form, due for over 24 hours, or refused twice
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --plain <name>…            # a long doc as it is put with no summary: the way one is put back
 ```

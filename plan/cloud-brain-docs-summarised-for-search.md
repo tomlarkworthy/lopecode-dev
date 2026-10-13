@@ -69,6 +69,14 @@ rose by words and by meaning, and set K fell by meaning as well. The ten cost $0
 Task 4 puts summaries of this shape on the other 38 long docs and is not run on this result: what is built in its
 place is the owner's to say ("Not chosen" names one, a summary made with no model).
 
+**As built, `sd-3b-first-paragraph-alone` (2026-10-13): the same ten once more, the entry holding the summary's first
+paragraph alone, and R5 passes.** The owner's answer to the stop of task 3 was one more try on the same ten (event
+5779 of `sd-3-pilot-ten`). `summarize --first-paragraph` puts the first paragraph, the summary's line, the second
+line and the doc's start, and none of the five sections. With haiku, set K by words read 0.950 before and 0.950
+with the ten paragraphs, rank for rank; set L fell, by words 0.623 to 0.614 and by meaning 0.517 to 0.426. The ten
+cost $0.13 and were put back with `put --plain`, each to the bytes it had before: no summary of a doc is on cb4. The
+record is `tools/cloud-brain/records/sd-3b-first-paragraph-alone.md`.
+
 The tasks are `sd-1` to `sd-4` on the tracker, where this file says `ds-1` to `ds-4`.
 
 Sections 1 to 3 and 5 of "What exists today", the question sets and "Read" are round 1's and were
@@ -558,7 +566,8 @@ For one doc, `summarize`:
 
 `status --check-summaries` fails a doc whose entry has the line and not: a first paragraph within
 its limit, the five headings in order, a second line that names the entry's own `file`, a text of
-16000 at most. It fails a doc due for over 24 hours (the clocks of piece 2), and one the journal
+16000 at most. (As built, `sd-3b-first-paragraph-alone`, 2026-10-13: the five headings in order or no heading, the
+form `summarize --first-paragraph` puts.) It fails a doc due for over 24 hours (the clocks of piece 2), and one the journal
 has as `refused` at its file's hash and `--except` does not name. With names it reads those docs only. `status --check` is as it
 is today.
 
