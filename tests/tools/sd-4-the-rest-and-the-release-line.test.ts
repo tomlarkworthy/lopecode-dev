@@ -48,7 +48,8 @@ test("the guide has the fourth line of a release and says since when the 49 long
   expect(guide).toContain("The release starts no agent.");
   const spec = flat(read("plan/cloud-brain-docs-summarised-for-search.md"));
   expect(spec).toContain("**As built, task 4 (`sd-4-the-rest-and-the-release-line`, 2026-10-13): the 49 long docs of that morning have the first paragraph of a summary, and a release names the docs that wait for one.**");
-  expect(spec).toContain("`summarize --due` with no flag still puts a whole summary, the form that failed R5.");
+  // Until summarize-due-default-whole-summary the sentence ended "still puts a whole summary, the form that failed R5."
+  expect(spec).toContain("`summarize --due` with no flag put a whole summary, the form that failed R5, until `summarize-due-default-whole-summary` later that day");
 });
 
 test("the record says first that nothing measures a gain, has the run's figures and what was not tried", () => {

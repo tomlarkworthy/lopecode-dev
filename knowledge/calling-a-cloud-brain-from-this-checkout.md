@@ -352,9 +352,16 @@ The commands that came with it, each said in the header of `tools/cloud-brain/kn
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize <name>… --dry        # one agent a doc (haiku); the summary to .emitted/docs/<name>.summary.txt, nothing put
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize --due --first-paragraph --usd-max 1    # every doc whose summary is due; puts each with loop-docs. The command a release prints
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize <name>… --first-paragraph   # the entry holds the summary's first paragraph and none of its five sections (2026-10-13)
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize <name>… --whole-summary     # the entry holds the five sections too: the form that lost passages in the pilot
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status --check-summaries       # reads only; exit 1 on a summary not in its form, due for over 24 hours, or refused twice
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --plain <name>…            # a long doc as it is put with no summary: the way one is put back
 ```
+
+Since `summarize-due-default-whole-summary` (2026-10-13) `summarize` with neither `--first-paragraph` nor `--whole-summary` puts the first
+paragraph, with `--due`, with names and with `--dry`: until then it put the whole summary, the form of the pilot, with which the search by
+words no longer found passages it found before (`sd-3-pilot-ten`, above). `--first-paragraph` is still taken and changes
+nothing, so the command a release prints is as it was. With both flags the tool exits 2 and starts no agent. Seen in
+the tool's tests, where the agent is a stand-in (`tests/tools/knowledge-docs-summaries.test.ts`); not run on cb4.
 
 `status --check` exits 0 when no doc is behind, 1 when one is, and 2 with the owner's command when no `loop-docs` is
 kept. A tool that threw also exits 1 (seen with no `BRAIN_BASE`; a refused call throws the same way, not run): the

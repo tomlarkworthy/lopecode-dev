@@ -133,18 +133,20 @@ const fresh = (docs: Record<string, string> = { "knowledge/long.md": longDoc(200
     doc: (rel = "knowledge/long.md") => readFileSync(join(repo, rel), "utf8") };
 };
 // The repository with both docs entered as the tool enters them with no summary.
+// summarized: the long doc then holds a whole summary, the form --whole-summary names since
+// summarize-due-default-whole-summary (2026-10-13); until then it was the form with no flag.
 const entered = (docs?: Record<string, string>, when?: string) => { const t = fresh(docs, when); const r = t.kdocs(["put", "--all"]); if (r.code !== 0) throw new Error(r.out + r.err); return t; };
-const summarized = (docs?: Record<string, string>) => { const t = entered(docs); t.answers([{ result: GOOD }]); const r = t.kdocs(["summarize", "long"]); if (r.code !== 0) throw new Error(r.out + r.err); return t; };
+const summarized = (docs?: Record<string, string>) => { const t = entered(docs); t.answers([{ result: GOOD }]); const r = t.kdocs(["summarize", "long", "--whole-summary"]); if (r.code !== 0) throw new Error(r.out + r.err); return t; };
 const day = () => new Date().toISOString().slice(0, 10);
 const lineOfDoc = (hash: string, model = "haiku") => `Summary by summarizer (${model}), ${day()}, of lopecode-dev/knowledge/long.md as it was with sha256 ${hash}.`;
 const secondLine = (doc: string) => `The whole doc is the file ${FILE} in this Brain's brain-static, ${doc.length} characters: static.get?path=${FILE}. Its start follows.`;
 
-test("summarize <name>: the canary first, one agent that reads a new directory with the doc's text alone, and the entry put with loop-docs: summary, two lines, the doc's start, 16000", () => {
+test("summarize <name> --whole-summary: the canary first, one agent that reads a new directory with the doc's text alone, and the entry put with loop-docs: summary, two lines, the doc's start, 16000", () => {
   const t = entered();
   const before = t.kdocs(["status"]);
   expect(before.last).toMatchObject({ docs: 2, cut: 1, unmarked: 0, long: 1, summarized: 0, behind: 0, due: ["long"], refused: [] });
   t.answers([{ result: GOOD }]);
-  const n = t.calls().length, doc = t.doc(), r = t.kdocs(["summarize", "long"], { MODEL: "opus", DRY: "1" });
+  const n = t.calls().length, doc = t.doc(), r = t.kdocs(["summarize", "long", "--whole-summary"], { MODEL: "opus", DRY: "1" });
   expect(r.code).toBe(0);
   expect(r.lines[0]).toMatchObject({ name: "long", outcome: "put", lead: (LEAD + " It ends at Line 200.").length, leadMax: 1498 - "A long doc".length, sections: SECTIONS.length, length: 16000, refused: [[]], usd: 0.25, put: { changed: 1, vectors: 1 } });
   expect(r.last).toMatchObject({ picked: 1, put: 1, refused: 0, failed: 0, usd: 0.25 });
@@ -411,7 +413,7 @@ test("status --check-summaries: a doc with no summary fails once it has been due
   // --check alone is as before: a due summary does not fail it.
   expect(t.kdocs(["status", "--check"]).code).toBe(0);
   t.answers([{ result: GOOD }]);
-  expect(t.kdocs(["summarize", "long"]).code).toBe(0);
+  expect(t.kdocs(["summarize", "long", "--whole-summary"]).code).toBe(0);
   expect(t.kdocs(["status", "--check-summaries"]).code).toBe(0);
   // An entry whose summary lost a heading, names another file after its line, and has a first paragraph over the limit.
   const e = t.entry(), bad = "x".repeat(1489) + e.text.slice(e.text.indexOf("\n\n")).replace("## Names\n", "").replace(`the file ${FILE} in`, "the file docs/elsewhere.md in");
@@ -463,4 +465,39 @@ test("put --stale: nine docs due are 8 names and `and 1 more`, in the order of t
   const first = t.kdocs(["put", "--stale"]);
   expect(first.lines.slice(-2)).toMatchObject([`summaries due: ${names.slice(0, 8).join(", ")}, and 1 more`, { put: 9, cut: 9 }]);
   expect(t.kdocs(["put", "--stale"]).out).toBe(`summaries due: ${names.slice(0, 8).join(", ")}, and 1 more\nnothing to put`);
+}, T);
+
+// summarize-due-default-whole-summary: the form with no flag is the one the owner chose for the long docs.
+test("summarize with no flag puts the first paragraph alone, by --due, by name and --dry; --whole-summary puts the five sections; the two flags together are exit 2 and start no agent", () => {
+  const t = entered();
+  const has = (text: string) => DOC_HEADINGS.filter((h) => text.includes(`## ${h}\n`)).length;
+  // --dry with no flag: the file has the paragraph and no section.
+  t.answers([{ result: GOOD }]);
+  expect(t.kdocs(["summarize", "long", "--dry"]).lines[0]).toMatchObject({ outcome: "dry", sections: SECTIONS.length });
+  const top = (doc: string) => `${LEAD} It ends at Line 200.\n\n${lineOfDoc(sha(doc))}\n${secondLine(doc)}\n\nTopics: long things\n\n${row(1)}\n`;
+  const dry = readFileSync(join(t.state, "long.summary.txt"), "utf8");
+  expect([dry.startsWith(top(t.doc())), has(dry), dry.length, t.puts().length]).toEqual([true, 0, 16000, 2]);
+  // --due with no flag.
+  t.answers([{ result: GOOD }]);
+  const due = t.kdocs(["summarize", "--due"]);
+  expect([due.code, due.last.put]).toEqual([0, 1]);
+  expect([t.entry().text.startsWith(top(t.doc())), has(t.entry().text), t.entry().text.length]).toEqual([true, 0, 16000]);
+  // --whole-summary: the five sections between the paragraph and the line.
+  t.answers([{ result: GOOD }]);
+  expect(t.kdocs(["summarize", "long", "--whole-summary"]).lines[0]).toMatchObject({ outcome: "put" });
+  expect([t.entry().text.startsWith(`${GOOD}\n\n${lineOfDoc(sha(t.doc()))}\n`), has(t.entry().text), t.entry().text.length]).toEqual([true, 5, 16000]);
+  // A name with no flag puts the paragraph over it.
+  t.answers([{ result: GOOD }]);
+  expect(t.kdocs(["summarize", "long"]).lines[0]).toMatchObject({ outcome: "put" });
+  expect([t.entry().text.startsWith(top(t.doc())), has(t.entry().text)]).toEqual([true, 0]);
+  // The journal says which form each line was: the canaries' lines do not.
+  expect(t.journal().filter((l: any) => !("canary" in l)).map((l: any) => [l.outcome, l.firstParagraph ?? false])).toEqual([["dry", true], ["put", true], ["put", false], ["put", true]]);
+  expect(t.kdocs(["status", "--check-summaries"]).code).toBe(0);
+  // Both flags: nothing is started, the canary's neither, and nothing is put or written down.
+  const n = [t.agents().length, t.calls().length, t.journal().length];
+  for (const args of [["summarize", "--due", "--whole-summary", "--first-paragraph"], ["summarize", "long", "--first-paragraph", "--whole-summary", "--dry"]]) {
+    const both = t.kdocs(args);
+    expect([both.code, both.out, both.err]).toEqual([2, "", "summarize: --first-paragraph and --whole-summary name two forms of one entry; give one, or neither for the first paragraph"]);
+  }
+  expect([t.agents().length, t.calls().length, t.journal().length]).toEqual(n);
 }, T);

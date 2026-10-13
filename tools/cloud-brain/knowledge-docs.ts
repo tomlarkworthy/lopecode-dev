@@ -12,7 +12,8 @@
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --plain <name>…         a long doc as it is put with no summary: the way an entry is put back
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize --due [--usd-max N] [--model M] [--dry]   one agent a due doc, one after another
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize <name>… [--again] [--dry]                 the named docs, due or not
-//   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize <name>… --first-paragraph                 the entry holds the summary's first paragraph and none of its sections
+//   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize <name>… --first-paragraph                 the entry holds the summary's first paragraph and none of its sections: the form with no flag too
+//   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize <name>… --whole-summary                   the entry holds the five sections too: the form that lost passages in the pilot (sd-3-pilot-ten)
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status --check-summaries [<name>…] [--except name=issue,…]   reads only; exit 1 on a failing doc
 //   … --owner            call with the owner's session, for the owner's own use; an agent does not
 //   … --limit=SECONDS    the time one call may take (120)
@@ -86,6 +87,9 @@
 // summarize --first-paragraph (sd-3b-first-paragraph-alone): the same agent, brief and judge, and the entry holds the
 // first paragraph, the summary's line, the second line and the doc's start: the five sections are in no part of it,
 // so the entry keeps about 5,000 characters more of the doc's own text. The journal's line has firstParagraph: true.
+// Since summarize-due-default-whole-summary (2026-10-13) that is the form summarize puts, and writes with --dry, when no
+// flag names one: it is the form the owner chose for the long docs. --whole-summary puts the five sections as well, the
+// form described above ("Its text is then"), and its journal line has no firstParagraph. Both flags: exit 2, nothing started.
 // put --stale and the docs that wait for a summarizer (sd-4-the-rest-and-the-release-line, design piece 4): before its last
 // line it prints `summaries due: <name>, <name>…` (8 names, then `and N more`) when a long doc is due and `summarize --due`
 // would start an agent for it: not one refused twice at this file, and not one a summarizer is running on. `lock.sh
@@ -410,11 +414,13 @@ if (cmd === "status" && flag("--check-summaries")) {
   // One agent a doc, one after another (design piece 3). --due: the docs whose summary is due and that the journal has
   // not as refused at this file; names: those docs, due or not. --again: also one refused twice at this file.
   // --dry: the summary to <state>/docs/<name>.summary.txt and nothing put. --model (haiku). --usd-max N.
-  // --first-paragraph: the sections the agent wrote are judged and left out of the entry.
+  // The sections the agent wrote are judged and left out of the entry, unless --whole-summary. --first-paragraph is
+  // the form with no flag, and is taken so that the command a release prints says which form it puts.
   const { agentRunner, canary, summarize, wrap } = await import("./summarize-papers.ts");
-  const dry = flag("--dry"), again = flag("--again"), firstOnly = flag("--first-paragraph"), model = opt("--model") || "haiku", usdMax = opt("--usd-max") === undefined ? Infinity : Number(opt("--usd-max"));
+  const dry = flag("--dry"), again = flag("--again"), firstOnly = !flag("--whole-summary"), model = opt("--model") || "haiku", usdMax = opt("--usd-max") === undefined ? Infinity : Number(opt("--usd-max"));
   if (!(usdMax >= 0)) { console.error("--usd-max N: a number of dollars, 0 or more"); process.exit(2); }
-  if (!flag("--due") === !names.length) { console.error("summarize --due | <name>…   [--again] [--dry] [--first-paragraph] [--model M] [--usd-max N]"); process.exit(1); }
+  if (!firstOnly && flag("--first-paragraph")) { console.error("summarize: --first-paragraph and --whole-summary name two forms of one entry; give one, or neither for the first paragraph"); process.exit(2); }
+  if (!flag("--due") === !names.length) { console.error("summarize --due | <name>…   [--again] [--dry] [--first-paragraph | --whole-summary] [--model M] [--usd-max N]"); process.exit(1); }
   if (!stateDocs) throw new Error("no state directory: not in a git checkout and no BRAIN_STATE_DIR");
   mkdirSync(stateDocs, { recursive: true });
   const before = journal(), all = rowsOf(kept(), keptFiles()).filter((r) => r.named);
@@ -484,6 +490,6 @@ if (cmd === "status" && flag("--check-summaries")) {
   }
   end(code || (stopped || unknown.length ? 1 : 0), last());
 } else {
-  console.error("usage: knowledge-docs.ts status [--check] | status --check-summaries [<name>…] [--except name=issue,…] | put --all | --stale | <name>… | --plain <name>… | summarize --due | <name>… [--again] [--dry] [--first-paragraph] [--model M] [--usd-max N]   [--owner] [--limit=SECONDS]");
+  console.error("usage: knowledge-docs.ts status [--check] | status --check-summaries [<name>…] [--except name=issue,…] | put --all | --stale | <name>… | --plain <name>… | summarize --due | <name>… [--again] [--dry] [--first-paragraph | --whole-summary] [--model M] [--usd-max N]   [--owner] [--limit=SECONDS]");
   process.exit(1);
 }

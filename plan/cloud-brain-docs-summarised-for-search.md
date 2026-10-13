@@ -85,7 +85,9 @@ of that issue) after he was shown that the sets measure no gain. The record is
 - **The form is `sd-3b`'s.** The run was `summarize --due --first-paragraph --usd-max 2`, haiku, on the 49 long docs
   of 07:30 CEST (the ten of the pilot among them, which were plain): 48 put, one refused twice and put with `--again`,
   $0.674 with two canaries. The command of the `summaries due` line has `--first-paragraph` too. `summarize --due`
-  with no flag still puts a whole summary, the form that failed R5.
+  with no flag put a whole summary, the form that failed R5, until `summarize-due-default-whole-summary` later that
+  day: since then `summarize` with no flag puts the first paragraph, as with `--first-paragraph`, and
+  `--whole-summary` names the form with the five sections. The commands of piece 3 below are the design's.
 - **The line is made from a line of the tool's own, not from `due` in its last line.** `put --stale` prints
   `summaries due: <names>` before its last line, 8 names and then `and N more`, and `lock.sh` prints it after
   `docs (cb4): …` with the command. `put`'s last line has no `due`: the names would be printed twice at each landing.
