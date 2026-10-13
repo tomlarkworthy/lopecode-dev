@@ -52,13 +52,15 @@ call from tokens and gives none to anyone, and it is undone by a deploy of the s
 - **`issuesLimits.ownerLabels`**, new: `["annotation"]`.
 - **`issueAllowed`**, before the workflow's `label` guard is read: an act of type `label` from a caller who is not `present`, with a name of
   `ownerLabels` in `add` or in `remove`, is refused, `the label annotation is put on and taken off
-  by the owner, present` (403). It stands after the `read` guard, so a caller who may not read the
-  issue is still answered 404.
+  by the owner, present` (403). It stands after the `read` guard: `token:a` on a `security` issue
+  the owner opened is answered 404 `no such issue`, in the new cell.
 - **`test_issues_label_annotation_is_the_owner_present`**, new, and four lines of
   `test_issues_panel_removes_a_label`.
 - The method reference in the seed: the row of `issue.label`, the paragraph "Fixed in the code",
   the sentence on who may label, and the panel's sentence on the `×` of a label.
 - `plan/cloud-brain-issues.md`, the table under "Built": one row.
+- `plan/cloud-brain-record-names-token-not-agent.md`, the row that says any token of the loop can
+  take the label off: a dated clause.
 
 `issue.open` with `labels: ["annotation"]` is not held: a token still opens a new issue with the
 label, which `issue.list?label=annotation` then answers to the page. The rule's second half,
@@ -72,10 +74,14 @@ Each count is from a run after the last change to the seed.
 | command, in the worktree | result |
 |---|---|
 | `cd cloud-brain-dev && bun test.ts brain-x-issues --with <the built module>` | `49 passed, 0 failed, 17 need a browser` |
-| `bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/brain-issues --emit issues_service=…`, Chrome 151.0.7922.34, 05:56 CEST | `"tests":66,"passed":66,"failed":[]` |
-| from the main checkout, `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-issues --shell <the build> --times 20` | `"runs":20,"passed":20,"failed":0,"none":0,"from":["document"],"byChance":[]`, `at` 03:57:33Z |
+| `bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/brain-issues --emit issues_service=…`, Chrome 151.0.7922.34, 06:06 CEST | `"tests":66,"passed":66,"failed":[]` |
+| from the main checkout, `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-issues --shell <the build> --times 20` | `"runs":20,"passed":20,"failed":0,"none":0,"from":["document"],"byChance":[]`, `at` 04:07:53Z |
 | `bun tools/cloud-brain/tab-tests.ts … @tomlarkworthy/brain-feedback` (the module whose Remove sends the call; not changed), on the same build | `"tests":14,"passed":14,"failed":[]` |
-| `tests/tools/suite.sh`, ended 06:00 CEST, after the last edit to the seed and with this record but for this row | `1026 pass`, `0 fail`, `7460 expect() calls`, 105 files, 90.63 s; no line `skipped:` |
+| `tests/tools/suite.sh`, ended 06:09 CEST, after the last edit to the seed and to the two plans; this record was edited after it | `1026 pass`, `0 fail`, `7460 expect() calls`, 105 files, 81.83 s; no line `skipped:` |
+
+The 20 runs are of the build: with the cell wrong in one line of its own (the `moved` of the
+install it makes, before it was mended) the same command gave `"passed":0,"failed":20` and named
+the cell under `everyTime`.
 
 **Without the fix.** The new cell was written first and run on the seed as it stood:
 `48 passed, 1 failed`, the fail `test_issues_label_annotation_is_the_owner_present`, expected
@@ -91,13 +97,15 @@ What the new cell holds, each in the tracker's rig (`issuesRig`):
   `add: ["annotation"]`, and `add: ["api"], remove: ["annotation"]`, each 403 with the message.
 - So is the owner under a delegation, and the owner's session with `x-brain-tab: 0`. A Worker and
   a member are 403.
+- `token:a`'s `remove: ["annotation"]` on `s1`, a `security` issue of the owner's with the label, is
+  404 `no such issue`.
 - `["Annotation"]`, `[" annotation"]`, `"annotation"` and `[["annotation"]]` as `remove` are 400.
-- The seq of the record's last event and the labels of both issues are the same after those calls.
+- The seq of the record's last event and the labels of the three issues are the same after those calls.
 - `token:a` removes `ui` and adds `page` and `annotations` in one call, 200, and removes
   `annotations`, 200.
 - After `fb-n1` is closed, `token:a` is still refused.
 - Under an installed policy whose `label` guard is `true` in every workflow, with a `migrate` of
-  each (`moved: ["t1"]`; the closed note is not moved), a Worker adds `seen` to `t1`, 200, and is
+  each (`moved` is `s1` and `t1`; the closed note is not moved), a Worker adds `seen` to `t1`, 200, and is
   refused `annotation`; so is `token:a`.
 - The owner present removes it from the closed note and adds it to the task, 200 each, and
   `issue.verify?guards=true` answers `ok`.

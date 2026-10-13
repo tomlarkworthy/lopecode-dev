@@ -2428,6 +2428,7 @@ test_issues_label_annotation_is_the_owner_present = {
   // A note of the owner's page (brain-feedback): a feedback issue with the label. And a task without it.
   await rig.owner("open", { id: "fb-n1", title: "A note", kind: "feedback", labels: ["annotation", "ui"] });
   await rig.owner("open", { id: "t1", title: "A task", kind: "task", labels: ["ui"] });
+  await rig.owner("open", { id: "s1", title: "A note on a leak", kind: "security", labels: ["annotation"] });
   const before = seq();
   // A token takes it off no issue, alone or beside a label it may take off, and puts it on none.
   expect(await answer(rig.a("label", { id: "fb-n1", remove: ["annotation"] }))).toEqual([403, why]);
@@ -2438,10 +2439,12 @@ test_issues_label_annotation_is_the_owner_present = {
   expect(await answer(rig.as("owner", "delegation:d1", { "x-brain-holder": "secret:laptop" })("label", { id: "fb-n1", remove: ["annotation"] }))).toEqual([403, why]);
   expect(await answer(rig.as("owner", "session", { "x-brain-tab": "0" })("label", { id: "fb-n1", remove: ["annotation"] }))).toEqual([403, why]);
   expect([(await rig.worker("label", { id: "fb-n1", remove: ["annotation"] })).status, (await rig.member("label", { id: "fb-n1", remove: ["annotation"] })).status]).toEqual([403, 403]);
+  // The read guard comes first, as for every act: a note a token may not read is not there for it.
+  expect(await answer(rig.a("label", { id: "s1", remove: ["annotation"] }))).toEqual([404, "no such issue"]);
   // No other spelling is a label at all: a name is a-z 0-9 -, and add and remove are lists.
   for (const remove of [["Annotation"], [" annotation"], "annotation", [["annotation"]]]) expect((await rig.a("label", { id: "fb-n1", remove })).status).toBe(400);
   // A refusal writes nothing.
-  expect([seq(), labels("fb-n1"), labels("t1")]).toEqual([before, ["annotation", "ui"], ["ui"]]);
+  expect([seq(), labels("fb-n1"), labels("t1"), labels("s1")]).toEqual([before, ["annotation", "ui"], ["ui"], ["annotation"]]);
   // Every other label is the workflow's guard, as before; a name that only starts the same is another label.
   expect((await rig.a("label", { id: "fb-n1", remove: ["ui"], add: ["page", "annotations"] })).status).toBe(200);
   expect((await rig.a("label", { id: "fb-n1", remove: ["annotations"] })).status).toBe(200);
@@ -2451,7 +2454,7 @@ test_issues_label_annotation_is_the_owner_present = {
   // Whatever the policy says: one whose label guard is true for everybody opens every other label and not this one.
   const policy = structuredClone(issuesDefaultPolicy), names = (await rig.owner("policy")).data.policy.names;
   for (const w of Object.values(policy.workflows)) w.label = "true";
-  expect((await rig.owner("install", { key: "labels-open", policy, migrate: Object.fromEntries(Object.entries(names).map(([name, hash]) => [hash, { workflow: name }])) })).data.moved).toEqual(["t1"]);
+  expect((await rig.owner("install", { key: "labels-open", policy, migrate: Object.fromEntries(Object.entries(names).map(([name, hash]) => [hash, { workflow: name }])) })).data.moved.slice().sort()).toEqual(["s1", "t1"]);
   expect((await rig.worker("label", { id: "t1", add: ["seen"] })).status).toBe(200);
   expect(await answer(rig.worker("label", { id: "t1", add: ["annotation"] }))).toEqual([403, why]);
   expect(await answer(rig.a("label", { id: "t1", add: ["annotation"] }))).toEqual([403, why]);
