@@ -45,7 +45,7 @@ md`## Methods
 | \`issue.cost\` | procedure. What one run of an agent on the issue cost, as an event of type \`cost\` (since 2026-10-12; the design is \`plan/cloud-brain-run-cost-is-part-of-the-issue-model.md\`). \`{ key, id, role, round, how, outcome, seconds, context, tools, event, of, agent, session, token, usage, usd, backfilled }\`. Required: \`role\` and \`outcome\`, each a name, \`a-z 0-9 -\`, 30 at most; \`round\`, a whole number, 1 to 1000; \`how\`: \`fresh\`, \`resumed\`, \`light\` (spawned; sent to an agent that was there; run by \`agent.sh\`); \`seconds\` and \`context\` (the size of the run's last request, in tokens), whole numbers, 0 or more. Optional: \`tools\`, a whole number, 0 or more; \`event\` (the submit or the review the run made) and \`of\` (the comment the run was first written as), each the seq of an event before this one; \`agent\`, \`session\` and \`token\`, text of 1 to 100 characters; \`usage\`, all of \`{ input, cacheWrite, cacheRead, output, requests, advisor: { calls, input, output } }\`, whole numbers, and nothing else; \`usd\`, a number, 0 or more: what the process reported of itself; \`backfilled\`, \`true\`. A field that is missing, of another type (\`null\` is one) or not in this list is 400 \`InvalidRequest\` naming it, before the issue is looked for, and nothing is written; an \`event\` or \`of\` past the record's head is 403 \`Refused\`. A run is an issue, a \`role\` and a \`round\`. The issue lists one for each, in the order of their events: \`runs: [{ …the fields sent, seq, at }]\` in \`issue.get\`, \`issue.list\` and \`issue.snapshot\`; an issue with no \`cost\` event has no \`runs\`. A second event for a role and round the issue has takes that run's place, whole, and the service writes \`replaced\`, the seq of the event it replaces, into the new one: the usage of a run written without one, or a corrected number, is the same call again with every field, under another key. Both events stay in the record. The event moves the issue's \`seq\` and leaves its \`updated_at\`. Not checked: that \`event\` or \`of\` is an event of this issue, that \`round\` is the next, that a number is true, that a second event for a run was meant. Guard: the workflow's \`cost\`, and \`label\` where a workflow has none. |
 | \`issue.hold\` | procedure, since 2026-10-12 (\`plan/cloud-brain-bookkeeping-in-the-tracker.md\`, part 2). A wait that is not for another issue is a time in the record. \`{ key, id, until, reason }\`: \`until\` is milliseconds since 1970, a whole number, after the call by this Worker's clock and at most 30 days after it; \`reason\`, required, says what to read when the issue comes back. \`{ key, id, remove: true }\` takes the hold off: 404 when the issue has none, 400 when \`remove\` is not a boolean. An \`until\` that is missing, not a whole number, not after the call or more than 30 days on, and a hold with no \`reason\`, is 400 \`InvalidRequest\` before the issue is looked for. The event is \`held\`, with \`until\` and \`reason\`, or with \`remove: true\`. The issue then has \`hold: { until, reason, seq }\` in \`issue.get\`, \`issue.list\` and \`issue.snapshot\`, \`seq\` the event's. An issue has one hold: a second takes the place of the first. It ends when it is taken off and at the issue's next move, which takes it off the row with no event of its own; a swap leaves it. No guard reads a hold, so it refuses nothing: it is what \`issue.queue\` reads. A closed issue can be given one, and nothing reads it. Guard: the workflow's \`hold\`, and \`label\` where a workflow has none. |
 | \`issue.wait\` | procedure, since 2026-10-12 (\`plan/cloud-brain-tracker-trigger-rules.md\`, part 1). That an actor listens on an issue, for what condition and until when, is an event of the record ("A wait", below). \`{ key, id, when, until, note }\`: \`when\` is one CEL expression over \`issue\`, text of 1 to 500 characters; \`until\` is milliseconds since 1970, a whole number, after the call by this Worker's clock and at most 30 days after it; \`note\`, text of 200 characters at most, is for a reader of the record and may be left out. \`{ key, id, remove: true }\` takes the caller's own wait off: 404 when the caller's actor has none on the issue, 400 when \`remove\` is not a boolean. A \`when\` that is missing, not text, longer or does not parse, an \`until\` that is missing, not a whole number, not after the call or more than 30 days on, and a \`note\` that is longer, is 400 \`InvalidRequest\` before the issue is looked for. The \`when\` is then asked once, of the issue as it stands, with \`issue\` alone in scope: one that answers an error (a name that is not there, \`caller\` and \`event\` among them), or neither true nor false, is 400 \`InvalidRequest\` whose message starts \`when:\`, and nothing is written. That is judged after the guard, so a caller the guard refuses is answered 403 whatever its \`when\`. A wait on an issue that says more than 20 \`after\` links is 400 with the count, whatever its \`when\` reads. The event is \`waits\`, with \`when\`, \`until\` and \`note\`, or with \`remove: true\`. The issue then has \`waits: [{ actor, holder, when, until, note, seq, at }]\` in \`issue.get\`, \`issue.list\` and \`issue.snapshot\`, without the ones past their \`until\`. The event moves the issue's \`seq\` and leaves its \`updated_at\`. No guard reads a wait, so it refuses nothing: it is what \`issue.wakes\` reads. Guard: the workflow's \`wait\`, and \`label\` where a workflow has none. |
-| \`issue.wakes\` | query, since 2026-10-12 (the same plan, part 2). \`?id=\`. \`{ seq, now, due, waiting }\`: the live waits of the caller's actor, as \`issueWakes\` sorts them at \`now\`, this Worker's time ("A wait", below, has the two lists). With \`id\`, that issue's alone: the issue, its parts and the issues it is after are read, and an issue that says more than 20 \`after\` links is 400 \`InvalidRequest\` with the count; an \`id\` that names no issue, or one the caller may not read, answers both lists empty. With none, every issue's: it reads every row of the view. It writes nothing, and it holds no call: it answers at once. |
+| \`issue.wakes\` | query, since 2026-10-12 (the same plan, part 2). \`?id=\`. \`{ seq, now, due, waiting }\`: the live waits of the caller's actor, as \`issueWakes\` sorts them at \`now\`, this Worker's time ("A wait", below, has the two lists). With \`id\`, that issue's alone: the issue, its parts and the issues it is after are read, and an issue that says more than 20 \`after\` links is 400 \`InvalidRequest\` with the count; an \`id\` that names no issue, or one the caller may not read, answers both lists empty. With none, every issue's: it reads every row of the view. It writes nothing. With no \`seconds\` it answers at once. **\`&seconds=N\`** (since 2026-10-13, part 4 of the plan) holds the call: \`N\` is a number from 0 to 25 written in digits, and is sent with an \`id\`; any other \`seconds\`, and one over 0 with no \`id\`, is 400 \`InvalidRequest\`. While the caller has a wait on the issue that is not due, the service waits 2000 ms, reads the head of the record (one row), reads the issue again when the head has moved, and answers at the first due entry, when the caller has no live wait left there, or after \`N\` seconds with \`due: []\`: 13 pauses at most, each followed by one read of the head. A caller with no live wait on the issue, or with one that is due, is answered at once. |
 | \`issue.review\` | procedure. \`{ key, id, verdict, body, refs }\`. \`verdict\`: \`pass\`, \`changes\`, \`block\`. What each does is the policy's: in the default, \`changes\` and \`block\` both let the issue be sent back, and a \`block\` also stops a pass until it is. |
 | \`issue.move\` | procedure. \`{ key, id, to, reason, refs }\`. \`to\` is a state. Approval and revert are moves. A move the service makes itself is under "A move made by the service". |
 | \`issue.swap\` | procedure. \`{ key, id, swap, reason }\`: a swap the issue's workflow lists. \`{ key, id, workflow, state, reason }\`: any other, the owner present. |
@@ -274,7 +274,7 @@ An issue on the feedback workflow at \`open\` that is not a \`promote\`, and tha
 // %%
 md`## A wait
 
-A wait says that an actor listens on an issue: for what condition, and until when. It is an event of the record, written by that actor with \`issue.wait\`, and \`issue.wakes\` answers the caller's waits that are due (both in the table of methods; since 2026-10-12, \`plan/cloud-brain-tracker-trigger-rules.md\`, parts 1 and 2). The service starts no agent, makes no model call and writes no event of its own for a wait: a wait is due when its \`when\` is true at a read, so a waiter learns of it by asking.
+A wait says that an actor listens on an issue: for what condition, and until when. It is an event of the record, written by that actor with \`issue.wait\`, and \`issue.wakes\` answers the caller's waits that are due (both in the table of methods; since 2026-10-12, \`plan/cloud-brain-tracker-trigger-rules.md\`, parts 1 and 2). The service starts no agent, makes no model call and writes no event of its own for a wait: a wait is due when its \`when\` is true at a read, so a waiter learns of it by asking. A call of \`issue.wakes\` with \`seconds\` is held until then, 25 seconds at most (the table of methods).
 
 **What a \`when\` reads.** One CEL expression with \`issue\` alone in scope: neither \`caller\` nor \`event\` is there. \`issue\` is what a guard reads ("A policy", above) and three more, made for this read and read by no guard:
 
@@ -343,7 +343,7 @@ issues_announce = {
   return "announced issues_service";
 }
 // %%
-issuesLimits = ({ rels: ["part-of", "duplicate", "cause", "related", "after"], afterWalk: 50, auto: ["finish"], autoDepth: 20, holdDays: 30, waitDays: 30, when: 500, note: 200, waits: 10, wakeAfter: 20, queue: 200, lateHours: 4, body: 20000, title: 300, reason: 2000, key: 100, refs: 20, labels: 20, ownerLabels: ["annotation"], attachment: 1048576, attachments: 20, policy: 100000, page: 500, list: 100, syncMs: 5000, syncPage: 200, rebuildRounds: 5, verdicts: ["pass", "changes", "block"], lockName: 40, lockWho: 64, lockMin: 5, lockMax: 1800, lockSeconds: 600, lockHistory: 500, hows: ["fresh", "resumed", "light"], role: 30, outcome: 30, rounds: 1000, costText: 100, cost: ["role", "round", "how", "outcome", "seconds", "context", "tools", "event", "of", "agent", "session", "token", "usage", "usd", "backfilled"] })
+issuesLimits = ({ rels: ["part-of", "duplicate", "cause", "related", "after"], afterWalk: 50, auto: ["finish"], autoDepth: 20, holdDays: 30, waitDays: 30, when: 500, note: 200, waits: 10, wakeAfter: 20, wakeSeconds: 25, wakeMs: 2000, queue: 200, lateHours: 4, body: 20000, title: 300, reason: 2000, key: 100, refs: 20, labels: 20, ownerLabels: ["annotation"], attachment: 1048576, attachments: 20, policy: 100000, page: 500, list: 100, syncMs: 5000, syncPage: 200, rebuildRounds: 5, verdicts: ["pass", "changes", "block"], lockName: 40, lockWho: 64, lockMin: 5, lockMax: 1800, lockSeconds: 600, lockHistory: 500, hows: ["fresh", "resumed", "light"], role: 30, outcome: 30, rounds: 1000, costText: 100, cost: ["role", "round", "how", "outcome", "seconds", "context", "tools", "event", "of", "agent", "session", "token", "usage", "usd", "backfilled"] })
 // %%
 // The guards of a Brain that has installed no policy. Written 2026-10-10 from the state table of plan/cloud-brain-issues.md.
 issuesDefaultPolicy = {
@@ -848,6 +848,17 @@ issueLive = (i, now) => {
   if (!i || !i.waits) return i;
   const { waits, ...rest } = i, live = waits.filter((w) => w.until > now);
   return live.length ? { ...rest, waits: live } : rest;
+}
+// %%
+// The pauses of a held call of issue.wakes, in ms, from the `seconds` of its query (the same plan, part 4): one of
+// wakeMs for each whole one in the seconds and one for the rest, so their sum is the seconds and the service reads the
+// head once after each. None for a call with no seconds, or 0. null for what is refused: text that is not a number
+// written in digits, and a number over wakeSeconds.
+issueHeld = (seconds, L = issuesLimits) => {
+  if (seconds === undefined || seconds === "") return [];
+  if (typeof seconds !== "string" || !/^[0-9]{1,4}(\.[0-9]{1,3})?$/.test(seconds) || Number(seconds) > L.wakeSeconds) return null;
+  const ms = Math.round(Number(seconds) * 1000), whole = Math.floor(ms / L.wakeMs);
+  return [...Array(whole).fill(L.wakeMs), ...(ms % L.wakeMs ? [ms % L.wakeMs] : [])];
 }
 // %%
 // The live waits of one caller's actor at the time `now`: { due, waiting }, from the view, with no I/O. issue.wakes
@@ -1606,11 +1617,29 @@ issuesApp = {
   }));
   // issue.wakes: the live waits of this caller's actor, as issueWakes sorts them at this Worker's time. With an id that
   // issue, its parts and what it is after are read; with none the whole view. It writes nothing.
+  // With seconds the call is held (issueHeld): while the caller has a wait there that is not due, a pause, a read of
+  // the head, and the issue read again when the head has moved. The time in the answer is the last read's.
   app.get(NS + "wakes", run(async (c, q) => {
-    const id = q.id == null || q.id === "" ? undefined : String(q.id), view = await load(id === undefined ? [S.all] : [S.near, id, ""]), { by } = who(c), now = Date.now();
-    // An issue the caller may not read is in neither list, and nothing of its links is said.
-    if (id !== undefined && issueAllowed(view, by, { type: "read", id }).allow) await ahead(view, id);
-    return { seq: view.seq, now, ...issueWakes(view, by, now, id) };
+    const id = q.id == null || q.id === "" ? undefined : String(q.id), pauses = issueHeld(q.seconds), { by } = who(c);
+    if (!pauses) throw refuse(400, "InvalidRequest", `seconds: a number from 0 to ${L.wakeSeconds}, in digits`);
+    if (pauses.length && id === undefined) throw refuse(400, "InvalidRequest", "seconds: a call is held with an id, for the waits of one issue");
+    const read = async () => {
+      const view = await load(id === undefined ? [S.all] : [S.near, id, ""]);
+      // An issue the caller may not read is in neither list, and nothing of its links is said.
+      if (id !== undefined && issueAllowed(view, by, { type: "read", id }).allow) await ahead(view, id);
+      return view;
+    };
+    let view = await read();
+    const answer = () => ((now) => ({ seq: view.seq, now, ...issueWakes(view, by, now, id) }))(Date.now());
+    let found = answer();
+    for (const ms of pauses) {
+      if (found.due.length || !found.waiting.length) break;
+      await new Promise((r) => setTimeout(r, ms));
+      const head = (await sql.exec(S.head)).rows[0];
+      if (head && head.seq !== view.seq) view = await read();
+      found = answer();
+    }
+    return found;
   }));
   app.get(NS + "policy", run(async (c, q) => {
     const view = await load([S.near, "", ""]);
@@ -3251,6 +3280,68 @@ test_issues_wakes_answers_the_waits_that_are_due = {
   return `the six conditions of the table, each waiting and then due; a wait written late is due at once; ${waits.length} waits events of ${checked.checked} judged again, none the service's`;
 }
 // %%
+// The same plan, part 4: issue.wakes with `seconds` is a held call. The pauses are issueHeld's, and the calls here are
+// held 0.05 s, one pause: what another caller does in that pause is a hook of the fake, run ahead of the service's
+// read of the head, so no time is measured. `reads` counts the reads of the head a call made.
+test_issues_wakes_with_seconds_is_held_until_a_wait_is_due = {
+  const rig = await issuesRig(), S = issuesSql, L = issuesLimits, until = Date.now() + 3600000;
+  const ok = async (call) => ((r) => (expect([r.status, r.data.message]).toEqual([200, undefined]), r.data))(await call);
+  // The pauses: none with no seconds or 0, wakeMs for each whole one and one for the rest, 13 for the 25 s that is the most.
+  const most = issueHeld(String(L.wakeSeconds));
+  expect([issueHeld(undefined), issueHeld(""), issueHeld("0"), issueHeld("0.05"), issueHeld("2"), issueHeld("5"), most.length, most.reduce((a, b) => a + b, 0), Math.max(...most)]).toEqual([[], [], [], [50], [L.wakeMs], [L.wakeMs, L.wakeMs, 1000], 13, L.wakeSeconds * 1000, L.wakeMs]);
+  const refused = [String(L.wakeSeconds + 1), "25.001", "-1", "x", "1e1", " 5", "5 ", "0x5", "5.", ".5", "NaN", "Infinity", "12345", "1.2345"];
+  expect(refused.map((t) => issueHeld(t)).concat([issueHeld(5), issueHeld(null), issueHeld(["5", "6"])])).toEqual(Array(refused.length + 3).fill(null));
+  // What the fake does ahead of each read of the head: `plan[n]` ahead of the nth one after `watch`, and a count of them.
+  const watch = (plan = {}) => {
+    let n = 0;
+    const each = async () => {
+      n++;
+      if (plan[n]) await plan[n]();
+      rig.db.before.push([S.head, each]);
+    };
+    rig.db.before.push([S.head, each]);
+    return () => (rig.db.before.splice(0), n);
+  };
+  const held = async (as, path, plan) => {
+    const reads = watch(plan), r = await as(path);
+    return { ...r, reads: reads() };
+  };
+  await rig.inReview("c1");
+  const when = 'issue.state != "in-review"', w = await ok(rig.a("wait", { id: "c1", when, until }));
+  const mine = { id: "c1", when, until, seq: w.seq };
+  // Nothing happens in the pause: one read of the head with the issue and one after the pause, and the wait is not due.
+  const quiet = await held(rig.a, "wakes?id=c1&seconds=0.05");
+  expect([quiet.status, quiet.reads, quiet.data.due, quiet.data.waiting, quiet.data.seq]).toEqual([200, 2, [], [mine], w.seq]);
+  // An event that does not make it due, written in the pause: the head has moved, the issue is read again, and the
+  // answer has the new seq and the wait still waiting.
+  let said;
+  const moved = await held(rig.a, "wakes?id=c1&seconds=0.05", { 2: async () => (said = await ok(rig.b("comment", { id: "c1", body: "reading it" }))) });
+  expect([moved.reads, moved.data.due, moved.data.waiting, moved.data.seq]).toEqual([3, [], [mine], said.seq]);
+  // The reviewer's rework in the pause: the call that was waiting answers the due entry, as a call after the move would.
+  let rework;
+  const woke = await held(rig.a, "wakes?id=c1&seconds=0.05", { 2: async () => (await ok(rig.b("review", { id: "c1", verdict: "changes", body: "one thing" })), (rework = await ok(rig.b("move", { id: "c1", to: "in-progress" })))) });
+  expect([woke.status, woke.reads, woke.data.seq, woke.data.waiting]).toEqual([200, 3, rework.seq, []]);
+  expect(woke.data.due).toEqual([{ ...mine, since: rework.event.at, issue: { state: "in-progress", closed: false, last: { move: "rework", at: rework.event.at }, labels: [] } }]);
+  expect((await ok(rig.a("wakes?id=c1"))).due).toEqual(woke.data.due);
+  // Not held: a wait that is due, a caller with no wait on the issue, an id that names none, and no seconds or 0.
+  const once = async (as, path) => ((r) => [r.status, r.reads, r.data.due.length, r.data.waiting.length])(await held(as, path));
+  expect([await once(rig.a, "wakes?id=c1&seconds=0.05"), await once(rig.b, "wakes?id=c1&seconds=0.05"), await once(rig.a, "wakes?id=nope&seconds=0.05")]).toEqual([[200, 1, 1, 0], [200, 1, 0, 0], [200, 1, 0, 0]]);
+  const w2 = await ok(rig.a("wait", { id: "c1", when: "issue.closed", until }));
+  expect([await once(rig.a, "wakes?id=c1"), await once(rig.a, "wakes?id=c1&seconds="), await once(rig.a, "wakes?id=c1&seconds=0"), await once(rig.a, "wakes?seconds=0"), await once(rig.a, "wakes?id=c1&seconds=0.05")]).toEqual([[200, 1, 0, 1], [200, 1, 0, 1], [200, 1, 0, 1], [200, 1, 0, 1], [200, 2, 0, 1]]);
+  // The wait taken off in the pause: the caller has no live wait left there, and both lists are empty.
+  const gone = await held(rig.a, "wakes?id=c1&seconds=0.05", { 2: async () => void (await ok(rig.a("wait", { id: "c1", remove: true }))) });
+  expect([gone.reads, gone.data.due, gone.data.waiting]).toEqual([3, [], []]);
+  // Refused with nothing read: seconds that is no number from 0 to 25 in digits, and a held call with no id.
+  const no = async (path) => ((r) => [r.status, r.data.error, r.data.message, r.reads])(await held(rig.a, path));
+  const range = `seconds: a number from 0 to ${L.wakeSeconds}, in digits`, one = "seconds: a call is held with an id, for the waits of one issue";
+  expect([await no("wakes?id=c1&seconds=" + (L.wakeSeconds + 1)), await no("wakes?id=c1&seconds=-1"), await no("wakes?id=c1&seconds=soon"), await no("wakes?id=c1&seconds=1e1")].map((r) => r.join("|"))).toEqual(Array(4).fill([400, "InvalidRequest", range, 0].join("|")));
+  expect([await no("wakes?seconds=0.05"), await no("wakes?id=&seconds=0.05")]).toEqual([[400, "InvalidRequest", one, 0], [400, "InvalidRequest", one, 0]]);
+  // A held call writes nothing: the events after the first wait are the ones this test sent.
+  expect(rig.db.events.map((e) => JSON.parse(e.event)).filter((e) => e.seq > w.seq).map((e) => [e.type, e.by.caller])).toEqual([["commented", "token:b"], ["reviewed", "token:b"], ["moved", "token:b"], ["waits", "token:a"], ["waits", "token:a"]]);
+  expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: true, guards: true });
+  return [quiet.reads, moved.reads, woke.reads, gone.reads, w2.seq > w.seq];
+}
+// %%
 // The same plan, part 3: one read answers what is next and what waits. An issue for each row of the two tables of
 // "The queue", each brought to its place by calls of the service, and the whole answer of issue.queue held to them:
 // an issue that is in the wrong list, or in both, or in neither when it should be in one, fails the comparison.
@@ -4478,6 +4569,10 @@ test_issues_reference_states_each_value_and_has_no_hole = {
     "not after the call or more than " + L.waitDays + " days on, and a `note` that is longer",
     "A wait on an issue that says more than " + L.wakeAfter + " `after` links is 400 with the count",
     "and an issue that says more than " + L.wakeAfter + " `after` links is 400 `InvalidRequest` with the count",
+    "`N` is a number from 0 to " + L.wakeSeconds + " written in digits",
+    "the service waits " + L.wakeMs + " ms, reads the head of the record (one row)",
+    "after `N` seconds with `due: []`: " + issueHeld(String(L.wakeSeconds)).length + " pauses at most, each followed by one read of the head",
+    "is held until then, " + L.wakeSeconds + " seconds at most",
     "The row keeps the waits of " + L.waits + " actors.",
     "## A wait",
     "| `issue.queue` | query, since 2026-10-12. `?limit=" + L.queue + "`.",
