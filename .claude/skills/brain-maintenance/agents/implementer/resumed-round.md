@@ -33,6 +33,12 @@ What a resumed round does that a first round does not:
   that this round rests on. `rules.md` and this brief are among them when the overseer or the
   owner changed them: read the diff
   (`git -C $W diff <sha> origin/main -- .claude/skills/brain-maintenance`), which is short.
+  That diff begins at your submit, and you read your brief at your start, before it. What the brief
+  and its pages gained since then:
+  `git -C $W log --since=<the at of your start move> --format='%h %s' origin/main -- .claude/skills/brain-maintenance/agents`
+  names each commit, and `git -C $W show <h> -- <the file>` is what one changed in a file you follow
+  (since `fb-batch-role-briefs`, 2026-10-13; `seen-briefs-change-under-a-writer`, comment 4827: a
+  resumed spec writer, "a resumed writer is not told its brief changed").
   `philosophy.md` is in the clone, which the rebase put at the commit `origin/main` records:
   `git -C $W/cloud-brain-dev log --since=<the date of your submit> -- philosophy.md`.
   A file the list does not name is as you read it.

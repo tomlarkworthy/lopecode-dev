@@ -228,7 +228,11 @@ exit 2 or answers 401 it has ended: write nothing, and report it. Your worktree 
 message names in a line `Working directory: <W>`, or with no such line the one you landed from, which
 nobody removed; `$W/tools/cloud-brain/worktree.sh --rebase <tree>` brings it up to `origin/main`. Read
 again what has changed since your submit and the round rests on, from `origin/main` in `$W` after that
-fetch, as "A resumed round" of `agents/implementer.md` says. Then
+fetch, as "A resumed round" of `agents/implementer.md` says. This file is among it, and you read it at your
+start: `git -C $W log --since=<the at of your spec move> --format='%h %s' origin/main -- .claude/skills/brain-maintenance/agents`
+names each commit that changed a brief since, and `git -C $W show <h> -- .claude/skills/brain-maintenance/agents/spec.md`
+is what one changed here (since `fb-batch-role-briefs`, 2026-10-13; the spec writer of `docs-summarised-for-search`,
+round 2, 2026-10-12: "a resumed writer is not told its brief changed (spec.md gained step 7 mid-round)"). Then
 steps 5 to 7, with the next round's key. In your report say that the round was resumed.
 
 Your last message is the report `rules.md` asks for.

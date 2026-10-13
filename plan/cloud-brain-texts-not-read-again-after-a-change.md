@@ -184,6 +184,11 @@ item:
 >   `philosophy.md`), the line and its mend go in your comment under "For the overseer". Say in the
 >   comment what you searched for and how many lines it printed.
 
+(As built, `fb-batch-role-briefs`, 2026-10-13: the command of the brief has `-e` before the name,
+`git grep -n -F -e '<name>' -- …`. As written above it answers `error: unknown option` and exit 129 for a name
+that begins with a dash, and a flag is one of the four things the item names; `seen-ninth-item-grep-refuses-a-flag`,
+the record.)
+
 A writer edits `implementer.md`, `spec.md` and `SKILL.md` for a fact about a tool its change
 altered: `lk-3` did (`fba5d851` changes four briefs) and passed review. The item says so, and says
 no more: a step, a check or a refusal of a brief is still the overseer's.

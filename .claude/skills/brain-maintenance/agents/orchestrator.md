@@ -316,6 +316,14 @@ after review is then of a change that is already deployed and pushed, since a su
 refs; the plan is where the owner stops it. Add `security` and take the `escalate` swap when the body describes a
 way past an access rule; the issue is then the owner's.
 
+What alters who may do what. A change that only
+narrows what a caller may do alters who may do what, and so does a step added to a role's brief that gives the role
+an act it did not have (`philosophy.md`, "In force until the owner changes them"). The label is for what may be
+built, whatever the issue expects of an install: a writer may build the change another way
+(`seen-narrowing-change-not-major`: triaged with no `major` for a policy file the owner would install, then built
+in the tracker's code and deployed with no step of his; `seen-overseer-brief-edit-not-major`: a step added to
+`agents/overseer.md` on an issue filed with no label; both 2026-10-13, text since `fb-batch-role-briefs`).
+
 Add the label `laptop` when the body already says that a Worker changes (a seed of a service, whose landing is
 `brain.ts apply`), or when its check names one of the tokens `loop-library`, `loop-bluesky`, `loop-roles`,
 `loop-deploys`, `loop-papers` or `loop-dashboard`. The loop of the worker machine on Fly.io has no state file: it

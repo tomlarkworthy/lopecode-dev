@@ -29,7 +29,7 @@ const items = () => {
   const end = list.indexOf("\n    Since that day a reviewer holds a change");
   return (end > 0 ? list.slice(0, end) : list).split("\n    - ").slice(1).map(flat);
 };
-const command = () => (flat(brief()).match(/`(git grep -n -F '<name>' -- [^`]+)`/) || [])[1] || "";
+const command = () => (flat(brief()).match(/`(git grep -n -F -e '<name>' -- [^`]+)`/) || [])[1] || "";
 
 test("the ninth item of step 11 is the search, once in the brief", () => {
   expect(count(brief(), OPENING)).toBe(1);
@@ -51,10 +51,10 @@ test("the item says what is searched, what is mended where, and what the comment
   expect(item).toContain("Say in the comment what you searched for and how many lines it printed.");
 });
 
-test("the command of the item runs as written, and each of its four paths names a tracked file", () => {
+test("the command of the item runs as written, with a flag as the name too, and each of its four paths names a tracked file", () => {
   const cmd = command();
   expect(cmd).toBe(
-    "git grep -n -F '<name>' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'",
+    "git grep -n -F -e '<name>' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'",
   );
   const paths = cmd.slice(cmd.indexOf(" -- ") + 4).split(" ").map((p) => p.replace(/'/g, ""));
   expect(paths.length).toBe(4);
@@ -74,6 +74,14 @@ test("the command of the item runs as written, and each of its four paths names 
   const none = spawnSync("sh", ["-c", cmd.replace("<name>", "zq-no-such-name-" + "7f3a")], { cwd: root, encoding: "utf8" });
   expect(none.status).toBe(1);
   expect(none.stdout).toBe("");
+  // A flag is one of the four things the item names. With no `-e` before it git takes the name for an option of its
+  // own: exit 129 and no line (seen-ninth-item-grep-refuses-a-flag; `-e` since fb-batch-role-briefs, 2026-10-13).
+  const flag = spawnSync("sh", ["-c", cmd.replace("<name>", "--owner")], { cwd: root, encoding: "utf8" });
+  expect(flag.status).toBe(0);
+  expect(flag.stdout.trim().split("\n").length).toBeGreaterThan(1);
+  expect(flag.stdout.split("\n").filter(Boolean).every((l) => l.includes("--owner"))).toBe(true);
+  const bare = spawnSync("sh", ["-c", cmd.replace("-e '<name>'", "'--owner'")], { cwd: root, encoding: "utf8" });
+  expect([bare.status, bare.stdout]).toEqual([129, ""]);
 });
 
 test("the record has the two texts for the overseer: the line of \"A spec\", and the reviewer's reach as the owner's answer A", () => {

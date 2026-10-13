@@ -25,7 +25,7 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
     - A comment or a header you added reads in order where it stands.
     - Each ref of the submit is a commit that is pushed.
     - What you changed is spoken of elsewhere. For each command, method, flag or step whose
-      behaviour you changed, `git grep -n -F '<name>' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'`,
+      behaviour you changed, `git grep -n -F -e '<name>' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'`,
       and read the lines in files you did not touch. One your change made untrue is mended in this
       landing. In the spec of your task, when the sentence is a choice the owner approved, it stays
       and gains "(As built, `<id>`, <date>: …; the record.)". In a file that is not yours (the

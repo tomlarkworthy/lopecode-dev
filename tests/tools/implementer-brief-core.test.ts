@@ -98,7 +98,7 @@ test("the brief has the thirteen steps in order, and the parts a writer with no 
     "$W/tools/cloud-brain/land.sh <token> <id> --reason @<scratchpad>/<token>-reason.txt --comment @<scratchpad>/<token>-comment.md --test",
     "Bash `timeout` at 600000",
     "The test you added fails without the fix, and you ran it without the fix to see",
-    "git grep -n -F '<name>' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'",
+    "git grep -n -F -e '<name>' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'",
     "$W/tools/cloud-brain/issue-wait.sh <token> <id> <seq of your submit>",
     "up to 5 runs in all",
   ]) expect(f).toContain(s);

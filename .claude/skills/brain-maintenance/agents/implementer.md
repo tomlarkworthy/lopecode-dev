@@ -9,8 +9,7 @@ characters at most (`tests/tools/implementer-brief-core.test.ts`). What one kind
 `.claude/skills/brain-maintenance/agents/implementer/`: the brief as it stood that day, 87,858 bytes, cut
 into eleven pages with no line left out ("The pages", below). Read a page when its row says so, whole and
 once. A rule of this file has its cases, its dates and its reasons on its page. A change with no deploy (a
-doc, a local tool, a test under `tests/`) is meant to be written from this file alone; no writer had done
-so when this was written.
+doc, a local tool, a test under `tests/`) is meant to be written from this file alone.
 
 ## Your token
 
@@ -93,6 +92,8 @@ that path, `<tree>` what follows `bm-`, its branch `bm/<tree>`, and `<root>` the
    - it needs a new policy, a new secret, a new permission or a new Worker. A token an approved spec names
      is the orchestrator's to make: say in a comment and your report that it is not kept, with no label.
 
+   A design that changes who may do what, on an issue with no `major`: the page `asking-and-waiting`.
+
    A seed whose deploy is the owner's is landed with no deploy: read the page `start` first.
 4. **Claim it.** `ia move '{"key":"impl/<id>/start","id":"<id>","to":"in-progress","reason":"…"}'`. Only the
    token of an issue's last `start` can submit it. An issue already `in-progress`: read `by` of its last
@@ -107,7 +108,7 @@ that path, `<tree>` what follows `bm-`, its branch `bm/<tree>`, and `<root>` the
    - **A local tool or a doc**: the test is a file under `tests/` that `bun test` or `node --test` runs. A
      doc alone has one too, which reads the doc and fails before the edit. One file is run
      `cd $W && bun test --timeout=30000 ./tests/tools/<file>`, with the `./` and the timeout. The whole
-     suite is `$W/tests/tools/suite.sh` (about 95 s on 2026-10-12: give the Bash call a `timeout` of 300000),
+     suite is `$W/tests/tools/suite.sh` (about 95 s: a Bash `timeout` of 300000),
      run after your last edit; its count goes in your comment with the command. A fail there is looked at,
      not waved through, and a line `skipped: <file>: no <path>` goes in the comment. The suite writes
      `tests/tools/timings.json`: `git -C $W checkout -- tests/tools/timings.json` before the landing.
@@ -155,7 +156,7 @@ that path, `<tree>` what follows `bm-`, its branch `bm/<tree>`, and `<root>` the
     `landing`, read before you take a lock. If you stop while you hold a lock, release it first and say so.
     **The worktree stays**; leave it with nothing unlanded: the line of `$W/tools/cloud-brain/worktree.sh --list`
     that begins `<tree> ` reads `clean` and `ahead=0`.
-11. **Before the submit, read your change as the reviewer will.** Each of these is a minute now and a round later:
+11. **Before the submit, read your change as the reviewer will.**
     - The record exists and has what changed, the test count and what was not tried.
     - Every count in the reason, the comment and the record is one a command of yours printed; the suite's
       is from after your last edit; writing it in the record is no such edit.
@@ -166,7 +167,7 @@ that path, `<tree>` what follows `bm-`, its branch `bm/<tree>`, and `<root>` the
       value next to the one that works, and the caller that should be refused.
     - A comment or a header you added reads in order where it stands.
     - What you changed is spoken of elsewhere. For each command, method, flag or step whose behaviour you
-      changed, `git grep -n -F '<name>' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'`,
+      changed, `git grep -n -F -e '<name>' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'`,
       and read the lines in files you did not touch. One your change made untrue is mended in this landing.
       In a file that is not yours (the reviewer's brief on the Brain, a seed whose Worker you do not deploy,
       `rules.md`, `philosophy.md`) the line and its mend go in your comment under "For the overseer". Say in
@@ -194,7 +195,7 @@ that path, `<tree>` what follows `bm-`, its branch `bm/<tree>`, and `<root>` the
 
 ## The pages
 
-Each is a file of `.claude/skills/brain-maintenance/agents/implementer/`, in the order the brief had them.
+Each is a file of `.claude/skills/brain-maintenance/agents/implementer/`.
 Other texts that name a step or a section of `agents/implementer.md` by its number or its title mean the
 page of this table.
 
@@ -207,7 +208,7 @@ page of this table.
 | `submit-and-wait.md` | Steps 11 to 13: the check on cb4, the comment and the submit by hand, each answer of `issue-wait.sh` | The change is deployed; a write of step 12 is yours to make; the wait answers what this file has no line for |
 | `resumed-round.md` | "A resumed round" | A review sent your change back |
 | `post-mortem.md` | "A post mortem": the trace, the file, the next actions, the four questions | The issue's `labels` have `post-mortem` |
-| `asking-and-waiting.md` | "When you need the orchestrating session", "Before a wait" | You need a go-ahead or a token of the session that spawned you; you started something billed and will wait |
+| `asking-and-waiting.md` | "When you need the orchestrating session", "A design that changes who may do what", "Before a wait" | You need a go-ahead or a token of the session that spawned you; you started something billed and will wait |
 | `quick-win.md` | "A quick win", "If you see something, say something" | You see a defect that is not your issue and know its fix; your work stops and cannot be submitted |
 | `deploy-put-back.md` | "When a deploy is put back on a test" | Your issue is `fix-tests-WORKER-HASH8`, or your deploy was put back |
 | `tracker-calls.md` | "The tracker's write calls", "What a reviewer will check" | A write is refused; the change is a doc alone, or an act on cb4 that ends with its record |

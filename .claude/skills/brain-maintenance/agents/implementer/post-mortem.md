@@ -153,7 +153,8 @@ asked to pick between them.
   the guard and is written in the row, and it is weighed as "None" is weighed, against a second case.
   One cell names one kind; a test that holds a sentence of a brief is `text`, since the sentence is what the
   agent meets. The form test holds the column and the word, and that a `text` cell goes on; that the why is true
-  is the reviewer's to read.
+  is the reviewer's to read. Since `fb-batch-role-briefs` (2026-10-13) it also fails a cell with a second kind
+  joined to the first ("guard and text") and a table of more than 3 actions.
 - **When the trace reached no cause, the action is `observability`** in the place where it stopped: what the next
   case will have logged, kept or counted that this one did not, said so that a second trace gets past that step.
   "None" is then no answer, and neither is a guard against a cause that was guessed. It counts among the 3 (the

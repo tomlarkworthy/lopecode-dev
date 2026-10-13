@@ -19,6 +19,11 @@
 //     goes on with why none of the first four can hold the cause (issue post-mortem-actions-prefer-guards, 2026-10-12:
 //     the owner, "generally fixes are better as guards"). Not asked of the three files written before that day's
 //     change, BEFORE_HELD_BY. Not held: that the kind named is the kind the action is, and that the why is true.
+//   - a `Held by` cell names one kind: a second kind joined to the first by `and`, `or`, `,`, `/`, `+` or `&` fails
+//     ("guard and text"). A kind's word later in the cell does not ("text: … so no guard reads it").
+//   - the first table under `## Next actions` has 3 actions at most, in every file, the three of BEFORE_HELD_BY too
+//     (issue fb-batch-role-briefs, 2026-10-13; `seen-pm-brief-three-is-his-word`: both passed until then). Not held:
+//     the limit over a file's rounds, which is of the issues opened and not of the rows.
 // Not held: the line under the title (the first has four lines there), what a part says, and that an issue of the name exists.
 import { test, expect } from "bun:test";
 import { readdirSync, readFileSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -31,12 +36,12 @@ const PARTS = ["What happened", "The trace", "The root cause", "What is not know
 const KINDS = ["guard", "workflow", "refusal", "test", "observability", "text"];
 // Written under the brief as it was before `Held by`: two landed, the third was in progress (the body of the issue).
 const BEFORE_HELD_BY = ["pm-second-summarizer-role.md", "pm-approver-leaves-everything.md", "pm-agent-request-not-seen-fly-idle.md"];
-const LIMIT = 16000, NAME = /^pm-[a-z0-9]+(-[a-z0-9]+)*\.md$/, ID_MAX = 40;
+const LIMIT = 16000, NAME = /^pm-[a-z0-9]+(-[a-z0-9]+)*\.md$/, ID_MAX = 40, ACTIONS_MAX = 3;
 
 // What the first table under `## Next actions` lacks of the column `Held by`; with no table, the word "None".
 const cells = (l: string) => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
-const heldBy = (lines: string[]): string[] => {
-  const out: string[] = [];
+// The text under `## Next actions`, and its first table: the lines that start with `|`, header and rule first.
+const nextActions = (lines: string[]): { body: string[]; table: string[] } | null => {
   let from = -1, to = lines.length, fence = false;
   for (const [i, l] of lines.entries()) {
     if (/^(```|~~~)/.test(l)) fence = !fence;
@@ -44,13 +49,22 @@ const heldBy = (lines: string[]): string[] => {
     if (from >= 0) { to = i; break; }
     if (/^## Next actions(?![A-Za-z0-9])/.test(l)) from = i;
   }
-  if (from < 0) return out;
+  if (from < 0) return null;
   const body = lines.slice(from + 1, to);
   const first = body.findIndex((l) => l.startsWith("|"));
-  if (first < 0) return /\bNone\b/.test(body.join("\n")) ? out : ['`## Next actions` has no table of actions and no "None"'];
+  if (first < 0) return { body, table: [] };
   let end = first;
   while (end < body.length && body[end].startsWith("|")) end++;
-  const table = body.slice(first, end), col = cells(table[0]).indexOf("Held by");
+  return { body, table: body.slice(first, end) };
+};
+// A second kind joined to the first: "guard and text", "`guard`, `test`", "guard/test".
+const SECOND = new RegExp(`^\\s*(?:and|or|[,/+&])\\s*(?:${KINDS.join("|")})(?![A-Za-z0-9-])`);
+const heldBy = (lines: string[]): string[] => {
+  const out: string[] = [];
+  const next = nextActions(lines);
+  if (!next) return out;
+  if (!next.table.length) return /\bNone\b/.test(next.body.join("\n")) ? out : ['`## Next actions` has no table of actions and no "None"'];
+  const table = next.table, col = cells(table[0]).indexOf("Held by");
   if (col < 0) return ["the table of `## Next actions` has no column `Held by`"];
   const rows = table.slice(2);
   if (!rows.length) out.push("the table of `## Next actions` has no action");
@@ -58,9 +72,15 @@ const heldBy = (lines: string[]): string[] => {
     const c = cells(r), action = c[0], held = (c[col] ?? "").replace(/`/g, "");
     const kind = KINDS.find((k) => held === k || (held.startsWith(k) && !/[A-Za-z0-9-]/.test(held[k.length])));
     if (!kind) out.push(`${action}: \`Held by\` starts with none of ${KINDS.join(", ")}`);
+    else if (SECOND.test(held.slice(kind.length))) out.push(`${action}: \`Held by\` names more than one kind`);
     else if (kind === "text" && !/[A-Za-z0-9]/.test(held.slice(kind.length))) out.push(`${action}: \`Held by\` is text and does not say why no guard, workflow, refusal or test can hold the cause`);
   }
   return out;
+};
+// The rows of that table over the 3 the brief allows.
+const tooMany = (lines: string[]): string[] => {
+  const n = Math.max(0, (nextActions(lines)?.table.length ?? 0) - 2);
+  return n > ACTIONS_MAX ? [`the table of \`## Next actions\` has ${n} actions, over ${ACTIONS_MAX}`] : [];
 };
 
 const problems = (name: string, text: string): string[] => {
@@ -90,6 +110,7 @@ const problems = (name: string, text: string): string[] => {
   for (let i = 1; i < found.length; i++) if (found[i] < found[i - 1]) out.push(`\`## ${PARTS[found[i]]}\` stands after \`## ${PARTS[found[i - 1]]}\``);
   for (const [i, h] of heads.entries()) if (at[i] >= 0 && !h.body) out.push(`nothing under \`## ${h.text}\``);
   if (!BEFORE_HELD_BY.includes(name)) out.push(...heldBy(lines));
+  out.push(...tooMany(lines));
   return out;
 };
 
@@ -181,4 +202,22 @@ test("the three files written before `Held by` are not asked for it, by name, an
   for (const name of BEFORE_HELD_BY) expect(problems(name, old)).toEqual([]);
   expect(BEFORE_HELD_BY.length).toBe(3);
   expect(problems("pm-a-later-one.md", old)).toEqual(["the table of `## Next actions` has no column `Held by`"]);
+});
+
+test("a `Held by` cell that names two kinds fails, and a kind's word later in a cell does not", () => {
+  const two = ["`an-action`: `Held by` names more than one kind"];
+  for (const cell of ["guard and text", "`guard` and `text`: a sentence of the brief beside it", "guard, test", "refusal/test", "test + text", "workflow & guard", "guard or refusal", "text and guard: no guard reads it"])
+    expect([cell, problems("pm-x.md", good({ actions: actions(cell) }))]).toEqual([cell, two]);
+  for (const cell of ["text: nothing of the record has what a spec adds, so no guard reads it", "`observability`, a line logged at the take", "guard: `submit` reads `issue.children.open`, and a test holds the guard", "test, in the suite", "refusal and its exit", "guard-and-text"])
+    expect([cell, problems("pm-x.md", good({ actions: actions(cell) })).filter((p) => p.includes("more than one"))]).toEqual([cell, []]);
+});
+
+test("a table of four actions fails, in a file written before `Held by` too, and three pass", () => {
+  expect(problems("pm-x.md", good({ actions: actions("guard", "test", "refusal") }))).toEqual([]);
+  expect(problems("pm-x.md", good({ actions: actions("guard", "test", "refusal", "observability") }))).toEqual(["the table of `## Next actions` has 4 actions, over 3"]);
+  const old = (n: number) => good({ actions: ["| Issue | Kind | What changes |", "|---|---|---|", ...Array.from({ length: n }, () => "| `an-action` | task | What. |"), "", ""].join("\n") });
+  expect(problems(BEFORE_HELD_BY[0], old(3))).toEqual([]);
+  expect(problems(BEFORE_HELD_BY[0], old(4))).toEqual(["the table of `## Next actions` has 4 actions, over 3"]);
+  // a second table under the heading, what is not filed, is not counted
+  expect(problems("pm-x.md", good({ actions: actions("guard", "test", "refusal") + "Not filed:\n\n| What | Why |\n|---|---|\n| a | b |\n| c | d |\n\n" }))).toEqual([]);
 });

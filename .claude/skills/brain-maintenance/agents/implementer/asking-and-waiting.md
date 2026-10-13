@@ -1,5 +1,5 @@
 <!-- A page of `agents/implementer.md`: an ask of the orchestrating session, and what is stopped before a wait.
-Read it when you need something of the session that spawned you, or you started something billed (a Fly machine, a browser or a container of the cluster) and are about to wait.
+Read it when you need something of the session that spawned you, or you started something billed (a Fly machine, a browser or a container of the cluster) and are about to wait, or your design changes who may do what on an issue with no `major`.
 Cut from the brief 2026-10-13 (`writer-brief-and-tool-output-smaller`), as it stood. "Above" and "below" in it are of the
 brief before the cut: the table "The pages" of `agents/implementer.md` has the page of each step and section. -->
 ## When you need the orchestrating session
@@ -55,6 +55,26 @@ not measured. (The tool, since `wait-says-what-runs-and-until-when`, 2026-10-12:
 two calls of `ia`, and the first would have been refused for its time.) Seen on cb4, 2026-10-12 23:12 CEST: a writer's token put the label on its own
 issue and took it off (events 5125 and 5126), `list?label=asks-orchestrator` listed the issue between
 the two, and the watch's filter printed 5125 and not 5126. First ask made this way: not yet.
+
+## A design that changes who may do what, on an issue with no `major`
+
+Since `fb-batch-role-briefs` (2026-10-13). The label `major` is put on at triage, from what the issue
+says, and you may build the change another way than the issue expects. Your design changes who may do
+what when a caller, a token or a role may do what it could not before, or may no longer do what it
+could: a change that only narrows is one too (`philosophy.md`, "In force until the owner changes
+them"), and so is a step added to a role's brief that gives the role an act it did not have. When it
+does and the issue's `labels` have no `major`, stop before the deploy, or before the landing when
+there is no deploy. Commit in `$W` what stands, comment on the issue with what the design changes and
+for whom, and that the label is not on, and ask as this page has it: end the run with the ask as the
+first line of your report, or `issue-ask.sh` when the run cannot end. The label is triage's to put on
+and the owner alone takes it off (`rules.md`, Never): you do not add it, and you do not land past it.
+
+Two cases, both 2026-10-13, each landed with no step of the owner's. `label-guard-token-removes-annotation`
+was triaged with no `major` for a policy file he would install, and its writer built a refusal in the
+tracker's code and deployed it (`seen-narrowing-change-not-major`). The writer of
+`kept-brief-copy-behind-holders-four` added a step to `agents/overseer.md` that gives the overseer a
+commit of its own (`seen-overseer-brief-edit-not-major`). No writer had stopped this way when this was
+written; say in your report what of it was wrong.
 
 ## Before a wait
 
