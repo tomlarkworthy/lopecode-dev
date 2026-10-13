@@ -546,6 +546,8 @@ the six items or adds to them. The header of `loop.ts` is the reference.
 
 - `step --dry` writes neither `steps.jsonl` nor `status.md`: the status is printed after the line.
   The R7 check reads the printed status, and the file after a step that is not dry.
+  A dry step does not name an act that reads what another act of the step would have written: for
+  a `running` run whose process is gone it names `stopped` and not the `back` after it.
 - The tests are `tests/tools/loop-step.test.ts`, a file of their own beside `loop.test.ts`.
 - The first read is `queue?limit=1`, before health: a token cb4 refuses ends the step with `error`
   in its line and is not taken for a cluster that is not healthy.

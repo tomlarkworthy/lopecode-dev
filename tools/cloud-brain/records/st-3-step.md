@@ -47,8 +47,8 @@ What that run shows of a day beside the session's loop, which is `st-6`'s to rea
 - The session's agents are `Agent` calls with no `running` event, so the step named a reviewer for
   4 issues the session may have had a reviewer on. A `review` entry has no test of an agent the
   program did not start.
-- `appr-tr-4` is a view whose name is not `appr-` and an id of the tracker (`get?id=tr-4` answers
-  no issue; an issue `tr-4-held-read` was at `awaiting-approval`). The step read it as a view of no
+- `appr-tr-4` is a view whose name is not `appr-` and an id of the tracker (`get?id=tr-4` answered
+  404, `no such issue`, at 09:29 CEST; an issue `tr-4-held-read` was at `awaiting-approval`). The step read it as a view of no
   running approver and named its removal. A step that is not dry would have removed it.
 
 Where the 47.4 s went, each command run alone after the step, timed around the call:
@@ -89,6 +89,11 @@ Each is in the spec's part 3 now, under "As built". The ones a choice was made i
 - **Not healthy** follows `SKILL.md` step 1 to the letter: a `brain-x-*` Worker that `state` shows
   at another hash than `seen.json` of `origin/main`. A deploy that is applied and not yet landed
   reads so. Not seen: no deploy was under way in the one run on cb4.
+- **A dry step names less than a step does, where one act reads what another wrote.** A `running`
+  run whose process is gone is named `stopped`, and the `back` of its issue is not named: that row
+  reads the outcome the step would have written, and a dry step writes none. The same for a run of
+  `runs/` that is to be `ended`. The test "a `running` run of this machine…" has both lists. `st-6`
+  compares what dry steps named with what the session did, and will not find such a `back` there.
 - **A step for an event**, which leaves out the pulls, `redistil`, `state` and the removals, is part
   4 of the spec and `st-5`. `step` has the whole step alone.
 
@@ -97,7 +102,9 @@ Each is in the spec's part 3 now, under "As built". The ones a choice was made i
 `cd $W && bun test --timeout=30000 ./tests/tools/loop-step.test.ts`: 23 pass, 0 fail, 177 expect()
 calls, 72.2 s, at 09:17 CEST after the last change to the tool and to the file.
 `$W/tests/tools/suite.sh`, 09:22:10 to 09:24:41 CEST, after that: 1119 pass, 0 fail, 113 files,
-144.5 s. `uptime`'s first number before it was 8.99.
+144.5 s; `uptime`'s first number before it was 8.99. And once more after the rebase on `origin/main`
+that brought in 28 files, none of them `loop.ts` or a test of it, ended 09:32:02 CEST: 1133 pass,
+0 fail, 114 files, 114.6 s.
 
 The tracker is a stand-in served by the test file and called through the real `issue-as.sh`. Its
 queue is what a test puts there: it does not make `queue` from the issues. `worktree.sh`,
