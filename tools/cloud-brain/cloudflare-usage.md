@@ -1,7 +1,7 @@
 # What Cloudflare bills the account, read with `usage.account`
 
 Task 3 of `plan/cloud-brain-cloudflare-usage-read.md` (issue `cu-3-figures-and-the-price`). Read on 2026-10-13 between
-05:10 and 05:13 UTC from cb4 with the token `loop-usage`, by the writer of that issue. Two answers are kept whole beside
+05:10 and 05:12 UTC from cb4 with the token `loop-usage`, by the writer of that issue. Two answers are kept whole beside
 this file, in `tools/cloud-brain/cloudflare-usage/`, and every table here is printed from one of them by
 
 ```
