@@ -1,6 +1,6 @@
 md`# brain-dashboard
 
-A Cloud Brain recipe: metrics read from the lines this Brain's Workers already log. A metric is a definition that names a Worker, the \`at\` of its lines, a numeric field to add up (or none: the lines are counted) and the fields a query may group or filter by. Nothing is added to the Worker that writes the lines. The metrics of the Brain's own Workers are a value of this module; a member's are rows of this service. A dashboard is data: a name, a title and a list of panels, each naming a metric and how it is drawn. The select and the panels under this text draw one dashboard for the owner; the methods are under them. Design: \`plan/cloud-brain-dashboard-service.md\`.`
+A Cloud Brain recipe: metrics read from the lines this Brain's Workers already log. A metric is a definition that names a Worker, the \`at\` of its lines, a numeric field to add up (or none: the lines are counted) and the fields a query may group or filter by. Nothing is added to the Worker that writes the lines. The metrics of the Brain's own Workers are a value of this module; a member's are rows of this service. Since 2026-10-13 the service also has a \`tail\` function that writes a point to Cloudflare Analytics Engine for each such line, and a setting \`engine\` that names the metrics answered from there (The metrics store, below; in the seed, on no Brain when written). A dashboard is data: a name, a title and a list of panels, each naming a metric and how it is drawn. The select and the panels under this text draw one dashboard for the owner; the methods are under them. Design: \`plan/cloud-brain-dashboard-service.md\`.`
 // %%
 // navigate and not location.hash: a forked page (blob:) drops an assigned hash. The layout reads the same hash and
 // keeps a pair it does not know.
@@ -29,7 +29,7 @@ md`## Methods
 | Method | Answers |
 |---|---|
 | \`GET metric.list\` | \`{ metrics }\`: the definitions the caller may name, no data |
-| \`GET metric.query?metric=NAME&since=MS&until=MS&by=dim,dim&DIM=value\` | \`{ metric, since, until, step, groups, sampled, series, cost }\`: one Cloudflare telemetry query (\`POST /accounts/ACCOUNT/workers/observability/telemetry/query\`, \`view: "calculations"\`), with one more for each day of a span that Cloudflare answered from a sample (A query), or the answer kept from those (What a query costs) |
+| \`GET metric.query?metric=NAME&since=MS&until=MS&by=dim,dim&DIM=value\` | \`{ metric, since, until, step, groups, sampled, series, cost }\`: one Cloudflare telemetry query (\`POST /accounts/ACCOUNT/workers/observability/telemetry/query\`, \`view: "calculations"\`), with one more for each day of a span that Cloudflare answered from a sample (A query), or the answer kept from those (What a query costs). For a metric the setting \`engine\` names, the same fields and \`store: "engine"\`, from one SQL query of Analytics Engine (The metrics store) |
 | \`POST metric.put\` | a member's own. Body \`{ name, worker, at, value, dims }\`; answers \`{ metric }\`, the definition as kept. A name that is kept is written over |
 | \`POST metric.delete\` | a member's own. Body \`{ name }\`; answers \`{ deleted }\`, or 404 for a name that is not kept |
 | \`GET dashboard.list\` | \`{ dashboards }\`: \`{ name, title }\` of each dashboard the caller may read, no panels |
@@ -109,6 +109,35 @@ An answer is kept in the memory of the instance of the Worker that made it, for 
 | 7 days | 5949 to 8302, and 1097 once | 6.18 to 8.56 s, and 1.30 s once | 10074000 to 10079000 | 7, and 1 once |
 
 Each 7-day answer was made from a sample and was one query, as the service then sent (A query); the one of 1097 ms is the one that summed to 100. The last ask of each span was then asked five more times: 25 answers from the memory, the whole call 0.14 to 0.26 s. The deployer's lines \`at: "deploy.…"\` of those 7 days were 1466, 173 of them \`deploy.confirmed\`; the time over a Worker that writes more was not measured, and \`core.calls\` is not read by a token.
+
+## The metrics store
+
+Written 2026-10-13: stage 2 of \`plan/cloud-brain-dashboard-service.md\` ("Stage 2, his ingestion"). It is in the seed and in the tests of this module. When this was written it ran on no Brain, and this service had written no point to Cloudflare and read none. With the setting \`engine\` unset, \`metric.query\` is answered from the logs as above and nothing of this section is asked of Cloudflare.
+
+**The tail.** The service has a \`tail\` function. The deployer names this Worker in \`tail_consumers\` of every other Worker it uploads while the dashboard's row says \`tail\` (brain-deployer, \`tailConsumers\`), and Cloudflare then calls the function with the log lines of each of their invocations. The Worker of an event is read from its script name (\`tailWorker\`): the base name alone is \`brain\`, \`BASE-core\` is \`brain-core\`, \`BASE-x-NAME\` and \`BASE-m-ID-NAME\` the same way, and the deployer's script, read from the address the deployer binds as \`deployer\`, is \`brain-deployer\`. A line counts when its first message is an object, or text that parses as one, and its \`at\` is that of a definition over that Worker: one of the table above, or a member's kept one over a Worker of that member. A member's definitions are read from the rows only for a call that holds an event of a member's Worker, and are then kept in the instance's memory for 60 s; a \`metric.put\` or \`metric.delete\` answered by the same instance drops the copy. For each line that counts, one point is written to the Brain's dataset with the \`analytics\` cell (the binding \`METRICS\`; the dataset is \`BASE_metrics\`, \`cb4_metrics\` for cb4):
+
+\`\`\`js
+// a line of cb4-core: { at: "call", worker: "brain-x-inbox", method: "inbox.poll", status: 200, ms: 41, … }
+{ index: "core.calls/brain-x-inbox/inbox.poll/200",             // the name and each dimension's value, joined by "/", cut to 96 bytes
+  blobs: ["core.calls", "brain-x-inbox", "inbox.poll", "200"],  // the name, then the dimensions as text in the definition's order: "" for a field the line lacks, 256 characters at most
+  doubles: [1, 41, 41] }                                        // 1, and the value twice: one is summed and one is the max. 0 for a counted metric and for a value that is no number
+\`\`\`
+
+The index holds every dimension because Cloudflare samples at the write, index by index. Measured 2026-10-13 against Analytics Engine, outside this module: with the name alone as the index, a count by a dimension was wrong at every rate tried; with the name and every dimension's value, the count of every breakdown was exact and the sum of the value was within 3%. So, of an answer from this store, \`n\` is exact for what the index holds, and \`sum\` is an estimate, within about 3% under load. A point was readable 35 to 70 s after its line. Two values of a dimension that differ only after the 96th byte of the index are sampled as one, and so are two lists of values that join to one text (\`a/b\`, \`c\` and \`a\`, \`b/c\`).
+
+Cloudflare takes 250 points from one invocation. A call with more lines that count has its points added up by index first (\`n\` and the sum summed, the max the highest) and the first 250 written; points of one index are written with the dimensions of the first of them, so two lists of values with one index (above) are then counted as that first one; when indexes are left over, one line says how many, \`{ at: "tail.dropped", points, dropped, lines }\`. The time of a point is the time of the write, not of the line. The function does not throw: a failure is one line, \`{ at: "tail.failed", error }\`, and the wrapper catches what is left (\`tail.throw\`).
+
+**The setting \`engine\`** is a list of metric names, or \`"*"\` for every metric, read as \`config.engine ?? []\`: \`config.set { worker: "brain-x-dashboard", key: "engine", value: ["core.calls"] }\` (the owner, no deploy; not run on a Brain). A metric it names is answered with one SQL query of the dataset, \`POST /accounts/ACCOUNT/analytics_engine/sql\`, which the service writes from the same ask (\`engineSql\`):
+
+\`\`\`
+GET metric.query?metric=core.calls&by=worker,status&method=inbox.poll&since=1791676800000&until=1791680400000
+
+SELECT intDiv(toUInt32(timestamp), 60) * 60 AS t, blob2, blob4, SUM(_sample_interval * double1) AS n, SUM(_sample_interval * double2) AS sum, MAX(double3) AS max FROM cb4_metrics WHERE blob1 = 'core.calls' AND timestamp >= toDateTime(1791676800) AND timestamp < toDateTime(1791680400) AND blob3 = 'inbox.poll' GROUP BY t, blob2, blob4 FORMAT JSON
+\`\`\`
+
+No text of the caller is in it but the value of a filter. Such a value is 200 at most of letters, digits, spaces and \`_ . : @ / + -\`, or the call is 400 and Cloudflare is not asked, so no quote and no backslash is in the SQL; \`engineSql\` escapes both all the same. The answer has the fields of an answer from the logs, with \`store: "engine"\` beside them; an answer from the logs has no \`store\`. \`step\` is the service's: a sixtieth of the span, a second at least, which is what the logs answered for the spans of the table above. \`groups\` is how many groups the rows hold, and nothing cuts it at 500. \`sampled\` is 1 in every such answer and says nothing: the SQL does not ask for \`_sample_interval\` by itself. A dimension that is a number is text in the dataset and a number in the answer, \`null\` for a line that lacked it. A point holds its values by position and not by name: after a member's \`metric.put\` of a kept name with other \`dims\`, or a change to the dimensions of a built-in one, the points written before are read by the new positions until Cloudflare drops them, and nothing in an answer says so. The answer is kept in the memory as any other, under the text of the SQL. Cloudflare's refusal is 502. Only points written after the tail was deployed are there: a span before it is answered with no rows, and the logs are not asked in its place. The same holds for a Worker that names no consumer. The deployer reads the dashboard's row at each upload, so a Worker uploaded before the dashboard's first version with a tail has none until its next deploy, and a Worker whose hash has not changed is not uploaded again. The deployer's own script, which writes the lines of \`deploys.*\`, is uploaded by \`brain.ts install-deployer\` and names the consumer when that is run after the dashboard's row says \`tail\`; the command prints which it did. \`infra.getState\` shows \`tail\` on the dashboard's row and does not list the scripts that name it. So before a metric is put in \`engine\`, its Worker is deployed after the dashboard, and the first answers are compared with the logs'.
+
+Seen on Cloudflare on 2026-10-13, with a scratch dataset and two scratch scripts and not with this service: the SQL takes \`intDiv\`, \`toUInt32\`, \`toDateTime\` of seconds, \`GROUP BY\` of the name \`t\` and \`FORMAT JSON\` as written, with \`content-type: text/plain\`, and answers \`{ data: [{ t, blob2, n, … }] }\` with \`t\` as text; a dataset with no point answers no row and no error; Cloudflare does not take \`tail_consumers\` from the upload of a version (one uploaded with the field and deployed left the script's setting null), takes it from \`PATCH …/script-settings\`, keeps it over a later version, and takes it off at the upload of a script with no such field, so the deployer sets it on the script (brain-deployer, \`ensureLogs\`). Not known: that the permission group is named \`Account Analytics Read\` (the list of groups was not read); whether a message that is an object reaches a tail as an object or as text (both are read); the CPU of this service's tail call (a scratch tail of 200 lines a call took 2.1 ms at the median).
 
 ## Who can call
 
@@ -201,7 +230,7 @@ The owner and a token of theirs are one caller to this service (the core sends b
 
 ## The Cloudflare token
 
-The service declares \`cloudflare: ["Workers Observability Read"]\`, as brain-logs does. The deployer mints a token with that one permission and binds it to this Worker alone. It reads the logs of every Worker on the Cloudflare account, which is why a caller's text reaches Cloudflare only as the value of a filter on a dimension the definition names, and the script and \`at\` are the definition's.
+The service declares \`cloudflare: ["Workers Observability Read", "Account Analytics Read"]\`: the first as brain-logs does, the second since 2026-10-13 for the metrics store. The deployer mints one token with those two permissions and binds it to this Worker alone. It reads the logs of every Worker on the Cloudflare account, and every Analytics Engine dataset of it, which is why a caller's text reaches Cloudflare only as the value of a filter on a dimension the definition names: the script and \`at\` of a logs query are the definition's, and the SQL and its dataset are the service's.
 
 ## Not known
 
@@ -402,6 +431,128 @@ metricJoin = (parts, by) => {
   return { step: top("step"), groups: top("groups"), sampled: top("sampled"), series: [...rows.values()].sort((a, b) => a.t - b.t) };
 }
 // %%
+// The Worker a script of this Brain is, by its logical name: the deployer's `actual` read backwards (logsScript of brain-logs
+// is the same map forwards). `deployer` is the deployer's own script, BASE-guard on a Brain from before 2026-10-08.
+// Null for a script that is no Worker of this Brain.
+tailWorker = (script, base, deployer = base + "-deployer") =>
+  typeof script !== "string" || !base ? null : script === deployer ? "brain-deployer" : script === base ? "brain" : script.startsWith(base + "-") ? "brain" + script.slice(base.length) : null
+// %%
+// The deployer's script, from the address the deployer binds as the setting `deployer`; BASE-deployer with none.
+tailDeployer = (address, base) => (typeof address === "string" && /^https:\/\/[a-z0-9-]+\./.test(address) ? address.slice("https://".length).split(".")[0] : base + "-deployer")
+// %%
+// What Cloudflare takes: 250 points an invocation, an index of 96 bytes. A dimension's value is cut to `blob` characters,
+// so nine blobs stay under the 16 KB a point holds.
+tailLimits = ({ points: 250, index: 96, blob: 256 })
+// %%
+// The line of one log of a tail event: its first message when that is an object, or text that parses as one. Null otherwise.
+tailLine = (entry) => {
+  const first = entry && Array.isArray(entry.message) ? entry.message[0] : null;
+  if (first && typeof first === "object" && !Array.isArray(first)) return first;
+  if (typeof first !== "string" || first[0] !== "{") return null;
+  try {
+    const line = JSON.parse(first);
+    return line && typeof line === "object" && !Array.isArray(line) ? line : null;
+  } catch {
+    return null;
+  }
+}
+// %%
+// The points of one tail call: { points, lines, dropped }. A point for each line whose Worker and `at` a definition names:
+// index the name and the dimensions' values joined by "/", cut to 96 bytes of UTF-8; blobs the name and those values;
+// doubles [1, value, value]. Over 250 points, the points of one index are added up (n and sum summed, max the highest)
+// and the first 250 are kept: `dropped` is how many indexes were left out, and `lines` how many lines those held.
+tailPoints = (events, definitions, { base, deployer }, limits = tailLimits) => {
+  const cut = (text, most) => {
+    let out = "", bytes = 0;
+    for (const ch of text) {
+      const c = ch.codePointAt(0), b = c < 0x80 ? 1 : c < 0x800 ? 2 : c < 0x10000 ? 3 : 4;
+      if (bytes + b > most) break;
+      out += ch;
+      bytes += b;
+    }
+    return out;
+  };
+  const field = (line, key) => (Object.hasOwn(line, key) ? line[key] : key.split(".").reduce((o, k) => (o && typeof o === "object" && Object.hasOwn(o, k) ? o[k] : undefined), line));
+  const text = (v) => (v == null ? "" : typeof v === "object" ? JSON.stringify(v) : String(v)).slice(0, limits.blob);
+  const number = (v) => ((n) => (Number.isFinite(n) ? n : 0))(typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN);
+  const named = new Map();
+  for (const d of definitions) named.set(d.worker + "\n" + d.at, [...(named.get(d.worker + "\n" + d.at) || []), d]);
+  const points = [];
+  for (const event of Array.isArray(events) ? events : []) {
+    const worker = tailWorker(event && event.scriptName, base, deployer);
+    if (!worker) continue;
+    for (const entry of (event && event.logs) || []) {
+      const line = tailLine(entry);
+      for (const d of (line && typeof line.at === "string" && named.get(worker + "\n" + line.at)) || []) {
+        const values = d.dims.map((x) => text(field(line, x.key))), value = d.value ? number(field(line, d.value)) : 0;
+        points.push({ index: cut([d.name, ...values].join("/"), limits.index), blobs: [d.name, ...values], doubles: [1, value, value] });
+      }
+    }
+  }
+  if (points.length <= limits.points) return { points, lines: 0, dropped: 0 };
+  const sums = new Map();
+  for (const p of points) {
+    const had = sums.get(p.index);
+    if (!had) sums.set(p.index, { ...p, doubles: [...p.doubles] });
+    else had.doubles = [had.doubles[0] + p.doubles[0], had.doubles[1] + p.doubles[1], Math.max(had.doubles[2], p.doubles[2])];
+  }
+  const all = [...sums.values()], left = all.slice(limits.points);
+  return { points: all.slice(0, limits.points), lines: left.reduce((n, p) => n + p.doubles[0], 0), dropped: left.length };
+}
+// %%
+// The members' definitions as the tail reads them: `list()` is asked when the last answer is `ms` old, and what it
+// answered is kept in this instance's memory until then, also when it threw. forget(): the next read asks.
+tailDefinitionsOf = (ms = 60000) => {
+  let at = null, kept = [];
+  return {
+    read: async (list, now) => {
+      if (at !== null && now >= at && now - at < ms) return kept;
+      at = now;
+      kept = await list().catch(() => kept);
+      return kept;
+    },
+    forget: () => void (at = null)
+  };
+}
+// %%
+// This instance's copy of the members' definitions.
+tailDefinitions = tailDefinitionsOf()
+// %%
+// The seconds of one step of an answer from Analytics Engine: a sixtieth of the span, which is what Cloudflare's logs
+// answered for the spans measured (What a query costs: 15 s for 15 minutes, 1440 s for a day), and a second at least.
+engineStep = (since, until) => Math.max(1, Math.floor((until - since) / 60000))
+// %%
+// The SQL of one ask of one definition: { sql, step }, or { error } for a 400. Nothing a caller sent is in it but the
+// values of filters, each of which is letters, digits, spaces and _ . : @ / + - and is written with \ and ' escaped.
+// blob1 is the metric's name and blob2… its dimensions in the definition's order, as tailPoints writes them.
+engineSql = (def, ask, dataset) => {
+  const blob = (key) => "blob" + (def.dims.findIndex((d) => d.key === key) + 2);
+  const quoted = (value) => "'" + String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'") + "'";
+  if (!/^[a-z0-9.-]{1,80}$/.test(def.name) || !/^[a-z0-9_]{1,80}$/.test(dataset)) return { error: "the metric's name or the dataset's is not one Analytics Engine is asked for" };
+  const bad = ask.where.find((w) => !/^[A-Za-z0-9 _.:@\/+-]{0,200}$/.test(String(w.value)));
+  if (bad) return { error: `${bad.key}: a value asked of Analytics Engine is 200 at most of letters, digits, spaces and _ . : @ / + -` };
+  const step = engineStep(ask.since, ask.until), columns = ask.by.map(blob);
+  const sql =
+    `SELECT intDiv(toUInt32(timestamp), ${step}) * ${step} AS t, ${columns.map((c) => c + ", ").join("")}SUM(_sample_interval * double1) AS n, SUM(_sample_interval * double2) AS sum, MAX(double3) AS max` +
+    ` FROM ${dataset} WHERE blob1 = ${quoted(def.name)} AND timestamp >= toDateTime(${ask.since / 1000}) AND timestamp < toDateTime(${ask.until / 1000})` +
+    ask.where.map((w) => ` AND ${blob(w.key)} = ${quoted(w.value)}`).join("") +
+    ` GROUP BY ${["t", ...columns].join(", ")} FORMAT JSON`;
+  return { sql, step };
+}
+// %%
+// Analytics Engine's answer (FORMAT JSON: { data: [{ t, blobK…, n, sum, max }] }) as metricSeries answers the logs':
+// rows { t, …the dimensions asked, n, sum, max }, oldest first. `groups` is how many groups of the dimensions the rows hold.
+// `sampled` is 1 always: the SQL does not ask how the points were sampled (The metrics store). A number dimension the
+// line lacked is null: its blob is "".
+engineSeries = (answer, def, by, step) => {
+  const types = new Map(def.dims.map((d) => [d.key, d.type || "string"])), blob = (key) => "blob" + (def.dims.findIndex((d) => d.key === key) + 2);
+  const series = ((answer && Array.isArray(answer.data) && answer.data) || [])
+    .map((r) => ({ t: Number(r.t) * 1000, ...Object.fromEntries(by.map((k) => [k, types.get(k) === "number" ? (r[blob(k)] == null || r[blob(k)] === "" ? null : Number(r[blob(k)])) : String(r[blob(k)] ?? "")])), n: Number(r.n) || 0, sum: def.value ? Number(r.sum) || 0 : null, max: def.value ? Number(r.max) || 0 : null }))
+    .filter((r) => r.n > 0)
+    .sort((a, b) => a.t - b.t);
+  return { step: step * 1000, groups: new Set(series.map((r) => JSON.stringify(by.map((k) => r[k])))).size, sampled: 1, series };
+}
+// %%
 // How long an answer of metric.query is kept (the setting memoryMs stands in for `ms`), and how much is kept at once.
 metricMemoryDefaults = ({ ms: 60000, characters: 4000000 })
 // %%
@@ -482,12 +633,14 @@ dashboard_service = cloudflare.Service(
         if (own.error) return refuse(own.status, own.status === 403 ? "Forbidden" : "InvalidRequest", own.error);
         if (!(await rows.get("metric/" + own.def.name)) && (await kept(mine)).length >= metricLimits.kept) return refuse(400, "InvalidRequest", `a member keeps ${metricLimits.kept} metrics: delete one first`);
         await rows.put("metric/" + own.def.name, own.def);
+        tailDefinitions.forget();
         return json(200, { metric: own.def });
       }
       const name = body && typeof body.name === "string" ? body.name : "";
       if (!name.startsWith(mine)) return refuse(403, "Forbidden", `a member deletes their own metrics, named ${mine}NAME`);
       if (!(await rows.get("metric/" + name))) return refuse(404, "NotFound", `no metric ${name} is kept`);
       await rows.delete("metric/" + name);
+      tailDefinitions.forget();
       return json(200, { deleted: name });
     }
     const name = url.searchParams.get("metric") || "";
@@ -498,8 +651,24 @@ dashboard_service = cloudflare.Service(
     if (!metricDefinitions.includes(def) && !String(def.worker).startsWith("brain-m-" + name.split(".")[1] + "-")) return refuse(500, "InternalError", `the kept definition of ${name} is not over a Worker of its member`);
     const ask = metricAsk(def, url.searchParams, Date.now());
     if (ask.error) return refuse(400, "InvalidRequest", ask.error);
+    const memoryMs = Number(config.memoryMs ?? metricMemoryDefaults.ms);
+    // A metric the setting `engine` names is answered from the Brain's Analytics Engine dataset, which the tail fills.
+    const engine = config.engine ?? [];
+    if (engine === "*" || (Array.isArray(engine) && engine.includes(def.name))) {
+      const q = engineSql(def, ask, analyticsDataset(config.base));
+      if (q.error) return refuse(400, "InvalidRequest", q.error);
+      const had = metricMemory.read(q.sql, Date.now(), memoryMs);
+      if (had) return json(200, { ...JSON.parse(had), cost: { ms: 0, queries: 0, cached: true } });
+      const began = Date.now();
+      const r = await cloudflareApi.fetch("/analytics_engine/sql", { method: "POST", body: q.sql, headers: { "content-type": "text/plain" } });
+      const said = await r.text(), data = r.ok ? await Promise.resolve(said).then(JSON.parse).catch(() => null) : null;
+      if (!data || !Array.isArray(data.data)) return refuse(502, "UpstreamFailure", `Cloudflare answered ${r.status} ${said.slice(0, 300)}`);
+      const answer = { metric: def.name, since: ask.since, until: ask.until, ...engineSeries(data, def, ask.by, q.step), store: "engine" };
+      metricMemory.keep(q.sql, JSON.stringify(answer), Date.now(), memoryMs);
+      return json(200, { ...answer, cost: { ms: Date.now() - began, queries: 1, cached: false } });
+    }
     // The memory is read here, after every refusal above: a kept answer is given to no caller the service refuses.
-    const body = JSON.stringify(metricBody(def, ask, config.base)), memoryMs = Number(config.memoryMs ?? metricMemoryDefaults.ms);
+    const body = JSON.stringify(metricBody(def, ask, config.base));
     const had = metricMemory.read(body, Date.now(), memoryMs);
     if (had) return json(200, { ...JSON.parse(had), cost: { ms: 0, queries: 0, cached: true } });
     const began = Date.now();
@@ -523,7 +692,23 @@ dashboard_service = cloudflare.Service(
     return json(200, { ...answer, cost: { ms, queries, cached: false } });
   },
   {
-    cloudflare: ["Workers Observability Read"],
+    cloudflare: ["Workers Observability Read", "Account Analytics Read"],
+    // The log lines of the Brain's other Workers, after each of their invocations (The metrics store). It never throws:
+    // nothing answers a tail call, and a failure is one line.
+    tail: async (events) => {
+      try {
+        const base = config.base, deployer = tailDeployer(config.deployer, base);
+        // A member's definition counts over a Worker of that member and no other, as metric.query reads it.
+        const members = (Array.isArray(events) ? events : []).some((e) => String(tailWorker(e && e.scriptName, base, deployer)).startsWith("brain-m-"))
+          ? await tailDefinitions.read(async () => (await rows.list("metric/m.")).map((r) => r.value).filter((d) => d && String(d.worker).startsWith("brain-m-" + String(d.name).split(".")[1] + "-") && Array.isArray(d.dims)), Date.now())
+          : [];
+        const out = tailPoints(events, [...metricDefinitions, ...members], { base, deployer });
+        for (const p of out.points) analytics.write(p);
+        if (out.dropped) log({ at: "tail.dropped", points: out.points.length, dropped: out.dropped, lines: out.lines });
+      } catch (e) {
+        log({ at: "tail.failed", error: String((e && e.message) || e).slice(0, 200) });
+      }
+    },
     methods: {
       "com.lopecode.brain.metric.list": { type: "query", allow: metricRules.list },
       "com.lopecode.brain.metric.query": { type: "query", allow: metricRules.query },
@@ -789,15 +974,18 @@ md`## Tests`
 // %%
 // The service with a stand-in for Cloudflare: `answer(body)` gives the result of one telemetry query, or a Response.
 dashboardRig = async (answer = () => ({ run: { granularity: 60000 }, calculations: [] }), settings = {}) => {
-  const seen = [];
+  const seen = [], points = [];
   const sim = await simulate(dashboard_service, {
     secrets: { CF_TOKEN: "minted-1", BRAIN_KEY: "k" },
     config: { base: "cb4", account: "acct", ...settings },
+    // The dataset: every point the tail wrote. A test that sets points.refuse has the binding throw.
+    analytics: { write: (p) => { if (points.refuse) throw new Error("the dataset refused"); points.push(p); } },
     fetch: async (request) => {
-      const body = await request.json();
+      // Analytics Engine is sent SQL as text and answers with no envelope: `answer` is given the text, and its answer is the body.
+      const sql = request.url.endsWith("/analytics_engine/sql"), body = sql ? await request.text() : await request.json();
       seen.push({ url: request.url, authorization: request.headers.get("authorization"), body });
       const out = answer(body);
-      return out instanceof Response ? out : new Response(JSON.stringify({ success: true, result: out }), { headers: { "content-type": "application/json" } });
+      return out instanceof Response ? out : new Response(JSON.stringify(sql ? out : { success: true, result: out }), { headers: { "content-type": "application/json" } });
     }
   });
   // A token of the owner unless told: the owner with no tab.
@@ -811,7 +999,7 @@ dashboardRig = async (answer = () => ({ run: { granularity: 60000 }, calculation
     const headers = { "x-brain-caller": did }, id = (await sha256(did)).slice(0, 10);
     return { did, id, write: (method, body) => call(method, "", { headers, verb: "POST", body }), read: (method, query = "") => call(method, query, { headers }) };
   };
-  return { sim, seen, call, member };
+  return { sim, seen, points, call, member };
 }
 // %%
 // R1 of the spec: one body, written from the definition and from what was asked as data.
@@ -1420,7 +1608,181 @@ test_metric_memory_forgets_at_its_time_and_the_ask_is_cut_to_minutes = {
   return "kept " + ms + " ms";
 }
 // %%
-test_dashboard_declares_one_cloudflare_permission_and_its_rows = {
+// Stage 2 of the spec, the write: a point for each line a definition names, and nothing for any other line or Worker.
+test_the_tail_writes_a_point_for_each_line_a_definition_names = {
+  const rig = await dashboardRig();
+  const event = (scriptName, ...lines) => ({ scriptName, logs: lines.map((line) => ({ timestamp: 1791676800000, level: "log", message: [line] })) });
+  const call = { at: "call", worker: "brain-x-inbox", method: "inbox.poll", status: 200, ms: 41, caller: "owner", ray: "r1" };
+  const took = () => rig.points.splice(0);
+  // A call line of the core and a confirmed deploy of the deployer; the value is summed and its max kept, a counted metric has 0.
+  expect(await rig.sim.tail([event("cb4-core", call), event("cb4-deployer", { at: "deploy.confirmed", target: "brain-x-git", hash: "h", worker: "brain-deployer" })])).toBe(undefined);
+  expect(took()).toEqual([
+    { index: "core.calls/brain-x-inbox/inbox.poll/200", blobs: ["core.calls", "brain-x-inbox", "inbox.poll", "200"], doubles: [1, 41, 41] },
+    { index: "deploys.confirmed/brain-x-git", blobs: ["deploys.confirmed", "brain-x-git"], doubles: [1, 0, 0] }
+  ]);
+  // Another line of those Workers, the same `at` from another Worker, a Worker of another Brain, and what is no line.
+  await rig.sim.tail([
+    event("cb4-core", { at: "throw", error: "TypeError" }, { worker: "x" }, "text", 7, null, [call], '["call"]', "{not json"),
+    event("cb4-x-echo", call, { at: "deploy.confirmed", target: "brain-x-git" }),
+    event("cb4", call),
+    event("cb40-core", call),
+    event("other-core", call),
+    { scriptName: "cb4-core" }, { scriptName: "cb4-core", logs: [{ message: [] }, { message: "call" }, {}, null] }, { logs: [{ message: [call] }] }, null
+  ]);
+  expect(took()).toEqual([]);
+  // A message that is text is read when it parses as an object; a field the line lacks is "", and a value that is no number is 0.
+  await rig.sim.tail([event("cb4-core", JSON.stringify({ ...call, ms: "12.5" }), { at: "call", method: "x.y", ms: "fast" }, { at: "call", ms: true })]);
+  expect(took()).toEqual([
+    { index: "core.calls/brain-x-inbox/inbox.poll/200", blobs: ["core.calls", "brain-x-inbox", "inbox.poll", "200"], doubles: [1, 12.5, 12.5] },
+    { index: "core.calls//x.y/", blobs: ["core.calls", "", "x.y", ""], doubles: [1, 0, 0] },
+    { index: "core.calls///", blobs: ["core.calls", "", "", ""], doubles: [1, 0, 0] }
+  ]);
+  // The index is cut to 96 bytes of UTF-8, never inside a character; the blobs keep the value, to 256 characters.
+  const bytes = (text) => new TextEncoder().encode(text).length;
+  await rig.sim.tail([event("cb4-deployer", { at: "deploy.failed", target: "x".repeat(300) }, { at: "deploy.failed", target: "é".repeat(60) }, { at: "deploy.put-back", target: "brain-m-0123456789-todo" })]);
+  const long = took();
+  expect(long.map((p) => [bytes(p.index), p.blobs[1].length])).toEqual([[96, 256], [95, 60], [40, 23]]);
+  expect([long[0].index, long[1].index]).toEqual(["deploys.failed/" + "x".repeat(81), "deploys.failed/" + "é".repeat(40)]);
+  // The deployer's script is the one its bound address names: BASE-guard on a Brain from before 2026-10-08.
+  const old = await dashboardRig(undefined, { deployer: "https://cb4-guard.sub.workers.dev" });
+  await old.sim.tail([event("cb4-guard", { at: "deploy.confirmed", target: "brain" }), event("cb4-core", call)]);
+  expect(old.points.map((p) => p.index)).toEqual(["deploys.confirmed/brain", "core.calls/brain-x-inbox/inbox.poll/200"]);
+  expect([tailDeployer("https://cb4-guard.sub.workers.dev", "cb4"), tailDeployer(undefined, "cb4"), tailDeployer("cb4-guard", "cb4")]).toEqual(["cb4-guard", "cb4-deployer", "cb4-deployer"]);
+  expect(["cb4", "cb4-core", "cb4-db", "cb4-deployer", "cb4-x-dashboard", "cb4-m-0123456789-todo", "cb40", "cb", "", null].map((name) => tailWorker(name, "cb4"))).toEqual(["brain", "brain-core", "brain-db", "brain-deployer", "brain-x-dashboard", "brain-m-0123456789-todo", null, null, null, null]);
+  // The dataset refuses, or the call is no list: nothing is thrown.
+  rig.points.refuse = true;
+  expect([await rig.sim.tail([event("cb4-core", call)]), await rig.sim.tail(null), await rig.sim.tail()]).toEqual([undefined, undefined, undefined]);
+  expect(rig.seen.length).toBe(0);
+  return "5 points";
+}
+// %%
+// Stage 2 of the spec: over 250 points in one call, the points of one index are one, and what is still over is left out and said.
+test_the_tail_adds_up_by_index_when_one_call_holds_more_than_250_points = {
+  const core = (lines) => [{ scriptName: "cb4-core", logs: lines.map((line) => ({ message: [line] })) }];
+  const call = (method, ms, status = 200) => ({ at: "call", worker: "brain-x-inbox", method, status, ms });
+  const defs = metricDefinitions, where = { base: "cb4", deployer: "cb4-deployer" };
+  // 250 lines are 250 points, as they came.
+  const even = tailPoints(core(Array.from({ length: 250 }, (_, i) => call("m" + (i % 3), i))), defs, where);
+  expect([even.points.length, even.dropped, even.lines, even.points[249].doubles]).toEqual([250, 0, 0, [1, 249, 249]]);
+  // 251 lines over 3 indexes are 3 points: n and the sum summed, the max the highest.
+  const three = tailPoints(core(Array.from({ length: 251 }, (_, i) => call("m" + (i % 3), i))), defs, where);
+  expect([three.dropped, three.lines, three.points.map((p) => [p.index, ...p.doubles])]).toEqual([0, 0, [["core.calls/brain-x-inbox/m0/200", 84, 10458, 249], ["core.calls/brain-x-inbox/m1/200", 84, 10542, 250], ["core.calls/brain-x-inbox/m2/200", 83, 10375, 248]]]);
+  expect(three.points.reduce((n, p) => n + p.doubles[0], 0)).toBe(251);
+  // 300 lines over 260 indexes: the first 250 indexes are written, and the 10 left out held 10 lines.
+  const many = tailPoints(core(Array.from({ length: 300 }, (_, i) => call("m" + (i % 260), 1))), defs, where);
+  expect([many.points.length, many.dropped, many.lines, many.points[0].doubles, many.points[249].index]).toEqual([250, 10, 10, [2, 2, 1], "core.calls/brain-x-inbox/m249/200"]);
+  // The service writes those 250 and says the rest in one line.
+  const rig = await dashboardRig(), said = [], write = console.log;
+  console.log = (line) => void said.push(line);
+  try {
+    await rig.sim.tail(core(Array.from({ length: 300 }, (_, i) => call("m" + (i % 260), 1))));
+  } finally {
+    console.log = write;
+  }
+  expect(rig.points.length).toBe(250);
+  expect(said.filter((l) => l && l.at === "tail.dropped").map(({ at, points, dropped, lines, worker }) => ({ at, points, dropped, lines, worker }))).toEqual([{ at: "tail.dropped", points: 250, dropped: 10, lines: 10, worker: "brain-x-dashboard" }]);
+  return "250 of 260";
+}
+// %%
+// R6 of the spec in the tail: a member's kept definition counts the lines of that member's Worker, read from the rows once in 60 s.
+test_the_tail_counts_a_members_lines_by_their_kept_definitions = {
+  const rig = await dashboardRig();
+  const alice = await rig.member("did:plc:alice"), bob = await rig.member("did:plc:bob");
+  const todo = `cb4-m-${alice.id}-todo`, line = { at: "todo.error", kind: "db", code: 500, ms: 9 };
+  const event = (scriptName, ...lines) => ({ scriptName, logs: lines.map((l) => ({ message: [l] })) });
+  const took = () => rig.points.splice(0).map((p) => [p.index, ...p.doubles]);
+  await rig.sim.tail([event(todo, line)]);
+  expect(took()).toEqual([]);
+  // A put drops this instance's copy: the next call reads the definition.
+  const errors = { name: `m.${alice.id}.errors`, worker: `brain-m-${alice.id}-todo`, at: "todo.error", value: "ms", dims: [{ key: "kind" }, { key: "code", type: "number" }] };
+  expect((await alice.write("metric.put", errors)).status).toBe(200);
+  await rig.sim.tail([event(todo, line, { at: "todo.ok" }), event(`cb4-m-${bob.id}-todo`, line), event("cb4-core", line)]);
+  expect(took()).toEqual([[`m.${alice.id}.errors/db/500`, 1, 9, 9]]);
+  // A row written past the service, over a Worker that is not its member's, counts nothing; and the copy is kept 60 s.
+  rig.sim.rows.set(`metric/m.${bob.id}.spy`, { name: `m.${bob.id}.spy`, worker: "brain-core", at: "call", value: null, dims: [{ key: "caller" }] });
+  rig.sim.rows.set(`metric/m.${bob.id}.own`, { name: `m.${bob.id}.own`, worker: `brain-m-${bob.id}-todo`, at: "todo.error", value: null, dims: [] });
+  await rig.sim.tail([event(`cb4-m-${bob.id}-todo`, line), event("cb4-core", { at: "call", caller: "owner", worker: "w", method: "m", status: 200, ms: 1 })]);
+  expect(took()).toEqual([["core.calls/w/m/200", 1, 1, 1]]);
+  expect((await alice.write("metric.delete", { name: errors.name })).status).toBe(200);
+  await rig.sim.tail([event(`cb4-m-${bob.id}-todo`, line), event(todo, line), event("cb4-core", { at: "call", caller: "owner" })]);
+  expect(took()).toEqual([[`m.${bob.id}.own`, 1, 0, 0], ["core.calls///", 1, 0, 0]]);
+  // The copy with the time given: asked once in 60 s, kept when the rows cannot be read.
+  const copy = tailDefinitionsOf(), T = 1791676800000;
+  let asked = 0, down = false;
+  const list = async () => { asked++; if (down) throw new Error("no rows"); return ["d" + asked]; };
+  expect([await copy.read(list, T), await copy.read(list, T + 59999), await copy.read(list, T + 60000), asked]).toEqual([["d1"], ["d1"], ["d2"], 2]);
+  down = true;
+  expect([await copy.read(list, T + 120000), await copy.read(list, T + 120001), asked]).toEqual([["d2"], ["d2"], 3]);
+  down = false;
+  copy.forget();
+  expect([await copy.read(list, T + 120002), asked]).toEqual([["d4"], 4]);
+  return "a member's lines";
+}
+// %%
+// Stage 2 of the spec, the read: a metric the setting `engine` names is asked of Analytics Engine with SQL the service writes, and any other of the logs as before.
+test_metric_query_asks_analytics_engine_for_a_metric_the_setting_names = {
+  const H = 3600000, since = 1791676800000, until = since + H, S = since / 1000;
+  const owner = { headers: { "x-brain-caller": "owner", "x-brain-via": "session", "x-brain-tab": "1" } };
+  // Analytics Engine's answer: numbers of 64 bits as text, a row a step and group, in no order.
+  const data = [{ t: String(S + 300), blob2: "brain-x-inbox", blob4: "502", n: "1", sum: 900, max: 900 }, { t: String(S), blob2: "brain-x-inbox", blob4: "200", n: "2", sum: 80.5, max: 50 }, { t: String(S + 60), blob2: "brain-x-git", blob4: "200", n: "0", sum: 0, max: 0 }];
+  const logs = { run: { granularity: 60000 }, calculations: [] };
+  const rig = await dashboardRig((body) => (typeof body === "string" ? { meta: [], data, rows: data.length } : logs), { engine: ["core.calls"] });
+  const out = await rig.call("metric.query", `?metric=core.calls&by=worker,status&method=inbox.poll&since=${since}&until=${until}`, owner);
+  expect(out.status).toBe(200);
+  expect(rig.seen).toEqual([{
+    url: "https://api.cloudflare.com/client/v4/accounts/acct/analytics_engine/sql",
+    authorization: "Bearer minted-1",
+    body: `SELECT intDiv(toUInt32(timestamp), 60) * 60 AS t, blob2, blob4, SUM(_sample_interval * double1) AS n, SUM(_sample_interval * double2) AS sum, MAX(double3) AS max FROM cb4_metrics WHERE blob1 = 'core.calls' AND timestamp >= toDateTime(${S}) AND timestamp < toDateTime(${S + 3600}) AND blob3 = 'inbox.poll' GROUP BY t, blob2, blob4 FORMAT JSON`
+  }]);
+  // The shape of an answer from the logs, with where it came from: a number dimension is a number again, oldest first, no row with no line.
+  const rest = ({ cost, ...answer }) => answer;
+  expect(rest(out.data)).toEqual({ metric: "core.calls", since, until, step: 60000, groups: 2, sampled: 1, series: [{ t: since, worker: "brain-x-inbox", status: 200, n: 2, sum: 80.5, max: 50 }, { t: since + 300000, worker: "brain-x-inbox", status: 502, n: 1, sum: 900, max: 900 }], store: "engine" });
+  expect([out.data.cost.queries, out.data.cost.cached]).toEqual([1, false]);
+  // Asked again it is the kept answer, with its store.
+  const again = await rig.call("metric.query", `?metric=core.calls&by=worker,status&method=inbox.poll&since=${since}&until=${until}`, owner);
+  expect([again.data.cost, again.data.store, rig.seen.length]).toEqual([{ ms: 0, queries: 0, cached: true }, "engine", 1]);
+  // A metric the setting does not name is asked of the logs, and its answer has no store.
+  const deploys = await rig.call("metric.query", `?metric=deploys.confirmed&by=target&since=${since}&until=${until}`);
+  expect([deploys.status, rig.seen[1].url.endsWith("/workers/observability/telemetry/query"), rig.seen[1].body.queryId, "store" in deploys.data]).toEqual([200, true, "metric deploys.confirmed", false]);
+  // A filter's value that is not plain text is refused before Cloudflare is asked; a number is written as text.
+  for (const value of ["x' OR '1'='1", "a\\", "a;b", "a\nb", "(1)", "%27", "x".repeat(201)])
+    expect([value, (await rig.call("metric.query", `?metric=core.calls&method=${encodeURIComponent(value)}&since=${since}&until=${until}`, owner)).status]).toEqual([value, 400]);
+  expect(rig.seen.length).toBe(2);
+  expect((await rig.call("metric.query", `?metric=core.calls&status=-5&worker=${encodeURIComponent("brain-m-0123456789-todo +@:/_.")}&since=${since}&until=${until}`, owner)).status).toBe(200);
+  expect(rig.seen[2].body).toContain(" AND blob4 = '-5' AND blob2 = 'brain-m-0123456789-todo +@:/_.' GROUP BY t FORMAT JSON");
+  // What a refusal still holds is what the definition holds: no name in `by` or a filter that is not a dimension.
+  expect((await rig.call("metric.query", `?metric=core.calls&by=caller&since=${since}&until=${until}`, owner)).status).toBe(400);
+  expect((await rig.call("metric.query", `?metric=core.calls&since=${since}&until=${until}`)).status).toBe(200);
+  // The SQL with no service: the quotes it would write, the step of each span, and a counted metric with no `by`.
+  const calls = metricDefinitions.find((d) => d.name === "core.calls"), failed = metricDefinitions.find((d) => d.name === "deploys.failed");
+  const ask = (query) => metricAsk(calls, new URLSearchParams(query), until);
+  expect(engineSql(calls, { since, until, by: [], where: [{ key: "method", value: "a b" }] }, "cb4_metrics").sql).toContain("AND blob3 = 'a b' GROUP BY t FORMAT JSON");
+  expect(engineSql(calls, { since, until, by: [], where: [{ key: "method", value: "it's" }] }, "cb4_metrics").error).toMatch(/^method: a value asked of Analytics Engine/);
+  expect([engineSql(calls, ask(""), "cb4-metrics").sql, engineSql({ ...calls, name: "x' --" }, ask(""), "cb4_metrics").sql]).toEqual([undefined, undefined]);
+  expect([[15 * 60000, 15], [H, 60], [6 * H, 360], [24 * H, 1440], [7 * 24 * H, 10080], [60000, 1]].map(([span, step]) => [span, engineStep(until - span, until) === step])).toEqual([[15 * 60000, true], [H, true], [6 * H, true], [24 * H, true], [7 * 24 * H, true], [60000, true]]);
+  expect(engineSql(failed, metricAsk(failed, new URLSearchParams(`since=${since}&until=${until}`), until), analyticsDataset("cb4")).sql).toBe(`SELECT intDiv(toUInt32(timestamp), 60) * 60 AS t, SUM(_sample_interval * double1) AS n, SUM(_sample_interval * double2) AS sum, MAX(double3) AS max FROM cb4_metrics WHERE blob1 = 'deploys.failed' AND timestamp >= toDateTime(${S}) AND timestamp < toDateTime(${S + 3600}) GROUP BY t FORMAT JSON`);
+  expect(engineSeries({ data: [{ t: S, n: 3, sum: 0, max: 0 }] }, failed, [], 60)).toEqual({ step: 60000, groups: 1, sampled: 1, series: [{ t: since, n: 3, sum: null, max: null }] });
+  expect(engineSeries(null, failed, [], 60).series).toEqual([]);
+  // A number dimension the line lacked was written as "": it is null, not 0.
+  expect(engineSeries({ data: [{ t: S, blob4: "", n: 1 }, { t: S, blob4: "0", n: 1 }] }, calls, ["status"], 60).series.map((r) => r.status)).toEqual([null, 0]);
+  // Cloudflare's refusal, or an answer that is not rows, is 502 and is not kept.
+  let down = true;
+  const flaky = await dashboardRig(() => (down ? new Response("unable to find type of column: blob9", { status: 422 }) : { data }), { engine: "*" });
+  const q = `?metric=deploys.confirmed&since=${since}&until=${until}`;
+  const refused = await flaky.call("metric.query", q);
+  expect([refused.status, refused.data.message]).toEqual([502, "Cloudflare answered 422 unable to find type of column: blob9"]);
+  down = false;
+  expect([(await flaky.call("metric.query", q)).data.store, flaky.seen.length, flaky.seen.every((s) => s.url.endsWith("/analytics_engine/sql"))]).toEqual(["engine", 2, true]);
+  // With the setting unset, or not a list, every metric is asked of the logs.
+  for (const engine of [undefined, [], "core.calls", { "core.calls": true }]) {
+    const plain = await dashboardRig(() => logs, engine === undefined ? {} : { engine });
+    const got = await plain.call("metric.query", `?metric=core.calls&since=${since}&until=${until}`, owner);
+    expect([JSON.stringify(engine), got.status, "store" in got.data, plain.seen.map((s) => s.url.split("/accounts/acct")[1])]).toEqual([JSON.stringify(engine), 200, false, ["/workers/observability/telemetry/query"]]);
+  }
+  return "4 SQL queries";
+}
+// %%
+test_dashboard_declares_two_cloudflare_permissions_its_rows_and_its_tail = {
   const { meta, parts, source } = await dashboard_service.emit();
   expect(meta.worker).toBe("brain-x-dashboard");
   // The reference the Worker serves holds the prose cells with their holes filled: a row a definition, and both rules.
@@ -1457,9 +1819,21 @@ test_dashboard_declares_one_cloudflare_permission_and_its_rows = {
   expect(source.reference).toContain("| 24 hours | 854 to 1095 |");
   for (const waited of ["not counted yet", "Whether Cloudflare samples", "and none is kept", "an ask does not wait for another's (read in"]) expect(source.reference).not.toContain(waited);
   expect(source.reference).not.toMatch(/\$\{/);
-  expect(meta.cloudflare).toEqual(["Workers Observability Read"]);
-  // Rows for a member's definitions, beside the Cloudflare token: the first service with both.
-  expect([meta.resources, meta.secrets, meta.calls]).toEqual([["rows"], [], []]);
+  // The metrics store: what the index holds and why, what is measured and what is not, and the setting.
+  expect(source.reference).toContain("## The metrics store\n\nWritten 2026-10-13");
+  expect(source.reference).toContain('{ index: "core.calls/brain-x-inbox/inbox.poll/200",');
+  expect(source.reference).toContain("the count of every breakdown was exact and the sum of the value was within 3%");
+  expect(source.reference).toContain("A point was readable 35 to 70 s after its line.");
+  expect(source.reference).toContain("read as `config.engine ?? []`");
+  expect(source.reference).toContain("Cloudflare takes " + tailLimits.points + " points from one invocation.");
+  expect(source.reference).toContain("cut to " + tailLimits.index + " bytes");
+  // The SQL the reference shows is the one the service writes for that ask.
+  const calls = metricDefinitions.find((d) => d.name === "core.calls");
+  expect(source.reference).toContain(engineSql(calls, metricAsk(calls, new URLSearchParams("by=worker,status&method=inbox.poll&since=1791676800000&until=1791680400000"), 0), analyticsDataset("cb4")).sql);
+  expect(meta.cloudflare).toEqual(["Account Analytics Read", "Workers Observability Read"]);
+  // Rows for a member's definitions, beside the Cloudflare token: the first service with both. The dataset and the tail since 2026-10-13.
+  expect([meta.resources, meta.secrets, meta.calls, meta.tail]).toEqual([["analytics", "rows"], [], [], true]);
+  expect(meta.bindings.map((b) => b.type + ":" + b.name)).toEqual(["d1:SQL", "analytics_engine:METRICS"]);
   // The token is read from the binding the deployer made, and the script filter is brain-logs' own cell, carried into this Worker.
   expect(parts[0].text).toContain("__rt.platform.secrets.CF_TOKEN");
   expect(parts[0].text).toContain("$workers.scriptName");
@@ -1849,7 +2223,7 @@ test_time_to_restore_is_read_from_logs_deploys_and_drawn_as_points = {
   return "1 logs.deploys for 3 panels; 3 dots of 4 put-backs";
 }
 // %%
-import {cloudflare, cloudflareApi, rows, config, simulate, decide, callerOf, sha256} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, cloudflareApi, rows, config, analytics, analyticsDataset, log, simulate, decide, callerOf, sha256} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {logsScope, logsScript} from "@tomlarkworthy/brain-logs"
 // %%

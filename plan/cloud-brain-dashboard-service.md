@@ -328,6 +328,11 @@ address as `dashboard=NAME`, one more pair of the hash that `notebookHtml` alrea
 
 ### Stage 2, his ingestion (R2): designed, not built by the loop
 
+(As built in the seeds, 2026-10-13, by a session with the owner and on no Brain that day: the index is the metric's
+name and every dimension's value, not the name alone, and the read is `WHERE blob1 = NAME`. Cloudflare samples by
+index, and with the name alone a count by a dimension was wrong at every rate tried. "The metrics store" of
+`tools/cloud-brain/brain-dashboard.ojs` is the record; the two lines below are the design as it was written.)
+
 - **Write.** The Worker gets a `tail` function and an Analytics Engine dataset named for the Brain.
   For each line of a tail event whose script and `at` match a definition it writes one point:
   the index is the metric's name, the blobs are the `dims` in order, the doubles are `[n, sum, max]`.

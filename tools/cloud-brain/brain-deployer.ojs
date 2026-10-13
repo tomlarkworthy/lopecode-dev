@@ -66,7 +66,7 @@ md`## Logs and Cloudflare permissions
 
 Added 2026-10-08. The deployer turns Workers Logs on for each script and Cloudflare's own line per invocation off (\`OBSERVABILITY\`, \`ensureLogs\`). The setting belongs to the script: Cloudflare took it from the upload of a new script and ignored it in the upload of a version, so 14 of the 17 scripts of cb4 kept no logs after the first deploy of this change. \`redistil\` sets it on each script the deployer has a row for, a member's Worker and one it keeps no source of included. A deploy of a member's Worker sets it too.
 
-A service that declares \`cloudflare: ["GROUP"]\` gets a Cloudflare API token (\`tokenFor\`, \`mint\`): held for the owner also when deploys need no approval, refused for a member and for a group that is not in \`GROUPS\`: the two that read logs, \`Workers AI Read\`, which runs a model on the account (\`brain-x-ai\`, 2026-10-09), and \`Billing Read\`, which reads what the account is billed (\`brain-x-usage\`, 2026-10-13; the group also reads the billing profile and invoices). The value is in the binding \`CF_TOKEN\` of that Worker and nowhere else. The rows \`token/WORKER\` hold the token's id, groups and end; \`audit/tokens\` holds each mint, roll and delete. A token is kept across deploys while its groups are the declared ones and it has more than 30 days left of its 90. A version that is put back gets a new token when the one it was deployed with was deleted (\`remint\`). The row of what is live is written first, with no token; when the mint or the bind fails, the line is \`token.mint-failed\` and each tick of the deployer tries again.
+A service that declares \`cloudflare: ["GROUP"]\` gets a Cloudflare API token (\`tokenFor\`, \`mint\`): held for the owner also when deploys need no approval, refused for a member and for a group that is not in \`GROUPS\`: the two that read logs, \`Workers AI Read\`, which runs a model on the account (\`brain-x-ai\`, 2026-10-09), \`Billing Read\`, which reads what the account is billed (\`brain-x-usage\`, 2026-10-13; the group also reads the billing profile and invoices), and \`Account Analytics Read\`, which reads the account's Analytics Engine datasets (\`brain-x-dashboard\`, 2026-10-13; the group reads every dataset of the account, and the service names one). The value is in the binding \`CF_TOKEN\` of that Worker and nowhere else. The rows \`token/WORKER\` hold the token's id, groups and end; \`audit/tokens\` holds each mint, roll and delete. A token is kept across deploys while its groups are the declared ones and it has more than 30 days left of its 90. A version that is put back gets a new token when the one it was deployed with was deleted (\`remint\`). The row of what is live is written first, with no token; when the mint or the bind fails, the line is \`token.mint-failed\` and each tick of the deployer tries again.
 
 The deployer's own token needs the permission \`Account API Tokens Write\` to mint, and each group it hands out.
 
@@ -226,10 +226,16 @@ deployerOps = {
   // The setting is the script's, not a version's: Cloudflare takes it from the upload of a new script and ignores it
   // in the upload of a version (seen 2026-10-08). For a script that exists it is set here, when it is not already.
   const logsOn = (o) => !!o && o.enabled === true && !!o.logs && o.logs.enabled === true && o.logs.invocation_logs === false;
+  // tail_consumers is the script's in the same way, and the upload of a script with no such field takes it off (seen
+  // 2026-10-13 on two scratch scripts: a version uploaded with the field and deployed left the setting null). Both are
+  // read in one call and set in one.
   const ensureLogs = async (logical) => {
-    if (logsOn((await api("GET", script(logical) + "/script-settings")).observability)) return false;
-    await api("PATCH", script(logical) + "/script-settings", text({ observability: OBSERVABILITY }), jsonType);
-    say({ at: "deploy.logs-on", target: logical });
+    const have = await api("GET", script(logical) + "/script-settings"), want = (await tailConsumers(logical)).tail_consumers || [];
+    const logs = logsOn(have.observability), tail = text((have.tail_consumers || []).map((t) => t.service)) === text(want.map((t) => t.service));
+    if (logs && tail) return false;
+    await api("PATCH", script(logical) + "/script-settings", text({ ...(logs ? {} : { observability: OBSERVABILITY }), ...(tail ? {} : { tail_consumers: want }) }), jsonType);
+    if (!logs) say({ at: "deploy.logs-on", target: logical });
+    if (!tail) say({ at: "deploy.tail", target: logical, to: want.map((t) => t.service) });
     return true;
   };
 
@@ -244,7 +250,9 @@ deployerOps = {
   // Artifacts repository of the account, in any namespace. The service fixes the namespace.
   // "Billing Read" (brain-x-usage, 2026-10-13) was not tried either: it reads the account's billable usage, and also
   // its billing profile and invoices. The service sends two paths (plan/cloud-brain-cloudflare-usage-read.md).
-  const GROUPS = ["Workers Observability Read", "Workers AI Read", "Artifacts Write", "Billing Read"];
+  // "Account Analytics Read" (brain-x-dashboard, 2026-10-13) was not tried either: it reads every Analytics Engine
+  // dataset of the account with SQL. The service writes the SQL and names one dataset (plan/cloud-brain-dashboard-service.md).
+  const GROUPS = ["Workers Observability Read", "Workers AI Read", "Artifacts Write", "Billing Read", "Account Analytics Read"];
   const DAY = 86400000, TOKEN_DAYS = 90, ROLL_DAYS = 30;
   const audit = async (event, logical, t) => {
     const row = { at: Date.now(), event, worker: logical, token: t.id, groups: t.groups, expires: t.expires };
@@ -367,6 +375,15 @@ deployerOps = {
     }
   };
 
+  // The Worker whose tail function is given the log lines of every other Worker: brain-x-dashboard, when the version
+  // that runs has one (its row says tail). The field of an upload's metadata that names it, or nothing. The Worker
+  // itself names none. It is read at each upload: a Worker deployed before the dashboard has it from its next deploy.
+  const TAIL = "brain-x-dashboard";
+  const tailConsumers = async (logical) => {
+    const to = logical === TAIL ? null : await rows.get("worker/" + TAIL);
+    return to && to.hash && to.tail ? { tail_consumers: [{ service: actual(TAIL) }] } : {};
+  };
+
   // Bindings are built here from the resources a service declares. Nothing the tab sends is bound as given.
   const bindingsFor = async (w, key, existing, given, token = []) => {
     const m = w.meta, tier = m.role === "kernel" || m.role === "core";
@@ -391,6 +408,8 @@ deployerOps = {
     if (uses("rows")) out.push(existing.has("SQL") ? { type: "inherit", name: "SQL" } : { type: "d1", name: "SQL", id: await sqlDatabase() });
     if (uses("database")) out.push(existing.has("DB") ? { type: "inherit", name: "DB" } : { type: "d1", name: "DB", id: await ownDatabase(m.worker) });
     if (uses("vectors")) out.push({ type: "vectorize", name: "VECTORS", index_name: await ownIndex(m.worker, m.vectors) });
+    // One Analytics Engine dataset a Brain, named for it. Cloudflare makes a dataset at its first write: nothing is made here.
+    if (uses("analytics")) out.push({ type: "analytics_engine", name: "METRICS", dataset: analyticsDataset(actual("brain")) });
     if (uses("blobs")) {
       const bucket = actual("brain-blobs");
       if (!existing.has("BLOBS")) await api("POST", "/r2/buckets", text({ name: bucket }), jsonType).catch((e) => { if (!/exist|10004/i.test(e.message)) throw e; });
@@ -427,6 +446,10 @@ deployerOps = {
     // The table database is bound to one Worker, which checks every statement the others send it.
     // brain-x-knowledge has a database too, of its own: the knowledge base is not the database the Brain runs on.
     if (m.resources.includes("database") && logical !== "brain-db" && !(logical === "brain-x-knowledge" && m.role === "recipe")) return "only brain-db and brain-x-knowledge are bound to a database of their own";
+    // The metrics dataset and the tail are one Worker's: its tail function is given every other Worker's log lines.
+    const metrics = logical === TAIL && m.role === "recipe";
+    if (m.resources.includes("analytics") && !metrics) return "only brain-x-dashboard is bound to the metrics dataset";
+    if (m.tail && !metrics) return "only brain-x-dashboard has a tail";
     const group = (m.cloudflare || []).find((g) => !GROUPS.includes(g));
     if ((m.cloudflare || []).length && m.role !== "recipe") return "only a recipe declares Cloudflare permissions";
     if (group) return `"${group}" is not a Cloudflare permission a service may declare. A service may declare: ${GROUPS.join(", ")}`;
@@ -445,7 +468,7 @@ deployerOps = {
       if (clash) return `${clash} is already served by ${other.worker}`;
     }
     // Containers run as root with the open internet and are billed by the second: one service leases them to the rest.
-    const bad = m.resources.find((r) => !["rows", "blobs", "inbox", "xrpc", "assets", "sql", "browser", ...(logical === "brain-x-knowledge" ? ["database", "vectors"] : []), ...(logical === "brain-x-container" ? ["containers"] : [])].includes(r));
+    const bad = m.resources.find((r) => !["rows", "blobs", "inbox", "xrpc", "assets", "sql", "browser", ...(logical === "brain-x-knowledge" ? ["database", "vectors"] : []), ...(logical === "brain-x-container" ? ["containers"] : []), ...(metrics ? ["analytics"] : [])].includes(r));
     if (bad) return `a recipe may not use the platform cell "${bad}"`;
     // What the knowledge base is searched by: one index, of the size and fields the service declares.
     const v = m.vectors;
@@ -508,7 +531,7 @@ deployerOps = {
   const deployWith = async (w, rec, given, key, live, existing, token) => {
     const m = w.meta, logical = m.worker;
     const bindings = await bindingsFor(w, key, existing, given, token.binding);
-    const meta = { main_module: "worker.js", compatibility_date: "2026-10-01", compatibility_flags: [...new Set([...(m.flags || []), ...wrapperFlags])], observability: OBSERVABILITY, bindings };
+    const meta = { main_module: "worker.js", compatibility_date: "2026-10-01", compatibility_flags: [...new Set([...(m.flags || []), ...wrapperFlags])], observability: OBSERVABILITY, ...(await tailConsumers(logical)), bindings };
     const boxes = m.containers || [];
     if (boxes.length) meta.containers = boxes.map((b) => ({ class_name: b.class_name }));
     if (boxes.length && !live) meta.migrations = { new_tag: "v1", new_sqlite_classes: boxes.map((b) => b.class_name) };
@@ -561,12 +584,14 @@ deployerOps = {
     if (boxes.length || (rec && (rec.containers || []).length)) await applications(logical, boxes);
     // What is needed to put the version before back, routes included.
     await token.done();
-    const before = rec && rec.hash ? { hash: rec.hash, version: previous, module: rec.module, methods: rec.methods, access: rec.access, paths: rec.paths, secrets: rec.secrets, resources: rec.resources, cloudflare: rec.cloudflare || [], token: rec.token || null } : null;
+    const before = rec && rec.hash ? { hash: rec.hash, version: previous, module: rec.module, methods: rec.methods, access: rec.access, paths: rec.paths, secrets: rec.secrets, resources: rec.resources, cloudflare: rec.cloudflare || [], token: rec.token || null, tail: !!rec.tail } : null;
     const next = {
       worker: logical, role: m.role, module: m.module || null, hash: w.hash, version, key, state: "deployed", fails: 0, assetHash, distiller: typeof w.source === "string" ? self.hash : null,
       previous: before,
       methods: m.methods, access: m.access || {}, paths: m.paths, secrets: m.secrets, resources: m.resources, cloudflare: m.cloudflare || [], token: token.id, deployedAt: Date.now(),
-      ...(boxes.length ? { containers: boxes } : {})
+      ...(boxes.length ? { containers: boxes } : {}),
+      // Read by tailConsumers at the upload of every other Worker.
+      ...(m.tail ? { tail: true } : {})
     };
     await rows.put("worker/" + logical, next);
     await register(next, m.access);
@@ -1131,6 +1156,7 @@ deployerOps = {
     if ((m.cloudflare || []).length) return refuse("a member service may not declare Cloudflare permissions", logical);
     if ((m.paths || []).length) return refuse("a member service has no paths", logical);
     if ((m.crons || []).length || (m.flags || []).length) return refuse("a member service has no schedule and no flags", logical);
+    if (m.tail) return refuse("a member service has no tail", logical);
     const access = {};
     for (const [nsid, rule] of Object.entries(m.access || {})) {
       if (!nsid.startsWith(ns) || !/^[A-Za-z0-9.]{1,60}$/.test(nsid.slice(ns.length))) return refuse(`${nsid}: a method of this member is named ${ns}NAME`, logical);
@@ -1159,7 +1185,7 @@ deployerOps = {
     const live = rec && rec.hash ? await api("GET", script(logical) + "/settings").catch(() => null) : null;
     const form = new FormData();
     form.append("metadata", new Blob([text({
-      main_module: "worker.js", compatibility_date: "2026-10-01", compatibility_flags: [...wrapperFlags], observability: OBSERVABILITY,
+      main_module: "worker.js", compatibility_date: "2026-10-01", compatibility_flags: [...wrapperFlags], observability: OBSERVABILITY, ...(await tailConsumers(logical)),
       bindings: [
         { type: "service", name: "CORE", service: actual("brain-core") },
         { type: "secret_text", name: "BRAIN_KEY", text: key },
@@ -1449,6 +1475,7 @@ fakeCloudflare = () => {
     { id: "g-tail", name: "Workers Tail Read", scopes: account },
     { id: "g-ai", name: "Workers AI Read", scopes: account },
     { id: "g-art", name: "Artifacts Write", scopes: account },
+    { id: "g-analytics", name: "Account Analytics Read", scopes: account },
     { id: "g-scripts", name: "Workers Scripts Write", scopes: account }
   ];
   let n = 0;
@@ -1542,6 +1569,7 @@ fakeCloudflare = () => {
       const next = s || { versions: new Map(), deployment: [], schedules: [], subdomain: false, previews: true };
       // The script's own settings: taken from the upload of a script, and not from the upload of a version.
       next.observability = v.metadata.observability || null;
+      next.tail = v.metadata.tail_consumers || null;
       next.versions.set(v.id, v);
       next.deployment = [{ version_id: v.id, percentage: 100 }];
       scripts.set(name, next);
@@ -1566,8 +1594,12 @@ fakeCloudflare = () => {
       return ok({ bindings: v.metadata.bindings });
     }
     if (rest === "/script-settings") {
-      if (request.method === "PATCH") s.observability = (await request.json()).observability;
-      return ok({ observability: s.observability || null });
+      if (request.method === "PATCH") {
+        const patch = await request.json();
+        if ("observability" in patch) s.observability = patch.observability;
+        if ("tail_consumers" in patch) s.tail = patch.tail_consumers.length ? patch.tail_consumers : null;
+      }
+      return ok({ observability: s.observability || null, tail_consumers: s.tail || null });
     }
     if (rest === "/subdomain") return (({ enabled, previews_enabled }) => ((s.subdomain = enabled), (s.previews = previews_enabled !== false)))(await request.json()), ok({});
     if (rest === "/schedules") return (s.schedules = await request.json()), ok({});
@@ -1734,6 +1766,56 @@ test_the_vector_index_is_made_for_brain_x_knowledge_alone = {
   return rig.fake.indexes.length + " indexes";
 }
 // %%
+test_the_metrics_dataset_and_the_tail_are_brain_x_dashboards_alone = {
+  const rig = await deployerRig();
+  await rig.recover({ workers: [await rig.made("brain-core", "core", "c1")] });
+  const board = (salt, extra = { resources: ["analytics", "rows"], tail: true }) => rig.made("brain-x-dashboard", "recipe", salt, { cloudflare: ["Account Analytics Read", "Workers Observability Read"], ...extra });
+  // The script's setting, which is what Cloudflare tails by: the field of a version's upload is not read.
+  const tailOf = (script) => rig.fake.scripts.get(script).tail || undefined;
+  // No other Worker is bound to the dataset or has a tail: not a recipe, not a system Worker, not the core.
+  const no = await rig.recover({ workers: [await rig.made("brain-x-other", "recipe", "o1", { resources: ["analytics"] }), await rig.made("brain-x-other", "recipe", "o2", { tail: true }), await rig.made("brain-dashboard", "system", "s1", { resources: ["analytics"] }), await rig.made("brain-core", "core", "c2", { tail: true })] });
+  expect(no.results.map((r) => [r.state, r.reason])).toEqual([["refused", "only brain-x-dashboard is bound to the metrics dataset"], ["refused", "only brain-x-dashboard has a tail"], ["refused", "only brain-x-dashboard is bound to the metrics dataset"], ["refused", "only brain-x-dashboard has a tail"]]);
+  // A Worker deployed before the dashboard names no tail consumer.
+  await rig.recover({ workers: [await rig.made("brain-x-early", "recipe", "e1")] });
+  expect([tailOf("cb-x-early"), "tail_consumers" in rig.fake.live("cb-x-early").metadata]).toEqual([undefined, false]);
+  const tailPatches = () => rig.fake.log.filter((l) => l.startsWith("PATCH") && l.endsWith("/script-settings")).length;
+  // The dataset is named for the Brain, from the kernel's script name. The dashboard's own upload names no consumer.
+  expect((await rig.recover({ workers: [await board("d1")] })).results[0].state).toBe("deployed");
+  expect(rig.fake.live("cb-x-dashboard").metadata.bindings.find((b) => b.name === "METRICS")).toEqual({ type: "analytics_engine", name: "METRICS", dataset: "cb_metrics" });
+  expect([rig.sim.rows.get("worker/brain-x-dashboard").tail, tailOf("cb-x-dashboard"), "tail" in rig.sim.rows.get("worker/brain-x-early")]).toEqual([true, undefined, false]);
+  const dashed = await deployerRig({ config: { base: "my-brain", self: "my-brain-deployer" } });
+  await dashed.recover({ workers: [await dashed.made("brain-core", "core", "c1"), await dashed.made("brain-x-dashboard", "recipe", "d1", { resources: ["analytics"], tail: true })] });
+  expect(dashed.fake.live("my-brain-x-dashboard").metadata.bindings.find((b) => b.name === "METRICS").dataset).toBe("my_brain_metrics");
+  // Every Worker deployed after it names it, by its script: a recipe, the one from before at its next version, the core.
+  await rig.recover({ workers: [await rig.made("brain-x-late", "recipe", "l1"), await rig.made("brain-x-early", "recipe", "e2"), await rig.made("brain-core", "core", "c3")] });
+  for (const script of ["cb-x-late", "cb-x-early", "cb-core"]) expect([script, tailOf(script)]).toEqual([script, [{ service: "cb-x-dashboard" }]]);
+  // Its own next version still names none.
+  await rig.recover({ workers: [await board("d2")] });
+  expect([rig.fake.running("cb-x-dashboard") === (await board("d2")).hash, tailOf("cb-x-dashboard")]).toEqual([true, undefined]);
+  // A version of the dashboard with no tail: its row says so, and a Worker deployed after it names no consumer.
+  await rig.recover({ workers: [await board("d3", { resources: ["rows"] })] });
+  expect("tail" in rig.sim.rows.get("worker/brain-x-dashboard")).toBe(false);
+  await rig.recover({ workers: [await rig.made("brain-x-late", "recipe", "l2")] });
+  expect(tailOf("cb-x-late")).toBe(undefined);
+  // Already as it should be: not set again.
+  const set = tailPatches();
+  await rig.recover({ workers: [await rig.made("brain-x-late", "recipe", "l3")] });
+  expect(tailPatches()).toBe(set);
+  // Put back to the version with a tail, the row has it again.
+  rig.fake.unhealthy.add((await board("d3", { resources: ["rows"] })).hash);
+  await rig.sim.scheduled();
+  await rig.sim.scheduled();
+  expect([rig.fake.running("cb-x-dashboard") === (await board("d2")).hash, rig.sim.rows.get("worker/brain-x-dashboard").tail]).toEqual([true, true]);
+  // A member's Worker names the consumer too, and declares neither the cell nor a tail.
+  const members = await memberRig();
+  await members.recover({ workers: [await members.made("brain-x-dashboard", "recipe", "d1", { resources: ["analytics"], tail: true })] });
+  expect((await members.deploy("todo", "a", { resources: ["sql"] })).state).toBe("deployed");
+  expect(members.fake.scripts.get(`cb-m-${members.id}-todo`).tail).toEqual([{ service: "cb-x-dashboard" }]);
+  expect((await members.deploy("b", "x", { resources: ["analytics"] })).reason).toBe('a member service may not use the platform cell "analytics"');
+  expect((await members.deploy("c", "x", { tail: true })).reason).toBe("a member service has no tail");
+  return "cb_metrics";
+}
+// %%
 test_container_images_are_applications_of_brain_x_container_alone = {
   const rig = await deployerRig();
   await rig.recover({ workers: [await rig.made("brain-core", "core", "c1")] });
@@ -1894,7 +1976,7 @@ test_a_declared_cloudflare_permission_is_held_for_the_owner_and_minted_for_that_
 test_a_cloudflare_permission_is_refused_off_the_list_and_outside_a_recipe = {
   const rig = await deployerRig();
   const reason = async (w) => (await rig.recover({ workers: [w] })).results[0].reason;
-  expect(await reason(await rig.made("brain-x-greedy", "recipe", "g", { cloudflare: ["Workers Observability Read", "Workers Scripts Write"] }))).toBe('"Workers Scripts Write" is not a Cloudflare permission a service may declare. A service may declare: Workers Observability Read, Workers AI Read, Artifacts Write, Billing Read');
+  expect(await reason(await rig.made("brain-x-greedy", "recipe", "g", { cloudflare: ["Workers Observability Read", "Workers Scripts Write"] }))).toBe('"Workers Scripts Write" is not a Cloudflare permission a service may declare. A service may declare: Workers Observability Read, Workers AI Read, Artifacts Write, Billing Read, Account Analytics Read');
   // It reads each Worker's code: no service may have it (spec-as-built, 2026-10-09).
   expect(await reason(await rig.made("brain-x-tail", "recipe", "t", { cloudflare: ["Workers Tail Read"] }))).toContain('"Workers Tail Read" is not a Cloudflare permission a service may declare');
   expect(await reason(await rig.made("brain-core", "core", "c", { cloudflare: ["Workers Observability Read"] }))).toBe("only a recipe declares Cloudflare permissions");
@@ -2996,7 +3078,7 @@ test_getModules_keeps_a_members_module_out_of_the_brains_list = {
   return "a member sees its own modules";
 }
 // %%
-import {cloudflare, secrets, rows, config, log, logged, simulate, partsHash, sha256, quickjs, quickjsLib, distillerData, distilIn, wrapperFlags} from "@tomlarkworthy/cloudflare-iac"
+import {cloudflare, secrets, rows, config, log, logged, simulate, partsHash, sha256, quickjs, quickjsLib, distillerData, distilIn, wrapperFlags, analyticsDataset} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {expect} from "@tomlarkworthy/jest-expect-standalone"
 // %%

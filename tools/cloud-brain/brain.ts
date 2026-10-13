@@ -103,6 +103,13 @@ const install = async (name: string, { replacedBy = null as string | null } = {}
   ];
   const metadata: any = { main_module: "worker.js", compatibility_date: "2026-10-01", compatibility_flags: [...new Set([...e.meta.flags, "nodejs_als"])], observability: { enabled: true, logs: { enabled: true, invocation_logs: false } }, bindings };
   if (!exists) metadata.migrations = { new_tag: "v1", new_sqlite_classes: ["Rows"] };
+  // The deployer's own lines go where it sends every other Worker's (tailConsumers in brain-deployer.ojs): to
+  // brain-x-dashboard, when the row the running deployer keeps of it says tail. No deployer to ask, or no such row: none.
+  if (exists && !replacedBy) {
+    const board = await deployer("getState").then((s: any) => (s.workers || []).find((w: any) => w.worker === "brain-x-dashboard"), () => null);
+    if (board && board.hash && board.tail) metadata.tail_consumers = [{ service: BASE + "-x-dashboard" }];
+    console.log(metadata.tail_consumers ? `its log lines go to the tail of ${BASE}-x-dashboard` : "no tail consumer: the deployer keeps no row of brain-x-dashboard that says tail, or did not answer");
+  }
   const form = new FormData();
   form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
   for (const p of e.parts) form.append(p.path, p.base64 != null ? new File([Buffer.from(p.base64, "base64")], p.path, { type: "application/wasm" }) : new File([p.text], p.path, { type: "application/javascript+module" }));
