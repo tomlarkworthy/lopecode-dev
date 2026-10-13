@@ -154,6 +154,8 @@ another home here: each needs a decision of where it goes, and `overseer-sweep-j
 - **An issue whose id is over 51 characters is not looked at.** `start` refuses a run whose longest key
   (`cost/<id>/overseer/1/<token>/resumed-9999999/end`) is over the 100 the tracker keeps, so the step skips
   such an ending and goes to the next, where it would else ask for the same refused start at each step.
+  `agents/implementer/tracker-calls.md` says an id is 40 characters at most at `open`, so this is for an id
+  from before that limit; I did not look for one in the record.
 - **The draw is not weighted**: a quick win and a three-round task are as likely.
 - **Every ending is in the draw**, as every one was in the old count: a digest the step rejected as covered by a
   later one, and an issue rejected at triage, among them. An overseer drawn for one has little to read.
