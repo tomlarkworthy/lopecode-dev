@@ -100,7 +100,9 @@
 //            reviewer. `round`: `resume`; nothing with a `waiter`, a running writer, or `needs-owner` and no word
 //            of the owner after the label. `ready` and `finish`: the move. `start`, `spec`: start the writer.
 //            `waiting`, `owner`, at `awaiting-approval` with no verdict of the round and no `leave`: start the
-//            approver. `waiting`, `work`, no running writer, no `waiter`: "A dead writer", the token ended and
+//            approver; none when a commit of its submits changes a file `approver.ts facts` marks `approver` or
+//            `policy` (the tool refuses those, so a run could only leave): a comment with the files, keyed
+//            `orch/<id>/no-approver-<n>`, then the label `needs-owner`. `waiting`, `work`, no running writer, no `waiter`: "A dead writer", the token ended and
 //            `back`; labeled `needs-owner` it is the owner's, as a `round` so labeled, and no `back` is made. A digest the snapshot opened: the older ones rejected, `triage`, `ready`. An overseer on
 //            one issue in 10 of those that ended (overseer-runs-too-often, 2026-10-13; the owner: "investigating 1
 //            in 10 tasks randomly instead of everything"). An ending is a move to `done` or `rejected`, or the label
@@ -224,7 +226,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { facts as approverFacts } from "./approver.ts";
+import { facts as approverFacts, gitOf } from "./approver.ts";
 
 // ---- what is read from the record, with no call
 export const PREFIX: Record<string, string> = { implementer: "impl", digest: "dig", "spec-writer": "spec", reviewer: "rev", approver: "appr", overseer: "over", orchestrator: "orch" };
@@ -233,6 +235,12 @@ export const BRIEF: Record<string, string> = { implementer: "implementer", diges
 const ALONE: Record<string, string> = { overseer: "over-", orchestrator: "orch-" };
 export const WRITERS = ["implementer", "digest", "spec-writer"];
 export const KEY_MOST = 100; // issuesLimits.key of brain-issues.ojs
+// The files of an issue's submitted commits that `approver.ts facts` marks `approver` or `policy`, each once with its
+// marks: the approver's own (rules.md, "The approver", "Its own files"). Its tool refuses an issue that has one, so a
+// run on it can only leave. A commit the checkout does not have has no files here and names none.
+export const ownFiles = (f: ReturnType<typeof approverFacts>) => [...new Set(f.refs.flatMap((r) => (r.files || []).filter((x) => x.marks.includes("approver") || x.marks.includes("policy")).map((x) => `[${x.marks.join(",")}] ${x.file}${x.cells && x.cells.length ? `: ${x.cells.join(", ")}` : ""}`)))];
+// What a step writes on such an issue in the place of a run: for the owner, who approves it or sends it back.
+export const noApproverText = (review: number, files: string[]) => `No approver read this one. Its commits change files that are the approver's own or the tracker's policy, and the approver's tool refuses to approve a change to those, so a run could only have left it to you. It is built${review ? ` and reviewed (the passing review is event ${review})` : ""}. Your answer is your approve or your send-back.\n\nThe files, as \`approver.ts facts\` marks them: ${files.join("; ")}.`;
 type Ev = Record<string, any>;
 export type Run = { id: string; role: string; round: number; token: string; session?: string; how?: string; at?: number; [k: string]: any };
 const moved = (events: Ev[], ...names: string[]) => events.filter((e) => e.type === "moved" && names.includes(e.move));
@@ -399,7 +407,11 @@ function place(first: string, topic: string, token: string, id: string, owner: (
     const r = worktree("--fresh", name, "--for", token), path = join(ROOT(), ".claude/worktrees/bm-" + name);
     if (r.code === 0) return { tree: name, path: r.out.trim(), unlanded: false };
     if (alone) return { fail: r.code === 2 ? 2 : 1, said: `worktree.sh --fresh ${name}: exit ${r.code} ${r.err.trim()}` };
-    if (r.code === 3 && owner(path) === id) return { tree: name, path, unlanded: true };
+    // Exit 3 writes no occupant: the writer put there as it stands is written as one, so no second agent is put beside it.
+    if (r.code === 3 && owner(path) === id) {
+      const o = worktree("--occupy", name, token);
+      return o.code === 0 ? { tree: name, path, unlanded: true } : { fail: 1, said: `worktree.sh --occupy ${name}: exit ${o.code} ${o.err.trim()}` };
+    }
     if (r.code === 3 && owner(path)) write(me, "comment", { key: `orch/${owner(path)}/stands-${token}`, id: owner(path), body: `The worktree bm-${name} holds work of this issue that is not landed (${r.err.trim().split("\n").pop()}). ${id} is started in the next name; nothing there was touched.` });
     if (r.code !== 3 && r.code !== 4) return { fail: r.code === 2 ? 2 : 1, said: `worktree.sh --fresh ${name}: exit ${r.code} ${r.err.trim()}` };
   }
@@ -997,8 +1009,18 @@ async function step(args: string[]) {
       if (e.why === "owner") {
         if (labels.includes("needs-owner")) return owners(e.id, G);
         if (e.state !== "awaiting-approval") return;
-        const f = approverFacts(G.events.map((x) => ({ id: e.id, ...x })) as any, { files: () => null, parents: () => [] } as any, e.id);
+        const f = approverFacts(G.events.map((x) => ({ id: e.id, ...x })) as any, gitOf(root), e.id);
         if (G.events.some((x) => x.key === f.verdictKey) || f.left.length) return;
+        // A change to the approver's own files: no run, the comment that says so with the files, then `needs-owner`.
+        const own = ownFiles(f);
+        if (own.length) {
+          const key = `orch/${e.id}/no-approver-${f.round}`, lab = `orch/${e.id}/needs-owner-${f.round}`;
+          if (lab.length > KEY_MOST) return skip(e.id, "approve", `the key ${lab} is over ${KEY_MOST} characters`);
+          return void done({ act: "no-approver", id: e.id, files: own }, () => {
+            const c = comment(e.id, key, noApproverText(f.review, own));
+            return (c as Ev).refused ? c : wrote(write(me, "label", { key: lab, id: e.id, add: ["needs-owner"], remove: [] }));
+          });
+        }
         if (machine) return skip(e.id, "approve", NOT_HERE("an approver's move is sent with `loop-approver`"));
         if (running(G, ["approver"]).length) return skip(e.id, "approve", "an approver of it runs");
         if (!bound(e.id, G, "approver", roundOf("approver", G.events))) return;

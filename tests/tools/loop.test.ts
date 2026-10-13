@@ -30,6 +30,7 @@ P="$RIG/root/.claude/worktrees/bm-$n"
 case "$1" in
   --fresh|--at) if [ -f "$RIG/wt-exit-$n" ]; then read code msg < "$RIG/wt-exit-$n"; echo "$msg" >&2; exit "$code"; fi; mkdir -p "$P"; echo "$P";;
   --remove) if [ -f "$RIG/wt-remove-$n" ] && [ "$3" != "--force" ]; then cat "$RIG/wt-remove-$n" >&2; exit 3; fi; rm -rf "$P";;
+  --occupy) if [ -f "$RIG/wt-occupy-$n" ]; then read code msg < "$RIG/wt-occupy-$n"; echo "$msg" >&2; exit "$code"; fi;;
 esac
 exit 0
 `);
@@ -338,7 +339,7 @@ test("a result that is an error is `stopped`, and the made token is ended", asyn
   expect("usage" in events("err", "cost")[1]).toBe(false);
 });
 
-test("the worktree: origin not reached starts nothing; another agent's is the next name; this issue's unlanded work is kept, another's is said on that issue", async () => {
+test("the worktree: origin not reached starts nothing; another agent's is the next name; this issue's unlanded work is kept and its writer written as the occupant, another's is said on that issue", async () => {
   fresh();
   open("proj", { kind: "project", state: "building" });
   open("task-a", { parent: "proj" });
@@ -358,9 +359,11 @@ test("the worktree: origin not reached starts nothing; another agent's is the ne
   // Exit 3, and the last comment that names the path is of this issue: the worktree as it is, and a fifth line.
   ev("proj", ME, { type: "commented", key: "orch/proj/worktree-9", body: "worktree " + JSON.stringify({ topic: "proj", branch: "bm/proj", path: tree("proj"), for: "task-a" }) });
   flagFile("wt-exit-proj", "3 ahead=2 changed=1");
-  rmSync(join(RIG, "agent.log"));
+  rmSync(join(RIG, "agent.log")); rmSync(join(RIG, "worktree.log"));
   const own = await cli(["start", "task-a", "--role", "implementer"]);
   expect([own.code, own.json.tree]).toEqual([0, "proj"]);
+  // Exit 3 of --fresh writes no occupant: the writer put there is written as one.
+  expect(log("worktree")).toEqual([`--fresh proj --for ${own.json.started}`, `--occupy proj ${own.json.started}`]);
   await over(own.json.started);
   expect(log("agent").slice(2, 8)).toEqual([`arg: Working directory: ${tree("proj")}.`, `Read ${tree("proj")}/.claude/skills/brain-maintenance/agents/implementer.md and follow it.`, "Issue: task-a", `scratch: ${join(RUNS, own.json.started + ".scratch")}`, `Your token is ${own.json.started}.`, "The worktree holds unlanded work of this issue."]);
   // Exit 3 with another issue's work: the next name, and a comment on the issue whose work stands there.
@@ -369,6 +372,13 @@ test("the worktree: origin not reached starts nothing; another agent's is the ne
   await over(other.json.started);
   const said = events("task-a", "commented").filter((e) => e.key.startsWith("orch/task-a/stands-"));
   expect(said.map((e) => e.body)).toEqual(["The worktree bm-proj holds work of this issue that is not landed (ahead=2 changed=1). task-b is started in the next name; nothing there was touched."]);
+  expect(log("worktree").filter((l) => l.startsWith("--occupy") && l.endsWith(other.json.started))).toEqual([]);
+  // The occupant not written (another token took it between the two calls): no writer is started there.
+  flagFile("wt-occupy-proj", "4 occupied by impl-zzzzzz");
+  rmSync(join(RIG, "agent.log"));
+  const taken = await cli(["start", "task-a", "--role", "implementer"]);
+  expect([taken.code, taken.out, log("agent")]).toEqual([1, "", []]);
+  expect(taken.err).toContain("worktree.sh --occupy proj: exit 4 occupied by impl-zzzzzz");
 });
 
 test("a reviewer: a view at the submit's commit, the four tools, TAB when a commit asks for it, the view removed and the token ended", async () => {

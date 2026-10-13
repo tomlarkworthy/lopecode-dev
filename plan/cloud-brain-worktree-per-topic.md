@@ -271,7 +271,10 @@ worktree over. `issue-as.sh` prints the status on stderr as ` [401]`, which `--f
 `SKILL.md` line 87 has the 401 for a token that was revoked; that one whose 48 hours ended
 answers 401 too is inferred and was not seen. Task 2's tests give the 401 from a stub in cb4's
 place, as `lock.test.ts` does with `LOCK_BASE`. So two orchestrating sessions on one machine do not put two agents in one
-worktree, with nothing kept in a session's memory. Not built and not run.
+worktree, with nothing kept in a session's memory. Not built and not run. (As built, `fb-batch-loop-tools`, 2026-10-13: exit 3 of `--fresh` writes no
+occupant, and a writer put in the worktree as it stands, because the unlanded work is its issue's, had none
+written. `worktree.sh --occupy <name> <token>` writes it, with nothing fetched and no file of the worktree
+touched, and `loop.ts start` runs it for that writer.)
 
 Exit 3 is a writer that died or was sent back. When the unlanded work is of the issue being
 started (a rework, a resumed round, a `back`), the writer is put in it as it is and told so.

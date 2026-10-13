@@ -20,7 +20,7 @@ const guide = read("GUIDE", "knowledge/calling-a-cloud-brain-from-this-checkout.
 const hub = read("HUB", "knowledge/working-with-cloud-brain-remote-lopecode-cluster.md");
 const tool = readFileSync(resolve(root, "tools/cloud-brain/worktree.sh"), "utf8");
 // The header of worktree.sh, its reference: the lines its usage prints.
-const header = tool.split("\n").slice(1, 35).join("\n");
+const header = tool.split("\n").slice(1, Number(/usage\(\) \{ sed -n '2,(\d+)p'/.exec(tool)?.[1] ?? 0)).join("\n");
 
 // "Always" of rules.md, from its heading to the next.
 const always = (() => {

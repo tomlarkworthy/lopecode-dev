@@ -387,7 +387,19 @@ test("assemble: first paragraph, sections, the line, what the entry held, 16000 
   expect(long.endsWith("eee")).toBe(true);
 });
 
-const kept = async (t: any, ids = "arxiv:2603.06333") => { const r = await t.text(["--ids", ids]); expect(r.code).toBe(0); };
+// A `text` run that is not exit 0 fails with what the tool printed: the code alone left two fails of the suite with no
+// cause to read (seen-st6-papers-test-fails-in-suite, 2026-10-13).
+const kept = async (t: any, ids = "arxiv:2603.06333") => {
+  const r = await t.text(["--ids", ids]);
+  if (r.code !== 0) throw new Error(`summarize-papers.ts text --ids ${ids}: exit ${r.code}\nstdout:\n${r.out}\nstderr:\n${r.err}`);
+};
+
+test("kept: a text run that is not exit 0 fails with the tool's stdout and stderr, and one that is exit 0 passes", async () => {
+  const t = (code: number) => ({ text: async (a: string[]) => ({ code, out: `{"id":"${a[1]}","failed":"said on stdout"}`, err: "said on stderr" }) });
+  expect(await kept(t(0))).toBe(undefined);
+  const e: any = await kept(t(1), "arxiv:0000.00001").catch((x) => x);
+  expect(String(e && e.message)).toBe('summarize-papers.ts text --ids arxiv:0000.00001: exit 1\nstdout:\n{"id":"arxiv:0000.00001","failed":"said on stdout"}\nstderr:\nsaid on stderr');
+});
 
 test("the rig: no directory of it, and none an agent is given, is under the system's temporary directory; stop removes it", async () => {
   const t = await fresh(), sys = realpathSync(tmpdir()) + "/";

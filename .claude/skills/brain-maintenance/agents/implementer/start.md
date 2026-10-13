@@ -173,6 +173,8 @@ each command; no shell state lasts between calls.
    make `start` as above, read that writer's comments and the commits they name, and go on from
    what is landed; your round is still the count of `rework` moves plus one.
    **Then work in your worktree, `$W`** ("Where you work", above): the orchestrator made it at
-   `origin/main` and wrote your token in it as its occupant, so no other agent is put there while
-   you work. Steps 5 to 10 happen in it. (Until `wt-3-land-by-push`, 2026-10-12, each writer made
+   `origin/main`, or put you in it as it stood when it holds unlanded work of your issue (your
+   prompt then has the line `The worktree holds unlanded work of this issue.`), and in either case
+   wrote your token in it as its occupant, so no other agent is put there while you work (for the
+   second case since `fb-batch-loop-tools`, 2026-10-13: `worktree.sh --occupy`). Steps 5 to 10 happen in it. (Until `wt-3-land-by-push`, 2026-10-12, each writer made
    a worktree of its own here, one an issue, and removed it at its landing.)

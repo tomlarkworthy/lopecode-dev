@@ -13,6 +13,10 @@
 #                                       touched. --for writes the token's name in the file bm-occupant of the worktree's
 #                                       git directory. An occupant whose token is gone (`issue-as.sh <token> get?id=…` is
 #                                       exit 2, or answers 401) is taken over.
+# worktree.sh --occupy <name> <token>   the token's name is written as the occupant of a worktree that is there, as it
+#                                       stands: for a writer put in one that --fresh left at exit 3, whose unlanded
+#                                       work is its issue's. Nothing is fetched and no file of the worktree is touched.
+#                                       An occupant whose token is gone is taken over; exit 4 when another token is in it.
 # worktree.sh --leave <name>            the agent has reported: bm-occupant is removed.
 # worktree.sh --at <sha> <name>         a view: a detached worktree at <sha>, for a reader. One of that name that is there
 #                                       and detached is put at <sha>, what was changed or added in it thrown away. A
@@ -46,7 +50,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(dirname "$(git -C "$HERE" rev-parse --path-format=absolute --git-common-dir)")"
 MODS="lopebooks lopecode lopecode-plugin"
 OURS=(. ':!lopebooks' ':!lopecode' ':!lopecode-plugin' ':!cloud-brain-dev')
-usage() { sed -n '2,35p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }
+usage() { sed -n '2,39p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }
 named() { case "$1" in ""|-*|*[!a-zA-Z0-9._-]*) usage ;; esac; ID="$1"; W="$ROOT/.claude/worktrees/bm-$ID"; C="$W/cloud-brain-dev"; }
 there() { [ -d "$W" ] || { echo "worktree.sh: no worktree for '$ID'" >&2; exit 1; }; GD="$(git -C "$W" rev-parse --absolute-git-dir)"; }
 mode() { git -C "$W" ls-tree "$1" "$2" 2>/dev/null | cut -c1-6; }
@@ -169,6 +173,21 @@ case "$1" in
   git -C "$ROOT" worktree remove --force "$W"
   git -C "$ROOT" branch -D "bm/$ID" >/dev/null 2>&1 || true
   if [ -e "$ROOT/cloud-brain-dev/.git" ]; then git -C "$ROOT/cloud-brain-dev" worktree prune || true; fi
+  exit 0 ;;
+
+--occupy)
+  named "$2"; case "$3" in ""|*[!a-zA-Z0-9._-]*) usage ;; esac; [ $# = 3 ] || usage; FOR="$3"
+  there
+  WAS="$(cat "$GD/bm-occupant" 2>/dev/null || true)"
+  if [ -n "$WAS" ] && [ "$WAS" != "$FOR" ]; then
+    gone "$WAS" || { echo "worktree.sh: $W is occupied by $WAS; nothing was touched" >&2; exit 4; }
+    echo "worktree.sh: the occupant $WAS is gone (its token is not taken); taken over" >&2
+    rm -f "$GD/bm-occupant"
+  fi
+  (set -C; echo "$FOR" > "$GD/bm-occupant") 2>/dev/null || true
+  NOW="$(cat "$GD/bm-occupant")"
+  [ "$NOW" = "$FOR" ] || { echo "worktree.sh: $W is occupied by $NOW; nothing was touched" >&2; exit 4; }
+  echo "$W"
   exit 0 ;;
 
 --leave)

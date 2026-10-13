@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { drawn, givenKey, judged, judgmentRound, notLoggedIn, outcomeOf, OVERSEE_ONE_IN, OVERSEE_WINDOW, verdictKey } from "../../tools/cloud-brain/loop.ts";
+import { drawn, givenKey, judged, judgmentRound, noApproverText, notLoggedIn, outcomeOf, OVERSEE_ONE_IN, OVERSEE_WINDOW, ownFiles, verdictKey } from "../../tools/cloud-brain/loop.ts";
 
 const tool = resolve(import.meta.dir, "../../tools/cloud-brain/loop.ts");
 const RIG = mkdtempSync(join(tmpdir(), "loop-step-test-")), ROOT = join(RIG, "root"), DEV = join(ROOT, "cloud-brain-dev"), STATE = join(RIG, "state"), LOOP = join(STATE, "issue-loop"), RUNS = join(LOOP, "runs");
@@ -500,6 +500,55 @@ test("in `waiting` for the owner at `awaiting-approval`: an approver is started 
   expect(log("self")).toEqual(["start a --role approver", "start f --role approver", `start e --role orchestrator --token orch-0a0a0a --give dead e (event ${dead.seq})`]);
   expect([gave(r.line), r.line.skipped]).toEqual([[`dead e ${dead.seq}`], [{ id: "d", do: "approve", why: "an approver of it runs" }]]);
   expect(status()).toContain("## What waits for the owner\n\n- a (awaiting-approval)\n- b (awaiting-approval)\n- c (awaiting-approval)\n- d (awaiting-approval)\n- e (awaiting-approval)\n- f (awaiting-approval)\n");
+});
+
+// A commit of the main checkout that origin/main does not have and no branch names: made detached, and main put back.
+const commitOf = (file: string) => {
+  g(ROOT, "checkout", "-q", "--detach");
+  mkdirSync(dirname(join(ROOT, file)), { recursive: true }); writeFileSync(join(ROOT, file), "changed " + file + "\n");
+  g(ROOT, "add", file); g(ROOT, "commit", "-q", "-m", "changes " + file);
+  const sha = head(ROOT);
+  g(ROOT, "checkout", "-q", "main");
+  return sha;
+};
+test("at `awaiting-approval` with a commit that changes the approver's own files: no approver, a comment with the files and then `needs-owner`, once; a commit of an earlier submit counts, one the checkout lacks does not", async () => {
+  fresh();
+  const BRIEF = ".claude/skills/brain-maintenance/agents/approver.md", POLICY = "plan/cloud-brain-issues-policy-v9.json";
+  const brief = commitOf(BRIEF), policy = commitOf(POLICY), plain = commitOf("tools/cloud-brain/plain.ts");
+  const submit = (id: string, ...shas: string[]) => { ev(id, { type: "moved", key: `k/${id}/submit/${T.seq}`, move: "submit", from: "in-progress", to: "in-review", refs: shas.map((value) => ({ kind: "commit", value })) }, "impl-aaaaaa"); at(id).issue.state = "in-review"; };
+  const waits = (id: string, ...shas: string[]) => { worked(id); submit(id, ...shas); ev(id, { type: "reviewed", key: `rev/${id}`, verdict: "pass" }, "rev-aaaaaa"); mv(id, "pass", "awaiting-approval", "rev-aaaaaa"); Wt(id, "owner"); };
+  waits("a", plain, brief);
+  waits("b", plain);
+  waits("c", policy); mv("c", "send-back", "in-progress"); submit("c", plain); mv("c", "pass", "awaiting-approval", "rev-aaaaaa");
+  waits("d", "0123456789abcdef0123456789abcdef01234567");
+  waits("e", brief); note("e", "approver/e/verdict-1", "approver: approve\nwhy", "appr-aaaaaa");
+  const review = events("a", "reviewed")[0].seq;
+  // Dry: the act is named and nothing is written.
+  const d = await dry();
+  expect([acts(d.line), writes()]).toEqual([["no-approver a", "start b approver", "no-approver c", "start d approver"], []]);
+  const r = await step();
+  expect(acts(r.line)).toEqual(["no-approver a", "start b approver", "no-approver c", "start d approver"]);
+  expect(log("self")).toEqual(["start b --role approver", "start d --role approver"]);
+  expect(r.line.acts[0].files).toEqual([`[approver] ${BRIEF}`]);
+  expect(writes().map((c) => [c.method, c.body.key, c.body.add])).toEqual([["comment", "orch/a/no-approver-1", undefined], ["label", "orch/a/needs-owner-1", ["needs-owner"]], ["comment", "orch/c/no-approver-2", undefined], ["label", "orch/c/needs-owner-2", ["needs-owner"]]]);
+  expect(events("a", "commented").at(-1)!.body).toBe(`No approver read this one. Its commits change files that are the approver's own or the tracker's policy, and the approver's tool refuses to approve a change to those, so a run could only have left it to you. It is built and reviewed (the passing review is event ${review}). Your answer is your approve or your send-back.\n\nThe files, as \`approver.ts facts\` marks them: [approver] ${BRIEF}.`);
+  expect(events("c", "commented").at(-1)!.body).toContain(`marks them: [policy] ${POLICY}.`);
+  expect([at("a").issue.labels, at("c").issue.labels, at("b").issue.labels, at("e").issue.labels]).toEqual([["needs-owner"], ["needs-owner"], [], []]);
+  expect(status()).toContain("## What waits for the owner\n\n- a (awaiting-approval)\n- b (awaiting-approval)\n- c (awaiting-approval)\n- d (awaiting-approval)\n- e (awaiting-approval)\n");
+  // The next step: the two are labeled and his, and nothing more is written on them.
+  T.waiting = T.waiting.map((w) => ({ ...w, labels: at(w.id).issue.labels })); T.calls = [];
+  const again = await step();
+  expect([acts(again.line).filter((a: string) => /no-approver| [ac] /.test(a)), writes().filter((c) => ["a", "c"].includes(c.body.id))]).toEqual([[], []]);
+});
+
+test("ownFiles and noApproverText: the files marked `approver` or `policy` of every ref, each once with its cells; none for a ref with no files; the text with no review", () => {
+  const f: any = { refs: [
+    { kind: "commit", files: [{ file: "tools/cloud-brain/approver.ts", marks: ["approver"] }, { file: "tools/cloud-brain/loop.ts", marks: [] }, { file: "tools/cloud-brain/brain-issues.ojs", marks: ["policy"], cells: ["issuesApp", "issuesLimits"] }] },
+    { kind: "commit", files: [{ file: "tools/cloud-brain/approver.ts", marks: ["approver"] }, { file: "tools/cloud-brain/brain-issues.ojs", marks: ["tracker"], cells: [] }, { file: "tools/cloud-brain/brain-kernel.ojs", marks: ["never"] }, { file: ".claude/skills/brain-maintenance/rules.md", marks: ["rules"] }] },
+    { kind: "commit", files: null }, { kind: "hash", files: null }] };
+  expect(ownFiles(f)).toEqual(["[approver] tools/cloud-brain/approver.ts", "[policy] tools/cloud-brain/brain-issues.ojs: issuesApp, issuesLimits"]);
+  expect(ownFiles({ refs: [] } as any)).toEqual([]);
+  expect(noApproverText(0, ["[approver] x"])).toBe("No approver read this one. Its commits change files that are the approver's own or the tracker's policy, and the approver's tool refuses to approve a change to those, so a run could only have left it to you. It is built. Your answer is your approve or your send-back.\n\nThe files, as `approver.ts facts` marks them: [approver] x.");
 });
 
 test("in `waiting`, `work`, with no running writer and no waiter: the token is ended and the issue goes `back`; an agent of a session is left while its token is live", async () => {

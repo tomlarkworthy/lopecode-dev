@@ -545,6 +545,42 @@ test("an occupant that is gone does not make unlanded work free: exit 3, and the
   } finally { svc.stop(); }
 });
 
+test("--occupy writes the occupant of a worktree that holds unlanded work, which --fresh leaves at exit 3 with none; then another token is exit 4 and the work is as it was", async () => {
+  const { root } = repo();
+  const svc = tracker();
+  try {
+    tokens(root, { "impl-aaaaaa": "secret-a", "impl-bbbbbb": "secret-b" });
+    const wt = (...a: string[]) => run(root, { ISSUE_AS_BASE: svc.base }, "bash", join(root, "tools/cloud-brain/worktree.sh"), ...a);
+    const w = path(await wt("--fresh", "topic"));
+    writeFileSync(join(w, "seed.ojs"), "half way\n");
+    const head = git(w, "rev-parse", "HEAD");
+    // As a start meets it: exit 3 and no occupant, then the writer of that work is written.
+    expect([(await wt("--fresh", "topic", "--for", "impl-aaaaaa")).code, occupant(root, "topic")]).toEqual([3, null]);
+    const r = await wt("--occupy", "topic", "impl-aaaaaa");
+    expect([r.code, r.out.trim(), r.err, occupant(root, "topic")]).toEqual([0, w, "", "impl-aaaaaa"]);
+    expect([git(w, "rev-parse", "HEAD"), readFileSync(join(w, "seed.ojs"), "utf8")]).toEqual([head, "half way\n"]);
+    // The same token again; another token, while the first is taken by the tracker: exit 4, also from --fresh.
+    expect((await wt("--occupy", "topic", "impl-aaaaaa")).code).toBe(0);
+    const other = await wt("--occupy", "topic", "impl-bbbbbb");
+    expect([other.code, other.out, occupant(root, "topic")]).toEqual([4, "", "impl-aaaaaa"]);
+    expect(other.err).toContain("is occupied by impl-aaaaaa; nothing was touched");
+    expect((await wt("--fresh", "topic", "--for", "impl-bbbbbb")).code).toBe(4);
+    // Landed, and the writer waits for its review in a clean worktree: no second agent is put there.
+    git(w, "checkout", "--", "seed.ojs");
+    expect([(await wt("--fresh", "topic", "--for", "impl-bbbbbb")).code, occupant(root, "topic")]).toEqual([4, "impl-aaaaaa"]);
+    // An occupant whose token is gone is taken over; --leave frees it.
+    writeFileSync(join(w, "seed.ojs"), "half way\n");
+    tokens(root, { "impl-bbbbbb": "secret-b" });
+    const over = await wt("--occupy", "topic", "impl-bbbbbb");
+    expect([over.code, occupant(root, "topic")]).toEqual([0, "impl-bbbbbb"]);
+    expect(over.err).toContain("the occupant impl-aaaaaa is gone");
+    expect([(await wt("--leave", "topic")).code, occupant(root, "topic")]).toEqual([0, null]);
+    // No worktree of the name, no token, a token that is no name: nothing is written.
+    expect((await wt("--occupy", "none", "impl-aaaaaa")).code).toBe(1);
+    expect([(await wt("--occupy", "topic")).code, (await wt("--occupy", "topic", "a b")).code, (await wt("--occupy", "topic", "impl-aaaaaa", "more")).code, occupant(root, "topic")]).toEqual([2, 2, 2, null]);
+  } finally { svc.stop(); }
+}, 60000);
+
 test("the tracker not reached is not a token that is gone: the occupant stays", async () => {
   const { root, made } = repo();
   tokens(root, { "impl-aaaaaa": "secret-a" });
