@@ -105,7 +105,7 @@ anonymous      false   403                    403
 
 Three requests reach Fly.io from those eighteen calls, each `POST …/machines/aa11bb22cc3310/exec` with
 `authorization: Bearer …` and `redirect: "manual"`. The test's value counts the rest
-(`grep -o '"value":"9 callers[^"]*"' cloud-brain-dev/reports/brain-x-fly.json`, after the first run below):
+(the first run below with `--whole` after it, `2>&1 | grep -o '"value":"9 callers[^"]*"'`):
 
 ```
 "value":"9 callers, 26 bodies of a blessed Worker refused, 11 settings that name nothing, 10 that bless nothing, 22 bodies of the owner's refused"
@@ -150,7 +150,29 @@ then put back:
 
 ## 4. On cb4
 
-REPLACE-ON-CB4
+The apply, under the deploy lock, taken 21:43:08 and released 21:43:30:
+
+```
+brain.ts apply fx-1-exec-method-brain-x-fly.json --reason="fx-1-exec-method: …"
+fx-1-exec-method-brain-x-fly.json 20872 ms [{"worker":"brain-x-fly","hash":"1d7ff72f2e76","state":"verified","version":"9679731a-ae91-47d4-911b-c8a78cc47353","tests":14}]
+brain.ts redistil      brain-x-fly        same  1d7ff72f2e76
+```
+
+`verified` is the deployer's: it ran the module's 14 tests in the Brain's browser. Then, at 21:44, the
+three reads the spec names for after the deploy, and one more:
+
+```
+curl -s -o /dev/null -w "%{http_code}" -X POST https://cb4.endpointservices.workers.dev/xrpc/com.lopecode.brain.fly.exec     401   (501 before)
+curl -s ".../xrpc/com.lopecode.brain.getSource?worker=brain-x-fly&part=reference" | grep -c "fly.exec"                       5     (0 before)
+brain.ts curl /xrpc/com.lopecode.brain.fly.status --as loop-fly
+{"app":"cloudbrain","machine":null,"machines":[{"id":"853145b4217618","name":"t1-by-hand-2","state":"stopped"}],"volume":null,"hoursToday":0.011,"maxHoursADay":8,"loop":"orchestrator-Mac","yield":null,"work":3}   [200]
+brain.ts curl /xrpc/com.lopecode.brain.fly.exec --as loop-fly -X POST -d '{"name":"diskFree"}'
+{"error":"Forbidden","message":"this token does not name com.lopecode.brain.fly.exec. …"}
+```
+
+The last is the core's refusal of a token that does not name the method, as the spec has it of
+`fly.post`: it is not the rule's and not the service's. No machine is named on cb4, so the owner's own
+call would read 409 today; not called.
 
 ## 5. Not tried, not done
 
