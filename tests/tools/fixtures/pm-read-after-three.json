@@ -1,0 +1,1578 @@
+{
+ "from": 4480,
+ "until": 6991,
+ "issues": {
+  "pm-second-summarizer-role": {
+   "moves": [
+    {
+     "seq": 4486,
+     "move": "triage",
+     "at": 1791832767571
+    },
+    {
+     "seq": 4487,
+     "move": "ready",
+     "at": 1791832767959
+    },
+    {
+     "seq": 4495,
+     "move": "start",
+     "at": 1791833052929
+    },
+    {
+     "seq": 4525,
+     "move": "submit",
+     "at": 1791834272021
+    },
+    {
+     "seq": 4542,
+     "move": "pass",
+     "at": 1791834551284
+    }
+   ],
+   "reviews": [
+    {
+     "seq": 4541,
+     "verdict": "pass"
+    }
+   ]
+  },
+  "spec-names-what-exists-of-the-job": {
+   "moves": [
+    {
+     "seq": 4551,
+     "move": "triage",
+     "at": 1791834642215
+    },
+    {
+     "seq": 4552,
+     "move": "ready",
+     "at": 1791834642654
+    },
+    {
+     "seq": 4579,
+     "move": "start",
+     "at": 1791834787317
+    },
+    {
+     "seq": 4659,
+     "move": "submit",
+     "at": 1791835486023
+    },
+    {
+     "seq": 4728,
+     "move": "pass",
+     "at": 1791835730136
+    }
+   ],
+   "reviews": [
+    {
+     "seq": 4727,
+     "verdict": "pass"
+    }
+   ]
+  },
+  "decision-comment-names-what-is-added": {
+   "moves": [
+    {
+     "seq": 4553,
+     "move": "triage",
+     "at": 1791834643016
+    },
+    {
+     "seq": 5543,
+     "move": "ready",
+     "at": 1791849609360
+    },
+    {
+     "seq": 5559,
+     "move": "start",
+     "at": 1791849752296
+    },
+    {
+     "seq": 5572,
+     "move": "submit",
+     "at": 1791850148663
+    },
+    {
+     "seq": 5577,
+     "move": "pass",
+     "at": 1791850381576
+    }
+   ],
+   "reviews": [
+    {
+     "seq": 5576,
+     "verdict": "pass"
+    }
+   ]
+  },
+  "philosophy-one-role-for-one-job": {
+   "moves": [
+    {
+     "seq": 4555,
+     "move": "triage",
+     "at": 1791834643921
+    },
+    {
+     "seq": 4812,
+     "move": "ready",
+     "at": 1791836426320
+    },
+    {
+     "seq": 4813,
+     "move": "start",
+     "at": 1791836426761
+    },
+    {
+     "seq": 4814,
+     "move": "submit",
+     "at": 1791836427155
+    },
+    {
+     "seq": 4833,
+     "move": "rework",
+     "at": 1791836676929
+    },
+    {
+     "seq": 4857,
+     "move": "submit",
+     "at": 1791837007659
+    },
+    {
+     "seq": 4868,
+     "move": "pass",
+     "at": 1791837235340
+    }
+   ],
+   "reviews": [
+    {
+     "seq": 4830,
+     "verdict": "changes"
+    },
+    {
+     "seq": 4866,
+     "verdict": "pass"
+    }
+   ]
+  },
+  "pm-approver-leaves-everything": {
+   "moves": [
+    {
+     "seq": 4940,
+     "move": "triage",
+     "at": 1791837827084
+    },
+    {
+     "seq": 4941,
+     "move": "ready",
+     "at": 1791837827494
+    },
+    {
+     "seq": 4943,
+     "move": "start",
+     "at": 1791837896014
+    },
+    {
+     "seq": 4998,
+     "move": "submit",
+     "at": 1791838737097
+    },
+    {
+     "seq": 5059,
+     "move": "pass",
+     "at": 1791839347674
+    }
+   ],
+   "reviews": [
+    {
+     "seq": 5052,
+     "verdict": "pass"
+    }
+   ]
+  },
+  "pm-agent-request-not-seen-fly-idle": {
+   "moves": [
+    {
+     "seq": 4950,
+     "move": "triage",
+     "at": 1791838006208
+    },
+    {
+     "seq": 4951,
+     "move": "ready",
+     "at": 1791838006594
+    },
+    {
+     "seq": 4957,
+     "move": "start",
+     "at": 1791838068010
+    },
+    {
+     "seq": 5029,
+     "move": "submit",
+     "at": 1791839125399
+    },
+    {
+     "seq": 5047,
+     "move": "pass",
+     "at": 1791839288483
+    }
+   ],
+   "reviews": [
+    {
+     "seq": 5045,
+     "verdict": "pass"
+    }
+   ]
+  },
+  "asks-orchestrator-label-and-watch": {
+   "moves": [
+    {
+     "seq": 5070,
+     "move": "triage",
+     "at": 1791839421608
+    },
+    {
+     "seq": 5075,
+     "move": "ready",
+     "at": 1791839423842
+    },
+    {
+     "seq": 5123,
+     "move": "start",
+     "at": 1791839543310
+    },
+    {
+     "seq": 5168,
+     "move": "submit",
+     "at": 1791840235745
+    },
+    {
+     "seq": 5188,
+     "move": "pass",
+     "at": 1791840448119
+    }
+   ],
+   "reviews": [
+    {
+     "seq": 5186,
+     "verdict": "pass"
+    }
+   ]
+  },
+  "wait-says-what-runs-and-until-when": {
+   "moves": [
+    {
+     "seq": 5071,
+     "move": "triage",
+     "at": 1791839422229
+    },
+    {
+     "seq": 5197,
+     "move": "ready",
+     "at": 1791840791673
+    },
+    {
+     "seq": 5219,
+     "move": "start",
+     "at": 1791841012312
+    },
+    {
+     "seq": 5284,
+     "move": "submit",
+     "at": 1791842577227
+    },
+    {
+     "seq": 5292,
+     "move": "pass",
+     "at": 1791842872677
+    }
+   ],
+   "reviews": [
+    {
+     "seq": 5291,
+     "verdict": "pass"
+    }
+   ]
+  },
+  "watch-prints-an-outside-sessions-comment": {
+   "moves": [
+    {
+     "seq": 5073,
+     "move": "triage",
+     "at": 1791839423073
+    },
+    {
+     "seq": 5199,
+     "move": "ready",
+     "at": 1791840799715
+    },
+    {
+     "seq": 5213,
+     "move": "start",
+     "at": 1791840943406
+    },
+    {
+     "seq": 5243,
+     "move": "submit",
+     "at": 1791841502188
+    },
+    {
+     "seq": 5253,
+     "move": "pass",
+     "at": 1791841875201
+    }
+   ],
+   "reviews": [
+    {
+     "seq": 5252,
+     "verdict": "pass"
+    }
+   ]
+  },
+  "approver-brief-his-test": {
+   "moves": [
+    {
+     "seq": 5091,
+     "move": "triage",
+     "at": 1791839459814
+    },
+    {
+     "seq": 5377,
+     "move": "ready",
+     "at": 1791846042407
+    },
+    {
+     "seq": 5378,
+     "move": "start",
+     "at": 1791846042778
+    },
+    {
+     "seq": 5429,
+     "move": "submit",
+     "at": 1791846751384
+    },
+    {
+     "seq": 5446,
+     "move": "to-approval",
+     "at": 1791847634188
+    },
+    {
+     "seq": 5686,
+     "move": "approve",
+     "at": 1791862998903
+    }
+   ],
+   "reviews": [
+    {
+     "seq": 5445,
+     "verdict": "pass"
+    }
+   ]
+  },
+  "approver-before-decision-comment": {
+   "moves": [
+    {
+     "seq": 5092,
+     "move": "triage",
+     "at": 1791839460541
+    },
+    {
+     "seq": 5094,
+     "move": "ready",
+     "at": 1791839461323
+    },
+    {
+     "seq": 5193,
+     "move": "start",
+     "at": 1791840511496
+    },
+    {
+     "seq": 5246,
+     "move": "submit",
+     "at": 1791841569839
+    },
+    {
+     "seq": 5255,
+     "move": "pass",
+     "at": 1791841891755
+    }
+   ],
+   "reviews": [
+    {
+     "seq": 5254,
+     "verdict": "pass"
+    }
+   ]
+  },
+  "approver-own-files-are-the-policy-cells": {
+   "moves": [
+    {
+     "seq": 5093,
+     "move": "triage",
+     "at": 1791839460944
+    },
+    {
+     "seq": 5382,
+     "move": "ready",
+     "at": 1791846058506
+    },
+    {
+     "seq": 5383,
+     "move": "start",
+     "at": 1791846058847
+    },
+    {
+     "seq": 5450,
+     "move": "submit",
+     "at": 1791847814939
+    },
+    {
+     "seq": 5471,
+     "move": "rework",
+     "at": 1791848239794
+    },
+    {
+     "seq": 5490,
+     "move": "submit",
+     "at": 1791848541760
+    },
+    {
+     "seq": 5508,
+     "move": "to-approval",
+     "at": 1791848877263
+    },
+    {
+     "seq": 5687,
+     "move": "approve",
+     "at": 1791862999226
+    }
+   ],
+   "reviews": [
+    {
+     "seq": 5470,
+     "verdict": "changes"
+    },
+    {
+     "seq": 5507,
+     "verdict": "pass"
+    }
+   ]
+  }
+ },
+ "verdicts": [
+  {
+   "seq": 4622,
+   "id": "bk-2-finish-by-the-service",
+   "verdict": "leave",
+   "brief": "9956b9aa"
+  },
+  {
+   "seq": 4638,
+   "id": "wt-5-docs",
+   "verdict": "leave",
+   "brief": "9956b9aa"
+  },
+  {
+   "seq": 4642,
+   "id": "post-mortems-declared-and-kept",
+   "verdict": "leave",
+   "brief": "9956b9aa"
+  },
+  {
+   "seq": 4652,
+   "id": "docs-summarised-for-search",
+   "verdict": "leave",
+   "brief": "9956b9aa"
+  },
+  {
+   "seq": 4797,
+   "id": "owner-decisions-written-dense",
+   "verdict": "leave",
+   "brief": "9956b9aa"
+  },
+  {
+   "seq": 4858,
+   "id": "bk-3-queue-and-hold",
+   "verdict": "leave",
+   "brief": "9956b9aa"
+  },
+  {
+   "seq": 4863,
+   "id": "tracker-trigger-rules",
+   "verdict": "leave",
+   "brief": "9956b9aa"
+  },
+  {
+   "seq": 4991,
+   "id": "dense-rule-says-what-project-is-for",
+   "verdict": "leave",
+   "brief": "9956b9aa"
+  },
+  {
+   "seq": 5169,
+   "id": "dense-rule-project-line-first",
+   "verdict": "approve",
+   "brief": "9956b9aa"
+  },
+  {
+   "seq": 5286,
+   "id": "orchestrator-as-steps",
+   "verdict": "leave",
+   "brief": "9956b9aa"
+  },
+  {
+   "seq": 5349,
+   "id": "tr-1-wait-in-the-record",
+   "verdict": "leave",
+   "brief": "9956b9aa"
+  },
+  {
+   "seq": 5405,
+   "id": "rules-md-loop-docs-names-four-methods",
+   "verdict": "leave",
+   "brief": "9956b9aa"
+  },
+  {
+   "seq": 5432,
+   "id": "fly-3-brain-fly-service",
+   "verdict": "approve",
+   "brief": "9956b9aa"
+  },
+  {
+   "seq": 5451,
+   "id": "approver-brief-his-test",
+   "verdict": "leave",
+   "brief": "83032177"
+  },
+  {
+   "seq": 5495,
+   "id": "sd-3-pilot-ten",
+   "verdict": "leave",
+   "brief": "83032177"
+  },
+  {
+   "seq": 5516,
+   "id": "deployer-binds-no-method-list",
+   "verdict": "leave",
+   "brief": "83032177"
+  },
+  {
+   "seq": 5524,
+   "id": "approver-own-files-are-the-policy-cells",
+   "verdict": "leave",
+   "brief": "83032177"
+  },
+  {
+   "seq": 5587,
+   "id": "policy-v5-names-the-approver-as-it-is",
+   "verdict": "leave",
+   "brief": "0189a17f"
+  },
+  {
+   "seq": 5628,
+   "id": "overseer-pre-put-run-names-four-files",
+   "verdict": "approve",
+   "brief": "0189a17f"
+  },
+  {
+   "seq": 5811,
+   "id": "ap-6-rules-and-live-step",
+   "verdict": "approve",
+   "brief": "0189a17f"
+  },
+  {
+   "seq": 5882,
+   "id": "overseer-says-unanswered-without-a-read",
+   "verdict": "approve",
+   "brief": "0189a17f"
+  },
+  {
+   "seq": 6003,
+   "id": "tr-3-briefs-and-queue",
+   "verdict": "approve",
+   "brief": "0189a17f"
+  },
+  {
+   "seq": 6174,
+   "id": "never-list-three-reductions",
+   "verdict": "leave",
+   "brief": "0189a17f"
+  },
+  {
+   "seq": 6206,
+   "id": "tr-4-held-read",
+   "verdict": "leave",
+   "brief": "0189a17f"
+  },
+  {
+   "seq": 6214,
+   "id": "cu-4-price-on-a-stored-write",
+   "verdict": "approve",
+   "brief": "0189a17f"
+  },
+  {
+   "seq": 6233,
+   "id": "fly-exec-for-blessed-services",
+   "verdict": "leave",
+   "brief": "0189a17f"
+  },
+  {
+   "seq": 6235,
+   "id": "page-modifications-how-they-are-kept",
+   "verdict": "leave",
+   "brief": "0189a17f"
+  },
+  {
+   "seq": 6254,
+   "id": "rules-checked-and-stale-knowledge-seen",
+   "verdict": "leave",
+   "brief": "0189a17f"
+  },
+  {
+   "seq": 6350,
+   "id": "sd-4-the-rest-and-the-release-line",
+   "verdict": "approve",
+   "brief": "0189a17f"
+  },
+  {
+   "seq": 6512,
+   "id": "st-7-switch-and-texts",
+   "verdict": "approve",
+   "brief": "fe5c1e7d"
+  },
+  {
+   "seq": 6661,
+   "id": "fly-4-loop-files",
+   "verdict": "approve",
+   "brief": "fe5c1e7d"
+  },
+  {
+   "seq": 6763,
+   "id": "rules-md-over-one-tool-read",
+   "verdict": "approve",
+   "brief": "fe5c1e7d"
+  },
+  {
+   "seq": 6838,
+   "id": "overseer-md-git-status-form",
+   "verdict": "approve",
+   "brief": "fe5c1e7d"
+  },
+  {
+   "seq": 6840,
+   "id": "rules-md-own-files-says-policy-cell",
+   "verdict": "approve",
+   "brief": "fe5c1e7d"
+  }
+ ],
+ "labels": [
+  {
+   "seq": 5125,
+   "id": "asks-orchestrator-label-and-watch",
+   "add": true,
+   "by": "impl-0f0bf1",
+   "at": 1791839558958
+  },
+  {
+   "seq": 5126,
+   "id": "asks-orchestrator-label-and-watch",
+   "add": false,
+   "by": "impl-0f0bf1",
+   "at": 1791839559865
+  },
+  {
+   "seq": 5909,
+   "id": "st-2-loop-start-and-end",
+   "add": true,
+   "by": "impl-357b9d",
+   "at": 1791867234638
+  },
+  {
+   "seq": 5911,
+   "id": "st-2-loop-start-and-end",
+   "add": false,
+   "by": "orch-d97e0e",
+   "at": 1791867267590
+  }
+ ],
+ "searches": [
+  {
+   "seq": 4488,
+   "id": "knowledge-docs-put-stale-skips-unmarked",
+   "by": "impl-84c9b7",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4494,
+   "id": "specs-kept-in-the-cluster",
+   "by": "impl-787a4b",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4515,
+   "id": "bk-2-finish-by-the-service",
+   "by": "impl-33733c",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4524,
+   "id": "pm-second-summarizer-role",
+   "by": "impl-58df50",
+   "names": [
+    "pm-second-summarizer-role"
+   ],
+   "line": "**The post mortem is written and landed: `tools/cloud-brain/post-mortems/pm-second-summarizer-role.md`, lopecode-dev 2939a2c0. No brief was changed and nothing was deployed. Three next actions are filed.**"
+  },
+  {
+   "seq": 4532,
+   "id": "view-isolated-from-main-notebook",
+   "by": "impl-47af44",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4536,
+   "id": "iac-origin-test-secret-held-by-clock",
+   "by": "impl-a3d029",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4539,
+   "id": "wt-5-docs",
+   "by": "impl-78a682",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4543,
+   "id": "skill-step-2-five-lines-out",
+   "by": "impl-75682b",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4566,
+   "id": "post-mortems-declared-and-kept",
+   "by": "spec-b08073",
+   "names": [
+    "pm-second-summarizer-role"
+   ],
+   "line": "**The first post mortem** (`pm-second-summarizer-role`, 2939a2c0) landed while this was written. Its headings are the form, and it meets it unchanged. It differs in two things the spec keeps its own way on: its actions were filed before its review and linked `related`; the spec files after the pass and links `cause`."
+  },
+  {
+   "seq": 4610,
+   "id": "ap-4-policy-v3",
+   "by": "impl-17c3c7",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4636,
+   "id": "tp-3b-take-is-one-transaction-test",
+   "by": "impl-bd959e",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4654,
+   "id": "spec-names-what-exists-of-the-job",
+   "by": "impl-d802a7",
+   "names": [
+    "pm-second-summarizer-role"
+   ],
+   "line": "`3. Is the smallest version that meets them the one proposed, and what was not chosen? List the standing things the design adds (a role and its brief, a tool, a token, a Worker, a method, a store). For each, read the sentence of the spec that names what exists today that does the same job for the same purpose and says under \"Not chosen\" why that is not extended, or that nothing exists, with the search or the listing that showed it (step 5 of the spec writer's brief, `agents/spec.md`). A thing the design adds with no such sentence is a `no` to this question. (Review 4341 of `docs-summarised-for-search` answered \"yes\" from the twelve ways the spec listed; a second summarizer role was in none o"
+  },
+  {
+   "seq": 4723,
+   "id": "owner-decisions-written-dense",
+   "by": "impl-069517",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4781,
+   "id": "view-reviewer-reads-lopecode-dev-claude",
+   "by": "impl-02b7ab",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4810,
+   "id": "tp-4-docs",
+   "by": "impl-aa003e",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4817,
+   "id": "bk-3-queue-and-hold",
+   "by": "impl-77900c",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4855,
+   "id": "pm-1-file-and-search",
+   "by": "impl-2f5ada",
+   "names": [
+    "pm-second-summarizer-role"
+   ],
+   "line": "**The first file attached.** `pm-second-summarizer-role-r1.md` on `pm-second-summarizer-role`, event 4803, 12,664 bytes, sha256 `59032dcd…`, the same as the file on `origin/main`; read back with `attachment?id=&name=`. The issue was `done` and the call was taken."
+  },
+  {
+   "seq": 4880,
+   "id": "put-sh-in-a-worktree-finds-no-token",
+   "by": "impl-1d29f2",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4914,
+   "id": "reviewer-q3-reads-what-exists",
+   "by": "impl-0ae747",
+   "names": [
+    "pm-second-summarizer-role"
+   ],
+   "line": "**Prior art.** Two searches of the Brain (`knowledge.search?semantic=true`): \"reviewer brief kept copy fixture test\" (first: `doc:cloud-brain-texts-not-read-again-after-a-change`, `doc:cloud-brain-lean-reviewer-persona`; neither used) and \"spec review question what exists today same job\" (first: `doc:pm-second-summarizer-role`, the post mortem this comes from; used). How the copy is written again is in `tests/tools/reviewer-brief.ts`."
+  },
+  {
+   "seq": 4947,
+   "id": "dense-rule-says-what-project-is-for",
+   "by": "impl-11a58b",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4961,
+   "id": "pm-2-brief-and-procedure",
+   "by": "impl-8da9e9",
+   "names": [
+    "pm-second-summarizer-role",
+    "pm-approver-leaves-everything"
+   ],
+   "line": "**Prior art (step 2).** Three searches with `loop-knowledge`: \"post mortem declared by the loop root cause trace\", \"implementer brief section for a kind of task a label says which brief\", \"test that holds lines of SKILL.md and a brief\". Used: the spec (first in each) and `doc:pm-second-summarizer-role` as the example. Nothing else bore on it."
+  },
+  {
+   "seq": 4968,
+   "id": "bk-4-install-the-project-workflow",
+   "by": "impl-284cb7",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 4997,
+   "id": "pm-approver-leaves-everything",
+   "by": "impl-c81116",
+   "names": [
+    "pm-approver-leaves-everything",
+    "pm-second-summarizer-role"
+   ],
+   "line": "**Searched** (`knowledge.search`, `loop-knowledge`, 22:45 CEST): \"approver leaves every issue to the owner\", \"auto approve needs-owner issues persona refuses\", \"a choice of letters put to the owner decision comment\". Used: `doc:cloud-brain-approver-persona` (first for each) and `doc:pm-second-summarizer-role` (second for the third query, 0.93), whose second cause is the last step of this one; linked `related` (event 4973)."
+  },
+  {
+   "seq": 5030,
+   "id": "pm-agent-request-not-seen-fly-idle",
+   "by": "impl-480250",
+   "names": [
+    "pm-agent-request-not-seen-fly-idle",
+    "pm-second-summarizer-role",
+    "pm-approver-leaves-everything"
+   ],
+   "line": "**Searched** (`knowledge.search?semantic=true`, `loop-knowledge`, 22:50 CEST): \"a request from one agent to another is not seen comment nothing reads\" (first `doc:cloud-brain-texts-not-read-again-after-a-change`, third `doc:pm-second-summarizer-role`), \"writer waits for the orchestrator mid task billed machine idle\" (first `doc:cloud-brain-loop-order-of-service`, second `doc:cloud-brain-tracker-trigger-rules`), \"post mortem dropped request handoff between agents promise kept in a session notes\" (first `doc:pm-second-summarizer-role`). Used: the trigger-rules spec and the bookkeeping spec, for question 2 of the body and for the actions. `pm-second-summarizer-role` was read whole as the exampl"
+  },
+  {
+   "seq": 5039,
+   "id": "fly-1-by-hand",
+   "by": "impl-ebb0f2",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5043,
+   "id": "post-mortem-actions-prefer-guards",
+   "by": "impl-7517b8",
+   "names": [
+    "pm-agent-request-not-seen-fly-idle"
+   ],
+   "line": "- `bun test --timeout=30000 ./tests/tools/post-mortem-actions-prefer-guards.test.ts ./tests/tools/post-mortems.test.ts ./tests/tools/pm-2-brief-and-procedure.test.ts ./tests/tools/pm-1-file-and-search.test.ts ./tests/tools/pm-agent-request-not-seen-fly-idle.test.ts`, after the rebase under the lock: 25 pass, 0 fail, 5 files."
+  },
+  {
+   "seq": 5048,
+   "id": "sd-1-doc-files",
+   "by": "impl-7df519",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5127,
+   "id": "lock-wait-hangs-on-gnu-sleep",
+   "by": "impl-1fc7dd",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5130,
+   "id": "dense-rule-project-line-first",
+   "by": "impl-485778",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5136,
+   "id": "pm-3-reviewer-brief",
+   "by": "impl-15c96a",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5150,
+   "id": "bk-5-holds-become-links",
+   "by": "impl-409c7e",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5157,
+   "id": "ac-2-tracker-lists-say-more",
+   "by": "impl-656602",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5167,
+   "id": "asks-orchestrator-label-and-watch",
+   "by": "impl-0f0bf1",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5202,
+   "id": "pm-4-stats-block",
+   "by": "impl-ebe2d0",
+   "names": [
+    "pm-approver-leaves-everything"
+   ],
+   "line": "**What it prints**, run from the worktree on cb4 after the landing (23:33 CEST): `post mortems   3: 3 done, 0 not done`, a row for each of the three with `of <issue>`, three actions each with its state, `named again by: pm-approver-leaves-everything` on the first and `none` on the other two, and `declared with no label `owner`: 0; the owner undid work that had passed a review: 1 (send-back 1 [4434], owner-reject after a pass 0, revert 0)`. Checked against a print of the `linked`, `opened`, `labelled` and the three kinds of move of the record, made by a script of mine and not by the tool; the states of the actions are the tool's alone."
+  },
+  {
+   "seq": 5242,
+   "id": "watch-prints-an-outside-sessions-comment",
+   "by": "impl-80654f",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5245,
+   "id": "approver-before-decision-comment",
+   "by": "impl-b824fe",
+   "names": [
+    "pm-approver-leaves-everything"
+   ],
+   "line": "**Searched** (`knowledge.search`, three questions, in the record): read `doc:pm-approver-leaves-everything` and `doc:cloud-brain-approver-persona`, parts 3 and 4. `decision-comment-names-what-is-added` (at `triaged`) is of what the same comment says for a spec: linked `related`, event 5214."
+  },
+  {
+   "seq": 5250,
+   "id": "dv-5-read-first-20-runs",
+   "by": "impl-97d932",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5258,
+   "id": "fly-2-image-and-run-sh",
+   "by": "impl-8a770b",
+   "names": [
+    "pm-agent-request-not-seen-fly-idle"
+   ],
+   "line": "**Prior art.** Three searches of the Brain: \"fly.io machine image Dockerfile\", \"run.sh claude -p loop headless start script\", \"image registry build push dockerfile playwright chromium\". Used: the spec itself and `pm-agent-request-not-seen-fly-idle` (the machine was stopped in the same command that started it, each time). Nothing else bore on it. `cloud-brain-dev/agent.sh` is where the one-block body and `MODEL` come from."
+  },
+  {
+   "seq": 5282,
+   "id": "wait-says-what-runs-and-until-when",
+   "by": "impl-22ebca",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5298,
+   "id": "sd-2-one-summarizer",
+   "by": "impl-3121d7",
+   "names": [
+    "pm-second-summarizer-role"
+   ],
+   "line": "**Read first** (`knowledge.search`, 2026-10-12 23:21 CEST): `doc:pm-second-summarizer-role` 0.982, `doc:cloud-brain-paper-summarizer-persona` 0.829, the spec itself 1, `doc:cloud-brain-texts-not-read-again-after-a-change` 0.686, `doc:cloud-brain-dev-readme` 0.553. Used: the spec, whole."
+  },
+  {
+   "seq": 5319,
+   "id": "tr-1-wait-in-the-record",
+   "by": "impl-0989e4",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5338,
+   "id": "rules-md-loop-docs-names-four-methods",
+   "by": "impl-6eb493",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5341,
+   "id": "bk-6-skill-watch-and-stats",
+   "by": "impl-5c7990",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5354,
+   "id": "landing-steps-in-one-script",
+   "by": "impl-f9a7c7",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5361,
+   "id": "brain-info-size-known-before-apply",
+   "by": "impl-177053",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5379,
+   "id": "fly-3-brain-fly-service",
+   "by": "impl-bff9f0",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5386,
+   "id": "summarize-papers-test-over-30s-in-suite",
+   "by": "impl-9ce508",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5428,
+   "id": "approver-brief-his-test",
+   "by": "impl-d69992",
+   "names": [
+    "pm-approver-leaves-everything"
+   ],
+   "line": "**Searched** (`knowledge.search`, semantic): \"approver leaves every issue to the owner more than the words\", \"approve when secure and in keeping with his words and philosophy\", \"brief test holds lines of a role brief policy pins blob\". Used: `doc:pm-approver-leaves-everything` and `doc:cloud-brain-approver-persona`. Nothing else bore on it."
+  },
+  {
+   "seq": 5430,
+   "id": "implementer-one-advisor-call",
+   "by": "impl-e19726",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5449,
+   "id": "approver-own-files-are-the-policy-cells",
+   "by": "impl-dc04fa",
+   "names": [
+    "pm-approver-leaves-everything"
+   ],
+   "line": "**Searched** (`knowledge.search`, semantic): \"approver refuses a change to the tracker seed policy cells\", \"which cells of a seed a commit changed split by cell\", \"the cells of brain-issues that hold the policy or judge a guard\". Used: `doc:pm-approver-leaves-everything` and `doc:cloud-brain-approver-persona` (part 4 and \"As built\"). `splitSeed` of `tools/spec-notebook.ts` is the split `build.ts` uses; the tool has the same line of its own, since the policy pins the tool's blob and not an import. `git grep -n -F 'brain-issues.ojs' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'`, read for the lines that speak of the approver: the spec's line 783"
+  },
+  {
+   "seq": 5459,
+   "id": "sd-3-pilot-ten",
+   "by": "impl-8249db",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5465,
+   "id": "deployer-binds-no-method-list",
+   "by": "impl-1c51ef",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5476,
+   "id": "tmpdir-entries-slow-every-bun-start",
+   "by": "impl-20b117",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5535,
+   "id": "role-brief-not-there-for-cat",
+   "by": "impl-5d25a9",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5537,
+   "id": "writer-brief-and-tool-output-smaller",
+   "by": "impl-77dd35",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5568,
+   "id": "policy-v5-names-the-approver-as-it-is",
+   "by": "impl-59a4ad",
+   "names": [
+    "pm-approver-leaves-everything"
+   ],
+   "line": "**Read**: `knowledge.search` for \"approver brief tool blobs pinned in the policy reason install\" and \"policy file remade when approver brief changes test guard\"; first of each `doc:pm-approver-leaves-everything` and `doc:cloud-brain-approver-persona`. Used the spec's paragraph of R7 and the records of `bk-4-install-the-project-workflow`, `ap-4-policy-v3` and `approver-own-files-are-the-policy-cells`. `git grep -n -F 'approver brief'` over the docs printed 5 lines and `policy-v4` 4 lines; the two notes are the mends. One call of the advisor, before this submit."
+  },
+  {
+   "seq": 5571,
+   "id": "decision-comment-names-what-is-added",
+   "by": "impl-64848c",
+   "names": [
+    "pm-second-summarizer-role",
+    "pm-approver-leaves-everything"
+   ],
+   "line": "**Searches.** Step 2, `knowledge.search?semantic=true`, three: \"comment that puts a spec to the owner for approval\", \"writer's reading and not his words\", \"spec writer report names what the spec adds role tool token\". `doc:pm-second-summarizer-role`, `doc:cloud-brain-approver-persona` and `doc:pm-approver-leaves-everything` bore on it; used: the post mortem's row and that the comment waits on the verdict. Step 11, `git grep -n -F` over `knowledge`, `plan/cloud-brain-*.md`, the skill and `tools/cloud-brain/*.md`: `decision-<n>` 3 lines, `decision comment` 24, `submit-spec` 46, `names a token` 12. None in a file I did not touch was made untrue."
+  },
+  {
+   "seq": 5575,
+   "id": "ap-5-panel-approved-for-you",
+   "by": "impl-51efe4",
+   "names": [
+    "pm-approver-leaves-everything"
+   ],
+   "line": "**Prior art searched** (`knowledge.search`, semantic): \"approved for you panel group undo approval\", \"For your attention block owner revert approve delegation\", \"panel test client of its own listen false\". What bore on it: the spec itself, `plan/cloud-brain-owner-acts-on-what-waits-for-him.md` (the block as it is) and `pm-approver-leaves-everything` (read; nothing of it changes the panel). No module to reuse."
+  },
+  {
+   "seq": 5581,
+   "id": "lock-test-5s-held-by-clock",
+   "by": "impl-51efe4",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5589,
+   "id": "backup-committed-before-apply-answers",
+   "by": "impl-17014b",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5598,
+   "id": "dashboard-health-says-three-panels",
+   "by": "impl-64630f",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5603,
+   "id": "overseer-pre-put-run-names-four-files",
+   "by": "impl-c4c83f",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5607,
+   "id": "test-rigs-left-when-a-file-runs-alone",
+   "by": "impl-d692b4",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5641,
+   "id": "sync-limit-fraction-is-a-d1-error",
+   "by": "impl-b23bb0",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5659,
+   "id": "temp-dir-still-holds-old-test-rigs",
+   "by": "impl-f98692",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5667,
+   "id": "test-ts-output-floods-the-reader",
+   "by": "impl-45a9e1",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5677,
+   "id": "ac-5-prose-names-the-two-shapes",
+   "by": "impl-f07089",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5789,
+   "id": "ap-6-rules-and-live-step",
+   "by": "impl-642ff5",
+   "names": [
+    "pm-approver-leaves-everything"
+   ],
+   "line": "**Searches.** The Brain (`knowledge.search`, `loop-knowledge`): \"approver makes the approve move for the owner rules\" and \"overseer runs a check at each oversight approver.ts check\". Used: `doc:cloud-brain-approver-persona` (the spec) and `doc:pm-approver-leaves-everything`, for the time of the install; nothing else bore on it. Step 11, `git grep -n -F` over `knowledge`, `plan/cloud-brain-*.md`, the skill and `tools/cloud-brain/*.md`, with `oversight.md` left out: `only the owner can approve` 0 lines, `approver.ts check` 13, `does not edit` 7, `loop-approver` 39, `The four of that day` 1, ``approve` move`` 45. Mended from them: `SKILL.md` (two places) and the knowledge row."
+  },
+  {
+   "seq": 5806,
+   "id": "st-1-agent-sh-any-role",
+   "by": "impl-d81690",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5816,
+   "id": "label-guard-token-removes-annotation",
+   "by": "impl-78d63c",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5821,
+   "id": "tr-2-issue-wait-over-wakes",
+   "by": "impl-7e7f45",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5852,
+   "id": "overseer-says-unanswered-without-a-read",
+   "by": "impl-7dfa6d",
+   "names": [
+    "pm-approver-leaves-everything",
+    "pm-agent-request-not-seen-fly-idle"
+   ],
+   "line": "**Searched before the design** (`knowledge.search`, semantic): \"overseer comment ask not answered by finished work\" and \"feedback note anchor cell text last sentence\". The first answered post mortems (`doc:pm-approver-leaves-everything`, `doc:pm-agent-request-not-seen-fly-idle`), the second the modules `foc-annotations` and `annotate`. Nothing bore on it; nothing was used."
+  },
+  {
+   "seq": 5862,
+   "id": "st-1b-work-process-without-mcp",
+   "by": "impl-f485d2",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5875,
+   "id": "texts-of-brain-info-after-binds-change",
+   "by": "impl-7c070e",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5879,
+   "id": "sd-3b-first-paragraph-alone",
+   "by": "impl-aec240",
+   "names": [
+    "pm-second-summarizer-role"
+   ],
+   "line": "**Searched (step 2)**, `knowledge.search?semantic=true` at 06:02:55: \"summary first paragraph alone in a long doc's entry…\" and \"pilot of ten docs summarised, search by words lost passages, put back plain\". Used: the spec `doc:cloud-brain-docs-summarised-for-search` (the form of an entry, R5) and `doc:pm-second-summarizer-role` (why no second role). Nothing else bore on it."
+  },
+  {
+   "seq": 5943,
+   "id": "st-2-loop-start-and-end",
+   "by": "impl-357b9d",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5945,
+   "id": "cu-2-usage-service",
+   "by": "impl-4cfb5d",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5970,
+   "id": "tr-3-briefs-and-queue",
+   "by": "impl-a472ec",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5974,
+   "id": "kept-brief-copy-behind-holders-four",
+   "by": "impl-85813d",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5994,
+   "id": "loop-resume-back-key-once-a-rework",
+   "by": "impl-39b204",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5997,
+   "id": "usage-service-row-in-the-docs-module",
+   "by": "impl-d1b8cc",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 5999,
+   "id": "cu-3-figures-and-the-price",
+   "by": "impl-40ca56",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6073,
+   "id": "core-getinfo-line-says-access",
+   "by": "impl-940424",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6082,
+   "id": "loop-resume-says-token-ended-unread",
+   "by": "impl-d14571",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6132,
+   "id": "never-list-three-reductions",
+   "by": "impl-76e378",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6135,
+   "id": "cu-4-price-on-a-stored-write",
+   "by": "impl-9a6be4",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6146,
+   "id": "tr-4-held-read",
+   "by": "impl-404fc5",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6256,
+   "id": "page-notes-return-after-a-refresh",
+   "by": "impl-64b5fd",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6298,
+   "id": "apply-unchanged-keeps-no-newer-source",
+   "by": "impl-5b9c16",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6305,
+   "id": "st-3-step",
+   "by": "impl-bf99c9",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6308,
+   "id": "ds-ingestion-tail-to-analytics-engine",
+   "by": "impl-37b8db",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6311,
+   "id": "sd-4-the-rest-and-the-release-line",
+   "by": "impl-52b6f4",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6342,
+   "id": "page-services-refreshes-in-a-loop",
+   "by": "impl-9698d7",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6353,
+   "id": "feedback-cell-copies-held-by-no-test",
+   "by": "impl-8f62ef",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6373,
+   "id": "summarize-due-default-whole-summary",
+   "by": "impl-524c40",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6399,
+   "id": "st-4-orchestrator-brief",
+   "by": "impl-139801",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6407,
+   "id": "services-table-drawn-three-times-a-read",
+   "by": "impl-b02281",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6429,
+   "id": "approver-policy-mark-takes-every-route",
+   "by": "impl-669077",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6432,
+   "id": "undeployed-seeds-not-shown-to-owner",
+   "by": "impl-d7dbd6",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6449,
+   "id": "approver-policy-mark-takes-every-route",
+   "by": "impl-669077",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6459,
+   "id": "st-5-driver",
+   "by": "impl-e88c70",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6477,
+   "id": "st-6-a-day-beside-the-session",
+   "by": "impl-d3a51d",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6495,
+   "id": "st-7-switch-and-texts",
+   "by": "impl-a2289e",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6536,
+   "id": "loop-sh-sandbox-has-no-keychain",
+   "by": "impl-3efa36",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6616,
+   "id": "loop-started-run-is-told-no-scratchpad",
+   "by": "impl-000b4c",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6620,
+   "id": "fly-4-loop-files",
+   "by": "impl-2db0ef",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6622,
+   "id": "git-status-answers-in-a-worktree",
+   "by": "impl-7138a5",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6645,
+   "id": "suite-hangs-in-brain-cli-test",
+   "by": "impl-9b5e00",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6649,
+   "id": "overseer-started-again-before-pull",
+   "by": "impl-2216c8",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6673,
+   "id": "fly-4b-first-run",
+   "by": "impl-c62520",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6725,
+   "id": "rules-md-over-one-tool-read",
+   "by": "impl-767c3f",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6730,
+   "id": "writer-started-on-an-owners-act-task",
+   "by": "impl-056489",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6738,
+   "id": "overseer-runs-too-often",
+   "by": "impl-d6fd7a",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6816,
+   "id": "rules-md-own-files-says-policy-cell",
+   "by": "impl-5529a8",
+   "names": [
+    "pm-approver-leaves-everything"
+   ],
+   "line": "**Searches.** Step 2, the Brain, two: \"approver own files policy cell brain-issues\" and \"rules.md approver policy parts issuesApp issuesLimits\". Both answered docs (`doc:cloud-brain-approver-persona`, `doc:pm-approver-leaves-everything` first); nothing was used but the spec's part 4, which the tool's records already quote. Step 11: `git grep -n -F 'policy cell' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'` printed 36 lines in 9 files before the record was written, 3 of them the item. No line of a file I did not touch was made untrue: `agents/approver.md` 134 to 143 already has the parts, and the rest are the spec as proposed with its note of "
+  },
+  {
+   "seq": 6820,
+   "id": "overseer-md-git-status-form",
+   "by": "impl-21ec42",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6844,
+   "id": "learnings-gate-deploy-page-for-a-record",
+   "by": "impl-2b3d41",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6846,
+   "id": "policy-pins-remake-keeps-the-key",
+   "by": "impl-04d2e1",
+   "names": [],
+   "line": ""
+  },
+  {
+   "seq": 6980,
+   "id": "fb-batch-rules-md",
+   "by": "impl-5a9f8e",
+   "names": [],
+   "line": ""
+  }
+ ]
+}
