@@ -75,6 +75,7 @@ Each count is from a run after the last change to the seed.
 | `bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/brain-issues --emit issues_service=…`, Chrome 151.0.7922.34, 05:56 CEST | `"tests":66,"passed":66,"failed":[]` |
 | from the main checkout, `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-issues --shell <the build> --times 20` | `"runs":20,"passed":20,"failed":0,"none":0,"from":["document"],"byChance":[]`, `at` 03:57:33Z |
 | `bun tools/cloud-brain/tab-tests.ts … @tomlarkworthy/brain-feedback` (the module whose Remove sends the call; not changed), on the same build | `"tests":14,"passed":14,"failed":[]` |
+| `tests/tools/suite.sh`, ended 06:00 CEST, after the last edit to the seed and with this record but for this row | `1026 pass`, `0 fail`, `7460 expect() calls`, 105 files, 90.63 s; no line `skipped:` |
 
 **Without the fix.** The new cell was written first and run on the seed as it stood:
 `48 passed, 1 failed`, the fail `test_issues_label_annotation_is_the_owner_present`, expected
