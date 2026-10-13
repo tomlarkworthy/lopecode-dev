@@ -81,7 +81,8 @@ Since 2026-10-11 a token for the tracker is made with `brain.ts agent-token`, on
 each session, as a child of the token `loop-agents` and with no session of the owner
 (`plan/cloud-brain-record-names-token-not-agent.md`; `.claude/skills/brain-maintenance/rules.md`,
 "Which token"). An agent of the issue loop writes through `tools/cloud-brain/issue-as.sh` with the
-token its prompt names and makes none: the orchestrating session made it. Until that day each
+token its prompt names and makes none: `tools/cloud-brain/loop.ts start` made it (until
+`st-7-switch-and-texts`, 2026-10-13, the orchestrating session). Until 2026-10-11 each
 role had one token, which every agent of the role wrote with.
 
 **A session outside the loop makes itself a token before its first write to the tracker**, and

@@ -705,6 +705,25 @@ is read, his-word acts, and `/brain-maintenance` as it is today for a pass by ha
 says "the orchestrating session" of the two standing leaves and of a token an approved spec names;
 that it now reads "a session the owner is in" is a change to `rules.md`, his to approve (`st-7`).
 
+**As built (`st-7-switch-and-texts`, 2026-10-13).** `tools/cloud-brain/records/st-7-switch-and-texts.md`
+has what was changed. Where the text above names no choice, or the texts differ from it:
+
+- `rules.md` has a section of its own, "A session the owner is in", with choice A as the owner was
+  shown it and his word. It takes the narrower of two readings: such a session makes one of the three
+  acts in a turn a message of his began, and not at a wake. So a `/loop /brain-maintenance` he went
+  back to makes none while he is away, which it did before the switch.
+- The section "Two standing leaves of the orchestrating session" is "Two standing leaves of a
+  session the owner is in". The choices he answered are quoted as they were written, with "the
+  orchestrating session" in them.
+- `SKILL.md`, "Run it", says that a pass by hand starts its agents with `loop.ts start` (part 2, "An
+  agent the program did not start"). Steps 4 and 5 there are still written for the `Agent` call:
+  the task names "Run it" and "Runs" alone.
+- A pass by hand reads `lock.sh show loop` first and makes no pass while it is held. It takes no
+  `loop` itself: that take is `fly-4-loop-files`'.
+- The body of an issue cannot be changed, so the "As amended" notes of `fly-2` and `fly-4` are a
+  comment on each, and the notes of the Fly spec are in four places of that file.
+- The switch was not made by this task. No `loop.sh` and no `loop.ts run` without `--dry` was run.
+
 ### 6. What changes in specs that are approved
 
 - **`worker-machine-on-fly`**, part 2 and tasks `fly-2`, `fly-4`: `run.sh` execs `loop.ts run` in

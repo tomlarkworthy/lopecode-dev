@@ -232,8 +232,37 @@ One Fly.io app, one machine, one volume.
   when there is none, pulls `main` and starts the checkout's copy. Three submodules, not `lopecode`. The
   mode is `bypassPermissions` with `IS_SANDBOX=1`. It asks `fly.work` after the pull and before the
   submodules; the record.)
+  (As amended, `st-7-switch-and-texts`, 2026-10-13, by part 6 of
+  `plan/cloud-brain-orchestrator-as-steps.md`, which the owner approved at event 5736: `run.sh` execs
+  `bun tools/cloud-brain/loop.ts run` in the place of `claude -p "/loop /brain-maintenance"`. The loop
+  there is the driver, a program with no model. Not built: `tools/cloud-brain/fly/run.sh` as
+  `fly-2-image-and-run-sh` landed it starts `claude -p`, that task is `done`, and `st-7` changed no
+  program. The change is `fly-4-loop-files`'.)
 
 ### 2. The loop there, and its end (R2, R8). Answers "who turns it on and off", "how the two loops keep apart"
+
+**As amended (`st-7-switch-and-texts`, 2026-10-13).** Part 6 of `plan/cloud-brain-orchestrator-as-steps.md`,
+approved by the owner at event 5736 after this spec, changes this part. The text below is kept as it was
+approved; where it and this note differ, the note holds.
+
+| This part says | As amended |
+|---|---|
+| The loop on the machine is a session, `claude -p "/loop /brain-maintenance"` | It is the driver, `loop.ts run`, which `run.sh` execs: one process with no model, whose steps start each agent as a process |
+| `loop` is kept by the watch: `issue-watch.sh --hold <who>` renews it at every fourth read | The driver takes `loop` as `orchestrator-<host>` and renews it every 120 s itself. `--hold` is not built |
+| The yield is a line of the watch, armed with `--yield-as fly-status` | The yield is a read of `fly.status` by the driver at each renew. `--yield-as` is not built in the watch |
+| "Off": one whole pass with no row to act on and no agent running, at which the orchestrator ends its `/loop` | A step with no act and no `running` run, at which the driver releases `loop` and exits 0 |
+| "no move without `loop` on any wake", the rule for an orchestrator whose renew was refused | Gone with the session: a driver whose renew is refused makes no more steps after the one that runs and exits 1 |
+| A `Monitor` that ends after 30 minutes and is armed again by a turn; the form in which `run.sh` renews | Gone: the renew is the driver's, with the token it made |
+
+What stands as written: the second form of the health step, the label `laptop`, the tokens, the tick,
+`fly.work`, the limit, and one orchestrator a cluster.
+
+What of the right column is built, read in `tools/cloud-brain/loop.ts` and `lock.sh` on 2026-10-13: the
+name `loop` in `lock.sh`, the driver's take and its renew every 120 s, and its exit 1 at a refused
+renew (`st-5-driver`; `tools/cloud-brain/records/st-5-driver.md`). Not built: the read of `fly.status`
+at a renew and the yield, the exit at a step with nothing to do, the second form of the health step
+in `loop.ts step`, and `run.sh` (`grep -n -i 'yield\|fly\.' tools/cloud-brain/loop.ts` printed
+nothing). Those are `fly-4-loop-files`'. No driver had run on any machine when this note was written.
 
 **What the machine's loop does not do.** Everything in the table above with "yes" in the last column.
 
@@ -514,6 +543,9 @@ Each is one writer and one review, but T4b, which is the owner's act and a recor
 2. **T2, the image and `run.sh`**: `tools/cloud-brain/fly/Dockerfile`, `run.sh`, and where the image
    is built and kept, from T1's commands. Tests: `run.sh` against a stub `claude` exits 0 when
    `fly.work` is empty, without starting it.
+   (As amended, `st-7-switch-and-texts`, 2026-10-13: `run.sh` execs `loop.ts run` in the place of
+   `claude -p "/loop /brain-maintenance"`. This task landed before the amendment and is `done`; the
+   change to `run.sh` and its test is T4's. Part 1, "What starts", and the note at the head of part 2.)
 3. **T3, `brain-fly.ojs`**: the service of part 3 with its tests, `fly.work` from the table of
    step 3 with a test for each row (round 2: it was in T4, with a deploy of its own), the panel, the
    metric of its calls; deployed by the loop on the laptop. (As built, `fly-3-brain-fly-service`, 2026-10-13: no metric was defined. A
@@ -532,6 +564,15 @@ Each is one writer and one review, but T4b, which is the owner's act and a recor
    steps 1 and 8 (the take, the second form of the health step, the one empty pass that ends a
    loop); the label `laptop` in the writer's brief and at triage; no digest, no overseer and no tab
    review with no state file; `agent-token --parent`; the tool that writes the machine's token file.
+   (As amended, `st-7-switch-and-texts`, 2026-10-13, by the note at the head of part 2. Not built:
+   `--hold` and `--yield-as` in `issue-watch.sh`, with the `LOOP` line and the line for `yield`; "no
+   move without `loop` on any wake"; the take and the one empty pass in `SKILL.md` steps 1 and 8. In
+   their place: the driver reads `fly.status` at each renew and yields; it releases `loop` and exits 0
+   at a step with no act and no `running` run; `run.sh` execs `loop.ts run`. Built already, by
+   `st-5-driver`: `loop` in `lock.sh`, and the driver's take and renew. As written: the second form
+   of the health step (part 6 says that it stands; that on the machine it is a form of `loop.ts step`,
+   which makes the health there, is the reading of `st-7`'s writer); the label `laptop` in the writer's brief and at triage; no digest, no overseer and no tab
+   review with no state file; `agent-token --parent`; the tool that writes the machine's token file.)
 5. **T4b, the first run**: the owner makes the volume and the machine from the page's form and
    presses Start. A record, `tools/cloud-brain/records/fly-4b-first-run.md`, with the first issue a
    token of the machine moved and the R1, R2, R7 and R8 checks run there.

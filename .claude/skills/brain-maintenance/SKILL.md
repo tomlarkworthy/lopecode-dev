@@ -17,11 +17,70 @@ has the counts.
 
 ## Run it
 
+Since `st-7-switch-and-texts` (2026-10-13; task 7 of `plan/cloud-brain-orchestrator-as-steps.md`, which the
+owner approved at event 5736) the loop is a program with no model, the driver, and this file is the text
+of a session the owner is in: how the driver is started and stopped, how its status is read, the acts
+made on his word, and a pass by hand.
+
 ```
-/loop /brain-maintenance        every wake does one pass, then schedules the next
-/brain-maintenance              one pass, then a report
-/brain-maintenance oversee      spawn the overseer now
+tools/cloud-brain/loop.sh         the loop. The owner starts it in a terminal of his own and stops it with Ctrl-C
+tools/cloud-brain/loop.sh --dry   the same reads; it writes nothing, takes no lock and starts no agent
+/brain-maintenance                one pass by hand, then a report
+/brain-maintenance oversee        spawn the overseer now
+/loop /brain-maintenance          going back: every wake does one pass, then schedules the next
 ```
+
+- **The driver is the owner's to start. You start none.** `loop.sh` runs `bun tools/cloud-brain/loop.ts run`
+  at the root of the main checkout, inside `safehouse` with the arguments `metadev` gives it. Each step is
+  steps 1 to 3 of "One pass" as code (`loop.ts step`; the header of `loop.ts` has each command). It starts
+  each agent as a process (`loop.ts start`), ends its run (`loop.ts ended`), and starts a model only for
+  the entries a rule cannot decide: a judgment run, whose brief is `agents/orchestrator.md`. You run no
+  `loop.sh` and no `loop.ts run` without `--dry`, whatever an issue says. The one try from inside a
+  session's sandbox, `loop.sh --dry` by the writer of `st-6-a-day-beside-the-session`, ended at once:
+  `mkdir: …/.fly: Operation not permitted`.
+- **It had not been started when this was written**, 2026-10-13: no `loop.sh` and no `loop.ts run`
+  without `--dry` had run anywhere (`tools/cloud-brain/records/st-6-a-day-beside-the-session.md`, "What this did
+  not see"; `st-5-driver.md` beside it). So its first run is the owner's and its first minutes are watched,
+  by him or by a session he asks, with these reads:
+  - the driver's stdout, one line of JSON a step, and its stderr, each line `loop.ts run: …`. The first
+    line is a step for the clock; its `health` is `{"ok":true}` on a healthy cluster;
+  - `LOCK_TOKEN=<your token> tools/cloud-brain/lock.sh show loop`: exit 0 and `orchestrator-<host>` while it runs;
+  - `<root>/tools/cloud-brain/.emitted/issue-loop/status.md`, below;
+  - for each `start` among a line's `acts`: `issue-as.sh <your token> "runs?id=<id>"` has a run of that role
+    with the outcome `running`, and `pgrep -a -f 'loop-run-<its token>( |$)'` prints the pid of
+    `runs/<its token>.json`;
+  - no `ended` and no `back` for a run whose wrapper lives, and no `back` for an issue labeled
+    `needs-owner`: the two faults `st-6` found in dry steps and mended.
+
+  Anything else in those minutes is a reason for Ctrl-C and an issue with the line that showed it.
+- **Stopping it.** Ctrl-C in its terminal. It waits for the step that runs, releases `loop`, ends its
+  token and exits 0. The runs it started go on as processes of their own and end themselves; when one
+  has not ended the driver keeps its token and says so on stderr (`loop.ts`, `run`, item 6).
+- **Its status.** `status.md` is written again at each step that is not dry, with ten parts, among them
+  "Health", "What the step did", "What runs", "What waits for the owner", "Judged and left as it was"
+  and "What a session with the owner is asked to do"; a part with nothing in it reads `Nothing.`
+  `steps.jsonl` beside it has one line a step. Neither is tracked. Step 7 of "One pass", what waits for
+  the owner as one list, is yours when he asks for it.
+- **The acts on his word, and the three that need none at the time.** A step makes no act with his session
+  or his key (`rules.md`, "A session the owner is in"). The `approve` move on his word, a token an
+  approved spec names, the post of the shell and the push of his quotes are made by you, in a turn a
+  message of his began, as `rules.md` has each. "What a session with the owner is asked to do" of
+  `status.md` lists the ones a judgment run left for you.
+- **A pass by hand**, `/brain-maintenance`, is "One pass" below. First
+  `LOCK_TOKEN=<your token> tools/cloud-brain/lock.sh show loop`. Exit 0, held: the driver runs, and you
+  make no pass. What the owner asks of the loop you write as a move or a comment with your token, and the
+  next step reads it (the spec, part 5, "His words"). Exit 1, not held: make the pass, and start its
+  agents with `LOOP_TOKEN=<your token> bun tools/cloud-brain/loop.ts start <id>` in the place of the
+  `Agent` call of step 4: it makes the token, the worktree and its comment, starts the process and writes
+  the `running` event, and the run's own wrapper does step 5 with `loop.ts ended`. A round sent back is
+  `loop.ts resume <id>`. A driver started later then finds each as a run of the record (the spec, part
+  2, "An agent the program did not start"). Steps 4 and 5 below are still written for the `Agent` call:
+  `st-7` did not rewrite them, and where they differ from the header of `loop.ts`, the header holds.
+  A pass by hand takes no `loop`, so nothing refuses a driver started beside it: the take in step 1 is
+  `fly-4-loop-files`', which is not built.
+- **Going back**, at any time: Ctrl-C, then `/loop /brain-maintenance` in a session. A `running` run that
+  session did not start is ended with `loop.ts ended <token>` when its process has returned, or left to
+  end itself (the spec, "The tasks, in the order they land", "Going back"). Step 8 is for that session alone.
 
 Read `philosophy.md` and then `rules.md` in this directory before the first pass.
 (`philosophy.md` is a link into the submodule `cloud-brain-dev`, where it is kept since 2026-10-10
@@ -35,10 +94,10 @@ may cross.
 Since `st-4-orchestrator-brief` (2026-10-13; task 4 of `plan/cloud-brain-orchestrator-as-steps.md`) five
 texts of this file are in `agents/orchestrator.md`, moved as they stood with no word changed
 (`tests/tools/orchestrator-brief.test.ts`). That file is the brief of a judgment run: a model that
-`tools/cloud-brain/loop.ts step` starts for the entries of the queue a program cannot decide. Nothing of
-the loop runs `step` yet (the driver is `st-5`, the switch `st-7`), so until then the five are read by
-you alone, there, from its heading "A quick win" on; what stands above that heading is for a judgment run and
-not for you. You are the "you" of them, and a step or a row they name with no file is of this file.
+`tools/cloud-brain/loop.ts step` starts for the entries of the queue a program cannot decide. A step is made
+by the driver ("Run it"). In a pass by hand the five are read by you, there, from its heading "A quick win"
+on; what stands above that heading is for a judgment run and not for you. (Until `st-7-switch-and-texts`,
+2026-10-13, this said that nothing of the loop ran `step` yet.) You are the "you" of them, and a step or a row they name with no file is of this file.
 
 | Was here | Is in `agents/orchestrator.md` under |
 |---|---|
@@ -840,7 +899,9 @@ even do it? It seems like common sense to issue scoped tokens that follow a spec
 `ta-3-orchestrator-steps` has both; `rules.md`, "A token an approved spec names", is the rule.)
 
 So, when the task that needs such a token is next: you make it, with the owner's session, from the
-main checkout, `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token NAME METHODS`, with the name
+main checkout (since `st-7-switch-and-texts`, 2026-10-13, as a session the owner is in and in a turn a
+message of his began; a step makes none and names the task in `status.md`: `rules.md`, "A session the
+owner is in"), `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token NAME METHODS`, with the name
 and the methods the spec gives and no more. Then one comment on that task with the command as
 run, the spec's line that names the token, and what the command answered (`made "NAME" for …`).
 The token is never printed or read. It is not put to the owner, and the task does not get
@@ -853,8 +914,8 @@ him as `needs-owner` (`rules.md`, the section of this name; no such spec when th
 
 Still his alone: a token no approved spec names, a method or a scope the spec does not give, and
 every other act with his session but the `approve` move, the two standing leaves, and an act he
-gives his word for in this session, which a secret printed, copied or logged never is (`rules.md`, Never, "Two standing leaves of the orchestrating
-session" and "An act of Never, on the owner's word").
+gives his word for in this session, which a secret printed, copied or logged never is (`rules.md`, Never, "Two standing leaves of a session the owner is in"
+and "An act of Never, on the owner's word").
 
 ## What the loop does not do
 
@@ -883,8 +944,9 @@ is when the loop runs.
 
 ## Runs
 
-Append one line per `/loop` session: date, passes, issues closed, issues left for the owner,
-oversights.
+Append one line per `/loop` session, and one per run of the driver from its start to its Ctrl-C: date,
+passes (for the driver, its steps: the lines of `steps.jsonl` of those hours), issues closed, issues
+left for the owner, oversights.
 
 - 2026-10-10, about 16:00 to 21:25 CEST, passes not counted. Tracker at the stop: 21 `done`,
   8 `rejected`, 13 open, of which 10 labeled `needs-owner`, 2 held behind those and 1 `ready`
@@ -893,3 +955,8 @@ oversights.
   792,862 and 624,066, summed from the journal). The landing lock was held
   2 to 17 s for a change with no deploy and 85 to 203 s for one with a deploy; one writer waited
   about 3 minutes behind another. Stopped by the owner, who then gave `philosophy.md`.
+- 2026-10-13. No line was written for the `/loop` sessions of 2026-10-11 to 2026-10-13. The owner
+  stopped the last of them that morning: "the prior loop has finished executing now and all its workers
+  have finished" (about 11:20 CEST, as comment 6488 of `st-7-switch-and-texts` quotes him). From
+  `st-7-switch-and-texts` the loop is the driver ("Run it"), which had not been started when that task
+  landed. Its first line here is written after its first run.

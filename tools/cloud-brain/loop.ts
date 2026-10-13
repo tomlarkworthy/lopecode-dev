@@ -6,7 +6,8 @@
 // `run` is part 4, the driver that makes the steps (st-5-driver; tools/cloud-brain/records/st-5-driver.md).
 // `compare` is the R8 check, what dry steps named beside what was done (st-6-a-day-beside-the-session;
 // tools/cloud-brain/records/st-6-a-day-beside-the-session.md).
-// Nothing of the loop calls it yet: SKILL.md steps 4 and 5 are as they were until st-7.
+// Since st-7-switch-and-texts it is the loop: the owner starts `run` with loop.sh (SKILL.md, "Run it"), and a session
+// that makes a pass by hand calls `start` and `resume` for the Agent call of SKILL.md steps 4 and 5.
 //
 //   bun tools/cloud-brain/loop.ts run                                   (on the laptop: tools/cloud-brain/loop.sh)
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts run --dry

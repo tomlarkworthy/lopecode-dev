@@ -2,6 +2,7 @@
 // event 2221 (his quoted words in philosophy.md are pushed with a write token got with his session) and his "A" of
 // event 2395 (the shell is posted after a reviewed change to one of its modules). The session worked by both from
 // its own notes, and two sentences of the file said no such act was allowed. Issue rules-md-philosophy-push-leave.
+// Since st-7-switch-and-texts (2026-10-13) the section is "Two standing leaves of a session the owner is in".
 //
 //   bun test ./tests/tools/rules-md-philosophy-push-leave.test.ts
 import { test, expect } from "bun:test";
@@ -27,7 +28,7 @@ const paragraph = (text: string, opens: string): string => {
   return flat(text.slice(at, end < 0 ? text.length : end));
 };
 
-const leaves = section(rules, "Two standing leaves of the orchestrating session");
+const leaves = section(rules, "Two standing leaves of a session the owner is in");
 const marker = " The rest of this paragraph is the writer's reading, not his words. ";
 const push = paragraph(leaves, "**His quoted words in `philosophy.md` are pushed.**");
 const shell = paragraph(leaves, "**The shell is posted after a reviewed change to one of its modules.**");
@@ -84,20 +85,20 @@ test("the shell: the reading names what sends it and what the leave does not rea
   expect(reading).toMatch(/kernel.*`brain-core`.*`brain-db`.*deployer/);
 });
 
-test("both leaves are the orchestrating session's, and a writer is told what to do in their place", () => {
+test("both leaves are a session's the owner is in, and a writer is told what to do in their place", () => {
   const head = flat(leaves.slice(0, leaves.indexOf("**His quoted words")));
-  expect(head).toContain("Both are the orchestrating session's.");
+  expect(head).toContain("Both are made by a session the owner is in.");
   expect(head).toContain("A writer, a reviewer and the overseer make neither");
 });
 
 test("the two sentences that list every act with his session name the leaves", () => {
   const never = flat(section(rules, "Never"));
   expect(never).not.toContain("And one act with his session that is no tracker call");
-  expect(never).toContain('("Two standing leaves of the orchestrating session")');
+  expect(never).toContain('("Two standing leaves of a session the owner is in")');
   const token = flat(section(rules, "A token an approved spec names"));
   expect(token).not.toContain("but the `approve` move. No other agent");
   expect(token).toContain("Still the owner's alone: a token no approved spec names, a scope wider than the spec's");
-  expect(token).toContain('the two acts of "Two standing leaves of the orchestrating session"');
+  expect(token).toContain('the two acts of "Two standing leaves of a session the owner is in"');
 });
 
 // The commits the paragraph names are what it says they are.

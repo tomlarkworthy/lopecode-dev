@@ -24,9 +24,10 @@ that list it asks for is left for him as before.
   comment of `approver.ts id` ("The approver", "A token an approved spec names"). Two exceptions: the `approve` move made for the owner
   on his word, under the next line, and an act of this list, but a secret printed, copied or logged,
   that a session with the owner present does on his word ("An act of Never, on the owner's word"). And three acts with what is his that are no tracker call, each
-  the orchestrating session's: it makes a token that an approved spec names ("A token an approved
-  spec names"), it pushes his quoted words in `philosophy.md`, and it posts the shell after a
-  reviewed change to one of its modules ("Two standing leaves of the orchestrating session").
+  made by a session the owner is in and by no step of the loop ("A session the owner is in"): it
+  makes a token that an approved spec names ("A token an approved spec names"), it pushes his quoted
+  words in `philosophy.md`, and it posts the shell after a reviewed change to one of its modules
+  ("Two standing leaves of a session the owner is in").
 - Call `issue.install`, `issue.rebuild`, the `approve`, `revert` or `owner-reject` moves, a swap the
   workflow does not list, or remove the label `major`.
   The `approve` move may be made for the owner by a session he is present in, with his
@@ -126,7 +127,7 @@ rest of this section is the writer's reading, not his words. Both answers are of
   for it, and it is for that act, that once: a word to deploy the kernel is no word to install
   a policy, and a word for one issue is none for the next. A word meant to hold for every later case
   is a standing leave, and is written in this file with its event, as the two of "Two standing
-  leaves of the orchestrating session" are.
+  leaves of a session the owner is in" are.
 - **What it does not reach.** A secret printed, copied or logged: the recovery key, the deployer
   key, a session, a token, the Cloudflare token, an app password. That item stays Never whatever
   is said in chat. His word in a session is no leave for it, for the session he is typing into as
@@ -308,15 +309,21 @@ cb4 stand in it before the choice.
   `<role>/<issue id>/<what>`, with a number after it for a second round.
 - Write no tracked file of `lopecode-dev` in the main checkout: no edit, no `build.ts`, no
   `git commit`, `merge` or `pull` there. Your edits, builds and commits are in a git worktree,
-  `.claude/worktrees/bm-<name>`, and need no lock. The orchestrating session makes the worktree of
-  a topic and puts one agent in it (`tools/cloud-brain/worktree.sh --fresh <topic> --for <token>`):
-  a writer whose prompt names a worktree makes none and removes none. The orchestrating session's
-  own commits are made in `bm-orch-<host>` and the overseer's in `bm-over-<host>`.
+  `.claude/worktrees/bm-<name>`, and need no lock. What starts a writer makes the worktree of
+  its topic and puts that one agent in it (`tools/cloud-brain/worktree.sh --fresh <topic> --for <token>`,
+  run by `tools/cloud-brain/loop.ts start`, which a step of the driver calls, and a session that
+  makes a pass by hand): a writer whose prompt names a worktree makes none and removes none. An
+  orchestrating session's own commits and a judgment run's are made in `bm-orch-<host>`, and the
+  overseer's in `bm-over-<host>`.
   Three writes of the main checkout remain. A landing with a deploy, under the landing lock, pulls
   the main checkout's `lopebooks` and writes the built notebook there with
   `tools/cloud-brain/notebook-backup.sh`, which commits the file once a day; that commit is pushed.
-  The orchestrating session, at the start of a pass, makes a fast-forward pull of the main checkout
-  and one of its `cloud-brain-dev`. `tools/cloud-brain/.emitted` there is state and not tracked: the
+  A fast-forward pull of the main checkout and one of its `cloud-brain-dev` are made at the start
+  of a pass, and they are the driver's too: by a step begun for the clock (`loop.ts step`, health;
+  a step begun for an event or for a run that ended makes neither, and a dry step makes neither),
+  and by a session that makes a pass by hand (`SKILL.md`, step 1). (Until `st-7-switch-and-texts`,
+  2026-10-13: "The orchestrating session, at the start of a pass, makes a fast-forward pull of the
+  main checkout and one of its `cloud-brain-dev`.") `tools/cloud-brain/.emitted` there is state and not tracked: the
   tokens and the emitted files are read and written in it from a worktree.
   (R1 of `plan/cloud-brain-worktree-per-topic.md`, which the owner approved at event 3737 of
   `worktree-per-topic`; issue `wt-5-docs`, 2026-10-12. Until then this item read "Commit, build or
@@ -358,18 +365,30 @@ section is its task 3, `ta-3-orchestrator-steps`). The first part of the name is
 
 | Who | Its token | Made by |
 |---|---|---|
-| An orchestrating session | `orch-` and six hex digits | itself, when it starts |
-| A writer (triage is the orchestrating session's) | `impl-…` | the orchestrating session, before the spawn |
+| The driver, `tools/cloud-brain/loop.ts run` | `orch-` and six hex digits, its note `orch; driver:<host>` | itself, when it starts; a new one at 40 hours, and the old one ended |
+| A judgment run (`agents/orchestrator.md`) | `orch-…`, its note `orch; judgment:<issue>` | the step that starts it, which ends it with the run |
+| An orchestrating session: one that makes a pass by hand | `orch-…` | itself, when it starts |
+| A writer (triage is a judgment run's, or the orchestrating session's) | `impl-…` | `loop.ts start`, before the run: called by a step of the driver, or by the session that makes the pass |
 | A reviewer | `rev-…` | the same |
 | A spec writer, a digest writer, an overseer | `spec-…`, `dig-…`, `over-…` | the same |
 | An approver | `appr-…` | the same |
 | A session outside the loop | `out-…` | itself, before its first write to the tracker |
 
+**The driver's line** (since `st-7-switch-and-texts`, 2026-10-13; `plan/cloud-brain-orchestrator-as-steps.md`,
+parts 2 to 4, which the owner approved at event 5736). The loop is a program with no model. Its
+steps write with the driver's token: the moves `ready`, `finish` and `back`, a digest's moves, the
+`worktree {…}` and `given` comments and every `cost` event, a run's `running` event among them. So
+an event whose `by.holder` is the driver's token was decided by a rule of `loop.ts` and by no
+model. A judgment run writes with its own, and so does each agent. Where this file says "the
+orchestrating session" of a start, a `back`, a worktree, a pull or a token made for an agent, that
+is since then a step of the driver, or a session that makes a pass by hand; where it says so of an
+act with what is the owner's, it is a session the owner is in, and never a step.
+
 Each is made with `brain.ts agent-token <role> [what for]`, as a child of the token `loop-agents`,
 for `issue.*`, for 48 hours, and ended with `brain.ts agent-token revoke NAME`.
 
-- You write to the tracker with the token your prompt names and with no other. An agent the
-  orchestrating session spawned does not make itself a token, and nobody calls the tracker with
+- You write to the tracker with the token your prompt names and with no other. An agent a step or a session
+  started does not make itself a token, and nobody calls the tracker with
   `loop-agents` itself.
 - An approver's run has a second token, which it does not hold: `approver.ts approve` sends the
   one `approve` with `loop-approver`. So the move's `by.via` is the delegation the policy names, and
@@ -408,31 +427,63 @@ is a task of a spec the owner approved (Tom, 2026-10-11, event 1406 of
 `ta-4-reviewer-brief-names-token`: "A, narrowed to "a writer may put a brief when its issue is a
 task of a spec you approved""). No other role does.
 
+## A session the owner is in
+
+Choice A of comment 5289 of `orchestrator-as-steps`, written for the owner by the orchestrating
+session: "Approve as written. A step never acts with your session. The three acts the session
+makes today while you are away (a token an approved spec names, posting the page's shell, pushing
+your quoted words) wait for a session you are in." Tom, 2026-10-13, in his session, as the reason
+of the `approve` move made for him has it (event 5736): "Ok approve last 2". He named no letter;
+the session that made the move read his words as A. The rest of this section is the writer's
+reading, not his words (`st-7-switch-and-texts`, 2026-10-13, task 7 of
+`plan/cloud-brain-orchestrator-as-steps.md`; part 5 there).
+
+- **What it is.** A session of Claude Code that he opened and types to: one that makes a pass by
+  hand (`/brain-maintenance`), or a session outside the loop ("Which token", `out-…`). It makes one
+  of the three acts in a turn that a message of his began, and not at a wake of a watch or of a
+  clock: "while you are away" is what his A ended. This is the narrower of two readings, taken by
+  the first of the seven of `philosophy.md`. The other: a `/loop /brain-maintenance` he went back
+  to makes them at any wake, as before that day.
+- **What is not one.** The driver (`tools/cloud-brain/loop.ts run`), a step, a judgment run
+  (`agents/orchestrator.md`, "What you do not do") and every agent a step or a session started.
+  None of them makes a token with his session, posts the shell, pushes his quotes or makes the
+  `approve` move on his word. Nothing on the laptop keeps one from it: the state file is in the
+  main checkout, which each of them reads. It is held by this file and by the briefs.
+- **How such an act reaches him.** A judgment run that meets one writes a comment with the act and
+  its command and the verdict `left: a session with the owner <the act>`; the step lists it in
+  `<root>/tools/cloud-brain/.emitted/issue-loop/status.md`, under "What a session with the owner
+  is asked to do", beside "What waits for the owner". A session he is in reads that file and makes
+  the act, with a comment on the issue as the sections below have it. The cost of A is the time
+  such an act waits for him to open a session; `st-8-read-after-three-days` counts each and how long.
+
 ## A token an approved spec names
 
 On 2026-10-11 the loop had put four tokens to the owner as `needs-owner`, each named with its
 methods under "What only the owner can do" of a spec he had approved. He made one and said of the
 rest, in the session: "I did not do the others, can you jsut do it", and then: "Why do I need to
 even do it? It seems like common sense to issue scoped tokens that follow a spec." (Comment 1961
-of `ta-3-orchestrator-steps` has both.) What follows is the orchestrating session's reading.
+of `ta-3-orchestrator-steps` has both.) What follows is the reading of the orchestrating session
+of that day.
 
-A token that an approved spec names, with the methods that spec gives and no more, is made by the
-orchestrating session with the owner's session, from the main checkout, when the task that needs
-it is next: `brain.ts token NAME METHODS`. The command and the spec's line are quoted in a comment
+A token that an approved spec names, with the methods that spec gives and no more, is made by a
+session the owner is in, with the owner's session, from the main checkout, when the task that
+needs it is next: `brain.ts token NAME METHODS`. (Until `st-7-switch-and-texts`, 2026-10-13, "by
+the orchestrating session", which made one with nobody there; "A session the owner is in" has his
+word for the change. A step that finds a task waiting for such a token names it in `status.md`.) The command and the spec's line are quoted in a comment
 on that task. The token is never printed or read. It is not put to the owner as `needs-owner`: his
 approval of the spec is his word for it. A spec writer lists such a token under what the
 orchestrator makes, not under "What only the owner can do".
 
 A spec approved `via delegation`, by the approver, is his word for a token it names when the
 verdict's `asked:` line is of words that ask for what the token serves, and not otherwise. The
-orchestrating session reads that line before it makes the token and quotes it in its comment. When
+session that makes the token reads that line first and quotes it in its comment. When
 the words do not ask for it, the token is put to him as `needs-owner`. (The spec of the approver,
 "What only the owner can do", which he approved at event 4123; "The approver", "No word of his".
 No spec had been approved by the approver when this was written, 2026-10-13.)
 
 Still the owner's alone: a token no approved spec names, a scope wider than the spec's, and every
 other act with his session or his key but the `approve` move, the two acts of "Two standing
-leaves of the orchestrating session", and an act of "An act of Never, on the owner's word". No other agent of the loop makes a token of this kind.
+leaves of a session the owner is in", and an act of "An act of Never, on the owner's word". No other agent of the loop makes a token of this kind.
 
 The four of that day, each kept in `.emitted/cb4-tokens.json` and not printed:
 
@@ -481,12 +532,17 @@ A fifth, of 2026-10-12, kept in the same file and not printed:
   `brain.ts token revoke loop-approver`. Spec: `plan/cloud-brain-approver-persona.md`. Made by the
   orchestrating session (comment 4460 of `ap-4-policy-v3`).
 
-## Two standing leaves of the orchestrating session
+## Two standing leaves of a session the owner is in
+
+Until `st-7-switch-and-texts` (2026-10-13) this section was "Two standing leaves of the
+orchestrating session", and that session made both with nobody there. In his words and in the
+choices quoted below, "the orchestrating session" is since then a session the owner is in ("A
+session the owner is in"); the quotes are kept as they were written.
 
 Twice on 2026-10-11 the owner was shown three choices, in a comment, for an act that needs what is
 his each time a kind of change lands, and answered with the letter of the standing leave. His word
 is the letter. The choice it answered is the loop's text, quoted below from the comment. Both are
-the orchestrating session's. A writer, a reviewer and the overseer make neither: a writer whose
+made by a session the owner is in. A step and a judgment run make neither. A writer, a reviewer and the overseer make neither: a writer whose
 task commits such a quote, or changes a module of the shell, leaves the push or the post undone and
 says so in its comment and its report.
 

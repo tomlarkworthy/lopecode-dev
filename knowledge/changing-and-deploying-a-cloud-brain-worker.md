@@ -20,7 +20,7 @@ The other pages are listed in that file, which is read first.
 Since 2026-10-12 an agent of the issue loop does these steps in a git worktree and writes no tracked file of the main
 checkout (`.claude/skills/brain-maintenance/rules.md`, "Always"; `plan/cloud-brain-worktree-per-topic.md`, R1).
 `tools/cloud-brain/worktree.sh <name>` makes one at `origin/main` and prints its path, `.claude/worktrees/bm-<name>`
-(for a writer of the loop the orchestrating session has made it, with `worktree.sh --fresh`). There `lopebooks`,
+(for a writer of the loop `tools/cloud-brain/loop.ts start` has made it, with `worktree.sh --fresh`; until 2026-10-13 the orchestrating session). There `lopebooks`,
 `lopecode` and `lopecode-plugin` are links to the main checkout's, `cloud-brain-dev/` is a clone of its own, and
 `tools/cloud-brain/.emitted/` has no state: `brain.ts` is run with `BRAIN_STATE_DIR=<main checkout>/tools/cloud-brain/.emitted`
 before it. The order of a landing, with each command, is step 10 of the implementer's brief, on its page `.claude/skills/brain-maintenance/agents/implementer/landing.md`.
