@@ -48,7 +48,7 @@
 // too. A row has the state, `of` the issue its own `cause` link names, `actions` each issue with a `cause` link to it and
 // that issue's state, and `named again by` each post mortem opened after it that has a `related` link to it (a `related`
 // link from any other issue, or from an earlier post mortem, is not one). The last line is R8: the post mortems that do
-// not have the label `owner`, which are the ones a session declared with no word of his (SKILL.md, "A post mortem"),
+// not have the label `owner`, which are the ones a session declared with no word of his (agents/orchestrator.md, "A post mortem"),
 // and beside it the events of the one case a session declares for: each `send-back` move, each `owner-reject` of an
 // issue that had a review with the verdict `pass` before it, each `revert`, by the move's name (the policy of 5166 events
 // lets only a caller who is present make the three). Both are of the record up to --until, whatever --after and --window are.

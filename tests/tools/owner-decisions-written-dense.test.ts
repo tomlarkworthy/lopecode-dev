@@ -16,6 +16,9 @@ const root = resolve(import.meta.dir, "../..");
 const dir = join(root, ".claude/skills/brain-maintenance");
 const rules = readFileSync(join(dir, "rules.md"), "utf8");
 const skill = readFileSync(join(dir, "SKILL.md"), "utf8");
+// Since st-4-orchestrator-brief (2026-10-13) the sections "Triage", "A quick win" and "A post mortem" of SKILL.md are in
+// agents/orchestrator.md, moved and not rewritten (tests/tools/orchestrator-brief.test.ts): they are read there.
+const orchestrator = readFileSync(join(dir, "agents/orchestrator.md"), "utf8");
 const implementer = readFileSync(join(dir, "agents/implementer.md"), "utf8");
 const overseer = readFileSync(join(dir, "agents/overseer.md"), "utf8");
 const approver = readFileSync(join(dir, "agents/approver.md"), "utf8");
@@ -208,13 +211,13 @@ test("Always has an item that names the section", () => {
   expect(it).toContain("what its project is for, what it is, whether it is live");
 });
 
-test("SKILL.md names the section where it says how a comment for him and the list are written", () => {
-  const triage = lineWith(skill, "or a line of `rules.md`. The comment is");
+test("SKILL.md, and Triage in agents/orchestrator.md, name the section where they say how a comment for him and the list are written", () => {
+  const triage = lineWith(orchestrator, "or a line of `rules.md`. The comment is");
   expect(triage).toContain(ref);
   expect(triage).toContain("what its project is for, what it is, whether it is live");
-  expect(skill).not.toContain("The comment is in the form `philosophy.md` gives.");
+  expect(skill + orchestrator).not.toContain("The comment is in the form `philosophy.md` gives.");
 
-  const major = lineWith(skill, "and comment with the plan, written as");
+  const major = lineWith(orchestrator, "and comment with the plan, written as");
   expect(major).toContain(ref);
   expect(major).toContain("The owner takes `needs-owner` off");
 

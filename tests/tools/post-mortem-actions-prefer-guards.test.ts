@@ -15,12 +15,15 @@ const root = resolve(import.meta.dir, "../..");
 const dir = resolve(root, ".claude/skills/brain-maintenance");
 const brief = (process.env.BRIEF ? readFileSync(process.env.BRIEF, "utf8") : inFull());
 const skill = readFileSync(process.env.SKILL || resolve(dir, "SKILL.md"), "utf8");
+// Since st-4-orchestrator-brief (2026-10-13) the sections "Triage", "A quick win" and "A post mortem" of SKILL.md are in
+// agents/orchestrator.md, moved and not rewritten (tests/tools/orchestrator-brief.test.ts): they are read there.
+const orchestrator = readFileSync(process.env.ORCHESTRATOR || resolve(dir, "agents/orchestrator.md"), "utf8");
 const spec = readFileSync(process.env.SPEC || resolve(root, "plan/cloud-brain-post-mortems-declared-and-kept.md"), "utf8");
 const form = readFileSync(process.env.FORM || resolve(root, "tests/tools/post-mortems.test.ts"), "utf8");
 const flat = (s: string) => s.replace(/\s+/g, " ");
 const section = (text: string, heading: string) => flat(text.match(new RegExp(`\\n## ${heading}\\n[\\s\\S]*?(?=\\n## |$)`))?.[0] ?? "");
 const has = (text: string, parts: string[]) => expect(parts.filter((p) => !text.includes(p))).toEqual([]);
-const writer = section(brief, "A post mortem"), session = section(skill, "A post mortem");
+const writer = section(brief, "A post mortem"), session = section(orchestrator, "A post mortem");
 const KINDS = ["guard", "workflow", "refusal", "test", "observability", "text"];
 
 test("the brief: his two sentences, whole, and the order a kind of change is taken in", () => {

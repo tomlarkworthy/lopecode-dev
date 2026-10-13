@@ -180,7 +180,7 @@ asked to pick between them.
   case (`philosophy.md`, line 5), with what would reopen it.
 - **When.** Step 13's wait answers `"verdict":"pass"`: open and link each action then, and give the ids in your
   report. When you report with no `pass` read (the fifth exit 3, a second `changes`), say in the report that the
-  actions are not filed: the orchestrating session opens them from the file (`SKILL.md`, "A post mortem").
+  actions are not filed: the orchestrating session opens them from the file (`agents/orchestrator.md`, "A post mortem"; until 2026-10-13 a section of `SKILL.md`).
 
 ### Before the submit: the four questions
 

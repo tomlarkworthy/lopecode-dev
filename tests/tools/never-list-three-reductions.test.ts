@@ -13,7 +13,10 @@ const root = resolve(import.meta.dir, "../..");
 const dir = join(root, ".claude/skills/brain-maintenance");
 const read = (name: string): string => readFileSync(join(dir, name), "utf8");
 const rules = read("rules.md");
+// Since st-4-orchestrator-brief (2026-10-13) the sections "Triage", "A quick win" and "A post mortem" of SKILL.md are in
+// agents/orchestrator.md, moved and not rewritten (tests/tools/orchestrator-brief.test.ts): they are read there.
 const skill = read("SKILL.md");
+const orchestrator = read("agents/orchestrator.md");
 const brief = read("agents/implementer.md");
 const start = read("agents/implementer/start.md");
 
@@ -74,8 +77,8 @@ test("rules.md, What an issue is: an issue whose fix is in one of the four seeds
   expect(what).toContain("Anything else of that list it asks for is left for him as before.");
 });
 
-test("SKILL.md, Triage: a deploy of the four is no longer a reason for needs-owner, and the major labels are as they were", () => {
-  const triage = flat(section(skill, "Triage"));
+test("Triage (agents/orchestrator.md; SKILL.md until st-4-orchestrator-brief): a deploy of the four is no longer a reason for needs-owner, and the major labels are as they were", () => {
+  const triage = flat(section(orchestrator, "Triage"));
   expect(triage).toContain("may do (a policy install, a new secret, a deletion of kept data).");
   expect(triage).not.toContain("a deploy of the kernel, core, database or deployer, a deletion of kept data");
   expect(triage).not.toContain("it is not in force");

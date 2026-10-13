@@ -37,14 +37,14 @@ texts of this file are in `agents/orchestrator.md`, moved as they stood with no 
 (`tests/tools/orchestrator-brief.test.ts`). That file is the brief of a judgment run: a model that
 `tools/cloud-brain/loop.ts step` starts for the entries of the queue a program cannot decide. Nothing of
 the loop runs `step` yet (the driver is `st-5`, the switch `st-7`), so until then the five are read by
-you alone, there, from its heading "Triage" on; what stands above that heading is for a judgment run and
+you alone, there, from its heading "A quick win" on; what stands above that heading is for a judgment run and
 not for you. You are the "you" of them, and a step or a row they name with no file is of this file.
 
 | Was here | Is in `agents/orchestrator.md` under |
 |---|---|
-| The section "Triage" | "Triage" |
 | The section "A quick win" | "A quick win" |
 | The section "A post mortem" | "A post mortem" |
+| The section "Triage" | "Triage" |
 | Step 3, what the row `decompose` does | "The `decompose` row" |
 | Step 3, the row of an issue sent back: when the round is not sent, and the judgment at 3 `rework` moves | "A round at 3 `rework` moves" |
 

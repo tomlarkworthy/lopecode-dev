@@ -68,7 +68,9 @@ test("step 3 has a row for each `do` of the queue and each `why` of `waiting`, a
   // No row is matched by a state any more: the rows the queue's entries took the place of are gone.
   for (const gone of ["at `building`, no open part", "at `approved` |", "| `triaged`, no open children |", "| `open`, kind `task` or `bug` |", "| `in-review`, and no review since it came into that state", "labeled `digest`, at `ready`"])
     expect([gone, rows.filter((l) => l.includes(gone)).length]).toEqual([gone, 0]);
-  expect(rows[at("| `decompose` |")]).toContain(`link '{"key":"orch/<task>/after-<other>","id":"<task>","to":"<other>","rel":"after"}'`);
+  // What the row `decompose` does is in agents/orchestrator.md since st-4-orchestrator-brief (2026-10-13), moved and not rewritten.
+  expect(rows[at("| `decompose` |")]).toContain('`agents/orchestrator.md`, "The `decompose` row"');
+  if (!process.env.SKILL) expect(readFileSync(resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/agents/orchestrator.md"), "utf8")).toContain(`link '{"key":"orch/<task>/after-<other>","id":"<task>","to":"<other>","rel":"after"}'`);
   expect(rows[at("| `start` |")]).toContain("With the label `digest`, the digest writer");
 });
 

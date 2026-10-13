@@ -43,7 +43,8 @@
 //         it must have) and is ended with the run; its worktree is `orch-<host>`, with no comment; the third line of
 //         its prompt is `Entries: <--give>`; its event is on <id>, the first issue of its entries, with the round one
 //         more than the runs of that role the issue has. With no <id> (a cluster that is not healthy is all it was
-//         given) it has the file and no event, and its report goes to _judgment.md of the journal.
+//         given) it has the file and no event, and its report goes to _judgment.md of the journal. Exit 3 and
+//         nothing started while a judgment run of this machine runs.
 // ended   SKILL.md step 5 as code, when the wrapper has returned. No result and a process that lives: exit 3. The
 //         outcome is read from the issue and not from the report: a writer's `in-review`, `pass` or `changes` (its
 //         submit, and the review after it), `no-submit` (a result, no submit), `stopped` (no result, or an error);
@@ -291,6 +292,9 @@ function start(args: string[]) {
   if (role === "overseer" && id) stop(2, "an overseer is on no issue: start --role overseer");
   if ((role === "orchestrator") !== !!entries) stop(2, "--give is the entries of a judgment run, and --role orchestrator has it");
   if (role === "orchestrator" && !given) stop(2, "a judgment run is started by `step`, which makes its token and names it in the `given` comments before the run: --token <t>");
+  // One judgment run a machine: a second is not started while one runs, also by hand.
+  const judging = role === "orchestrator" && existsSync(RUNS()) ? readdirSync(RUNS()).filter((f) => /^orch-[0-9a-f]{6}\.json$/.test(f)).map((f) => load(f.slice(0, -5))).find((r) => r && r.role === "orchestrator" && r.host === HOST() && !r.ended && alive(r)) : null;
+  if (judging) stop(3, `a judgment run runs (${judging.token}, ${judging.agent}); nothing was started`);
   const got = id ? read(me, `get?id=${id}`) : { issue: { id: "", labels: [] }, events: [] };
   if (id && !(got.issue && got.issue.id)) stop(1, `no issue ${id} that ${me} reads`);
   const issue = got.issue, events: Ev[] = got.events || [];

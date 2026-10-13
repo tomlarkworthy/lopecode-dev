@@ -10,9 +10,10 @@ Since `st-4-orchestrator-brief` (2026-10-13). This file has two parts.
 
 - **To "Your report"**: written for that task, from the spec. No judgment run had been started with a
   model when it was written, so no line of it has been followed yet.
-- **From "Triage" on**: five texts of `SKILL.md`, moved here as they stood that day with no word changed
+- **From "A quick win" on**: five texts of `SKILL.md`, moved here as they stood that day with no word changed
   (`tests/tools/orchestrator-brief.test.ts`). They were written for a session that orchestrates. Such a
-  session reads them here when it makes a pass by hand, and reads nothing above "Triage".
+  session reads them here when it makes a pass by hand, and reads nothing above "A quick win". The three
+  sections are in the order they had, so "above" and "below" between them hold.
 
 In the moved texts:
 
@@ -59,7 +60,7 @@ again: it is listed for a session with the owner in
 | `unhealthy (<what failed>)` | the cluster is not healthy; it is of no issue | "The cluster is not healthy" |
 
 A row of `SKILL.md` is one line of it, read by its first cell between two bars:
-`grep -n -F '| labeled `needs-owner` |' $W/.claude/skills/brain-maintenance/SKILL.md`. Each of the five
+``grep -n -F '| labeled `needs-owner` |' $W/.claude/skills/brain-maintenance/SKILL.md``. Each of the five
 first cells above was on one line of the file on 2026-10-13 (`grep -c -F`, 1 for each).
 
 ## How an entry is answered
@@ -96,8 +97,8 @@ owner is asked to decide", has it, and then the label `needs-owner`.
 
 ## The cluster is not healthy
 
-Your prompt has what failed, as the step read it (`loop.ts`, header, `step`, item 1). The step starts
-nothing while it is so. Read the open issues for one that names it (`ia "list?limit=500"`, the titles).
+Your prompt has what failed, as the step read it (`loop.ts`, header, `step`, item 1). The step ends no
+run and starts no agent of an issue while it is so. Read the open issues for one that names it (`ia "list?limit=500"`, the titles).
 With one: add what failed now as a comment on it. With none: open a `bug` with what failed, the time
 from `date` and the command that shows it. You mend nothing on cb4: a deploy is a writer's, under the
 lock, and one of the four of `rules.md`, Never, is the owner's. There is no verdict to write.
@@ -119,9 +120,10 @@ lock, and one of the four of `rules.md`, Never, is the owner's. There is no verd
   report to the journal.
 - **No review, and no second look at another entry's issue.** An issue that is not in your prompt is
   not yours, but one you open (a task of a spec, a post mortem, a bug for the cluster).
-- **A quick win is taken as "A quick win" has it, and not for a post mortem.** It is landed from `$W`
-  with `tools/cloud-brain/land.sh` (`agents/implementer.md`, steps 9 to 12), and its review is not
-  waited for: your token ends with your run, so a quick win that is sent back goes to a writer.
+- **A quick win is taken as "A quick win" has it, and not for a post mortem.** Your worktree of that
+  section is `$W`. Its review is not waited for: your token ends with your run, so a round of it is not
+  sent to you. By the code of `loop.ts` (`resume`, "A dead writer") the step then makes `back` and starts
+  a writer; that was read and not run.
 - **No tab, and none of the tools a process has with nothing asked** (Workflow, RemoteTrigger, the Cron
   tools, WebFetch, WebSearch): an entry is decided from the record, the checkout and the Brain's search.
 
@@ -131,57 +133,6 @@ As `rules.md`, "Always", has it. For each entry of your prompt, in its order: wh
 line of `philosophy.md` when one decided it, and the seq of each event you wrote. Then each command
 whose result you rely on with its result, what you did not try, and what in this file, in `SKILL.md`
 or in the cluster slowed or misled you.
-
-## Triage
-
-Done by you with your own token, every `open` issue in a pass, and also while an agent
-runs: triage builds nothing. (Until 2026-10-10 18:43 it was one a pass and never beside an agent;
-five issues then sat `open` for two hours behind three reviews of one.) Read the issue and enough of the
-code to answer three questions, then write the answers as the `reason` of the move.
-A time you write in an issue's body, a comment or a reason is read from `date` or an event's
-`at`, never estimated (2026-10-10: a body said "23:30" and a comment "23:33", written at 23:24:45 and 23:25:04).
-
-1. Is it real? A duplicate, test data, or something that is already so is `reject`ed with the
-   reason and the id of what it duplicates. So is a defect nobody has met: found by reading the
-   code, never reproduced, with no case where it cost anything. The owner rejected two of those
-   on 2026-10-10 ("Need more evidence this is a problem before fixing", "wait until real issue").
-   Say in the reason what evidence would reopen it.
-2. What does `philosophy.md` say to do? **Decide it.** Choose the side that is smaller and
-   easier to undo, name the line of the seven you decided by in the move's reason with what the
-   other side was, and send it to `ready`. The owner reads the reason and can reject. This
-   holds for a choice about the loop's own rules and tools as much as for a choice inside a
-   service. (At the stop on 2026-10-10, 12 of 14 open issues waited for the owner, and he said
-   the label "should really be about changing or clarifying philosophy".)
-   - An issue that is one of several with a common cause is not sent to `ready` alone: link it,
-     and leave the gathering to the overseer (below, "Links, and projects").
-   - `needs-owner`, left at `triaged`: only when the seven do not answer it, when two of them
-     pull apart with a real cost on each side, or when the issue proposes to change one of them
-     or a line of `rules.md`. The comment is written as `rules.md`, "What the owner is asked to decide", has it: what its project is for, what it is, whether it is live, the one flaw, a line a choice, the pick. (Until `owner-decisions-written-dense`, 2026-10-12: "in the form `philosophy.md` gives", the longer order of 2026-10-11.)
-   - Also `needs-owner`, until the owner changes `rules.md`: the change needs something only he
-     may do (a policy install, a new secret, a deletion of kept data). Decide from the seven
-     whether it should be done, and comment with the plan and the one command or word he would
-     give. Do not ask him which side. A token that an approved spec names is not such a secret:
-     you make it ("A token an approved spec names", below).
-   - Not `needs-owner` for its deploy alone: a fix in the seed of the kernel, the core, the
-     database or the deployer. It goes to `ready` as any issue does, and its writer lands the
-     seed with no deploy (`rules.md`, Never, the line of the four; `agents/implementer.md`,
-     step 3). The deploy is still the owner's. The labels of the paragraph after these three
-     questions are added as for any change: a fix there that alters who may do what is `major`
-     and waits under `needs-owner` with its plan. (Since `never-list-three-reductions`,
-     2026-10-13. Until then a deploy of one of the four was in the list of the item above, and
-     such an issue was left at `triaged`.)
-3. Is it one change? More than one becomes subtasks (`open` with `parent`), and the parent goes
-   to `ready` when they are closed. More than a handful, or a change of design: it is a `project`.
-
-An issue labeled `post-mortem` is asked one question in place of the three: whether a post mortem of the same
-thing exists ("A post mortem", above).
-
-Anything else: `triage`, then `ready`. Add the labels `major` and `needs-owner` when the change
-alters who may do what, deletes or rewrites kept data, or changes a method other callers use,
-and comment with the plan, written as `rules.md`, "What the owner is asked to decide", has it. The owner takes `needs-owner` off to let it be built, or answers and you take it off (`rules.md`, Never, the `needs-owner` line). The approval
-after review is then of a change that is already deployed and pushed, since a submit needs its
-refs; the plan is where the owner stops it. Add `security` and take the `escalate` swap when the body describes a
-way past an access rule; the issue is then the owner's.
 
 ## A quick win
 
@@ -300,6 +251,57 @@ send it back, and for which of its four questions; what became of its actions; w
 (the comments of later writers name what they searched and used); did the overseer act on the block. What it
 finds is a comment on `post-mortems-declared-and-kept` and, where a brief is at fault, a task, `major` when the
 brief is the overseer's.
+
+## Triage
+
+Done by you with your own token, every `open` issue in a pass, and also while an agent
+runs: triage builds nothing. (Until 2026-10-10 18:43 it was one a pass and never beside an agent;
+five issues then sat `open` for two hours behind three reviews of one.) Read the issue and enough of the
+code to answer three questions, then write the answers as the `reason` of the move.
+A time you write in an issue's body, a comment or a reason is read from `date` or an event's
+`at`, never estimated (2026-10-10: a body said "23:30" and a comment "23:33", written at 23:24:45 and 23:25:04).
+
+1. Is it real? A duplicate, test data, or something that is already so is `reject`ed with the
+   reason and the id of what it duplicates. So is a defect nobody has met: found by reading the
+   code, never reproduced, with no case where it cost anything. The owner rejected two of those
+   on 2026-10-10 ("Need more evidence this is a problem before fixing", "wait until real issue").
+   Say in the reason what evidence would reopen it.
+2. What does `philosophy.md` say to do? **Decide it.** Choose the side that is smaller and
+   easier to undo, name the line of the seven you decided by in the move's reason with what the
+   other side was, and send it to `ready`. The owner reads the reason and can reject. This
+   holds for a choice about the loop's own rules and tools as much as for a choice inside a
+   service. (At the stop on 2026-10-10, 12 of 14 open issues waited for the owner, and he said
+   the label "should really be about changing or clarifying philosophy".)
+   - An issue that is one of several with a common cause is not sent to `ready` alone: link it,
+     and leave the gathering to the overseer (below, "Links, and projects").
+   - `needs-owner`, left at `triaged`: only when the seven do not answer it, when two of them
+     pull apart with a real cost on each side, or when the issue proposes to change one of them
+     or a line of `rules.md`. The comment is written as `rules.md`, "What the owner is asked to decide", has it: what its project is for, what it is, whether it is live, the one flaw, a line a choice, the pick. (Until `owner-decisions-written-dense`, 2026-10-12: "in the form `philosophy.md` gives", the longer order of 2026-10-11.)
+   - Also `needs-owner`, until the owner changes `rules.md`: the change needs something only he
+     may do (a policy install, a new secret, a deletion of kept data). Decide from the seven
+     whether it should be done, and comment with the plan and the one command or word he would
+     give. Do not ask him which side. A token that an approved spec names is not such a secret:
+     you make it ("A token an approved spec names", below).
+   - Not `needs-owner` for its deploy alone: a fix in the seed of the kernel, the core, the
+     database or the deployer. It goes to `ready` as any issue does, and its writer lands the
+     seed with no deploy (`rules.md`, Never, the line of the four; `agents/implementer.md`,
+     step 3). The deploy is still the owner's. The labels of the paragraph after these three
+     questions are added as for any change: a fix there that alters who may do what is `major`
+     and waits under `needs-owner` with its plan. (Since `never-list-three-reductions`,
+     2026-10-13. Until then a deploy of one of the four was in the list of the item above, and
+     such an issue was left at `triaged`.)
+3. Is it one change? More than one becomes subtasks (`open` with `parent`), and the parent goes
+   to `ready` when they are closed. More than a handful, or a change of design: it is a `project`.
+
+An issue labeled `post-mortem` is asked one question in place of the three: whether a post mortem of the same
+thing exists ("A post mortem", above).
+
+Anything else: `triage`, then `ready`. Add the labels `major` and `needs-owner` when the change
+alters who may do what, deletes or rewrites kept data, or changes a method other callers use,
+and comment with the plan, written as `rules.md`, "What the owner is asked to decide", has it. The owner takes `needs-owner` off to let it be built, or answers and you take it off (`rules.md`, Never, the `needs-owner` line). The approval
+after review is then of a change that is already deployed and pushed, since a submit needs its
+refs; the plan is where the owner stops it. Add `security` and take the `escalate` swap when the body describes a
+way past an access rule; the issue is then the owner's.
 
 ## The `decompose` row
 

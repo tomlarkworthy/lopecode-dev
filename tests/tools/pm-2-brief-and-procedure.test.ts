@@ -13,6 +13,10 @@ const root = resolve(import.meta.dir, "../..");
 const dir = resolve(root, ".claude/skills/brain-maintenance");
 const read = (p: string) => readFileSync(resolve(root, p), "utf8");
 const skill = readFileSync(process.env.SKILL || resolve(dir, "SKILL.md"), "utf8");
+// Since st-4-orchestrator-brief (2026-10-13) the sections "Triage", "A quick win" and "A post mortem" of SKILL.md are in
+// agents/orchestrator.md, moved and not rewritten (tests/tools/orchestrator-brief.test.ts): they are read there.
+// ORCHESTRATOR=<file> reads another copy of it; with SKILL=<a copy from before that move> give that copy as both.
+const orchestrator = readFileSync(process.env.ORCHESTRATOR || resolve(dir, "agents/orchestrator.md"), "utf8");
 const brief = (process.env.BRIEF ? readFileSync(process.env.BRIEF, "utf8") : inFull());
 const spec = read("plan/cloud-brain-post-mortems-declared-and-kept.md");
 const flat = (s: string) => s.replace(/\s+/g, " ");
@@ -27,7 +31,7 @@ const step = (text: string, n: number) => {
 };
 const has = (text: string, parts: string[]) => expect(parts.filter((p) => !text.includes(p))).toEqual([]);
 
-const writer = section(brief, "A post mortem"), session = section(skill, "A post mortem");
+const writer = section(brief, "A post mortem"), session = section(orchestrator, "A post mortem");
 
 test("the brief: step 1 sends a writer of a labeled issue to the section, which says what each step is for it", () => {
   expect(step(brief, 1)).toContain('An issue whose `labels` have `post-mortem` is not a fix: read "A post mortem" below before step 2.');
@@ -128,9 +132,9 @@ test("SKILL.md step 3: a row for a post mortem at `open` and one at `ready`, abo
 });
 
 test("SKILL.md, \"A post mortem\": what one is, the two who declare, and the one case the session declares for", () => {
-  expect(count(skill, "\n## A post mortem\n")).toBe(1);
-  expect(skill.indexOf("\n## A post mortem\n")).toBeGreaterThan(skill.indexOf("\n## The daily digest\n"));
-  expect(skill.indexOf("\n## A post mortem\n")).toBeLessThan(skill.indexOf("\n## Triage\n"));
+  expect(count(orchestrator, "\n## A post mortem\n")).toBe(1);
+  expect(orchestrator.indexOf("\n## A post mortem\n")).toBeLessThan(orchestrator.indexOf("\n## Triage\n"));
+  if (!process.env.SKILL) expect([count(skill, "\n## A post mortem\n"), count(skill, '("A post mortem" of `agents/orchestrator.md`)')]).toEqual([0, 3]);
   has(session, [
     "An issue of kind `task`, id `pm-<short>`, labeled `post-mortem`, with one link `{id: pm-<short>, to: <the issue it is of>, rel: \"cause\"}`",
     "It names no cause",
@@ -168,11 +172,11 @@ test("SKILL.md: the triage of one, the actions filed at `done`, the read after t
     "did the overseer act on the block",
     "`major` when the brief is the overseer's",
   ]);
-  expect(section(skill, "Triage")).toContain(
+  expect(section(orchestrator, "Triage")).toContain(
     'An issue labeled `post-mortem` is asked one question in place of the three: whether a post mortem of the same thing exists ("A post mortem", above).',
   );
   has(step(skill, 7), [
-    'Then the post mortems ("A post mortem", below), each said once, in the pass that first reads it so',
+    'Then the post mortems ("A post mortem" of `agents/orchestrator.md`), each said once, in the pass that first reads it so',
     "one that has reached `done`, with its cause in the sentence its file has under `## The root cause` and its actions by id",
     "one that a later post mortem names again",
     "one with an action at `rejected`",

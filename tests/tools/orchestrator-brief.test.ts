@@ -19,7 +19,7 @@ const flat = (s: string) => s.replace(/\s+/g, " ");
 const git = (...args: string[]) => spawnSync("git", args, { cwd: root, encoding: "utf8", maxBuffer: 1 << 26 });
 const headings = (text: string) => text.split("\n").filter((l) => l.startsWith("## ")).map((l) => l.slice(3));
 // The three sections that were moved whole, and the two headings the brief gives what was moved out of two rows.
-const SECTIONS = ["Triage", "A quick win", "A post mortem"], ROWS = ["The `decompose` row", "A round at 3 `rework` moves"];
+const SECTIONS = ["A quick win", "A post mortem", "Triage"], ROWS = ["The `decompose` row", "A round at 3 `rework` moves"];
 // A section of a text: from its heading to the next heading of that level, or the end.
 const section = (text: string, title: string) => {
   const a = text.indexOf(`\n## ${title}\n`);
@@ -31,7 +31,8 @@ const section = (text: string, title: string) => {
 test("each moved heading is in agents/orchestrator.md and not in SKILL.md", () => {
   const brief = headings(read(ORCH)), skill = headings(read(SKILL));
   for (const h of [...SECTIONS, ...ROWS]) expect([h, brief.filter((x) => x === h).length, skill.includes(h)]).toEqual([h, 1, false]);
-  // The brief's own part is first, and the moved texts are last, in this order.
+  // The brief's own part is first, and the moved texts are last, the three sections in the order SKILL.md had them:
+  // "Triage" names "A post mortem" as above it.
   expect(brief.slice(-5)).toEqual([...SECTIONS, ...ROWS]);
   expect(brief.slice(0, -5)).toEqual(["Your prompt, and your token", "The entries", "How an entry is answered", "Two dead runs", "The cluster is not healthy", "What you do not do", "Your report"]);
   expect(BRIEF.orchestrator).toBe("orchestrator");
@@ -41,7 +42,8 @@ test("each moved heading is in agents/orchestrator.md and not in SKILL.md", () =
 // The brief as the commit that added it has it, against SKILL.md of that commit's parent. A later edit of either file
 // does not move this: it reads two commits.
 test("moved and not rewritten: the five texts of the commit that added the brief are texts of SKILL.md as it stood before, byte for byte, and are not in SKILL.md of that commit", () => {
-  const added = git("log", "--diff-filter=A", "--format=%H", "--", ORCH).stdout.trim().split("\n").filter(Boolean).at(-1);
+  // ORCHESTRATOR_BRIEF_COMMIT names another commit to read in its place: the record's check that this test can fail.
+  const added = process.env.ORCHESTRATOR_BRIEF_COMMIT || git("log", "--diff-filter=A", "--format=%H", "--", ORCH).stdout.trim().split("\n").filter(Boolean).at(-1);
   if (!added) return void console.log("skipped: orchestrator-brief.test.ts: no commit that added agents/orchestrator.md (it is not committed, or the clone is shallow)");
   const before = git("show", `${added}^:${SKILL}`), after = git("show", `${added}:${SKILL}`), brief = git("show", `${added}:${ORCH}`);
   expect([before.status, after.status, brief.status]).toEqual([0, 0, 0]);
@@ -65,7 +67,7 @@ test("moved and not rewritten: the five texts of the commit that added the brief
   let rest = before.stdout;
   for (const t of moved) rest = rest.replace(t, "");
   const has = new Set(after.stdout.split("\n")), gone = rest.split("\n").filter((l) => !has.has(l));
-  const edited = ["reported. You review nothing yourself, and you fix only a quick win (below).", "   | `triage` | Triage it yourself (Triage, below)", "   | `decompose` |  |", "   | labeled `post-mortem`, at `open` | ", "   | labeled `post-mortem`, at `ready` | ", "   | `in-progress`, started by a writer or a digest writer", '   Then the post mortems ("A post mortem", below)'];
+  const edited = ["reported. You review nothing yourself, and you fix only a quick win (below).", "   | `triage` | Triage it yourself (Triage, below)", "   | `decompose` |  |", "   | `in-progress`, started by a writer or a digest writer", "   | labeled `post-mortem`, at `open` | ", "   | labeled `post-mortem`, at `ready` | ", '   Then the post mortems ("A post mortem", below)'];
   expect(gone.map((l) => edited.find((p) => l.startsWith(p)) || l)).toEqual(edited);
 });
 
@@ -75,7 +77,7 @@ test("SKILL.md keeps a pass by hand: it says where each of the five is, and its 
   const rows = note.split("\n").filter((l) => l.startsWith("| ") && !l.startsWith("| Was here") && !l.startsWith("|---"));
   expect(rows.map((r) => r.split("|")[2].trim())).toEqual([...SECTIONS, ...ROWS].map((h) => `"${h}"`));
   const text = flat(skill);
-  for (const s of ["moved as they stood with no word changed", "from its heading \"Triage\" on; what stands above that heading is for a judgment run and not for you",
+  for (const s of ["moved as they stood with no word changed", "from its heading \"A quick win\" on; what stands above that heading is for a judgment run and not for you",
     "Where this file or another text names one of the five as a section or a row of `SKILL.md`", "it means that file",
     'you fix only a quick win (`agents/orchestrator.md`, "A quick win")', 'Triage it yourself (`agents/orchestrator.md`, "Triage")',
     '| `decompose` | `agents/orchestrator.md`, "The `decompose` row":', '`agents/orchestrator.md`, "A round at 3 `rework` moves". |',

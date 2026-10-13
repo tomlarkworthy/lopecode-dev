@@ -772,7 +772,7 @@ test("the judgment run: a start that failed is written as a run that died, its t
   expect([r.line.acts, r.line.given, r.line.skipped, events("a", "commented"), log("self")]).toEqual([[{ act: "start", id: "a", role: "orchestrator", entries: 1, exit: 1, said: "agent-token made no token: no token loop-agents" }], [], [{ id: "a", do: "triage", why: "agent-token made no token for the judgment run" }], [], []]);
 });
 
-test("start --role orchestrator: it takes --token and --give and no other role takes --give; a worktree another token is in is exit 1 with nothing left; with no issue it has the file and no event", async () => {
+test("start --role orchestrator: it takes --token and --give and no other role takes --give; a worktree another token is in is exit 1 with nothing left; with no issue it has the file and no event; a second beside it is exit 3", async () => {
   fresh();
   writeFileSync(TOKENS, JSON.stringify({ [ME]: "v-" + ME, "orch-0a0a0a": "v-orch-0a0a0a" }));
   open("a", { state: "open" });
@@ -787,9 +787,15 @@ test("start --role orchestrator: it takes --token and --give and no other role t
   expect([r.code, r.err.trim(), writes(), existsSync(RUNS) ? readdirSync(RUNS).filter((f) => f.endsWith(".json")) : [], log("brain")]).toEqual([1, `loop.ts: worktree.sh --fresh orch-${HOST}: exit 4 another token is in it; the token orch-0a0a0a is ended`, [], [], ["agent-token revoke orch-0a0a0a"]]);
   rmSync(join(RIG, "wt-fresh-exit"));
   // A cluster that is not healthy is all it was given: no issue, so no event, and its report is in _judgment.md.
+  flag("agent-hold");
   r = await start("--role", "orchestrator", "--token", "orch-0a0a0a", "--give", "unhealthy (redistil: brain-x-issues is changes)");
   expect([r.code, r.line]).toMatchObject([0, { started: "orch-0a0a0a", id: "", role: "orchestrator", round: 1, tree: "orch-" + HOST }]);
   expect([r.line.event, r.line.key]).toEqual([undefined, undefined]);
+  // While it runs a second is exit 3, by hand as by the step, and the run's file is as it was.
+  writeFileSync(TOKENS, JSON.stringify({ [ME]: "v-" + ME, "orch-0a0a0a": "v-orch-0a0a0a", "orch-1b1b1b": "v-orch-1b1b1b" }));
+  const pid = file("orch-0a0a0a").pid, second = await start("a", "--role", "orchestrator", "--token", "orch-1b1b1b", "--give", "triage a (event 1)");
+  expect([second.code, second.err.trim(), file("orch-1b1b1b"), file("orch-0a0a0a").pid, writes()]).toEqual([3, `loop.ts: a judgment run runs (orch-0a0a0a, ${HOST}:${pid}); nothing was started`, null, pid, []]);
+  rmSync(join(RIG, "agent-hold"));
   await until(() => file("orch-0a0a0a")?.ended);
   expect([file("orch-0a0a0a").ended.outcome, writes(), readFileSync(join(RIG, "agent.log"), "utf8").split("\n")[4]]).toEqual(["done", [], "Entries: unhealthy (redistil: brain-x-issues is changes)"]);
   expect(readFileSync(join(LOOP, "_judgment.md"), "utf8")).toContain("outcome done, token orch-0a0a0a");
