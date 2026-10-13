@@ -252,6 +252,12 @@ document when you mend a note in it ("What holds a change, and what is a note", 
    A count of the suite that differs from the writer's by tests another issue's landing brought in is a note:
    `git -C <checkout> diff --stat <the commit the writer counted at> <sha> -- tests/tools` shows them (the reviewers
    of `token-checks-after-nan-reads-pass`, 612 and 613, and of `tp-3-take-and-done`, 609 and 613, 2026-10-12).
+   That commit is seldom named. "After the rebase" in a record is the rebase before the writer's run of the suite,
+   not the landing's, and other issues land between the two. When no ref, comment or record gives the commit,
+   `git -C <checkout> log --format='%h %cI %s' -12 <sha> -- tests/tools` set beside the time of the writer's run in
+   the record gives it, and the review names the commit you took (the reviewers of `cu-3-figures-and-the-price`
+   and `kept-brief-copy-behind-holders-four`, 2026-10-13, each found it from commit times; four before them from
+   `git log -- tests/tools` and the counts).
    To show a test of that suite fails without the fix: `tools/cloud-brain/worktree.sh --at <sha>^ <view>`, with the
    commit that has the fix for `<sha>` there when the last ref is another (a record's commit), copy the
    test in (`git -C <checkout> show <sha>:<path> > <path>`), run it, then `tools/cloud-brain/worktree.sh --at <sha> <view>`,
@@ -412,6 +418,11 @@ change", read of the design in place of the change (review 2797 of `topics-servi
 writes without end where a caller the issue names would meet it; a review of `group-invites` the third); anything
 else is a note. You run no tests for a spec and the rule on a test count
 does not apply. First written 2026-10-11; 19 reviews of a spec by event 1920.
+
+A round after the first: read the review that sent the spec back (the last `reviewed` event before the `respec`, in
+the issue's events) before the new file, look for each thing it held in the new file first, and then answer the
+four of the whole file as it now is. (The reviewers of round 2 of `fly-exec-for-blessed-services` and of
+`rules-checked-and-stale-knowledge-seen`, 2026-10-13, each said this section had no line for a second round.)
 
 A small thing you find while reviewing, that is not of this issue's change and that you know the
 fix of: you do not fix it. A reviewer that writes code is the writer of that change, and the workflow
