@@ -178,8 +178,8 @@ they are now, then the tool put back: `approver.test.ts` 31 pass, 3 fail. The th
 cells the tool names are cells of … as the checkout has it" (it now expects `[]` for a space before
 the block of `issuesApp`), "issuesApp and issuesLimits are marked by their policy parts", and "the
 commit of tr-4-held-read, 489aea7a, touches no policy part of the seed". Run at 10:43
-CEST, with the tests of round 1; with those of round 2 the second of the three is the one that
-fails first ("A resumed round", below).
+CEST with the tests of round 1, and at 11:07 CEST with those of round 2: 31 pass, 3 fail, the same
+three, both times.
 
 **Over the history of the seed**, the 64 commits of `git log --format=%h -- tools/cloud-brain/brain-issues.ojs`,
 each read with the tool before and with this one (a script of the scratchpad that calls `seedTouch`
