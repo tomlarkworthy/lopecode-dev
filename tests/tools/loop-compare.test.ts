@@ -48,6 +48,8 @@ test("each kind of act is read by its own event; one the record has no event of 
     ev(112, 1, "topic", "orch-aaaaaa", { type: "commented", key: "orch/topic/worktree-removed-1" }),
     // A judgment's answer: a move of the session on the entry's issue. Its `cost` events and a `worktree` comment are not one.
     cost(113, 1, "j1", "orch-aaaaaa", "orchestrator", "running", "orch-jjjjjj"), ev(114, 1, "j1", "orch-aaaaaa", { type: "commented", key: "orch/j1/worktree-2" }), moved(115, 2, "j1", "orch-jjjjjj", "triage", "triaged"),
+    // The step's own `given` comment, which a step that is not dry writes before the run, is no answer either.
+    ev(117, 1, "j2", "orch-aaaaaa", { type: "commented", key: "orch/j2/given-promote-80" }),
     ev(116, 2, "j2", "impl-zzzzzz", { type: "commented", key: "impl/j2/x" }),
   ]);
   expect(rows(c)).toEqual([
@@ -57,7 +59,7 @@ test("each kind of act is read by its own event; one the record has no event of 
     ["token-ended k", "unread", 1], ["worktree-remove rev-topic.2", 112, 1], ["worktree-remove left", null, 1],
     ["given triage j1", 115, 1], ["given promote j2", null, 1],
   ]);
-  expect(c.unnamed.map((e) => e.seq)).toEqual([113, 114]);
+  expect(c.unnamed.map((e) => e.seq)).toEqual([113, 114, 117]);
 });
 
 test("an act named again by a step that read its event is a second row, and no event is the event of two rows", () => {

@@ -1,4 +1,4 @@
-# st-6-a-day-beside-the-session: `loop.ts compare`, 2 dry steps beside a session's moves, and two faults mended
+# st-6-a-day-beside-the-session: `loop.ts compare`, 3 dry steps beside a session's moves, and two faults mended
 
 2026-10-13. Task 6 of `plan/cloud-brain-orchestrator-as-steps.md`, as the owner re-scoped it that morning. A
 local tool, its tests, a note "As built" in the spec. No seed, no deploy.
@@ -6,7 +6,7 @@ local tool, its tests, a note "As built" in the spec. No seed, no deploy.
 **This is not the day the task was written for.** The task asked for `loop.ts run --dry` beside the session's
 loop for a day. The owner stopped that loop before the task began, and chose the re-scope (comment 6410 of
 the issue, his words: "Re-scope is my wish this is a priority issue"): the dry driver beside the hand-made
-moves of one session, for the hours of this task. What was compared is **2 lines of a dry driver over 3
+moves of one session, for the hours of this task. What was compared is **3 lines of a dry driver over 30
 minutes and 1 event**, with the acts of 3 more dry steps read from where they were written down. "What this
 did not see", below, is the larger part of the R8 check.
 
@@ -51,20 +51,23 @@ token before the change (11:44:27):
 Read from `ended` in `loop.ts` and not run: a step that is not dry would then have written the run's `cost`
 event with the outcome `stopped` and ended its token, and the step after it would have made `back`.
 
-**Who was wrong in this way, and who was not.** A step whose process is under the wrapper it looks for: an
-agent of a run that makes a step, as the reviewer did and this writer did. Not the driver: a wrapper it
-starts is its descendant. The dry driver of `out-5bc2ed` (pid 9479, in the main checkout, with `loop.ts` of
-before this change) named no `ended` for `impl-d3a51d` in either of its 2 lines, while that run lived.
+**Who was wrong in this way, and who was not.** A step whose `pgrep` has the wrapper it looks for among its
+ancestors: an agent of a run that makes a step, as the reviewer did and this writer did. Not the driver: no
+wrapper is an ancestor of the driver or of a step it makes. The dry driver of `out-5bc2ed` (pid 9479, in
+the main checkout, with `loop.ts` of before this change) named no `ended` for `impl-d3a51d` in any of its 3
+lines, while that run lived.
 
 **The mend.** `alive` reads `pgrep -a -f`. On Linux `-a` means another thing, the command line printed after
 the pid, so the pid is taken as the first word of each line. The same dry step after the change (11:55:02)
 names no `ended`.
 
 **From one safehouse to another** (asked in comment 6470). `pgrep` here lists the processes of other
-sandboxes. With `pgrep -a -P <pid>`, walked down from each of 7 `safehouse` processes (11:51:03): the dry
-driver 9479 is under one of them (50059), and a first child of each of the 7 was found by its pid in
-`pgrep -a -f .` run from this writer's sandbox. This writer's wrapper, 10233, is under none of the 7:
-`start` detaches it. So a step in one sandbox reads
+sandboxes. `pgrep -a -f 'bin/safehouse --env-pass'` printed 8 pids (11:51:03): 7 `safehouse` processes, and
+this writer's own shell, whose command line had those words. With `pgrep -a -P <pid>`, walked down from each:
+the dry driver 9479 is under one of the 7 (50059), and a first child of each of the 7 was found by its pid
+in `pgrep -a -f .` run from this writer's sandbox (the child of the eighth, a command of this writer's that
+had ended, was not). This writer's wrapper, 10233, is under none of them: `start` detaches it, and it has no
+`safehouse` above it once `start` has ended. So a step in one sandbox reads
 the command line of a wrapper begun in another. Seen for processes of other sandboxes, by pid; no wrapper
 of a run begun in another sandbox ran at the time, so that case was not seen as such.
 
@@ -102,7 +105,7 @@ status has `- never-page-up-line-after-a-check (in-progress, at work, labeled ne
 
 ## The other acts the dry steps named, each against the pass by hand
 
-The acts of the 2 lines of the dry driver, of the dry step this writer made before the change, and of the
+The acts of the 3 lines of the dry driver, of the dry step this writer made before the change, and of the
 one made by hand at event 6469 as comment 6470 lists it. Each was read against `SKILL.md` and the record at
 event 6473.
 
@@ -130,6 +133,9 @@ The header of `loop.ts` says which event it takes for each act. Where it differs
 - **It reads a file of lines, `--steps <file>`.** The spec has it read `steps.jsonl`. A dry step writes no
   `steps.jsonl` (the "As built" note of `st-3`), and the lines of `run --dry` are its stdout, which the
   session sent to a file. With no `--steps` the file is `steps.jsonl`, for `st-8`.
+- **An entry given to a judgment run is an act `given`**, and what answers it is the first event of a
+  session's token on that issue. The step's own `given` comment is left out: a step that is not dry writes
+  it before the run, and it would read as the answer.
 - **A session's loop wrote no event when it started an agent**, only a `cost` event at its end. So for a
   `start` the event is the `cost` event of that role or the agent's own first event, whichever is first, and
   for a reviewer that is the review: the minutes are then to the review and not to the start.
@@ -140,19 +146,21 @@ The header of `loop.ts` says which event it takes for each act. Where it differs
 ### The two lists, of the dry driver of `out-5bc2ed`
 
 `LOOP_TOKEN=out-5bc2ed bun tools/cloud-brain/loop.ts run --dry`, begun by that session in the main checkout
-(comment 6470), its stdout to `<root>/tools/cloud-brain/.emitted/issue-loop/dry-run-st-6.log`. At 11:57:30
-the file had 2 lines (`wc -l`):
+(comment 6470), its stdout to `<root>/tools/cloud-brain/.emitted/issue-loop/dry-run-st-6.log`. At 12:22:11
+the file had 3 lines (`wc -l`):
 
 | `at` | `seq` | begun for | `health` | acts |
 |---|---|---|---|---|
 | 11:41:47 | 6473 | the clock | `{"ok":true}` | `worktree-remove`, `token-ended`, `back`, `start` (`fly-4-loop-files`), `start` (overseer), `start` (orchestrator, 2 entries) |
 | 11:44:57 | 6474 | an event | `{"ok":true}` | the same but `worktree-remove`, which a step for an event leaves out |
+| 12:12:03 | 6474 | the clock | `{"ok":true}` | as the first |
 
-Event 6474 is this writer's `start` move, at 11:44:41: the second step was begun for it 16 s later.
-`LOOP_TOKEN=impl-d3a51d bun tools/cloud-brain/loop.ts compare --steps <that file>`, 11:57:30, from its second line on:
+Event 6474 is this writer's `start` move, at 11:44:41: the second step was begun for it 16 s later. The
+third is 1,816 s after the first, with no event between: the driver's 1,800 s.
+`LOOP_TOKEN=impl-d3a51d bun tools/cloud-brain/loop.ts compare --steps <that file>`, 12:22:11, from its second line on:
 
 ```
-# 2 dry steps, events 6473 to 6474 (09:41:47Z to 09:44:57Z): 1 whole, 0 not healthy; 1 events after the first
+# 3 dry steps, events 6473 to 6474 (09:41:47Z to 10:12:03Z): 2 whole, 0 not healthy; 1 events after the first
 
 ## Named by a dry step and done
 
@@ -160,23 +168,23 @@ Nothing.
 
 ## Named by a dry step and not done
 
-- worktree-remove topics-service: named by 1 step, first at event 6473 (09:41:47Z)
-- back implementer never-page-up-line-after-a-check: named by 2 steps, first at event 6473 (09:41:47Z), last at 6474 (09:44:57Z)
-- start implementer fly-4-loop-files: named by 2 steps, first at event 6473 (09:41:47Z), last at 6474 (09:44:57Z)
-- given promote fb-a2k9vvmfvv: named by 2 steps, first at event 6473 (09:41:47Z), last at 6474 (09:44:57Z)
-- given triage suite-hangs-in-brain-cli-test: named by 2 steps, first at event 6473 (09:41:47Z), last at 6474 (09:44:57Z)
+- worktree-remove topics-service: named by 2 steps, first at event 6473 (09:41:47Z), last at 6474 (10:12:03Z)
+- back implementer never-page-up-line-after-a-check: named by 3 steps, first at event 6473 (09:41:47Z), last at 6474 (10:12:03Z)
+- start implementer fly-4-loop-files: named by 3 steps, first at event 6473 (09:41:47Z), last at 6474 (10:12:03Z)
+- given promote fb-a2k9vvmfvv: named by 3 steps, first at event 6473 (09:41:47Z), last at 6474 (10:12:03Z)
+- given triage suite-hangs-in-brain-cli-test: named by 3 steps, first at event 6473 (09:41:47Z), last at 6474 (10:12:03Z)
 
 ## Named by a dry step, of a kind the record has no event of
 
-- token-ended st-5-driver: named by 2 steps, first at event 6473 (09:41:47Z), last at 6474 (09:44:57Z)
-- start overseer: named by 2 steps, first at event 6473 (09:41:47Z), last at 6474 (09:44:57Z)
+- token-ended st-5-driver: named by 3 steps, first at event 6473 (09:41:47Z), last at 6474 (10:12:03Z)
+- start overseer: named by 3 steps, first at event 6473 (09:41:47Z), last at 6474 (10:12:03Z)
 
 ## Done with a session's token, or an agent's own start, and named by no dry step
 
 Nothing.
 ```
 
-The first list is empty: the session did nothing a step named in those 3 minutes. The last is empty too:
+The first list is empty: the session did nothing a step named in those 30 minutes. The last is empty too:
 the one event, this writer's own `start`, is left out because a `running` event of its token (6473) names
 it. No row of either list has an event beside it, so **`compare` on cb4 matched no act to an event**. That
 it does is held by the tests alone.
@@ -196,26 +204,31 @@ Their lines were kept in no file, so `compare` did not read them.
 ## Tests
 
 `cd $W && bun test --timeout=30000 ./tests/tools/loop-compare.test.ts ./tests/tools/loop.test.ts ./tests/tools/loop-step.test.ts ./tests/tools/loop-run.test.ts`,
-after the last change to a program or a test (ended 12:01:27): **71 pass, 0 fail**.
+after the last change to a program or a test (ended 12:21:55): **71 pass, 0 fail**.
 
 **Without the change.** `loop.ts` as `git show HEAD:` has it put in place for the run and the new one put
 back after (11:57:17), the test files as they are now:
 
 - `loop-compare.test.ts`: `SyntaxError: Export named 'compare' not found in module … loop.ts`, 0 pass, 1 error.
 - `loop.test.ts` and `loop-step.test.ts` together: 44 pass, 4 fail. The four are the four new tests.
+- With the `given` comment not left out (that one word taken out of `loop.ts` for the run):
+  `loop-compare.test.ts` 4 pass, 1 fail, "each kind of act is read by its own event…".
 
 The two tests of the mends were also run before each mend was written, and failed for what was seen on
 cb4: `alive` answered `false` from under the wrapper, and the step named `back a implementer`.
 
 The whole suite, `env -u WORK -u SESSION -u LOOP_TOKEN -u LOOP_RUN -u LOOP_RUN_TOKEN -u LOOP_TS $W/tests/tools/suite.sh`
 (a writer that `loop.ts start` began has those six in its environment; `st-5-driver`'s record has why the
-first two are taken out), three runs after the changes to the programs:
+first two are taken out), six runs. The last is of the tree as it is landed:
 
 | Ended | | |
 |---|---|---|
 | 11:54:47 | 1215 pass, 0 fail, 124 files | before the last edit, the refusal of a directory given as `--steps` |
 | 11:59:29 | 1214 pass, 1 fail | after it. The fail: `tests/tools/summarize-papers.test.ts`, "run skips and names…", `ENOENT` of a `.txt` under its own rig. This change touches nothing that file runs; alone, `env -u WORK -u SESSION bun test --timeout=30000 ./tests/tools/summarize-papers.test.ts`: 33 pass, 0 fail |
-| 12:03:55 | **1215 pass, 0 fail**, 124 files | after it, the same tree |
+| 12:03:55 | 1215 pass, 0 fail, 124 files | after it, the same tree |
+| 12:06:57 | 1215 pass, 0 fail | after a line of the header of `loop.ts` |
+| stopped at 12:20:02 | no count | after the last edit, the `given` comment left out. It printed nothing after its first three lines; `kill -INT` of `bun test` at 513 s: `Interrupted while still running: tests/tools/brain-cli.test.ts (513s)`. This is the open bug `suite-hangs-in-brain-cli-test`, which the reviewer of `st-5-driver` filed at event 6465 |
+| 12:24:12 | **1215 pass, 0 fail**, 124 files | the same tree again |
 
 ## What this did not see, that the day would have
 
@@ -228,7 +241,7 @@ first two are taken out), three runs after the changes to the programs:
 - **An act matched to an event by `compare` on cb4**, and the minutes between the two: none.
 - **An event of a session that no step named.** The list was empty; whether the step's table misses
   something a loop does was not put to it.
-- **The steps for the clock.** One whole step in the file. A day has 48 of them or more, with `redistil`
+- **The steps for the clock.** Two whole steps in the file. A day has 48 of them or more, with `redistil`
   and `state` against whatever was deployed that day.
 - **Load, a held `land`, a result that was an error**: none of what stops a start was so in a step read.
 - **A step that is not dry.** As for `st-5-driver`: no `run` without `--dry` was made, and `loop.sh` was not

@@ -159,7 +159,7 @@
 //           `cost` event `resumed`, or the next submit. `ended`, `stopped`, `running`: the `cost` event of that token.
 //           `worktree-remove`: the comment keyed `…/worktree-removed-…` on the issue of the tree's name. Each entry
 //           given to a judgment run is an act `given`: the first event of a session's token on that issue that is
-//           no `cost` event and no `worktree` comment. An act named again by a step that read its event is a new row;
+//           no `cost` event, no `worktree` comment and no `given` comment, which is the step's own. An act named again by a step that read its event is a new row;
 //         - named and not done: the rows with no such event, with how many steps named each, the first and the last;
 //         - of a kind the record has no event of: `token-ended`, and the start of an overseer, which is on no issue;
 //         - done and named by no step: each event after the first line by a token whose name begins as --by has it
@@ -1103,7 +1103,7 @@ const did = (a: Ev, e: Ev, by: string[]): boolean => {
   const mv = (...m: string[]) => e.type === "moved" && m.includes(e.move), role = a.role, t = holderOf(e);
   if (a.act === "worktree-remove") return e.id === treeIssue(String(a.tree || "")) && e.type === "commented" && /\/worktree-removed/.test(e.key || "");
   if (e.id !== a.id) return false;
-  if (a.act === "given") return by.some((p) => t.startsWith(p)) && e.type !== "cost" && !/\/worktree-/.test(e.key || "");
+  if (a.act === "given") return by.some((p) => t.startsWith(p)) && e.type !== "cost" && !/\/(worktree|given)-/.test(e.key || "");
   if (a.act === "ready" || a.act === "finish" || a.act === "back") return mv(a.act);
   if (a.act === "reject") return e.type === "moved" && e.to === "rejected";
   if (a.act === "digest") return mv("triage");
