@@ -83,6 +83,21 @@ was clicked.
    now says it is left and named, as a sentence further down the same header does. A test reads
    both in the header.
 
+The release of a landing runs `put --stale` with the worktree's copy of the tool, and a stricter
+`summaryOf` could read a kept summary as none and put the doc over it cut. So cb4 was read with
+both copies before the landing, `status` with `loop-docs`, which writes nothing, 21:32:49 to
+21:33:01:
+
+```
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status          this change
+the same with knowledge-docs.ts of origin/main                        before
+both, last line: "docs":96,"fresh":96,"stale":0,"missing":0,"cut":1,"unmarked":0,"long":54,"summarized":53,"behind":17,
+                 "due":["cloud-brain-design-process-for-services"],"refused":[],"files":96,"filesWrong":[],"source":"origin/main@5a9e34c1"
+```
+
+`diff` of the two outputs printed nothing: each of the 96 docs has the same line with both. The
+53 summaries are read as summaries by the changed tool, and no doc that was due stopped being so.
+
 ## Row 3: waiting-deploys.ts
 
 The owner's page shows an issue's body and under it the last comment (the entry's reading of
@@ -195,7 +210,7 @@ script in `records/annotate-home-not-on-observable.md` that first read `$n` as i
 
 - The four rows in the docs tab of cb4, and their links clicked.
 - Any method a row names, called on cb4: the rows are held to the seeds' text.
-- `knowledge-docs.ts` on cb4: no `status`, `put` or `summarize` was run there by this task. A
+- `knowledge-docs.ts` on cb4: `status` alone was run there (row 2); no `put` and no `summarize`. A
   `put --stale` that starts while a summary is being put was not run as two processes: the test
   reads that the file stands at the two calls of the put.
 - A thrown error between the agent's end and the put: the `finally` is entered by the refused put
