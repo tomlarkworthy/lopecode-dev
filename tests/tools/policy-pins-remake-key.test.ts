@@ -55,6 +55,10 @@ test("the command writes nothing with no key, an empty one, the key of <from.jso
     refused(run("remake", from, to, "--note", "a note."), "--key");
     refused(run("remake", from, to, "--key"), "--key");
     refused(run("remake", from, to, "--key", ""), "--key");
+    // A key that is the next flag, or has a space at either end, is none.
+    refused(run("remake", from, to, "--key", "--note", "a note."), "--key <key>");
+    refused(run("remake", from, to, "--key", " a-key "), "--key <key>");
+    refused(run("remake", from, to, "--key", "a-key\n"), "--key <key>");
     refused(run("remake", from, to, "--key", "k".repeat(101)), "100");
     refused(run("remake", from, to, "--key", json(NEWEST).key), `is the key of ${NEWEST}`);
     // Each file of plan/ in turn: v4 and v5 have one key, and the line names both.
@@ -68,6 +72,9 @@ test("the command writes nothing with no key, an empty one, the key of <from.jso
     const near = run("remake", from, to, "--key", json(NEWEST).key + "x", "--note", "a note.");
     expect([near.status, JSON.parse(readFileSync(to, "utf8")).key]).toEqual([0, json(NEWEST).key + "x"]);
     expect(near.stdout).toContain(`the key ${json(NEWEST).key}x`);
+    // Given twice, the last is the key.
+    const to3 = join(dir, "out3.json"), two = run("remake", from, to3, "--key", "first-key", "--key", "second-key");
+    expect([two.status, JSON.parse(readFileSync(to3, "utf8")).key]).toEqual([0, "second-key"]);
     const to2 = join(dir, "out2.json"), long = run("remake", from, to2, "--note", "a note.", "--key", "k".repeat(100));
     expect([long.status, JSON.parse(readFileSync(to2, "utf8")).key]).toEqual([0, "k".repeat(100)]);
   } finally { rmSync(dir, { recursive: true, force: true }); }
@@ -82,6 +89,7 @@ test("remake with a key changes the key, the two blobs and nothing else, and ref
   expect(() => pp.remake(from, { brief: B, tool: A }, "", "k")).toThrow("is the key of <from.json>");
   expect(() => pp.remake(from, { brief: B, tool: A }, "", "")).toThrow("--key");
   expect(() => pp.remake(from, { brief: B, tool: A }, "", 7 as any)).toThrow("--key");
+  for (const k of [" k2", "k2 ", "--k2"]) expect(() => pp.remake(from, { brief: B, tool: A }, "", k)).toThrow("--key <key>");
   expect(() => pp.remake(from, { brief: B, tool: A }, "", "k".repeat(101))).toThrow("100");
   // A text whose key is also said in its reason, before the key's own place or after it: only the key changes.
   const twice = body("k", `the key "k" was his. approver brief ${A} tool ${B}`);

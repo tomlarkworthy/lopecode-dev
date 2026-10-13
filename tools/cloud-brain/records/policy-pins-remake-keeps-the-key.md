@@ -35,12 +35,13 @@ v5's key, and that file passed here with the change (below).
 **The key of the new file is an argument of `remake`**:
 `remake <from.json> <to.json> --key <key> [--note "<a sentence>"]`. The triage (event 6787) left the
 choice of an argument or a key made from the name of `<to.json>` to the writer. An argument was
-taken: the five keys of `plan/` each say what their policy is for
+taken: the keys of the five files of `plan/` each say what their policy is for
 (`policy-2026-10-13-approver-policy-parts-v6`), which a name and a date do not give.
 
 The command writes nothing and exits 1 when:
 
-- no `--key` is given, or it has no value, or the value is empty;
+- no `--key` is given, or it has no value, or the value is empty, begins `--` (the next flag taken
+  for the key) or has a space at either end;
 - the key is longer than 100 characters (`issuesLimits.key` of `brain-issues.ojs`, line 346, read
   and not run);
 - the key is the key of `<from.json>`;
@@ -94,7 +95,7 @@ command writes nothing without one.
 $ bun test --timeout=30000 ./tests/tools/policy-pins-remake-key.test.ts
  5 pass
  0 fail
- 52 expect() calls
+ 62 expect() calls
 $ bun test --timeout=120000 ./tests/tools/issues-policy-v5.test.ts ./tests/tools/issues-policy-v6.test.ts
  13 pass
  0 fail
@@ -102,16 +103,17 @@ $ bun test --timeout=120000 ./tests/tools/issues-policy-v5.test.ts ./tests/tools
 Ran 13 tests across 2 files.
 ```
 
-The whole of `tests/tools`, 2026-10-13 19:54 to 19:56 CEST, after the last edit of the tool, the tests and
-the spec (a run begun before it was stopped at the harness's time limit with nothing printed, while
-other suites ran on the machine):
+The whole of `tests/tools`, 2026-10-13 19:59 to 20:02 CEST, after the last edit of the tool and the tests
+and after the rebase (a first run was stopped at the harness's time limit with nothing printed, while
+other suites ran on the machine; a second, before the refusal of a key that begins `--`, was 1279 pass
+of 133 files):
 
 ```
 $ tests/tools/suite.sh
- 1279 pass
+ 1287 pass
  0 fail
- 10495 expect() calls
-Ran 1279 tests across 133 files. [157.86s]
+ 10636 expect() calls
+Ran 1287 tests across 134 files. [148.31s]
 ```
 
 ## Not tried
@@ -120,9 +122,14 @@ Ran 1279 tests across 133 files. [157.86s]
   under a new key is taken by `issue.install` was not run.
 - **A key that cb4 keeps and no file of `plan/` has.** The tool reads the files of the checkout and
   not the record. Its header says so.
-- **A key with a space at either end, or with characters an install may refuse.** The tool takes
-  what it is given but for the empty key and the length.
-- **`--key` or `--note` given twice.** The last is used; no test has it.
+- **A key with characters an install may refuse.** The tool refuses the empty key, one that begins
+  `--`, a space at either end and a length over 100, and takes any other. Before that refusal was
+  written, 19:58 CEST, `--key " spaced-key "` wrote a file with that key and `--key --note foo` wrote
+  one with the key `--note`; both are in the test now and write nothing.
+- **`--note` given twice.** By the code the last is used; read and not run. `--key` given twice is in
+  the test: the last is the key.
+- **A third file name.** `remake a.json b.json c.json --key k` reads the first two and says nothing of
+  the third, as before this change; read and not run.
 - **A policy file whose key is not the first field.** The five of `plan/` have it first. The case of
   a field before the key with the same text is in the test and is refused; other orders were not run.
 - **`check`** is as it was and does not look at keys: the v4 and v5 files have one key and are

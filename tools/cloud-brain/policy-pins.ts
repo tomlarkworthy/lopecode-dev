@@ -13,7 +13,8 @@
 //          files of this checkout, the note, when one is given, put before `approver brief`, and <key> for its key.
 //          Every other byte is as <from.json> has it: the policy and the migrate are not read. Exit 1, nothing written:
 //          <to.json> exists, <from.json> has no such ending or has it more than once, the reason would pass 2,000
-//          characters, or the key is not given, is longer than 100 characters, or is the key of <from.json> or of a
+//          characters, or the key is not given, begins `--`, has a space at either end, is longer than 100
+//          characters, or is the key of <from.json> or of a
 //          plan/cloud-brain-issues-policy-*.json of this checkout. issue.install answers a body whose key the record
 //          keeps as the install it was and writes nothing, so a file under the key of the one before it would be
 //          installed with no effect (issue policy-pins-remake-keeps-the-key). A key installed on cb4 from no file of
@@ -63,7 +64,7 @@ export function remake(text: string, pins: Pins, note = "", key?: string): strin
   const reason = JSON.parse(blobbed).reason as string;
   if (reason.length > LIMIT) throw new Error(`the reason would be ${reason.length} characters, and an install takes ${LIMIT}`);
   if (key === undefined) return blobbed;
-  if (typeof key !== "string" || !key.trim()) throw new Error(NEEDS);
+  if (typeof key !== "string" || !key.trim() || key !== key.trim() || key.startsWith("--")) throw new Error(NEEDS);
   if (key.length > KEY) throw new Error(`the key is ${key.length} characters, and an install takes ${KEY}`);
   const had = JSON.parse(blobbed), was0 = had.key;
   if (typeof was0 !== "string") throw new Error("the key of <from.json> is not a text");
