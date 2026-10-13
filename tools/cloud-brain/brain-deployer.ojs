@@ -188,6 +188,11 @@ deployerOps = {
   const say = (line) => (Array.isArray(config.said) && config.said.push(line), log(self.hash ? { ...line, deployer: self.hash } : line));
   // The source kept for each module is the source of what is running. A version put back takes its source with it.
   const keptSources = async () => (await rows.list("source/")).filter((r) => !r.value.stale).map((r) => ({ module: r.key.slice("source/".length), ...r.value }));
+  // was: the module's row as it stands. A row of the version before goes with the new one, for a put back to take.
+  const keepSource = async (w, logical, was) => {
+    const prev = was && !was.stale && was.worker === logical && was.hash !== w.hash ? { text: was.text, files: was.files, cell: was.cell, hash: was.hash, at: was.at } : (was && was.prev) || null;
+    await rows.put("source/" + w.module, { text: w.source, files: w.files || {}, cell: w.cell || null, worker: logical, hash: w.hash, at: Date.now(), prev });
+  };
   const sourcePutBack = async (logical, hash) => {
     for (const { key, value } of await rows.list("source/")) {
       if (value.worker !== logical || (value.hash === hash && !value.stale)) continue;
@@ -729,8 +734,10 @@ deployerOps = {
       const results = [];
       let held = null;
       if (rec && rec.hash === w.hash && rec.state === "deployed" && !w.force && !(typeof w.asset === "string" && (await sha256(w.asset)).slice(0, 32) !== rec.assetHash)) {
-        // Deployed before the deployer kept source: keep it now, since it is the source of what is running.
-        if (typeof w.source === "string" && !(await rows.get("source/" + w.module))) await rows.put("source/" + w.module, { text: w.source, files: w.files || {}, cell: w.cell || null, worker: logical, hash: w.hash, at: Date.now(), prev: null });
+        // No source of what is running is kept: it was deployed before the deployer kept source, or the deploy was cut
+        // between the upload and the write of the row, which is then of the version before. Keep it now.
+        const was = typeof w.source === "string" ? await rows.get("source/" + w.module) : null;
+        if (typeof w.source === "string" && (!was || was.stale || (was.worker === logical && was.hash !== w.hash))) await keepSource(w, logical, was);
         results.push({ ...base, state: "unchanged" });
       }
       // Not while the version that runs is unverified. After "unchanged": the same version again changes nothing.
@@ -747,11 +754,7 @@ deployerOps = {
           results.push({ ...base, ...(await deployOne(w, rec, recovery && w.secrets ? w.secrets : {})) });
           // It is no longer waiting, whoever deployed it.
           await rows.delete("pending/" + w.hash);
-          if (typeof w.source === "string") {
-            const was = await rows.get("source/" + w.module);
-            const prev = was && !was.stale && was.worker === logical && was.hash !== w.hash ? { text: was.text, files: was.files, cell: was.cell, hash: was.hash, at: was.at } : (was && was.prev) || null;
-            await rows.put("source/" + w.module, { text: w.source, files: w.files || {}, cell: w.cell || null, worker: logical, hash: w.hash, at: Date.now(), prev });
-          }
+          if (typeof w.source === "string") await keepSource(w, logical, await rows.get("source/" + w.module));
           // After the source is kept: the page of the run reads the module from here (infra.getModules). The
           // kernel is not verified this way; it is confirmed by hand, by name.
           if (w.meta.module && w.meta.role !== "kernel") Object.assign(results[0], await verifyDeploy(logical, w.meta.module, w.hash).catch((e) => (say({ at: "deploy.verify.none", target: logical, hash: w.hash, reason: String((e && e.message) || e).slice(0, 300) }), {})));
@@ -2766,6 +2769,53 @@ test_apply_takes_source_and_deploys_what_it_distils = {
   expect(bad.results).toEqual([{ worker: "@tomlarkworthy/nothing", state: "refused", reason: "cannot distil: boom" }]);
   expect(rig.fake.scripts.size).toBe(1);
   return out.results[0].hash.slice(0, 12);
+}
+// %%
+test_apply_unchanged_keeps_the_source_of_what_runs_over_an_older_row = {
+  const rig = await deployerRig({ acceptEmitted: false });
+  const U = "https://cb-deployer.sub.workers.dev/xrpc/com.lopecode.brain.infra.redistil";
+  const redistil = async () => (await (await rig.sim.fetch(U, { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer rk" }, body: "{}" })).json()).results;
+  const source = (await exportModuleJS("@tomlarkworthy/brain-deployer")).source;
+  const M = "@tomlarkworthy/brain-deployer", W = "brain-x-probe", key = "source/" + M;
+  const one = { module: M, source, cell: "deployer_probe_service" };
+  const two = { ...one, source: source.replace('"com.lopecode.brain.probe.ping"', '"com.lopecode.brain.probe.pong"') };
+  const h1 = (await rig.recover({ workers: [one] })).results[0].hash;
+  const row1 = rig.sim.rows.get(key);
+  const h2 = (await rig.recover({ workers: [two] })).results[0].hash;
+  expect(h2).not.toBe(h1);
+  const uploads = () => rig.fake.log.filter((l) => l.startsWith("POST") && l.includes("/versions")).length;
+  const before = uploads();
+  const again = async () => (await rig.recover({ workers: [{ ...two, was: h2 }] })).results.map((r) => [r.worker, r.state, r.hash]);
+  // A sweep cut after the upload of the second version and before the write of its source: the row is the first one's.
+  rig.sim.rows.set(key, row1);
+  expect(await redistil()).toEqual([{ worker: W, module: M, state: "no source", reason: `${h2.slice(0, 12)} is running and the source kept is of ${h1.slice(0, 12)}` }]);
+  expect(await again()).toEqual([[W, "unchanged", h2]]);
+  expect(rig.sim.rows.get(key)).toMatchObject({ text: two.source, worker: W, hash: h2, prev: { text: source, hash: h1 } });
+  expect(await redistil()).toEqual([{ worker: W, module: M, state: "same", hash: h2 }]);
+  // The row is as a deploy writes it: a second apply writes nothing, and nothing was uploaded.
+  const kept = rig.sim.rows.get(key);
+  expect(await again()).toEqual([[W, "unchanged", h2]]);
+  expect([rig.sim.rows.get(key), uploads()]).toEqual([kept, before]);
+  // A row marked stale is no source to redistil either, whatever its hash, and is written over.
+  rig.sim.rows.set(key, { ...kept, stale: true });
+  expect(await redistil()).toEqual([{ worker: W, module: M, state: "no source", reason: "deployed before the deployer kept source" }]);
+  expect(await again()).toEqual([[W, "unchanged", h2]]);
+  expect(rig.sim.rows.get(key)).toMatchObject({ text: two.source, hash: h2, prev: { hash: h1 } });
+  expect(rig.sim.rows.get(key).stale).toBe(undefined);
+  // The module's row is another Worker's source: left as it is.
+  const other = { ...row1, worker: "brain-x-other" };
+  rig.sim.rows.set(key, other);
+  expect(await again()).toEqual([[W, "unchanged", h2]]);
+  expect(rig.sim.rows.get(key)).toEqual(other);
+  // The mended row follows a put back, as a deployed one does.
+  rig.sim.rows.set(key, row1);
+  await again();
+  rig.fake.unhealthy.add(h2);
+  await rig.sim.scheduled();
+  await rig.sim.scheduled();
+  expect(rig.fake.running("cb-x-probe")).toBe(h1);
+  expect(rig.sim.rows.get(key)).toMatchObject({ text: source, hash: h1, prev: null });
+  return [h1.slice(0, 12), h2.slice(0, 12)];
 }
 // %%
 test_redistil_after_a_deployer_update_and_source_follows_a_put_back = {
