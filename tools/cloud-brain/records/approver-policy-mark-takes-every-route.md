@@ -17,7 +17,7 @@ force names by their blobs; this change is to both. "For the owner" below has th
 
 "`approver.ts facts` of lopecode-dev 489aea7a prints no `[policy]` mark". With the tool as it was
 (put in the worktree's `tools/cloud-brain/approver.ts` for the run, then put back) and with this
-change, at 10:33 CEST:
+change, at 10:37 and 10:33 CEST:
 
 ```
 $ bun tools/cloud-brain/approver.ts facts tr-4-held-read --token impl-669077      # before
@@ -58,7 +58,7 @@ policy parts:
 
 "A guard" is one of the seven cells of `JUDGE` or `issueCaller`, which says whether the caller is
 present. On the seed of the checkout, printed by a script of the scratchpad that calls `appParts`
-(exported for this and for no test), at 10:31 CEST:
+(exported for this and for no test), at 10:37 CEST:
 
 ```
 routes written out in the cell: 18 attach install snapshot sync get runs attachment list queue wakes policy key flow verify resign rebuild lock locks
@@ -153,8 +153,8 @@ Each run from the worktree after the commit of the change, 2026-10-13 between 10
 they are now, then the tool put back: `approver.test.ts` 31 pass, 3 fail. The three: "the policy
 cells the tool names are cells of … as the checkout has it" (it now expects `[]` for a space before
 the block of `issuesApp`), "issuesApp and issuesLimits are marked by their policy parts", and "the
-commit of tr-4-held-read, 489aea7a, touches no policy part of the seed". That run was made before
-the last four edits to the second test's expectations; it was not made again after them.
+commit of tr-4-held-read, 489aea7a, touches no policy part of the seed". Run at 10:37
+CEST, after the commit of the change.
 
 **Over the history of the seed**, the 64 commits of `git log --format=%h -- tools/cloud-brain/brain-issues.ojs`,
 each read with the tool before and with this one (a script of the scratchpad that calls `seedTouch`
@@ -207,7 +207,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.issu
 ```
 
 Read first, by anyone: `tools/cloud-brain/issue-as.sh <token> policy` answers `policy.seq` 5689 (it
-did at 10:22 CEST). If another policy was installed since, the file is made again from that one.
+did at 10:37 CEST). If another policy was installed since, the file is made again from that one.
 And `bun tools/cloud-brain/policy-pins.ts check` in that checkout is exit 0. The answer of the
 install has a new `seq`, `moved: []` and no `duplicate`; `duplicate: true` means the key was kept
 already and nothing was written.
