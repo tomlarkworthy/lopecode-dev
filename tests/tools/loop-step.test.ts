@@ -623,6 +623,39 @@ test("an overseer is started at 3 issues ended since the last heading of oversig
   expect(acts((await dry()).line)).toEqual(["start overseer"]);
 });
 
+test("where the last oversight ended is read from origin/main as the repository has it, with no fetch: the main checkout one entry behind and an overseer's run just ended, a step for an event starts none (overseer-started-again-before-pull)", async () => {
+  fresh(6000);
+  for (const id of ["a", "b"]) { open(id); mv(id, "pass", "done"); }
+  open("c"); label("c", ["needs-owner"]);
+  // The overseer lands its entry by a push from its worktree: origin/main of the repository has it, the main checkout's file has not.
+  const tree = join(RIG, "over-tree"), md = ".claude/skills/brain-maintenance/oversight.md", before = head(ROOT), was = head(ROOT, "origin/main"), to = T.seq;
+  g(ROOT, "worktree", "add", "-q", "-b", "bm/over-t", tree, "origin/main");
+  try {
+    writeFileSync(join(tree, md), readFileSync(join(tree, md), "utf8") + `\n## 2026-10-13 15:03 CEST, events 5646 to ${to}\n\ntext\n`);
+    g(tree, "add", md); g(tree, "commit", "-q", "-m", "oversight"); g(tree, "push", "-q", "origin", "HEAD:main");
+    expect([head(ROOT), head(ROOT, "origin/main"), readFileSync(join(ROOT, md), "utf8").includes(`to ${to}`)]).toEqual([before, head(tree), false]);
+    runFile({ token: "over-aaaaaa", role: "overseer", id: "", after: "5646", ended: { at: 1, outcome: "done" } });
+    for (const why of ["event", "run"]) {
+      rmSync(join(RIG, "self.log"), { force: true });
+      const r = await cli(["step", "--for", why]);
+      expect([r.code, acts(r.line), skipped(r.line), log("self"), head(ROOT)]).toEqual([0, [], [], [], before]);
+    }
+    // Two issues ended after the entry: not yet due. A third: due, and the two runs started for the heading before are not counted.
+    runFile({ token: "over-bbbbbb", role: "overseer", id: "", after: "5646", ended: { at: 1, outcome: "done" } });
+    for (const id of ["d", "e"]) { open(id); mv(id, "pass", "done"); }
+    expect(acts((await cli(["step", "--dry", "--for", "event"])).line)).toEqual([]);
+    open("f"); mv("f", "pass", "done");
+    expect(acts((await cli(["step", "--dry", "--for", "event"])).line)).toEqual(["start overseer"]);
+    // Two started since the entry: the line names its last event, not the main checkout's.
+    for (const t of ["over-cccccc", "over-dddddd"]) runFile({ token: t, role: "overseer", id: "", after: String(to), ended: { at: 1, outcome: "done" } });
+    const r = await cli(["step", "--dry", "--for", "event"]);
+    expect([acts(r.line), r.line.skipped]).toEqual([[], [{ id: "", do: "overseer", why: `2 overseers were started since the heading that ends at event ${to}` }]]);
+  } finally {
+    g(ROOT, "push", "-q", "-f", "origin", `${was}:main`); g(ROOT, "worktree", "remove", "--force", tree); g(ROOT, "branch", "-q", "-D", "bm/over-t");
+  }
+  expect([head(ROOT, "origin/main"), head(ROOT)]).toEqual([was, before]);
+});
+
 test("`triage`, `decompose`, `promote`, `look`, an agent's ask and a move of the owner's with no post mortem are each given once, 5 at most a step; a triage that got a link and came back is given again", async () => {
   fresh(6000);
   open("a", { state: "open" }); Q("a", "triage");

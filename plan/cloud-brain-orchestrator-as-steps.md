@@ -580,6 +580,13 @@ the six items or adds to them. The header of `loop.ts` is the reference.
 - The events since the last heading of `oversight.md` (`sync?after=`) are what the overseer's row
   and the row of his move with no post mortem read. A move of his from before that heading is not read.
 - An overseer's file has `after`, the event that heading ends at: the count "since that heading".
+- As built since `overseer-started-again-before-pull` (2026-10-13): that heading is the later of two, the
+  main checkout's `oversight.md` and the file of `origin/main` as the repository has it
+  (`git show origin/main:…`, no fetch). An overseer lands its entry by a push from its worktree, which moves
+  that ref, and only a step for the clock pulls the main checkout. `start` reads the same for an overseer's
+  `after`, the note of its token and the third line of its prompt. Until then a step read the main
+  checkout's file alone, and on 2026-10-13 a step for an event started a second overseer (`over-0c3236`)
+  for a window whose entry was pushed.
 - A writer's token that `ended` kept is ended by the step when its issue is `done`, `rejected` or
   closed, from the file of `runs/`. `agent-token list` is read for the overseer's row alone.
 - The keys of the step's own moves: `orch/<id>/ready-<since>` and `orch/<id>/finish-<since>`, with

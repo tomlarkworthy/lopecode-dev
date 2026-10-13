@@ -480,6 +480,38 @@ test("an overseer is on no issue: the file and no event, its line in _oversight.
   expect(log("brain").pop()).toBe("agent-token revoke over-000002");
 });
 
+test("an overseer started while the main checkout is one entry behind origin/main: its file's `after`, its token's note and its prompt have the entry's last event (overseer-started-again-before-pull)", async () => {
+  fresh();
+  const md = join(ROOT, ".claude/skills/brain-maintenance/oversight.md"), text = readFileSync(md, "utf8");
+  try {
+    writeFileSync(md, text + "\n## 2026-10-13 15:03 CEST, events 5646 to 6010\n\ntext\n");
+    git("add", md); git("commit", "-q", "-m", "oversight"); git("fetch", "-q", "origin", "main"); git("reset", "-q", "--hard", MAIN);
+    expect([git("rev-parse", "HEAD"), git("rev-parse", "origin/main") === MAIN, readFileSync(md, "utf8")]).toEqual([MAIN, false, text]);
+    flagFile("agent-hold");
+    const r = await cli(["start", "--role", "overseer"]);
+    expect(r.code).toBe(0);
+    const token = r.json.started;
+    expect([file(token).after, log("brain")]).toEqual(["6010", ["agent-token over oversight-after-6010"]]);
+    await until(() => log("agent").length >= 7);
+    expect(log("agent")[4]).toBe(`Last oversight ended at event 6010. Journal: ${join(STATE, "issue-loop")}/`);
+    rmSync(join(RIG, "agent-hold"));
+    await over(token);
+  } finally { git("update-ref", "refs/remotes/origin/main", MAIN); }
+  // The main checkout ahead of what origin/main has: the later heading is the file's. And with no ref origin/main: the file's.
+  writeFileSync(md, text + "\n## 2026-10-13 16:00 CEST, events 5646 to 6020\n\ntext\n");
+  try {
+    for (const ref of [true, false]) {
+      if (!ref) git("update-ref", "-d", "refs/remotes/origin/main");
+      flagFile("agent-hold");
+      const r = await cli(["start", "--role", "overseer"]);
+      expect([ref, r.code, file(r.json.started).after]).toEqual([ref, 0, "6020"]);
+      rmSync(join(RIG, "agent-hold"));
+      await over(r.json.started);
+    }
+  } finally { writeFileSync(md, text); git("update-ref", "refs/remotes/origin/main", MAIN); }
+  expect(git("rev-parse", "origin/main")).toBe(MAIN);
+});
+
 test("resume sends --resume with the session of the last run and writes a `running` event of its own key; a second resume of the round has another", async () => {
   fresh();
   open("rw", { state: "in-progress" });

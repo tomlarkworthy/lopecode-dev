@@ -100,7 +100,9 @@
 //            approver. `waiting`, `work`, no running writer, no `waiter`: "A dead writer", the token ended and
 //            `back`; labeled `needs-owner` it is the owner's, as a `round` so labeled, and no `back` is made. A digest the snapshot opened: the older ones rejected, `triage`, `ready`. An overseer when 3
 //            issues came to `done`, `rejected` or `needs-owner`, or one to its third `rework`, since the last
-//            heading of oversight.md, none runs, and fewer than 2 were started since. No agent of a role is
+//            heading of oversight.md, none runs, and fewer than 2 were started since. That heading is the later of
+//            the main checkout's file and of origin/main as the repository has it, with no fetch: `start` reads the
+//            same for an overseer's `after`, its token's note and its prompt. No agent of a role is
 //            started on an issue that has a `running` run of it (the writers are one role for this), nor at 2 dead
 //            runs of the role and round. A running run of this machine whose process is gone and that has no file
 //            is written `stopped`, or with its submit. An issue at work whose starter has no run in the record
@@ -400,7 +402,17 @@ const unmake = (run: Run, text: string, code = 1): never => {
 // A run's own directory, for the files it sends with `@` (a comment, the reason of a submit): beside its file, named
 // in its prompt as `scratch: <dir>` and in the file as `scratch`, which is what `ended` removes.
 const scratch = (run: Run) => { run.scratch = join(RUNS(), run.token + ".scratch"); mkdirSync(run.scratch, { recursive: true }); return `scratch: ${run.scratch}`; };
-const lastOversight = (file: string) => { try { return (last([...readFileSync(file, "utf8").matchAll(/^## .*events \d+ to (\d+)/gm)]) || [])[1] || ""; } catch { return ""; } };
+const OVERSIGHT = ".claude/skills/brain-maintenance/oversight.md";
+const lastHeading = (text: string) => (last([...text.matchAll(/^## .*events \d+ to (\d+)/gm)]) || [])[1] || "";
+// Where the last oversight ended, "" when no heading says: the later of the main checkout's file and of origin/main as
+// this repository has it, with no fetch. An overseer's push from its worktree moves that ref, and only a step for the
+// clock pulls the main checkout (overseer-started-again-before-pull, 2026-10-13). A worktree's file is not read: an
+// entry is there before it is landed.
+const lastOversight = (root: string) => {
+  let file = ""; try { file = lastHeading(readFileSync(join(root, OVERSIGHT), "utf8")); } catch {}
+  const o = sh("git", ["-C", root, "show", "origin/main:" + OVERSIGHT]), origin = o.code === 0 ? lastHeading(o.out) : "";
+  return Number(origin) > Number(file) ? origin : file;
+};
 
 function start(args: string[]) {
   const me = own(), flag = (n: string) => { const i = args.indexOf(n); if (i < 0) return undefined; const v = args.splice(i, 2)[1]; return v && !v.startsWith("--") ? v : stop(2, `${n} takes a value`); };
@@ -424,11 +436,11 @@ function start(args: string[]) {
   const longest = endKey({ ...run, token: given || PREFIX[run.role] + "-000000", how: "resumed", at: 9999999 });
   if (longest.length > KEY_MOST) stop(1, `the key ${longest} would be ${longest.length} characters, and the tracker keeps ${KEY_MOST}`);
   const root = ROOT();
-  if (run.role === "overseer") run.after = lastOversight(join(root, ".claude/skills/brain-maintenance/oversight.md"));
+  if (run.role === "overseer") run.after = lastOversight(root);
   // A token that was given is one issue-as.sh keeps and cb4 answers: else its agent could write nothing.
   if (given && as(given, id ? `get?id=${id}` : "queue?limit=1").status !== 200) stop(1, `--token ${given}: a read with it was not answered; nothing was started`);
   if (!given) {
-    const t = brain("agent-token", PREFIX[run.role], id || `oversight-after-${lastOversight(join(root, ".claude/skills/brain-maintenance/oversight.md"))}`);
+    const t = brain("agent-token", PREFIX[run.role], id || `oversight-after-${lastOversight(root)}`);
     if (t.code !== 0 || !/^[a-z]+-[0-9a-f]{6}$/.test(t.out.trim())) stop(1, `agent-token made no token: ${(t.out + t.err).trim()}`);
     run.token = t.out.trim();
   }
@@ -446,7 +458,7 @@ function start(args: string[]) {
       const c = write(me, "comment", { key: `orch/${topic}/worktree-${n}`, id: topic, body: "worktree " + JSON.stringify({ topic, branch: "bm/" + p.tree, machine: run.host, path: p.path, ...(at ? { at } : {}), for: id }) });
       if (!c.ok) console.error(`loop.ts: the worktree comment on ${topic} was not written: ${c.status} ${c.said || ""}`);
     }
-    const third = run.role === "orchestrator" ? `Entries: ${entries}` : run.role === "overseer" ? `Last oversight ended at event ${lastOversight(join(p.path, ".claude/skills/brain-maintenance/oversight.md")) || lastOversight(join(root, ".claude/skills/brain-maintenance/oversight.md"))}. Journal: ${join(LOOP(), "/")}` : `Issue: ${id}`;
+    const third = run.role === "orchestrator" ? `Entries: ${entries}` : run.role === "overseer" ? `Last oversight ended at event ${run.after}. Journal: ${join(LOOP(), "/")}` : `Issue: ${id}`;
     const prompt = [`Working directory: ${p.path}.`, `Read ${p.path}/.claude/skills/brain-maintenance/agents/${BRIEF[run.role]}.md and follow it.`, third, scratch(run), `Your token is ${run.token}.`, ...(p.unlanded ? ["The worktree holds unlanded work of this issue."] : [])].join("\n");
     agent = env.LOOP_AGENT || join(p.path, "cloud-brain-dev/agent.sh"); argv = [run.role, prompt]; vars = { WORK: p.path, SESSION: run.session! };
   } else {
@@ -657,7 +669,7 @@ async function step(args: string[]) {
   const me = own(), dry = args.includes("--dry"), fi = args.indexOf("--for"), why = fi < 0 ? "clock" : args[fi + 1], whole = why === "clock";
   if (args.some((a, i) => a !== "--dry" && i !== fi && (fi < 0 || i !== fi + 1)) || !REASONS.includes(why)) stop(2, "step [--dry] [--for clock|event|run|yield]");
   const machine = NO_STATE(), yielding = why === "yield";
-  const root = ROOT(), host = HOST(), dev = join(root, "cloud-brain-dev"), skill = join(root, ".claude/skills/brain-maintenance");
+  const root = ROOT(), host = HOST(), dev = join(root, "cloud-brain-dev");
   const line: Ev = { at: Date.now(), seq: 0, ...(dry ? { dry: true } : {}), ...(whole ? {} : { for: why }), ...(machine ? { machine: true } : {}), health: { ok: true }, acts: [], given: [], skipped: [] };
   const S: Record<string, string[]> = { notes: [], runs: [], owner: [], given: [], norun: [], left: [], died: [], session: [] };
   const runsNow = new Map<string, string>();
@@ -1026,8 +1038,8 @@ async function step(args: string[]) {
     for (const e of entries.filter(writer)) take(e);
 
     // What happened since the last heading of oversight.md: his moves that undo reviewed work, and whether an overseer is due.
-    const after = Number(lastOversight(join(skill, "oversight.md")) || 0);
-    if (!after) S.notes.push("oversight.md of the main checkout has no heading that names its last event: no overseer is started, and no move of the owner's is read for a post mortem");
+    const after = Number(lastOversight(root) || 0);
+    if (!after) S.notes.push("oversight.md of the main checkout, and of origin/main as the repository has it, has no heading that names its last event: no overseer is started, and no move of the owner's is read for a post mortem");
     else {
       const since: Ev[] = [];
       for (let a = after, n = 0; n < 20; n++) { const p = get(`sync?after=${a}&limit=500`), page: Ev[] = p.events || []; since.push(...page); if (!p.more || !page.length) break; a = last(page)!.seq; }
