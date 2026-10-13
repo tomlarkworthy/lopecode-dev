@@ -16,7 +16,8 @@ A local tool, its test file, and four docs. No seed, no deploy.
 
 - **`.claude/skills/brain-maintenance/agents/implementer/landing.md`**, step 10. The order with a deploy
   is now: the renew, the deploy under the deploy lock, then the pull of `lopebooks`, `build.ts --out` and
-  `notebook-backup.sh`, then the commit of `seen.json`. The build and the backup are for an apply that
+  `notebook-backup.sh`, then the commit of `seen.json`. A renew of the landing lock is the first line of
+  the notebook's part, since the apply and a `verify-run.ts` before a `confirm` come before it now. The build and the backup are for an apply that
   answered `verified`, or a version on `probation` that the writer confirmed. For an apply that is refused,
   answers `failing` or is put back the step says: no build into `lopebooks`, no backup, read
   `git -C <root>/lopebooks log origin/main..HEAD`, and undo a backup it prints with
@@ -62,15 +63,15 @@ repository as `origin`:
 4. A backup that was pushed: the next run is `not due`, stderr empty, and `--take-back` finds nothing.
 5. An unpushed commit with another subject, and one with the tool's subject and another file in it: both left.
 6. A repository with no `origin`: `--take-back` finds nothing and the second run of a day is `not due`.
-7. The brief: in step 10 the apply comes before the pull of `lopebooks`, that before the backup, that
+7. The brief: in step 10 the apply comes before a renew of the landing lock, that before the pull of `lopebooks`, that before the backup, that
    before the commit of `seen.json`; the step names `--take-back` and the put-back with no backup.
 
-Run on the files of before, with the seven tests added and nothing else changed: 12 pass, 7 fail. Tests 4,
-5 and 6 failed there only at their `--take-back` call, which the old tool answered with exit 1; their
-`not due` lines held before the change as after.
+Run on the files of before, with the seven tests added and nothing else changed: 12 pass, 7 fail, the
+seven by name. Which line of each failed was not read; tests 4, 5 and 6 call `--take-back`, which the old
+tool did not have.
 
-The whole suite, `tests/tools/suite.sh`, after the last edit of the tool and the tests, ended 02:11:03
-CEST on 2026-10-13: 978 pass, 0 fail, 99 files, no `skipped:` line.
+The whole suite, `tests/tools/suite.sh`, after the last edit of the tool, the tests and the page, ended
+02:15:28 CEST on 2026-10-13: 978 pass, 0 fail, 99 files, no `skipped:` line.
 
 One run outside the tests: `$W/tools/cloud-brain/notebook-backup.sh --take-back` on the main checkout's
 `lopebooks` on 2026-10-13 between 02:06:22 and 02:11:03 CEST (two reads of `date`), where `git log origin/main..HEAD` printed no line: `nothing to take
@@ -79,9 +80,9 @@ back`, exit 0, and the log was empty after as before.
 ## Not tried
 
 - A landing with a deploy in the new order. This change has no deploy, and no writer had landed one by
-  the page as it now reads when this was written. Whether the 600 s of the landing lock, renewed before
-  the apply, last through an apply, a `redistil`, a `saw` and then a build was not measured; the step has
-  a second renew before the push, as before.
+  the page as it now reads when this was written. How long an apply, a `redistil`, a `saw` and a build
+  take together was not measured; the step renews the landing lock before the apply, before the pull of
+  `lopebooks` and before the push.
 - An apply that is put back, met by a writer who follows the step.
 - The undo in the real `lopebooks` with a commit to undo: only the call that found nothing. What the
   hooks of `lopebooks` do on the commit that follows an undo was not looked at; the tests have no hook

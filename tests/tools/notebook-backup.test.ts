@@ -288,6 +288,9 @@ test("step 10 has the backup after the apply has answered, and a put-back with n
   const pull = s.indexOf("git -C <root>/lopebooks pull --ff-only"), seen = s.indexOf("Commit `seen.json` in the worktree");
   expect(apply).toBeGreaterThan(0);
   expect(pull).toBeGreaterThan(apply);
+  const renew = s.indexOf("lock.sh renew land <id>` once more");
+  expect(renew).toBeGreaterThan(apply);
+  expect(pull).toBeGreaterThan(renew);
   expect(backup).toBeGreaterThan(pull);
   expect(seen).toBeGreaterThan(backup);
   expect(s).toContain("notebook-backup.sh --take-back");

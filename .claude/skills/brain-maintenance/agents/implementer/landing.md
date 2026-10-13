@@ -116,7 +116,10 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
       and on 2026-10-13 at 00:03:05 CEST an apply of `tr-1-wait-in-the-record` was put back after it: the main
       checkout's `lopebooks` held a commit, never pushed, of a build no Worker ran, and the writer undid it by
       hand (`tools/cloud-brain/records/backup-committed-before-apply-answers.md`).
-      First `git -C <root>/lopebooks pull --ff-only`: a writer on another machine may have made the day's backup.
+      First `LOCK_TOKEN=<token> lock.sh renew land <id>` once more: the apply, and a `verify-run.ts` before a
+      `confirm`, may have taken most of the 600 s. Exit 1: another writer has the lock, so no build and no
+      backup; report what you deployed. Exit 2: ask again.
+      Then `git -C <root>/lopebooks pull --ff-only`: a writer on another machine may have made the day's backup.
       With every writer on one machine it brings nothing in. The notebook in `lopebooks` is changed there after
       every landing that builds but the day's first (below), so a pull that brings in a commit of it from another
       machine is refused for that file: it is a build and nothing of it is lost, so
