@@ -269,7 +269,8 @@ summaries due (cb4): <names>. A writer or a spec writer runs, …: BRAIN_BASE=cb
 
 - The last of these follows a line of the first two kinds, and only when a long doc waits for a summarizer (since
   `sd-4-the-rest-and-the-release-line`, 2026-10-13): one with no summary in its entry, or one changed by over a tenth
-  of its lines since its summary. `put --stale` names them in a line of its own before its last, `summaries due: …`,
+  of its lines since its summary (the file as it is now beside the version summarized: a change that was taken back
+  does not count, since `fb-batch-docs-and-tools`). `put --stale` names them in a line of its own before its last, `summaries due: …`,
   8 names and then `and N more`; a doc refused twice at its file and one a summarizer is running on are not named. The
   release starts no agent. `<dir>` is the directory of the `lock.sh` that ran, by its whole path, so the command runs
   as it is printed from any directory. The agent whose landing printed the line runs it as a background command and
@@ -328,11 +329,14 @@ of before, and the ten questions from past the kept text were not found better; 
 None was on cb4 from 06:17 CEST that day until the run below.) What changed in the two commands above:
 
 - An entry that holds the line `Summary by summarizer (…)` is neither cut nor unmarked. A put of its doc keeps the
-  text to the end of that line and makes the line after it and the doc's start anew. The last line of `put` counts
+  text to the end of that line and makes the line after it and the doc's start anew. The line is a summary's where
+  the tool puts it, with the line `The whole doc is the file …` next after it: a doc that quotes the first line in its
+  own text has no summary by that (since `fb-batch-docs-and-tools`, 2026-10-13). The last line of `put` counts
   such docs as `summarized`.
 - `put --stale` leaves a long doc whose entry `knowledge.list` answered with no text, which until then it counted
   unmarked and put, and a doc that has a file `<name>.running` under ten minutes old in `.emitted/docs/` of the main
-  checkout. Its last line names them, `noText` and `running`.
+  checkout. Its last line names them, `noText` and `running`. `summarize` keeps that file from before its agent reads
+  the doc until the doc's put has answered (until `fb-batch-docs-and-tools` it removed it when the agent ended).
 - The last line of `status` has `long`, `summarized`, `behind`, and by name `due` and `refused`.
 
 **The 49 long docs of 2026-10-13, 07:30 CEST, have a first paragraph since 09:09 that day** (`sd-4-the-rest-and-the-release-line`, task 4 of

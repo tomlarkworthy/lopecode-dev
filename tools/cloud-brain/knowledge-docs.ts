@@ -50,8 +50,9 @@
 // its entry ending with the line of the older text). An entry is fresh by its file's
 // hash, so a change to the line here, and a put by a copy of this tool from before the line (a release from a worktree
 // behind a3e883dc), leave a fresh entry with no line (ac-4-docs-tool-marks-a-cut). `put --stale` puts an unmarked doc
-// as it does a stale or missing one, so the next release of anyone enters it with the line; an entry that
-// knowledge.list answers with no text is among them (knowledge-docs-put-stale-skips-unmarked).
+// as it does a stale or missing one, so the next release of anyone enters it with the line. An entry that
+// knowledge.list answers with no text is not among them since sd-2-one-summarizer: it may hold a summary, so
+// `put --stale` leaves it and names it (`noText`, below; until then it was put, knowledge-docs-put-stale-skips-unmarked).
 // A long doc's summary (sd-2-one-summarizer, task 2 of plan/cloud-brain-docs-summarised-for-search.md; design pieces 2 and 3).
 // The entry of a doc over TEXT may hold a summary of the whole doc, written by the role `summarizer` (the papers' role,
 // made to take a doc; its brief is brain/roles/summarizer.md). Its text is then, TEXT characters in all:
@@ -60,16 +61,21 @@
 //   Summary by summarizer (<model>), <day>, of <source>/<path> as it was with sha256 <the file the agent read>.
 //   The whole doc is the file <file> in this Brain's brain-static, <the file's characters>: static.get?path=<file>[, and /static/<file> at the Brain's address]. Its start follows.
 //   <the text this tool makes of the doc, from its start, cut so the whole is TEXT>
-// `put` keeps a summary it did not write: for a long doc whose kept entry has the line "Summary by summarizer …", it
+// The line "Summary by summarizer …" is a summary's where this tool puts it: with the line "The whole doc is the file …"
+// next after it. A doc that quotes the first line in its own text has no summary by that (fb-batch-docs-and-tools; a
+// doc that quotes the two lines one after the other in its first TEXT characters is still read as summarized).
+// `put` keeps a summary it did not write: for a long doc whose kept entry has that line, it
 // puts the kept text to the end of that line, the second line and the doc's start as they are now, and the new file's
 // sha256. Such an entry is neither cut nor unmarked: `cut` counts the long docs with no summary and `unmarked` those of
 // them whose entry does not end with the cut's line. A long doc whose entry knowledge.list answers with no text may hold
 // a summary: `put --stale` leaves it and names it (`noText`), and a put by name enters it cut. A doc that shrinks to
 // TEXT or under is entered whole and its put sends staleSince: 0.
 // A summary is due (`due` in the last line of status, by name) for a long doc with no summary, since its file's last
-// commit; and for one whose summary's line names another sha256 than the file's when the lines added and deleted since
-// that version (git diff --numstat) are over a tenth of the file's lines, since the first commit that took it over, or
-// when no commit has that version. A put of a doc that is due and has a summary sends that time as staleSince, and 0
+// commit; and for one whose summary's line names another sha256 than the file's when the lines added and deleted between
+// that version and the file as it is now (git diff --numstat of the two) are over a tenth of the file's lines, or
+// when no commit has that version. A change that took it over a tenth and was taken back leaves it not due
+// (fb-batch-docs-and-tools; until then it was due by any commit since the version). It is due since the oldest commit
+// from which every commit to the newest is over a tenth. A put of a doc that is due and has a summary sends that time as staleSince, and 0
 // when it is not due, so knowledge.list?stale=true&kind=doc answers the docs whose summary is due again. The last line
 // of status also has `long`, `summarized`, `behind` (summarized, of another version of the file) and `refused` (due,
 // and refused twice at this file by a run that was not --dry, with no put at that file since).
@@ -95,7 +101,8 @@
 // would start an agent for it: not one refused twice at this file, and not one a summarizer is running on. `lock.sh
 // release land` prints it as `summaries due (<brain>): …` with the command to run, which has --first-paragraph: the form
 // the owner chose for the long docs (comment 6005 of that issue). No other put prints the line.
-// While an agent reads a doc, <state>/docs/<name>.running holds the time: a summarize that finds one under ten minutes
+// From before an agent reads a doc until its summary is put (or refused, or the run fails), <state>/docs/<name>.running
+// holds the time (until fb-batch-docs-and-tools it was removed when the agent ended, before the put): a summarize that finds one under ten minutes
 // old skips the doc, and so does put --stale, which names it (`running`) and leaves it for the next put, since it read
 // the kept text before a summary that lands in between. <state> is one machine's.
 // status --check-summaries: the long docs, or the named ones. It fails a doc whose entry has the line and not a first
@@ -201,10 +208,13 @@ const doc = (name: string, bytes: Uint8Array, more: { at: string; rev: string; p
 //   <first paragraph>\n\n<sections>\n\n<LINE>\n<the second line>\n\n<the doc's start, cut so the whole is TEXT>
 // The head, to the end of LINE, is the summarizer's and is carried over a put as it is kept; the rest is made anew.
 const SUMMARY = "Summary by summarizer";
-const LINE = /^Summary by summarizer \(([^)]*)\), (\S+), of (\S+) as it was with sha256 ([0-9a-f]{64})\.$/m;
+const LINE = /^Summary by summarizer \(([^)]*)\), (\S+), of (\S+) as it was with sha256 ([0-9a-f]{64})\.$/gm;
+// The first such line that has the second line (`second`, below) next after it: the place withSummary puts the two.
+// The line alone, in a doc's own text, is a quote.
+const NEXT = "\nThe whole doc is the file ";
 const summaryOf = (text: unknown) => {
-  const m = typeof text === "string" ? LINE.exec(text) : null;
-  return m ? { head: (text as string).slice(0, m.index + m[0].length), at: m.index, model: m[1], day: m[2], path: m[3], sha256: m[4] } : null;
+  const m = typeof text === "string" ? [...text.matchAll(LINE)].find((x) => text.startsWith(NEXT, x.index! + x[0].length)) : null;
+  return m ? { head: (text as string).slice(0, m.index! + m[0].length), at: m.index!, model: m[1], day: m[2], path: m[3], sha256: m[4] } : null;
 };
 const headOf = (x: { lead: string; sections: string; model: string; day: string; path: string; sha256: string }) =>
   `${x.lead}\n\n${x.sections ? x.sections + "\n\n" : ""}${SUMMARY} (${x.model}), ${x.day}, of ${x.path} as it was with sha256 ${x.sha256}.`;
@@ -289,8 +299,9 @@ const running = (name: string) => { try { return !!stateDocs && Date.now() - Num
 // null when no summary is due. `since` is the clock --check-summaries counts 24 hours from; `stale` is the entry's staleSince
 // (0 for a doc that never had a summary: knowledge.list?stale=true answers the docs whose summary is due again).
 //   no summary: due since the file's last commit;
-//   a summary of another version of the file: due when the lines added and deleted since that version (git diff --numstat)
-//   are over a tenth of the file's lines, since the first commit that took it over; and when no commit has that version.
+//   a summary of another version of the file: due when the lines added and deleted between that version and the newest
+//   commit (git diff --numstat of the two) are over a tenth of the file's lines, since the oldest commit from which
+//   every commit to the newest is over; and when no commit has that version.
 const dueOf = (r: Row): { since: number; stale: number; why: string } | null => {
   if (!r.long || !r.named || r.noText) return null;
   const log = line(r.at, "log", "--format=%H %ct", r.rev, "--", r.path).split("\n").filter(Boolean).map((l) => l.split(" "));
@@ -299,11 +310,16 @@ const dueOf = (r: Row): { since: number; stale: number; why: string } | null => 
   if (r.summary.sha256 === r.sha256) return null;
   const i = log.findIndex(([h]) => sha(git(r.at, "show", `${h}:${r.path}`).stdout) === r.summary!.sha256);
   if (i < 0) return { since: last, stale: last, why: "no commit has the version summarized" };
-  for (let k = i - 1; k >= 0; k--) {
+  // The lines between the version summarized and commit k, when they are over a tenth; 0 when they are not.
+  const over = (k: number) => {
     const [a, d] = line(r.at, "diff", "--numstat", log[i][0], log[k][0], "--", r.path).split("\t").map(Number), n = (a || 0) + (d || 0);
-    if (n > r.lines / 10) return { since: Number(log[k][1]) * 1000, stale: Number(log[k][1]) * 1000, why: `${n} lines added and deleted since the version summarized, over a tenth of ${r.lines} (commit ${log[k][0].slice(0, 8)})` };
-  }
-  return null;
+    return n > r.lines / 10 ? n : 0;
+  };
+  const n = i > 0 ? over(0) : 0;
+  if (!n) return null;
+  let k = 0;
+  while (k + 1 < i && over(k + 1)) k++;
+  return { since: Number(log[k][1]) * 1000, stale: Number(log[k][1]) * 1000, why: `${n} lines added and deleted since the version summarized, over a tenth of ${r.lines} (commit ${log[k][0].slice(0, 8)})` };
 };
 const wrong = (rows: { fileIs: string }[]) => rows.filter((r) => r.fileIs === "not kept" || r.fileIs === "differs");
 const badNames = docs.filter((d) => !d.named).map((d) => d.name);
@@ -451,42 +467,45 @@ if (cmd === "status" && flag("--check-summaries")) {
     const text = r.body.split("\n").flatMap((l: string) => (l.length > 1500 ? wrap(l) : [l])).join("\n"), file = join(tmpDir, r.name + ".md");
     writeFileSync(file, text);
     writeFileSync(runningFile(r.name), String(Date.now()));
-    let got: ReturnType<typeof summarize>;
-    try { got = summarize({ kind: "doc", file, lines: text.split("\n").length - (text.endsWith("\n") ? 1 : 0), title: r.title, model, agent }); } finally { rmSync(runningFile(r.name), { force: true }); }
-    const { outcome, why, stop, result, answers, lead, sections, numbers: not, refused, ...ran } = got;
-    // A first answer that was refused is kept, whatever the second was: what it was refused for is read from it.
-    if (answers.length > 1) writeFileSync(join(stateDocs, r.name + ".first-answer.txt"), answers[0]);
-    const base = { name: r.name, id: r.id, ...ran, chars: text.length, sha256: r.sha256, lead: lead.length, sections: sections.length, refused };
-    if (outcome === "failed") {
-      note({ ...base, outcome, why });
-      say({ name: r.name, outcome, why, usd: ran.usd });
-      if (stop) { stopped = why; code = 3; break; }
-      code = code || 1;
-      continue;
-    }
-    if (outcome === "refused") {
-      note({ ...base, outcome, numbers: not });
-      writeFileSync(join(stateDocs, r.name + ".refused.txt"), result!);
-      say({ name: r.name, outcome, lead: lead.length, leadMax: ran.leadMax, sections: sections.length, refused, usd: ran.usd });
-      continue;
-    }
-    // The file is read again: when origin/main has moved on, the summary's line names the version it was made from, and the start and the sha256 are the newer file's.
-    const bytes = git(r.at, "show", `${r.rev}:${r.path}`);
-    if (bytes.status !== 0) { note({ ...base, outcome: "failed", why: "the file is no longer there" }); say({ name: r.name, outcome: "failed", why: "the file is no longer there", usd: ran.usd }); code = code || 1; continue; }
-    const now = doc(r.name, bytes.stdout, { at: r.at, rev: r.rev, path: r.path, url: r.url, source: r.source, private: r.source === DEV });
-    const head = headOf({ lead, sections: firstOnly ? "" : sections, model, day: new Date().toISOString().slice(0, 10), path: `${r.source}/${r.path}`, sha256: r.sha256 });
-    const whole = now.long ? withSummary(now, head) : now.whole;
-    if (dry) {
-      writeFileSync(join(stateDocs, r.name + ".summary.txt"), whole);
-      note({ ...base, length: whole.length, outcome: "dry" });
-      say({ name: r.name, outcome: "dry", lead: lead.length, leadMax: ran.leadMax, sections: sections.length, length: whole.length, refused, usd: ran.usd });
-      continue;
-    }
-    let put: any, bad = "";
-    try { put = send([{ d: now, entry: { ...entryOf({ ...r, ...now, summary: null } as Row), text: whole, staleSince: 0 } }]); } catch (x: any) { bad = String(x?.message || x).slice(0, 300); }
-    note({ ...base, length: whole.length, outcome: bad ? "failed" : "put", put: put ?? null, ...(now.sha256 !== r.sha256 ? { putSha256: now.sha256 } : {}), ...(bad ? { why: bad } : {}) });
-    say({ name: r.name, outcome: bad ? "failed" : "put", lead: lead.length, leadMax: ran.leadMax, sections: sections.length, length: whole.length, refused, usd: ran.usd, put: put ?? null, ...(bad ? { why: bad } : {}) });
-    if (bad) { stopped = `${bad}: ${r.name} was not put and the docs after it were not started`; break; }
+    // The file stands until this doc's put has answered, and is removed on every way out of the block (a refusal, a
+    // failure, a throw): a put --stale that reads the entry between the agent's end and the put would put over the summary.
+    try {
+      const got = summarize({ kind: "doc", file, lines: text.split("\n").length - (text.endsWith("\n") ? 1 : 0), title: r.title, model, agent });
+      const { outcome, why, stop, result, answers, lead, sections, numbers: not, refused, ...ran } = got;
+      // A first answer that was refused is kept, whatever the second was: what it was refused for is read from it.
+      if (answers.length > 1) writeFileSync(join(stateDocs, r.name + ".first-answer.txt"), answers[0]);
+      const base = { name: r.name, id: r.id, ...ran, chars: text.length, sha256: r.sha256, lead: lead.length, sections: sections.length, refused };
+      if (outcome === "failed") {
+        note({ ...base, outcome, why });
+        say({ name: r.name, outcome, why, usd: ran.usd });
+        if (stop) { stopped = why; code = 3; break; }
+        code = code || 1;
+        continue;
+      }
+      if (outcome === "refused") {
+        note({ ...base, outcome, numbers: not });
+        writeFileSync(join(stateDocs, r.name + ".refused.txt"), result!);
+        say({ name: r.name, outcome, lead: lead.length, leadMax: ran.leadMax, sections: sections.length, refused, usd: ran.usd });
+        continue;
+      }
+      // The file is read again: when origin/main has moved on, the summary's line names the version it was made from, and the start and the sha256 are the newer file's.
+      const bytes = git(r.at, "show", `${r.rev}:${r.path}`);
+      if (bytes.status !== 0) { note({ ...base, outcome: "failed", why: "the file is no longer there" }); say({ name: r.name, outcome: "failed", why: "the file is no longer there", usd: ran.usd }); code = code || 1; continue; }
+      const now = doc(r.name, bytes.stdout, { at: r.at, rev: r.rev, path: r.path, url: r.url, source: r.source, private: r.source === DEV });
+      const head = headOf({ lead, sections: firstOnly ? "" : sections, model, day: new Date().toISOString().slice(0, 10), path: `${r.source}/${r.path}`, sha256: r.sha256 });
+      const whole = now.long ? withSummary(now, head) : now.whole;
+      if (dry) {
+        writeFileSync(join(stateDocs, r.name + ".summary.txt"), whole);
+        note({ ...base, length: whole.length, outcome: "dry" });
+        say({ name: r.name, outcome: "dry", lead: lead.length, leadMax: ran.leadMax, sections: sections.length, length: whole.length, refused, usd: ran.usd });
+        continue;
+      }
+      let put: any, bad = "";
+      try { put = send([{ d: now, entry: { ...entryOf({ ...r, ...now, summary: null } as Row), text: whole, staleSince: 0 } }]); } catch (x: any) { bad = String(x?.message || x).slice(0, 300); }
+      note({ ...base, length: whole.length, outcome: bad ? "failed" : "put", put: put ?? null, ...(now.sha256 !== r.sha256 ? { putSha256: now.sha256 } : {}), ...(bad ? { why: bad } : {}) });
+      say({ name: r.name, outcome: bad ? "failed" : "put", lead: lead.length, leadMax: ran.leadMax, sections: sections.length, length: whole.length, refused, usd: ran.usd, put: put ?? null, ...(bad ? { why: bad } : {}) });
+      if (bad) { stopped = `${bad}: ${r.name} was not put and the docs after it were not started`; break; }
+    } finally { rmSync(runningFile(r.name), { force: true }); }
   }
   end(code || (stopped || unknown.length ? 1 : 0), last());
 } else {

@@ -20,15 +20,17 @@ const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 const modules = (() => { const p = Bun.resolveSync("cheerio", dirname(join(root, "tools/cloud-brain/summarize-papers.ts"))); return p.slice(0, p.lastIndexOf("/node_modules/") + "/node_modules".length); })();
 
 // brain.ts curl as the tool meets it. knowledge.put is kept as the service keeps it: a field left out keeps its value,
-// staleSince 0 clears it. FAKE_DIR/put-fails: knowledge.put answers 400.
-const FAKE = `import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+// staleSince 0 clears it. FAKE_DIR/put-fails: knowledge.put answers 400. Each call is written down with `running`, the
+// .running files of the state's docs that stood when it arrived.
+const FAKE = `import { appendFileSync, existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 const a = process.argv.slice(2), dir = process.env.FAKE_DIR;
 const at = a.find((x) => x.startsWith("@")), isStatic = a[1].includes(".static.");
 const q = new URL("http://brain" + a[1]).searchParams;
 const body = at && !isStatic ? JSON.parse(readFileSync(at.slice(1), "utf8")) : null;
 const sent = at && isStatic ? { path: q.get("path"), public: q.get("public"), sha256: createHash("sha256").update(readFileSync(at.slice(1))).digest("hex") } : null;
-appendFileSync(dir + "/calls.jsonl", JSON.stringify({ path: a[1], as: a[a.indexOf("--as") + 1], body, sent }) + "\\n");
+const held = process.env.BRAIN_STATE_DIR + "/docs";
+appendFileSync(dir + "/calls.jsonl", JSON.stringify({ path: a[1], as: a[a.indexOf("--as") + 1], body, sent, running: existsSync(held) ? readdirSync(held).filter((f) => f.endsWith(".running")) : [] }) + "\\n");
 const load = (f) => (existsSync(dir + "/" + f) ? JSON.parse(readFileSync(dir + "/" + f, "utf8")) : []);
 if (a[1].includes("static.list")) console.log(JSON.stringify({ files: load("files.json") }));
 else if (a[1].includes("static.put")) {
@@ -501,3 +503,98 @@ test("summarize with no flag puts the first paragraph alone, by --due, by name a
   }
   expect([t.agents().length, t.calls().length, t.journal().length]).toEqual(n);
 }, T);
+
+// ---- fb-batch-docs-and-tools, entry seen-sd-2-summary-edges: four things a review read in the tool and did not run.
+
+test("a long doc that quotes a summary's line in its own text has no summary: cut, due, and put cut; with a summary, the quote in its start is not taken for the line", () => {
+  // The quoted line is in the first 16,000 characters of the doc's text, at the start of a line, as a guide that shows an entry has it.
+  const quote = `Summary by summarizer (haiku), 2026-10-01, of lopecode-dev/knowledge/other.md as it was with sha256 ${"a".repeat(64)}.`;
+  const quoting = TOP + [row(1), quote, ...Array.from({ length: 199 }, (_, i) => row(i + 2))].join("\n") + "\n";
+  const t = entered({ "knowledge/long.md": quoting, "knowledge/short.md": SHORT });
+  expect(t.entry().text.slice(0, 16000).includes("\n" + quote + "\n")).toBe(true);
+  const st = t.kdocs(["status"]);
+  expect(st.last).toMatchObject({ docs: 2, fresh: 2, cut: 1, unmarked: 0, long: 1, summarized: 0, behind: 0, due: ["long"] });
+  expect(st.out).not.toContain("summary by haiku");
+  expect(t.kdocs(["status", "--check-summaries", "long"]).lines[0]).toMatchObject({ name: "long", state: "no summary" });
+  // A put of it changed keeps no head: the entry is the doc cut, and ends with the cut's line.
+  t.write("knowledge/long.md", quoting + row(300) + "\n");
+  t.push("one line more");
+  expect(t.kdocs(["put", "--stale"]).last).toMatchObject({ put: 1, cut: 1, summarized: 0 });
+  expect([t.puts().at(-1).text.startsWith("Topics: long things\n\n" + row(1) + "\n" + quote + "\n"), t.puts().at(-1).text.endsWith(`static.get?path=${FILE}]`)]).toEqual([true, true]);
+  // Summarized, the entry has two such lines: the tool's, with the second line after it, and the doc's own further down.
+  t.answers([{ result: GOOD }]);
+  expect(t.kdocs(["summarize", "long"]).last).toMatchObject({ picked: 1, put: 1 });
+  const text = t.entry().text, mine = lineOfDoc(sha(t.doc()));
+  expect([text.split("Summary by summarizer").length, text.indexOf(mine) < text.indexOf(quote), text.includes(mine + "\n" + secondLine(t.doc()))]).toEqual([3, true, true]);
+  expect(t.kdocs(["status"]).last).toMatchObject({ cut: 0, summarized: 1, behind: 0, due: [] });
+  // The next put carries the head to the tool's line and no further.
+  t.write("knowledge/long.md", t.doc() + row(301) + "\n");
+  t.push("another line");
+  expect(t.kdocs(["put", "--stale"]).last).toMatchObject({ put: 1, summarized: 1 });
+  expect(t.puts().at(-1).text.startsWith(text.slice(0, text.indexOf(mine) + mine.length) + "\n" + secondLine(t.doc()) + "\n\nTopics: long things\n\n" + row(1) + "\n" + quote)).toBe(true);
+}, T);
+
+test("due is read between the version summarized and the newest commit: a change over a tenth that was taken back is not due; over again, due since the commit from which it stayed over", () => {
+  const t = summarized();
+  const was = t.doc(), more = (k: number) => was + Array.from({ length: k }, (_, i) => `Added ${i + 1}. ` + "more ".repeat(30).trim()).join("\n") + "\n";
+  t.write("knowledge/long.md", more(40));
+  t.push("40 lines more, over a tenth");
+  expect(t.kdocs(["status"]).last).toMatchObject({ summarized: 1, behind: 1, due: ["long"] });
+  // Taken back to one line more than the version summarized: 1 of 208 lines, though a commit between was over.
+  t.write("knowledge/long.md", more(1));
+  t.push("39 of them taken back", "2026-10-01T10:00:00Z");
+  const st = t.kdocs(["status"]);
+  expect(st.last).toMatchObject({ stale: 1, summarized: 1, behind: 1, due: [] });
+  expect(t.kdocs(["put", "--stale"]).last).toMatchObject({ put: 1, summarized: 1 });
+  expect(t.puts().at(-1)).toMatchObject({ sha256: sha(more(1)), staleSince: 0 });
+  expect(t.kdocs(["status", "--check-summaries", "long"]).lines[0]).toEqual({ name: "long", state: "behind" });
+  // Over again, in two commits: due since the first of the two, not since the commit of before the taking back.
+  t.write("knowledge/long.md", more(30));
+  const again = t.push("30 lines more, over again");
+  t.write("knowledge/long.md", more(31));
+  t.push("one more");
+  expect(t.kdocs(["status"]).last).toMatchObject({ behind: 1, due: ["long"] });
+  t.kdocs(["put", "--stale"]);
+  expect(t.puts().at(-1)).toMatchObject({ sha256: sha(more(31)), staleSince: again });
+  // Taken back to the version summarized itself: the summary is of the file, and nothing is due.
+  t.write("knowledge/long.md", was);
+  t.push("as it was summarized");
+  expect(t.kdocs(["status"]).last).toMatchObject({ summarized: 1, behind: 0, due: [] });
+}, T);
+
+test("the .running file of a doc stands while its file and its entry are put, and is gone after: after a put, a refusal, a put that is refused and a --dry run", () => {
+  const t = entered();
+  const held = () => existsSync(join(t.state, "long.running"));
+  const since = (n: number) => t.calls().slice(n).filter((c: any) => /static\.put|knowledge\.put/.test(c.path)).map((c: any) => [/brain\.([a-z]+\.[a-z]+)/.exec(c.path)![1], c.running]);
+  let n = t.calls().length;
+  t.answers([{ result: GOOD }]);
+  expect(t.kdocs(["summarize", "long"]).last).toMatchObject({ picked: 1, put: 1 });
+  expect(since(n)).toEqual([["static.put", ["long.running"]], ["knowledge.put", ["long.running"]]]);
+  expect(held()).toBe(false);
+  // The lists before the agent are read with no file yet.
+  expect(t.calls().slice(n, n + 2).map((c: any) => c.running)).toEqual([[], []]);
+  // Refused twice: nothing is put, and the file is gone.
+  t.answers([{ result: BAD }, { result: BAD }]);
+  n = t.calls().length;
+  expect(t.kdocs(["summarize", "long", "--again"]).last).toMatchObject({ picked: 1, put: 0, refused: 1 });
+  expect([since(n), held()]).toEqual([[], false]);
+  // The entry's put is refused by the service: the file stood at both calls, and is gone.
+  writeFileSync(join(t.fake, "put-fails"), "");
+  t.answers([{ result: GOOD }]);
+  n = t.calls().length;
+  const failed = t.kdocs(["summarize", "long", "--again"]);
+  expect([failed.code, failed.lines[0].outcome]).toEqual([1, "failed"]);
+  expect(since(n)).toEqual([["static.put", ["long.running"]], ["knowledge.put", ["long.running"]]]);
+  expect(held()).toBe(false);
+  // --dry puts nothing and leaves no file.
+  t.answers([{ result: GOOD }]);
+  expect(t.kdocs(["summarize", "long", "--dry", "--again"]).last).toMatchObject({ picked: 1, dry_written: 1 });
+  expect(held()).toBe(false);
+}, T);
+
+test("the header says of an entry answered with no text what put --stale does with it: left and named, in one place and the other", () => {
+  const header = readFileSync(tool, "utf8").split("\nimport ")[0];
+  expect(header).not.toContain("is among them (knowledge-docs-put-stale-skips-unmarked)");
+  expect(header.replace(/\n\/\/ /g, " ")).toContain("An entry that knowledge.list answers with no text is not among them since sd-2-one-summarizer");
+  expect(header.replace(/\n\/\/ /g, " ")).toContain("`put --stale` leaves it and names it (`noText`), and a put by name enters it cut");
+});
