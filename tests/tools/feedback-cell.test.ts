@@ -76,3 +76,31 @@ test("a note put away is kept away by this browser for the address, over a load 
   await (await page(rig, { brainOrigin: "https://other.example" })).sync();
   expect(rig.store.all().map((n: any) => n.issue)).toEqual(["fb-open"]);
 });
+
+// pm-1-notes-put-away-are-kept: the cell `feedbackAway` is the list of the page's app, and Show writes the browser's item.
+test("the cell feedbackAway is the list of the page's app, and Show takes the id out of this browser's item", async () => {
+  items.clear();
+  const rig = await newRig(), body = await (await load({})).value("feedbackBody");
+  await open(rig, "fb-open", body);
+  const inputs = { feedbackOn: true, brainOrigin: ADDRESS, brainClient: rig.client, a2Store: rig.store, feedbackNear: () => "Issues", brainModules: { modules: [] } };
+  // The cell asks its app for the list: an app that answers a value of its own is what the cell is.
+  expect(await (await load({ ...inputs, feedback: { list: () => "the list" } })).value("feedbackAway")).toBe("the list");
+  // Off the owner's page it is a sentence, drawn with htl.
+  expect(await (await load({ ...inputs, feedbackOn: false, htl: { html: (s: TemplateStringsArray) => s.join("") } })).value("feedbackAway")).toContain("for the owner, signed in at the Brain's address");
+  const first = await page(rig);
+  await first.sync();
+  rig.store.remove(rig.store.all()[0].id);
+  await first.gone();
+  // A load: the app of the cell `feedback` lists what the item has, before any ask.
+  rig.reload();
+  const loaded = await page(rig);
+  expect([loaded.putAway().map((r: any) => r.id), Object.keys(JSON.parse(items.get(AWAY)!))]).toEqual([["fb-open"], ["fb-open"]]);
+  await loaded.sync();
+  expect([rig.store.all(), loaded.putAway()]).toEqual([[], [{ id: "fb-open", title: "fb-open", state: "open" }]]);
+  await loaded.show("fb-open");
+  expect([rig.store.all().map((n: any) => n.issue), loaded.putAway(), [...items.keys()]]).toEqual([["fb-open"], [], []]);
+  // And it stays shown over a load.
+  rig.reload();
+  await (await page(rig)).sync();
+  expect(rig.store.all().map((n: any) => n.issue)).toEqual(["fb-open"]);
+});
