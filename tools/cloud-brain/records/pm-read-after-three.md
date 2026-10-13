@@ -7,7 +7,7 @@ which of the four questions, what became of its actions, was it answered to a la
 act on the block. It also answers the two items that "What is not known" of
 `plan/cloud-brain-post-mortems-declared-and-kept.md` left to this read.
 
-Read on 2026-10-13 between 21:12 and 21:19 CEST (`date`), from the tracker's events 4480 to 6991, the three files
+Read on 2026-10-13 between 21:12 and 21:19 CEST (`date`) and written by 21:26, from the tracker's events 4480 to 6991, the three files
 of `tools/cloud-brain/post-mortems/`, `oversight.md` and four searches of the Brain. Writer: token `impl-5aa797`.
 
 ## What it found, short
@@ -188,9 +188,9 @@ opened at event 4944, 2026-10-12 22:46 CEST, and none in the 2,047 events after 
 
 ## What is filed
 
-- A comment on `post-mortems-declared-and-kept`, key `impl/pm-read-after-three/found`, with the table of
-  "What it found, short".
-- A feedback issue, `seen-pm-writer-reads-issue-once`, key `impl/pm-read-after-three/seen`. The page
+- A comment on `post-mortems-declared-and-kept`, event 7128 (key `impl/pm-read-after-three/found`, 21:25 CEST),
+  with the table of "What it found, short" and the two decisions below.
+- A feedback issue, `seen-pm-writer-reads-issue-once`, opened at event 7129 and linked `related` to this issue (7130). The page
   `agents/implementer/post-mortem.md` has no line to read the issue again before the submit. The third writer
   read its issue at 22:47 CEST, the owner's two comments on post mortems came at 22:57 and 22:59 (4981, 4985),
   and the file was submitted at 23:05 without them (its comment 5060, under "For the overseer"). One case in
