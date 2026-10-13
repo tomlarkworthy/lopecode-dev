@@ -111,7 +111,7 @@ testNeeding("reviewer-in-a-view.test.ts, its test of agent.sh", [agentSh])("agen
   try {
     mkdirSync(join(view, "tools/cloud-brain"), { recursive: true });
     // What agent.sh reads is set here, not inherited: an agent it started with a tab runs this with TAB=1.
-    const env = { ...process.env, TAB: "", MODEL: "", ADVISOR: "", READS: "", CHECKOUT: view, DRY: "1" };
+    const env = { ...process.env, TAB: "", MODEL: "", ADVISOR: "", READS: "", WORK: "", SESSION: "", CHECKOUT: view, DRY: "1" };
     const plain = Bun.spawnSync([agentSh, "reviewer", "review issue x; your token is rev-3fa2c1"], { env });
     expect(plain.exitCode).toBe(0);
     const out = plain.stdout.toString();

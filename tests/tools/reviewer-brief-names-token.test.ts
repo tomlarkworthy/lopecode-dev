@@ -44,7 +44,8 @@ testNeeding("reviewer-brief-names-token.test.ts, its test of agent.sh", [agentSh
     chmodSync(join(dir, "claude"), 0o755);
     const task = "review issue some-issue; your token is rev-3fa2c1";
     const r = Bun.spawnSync([agentSh, "reviewer", task], {
-      env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, CHECKOUT: root },
+      // WORK and SESSION are a run's own (loop.ts start): with them agent.sh sends the prompt as given, with no role line.
+      env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, CHECKOUT: root, WORK: undefined, SESSION: undefined },
     });
     expect(r.exitCode).toBe(0);
     const lines = readFileSync(join(dir, "prompt"), "utf8").split("\n");
