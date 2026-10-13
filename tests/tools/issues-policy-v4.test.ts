@@ -11,8 +11,8 @@
 // No call leaves the machine.
 import { expect, test } from "bun:test";
 import { execFileSync, spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { existsSync, readFileSync, rmSync } from "node:fs";
+import { dirname, resolve, join } from "node:path";
 import { BRIEF, TOOL } from "../../tools/cloud-brain/approver.ts";
 import { SEEDS, seedModule, testNeedingSeed, testNeedingSeedAnd } from "./needs.ts";
 
@@ -74,8 +74,11 @@ const dev = join(root, "cloud-brain-dev");
 const { test: withRig, module: built } = await testNeedingSeedAnd(me + ", the rig", "brain-issues.ojs", [join(dev, "test.ts"), join(dev, "deploy/services.json")], (seed) => seedModule(seed, SEEDS, withCell));
 let ran: Promise<any> | undefined;
 const rig = () => (ran ??= (async () => {
-  const r = spawnSync("bun", ["test.ts", "brain-x-issues", "--with", built, "--whole", "--seconds", "100"], { cwd: dev, encoding: "utf8", maxBuffer: 1 << 26 });
-  const line = r.stdout.trim().split("\n").at(-1) || "";
+  // The report is a file since test-ts-output-floods-the-reader; a test.ts from before it prints it as its last line.
+  const file = join(dirname(built), "report.json");
+  rmSync(file, { force: true });
+  const r = spawnSync("bun", ["test.ts", "brain-x-issues", "--with", built, "--whole", "--seconds", "100", "--report", file], { cwd: dev, encoding: "utf8", maxBuffer: 1 << 26 });
+  const line = (existsSync(file) ? readFileSync(file, "utf8") : r.stdout).trim().split("\n").at(-1) || "";
   let report: any;
   try { report = JSON.parse(line); } catch { throw new Error(`test.ts gave no report (exit ${r.status}): ${r.stdout.slice(-2000)}\n${r.stderr.slice(-2000)}`); }
   // The one cell, and it answered: no other test cell of the module was compiled in.

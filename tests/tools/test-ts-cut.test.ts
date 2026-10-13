@@ -5,7 +5,7 @@
 // test.ts is run on a copy beside a deploy/ of one module made here, with the runtime and the bootloader the
 // repository commits. No call leaves the machine, and deploy/ of the checkout is not read for a service.
 import { test as always, expect } from "bun:test";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -17,6 +17,7 @@ const test = testNeeding("test-ts-cut.test.ts", [join(dev, "test.ts"), ...shared
 // Until the branch test-ts-cuts-returned-value of cloud-brain-dev is pushed and the pointer here moves, the test.ts
 // of main has no mark. The two tests of it then run only with TEST_TS_MARKS_A_CUT=1, where they fail.
 const fixed = test !== always.skip && /--whole/.test(readFileSync(join(dev, "test.ts"), "utf8"));
+const reported = fixed && /--report/.test(readFileSync(join(dev, "test.ts"), "utf8"));
 const marked = fixed || process.env.TEST_TS_MARKS_A_CUT ? test : test.skip;
 if (test !== always.skip && marked === test.skip) console.log(`skipped: test-ts-cut.test.ts: ${join(dev, "test.ts")} has no --whole (the branch test-ts-cuts-returned-value of cloud-brain-dev is not in this checkout's pointer); TEST_TS_MARKS_A_CUT=1 runs the two tests on it`);
 
@@ -40,9 +41,11 @@ const run = async (...flags: string[]) => {
     writeFileSync(join(dir, "deploy/@probe/lengths.js"), `export default function define(runtime, observer) {\n  const main = runtime.module();${cells}  return main;\n}\n`);
     writeFileSync(join(dir, "deploy/shared.json"), JSON.stringify({ files: [] }));
     writeFileSync(join(dir, "deploy/services.json"), JSON.stringify({ services: [{ worker: "brain-x-lengths", module: "@probe/lengths", hash: "h", text: "" }] }));
-    const p = Bun.spawn(["bun", join(dir, "test.ts"), "brain-x-lengths", ...flags], { stdout: "pipe", stderr: "pipe" });
+    // Since test-ts-output-floods-the-reader the report is a file (--report); a test.ts from before it prints the line.
+    const file = join(dir, "report.json");
+    const p = Bun.spawn(["bun", join(dir, "test.ts"), "brain-x-lengths", ...flags, "--report", file], { stdout: "pipe", stderr: "pipe" });
     const [out, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
-    const line = out.split("\n").find((l) => l.startsWith('{"worker"'));
+    const line = (existsSync(file) ? readFileSync(file, "utf8") : out).split("\n").find((l) => l.startsWith('{"worker"'));
     if (!line) throw new Error(`test.ts printed no report, exit ${code}: ${err.slice(0, 2000)}`);
     const report = JSON.parse(line);
     const of = (name: string) => report.tests.find((t: any) => t.name === name) as { state: string; value?: string; error?: string };
@@ -70,7 +73,8 @@ marked("a value over 120 characters and an error over 600 are cut, and each says
   expect(e601.slice(600)).toMatch(/cut.*\b600 of 601\b.*--whole/);
   // Nothing of the part that was cut is in the line, and the line a failed test prints has the mark too.
   expect([v121.includes("W"), v5000.includes("tail!!"), e601.includes("F")]).toEqual([false, false, false]);
-  expect(r.out).toMatch(/FAIL test_error_601 \n {5}e{600}[^\n]*600 of 601/);
+  // Two failed, so each has 240 characters of its error in the last lines; the report has the 600 (above).
+  expect(r.out).toMatch(reported ? /^FAIL test_error_601: e{240}… \(cut: 240 of 601 characters\)$/m : /FAIL test_error_601 \n {5}e{600}[^\n]*600 of 601/);
   expect([r.report.passed, r.report.failed]).toEqual([4, 2]);
 });
 

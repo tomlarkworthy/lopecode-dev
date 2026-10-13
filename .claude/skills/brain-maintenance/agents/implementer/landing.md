@@ -177,9 +177,11 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
       Stop there, push nothing more, and report what was pushed and what was not. Exit 2: cb4 was
       not reached; run the release again. A lock that is never released ends at its time.
     - After a deploy, with the lock gone: `cd $W/cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev && bun test.ts <worker>`.
-      Its JSON line is the report of what now runs: `hash` is the hash you deployed, `failed` is 0.
+      Its last line is the count of what now runs, `<worker> <module> <hash>: N passed, N failed, N need a browser`:
+      the hash is the first 12 characters of the one you deployed, and `failed` is 0. (The JSON report is the file
+      the `report:` line above it names, since `test-ts-output-floods-the-reader`, 2026-10-13.)
       Put the line's counts in your comment. A `failed` here is a deployed defect: say so on the issue first.
-      No JSON line: `sync.ts` printed `left out: <worker> …` (another deploy of it is under way); run both again.
+      No such line: `sync.ts` printed `left out: <worker> …` (another deploy of it is under way); run both again.
     - **The worktree stays.** You do not remove it: the next task of the topic, or your own next round, is
       written in it, and the orchestrator removes it when the topic is done (`SKILL.md`, step 1). Leave it with
       nothing unlanded: the line of `$W/tools/cloud-brain/worktree.sh --list` that begins `<tree> ` reads `clean`

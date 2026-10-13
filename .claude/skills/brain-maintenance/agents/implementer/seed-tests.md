@@ -68,8 +68,13 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
      && bun tools/lope-reader.ts tools/cloud-brain/.emitted/cloud-brain.html --get-module @tomlarkworthy/<module> > tools/cloud-brain/.emitted/<id>.js \
      && (cd cloud-brain-dev && bun test.ts <worker> --with $W/tools/cloud-brain/.emitted/<id>.js)
    ```
-   `build.ts` refuses without `--out` there. `test.ts` prints a line a test and one line of JSON:
-   `passed`, `failed`, `needsBrowser`. It runs your module against the other modules as cb4 runs
+   `build.ts` refuses without `--out` there. `test.ts` prints a line a test, and its last lines are the result,
+   which `2>&1 | tail -15` reads whole: a line for each failed test with the start of its error (8 at most),
+   and last a line a module, `<worker> <module> <hash>: N passed, N failed, N need a browser`. The JSON, with
+   each test's `value` or `error`, is the file its `report:` line names (`cloud-brain-dev/reports/<worker>.json`,
+   or `--report FILE`), and what the modules logged is the `.log` beside it; neither is printed (since
+   `test-ts-output-floods-the-reader`, 2026-10-13; until then the JSON was the last line, 11,056 characters for
+   `brain-x-issues`). It runs your module against the other modules as cb4 runs
    them, so it also shows a change that only holds with another writer's undeployed work.
    What it does not do, and step 8 does:
    - A test that reads `document` or `location` is counted `needsBrowser`, never passed (27 of 311 on 2026-10-10).
