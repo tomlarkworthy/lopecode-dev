@@ -41,8 +41,8 @@ test_a_read_of_the_same_rows_puts_no_new_services_table_in_place
   the answer after, two tables.
 - The line "reading what is running…" and "applying …" are written into a `span` beside the buttons. The
   two buttons are made again at each draw, since `disabled` and the count in "Apply N changes" are theirs.
-- The box of the reason is one node for the life of the control. Before, a read that ended while the owner
-  typed in it replaced it; the text was kept and the caret was not.
+- The box of the reason is one node for the life of the control. Before, each draw made a new one and gave
+  it the text; the test holds that the node typed in is the node there after the reads of the test.
 - The value is a new array, and the `input` event is sent, only when a row differs from the last value
   (the text of the rows). A read with the same rows leaves `viewof services.value` the same array.
 - With no Brain nothing is changed but the above: one draw a read, and no event, as before.
@@ -113,8 +113,20 @@ change reaches the page when the shell is posted." The shell has no copy. In the
 `grep -c shownTable` (a name the new function has) gives 4 for `cloud-brain.html` and 0 for `shell.html` and
 `verify.html`; the document cb4 serves at `/` has 0 lines with "reading what is running" (08:15:44Z), and
 `cloud-brain-dev/deploy/@tomlarkworthy/cloudflare-iac.js`, which `sync.ts` read from cb4 as the module of the
-Worker `brain-deployer` (`deploy/services.json`), has 1. So the page takes the module from what the deployer
-runs, and the change reaches the page with a deploy of the deployer. A post of the shell does not bring it.
+Worker `brain-deployer` (`deploy/services.json`), has 1.
+
+Where the page takes it from: `brainModules` of `brain-shell.ojs` is the answer of the deployer's
+`infra.getModules`, a public read. Read at 08:22:44Z from `https://cb4-deployer.endpointservices.workers.dev`:
+26 modules, and of `@tomlarkworthy/cloudflare-iac`
+
+```
+worker brain-deployer   hash 14f0fb7dd89d   text 175798 characters   "reading what is running": yes   "shownTable": no
+```
+
+So the page runs the copy the deployer keeps, under the deployer's hash, and the change reaches the page with a
+deploy of the deployer. A post of the shell does not bring it. (`getSource?worker=brain-deployer` at the
+kernel answers `{"error":"NotFound","message":"brain-deployer"}`: the kernel's `getSource` does not have the
+deployer, so that read says nothing of this.)
 
 ### For the owner: the deploy
 
@@ -137,8 +149,8 @@ exit 0, and with `--differ` `draws 1`.
 - The link of a Worker's name (`moduleLink`) is made when a table is made. It was made again at every read,
   and is now made again when a cell differs. If the address it holds depends on the layout at that time, it
   is older for longer. Not looked at.
-- Two reads at once (a press of Refresh during an entry's read). Each ends with a draw, and the second
-  table is made only if its cells differ. Not tested.
+- Two reads at once are in the test with the rows shown (no table). Two at once whose answers differ from
+  each other were not tried: each ends with a draw of what was read last.
 - A table of more than 40 rows, where `Inputs.table` adds rows as it is scrolled: the tool's count is of
   the first child of the control and would not count those. cb4 has 24 rows.
 - `tools/cloud-brain/cloud-brain.ojs`, the comment over `deployerEntries`, still says "a read puts the table

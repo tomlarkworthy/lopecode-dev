@@ -2424,6 +2424,10 @@ test_a_read_of_the_same_rows_puts_no_new_services_table_in_place = {
   expect([tables(), events]).toEqual([0, 1]);
   expect(list.textContent).not.toContain("could not read the deployer");
 
+  // Two reads at once, of the rows shown: no table.
+  await Promise.all([list.refresh(), list.refresh()]);
+  expect([tables(), events]).toEqual([0, 1]);
+
   // The box of the reason is the one that was typed in.
   expect(list.querySelector("input[placeholder]") === why).toBe(true);
   expect(why.value).toBe("a reason half typed");
@@ -2435,6 +2439,10 @@ test_a_read_of_the_same_rows_puts_no_new_services_table_in_place = {
   await plain.refresh();
   expect(plain.querySelector("table") === first).toBe(true);
   expect(plain.value.map((r) => r.state)).toEqual(["unknown"]);
+  // With no service: a table of no row, and an empty value.
+  const none = serviceList();
+  await none.refresh();
+  expect([none.querySelectorAll("table").length, none.querySelectorAll("tbody tr").length, none.value]).toEqual([1, 0, []]);
   seen.disconnect();
   return "0 tables for the same rows, 1 for rows that differ";
 }
