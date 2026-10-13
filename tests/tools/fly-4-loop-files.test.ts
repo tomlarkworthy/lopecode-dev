@@ -137,6 +137,10 @@ test("the Fly spec says what was built and where the program differs, the header
   const loop = read("tools/cloud-brain/loop.ts"), header = flat(loop.slice(0, loop.indexOf("\nimport ")).replace(/^\/\/ ?/gm, ""));
   for (const said of ["step [--dry] [--for clock|event|run|yield]", "With no state file (no cb4.json under BRAIN_STATE_DIR", "the act `laptop`, the label `laptop` with the key orch/<id>/laptop-<seq of the submit>",
     "--for yield is the machine's driver's after `fly.down`", "7. with no state file", "The driver of a checkout with a state file does neither: it is stopped with Ctrl-C"]) expect(header).toContain(said);
-  expect(flat(read("knowledge/calling-a-cloud-brain-from-this-checkout.md"))).toContain("There `brain.ts` takes the Brain's address from `BRAIN_URL`");
+  const calling = read("knowledge/calling-a-cloud-brain-from-this-checkout.md"), none = flat(calling.slice(calling.indexOf("\n## With no state file\n")));
+  expect(calling.indexOf("\n## With no state file\n")).toBeGreaterThan(0);
+  for (const said of ["There `brain.ts` takes the Brain's address from `BRAIN_URL`", "no address for cb4: <state>/cb4.json has no subdomain, and BRAIN_URL is not set", "`agent-token --parent NAME`"]) expect(none).toContain(said);
+  expect(flat(calling)).toContain("With no state file: the page's last section, or ask Tom.");
+  expect(calling).not.toContain("If the state file is missing, there is no access");
   expect(read("tools/cloud-brain/brain.ts")).toContain("agent-token --parent fly-agents list");
 });

@@ -537,14 +537,14 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
   // token loop-agents (scope issue.*, cap delegate), which the owner makes once; this command uses no session.
   // --parent NAME: another parent than loop-agents, for the list and the revoke of the children of a token this
   // checkout keeps under its own name (the laptop's `fly-agents`, the parent of the agents of the machine on Fly.io).
-  const ROLES = ["orch", "impl", "rev", "spec", "over", "dig", "appr", "out"], HOURS = 48;
+  const ROLES = ["orch", "impl", "rev", "spec", "over", "dig", "appr", "out"], PARENT = "loop-agents", HOURS = 48;
   const stop = (text: string): never => { console.log(text); process.exit(1); };
   const usage = `agent-token [--parent NAME] <role> [what for] | agent-token [--parent NAME] list | agent-token [--parent NAME] revoke NAME   (role: ${ROLES.join(" ")})`;
-  const pi = args.indexOf("--parent"), PARENT = pi < 0 ? "loop-agents" : args[pi + 1] || "";
-  if (pi >= 0) { if (!/^[a-z0-9-]{1,40}$/.test(PARENT)) stop(usage); args.splice(pi, 2); }
+  const pi = args.indexOf("--parent"), OF = pi < 0 ? PARENT : args[pi + 1] || "";
+  if (pi >= 0) { if (!/^[a-z0-9-]{1,40}$/.test(OF)) stop(usage); args.splice(pi, 2); }
   const known = args[0] === "list" || (args[0] === "revoke" && !!args[1]) || ROLES.includes(args[0]);
   if (!known) stop(usage);
-  const parent = keptToken(tokens(), PARENT) || stop(`no token "${PARENT}" is kept. The owner makes it once: token ${PARENT} 'issue.*' --delegate`);
+  const parent = keptToken(tokens(), OF) || stop(`no token "${OF}" is kept. The owner makes it once: token ${OF} 'issue.*' --delegate`);
   const kept = tokens(AGENTS);
   const refused = (r: { status: number; body: any }) => stop(`${r.status} ${JSON.stringify({ ...r.body, secret: undefined })}`);
   const iso = (t: number | null) => (t ? new Date(t).toISOString() : null);
@@ -558,7 +558,7 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
     const l = await callAs(parent, "delegation.list");
     if (l.status !== 200) refused(l);
     const row = (l.body.delegations || []).find((d: any) => d.name === name);
-    if (!row && !value) stop(`no token "${name}" was made under ${PARENT} or is kept here`);
+    if (!row && !value) stop(`no token "${name}" was made under ${OF} or is kept here`);
     if (row) {
       const r = await callAs(parent, "delegation.revoke", { id: row.id });
       if (r.status !== 200 || !r.body.revoked) refused(r);
@@ -579,7 +579,7 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
     // With no row there was nothing to revoke: the line says so, and its time is counted from the first read.
     console.log(row
       ? `401: "${name}" is revoked and its value is refused, on read ${reads} of issue.policy, ${took} ms after the revoke. Its entry is gone: issue-as.sh ${name} is exit 2`
-      : `401: "${name}" was no row under ${PARENT} any more, so no revoke was sent; its value is refused, on read ${reads} of issue.policy, ${took} ms after the first read was sent. Its entry is gone: issue-as.sh ${name} is exit 2`);
+      : `401: "${name}" was no row under ${OF} any more, so no revoke was sent; its value is refused, on read ${reads} of issue.policy, ${took} ms after the first read was sent. Its entry is gone: issue-as.sh ${name} is exit 2`);
   } else {
     const role = args[0], name = `${role}-${hex(3)}`, note = [role, args.slice(1).join(" ")].filter(Boolean).join("; ").slice(0, 300);
     const until = Date.now() + HOURS * 3600e3;
@@ -588,7 +588,7 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
     // A value that cannot be kept is of no use to anyone: the child is ended.
     try { await changeAgentTokens((t) => { t[name] = r.body.secret; }); } catch (e: any) { await callAs(parent, "delegation.revoke", { id: r.body.id }); stop(`"${name}" was made and could not be kept (${e.message}); it is revoked`); }
     // stdout is the name alone, so N=$(brain.ts agent-token impl <issue>) reads it.
-    console.error(`made "${name}" (${note}) under ${PARENT} for issue.*, until ${iso(until)}; call with: issue-as.sh ${name} <method>, and end it with: agent-token revoke ${name}`);
+    console.error(`made "${name}" (${note}) under ${OF} for issue.*, until ${iso(until)}; call with: issue-as.sh ${name} <method>, and end it with: agent-token revoke ${name}`);
     console.log(name);
   }
 } else if (cmd === "curl") {

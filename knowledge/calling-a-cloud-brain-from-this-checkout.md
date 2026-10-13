@@ -26,14 +26,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts <command>
   `larkworthy.bsky.social`.
 - State is `tools/cloud-brain/.emitted/cb4.json`, git-ignored: recovery key, deployer key, minted
   sessions. The Cloudflare token is `tools/scratch/cloud-brain-experiments/.cf-token`, git-ignored
-  and temporary. **Never print or copy either.** If the state file is missing, there is no access;
-  ask Tom. One checkout is meant to have none: the issue loop's worker machine on Fly.io, which is given
-  token files and no recovery key. There `brain.ts` takes the Brain's address from `BRAIN_URL`
-  (`https://cb4.endpointservices.workers.dev`, set by `tools/cloud-brain/fly/run.sh`), so `curl <path> --as NAME`
-  and `agent-token` work with the tokens it holds, and every command that signs or uses a session does not.
-  With no state file and no `BRAIN_URL` a call that names a path is exit 1, `no address for cb4: …`
-  (since 2026-10-13, `tools/cloud-brain/records/fly-4-loop-files.md`; run against a stand-in, not on the
-  machine. Until then the address was built with `undefined` in the subdomain's place).
+  and temporary. **Never print or copy either.** With no state file: the page's last section, or ask Tom.
 - A `brain.ts` changed in a git worktree has neither file beside it. `BRAIN_STATE_DIR=<main checkout>/tools/cloud-brain/.emitted`
   runs it on the main checkout's state without copying it there (2026-10-10, `records/worktree-rebase-and-state-gaps.md`;
   run with `curl --as` only). The Cloudflare token is read when a command sends it, so `curl`, `token` and `saw` start without it.
@@ -408,3 +401,26 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts check --tag TAG        
 - What a run cost is `usd` of its lines in `.emitted/papers/journal.jsonl`; it goes on the task's issue as one `cost`
   event of the role `summarizer` (`.claude/skills/brain-maintenance/SKILL.md`, step 5; the events of the two tasks of
   2026-10-12 carry the role's name of that day, `paper-summarizer`).
+
+## With no state file
+
+On a laptop a missing state file is no access: ask Tom. One checkout is meant to have none: the issue loop's worker machine on Fly.io, which is given token files and
+no recovery key (`plan/cloud-brain-worker-machine-on-fly.md`, part 1). There `brain.ts` takes the Brain's address
+from `BRAIN_URL` (`https://cb4.endpointservices.workers.dev`, set by `tools/cloud-brain/fly/run.sh`), so
+`curl <path> --as NAME` and `agent-token` work with the tokens it holds; a command that signs with the recovery
+key or sends a session has neither there. With no state file and no `BRAIN_URL`, a call that names a path is
+exit 1:
+
+```
+no address for cb4: <state>/cb4.json has no subdomain, and BRAIN_URL is not set
+```
+
+Since 2026-10-13 (`tools/cloud-brain/records/fly-4-loop-files.md`). Until then the address was built with
+`undefined` in the subdomain's place, and the same call printed ` [000]`. Run against a stand-in and on this
+laptop with an empty state directory, not on the machine. `BRAIN_URL` is `https://HOST` and nothing after it;
+with a `subdomain` in the state file it is not read.
+
+`agent-token --parent NAME` (the same change) lists and ends the children of another kept parent than
+`loop-agents`: `agent-token --parent fly-agents list` on the laptop is the tokens the machine made, whose values
+the laptop does not keep. On 2026-10-13 13:11 UTC it answered `no token "fly-agents" is kept` here: the token
+had not been made.
