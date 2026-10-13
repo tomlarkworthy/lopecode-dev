@@ -15,14 +15,32 @@ md`## Methods
 | \`GET fly.status\` | the owner, a token that names it, a Worker of the Brain | \`{ app, machine: { id, state, region, image, guest }, volume, hoursToday, maxHoursADay, loop, yield, work }\`. \`loop\` is who holds the lock \`loop\`, or \`null\`; \`yield\` the time a yield was asked, or \`null\`; \`work\` a count. With no machine named, \`machine\` is \`null\` and \`machines\` lists \`{ id, name, state }\` of the app's |
 | \`GET fly.work\` | the same | \`{ work: [ids] }\`: the issues a loop on the machine would act on (below). It needs no secret and calls Fly.io for nothing |
 | \`POST fly.up\` | the same | Starts the machine when it is \`stopped\` and the day is under its limit: \`{ started: true, state: "starting" }\`. 409 with the reason otherwise |
-| \`POST fly.down\` | the same | Asks the loop on the machine to yield: \`{ state, yield }\`. Nothing is stopped by it; the tick stops a machine that still runs 30 minutes after. \`?now=true\`, the owner's own session only: \`POST …/stop\` at once |
+| \`POST fly.exec\` | the owner's own session for any command; a Worker he has blessed for a command he has named, and no other; a rule the service fixed | One command on the machine the setting \`machine\` names, as root. The body is \`{ command, timeout }\` or \`{ name, timeout }\`. The answer is Fly.io's, \`{ stdout, stderr, exit_code, exit_signal }\`, with its status ("A command on the machine", below) |
+| \`POST fly.down\` | the same as \`fly.up\` | Asks the loop on the machine to yield: \`{ state, yield }\`. Nothing is stopped by it; the tick stops a machine that still runs 30 minutes after. \`?now=true\`, the owner's own session only: \`POST …/stop\` at once |
 | cron \`*/5 * * * *\` | | The tick (below) |
 
 \`path\` is a path under the app and cannot leave it: no \`..\`, no leading \`/\`, no \`%2f\`, no \`\\\\\`. \`machines/ID/exec\` is under the app and runs a command on the machine as root (seen 2026-10-12, the record of \`fly-1-by-hand\`), which is why \`get\` and \`post\` are the owner's own session's and their rule is fixed: \`rule.put\` is refused for them, and the service itself refuses a caller that is not the owner in their tab. A redirect is handed back and not followed, so the token goes to no other host.
 
 No method has a price: what the machine costs is Fly.io's bill to the owner, and the limit is hours a day.
 
-Before the owner has put the secret, \`status\`, \`up\`, \`down\`, \`get\` and \`post\` answer 400 \`the secret FLY_API_TOKEN is not set\`, and the tick does nothing.
+Before the owner has put the secret, \`status\`, \`up\`, \`down\`, \`get\`, \`post\` and \`exec\` answer 400 \`the secret FLY_API_TOKEN is not set\`, and the tick does nothing.
+
+## A command on the machine
+
+\`fly.exec\` sends \`POST https://api.machines.dev/v1/apps/APP/machines/MACHINE/exec\` with the body \`{ command, timeout }\`, where \`MACHINE\` is the setting \`machine\`: the caller gives no path and no id, so the method reaches one address. Design: \`plan/cloud-brain-fly-exec-for-blessed-services.md\`, built as its choice B; the record is \`tools/cloud-brain/records/fx-1-exec-method.md\`.
+
+- \`command\` is a list of 1 to 64 texts, 20000 characters together at most, the first not empty, with no shell: \`["id", "-u"]\`, or \`["sh", "-c", "…"]\`. It is the owner's own session's and nobody else's.
+- \`name\` is the name of a command the owner has named in a setting (below): a letter in lower case, then letters and digits, 40 characters at most. The command sent is the setting's, whole: the caller adds no text to it. A body has \`command\` or \`name\`, not both.
+- \`timeout\` is whole seconds, 1 to 60, and 30 when not given. That Fly.io reads it as seconds, and what its own limit is, were not verified.
+- 400 for a body that is not as above, with no request to Fly.io; 409 when no machine is named. Nothing is started for a command: for a machine that is stopped, Fly.io's answer is passed on. A command does not hold the lock \`loop\`, and the tick stops an idle machine whether one runs or not.
+
+**Who.** The rule is fixed: \`caller.session || (caller.id == "owner" && caller.delegation != "" && caller.holder.startsWith("worker:"))\`. A rule reads no scope of a delegation, so the service is the narrower: beside the owner in their tab it lets through a call under a delegation of the owner's that a Worker holds and whose id is in the setting \`blessed\`, and answers 403 to every other caller: a token whatever it names, a Worker with no delegation, a Worker under a delegation of his that is not in the setting however wide its scope, a member.
+
+**A blessing** is two acts of the owner in his own session: \`delegation.create { name, holder: { worker: "brain-x-NAME" }, scope: ["fly.exec"], until, note }\`, which answers the \`id\`, and that id put in the setting \`blessed\`. It ends with \`delegation.revoke { id }\`, with the end of \`until\`, or with the id taken out of the setting. The Worker sends the call with the header \`x-brain-as: ID\`. A blessing is of a Worker's name and not of its code: whoever deploys that Worker has what it holds.
+
+**A named command.** A blessed Worker sends \`{ name }\` and runs the command the owner named, and nothing else: with \`command\` in its body, with a name that is not named, and with no command named at all, it is answered 403, whatever else it sends. A command is named by a setting whose key is \`command\` and the name with its first letter in upper case, and whose value is the command as JSON, a list of texts as above: \`config.set { worker: "brain-x-fly", key: "commandDiskFree", value: "[\\"df\\",\\"-h\\",\\"/data\\"]" }\` names \`diskFree\`, and the same call with \`value: null\` takes it out. A setting is 500 characters at most, so a longer script is a file on the machine and the command its path. A value that is not such a list names nothing. Every blessed Worker runs every named command: a command is not named for one Worker. The owner's own session may send \`{ name }\` too, and reads 400 for a name that is not named.
+
+Each call that reaches Fly.io writes one log line, \`{ at: "fly.exec", by, name, machine, program, texts, upstream, exit, ms }\`: \`by\` is \`session\` or \`worker:NAME\`, \`name\` the named command or \`null\`, \`program\` the first text of the command cut at 80 characters, \`texts\` how many there are. No other text of the command is written, since an argument can hold a secret.
 
 ## Settings
 
@@ -36,6 +54,8 @@ Each is changed with \`config.set { worker: "brain-x-fly", key, value }\`, the o
 | \`idleMinutes\` | 20 | A started machine is stopped when \`loop\` has not been held for this long |
 | \`yieldMinutes\` | 30 | A started machine is stopped this long after a yield |
 | \`sameSetHours\` | 4 | No second start for a set of work the machine already stopped on |
+| \`blessed\` | nothing: no Worker calls \`fly.exec\` | The ids of the delegations that are blessings, 12 hex digits each, with one space between them |
+| \`command\` and a name, \`commandDiskFree\` | nothing: a blessed Worker is refused whatever it sends | A named command, as JSON: a list of texts |
 
 ## What is work
 
@@ -55,7 +75,7 @@ Once in each 5 minutes of the clock, whichever of the cron and the wrapper's min
 
 The service keeps what it saw as rows: \`open\` is \`{ started }\`, the run that is under way, written when the service starts the machine or first sees it running; \`run/<start>\` is \`{ started, stopped }\`, that run once the service has stopped the machine or first seen it not running; \`start\` is the time and the set of work at the last start; \`same\` marks a stop with that set unchanged; \`yield\` is \`{ since }\`. A stop the service did not make (the loop's own exit) is seen at the next tick or call, so a run can be counted up to 5 minutes long. \`hoursToday\` is the sum of the runs inside the day of UTC. Runs older than 2 days are deleted. A start and a stop each write one log line, \`at: "fly.start"\` and \`at: "fly.stop"\`, a yield \`at: "fly.yield"\`, and a tick that failed \`at: "fly.tick"\` with the error.`
 // %%
-flyDefaults = ({ host: "api.machines.dev", maxHoursADay: 8, idleMinutes: 20, yieldMinutes: 30, sameSetHours: 4, tickMinutes: 5, keepDays: 2, not: ["needs-owner", "laptop", "digest"] })
+flyDefaults = ({ host: "api.machines.dev", maxHoursADay: 8, idleMinutes: 20, yieldMinutes: 30, sameSetHours: 4, tickMinutes: 5, keepDays: 2, execTimeout: 30, execMaxTimeout: 60, execTexts: 64, execChars: 20000, not: ["needs-owner", "laptop", "digest"] })
 // %%
 // The address of a path under the app, or null: a path that would leave /v1/apps/APP/ is no path. Fly.io's own reading
 // of an encoded slash was not tried, so one is refused.
@@ -120,6 +140,56 @@ flyPlan = ({ now, state, held, lastUntil = 0, startedAt = 0, hours, max, work, y
 // %%
 // What fly.status says of a machine. Fly.io's answer has the machine's env, which is not passed on.
 flyMachine = (m) => ({ id: m.id, state: m.state, region: m.region ?? null, image: (m.config && m.config.image) || null, guest: (m.config && m.config.guest) || null })
+// %%
+// Who a call of fly.exec is by, from the headers the core sends: "session" for the owner in their tab, "worker:NAME"
+// for a Worker under a delegation of the owner's whose id is in the setting `blessed`, and null for every other caller.
+// The rule cannot say the second: it reads no scope, and a delegation made for another job may reach fly.exec.
+flyExecBy = (headers, blessed) => {
+  const h = (name) => headers.get(name) || "";
+  if (h("x-brain-caller") !== "owner") return null;
+  if (h("x-brain-tab") === "1") return "session";
+  const via = /^delegation:([0-9a-f]{12})$/.exec(h("x-brain-via")), holder = h("x-brain-holder");
+  return via && /^worker:./.test(holder) && typeof blessed === "string" && blessed.split(" ").includes(via[1]) ? holder : null;
+}
+// %%
+// A command as fly.exec sends it: a list of texts, the first a program.
+flyCommand = (c) => Array.isArray(c) && c.length >= 1 && c.length <= flyDefaults.execTexts && c.every((t) => typeof t === "string") && c[0] !== "" && c.join("").length <= flyDefaults.execChars
+// %%
+// The command the owner named `name`, or null: the setting `command` + Name, whose value is the list as JSON.
+flyNamed = (settings, name) => {
+  if (typeof name !== "string" || !/^[a-z][A-Za-z0-9]{0,39}$/.test(name)) return null;
+  const text = settings["command" + name[0].toUpperCase() + name.slice(1)];
+  if (typeof text !== "string") return null;
+  try {
+    const c = JSON.parse(text);
+    return flyCommand(c) ? c : null;
+  } catch {
+    return null;
+  }
+}
+// %%
+// What a body of fly.exec asks, for the caller flyExecBy named: { command, timeout, name }, or { refuse: [status, error, message] }.
+// A Worker is refused (403) for anything but a named command before the rest of its body is read.
+flyExecAsk = (text, by, settings) => {
+  const D = flyDefaults, no = (status, message) => ({ refuse: [status, status === 403 ? "Forbidden" : "InvalidRequest", message] });
+  let b = null;
+  try {
+    b = JSON.parse(text);
+  } catch {}
+  const body = b && typeof b === "object" && !Array.isArray(b) ? b : null, has = (k) => !!body && Object.hasOwn(body, k);
+  if (by !== "session") {
+    if (has("command")) return no(403, "a command of the caller's own texts is the owner's own session's: a blessed Worker sends { name }");
+    if (!flyNamed(settings, body && body.name)) return no(403, "a blessed Worker runs a command the owner has named, and that name is not one");
+  }
+  const shape = "the body is { command, timeout } or { name, timeout }";
+  if (!body || Object.keys(body).some((k) => !["command", "name", "timeout"].includes(k)) || has("command") === has("name")) return no(400, shape);
+  const command = has("command") ? body.command : flyNamed(settings, body.name);
+  if (has("name") && !command) return no(400, 'no command is named so: config.set { worker: "brain-x-fly", key: "command" + Name, value: the list as JSON }');
+  if (!flyCommand(command)) return no(400, `command is a list of 1 to ${D.execTexts} texts, ${D.execChars} characters together at most, the first not empty`);
+  const timeout = has("timeout") ? body.timeout : D.execTimeout;
+  if (!Number.isInteger(timeout) || timeout < 1 || timeout > D.execMaxTimeout) return no(400, `timeout is whole seconds, 1 to ${D.execMaxTimeout}`);
+  return { command, timeout, name: has("name") ? body.name : null };
+}
 // %%
 flyOps = {
   const D = flyDefaults, QUEUE = "com.lopecode.brain.issue.queue", LOCKS = "com.lopecode.brain.issue.locks";
@@ -206,6 +276,27 @@ flyOps = {
     if (r.headers.get("location")) headers.location = r.headers.get("location");
     return new Response(r.body, { status: r.status, headers });
   };
+  // One command on the named machine, and one line of it with the program and no argument. Nothing is started for it.
+  const exec = async ({ command, timeout, name }, by) => {
+    const token = await reach(), id = named();
+    if (!id) fail(409, "Conflict", unnamed);
+    const began = Date.now(), line = { at: "fly.exec", by, name, machine: id, program: command[0].slice(0, 80), texts: command.length };
+    let r, text;
+    try {
+      r = await send(token, "machines/" + id + "/exec", "POST", JSON.stringify({ command, timeout }));
+      text = await r.text();
+    } catch (e) {
+      log({ ...line, upstream: null, exit: null, ms: Date.now() - began });
+      throw e;
+    }
+    let exit = null;
+    try {
+      const code = JSON.parse(text).exit_code;
+      exit = typeof code === "number" ? code : null;
+    } catch {}
+    log({ ...line, upstream: r.status, exit, ms: Date.now() - began });
+    return new Response(text, { status: r.status, headers: { "content-type": r.headers.get("content-type") || "application/json", "x-fly-upstream": String(r.status) } });
+  };
   const status = async (now = Date.now()) => {
     const token = await reach(), m = await machine(token), ids = await work();
     let machines = null;
@@ -263,7 +354,7 @@ flyOps = {
       return { do: null, why: "failed", error: said(e) };
     }
   };
-  return { pass, status, work, up, down, tick };
+  return { pass, exec, status, work, up, down, tick };
 }
 // %%
 fly_service = cloudflare.Service(
@@ -272,8 +363,8 @@ fly_service = cloudflare.Service(
     const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
     const refuse = (status, error, message) => json(status, { error, message });
     const url = new URL(request.url), what = url.pathname.split(".").pop(), q = url.searchParams;
-    const verb = { get: "GET", status: "GET", work: "GET", post: "POST", up: "POST", down: "POST" }[what];
-    if (!verb) return refuse(404, "MethodNotImplemented", "fly.get, fly.post, fly.status, fly.work, fly.up and fly.down");
+    const verb = { get: "GET", status: "GET", work: "GET", post: "POST", exec: "POST", up: "POST", down: "POST" }[what];
+    if (!verb) return refuse(404, "MethodNotImplemented", "fly.get, fly.post, fly.exec, fly.status, fly.work, fly.up and fly.down");
     if (request.method !== verb) return refuse(405, "InvalidRequest", "fly." + what + " is sent with " + verb);
     // The owner in their own tab, as the core says it. A token of the owner's is not.
     const tab = request.headers.get("x-brain-caller") === "owner" && request.headers.get("x-brain-tab") === "1";
@@ -284,6 +375,13 @@ fly_service = cloudflare.Service(
         if (what === "post" && !["POST", "PUT", "DELETE"].includes(method)) return refuse(400, "InvalidRequest", "method is POST, PUT or DELETE");
         const body = what === "post" ? await request.text() : "";
         return await flyOps.pass(q.get("path") ?? "", method, body === "" ? null : body);
+      }
+      if (what === "exec") {
+        // The service's check is the narrower: the rule is true for any Worker-held delegation of the owner's that reaches the method.
+        const by = flyExecBy(request.headers, config.blessed);
+        if (!by) return refuse(403, "Forbidden", "fly.exec is the owner's own session's, and a Worker's under a delegation whose id the owner put in the setting blessed");
+        const asked = flyExecAsk(await request.text(), by, config);
+        return asked.refuse ? refuse(...asked.refuse) : await flyOps.exec(asked, by);
       }
       if (what === "work") return json(200, { work: await flyOps.work() });
       if (what === "status") return json(200, await flyOps.status());
@@ -305,6 +403,8 @@ fly_service = cloudflare.Service(
       // get and post reach every path of the app, exec on the machine among them: the owner's own session, and no rule.put.
       "com.lopecode.brain.fly.get": { type: "query", who: "owner", allow: "caller.session", fixed: true },
       "com.lopecode.brain.fly.post": { type: "procedure", who: "owner", allow: "caller.session", fixed: true },
+      // exec: the owner's tab, or a Worker under a delegation of the owner's. Which delegation, and which command, is the service's to check.
+      "com.lopecode.brain.fly.exec": { type: "procedure", who: "owner", allow: 'caller.session || (caller.id == "owner" && caller.delegation != "" && caller.holder.startsWith("worker:"))', fixed: true },
       "com.lopecode.brain.fly.status": { type: "query", who: "workers" },
       "com.lopecode.brain.fly.work": { type: "query", who: "workers" },
       "com.lopecode.brain.fly.up": { type: "procedure", who: "workers" },
@@ -444,7 +544,7 @@ The service runs here as the emitted Worker. Fly.io is a function of the test th
 // A Brain with one machine at Fly.io. `fly` is the machine as the stand-in keeps it; `seen` each request Fly.io was sent.
 // The page runs every test cell at once and `logged` hears each Worker's lines, so a test that reads lines gives its
 // rig an `id` of its own and reads the lines of that machine (`rig.lines`).
-flyRig = async ({ secret = "FlyV1 t1", id = "853145b4217618", config = { app: "cloudbrain", machine: id }, state = "stopped", queue = [], locks = {}, rows = new Map(), queueStatus = 200, startStatus = 200 } = {}) => {
+flyRig = async ({ secret = "FlyV1 t1", id = "853145b4217618", config = { app: "cloudbrain", machine: id }, state = "stopped", queue = [], locks = {}, rows = new Map(), queueStatus = 200, startStatus = 200, exec = { status: 200, body: { stdout: "0\n", stderr: "", exit_code: 0, exit_signal: 0 } } } = {}) => {
   const seen = [], asked = [];
   const fly = { state, env: { CLAUDE_CODE_OAUTH_TOKEN: "never-passed-on" } };
   const rig = { seen, asked, fly, rows, queue, locks, id, redirects: [] };
@@ -464,6 +564,8 @@ flyRig = async ({ secret = "FlyV1 t1", id = "853145b4217618", config = { app: "c
       if (path === "machines/" + id) return Response.json(full());
       if (path === "machines/" + id + "/start") return startStatus === 200 ? ((fly.state = "started"), Response.json({ previous_state: "stopped" })) : new Response("no", { status: startStatus });
       if (path === "machines/" + id + "/stop") return (fly.state = "stopped"), Response.json({ ok: true });
+      if (path === "machines/" + id + "/exec" && exec.throws) throw new Error("unreachable");
+      if (path === "machines/" + id + "/exec") return typeof exec.body === "string" ? new Response(exec.body, { status: exec.status }) : Response.json(exec.body, { status: exec.status });
       if (/^machines\/[a-z0-9]+$/.test(path)) return Response.json({ error: "machine not found" }, { status: 404 });
       return Response.json({ path, method: request.method });
     },
@@ -503,6 +605,7 @@ test_fly_declares_one_secret_one_cron_and_two_calls = {
   const tabOnly = { who: "owner", allow: "caller.session", fixed: true };
   expect(meta.access).toEqual({
     "com.lopecode.brain.fly.down": { type: "procedure", who: "workers" },
+    "com.lopecode.brain.fly.exec": { type: "procedure", who: "owner", allow: 'caller.session || (caller.id == "owner" && caller.delegation != "" && caller.holder.startsWith("worker:"))', fixed: true },
     "com.lopecode.brain.fly.get": { type: "query", ...tabOnly },
     "com.lopecode.brain.fly.post": { type: "procedure", ...tabOnly },
     "com.lopecode.brain.fly.status": { type: "query", who: "workers" },
@@ -549,7 +652,8 @@ test_fly_get_and_post_pass_a_path_of_the_app_and_no_other = {
     expect((await rig.call("post", "path=machines/853145b4217618/exec", { as, body: '{"command":["id"]}' })).status).toBe(403);
   }
   expect((await rig.call("get", "path=machines", { as: rig.tab, verb: "POST" })).status).toBe(405);
-  expect((await rig.call("exec", "", { as: rig.tab })).status).toBe(404);
+  // A name that is no method. `exec` is one since fx-1-exec-method, with a test of its own.
+  expect((await rig.call("shell", "", { as: rig.tab })).data).toEqual({ error: "MethodNotImplemented", message: "fly.get, fly.post, fly.exec, fly.status, fly.work, fly.up and fly.down" });
   expect(rig.seen.length).toBe(4);
   // An app's name that is no name gives no address.
   for (const app of ["", "a/b", "..", "A", undefined, "x".repeat(64)]) expect(flyPath(app, "machines")).toBe(null);
@@ -557,11 +661,113 @@ test_fly_get_and_post_pass_a_path_of_the_app_and_no_other = {
   return `3 passed on, 1 redirect handed back, ${out.length} paths refused twice, 8 callers refused`;
 }
 // %%
+// Choice B of plan/cloud-brain-fly-exec-for-blessed-services.md: any command is the owner's tab's, and a blessed Worker
+// runs a command the owner named in a setting and no other. Each caller is asked through the rule, as the core asks it,
+// and through the service with the headers the core would send.
+test_fly_exec_is_the_owners_tab_for_any_command_and_a_blessed_worker_for_a_named_one = {
+  const A = "aaaaaaaaaaaa", id = "aa11bb22cc3310", to = "https://api.machines.dev/v1/apps/cloudbrain/machines/" + id + "/exec";
+  const rule = (await fly_service.emit()).meta.access["com.lopecode.brain.fly.exec"];
+  const ask = (who) => decide(rule, { caller: callerOf(who), origin: callerOf(who), request: { params: {} } }).allow;
+  const heads = (who, tab) => ({ "x-brain-caller": who.caller || "anonymous", ...(who.via ? { "x-brain-via": who.via } : {}), ...(who.holder ? { "x-brain-holder": who.holder } : {}), "x-brain-tab": tab ? "1" : "0" });
+  const settings = { app: "cloudbrain", machine: id, blessed: "bbbbbbbbbbbb " + A, commandDiskFree: '["df","-h","/data"]', commandSay: '["sh","-c","echo s3cret"]' };
+  const rig = await flyRig({ id, config: settings });
+  const blessed = { caller: "owner", via: "delegation:" + A, holder: "worker:brain-x-other", tab: false };
+  const exec = (r, who, body, tab = false) => r.call("exec", "", { as: heads(who, tab), body: typeof body === "string" ? body : JSON.stringify(body) });
+  // The nine callers: the rule, a named command, and a command of the caller's own texts.
+  const callers = [
+    ["tab", { caller: "owner", via: "session" }, true, true, 200, 200],
+    ["blessed", blessed, false, true, 200, 403],
+    ["wide", { ...blessed, via: "delegation:cccccccccccc" }, false, true, 403, 403],
+    ["token", { caller: "owner", via: "delegation:d1", holder: "secret:loop-fly", tab: false }, false, false, 403, 403],
+    ["tokenNamed", { caller: "owner", via: "delegation:" + A, holder: "secret:loop-fly", tab: false }, false, false, 403, 403],
+    ["worker", { caller: "worker:brain-x-other" }, false, false, 403, 403],
+    ["member", { caller: "did:plc:ada", via: "session" }, true, false, 403, 403],
+    ["membersWorker", { caller: "did:plc:ada", via: "delegation:" + A, holder: "worker:brain-m-1-x", tab: false }, false, false, 403, 403],
+    ["anonymous", {}, false, false, 403, 403]
+  ];
+  for (const [name, who, tab, allowed, named, own] of callers)
+    expect([name, ask(who), (await exec(rig, who, { name: "diskFree" }, tab)).status, (await exec(rig, who, { command: ["id", "-u"] }, tab)).status]).toEqual([name, allowed, named, own]);
+  // What Fly.io was sent: three requests, each to the one address, with the secret, and none followed.
+  const sent = (command, timeout = 30) => ({ verb: "POST", url: to, authorization: "Bearer FlyV1 t1", body: JSON.stringify({ command, timeout }) });
+  expect(rig.seen).toEqual([sent(["df", "-h", "/data"]), sent(["id", "-u"]), sent(["df", "-h", "/data"])]);
+  expect(rig.redirects).toEqual(["manual", "manual", "manual"]);
+  // The answer is Fly.io's, with its status.
+  expect(await exec(rig, blessed, { name: "diskFree", timeout: 5 })).toEqual({ status: 200, data: { stdout: "0\n", stderr: "", exit_code: 0, exit_signal: 0 }, upstream: "200" });
+  expect(rig.seen.pop()).toEqual(sent(["df", "-h", "/data"], 5));
+  // A blessed Worker: 403 for a name that is not named, for texts of its own beside a name or alone, and for a body that is none.
+  const refusedOwn = { error: "Forbidden", message: "a command of the caller's own texts is the owner's own session's: a blessed Worker sends { name }" };
+  const refusedName = { error: "Forbidden", message: "a blessed Worker runs a command the owner has named, and that name is not one" };
+  for (const body of [{ command: ["df", "-h", "/data"] }, { name: "diskFree", command: ["id"] }, { command: null }, { command: ["id"], timeout: 0 }]) expect((await exec(rig, blessed, body)).data).toEqual(refusedOwn);
+  const notNames = ["other", "DiskFree", "diskfree", "commandDiskFree", "diskFree ", "", "constructor", "__proto__", "blessed", "machine", 5, null, ["diskFree"], { name: "diskFree" }];
+  for (const name of notNames) expect([name, (await exec(rig, blessed, { name })).data]).toEqual([name, refusedName]);
+  for (const body of ["", "not json", "[]", "null", '"diskFree"', "{}", '{"timeout":5}', '{"stdin":"x"}']) expect([body, (await exec(rig, blessed, body)).data]).toEqual([body, refusedName]);
+  // With a named command it is held to the rest of the body as the owner is.
+  for (const body of [{ name: "diskFree", timeout: 0 }, { name: "diskFree", timeout: 61 }, { name: "diskFree", stdin: "x" }]) expect((await exec(rig, blessed, body)).status).toBe(400);
+  expect(rig.seen.length).toBe(3);
+  // Nothing named: a blessed Worker is refused whatever it sends, and the owner's tab runs any command.
+  const bare = await flyRig({ id, config: { app: "cloudbrain", machine: id, blessed: A } });
+  for (const body of [{ name: "diskFree" }, { name: "say" }, { command: ["id"] }, {}, "", { name: "blessed" }, { name: "machine" }]) expect([body, (await exec(bare, blessed, body)).status]).toEqual([body, 403]);
+  expect([(await exec(bare, { caller: "owner", via: "session" }, { command: ["id"] }, true)).status, bare.seen.length]).toEqual([200, 1]);
+  // A setting that is not a list of texts as JSON names nothing: 403 for the Worker, 400 for the owner.
+  const values = ["df -h", '{"a":1}', "[]", '[""]', "[1]", '["df",2]', '"df"', "[", true, 12, JSON.stringify(Array(65).fill("a"))];
+  for (const value of values) {
+    const odd = await flyRig({ id, config: { ...settings, commandDiskFree: value } });
+    expect([value, (await exec(odd, blessed, { name: "diskFree" })).status, (await exec(odd, { caller: "owner", via: "session" }, { name: "diskFree" }, true)).status, odd.seen.length]).toEqual([value, 403, 400, 0]);
+  }
+  // The setting blessed: with none, and with a value that is not a text of ids, the blessed caller is 403 and the tab 200.
+  const notBlessed = [undefined, "", "aaaaaaaaaaa", "a", "delegation:" + A, A.toUpperCase(), "bbbbbbbbbbbb," + A, A + "0", true, 12];
+  for (const value of notBlessed) {
+    const r = await flyRig({ id, config: { ...settings, blessed: value } });
+    expect([value, (await exec(r, blessed, { name: "diskFree" })).status, (await exec(r, { caller: "owner", via: "session" }, { name: "diskFree" }, true)).status]).toEqual([value, 403, 200]);
+  }
+  // Headers that are nearly the blessed caller's: a holder with no name, a via that is not the id alone, and another's tab.
+  for (const who of [{ ...blessed, holder: "worker:" }, { ...blessed, holder: "" }, { ...blessed, via: "delegation:" + A + "0" }, { ...blessed, via: "delegation:" + A + " bbbbbbbbbbbb" }, { ...blessed, via: A }, { ...blessed, via: "session" }]) expect((await exec(rig, who, { name: "diskFree" })).status).toBe(403);
+  expect((await exec(rig, { caller: "did:plc:ada", via: "delegation:" + A, holder: "worker:brain-x-other" }, { name: "diskFree" }, true)).status).toBe(403);
+  expect(rig.seen.length).toBe(3);
+  // The owner's tab: a body that is not { command, timeout } or { name, timeout } is 400, and nothing is sent.
+  const tab = (body, r = rig) => exec(r, { caller: "owner", via: "session" }, body, true);
+  const bad = ["", "nope", "[]", "null", {}, { command: [] }, { command: "id" }, { command: [1] }, { command: [""] }, { command: ["id", null] }, { command: Array(65).fill("a") }, { command: ["sh", "-c", "x".repeat(19997)] }, { command: ["id"], name: "diskFree" }, { command: ["id"], stdin: "x" }, { command: ["id"], timeout: 0 }, { command: ["id"], timeout: 61 }, { command: ["id"], timeout: 1.5 }, { command: ["id"], timeout: "10" }, { command: ["id"], timeout: null }, { name: "nope" }, { name: 5 }, { timeout: 5 }];
+  for (const body of bad) expect([JSON.stringify(body).slice(0, 60), (await tab(body)).status]).toEqual([JSON.stringify(body).slice(0, 60), 400]);
+  expect(rig.seen.length).toBe(3);
+  // The values next to those: 64 texts, 20000 characters, and a timeout of 1 and of 60.
+  for (const body of [{ command: Array(64).fill("a") }, { command: ["sh", "-c", "x".repeat(19996)] }, { command: ["id"], timeout: 1 }, { command: ["id"], timeout: 60 }]) expect((await tab(body)).status).toBe(200);
+  expect([rig.seen.length, JSON.parse(rig.seen.at(-1).body).timeout, rig.seen.every((s) => s.url === to && s.authorization === "Bearer FlyV1 t1")]).toEqual([7, 60, true]);
+  expect((await rig.call("exec", "", { as: rig.tab, verb: "GET" })).status).toBe(405);
+  // No machine named, and a name that is no id: 409, and nothing is sent.
+  for (const config of [{ app: "cloudbrain" }, { app: "cloudbrain", machine: "../../other" }]) {
+    const unnamed = await flyRig({ config });
+    expect([await tab({ command: ["id"] }, unnamed), unnamed.seen.length]).toEqual([{ status: 409, data: { error: "Conflict", message: 'no machine is named: config.set { worker: "brain-x-fly", key: "machine", value: ID }' }, upstream: null }, 0]);
+  }
+  // One line a call: who, the name, the program and how many texts. No argument is in a line.
+  const lined = await flyRig({ id: "aa11bb22cc3311", config: { ...settings, machine: "aa11bb22cc3311" }, exec: { status: 200, body: { stdout: "s3cret\n", stderr: "", exit_code: 3, exit_signal: 0 } } });
+  const lines = await lined.lines(async () => {
+    await exec(lined, blessed, { name: "say" });
+    await tab({ command: ["x".repeat(100), "--token", "s3cret"] }, lined);
+    await exec(lined, blessed, { command: ["id"] });
+    await exec(lined, { ...blessed, via: "delegation:cccccccccccc" }, { name: "say" });
+  });
+  const line = (by, name, program, texts, upstream, exit) => ({ at: "fly.exec", by, name, machine: "aa11bb22cc3311", program, texts, upstream, exit, ms: expect.any(Number) });
+  expect(lines.map(({ at, by, name, machine, program, texts, upstream, exit, ms }) => ({ at, by, name, machine, program, texts, upstream, exit, ms }))).toEqual([line("worker:brain-x-other", "say", "sh", 3, 200, 3), line("session", null, "x".repeat(80), 3, 200, 3)]);
+  expect([JSON.stringify(lines).includes("s3cret"), JSON.stringify(lines).includes("FlyV1"), JSON.stringify(lines).includes("--token")]).toEqual([false, false, false]);
+  // What Fly.io answers that is not a 200 is passed on with its status, a body that is not JSON too; a request that fails is a 502. Each is a line.
+  const stopped = await flyRig({ id: "aa11bb22cc3312", config: { ...settings, machine: "aa11bb22cc3312" }, exec: { status: 412, body: { error: "machine not started" } } });
+  const text = await flyRig({ id: "aa11bb22cc3312", config: { ...settings, machine: "aa11bb22cc3312" }, exec: { status: 500, body: "upstream broke" } });
+  const lost = await flyRig({ id: "aa11bb22cc3312", config: { ...settings, machine: "aa11bb22cc3312" }, exec: { throws: true } });
+  const answers = [];
+  const passed = await stopped.lines(async () => {
+    for (const r of [stopped, text, lost]) answers.push(await exec(r, blessed, { name: "diskFree" }));
+  });
+  expect(answers.map((a) => [a.status, a.upstream, a.data.error || a.data])).toEqual([[412, "412", "machine not started"], [500, "500", "upstream broke"], [502, null, "UpstreamFailure"]]);
+  expect(passed.map((l) => [l.at, l.upstream, l.exit, l.name])).toEqual([["fly.exec", 412, null, "diskFree"], ["fly.exec", 500, null, "diskFree"], ["fly.exec", null, null, "diskFree"]]);
+  expect([stopped.fly.state, stopped.to()]).toEqual(["stopped", ["POST machines/aa11bb22cc3312/exec"]]);
+  return `9 callers, ${notNames.length + 12} bodies of a blessed Worker refused, ${values.length} settings that name nothing, ${notBlessed.length} that bless nothing, ${bad.length} bodies of the owner's refused`;
+}
+// %%
 test_fly_status_says_the_secret_is_not_set_and_then_the_machine = {
   // Before the owner has put the secret: 400 in these words, and nothing is asked of Fly.io.
   const bare = await flyRig({ secret: null });
-  for (const [name, as] of [["status", bare.token], ["up", bare.token], ["down", bare.token], ["get", bare.tab], ["post", bare.tab]])
-    expect([name, await bare.call(name, name === "get" || name === "post" ? "path=machines" : "", { as })]).toEqual([name, { status: 400, data: { error: "InvalidRequest", message: "the secret FLY_API_TOKEN is not set" }, upstream: null }]);
+  for (const [name, as] of [["status", bare.token], ["up", bare.token], ["down", bare.token], ["get", bare.tab], ["post", bare.tab], ["exec", bare.tab]])
+    expect([name, await bare.call(name, name === "get" || name === "post" ? "path=machines" : "", { as, ...(name === "exec" ? { body: '{"command":["id"]}' } : {}) })]).toEqual([name, { status: 400, data: { error: "InvalidRequest", message: "the secret FLY_API_TOKEN is not set" }, upstream: null }]);
   expect(bare.seen.length).toBe(0);
   // The secret and no app.
   const noApp = await flyRig({ config: {} });
@@ -593,7 +799,7 @@ test_fly_status_says_the_secret_is_not_set_and_then_the_machine = {
   // Fly.io's refusal of the machine is a 502 that says its status.
   const gone = await flyRig({ config: { app: "cloudbrain", machine: "aaaaaaaaaaaaaa" } });
   for (const name of ["status", "up", "down"]) expect([name, await gone.call(name)]).toEqual([name, { status: 502, data: { error: "UpstreamFailure", message: "Fly.io answered 404 for the machine aaaaaaaaaaaaaa" }, upstream: null }]);
-  return "5 answers of no secret, 1 of no app, 1 list, 1 status";
+  return "6 answers of no secret, 1 of no app, 1 list, 1 status";
 }
 // %%
 test_fly_work_is_the_trackers_queue_without_what_the_machine_does_not_take = {
@@ -961,7 +1167,11 @@ test_fly_reference_says_each_default_and_has_no_hole = {
   expect(said).toContain("Runs older than " + d.keepDays + " days are deleted.");
   expect(said).toContain("the label " + d.not.map((l) => "`" + l + "`").join(", ").replace(/, ([^,]*)$/, " or $1"));
   expect(said).toContain("the secret FLY_API_TOKEN is not set");
-  for (const m of ["get", "post", "status", "work", "up", "down"]) expect(said).toContain("fly." + m);
+  for (const m of ["get", "post", "exec", "status", "work", "up", "down"]) expect(said).toContain("| `" + (["get", "status", "work"].includes(m) ? "GET" : "POST") + " fly." + m);
+  // The limits of fly.exec, each said where the body is described.
+  expect(said).toContain("a list of 1 to " + d.execTexts + " texts, " + d.execChars + " characters together at most");
+  expect(said).toContain("whole seconds, 1 to " + d.execMaxTimeout + ", and " + d.execTimeout + " when not given");
+  expect(said).toContain("| `blessed` | nothing: no Worker calls `fly.exec` |");
   expect(rig.seen.length).toBe(0);
   return Object.keys(d).length + " defaults";
 }

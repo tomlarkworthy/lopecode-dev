@@ -37,6 +37,8 @@ Four things his words do not say. Each is decided below, and each decision is ma
    `blessed` of `brain-x-fly`. Not a token, and not a member's Worker.
 3. Whether a blessing names commands. The design's reading: it does not. A blessed Worker runs any
    command, as root. This is the one choice he may want the other way ("One choice", below).
+   (As built, `fx-1-exec-method`, 2026-10-13: he chose B. A blessed Worker runs a command he has
+   named in a setting and no other; the record, `tools/cloud-brain/records/fx-1-exec-method.md`.)
 4. Whether a blessing ends by itself. The design's reading: the form that makes one gives it an
    end, 7 days when he types none.
 
@@ -297,6 +299,7 @@ Two limits of a blessing, which the comment for his approval says:
   and since 2026-10-11 the loop deploys services. A blessed Worker is one whose every later deploy
   he trusts, until the blessing ends.
 - **A blessing is of every command.** What a command reaches is under "What exists today".
+  (As built, `fx-1-exec-method`, 2026-10-13: of every command he has named, and of no other; the record.)
 
 So the form of task 2 asks for the days a blessing stands, and puts 7 when he types none. That
 default is this spec's reading and not his words.
@@ -376,6 +379,15 @@ and the design adds no role. No tool of `tools/cloud-brain/` calls an `exec` of 
 - **A.** As written: a blessed Worker runs any command as root, until the blessing ends.
 - **B.** A blessed Worker runs only commands he has named in a setting; any command stays his own
   session's. One more task, and the first blessed Worker waits for its commands to be named.
+
+(As built, `fx-1-exec-method`, 2026-10-13: B. His word is the reason of the `approve` made for him,
+event 6992: "1B 2A 3A 4A 5A 6A 7A 8A 9 can't u do it (later)", where number 1 was this spec. It
+was built in task 1 and not as one more task, so no `fly.exec` was deployed in which a blessed
+Worker runs a command of its own. The body of a Worker is `{ name, timeout }`; a command is named
+by a setting `command` + Name of `brain-x-fly`, whose value is the list of texts as JSON; the log
+line has `name`. The method reference of `tools/cloud-brain/brain-fly.ojs`, "A command on the
+machine", is what was built, and the record, `tools/cloud-brain/records/fx-1-exec-method.md`, has
+what differs from "The design" above.)
 
 The spec takes A by line 2 of the philosophy as the smaller, and because a blessing is his own
 act, of one Worker, with an end. B is what line 1 would take if a Worker he does not write himself
