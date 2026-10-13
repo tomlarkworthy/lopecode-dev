@@ -79,14 +79,19 @@ pushed commit and that the root's file has no such heading. Then:
 - the root's file ahead of `origin/main` (6020 against 5646): `after` is 6020;
 - no ref `origin/main` at all: `after` is 6020, the file's.
 
-Counts, each from a run after the last edit of `loop.ts` and of the tests:
+Counts, each from a run after the last edit of `loop.ts` and of the tests, and after the rebase below:
 
 ```
 cd $W && bun test --timeout=30000 ./tests/tools/loop-step.test.ts ./tests/tools/loop.test.ts
-  53 pass, 0 fail, 549 expect() calls, 53 tests across 2 files (15:39)
+  59 pass, 0 fail, 601 expect() calls, 59 tests across 2 files (ended 15:46)
 $W/tests/tools/suite.sh
-  1237 pass, 0 fail, 10165 expect() calls, 1237 tests across 127 files (begun after 15:30, ended before the run above began)
+  1265 pass, 0 fail, 10421 expect() calls, 1265 tests across 129 files (ended 15:49)
 ```
+
+`worktree.sh --rebase` at 15:41 brought in 24 files, `loop.ts` and both test files among them, and stopped on
+three conflicts in `loop.ts`: the helper `scratch` beside `lastOversight`, the prompt's new line
+`scratch: <dir>`, and the line of `step` that had `skill`. Each was resolved with both sides kept. Before the
+rebase the same two commands printed 53 pass, 0 fail of 53 tests and 1237 pass, 0 fail of 1237 tests.
 
 On this machine at 15:30 the two reads agreed, the main checkout 0 behind:
 
@@ -106,3 +111,5 @@ git -C <root> show origin/main:…/oversight.md | grep … | tail -1   ## 2026-1
 - A heading on `origin/main` with a smaller number than the file's is covered (6020 against 5646); two
   equal numbers are every other test of the two files.
 - The time one `git show` adds to a step was not measured.
+- A step on the worker machine on Fly.io (a step whose line has `machine`), which came in with the rebase.
+  Its checkout was not looked at; by reading, a clone with no worktree has the ref from its last fetch.
