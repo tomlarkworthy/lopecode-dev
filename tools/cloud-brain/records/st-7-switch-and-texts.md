@@ -93,7 +93,8 @@ The whole suite, `env -u WORK -u SESSION -u LOOP_TOKEN -u LOOP_RUN -u LOOP_RUN_T
 |---|---|---|
 | 12:57:35 | 1224 pass, 1 fail, 125 files | `ac-5-prose-names-the-two-shapes.test.ts`: 15,328 against 15,000, above |
 | 13:00:08 | 1225 pass, 0 fail, 125 files | after the two sentences were taken out |
-| 13:03:52 | **1225 pass, 0 fail**, 125 files | after the last edit of a text or a test |
+| 13:03:52 | 1225 pass, 0 fail, 125 files | after the line of the changing page |
+| 13:08:35 | **1225 pass, 0 fail**, 125 files | after the last edit of a text the tests read ("Run it", the dry driver). Later edits are to this record |
 
 ## Searches
 
