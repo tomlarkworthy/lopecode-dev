@@ -70,8 +70,8 @@ The two runs with a seed changed for the run (the second and third rows) were ma
 afterwards. The seed was then committed and built again for the runs of the rows after them, and
 `git diff HEAD --stat -- tools/cloud-brain/brain-issues.ojs` printed nothing after the emit.
 
-`tests/tools/suite.sh` was not run: no file under `tests/` or `tools/*.ts` is changed, and no test of
-`tests/tools` reads the sentence added to the knowledge doc.
+`tests/tools/suite.sh`, run at 06:29 after the last edit of the knowledge doc and of this file's tables:
+`1068 pass`, `0 fail`, `Ran 1068 tests across 108 files`. No file under `tests/` is changed.
 
 ## Not tried
 
@@ -81,7 +81,7 @@ afterwards. The seed was then committed and built again for the runs of the rows
 - The page of the owner, where the tests of every module run together. The 20 runs of `verify-run.ts` have
   brain-shell and brain-issues only.
 - Whether the core or `service.register` has a limit of its own on a method's rule.
-- The sentence added to the knowledge doc has no test.
+- The sentence added to the knowledge doc has no test of its own.
 
 ## For the overseer
 
