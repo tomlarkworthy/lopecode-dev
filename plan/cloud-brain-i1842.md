@@ -146,6 +146,7 @@ other request went to the Brain. `verify-run.ts --shell FILE` does the same (`ro
 - A signed-out page gets the Worker's modules. `brainModules` is a plain `fetch` of
   `infra.getModules` on the deployer (`brain-shell.ojs:236-243`), and the chat draws with no session.
 - It is not the act the Never list names. That line is about a browser of the cluster (Chrome 128).
+  (The line is out of the list since 2026-10-13, issue `never-page-up-line-after-a-check`.)
   This one is local, and the address has no `&verify=`, so `brainVerdict` returns null
   (`brain-shell.ojs:162-171`) and the deployer is told nothing.
 - A layout that does not name `cloud-brain` never has it (row 3): `brainWanted` reads the modules

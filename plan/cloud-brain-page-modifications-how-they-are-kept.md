@@ -293,7 +293,8 @@ Each is run in the worktree of its task with no token but the writer's own. `$N`
 
 For the owner alone, and no condition of a task landing: on cb4, signed in, after the shell is posted, a note
 he puts away is not there after a refresh, and the list has it. The loop does not open the Brain's own page in
-a browser of the cluster (`rules.md`, Never).
+a browser of the cluster (`rules.md`, Never; that line is out of the list since 2026-10-13, issue
+`never-page-up-line-after-a-check`, and this check stays the owner's as written).
 
 ## The tasks
 

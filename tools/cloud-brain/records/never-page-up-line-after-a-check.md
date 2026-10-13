@@ -1,11 +1,14 @@
 # never-page-up-line-after-a-check
 
-Written 2026-10-13 by the writer of the issue (token `impl-4f8cb6`). The line of the Never list of
-`.claude/skills/brain-maintenance/rules.md` against `brain.ts page up` and the Brain's own page in
-a browser of the cluster is taken out, in a worktree, and is not landed: the owner was shown that
-it goes after one check, and the check is the act the line forbids. This file says what was read
-in its place, how the check is made, and what the check has to show. Times are CEST, read from
-`date`.
+Written 2026-10-13 by two writers of the issue. The first (token `impl-4f8cb6`, 10:28) took the
+line of the Never list of `.claude/skills/brain-maintenance/rules.md` against `brain.ts page up`
+and the Brain's own page in a browser of the cluster out in a worktree and did not land it: the
+owner was shown that it goes after one check, and the check is the act the line forbids. It wrote
+what was read in its place, how the check is made, and what the check has to show. The owner then
+answered that the check be run, a session he was in made it at 21:15, and the second writer
+(token `impl-206afa`) wrote "The check as it was made" and the sections after it, and landed the
+change. The sections before that one are the first writer's, as written before the check. Times
+are CEST, read from `date`, but for the times of the check, which are the session's.
 
 ## The line, and why it had no end
 
@@ -148,33 +151,105 @@ nothing holds that the page sends none.
 
 ## The check as it was made
 
-Not made when this was written, 2026-10-13 10:28. The writer asked the orchestrating session for
-it in its report and on the issue, and the change waits in the worktree `bm-never-page-up`.
+Made 2026-10-13, 21:15 to 21:21 CEST, by a session the owner was in (token `out-5bc2ed`), and not
+by a writer. The owner had been shown nine things that waited for him as a numbered list, this
+issue the sixth with A, run the check, and B, keep the rule. His answer, as that session quotes
+it in event 7116 of the issue: "1B 2A 3A 4A 5A 6A 7A 8A 9 can't u do it (later)". What follows
+down to "Read again" is that session's account in event 7116, with what it says each command
+printed. This writer ran none of it.
 
-## What changed, in the worktree
+| When | Command | What it printed |
+|---|---|---|
+| 21:15:25 | `LOCK_TOKEN=out-5bc2ed tools/cloud-brain/lock.sh take cb4 out-page-check` | `cb4 taken by out-page-check at 2026-10-13 21:15:25 CEST` |
+| 21:15:25 | T0 | 1791918925948 |
+| | `brain.ts state > before.txt`; `grep -c probation before.txt` | 60 lines; 0 |
+| | `browser.all --owner` | `{"browsers":[]}`, 200 |
+| 21:15:31 | `brain.ts page up --minutes 3`, with no `--token` | `bought 180 s for 0.0045 USD`, `page opened, signed in`, `19:15:41 bridge up`, `19:19:18 the browser's time ran out; "page up" buys more`, exit 0 |
+| 21:15:38 | `brain.ts page state` | `"up":true`, `"remaining":173`, `"pages":["page"]`, `"signedIn":true`, `"heapMB":73`, and the address of cb4 with the layout of `cloud-brain`, `brain-shell` and `claude-code-pairing` |
+| 21:19:18 | `brain.ts page down` | `{"closed":[],"browser":"brain"}`: its time had run out |
+| | `browser.all` | `{"browsers":[]}` |
+| 21:19:21 | T1 | 1791919161350 |
+| | `brain.ts state > after.txt`; `diff before.txt after.txt && echo same` | `same` |
+| 21:19:21, 21:20:42, 21:21:38 | `logs.deploys?from=T0&to=T1` as `loop-deploys` through `window.py`, three reads | each `lines in the window: 0` and `put-back lines in the window: 0` |
+| | `list?kind=bug` | one issue named `fix-tests-`, `fix-tests-brain-x-verifycheck-319604f7`, `rejected`, the one of before; none new |
+| 21:21:38 | the lock released | it was kept past T1 for the owner's deploy of the core, 21:20:49 |
 
-- `rules.md`, Never: the seven lines above are out. Nothing stands in their place. The item of
-  "Always" that a browser an agent started is not left running stands, and so does the cost of
-  one in `knowledge/pairing-with-the-cloud-brain-page.md` ("Do not leave one running").
-- `tests/tools/never-page-up-line-after-a-check.test.ts`, new, four tests. Before the edit, with
-  this file a title alone: 1 pass, 3 fail. The fourth fails until the section above has the check,
-  so `land.sh` with this file as `--test` does not land the removal before it.
+From `bridge up` to the end of the browser's time is 3 minutes 37 s by those lines (19:15:41 to
+19:19:18 UTC); the old chain took 90 s. The session used the form with no `--token`, which the section above has as read
+and not run: the page opened unpaired. The last read of the log was 2 min 17 s after T1.
+
+By "What each result does", above, this is the first result: no put-back line, `same`, no new
+`fix-tests-` issue. The session took the label `needs-owner` off the issue with that comment
+(event 7117).
+
+**Read again by this writer**, 2026-10-13, 21:28:51 to 21:29:41, 9 minutes after T1, from the
+worktree. `B` is as above and `window.py` the file above, copied to the scratchpad.
+
+```
+env B bun tools/cloud-brain/brain.ts curl "/xrpc/com.lopecode.brain.logs.deploys?from=1791918925948&to=1791919161350" --as loop-deploys 2>/dev/null | python3 -I window.py
+lines in the window: 0
+put-back lines in the window: 0
+```
+
+The same read with `to=1791919761350`, T1 and 10 minutes: `lines in the window: 12`,
+`put-back lines in the window: 0`, and no line of `deploy.failed` or `deploy.unhealthy` printed.
+The session says the owner deployed the core at 21:20:49, which is in that span; the 12 lines were
+not read one by one. `brain.ts state` at 21:29:02: 60 lines, `grep -c probation` 0,
+`brain-x-issues 60cd890fdf9e deployed`, `brain-x-page ac2e21b2ec54 deployed`: the page's hash is
+the one whose source the first writer read at 10:21 and found no `deploy.report` in.
+`issue-as.sh impl-206afa "list?kind=bug&limit=300"` at 21:29:41: 113 issues, `more` false, one
+whose id has `fix-tests`, `fix-tests-brain-x-verifycheck-319604f7`, `rejected`.
+
+**What the check does not show**, beside what the section above says of it: `before.txt` and
+`after.txt` are the session's and were not read by this writer; the hash of the page at 21:15 is
+taken to be the one of 21:29 because `diff` printed `same` and no deploy of the page is among the
+put-back lines, and was not read at that time; one open of 3 minutes is one open.
+
+## What changed
+
+- `rules.md`, Never: the seven lines of "The line", above, are out. Nothing stands in their place.
+  The item of "Always" that a browser an agent started is not left running stands, and so does
+  the cost of one in `knowledge/pairing-with-the-cloud-brain-page.md` ("Do not leave one running").
+- `tests/tools/never-page-up-line-after-a-check.test.ts`, new, five tests. Before the first
+  writer's edit, with this file a title alone: 1 pass, 3 fail, of the four it then had. The fourth
+  failed until the section above had the check: with the first writer's commit alone,
+  `bun test --timeout=30000 ./tests/tools/never-page-up-line-after-a-check.test.ts` printed
+  `3 pass`, `1 fail` (21:30:28). The fifth holds the two lines of the plans, below: with the two
+  plans as they were it printed `4 pass`, `1 fail` (21:30:44).
 - `tests/tools/never-list-three-reductions.test.ts`: it held the line word for word, as "not
   reduced". That expectation is out.
+- Two plans said of the line that it stands, and each has a clause with the date beside it now:
+  `plan/cloud-brain-page-modifications-how-they-are-kept.md` ("The loop does not open the Brain's
+  own page in a browser of the cluster (`rules.md`, Never)") and `plan/cloud-brain-i1842.md` ("It
+  is not the act the Never list names").
 
-Who else repeats the line:
-`git grep -n -F 'deployer-put-back-issues-worker' -- .claude/skills/brain-maintenance knowledge 'plan/cloud-brain-*.md' 'tools/cloud-brain/*.md'`
+Who else repeats the line. The first writer's search,
+`git grep -n -F 'deployer-put-back-issues-worker' -- .claude/skills/brain-maintenance knowledge 'plan/cloud-brain-*.md' 'tools/cloud-brain/*.md'`,
 printed 17 lines with the edit made (10:28:16): 14 of `oversight.md` (the overseer's journal,
 history), 2 of `tools/cloud-brain/records/review-the-default-workflow.md` (two tables of issues as
 they stood on 2026-10-11) and one of `plan/cloud-brain-deploy-verdict-from-a-shared-page.md`, a
-table of what that spec left out. No brief has it, and `git grep -n -F 'page up' -- .claude/skills/brain-maintenance`
-printed 2 lines, both of `oversight.md`. `tools/cloud-brain/records/sign-p256.md` line 44 says
-"`brain.ts page up` is not run until the put-back is redesigned": a record of 2026-10-10, left as
-written.
+table of what that spec left out. The second writer's,
+`git grep -n -F -e 'page up' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md' ':!tools/cloud-brain/records/never-page-up-line-after-a-check.md'`,
+which leaves this file out, printed 18 lines (21:30:54): in the briefs, 2 of `oversight.md` and
+no other; 14 are how `page up` is run or that it was built (the three guides of `knowledge/`,
+`plan/cloud-brain-backlog.md`, `running-a-cloud-brain.md`, the two as-built specs); 2 are records,
+`tx-3-two-references.md` and `sign-p256.md`. No brief has the line. Records of other issues that say
+"the rules forbid opening the Brain's page there" under what they did not try
+(`bluesky-tick-poll-test-no-overlap.md`, `brain-tests-fail-headless-unread.md`,
+`browser-run-timeout-test-wall-clock.md`, `stale-panel-after-deploy.md`), and `sign-p256.md` line
+44, "`brain.ts page up` is not run until the put-back is redesigned", are of their day and left
+as written.
 
 ## Not tried
 
-- The check. Nothing here is a run of the page in Chrome 128.
+- The check, by either writer: it is the session's, above.
 - `deploy.report` with the owner's session.
-- `page up` with no `--token`, and `lock.sh take cb4` around a check that deploys nothing.
-- The whole suite of `tests/tools`: it is run after the check is recorded, before the landing.
+- The page in the cluster's browser with a pairing token, and a second open.
+- Whether each test of the 24 Workers passes on the full page in Chrome 128. The check shows that
+  nothing was put back, not that nothing failed.
+
+## Tests
+
+- `bun test --timeout=30000 ./tests/tools/never-page-up-line-after-a-check.test.ts ./tests/tools/never-list-three-reductions.test.ts`:
+  15 pass, 0 fail (21:30:44).
+- `tests/tools/suite.sh`, after the last edit of a file a test reads: 1312 pass, 0 fail, 138 files, no line `skipped:` (21:36:01 to 21:41:18).

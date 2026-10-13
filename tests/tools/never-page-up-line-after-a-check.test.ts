@@ -3,6 +3,7 @@
 // was shown that it goes after one check that the full page no longer triggers a put-back (issue
 // never-page-up-line-after-a-check, 2026-10-13). Held here: the line is out of Never, no brief of the loop repeats
 // it, the lines beside it stand, and the record has the check as it was made, which is what the line goes on.
+// Two plans cite the line as standing: each says beside it that it is out.
 //
 //   bun test --timeout=30000 ./tests/tools/never-page-up-line-after-a-check.test.ts
 import { test, expect } from "bun:test";
@@ -52,4 +53,16 @@ test("the record has the check as it was made, with no put-back in it", () => {
   expect(record).not.toContain("Not made when this was written");
   const made = flat(section(record, "The check as it was made"));
   expect(made).toMatch(/put-back lines in the window: 0\b/);
+});
+
+test("the two plans that cite the line of Never say that it is out", () => {
+  for (const [name, cited] of [
+    ["plan/cloud-brain-page-modifications-how-they-are-kept.md", "a browser of the cluster (`rules.md`, Never"],
+    ["plan/cloud-brain-i1842.md", "It is not the act the Never list names."],
+  ]) {
+    const text = flat(readFileSync(join(root, name), "utf8"));
+    const at = text.indexOf(cited);
+    expect([name, at >= 0]).toEqual([name, true]);
+    expect([name, text.slice(at, at + 320).includes("out of the list since 2026-10-13, issue `never-page-up-line-after-a-check`")]).toEqual([name, true]);
+  }
 });
