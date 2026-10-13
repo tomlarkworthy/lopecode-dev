@@ -2,7 +2,8 @@
 // `git status` stops on the first, exit 128. Two briefs said it fails and gave no form that answers; the judgment
 // run's brief said nothing, and a judgment run could not confirm its worktree was unchanged.
 // Held here: what git does with a link in a submodule's place, in a repository made for the test; and that the three
-// briefs an agent in a worktree reads give the form that answers.
+// briefs an agent in a worktree reads give the form that answers; and the overseer's, a fourth, since
+// overseer-md-git-status-form (the last test).
 //
 //   bun test --timeout=30000 ./tests/tools/briefs-git-status-in-a-worktree.test.ts
 import { test, expect } from "bun:test";
@@ -66,4 +67,15 @@ test("agents/orchestrator.md gives the form in its own part, above \"A quick win
   const own = flat(text.slice(text.indexOf("\n## Your prompt, and your token\n"), text.indexOf("\n## A quick win\n")));
   expect(own.length).toBeGreaterThan(1000);
   for (const s of [FORM, "`" + ERROR + "`"]) expect(own).toContain(s);
+});
+
+// overseer-md-git-status-form (2026-10-13): the overseer commits in a worktree too, and its brief had no line of it.
+test("agents/overseer.md gives the form in \"What you may do\", after the line that says which files it edits, with the error and the staging by name", () => {
+  const text = readFileSync(process.env.OVERSEER || join(root, ".claude/skills/brain-maintenance/agents/overseer.md"), "utf8");
+  const part = flat(text.slice(text.indexOf("\n## What you may do\n"), text.indexOf("\n## Finish\n")));
+  expect(part.length).toBeGreaterThan(1000);
+  const at = part.indexOf("The briefs and `oversight.md` you edit are the files of `$W`. `git status` in `$W` is " + FORM);
+  expect(at).toBeGreaterThan(-1);
+  const line = part.slice(at, part.indexOf("Each commit, or several, is landed by a push from it", at));
+  for (const s of ["`" + ERROR + "`", "exit 128", "stage each file by its name"]) expect(line).toContain(s);
 });

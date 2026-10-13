@@ -119,7 +119,10 @@ Limits, so a bad round cannot compound:
   `$W` is the directory the first line of your prompt names, `…/.claude/worktrees/bm-over-<host>`, which the
   orchestrator brought up to `origin/main` before it spawned you (a prompt that names the main checkout is from a
   session of before that day: `W=$(tools/cloud-brain/worktree.sh --fresh over-$(hostname -s))`). The briefs and
-  `oversight.md` you edit are the files of `$W`. Each commit, or several, is landed by a push from it, as
+  `oversight.md` you edit are the files of `$W`. `git status` in `$W` is
+  `git status --short --ignore-submodules=all` (the submodules are links there, and the plain command ends
+  `error: expected submodule path 'lopebooks' not to be a symbolic link`, exit 128); stage each file by its name.
+  Each commit, or several, is landed by a push from it, as
   `agents/implementer.md` step 10 lands a change with no deploy:
   `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh take land overseer-$(hostname -s)` (exit 1 is a writer
   landing, so wait in the background with `--wait` after it; exit 2 is cb4 not reached, and no push),
