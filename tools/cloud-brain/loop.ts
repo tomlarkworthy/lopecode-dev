@@ -1,12 +1,14 @@
 #!/usr/bin/env bun
 // loop.ts: a run of an agent of the issue loop is started and ended by a program, and is in the record between.
 // Part 2 of plan/cloud-brain-orchestrator-as-steps.md (st-2-loop-start-and-end); tools/cloud-brain/records/st-2-loop-start-and-end.md.
-// `step` is part 3 of that spec, one pass made by a program (st-3-step; tools/cloud-brain/records/st-3-step.md).
+// `step` is part 3 of that spec, one pass made by a program (st-3-step; tools/cloud-brain/records/st-3-step.md), and
+// since st-4-orchestrator-brief it starts the judgment run (tools/cloud-brain/records/st-4-orchestrator-brief.md).
 // Nothing of the loop calls it yet: SKILL.md steps 4 and 5 are as they were until st-7.
 //
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts step [--dry]
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts start <id> [--role <role>] [--token <t>]
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts start --role overseer [--token <t>]
+//   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts start [<id>] --role orchestrator --token <t> --give "<entries>"
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts ended <token>
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts resume <id> [--role <role>]
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts dead <id> --role <role> [--round <n>]
@@ -36,10 +38,17 @@
 //            the file. The wrapper's command line has `loop-run-<token>`, which is how a run is known to live;
 //         5. one `cost` event, key cost/<id>/<role>/<round>/<token>: outcome `running`, seconds 0, context 0, the
 //            token, the session, agent `<host>:<pid>`. An overseer is on no issue and has the file and no event.
+//         --role orchestrator is a judgment run, which `step` starts and nobody else: the model that decides the
+//         entries --give names, by the brief agents/orchestrator.md. Its token is the step's making (--token, which
+//         it must have) and is ended with the run; its worktree is `orch-<host>`, with no comment; the third line of
+//         its prompt is `Entries: <--give>`; its event is on <id>, the first issue of its entries, with the round one
+//         more than the runs of that role the issue has. With no <id> (a cluster that is not healthy is all it was
+//         given) it has the file and no event, and its report goes to _judgment.md of the journal.
 // ended   SKILL.md step 5 as code, when the wrapper has returned. No result and a process that lives: exit 3. The
 //         outcome is read from the issue and not from the report: a writer's `in-review`, `pass` or `changes` (its
 //         submit, and the review after it), `no-submit` (a result, no submit), `stopped` (no result, or an error);
-//         a reviewer's verdict, or `stopped`; an approver's `approve` or `leave`, or `stopped`. Then the `cost`
+//         a reviewer's verdict, or `stopped`; an approver's `approve` or `leave`, or `stopped`; an overseer's and a
+//         judgment run's `done`, or `stopped` with no result or with one that was an error. Then the `cost`
 //         event again under <key>/end with seconds, context, usd, the usage of agent-usage.ts and the event the run
 //         made; the report appended to the journal, once; `worktree.sh --leave`, or `--remove` of a view; and the
 //         token ended, but one --token gave and a writer's whose outcome is `in-review`, `changes` or `no-submit`
@@ -63,8 +72,9 @@
 //            of SKILL.md step 1, `brain.ts redistil` (every Worker `same`), `brain.ts state` against seen.json of
 //            origin/main, `lock.sh show land` and `show cb4`. A refused pull, a copy that is behind and a worktree
 //            with unlanded work are notes of the status. Not healthy is a Worker that is not `same` or not at its
-//            hash, a command of those that failed, or a lock cb4 did not say: then nothing else is done, and the
-//            line's `given` has one entry `unhealthy` with what failed, which has no issue and no comment;
+//            hash, a command of those that failed, or a lock cb4 did not say: then no run is ended and no agent of
+//            an issue started, and the line's `given` has one entry `unhealthy` with what failed, which has no issue
+//            and no comment and is the task of a judgment run at each such step (item 5);
 //         2. runs: for each file of runs/ of this machine that is not ended, `ended` when its process returned or is
 //            gone, and the `running` event when a `start` died before it wrote one and the process lives; and a
 //            writer's token that `ended` kept is ended when its issue is `done`, `rejected` or closed;
@@ -85,9 +95,15 @@
 //            (runs/<token>.exit is 1) in the last 30 minutes, or a review or a round of this step that was not started;
 //         5. the judgment: the entries a model is to decide (`round` at 3 `rework` moves or after a run with no
 //            submit, `dead`, `triage`, `decompose`, `promote`, `look`, `answer`, `asks`, `pm`), 5 at most a step,
-//            each given once for one event <at> of its issue: a comment keyed orch/<id>/given-<do>-<at>. No run is
-//            started for them until st-4, and the comment says so. A comment keyed orch/<id>/verdict-<do>-<at>
-//            is the answer: `go-on` (the round is resumed, or one run more is started), `not-answered`, `left`.
+//            each given once for one event <at> of its issue: a comment keyed orch/<id>/given-<do>-<at>, body
+//            `given <do> at <at> to <token>, its run on <issue>`. The entries of a step are the task of one judgment
+//            run, started at the step's end: the step makes its token (`agent-token orch judgment:<issue>`), writes
+//            the comments, then `start [<issue>] --role orchestrator --token <token> --give "<do> <id> (event <at>);
+//            …"`, with <issue> the first entry's. While a judgment run of this machine runs none is started and
+//            no comment written: the entries are in `skipped` and are due at the next step. A start that failed is
+//            written as a run that died (a `cost` event `stopped`, the token ended). A comment keyed
+//            orch/<id>/verdict-<do>-<at> is the answer: `go-on` (the round is resumed, or one run more is started),
+//            `not-answered`, `left` (in the status with its first line, for a session with the owner).
 //            A given entry with no verdict is read by the run its comment names: `stopped` is given once more
 //            (…-2), then or otherwise it is in the status and given to no model again;
 //         6. one line of JSON appended to steps.jsonl and printed: { at, seq, health, land, stops, acts, given,
@@ -108,8 +124,10 @@ import { randomUUID } from "node:crypto";
 import { facts as approverFacts } from "./approver.ts";
 
 // ---- what is read from the record, with no call
-export const PREFIX: Record<string, string> = { implementer: "impl", digest: "dig", "spec-writer": "spec", reviewer: "rev", approver: "appr", overseer: "over" };
-export const BRIEF: Record<string, string> = { implementer: "implementer", digest: "digest", "spec-writer": "spec", overseer: "overseer" };
+export const PREFIX: Record<string, string> = { implementer: "impl", digest: "dig", "spec-writer": "spec", reviewer: "rev", approver: "appr", overseer: "over", orchestrator: "orch" };
+export const BRIEF: Record<string, string> = { implementer: "implementer", digest: "digest", "spec-writer": "spec", overseer: "overseer", orchestrator: "orchestrator" };
+// The roles whose run is in a worktree of the machine and not of an issue: `over-<host>`, `orch-<host>`.
+const ALONE: Record<string, string> = { overseer: "over-", orchestrator: "orch-" };
 export const WRITERS = ["implementer", "digest", "spec-writer"];
 export const KEY_MOST = 100; // issuesLimits.key of brain-issues.ojs
 type Ev = Record<string, any>;
@@ -125,6 +143,8 @@ export const roundOf = (role: string, events: Ev[]): number =>
   : role === "approver" ? Math.max(1, events.filter((e) => e.type === "moved" && e.to === "awaiting-approval").length)
   : role === "overseer" ? 1
   : moved(events, "rework").length + 1;
+// A judgment run's round is one more than the runs of that role the issue has: no run takes another's place in `runs`.
+export const judgmentRound = (runs: Ev[]) => Math.max(0, ...(runs || []).filter((r) => r.role === "orchestrator").map((r) => Number(r.round) || 0)) + 1;
 
 // The token is in the key, so a second run of one role and round is not the first key again.
 export const costKey = (r: Run) => `cost/${r.id}/${r.role}/${r.round}/${r.token}` + (r.how === "resumed" ? `/resumed-${r.at}` : "");
@@ -148,7 +168,8 @@ export const backKey = (id: string, token: string | undefined, events: Ev[]) =>
 // Of a first run every event of its token is the run's; of a resumed round the events after the one it was sent for.
 export function outcomeOf(run: Run, events: Ev[], returned: boolean, error = false): { outcome: string; event?: number } {
   const mine = events.filter((e) => e.by && e.by.holder === "secret:" + run.token && e.seq > (run.how === "resumed" ? run.at || 0 : 0));
-  if (run.role === "overseer") return { outcome: returned && !error ? "done" : "stopped" };
+  // An overseer and a judgment run leave no one move to read: `done`, or `stopped` with no result or one that was an error.
+  if (ALONE[run.role]) return { outcome: returned && !error ? "done" : "stopped" };
   if (run.role === "reviewer") {
     const r = last(mine.filter((e) => e.type === "reviewed"));
     return r ? { outcome: r.verdict, event: r.seq } : { outcome: "stopped" };
@@ -256,7 +277,7 @@ function place(first: string, topic: string, token: string, id: string, owner: (
 const worktreeComments = (events: Ev[]) => events.filter((e) => e.type === "commented" && /^worktree \{/.test(e.body || "")).map((e) => { try { return JSON.parse(e.body.slice(9)); } catch { return {}; } });
 const unmake = (run: Run, text: string, code = 1): never => {
   const token = run.made ? revoke(run.token) : "";
-  if (run.tree) WRITERS.includes(run.role) || run.role === "overseer" ? worktree("--leave", run.tree) : worktree("--remove", run.tree, "--force");
+  if (run.tree) WRITERS.includes(run.role) || ALONE[run.role] ? worktree("--leave", run.tree) : worktree("--remove", run.tree, "--force");
   rmSync(fileOf(run.token), { force: true });
   return stop(code, text + (token ? `; the token ${run.token} is ${token}` : ""));
 };
@@ -265,15 +286,18 @@ const lastOversight = (file: string) => { try { return (last([...readFileSync(fi
 function start(args: string[]) {
   const me = own(), flag = (n: string) => { const i = args.indexOf(n); if (i < 0) return undefined; const v = args.splice(i, 2)[1]; return v && !v.startsWith("--") ? v : stop(2, `${n} takes a value`); };
   let role = flag("--role"), given = flag("--token");
-  const id = args[0] || "";
-  if (!id && role !== "overseer") stop(2, "start <id> [--role <role>] [--token <t>], or start --role overseer");
+  const entries = flag("--give"), id = args[0] || "";
+  if (!id && !ALONE[role || ""]) stop(2, "start <id> [--role <role>] [--token <t>], or start --role overseer, or start [<id>] --role orchestrator --token <t> --give \"<entries>\"");
   if (role === "overseer" && id) stop(2, "an overseer is on no issue: start --role overseer");
+  if ((role === "orchestrator") !== !!entries) stop(2, "--give is the entries of a judgment run, and --role orchestrator has it");
+  if (role === "orchestrator" && !given) stop(2, "a judgment run is started by `step`, which makes its token and names it in the `given` comments before the run: --token <t>");
   const got = id ? read(me, `get?id=${id}`) : { issue: { id: "", labels: [] }, events: [] };
   if (id && !(got.issue && got.issue.id)) stop(1, `no issue ${id} that ${me} reads`);
   const issue = got.issue, events: Ev[] = got.events || [];
   role = role || roleOf(id, read(me, "queue?limit=500")) || stop(1, `the queue has no entry that starts an agent on ${id}; name one with --role`);
   if (!PREFIX[role!]) stop(2, `--role is one of ${Object.keys(PREFIX).join(", ")}`);
-  const run: Run = { id, role: role!, round: roundOf(role!, events), token: given || "", session: randomUUID(), how: role === "reviewer" ? "light" : "fresh", as: me, made: !given, host: HOST(), startedAt: Date.now() };
+  // A judgment run's token is the step's making, for this run: it is ended with the run, as one `start` made is.
+  const run: Run = { id, role: role!, round: role === "orchestrator" ? judgmentRound(issue.runs) : roundOf(role!, events), token: given || "", session: randomUUID(), how: role === "reviewer" ? "light" : "fresh", as: me, made: !given || role === "orchestrator", host: HOST(), startedAt: Date.now() };
   // The longest key of the run is refused before anything is made: the service keeps 100 characters.
   const longest = endKey({ ...run, token: given || PREFIX[run.role] + "-000000", how: "resumed", at: 9999999 });
   if (longest.length > KEY_MOST) stop(1, `the key ${longest} would be ${longest.length} characters, and the tracker keeps ${KEY_MOST}`);
@@ -287,20 +311,20 @@ function start(args: string[]) {
     run.token = t.out.trim();
   }
   let agent: string, argv: string[], vars: Record<string, string>;
-  if (WRITERS.includes(run.role) || run.role === "overseer") {
-    const topic = run.role === "overseer" ? "over-" + run.host : issue.parent || id;
-    const tEvents: Ev[] = topic === id || run.role === "overseer" ? events : (as(me, `get?id=${topic}`).data || {}).events || [];
+  if (WRITERS.includes(run.role) || ALONE[run.role]) {
+    const topic = ALONE[run.role] ? ALONE[run.role] + run.host : issue.parent || id;
+    const tEvents: Ev[] = topic === id || ALONE[run.role] ? events : (as(me, `get?id=${topic}`).data || {}).events || [];
     const notes = [...worktreeComments(tEvents), ...worktreeComments(events)];
-    const p: any = place(topic, topic, run.token, id, (path) => (last(notes.filter((c) => c.path === path)) || {}).for, me, run.role === "overseer");
+    const p: any = place(topic, topic, run.token, id, (path) => (last(notes.filter((c) => c.path === path)) || {}).for, me, !!ALONE[run.role]);
     if (p.fail) unmake(run, p.said, p.fail);
     Object.assign(run, { tree: p.tree, path: p.path, topic });
-    if (run.role !== "overseer") {
+    if (!ALONE[run.role]) {
       const at = sh("git", ["-C", p.path, "rev-parse", "origin/main"]).out.trim();
       const n = tEvents.filter((e) => e.type === "commented" && String(e.key || "").startsWith(`orch/${topic}/worktree-`)).length + 1;
       const c = write(me, "comment", { key: `orch/${topic}/worktree-${n}`, id: topic, body: "worktree " + JSON.stringify({ topic, branch: "bm/" + p.tree, machine: run.host, path: p.path, ...(at ? { at } : {}), for: id }) });
       if (!c.ok) console.error(`loop.ts: the worktree comment on ${topic} was not written: ${c.status} ${c.said || ""}`);
     }
-    const third = run.role === "overseer" ? `Last oversight ended at event ${lastOversight(join(p.path, ".claude/skills/brain-maintenance/oversight.md")) || lastOversight(join(root, ".claude/skills/brain-maintenance/oversight.md"))}. Journal: ${join(LOOP(), "/")}` : `Issue: ${id}`;
+    const third = run.role === "orchestrator" ? `Entries: ${entries}` : run.role === "overseer" ? `Last oversight ended at event ${lastOversight(join(p.path, ".claude/skills/brain-maintenance/oversight.md")) || lastOversight(join(root, ".claude/skills/brain-maintenance/oversight.md"))}. Journal: ${join(LOOP(), "/")}` : `Issue: ${id}`;
     const prompt = [`Working directory: ${p.path}.`, `Read ${p.path}/.claude/skills/brain-maintenance/agents/${BRIEF[run.role]}.md and follow it.`, third, `Your token is ${run.token}.`, ...(p.unlanded ? ["The worktree holds unlanded work of this issue."] : [])].join("\n");
     agent = env.LOOP_AGENT || join(p.path, "cloud-brain-dev/agent.sh"); argv = [run.role, prompt]; vars = { WORK: p.path, SESSION: run.session! };
   } else {
@@ -326,13 +350,14 @@ function start(args: string[]) {
   Object.assign(run, detach(run, agent, argv, vars), { agent: "" });
   run.agent = `${run.host}:${run.pid}`;
   save(run);
-  if (run.role !== "overseer") {
+  // A run on no issue (an overseer, a judgment run of a cluster that is not healthy) has the file and no event.
+  if (id) {
     const c = write(me, "cost", { key: costKey(run), id, role: run.role, round: run.round, how: run.how, outcome: "running", seconds: 0, context: 0, token: run.token, session: run.session, agent: run.agent });
     if (!c.ok) console.error(`loop.ts: the running event was not written: ${c.status} ${c.said || ""}`);
     run.running = c.ok ? c.seq : 0;
   } else run.running = 0;
   save({ ...load(run.token), ...run } as Run);
-  say({ started: run.token, id, role: run.role, round: run.round, how: run.how, session: run.session, agent: run.agent, tree: run.tree, path: run.path, event: run.running || undefined, key: run.role === "overseer" ? undefined : costKey(run) });
+  say({ started: run.token, id, role: run.role, round: run.round, how: run.how, session: run.session, agent: run.agent, tree: run.tree, path: run.path, event: run.running || undefined, key: id ? costKey(run) : undefined });
 }
 
 async function ended(args: string[], quiet = false): Promise<any> {
@@ -354,7 +379,7 @@ async function ended(args: string[], quiet = false): Promise<any> {
   const cost = { role: run.role, round: run.round, how: run.how, outcome, seconds: Math.round(((result && result.ms) || 0) / 1000), context: (result && result.context) || 0,
     ...(event ? { event } : {}), agent: run.agent, session: run.session, token, ...(billed ? { usage: billed } : {}), ...(result && typeof result.usd === "number" ? { usd: result.usd } : {}) };
   let seq: number | undefined;
-  if (run.role !== "overseer") {
+  if (run.id) {
     const c = write(me, "cost", { key: endKey(run), id: run.id, ...cost });
     if (!c.ok) stop(1, `the cost event of ${token} was not written (${c.status} ${c.said || ""}); nothing else was done, run it again`);
     seq = c.seq;
@@ -366,10 +391,10 @@ async function ended(args: string[], quiet = false): Promise<any> {
   if (first) {
     const head = `## ${run.role} round ${run.round} (${run.how}, loop.ts), ended ${new Date().toString().slice(0, 33)}, outcome ${outcome}, token ${token}, context ${cost.context}, ${cost.seconds} s${cost.usd !== undefined ? `, usd ${cost.usd}` : ""}, session ${run.session}, agent ${run.agent}`;
     mkdirSync(LOOP(), { recursive: true });
-    appendFileSync(join(LOOP(), (run.id || "_oversight") + ".md"), `\n${head}\n\n${run.id ? "" : JSON.stringify(cost) + "\n\n"}${result && typeof result.result === "string" ? result.result : `(no report: the process gave no result line, exit ${exit})`}\n`);
+    appendFileSync(join(LOOP(), (run.id || (run.role === "orchestrator" ? "_judgment" : "_oversight")) + ".md"), `\n${head}\n\n${run.id ? "" : JSON.stringify(cost) + "\n\n"}${result && typeof result.result === "string" ? result.result : `(no report: the process gave no result line, exit ${exit})`}\n`);
   }
   const notes: string[] = [];
-  if (run.tree && (WRITERS.includes(run.role) || run.role === "overseer")) worktree("--leave", run.tree);
+  if (run.tree && (WRITERS.includes(run.role) || ALONE[run.role])) worktree("--leave", run.tree);
   else if (run.tree) {
     let r = worktree("--remove", run.tree);
     // An approver writes no file in its view; a reviewer's is kept when a commit of its own stands there.
@@ -467,7 +492,7 @@ const keyed = (events: Ev[], key: string) => events.find((e) => e.type === "comm
 // key. A verdict is its first word: `go-on`, `not-answered`, and anything else `left`. With no verdict the run the last
 // `given` comment names is read (`runOf`: the last `cost` event of that token on that issue): `runs` (also when it has
 // no event yet), `again` (it ended `stopped`, once), `died-twice`, `judged` (it ended another way and left the entry),
-// and `no-run` for a comment that names no token, which is what st-3 writes.
+// and `no-run` for a comment that names no token, which is what `step` wrote until st-4-orchestrator-brief.
 export function judged(events: Ev[], id: string, what: string, at: number, runOf: (token: string, on: string) => Ev | undefined): string {
   const first = keyed(events, givenKey(id, what, at)), second = keyed(events, givenKey(id, what, at, true)), verdict = keyed(events, verdictKey(id, what, at));
   if (!first) return "give";
@@ -490,7 +515,7 @@ function statusText(line: Ev, S: Record<string, string[]>) {
     ...part("What runs", S.runs),
     ...part("What waits for the owner", S.owner),
     ...part("Given to the judgment at this step", S.given),
-    ...part("Given at an earlier step, and no judgment run reads it (none is started until st-4)", S.norun),
+    ...part("Given before st-4-orchestrator-brief, to no run: no judgment run reads it", S.norun),
     ...part("Judged and left as it was", S.left),
     ...part("The judgment run died twice", S.died),
     ...part("What a session with the owner is asked to do", S.session),
@@ -532,6 +557,37 @@ async function step(args: string[]) {
     say(line);
     if (dry) console.log(text);
     process.exitCode = code;
+  };
+  // ---- 5, its end: the entries of this step are the task of one judgment run. None is started while one of this
+  // machine runs: its entries wait, with no comment. The comment of each names the run's token, and is written before
+  // the run is started; a start that failed is written `stopped`, so its entries are given once more.
+  const give = () => {
+    const name = (x: Ev) => (x.id ? `${x.do} ${x.id} (event ${x.at})` : `unhealthy (${x.failed.join("; ")})`);
+    const leave = (why: string) => { for (const x of line.given) skip(x.id || "", x.do, why); line.given = []; };
+    if (!line.given.length) return;
+    const busy = runFiles().find((r) => r.host === host && r.role === "orchestrator" && !r.ended && alive(r));
+    if (busy) return leave(`a judgment run runs (${busy.token})`);
+    const on: string = (line.given.find((x: Ev) => x.id) || {}).id || "";
+    done({ act: "start", ...(on ? { id: on } : {}), role: "orchestrator", entries: line.given.length }, () => {
+      const t = brain("agent-token", "orch", `judgment:${on || "unhealthy"}`), token = t.out.trim();
+      if (t.code !== 0 || !/^orch-[0-9a-f]{6}$/.test(token)) { leave("agent-token made no token for the judgment run"); return { exit: 1, said: `agent-token made no token: ${tail(t)}` }; }
+      for (const x of [...line.given]) {
+        if (!x.id) continue;
+        const c = write(me, "comment", { key: x.key, id: x.id, body: `given ${x.do} at ${x.at} to ${token}, its run on ${on}` });
+        if (c.ok && !c.duplicate) { x.event = c.seq; continue; }
+        const why = c.ok ? `the tracker has the key ${x.key}: another step gave it` : `its comment was refused: ${c.status} ${c.said || ""}`.trim();
+        if (x.id !== on) { skip(x.id, x.do, why); line.given = line.given.filter((y: Ev) => y !== x); continue; }
+        leave(`the entry the run would be on, ${on}, was not given: ${why}`);
+        return { exit: 1, said: why, revoke: revoke(token) };
+      }
+      const r = self("start", ...(on ? [on] : []), "--role", "orchestrator", "--token", token, "--give", line.given.map(name).join("; "));
+      if (r.exit === 0) return { exit: 0, token };
+      // The comments name a run that was not started: it is written as one that died, and its token is ended.
+      const ended = revoke(token), G = on ? got(on) : null;
+      const c = G ? wrote(write(me, "cost", { key: `cost/${on}/orchestrator/${judgmentRound(G.issue.runs)}/${token}/end`, id: on, role: "orchestrator", round: judgmentRound(G.issue.runs), how: "fresh", outcome: "stopped", seconds: 0, context: 0, token })) : {};
+      return { exit: r.exit, token, said: r.said, revoke: ended, ...c };
+    });
+    S.given.push(...line.given.map(name));
   };
   try {
     // The caller's token reads the tracker, or the step ends here: a token cb4 refuses is not a cluster that is not healthy.
@@ -597,10 +653,10 @@ async function step(args: string[]) {
       if (name === "land" && who) line.land = who;
     }
     if (failed.length) {
-      // Not healthy: nothing is started. It is of no issue, so it has no comment and is given at each such step.
+      // Not healthy: no agent of an issue is started. It is of no issue, so it has no comment and is given at each such step.
       line.health = { ok: false, failed };
       line.given.push({ do: "unhealthy", failed });
-      S.given.push(`unhealthy: ${failed.join("; ")}`);
+      give();
       return end(0);
     }
 
@@ -610,7 +666,7 @@ async function step(args: string[]) {
       const returned = existsSync(join(RUNS(), run.token + ".result.json"));
       if (returned || !alive(run)) { done({ act: "ended", token: run.token, id: run.id, role: run.role, why: returned ? "its process returned" : "its process is gone and left no result" }, () => { const r = self("ended", run.token); return { exit: r.exit, ...(r.outcome ? { outcome: r.outcome } : {}), ...(r.said ? { said: r.said } : {}) }; }); continue; }
       runsNow.set(run.token, `${run.role}${run.id ? " of " + run.id : ""}, round ${run.round}, token ${run.token}, ${run.agent}`);
-      if (!run.running && run.role !== "overseer") done({ act: "running", id: run.id, role: run.role, token: run.token }, () => {
+      if (!run.running && run.id) done({ act: "running", id: run.id, role: run.role, token: run.token }, () => {
         const c = write(me, "cost", { key: costKey(run), id: run.id, role: run.role, round: run.round, how: run.how, outcome: "running", seconds: 0, context: 0, token: run.token, session: run.session, agent: run.agent });
         if (c.ok) save({ ...(load(run.token) || run), running: c.seq });
         return wrote(c);
@@ -649,7 +705,7 @@ async function step(args: string[]) {
       const G = got(id);
       if (!G || looked.has(id)) return G;
       looked.add(id);
-      for (const r of running(G, [...Object.keys(PREFIX), "orchestrator"])) {
+      for (const r of running(G, Object.keys(PREFIX))) {
         const [h, pid] = String(r.agent || "").split(":"), file = r.token ? load(r.token) : null, what = `${r.role} of ${id}, round ${r.round}, token ${r.token}, ${r.agent}`;
         if (h !== host) { runsNow.set(r.token, `${what}: another machine's${line.at - r.at >= LATE_MS ? ", `running` for 4 hours or more" : ""}`); continue; }
         if ((file && !file.ended) || alive({ token: r.token, pid: Number(pid) })) { runsNow.has(r.token) || runsNow.set(r.token, what); continue; }
@@ -666,17 +722,18 @@ async function step(args: string[]) {
     };
     // ---- 5. the judgment: an entry is given once for one event of its issue, 5 at most a step
     const runOf = (token: string, on: string) => { const G = got(on); return G ? last(G.events.filter((e) => e.type === "cost" && e.token === token)) : undefined; };
+    // `judge` names an entry in the line; `give`, at the end of the step, writes its comment and starts the one run.
     const judge = (id: string, what: string, at: number, G: Got): string => {
       const how = judged(G.events, id, what, at, runOf), name = `${what} ${id} (event ${at})`;
       if (how === "judged") S.left.push(name);
       else if (how === "died-twice") S.died.push(name);
       else if (how === "no-run") S.norun.push(name);
+      else if (how === "left") S.session.push(`${name}: left by the judgment: ${String((keyed(G.events, verdictKey(id, what, at)) || {}).body || "").split("\n")[0].trim().replace(/^left:?\s*/, "") || "it gave no reason"}`);
       if (how !== "give" && how !== "again") return how;
-      const key = givenKey(id, what, at, how === "again"), g: Ev = { id, do: what, at, key };
+      const key = givenKey(id, what, at, how === "again");
       if (line.given.length >= GIVEN_MOST) { skip(id, what, `${GIVEN_MOST} entries are given at a step`); return "wait"; }
       if (key.length > KEY_MOST) { skip(id, what, `the key ${key} is over ${KEY_MOST} characters`); return "wait"; }
-      if (!dry) Object.assign(g, comment(id, key, `given ${what} at ${at} to no run: a judgment run is started from st-4-orchestrator-brief on`));
-      line.given.push(g); S.given.push(name);
+      line.given.push({ id, do: what, at, key });
       return how;
     };
     // Fewer than 2 dead runs of the role and round, or `go-on` for the last of them: else the entry is the row "2 dead runs".
@@ -819,6 +876,7 @@ async function step(args: string[]) {
         else begin("", "overseer");
       }
     }
+    give();
   } catch (e: any) { line.error = String((e && e.message) || e); return end(1); }
   end(0);
 }
@@ -830,5 +888,5 @@ if (import.meta.main) {
   else if (cmd === "resume") await resume(args);
   else if (cmd === "dead") dead(args);
   else if (cmd === "step") await step(args);
-  else stop(2, "start <id> [--role <role>] [--token <t>] | ended <token> | resume <id> [--role <role>] | dead <id> --role <role> [--round <n>] | step [--dry]");
+  else stop(2, "start <id> [--role <role>] [--token <t>] | start [<id>] --role orchestrator --token <t> --give <entries> | ended <token> | resume <id> [--role <role>] | dead <id> --role <role> [--round <n>] | step [--dry]");
 }

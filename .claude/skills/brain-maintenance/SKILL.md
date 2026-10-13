@@ -9,7 +9,7 @@ version: 0.1.0
 The tracker (`brain-x-issues` on `cb4`, design in `plan/cloud-brain-issues.md`) holds the work.
 This skill is the loop that does it. You, the session that runs the skill, are the orchestrator:
 you read the tracker, decide what is next, spawn agents for it, and write down what each
-reported. You review nothing yourself, and you fix only a quick win (below).
+reported. You review nothing yourself, and you fix only a quick win (`agents/orchestrator.md`, "A quick win").
 
 Written 2026-10-10 and run as a loop the same day, from about 16:00 to 21:25 CEST, when the owner
 stopped it ("don't start any new work until we try to improve this process"). The line in Runs
@@ -29,6 +29,27 @@ beside `AGENTS.md`; a quote added to it is a commit there, pushed as `cloud-brai
 says, and then the submodule's pointer here.) Both bind you
 as well as the agents. `philosophy.md` is what you decide by; `rules.md` is what no decision
 may cross.
+
+## What is in `agents/orchestrator.md`
+
+Since `st-4-orchestrator-brief` (2026-10-13; task 4 of `plan/cloud-brain-orchestrator-as-steps.md`) five
+texts of this file are in `agents/orchestrator.md`, moved as they stood with no word changed
+(`tests/tools/orchestrator-brief.test.ts`). That file is the brief of a judgment run: a model that
+`tools/cloud-brain/loop.ts step` starts for the entries of the queue a program cannot decide. Nothing of
+the loop runs `step` yet (the driver is `st-5`, the switch `st-7`), so until then the five are read by
+you alone, there, from its heading "Triage" on; what stands above that heading is for a judgment run and
+not for you. You are the "you" of them, and a step or a row they name with no file is of this file.
+
+| Was here | Is in `agents/orchestrator.md` under |
+|---|---|
+| The section "Triage" | "Triage" |
+| The section "A quick win" | "A quick win" |
+| The section "A post mortem" | "A post mortem" |
+| Step 3, what the row `decompose` does | "The `decompose` row" |
+| Step 3, the row of an issue sent back: when the round is not sent, and the judgment at 3 `rework` moves | "A round at 3 `rework` moves" |
+
+Where this file or another text names one of the five as a section or a row of `SKILL.md` ("Triage,
+below", "`SKILL.md`, "A post mortem""), it means that file.
 
 ## State
 
@@ -288,9 +309,9 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    |---|---|
    | `round` | With `waiter` on the entry: nothing. The round is that agent's, a writer's or a spec writer's, which waited for its review and takes it itself (step 2, "A writer that waits"). Without: send the round to the agent that started it, a spec's to its spec writer: the row of an issue sent back, or "A spec sent back", below. When it cannot be sent one: "A dead writer". Started by you: "A quick win of your own, sent back". At 3 `rework` moves you judge first. |
    | `review` | Spawn the reviewer (step 4). For a project or feature at `spec-review` it follows "A spec" in its brief. |
-   | `triage` | Triage it yourself (Triage, below), or take it as a quick win. With the label `digest` or `post-mortem`: its row below. |
+   | `triage` | Triage it yourself (`agents/orchestrator.md`, "Triage"), or take it as a quick win. With the label `digest` or `post-mortem`: its row below. |
    | `ready` | Move it to `ready`. Read first a comment of it that begins `held:` (they were written until `bk-6-skill-watch-and-stats`): what it still waits for is written as a link `after`, a hold or `needs-owner`, as above, and the issue is then in `waiting`. |
-   | `decompose` | Open each task the spec lists, with `parent` the project. A task has the labels the spec gives it: `major` on each task of a spec that says its tasks are (bd-2 and bd-3 were opened with none from a spec approved as `major`, and a reviewer's `pass` of bd-2 would have gone to `done` with no approval; `seen-bd-2-opened-without-major`). Then, for each task the spec says is after another, one link, `issue-as.sh <your token> link '{"key":"orch/<task>/after-<other>","id":"<task>","to":"<other>","rel":"after"}'`, written before any task is moved: the order of a spec's tasks is in the record and in no comment. Then `triage` and `ready` each task, but one the spec leaves to the owner (`needs-owner`, with its comment) or holds for a time that can be said now (a hold). Then move the project to `building` (`decompose`). Open every task of a spec before the last of them can end: a task opened as a part after the project is `done` is a part of a project that stays `done`. Close each gathered report that is still open with the reason `in the spec of <id>`. |
+   | `decompose` | `agents/orchestrator.md`, "The `decompose` row": the tasks of the spec are opened, linked and made ready, and the project is moved to `building`. |
    | `finish` | Move it to `done` (`finish`). Since `bk-2-finish-by-the-service` (2026-10-12) the service makes this move itself, in the call that ends the last open part, so an entry here is one it did not make. |
    | `promote` | A feedback issue of the owner's with no tie, or with each tie at `done` or `closed`: the row `open`, kind `feedback`, below, which says when it is promoted and when it is closed. |
    | `look` | A hold whose time has come (`hold.reason` of the entry says what to read), an issue at `in-review` or `spec-review` with a review and no move after it, or a state the service has no row for. Read it. One that was held: take it on as its `state` asks (its next move takes the hold off), hold it again, or comment and label `needs-owner`. A hold stays on the issue until its next move or a `hold` with `"remove":true`, so one you leave as it is stays a `look` at every read. Any other: the row "Anything else", below. |
@@ -315,14 +336,14 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    | at `awaiting-approval` | **Spawn the approver** (step 4, "The approver"), when all three hold: the issue has no comment keyed `approver/<id>/verdict-<n>`, with `<n>` the count of its moves to `awaiting-approval`; no comment of the issue, of any round, begins `approver: leave`; and `issue-as.sh <your token> "runs?id=<id>&role=approver&round=<n>"` has no run. `bun tools/cloud-brain/approver.ts facts <id> --token <your token>` prints the key with its `<n>`, the verdicts the issue has, and `left to the owner at <seq>` when one stands. An issue an approver left is the owner's from then on: after his send-back and a new pass no second approver is started, which the tool would refuse (review 4118 of the spec; the rule of its part 4 read the round's verdict alone). A run that reported with no verdict is not started again in that round: it is said in step 7. Until the owner installs a policy whose `approve` guard names the approver's delegation, its tool sends no move and the verdict is all a run leaves; he approves as before. (Since `ap-2-brief-and-shadow-step`, 2026-10-12; `plan/cloud-brain-approver-persona.md`. First approver started by this row: not yet, when this was written.) **The approver reads before you write for him.** Until the round's verdict is there, or its run has reported with none, you write no comment for the owner on the issue (none keyed `orch/<id>/decision-<n>`, `<n>` as in the verdict's key) and put no `needs-owner` on it (`orch/<id>/needs-owner-<n>`), also in a pass that starts no approver (step 2, a limit; step 4, no view): the issue waits for its approver, and step 7 names it so. What you write then is by what the run left. After `approver: approve` and the tool's `approve` move, nothing: no decision comment and no label; step 7 tells him of it in the list of what was approved for him. After `approver: leave`, the comment, keyed `orch/<id>/decision-<n>`, written from the verdict's second line and its `why:`, in the form of `rules.md`, "What the owner is asked to decide", with letters only where the verdict names a choice that is his (its `what stopped it:` says which answers the record puts to him), and then your pick as that section has it; for a spec, with the two lines of step 7 as well ("A spec put to him"). With none it has no letters: it says that the change is built and reviewed and what stopped the approver, and his answer is his approve or his send-back. Then `needs-owner`. After `approver: approve` and no move (the tool's exit was not 0: no guard of the policy in force names a delegation, or the brief or the tool is not the one it names), the comment has no letters and says, from the verdict's second line and the tool's line, that the approver found for it and why no move was made; then `needs-owner`. After a run that reported with no verdict, and in a round that gets no approver because one left the issue in an earlier round, there is no verdict to write from: the comment is written from the review and the record, in the form of that section, with no letters when there is nothing to choose between; then `needs-owner`. (Since `approver-before-decision-comment`, 2026-10-12, an action of `tools/cloud-brain/post-mortems/pm-approver-leaves-everything.md`. Until then nothing ordered the two: each of the eight issues the post mortem counts had your comment keyed `orch/<id>/decision-<n>` on it before its verdict, with letters and a pick, and five of the eight verdicts give that comment as a thing that stopped them, as the post mortem has it ("The eight verdicts"). The cases of an approve with no move, of no verdict and of a later round are the writer's reading and not the issue's words. `bun tools/cloud-brain/issue-stats.ts --token <your token>` has the line `decision comment and verdict`, with the seq of each verdict whose round had your comment before it: 9 of the 10 verdicts at event 5210, each from before this change; one with a later seq is a round this row was not followed in. First comment written after a verdict by this row: not yet, when this was written.) You make no `approve` yourself, unless the owner has said in this session that he approves that issue, or several issues he was shown by title: then you make the `approve` move for him, one move an issue, each for an issue with a passing review and each with a reason that quotes his word, names that review's event and says what he was shown (`rules.md`, Never, the `approve` line, and "An act of Never, on the owner's word"). |
    | labeled `needs-owner` | Read it again each pass: the events since the label was put on, and what the owner has said in this session. When he has answered (a comment of his on the issue, or his word to you, which you quote in a comment first), or `philosophy.md` now answers it (say what changed), comment with the event that put the label on and what ended its reason, take the label off (`rules.md`, Never, the `needs-owner` line), and take the issue again from the queue. Otherwise nothing: it is the owner's, and it is named in step 7. |
    | labeled `asks-orchestrator`, at any state | **An agent that still runs asks you.** It put the label on and waits, and what it started may be billed while it does (`agents/implementer.md`, "When you need the orchestrating session"). Its ask is the first line of its last comment keyed `…/ask-<n>`; under it, written by `tools/cloud-brain/issue-ask.sh`, are the time until which it waits and what it started that is billed while it does, with the time it stops that itself. Answer in this wake, before any row below: a comment, `issue-as.sh <your token> comment '{"key":"orch/<id>/answer-<n>","id":"<id>","body":"…"}'`, whose first line is yes, no, or "stop what runs and report", which is the answer when you cannot say now: an answer that waits for something else to become so is none. Then take the label off, `issue-as.sh <your token> label '{"key":"orch/<id>/answered-<n>","id":"<id>","remove":["asks-orchestrator"]}'`, after the comment: the agent reads the label gone as "answered" and then reads the comment. Nothing else of the issue is yours while its agent runs; with no agent running it is then taken from the rows below. The watch prints the label as it is put on (step 8), and a whole pass reads `issue-as.sh <your token> "list?label=asks-orchestrator&limit=100"` before the table, for a line the watch did not print (it was armed before this row was written, or it died). A line `asks-still` of the watch names an issue of this row that has had the label and no event for 5 minutes (none that moves its `updated_at`; a `cost` event does not): it is this row once more, late. (Since `asks-orchestrator-label-and-watch`, 2026-10-12; the tool and the line `asks-still` since `wait-says-what-runs-and-until-when`, that day. Until then such a request had no form a tool or this table read: comment 4816 of `fly-1-by-hand` asked for a go-ahead at 22:21:06 CEST that day with a Fly machine running, and the answer, 4921, came at 22:43:04, after the owner asked; `tools/cloud-brain/post-mortems/pm-agent-request-not-seen-fly-idle.md`. First ask answered by this row: not yet, when this was written.) |
-   | `in-progress`, started by a writer or a digest writer (the `by.holder` of its last `start` event is `secret:impl-…` or `secret:dig-…`, or a role's token, for a start made before each agent had its own), sent back, no agent running | Send the round to the agent that started it ("A rework round goes to the agent that wrote the change", below): its token is still kept, and only the starter submits (`caller.actor == issue.by.start`). When it cannot be sent one, the next row. Do not, and instead comment with the open findings and label `needs-owner`, when the last implementer you spawned for it finished without a new `submit`, or when it has 3 `rework` moves and the rounds are not getting anywhere. At 3 you judge (Tom, 2026-10-10: "make a judgment call when the 3 retries is hit, has genuine progress been made?"): go on when each review closed what the one before found and the new findings are narrower; stop when a finding came back, or the rounds are trading one defect for another of the same size. Write the judgment and its reason in the journal and as a comment on the issue. |
+   | `in-progress`, started by a writer or a digest writer (the `by.holder` of its last `start` event is `secret:impl-…` or `secret:dig-…`, or a role's token, for a start made before each agent had its own), sent back, no agent running | Send the round to the agent that started it ("A rework round goes to the agent that wrote the change", below): its token is still kept, and only the starter submits (`caller.actor == issue.by.start`). When it cannot be sent one, the next row. When it is not sent one, and what you judge at 3 `rework` moves: `agents/orchestrator.md`, "A round at 3 `rework` moves". |
    | `in-progress`, no agent running, and its starter cannot go on: the writer died or cannot be sent a message, its token has ended (`agent-token list` has no line for it), or the `start` was made with a role's token and its writer cannot be sent one (after the owner's revoke of those: every such issue) | **A dead writer.** You end its token (`agent-token revoke <name>`; a role's token is the owner's to end), then you make `back` to `ready` with the reason. The issue is then `ready`: the writer you spawn makes the second `start` with its own token, which replaces `issue.by.start`, and it alone submits. Two more moves. A submit by any token but the last starter's is refused 403. |
    | `in-progress`, started by you (`secret:orch-…`: a quick win, or work on the owner's word), sent back | **A quick win of your own, sent back.** Do the round yourself and submit: no more moves. Or hand it over: you make `back`, the writer you spawn makes `start` and then submits. Two more moves. Your own token is not ended, so after the `back` the policy no longer refuses you a review of that issue: "You review nothing yourself" is what holds. (Submits 622, 935 and 1002 were a writer's on an issue you had started; each answered 200 because both were one token.) |
    | kind `project` or `feature`, at `spec`, no agent running | **A spec sent back.** With `waiter` on its entry of the queue, nothing: its spec writer waited for the review and takes the round itself (step 2, "A writer that waits"). Else send the round to the spec writer by message, as a writer of a task is sent one (the `agent` and `session` of its last run, `issue-as.sh <your token> "runs?id=<id>&role=spec-writer"`; `agents/spec.md`, "A resumed round"). When it cannot be sent one, or it died: you end its token and make `back` from `spec` to `open`; the spec writer you spawn makes `spec` with its own token (key `spec/<id>/spec-<round>`), which replaces `issue.by.spec`, and then `submit-spec`. Two more moves. |
    | `in-progress`, the change is landed, and its writer finished with no `submit` | **A submit made for a writer.** Ask the writer to submit, by message, when it can be sent one. Else you end its token, make `back`, make `start` with your own token, and submit with the refs: the starter is then you, and the review is a reviewer's. Two more moves. (Submit 516 was yours for a writer's start.) |
    | labeled `digest`, opened by `worker:brain-x-snapshot` (`opener` in `get?id=`), at `open` | When several are open, the newest is the one written: `reject` each older one with the reason `covered by digest-<newest day>`, and comment on the newest with the days it covers. Then `triage` and `ready` it, the reason "the day's digest, opened by the snapshot's run"; the three questions of Triage are not asked. |
-   | labeled `post-mortem`, at `open` | Triage it by its one question ("A post mortem", below): `issue-as.sh <your token> "list?label=post-mortem&limit=100"`, and when another of that list is of the same thing, link this one to it as `duplicate` and `close` it. Else `triage`, then `ready`. Never a quick win of yours: your open, your spawn and your comment for him are steps of its trace (in the first, events 4246 and 4344). |
-   | labeled `post-mortem`, at `ready` | Spawn the implementer, with the prompt of step 4 and nothing added: no line of what you think went wrong. It follows "A post mortem" in `agents/implementer.md`. When it has passed its review and its writer has reported, see that its actions are filed ("A post mortem", below). |
+   | labeled `post-mortem`, at `open` | Triage it by its one question ("A post mortem" of `agents/orchestrator.md`): `issue-as.sh <your token> "list?label=post-mortem&limit=100"`, and when another of that list is of the same thing, link this one to it as `duplicate` and `close` it. Else `triage`, then `ready`. Never a quick win of yours: your open, your spawn and your comment for him are steps of its trace (in the first, events 4246 and 4344). |
+   | labeled `post-mortem`, at `ready` | Spawn the implementer, with the prompt of step 4 and nothing added: no line of what you think went wrong. It follows "A post mortem" in `agents/implementer.md`. When it has passed its review and its writer has reported, see that its actions are filed ("A post mortem" of `agents/orchestrator.md`). |
    | `open`, kind `feedback` | Nothing, but for one case: it is the owner's ("The owner's", above), asks for a change, and has no tie, or each of its ties is at `done` or `closed`, and none of that finished work made the change. Its ties are its parent and its links either way, but for a `related` link whose other end is itself a feedback issue at `open`: that link says two reports are of one thing, and no work is under way for either. Then `promote` it, `issue-as.sh <your token> swap '{"key":"orch/<id>/promote","id":"<id>","swap":"promote","reason":"…"}'`, and triage it in the same pass. When a finished tie did make the change, close it with the commit or the line of the record that did in the reason: `issue-as.sh <your token> move '{"key":"orch/<id>/close-done","id":"<id>","to":"closed","reason":"…"}'`. A promoted issue keeps the kind `feedback` and is on the task workflow from then on (`workflow` in `get?id=` is the task's): it is taken by the rows for a task, this row no longer. One of his with a tie at any other state is not promoted, since the work it is tied to is already under way and a second task would do it twice (`philosophy.md`, line 2: the smaller side); it comes to this row when that work has ended. Who closes the ones that are not his: the overseer, each oversight, closes such a feedback issue when it has a tie and every tie is at `done` or `closed` (`agents/overseer.md`, "Feedback that is due"). `bun tools/cloud-brain/issue-stats.ts --token=<your token>` prints both lists, `feedback due to be closed, not the owner's` and `feedback of the owner's with no tie, or each tie done or closed, to promote or to close`, each row with its ties and their states; the second is this row's. Feedback is filed by agents for anything that seems off against `philosophy.md` (Tom, 2026-10-11: "only feedback so we can identify patterns and check before writing a solution"), and the overseer reads it together. It is not counted as work waiting. (Until `feedback-closed-or-promoted`, 2026-10-11, nothing closed one: 51 were at `open` at event 2745, 25 of them tied only to work that was `done` or `closed`. The owner: "Why are the feedback ones not being done?" Until `owners-feedback-held-by-related-links`, 2026-10-12, one of his was promoted only when it "has no parent and no link either way", and one whose ties had ended was the overseer's, to close or to leave with a comment. At event 4295 two of his had waited at `open` 21 hours so: `health-chart-not-useful-remove`, with a `related` link to a project that was `done` and had not removed the chart, and two `related` links from notes at `open`; and `services-chart-near-the-top`, whose one tie was its own `related` link to that note. `tools/cloud-brain/records/owners-feedback-held-by-related-links.md`.) |
    | Anything else: `in-review` with a review and no move after it, a state or a starter no row above names | Comment with what you see, label `needs-owner`, and say so in step 7. |
 
@@ -623,7 +644,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    approver's verdict is named with the verdict's first two lines (`plan/cloud-brain-approver-persona.md`, part 5).
    One whose approver has not reported is named in one line, as waiting for its approver, with no letters and no pick:
    it is not put to him as a choice before the verdict (step 3, the row), and he may approve it as before.
-   Then the post mortems ("A post mortem", below), each said once, in the pass that first reads it so: one that has
+   Then the post mortems ("A post mortem" of `agents/orchestrator.md`), each said once, in the pass that first reads it so: one that has
    reached `done`, with its cause in the sentence its file has under `## The root cause` and its actions by id, or its
    "None"; one that a later post mortem names again; one with an action at `rejected`; and, when you have declared
    more post mortems than the record has events of the one case you declare for, that, with both numbers.
@@ -764,36 +785,6 @@ resumed writer passes its second review more often than a new one (7 of the 9 ro
 readable in the journal on 2026-10-11 asked for changes again). The overseer compares the
 resumed runs with the later rounds that are not (`runs?role=implementer&how=resumed&round=later`, and `how=fresh`) once there are some.
 
-## A quick win
-
-> In force on cb4 since the owner installed the policy of 2026-10-11 (event 483).
-
-Tom, 2026-10-11: "if an agent has spare context left and it already knows how to fix an issue it
-should jsut do it as a quick win while it is there." That is said of every agent, you among them.
-Triage has you read the issue and the code; sometimes you then hold the whole fix, and spawning a
-writer to find it again was 167,000 tokens at the least on 2026-10-10. Take it yourself when the
-fix is in a brief, a doc, a record or a local tool, is one change, and needs no seed built and no
-deploy: `start` from `open` with your own token and the reason triage would have given, make the change in your own worktree (`bm-orch-<host>`, step 1),
-write its record (`tools/cloud-brain/records/<id>.md`, as `agents/implementer.md` step 9 says; a
-change to a doc alone has one too: reviews 642, 645 and 686 each sent a quick win of yours back
-with "no record" among the findings),
-land it by a push from that worktree under the landing lock (`LOCK_TOKEN=<your token> lock.sh take land <who>`, `agents/implementer.md` step 10), `submit` with the commit. Any submit of your own, a quick win or work
-a session did on the owner's word, is sent after the push and after the lock is released: one
-`commit` ref for each commit the landing added, read then with `git log`, and a `deploy` ref
-(`<worker>@<hash>`) for each thing put on cb4; and it has its record first, as above. (Submit 1042
-named another issue's HEAD, sent while the lock was held; reviews 1032 and 1052 of
-`dv-4-owner-install-and-shell` each sent back a submit with no deploy ref, the first with no
-record.) It has a test count from a run of your own too, as a writer's submit has (`rules.md`, Never, the last
-item): a change to a doc alone, your edit of `philosophy.md` on the standing leave among them, gets a test file
-under `tests/tools` that reads the doc and fails on the text of before, and the submit gives the count and the
-command. (Review 4830 sent `philosophy-one-role-for-one-job` back for this alone: your submit 4814 said "No
-deploy, no test run (prose in one file", the text was right, and the round cost a second review and the bug
-`philosophy-test-no-skip-without-clone` of the test written for round 2, which failed where `cloud-brain-dev` is
-empty: a test that reads a file of the submodule skips there, with a `skipped:` line.)
-The review is a reviewer's as for any issue.
-Anything in a seed goes to a writer. A writer does the same for what it meets beside its issue
-(`agents/implementer.md`, "A quick win"); a reviewer does not (it would be the writer).
-
 ## Links, and projects
 
 > In force on cb4 since the owner installed the policy of 2026-10-11 (event 483).
@@ -828,145 +819,6 @@ the owner one Bluesky message and submits (`agents/digest.md`, step 8). A review
 follows "A digest" in `agents/reviewer.md`. First pass over one: 2026-10-11, `digest-2026-10-11`,
 whose writer stopped before publishing under the rules of that morning; the reviewer's section
 has not been run.
-
-## A post mortem
-
-Since `pm-2-brief-and-procedure` (2026-10-12; task 2 of `plan/cloud-brain-post-mortems-declared-and-kept.md`, which
-was approved for the owner at event 4737 on his "4 A" of comment 4736). The owner, 2026-10-12, of a spec he had
-sent back after its review had passed it: "We need this to be a general mechnism, declare a post mortem to prevent
-someting from never happening again", and in his next message: "no you don;t do it, file
-issues to create a post mortem task, the loop itself should do the post mortem and decide next actions. These
-post mortems should be files for future reference somewhere."
-
-**What one is.** An issue of kind `task`, id `pm-<short>`, labeled `post-mortem`, with one link
-`{id: pm-<short>, to: <the issue it is of>, rel: "cause"}`. Its body has what is examined (the issue, the events,
-the commit), the words of whoever asked, and pointers to where the trace starts. It names no cause: the writer
-finds it, and one that was told what to find confirms it. The label says which part of the brief, as `digest`
-says which brief: a writer follows "A post mortem" in `agents/implementer.md`, and writes
-`tools/cloud-brain/post-mortems/<id>.md`, which the Brain's search answers as `doc:<id>`. Two exist as this is
-written: `pm-second-summarizer-role`, `done`, written before this section and not labeled yet (you label it when
-this task is done: the body of `pm-2-brief-and-procedure`), and `pm-approver-leaves-everything`, declared by the
-owner through a session at event 4906, labeled, and at `open`.
-
-**Who declares one.** Two, and nobody else.
-
-- **The owner**, through any session on his word. The session puts `owner` beside `post-mortem` in `labels` and
-  quotes him, whole, in the body.
-- **You, with no word of his, in one case: he undid work that had passed a review.** That is one of three moves
-  made with his session (`by.via` is `session`; the watch of step 8 prints the line with `OWNER`): his `send-back`
-  of a spec; his `owner-reject` of an issue that has a `reviewed` event with the verdict `pass`; his `revert`.
-  You open it in the pass that reads the event, with your own token and without the label `owner`, after
-  `list?label=post-mortem&limit=100` has shown none of the same thing. The open's body is a file of the scratchpad
-  (`agents/implementer.md`, "The tracker's write calls"),
-  `{"key":"orch/pm-<short>/open","id":"pm-<short>","kind":"task","labels":["post-mortem"],"title":"Post mortem: …","body":"…"}`:
-  ```
-  issue-as.sh <your token> open @<file>
-  issue-as.sh <your token> link '{"key":"orch/pm-<short>/cause","id":"pm-<short>","to":"<the issue it is of>","rel":"cause"}'
-  ```
-  The body quotes his reason for the move with its event, and says "I give no cause here", as the body of
-  `pm-second-summarizer-role` does. The record had 1 such move in its first 2.4 days (the
-  `send-back` of event 4434; no `owner-reject` and no `revert`, as the spec counted its first 4,493 events).
-  First post mortem declared by you: not yet, when this was written.
-
-An agent that sees something off files feedback, as before (`philosophy.md`, "If You See Something, Say
-Something"), the overseer among them. Not a case: a reviewer's `changes` (75 `rework` and `respec` moves in those
-2.4 days, which is the review working), a failed test, a put-back by the deployer (it opens its `fix-tests-…`
-issue), a line of Never crossed (filed as feedback, as `seen-never-crossed-on-chat-word` was). When you have
-declared more than the record has such moves, step 7 says so to him.
-
-**Triage of one** asks one question in place of the three of "Triage": does a post mortem of the same thing exist
-(`issue-as.sh <your token> "list?label=post-mortem&limit=100"`, each with its `cause` link)? Then
-`issue-as.sh <your token> link '{"key":"orch/<id>/duplicate","id":"<id>","to":"<the one that exists>","rel":"duplicate"}'`
-and `close` it with that id as the reason. Else `triage`, then `ready`, and step 3 gives it a writer.
-
-**Its writer and its review.** An implementer, spawned as step 4 has it: the four lines, and nothing of what you
-think went wrong. Never you, as a quick win or otherwise. It lands one file with no deploy, attaches it to the
-issue, and submits. The review is a reviewer's as for any issue at `in-review`; the part "A post mortem" of its
-brief is task 3 of the spec (`pm-3-reviewer-brief`) and was not on the Brain when this was written; it is since
-2026-10-12 23:02 CEST, the put of that task.
-
-**The actions are filed at `done`.** The file lists them under `## Next actions`, 3 at most, or says "None". The
-writer waits for its review (`agents/implementer.md`, step 13) and after the `pass` opens each as an issue of its
-own, linked `{id: <action>, to: pm-<short>, rel: "cause"}`, and gives the ids in its report. So a post mortem at
-`done` whose writer has reported has as many `cause` links to it (`linked` of `get?id=pm-<short>`, the entries
-with `"rel":"cause"`) as its file has actions, before step 7 tells the owner of it. When it has fewer (the
-writer's run ended, or it reported with no `pass` read), you open the ones that lack from the file, as written
-there: the title, the kind, a body that quotes the file's cause and names the file, `"labels":["major"]` on one
-that changes `rules.md`, `philosophy.md` or who may do what, then the `cause` link; each is then triaged as any
-issue. You do not choose between them and you add none. Since `post-mortem-actions-prefer-guards` (2026-10-12; the
-owner: "generally fixes are better as guards") the file's table has a column `Held by` for each action, one of
-`guard`, `workflow`, `refusal`, `test`, `observability`, `text`, which `tests/tools/post-mortems.test.ts` holds:
-a `guard` or a `workflow` row changes the installed policy, so it is opened `major` and is his to install, and
-the body you write for it has that row whole. A file whose cause is "Not found" has an `observability` action
-and no "None". (`pm-second-summarizer-role` filed its three before its
-review, linked `related`; their `cause` links are events 4909 to 4911, made by the writer of this section, and
-`linked` there has three with `"rel":"cause"`.)
-
-**Known later.** `issue-stats.ts` prints one block, `post mortems`, with a row for each: its state, the issue
-it is of, its actions with their states, and `named again by`, each later post mortem with a `related` link to it.
-Its first line is `post mortems   <n>: <done> done, <open> not done`, and its last has the two numbers step 7 asks
-for: the post mortems with no label `owner`, which are the ones you declared, and the events of the one case you
-declare for (each `send-back`, each `owner-reject` of an issue a review had passed, each `revert`), with their seqs.
-(Since `pm-4-stats-block`, 2026-10-12, task 4 of the spec; until then the same was read from
-`list?label=post-mortem&limit=100` and `get?id=` of each.) Step 7 says what of it the owner is told.
-
-**The read after three.** When three post mortems are at `done` (the block's first line) and no issue `pm-read-after-three` exists, open it: a `task`, linked `related` to
-`post-mortems-declared-and-kept`, no part of that project. A read, no build. For each of the three: did the review
-send it back, and for which of its four questions; what became of its actions; was it answered to a later search
-(the comments of later writers name what they searched and used); did the overseer act on the block. What it
-finds is a comment on `post-mortems-declared-and-kept` and, where a brief is at fault, a task, `major` when the
-brief is the overseer's.
-
-## Triage
-
-Done by you with your own token, every `open` issue in a pass, and also while an agent
-runs: triage builds nothing. (Until 2026-10-10 18:43 it was one a pass and never beside an agent;
-five issues then sat `open` for two hours behind three reviews of one.) Read the issue and enough of the
-code to answer three questions, then write the answers as the `reason` of the move.
-A time you write in an issue's body, a comment or a reason is read from `date` or an event's
-`at`, never estimated (2026-10-10: a body said "23:30" and a comment "23:33", written at 23:24:45 and 23:25:04).
-
-1. Is it real? A duplicate, test data, or something that is already so is `reject`ed with the
-   reason and the id of what it duplicates. So is a defect nobody has met: found by reading the
-   code, never reproduced, with no case where it cost anything. The owner rejected two of those
-   on 2026-10-10 ("Need more evidence this is a problem before fixing", "wait until real issue").
-   Say in the reason what evidence would reopen it.
-2. What does `philosophy.md` say to do? **Decide it.** Choose the side that is smaller and
-   easier to undo, name the line of the seven you decided by in the move's reason with what the
-   other side was, and send it to `ready`. The owner reads the reason and can reject. This
-   holds for a choice about the loop's own rules and tools as much as for a choice inside a
-   service. (At the stop on 2026-10-10, 12 of 14 open issues waited for the owner, and he said
-   the label "should really be about changing or clarifying philosophy".)
-   - An issue that is one of several with a common cause is not sent to `ready` alone: link it,
-     and leave the gathering to the overseer (below, "Links, and projects").
-   - `needs-owner`, left at `triaged`: only when the seven do not answer it, when two of them
-     pull apart with a real cost on each side, or when the issue proposes to change one of them
-     or a line of `rules.md`. The comment is written as `rules.md`, "What the owner is asked to decide", has it: what its project is for, what it is, whether it is live, the one flaw, a line a choice, the pick. (Until `owner-decisions-written-dense`, 2026-10-12: "in the form `philosophy.md` gives", the longer order of 2026-10-11.)
-   - Also `needs-owner`, until the owner changes `rules.md`: the change needs something only he
-     may do (a policy install, a new secret, a deletion of kept data). Decide from the seven
-     whether it should be done, and comment with the plan and the one command or word he would
-     give. Do not ask him which side. A token that an approved spec names is not such a secret:
-     you make it ("A token an approved spec names", below).
-   - Not `needs-owner` for its deploy alone: a fix in the seed of the kernel, the core, the
-     database or the deployer. It goes to `ready` as any issue does, and its writer lands the
-     seed with no deploy (`rules.md`, Never, the line of the four; `agents/implementer.md`,
-     step 3). The deploy is still the owner's. The labels of the paragraph after these three
-     questions are added as for any change: a fix there that alters who may do what is `major`
-     and waits under `needs-owner` with its plan. (Since `never-list-three-reductions`,
-     2026-10-13. Until then a deploy of one of the four was in the list of the item above, and
-     such an issue was left at `triaged`.)
-3. Is it one change? More than one becomes subtasks (`open` with `parent`), and the parent goes
-   to `ready` when they are closed. More than a handful, or a change of design: it is a `project`.
-
-An issue labeled `post-mortem` is asked one question in place of the three: whether a post mortem of the same
-thing exists ("A post mortem", above).
-
-Anything else: `triage`, then `ready`. Add the labels `major` and `needs-owner` when the change
-alters who may do what, deletes or rewrites kept data, or changes a method other callers use,
-and comment with the plan, written as `rules.md`, "What the owner is asked to decide", has it. The owner takes `needs-owner` off to let it be built, or answers and you take it off (`rules.md`, Never, the `needs-owner` line). The approval
-after review is then of a change that is already deployed and pushed, since a submit needs its
-refs; the plan is where the owner stops it. Add `security` and take the `escalate` swap when the body describes a
-way past an access rule; the issue is then the owner's.
 
 ## A token an approved spec names
 

@@ -579,6 +579,37 @@ the six items or adds to them. The header of `loop.ts` is the reference.
   `since` of the entry; `orch/<id>/covered`, `orch/<id>/covers`, `orch/<id>/triage-<since>` for a
   digest; `orch/<id>/back/<token>/<seq>` as `resume` has it.
 
+As built (`st-4-orchestrator-brief`, 2026-10-13; `tools/cloud-brain/records/st-4-orchestrator-brief.md`),
+where it differs from item 5 or adds to it. No judgment run had been started with a model when this was
+written.
+
+- The step makes the run's token (`agent-token orch judgment:<issue>`) and writes the `given` comments,
+  then runs `loop.ts start [<issue>] --role orchestrator --token <token> --give "<do> <id> (event <at>); …"`,
+  with `<issue>` the first entry's. The prompt is the four lines of the other roles, its third
+  `Entries: <do> <id> (event <at>); …`: the run needs `<at>` for the key of its verdict.
+- The entries of a step are one run's, started at the step's end. "A second such process is not started
+  while one runs" is read from the files of `runs/` of this machine: a run of the role `orchestrator`
+  that is not ended and whose process lives. The entries of that step are then in `skipped`, with no
+  comment, and are due at the next step.
+- A start that failed after the comments were written (no worktree, origin not reached) is written as a
+  run that died: a `cost` event `stopped` with the token, which is ended. So the entry is given once
+  more, and after a second such start it is under "The judgment run died twice".
+- `ended` gives a judgment run the outcome `done`, or `stopped` with no result or with a result that
+  was an error (`runs/<token>.exit` is 1): the second is the spec's "with `is_error` in its result".
+- The cluster not healthy, given alone, is a run on no issue: it has the file and no `cost` event, as
+  an overseer's, and its report is in `_judgment.md` of the journal. One is started at each step that
+  finds the cluster so and no judgment run running.
+- A verdict `left` is in `status.md` with its first line, under "What a session with the owner is asked
+  to do": it is how a judgment run says that an act with the owner's session is due (part 5).
+- The brief. Three sections were moved whole ("Triage", "A quick win", "A post mortem"), and two texts
+  out of rows of step 3, under headings the brief gives them: what the row `decompose` does, and of the
+  row of an issue sent back, from "Do not" to its end, which has the judgment at 3 `rework` moves.
+  "The comment for the owner" is no section of `SKILL.md`: its form is `rules.md`, "What the owner is
+  asked to decide", the sentences that send to it are in "Triage", and step 7 is a session's (part 5)
+  and stays. The rows of `promote`, `look`, `answer` and `asks` were not named by this part and stay in
+  `SKILL.md`: the brief names each by its first cell, to be read with `grep`. `dead` and the cluster not
+  healthy had no text in `SKILL.md`; the brief has a section for each, written from the table above.
+
 **Why a wake cannot be lost.** The step does not act on a wake. It acts on the queue and the runs.
 A note such as "EACH WAKE: read fly-1-by-hand" has no place to be kept and no place to be lost:
 a thing a step must see is a row of this table over a fact of the record, or it is not seen by

@@ -1,14 +1,15 @@
 // tools/cloud-brain/loop.ts step (st-3-step; plan/cloud-brain-orchestrator-as-steps.md, part 3): a test a row of the
 // step's table, the R6 checks, health, what stops a start, the files. The tracker is a stand-in served here, called
 // through the real issue-as.sh; worktree.sh, brain.ts, lock.sh, uptime and loop.ts's own start, resume and ended are
-// stand-ins that log what they were given (the last test runs the real start and ended). git is the real one, on
-// scratch repositories.
+// stand-ins that log what they were given (the last tests run the real start and ended). git is the real one, on
+// scratch repositories. Since st-4-orchestrator-brief the entries a step gives are the task of one judgment run, which
+// the step starts: the tests from "the judgment run" on.
 import { afterAll, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { givenKey, judged, verdictKey } from "../../tools/cloud-brain/loop.ts";
+import { givenKey, judged, judgmentRound, outcomeOf, verdictKey } from "../../tools/cloud-brain/loop.ts";
 
 const tool = resolve(import.meta.dir, "../../tools/cloud-brain/loop.ts");
 const RIG = mkdtempSync(join(tmpdir(), "loop-step-test-")), ROOT = join(RIG, "root"), DEV = join(ROOT, "cloud-brain-dev"), STATE = join(RIG, "state"), LOOP = join(STATE, "issue-loop"), RUNS = join(LOOP, "runs");
@@ -34,6 +35,7 @@ case "$1" in
   --list) cat "$RIG/wt-list" 2>/dev/null;;
   --remove) if [ -f "$RIG/wt-refuse-$2" ] && [ "$3" != "--force" ]; then echo "not clean" >&2; exit 3; fi;;
   --at) mkdir -p "$RIG/root/.claude/worktrees/bm-$3"; echo "$RIG/root/.claude/worktrees/bm-$3";;
+  --fresh) if [ -f "$RIG/wt-fresh-exit" ]; then echo "another token is in it" >&2; exit "$(cat "$RIG/wt-fresh-exit")"; fi; mkdir -p "$RIG/root/.claude/worktrees/bm-$2"; echo "$RIG/root/.claude/worktrees/bm-$2";;
 esac
 exit 0
 `);
@@ -64,6 +66,7 @@ case "$1" in
 esac
 `);
 const AGENT = script("agent.sh", `#!/bin/bash
+printf '%s\\n' "WORK=$WORK" "$@" >> "$RIG/agent.log"
 while [ -f "$RIG/agent-hold" ]; do sleep 0.1; done
 echo '{"session":"s","result":"the report","usd":1.5,"usage":{},"context":4242,"turns":3,"ms":61400,"legs":1}'
 `);
@@ -132,7 +135,9 @@ const cli = async (args: string[], env: Record<string, string> = {}) => {
   return { code, out, err, line, status: out.split("\n").slice(1).join("\n") };
 };
 const step = (env: Record<string, string> = {}) => cli(["step"], env), dry = () => cli(["step", "--dry"]);
-const acts = (line: any) => line.acts.map((a: Ev) => [a.act, a.id, a.role].filter(Boolean).join(" "));
+// The acts of a step but the start of its judgment run, which `judgment` reads: each test of a row names its own.
+const acts = (line: any) => line.acts.filter((a: Ev) => a.role !== "orchestrator").map((a: Ev) => [a.act, a.id, a.role].filter(Boolean).join(" "));
+const judgment = (line: any) => line.acts.filter((a: Ev) => a.role === "orchestrator");
 const gave = (line: any) => line.given.map((x: Ev) => `${x.do} ${x.id} ${x.at}`);
 const skipped = (line: any) => line.skipped.map((x: Ev) => `${x.do} ${x.id}`);
 const writes = () => T.calls.filter((c) => c.body);
@@ -161,7 +166,7 @@ test("judged: an entry is given once, a verdict is its first word, and with none
   expect(judged([c(givenKey("a", "round", 7), "given round at 7 to no run: a judgment run is started from st-4-orchestrator-brief on")], "a", "round", 7, run("stopped"))).toBe("no-run");
 });
 
-test("health: a Worker that is not `same` or not at its hash, or a lock cb4 did not say, and nothing is started; it is given at each such step with no comment", async () => {
+test("health: a Worker that is not `same` or not at its hash, or a lock cb4 did not say, and no agent of an issue is started; it is given at each such step with no comment, to a judgment run on no issue", async () => {
   fresh();
   open("a", { state: "in-review" }); Q("a", "review");
   let r = await dry();
@@ -171,8 +176,8 @@ test("health: a Worker that is not `same` or not at its hash, or a lock cb4 did 
   T.calls = [];
   for (const n of [1, 2]) {
     r = await step();
-    expect([r.code, r.line.health, r.line.acts, r.line.given]).toEqual([0, { ok: false, failed: ["redistil: brain-x-issues is changes"] }, [], [{ do: "unhealthy", failed: ["redistil: brain-x-issues is changes"] }]]);
-    expect([lines().length, log("self"), writes()]).toEqual([n, [], []]);
+    expect([r.code, r.line.health, r.line.acts, r.line.given]).toEqual([0, { ok: false, failed: ["redistil: brain-x-issues is changes"] }, [{ act: "start", role: "orchestrator", entries: 1, exit: 0, token: "orch-0a0a0a" }], [{ do: "unhealthy", failed: ["redistil: brain-x-issues is changes"] }]]);
+    expect([lines().length, log("self"), writes()]).toEqual([n, Array(n).fill("start --role orchestrator --token orch-0a0a0a --give unhealthy (redistil: brain-x-issues is changes)"), []]);
   }
   expect(status()).toContain("- not healthy: redistil: brain-x-issues is changes");
   // One read says the token is answered; no issue and no list was read, and the line has no seq.
@@ -316,7 +321,7 @@ test("`review`: a reviewer is started, also beside a running writer; none beside
   let r = await dry();
   expect([acts(r.line), gave(r.line), r.line.skipped]).toEqual([["start a reviewer", "start d reviewer"], [`dead c ${dead.seq}`], [{ id: "b", do: "review", why: "a reviewer of it runs" }]]);
   r = await step();
-  expect(log("self")).toEqual(["start a --role reviewer", "start d --role reviewer"]);
+  expect(log("self")).toEqual(["start a --role reviewer", "start d --role reviewer", `start c --role orchestrator --token orch-0a0a0a --give dead c (event ${dead.seq})`]);
   expect(r.line.acts[0]).toEqual({ act: "start", id: "a", role: "reviewer", exit: 0, token: "tok-new" });
   expect(events("c", "commented").map((e) => e.key)).toEqual([`orch/c/given-dead-${dead.seq}`]);
   // With `go-on` for the last of the dead runs, one run more; when that one dies the count has a later event.
@@ -339,7 +344,7 @@ test("`round`: `resume` for the role of the issue; nothing with a waiter or a ru
   open("g", { kind: "project", state: "open" }); mv("g", "spec", "spec", "spec-aaaaaa"); mv("g", "submit-spec", "spec-review", "spec-aaaaaa"); mv("g", "respec", "spec"); cost("g", { role: "spec-writer", outcome: "changes", token: "spec-aaaaaa" }); Q("g", "round");
   worked("h", 2, "dig-aaaaaa", { labels: ["digest"] }); cost("h", { role: "digest", outcome: "changes", token: "dig-aaaaaa" }); Q("h", "round");
   const r = await step();
-  expect(log("self")).toEqual(["resume a --role implementer", "resume e --role implementer", "resume g --role spec-writer", "resume h --role digest"]);
+  expect(log("self")).toEqual(["resume a --role implementer", "resume e --role implementer", "resume g --role spec-writer", "resume h --role digest", `start f --role orchestrator --token orch-0a0a0a --give dead f (event ${dead.seq})`]);
   expect(r.line.acts[0]).toEqual({ act: "resume", id: "a", role: "implementer", exit: 0, token: "impl-aaaaaa" });
   expect(gave(r.line)).toEqual([`dead f ${dead.seq}`]);
   expect(r.line.skipped).toEqual([{ id: "b", do: "round", why: "its writer waits for the review and takes the round itself" }, { id: "c", do: "round", why: "a writer of it runs and takes the round itself" },
@@ -356,11 +361,12 @@ test("`round` at 3 `rework` moves is given once; with `go-on` it is a resume; af
   const at3 = last(events("a", "moved")).seq;
   let r = await step();
   expect([acts(r.line), r.line.given]).toEqual([["resume b implementer"], [{ id: "a", do: "round", at: at3, key: `orch/a/given-round-${at3}`, event: last(events("a")).seq }]]);
-  expect(last(events("a", "commented")).body).toBe(`given round at ${at3} to no run: a judgment run is started from st-4-orchestrator-brief on`);
+  expect(last(events("a", "commented")).body).toBe(`given round at ${at3} to orch-0a0a0a, its run on a`);
+  expect([judgment(r.line), last(log("self")), log("brain").filter((l) => /^agent-token/.test(l))]).toEqual([[{ act: "start", id: "a", role: "orchestrator", entries: 1, exit: 0, token: "orch-0a0a0a" }], `start a --role orchestrator --token orch-0a0a0a --give round a (event ${at3})`, ["agent-token orch judgment:a"]]);
   expect(status()).toContain(`## Given to the judgment at this step\n\n- round a (event ${at3})`);
   r = await step();
-  expect([acts(r.line), r.line.given, events("a", "commented").length]).toEqual([["resume b implementer"], [], 1]);
-  expect(status()).toContain(`no judgment run reads it (none is started until st-4)\n\n- round a (event ${at3})`);
+  // The comment names a run, which has no event yet: it is taken to run, and the entry is given to no second.
+  expect([acts(r.line), judgment(r.line), r.line.given, events("a", "commented").length]).toEqual([["resume b implementer"], [], [], 1]);
   note("a", `orch/a/verdict-round-${at3}`, "go-on\neach review closed what the one before found");
   r = await step();
   expect([acts(r.line), r.line.given]).toEqual([["resume a implementer", "resume b implementer"], []]);
@@ -393,7 +399,8 @@ test("labeled `needs-owner`: nothing until the owner has written after the label
   expect(status()).toContain("## What waits for the owner\n\n- a (in-progress, a round, labeled needs-owner)\n- b (triaged)\n- s (triaged)\n- o (triaged)\n");
   const his = note("a", "page/a/1", "do the smaller one", "owner", "session"), out = note("b", "out/b/1", "he said: go on", "out-5f56b2"), atOpen = note("o", "page/o/1", "yes", "owner", "session");
   r = await step();
-  expect([r.line.acts, gave(r.line)]).toEqual([[], [`answer a ${his.seq}`, `answer b ${out.seq}`, `answer o ${atOpen.seq}`]]);
+  expect([acts(r.line), judgment(r.line).map((a: Ev) => [a.id, a.entries]), gave(r.line)]).toEqual([[], [["a", 3]], [`answer a ${his.seq}`, `answer b ${out.seq}`, `answer o ${atOpen.seq}`]]);
+  expect(["a", "b", "o"].map((id) => last(events(id, "commented")).body)).toEqual([`given answer at ${his.seq} to orch-0a0a0a, its run on a`, `given answer at ${out.seq} to orch-0a0a0a, its run on a`, `given answer at ${atOpen.seq} to orch-0a0a0a, its run on a`]);
   expect((await step()).line.given).toEqual([]);
   note("a", `orch/a/verdict-answer-${his.seq}`, "not-answered");
   note("a", "impl/a/x", "a comment of an agent");
@@ -431,7 +438,7 @@ test("`start` and `spec`: an implementer, a digest writer with the label, a spec
   open("h"); cost("h", { role: "digest", outcome: "running", token: "dig-bbbbbb", agent: "otherhost:1" }); Q("h", "start");
   open("m"); Q("m", "merge");
   const r = await step();
-  expect(log("self")).toEqual(["start a --role implementer", "start b --role digest", "start c --role spec-writer", "start f --role implementer"]);
+  expect(log("self")).toEqual(["start a --role implementer", "start b --role digest", "start c --role spec-writer", "start f --role implementer", `start d --role orchestrator --token orch-0a0a0a --give dead d (event ${dd.seq}); dead e (event ${de.seq})`]);
   expect(gave(r.line)).toEqual([`dead d ${dd.seq}`, `dead e ${de.seq}`]);
   expect(r.line.skipped).toEqual([{ id: "m", do: "merge", why: "no row of the step's table names it" }, { id: "h", do: "start", why: "a writer of it runs" }]);
 });
@@ -446,7 +453,7 @@ test("in `waiting` for the owner at `awaiting-approval`: an approver is started 
   waits("e"); cost("e", { role: "approver", outcome: "stopped", token: "appr-cccccc" }); const dead = cost("e", { role: "approver", outcome: "stopped", token: "appr-dddddd" });
   waits("f"); mv("f", "send-back", "in-progress"); mv("f", "submit", "in-review", "impl-aaaaaa"); mv("f", "pass", "awaiting-approval", "rev-aaaaaa"); note("f", "approver/f/verdict-1", "approver: approve\nwhy", "appr-aaaaaa");
   const r = await step();
-  expect(log("self")).toEqual(["start a --role approver", "start f --role approver"]);
+  expect(log("self")).toEqual(["start a --role approver", "start f --role approver", `start e --role orchestrator --token orch-0a0a0a --give dead e (event ${dead.seq})`]);
   expect([gave(r.line), r.line.skipped]).toEqual([[`dead e ${dead.seq}`], [{ id: "d", do: "approve", why: "an approver of it runs" }]]);
   expect(status()).toContain("## What waits for the owner\n\n- a (awaiting-approval)\n- b (awaiting-approval)\n- c (awaiting-approval)\n- d (awaiting-approval)\n- e (awaiting-approval)\n- f (awaiting-approval)\n");
 });
@@ -481,7 +488,7 @@ test("a digest the snapshot opened: each older one is rejected as covered by the
   for (const day of ["2026-10-11", "2026-10-12", "2026-10-10"]) { open("digest-" + day, { state: "open", labels: ["digest"], opener: "worker:brain-x-snapshot" }); Q("digest-" + day, "triage", { since: 77 }); }
   open("digest-by-hand", { state: "open", labels: ["digest"], opener: "delegation:d1" }); Q("digest-by-hand", "triage");
   let r = await dry();
-  expect([r.line.acts, gave(r.line), writes()]).toEqual([[{ act: "reject", id: "digest-2026-10-10" }, { act: "reject", id: "digest-2026-10-11" }, { act: "digest", id: "digest-2026-10-12", covers: ["digest-2026-10-10", "digest-2026-10-11"] }], [`triage digest-by-hand ${at("digest-by-hand").events[0].seq}`], []]);
+  expect([r.line.acts, gave(r.line), writes()]).toEqual([[{ act: "reject", id: "digest-2026-10-10" }, { act: "reject", id: "digest-2026-10-11" }, { act: "digest", id: "digest-2026-10-12", covers: ["digest-2026-10-10", "digest-2026-10-11"] }, { act: "start", id: "digest-by-hand", role: "orchestrator", entries: 1 }], [`triage digest-by-hand ${at("digest-by-hand").events[0].seq}`], []]);
   r = await step();
   expect(["digest-2026-10-10", "digest-2026-10-11", "digest-2026-10-12", "digest-by-hand"].map((id) => at(id).issue.state)).toEqual(["rejected", "rejected", "ready", "open"]);
   expect(events("digest-2026-10-11", "moved")[0]).toMatchObject({ key: "orch/digest-2026-10-11/covered", to: "rejected", reason: "covered by digest-2026-10-12" });
@@ -685,4 +692,105 @@ test("with the real start and ended: a review entry starts a reviewer whose run 
   rmSync(join(RIG, "agent-hold"));
   await until(() => file("rev-0a0a0a")?.ended);
   expect(at("a").issue.runs[0].outcome).toBe("stopped");
+});
+
+// ---- st-4-orchestrator-brief: the step starts the judgment run
+test("the judgment run: its round is one more than the runs of that role the issue has, and it ends `done`, or `stopped` with no result or with one that was an error", () => {
+  expect([judgmentRound([]), judgmentRound(undefined as any), judgmentRound([{ role: "implementer", round: 4 }]), judgmentRound([{ role: "orchestrator", round: 1 }, { role: "orchestrator", round: 3 }, { role: "reviewer", round: 9 }])]).toEqual([1, 1, 1, 4]);
+  const run = { id: "a", role: "orchestrator", round: 1, token: "orch-bbbbbb" };
+  expect([outcomeOf(run, [], true), outcomeOf(run, [], true, true), outcomeOf(run, [], false)]).toEqual([{ outcome: "done" }, { outcome: "stopped" }, { outcome: "stopped" }]);
+});
+
+test("the judgment run, with the real start and ended: the entries of a step are given to one run by its token, a second is not started while it runs, and it is ended `done`", async () => {
+  fresh();
+  writeFileSync(TOKENS, JSON.stringify({ [ME]: "v-" + ME, "impl-aaaaaa": "v-impl-aaaaaa", "orch-0a0a0a": "v-orch-0a0a0a" }));
+  open("a", { state: "open" }); Q("a", "triage");
+  worked("b", 4); cost("b", { role: "implementer", round: 3, outcome: "changes" }); Q("b", "round");
+  const sa = at("a").events[0].seq, sb = last(events("b", "moved")).seq, tree = join(ROOT, ".claude/worktrees/bm-orch-" + HOST);
+  flag("agent-hold");
+  let r = await step({ LOOP_SELF: "" });
+  expect(r.line.acts).toEqual([{ act: "start", id: "b", role: "orchestrator", entries: 2, exit: 0, token: "orch-0a0a0a" }]);
+  expect(r.line.given.map((x: Ev) => [x.do, x.id, x.at, x.key, x.event > 0])).toEqual([["round", "b", sb, `orch/b/given-round-${sb}`, true], ["triage", "a", sa, `orch/a/given-triage-${sa}`, true]]);
+  expect(["a", "b"].map((id) => last(events(id, "commented")))).toMatchObject([{ body: `given triage at ${sa} to orch-0a0a0a, its run on b`, by: { holder: "secret:" + ME } }, { body: `given round at ${sb} to orch-0a0a0a, its run on b` }]);
+  // The comments are before the run's event, which is on the first of its issues, with a round of its own.
+  const f = file("orch-0a0a0a"), running = last(events("b", "cost"));
+  expect(running).toMatchObject({ key: "cost/b/orchestrator/1/orch-0a0a0a", role: "orchestrator", round: 1, outcome: "running", how: "fresh", token: "orch-0a0a0a", session: f.session, agent: `${HOST}:${f.pid}` });
+  expect(running.seq).toBeGreaterThan(last(events("a", "commented")).seq);
+  expect(f).toMatchObject({ id: "b", role: "orchestrator", round: 1, made: true, tree: "orch-" + HOST, path: tree, as: ME });
+  expect(events("a", "cost")).toEqual([]);
+  expect(log("worktree").filter((l) => /--fresh/.test(l))).toEqual([`--fresh orch-${HOST} --for orch-0a0a0a`]);
+  expect(log("brain").filter((l) => /^agent-token/.test(l))).toEqual(["agent-token orch judgment:b"]);
+  // The process: started in the worktree, with the four lines, the third the entries.
+  await until(() => existsSync(join(RIG, "agent.log")));
+  expect(readFileSync(join(RIG, "agent.log"), "utf8")).toBe([`WORK=${tree}`, "orchestrator", `Working directory: ${tree}.`, `Read ${tree}/.claude/skills/brain-maintenance/agents/orchestrator.md and follow it.`, `Entries: round b (event ${sb}); triage a (event ${sa})`, "Your token is orch-0a0a0a.", ""].join("\n"));
+  // While it runs: a new entry is not given and has no comment, and the two are not given again.
+  open("c", { state: "open" }); Q("c", "triage");
+  r = await step({ LOOP_SELF: "" });
+  expect([r.line.acts, r.line.given, r.line.skipped, events("c", "commented")]).toEqual([[], [], [{ id: "c", do: "triage", why: "a judgment run runs (orch-0a0a0a)" }], []]);
+  expect(status()).toContain(`- orchestrator of b, round 1, token orch-0a0a0a, ${HOST}:${f.pid}`);
+  expect((await dry()).line).toMatchObject({ acts: [], given: [], skipped: [{ id: "c", do: "triage", why: "a judgment run runs (orch-0a0a0a)" }] });
+  // It returns: ended `done`, its token ended, the worktree left, the report in the journal of the issue its event is on.
+  rmSync(join(RIG, "agent-hold"));
+  await until(() => file("orch-0a0a0a")?.ended);
+  expect(file("orch-0a0a0a").ended).toMatchObject({ outcome: "done", token: "ended" });
+  expect(last(events("b", "cost"))).toMatchObject({ key: "cost/b/orchestrator/1/orch-0a0a0a/end", outcome: "done", seconds: 61, context: 4242 });
+  expect([log("brain").filter((l) => /revoke/.test(l)), log("worktree").filter((l) => /--leave/.test(l))]).toEqual([["agent-token revoke orch-0a0a0a"], [`--leave orch-${HOST}`]]);
+  expect(readFileSync(join(LOOP, "b.md"), "utf8")).toMatch(/\n## orchestrator round 1 \(fresh, loop\.ts\), ended .*outcome done, token orch-0a0a0a.*\n\nthe report\n/);
+  // It left both as they were, with no verdict: neither is given again, and the status has them for a session.
+  rmSync(join(RIG, "agent.log"));
+  r = await step({ LOOP_SELF: "" });
+  expect(gave(r.line)).toEqual([`triage c ${at("c").events[0].seq}`]);
+  expect(status()).toContain(`## Judged and left as it was\n\n- round b (event ${sb})\n- triage a (event ${sa})\n`);
+  // The run of c is on c, round 1; a second judgment run on b would be its round 2.
+  await until(() => file("orch-0a0a0a")?.ended && file("orch-0a0a0a").id === "c");
+  expect([last(events("c", "cost")).key, judgmentRound(at("b").issue.runs)]).toEqual(["cost/c/orchestrator/1/orch-0a0a0a/end", 2]);
+  // A verdict `left` is in the status with its reason, for a session with the owner.
+  note("a", verdictKey("a", "triage", sa), "left: a session with the owner makes the token loop-x\nmore");
+  await step({ LOOP_SELF: "" });
+  expect(status()).toContain(`## What a session with the owner is asked to do\n\n- triage a (event ${sa}): left by the judgment: a session with the owner makes the token loop-x\n`);
+  expect(status()).toContain(`## Judged and left as it was\n\n- round b (event ${sb})\n- triage c (`);
+});
+
+test("the judgment run: a start that failed is written as a run that died, its token ended, and the entry is given once more and then is in the status", async () => {
+  fresh();
+  open("a", { state: "open" }); Q("a", "triage"); const sa = at("a").events[0].seq;
+  flag("self-exit-start", "1");
+  let r = await step();
+  expect(r.line.acts).toEqual([{ act: "start", id: "a", role: "orchestrator", entries: 1, exit: 1, token: "orch-0a0a0a", said: "loop.ts: refused", revoke: "ended", event: last(events("a")).seq }]);
+  expect(events("a").slice(1).map((e) => [e.type, e.key, e.outcome || e.body])).toEqual([["commented", `orch/a/given-triage-${sa}`, `given triage at ${sa} to orch-0a0a0a, its run on a`], ["cost", "cost/a/orchestrator/1/orch-0a0a0a/end", "stopped"]]);
+  expect(log("brain").filter((l) => /^agent-token/.test(l))).toEqual(["agent-token orch judgment:a", "agent-token revoke orch-0a0a0a"]);
+  r = await step();
+  expect(r.line.given.map((x: Ev) => x.key)).toEqual([`orch/a/given-triage-${sa}-2`]);
+  expect(last(events("a", "cost"))).toMatchObject({ key: "cost/a/orchestrator/2/orch-0a0a0a/end", round: 2, outcome: "stopped" });
+  r = await step();
+  expect([r.line.acts, r.line.given]).toEqual([[], []]);
+  expect(status()).toContain(`## The judgment run died twice\n\n- triage a (event ${sa})\n`);
+  // No token: nothing is given and no comment is written; the entry is due at the next step.
+  fresh();
+  open("a", { state: "open" }); Q("a", "triage");
+  r = await step({ LOOP_BRAIN: "bash " + script("brain-none.sh", "#!/bin/bash\ncase \"$1\" in redistil) printf 'distiller abc\\n  brain-x-issues      same  aaaaaaaaaaaa\\n';; state) echo '{\"workers\":[]}';; *) echo 'no token loop-agents' >&2; exit 1;; esac\n") });
+  expect([r.line.acts, r.line.given, r.line.skipped, events("a", "commented"), log("self")]).toEqual([[{ act: "start", id: "a", role: "orchestrator", entries: 1, exit: 1, said: "agent-token made no token: no token loop-agents" }], [], [{ id: "a", do: "triage", why: "agent-token made no token for the judgment run" }], [], []]);
+});
+
+test("start --role orchestrator: it takes --token and --give and no other role takes --give; a worktree another token is in is exit 1 with nothing left; with no issue it has the file and no event", async () => {
+  fresh();
+  writeFileSync(TOKENS, JSON.stringify({ [ME]: "v-" + ME, "orch-0a0a0a": "v-orch-0a0a0a" }));
+  open("a", { state: "open" });
+  const start = (...a: string[]) => cli(["start", ...a]);
+  let r = await start("a", "--role", "orchestrator", "--give", "triage a (event 1)");
+  expect([r.code, r.err.trim()]).toEqual([2, "loop.ts: a judgment run is started by `step`, which makes its token and names it in the `given` comments before the run: --token <t>"]);
+  for (const a of [["a", "--role", "orchestrator", "--token", "orch-0a0a0a"], ["a", "--role", "reviewer", "--give", "triage a (event 1)"]]) expect([(await start(...a)).code, (await start(...a)).err.trim()]).toEqual([2, "loop.ts: --give is the entries of a judgment run, and --role orchestrator has it"]);
+  expect([writes(), existsSync(RUNS) ? readdirSync(RUNS) : [], log("worktree")]).toEqual([[], [], []]);
+  // Another token is in the worktree: the token is ended, no file and no event are left.
+  flag("wt-fresh-exit", "4");
+  r = await start("a", "--role", "orchestrator", "--token", "orch-0a0a0a", "--give", "triage a (event 1)");
+  expect([r.code, r.err.trim(), writes(), existsSync(RUNS) ? readdirSync(RUNS).filter((f) => f.endsWith(".json")) : [], log("brain")]).toEqual([1, `loop.ts: worktree.sh --fresh orch-${HOST}: exit 4 another token is in it; the token orch-0a0a0a is ended`, [], [], ["agent-token revoke orch-0a0a0a"]]);
+  rmSync(join(RIG, "wt-fresh-exit"));
+  // A cluster that is not healthy is all it was given: no issue, so no event, and its report is in _judgment.md.
+  r = await start("--role", "orchestrator", "--token", "orch-0a0a0a", "--give", "unhealthy (redistil: brain-x-issues is changes)");
+  expect([r.code, r.line]).toMatchObject([0, { started: "orch-0a0a0a", id: "", role: "orchestrator", round: 1, tree: "orch-" + HOST }]);
+  expect([r.line.event, r.line.key]).toEqual([undefined, undefined]);
+  await until(() => file("orch-0a0a0a")?.ended);
+  expect([file("orch-0a0a0a").ended.outcome, writes(), readFileSync(join(RIG, "agent.log"), "utf8").split("\n")[4]]).toEqual(["done", [], "Entries: unhealthy (redistil: brain-x-issues is changes)"]);
+  expect(readFileSync(join(LOOP, "_judgment.md"), "utf8")).toContain("outcome done, token orch-0a0a0a");
 });
