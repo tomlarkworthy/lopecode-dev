@@ -219,6 +219,9 @@ document when you mend a note in it ("What holds a change, and what is a note", 
    effect. Make that read yourself, with a token that may, and report what it answered beside the writer's count
    (`dsv-7-second-dashboard-as-data`, review 3342: the writer's brief, `rules.md` and the spec each named another count, and
    this step had no case for it).
+   A task that is both, an act on cb4 and a change to a local tool or a doc, gets both: the read of the act and the
+   tests of the change (`sd-4-the-rest-and-the-release-line`, review 6339: 49 puts on cb4 and a change to two tools; the
+   reviewer did both and said the step had a line for each and none for the two together).
    `bun test ./tests/tools` is run in your view, with the `./` (the whole suite as `tests/tools/suite.sh` when the view has that file: four workers, and
    `.claude/skills/brain-maintenance/agents/implementer.md` step 6 has what it took); since `tests-tools-fail-in-a-fresh-worktree`
    (lopecode-dev 5e7e04a1) a checkout that lacks a submodule or a build gives skips and no fail, each named by
@@ -324,6 +327,10 @@ document when you mend a note in it ("What holds a change, and what is a note", 
    tried, and each of those is true. The record need not hold the deploy hash or the commits:
    those are the refs of the submit.
 7. **Record the verdict.**
+   Before you write it, get the issue again (the command of step 1) and read each event after the `submit`: a writer may
+   comment after it, and that comment is not in the file of step 1 (`sd-4-the-rest-and-the-release-line`: the submit is
+   event 6312 and the writer's comment 6318, 3 min 46 s later, has what the landing's release printed and 52 of 52
+   where the submit has 49; the reviewer found it at a second `get` and asked for this line).
    `ir review '{"key":"rev/<id>/<round>","id":"<id>","verdict":"pass|changes|block","body":"…"}'`.
    The body lists what holds the change, each with the command that shows it, then the notes (those you
    mended with their commits), then what you ran and what you did not. A time in the body, in a reason or in a ticket is the output of `date`, of
