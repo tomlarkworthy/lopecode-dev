@@ -1,6 +1,6 @@
 md`# brain-dashboard
 
-A Cloud Brain recipe: metrics read from the lines this Brain's Workers already log. A metric is a definition that names a Worker, the \`at\` of its lines, a numeric field to add up (or none: the lines are counted) and the fields a query may group or filter by. Nothing is added to the Worker that writes the lines. The metrics of the Brain's own Workers are a value of this module; a member's are rows of this service. Since 2026-10-13 the service also has a \`tail\` function that writes a point to Cloudflare Analytics Engine for each such line, and a setting \`engine\` that names the metrics answered from there (The metrics store, below; in the seed, on no Brain when written). A dashboard is data: a name, a title and a list of panels, each naming a metric and how it is drawn. The select and the panels under this text draw one dashboard for the owner; the methods are under them. Design: \`plan/cloud-brain-dashboard-service.md\`.`
+A Cloud Brain recipe: metrics read from the lines this Brain's Workers already log. A metric is a definition that names a Worker, the \`at\` of its lines, a numeric field to add up (or none: the lines are counted) and the fields a query may group or filter by. Nothing is added to the Worker that writes the lines. The metrics of the Brain's own Workers are a value of this module; a member's are rows of this service. Since 2026-10-13 the service also has a \`tail\` function that writes a point to Cloudflare Analytics Engine for each such line, and a setting \`engine\` that names the metrics answered from there (The metrics store, below; cb4 runs the function since 2026-10-13 08:41 CEST). A dashboard is data: a name, a title and a list of panels, each naming a metric and how it is drawn. The select and the panels under this text draw one dashboard for the owner; the methods are under them. Design: \`plan/cloud-brain-dashboard-service.md\`.`
 // %%
 // navigate and not location.hash: a forked page (blob:) drops an assigned hash. The layout reads the same hash and
 // keeps a pair it does not know.
@@ -112,7 +112,7 @@ Each 7-day answer was made from a sample and was one query, as the service then 
 
 ## The metrics store
 
-Written 2026-10-13: stage 2 of \`plan/cloud-brain-dashboard-service.md\` ("Stage 2, his ingestion"). It is in the seed and in the tests of this module. When this was written it ran on no Brain, and this service had written no point to Cloudflare and read none. With the setting \`engine\` unset, \`metric.query\` is answered from the logs as above and nothing of this section is asked of Cloudflare.
+Written 2026-10-13: stage 2 of \`plan/cloud-brain-dashboard-service.md\` ("Stage 2, his ingestion"). It is in the seed and in the tests of this module. When this was written it ran on no Brain, and this service had written no point to Cloudflare and read none. Since 2026-10-13 08:41 CEST cb4 runs it, with the setting \`engine\` left unset at that deploy; the record of the deploy, with the points its writer read in \`cb4_metrics\`, is \`tools/cloud-brain/records/ds-ingestion-tail-to-analytics-engine.md\`. With the setting \`engine\` unset, \`metric.query\` is answered from the logs as above and nothing of this section is asked of Cloudflare.
 
 **The tail.** The service has a \`tail\` function. The deployer names this Worker in \`tail_consumers\` of every other Worker it uploads while the dashboard's row says \`tail\` (brain-deployer, \`tailConsumers\`), and Cloudflare then calls the function with the log lines of each of their invocations. The Worker of an event is read from its script name (\`tailWorker\`): the base name alone is \`brain\`, \`BASE-core\` is \`brain-core\`, \`BASE-x-NAME\` and \`BASE-m-ID-NAME\` the same way, and the deployer's script, read from the address the deployer binds as \`deployer\`, is \`brain-deployer\`. A line counts when its first message is an object, or text that parses as one, and its \`at\` is that of a definition over that Worker: one of the table above, or a member's kept one over a Worker of that member. A member's definitions are read from the rows only for a call that holds an event of a member's Worker, and are then kept in the instance's memory for 60 s; a \`metric.put\` or \`metric.delete\` answered by the same instance drops the copy. For each line that counts, one point is written to the Brain's dataset with the \`analytics\` cell (the binding \`METRICS\`; the dataset is \`BASE_metrics\`, \`cb4_metrics\` for cb4):
 
@@ -1822,7 +1822,10 @@ test_dashboard_declares_two_cloudflare_permissions_its_rows_and_its_tail = {
   // The metrics store: what the index holds and why, what is measured and what is not, and the setting.
   expect(source.reference).toContain("## The metrics store\n\nWritten 2026-10-13");
   expect(source.reference).toContain('{ index: "core.calls/brain-x-inbox/inbox.poll/200",');
-  expect(source.reference).toContain("the count of every breakdown was exact and the sum of the value was within 3%");
+  // ds-ingestion-tail-to-analytics-engine, review 6248: the sentence is the measurement's, of the 5 Workers its script kept.
+  expect(source.reference).toContain("the count by Worker was exact and the sum of the value was within 4.2%, for the 5 of 20 Workers the script kept");
+  for (const gone of ["the count of every breakdown was exact", "within 3%"]) expect(source.reference).not.toContain(gone);
+  expect(source.reference).toContain("Since 2026-10-13 08:41 CEST cb4 runs it");
   expect(source.reference).toContain("A point was readable 35 to 70 s after its line.");
   expect(source.reference).toContain("read as `config.engine ?? []`");
   expect(source.reference).toContain("Cloudflare takes " + tailLimits.points + " points from one invocation.");

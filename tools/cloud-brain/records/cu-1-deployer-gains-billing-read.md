@@ -31,8 +31,9 @@ Commit lopecode-dev@f763fd8a, two files:
 
 The reviewer read the diff against the spec's list: "the five places are changed and no other" (review 5848).
 
-Since 2026-10-13, in the seed and not on a Brain: the list has a fifth group, for stage 2 of
-`plan/cloud-brain-dashboard-service.md`, and is
+Since 2026-10-13 the list has a fifth group, for stage 2 of `plan/cloud-brain-dashboard-service.md`, in the seed
+and, from 08:41 CEST that day, in the deployer cb4 runs, `14f0fb7dd89d`
+(`tools/cloud-brain/records/ds-ingestion-tail-to-analytics-engine.md`, "The deploy"). It is
 `["Workers Observability Read", "Workers AI Read", "Artifacts Write", "Billing Read", "Account Analytics Read"]`.
 `tests/tools/cu-1-record.test.ts` reads the seed's list in this file, so the line is here.
 

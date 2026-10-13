@@ -328,7 +328,9 @@ address as `dashboard=NAME`, one more pair of the hash that `notebookHtml` alrea
 
 ### Stage 2, his ingestion (R2): designed, not built by the loop
 
-(As built in the seeds, 2026-10-13, by a session with the owner and on no Brain that day: the index is the metric's
+(As built in the seeds, 2026-10-13, by a session with the owner, and deployed on cb4 by that session from 08:41 CEST
+that day with the read not switched, the setting `engine` unset
+(`tools/cloud-brain/records/ds-ingestion-tail-to-analytics-engine.md`): the index is the metric's
 name and every dimension's value, not the name alone, and the read is `WHERE blob1 = NAME`. Cloudflare samples by
 index, and with the name alone a count by a dimension was wrong at every rate tried. "The metrics store" of
 `tools/cloud-brain/brain-dashboard.ojs` is the record; the two lines below are the design as it was written.)

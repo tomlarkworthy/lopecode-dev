@@ -128,3 +128,76 @@ starting `tail.` (`tail.failed`, `tail.dropped`, `tail.throw`) from 06:42 to 07:
   `redistil --apply`. The older `ensureLogs` does not clear `tail_consumers`, so each script would keep its list
   until a PATCH with an empty one.
 - The scratch dataset `cb_scratch_metrics` is left on the account; the scratch Workers are deleted.
+
+## Round 2, 2026-10-13: the test holds the prose's sentence
+
+Written by a writer of the loop (`impl-37b8db`), who was not in the session above, after review 6248. Times are
+CEST from `date` and from `logs.deploys`.
+
+**What the review held.** lopecode-dev@6cb3f2f8 changed the sentence of the measurement in "The metrics store" of
+`brain-dashboard.ojs` (4.2% for the 5 of 20 Workers kept, where it had said 3% of every breakdown) and not the test
+that holds it. At `origin/main` 5130491d, before any edit, after this round's start (event 6253) and before 09:23:01:
+
+```
+bun tools/cloud-brain/build.ts --out …, then in cloud-brain-dev: bun test.ts brain-x-dashboard --with <the built module>
+17 passed, 1 failed, 4 need a browser    FAIL test_dashboard_declares_two_cloudflare_permissions_its_rows_and_its_tail
+```
+
+**Which side was mended.** The test. The prose's sentence was read against the output it is of,
+`measure-5.jsonl` of `tools/scratch/cloud-brain-experiments/ae-measure/` in the main checkout: 5 Workers in its
+`compare` line, each `n` 150 where 150 were sent, and the sum furthest off is `brain-x-w6`, 42,540 read of 44,400
+sent, which is 4.2%. The test now expects that sentence, and expects "the count of every breakdown was exact" and
+"within 3%" to be gone.
+
+**Five sentences said stage 2 ran on no Brain.** The review named three and left them for this round. Before the
+edits, `git grep -n -F -e 'on no Brain' -e 'not on a Brain' -e 'not minted by any'` over `knowledge`,
+`plan/cloud-brain-*.md`, the loop's skill, `tools/cloud-brain/*.md`, the records and the seeds printed 7 lines: the
+three, two in the dashboard's own prose, and two of other changes that are left as they are
+(`brain-deployer.ojs`, of `shell/verify.html`, "not on a Brain until its owner installs this deployer";
+`spec-as-built.md`, of a self-test).
+
+| Text | It said | It says |
+|---|---|---|
+| `plan/cloud-brain-dashboard-service.md`, "Stage 2" | "on no Brain that day" | deployed on cb4 by that session from 08:41 CEST, the read not switched |
+| `records/cu-1-deployer-gains-billing-read.md` | the fifth group is "in the seed and not on a Brain" | in the seed and in the deployer cb4 runs, `14f0fb7dd89d` |
+| `running-a-cloud-brain.md`, the line of the groups | "not minted by any deployer" | cb4's deployer has the group and minted the dashboard's token with it, as this record has it |
+| `brain-dashboard.ojs`, "The metrics store" | "When this was written it ran on no Brain" | the same, then "Since 2026-10-13 08:41 CEST cb4 runs it, with the setting `engine` left unset at that deploy", and where this record is |
+| `brain-dashboard.ojs`, its first paragraph | "in the seed, on no Brain when written" | "cb4 runs the function since 2026-10-13 08:41 CEST" |
+
+What of these was seen in this round, and where: `logs.deploys` (token `loop-deploys`, read 09:23) has
+`deploy.reason` of the dashboard by the deployer `14f0fb7d…` at 06:41:33 UTC, `deploy.uploaded` of `61d5d747…` at
+06:41:40 UTC and `deploy.verified` with `tests: 22` at 06:41:53 UTC, and 22 lines `deploy.tail`;
+`cloud-brain-dev/deploy/@tomlarkworthy/brain-deployer.js`, read from cb4 by the worktree's rebase before that run, has
+`GROUPS` with `Account Analytics Read` as its fifth; `metric.query?metric=deploys.confirmed&by=target` with
+`loop-dashboard` answered with no `store`, which an `engine` that names other metrics would also give.
+That the setting was unset at the deploy, the mint (`token.mint`, 08:41:45) and the points of `cb4_metrics` are the
+first section's and comment 6164's, and were not read in this round.
+
+**Tests.** After the last edit of the seed:
+
+```
+bun test.ts brain-x-dashboard --with <the built module>      18 passed, 0 failed, 4 need a browser
+bun tools/cloud-brain/tab-tests.ts … @tomlarkworthy/brain-dashboard      22 tests, 22 passed
+bun tools/cloud-brain/verify-run.ts brain-x-dashboard --shell <the build> --times 20      runs 20, passed 20, byChance [], from ["document"]
+bun test --timeout=30000 ./tests/tools/ds-ingestion-texts.test.ts      3 pass, 0 fail; with the four files as they were at 5130491d: 0 pass, 3 fail
+tests/tools/suite.sh      1113 pass, 0 fail, 114 files (ended 09:29:44, before this line was written)
+```
+
+`tests/tools/ds-ingestion-texts.test.ts` is new: the sentence the dashboard's test expects stands twice in the seed
+(the test and the prose), the three phrases the review named are gone from their files, each of the three files
+names this record, and the seed has no "on no Brain when written".
+
+**The deploy.** A changed `test_*` cell moves the Worker's hash, so this round's landing deploys
+`brain-x-dashboard`: the test, the two sentences changed in the prose, and the prose of 6cb3f2f8, which was on `main` and
+not deployed. No function of the service is changed. The hash and what the deployer answered are in the submit and
+its comment.
+
+**Not tried, not known.**
+
+- Nothing under "Not tried, not known" above was run in this round: `engine` is still unset, and no read was made
+  from the dataset.
+- No test enters the branch of `brain.ts` `install-deployer` that sets the deployer's own `tail_consumers` (a note
+  of review 6248). None was added: it is a call to Cloudflare with the deployer's key, and `brain.ts` has no fake
+  for it.
+- The new test file reads sentences. It does not show that a text is true, only that these phrases are gone and
+  the new ones stand.
