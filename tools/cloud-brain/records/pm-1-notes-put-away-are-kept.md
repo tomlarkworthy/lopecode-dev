@@ -4,7 +4,7 @@ Task 1 of 2 of `page-modifications-how-they-are-kept`: the spec is
 `plan/cloud-brain-page-modifications-how-they-are-kept.md`, and the owner chose its pick A, "the put-away set is
 kept in this browser" (the issue's body: event 6993 and comment 6997, 2026-10-13).
 
-Written 2026-10-13 by a writer of the issue loop (`impl-be664f`), round 1, from 21:27 to 21:52 CEST. One seed,
+Written 2026-10-13 by a writer of the issue loop (`impl-be664f`), round 1, from 21:27:12 CEST (the `date` after the claim) to the suite's end at 21:51:43 CEST. One seed,
 `tools/cloud-brain/brain-feedback.ojs`, one tool that reads and prints, and one test file. No Worker's module
 changed and nothing was deployed. **cb4 does not run it until the shell is posted**, which is the act of a session
 the owner is in, after the review (`rules.md`, "Two standing leaves of a session the owner is in").
@@ -122,8 +122,8 @@ Counts, each after the last change to the seed:
 Two test cells are new, and one is changed (`test_feedback_is_off_away_from_the_owners_page` reads the cell
 `feedbackAway` where `feedback` is null).
 
-Each new line taken out in turn, the seed built, `tab-tests.ts` run, the line put back (the first ten in a run
-ending 21:32:05 CEST, the last two after):
+Each new line taken out in turn, the seed built, `tab-tests.ts` run, the line put back (ten in a run
+ending 21:32:05 CEST; the draw at Show again after its new case, and the catch, after that run):
 
 | Line taken out | Result |
 |---|---|
@@ -160,8 +160,10 @@ title and the state on one row.
 
 The address in the seed's first cell, on the built file: a one-off Playwright script opened
 `cloud-brain.html#open=@tomlarkworthy/brain-feedback#feedbackAway`, and after 12 s the pane of `brain-feedback`
-was open and the cell's sentence was in the view, at `top: 875` of a window 900 high. On a file the shell's
-own layout has other panes than the owner's page.
+was open and the cell's sentence was in the view, at `top: 875` of a window 900 high: in view at its lower edge,
+which is what the seed's first cell says of the address ("with the cell in view").
+`knowledge/links-to-cells-in-a-lopepage-notebook.md` has the form, `#open=@a/doc#cellName`. On a file the
+shell's own layout has other panes than the owner's page.
 
 ## Not tried
 
@@ -177,3 +179,6 @@ own layout has other panes than the owner's page.
   the one caller.
 - A narrow pane: the row is a flex line and was seen at 1300 px wide.
 - A note put away, shown, and its issue done in the same ask.
+- A `localStorage` that reads and does not write (a full quota), where `feedbackKept.set` fails with nothing
+  thrown. Read in the code and not run: Show's ask would place the note, the item would still have the id, and
+  the next ask would hide it again. The test's refusing copy throws on both.
