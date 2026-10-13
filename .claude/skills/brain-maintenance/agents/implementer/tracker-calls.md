@@ -16,8 +16,10 @@ Each is `ia <call> '<json>'`, and each takes a `key`. The shapes, from the track
 | `move` | `{ key, id, to, reason, refs }` |
 
 A body with an apostrophe, or of more than a few lines, is written to a file in the scratchpad (the
-Write tool) and sent with `@`: `ia comment @<scratchpad>/<token>-comment.json`. The scratchpad is one
-directory for every agent of the session, so each file you write there begins with your token: on
+Write tool) and sent with `@`: `ia comment @<scratchpad>/<token>-comment.json`. The scratchpad is the
+directory your prompt's `scratch:` line names, which is of your run alone (since
+`loop-started-run-is-told-no-scratchpad`, 2026-10-13). With no such line it is the session's, one
+directory for every agent of the session. Each file you write there begins with your token in both: on
 2026-10-12 a writer's call sent another writer's `comment.json` and `submit.json` with its own token
 (`wt-4-reviewer-in-a-view`; both keys were used already, so nothing was written). An apostrophe ends the quoting
 of an inline `'<json>'` and zsh sends nothing; a body over ARG_MAX (1048576 bytes here) is "argument
