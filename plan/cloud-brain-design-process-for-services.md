@@ -124,8 +124,8 @@ All on 2026-10-13, in the worktree at `daaf51ae` or on cb4.
 - **R3.** Three ideas that differ in what the person does, each made without sight of the others.
 - **R4.** Each idea is a drawing he opens in the cluster, at an address.
 - **R5.** He picks before a spec is written, and nothing is built before he picks.
-- **R6.** It holds for every project with a face, and the writer says in the record which it took the
-  project for.
+- **R6.** It holds for every project with a face, and the writer says in a comment on the project
+  which it took the project for.
 - **R7.** What a round costs is measured on one project before the briefs are changed.
 - **R8.** Nothing is made beside a thing that has the same job.
 
@@ -146,7 +146,8 @@ existing guide, by him, and that is no part of this spec. D stays as it is.
 ## The design of A: the design round
 
 A project "has a face" when it adds or changes something a person looks at. The spec writer decides
-at step 2 of its brief and says which in the reason of a comment; with no face, the brief is as today.
+at step 2 of its brief and says which, with why, in a comment on the project
+(keyed `spec/<id>/face`); with no face, the brief is as today.
 
 With a face, before step 5:
 
@@ -169,20 +170,29 @@ With a face, before step 5:
    `states` (`{ state: "idea A", drawing: "artboard_a", … }`), the sections of a spec that a sheet has
    no use for deleted from the seed, as that skill says. The seed is committed as
    `plan/design/<id>.ojs`; the built file is not committed.
-6. **Published** with `library.put?name=design-<id>` as `loop-library`, not public, so that it opens
-   for him at `https://cb4.endpointservices.workers.dev/library/design-<id>` and for nobody else.
+6. **Published** with `library.put?name=design-<id>&public=true` as `loop-library`, as a digest is, at
+   `https://cb4.endpointservices.workers.dev/library/design-<id>`. Public is a reading of this writer,
+   not his words: a notebook that is not public opens for the owner alone (`brain-library.ojs`,
+   "Anyone for a public one, the owner for any"), so neither the writer nor a reviewer could see
+   whether the page draws. A grey drawing with a panel's labels has what the service's method
+   reference has, which anyone reads. He says otherwise at ds-2, for the rounds after the trial.
 7. **Asked.** One comment on the project, in the form of `rules.md`, "What the owner is asked to
    decide": what the project is for, the need in a sentence, the address, a line a letter for the
    ideas, the writer's pick, and that he may name several or parts. Then the label `needs-owner`.
    The writer's run ends there, with the project at `spec`.
-8. **After his word**, the round is the spec writer's. The spec's "What was asked" quotes his pick,
+8. **After his word**, the round is the spec writer's, by the path step 1 of `agents/spec.md` has
+   today: the writer that made `spec` is sent the round when it can be; when it cannot (its token
+   ends at 48 hours), the orchestrator makes `back`, and a new writer makes `spec` with the key
+   `spec/<id>/spec-<round>` and goes on from the sheet and his pick. The label is taken off by
+   `rules.md`, Never, "the owner has commented on the issue and clarified". The spec's "What was asked" quotes his pick,
    the picked wireframe's seed cell is named in the spec, and each task that draws a part of the
    face names the part of the wireframe it draws.
 
 What is not known of it, and what the trial is for: whether a notebook of that template opens from
 the library under the header a token's put is served with (the digests do; no spec notebook was
 tried); what the page opens on, since the build writes a `file://` address with panes for pairing;
-what a round costs; and what the driver's judgment does at his answer.
+what a round costs; and whether the driver's judgment at his answer (`judge(id, "answer", …)`) takes
+that path with no line added to `agents/orchestrator.md`.
 
 ## Not chosen
 
@@ -224,9 +234,9 @@ Each by an agent with its own token. Run before this submit where it can be; sai
 |---|---|---|
 | R1, R2, R3 | After ds-3: `bun test tests/tools/spec-brief-design-round.test.ts`, which reads `agents/spec.md` for the round's items by their words, as `tests/tools/spec-brief-names-what-exists.test.ts` does for step 5 | not run: the test is written in ds-3. The two tests of the brief that exist ran 7 pass, 0 fail on 2026-10-13 |
 | R3, R4 | After ds-1: `bun tools/lope-reader.ts <built file> --get-module @spec/design-agentic-dashboards` has three cells `artboard_a`, `artboard_b`, `artboard_c` and three rows of `states` | the same read of a probe with two renamed drawings printed `state: "idea A", drawing: "artboard_a"` and `state: "idea B", drawing: "artboard_b"`, 2026-10-13; the probe was removed |
-| R4 | After ds-1: the answer of the `library.put` has `"sandboxed":true` and the `sha256` of the built file (`shasum -a 256`) | not run: a put writes to cb4, and this run builds nothing. Whether the page draws there is seen by the writer of ds-1 in a QA tab opened on a copy served with the same header, and by him at the address; an agent's token does not read a notebook that is not public |
+| R4 | After ds-1: the answer of the `library.put` has `"sandboxed":true` and the `sha256` of the built file (`shasum -a 256`); and a QA tab opened with no session on `https://cb4.endpointservices.workers.dev/library/design-agentic-dashboards` has three `svg` elements under the module's cells, counted by a script of the record and closed by name | not run: a put writes to cb4, and this run builds nothing. The digest's count at such an address is made the same way (`tools/cloud-brain/digests/count.ts`) |
 | R5 | After ds-2: `ia "get?id=agentic-dashboards"` has an event of his after the comment of the sheet; after ds-3 the test above holds the words "nothing is built" and the label | not run |
-| R6 | After ds-3: the test holds the sentence that the writer says which it took the project for | not run |
+| R6 | After ds-3: the test holds the sentence that the writer says which it took the project for, and the key `spec/<id>/face` | not run |
 | R7 | After ds-1: its record has the tokens and the seconds of the run, from the `cost` events of `ia "get?id=ds-1-pilot-sheet"` | not run |
 | R8 | `grep -c "designer" .claude/skills/brain-maintenance/agents/*.md` is 0 after ds-3, and `ls tools/cloud-brain/*.ts \| wc -l` is what it was before it | run 2026-10-13: 0 in each of the seven files, and 30 |
 
@@ -240,7 +250,7 @@ Each by an agent with its own token. Run before this submit where it can be; sai
   reads the spec of `agentic-dashboards` if one is landed and does not draw from it: the three ideas
   come from the needs.
 - **`ds-2-owner-pick`.** After ds-1-pilot-sheet.
-  The owner's: he opens the sheet, says which ideas he takes for `agentic-dashboards`, and says whether the round is to be made for every project with a face.
+  The owner's: he opens the sheet, says which ideas he takes for `agentic-dashboards`, says whether the round is to be made for every project with a face, and says whether a sheet is public.
 - **`ds-3-brief-and-rules`.** After ds-2-owner-pick. With his yes: `agents/spec.md` gets the round
   as steps, changed by what ds-1's record found; `.claude/skills/spec/SKILL.md` a paragraph on a
   sheet; `rules.md`, "Publishing a notebook", the sentence on `design-<id>`; `agents/orchestrator.md`
@@ -255,7 +265,7 @@ Each by an agent with its own token. Run before this submit where it can be; sai
 
 ## What only the owner can do
 
-- `ds-2-owner-pick`: his pick from the pilot sheet, and his word on the round.
+- `ds-2-owner-pick`: his pick from the pilot sheet, his word on the round, and whether a sheet is public.
 - The approval of ds-3, which changes `rules.md`.
 - Whether the spec of `agentic-dashboards`, which another writer (`spec-4608e3`) began at 19:21 UTC
   on 2026-10-13, waits for ds-2. This writer would have it wait: approved first, it is one design
