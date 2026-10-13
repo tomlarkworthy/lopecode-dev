@@ -36,7 +36,10 @@ What a resumed round does that a first round does not:
   That diff begins at your submit, and you read your brief at your start, before it. What the brief
   and its pages gained since then:
   `git -C $W log --since=<the at of your start move> --format='%h %s' origin/main -- .claude/skills/brain-maintenance/agents`
-  names each commit, and `git -C $W show <h> -- <the file>` is what one changed in a file you follow
+  names each commit, and `git -C $W show <h> -- <the file>` is what one changed in a file you follow.
+  The `at` is given as a date, `2026-10-13T19:01:20Z`, which is how `ia "get?id=<id>" --short` prints it:
+  with no `--short` it is milliseconds since 1970, and with that number git prints no line and no
+  error, which reads as "nothing changed"
   (since `fb-batch-role-briefs`, 2026-10-13; `seen-briefs-change-under-a-writer`, comment 4827: a
   resumed spec writer, "a resumed writer is not told its brief changed").
   `philosophy.md` is in the clone, which the rebase put at the commit `origin/main` records:

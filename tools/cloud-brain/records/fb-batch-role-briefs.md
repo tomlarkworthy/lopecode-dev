@@ -86,7 +86,7 @@ git -C $W log --since=<the at of your start move> --format='%h %s' origin/main -
 
 (`spec` for `start` in `agents/spec.md`). Run in this worktree with the `at` of this issue's `start`,
 `2026-10-13T19:01:20Z`, before the landing: no line, exit 0. With `2026-10-13T07:00:00Z`: 24 lines, each a
-commit.
+commit. Round 2, below, is of the form of that `at`.
 
 ### 5. The form of a post mortem's actions
 
@@ -222,3 +222,42 @@ No line of `rules.md`, `philosophy.md` or a seed was made untrue. The reviewer's
 - The four phrases cut from `agents/implementer.md` are gone from what a writer reads; they are in this
   record and in `git log`.
 - Nothing was deployed and nothing of cb4 changed but the tracker's events.
+
+## Round 2, 2026-10-13: the form of the `at`
+
+Review 7157 (`changes`, one finding). The two texts of entry 4 said `--since=<the at of your start move>` and
+no more. An event's `at` is a date only as `issue-as.sh … --short` prints it; with no `--short` it is
+milliseconds since 1970, and "A resumed round" has a writer read the issue with no `--short`. With that
+number the command prints nothing and exits 0, which reads as "no brief changed". The record's run of round 1
+used the date and so did the test, with a date no event has. Run in this worktree after the rebase of this
+round, for the `start` of this issue (event 6942):
+
+```
+$ git log --since=1791918080189 --format='%h %s' HEAD -- .claude/skills/brain-maintenance/agents | wc -l
+0
+$ git log --since=2026-10-13T19:01:20Z --format='%h %s' HEAD -- .claude/skills/brain-maintenance/agents | wc -l
+1
+```
+
+The one line is the commit of round 1. Mended: both texts now say that the `at` is given as a date, show one,
+say that `--short` prints it so, and say what the number of the long form does. The third test of
+`tests/tools/fb-batch-role-briefs.test.ts` holds those sentences in both texts and runs the command with the
+`at` of event 6942 in both forms: as a date, at least one line, the last of them the commit of round 1; as
+milliseconds, no line and exit 0. `git grep -c -F -e 'The `at` is given as a date' HEAD -- .claude/skills/brain-maintenance/agents`
+named no file before the edit.
+
+Not taken: the reviewer's other way, a commit in place of a time. The commit a writer started at is the `at`
+of a `worktree {…}` comment, which is on the topic's issue and not always on the writer's own
+(`tools/cloud-brain/loop.ts` writes it with `id: topic`), so it has a second thing to find.
+
+The reviewer's note on the suite: its run was 1301 pass where round 1 gave 1299, by three test files of other
+issues that landed between this worktree's commit and the landing. Round 1's count was of the worktree before
+the rebase of its landing.
+
+| Command, after the last edit of this round | Result |
+|---|---|
+| `bun test --timeout=30000 ./tests/tools/fb-batch-role-briefs.test.ts` | 5 pass, 0 fail |
+| `tests/tools/suite.sh` | 1307 pass, 0 fail, 137 files; no `skipped:` line |
+
+Not tried in this round: a resumed writer following the line; a git of another version with the number of the
+long form (the test holds what this machine's git answers, `git --version`: 2.55.0).

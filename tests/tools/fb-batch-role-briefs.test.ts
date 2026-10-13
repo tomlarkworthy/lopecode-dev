@@ -74,13 +74,24 @@ test("a resumed writer and a resumed spec writer have a command for what their b
   const resumed = spec.slice(spec.indexOf("## A resumed round"));
   expect(resumed).toContain(cmd("spec"));
   expect(resumed).toContain("`git -C $W show <h> -- .claude/skills/brain-maintenance/agents/spec.md`");
-  // as a writer runs it, with an event's `at` in the place of the words: each line is a commit that changed a brief
-  const at = "2026-10-13T07:00:00Z";
-  const run = spawnSync("sh", ["-c", cmd("start").replace("$W", ".").replace("<the at of your start move>", at).replace("origin/main", "HEAD")], { cwd: root, encoding: "utf8" });
+  // Both say the form of the `at`: a date, as `--short` prints it, and not the milliseconds of the long form.
+  for (const text of [round, resumed]) {
+    expect(text).toContain("The `at` is given as a date, `2026-10-13T19:01:20Z`");
+    expect(text).toContain('`ia "get?id=<id>" --short` prints it');
+    expect(text).toContain("it is milliseconds since 1970, and with that number git prints no line and no error");
+  }
+  // As a writer runs it, with the `at` of this issue's own `start` move (event 6942) in the place of the words, in
+  // the two forms the tracker gives it. As a date: the commit of this change, which landed after that start. As the
+  // milliseconds of the long form: no line and exit 0, which is why the texts name the form (review 7157).
+  const log = (at: string) => spawnSync("sh", ["-c", cmd("start").replace("$W", ".").replace("<the at of your start move>", at).replace("origin/main", "HEAD")], { cwd: root, encoding: "utf8" });
+  const run = log("2026-10-13T19:01:20Z");
   expect(run.status).toBe(0);
   const lines = run.stdout.trim().split("\n").filter(Boolean);
   expect(lines.length).toBeGreaterThan(0);
   for (const l of lines) expect(l).toMatch(/^[0-9a-f]{7,} \S/);
+  expect(lines.at(-1)).toContain("fb-batch-role-briefs: ten feedback notes about the role briefs");
+  const ms = log("1791918080189");
+  expect([ms.status, ms.stdout]).toEqual([0, ""]);
   const one = git("show", "--stat", "--format=", lines[0].split(" ")[0], "--", AGENTS);
   expect(one.stdout).toContain(AGENTS);
 });

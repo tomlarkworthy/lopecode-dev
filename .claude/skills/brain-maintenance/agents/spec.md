@@ -231,7 +231,8 @@ again what has changed since your submit and the round rests on, from `origin/ma
 fetch, as "A resumed round" of `agents/implementer.md` says. This file is among it, and you read it at your
 start: `git -C $W log --since=<the at of your spec move> --format='%h %s' origin/main -- .claude/skills/brain-maintenance/agents`
 names each commit that changed a brief since, and `git -C $W show <h> -- .claude/skills/brain-maintenance/agents/spec.md`
-is what one changed here (since `fb-batch-role-briefs`, 2026-10-13; the spec writer of `docs-summarised-for-search`,
+is what one changed here. The `at` is given as a date, `2026-10-13T19:01:20Z`, as `ia "get?id=<id>" --short` prints it: with
+no `--short` it is milliseconds since 1970, and with that number git prints no line and no error (since `fb-batch-role-briefs`, 2026-10-13; the spec writer of `docs-summarised-for-search`,
 round 2, 2026-10-12: "a resumed writer is not told its brief changed (spec.md gained step 7 mid-round)"). Then
 steps 5 to 7, with the next round's key. In your report say that the round was resumed.
 
