@@ -9,6 +9,12 @@ page draws today". The page draws two under Health since `fb-a2oogpkdjb` (2026-1
 `tools/cloud-brain/cloud-brain.ojs`, read 2026-10-13. The built-in value is now those two, and the
 comments say two.
 
+The second panel has another name on each side and is one function. The page's entry is
+`draw: "table"`, which `panelView` of `cloud-brain.ojs` draws with `methodTable`
+(`draw === "table" ? methodTable(shown, { link })`). In a dashboard `table` is the table of any
+metric (`groupTable`), and the draw that `panelBody` of `brain-dashboard.ojs` gives to `methodTable`
+is `methods`. So the built-in dashboard's two are `calls` and `methods`.
+
 ### The choice: `faults` leaves the built-in dashboard
 
 The issue left it open whether the panel `faults` (titled "Health", the strip with one row a Worker)
@@ -56,8 +62,8 @@ In `tools/cloud-brain/brain-dashboard.ojs`:
   has seven).
 
 The method reference of the service has a table with a row for each panel of a built-in dashboard,
-written from `dashboardDefinitions` by the cell `dashboardTable`, so it loses the row of `faults`
-with no edit of the prose. A test holds the reference to the value
+written from `dashboardDefinitions` by the cell `dashboardTable`, so by the cell as read the table has no row of `faults`
+with no edit of the prose; what cb4 serves after the deploy is in the issue's comment. A test holds a row of the reference for each panel of the value
 (`test_dashboard_declares_one_cloudflare_permission_and_its_rows`, the loop over `dashboardDefinitions`; not changed).
 
 In `plan/cloud-brain-dashboard-service.md`: two "As built" notes, under "A dashboard" and in the
@@ -91,6 +97,15 @@ Each from a run after the last edit of the seed, on 2026-10-13.
 
 The count of `tests/tools/suite.sh` is in the issue's comment: this change has no file under
 `tests/`.
+
+### Searched
+
+Two searches of the Brain's knowledge (`knowledge.search?semantic=true`, as `loop-knowledge`), made
+on 2026-10-13 after the change was written and not before it, which is later than the brief asks:
+"built-in dashboard health panels faults" and "strip of faults removed from the page". Each answered
+20 entries; the first of both was `doc:cloud-brain-dashboards-share-series-and-controls`, and the
+second of the first was `doc:cloud-brain-dashboard-service`, the spec this change adds its notes
+to. No module bore on it.
 
 ### Not tried, not changed
 
