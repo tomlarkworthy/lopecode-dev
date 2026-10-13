@@ -429,6 +429,9 @@ test("issuesApp and issuesLimits are marked by their policy parts, on the seed a
   // The three routes of the owner present, each changed alone, and the check in each that he is.
   for (const name of ["install", "rebuild", "resign"]) expect(diff(`app.post(NS + "${name}", run(async (c`, `app.post(NS + "${name}", run(async (/* looser */ c`), name).toEqual([`issuesApp (the route ${name})`]);
   expect(diff('if (!issueCaller(ctx.by).present) throw refuse(403, "Refused", "the owner, present");', "")).toEqual(["issuesApp (the route install)"]);
+  // The two routes the tool itself reads: the policy in force, with the reason its pins are in, and the record.
+  expect(diff('app.get(NS + "policy", run(async (c', 'app.get(NS + "policy", run(async (/* looser */ c'), "policy").toEqual(["issuesApp (the route policy)"]);
+  expect(diff('app.get(NS + "sync", run(async (c', 'app.get(NS + "sync", run(async (/* looser */ c'), "sync").toEqual(["issuesApp (the route sync)"]);
   // The refusal on a guard's answer: the judge of the app, what calls it, and a guard asked in a route that is not one
   // of the three.
   expect(diff("verdict.missing ? 404 : verdict.invalid ? 400 : 403", "verdict.missing ? 404 : verdict.invalid ? 400 : 200")).toEqual(["issuesApp (judge)"]);
@@ -449,6 +452,8 @@ test("issuesApp and issuesLimits are marked by their policy parts, on the seed a
   // under another name, a declaration of more than one name, a block that does not parse.
   expect(diff("  return app;\n}", '  app.post(NS + "install", run(async () => ({})));\n  return app;\n}')).toEqual(["issuesApp"]);
   expect(diff("  return app;\n}", '  app.get(NS + "rebuild", run(async () => ({})));\n  return app;\n}')).toEqual(["issuesApp"]);
+  expect(diff("  return app;\n}", '  app.post(NS + "policy", run(async () => ({})));\n  return app;\n}')).toEqual(["issuesApp"]);
+  expect(diff('app.get(NS + "sync", run(async (c', 'app.get(NS + "synced", run(async (c')).toEqual(["issuesApp"]);
   expect(diff("const judge = (view, by, given) => {", "const judged = (view, by, given) => {")).toEqual(["issuesApp"]);
   expect(diff("let made = null, keys = null;", "let made = null, keys = null, { a } = {};")).toEqual(["issuesApp"]);
   expect(diff("  return app;\n}", "  return app;;)\n}")).toEqual(["issuesApp"]);

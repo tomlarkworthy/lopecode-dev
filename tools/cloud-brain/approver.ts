@@ -31,7 +31,7 @@
 //          tool, its test). A mark refuses nothing but `policy` and `approver`, which `approve` refuses (below).
 //          The policy cells are JUDGE and ROUTES below, with what `policyCells` adds to them.
 //          Of two of them a commit touches the policy parts or it does not touch the cell: issuesApp (the routes
-//          install, rebuild and resign, what asks a guard, and what those name: `appParts`) and issuesLimits (the
+//          install, rebuild, resign, policy and sync, what asks a guard, and what those name: `appParts`) and issuesLimits (the
 //          entries a policy cell or such a part reads). The parts that differ are named in brackets after the cell.
 // approve  Makes the `approve` move with the token loop-approver, or makes none and prints each reason. In this order:
 //          the `approve` guard of the issue's workflow names no delegation: exit 3, nothing sent, before anything else
@@ -201,14 +201,16 @@ function limitEntries(chunk: string | undefined): Map<string, string> | null {
   }
   return out;
 }
-// The routes of issuesApp that are the owner's, and what asks a guard: the seven of JUDGE and the cell that says
-// whether the caller is present.
-const OWNER_ROUTES = ["install", "rebuild", "resign"], GUARDS = [...Object.keys(JUDGE), "issueCaller"];
+// The routes of issuesApp that are the owner's, each a POST; the two this tool reads the policy in force and the
+// record from, each a GET (the owner's C names the three: these two only narrow what an approver approves); and what
+// asks a guard: the seven of JUDGE and the cell that says whether the caller is present.
+const OWNER_ROUTES = ["install", "rebuild", "resign"], READ_ROUTES = ["policy", "sync"], GUARDS = [...Object.keys(JUDGE), "issueCaller"];
+const WHOLE_ROUTES = new Map([...OWNER_ROUTES.map((r) => [r, "post " + r] as const), ...READ_ROUTES.map((r) => [r, "get " + r] as const)]);
 const isFn = (n: Node) => n.type === "FunctionExpression" || n.type === "ArrowFunctionExpression" || n.type === "FunctionDeclaration";
 // issuesApp cut into its policy parts, each a name with its text, and the limits those parts read. The cell is a block:
 // its statements are declarations (`const judge = …`, a part a name), routes (`app.get(NS + "name", …)` or `app.post`)
 // and whatever else. The policy parts:
-//   - the routes install, rebuild and resign;
+//   - the routes install, rebuild and resign, and the routes policy and sync, which `approve` reads;
 //   - `judge`, where a guard's answer is turned into the refusal, and each declaration that names a guard or such a
 //     declaration, however far (`write` names `judge`, `append` names `write`, `shownEvent` names `shown`);
 //   - each statement that is no declaration and no route (the loop that makes the write routes, `return app`, an
@@ -218,7 +220,8 @@ const isFn = (n: Node) => n.type === "FunctionExpression" || n.type === "ArrowFu
 //   - each declaration that one of the parts above names, however far (`load`, `refuse`, `run`, `L`).
 // So a route that is none of the three is a part only by the statements in it that ask a guard, and a new route by
 // those it has. null where the cell is not cut: it is not one block that parses, a declaration is not of one name, a
-// name or a route stands twice, `judge` or one of the three routes is not there as a POST, or one is there otherwise.
+// name or a route stands twice, `judge` is not there, one of the three routes is not there as a POST or one of the
+// two as a GET, or one of the five is there by the other method as well.
 export function appParts(chunk: string | undefined): { parts: Map<string, string>; limits: Set<string> | null } | null {
   const v = chunk == null ? null : valueOf(chunk), src = `(async function*()${v}\n)`, ast = v == null ? null : tree(src), fn = ast?.body.length === 1 ? ast.body[0].expression : null;
   if (fn?.type !== "FunctionExpression") return null;
@@ -236,9 +239,9 @@ export function appParts(chunk: string | undefined): { parts: Map<string, string
   }
   const keyed = units.filter((u) => u.kind !== "other"), byKey = new Map(keyed.map((u) => [u.key, u]));
   if (byKey.size !== keyed.length || !byKey.has("judge") || byKey.get("judge")!.kind !== "local") return null;
-  if (OWNER_ROUTES.some((r) => !byKey.has("post " + r)) || keyed.some((u) => u.kind === "route" && OWNER_ROUTES.includes(u.name) && u.key !== "post " + u.name)) return null;
+  if ([...WHOLE_ROUTES.values()].some((key) => !byKey.has(key)) || keyed.some((u) => u.kind === "route" && WHOLE_ROUTES.has(u.name) && u.key !== WHOLE_ROUTES.get(u.name))) return null;
   const locals = new Map(units.filter((u) => u.kind === "local").map((u) => [u.name, u])), refs = new Map(units.map((u) => [u, refsOf(u.node)]));
-  const names = new Set([...GUARDS, "judge"]), policy = new Set(units.filter((u) => u.kind === "other" || u.key === "judge" || (u.kind === "route" && OWNER_ROUTES.includes(u.name))));
+  const names = new Set([...GUARDS, "judge"]), policy = new Set(units.filter((u) => u.kind === "other" || u.key === "judge" || (u.kind === "route" && WHOLE_ROUTES.has(u.name))));
   for (let grew = true; grew; ) {
     grew = false;
     for (const u of locals.values()) if (!policy.has(u) && [...refs.get(u)!].some((n) => names.has(n))) { names.add(u.name); policy.add(u); grew = true; }

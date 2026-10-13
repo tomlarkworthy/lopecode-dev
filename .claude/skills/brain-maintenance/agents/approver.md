@@ -135,10 +135,10 @@ nothing, and report it.
    the file), and is no refusal. The tool compared the text of those cells and nothing else: read
    the diff for a cell that writes into one of them when it runs. Of two cells it compared the
    policy parts alone (since 2026-10-13, `approver-policy-mark-takes-every-route`): of `issuesApp`
-   the routes `install`, `rebuild` and `resign`, each statement that asks a guard, and what those
-   name; of `issuesLimits` the entries those read. A route that is none of the three, changed or
-   added, carries no mark: read its diff for an answer a guard would refuse and for a write that
-   asks none.
+   the routes `install`, `rebuild` and `resign`, the routes `policy` and `sync` that the tool
+   reads, each statement that asks a guard, and what those name; of `issuesLimits` the entries
+   those read. A route that is none of the five, changed or added, carries no mark: read its diff
+   for an answer a guard would refuse and for a write that asks none.
 7. **In keeping.** Any of the seven lines, or words of his, that the change pulls against.
 8. **Decide.** The refusal of step 6 is first: with a file marked `approver`, or `policy` with it,
    the verdict is `leave` with the line step 6 gives, whatever the rest of the change is. Else
