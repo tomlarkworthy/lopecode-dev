@@ -212,7 +212,7 @@ error ms price rule by`. Three traps met on the first day:
 
 ## What Cloudflare bills the account
 
-`usage.account` (Worker `brain-x-usage`, since 2026-10-13) answers the account's billable usage from Cloudflare, a row a product and a day with its quantity and cost, to the owner and to a token that names it: `brain.ts curl "/xrpc/com.lopecode.brain.usage.account?from=2026-08-19&to=2026-09-19" --as loop-usage` for a whole period (a 19th to the next: `to` is the end of the last row, and a range with no 19th in it answers no rows and no error), and with no dates the period under way; `bun tools/cloud-brain/cloudflare-usage.ts <the answer, saved>` sums it by product, and what it answered on 2026-10-13 (every cost 0, and the price of a stored write taken from it) is `tools/cloud-brain/cloudflare-usage.md`.
+`usage.account` (Worker `brain-x-usage`, since 2026-10-13) answers the account's billable usage from Cloudflare, a row a product and a day with its quantity and cost, to the owner and to a token that names it: `brain.ts curl "/xrpc/com.lopecode.brain.usage.account?from=2026-08-19&to=2026-09-19" --as loop-usage` for a whole period (a 19th to the next; with `to=2026-09-18` the last row ended on the 18th, a day short, and `from=2026-09-01&to=2026-09-10`, which has no 19th, answered no rows and no error), and with no dates the period under way; `bun tools/cloud-brain/cloudflare-usage.ts <the answer, saved>` sums it by product, and what it answered on 2026-10-13 (every cost 0, and the price of a stored write taken from it) is `tools/cloud-brain/cloudflare-usage.md`.
 
 ## The knowledge docs in the Brain's search
 
