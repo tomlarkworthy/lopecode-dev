@@ -950,7 +950,7 @@ Cloudflare Workers that one notebook defines, deploys and operates. This file is
 Three calls, with no account, say what this Brain is made of:
 
 - \`GET ${at}${X}service.list\`: every Worker. For each: \`worker\`, the notebook \`module\` it is made from, \`role\`, \`methods\`, \`paths\`, and the \`hash\` of the code running. Start here.
-- \`GET ${at}${X}getInfo?worker=<worker>\`: what one Worker declares: who may call each method (\`access\`), the methods of other Workers it \`calls\`, the names of its secrets, the platform cells it uses.
+- \`GET ${at}${X}getInfo?worker=<worker>\`: what one Worker declares: the methods of other Workers it \`calls\`, the names of its secrets, the platform cells it uses. Who may call each of its methods is in \`service.list\`, under \`methods\`: \`who\`, and \`allow\` when an expression decides. Not every Worker answers that here.
 - \`GET ${at}${X}getSource?worker=<worker>\`: JSON \`{ worker, hash, module, text }\`. \`text\` is the whole module that Worker runs, as deployed: its code, its tests (\`test_\` cells) and its documentation (its \`md\` cells). \`hash\` is what a deploy of that module replaces.
 - \`GET ${at}${X}getSource?worker=<worker>&part=reference\`: only the documentation, as text: that Worker's methods, inputs and answers. Read this before calling a method.
 
@@ -1238,6 +1238,22 @@ test_llms_txt_is_written_from_the_host_and_the_route_table = {
   await rig.anonymous("getSource?worker=brain-x-echo&part=reference");
   expect(rig.seen.at(-1).url).toBe("https://echo.internal/xrpc/com.lopecode.brain.getSource?worker=brain-x-echo&part=reference");
   return last.length + " characters";
+}
+// %%
+test_llms_txt_says_where_the_rule_of_a_method_is = {
+  const rig = await coreRig({ config: { host: "clone.example.workers.dev" } });
+  await rig.deployer("service.register", { worker: "brain-x-shop", role: "recipe", keyHash: "shop", paths: [], secrets: [], methods: { "com.lopecode.brain.shop.buy": { type: "procedure", who: "anyone", allow: "caller.session" } } });
+  const lines = (await rig.anonymous("/llms.txt")).data.split("\n").filter((l) => l.includes("getInfo?worker=<worker>`: "));
+  expect(lines.length).toBe(1);
+  // A Worker deployed by a deployer that binds no `access` (cb4's since 2026-10-13) answers none: the line names no such field.
+  expect(lines[0]).not.toContain("`access`");
+  expect(lines[0]).toContain("Who may call each of its methods is in `service.list`, under `methods`: `who`, and `allow` when an expression decides. Not every Worker answers that here.");
+  // What the line says of service.list is so, for a caller with no account.
+  const listed = (await rig.anonymous("service.list")).data.services;
+  const of = (worker, method) => listed.find((s) => s.worker === worker).methods[method];
+  const buy = of("brain-x-shop", "com.lopecode.brain.shop.buy"), read = of("brain-x-echo", "com.lopecode.brain.echo.read");
+  expect([buy.who, buy.allow, read.who, "allow" in read]).toEqual(["anyone", "caller.session", "anyone", false]);
+  return lines[0];
 }
 // %%
 test_settings_are_stored_by_the_owner_and_sent_with_each_forwarded_call = {
