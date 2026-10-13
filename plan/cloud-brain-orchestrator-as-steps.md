@@ -541,6 +541,42 @@ make again from the record. In order:
 
 `loop.ts step --dry` prints the line and the status and does nothing else.
 
+As built (`st-3-step`, 2026-10-13; `tools/cloud-brain/records/st-3-step.md`), where it differs from
+the six items or adds to them. The header of `loop.ts` is the reference.
+
+- `step --dry` writes neither `steps.jsonl` nor `status.md`: the status is printed after the line.
+  The R7 check reads the printed status, and the file after a step that is not dry.
+- The tests are `tests/tools/loop-step.test.ts`, a file of their own beside `loop.test.ts`.
+- The first read is `queue?limit=1`, before health: a token cb4 refuses ends the step with `error`
+  in its line and is not taken for a cluster that is not healthy.
+- The runs of an issue are read from `get?id=` of each entry the step acts on (`issue.runs`), and
+  `runs?` is not called. So a `running` run is seen on an issue the queue lists, in `queue` or in
+  `waiting` with `owner` or `work`, and on no other.
+- "An agent the program did not start" is read by the starter: an issue at work, in `waiting` or as
+  a `round`, whose last `start` (or `spec`) was made by a token that has no run of the role in the
+  record, is left while that token reads the tracker. A `review` entry has no such test: beside a
+  reviewer a session started, the step starts a second.
+- Health as `SKILL.md` step 1 has it took 47.4 s in one dry step on cb4, 27.2 s of it
+  `brain.ts redistil` and 7.8 s `worktree.sh --list` with 23 worktrees (09:10 CEST). A Worker that
+  is deployed and whose `seen.json` is not yet on `origin/main` reads as not healthy for that step.
+- No new writer and no approver is started either in a step in which a `start` of a reviewer or a
+  `resume` exited with an error.
+- `land` "at two steps" is this step's line and the last line of `steps.jsonl`, 30 s or more apart
+  by the queue's `now`. The result that was an error is `runs/<token>.exit` holding 1 for a run
+  ended less than 30 minutes ago by this machine's clock.
+- A `round` is given at 3 `respec` moves for a spec writer, as at 3 `rework` moves for a writer.
+- The `given` comment of this task names no run: `given <do> at <at> to no run: …`. An entry so
+  given is in the status and is given to no model when `st-4` lands; the form `to <token>, its run
+  on <issue>` is read as the paragraph above has it.
+- The events since the last heading of `oversight.md` (`sync?after=`) are what the overseer's row
+  and the row of his move with no post mortem read. A move of his from before that heading is not read.
+- An overseer's file has `after`, the event that heading ends at: the count "since that heading".
+- A writer's token that `ended` kept is ended by the step when its issue is `done`, `rejected` or
+  closed, from the file of `runs/`. `agent-token list` is read for the overseer's row alone.
+- The keys of the step's own moves: `orch/<id>/ready-<since>` and `orch/<id>/finish-<since>`, with
+  `since` of the entry; `orch/<id>/covered`, `orch/<id>/covers`, `orch/<id>/triage-<since>` for a
+  digest; `orch/<id>/back/<token>/<seq>` as `resume` has it.
+
 **Why a wake cannot be lost.** The step does not act on a wake. It acts on the queue and the runs.
 A note such as "EACH WAKE: read fly-1-by-hand" has no place to be kept and no place to be lost:
 a thing a step must see is a row of this table over a fact of the record, or it is not seen by
