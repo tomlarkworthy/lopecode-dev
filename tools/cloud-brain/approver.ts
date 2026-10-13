@@ -78,7 +78,10 @@
 //          then in force (the last `policy` event before it): everything `approve` asks but the three blobs of
 //          origin/main and of the running file, which are of now. And: its reason names the verdict; its delegation is
 //          the guard's; the verdict's token is the `token` of a `cost` event of role `approver` written by an `orch-`
-//          holder. One line for each that fails, exit 1; exit 0 with none.
+//          or an `out-` holder: the driver or a session that makes a pass, or a session outside the loop that kept
+//          its token (STARTER; until approver-check-wants-an-orch-starter, 2026-10-13, an `orch-` holder alone). A
+//          cost event any other token wrote, the approver's own among them, is not counted. One line for each that
+//          fails, exit 1; exit 0 with none.
 // list     One line for each such approve, newest first: the time, the id, `on your words of event N` (his own event),
 //          `on the spec you approved`, `on your words in <file>` or `on words a session quoted at event N`, the
 //          verdict's first sentence, and `reverted` when a `revert` or an `owner-reject` of the issue follows it.
@@ -526,10 +529,12 @@ export function factsText(f: ReturnType<typeof facts>) {
 const byDelegation = (record: Event[]) => record.filter((e) => !e.hidden && isMove(e, "approve") && via(e).startsWith("delegation:"));
 const named = (e: Event) => Number(/verdict (\d+), brief [0-9a-f]{40}\s*$/.exec(String(e.reason || ""))?.[1] || 0);
 
-// Each approve made by a delegation that does not stand as `approve` would have sent it.
+// Each approve made by a delegation that does not stand as `approve` would have sent it. STARTER: the holders that
+// start an approver's run and write its cost event, as SESSION of loop.ts has them.
+const STARTER = /^secret:(orch|out)-/;
 export function check(record: Event[], git: Git) {
   const policies = record.filter((e) => e.type === "policy"), failed: { seq: number; id: string; why: string[] }[] = [];
-  const costs = new Set(record.filter((e) => e.type === "cost" && e.role === "approver" && /^secret:orch-/.test(holder(e))).map((e) => e.token));
+  const costs = new Set(record.filter((e) => e.type === "cost" && e.role === "approver" && STARTER.test(holder(e))).map((e) => e.token));
   for (const e of byDelegation(record)) {
     const policy = policies.filter((p) => p.seq < e.seq).at(-1), verdict = named(e), why: string[] = [];
     if (!verdict) why.push("its reason names no verdict");
@@ -537,7 +542,7 @@ export function check(record: Event[], git: Git) {
     if (verdict || j.exit === 3) why.push(...j.why);
     if (j.delegation && j.delegation !== via(e)) why.push(`it was made ${via(e)}, and the guard named ${j.delegation}`);
     const v = record.find((x) => x.seq === verdict), token = holder(v).replace(/^secret:/, "");
-    if (v && !costs.has(token)) why.push(`the verdict's token ${token || "(none)"} is the token of no cost event of role approver written by an orch- holder`);
+    if (v && !costs.has(token)) why.push(`the verdict's token ${token || "(none)"} is the token of no cost event of role approver written by an orch- or an out- holder`);
     if (why.length) failed.push({ seq: e.seq, id: e.id, why });
   }
   return { approves: byDelegation(record).length, failed };

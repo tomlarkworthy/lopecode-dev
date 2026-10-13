@@ -266,6 +266,9 @@ Either agent can already approve with `brain.ts curl … --owner` and the state 
 directory, and the record then shows the owner. So the guard gives no agent on this machine an act
 it lacks today, and what it adds is a record that names a delegation. What `check` (part 5) sees of
 the second way: the verdict's token is the `token` of no `cost` event written by an `orch-` holder.
+(As built, `approver-check-wants-an-orch-starter`, 2026-10-13: by an `orch-` or an `out-` holder. A session
+outside the loop that the owner was in had started an approver with its `out-` token, and `check` named that
+approve, 6513 of `st-7-switch-and-texts`; the owner chose this at event 7001 of the issue.)
 An agent that also writes that event under a self-made `orch-` name is not seen. The independence
 of part 4 therefore holds an approver that errs or is talked round by what it reads. It does not
 hold an agent that sets out to approve its own work; nothing on one machine does (the token spec,
@@ -496,7 +499,8 @@ that it does not edit this one.
 - `approver.ts check` reads the record and prints each approve `via delegation:…` that fails one
   of: a verdict comment of that issue is named and begins `approver: approve`; the issue has no
   verdict that begins `approver: leave`; the verdict's holder is an `appr-` token that is the
-  `token` of a `cost` event of role `approver` written by an `orch-` holder; its `asked:` line
+  `token` of a `cost` event of role `approver` written by an `orch-` holder (As built,
+  `approver-check-wants-an-orch-starter`, 2026-10-13: an `orch-` or an `out-` holder); its `asked:` line
   passes what `approve` asks of one (R3, R6); no ref touches a file of part 4, and the blobs are
   those of the policy then in force (R7). The overseer runs
   it at each oversight (task 6 puts that in `agents/overseer.md`). It is exit 1 with a line for

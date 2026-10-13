@@ -696,7 +696,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    as the verdict begins, and `stopped` for a run that wrote none; it is the verdict and not the move, which is an
    `approve` event `via delegation:…` in the record when the tool made one. `event` is the verdict's seq. `token` is
    the `appr-` name and is never left out: `approver.ts check` holds an approval made by the approver to stand only
-   when its verdict's token is the `token` of a `cost` event of role `approver` that an `orch-` holder wrote. The
+   when its verdict's token is the `token` of a `cost` event of role `approver` that an `orch-` or an `out-` holder
+   wrote (an `orch-` holder alone until `approver-check-wants-an-orch-starter`, 2026-10-13). The
    numbers of the example are made up, and its `usage` is left out for length. Then end the token
    (`agent-token revoke <name>`): an approver is sent no second round.
 6. **Oversight.** Spawn the overseer on one ended issue in 10, beside the others: `loop.ts start <id> --role overseer --at <seq>` for an
