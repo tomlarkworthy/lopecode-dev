@@ -4,6 +4,8 @@
 // `step` is part 3 of that spec, one pass made by a program (st-3-step; tools/cloud-brain/records/st-3-step.md), and
 // since st-4-orchestrator-brief it starts the judgment run (tools/cloud-brain/records/st-4-orchestrator-brief.md).
 // `run` is part 4, the driver that makes the steps (st-5-driver; tools/cloud-brain/records/st-5-driver.md).
+// `compare` is the R8 check, what dry steps named beside what was done (st-6-a-day-beside-the-session;
+// tools/cloud-brain/records/st-6-a-day-beside-the-session.md).
 // Nothing of the loop calls it yet: SKILL.md steps 4 and 5 are as they were until st-7.
 //
 //   bun tools/cloud-brain/loop.ts run                                   (on the laptop: tools/cloud-brain/loop.sh)
@@ -15,6 +17,7 @@
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts ended <token>
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts resume <id> [--role <role>]
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts dead <id> --role <role> [--round <n>]
+//   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts compare [--since <hours>] [--steps <file>] [--by <names>]
 //
 // LOOP_TOKEN is the caller's own token for the tracker, a name issue-as.sh keeps: the program's reads and its writes
 // (the `worktree {…}` comment, the `cost` events, `back`) are made with it. With none: exit 2, nothing read or sent.
@@ -142,6 +145,29 @@
 //         --dry runs `step --dry` at each reason with LOOP_TOKEN, the caller's: no token is made, no lock asked, and
 //         every event is a reason, the caller's own too. It prints each step's line and not its status.
 //         stdout is one line of JSON a step; stderr has what the driver says, each line `loop.ts run: …`.
+//
+// compare The R8 check: what dry steps named, beside what was done. It reads the lines of steps from steps.jsonl, or
+//         from --steps <file>, the output of `run --dry` (a dry step writes no steps.jsonl; a line that is no step's
+//         is left out and counted), with --since <hours> those of the last hours by this machine's clock; and the
+//         events from 200 before the seq of the first line (`sync?after=`, every page). It writes nothing. stdout is
+//         one line of JSON, then the same as text, four lists:
+//         - named and done: an act a step named, the first event after that step that did the same, and the minutes
+//           between. `ready`, `finish`, `back`: that move. `reject`: a move to `rejected`. `digest`: `triage`.
+//           `start`: a `cost` event of the role, or the agent's own first event (a writer's `start`, a spec writer's
+//           `spec`, `reviewed`, a comment keyed `approver/…`): the loop of a session wrote no `running` event, so of
+//           an agent it started the first event is the agent's, and for a reviewer it is the review. `resume`: a
+//           `cost` event `resumed`, or the next submit. `ended`, `stopped`, `running`: the `cost` event of that token.
+//           `worktree-remove`: the comment keyed `…/worktree-removed-…` on the issue of the tree's name. Each entry
+//           given to a judgment run is an act `given`: the first event of a session's token on that issue that is
+//           no `cost` event and no `worktree` comment. An act named again by a step that read its event is a new row;
+//         - named and not done: the rows with no such event, with how many steps named each, the first and the last;
+//         - of a kind the record has no event of: `token-ended`, and the start of an overseer, which is on no issue;
+//         - done and named by no step: each event after the first line by a token whose name begins as --by has it
+//           (`orch-,out-` with none: an orchestrating session's and a session's the owner is in) that is the event of
+//           no row, and each `start` or `spec` move of an agent that no `running` event names, with the seq the step
+//           before it read and the minutes since. A step reads the record as it is when it runs: what a session did
+//           before the next step read is named by no step, whether or not a step would have named it.
+//         Exit 1: no such file, or a read the tracker did not answer. Exit 2: the arguments, or no LOOP_TOKEN.
 //
 // The tools it runs, each named by an environment variable for tests/tools/loop.test.ts: ISSUE_AS (issue-as.sh),
 // LOOP_WORKTREE (worktree.sh), LOOP_BRAIN (`bun brain.ts`), LOOP_AGENT (agent.sh of the worktree or the view),
@@ -273,10 +299,12 @@ const save = (run: Run) => { mkdirSync(RUNS(), { recursive: true }); writeFileSy
 const began = (pid: number) => { const r = sh("ps", ["-o", "lstart=", "-p", String(pid)]); return r.code === 0 ? r.out.trim() : ""; };
 // A pid alone is not the test: after a restart another process may have it. The wrapper's command line names the run
 // (`loop-run-<token>`, read with pgrep, which the sandbox lets run), and the time the process began is compared as well
-// where the file has one and `ps` gives one.
+// where the file has one and `ps` gives one. `-a`: on macOS pgrep leaves its own ancestors out without it, so a step
+// made by an agent of the run took that run for gone (st-6-a-day-beside-the-session). On Linux `-a` prints the command
+// line after the pid, so the pid is the first word of a line.
 export const alive = (run: { token?: string; pid?: number; began?: string }) => {
   if (!run.pid || !run.token) return false;
-  if (!sh("pgrep", ["-f", `loop-run-${run.token}( |$)`]).out.split("\n").includes(String(run.pid))) return false;
+  if (!sh("pgrep", ["-a", "-f", `loop-run-${run.token}( |$)`]).out.split("\n").map((l) => l.trim().split(/\s+/)[0]).includes(String(run.pid))) return false;
   const now = began(run.pid);
   return !run.began || !now || now === run.began;
 };
@@ -862,6 +890,8 @@ async function step(args: string[]) {
         if (held().length) return skip(e.id, "approve", "no approver: " + held().join("; "));
         return void begin(e.id, "approver");
       }
+      // Labeled needs-owner at work (a writer that asked for an act of his and ended with no submit): his, as a `round` so labeled.
+      if (labels.includes("needs-owner")) { S.owner.push(`${e.id} (${e.state}, at work, labeled needs-owner)`); return owners(e.id, G); }
       // "A dead writer": at work, no running writer and no waiter. The bound of dead runs holds at the start this leaves.
       const role = writerOf(G), round = roundOf(role, G.events);
       if (e.waiter || running(G, WRITERS).length) return;
@@ -1064,6 +1094,95 @@ async function run(args: string[]) {
   process.exit(code);
 }
 
+// ---- compare: what the dry steps named beside what was done (R8; st-6-a-day-beside-the-session)
+// The event that did what an act names: of the act's issue, after the step that named it first.
+const SESSION = ["orch-", "out-"];
+const holderOf = (e: Ev) => String((e.by && e.by.holder) || "").replace(/^secret:/, "");
+const treeIssue = (tree: string) => tree.replace(/^(rev|appr)-/, "").replace(/\.\d+$/, "");
+const did = (a: Ev, e: Ev, by: string[]): boolean => {
+  const mv = (...m: string[]) => e.type === "moved" && m.includes(e.move), role = a.role, t = holderOf(e);
+  if (a.act === "worktree-remove") return e.id === treeIssue(String(a.tree || "")) && e.type === "commented" && /\/worktree-removed/.test(e.key || "");
+  if (e.id !== a.id) return false;
+  if (a.act === "given") return by.some((p) => t.startsWith(p)) && e.type !== "cost" && !/\/worktree-/.test(e.key || "");
+  if (a.act === "ready" || a.act === "finish" || a.act === "back") return mv(a.act);
+  if (a.act === "reject") return e.type === "moved" && e.to === "rejected";
+  if (a.act === "digest") return mv("triage");
+  if (a.act === "resume") return (e.type === "cost" && e.how === "resumed") || mv("submit", "submit-spec");
+  if (a.act === "ended" || a.act === "stopped") return e.type === "cost" && e.token === a.token && e.outcome !== "running";
+  if (a.act === "running") return e.type === "cost" && e.token === a.token && e.outcome === "running";
+  if (a.act !== "start") return false;
+  if (e.type === "cost" && e.role === role) return true;
+  if (role === "reviewer") return e.type === "reviewed";
+  if (role === "approver") return e.type === "commented" && /^approver\//.test(e.key || "");
+  return role === "spec-writer" ? mv("spec") : mv("start");
+};
+const UNREAD = ["token-ended"], BEFORE = 200; // an act the record has no event of; the events read before the first step
+const nameOf = (a: Ev) => [a.act, a.do, a.role, a.id || a.tree || a.token].filter(Boolean).join(" ");
+// The lines of dry steps and the events after the first of them. `named`: each act a step named, with the event that
+// did the same and the minutes from the step that named it first; an act named again by a step that read that event
+// is a second row. `unnamed`: each event of a session's token (`by`, the beginnings of a holder's name) that is the
+// event of no row, and each `start` or `spec` move of an agent that no `running` event names (an `Agent` call of a
+// session: its own first move is all the record has of its start). A judgment run's entries are each an act `given`.
+// Events up to the first step's seq are read for those `running` events alone.
+export function compare(lines: Ev[], events: Ev[], by: string[] = SESSION) {
+  const steps = lines.filter((l) => l && typeof l.seq === "number" && Array.isArray(l.acts)).sort((x, y) => x.seq - y.seq || x.at - y.at);
+  const evs = [...events].sort((x, y) => x.seq - y.seq), used = new Set<number>(), open = new Map<string, Ev>(), named: Ev[] = [];
+  const mins = (ms: number) => Math.round(ms / 6000) / 10;
+  for (const l of steps) {
+    const acts: Ev[] = [...l.acts.filter((a: Ev) => !(a.act === "start" && a.role === "orchestrator")), ...(l.given || []).filter((g: Ev) => g.id).map((g: Ev) => ({ act: "given", do: g.do, id: g.id, at: g.at }))];
+    for (const a of acts) {
+      const key = JSON.stringify([a.act, a.do, a.role, a.id, a.tree, a.token, a.at]);
+      let row = open.get(key);
+      if (row && row.event && row.event.seq <= l.seq) row = undefined;
+      if (!row) {
+        row = { name: nameOf(a), act: a.act, ...(a.id ? { id: a.id } : {}), ...(a.role ? { role: a.role } : {}), first: { seq: l.seq, at: l.at }, last: { seq: l.seq, at: l.at }, steps: 0, event: null };
+        const e = UNREAD.includes(a.act) || (a.act === "start" && !a.id) ? undefined : evs.find((x) => x.seq > l.seq && !used.has(x.seq) && did(a, x, by));
+        if (e && e.type === "cost" && e.token) for (const x of evs) if (x.id === e.id && x.type === "moved" && ["start", "spec"].includes(x.move) && holderOf(x) === e.token) used.add(x.seq);
+        if (e) { used.add(e.seq); row.event = { seq: e.seq, type: e.type, ...(e.move ? { move: e.move } : {}), ...(e.outcome ? { outcome: e.outcome } : {}), by: holderOf(e) || (e.by && e.by.via) || "", at: e.at }; row.minutes = mins(e.at - l.at); }
+        else if (UNREAD.includes(a.act) || (a.act === "start" && !a.id)) row.unread = "the record has no event of it";
+        open.set(key, row); named.push(row);
+      }
+      row.steps++; row.last = { seq: l.seq, at: l.at };
+    }
+  }
+  const from = steps.length ? steps[0].seq : 0;
+  const echo = (e: Ev) => evs.some((x) => x.seq < e.seq && x.id === e.id && x.type === "cost" && x.outcome === "running" && x.token === holderOf(e));
+  const unnamed = evs.filter((e) => e.seq > from && !used.has(e.seq) && (by.some((p) => holderOf(e).startsWith(p)) || (e.type === "moved" && ["start", "spec"].includes(e.move) && !echo(e)))).map((e) => {
+    const before = last(steps.filter((l) => l.seq < e.seq)), after = steps.find((l) => l.seq >= e.seq);
+    return { seq: e.seq, type: e.type, ...(e.move ? { move: e.move } : {}), ...(e.role ? { role: e.role } : {}), ...(e.outcome ? { outcome: e.outcome } : {}), id: e.id, by: holderOf(e), at: e.at, key: e.key,
+      before: before ? before.seq : null, ...(before ? { minutes: mins(e.at - before.at) } : {}), after: after ? after.seq : null };
+  });
+  return { steps: steps.length, whole: steps.filter((l) => !l.for).length, unhealthy: steps.filter((l) => !l.health || !l.health.ok).length, from, to: steps.length ? last(steps)!.seq : 0,
+    began: steps.length ? steps[0].at : 0, ended: steps.length ? last(steps)!.at : 0, events: evs.filter((e) => e.seq > from).length, named, unnamed };
+}
+const clock = (ms: number) => new Date(ms).toISOString().slice(11, 19) + "Z";
+export function compareText(c: ReturnType<typeof compare>) {
+  const done = c.named.filter((r) => r.event), not = c.named.filter((r) => !r.event && !r.unread), unread = c.named.filter((r) => r.unread);
+  const seen = (r: Ev) => `named by ${r.steps} step${r.steps === 1 ? "" : "s"}, first at event ${r.first.seq} (${clock(r.first.at)})${r.steps > 1 ? `, last at ${r.last.seq} (${clock(r.last.at)})` : ""}`;
+  const list = (rows: string[]) => (rows.length ? rows.map((r) => "- " + r).join("\n") : "Nothing.");
+  return [`# ${c.steps} dry steps, events ${c.from} to ${c.to} (${c.steps ? clock(c.began) + " to " + clock(c.ended) : "no step"}): ${c.whole} whole, ${c.unhealthy} not healthy; ${c.events} events after the first`,
+    "", "## Named by a dry step and done", "", list(done.map((r) => `${r.name}: event ${r.event.seq} (${[r.event.type, r.event.move, r.event.outcome].filter(Boolean).join(" ")} by ${r.event.by}), ${r.minutes} min after the step; ${seen(r)}`)),
+    "", "## Named by a dry step and not done", "", list(not.map((r) => `${r.name}: ${seen(r)}`)),
+    "", "## Named by a dry step, of a kind the record has no event of", "", list(unread.map((r) => `${r.name}: ${seen(r)}`)),
+    "", "## Done with a session's token, or an agent's own start, and named by no dry step", "", list(c.unnamed.map((e) => `event ${e.seq} (${clock(e.at)}): ${[e.type, e.move, e.role, e.outcome].filter(Boolean).join(" ")} of ${e.id} by ${e.by}, key ${e.key}; ${e.before === null ? "no step before it" : `the step before it read event ${e.before}, ${e.minutes} min earlier`}; ${e.after === null ? "no step after it" : `the next read event ${e.after}`}`)), ""].join("\n");
+}
+function compareCmd(args: string[]) {
+  const opt = (name: string) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
+  const rest = args.filter((a, i) => !["--since", "--steps", "--by"].includes(a) && !["--since", "--steps", "--by"].includes(args[i - 1]));
+  const since = opt("--since"), hours = since === undefined ? 0 : Number(since), file = opt("--steps") || join(LOOP(), "steps.jsonl"), by = (opt("--by") || SESSION.join(",")).split(",").filter(Boolean);
+  if (rest.length || (since !== undefined && !(hours > 0)) || ["--since", "--steps", "--by"].some((n) => args.includes(n) && !opt(n)) || !by.length) stop(2, "compare [--since <hours>] [--steps <file>] [--by <beginnings of the session's tokens, with commas>]");
+  const me = own();
+  let text = "", bad = 0;
+  try { text = readFileSync(file, "utf8"); } catch { stop(1, `no file ${file}: the lines of steps are steps.jsonl, or with --steps the output of \`run --dry\``); }
+  const all = text.split("\n").filter((l) => l.trim()).map((l) => { try { return JSON.parse(l); } catch { bad++; return null; } }).filter((l) => l && typeof l.seq === "number" && Array.isArray(l.acts));
+  const lines = hours ? all.filter((l) => l.at >= Date.now() - hours * 3_600_000) : all;
+  const events: Ev[] = [];
+  if (lines.length) for (let a = Math.max(0, Math.min(...lines.map((l) => l.seq)) - BEFORE), n = 0; n < 200; n++) { const d = read(me, `sync?after=${a}&limit=500`), page: Ev[] = d.events || []; events.push(...page); if (!d.more || !page.length) break; a = last(page)!.seq; }
+  const c = compare(lines, events, by);
+  say({ file, ...(hours ? { since: hours } : {}), by, lines: all.length, ...(bad ? { "not JSON": bad } : {}), ...c });
+  console.log(compareText(c));
+}
+
 if (import.meta.main) {
   const [cmd, ...args] = process.argv.slice(2);
   if (cmd === "start") start(args);
@@ -1072,5 +1191,6 @@ if (import.meta.main) {
   else if (cmd === "dead") dead(args);
   else if (cmd === "step") await step(args);
   else if (cmd === "run") await run(args);
-  else stop(2, "run [--dry] | start <id> [--role <role>] [--token <t>] | start [<id>] --role orchestrator --token <t> --give <entries> | ended <token> | resume <id> [--role <role>] | dead <id> --role <role> [--round <n>] | step [--dry] [--for clock|event|run]");
+  else if (cmd === "compare") compareCmd(args);
+  else stop(2, "run [--dry] | compare [--since <hours>] [--steps <file>] [--by <names>] | start <id> [--role <role>] [--token <t>] | start [<id>] --role orchestrator --token <t> --give <entries> | ended <token> | resume <id> [--role <role>] | dead <id> --role <role> [--round <n>] | step [--dry] [--for clock|event|run]");
 }

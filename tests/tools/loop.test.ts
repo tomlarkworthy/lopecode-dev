@@ -177,6 +177,28 @@ test("the round, the keys, the dead runs and the outcome are read from the event
   expect(shaOf([{ kind: "commit", value: "cloud-brain-dev@ccc" }])).toBeUndefined();
 });
 
+// pgrep leaves its own ancestors out unless it is given -a: a step that an agent of a run makes is a descendant of
+// that run's wrapper (st-6-a-day-beside-the-session; note 3 of review 6467 of st-5-driver).
+test("a run is alive to a process the run itself started: its wrapper is an ancestor of the pgrep that looks for it", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "loop-alive-test-")), inner = join(dir, "inner.ts");
+  writeFileSync(inner, `import { alive } from ${JSON.stringify(resolve(import.meta.dir, "../../tools/cloud-brain/loop.ts"))};\nconsole.log(String(alive({ token: "impl-2d2d2d", pid: process.ppid })));\n`);
+  const p = Bun.spawn(["bash", "-c", 'bun "$1"; true', "loop-run-impl-2d2d2d", inner], { stdout: "pipe", stderr: "pipe" });
+  const out = await new Response(p.stdout).text();
+  await p.exited;
+  rmSync(dir, { recursive: true, force: true });
+  expect(out.trim()).toBe("true");
+});
+
+test("the pid is the first word of a line of pgrep: Linux prints the command line after it under -a", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "loop-alive-test-")), inner = join(dir, "inner.ts"), pgrep = join(dir, "pgrep");
+  writeFileSync(pgrep, '#!/bin/bash\necho "$*" > "$(dirname "$0")/args"\necho "4242 bash -c A=x loop-run-impl-3c3c3c agent.sh"\necho "  4243 other"\n'); chmodSync(pgrep, 0o755);
+  writeFileSync(inner, `import { alive } from ${JSON.stringify(resolve(import.meta.dir, "../../tools/cloud-brain/loop.ts"))};\nconsole.log([4242, 4243, 424, 5].map((pid) => alive({ token: "impl-3c3c3c", pid })).join(" "));\n`);
+  const r = spawnSync("bun", [inner], { encoding: "utf8", env: { ...process.env, PATH: dir + ":" + process.env.PATH } });
+  const args = readFileSync(join(dir, "args"), "utf8").trim();
+  rmSync(dir, { recursive: true, force: true });
+  expect([r.stdout.trim(), args]).toEqual(["true true false false", "-a -f loop-run-impl-3c3c3c( |$)"]);
+});
+
 test("a pid is the run's process when its command line names the run, and where ps runs when it began then", async () => {
   const p = Bun.spawn(["bash", "-c", "sleep 20; true", "loop-run-impl-0f0f0f"], { stdout: "ignore", stderr: "ignore" });
   await Bun.sleep(200);

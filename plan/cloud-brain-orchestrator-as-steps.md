@@ -463,7 +463,7 @@ make again from the record. In order:
 | `start` | `start`, role implementer, or digest with the label `digest` | no |
 | `spec` | `start`, role spec-writer | no |
 | in `waiting`, `owner`, at `awaiting-approval`, and `approver.ts facts` says no verdict of this round and no `leave` | `start`, role approver | no |
-| in `waiting`, `work`, with no `running` run of a writer and no `waiter` | "A dead writer": the token ended, `back`, whatever the count of dead runs: the bound holds at the `start` entry the `back` leaves | no |
+| in `waiting`, `work`, with no `running` run of a writer, no `waiter`, and no label `needs-owner` (the label: `st-6`, below) | "A dead writer": the token ended, `back`, whatever the count of dead runs: the bound holds at the `start` entry the `back` leaves | no |
 | 2 dead runs: an entry of a row that starts or resumes an agent, with 2 dead runs or more of that role and round, and no verdict `go-on` for this `<at>`. A `round` whose last run ended `no-submit` is the `round` row's and not this one's | given to the judgment: `go-on` for one run more, or the label `needs-owner` with what the two runs left | yes |
 | a digest opened by `worker:brain-x-snapshot`, at `open` | the older ones rejected, `triage`, `ready` | no |
 | 3 issues at `done`, `rejected` or `needs-owner` since the last heading of `oversight.md`, or one issue at 3 `rework` moves since then; no live token `over-…`; and fewer than 2 files of `runs/` of the role `overseer` since that heading, however they ended | `start`, role overseer | no |
@@ -609,6 +609,22 @@ written.
   and stays. The rows of `promote`, `look`, `answer` and `asks` were not named by this part and stay in
   `SKILL.md`: the brief names each by its first cell, to be read with `grep`. `dead` and the cluster not
   healthy had no text in `SKILL.md`; the brief has a section for each, written from the table above.
+
+As built (`st-6-a-day-beside-the-session`, 2026-10-13; `tools/cloud-brain/records/st-6-a-day-beside-the-session.md`):
+one row of the table was wrong and is mended, and one test of part 2.
+
+- **An issue at work that is labeled `needs-owner` is the owner's.** The row of "A dead writer" had no word of
+  the label, and the rows of the label named `waiting`, `owner` and a `round`: "the label leaves an issue at
+  `in-progress` or `spec` in the queue" holds for one that was sent back. A writer that asks for an act of his and
+  ends with no submit leaves its issue in `waiting`, `work`, and the dry steps of 2026-10-13 named a `back` for
+  `never-page-up-line-after-a-check` at each of them. Such an issue is now read as a `round` so labeled: nothing,
+  its line under "What waits for the owner" of the status, and given as `answer` at an event of his after the label.
+- **A run is alive to a step made inside it** (part 2, "its wrapper's command line … is read with `pgrep -f`").
+  On macOS `pgrep` leaves out its own ancestors, and a step made by an agent of a run is a descendant of that
+  run's wrapper: it named `ended` for its own live run. The read is `pgrep -a -f` now. The driver is no descendant
+  of a wrapper it starts, so its steps were not wrong in this way.
+- `loop.ts compare` reads `steps.jsonl`, and with `--steps <file>` the output of `run --dry`: a dry step writes no
+  `steps.jsonl` (the note of `st-3`). The header of `loop.ts` says which event it takes for each act.
 
 **Why a wake cannot be lost.** The step does not act on a wake. It acts on the queue and the runs.
 A note such as "EACH WAKE: read fly-1-by-hand" has no place to be kept and no place to be lost:
@@ -803,7 +819,7 @@ which task runs it, and gives no count a run would have to match.
 | R6 | the dead run: `loop.test.ts` | no such test | st-3: a `running` run of this host whose pid is not alive and has no result is replaced with `stopped` and the issue gets `back`; one of another host is left |
 | R7 | `cat tools/cloud-brain/.emitted/issue-loop/status.md` | no such file | st-3: after `step --dry`, the file names each entry of `waiting` with `why: owner` that `ia "queue"` has at that seq |
 | R8 | `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh show loop` | exit 2, the usage | st-5: exit 1 `loop is not held`; while `loop.ts run` runs, exit 0 and `orchestrator-<host>`; `run --dry` beside it takes none |
-| R8 | `bun tools/cloud-brain/loop.ts compare --since <hours>` | no such command | st-6: for each act a dry step named (`start`, `review`, `ready`, `resume`), the event of the session's loop that did the same and the minutes between; and each of the session's that no dry step named. The record gives the two lists |
+| R8 | `bun tools/cloud-brain/loop.ts compare --since <hours>` (as built: with `LOOP_TOKEN=<own token>` before it and `--steps <the file of run --dry>` after) | no such command | st-6: for each act a dry step named (`start`, `review`, `ready`, `resume`), the event of the session's loop that did the same and the minutes between; and each of the session's that no dry step named. The record gives the two lists |
 
 What only the owner can measure, and no condition of a task landing: that a day with the driver is
 less work for him than a day with the session.

@@ -522,6 +522,57 @@ test("in `waiting`, `work`, with no running writer and no waiter: the token is e
   expect(at("h").issue.state).toBe("in-progress");
 });
 
+// The stand-in tracker answers `sync` 4 events a page.
+test("compare: the lines of a file of dry steps beside the events after the first, read through every page; its refusals", async () => {
+  fresh();
+  open("a", { state: "triaged" }); Q("a", "ready"); open("b"); Q("b", "start"); open("z");
+  const first = await dry(), file = join(RIG, "dry.log");
+  expect(acts(first.line)).toEqual(["ready a", "start b implementer"]);
+  for (let n = 0; n < 5; n++) note("z", "impl/z/" + n, "x", "impl-aaaaaa");
+  const made = mv("a", "ready", "ready"); T.queue = T.queue.filter((e) => e.id !== "a");
+  const second = await dry();
+  writeFileSync(file, first.out.split("\n")[0] + "\nloop.ts run: not a line\n" + second.out.split("\n")[0] + "\n");
+  T.calls = [];
+  let r = await cli(["compare", "--steps", file]);
+  expect(r.code).toBe(0);
+  expect(r.line).toMatchObject({ file, lines: 2, "not JSON": 1, steps: 2, from: first.line.seq, to: second.line.seq, events: 6, by: ["orch-", "out-"], unnamed: [] });
+  expect(r.line.named.map((x: Ev) => [x.name, x.event && x.event.seq, x.steps])).toEqual([["ready a", made.seq, 1], ["start implementer b", null, 2]]);
+  expect(T.calls.map((c) => c.method)).toEqual(["sync", "sync", "sync"]);
+  expect(r.status).toContain(`## Named by a dry step and done\n\n- ready a: event ${made.seq} (moved ready by orch-aaaaaa), 0 min after the step; named by 1 step, first at event ${first.line.seq} (`);
+  // With another beginning for the session's tokens, the writer's comments are the session's and no step named them.
+  r = await cli(["compare", "--steps", file, "--by", "impl-"]);
+  expect(r.line.unnamed.length).toBe(5);
+  // Since: the lines of the last hours by this machine's clock; the stand-in's `now` is of 2026-10-13.
+  r = await cli(["compare", "--steps", file, "--since", "1"]);
+  expect([r.code, r.line.lines, r.line.steps, r.line.since]).toEqual([0, 2, 0, 1]);
+  T.calls = [];
+  for (const args of [["--since", "0"], ["--since"], ["--steps"], ["--by", ""], ["x"], ["--dry"]]) expect([args, (await cli(["compare", ...args])).code]).toEqual([args, 2]);
+  expect([(await cli(["compare"])).code, (await cli(["compare", "--steps", join(RIG, "none")])).err]).toEqual([1, `loop.ts: no file ${join(RIG, "none")}: the lines of steps are steps.jsonl, or with --steps the output of \`run --dry\`\n`]);
+  expect((await cli(["compare", "--steps", RIG])).err).toBe(`loop.ts: no file ${RIG}: the lines of steps are steps.jsonl, or with --steps the output of \`run --dry\`\n`);
+  expect((await cli(["compare", "--steps", file], { LOOP_TOKEN: "" })).code).toBe(2);
+  expect(T.calls).toEqual([]);
+  // steps.jsonl is the file with no --steps: a step that is not dry writes it.
+  T.queue = [];
+  await step();
+  r = await cli(["compare"]);
+  expect([r.code, r.line.file, r.line.steps]).toEqual([0, join(LOOP, "steps.jsonl"), 1]);
+});
+
+// never-page-up-line-after-a-check at event 6473 (2026-10-13): its writer asked for an act of the owner's and ended with
+// no submit, the session labeled it, and it was never sent back, so the queue has it in `waiting`, `work`, and no `round`.
+test("in `waiting`, `work`, labeled `needs-owner`: it is the owner's and no `back` is made; with a word of his after the label it is given", async () => {
+  fresh();
+  worked("a"); cost("a", { role: "implementer", outcome: "no-submit" }); runFile({ token: "impl-aaaaaa", ended: { at: 1, outcome: "no-submit", token: "kept" } }); label("a", ["needs-owner"]); Wt("a", "work");
+  let r = await dry();
+  expect([r.line.acts, r.line.given, r.line.skipped]).toEqual([[], [], []]);
+  expect(r.status).toContain("## What waits for the owner\n\n- a (in-progress, at work, labeled needs-owner)\n");
+  r = await step();
+  expect([r.line.acts, r.line.given, writes(), log("brain").filter((l) => l.includes("revoke")), at("a").issue.state]).toEqual([[], [], [], [], "in-progress"]);
+  const his = note("a", "out/a/1", "he said: make the check", "out-5f56b2");
+  r = await step();
+  expect([acts(r.line), gave(r.line), at("a").issue.state]).toEqual([[], [`answer a ${his.seq}`], "in-progress"]);
+});
+
 test("a digest the snapshot opened: each older one is rejected as covered by the newest, which is triaged and made ready; another's digest is given as a triage", async () => {
   fresh();
   for (const day of ["2026-10-11", "2026-10-12", "2026-10-10"]) { open("digest-" + day, { state: "open", labels: ["digest"], opener: "worker:brain-x-snapshot" }); Q("digest-" + day, "triage", { since: 77 }); }
