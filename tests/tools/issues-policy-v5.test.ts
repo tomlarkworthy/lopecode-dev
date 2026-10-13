@@ -2,7 +2,8 @@
 // approver-brief-his-test and approver-own-files-are-the-policy-cells (issue policy-v5-names-the-approver-as-it-is).
 // The file is data the owner installs. Held here: that it is the v4 file but for the end of its reason; that the two
 // blobs are those of the commit the file is of; that the newest policy file names the two files as the checkout has
-// them, which fails for a writer who changes either and says what that costs; and tools/cloud-brain/policy-pins.ts,
+// them, which fails for a writer who changes either and says what that costs; that approver.ts refuses an approve
+// under the reason of v4 and sends one under this file's; and tools/cloud-brain/policy-pins.ts,
 // which made the file. What the body does at an install is held by issues-policy-v4.test.ts, of the same policy.
 //
 //   bun test --timeout=30000 ./tests/tools/issues-policy-v5.test.ts
@@ -11,7 +12,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve, join } from "node:path";
-import { BRIEF, TOOL } from "../../tools/cloud-brain/approver.ts";
+import { judge, BRIEF, TOOL } from "../../tools/cloud-brain/approver.ts";
 import { blobs, check, newest, pinsOf, remake, COST } from "../../tools/cloud-brain/policy-pins.ts";
 
 const root = resolve(import.meta.dir, "../..");
@@ -41,6 +42,37 @@ test("the two blobs are those of the brief and the tool at the commit the file i
   const pins = pinsOf(v5.reason)!;
   const at = git("log", "-1", "--format=%H", "--", FILE) || git("rev-parse", "HEAD");
   expect([pins.brief, pins.tool]).toEqual([git("rev-parse", `${at}:${BRIEF}`), git("rev-parse", `${at}:${TOOL}`)]);
+});
+
+// The defect the file is for, through the tool's own judge: a verdict that holds in every other way, with origin/main
+// and the running tool at the blobs of this checkout. Under the reason of v4, which ends as the policy in force does,
+// the approve is refused on R7; under the reason of v5 it is sent.
+test("approver.ts judges an approve: refused on R7 under the reason of v4, sent under the reason of v5", () => {
+  const now = blobs(root), HIS = "yes, build the thing as the plan has it", UUID = "11111111-2222-3333-4444-555555555555";
+  const guard = v5.policy.workflows.task.moves.find((m: any) => m.name === "approve").guard as string;
+  const by = (holder: string, via = "delegation:aaaaaaaaaaaa") => ({ holder: holder && "secret:" + holder, via });
+  const record = (brief: string) => [
+    { seq: 1, type: "opened", id: "t1", workflow: "task", state: "open", by: by("orch-111111") },
+    { seq: 3, type: "commented", id: "t1", key: UUID, body: HIS, by: by("", "session") },
+    { seq: 5, type: "moved", id: "t1", move: "start", to: "in-progress", by: by("impl-222222", "delegation:bbbbbbbbbbbb") },
+    { seq: 6, type: "moved", id: "t1", move: "submit", to: "in-review", refs: [{ kind: "commit", value: "lopecode-dev@" + A }], by: by("impl-222222", "delegation:bbbbbbbbbbbb") },
+    { seq: 7, type: "reviewed", id: "t1", verdict: "pass", by: by("rev-333333", "delegation:cccccccccccc") },
+    { seq: 8, type: "moved", id: "t1", move: "to-approval", to: "awaiting-approval", by: by("rev-333333", "delegation:cccccccccccc") },
+    { seq: 9, type: "commented", id: "t1", key: "approver/t1/verdict-1", body: `approver: approve\nasked: 3 "${HIS}"\nbrief ${brief}`, by: by("appr-444444", "delegation:dddddddddddd") }
+  ];
+  const git: any = { main: "origin/main", fetch: () => true, self: () => now.tool, philosophy: () => "", text: () => "", blob: (f: string) => (f === BRIEF ? now.brief : f === TOOL ? now.tool : null), files: () => ["tools/cloud-brain/brain-topic.ojs"] };
+  const under = (reason: string, brief: string) => judge(record(brief), { policy: { seq: 4668, reason }, workflows: v5.policy.workflows }, git, { id: "t1", verdict: 9 });
+  const old = pinsOf(v4.reason)!;
+  // v4, whichever brief the verdict names: the one the policy would name, or the one main has.
+  expect(under(v4.reason, old.brief)).toMatchObject({ exit: 1, send: null, why: [
+    `${BRIEF} at origin/main is ${now.brief}, and the policy names ${old.brief} (R7)`,
+    `${TOOL} at origin/main is ${now.tool}, and the policy names ${old.tool} (R7)`,
+    `the tool that runs is ${now.tool}, and the policy names ${old.tool} (R7)`
+  ] });
+  expect(under(v4.reason, now.brief).why.filter((w: string) => w.includes("(R7)")).length).toBe(4);
+  const sent = under(v5.reason, now.brief);
+  expect(sent).toMatchObject({ exit: 0, why: [], delegation: /^delegation:[0-9a-f]{12}$/.exec(sent.delegation)?.[0] });
+  expect(sent.send).toMatchObject({ key: "approver/t1/approve-1", id: "t1", to: "done" });
 });
 
 test("the newest policy file names the brief and the tool as this checkout has them", () => {

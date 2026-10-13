@@ -67,7 +67,7 @@ same two old blobs and was not installed: `policy.seq` is still 4668.
 
   (The hashes in the first and third answers are cut here; the second is whole.) The one line is
   the reason. The key, the policy and the migrate are v4's.
-- **`tests/tools/issues-policy-v5.test.ts`**, new, 6 tests.
+- **`tests/tools/issues-policy-v5.test.ts`**, new, 7 tests.
 - `plan/cloud-brain-issues.md`, "Installing it", and `plan/cloud-brain-approver-persona.md`, the
   paragraph of R7: one note each.
 
@@ -87,37 +87,53 @@ the first one sent is the one kept.
 
 ## What the test holds, and what it fails on
 
-`bun test --timeout=30000 ./tests/tools/issues-policy-v5.test.ts`: 6 pass, 0 fail, 33 `expect()` calls.
+`bun test --timeout=30000 ./tests/tools/issues-policy-v5.test.ts`: 7 pass, 0 fail, 37 `expect()` calls.
 
-| the state, each made and put back, 01:58 CEST | pass, fail | the tests that fail |
+**The defect, through the tool's own `judge`** (the third test). A record of one issue with a verdict
+that holds in every other way, and a git whose `origin/main` and running tool have the blobs of the
+checkout. Under the reason of v4, which ends as the policy in force does, `judge` answers exit 1 with
+these three and no other:
+
+```
+.claude/skills/brain-maintenance/agents/approver.md at origin/main is 0189a17f…, and the policy names 9956b9aa… (R7)
+tools/cloud-brain/approver.ts at origin/main is 23e410a6…, and the policy names 89632e99… (R7)
+the tool that runs is 23e410a6…, and the policy names 89632e99… (R7)
+```
+
+(the hashes cut here), and a fourth when the verdict names the brief `main` has. Under the reason of
+v5 it answers exit 0 and the move `approver/t1/approve-1`. The record and the git are the test's own:
+no issue of cb4 is judged.
+
+| the state, each made and put back, 02:06 CEST | pass, fail | the tests that fail |
 |---|---|---|
-| the brief as it was before the mend | 3, 3 | the newest file names the checkout's two; a checkout that differs is exit 1; the command |
-| `approver.ts` with one more empty line | 3, 3 | the same three |
-| the key of v5 changed | 4, 2 | it is the v4 file but for the end of its reason; the command |
-| `finish` of v5 reading `children.open` | 4, 2 | the same two |
-| the brief's old blob in v5's reason | 2, 4 | the blobs of the file's commit, and the first three |
+| the brief as `origin/main` has it, before the mend (`83032177…`) | 3, 4 | `judge`; the newest file names the checkout's two; a checkout that differs is exit 1; the command |
+| `approver.ts` with one more empty line | 3, 4 | the same four |
+| the key of v5 changed | 5, 2 | it is the v4 file but for the end of its reason; the command |
+| `finish` of v5 reading `children.open` | 5, 2 | the same two |
+| the brief's old blob in v5's reason | 2, 5 | the blobs of the file's commit, and the four of the first row |
 
 What the body does at an install (the swap of the open projects, the finish of `group-invites`, the
 approve of the named delegation) is held by `tests/tools/issues-policy-v4.test.ts`, of the same
 policy and migrate, and is not run again on the v5 file.
 
-Counts, each after the last change to a test, the tool, the brief or the file:
+Counts, each after the last change to a test, the tool, the brief or the file, and after the rebase:
 
 | command | result |
 |---|---|
-| `bun test --timeout=30000 ./tests/tools/issues-policy-v5.test.ts` | 6 pass, 0 fail |
-| the same with `issues-policy-v4`, `issues-policy-v3`, `approver-brief`, `approver`, `briefs-name-the-prompts-token`, `owner-decisions-written-dense` (the files that read the brief or the tool), `--timeout=120000` | 92 pass, 0 fail, 1017 `expect()` calls, 7 files |
-| `tests/tools/suite.sh`, 01:56:05 to 01:58:16 CEST | 958 pass, 0 fail, 6566 `expect()` calls, 98 files, 125.22 s; `uptime` after it 15.98 |
+| `bun test --timeout=30000 ./tests/tools/issues-policy-v5.test.ts` | 7 pass, 0 fail, 37 `expect()` calls |
+| the same with `issues-policy-v4`, `issues-policy-v3`, `approver-brief`, `approver`, `briefs-name-the-prompts-token`, `owner-decisions-written-dense` (the files that read the brief or the tool), `--timeout=120000` | 93 pass, 0 fail, 1065 `expect()` calls, 7 files |
+| `tests/tools/suite.sh`, 02:03:54 to 02:05:39 CEST, after the rebase on `origin/main` of 01:59 | 978 pass, 0 fail, 7063 `expect()` calls, 100 files, 97.64 s; `uptime` after it 10.73 |
 
 ## What a later change to either file costs
 
 A commit that changes `agents/approver.md` or `tools/cloud-brain/approver.ts` stops every approve
 of the approver from its landing until the owner installs a policy whose reason names the new
 blobs: the file is made again (`remake`, from the newest), a test of the new file is written, and
-he makes one `issue.install`. `approver-brief-his-test` landed without one; the leave on
-`fly-3-brain-fly-service` (verdict 5432, the issue's body) is where it was seen.
+he makes one `issue.install`. `approver-brief-his-test` landed without one. Event 5432 is a verdict
+`approver: approve` on `fly-3-brain-fly-service` (read with `get?id=`); that its `approve` then exited 1 on
+R7 is the body of this issue, and the run was not read here.
 
-**A guard, built.** The third test of the file runs `check` on the checkout. For a writer who has
+**A guard, built.** The fourth test of the file runs `check` on the checkout. For a writer who has
 changed either file it fails, and its message ends with that cost (the first two rows of the table
 above). It is in `tests/tools`, so `tests/tools/suite.sh` runs it.
 
@@ -128,7 +144,7 @@ What it does not hold:
   the state after this landing, until he installs.
 - **It does not stop a landing.** `land.sh --test` runs the tests its writer names. A writer who
   runs neither the suite nor this file lands unhindered. A line in `land.sh` was weighed and not
-  built: `check` is 0.1 s, but the script is every landing's and its own tests are a larger change
+  built: `check` took 0.046 s (`time`), but the script is every landing's and its own tests are a larger change
   than this issue.
 - **It makes the next file a writer's task, not his.** The install is still one act of the owner
   for each change to either file.
@@ -160,9 +176,10 @@ blobs above, and the answer of the install has no `duplicate`.
 ## Not tried
 
 - **The install on cb4**, and an `approve` of the approver after it.
-- **`approver.ts` given the v5 file as the policy in force.** The test reads the reason's end with
-  the tool's own expression copied (`approver.ts` does not export `pinsOf`, and the tool is not
-  changed here: each change to it is one more install). The two differ in `\s*` before the end.
+- **`approver.ts approve` run as a command under the v5 policy.** `judge` is run by the test, with
+  a record and a git of the test's own. `policy-pins.ts` reads the reason's end with the tool's
+  expression copied, without its `\s*` before the end (`approver.ts` does not export `pinsOf`, and
+  the tool is not changed here: each change to it is one more install).
 - **The v5 file in the tracker's rig.** `issues-policy-v4.test.ts` runs the v4 file there; the two
   differ in the reason alone (the first test).
 - **A v4 or v5 file sent after the other.** Read in the seed, above, not run in the rig.
