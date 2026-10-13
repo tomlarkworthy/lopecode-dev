@@ -233,9 +233,11 @@ metricRules = ({
 metricLimits = ({ kept: 50 })
 // %%
 // The dashboards that are built in. A value of the seed, as the Brain's own metrics are: no method writes one.
-// health is the three panels the page draws today from the core's calls (healthView of cloud-brain.ojs).
+// health is the two panels the page draws under Health from the core's calls (healthPanels of cloud-brain.ojs): the chart of
+// calls and the table by method. The strip of faults left the page with fb-a2oogpkdjb and this value with
+// dashboard-health-says-three-panels; it is a draw still (faults, below), for a dashboard that is put.
 dashboardDefinitions = [
-  { name: "health", title: "Health", panels: ["calls", "faults", "methods"].map((draw, i) => ({ title: ["Calls", "Health", "By method"][i], metric: "core.calls", by: ["worker", "method", "status"], filter: {}, draw })) }
+  { name: "health", title: "Health", panels: ["calls", "methods"].map((draw, i) => ({ title: ["Calls", "By method"][i], metric: "core.calls", by: ["worker", "method", "status"], filter: {}, draw })) }
 ]
 // %%
 // How a panel is drawn. calls, faults and methods need the rows of core.calls; bars and table draw any metric; points draws a row
@@ -660,7 +662,7 @@ dashboardData = dashboardRead({ client: session.owner ? client : null, dashboard
 // Cloudflare does not say when it left groups out, so an answer with that many says it may be short.
 dashboardGroupLimit = 500
 // %%
-// The dimensions a draw takes its rows by. calls, faults and methods are the three draws of the dashboard `health`, over the rows
+// The dimensions a draw takes its rows by. calls, faults and methods are the three draws made for Health, over the rows
 // of core.calls; bars and table draw any metric; points takes a row an id; share takes any rows with a value.
 panelNeeds = ({ calls: ["worker"], faults: ["worker", "status"], methods: ["worker", "method", "status"], bars: [], table: [], points: ["id"], share: [] })
 // %%
@@ -1043,15 +1045,17 @@ test_a_dashboard_is_kept_as_data_and_health_is_built_in = {
   const rig = await dashboardRig();
   const tab = { headers: { "x-brain-caller": "owner", "x-brain-via": "session", "x-brain-tab": "1" } };
   const post = (method, body, options = {}) => rig.call(method, "", { ...options, verb: "POST", body });
-  // R8: with no row, health is three panels over core.calls, the three the page draws today.
+  // R8: with no row, health is two panels over core.calls, the chart of calls and the table by method, as the page draws under
+  // Health (healthPanels of cloud-brain.ojs). It has no strip of faults since dashboard-health-says-three-panels.
   expect(rig.sim.rows.size).toBe(0);
   const calls = (title, draw) => ({ title, metric: "core.calls", by: ["worker", "method", "status"], filter: {}, draw });
-  const health = { name: "health", title: "Health", panels: [calls("Calls", "calls"), calls("Health", "faults"), calls("By method", "methods")] };
+  const health = { name: "health", title: "Health", panels: [calls("Calls", "calls"), calls("By method", "methods")] };
+  expect(dashboardDefinitions[0].panels.map((p) => p.draw)).toEqual(["calls", "methods"]);
   expect(await rig.call("dashboard.get", "?name=health")).toEqual({ status: 200, data: { dashboard: health } });
   expect(await rig.call("dashboard.get", "?name=health", tab)).toEqual({ status: 200, data: { dashboard: health } });
   expect((await rig.call("dashboard.list")).data).toEqual({ dashboards: [{ name: "health", title: "Health" }] });
   expect(dashboardDefinitions.map((d) => d.name)).toEqual(["health"]);
-  // Every panel of a built-in dashboard is over a metric of the module, by dimensions of it, drawn one of the five ways.
+  // Every panel of a built-in dashboard is over a metric of the module, by dimensions of it, drawn one of dashboardDraws.
   for (const d of dashboardDefinitions) {
     expect(dashboardOwn("", { ...d, name: "copy" })).toEqual({ def: { ...d, name: "copy" } });
     for (const p of d.panels) expect([p.title, p.by.every((k) => metricDefinitions.find((m) => m.name === p.metric).dims.some((x) => x.key === k)), dashboardDraws.includes(p.draw)]).toEqual([p.title, true, true]);
@@ -1068,6 +1072,10 @@ test_a_dashboard_is_kept_as_data_and_health_is_built_in = {
   expect((await rig.call("dashboard.get", "?name=health")).data).toEqual({ dashboard: health });
   expect((await rig.call("dashboard.list")).data).toEqual({ dashboards: [{ name: "health", title: "Health" }] });
   rig.sim.rows.delete("dashboard/health");
+  // The strip is a draw still: a dashboard of the owner's own keeps a panel of it.
+  const strip = { name: "faults", title: "Faults", panels: [calls("Health", "faults")] };
+  expect(await post("dashboard.put", strip)).toEqual({ status: 200, data: { dashboard: strip } });
+  expect(rig.sim.rows.delete("dashboard/faults")).toBe(true);
   // R4: a second dashboard is a put. It is answered as kept, read back the same, and listed, by a token.
   const deploys = { name: "deploys", title: "Deploys", panels: [{ title: "Confirmed, by Worker", metric: "deploys.confirmed", by: ["target"], draw: "bars" }, { title: "Put back", metric: "deploys.put-back", by: ["target"], draw: "table" }] };
   const kept = { ...deploys, panels: deploys.panels.map((p) => ({ title: p.title, metric: p.metric, by: p.by, filter: {}, draw: p.draw })) };
@@ -1468,7 +1476,7 @@ test_dashboard_declares_one_cloudflare_permission_and_its_rows = {
 test_a_dashboard_is_read_with_one_metric_query_for_each_distinct_metric_by_and_filter = {
   const range = { since: Date.UTC(2026, 9, 11, 7, 0), until: Date.UTC(2026, 9, 11, 8, 0) };
   const panel = (draw, more = {}) => ({ title: draw, metric: "deploys.confirmed", by: ["target"], filter: {}, draw, ...more });
-  // Three panels over one metric, by and filter are one query, as the three of `health` are.
+  // Three panels over one metric, by and filter are one query, as the two of `health` are.
   expect(dashboardQueries([panel("bars"), panel("table"), panel("bars", { title: "again" })]).map((q) => q.key)).toEqual(['["deploys.confirmed",["target"],[]]']);
   // Another by, another filter and another metric are each another query; the order of a filter's names is not.
   const five = [panel("bars"), panel("table", { by: [] }), panel("bars", { filter: { target: "brain-x-git", a: 1 } }), panel("table", { filter: { a: 1, target: "brain-x-git" } }), panel("bars", { metric: "deploys.put-back" })];
@@ -1598,7 +1606,7 @@ test_bars_and_a_table_draw_any_metric_and_a_panel_says_what_it_cannot_draw = {
   const panel = (draw, by = ["target"]) => ({ title: draw, metric: counted.metric, by, filter: {}, draw });
   expect(marks(panelBody(panel("bars"), counted, { width: 600 }), "rect")).toBeGreaterThan(2);
   expect(cells(panelBody(panel("table"), counted)).length).toBe(2);
-  // The three draws of the dashboard `health` take the rows of core.calls, with the sum as `ms`.
+  // The three draws made for Health take the rows of core.calls, with the sum as `ms`.
   const calls = { metric: "core.calls", since, until, step: 60000, groups: 2, series: [{ t: since + 60000, worker: "brain-x-inbox", method: "inbox.poll", status: 200, n: 2, sum: 80, max: 50 }, { t: since + 120000, worker: "brain-x-inbox", method: "inbox.poll", status: 502, n: 1, sum: 900, max: 900 }, { t: since + 60000, worker: "brain-core", method: "rule.list", status: 401, n: 1, sum: 3, max: 3 }] };
   const health = ["worker", "method", "status"];
   expect(marks(panelBody(panel("calls", health), calls), "rect")).toBeGreaterThan(2);
