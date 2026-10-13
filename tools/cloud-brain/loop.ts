@@ -33,12 +33,17 @@
 //            in `ended`;
 //         2. a writer's worktree (`worktree.sh --fresh <topic> --for <token>`, the topic the issue's parent or
 //            itself; exit 4 or another issue's unlanded work: `<topic>.2` to `.5`; this issue's unlanded work: the
-//            worktree as it is, and a fifth line of the prompt) and the `worktree {…}` comment on the topic's issue;
+//            worktree as it is, and a sixth line of the prompt) and the `worktree {…}` comment on the topic's issue;
 //            a reviewer's view at the last lopecode-dev commit of the last submit (`--at <sha> rev-<id>`), with
 //            TAB=1 when review-needs-tab.sh exits 0 or 2, the submit has a `url` ref, or a reviewer's run of this
 //            issue reported `needed a tab`; an approver's view at origin/main (`appr-<id>`); an overseer's worktree
 //            `over-<host>`, with no comment;
-//         3. the file runs/<token>.json under .emitted/issue-loop: { id, role, round, session, token, … };
+//         3. the file runs/<token>.json under .emitted/issue-loop: { id, role, round, session, token, … }; and for a
+//            run whose prompt is made here with the worktree's lines (a writer, an overseer, a judgment run) a
+//            directory of its own, runs/<token>.scratch, for the files it sends with `@`: the fourth line of the
+//            prompt is `scratch: <dir>`, before the token's, and the file has it as `scratch`. A reviewer has the one
+//            agent.sh makes for a run with no WORK, and an approver none: its brief says its prompt has three lines,
+//            and that brief is changed by an issue labeled `major` (loop-started-run-is-told-no-scratchpad);
 //         4. the run, detached: agent.sh with WORK and SESSION (a reviewer with CHECKOUT, as today), its JSON line
 //            to runs/<token>.result.json, its exit to runs/<token>.exit, then `loop.ts ended <token>`; the pid of
 //            that wrapper and the time it began (`ps -o lstart=`, "" where the sandbox refuses `ps`) are added to
@@ -58,12 +63,14 @@
 //         a reviewer's verdict, or `stopped`; an approver's `approve` or `leave`, or `stopped`; an overseer's and a
 //         judgment run's `done`, or `stopped` with no result or with one that was an error. Then the `cost`
 //         event again under <key>/end with seconds, context, usd, the usage of agent-usage.ts and the event the run
-//         made; the report appended to the journal, once; `worktree.sh --leave`, or `--remove` of a view; and the
+//         made; the report appended to the journal, once; `worktree.sh --leave`, or `--remove` of a view; the
+//         directory the file names as `scratch` removed with what is in it; and the
 //         token ended, but one --token gave and a writer's whose outcome is `in-review`, `changes` or `no-submit`
 //         (it may be sent the next round). A second run writes nothing: exit 0 and `already`.
 // resume  "A rework round goes to the agent that wrote the change": the run of the role with the highest round,
 //         from runs?id=. With a token that still reads the tracker, a session and an `agent` of this host:
-//         `WORK=<W> agent.sh --resume <session>` with the three lines of that section, detached as above, and a
+//         `WORK=<W> agent.sh --resume <session>` with the three lines of that section and a fourth,
+//         `scratch: <dir>`, the run's directory made again at the path it had, detached as above, and a
 //         `running` event, how `resumed`, key cost/<id>/<role>/<round>/<token>/resumed-<at>. <at> is the seq of the
 //         last `rework` or `respec` move, or of a comment keyed orch/<id>/verdict-round-… that begins `go-on` when
 //         that is the later. A run that still runs: exit 3. Anything else is "A dead writer": the token ended
@@ -351,6 +358,9 @@ const unmake = (run: Run, text: string, code = 1): never => {
   rmSync(fileOf(run.token), { force: true });
   return stop(code, text + (token ? `; the token ${run.token} is ${token}` : ""));
 };
+// A run's own directory, for the files it sends with `@` (a comment, the reason of a submit): beside its file, named
+// in its prompt as `scratch: <dir>` and in the file as `scratch`, which is what `ended` removes.
+const scratch = (run: Run) => { run.scratch = join(RUNS(), run.token + ".scratch"); mkdirSync(run.scratch, { recursive: true }); return `scratch: ${run.scratch}`; };
 const lastOversight = (file: string) => { try { return (last([...readFileSync(file, "utf8").matchAll(/^## .*events \d+ to (\d+)/gm)]) || [])[1] || ""; } catch { return ""; } };
 
 function start(args: string[]) {
@@ -398,7 +408,7 @@ function start(args: string[]) {
       if (!c.ok) console.error(`loop.ts: the worktree comment on ${topic} was not written: ${c.status} ${c.said || ""}`);
     }
     const third = run.role === "orchestrator" ? `Entries: ${entries}` : run.role === "overseer" ? `Last oversight ended at event ${lastOversight(join(p.path, ".claude/skills/brain-maintenance/oversight.md")) || lastOversight(join(root, ".claude/skills/brain-maintenance/oversight.md"))}. Journal: ${join(LOOP(), "/")}` : `Issue: ${id}`;
-    const prompt = [`Working directory: ${p.path}.`, `Read ${p.path}/.claude/skills/brain-maintenance/agents/${BRIEF[run.role]}.md and follow it.`, third, `Your token is ${run.token}.`, ...(p.unlanded ? ["The worktree holds unlanded work of this issue."] : [])].join("\n");
+    const prompt = [`Working directory: ${p.path}.`, `Read ${p.path}/.claude/skills/brain-maintenance/agents/${BRIEF[run.role]}.md and follow it.`, third, scratch(run), `Your token is ${run.token}.`, ...(p.unlanded ? ["The worktree holds unlanded work of this issue."] : [])].join("\n");
     agent = env.LOOP_AGENT || join(p.path, "cloud-brain-dev/agent.sh"); argv = [run.role, prompt]; vars = { WORK: p.path, SESSION: run.session! };
   } else {
     const view = (run.role === "reviewer" ? "rev-" : "appr-") + id, submit = last(moved(events, "submit", "submit-spec")), refs: Ev[] = (submit && submit.refs) || [];
@@ -474,6 +484,7 @@ async function ended(args: string[], quiet = false): Promise<any> {
     if (r.code === 3 && (run.role === "approver" || (/(^|\s)ahead=0\b/.test(r.err) && /(^|\s)dev-ahead=0\b/.test(r.err)))) { notes.push(`the view ${run.tree} was not clean (${r.err.trim().split("\n").pop()}) and was removed with --force`); r = worktree("--remove", run.tree, "--force"); }
     else if (r.code === 3) notes.push(`the view ${run.tree} is left: a commit stands there that was not pushed (${r.err.trim().split("\n").pop()})`);
   }
+  if (run.scratch) rmSync(run.scratch, { recursive: true, force: true });
   if (run.role === "reviewer" && result && /^needed a tab/.test(result.result || "")) run.neededTab = true;
   const end = run.made && !keepsToken(run.role, outcome);
   if (end) { const r = brain("agent-token", "revoke", token); if (r.code !== 0) notes.push(`agent-token revoke ${token}: ${(r.out + r.err).trim()}`); }
@@ -528,11 +539,12 @@ async function resume(args: string[]) {
   }
   const review = last(events.filter((e) => e.type === "reviewed"));
   const brief = role === "spec-writer" ? `${p.path}/.claude/skills/brain-maintenance/agents/spec.md` : role === "digest" ? `${p.path}/.claude/skills/brain-maintenance/agents/digest.md` : `${p.path}/.claude/skills/brain-maintenance/agents/implementer/resumed-round.md`;
-  const message = [`Issue: ${id}, sent back by the review at event ${review ? review.seq : at}.`, `Working directory: ${p.path}.`, `A resumed round: read ${brief}, "A resumed round", and follow it.`].join("\n");
+  const lines = [`Issue: ${id}, sent back by the review at event ${review ? review.seq : at}.`, `Working directory: ${p.path}.`, `A resumed round: read ${brief}, "A resumed round", and follow it.`];
   const base = join(RUNS(), run!.token);
   if (existsSync(base + ".result.json")) renameSync(base + ".result.json", `${base}.result.${file ? file.round : 0}-${(file && file.at) || 0}.json`);
   const next: Run = { ...(file || {}), id, role, round, token: run!.token, session: run!.session, how: "resumed", at, as: me, made: file ? file.made : true, host: HOST(), tree: p.tree, path: p.path, topic, startedAt: Date.now() };
   delete next.ended; delete next.running;
+  const message = [...lines, scratch(next)].join("\n");
   save(next);
   Object.assign(next, detach(next, env.LOOP_AGENT || join(p.path, "cloud-brain-dev/agent.sh"), ["--resume", next.session!, message], { WORK: p.path }));
   next.agent = `${next.host}:${next.pid}`;

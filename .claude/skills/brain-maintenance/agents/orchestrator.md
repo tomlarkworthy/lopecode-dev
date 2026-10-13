@@ -26,8 +26,9 @@ In the moved texts:
 
 ## Your prompt, and your token
 
-Four lines: `Working directory: <W>.`, the line that names this file, `Entries: <do> <id> (event <at>); …`
-and `Your token is orch-…`. `$W` is the worktree `bm-orch-<host>`, which the step put you in; you make
+Five lines: `Working directory: <W>.`, the line that names this file, `Entries: <do> <id> (event <at>); …`,
+`scratch: <dir>` and `Your token is orch-…`. `<dir>` is the scratchpad: a directory of this run alone, which
+the step removes when your process returns (`loop-started-run-is-told-no-scratchpad`, 2026-10-13). `$W` is the worktree `bm-orch-<host>`, which the step put you in; you make
 none and remove none. `<root>` is the main checkout:
 `dirname "$(git -C $W rev-parse --path-format=absolute --git-common-dir)"`.
 

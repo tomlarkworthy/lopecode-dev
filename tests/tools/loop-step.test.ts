@@ -891,9 +891,9 @@ test("the judgment run, with the real start and ended: the entries of a step are
   expect(events("a", "cost")).toEqual([]);
   expect(log("worktree").filter((l) => /--fresh/.test(l))).toEqual([`--fresh orch-${HOST} --for orch-0a0a0a`]);
   expect(log("brain").filter((l) => /^agent-token/.test(l))).toEqual(["agent-token orch judgment:b"]);
-  // The process: started in the worktree, with the four lines, the third the entries.
+  // The process: started in the worktree, with the five lines, the third the entries.
   await until(() => existsSync(join(RIG, "agent.log")));
-  expect(readFileSync(join(RIG, "agent.log"), "utf8")).toBe([`WORK=${tree}`, "orchestrator", `Working directory: ${tree}.`, `Read ${tree}/.claude/skills/brain-maintenance/agents/orchestrator.md and follow it.`, `Entries: round b (event ${sb}); triage a (event ${sa})`, "Your token is orch-0a0a0a.", ""].join("\n"));
+  expect(readFileSync(join(RIG, "agent.log"), "utf8")).toBe([`WORK=${tree}`, "orchestrator", `Working directory: ${tree}.`, `Read ${tree}/.claude/skills/brain-maintenance/agents/orchestrator.md and follow it.`, `Entries: round b (event ${sb}); triage a (event ${sa})`, `scratch: ${join(RUNS, "orch-0a0a0a.scratch")}`, "Your token is orch-0a0a0a.", ""].join("\n"));
   // While it runs: a new entry is not given and has no comment, and the two are not given again.
   open("c", { state: "open" }); Q("c", "triage");
   r = await step({ LOOP_SELF: "" });

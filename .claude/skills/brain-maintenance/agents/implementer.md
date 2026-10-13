@@ -67,7 +67,7 @@ that path, `<tree>` what follows `bm-`, its branch `bm/<tree>`, and `<root>` the
   `git fetch` there is `git fetch --no-recurse-submodules origin`.
 - The shell is zsh: an unquoted variable is one word (`for f in $FILES` runs once), and an unquoted `*` or `?`
   that matches no file stops the command. Write the names out, or use an array.
-- A file you write in the scratchpad begins with your token: the directory is every agent's of the session.
+- The scratchpad is your prompt's `scratch:` line, else the session's; a file there begins with your token.
 - A worktree that holds work when you come to it, or a prompt whose first line names the main checkout:
   the page `start`.
 

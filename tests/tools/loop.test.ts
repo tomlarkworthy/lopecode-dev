@@ -227,13 +227,13 @@ test("start returns before the agent does, the run is `running` in the record, a
   expect(r.code).toBe(0);
   const token = "impl-000001", f = file(token);
   expect(r.json).toEqual({ started: token, id: "task-a", role: "implementer", round: 1, how: "fresh", session: f.session, agent: `${HOST}:${f.pid}`, tree: "proj", path: tree("proj"), event: f.running, key: "cost/task-a/implementer/1/impl-000001" });
-  // The agent has not returned: its process lives, and it was given the worktree, the session and the four lines.
+  // The agent has not returned: its process lives, and it was given the worktree, the session and the five lines.
   expect(existsSync(join(RIG, "agent-hold"))).toBe(true);
   expect(alive(f)).toBe(true);
   expect(f.session).toMatch(UUID);
   expect({ id: f.id, role: f.role, round: f.round, token: f.token, made: f.made, tree: f.tree, host: f.host, as: f.as }).toEqual({ id: "task-a", role: "implementer", round: 1, token, made: true, tree: "proj", host: HOST, as: ME });
-  await until(() => log("agent").length >= 7);
-  expect(log("agent")).toEqual([`WORK=${tree("proj")} SESSION=${f.session} TAB= CHECKOUT=`, "arg: implementer", `arg: Working directory: ${tree("proj")}.`, `Read ${tree("proj")}/.claude/skills/brain-maintenance/agents/implementer.md and follow it.`, "Issue: task-a", `Your token is ${token}.`, "---"]);
+  await until(() => log("agent").length >= 8);
+  expect(log("agent")).toEqual([`WORK=${tree("proj")} SESSION=${f.session} TAB= CHECKOUT=`, "arg: implementer", `arg: Working directory: ${tree("proj")}.`, `Read ${tree("proj")}/.claude/skills/brain-maintenance/agents/implementer.md and follow it.`, "Issue: task-a", `scratch: ${join(RUNS, token + ".scratch")}`, `Your token is ${token}.`, "---"]);
   expect(log("brain")).toEqual(["agent-token impl task-a"]);
   expect(log("worktree")).toEqual([`--fresh proj --for ${token}`]);
   // One `cost` event, as the spec's part 2 has it, written with the caller's token; one comment, on the topic.
@@ -361,7 +361,7 @@ test("the worktree: origin not reached starts nothing; another agent's is the ne
   const own = await cli(["start", "task-a", "--role", "implementer"]);
   expect([own.code, own.json.tree]).toEqual([0, "proj"]);
   await over(own.json.started);
-  expect(log("agent").slice(2, 7)).toEqual([`arg: Working directory: ${tree("proj")}.`, `Read ${tree("proj")}/.claude/skills/brain-maintenance/agents/implementer.md and follow it.`, "Issue: task-a", `Your token is ${own.json.started}.`, "The worktree holds unlanded work of this issue."]);
+  expect(log("agent").slice(2, 8)).toEqual([`arg: Working directory: ${tree("proj")}.`, `Read ${tree("proj")}/.claude/skills/brain-maintenance/agents/implementer.md and follow it.`, "Issue: task-a", `scratch: ${join(RUNS, own.json.started + ".scratch")}`, `Your token is ${own.json.started}.`, "The worktree holds unlanded work of this issue."]);
   // Exit 3 with another issue's work: the next name, and a comment on the issue whose work stands there.
   const other = await cli(["start", "task-b", "--role", "implementer"]);
   expect([other.code, other.json.tree]).toEqual([0, "proj.2"]);
@@ -462,7 +462,7 @@ test("an overseer is on no issue: the file and no event, its line in _oversight.
   expect(log("brain")).toEqual(["agent-token over oversight-after-5646"]);
   expect(writes()).toEqual([]);
   await until(() => log("agent").length >= 7);
-  expect(log("agent").slice(2, 6)).toEqual([`arg: Working directory: ${W}.`, `Read ${W}/.claude/skills/brain-maintenance/agents/overseer.md and follow it.`, `Last oversight ended at event 5646. Journal: ${join(STATE, "issue-loop")}/`, `Your token is ${token}.`]);
+  expect(log("agent").slice(2, 7)).toEqual([`arg: Working directory: ${W}.`, `Read ${W}/.claude/skills/brain-maintenance/agents/overseer.md and follow it.`, `Last oversight ended at event 5646. Journal: ${join(STATE, "issue-loop")}/`, `scratch: ${join(RUNS, token + ".scratch")}`, `Your token is ${token}.`]);
   rmSync(join(RIG, "agent-hold"));
   const e = await over(token);
   expect([e.outcome, e.token]).toEqual(["done", "ended"]);
@@ -505,8 +505,8 @@ test("resume sends --resume with the session of the last run and writes a `runni
   expect(r.code).toBe(0);
   const key = `cost/rw/implementer/2/${token}/resumed-${rework.seq}`;
   expect(r.json).toMatchObject({ resumed: token, id: "rw", role: "implementer", round: 2, at: rework.seq, session, tree: "rw", key });
-  await until(() => log("agent").length >= 6);
-  expect(log("agent")).toEqual([`WORK=${tree("rw")} SESSION= TAB= CHECKOUT=`, "arg: --resume", `arg: ${session}`, `arg: Issue: rw, sent back by the review at event ${review.seq}.`, `Working directory: ${tree("rw")}.`, `A resumed round: read ${tree("rw")}/.claude/skills/brain-maintenance/agents/implementer/resumed-round.md, "A resumed round", and follow it.`, "---"]);
+  await until(() => log("agent").length >= 8);
+  expect(log("agent")).toEqual([`WORK=${tree("rw")} SESSION= TAB= CHECKOUT=`, "arg: --resume", `arg: ${session}`, `arg: Issue: rw, sent back by the review at event ${review.seq}.`, `Working directory: ${tree("rw")}.`, `A resumed round: read ${tree("rw")}/.claude/skills/brain-maintenance/agents/implementer/resumed-round.md, "A resumed round", and follow it.`, `scratch: ${join(RUNS, token + ".scratch")}`, "---"]);
   expect(runs("rw").map((x: Ev) => [x.round, x.how, x.outcome, x.token, x.session])).toEqual([[1, "fresh", "changes", token, session], [2, "resumed", "running", token, session]]);
   expect(events("rw", "cost").pop()).toMatchObject({ key, how: "resumed", outcome: "running", seconds: 0, context: 0, agent: `${HOST}:${file(token).pid}` });
   expect(log("brain")).toEqual(["agent-token impl rw"]);
@@ -524,6 +524,87 @@ test("resume sends --resume with the session of the last run and writes a `runni
   await over(token);
   expect(events("rw", "cost").map((x) => x.key)).toEqual([`cost/rw/implementer/1/${token}`, `cost/rw/implementer/1/${token}/end`, key, key + "/end", `cost/rw/implementer/2/${token}/resumed-${go.seq}`, `cost/rw/implementer/2/${token}/resumed-${go.seq}/end`]);
   expect(submit.seq).toBeLessThan(rework.seq);
+});
+
+// loop-started-run-is-told-no-scratchpad: a run `start` began was told no directory for the files it sends with `@`.
+test("a started run's prompt names a directory of its own that is there while it runs and gone after `ended`; a resumed round has it again", async () => {
+  fresh();
+  open("sc", { state: "in-progress" });
+  flagFile("agent-hold");
+  const s = await cli(["start", "sc", "--role", "implementer"]);
+  expect([s.code, s.err]).toEqual([0, ""]);
+  const token = s.json.started, dir = join(RUNS, token + ".scratch");
+  await until(() => log("agent").length >= 8);
+  // The line is the fourth, before the token's, which stays the last.
+  expect(log("agent").slice(4, 8)).toEqual(["Issue: sc", `scratch: ${dir}`, `Your token is ${token}.`, "---"]);
+  expect([file(token).scratch, existsSync(dir), readdirSync(dir)]).toEqual([dir, true, []]);
+  // What the run writes there goes with the directory, and the run's other files stay.
+  writeFileSync(join(dir, token + "-comment.md"), "text");
+  ev("sc", token, { type: "moved", move: "submit", to: "in-review", refs: [] });
+  ev("sc", "rev-cccccc", { type: "reviewed", verdict: "changes" });
+  ev("sc", "rev-cccccc", { type: "moved", move: "rework", to: "in-progress" });
+  rmSync(join(RIG, "agent-hold"));
+  expect((await over(token)).token).toBe("kept");
+  expect([existsSync(dir), existsSync(join(RUNS, token + ".json")), existsSync(join(RUNS, token + ".result.json"))]).toEqual([false, true, true]);
+  // A second `ended` removes nothing a later run made at that path.
+  mkdirSync(dir);
+  expect((await cli(["ended", token])).json.already).toBe(token);
+  expect(existsSync(dir)).toBe(true);
+  rmSync(dir, { recursive: true });
+  // The round sent back: the same path, made again and named in a fourth line of the message.
+  rmSync(join(RIG, "agent.log"));
+  flagFile("agent-hold");
+  const r = await cli(["resume", "sc"]);
+  expect([r.code, r.err]).toEqual([0, ""]);
+  await until(() => log("agent").length >= 8);
+  expect(log("agent").slice(6, 8)).toEqual([`scratch: ${dir}`, "---"]);
+  expect([existsSync(dir), readdirSync(dir)]).toEqual([true, []]);
+  rmSync(join(RIG, "agent-hold"));
+  await over(token);
+  expect(existsSync(dir)).toBe(false);
+  // A run file of before this change names no directory: `ended` removes none.
+  fresh();
+  open("old", { state: "in-progress" });
+  flagFile("agent-hold");
+  const o = await cli(["start", "old", "--role", "implementer"]);
+  const od = join(RUNS, o.json.started + ".scratch"), { scratch: _, ...was } = file(o.json.started);
+  writeFileSync(join(RUNS, o.json.started + ".json"), JSON.stringify(was));
+  rmSync(join(RIG, "agent-hold"));
+  await over(o.json.started);
+  expect(existsSync(od)).toBe(true);
+});
+
+test("a judgment run and an overseer have the directory; a reviewer has agent.sh's and an approver's prompt is its three lines", async () => {
+  fresh();
+  flagFile("agent-hold");
+  const o = await cli(["start", "--role", "overseer"]);
+  expect(o.code).toBe(0);
+  const od = join(RUNS, o.json.started + ".scratch");
+  await until(() => log("agent").length >= 7);
+  expect([log("agent").slice(5, 7), existsSync(od)]).toEqual([[`scratch: ${od}`, `Your token is ${o.json.started}.`], true]);
+  rmSync(join(RIG, "agent-hold"));
+  await over(o.json.started);
+  expect(existsSync(od)).toBe(false);
+  rmSync(join(RIG, "agent.log"));
+  open("jr", { state: "open" });
+  flagFile("agent-hold");
+  const j = await cli(["start", "jr", "--role", "orchestrator", "--token", "impl-aaaaaa", "--give", "triage jr (event 1)"]);
+  expect([j.code, j.err]).toEqual([0, ""]);
+  const jd = join(RUNS, "impl-aaaaaa.scratch");
+  await until(() => log("agent").length >= 7);
+  expect([log("agent").slice(4, 7), existsSync(jd)]).toEqual([["Entries: triage jr (event 1)", `scratch: ${jd}`, "Your token is impl-aaaaaa."], true]);
+  rmSync(join(RIG, "agent-hold"));
+  await over("impl-aaaaaa");
+  expect(existsSync(jd)).toBe(false);
+  // A reviewer and an approver: no line, no directory, nothing in the file.
+  for (const [id, role, state] of [["rv2", "reviewer", "in-review"], ["ap2", "approver", "awaiting-approval"]]) {
+    rmSync(join(RIG, "agent.log"), { force: true });
+    open(id, { state });
+    const r = await cli(["start", id, "--role", role]);
+    expect([r.code, r.err]).toEqual([0, ""]);
+    await over(r.json.started);
+    expect([log("agent").some((l) => /scratch/.test(l)), existsSync(join(RUNS, r.json.started + ".scratch")), "scratch" in file(r.json.started)]).toEqual([false, false, false]);
+  }
 });
 
 test("resume, a dead writer: a token that no longer reads the tracker is ended and the issue goes back; another machine's run the same", async () => {
