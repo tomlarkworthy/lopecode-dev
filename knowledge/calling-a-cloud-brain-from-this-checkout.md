@@ -177,7 +177,7 @@ to be whole: the two are in the places below and no others were looked at.
 ```
 issue.list    { issues, total, more }       100 issues, 500 with limit=500, no second page: a narrower filter, or issue.snapshot
 issue.sync    { seq, wait, events, more }   200 events, 500 with limit=500; the next page is after=<the seq of the last event>
-tab-tests.ts, verify-run.ts, cloud-brain-dev/test.ts     … (cut: 400 of 1421 characters; --whole prints all)
+tab-tests.ts, verify-run.ts                              … (cut: 400 of 1421 characters; --whole prints all)
 a tool of the Brain's page, on a query                   [characters 0 to 20000 of 27094. The rest: the same call with offset 20000]
 an entry of kind doc over 16,000 characters              [the first N of M characters of this entry's text. The whole is the file <file> in this Brain's brain-static: static.get?path=<file>]
 ```
@@ -186,13 +186,12 @@ an entry of kind doc over 16,000 characters              [the first N of M chara
   `total` 460 and `more: true`; `list?limit=500` 460 and `more: false`; `sync?after=0` events 1 to 200 and
   `more: true`, and with `&limit=500` events 1 to 500 and `more: true`. `issue.queue` and `issue.runs` have a
   `more` too, by their rows of the reference (`tools/cloud-brain/brain-issues.ojs`); neither was called for this.
-- The third line is what `tools/cloud-brain/cut.ts` made of a text of 1,421 characters cut at 400, the same day. The
+- The third line is what `tools/cloud-brain/cut.ts` made of a text of 1,421 characters cut at 400, the same day;
+  `cloud-brain-dev/test.ts` has a copy of that function, with a value cut at 120 and an error at 600, by its source. The
   fourth is the line a test of `tools/cloud-brain/cloud-brain.ojs` expects of `callAnswer`, not one read in the page;
   for a procedure the same function ends the line `The rest is not read: a procedure called again would run a second time`.
 - A cut doc's last line names its file, which is the whole ("The knowledge docs in the Brain's search", below).
-  This page is such a doc: its entry ended, at 04:09 CEST that day, `[the first 15727 of 26628 characters of this
-  entry's text. The whole is the file docs/lopecode-dev/knowledge/calling-a-cloud-brain-from-this-checkout.md in this
-  Brain's brain-static: static.get?path=docs/lopecode-dev/knowledge/calling-a-cloud-brain-from-this-checkout.md]`.
+  This page is such a doc: at 04:09 CEST that day its entry had the first 15727 of 26628 characters, by its last line.
 
 ## Why did that happen: the logs
 

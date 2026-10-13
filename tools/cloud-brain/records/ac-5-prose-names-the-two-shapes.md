@@ -68,13 +68,13 @@ mark to what `tools/cloud-brain/cut.ts` returns, and the two other last lines to
 bun test --timeout=30000 ./tests/tools/ac-5-prose-names-the-two-shapes.test.ts     7 pass, 0 fail, 43 expect() calls
 the same with OVERSEER=, SKILL= and CALLING= the three files of c4b9cfc6           1 pass, 6 fail
 OVERSEER= alone   4 pass, 3 fail      SKILL= alone   6 pass, 1 fail      CALLING= alone   5 pass, 2 fail
-tests/tools/suite.sh, ended 04:12:10                                                1026 pass, 0 fail, 105 files
+tests/tools/suite.sh, ended 04:17:36                                                1026 pass, 0 fail, 105 files
 bash scripts/check-learnings-triggers.sh                                            0 error(s)
 ```
 
 The one that passes on the old files reads the seed alone. The spec's own check,
 `grep -n "more" .claude/skills/brain-maintenance/agents/overseer.md`, printed lines 19 to 22 at the
-read of `sync` and lines 91 and 93 at the list, with two lines where "more" is a word of the prose.
+read of `sync` and lines 91 and 92 at the list, with two lines where "more" is a word of the prose.
 
 ## Searches
 
@@ -94,7 +94,7 @@ read of `sync` and lines 91 and 93 at the list, with two lines where "more" is a
 - `issue.queue` and `issue.runs` were not called. The knowledge page says they have a `more` by
   their rows of the reference.
 - The line of `callAnswer` is the one a test of the seed expects. It was not read in the page, and
-  neither was a line of `cloud-brain-dev/test.ts`; `cut.ts` was run with a text of 1,421 characters.
+  neither was a line of `cloud-brain-dev/test.ts`, of which the page says what its source has; `cut.ts` was run with a text of 1,421 characters.
 - A cut doc's last line was read for two docs, this page and `doc:svg-editor-architecture`.
 - The entry of the knowledge page as the landing's release puts it was not read before this file
   was written: that the new section is inside the entry's 16,000 characters is held by the test's

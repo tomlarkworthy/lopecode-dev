@@ -87,10 +87,10 @@ io open '{"key":"over/<p>/open","id":"<p>","kind":"project","title":"<the common
 io link '{"key":"over/<x>/part","id":"<x>","to":"<p>","rel":"part-of"}'      once for each
 ```
 
-Before you open one, `io "list?kind=project"`: a report that fits a project that is `open` is made
-a part of it instead. A list is 100 issues when no `limit` is asked, and `more: true` in its answer
-says the issues listed are not all that match: ask with `&limit=500`, the most (13 projects and
-`more: false` on 2026-10-13). Fewer than three, or no common cause you can name in a line: link what is
+Before you open one, `io "list?kind=project"` (a list is 100 issues when no `limit` is asked, and
+`more: true` in its answer says the issues listed are not all that match: ask with `&limit=500`,
+the most; 13 projects and `more: false` on 2026-10-13): a report that fits a project that is `open` is made
+a part of it instead. Fewer than three, or no common cause you can name in a line: link what is
 related and leave them. One ticket alone is evidence for nothing. Open a feedback ticket yourself
 for what you see and do not act on. A project is not an edit of yours and not counted against your
 edits; the orchestrator has its spec written.
