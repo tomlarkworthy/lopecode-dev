@@ -27,6 +27,8 @@ const swap = (from: string, to: string, text = seed) => { expect(text.split(from
 const diff = (from: string, to: string) => policyCells(seed, swap(from, to));
 const HELD = '"InvalidRequest", "seconds: a call is held with an id, for the waits of one issue")';
 const END = "  return app;\n}";
+const COUNT = '  app.get(NS + "count", run(async () => ({ n: (await load([S.all])).seq })));\n';
+const LOOSE = "a cell with no name (an import, or prose with ${ in it)";
 
 test("the item is found, and still names the files and the refusal", () => {
   expect(section.length).toBeGreaterThan(0);
@@ -108,15 +110,17 @@ test("either cell is taken whole where the tool cannot cut it on both sides", ()
 });
 
 test("what is no policy part: a read route beside those statements, and an entry no policy reads; the mark is then tracker", () => {
-  expect(own).toContain("A route that takes a GET and is neither `policy` nor `sync`, changed or added, is no policy part in what it does beside those statements");
+  expect(own).toContain("A route that takes a GET and is neither `policy` nor `sync`, changed, added or removed, is no policy part in what it does beside those statements");
   expect(own).toContain("an entry of `issuesLimits` that no policy cell and no such part reads is none");
-  expect(own).toContain("a commit of the seed that touches no policy cell and no policy part is marked `tracker`, which is no refusal, and the approver reads its diff (`agents/approver.md`, step 6)");
+  expect(own).toContain("a commit of the seed that touches no policy cell, no policy part and no cell with no name is marked `tracker`, which is no refusal, and the approver reads its diff (`agents/approver.md`, step 6)");
   // The item does not say such a commit has no mark: the file is marked, and the mark refuses nothing.
   expect(own).not.toContain("no mark");
   expect([marks(SEED, []), owned(SEED, [])]).toEqual([["tracker"], false]);
   expect([marks(SEED, ["issuesApp (judge)"]), owned(SEED, ["issuesApp (judge)"])]).toEqual([["policy"], true]);
   expect(diff(HELD, '"InvalidRequest", "seconds: with an id")')).toEqual([]);
   expect(diff(END, '  app.get(NS + "count", run(async () => ({ n: (await load([S.all])).seq })));\n' + END)).toEqual([]);
+  // The same route removed: the seed with it is the side before (note 2 of review 6824).
+  expect(policyCells(swap(END, COUNT + END), seed)).toEqual([]);
   expect(diff("wakeMs: 2000", "wakeMs: 1000")).toEqual([]);
   expect(diff("wakeSeconds: 25,", "wakeSeconds: 25, wakeLate: 3,")).toEqual([]);
   // The item no longer reads as a leave for no change of the cell at all, or for every change of it.
@@ -127,4 +131,24 @@ test("what is no policy part: a read route beside those statements, and an entry
   expect(six).toContain("Of two cells it compared the policy parts alone (since 2026-10-13, `approver-policy-mark-takes-every-route`)");
   expect(six).toContain("read its diff");
   expect(six).toContain("`tracker` is `brain-issues.ojs` in a commit that changes no policy cell (`no policy cell` after the file), and is no refusal");
+});
+
+// Issue fb-batch-rules-md, the entry seen-own-files-cell-with-no-name (note 1 of review 6824).
+test("a cell with no name, added, changed or removed, is named by the tool: the mark is then policy, not tracker", () => {
+  expect(own).toContain("A cell with no name is an import, or prose with `${` in it: of one added, changed or removed the tool names `a cell with no name`, the seed is marked `policy`, and the issue is the owner's");
+  // The words the item gives the tool are the first words of the name the tool gives.
+  expect(LOOSE.startsWith("a cell with no name")).toBe(true);
+  const IMPORT = '\n\n// %%\nimport {decide} from "@someone/else"\n', RUNS = '\n\n// %%\nmd`a ${1 + 1}`\n';
+  // An import: added, changed, removed.
+  expect(policyCells(seed, seed + IMPORT)).toEqual([LOOSE]);
+  expect(policyCells(seed + IMPORT, seed + IMPORT.replace("decide", "judge"))).toEqual([LOOSE]);
+  expect(policyCells(seed + IMPORT, seed)).toEqual([LOOSE]);
+  // Prose with ${ in it: added, changed, removed.
+  expect(policyCells(seed, seed + RUNS)).toEqual([LOOSE]);
+  expect(policyCells(seed + RUNS, seed + RUNS.replace("1 + 1", "1 + 2"))).toEqual([LOOSE]);
+  expect(policyCells(seed + RUNS, seed)).toEqual([LOOSE]);
+  expect([marks(SEED, [LOOSE]), owned(SEED, [LOOSE])]).toEqual([["policy"], true]);
+  // Prose with no ${ in it is no such cell, and neither is a cell with a name that no policy cell reads.
+  expect(policyCells(seed, seed + "\n\n// %%\nmd`a note`\n")).toEqual([]);
+  expect(policyCells(seed, seed + "\n\n// %%\nnotAPolicyCell = 1\n")).toEqual([]);
 });
