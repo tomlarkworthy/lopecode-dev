@@ -70,7 +70,8 @@ test("rules.md: what is not reduced stays asked of the owner", () => {
 test("rules.md, What an issue is: an issue whose fix is in one of the four seeds is not left for the owner before its deploy", () => {
   const what = flat(section(rules, "What an issue is"));
   expect(what).toContain('An issue that asks for anything in "Never" below is commented on and left for the owner.');
-  expect(what).toContain("An issue whose fix is in the seed of the kernel, the core, the database or the deployer asks for none of it until the deploy: the fix is written and reviewed, and the deploy is left for him (Never, the line of the four).");
+  expect(what).toContain("Of an issue whose fix is in the seed of the kernel, the core, the database or the deployer, the deploy is what is left for him: the fix is written and reviewed first (Never, the line of the four).");
+  expect(what).toContain("Anything else of that list it asks for is left for him as before.");
 });
 
 test("SKILL.md, Triage: a deploy of the four is no longer a reason for needs-owner, and the major labels are as they were", () => {

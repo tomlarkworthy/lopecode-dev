@@ -46,8 +46,9 @@ The change is on `main` before that approval, as any `major` change is at its su
   begin with; and what is still asked of him before a start (a new policy, secret, permission or
   Worker, and the plan of a `major` change). The old sentence is quoted there with its date, then
   his third message and whose words the sentence of the rule is.
-- "What an issue is": one sentence after "is commented on and left for the owner", that an issue
-  whose fix is in one of those seeds asks for nothing of Never until the deploy.
+- "What an issue is": two sentences after "is commented on and left for the owner". Of an issue
+  whose fix is in one of those seeds the deploy is what is left for him, the fix being written
+  and reviewed first; anything else of the list it asks for is left for him as before.
 
 `SKILL.md`, Triage, question 2: "a deploy of the kernel, core, database or deployer" is taken out
 of the list of what puts `needs-owner` on an issue at triage, with the sentence that said the
@@ -70,7 +71,7 @@ on the build of the worktree, nothing emitted, applied or probed on cb4, the fir
 comment and the reason, and what the comment tells the owner. The flag and the refusal without it
 are in `tools/cloud-brain/land.sh` (lines 58 and 82, read 2026-10-13) and were not changed.
 
-What a writer does at the landing, as the page now has it and as `core-getinfo-line-says-access`
+**What a writer does at the landing**, as the page now has it and as `core-getinfo-line-says-access`
 did on 2026-10-13 by its record (`tools/cloud-brain/records/core-getinfo-line-says-access.md`,
 read after the rebase that brought it): the build and the tests run in the worktree; "nothing was
 emitted or applied, and `seen.json` is not changed"; the record has a section "For the owner: the
@@ -150,11 +151,15 @@ is his; a mark refuses nothing), `rules.md`, "Two standing leaves of the orchest
 
 ## Not tried
 
+- **Step 4 was made out of its order.** The `start` of this round is event 6101, made after the
+  two commits of the change were written in the worktree and before the landing. Nothing was
+  pushed or written to the issue before it.
+
 - **No writer has started such an issue on the rule alone.** `core-getinfo-line-says-access` is
   not that case: its `start` (event 6027) is on the owner's "yes", quoted in its comment 6007. The
   triage comment asked for its record to be read. It came in with this change's rebase, and its
-  issue was `in-review` at 08:45:25 with a `submit` at event 6074. What was taken from it is under
-  "What a writer does at the landing", above.
+  issue was `in-review` at 08:45:25 with a `submit` at event 6074. What was taken from it is the
+  paragraph of "What changed" that begins "What a writer does at the landing".
 - **How the owner is shown a deploy that waits once the issue is `done`.** A `pass` of a change
   that is not `major` moves the issue to `done` with cb4 not running it (the reviewer's brief says
   so and has the review's first line say it). Nothing was added that lists such deploys for him:
