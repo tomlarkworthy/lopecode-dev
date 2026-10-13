@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { compiler, moduleSource, splitSeed } from "../../tools/spec-notebook.ts";
-import { WORKERS, ask, differ, issueOf, issuesOf, line, plan, readWorker, seedOf, type Row } from "../../tools/cloud-brain/waiting-deploys.ts";
+import { WORKERS, ask, differ, issueOf, issuesOf, line, opening, plan, readWorker, seedOf, type Row } from "../../tools/cloud-brain/waiting-deploys.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const tool = join(root, "tools/cloud-brain/waiting-deploys.ts");
@@ -143,16 +143,44 @@ const waits: Row = { worker: "brain-core", what: "the core", state: "waits", run
 const same: Row = { ...waits, state: "same", differ: [], commits: [], base: null };
 const got = (issue: Record<string, unknown>, events: unknown[] = []) => ({ issue: { id: "deploy-waits-brain-core", seq: 7, state: "open", labels: ["needs-owner"], body: "the list", closed: false, ...issue }, events });
 
-test("plan: a Worker that waits is opened once with needs-owner, and said again only when the list is another", () => {
-  expect(plan(waits, null, "the list")).toEqual([{ call: "open", body: { key: "deploys/brain-core/open-0", id: "deploy-waits-brain-core", kind: "task", about: "issue-loop", labels: ["needs-owner"], title: "A deploy waits for you: the core (brain-core) on cb4 is behind main", body: "the list" } }]);
+test("plan: a Worker that waits is opened once with needs-owner, its list a comment from the first; said again only when the list is another", () => {
+  // The body has no list: it is never written again. It says where the list is.
+  const first = plan(waits, null, "the list");
+  expect(first).toEqual([
+    { call: "open", body: { key: "deploys/brain-core/open-0", id: "deploy-waits-brain-core", kind: "task", about: "issue-loop", labels: ["needs-owner"], title: "A deploy waits for you: the core (brain-core) on cb4 is behind main", body: opening(waits) } },
+    { call: "comment", body: { key: "deploys/brain-core/list-0", id: "deploy-waits-brain-core", body: "the list" }, what: "list said" },
+  ]);
+  expect(opening(waits)).toContain("A deploy of the core (`brain-core`) waits for you");
+  expect(opening(waits)).toContain("in the last comment of this issue (its key begins `deploys/brain-core/list-`)");
+  expect(opening(waits)).not.toMatch(/[0-9a-f]{8}|tools\/|issue-a/);
+  expect(opening({ ...waits, commits: [], differ: ["~y", "+z"] })).toBe(opening(waits));
+  // Opened that way: the list is the tool's one comment, and nothing is written at the next read.
+  const opened = (more: unknown[] = []) => [{ type: "opened", key: "deploys/brain-core/open-0" }, { type: "commented", key: "deploys/brain-core/list-0", body: "the list" }, ...more];
+  expect(plan(waits, got({ body: opening(waits) }, opened()), "the list")).toEqual([]);
+  expect(plan(waits, got({ body: opening(waits) }, opened()), "a longer list")).toEqual([{ call: "comment", body: { key: "deploys/brain-core/list-7", id: "deploy-waits-brain-core", body: "a longer list" }, what: "list changed" }]);
+  // The open was written and its comment was not (refused, or the run ended between): the next read says the list.
+  expect(plan(waits, got({ body: opening(waits) }, [{ type: "opened", key: "deploys/brain-core/open-0" }]), "the list").map((w) => [w.call, w.body.key, w.what])).toEqual([["comment", "deploys/brain-core/list-7", "list changed"]]);
+  // An issue opened before the list was a comment has its first list as its body.
   expect(plan(waits, got({}), "the list")).toEqual([]);
-  expect(plan(waits, got({}), "a longer list")).toEqual([{ call: "comment", body: { key: "deploys/brain-core/list-7", id: "deploy-waits-brain-core", body: "a longer list" } }]);
-  // The list said last is the tool's last comment, not the owner's and not the body.
-  const events = [{ type: "commented", key: "deploys/brain-core/list-7", body: "a longer list" }, { type: "commented", key: "owner/x", body: "tomorrow" }];
-  expect(plan(waits, got({ seq: 9 }, events), "a longer list")).toEqual([]);
-  expect(plan(waits, got({ seq: 9 }, events), "the list").map((w) => w.body.key)).toEqual(["deploys/brain-core/list-9"]);
+  expect(plan(waits, got({}), "a longer list").map((w) => [w.body.key, w.what])).toEqual([["deploys/brain-core/list-7", "list changed"]]);
   // A label he took off is not put back while the issue stays open.
   expect(plan(waits, got({ labels: [] }), "the list")).toEqual([]);
+});
+
+test("plan: the last comment of the issue is the list: after a comment that is not the tool's, the same list is said again, once", () => {
+  const events = [{ type: "commented", key: "deploys/brain-core/list-7", body: "a longer list" }, { type: "commented", key: "owner/x", body: "tomorrow" }];
+  // The list said last is the tool's last comment, not the owner's and not the body.
+  expect(plan(waits, got({ seq: 9 }, events), "a longer list")).toEqual([{ call: "comment", body: { key: "deploys/brain-core/list-9", id: "deploy-waits-brain-core", body: "a longer list" }, what: "list said again" }]);
+  expect(plan(waits, got({ seq: 9 }, events), "the list").map((w) => [w.body.key, w.what])).toEqual([["deploys/brain-core/list-9", "list changed"]]);
+  // Once it is said the tool's comment is the last, and nothing more is written.
+  const after = [...events, { type: "commented", key: "deploys/brain-core/list-9", body: "a longer list" }];
+  expect(plan(waits, got({ seq: 10 }, after), "a longer list")).toEqual([]);
+  // An event that is no comment (a label, a move) after the list does not have it said again.
+  expect(plan(waits, got({ seq: 11 }, [...after, { type: "labelled", key: "owner/y" }, { type: "moved", key: "orch/z", to: "open" }]), "a longer list")).toEqual([]);
+  // The body alone is the list (an issue of before) and another's comment stands under it: said again.
+  expect(plan(waits, got({ seq: 8 }, [{ type: "commented", key: "owner/x", body: "tomorrow" }]), "the list").map((w) => [w.body.key, w.what])).toEqual([["deploys/brain-core/list-8", "list said again"]]);
+  // A comment of the tool's for another Worker's issue is not this one's.
+  expect(plan(waits, got({ seq: 8 }, [{ type: "commented", key: "deploys/brain-core/list-7", body: "the list" }, { type: "commented", key: "deploys/brain-db/list-3", body: "the list" }]), "the list").map((w) => w.what)).toEqual(["list said again"]);
 });
 
 test("plan: a Worker that runs main's seed has its open issue closed, and one that waits again has it opened again with the label", () => {
@@ -168,6 +196,20 @@ test("plan: a Worker that runs main's seed has its open issue closed, and one th
   // One he rejected is not opened again, and not written to.
   expect(plan(waits, got({ state: "rejected", closed: true }), "another list")).toEqual([]);
   expect(plan(same, got({ state: "rejected", closed: true }), "")).toEqual([]);
+});
+
+test("plan: an issue at done or at reverted is left as one he rejected is: no move to open, which the task workflow has from closed and rejected alone", () => {
+  for (const state of ["done", "reverted", "rejected"]) {
+    // Whatever the tracker answers of `closed` for it, and whatever its last comment is.
+    for (const closed of [true, false]) {
+      expect([state, closed, plan(waits, got({ state, closed }), "another list")]).toEqual([state, closed, []]);
+      expect([state, closed, plan(waits, got({ state, closed, labels: [] }, [{ type: "commented", key: "owner/x", body: "no" }]), "the list")]).toEqual([state, closed, []]);
+      expect([state, closed, plan(same, got({ state, closed }), "")]).toEqual([state, closed, []]);
+    }
+  }
+  // The states beside them are written to as before.
+  expect(plan(waits, got({ state: "closed", closed: true, seq: 12 }), "the list").map((w) => w.body.to)).toEqual(["open"]);
+  expect(plan(waits, got({ state: "triaged" }), "another list").map((w) => w.call)).toEqual(["comment"]);
 });
 
 // The tracker, as far as the tool calls it: get, open, comment, label, move. A key sent before writes nothing.
@@ -227,10 +269,14 @@ it("--file keeps the issue of a Worker that waits: opened, left alone at the nex
   expect(svc.calls).toEqual([]);
   a = await run("--file", "impl-aaaaaa");
   expect(a.code).toBe(0);
-  expect(a.lines.at(-1)).toBe("deploys (cb4): brain-core behind main, the deploy is the owner's; deploy-waits-brain-core opened");
+  expect(a.lines.at(-1)).toBe("deploys (cb4): brain-core behind main, the deploy is the owner's; deploy-waits-brain-core opened, deploy-waits-brain-core list said");
   const kept = svc.issues.get(issueOf("brain-core"))!.issue;
   expect(kept).toMatchObject({ state: "open", labels: ["needs-owner"], title: "A deploy waits for you: the core (brain-core) on cb4 is behind main" });
-  expect(kept.body).toContain("- `core-fix-a` (done): The core answers three");
+  // The body says where the list is and has none; the list is the issue's last comment.
+  expect(kept.body).toContain("its key begins `deploys/brain-core/list-`");
+  expect(kept.body).not.toContain("core-fix-a");
+  expect(svc.issues.get(issueOf("brain-core"))!.events.map((e: any) => e.type)).toEqual(["opened", "commented"]);
+  expect(svc.issues.get(issueOf("brain-core"))!.events.at(-1).body).toContain("- `core-fix-a` (done): The core answers three");
   expect(svc.issues.has(issueOf("brain"))).toBe(false);
 
   const n = svc.calls.length;
@@ -243,6 +289,18 @@ it("--file keeps the issue of a Worker that waits: opened, left alone at the nex
   expect(a.lines.at(-1)).toContain("deploy-waits-brain-core list changed");
   expect(svc.issues.get(issueOf("brain-core"))!.events.at(-1).body).toContain("- `core-fix-b` (in-review): The core answers four");
 
+  // He comments under the list: the next run says the same list again, so that it is the last comment; the run after writes nothing.
+  const core = svc.issues.get(issueOf("brain-core"))!, list = core.events.at(-1).body;
+  core.events.push({ seq: ++svc.state.seq, type: "commented", key: "owner/1", body: "tomorrow" });
+  core.issue.seq = svc.state.seq;
+  a = await run("--file", "impl-aaaaaa");
+  expect(a.lines.at(-1)).toBe("deploys (cb4): brain-core behind main, the deploy is the owner's; deploy-waits-brain-core list said again");
+  expect([core.events.at(-1).key.startsWith("deploys/brain-core/list-"), core.events.at(-1).body === list]).toEqual([true, true]);
+  const quiet = svc.calls.length;
+  a = await run("--file", "impl-aaaaaa");
+  expect(a.lines.at(-1)).toBe("deploys (cb4): brain-core behind main, the deploy is the owner's; nothing written");
+  expect(svc.calls.length).toBe(quiet);
+
   runs("HEAD");
   a = await run("--file", "impl-aaaaaa");
   expect(a.lines.slice(0, 4)).toEqual(["brain: same", "brain-core: same", "brain-db: same", "brain-deployer: same"]);
@@ -253,6 +311,15 @@ it("--file keeps the issue of a Worker that waits: opened, left alone at the nex
   a = await run("--file", "impl-aaaaaa");
   expect(a.lines.at(-1)).toBe("deploys (cb4): brain-core behind main, the deploy is the owner's; deploy-waits-brain-core opened again, deploy-waits-brain-core list changed");
   expect(svc.issues.get(issueOf("brain-core"))!.issue.state).toBe("open");
+
+  // An issue at done is left: no call is sent for it, and the last line names it with its state.
+  core.issue.state = "done";
+  const sent = svc.calls.length;
+  a = await run("--file", "impl-aaaaaa");
+  expect(a.code).toBe(0);
+  expect(a.lines.at(-1)).toBe("deploys (cb4): brain-core behind main, the deploy is the owner's; nothing written; deploy-waits-brain-core left as it is (done)");
+  expect(svc.calls.length).toBe(sent);
+  core.issue.state = "open";
 
   // A write the tracker refuses is said, and is exit 1. A token that is not kept writes nothing.
   r.commit("db-a: the database", { "brain-db": seed("brain-db").replace("= 1", "= 2") });

@@ -9,12 +9,18 @@
 // waiting-deploys.ts --file <token>          the read, then the tracker, as that token: one issue a Worker,
 //                                            `deploy-waits-<worker>`, labelled needs-owner, so that the owner meets it in
 //                                            "For your attention" of his page. A Worker that waits and has no such issue:
-//                                            it is opened. One that is closed: opened again, with the label. One that is
-//                                            open with another list: a comment with the list as it is now. A Worker that
-//                                            does not wait and has an open one: it is closed, with what cb4 runs in the
-//                                            reason. Nothing else is written, and a label the owner took off stays off
-//                                            until the issue is opened again. One he rejected is left as it is. The last line is `deploys (<brain>): …`,
-//                                            what waits and what was written. Exit 1: a write was refused.
+//                                            it is opened, with a body that says what the issue is and where its list
+//                                            is, and the list as a comment. One that is closed: opened again, with the
+//                                            label. One that is open with another list, or whose last comment is not
+//                                            this tool's: a comment with the list as it is now, so that the issue's last
+//                                            comment is the list (the row "To answer" of the owner's page shows the body
+//                                            and the last comment, and the tracker has no call that changes a body). A
+//                                            Worker that does not wait and has an open one: it is closed, with what cb4
+//                                            runs in the reason. Nothing else is written, and a label the owner took off
+//                                            stays off until the issue is opened again. One at rejected, done or reverted
+//                                            is left as it is and named with its state: the task workflow has no move
+//                                            from there that a token may make. The last line is `deploys (<brain>): …`,
+//                                            what waits, what was written and what was left. Exit 1: a write was refused.
 // `lock.sh release land` runs the second after each landing (LOCK_TOKEN is the token), so a seed landed with no deploy
 // (land.sh --seed-lands-undeployed) is on his page from that release, and is off it at the first release after his deploy.
 //
@@ -172,23 +178,44 @@ export function ask(row: Row, titles: Record<string, { title: string; state: str
   ].join("\n");
 }
 
-export interface Write { call: "open" | "move" | "comment" | "label"; body: Record<string, unknown> }
+// The body an issue is opened with. It is never written again, so it has nothing that changes: the list is a comment.
+// Written for the owner, as `ask` is: no hash and no path.
+export function opening(row: Row): string {
+  return [
+    `A deploy of ${row.what} (\`${row.worker}\`) waits for you: cb4 runs an older seed of it than \`main\` has, and that deploy is yours.`,
+    "",
+    `What waits is listed in the last comment of this issue (its key begins \`deploys/${row.worker}/list-\`). The loop writes the list there again when it changes, and when another comment stands after it. This text is as it was at the opening.`,
+    "",
+    `The loop closes this issue once cb4 runs the seed of \`main\`.`,
+  ].join("\n");
+}
+
+// The states an issue is left at, whatever waits: the task workflow has `reopen` from closed and from rejected alone,
+// and the policy refuses a token the reopen of an issue the owner rejected.
+export const LEFT = ["rejected", "done", "reverted"];
+
+// `what` is how the last line names a comment: the list of an opening, a list that is another, the same list said again.
+export interface Write { call: "open" | "move" | "comment" | "label"; body: Record<string, unknown>; what?: "list said" | "list changed" | "list said again" }
 // The writes of one Worker, from its row and what the tracker answered of its issue (null: there is none).
 // A key is `deploys/<worker>/<what>-<seq of the issue's last event>`, with no role and no token in it: the releases of
 // two agents that read the same state send the same key, and the second writes nothing.
 export function plan(row: Row, got: { issue: any; events: any[] } | null, text: string): Write[] {
   const id = issueOf(row.worker), key = (what: string) => `deploys/${row.worker}/${what}-${got ? got.issue.seq : 0}`;
-  const closed = !!got && (got.issue.closed || ["closed", "rejected", "done", "reverted"].includes(got.issue.state));
+  const closed = !!got && (got.issue.closed || got.issue.state === "closed" || LEFT.includes(got.issue.state));
   if (row.state === "same") {
     if (!got || closed) return [];
     return [{ call: "move", body: { key: key("close"), id, to: "closed", reason: `cb4 runs the seed of main for ${row.what} (${row.worker}, ${row.runs.slice(0, 12)}): no deploy of it waits.` } }];
   }
-  // His reject stands: the policy refuses a token the reopen of an issue he rejected.
-  if (got && got.issue.state === "rejected") return [];
-  if (!got) return [{ call: "open", body: { key: key("open"), id, kind: "task", about: "issue-loop", labels: ["needs-owner"], title: `A deploy waits for you: ${row.what} (${row.worker}) on cb4 is behind main`, body: text } }];
-  const ours = got.events.filter((e) => e.type === "commented" && String(e.key).startsWith(`deploys/${row.worker}/`));
+  // His reject stands, and no move leads from done or reverted to open: no call that would be refused at each release.
+  if (got && LEFT.includes(got.issue.state)) return [];
+  const list = (what: Write["what"]): Write => ({ call: "comment", body: { key: key("list"), id, body: text }, what });
+  if (!got) return [{ call: "open", body: { key: key("open"), id, kind: "task", about: "issue-loop", labels: ["needs-owner"], title: `A deploy waits for you: ${row.what} (${row.worker}) on cb4 is behind main`, body: opening(row) } }, list("list said")];
+  const comments = got.events.filter((e) => e.type === "commented"), mine = (e: any) => String(e.key).startsWith(`deploys/${row.worker}/`);
+  const ours = comments.filter(mine);
+  // An issue opened before the list was a comment has its first list as its body.
   const last = ours.length ? ours[ours.length - 1].body : got.issue.body;
-  const said: Write[] = last === text ? [] : [{ call: "comment", body: { key: key("list"), id, body: text } }];
+  // Said again when it is another, and when a comment that is not the tool's stands after it.
+  const said: Write[] = last !== text ? [list("list changed")] : comments.length && !mine(comments[comments.length - 1]) ? [list("list said again")] : [];
   if (!closed) return said;
   return [
     { call: "move", body: { key: key("reopen"), id, to: "open", reason: `${row.what[0].toUpperCase()}${row.what.slice(1)} (${row.worker}) on cb4 is behind main again: ${plural(row.commits.length, "commit")} to its seed.` } },
@@ -230,24 +257,25 @@ if (import.meta.main) {
     try { json = JSON.parse(r.stdout); } catch {}
     return { status, json, why: status ? `[${status}] ${String(r.stdout).slice(0, 200)}` : String(r.stderr).trim().split("\n")[0] };
   };
-  const wrote: string[] = [], refused: string[] = [];
+  const wrote: string[] = [], refused: string[] = [], left: string[] = [];
   try {
     for (const row of rows) {
       const got = as(`get?id=${issueOf(row.worker)}`);
       if (got.status !== 200 && got.status !== 404) { refused.push(`${issueOf(row.worker)} not read ${got.why}`); continue; }
+      if (row.state === "waits" && got.status === 200 && LEFT.includes(got.json.issue.state)) left.push(`${issueOf(row.worker)} left as it is (${got.json.issue.state})`);
       const titles: Record<string, { title: string; state: string } | null> = {};
       if (row.state === "waits") for (const x of issuesOf(row)) if (x.id) {
         const t = as(`get?id=${x.id}`);
         titles[x.id] = t.status === 200 ? { title: t.json.issue.title, state: t.json.issue.state } : null;
       }
       for (const w of plan(row, got.status === 200 ? got.json : null, row.state === "waits" ? ask(row, titles) : "")) {
-        const what = w.call === "move" ? (w.body.to === "closed" ? "closed" : "opened again") : w.call === "open" ? "opened" : w.call === "label" ? "labelled" : "list changed";
+        const what = w.call === "move" ? (w.body.to === "closed" ? "closed" : "opened again") : w.call === "open" ? "opened" : w.call === "label" ? "labelled" : w.what ?? "list changed";
         const r = as(w.call, w.body);
         if (r.status === 200) wrote.push(`${issueOf(row.worker)} ${what}`); else refused.push(`${issueOf(row.worker)} not ${what} ${r.why}`);
       }
     }
   } finally { rmSync(tmp, { recursive: true, force: true }); }
   const waits = rows.filter((r) => r.state === "waits").map((r) => r.worker);
-  console.log(`deploys (${brain}): ${waits.length ? waits.join(", ") + " behind main, the deploy is the owner's" : "the four run the seed of main"}; ${wrote.length ? wrote.join(", ") : "nothing written"}${refused.length ? "; " + refused.join(", ") : ""}`);
+  console.log(`deploys (${brain}): ${waits.length ? waits.join(", ") + " behind main, the deploy is the owner's" : "the four run the seed of main"}; ${wrote.length ? wrote.join(", ") : "nothing written"}${left.length ? "; " + left.join(", ") : ""}${refused.length ? "; " + refused.join(", ") : ""}`);
   process.exit(refused.length ? 1 : 0);
 }

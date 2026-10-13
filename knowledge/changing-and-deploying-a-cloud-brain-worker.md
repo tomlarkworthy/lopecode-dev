@@ -149,7 +149,11 @@ brain-deployer: waits. 2 differences (~deployerOps +test_apply_unchanged_keeps_t
   (`--depth N`). An issue is a commit's subject up to its first colon. With no such commit in 40 the line says so.
 - `--file <token>` then keeps one issue a Worker that waits, `deploy-waits-<worker>`, labelled `needs-owner`: opened,
   given a comment when the list changes, closed when cb4 runs the seed of `main`, opened again at the next change. The
-  owner meets it in "For your attention" of his page. `lock.sh release land` runs this after its docs step, as the
+  owner meets it in "For your attention" of his page. Since `fb-batch-docs-and-tools` (2026-10-13) the list is a
+  comment from the opening on, keyed `deploys/<worker>/list-…`, and the body says so and has no list: the page shows
+  an issue's body and its last comment, and the tracker has no call that changes a body. The list is said again when a
+  comment that is not the tool's stands after it. The two issues opened before that day have their first list as the
+  body. An issue at `rejected`, `done` or `reverted` is left as it is, and the last line names it with its state. `lock.sh release land` runs this after its docs step, as the
   token of the release, and prints the tool's last line, `deploys (cb4): …`; `LOCK_DEPLOYS=0` leaves it out. So after
   the owner's deploy the issue stays open until the next landing of anyone, or a run by hand.
 - Not compared: a module's files (`hono.js`, `atcute.js` and the others of `build.ts`). A change to `cloudflare-iac`
