@@ -346,6 +346,9 @@ until its review is in, and takes the next round itself:
 - New, `tools/cloud-brain/issue-wait.sh <token> <id> <after seq> [seconds]`: reads `sync?after=`
   every 15 s and exits 0 with the first `reviewed` event of that issue as JSON, or exits 3 after
   the seconds (240 by default) with nothing. It writes nothing.
+  (Since `tr-3-briefs-and-queue`, 2026-10-13, this form of the tool is gone: the wait is run with `--left in-review`,
+  is an event of the record, and its exit 0 is at the reviewer's move; `plan/cloud-brain-tracker-trigger-rules.md`,
+  part 3.)
 - `agents/implementer.md`, after step 12: run it with the Bash timeout at 280,000 ms, up to 5
   times (20 minutes). A `pass`: report. A `changes`, with the issue at `in-progress`: follow "A
   resumed round" from its first item, then submit and wait again, once. After a second `changes`,

@@ -159,7 +159,7 @@ snapshot                345 issues   514,946 bytes   0.41 s
   and `bodyLeftOut: true` in its place. It takes no filter.
 - `issue.sync` says there is more only through `seq`. The tools that follow it already page:
   `issue-stats.ts` and `cost-events.ts` ask `limit=500` in a loop, `issue-wait.sh` follows "a full
-  answer … at once by the next". What does not say so is the prose an agent reads:
+  answer … at once by the next" (until `tr-3-briefs-and-queue`, 2026-10-13: it reads `issue.wakes` since, and no `sync`). What does not say so is the prose an agent reads:
   `agents/overseer.md` lines 18 and 148 give `io "sync?after=<seq>"` and no more, and the method's
   row of the reference gives `{ seq, wait, events }` with no sentence on a second page.
 - `issue.runs`, added 2026-10-12, is the tracker's own answer to the same question:

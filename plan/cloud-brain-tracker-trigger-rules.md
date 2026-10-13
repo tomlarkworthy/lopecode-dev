@@ -363,6 +363,9 @@ tracker refuses, 400 or 404, or whose key another actor wrote, is exit 64 with t
 while `get?id=` gives no answer is exit 3, with nothing printed and nothing taken off but by `--last`; `--work` and `--remove`
 are exit 1 when their write was not made, and `--remove` with no wait there is exit 0; `--until` takes 1 to 43200 minutes;
 the role is the token's name up to its first `-`; the record.)
+(As built, `tr-3-briefs-and-queue`, 2026-10-13: the call with no flag and `--filter` are removed; a call with no flag is exit 64
+with nothing sent, and stderr has the line with `--left` to run in its place, for a writer that has the brief of before in its
+context; the record.)
 
 **`agents/implementer.md`, step 13** runs `issue-wait.sh <token> <id> <seq of your submit> --left in-review`. The rest
 of the step stands: the Bash timeout, 5 runs, one round, the judgment at 3 `rework` moves. The
@@ -385,6 +388,12 @@ No row of the two tables changes. `SKILL.md`, step 3, the row `round`: with `wai
 round is that agent's; without, as today. The row `work` in `waiting`: with `waiter`, nothing.
 Step 2, "A writer that waits", loses its inference and reads: a writer or a spec writer that waits
 has a wait on its issue, and the queue says so.
+(As built, `tr-3-briefs-and-queue`, 2026-10-13: the starter is `issue.by.start` for an issue at `in-progress` or `in-review` and
+`issue.by.spec` for one at `spec` or `spec-review`, and an entry at any other state has no `waiter`: after a `back` the row still
+names the first starter in `by.start`, and its wait would have been shown on the `start` entry of an issue the orchestrator had
+taken from it. `waiter` is the wait's `actor`, `holder` and `until`, whether or not its `when` is true. Step 2 of `SKILL.md` keeps
+one sentence of the inference, for an agent spawned before the change, which may wait with no wait in the record. The row
+"A spec sent back" of step 3 has the `waiter` case too; the record.)
 
 This is a narrow lease: an agent says it listens, or is at work, until a time. A dead agent is
 believed until that time, 25 minutes for a listener and 60 for a round. So is a waiter that was

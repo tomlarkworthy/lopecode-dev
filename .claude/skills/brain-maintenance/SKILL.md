@@ -202,10 +202,21 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    In a pass that starts nothing new, the rows of step 3 that spawn no agent are still done, triage among them.
    **A writer that waits.** Since `os-4-writer-waits` (2026-10-11) a writer does not report at its submit: it waits up to
    20 minutes for its review with `tools/cloud-brain/issue-wait.sh` and takes the first round of changes itself
-   (`agents/implementer.md`, step 13). You read which writer waits from the tracker: an agent of yours that has not
-   reported, whose issue is at `in-review`, or at `in-progress` with a `rework` after its last `submit`. At `in-review`
+   (`agents/implementer.md`, step 13). Since `tr-3-briefs-and-queue` (2026-10-13) a spec writer does the same after
+   its submit (`agents/spec.md`, step 7), and a writer or a spec writer that waits has a wait on its issue, which the
+   queue says: the entry of the issue, in `queue` or in `waiting`, has `waiter: { actor, holder, until }` while the
+   agent that started it has a live wait there (`holder` is `secret:` and the name of its token). The tool writes the
+   wait at the agent's first run after its submit, for 25 minutes; an agent that takes the round writes one for 60
+   minutes in its place, and one that takes none, or whose wait is over, takes it off. You keep no list of who waits
+   and infer none from which agents have reported. At `in-review`
    it is not counted as a writer at work; after the `rework` it is at work again. In both it is still the agent on
    its issue: after the `rework` you send it nothing, the round is its own. Its submit reaches you as a line of the watch (step 8), and the review is then yours to start.
+   What `waiter` cannot tell: an agent that died is believed until `until`, 25 minutes for one that listened and 60
+   for one at work on a round, and so is one that was handed a round and wrote neither wait; "A dead writer" of
+   step 3 holds from then, when the entry has no `waiter`. An agent spawned before that change has the brief of
+   before it in its context and may wait with no wait in the record (the tool refuses the old line and names the
+   new one): for one of yours that has not reported, whose issue is at `in-review` or at `in-progress` after a
+   `rework` and has no `waiter`, look at whether the agent still runs before you send its round to another.
    On trial: `plan/cloud-brain-loop-order-of-service.md`, part 5, kept or taken out by `os-5-trial-read` after five
    rounds a writer took this way. First writer seen to wait: not yet, when this was written.
    (`plan/cloud-brain-loop-order-of-service.md`, part 3, approved for the owner at event 2611. His words, of the
@@ -237,7 +248,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    lands from it by a push under the landing lock; a reviewer tests the notebook of the commit, not the working file.
 3. **Read the queue and take its entries in order.** `issue-as.sh <your token> "queue"` answers `queue`, what the
    record says is next, and `waiting`, what is not next and why: `{ seq, now, queue: [{ id, do, kind, state, title, labels,
-   for, since, late, hold }], waiting: [{ id, kind, state, why, on, until }], more }`. The order is the service's
+   for, since, late, hold, waiter }], waiting: [{ id, kind, state, why, on, until, waiter }], more }`. The order is the service's
    (`issueQueue` of `tools/cloud-brain/brain-issues.ojs`, whose prose "The queue" says what each row reads): a round that was
    sent back (a writer's or a spec's), a review that waits, your own acts, a start; among starts the owner's, then one past
    4 hours (`late`; step 1, "Past 4 hours"), then a bug or a task before a project or a feature (a `start` before a `spec`),
@@ -248,7 +259,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    with `until` in milliseconds since 1970 and 30 days on at most (`echo $(( ($(date +%s) + 86400) * 1000 ))` is a day from now).
    A wait for the owner is the label `needs-owner`, after its comment (the row below). A wait is written in one of those three,
    which the queue reads, and never in a comment alone: a comment that begins `held:` is no longer written.
-   The record does not know which agents run: skip an entry an agent of yours is on (step 2).
+   The record does not know which agents run: skip an entry an agent of yours is on (step 2). It does know which
+   agent said it listens: an entry with `waiter` is that agent's, until `waiter.until` (step 2, "A writer that waits").
    A writer and a reviewer are different agents and do not take each other's place: the order says which you spawn
    or send first in a pass. Kind stands for size, since nothing in the record gives a size before the work.
    `more: true` says `queue` was cut, at 200 entries when no `limit` is asked (`"queue?limit=500"` is the most): what is
@@ -274,7 +286,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
 
    | `do` | Do |
    |---|---|
-   | `round` | Send the round to the agent that started it, a spec's to its spec writer: the row of an issue sent back, or "A spec sent back", below. A writer that waits for its review takes this round itself and is sent nothing (step 2, "A writer that waits"). When it cannot be sent one: "A dead writer". Started by you: "A quick win of your own, sent back". At 3 `rework` moves you judge first. |
+   | `round` | With `waiter` on the entry: nothing. The round is that agent's, a writer's or a spec writer's, which waited for its review and takes it itself (step 2, "A writer that waits"). Without: send the round to the agent that started it, a spec's to its spec writer: the row of an issue sent back, or "A spec sent back", below. When it cannot be sent one: "A dead writer". Started by you: "A quick win of your own, sent back". At 3 `rework` moves you judge first. |
    | `review` | Spawn the reviewer (step 4). For a project or feature at `spec-review` it follows "A spec" in its brief. |
    | `triage` | Triage it yourself (Triage, below), or take it as a quick win. With the label `digest` or `post-mortem`: its row below. |
    | `ready` | Move it to `ready`. Read first a comment of it that begins `held:` (they were written until `bk-6-skill-watch-and-stats`): what it still waits for is written as a link `after`, a hold or `needs-owner`, as above, and the issue is then in `waiting`. |
@@ -288,7 +300,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    | In `waiting`, `why` | Do |
    |---|---|
    | `owner` | Read it again each pass. At `awaiting-approval`, and labeled `needs-owner`: its row below. On the security workflow: nothing, it is the owner's. |
-   | `work`, and no agent of yours is on it | "A dead writer", "A submit made for a writer" or "A quick win of your own, sent back", below. With an agent of yours on it: nothing. |
+   | `work`, and no agent of yours is on it | With `waiter` on the entry: nothing, until `waiter.until`. Without: "A dead writer", "A submit made for a writer" or "A quick win of your own, sent back", below. With an agent of yours on it: nothing. |
    | `after`, `until`, `parts`, `gathering` | Nothing. The service lists it in `queue` when the wait ends: an `after` when each issue under `on` is closed, an `until` at its time (as a `look`), `parts` when no part holds it. |
 
    **What the two tables name, and what the queue does not read.** The rows below stood in the table this step had
@@ -306,7 +318,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    | `in-progress`, started by a writer or a digest writer (the `by.holder` of its last `start` event is `secret:impl-…` or `secret:dig-…`, or a role's token, for a start made before each agent had its own), sent back, no agent running | Send the round to the agent that started it ("A rework round goes to the agent that wrote the change", below): its token is still kept, and only the starter submits (`caller.actor == issue.by.start`). When it cannot be sent one, the next row. Do not, and instead comment with the open findings and label `needs-owner`, when the last implementer you spawned for it finished without a new `submit`, or when it has 3 `rework` moves and the rounds are not getting anywhere. At 3 you judge (Tom, 2026-10-10: "make a judgment call when the 3 retries is hit, has genuine progress been made?"): go on when each review closed what the one before found and the new findings are narrower; stop when a finding came back, or the rounds are trading one defect for another of the same size. Write the judgment and its reason in the journal and as a comment on the issue. |
    | `in-progress`, no agent running, and its starter cannot go on: the writer died or cannot be sent a message, its token has ended (`agent-token list` has no line for it), or the `start` was made with a role's token and its writer cannot be sent one (after the owner's revoke of those: every such issue) | **A dead writer.** You end its token (`agent-token revoke <name>`; a role's token is the owner's to end), then you make `back` to `ready` with the reason. The issue is then `ready`: the writer you spawn makes the second `start` with its own token, which replaces `issue.by.start`, and it alone submits. Two more moves. A submit by any token but the last starter's is refused 403. |
    | `in-progress`, started by you (`secret:orch-…`: a quick win, or work on the owner's word), sent back | **A quick win of your own, sent back.** Do the round yourself and submit: no more moves. Or hand it over: you make `back`, the writer you spawn makes `start` and then submits. Two more moves. Your own token is not ended, so after the `back` the policy no longer refuses you a review of that issue: "You review nothing yourself" is what holds. (Submits 622, 935 and 1002 were a writer's on an issue you had started; each answered 200 because both were one token.) |
-   | kind `project` or `feature`, at `spec`, no agent running | **A spec sent back.** Send the round to the spec writer by message, as a writer of a task is sent one (the `agent` and `session` of its last run, `issue-as.sh <your token> "runs?id=<id>&role=spec-writer"`; `agents/spec.md`, "A resumed round"). When it cannot be sent one, or it died: you end its token and make `back` from `spec` to `open`; the spec writer you spawn makes `spec` with its own token (key `spec/<id>/spec-<round>`), which replaces `issue.by.spec`, and then `submit-spec`. Two more moves. |
+   | kind `project` or `feature`, at `spec`, no agent running | **A spec sent back.** With `waiter` on its entry of the queue, nothing: its spec writer waited for the review and takes the round itself (step 2, "A writer that waits"). Else send the round to the spec writer by message, as a writer of a task is sent one (the `agent` and `session` of its last run, `issue-as.sh <your token> "runs?id=<id>&role=spec-writer"`; `agents/spec.md`, "A resumed round"). When it cannot be sent one, or it died: you end its token and make `back` from `spec` to `open`; the spec writer you spawn makes `spec` with its own token (key `spec/<id>/spec-<round>`), which replaces `issue.by.spec`, and then `submit-spec`. Two more moves. |
    | `in-progress`, the change is landed, and its writer finished with no `submit` | **A submit made for a writer.** Ask the writer to submit, by message, when it can be sent one. Else you end its token, make `back`, make `start` with your own token, and submit with the refs: the starter is then you, and the review is a reviewer's. Two more moves. (Submit 516 was yours for a writer's start.) |
    | labeled `digest`, opened by `worker:brain-x-snapshot` (`opener` in `get?id=`), at `open` | When several are open, the newest is the one written: `reject` each older one with the reason `covered by digest-<newest day>`, and comment on the newest with the days it covers. Then `triage` and `ready` it, the reason "the day's digest, opened by the snapshot's run"; the three questions of Triage are not asked. |
    | labeled `post-mortem`, at `open` | Triage it by its one question ("A post mortem", below): `issue-as.sh <your token> "list?label=post-mortem&limit=100"`, and when another of that list is of the same thing, link this one to it as `duplicate` and `close` it. Else `triage`, then `ready`. Never a quick win of yours: your open, your spawn and your comment for him are steps of its trace (in the first, events 4246 and 4344). |
@@ -673,7 +685,8 @@ was round 3 of `annotations-file-feedback` the same day (cost comment 1003); its
 
 For an issue at `in-progress` whose last move is `rework`, with no agent running. A writer that
 waits for its review (step 2, "A writer that waits") is running: it takes that round itself and is
-sent no message. What follows is for a writer that has reported: after its second `changes`, after
+sent no message. The queue's entry of its round has `waiter` (step 3, the row `round`). What follows is for an
+entry with none, of a writer that has reported: after its second `changes`, after
 20 minutes with no review, or one spawned before `os-4-writer-waits`.
 
 1. Read its runs, `issue-as.sh <your token> "runs?id=<id>&role=implementer"`, and take the one of the highest `round`.

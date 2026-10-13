@@ -59,7 +59,7 @@ md`## Methods
 | \`issue.runs\` | query, since 2026-10-12. \`?id=&role=&how=&round=&after=<seq>&limit=500\`. The runs (\`issue.cost\`) of every issue the caller may read: \`{ runs, total, more }\`. \`runs\`: \`[{ id, …the run as the issue's row has it }]\`, \`id\` the issue's, in the order of \`seq\`, the seq of the \`cost\` event in force for the run. Each filter is left out or left empty to ask for nothing. \`id\`: one issue; \`role\`: a name, \`a-z 0-9 -\`, 30 at most; \`how\`: one of \`fresh\`, \`resumed\`, \`light\`; \`round\`: \`first\` (round 1), \`later\` (any round after it) or a whole number, 1 to 1000; \`after\`: a whole number, 0 or more, and only the runs whose \`seq\` is past it are answered; \`limit\`: a whole number, 1 to 500, 500 when left out. A value that is none of those is 400 \`InvalidRequest\` naming the field: read as no filter it would answer every run. A name that is not one of the six is not read. \`total\`: the totals of every run that matches \`id\`, \`role\`, \`how\` and \`round\`, in the shape of \`cost\` of \`issue.get\` without \`byRole\`; \`after\` and \`limit\` do not change it, so it is the same on every page. \`more\`: runs past this page match; the next page is \`after=\` the \`seq\` of the last run read. A run written again between two pages has a new \`seq\` and is read again on a later page. An issue the caller may not read has no run in \`runs\` and none in \`total\`, and an \`id\` that names such an issue, or none, answers \`{ runs: [], total: { runs: 0, … }, more: false }\`. The rows are in the answer so that a median is the caller's to take. |
 | \`issue.flow\` | query, since 2026-10-12. \`?metric=&since=MS&until=MS&by=dim,dim&DIM=value\`. The times work took, as rows: what \`issueFlow\` answers ("The flow of work", below, which has the metrics, their dimensions, the clocks and the shape of the answer) over every event of the record as \`issue.sync\` answers it to this caller. So an issue the caller may not read is in no row; that is judged by the issue as it is at the call, whatever \`until\` is. \`metric\`: one of \`flow.lead\`, \`flow.open\`, \`flow.stays\`, \`flow.submits\`. \`since\` and \`until\`: milliseconds since 1970, whole numbers of 15 digits at most; left out or left empty they are 0 and the \`at\` of the record's last event, and the answer says both. \`by\`: dimensions of the metric with commas between. Every other parameter is a filter: a dimension, and the value a row has to have. 400 \`InvalidRequest\` for whatever \`issueFlow\` refuses and for a \`since\` or an \`until\` that is not such a number, before the record is read. It reads every event at each call and keeps nothing between two calls. \`cost.ms\` is the time the whole call took in this Worker, the read and then the rows; \`cost.events\` is how many events \`issueFlow\` read. |
 | \`issue.list\` | query. \`?state=&kind=&about=&parent=&label=&link=&limit=100\`. \`{ issues, total, more }\`: \`issues\`, last changed first, each without its \`body\`. \`link=ID\`: the issues that are part of \`ID\`, say a link of it, or have one said of them by it. \`limit\`: 100 issues when left out, 500 at most; a larger one is read as 500, one under 1 as 1, one with a part as the whole number under it, and one that is no number, or 0, as 100. \`total\` (since 2026-10-12): how many issues match the filters, the ones answered as \`hidden\` among them (such an issue is matched by its \`state\`, \`kind\` and \`parent\` alone). \`more\`: \`true\` when \`total\` is over the issues answered. There is no second page: ask again with a \`limit\` up to 500 or a narrower filter, or read \`issue.snapshot\`, which answers every issue. |
-| \`issue.queue\` | query, since 2026-10-12. \`?limit=200\`. \`{ seq, now, queue, waiting, more }\`: what is next, in order, and what waits and for what, as \`issueQueue\` makes them from the view for this caller at \`now\`, this Worker's time ("The queue", below, has the rows and the order). \`limit\`: how many entries of \`queue\` are answered, 500 at most, 200 when left out, 0 or not a number; \`more\` is \`true\` when the queue has entries past it. \`waiting\` is answered whole. It reads every row of the view at each call and writes nothing. |
+| \`issue.queue\` | query, since 2026-10-12. \`?limit=200\`. \`{ seq, now, queue, waiting, more }\`: what is next, in order, and what waits and for what, as \`issueQueue\` makes them from the view for this caller at \`now\`, this Worker's time ("The queue", below, has the rows and the order). \`limit\`: how many entries of \`queue\` are answered, 500 at most, 200 when left out, 0 or not a number; \`more\` is \`true\` when the queue has entries past it. \`waiting\` is answered whole. An entry of either has \`waiter\` while the issue's starter has a live wait on it and the issue is where a starter has it (since 2026-10-13). It reads every row of the view at each call and writes nothing. |
 | \`issue.verify\` | query. \`?after=<seq>\`. Checks \`seq\`, \`prev\`, \`hash\` and \`sig\` of each event after \`after\`. \`{ ok, seq, head, checked, guards }\`, or \`{ ok: false, seq, why, checked }\` at the first that fails; \`checked\` is how many passed. With \`guards=true\` it starts at 1 and also judges each event against the workflow in force when it was written. |
 | \`issue.key\` | query, anyone. \`{ alg: "ES256", key }\`: the public key, a JWK. |
 | \`issue.resign\` | procedure, the owner present. Signs every event's \`hash\` again with the key the Worker holds now, for after the key is replaced. No hash changes: \`sig\` is outside it. \`{ seq, signed }\`. |
@@ -230,8 +230,8 @@ md`## The queue
 \`issueQueue(view, by, now)\` answers \`{ queue, waiting }\` from the view, for the caller \`by\`, at the time \`now\`, with no I/O. \`issue.queue\` (in the table of methods) answers it to a caller (since 2026-10-12; \`plan/cloud-brain-bookkeeping-in-the-tracker.md\`, part 3). The order is computed here and nowhere else: an orchestrator sets an order between two issues with an \`after\` link, delays one with \`issue.hold\`, and closes one.
 
 \`\`\`
-queue:   [{ id, do, kind, state, title, labels, for, since, late, hold }]
-waiting: [{ id, kind, state, why, on, until }]
+queue:   [{ id, do, kind, state, title, labels, for, since, late, hold, waiter }]
+waiting: [{ id, kind, state, why, on, until, waiter }]
 \`\`\`
 
 An issue that is not closed, and that the caller may read, is tested against the rows of \`waiting\` first, in the order of their table. One that none of them holds is tested against the rows of \`do\`, in the order of that table, and has the first that matches. So "waits for nothing" is: no row of \`waiting\` holds it. A state is read by its name, as the record has it. "On the task workflow" is on the workflow the policy in force names for the kind \`task\`, by its hash, and the same for \`feedback\`, \`security\` and \`project\`: a note that was promoted is on the task workflow and is listed as a task, whatever its kind.
@@ -268,7 +268,8 @@ An issue on the feedback workflow at \`open\` that is not a \`promote\`, and tha
 - **\`since\`** is the time of the issue's last move (\`issue.last.at\`), or the time it was opened when it has made none. **\`late\`** is \`true\` when that is 4 hours or more before \`now\`.
 - **\`last\` of a row written before it was kept.** \`issue.last\` is on a row from the first move after the deploy that added it (2026-10-12). For an open issue whose row has none and that has made a move, \`issue.queue\` reads the issue's events at each call and takes \`last\` from them, so no \`issue.rebuild\` is needed. \`issueQueue\` itself reads the view it is given.
 - **A hold and the rows before it.** A hold whose time has passed makes a \`look\` only of an issue no row of \`waiting\` holds: one that is also after an open issue is listed as \`after\` until that ends, and one at \`in-progress\` with an agent on it as \`work\`.
-- **What the record does not know** is which agents run. \`round\`, \`review\` and \`work\` are of the record; the caller sets them beside the agents it has.
+- **\`waiter\`** is on an entry of either list while the actor that started the issue has a live wait on it ("A wait", below; since 2026-10-13, \`plan/cloud-brain-tracker-trigger-rules.md\`, part 3): \`{ actor, holder, until }\`, the wait's own three. The starter is \`issue.by.start\`, the actor of the issue's last \`start\` move, for an issue at \`in-progress\` or \`in-review\`, and \`issue.by.spec\`, of its last \`spec\` move, for one at \`spec\` or \`spec-review\`. At any other state an entry has none: after a \`back\` the actor that started the issue has it no more, whatever wait it left. Live is: not taken off, and \`until\` after \`now\`. Whether its \`when\` is true is not asked: a wait that is due and not yet taken off still says its actor listens. A wait of any other actor makes no \`waiter\`, and an entry whose starter has none has no such field. It changes no row and no order: it says that the agent which started the issue said it listens for what comes next, or is at work on a round, until that time. A dead agent is believed until then.
+- **What the record does not know** is which agents run. \`round\`, \`review\` and \`work\` are of the record; the caller sets them beside the agents it has, and beside \`waiter\`.
 - **Nothing is written.** A follower is in \`queue\` at the first read after what it was after is closed, and a held issue at the first read after its time. The time is this Worker's clock at the read; no timer runs.`
 // %%
 md`## A wait
@@ -991,6 +992,9 @@ issueAllowed = (view, by, act) => {
 // An issue is tested against the rows of `waiting` first, in their order, and then against the rows of `do`. A state
 // is read by its name. "On the task workflow" is the workflow the policy in force names for the kind `task`, by its
 // hash, and so for `feedback`, `security` and `project`: a note that was promoted is on the task workflow.
+// An entry of either list has `waiter` while the actor that has the issue (by.start at in-progress or in-review, by.spec
+// at spec or spec-review) has a wait on it that is not past its until at `now`
+// (plan/cloud-brain-tracker-trigger-rules.md, part 3).
 issueQueue = (view, by, now) => {
   const names = (view.policy || {}).names, kinds = (view.policy || {}).kinds, at = (id) => issueAt(view.issues, id);
   const on = (i, kind) => !!issueAt(names, issueAt(kinds, kind)) && i.workflow === names[kinds[kind]];
@@ -1003,6 +1007,13 @@ issueQueue = (view, by, now) => {
   const sent = { "in-progress": ["rework"], spec: ["respec", "send-back"] };
   const forWhom = (i) => (i.opener === "owner" || (i.labels || []).some((l) => l === "owner" || l === "annotation") ? "owner" : "loop");
   const since = (i) => (i.last ? i.last.at : i.opened_at);
+  // Who listens, or is at work: the live wait of the actor that has the issue, by the move that took it to where an
+  // agent has it. No other actor's, and none at another state: after a `back` its starter has it no more.
+  const taken = { "in-progress": "start", "in-review": "start", spec: "spec", "spec-review": "spec" };
+  const waiter = (i) => {
+    const actor = (i.by || {})[taken[i.state]], w = actor ? (i.waits || []).find((w) => w.actor === actor && w.until > now) : null;
+    return w ? { waiter: { actor: w.actor, holder: w.holder, until: w.until } } : {};
+  };
   // May this caller make the move the service makes itself (finish)? null when the workflow has none from this state.
   const finish = (i) => ((to) => (to === undefined ? null : issuesLimits.auto.includes(issueAllowed(view, by, { type: "move", id: i.id, to, reason: "by hand", refs: [] }).name)))(issueAutoFrom(view, i)[0]);
   // A note's ties: its parent and its links either way. A `related` link to a note that is itself open is none.
@@ -1038,8 +1049,8 @@ issueQueue = (view, by, now) => {
   for (const i of Object.values(view.issues)) {
     if (i.hidden || i.closed || !issueAllowed(view, by, { type: "read", id: i.id }).allow) continue;
     const held = waits(i), what = held ? null : wants(i);
-    if (held) waiting.push({ id: i.id, kind: i.kind, state: i.state, ...held, since: since(i) });
-    if (what) queue.push({ id: i.id, do: what, kind: i.kind, state: i.state, title: i.title, labels: i.labels || [], for: forWhom(i), since: since(i), late: since(i) <= now - issuesLimits.lateHours * 3600000, ...(i.hold ? { hold: i.hold } : {}), opened_at: i.opened_at });
+    if (held) waiting.push({ id: i.id, kind: i.kind, state: i.state, ...held, ...waiter(i), since: since(i) });
+    if (what) queue.push({ id: i.id, do: what, kind: i.kind, state: i.state, title: i.title, labels: i.labels || [], for: forWhom(i), since: since(i), late: since(i) <= now - issuesLimits.lateHours * 3600000, ...(i.hold ? { hold: i.hold } : {}), ...waiter(i), opened_at: i.opened_at });
   }
   const first = (...keys) => (a, b) => keys.map((k) => k(a) - k(b)).find((d) => d) || (a.id < b.id ? -1 : 1);
   const g = (e) => group[e.do] || 3;
@@ -3363,6 +3374,109 @@ test_issues_queue_places_each_issue_by_its_row = {
   expect((await rig.worker("queue")).status).toBe(200);
   expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: true, guards: true });
   return `${Object.keys(want).length} issues, each where its row puts it: ${a.queue.length} in the queue, ${a.waiting.length} waiting`;
+}
+// %%
+// plan/cloud-brain-tracker-trigger-rules.md, part 3 (tr-3-briefs-and-queue): an entry of the queue has `waiter` while
+// the actor that started its issue has a live wait on it. The waits are the ones tools/cloud-brain/issue-wait.sh sends
+// for a review and a round, in its order, through issue.wait and issue.queue of the service. The time that passes is
+// `now` of issueQueue, never the wall's.
+test_issues_queue_names_the_starter_that_waits = {
+  const rig = await issuesRig(), ref = [{ kind: "commit", value: "abc" }], M = 60000, T = Date.now(), A = { caller: "token:a", via: "" };
+  const ok = async (call) => ((r) => (expect([r.status, r.data.message]).toEqual([200, undefined]), r.data))(await call);
+  const view = async () => ((s) => ({ ...s, issues: Object.fromEntries(s.issues.map((i) => [i.id, i])) }))((await rig.owner("snapshot")).data);
+  const of = (r, id) => ((e) => (e ? [e.do || e.why, e.waiter] : null))(r.queue.find((e) => e.id === id) || r.waiting.find((e) => e.id === id));
+  const entry = async (id, as = rig.a) => of(await ok(as("queue")), id);
+  const left = 'issue.state != "in-review"', work = 'issue.state != "in-progress"';
+  const sentBack = async (id) => (await ok(rig.b("review", { id, verdict: "changes", body: "one thing" })), ok(rig.b("move", { id, to: "in-progress" })));
+  const a = (until) => ({ actor: "token:a", holder: "", until });
+  // A review that waits, with nobody listening: no field. Then the writer's wait after its submit, 25 minutes.
+  await rig.inReview("t1");
+  const bare = (await ok(rig.a("queue"))).queue.find((e) => e.id === "t1");
+  expect([bare.do, "waiter" in bare]).toEqual(["review", false]);
+  const listens = T + 25 * M;
+  await ok(rig.a("wait", { id: "t1", when: left, until: listens }));
+  expect(await entry("t1")).toEqual(["review", a(listens)]);
+  // The entry is the one it was, and the field: no row and no order changes.
+  expect((await ok(rig.a("queue"))).queue.find((e) => e.id === "t1")).toEqual({ ...bare, waiter: a(listens) });
+  // Every caller that reads the issue is told: the orchestrator asks with its own token.
+  expect([await entry("t1", rig.b), await entry("t1", rig.owner)]).toEqual([["review", a(listens)], ["review", a(listens)]]);
+  // A first round is sent back: the listener's wait is due and stands, so the round has its waiter.
+  await sentBack("t1");
+  expect(await entry("t1")).toEqual(["round", a(listens)]);
+  // Live is a time: a millisecond before its until the round is the waiter's, and at it nobody's.
+  const v = await view();
+  expect([of(issueQueue(v, A, listens - 1), "t1"), of(issueQueue(v, A, listens), "t1")]).toEqual([["round", a(listens)], ["round", undefined]]);
+  // --work: the wait of a round, 60 minutes, in the place of the first.
+  const works = T + 60 * M;
+  await ok(rig.a("wait", { id: "t1", when: work, until: works, note: "at work on the round" }));
+  expect(await entry("t1")).toEqual(["round", a(works)]);
+  // The round's submit, then the wait after it (--no-round): a review with a waiter.
+  await ok(rig.a("move", { id: "t1", to: "in-review", refs: ref }));
+  expect(await entry("t1")).toEqual(["review", a(works)]);
+  const again = T + 26 * M;
+  await ok(rig.a("wait", { id: "t1", when: left, until: again }));
+  expect(await entry("t1")).toEqual(["review", a(again)]);
+  // A second round is sent back, and the tool takes the wait off before the writer reads the verdict: the round is
+  // in the queue with no waiter, and its entry has no such field.
+  await sentBack("t1");
+  expect(await entry("t1")).toEqual(["round", a(again)]);
+  await ok(rig.a("wait", { id: "t1", remove: true }));
+  const second = (await ok(rig.a("queue"))).queue.find((e) => e.id === "t1");
+  expect([second.do, "waiter" in second]).toEqual(["round", false]);
+  // At 3 rework moves the judgment is the orchestrator's: the writer that listened takes its wait off (--remove).
+  await rig.inReview("t3");
+  for (const k of [1, 2]) {
+    await sentBack("t3");
+    await ok(rig.a("move", { id: "t3", to: "in-review", refs: ref }));
+  }
+  await ok(rig.a("wait", { id: "t3", when: left, until: listens }));
+  await sentBack("t3");
+  expect(rig.db.events.map((e) => JSON.parse(e.event)).filter((e) => e.id === "t3" && e.move === "rework").length).toBe(3);
+  expect(await entry("t3")).toEqual(["round", a(listens)]);
+  await ok(rig.a("wait", { id: "t3", remove: true }));
+  expect(await entry("t3")).toEqual(["round", undefined]);
+  // Another actor's wait is no waiter: a session that wants to look again, a reviewer. Beside the starter's it is not read.
+  await rig.inReview("t4");
+  await ok(rig.b("wait", { id: "t4", when: left, until: works }));
+  expect(await entry("t4")).toEqual(["review", undefined]);
+  await ok(rig.a("wait", { id: "t4", when: left, until: listens }));
+  expect(await entry("t4")).toEqual(["review", a(listens)]);
+  // The holder is the token's name, as the wait has it.
+  const named = rig.as("owner", "delegation:d7", { "x-brain-holder": "secret:impl-0a1b2c", "x-brain-tab": "0" });
+  await ok(rig.a("open", { id: "t5", title: "t5", kind: "task" }));
+  await ok(rig.a("move", { id: "t5", to: "triaged", reason: "real" }));
+  await ok(rig.a("move", { id: "t5", to: "ready" }));
+  await ok(named("move", { id: "t5", to: "in-progress" }));
+  // An entry of `waiting` has it too: work an agent has, which waits for something of its own.
+  expect(await entry("t5")).toEqual(["work", undefined]);
+  await ok(named("wait", { id: "t5", when: "issue.after.open == 0", until: listens }));
+  expect(await entry("t5")).toEqual(["work", { actor: "delegation:d7", holder: "secret:impl-0a1b2c", until: listens }]);
+  expect((await ok(rig.a("queue"))).waiting.find((e) => e.id === "t5")).toEqual({ id: "t5", kind: "task", state: "in-progress", why: "work", waiter: { actor: "delegation:d7", holder: "secret:impl-0a1b2c", until: listens } });
+  // A dead writer: after the orchestrator's `back` its wait is live and is no waiter, at `ready` and after another
+  // agent's start. The row still says by.start is the first starter until that second start.
+  await ok(rig.b("move", { id: "t5", to: "ready", reason: "its writer died" }));
+  const back = (await ok(rig.a("get?id=t5"))).issue;
+  expect([await entry("t5"), back.by.start, back.waits.length]).toEqual([["start", undefined], "delegation:d7", 1]);
+  await ok(rig.a("move", { id: "t5", to: "in-progress" }));
+  expect([await entry("t5"), (await ok(rig.a("get?id=t5"))).issue.waits.length]).toEqual([["work", undefined], 1]);
+  // A spec writer is the starter of its project by `spec`: its review, and the round a respec sends back.
+  await ok(rig.a("open", { id: "p1", title: "p1", kind: "project" }));
+  for (const k of [1, 2, 3]) await ok(rig.a("open", { id: "p1-" + k, title: "part", kind: "feedback", parent: "p1" }));
+  await ok(rig.a("move", { id: "p1", to: "spec", reason: "3 reports" }));
+  await ok(rig.a("move", { id: "p1", to: "spec-review", refs: ref }));
+  expect(await entry("p1")).toEqual(["review", undefined]);
+  await ok(rig.a("wait", { id: "p1", when: 'issue.state != "spec-review"', until: listens }));
+  expect(await entry("p1")).toEqual(["review", a(listens)]);
+  await ok(rig.b("review", { id: "p1", verdict: "changes", body: "one thing" }));
+  await ok(rig.b("move", { id: "p1", to: "spec" }));
+  expect(await entry("p1")).toEqual(["round", a(listens)]);
+  // A row written before waits has none and is read as having none; so is one with no `by`.
+  const old = await view();
+  delete old.issues.t4.waits;
+  delete old.issues.p1.by;
+  expect([of(issueQueue(old, A, T), "t4"), of(issueQueue(old, A, T), "p1")]).toEqual([["review", undefined], ["round", undefined]]);
+  expect((await rig.owner("verify?guards=true")).data).toMatchObject({ ok: true, guards: true });
+  return "an entry has waiter while its starter has a live wait: a review, a round, work and a spec; none past its until, after its remove, for another actor's wait or after another's start";
 }
 // %%
 // The order of the queue, a row that has no `last`, and a state no row names. The order is asked of issueQueue itself,

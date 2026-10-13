@@ -173,7 +173,31 @@ a mean 1.73 calls a run of a spec writer, 21% of what such a run cost.
    the reading. First comment written by this step: not yet, when this was written.)
    `ia move '{"key":"spec/<id>/submit-<round>","id":"<id>","to":"spec-review","refs":[{"kind":"commit","value":"<sha>"}]}'`,
    with `<round>` 1 the first time. Read the issue again and see `spec-review`.
-   Sent back (`spec` again): read the review whole before the file (the `reviewed` event the `respec` move names),
+   **Then wait for the spec's review, and take one round yourself**, as a writer of a task does
+   (`agents/implementer.md`, step 13, whose page `implementer/submit-and-wait.md` has each answer of the tool; since
+   `tr-3-briefs-and-queue`, 2026-10-13, part 3 of `plan/cloud-brain-tracker-trigger-rules.md`). `<seq>` is the `seq`
+   of the answer of your submit. In the foreground, with the Bash `timeout` at 280000:
+   ```
+   $W/tools/cloud-brain/issue-wait.sh <token> <id> <seq> --left spec-review
+   ```
+   The first run writes a wait on the issue (`issue.wait`, 25 minutes), by which the queue's entry of the project has
+   `waiter` and the orchestrator sends you no round; then it reads `wakes?id=<id>` every 15 s. Run it only after
+   the submit.
+   - Exit 3, nothing printed: still at `spec-review` after 240 s. Run the same line again, up to 5 runs in all, the
+     fifth with `--last`, which takes the wait off at its exit 3. Then report: the round, when it comes, is sent to
+     you as a message ("A resumed round", below).
+   - Exit 0: the project has left `spec-review`. The second line is the last `reviewed` event after your submit,
+     whole; `null` when it was moved with no review. With `"verdict":"pass"` the tool has taken the wait off: report.
+   - Exit 0 with `"verdict":"changes"`, and stderr says `<id> is at spec: a round was sent back, and the wait stands
+     as it is`: the round is yours. `$W/tools/cloud-brain/issue-wait.sh <token> <id> <seq> --work` before anything
+     else (the wait of a round, 60 minutes, in the place of the first), then "A resumed round" below from its
+     first item, with the review of the second line where it says the message. After that round's submit, the
+     wait once more from its `seq`, with `--no-round`: `… <seq of that submit> --left spec-review --no-round`.
+     That is the one round you take: at a second `changes` the tool has taken the wait off, and you report.
+   - Exit 0 and anything else, exit 5 (the wait is not live) and exit 2 (your token was ended; write nothing with
+     another): report what the tool printed.
+   In your report say how many runs of the tool you made, what each exited with, and which rounds this run made.
+   Sent back (`spec` again), by the wait above or by a message: read the review whole before the file (the `reviewed` event the `respec` move names, the second line of the wait's exit 0),
    work in your worktree, brought up with `$W/tools/cloud-brain/worktree.sh --rebase <tree>`, answer each finding in the file, and
    attach, say again what it adds and reads (`spec/<id>/adds-<round>`, whole, as the file then has it) and submit again, each with the next round's key and name. Steps 2 to 4 are done again for what a finding asks to be read or
    measured and for a part gathered since, not from the start; steps 5 to 7 hold for the round as for the first.
@@ -184,8 +208,10 @@ After the owner's approval the orchestrator opens the tasks as parts and moves t
 ## A resumed round
 
 Since 2026-10-11 a spec that was sent back comes to the agent that wrote it, as a message, when it
-can be sent one (`SKILL.md`, step 3, "A spec sent back"). You then have the first round in your
-context. Read the issue again and take the findings from the `reviewed` event the message names,
+can be sent one (`SKILL.md`, step 3, "A spec sent back"). Since `tr-3-briefs-and-queue` (2026-10-13) the
+first round after a submit is taken by the writer that waits for its review (step 7), with no message: what
+follows holds for it, with the second line of the tool's exit 0 as the `reviewed` event the message names.
+You then have the first round in your context. Read the issue again and take the findings from the `reviewed` event the message names,
 not from what you expected. Your token is the one of your first round; when `ia "get?id=<id>"` is
 exit 2 or answers 401 it has ended: write nothing, and report it. Your worktree is the one the
 message names in a line `Working directory: <W>`, or with no such line the one you landed from, which

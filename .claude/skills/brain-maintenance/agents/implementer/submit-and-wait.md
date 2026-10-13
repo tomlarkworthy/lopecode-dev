@@ -41,41 +41,62 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
     (2026-10-11; `plan/cloud-brain-loop-order-of-service.md`, part 5): your context is in the prompt
     cache for 5 minutes after your last request, and all 16 rounds sent to a writer by message before that
     day came later than that and wrote the whole context again, 111,329 to 203,811 tokens each. A
-    request every 4 minutes keeps it. With the submit of step 12 answered (`seq` of its answer is
-    the submit's). First stop what you started that is billed ("Before a wait", below): this wait is up
-    to 20 minutes, and the tool takes no word of what runs.
+    request every 4 minutes keeps it. Since `tr-3-briefs-and-queue` (2026-10-13;
+    `plan/cloud-brain-tracker-trigger-rules.md`, part 3) the wait is an event of the record: the tool writes
+    it on your issue (`issue.wait`), and while it is live the queue's entry of the issue has `waiter`, by which
+    the orchestrator knows that the round is yours and sends you none. With the submit of step 12 answered
+    (`seq` of its answer is the submit's; `land.sh` prints it). First stop what you started that is billed
+    ("Before a wait", below): this wait is up to 20 minutes, and the tool takes no word of what runs.
     ```
-    $W/tools/cloud-brain/issue-wait.sh <token> <id> <seq of your submit>
+    $W/tools/cloud-brain/issue-wait.sh <token> <id> <seq of your submit> --left in-review
     ```
     in the foreground, with the Bash `timeout` at 280000, by its absolute path (from a worktree it
-    reads the main checkout's tokens, as `issue-as.sh` beside it does). It reads `sync?after=` every 15 s and writes nothing.
-    - **Exit 3**, nothing printed: no review in 240 s. Run the same command again, up to 5 runs in
-      all (20 minutes). After the fifth, report as step 12 left it: the orchestrator sends the round or judges, as before.
-    - **Exit 0**: the first line is the `reviewed` event, with its `verdict` and `body`. The second
-      line, when there is one, is the reviewer's move after it, which the tool waits 30 s for.
-    - `"verdict":"pass"`: report.
-    - `"verdict":"changes"` and a second line with `"to":"in-progress"`: the round is yours. Follow
-      "A resumed round" below from its first item; the review it speaks of is the first line, and no
-      message comes. Then the comment and the submit of step 12 with the round's number, and this
-      step once more from the new submit's `seq`. That is the one round you take: after a second
-      `changes`, report. Report also, and take no round, when the issue then has 3 `rework` moves or
-      more: the judgment at 3 is the orchestrator's (`SKILL.md`, step 3).
-    - `"verdict":"changes"` and one line: the review is recorded and the reviewer's `rework` move was
-      not read. Start nothing on the verdict alone: the round's number is the count of `rework` moves
-      plus one, so before that move your keys are the first round's, and a write with one answers
-      `duplicate: true` and writes nothing. Read `ia "get?id=<id>"` once; so too when the second line
-      is a move to any other state. `in-progress`: as the item
-      above. Still `in-review`: report that, with the review's seq; the orchestrator's table has the
-      row for it. Any other state: report what you read. (To event 2851 each of the 54 `changes` reviews of the record had its `rework`
-      within 9.7 s, 0.5 s at the median; `tools/cloud-brain/records/os-4-writer-waits.md`.)
-    - **Exit 2**: the tool keeps no token of your name, or the read was refused (401, 403): your
+    reads the main checkout's tokens, as `issue-as.sh` beside it does). The first run writes the wait, key
+    `impl/<id>/wait-<seq>`, `when` `issue.state != "in-review"`, for 25 minutes; then it reads
+    `wakes?id=<id>` every 15 s. A later run with the same `<seq>` writes nothing and reads the same wait, so
+    the seq and the state are the same in every run of one wait. Run it only after your submit: on an issue
+    you are at work on, `--left in-review` is due at once and reads as a round sent back.
+    - **Exit 3**, nothing printed: the issue is still at `in-review` after 240 s. Run the same line again, up
+      to 5 runs in all (20 minutes), the fifth with `--last` after `in-review`: at its exit 3 the tool takes
+      the wait off, so the queue no longer says you listen. Then report as step 12 left it: the orchestrator
+      sends the round or judges, as before. A review that is recorded while the issue stays at `in-review`
+      (the reviewer's move did not come) is not an exit 0: the runs end as these do, and the queue lists the
+      issue as a `look`.
+    - **Exit 0**: the issue has left `in-review`. The first line is the due entry of `issue.wakes`, with
+      `issue.state`. The second is the last `reviewed` event of the issue after your submit, whole, with its
+      `verdict` and `body`: the review the round is taken from. `null`: the issue was moved with no review;
+      read `ia "get?id=<id>" --short` once and report what you read.
+    - `"verdict":"pass"`: the tool has taken the wait off. Report.
+    - `"verdict":"changes"`, and stderr says `<id> is at in-progress: a round was sent back, and the wait
+      stands as it is`, with two commands. The wait still says you listen, so the next call is one of the two:
+      - The issue has 3 `rework` moves or more (count them in `ia "get?id=<id>" --short`): the judgment at 3
+        is the orchestrator's (`SKILL.md`, step 3). `$W/tools/cloud-brain/issue-wait.sh <token> <id> <seq of your submit> --remove`,
+        and report. You take no round.
+      - Otherwise the round is yours. `$W/tools/cloud-brain/issue-wait.sh <token> <id> <seq of your submit> --work`
+        before anything else: it writes the wait of a round, 60 minutes, in the place of the first, and the
+        queue goes on saying the round has its agent. Then follow "A resumed round" below from its first
+        item; the review it speaks of is the second line, and no message comes. Then the comment and the
+        submit of step 12 with the round's number, and this step once more from the new submit's `seq`, with
+        `--no-round`: `… <seq of the round's submit> --left in-review --no-round`. That is the one round you
+        take: with `--no-round` the tool takes the wait off at whatever the issue moves to, so after a second
+        `changes` the round is in the queue with no `waiter` before you have read the verdict. Report.
+    - `"verdict":"changes"` and no such line on stderr, or any other verdict or state: the tool has taken the
+      wait off. Read `ia "get?id=<id>" --short` once and report what you read.
+    - **Exit 5**, nothing printed: your wait is not live. It is past its 25 minutes, was taken off, or another
+      wait of your token on the issue took its place. Report.
+    - **Exit 2**: the tool keeps no token of your name, or a call was refused (401, 403): your
       token was ended. Write nothing with another, and report.
+    - **Exit 64**: the arguments, or a wait the tracker refused, with its message on stderr. The line with no
+      flag (`… <seq of your submit>` and nothing after it) is this exit since `tr-3-briefs-and-queue`, and
+      stderr has the line to run.
     A round that came to you as a message does not wait: submit and report. Neither does a quick
     win: its review is the orchestrator's to hand out and to read. In your report say how many runs
     of the tool you made, what each exited with, and which rounds this run made. The orchestrator
     learns of your submit from its watch, which prints the queue's new entry for it, `QUEUE review <id>`, not from your report.
-    First run by a writer, of its own review: not yet, when this was written. Two things of it were
-    seen: one run of 240 s in the foreground of a writer that was an agent of the orchestrating
-    session ended with exit 3 and was not stopped (2026-10-11, 23:40:35 to 23:44:35 CEST), and five
-    runs one after another were not tried.
+    Until `tr-3-briefs-and-queue` the tool read `sync?after=` and wrote nothing, its exit 0 was the review
+    and, when it came within 30 s, the reviewer's move, and the orchestrator inferred a waiting writer from
+    which of its agents had not reported. Seen of that form: one run of 240 s in the foreground of a writer
+    that was an agent of the orchestrating session ended with exit 3 and was not stopped (2026-10-11,
+    23:40:35 to 23:44:35 CEST). First round a writer took with the form above: not yet, when this
+    was written (`tools/cloud-brain/records/tr-3-briefs-and-queue.md`).
 

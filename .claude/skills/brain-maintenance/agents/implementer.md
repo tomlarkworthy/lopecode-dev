@@ -178,16 +178,17 @@ that path, `<tree>` what follows `bm-`, its branch `bm/<tree>`, and `<root>` the
     fix, the test count with its command, what was not tried, and the searches of steps 2 and 11. The reason
     of the submit is a few sentences with the count. By hand, and the refs of a deploy: the page `submit-and-wait`.
 13. **Wait for your review, and take the next round yourself.** First stop what you started that is billed
-    by the minute (the page `asking-and-waiting`). Then, in the foreground, with the Bash `timeout` at 280000:
+    by the minute (the page `asking-and-waiting`). In the foreground, with the Bash `timeout` at 280000:
     ```
-    $W/tools/cloud-brain/issue-wait.sh <token> <id> <seq of your submit>
+    $W/tools/cloud-brain/issue-wait.sh <token> <id> <seq of your submit> --left in-review
     ```
-    - **Exit 3**, nothing printed: no review in 240 s. Run it again, up to 5 runs in all, then report.
-    - **Exit 0**: the first line is the `reviewed` event, the second, when there is one, the reviewer's move.
-      `"verdict":"pass"`: report. `"verdict":"changes"` and a second line with `"to":"in-progress"`: the round
-      is yours, once; read the page `resumed-round` and follow it. Anything else, a second `changes`, or an
-      issue that then has 3 `rework` moves or more: the page `submit-and-wait` says what to read; report.
-    - **Exit 2**: your token was ended. Write nothing with another, and report.
+    - **Exit 3**: not in 240 s. Run it again, up to 5 runs in all, the fifth with `--last`; then report.
+    - **Exit 0**: the second line is the review. `"verdict":"pass"`: report. `"verdict":"changes"` and stderr
+      `a round was sent back`: the round is yours, once. Run the line with `--work` for `--left in-review`,
+      then read the page `resumed-round` and follow it; the wait after that round's submit ends `--no-round`,
+      and at its `changes` you report. At 3 `rework` moves or more take no round: `--remove` for `--work`,
+      and report. Anything else: the page `submit-and-wait`; report.
+    - **Exit 5**: the wait ended. **Exit 2**: your token was ended; write nothing with another. Report.
 
     A round that came to you as a message does not wait, and neither does a quick win: submit and report.
 

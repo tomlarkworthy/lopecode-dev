@@ -265,6 +265,9 @@ view, `issueQueue(view, by, now)`, with no I/O of its own:
   queue:   [{ id, do, kind, state, title, labels, for, since, late, hold }],
   waiting: [{ id, kind, state, why, on, until }] }
 ```
+(As built, `tr-3-briefs-and-queue`, 2026-10-13: an entry of either list also has `waiter: { actor, holder, until }` while
+the actor that started the issue has a live wait on it; no row and no order changes;
+`plan/cloud-brain-tracker-trigger-rules.md`, part 3; the record.)
 
 `do` is what the entry wants. The names of states and moves are read as the record has them, as
 `issueFlow` reads them. An issue is tested against the rows of `waiting` first, in their order; one

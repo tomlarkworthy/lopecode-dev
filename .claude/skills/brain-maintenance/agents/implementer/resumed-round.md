@@ -5,7 +5,7 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
 ## A resumed round
 
 A round you take yourself after step 13 is a resumed round too: what follows holds, with the tool's
-first line where it says the message.
+second line, the review, where it says the message. Its first act is `issue-wait.sh … --work` (step 13).
 
 Since 2026-10-11 the orchestrator may send a rework round to the agent that wrote the change, as a
 message, in place of a new agent (`SKILL.md`, "A rework round goes to the agent that wrote the
