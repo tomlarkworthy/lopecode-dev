@@ -940,6 +940,7 @@ async function step(args: string[]) {
         const submit = last(moved(G.events, "submit", "submit-spec"));
         if (machine && needsTab(e.id, (submit && submit.refs) || [])) {
           const key = `orch/${e.id}/laptop-${(submit && submit.seq) || 0}`;
+          if ((key + "/why").length > KEY_MOST) return skip(e.id, e.do, `the key ${key}/why is over ${KEY_MOST} characters`);
           return void done({ act: "laptop", id: e.id }, () => {
             const l = wrote(write(me, "label", { key, id: e.id, add: ["laptop"], remove: [] }));
             if (!(l as Ev).refused && !(l as Ev).duplicate) comment(e.id, key + "/why", `Labeled \`laptop\` by the loop of ${host}, which has no state file: this review needs a paired tab, which that machine does not have. A loop on the laptop gives it a reviewer; the loop here starts nothing on an issue with the label.`);

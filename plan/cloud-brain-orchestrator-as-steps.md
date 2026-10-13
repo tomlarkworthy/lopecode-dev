@@ -748,6 +748,18 @@ has what was changed. Where the text above names no choice, or the texts differ 
   Fly spec are in four places of that file.
 - The switch was not made by this task. No `loop.sh` and no `loop.ts run` without `--dry` was run.
 
+**As built (`fly-4-loop-files`, 2026-10-13).** The driver and the step got what part 6 gives to that task;
+`tools/cloud-brain/records/fly-4-loop-files.md` has it, and the note "As built" at the head of part 2 of
+`plan/cloud-brain-worker-machine-on-fly.md` has where the program differs from that spec.
+
+- A fourth reason, `step --for yield`, beside `clock`, `event` and `run`. It is the driver's on a machine with
+  no state file after `fly.down`: it ends the runs that returned and the tokens kept for a round to come, reads
+  no queue and starts nothing.
+- The two ends of part 6, the yield and the exit 0 at a step with no act and no `running` run, are made only
+  by a driver whose checkout has no `tools/cloud-brain/.emitted/cb4.json`, which is the machine on Fly.io. The
+  driver of a checkout with that file is as this part has it: stopped with Ctrl-C.
+- Not run on a machine: each was run against stand-ins (`tests/tools/loop-run.test.ts`, `loop-step.test.ts`).
+
 ### 6. What changes in specs that are approved
 
 - **`worker-machine-on-fly`**, part 2 and tasks `fly-2`, `fly-4`: `run.sh` execs `loop.ts run` in

@@ -40,6 +40,7 @@ to be passed to every step, to `run.sh` and to a pass by hand, and the spec's wo
 | `…/agents/orchestrator.md`, "Triage" | The label `laptop` at triage: a body that says a Worker changes, or a check that names one of six tokens |
 | `…/agents/implementer/ready-to-land.md` | A writer with no state file whose change needs `brain.ts apply` stops before the emit: no push, a comment, the label `laptop`, no submit |
 | `plan/cloud-brain-worker-machine-on-fly.md` | A note "As built" at the head of part 2 and under T4 |
+| `plan/cloud-brain-orchestrator-as-steps.md` | A note "As built" at the end of part 4: the fourth reason of a step, and that the two ends are a machine's |
 | `knowledge/calling-a-cloud-brain-from-this-checkout.md` | A section "With no state file" at its end; the line "If the state file is missing, there is no access; ask Tom" now points to it |
 
 ## Where the program differs from the spec, and by which line
@@ -122,6 +123,12 @@ and `agent-token list` with no flag printed 13 lines there, so the path with a s
 The suite again on the tree as committed, with the record and the two mends, begun 13:21 UTC and ended by
 13:24:54: `$W/tests/tools/suite.sh` printed `1257 pass`, `0 fail`, `Ran 1257 tests across 128 files`, exit 0,
 and no line `skipped:`.
+
+After that run, on the advice of the one advisor call: the key of the label's comment,
+`orch/<id>/laptop-<seq>/why`, is held to the tracker's 100 characters as the `ready` row holds its own (an id of
+81 characters with a seq of three digits is skipped and nothing is written; a case of the tab test), and the
+steps spec got its note. `loop-step.test.ts` then printed `37 pass`, `0 fail`; the suite's last count is in the
+issue's comment, from the run made after this paragraph was written.
 
 ## For the session that makes the tokens, and for `fly-4b-first-run`
 

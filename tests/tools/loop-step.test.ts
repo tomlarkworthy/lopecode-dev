@@ -1059,6 +1059,12 @@ test("no state file: a review that needs a tab gets no reviewer, the label `lapt
   open("u", { state: "in-progress" }); ev("u", { type: "moved", key: "k/u/submit", move: "submit", from: "in-progress", to: "in-review", refs: [{ kind: "url", value: "https://x.example/" }] }); at("u").issue.state = "in-review"; Q("u", "review");
   r = await dry();
   expect([acts(r.line), at("u").issue.labels, writes()]).toEqual([["laptop u"], [], []]);
+  // An id whose key for the comment would be over the tracker's 100 characters: skipped, nothing written, no reviewer.
+  fresh(); noState(); tab = needs();
+  const long = "x".repeat(81);                                        // orch/ + 81 + /laptop-102/why is 101 characters
+  open(long, { state: "in-progress" }); ev(long, { type: "moved", key: "k/long/submit", move: "submit", from: "in-progress", to: "in-review", refs: [{ kind: "commit", value: "abc1234" }] }); at(long).issue.state = "in-review"; Q(long, "review");
+  r = await step({ LOOP_NEEDS_TAB: tab });
+  expect([acts(r.line), r.line.skipped.map((x: Ev) => x.why), writes()]).toEqual([[], [`the key orch/${long}/laptop-102/why is over 100 characters`], []]);
   // With the state file the same review is started here, with its tab.
   fresh(); tab = needs();
   open("a", { state: "in-progress" }); ev("a", { type: "moved", key: "k/a/submit", move: "submit", from: "in-progress", to: "in-review", refs: [{ kind: "commit", value: "abc1234" }] }); at("a").issue.state = "in-review"; Q("a", "review");
