@@ -87,7 +87,7 @@ Each in a scratch checkout of the scratchpad with a preload that logged to a fil
 | `bun test --timeout=30000 ./tests/tools/own-tmpdir.test.ts` | after the rebase | `9 pass, 0 fail`, 46 expect() calls, 2.68 s |
 | the same with `OWN_TMPDIR_TS=` a file of one comment, `BRIEF=` the page `seed-tests.md` of `origin/main` and `SUITE_SH=` the script of `origin/main` | after the rebase | `2 pass, 7 fail`: the five tests of what a run leaves, the one of `suite.sh` and the one of the brief. The two that pass: `bunfig.toml` names the file, and with `BM_TEST_TMPDIR` set nothing is made, which an empty preload also meets |
 | `bun test --timeout=30000 ./tests/tools/tests-tools-suite-parallel.test.ts` | after the rebase | `14 pass, 0 fail`, 2.23 s |
-| `tests/tools/suite.sh` | 02:11:03, load 12.00 11.35 11.26 | `980 pass, 0 fail`, 100 files, 91.30 s; no line `skipped:`; its last line: 103,334 entries in the caller's directory |
+| `tests/tools/suite.sh`, after the last edit of a test | 02:18:25, load 12.87 9.45 10.17 | `980 pass, 0 fail`, 100 files, 102.34 s; no line `skipped:`; its last line: 103,379 entries in the caller's directory. The run before that edit, 02:11:03: the same counts in 91.30 s |
 
 The nine tests run `bun test` in a scratch checkout that has the root's `bunfig.toml`, the preload and two test
 files, each of which makes a rig with `mkdtemp(tmpdir())`, a file in it and a directory made by a child process.
@@ -120,7 +120,7 @@ under `vendor/notebook-kit`, and each the same with `bunfig.toml` moved out: the
 - **The other test files of the repository that import `bun:test`**, under `tools/`, take the preload when run at
   the root. Four were run, above, two of which the worktree cannot load. Whether one of the others rests on a file it leaves in the temporary
   directory for a later run was not read.
-- **The directories already in the caller's temporary directory** were not removed: 103,334 entries by the last line of the suite started 02:11:03. At
+- **The directories already in the caller's temporary directory** were not removed: 103,379 entries by the last line of the suite started 02:18:25. At
   what rate it grows now was not measured, and the tools the record of `tmpdir-entries-slow-every-bun-start` names
   as writing there (`summarize-papers.ts`, `digests/keep.ts`, `atproto-publish.ts`) were not changed.
 - **A process a test starts with no `env`** has the caller's `TMPDIR`. No file of today leaves anything that way;
