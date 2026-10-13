@@ -72,7 +72,7 @@ with the commands run and the lines of the brief that did not hold. The process 
 |---|---|---|---|---|
 | issue | `ac-5-prose-names-the-two-shapes` | the same | `answers-cut-and-not-said` | the same |
 | brief | `agents/implementer.md` | the same | `agents/spec.md` | the same |
-| `toolset` | 119: 26 of `claude`, 93 MCP | not in its transcript | 119, the same | not in its transcript |
+| `toolset` | 119: 26 of `claude`, 93 MCP | no `init` row in its transcript | 119, the same | no `init` row in its transcript |
 | `mode` | `bypassPermissions` | | `bypassPermissions` | |
 | first request | 51,668 | 40,811 | 51,660 | 40,803 |
 | last request (`context`) | 104,411 | 114,621 | 116,330 | 94,451 |
@@ -107,9 +107,10 @@ What the table shows, of these four runs and no more:
   them. No tool of them was called in these runs. The flags are the spec's and were not changed.
 
 Each of the four said it wrote nothing to the tracker. After them `get?id=` of each issue has no event by
-`impl-d81690` (15 and 22 events, the last seq 5685 and 5683, as before). Both processes wrote a file they
-were told not to and removed it: `/tmp/impl-d81690-search.json`, and `tools/scratch-impl-d81690-get.json` in
-the worktree. Neither is there now. A process is given no scratchpad, and its prompt names none.
+`impl-d81690` (15 and 22 events, the last seq 5685 and 5683, as before). Both processes wrote a file
+outside a scratchpad and removed it: `/tmp/impl-d81690-search.json`, and `tools/scratch-impl-d81690-get.json`
+in the worktree. Neither is there now. A process is given no scratchpad, and its prompt names none; the two
+`Agent`s wrote theirs in the session's.
 
 ## One `--resume` of each
 
