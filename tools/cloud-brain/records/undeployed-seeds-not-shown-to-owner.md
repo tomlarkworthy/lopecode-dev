@@ -140,8 +140,10 @@ last edit of a file other than this one.
 - The page. "For your attention" was not opened: an agent of the loop does not open the Brain's page in the cluster's
   browser (`rules.md`, Never), and the page on this machine needs the owner's session. That the two issues are rows of
   "To answer" rests on the panel's reference and on `issue.queue` answering `why: owner` for both.
-- The release of a landing on cb4 with the step. The first is this change's own landing; its line is in the writer's
-  comment on the issue, not here.
+- The release of a landing on cb4 with the step was not tried before the landing. The first was this change's own,
+  2026-10-13 10:54 CEST: it wrote a comment with the newer wording to each of the two issues (events 6435 and 6436 of
+  the tracker, by `impl-d7dbd6`). The line it printed is not kept: the writer's comment on the issue was sent before
+  the release and does not have it.
 - A close and a reopen on cb4. Each needs a deploy by the owner. They ran against the stand-in.
 - An issue the owner rejected: `plan` writes nothing to it (a test), since the policy's `reopen` refuses a token
   after an `owner-reject`. The Worker is then on his page no more, though it waits. Not seen on cb4.
