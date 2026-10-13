@@ -16,7 +16,7 @@ a `claude` session in its sandbox, with the token `impl-139801`. `$W` is the wor
 
 | File | Change |
 |---|---|
-| `.claude/skills/brain-maintenance/agents/orchestrator.md` | new: the brief of a judgment run. 9,862 bytes written for this task, then five texts of `SKILL.md` |
+| `.claude/skills/brain-maintenance/agents/orchestrator.md` | new: the brief of a judgment run. 10,012 bytes written for this task, then five texts of `SKILL.md` |
 | `.claude/skills/brain-maintenance/SKILL.md` | the five texts are gone; a section "What is in `agents/orchestrator.md`" says where each is; seven lines that named one now name the brief |
 | `tools/cloud-brain/loop.ts` | `step` starts one judgment run for the entries it gives; `start --role orchestrator --token <t> --give "…"`; `ended` for that role; a verdict `left` in the status |
 | `tests/tools/orchestrator-brief.test.ts` | new: 4 tests |
@@ -26,7 +26,7 @@ a `claude` session in its sandbox, with the token `impl-139801`. `$W` is the wor
 | `plan/cloud-brain-orchestrator-as-steps.md` | part 3, "As built (`st-4-orchestrator-brief`…)" |
 
 Sizes, `wc -c` after the last change: `SKILL.md` 97,993 bytes (112,596 before, `git show <the commit
-before>:… | wc -c`), `agents/orchestrator.md` 26,226.
+before>:… | wc -c`), `agents/orchestrator.md` 26,376.
 
 ## What was moved
 
@@ -90,8 +90,8 @@ Each is in the spec's part 3 now, under "As built".
 `cd $W && bun test --timeout=30000 ./tests/tools/orchestrator-brief.test.ts`: 4 pass, 0 fail, 63 expect()
 calls. `… ./tests/tools/loop-step.test.ts`: 27 pass, 0 fail, 220 expect() calls, 63.9 s (`time`), at 10:13
 CEST after the rebase on `origin/main` that brought in 10 files, none of them of this change.
-`$W/tests/tools/suite.sh`, 10:14:18 to 10:16:20 CEST, after the last change to a file a test reads: 1164
-pass, 0 fail, 120 files, 115.7 s, no `skipped:` line; `uptime`'s first number before it was 6.35.
+`$W/tests/tools/suite.sh`, 10:21:56 to 10:23:57 CEST, after the last change to a file a test reads: 1164
+pass, 0 fail, 120 files, 117.3 s, no `skipped:` line; `uptime`'s first number before it was 3.35.
 
 Without the change, each then put back (`git diff --stat` after: nothing but the file being edited):
 
