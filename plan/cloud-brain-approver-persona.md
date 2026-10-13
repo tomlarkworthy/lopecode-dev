@@ -478,7 +478,10 @@ that it does not edit this one.
 - The panel's block "For your attention" gains a group, "Approved for you": the `approve` moves of
   the last 7 days whose `by.via` begins `delegation:`, newest first, each with its line and the
   buttons that undo. It needs no id: the guard takes one delegation. Task 5; it deploys
-  `brain-x-issues`.
+  `brain-x-issues`. (As built, `ap-5-panel-approved-for-you`, 2026-10-13: a list under the issue the
+  block shows, and no fifth group of what waits; a line is the approve's reason, whole; `revert` is
+  sent with the approve event as its ref, and a line has one button, the undo its state allows; the
+  record.)
 - Undo of a task: `revert` (`done` to `reverted`, his, with a reason and a ref). Undo of a spec:
   `owner-reject` from `approved` or `building`, then `reopen`. Both moves exist. No new move is
   added: a way back from `building` to `awaiting-approval` would leave tasks open under a spec that
@@ -536,7 +539,7 @@ Each check is a command an agent runs with its own token, or a test file. Run at
 | R2 to R8 | `bun test ./tests/tools/approver.test.ts` | no such file | passes, with the cases below (task 1); not run. (As built, `ap-1-approver-tool`, 2026-10-12: 24 pass, 0 fail, 354 expect() calls; the record.) |
 | R4 | `test_issues_an_approver_delegation_approves_and_no_other_token`, the narrowed issue | no such cell | 403 in the rig, and 403 again after a send-back and a new pass (task 4); not run. (As built, `ap-4-policy-v3`, 2026-10-12: run, 403 both times with `this issue's guard N on approve refuses`; the narrowed issue is a spec, since a task has no move back from `awaiting-approval`; the record.) |
 | R5 | `grep -c '"appr"' tools/cloud-brain/brain.ts` | 0 | 1, run with the role added to `ROLES` and the edit taken back, 16:36 CEST (task 1) |
-| R8 | `test_issues_panel_approved_for_you` (task 5) | no such cell | passes on a panel with a client of its own; not run |
+| R8 | `test_issues_panel_approved_for_you` (task 5) | no such cell | passes on a panel with a client of its own; not run. (As built, `ap-5-panel-approved-for-you`, 2026-10-13: run, with a second cell for the caret, `bun tools/cloud-brain/tab-tests.ts <build> @tomlarkworthy/brain-issues`, 65 of 65; the record.) |
 | R7 | `test -f .claude/skills/brain-maintenance/agents/approver.md; echo $?` | 1 | 0 (task 2). That the file exists and no more; R7 is held by the tool's test and by `check`. (As built, `ap-2-brief-and-shadow-step`, 2026-10-12: 0 in the writer's worktree, and `bun test ./tests/tools/approver-brief.test.ts` gives the brief's verdicts to the tool; the record.) |
 | R7 | `issue-as.sh <token> policy`, `approver brief` in `policy.reason` | absent | present, with two blobs that `git hash-object` gives for the files at `origin/main` (after his install) |
 | R9 | events of `issue.sync` with a key `approver/<id>/verdict-<n>` | 0 of 4115 | 20 or more (task 3) |
@@ -851,3 +854,23 @@ was built differs from the text above, or says what it left open:
 - `tests/tools/issues-policy-v3.test.ts` holds the file: it is the policy of the v2 file with the two guards
   changed, the guard's eight callers by `cel.js`, the two blobs as the commit of the file has the brief and the
   tool, and that `judge` of `approver.ts` reads the delegation from it and none from the v2 file.
+
+**Task 5, `ap-5-panel-approved-for-you`, 2026-10-13.** The record is
+`tools/cloud-brain/records/ap-5-panel-approved-for-you.md`; the bullet "Approved for you" of the first `md` cell
+of `tools/cloud-brain/brain-issues.ojs` is the reference. Where what was built differs from the text above, or
+says what it left open:
+
+- The group is a list under the issue the block shows. It is not a fifth group of the issues that wait: the place,
+  the counts, `panel.waiting()` and `issuesAttention` are as they were. R8 asks that he reads each approval "in one
+  line" and part 5 that they are "newest first"; the block shows one waiting issue at a time, in the order of the ids.
+- "Its line" is the reason of the `approve` event, whole, as the record has it. Part 5 makes that reason "the first
+  200 characters of its verdict, then `verdict <seq>, brief <blob>`"; the panel cuts nothing and reads no verdict.
+  Whether an approval rests on an event of his or on quoted words is in `approver.ts list` and not in the line.
+- Which issues: those whose row in the page's copy has a delegation as `by.approve` and a last event of the last
+  7 days. The time and the reason are read from the last `approve` event of one `issue.get` for each. No method
+  was added to the Worker.
+- The buttons that undo are one button a line, the move of `revert` and `owner-reject` that the workflow lets the
+  owner present make from the issue's state. `revert` takes a ref (the guard, `size(event.refs) > 0`), and the panel
+  sends the approve event, `{ kind: "event", value: "<seq>" }`. The `reopen` that follows an `owner-reject` of a
+  spec is made in the open issue, which the line's text opens.
+- A line stays for its 7 days after its approval is undone, with the state the issue then has.
