@@ -70,8 +70,10 @@ calls. With `loop.ts` of the commit before (`git show HEAD:tools/cloud-brain/loo
 place, then the fixed file put back): 13 pass, 2 fail, the new test and the one whose two
 expectations name the key.
 
-The whole suite, `$W/tests/tools/suite.sh`, after the last edit of `loop.ts` and of the test:
-1089 pass, 0 fail, 110 files, no `skipped:` line.
+The whole suite, `$W/tests/tools/suite.sh`, after the last edit of `loop.ts` and of the test and after
+a `worktree.sh --rebase` made before the landing: 1083 pass, 0 fail, 110 files, no `skipped:` line.
+(Before that rebase, which brought in five files under `tests/tools`: 1089 pass, 0 fail, 110 files.
+The landing's own rebase comes after this count.)
 
 The new test, against the stand-in tracker of the file (it keeps a key once and answers
 `duplicate: true` with the first seq), on one issue with one `rework` move:
@@ -90,6 +92,10 @@ The new test, against the stand-in tracker of the file (it keeps a key once and 
   either (its record, "The check on cb4", has `start`, `ended` and `dead`). The first `back` made by
   the tool will be `st-3-step`'s or later.
 - Two `resume` calls of one issue at once.
+- What follows the new exit 1. A second `resume` with no move between has the same key and the same
+  exit: the exit says what happened and is no way out of it. After the race above the next call
+  stops at the state (`is at ready`). After any other cause the issue is at `in-progress` with the
+  token ended until a move is made by hand.
 - A run with no token (`its last run names no token`): the key is then `no-token` by the same
   expression as for no run, and only the case of no run is in the test.
 - A key over 100 characters. `start` refuses a run whose longest `cost` key would be, and this key
