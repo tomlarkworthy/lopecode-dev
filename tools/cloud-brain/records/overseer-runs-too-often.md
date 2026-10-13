@@ -192,14 +192,17 @@ the judgment's entries (`pm f`, `pm g` skipped where none was expected).
 After the change:
 
 ```
-bun test --timeout=30000 ./tests/tools/loop.test.ts ./tests/tools/loop-step.test.ts     59 pass, 0 fail
-tests/tools/suite.sh                                                                    1261 pass, 0 fail, 129 files
+bun test --timeout=30000 ./tests/tools/loop.test.ts ./tests/tools/loop-step.test.ts     60 pass, 0 fail
+tests/tools/suite.sh                                                                    1272 pass, 0 fail, 131 files
 ```
+
+Both were run on the tree rebased on `origin/main` at 17:19:54 (`git reflog`), after the last change to a file they read. The
+test of the long id was run once with its check switched off and failed: the step named the start of that issue.
 
 Test files changed, and why:
 
-- `loop-step.test.ts`: three new tests (the draw is about 1 in 10 and the same at each call; the row; the
-  window) in the place of two (3 ended or a third `rework`; the heading read from `origin/main`). The fixtures
+- `loop-step.test.ts`: four new tests (the draw is about 1 in 10 and the same at each call; the row; an id
+  too long for the run's key; the window) in the place of two (3 ended or a third `rework`; the heading read from `origin/main`). The fixtures
   of three more end issues until one is drawn, where they ended three. The test of the judgment's entries
   expects no `pm`.
 - `loop.test.ts`: one test of `start` and `ended` for an overseer on an issue in the place of two (on no issue;
