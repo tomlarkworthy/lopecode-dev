@@ -117,7 +117,7 @@ process.
 cd $W && bun test --timeout=30000 ./tests/tools/light-agent.test.ts
 this change                                                     30 pass, 0 fail, 120 expect() calls
 CLOUD_BRAIN_DEV=<git archive of cloud-brain-dev 1d80684> …      25 pass, 5 fail
-$W/tests/tools/suite.sh                                         1063 pass, 0 fail, 106 files (06:19:45 to 06:21:37 CEST, after the last edit of a file a test reads)
+$W/tests/tools/suite.sh                                         1070 pass, 0 fail, 108 files (06:22:51 to 06:24:40 CEST, after the rebase that brought in 5 files; 1063 of 106 before it)
 ```
 
 The five that fail on the script and the README of the commit before:
