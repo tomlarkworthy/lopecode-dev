@@ -85,7 +85,7 @@ had found that it passed without them.
 ## 3. Tests
 
 One new test, `test_fly_exec_is_the_owners_tab_for_any_command_and_a_blessed_worker_for_a_named_one`,
-and three changed.
+and four changed.
 
 The nine callers of the spec, each through the rule (`decide` and `callerOf`, as the core asks it) and
 through the service, with a named command and with a command of its own texts:
