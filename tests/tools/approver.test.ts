@@ -457,6 +457,7 @@ test("issuesApp and issuesLimits are marked by their policy parts, on the seed a
   expect(diff(HELD, HELD + ";\n    app.fetch = async () => new Response('{}')")).toEqual([SETS]);
   expect(diff('key: (await signer()).public })', 'key: (keys = { public: "x" }).public })')).toEqual([SETS]);
   expect(diff(HELD, HELD + ";\n    made = null")).toEqual([SETS]);
+  expect(diff(HELD, HELD + ";\n    made++")).toEqual([SETS]);
   expect(diff(HELD, HELD + ";\n    [made, keys] = [null, null]")).toEqual([SETS]);
   expect(diff(HELD, HELD + ";\n    locksMade &&= null")).toEqual([SETS]);
   // A read route whose path has a pattern in it, which would answer for another route, is no route to the tool.
