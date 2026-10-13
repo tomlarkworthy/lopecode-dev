@@ -240,6 +240,12 @@ $0.59 by length. Neither is a forecast, as the pilot said of its two.
   the ten held a paragraph for 4 to 11 minutes. In the tests alone.
 - `summarize --first-paragraph` with `--due`, `--dry` or `--model opus`, and a doc refused twice under it.
 - A release from one of the six worktrees behind `993f75c3`.
+- **A whole summary that lost every heading.** `--check-summaries` takes no heading as the first-paragraph form, so
+  an entry whose head is a paragraph and then text with no `## ` line passes it where it failed before. Read in the
+  code, not run. Nothing puts such an entry: the judge refuses an answer without the five headings.
+- **The pilot's kept first answers.** This run wrote `D/<name>.first-answer.txt` for `maintaining-…`,
+  `pushing-cells-to-observablehq` and `cloud-brain-dashboard-service` (06:07 to 06:09). The first two were the opus
+  run's, which `records/sd-3-pilot-ten.md` names, and are no longer on this machine.
 - A whole summary and a first paragraph on cb4 at once: `status` counts both as `summarized` and its line for a doc
   does not say which.
 
