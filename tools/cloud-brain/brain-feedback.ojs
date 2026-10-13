@@ -335,7 +335,13 @@ feedbackKept = (brain = "", what = "drafts") => ((name) => ({
   }
 }))("brain_feedback_" + what + " " + brain)
 // %%
-feedback = feedbackOn ? feedbackApp({ client: brainClient, store: a2Store, kept: feedbackKept(brainOrigin), away: feedbackKept(brainOrigin, "away"), near: feedbackNear, about: (anchor) => ((m) => (m ? m.worker : "brain"))(((brainModules && brainModules.modules) || []).find((m) => m.module === (anchor || {}).module)) }) : null
+// The app of a page at a Brain's address, from the page's own values. The browser's two copies are made here and nowhere
+// else, so the test that calls this with an address of its own fails when one is left out (feedback-cell-copies-held-by-no-test).
+// modules: what brainModules answered; a note on a cell of a Worker's module is filed about that Worker.
+feedbackPage = ({ origin, client, store, near, modules }) => feedbackApp({ client, store, kept: feedbackKept(origin), away: feedbackKept(origin, "away"), near, about: (anchor) => ((m) => (m ? m.worker : "brain"))(((modules && modules.modules) || []).find((m) => m.module === (anchor || {}).module)) })
+// %%
+// Null on a file, so no test cell reads it on: tests/tools/feedback-cell.test.ts computes it with feedbackOn true.
+feedback = feedbackOn ? feedbackPage({ origin: brainOrigin, client: brainClient, store: a2Store, near: feedbackNear, modules: brainModules }) : null
 // %%
 // The cell a note is: annotate writes `feedbackNote("<id>")` into this module for the kind below.
 feedbackNote = (id) => (feedback ? feedback.note(id) : htl.html`<i>Feedback notes are for the owner, signed in at the Brain's address.</i>`)
@@ -645,6 +651,64 @@ test_feedback_kept_is_one_item_of_the_browser_for_an_address = {
     ls.removeItem(k.name);
   }
   return "one item for an address, read by any app on it; an empty copy is removed; text that is not JSON reads as none";
+}
+// %%
+// The reviewer of page-notes-return-after-a-refresh, 2026-10-13: with the copy of the notes put away taken out of the cell
+// feedback, the module's 15 tests passed. Every other test gives its app a copy of the rig's; this one gives none.
+test_feedback_the_page_app_keeps_both_copies_in_this_browser = {
+  const origin = "test " + Math.random().toString(36).slice(2), ls = (() => { try { return globalThis.localStorage || null; } catch (e) { return null; } })();
+  const drafts = "brain_feedback_drafts " + origin, away = "brain_feedback_away " + origin, item = (name) => JSON.parse(ls.getItem(name));
+  const anchor = { module: "@tomlarkworthy/brain-issues", cell: "issuesView", surface: "element", frac: { fx: 0.5, fy: 0.5 } }, box = { dx: 5, dy: 6, w: 300 };
+  const type = (el, text) => ((t) => ((t.value = text), t.dispatchEvent(new Event("input", { bubbles: true }))))(el.querySelector("textarea"));
+  const rig = feedbackRig(), modules = { modules: [{ module: "@tomlarkworthy/brain-issues", worker: "brain-x-issues" }] };
+  const page = (at = origin, given = {}) => feedbackPage({ origin: at, client: rig.client, store: rig.store, near: () => "Issues", modules, ...given });
+  const notes = () => rig.store.all().map((n) => [n.draft, n.issue]);
+  try {
+    const first = page(), a = rig.store.create(anchor, { kind: "feedback", box });
+    type(first.note(a.id), "The count is wrong.");
+    if (!ls) {
+      rig.reload();
+      await page().sync();
+      expect(notes()).toEqual([]);
+      return "no storage here: the page's app keeps no draft over a load";
+    }
+    // A draft: one item of this browser, named for the address. The next load places it, and a page at another address does not.
+    expect([item(drafts), ls.getItem(away)]).toEqual([{ [a.id]: { text: "The count is wrong.", anchor, box } }, null]);
+    rig.reload();
+    await page(origin + "x").sync();
+    expect(notes()).toEqual([]);
+    const loaded = page();
+    await loaded.sync();
+    expect(notes()).toEqual([[a.id, undefined]]);
+    const b = rig.store.all()[0];
+    expect(loaded.note(b.id).querySelector("textarea").value).toBe("The count is wrong.");
+    // Filed: about the Worker of the module the note is on, with what is near it; the draft's item goes.
+    await loaded.file(b.id);
+    const sent = rig.calls.filter((c) => c[0] === "issue.open").map((c) => [c[1].id, c[1].about, c[1].body.includes('on the element that reads "Issues"')]);
+    expect([sent, ls.getItem(drafts), notes()]).toEqual([[["fb-" + a.id, "brain-x-issues", true]], null, [[a.id, "fb-" + a.id]]]);
+    // Put away before its work is done: the second item, named for the address. The next load places no note; another address does.
+    rig.store.remove(b.id);
+    await loaded.gone();
+    expect([Object.keys(item(away)), typeof item(away)["fb-" + a.id], ls.getItem(drafts)]).toEqual([["fb-" + a.id], "number", null]);
+    rig.reload();
+    const again = page();
+    await again.sync();
+    expect([notes(), [...again.hidden]]).toEqual([[], ["fb-" + a.id]]);
+    await page(origin + "x").sync();
+    expect([notes(), Object.keys(item(away))]).toEqual([[[undefined, "fb-" + a.id]], ["fb-" + a.id]]);
+    // A note on a module no Worker is built from, and a page that has not read its modules: about the Brain.
+    const about = [];
+    for (const given of [{}, { modules: null }, { modules: {} }]) {
+      const one = page(origin + "y", given), n = rig.store.create({ ...anchor, module: "@tomlarkworthy/brain-shell" }, { kind: "feedback" });
+      type(one.note(n.id), "On the shell.");
+      await one.file(n.id);
+      about.push(rig.calls.filter((c) => c[0] === "issue.open").pop()[1].about);
+    }
+    expect(about).toEqual(["brain", "brain", "brain"]);
+  } finally {
+    if (ls) for (const at of [origin, origin + "x", origin + "y"]) for (const what of ["drafts", "away"]) ls.removeItem("brain_feedback_" + what + " " + at);
+  }
+  return "the app the page makes keeps a draft and a note put away in this browser, one item each for its address, and files about the module's Worker";
 }
 // %%
 // feedbackSync asks every 30 s, and each ask drew every note again: a box being typed in was put in the place of a new one.
