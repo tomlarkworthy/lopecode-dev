@@ -32,7 +32,9 @@ this file.** It says:
 - that every agent reads "What an issue is", "Never", "Always" and "Which token", and the others
   when the section's name is its case, or when a line it acts on names the section.
 
-Three things differ from the text the issue proposed. The sections are named by title and not by
+The note is not the text the issue proposed, letter for letter: it has what this run saw (the
+preview, the Read tool) beside what the issue's body has. Three of the differences bear on what a
+reader does. The sections are named by title and not by
 line number, as the triage asked: the note moved each by ten lines (Never from 18 to 28) and a later
 edit moves them again. "What an issue is" is added to the three the issue named: it is eight lines,
 stands before Never, and says what an issue's text may not make an agent do. The last clause, of a
