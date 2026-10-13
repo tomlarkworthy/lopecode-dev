@@ -106,3 +106,54 @@ no catch of a read that throws (06:57)    4 of 5  test_usage_passes_on_cloudflar
   them asks Cloudflare nothing. No test waits 600 s.
 - A date that matches the pattern and is no day (`2026-99-99`) is sent on. What Cloudflare answers was not tried.
 - What else a token with `Billing Read` reaches was not tried (the spec, "Not asked of him").
+
+## The first answer of cb4
+
+The record emitted is of the build of the committed seeds, by the run
+`tab-tests.ts … @tomlarkworthy/brain-usage --emit usage_service=…/cu-2-usage-service-brain-x-usage.json` that ended
+at 06:59:33 CEST on 2026-10-13: `"tests":5,"passed":5,"failed":[]`, hash `ca6839f91025cf5a…`
+(`brain-info-size.ts` on that file: `brain-x-usage 272 of 5100, 1 methods`). The apply, under both
+locks, answered at 07:00:12 CEST:
+
+```
+cu-2-usage-service-brain-x-usage.json 16269 ms [{"worker":"brain-x-usage","hash":"ca6839f91025","state":"verified","version":"33a6b7c1-4ff0-4220-8bee-f88f847229c9","tests":5}]
+```
+
+The first call, at 05:00:20 UTC, `brain.ts curl "/xrpc/com.lopecode.brain.usage.account" --as loop-usage`, answered
+200 with 97,667 bytes. Its head, its last row and its end:
+
+```
+{"from":null,"to":null,"anchor":"2024-04-19T00:00:00Z","currency":"USD","rows":[
+{"service":"Durable Objects Storage (First 1 GB-month included)","family":"Durable Objects","unit":"GB-months","quantity":0.000004009506944444444,"pricingUnit":"GB-months","pricingQuantity":0,"cost":0,"cumulatedCost":0,"start":"2026-09-19T00:00:00Z","end":"2026-09-20T00:00:00Z"},
+…
+{"service":"R2 Storage Class A Operations (First 1M included)","family":"R2","unit":"","quantity":1546,"pricingUnit":"Count","pricingQuantity":0,"cost":0,"cumulatedCost":0,"start":"2026-10-12T00:00:00Z","end":"2026-10-13T00:00:00Z"}],
+"total":0,"cloudflare":{"status":200,"info":200,"ms":1447,"cached":false}}
+```
+
+389 rows, a row a product and a day, the days from 2026-09-19 to 2026-10-12 (the anchor is a 19th). Counted from
+the saved answer with a script: by `(family, service)` there are 27 products, no field of a row is `null`, no row
+has a `cost` other than 0, and 10 rows have a `pricingQuantity` other than 0. The sums of `quantity` over the period,
+for the products R5 is about and three others:
+
+```
+R2          R2 Data Storage (First 10GB-Month included)          23 rows  0.3116 GB-months   cost 0
+R2          R2 Storage Class A Operations (First 1M included)    24 rows  31240              cost 0
+R2          R2 Storage Class B Operations (First 10M included)   23 rows  99376              cost 0
+D1          D1 - Rows Written (first 50 million included)        21 rows  355656             cost 0
+Workers     Workers Standard Requests (first 10M are included)   23 rows  641332             cost 0
+Workers AI  Regular Twitch Neurons (RTN)                          3 rows  15748              cost 0
+```
+
+The five things the spec gave this task to settle (task 2), each from that answer:
+
+| | |
+|---|---|
+| The group is named `Billing Read` at account scope | Held. The deployer minted for the Worker (the apply answered `verified`, and the call was answered with the token it bound). The deployer's `token.*` lines were not read. |
+| An account-owned token is answered | Held: status 200 from both paths (`"status":200,"info":200`). |
+| This account has data | Held: 389 rows. |
+| What `ConsumedQuantity` is for usage inside an included amount | The usage itself: `quantity` is 1546 Class A operations on 2026-10-12 with `pricingQuantity` 0 and `cost` 0. `pricingQuantity` is other than 0 in 10 rows, of Browser Run hours, Containers and Dynamic Workers, each with `cost` 0; what it counts there was not worked out. |
+| Whether the ten fields tell an R2 storage row from an R2 Class A row | They do, by `service`: "R2 Data Storage (First 10GB-Month included)" and "R2 Storage Class A Operations (First 1M included)". `ChargeDescription` is not kept. |
+
+For task 3: every `cost` of the period is 0, so the bill gives nothing to divide, which is the case the spec's rule
+for the price names. The newest row ends 2026-10-13T00:00:00Z, read at 05:00 UTC that day. A range (`from`, `to`)
+was not asked of cb4, and neither was a period that has ended.
