@@ -83,7 +83,7 @@ with the commands run and the lines of the brief that did not hold. The process 
 | output | 5,403 | 6,457 | 5,933 | 5,523 |
 | `usd` | 0.96 | not given | 1.07 | not given |
 | time | 62.6 s (`ms`) | 73.7 s | 64.3 s (`ms`) | 62.4 s |
-| tool calls | Bash 10, Read 2 | Bash 7, Read 5 | Bash 8, Read 5 | Bash 7, Read 5 |
+| tool calls | Bash 9, Read 2 | Bash 7, Read 5 | Bash 7, Read 5 | Bash 7, Read 5 |
 | advisor calls | 0 | 0 | 0 | 0 |
 
 The usage of the two processes is their JSON line, and `agent-usage.ts <transcript> --run 1` printed the same
@@ -223,7 +223,8 @@ for f in sys.argv[1:]:
 ```
 
 For a process it was run after the resume, so its 10 and 9 requests are the 8 and 7 of the table and the 2
-of the resume, and the "last" it printed is the resume's `context`.
+of the resume, and the "last" it printed is the resume's `context`. Its Bash count there is one more than the
+table's, the `date` of the resume (10 and 8).
 
 The tools the writers of a day called:
 
