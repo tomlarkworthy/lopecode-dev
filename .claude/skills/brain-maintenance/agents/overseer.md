@@ -153,7 +153,14 @@ that the finished work did what he asked, and when it did not the note becomes a
 with no tie, or with each tie at `done` or `closed`, under `feedback of the owner's with no tie, or each tie done or
 closed, to promote or to close`, and the orchestrator promotes or closes each (`SKILL.md`, the row for `open`, kind
 `feedback`). A `held:` comment does not take one of his off that list. When you have read what a finished tie did
-for his ask, say it in a comment on the note: the orchestrator reads it there. (Until
+for his ask, say it in a comment on the note: the orchestrator reads it there. A comment that says no finished work
+did what he asked is a statement about the cluster, and is made from a read of it: `git grep` the seed for what his
+note is anchored at (the note's body names the cell and the text, in the sentence before the anchor when it was filed
+from the page), and `io "list?kind=feedback&state=done&limit=500"` for an issue of his at `done` whose title asks the
+same (a list has titles and no bodies, and with no `limit` it is 100 issues). Say in the comment what was read and
+what it showed. With no such read, say only which ties the note has and their states.
+(`health-chart-not-useful-remove`, comment 4271, 2026-10-12: the overseer wrote that the ask was not answered and
+had not seen the page; the panel had left the page on 2026-10-11, and a writer's run of 331 s found that.) (Until
 `owners-feedback-held-by-related-links`, 2026-10-12, one of his that was due was on your list with "the owner's" on
 its line, and you closed it only when you could name what the finished work did for his ask, and otherwise left it
 with a comment as a decision for him. At event 4295 `health-chart-not-useful-remove` had waited 21 hours so.)
