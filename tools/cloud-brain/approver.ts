@@ -30,9 +30,10 @@
 //          named after the file), `tracker` (brain-issues.ojs when it touches none) or `approver` (the brief, this
 //          tool, its test). A mark refuses nothing but `policy` and `approver`, which `approve` refuses (below).
 //          The policy cells are JUDGE and ROUTES below, with what `policyCells` adds to them.
-//          Of two of them a commit touches the policy parts or it does not touch the cell: issuesApp (the routes
-//          install, rebuild, resign, policy and sync, what asks a guard, and what those name: `appParts`) and issuesLimits (the
-//          entries a policy cell or such a part reads). The parts that differ are named in brackets after the cell.
+//          Of two of them a commit touches the policy parts or it does not touch the cell: issuesApp (all of it
+//          but the routes that take a GET and are neither policy nor sync, and of those each statement that asks a
+//          guard, names the app or sets a declaration: `appParts`) and issuesLimits (the entries a policy cell or
+//          such a part reads). The parts that differ are named in brackets after the cell.
 // approve  Makes the `approve` move with the token loop-approver, or makes none and prints each reason. In this order:
 //          the `approve` guard of the issue's workflow names no delegation: exit 3, nothing sent, before anything else
 //          is judged. Then, every one of these or exit 1:
@@ -207,21 +208,23 @@ function limitEntries(chunk: string | undefined): Map<string, string> | null {
 const OWNER_ROUTES = ["install", "rebuild", "resign"], READ_ROUTES = ["policy", "sync"], GUARDS = [...Object.keys(JUDGE), "issueCaller"];
 const WHOLE_ROUTES = new Map([...OWNER_ROUTES.map((r) => [r, "post " + r] as const), ...READ_ROUTES.map((r) => [r, "get " + r] as const)]);
 const isFn = (n: Node) => n.type === "FunctionExpression" || n.type === "ArrowFunctionExpression" || n.type === "FunctionDeclaration";
+const SETS = "a statement that names app or sets a declaration", ASKS = "a statement that asks a guard", OTHER = "a statement that is no declaration and no route";
 // issuesApp cut into its policy parts, each a name with its text, and the limits those parts read. The cell is a block:
-// its statements are declarations (`const judge = …`, a part a name), routes (`app.get(NS + "name", …)` or `app.post`)
-// and whatever else. The policy parts:
-//   - the routes install, rebuild and resign, and the routes policy and sync, which `approve` reads;
-//   - `judge`, where a guard's answer is turned into the refusal, and each declaration that names a guard or such a
-//     declaration, however far (`write` names `judge`, `append` names `write`, `shownEvent` names `shown`);
-//   - each statement that is no declaration and no route (the loop that makes the write routes, `return app`, an
-//     `app.use`);
-//   - in what is left, the other routes among it, each statement that names a guard or such a declaration: it is
-//     taken as the statement it is of the innermost function with a body in braces, in the order they stand;
-//   - each declaration that one of the parts above names, however far (`load`, `refuse`, `run`, `L`).
-// So a route that is none of the three is a part only by the statements in it that ask a guard, and a new route by
-// those it has. null where the cell is not cut: it is not one block that parses, a declaration is not of one name, a
-// name or a route stands twice, `judge` is not there, one of the three routes is not there as a POST or one of the
-// two as a GET, or one of the five is there by the other method as well.
+// its statements are declarations (`const judge = …`, a part a name), routes (`app.get(NS + "name", …)` or `app.post`,
+// the name of small letters alone) and whatever else. The policy parts:
+//   - each declaration, whole (review 6434: a route made in one, `const z = app.post(NS + "install", …)`, had no mark);
+//   - each route that takes a POST, whole: install, rebuild and resign, and any other that writes;
+//   - the routes policy and sync, whole, which `approve` reads;
+//   - each statement that is no declaration and no route, whole (the loop that makes the write routes, `return app`,
+//     an `app.use`, a route whose path is written another way or has a pattern in it);
+//   - in the routes that are left, each a GET: each statement that names a guard, `judge` or a declaration that names
+//     one of those, however far (`write`, `append`, `shown`, `shownEvent`); and each statement that names `app` or
+//     sets a declaration (`keys = …`, `made++`). Each is taken as the statement it is of the innermost function with
+//     a body in braces, in the order they stand.
+// So what carries no mark is a route that takes a GET and is neither of the two, changed or added, in what it does
+// beside those statements. null where the cell is not cut: it is not one block that parses, a declaration is not of
+// one name, a name or a route stands twice, `judge` is not there, one of the three routes is not there as a POST or
+// one of the two as a GET, or one of the five is there by the other method as well.
 export function appParts(chunk: string | undefined): { parts: Map<string, string>; limits: Set<string> | null } | null {
   const v = chunk == null ? null : valueOf(chunk), src = `(async function*()${v}\n)`, ast = v == null ? null : tree(src), fn = ast?.body.length === 1 ? ast.body[0].expression : null;
   if (fn?.type !== "FunctionExpression") return null;
@@ -234,33 +237,35 @@ export function appParts(chunk: string | undefined): { parts: Map<string, string
     }
     const call = st.type === "ExpressionStatement" && st.expression.type === "CallExpression" ? st.expression : null, to = call?.callee, path = call?.arguments[0];
     const route = to?.type === "MemberExpression" && !to.computed && to.object.type === "Identifier" && to.object.name === "app" && ["get", "post"].includes(to.property.name) &&
-      path?.type === "BinaryExpression" && path.operator === "+" && path.left.type === "Identifier" && path.left.name === "NS" && path.right.type === "Literal" && typeof path.right.value === "string";
+      path?.type === "BinaryExpression" && path.operator === "+" && path.left.type === "Identifier" && path.left.name === "NS" && path.right.type === "Literal" && typeof path.right.value === "string" && /^[a-z]+$/.test(path.right.value);
     units.push(route ? { kind: "route", name: path.right.value, key: `${to.property.name} ${path.right.value}`, node: st } : { kind: "other", name: "", key: "", node: st });
   }
   const keyed = units.filter((u) => u.kind !== "other"), byKey = new Map(keyed.map((u) => [u.key, u]));
   if (byKey.size !== keyed.length || !byKey.has("judge") || byKey.get("judge")!.kind !== "local") return null;
   if ([...WHOLE_ROUTES.values()].some((key) => !byKey.has(key)) || keyed.some((u) => u.kind === "route" && WHOLE_ROUTES.has(u.name) && u.key !== WHOLE_ROUTES.get(u.name))) return null;
-  const locals = new Map(units.filter((u) => u.kind === "local").map((u) => [u.name, u])), refs = new Map(units.map((u) => [u, refsOf(u.node)]));
-  const names = new Set([...GUARDS, "judge"]), policy = new Set(units.filter((u) => u.kind === "other" || u.key === "judge" || (u.kind === "route" && WHOLE_ROUTES.has(u.name))));
+  const locals = new Map(units.filter((u) => u.kind === "local").map((u) => [u.name, u]));
+  const whole = (u: (typeof units)[number]) => u.kind !== "route" || u.key.startsWith("post ") || WHOLE_ROUTES.has(u.name);
+  const names = new Set([...GUARDS, "judge"]);
   for (let grew = true; grew; ) {
     grew = false;
-    for (const u of locals.values()) if (!policy.has(u) && [...refs.get(u)!].some((n) => names.has(n))) { names.add(u.name); policy.add(u); grew = true; }
+    for (const u of locals.values()) if (!names.has(u.name) && [...refsOf(u.node)].some((n) => names.has(n))) { names.add(u.name); grew = true; }
   }
-  const asks: Node[] = [];
-  for (const u of units) if (!policy.has(u)) walk(u.node, (n, up, key) => {
-    if (!isRef(n, up.at(-1), key) || !names.has(n.name)) return;
+  const asks: Node[] = [], sets: Node[] = [];
+  for (const u of units) if (!whole(u)) walk(u.node, (n, up, key) => {
+    const p = up.at(-1), ref = isRef(n, p, key) ? n.name : "", target = n.type === "AssignmentExpression" ? n.left : n.type === "UpdateExpression" ? n.argument : null;
+    const asked = names.has(ref), set = (ref === "app" && n !== u.node.expression.callee.object) || (!!target && [...refsOf(target)].some((x) => locals.has(x)));
+    if (!asked && !set) return;
     const path = [...up, n];
     let st = u.node;
     for (let j = path.length - 3; j >= 0; j--) if (isFn(path[j]) && path[j].body === path[j + 1] && path[j + 1].type === "BlockStatement") { st = path[j + 2]; break; }
-    if (!asks.includes(st)) asks.push(st);
+    for (const [yes, list] of [[asked, asks], [set, sets]] as const) if (yes && !list.includes(st)) list.push(st);
   });
-  const nodes = [...[...policy].map((u) => u.node), ...asks];
-  for (let i = 0; i < nodes.length; i++) for (const n of refsOf(nodes[i])) { const u = locals.get(n); if (u && !policy.has(u)) { policy.add(u); nodes.push(u.node); } }
   const parts = new Map<string, string>();
-  for (const u of keyed) if (policy.has(u)) parts.set(u.kind === "route" ? `the route ${u.name}` : u.name, text(u.node));
-  parts.set("a statement that is no declaration and no route", units.filter((u) => u.kind === "other").map((u) => text(u.node)).join("\n"));
-  parts.set("a statement that asks a guard", asks.map(text).join("\n"));
-  return { parts, limits: limitReads(fn, nodes) };
+  for (const u of keyed) if (whole(u)) parts.set(u.kind === "route" ? `the route ${u.name}` : u.name, text(u.node));
+  parts.set(OTHER, units.filter((u) => u.kind === "other").map((u) => text(u.node)).join("\n"));
+  parts.set(ASKS, asks.map(text).join("\n"));
+  parts.set(SETS, sets.map(text).join("\n"));
+  return { parts, limits: limitReads(fn, [...units.filter(whole).map((u) => u.node), ...asks, ...sets]) };
 }
 
 // The policy cells that differ between two texts of the seed, by name; [] when none does. Where it cannot tell, it

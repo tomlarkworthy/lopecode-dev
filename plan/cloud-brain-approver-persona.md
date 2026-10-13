@@ -805,8 +805,10 @@ what the text left open:
   `facts` marks the file `tracker` for it. The commits of `bk-2-finish-by-the-service`, `bk-3-queue-and-hold` and
   `tr-1-wait-in-the-record` are still refused: each changes `issueAllowed`. The record.)
   (`approver-policy-mark-takes-every-route`, 2026-10-13, the owner's C of comment 6384 there: of two of those
-  cells the tool compares the policy parts alone. Of `issuesApp`: the routes `install`, `rebuild` and `resign`,
-  each statement that asks a guard, and what those name. Of `issuesLimits`: the entries those read. A cell it
+  cells the tool compares the policy parts alone. Of `issuesApp`, since round 2 of that issue: every declaration,
+  every route that takes a POST (`install`, `rebuild` and `resign` among them), the routes `policy` and `sync`
+  that the tool reads, every statement that is no route, and in the other routes that take a GET each statement
+  that asks a guard, names `app` or sets a declaration. Of `issuesLimits`: the entries those read. A cell it
   cannot cut into those parts is compared whole, as before. The commit of `tr-4-held-read`, a read route and two
   limits it reads, is no longer refused. `tools/cloud-brain/records/approver-policy-mark-takes-every-route.md`.)
 - R7 has a fourth comparison: the file that runs is hashed (`git hash-object`) and is the tool blob of the

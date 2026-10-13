@@ -410,8 +410,9 @@ test("the policy cells the tool names are cells of tools/cloud-brain/brain-issue
 });
 
 // Issue approver-policy-mark-takes-every-route (the owner's C, comment 6384): of issuesApp the mark takes the routes
-// install, rebuild and resign, the refusal on a guard's answer and what those name; of issuesLimits the entries a
-// policy cell or a policy part of the app reads. Each case is the seed of the checkout with one thing changed.
+// install, rebuild and resign and the refusal on a guard's answer, and since round 2 all of the cell but the routes
+// that take a GET and are neither policy nor sync; of issuesLimits the entries a policy cell or a policy part of the
+// app reads. Each case is the seed of the checkout with one thing changed.
 test("issuesApp and issuesLimits are marked by their policy parts, on the seed as the checkout has it", () => {
   const seed = readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain/brain-issues.ojs"), "utf8");
   // Each change is of text that stands once in the seed: a change that changed nothing would pass a test of [].
@@ -419,8 +420,8 @@ test("issuesApp and issuesLimits are marked by their policy parts, on the seed a
   const diff = (from: string, to: string) => policyCells(seed, swap(from, to));
   const HELD = '"InvalidRequest", "seconds: a call is held with an id, for the waits of one issue")';
   const GUARD = 'if (id !== undefined && issueAllowed(view, by, { type: "read", id }).allow) await ahead(view, id);';
-  // None: a read route changed beside its guard, a route added, a limit no policy part reads changed or added, a
-  // comment between two statements.
+  // None: a read route changed beside its guard, a read route added, a limit no policy part reads changed or added,
+  // a comment between two statements.
   expect(diff(HELD, '"InvalidRequest", "seconds: with an id")')).toEqual([]);
   expect(diff("  return app;\n}", '  app.get(NS + "count", run(async () => ({ n: (await load([S.all])).seq })));\n  return app;\n}')).toEqual([]);
   expect(diff("wakeMs: 2000", "wakeMs: 1000")).toEqual([]);
@@ -438,16 +439,41 @@ test("issuesApp and issuesLimits are marked by their policy parts, on the seed a
   expect(diff("[act, verdict] = judge(view, ctx.by, given)", "[act, verdict] = [given, { allow: true }]")).toEqual(["issuesApp (write)"]);
   expect(diff(GUARD, "await ahead(view, id);")).toEqual(["issuesApp (a statement that asks a guard)"]);
   expect(diff(GUARD, GUARD.replace('"read"', '"comment"'))).toEqual(["issuesApp (a statement that asks a guard)"]);
-  expect(diff('if (b.force && !issueCaller(by).present) throw refuse(403, "Refused", "the owner, present");', "")).toEqual(["issuesApp (a statement that asks a guard)"]);
-  // What a policy part names is one: the view every guard is asked of, and the limits by their name in the app.
+  // A route that takes a POST is a part whole, whatever is changed in it: lock, and one that is new.
+  expect(diff('if (b.force && !issueCaller(by).present) throw refuse(403, "Refused", "the owner, present");', "")).toEqual(["issuesApp (the route lock)"]);
+  expect(diff("if (b.renew && b.release) throw invalid", "if (b.renew || b.release) throw invalid")).toEqual(["issuesApp (the route lock)"]);
+  expect(diff("  return app;\n}", '  app.post(NS + "tidy", run(async () => ({ n: (await sql.exec("DELETE FROM issue_events")).rows.length })));\n  return app;\n}')).toEqual(["issuesApp (the route tidy)"]);
+  // Review 6434: a route or a middleware made in a declaration, where the first handler written is the one that
+  // answers, and the app's fetch set in one. Each declaration is a part, the new one and one that was there.
+  const REFUSE = "const refuse = (status, code, message, body) => Object.assign(new Error(message), { status, code, body });";
+  expect(diff(REFUSE, REFUSE + '\n  const z = app.post(NS + "install", async (c) => c.json({ ok: true }));')).toEqual(["issuesApp (z)"]);
+  expect(diff('const invalid = (message) => refuse(400, "InvalidRequest", message);', 'const invalid = (app.post(NS + "install", async (c) => c.json({})), (message) => refuse(400, "InvalidRequest", message));')).toEqual(["issuesApp (invalid)"]);
+  expect(diff(REFUSE, REFUSE + "\n  const mw = app.use(async (c, next) => c.json({ ok: true }));")).toEqual(["issuesApp (mw)"]);
+  expect(diff(REFUSE, REFUSE + "\n  const q9 = (app.fetch = async () => new Response('{}'));")).toEqual(["issuesApp (q9)"]);
+  // The same from inside a read route, when it is called: the app named, and a declaration set (the note of that
+  // review: `keys` holds the signing key once it is read).
+  const SETS = "issuesApp (a statement that names app or sets a declaration)";
+  expect(diff(HELD, HELD + ';\n    app.post(NS + "install", async (c) => c.json({}))')).toEqual([SETS]);
+  expect(diff(HELD, HELD + ";\n    app.fetch = async () => new Response('{}')")).toEqual([SETS]);
+  expect(diff('key: (await signer()).public })', 'key: (keys = { public: "x" }).public })')).toEqual([SETS]);
+  expect(diff(HELD, HELD + ";\n    made = null")).toEqual([SETS]);
+  expect(diff(HELD, HELD + ";\n    [made, keys] = [null, null]")).toEqual([SETS]);
+  expect(diff(HELD, HELD + ";\n    locksMade &&= null")).toEqual([SETS]);
+  // A read route whose path has a pattern in it, which would answer for another route, is no route to the tool.
+  expect(diff("  return app;\n}", '  app.get(NS + ":any", run(async () => ({})));\n  return app;\n}')).toEqual(["issuesApp (a statement that is no declaration and no route)"]);
+  expect(diff("  return app;\n}", '  app.get(NS + "*", run(async () => ({})));\n  return app;\n}')).toEqual(["issuesApp (a statement that is no declaration and no route)"]);
+  expect(diff("  return app;\n}", '  app.get("/xrpc/com.lopecode.brain.issue.policy", run(async () => ({})));\n  return app;\n}')).toEqual(["issuesApp (a statement that is no declaration and no route)"]);
+  expect(diff("  return app;\n}", '  app.get(NS + "count", run(async () => ({}))).post(NS + "install", run(async () => ({})));\n  return app;\n}')).toEqual(["issuesApp (a statement that is no declaration and no route)"]);
+  // A declaration is a part: the view every guard is asked of, the limits by their name in the app, and one of the lock.
   expect(diff("const load = async (rows) => {\n    await schema();", "const load = async (rows) => {")).toEqual(["issuesApp (load)"]);
   expect(diff("S = issuesSql, L = issuesLimits, J = JSON.parse", "S = issuesSql, L = { ...issuesLimits, key: 1e9 }, J = JSON.parse")).toEqual(["issuesApp (L)"]);
+  expect(diff('const invalid = (message) => refuse(400, "InvalidRequest", message);', 'const invalid = (message) => refuse(404, "InvalidRequest", message);')).toEqual(["issuesApp (invalid)"]);
   expect(policyCells(seed, swap("wakeMs: 2000", "wakeMs: 1000", swap("S = issuesSql, L = issuesLimits, J = JSON.parse", "S = issuesSql, L = { ...issuesLimits, key: 1e9 }, J = JSON.parse")))).toEqual(["issuesApp (L)", "issuesLimits"]);
   // A statement that is no declaration and no route: the loop that makes the write routes, and one more of any kind.
   expect(diff('"move", "swap", "narrow"])', '"move", "swap", "narrow", "policy"])')).toEqual(["issuesApp (a statement that is no declaration and no route)"]);
   expect(diff("  return app;\n}", "  app.use(async (c, next) => next());\n  return app;\n}")).toEqual(["issuesApp (a statement that is no declaration and no route)"]);
-  // A new route that writes is marked by what it calls.
-  expect(diff("  return app;\n}", '  app.post(NS + "put", run(async (c, b) => write({ by: { caller: "owner" } }, b.key, b)));\n  return app;\n}')).toEqual(["issuesApp (a statement that asks a guard)"]);
+  // A new read route that writes through the app's own write is marked by what it calls.
+  expect(diff("  return app;\n}", '  app.get(NS + "put", run(async (c, q) => write({ by: { caller: "owner" } }, q.key, q)));\n  return app;\n}')).toEqual(["issuesApp (a statement that asks a guard)"]);
   // Where the app is not cut it is named whole, as before: one of the three routes twice or under GET, the judge
   // under another name, a declaration of more than one name, a block that does not parse.
   expect(diff("  return app;\n}", '  app.post(NS + "install", run(async () => ({})));\n  return app;\n}')).toEqual(["issuesApp"]);
@@ -464,6 +490,7 @@ test("issuesApp and issuesLimits are marked by their policy parts, on the seed a
   expect(diff("title: 300, reason: 2000,", "title: 300, reason: 20000,")).toEqual(["issuesLimits (reason)"]);
   expect(diff("reason: 2000, key: 100,", "reason: 2000, key: 1000,")).toEqual(["issuesLimits (key)"]);
   expect(diff("rebuildRounds: 5,", "")).toEqual(["issuesLimits (rebuildRounds)"]);
+  expect(diff("lockMax: 1800,", "lockMax: 18000,")).toEqual(["issuesLimits (lockMax)"]);
   // Where the limits are not cut they are named whole, as before: a spread, a key twice, and a policy cell that
   // passes them on whole, whichever entry changed.
   expect(diff("wakeMs: 2000,", "wakeMs: 1000, ...{},")).toEqual(["issuesLimits"]);
