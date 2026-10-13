@@ -82,7 +82,7 @@ the rule is caller.session                 4 of 5  test_usage_declares_billing_r
 a refusal's errors are passed on whole     4 of 5  test_usage_passes_on_cloudflares_refusal_and_names_the_mint_…
 ```
 
-`tests/tools/suite.sh`, 2026-10-13 06:5x CEST, after the last edit of a file it reads: `1074 pass`, `0 fail`,
+`tests/tools/suite.sh`, 2026-10-13 between 06:49 and 06:52 CEST, after the last edit of a file it reads: `1074 pass`, `0 fail`,
 `Ran 1074 tests across 109 files`.
 
 ## Not tried, not done
