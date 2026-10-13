@@ -72,24 +72,23 @@ before the process returns, and a round sent back gets an empty directory at the
 
 ## Tests
 
-Run 15:05 to 15:18, after the last edit of `loop.ts` and of the tests.
+The two files were run 15:05 to 15:10, after the last edit of `loop.ts` and of the tests; the suite at 15:22,
+after the rebase on `origin/main`, with nothing edited since but this file.
 
 ```
 bun test --timeout=30000 ./tests/tools/loop.test.ts        20 pass, 0 fail
 bun test --timeout=30000 ./tests/tools/loop-step.test.ts   33 pass, 0 fail
-env -u WORK -u SESSION tests/tools/suite.sh                1235 pass, 0 fail, 126 files
-tests/tools/suite.sh                                       1232 pass, 3 fail
+tests/tools/suite.sh                                       1237 pass, 0 fail, 127 files
 ```
 
 The two new tests were run before `loop.ts` was changed: `0 pass, 2 fail`
 (`bun test --timeout=30000 ./tests/tools/loop.test.ts -t "directory"`).
 
-**The 3 fails are of this run's environment, not of the change.** A run `loop.ts start` began has `WORK`
-and `SESSION` set, and a test that runs the real `agent.sh` passes them on: `agent.sh` then takes the
-`WORK` branch. `reviewer-brief-names-token.test.ts` expected `role: reviewer` and received
-`review issue some-issue; your token is rev-3fa2c1`. Two of the three files were found by running each
-file that names `agent.sh` alone (`reviewer-brief-names-token.test.ts`, `reviewer-in-a-view.test.ts`); the
-third was not looked for. Filed as `seen-000b4c`.
+**Before the rebase the suite had 3 fails in this run, and none of them was of the change.** A run
+`loop.ts start` began has `WORK` and `SESSION` set, and a test that ran the real `agent.sh` passed them on:
+`1232 pass, 3 fail` as the run was, `1235 pass, 0 fail` with `env -u WORK -u SESSION`. It was filed as
+`seen-000b4c` at 15:21. The rebase then brought in `suite-fails-under-a-loop-started-run`, another writer's
+fix of the same thing, and the run above is with no `env -u`.
 
 What the two new tests hold:
 
