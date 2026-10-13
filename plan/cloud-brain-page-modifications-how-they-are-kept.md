@@ -1,7 +1,7 @@
 # Cloud Brain: how a change the owner makes to the Brain's page is kept
 
 Spec of the project `page-modifications-how-they-are-kept` on the tracker of cb4. Written 2026-10-13,
-08:59 to 09:30 CEST, by the spec writer `spec-8d8514`, in the worktree `bm-spec-page-mods` at
+from 08:59 CEST (the move to `spec`, event 6131) to the time of its commit, by the spec writer `spec-8d8514`, in the worktree `bm-spec-page-mods` at
 `3a159fbf`. Nothing is built. It is options for the owner with a pick, and the tasks of the pick.
 
 ## What was asked
@@ -94,8 +94,8 @@ all of them. The local-first essay (<https://inkandswitch.com/local-first/>) was
 
 Built in the worktree and run, 2026-10-13 09:01:46 to 09:02:17 CEST:
 `bun tools/lope-tests.ts tools/cloud-brain/.emitted/cloud-brain.html --filter test_feedback` ended
-`Tests: 14 passed, 0 failed, 0 timed out, 0 skipped, 14 total`. So what he reported is what the module is
-written and tested to do, for a note whose work is not done. The first cell of the seed says so too: "On an
+`Tests: 14 passed, 0 failed, 0 timed out, 0 skipped, 14 total`. So a note whose work is not done, put away with ×, is written and tested
+to come back at the next load. The first cell of the seed says so too: "On an
 open, gathered or just closed issue the × hides the note until the page is loaded again."
 
 The record of cb4, read with `spec-8d8514` at 09:00 CEST:
@@ -113,8 +113,22 @@ Ten issues `fb-…` exist; nine have no label now. His five Removes were made in
 note of an issue that is part of a project had no Remove until the project closed (`feedbackProgress`, `done`):
 `fb-a24kt7jw3q` from 2026-10-11 19:16 UTC to 2026-10-13 03:43 UTC, 32 hours in which its × lasted one load.
 
-Not known: whether any note came back after its Remove. Nothing read here says so, and the list has one issue.
-If one did, the cause is not in this spec and is the bug's writer's to name.
+**The record does not say that this is what he saw that morning.** At 05:54 CEST the list was those five and no
+other, each closed or done (`records/label-guard-token-removes-annotation.md`, its listing). So at 06:50 no note
+on his page was of work not done, and a × on any of the five was a Remove. Three things his report may be of,
+and nothing read here tells them apart:
+
+1. An earlier load, when a note was still gathered or open and its × lasted one load (`fb-a24kt7jw3q`, above).
+   The design below is for this.
+2. The cell `feedback` run again with no load of the page. It names `brainModules` among its inputs (line 301),
+   so when `page-services-refreshes-in-a-loop` draws the page again a new app is made with an empty `hidden`, and
+   the next ask places every note that has the label. Not run. The design covers it: the kept set is read at
+   each ask.
+3. A note that came back after its Remove. The five removes are held and the list has one issue, so nothing
+   read here shows it. The design does not touch it.
+
+The writer of `page-notes-return-after-a-refresh` names which, from a run. pm-1 is that bug's fix under 1 and 2
+and not under 3.
 
 ### Every change he can make on the page, and where it is kept
 
@@ -275,7 +289,7 @@ Each is run in the worktree of its task with no token but the writer's own. `$N`
 | R1, R2 | `bun tools/cloud-brain/feedback-reload-check.ts $N`, extended by pm-1 with three points: a filed note of an open issue put away with ×, the page loaded again, Show pressed | not run today: the tool has no such points | Cannot be run before pm-1 is built. Then, in a local headless Chrome on the built file, over the module's rig (a file has no `brainOrigin`, so the app is made over the rig as the tool does now): `notes` is `[]` after the load and has the issue's note after Show. |
 | R2 | in the same run of the tests, `test_feedback_away_lists_what_is_put_away_and_show_places_it` | no such test | passed |
 | R4 | `grep -c "## Where a change made on the Brain's page is kept" knowledge/changing-and-deploying-a-cloud-brain-worker.md` | `0` | `1`; and `bun test tests/tools/pm-2-page-changes-kept.test.ts`, which holds the four kinds and the names `feedbackKept` and `brain_feedback_away`, 0 fail. Cannot be run before pm-2. |
-| R5 | `grep -c "brain_feedback_" tools/cloud-brain/brain-feedback.ojs` and no new `client.procedure(` in `gone` | `4`; `gone` has one, `issue.label` | the count is the writer's to give; `gone` still has one `client.procedure(`, so a × sends nothing |
+| R5 | `grep -c "brain_feedback_" tools/cloud-brain/brain-feedback.ojs` and no new `client.procedure(` in `gone` | `4`; `gone` has one, `issue.label` | the count is the writer's to give; `gone` still has one `client.procedure(`: a × on a note whose work is not done sends nothing, and on a done one the `issue.label` it sends today |
 
 For the owner alone, and no condition of a task landing: on cb4, signed in, after the shell is posted, a note
 he puts away is not there after a refresh, and the list has it. The loop does not open the Brain's own page in
@@ -286,7 +300,9 @@ a browser of the cluster (`rules.md`, Never).
 - **pm-1-notes-put-away-are-kept.** After nothing. `brain-feedback.ojs` as "The design of the pick" has it, its
   tests, and the three points of `feedback-reload-check.ts`. No Worker's module changes and nothing is deployed.
   It is on cb4 when the orchestrating session posts the shell, on its standing leave (`rules.md`, "Two standing
-  leaves": `brain-feedback` is one of the six modules). This is the fix of `page-notes-return-after-a-refresh`.
+  leaves": `brain-feedback` is one of the six modules). This is the fix of `page-notes-return-after-a-refresh`
+  under 1 and 2 of "The notes". That bug has a worktree of its own and its writer may land in the same seed
+  first: pm-1 is then a check of that landing against R1 to R3, and the cell `feedbackAway` (R2) where it is not there.
 - **pm-2-rule-in-the-doc.** After pm-1. The section "Where a change made on the Brain's page is kept" in
   `knowledge/changing-and-deploying-a-cloud-brain-worker.md`: the table of "The rule" with the rows that
   have no place, one sentence that the saved-notebook doc is for a file the reader saves, and
@@ -300,7 +316,6 @@ this spec is sent back: none of them is designed here beyond its row.
 
 ## What only the owner can do
 
-- Choose between A and B (and C, D, E).
 - Say whether he reads the page from more than one browser.
 - Look at his page after the shell is posted (above).
 
