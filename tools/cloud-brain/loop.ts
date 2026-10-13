@@ -11,7 +11,7 @@
 //
 //   bun tools/cloud-brain/loop.ts run                                   (on the laptop: tools/cloud-brain/loop.sh)
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts run --dry
-//   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts step [--dry] [--for clock|event|run]
+//   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts step [--dry] [--for clock|event|run|yield]
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts start <id> [--role <role>] [--token <t>]
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts start --role overseer [--token <t>]
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts start [<id>] --role orchestrator --token <t> --give "<entries>"
@@ -137,6 +137,18 @@
 //         --for event and --for run are the driver's, a step begun for an event or for a run that ended: it leaves
 //         out the two pulls, `worktree.sh --list` with its removals, `redistil` and `state`, reads the two locks, and
 //         has `for` in its line and a note in the status. --for clock, or no --for, is the whole step.
+//         With no state file (no cb4.json under BRAIN_STATE_DIR, or the main checkout's tools/cloud-brain/.emitted) the
+//         loop is the one of the worker machine on Fly.io (plan/cloud-brain-worker-machine-on-fly.md, part 2;
+//         fly-4-loop-files), and its line has `machine`. A whole step there asks `brain.ts curl …fly.status --as
+//         fly-status` in the place of `redistil` and `state`, and anything but 200 with an answer is not healthy: it
+//         does not see a Worker put back. It leaves to the laptop's loop, each in `skipped`: every entry of an issue
+//         labeled `laptop`, a digest's start and the digests the snapshot opened, an overseer, and an approver (whose
+//         move is sent with `loop-approver`, which the machine does not hold). A `review` that needs a tab (as `start`
+//         decides TAB=1) gets no reviewer there: the act `laptop`, the label `laptop` with the key
+//         orch/<id>/laptop-<seq of the submit> and a comment that says why.
+//         --for yield is the machine's driver's after `fly.down`: health as a step for an event, the runs (item 2),
+//         then each token `ended` kept for a round to come is ended, and the line; the queue is not read, nothing is
+//         started, and a cluster that is not healthy is given to no judgment run.
 //
 // run     The loop: no model, one process, stopped with Ctrl-C (SIGINT or SIGTERM). It needs no LOOP_TOKEN. In order:
 //         1. its token, `brain.ts agent-token orch driver:<host>`, and the lock `lock.sh take loop orchestrator-<host>`
@@ -159,6 +171,15 @@
 //            reason, and a step whose line has `unlogged` is said there too: the steps go on and start no agent
 //            until the driver is stopped and started again. At a signal it waits for the step that runs, releases `loop`, ends its token and exits 0. The
 //            token is left, and stderr says so, when a run it started has not ended: the run's `ended` is made with it.
+//         7. with no state file (the machine on Fly.io, as `step` has it), and not --dry, two ends of its own, each
+//            exit 0 with `loop` released and the token ended as at a signal. Off: after a step whose line is healthy
+//            with no `error`, no act, nothing given, no `stops` and no `unlogged`, while no run of this machine is
+//            not ended. run.sh then ends and the machine stops. A yield: after each renew that was answered it reads
+//            `fly.status` as `fly-status`; with `yield` set (the laptop's `fly.down`) no more step is made for a
+//            reason. A step `--for yield` is made, then one more whenever a run has returned, and it ends after such a
+//            step when no run of this machine is left. The tick of brain-x-fly stops a machine that still runs 30
+//            minutes after the yield. A read that was not answered is said once on stderr and asked at the next renew.
+//            The driver of a checkout with a state file does neither: it is stopped with Ctrl-C.
 //         --dry runs `step --dry` at each reason with LOOP_TOKEN, the caller's: no token is made, no lock asked, and
 //         every event is a reason, the caller's own too. It prints each step's line and not its status.
 //         stdout is one line of JSON a step; stderr has what the driver says, each line `loop.ts run: …`.
@@ -287,10 +308,28 @@ const ROOT = () => env.LOOP_ROOT || dirname(sh("git", ["-C", HERE, "rev-parse", 
 const STATE = () => (env.BRAIN_STATE_DIR ? resolve(env.BRAIN_STATE_DIR) : join(ROOT(), "tools/cloud-brain/.emitted"));
 const LOOP = () => join(STATE(), "issue-loop"), RUNS = () => join(LOOP(), "runs");
 const HOST = () => env.LOOP_HOST || sh("hostname", ["-s"]).out.trim();
+// A loop with no state file (cb4.json) is the one of the worker machine on Fly.io: it deploys nothing, reads no
+// Worker's source, and has no paired tab (plan/cloud-brain-worker-machine-on-fly.md, part 2). The file is not read.
+const NO_STATE = () => !existsSync(join(STATE(), "cb4.json"));
 const words = (v: string | undefined, or: string[]) => (v ? v.split(" ") : or);
 const tool = (cmd: string[], args: string[], more: Record<string, string> = {}) => sh(cmd[0], [...cmd.slice(1), ...args], more);
 const worktree = (...a: string[]) => sh(env.LOOP_WORKTREE || join(HERE, "worktree.sh"), a);
 const brain = (...a: string[]) => tool(words(env.LOOP_BRAIN, ["bun", join(HERE, "brain.ts")]), a, { BRAIN_BASE: "cb4", BRAIN_STATE_DIR: STATE() });
+// fly.status with the token `fly-status`, which a machine holds and a laptop does not: its status and its answer.
+const flyStatus = () => {
+  const r = brain("curl", "/xrpc/com.lopecode.brain.fly.status", "--as", "fly-status"), status = Number((/\[(\d{3})\]\s*$/.exec(r.err) || [])[1] || 0);
+  let data: Ev | null = null;
+  try { data = JSON.parse(r.out); } catch {}
+  return { status, data: status === 200 ? data : null, said: `${status || "no status"} ${(r.out + (status ? "" : " " + r.err)).trim().replace(/\s+/g, " ").slice(0, 200)}`.trim() };
+};
+// Whether a review needs a tab: review-needs-tab.sh over the commits of the submit (exit 0, or 2 when it could not
+// tell), a `url` ref, or a reviewer's run of the issue that reported `needed a tab`.
+function needsTab(id: string, refs: Ev[]) {
+  const commits = refs.filter((r) => r.kind === "commit").map((r) => (String(r.value).includes("@") ? String(r.value) : "lopecode-dev@" + r.value));
+  const needs = commits.length ? sh(env.LOOP_NEEDS_TAB || join(HERE, "review-needs-tab.sh"), commits).code : 1;
+  const before = existsSync(RUNS()) ? readdirSync(RUNS()).filter((f) => /^rev-[0-9a-f]{6}\.json$/.test(f)).map((f) => load(f.slice(0, -5))).some((r) => r && r.id === id && r.neededTab) : false;
+  return needs === 0 || needs === 2 || refs.some((r) => r.kind === "url") || before;
+}
 // `agent-token revoke`, read by its exit: "ended", or "not ended: exit N, <what the command answered>".
 const revoke = (token: string) => { const r = brain("agent-token", "revoke", token); return r.code === 0 ? "ended" : `not ended: exit ${r.code}, ${(r.out + r.err).trim().replace(/\s+/g, " ") || "it answered nothing"}`; };
 
@@ -420,10 +459,7 @@ function start(args: string[]) {
     Object.assign(run, { tree: view, path, sha });
     agent = env.LOOP_AGENT || join(path, "cloud-brain-dev/agent.sh");
     if (run.role === "reviewer") {
-      const commits = refs.filter((r) => r.kind === "commit").map((r) => (String(r.value).includes("@") ? String(r.value) : "lopecode-dev@" + r.value));
-      const needs = commits.length ? sh(env.LOOP_NEEDS_TAB || join(HERE, "review-needs-tab.sh"), commits).code : 1;
-      const before = existsSync(RUNS()) ? readdirSync(RUNS()).filter((f) => /^rev-[0-9a-f]{6}\.json$/.test(f)).map((f) => load(f.slice(0, -5))).some((r) => r && r.id === id && r.neededTab) : false;
-      run.tab = needs === 0 || needs === 2 || refs.some((r) => r.kind === "url") || before;
+      run.tab = needsTab(id!, refs);
       argv = ["reviewer", `review issue ${id}; your token is ${run.token}`]; vars = { CHECKOUT: path, SESSION: run.session!, ...(run.tab ? { TAB: "1" } : {}) };
     } else {
       argv = ["approver", ["Run `bun " + path + "/tools/cloud-brain/approver.ts brief` and follow what it prints.", `Issue: ${id}`, `Your token is ${run.token}.`].join("\n")]; vars = { WORK: path, SESSION: run.session! };
@@ -565,7 +601,9 @@ function dead(args: string[]) {
   say({ id, role, round, dead: d.length, events: d.map((e) => e.seq) });
 }
 
-const REASONS = ["clock", "event", "run"];
+const REASONS = ["clock", "event", "run", "yield"];
+// Why a loop with no state file leaves an entry: it is the laptop's loop's.
+const NOT_HERE = (what: string) => `${what}, and this loop has no state file: the laptop's loop takes it`;
 // A result that says its process is not logged in: `claude` answered at once and no model ran, so every run started
 // beside it answers the same. On 2026-10-13 five did, each `Not logged in · Please run /login`, usd 0, context 0.
 // `Please run /login` after another first word is taken as the same; no such result was seen.
@@ -617,9 +655,10 @@ function statusText(line: Ev, S: Record<string, string[]>) {
 
 async function step(args: string[]) {
   const me = own(), dry = args.includes("--dry"), fi = args.indexOf("--for"), why = fi < 0 ? "clock" : args[fi + 1], whole = why === "clock";
-  if (args.some((a, i) => a !== "--dry" && i !== fi && (fi < 0 || i !== fi + 1)) || !REASONS.includes(why)) stop(2, "step [--dry] [--for clock|event|run]");
+  if (args.some((a, i) => a !== "--dry" && i !== fi && (fi < 0 || i !== fi + 1)) || !REASONS.includes(why)) stop(2, "step [--dry] [--for clock|event|run|yield]");
+  const machine = NO_STATE(), yielding = why === "yield";
   const root = ROOT(), host = HOST(), dev = join(root, "cloud-brain-dev"), skill = join(root, ".claude/skills/brain-maintenance");
-  const line: Ev = { at: Date.now(), seq: 0, ...(dry ? { dry: true } : {}), ...(whole ? {} : { for: why }), health: { ok: true }, acts: [], given: [], skipped: [] };
+  const line: Ev = { at: Date.now(), seq: 0, ...(dry ? { dry: true } : {}), ...(whole ? {} : { for: why }), ...(machine ? { machine: true } : {}), health: { ok: true }, acts: [], given: [], skipped: [] };
   const S: Record<string, string[]> = { notes: [], runs: [], owner: [], given: [], norun: [], left: [], died: [], session: [] };
   const runsNow = new Map<string, string>();
   // An act is named in the line, and made when the step is not dry: what it answered is added to its entry.
@@ -693,7 +732,9 @@ async function step(args: string[]) {
     unlogged();
     // ---- 1. health
     const git = (...a: string[]) => sh("git", a), failed: string[] = [];
-    if (!whole) S.notes.push(`a step for ${why === "run" ? "a run that ended" : "an event"}: no pull, no removal of a worktree, no \`redistil\` and no \`state\`; the locks were read`);
+    if (machine) S.notes.push("this loop has no state file (the machine's): `fly.status` answering 200 is its health in the place of `redistil` and `state`, which does not see a Worker put back; it starts no issue labeled `laptop`, no digest, no overseer, no approver and no review that needs a tab");
+    if (yielding) S.notes.push("a step for a yield: the runs that returned are ended and the tokens kept for a round are ended; the queue is not read and nothing is started");
+    else if (!whole) S.notes.push(`a step for ${why === "run" ? "a run that ended" : "an event"}: no pull, no removal of a worktree, no \`redistil\` and no \`state\`; the locks were read`);
     if (!dry && whole) {
       const a = git("-C", root, "pull", "--ff-only");
       if (a.code !== 0) { S.notes.push(`the main checkout was not pulled: ${tail(a)}`); git("-C", root, "fetch", "--no-recurse-submodules", "origin", "main"); }
@@ -735,7 +776,10 @@ async function step(args: string[]) {
       });
     }
     // The cluster: every Worker `same`, each brain-x-* at the hash seen.json of origin/main holds for it, both locks said.
-    if (whole) {
+    if (whole && machine) {
+      const f = flyStatus();
+      if (f.status !== 200 || !f.data) failed.push(`fly.status as fly-status: ${f.said}`);
+    } else if (whole) {
       const rd = brain("redistil"), rows = rd.out.split("\n").filter((l) => /^\s+\S+\s+\S+/.test(l)).map((l) => l.trim().split(/\s+/));
       if (rd.code !== 0 || !rows.length) failed.push(`brain.ts redistil: ${rd.code !== 0 ? `exit ${rd.code} ` : ""}${tail(rd) || "it named no Worker"}`);
       for (const [w, st] of rows) if (st !== "same") failed.push(`redistil: ${w} is ${st}`);
@@ -757,8 +801,7 @@ async function step(args: string[]) {
     if (failed.length) {
       // Not healthy: no agent of an issue is started. It is of no issue, so it has no comment and is given at each such step.
       line.health = { ok: false, failed };
-      line.given.push({ do: "unhealthy", failed });
-      give();
+      if (!yielding) { line.given.push({ do: "unhealthy", failed }); give(); }
       return end(0);
     }
 
@@ -775,6 +818,14 @@ async function step(args: string[]) {
       });
     }
     cache.clear();
+    // A yield (the machine's loop was asked to end): the tokens kept for a round to come are ended, and no more is done.
+    if (yielding) {
+      for (const run of runFiles()) {
+        if (run.host !== host || !run.ended || run.ended.token !== "kept") continue;
+        done({ act: "token-ended", token: run.token, ...(run.id ? { id: run.id } : {}) }, () => { const r = revoke(run.token); if (r === "ended") save({ ...run, ended: { ...run.ended, token: "ended" } }); return r === "ended" ? undefined : { said: r }; });
+      }
+      return end(0);
+    }
 
     // ---- 3. the queue
     const q = get("queue?limit=500");
@@ -882,8 +933,19 @@ async function step(args: string[]) {
       const G = look(e.id);
       if (!G) return skip(e.id, e.do, "get?id= did not answer the issue");
       const labels: string[] = G.issue.labels || [];
+      if (machine && labels.includes("laptop")) return skip(e.id, e.do, NOT_HERE("it is labeled `laptop`"));
       if (e.do === "review") {
         if (running(G, ["reviewer"]).length) return skip(e.id, e.do, "a reviewer of it runs");
+        // No paired tab where there is no state file: the issue is labeled `laptop` and gets its reviewer there.
+        const submit = last(moved(G.events, "submit", "submit-spec"));
+        if (machine && needsTab(e.id, (submit && submit.refs) || [])) {
+          const key = `orch/${e.id}/laptop-${(submit && submit.seq) || 0}`;
+          return void done({ act: "laptop", id: e.id }, () => {
+            const l = wrote(write(me, "label", { key, id: e.id, add: ["laptop"], remove: [] }));
+            if (!(l as Ev).refused && !(l as Ev).duplicate) comment(e.id, key + "/why", `Labeled \`laptop\` by the loop of ${host}, which has no state file: this review needs a paired tab, which that machine does not have. A loop on the laptop gives it a reviewer; the loop here starts nothing on an issue with the label.`);
+            return l;
+          });
+        }
         if (bound(e.id, G, "reviewer", roundOf("reviewer", G.events))) begin(e.id, "reviewer", true);
       } else if (e.do === "round") {
         const role = writerOf(G), round = roundOf(role, G.events);
@@ -903,6 +965,7 @@ async function step(args: string[]) {
         });
       } else if (e.do === "start" || e.do === "spec") {
         const role = e.do === "spec" ? "spec-writer" : labels.includes("digest") ? "digest" : "implementer";
+        if (machine && role === "digest") return skip(e.id, e.do, NOT_HERE("it is a digest"));
         if (running(G, WRITERS).length) return skip(e.id, e.do, "a writer of it runs");
         if (!bound(e.id, G, role, roundOf(role, G.events))) return;
         if (held().length) return skip(e.id, e.do, "no new writer: " + held().join("; "));
@@ -922,6 +985,7 @@ async function step(args: string[]) {
         if (e.state !== "awaiting-approval") return;
         const f = approverFacts(G.events.map((x) => ({ id: e.id, ...x })) as any, { files: () => null, parents: () => [] } as any, e.id);
         if (G.events.some((x) => x.key === f.verdictKey) || f.left.length) return;
+        if (machine) return skip(e.id, "approve", NOT_HERE("an approver's move is sent with `loop-approver`"));
         if (running(G, ["approver"]).length) return skip(e.id, "approve", "an approver of it runs");
         if (!bound(e.id, G, "approver", roundOf("approver", G.events))) return;
         if (held().length) return skip(e.id, "approve", "no approver: " + held().join("; "));
@@ -947,7 +1011,8 @@ async function step(args: string[]) {
     for (const e of entries.filter(first)) take(e);
     for (const e of entries.filter((e) => !first(e) && !writer(e))) take(e);
     // The digests the snapshot opened: the newest is written, each older one is covered by it.
-    if (digests.length) {
+    if (digests.length && machine) for (const d of digests) skip(d.id, d.do, NOT_HERE("it is a digest"));
+    else if (digests.length) {
       const ids = digests.map((d) => d.id).sort(), newest = last(ids)!, older = ids.slice(0, -1), since = digests.find((d) => d.id === newest)!.since;
       for (const id of older) done({ act: "reject", id }, () => moveTo(id, `orch/${id}/covered`, "rejected", `covered by ${newest}`));
       done({ act: "digest", id: newest, ...(older.length ? { covers: older } : {}) }, () => {
@@ -972,7 +1037,8 @@ async function step(args: string[]) {
       }
       const ended = new Set(since.filter((e) => (e.type === "moved" && ["done", "rejected"].includes(e.to)) || (e.type === "labelled" && (e.add || []).includes("needs-owner"))).map((e) => e.id));
       const third = [...new Set(since.filter((e) => e.type === "moved" && e.move === "rework").map((e) => e.id))].find((id) => { const G = got(id); return !!G && moved(G.events, "rework").length >= 3; });
-      if (ended.size >= 3 || third) {
+      if ((ended.size >= 3 || third) && machine) skip("", "overseer", NOT_HERE("an overseer is due"));
+      else if (ended.size >= 3 || third) {
         const t = brain("agent-token", "list"), n = runFiles().filter((r) => r.role === "overseer" && String(r.after) === String(after) && !notLoggedIn(resultOf(r.token))).length;
         const lives = t.out.split("\n").map((l) => { try { return JSON.parse(l); } catch { return null; } }).some((d) => d && /^over-/.test(d.name || "") && (!d.until || Date.parse(d.until) > Date.now()));
         if (t.code !== 0) skip("", "overseer", `agent-token list: exit ${t.code} ${tail(t)}`);
@@ -1004,10 +1070,18 @@ export type Driver = {
   returned: () => string[];                                         // the runs of this machine that returned or are gone and are not ended
   open: (token: string) => number;                                  // how many runs started with a token are not ended
   note: (text: string) => void;
+  // The three of a loop with no state file, the machine's on Fly.io (fly-4-loop-files). A driver with none of them is the laptop's.
+  machine?: boolean;
+  yielded?: () => boolean | null;                                   // `yield` of fly.status is set; null when it was not read
+  live?: () => number;                                              // how many runs of this machine are not ended
 };
-// Exit 0: stopped by a signal. 1: `loop` is another's, at the take or at a renew. 2: no token, or cb4 not reached at a take.
+// What a step's line says of a step that had nothing to do: healthy, no act, nothing given to a judgment, and no start
+// that was held back for a cause that passes (a load, a landing, an error, a process not logged in).
+export const idle = (line: Ev | null) => !!line && !line.error && !!(line.health && line.health.ok) && !(line.acts || []).length && !(line.given || []).length && !line.stops && !line.unlogged;
+// Exit 0: stopped by a signal, or on a machine at a step with nothing to do or after a yield. 1: `loop` is another's, at the take or at a renew. 2: no token, or cb4 not reached at a take.
 export async function drive(d: Driver, given = ""): Promise<number> {
-  let token = given, made = d.now(), renewed = d.now(), lost = "";
+  let token = given, made = d.now(), renewed = d.now(), lost = "", yielding = false, read = true, over = "";
+  const machine = !!d.machine && !d.dry, live = () => (d.live ? d.live() : 0);
   const mine = new Set<string>();
   const fresh = () => { const t = d.token(); if (t) mine.add(t); return t; };
   if (!d.dry) {
@@ -1022,8 +1096,14 @@ export async function drive(d: Driver, given = ""): Promise<number> {
     if (r.code === 0) renewed = d.now();
     else if (r.code === 1) lost = r.said;
     else d.note(`\`loop\` was not renewed: ${r.said}. It is asked again in ${EVERY_MS / 1000} s`);
+    // The machine's loop reads fly.status with each renew: a yield (`fly.down`) starts nothing more and ends the loop.
+    if (r.code !== 0 || !machine || yielding || !d.yielded) return;
+    const y = d.yielded();
+    if (y === null ? read : !read) d.note(y === null ? "fly.status was not read at a renew: a yield is not seen until it is" : "fly.status is read again");
+    read = y !== null;
+    if (y) { yielding = true; d.note(`fly.status has \`yield\`: no more is started. ${live()} run${live() === 1 ? "" : "s"} of this machine ${live() === 1 ? "is" : "are"} not ended; the loop ends when none is`); }
   };
-  let after: number | null = null, clock = d.now(), healthy = true, follow = 0;
+  let after: number | null = null, clock = d.now(), healthy = true, follow = 0, stepped = false;
   const tried = new Set<string>();
   // One step at a time. The lock is renewed while it runs.
   const one = async (why: string) => {
@@ -1077,26 +1157,33 @@ export async function drive(d: Driver, given = ""): Promise<number> {
     if (why) {
       const line = await one(why);
       if (lost || d.stopped()) break;
-      if (madeMove(line) && ++follow <= FOLLOW_MOST) { why = "event"; continue; }
-      if (follow > FOLLOW_MOST) d.note(`${FOLLOW_MOST} steps one after another each made a move: the next step waits for a reason`);
-      follow = 0;
+      if (yielding) { if (why === "yield" && !live()) { over = "yielded: fly.status has `yield`, and no run of this machine is left"; break; } }
+      else {
+        if (madeMove(line) && ++follow <= FOLLOW_MOST) { why = "event"; continue; }
+        if (follow > FOLLOW_MOST) d.note(`${FOLLOW_MOST} steps one after another each made a move: the next step waits for a reason`);
+        follow = 0;
+        // "Off": the machine's loop ends itself at a step with no act while no run of its own runs.
+        if (machine && idle(line) && !live()) { over = "nothing to do: a step had no act, and no run of this machine is left"; break; }
+      }
     }
     if (!d.dry && d.now() - made >= TOKEN_MS) { const code = rotate(); if (code) return code; if (lost) break; }
     await d.sleep(EVERY_MS);
     if (d.stopped()) break;
     renew();
     if (lost) break;
-    why = reason();
+    // After a yield: one step that starts nothing, then one whenever a run returned, until none is left.
+    why = !yielding ? reason() : stepped && live() && !d.returned().length ? null : "yield";
+    if (why === "yield") stepped = true;
   }
   if (d.dry) return 0;
   if (lost) { d.note(`\`loop\` is no longer this driver's: ${lost}. No more steps; the token ${token} is ${d.open(token) ? "left, for the runs it started to end with" : d.revoke(token)}`); return 1; }
   const r = d.lock("release", token), n = d.open(token);
-  d.note(`stopped. \`loop\`: ${r.said}. The token ${token} is ${n ? `left: ${n} run${n === 1 ? "" : "s"} it started ${n === 1 ? "has" : "have"} not ended, and each ends itself with it. It ends 48 hours after it was made, or with \`brain.ts agent-token revoke ${token}\`` : d.revoke(token)}`);
+  d.note(`${over || "stopped"}. \`loop\`: ${r.said}. The token ${token} is ${n ? `left: ${n} run${n === 1 ? "" : "s"} it started ${n === 1 ? "has" : "have"} not ended, and each ends itself with it. It ends 48 hours after it was made, or with \`brain.ts agent-token revoke ${token}\`` : d.revoke(token)}`);
   return 0;
 }
 
 async function run(args: string[]) {
-  const dry = args.includes("--dry"), host = HOST(), who = `orchestrator-${host}`;
+  const dry = args.includes("--dry"), host = HOST(), who = `orchestrator-${host}`, machine = NO_STATE();
   if (args.some((a) => a !== "--dry")) stop(2, "run [--dry]");
   const given = dry ? own() : "";
   let stopping = false, wake = () => {};
@@ -1128,6 +1215,9 @@ async function run(args: string[]) {
     },
     returned: () => runFiles().filter((r) => r.host === host && !r.ended && (existsSync(join(RUNS(), r.token + ".result.json")) || !alive(r))).map((r) => r.token),
     open: (token) => runFiles().filter((r) => r.host === host && !r.ended && r.as === token).length,
+    machine,
+    yielded: () => { const f = flyStatus(); return f.data ? f.data.yield != null : null; },
+    live: () => runFiles().filter((r) => r.host === host && !r.ended).length,
   }, given);
   process.exit(code);
 }

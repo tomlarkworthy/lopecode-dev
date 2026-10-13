@@ -282,6 +282,28 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    `ap-5-panel-approved-for-you` and `ap-6-rules-and-live-step`, 5.3 h each; `tools/cloud-brain/records/bk-6-skill-watch-and-stats.md`
    says why the two differ. R4 of `plan/cloud-brain-loop-order-of-service.md`, part 4: no task, bug, project or feature
    stays unstarted for 4 hours without a start or a written reason.)
+
+   **With no state file** the cluster is read in a second form (`plan/cloud-brain-worker-machine-on-fly.md`, part 2,
+   "What the machine's loop does not do"; `fly-4-loop-files`, 2026-10-13). That is a checkout whose
+   `tools/cloud-brain/.emitted/` has no `cb4.json`: the worker machine on Fly.io. `brain.ts redistil` and
+   `brain.ts state` read that file and are not run there. In their place:
+   `BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.fly.status --as fly-status`
+   answers 200 (`run.sh` there sets `BRAIN_URL`, which is the address `brain.ts` uses with no state file); and both
+   `lock.sh show`, as above. Anything but 200 is not healthy. The form is weaker: it does not see a Worker put back.
+   A loop with no state file also leaves these to the laptop's loop:
+   - an issue labeled `laptop`: nothing is started on it;
+   - a digest (`digest-<day>`), an overseer, and an approver, whose move is sent with `loop-approver`: the machine
+     holds none of the tokens these use;
+   - a review that needs a tab (step 4, `TAB=1`): no reviewer is started, and the issue is labeled `laptop` with a
+     comment that says why;
+   - every act with the owner's session, as on the laptop for a step.
+
+   `loop.ts step` does each of these by itself when the file is not there (the header of
+   `tools/cloud-brain/loop.ts`, `step`), and `loop.ts run` there ends itself at a step with nothing to do and after
+   `fly.down` (`run`, item 7). A pass by hand there follows the same. A loop on the laptop runs the whole step when
+   it runs, and takes an issue labeled `laptop` as any other. Not run on the machine when this was written: the
+   step with no state file was run against stand-ins (`tests/tools/loop-step.test.ts`), and the first run there is
+   `fly-4b-first-run`.
 2. **Count your running agents. No number is set.** Every review that waits gets a reviewer, and every round sent back goes to
    its writer, in the pass that sees it. A new writer is started only when, after that, no review
    waits without a reviewer and no sent-back round waits without a writer. Start nothing new in a

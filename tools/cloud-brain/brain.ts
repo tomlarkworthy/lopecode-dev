@@ -10,7 +10,7 @@
  *   bun tools/cloud-brain/brain.ts curl <path> [--owner] [-X POST -d '{}']   # the kernel; --owner or --other sends a minted session as Authorization: Bearer. stdout is the body alone; the status, ` [200]`, is on stderr
  *   bun tools/cloud-brain/brain.ts curl <path> --as NAME [-X POST -d '{}']       # the same call with the token NAME of .emitted/<base>-tokens.json, -issues-tokens.json or -agent-tokens.json. A token is not the owner present; an agent's writes go this way
  *   bun tools/cloud-brain/brain.ts token NAME <method…> [--daily=USD] [--delegate] | token list | token revoke NAME   # token.create as the owner; the value goes to .emitted/<base>-tokens.json (mode 600) and is not printed. --delegate: a token that makes tokens inside its own methods (delegation.create with the cap delegate)
- *   bun tools/cloud-brain/brain.ts agent-token <role> [what for] | agent-token list | agent-token revoke NAME   # a token for one agent or session, for issue.*, 48 hours: a child of the token loop-agents, which the owner makes once (token loop-agents 'issue.*' --delegate). role: orch impl rev spec over dig appr out (appr: one run of an approver, plan/cloud-brain-approver-persona.md). stdout is the name, <role>-<6 hex>; the value goes to .emitted/<base>-agent-tokens.json (mode 600), where issue-as.sh reads it. plan/cloud-brain-record-names-token-not-agent.md
+ *   bun tools/cloud-brain/brain.ts agent-token <role> [what for] | agent-token list | agent-token revoke NAME   # a token for one agent or session, for issue.*, 48 hours: a child of the token loop-agents, which the owner makes once (token loop-agents 'issue.*' --delegate). --parent NAME before the rest: a child of the kept token NAME in the place of loop-agents (`agent-token --parent fly-agents list`: the tokens the machine on Fly.io made, which this checkout ends by name and whose values it does not keep). role: orch impl rev spec over dig appr out (appr: one run of an approver, plan/cloud-brain-approver-persona.md). stdout is the name, <role>-<6 hex>; the value goes to .emitted/<base>-agent-tokens.json (mode 600), where issue-as.sh reads it. plan/cloud-brain-record-names-token-not-agent.md
  *   bun tools/cloud-brain/brain.ts session [did]                               # mint a session token for the owner, or for another DID
  *   bun tools/cloud-brain/brain.ts page up [--minutes N] [--token LOPE-…] [--url https://…] [--keep] | page state | page down   # the Brain's page in a browser of the cluster, signed in and paired with a channel on this machine
  * State (recovery key, deployer key, session tokens) is in .emitted/<base>.json, git-ignored. The Cloudflare token is never printed.
@@ -123,7 +123,16 @@ const install = async (name: string, { replacedBy = null as string | null } = {}
 const digestOf = async (base: string) => JSON.parse((await at(base, "rowsDigest")).text).classes as Record<string, { rows: number; sha256: string }>;
 const sameDigest = (a: any, b: any) => JSON.stringify(Object.entries(a).sort()) === JSON.stringify(Object.entries(b).sort());
 // brainUrl: a field of the state file that only a test writes, to put a local stand-in in the kernel's place.
-const B = () => (/^http:\/\/127\.0\.0\.1:\d+$/.test(st.brainUrl ?? "") ? st.brainUrl : `https://${BASE}.${st.subdomain}.workers.dev`);
+// BRAIN_URL: the address where there is no state file to read `subdomain` from (the loop's machine on Fly.io, whose
+// run.sh sets it): https and a host, or a local stand-in. With a state file it is not read.
+const B = () => {
+  if (/^http:\/\/127\.0\.0\.1:\d+$/.test(st.brainUrl ?? "")) return st.brainUrl;
+  if (st.subdomain) return `https://${BASE}.${st.subdomain}.workers.dev`;
+  const u = process.env.BRAIN_URL || "";
+  if (/^(https:\/\/[a-z0-9.-]+|http:\/\/127\.0\.0\.1:\d+)$/.test(u)) return u;
+  console.log(`no address for ${BASE}: ${statePath} has no subdomain, and BRAIN_URL is ${u ? "not https://HOST" : "not set"}`);
+  process.exit(1);
+};
 // One call of a method with a session or a token's value as the bearer. The bearer is never printed.
 const callAs = async (bearer: string, m: string, body?: any) => {
   const r = await fetch(B() + "/xrpc/com.lopecode.brain." + m, { method: body ? "POST" : "GET", headers: { authorization: "Bearer " + bearer, ...(body ? { "content-type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
@@ -526,9 +535,13 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
 } else if (cmd === "agent-token") {
   // One token for each agent and each session, so an event's by.holder names who wrote it. Each is made under the
   // token loop-agents (scope issue.*, cap delegate), which the owner makes once; this command uses no session.
-  const ROLES = ["orch", "impl", "rev", "spec", "over", "dig", "appr", "out"], PARENT = "loop-agents", HOURS = 48;
+  // --parent NAME: another parent than loop-agents, for the list and the revoke of the children of a token this
+  // checkout keeps under its own name (the laptop's `fly-agents`, the parent of the agents of the machine on Fly.io).
+  const ROLES = ["orch", "impl", "rev", "spec", "over", "dig", "appr", "out"], HOURS = 48;
   const stop = (text: string): never => { console.log(text); process.exit(1); };
-  const usage = `agent-token <role> [what for] | agent-token list | agent-token revoke NAME   (role: ${ROLES.join(" ")})`;
+  const usage = `agent-token [--parent NAME] <role> [what for] | agent-token [--parent NAME] list | agent-token [--parent NAME] revoke NAME   (role: ${ROLES.join(" ")})`;
+  const pi = args.indexOf("--parent"), PARENT = pi < 0 ? "loop-agents" : args[pi + 1] || "";
+  if (pi >= 0) { if (!/^[a-z0-9-]{1,40}$/.test(PARENT)) stop(usage); args.splice(pi, 2); }
   const known = args[0] === "list" || (args[0] === "revoke" && !!args[1]) || ROLES.includes(args[0]);
   if (!known) stop(usage);
   const parent = keptToken(tokens(), PARENT) || stop(`no token "${PARENT}" is kept. The owner makes it once: token ${PARENT} 'issue.*' --delegate`);

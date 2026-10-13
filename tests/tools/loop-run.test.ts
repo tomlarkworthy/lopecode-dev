@@ -10,7 +10,7 @@ import { test, expect, afterAll } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { drive, madeMove, EVERY_MS, CLOCK_MS, RENEW_MS, TOKEN_MS, FOLLOW_MOST, type Driver } from "../../tools/cloud-brain/loop.ts";
+import { drive, madeMove, idle, EVERY_MS, CLOCK_MS, RENEW_MS, TOKEN_MS, FOLLOW_MOST, type Driver } from "../../tools/cloud-brain/loop.ts";
 
 type Ev = Record<string, any>;
 const S = 1000, H = 3600 * S;
@@ -227,6 +227,97 @@ test("--dry: no token is made and no lock asked; the steps are made with the tok
   expect(R.steps.every((s) => s.token === "orch-5e5510")).toBe(true);
 });
 
+// ---- a loop with no state file: the machine on Fly.io (fly-4-loop-files; plan/cloud-brain-worker-machine-on-fly.md, part 2, "Off" and the yield)
+test("`idle`: a healthy line with no act, nothing given, no `stops` and no `unlogged`; anything else is not", () => {
+  const ok = { seq: 7, health: { ok: true }, acts: [], given: [], skipped: [{ id: "a", do: "start", why: "it is labeled `laptop`" }] };
+  expect(idle(ok)).toBe(true);
+  expect(idle({ health: { ok: true } })).toBe(true);
+  for (const not of [null, { ...ok, error: "queue answered 502" }, { ...ok, health: { ok: false, failed: ["x"] } }, { ...ok, health: undefined }, { ...ok, acts: [{ act: "start", id: "a" }] },
+    { ...ok, given: [{ do: "triage", id: "a" }] }, { ...ok, stops: ["uptime's first number is 16"] }, { ...ok, unlogged: { token: "impl-1" } }]) expect([not, idle(not as any)]).toEqual([not, false]);
+});
+
+test("the machine's driver ends itself at a step with nothing to do: `loop` released, its token ended, exit 0; not while a run of the machine is left, and not after a step that did something", async () => {
+  let r = rig({ machine: true, live: () => 0 });
+  expect(await drive(r.d)).toBe(0);
+  expect(whys(r.R)).toEqual(["0 clock"]);
+  expect(r.R.log).toEqual(["0 token orch-000001", "0 take orch-000001 0", "0 release orch-000001 0", "0 revoke orch-000001"]);
+  expect(r.R.notes).toEqual(["nothing to do: a step had no act, and no run of this machine is left. `loop`: loop release by orchestrator-m1. The token orch-000001 is ended"]);
+  // A step that started a writer, then the step for its run that ended, which has no act: the end is after the second.
+  let left = 1;
+  r = rig({ machine: true, live: () => left });
+  r.R.lines.push({ health: { ok: true }, acts: [{ act: "start", id: "a", role: "implementer" }] }, { health: { ok: true }, acts: [{ act: "ended", token: "impl-1" }] }, { health: { ok: true }, acts: [] }, { health: { ok: true }, acts: [] });
+  const p = drive(r.d);
+  await r.sleep(300 * S); r.R.back.push("impl-1");                    // the run returned: a step for it, which ends it
+  await r.sleep(60 * S); left = 0; r.event("rev-000001");             // a review of another's: a step for the event, with no act
+  expect(await p).toBe(0);
+  expect(whys(r.R).map((w) => w.split(" ")[1])).toEqual(["clock", "run", "event"]);
+  expect(r.R.notes[0]).toStartWith("nothing to do: a step had no act");
+  // With a run left, a step with no act is not the end: the driver goes on until it is stopped.
+  r = rig({ machine: true, live: () => 1 });
+  r.R.stopAt(CLOCK_MS + 60 * S);
+  expect(await drive(r.d)).toBe(0);
+  expect(whys(r.R)).toEqual(["0 clock", "1800 clock"]);
+  expect(r.R.notes[0]).toStartWith("stopped. ");
+  // Not healthy, or held back by a load: not the end.
+  for (const line of [{ health: { ok: false, failed: ["fly.status as fly-status: 502"] }, acts: [], given: [{ do: "unhealthy" }] }, { health: { ok: true }, acts: [], stops: ["uptime's first number is 16"] }]) {
+    r = rig({ machine: true, live: () => 0 });
+    r.R.lines.push(line, { health: { ok: true }, acts: [{ act: "start" }] });
+    r.R.stopAt(100 * S);
+    expect(await drive(r.d)).toBe(0);
+    expect(r.R.notes[r.R.notes.length - 1]).toStartWith("stopped. ");
+  }
+});
+
+test("a driver with a state file, and a dry one, do not end themselves at a step with nothing to do, and read no fly.status", async () => {
+  let asked = 0;
+  let r = rig({ yielded: () => { asked++; return true; }, live: () => 0 });
+  r.R.stopAt(400 * S);
+  expect(await drive(r.d)).toBe(0);
+  expect([whys(r.R), asked, r.R.notes[0].split(".")[0]]).toEqual([["0 clock"], 0, "stopped"]);
+  r = rig({ dry: true, machine: true, yielded: () => { asked++; return true; }, live: () => 0 });
+  r.R.stopAt(400 * S);
+  expect(await drive(r.d, "orch-5e5510")).toBe(0);
+  expect([whys(r.R), asked, r.R.log]).toEqual([["0 clock"], 0, []]);
+});
+
+test("the machine's driver reads fly.status at each renew that was answered; at a yield it makes no step for a reason, one step for the yield and one more when no run is left, then releases `loop` and ends its token", async () => {
+  const asks: number[] = [];
+  const r = rig({ machine: true, live: () => (r.R.at() < 600 * S ? 1 : 0), yielded: () => { asks.push(r.R.at() / S); return r.R.at() >= 300 * S; } });
+  r.R.lines.push({ health: { ok: true }, acts: [{ act: "start", id: "a", role: "implementer" }] });
+  const p = drive(r.d);
+  await r.sleep(400 * S); r.event("impl-000009");                     // an event after the yield is no reason
+  expect(await p).toBe(0);
+  expect(asks).toEqual([120, 240, 360]);
+  expect(whys(r.R)).toEqual(["0 clock", "360 yield", "600 yield"]);
+  expect(r.R.log.slice(-2)).toEqual(["600 release orch-000001 0", "600 revoke orch-000001"]);
+  expect(r.R.notes).toEqual(["fly.status has `yield`: no more is started. 1 run of this machine is not ended; the loop ends when none is",
+    "yielded: fly.status has `yield`, and no run of this machine is left. `loop`: loop release by orchestrator-m1. The token orch-000001 is ended"]);
+});
+
+test("after a yield a run that returned is a step for the yield at the next read, and with no run left at the yield the first such step is the last", async () => {
+  // The run is left until a step for the yield is made after it returned: that step ends it.
+  let r = rig({ machine: true, yielded: () => true, live: () => (r.R.back.length && r.R.steps.some((s) => s.why === "yield" && s.at >= 200 * S) ? 0 : 1) });
+  r.R.lines.push({ health: { ok: true }, acts: [{ act: "start" }] });
+  const p = drive(r.d);
+  await r.sleep(200 * S); r.R.back.push("impl-1");
+  expect(await p).toBe(0);
+  expect(whys(r.R)).toEqual(["0 clock", "120 yield", "210 yield"]);
+  r = rig({ machine: true, live: () => 0, yielded: () => true });
+  r.R.lines.push({ health: { ok: true }, acts: [{ act: "start" }] });
+  expect(await drive(r.d)).toBe(0);
+  expect(whys(r.R)).toEqual(["0 clock", "120 yield"]);
+});
+
+test("fly.status not read at a renew is said once, and once more when it is read again; a renew that was not answered asks no fly.status", async () => {
+  const asks: number[] = [];
+  const r = rig({ machine: true, live: () => 1, renews: [0, 2, 0, 0, 0], yielded: () => { asks.push(r.R.at() / S); return r.R.at() < 400 * S ? null : false; } });
+  r.R.stopAt(700 * S);
+  expect(await drive(r.d)).toBe(0);
+  // The renew at 240 was not answered (code 2) and is asked again 30 s later.
+  expect(asks).toEqual([120, 270, 390, 510, 630]);
+  expect(r.R.notes.slice(0, 3)).toEqual(["fly.status was not read at a renew: a yield is not seen until it is", "`loop` was not renewed: cb4 was not reached [000]. It is asked again in 30 s", "fly.status is read again"]);
+});
+
 // ---- the program, with stand-ins for what it runs
 const tool = resolve(import.meta.dir, "../../tools/cloud-brain/loop.ts"), DIR = resolve(import.meta.dir, "../../tools/cloud-brain");
 const RIG = mkdtempSync(join(tmpdir(), "loop-run-test-"));
@@ -252,9 +343,11 @@ echo '{"seq":7,"events":[],"more":false}'; echo " [200]" >&2
 `);
 const log = (name: string) => (existsSync(join(RIG, name + ".log")) ? readFileSync(join(RIG, name + ".log"), "utf8").trim().split("\n") : []);
 const until = async (what: () => any, ms = 15000) => { for (const end = Date.now() + ms; Date.now() < end; await Bun.sleep(50)) { const v = what(); if (v) return v; } throw new Error("waited " + ms + " ms"); };
-const start = (args: string[], more: Record<string, string> = {}) => {
-  for (const f of ["brain.log", "lock.log", "self.log", "as.log", "held"]) rmSync(join(RIG, f), { force: true });
+// The state file is there, as on the laptop, unless a case asks for none (the machine on Fly.io). It is not read.
+const start = (args: string[], more: Record<string, string> = {}, state = true) => {
+  for (const f of ["brain.log", "lock.log", "self.log", "as.log", "held", "state/cb4.json"]) rmSync(join(RIG, f), { force: true });
   mkdirSync(join(RIG, "state"), { recursive: true });
+  if (state) writeFileSync(join(RIG, "state/cb4.json"), "{}");
   const { LOOP_TOKEN: _, ...base } = process.env;
   const p = Bun.spawn(["bun", tool, ...args], { env: { ...base, RIG, LOOP_ROOT: RIG, BRAIN_STATE_DIR: join(RIG, "state"), LOOP_BRAIN: "bash " + BRAIN, LOOP_LOCK: LOCK, LOOP_SELF: SELF, ISSUE_AS: AS, LOOP_HOST: "m1", ...more }, stdout: "pipe", stderr: "pipe" });
   return { p, end: async () => ({ out: await new Response(p.stdout).text(), err: await new Response(p.stderr).text(), code: await p.exited }) };
@@ -333,4 +426,13 @@ safehouse "\${SAFEHOUSE_ARGS[@]}" claude
   writeFileSync(join(root, "metadev"), "#!/usr/bin/env zsh\nclaude\n");
   const none = sh([], { LOOP_ROOT: root, PATH: bin + ":" + process.env.PATH });
   expect([none.exitCode, none.stderr.toString().trim(), existsSync(join(RIG, "safehouse.log"))]).toEqual([2, `loop.sh: ${real(root)}/metadev has no SAFEHOUSE_ARGS=( … ) to read; nothing was run`, false]);
+});
+
+test("loop.ts run with no state file: after a step with no act it ends itself, exit 0, with `loop` released and its token ended; fly.status is asked of brain.ts as fly-status at a renew only", async () => {
+  const e = await start(["run"], {}, false).end();
+  expect(e.code).toBe(0);
+  expect(log("brain")).toEqual(["agent-token orch driver:m1", "agent-token revoke orch-0a0a0a"]);
+  expect(log("lock")).toEqual(["orch-0a0a0a take loop orchestrator-m1", "orch-0a0a0a release loop orchestrator-m1"]);
+  expect(log("self")).toEqual(["orch-0a0a0a step --for clock"]);
+  expect(e.err.trim()).toBe("loop.ts run: nothing to do: a step had no act, and no run of this machine is left. `loop`: loop release by orchestrator-m1. The token orch-0a0a0a is ended");
 });

@@ -306,6 +306,14 @@ after review is then of a change that is already deployed and pushed, since a su
 refs; the plan is where the owner stops it. Add `security` and take the `escalate` swap when the body describes a
 way past an access rule; the issue is then the owner's.
 
+Add the label `laptop` when the body already says that a Worker changes (a seed of a service, whose landing is
+`brain.ts apply`), or when its check names one of the tokens `loop-library`, `loop-bluesky`, `loop-roles`,
+`loop-deploys`, `loop-papers` or `loop-dashboard`. The loop of the worker machine on Fly.io has no state file: it
+deploys nothing, holds none of those six, and starts nothing on an issue with the label; the laptop's loop takes
+such an issue as any other, so the label costs nothing there. It is no word for the owner and is not
+`needs-owner`. (`plan/cloud-brain-worker-machine-on-fly.md`, part 2, "What the machine's loop does not do";
+`fly-4-loop-files`, 2026-10-13. The service's `fly.work` leaves such an issue out, so it starts no machine.)
+
 ## The `decompose` row
 
 Open each task the spec lists, with `parent` the project. A task has the labels the spec gives it: `major` on each task of a spec that says its tasks are (bd-2 and bd-3 were opened with none from a spec approved as `major`, and a reviewer's `pass` of bd-2 would have gone to `done` with no approval; `seen-bd-2-opened-without-major`). Then, for each task the spec says is after another, one link, `issue-as.sh <your token> link '{"key":"orch/<task>/after-<other>","id":"<task>","to":"<other>","rel":"after"}'`, written before any task is moved: the order of a spec's tasks is in the record and in no comment. Then `triage` and `ready` each task, but one the spec leaves to the owner (`needs-owner`, with its comment) or holds for a time that can be said now (a hold). Then move the project to `building` (`decompose`). Open every task of a spec before the last of them can end: a task opened as a part after the project is `done` is a part of a project that stays `done`. Close each gathered report that is still open with the reason `in the spec of <id>`.

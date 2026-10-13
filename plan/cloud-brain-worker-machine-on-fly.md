@@ -264,6 +264,32 @@ at a renew and the yield, the exit at a step with nothing to do, the second form
 in `loop.ts step`, and `run.sh` (`grep -n -i 'yield\|fly\.' tools/cloud-brain/loop.ts` printed
 nothing). Those are `fly-4-loop-files`'. No driver had run on any machine when this note was written.
 
+**As built (`fly-4-loop-files`, 2026-10-13).** Those four are built, and
+`tools/cloud-brain/records/fly-4-loop-files.md` has them with their tests. Where the program differs from
+this part, or this part names no choice:
+
+- "A loop with no state file" is a checkout whose `tools/cloud-brain/.emitted/` has no `cb4.json`. The file
+  is looked for and not read. With it, the driver and the step are the laptop's and none of this is done.
+- Off is the driver's on the machine alone. The laptop's is stopped with Ctrl-C, as part 4 of the steps
+  spec has it. The step that ends it is healthy, with no act, nothing given to a judgment run, and no start
+  held back for a load, a landing, an error or a process that is not logged in, while no run that machine
+  started is not ended.
+- At a yield the driver makes a step of its own kind, `step --for yield`: it ends the runs that returned
+  and the tokens kept for a round to come, reads no queue and starts nothing. One more is made whenever a
+  run has returned, and the driver ends after such a step when no run of the machine is left.
+- The label `laptop` on a change that needs a deploy is put by the writer, with its comment, and not by
+  the orchestrator there: the driver has no model to read why a writer stopped. Its `back` is the row "A
+  dead writer" of the step, with that row's reason. The label on a review that needs a tab is the step's.
+- An approver is not started there either. Its move is sent with `loop-approver`, which is not one of the
+  four tokens the machine holds. This part did not name it: the approver is later than this spec.
+- `brain.ts` reads the Brain's address from `BRAIN_URL` when the state file gives no `subdomain`, and
+  `run.sh` sets it. That is what `fly-2-image-and-run-sh` left open: with it `brain.ts agent-token` and a
+  writer's `brain.ts curl /xrpc/… --as loop-knowledge` have an address on the machine.
+- The driver's token has the note `orch; driver:<host>`, as on the laptop, and not `orch; fly:<machine
+  id>` as the check of R1 and R6 reads. `fly-4b-first-run` reads the list for the note that is there.
+
+No driver had run on any machine when this was written: each of these was run against stand-ins.
+
 **What the machine's loop does not do.** Everything in the table above with "yes" in the last column.
 
 - *Health.* `SKILL.md` step 1 gets a second form for a session with no state file: both `lock.sh
@@ -573,6 +599,9 @@ Each is one writer and one review, but T4b, which is the owner's act and a recor
    of the health step (part 6 says that it stands; that on the machine it is a form of `loop.ts step`,
    which makes the health there, is the reading of `st-7`'s writer); the label `laptop` in the writer's brief and at triage; no digest, no overseer and no tab
    review with no state file; `agent-token --parent`; the tool that writes the machine's token file.)
+   (As built, `fly-4-loop-files`, 2026-10-13: the note "As built" at the head of part 2 has where the
+   program differs. The tool is `tools/cloud-brain/fly/token-file.ts`; the brief's text is on its page
+   `agents/implementer/ready-to-land.md`, the brief itself being at its 20,000 characters; the record.)
 5. **T4b, the first run**: the owner makes the volume and the machine from the page's form and
    presses Start. A record, `tools/cloud-brain/records/fly-4b-first-run.md`, with the first issue a
    token of the machine moved and the R1, R2, R7 and R8 checks run there.

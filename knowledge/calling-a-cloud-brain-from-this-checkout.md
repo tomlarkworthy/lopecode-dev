@@ -27,7 +27,13 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts <command>
 - State is `tools/cloud-brain/.emitted/cb4.json`, git-ignored: recovery key, deployer key, minted
   sessions. The Cloudflare token is `tools/scratch/cloud-brain-experiments/.cf-token`, git-ignored
   and temporary. **Never print or copy either.** If the state file is missing, there is no access;
-  ask Tom.
+  ask Tom. One checkout is meant to have none: the issue loop's worker machine on Fly.io, which is given
+  token files and no recovery key. There `brain.ts` takes the Brain's address from `BRAIN_URL`
+  (`https://cb4.endpointservices.workers.dev`, set by `tools/cloud-brain/fly/run.sh`), so `curl <path> --as NAME`
+  and `agent-token` work with the tokens it holds, and every command that signs or uses a session does not.
+  With no state file and no `BRAIN_URL` a call that names a path is exit 1, `no address for cb4: …`
+  (since 2026-10-13, `tools/cloud-brain/records/fly-4-loop-files.md`; run against a stand-in, not on the
+  machine. Until then the address was built with `undefined` in the subdomain's place).
 - A `brain.ts` changed in a git worktree has neither file beside it. `BRAIN_STATE_DIR=<main checkout>/tools/cloud-brain/.emitted`
   runs it on the main checkout's state without copying it there (2026-10-10, `records/worktree-rebase-and-state-gaps.md`;
   run with `curl --as` only). The Cloudflare token is read when a command sends it, so `curl`, `token` and `saw` start without it.

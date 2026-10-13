@@ -1,7 +1,10 @@
 // tools/cloud-brain/fly/run.sh, the first process of the worker machine on Fly.io, and the files beside it.
 // Issue fly-2-image-and-run-sh; record tools/cloud-brain/records/fly-2-image-and-run-sh.md.
 // run.sh is run as it is, with a `claude` of the test first on PATH, a Brain of the test at FLY_RUN_BASE and a
-// checkout of the test (a git repository with this checkout's brain.ts and run.sh). git, bun and jq are the machine's own.
+// checkout of the test (a git repository with this checkout's brain.ts and run.sh, and a loop.ts of the test in the
+// driver's place). git, bun and jq are the machine's own.
+// Since fly-4-loop-files run.sh starts the driver, `bun tools/cloud-brain/loop.ts run`, and no `claude`
+// (tools/cloud-brain/records/fly-4-loop-files.md).
 //
 //   bun test --timeout=30000 ./tests/tools/fly-run-sh.test.ts
 import { test, expect, beforeAll, afterAll } from "bun:test";
@@ -32,20 +35,27 @@ const git = (dir: string, ...args: string[]) => {
   return r.stdout.toString().trim();
 };
 
-// A directory with: bin/claude, which writes its arguments and three variables to claude.ran and exits with
-// the number in claude.exit; a checkout; and the token file as the machine's `files` would write it.
+// A directory with: bin/claude, which writes its arguments to claude.ran (run.sh starts none); a checkout whose
+// tools/cloud-brain/loop.ts writes its arguments and five variables to loop.ran, asks the checkout's brain.ts for
+// fly.status as the briefs write a call (a path, and no address), and exits with the number in loop.exit; and the
+// token file as the machine's `files` would write it.
 function rig({ token = true } = {}) {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "fly-run-sh-")));
   mkdirSync(join(dir, "bin"));
   writeFileSync(join(dir, "bin/claude"), `#!/bin/bash
-{ printf '%s\\n' "$@"; echo "IS_SANDBOX=$IS_SANDBOX"; echo "METADEV=$METADEV"; echo "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR"; echo "PWD=$PWD"; } > "${dir}/claude.ran"
-exit $(cat "${dir}/claude.exit" 2>/dev/null || echo 0)
+printf '%s\\n' "$@" > "${dir}/claude.ran"
 `);
   chmodSync(join(dir, "bin/claude"), 0o755);
   const checkout = join(dir, "data/lopecode-dev");
   mkdirSync(join(checkout, "tools/cloud-brain/fly"), { recursive: true });
   copyFileSync(join(root, "tools/cloud-brain/brain.ts"), join(checkout, "tools/cloud-brain/brain.ts"));
   copyFileSync(RUN, join(checkout, "tools/cloud-brain/fly/run.sh"));
+  writeFileSync(join(checkout, "tools/cloud-brain/loop.ts"), `import { writeFileSync, existsSync, readFileSync } from "node:fs";
+const e = process.env, dir = ${JSON.stringify(dir)};
+const b = Bun.spawnSync(["bun", "tools/cloud-brain/brain.ts", "curl", "/xrpc/com.lopecode.brain.fly.status", "--as", "fly-status"], { env: { ...e, BRAIN_BASE: "cb4" }, stdout: "pipe", stderr: "pipe" });
+writeFileSync(dir + "/loop.ran", [...process.argv.slice(2), "IS_SANDBOX=" + e.IS_SANDBOX, "METADEV=" + e.METADEV, "BRAIN_URL=" + e.BRAIN_URL, "CLAUDE_CONFIG_DIR=" + e.CLAUDE_CONFIG_DIR, "PWD=" + process.cwd(), "brain.ts: " + b.stderr.toString().trim()].join("\\n"));
+process.exit(existsSync(dir + "/loop.exit") ? Number(readFileSync(dir + "/loop.exit", "utf8")) : 0);
+`);
   writeFileSync(join(checkout, "package.json"), "{}");
   writeFileSync(join(checkout, "tools/package.json"), "{}");
   writeFileSync(join(checkout, ".gitignore"), "tools/cloud-brain/.emitted\nbun.lock\nnode_modules\n");
@@ -53,7 +63,8 @@ exit $(cat "${dir}/claude.exit" 2>/dev/null || echo 0)
   git(checkout, "add", ".");
   git(checkout, "commit", "-q", "-m", "a checkout");
   if (token) writeFileSync(join(dir, "tokens.json"), JSON.stringify({ "fly-status": VALUE }), { mode: 0o644 });
-  return { dir, checkout, ran: () => (existsSync(join(dir, "claude.ran")) ? readFileSync(join(dir, "claude.ran"), "utf8").trim().split("\n") : null) };
+  const lines = (f: string) => (existsSync(join(dir, f)) ? readFileSync(join(dir, f), "utf8").trim().split("\n") : null);
+  return { dir, checkout, ran: () => lines("loop.ran"), claude: () => lines("claude.ran") };
 }
 
 async function run(r: { dir: string; checkout: string }, env: Record<string, string> = {}, script = RUN) {
@@ -67,7 +78,7 @@ async function run(r: { dir: string; checkout: string }, env: Record<string, str
   return { out, err, code };
 }
 
-test("fly.work empty: exit 0, and claude is not started", async () => {
+test("fly.work empty: exit 0, and the driver is not started", async () => {
   const r = rig();
   answer = { status: 200, body: '{"work":[]}' };
   const got = await run(r);
@@ -83,27 +94,30 @@ test("fly.work empty: exit 0, and claude is not started", async () => {
   rmSync(r.dir, { recursive: true, force: true });
 });
 
-test("fly.work with an issue: claude is started in the checkout with the loop's prompt, and its exit is the script's", async () => {
+test("fly.work with an issue: the driver is started in the checkout, with the Brain's address for brain.ts, and its exit is the script's; no claude is started", async () => {
   const r = rig();
   answer = { status: 200, body: '{"work":["an-issue","another"]}' };
-  writeFileSync(join(r.dir, "claude.exit"), "7");
-  const got = await run(r);
+  writeFileSync(join(r.dir, "loop.exit"), "7");
+  // What a session's environment may hold is not the driver's: the prompt is no longer read.
+  const got = await run(r, { FLY_RUN_PROMPT: "/brain-maintenance" });
   expect(got.out).toContain("fly.work has 2");
-  expect(r.ran()).toEqual(["-p", "/loop /brain-maintenance", "--model", "opus", "--permission-mode", "bypassPermissions",
-    "IS_SANDBOX=1", "METADEV=1", `CLAUDE_CONFIG_DIR=${join(r.dir, "data/claude")}`, `PWD=${r.checkout}`]);
+  expect(got.out).toContain("starting the driver");
+  const base = `http://127.0.0.1:${server.port}`;
+  expect(r.ran()).toEqual(["run", "IS_SANDBOX=1", "METADEV=1", `BRAIN_URL=${base}`, `CLAUDE_CONFIG_DIR=${join(r.dir, "data/claude")}`, `PWD=${r.checkout}`, "brain.ts: [200]"]);
+  // The call of the driver's place named a path and no address: brain.ts took the address from BRAIN_URL, there being no state file.
+  expect(existsSync(join(r.checkout, "tools/cloud-brain/.emitted/cb4.json"))).toBe(false);
+  expect(asked).toEqual([{ path: "/xrpc/com.lopecode.brain.fly.work", auth: "Bearer " + VALUE }, { path: "/xrpc/com.lopecode.brain.fly.status", auth: "Bearer " + VALUE }]);
+  expect(r.claude()).toBeNull();
   expect(existsSync(join(r.dir, "data/claude"))).toBe(true);
-  expect(got.out).toContain("claude ended with 7");
+  expect(got.out).toContain("the driver ended with 7");
   expect(got.code).toBe(7);
   rmSync(r.dir, { recursive: true, force: true });
 });
 
-test("the prompt and the model are the environment's when it names them", async () => {
-  const r = rig();
-  answer = { status: 200, body: '{"work":["an-issue"]}' };
-  const got = await run(r, { FLY_RUN_PROMPT: "/brain-maintenance\nYour token is orch-000000.", MODEL: "sonnet" });
-  expect(got.code).toBe(0);
-  expect(r.ran()!.slice(0, 5)).toEqual(["-p", "/brain-maintenance", "Your token is orch-000000.", "--model", "sonnet"]);
-  rmSync(r.dir, { recursive: true, force: true });
+test("the line that starts the loop is the driver's, and names no claude and no prompt", () => {
+  const text = readFileSync(RUN, "utf8"), body = text.slice(text.indexOf("\n{\n"));
+  expect(body).toContain('IS_SANDBOX=1 METADEV=1 BRAIN_URL="$BASE" bun tools/cloud-brain/loop.ts run < /dev/null');
+  expect(/claude -p|FLY_RUN_PROMPT/.test(body)).toBe(false);
 });
 
 for (const [name, a] of [
@@ -113,7 +127,7 @@ for (const [name, a] of [
   ["200 with no JSON", { status: 200, body: "" }],
   ["a list beside a 500", { status: 500, body: '{"work":[]}' }],
 ] as const) {
-  test(`fly.work not answered, ${name}: exit 1, and claude is not started`, async () => {
+  test(`fly.work not answered, ${name}: exit 1, and the driver is not started`, async () => {
     const r = rig();
     answer = a;
     const got = await run(r);
@@ -125,7 +139,7 @@ for (const [name, a] of [
   });
 }
 
-test("the Brain is not reached: exit 1, and claude is not started", async () => {
+test("the Brain is not reached: exit 1, and the driver is not started", async () => {
   const r = rig();
   const got = await run(r, { FLY_RUN_BASE: "http://127.0.0.1:1" });
   expect(got.out).toContain("fly.work was not answered (status 000)");
@@ -134,7 +148,7 @@ test("the Brain is not reached: exit 1, and claude is not started", async () => 
   rmSync(r.dir, { recursive: true, force: true });
 });
 
-test("no token fly-status on the machine: exit 1, no call, and claude is not started", async () => {
+test("no token fly-status on the machine: exit 1, no call, and the driver is not started", async () => {
   const r = rig({ token: false });
   answer = { status: 200, body: '{"work":["an-issue"]}' };
   const got = await run(r);

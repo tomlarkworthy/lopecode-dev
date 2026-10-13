@@ -130,9 +130,12 @@ test("the Fly spec: an As amended note in part 1, at the head of part 2, and in 
   const note = flat(two.slice(0, two.indexOf("**What the machine's loop does not do.**")));
   for (const said of ["`run.sh` execs", "`--hold` is not built", "a read of `fly.status` by the driver at each renew", "releases `loop` and exits 0", "the label `laptop`"])
     expect(note).toContain(said);
-  // What the note says is not built is not in the program.
-  expect(/yield|fly\./i.test(loop.split("\nimport ")[1])).toBe(false);
-  expect(read("tools/cloud-brain/fly/run.sh")).toContain('claude -p "${FLY_RUN_PROMPT:-/loop /brain-maintenance}"');
+  // What the note says is not built was not in the program until fly-4-loop-files (2026-10-13), which built it and
+  // says so in a note of its own under this one: the program has the yield, and run.sh starts the driver.
+  expect(note).toContain("**As built (`fly-4-loop-files`, 2026-10-13).**");
+  // (Until then this line read `loop.split("\nimport ")[1]`, which is the first import statement alone, for `false`.)
+  expect(/yielding/.test(loop.slice(loop.indexOf("\nimport "))) && /fly\.status/.test(loop.slice(loop.indexOf("\nimport ")))).toBe(true);
+  expect(read("tools/cloud-brain/fly/run.sh")).toContain('bun tools/cloud-brain/loop.ts run < /dev/null');
   const tasks = section(fly, "The tasks, in the order they land");
   expect(flat(tasks.slice(tasks.indexOf("2. **T2"), tasks.indexOf("3. **T3")))).toContain("(As amended, `st-7-switch-and-texts`");
   expect(flat(tasks.slice(tasks.indexOf("4. **T4, "), tasks.indexOf("5. **T4b")))).toContain("(As amended, `st-7-switch-and-texts`");

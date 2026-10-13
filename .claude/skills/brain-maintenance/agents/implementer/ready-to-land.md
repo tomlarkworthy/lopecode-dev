@@ -1,5 +1,5 @@
 <!-- A page of `agents/implementer.md`: step 9: the rebase, what the record holds, the emit.
-Read it when your change has a deploy (the emit), a rebase ends in a conflict, or a sentence of your record is one you did not see in a run.
+Read it when your change has a deploy (the emit; with no state file, the stop before it), a rebase ends in a conflict, or a sentence of your record is one you did not see in a run.
 Cut from the brief 2026-10-13 (`writer-brief-and-tool-output-smaller`), as it stood. "Above" and "below" in it are of the
 brief before the cut: the table "The pages" of `agents/implementer.md` has the page of each step and section. -->
 9. **Make it ready to land, still in the worktree and with no lock.** Since 2026-10-10 19:33 the
@@ -48,6 +48,18 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
      work is read from `date` or an event's `at`. A commit already on `origin/main` keeps its sha
      and may be named. Commit it (a second commit is fine).
      The loop's reviewer is the record's fresh read; `/review-notebook` is not run on it.
+   - **With no state file, a change that needs `brain.ts apply` stops here** (`fly-4-loop-files`, 2026-10-13;
+     `plan/cloud-brain-worker-machine-on-fly.md`, part 2, "A deploy"). That is a main checkout with no
+     `<root>/tools/cloud-brain/.emitted/cb4.json`: the worker machine on Fly.io, which is given no recovery key,
+     and `apply` is signed with it. There you emit nothing, take no lock and push nothing. Commit what you have in the worktree, each file by
+     name. Comment on the issue with what is built and tested there, the count with its command, and the Worker
+     the deploy is of. Add the label: `ia label '{"key":"impl/<id>/laptop","id":"<id>","add":["laptop"],"remove":[]}'`.
+     Then report, with no submit and no wait. The driver's next step finds the issue at `in-progress` with no
+     writer and makes `back`; the loop there starts nothing on an issue labeled `laptop`, and a writer of the
+     laptop's loop takes it from `ready` with your comment. The same when your check needs a token the machine
+     does not hold (`loop-library`, `loop-bluesky`, `loop-roles`, `loop-deploys`, `loop-papers`, `loop-dashboard`).
+     The commits stay in that machine's worktree and are not on `origin/main`: the comment is what the next
+     writer has. No writer had stopped this way when this was written.
    - **Emit** with the same tool, to a file named for the issue in the main checkout, where `apply` reads it:
      `cd $W && bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/<module> --emit <name>_service=<root>/tools/cloud-brain/.emitted/<id>-<worker>.json`.
      It runs the tests again and then writes what `(await module.value("<name>_service")).emit()` gives;

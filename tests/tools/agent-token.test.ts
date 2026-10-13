@@ -423,3 +423,49 @@ test("agent-token revoke: a lock that cannot be removed is exit 1 with one line 
   expect(sent("delegation.revoke")).toEqual([]);
   expect(r.kept("cb4-agent-tokens.json")).toEqual({});
 }, 30000);
+
+// ---- agent-token --parent NAME (fly-4-loop-files): the children of another kept parent, the machine's on Fly.io
+test("agent-token --parent NAME: list and revoke are of that parent's children, whose values this checkout does not keep; with no flag they are of loop-agents as before", async () => {
+  const r = rig(), parent = await r.parent();
+  await r.brain("token", "fly-agents", "issue.*", "--delegate");
+  const fly = r.kept("cb4-tokens.json")["fly-agents"] as string;
+  const own = (await r.brain("agent-token", "impl", "of the laptop")).out.trim();
+  // A token the machine made: a child of fly-agents, its value in the machine's file and not in this one.
+  const made = await r.brain("agent-token", "--parent", "fly-agents", "orch", "driver:m1");
+  const theirs = made.out.trim();
+  expect([made.code, /^orch-[0-9a-f]{6}$/.test(theirs)]).toEqual([0, true]);
+  expect(sent("delegation.create").at(-1)!.bearer).toBe(fly);
+  expect(made.err).toContain("under fly-agents for issue.*");
+  const file = r.kept("cb4-agent-tokens.json");
+  delete file[theirs];
+  writeFileSync(join(r.state, "cb4-agent-tokens.json"), JSON.stringify(file));
+  calls = [];
+  const names = async (...a: string[]) => { const l = await r.brain(...a); return [l.code, l.out.trim().split("\n").filter(Boolean).map((x) => { const d = JSON.parse(x); return `${d.name} ${d.note} kept=${d.kept}`; })]; };
+  expect(await names("agent-token", "--parent", "fly-agents", "list")).toEqual([0, [`${theirs} orch; driver:m1 kept=false`]]);
+  expect(await names("agent-token", "list", "--parent", "fly-agents")).toEqual([0, [`${theirs} orch; driver:m1 kept=false`]]);
+  expect(await names("agent-token", "list")).toEqual([0, [`${own} impl; of the laptop kept=true`]]);
+  expect(sent("delegation.list").map((c) => c.bearer)).toEqual([fly, fly, parent.secret]);
+  // Without the flag the machine's token is none of loop-agents: exit 1, and no revoke is sent.
+  calls = [];
+  const not = await r.brain("agent-token", "revoke", theirs);
+  expect([not.code, not.out.trim(), sent("delegation.revoke")]).toEqual([1, `no token "${theirs}" was made under loop-agents or is kept here`, []]);
+  const id = rows.find((d) => d.name === theirs)!.id;
+  const gone = await r.brain("agent-token", "--parent", "fly-agents", "revoke", theirs);
+  expect([gone.code, gone.out.trim()]).toEqual([0, `revoked "${theirs}". Its value is not kept here, so no read was sent with it`]);
+  expect(sent("delegation.revoke")).toMatchObject([{ bearer: fly, body: { id } }]);
+  expect(rows.map((d) => d.name).sort()).toEqual(["fly-agents", "loop-agents", own].sort());
+  for (const d of [fly, parent.secret]) expect(gone.all + made.all).not.toContain(d);
+});
+
+test("agent-token --parent: a parent that is not kept, no name after the flag, or a name that is none: exit 1, and nothing is sent", async () => {
+  const r = rig();
+  await r.parent();
+  calls = [];
+  const none = await r.brain("agent-token", "--parent", "fly-agents", "list");
+  expect([none.code, none.out.trim()]).toEqual([1, `no token "fly-agents" is kept. The owner makes it once: token fly-agents 'issue.*' --delegate`]);
+  for (const bad of [["agent-token", "list", "--parent"], ["agent-token", "--parent", "Not_A_Name", "list"], ["agent-token", "--parent", "fly-agents"]]) {
+    const b = await r.brain(...bad);
+    expect([bad.join(" "), b.code, b.out.startsWith("agent-token [--parent NAME] <role> [what for] | ")]).toEqual([bad.join(" "), 1, true]);
+  }
+  expect(calls).toEqual([]);
+});

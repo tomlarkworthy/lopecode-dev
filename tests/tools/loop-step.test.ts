@@ -44,6 +44,7 @@ echo "$*" >> "$RIG/brain.log"
 case "$1 $2" in
   "redistil "*) if [ -f "$RIG/redistil" ]; then cat "$RIG/redistil"; else printf 'distiller abc\\n  brain-x-issues      same  aaaaaaaaaaaa\\n  brain-x-page        same  bbbbbbbbbbbb\\n'; fi;;
   "state "*) cat "$RIG/brain-state" 2>/dev/null || echo '{"workers":["brain-x-issues aaaaaaaaaaaa deployed","brain-x-page bbbbbbbbbbbb deployed","brain-x-new 999999999999 deployed","brain-core cccccccccccc deployed"]}';;
+  "curl /xrpc/com.lopecode.brain.fly.status") if [ -f "$RIG/fly-status" ]; then read code text < "$RIG/fly-status"; echo "$text"; echo " [$code]" >&2; else echo '{"machine":{"state":"started"},"loop":"orchestrator-testhost","yield":null,"work":1}'; echo " [200]" >&2; fi;;
   "agent-token list") cat "$RIG/tokens-list" 2>/dev/null;;
   "agent-token revoke") echo "401: revoked";;
   "agent-token "*) echo "$2-0a0a0a";;
@@ -108,6 +109,7 @@ const server = Bun.serve({ port: 0, hostname: "127.0.0.1", async fetch(req) {
   if (method === "cost") e = cost(id, { key, ...rest }, who);
   else if (method === "move") { e = ev(id, { type: "moved", key, move: rest.to, from: i.issue.state, ...rest }, who); i.issue.state = rest.to; }
   else if (method === "comment") e = ev(id, { type: "commented", key, ...rest }, who);
+  else if (method === "label") { e = ev(id, { type: "labelled", key, ...rest }, who); i.issue.labels = [...i.issue.labels.filter((l: string) => !rest.remove.includes(l)), ...rest.add]; }
   else return Response.json({ error: "NotFound" }, { status: 404 });
   T.keys.set(key, e.seq);
   return Response.json({ id, seq: e.seq, event: e });
@@ -122,7 +124,10 @@ function fresh(seq = 100) {
   rmSync(LOOP, { recursive: true, force: true });
   writeFileSync(TOKENS, JSON.stringify({ [ME]: "v-" + ME, "impl-aaaaaa": "v-impl-aaaaaa" }));
   writeFileSync(join(STATE, "cb4-issues-tokens.json"), "{}");
+  // The state file: with it the loop is the laptop's. A test of the machine's loop removes it (`noState`). It is not read.
+  writeFileSync(join(STATE, "cb4.json"), "{}");
 }
+const noState = () => rmSync(join(STATE, "cb4.json"));
 const flag = (name: string, text = "") => writeFileSync(join(RIG, name), text);
 const log = (name: string) => (existsSync(join(RIG, name + ".log")) ? readFileSync(join(RIG, name + ".log"), "utf8").trim().split("\n") : []);
 const cli = async (args: string[], env: Record<string, string> = {}) => {
@@ -261,7 +266,7 @@ test("`step --for event` and `--for run`: no pull, no `worktree.sh --list`, no `
   const n = lines().length;
   for (const bad of [["step", "--for"], ["step", "--for", "soon"], ["step", "--for", "--dry"], ["step", "event"]]) {
     const b = await cli(bad);
-    expect([b.code, b.out, b.err.trim()], bad.join(" ")).toEqual([2, "", "loop.ts: step [--dry] [--for clock|event|run]"]);
+    expect([b.code, b.out, b.err.trim()], bad.join(" ")).toEqual([2, "", "loop.ts: step [--dry] [--for clock|event|run|yield]"]);
   }
   expect(lines().length).toBe(n);
   r = await cli(["step", "--dry", "--for", "event"]);
@@ -841,7 +846,7 @@ test("a read that is not answered ends the step with exit 1 and `error` in its l
   expect([r.code, r.line.health, r.line.error.slice(0, 31), log("lock").length]).toEqual([1, { ok: true }, "queue?limit=1 answered nothing ", 2]);
   T.calls = [];
   r = await cli(["step", "--wet"]);
-  expect([r.code, r.err.trim(), T.calls]).toEqual([2, "loop.ts: step [--dry] [--for clock|event|run]", []]);
+  expect([r.code, r.err.trim(), T.calls]).toEqual([2, "loop.ts: step [--dry] [--for clock|event|run|yield]", []]);
   const { LOOP_TOKEN: _, ...base } = process.env;
   const p = spawnSync("bun", [tool, "step"], { encoding: "utf8", env: { ...base, LOOP_ROOT: ROOT, BRAIN_STATE_DIR: STATE, ISSUE_AS_BASE: `http://127.0.0.1:${server.port}` } as any });
   expect([p.status, T.calls]).toEqual([2, []]);
@@ -970,4 +975,117 @@ test("start --role orchestrator: it takes --token and --give and no other role t
   await until(() => file("orch-0a0a0a")?.ended);
   expect([file("orch-0a0a0a").ended.outcome, writes(), readFileSync(join(RIG, "agent.log"), "utf8").split("\n")[4]]).toEqual(["done", [], "Entries: unhealthy (redistil: brain-x-issues is changes)"]);
   expect(readFileSync(join(LOOP, "_judgment.md"), "utf8")).toContain("outcome done, token orch-0a0a0a");
+});
+
+// ---- a loop with no state file: the worker machine on Fly.io (fly-4-loop-files; plan/cloud-brain-worker-machine-on-fly.md, part 2)
+test("no state file: a whole step asks fly.status as fly-status in the place of `redistil` and `state`; an answer that is not 200 is not healthy", async () => {
+  fresh(); noState();
+  open("a", { state: "in-review" }); Q("a", "review");
+  let r = await step();
+  expect([r.code, r.line.health, r.line.machine, acts(r.line)]).toEqual([0, { ok: true }, true, ["start a reviewer"]]);
+  expect(log("brain")).toEqual(["curl /xrpc/com.lopecode.brain.fly.status --as fly-status"]);
+  expect(log("lock")).toEqual([`${ME} show land`, `${ME} show cb4`]);
+  expect(status()).toContain("this loop has no state file (the machine's): `fly.status` answering 200 is its health in the place of `redistil` and `state`");
+  // With the file the same step is the laptop's: the two commands, no call of fly.status, and no `machine` in the line.
+  fresh();
+  open("a", { state: "in-review" }); Q("a", "review");
+  r = await step();
+  expect([r.line.health, "machine" in r.line, log("brain")]).toEqual([{ ok: true }, false, ["redistil", "state"]]);
+  // 403 (a token that does not name it), and no status at all.
+  for (const [answer, said] of [['403 {"error":"Forbidden","message":"this token does not name com.lopecode.brain.fly.status"}', 'fly.status as fly-status: 403 {"error":"Forbidden","message":"this token does not name com.lopecode.brain.fly.status"}'], ["000 ", "fly.status as fly-status: no status [000]"]]) {
+    fresh(); noState(); flag("fly-status", answer);
+    open("a", { state: "in-review" }); Q("a", "review");
+    r = await step();
+    expect([r.line.health, acts(r.line), gave(r.line).length]).toEqual([{ ok: false, failed: [said] }, [], 1]);
+  }
+  // 200 with no JSON is not an answer.
+  fresh(); noState(); flag("fly-status", "200 not-json");
+  r = await step();
+  expect(r.line.health.ok).toBe(false);
+  // A step for an event reads no Worker on the laptop and asks no fly.status on the machine.
+  fresh(); noState(); flag("fly-status", "403 {}");
+  r = await cli(["step", "--for", "event"]);
+  expect([r.line.health, log("brain")]).toEqual([{ ok: true }, []]);
+});
+
+test("no state file: nothing is started on an issue labeled `laptop`, no digest is written or triaged, and no approver and no overseer is started; with the file each is", async () => {
+  const world = () => {
+    open("lap", { labels: ["laptop"] }); Q("lap", "start");
+    open("rev", { state: "in-review", labels: ["laptop"] }); Q("rev", "review");
+    open("dig", { labels: ["digest"] }); Q("dig", "start");
+    open("digest-2026-10-13", { state: "open", labels: ["digest"], opener: "worker:brain-x-snapshot" }); Q("digest-2026-10-13", "triage");
+    open("plain"); Q("plain", "start");
+    open("appr", { state: "awaiting-approval" }); Wt("appr", "owner");
+    // Three issues came to `done` after the last heading of oversight.md: an overseer is due.
+    for (const id of ["d1", "d2", "d3"]) { open(id, { state: "in-review" }); mv(id, "pass", "done"); }
+  };
+  fresh(5700); noState(); world();
+  let r = await step();
+  expect(acts(r.line)).toEqual(["start plain implementer"]);
+  expect(r.line.skipped.map((x: Ev) => `${x.do} ${x.id}: ${x.why}`)).toEqual([
+    "review rev: it is labeled `laptop`, and this loop has no state file: the laptop's loop takes it",
+    "triage digest-2026-10-13: it is a digest, and this loop has no state file: the laptop's loop takes it",
+    "approve appr: an approver's move is sent with `loop-approver`, and this loop has no state file: the laptop's loop takes it",
+    "start lap: it is labeled `laptop`, and this loop has no state file: the laptop's loop takes it",
+    "start dig: it is a digest, and this loop has no state file: the laptop's loop takes it",
+    "overseer : an overseer is due, and this loop has no state file: the laptop's loop takes it",
+  ]);
+  expect(writes().filter((c) => c.method === "move")).toEqual([]);
+  fresh(5700); world();
+  r = await step();
+  expect(acts(r.line).sort()).toEqual(["digest digest-2026-10-13", "start appr approver", "start dig digest", "start lap implementer", "start overseer", "start plain implementer", "start rev reviewer"].sort());
+});
+
+test("no state file: a review that needs a tab gets no reviewer, the label `laptop` and a comment that says why, once; one that needs none gets its reviewer", async () => {
+  // `fresh` clears the rig, so the script is written after each.
+  const needs = () => script("needs-tab-yes.sh", "#!/bin/bash\nexit 0\n");
+  fresh(); noState(); let tab = needs();
+  open("a", { state: "in-progress" }); const sub = ev("a", { type: "moved", key: "k/a/submit", move: "submit", from: "in-progress", to: "in-review", refs: [{ kind: "commit", value: "abc1234" }] }); at("a").issue.state = "in-review"; Q("a", "review");
+  open("b", { state: "in-progress" }); ev("b", { type: "moved", key: "k/b/submit", move: "submit", from: "in-progress", to: "in-review", refs: [] }); at("b").issue.state = "in-review"; Q("b", "review");
+  let r = await step({ LOOP_NEEDS_TAB: tab });
+  // b has no commit to ask of: no tab, as `start` has it.
+  expect(acts(r.line)).toEqual(["laptop a", "start b reviewer"]);
+  expect(at("a").issue.labels).toEqual(["laptop"]);
+  const l = events("a", "labelled")[0], c = events("a", "commented")[0];
+  expect([l.key, l.add, l.remove]).toEqual([`orch/a/laptop-${sub.seq}`, ["laptop"], []]);
+  expect([c.key, c.body]).toEqual([`orch/a/laptop-${sub.seq}/why`, "Labeled `laptop` by the loop of testhost, which has no state file: this review needs a paired tab, which that machine does not have. A loop on the laptop gives it a reviewer; the loop here starts nothing on an issue with the label."]);
+  // The next step meets the label: nothing more is written on a.
+  const n = at("a").events.length;
+  T.queue = []; Q("a", "review");
+  r = await step({ LOOP_NEEDS_TAB: tab });
+  expect([acts(r.line), skipped(r.line), at("a").events.length]).toEqual([[], ["review a"], n]);
+  // A `url` ref needs a tab whatever the script says; a dry step names the act and writes nothing.
+  fresh(); noState();
+  open("u", { state: "in-progress" }); ev("u", { type: "moved", key: "k/u/submit", move: "submit", from: "in-progress", to: "in-review", refs: [{ kind: "url", value: "https://x.example/" }] }); at("u").issue.state = "in-review"; Q("u", "review");
+  r = await dry();
+  expect([acts(r.line), at("u").issue.labels, writes()]).toEqual([["laptop u"], [], []]);
+  // With the state file the same review is started here, with its tab.
+  fresh(); tab = needs();
+  open("a", { state: "in-progress" }); ev("a", { type: "moved", key: "k/a/submit", move: "submit", from: "in-progress", to: "in-review", refs: [{ kind: "commit", value: "abc1234" }] }); at("a").issue.state = "in-review"; Q("a", "review");
+  r = await step({ LOOP_NEEDS_TAB: tab });
+  expect([acts(r.line), at("a").issue.labels]).toEqual([["start a reviewer"], []]);
+});
+
+test("`step --for yield`: the runs that returned are ended and each token kept for a round is ended; the queue is not read and nothing is started, also when the cluster is not healthy", async () => {
+  fresh(); noState();
+  open("a", { state: "in-review" }); Q("a", "review");
+  open("k", { state: "in-review" });
+  runFile({ token: "impl-bbbbbb", id: "a" }); writeFileSync(join(RUNS, "impl-bbbbbb.result.json"), "{}");
+  runFile({ token: "impl-cccccc", id: "k", ended: { at: 1, outcome: "in-review", token: "kept" } });
+  runFile({ token: "impl-dddddd", id: "k", ended: { at: 1, outcome: "pass", token: "ended" } });
+  runFile({ token: "impl-eeeeee", id: "k", host: "another", ended: { at: 1, outcome: "in-review", token: "kept" } });
+  let r = await cli(["step", "--for", "yield"]);
+  expect([r.code, r.line.for, r.line.health]).toEqual([0, "yield", { ok: true }]);
+  expect(r.line.acts.map((a: Ev) => `${a.act} ${a.token}`)).toEqual(["ended impl-bbbbbb", "token-ended impl-cccccc"]);
+  expect(log("self")).toEqual(["ended impl-bbbbbb"]);
+  expect(log("brain")).toEqual(["agent-token revoke impl-cccccc"]);
+  expect(file("impl-cccccc").ended.token).toBe("ended");
+  expect(file("impl-eeeeee").ended.token).toBe("kept");
+  expect(T.calls.filter((c) => c.method === "queue").length).toBe(1);   // the read that says the token reads the tracker
+  expect(status()).toContain("a step for a yield: the runs that returned are ended and the tokens kept for a round are ended; the queue is not read and nothing is started");
+  // Not healthy (a lock cb4 did not say): no judgment run is given it, and nothing is ended.
+  fresh(); noState(); flag("lock-cb4", "2 cb4 was not reached");
+  runFile({ token: "impl-bbbbbb", id: "a" });
+  r = await cli(["step", "--for", "yield"]);
+  expect([r.line.health.ok, r.line.acts, r.line.given, log("self")]).toEqual([false, [], [], []]);
 });

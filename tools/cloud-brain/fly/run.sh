@@ -16,9 +16,16 @@
 #   three submodules are updated (lopebooks, cloud-brain-dev, lopecode-plugin) and `bun install` is run at the
 #   root and in tools/. The fourth, lopecode, is not asked for: the commit recorded for it is on no remote
 #   (issue seen-lopecode-pointer-on-no-remote). A step of these that fails prints a line and the start goes on;
-#   IS_SANDBOX=1 METADEV=1 claude -p "/loop /brain-maintenance" --model opus --permission-mode bypassPermissions
-#   and its exit is this script's. IS_SANDBOX=1 because root is refused that mode without it, and METADEV=1
-#   because the SessionStart hook of .claude/settings.json ends a session without it (the record of fly-1-by-hand).
+#   IS_SANDBOX=1 METADEV=1 BRAIN_URL=$FLY_RUN_BASE bun tools/cloud-brain/loop.ts run
+#   and its exit is this script's. That is the driver, a program with no model, which takes the lock `loop`, makes
+#   the steps and starts each agent as a process (plan/cloud-brain-orchestrator-as-steps.md, part 4). With no state
+#   file it ends itself, exit 0, at a step with nothing to do and after a yield (the header of loop.ts, `run`, item 7).
+#   The three variables are for the agents it starts, which have its environment: IS_SANDBOX=1 because root is
+#   refused --permission-mode bypassPermissions without it, METADEV=1 because the SessionStart hook of
+#   .claude/settings.json ends a session without it (the record of fly-1-by-hand), and BRAIN_URL because brain.ts
+#   builds the Brain's address from the state file, which the machine does not have: with it `brain.ts agent-token`
+#   and `brain.ts curl /xrpc/… --as NAME`, as the briefs write it, have an address. Until fly-4-loop-files
+#   (2026-10-13) the line was `claude -p "/loop /brain-maintenance"`, a session that was the loop.
 #
 # What it reads from the environment, each with what it is when not set:
 #   DATA /data                    the volume
@@ -29,9 +36,9 @@
 #   FLY_RUN_BASE https://cb4.endpointservices.workers.dev   the Brain's address. brain.ts reads it from the state
 #                                 file, which the machine does not have, so the call names it whole
 #   FLY_RUN_ORIGIN git@github-lopecode-dev:tomlarkworthy/lopecode-dev.git   what is cloned
-#   FLY_RUN_PROMPT "/loop /brain-maintenance"   the prompt. What a session there is told of its token is not
-#                                 decided here (task fly-4-loop-files)
-#   MODEL opus                    as cloud-brain-dev/agent.sh; a session there starts with another model by default
+# Not read here since fly-4-loop-files: FLY_RUN_PROMPT, and MODEL (cloud-brain-dev/agent.sh, which starts each agent,
+# has opus with none). No token is named to the driver: it makes its own (`agent-token orch driver:<host>`, a child
+# of the machine's `loop-agents`, which is the Brain's `fly-agents`), and one for each agent it starts.
 #   RUN_SH_PULLED                 1 in the second half. Set by the first; with it set by hand the first is left out
 # Nothing here holds or names a credential of Fly.io: the machine stops because this process ends.
 # tests/tools/fly-run-sh.test.ts; tools/cloud-brain/records/fly-2-image-and-run-sh.md.
@@ -85,9 +92,9 @@ done
 bun install --silent || say "bun install failed at the root; the start goes on"
 (cd tools && bun install --silent) || say "bun install failed in tools/; the start goes on"
 
-say "starting claude"
-IS_SANDBOX=1 METADEV=1 claude -p "${FLY_RUN_PROMPT:-/loop /brain-maintenance}" --model "${MODEL:-opus}" --permission-mode bypassPermissions < /dev/null
+say "starting the driver"
+IS_SANDBOX=1 METADEV=1 BRAIN_URL="$BASE" bun tools/cloud-brain/loop.ts run < /dev/null
 CODE=$?
-say "claude ended with $CODE"
+say "the driver ended with $CODE"
 exit $CODE
 }
