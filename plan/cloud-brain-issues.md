@@ -445,7 +445,11 @@ owner present, `plan/cloud-brain-approver-persona.md`, task 4. It was installed 
 `plan/cloud-brain-issues-policy-v4.json` is the one after it, not installed when this was written: the policy of event
 4668 with `decompose` and `finish` of `project` reading `issue.children.work`, and a `migrate` of the project workflow
 alone, `plan/cloud-brain-bookkeeping-in-the-tracker.md`, task 4. Each body is made from the policy in force when it
-is written, since an install writes the whole policy.)
+is written, since an install writes the whole policy. 2026-10-13: `plan/cloud-brain-issues-policy-v5.json` is the v4
+file with the end of its reason made again, the blobs of the approver's brief and tool as `main` has them, and is the
+one to install in v4's place; neither was installed when this was written. `bun tools/cloud-brain/policy-pins.ts check`
+says whether the newest file names the two as a checkout has them, and `remake` writes the next
+(`tools/cloud-brain/records/policy-v5-names-the-approver-as-it-is.md`).)
 
 Installed by the owner on cb4 2026-10-11, event 483. The 27 open issues were all moved to the new
 workflows; `issue.verify?guards=true` answered ok over 511 events afterwards.

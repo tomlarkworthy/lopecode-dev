@@ -451,6 +451,10 @@ none. The draft read by the second agent pinned the brief by a line of `rules.md
 changed the brief and that line together would have been in force for every other issue while its
 own waited, since a change is pushed before its approval. A tool that was changed to skip the
 comparison is not held by it: that is the agent on one machine of part 1.
+(As built, `policy-v5-names-the-approver-as-it-is`, 2026-10-13: two landed changes had stopped approvals this way.
+`tests/tools/issues-policy-v5.test.ts` fails in a checkout whose brief or tool is not what the newest policy file
+names, and its line says what the change costs; `tools/cloud-brain/policy-pins.ts remake` writes the next file. The
+install is still his; the record.)
 
 **The approver does not judge a change to itself.** `approver.ts approve` refuses an issue of which
 a ref touches `agents/approver.md`, `tools/cloud-brain/approver.ts`, its test,
