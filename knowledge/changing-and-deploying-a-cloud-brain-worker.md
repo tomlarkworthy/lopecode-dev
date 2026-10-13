@@ -1,6 +1,6 @@
 ---
 scope: [local-development]
-topics: Cloud Brain; changing a seed; a git worktree for the change (worktree.sh), landed by a push; build.ts; deploying a Worker; brain.ts apply, redistil, saw, confirm; waiting-deploys.ts, which of the kernel, the core, the database and the deployer cb4 runs behind main; the deploy lock; a Playwright script in tools; where a service keeps files
+topics: Cloud Brain; a service changed as a patch from cloud-brain-dev (run.ts), and the seed of brain-git that is behind what runs; changing a seed; a git worktree for the change (worktree.sh), landed by a push; build.ts; deploying a Worker; brain.ts apply, redistil, saw, confirm; waiting-deploys.ts, which of the kernel, the core, the database and the deployer cb4 runs behind main; the deploy lock; a Playwright script in tools; where a service keeps files
 triggers:
   - "^(Edit|Write|MultiEdit) .*tools/cloud-brain/.*\.(ojs|ts|js|sh|py)$"
   - "(^Bash |^|[;&|] )bun +tools/cloud-brain/build\.ts( |$)"
@@ -14,6 +14,23 @@ triggers:
 Moved here on 2026-10-11 from `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md`, which was written 2026-10-08 from the session that
 built the cluster pairing. Each command was run that day against `cb4`, except where it says not run. The text is as it was there; a line carries its own date where it is later.
 The other pages are listed in that file, which is read first.
+
+## A service changed as a patch (since 2026-10-13; from `cloud-brain-dev` alone since 2026-10-14)
+
+A second way exists beside the seeds, for a `brain-x-*` service: the module is edited as cb4 runs it, in a repository
+of that one piece of work, and what is deployed is a patch. The commands and each run are in `cloud-brain-dev/README.md`
+("A change sent back", "The repository of a piece of work", "One issue, from ready to deployed"); `bun run.ts ID` there
+is the whole of it for one issue. The owner, 2026-10-13, in the session that built it (issue `fly-loop-needs-cloud-brain-dev-alone` has that evening): "the cluster is the source of truth. Seeds go stale."
+
+**`brain-x-git` was changed that way five times on 2026-10-13 and 14** (`git.fork`, `git.work`, `git.works`, and two
+changes to its tests; cb4 runs hash `03c0b2f81f63`). Its seed, `tools/cloud-brain/brain-git.ojs`, has none of them.
+A deploy of `brain-x-git` built from that seed would take the five away: do not make one. Change that service in
+`cloud-brain-dev`, or carry the five into the seed first (not done; whether seeds are kept at all is the owner's).
+What stands in the way of one is `was`: `tools/cloud-brain/seen.json` has `brain-x-git` at `9ba9cc3be98a`, the hash
+before the five, and `brain.ts apply` refuses a Worker whose running hash is not the one seen. `brain.ts saw
+brain-x-git` takes that guard away, so it is not run for this service before the seed has the five. (`redistil` does
+not show the difference: it distils the source the deployer keeps, which is the patched one.) No other service was
+changed this way.
 
 ## Changing it
 
