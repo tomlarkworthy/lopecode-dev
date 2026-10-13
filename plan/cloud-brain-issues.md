@@ -449,7 +449,11 @@ is written, since an install writes the whole policy. 2026-10-13: `plan/cloud-br
 file with the end of its reason made again, the blobs of the approver's brief and tool as `main` has them, and is the
 one to install in v4's place; neither was installed when this was written. `bun tools/cloud-brain/policy-pins.ts check`
 says whether the newest file names the two as a checkout has them, and `remake` writes the next
-(`tools/cloud-brain/records/policy-v5-names-the-approver-as-it-is.md`).)
+(`tools/cloud-brain/records/policy-v5-names-the-approver-as-it-is.md`). The v5 file was installed at event 5689, under
+the key it has from v4. `plan/cloud-brain-issues-policy-v6.json` is the one after it, not installed when this was
+written: the same policy and `migrate`, the two blobs as `main` has them after `approver-policy-mark-takes-every-route`,
+and a key of its own, since a body with a key the record keeps and the same policy writes nothing
+(`tools/cloud-brain/records/approver-policy-mark-takes-every-route.md`).)
 
 Installed by the owner on cb4 2026-10-11, event 483. The 27 open issues were all moved to the new
 workflows; `issue.verify?guards=true` answered ok over 511 events afterwards.

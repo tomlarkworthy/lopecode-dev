@@ -401,10 +401,80 @@ test("the policy cells the tool names are cells of tools/cloud-brain/brain-issue
   expect(policyCells(seed, seed)).toEqual([]);
   // A change of one character in a cell is that cell's, and in a test cell or the panel is none.
   const changed = (name: string) => policyCells(seed, seed.replace(new RegExp(`^${name} = `, "m"), `${name} =  `));
-  for (const name of [...Object.keys(JUDGE), ...Object.keys(ROUTES)]) expect(changed(name), name).toEqual([name]);
-  // What the seven name, however far, on the seed of 2026-10-13.
-  for (const name of ["issuesLimits", "issueAt", "issueActor", "issueCaller", "issueFacts", "issueWhen", "issueWaitFacts", "issueAfterWalk", "issueRunOf", "issueCanon", "issueBytes"]) expect(changed(name), name).toEqual([name]);
+  // issuesApp is read by its parts since approver-policy-mark-takes-every-route: a space before its block is none.
+  for (const name of [...Object.keys(JUDGE), ...Object.keys(ROUTES)]) expect(changed(name), name).toEqual(name === "issuesApp" ? [] : [name]);
+  // What the seven name, however far, on the seed of 2026-10-13. issuesLimits is among them, and is read by its entries.
+  expect(changed("issuesLimits")).toEqual([]);
+  for (const name of ["issueAt", "issueActor", "issueCaller", "issueFacts", "issueWhen", "issueWaitFacts", "issueAfterWalk", "issueRunOf", "issueCanon", "issueBytes"]) expect(changed(name), name).toEqual([name]);
   for (const name of ["issuesPanel", "issueFlow", "issueQueue", "issueWakes", "issueCheck", "issueKeys", "issuesAttention", "test_issues_declares_what_it_needs"]) expect(changed(name), name).toEqual([]);
+});
+
+// Issue approver-policy-mark-takes-every-route (the owner's C, comment 6384): of issuesApp the mark takes the routes
+// install, rebuild and resign, the refusal on a guard's answer and what those name; of issuesLimits the entries a
+// policy cell or a policy part of the app reads. Each case is the seed of the checkout with one thing changed.
+test("issuesApp and issuesLimits are marked by their policy parts, on the seed as the checkout has it", () => {
+  const seed = readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain/brain-issues.ojs"), "utf8");
+  // Each change is of text that stands once in the seed: a change that changed nothing would pass a test of [].
+  const swap = (from: string, to: string, text = seed) => { expect(text.split(from).length, from).toBe(2); return text.replace(from, () => to); };
+  const diff = (from: string, to: string) => policyCells(seed, swap(from, to));
+  const HELD = '"InvalidRequest", "seconds: a call is held with an id, for the waits of one issue")';
+  const GUARD = 'if (id !== undefined && issueAllowed(view, by, { type: "read", id }).allow) await ahead(view, id);';
+  // None: a read route changed beside its guard, a route added, a limit no policy part reads changed or added, a
+  // comment between two statements.
+  expect(diff(HELD, '"InvalidRequest", "seconds: with an id")')).toEqual([]);
+  expect(diff("  return app;\n}", '  app.get(NS + "count", run(async () => ({ n: (await load([S.all])).seq })));\n  return app;\n}')).toEqual([]);
+  expect(diff("wakeMs: 2000", "wakeMs: 1000")).toEqual([]);
+  expect(diff("wakeSeconds: 25,", "wakeSeconds: 25, wakeLate: 3,")).toEqual([]);
+  expect(diff('  app.get(NS + "wakes", ', '  // said again\n  app.get(NS + "wakes", ')).toEqual([]);
+  // The three routes of the owner present, each changed alone, and the check in each that he is.
+  for (const name of ["install", "rebuild", "resign"]) expect(diff(`app.post(NS + "${name}", run(async (c`, `app.post(NS + "${name}", run(async (/* looser */ c`), name).toEqual([`issuesApp (the route ${name})`]);
+  expect(diff('if (!issueCaller(ctx.by).present) throw refuse(403, "Refused", "the owner, present");', "")).toEqual(["issuesApp (the route install)"]);
+  // The refusal on a guard's answer: the judge of the app, what calls it, and a guard asked in a route that is not one
+  // of the three.
+  expect(diff("verdict.missing ? 404 : verdict.invalid ? 400 : 403", "verdict.missing ? 404 : verdict.invalid ? 400 : 200")).toEqual(["issuesApp (judge)"]);
+  expect(diff("[act, verdict] = judge(view, ctx.by, given)", "[act, verdict] = [given, { allow: true }]")).toEqual(["issuesApp (write)"]);
+  expect(diff(GUARD, "await ahead(view, id);")).toEqual(["issuesApp (a statement that asks a guard)"]);
+  expect(diff(GUARD, GUARD.replace('"read"', '"comment"'))).toEqual(["issuesApp (a statement that asks a guard)"]);
+  expect(diff('if (b.force && !issueCaller(by).present) throw refuse(403, "Refused", "the owner, present");', "")).toEqual(["issuesApp (a statement that asks a guard)"]);
+  // What a policy part names is one: the view every guard is asked of, and the limits by their name in the app.
+  expect(diff("const load = async (rows) => {\n    await schema();", "const load = async (rows) => {")).toEqual(["issuesApp (load)"]);
+  expect(diff("S = issuesSql, L = issuesLimits, J = JSON.parse", "S = issuesSql, L = { ...issuesLimits, key: 1e9 }, J = JSON.parse")).toEqual(["issuesApp (L)"]);
+  expect(policyCells(seed, swap("wakeMs: 2000", "wakeMs: 1000", swap("S = issuesSql, L = issuesLimits, J = JSON.parse", "S = issuesSql, L = { ...issuesLimits, key: 1e9 }, J = JSON.parse")))).toEqual(["issuesApp (L)", "issuesLimits"]);
+  // A statement that is no declaration and no route: the loop that makes the write routes, and one more of any kind.
+  expect(diff('"move", "swap", "narrow"])', '"move", "swap", "narrow", "policy"])')).toEqual(["issuesApp (a statement that is no declaration and no route)"]);
+  expect(diff("  return app;\n}", "  app.use(async (c, next) => next());\n  return app;\n}")).toEqual(["issuesApp (a statement that is no declaration and no route)"]);
+  // A new route that writes is marked by what it calls.
+  expect(diff("  return app;\n}", '  app.post(NS + "put", run(async (c, b) => write({ by: { caller: "owner" } }, b.key, b)));\n  return app;\n}')).toEqual(["issuesApp (a statement that asks a guard)"]);
+  // Where the app is not cut it is named whole, as before: one of the three routes twice or under GET, the judge
+  // under another name, a declaration of more than one name, a block that does not parse.
+  expect(diff("  return app;\n}", '  app.post(NS + "install", run(async () => ({})));\n  return app;\n}')).toEqual(["issuesApp"]);
+  expect(diff("  return app;\n}", '  app.get(NS + "rebuild", run(async () => ({})));\n  return app;\n}')).toEqual(["issuesApp"]);
+  expect(diff("const judge = (view, by, given) => {", "const judged = (view, by, given) => {")).toEqual(["issuesApp"]);
+  expect(diff("let made = null, keys = null;", "let made = null, keys = null, { a } = {};")).toEqual(["issuesApp"]);
+  expect(diff("  return app;\n}", "  return app;;)\n}")).toEqual(["issuesApp"]);
+  // Not cut on the two sides alike, with a route changed: whole still.
+  const twice = swap("  return app;\n}", '  app.post(NS + "install", run(async () => ({})));\n  return app;\n}');
+  expect(policyCells(twice, swap(HELD, '"InvalidRequest", "seconds: with an id")', twice))).toEqual(["issuesApp"]);
+  // A limit a policy cell reads (issueAllowed has L.reason), and one a policy part of the app reads (write has L.key).
+  expect(diff("title: 300, reason: 2000,", "title: 300, reason: 20000,")).toEqual(["issuesLimits (reason)"]);
+  expect(diff("reason: 2000, key: 100,", "reason: 2000, key: 1000,")).toEqual(["issuesLimits (key)"]);
+  expect(diff("rebuildRounds: 5,", "")).toEqual(["issuesLimits (rebuildRounds)"]);
+  // Where the limits are not cut they are named whole, as before: a spread, a key twice, and a policy cell that
+  // passes them on whole, whichever entry changed.
+  expect(diff("wakeMs: 2000,", "wakeMs: 1000, ...{},")).toEqual(["issuesLimits"]);
+  expect(diff("wakeMs: 2000,", "wakeMs: 1000, wakeMs: 2000,")).toEqual(["issuesLimits"]);
+  const passed = swap("\nissuePolicyAct = ", "\nissuePolicyAct = [issuesLimits].length && ");
+  expect(policyCells(passed, passed)).toEqual([]);
+  expect(policyCells(passed, swap("wakeMs: 2000", "wakeMs: 1000", passed))).toEqual(["issuesLimits"]);
+});
+
+// The commit the issue names: tr-4-held-read changed the read route `wakes` and added two limits that route reads.
+// It is read from the history of this checkout, which a clone with no history does not have.
+test("the commit of tr-4-held-read, 489aea7a, touches no policy part of the seed", () => {
+  const here = gitOf(resolve(import.meta.dir, "../.."));
+  expect(here.files("", "489aea7a9d6b9486849d385731c1ab5cc3c1c9e7")).toEqual([SEED]);
+  expect(seedTouch(here, "489aea7a9d6b9486849d385731c1ab5cc3c1c9e7")).toEqual([]);
+  expect([own(SEED, []), marks(SEED, [])]).toEqual([false, ["tracker"]]);
 });
 
 // An issue sent back once: its first submit names `first`, its second `second`, and the verdict is of round 2.

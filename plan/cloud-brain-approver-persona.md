@@ -454,7 +454,9 @@ comparison is not held by it: that is the agent on one machine of part 1.
 (As built, `policy-v5-names-the-approver-as-it-is`, 2026-10-13: two landed changes had stopped approvals this way.
 `tests/tools/issues-policy-v5.test.ts` fails in a checkout whose brief or tool is not what the newest policy file
 names, and its line says what the change costs; `tools/cloud-brain/policy-pins.ts remake` writes the next file. The
-install is still his; the record.)
+install is still his; the record. `remake` keeps the key of the file it reads: the next file after one that was
+installed takes a key of its own by hand, as `plan/cloud-brain-issues-policy-v6.json` has, or its install writes
+nothing; `tests/tools/issues-policy-v6.test.ts` has both in the tracker's rig.)
 
 **The approver does not judge a change to itself.** `approver.ts approve` refuses an issue of which
 a ref touches `agents/approver.md`, `tools/cloud-brain/approver.ts`, its test,
@@ -802,6 +804,11 @@ what the text left open:
   those names, or code with no name. A commit that changes other cells of the seed alone is not refused, and
   `facts` marks the file `tracker` for it. The commits of `bk-2-finish-by-the-service`, `bk-3-queue-and-hold` and
   `tr-1-wait-in-the-record` are still refused: each changes `issueAllowed`. The record.)
+  (`approver-policy-mark-takes-every-route`, 2026-10-13, the owner's C of comment 6384 there: of two of those
+  cells the tool compares the policy parts alone. Of `issuesApp`: the routes `install`, `rebuild` and `resign`,
+  each statement that asks a guard, and what those name. Of `issuesLimits`: the entries those read. A cell it
+  cannot cut into those parts is compared whole, as before. The commit of `tr-4-held-read`, a read route and two
+  limits it reads, is no longer refused. `tools/cloud-brain/records/approver-policy-mark-takes-every-route.md`.)
 - R7 has a fourth comparison: the file that runs is hashed (`git hash-object`) and is the tool blob of the
   policy's reason, so a checkout behind `origin/main` makes no move.
 - A quotation of fewer than 20 characters is written `asked: <seq> "<words>" answers <seq of the comment>`.

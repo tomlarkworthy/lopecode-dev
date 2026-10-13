@@ -30,6 +30,9 @@
 //          named after the file), `tracker` (brain-issues.ojs when it touches none) or `approver` (the brief, this
 //          tool, its test). A mark refuses nothing but `policy` and `approver`, which `approve` refuses (below).
 //          The policy cells are JUDGE and ROUTES below, with what `policyCells` adds to them.
+//          Of two of them a commit touches the policy parts or it does not touch the cell: issuesApp (the routes
+//          install, rebuild and resign, what asks a guard, and what those name: `appParts`) and issuesLimits (the
+//          entries a policy cell or such a part reads). The parts that differ are named in brackets after the cell.
 // approve  Makes the `approve` move with the token loop-approver, or makes none and prints each reason. In this order:
 //          the `approve` guard of the issue's workflow names no delegation: exit 3, nothing sent, before anything else
 //          is judged. Then, every one of these or exit 1:
@@ -45,7 +48,8 @@
 //          - the last `submit` or `submit-spec` of the issue has a `commit` ref; each `commit` ref of every submit the
 //            issue has, of this round or one before a send-back, is a commit the checkout has; and none touches the
 //            brief, this tool, tests/tools/approver.test.ts, a plan/cloud-brain-issues-policy-*.json or a policy
-//            cell of brain-issues.ojs (R7; a commit that changes other cells of the seed alone is not refused). A
+//            cell of brain-issues.ojs (R7; a commit that changes other cells of the seed alone is not refused, nor
+//            one that changes issuesApp or issuesLimits in no policy part). A
 //            submit of another issue, its parent's `submit-spec` among them, is not read for it;
 //          - the verdict has a line `asked: <where> "<his words>"`, and each such line holds (R3, R6):
 //            <where> a number: an event before the verdict, of the issue or of what was its parent or that one's
@@ -92,6 +96,7 @@
 // ISSUE_AS_BASE another address for it and for the two sends; APPROVER_ROOT another checkout, and APPROVER_MAIN another
 // ref than origin/main, which is then not fetched. Only the tests set them. `judge`, `facts`, `check`, `list` and
 // `trial` take what was read and call nothing but git: tests/tools/approver.test.ts.
+import { parse } from "acorn";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -136,11 +141,134 @@ function cellsOf(text: string) {
   }
   return { cells, count, loose: loose.sort().join("\n// %%\n") };
 }
+// ---- Two policy cells are read by their parts (issue approver-policy-mark-takes-every-route; the owner's C, comment
+// 6384 there: the mark takes the install, rebuild and resign routes, the refusal on a guard's answer and the limits a
+// judge reads, "and where the tool cannot cut the cell into those parts it marks the whole cell as now").
+type Node = any;
+const tree = (src: string): Node | null => { try { return parse(src, { ecmaVersion: "latest" }); } catch { return null; } };
+const codeOf = (chunk: string) => chunk.replace(/^(?:[ \t]*(?:\/\/.*)?\n)*/, "");
+// What stands after `name =` in a cell; null for a cell written as a function.
+const valueOf = (chunk: string) => { const code = codeOf(chunk), m = /^(?:(?:viewof|mutable)\s+)?[A-Za-z_$][\w$]*\s*=(?![=>])/.exec(code); return m ? code.slice(m[0].length) : null; };
+// Every node under `root`, with the nodes above it (nearest last) and the field of its parent it stands in.
+function walk(root: Node, fn: (n: Node, up: Node[], key: string) => void, up: Node[] = [], key = "") {
+  fn(root, up, key);
+  up.push(root);
+  for (const k in root) {
+    if (k === "type" || k === "start" || k === "end") continue;
+    for (const c of Array.isArray(root[k]) ? root[k] : [root[k]]) if (c && typeof c.type === "string") walk(c, fn, up, k);
+  }
+  up.pop();
+}
+// A name that is read as a name: not the `b` of `a.b`, and not the key of `{ b: 1 }`.
+const isRef = (n: Node, parent: Node | undefined, key: string) =>
+  n.type === "Identifier" && !(parent && key === "property" && parent.type === "MemberExpression" && !parent.computed) && !(parent && key === "key" && parent.type === "Property" && !parent.computed && !parent.shorthand);
+const refsOf = (n: Node) => { const out = new Set<string>(); walk(n, (x, up, key) => { if (isRef(x, up.at(-1), key)) out.add(x.name); }); return out; };
+// The entries of issuesLimits that the nodes `within` read, of a cell parsed as `root`: `issuesLimits.x`, `L.x` where
+// the cell has `L = issuesLimits` (a declaration or a default), and `{ x } = issuesLimits`. null where one cannot be
+// told: the limits passed on whole, spread, or read by a key that is computed.
+function limitReads(root: Node, within: Node[] = [root]): Set<string> | null {
+  const alias = new Set(["issuesLimits"]), keys = new Set<string>();
+  const pairOf = (n: Node | undefined) => (n?.type === "VariableDeclarator" ? [n.id, n.init] : n?.type === "AssignmentPattern" ? [n.left, n.right] : null);
+  const named = (pair: Node[] | null) => !!pair && pair[0]?.type === "Identifier" && pair[1]?.type === "Identifier" && pair[1].name === "issuesLimits";
+  walk(root, (n) => { const pair = pairOf(n); if (named(pair)) alias.add(pair![0].name); });
+  let lost = false;
+  for (const w of within) walk(w, (n, up, key) => {
+    const p = up.at(-1), pair = pairOf(p);
+    if (!isRef(n, p, key) || !alias.has(n.name)) return;
+    if (p?.type === "MemberExpression" && key === "object") {
+      if (!p.computed) keys.add(p.property.name);
+      else if (p.property.type === "Literal" && typeof p.property.value === "string") keys.add(p.property.value);
+      else lost = true;
+    } else if (named(pair)) return;
+    else if (pair && pair[1] === n && pair[0].type === "ObjectPattern" && pair[0].properties.every((q: Node) => q.type === "Property" && !q.computed && q.key.type === "Identifier")) for (const q of pair[0].properties) keys.add(q.key.name);
+    else lost = true;
+  });
+  return lost ? null : keys;
+}
+// The entries of issuesLimits a cell reads; null where the cell is not parsed or one cannot be told.
+function cellLimitReads(chunk: string): Set<string> | null {
+  const v = valueOf(chunk), root = v == null ? tree(codeOf(chunk)) : tree(`(async function*(){return (\n${v}\n)})`) || tree(`(async function*()${v}\n)`);
+  return root ? limitReads(root) : null;
+}
+// issuesLimits as its entries, each the text of its value; null when it is not one object of plain keys, each once.
+function limitEntries(chunk: string | undefined): Map<string, string> | null {
+  const v = chunk == null ? null : valueOf(chunk), src = `(\n${v}\n)`, ast = v == null ? null : tree(src), o = ast?.body.length === 1 ? ast.body[0].expression : null, out = new Map<string, string>();
+  if (o?.type !== "ObjectExpression") return null;
+  for (const q of o.properties) {
+    const k = q.type === "Property" && !q.computed && !q.method && q.kind === "init" ? (q.key.type === "Identifier" ? q.key.name : typeof q.key.value === "string" ? q.key.value : null) : null;
+    if (k == null || out.has(k)) return null;
+    out.set(k, src.slice(q.value.start, q.value.end));
+  }
+  return out;
+}
+// The routes of issuesApp that are the owner's, and what asks a guard: the seven of JUDGE and the cell that says
+// whether the caller is present.
+const OWNER_ROUTES = ["install", "rebuild", "resign"], GUARDS = [...Object.keys(JUDGE), "issueCaller"];
+const isFn = (n: Node) => n.type === "FunctionExpression" || n.type === "ArrowFunctionExpression" || n.type === "FunctionDeclaration";
+// issuesApp cut into its policy parts, each a name with its text, and the limits those parts read. The cell is a block:
+// its statements are declarations (`const judge = …`, a part a name), routes (`app.get(NS + "name", …)` or `app.post`)
+// and whatever else. The policy parts:
+//   - the routes install, rebuild and resign;
+//   - `judge`, where a guard's answer is turned into the refusal, and each declaration that names a guard or such a
+//     declaration, however far (`write` names `judge`, `append` names `write`, `shownEvent` names `shown`);
+//   - each statement that is no declaration and no route (the loop that makes the write routes, `return app`, an
+//     `app.use`);
+//   - in what is left, the other routes among it, each statement that names a guard or such a declaration: it is
+//     taken as the statement it is of the innermost function with a body in braces, in the order they stand;
+//   - each declaration that one of the parts above names, however far (`load`, `refuse`, `run`, `L`).
+// So a route that is none of the three is a part only by the statements in it that ask a guard, and a new route by
+// those it has. null where the cell is not cut: it is not one block that parses, a declaration is not of one name, a
+// name or a route stands twice, `judge` or one of the three routes is not there as a POST, or one is there otherwise.
+export function appParts(chunk: string | undefined): { parts: Map<string, string>; limits: Set<string> | null } | null {
+  const v = chunk == null ? null : valueOf(chunk), src = `(async function*()${v}\n)`, ast = v == null ? null : tree(src), fn = ast?.body.length === 1 ? ast.body[0].expression : null;
+  if (fn?.type !== "FunctionExpression") return null;
+  const text = (n: Node) => src.slice(n.start, n.end);
+  const units: { kind: "local" | "route" | "other"; name: string; key: string; node: Node }[] = [];
+  for (const st of fn.body.body) {
+    if (st.type === "VariableDeclaration") {
+      for (const d of st.declarations) { if (d.id.type !== "Identifier") return null; units.push({ kind: "local", name: d.id.name, key: d.id.name, node: d }); }
+      continue;
+    }
+    const call = st.type === "ExpressionStatement" && st.expression.type === "CallExpression" ? st.expression : null, to = call?.callee, path = call?.arguments[0];
+    const route = to?.type === "MemberExpression" && !to.computed && to.object.type === "Identifier" && to.object.name === "app" && ["get", "post"].includes(to.property.name) &&
+      path?.type === "BinaryExpression" && path.operator === "+" && path.left.type === "Identifier" && path.left.name === "NS" && path.right.type === "Literal" && typeof path.right.value === "string";
+    units.push(route ? { kind: "route", name: path.right.value, key: `${to.property.name} ${path.right.value}`, node: st } : { kind: "other", name: "", key: "", node: st });
+  }
+  const keyed = units.filter((u) => u.kind !== "other"), byKey = new Map(keyed.map((u) => [u.key, u]));
+  if (byKey.size !== keyed.length || !byKey.has("judge") || byKey.get("judge")!.kind !== "local") return null;
+  if (OWNER_ROUTES.some((r) => !byKey.has("post " + r)) || keyed.some((u) => u.kind === "route" && OWNER_ROUTES.includes(u.name) && u.key !== "post " + u.name)) return null;
+  const locals = new Map(units.filter((u) => u.kind === "local").map((u) => [u.name, u])), refs = new Map(units.map((u) => [u, refsOf(u.node)]));
+  const names = new Set([...GUARDS, "judge"]), policy = new Set(units.filter((u) => u.kind === "other" || u.key === "judge" || (u.kind === "route" && OWNER_ROUTES.includes(u.name))));
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const u of locals.values()) if (!policy.has(u) && [...refs.get(u)!].some((n) => names.has(n))) { names.add(u.name); policy.add(u); grew = true; }
+  }
+  const asks: Node[] = [];
+  for (const u of units) if (!policy.has(u)) walk(u.node, (n, up, key) => {
+    if (!isRef(n, up.at(-1), key) || !names.has(n.name)) return;
+    const path = [...up, n];
+    let st = u.node;
+    for (let j = path.length - 3; j >= 0; j--) if (isFn(path[j]) && path[j].body === path[j + 1] && path[j + 1].type === "BlockStatement") { st = path[j + 2]; break; }
+    if (!asks.includes(st)) asks.push(st);
+  });
+  const nodes = [...[...policy].map((u) => u.node), ...asks];
+  for (let i = 0; i < nodes.length; i++) for (const n of refsOf(nodes[i])) { const u = locals.get(n); if (u && !policy.has(u)) { policy.add(u); nodes.push(u.node); } }
+  const parts = new Map<string, string>();
+  for (const u of keyed) if (policy.has(u)) parts.set(u.kind === "route" ? `the route ${u.name}` : u.name, text(u.node));
+  parts.set("a statement that is no declaration and no route", units.filter((u) => u.kind === "other").map((u) => text(u.node)).join("\n"));
+  parts.set("a statement that asks a guard", asks.map(text).join("\n"));
+  return { parts, limits: limitReads(fn, nodes) };
+}
+
 // The policy cells that differ between two texts of the seed, by name; [] when none does. Where it cannot tell, it
 // names one: a side that is not read (the file added or deleted, a commit with no parent), a cell of JUDGE or ROUTES
 // that a side does not have once (a rename leaves the tool not knowing the judge), and code with no name.
 // The walk takes every word of a policy cell that is a cell's name, whatever stands before it: `x.name` too, since
 // `...name(by)` has a dot before it as well (review 5470). It does not see a cell that writes into a policy cell.
+// Two cells are named with the parts that differ, `issuesApp (the route install, judge)` and `issuesLimits (key)`,
+// and are not named when none of their policy parts does: issuesApp by `appParts`, and issuesLimits by the entries
+// that a policy cell or a policy part of issuesApp reads. Either is named whole, as every other cell is, where it is
+// not cut on both sides: `issuesApp`, `issuesLimits`.
 export function policyCells(before: string | null, after: string | null): string[] {
   if (before == null || after == null) return ["the whole file (it is not read on one side of the commit)"];
   const a = cellsOf(before), b = cellsOf(after), policy = new Set([...Object.keys(JUDGE), ...Object.keys(ROUTES)]), out: string[] = [];
@@ -149,10 +277,31 @@ export function policyCells(before: string | null, after: string | null): string
       for (const word of (side.cells.get(queue.pop()!) || "").match(/(?<![\w$])[A-Za-z_$][\w$]*/g) || []) if (side.cells.has(word) && !seen.has(word)) { seen.add(word); policy.add(word); queue.push(word); }
     }
   }
+  const app = [a, b].map((side) => appParts(side.cells.get("issuesApp")));
+  // The entries a side's policy reads, or null: its policy cells but the two that are cut, and the app's policy parts.
+  const read = (side: ReturnType<typeof cellsOf>, cut: ReturnType<typeof appParts>) => {
+    const keys = new Set<string>(cut?.limits || []);
+    if (!cut?.limits) return null;
+    for (const name of policy) {
+      const chunk = name === "issuesApp" || name === "issuesLimits" ? undefined : side.cells.get(name), got = chunk == null ? new Set<string>() : cellLimitReads(chunk);
+      if (!got) return null;
+      for (const k of got) keys.add(k);
+    }
+    return keys;
+  };
   for (const name of policy) {
-    const known = name in JUDGE || name in ROUTES, once = a.count.get(name) === 1 && b.count.get(name) === 1;
+    const known = name in JUDGE || name in ROUTES, once = a.count.get(name) === 1 && b.count.get(name) === 1, differs = a.cells.get(name) !== b.cells.get(name);
     if (known && !once) out.push(`${name} (not there once on each side of the commit)`);
-    else if (a.cells.get(name) !== b.cells.get(name)) out.push(name);
+    else if (!differs) continue;
+    else if (name === "issuesApp" && app[0] && app[1]) {
+      const parts = [...new Set([...app[0].parts.keys(), ...app[1].parts.keys()])].filter((k) => app[0]!.parts.get(k) !== app[1]!.parts.get(k));
+      if (parts.length) out.push(`${name} (${parts.join(", ")})`);
+    } else if (name === "issuesLimits") {
+      const was = limitEntries(a.cells.get(name)), is = limitEntries(b.cells.get(name)), ra = read(a, app[0]), rb = read(b, app[1]);
+      const keys = was && is && ra && rb ? [...new Set([...ra, ...rb])].filter((k) => was.get(k) !== is.get(k)) : null;
+      if (!keys) out.push(name);
+      else if (keys.length) out.push(`${name} (${keys.join(", ")})`);
+    } else out.push(name);
   }
   if (a.loose !== b.loose) out.push("a cell with no name (an import, or prose with ${ in it)");
   return out;

@@ -22,6 +22,9 @@ const v5 = JSON.parse(text(FILE)), v4 = JSON.parse(text(V4));
 const git = (...a: string[]) => execFileSync("git", ["-C", root, ...a], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
 const NOTE = "Made again by policy-v5-names-the-approver-as-it-is, for the brief and the tool as main has them after approver-brief-his-test and approver-own-files-are-the-policy-cells.";
 const A = "a".repeat(40), B = "b".repeat(40);
+// The newest policy file: this one until approver-policy-mark-takes-every-route made v6. What is held of "the newest"
+// below is held of whichever it is.
+const NEWEST = newest(root)!, latest = JSON.parse(text(NEWEST));
 
 test("it is the v4 file but for the end of its reason: the key, the policy and the migrate are v4's", () => {
   expect(Object.keys(v5)).toEqual(["key", "reason", "policy", "migrate"]);
@@ -46,8 +49,8 @@ test("the two blobs are those of the brief and the tool at the commit the file i
 
 // The defect the file is for, through the tool's own judge: a verdict that holds in every other way, with origin/main
 // and the running tool at the blobs of this checkout. Under the reason of v4, which ends as the policy in force does,
-// the approve is refused on R7; under the reason of v5 it is sent.
-test("approver.ts judges an approve: refused on R7 under the reason of v4, sent under the reason of v5", () => {
+// the approve is refused on R7; under the reason of the newest file it is sent.
+test("approver.ts judges an approve: refused on R7 under the reason of v4, sent under the reason of the newest file", () => {
   const now = blobs(root), HIS = "yes, build the thing as the plan has it", UUID = "11111111-2222-3333-4444-555555555555";
   const guard = v5.policy.workflows.task.moves.find((m: any) => m.name === "approve").guard as string;
   const by = (holder: string, via = "delegation:aaaaaaaaaaaa") => ({ holder: holder && "secret:" + holder, via });
@@ -70,7 +73,7 @@ test("approver.ts judges an approve: refused on R7 under the reason of v4, sent 
     `the tool that runs is ${now.tool}, and the policy names ${old.tool} (R7)`
   ] });
   expect(under(v4.reason, now.brief).why.filter((w: string) => w.includes("(R7)")).length).toBe(4);
-  const sent = under(v5.reason, now.brief);
+  const sent = under(latest.reason, now.brief);
   expect(sent).toMatchObject({ exit: 0, why: [], delegation: /^delegation:[0-9a-f]{12}$/.exec(sent.delegation)?.[0] });
   expect(sent.send).toMatchObject({ key: "approver/t1/approve-1", id: "t1", to: "done" });
 });
@@ -85,15 +88,15 @@ test("the newest policy file names the brief and the tool as this checkout has t
 test("a checkout whose brief or tool is not the newest file's is exit 1, with both pairs and the cost", () => {
   const dir = mkdtempSync(join(tmpdir(), "policy-pins-"));
   try {
-    for (const f of [BRIEF, TOOL, FILE, V4]) { mkdirSync(dirname(join(dir, f)), { recursive: true }); cpSync(join(root, f), join(dir, f)); }
+    for (const f of [BRIEF, TOOL, NEWEST, V4]) { mkdirSync(dirname(join(dir, f)), { recursive: true }); cpSync(join(root, f), join(dir, f)); }
     const had = blobs(dir);
-    expect(had).toEqual(pinsOf(v5.reason)!);
+    expect(had).toEqual(pinsOf(latest.reason)!);
     expect(check(dir).exit).toBe(0);
     for (const f of [BRIEF, TOOL]) {
       const kept = readFileSync(join(dir, f));
       appendFileSync(join(dir, f), "\n");
       const now = blobs(dir), c = check(dir);
-      expect(c).toEqual({ exit: 1, line: `${FILE} names the brief ${had.brief} and the tool ${had.tool}; the checkout has ${now.brief} and ${now.tool}. ${COST}` });
+      expect(c).toEqual({ exit: 1, line: `${NEWEST} names the brief ${had.brief} and the tool ${had.tool}; the checkout has ${now.brief} and ${now.tool}. ${COST}` });
       writeFileSync(join(dir, f), kept);
     }
     expect(COST).toContain("one more install by the owner");
@@ -131,7 +134,8 @@ test("the command: check is exit 0 here; remake makes the file from v4 and write
     const to = join(dir, "out.json");
     const made = run("remake", join(root, V4), to, "--note", NOTE);
     expect(made.status).toBe(0);
-    expect(readFileSync(to, "utf8")).toBe(text(FILE));
+    // The blobs it writes are the checkout's: v5's when this file was the newest.
+    expect(readFileSync(to, "utf8")).toBe(remake(text(V4), blobs(root), NOTE));
     const again = run("remake", join(root, V4), to);
     expect([again.status, again.stderr.trim()]).toEqual([1, `policy-pins.ts: ${to} exists, and is not written over`]);
     expect(run("remake", join(root, V4)).status).toBe(1);

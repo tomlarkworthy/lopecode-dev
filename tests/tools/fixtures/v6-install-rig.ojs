@@ -1,0 +1,24 @@
+// One cell, compiled at the end of brain-issues.ojs by tests/tools/issues-policy-v6.test.ts and run by cloud-brain-dev/test.ts.
+// It asserts nothing: it returns what the rig answered, as JSON, and the test reads it. The string of `data` is replaced by
+// { v3, v5, v6 }: three install bodies of plan/.
+test_v6_install_in_the_rig = {
+  const data = "__DATA__";
+  const rig = await issuesRig();
+  const sent = async (body) => { const r = await rig.owner("install", body); return { status: r.status, ...r.data }; };
+  const policy = async () => (await rig.owner("policy")).data.policy;
+  const issue = async (id) => ((i) => ({ state: i.state, workflow: i.workflow }))((await rig.owner("get?id=" + id)).data.issue);
+  // The record as cb4 has it: the policy of event 4668 (the v3 file), then the v5 file, which is in force.
+  const v3 = await sent({ key: "v3", reason: data.v3.reason, policy: data.v3.policy });
+  const v5 = await sent(data.v5), under5 = await policy();
+  for (const [id, kind] of [["a-task", "task"], ["a-project", "project"]]) await rig.owner("open", { id, title: id, kind });
+  const before = { task: await issue("a-task"), project: await issue("a-project"), events: rig.db.events.length };
+  // The v6 body under the key of v5: the install v5 was, and nothing written.
+  const sameKey = await sent({ ...data.v6, key: data.v5.key }), afterSameKey = { policy: await policy(), events: rig.db.events.length };
+  // The v6 body as the file has it.
+  const v6 = await sent(data.v6), under6 = await policy();
+  const after = { task: await issue("a-task"), project: await issue("a-project"), events: rig.db.events.length };
+  // Each sent again, the older one last.
+  const v6again = await sent(data.v6), v5again = await sent(data.v5);
+  const end = { policy: await policy(), events: rig.db.events.length, verify: (await rig.owner("verify?guards=true")).data };
+  return JSON.stringify({ v3, v5, under5, before, sameKey, afterSameKey, v6, under6, after, v6again, v5again, end });
+}
