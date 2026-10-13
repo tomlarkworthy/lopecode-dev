@@ -76,10 +76,12 @@ By a fact the next step reads. One of:
     `dead`: the step starts or resumes one run more.
   - `not-answered`, for `answer`: the owner has not answered what the label asks. Nothing more is done
     until an event of his with a later seq.
-  - `left`, then the reason on the same line: you decided to do nothing, or what is due is a session's
-    (below). The step puts the line in `status.md`, under "What a session with the owner is asked to do".
+  - `left`, then the reason on the same line: what is due is an act of a session with the owner ("What
+    you do not do", below), and for nothing else. The step puts the line in `status.md`, under "What a
+    session with the owner is asked to do".
 
-  Any other first word is read as `left`.
+  Any other first word is read as `left`. An entry you decide to leave as it is gets no verdict: it is
+  then under "Judged and left as it was", and your report says why.
 
 `ia comment '{"key":"orch/<id>/verdict-<do>-<at>","id":"<id>","body":"go-on\n<why>"}'`. Every other
 write has a key `orch/<id>/<what>`, as the moved texts give them.
@@ -125,7 +127,7 @@ lock, and one of the four of `rules.md`, Never, is the owner's. There is no verd
   sent to you. By the code of `loop.ts` (`resume`, "A dead writer") the step then makes `back` and starts
   a writer; that was read and not run.
 - **No tab, and none of the tools a process has with nothing asked** (Workflow, RemoteTrigger, the Cron
-  tools, WebFetch, WebSearch): an entry is decided from the record, the checkout and the Brain's search.
+  tools, WebFetch, WebSearch): an entry is decided from the record and the checkout.
 
 ## Your report
 

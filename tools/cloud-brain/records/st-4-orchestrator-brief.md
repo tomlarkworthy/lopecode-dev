@@ -20,7 +20,7 @@ a `claude` session in its sandbox, with the token `impl-139801`. `$W` is the wor
 | `.claude/skills/brain-maintenance/SKILL.md` | the five texts are gone; a section "What is in `agents/orchestrator.md`" says where each is; seven lines that named one now name the brief |
 | `tools/cloud-brain/loop.ts` | `step` starts one judgment run for the entries it gives; `start --role orchestrator --token <t> --give "…"`; `ended` for that role; a verdict `left` in the status |
 | `tests/tools/orchestrator-brief.test.ts` | new: 4 tests |
-| `tests/tools/loop-step.test.ts` | 4 tests more (27), and the expectations of 8 that a judgment run's start changed |
+| `tests/tools/loop-step.test.ts` | 4 tests more (27), and the expectations of the tests of health, `review`, `round`, `round` at 3 `rework` moves, `needs-owner`, `start` and `spec`, `awaiting-approval` and the digest, which a judgment run's start changed |
 | five tests of `tests/tools` that read a moved section in `SKILL.md` | read it in the brief: `never-list-three-reductions`, `owner-decisions-written-dense`, `pm-2-brief-and-procedure`, `post-mortem-actions-prefer-guards`, `os-2-order-and-pool` |
 | `agents/implementer/post-mortem.md`, `tools/cloud-brain/issue-stats.ts` (a comment), `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md` | one line each that named `SKILL.md`, "A post mortem" |
 | `plan/cloud-brain-orchestrator-as-steps.md` | part 3, "As built (`st-4-orchestrator-brief`…)" |
@@ -79,7 +79,9 @@ Each is in the spec's part 3 now, under "As built".
   use up both gives of an entry, and a session has to take it from the status.
 - **A verdict `left` is in `status.md`**, with its first line. The spec's part 5 has "`status.md` lists
   each [act with what is his] that is due"; nothing built that list. This is how a judgment run says one
-  is due. It is listed while the entry is in the queue as it was.
+  is due, and the brief gives the word that one use: an entry a run decides to leave gets no verdict and
+  is under "Judged and left as it was". The spec has `left` "with the reason" and no more. It is listed
+  while the entry is in the queue as it was.
 - **One judgment run a machine** is read from the files of `runs/`. A judgment run another machine
   started is not seen here, as for every run (`st-3`, "Two machines").
 
@@ -145,7 +147,7 @@ tool such a process has with nothing asked whether a writer needs it.
 
 - This task starts no writer. The one process it adds is the judgment run, started with `WORK` and so
   with no MCP server and no tab tool. The brief gives it no use for one: an entry is decided from the
-  record, the checkout and the Brain's search, and a quick win is "no seed built and no deploy".
+  record and the checkout, and a quick win is "no seed built and no deploy".
 - Of Workflow, RemoteTrigger, the Cron tools, WebFetch and WebSearch: the brief tells a judgment run to
   use none. `Agent` and `Task` it is told not to call: it starts no agent. Nothing refuses a call: the
   process has the tools (`st-1b`), and the brief's line is all that holds it.
@@ -168,6 +170,13 @@ tool such a process has with nothing asked whether a writer needs it.
 - **A run for a cluster that is not healthy, at every such step.** One is started at each step that finds
   it so and no judgment run running, with no bound. The driver makes such a step once in 1,800 s (`st-5`).
   The test has two such steps and two starts.
+- **Two branches of the step's give that no test enters.** A `given` comment answered `duplicate: true`
+  (two steps at once gave the entry): the entry is in `skipped`, and when it is the first entry no run is
+  started and the token is ended. And a `stopped` event that is refused after a failed start: the comment
+  then names a run with no event, the entry reads as one whose run runs at every later step, and no line
+  of the status names it. The act of that step has `refused` in `steps.jsonl`.
+- **The Brain's search by a judgment run.** The brief does not name it: `rules.md`, "Searching what the
+  Brain knows", gives `loop-knowledge` to a writer and a spec writer.
 - **`ended` when the `cost` event of a judgment run is refused**: exit 1 and "run it again", as for every
   role. Not entered by a test of this task.
 - **The round after 1,000 judgment runs on one issue** (the service's limit of a round) is not handled.
