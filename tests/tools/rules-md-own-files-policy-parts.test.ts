@@ -10,10 +10,11 @@ import { readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 
 const root = resolve(import.meta.dir, "../..");
-const { policyCells, appParts, JUDGE, ROUTES } = await import(join(root, "tools/cloud-brain/approver.ts"));
+const { policyCells, appParts, marks, own: owned, JUDGE, ROUTES } = await import(join(root, "tools/cloud-brain/approver.ts"));
 const rules = readFileSync(join(root, ".claude/skills/brain-maintenance/rules.md"), "utf8");
 const brief = readFileSync(join(root, ".claude/skills/brain-maintenance/agents/approver.md"), "utf8");
-const seed = readFileSync(join(root, "tools/cloud-brain/brain-issues.ojs"), "utf8");
+const SEED = "tools/cloud-brain/brain-issues.ojs";
+const seed = readFileSync(join(root, SEED), "utf8");
 
 const flat = (s: string): string => s.replace(/\s+/g, " ").trim();
 const section = rules.slice(rules.indexOf("\n## The approver\n"), rules.indexOf("\n## What the owner is asked to decide\n"));
@@ -95,18 +96,25 @@ test("of issuesLimits the entries a policy cell or a policy part of issuesApp re
   expect(diff("reason: 2000, key: 100,", "reason: 2000, key: 1000,")).toEqual(["issuesLimits (key)"]);
 });
 
-test("either cell is taken whole where the tool cannot cut it", () => {
-  expect(own).toContain("Either cell is taken whole, as the other policy cells are, where the tool cannot cut it");
+test("either cell is taken whole where the tool cannot cut it on both sides", () => {
+  expect(own).toContain("Either cell is taken whole, as the other policy cells are, where the tool cannot cut it on both sides of the commit");
   expect(diff("const judge = (view, by, given) => {", "const judged = (view, by, given) => {")).toEqual(["issuesApp"]);
   expect(diff("wakeMs: 2000,", "wakeMs: 1000, ...{},")).toEqual(["issuesLimits"]);
+  // Not cut on the two sides alike, with a read route changed beside its guard: whole still.
+  const twice = swap(END, '  app.post(NS + "install", run(async () => ({})));\n' + END);
+  expect(policyCells(twice, swap(HELD, '"InvalidRequest", "seconds: with an id")', twice))).toEqual(["issuesApp"]);
   // Another policy cell is one part: a space after its `=` is a change to it.
   expect(policyCells(seed, seed.replace(/^issueAllowed = /m, "issueAllowed =  "))).toEqual(["issueAllowed"]);
 });
 
-test("what carries no mark: a read route beside those statements, and an entry no policy reads", () => {
-  expect(own).toContain("A route that takes a GET and is neither `policy` nor `sync`, changed or added, carries no mark for what it does beside those statements");
-  expect(own).toContain("an entry of `issuesLimits` that no policy cell and no such part reads carries none");
-  expect(own).toContain("the tool does not refuse a commit for either, and the approver reads its diff (`agents/approver.md`, step 6)");
+test("what is no policy part: a read route beside those statements, and an entry no policy reads; the mark is then tracker", () => {
+  expect(own).toContain("A route that takes a GET and is neither `policy` nor `sync`, changed or added, is no policy part in what it does beside those statements");
+  expect(own).toContain("an entry of `issuesLimits` that no policy cell and no such part reads is none");
+  expect(own).toContain("a commit of the seed that touches no policy cell and no policy part is marked `tracker`, which is no refusal, and the approver reads its diff (`agents/approver.md`, step 6)");
+  // The item does not say such a commit has no mark: the file is marked, and the mark refuses nothing.
+  expect(own).not.toContain("no mark");
+  expect([marks(SEED, []), owned(SEED, [])]).toEqual([["tracker"], false]);
+  expect([marks(SEED, ["issuesApp (judge)"]), owned(SEED, ["issuesApp (judge)"])]).toEqual([["policy"], true]);
   expect(diff(HELD, '"InvalidRequest", "seconds: with an id")')).toEqual([]);
   expect(diff(END, '  app.get(NS + "count", run(async () => ({ n: (await load([S.all])).seq })));\n' + END)).toEqual([]);
   expect(diff("wakeMs: 2000", "wakeMs: 1000")).toEqual([]);
@@ -118,4 +126,5 @@ test("what carries no mark: a read route beside those statements, and an entry n
   expect(six.length).toBeGreaterThan(0);
   expect(six).toContain("Of two cells it compared the policy parts alone (since 2026-10-13, `approver-policy-mark-takes-every-route`)");
   expect(six).toContain("read its diff");
+  expect(six).toContain("`tracker` is `brain-issues.ojs` in a commit that changes no policy cell (`no policy cell` after the file), and is no refusal");
 });

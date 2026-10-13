@@ -212,10 +212,11 @@ task 6 of that spec, `ap-6-rules-and-live-step`, 2026-10-13.
   declaration and no route, and in a route that is left, each a GET, every statement that asks a
   guard and every statement that names `app` or sets a declaration; of `issuesLimits` the entries
   that a policy cell or such a part reads. Either cell is taken whole, as the other policy cells
-  are, where the tool cannot cut it. A route that takes a GET and is neither `policy` nor `sync`,
-  changed or added, carries no mark for what it does beside those statements, and an entry of
-  `issuesLimits` that no policy cell and no such part reads carries none: the tool does not refuse
-  a commit for either, and the approver reads its diff (`agents/approver.md`, step 6). The reason of the
+  are, where the tool cannot cut it on both sides of the commit. A route that takes a GET and is
+  neither `policy` nor `sync`, changed or added, is no policy part in what it does beside those
+  statements, and an entry of `issuesLimits` that no policy cell and no such part reads is none: a
+  commit of the seed that touches no policy cell and no policy part is marked `tracker`, which is
+  no refusal, and the approver reads its diff (`agents/approver.md`, step 6). The reason of the
   policy in force ends `approver brief <blob> tool <blob>`, and the tool makes no move when the
   brief or the tool of `origin/main` is another blob. So a landed change to either stops every
   approval by the approver until he installs a policy that names it
