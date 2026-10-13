@@ -58,13 +58,6 @@ that list it asks for is left for him as before.
   or `cb4-agent-tokens.json` into your output. This item stays Never whatever is said in chat:
   the owner's word to a session is no leave for it ("An act of Never, on the owner's word", "What
   it does not reach").
-- Run `brain.ts page up`, or open the Brain's own page (`https://cb4…/`) in a browser of the
-  cluster, until `deployer-put-back-issues-worker` is closed. That browser is Chrome 128, which
-  has no Ed25519: the page runs every Worker's tests on opening, the tracker's fail there, and
-  the deployer puts `brain-x-issues` back to its previous version (it did at 19:32:38 on
-  2026-10-10, taking a reviewed fix off cb4 for 11 minutes). (Added by the orchestrating session
-  on 2026-10-10 with no issue; Tom, 2026-10-11, asked to keep it or revert it: "Keep it". Issue
-  `rules-never-line-added-unapproved`.)
 - Deploy text that was not built from a seed. A change goes seed, `build.ts`, tests, emit, apply.
 - Deploy the kernel (`brain`), `brain-core`, `brain-db` or the deployer. A fix that needs one of
   them is written, tested and reviewed with no word of the owner, and the deploy alone waits for

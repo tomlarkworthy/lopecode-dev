@@ -64,8 +64,8 @@ test("rules.md: what is not reduced stays asked of the owner", () => {
   const never = flat(section(rules, "Never"));
   expect(never).toContain("What such a fix needs beside the deploy is asked as before: a new policy, secret, permission or Worker, and the plan of a `major` change, each under `needs-owner`.");
   expect(never).toContain("A session with the owner present deploys one on his word (\"An act of Never, on the owner's word\").");
-  // the second and the third of the three are tasks of their own: their lines are as they were
-  expect(never).toContain("- Run `brain.ts page up`, or open the Brain's own page (`https://cb4…/`) in a browser of the cluster, until `deployer-put-back-issues-worker` is closed.");
+  // the second of the three is a task of its own: its line is as it was. The third, the line against
+  // `brain.ts page up`, went with never-page-up-line-after-a-check (tests/tools/never-page-up-line-after-a-check.test.ts).
   expect(never).toContain("- Deploy text that was not built from a seed.");
   expect(flat(rules)).toContain("the kernel, `brain-core`, `brain-db` and the deployer are still not deployed by the loop (Never)");
 });
