@@ -12,7 +12,7 @@ task end without the held read if it did not. It passes:
 
 So the answer was made 944 ms after the move, inside one pause of 2 s, and the tool now sends `seconds`.
 Both are single runs, through `issue-as.sh` (`curl -m 30`), on the issue `test-tr-4-a`, which this task
-opened for the probe and closed after it (five events of this token, the first 6071 and the last 6078).
+opened for the probe and closed after it (the probe's five events: 6071, 6072, 6076, 6077 and 6078).
 
 ## What changed
 
@@ -105,6 +105,8 @@ On cb4, beside the probe: `seconds=26` answered 400 `seconds: a number from 0 to
 - **A cut.** No held call was cut in this task, so the tool's line for one was seen only against the
   stand-in, which answered 502. A call that `curl -m 30` stops gives no status; that branch is the same
   line of the tool and was not run.
+- **A read begun with the run already over.** The tool then sends no `seconds` in the place of a number under 0
+  (`max(0.0, …)` in the line that makes it). No test enters that line with the run over.
 - **A value sent twice.** `wakes?id=…&seconds=5&seconds=6` is read as one of the two by the router; the
   rig answered it 200.
 - **The wake the plan measures.** How long a writer's wake takes with the held read is task 5's line of
