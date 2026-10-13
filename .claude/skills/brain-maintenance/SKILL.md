@@ -580,8 +580,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    They are written from the spec writer's comment keyed `spec/<id>/adds-<round>`, `<round>` that of the submit
    (`agents/spec.md`, step 7), which is a claim as every comment is: read it against the file at the commit the
    submit names, `git show <sha>:plan/cloud-brain-<id>.md | grep -n -i "reading"`, and a reading that prints and
-   the comment does not have goes in the line. A spec with no such comment was submitted before 2026-10-13: the two
-   lines are then written from the file, that `grep` and its part of what was not chosen. The line of a token
+   the comment does not have goes in the line. A spec with no such comment (one submitted before 2026-10-13, or one whose writer
+   did not write it): the two lines are then written from the file, that `grep` and its part of what was not chosen. The line of a token
    (`agents/spec.md`, step 5, "say in the comment for his approval that the spec names a token, and which") is the
    token's entry of the first line and is not said twice. After an `approver: leave` the comment is written from the verdict
    (step 3, the row) and has the two lines as well. (Since `decision-comment-names-what-is-added`, 2026-10-13, an

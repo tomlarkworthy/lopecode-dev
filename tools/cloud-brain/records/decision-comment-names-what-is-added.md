@@ -59,7 +59,9 @@ and its item of the list a session tells him, has two lines more:
 
 Both are written for every spec, `nothing` and `none marked` when there is none. They are written from
 the spec writer's comment keyed `spec/<id>/adds-<round>` and read against the file at the submit's
-commit with the `grep` above. A spec with no such comment gets them from the file. The sentence of a
+commit with the `grep` above. A spec with no such comment gets them from the file. The parts of the
+writer's comment begin lower case (`adds, to stay:`) and the lines for the owner upper case: they are
+two texts, and the second is written from the first, not copied. The sentence of a
 token that the spec brief already asked for is the token's entry of the first line.
 
 **`SKILL.md`, step 3, the row for `awaiting-approval`**: the comment written after `approver: leave`
