@@ -359,6 +359,44 @@ test("--usd-max stops before the next doc; a put that is refused stops the run; 
   expect(c.out + readFileSync(join(leak.state, "journal.jsonl"), "utf8")).not.toContain(readFileSync(join(leak.repo, "tools/cloud-brain/.emitted/canary.txt"), "utf8").trim());
 }, T);
 
+test("summarize --first-paragraph: the entry holds the first paragraph, the line, the second line and the doc's start, and no section; the judge still reads the sections; a put keeps it and --check-summaries passes it", () => {
+  const t = entered();
+  // The first answer has a number the doc does not: it is refused as without the flag, and the second is put.
+  t.answers([{ result: BAD }, { result: GOOD }]);
+  const doc = t.doc(), r = t.kdocs(["summarize", "long", "--first-paragraph"]);
+  expect(r.code).toBe(0);
+  const top = `${LEAD} It ends at Line 200.\n\n${lineOfDoc(sha(doc))}\n${secondLine(doc)}\n\nTopics: long things\n\n${row(1)}\n${row(2)}\n`;
+  expect(r.lines[0]).toMatchObject({ name: "long", outcome: "put", lead: (LEAD + " It ends at Line 200.").length, sections: SECTIONS.length, length: 16000, put: { changed: 1, vectors: 1 } });
+  expect(r.lines[0].refused[0].length).toBe(1);
+  expect(r.lines[0].refused[1]).toEqual([]);
+  const e = t.puts().at(-1);
+  expect([e.text.length, e.text.startsWith(top), e.text.includes("## "), e.staleSince]).toEqual([16000, true, false, 0]);
+  // The entry keeps more of the doc's own text than one with the sections does, by the sections and the empty line after them.
+  const plainStart = e.text.slice(top.indexOf("Topics: long things"));
+  const withSections = summarized().puts().at(-1).text;
+  expect(plainStart.length - withSections.slice(withSections.indexOf("Topics: long things")).length).toBe(SECTIONS.length + 2);
+  // The journal's line of the doc says which form was put; the canary's does not.
+  const j = t.journal();
+  expect([j.length, "firstParagraph" in j[0], j[1].firstParagraph, j[1].outcome]).toEqual([2, false, true, "put"]);
+  // Summarized, not cut, not due; the form passes the check; the docs step has nothing to put.
+  expect(t.kdocs(["status"]).last).toMatchObject({ cut: 0, unmarked: 0, long: 1, summarized: 1, behind: 0, due: [] });
+  const chk = t.kdocs(["status", "--check-summaries", "long"]);
+  expect([chk.code, chk.lines[0], chk.last.failing]).toEqual([0, { name: "long", state: "summarized" }, []]);
+  expect(t.kdocs(["put", "--stale"]).out).toBe("nothing to put");
+  // A put by name keeps the first paragraph and its line, as it keeps a whole summary.
+  expect(t.kdocs(["put", "long"]).last).toMatchObject({ put: 1, cut: 0, summarized: 1 });
+  expect(t.puts().at(-1).text).toBe(e.text);
+  // put --plain is the way back: the text of before any summary.
+  const before = entered().entry().text;
+  expect(t.kdocs(["put", "--plain", "long"]).last).toMatchObject({ put: 1, cut: 1, summarized: 0, plain: true });
+  expect(t.puts().at(-1).text).toBe(before);
+  // Some of the five headings and not all is still not a form.
+  const part = e.text.replace(`\n\n${lineOfDoc(sha(doc))}`, `\n\n## Names\nA name.\n\n${lineOfDoc(sha(doc))}`);
+  writeFileSync(join(t.fake, "entries.json"), JSON.stringify([{ ...e, text: part }, t.entry("doc:short")]));
+  const f = t.kdocs(["status", "--check-summaries", "long"]);
+  expect([f.code, f.lines[0].fails.includes("the five headings are not there in their order")]).toEqual([1, true]);
+}, T);
+
 test("status --check-summaries: a doc with no summary fails once it has been due for over 24 hours, from its file's last commit; a summary not in its form fails; with names only those are read", () => {
   const old = new Date(Date.now() - 3 * 864e5).toISOString();
   const t = entered(undefined, old);

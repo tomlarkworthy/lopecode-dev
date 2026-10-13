@@ -12,6 +12,7 @@
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --plain <name>…         a long doc as it is put with no summary: the way an entry is put back
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize --due [--usd-max N] [--model M] [--dry]   one agent a due doc, one after another
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize <name>… [--again] [--dry]                 the named docs, due or not
+//   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize <name>… --first-paragraph                 the entry holds the summary's first paragraph and none of its sections
 //   BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status --check-summaries [<name>…] [--except name=issue,…]   reads only; exit 1 on a failing doc
 //   … --owner            call with the owner's session, for the owner's own use; an agent does not
 //   … --limit=SECONDS    the time one call may take (120)
@@ -82,11 +83,14 @@
 // a first answer that was sent back is <name>.first-answer.txt. --dry writes <state>/docs/<name>.summary.txt and
 // puts nothing. One line a doc to <state>/docs/journal.jsonl (name, outcome put | dry | refused | failed, model,
 // session, usd, context, ms, the lengths, what each round refused, the put's answer), after the canary's.
+// summarize --first-paragraph (sd-3b-first-paragraph-alone): the same agent, brief and judge, and the entry holds the
+// first paragraph, the summary's line, the second line and the doc's start: the five sections are in no part of it,
+// so the entry keeps about 5,000 characters more of the doc's own text. The journal's line has firstParagraph: true.
 // While an agent reads a doc, <state>/docs/<name>.running holds the time: a summarize that finds one under ten minutes
 // old skips the doc, and so does put --stale, which names it (`running`) and leaves it for the next put, since it read
 // the kept text before a summary that lands in between. <state> is one machine's.
 // status --check-summaries: the long docs, or the named ones. It fails a doc whose entry has the line and not a first
-// paragraph within its limit, the five headings in order, a next line that names the entry's own file and a text of
+// paragraph within its limit, the five headings in order or no heading (--first-paragraph), a next line that names the entry's own file and a text of
 // TEXT at most; a doc whose summary has been due for over 24 hours; and one refused twice at this file. One line of
 // JSON a doc and a last line { checked, summarized, excepted, failing }. status --check is as it was.
 // summarize-papers.ts is loaded by summarize and --check-summaries alone: status and put, which a release runs, load no
@@ -194,7 +198,7 @@ const summaryOf = (text: unknown) => {
   return m ? { head: (text as string).slice(0, m.index + m[0].length), at: m.index, model: m[1], day: m[2], path: m[3], sha256: m[4] } : null;
 };
 const headOf = (x: { lead: string; sections: string; model: string; day: string; path: string; sha256: string }) =>
-  `${x.lead}\n\n${x.sections}\n\n${SUMMARY} (${x.model}), ${x.day}, of ${x.path} as it was with sha256 ${x.sha256}.`;
+  `${x.lead}\n\n${x.sections ? x.sections + "\n\n" : ""}${SUMMARY} (${x.model}), ${x.day}, of ${x.path} as it was with sha256 ${x.sha256}.`;
 const second = (d: Doc) => `The whole doc is the file ${d.file} in this Brain's brain-static, ${d.chars} characters: static.get?path=${d.file}${d.public ? `, and /static/${d.file} at the Brain's address` : ""}. Its start follows.`;
 const withSummary = (d: Doc, head: string) => { const top = `${head}\n${second(d)}\n\n`; return top + d.whole.slice(0, Math.max(0, TEXT - top.length)); };
 
@@ -331,7 +335,8 @@ if (cmd === "status" && flag("--check-summaries")) {
     if (r.summary) {
       const lead = e.text.split("\n\n")[0], max = leadMax(e.title ?? r.title), found = e.text.slice(0, r.summary.at).split("\n").filter((l: string) => /^##\s/.test(l)).map((l: string) => l.replace(/^##\s+/, "").trim());
       if (lead.length > max) fails.push(`the first paragraph is ${lead.length} characters, over ${max}`);
-      if (found.join("|") !== DOC_HEADINGS.join("|")) fails.push("the five headings are not there in their order");
+      // No heading: the first paragraph alone (summarize --first-paragraph).
+      if (found.length && found.join("|") !== DOC_HEADINGS.join("|")) fails.push("the five headings are not there in their order");
       if (!e.text.slice(r.summary.head.length).startsWith(`\nThe whole doc is the file ${e.file} in `)) fails.push(`the line after the summary's does not name the entry's file ${e.file}`);
       if (e.text.length > TEXT) fails.push(`the text is ${e.text.length} characters, over ${TEXT}`);
     }
@@ -388,14 +393,15 @@ if (cmd === "status" && flag("--check-summaries")) {
   // One agent a doc, one after another (design piece 3). --due: the docs whose summary is due and that the journal has
   // not as refused at this file; names: those docs, due or not. --again: also one refused twice at this file.
   // --dry: the summary to <state>/docs/<name>.summary.txt and nothing put. --model (haiku). --usd-max N.
+  // --first-paragraph: the sections the agent wrote are judged and left out of the entry.
   const { agentRunner, canary, summarize, wrap } = await import("./summarize-papers.ts");
-  const dry = flag("--dry"), again = flag("--again"), model = opt("--model") || "haiku", usdMax = opt("--usd-max") === undefined ? Infinity : Number(opt("--usd-max"));
+  const dry = flag("--dry"), again = flag("--again"), firstOnly = flag("--first-paragraph"), model = opt("--model") || "haiku", usdMax = opt("--usd-max") === undefined ? Infinity : Number(opt("--usd-max"));
   if (!(usdMax >= 0)) { console.error("--usd-max N: a number of dollars, 0 or more"); process.exit(2); }
-  if (!flag("--due") === !names.length) { console.error("summarize --due | <name>…   [--again] [--dry] [--model M] [--usd-max N]"); process.exit(1); }
+  if (!flag("--due") === !names.length) { console.error("summarize --due | <name>…   [--again] [--dry] [--first-paragraph] [--model M] [--usd-max N]"); process.exit(1); }
   if (!stateDocs) throw new Error("no state directory: not in a git checkout and no BRAIN_STATE_DIR");
   mkdirSync(stateDocs, { recursive: true });
   const before = journal(), all = rowsOf(kept(), keptFiles()).filter((r) => r.named);
-  const note = (row: Record<string, any>) => appendFileSync(journalFile, JSON.stringify({ at: Date.now(), ...(dry ? { dry: true } : {}), ...row }) + "\n");
+  const note = (row: Record<string, any>) => appendFileSync(journalFile, JSON.stringify({ at: Date.now(), ...(dry ? { dry: true } : {}), ...(firstOnly && !("canary" in row) ? { firstParagraph: true } : {}), ...row }) + "\n");
   const rows: any[] = [], todo: Row[] = [];
   const say = (row: Record<string, any>) => { rows.push(row); console.log(JSON.stringify(row)); };
   const end = (code: number, last: Record<string, any>) => { rmSync(tmpDir, { recursive: true, force: true }); console.log(JSON.stringify(last)); process.exit(code); };
@@ -445,7 +451,7 @@ if (cmd === "status" && flag("--check-summaries")) {
     const bytes = git(r.at, "show", `${r.rev}:${r.path}`);
     if (bytes.status !== 0) { note({ ...base, outcome: "failed", why: "the file is no longer there" }); say({ name: r.name, outcome: "failed", why: "the file is no longer there", usd: ran.usd }); code = code || 1; continue; }
     const now = doc(r.name, bytes.stdout, { at: r.at, rev: r.rev, path: r.path, url: r.url, source: r.source, private: r.source === DEV });
-    const head = headOf({ lead, sections, model, day: new Date().toISOString().slice(0, 10), path: `${r.source}/${r.path}`, sha256: r.sha256 });
+    const head = headOf({ lead, sections: firstOnly ? "" : sections, model, day: new Date().toISOString().slice(0, 10), path: `${r.source}/${r.path}`, sha256: r.sha256 });
     const whole = now.long ? withSummary(now, head) : now.whole;
     if (dry) {
       writeFileSync(join(stateDocs, r.name + ".summary.txt"), whole);
@@ -461,6 +467,6 @@ if (cmd === "status" && flag("--check-summaries")) {
   }
   end(code || (stopped || unknown.length ? 1 : 0), last());
 } else {
-  console.error("usage: knowledge-docs.ts status [--check] | status --check-summaries [<name>…] [--except name=issue,…] | put --all | --stale | <name>… | --plain <name>… | summarize --due | <name>… [--again] [--dry] [--model M] [--usd-max N]   [--owner] [--limit=SECONDS]");
+  console.error("usage: knowledge-docs.ts status [--check] | status --check-summaries [<name>…] [--except name=issue,…] | put --all | --stale | <name>… | --plain <name>… | summarize --due | <name>… [--again] [--dry] [--first-paragraph] [--model M] [--usd-max N]   [--owner] [--limit=SECONDS]");
   process.exit(1);
 }
