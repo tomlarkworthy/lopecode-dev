@@ -1056,6 +1056,9 @@ async function step(args: string[]) {
       if (of("done").length) continue;
       if (of("running").length) { skip(e.id, "overseer", `an overseer of it runs (${of("running")[0]})`); break; }
       if (of("stopped").length >= DEAD_MOST) { const why = `${of("stopped").length} overseers of its ending at event ${e.seq} died`; skip(e.id, "overseer", why); S.session.push(`${e.id}: ${why}, and no third is started`); continue; }
+      // `start` refuses a run whose longest key the tracker would not keep: such an ending is not looked at.
+      const key = endKey({ id: e.id, role: "overseer", round: 1, token: "over-000000", how: "resumed", at: 9999999 });
+      if (key.length > KEY_MOST) { skip(e.id, "overseer", `the key ${key} is over ${KEY_MOST} characters`); continue; }
       if (machine) { skip(e.id, "overseer", NOT_HERE("an overseer is due")); break; }
       if (unlogged()) { skip(e.id, "overseer", `no overseer: ${unlogged()}`); break; }
       // One overseer at a time, of any machine: they share the worktree of the host and the briefs they edit.

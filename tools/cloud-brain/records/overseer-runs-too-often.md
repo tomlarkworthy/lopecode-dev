@@ -151,6 +151,9 @@ another home here: each needs a decision of where it goes, and `overseer-sweep-j
 - **The window is 500 events**, one page of `sync` at its largest. An ending that leaves the window with no
   overseer started (the driver stopped for a day, a live `over-` token for hours) is not looked at.
 - **One start a step**, and the oldest drawn ending first.
+- **An issue whose id is over 51 characters is not looked at.** `start` refuses a run whose longest key
+  (`cost/<id>/overseer/1/<token>/resumed-9999999/end`) is over the 100 the tracker keeps, so the step skips
+  such an ending and goes to the next, where it would else ask for the same refused start at each step.
 - **The draw is not weighted**: a quick win and a three-round task are as likely.
 - **Every ending is in the draw**, as every one was in the old count: a digest the step rejected as covered by a
   later one, and an issue rejected at triage, among them. An overseer drawn for one has little to read.

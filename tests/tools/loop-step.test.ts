@@ -650,6 +650,15 @@ test("an overseer is started on one ended issue in 10, the one a draw of its id 
   expect(r.line.skipped.filter((x: Ev) => x.do === "overseer")).toEqual([{ id: two.id, do: "overseer", why: "an overseer is due, and this loop has no state file: the laptop's loop takes it" }]);
 });
 
+test("an ending of an issue whose id makes the run's key longer than the tracker keeps is not looked at, and the next drawn one is", async () => {
+  fresh(6000);
+  const long = "x".repeat(52), ends: Ev[] = [];
+  for (let n = 0; !ends.some((e) => drawn(e.id, e.seq)) && n < 80; n++) { open(long + n); ends.push(mv(long + n, "pass", "done")); }
+  const one = ends.find((e) => drawn(e.id, e.seq))!, next = drawnEnd("s");
+  const r = await dry();
+  expect([acts(r.line), r.line.skipped]).toEqual([[`start ${next.id} overseer`], [{ id: one.id, do: "overseer", why: `the key cost/${one.id}/overseer/1/over-000000/resumed-9999999/end is over 100 characters` }]]);
+});
+
 test("the endings a step draws from are those of the last 500 events of the record: an older one starts no overseer", async () => {
   fresh(6000);
   const ends: Ev[] = [];

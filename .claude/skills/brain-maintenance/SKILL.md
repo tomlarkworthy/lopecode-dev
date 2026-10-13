@@ -1,6 +1,6 @@
 ---
 name: brain-maintenance
-description: Use when the user asks to "work the tracker", "run the issue loop", "/brain-maintenance", "/loop /brain-maintenance", or wants the issues of the Cloud Brain tracker on cb4 triaged, fixed, reviewed and closed without being asked for each one. Polls the tracker, gives every review that waits a reviewer and every sent-back round its writer, starts new implementers (each in a git worktree of its topic, made by the orchestrator) when none of those waits, with no fixed number of either and a tracker token for each, and after every few issues spawns an overseer that files cluster issues or edits the role briefs.
+description: Use when the user asks to "work the tracker", "run the issue loop", "/brain-maintenance", "/loop /brain-maintenance", or wants the issues of the Cloud Brain tracker on cb4 triaged, fixed, reviewed and closed without being asked for each one. Polls the tracker, gives every review that waits a reviewer and every sent-back round its writer, starts new implementers (each in a git worktree of its topic, made by the orchestrator) when none of those waits, with no fixed number of either and a tracker token for each, and on one ended issue in 10 spawns an overseer that reads that issue alone and files cluster issues or edits the role briefs.
 version: 0.1.0
 ---
 
