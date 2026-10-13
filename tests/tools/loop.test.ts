@@ -566,5 +566,12 @@ test("with no LOOP_TOKEN nothing is read or sent; a role the queue does not give
   expect(no.err).toContain("agent-token made no token");
   expect([log("worktree"), log("agent"), writes()]).toEqual([[], [], []]);
   expect((await cli(["ended", "impl-nosuch"])).code).toBe(1);
+  // A token that was given and is not kept, and a flag with no value: nothing is started.
+  rmSync(join(RIG, "brain-exit"));
+  const unkept = await cli(["start", "x", "--role", "implementer", "--token", "impl-cccccc"]);
+  expect(unkept.code).toBe(1);
+  expect(unkept.err).toContain("--token impl-cccccc: a read with it was not answered");
+  for (const args of [["start", "x", "--role", "implementer", "--token"], ["start", "x", "--token", "--role", "implementer"], ["resume", "x", "--role"], ["dead", "x", "--role", "implementer", "--round", "0"], ["dead", "x", "--role", "implementer", "--round", "two"], ["dead", "x"]]) expect([args.join(" "), (await cli(args)).code]).toEqual([args.join(" "), 2]);
+  expect([log("worktree"), log("agent"), log("brain"), writes()]).toEqual([[], [], ["agent-token impl x"], []]);
   expect((await cli(["bogus"])).code).toBe(2);
 });

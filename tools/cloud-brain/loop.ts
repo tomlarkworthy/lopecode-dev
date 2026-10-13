@@ -18,7 +18,8 @@
 //         implementer (digest with the label `digest`), `spec` spec-writer, `review` reviewer, and an issue in
 //         `waiting` for the owner at `awaiting-approval` approver. In order:
 //         1. the agent's token, `brain.ts agent-token <impl|dig|spec|rev|appr|over> <id>`; with --token <t> a token
-//            made before, and the program then makes none and ends none, here or in `ended`;
+//            made before, which must read the tracker, and the program then makes none and ends none, here or
+//            in `ended`;
 //         2. a writer's worktree (`worktree.sh --fresh <topic> --for <token>`, the topic the issue's parent or
 //            itself; exit 4 or another issue's unlanded work: `<topic>.2` to `.5`; this issue's unlanded work: the
 //            worktree as it is, and a fifth line of the prompt) and the `worktree {…}` comment on the topic's issue;
@@ -208,7 +209,7 @@ const unmake = (run: Run, text: string, code = 1): never => {
 const lastOversight = (file: string) => { try { return (last([...readFileSync(file, "utf8").matchAll(/^## .*events \d+ to (\d+)/gm)]) || [])[1] || ""; } catch { return ""; } };
 
 function start(args: string[]) {
-  const me = own(), flag = (n: string) => { const i = args.indexOf(n); return i < 0 ? undefined : args.splice(i, 2)[1]; };
+  const me = own(), flag = (n: string) => { const i = args.indexOf(n); if (i < 0) return undefined; const v = args.splice(i, 2)[1]; return v && !v.startsWith("--") ? v : stop(2, `${n} takes a value`); };
   let role = flag("--role"), given = flag("--token");
   const id = args[0] || "";
   if (!id && role !== "overseer") stop(2, "start <id> [--role <role>] [--token <t>], or start --role overseer");
@@ -223,6 +224,8 @@ function start(args: string[]) {
   const longest = endKey({ ...run, token: given || PREFIX[run.role] + "-000000", how: "resumed", at: 9999999 });
   if (longest.length > KEY_MOST) stop(1, `the key ${longest} would be ${longest.length} characters, and the tracker keeps ${KEY_MOST}`);
   const root = ROOT();
+  // A token that was given is one issue-as.sh keeps and cb4 answers: else its agent could write nothing.
+  if (given && as(given, id ? `get?id=${id}` : "queue?limit=1").status !== 200) stop(1, `--token ${given}: a read with it was not answered; nothing was started`);
   if (!given) {
     const t = brain("agent-token", PREFIX[run.role], id || `oversight-after-${lastOversight(join(root, ".claude/skills/brain-maintenance/oversight.md"))}`);
     if (t.code !== 0 || !/^[a-z]+-[0-9a-f]{6}$/.test(t.out.trim())) stop(1, `agent-token made no token: ${(t.out + t.err).trim()}`);
@@ -282,7 +285,7 @@ async function ended(args: string[], quiet = false): Promise<any> {
   let run = load(token) || stop(1, `no file ${fileOf(token)}: ${token} is no run this machine started`);
   const me = own(run), base = join(RUNS(), token);
   if (run.ended) { const o = { already: token, ...run.ended }; quiet || say(o); return o; }
-  if (!existsSync(base + ".result.json") && alive(run)) { quiet || stop(3, `${token} still runs: ${run.agent}, since ${run.began}`); return { runs: token }; }
+  if (!existsSync(base + ".result.json") && alive(run)) { quiet || stop(3, `${token} still runs: ${run.agent}${run.began ? ", since " + run.began : ""}`); return { runs: token }; }
   // `start` writes the event after the process is begun: an agent that ends at once waits here for it, 30 s at most.
   for (let i = 0; run.running === undefined && Date.now() - (run.startedAt || 0) < 60000 && i < 60; i++) { await Bun.sleep(500); run = load(token) || run; }
   let result: any = null;
@@ -329,7 +332,7 @@ async function ended(args: string[], quiet = false): Promise<any> {
 }
 
 async function resume(args: string[]) {
-  const me = own(), i = args.indexOf("--role"), asked = i < 0 ? undefined : args.splice(i, 2)[1];
+  const me = own(), i = args.indexOf("--role"), asked = i < 0 ? undefined : args.splice(i, 2)[1] || stop(2, "--role takes a value");
   const id = args[0] || stop(2, "resume <id> [--role <role>]");
   let got = read(me, `get?id=${id}`), issue = got.issue || stop(1, `no issue ${id} that ${me} reads`), events: Ev[] = got.events || [];
   const role = asked || (issue.state === "spec" ? "spec-writer" : (issue.labels || []).includes("digest") ? "digest" : "implementer");
@@ -385,7 +388,7 @@ async function resume(args: string[]) {
 }
 
 function dead(args: string[]) {
-  const me = own(), flag = (n: string) => { const i = args.indexOf(n); return i < 0 ? undefined : args.splice(i, 2)[1]; };
+  const me = own(), flag = (n: string) => { const i = args.indexOf(n); if (i < 0) return undefined; const v = args.splice(i, 2)[1]; return v && !v.startsWith("--") ? v : stop(2, `${n} takes a value`); };
   const role = flag("--role") || stop(2, "dead <id> --role <role> [--round <n>]"), asked = flag("--round"), id = args[0] || stop(2, "dead <id> --role <role> [--round <n>]");
   const events: Ev[] = read(me, `get?id=${id}`).events || [], round = asked ? Number(asked) : roundOf(role, events);
   if (!Number.isInteger(round) || round < 1) stop(2, "--round is a whole number, 1 or more");

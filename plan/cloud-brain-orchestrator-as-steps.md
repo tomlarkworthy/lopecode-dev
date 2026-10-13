@@ -314,6 +314,27 @@ from the issue as the queue's `do` gives it:
 4. One `cost` event, key `cost/<id>/<role>/<round>/<token>`:
    `{ role, round, how: "fresh", outcome: "running", seconds: 0, context: 0, token, session, agent: "<hostname -s>:<pid of the wrapper>" }`.
 
+As built (`st-2-loop-start-and-end`, 2026-10-13; `tools/cloud-brain/records/st-2-loop-start-and-end.md`),
+where it differs from the four items or adds to them:
+
+- The token the program was started under is named before the command, `LOOP_TOKEN=<name>`, as
+  `LOCK_TOKEN` is for `lock.sh`. With none it exits 2 and reads nothing.
+- `ps` is setuid and the sandbox of a session refuses it (`operation not permitted: ps`, that
+  day), so the time a process began is `""` in a file written there. A run is known to live by
+  its wrapper's command line, which has `loop-run-<token>` and is read with `pgrep -f`; the time
+  is compared as well where the file has one and `ps` gives one.
+- The file has more keys than the four: `token`, `how`, `made` (false under `--token`), `as`,
+  `host`, `tree`, `path`, `pid`, `began`, `agent`, `running` (the seq of the event) and, once
+  ended, `ended`. Beside `runs/<token>.result.json` the wrapper writes `runs/<token>.exit`, the
+  exit of `agent.sh`: 1 is a result that was an error, which the JSON line does not say.
+- A reviewer's run is `how: "light"` and is started with `CHECKOUT`, as `SKILL.md` step 4 has it,
+  and not with `WORK`.
+- `ended` keeps the token of a writer whose outcome is `in-review`, `changes` or `no-submit`: each
+  may be sent the round by `resume`. The rule of "A token for each agent" names `in-review` alone.
+- `resume` takes a token for live when a read of the issue sent with it answers 200, the test
+  `worktree.sh` makes of an occupant, and runs no `agent-token list`.
+- The count of dead runs is `loop.ts dead <id> --role <role> [--round <n>]`.
+
 The role in a file, in a `cost` event and in `runs?role=` is the name `SKILL.md` gives a run; the
 prefix of a token is another word. Side by side, token and role: `impl` `implementer`, `dig`
 `digest`, `spec` `spec-writer`, `rev` `reviewer`, `appr` `approver`, `over` `overseer`, `orch`
