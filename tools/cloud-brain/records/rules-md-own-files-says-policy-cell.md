@@ -62,8 +62,11 @@ and no route, and a limit that a policy cell other than `issuesApp` reads.
   changes are those of `tests/tools/approver.test.ts`, which is the approver's own file and was
   not edited.
 
-No choice is put to the owner: the sentences say what the tool does since a change he was asked
-of (`approver-policy-mark-takes-every-route`). The item is in `rules.md`, so the issue is `major`.
+No choice is put to the owner: the sentences say what the tool does since
+`approver-policy-mark-takes-every-route`. Of that issue, read with `issue-as.sh impl-5529a8
+"get?id=approver-policy-mark-takes-every-route" --short` on 2026-10-13: comment 6384, by the
+session `out-5f56b2`, quotes his message "1 A 2 C 3 B" with that issue as number 2, and event 6509
+is the `approve` made for him. The item is in `rules.md`, so this issue is `major`.
 
 ## Counts
 
