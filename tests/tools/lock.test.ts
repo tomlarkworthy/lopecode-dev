@@ -591,3 +591,48 @@ test("R3: the reviewer's brief names neither lock directory and waits on lock.sh
   expect(count(/land\.lock|cb4\.lock/)).toBe(0);
   expect(count(/lock\.sh show land/)).toBe(1);
 }, 15000);
+
+// The line of the docs that wait for a summarizer: plan/cloud-brain-docs-summarised-for-search.md, design piece 4 (sd-4-the-rest-and-the-release-line).
+test("a release of land prints `summaries due` after the docs line when the tool names docs, with the command to run; no line when it names none or fails", async () => {
+  const docs = stub(`echo "summaries due: cloud-brain-x, cloud-brain-y, and 3 more"; echo '{"put":2,"entered":2}'`);
+  const { lock, svc } = fresh({ LOCK_DOCS: docs.program, BRAIN_BASE: undefined });
+  await lock("take", "land", "writer-a");
+  const r = await lock("release", "land", "writer-a");
+  expect(r.code).toBe(0);
+  expect(svc.rows.get("land")!.who).toBe("");
+  // The tool was run once, for the put: the release starts no summarizer.
+  expect(docs.calls()).toEqual(["put --stale --limit=30|cb4"]);
+  expect(r.out.split("\n").slice(1)).toEqual([`docs (cb4): {"put":2,"entered":2}`,
+    `summaries due (cb4): cloud-brain-x, cloud-brain-y, and 3 more. A writer or a spec writer runs, and names the journal's lines in its report: BRAIN_BASE=cb4 ${docs.program} summarize --due --first-paragraph --usd-max 1 (a reviewer leaves it: the next landing prints it again)`]);
+
+  // With nothing to put the tool's last line is not JSON; the line is made all the same, and names the caller's Brain.
+  const idle = stub(`echo "summaries due: one-doc"; echo "nothing to put"`);
+  const b = fresh({ LOCK_DOCS: idle.program, BRAIN_BASE: "cbx" });
+  await b.lock("take", "land", "writer-a");
+  const r2 = await b.lock("release", "land", "writer-a");
+  expect(r2.out.split("\n").slice(1)).toEqual(["docs (cbx): nothing to put",
+    `summaries due (cbx): one-doc. A writer or a spec writer runs, and names the journal's lines in its report: BRAIN_BASE=cbx ${idle.program} summarize --due --first-paragraph --usd-max 1 (a reviewer leaves it: the next landing prints it again)`]);
+
+  // No name, an empty list, a tool that failed after it named some, and a release of cb4: no line.
+  for (const [then, name] of [[`echo '{"put":2,"entered":2}'`, "land"], [`echo "summaries due: "; echo "nothing to put"`, "land"], [`echo "summaries due: one-doc"; exit 1`, "land"], [`echo "summaries due: one-doc"; echo "nothing to put"`, "cb4"]]) {
+    const c = fresh({ LOCK_DOCS: stub(then).program });
+    await c.lock("take", name, "writer-a");
+    const out = (await c.lock("release", name, "writer-a")).out;
+    expect(out).toContain(`${name} released by writer-a`);
+    expect(out).not.toContain("summaries due (");
+  }
+});
+
+test("with no LOCK_DOCS the command of the `summaries due` line names the copy of knowledge-docs.ts beside the lock.sh that ran, by its whole path", async () => {
+  // A copy of lock.sh in a directory of its own, beside a knowledge-docs.ts that bun runs.
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "bm-lock-copy-")));
+  writeFileSync(join(dir, "lock.sh"), readFileSync(script, "utf8"));
+  writeFileSync(join(dir, "knowledge-docs.ts"), `console.log("summaries due: one-doc"); console.log("nothing to put");\n`);
+  const { sh, env } = fresh({ LOCK_DOCS: undefined, BRAIN_BASE: undefined });
+  await sh(`bash "${dir}/lock.sh" take land writer-a`);
+  // Called by a relative path, as from a worktree's root.
+  const r = await sh(`cd "${dir}/.." && bash "./${dir.split("/").at(-1)}/lock.sh" release land writer-a`);
+  expect(r.code).toBe(0);
+  expect(r.out).toContain(`BRAIN_BASE=cb4 bun ${dir}/knowledge-docs.ts summarize --due --first-paragraph --usd-max 1 (`);
+  expect(env.LOCK_DOCS).toBeUndefined();
+});

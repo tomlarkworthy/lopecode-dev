@@ -191,7 +191,12 @@ an entry of kind doc over 16,000 characters              [the first N of M chara
   fourth is the line a test of `tools/cloud-brain/cloud-brain.ojs` expects of `callAnswer`, not one read in the page;
   for a procedure the same function ends the line `The rest is not read: a procedure called again would run a second time`.
 - A cut doc's last line names its file, which is the whole ("The knowledge docs in the Brain's search", below).
-  This page is such a doc: at 04:09 CEST that day its entry had the first 15727 of 26628 characters, by its last line.
+  This page was such a doc: at 04:09 CEST that day its entry had the first 15727 of 26628 characters, by its last line.
+  Since 09:09 CEST that day a doc over 16,000 characters is cut only until its summary is written
+  (`sd-4-the-rest-and-the-release-line`): the entry then begins with a paragraph by the summarizer, and the second
+  line after the paragraph names the file. This page's entry, read at 09:11 with `knowledge.search`, was 16,000
+  characters with `The whole doc is the file docs/lopecode-dev/knowledge/calling-a-cloud-brain-from-this-checkout.md
+  in this Brain's brain-static, 30964 characters: static.get?path=… Its start follows.` after a paragraph of 892.
 
 ## Why did that happen: the logs
 
@@ -263,7 +268,19 @@ command of every landing, `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh release 
 docs (cb4): {"put":2,…}                     the tool's last line: what was entered
 docs (cb4): nothing to put
 docs (cb4): not entered (<why>)             the tool failed; the docs wait for the next landing
+summaries due (cb4): <names>. A writer or a spec writer runs, …: BRAIN_BASE=cb4 bun <dir>/knowledge-docs.ts summarize --due --first-paragraph --usd-max 1 (a reviewer leaves it: …)
 ```
+
+- The last of these follows a line of the first two kinds, and only when a long doc waits for a summarizer (since
+  `sd-4-the-rest-and-the-release-line`, 2026-10-13): one with no summary in its entry, or one changed by over a tenth
+  of its lines since its summary. `put --stale` names them in a line of its own before its last, `summaries due: …`,
+  8 names and then `and N more`; a doc refused twice at its file and one a summarizer is running on are not named. The
+  release starts no agent. `<dir>` is the directory of the `lock.sh` that ran, by its whole path, so the command runs
+  as it is printed from any directory. The agent whose landing printed the line runs it as a background command and
+  names in its report the `at` of its first line in `.emitted/docs/journal.jsonl` of the main checkout; the
+  orchestrating session writes the cost of those agents as one event of the role `summarizer`
+  (`.claude/skills/brain-maintenance/SKILL.md`, step 5). With no landing nothing prints the line:
+  `status --check-summaries` fails a doc due for over 24 hours, and no agent is told to run it.
 
 - The name in brackets is the Brain: `BRAIN_BASE`, and `cb4` when the caller's shell has none.
 - The call is made with the token `loop-docs`, which the owner makes once:
@@ -312,7 +329,7 @@ summary in the entry of a doc over 16,000 characters. None was on cb4 when this 
 three and two of ten passages it found before; `tools/cloud-brain/records/sd-3-pilot-ten.md`. `sd-3b-first-paragraph-alone` put the same ten
 again that day with `summarize --first-paragraph`, haiku, and put them back: the search by words found all ten passages at the ranks
 of before, and the ten questions from past the kept text were not found better; `tools/cloud-brain/records/sd-3b-first-paragraph-alone.md`.
-None is on cb4 since 06:17 CEST that day.) What changed in the two commands above:
+None was on cb4 from 06:17 CEST that day until the run below.) What changed in the two commands above:
 
 - An entry that holds the line `Summary by summarizer (…)` is neither cut nor unmarked. A put of its doc keeps the
   text to the end of that line and makes the line after it and the doc's start anew. The last line of `put` counts
@@ -322,11 +339,20 @@ None is on cb4 since 06:17 CEST that day.) What changed in the two commands abov
   checkout. Its last line names them, `noText` and `running`.
 - The last line of `status` has `long`, `summarized`, `behind`, and by name `due` and `refused`.
 
+**Every long doc has a first paragraph since 2026-10-13, 09:09 CEST** (`sd-4-the-rest-and-the-release-line`, task 4 of
+that plan, on the owner's B of comment 6005 there). `summarize --due --first-paragraph --usd-max 2`, haiku, from 07:30
+put 48 of the 49 long docs and refused one twice, which `summarize <name> --first-paragraph --again` then put: 49
+entries, $0.674 with the two canaries (`.emitted/docs/journal.jsonl`; `tools/cloud-brain/records/sd-4-the-rest-and-the-release-line.md`).
+The owner was shown, before he chose, that the sets of ten questions measured no gain from the paragraph and one
+reading worse (comment 5898). A long doc that lands later is cut until the agent of its landing runs the command the
+release prints ("What enters a changed doc", above). `status` at 09:10 read `"long":51,"summarized":49,"cut":2`: two
+specs had landed during the run.
+
 The commands that came with it, each said in the header of `tools/cloud-brain/knowledge-docs.ts`:
 
 ```
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize <name>… --dry        # one agent a doc (haiku); the summary to .emitted/docs/<name>.summary.txt, nothing put
-BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize --due --usd-max 1    # every doc whose summary is due; puts each with loop-docs
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize --due --first-paragraph --usd-max 1    # every doc whose summary is due; puts each with loop-docs. The command a release prints
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts summarize <name>… --first-paragraph   # the entry holds the summary's first paragraph and none of its five sections (2026-10-13)
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status --check-summaries       # reads only; exit 1 on a summary not in its form, due for over 24 hours, or refused twice
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --plain <name>…            # a long doc as it is put with no summary: the way one is put back
@@ -341,10 +367,11 @@ last line is then bun's and not the JSON. `badname` is a doc whose file name giv
 ## The summaries of the kept papers
 
 Each kept paper with the tag `awesome-rsi` has, first in its entry's text, a summary written by one light agent of
-the role `paper-summarizer`, and the entry's vector is made from the summary's first paragraph. (The role is named
-`summarizer` since `sd-2-one-summarizer`, 2026-10-12, and takes a doc as well: its brief is `brain/roles/summarizer.md`,
-`run` starts it with a task line `summarize a paper: …`, and a summary written from then on has the line
-`Summary by summarizer (…)`. The 63 put before have `Summary by paper-summarizer (…)`, which `check` reads as before.)
+the role `summarizer`, and the entry's vector is made from the summary's first paragraph. (The role was named
+`paper-summarizer` until `sd-2-one-summarizer`, 2026-10-12, and takes a doc as well since: its brief is
+`brain/roles/summarizer.md`, `run` starts it with a task line `summarize a paper: …`, and a summary written from then
+on has the line `Summary by summarizer (…)`. The 63 put before have `Summary by paper-summarizer (…)`, which `check`
+reads as before.)
 (`plan/cloud-brain-paper-summarizer-persona.md`; the runs are `tools/cloud-brain/records/ps-3-pilot-ten.md` and
 `ps-4-the-rest.md`). For papers entered later, or another tag, it is two commands and then the check, from the main
 checkout or a worktree. The header of `tools/cloud-brain/summarize-papers.ts` is the reference.
@@ -366,4 +393,5 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/summarize-papers.ts check --tag TAG        
 - It needs `pdftotext` on the machine for a paper arXiv has no HTML page of, and the tokens `loop-knowledge` and
   `loop-papers`.
 - What a run cost is `usd` of its lines in `.emitted/papers/journal.jsonl`; it goes on the task's issue as one `cost`
-  event of the role `paper-summarizer` (`.claude/skills/brain-maintenance/SKILL.md`, step 5).
+  event of the role `summarizer` (`.claude/skills/brain-maintenance/SKILL.md`, step 5; the events of the two tasks of
+  2026-10-12 carry the role's name of that day, `paper-summarizer`).

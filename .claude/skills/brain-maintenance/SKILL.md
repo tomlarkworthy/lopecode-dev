@@ -497,7 +497,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    does not list, a required one that is missing, or one of another type is 400 `InvalidRequest` naming the field, and
    nothing is written. Read the answer: `seq` is the event's.
    Required: `role`, `round`, `how`, `outcome`, `seconds`, `context`.
-   `role` is `implementer`, `reviewer`, `spec-writer`, `digest`, `overseer`, `approver`, `triage` or `paper-summarizer` (a name, a-z 0-9 -; the service keeps no list); `round`
+   `role` is `implementer`, `reviewer`, `spec-writer`, `digest`, `overseer`, `approver`, `triage` or `summarizer` (a name, a-z 0-9 -; the service keeps no list); `round`
    counts the runs of that role on that issue from 1 (a writer's is the round it wrote, the `rework` moves before it
    plus one, as in its keys `comment-N` and `submit-N`; for a run of two rounds, below, the first of them);
    `how` is `fresh` for an agent you spawned, `resumed` for a round you sent to an agent that was there, `light` for the
@@ -546,17 +546,25 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    the JSON of the call without `key` and `id`, and yours for the pass, with the role `orchestrator`, in `_orchestrator.md`
    when the session shows a count. The journal is written as before. A run entered from a comment by `cost-events.ts`
    has `of`, the comment's seq; of those, the 100 read from the journal's headings on 2026-10-11 carry `"backfilled":true`.
-   **The role `paper-summarizer`** (since `ps-4-the-rest`, 2026-10-12; `plan/cloud-brain-paper-summarizer-persona.md`, task 4).
-   A task whose writer ran `summarize-papers.ts run` started one light agent a paper, and those agents are no run of
-   yours: nothing reports them but `<root>/tools/cloud-brain/.emitted/papers/journal.jsonl`, one line an agent with its
-   `usd`, `ms`, `context` and `session`. They get one event a task, beside the writer's own, under the key
-   `cost/<id>/paper-summarizer/1`: `role` `paper-summarizer`, `round` 1, `how` `light`, `outcome` the writer's,
-   `usd` the sum of `usd` of the task's lines (the canaries among them), `seconds` the sum of their `ms` over 1000 as
+   **The role `summarizer`** (the papers' since `ps-4-the-rest`, 2026-10-12, `plan/cloud-brain-paper-summarizer-persona.md`,
+   task 4; a doc's since `sd-4-the-rest-and-the-release-line`, 2026-10-13, `plan/cloud-brain-docs-summarised-for-search.md`,
+   design piece 4. It was named `paper-summarizer` until `sd-2-one-summarizer`, and the `cost` events of the papers' two
+   tasks carry that name, under the key `cost/<id>/paper-summarizer/1`.)
+   An agent that ran `summarize-papers.ts run`, or the command of a line `summaries due (cb4): …` that its landing
+   printed (`knowledge-docs.ts summarize --due --first-paragraph --usd-max 1`), started one light agent a paper or a
+   doc, and those agents are no run of yours: nothing reports them but a journal, one line an agent with its `usd`,
+   `ms`, `context` and `session`: `<root>/tools/cloud-brain/.emitted/papers/journal.jsonl` for the papers and
+   `<root>/tools/cloud-brain/.emitted/docs/journal.jsonl` for the docs. They get one event for each round of the
+   agent that started them, beside that agent's own, under the key
+   `cost/<id>/summarizer/<round>`: `role` `summarizer`, `round` that agent's, `how` `light`, `outcome` that agent's,
+   `usd` the sum of `usd` of its lines (the canaries among them), `seconds` the sum of their `ms` over 1000 as
    a whole number, `context` the largest `context` of them (the fullest of the agents; the field is one request's size
-   and a sum of 53 would say nothing). No `session`, `agent`, `tools` or `usage`: there are as many sessions as papers
-   and they are in the journal. The task's lines are those with `at` from the first canary of the task's first `run`;
-   the writer's comment gives that `at` and the three numbers, with the command that printed them. Check the sum
-   yourself before the call (`tools/cloud-brain/records/ps-4-the-rest.md` has the command).
+   and a sum of 53 would say nothing). No `session`, `agent`, `tools` or `usage`: there are as many sessions as texts
+   and they are in the journal. The lines are those with `at` from the first canary of the agent's first run to the
+   last line of its last; the agent's report or comment gives that `at` and the three numbers, with the command that
+   printed them. Check the sum yourself before the call (`tools/cloud-brain/records/ps-4-the-rest.md` has the command
+   for the papers, `records/sd-4-the-rest-and-the-release-line.md` for the docs). A line `summaries due` in the report
+   of a reviewer is left: the line says so, and the next landing prints it again.
    **The role `approver`** (since `ap-2-brief-and-shadow-step`, 2026-10-12; `plan/cloud-brain-approver-persona.md`, part 5).
    One event a run of an approver, written as for any Agent run, with four things of its own:
    ```

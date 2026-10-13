@@ -24,11 +24,14 @@ test("the doc gives text, run and check in that order, and each command and flag
 
 test("step 5 of the loop lists the role and says what each required field of its one event is", () => {
   const skill = read(".claude/skills/brain-maintenance/SKILL.md");
-  const at = skill.indexOf("**The role `paper-summarizer`**"), end = skill.indexOf("6. **Oversight.**");
+  // The role is `summarizer` since sd-2-one-summarizer; the paragraph was renamed by sd-4-the-rest-and-the-release-line
+  // and keeps the key the papers' two events were written under.
+  const at = skill.indexOf("**The role `summarizer`**"), end = skill.indexOf("6. **Oversight.**");
   expect(at).toBeGreaterThan(skill.indexOf("5. **When an agent reports**"));
   expect(end).toBeGreaterThan(at);
   const part = skill.slice(at, end);
   expect(part).toContain("cost/<id>/paper-summarizer/1");
+  expect(part).toContain("cost/<id>/summarizer/<round>");
   for (const field of ["`role`", "`round`", "`how` `light`", "`outcome`", "`seconds`", "`context`", "`usd`"]) expect([field, part.includes(field)]).toEqual([field, true]);
-  expect(/`role` is [^(]*`paper-summarizer` \(a name/.test(skill)).toBe(true);
+  expect(/`role` is [^(]*`summarizer` \(a name/.test(skill)).toBe(true);
 });

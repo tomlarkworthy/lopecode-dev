@@ -436,7 +436,8 @@ test("put --stale also puts a fresh doc whose entry is unmarked, and its last li
   const sent = (id: string) => t.puts().find((e: any) => e.id === id).text;
   t.keep([...t.all(), t.entry("over", over, { text: sent("doc:over") }), t.entry("more", more, { text: sent("doc:more") })]);
   expect(t.summary(t.kdocs(["status"]).out)).toMatchObject({ fresh: 8, cut: 2, unmarked: 0 });
-  expect(t.kdocs(["put", "--stale"]).out).toBe("nothing to put");
+  // Since sd-4-the-rest-and-the-release-line the docs step names the long docs with no summary, in a line before its last.
+  expect(t.kdocs(["put", "--stale"]).out).toBe("summaries due: more, over\nnothing to put");
   expect(t.puts().length).toBe(2);
 });
 
@@ -463,7 +464,7 @@ test("put --stale: an entry with another line is put; one with no text or with a
     const st = t.summary(t.kdocs(["status"]).out);
     expect([st.unmarked, st.noText, st.due]).toEqual([0, ["over"], ["more"]]);
     const p = t.kdocs(["put", "--stale"]);
-    expect([p.code, p.out, t.puts().length - n]).toEqual([0, "nothing to put; left as they are, long and the entry answered with no text (put <name> enters one cut): over", 0]);
+    expect([p.code, p.out, t.puts().length - n]).toEqual([0, "summaries due: more\nnothing to put; left as they are, long and the entry answered with no text (put <name> enters one cut): over", 0]);
     // Beside a doc that is put, the last line names it.
     t.keep([...marked.filter((e) => e.id !== "doc:over" && e.id !== "doc:b"), t.entry("over", over, more1)]);
     expect(t.summary(t.kdocs(["put", "--stale"]).out)).toMatchObject({ put: 1, cut: 0, noText: ["over"] });

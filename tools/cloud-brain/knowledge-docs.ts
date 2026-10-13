@@ -86,6 +86,11 @@
 // summarize --first-paragraph (sd-3b-first-paragraph-alone): the same agent, brief and judge, and the entry holds the
 // first paragraph, the summary's line, the second line and the doc's start: the five sections are in no part of it,
 // so the entry keeps about 5,000 characters more of the doc's own text. The journal's line has firstParagraph: true.
+// put --stale and the docs that wait for a summarizer (sd-4-the-rest-and-the-release-line, design piece 4): before its last
+// line it prints `summaries due: <name>, <name>…` (8 names, then `and N more`) when a long doc is due and `summarize --due`
+// would start an agent for it: not one refused twice at this file, and not one a summarizer is running on. `lock.sh
+// release land` prints it as `summaries due (<brain>): …` with the command to run, which has --first-paragraph: the form
+// the owner chose for every long doc (comment 6005 of that issue). No other put prints the line.
 // While an agent reads a doc, <state>/docs/<name>.running holds the time: a summarize that finds one under ten minutes
 // old skips the doc, and so does put --stale, which names it (`running`) and leaves it for the next put, since it read
 // the kept text before a summary that lands in between. <state> is one machine's.
@@ -269,8 +274,12 @@ const journalFile = stateDocs ? join(stateDocs, "journal.jsonl") : "";
 const journal = (): any[] => (journalFile && existsSync(journalFile) ? readFileSync(journalFile, "utf8").split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return {}; } }) : []);
 // Refused twice for this file: no agent is started for it again without --again. A refusal of a --dry run holds a
 // later --dry run and no other: it is not in `refused` of status, and a run that puts is not held by it.
-const refusedAt = (lines: any[], r: { name: string; sha256: string }, dry = false) => lines.some((l) => l.name === r.name && l.outcome === "refused" && l.sha256 === r.sha256 && (dry || !l.dry));
+// A put at this file after the refusal (--again) ends it: until sd-4-the-rest-and-the-release-line it did not, and
+// --check-summaries failed cloud-brain-brain-docs-entered-by-hand on cb4 with its summary put (2026-10-13, 09:10 CEST).
+const refusedAt = (lines: any[], r: { name: string; sha256: string }, dry = false) =>
+  lines.filter((l) => l.name === r.name && l.sha256 === r.sha256 && (l.outcome === "refused" || l.outcome === "put") && (dry || !l.dry)).at(-1)?.outcome === "refused";
 const RUNNING_MS = 10 * 60000;
+const DUE_SHOWN = 8;
 const runningFile = (name: string) => join(stateDocs, name + ".running");
 const running = (name: string) => { try { return !!stateDocs && Date.now() - Number(readFileSync(runningFile(name), "utf8")) < RUNNING_MS; } catch { return false; } };
 // null when no summary is due. `since` is the clock --check-summaries counts 24 hours from; `stale` is the entry's staleSince
@@ -383,9 +392,17 @@ if (cmd === "status" && flag("--check-summaries")) {
     busy.length ? `left for the next put, a summarizer is running on them: ${busy.map((r) => r.name).join(", ")}` : ""].filter(Boolean).join("; ");
   const unscoped = pick.filter((r) => !r.scoped).map((r) => r.name);
   if (unscoped.length) console.log("no scope in frontmatter, entered private:", unscoped.join(", "));
-  if (!pick.length) { console.log("nothing to put" + (left ? "; " + left : "")); process.exit(0); }
+  // The docs step says which docs wait for a summarizer, in a line before its last (design piece 4): those `summarize --due`
+  // would start an agent for, so not one refused twice at this file or with a summarizer running. DUE_SHOWN names, then a count.
+  const dueLine = () => {
+    if (!flag("--stale")) return;
+    const lines = journal(), due = rows.filter((r) => dueOf(r) && !refusedAt(lines, r) && !running(r.name)).map((r) => r.name);
+    if (due.length) console.log("summaries due: " + due.slice(0, DUE_SHOWN).join(", ") + (due.length > DUE_SHOWN ? `, and ${due.length - DUE_SHOWN} more` : ""));
+  };
+  if (!pick.length) { dueLine(); console.log("nothing to put" + (left ? "; " + left : "")); process.exit(0); }
   const t0 = Date.now(), keeps = (r: Row) => !plain && !!r.summary;
   const { entered, changed, vectors } = send(pick.map((r) => ({ d: r, entry: entryOf(r, plain) })));
+  dueLine();
   console.log(JSON.stringify({ put: pick.length, public: pick.filter((d) => d.public).length, private: pick.filter((d) => !d.public).length, cut: pick.filter((r) => r.long && !keeps(r)).length, unmarked: pick.filter((r) => r.unmarked).length,
     summarized: pick.filter(keeps).length, ...(plain ? { plain: true } : {}), ...(noText.length ? { noText: noText.map((r) => r.name) } : {}), ...(busy.length ? { running: busy.map((r) => r.name) } : {}),
     filesWrong: wrong(pick).length, entered, changed, vectors, ms: Date.now() - t0, ...read }));

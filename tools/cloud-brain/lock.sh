@@ -31,6 +31,10 @@
 # Spec plan/cloud-brain-locks-held-in-the-cluster.md, issue lk-3-lock-sh-over-the-cluster, tests/tools/lock.test.ts.
 # The docs step (issue bd-2-release-land-enters-docs): <brain> is BRAIN_BASE, or cb4 when the caller set none.
 # LOCK_DOCS=0 leaves the step out; LOCK_DOCS=<program> runs that program in the tool's place, with the same arguments.
+# When the tool names long docs that wait for a summarizer (its line `summaries due: …`, before its last), one more line
+# follows: `summaries due (<brain>): <names>. … BRAIN_BASE=<brain> bun <this directory>/knowledge-docs.ts summarize --due
+# --first-paragraph --usd-max 1 …`. The release starts no agent; who runs the command is in the line
+# (issue sd-4-the-rest-and-the-release-line; plan/cloud-brain-docs-summarised-for-search.md, design piece 4).
 usage() { sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }
 CMD="$1"; NAME="$2"; WHO="$3"
 case "$NAME" in land|cb4) ;; *) usage ;; esac
@@ -174,7 +178,12 @@ case "$CMD" in
       export BRAIN_BASE="${BRAIN_BASE:-cb4}"
       if [ -n "${LOCK_DOCS:-}" ]; then OUT2="$("$LOCK_DOCS" put --stale --limit=30 2>&1)"; else OUT2="$(bun "$(dirname "$0")/knowledge-docs.ts" put --stale --limit=30 2>&1)"; fi
       RC=$?
-      if [ "$RC" = 0 ]; then echo "docs ($BRAIN_BASE): $(printf '%s\n' "$OUT2" | grep -v '^[[:space:]]*$' | tail -1)"
+      if [ "$RC" = 0 ]; then
+        echo "docs ($BRAIN_BASE): $(printf '%s\n' "$OUT2" | grep -v '^[[:space:]]*$' | tail -1)"
+        # The long docs that wait for a summarizer, as the tool names them in a line before its last. Nothing is started here.
+        DUE="$(printf '%s\n' "$OUT2" | sed -n 's/^summaries due: //p' | tail -1)"
+        if [ -n "${LOCK_DOCS:-}" ]; then TOOL="$LOCK_DOCS"; else TOOL="bun $(cd "$(dirname "$0")" && pwd)/knowledge-docs.ts"; fi
+        [ -z "$DUE" ] || echo "summaries due ($BRAIN_BASE): $DUE. A writer or a spec writer runs, and names the journal's lines in its report: BRAIN_BASE=$BRAIN_BASE $TOOL summarize --due --first-paragraph --usd-max 1 (a reviewer leaves it: the next landing prints it again)"
       else
         WHY="$(printf '%s\n' "$OUT2" | sed -n 's/^error: //p' | head -1)"
         [ -n "$WHY" ] || WHY="$(printf '%s\n' "$OUT2" | grep -v '^[[:space:]]*$' | tail -1)"

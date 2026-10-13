@@ -77,6 +77,29 @@ with the ten paragraphs, rank for rank; set L fell, by words 0.623 to 0.614 and 
 cost $0.13 and were put back with `put --plain`, each to the bytes it had before: no summary of a doc is on cb4. The
 record is `tools/cloud-brain/records/sd-3b-first-paragraph-alone.md`.
 
+**As built, task 4 (`sd-4-the-rest-and-the-release-line`, 2026-10-13): every long doc has the first paragraph of a
+summary, and a release names the docs that wait for one.** The owner chose to go on (his "1 B", quoted in comment 6005
+of that issue) after he was shown that the sets measure no gain. The record is
+`tools/cloud-brain/records/sd-4-the-rest-and-the-release-line.md`. Where a line below says otherwise, read these:
+
+- **The form is `sd-3b`'s.** The run was `summarize --due --first-paragraph --usd-max 2`, haiku, on the 49 long docs
+  of 07:30 CEST (the ten of the pilot among them, which were plain): 48 put, one refused twice and put with `--again`,
+  $0.674 with two canaries. The command of the `summaries due` line has `--first-paragraph` too. `summarize --due`
+  with no flag still puts a whole summary, the form that failed R5.
+- **The line is made from a line of the tool's own, not from `due` in its last line.** `put --stale` prints
+  `summaries due: <names>` before its last line, 8 names and then `and N more`, and `lock.sh` prints it after
+  `docs (cb4): …` with the command. `put`'s last line has no `due`: the names would be printed twice at each landing.
+- **Not named: a doc refused twice at its file, and one a summarizer is running on.** `summarize --due` starts no
+  agent for either, so the line would ask for a run that does nothing.
+- **The sentence of the implementer's brief is in its page `implementer/landing.md`**, where the brief has said what
+  the `docs (cb4)` line is since `writer-brief-and-tool-output-smaller` (2026-10-13). `agents/implementer.md` itself
+  was 19,996 characters of the 20,000 its test allows and has no sentence: a writer who lands with `land.sh` reads
+  who runs the command in the line.
+- **A put after a refusal ends the refusal.** `status --check-summaries` failed the doc that was refused twice and
+  then put with `--again`; `refusedAt` now reads the last of the doc's lines at that file.
+- **The cost event's key is `cost/<id>/summarizer/<round>`** for the docs and for papers summarized from now on; the
+  events of the papers' two tasks keep `cost/<id>/paper-summarizer/1`.
+
 The tasks are `sd-1` to `sd-4` on the tracker, where this file says `ds-1` to `ds-4`.
 
 Sections 1 to 3 and 5 of "What exists today", the question sets and "Read" are round 1's and were

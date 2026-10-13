@@ -319,6 +319,9 @@ test("refused twice: nothing is put, status lists the doc under refused, a later
   // The file changes: the refusal was of another file. --again: the same file once more.
   const more = t.kdocs(["summarize", "long", "--again", "--model", "opus"]);
   expect([more.lines[0].outcome, t.started().at(-1).model, t.entry().text.includes(lineOfDoc(sha(t.doc()), "opus"))]).toEqual(["put", "opus", true]);
+  // Put at the file it was refused at: the refusal is over (sd-4-the-rest-and-the-release-line; --check-summaries failed such a doc on cb4).
+  const after = t.kdocs(["status", "--check-summaries"]);
+  expect([after.code, after.lines[0], after.last.failing, t.kdocs(["status"]).last.refused]).toEqual([0, { name: "long", state: "summarized" }, [], []]);
 }, T);
 
 test("summarize: the file is read again before the put: when origin/main moved while the agent read, the line names the version read and the start and sha256 are the newer file's", () => {
@@ -416,4 +419,48 @@ test("status --check-summaries: a doc with no summary fails once it has been due
   const f = t.kdocs(["status", "--check-summaries", "long"]);
   expect(bad.length).toBeGreaterThan(16000);
   expect([f.code, f.lines[0].fails]).toEqual([1, ["the first paragraph is 1489 characters, over 1488", "the five headings are not there in their order", `the line after the summary's does not name the entry's file ${FILE}`, `the text is ${bad.length} characters, over 16000`]]);
+}, T);
+
+// The line the docs step is given for `summaries due (<brain>): …` of lock.sh (sd-4-the-rest-and-the-release-line; design piece 4).
+test("put --stale names the docs that wait for a summarizer in a line before its last: with a put and with none; not one refused twice or running, not a summarized or a short doc; 8 names then a count; no other put", () => {
+  const t = entered();
+  const DUE = "summaries due: long";
+  // Nothing to put: the line, then the last line as it was.
+  const idle = t.kdocs(["put", "--stale"]);
+  expect([idle.code, idle.out]).toEqual([0, DUE + "\nnothing to put"]);
+  // A put of another doc: the line is before the JSON, which has no `due`.
+  t.write("knowledge/short.md", SHORT + "\nMore.\n");
+  t.push("the short one changed");
+  const p = t.kdocs(["put", "--stale"]);
+  expect(p.lines.slice(-2)).toMatchObject([DUE, { put: 1, cut: 0 }]);
+  expect("due" in p.last).toBe(false);
+  // By name, --all and --plain: no line.
+  for (const args of [["put", "long"], ["put", "--all"], ["put", "--plain", "long"]]) expect(t.kdocs(args).out).not.toContain("summaries due");
+  // A summarizer is running on it: left out, and named again when the file is over ten minutes old.
+  mkdirSync(t.state, { recursive: true });
+  writeFileSync(join(t.state, "long.running"), String(Date.now() - 9 * 60000));
+  expect(t.kdocs(["put", "--stale"]).out).toBe("nothing to put");
+  writeFileSync(join(t.state, "long.running"), String(Date.now() - 11 * 60000));
+  expect(t.kdocs(["put", "--stale"]).out).toBe(DUE + "\nnothing to put");
+  // Refused twice at this file: `summarize --due` starts no agent for it, so the line does not ask for one.
+  t.answers([{ result: BAD }, { result: BAD }]);
+  expect(t.kdocs(["summarize", "--due", "--first-paragraph"]).last).toMatchObject({ refused: 1 });
+  expect(t.kdocs(["put", "--stale"]).out).toBe("nothing to put");
+  expect(t.kdocs(["status"]).last).toMatchObject({ due: ["long"], refused: ["long"] });
+  // Summarized, by the command the line gives: no line. Changed by over a tenth of its lines: the line again, with the put that keeps the paragraph.
+  t.answers([{ result: GOOD }]);
+  expect(t.kdocs(["summarize", "--due", "--first-paragraph", "--again"]).last).toMatchObject({ put: 1 });
+  expect(t.kdocs(["put", "--stale"]).out).toBe("nothing to put");
+  t.write("knowledge/long.md", t.doc() + Array.from({ length: 30 }, (_, i) => row(300 + i)).join("\n") + "\n");
+  t.push("30 lines more");
+  const behind = t.kdocs(["put", "--stale"]);
+  expect(behind.lines.slice(-2)).toMatchObject([DUE, { put: 1, summarized: 1 }]);
+}, T);
+
+test("put --stale: nine docs due are 8 names and `and 1 more`, in the order of the docs; a new long doc is entered cut and named in the same run", () => {
+  const names = Array.from({ length: 9 }, (_, i) => `l${i + 1}`);
+  const t = fresh(Object.fromEntries(names.map((n) => [`knowledge/${n}.md`, longDoc(200)])));
+  const first = t.kdocs(["put", "--stale"]);
+  expect(first.lines.slice(-2)).toMatchObject([`summaries due: ${names.slice(0, 8).join(", ")}, and 1 more`, { put: 9, cut: 9 }]);
+  expect(t.kdocs(["put", "--stale"]).out).toBe(`summaries due: ${names.slice(0, 8).join(", ")}, and 1 more\nnothing to put`);
 }, T);

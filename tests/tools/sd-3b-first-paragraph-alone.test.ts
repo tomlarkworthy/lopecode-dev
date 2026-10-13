@@ -37,7 +37,8 @@ test("the spec and the guide say that the gate passed, that set L fell, that non
   expect(spec).toContain("(As built, `sd-3b-first-paragraph-alone`, 2026-10-13: the five headings in order or no heading,");
   const guide = flat(read("knowledge/calling-a-cloud-brain-from-this-checkout.md"));
   expect(guide).toContain("`sd-3b-first-paragraph-alone` put the same ten again that day with `summarize --first-paragraph`, haiku, and put them back");
-  expect(guide).toContain("None is on cb4 since 06:17 CEST that day.)");
+  // sd-4-the-rest-and-the-release-line put a first paragraph on every long doc at 09:09 that day, and the sentence says until when.
+  expect(guide).toContain("None was on cb4 from 06:17 CEST that day until the run below.)");
   expect(guide).toContain("knowledge-docs.ts summarize <name>… --first-paragraph");
   // The header of the tool names the flag where its commands are listed.
   expect(read("tools/cloud-brain/knowledge-docs.ts")).toContain("summarize <name>… --first-paragraph");

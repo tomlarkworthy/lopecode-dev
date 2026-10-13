@@ -124,7 +124,10 @@ a mean 1.73 calls a run of a spec writer, 21% of what such a run cost.
    with no deploy: `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh take land <id>`,
    `$W/tools/cloud-brain/worktree.sh --rebase <tree>`, `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh renew land <id>`,
    `git -C $W push origin HEAD:main`, `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh release land <id>`, each on a line
-   of its own with its exit read; that step says what each exit is. Nothing is merged or committed in the main checkout
+   of its own with its exit read; that step says what each exit is. When the release prints a line
+   `summaries due (cb4): …` (a spec is the doc most often due: a long doc with no summary in the Brain's search, or one
+   changed by over a tenth of its lines), run the command the line gives as a background command, read its last line,
+   and name in your report the `at` of its first line in `<root>/tools/cloud-brain/.emitted/docs/journal.jsonl`. Nothing is merged or committed in the main checkout
    (since `wt-3-land-by-push`, 2026-10-12). The commit is the file only,
    added by its name (`git add plan/cloud-brain-<id>.md`, then `git commit` with no `-a`: in a worktree `-a` stages
    `lopebooks` and `lopecode`, which are links there; the writers of `record-checked-by-review-alone` and `i1842`).

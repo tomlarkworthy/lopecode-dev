@@ -173,6 +173,7 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
       when that second rebase changes what your module is built from, say so on the issue and build, test, emit
       and apply again before the push.
     - `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh release land <id>`. It prints when the lock was taken and when it went. Then one line `docs (cb4): …`: the docs step; `not entered (…)` is no failure of the landing (the exit is the release's; `knowledge/calling-a-cloud-brain-from-this-checkout.md`, "The knowledge docs in the Brain's search").
+      A line `summaries due (cb4): …` may follow it, from `land.sh` as well, which prints the release's lines: long docs wait for a summarizer. Run the command the line gives as a background command, read its last line, and name in your report the `at` of its first line in `<root>/tools/cloud-brain/.emitted/docs/journal.jsonl` (the canary's; the orchestrator writes the cost from the lines after it). A last line with `"picked":0` started no agent and wrote none.
       Exit 1 names another holder: your lock ended while you worked and another writer took it.
       Stop there, push nothing more, and report what was pushed and what was not. Exit 2: cb4 was
       not reached; run the release again. A lock that is never released ends at its time.
