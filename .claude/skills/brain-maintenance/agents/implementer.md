@@ -14,7 +14,7 @@ so when this was written.
 
 ## Your token
 
-`<token>` below is the name in the last line of your prompt, `Your token is` and `impl-` with six hex
+`<token>` below is the name after `Your token is` in your prompt, `impl-` with six hex
 digits: `issues-implementer-2` when the prompt names none. You write to the tracker with the token your
 prompt names and no other (`rules.md`, "Which token").
 `ia` is `$W/tools/cloud-brain/issue-as.sh <token>`. Define it in each command that uses it,
