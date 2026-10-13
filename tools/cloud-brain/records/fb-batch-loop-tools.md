@@ -55,8 +55,11 @@ says it removes none, and the driver held the lock `loop` at that time (`lock.sh
 
 `approver.ts` refuses to approve an issue of which a commit touches the approver's brief, tool or test, a
 policy file, or a policy cell of the tracker's seed (`rules.md`, "The approver", "Its own files"). The entry
-and its comments name nine runs that could only leave for that reason or for a spec with letters, each about
-110,000 tokens of context. `approver.ts facts` printed the marks before each run began.
+and its comments name four runs that left for that reason: verdicts 4622 (`bk-2-finish-by-the-service`,
+context 106,112), 5524 (110,940), 5587 (89,218) and 6206 (`tr-4-held-read`, 120,570). They name three more
+that left a spec with letters (6233, 6235, 6254), and one issue a session started no approver for (comment
+6773). The triage's "nine runs named, each about 110,000 tokens" is more than I count there.
+`approver.ts facts` prints the marks before a run begins.
 
 **What a step did.** The row of `loop.ts` for `waiting`, `owner`, at `awaiting-approval` called `facts` with a
 git that answered no files (`{ files: () => null, parents: () => [] }`), so no mark was read, and it began an
@@ -68,9 +71,11 @@ submit, each once. With one or more, the step starts no approver and makes the a
 
 1. a comment keyed `orch/<id>/no-approver-<n>`, `<n>` the count of moves to `awaiting-approval`:
 
+   > Of the project `<parent>`: <the issue's title>.
+   >
    > No approver read this one. Its commits change files that are the approver's own or the tracker's policy,
    > and the approver's tool refuses to approve a change to those, so a run could only have left it to you. It
-   > is built and reviewed (the passing review is event N). Your answer is your approve or your send-back.
+   > is built and reviewed. Your answer is your approve or your send-back.
    >
    > The files, as `approver.ts facts` marks them: [approver] .claude/skills/brain-maintenance/agents/approver.md.
 
@@ -82,11 +87,17 @@ written and a label that was not are both sent again at the next step; the comme
 `approver.ts` is not changed: a landed change to it stops every approval until the owner installs a policy
 that names its new blob.
 
-**The comment is for the owner and is not in the whole form of `rules.md`, "What the owner is asked to
-decide".** That form begins with what the project is for and what the thing is, in words a reader chooses. A
-step has no model and writes neither. The text is modelled on comment 6457 of
-`approver-policy-mark-takes-every-route`, which a session wrote in this case and he answered (6507). The
-files stand in its last line, where that section allows one line of where the rest is. The other side was a
+**The comment is for the owner, so it is held to `rules.md`, "What the owner is asked to decide", as far
+as a program has the words.** Its first line is the project by its id, when the issue has a parent, and the
+issue's title: the title stands for the one or two sentences of what the thing is, and the parent's id for
+the line of what the project is for, which that section wants in plain words that a step with no model cannot
+write. No event number, hash or count is in it. It has no letters: there is nothing to choose between. A
+project or a feature at `awaiting-approval` is a spec, and its text says "written and reviewed" where a
+task's says "built and reviewed". The files stand in its last line, where that section allows one line of
+where the rest is; they are paths, which the section keeps out of the sentences before the choice. The rest
+is modelled on comment 6457 of `approver-policy-mark-takes-every-route`, which a session wrote in this case
+and he answered (6507). A first text of mine named the passing review's event; the advisor's read found it
+against that section and it was taken out before the landing. The other side was a
 judgment run for each such issue to write the two sentences; that is a model run again, which the entry asks
 to save.
 
@@ -214,6 +225,9 @@ the `--occupy` test fails. With `kept` as it was: its test fails.
 - **A step of the driver on cb4.** No step was run with this `loop.ts`, dry or not: the row was run in the
   rig of `loop-step.test.ts`, and `ownFiles` over seven real records. The first issue a step leaves without
   an approver is not yet.
+- **A step that made no pull.** A step begun for an event or for a run makes no pull of the main checkout,
+  so the first step after a landing may not have the commit there: `facts` then has no files for it, and
+  the step starts an approver as before.
 - **A loop with no state file** (the machine's). The new lines stand before the line that leaves an approver
   to the laptop, so the machine's loop writes the comment and the label too; no test runs that case.
 - **A comment that is refused.** Then no label is sent in that step; not run.

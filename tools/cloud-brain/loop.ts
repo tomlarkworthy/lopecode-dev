@@ -239,8 +239,11 @@ export const KEY_MOST = 100; // issuesLimits.key of brain-issues.ojs
 // marks: the approver's own (rules.md, "The approver", "Its own files"). Its tool refuses an issue that has one, so a
 // run on it can only leave. A commit the checkout does not have has no files here and names none.
 export const ownFiles = (f: ReturnType<typeof approverFacts>) => [...new Set(f.refs.flatMap((r) => (r.files || []).filter((x) => x.marks.includes("approver") || x.marks.includes("policy")).map((x) => `[${x.marks.join(",")}] ${x.file}${x.cells && x.cells.length ? `: ${x.cells.join(", ")}` : ""}`)))];
-// What a step writes on such an issue in the place of a run: for the owner, who approves it or sends it back.
-export const noApproverText = (review: number, files: string[]) => `No approver read this one. Its commits change files that are the approver's own or the tracker's policy, and the approver's tool refuses to approve a change to those, so a run could only have left it to you. It is built${review ? ` and reviewed (the passing review is event ${review})` : ""}. Your answer is your approve or your send-back.\n\nThe files, as \`approver.ts facts\` marks them: ${files.join("; ")}.`;
+// What a step writes on such an issue in the place of a run: for the owner, who approves it or sends it back. In the
+// form of rules.md, "What the owner is asked to decide", as far as a program has the words: its project and its title
+// first, no number of an event, and the files in the one last line that says where the rest is.
+export const noApproverText = (issue: { id: string; title?: string; parent?: string | null; kind?: string }, files: string[]) =>
+  `${issue.parent ? `Of the project \`${issue.parent}\`: ` : ""}${String(issue.title || issue.id).trim().replace(/\.$/, "")}.\n\nNo approver read this one. Its commits change files that are the approver's own or the tracker's policy, and the approver's tool refuses to approve a change to those, so a run could only have left it to you. It is ${["project", "feature"].includes(issue.kind || "") ? "written" : "built"} and reviewed. Your answer is your approve or your send-back.\n\nThe files, as \`approver.ts facts\` marks them: ${files.join("; ")}.`;
 type Ev = Record<string, any>;
 export type Run = { id: string; role: string; round: number; token: string; session?: string; how?: string; at?: number; [k: string]: any };
 const moved = (events: Ev[], ...names: string[]) => events.filter((e) => e.type === "moved" && names.includes(e.move));
@@ -1017,7 +1020,7 @@ async function step(args: string[]) {
           const key = `orch/${e.id}/no-approver-${f.round}`, lab = `orch/${e.id}/needs-owner-${f.round}`;
           if (lab.length > KEY_MOST) return skip(e.id, "approve", `the key ${lab} is over ${KEY_MOST} characters`);
           return void done({ act: "no-approver", id: e.id, files: own }, () => {
-            const c = comment(e.id, key, noApproverText(f.review, own));
+            const c = comment(e.id, key, noApproverText({ id: e.id, ...G.issue }, own));
             return (c as Ev).refused ? c : wrote(write(me, "label", { key: lab, id: e.id, add: ["needs-owner"], remove: [] }));
           });
         }
