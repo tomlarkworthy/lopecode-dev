@@ -13,7 +13,7 @@ No seed, no deploy.
 
 | File | Change |
 |---|---|
-| `tools/cloud-brain/knowledge-docs.ts` | `summarize` leaves the sections out of the entry unless `--whole-summary` is given. `--first-paragraph` is still taken and changes nothing. With both flags: one line on stderr, exit 2, before the state directory is made or an agent started. The header and the two usage lines name the new flag |
+| `tools/cloud-brain/knowledge-docs.ts` | `summarize` leaves the sections out of the entry unless `--whole-summary` is given. `--first-paragraph` is still taken and alone changes nothing. With both flags: one line on stderr, exit 2, before the state directory is made or an agent started. The header and the two usage lines name the new flag |
 | `tests/tools/knowledge-docs-summaries.test.ts` | One test is new (below). Three calls that hold the whole form name `--whole-summary`: the helper `summarized`, the test `summarize <name> --whole-summary: …` and the call of the `--check-summaries` test whose entry then loses a heading |
 | `tests/tools/summarize-due-default-whole-summary.test.ts` | New: the header, the usage, the guide, the spec's note and this record's headings |
 | `tests/tools/sd-4-the-rest-and-the-release-line.test.ts` | It held the spec's sentence "`summarize --due` with no flag still puts a whole summary"; it holds the sentence as mended |
@@ -22,6 +22,11 @@ No seed, no deploy.
 
 The journal's line of a doc has `firstParagraph: true` when the first paragraph was put, as before, and has no such
 key for `--whole-summary`. A `--dry` run takes the same form as a run that puts.
+
+**Left as written, and no longer so:** `records/sd-4-the-rest-and-the-release-line.md`, lines 108 to 110, says
+"`summarize --due` typed with no flag still puts a whole summary". It is the record of that issue at its day and is
+not edited; its next sentence, "Making the flag the default would close that … and was not done", is this change. The commands of `records/sd-2-one-summarizer.md`
+and `records/sd-3-pilot-ten.md` with no flag are what was run then, when no flag was the whole form.
 
 `lock.sh` is not changed: the command a release prints keeps `--first-paragraph`, so the line says which form it puts.
 
@@ -36,13 +41,28 @@ flags exit 2 with nothing on stdout and no new start of the agent, call of the B
 
 Run against the tool as it was (`git show HEAD:tools/cloud-brain/knowledge-docs.ts` to a file, named with
 `KNOWLEDGE_DOCS_TS`), the file was `13 pass, 1 fail`: the new test, at the `--dry` file, which had 5 headings where 0
-were expected. With the change:
+were expected:
+
+```
+KNOWLEDGE_DOCS_TS=<scratchpad>/impl-524c40-old-knowledge-docs.ts bun test --timeout=30000 ./tests/tools/knowledge-docs-summaries.test.ts
+  [
+-   true,
+-   0,
++   false,
++   5,
+    16000,
+(fail) summarize with no flag puts the first paragraph alone, by --due, by name and --dry; --whole-summary puts the five sections; the two flags together are exit 2 and start no agent
+ 13 pass
+ 1 fail
+```
+
+With the change:
 
 ```
 cd <worktree> && bun test --timeout=30000 ./tests/tools/knowledge-docs-summaries.test.ts ./tests/tools/summarize-due-default-whole-summary.test.ts ./tests/tools/sd-4-the-rest-and-the-release-line.test.ts ./tests/tools/sd-2-one-summarizer.test.ts ./tests/tools/sd-3b-first-paragraph-alone.test.ts ./tests/tools/lock.test.ts
  54 pass, 0 fail, 650 expect() calls, Ran 54 tests across 6 files. [62.98s]
 tests/tools/suite.sh
- 1156 pass, 0 fail, 9498 expect() calls, Ran 1156 tests across 119 files. [119.97s]
+ 1156 pass, 0 fail, 9498 expect() calls, Ran 1156 tests across 119 files. [110.47s]
 ```
 
 ## Not tried
@@ -54,5 +74,3 @@ tests/tools/suite.sh
 - `--whole-summary` with `--due`, with `--dry` or with `--again`: the test gives it with one name and a run that puts.
 - A doc refused twice under one form and run under the other: the refusal is by the file, not by the form, as before.
 - `status --check-summaries` on a Brain that holds both forms: `records/sd-3b-first-paragraph-alone.md`, "Not tried", has it.
-- Records of earlier issues (`sd-2-one-summarizer.md`, `sd-3-pilot-ten.md`, `sd-4-the-rest-and-the-release-line.md`)
-  show `summarize <name>` with no flag as the whole form. They are what was run that day and are left as written.

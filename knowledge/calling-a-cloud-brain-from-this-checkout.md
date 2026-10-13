@@ -359,7 +359,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --plain <name>…    
 
 Since `summarize-due-default-whole-summary` (2026-10-13) `summarize` with neither `--first-paragraph` nor `--whole-summary` puts the first
 paragraph, with `--due`, with names and with `--dry`: until then it put the whole summary, the form of the pilot, with which the search by
-words no longer found passages it found before (`sd-3-pilot-ten`, above). `--first-paragraph` is still taken and changes
+words no longer found passages it found before (`sd-3-pilot-ten`, above). `--first-paragraph` is still taken and alone changes
 nothing, so the command a release prints is as it was. With both flags the tool exits 2 and starts no agent. Seen in
 the tool's tests, where the agent is a stand-in (`tests/tools/knowledge-docs-summaries.test.ts`); not run on cb4.
 
