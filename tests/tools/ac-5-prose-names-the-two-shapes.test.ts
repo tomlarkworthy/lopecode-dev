@@ -37,31 +37,15 @@ test("the seed's reference still gives the sizes the prose repeats", () => {
   expect(row("issue.list")).toContain("There is no second page");
 });
 
-test("overseer.md, Evidence: the read of sync says the size of a page and how the next is asked", () => {
-  const b = block(overseer, '- `io "sync?after=<seq>"`:');
-  expect(b).not.toBe("");
-  expect(b).toContain("200 events");
-  expect(b).toContain("limit=500`");
-  expect(b).toContain("`more: true`");
-  expect(b).toMatch(/`after=` the `seq` of the last event/);
-  expect(b).toMatch(/until `more` is `false`/);
-  // What it is read for is still said.
-  expect(b).toContain("the number of `rework` moves");
-});
-
-test("overseer.md: the count of its own opened issues is of every page of the sync", () => {
-  const b = block(overseer, "At most 3 issues filed and 2 edits to briefs");
-  expect(b).toContain('`io "sync?after=<seq>"`');
-  expect(b).toMatch(/every page/);
-});
-
-test("overseer.md, before a project is opened: the list says when it is not all that match", () => {
-  const b = block(overseer, 'Before you open one, `io "list?kind=project"`');
+// Until overseer-runs-too-often (2026-10-13) the overseer read `sync` a page at a time, counted its own issues from it and
+// listed the projects before it opened one. It reads one issue since: the list it still reads is the search before it files.
+test("overseer.md reads no sync, and the list it reads before it files says when it is not all that match", () => {
+  expect(overseer).not.toContain('io "sync?after=');
+  const b = block(overseer, 'Search the open issues first (`io "list?limit=500"`');
   expect(b).not.toBe("");
   expect(b).toContain("`more: true`");
   expect(b).toContain("100 issues");
-  expect(b).toContain("limit=500`");
-  expect(b).toContain("is made a part of it instead");
+  expect(block(overseer, "At most 3 issues filed and 2 edits to briefs")).toContain("they are the issues you opened in it");
 });
 
 test("SKILL.md, step 3, The owner's: the list says when it is not all that match", () => {

@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { givenKey, judged, judgmentRound, notLoggedIn, outcomeOf, verdictKey } from "../../tools/cloud-brain/loop.ts";
+import { drawn, givenKey, judged, judgmentRound, notLoggedIn, outcomeOf, OVERSEE_ONE_IN, OVERSEE_WINDOW, verdictKey } from "../../tools/cloud-brain/loop.ts";
 
 const tool = resolve(import.meta.dir, "../../tools/cloud-brain/loop.ts");
 const RIG = mkdtempSync(join(tmpdir(), "loop-step-test-")), ROOT = join(RIG, "root"), DEV = join(ROOT, "cloud-brain-dev"), STATE = join(RIG, "state"), LOOP = join(STATE, "issue-loop"), RUNS = join(LOOP, "runs");
@@ -24,7 +24,6 @@ writeFileSync(join(DEV, "deploy/a.js"), "1\n");
 g(DEV, "add", "."); g(DEV, "commit", "-q", "-m", "one"); g(DEV, "remote", "add", "origin", join(RIG, "dev.git")); g(DEV, "push", "-q", "-u", "origin", "main");
 g(ROOT, "init", "-q", "-b", "main");
 mkdirSync(join(ROOT, ".claude/skills/brain-maintenance"), { recursive: true }); mkdirSync(join(ROOT, "tools/cloud-brain"), { recursive: true });
-writeFileSync(join(ROOT, ".claude/skills/brain-maintenance/oversight.md"), "# Oversight\n\n## 2026-10-13 02:51 CEST, events 5464 to 5646\n\ntext\n");
 writeFileSync(join(ROOT, "tools/cloud-brain/seen.json"), JSON.stringify({ cb4: { "brain-x-issues": { hash: "aaaaaaaaaaaa0000" }, "brain-x-page": { hash: "bbbbbbbbbbbb1111" }, "brain-x-verifycheck": { hash: null } } }));
 g(ROOT, "add", "."); g(ROOT, "commit", "-q", "-m", "one"); g(ROOT, "remote", "add", "origin", join(RIG, "origin.git")); g(ROOT, "push", "-q", "-u", "origin", "main");
 
@@ -117,7 +116,6 @@ const server = Bun.serve({ port: 0, hostname: "127.0.0.1", async fetch(req) {
 afterAll(() => { server.stop(true); rmSync(RIG, { recursive: true, force: true }); });
 
 const KEEP = ["worktree.sh", "brain.sh", "lock.sh", "uptime.sh", "self.sh", "agent.sh", "usage.sh", "needs-tab.sh", "root", "state", "origin.git", "dev.git"];
-// The events of a test are before the last heading of oversight.md (event 5646) unless it asks for them after it.
 function fresh(seq = 100) {
   T = { seq, now: 1791874000000, issues: new Map(), keys: new Map(), queue: [], waiting: [], calls: [], fail: "" };
   for (const f of readdirSync(RIG)) if (!KEEP.includes(f)) rmSync(join(RIG, f), { recursive: true, force: true });
@@ -153,6 +151,8 @@ const runFile = (r: Ev) => { mkdirSync(RUNS, { recursive: true }); writeFileSync
 const file = (token: string): any => { try { return JSON.parse(readFileSync(join(RUNS, token + ".json"), "utf8")); } catch { return null; } };
 const until = async (what: () => any, ms = 15000) => { for (const end = Date.now() + ms; Date.now() < end; await Bun.sleep(50)) { const v = what(); if (v) return v; } throw new Error("waited " + ms + " ms"); };
 // An issue as a writer of round `round` left it: started by `starter`, sent back round - 1 times.
+// An issue that ended at an event the draw takes (1 in 10): issues <prefix>0, <prefix>1, … are ended until one is.
+const drawnEnd = (prefix = "e") => { for (let n = 0; n < 80; n++) { open(prefix + n); const e = mv(prefix + n, "pass", "done"); if (drawn(e.id, e.seq)) return e; } throw new Error("80 endings and none was drawn"); };
 const worked = (id: string, round = 1, starter = "impl-aaaaaa", more: Ev = {}) => { open(id, more); mv(id, "start", "in-progress", starter); for (let n = 1; n < round; n++) { mv(id, "submit", "in-review", starter); mv(id, "rework", "in-progress"); } };
 
 test("judged: an entry is given once, a verdict is its first word, and with none the run its given comment names is read", () => {
@@ -312,7 +312,7 @@ test("runs: `ended` for a run of this machine that returned or whose process is 
   runFile({ token: "impl-eeeeee", running: 5, ended: { at: 1, outcome: "changes", token: "kept" } });
   runFile({ token: "impl-ffffff", id: "z", running: 5, ended: { at: 1, outcome: "pass", token: "kept" } });
   runFile({ token: "impl-000000", id: "z", running: 5, ended: { at: 1, outcome: "pass", token: "ended" } });
-  // An overseer is on no issue and has no event: one that runs is left as it is.
+  // A run on no issue has no event (an overseer's file of before overseer-runs-too-often): one that runs is left as it is.
   runFile({ token: "over-aaaaaa", role: "overseer", id: "", pid: o.pid, agent: `${HOST}:${o.pid}`, running: 0 });
   const want = [{ act: "ended", token: "impl-aaaaaa", id: "a", role: "implementer", why: "its process returned" }, { act: "ended", token: "impl-bbbbbb", id: "a", role: "implementer", why: "its process is gone and left no result" }, { act: "running", id: "a", role: "implementer", token: "impl-cccccc" }, { act: "token-ended", token: "impl-ffffff", id: "z" }];
   let r = await dry();
@@ -596,67 +596,72 @@ test("a digest the snapshot opened: each older one is rejected as covered by the
   expect([r.line.acts.map((a: Ev) => a.act), events("digest-2026-10-13").slice(1).map((e) => e.type), at("digest-2026-10-13").issue.state]).toEqual([["digest"], ["moved", "moved"], "ready"]);
 });
 
-test("an overseer is started at 3 issues ended since the last heading of oversight.md, or one at its third `rework`; none beside a live `over-` token, and no third since that heading", async () => {
+test("the draw of an ending event is the same at each call and takes about 1 in 10", () => {
+  const n = Array.from({ length: 5000 }, (_, i) => drawn("issue-" + (i % 50), i)).filter(Boolean).length;
+  expect([OVERSEE_ONE_IN, n > 400 && n < 600, drawn("a", 7) === drawn("a", 7)]).toEqual([10, true, true]);
+});
+
+test("an overseer is started on one ended issue in 10, the one a draw of its id and the ending event's seq takes; none at 3 ended, at a third `rework`, twice for one ending, beside a live `over-` token, or after 2 that died (overseer-runs-too-often)", async () => {
   fresh(6000);
-  for (const id of ["a", "b"]) { open(id); mv(id, "pass", "done"); }
-  expect(acts((await dry()).line)).toEqual([]);
-  open("c"); label("c", ["needs-owner"]);
+  // Issues that ended three ways, until the draw has taken two of the endings.
+  const ends: Ev[] = [];
+  for (let n = 0; ends.filter((e) => drawn(e.id, e.seq)).length < 2 && n < 36; n++) {
+    const id = "i" + n; open(id);
+    ends.push(n % 3 === 0 ? mv(id, "pass", "done") : n % 3 === 1 ? mv(id, "reject", "rejected") : label(id, ["needs-owner"]));
+  }
+  const taken = ends.filter((e) => drawn(e.id, e.seq)), [one, two] = taken;
+  expect([taken.length, ends.length - taken.length >= 3]).toEqual([2, true]);
+  // One issue at its third `rework`, and it is not ended: no overseer for it.
+  worked("w", 3); mv("w", "submit", "in-review", "impl-aaaaaa"); mv("w", "rework", "in-progress");
+  expect(drawn("w", T.seq)).toBe(false);
   let r = await step();
-  expect([acts(r.line), log("self")]).toEqual([["start overseer"], ["start --role overseer"]]);
+  expect([acts(r.line), log("self")]).toEqual([[`start ${one.id} overseer`], [`start ${one.id} --role overseer --at ${one.seq}`]]);
   // The events are read a page at a time: 4 an answer of this stand-in.
   expect(T.calls.filter((c) => c.method === "sync").length).toBeGreaterThan(1);
-  flag("tokens-list", JSON.stringify({ name: "rev-0a0a0a", note: "rev; x", until: "2099-01-01T00:00:00.000Z", kept: true }) + "\n" + JSON.stringify({ name: "over-0a0a0a", note: "over; oversight-after-5646", until: "2099-01-01T00:00:00.000Z", kept: true }) + "\n");
+  // Its run is in the record after the ending event: none beside it, and none again when it is done.
+  const live = (token: string) => Bun.spawn(["bash", "-c", "sleep 20; true", "loop-run-" + token], { stdout: "ignore", stderr: "ignore" });
+  let o = live("over-aaaaaa");
+  const run = cost(one.id, { role: "overseer", token: "over-aaaaaa", outcome: "running", agent: `${HOST}:${o.pid}` });
   r = await dry();
-  expect([acts(r.line), r.line.skipped]).toEqual([[], [{ id: "", do: "overseer", why: "an overseer's token is live" }]]);
+  expect([acts(r.line), r.line.skipped]).toEqual([[], [{ id: one.id, do: "overseer", why: "an overseer of it runs (over-aaaaaa)" }]]);
+  cost(one.id, { role: "overseer", token: "over-aaaaaa", outcome: "done", key: run.key + "/end" });
+  o.kill(); await o.exited; o = live("over-bbbbbb");
+  expect(acts((await dry()).line)).toEqual([`start ${two.id} overseer`]);
+  // A live token of an overseer, this machine's or another's: none is started.
+  flag("tokens-list", JSON.stringify({ name: "rev-0a0a0a", note: "rev; x", until: "2099-01-01T00:00:00.000Z", kept: true }) + "\n" + JSON.stringify({ name: "over-0a0a0a", note: "over; x", until: "2099-01-01T00:00:00.000Z", kept: true }) + "\n");
+  r = await dry();
+  expect([acts(r.line), r.line.skipped]).toEqual([[], [{ id: two.id, do: "overseer", why: "an overseer's token is live" }]]);
   flag("tokens-list", JSON.stringify({ name: "over-0a0a0a", note: "over; x", until: "2020-01-01T00:00:00.000Z", kept: true }) + "\n");
-  expect(acts((await dry()).line)).toEqual(["start overseer"]);
-  runFile({ token: "over-aaaaaa", role: "overseer", id: "", after: "5646", ended: { at: 1, outcome: "stopped" } }); runFile({ token: "over-bbbbbb", role: "overseer", id: "", after: "5464", ended: { at: 1, outcome: "done" } });
-  expect(acts((await dry()).line)).toEqual(["start overseer"]);
-  runFile({ token: "over-cccccc", role: "overseer", id: "", after: "5646", ended: { at: 1, outcome: "done" } });
+  expect(acts((await dry()).line)).toEqual([`start ${two.id} overseer`]);
+  // A start that wrote no event has its file: one that runs, then two that died.
+  runFile({ token: "over-bbbbbb", role: "overseer", id: two.id, drawn: two.seq, pid: o.pid, agent: `${HOST}:${o.pid}`, running: 1 });
   r = await dry();
-  expect([acts(r.line), skipped(r.line)]).toEqual([[], ["overseer "]]);
-  expect(r.status).toContain("- oversight: 2 overseers were started since the heading of oversight.md that ends at event 5646, and it has no later heading");
-  // One issue at its third rework since the heading.
-  fresh(6000); worked("a", 3);
-  expect(acts((await dry()).line)).toEqual([]);
-  mv("a", "submit", "in-review", "impl-aaaaaa"); mv("a", "rework", "in-progress");
-  expect(acts((await dry()).line)).toEqual(["start overseer"]);
+  expect([acts(r.line), r.line.skipped]).toEqual([[], [{ id: two.id, do: "overseer", why: "an overseer of it runs (over-bbbbbb)" }]]);
+  o.kill(); await o.exited;
+  runFile({ token: "over-bbbbbb", role: "overseer", id: two.id, drawn: two.seq, running: 1, ended: { at: 1, outcome: "stopped" } });
+  expect(acts((await dry()).line)).toEqual([`start ${two.id} overseer`]);
+  cost(two.id, { role: "overseer", token: "over-cccccc", outcome: "stopped" });
+  r = await dry();
+  expect([acts(r.line), r.line.skipped]).toEqual([[], [{ id: two.id, do: "overseer", why: `2 overseers of its ending at event ${two.seq} died` }]]);
+  expect(r.status).toContain(`- ${two.id}: 2 overseers of its ending at event ${two.seq} died, and no third is started`);
+  // The machine's loop starts none.
+  rmSync(join(RUNS, "over-bbbbbb.json")); noState();
+  r = await dry();
+  expect(r.line.skipped.filter((x: Ev) => x.do === "overseer")).toEqual([{ id: two.id, do: "overseer", why: "an overseer is due, and this loop has no state file: the laptop's loop takes it" }]);
 });
 
-test("where the last oversight ended is read from origin/main as the repository has it, with no fetch: the main checkout one entry behind and an overseer's run just ended, a step for an event starts none (overseer-started-again-before-pull)", async () => {
+test("the endings a step draws from are those of the last 500 events of the record: an older one starts no overseer", async () => {
   fresh(6000);
-  for (const id of ["a", "b"]) { open(id); mv(id, "pass", "done"); }
-  open("c"); label("c", ["needs-owner"]);
-  // The overseer lands its entry by a push from its worktree: origin/main of the repository has it, the main checkout's file has not.
-  const tree = join(RIG, "over-tree"), md = ".claude/skills/brain-maintenance/oversight.md", before = head(ROOT), was = head(ROOT, "origin/main"), to = T.seq;
-  g(ROOT, "worktree", "add", "-q", "-b", "bm/over-t", tree, "origin/main");
-  try {
-    writeFileSync(join(tree, md), readFileSync(join(tree, md), "utf8") + `\n## 2026-10-13 15:03 CEST, events 5646 to ${to}\n\ntext\n`);
-    g(tree, "add", md); g(tree, "commit", "-q", "-m", "oversight"); g(tree, "push", "-q", "origin", "HEAD:main");
-    expect([head(ROOT), head(ROOT, "origin/main"), readFileSync(join(ROOT, md), "utf8").includes(`to ${to}`)]).toEqual([before, head(tree), false]);
-    runFile({ token: "over-aaaaaa", role: "overseer", id: "", after: "5646", ended: { at: 1, outcome: "done" } });
-    for (const why of ["event", "run"]) {
-      rmSync(join(RIG, "self.log"), { force: true });
-      const r = await cli(["step", "--for", why]);
-      expect([r.code, acts(r.line), skipped(r.line), log("self"), head(ROOT)]).toEqual([0, [], [], [], before]);
-    }
-    // Two issues ended after the entry: not yet due. A third: due, and the two runs started for the heading before are not counted.
-    runFile({ token: "over-bbbbbb", role: "overseer", id: "", after: "5646", ended: { at: 1, outcome: "done" } });
-    for (const id of ["d", "e"]) { open(id); mv(id, "pass", "done"); }
-    expect(acts((await cli(["step", "--dry", "--for", "event"])).line)).toEqual([]);
-    open("f"); mv("f", "pass", "done");
-    expect(acts((await cli(["step", "--dry", "--for", "event"])).line)).toEqual(["start overseer"]);
-    // Two started since the entry: the line names its last event, not the main checkout's.
-    for (const t of ["over-cccccc", "over-dddddd"]) runFile({ token: t, role: "overseer", id: "", after: String(to), ended: { at: 1, outcome: "done" } });
-    const r = await cli(["step", "--dry", "--for", "event"]);
-    expect([acts(r.line), r.line.skipped]).toEqual([[], [{ id: "", do: "overseer", why: `2 overseers were started since the heading that ends at event ${to}` }]]);
-  } finally {
-    g(ROOT, "push", "-q", "-f", "origin", `${was}:main`); g(ROOT, "worktree", "remove", "--force", tree); g(ROOT, "branch", "-q", "-D", "bm/over-t");
-  }
-  expect([head(ROOT, "origin/main"), head(ROOT)]).toEqual([was, before]);
+  const ends: Ev[] = [];
+  for (let n = 0; !ends.some((e) => drawn(e.id, e.seq)) && n < 36; n++) { open("i" + n); ends.push(mv("i" + n, "pass", "done")); }
+  const one = ends.find((e) => drawn(e.id, e.seq))!;
+  T.seq = one.seq + OVERSEE_WINDOW - 1;
+  expect(acts((await dry()).line)).toEqual([`start ${one.id} overseer`]);
+  T.seq = one.seq + OVERSEE_WINDOW;
+  expect(acts((await dry()).line)).toEqual([]);
 });
 
-test("`triage`, `decompose`, `promote`, `look`, an agent's ask and a move of the owner's with no post mortem are each given once, 5 at most a step; a triage that got a link and came back is given again", async () => {
+test("`triage`, `decompose`, `promote`, `look` and an agent's ask are each given once, 5 at most a step; a move of the owner's that undoes reviewed work is given to no judgment (overseer-runs-too-often); a triage that got a link and came back is given again", async () => {
   fresh(6000);
   open("a", { state: "open" }); Q("a", "triage");
   open("b", { state: "approved", kind: "project" }); Q("b", "decompose");
@@ -671,11 +676,11 @@ test("`triage`, `decompose`, `promote`, `look`, an agent's ask and a move of the
   const first = (id: string) => at(id).events[0].seq;
   let r = await step();
   expect(gave(r.line)).toEqual([`asks e ${asks.seq}`, `triage a ${first("a")}`, `decompose b ${first("b")}`, `promote c ${first("c")}`, `look d ${first("d")}`]);
-  expect([r.line.skipped, acts(r.line)]).toEqual([[{ id: "f", do: "pm", why: "5 entries are given at a step" }, { id: "g", do: "pm", why: "5 entries are given at a step" }], []]);
+  // His `send-back` of f, `owner-reject` of g and `revert` of h: no entry `pm`, at this step or the next.
+  expect([r.line.skipped, acts(r.line), [sent, rejected].some((e) => drawn(e.id, e.seq))]).toEqual([[], [], false]);
   expect(["a", "b", "c", "d", "e", "f"].map((id) => events(id, "commented").map((e) => e.key))).toEqual([[`orch/a/given-triage-${first("a")}`], [`orch/b/given-decompose-${first("b")}`], [`orch/c/given-promote-${first("c")}`], [`orch/d/given-look-${first("d")}`], [`orch/e/given-asks-${asks.seq}`], []]);
   r = await step();
-  expect([gave(r.line), r.line.skipped]).toEqual([[`pm f ${sent.seq}`, `pm g ${rejected.seq}`], []]);
-  expect((await step()).line.given).toEqual([]);
+  expect([gave(r.line), r.line.skipped]).toEqual([[], []]);
   // The triage held it with a link: it is in `waiting`. When that ends it is a triage again, of a later event.
   const link = ev("a", { type: "linked", key: "orch/a/after-b", rel: "after", to: "b" });
   expect(gave((await step()).line)).toEqual([`triage a ${link.seq}`]);
@@ -773,20 +778,21 @@ test("a result that says its process is not logged in stops every start made wit
     worked("d"); mv("d", "submit", "in-review", "impl-aaaaaa"); mv("d", "pass", "awaiting-approval", "rev-aaaaaa"); Wt("d", "owner");
     open("r", { state: "triaged" }); Q("r", "ready");
     open("t", { state: "open" }); Q("t", "triage");
-    for (const id of ["x", "y", "z"]) { open(id); mv(id, "pass", "done"); }
+    end = drawnEnd("x");
   };
+  let end: Ev = {};
   rig();
-  const all = ["start a reviewer", "resume b implementer", "ready r", "start d approver", "start c implementer", "start s spec-writer", "start overseer"], first = at("t").events[0].seq;
+  const all = () => ["start a reviewer", "resume b implementer", "ready r", "start d approver", "start c implementer", "start s spec-writer", `start ${end.id} overseer`], first = at("t").events[0].seq;
   const result = (token: string, text = OUT) => writeFileSync(join(RUNS, token + ".result.json"), text);
   let r = await dry();
-  expect([acts(r.line), judgment(r.line).length, gave(r.line), r.line.unlogged, r.status.includes("not logged in")]).toEqual([all, 1, [`triage t ${first}`], undefined, false]);
+  expect([acts(r.line), judgment(r.line).length, gave(r.line), r.line.unlogged, r.status.includes("not logged in")]).toEqual([all(), 1, [`triage t ${first}`], undefined, false]);
   // A run this token started, ended or not, with that result.
   runFile({ token: "impl-bbbbbb", id: "c" }); result("impl-bbbbbb");
   r = await dry();
   const why = "the result of impl-bbbbbb says its process is not logged in";
   expect([acts(r.line), judgment(r.line), r.line.given, r.line.unlogged]).toEqual([["ended c implementer", "ready r"], [], [], { token: "impl-bbbbbb", by: ME, said: "Not logged in · Please run /login" }]);
   expect(r.line.skipped).toEqual([{ id: "a", do: "start", why: "no reviewer: " + why }, { id: "b", do: "round", why: "no round: " + why }, { id: "d", do: "start", why: "no approver: " + why },
-    { id: "c", do: "start", why: "no implementer: " + why }, { id: "s", do: "start", why: "no spec-writer: " + why }, { id: "", do: "overseer", why: "no overseer: " + why }, { id: "t", do: "triage", why: "no judgment run: " + why }]);
+    { id: "c", do: "start", why: "no implementer: " + why }, { id: "s", do: "start", why: "no spec-writer: " + why }, { id: end.id, do: "overseer", why: "no overseer: " + why }, { id: "t", do: "triage", why: "no judgment run: " + why }]);
   expect(r.status).toContain(`## Health\n\n- healthy\n- no agent of any role is started: the result of impl-bbbbbb says its process is not logged in ("Not logged in · Please run /login"). It holds for the runs started with ${ME}, the token this step was made with: stop the driver, log \`claude\` in where it runs (the header of tools/cloud-brain/loop.sh has what its sandbox is given), and start it again\n`);
   // Not dry, with the run ended: the move is made, no start, no resume, no token for a judgment run and no `given` comment.
   runFile({ token: "impl-bbbbbb", id: "c", ended: { at: Date.now() - 3 * 3600000, outcome: "stopped" } });
@@ -796,17 +802,17 @@ test("a result that says its process is not logged in stops every start made wit
   rig();
   writeFileSync(TOKENS, JSON.stringify({ [ME]: "v-" + ME, "impl-aaaaaa": "v-impl-aaaaaa", "orch-dddddd": "v-orch-dddddd" }));
   r = await cli(["step", "--dry"], { LOOP_TOKEN: "orch-dddddd" });
-  expect([acts(r.line), judgment(r.line).length, r.line.unlogged]).toEqual([all, 1, undefined]);
+  expect([acts(r.line), judgment(r.line).length, r.line.unlogged]).toEqual([all(), 1, undefined]);
   // Another machine's run, a result that is a report, and one that cost something stop nothing.
   runFile({ token: "impl-bbbbbb", id: "c", host: "otherhost", ended: { at: 1, outcome: "stopped" } });
-  expect(acts((await dry()).line)).toEqual(all);
+  expect(acts((await dry()).line)).toEqual(all());
   runFile({ token: "impl-bbbbbb", id: "c", ended: { at: 1, outcome: "in-review" } }); result("impl-bbbbbb", '{"result":"the report","usd":1.5,"context":4242}');
-  expect(acts((await dry()).line)).toEqual(all);
+  expect(acts((await dry()).line)).toEqual(all());
   result("impl-bbbbbb", '{"result":"Not logged in to the page it was to check","usd":1.5,"context":4242}');
-  expect(acts((await dry()).line)).toEqual(all);
+  expect(acts((await dry()).line)).toEqual(all());
 });
 
-test("not logged in: a result that is there before the next start stops the rest of that step; a step that is not healthy starts no judgment run; an overseer's such run is not counted among the 2 since a heading", async () => {
+test("not logged in: a result that is there before the next start stops the rest of that step; a step that is not healthy starts no judgment run; an overseer's such run is not counted among the 2 that died of one ending", async () => {
   fresh(6000);
   open("a", { state: "in-review" }); Q("a", "review"); open("c"); Q("c", "start");
   // The stand-in for `start` leaves the file and the result of the run it started, as an agent that returned at once does.
@@ -822,16 +828,16 @@ if [ "$1" = start ]; then mkdir -p "${RUNS}"; echo '{"id":"a","role":"reviewer",
   expect([r.line.health.ok, r.line.acts, r.line.given, r.line.skipped]).toEqual([false, [], [], [{ id: "", do: "unhealthy", why: "no judgment run: the result of rev-cccccc says its process is not logged in" }]]);
   rmSync(join(RUNS, "rev-cccccc.result.json"));
   expect(judgment((await dry()).line).length).toBe(1);
-  // The two overseers of 2026-10-13, started by a driver that is gone: a third is started. Two that ran: none.
+  // Two overseers of one ending whose process was not logged in, started by a driver that is gone: a third is started. Two that died: none.
   fresh(6000);
-  for (const id of ["x", "y", "z"]) { open(id); mv(id, "pass", "done"); }
-  for (const t of ["over-aaaaaa", "over-bbbbbb"]) { runFile({ token: t, role: "overseer", id: "", as: "orch-ffffff", after: "5646", ended: { at: 1, outcome: "stopped" } }); writeFileSync(join(RUNS, t + ".result.json"), OUT); }
+  const end = drawnEnd();
+  for (const t of ["over-aaaaaa", "over-bbbbbb"]) { runFile({ token: t, role: "overseer", id: end.id, drawn: end.seq, as: "orch-ffffff", ended: { at: 1, outcome: "stopped" } }); writeFileSync(join(RUNS, t + ".result.json"), OUT); }
   r = await dry();
-  expect([acts(r.line), r.line.unlogged]).toEqual([["start overseer"], undefined]);
+  expect([acts(r.line), r.line.unlogged]).toEqual([[`start ${end.id} overseer`], undefined]);
   writeFileSync(join(RUNS, "over-bbbbbb.result.json"), '{"result":"the report","usd":1.5,"context":4242}');
-  expect(acts((await dry()).line)).toEqual(["start overseer"]);
+  expect(acts((await dry()).line)).toEqual([`start ${end.id} overseer`]);
   writeFileSync(join(RUNS, "over-aaaaaa.result.json"), '{"result":"the report","usd":1.5,"context":4242}');
-  expect([acts((await dry()).line), skipped((await dry()).line)]).toEqual([[], ["overseer "]]);
+  expect([acts((await dry()).line), skipped((await dry()).line)]).toEqual([[], [`overseer ${end.id}`]]);
 });
 
 test("step --dry twice over the same answers prints the same line twice, writes nothing, and its status names each entry that waits for the owner", async () => {
@@ -1049,9 +1055,10 @@ test("no state file: nothing is started on an issue labeled `laptop`, no digest 
     open("digest-2026-10-13", { state: "open", labels: ["digest"], opener: "worker:brain-x-snapshot" }); Q("digest-2026-10-13", "triage");
     open("plain"); Q("plain", "start");
     open("appr", { state: "awaiting-approval" }); Wt("appr", "owner");
-    // Three issues came to `done` after the last heading of oversight.md: an overseer is due.
-    for (const id of ["d1", "d2", "d3"]) { open(id, { state: "in-review" }); mv(id, "pass", "done"); }
+    // An issue ended at an event the draw takes: an overseer is due.
+    end = drawnEnd("d");
   };
+  let end: Ev = {};
   fresh(5700); noState(); world();
   let r = await step();
   expect(acts(r.line)).toEqual(["start plain implementer"]);
@@ -1061,12 +1068,12 @@ test("no state file: nothing is started on an issue labeled `laptop`, no digest 
     "approve appr: an approver's move is sent with `loop-approver`, and this loop has no state file: the laptop's loop takes it",
     "start lap: it is labeled `laptop`, and this loop has no state file: the laptop's loop takes it",
     "start dig: it is a digest, and this loop has no state file: the laptop's loop takes it",
-    "overseer : an overseer is due, and this loop has no state file: the laptop's loop takes it",
+    `overseer ${end.id}: an overseer is due, and this loop has no state file: the laptop's loop takes it`,
   ]);
   expect(writes().filter((c) => c.method === "move")).toEqual([]);
   fresh(5700); world();
   r = await step();
-  expect(acts(r.line).sort()).toEqual(["digest digest-2026-10-13", "start appr approver", "start dig digest", "start lap implementer", "start overseer", "start plain implementer", "start rev reviewer"].sort());
+  expect(acts(r.line).sort()).toEqual(["digest digest-2026-10-13", "start appr approver", "start dig digest", "start lap implementer", `start ${end.id} overseer`, "start plain implementer", "start rev reviewer"].sort());
 });
 
 test("no state file: a review that needs a tab gets no reviewer, the label `laptop` and a comment that says why, once; one that needs none gets its reviewer", async () => {

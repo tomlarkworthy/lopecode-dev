@@ -380,6 +380,7 @@ The issues are not the same between rows, as the record of 2026-10-11 says of it
   `c.tokens` becomes `c.context`. The `try { } catch {}` goes.
 - An overseer's run and the orchestrator's own pass are on no issue and stay in `_oversight.md` and
   `_orchestrator.md` as step 5 has them. An event needs an issue. Not changed here.
+  (Since `overseer-runs-too-often`, 2026-10-13, an overseer's run is on the issue it looks at and has its `cost` events there.)
 
 (As built, `cm-5-the-loop-writes-the-event`, 2026-10-12: a spec writer's and a digest writer's round
 is read the same way, `issue.runs?id=<id>&role=spec-writer`. `issue-stats.ts` takes the last `cost`

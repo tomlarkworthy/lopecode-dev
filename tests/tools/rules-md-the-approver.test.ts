@@ -191,7 +191,7 @@ test("the reading says where the undo is, and no sentence of it says the approve
 });
 
 test("the overseer runs approver.ts check at each oversight, and its brief says what each exit is", () => {
-  const measure = flat(section(overseer, "Measure first"));
+  const measure = flat(section(overseer, "Measure first: the approver's moves"));
   expect(measure).toContain("`bun $W/tools/cloud-brain/approver.ts check --token <token>`");
   expect(measure).toContain("at each oversight");
   expect(measure).toContain("`N approves by a delegation, 0 that do not stand`");

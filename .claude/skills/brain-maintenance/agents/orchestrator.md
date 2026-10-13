@@ -65,7 +65,6 @@ again: it is listed for a session with the owner in
 | `look` | a hold whose time has come, a review with no move after it, or a state the service has no row for | the row whose first cell is `` `look` ``, and the row whose first cell begins `Anything else:` |
 | `answer` | labeled `needs-owner`, with an event of the owner's session or of a token `out-…` after the label | the row whose first cell is `` labeled `needs-owner` `` |
 | `asks` | labeled `asks-orchestrator`: an agent that still runs waits for you | the row whose first cell is `` labeled `asks-orchestrator`, at any state ``. Do this entry first |
-| `pm` | a `send-back`, an `owner-reject` of a passed issue or a `revert` made with his session, with no post mortem of it | "A post mortem", "Who declares one" |
 | `unhealthy (<what failed>)` | the cluster is not healthy; it is of no issue | "The cluster is not healthy" |
 
 A row of `SKILL.md` is one line of it, read by its first cell between two bars:
@@ -194,11 +193,14 @@ written: `pm-second-summarizer-role`, `done`, written before this section and no
 this task is done: the body of `pm-2-brief-and-procedure`), and `pm-approver-leaves-everything`, declared by the
 owner through a session at event 4906, labeled, and at `open`.
 
-**Who declares one.** Two, and nobody else.
+**Who declares one.** The owner, and nobody else, since `overseer-runs-too-often` (2026-10-13). His words that day, of a step that gave a
+judgment run the entry `pm` at each move of his that undid reviewed work: "I don't want the auto post mortem." A step gives no such
+entry since, and the second bullet below is as it stood until then: you declare none on your own. (That his words also end this
+bullet is the reading of the session he said them to, comment 6722 of `overseer-runs-too-often`, not his words.)
 
 - **The owner**, through any session on his word. The session puts `owner` beside `post-mortem` in `labels` and
   quotes him, whole, in the body.
-- **You, with no word of his, in one case: he undid work that had passed a review.** That is one of three moves
+- **Until that day: you, with no word of his, in one case: he undid work that had passed a review.** That is one of three moves
   made with his session (`by.via` is `session`; the watch of step 8 prints the line with `OWNER`): his `send-back`
   of a spec; his `owner-reject` of an issue that has a `reviewed` event with the verdict `pass`; his `revert`.
   You open it in the pass that reads the event, with your own token and without the label `owner`, after
@@ -284,7 +286,7 @@ A time you write in an issue's body, a comment or a reason is read from `date` o
    service. (At the stop on 2026-10-10, 12 of 14 open issues waited for the owner, and he said
    the label "should really be about changing or clarifying philosophy".)
    - An issue that is one of several with a common cause is not sent to `ready` alone: link it,
-     and leave the gathering to the overseer (below, "Links, and projects").
+     and leave the gathering to the owner's `project` (below, "Links, and projects"; until `overseer-runs-too-often`, 2026-10-13, to the overseer, which reads one issue alone since).
    - `needs-owner`, left at `triaged`: only when the seven do not answer it, when two of them
      pull apart with a real cost on each side, or when the issue proposes to change one of them
      or a line of `rules.md`. The comment is written as `rules.md`, "What the owner is asked to decide", has it: what its project is for, what it is, whether it is live, the one flaw, a line a choice, the pick. (Until `owner-decisions-written-dense`, 2026-10-12: "in the form `philosophy.md` gives", the longer order of 2026-10-11.)

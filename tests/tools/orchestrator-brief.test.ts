@@ -92,7 +92,7 @@ test("the brief has a row for each word `step` gives an entry by, the words of a
   const brief = read(ORCH), entries = section(brief, "The entries"), tool = read("tools/cloud-brain/loop.ts");
   const rows = entries.split("\n").filter((l) => /^\| `/.test(l) && !l.startsWith("| `<do>`"));
   const words = rows.map((r) => /^\| `([a-z]+)/.exec(r)![1]);
-  expect(words).toEqual(["triage", "decompose", "round", "dead", "promote", "look", "answer", "asks", "pm", "unhealthy"]);
+  expect(words).toEqual(["triage", "decompose", "round", "dead", "promote", "look", "answer", "asks", "unhealthy"]);
   // loop.ts: the four of the queue, and each word its rows give to `judge`, and `unhealthy`.
   const given = [...JSON.parse(/const JUDGED = (\[[^\]]+\])/.exec(tool)![1]), ...[...tool.matchAll(/judge\([^,]+, "([a-z]+)"/g)].map((m) => m[1]), /do: "(unhealthy)"/.exec(tool)![1]];
   expect([...new Set(given)].sort()).toEqual([...words].sort());

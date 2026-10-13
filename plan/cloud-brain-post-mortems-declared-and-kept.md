@@ -159,7 +159,9 @@ Who declares one:
   event with the verdict `pass`, or his `revert`. The record has 1 such event in 2.4 days. The session
   opens it in the pass that reads the event.
 
-Nobody else declares one. An agent that sees something off files feedback, as now (`philosophy.md`,
+(As built since `overseer-runs-too-often`, 2026-10-13: the second of these is not made. The owner that day: "I don't want the
+auto post mortem"; a step of the driver gives a judgment run no entry for such a move, and
+`agents/orchestrator.md`, "Who declares one", has the owner alone.) Nobody else declares one. An agent that sees something off files feedback, as now (`philosophy.md`,
 "If You See Something, Say Something"), the overseer among them: no line of its brief changes, and
 what it gathers is a project, as now. When the owner reads a gathering and wants its root found, the
 first case is his.
@@ -311,7 +313,8 @@ post mortems       <n>: <done> done, <open> not done
 item of the trace). When a pass reads a post mortem reach `done`, step 7 of `SKILL.md` tells the owner its
 cause in the file's sentence and its actions by id; and it tells him of one that is named again, or
 has an action at `rejected`, in the pass that first reads it so. The overseer runs the same tool first
-at each oversight and so has the block in front of it. No line of its brief tells it to read it: a
+at each oversight and so has the block in front of it (until `overseer-runs-too-often`, 2026-10-13: its brief asks for the
+tool no longer). No line of its brief tells it to read it: a
 change to that brief is `major` by the brief's own table, and is left to the read after three (below)
 to ask for, with the cases.
 

@@ -350,6 +350,16 @@ the process of the file lives, and treats it as a run that died when it does not
 not the test of "lives": after a restart of the machine another process may have it, so the time
 the process began is compared with the file's.
 
+**As built since `overseer-runs-too-often` (2026-10-13), an overseer is on one issue**, and the next two paragraphs are
+as the design stood until then. The owner that day, of 5 overseers in the driver's first 100 minutes: "I think we
+need to move to them investigating 1 in 10 tasks randomly instead of everything. And looking at that task in
+isolation, no tracing it up the chain type of thing." `loop.ts start <id> --role overseer --at <seq>` takes the
+issue and the event that ended it, its run is a `cost` event on that issue, so R4 holds for it, and `ended`
+appends its report to the issue's journal. A step draws one ending in 10 by a hash of the issue's id and the
+event's seq, from the endings among the last 500 events; no heading of `oversight.md` is read, and the
+count of 2 dead is of the runs after one ending, from the record and the files of `runs/`.
+`tools/cloud-brain/records/overseer-runs-too-often.md` has what was measured and what the sweep did that nobody does now.
+
 **An overseer is on no issue**: `loop.ts start --role overseer` takes no id, and the file's `id`
 is empty. A `cost` event needs one (`SKILL.md`, step 5: "its line goes in
 `_oversight.md`"). Its run has the file and no event, so R4 does not hold for it. That one runs is
@@ -471,11 +481,11 @@ make again from the record. In order:
 | in `waiting`, `work`, with no `running` run of a writer, no `waiter`, and no label `needs-owner` (the label: `st-6`, below) | "A dead writer": the token ended, `back`, whatever the count of dead runs: the bound holds at the `start` entry the `back` leaves | no |
 | 2 dead runs: an entry of a row that starts or resumes an agent, with 2 dead runs or more of that role and round, and no verdict `go-on` for this `<at>`. A `round` whose last run ended `no-submit` is the `round` row's and not this one's | given to the judgment: `go-on` for one run more, or the label `needs-owner` with what the two runs left | yes |
 | a digest opened by `worker:brain-x-snapshot`, at `open` | the older ones rejected, `triage`, `ready` | no |
-| 3 issues at `done`, `rejected` or `needs-owner` since the last heading of `oversight.md`, or one issue at 3 `rework` moves since then; no live token `over-…`; and fewer than 2 files of `runs/` of the role `overseer` since that heading, however they ended | `start`, role overseer | no |
+| an ending the draw takes (a move to `done` or `rejected`, or the label `needs-owner`, among the last 500 events; 1 in 10 by a hash of the id and the seq), with no overseer's run after it that runs or is done and fewer than 2 that died; no live token `over-…`. Since `overseer-runs-too-often`, 2026-10-13. Until then: 3 issues at `done`, `rejected` or `needs-owner` since the last heading of `oversight.md`, or one issue at 3 `rework` moves since then; no live token `over-…`; and fewer than 2 files of `runs/` of the role `overseer` since that heading, however they ended | `start`, role overseer, on that issue | no |
 | `triage`, `decompose`, `promote`, `look` | given to the orchestrator's judgment | yes |
 | labeled `needs-owner`, in `waiting`, `owner` or a `round` of the queue (the label leaves an issue at `in-progress` or `spec` in the queue), with an event of his session or of an `out-` token after the label | the same: has he answered | yes |
 | labeled `asks-orchestrator` (the first action of `pm-agent-request-not-seen-fly-idle`, landed as `ae5423a2`) | the same: answer it | yes |
-| a move made with his session that is a `send-back`, an `owner-reject` of a passed issue or a `revert`, with no post mortem of it | the same: declare it | yes |
+| (until `overseer-runs-too-often`, 2026-10-13; the owner that day: "I don't want the auto post mortem", and a step has no such row since) a move made with his session that is a `send-back`, an `owner-reject` of a passed issue or a `revert`, with no post mortem of it | the same: declare it | yes |
 | the cluster is not healthy, and no open issue names what failed | the same: file it | yes |
 
 4. **What stops a start.** `SKILL.md`, step 2, has four things, and the program reads three. No
@@ -508,7 +518,7 @@ make again from the record. In order:
    | `triage`, `decompose`, `promote`, `look` | the queue's `do` | the issue's last `opened`, `moved`, `swapped`, `held`, `linked` or `labelled` event |
    | labeled `needs-owner`, with an event of his | `answer` | his last event after the label |
    | labeled `asks-orchestrator` | `asks` | the `labelled` event |
-   | his move with no post mortem | `pm` | the move |
+   | his move with no post mortem (until `overseer-runs-too-often`, 2026-10-13: no entry since) | `pm` | the move |
 
    The event names of the third row are the types the seed writes (`brain-issues.ojs`); a link
    `after` and a label are among them because a judgment's answer can be either, and an issue that
@@ -577,6 +587,8 @@ the six items or adds to them. The header of `loop.ts` is the reference.
 - The `given` comment of this task names no run: `given <do> at <at> to no run: …`. An entry so
   given is in the status and is given to no model when `st-4` lands; the form `to <token>, its run
   on <issue>` is read as the paragraph above has it.
+- Since `overseer-runs-too-often` (2026-10-13) the overseer's row reads the last 500 events (`sync?after=` the record's head less 500),
+  and the four items after this one are as built until then.
 - The events since the last heading of `oversight.md` (`sync?after=`) are what the overseer's row
   and the row of his move with no post mortem read. A move of his from before that heading is not read.
 - An overseer's file has `after`, the event that heading ends at: the count "since that heading".
@@ -589,6 +601,7 @@ the six items or adds to them. The header of `loop.ts` is the reference.
   for a window whose entry was pushed.
 - A writer's token that `ended` kept is ended by the step when its issue is `done`, `rejected` or
   closed, from the file of `runs/`. `agent-token list` is read for the overseer's row alone.
+  (This item holds since `overseer-runs-too-often` too.)
 - The keys of the step's own moves: `orch/<id>/ready-<since>` and `orch/<id>/finish-<since>`, with
   `since` of the entry; `orch/<id>/covered`, `orch/<id>/covers`, `orch/<id>/triage-<since>` for a
   digest; `orch/<id>/back/<token>/<seq>` as `resume` has it.

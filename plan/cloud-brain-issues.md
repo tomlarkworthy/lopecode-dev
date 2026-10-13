@@ -431,7 +431,8 @@ owner with a plan, and dropping a state migrates every open issue for no gain.
 **7. The loop measures itself.** `bun tools/cloud-brain/issue-stats.ts` prints time in each state,
 what is open and idle, the share sent back, and what became of `needs-owner`. The overseer runs it
 at each oversight (`agents/overseer.md`) and writes the numbers in its entry, so a change to a
-brief or to the workflow has a before and an after.
+brief or to the workflow has a before and an after. (Until `overseer-runs-too-often`, 2026-10-13: an oversight is one
+ended issue in 10 read alone since, the brief no longer asks for the tool, and no agent is given that run; `tools/cloud-brain/records/overseer-runs-too-often.md`, "What was dropped".)
 
 **Installing it.** The policy is the cell `issuesDefaultPolicy`; with its migration it is
 `plan/cloud-brain-issues-policy-v2.json` (7 old workflow hashes, each to the workflow of the same

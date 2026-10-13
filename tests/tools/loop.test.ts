@@ -15,7 +15,8 @@ mkdirSync(ROOT); mkdirSync(STATE);
 const git = (...a: string[]) => spawnSync("git", ["-C", ROOT, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", ...a], { encoding: "utf8" }).stdout.trim();
 git("init", "-q", "-b", "main");
 mkdirSync(join(ROOT, ".claude/skills/brain-maintenance"), { recursive: true });
-writeFileSync(join(ROOT, ".claude/skills/brain-maintenance/oversight.md"), "# Oversight\n\n## 2026-10-13 01:43 CEST, events 5182 to 5464\n\ntext\n\n## 2026-10-13 02:51 CEST, events 5464 to 5646\n\ntext\n");
+// One file, so the repository has a commit. Its headings are read by nothing since overseer-runs-too-often.
+writeFileSync(join(ROOT, ".claude/skills/brain-maintenance/oversight.md"), "# Oversight\n\n## 2026-10-13 02:51 CEST, events 5464 to 5646\n\ntext\n");
 git("add", "."); git("commit", "-q", "-m", "one"); git("remote", "add", "origin", ROOT); git("fetch", "-q", "origin", "main");
 const MAIN = git("rev-parse", "origin/main");
 
@@ -448,68 +449,42 @@ test("an approver: a view at origin/main, the three lines, its verdict the outco
   expect(events("ap", "commented").filter((x) => x.key.startsWith("orch/"))).toEqual([]);
 });
 
-test("an overseer is on no issue: the file and no event, its line in _oversight.md, its token ended", async () => {
+test("an overseer is on the issue it looks at: its `running` event, a prompt with the issue, the event that ended it and its journal, its report in that journal, its token ended (overseer-runs-too-often)", async () => {
   fresh();
-  const bad = await cli(["start", "some-issue", "--role", "overseer"]);
-  expect([bad.code, T.calls.length]).toEqual([2, 0]);
+  open("ov", { state: "done" });
+  // No issue, an --at that is no seq, and --at for another role: nothing is asked of the tracker.
+  for (const args of [["start", "--role", "overseer"], ["start", "ov", "--role", "overseer", "--at", "x"], ["start", "ov", "--role", "reviewer", "--at", "7"]]) expect([args.join(" "), (await cli(args)).code, T.calls.length]).toEqual([args.join(" "), 2, 0]);
   flagFile("agent-hold");
-  const r = await cli(["start", "--role", "overseer"]);
+  const r = await cli(["start", "ov", "--role", "overseer", "--at", "7"]);
   expect(r.code).toBe(0);
-  const token = "over-000001", f = file(token), W = tree("over-" + HOST);
-  expect([f.id, f.role, f.round, f.running]).toEqual(["", "overseer", 1, 0]);
-  expect(r.json).toMatchObject({ started: token, id: "", role: "overseer", tree: "over-" + HOST });
-  expect("key" in r.json || "event" in r.json).toBe(false);
-  expect(log("brain")).toEqual(["agent-token over oversight-after-5646"]);
-  expect(writes()).toEqual([]);
-  await until(() => log("agent").length >= 7);
-  expect(log("agent").slice(2, 7)).toEqual([`arg: Working directory: ${W}.`, `Read ${W}/.claude/skills/brain-maintenance/agents/overseer.md and follow it.`, `Last oversight ended at event 5646. Journal: ${join(STATE, "issue-loop")}/`, `scratch: ${join(RUNS, token + ".scratch")}`, `Your token is ${token}.`]);
+  const token = "over-000001", f = file(token), W = tree("over-" + HOST), J = join(STATE, "issue-loop", "ov.md");
+  expect([f.id, f.role, f.round, f.drawn, f.running > 0, "after" in f]).toEqual(["ov", "overseer", 1, 7, true, false]);
+  expect(r.json).toMatchObject({ started: token, id: "ov", role: "overseer", tree: "over-" + HOST, key: `cost/ov/overseer/1/${token}`, event: f.running });
+  expect(log("brain")).toEqual(["agent-token over ov"]);
+  // The one write is the run's event: an overseer's worktree is the host's and has no comment.
+  expect(writes().map((c) => [c.method, c.body.key, c.body.outcome])).toEqual([["cost", `cost/ov/overseer/1/${token}`, "running"]]);
+  await until(() => log("agent").length >= 8);
+  expect(log("agent").slice(2, 8)).toEqual([`arg: Working directory: ${W}.`, `Read ${W}/.claude/skills/brain-maintenance/agents/overseer.md and follow it.`, "Issue: ov, which ended at event 7", `Journal: ${J}`, `scratch: ${join(RUNS, token + ".scratch")}`, `Your token is ${token}.`]);
   rmSync(join(RIG, "agent-hold"));
   const e = await over(token);
   expect([e.outcome, e.token]).toEqual(["done", "ended"]);
-  expect(writes()).toEqual([]);
+  expect(writes().map((c) => [c.method, c.body.key, c.body.outcome])).toEqual([["cost", `cost/ov/overseer/1/${token}`, "running"], ["cost", `cost/ov/overseer/1/${token}/end`, "done"]]);
   expect(log("worktree")).toEqual([`--fresh over-${HOST} --for ${token}`, `--leave over-${HOST}`]);
-  expect(log("brain")).toEqual(["agent-token over oversight-after-5646", `agent-token revoke ${token}`]);
-  const line = journal("_oversight").split("\n").find((l) => l.startsWith("{"))!;
-  expect(JSON.parse(line)).toEqual({ role: "overseer", round: 1, how: "fresh", outcome: "done", seconds: 61, context: 4242, agent: f.agent, session: f.session, token, usage: USED, usd: 1.5 });
+  expect(log("brain")).toEqual(["agent-token over ov", `agent-token revoke ${token}`]);
+  expect([journal("ov").includes(`## overseer round 1 (fresh, loop.ts), ended `), journal("ov").includes(`outcome done, token ${token}`), existsSync(join(STATE, "issue-loop", "_oversight.md"))]).toEqual([true, true, false]);
+  // By hand, with no event named: the third line is the issue alone.
+  rmSync(join(RIG, "agent.log"));
+  const h = await cli(["start", "ov", "--role", "overseer"]);
+  expect([h.code, "drawn" in file(h.json.started)]).toEqual([0, false]);
+  await over(h.json.started);
+  expect(log("agent").slice(4, 6)).toEqual(["Issue: ov", `Journal: ${J}`]);
   // An overseer's edit that was not landed: none is started, and no second name is tried.
   flagFile("wt-exit-over-" + HOST, "3 ahead=1");
   rmSync(join(RIG, "worktree.log"));
-  const held = await cli(["start", "--role", "overseer"]);
+  const held = await cli(["start", "ov", "--role", "overseer"]);
   expect(held.code).toBe(1);
-  expect(log("worktree")).toEqual([`--fresh over-${HOST} --for over-000002`]);
-  expect(log("brain").pop()).toBe("agent-token revoke over-000002");
-});
-
-test("an overseer started while the main checkout is one entry behind origin/main: its file's `after`, its token's note and its prompt have the entry's last event (overseer-started-again-before-pull)", async () => {
-  fresh();
-  const md = join(ROOT, ".claude/skills/brain-maintenance/oversight.md"), text = readFileSync(md, "utf8");
-  try {
-    writeFileSync(md, text + "\n## 2026-10-13 15:03 CEST, events 5646 to 6010\n\ntext\n");
-    git("add", md); git("commit", "-q", "-m", "oversight"); git("fetch", "-q", "origin", "main"); git("reset", "-q", "--hard", MAIN);
-    expect([git("rev-parse", "HEAD"), git("rev-parse", "origin/main") === MAIN, readFileSync(md, "utf8")]).toEqual([MAIN, false, text]);
-    flagFile("agent-hold");
-    const r = await cli(["start", "--role", "overseer"]);
-    expect(r.code).toBe(0);
-    const token = r.json.started;
-    expect([file(token).after, log("brain")]).toEqual(["6010", ["agent-token over oversight-after-6010"]]);
-    await until(() => log("agent").length >= 7);
-    expect(log("agent")[4]).toBe(`Last oversight ended at event 6010. Journal: ${join(STATE, "issue-loop")}/`);
-    rmSync(join(RIG, "agent-hold"));
-    await over(token);
-  } finally { git("update-ref", "refs/remotes/origin/main", MAIN); }
-  // The main checkout ahead of what origin/main has: the later heading is the file's. And with no ref origin/main: the file's.
-  writeFileSync(md, text + "\n## 2026-10-13 16:00 CEST, events 5646 to 6020\n\ntext\n");
-  try {
-    for (const ref of [true, false]) {
-      if (!ref) git("update-ref", "-d", "refs/remotes/origin/main");
-      flagFile("agent-hold");
-      const r = await cli(["start", "--role", "overseer"]);
-      expect([ref, r.code, file(r.json.started).after]).toEqual([ref, 0, "6020"]);
-      rmSync(join(RIG, "agent-hold"));
-      await over(r.json.started);
-    }
-  } finally { writeFileSync(md, text); git("update-ref", "refs/remotes/origin/main", MAIN); }
-  expect(git("rev-parse", "origin/main")).toBe(MAIN);
+  expect(log("worktree")).toEqual([`--fresh over-${HOST} --for over-000003`]);
+  expect(log("brain").pop()).toBe("agent-token revoke over-000003");
 });
 
 test("resume sends --resume with the session of the last run and writes a `running` event of its own key; a second resume of the round has another", async () => {
@@ -609,11 +584,12 @@ test("a started run's prompt names a directory of its own that is there while it
 test("a judgment run and an overseer have the directory; a reviewer has agent.sh's and an approver's prompt is its three lines", async () => {
   fresh();
   flagFile("agent-hold");
-  const o = await cli(["start", "--role", "overseer"]);
+  open("ov", { state: "done" });
+  const o = await cli(["start", "ov", "--role", "overseer"]);
   expect(o.code).toBe(0);
   const od = join(RUNS, o.json.started + ".scratch");
-  await until(() => log("agent").length >= 7);
-  expect([log("agent").slice(5, 7), existsSync(od)]).toEqual([[`scratch: ${od}`, `Your token is ${o.json.started}.`], true]);
+  await until(() => log("agent").length >= 8);
+  expect([log("agent").slice(6, 8), existsSync(od)]).toEqual([[`scratch: ${od}`, `Your token is ${o.json.started}.`], true]);
   rmSync(join(RIG, "agent-hold"));
   await over(o.json.started);
   expect(existsSync(od)).toBe(false);

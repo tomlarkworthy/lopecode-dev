@@ -13,7 +13,7 @@
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts run --dry
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts step [--dry] [--for clock|event|run|yield]
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts start <id> [--role <role>] [--token <t>]
-//   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts start --role overseer [--token <t>]
+//   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts start <id> --role overseer [--at <seq>] [--token <t>]
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts start [<id>] --role orchestrator --token <t> --give "<entries>"
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts ended <token>
 //   LOOP_TOKEN=<own token> bun tools/cloud-brain/loop.ts resume <id> [--role <role>]
@@ -37,7 +37,7 @@
 //            a reviewer's view at the last lopecode-dev commit of the last submit (`--at <sha> rev-<id>`), with
 //            TAB=1 when review-needs-tab.sh exits 0 or 2, the submit has a `url` ref, or a reviewer's run of this
 //            issue reported `needed a tab`; an approver's view at origin/main (`appr-<id>`); an overseer's worktree
-//            `over-<host>`, with no comment;
+//            `over-<host>`, with no comment, whatever issue it looks at;
 //         3. the file runs/<token>.json under .emitted/issue-loop: { id, role, round, session, token, … }; and for a
 //            run whose prompt is made here with the worktree's lines (a writer, an overseer, a judgment run) a
 //            directory of its own, runs/<token>.scratch, for the files it sends with `@`: the fourth line of the
@@ -49,7 +49,10 @@
 //            that wrapper and the time it began (`ps -o lstart=`, "" where the sandbox refuses `ps`) are added to
 //            the file. The wrapper's command line has `loop-run-<token>`, which is how a run is known to live;
 //         5. one `cost` event, key cost/<id>/<role>/<round>/<token>: outcome `running`, seconds 0, context 0, the
-//            token, the session, agent `<host>:<pid>`. An overseer is on no issue and has the file and no event.
+//            token, the session, agent `<host>:<pid>`. An overseer's is on the issue it looks at (--role overseer, with --at <seq>
+//            the event that ended it, kept in the file as `drawn`): its prompt's third line is `Issue: <id>, which
+//            ended at event <seq>` and its fourth `Journal: <the file of that issue>`. (Until overseer-runs-too-often,
+//            2026-10-13, an overseer was on no issue and read every event since the last heading of oversight.md.)
 //         --role orchestrator is a judgment run, which `step` starts and nobody else: the model that decides the
 //         entries --give names, by the brief agents/orchestrator.md. Its token is the step's making (--token, which
 //         it must have) and is ended with the run; its worktree is `orch-<host>`, with no comment; the third line of
@@ -98,11 +101,14 @@
 //            of the owner after the label. `ready` and `finish`: the move. `start`, `spec`: start the writer.
 //            `waiting`, `owner`, at `awaiting-approval` with no verdict of the round and no `leave`: start the
 //            approver. `waiting`, `work`, no running writer, no `waiter`: "A dead writer", the token ended and
-//            `back`; labeled `needs-owner` it is the owner's, as a `round` so labeled, and no `back` is made. A digest the snapshot opened: the older ones rejected, `triage`, `ready`. An overseer when 3
-//            issues came to `done`, `rejected` or `needs-owner`, or one to its third `rework`, since the last
-//            heading of oversight.md, none runs, and fewer than 2 were started since. That heading is the later of
-//            the main checkout's file and of origin/main as the repository has it, with no fetch: `start` reads the
-//            same for an overseer's `after`, its token's note and its prompt. No agent of a role is
+//            `back`; labeled `needs-owner` it is the owner's, as a `round` so labeled, and no `back` is made. A digest the snapshot opened: the older ones rejected, `triage`, `ready`. An overseer on
+//            one issue in 10 of those that ended (overseer-runs-too-often, 2026-10-13; the owner: "investigating 1
+//            in 10 tasks randomly instead of everything"). An ending is a move to `done` or `rejected`, or the label
+//            `needs-owner`, among the last 500 events of the record; the draw is a hash of the issue's id and the
+//            event's seq (`drawn`), the same at each step. One is started for the oldest ending drawn that has no
+//            overseer's `cost` event after it and no file of a start for it, when no `over-` token is live; at one
+//            that runs nothing is started, and at 2 that died of one ending none is, and the status says so. Not at
+//            a count of ended issues and not at a third `rework`, and no heading of oversight.md is read. No agent of a role is
 //            started on an issue that has a `running` run of it (the writers are one role for this), nor at 2 dead
 //            runs of the role and round. A running run of this machine whose process is gone and that has no file
 //            is written `stopped`, or with its submit. An issue at work whose starter has no run in the record
@@ -116,10 +122,10 @@
 //            is there by then stops the rest of that step; the line has `unlogged` { token, by, said }, the status
 //            says it under Health, and each entry it kept from a start is in `skipped`. It holds while the files of
 //            runs/ have that result and the step is made with that token: a driver started again has a new one. Such
-//            a run of an overseer is not counted among the 2 started since a heading of oversight.md
+//            a run of an overseer is not counted among the 2 that died of one ending
 //            (loop-sh-sandbox-has-no-keychain, 2026-10-13);
 //         5. the judgment: the entries a model is to decide (`round` at 3 `rework` moves or after a run with no
-//            submit, `dead`, `triage`, `decompose`, `promote`, `look`, `answer`, `asks`, `pm`), 5 at most a step,
+//            submit, `dead`, `triage`, `decompose`, `promote`, `look`, `answer`, `asks`), 5 at most a step,
 //            each given once for one event <at> of its issue: a comment keyed orch/<id>/given-<do>-<at>, body
 //            `given <do> at <at> to <token>, its run on <issue>`. The entries of a step are the task of one judgment
 //            run, started at the step's end: the step makes its token (`agent-token orch judgment:<issue>`), writes
@@ -201,7 +207,7 @@
 //           given to a judgment run is an act `given`: the first event of a session's token on that issue that is
 //           no `cost` event, no `worktree` comment and no `given` comment, which is the step's own. An act named again by a step that read its event is a new row;
 //         - named and not done: the rows with no such event, with how many steps named each, the first and the last;
-//         - of a kind the record has no event of: `token-ended`, and the start of an overseer, which is on no issue;
+//         - of a kind the record has no event of: `token-ended`, and a start on no issue;
 //         - done and named by no step: each event after the first line by a token whose name begins as --by has it
 //           (`orch-,out-` with none: an orchestrating session's and a session's the owner is in) that is the event of
 //           no row, and each `start` or `spec` move of an agent that no `running` event names, with the seq the step
@@ -217,7 +223,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { facts as approverFacts } from "./approver.ts";
 
 // ---- what is read from the record, with no call
@@ -247,6 +253,12 @@ export const judgmentRound = (runs: Ev[]) => Math.max(0, ...(runs || []).filter(
 export const costKey = (r: Run) => `cost/${r.id}/${r.role}/${r.round}/${r.token}` + (r.how === "resumed" ? `/resumed-${r.at}` : "");
 export const endKey = (r: Run) => costKey(r) + "/end";
 
+// Which endings of an issue an overseer looks at: one in OVERSEE_ONE_IN, by a draw of the issue's id and the seq of the
+// event that ended it, so each step that reads the event draws the same (overseer-runs-too-often, 2026-10-13). A step
+// draws from the endings among the last OVERSEE_WINDOW events of the record.
+export const OVERSEE_ONE_IN = 10, OVERSEE_WINDOW = 500;
+export const drawn = (id: string, seq: number) => createHash("sha256").update(`${id}:${seq}`).digest().readUInt32BE(0) % OVERSEE_ONE_IN === 0;
+
 export const deadRuns = (events: Ev[], role: string, round: number) =>
   events.filter((e) => e.type === "cost" && e.role === role && e.round === round && ["stopped", "no-submit"].includes(e.outcome));
 
@@ -266,6 +278,7 @@ export const backKey = (id: string, token: string | undefined, events: Ev[]) =>
 export function outcomeOf(run: Run, events: Ev[], returned: boolean, error = false): { outcome: string; event?: number } {
   const mine = events.filter((e) => e.by && e.by.holder === "secret:" + run.token && e.seq > (run.how === "resumed" ? run.at || 0 : 0));
   // An overseer and a judgment run leave no one move to read: `done`, or `stopped` with no result or one that was an error.
+  // (An overseer's worktree is the host's, as a judgment run's is; its run is on the issue it looks at.)
   if (ALONE[run.role]) return { outcome: returned && !error ? "done" : "stopped" };
   if (run.role === "reviewer") {
     const r = last(mine.filter((e) => e.type === "reviewed"));
@@ -402,24 +415,12 @@ const unmake = (run: Run, text: string, code = 1): never => {
 // A run's own directory, for the files it sends with `@` (a comment, the reason of a submit): beside its file, named
 // in its prompt as `scratch: <dir>` and in the file as `scratch`, which is what `ended` removes.
 const scratch = (run: Run) => { run.scratch = join(RUNS(), run.token + ".scratch"); mkdirSync(run.scratch, { recursive: true }); return `scratch: ${run.scratch}`; };
-const OVERSIGHT = ".claude/skills/brain-maintenance/oversight.md";
-const lastHeading = (text: string) => (last([...text.matchAll(/^## .*events \d+ to (\d+)/gm)]) || [])[1] || "";
-// Where the last oversight ended, "" when no heading says: the later of the main checkout's file and of origin/main as
-// this repository has it, with no fetch. An overseer's push from its worktree moves that ref, and only a step for the
-// clock pulls the main checkout (overseer-started-again-before-pull, 2026-10-13). A worktree's file is not read: an
-// entry is there before it is landed.
-const lastOversight = (root: string) => {
-  let file = ""; try { file = lastHeading(readFileSync(join(root, OVERSIGHT), "utf8")); } catch {}
-  const o = sh("git", ["-C", root, "show", "origin/main:" + OVERSIGHT]), origin = o.code === 0 ? lastHeading(o.out) : "";
-  return Number(origin) > Number(file) ? origin : file;
-};
-
 function start(args: string[]) {
   const me = own(), flag = (n: string) => { const i = args.indexOf(n); if (i < 0) return undefined; const v = args.splice(i, 2)[1]; return v && !v.startsWith("--") ? v : stop(2, `${n} takes a value`); };
   let role = flag("--role"), given = flag("--token");
-  const entries = flag("--give"), id = args[0] || "";
-  if (!id && !ALONE[role || ""]) stop(2, "start <id> [--role <role>] [--token <t>], or start --role overseer, or start [<id>] --role orchestrator --token <t> --give \"<entries>\"");
-  if (role === "overseer" && id) stop(2, "an overseer is on no issue: start --role overseer");
+  const entries = flag("--give"), at = flag("--at"), id = args[0] || "";
+  if (!id && role !== "orchestrator") stop(2, "start <id> [--role <role>] [--token <t>], or start <id> --role overseer [--at <seq>], or start [<id>] --role orchestrator --token <t> --give \"<entries>\"");
+  if (at !== undefined && (role !== "overseer" || !/^\d+$/.test(at))) stop(2, "--at is the seq of the event that ended the issue an overseer looks at, and --role overseer has it");
   if ((role === "orchestrator") !== !!entries) stop(2, "--give is the entries of a judgment run, and --role orchestrator has it");
   if (role === "orchestrator" && !given) stop(2, "a judgment run is started by `step`, which makes its token and names it in the `given` comments before the run: --token <t>");
   // One judgment run a machine: a second is not started while one runs, also by hand.
@@ -436,11 +437,11 @@ function start(args: string[]) {
   const longest = endKey({ ...run, token: given || PREFIX[run.role] + "-000000", how: "resumed", at: 9999999 });
   if (longest.length > KEY_MOST) stop(1, `the key ${longest} would be ${longest.length} characters, and the tracker keeps ${KEY_MOST}`);
   const root = ROOT();
-  if (run.role === "overseer") run.after = lastOversight(root);
+  if (at) run.drawn = Number(at);
   // A token that was given is one issue-as.sh keeps and cb4 answers: else its agent could write nothing.
   if (given && as(given, id ? `get?id=${id}` : "queue?limit=1").status !== 200) stop(1, `--token ${given}: a read with it was not answered; nothing was started`);
   if (!given) {
-    const t = brain("agent-token", PREFIX[run.role], id || `oversight-after-${lastOversight(root)}`);
+    const t = brain("agent-token", PREFIX[run.role], id);
     if (t.code !== 0 || !/^[a-z]+-[0-9a-f]{6}$/.test(t.out.trim())) stop(1, `agent-token made no token: ${(t.out + t.err).trim()}`);
     run.token = t.out.trim();
   }
@@ -458,7 +459,7 @@ function start(args: string[]) {
       const c = write(me, "comment", { key: `orch/${topic}/worktree-${n}`, id: topic, body: "worktree " + JSON.stringify({ topic, branch: "bm/" + p.tree, machine: run.host, path: p.path, ...(at ? { at } : {}), for: id }) });
       if (!c.ok) console.error(`loop.ts: the worktree comment on ${topic} was not written: ${c.status} ${c.said || ""}`);
     }
-    const third = run.role === "orchestrator" ? `Entries: ${entries}` : run.role === "overseer" ? `Last oversight ended at event ${run.after}. Journal: ${join(LOOP(), "/")}` : `Issue: ${id}`;
+    const third = run.role === "orchestrator" ? `Entries: ${entries}` : run.role === "overseer" ? `Issue: ${id}${at ? `, which ended at event ${at}` : ""}\nJournal: ${join(LOOP(), id + ".md")}` : `Issue: ${id}`;
     const prompt = [`Working directory: ${p.path}.`, `Read ${p.path}/.claude/skills/brain-maintenance/agents/${BRIEF[run.role]}.md and follow it.`, third, scratch(run), `Your token is ${run.token}.`, ...(p.unlanded ? ["The worktree holds unlanded work of this issue."] : [])].join("\n");
     agent = env.LOOP_AGENT || join(p.path, "cloud-brain-dev/agent.sh"); argv = [run.role, prompt]; vars = { WORK: p.path, SESSION: run.session! };
   } else {
@@ -481,7 +482,7 @@ function start(args: string[]) {
   Object.assign(run, detach(run, agent, argv, vars), { agent: "" });
   run.agent = `${run.host}:${run.pid}`;
   save(run);
-  // A run on no issue (an overseer, a judgment run of a cluster that is not healthy) has the file and no event.
+  // A run on no issue (a judgment run of a cluster that is not healthy) has the file and no event.
   if (id) {
     const c = write(me, "cost", { key: costKey(run), id, role: run.role, round: run.round, how: run.how, outcome: "running", seconds: 0, context: 0, token: run.token, session: run.session, agent: run.agent });
     if (!c.ok) console.error(`loop.ts: the running event was not written: ${c.status} ${c.said || ""}`);
@@ -522,7 +523,7 @@ async function ended(args: string[], quiet = false): Promise<any> {
   if (first) {
     const head = `## ${run.role} round ${run.round} (${run.how}, loop.ts), ended ${new Date().toString().slice(0, 33)}, outcome ${outcome}, token ${token}, context ${cost.context}, ${cost.seconds} s${cost.usd !== undefined ? `, usd ${cost.usd}` : ""}, session ${run.session}, agent ${run.agent}`;
     mkdirSync(LOOP(), { recursive: true });
-    appendFileSync(join(LOOP(), (run.id || (run.role === "orchestrator" ? "_judgment" : "_oversight")) + ".md"), `\n${head}\n\n${run.id ? "" : JSON.stringify(cost) + "\n\n"}${result && typeof result.result === "string" ? result.result : `(no report: the process gave no result line, exit ${exit})`}\n`);
+    appendFileSync(join(LOOP(), (run.id || "_judgment") + ".md"), `\n${head}\n\n${run.id ? "" : JSON.stringify(cost) + "\n\n"}${result && typeof result.result === "string" ? result.result : `(no report: the process gave no result line, exit ${exit})`}\n`);
   }
   const notes: string[] = [];
   if (run.tree && (WRITERS.includes(run.role) || ALONE[run.role])) worktree("--leave", run.tree);
@@ -906,8 +907,8 @@ async function step(args: string[]) {
       const d = deadRuns(G.events, role, round);
       return d.length < DEAD_MOST || judge(id, "dead", last(d)!.seq, G) === "go-on";
     };
-    const begin = (id: string, role: string, first = false) => unlogged() ? void skip(id, id ? "start" : role, `no ${role}: ${unlogged()}`) : done({ act: "start", ...(id ? { id } : {}), role }, () => {
-      const r = self("start", ...(id ? [id] : []), "--role", role);
+    const begin = (id: string, role: string, first = false, ...more: string[]) => unlogged() ? void skip(id, id ? "start" : role, `no ${role}: ${unlogged()}`) : done({ act: "start", ...(id ? { id } : {}), role }, () => {
+      const r = self("start", ...(id ? [id] : []), "--role", role, ...more);
       if (r.exit !== 0 && first) unstarted = true;
       return { exit: r.exit, ...(r.started ? { token: r.started } : {}), ...(r.said ? { said: r.said } : {}) };
     });
@@ -1037,28 +1038,33 @@ async function step(args: string[]) {
     for (const e of waiting) wait(e);
     for (const e of entries.filter(writer)) take(e);
 
-    // What happened since the last heading of oversight.md: his moves that undo reviewed work, and whether an overseer is due.
-    const after = Number(lastOversight(root) || 0);
-    if (!after) S.notes.push("oversight.md of the main checkout, and of origin/main as the repository has it, has no heading that names its last event: no overseer is started, and no move of the owner's is read for a post mortem");
-    else {
-      const since: Ev[] = [];
-      for (let a = after, n = 0; n < 20; n++) { const p = get(`sync?after=${a}&limit=500`), page: Ev[] = p.events || []; since.push(...page); if (!p.more || !page.length) break; a = last(page)!.seq; }
-      for (const m of since.filter((e) => e.type === "moved" && e.by && e.by.via === "session" && ["send-back", "owner-reject", "revert"].includes(e.move))) {
-        const G = look(m.id);
-        if (!G || (m.move === "owner-reject" && !G.events.some((x) => x.type === "reviewed" && x.verdict === "pass" && x.seq < m.seq))) continue;
-        if (!((G.issue.linked || []) as Ev[]).some((l) => l.rel === "cause")) judge(m.id, "pm", m.seq, G);
-      }
-      const ended = new Set(since.filter((e) => (e.type === "moved" && ["done", "rejected"].includes(e.to)) || (e.type === "labelled" && (e.add || []).includes("needs-owner"))).map((e) => e.id));
-      const third = [...new Set(since.filter((e) => e.type === "moved" && e.move === "rework").map((e) => e.id))].find((id) => { const G = got(id); return !!G && moved(G.events, "rework").length >= 3; });
-      if ((ended.size >= 3 || third) && machine) skip("", "overseer", NOT_HERE("an overseer is due"));
-      else if (ended.size >= 3 || third) {
-        const t = brain("agent-token", "list"), n = runFiles().filter((r) => r.role === "overseer" && String(r.after) === String(after) && !notLoggedIn(resultOf(r.token))).length;
-        const lives = t.out.split("\n").map((l) => { try { return JSON.parse(l); } catch { return null; } }).some((d) => d && /^over-/.test(d.name || "") && (!d.until || Date.parse(d.until) > Date.now()));
-        if (t.code !== 0) skip("", "overseer", `agent-token list: exit ${t.code} ${tail(t)}`);
-        else if (lives) skip("", "overseer", "an overseer's token is live");
-        else if (n >= DEAD_MOST) { skip("", "overseer", `${n} overseers were started since the heading that ends at event ${after}`); S.session.push(`oversight: ${n} overseers were started since the heading of oversight.md that ends at event ${after}, and it has no later heading`); }
-        else begin("", "overseer");
-      }
+    // An overseer: of the endings among the last OVERSEE_WINDOW events (a move to `done` or `rejected`, the label
+    // `needs-owner`), the ones the draw takes, the oldest first, and one start a step. Its run is on that issue, so the
+    // record says an ending was looked at: a `cost` event of the role after the ending event, or the file of a start
+    // that wrote none. No heading of oversight.md is read, and no move of the owner's is given for a post mortem.
+    const since: Ev[] = [];
+    for (let a = Math.max(0, line.seq - OVERSEE_WINDOW), n = 0; n < 200; n++) { const p = get(`sync?after=${a}&limit=500`), page: Ev[] = p.events || []; since.push(...page); if (!p.more || !page.length) break; a = last(page)!.seq; }
+    for (const e of since.filter((e) => ((e.type === "moved" && ["done", "rejected"].includes(e.to)) || (e.type === "labelled" && (e.add || []).includes("needs-owner"))) && drawn(e.id, e.seq))) {
+      const G = look(e.id);
+      if (!G) continue;
+      // The last event of each run after the ending, and the files of this machine's starts for it.
+      const runs = new Map<string, string>();
+      for (const x of G.events) if (x.type === "cost" && x.role === "overseer" && x.seq > e.seq) runs.set(x.token, x.outcome);
+      const files = runFiles().filter((r) => r.role === "overseer" && r.id === e.id && Number(r.drawn) === e.seq && !notLoggedIn(resultOf(r.token)));
+      for (const r of files) if (!runs.has(r.token) || (r.ended && runs.get(r.token) === "running")) runs.set(r.token, r.ended ? r.ended.outcome : r.host !== host || alive(r) ? "running" : "stopped");
+      const of = (outcome: string) => [...runs].filter(([, o]) => o === outcome).map(([t]) => t);
+      if (of("done").length) continue;
+      if (of("running").length) { skip(e.id, "overseer", `an overseer of it runs (${of("running")[0]})`); break; }
+      if (of("stopped").length >= DEAD_MOST) { const why = `${of("stopped").length} overseers of its ending at event ${e.seq} died`; skip(e.id, "overseer", why); S.session.push(`${e.id}: ${why}, and no third is started`); continue; }
+      if (machine) { skip(e.id, "overseer", NOT_HERE("an overseer is due")); break; }
+      if (unlogged()) { skip(e.id, "overseer", `no overseer: ${unlogged()}`); break; }
+      // One overseer at a time, of any machine: they share the worktree of the host and the briefs they edit.
+      const t = brain("agent-token", "list");
+      const lives = t.out.split("\n").map((l) => { try { return JSON.parse(l); } catch { return null; } }).some((d) => d && /^over-/.test(d.name || "") && (!d.until || Date.parse(d.until) > Date.now()));
+      if (t.code !== 0) skip(e.id, "overseer", `agent-token list: exit ${t.code} ${tail(t)}`);
+      else if (lives) skip(e.id, "overseer", "an overseer's token is live");
+      else begin(e.id, "overseer", false, "--at", String(e.seq));
+      break;
     }
     give();
   } catch (e: any) { line.error = String((e && e.message) || e); return end(1); }

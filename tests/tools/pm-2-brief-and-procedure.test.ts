@@ -131,16 +131,18 @@ test("SKILL.md step 3: a row for a post mortem at `open` and one at `ready`, abo
   has(rows[ready], ["Spawn the implementer, with the prompt of step 4 and nothing added", 'It follows "A post mortem" in `agents/implementer.md`', "see that its actions are filed"]);
 });
 
-test("SKILL.md, \"A post mortem\": what one is, the two who declare, and the one case the session declares for", () => {
+test("SKILL.md, \"A post mortem\": what one is, the owner who declares, and the one case the session declared for until overseer-runs-too-often", () => {
   expect(count(orchestrator, "\n## A post mortem\n")).toBe(1);
   expect(orchestrator.indexOf("\n## A post mortem\n")).toBeLessThan(orchestrator.indexOf("\n## Triage\n"));
   if (!process.env.SKILL) expect([count(skill, "\n## A post mortem\n"), count(skill, '("A post mortem" of `agents/orchestrator.md`)')]).toEqual([0, 3]);
   has(session, [
     "An issue of kind `task`, id `pm-<short>`, labeled `post-mortem`, with one link `{id: pm-<short>, to: <the issue it is of>, rel: \"cause\"}`",
     "It names no cause",
-    "**Who declares one.** Two, and nobody else.",
+    "**Who declares one.** The owner, and nobody else, since `overseer-runs-too-often` (2026-10-13).",
+    "\"I don't want the auto post mortem.\"",
+    "you declare none on your own",
     "**The owner**, through any session on his word.",
-    "**You, with no word of his, in one case: he undid work that had passed a review.**",
+    "**Until that day: you, with no word of his, in one case: he undid work that had passed a review.**",
     "his `send-back` of a spec; his `owner-reject` of an issue that has a `reviewed` event with the verdict `pass`; his `revert`",
     "You open it in the pass that reads the event, with your own token and without the label `owner`",
     '"labels":["post-mortem"]',

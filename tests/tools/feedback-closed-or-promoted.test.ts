@@ -153,20 +153,13 @@ test("a record with no feedback prints both lines with 0", () => {
   expect(lines).toContain("feedback of the owner's with no tie, or each tie done or closed, to promote or to close: 0");
 });
 
-test("the overseer's brief says which feedback is due, the close, and what is not closed", () => {
-  expect(overseer).toContain("## Feedback that is due");
-  expect(overseer).toContain("A feedback issue is **due** when it has a tie and every tie is at `done` or `closed`.");
-  expect(overseer).toContain(`io move '{"key":"over/<id>/close-due","id":"<id>","to":"closed","reason":`);
-  expect(overseer).toContain("One with a tie at `rejected` or `reverted`: nobody answered it.");
-  expect(overseer).toContain("One labeled `needs-owner`");
-  expect(overseer).toContain("A `related` link whose other end is itself a feedback issue at `open` is no tie");
-  expect(overseer).toContain("lists the due ones that are not the owner's under `feedback due to be closed, not the owner's`");
-  expect(overseer).toContain("**One that is the owner's is the orchestrator's, not yours.**");
-  expect(overseer).toContain("under `feedback of the owner's with no tie, or each tie done or closed, to promote or to close`");
-  expect(overseer).not.toContain("close it only when you can name what the finished work did for his ask");
-  expect(overseer).toContain("**One you still need is held, not closed.**");
-  expect(overseer).toContain('"body":"held: <for what, and until when>"');
-  expect(overseer).toContain("The one move you make is the close of a feedback issue");
+// Until overseer-runs-too-often (2026-10-13) the overseer's brief had "Feedback that is due": which feedback is due,
+// the close, and what is not closed. An oversight is one issue read alone since, and the brief says the close is not its.
+test("the overseer's brief no longer closes feedback that is due, and says so", () => {
+  expect(overseer).not.toContain("## Feedback that is due");
+  expect(overseer).toContain("## What an oversight no longer does");
+  expect(overseer).toContain("Closing the feedback that is due (`issue-stats.ts`, `feedback due to be closed, not the owner's`).");
+  expect(overseer).toContain("you make no move");
 });
 
 test("the row of SKILL.md for open feedback says when to promote, with the call, and who closes", () => {
@@ -179,6 +172,7 @@ test("the row of SKILL.md for open feedback says when to promote, with the call,
   expect(row).toContain("A promoted issue keeps the kind `feedback` and is on the task workflow");
   expect(row).toContain("One of his with a tie at any other state is not promoted");
   expect(row).not.toContain("One of his that has a parent or a link is not promoted");
-  expect(row).toContain('`agents/overseer.md`, "Feedback that is due"');
+  expect(row).toContain("Who closes the ones that are not his: nobody, since `overseer-runs-too-often` (2026-10-13)");
+  expect(row).not.toContain('`agents/overseer.md`, "Feedback that is due"');
   expect(row).not.toContain("Nothing, unless it is the owner's and asks for a change: then `promote` it.");
 });

@@ -60,6 +60,8 @@ The requirements:
   nonzero when the file on disk is not what the marks give.
 - **R4.** The overseer is given, at each oversight, what the lean reviewers read outside their body
   and what they said they lacked, and changes a mark or a source and runs the script.
+  (Since `overseer-runs-too-often`, 2026-10-13, an overseer reads one ended issue in 10 and no others: what it is given of a
+  lean reviewer is that issue's review.)
 - **R5.** A lean reviewer is not made to read the 27 KB Cloud Brain doc, by the hook or by `rules.md`.
 - **R6.** Before the loop switches, the lean type reviews past submits whose defects are on the
   record, and finds them.

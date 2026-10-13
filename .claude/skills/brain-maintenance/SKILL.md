@@ -27,7 +27,7 @@ tools/cloud-brain/loop.sh         the loop. The owner starts it in a terminal of
 LOOP_TOKEN=<your token> bun tools/cloud-brain/loop.ts run --dry
                                   the same reads, from a session; it writes nothing, takes no lock and starts no agent
 /brain-maintenance                one pass by hand, then a report
-/brain-maintenance oversee        spawn the overseer now
+/brain-maintenance oversee <id>   spawn the overseer on that issue now
 /loop /brain-maintenance          going back: every wake does one pass, then schedules the next
 ```
 
@@ -136,13 +136,14 @@ There is no state file. What is true is in the tracker:
 | Who has an issue | `issue.by.start` in `get?id=`, and the `by.holder` of its last `start` event: `secret:` and the starter's token |
 | What a reviewer found | the `reviewed` events of the issue |
 | How many times it bounced | the `moved` events with `move: "rework"` |
-| Where oversight got to | the last heading of `oversight.md` |
+| Which endings an overseer looked at | the `cost` events of the role `overseer` on each issue (until `overseer-runs-too-often`, 2026-10-13: the last heading of `oversight.md`) |
 
 Two files beside it, neither of them needed to resume:
 
 - `tools/cloud-brain/.emitted/issue-loop/<id>.md` (git-ignored): the journal. After each agent
   finishes, append its role, the time from `date`, its token count and duration, and its final
-  report whole. The overseer reads it. An overseer's own report goes in `_oversight.md` there.
+  report whole. The overseer reads the file of the one issue it looks at, and its own report is appended to that
+  file (to `_oversight.md` there until `overseer-runs-too-often`, 2026-10-13).
 - `oversight.md` in this directory: one entry per oversight, written by the overseer.
 
 ## A token for each agent
@@ -171,7 +172,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
   you make another.
 - **An agent's.** Before each spawn (step 4): `agent-token <role> <issue id>`, with the role `impl`
   for a writer, `rev` for a reviewer, `spec` for a spec writer, `dig` for a digest writer, `appr` for an approver (step 4, "The approver") and `over`
-  for an overseer, whose second argument is `oversight-after-<seq>`. The name goes in the agent's
+  for an overseer, whose second argument is the issue it looks at (`oversight-after-<seq>` until `overseer-runs-too-often`, 2026-10-13). The name goes in the agent's
   prompt, and in the `token` field of its run's `cost` event (step 5). A round sent to an agent by message
   makes no token: the agent has the one of its first round.
 - **Ended** by you, `agent-token revoke <name>`, when you write the run's `cost` event (step 5). Not then
@@ -442,7 +443,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    | labeled `digest`, opened by `worker:brain-x-snapshot` (`opener` in `get?id=`), at `open` | When several are open, the newest is the one written: `reject` each older one with the reason `covered by digest-<newest day>`, and comment on the newest with the days it covers. Then `triage` and `ready` it, the reason "the day's digest, opened by the snapshot's run"; the three questions of Triage are not asked. |
    | labeled `post-mortem`, at `open` | Triage it by its one question ("A post mortem" of `agents/orchestrator.md`): `issue-as.sh <your token> "list?label=post-mortem&limit=100"`, and when another of that list is of the same thing, link this one to it as `duplicate` and `close` it. Else `triage`, then `ready`. Never a quick win of yours: your open, your spawn and your comment for him are steps of its trace (in the first, events 4246 and 4344). |
    | labeled `post-mortem`, at `ready` | Spawn the implementer, with the prompt of step 4 and nothing added: no line of what you think went wrong. It follows "A post mortem" in `agents/implementer.md`. When it has passed its review and its writer has reported, see that its actions are filed ("A post mortem" of `agents/orchestrator.md`). |
-   | `open`, kind `feedback` | Nothing, but for one case: it is the owner's ("The owner's", above), asks for a change, and has no tie, or each of its ties is at `done` or `closed`, and none of that finished work made the change. Its ties are its parent and its links either way, but for a `related` link whose other end is itself a feedback issue at `open`: that link says two reports are of one thing, and no work is under way for either. Then `promote` it, `issue-as.sh <your token> swap '{"key":"orch/<id>/promote","id":"<id>","swap":"promote","reason":"…"}'`, and triage it in the same pass. When a finished tie did make the change, close it with the commit or the line of the record that did in the reason: `issue-as.sh <your token> move '{"key":"orch/<id>/close-done","id":"<id>","to":"closed","reason":"…"}'`. A promoted issue keeps the kind `feedback` and is on the task workflow from then on (`workflow` in `get?id=` is the task's): it is taken by the rows for a task, this row no longer. One of his with a tie at any other state is not promoted, since the work it is tied to is already under way and a second task would do it twice (`philosophy.md`, line 2: the smaller side); it comes to this row when that work has ended. Who closes the ones that are not his: the overseer, each oversight, closes such a feedback issue when it has a tie and every tie is at `done` or `closed` (`agents/overseer.md`, "Feedback that is due"). `bun tools/cloud-brain/issue-stats.ts --token=<your token>` prints both lists, `feedback due to be closed, not the owner's` and `feedback of the owner's with no tie, or each tie done or closed, to promote or to close`, each row with its ties and their states; the second is this row's. Feedback is filed by agents for anything that seems off against `philosophy.md` (Tom, 2026-10-11: "only feedback so we can identify patterns and check before writing a solution"), and the overseer reads it together. It is not counted as work waiting. (Until `feedback-closed-or-promoted`, 2026-10-11, nothing closed one: 51 were at `open` at event 2745, 25 of them tied only to work that was `done` or `closed`. The owner: "Why are the feedback ones not being done?" Until `owners-feedback-held-by-related-links`, 2026-10-12, one of his was promoted only when it "has no parent and no link either way", and one whose ties had ended was the overseer's, to close or to leave with a comment. At event 4295 two of his had waited at `open` 21 hours so: `health-chart-not-useful-remove`, with a `related` link to a project that was `done` and had not removed the chart, and two `related` links from notes at `open`; and `services-chart-near-the-top`, whose one tie was its own `related` link to that note. `tools/cloud-brain/records/owners-feedback-held-by-related-links.md`.) |
+   | `open`, kind `feedback` | Nothing, but for one case: it is the owner's ("The owner's", above), asks for a change, and has no tie, or each of its ties is at `done` or `closed`, and none of that finished work made the change. Its ties are its parent and its links either way, but for a `related` link whose other end is itself a feedback issue at `open`: that link says two reports are of one thing, and no work is under way for either. Then `promote` it, `issue-as.sh <your token> swap '{"key":"orch/<id>/promote","id":"<id>","swap":"promote","reason":"…"}'`, and triage it in the same pass. When a finished tie did make the change, close it with the commit or the line of the record that did in the reason: `issue-as.sh <your token> move '{"key":"orch/<id>/close-done","id":"<id>","to":"closed","reason":"…"}'`. A promoted issue keeps the kind `feedback` and is on the task workflow from then on (`workflow` in `get?id=` is the task's): it is taken by the rows for a task, this row no longer. One of his with a tie at any other state is not promoted, since the work it is tied to is already under way and a second task would do it twice (`philosophy.md`, line 2: the smaller side); it comes to this row when that work has ended. Who closes the ones that are not his: nobody, since `overseer-runs-too-often` (2026-10-13), when an oversight became one issue read alone (`tools/cloud-brain/records/overseer-runs-too-often.md`, "What was dropped"); until then the overseer, each oversight, closed such a feedback issue when it had a tie and every tie was at `done` or `closed`. `bun tools/cloud-brain/issue-stats.ts --token=<your token>` prints both lists, `feedback due to be closed, not the owner's` and `feedback of the owner's with no tie, or each tie done or closed, to promote or to close`, each row with its ties and their states; the second is this row's. Feedback is filed by agents for anything that seems off against `philosophy.md` (Tom, 2026-10-11: "only feedback so we can identify patterns and check before writing a solution"), and the overseer reads it together. It is not counted as work waiting. (Until `feedback-closed-or-promoted`, 2026-10-11, nothing closed one: 51 were at `open` at event 2745, 25 of them tied only to work that was `done` or `closed`. The owner: "Why are the feedback ones not being done?" Until `owners-feedback-held-by-related-links`, 2026-10-12, one of his was promoted only when it "has no parent and no link either way", and one whose ties had ended was the overseer's, to close or to leave with a comment. At event 4295 two of his had waited at `open` 21 hours so: `health-chart-not-useful-remove`, with a `related` link to a project that was `done` and had not removed the chart, and two `related` links from notes at `open`; and `services-chart-near-the-top`, whose one tie was its own `related` link to that note. `tools/cloud-brain/records/owners-feedback-held-by-related-links.md`.) |
    | Anything else: `in-review` with a review and no move after it, a state or a starter no row above names | Comment with what you see, label `needs-owner`, and say so in step 7. |
 
 4. **Spawn.** First make the agent's token, from the main checkout ("A token for each agent"):
@@ -492,8 +493,9 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    The brief is the worktree's copy, at `origin/main` as it was when the worktree was brought up: it does not
    change under the agent, where the main checkout's did (`seen-briefs-change-under-a-writer`, eight cases).
    For the overseer the worktree is `tools/cloud-brain/worktree.sh --fresh over-$(hostname -s) --for <its token>`,
-   with no comment (it is of no topic), the third line is `Last oversight ended at event <seq>. Journal: <root>/tools/cloud-brain/.emitted/issue-loop/`,
-   and the token's line follows it. Exit 3 there is an overseer's edit that was not landed: named in step 7, and
+   with no comment (it is of no topic), the third line is `Issue: <id>, which ended at event <seq>` and the fourth
+   `Journal: <root>/tools/cloud-brain/.emitted/issue-loop/<id>.md` (`loop.ts start <id> --role overseer --at <seq>`; until `overseer-runs-too-often`,
+   2026-10-13, one line, `Last oversight ended at event <seq>. Journal: …/issue-loop/`), and the scratch line and the token's follow. Exit 3 there is an overseer's edit that was not landed: named in step 7, and
    no overseer is spawned until it is landed or taken back.
    (First spawn made this way: not yet, when this was written. `--fresh`, `--leave`, the exits and the occupant are
    the tests of `tests/tools/worktree.test.ts`; check 7 of the spec is the first topic's comment.)
@@ -661,8 +663,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    `"runs?id=<id>"` each run (`&role=`, `&how=`, `&round=<n>|first|later` narrow it; with no `id`, the runs of every issue).
    With the event written, end the run's token unless it is one of those kept for a rework round
    ("A token for each agent", Ended); and when the issue has just left `in-review` for good, end its writer's, once that writer has reported
-   (one that waits reads the tracker with it until then, and `issue-wait.sh` exits 2 at a read that is refused). An overseer's run is on no issue, and an event needs one: its line goes in `_oversight.md`,
-   the JSON of the call without `key` and `id`, and yours for the pass, with the role `orchestrator`, in `_orchestrator.md`
+   (one that waits reads the tracker with it until then, and `issue-wait.sh` exits 2 at a read that is refused). An overseer's run is on the issue it looks at, with an event as any run's (until `overseer-runs-too-often`, 2026-10-13, it was on no issue and its line went in `_oversight.md`). Your own for the pass is on no issue, and an event needs one: its line goes,
+   the JSON of the call without `key` and `id`, with the role `orchestrator`, in `_orchestrator.md`
    when the session shows a count. The journal is written as before. A run entered from a comment by `cost-events.ts`
    has `of`, the comment's seq; of those, the 100 read from the journal's headings on 2026-10-11 carry `"backfilled":true`.
    **The role `summarizer`** (the papers' since `ps-4-the-rest`, 2026-10-12, `plan/cloud-brain-paper-summarizer-persona.md`,
@@ -697,9 +699,12 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    when its verdict's token is the `token` of a `cost` event of role `approver` that an `orch-` holder wrote. The
    numbers of the example are made up, and its `usage` is left out for length. Then end the token
    (`agent-token revoke <name>`): an approver is sent no second round.
-6. **Oversight.** Spawn the overseer (its token: `agent-token over oversight-after-<seq>`), beside the others, when either 3 issues have
-   reached `done`, `rejected` or `needs-owner` since the last entry of `oversight.md`, or one
-   issue hit the rework cap. One overseer at a time; it commits in its own worktree, `bm-over-<host>` (step 4), and
+6. **Oversight.** Spawn the overseer on one ended issue in 10, beside the others: `loop.ts start <id> --role overseer --at <seq>` for an
+   ending the draw takes. An ending is a move to `done` or `rejected`, or the label `needs-owner`; the draw is `drawn(id, seq)` of
+   `tools/cloud-brain/loop.ts`, a hash of the issue's id and the event's seq, and `loop.ts step --dry` names the start it would make.
+   Not at a count of ended issues, and not at the rework cap. (Since `overseer-runs-too-often`, 2026-10-13; the owner: "investigating 1 in 10
+   tasks randomly instead of everything. And looking at that task in isolation". Until then: at 3 issues ended since the last
+   entry of `oversight.md`, or one at the rework cap, and the overseer read every event since that entry.) One overseer at a time; it commits in its own worktree, `bm-over-<host>` (step 4), and
    lands from it by a push under the landing lock.
 7. **Tell the user** in a few lines: what moved this pass, what is waiting for the owner and
    why, what is running. Nothing moved is one line.
@@ -890,8 +895,8 @@ at its landing, sent to after this session had compacted (14:22:31 UTC; the send
 Not tried: a resume after a restart, and a send that is refused.
 Not decided: when a long first round makes a resume dearer than a new agent, and whether a
 resumed writer passes its second review more often than a new one (7 of the 9 round-2 reviews
-readable in the journal on 2026-10-11 asked for changes again). The overseer compares the
-resumed runs with the later rounds that are not (`runs?role=implementer&how=resumed&round=later`, and `how=fresh`) once there are some.
+readable in the journal on 2026-10-11 asked for changes again). The overseer was to compare the
+resumed runs with the later rounds that are not (`runs?role=implementer&how=resumed&round=later`, and `how=fresh`) once there were some; since `overseer-runs-too-often` (2026-10-13) it reads one issue alone, and nobody is given that comparison.
 
 ## Links, and projects
 
@@ -906,8 +911,8 @@ it was opened, and `{ id, rel: "part-of", remove: true }` takes it off. That let
 submitted without that part, and it is the loop's to do (Tom, 2026-10-11: "its fine"): say why in
 a comment on the parent.
 
-A `project` gathers reports that share a cause: the overseer opens one when three or more do
-(`agents/overseer.md`), and the owner opens one for a feature. Its path is spec, review of the
+A `project` gathers reports that share a cause, and the owner opens one for a feature. (Until `overseer-runs-too-often`,
+2026-10-13, the overseer opened one when three or more reports shared a cause; since then it reads one issue alone and nobody is given the gathering.) Its path is spec, review of the
 spec, the owner's approval, tasks as its parts, done when none is open; the rows above are that
 path. You do not decide a project's design at triage: the spec is where it is decided, and the
 approval is where the owner stops it.

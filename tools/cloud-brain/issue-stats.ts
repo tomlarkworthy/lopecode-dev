@@ -29,7 +29,7 @@
 // Worker put back to before it, a refusal) the line says `not read:` and why, and no row of the idle list is marked.
 // `feedback due to be closed` lists the feedback at `open`, not the owner's, that has a tie and whose every tie (a link
 // either way, its parent) is at `done` or `closed`; `feedback of the owner's with no tie, or each tie done or closed` the
-// ones the orchestrator promotes or closes (feedback-closed-or-promoted; agents/overseer.md, "Feedback that is due", and
+// ones the orchestrator promotes or closes (feedback-closed-or-promoted; agents/overseer.md had "Feedback that is due" until overseer-runs-too-often, and
 // the row for `open`, kind `feedback` of SKILL.md). A `related` link whose other end is a feedback issue at `open` is no
 // tie in either (owners-feedback-held-by-related-links). Neither list has an issue labeled `needs-owner` or one that is
 // on another workflow than the policy's for feedback (a promoted one), and the first has none with a comment that
