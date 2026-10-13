@@ -140,7 +140,7 @@ a mean 1.73 calls a run of a spec writer, 21% of what such a run cost.
    not only in `lopecode-dev` (the owner, 2026-10-11: "I think we write good specs but they get lost. I think they
    should be saved somewhere not in lopecode-dev, in the cluster"; his A of comment 4085 of
    `specs-kept-in-the-cluster`, 2026-10-12). Two lines, the first of which writes the body of the call as a file
-   (`<scratchpad>` is the scratchpad directory of your session; `agents/implementer.md`, "The tracker's write calls"):
+   (`<scratchpad>` is the directory your prompt's `scratch:` line names, and with no such line the scratchpad directory of your session; `agents/implementer.md`, "The tracker's write calls"):
    ```
    python3 -c 'import json,sys; a=sys.argv; json.dump({"key":a[1],"id":a[2],"name":a[3],"mimeType":"text/markdown","text":open(a[4],encoding="utf-8",newline="").read()},open(a[5],"w"))' "spec/<id>/attach-<round>" "<id>" "cloud-brain-<id>-r<round>.md" "$W/plan/cloud-brain-<id>.md" "<scratchpad>/<token>-attach.json"
    ia attach @<scratchpad>/<token>-attach.json
