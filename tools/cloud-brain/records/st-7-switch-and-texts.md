@@ -4,9 +4,10 @@
 Texts, one test file, two lines of a comment in `loop.ts`. No seed, no deploy, no program changed.
 
 **The switch is not in this change.** No `tools/cloud-brain/loop.sh` and no `loop.ts run` without `--dry`
-was run by this writer, and none had been run by anyone when the task began
-(`records/st-6-a-day-beside-the-session.md`, "What this did not see"; comment 6488 of the issue, from a
-session the owner is in: "Start no `loop.ts run` and no `loop.sh` without `--dry`"). The texts say that the
+was run by this writer. The writers of `st-5-driver` and `st-6-a-day-beside-the-session` ran none either
+(the record of each, "Not tried" and "What this did not see"), and comment 6488 of the issue, from a
+session the owner is in, has: "Start no `loop.ts run` and no `loop.sh` without `--dry`". Whether another
+session ran one is in no record this writer read. The texts say that the
 first run is the owner's and that its first minutes are watched. Nothing below was seen of a driver that runs.
 
 The writer is a `claude` process that `loop.ts start` began for the session `out-5bc2ed`, with the token
@@ -56,7 +57,9 @@ are this writer's reading and not a word of his or of the spec.
   "Run it" says a pass by hand starts its agents with `loop.ts start` and that the header of `loop.ts`
   holds where the two differ. Step 8 (the watch) is as it was, for a session's `/loop`.
 - **The bodies of `fly-2-image-and-run-sh` and `fly-4-loop-files`.** The tracker has no call that changes a
-  body (`agents/implementer.md`, "The tracker's write calls": six calls, none an edit). Each got a comment.
+  body (`agents/implementer.md`, "The tracker's write calls": six calls, none an edit). Each got a comment with this writer's token, 13:06: 6493 on
+  `fly-4-loop-files` (key `impl/st-7-switch-and-texts/amended-fly-4`) and 6494 on `fly-2-image-and-run-sh`
+  (`…/amended-fly-2`), which is `done` and closed and took the comment, answer 200.
 - **`tools/cloud-brain/fly/run.sh`** starts `claude -p "/loop /brain-maintenance"` as `fly-2` landed it.
   That task is `done`. The note in the Fly spec gives the change to `fly-4-loop-files`.
 - **Records and plans that name the section by its old name**: 7 files under `tools/cloud-brain/records/`
@@ -116,6 +119,9 @@ The whole suite, `env -u WORK -u SESSION -u LOOP_TOKEN -u LOOP_RUN -u LOOP_RUN_T
   dry has run there. Its parts are read from `loop.ts`.
 - **A pass by hand with `loop.ts start`.** The session `out-5bc2ed` started this task's agents that way;
   a whole pass of `SKILL.md` made so was not.
+- **`loop.sh --dry`.** "Run it" gives `loop.ts run --dry` for a dry driver. `metadev`'s `ENV_PASS` has 16
+  names and no `LOOP_TOKEN` (`sed -n '22p' <root>/metadev | tr ',' '\n' | grep -c .`, and `grep -o 'LOOP[A-Z_]*'`
+  of that line printed nothing); what `safehouse` does with a variable that is not named there was not tried.
 - **Going back.** `/loop /brain-maintenance` after a driver, and `loop.ts ended` for a run that session
   did not start.
 - **The Fly machine.** Nothing of the "As amended" notes was run there.

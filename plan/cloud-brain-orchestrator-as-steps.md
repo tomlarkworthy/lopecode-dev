@@ -718,10 +718,13 @@ has what was changed. Where the text above names no choice, or the texts differ 
 - `SKILL.md`, "Run it", says that a pass by hand starts its agents with `loop.ts start` (part 2, "An
   agent the program did not start"). Steps 4 and 5 there are still written for the `Agent` call:
   the task names "Run it" and "Runs" alone.
+- "Run it" gives `loop.ts run --dry` for a dry driver and not `loop.sh --dry`: a dry driver reads with
+  `LOOP_TOKEN`, which `metadev`'s `ENV_PASS` does not name.
 - A pass by hand reads `lock.sh show loop` first and makes no pass while it is held. It takes no
   `loop` itself: that take is `fly-4-loop-files`'.
 - The body of an issue cannot be changed, so the "As amended" notes of `fly-2` and `fly-4` are a
-  comment on each, and the notes of the Fly spec are in four places of that file.
+  comment on each (6493 on `fly-4-loop-files`, 6494 on `fly-2-image-and-run-sh`), and the notes of the
+  Fly spec are in four places of that file.
 - The switch was not made by this task. No `loop.sh` and no `loop.ts run` without `--dry` was run.
 
 ### 6. What changes in specs that are approved

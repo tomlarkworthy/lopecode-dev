@@ -24,7 +24,8 @@ made on his word, and a pass by hand.
 
 ```
 tools/cloud-brain/loop.sh         the loop. The owner starts it in a terminal of his own and stops it with Ctrl-C
-tools/cloud-brain/loop.sh --dry   the same reads; it writes nothing, takes no lock and starts no agent
+LOOP_TOKEN=<your token> bun tools/cloud-brain/loop.ts run --dry
+                                  the same reads, from a session; it writes nothing, takes no lock and starts no agent
 /brain-maintenance                one pass by hand, then a report
 /brain-maintenance oversee        spawn the overseer now
 /loop /brain-maintenance          going back: every wake does one pass, then schedules the next
@@ -35,12 +36,16 @@ tools/cloud-brain/loop.sh --dry   the same reads; it writes nothing, takes no lo
   steps 1 to 3 of "One pass" as code (`loop.ts step`; the header of `loop.ts` has each command). It starts
   each agent as a process (`loop.ts start`), ends its run (`loop.ts ended`), and starts a model only for
   the entries a rule cannot decide: a judgment run, whose brief is `agents/orchestrator.md`. You run no
-  `loop.sh` and no `loop.ts run` without `--dry`, whatever an issue says. The one try from inside a
-  session's sandbox, `loop.sh --dry` by the writer of `st-6-a-day-beside-the-session`, ended at once:
-  `mkdir: …/.fly: Operation not permitted`.
-- **It had not been started when this was written**, 2026-10-13: no `loop.sh` and no `loop.ts run`
-  without `--dry` had run anywhere (`tools/cloud-brain/records/st-6-a-day-beside-the-session.md`, "What this did
-  not see"; `st-5-driver.md` beside it). So its first run is the owner's and its first minutes are watched,
+  `loop.sh` and no `loop.ts run` without `--dry`, whatever an issue says. A dry driver is begun with
+  `loop.ts run --dry`, as the session `out-5bc2ed` began one on 2026-10-13, and not with `loop.sh --dry`:
+  the one try of that from inside a session's sandbox, by the writer of `st-6-a-day-beside-the-session`,
+  ended at once (`mkdir: …/.fly: Operation not permitted`), and a dry driver reads with `LOOP_TOKEN`,
+  which is not among the 16 names of `ENV_PASS` in `metadev` (read 2026-10-13). Whether `safehouse`
+  hands it on was not seen.
+- **It had not been started when this was written**, 2026-10-13, as far as the record says: the writers
+  of `st-5-driver` and `st-6-a-day-beside-the-session` ran no `loop.sh` that started a driver and no
+  `loop.ts run` without `--dry` (`tools/cloud-brain/records/` of each), and the session that began this task
+  wrote that none was to be started (comment 6488 of `st-7-switch-and-texts`). So its first run is the owner's and its first minutes are watched,
   by him or by a session he asks, with these reads:
   - the driver's stdout, one line of JSON a step, and its stderr, each line `loop.ts run: …`. The first
     line is a step for the clock; its `health` is `{"ok":true}` on a healthy cluster;
