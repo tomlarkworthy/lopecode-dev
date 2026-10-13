@@ -14,7 +14,7 @@ Feedback about the Brain's page, written on the page. A note placed with \`@toml
 | Closed | An issue closed with a reason and no parent or link reads its state and the reason for ${feedbackLimits.waitMs / 60000} minutes from the close, with the time Remove comes and no Remove: the loop closes an issue and links it afterwards, 15.5 s apart on the first note filed. The time is the page's clock against the event's. |
 | Done | The note reads **Done**, and has **Remove**, when the issue is closed and so is every issue it follows; one that follows none, when those minutes have passed. The reason shown is the one each of those was closed with, after its id and state (\`proj done: …\`, \`proj rejected: …\`); the issue's own when it follows none. |
 | Remove | On a done issue, Remove (or the note's own ×) takes the label \`annotation\` off with \`issue.label\`, so no page loads the note again. The issue stays in the record. A note not yet filed is deleted. |
-| Closed before the work is done | On an open, gathered or just closed issue the × hides the note in this browser (below), and a load does not place it. It is placed once more when the work is done, reading **Done** with **Remove**. One whose issue was already closed when the × was pressed, and that nothing was linked to within those minutes, is not placed again: the page takes its label off then, as Remove would have. The label stays until one of the two. |
+| Put away | On an open, gathered or just closed issue the × puts the note away in this browser (below): no ask and no load places it while the work is not done. It is placed once more when the work is done, reading **Done** with **Remove**; for an issue closed with no link that is when its minutes have passed. The label stays on until Remove. |
 
 No Worker and no table: the record is the issue. The label is the switch, so anyone who may label can take a note off every page; the loop's briefs say not to.
 
@@ -24,7 +24,7 @@ A note's box can be moved; the new place is not kept.
 
 **A note not yet filed** is kept in this browser, since 2026-10-11: its text, its anchor and its box, in \`localStorage\` under \`brain_feedback_drafts ADDRESS\` (\`feedbackKept\`), written on each keystroke. A note is a cell of the page and the page keeps none, so a reload takes the note itself; on the first ask after a load each kept one is placed again where it was, as a new note with the text in its box, and it is filed under the id of the note it was first typed in. When the cell \`feedback\` runs again on a page, the note is still there and its box has the text. The copy goes when the note is filed, emptied or removed. It is this browser's alone: another browser, or one that refuses \`localStorage\`, has no copy, and a box moved after the last keystroke comes back where it was at that keystroke.
 
-**A note closed before its work is done** is kept away by this browser, since 2026-10-13 (the owner that day: "I closed all the feedback panels, but a refresh later and they have all appeared again"): the id of its issue, in \`localStorage\` under \`brain_feedback_hidden ADDRESS\` (\`feedbackKept(ADDRESS, "hidden")\`), with \`closed\` when the issue was closed and still in its wait, else \`open\`. Until then the × hid it in the page's memory and every load placed it again. The id goes from the copy when the note is placed again at Done, when the label is taken off, and when the issue is no longer in the list. It is this browser's alone: another browser, or one that refuses \`localStorage\`, places the note on its next load, and a second tab that was open keeps its note until it is loaded again.
+**A note put away before its work is done** is kept away by this browser, since 2026-10-13 (the owner that day: "I closed all the feedback panels, but a refresh later and they have all appeared again"): the id of its issue with the time of the ×, in \`localStorage\` under \`brain_feedback_away ADDRESS\` (\`feedbackKept(ADDRESS, "away")\`). Until then the × hid it in the page's memory, and every load placed it again. The item is read at each ask, the first of a load among them, so a × in a second tab takes the note off this one at its next ask. An id goes from it when the note is placed again at Done and when the issue is no longer in the list. It is this browser's alone: another browser, or one that refuses \`localStorage\`, places the note on its next load. Nothing on the page lists the notes put away or brings one back before its work is done.
 `
 // %%
 // The Brain's own page, the owner signed in. A verify page runs a Worker's tests and is left alone.
@@ -88,12 +88,12 @@ feedbackProgress = (ticket, followed = [], { now = Date.now(), waitMs = feedback
 // %%
 // The notes of one page. client: issue.* calls. store: annotate's (create, remove, patch, get, all, refresh).
 // kept: the browser's copy of the notes not yet filed (feedbackKept); with none, a draft is lost on a reload.
-// hiddenKept: its copy of the issues whose note was closed here before the work was done; with none, such a note is back on a reload.
-feedbackApp = ({ client, store, kept = { get: () => null, set: () => {} }, hiddenKept = { get: () => null, set: () => {} }, about = () => "brain", near = () => "", limits = feedbackLimits, now = () => Date.now() }) => {
+// away: its copy of the issues whose note was put away with x before the work was done; with none, such a note is back on a reload.
+feedbackApp = ({ client, store, kept = { get: () => null, set: () => {} }, away = { get: () => null, set: () => {} }, about = () => "brain", near = () => "", limits = feedbackLimits, now = () => Date.now() }) => {
   // tickets: issue id to what issue.get answered. of: note id to issue id.
-  // hidden: issues whose note was closed here before the work was done; shut: those of them that were closed and waited for a link.
-  // removed: issues whose note was removed from this app with the work done. None of the three is placed by an ask.
-  const tickets = new Map(), of = new Map(), els = new Map(), drafts = new Map(), says = new Map(), hidden = new Set(), shut = new Set(), removed = new Set(), filing = new Set();
+  // hidden: issues whose note was put away before the work was done, here or, by the browser's copy, in another tab or before a load.
+  // removed: issues whose note was removed from this app with the work done. An ask places a note for neither.
+  const tickets = new Map(), of = new Map(), els = new Map(), drafts = new Map(), says = new Map(), hidden = new Set(), removed = new Set(), filing = new Set();
   let busy = false, placedAgain = false;
   // The copy: a name to { text, anchor, box }. The name is the id of the note the text was first typed in; a note
   // placed again after a reload has a new id and carries the name as `draft`. names: note id to that name, held past the note.
@@ -109,19 +109,19 @@ feedbackApp = ({ client, store, kept = { get: () => null, set: () => {} }, hidde
     }
   };
   const keptAll = () => allOf(kept);
-  // The copy of the closed notes: an issue id to "closed" (shut) or "open". One id is written at a time, into what the
-  // browser has then, so a second tab's are left.
-  for (const [iss, was] of Object.entries(allOf(hiddenKept))) (hidden.add(iss), was === "closed" && shut.add(iss));
-  const keepHidden = (iss, was) => {
+  // The copy of the notes put away: an issue id to the time of the x. One id is written at a time, into what the
+  // browser has then, so a second tab's are left. Read at each ask, before a note is placed.
+  const awayRead = () => void Object.keys(allOf(away)).forEach((iss) => hidden.add(iss));
+  const awayKeep = (iss, at) => {
     try {
-      const all = allOf(hiddenKept);
-      if (!was && !(iss in all)) return;
-      was ? (all[iss] = was) : delete all[iss];
-      hiddenKept.set(all);
+      const all = allOf(away);
+      if (!at && !(iss in all)) return;
+      at ? (all[iss] = at) : delete all[iss];
+      away.set(all);
     } catch (e) {}
   };
-  const hide = (iss, settling) => (hidden.add(iss), settling ? shut.add(iss) : shut.delete(iss), keepHidden(iss, settling ? "closed" : "open"));
-  const unhide = (iss) => (hidden.delete(iss), shut.delete(iss), keepHidden(iss, null));
+  const hide = (iss) => (hidden.add(iss), awayKeep(iss, now()));
+  const unhide = (iss) => (hidden.delete(iss), awayKeep(iss, null));
   const unlabel = (iss) => client.procedure("issue.label", { key: `annotation/${iss}/removed`, id: iss, remove: [limits.label] }).catch((e) => console.warn("brain-feedback: issue.label was refused: " + e.message));
   const keep = (name, entry) => {
     try {
@@ -227,26 +227,17 @@ feedbackApp = ({ client, store, kept = { get: () => null, set: () => {} }, hidde
       }
       // What a closed one is followed in is not listed here, so nothing says it moved: each is read on every ask.
       for (const f of new Set(listed.flatMap((i) => feedbackFollows(tickets.get(i.id).issue)))) await get(f).catch(() => tickets.delete(f));
-      const placed = new Set(of.values()), ids = new Set(listed.map((i) => i.id));
-      // A hidden issue that lost its label has no note on any page: nothing is left to hide.
+      const ids = new Set(listed.map((i) => i.id));
+      awayRead();
+      // An issue put away that lost its label has no note on any page: nothing is left to hide.
       for (const iss of [...hidden]) if (!ids.has(iss) && !filing.has(iss)) unhide(iss);
+      // Put away until its work is done: then its note is placed once more, to be read and removed.
+      for (const i of listed) if (hidden.has(i.id) && progress(tickets.get(i.id)).done) unhide(i.id);
+      // Put away in another tab since the last ask: its note here goes too. gone() finds nothing of it.
+      for (const [id, iss] of [...of]) if (hidden.has(iss)) (of.delete(id), els.delete(id), store.remove(id));
+      const placed = new Set(of.values());
       for (const i of listed) {
-        if (placed.has(i.id) || removed.has(i.id)) continue;
-        if (hidden.has(i.id)) {
-          // Away until its work is done. Then it is placed once more, to be read and removed.
-          const t = tickets.get(i.id);
-          if (!progress(t).done) continue;
-          // But one that was closed when its x was pressed, with nothing linked to it since: that x was the Remove,
-          // held back for the wait.
-          const his = shut.has(i.id) && !feedbackFollows(t.issue).length;
-          unhide(i.id);
-          if (his) {
-            removed.add(i.id);
-            await unlabel(i.id);
-            continue;
-          }
-        }
-        const where = feedbackParse(tickets.get(i.id).issue.body);
+        const where = !placed.has(i.id) && !hidden.has(i.id) && !removed.has(i.id) && feedbackParse(tickets.get(i.id).issue.body);
         if (!where) continue;
         const a = store.create(where.anchor, { kind: limits.kind, issue: i.id, ...(where.box ? { box: where.box } : {}) });
         if (a) of.set(a.id, i.id);
@@ -285,7 +276,7 @@ feedbackApp = ({ client, store, kept = { get: () => null, set: () => {} }, hidde
         tickets.delete(iss);
         await unlabel(iss);
       } else {
-        hide(iss, !!p && p.settling);
+        hide(iss);
         removed.delete(iss);
       }
     }
@@ -327,7 +318,7 @@ feedbackNear = (rec, { resolve = a2Anchors.resolve, doc = document } = {}) => {
 }
 // %%
 // The browser's copy of the notes not yet filed, one item for each Brain's address. A browser may refuse it; a draft
-// is then lost on a reload. what "hidden": its copy of the issues whose note was closed there, a second item. globalThis.localStorage, not the bare name: a cell that names it has no value without a browser.
+// is then lost on a reload. what "away": its copy of the issues whose note was put away there, a second item. globalThis.localStorage, not the bare name: a cell that names it has no value without a browser.
 feedbackKept = (brain = "", what = "drafts") => ((name) => ({
   name,
   get: () => {
@@ -344,7 +335,7 @@ feedbackKept = (brain = "", what = "drafts") => ((name) => ({
   }
 }))("brain_feedback_" + what + " " + brain)
 // %%
-feedback = feedbackOn ? feedbackApp({ client: brainClient, store: a2Store, kept: feedbackKept(brainOrigin), hiddenKept: feedbackKept(brainOrigin, "hidden"), near: feedbackNear, about: (anchor) => ((m) => (m ? m.worker : "brain"))(((brainModules && brainModules.modules) || []).find((m) => m.module === (anchor || {}).module)) }) : null
+feedback = feedbackOn ? feedbackApp({ client: brainClient, store: a2Store, kept: feedbackKept(brainOrigin), away: feedbackKept(brainOrigin, "away"), near: feedbackNear, about: (anchor) => ((m) => (m ? m.worker : "brain"))(((brainModules && brainModules.modules) || []).find((m) => m.module === (anchor || {}).module)) }) : null
 // %%
 // The cell a note is: annotate writes `feedbackNote("<id>")` into this module for the kind below.
 feedbackNote = (id) => (feedback ? feedback.note(id) : htl.html`<i>Feedback notes are for the owner, signed in at the Brain's address.</i>`)
@@ -419,10 +410,10 @@ feedbackRig = () => {
   // The browser's copy of the notes not yet filed. A reload leaves it and takes every cell.
   let saved = null;
   const kept = { get: () => (saved == null ? null : JSON.parse(saved)), set: (all) => void (saved = JSON.stringify(all)) };
-  // And its copy of the issues whose note was closed here. An empty one is no item, as feedbackKept has it.
-  let away = null;
-  const hiddenKept = { get: () => (away == null ? null : JSON.parse(away)), set: (all) => void (away = Object.keys(all || {}).length ? JSON.stringify(all) : null) };
-  return { client, store, issues, calls, cells, say, kept, hiddenKept, reload: () => void cells.clear(), at: () => at, setNow: (ms) => void (clock = ms), app: (given = {}) => feedbackApp({ client, store, now, kept, hiddenKept, ...given, near: () => "  Services\n table ", about: (a) => (a.module === "@tomlarkworthy/brain-issues" ? "brain-x-issues" : "brain") }) };
+  // And its copy of the issues whose note was put away. An empty one is no item, as feedbackKept has it.
+  let put = null;
+  const away = { get: () => (put == null ? null : JSON.parse(put)), set: (all) => void (put = Object.keys(all || {}).length ? JSON.stringify(all) : null) };
+  return { client, store, issues, calls, cells, say, kept, away, reload: () => void cells.clear(), at: () => at, setNow: (ms) => void (clock = ms), app: (given = {}) => feedbackApp({ client, store, now, kept, away, ...given, near: () => "  Services\n table ", about: (a) => (a.module === "@tomlarkworthy/brain-issues" ? "brain-x-issues" : "brain") }) };
 }
 // %%
 test_feedback_body_keeps_the_anchor_and_says_where = {
@@ -634,12 +625,12 @@ test_feedback_kept_is_one_item_of_the_browser_for_an_address = {
     expect(k.get()).toBe(null);
     k.set({ a: { text: "x", anchor: { cell: "c" } } });
     expect([feedbackKept(k.name.slice("brain_feedback_drafts ".length)).get(), JSON.parse(ls.getItem(k.name))]).toEqual([{ a: { text: "x", anchor: { cell: "c" } } }, { a: { text: "x", anchor: { cell: "c" } } }]);
-    // The copy of the closed notes is a second item of the same address: neither reads the other's.
-    const h = feedbackKept(k.name.slice("brain_feedback_drafts ".length), "hidden");
+    // The copy of the notes put away is a second item of the same address: neither reads the other's.
+    const h = feedbackKept(k.name.slice("brain_feedback_drafts ".length), "away");
     try {
-      expect([h.name === k.name.replace("_drafts ", "_hidden "), h.get()]).toEqual([true, null]);
-      h.set({ "fb-a": "open" });
-      expect([h.get(), JSON.parse(ls.getItem(h.name)), k.get()]).toEqual([{ "fb-a": "open" }, { "fb-a": "open" }, { a: { text: "x", anchor: { cell: "c" } } }]);
+      expect([h.name === k.name.replace("_drafts ", "_away "), h.get()]).toEqual([true, null]);
+      h.set({ "fb-a": 5 });
+      expect([h.get(), JSON.parse(ls.getItem(h.name)), k.get()]).toEqual([{ "fb-a": 5 }, { "fb-a": 5 }, { a: { text: "x", anchor: { cell: "c" } } }]);
       h.set({});
       expect(ls.getItem(h.name)).toBe(null);
     } finally {
@@ -727,20 +718,20 @@ test_feedback_done_then_remove_takes_the_label_off = {
   await reloaded.sync();
   expect(rig.store.all().map((a) => a.issue)).toEqual([]);
   // A browser that keeps no copy of what was closed: there it is back on a load.
-  await rig.app({ hiddenKept: undefined }).sync();
+  await rig.app({ away: undefined }).sync();
   expect(rig.store.all().map((a) => a.issue)).toEqual(["fb-open"]);
   return "a closed issue reads Done with its reason; Remove takes the label off once; an open one closed here stays away on the next load, and is back where the browser kept no copy";
 }
 // %%
 // The owner, 2026-10-13: "I closed all the feedback panels, but a refresh later and they have all appeared again"
 // (page-notes-return-after-a-refresh). The x on a note whose work was not done hid it in a Set of the app, which a load takes.
-test_feedback_a_closed_note_stays_closed_over_a_load = {
+test_feedback_a_note_put_away_stays_away_over_a_load = {
   const rig = feedbackRig(), anchor = { cell: "services", surface: "element", frac: { fx: 0.1, fy: 0.2 } };
   const open = (id, on = rig) => on.client.procedure("issue.open", { id, title: id, body: feedbackBody(id, { anchor }), kind: "feedback", about: "brain", labels: ["annotation"] });
   const idOf = (app, iss) => ([...app.of].find(([, i]) => i === iss) || [])[0], labels = (on = rig) => on.calls.filter((c) => c[0] === "issue.label").map((c) => c[1].id);
   // As the page runs it: Remove's own run of gone, and the cell feedbackGone's, begun together.
   const x = async (app, iss, on = rig) => (on.store.remove(idOf(app, iss)), await Promise.all([app.gone(), app.gone()]));
-  const notes = (on = rig) => on.store.all().map((a) => a.issue).sort();
+  const notes = (on = rig) => on.store.all().map((a) => a.issue).sort(), put = (on = rig) => Object.keys(on.away.get() || {}).sort();
   for (const id of ["fb-open", "fb-part", "fb-other"]) await open(id);
   await open("proj");
   rig.issues.get("proj").issue.labels = [];
@@ -748,11 +739,13 @@ test_feedback_a_closed_note_stays_closed_over_a_load = {
   const app = rig.app();
   await app.sync();
   expect(notes()).toEqual(["fb-open", "fb-other", "fb-part"]);
-  // The x on an open note and on a gathered one: no call, the label stays, and the browser keeps which.
+  // The x on an open note and on a gathered one: no call, the label stays, and the browser keeps which, with the time.
+  rig.setNow(5000);
   await x(app, "fb-open");
   await x(app, "fb-part");
-  expect([labels(), rig.hiddenKept.get(), rig.issues.get("fb-open").issue.labels]).toEqual([[], { "fb-open": "open", "fb-part": "open" }, ["annotation"]]);
-  // The next ask, the cell run again on the page, and the page loaded again: neither is placed. The one not closed is.
+  expect([labels(), rig.away.get(), rig.issues.get("fb-open").issue.labels]).toEqual([[], { "fb-open": 5000, "fb-part": 5000 }, ["annotation"]]);
+  rig.setNow(null);
+  // The next ask, the cell run again on the page, and the page loaded again: neither is placed. The one not put away is.
   await app.sync();
   await rig.app().sync();
   expect(notes()).toEqual(["fb-other"]);
@@ -768,48 +761,49 @@ test_feedback_a_closed_note_stays_closed_over_a_load = {
   // The work is done: the note is placed once more, reads Done and has Remove, and the copy forgets it.
   rig.say("proj", { type: "moved", from: "building", to: "done", reason: "Built." }, { state: "done", closed: true });
   await loaded.sync();
-  expect([notes(), rig.hiddenKept.get()]).toEqual([["fb-other", "fb-part"], { "fb-open": "open" }]);
+  expect([notes(), put()]).toEqual([["fb-other", "fb-part"], ["fb-open"]]);
   const el = loaded.note(idOf(loaded, "fb-part"));
   expect([el.querySelector("b").textContent, [...el.querySelectorAll("button")].map((b) => b.textContent)]).toEqual(["Done", ["Remove"]]);
   await x(loaded, "fb-part");
   expect([labels(), rig.issues.get("fb-part").issue.labels]).toEqual([["fb-part"], []]);
-  // The label of a note closed here went elsewhere: nothing is left to hide, and the copy is no item.
+  // The label of a note put away went elsewhere: nothing is left to hide, and the copy is no item.
   rig.issues.get("fb-open").issue.labels = [];
   await loaded.sync();
-  expect([rig.hiddenKept.get(), [...loaded.hidden]]).toEqual([null, []]);
+  expect([rig.away.get(), [...loaded.hidden]]).toEqual([null, []]);
   rig.reload();
   await rig.app().sync();
   expect(notes()).toEqual(["fb-other"]);
 
-  // Closed a moment ago, with nothing linked: the x is kept as one on a closed issue.
+  // Closed a moment ago with nothing linked, and put away: away for the wait, over a load, then placed once, Done.
   const two = feedbackRig();
-  for (const id of ["fb-alone", "fb-late"]) await open(id, two);
-  await open("proj", two);
-  two.issues.get("proj").issue.labels = [];
-  for (const id of ["fb-alone", "fb-late"]) two.say(id, { type: "moved", from: "open", to: "closed", reason: "Looked at." }, { state: "closed", closed: true });
+  await open("fb-alone", two);
+  two.say("fb-alone", { type: "moved", from: "open", to: "closed", reason: "Looked at." }, { state: "closed", closed: true });
   const closedAt = two.at(), first = two.app();
   two.setNow(closedAt + 15000);
   await first.sync();
   await x(first, "fb-alone", two);
-  await x(first, "fb-late", two);
-  expect([two.hiddenKept.get(), labels(two)]).toEqual([{ "fb-alone": "closed", "fb-late": "closed" }, []]);
-  // One of them is made part of other work within the wait.
-  two.say("fb-late", { type: "linked", rel: "part-of", to: "proj" }, { parent: "proj" });
   two.reload();
-  // The first was closed one tick of the rig's clock before the second.
-  two.setNow(closedAt + feedbackLimits.waitMs - 2);
+  two.setNow(closedAt + feedbackLimits.waitMs - 1);
   const second = two.app();
   await second.sync();
-  expect([notes(two), labels(two)]).toEqual([[], []]);
-  // The wait is over. Nothing was linked to the first: its x is the Remove, and the label goes with no note placed.
-  // The other is followed in a project that is open: it stays away, with its label.
+  expect([notes(two), put(two), labels(two)]).toEqual([[], ["fb-alone"], []]);
   two.setNow(closedAt + feedbackLimits.waitMs);
   await second.sync();
-  expect([notes(two), labels(two), two.issues.get("fb-alone").issue.labels, two.hiddenKept.get()]).toEqual([[], ["fb-alone"], [], { "fb-late": "closed" }]);
-  await second.sync();
-  two.say("proj", { type: "moved", from: "open", to: "done", reason: "Built." }, { state: "done", closed: true });
-  await second.sync();
-  expect([notes(two), labels(two), two.hiddenKept.get()]).toEqual([["fb-late"], ["fb-alone"], null]);
+  expect([notes(two), put(two), second.note(idOf(second, "fb-alone")).querySelector("b").textContent, labels(two)]).toEqual([["fb-alone"], [], "Done", []]);
+
+  // A second tab of the page: two apps, a store each, one copy. The x in one takes the note off the other at its next ask.
+  const tab = feedbackRig(), cells2 = new Map();
+  let n2 = 0;
+  const store2 = { all: () => [...cells2.values()], get: (id) => cells2.get(id) || null, create: (a, f = {}) => ((r) => (cells2.set(r.id, r), r))({ id: "b" + ++n2, anchor: a, ...f }), patch: () => {}, remove: (id) => void cells2.delete(id), refresh: async () => {} };
+  await open("fb-open", tab);
+  const here = tab.app(), there = tab.app({ store: store2 });
+  await here.sync();
+  await there.sync();
+  expect([notes(tab), store2.all().map((a) => a.issue)]).toEqual([["fb-open"], ["fb-open"]]);
+  await x(here, "fb-open", tab);
+  await there.sync();
+  await there.gone();
+  expect([notes(tab), store2.all().length, there.of.size, labels(tab), put(tab)]).toEqual([[], 0, 0, [], ["fb-open"]]);
 
   // The cell ran again on a page that has the notes: the new app has read no issue when the x is pressed.
   const three = feedbackRig();
@@ -825,9 +819,9 @@ test_feedback_a_closed_note_stays_closed_over_a_load = {
   await x(rebuilt, "fb-done", three);
   await x(rebuilt, "fb-open", three);
   await x(rebuilt, "fb-part", three);
-  // Each is read, and what the gathered one is part of, then: the label off the two that are done, the open one hidden.
+  // Each is read, and what the gathered one is part of, then: the label off the two that are done, the open one put away.
   // Its ask places none of them again.
-  expect([three.calls.slice(from).map((c) => c[0] + " " + c[1].id), three.hiddenKept.get()]).toEqual([["issue.get fb-done", "issue.label fb-done", "issue.get fb-open", "issue.get fb-part", "issue.get proj", "issue.label fb-part"], { "fb-open": "open" }]);
+  expect([three.calls.slice(from).map((c) => c[0] + " " + c[1].id), put(three)]).toEqual([["issue.get fb-done", "issue.label fb-done", "issue.get fb-open", "issue.get fb-part", "issue.get proj", "issue.label fb-part"], ["fb-open"]]);
   await rebuilt.sync();
   expect([notes(three), three.issues.get("fb-done").issue.labels, three.issues.get("fb-part").issue.labels]).toEqual([[], [], []]);
 
@@ -853,25 +847,25 @@ test_feedback_a_closed_note_stays_closed_over_a_load = {
   for (const bad of ["text", 7, [1], null]) {
     const r = feedbackRig();
     await open("fb-open", r);
-    r.hiddenKept.set = () => {};
-    r.hiddenKept.get = () => bad;
+    r.away.set = () => {};
+    r.away.get = () => bad;
     await r.app().sync();
     expect([JSON.stringify(bad), notes(r)]).toEqual([JSON.stringify(bad), ["fb-open"]]);
   }
-  for (const hiddenKept of [{ get: () => { throw new Error("refused"); }, set: () => { throw new Error("refused"); } }, undefined]) {
-    const r = feedbackRig(), one = r.app({ hiddenKept });
+  for (const away of [{ get: () => { throw new Error("refused"); }, set: () => { throw new Error("refused"); } }, undefined]) {
+    const r = feedbackRig(), one = r.app({ away });
     await open("fb-open", r);
     await one.sync();
     await x(one, "fb-open", r);
     await one.sync();
     expect([notes(r), [...one.hidden]]).toEqual([[], ["fb-open"]]);
   }
-  // A value of another kind hides as "open" does; an id that is not in the list is taken out of the copy.
+  // A value that is no time hides as a time does; an id that is not in the list is taken out of the copy.
   const odd = feedbackRig();
   await open("fb-open", odd);
-  odd.hiddenKept.set({ "fb-open": 7, "fb-nowhere": "closed", "": "open" });
+  odd.away.set({ "fb-open": "x", "fb-nowhere": 1, "": 2 });
   await odd.app().sync();
-  expect([notes(odd), odd.hiddenKept.get(), labels(odd)]).toEqual([[], { "fb-open": 7 }, []]);
+  expect([notes(odd), odd.away.get(), labels(odd)]).toEqual([[], { "fb-open": "x" }, []]);
   // issue.label is refused: the note is not placed again by this app, the label is still on, and a load places it, Done.
   const five = feedbackRig();
   await open("fb-done", five);
@@ -881,14 +875,14 @@ test_feedback_a_closed_note_stays_closed_over_a_load = {
   five.client.refuseLabel = "not now";
   await x(fifth, "fb-done", five);
   await fifth.sync();
-  expect([notes(five), five.issues.get("fb-done").issue.labels, five.hiddenKept.get()]).toEqual([[], ["annotation"], null]);
+  expect([notes(five), five.issues.get("fb-done").issue.labels, five.away.get()]).toEqual([[], ["annotation"], null]);
   five.client.refuseLabel = null;
   five.reload();
   const sixth = five.app();
   await sixth.sync();
   expect([notes(five), sixth.note(idOf(sixth, "fb-done")).querySelector("b").textContent]).toEqual([["fb-done"], "Done"]);
-  expect([feedbackKept("https://a.example", "hidden").name, feedbackKept("https://a.example").name]).toEqual(["brain_feedback_hidden https://a.example", "brain_feedback_drafts https://a.example"]);
-  return "a note closed before its work is done stays away over an ask, a rebuild and a load, and is placed once when the work is done; closed on an issue just closed, the label goes after the wait; an x before the app has read the issue, and a Remove during an ask, hold";
+  expect([feedbackKept("https://a.example", "away").name, feedbackKept("https://a.example").name]).toEqual(["brain_feedback_away https://a.example", "brain_feedback_drafts https://a.example"]);
+  return "a note put away before its work is done stays away over an ask, a rebuild and a load, and is placed once when the work is done; an x in a second tab, an x before the app has read the issue, and a Remove during an ask, hold";
 }
 // %%
 // The loop closes a feedback issue when it is gathered into a project (fb-a2kw99i9wy, events 862 to 866 on cb4).
@@ -968,9 +962,7 @@ test_feedback_a_close_waits_for_its_link_and_a_cost_comment_is_not_progress = {
   const of = (ms) => ((p) => [p.done, p.settling, p.gathered])(feedbackProgress(rig.issues.get("fb-alone"), [], { now: closedAt + ms }));
   expect([of(feedbackLimits.waitMs - 1), of(feedbackLimits.waitMs)]).toEqual([[false, true, false], [true, false, false]]);
   rig.setNow(closedAt + feedbackLimits.waitMs);
-  // In a browser that kept no copy of the x above, the note is placed and reads Done. Where the copy is kept:
-  // test_feedback_a_closed_note_stays_closed_over_a_load.
-  const loaded = rig.app({ hiddenKept: undefined });
+  const loaded = rig.app();
   await loaded.sync();
   const el = loaded.note([...loaded.of].find(([, i]) => i === "fb-alone")[0]);
   expect([reads(el).slice(0, 2), !!el.querySelector("button"), reads(el)[3], el.querySelector("[data-feedback-wait]")]).toEqual([["done", "Done"], true, "In the spec of proj.", null]);
