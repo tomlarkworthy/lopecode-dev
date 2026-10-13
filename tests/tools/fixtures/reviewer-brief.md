@@ -12,7 +12,8 @@
 > `<view>` below is its name: the last part of the path with `bm-` taken off. The path decides; it is `rev-<id>`
 > when the loop made it. What it has:
 > - `lopebooks`, `lopecode` and `lopecode-plugin` as links to the main checkout's. Read them, never write there.
->   `git status` fails on the links; `git diff`, `git show` and `git add <file>` work, and a `git diff --stat` with
+>   `git status` fails on the links, and `git status --short --ignore-submodules=all` answers, exit 0
+>   (`git-status-answers-in-a-worktree`, 2026-10-13); `git diff`, `git show` and `git add <file>` work, and a `git diff --stat` with
 >   no path lists the four links as changed: give it a path.
 > - `cloud-brain-dev/`, a clone of its own at the commit `<sha>` names, with what cb4 runs read into its `deploy/`
 >   when the view was made. It is the directory you started in.
@@ -242,11 +243,12 @@ document when you mend a note in it ("What holds a change, and what is a note", 
    give both runs in the review, and add the case as a comment to the open issue of that file
    (`suite-hangs-in-brain-cli-test` for `brain-cli.test.ts`: the reviewers of `st-5-driver`, `st-6-a-day-beside-the-session`
    and `st-7-switch-and-texts`, 2026-10-13, each of whom had a whole run at the next try). It holds nothing when the file
-   reads nothing the change touches. When your run was begun by `loop.ts start` (`echo ${LOOP_RUN:+set}` prints `set`), the
-   suite, and a file run alone, are run with six names of your own run taken out:
-   `env -u WORK -u SESSION -u LOOP_TOKEN -u LOOP_RUN -u LOOP_RUN_TOKEN -u LOOP_TS tests/tools/suite.sh`. With them three
-   tests that start `agent.sh` fail and none of the three is the change's (`suite-fails-under-a-loop-started-run`, open
-   on 2026-10-13: 1181 pass, 3 fail for the writer of `st-5-driver`, 0 fail with the names out).
+   reads nothing the change touches. A run `loop.ts start` began runs the suite, and a file
+   alone, as it is, with nothing taken out of its environment: since `suite-fails-under-a-loop-started-run` (done
+   2026-10-13) the tests that start `agent.sh` give it no `WORK` and no `SESSION` of the caller, and the suite with the
+   six names of such a run set was 1235 pass, 0 fail. (From 15:01 CEST of that day to the put after that pass this line
+   had the suite run with `env -u` of the six; the reviewer of that issue, who ran with the names set: "For this issue
+   that would have hidden the thing under review".)
    When the diff of the change names nothing that file
    reads, it is a defect of the suite and holds nothing: `ir "list"` for an open ticket of that file and comment
    there with your runs, or open one. (2026-10-12: the reviewer of `skill-step-2-advisor-rate-limit`, five runs,
