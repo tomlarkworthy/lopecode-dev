@@ -116,7 +116,10 @@ panelView = (data, { draw = "calls", worker = "", width, link = null } = {}) => 
 panelWorkers = (data, chosen = "") => ["", ...[...new Set([...((data && data.series) || []).map((d) => d.worker), chosen])].filter(Boolean).sort()]
 // %%
 // A Worker's name as a link to its module's tab, for the table by method; null for a Worker this page does not know.
-workerLink = (worker, label) => ((row) => (row && row.module ? moduleLink(row.module, label) : null))([...((brainModules && brainModules.modules) || []), ...(services || [])].find((r) => r.worker === worker))
+// The rows of Services are read from the control when a link is asked for, and this cell does not name its value:
+// the value is new at each read of what runs, and every panel of Health was drawn again for it (6 times for 6
+// entries of the deployer, page-redraws.ts on cb4, 2026-10-13).
+workerLink = (worker, label) => ((row) => (row && row.module ? moduleLink(row.module, label) : null))([...((brainModules && brainModules.modules) || []), ...(viewof services.value || [])].find((r) => r.worker === worker))
 // %%
 // The range the panels of Health read: the chosen span, ending when it was chosen or "Refresh" was last pressed.
 // The one place the clock is read.
@@ -1448,8 +1451,71 @@ inboxPump = {
 // %%
 // The deployer's own entries: shown here, and the Services list is read again.
 deployerInbox = {
-  plugins.add("inbox", { source: "deployer", handle: async () => viewof services.refresh() }, { invalidation });
+  plugins.add("inbox", deployerEntries(viewof services), { invalidation });
   return "handles inbox entries from the deployer";
+}
+// %%
+// What the pump hands the deployer's entries to. An entry does not wait for the read it asks for, and the entries
+// that come while one read is going are one read more when it ends: a read puts the table in place three times
+// (serviceList of cloudflare-iac), and a deploy of 22 Workers by another session was 22 entries in 8 minutes
+// (cb4, 2026-10-13 06:41 to 06:49 UTC). A read that fails holds nothing back.
+deployerEntries = (services) => {
+  let going = false, again = false;
+  const read = async () => {
+    going = true;
+    await Promise.resolve().then(() => services.refresh()).catch(() => null);
+    going = false;
+    if (again) (again = false), read();
+  };
+  return { source: "deployer", handle: async () => void (going ? (again = true) : read()) };
+}
+// %%
+test_deployer_entries_of_one_poll_are_two_reads_of_services = {
+  let asked = 0, fail = false, end = () => {};
+  const part = deployerEntries({ refresh: () => (asked++, new Promise((yes, no) => (end = () => (fail ? no(new Error("the deployer did not answer")) : yes())))) });
+  const turn = async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); };
+  expect(part.source).toBe("deployer");
+  // Six entries: each is handled while the first read is still going.
+  const handled = Array.from({ length: 6 }, (_, id) => part.handle({ id, source: "deployer" }));
+  await turn();
+  expect(asked).toBe(1);
+  expect(await Promise.all(handled)).toEqual(Array(6).fill(undefined));
+  end();
+  await turn();
+  expect(asked).toBe(2);
+  end();
+  await turn();
+  expect(asked).toBe(2);
+  // At rest an entry is a read at once, and a read that failed does not hold the next back.
+  fail = true;
+  await part.handle({ id: 6, source: "deployer" });
+  await turn();
+  expect(asked).toBe(3);
+  end();
+  await turn();
+  await part.handle({ id: 7, source: "deployer" });
+  await turn();
+  expect(asked).toBe(4);
+  // A refresh that throws before it gives a promise is a failed read too.
+  const thrown = deployerEntries({ refresh: () => { asked++; throw new Error("no control"); } });
+  await thrown.handle({});
+  await turn();
+  await thrown.handle({});
+  await turn();
+  expect(asked).toBe(6);
+  return `${asked} reads`;
+}
+// %%
+// A cell that names the value of Services is computed again at each read of what runs, whether a row changed or
+// not. None does: each reads the control (viewof services) when it needs the rows. The inputs are read as the
+// module's source writes them.
+test_no_cell_names_the_value_of_services = {
+  const { source } = await page_service.emit();
+  const cells = [...source.text.matchAll(/\$def\("[^"]+", "([^"]+)", \[([^\]]*)\]/g)].map(([, name, inputs]) => [name, JSON.parse("[" + inputs + "]")]);
+  expect(cells.filter(([name]) => name === "services" || name === "viewof services").map(([name]) => name).sort()).toEqual(["services", "viewof services"]);
+  expect(cells.filter(([, inputs]) => inputs.includes("services")).map(([name]) => name)).toEqual([]);
+  expect(workerLink("page-redraws-no-such-worker", "a label")).toBe(null);
+  return `${cells.length} cells`;
 }
 // %%
 // Added to the system prompt robocoop-5 composes; its own sections, the wiki index among them, are unchanged.
