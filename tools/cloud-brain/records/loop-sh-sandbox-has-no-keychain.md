@@ -147,16 +147,22 @@ $ cd $W && bun test --timeout=30000 ./tests/tools/loop-sh-sandbox-has-no-keychai
  0 fail
  21 expect() calls
 Ran 4 tests across 1 file. [10.00ms]
-$ env -u WORK -u SESSION -u LOOP_TOKEN -u LOOP_RUN -u LOOP_RUN_TOKEN -u LOOP_TS $W/tests/tools/suite.sh      (14:22:49 to 14:24:56)
+$ cd $W && bun test --timeout=30000 ./tests/tools/loop-step.test.ts ./tests/tools/loop-run.test.ts ./tests/tools/loop-sh-sandbox-has-no-keychain.test.ts
+ 56 pass
+ 0 fail
+ 383 expect() calls
+Ran 56 tests across 3 files. [95.65s]
+$ env -u WORK -u SESSION -u LOOP_TOKEN -u LOOP_RUN -u LOOP_RUN_TOKEN -u LOOP_TS $W/tests/tools/suite.sh      (14:29:45 to 14:31:57)
  1233 pass
  0 fail
- 10142 expect() calls
-Ran 1233 tests across 126 files. [123.52s]
+ 10143 expect() calls
+Ran 1233 tests across 126 files. [128.95s]
 ```
 
 The four files of the first command were run after the last change to `loop.ts`, `loop.sh` and the two
-test files. The record was written after that run and the suite after the record, but for these counts
-and for one line of the spec with its `expect`, which the second command was run again for.
+test files, and before this record was written. The last three commands were run on the tree as it was
+committed, but for the lines of this section that have their counts. The third is the three files of the
+change, which the landing runs again under the lock.
 
 The suite as the brief gives it, `$W/tests/tools/suite.sh` with nothing before it (14:20:24), was
 `1230 pass`, `3 fail`: `reviewer-brief-names-token.test.ts` and `reviewer-in-a-view.test.ts` run `agent.sh`,
