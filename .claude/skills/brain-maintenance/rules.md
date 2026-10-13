@@ -16,9 +16,9 @@ asks for anything in "Never" below is commented on and left for the owner.
 
 - Act as the owner present. Do not call the tracker with `brain.ts curl … --owner` for a write.
   Writes to the tracker go through `tools/cloud-brain/issue-as.sh <token> …` with the token your
-  prompt names and no other ("Which token"); the one write of an agent's run with another token is
-  the `approve` that `approver.ts approve` sends with `loop-approver` for an approver ("The
-  approver"). Two exceptions: the `approve` move made for the owner
+  prompt names and no other ("Which token"); the writes of an agent's run with another token are
+  the `approve` that `approver.ts approve` sends with `loop-approver` for an approver, and the one
+  comment of `approver.ts id` ("The approver", "A token an approved spec names"). Two exceptions: the `approve` move made for the owner
   on his word, under the next line, and an act of this list, but a secret printed, copied or logged,
   that a session with the owner present does on his word ("An act of Never, on the owner's word"). And three acts with what is his that are no tracker call, each
   the orchestrating session's: it makes a token that an approved spec names ("A token an approved

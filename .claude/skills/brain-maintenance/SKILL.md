@@ -952,6 +952,11 @@ and the methods the spec gives and no more. Then one comment on that task with t
 run, the spec's line that names the token, and what the command answered (`made "NAME" for …`).
 The token is never printed or read. It is not put to the owner, and the task does not get
 `needs-owner` for it. His approval of the spec is his word for it.
+A spec whose `approve` is `via delegation` was approved by the approver, and that is no word of
+his: read the `asked:` line of its verdict first. When the words it quotes ask for what the token
+serves, make the token and quote the line in your comment; when they do not, the token is put to
+him as `needs-owner` (`rules.md`, the section of this name; no such spec when this was written,
+2026-10-13).
 
 Still his alone: a token no approved spec names, a method or a scope the spec does not give, and
 every other act with his session but the `approve` move, the two standing leaves, and an act he

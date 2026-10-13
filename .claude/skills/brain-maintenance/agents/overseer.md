@@ -62,8 +62,8 @@ Then `bun $W/tools/cloud-brain/approver.ts check --token <token>`, at each overs
 as the tool would have sent it: the verdict it names, the `asked:` line, the files of its commits,
 the `cost` event of the run. Whatever it exits with, put its last line in your entry.
 
-- **Exit 0**: `N approves by a delegation, 0 that do not stand`. (cb4, 2026-10-13 05:47 CEST, the
-  record at 5733, with a writer's token: `1 approves by a delegation, 0 that do not stand`.)
+- **Exit 0**: `N approves by a delegation, 0 that do not stand`. (cb4, 2026-10-13, the record at
+  5733, with a writer's token: `1 approves by a delegation, 0 that do not stand`.)
 - **Exit 1**: before that line, `approve <seq> of <id>:` and a line for each thing that does not
   hold. Such an approval was made for the owner and the record does not bear it out. The undo is
   his (`revert` of a task, `owner-reject` of a spec). File one `bug` for it, `about` `issue-loop`,

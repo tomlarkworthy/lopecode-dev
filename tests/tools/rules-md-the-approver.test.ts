@@ -138,6 +138,7 @@ test("Never: the approve line names the approver, and the first item the one wri
   const first = never[0] ?? "";
   expect(first).toContain("with the token your prompt names and no other");
   expect(first).toContain("the `approve` that `approver.ts approve` sends with `loop-approver`");
+  expect(first).toContain("and the one comment of `approver.ts id`");
 });
 
 test("Which token: the row appr-, made as the others are, and the second token of a run", () => {
@@ -164,6 +165,10 @@ test("A token an approved spec names: a spec the approver approved, and loop-app
   expect(kept).toContain("comment 4460 of `ap-4-policy-v3`");
   expect(kept).toContain("`brain.ts token revoke loop-approver`");
   expect(kept).toContain("so this is an agreement");
+  // The orchestrating session's procedure for the act has the same step.
+  const made = flat(section(skill, "A token an approved spec names"));
+  expect(made).toContain("A spec whose `approve` is `via delegation` was approved by the approver, and that is no word of his: read the `asked:` line of its verdict first.");
+  expect(made).toContain("the token is put to him as `needs-owner`");
 });
 
 test("Who does it, of an act of Never: an approver is a spawned agent, and what a session quoted is what it judges by", () => {

@@ -3,14 +3,15 @@
 Task 6 of `plan/cloud-brain-approver-persona.md`: the lines of
 `.claude/skills/brain-maintenance/rules.md` for the approver, and the run of `approver.ts check` in
 `agents/overseer.md`. Written 2026-10-13 by the writer of the issue (token `impl-642ff5`), round 1,
-started at event 5734. Four docs and one test file. No seed, no build, no deploy, nothing emitted.
+started at event 5734. Five docs and one test file. No seed, no build, no deploy, nothing emitted.
 
 ## It landed after the install, not before
 
 The spec has this task land "before his install" and change "nothing until it". The owner
 installed the policy that names the approver's delegation at event 4668 (2026-10-12 22:07:19 CEST,
 the event's `at`), and the approver made its first `approve` at event 5170. So the text says what
-is in force. Read 2026-10-13 05:47 CEST with this writer's token:
+is in force. Read 2026-10-13 with this writer's token, the record at 5733 (the first `date` before
+the three calls printed 05:46:55 CEST):
 
 ```
 $ issue-as.sh impl-642ff5 policy     # policy.seq, and the approve guard of each workflow
@@ -30,7 +31,7 @@ approver had made was of a change to `rules.md`.
 
 ## What changed
 
-`rules.md`, 36,535 bytes before and 43,972 after (`wc -c`, and `git show HEAD:… | wc -c`):
+`rules.md`, 36,535 bytes before and 44,045 after (`wc -c`, and `git show HEAD:… | wc -c`):
 
 - **A section, "The approver"**, after "An act of Never, on the owner's word". Before its marker:
   his three sentences with their events (4112, 4115, 4123) and choice A of comment 4121, which his
@@ -43,8 +44,9 @@ approver had made was of a change to `rules.md`.
 - **The opening.** "which only the owner can approve" is "which is approved by the owner, or for
   him on words of his that the approval quotes", the spec's sentence for `major`. "The overseer
   does not edit this file" gains "or the approver's brief".
-- **Never, the first item.** One clause: the one write of an agent's run with another token than
-  its own is the `approve` that `approver.ts approve` sends with `loop-approver`.
+- **Never, the first item.** One clause: the writes of an agent's run with another token than its
+  own are the `approve` that `approver.ts approve` sends with `loop-approver`, and the one comment
+  of `approver.ts id` (event 4475, written in a writer's run: `records/ap-4-policy-v3.md`).
 - **Never, the `approve` line.** Three lines at its end: the move is also made by an approver,
   through `tools/cloud-brain/approver.ts approve` and in no other way; no other agent makes it.
 - **"An act of Never, on the owner's word", "Who does it"** (review 4118). The paragraph stands
@@ -60,7 +62,7 @@ approver had made was of a change to `rules.md`.
   And `loop-approver` as a fifth kept token, with the comment that says who made it (4460 of
   `ap-4-policy-v3`).
 
-`agents/overseer.md`, 16,154 bytes before and 17,704 after:
+`agents/overseer.md`, 16,154 bytes before and 17,693 after:
 
 - **"Measure first"**: `bun $W/tools/cloud-brain/approver.ts check --token <token>` at each
   oversight, its last line in the entry, and what exits 0, 1 and 2 are.
@@ -68,7 +70,12 @@ approver had made was of a change to `rules.md`.
   brief and tool, with what an edit of them costs.
 
 `SKILL.md`, "Why the overseer may edit briefs and not rules": one sentence names the approver's
-brief beside `rules.md` and the overseer's own.
+brief beside `rules.md` and the overseer's own. And "A token an approved spec names", the
+orchestrating session's procedure for that act: it reads the `asked:` line of the verdict of a
+spec the approver approved before it makes a token that spec names.
+
+`knowledge/working-with-cloud-brain-remote-lopecode-cluster.md`, the row of the loop: the approver
+"approves nothing until the owner installs a policy for it" is what it does since his install.
 
 `plan/cloud-brain-approver-persona.md`, task 6: a note "As built".
 
@@ -94,7 +101,7 @@ $ bun test --timeout=30000 ./tests/tools/rules-md-the-approver.test.ts
  1 pass  12 fail  16 expect() calls
 ```
 
-The one that passed tests the file's own helpers. After the edits: 13 pass, 0 fail, 88 expect()
+The one that passed tests the file's own helpers. After the edits: 13 pass, 0 fail, 91 expect()
 calls. The whole suite, `tests/tools/suite.sh`, after the last edit: the count is in the issue's
 comment with the command.
 
@@ -117,7 +124,7 @@ in `list`, the files the tool refuses, and the role `"appr"` in `brain.ts`.
 - **`revert`, `owner-reject` and `brain.ts token revoke loop-approver`** are the owner's and were
   not sent. The item that names them is from the spec, part 5.
 - **A spec approved by the approver.** None exists, so the paragraph on its token has no case.
-- **The size.** `rules.md` is 7,437 bytes longer, and every agent of the loop reads it whole. What
+- **The size.** `rules.md` is 7,510 bytes longer, and every agent of the loop reads it whole. What
   that costs a run was not measured.
 
 ## Left as it is, for the overseer
@@ -126,7 +133,5 @@ in `list`, the files the tool refuses, and the role `"appr"` in `brain.ts`.
   line for an approver (`ap-6-rules-and-live-step` writes it)". True as written, and now behind. A
   mend changes the brief's blob, which stops every approval until the owner installs again, and
   this issue would then be one the approver does not judge. Not changed.
-- `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md`, the row of the loop: the
-  approver "approves nothing until the owner installs a policy for it". He has. Not changed here.
 - `SKILL.md`, step 4, "The approver": "First approver started this way: not yet, when this was
   written." The first verdict is event 5169 or earlier.
