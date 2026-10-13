@@ -48,7 +48,7 @@ What that run shows of a day beside the session's loop, which is `st-6`'s to rea
   4 issues the session may have had a reviewer on. A `review` entry has no test of an agent the
   program did not start.
 - `appr-tr-4` is a view whose name is not `appr-` and an id of the tracker (`get?id=tr-4` answered
-  404, `no such issue`, at 09:29 CEST; an issue `tr-4-held-read` was at `awaiting-approval`). The step read it as a view of no
+  404, `no such issue`, in the call before the suite's second run; an issue `tr-4-held-read` was at `awaiting-approval`). The step read it as a view of no
   running approver and named its removal. A step that is not dry would have removed it.
 
 Where the 47.4 s went, each command run alone after the step, timed around the call:
