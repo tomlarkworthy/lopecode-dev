@@ -218,7 +218,14 @@ Limits, so a bad round cannot compound:
   this file whatever `BRIEF` is.) Since `suite-tests-read-the-live-brief` (2026-10-12) the suite reads a copy kept in
   the repository, `tests/tools/fixtures/reviewer-brief.md`, and not the Brain, so this run is the one that shows a put
   took out a line a test holds: with a fail, the line stays, or the test and the kept copy change in a commit a writer lands
-  (`tests/tools/reviewer-brief.ts`). The entry in `oversight.md` carries what the commit message would have:
+  (`tests/tools/reviewer-brief.ts`). After the put, with 0 fail, you write the kept copy again yourself, so that the suite reads what you put:
+  `curl -sf https://cb4.endpointservices.workers.dev/static/cloud-brain-dev/roles/reviewer.md -o $W/tests/tools/fixtures/reviewer-brief.md`,
+  then `cd $W && BRAIN=https://cb4.endpointservices.workers.dev bun test --timeout=30000 ./tests/tools/reviewer-brief-kept-copy.test.ts`, 0 fail
+  (its test `BRAIN=<address>: the kept copy is what that Brain serves` fails when the two differ), and a commit of that one file,
+  `git -C $W commit -m "brain-maintenance: the kept copy of the reviewer's brief as put (<the first 12 of its sha256>)" -- tests/tools/fixtures/reviewer-brief.md`,
+  landed with the entry. It is no edit of the 2 and needs no writer. (Until `kept-brief-copy-behind-holders-four`, 2026-10-13, no step wrote
+  the copy after a put that changed no test: it was three puts behind that day.)
+  The entry in `oversight.md` carries what the commit message would have:
   what changed, the issue, the event, what happened.
 - Edit by the smallest change that would have prevented what you saw. Do not rewrite a brief.
   Do not remove a step because one run did not need it.

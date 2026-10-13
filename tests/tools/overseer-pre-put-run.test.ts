@@ -67,3 +67,26 @@ test("the entry carries the count and the number of files, and the line says the
   expect(after).toContain("0 fail, with the count and the number of files in the entry.");
   expect(after).toContain("The list is made by the `grep` and not written here");
 });
+
+// Issue kept-brief-copy-behind-holders-four: who writes the kept copy after a put.
+test("after the put the overseer writes the kept copy from the Brain, checks it against the Brain and commits that file", () => {
+  const from = text.indexOf(START);
+  const after = text.slice(from, from + 2600);
+  const reader = readFileSync(join(import.meta.dir, "reviewer-brief.ts"), "utf8");
+  const got = after.match(/`curl -sf https:\/\/cb4\.endpointservices\.workers\.dev(\S+) -o \$W\/tests\/tools\/fixtures\/reviewer-brief\.md`/);
+  expect(got).not.toBeNull();
+  // The address is the reader's, which this file does not spell (reviewer-brief-kept-copy.test.ts holds that).
+  expect(reader).toContain(`export const PATH = "${got![1]}";`);
+  const curl = got!.index!;
+  const check = after.indexOf("BRAIN=https://cb4.endpointservices.workers.dev bun test --timeout=30000 ./tests/tools/reviewer-brief-kept-copy.test.ts`");
+  const commit = after.indexOf('" -- tests/tools/fixtures/reviewer-brief.md`');
+  expect(curl).toBeGreaterThan(0);
+  expect(check).toBeGreaterThan(curl);
+  expect(commit).toBeGreaterThan(check);
+  expect(after.slice(0, curl).replace(/\s+/g, " ")).toContain("After the put, with 0 fail, you write the kept copy again yourself");
+  // The check it names is a test of that file, by its name there, and the copy is the file the reader reads.
+  const name = after.match(/its test `(BRAIN=[^`]+)` fails when the two differ/);
+  expect(name).not.toBeNull();
+  expect(readFileSync(join(import.meta.dir, "reviewer-brief-kept-copy.test.ts"), "utf8")).toContain(`test("${name![1]}"`);
+  expect(reader).toContain('resolve(import.meta.dir, "fixtures/reviewer-brief.md")');
+});

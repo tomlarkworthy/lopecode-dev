@@ -69,6 +69,20 @@ when you were spawned as an Agent, says "your token is" and a name. `issues-revi
 `ir() { tools/cloud-brain/issue-as.sh <token> "$@"; }`, in each command that uses it, with the
 name in place of `<token>` and no variable for it:
 the shell is zsh, which does not word-split a variable, and no shell state lasts between calls.
+Nor does the working directory: a call may start in `cloud-brain-dev/` whatever the one before did, so each command has its
+own `cd <checkout>` or absolute paths (the reviewers of `fly-2-image-and-run-sh`, `landing-steps-in-one-script` and
+`wait-says-what-runs-and-until-when`, 2026-10-12 and 13). Two Bash calls sent in one message run in one shell directory: the `cd` of one
+moves the other, whatever `cd <checkout> &&` its own line begins with. Calls sent together are written with absolute paths,
+or are sent one at a time (the reviewers of `test-ts-output-floods-the-reader` and `cu-1-deployer-gains-billing-read`,
+2026-10-13: a `bun test` that "matched no files" and a `tab-tests.ts` that answered `Module not found`, each run in
+`cloud-brain-dev/` and each run again). zsh also reads a `:` after a variable as a modifier:
+`git show $P:tools/…` is sent as `<sha less a letter>ools/…`; write `${P}:tools/…`, or the sha itself (the reviewers of
+`bk-6-skill-watch-and-stats`, `approver-before-decision-comment` and `dv-5-read-first-20-runs`, the same days: one compared
+against an empty file before it saw this).
+A word that begins with `=` is a command lookup in zsh: `echo =====` between two commands ends the call with
+`==== not found` and what came after it is not run. Write the separator in quotes, or with `-----` (the reviewers of
+`ap-5-panel-approved-for-you`, `sd-3-pilot-ten`, `writer-brief-and-tool-output-smaller` and
+`test-rigs-left-when-a-file-runs-alone`, 2026-10-13: two read their files a second time).
 A name the tool does not keep is exit 2 with nothing sent: write nothing with another token, and
 end with a report that says so.
 The tool prints the answer's body on stdout and the status, ` [200]`, on stderr: send stdout alone to a file or a
@@ -125,7 +139,12 @@ document when you mend a note in it ("What holds a change, and what is a note", 
    the ancestor check and the `--stat` below are made of that one; the build is `<checkout>/tools/cloud-brain/.emitted/cloud-brain.html`. Run in a view on
    2026-10-12 by the writer of `wt-4-reviewer-in-a-view` and by two trial reviewers it started: the move 0.9 to
    2.9 s, the build 2.0 s, and for `brain-x-static` and for `brain-x-topic` 12 lines of `diff`, the expected ones
-   below (three modules each imports); say in your report what of this was wrong. A writer deploys some
+   below (three modules each imports); say in your report what of this was wrong. The count is four lines for
+   each module the seed imports, not 12: `grep -n '^import ' <the module's seed>` lists them at the seed's end, and
+   `@tomlarkworthy/<name>` is the seed `tools/cloud-brain/<name>.ojs` where there is one, which are also the seeds of
+   the `--stat` below (`brain-x-issues` with five imports gave 20 lines and `brain-x-dashboard` with six gave 24 on
+   2026-10-13; the reviewers of `ap-5-panel-approved-for-you`, `dashboard-health-says-three-panels` and
+   `lock-test-5s-held-by-clock` each had no way to list the imports and guessed the file names). A writer deploys some
    minutes before its commits are pushed, so a later hash can be on cb4 while `origin/main` is
    still the ref's commit, and the deployed text then matches neither: a landing is under way,
    so run the wait, the fetch and `redistil` again, move and build again, before comparing.
@@ -154,12 +173,16 @@ document when you mend a note in it ("What holds a change, and what is a note", 
    cd <checkout>/cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev && bun test.ts <worker>
    ```
    The clone of your view, which is yours alone: `sync.ts` makes `deploy/` again, and no writer reads this one
-   (until `wt-4-reviewer-in-a-view` a reviewer made a copy of the main checkout's for it). The JSON line's
-   `hash` is the deploy ref's, or a later one as in step 3; `failed`
-   is 0. `needsBrowser` tests were not run by it. The module as deployed is
+   (until `wt-4-reviewer-in-a-view` a reviewer made a copy of the main checkout's for it). The run's last line is
+   `<worker> <module> <hash, 12 characters>: N passed, 0 failed, M need a browser`: the hash is the deploy ref's, or a
+   later one as in step 3, and failed is 0. Since cloud-brain-dev b42788e (2026-10-13,
+   `test-ts-output-floods-the-reader`) `test.ts` prints no JSON line: the JSON, with the hash whole, is the file the
+   run's `report:` line names, `reports/<worker>.json`, or `reports/_tomlarkworthy_<name>.json` when the module's name
+   was asked in the Worker's place (`--report FILE` chooses it). A clone from before that commit prints the JSON line
+   (the reviewer of that issue, `seen-reviewer-brief-names-a-json-line`). `needsBrowser` tests were not run by it. The module as deployed is
    `deploy/@tomlarkworthy/<module>.js` there: a copy of it in your scratchpad with one line changed, run with
    `bun test.ts <worker> --with <copy>`, shows whether a test fails without the fix.
-   A probe cell's answer is the `value` of its test in the JSON line. `test.ts` cuts a value at 120
+   A probe cell's answer is the `value` of its test in that report file. `test.ts` cuts a value at 120
    characters and an error at 600 and marks the cut with the full length; `--whole` prints both whole
    (`test-ts-cuts-returned-value`, in force since cloud-brain-dev 06a4a2b, 2026-10-12; the reviewers of
    `tm-1-ai-tomarkdown-method` and `tp-1-topics-append-read` each ran a probe again for a value cut with no mark).
@@ -232,7 +255,12 @@ document when you mend a note in it ("What holds a change, and what is a note", 
    To show a test of that suite fails without the fix: `tools/cloud-brain/worktree.sh --at <sha>^ <view>`, with the
    commit that has the fix for `<sha>` there when the last ref is another (a record's commit), copy the
    test in (`git -C <checkout> show <sha>:<path> > <path>`), run it, then `tools/cloud-brain/worktree.sh --at <sha> <view>`,
-   which throws the copy away and puts the view back. A plain `git worktree add` has empty
+   which throws the copy away and puts the view back. When the fix is in the test file itself, or adds the file the
+   test imports, or the tool of before has no such mode, that way shows nothing (every test fails at the import, or
+   the test of before is another test): take the lines of the fix out of a copy in the view at `<sha>`, run the test,
+   and put the view back with `worktree.sh --at <sha> <view>`; the review names the lines taken out (the reviewers of
+   `summarize-papers-test-over-30s-in-suite`, `brain-info-size-known-before-apply` and `bk-6-skill-watch-and-stats`,
+   2026-10-13, each did so with no line for it). A plain `git worktree add` has empty
    submodules, and a link into one fails the test for another reason (2026-10-10). When the
    empty submodule is the case under test, the plain `git -C <checkout> worktree add --detach <path> <sha>` is the
    one to use, and `git -C <checkout> worktree remove --force <path>` when it is done.

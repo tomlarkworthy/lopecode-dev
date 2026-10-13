@@ -50,7 +50,8 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
    `lock.test.ts`) read `tests/tools/fixtures/reviewer-brief.md`, a copy of the commit, and not the Brain: a put of the brief
    moves no count of the suite (`suite-tests-read-the-live-brief`, 2026-10-12; before it a worktree behind `origin/main` had a fail after a put).
    A writer whose task puts the brief runs them on the edited file first (`BRIEF=<file>`), and writes the copy again in the
-   commit that changes a test of it (`tests/tools/reviewer-brief.ts` has the line).
+   commit that changes a test of it (`tests/tools/reviewer-brief.ts` has the line). An overseer that puts the brief writes the
+   copy again after its put (`agents/overseer.md`, "What you may do", since `kept-brief-copy-behind-holders-four`, 2026-10-13).
    A failure's message is printed above its `(fail)` line, under the name of its file. `tests/tools/suite.sh --parallel=1`
    is the run of one file after another, for a failure you want to see with no other file running beside it
    (`records/tests-tools-suite-three-minutes.md`). A worktree fresh from `worktree.sh`, with nothing built, gave 0 fail there on 2026-10-11
