@@ -389,6 +389,10 @@ the `vid` line of the put), from the same first 1500 characters as before.
 - The operator's brief (`assistantPrompt`) is not changed: a cut entry now says where its whole is,
   and the brief already says how an address is read with `eval_js`.
 
+(As built, `ac-5-prose-names-the-two-shapes`, 2026-10-13: as above. The knowledge doc's paragraph is a section
+of its own before the logs, with the marks as a block and the calls they were read from, so that it is in the
+16,000 characters of the doc that the Brain's search keeps; the record.)
+
 ## Not chosen
 
 - **A field on the entry (`textLength`, `cutAt`) in place of a line in the text.** The reader the

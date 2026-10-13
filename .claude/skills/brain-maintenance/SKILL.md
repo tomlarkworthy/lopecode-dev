@@ -264,6 +264,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    issue in this session (`issue-as.sh <your token> label '{"key":"orch/<id>/owner","id":"<id>","add":["owner"]}'`).
    The label gives precedence and no authority: no guard of the workflow reads it, and whoever may
    call `issue.open` may write it. `issue-as.sh <your token> "list?label=owner&limit=100"` lists the labeled ones.
+   `more: true` in the answer of a `list` says the issues listed are not all that match, and `total` how many do:
+   ask with `limit=500`, the most, or a narrower filter (33 labeled `owner`, `total` 33 and `more: false`, on 2026-10-13).
    (Until 2026-10-11 the record had no such mark: `worker-machine-on-fly`, opened with a loop token
    "on the owner's word", was at `open` 68 minutes while two issues filed later were taken.
    `plan/cloud-brain-loop-order-of-service.md`, part 1.)

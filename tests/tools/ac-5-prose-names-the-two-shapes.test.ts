@@ -1,0 +1,106 @@
+// The prose an agent reads before it calls a list says the size of a page and the sign that more remain (R3 and task 5
+// of plan/cloud-brain-answers-cut-and-not-said.md, issue ac-5-prose-names-the-two-shapes). Before the task
+// agents/overseer.md gave `io "sync?after=<seq>"` as "every event since the last oversight" with no word of a page,
+// neither it nor SKILL.md said what `more` of a list is, and the knowledge page had no paragraph on the two shapes.
+// The numbers the prose gives are held to the text of the seed's reference and of cut.ts, not to a run of cb4.
+//
+//   bun test --timeout=30000 ./tests/tools/ac-5-prose-names-the-two-shapes.test.ts
+// OVERSEER=, SKILL=, CALLING= each read another copy of that file (the file before the change).
+import { test, expect } from "bun:test";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { cut } from "../../tools/cloud-brain/cut.ts";
+
+const root = resolve(import.meta.dir, "../..");
+const read = (env: string, path: string) => readFileSync(process.env[env] || resolve(root, path), "utf8");
+const overseer = read("OVERSEER", ".claude/skills/brain-maintenance/agents/overseer.md");
+const skill = read("SKILL", ".claude/skills/brain-maintenance/SKILL.md");
+const calling = read("CALLING", "knowledge/calling-a-cloud-brain-from-this-checkout.md");
+const seed = read("SEED", "tools/cloud-brain/brain-issues.ojs");
+const page = read("PAGE", "tools/cloud-brain/cloud-brain.ojs");
+
+// A block of a markdown file: the lines from the one that holds `start` to the next blank line or list item.
+const block = (text: string, start: string) => {
+  const lines = text.split("\n");
+  const at = lines.findIndex((l) => l.includes(start));
+  if (at < 0) return "";
+  let end = at + 1;
+  while (end < lines.length && lines[end].trim() !== "" && !/^\s*- /.test(lines[end]) && !lines[end].startsWith("#")) end++;
+  return lines.slice(at, end).join(" ").replace(/\s+/g, " ");
+};
+const row = (method: string) => seed.split("\n").find((l) => l.startsWith("| \\`" + method + "\\` |")) || "";
+
+test("the seed's reference still gives the sizes the prose repeats", () => {
+  expect(row("issue.sync")).toContain("200 events when left out, 500 at most");
+  expect(row("issue.sync")).toContain("the next page is the same call with \\`after=\\` the \\`seq\\` of the last event answered");
+  expect(row("issue.list")).toContain("100 issues when left out, 500 at most");
+  expect(row("issue.list")).toContain("There is no second page");
+});
+
+test("overseer.md, Evidence: the read of sync says the size of a page and how the next is asked", () => {
+  const b = block(overseer, '- `io "sync?after=<seq>"`:');
+  expect(b).not.toBe("");
+  expect(b).toContain("200 events");
+  expect(b).toContain("limit=500`");
+  expect(b).toContain("`more: true`");
+  expect(b).toMatch(/`after=` the `seq` of the last event/);
+  expect(b).toMatch(/until `more` is `false`/);
+  // What it is read for is still said.
+  expect(b).toContain("the number of `rework` moves");
+});
+
+test("overseer.md: the count of its own opened issues is of every page of the sync", () => {
+  const b = block(overseer, "At most 3 issues filed and 2 edits to briefs");
+  expect(b).toContain('`io "sync?after=<seq>"`');
+  expect(b).toMatch(/every page/);
+});
+
+test("overseer.md, before a project is opened: the list says when it is not all that match", () => {
+  const b = block(overseer, 'Before you open one, `io "list?kind=project"`');
+  expect(b).not.toBe("");
+  expect(b).toContain("`more: true`");
+  expect(b).toContain("100 issues");
+  expect(b).toContain("limit=500`");
+  expect(b).toContain("is made a part of it instead");
+});
+
+test("SKILL.md, step 3, The owner's: the list says when it is not all that match", () => {
+  const lines = skill.split("\n").filter((l) => l.includes('"list?label=owner&limit=100"'));
+  expect(lines.length).toBe(1);
+  const b = block(skill, '"list?label=owner&limit=100"');
+  expect(b).toContain("`more: true`");
+  expect(b).toContain("`total`");
+  expect(b).toContain("limit=500`");
+});
+
+test("the knowledge page has one paragraph on the two shapes, inside the part of it the Brain's search keeps", () => {
+  const head = "## An answer that was cut, and a list that is not whole";
+  expect(calling.split(head).length).toBe(2);
+  expect(calling.indexOf(head)).toBeGreaterThan(0);
+  const section = calling.slice(calling.indexOf(head)).split("\n## ")[0];
+  // The two shapes: a field, and a last line.
+  expect(section).toContain("**A field**");
+  expect(section).toContain("**A last line**");
+  for (const said of ["`more: true`", "`total`", "issue.list ", "issue.sync ", "issue.snapshot", "--whole", "static.get?path="]) expect(section).toContain(said);
+  // A cut doc's last line names its file.
+  expect(section).toMatch(/last line names (its|the) file/);
+  // The entry of this doc is cut at 16,000 characters: the section stands before that.
+  expect(calling.indexOf(head) + section.length).toBeLessThan(15000);
+  expect(calling.indexOf(head)).toBeLessThan(calling.indexOf("## Why did that happen: the logs"));
+});
+
+test("each mark the knowledge page quotes is one its tool writes", () => {
+  expect(calling).toContain("## An answer that was cut");
+  const section = calling.slice(calling.indexOf("## An answer that was cut")).split("\n## ")[0];
+  // cut.ts: the page quotes the mark of a text of 1421 characters cut at 400.
+  const mark = cut("x".repeat(1421), 400).slice(400);
+  expect(mark).toBe("… (cut: 400 of 1421 characters; --whole prints all)");
+  expect(section).toContain(mark);
+  // callAnswer: the page quotes the line the seed's own test expects.
+  const line = "[characters 0 to 20000 of 27094. The rest: the same call with offset 20000]";
+  expect(page).toContain(line);
+  expect(section).toContain(line);
+  // knowledge-docs.ts: the line of a cut doc, as the page's own section on the docs has it.
+  expect(read("DOCS", "tools/cloud-brain/knowledge-docs.ts")).toContain("characters of this entry's text. The whole is the file");
+  expect(section).toContain("characters of this entry's text. The whole is the file");
+});

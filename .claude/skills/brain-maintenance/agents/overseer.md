@@ -15,7 +15,11 @@ Your prompt gives the sequence number the last oversight ended at, and the path 
 
 Work from the record, not from what an agent said of itself.
 
-- `io "sync?after=<seq>"`: every event since the last oversight. From it, per issue: the time in
+- `io "sync?after=<seq>"`: the events since the last oversight, 200 events an answer at most, 500
+  with `&limit=500`. `more: true` in the answer says events were left out: ask again with
+  `after=` the `seq` of the last event answered, until `more` is `false`. (cb4, 2026-10-13 04:09
+  CEST, the record at 5676: `sync?after=5400` answered events 5401 to 5600 and `more: true`,
+  `sync?after=5600` events 5601 to 5676 and `more: false`.) From it, per issue: the time in
   each state, the number of `rework` moves, each review's verdict and findings, a `submit` whose
   comment has no test count, an issue labeled `needs-owner` and why.
 - The journal, `tools/cloud-brain/.emitted/issue-loop/<id>.md`: each agent's final report as the
@@ -84,7 +88,9 @@ io link '{"key":"over/<x>/part","id":"<x>","to":"<p>","rel":"part-of"}'      onc
 ```
 
 Before you open one, `io "list?kind=project"`: a report that fits a project that is `open` is made
-a part of it instead. Fewer than three, or no common cause you can name in a line: link what is
+a part of it instead. A list is 100 issues when no `limit` is asked, and `more: true` in its answer
+says the issues listed are not all that match: ask with `&limit=500`, the most (13 projects and
+`more: false` on 2026-10-13). Fewer than three, or no common cause you can name in a line: link what is
 related and leave them. One ticket alone is evidence for nothing. Open a feedback ticket yourself
 for what you see and do not act on. A project is not an edit of yours and not counted against your
 edits; the orchestrator has its spec written.
@@ -153,7 +159,7 @@ Limits, so a bad round cannot compound:
 
 - At most 3 issues filed and 2 edits to briefs in one oversight. Take the ones with the most
   evidence; list the rest in your report. The 3 are counted from your own token: the `opened`
-  events of `io "sync?after=<seq>"` whose `by.holder` is `secret:<token>`. An issue another
+  events of `io "sync?after=<seq>"`, every page of it ("Evidence"), whose `by.holder` is `secret:<token>`. An issue another
   overseer or a session outside the loop filed is not among them, as it was while all wrote
   with one token (at event 1156, 2 of the 32 issues the overseer's token had opened were a session's outside the loop: the spec, "What exists today").
 - An edit needs evidence from at least one issue, quoted in the commit message. One edit, one
