@@ -58,7 +58,7 @@ Calls have no price: Cloudflare states none for the read.
 |---|---|---|
 | 400 | \`InvalidRequest\` | a date that is not \`YYYY-MM-DD\`, or \`from\` after \`to\` |
 | Cloudflare's status | \`CloudflareRefused\` | Cloudflare refused \`/billable-usage\`: \`status\` and \`errors\` are Cloudflare's, each error cut to its \`code\` and \`message\` |
-| 502 | \`UpstreamFailure\` | Cloudflare answered 200 with no list of rows; the message names the keys of what it answered, not the values |
+| 502 | \`UpstreamFailure\` | Cloudflare was not reached; or it answered 200 with no list of rows, and the message names the keys of what it answered, not the values |
 
 A refusal of \`/billable-usage/info\` alone does not fail the call: \`anchor\` is \`null\` and \`cloudflare.info\` is that status.
 
@@ -115,7 +115,9 @@ usage_service = {
       const range = [["from", from], ["to", to]].filter(([, d]) => d !== null).map(([name, d]) => name + "=" + d).join("&");
       const started = Date.now();
       // The two paths are constants; the query is the two days, which are digits and hyphens.
-      const [usage, info] = await Promise.all([cloudflareApi.fetch("/billable-usage" + (range ? "?" + range : ""), { method: "GET" }), cloudflareApi.fetch("/billable-usage/info", { method: "GET" })]);
+      const both = await Promise.all([cloudflareApi.fetch("/billable-usage" + (range ? "?" + range : ""), { method: "GET" }), cloudflareApi.fetch("/billable-usage/info", { method: "GET" })]).catch(() => null);
+      if (!both) return json(502, { error: "UpstreamFailure", message: "Cloudflare was not reached" });
+      const [usage, info] = both;
       const data = await usage.json().catch(() => null), about = await info.json().catch(() => null);
       if (!usage.ok) {
         const errors = (data && Array.isArray(data.errors) ? data.errors : []).slice(0, 10).map((e) => ({ code: e && e.code, message: String((e && e.message) || "").slice(0, 300) }));
@@ -325,10 +327,16 @@ test_usage_passes_on_cloudflares_refusal_and_names_the_mint_when_it_may_be_the_c
   const odd = await (await usageRig({ usage: () => new Response(JSON.stringify({ success: true, result: { BillingAccountName: "Example Account" } }), { headers: { "content-type": "application/json" } }) })).get("account");
   expect([odd.status, odd.data.error]).toEqual([502, "UpstreamFailure"]);
   expect(odd.data.message).toBe("Cloudflare answered 200 with no list of rows: keys success, result; result is object");
+  // A read that throws is an error of this method, and is not kept.
+  let cut = true;
+  const gone = await usageRig({ info: (request, cf) => { if (cut) throw new Error("connection reset: secret-in-the-error"); return cf({ covered: true, subscriptions: [] }); } });
+  expect(await gone.get("account")).toEqual({ status: 502, data: { error: "UpstreamFailure", message: "Cloudflare was not reached" } });
+  cut = false;
+  expect((await gone.get("account")).status).toBe(200);
   // The info read alone refused: the rows are answered, with no anchor and that status.
   const half = await (await usageRig({ info: (request, cf) => cf({ success: false, errors: [{ code: 7003, message: "No route" }] }, 404) })).get("account");
   expect([half.status, half.data.anchor, half.data.cloudflare.info, half.data.rows.length]).toEqual([200, null, 404, 1]);
-  return "401, 403, 429 and 502 passed on";
+  return "401, 403, 429 and 502 passed on; 502 when not reached";
 }
 // %%
 import {cloudflare, cloudflareApi, simulate, decide, callerOf} from "@tomlarkworthy/cloudflare-iac"

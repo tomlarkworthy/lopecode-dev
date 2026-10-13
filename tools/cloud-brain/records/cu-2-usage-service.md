@@ -34,8 +34,11 @@ A service that names `secrets.NAME` declares a secret of that name (`cloudflare-
 which also binds `CORE` to it (line 1100). So the service does not read the token. The call is sent as it is, and
 Cloudflare's refusal is the answer; the message of a 400, 401 or 403 names the deployer's line `token.mint-failed`.
 In the rig a Worker with no `CF_TOKEN` sends `authorization: Bearer undefined`
-(`test_usage_passes_on_cloudflares_refusal_and_names_the_mint_when_it_may_be_the_cause`). What Cloudflare answers to
-that header was not tried. The other way, a flag from the wrapper, is a change to `cloudflare-iac.ojs` and so to
+(`test_usage_passes_on_cloudflares_refusal_and_names_the_mint_when_it_may_be_the_cause`). That is the rig's, whose
+stand-in for the core answers 404 to `secret.get`. On cb4 a Worker with no `CF_TOKEN` binding asks the core for a
+secret of that name (`cloudflare-iac.ojs`, line 614), and this Worker has no `CORE` binding: whether the read then
+gives nothing or throws was not seen, and neither was what Cloudflare answers to that header. So the message that
+names the mint is held in the rig only. The other way, a flag from the wrapper, is a change to `cloudflare-iac.ojs` and so to
 every Worker's hash, the kernel's among them.
 
 **`cloudflare.info`, a fourth field.** The anchor is read from a second path. When that read alone is refused the
@@ -53,6 +56,8 @@ reference lists once as deprecated, is not answered.
 - **A refusal's body.** Cloudflare's status, and of each of its `errors` the `code` and the `message` cut at 300
   characters, ten at most. Nothing else of a refused body leaves.
 - **200 with no list.** 502 `UpstreamFailure`, with the keys of the answer named and no value.
+- **Cloudflare not reached** (a read that throws): 502 `UpstreamFailure`, "Cloudflare was not reached", with nothing
+  of the error in it. Added after the first three runs below, with its lines in the fifth cell.
 - **The map of kept answers** is cleared when it holds 100 keys and a new one comes.
 - **One date alone** is sent on as it is. What Cloudflare answers to it was not tried.
 
@@ -80,9 +85,10 @@ a row also keeps BillingAccountName        4 of 5  test_usage_a_row_has_ten_name
 usageKeep.get answers null                 4 of 5  test_usage_keeps_an_answer_600_s_under_its_two_dates
 the rule is caller.session                 4 of 5  test_usage_declares_billing_read_and_answers_the_owner_and_no_other
 a refusal's errors are passed on whole     4 of 5  test_usage_passes_on_cloudflares_refusal_and_names_the_mint_…
+no catch of a read that throws (06:57)    4 of 5  test_usage_passes_on_cloudflares_refusal_and_names_the_mint_…
 ```
 
-`tests/tools/suite.sh`, 2026-10-13 between 06:49 and 06:52 CEST, after the last edit of a file it reads: `1074 pass`, `0 fail`,
+`tests/tools/suite.sh`, 2026-10-13 between 06:57 and 07:00 CEST, after the last edit of the seed: `1074 pass`, `0 fail`,
 `Ran 1074 tests across 109 files`.
 
 ## Not tried, not done
@@ -92,8 +98,10 @@ a refusal's errors are passed on whole     4 of 5  test_usage_passes_on_cloudfla
   module's name`. It names a Worker by what `sync.ts` read from cb4, and this one was not deployed.
 - `verify-run.ts brain-x-usage --shell … --times 20` was not run before the deploy, for the same reason: the
   deployer has no run address for a Worker it does not run. The three runs of `tab-tests.ts` stand in for it.
-- No row for the service in `tools/cloud-brain/cloud-brain-docs.ojs` (the table of services on the page). That
-  module is one of the shell's, and posting the shell is the orchestrating session's.
+- No row for the service in `tools/cloud-brain/cloud-brain-docs.ojs` (the table of services on the page). The
+  spec's task 2 does not list it, and the row for `brain-topic` was a task of its own with a test
+  (`tests/tools/tp-4-docs.test.ts`). A change there is also a post of the shell, which is the orchestrating
+  session's.
 - The 600 s were shown with a time given to `usageKeep`, and through the method only that a second call inside
   them asks Cloudflare nothing. No test waits 600 s.
 - A date that matches the pattern and is no day (`2026-99-99`) is sent on. What Cloudflare answers was not tried.
