@@ -152,7 +152,7 @@ while True:
         else: unread += 1
     if mine is not None:
         # A held read: the tracker answers when the wait is due, or after the seconds, which end with the run.
-        held = ("%.3f" % min(hold, start + seconds - time.monotonic())).rstrip("0").rstrip(".") if hold else "0"
+        held = ("%.3f" % max(0.0, min(hold, start + seconds - time.monotonic()))).rstrip("0").rstrip(".") if hold else "0"
         calls += 1; status, text = call("wakes?id=" + id + ("&seconds=" + held if held != "0" else "")); d = obj(text) if status == 200 else None
         if not d or not isinstance(d.get("due"), list) or not isinstance(d.get("waiting"), list):
             unread += 1
