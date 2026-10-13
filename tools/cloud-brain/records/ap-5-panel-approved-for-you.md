@@ -108,7 +108,8 @@ $ 24 runs of tab-tests.ts on that build, six at once, in four rounds      (01:54
 24 of 24 runs: 65 of 65
 ```
 
-Each of the 60 runs had `"tests":65`. The 17 that need a browser are the panel's, the two new ones among them
+The 60 runs were made on the build of the seed as it stood, and the seed was committed after them with no edit
+between; the three lines after it are of that build once committed. Each of the 60 runs had `"tests":65`. The 17 that need a browser are the panel's, the two new ones among them
 (`location is not defined`): the count of the change is the browser's. 65 is the 63 of before this landing, and
 the two.
 
