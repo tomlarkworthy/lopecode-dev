@@ -32,7 +32,9 @@ LOOP_TOKEN=<your token> bun tools/cloud-brain/loop.ts run --dry
 ```
 
 - **The driver is the owner's to start. You start none.** `loop.sh` runs `bun tools/cloud-brain/loop.ts run`
-  at the root of the main checkout, inside `safehouse` with the arguments `metadev` gives it. Each step is
+  at the root of the main checkout, inside `safehouse` with the arguments `metadev` gives it and
+  `--enable=all-agents`, without which no agent a step starts is logged in (the header of `loop.sh`;
+  `loop-sh-sandbox-has-no-keychain`, 2026-10-13). Each step is
   steps 1 to 3 of "One pass" as code (`loop.ts step`; the header of `loop.ts` has each command). It starts
   each agent as a process (`loop.ts start`), ends its run (`loop.ts ended`), and starts a model only for
   the entries a rule cannot decide: a judgment run, whose brief is `agents/orchestrator.md`. You run no
@@ -47,6 +49,11 @@ LOOP_TOKEN=<your token> bun tools/cloud-brain/loop.ts run --dry
   `loop.ts run` without `--dry` (`tools/cloud-brain/records/` of each), and the session that began this task
   wrote that none was to be started (comment 6488 of `st-7-switch-and-texts`). So its first run is the owner's and its first minutes are watched,
   by him or by a session he asks, with these reads:
+  - no line has `unlogged`, and stderr has no `loop.ts run: no agent is started: …`. That is a run the
+    driver started whose result was `Not logged in`: the steps go on and start no agent of any role until
+    the driver is stopped, `claude` is logged in where it runs, and it is started again. The owner's first
+    run, 2026-10-13, was two steps of five such runs, before a step read that
+    result (`tools/cloud-brain/records/loop-sh-sandbox-has-no-keychain.md`);
   - the driver's stdout, one line of JSON a step, and its stderr, each line `loop.ts run: …`. The first
     line is a step for the clock; its `health` is `{"ok":true}` on a healthy cluster;
   - `LOCK_TOKEN=<your token> tools/cloud-brain/lock.sh show loop`: exit 0 and `orchestrator-<host>` while it runs;

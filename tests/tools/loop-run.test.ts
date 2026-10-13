@@ -155,6 +155,18 @@ test("a step that printed no line, or one with an error: the driver goes on at t
   expect(whys(R)).toEqual(["0 clock", "90 clock", "150 clock", "210 clock", "270 event", "330 event"]);
 });
 
+test("a step whose line has `unlogged` is said on stderr at each such step, and the driver goes on; a line with none is not said", async () => {
+  const { d, R, event, sleep } = rig();
+  const out = { token: "impl-9a4e0e", by: "orch-000001", said: "Not logged in · Please run /login" };
+  R.lines = [{ health: { ok: true }, acts: [], unlogged: out }, { health: { ok: true }, acts: [], unlogged: out }, { health: { ok: true }, acts: [] }];
+  R.stopAt(200 * S);
+  const done = drive(d);
+  for (const at of [40, 100]) { await sleep(at * S - R.at()); event("impl-aaaaaa"); }
+  expect(await done).toBe(0);
+  const said = 'no agent is started: the result of impl-9a4e0e says its process is not logged in ("Not logged in · Please run /login"). The steps go on and start none: stop the driver, log `claude` in where it runs, and start it again';
+  expect([whys(R), R.notes.slice(0, -1)]).toEqual([["0 clock", "60 event", "120 event"], [said, said]]);
+});
+
 test("at 40 hours, between two steps: a new token, `loop` released and taken with it, the old one ended; an event of the old token is still no reason", async () => {
   const { d, R, event, sleep } = rig();
   R.stopAt(40 * H + 100 * S);
@@ -311,7 +323,9 @@ safehouse "\${SAFEHOUSE_ARGS[@]}" claude
   // zsh leaves the ~ after a = as it is, in metadev as here: safehouse is given `~/.ssh` by both.
   const real = (p: string) => Bun.spawnSync(["zsh", "-c", 'print -r -- ${1:A}', "x", p]).stdout.toString().trim();
   expect(readFileSync(join(RIG, "safehouse.log"), "utf8").trim().split("\n")).toEqual(["METADEV=1", `CLAUDE_CONFIG_DIR=${process.env.HOME}/.config-of-the-test`, "PWD=" + real(root), "--env-pass=METADEV,CLAUDE_CONFIG_DIR", "--add-dirs-ro=~/.ssh", "--add-dirs=/tmp/a dir",
-    `--append-profile=${real(root)}/tools/safehouse-adb.sb`, "bun", "tools/cloud-brain/loop.ts", "run", "--dry"]);
+    `--append-profile=${real(root)}/tools/safehouse-adb.sb`, "--enable=all-agents", "bun", "tools/cloud-brain/loop.ts", "run", "--dry"]);
+  // --enable=all-agents stands after what metadev gives and before the command: safehouse picks the profile of Claude
+  // Code, and the keychain with it, by the name of the command it wraps, and this one is `bun` (loop-sh-sandbox-has-no-keychain).
   // The exports above ENV_PASS= and the lines from it to the ) are run, its mkdir among them; no other line is.
   expect([existsSync(join(RIG, "made by metadev")), existsSync(join(RIG, "metadev.log"))]).toEqual([true, false]);
   // No SAFEHOUSE_ARGS in the file, or no safehouse: exit 2 and nothing run.

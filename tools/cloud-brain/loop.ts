@@ -100,7 +100,15 @@
 //            (an agent a session started) is left while that token reads the tracker;
 //         4. what stops a start of a writer or an approver: `uptime`'s first number at 15 or more, `land` naming one
 //            holder in this line and the last of steps.jsonl 30 s or more apart, a result that was an error
-//            (runs/<token>.exit is 1) in the last 30 minutes, or a review or a round of this step that was not started;
+//            (runs/<token>.exit is 1) in the last 30 minutes, or a review or a round of this step that was not started.
+//            And what stops every start, a reviewer's, a round's, an overseer's and the judgment run's among them: a
+//            run this machine started with the step's own token (`as` of its file) whose result says its process is
+//            not logged in (`Not logged in` or `Please run /login`, no usd, no context). It is read before each start, so a result that
+//            is there by then stops the rest of that step; the line has `unlogged` { token, by, said }, the status
+//            says it under Health, and each entry it kept from a start is in `skipped`. It holds while the files of
+//            runs/ have that result and the step is made with that token: a driver started again has a new one. Such
+//            a run of an overseer is not counted among the 2 started since a heading of oversight.md
+//            (loop-sh-sandbox-has-no-keychain, 2026-10-13);
 //         5. the judgment: the entries a model is to decide (`round` at 3 `rework` moves or after a run with no
 //            submit, `dead`, `triage`, `decompose`, `promote`, `look`, `answer`, `asks`, `pm`), 5 at most a step,
 //            each given once for one event <at> of its issue: a comment keyed orch/<id>/given-<do>-<at>, body
@@ -141,7 +149,8 @@
 //            the old one ended. No new token: the old is kept and it is asked again in 30 s. A take that is refused
 //            there: both tokens ended, exit 1;
 //         6. a step that exits other than 0 or prints no line is said on stderr, and the driver goes on at the next
-//            reason. At a signal it waits for the step that runs, releases `loop`, ends its token and exits 0. The
+//            reason, and a step whose line has `unlogged` is said there too: the steps go on and start no agent
+//            until the driver is stopped and started again. At a signal it waits for the step that runs, releases `loop`, ends its token and exits 0. The
 //            token is left, and stderr says so, when a run it started has not ended: the run's `ended` is made with it.
 //         --dry runs `step --dry` at each reason with LOOP_TOKEN, the caller's: no token is made, no lock asked, and
 //         every event is a reason, the caller's own too. It prints each step's line and not its status.
@@ -545,6 +554,11 @@ function dead(args: string[]) {
 }
 
 const REASONS = ["clock", "event", "run"];
+// A result that says its process is not logged in: `claude` answered at once and no model ran, so every run started
+// beside it answers the same. On 2026-10-13 five did, each `Not logged in · Please run /login`, usd 0, context 0.
+// `Please run /login` after another first word is taken as the same; no such result was seen.
+export const notLoggedIn = (result: any) => !!result && typeof result.result === "string" && /^\s*Not logged in\b|Please run \/login/i.test(result.result) && !result.usd && !result.context;
+const resultOf = (token: string) => { try { return JSON.parse(readFileSync(join(RUNS(), token + ".result.json"), "utf8")); } catch { return null; } };
 // ---- the step: one pass (part 3 of the spec)
 export const GIVEN_MOST = 5, LOAD_MOST = 15, LAND_MS = 30000, ERROR_MS = 30 * 60000, LATE_MS = 4 * 3600000, DEAD_MOST = 2;
 const JUDGED = ["triage", "decompose", "promote", "look"], AT_TYPES = ["opened", "moved", "swapped", "held", "linked", "labelled"];
@@ -575,7 +589,8 @@ function statusText(line: Ev, S: Record<string, string[]>) {
   const part = (title: string, rows: string[]) => [`## ${title}`, "", ...(rows.length ? rows.map((r) => "- " + r) : ["Nothing."]), ""];
   return [`# The loop at event ${line.seq}, ${new Date(line.at).toISOString()}${line.dry ? " (a dry step: nothing was done)" : ""}`, "",
     ...(line.error ? [`The step ended on a read that was not answered: ${line.error}`, ""] : []),
-    ...part("Health", [line.health.ok ? "healthy" : "not healthy: " + line.health.failed.join("; "), ...(line.stops ? ["no new writer and no approver is started: " + line.stops.join("; ")] : []), ...S.notes]),
+    ...part("Health", [line.health.ok ? "healthy" : "not healthy: " + line.health.failed.join("; "), ...(line.stops ? ["no new writer and no approver is started: " + line.stops.join("; ")] : []),
+      ...(line.unlogged ? [`no agent of any role is started: the result of ${line.unlogged.token} says its process is not logged in ("${line.unlogged.said}"). It holds for the runs started with ${line.unlogged.by}, the token this step was made with: stop the driver, log \`claude\` in where it runs (the header of tools/cloud-brain/loop.sh has what its sandbox is given), and start it again`] : []), ...S.notes]),
     ...part(line.dry ? "What a step would do" : "What the step did", line.acts.map((a: Ev) => JSON.stringify(a))),
     ...part("What runs", S.runs),
     ...part("What waits for the owner", S.owner),
@@ -622,6 +637,12 @@ async function step(args: string[]) {
     if (dry) console.log(text);
     process.exitCode = code;
   };
+  // What stops every start: a run started with this step's token whose result says its process is not logged in. Read
+  // before each start, and kept once found.
+  const unlogged = (): string => {
+    if (!line.unlogged) { const r = runFiles().find((r) => r.host === host && r.as === me && notLoggedIn(resultOf(r.token))); if (r) line.unlogged = { token: r.token, by: me, said: String(resultOf(r.token).result).trim() }; }
+    return line.unlogged ? `the result of ${line.unlogged.token} says its process is not logged in` : "";
+  };
   // ---- 5, its end: the entries of this step are the task of one judgment run. None is started while one of this
   // machine runs: its entries wait, with no comment. The comment of each names the run's token, and is written before
   // the run is started; a start that failed is written `stopped`, so its entries are given once more.
@@ -629,6 +650,7 @@ async function step(args: string[]) {
     const name = (x: Ev) => (x.id ? `${x.do} ${x.id} (event ${x.at})` : `unhealthy (${x.failed.join("; ")})`);
     const leave = (why: string) => { for (const x of line.given) skip(x.id || "", x.do, why); line.given = []; };
     if (!line.given.length) return;
+    if (unlogged()) return leave("no judgment run: " + unlogged());
     const busy = runFiles().find((r) => r.host === host && r.role === "orchestrator" && !r.ended && alive(r));
     if (busy) return leave(`a judgment run runs (${busy.token})`);
     const on: string = (line.given.find((x: Ev) => x.id) || {}).id || "";
@@ -656,6 +678,7 @@ async function step(args: string[]) {
   try {
     // The caller's token reads the tracker, or the step ends here: a token cb4 refuses is not a cluster that is not healthy.
     get("queue?limit=1");
+    unlogged();
     // ---- 1. health
     const git = (...a: string[]) => sh("git", a), failed: string[] = [];
     if (!whole) S.notes.push(`a step for ${why === "run" ? "a run that ended" : "an event"}: no pull, no removal of a worktree, no \`redistil\` and no \`state\`; the locks were read`);
@@ -808,7 +831,7 @@ async function step(args: string[]) {
       const d = deadRuns(G.events, role, round);
       return d.length < DEAD_MOST || judge(id, "dead", last(d)!.seq, G) === "go-on";
     };
-    const begin = (id: string, role: string, first = false) => done({ act: "start", ...(id ? { id } : {}), role }, () => {
+    const begin = (id: string, role: string, first = false) => unlogged() ? void skip(id, id ? "start" : role, `no ${role}: ${unlogged()}`) : done({ act: "start", ...(id ? { id } : {}), role }, () => {
       const r = self("start", ...(id ? [id] : []), "--role", role);
       if (r.exit !== 0 && first) unstarted = true;
       return { exit: r.exit, ...(r.started ? { token: r.started } : {}), ...(r.said ? { said: r.said } : {}) };
@@ -860,6 +883,7 @@ async function step(args: string[]) {
         const noSubmit = lastRun && lastRun.outcome === "no-submit" ? lastRun.seq : 0, at = Math.max(0, noSubmit, ...moved(G.events, "rework", "respec").map((m) => m.seq));
         if ((round > 3 || noSubmit) && judge(e.id, "round", at, G) !== "go-on") return;
         if (!noSubmit && !bound(e.id, G, role, round)) return;
+        if (unlogged()) return skip(e.id, e.do, "no round: " + unlogged());
         done({ act: "resume", id: e.id, role }, () => {
           const r = self("resume", e.id, "--role", role);
           if (r.exit !== 0 && r.exit !== 3) unstarted = true;
@@ -937,7 +961,7 @@ async function step(args: string[]) {
       const ended = new Set(since.filter((e) => (e.type === "moved" && ["done", "rejected"].includes(e.to)) || (e.type === "labelled" && (e.add || []).includes("needs-owner"))).map((e) => e.id));
       const third = [...new Set(since.filter((e) => e.type === "moved" && e.move === "rework").map((e) => e.id))].find((id) => { const G = got(id); return !!G && moved(G.events, "rework").length >= 3; });
       if (ended.size >= 3 || third) {
-        const t = brain("agent-token", "list"), n = runFiles().filter((r) => r.role === "overseer" && String(r.after) === String(after)).length;
+        const t = brain("agent-token", "list"), n = runFiles().filter((r) => r.role === "overseer" && String(r.after) === String(after) && !notLoggedIn(resultOf(r.token))).length;
         const lives = t.out.split("\n").map((l) => { try { return JSON.parse(l); } catch { return null; } }).some((d) => d && /^over-/.test(d.name || "") && (!d.until || Date.parse(d.until) > Date.now()));
         if (t.code !== 0) skip("", "overseer", `agent-token list: exit ${t.code} ${tail(t)}`);
         else if (lives) skip("", "overseer", "an overseer's token is live");
@@ -998,6 +1022,7 @@ export async function drive(d: Driver, given = ""): Promise<number> {
     while (!done) { if (d.stopped()) { await p; break; } await Promise.race([p, d.sleep(EVERY_MS)]); renew(); }
     const l = line as Ev | null;
     if (l && Number(l.seq) > 0) after = Math.max(after ?? 0, Number(l.seq));
+    if (l && l.unlogged) d.note(`no agent is started: the result of ${l.unlogged.token} says its process is not logged in ("${l.unlogged.said}"). The steps go on and start none: stop the driver, log \`claude\` in where it runs, and start it again`);
     if (why === "clock" || !l || l.error || !(l.health && l.health.ok)) healthy = !!(l && !l.error && l.health && l.health.ok);
     return l;
   };

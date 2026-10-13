@@ -5,6 +5,12 @@
 # The arguments are read from the main checkout's `metadev` each time: its lines from `ENV_PASS=` to the `)` that ends
 # `SAFEHOUSE_ARGS=(` are run here, the `mkdir -p` of the directories the sandbox mounts among them, and before them
 # each `export` line above `ENV_PASS=` (CLAUDE_CONFIG_DIR, which --env-pass hands to the agents the steps start).
+# After them safehouse is given --enable=all-agents. It picks the profile of an agent by the name of the command it
+# wraps: for `claude`, which `metadev` wraps, the profile of Claude Code, which brings the keychain where its login is
+# kept. This script wraps `bun`, which has no profile, so without the flag no agent a step starts is logged in (the
+# owner's run of 2026-10-13: five runs, each `Not logged in · Please run /login`). The flag is wider than a session's
+# sandbox: it gives the file rules of every agent safehouse knows, where a session has those of Claude Code alone.
+# `keychain` is no name --enable takes (loop-sh-sandbox-has-no-keychain; tools/cloud-brain/records/ has its record).
 # No other line of `metadev` is run, and the file is not changed. Exit 2 and nothing run: no such lines, or no safehouse.
 # The exit is otherwise the driver's (loop.ts, `run`). LOOP_ROOT names another checkout; only the tests set it.
 # Part 4 of plan/cloud-brain-orchestrator-as-steps.md, issue st-5-driver; tests/tools/loop-run.test.ts.
@@ -20,4 +26,4 @@ read_args() { 0="$ROOT/metadev"; eval "$TEXT"; }
 read_args
 export METADEV=1
 cd "$ROOT" || exit 2
-exec safehouse "${SAFEHOUSE_ARGS[@]}" bun tools/cloud-brain/loop.ts run "$@"
+exec safehouse "${SAFEHOUSE_ARGS[@]}" --enable=all-agents bun tools/cloud-brain/loop.ts run "$@"

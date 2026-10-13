@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { givenKey, judged, judgmentRound, outcomeOf, verdictKey } from "../../tools/cloud-brain/loop.ts";
+import { givenKey, judged, judgmentRound, notLoggedIn, outcomeOf, verdictKey } from "../../tools/cloud-brain/loop.ts";
 
 const tool = resolve(import.meta.dir, "../../tools/cloud-brain/loop.ts");
 const RIG = mkdtempSync(join(tmpdir(), "loop-step-test-")), ROOT = join(RIG, "root"), DEV = join(ROOT, "cloud-brain-dev"), STATE = join(RIG, "state"), LOOP = join(STATE, "issue-loop"), RUNS = join(LOOP, "runs");
@@ -713,6 +713,87 @@ test("what stops a start of a writer or an approver, and not a review or a round
   r = await step();
   expect(r.line.acts.map((a: Ev) => [a.act, a.id, a.exit, a.said])).toEqual([["start", "a", 1, "loop.ts: refused"], ["resume", "b", 0, undefined]]);
   expect([skipped(r.line), r.line.skipped[0].why]).toEqual([held, "no approver: a review or a round of this step was not started"]);
+});
+
+// loop-sh-sandbox-has-no-keychain: on 2026-10-13 the driver's sandbox had no keychain, and five runs of two steps each
+// answered `Not logged in · Please run /login` in under 0.1 s. The stop of a result that was an error held the
+// writers and the approvers; the second step still started an overseer and a judgment run.
+const OUT = '{"session":"s","result":"Not logged in \\u00b7 Please run /login","usd":0,"usage":{"input":0,"output":0},"context":0,"turns":1,"ms":89,"legs":1}';
+test("notLoggedIn: the result line of 2026-10-13, and not a report that cost something, another text, an empty line or no result", () => {
+  expect([JSON.parse(OUT), { result: "  not logged in" }, { result: "Invalid API key · Please run /login", usd: 0, context: 0 }].map(notLoggedIn)).toEqual([true, true, true]);
+  expect([null, undefined, {}, "Not logged in", { result: 5 }, { result: "" }, { result: "the report" }, { result: "It said: Not logged in" }, { result: "Not logged into the page: needed a tab" },
+    { result: "Not logged in · Please run /login", usd: 0.01 }, { result: "Not logged in · Please run /login", context: 4242 }, { result: "The page said: Please run /login", usd: 1.5, context: 4242 }].map(notLoggedIn)).toEqual(Array(12).fill(false));
+});
+
+test("a result that says its process is not logged in stops every start made with the token that started it: a review, a round, an approver, a writer, an overseer and the judgment run; the moves are made", async () => {
+  fresh(6000);
+  const rig = () => {
+    T.issues.clear(); T.queue = []; T.waiting = [];
+    worked("a"); mv("a", "submit", "in-review", "impl-aaaaaa"); Q("a", "review");
+    worked("b", 2); cost("b", { role: "implementer", outcome: "changes" }); Q("b", "round");
+    open("c"); Q("c", "start"); open("s", { kind: "project", state: "open" }); Q("s", "spec");
+    worked("d"); mv("d", "submit", "in-review", "impl-aaaaaa"); mv("d", "pass", "awaiting-approval", "rev-aaaaaa"); Wt("d", "owner");
+    open("r", { state: "triaged" }); Q("r", "ready");
+    open("t", { state: "open" }); Q("t", "triage");
+    for (const id of ["x", "y", "z"]) { open(id); mv(id, "pass", "done"); }
+  };
+  rig();
+  const all = ["start a reviewer", "resume b implementer", "ready r", "start d approver", "start c implementer", "start s spec-writer", "start overseer"], first = at("t").events[0].seq;
+  const result = (token: string, text = OUT) => writeFileSync(join(RUNS, token + ".result.json"), text);
+  let r = await dry();
+  expect([acts(r.line), judgment(r.line).length, gave(r.line), r.line.unlogged, r.status.includes("not logged in")]).toEqual([all, 1, [`triage t ${first}`], undefined, false]);
+  // A run this token started, ended or not, with that result.
+  runFile({ token: "impl-bbbbbb", id: "c" }); result("impl-bbbbbb");
+  r = await dry();
+  const why = "the result of impl-bbbbbb says its process is not logged in";
+  expect([acts(r.line), judgment(r.line), r.line.given, r.line.unlogged]).toEqual([["ended c implementer", "ready r"], [], [], { token: "impl-bbbbbb", by: ME, said: "Not logged in · Please run /login" }]);
+  expect(r.line.skipped).toEqual([{ id: "a", do: "start", why: "no reviewer: " + why }, { id: "b", do: "round", why: "no round: " + why }, { id: "d", do: "start", why: "no approver: " + why },
+    { id: "c", do: "start", why: "no implementer: " + why }, { id: "s", do: "start", why: "no spec-writer: " + why }, { id: "", do: "overseer", why: "no overseer: " + why }, { id: "t", do: "triage", why: "no judgment run: " + why }]);
+  expect(r.status).toContain(`## Health\n\n- healthy\n- no agent of any role is started: the result of impl-bbbbbb says its process is not logged in ("Not logged in · Please run /login"). It holds for the runs started with ${ME}, the token this step was made with: stop the driver, log \`claude\` in where it runs (the header of tools/cloud-brain/loop.sh has what its sandbox is given), and start it again\n`);
+  // Not dry, with the run ended: the move is made, no start, no resume, no token for a judgment run and no `given` comment.
+  runFile({ token: "impl-bbbbbb", id: "c", ended: { at: Date.now() - 3 * 3600000, outcome: "stopped" } });
+  r = await step();
+  expect([acts(r.line), log("self"), log("brain").filter((l) => l.startsWith("agent-token orch")), writes().map((c) => c.method), status().includes("- no agent of any role is started: the result of impl-bbbbbb")]).toEqual([["ready r"], [], [], ["move"], true]);
+  // It is the token's: a step made with another starts them, as a driver started again does.
+  rig();
+  writeFileSync(TOKENS, JSON.stringify({ [ME]: "v-" + ME, "impl-aaaaaa": "v-impl-aaaaaa", "orch-dddddd": "v-orch-dddddd" }));
+  r = await cli(["step", "--dry"], { LOOP_TOKEN: "orch-dddddd" });
+  expect([acts(r.line), judgment(r.line).length, r.line.unlogged]).toEqual([all, 1, undefined]);
+  // Another machine's run, a result that is a report, and one that cost something stop nothing.
+  runFile({ token: "impl-bbbbbb", id: "c", host: "otherhost", ended: { at: 1, outcome: "stopped" } });
+  expect(acts((await dry()).line)).toEqual(all);
+  runFile({ token: "impl-bbbbbb", id: "c", ended: { at: 1, outcome: "in-review" } }); result("impl-bbbbbb", '{"result":"the report","usd":1.5,"context":4242}');
+  expect(acts((await dry()).line)).toEqual(all);
+  result("impl-bbbbbb", '{"result":"Not logged in to the page it was to check","usd":1.5,"context":4242}');
+  expect(acts((await dry()).line)).toEqual(all);
+});
+
+test("not logged in: a result that is there before the next start stops the rest of that step; a step that is not healthy starts no judgment run; an overseer's such run is not counted among the 2 since a heading", async () => {
+  fresh(6000);
+  open("a", { state: "in-review" }); Q("a", "review"); open("c"); Q("c", "start");
+  // The stand-in for `start` leaves the file and the result of the run it started, as an agent that returned at once does.
+  const self = script("self-out.sh", `#!/bin/bash
+echo "$*" >> "$RIG/self.log"
+if [ "$1" = start ]; then mkdir -p "${RUNS}"; echo '{"id":"a","role":"reviewer","round":1,"token":"rev-cccccc","host":"${HOST}","as":"${ME}","pid":999999,"agent":"${HOST}:999999"}' > "${RUNS}/rev-cccccc.json"; echo '${OUT.replace(/\\/g, "\\\\")}' > "${RUNS}/rev-cccccc.result.json"; echo '{"started":"rev-cccccc"}'; fi
+`);
+  let r = await step({ LOOP_SELF: self });
+  expect([acts(r.line), log("self"), r.line.skipped, r.line.unlogged.token]).toEqual([["start a reviewer"], ["start a --role reviewer"], [{ id: "c", do: "start", why: "no implementer: the result of rev-cccccc says its process is not logged in" }], "rev-cccccc"]);
+  // Not healthy: the entry `unhealthy` is given to no run.
+  flag("redistil", "distiller abc\n  brain-x-issues      changes  aaaaaaaaaaaa -> dddddddddddd\n  brain-x-page        same  bbbbbbbbbbbb\n");
+  r = await dry();
+  expect([r.line.health.ok, r.line.acts, r.line.given, r.line.skipped]).toEqual([false, [], [], [{ id: "", do: "unhealthy", why: "no judgment run: the result of rev-cccccc says its process is not logged in" }]]);
+  rmSync(join(RUNS, "rev-cccccc.result.json"));
+  expect(judgment((await dry()).line).length).toBe(1);
+  // The two overseers of 2026-10-13, started by a driver that is gone: a third is started. Two that ran: none.
+  fresh(6000);
+  for (const id of ["x", "y", "z"]) { open(id); mv(id, "pass", "done"); }
+  for (const t of ["over-aaaaaa", "over-bbbbbb"]) { runFile({ token: t, role: "overseer", id: "", as: "orch-ffffff", after: "5646", ended: { at: 1, outcome: "stopped" } }); writeFileSync(join(RUNS, t + ".result.json"), OUT); }
+  r = await dry();
+  expect([acts(r.line), r.line.unlogged]).toEqual([["start overseer"], undefined]);
+  writeFileSync(join(RUNS, "over-bbbbbb.result.json"), '{"result":"the report","usd":1.5,"context":4242}');
+  expect(acts((await dry()).line)).toEqual(["start overseer"]);
+  writeFileSync(join(RUNS, "over-aaaaaa.result.json"), '{"result":"the report","usd":1.5,"context":4242}');
+  expect([acts((await dry()).line), skipped((await dry()).line)]).toEqual([[], ["overseer "]]);
 });
 
 test("step --dry twice over the same answers prints the same line twice, writes nothing, and its status names each entry that waits for the owner", async () => {

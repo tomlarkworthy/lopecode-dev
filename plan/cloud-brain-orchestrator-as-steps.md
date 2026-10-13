@@ -685,6 +685,19 @@ the text above names no choice, or the program differs from it:
   `mkdir -p` of the directories the sandbox mounts, and the `export` lines above them (`CLAUDE_CONFIG_DIR`
   among them, not `METADEV=1` alone). It does not run `caffeinate`, which `metadev` does.
 
+**As built (`loop-sh-sandbox-has-no-keychain`, 2026-10-13).** The owner's first run of `loop.sh` was two steps
+whose five agents each answered `Not logged in · Please run /login`;
+`tools/cloud-brain/records/loop-sh-sandbox-has-no-keychain.md` has it.
+
+- `loop.sh` gives `safehouse` one argument more than `metadev` has, `--enable=all-agents`. `safehouse` picks
+  the profile of Claude Code, and the keychain with it, by the name of the command it wraps; `metadev` wraps
+  `claude` and `loop.sh` wraps `bun`. The flag gives the file rules of every agent `safehouse` knows, which is
+  more than a session's sandbox has.
+- A fifth thing stops a start, and it stops every role's, the judgment run's among them (part 3, item 4,
+  has four, for a new writer and an approver): a run started with the step's own token whose result says its
+  process is not logged in. The step's line has `unlogged`, the status says it under Health, and the driver
+  says it on stderr at each such step. It ends with the driver: one started again has a new token.
+
 ### 5. The owner, and a session he is in (R7)
 
 A step cannot hear him and has no one to tell. Three things follow.
