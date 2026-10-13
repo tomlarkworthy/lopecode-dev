@@ -279,6 +279,11 @@ things are added to it, each an environment variable beside `TAB`, `READS` and `
   the tools a session there has (no `--tools`, no `--strict-mcp-config`, the advisor left on,
   `--permission-mode bypassPermissions`). This is what a writer, a spec writer, a digest writer, an
   approver and an overseer are given today by the `Agent` call, less the session's MCP servers.
+  As built: `st-1` built the flags of that parenthesis, and a process so started had every MCP
+  server of the user's and the project's settings (93 tools of four servers, with nothing asked).
+  Since `st-1b-work-process-without-mcp` (2026-10-13) `WORK` gives `--strict-mcp-config` with no
+  `--mcp-config`, on a start and on `--resume`, and the process has none
+  (`tools/cloud-brain/records/st-1b-work-process-without-mcp.md`).
   The prompt is the four lines of `SKILL.md` step 4, unchanged, so the briefs are read as they are.
 - `SESSION=<uuid>`: passed as `--session-id`, so the id is known, and written, before the run.
 - `--resume SESSION "message"` as today, from any process. `WORK` holds for it too: the resume

@@ -273,7 +273,7 @@ test("agent.sh written over while claude runs: exit 0, the JSON line, no scratch
 // spec writer and the other roles are started by agent.sh too, in their worktree, with what a session there has.
 const uuid = "11111111-2222-4333-8444-555555555555";
 const flags = ["--tools", "--allowedTools", "--strict-mcp-config", "--mcp-config", "--settings", "--add-dir"];
-test("WORK=DIR: claude is started in DIR with the prompt as given, no --tools, no --strict-mcp-config, the advisor left, bypassPermissions", async () => {
+test("WORK=DIR: claude is started in DIR with the prompt as given, no --tools, no MCP server, the advisor left, bypassPermissions", async () => {
   const a = rig();
   const work = root();
   const prompt = `Working directory: ${work}.\nRead agents/implementer.md and follow it.\nIssue: x\nYour token is impl-000000.`;
@@ -281,8 +281,8 @@ test("WORK=DIR: claude is started in DIR with the prompt as given, no --tools, n
   for (const env of [{}, { CHECKOUT: tmpdir() }, { ADVISOR: "1" }, { ADVISOR: "0" }]) {
     const r = await a(["implementer", prompt], { WORK: work, ...env });
     const s = r.sent!;
-    expect([r.code, r.cwd, s[0], s.slice(1, 5).join("\n"), s.slice(5, -1)]).toEqual([0, work, "-p", prompt, ["--model", "opus", "--permission-mode", "bypassPermissions", "--output-format", "stream-json", "--verbose"]]);
-    expect([flags.filter((f) => s.includes(f)), s.some((l) => /^(role|checkout|scratch|task): /.test(l)), r.scratchWasThere]).toEqual([[], false, false]);
+    expect([r.code, r.cwd, s[0], s.slice(1, 5).join("\n"), s.slice(5, -1)]).toEqual([0, work, "-p", prompt, ["--model", "opus", "--strict-mcp-config", "--permission-mode", "bypassPermissions", "--output-format", "stream-json", "--verbose"]]);
+    expect([flags.filter((f) => s.includes(f)), s.some((l) => /^(role|checkout|scratch|task): /.test(l)), r.scratchWasThere]).toEqual([["--strict-mcp-config"], false, false]);
     expect(JSON.parse(r.out).session).toBe("s-1");
   }
   // Without WORK the same call is the light agent's: started beside agent.sh, four tools.
@@ -294,7 +294,7 @@ test("WORK=DIR on --resume: the same flags in DIR, where it gave the four tools;
   const a = rig();
   const work = root();
   const r = await a(["--resume", "s-1", "round 2"], { WORK: work });
-  expect([r.code, r.cwd, r.sent!.slice(0, -1)]).toEqual([0, work, ["-p", "round 2", "--resume", "s-1", "--model", "opus", "--permission-mode", "bypassPermissions", "--output-format", "stream-json", "--verbose"]]);
+  expect([r.code, r.cwd, r.sent!.slice(0, -1)]).toEqual([0, work, ["-p", "round 2", "--resume", "s-1", "--model", "opus", "--strict-mcp-config", "--permission-mode", "bypassPermissions", "--output-format", "stream-json", "--verbose"]]);
   mkdirSync(join(work, "sub"));
   const p = Bun.spawn([join(a.dir, "agent.sh"), "implementer", "t"], { cwd: work, env: { ...process.env, PATH: `${join(a.dir, "bin")}:${process.env.PATH}`, WORK: "sub", SESSION: "", READS: "", TAB: "", DRY: "", MODEL: "" }, stdout: "pipe", stderr: "pipe" });
   expect([await p.exited, readFileSync(join(a.dir, "cwd"), "utf8").trim()]).toEqual([0, join(work, "sub")]);
@@ -313,9 +313,44 @@ test("DRY=1 with WORK prints no --tools line, and --session-id is followed by th
   const a = rig();
   const work = root();
   const r = await a(["implementer", "Issue: x"], { DRY: "1", WORK: work, SESSION: uuid });
-  expect([r.code, r.sent, r.out.trimEnd().split("\n")]).toEqual([0, null, ["-p", "Issue: x", "--session-id", uuid, "--model", "opus", "--permission-mode", "bypassPermissions", "--output-format", "stream-json", "--verbose"]]);
+  expect([r.code, r.sent, r.out.trimEnd().split("\n")]).toEqual([0, null, ["-p", "Issue: x", "--session-id", uuid, "--model", "opus", "--strict-mcp-config", "--permission-mode", "bypassPermissions", "--output-format", "stream-json", "--verbose"]]);
   const again = await a(["--resume", uuid, "more"], { DRY: "1", WORK: work });
-  expect(again.out.trimEnd().split("\n")).toEqual(["-p", "more", "--resume", uuid, "--model", "opus", "--permission-mode", "bypassPermissions", "--output-format", "stream-json", "--verbose"]);
+  expect(again.out.trimEnd().split("\n")).toEqual(["-p", "more", "--resume", uuid, "--model", "opus", "--strict-mcp-config", "--permission-mode", "bypassPermissions", "--output-format", "stream-json", "--verbose"]);
+});
+
+// Issue st-1b-work-process-without-mcp: until 2026-10-13 a WORK start had no --strict-mcp-config, and so every MCP
+// server of the user's and the project's settings (93 tools of four servers, the owner's Google Drive among them).
+test("WORK=DIR starts no MCP server: --strict-mcp-config once and no --mcp-config, printed by DRY=1 and sent, on a start and on --resume", async () => {
+  const work = root();
+  const mcp = (l: string[]) => [l.filter((x) => x === "--strict-mcp-config").length, l.filter((x) => x === "--mcp-config" || /mcpServers/.test(x)).length];
+  const starts: [string[], Record<string, string>][] = [
+    [["implementer", "Issue: x"], {}],
+    [["implementer", "Issue: x"], { SESSION: uuid }],
+    [["implementer", "Issue: x"], { ADVISOR: "1" }],
+    [["implementer", "Issue: x"], { MODEL: "haiku" }],
+    [["--resume", uuid, "more"], {}],
+  ];
+  for (const [args, env] of starts) {
+    const dry = await rig()(args, { WORK: work, DRY: "1", ...env });
+    const real = await rig()(args, { WORK: work, ...env });
+    expect([args[0], dry.code, dry.sent, mcp(dry.out.trimEnd().split("\n")), real.code, mcp(real.sent!)]).toEqual([args[0], 0, null, [1, 0], 0, [1, 0]]);
+  }
+  // TAB, the one way a server is added, is still refused with WORK, on a start and on a resume: nothing is started.
+  for (const args of [["implementer", "t"], ["--resume", uuid, "more"]]) {
+    const r = await rig()(args, { WORK: work, TAB: "1" });
+    expect([r.code, r.sent, r.err.includes("READS or TAB")]).toEqual([1, null, true]);
+  }
+  // A reviewer with a tab is not changed: the flag, and the one server it names.
+  const tab = (await rig()(["reviewer", "t"], { TAB: "1" })).sent!;
+  expect([mcp(tab), Object.keys(JSON.parse(tab[tab.indexOf("--mcp-config") + 1]).mcpServers)]).toEqual([[1, 2], ["lopecode"]]);
+});
+
+test("the README, the header of agent.sh and the spec's part 1 say a WORK process has no MCP server, and none says it has no --strict-mcp-config", () => {
+  const texts = [readFileSync(join(dev, "README.md"), "utf8"), readFileSync(join(dev, "agent.sh"), "utf8").split("\n{\n")[0], readFileSync(resolve(import.meta.dir, "../../plan/cloud-brain-orchestrator-as-steps.md"), "utf8")];
+  const flat = texts.map((t) => t.replace(/\s*\n[# ]*/g, " "));
+  expect(flat.map((t) => [/--strict-mcp-config`? with no `?--mcp-config/.test(t), t.includes("st-1b-work-process-without-mcp")])).toEqual([[true, true], [true, true], [true, true]]);
+  // The two files of cloud-brain-dev said "no --strict-mcp-config" of WORK; the spec's sentence of what was first built stays, with "As built" after it.
+  expect([flat[0].includes("no `--strict-mcp-config`"), flat[1].includes("no --strict-mcp-config"), /with every tool a session there has/.test(flat[0]), /As built: `st-1` built the flags/.test(flat[2])]).toEqual([false, false, false, true]);
 });
 
 test("WORK and SESSION are refused before claude is started: no directory, with READS or TAB, no prompt, no UUID, SESSION on --resume", async () => {
