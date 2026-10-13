@@ -17,7 +17,7 @@ force names by their blobs; this change is to both. "For the owner" below has th
 
 "`approver.ts facts` of lopecode-dev 489aea7a prints no `[policy]` mark". With the tool as it was
 (put in the worktree's `tools/cloud-brain/approver.ts` for the run, then put back) and with this
-change, the second at 10:33 CEST and the first before it (its time was not read):
+change, both at 10:43 CEST, after the rebase:
 
 ```
 $ bun tools/cloud-brain/approver.ts facts tr-4-held-read --token impl-669077      # before
@@ -50,6 +50,7 @@ policy parts:
 | part | what it is | why |
 |---|---|---|
 | the routes `install`, `rebuild`, `resign` | each `app.post` statement whole | the three the tool's reason for the cell names |
+| the routes `policy`, `sync` | each `app.get` statement whole | `approver.ts` reads the policy in force, with the reason its two blobs are in, from the first, and the record from the second |
 | `judge` | the declaration whole | where `issueAllowed`'s answer becomes the thrown refusal |
 | a declaration that names a guard, or names such a declaration, however far | whole | `write` names `judge`, `append` names `write`, `shownEvent` names `shown` |
 | a statement that is no declaration and no route | whole, in order | the loop that makes the eleven write routes, `return app`, and an `app.use` if one is written |
@@ -58,25 +59,26 @@ policy parts:
 
 "A guard" is one of the seven cells of `JUDGE` or `issueCaller`, which says whether the caller is
 present. On the seed of the checkout, printed by a script of the scratchpad that calls `appParts`
-(exported for this and for no test), at 10:37 CEST:
+(exported for this and for no test), at 10:43 CEST:
 
 ```
 routes written out in the cell: 18 attach install snapshot sync get runs attachment list queue wakes policy key flow verify resign rebuild lock locks
-policy parts: 31
- routes: the route install, the route resign, the route rebuild
- declarations: app, NS, S, L, J, refuse, made, keys, schema, signer, wait, who, load, metaRows, issueRow, judge, ahead, write, autoFrom, append, run, callerKey, wrote, shown, shownEvent, walk
- limits the parts read: afterWalk, auto, autoDepth, key, page, reason, rebuildRounds, syncMs, wakeAfter
+policy parts: 34
+ routes: the route install, the route sync, the route policy, the route resign, the route rebuild
+ declarations: app, NS, S, L, J, refuse, made, keys, schema, signer, wait, who, load, metaRows, issueRow, judge, ahead, write, autoFrom, append, run, callerKey, wrote, shown, shownEvent, current, walk
+ limits the parts read: afterWalk, auto, autoDepth, key, page, reason, rebuildRounds, syncMs, syncPage, wakeAfter
 ```
 
-(31 is 3 routes, 26 declarations and the two lists of statements.) So a route that is none of the
-three is a part only by the statements in it that ask a guard, and a new route by those it has.
+(34 is 5 routes, 27 declarations and the two lists of statements.) So a route that is none of the
+five is a part only by the statements in it that ask a guard, and a new route by those it has.
 The commit of `tr-4-held-read` moved the guard statement of `wakes` into a function inside the
 route and left its text as it was: the list of such statements is the same on both sides.
 
 **Not cut, and so named whole (`issuesApp`), when on either side:** the cell is not one block that
 parses; a declaration is of more than one name (`const { a } = …`); a declared name or a route
-stands twice; `judge` is not a declaration; one of the three routes is not there as a POST, or is
-there under GET as well. Five of these are cases of the test.
+stands twice; `judge` is not a declaration; one of the three routes is not there as a POST or one of
+the two as a GET; one of the five is there by the other method as well. Seven cases of the test are
+of these.
 
 **`issuesLimits`** is compared by the entries that a policy cell reads (each cell of the walk from
 `JUDGE`, and `issues_service`) and that a policy part of `issuesApp` reads. A read is
@@ -87,17 +89,24 @@ policy part of the app passes the limits on whole, spreads them, or reads a key 
 `issuesApp` is not cut. `wakeSeconds` and `wakeMs`, the two entries of `tr-4-held-read`, are read
 by `issueHeld` and the route `wakes`, neither a policy cell or part.
 
+## Two routes more than his three
+
+The owner's C names "the install, rebuild and resign routes". The routes `policy` and `sync` are
+parts too, whole. The tool's R7 reads the reason of the policy in force from `issue.policy` and
+holds its last two blobs against `origin/main`, and every other check reads the record from
+`issue.sync`: a commit that changes what either answers is a change to what the approver is held
+by. Marking them only narrows what an approver approves (`philosophy.md`, the reading of line 1:
+"A change that only narrows what a caller may do is taken"). Not asked of him. The first writing of
+this change left them out; the advisor's read before the landing named it.
+
 ## What the mark does not take
 
 Each of these carried the mark before, as a change to the cell, and carries none now. The
 approver's brief says so (below), and the approver reads the diff for them.
 
-- A route that is none of the three, changed or added, outside its statements that ask a guard.
+- A route that is none of the five, changed or added, outside its statements that ask a guard.
   A new route that writes to the database with no call of `write`, `append` or `judge` names no
   guard and is not marked. One that calls `write` is (a case of the test).
-- **The routes `policy` and `sync`, which `approver.ts` itself reads** (the policy in force, and
-  the record). `policy` has no statement that asks a guard; `sync` has one, its `return`. The
-  owner's C names three routes and these are not among them. Not asked of him.
 - A statement added before a guard statement in the same route (a `return` above it). The guard
   statement's text is the same, and the list is.
 - A comment between two statements of `issuesApp`. A comment inside a part is the part.
@@ -107,7 +116,7 @@ approver's brief says so (below), and the approver reads the diff for them.
 
 - **`.claude/skills/brain-maintenance/agents/approver.md`, step 6.** It said "The tool compared the
   text of those cells and nothing else". It now says that of two cells the tool compared the
-  policy parts alone, which they are, and that a route that is none of the three carries no mark:
+  policy parts alone, which they are, and that a route that is none of the five carries no mark:
   "read its diff for an answer a guard would refuse and for a write that asks none". **This is a
   change to the approver's brief**, made before the blobs were read, so the one install covers it.
 - **`plan/cloud-brain-issues-policy-v6.json`**, new: the v5 file with the two blobs of now, one
@@ -138,46 +147,46 @@ approver's brief says so (below), and the approver reads the diff for them.
 
 ## Counts
 
-Each run from the worktree after the commit of the change, 2026-10-13 between 10:33 and 10:36 CEST.
+Each run from the worktree after the last commit of the change and the rebase, 2026-10-13 between 10:43 and 10:46 CEST.
 
 | command | answer |
 |---|---|
-| `bun test --timeout=120000 ./tests/tools/approver.test.ts` | 34 pass, 0 fail, 641 `expect()` calls |
+| `bun test --timeout=120000 ./tests/tools/approver.test.ts` | 34 pass, 0 fail, 649 `expect()` calls |
 | `bun test --timeout=120000 ./tests/tools/issues-policy-v5.test.ts` | 7 pass, 0 fail, 37 `expect()` calls |
 | `bun test --timeout=120000 ./tests/tools/issues-policy-v6.test.ts` | 6 pass, 0 fail, 28 `expect()` calls |
-| `tests/tools/suite.sh` | 1164 pass, 0 fail, 9597 `expect()` calls, 120 files, 124.88 s |
-| `bun tools/cloud-brain/policy-pins.ts check` | `plan/cloud-brain-issues-policy-v6.json names the brief 2bdc54d4… and the tool 0a2bd7c0…, as the checkout has them` (the hashes cut here) |
+| `tests/tools/suite.sh` | 1172 pass, 0 fail, 9720 `expect()` calls, 121 files, 134.57 s |
+| `bun tools/cloud-brain/policy-pins.ts check` | `plan/cloud-brain-issues-policy-v6.json names the brief fc5d6745… and the tool 689f96b5…, as the checkout has them` (the hashes cut here) |
 | `bun tools/cloud-brain/approver.ts check --token impl-669077` | `7 approves by a delegation, 0 that do not stand`, exit 0 |
 
 **Without the fix.** The tool of the commit before put in its place in the worktree, the tests as
 they are now, then the tool put back: `approver.test.ts` 31 pass, 3 fail. The three: "the policy
 cells the tool names are cells of … as the checkout has it" (it now expects `[]` for a space before
 the block of `issuesApp`), "issuesApp and issuesLimits are marked by their policy parts", and "the
-commit of tr-4-held-read, 489aea7a, touches no policy part of the seed". Run at 10:37
-CEST, after the commit of the change.
+commit of tr-4-held-read, 489aea7a, touches no policy part of the seed". Run at 10:43
+CEST, after the last commit of the change.
 
 **Over the history of the seed**, the 64 commits of `git log --format=%h -- tools/cloud-brain/brain-issues.ojs`,
 each read with the tool before and with this one (a script of the scratchpad that calls `seedTouch`
-of both), at 10:34 CEST:
+of both), at 10:43 CEST:
 
 ```
-{"commits":64,"markedBefore":43,"markedNow":41,"twoBefore":28,"twoNow":26,"onlyTheTwoBefore":5,"onlyTheTwoNow":3}
+{"commits":64,"markedBefore":43,"markedNow":42,"twoBefore":28,"twoNow":27,"onlyTheTwoBefore":5,"onlyTheTwoNow":4}
 ```
 
-Two commits lose the mark, 489aea7a (`tr-4-held-read`) and 85788ee5. Of the last 60, two more keep
-it with fewer parts:
+One commit loses the mark, 489aea7a (`tr-4-held-read`). Two more keep it with fewer parts:
 
 ```
-998735a6 was ["issuesApp","issuesLimits"] now ["issuesApp (a statement that asks a guard)"]
+998735a6 was ["issuesApp","issuesLimits"] now ["issuesApp (the route sync, a statement that asks a guard)"]
 ad633b68 was ["issuesApp","issues_service","issuesLimits"] now ["issuesApp (refuse, run, a statement that asks a guard)","issues_service"]
 ```
 
 The issue's "Not known" asks how many leaves the mark of `issuesApp` alone forced. By commits, not
-by leaves: 5 of the 64 were marked by the two cells and no other, and 3 still are. The commits of
+by leaves: 5 of the 64 were marked by the two cells and no other, and 4 still are (85788ee5 lost the
+mark before `policy` and `sync` were parts, and has it with them). The commits of
 `tr-1-wait-in-the-record` (005d28b0), `bk-2-finish-by-the-service` (4ace22f6) and
 `bk-3-queue-and-hold` (9141a226) are marked as before: each changes `issueAllowed`, and in
 `issuesApp` the write path (`write`, `append` or `autoFrom` among the parts named). So of 64
-commits this change frees 2. A task that adds a kind of act to the tracker is still the owner's,
+commits this change frees 1. A task that adds a kind of act to the tracker is still the owner's,
 by `issueAllowed`.
 
 ## Not tried
