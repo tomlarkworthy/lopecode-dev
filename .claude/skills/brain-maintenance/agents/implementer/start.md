@@ -144,9 +144,11 @@ each command; no shell state lasts between calls.
    beside its `--test` (without the flag it refuses a commit that changes a seed, exit 64). Steps 7
    and 8 run on the build of your worktree, and you emit, apply and probe nothing of it on cb4. The
    first line of your comment and the reason of your submit say that cb4 does not run the change
-   and that the deploy is the owner's, and the comment says what he is to apply. Your record says
-   what his deploy will meet, when you know of something. A new policy, secret, permission or
-   Worker that the fix also needs is still the third stop above.
+   and that the deploy is the owner's, and the comment says what he is to apply. `seen.json` is
+   not changed. Your record says what he is to run and what his deploy will meet, as far as you
+   know it: `tools/cloud-brain/records/core-getinfo-line-says-access.md` has such a section, "For
+   the owner: the deploy". A new policy, secret, permission or Worker that the fix also needs is
+   still the third stop above.
    (Until that day such an issue was labeled `needs-owner` and not started, and was started only
    when it came back with the owner's answer to land the seed or was a task of an approved spec
    that said the deploy was his. Three writers landed so from their issue alone on 2026-10-12:
