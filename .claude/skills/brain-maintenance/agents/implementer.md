@@ -65,8 +65,8 @@ that path, `<tree>` what follows `bm-`, its branch `bm/<tree>`, and `<root>` the
 - `git status` there is `git status --short --ignore-submodules=all` (the submodules are links); `git diff`,
   `git add <file>` and `git commit` work. **Never `git commit -a` or `git add -A`**: the commit would record the links.
   `git fetch` there is `git fetch --no-recurse-submodules origin`.
-- The shell is zsh: an unquoted variable is one word (`for f in $FILES` runs once), and an unquoted `*` or `?`
-  that matches no file stops the command. Write the names out, or use an array.
+- The shell is zsh: an unquoted variable is one word (`for f in $FILES` runs once); an unquoted `*` or `?`
+  that matches no file, or a leading `=`, stops the command. Write the names out, or use an array.
 - The scratchpad is your prompt's `scratch:` line, else the session's; a file there begins with your token.
 - A worktree that holds work when you come to it, or a prompt whose first line names the main checkout:
   the page `start`.
