@@ -110,6 +110,10 @@ Counts, each from a run after the rebase and after the last edit of a tool or a 
 | `bun test --timeout=30000 ./tests/tools/issue-watch.test.ts` | `41 pass, 0 fail`, 144 expects |
 | `tests/tools/suite.sh` | 06:07:37 to 06:09:15 CEST: `1056 pass, 0 fail` in 106 files, 94.00 s |
 
+The suite's run was made before `c7c926d9` (`st-1-agent-sh-any-role`, 06:08:03 CEST, 5 tests more in
+`tests/tools/light-agent.test.ts`) was under these commits. At `39a1de11`, where they landed, it is
+`1061 pass, 0 fail` in 106 files (the reviewer `rev-916949`, two runs, 2026-10-13).
+
 ## The tool against cb4
 
 2026-10-13, 06:01:51 to 06:02:34 CEST (`date` before and after), with `impl-7e7f45` on this issue,
