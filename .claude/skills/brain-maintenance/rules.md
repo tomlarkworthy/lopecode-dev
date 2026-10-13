@@ -205,7 +205,17 @@ task 6 of that spec, `ap-6-rules-and-live-step`, 2026-10-13.
 - **Its own files.** The approver approves no change to `agents/approver.md`,
   `tools/cloud-brain/approver.ts`, `tests/tools/approver.test.ts`, a
   `plan/cloud-brain-issues-policy-*.json` or a policy cell of `brain-issues.ojs`: the tool refuses
-  an issue of which a commit touches one, and such an issue is the owner's. The reason of the
+  an issue of which a commit touches one, and such an issue is the owner's. Of two of those cells,
+  `issuesApp` and `issuesLimits`, a commit touches a policy part or it does not touch the cell
+  (since `approver-policy-mark-takes-every-route`, 2026-10-13): of `issuesApp` every declaration,
+  every route that takes a POST, the routes `policy` and `sync`, every statement that is no
+  declaration and no route, and in a route that is left, each a GET, every statement that asks a
+  guard and every statement that names `app` or sets a declaration; of `issuesLimits` the entries
+  that a policy cell or such a part reads. Either cell is taken whole, as the other policy cells
+  are, where the tool cannot cut it. A route that takes a GET and is neither `policy` nor `sync`,
+  changed or added, carries no mark for what it does beside those statements, and an entry of
+  `issuesLimits` that no policy cell and no such part reads carries none: the tool does not refuse
+  a commit for either, and the approver reads its diff (`agents/approver.md`, step 6). The reason of the
   policy in force ends `approver brief <blob> tool <blob>`, and the tool makes no move when the
   brief or the tool of `origin/main` is another blob. So a landed change to either stops every
   approval by the approver until he installs a policy that names it
