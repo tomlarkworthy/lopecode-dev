@@ -320,31 +320,34 @@ fly_announce = {
 // %%
 // The three bodies of the set-up form, each a call of fly.post. `machine` is tools/cloud-brain/fly/machine.json
 // (tests/tools/fly-service.test.ts holds the two together); the owner writes the label and the ids in before sending.
-flyBodies = ({
-  volume: { path: "volumes", method: "POST", body: { name: "loop_data", region: "ams", size_gb: 10 } },
-  machine: {
-    path: "machines",
-    method: "POST",
-    body: {
-      name: "loop",
-      region: "ams",
-      config: {
-        image: "registry.fly.io/cloudbrain:<label>",
-        guest: { cpu_kind: "performance", cpus: 2, memory_mb: 4096 },
-        restart: { policy: "no" },
-        auto_destroy: false,
-        mounts: [{ volume: "<volume id>", path: "/data" }],
-        files: [
-          { guest_path: "/root/.ssh/lopecode-dev.key", secret_name: "DEPLOY_KEY_LOPECODE_DEV" },
-          { guest_path: "/root/.ssh/lopebooks.key", secret_name: "DEPLOY_KEY_LOPEBOOKS" },
-          { guest_path: "/root/.ssh/lopecode-plugin.key", secret_name: "DEPLOY_KEY_LOPECODE_PLUGIN" },
-          { guest_path: "/root/cb4-tokens.json", secret_name: "BRAIN_TOKENS" }
-        ]
-      }
+// `image` is an update, and Fly.io takes no partial one ("You need to specify the entire Machine config to update a
+// Machine; we don't support partial updates", docs.fly.io/machines/api/machines-resource, read 2026-10-13): its
+// config is the machine body's, the one object.
+flyBodies = {
+  const config = {
+    image: "registry.fly.io/cloudbrain:<label>",
+    guest: { cpu_kind: "performance", cpus: 2, memory_mb: 4096 },
+    restart: { policy: "no" },
+    auto_destroy: false,
+    mounts: [{ volume: "<volume id>", path: "/data" }],
+    files: [
+      { guest_path: "/root/.ssh/lopecode-dev.key", secret_name: "DEPLOY_KEY_LOPECODE_DEV" },
+      { guest_path: "/root/.ssh/lopebooks.key", secret_name: "DEPLOY_KEY_LOPEBOOKS" },
+      { guest_path: "/root/.ssh/lopecode-plugin.key", secret_name: "DEPLOY_KEY_LOPECODE_PLUGIN" },
+      { guest_path: "/root/cb4-tokens.json", secret_name: "BRAIN_TOKENS" }
+    ]
+  };
+  return {
+    volume: { path: "volumes", method: "POST", body: { name: "loop_data", region: "ams", size_gb: 10 } },
+    machine: { path: "machines", method: "POST", body: { name: "loop", region: "ams", config } },
+    image: {
+      path: "machines/<machine id>",
+      method: "POST",
+      body: { config },
+      note: "Fly.io takes the whole config of a machine at an update and no part of one. This is the config of the machine body: write the label in, the volume id as for machine, and whatever was changed on the machine since it was made (fly.get?path=machines/ID answers its config)."
     }
-  },
-  image: { path: "machines/<machine id>", method: "POST", body: { config: { image: "registry.fly.io/cloudbrain:<label>" } } }
-})
+  };
+}
 // %%
 // The machine for the owner: its state, the day's hours, who holds loop, the work, Start and Stop, and the set-up form.
 flyPanel = ({ client, owner = false } = {}) => {
@@ -357,10 +360,12 @@ flyPanel = ({ client, owner = false } = {}) => {
   const app = Inputs.text({ label: "App", width: "14em" }), machine = Inputs.text({ label: "Machine id", width: "14em" });
   const which = Inputs.select(Object.keys(flyBodies), { label: "Set up" }), path = Inputs.text({ label: "Path", width: "24em" });
   const body = Inputs.textarea({ label: "Body", rows: 12, monospace: true, width: "40em" });
+  const hint = htl.html`<div style="${muted};max-width:40em"></div>`;
   const fill = () => {
     const b = flyBodies[which.value];
     path.value = b.path;
     body.value = JSON.stringify(b.body, null, 2);
+    hint.textContent = b.note || "";
   };
   fill();
   which.addEventListener("input", fill);
@@ -427,7 +432,7 @@ flyPanel = ({ client, owner = false } = {}) => {
   // The inputs' own events stay in the panel: its one input event is the status drawn.
   for (const input of [app, machine, which, path, body, ...buttons]) input.addEventListener("input", (e) => e.stopPropagation());
   const rowOf = (...items) => htl.html`<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">${items}</div>`;
-  el.append(state, rowOf(refresh, start, stop), app, machine, rowOf(save), which, path, body, rowOf(sendIt), note);
+  el.append(state, rowOf(refresh, start, stop), app, machine, rowOf(save), which, hint, path, body, rowOf(sendIt), note);
   el.ready = draw();
   return el;
 }
@@ -887,6 +892,18 @@ test_fly_panel_shows_the_machine_and_sends_one_call_at_a_time = {
   await settle();
   expect(calls.find((c) => c[0] === "fly.post")).toEqual(["fly.post", flyBodies.machine.body, { params: { path: "machines", method: "POST" } }]);
   expect(el.textContent).toContain("Send failed: Fly.io answered 422");
+  // The change of image is an update, which Fly.io takes whole: the body shown and sent is the machine body's config, with the note.
+  expect(el.textContent).not.toContain("Fly.io takes the whole config");
+  which.value = [...which.options].find((o) => o.textContent === "image").value;
+  which.dispatchEvent(new Event("input", { bubbles: true }));
+  expect(JSON.parse(el.querySelector("textarea").value)).toEqual({ config: flyBodies.machine.body.config });
+  expect(Object.keys(flyBodies.image.body.config)).toEqual(["image", "guest", "restart", "auto_destroy", "mounts", "files"]);
+  expect(el.textContent).toContain("Fly.io takes the whole config of a machine at an update and no part of one.");
+  const before = calls.length;
+  press("Send");
+  await settle();
+  await settle();
+  expect(calls.slice(before).find((c) => c[0] === "fly.post")).toEqual(["fly.post", { config: flyBodies.machine.body.config }, { params: { path: "machines/<machine id>", method: "POST" } }]);
   // A body that is not JSON is said, and nothing is sent.
   el.querySelector("textarea").value = "{";
   el.querySelector("textarea").dispatchEvent(new Event("input", { bubbles: true }));

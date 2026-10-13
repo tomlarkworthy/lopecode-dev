@@ -12,6 +12,12 @@
 # sandbox: it gives the file rules of every agent safehouse knows, where a session has those of Claude Code alone.
 # `keychain` is no name --enable takes (loop-sh-sandbox-has-no-keychain; tools/cloud-brain/records/ has its record).
 # No other line of `metadev` is run, and the file is not changed. Exit 2 and nothing run: no such lines, or no safehouse.
+# Where the PATH has a `caffeinate` (macOS) it first starts `caffeinate -is -w $$`, as `metadev` does for a session
+# (its line under "Prevent macOS sleep"): no idle sleep while the driver runs, and so while an agent a step started
+# does. `exec` keeps the pid, so the hold ends when the driver does. It does not hold a machine whose lid is closed,
+# and -s holds only on mains power. With no `caffeinate` (Linux: the worker machine) nothing is started for it.
+# It is started here and not by the driver: inside the sandbox `caffeinate` ends at once with "Failed to create
+# PreventUserIdleSystemSleep assertion" (run in a session of 2026-10-13). Issue fb-batch-fly-machine; no hold until then.
 # The exit is otherwise the driver's (loop.ts, `run`). LOOP_ROOT names another checkout; only the tests set it.
 # Part 4 of plan/cloud-brain-orchestrator-as-steps.md, issue st-5-driver; tests/tools/loop-run.test.ts.
 set -u
@@ -26,4 +32,6 @@ read_args() { 0="$ROOT/metadev"; eval "$TEXT"; }
 read_args
 export METADEV=1
 cd "$ROOT" || exit 2
+setopt no_bg_nice   # zsh lowers a background job with nice(5), which the sandbox of a session refuses with a line on stderr
+command -v caffeinate >/dev/null && caffeinate -is -w $$ </dev/null >/dev/null 2>&1 &!
 exec safehouse "${SAFEHOUSE_ARGS[@]}" --enable=all-agents bun tools/cloud-brain/loop.ts run "$@"

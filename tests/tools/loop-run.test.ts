@@ -7,7 +7,7 @@
 // the program with stand-ins for brain.ts, lock.sh, issue-as.sh and the step, and stop it with a signal. The cases of
 // loop.sh have a stand-in for safehouse and a metadev of their own. No case calls cb4.
 import { test, expect, afterAll } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { drive, madeMove, idle, EVERY_MS, CLOCK_MS, RENEW_MS, TOKEN_MS, FOLLOW_MOST, type Driver } from "../../tools/cloud-brain/loop.ts";
@@ -408,7 +408,8 @@ SAFEHOUSE_ARGS=(
 echo "metadev was run" >> "${RIG}/metadev.log"
 safehouse "\${SAFEHOUSE_ARGS[@]}" claude
 `);
-  writeFileSync(join(bin, "safehouse"), `#!/bin/bash\nprintf '%s\\n' "METADEV=$METADEV" "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "PWD=$PWD" "$@" > "${RIG}/safehouse.log"\n`); chmodSync(join(bin, "safehouse"), 0o755);
+  writeFileSync(join(bin, "safehouse"), `#!/bin/bash\necho $$ > "${RIG}/safehouse.pid"; printf '%s\\n' "METADEV=$METADEV" "CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "PWD=$PWD" "$@" > "${RIG}/safehouse.log"\n`); chmodSync(join(bin, "safehouse"), 0o755);
+  writeFileSync(join(bin, "caffeinate"), `#!/bin/bash\nprintf '%s\\n' "$*" >> "${RIG}/caffeinate.log"\n`); chmodSync(join(bin, "caffeinate"), 0o755);
   const sh = (args: string[], env: Record<string, string>) => Bun.spawnSync([join(DIR, "loop.sh"), ...args], { env: { ...process.env, ...env }, stdout: "pipe", stderr: "pipe" });
   const { METADEV: _, CLAUDE_CONFIG_DIR: __, ...base } = process.env;
   const r = Bun.spawnSync([join(DIR, "loop.sh"), "--dry"], { env: { ...base, LOOP_ROOT: root, PATH: bin + ":" + process.env.PATH }, stdout: "pipe", stderr: "pipe" });
@@ -421,11 +422,29 @@ safehouse "\${SAFEHOUSE_ARGS[@]}" claude
   // Code, and the keychain with it, by the name of the command it wraps, and this one is `bun` (loop-sh-sandbox-has-no-keychain).
   // The exports above ENV_PASS= and the lines from it to the ) are run, its mkdir among them; no other line is.
   expect([existsSync(join(RIG, "made by metadev")), existsSync(join(RIG, "metadev.log"))]).toEqual([true, false]);
-  // No SAFEHOUSE_ARGS in the file, or no safehouse: exit 2 and nothing run.
-  rmSync(join(RIG, "safehouse.log"));
+  // The machine is held awake for as long as the driver's process lives: caffeinate is started once, to wait for the pid
+  // that safehouse then has (exec keeps it), with -i and -s as metadev has them. Started behind the script: read when written.
+  const held = join(RIG, "caffeinate.log");
+  for (let i = 0; i < 200 && !(existsSync(held) && readFileSync(held, "utf8").endsWith("\n")); i++) await Bun.sleep(25);
+  expect(readFileSync(held, "utf8")).toBe(`-is -w ${readFileSync(join(RIG, "safehouse.pid"), "utf8").trim()}\n`);
+  // No SAFEHOUSE_ARGS in the file, or no safehouse: exit 2 and nothing run, the hold among it.
+  rmSync(join(RIG, "safehouse.log")); rmSync(held);
   writeFileSync(join(root, "metadev"), "#!/usr/bin/env zsh\nclaude\n");
   const none = sh([], { LOOP_ROOT: root, PATH: bin + ":" + process.env.PATH });
   expect([none.exitCode, none.stderr.toString().trim(), existsSync(join(RIG, "safehouse.log"))]).toEqual([2, `loop.sh: ${real(root)}/metadev has no SAFEHOUSE_ARGS=( … ) to read; nothing was run`, false]);
+  await Bun.sleep(200);
+  expect(existsSync(held)).toBe(false);
+});
+
+test("loop.sh with no caffeinate on the PATH starts the driver all the same", async () => {
+  const root = join(RIG, "checkout"), bin = join(RIG, "bin-bare");
+  mkdirSync(bin, { recursive: true });
+  for (const tool of ["zsh", "git", "sed", "bash", "env"]) symlinkSync(Bun.which(tool)!, join(bin, tool));
+  writeFileSync(join(root, "metadev"), `#!/usr/bin/env zsh\nENV_PASS="METADEV"\nSAFEHOUSE_ARGS=(\n    --env-pass="$ENV_PASS"\n)\n`);
+  writeFileSync(join(bin, "safehouse"), `#!${Bun.which("bash")}\nprintf '%s\\n' "$@" > "${RIG}/safehouse-bare.log"\n`); chmodSync(join(bin, "safehouse"), 0o755);
+  const r = Bun.spawnSync([Bun.which("zsh")!, join(DIR, "loop.sh"), "--dry"], { env: { HOME: process.env.HOME!, LOOP_ROOT: root, PATH: bin }, stdout: "pipe", stderr: "pipe" });
+  expect([r.exitCode, r.stderr.toString(), Bun.which("caffeinate", { PATH: bin })]).toEqual([0, "", null]);
+  expect(readFileSync(join(RIG, "safehouse-bare.log"), "utf8").trim().split("\n")).toEqual(["--env-pass=METADEV", "--enable=all-agents", "bun", "tools/cloud-brain/loop.ts", "run", "--dry"]);
 });
 
 test("loop.ts run with no state file: after a step with no act it ends itself, exit 0, with `loop` released and its token ended; fly.status is asked of brain.ts as fly-status at a renew only", async () => {

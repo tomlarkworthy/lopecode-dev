@@ -17,10 +17,14 @@ beforeAll(async () => {
   if (module) fly = await importNotebookModule(module);
 });
 
-test("the machine body of the set-up form is fly/machine.json", async () => {
+test("the machine body of the set-up form is fly/machine.json, and the image body is its config whole", async () => {
   const bodies = await fly.value("flyBodies");
-  expect(bodies.machine.body).toEqual(JSON.parse(readFileSync(resolve(ROOT, "tools/cloud-brain/fly/machine.json"), "utf8")));
+  const file = JSON.parse(readFileSync(resolve(ROOT, "tools/cloud-brain/fly/machine.json"), "utf8"));
+  expect(bodies.machine.body).toEqual(file);
   expect(Object.keys(bodies)).toEqual(["volume", "machine", "image"]);
+  // An update of a machine is its whole config (Fly.io has no partial one): the image body's is the file's too, and nothing else is sent.
+  expect(bodies.image.body).toEqual({ config: file.config });
+  expect([bodies.image.path, bodies.image.method]).toEqual(["machines/<machine id>", "POST"]);
   for (const b of Object.values<any>(bodies)) expect(["POST", "PUT", "DELETE"]).toContain(b.method);
 });
 

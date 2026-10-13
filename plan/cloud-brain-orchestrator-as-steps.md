@@ -712,6 +712,8 @@ the text above names no choice, or the program differs from it:
 - `loop.sh` runs the lines of `metadev` from `ENV_PASS=` to the end of `SAFEHOUSE_ARGS=(`, which have the
   `mkdir -p` of the directories the sandbox mounts, and the `export` lines above them (`CLAUDE_CONFIG_DIR`
   among them, not `METADEV=1` alone). It does not run `caffeinate`, which `metadev` does.
+  (As built, `fb-batch-fly-machine`, 2026-10-13: it starts `caffeinate -is -w $$` before `safehouse`, where the
+  PATH has one; the record.)
 
 **As built (`loop-sh-sandbox-has-no-keychain`, 2026-10-13).** The owner's first run of `loop.sh` was two steps
 whose five agents each answered `Not logged in · Please run /login`;
