@@ -165,6 +165,9 @@ test("plan: a Worker that runs main's seed has its open issue closed, and one th
   expect(again[0].body.to).toBe("open");
   expect(again[1].body.add).toEqual(["needs-owner"]);
   expect(plan(waits, got({ state: "closed", closed: true, seq: 12 }), "the list").map((w) => w.call)).toEqual(["move"]);
+  // One he rejected is not opened again, and not written to.
+  expect(plan(waits, got({ state: "rejected", closed: true }), "another list")).toEqual([]);
+  expect(plan(same, got({ state: "rejected", closed: true }), "")).toEqual([]);
 });
 
 // The tracker, as far as the tool calls it: get, open, comment, label, move. A key sent before writes nothing.
@@ -294,6 +297,8 @@ test("the docs say where the read is and what keeps the owner's issue", async ()
   const skill = await text(".claude/skills/brain-maintenance/SKILL.md");
   const step7 = skill.slice(skill.indexOf("\n7. **Tell the user**"), skill.indexOf("\n8. **Watch, then schedule**"));
   for (const phrase of ["bun tools/cloud-brain/waiting-deploys.ts", "`deploy-waits-<worker>`", "not triaged, started or closed by you"]) expect(step7.includes(phrase), phrase).toBe(true);
+  const row = skill.split("\n").find((l) => l.includes("| labeled `needs-owner` |"))!;
+  expect(row).toContain("An issue `deploy-waits-<worker>` is not read this way");
   expect(await text(".claude/skills/brain-maintenance/agents/implementer/start.md")).toContain("deploy-waits-<worker> opened");
   const lock = await text("tools/cloud-brain/lock.sh");
   expect(lock).toContain("LOCK_DEPLOYS=0 leaves the step out");

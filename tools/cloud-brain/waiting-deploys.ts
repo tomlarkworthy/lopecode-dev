@@ -13,7 +13,7 @@
 //                                            open with another list: a comment with the list as it is now. A Worker that
 //                                            does not wait and has an open one: it is closed, with what cb4 runs in the
 //                                            reason. Nothing else is written, and a label the owner took off stays off
-//                                            until the issue is opened again. The last line is `deploys (<brain>): …`,
+//                                            until the issue is opened again. One he rejected is left as it is. The last line is `deploys (<brain>): …`,
 //                                            what waits and what was written. Exit 1: a write was refused.
 // `lock.sh release land` runs the second after each landing (LOCK_TOKEN is the token), so a seed landed with no deploy
 // (land.sh --seed-lands-undeployed) is on his page from that release, and is off it at the first release after his deploy.
@@ -174,7 +174,8 @@ export function ask(row: Row, titles: Record<string, { title: string; state: str
 
 export interface Write { call: "open" | "move" | "comment" | "label"; body: Record<string, unknown> }
 // The writes of one Worker, from its row and what the tracker answered of its issue (null: there is none).
-// A key ends with the seq of the issue's last event: the same state gives the same key, and a call sent twice writes once.
+// A key is `deploys/<worker>/<what>-<seq of the issue's last event>`, with no role and no token in it: the releases of
+// two agents that read the same state send the same key, and the second writes nothing.
 export function plan(row: Row, got: { issue: any; events: any[] } | null, text: string): Write[] {
   const id = issueOf(row.worker), key = (what: string) => `deploys/${row.worker}/${what}-${got ? got.issue.seq : 0}`;
   const closed = !!got && (got.issue.closed || ["closed", "rejected", "done", "reverted"].includes(got.issue.state));
@@ -182,6 +183,8 @@ export function plan(row: Row, got: { issue: any; events: any[] } | null, text: 
     if (!got || closed) return [];
     return [{ call: "move", body: { key: key("close"), id, to: "closed", reason: `cb4 runs the seed of main for ${row.what} (${row.worker}, ${row.runs.slice(0, 12)}): no deploy of it waits.` } }];
   }
+  // His reject stands: the policy refuses a token the reopen of an issue he rejected.
+  if (got && got.issue.state === "rejected") return [];
   if (!got) return [{ call: "open", body: { key: key("open"), id, kind: "task", about: "issue-loop", labels: ["needs-owner"], title: `A deploy waits for you: ${row.what} (${row.worker}) on cb4 is behind main`, body: text } }];
   const ours = got.events.filter((e) => e.type === "commented" && String(e.key).startsWith(`deploys/${row.worker}/`));
   const last = ours.length ? ours[ours.length - 1].body : got.issue.body;

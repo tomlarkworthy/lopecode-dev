@@ -19,7 +19,8 @@ No change of this issue is deployed: it is a local tool, a step of `lock.sh`, te
   with `LOCK_BASE` set (the tests) only such a program is run.
 - Docs: `knowledge/changing-and-deploying-a-cloud-brain-worker.md`, a section "The deploys that wait for the owner";
   one sentence in `knowledge/calling-a-cloud-brain-from-this-checkout.md`; `SKILL.md` step 7, a paragraph for the
-  orchestrating session; `agents/implementer/start.md` and `landing.md`, a sentence each on the line a release prints;
+  orchestrating session, and a sentence in the row `labeled needs-owner` of its step 3, so that a pass does not take
+  the label off such an issue as answered by `philosophy.md`; `agents/implementer/start.md` and `landing.md`, a sentence each on the line a release prints;
   the header of `land.sh`, step 9.
 
 ## The place on his page
@@ -131,7 +132,7 @@ the docs.
 `bun test --timeout=30000 ./tests/tools/lock.test.ts`: 30 pass, 0 fail; with `lock.sh` of before the change, 28 pass
 and 2 fail, the two added.
 
-The whole of `tests/tools`, `tests/tools/suite.sh`: 1178 pass, 0 fail, at 10:44 CEST on 2026-10-13, after the rebase and the
+The whole of `tests/tools`, `tests/tools/suite.sh`: 1178 pass, 0 fail, 121 files, at 10:53 CEST on 2026-10-13, after the rebase and the
 last edit of a file other than this one.
 
 ## Not tried
@@ -142,6 +143,12 @@ last edit of a file other than this one.
 - The release of a landing on cb4 with the step. The first is this change's own landing; its line is in the writer's
   comment on the issue, not here.
 - A close and a reopen on cb4. Each needs a deploy by the owner. They ran against the stand-in.
+- An issue the owner rejected: `plan` writes nothing to it (a test), since the policy's `reopen` refuses a token
+  after an `owner-reject`. The Worker is then on his page no more, though it waits. Not seen on cb4.
+- The write keys are `deploys/<worker>/<what>-<seq>` and not `<role>/<issue id>/<what>` of `rules.md`, "Always": two
+  releases that read one state are to send one key. And the tool sets `ISSUE_AS_TIME_AHEAD=1` for its own calls of
+  `issue-as.sh`, which leaves out that script's check of a time ahead of the clock: the text is made from titles and
+  commit days, and a title that names a time of day would have the write refused at every release.
 - The owner's Answer on such an issue, which comments and takes the label off: the issue then stands at `open` with no
   label and `issue.queue` would list it as `triage`. `SKILL.md` step 7 tells the orchestrating session to leave it; no
   code holds that.
