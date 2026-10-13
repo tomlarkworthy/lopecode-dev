@@ -112,13 +112,16 @@ $ bun test --timeout=30000 --preload ./tests/tools/fixtures/no-fetch.ts <the fiv
  33 pass, 0 fail     Ran 33 tests across 5 files.
 $ BRAIN=https://cb4.endpointservices.workers.dev bun test --timeout=30000 $(grep -l -E 'briefOf|reviewer-brief' tests/tools/*.test.ts | sed 's|^|./|')
  85 pass, 0 fail     Ran 85 tests across 10 files.
+$ BRIEF=$W/tests/tools/fixtures/reviewer-brief.md bun test --timeout=30000 $(grep -l -E 'briefOf|reviewer-brief' tests/tools/*.test.ts | sed 's|^|./|')
+ 84 pass, 0 fail     Ran 84 tests across 10 files.     (07:12:37 CEST, after the record's first commit)
 $ tests/tools/suite.sh
  1090 pass, 0 fail   Ran 1090 tests across 110 files. [117.81s]
 ```
 
 The fifth line is the overseer's list of before a put, with `BRAIN=` in the place of `BRIEF=`: it answers the
-issue's "Whether `BRAIN=` still reads the live brief" for these ten files on this day. The same list with
-neither variable was 84 pass in 10 files before the rebase (one fewer: the test that `BRAIN` adds).
+issue's "Whether `BRAIN=` still reads the live brief" for these ten files on this day. The sixth is the
+overseer's command as its brief has it, with the new copy as the edited file: one test fewer, the one that
+`BRAIN` adds.
 
 Two more, before the rebase and not run again: `BRAIN=http://127.0.0.1:1` on the new test alone, 0 pass and
 1 fail on the connection; `BRAIN=` (empty), 6 pass in 6 tests.
