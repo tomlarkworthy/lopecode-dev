@@ -2439,10 +2439,10 @@ test_a_read_of_the_same_rows_puts_no_new_services_table_in_place = {
   await plain.refresh();
   expect(plain.querySelector("table") === first).toBe(true);
   expect(plain.value.map((r) => r.state)).toEqual(["unknown"]);
-  // With no service: a table of no row, and an empty value.
+  // With no service: one table, of no Worker, and an empty value.
   const none = serviceList();
   await none.refresh();
-  expect([none.querySelectorAll("table").length, none.querySelectorAll("tbody tr").length, none.value]).toEqual([1, 0, []]);
+  expect([none.querySelectorAll("table").length, none.querySelectorAll("tbody b").length, none.value]).toEqual([1, 0, []]);
   seen.disconnect();
   return "0 tables for the same rows, 1 for rows that differ";
 }

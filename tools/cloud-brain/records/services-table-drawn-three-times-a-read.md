@@ -75,13 +75,16 @@ the build, 1 entry, --differ  08:11:50Z   1       {}         0      infra.getSta
 the build, 6, --differ        08:12:54Z   2       {}         0      infra.getState 2, service.list 2, getInfo 48
 cb4's page, 1 entry           08:10:16Z   3       {}         1      "the table was put in place 3 times, and 1 at most for 1 entry"
 cb4's page, 1, --differ       08:13:58Z   3       {}         1      the same line
+the build, 1 entry            08:26:43Z   0       {}         0      after the rebase and the test cell's last edit
+the build, 1 entry, --differ  08:27:46Z   1       {}         0      the same
 ```
 
 So on the build a read whose rows are the ones shown adds no table, and a read whose rows differ adds one;
 six entries are two reads (`page-services-refreshes-in-a-loop`) and two tables. cb4's page is as it was, and
 the tool now fails it with an entry until the deployer is deployed.
 
-Tests, each after the last edit of the seed:
+Tests, each after the last edit of the seed and after the rebase onto `origin/main` (which brought no seed
+and no file of this change):
 
 ```
 $ cd cloud-brain-dev && bun test.ts @tomlarkworthy/cloudflare-iac --with …/.emitted/services-table.js
@@ -95,7 +98,7 @@ $ bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html
 $ bun test --timeout=30000 ./tests/tools/page-redraws.test.ts
 6 pass, 0 fail
 $ tests/tools/suite.sh
-1154 pass, 0 fail, 118 files
+1156 pass, 0 fail, 119 files
 ```
 
 `verify-run.ts` was not run: the brief has it that `brain-deployer` gives it no verdict ("the Worker did not
