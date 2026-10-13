@@ -3,8 +3,8 @@
 Written 2026-10-13 by the writer of the issue (token `impl-c4c83f`, `start` at event 5556). The issue was filed
 by the overseer `over-f051f0` with a proposed text, and is labelled `major`: `agents/overseer.md` is not the
 overseer's to edit. No seed, no deploy, nothing put on the Brain. Every run below was made in the worktree of this
-issue (bun 1.4.0, macOS, the shell zsh), between 02:03 and 02:11 CEST by `date`, and those under "The runs" after
-the rebase of step 9.
+issue (bun 1.4.0, macOS, the shell zsh), in calls whose `date` read from 02:03:34 to 02:12:00 CEST, and those
+under "The runs" after the rebase of step 9.
 
 ## What was wrong, seen
 
@@ -89,7 +89,7 @@ It gives `briefOf` an environment of its own and takes `BRIEF` out of the one it
 The whole suite, after the rebase and the last edit:
 
 ```
-$ tests/tools/suite.sh     (02:07:52 CEST)
+$ tests/tools/suite.sh     (begun 02:07:52 CEST, and again at 02:12:00 after the commit of this file: the same four lines but the seconds)
  982 pass
  0 fail
 Ran 982 tests across 101 files. [90.84s]
