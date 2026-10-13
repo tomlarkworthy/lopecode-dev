@@ -60,7 +60,7 @@ Seen in the same run: `ended impl-5231ca` while the stand-in waited was exit 3 w
 worktree's path and `SESSION` as the session of each run's event; the journal
 `.emitted/issue-loop/test-st-2-a.md` got one heading a run, each with
 `(no report: the process gave no result line, exit 2)`. Both tokens still answered a read of the issue after the check
-(`issue-as.sh <each> "get?id=test-st-2-a"`, exit 0): `ended` ran no `agent-token`. The writer asked the orchestrating session to end them (comment 5933).
+(`issue-as.sh <each> "get?id=test-st-2-a"` printed the issue): `ended` ran no `agent-token`. The writer asked the orchestrating session to end them (comment 5933).
 
 The spec's row reads "after `ended`, one run, another outcome". The outcome on cb4 was `stopped`
 both times. `no-submit`, `in-review`, `pass` and `changes` were seen in the tests alone.
@@ -125,6 +125,10 @@ The spec's rows for this task and the test that holds each:
   condition in the step (`st-3`). Two `start` calls for one issue start two agents.
 - `resume` on cb4, and `resume` of a spec writer or a digest writer that is sent a round: the
   tests have a writer of a task sent one, and a spec writer's `back`.
+- A writer's token that `ended` kept is ended by nothing of this task when its issue leaves
+  `in-review` for good. That read is the step's (`st-3`); until then it ends at its 48 hours.
+- The `worktree {…}` comments of the check are keyed `orch/…` and were written by the writer's
+  token, the caller's. A driver's token is `orch-…`.
 - A `running` event of this host with no file of `runs/`: `resume` exits 1 there. The step's row
   for a dead run is `st-3`.
 - A `start` that died between the file and the event; the count of an overseer's files since a
