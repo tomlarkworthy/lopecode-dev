@@ -477,7 +477,7 @@ make again from the record. In order:
 | `finish` | the move | no |
 | `start` | `start`, role implementer, or digest with the label `digest` | no |
 | `spec` | `start`, role spec-writer | no |
-| in `waiting`, `owner`, at `awaiting-approval`, and `approver.ts facts` says no verdict of this round and no `leave` | `start`, role approver | no |
+| in `waiting`, `owner`, at `awaiting-approval`, and `approver.ts facts` says no verdict of this round and no `leave` | `start`, role approver. (As built, `fb-batch-loop-tools`, 2026-10-13: none when `facts` marks a file of the issue's commits `approver` or `policy`, which the approver's tool refuses; a comment with the files, keyed `orch/<id>/no-approver-<n>`, then the label `needs-owner`.) | no |
 | in `waiting`, `work`, with no `running` run of a writer, no `waiter`, and no label `needs-owner` (the label: `st-6`, below) | "A dead writer": the token ended, `back`, whatever the count of dead runs: the bound holds at the `start` entry the `back` leaves | no |
 | 2 dead runs: an entry of a row that starts or resumes an agent, with 2 dead runs or more of that role and round, and no verdict `go-on` for this `<at>`. A `round` whose last run ended `no-submit` is the `round` row's and not this one's | given to the judgment: `go-on` for one run more, or the label `needs-owner` with what the two runs left | yes |
 | a digest opened by `worker:brain-x-snapshot`, at `open` | the older ones rejected, `triage`, `ready` | no |

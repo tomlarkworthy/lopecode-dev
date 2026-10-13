@@ -90,6 +90,9 @@ files stand in its last line, where that section allows one line of where the re
 judgment run for each such issue to write the two sentences; that is a model run again, which the entry asks
 to save.
 
+Texts: the header of `loop.ts`; `SKILL.md`, step 3, the row at `awaiting-approval`, for a pass by hand; and
+the row of the step's table in `plan/cloud-brain-orchestrator-as-steps.md`, a note "As built".
+
 **The leaves of a spec that puts letters are not taken**, as the triage has it: a program cannot read that a
 spec asks him to choose.
 
