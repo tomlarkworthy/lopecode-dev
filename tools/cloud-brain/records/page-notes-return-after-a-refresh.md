@@ -97,6 +97,17 @@ has it.
 nothing on the page lists the notes put away or brings one back before its work is done; clearing the item
 does. The seed's first cell says so.
 
+## What the Brain's search had
+
+`brain.ts curl "/xrpc/com.lopecode.brain.knowledge.search?semantic=true&q=…" --as loop-knowledge`, three
+questions, 09:23:54 CEST. They were run after the fix was written, not before it as the brief asks.
+
+| Asked | First entries | Used |
+|---|---|---|
+| feedback note closed comes back after a page reload | `doc:cloud-brain-page-modifications-how-they-are-kept` 0.97; `doc:keeping-user-state-in-the-saved-notebook` 0.74 | The first is the spec above, whose names the change takes. The second, read to its line 30: `localStorage` is for "per-browser settings that must *not* travel with the file … a panel toggle", and a state the reader expects in the file goes in the file with `sticky`. The Brain's page is not a file he saves, and a note put away is of the first kind |
+| state kept in the browser localStorage for a page module | the same two; `module:mbostock:safe-local-storage` 0.52 | Not imported: `feedbackKept` already reads and writes one item with a `try` around each, and the change gives it a second name |
+| annotation note hidden until its issue is done | the spec 0.72; `module:tomlarkworthy:annotate` 0.67 | annotate was read from the build: its × is `store.remove(id)`, and it keeps no note outside the runtime |
+
 ## Tests
 
 `cd $W && bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/cloud-brain.html @tomlarkworthy/brain-feedback`,
