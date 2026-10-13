@@ -77,6 +77,10 @@ first drawing had them in one wrapping row with the text, and a long reason push
 and the button to a third; the layout was changed for that. A reason of several lines is drawn as one run of
 text.
 
+The same script with a press of **reject** on the spec's line, on the build of the last seed commit, 02:05: the
+event the rig kept is `owner-reject`, reason `not this`, refs `[{"kind":"event","value":"38"}]`, and 38 is the
+seq of the approve in `panel.approved()`. The test reads the ref of the `revert` and not of the reject.
+
 What cb4 has for the group today, with the writer's token at 01:16: `issue.snapshot` has 448 issues, 1 with a
 delegation as `by.approve`, `dense-rule-project-line-first`, at `done`; `issue.get` of it has one `approve`,
 event 5170, `by.via` `delegation:eb3db9d0c6a5`, `by.holder` `secret:loop-approver`.
@@ -166,6 +170,14 @@ The test now holds the gets of the one issue it reads. After it: 60 of 60, above
 **The caret is one a document.** `test_issues_panel_keeps_the_caret_in_a_row_box` takes the focus too, and the
 page runs its test cells together. No run failed for it. The new caret test names that cell, so it starts when
 that one has ended, and fails with it if it fails.
+
+## Texts that speak of the block
+
+`git grep -n -F '<name>' -- knowledge 'plan/cloud-brain-*.md' .claude/skills/brain-maintenance 'tools/cloud-brain/*.md'`
+with this file left out, 02:06: `For your attention` 13 lines, `Approved for you` 2 (the spec, part 5 and its
+paragraph as built), `issuesPanel` 33, `actButtons` 3, `panel.waiting` 3. Read: the lines outside this change are
+records and specs of the block as it was built, and none says that the block has only what waits. None was
+changed but the spec's.
 
 ## Not tried
 
