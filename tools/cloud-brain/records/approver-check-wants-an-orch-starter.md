@@ -40,9 +40,10 @@ left as not looked at.
 
 The owner's answer is "A", and A as he was shown it (comment 6577) reads "the check takes an
 approver that any token but its own started, `orch-` or `out-`". That can be read two ways: every
-holder but the approver's own, or those two kinds. The two kinds were taken, by line 1 of
-`philosophy.md` as that file reads it ("A change that only narrows what a caller may do is taken"):
-it lets through the case he was asked about and no more. They are the kinds `rules.md`, "Which
+holder but the approver's own, or those two kinds. The two kinds were taken, by line 2 of
+`philosophy.md` as that file reads it ("Take the side that is smaller and easier to undo"), with
+line 1: both ways widen what the check lets through, and this one lets through the case he was
+asked about and no more. The wider reading is one line of the tool and a v7 file made again. They are the kinds `rules.md`, "Which
 token", gives to what starts an approver (the driver, a judgment run and an orchestrating session
 are `orch-`; a session outside the loop is `out-`), and the two `loop.ts` has as `SESSION` (line
 1249). The cost: a `cost` event that a writer's, a reviewer's or another approver's token wrote is
