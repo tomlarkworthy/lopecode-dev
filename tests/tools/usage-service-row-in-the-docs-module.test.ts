@@ -106,7 +106,7 @@ const HELD: Record<string, { methods: string[]; said: [string, string][] }> = {
     ["The service starts it when the tracker has work and no loop holds the lock \\`loop\\`, and the machine is stopped by its own exit.", "started by this service when the tracker has work and no loop holds the lock \\`loop\\`, and stopped by its own exit"],
     ["\\`fly.status\\` answers the machine, its hours today and who holds the lock.", "\\`{ app, machine: { id, state, region, image, guest }, volume, hoursToday, maxHoursADay, loop, yield, work }\\`. \\`loop\\` is who holds the lock \\`loop\\`"],
     ["\\`fly.up\\` starts it.", "| \\`POST fly.up\\` | the same | Starts the machine when it is \\`stopped\\`"],
-    ["\\`fly.down\\` asks the loop on it to yield.", "| \\`POST fly.down\\` | the same | Asks the loop on the machine to yield"],
+    ["\\`fly.down\\` asks the loop on it to yield.", "| \\`POST fly.down\\` | the same as \\`fly.up\\` | Asks the loop on the machine to yield"],
     ["The service holds one secret, \\`FLY_API_TOKEN\\`.", "The service holds one secret, \\`FLY_API_TOKEN\\`"],
   ] },
 };

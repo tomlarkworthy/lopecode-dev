@@ -196,3 +196,41 @@ call would read 409 today; not called.
   printed lines of the spec alone before this record. `fly-5-docs`, which makes the page of the
   machine, is at `ready`.
 - **`stdin`, `container`, `machine` and `cmd`** of Fly.io's body are not passed, as the spec has it.
+
+## Round 2, 2026-10-13: review 7235
+
+One finding, and it held: the suite failed on `main` by this change's own diff.
+
+`tests/tools/usage-service-row-in-the-docs-module.test.ts` holds each sentence of the row of `brain-fly` in
+`cloud-brain-docs.ojs` against the seed's text, and for `fly.down` it quoted the row of the method table as
+it was, `| POST fly.down | the same | Asks the loop on the machine to yield`. Round 1 changed "the same"
+there to "the same as `fly.up`", since the row of `fly.exec` now stands above it. The test came with
+`a3f8b9ea` (`fb-batch-docs-and-tools`, committed 21:35:25 by `git log -1 --format=%ci`). The rebase
+before round 1's run of the suite (1307 pass, 0 fail in 137 files) did not print the file, and the rebase
+under the landing lock, at 21:42, did: that run did not have it, and no run was made after the second.
+
+**The mend** is the text that test quotes for `fly.down`, one line. The seed is not changed, and nothing
+is deployed: cb4 runs `brain-x-fly` at `1d7ff72f2e76` as round 1 left it.
+
+```
+bun test --timeout=30000 ./tests/tools/usage-service-row-in-the-docs-module.test.ts
+before the mend, at origin/main:   8 pass, 1 fail
+after:                             9 pass, 0 fail
+
+tests/tools/suite.sh, after the mend, the worktree at origin/main with it, 22:00:
+1333 pass, 0 fail, 1333 tests in 140 files
+```
+
+`git grep -n -F 'fly.down' -- tests` names one other file, `fly-4-loop-files.test.ts`, which quotes no
+row of the table.
+
+**Not done, of the review's notes.**
+
+- The row of `brain-fly` in `cloud-brain-docs.ojs` does not say `fly.exec`. That module is of the
+  page's shell, which a session the owner is in posts; left to `fx-2-panel`, whose task has the docs.
+- `blessed` with two spaces between ids, or one before the first, blesses as with one: `flyExecBy` splits
+  on a space and an id is 12 hex digits whole. The reviewer saw it; the seed's text says "one space" and
+  is left.
+- A command taken out, or an id taken out of `blessed`, may be honoured for up to 60 s by a core
+  instance that kept the settings; `delegation.revoke` is refused within 5 s. It is in part 5, and it is
+  what the owner is told with the approval.
