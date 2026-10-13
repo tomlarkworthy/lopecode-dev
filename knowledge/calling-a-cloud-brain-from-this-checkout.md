@@ -1,6 +1,6 @@
 ---
 scope: [local-development]
-topics: Cloud Brain; cb4; brain.ts curl; an answer that was cut and a list that is not whole (more, total, the last line); the state file; a token for an agent; no --owner writes; brain.ts agent-token out, the tracker token of a session outside the issue loop; the health check; brain-x-logs; knowledge-docs.ts; what enters a doc into the Brain's search (lock.sh release land, loop-docs)
+topics: Cloud Brain; cb4; brain.ts curl; an answer that was cut and a list that is not whole (more, total, the last line); the state file; a token for an agent; no --owner writes; brain.ts agent-token out, the tracker token of a session outside the issue loop; the health check; brain-x-logs; usage.account, what Cloudflare bills the account; knowledge-docs.ts; what enters a doc into the Brain's search (lock.sh release land, loop-docs)
 triggers:
   - "(^Bash |^|[;&|] )bun +tools/cloud-brain/brain\.ts( |$)"
   - "(^Bash |^|[;&|] )BRAIN_BASE=[a-z0-9]+ +bun +tools/cloud-brain/brain\.ts( |$)"
@@ -209,6 +209,10 @@ error ms price rule by`. Three traps met on the first day:
 - `ray` is the `cf-ray` without the part after the hyphen.
 - Cloudflare stores the request's path and query string beside each line. Do not put a long-lived
   secret in a query string. Short-lived single-use codes are acceptable.
+
+## What Cloudflare bills the account
+
+`usage.account` (Worker `brain-x-usage`, since 2026-10-13) answers the account's billable usage from Cloudflare, a row a product and a day with its quantity and cost, to the owner and to a token that names it: `brain.ts curl "/xrpc/com.lopecode.brain.usage.account?from=2026-08-19&to=2026-09-19" --as loop-usage` for a whole period (a 19th to the next: `to` is the end of the last row, and a range with no 19th in it answers no rows and no error), and with no dates the period under way; `bun tools/cloud-brain/cloudflare-usage.ts <the answer, saved>` sums it by product, and what it answered on 2026-10-13 (every cost 0, and the price of a stored write taken from it) is `tools/cloud-brain/cloudflare-usage.md`.
 
 ## The knowledge docs in the Brain's search
 

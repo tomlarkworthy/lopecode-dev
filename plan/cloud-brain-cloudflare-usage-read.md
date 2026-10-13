@@ -346,6 +346,12 @@ What only the owner can measure is in his list (item 4) and is no condition of a
    `container.extend` beside Containers, `git.create` beside Artifacts). It gives the price of R5
    by the rule of "A price on a stored write", with the division shown. It adds one line for
    `usage.account` to `knowledge/calling-a-cloud-brain-from-this-checkout.md`. No seed changes.
+   (As built, 2026-10-13: the period read is 2026-08-19 to 2026-09-19, 475 rows, every `cost` 0, so the bill
+   gave nothing to divide and the price for task 4 is `price: "0.00018"`. The whole answer is not quoted in the
+   file: it is kept beside it, `tools/cloud-brain/cloudflare-usage/2026-08-19_2026-09-19.json`, the file's tables
+   are printed from it by `tools/cloud-brain/cloudflare-usage.ts`, and four of its rows are quoted for the
+   comparison of R4. The Brain's prices are beside the products of the period under way, which is the one that
+   has them. The record is `tools/cloud-brain/records/cu-3-figures-and-the-price.md`.)
 4. **`cu-4-price-on-a-stored-write`.** `price` on `static.put` and `blob.upload` with the number of
    task 3, the two tests, the sentence in each seed's reference, the two applies. Waits for task 3
    and for `priced-calls-of-the-day-used-up` to be closed.
