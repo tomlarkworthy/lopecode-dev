@@ -6,6 +6,7 @@
 //   bun test --timeout=30000 ./tests/tools/own-tmpdir.test.ts
 //   OWN_TMPDIR_TS=<file> runs another file as the preload (an empty one fails the tests of what a run leaves).
 //   BRIEF=<file> reads another text as the brief and its pages.
+//   SUITE_SH=<file> runs another copy of suite.sh (the one before the change fails the test of BM_TEST_TMPDIR).
 import { expect, test } from "bun:test";
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -104,7 +105,7 @@ test("with BM_TEST_TMPDIR set the preload makes nothing: the run has the TMPDIR 
 test("suite.sh gives bun BM_TEST_TMPDIR, the TMPDIR it made", () => {
   const t = scratch(), bin = join(t.dir, "bin");
   mkdirSync(bin);
-  copyFileSync(resolve(import.meta.dir, "suite.sh"), join(t.co, "tests/tools/suite.sh"));
+  copyFileSync(process.env.SUITE_SH || resolve(import.meta.dir, "suite.sh"), join(t.co, "tests/tools/suite.sh"));
   chmodSync(join(t.co, "tests/tools/suite.sh"), 0o755);
   writeFileSync(join(bin, "bun"), '#!/bin/bash\necho "tmp=$TMPDIR"\necho "marker=$BM_TEST_TMPDIR"\n');
   chmodSync(join(bin, "bun"), 0o755);

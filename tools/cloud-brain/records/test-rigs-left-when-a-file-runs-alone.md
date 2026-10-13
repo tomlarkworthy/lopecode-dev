@@ -85,7 +85,7 @@ Each in a scratch checkout of the scratchpad with a preload that logged to a fil
 | Command | Started | Result |
 |---|---|---|
 | `bun test --timeout=30000 ./tests/tools/own-tmpdir.test.ts` | after the rebase | `9 pass, 0 fail`, 46 expect() calls, 2.68 s |
-| the same with `OWN_TMPDIR_TS=` a file of one comment and `BRIEF=` the page `seed-tests.md` of `origin/main` | after the rebase | `3 pass, 6 fail`: the five tests of what a run leaves and the one of the brief. The three that pass: `bunfig.toml` names the file, `BM_TEST_TMPDIR` set, `suite.sh` gives the name |
+| the same with `OWN_TMPDIR_TS=` a file of one comment, `BRIEF=` the page `seed-tests.md` of `origin/main` and `SUITE_SH=` the script of `origin/main` | after the rebase | `2 pass, 7 fail`: the five tests of what a run leaves, the one of `suite.sh` and the one of the brief. The two that pass: `bunfig.toml` names the file, and with `BM_TEST_TMPDIR` set nothing is made, which an empty preload also meets |
 | `bun test --timeout=30000 ./tests/tools/tests-tools-suite-parallel.test.ts` | after the rebase | `14 pass, 0 fail`, 2.23 s |
 | `tests/tools/suite.sh` | 02:11:03, load 12.00 11.35 11.26 | `980 pass, 0 fail`, 100 files, 91.30 s; no line `skipped:`; its last line: 103,334 entries in the caller's directory |
 
@@ -108,12 +108,17 @@ Run by hand before the rebase, each once, with a new directory of `/tmp` as `TMP
   caller's directory. bun did not take the root's `bunfig.toml` from there, which is the brief's third sentence.
 - `bun test --timeout=30000 ./lopecode-plugin/tests/lopecode-channel.test.ts` at the root: `19 pass, 0 fail`, 0 left.
 
+After the rebase, three of the test files under `tools/`, each at the root with a new `TMPDIR`:
+`tools/code-facts/core-fixtures.test.ts`, `8 pass, 0 fail`, 0 left; `tools/merge-forks/editor-5-merge-D.test.ts` and
+`tools/js-toolchain/runtime/display-differential.test.ts`, each `0 pass, 1 fail` with `Cannot find module` of a path
+under `vendor/notebook-kit`, and each the same with `bunfig.toml` moved out: the worktree has no such submodule.
+
 ## Not done, not tried
 
 - **A `bun test` started in another directory than the root** has the caller's `TMPDIR` (seen for `tests/tools`,
   above). A `bunfig.toml` there was not added.
 - **The other test files of the repository that import `bun:test`**, under `tools/`, take the preload when run at
-  the root. One was run, the plugin's. Whether one of the others rests on a file it leaves in the temporary
+  the root. Four were run, above, two of which the worktree cannot load. Whether one of the others rests on a file it leaves in the temporary
   directory for a later run was not read.
 - **The directories already in the caller's temporary directory** were not removed: 103,334 entries by the last line of the suite started 02:11:03. At
   what rate it grows now was not measured, and the tools the record of `tmpdir-entries-slow-every-bun-start` names
