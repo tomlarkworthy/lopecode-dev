@@ -133,8 +133,8 @@ A step makes the move `ready` from the queue's entry and reads no comment. `fly-
 
 - **A hold on it**, the smaller side the triage chose over a rule of the queue that reads a time after a
   link: until 30 days from the call, the most a hold has, with the reason "7 days after `fly-4b-first-run` is
-  done: at this hold's end, or when that issue is done, hold again to that day and 7". The call and its answer
-  are in my comment on the issue. A hold whose time has come is a `look`, which a judgment run reads with
+  done: at this hold's end, or when that issue is done, hold again to that day and 7". The call is event 7255 ("What was
+  written to the tracker", below). A hold whose time has come is a `look`, which a judgment run reads with
   that reason.
 - **`SKILL.md`, step 3, the row `ready`**: the read of a `held:` comment is made in a pass by hand alone, and
   what an issue waits for beside its links is a hold or `needs-owner` before its last link ends.
@@ -185,34 +185,57 @@ each could go, linked `related` to the entry and to this issue. Its spec is what
 sentences of `philosophy.md` say what no agent does now; that file is the owner's, and the project's body
 says so.
 
+## What was written to the tracker
+
+With `impl-895c7e`, 2026-10-13, 21:59:14 to 21:59:39 CEST (`date` before and after), before the landing. Each
+key begins `impl/fb-batch-loop-tools/`.
+
+| What | Event |
+|---|---|
+| The hold on `fly-6-after-seven-days`, until 1794513554304 (30 days from the call) | 7255 |
+| The project `overseer-sweep-jobs-get-homes` opened, and its two links `related` | 7256, 7257, 7258 |
+| Rows 1 to 10: a comment that names the row, then the move `close` | comments 7260, 7262, 7265, 7267, 7269, 7271, 7274, 7276, 7278, 7280; closes 7261, 7264, 7266, 7268, 7270, 7273, 7275, 7277, 7279, 7281 |
+
+`get?id=fly-6-after-seven-days` after the call: `triaged`, hold until 1794513554304 with the reason of row 7.
+The four entries mended here were closed before the review of this issue; a round sent back does not open
+them again by itself.
+
 ## Tests
 
-Each run in this worktree after the last edit of a file that is not this record, 2026-10-13. The six files
-were run one after another, ended 21:45:52 CEST (`date`). The machine carried other writers' suites: `uptime`
-gave load averages of 11 to 32 between 21:17 and 21:32, and the suite took 302.80 s where its header has 80 to
-110 s.
+Each run in this worktree on 2026-10-13, after the last edit of a file that is not this record (that edit:
+the text of the owner's comment in `loop.ts`, its two tests, and a sentence of `SKILL.md`).
 
 | Command | Result |
 |---|---|
-| `bun test --timeout=60000 ./tests/tools/loop-step.test.ts` | 42 pass, 0 fail, 328 expect() calls |
-| `bun test --timeout=60000 ./tests/tools/loop.test.ts` | 20 pass, 0 fail, 285 expect() calls |
-| `bun test --timeout=60000 ./tests/tools/worktree.test.ts` | 45 pass, 0 fail, 440 expect() calls |
-| `bun test --timeout=60000 ./tests/tools/summarize-papers.test.ts` | 34 pass, 0 fail, 296 expect() calls |
-| `bun test --timeout=60000 ./tests/tools/fb-batch-loop-tools.test.ts` | 4 pass, 0 fail, 17 expect() calls |
-| `bun test --timeout=60000 ./tests/tools/wt-5-docs.test.ts` | 9 pass, 0 fail, 52 expect() calls |
-| `tests/tools/suite.sh`, ended 21:38:43 CEST | 1300 pass, 0 fail, 10695 expect() calls, 136 files, 302.80 s |
+| `bun test --parallel=4 --timeout=60000 ./tests/tools/loop-step.test.ts ./tests/tools/loop.test.ts ./tests/tools/worktree.test.ts ./tests/tools/summarize-papers.test.ts ./tests/tools/fb-batch-loop-tools.test.ts ./tests/tools/wt-5-docs.test.ts`, ended 22:04:56 CEST | 154 pass, 0 fail, 1421 expect() calls, 6 files, 145.71 s |
+| `tests/tools/suite.sh`, 22:05:14 to 22:08:17 CEST | 1300 pass, 0 fail, 10698 expect() calls, 136 files, 179.21 s |
+
+The six files are the ones this change edits or adds. The same command is what the landing runs after its
+rebase.
+
+**The suite's runs before that one, each looked at.**
+
+- Stopped by the harness at its time limit, with no count: the first run.
+- Ended 21:32:46 CEST: 1299 pass, 1 fail, and the fail was this change's.
+  `each worktree.sh command the four docs name is one the tool's header has` of
+  `tests/tools/wt-5-docs.test.ts` read the header as lines 2 to 35 of `worktree.sh`, and the four lines of
+  `--occupy` pushed `--remove` past line 35. The test now reads the lines `usage` prints, by the number in
+  `usage` itself.
+- Ended 21:38:43 CEST: 1300 pass, 0 fail, 302.80 s. Before the last edit, so not the count above.
+- Ended 22:02:31 CEST: 1299 pass, 1 fail, 201.05 s. The fail:
+  `republish with a prior stdDocUri: same document TID, updated in place` of
+  `tests/tools/atproto-publish.test.ts`, "this test timed out after 30000ms". That file names none of
+  `loop.ts`, `worktree.sh`, `SKILL.md`, the two specs or `summarize-papers` (`grep -n`, nothing printed), and
+  alone at once after, `bun test --timeout=30000 ./tests/tools/atproto-publish.test.ts`: 5 pass, 0 fail,
+  2.27 s. The cause was not looked for further.
+
+The machine carried other writers' suites through these runs: `uptime` gave load averages of 11 to 32 between
+21:17 and 21:32, and 7 at 22:08. The suite's header has 80 to 110 s for a run.
 
 New: two tests in `loop-step.test.ts` (the row, on commits made in the rig's repository; `ownFiles` and the
 text), one in `worktree.test.ts` (`--occupy`), one in `summarize-papers.test.ts` (`kept`), four in the new
 `fb-batch-loop-tools.test.ts` (the texts), and lines added to one test of `loop.test.ts` (the start that
 writes the occupant, and the start refused when `--occupy` is exit 4).
-
-**A fail of the suite that was this change's.** The run before the one above, ended 21:32:46 CEST: 1299
-pass, 1 fail, `each worktree.sh command the four docs name is one the tool's header has` of
-`tests/tools/wt-5-docs.test.ts`, which read the header as lines 2 to 35 of `worktree.sh`; the four lines of
-`--occupy` pushed `--remove` past line 35. The test now reads the lines `usage` prints, by the number in
-`usage` itself. A first run of the suite, before those two, was stopped by the harness at its time limit with
-no count.
 
 **Each fails without its fix.** With the two lines of `loop.ts` put back as they were (`if (false)` for the
 row; no call of `--occupy`): the row's test received `start a approver` and `start c approver` where it
