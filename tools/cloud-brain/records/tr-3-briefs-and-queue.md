@@ -77,8 +77,8 @@ begins `spec-` and `in-review` for any other.
 ## The briefs
 
 `agents/implementer.md` is held to 20,000 characters (`tests/tools/implementer-brief-core.test.ts`)
-and was 19,900. Step 13 there is 19,996 with the change (`python3 -c 'print(len(open(…).read()))'`),
-so it has the line, the exits and the three flags, and the page has the rest. Two things in it are
+and the file was 19,900 bytes (`wc -c`). With the change it is 19,996 characters and 20,006 bytes
+(`python3 -c 'print(len(open(…).read()))'`, `wc -c`), so step 13 there has the line, the exits and the three flags, and the page has the rest. Two things in it are
 not in the spec:
 
 - **"Run it only after your submit"**, on the page and in `spec.md`. From the report of tr-2, which
