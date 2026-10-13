@@ -3,7 +3,7 @@
 Spec of the feature `rules-checked-and-stale-knowledge-seen` on cb4's tracker. Written 2026-10-13 from
 07:00 CEST (event 5941's `at`, the take) by the spec writer `spec-8c5008`, from `lopecode-dev`
 `origin/main` at `d133b284` and the tracker at event 5942 (`origin/main` moved on while it was
-written; the seed's line numbers are those of the commit this file landed on). Nothing here is built. The measurements
+written; the line numbers of the seed and of `loop.ts` are those of `3a159fbf`, where the walk was run a last time). Nothing here is built. The measurements
 below were run between 07:00 and 08:40 CEST that day (`date`); the machine slept for about an hour of
 that, so no wall time of that span is given.
 
@@ -80,7 +80,7 @@ moves, 2 swaps, 3,310 characters of move guards. It is the body of
 
 **What checks a policy today.**
 
-- `issuePolicyAct` (`brain-issues.ojs` line 1109) at every install: each guard parses, each state and
+- `issuePolicyAct` (`brain-issues.ojs` line 1120) at every install: each guard parses, each state and
   workflow named is there. It asks nothing of what the guards allow together.
 - `issue.verify?guards=true` (`issueReplay`): each event of the record judged again by the view before
   it. It reads what happened, not what could.
@@ -88,7 +88,7 @@ moves, 2 swaps, 3,310 characters of move guards. It is the body of
   (`test_issues_default_policy_review_approval_and_children`, `…_an_approver_delegation_approves_and_no_other_token`):
   paths written by hand, a few an install.
 
-**The judge is a function.** `issueAllowed(view, by, act)` (line 879) and `issueApply(view, e)` (line
+**The judge is a function.** `issueAllowed(view, by, act)` (line 890) and `issueApply(view, e)` (line
 612) read no clock and make no call. A guard reads `caller`, `issue` (`issueFacts`, line 820: state,
 labels, `major`, `by`, `reviews`, `children`) and `event`. Of `issue.by` the guards of the installed
 policy read three fields: `start`, `spec` and `owner-reject` (two searches of the policy's text: `issue.by.<name>`, and
@@ -122,6 +122,9 @@ The same cell with `issuesDefaultPolicy` of the seed in the file's place (one li
 `project/awaiting-approval` among the states only the owner ends, since the default names no
 approver. 42.1 s as a command.
 
+Run again on the v5 file at `3a159fbf`, 08:52 CEST: the same counts on every line, 38.4 s as a command.
+The time of one walk on this machine was 38 to 58 s over five runs.
+
 So the three properties the issue names hold on the policy in force. Two things the run says beyond them:
 
 - **A Worker of the Brain passes a task.** The guards of `review`, `pass`, `to-approval`, `rework` and
@@ -147,10 +150,10 @@ by.submit dropped (the review guard reads by.start), as above              30,14
 ```
 
 **A write and what its writer read.** A write is judged at the head it is written at (`write`, line
-1333: the view is loaded, the act judged, the event appended, and on a lost race judged again), so two
+1344: the view is loaded, the act judged, the event appended, and on a lost race judged again), so two
 writes cannot both pass a guard that only one may. What the service cannot know is what the caller had
 read. One act already says where it thinks the issue is: a swap with `from` is refused when "the issue
-is no longer where this swap takes it from" (line 918). No other act has such a field:
+is no longer where this swap takes it from" (line 929). No other act has such a field:
 `grep -c asOf tools/cloud-brain/brain-issues.ojs tools/cloud-brain/issue-as.sh tools/cloud-brain/loop.ts`
 prints 0 for each.
 
@@ -338,8 +341,8 @@ new number. One line is appended to `.emitted/issue-loop/stale.jsonl`: the time,
 the act, `asOf`, `touched` and the types in `since`. R6 is counted from that file.
 
 `--no-as-of` sends the body as it is. `loop.ts` reads and writes through `issue-as.sh` (`as`, line
-156), so its one move, the `back` of a dead writer's issue (line 367), carries the seq of the `get`
-it made before it (line 363), with no change to `loop.ts`. A step that moves from a row of
+160), so its one move, the `back` of a dead writer's issue (line 371), carries the seq of the `get`
+it made before it (line 362), with no change to `loop.ts`. A step that moves from a row of
 `issue.queue` alone carries none, since the tool keeps no number from a queue; the queue's rows
 saying each issue's `touched` is a later task and not in this spec.
 
@@ -383,7 +386,7 @@ Each standing thing the design adds, with what does the same job today.
   is not extended: it is of one file by name, and the walk is of the newest whatever its number.
 - **The fixture `policy-walk-his.json`** (the states only the owner ends). Nothing exists of this job:
   `grep -rn "awaiting-approval" tests/tools/fixtures | wc -l` prints 4, lines of the two copies of cb4's issues there and of the rig of v4.
-- **The field `asOf` and the view's `touched`.** A swap's `from` (line 918) does the same job for one
+- **The field `asOf` and the view's `touched`.** A swap's `from` (line 929) does the same job for one
   act and names a state, not an event: two comments leave the state as it was. It is not widened to
   the other acts because a state does not say that something was said. The `key` of a write does
   another job: the same write sent twice.
