@@ -45,15 +45,19 @@ reason of its `back` says that the dead run's token was not ended and what the c
 
 ## What `not ended` means
 
-It means the command did not exit 0. `brain.ts agent-token revoke` exits 1 in four cases, read from
-`tools/cloud-brain/brain.ts` (the command `agent-token`, `revoke`) and not run:
+It means the command did not exit 0. Six exits of 1 of `brain.ts agent-token revoke`, read from
+`tools/cloud-brain/brain.ts` (the command `agent-token`, each `stop(` and `refused(` from its first
+line to the end of `revoke`) and not run. Whether it has others was not looked for:
 
+- the token `loop-agents` is not kept;
+- the list of the delegations under it was refused;
 - no row under `loop-agents` has the name and no value is kept: `no token "<name>" was made under loop-agents or is kept here`;
 - `delegation.revoke` was refused;
 - the value still answers a read of `issue.policy` 12 s after the revoke;
 - the value is refused (401) and its entry could not be removed from the file.
 
-In the first and the fourth the token no longer works, and the text still begins `not ended`. The
+In the third the token may be gone already (a name with no row and no kept value), and in the last
+it no longer works; the text still begins `not ended`. The
 reader has the command's own words after it, which say which case it was.
 
 ## The tests
@@ -84,7 +88,7 @@ The cases at exit 0 of the revoke in `resume` are those of the two tests before 
 
 ## Not tried
 
-- **The real `brain.ts agent-token revoke`.** A writer does not run `agent-token`. Its four exits
+- **The real `brain.ts agent-token revoke`.** A writer does not run `agent-token`. Its six exits
   above are read from the source. That its failures print on stdout, as the stand-in's do, is read
   from `const stop = (text) => { console.log(text); process.exit(1); }` there.
 - **A revoke that is killed or cannot be started.** `sh` gives `r.status ?? 1`, so the text would be
