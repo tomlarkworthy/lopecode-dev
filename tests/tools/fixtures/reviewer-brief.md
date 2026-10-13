@@ -274,6 +274,9 @@ document when you mend a note in it ("What holds a change, and what is a note", 
    the record gives it, and the review names the commit you took (the reviewers of `cu-3-figures-and-the-price`
    and `kept-brief-copy-behind-holders-four`, 2026-10-13, each found it from commit times; four before them from
    `git log -- tests/tools` and the counts).
+   The swap below is made in the view the suite reads: begin it after your run of the suite has ended, not beside
+   it (the reviewer of `approver-policy-mark-takes-every-route`, round 2, 2026-10-13: "I had to wait for the suite to
+   end before the swap; the brief does not say the two cannot overlap").
    To show a test of that suite fails without the fix: `tools/cloud-brain/worktree.sh --at <sha>^ <view>`, with the
    commit that has the fix for `<sha>` there when the last ref is another (a record's commit), copy the
    test in (`git -C <checkout> show <sha>:<path> > <path>`), run it, then `tools/cloud-brain/worktree.sh --at <sha> <view>`,
@@ -322,6 +325,13 @@ document when you mend a note in it ("What holds a change, and what is a note", 
    passes with the branch wrong, and every count then matches the writer's. (`ds-1-rows-add-within`, review 3837,
    2026-10-12: the D1 place of `rows.addWithin` did not bind the key, and the test bound the statement itself
    under a comment "As sqlCall binds it"; found by reading `q` beside its other callers, by no step of this brief.)
+   When the change is to a check of the loop itself (a guard, a policy cell, `approver.ts`, a tool that marks or refuses
+   a commit), write the commits it is there to catch in the forms the writer's tests do not have (the same call as the
+   value of a declaration, in a comma form, registered twice, by another name) and run the check on each: one that
+   prints no mark holds the change. (`approver-policy-mark-takes-every-route`, review 6434, 2026-10-13: `policyCells`
+   answered `[]` for `const z = app.post(NS + "install", …)` and three more, and the tests had the statement form
+   alone; the reviewer: "The finding came from asking what an adversarial commit could write, not from any probe the
+   step lists.")
 6. **Read the record.** `tools/cloud-brain/records/<id>.md` (a section of `spec-as-built.md` for
    an issue submitted before 2026-10-10 19:33) says what changed, the test count and what was not
    tried, and each of those is true. The record need not hold the deploy hash or the commits:
