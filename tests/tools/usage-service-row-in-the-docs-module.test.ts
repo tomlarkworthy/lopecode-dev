@@ -43,7 +43,8 @@ test("the row says of the service what its seed's first cell says", () => {
   const held: [string, string][] = [
     ["What the Cloudflare account was billed for, by product, read from Cloudflare's billable usage.", "what the Cloudflare account was billed for, by product, read from Cloudflare's billable usage API"],
     ["a row of its answer is one product and one charge period", "A row is one product and one charge period."],
-    ["with its quantity and cost", "\\`ConsumedUnit\\`, \\`ConsumedQuantity\\`"],
+    ["with its quantity and cost", "| \\`unit\\`, \\`quantity\\` | \\`ConsumedUnit\\`, \\`ConsumedQuantity\\` |"],
+    ["with its quantity and cost", "| \\`cost\\`, \\`cumulatedCost\\` | \\`ContractedCost\\`, \\`CumulatedContractedCost\\` |"],
     ["or neither for the current billing period", "With neither, Cloudflare answers the current billing period."],
     ["The figures are the whole Cloudflare account's, which holds more than this Brain.", "The figures are the whole Cloudflare account's, which holds more than this Brain."],
     ["It answers the owner, or a token of the owner that names the method.", "The owner, or a token of the owner that names the method (\\`caller.id == \"owner\"\\`)."],

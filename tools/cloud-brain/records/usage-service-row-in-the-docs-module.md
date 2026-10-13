@@ -59,7 +59,7 @@ Each sentence of the row is held to the seed's text by the third test, not to a 
 |---|---|
 | What the Cloudflare account was billed for, by product, read from Cloudflare's billable usage. | "what the Cloudflare account was billed for, by product, read from Cloudflare's billable usage API" |
 | a row of its answer is one product and one charge period | "A row is one product and one charge period." |
-| with its quantity and cost | the table of kept fields: `quantity`, `cost` |
+| with its quantity and cost | two rows of the table of kept fields: `unit`, `quantity` and `cost`, `cumulatedCost` |
 | two days, `from` and `to`, or neither for the current billing period | "With neither, Cloudflare answers the current billing period." |
 | The figures are the whole Cloudflare account's, which holds more than this Brain. | the same sentence |
 | It answers the owner, or a token of the owner that names the method. | "The owner, or a token of the owner that names the method (`caller.id == "owner"`)." |
@@ -82,7 +82,7 @@ tab-tests: @tomlarkworthy/cloud-brain-docs was not defined with a test_ cell in 
 
 So "its tests pass in the tab", of the issue, has no test to run. The build was opened with that
 module in the one pane, in a local headless Chrome, by the script of `tp-4-docs` with the name of
-the row changed (`tools/cloud-brain/.emitted/impl-d1b8cc-usage-row-drawn.ts`, not committed). After the rebase
+the row changed (`tools/cloud-brain/.emitted/impl-d1b8cc-usage-row-drawn.ts`, not committed, attached to the issue). After the rebase
 on `origin/main`, on a build made then, 07:17:04:
 
 ```
@@ -102,7 +102,9 @@ link was not clicked. `rows` was 12 before: the fourth test names them.
 before this record was written: `brain-usage` 9 lines, `brain-x-usage` 12, `usage.account` 13,
 `Services outside the core` 1. The lines are the knowledge page's line of services, the spec
 `plan/cloud-brain-cloudflare-usage-read.md` and the records of `cu-1`, `cu-2` and `tp-4-docs`.
-None says what the docs table has, so none was made untrue.
+None says what the docs table has, so none was made untrue. The spec was read apart
+(`git grep -n -i -F -e docs -e brain-usage -e 'not done' -e llms -- plan/cloud-brain-cloudflare-usage-read.md`,
+3 lines): it names the module and the seed, and has no line of the docs module.
 
 ## Prior art
 
@@ -119,7 +121,7 @@ Both after the rebase and with this record in place, before this section was fil
 
 ```
 bun test --timeout=30000 ./tests/tools/usage-service-row-in-the-docs-module.test.ts     4 pass, 0 fail
-tests/tools/suite.sh              1086 pass, 0 fail, "Ran 1086 tests across 111 files. [116.57s]", ended 07:19:25
+tests/tools/suite.sh              1086 pass, 0 fail, "Ran 1086 tests across 111 files. [110.45s]", ended 07:23:36
 ```
 
 The count submitted is the suite's. No line `skipped:` in its output.
