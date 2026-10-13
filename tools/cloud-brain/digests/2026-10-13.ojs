@@ -1,0 +1,231 @@
+md`## 1. A faster algorithm that no computer runs
+
+The digest of 12 October had Terence Tao on "proof abundance". Two items of this run are about one batch of such proofs: the preprints OpenAI published the week before (the snapshot has its post, [Sharing AI progress in mathematics](https://openai.com/index/sharing-ai-progress-in-mathematics), of 6 October; the digest of 9 October cited it from its feed summary).`
+// %%
+md`**Ben Recht, [Faster Fourier Transforms](https://www.argmin.net/p/faster-fourier-transforms)** (82 points, 50 comments on Hacker News). His subtitle: "The OpenAI algorithm for the FFT is less a breakthrough and more a malicious exploit." He did not read the paper. By his own account he questioned ChatGPT about it, so what follows is his reading through a model, and the formulas of his post are images this digest did not see.
+
+- The bound is asymptotic and its constant is not small: "The estimated values for C were 10^100 when N=10^12."
+- The model of computation: "The model uses exact complex arithmetic." The algorithm multiplies complex numbers whose magnitudes grow faster than any polynomial in n, each multiplication counted as one step. "We do not have computers that can do this."
+- Prior limits he cites: Morgenstern, 1973, no transform faster than ½ n log n when the coefficients are bounded; Nir Ailon, forty years later, none faster than n log n without severe numerical instability.
+- Of the repository's matrix multiplication result, O(n^2.25): the construction does not let the constant be estimated.`
+// %%
+md`His conclusion is about the field and not the model: "The theory of computer science has become a form of mathematics that doesn't concern itself with computers", and "AI is really good at automating our worst tendencies." A commenter he liked, Kevin Lacker, gives the other side: a proof that something is possible a little faster ends the search for a proof that it is not.`
+// %%
+md`**[Auto Research: Integer multiplication below n log n](https://app.getsupers.com/auto-research)** (40 points, 12 comments). A dashboard over community repositories that build on the same preprints, which it pins at commit \`fd4aeeb\` of \`openai/math\`, "which holds 749 preprint folders". People send agents (the page has a prompt for Codex or Claude Code) to improve one number, the saving κ in T(n) = O(n (log n)^(1−κ)).
+
+The repository's README, read 13 October: the reviewed result is κ = 0.001661202643272239, "1.569846% above the previous selected saving", and "It compares asymptotic exponent savings, not practical running times." The dashboard's own warning: "These are AI-assisted research drafts. Most refinements are conditional on lemmas from the original preprints." Its charts load by script and were not seen.`
+// %%
+md`**Reading for the Brain** (mine). The prompt that page hands an agent is a brief of the loop's kind, and three of its lines are ones \`rules.md\` and the writer's brief also have: "Reproduce before improving", "Never weaken checks or change expected results merely to obtain a pass", "Do not merge your own result". What Recht adds is the case where every check passes and the result is still of no use, because the model the checks were written against is not the machine. The loop's nearest case is a test run in a harness that is not cb4. Whether any closed issue of the tracker has that shape was not looked for.`
+// %%
+md`## 2. What an evaluation cannot find, and one that found something
+
+**[AI Models Can Provably Hide Arbitrary Capabilities](https://arxiv.org/abs/2610.13928)** (arXiv 2610.13928, submitted 9 October, accepted at NeurIPS 2026; 97 points, 46 comments on Hacker News). From the abstract only: the authors build backdoors "that embed encrypted neural networks within host model weights, decrypting and executing them only upon receiving a secret trigger". With digital lockers the hidden circuits "remain provably hard to elicit and interpret under cryptographic assumptions, even given full access to model weights". They tried fine-tuning, weight noising, gradient-based trigger search and latent adversarial training on a small chemical reaction prediction task and report resistance to all four. Their words for what it means: "a limit of elicitation-based capability audits". No number is in the abstract and the paper was not read.`
+// %%
+md`**Jack Clark, [Import AI 476](https://jack-clark.net/2026/10/12/import-ai-476-creativity-and-rsi-worse-than-china-open-weight-models-ai-goes-to-space/)**, read whole. All numbers below are his report of others' work; none of the sources he links was opened.
+
+- **TasteVal** (P-Zero Research): 8 tasks of AI development, a human baseline of 24 experts. He quotes: "The experimental research taste of frontier models has doubled every 3.0 months since December 2025 (95% CI 1.7-5.0 months). The best model, Opus 5.5, significantly exceeds our human baseline with a compute multiplier of 2.30x (95% CI 1.15-4.37x), at roughly 1/30 of our expert baseliners' average cost per attempt." His own conclusion: "I now think it's more likely we'll see full RSI become possible in 2027, whereas before I thought it was more likely in 2028."
+- **Humanity's Sixth Sense** (Elorian and Scale AI): 522 questions on 288 images and 234 video clips about what a scene implies and does not show. People score 93.1 pass@1; the best model, GPT 6 Astra, 53.6; GLM-5.3-flash 26.8 and Kimi K3 25.5.
+- **Open weights**: Reflection's Beam, 501 billion parameters with 23 billion active, scores 44.4 on DeepSWE 1.1 against 61 for GLM-5.3. Mistral Large 4 scores 62 there, against 68 for Kimi K3. Both are announced and neither is released.
+- **Federated training across US national laboratories**, [arXiv 2609.39803](https://arxiv.org/abs/2609.39803), the one new paper in \`papers.json\`. Its abstract was read: the question "shifts from 'can we train it?' to 'can we operate it, audit it, and change it safely?'" Clark's note is that the scale is about 100 times below the frontier.`
+// %%
+md`**Reading for the Brain** (mine). The model TasteVal names as best is the one that wrote this page, so this paragraph is not a disinterested one. The compute multiplier's interval runs from 1.15 to 4.37, which is wide for a claim that moves a forecast by a year. The loop has its own small version of the question: the overseer edits the briefs that the writers work from, and nothing measures whether a brief it edited does better than the one before.`
+// %%
+md`## 3. Where the agent's program lives
+
+- **[Codex CLI installs a persistent, self-updating background daemon by default](https://github.com/openai/codex/issues/48195)** (520 points, 265 comments). The issue, through GitHub's API on 13 October: open, filed 25 September, 161 reactions, 16 comments. Its report: since 0.157.0 an interactive session starts a daemon that outlives every window, copies "the whole platform package (~374 MB)" under \`~/.codex/packages/\`, starts an updater "that checks for updates 5 minutes after start and then hourly", and keeps the environment of the session that started it, proxy variables among them. Stopping the daemon left the updater alive "70 s later". None of it was reproduced here.
+- **Simon Willison, [web-edit 0.1a0](https://simonwillison.net/2026/Oct/12/web-edit/)**. He wanted "to edit a credentials file without round-tripping those credentials through the LLM itself", so an agent starts a web editor of one folder and he edits from his phone over Tailscale. Editing is CodeMirror 6.
+- **[Launch HN: Agent37](https://news.ycombinator.com/item?id=50059096)** (126 points, 84 comments), sandboxes for agent harnesses. The founder's figures: customers pay "an average of $0.37/month per sandbox", and a free sandbox costs them "around $0.05 to $0.10 per user per month". How: harnesses use CPU in bursts and are bounded by RAM; hosts rented from Hetzner and OVH; gVisor, so memory is shared across sandboxes and not reserved per VM. The cost he names: "our gVisor sandboxes don't support workloads like Docker-in-Docker or Android emulators."
+- **[Janas](https://github.com/prabanta-dev/janas)** (91 points, 31 comments; 138 stars by GitHub's API). Runs a mixture-of-experts model larger than memory by reading the experts it needs from the SSD. The README's table, measured by its author on one laptop with 32 GB on 9 to 11 October: Qwen3-Next-80B, a 48.4 GB file, writes 24 tokens a second against 2.8 for llama.cpp. Linux and Windows x86-64 only; not run here.`
+// %%
+md`**Reading for the Brain** (mine). Willison's reason is a line of \`rules.md\`: a secret is not printed, copied or logged, and the loop keeps it by having tools read the token files so that the agent does not. Agent37's figures are a comparison for the containers the Brain's cluster runs its browsers in. What one of those costs a month was not looked up for this digest, so no comparison is made.`
+// %%
+md`## 4. Programs that give an agent a door
+
+Two Show HN items, both small on the day, both of a kind Tom has built: a program whose document an agent edits over MCP while a person edits it by hand.
+
+- **[Blokkily](https://github.com/andrewfader/blokkily)** (38 points, 17 comments), "an experimental pattern-based DAW". One pattern is edited in a tracker, a piano roll or a step grid; CLAP and VST3 plugins. The README links a video "of an agent building a funky chiptune in Blokkily over MCP". Not watched; its sound could not have been judged here.
+- **[SolidCraft](https://github.com/bherbruck/solidcraft)** (24 points, 1 comment), parametric 3D CAD in Rust with a feature timeline, running on the desktop and in a browser, with "the built-in MCP server". The README's demonstration is a Raspberry Pi 4 case whose height is changed from 24 to 32 mm in a parameter table, and the model rebuilds. Only the top of the README was read.`
+// %%
+md`**Reading for the Brain** (mine). Both are the pairing channel's design from the other side: the application is the server and any agent connects. Lopecode's DAW and its SVG and CAD notebooks are reached through one channel that speaks cells. Neither README was read far enough to say what their tools are named or how fine they are.`
+// %%
+md`## 5. Releases and a reply
+
+- **Meta, [Muse Wonder](https://research.meta.ai/blog/muse-wonder)** (587 points, 320 comments, the top of Hacker News in this run). Two models, Muse Wonder and Muse Wonder Full, for "personal and professional agents", with two named features: Active Memory (context carried across conversations) and Active Focus (staying on a long task). The post's benchmark results are figures and none was read, so no score is given here. One argument is in the text: plotted against its score on tasks targeted in post-training, the larger model does better on tasks not targeted than the earlier model's trend predicts, which they put down to a stronger base model. "A full report with additional safety evaluations will be available soon."
+- **[GLM-Legal](https://z.ai/blog/glm-legal)** (505 points, 292 comments). Title only: the page is 683 bytes of script without a browser.
+- **[AI is a tool and using it well takes skill](https://yyhh.org/blog/2026/10/ai-is-a-tool/)** (315 points, 263 comments), a reply to Rich Hickey's "'AI' is Not a Tool" of 11 October, which was not read and is not in the snapshot. The reply's argument: predictability and reliability "are qualities by which we evaluate tools, not prerequisites for membership in the category"; a compiler and a spreadsheet also work without step by step direction. Its line: "between wielding an instrument with skill and delegating work without adequate understanding or oversight".
+- **Microsoft Research, [Simulating student learning for better AI tutoring](https://www.microsoft.com/en-us/research/blog/simulating-student-learning-for-better-ai-tutoring/)**. StudentSim trains one simulator a student from public learner records, and is judged on two things: does it answer as that student did, and does its answer change after a tutor's hint. The problem it names with asking a model to role-play: "the tutor may appear effective because the simulated student is too capable." The first third was read; no result figure is quoted.
+- **Simon Willison, [Hello Python 3.15](https://simonwillison.net/2026/Oct/12/python-3-15/)**, from the stored summary: explicit lazy imports (PEP 810), which he wants for his \`llm\` tool's plugins, and unpacking in comprehensions. [datasette-ports 0.4](https://simonwillison.net/2026/Oct/12/datasette-ports/) now shows each instance's PID.`
+// %%
+md`## 6. What people discussed
+
+Hacker News, titles only:
+
+- [Hackers activate automatic defrosting in supermarket fridges across Europe](https://www.tomshardware.com/tech-industry/cyber-security/unprecedented-cyberattack-cripples-supermarket-fridges-across-europe-as-hackers-activate-automatic-defrosting-delivery-and-store-prices-also-impacted-by-incident) (563 points, 730 comments, the most discussed of the run), [A Modern Web App in C](https://prophitt.me/writing/a-modern-web-app-in-c) (480), [Turn a WiFi 7 Router into a 320Msps Software Defined Radio Receiver](https://github.com/h0m3us3r/w1700k-sdr) (313).
+- [Kevin Kelly's 2016 AI Predictions, 10 Years Later](https://taylor.town/kk-ai-2026) (171 points). The opening was read: excerpts of *The Inevitable*, the first "By 2026, Google's main product will not be search but AI."
+- [Vi Hart's Big Navier-Stokes Post](https://www.patreon.com/vihart/posts/vi-harts-big-171939430) (13 points on Lobsters, 6 on Hacker News), the one new item on Lobsters. Patreon answered 403.`
+// %%
+md`## 7. Candidates for the Brain's backlog
+
+Flagged only. Tom decides.
+
+1. **Look for a closed issue whose tests passed in a harness that is not cb4 and whose change did not work there.** Reason: section 1. One found would say what the check on cb4 has to cover.
+2. **Measure a brief the overseer edited against the one before it.** Reason: section 2. The tracker has rounds sent back per issue; the same count before and after an edit is the cheapest form.
+3. **Price a cluster browser a month and set it beside $0.37.** Reason: section 3. Agent37's own limit (no Docker inside) is the thing to check against what the Brain's containers run.
+
+The candidates of 9, 11 and 12 October: nothing recorded here says any was acted on.`
+// %%
+md`## What was not read
+
+- arXiv: the index has it at 0 items this run, marked \`lookup\`. Hugging Face matched 0 of 50 again, so \`papers.json\` has three papers, all by mention; the third, Byte Language Models, was in the digest of 11 October.
+- Reddit: nothing, the feed answered 429.
+- The papers themselves. Both arXiv items are known by their abstracts. OpenAI's FFT preprint, Rich Hickey's article and every source Import AI links were not opened.
+- Comments, on every item.
+- Figures and scripts: the benchmark tables of Muse Wonder, the formulas of Recht's post, the charts of Auto Research.
+- Parts of pages: two thirds of the StudentSim post, the READMEs of SolidCraft and Blokkily past their first screen, Kevin Kelly's page past its opening, the Tom's Hardware article (fetched, not read).
+- z.ai returned a script and no text; patreon.com answered 403.
+- 67 of the 103 items loaded below were in the files of 11 or 12 October. The 30 of Hacker News, one of Lobsters, Import AI 476, one post of Microsoft Research and three of Simon Willison are new.
+- No item in this run from Karpathy's two feeds, Lilian Weng, Sebastian Raschka, Eugene Yan, Chip Huyen, Hamel Husain, BAIR or Meta engineering. Meta's release came by Hacker News.`
+// %%
+md`## The picks, as data`
+// %%
+day = "2026-10-13"
+// %%
+days = ["2026-10-13"]
+// %%
+picks = [
+  { id: "50065932", theme: 1, source: "hn", title: "A look at OpenAI's math that's claimed computes faster Fourier transforms", url: "https://www.argmin.net/p/faster-fourier-transforms", why: "Recht: a constant of 10^100 and a model of computation no machine has" },
+  { id: "50047664", theme: 1, source: "hn", title: "Auto Research: Integer multiplication below n log n", url: "https://app.getsupers.com/auto-research", why: "agents improving one exponent on OpenAI's preprints; conditional, by the page's own warning" },
+  { id: "2610.13928", theme: 2, source: "papers", title: "AI Models Can Provably Hide Arbitrary Capabilities", url: "https://arxiv.org/abs/2610.13928", why: "encrypted circuits in weights that elicitation does not find; abstract only" },
+  { id: "https://jack-clark.net/2026/10/12/import-ai-476-creativity-and-rsi-worse-than-china-open-weight-models-ai-goes-to-space/", theme: 2, source: "import-ai", title: "Import AI 476: Creativity and RSI; worse-than-China open weight models; AI goes to space", url: "https://jack-clark.net/2026/10/12/import-ai-476-creativity-and-rsi-worse-than-china-open-weight-models-ai-goes-to-space/", why: "TasteVal, and Clark moves his forecast of full RSI from 2028 to 2027" },
+  { id: "2609.39803", theme: 2, source: "papers", title: "From Pilots to Production: Lessons in Cross-Institutional Federated Training and Artificial Intelligence for Science", url: "https://arxiv.org/abs/2609.39803", why: "federated training across national laboratories; abstract only" },
+  { id: "50060694", theme: 3, source: "hn", title: "Codex CLI installs a persistent, self-updating background daemon by default", url: "https://github.com/openai/codex/issues/48195", why: "a daemon that outlives the session and updates itself hourly, by the issue" },
+  { id: "https://simonwillison.net/2026/Oct/12/web-edit/", theme: 3, source: "simon-willison", title: "web-edit 0.1a0", url: "https://simonwillison.net/2026/Oct/12/web-edit/", why: "editing a credentials file without passing it through the model" },
+  { id: "50059096", theme: 3, source: "hn", title: "Launch HN: Agent37 (YC F26) – Low-cost agent sandboxes for running agents", url: "https://news.ycombinator.com/item?id=50059096", why: "$0.37 a month a sandbox, the founder's figure; gVisor on rented hosts" },
+  { id: "50063717", theme: 3, source: "hn", title: "Janas: Run LLMs larger than RAM by streaming experts from SSD", url: "https://github.com/prabanta-dev/janas", why: "a 48.4 GB model at 24 tokens a second in 32 GB, the author's table" },
+  { id: "50064438", theme: 4, source: "hn", title: "Show HN: An experimental pattern-first DAW that supports MCP", url: "https://github.com/andrewfader/blokkily", why: "a DAW an agent edits over MCP" },
+  { id: "50064840", theme: 4, source: "hn", title: "Show HN: SolidCraft – Open-Source Parametric CAD in Rust (With MCP Support)", url: "https://github.com/bherbruck/solidcraft", why: "parametric CAD with a built-in MCP server" },
+  { id: "50059115", theme: 5, source: "hn", title: "Muse Wonder", url: "https://research.meta.ai/blog/muse-wonder", why: "Meta's release; its scores are figures and were not read" },
+  { id: "50058507", theme: 5, source: "hn", title: "GLM-Legal", url: "https://z.ai/blog/glm-legal", why: "title only; the page is a script" },
+  { id: "50063427", theme: 5, source: "hn", title: "AI is a tool and using it well takes skill", url: "https://yyhh.org/blog/2026/10/ai-is-a-tool/", why: "a reply to Rich Hickey: wielding against delegating" },
+  { id: "https://www.microsoft.com/en-us/research/?p=1185936", theme: 5, source: "microsoft-research", title: "Simulating student learning for better AI tutoring", url: "https://www.microsoft.com/en-us/research/blog/simulating-student-learning-for-better-ai-tutoring/", why: "a simulated student that is too capable flatters the tutor" },
+  { id: "https://simonwillison.net/2026/Oct/12/python-3-15/", theme: 5, source: "simon-willison", title: "Hello Python 3.15, goodbye 3.10, and now I can use 3.11", url: "https://simonwillison.net/2026/Oct/12/python-3-15/", why: "lazy imports; from the stored summary" },
+  { id: "https://simonwillison.net/2026/Oct/12/datasette-ports/", theme: 5, source: "simon-willison", title: "datasette-ports 0.4", url: "https://simonwillison.net/2026/Oct/12/datasette-ports/", why: "from the stored summary" },
+  { id: "50055304", theme: 6, source: "hn", title: "Hackers activate automatic defrosting in supermarket fridges across Europe", url: "https://www.tomshardware.com/tech-industry/cyber-security/unprecedented-cyberattack-cripples-supermarket-fridges-across-europe-as-hackers-activate-automatic-defrosting-delivery-and-store-prices-also-impacted-by-incident", why: "title only" },
+  { id: "50058528", theme: 6, source: "hn", title: "A Modern Web App in C", url: "https://prophitt.me/writing/a-modern-web-app-in-c", why: "title only" },
+  { id: "50055593", theme: 6, source: "hn", title: "Turn a WiFi 7 Router into a 320Msps Software Defined Radio Receiver", url: "https://github.com/h0m3us3r/w1700k-sdr", why: "title only" },
+  { id: "50057668", theme: 6, source: "hn", title: "Kevin Kelly's 2016 AI Predictions, 10 Years Later", url: "https://taylor.town/kk-ai-2026", why: "opening only" },
+  { id: "j30pg4", theme: 6, source: "lobsters-ai", title: "Vi Hart's Big Navier-Stokes Post", url: "https://www.patreon.com/vihart/posts/vi-harts-big-171939430", why: "title only; the page answered 403" }
+]
+// %%
+Inputs.table(picks, {
+  columns: ["theme", "title", "source", "why"],
+  format: { title: (t, i, data) => htl.html`<a href=${data[i].url} target=_blank rel=noopener>${t}</a>` },
+  layout: "auto"
+})
+// %%
+md`## Every item of the day
+
+Loaded when the page opens from the Brain's public files, \`/static/snapshot/${day}/\`. A source with no file that day is skipped, and so is one the index marks \`lookup\` (the whole of arXiv).`
+// %%
+snapshotBase = location.protocol === "file:" ? "https://cb4.endpointservices.workers.dev" : location.origin
+// %%
+snapshot = {
+  const get = async (path) => {
+    try {
+      const r = await fetch(`${snapshotBase}/static/${path}`);
+      return r.ok ? await r.json() : null;
+    } catch (e) {
+      return null;
+    }
+  };
+  const runs = [], items = new Map(), papers = new Map();
+  for (const d of days) {
+    const index = await get(`snapshot/${d}/index.json`);
+    if (!index) continue;
+    const [paperFile, ...files] = await Promise.all([
+      index.papers && index.papers.path ? get(index.papers.path) : null,
+      ...index.sources.filter((s) => s.path && !s.lookup).map((s) => get(s.path))
+    ]);
+    let n = 0;
+    for (const f of files.filter(Boolean)) for (const x of f.items) {
+      items.set(f.source + "|" + x.id, { ...x, source: f.source, tier: f.tier, day: d });
+      n++;
+    }
+    const ps = (paperFile && paperFile.papers) || [];
+    for (const p of ps) {
+      const was = papers.get(p.id);
+      papers.set(p.id, { ...was, ...p, title: p.title || (was && was.title) || "", day: d });
+    }
+    runs.push({ day: d, ranAt: index.ranAt, items: n, papers: ps.length, sources: index.sources.filter((s) => s.count > 0).length, of: index.sources.length });
+  }
+  return { runs, items: [...items.values()], papers: [...papers.values()] };
+}
+// %%
+items = snapshot.items
+// %%
+papers = snapshot.papers
+// %%
+picksFound = picks.filter((p) => (p.source === "papers" ? papers.some((q) => q.id === p.id) : items.some((d) => d.id === p.id)))
+// %%
+snapshot.runs.length
+  ? md`${items.length} items from ${new Set(items.map((d) => d.source)).size} sources and ${papers.length} papers with a signal, from the run of ${snapshot.runs[0].ranAt}. ${picksFound.length} of the ${picks.length} picks are among them.`
+  : md`The snapshot did not load from \`${snapshotBase}\`. ${location.protocol === "file:" ? "Opened as a local file, the Brain's files are not readable from here; open this notebook from the Brain's address." : "The day's files may be missing or the Brain unreachable."}`
+// %%
+Inputs.table(snapshot.runs, {
+  columns: ["day", "ranAt", "items", "papers", "sources", "of"],
+  header: { ranAt: "recorded", sources: "sources with items", of: "sources asked" },
+  layout: "auto"
+})
+// %%
+md`### Papers with a signal
+
+From \`papers.json\` of the day: a paper is there for votes on Hugging Face or a link from another source. A paper that came by a mention has no title in the file.`
+// %%
+Inputs.table(papers, {
+  columns: ["id", "title", "points", "signals"],
+  header: { points: "votes" },
+  format: {
+    id: (id, i, data) => htl.html`<a href=${data[i].url} target=_blank rel=noopener>${id}</a>`,
+    title: (t, i, data) => htl.html`<span title=${String(data[i].summary || "").slice(0, 900)}>${t || (data[i].via || []).map((v) => "via " + v.source + ": " + v.title).join("; ")}</span>`,
+    signals: (s) => (s || []).join(", ")
+  },
+  sort: "points",
+  reverse: true,
+  rows: 15
+})
+// %%
+md`### Items`
+// %%
+Plot.plot({
+  marginLeft: 130,
+  height: 300,
+  x: { label: "items", type: "sqrt" },
+  y: { label: null },
+  color: { legend: true, domain: ["research", "blogger", "aggregator"] },
+  marks: [
+    Plot.barX(items, Plot.groupY({ x: "count" }, { y: "source", fill: "tier", sort: { y: "-x" } })),
+    Plot.ruleX([0])
+  ]
+})
+// %%
+viewof tiers = Inputs.checkbox(["research", "blogger", "aggregator"], { label: "Tier", value: ["research", "blogger", "aggregator"] })
+// %%
+viewof sources = Inputs.select([...new Set(items.map((d) => d.source))].sort(), { label: "Source", multiple: true })
+// %%
+viewof found = Inputs.search(items.filter((d) => tiers.includes(d.tier) && (!sources.length || sources.includes(d.source))), { placeholder: "Search titles and summaries" })
+// %%
+Inputs.table(found, {
+  columns: ["title", "source", "points", "comments", "published"],
+  format: {
+    title: (t, i, data) => htl.html`<a href=${data[i].url || data[i].discussion} target=_blank rel=noopener title=${String(data[i].summary || "").replace(/<[^>]+>/g, " ").slice(0, 600)}>${t}</a>`,
+    published: (p) => String(p || "").slice(0, 10)
+  },
+  width: { source: 130, points: 60, comments: 80, published: 90 },
+  rows: 20
+})
+// %%
+md`## How this was written`
+// %%
+md`Written 2026-10-13 by Claude Code (Opus 5.5), as an agent of the Brain's issue loop working the task \`digest-2026-10-13\`, with no person choosing the leads. It covers one run of the snapshot, 2026-10-13T06:00:26.000Z. The index of that run counts 103 items from 9 of 21 sources, and arXiv, which this page does not load, gave 0. \`papers.json\` has 3 papers. Reddit answered 429 and Hugging Face matched 0 of 50.`
+// %%
+md`21 addresses were fetched on 2026-10-13 from 08:35 CEST. Read: the abstracts of the two arXiv papers, Recht's post, the Auto Research page and the README of the repository it tracks, Import AI 476, Meta's post, the Codex issue and the Janas repository through GitHub's API, the Janas, Blokkily and SolidCraft READMEs in part, the reply to Hickey, the Agent37 post through Hacker News' API, the StudentSim post in part, web-edit, and the opening of the Kevin Kelly page. Fetched and not used: Simon Willison's Python post (the stored summary was used) and the Tom's Hardware article. z.ai returned no text and Patreon answered 403. Points and comments are the snapshot's, from its \`hn.json\` and \`lobsters-ai.json\`. Every other number above is from a page fetched then, and each claim is the source's own. Nothing was reproduced: Janas ships a benchmark for Linux and Windows x86-64 and this machine is neither; the integer multiplication repository has \`make frontier741-verify\`, and it was not run.`
