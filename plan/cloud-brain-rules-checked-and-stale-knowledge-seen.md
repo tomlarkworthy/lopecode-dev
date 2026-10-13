@@ -329,6 +329,15 @@ later policy may require it on a move; this spec's policy does not.
 `asOf` greater than the record's last seq is a 400. An issue the caller may not read is 404 before
 the number is looked at, as for every act.
 
+(As built, `rk-3-as-of`, 2026-10-13: five things the text above leaves open or says otherwise; the
+record, `tools/cloud-brain/records/rk-3-as-of.md`. `by` of an entry of `since` is the event's own,
+`{ caller, via, … }`, not a holder's name as the example has it. `since` has the events that refuse,
+those that matter and that the caller did not write, and the message counts those. The stale check is
+asked after the read guard and before the act's own guard, so a stale write a guard would also refuse
+is a 409. `asOf` is 1 or more; 0, text, a fraction and `null` are a 400. `touched` is not kept on
+the row: `issue.get` answers the greatest seq of `said`. The row keeps `said`, and `issue.snapshot`
+answers it with the row.)
+
 ### 3. The tool sends it (R4)
 
 `issue-as.sh` keeps, for each token and issue, the `seq` of the issue in the last answer of `get` it
