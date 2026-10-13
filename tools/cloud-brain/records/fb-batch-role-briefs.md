@@ -244,7 +244,10 @@ say that `--short` prints it so, and say what the number of the long form does. 
 `tests/tools/fb-batch-role-briefs.test.ts` holds those sentences in both texts and runs the command with the
 `at` of event 6942 in both forms: as a date, at least one line, the last of them the commit of round 1; as
 milliseconds, no line and exit 0. `git grep -c -F -e 'The `at` is given as a date' HEAD -- .claude/skills/brain-maintenance/agents`
-named no file before the edit.
+named no file before the edit. Without the fix, the two texts put back as the commit before this round's has
+them (`git checkout HEAD~1 -- <the two files>`): 4 pass, 1 fail, the third test, at the sentences. The two
+runs of git in it answer the same with or without the texts: they hold what git does with each form, which is
+why the sentences are there, and not that a text says so.
 
 Not taken: the reviewer's other way, a commit in place of a time. The commit a writer started at is the `at`
 of a `worktree {…}` comment, which is on the topic's issue and not always on the writer's own
