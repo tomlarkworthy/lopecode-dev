@@ -1,0 +1,164 @@
+// One cell, compiled at the end of brain-issues.ojs by tools/cloud-brain/policy-walk.ts, with no other test cell, and run
+// by cloud-brain-dev/test.ts. It walks every state a policy lets one issue reach, with the seed's own judge
+// (issuePolicyAct, issueAllowed, issueEvent, issueApply), and returns as JSON what each property of
+// plan/cloud-brain-rules-checked-and-stale-knowledge-seen.md, "The properties", found. It asserts nothing: the tool reads it.
+// The string of `data` is replaced by { policy, kinds, cap, until, his, hashes }: `policy` null is issuesDefaultPolicy,
+// `until` a property that ends the walk at the first edge that breaks it, `his` the states of loop-ends-it that are the
+// owner's to end, and `hashes` true answers the workflow hashes with no walk.
+// One issue `x` of each kind, two parts of it (`cf` a feedback, `ct` a task) that a token opens, closes and reopens, five
+// callers, three labels. A state is, of x and of each part: the workflow, the state, the three labels, the fields of
+// `by` a guard reads, and the reviews as verdict and whether the starter wrote them.
+test_policy_walk = {
+  const data = "__DATA__", t0 = Date.now();
+  const policy = data.policy || issuesDefaultPolicy, pol = await issuePolicyAct(policy);
+  if (data.hashes) return JSON.stringify({ hashes: pol.hashes });
+  const text = JSON.stringify(policy), W = pol.policy.workflows;
+  const token = (d, n) => ({ caller: "owner", via: "delegation:" + d, holder: "secret:" + n, tab: false });
+  // The delegation an `approve` guard names, when one does. With none the fifth caller is one more token.
+  const named = /delegation:([0-9a-f]{12})/.exec(text)?.[1] || "";
+  const actors = { owner: { caller: "owner", via: "session" }, a: token("aaaaaaaaaaaa", "impl-a"), b: token("bbbbbbbbbbbb", "rev-b"), approver: token(named || "eeeeeeeeeeee", "loop-approver"), worker: { caller: "worker:brain-x-echo" } };
+  const actor = Object.fromEntries(Object.entries(actors).map(([who, by]) => [who, issueActor(by)]));
+  const L = ["major", "needs-owner", "security"], ref = [{ kind: "commit", value: "abc" }];
+  const byRead = [...new Set([...text.matchAll(/issue\.by\.([a-z-]+)/g)].map((m) => m[1]).concat([...text.matchAll(/\\"([a-z-]+)\\" in issue\.by/g)].map((m) => m[1])))].sort();
+  const nameOf = Object.fromEntries(Object.entries(pol.hashes).map(([n, h]) => [h, n]));
+
+  // What each property reads of a workflow, by the names the policy uses.
+  const moves = (n) => W[n].moves, has = (n, move) => moves(n).some((m) => m.name === move), from = (m) => [].concat(m.from);
+  // The owner present, and the approver where the `approve` guard of that workflow names its delegation.
+  const approves = (n) => !!named && moves(n).some((m) => m.name === "approve" && String(m.guard).includes("delegation:" + named));
+  const his = (who, n) => who === "owner" || (who === "approver" && approves(n));
+  // The review states of a workflow are those its review guard names; the actor it compares with is the field of `by`
+  // the guard of a move into one reads (submit: caller.actor == issue.by.start); the moves out are those that read the reviews.
+  const review = Object.fromEntries(Object.keys(W).map((n) => {
+    const states = [...String(W[n].review || "").matchAll(/issue\.state == "([a-z0-9-]+)"/g)].map((m) => m[1]).filter((s) => W[n].states.includes(s));
+    const field = moves(n).filter((m) => states.includes(m.to)).map((m) => /caller\.actor == issue\.by\.([a-z-]+)/.exec(m.guard)?.[1]).find(Boolean);
+    const out = moves(n).filter((m) => from(m).some((s) => states.includes(s)) && /issue\.reviews/.test(m.guard)).map((m) => m.name);
+    return [n, states.length && field ? { states, field, out } : null];
+  }));
+  const names = Object.keys(W);
+  const asked = {
+    "major-done-is-his": names.filter((n) => W[n].states.includes("done") && !has(n, "decompose")),
+    "major-stays": names,
+    "project-done-was-approved": names.filter((n) => W[n].states.includes("done") && has(n, "decompose") && has(n, "approve")),
+    "no-own-review": names.filter((n) => review[n]),
+    "no-trap": names,
+    "loop-ends-it": names,
+    "moves-are-his-or-a-token": names
+  };
+  // The properties an edge breaks by itself: (edge, the state it leaves, the state it reaches).
+  const edgeBreaks = {
+    "major-done-is-his": (e, f, t) => (e.type === "move" || e.type === "swap") && asked["major-done-is-his"].includes(t.wf) && t.state === "done" && f.state !== "done" && f.labels.includes("major") && !his(e.who, t.wf),
+    "major-stays": (e, f, t) => e.type !== "part" && f.labels.includes("major") && !t.labels.includes("major") && e.who !== "owner",
+    "no-own-review": (e, f) => {
+      const r = review[f.wf];
+      return !!r && e.type !== "part" && r.states.includes(f.state) && !!f.by[r.field] && f.by[r.field] === actor[e.who] && (e.type === "review" || (e.type === "move" && r.out.includes(e.name)));
+    },
+    "moves-are-his-or-a-token": (e) => e.type !== "part" && e.who === "worker"
+  };
+  if (data.until && !edgeBreaks[data.until]) throw new Error("until: not a property an edge breaks: " + data.until);
+
+  const base = () => issueApply(issueView(), { seq: 1, hash: "h1", type: "policy", policy: pol.policy, hashes: pol.hashes, by: actors.owner, at: 1 });
+  const keyOf = (view) => JSON.stringify(["x", "cf", "ct"].map((id) => { const i = view.issues[id]; return i ? [nameOf[i.workflow], i.state, i.labels.filter((l) => L.includes(l)).sort(), byRead.map((k) => i.by[k] || ""), [...new Set(i.reviews.map((r) => (r.actor === (i.by.start || i.by.spec) ? "self" : "other") + "|" + r.verdict))].sort()] : null; }));
+  const apply = (view, by, act) => {
+    const v = issueAllowed(view, by, act);
+    if (!v.allow) return null;
+    // The issues alone are copied: issueApply of an event that is no policy writes them, seq and head, and nothing of the workflows.
+    const next = { ...view, issues: structuredClone(view.issues) }, e = { ...issueEvent(view, act, v), seq: view.seq + 1, hash: "h", by, at: view.seq + 1 };
+    issueApply(next, e);
+    return { next, e };
+  };
+  const actsOf = (view) => {
+    const out = [], x = view.issues.x, wf = view.workflows[x.workflow];
+    for (const [who, by] of Object.entries(actors)) {
+      for (const to of new Set(wf.moves.filter((m) => m.from === "*" || from(m).includes(x.state)).map((m) => m.to))) for (const [reason, refs] of [["", []], ["r", ref]]) out.push([who, by, { type: "move", id: "x", to, reason, refs }]);
+      for (const verdict of ["pass", "changes", "block"]) out.push([who, by, { type: "review", id: "x", verdict, body: "", refs: [] }]);
+      for (const l of L) { out.push([who, by, { type: "label", id: "x", add: [l], remove: [] }]); out.push([who, by, { type: "label", id: "x", add: [], remove: [l] }]); }
+      for (const s of wf.swaps) out.push([who, by, { type: "swap", id: "x", swap: s.name, reason: "r" }]);
+    }
+    for (const [id, kind] of [["cf", "feedback"], ["ct", "task"]]) {
+      const c = view.issues[id];
+      if (!c) out.push(["a", actors.a, { type: "open", id, title: id, kind, about: "brain", parent: "x", labels: [] }]);
+      else for (const to of ["open", "closed"]) out.push(["a", actors.a, { type: "move", id, to, reason: "r", refs: [] }]);
+    }
+    return out;
+  };
+  // An act as a step of a path.
+  const said = (who, act, e) =>
+    act.type === "open" ? `${who} opens ${act.id === "x" ? "x" : "the part " + act.id} (${act.kind})`
+    : act.id !== "x" ? `${who} moves the part ${act.id} to ${act.to}`
+    : act.type === "move" ? `${who} ${e.move}${act.reason ? " with a reason and a ref" : ""}`
+    : act.type === "review" ? `${who} reviews ${act.verdict}`
+    : act.type === "label" ? `${who} labels ${act.add.map((l) => "+" + l).concat(act.remove.map((l) => "-" + l)).join(" ")}`
+    : `${who} swaps ${e.swap}`;
+
+  // The walk, breadth first, so the path kept to a state is a shortest one from an open.
+  const index = new Map(), nodes = [], edges = [], queue = [], firsts = [];
+  const add = (view, parent, via) => {
+    const i = view.issues.x, n = { view, parent, via, wf: nameOf[i.workflow], state: i.state, labels: i.labels.filter((l) => L.includes(l)), by: i.by, closed: !!i.closed };
+    index.set(keyOf(view), nodes.length); queue.push(nodes.length); nodes.push(n);
+    return nodes.length - 1;
+  };
+  const pathTo = (at) => { const steps = []; for (let n = nodes[at]; n; n = nodes[n.parent]) steps.unshift(n.via); return steps; };
+  for (const kind of data.kinds) {
+    const act = { type: "open", id: "x", title: "x", kind, about: "brain", parent: null, labels: [] }, o = apply(base(), actors.a, act);
+    if (!o) continue;
+    const k = keyOf(o.next);
+    firsts.push(index.has(k) ? index.get(k) : add(o.next, -1, said("a", act, o.e)));
+  }
+  let tried = 0, stopped = null;
+  walk: while (queue.length && nodes.length < data.cap) {
+    const f = queue.shift(), view = nodes[f].view;
+    nodes[f].view = null;
+    for (const [who, by, act] of actsOf(view)) {
+      tried++;
+      const r = apply(view, by, act);
+      if (!r) continue;
+      const k = keyOf(r.next), step = said(who, act, r.e);
+      const t = index.has(k) ? index.get(k) : add(r.next, f, step);
+      const e = act.id === "x" ? { f, t, who, type: act.type, name: r.e.move || r.e.swap || "", step } : { f, t, who, type: "part", name: "", step };
+      edges.push(e);
+      if (data.until && edgeBreaks[data.until](e, nodes[f], nodes[t])) { stopped = e; break walk; }
+    }
+  }
+  const brief = (n) => n.wf + "/" + n.state, uniq = (a) => [...new Set(a)].sort();
+  const pathOf = (e) => [...pathTo(e.f), e.step];
+  const head = { hashes: pol.hashes, approver: named, kinds: data.kinds, states: nodes.length, left: queue.length, edges: edges.length, tried };
+  const line = (name, more) => ({ name, asked: asked[name], ...more });
+  if (data.until) {
+    const what = stopped ? `${brief(nodes[stopped.f])}: ${stopped.step}` : "";
+    return JSON.stringify({ ...head, until: data.until, ms: Date.now() - t0, properties: [line(data.until, stopped ? { holds: false, count: 1, what: "edge, the first that breaks it, where the walk stopped: " + what, paths: [pathOf(stopped)] } : { holds: true, count: 0, what: "edges break it", paths: [] })] });
+  }
+
+  const broken = (name) => edges.filter((e) => edgeBreaks[name](e, nodes[e.f], nodes[e.t]));
+  // States reached from `starts` over the edges `ok` lets through, each with the edge it was first reached by.
+  const out = nodes.map(() => []);
+  for (const e of edges) out[e.f].push(e);
+  const reach = (starts, ok) => { const by = new Map(starts.map((s) => [s, null])), q = [...starts]; while (q.length) for (const e of out[q.shift()]) if (ok(e) && !by.has(e.t)) { by.set(e.t, e); q.push(e.t); } return by; };
+  const trail = (by, at) => { const steps = []; let s = at; for (let e = by.get(s); e; e = by.get(s)) { steps.unshift(e.step); s = e.f; } return [nodes[s].via, ...steps]; };
+  // States from which a closed one is reached over the edges `ok` lets through.
+  const back = nodes.map(() => []);
+  for (const e of edges) back[e.t].push(e);
+  const ends = (ok) => { const can = new Set(nodes.flatMap((n, i) => (n.closed ? [i] : []))), q = [...can]; while (q.length) for (const e of back[q.shift()]) if (ok(e) && !can.has(e.f)) { can.add(e.f); q.push(e.f); } return can; };
+
+  const p1 = broken("major-done-is-his"), p2 = broken("major-stays"), p4 = broken("no-own-review"), p7 = broken("moves-are-his-or-a-token");
+  // With the approve moves of the owner present and of the named delegation cut, is done of that workflow reached from its open?
+  const p3 = asked["project-done-was-approved"].flatMap((n) => {
+    const by = reach(firsts.filter((s) => nodes[s].wf === n), (e) => !(e.type === "move" && e.name === "approve" && nodes[e.f].wf === n && his(e.who, n)));
+    return [...by.keys()].filter((s) => nodes[s].wf === n && nodes[s].state === "done").map((s) => ({ s, by }));
+  });
+  const any = ends(() => true), trapped = nodes.flatMap((n, i) => (any.has(i) ? [] : [i]));
+  const loop = ends((e) => ["a", "b", "approver"].includes(e.who) || e.type === "part"), stuck = nodes.flatMap((n, i) => (loop.has(i) ? [] : [i]));
+  const stuckNames = uniq(stuck.map((s) => brief(nodes[s]))), listed = data.his || [], unlisted = stuckNames.filter((s) => !listed.includes(s));
+  const workerNames = uniq(p7.map((e) => nodes[e.f].wf + "." + (e.name || e.type)));
+  const edgeLine = (name, found, what) => line(name, { holds: !found.length, count: found.length, what, paths: found.slice(0, 1).map(pathOf) });
+  const properties = [
+    edgeLine("major-done-is-his", p1, "moves to done of an issue that carries major, by a caller that is neither the owner present nor the delegation the approve guard names"),
+    edgeLine("major-stays", p2, "edges that take major off, by a caller that is not the owner present"),
+    line("project-done-was-approved", { holds: !p3.length, count: p3.length, what: "states at done reached from the open with the approve moves of the owner present and of that delegation cut", paths: p3.slice(0, 1).map(({ s, by }) => trail(by, s)) }),
+    edgeLine("no-own-review", p4, "reviews, and moves out of a review state that read the reviews, by the actor the move into that state was guarded by"),
+    line("no-trap", { holds: !trapped.length, count: trapped.length, what: "states from which no closed state is reached", states: uniq(trapped.map((s) => brief(nodes[s]))), paths: trapped.slice(0, 1).map(pathTo) }),
+    line("loop-ends-it", { holds: !unlisted.length, count: unlisted.length, what: "states, as workflow/state, from which no closed state is reached by tokens and the approver alone, and that the list of the owner's does not have", states: unlisted, listed: stuckNames.filter((s) => listed.includes(s)), listedAndEnded: listed.filter((s) => !stuckNames.includes(s)), paths: stuck.filter((s) => unlisted.includes(brief(nodes[s]))).slice(0, 1).map(pathTo) }),
+    line("moves-are-his-or-a-token", { holds: !p7.length, count: workerNames.length, what: "moves, reviews, labels and swaps a Worker of the Brain was allowed, as workflow.move", names: workerNames, paths: workerNames.map((w) => pathOf(p7.find((e) => nodes[e.f].wf + "." + (e.name || e.type) === w))) })
+  ];
+  return JSON.stringify({ ...head, ms: Date.now() - t0, properties });
+}

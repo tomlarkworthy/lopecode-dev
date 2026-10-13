@@ -753,6 +753,15 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    at the first release after cb4 runs the seed of `main`, and when he has answered on it and the label is off it stays
    open until then. (Since `undeployed-seeds-not-shown-to-owner`, 2026-10-13; run that day on cb4, the core and the
    deployer waited and the two issues were opened: `tools/cloud-brain/records/undeployed-seeds-not-shown-to-owner.md`.)
+   **After an install.** In the pass after the owner installs a policy, run
+   `bun tools/cloud-brain/policy-walk.ts --in-force --token <your token>` and tell him its first line: `in force: v<n>`
+   (exit 0) when the workflow hashes of `issue.policy` are those of the newest `plan/cloud-brain-issues-policy-v<n>.json`,
+   the file the suite walks as a state machine (`tests/tools/policy-walk.test.ts`), and `in force: not v<n>` (exit 1)
+   with the workflows that differ when they are not: the policy in force is then one no walk was made of. The line under
+   the first says whether the reason in force is the file's, since two files with one policy have the same hashes.
+   (Since `rk-1-policy-walk`, 2026-10-13; `plan/cloud-brain-rules-checked-and-stale-knowledge-seen.md`, section 1. Run
+   that day with a writer's token: `in force: v6`, of the policy of event 6510. First run by this step after an
+   install: not yet, when this was written.)
    Then what was approved for him since you last told him: the lines of
    `bun tools/cloud-brain/approver.ts list --since=<hours since you last told him> --token <your token>`, as they
    are (the hours a number above 0, as `24` or `0.5`; the tool is exit 2 for any other). Each is one `approve` the approver made: the time, the issue, the words of his it rests on (`on your words
