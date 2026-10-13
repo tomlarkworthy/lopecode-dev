@@ -98,6 +98,9 @@ counted with `sort | uniq -c`): 38 `.ojs`, 36 `.ts`, 12 `.sh`, 10 `.js` and 1 `.
   (`ls -d ~/.claude-personal/projects/*worktrees-bm-* | wc -l`); the replay did not read them.
 - The whole suite, `tests/tools/suite.sh`, after the last edit of a page or the test: 1279 pass, 0 fail, "Ran
   1279 tests across 133 files", ended 19:55 CEST (`date`). No line of its output begins `skipped:` or `(fail)`.
+- The same after `worktree.sh --rebase`, which brought in two briefs, two tests and two records and no script
+  or page of the hook: 1287 pass, 0 fail, "Ran 1287 tests across 134 files", ended 20:01 CEST (`date`), no
+  line `skipped:` or `(fail)`; the lint again 0 error(s).
 
 ## Not tried
 
