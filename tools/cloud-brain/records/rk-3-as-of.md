@@ -83,12 +83,26 @@ In a browser, `bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/clo
 the run that emitted: `"tests":73,"passed":73,"failed":[]`.
 
 `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-issues --shell <the build> --times 20`, from the main
-checkout, ended 2026-10-13T19:36:45Z with the first number of `uptime` at 20.68:
+checkout, on the build that was emitted, ended 2026-10-13T19:51:17Z by its last line:
 
 ```
 "mains":["@tomlarkworthy/brain-shell","@tomlarkworthy/brain-issues"]
 {"worker":"brain-x-issues","runs":20,"passed":20,"failed":0,"none":0,"from":["document"],…,"byChance":[],…}
 ```
+
+The whole suite, `tests/tools/suite.sh`, after the last edit of the seed: 1306 pass, 1 fail, 1 error.
+The fail is a test of `tests/tools/loop-step.test.ts` ("labeled `needs-owner`: nothing until the owner has written
+after the label …") that timed out at 30000 ms, and the error is the same test's, after the time; `uptime` after the
+run gave 33.04 as its first number. That file alone, `bun test --timeout=30000 ./tests/tools/loop-step.test.ts`,
+then gave 40 pass, 0 fail, with `uptime` at 13.16. `grep -c brain-issues.ojs` prints 0 for that
+file and 1 for `tools/cloud-brain/loop.ts`, a comment at its line 235.
+
+**A first shape of the write failed one test of the suite**, and was changed for it. The write called a helper,
+`judged`, in place of `judge`, and `tests/tools/approver.test.ts` then failed (1306 pass, 1 fail): its case of
+the approver's policy mark changes the text `[act, verdict] = judge(view, ctx.by, given)` of the seed and
+asks that the text stands once. The helper was taken out and the write calls `judge` in those words, inside a
+`try`, so the approver's test file is as it was; `bun test --timeout=30000 ./tests/tools/approver.test.ts` then
+gave 34 pass, 0 fail. The counts above are of the seed after that.
 
 What the cells hold, beyond the answer above:
 
