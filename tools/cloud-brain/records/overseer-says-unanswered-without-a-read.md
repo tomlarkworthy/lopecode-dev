@@ -87,8 +87,8 @@ $ bun test --timeout=30000 ./tests/tools/overseer-says-unanswered-without-a-read
  4 pass, 0 fail, 17 expect() calls
 $ OVERSEER=<the brief of 5e424746, from git show> bun test --timeout=30000 ./tests/tools/overseer-says-unanswered-without-a-read.test.ts
  0 pass, 4 fail, 9 expect() calls
-$ tests/tools/suite.sh          (2026-10-13 06:16 CEST, after the last edit of the brief and the test)
- 1048 pass, 0 fail, 7592 expect() calls, 1048 tests across 107 files
+$ tests/tools/suite.sh          (2026-10-13 06:21 CEST, after the last edit of the brief and the test, and after the rebase)
+ 1065 pass, 0 fail, 7772 expect() calls, 1065 tests across 107 files
 ```
 
 ## Not tried
