@@ -82,8 +82,8 @@ smaller and easier to undo". Each of these is in the "As built" note of the spec
 
 ## How it was seen
 
-Each count is the last line of `cd $W && bun test --timeout=30000 ./tests/tools/<file>`, run at 13:18 UTC
-after the last change to the programs.
+Each count is the last line of `cd $W && bun test --timeout=30000 ./tests/tools/<file>`, run after 13:17 UTC
+and before the commit of 13:21, after the last change to the programs.
 
 | File | Passed | What of this change it holds |
 |---|---|---|
@@ -106,8 +106,7 @@ passed and 2 failed of 1257 in 128 files. Both were this change's: `ta-5-outside
 the line `PARENT = "loop-agents", HOURS = 48;` of `brain.ts`, which is put back as it was (the flag's value is
 a second name, `OF`); and `ac-5-prose-names-the-two-shapes.test.ts` holds a section of the knowledge page
 inside its first 15,000 characters, which eight new lines above it had pushed to 15,687, so the lines are a
-section at the page's end and the old sentence is shorter by four characters. The count of the suite as
-committed is at the end of this file.
+section at the page's end and the old sentence is shorter by four characters.
 
 Two commands on this laptop, 13:11 UTC:
 
@@ -119,6 +118,10 @@ no token "fly-agents" is kept. The owner makes it once: token fly-agents 'issue.
 ```
 
 and `agent-token list` with no flag printed 13 lines there, so the path with a state file still reaches cb4.
+
+The suite again on the tree as committed, with the record and the two mends, begun 13:21 UTC and ended by
+13:24:54: `$W/tests/tools/suite.sh` printed `1257 pass`, `0 fail`, `Ran 1257 tests across 128 files`, exit 0,
+and no line `skipped:`.
 
 ## For the session that makes the tokens, and for `fly-4b-first-run`
 
