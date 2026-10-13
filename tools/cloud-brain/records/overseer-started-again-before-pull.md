@@ -88,7 +88,7 @@ $W/tests/tools/suite.sh
   1265 pass, 0 fail, 10421 expect() calls, 1265 tests across 129 files (ended 15:49)
 ```
 
-`worktree.sh --rebase` at 15:41 brought in 24 files, `loop.ts` and both test files among them, and stopped on
+`worktree.sh --rebase`, finished 15:43 (`git reflog --date=iso`), brought in 24 files, `loop.ts` and both test files among them, and stopped on
 three conflicts in `loop.ts`: the helper `scratch` beside `lastOversight`, the prompt's new line
 `scratch: <dir>`, and the line of `step` that had `skill`. Each was resolved with both sides kept. Before the
 rebase the same two commands printed 53 pass, 0 fail of 53 tests and 1237 pass, 0 fail of 1237 tests.
