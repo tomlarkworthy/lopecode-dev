@@ -344,8 +344,8 @@ file, before it sends the comment and the submit at line 176 with the same token
 starts the writer again, and the check of a token given to `start` (line 239). Each sets
 `ISSUE_AS_KEEP=0` for that call, and `issue-as.sh` then keeps nothing of the answer. They are all
 there are: of the twelve files under `tools/cloud-brain` that name `issue-as.sh`, a search for
-`get?id` finds these four and the tool itself; the others read `sync`, `list` and `queue`, of which
-no number is kept. So the submit `land.sh` sends carries the number of the last `get`
+`get?id` finds these four and the tool itself, and none of the other seven asks it. What each of
+those seven reads was not gone through; the tool keeps a number of a `get` and of nothing else. So the submit `land.sh` sends carries the number of the last `get`
 the agent itself ran, and a comment that came after that read refuses the submit: `land.sh` passes
 the tool's exit 5 and its lines on, and the landing it has made stands, as for any refused submit
 today. What `loop.ts` reads with its own token (`LOOP_TOKEN`, the `read(me, …)` calls) is kept: of
@@ -548,7 +548,9 @@ Ids `rk-<n>-…`. Two can start at once: `rk-1` and `rk-3`.
   `major` if triage reads a row of `SKILL.md` as the loop's procedure, as `fly-4` was.
 - **`rk-6-read-after-three-days`.** After `rk-4`, and a wait that is not for a task: three days from
   `rk-4`'s `done`, a hold (`issue.hold`) with the reason "read stale.jsonl: the count, and of each
-  line whether it showed the writer something". Its record says the two numbers and whether the line
+  line whether it showed the writer something". Counted apart: the lines whose `since` is a `reviewed`
+  and the `rework` or `respec` after it and nothing else, which are a round taken by the wait with no
+  read after it (section 3). Its record says the three numbers and whether the line
   "read the issue again before the submit" can leave the briefs.
 
 ## What only the owner can do
@@ -620,7 +622,9 @@ A resumed round, sent by a message. One finding and two notes, each answered in 
 2. The note on a round taken by the wait: left as a refusal that is counted apart in `rk-6`, with why.
 3. The note on `ISSUE_AS_KEEP`: named in the bullet of the state file under "Not chosen".
 
-No call of the advisor for this round: it was rate-limited at round 2 and was not asked again.
+One call of the advisor before this round's landing (at round 2 it was rate-limited and none was
+made): the sentence of the sweep says what the search showed and no more, and `rk-6` says the count
+section 3 gives it.
 
 ## The prototype
 
