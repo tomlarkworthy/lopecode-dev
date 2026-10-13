@@ -260,6 +260,8 @@ well as puts: the quotient is the account's cost of one such operation, which is
 bill gives. When that cost is 0 (all inside the included amounts)
 the price is 12 months of a 1 MB file at list price with one operation, $0.00018, and the record
 says the bill gave nothing to divide. The owner changes either with `price.put` and no deploy.
+(As built, `cu-4-price-on-a-stored-write`, 2026-10-13: flat for every origin that has an account, and 0 for a chain
+nobody started, which the core would otherwise refuse; the note under task 4.)
 
 This is the smaller side (line 2 of the seven, as that file reads it): two lines in two seeds the
 loop deploys. It is undone with no deploy by `price.put` with the price `"0"`: a price of 0 is
@@ -317,7 +319,7 @@ run then. The two that could be run were, on 2026-10-11.
 | R1 | `BRAIN_BASE=cb4 bun <root>/tools/cloud-brain/brain.ts curl "/xrpc/com.lopecode.brain.usage.account" --as loop-usage`: 200, `rows` not empty, `total` a number. | Not run: no Worker, no token. Run by task 2's writer after its apply and by its reviewer. If it is not 200, see task 2. |
 | R3 | The same call with `--as loop-knowledge`: 403 from the kernel, "this token does not name". That shows the token's scope, not the rule; the rule is the `decide` test. | Not run. Run by task 2's writer. |
 | R4 | `tools/cloud-brain/cloudflare-usage.md` exists and quotes one whole answer with its time. The reviewer calls `usage.account` with `loop-usage` for the same range and compares three rows. | Not run. Task 3. |
-| R5 | In each of the two seeds, a test that `meta.access["com.lopecode.brain.static.put"].price` (and `blob.upload`) is the text the record of task 3 gives. | Not run. Task 4's writer, `tab-tests.ts` on each module. |
+| R5 | In each of the two seeds, a test that `meta.access["com.lopecode.brain.static.put"].price` (and `blob.upload`) is the text the record of task 3 gives. | Not run. Task 4's writer, `tab-tests.ts` on each module. (As built, `cu-4-price-on-a-stored-write`, 2026-10-13: run, 13 of 13 and 10 of 10; the text held is task 3's number behind a condition, the note under task 4.) |
 
 What only the owner can measure is in his list (item 4) and is no condition of a task landing.
 

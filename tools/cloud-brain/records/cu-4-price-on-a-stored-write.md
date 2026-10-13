@@ -12,7 +12,8 @@ Workers are deployed by the landing: `brain-x-static` and `brain-x-blob`.
   `test_blob_upload_has_the_price_of_a_stored_write`.
 - Both seeds import `cel` and `callerOf` from `@tomlarkworthy/cloudflare-iac`, for the test.
 - `tools/cloud-brain/cloudflare-usage.md`: the row of R2 in the table of the Brain's prices, and an "(As built …)"
-  note under the price. `plan/cloud-brain-cloudflare-usage-read.md`: an "(As built …)" note under task 4.
+  note under the price. `plan/cloud-brain-cloudflare-usage-read.md`: an "(As built …)" note under task 4, one in
+  the row R5 and one under "Chosen: a flat price a write".
   `knowledge/calling-a-cloud-brain-from-this-checkout.md`: the comment beside `knowledge-docs.ts put --stale` names
   the price of the file's put.
 
@@ -30,7 +31,9 @@ The core refuses a priced call whose origin has no account (`brain-core.ojs`, `a
 `(await rig.chain(rig.anonymous, "shop.buy")).status` is 402. `brain-x-whatsapp` calls `static.put` inside its
 answer to `POST /hooks/whatsapp`, a path open to anyone that Meta calls (`brain-whatsapp.ojs`, `keepImage`), and
 reads `kept.ok`: at a 402 the picture is not kept and the message is entered without it. The core's reference lists
-that call as "a picture that arrived, with no caller".
+that call as "a picture that arrived, with no caller". A path and a method are forwarded by one branch of the core
+(`rule = method || path`, then `priced`, then `forward`, which sets `x-brain-context` from the call's origin), so the
+Worker's put carries the origin of the webhook's caller: read in `brain-core.ojs`, not run for a path.
 
 Run on the built core, 2026-10-13 08:41 CEST, with six lines put in the place of the `return` of
 `test_the_origin_of_a_call_is_who_started_the_chain` in a copy of the built module (not in the seed):
@@ -89,8 +92,9 @@ parsed with `cel` and read over six origins of a Worker's call (`owner`, a DID, 
 `anonymous`: 0); and one line of the reference, read through `getSource?part=reference` of the rig, that starts with
 the sentence of the price.
 
-The whole suite, `tests/tools/suite.sh`, run after the rebase and the last edit of a file it reads, ended 08:44:25 CEST:
-`1095 pass`, `0 fail`, `Ran 1095 tests across 112 files`, and no line `skipped:`. It runs no test of a seed.
+The whole suite, `tests/tools/suite.sh`, run after the rebase and the last edit of a seed, ended 08:46:49 CEST:
+`1095 pass`, `0 fail`, and `grep -c 'skipped:'` over its output is 0. A run that ended 08:44:25 had the same two counts and
+`Ran 1095 tests across 112 files`. It runs no test of a seed.
 
 ## Not tried
 
