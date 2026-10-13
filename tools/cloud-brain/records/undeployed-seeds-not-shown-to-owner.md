@@ -67,7 +67,8 @@ The two that differ are the two the issue names as waiting. No module read `diff
 
 ## The runs on cb4
 
-2026-10-13 10:31:23 CEST, `bun tools/cloud-brain/waiting-deploys.ts --file impl-d7dbd6`, `origin/main` at `d8265d68`:
+2026-10-13 10:31:23 CEST, `bun tools/cloud-brain/waiting-deploys.ts --file impl-d7dbd6`, after a fetch (the head of
+`origin/main` at that second was not printed):
 
 ```
 brain: same
@@ -95,6 +96,22 @@ The same command at 10:31:28 ended `…; nothing written`. The read alone took 2
 - The base the walk found for the deployer is `904e2a1b` (`ds-ingestion-tail-to-analytics-engine`, a change to
   `cloudflare-iac.ojs`): cb4's deployer runs that change, and `be363d5a` alone is after it.
 
+**A list that changed.** The rebase of this change brought in three commits of `services-table-drawn-three-times-a-read`
+to `cloudflare-iac.ojs`, which the deployer's Worker holds. 2026-10-13 10:40:15 CEST, the same command, `origin/main`
+at `d8265d68`:
+
+```
+brain-deployer: waits. 4 differences (~deployerOps +test_apply_unchanged_keeps_the_source_of_what_runs_over_an_older_row ~serviceList +test_a_read_of_the_same_rows_puts_no_new_services_table_in_place). 4 commits: apply-unchanged-keeps-no-newer-source be363d5a 2026-10-13; services-table-drawn-three-times-a-read 6d0fa779 c2efb119 d8265d68 2026-10-13.
+deploys (cb4): brain-core, brain-deployer behind main, the deploy is the owner's; deploy-waits-brain-deployer list changed
+```
+
+Event 6423 is the comment, with a second line `services-table-drawn-three-times-a-read (in-review): …`; the run after
+it ended `nothing written`. Its record has a section "For the owner: the deploy" too (line 134 of
+`records/services-table-drawn-three-times-a-read.md`). The body's last line said that of "each issue", which a commit
+with no such record would make untrue: it was changed after that run to "What to run is in the record of an issue that
+was landed for your deploy", and "its seed" to "its seeds" for the deployer. The two issues on cb4 have the older wording
+until a release writes a comment to each.
+
 The issue's "Done when" has three parts. With a seed on `main` and not on cb4 the read names the Worker and the issue:
 the run above, and the tests. After his deploy it names none: the tests alone, with a stand-in for the Brain; no deploy
 of the four was made, and none is the loop's to make.
@@ -114,8 +131,8 @@ the docs.
 `bun test --timeout=30000 ./tests/tools/lock.test.ts`: 30 pass, 0 fail; with `lock.sh` of before the change, 28 pass
 and 2 fail, the two added.
 
-The whole of `tests/tools`, `tests/tools/suite.sh`: 1170 pass, 0 fail, 120 files, at 10:39 CEST on 2026-10-13, after the last edit of a file
-other than this one.
+The whole of `tests/tools`, `tests/tools/suite.sh`: 1178 pass, 0 fail, at 10:44 CEST on 2026-10-13, after the rebase and the
+last edit of a file other than this one.
 
 ## Not tried
 
@@ -124,8 +141,7 @@ other than this one.
   "To answer" rests on the panel's reference and on `issue.queue` answering `why: owner` for both.
 - The release of a landing on cb4 with the step. The first is this change's own landing; its line is in the writer's
   comment on the issue, not here.
-- A close, a changed list and a reopen on cb4. Each needs a deploy by the owner or another landed seed. They ran against
-  the stand-in.
+- A close and a reopen on cb4. Each needs a deploy by the owner. They ran against the stand-in.
 - The owner's Answer on such an issue, which comments and takes the label off: the issue then stands at `open` with no
   label and `issue.queue` would list it as `triage`. `SKILL.md` step 7 tells the orchestrating session to leave it; no
   code holds that.

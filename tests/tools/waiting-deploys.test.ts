@@ -110,6 +110,8 @@ it("the commits between are those after the one that runs: two issues, a commit 
   const text = ask(core, { "issue-b": { title: "Two", state: "done" } });
   expect(text).toContain("The core (`brain-core`) on cb4 is behind `main`: 2 changes to its seed");
   expect(text).toContain("- `issue-b` (done): Two");
+  expect(text).toContain('What to run is in the record of an issue that was landed for your deploy, under "For the owner: the deploy".');
+  expect(ask({ ...core, worker: "brain-deployer", what: "the deployer" }, {})).toContain("The deployer (`brain-deployer`) on cb4 is behind `main`: 2 changes to its seeds landed");
   expect(text).toContain("- a commit of ");
   expect(text).toContain("that names no issue of the tracker: Merge of something");
   // An id the tracker does not have is a commit's subject, not an issue.

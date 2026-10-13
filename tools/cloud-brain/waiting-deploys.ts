@@ -154,6 +154,7 @@ export function line(row: Row): string {
 
 // What the owner reads in his page: rules.md, "What the owner is asked to decide". `titles` has what the tracker
 // answered of each issue: its title and its state.
+const seeds = (row: Row) => ((WORKERS.find((x) => x.worker === row.worker)?.modules.length ?? 1) > 1 ? "its seeds" : "its seed");
 export function ask(row: Row, titles: Record<string, { title: string; state: string } | null>): string {
   const items = issuesOf(row).map((x) => {
     const t = x.id ? titles[x.id] : null;
@@ -162,12 +163,12 @@ export function ask(row: Row, titles: Record<string, { title: string; state: str
   });
   const unsure = row.base ? "" : ` cb4 runs a seed that is none of the last ${row.depth} of \`main\`'s, so the list may hold more than waits.`;
   return [
-    `${row.what[0].toUpperCase()}${row.what.slice(1)} (\`${row.worker}\`) on cb4 is behind \`main\`: ${plural(items.length, "change")} to its seed landed with no deploy, which is yours. None is live on cb4 until you deploy ${row.what}.${unsure}`,
+    `${row.what[0].toUpperCase()}${row.what.slice(1)} (\`${row.worker}\`) on cb4 is behind \`main\`: ${plural(items.length, "change")} to ${seeds(row)} landed with no deploy, which is yours. None is live on cb4 until you deploy ${row.what}.${unsure}`,
     "",
     ...items,
     "",
     `Nothing to choose: one deploy of ${row.what} from \`main\` carries them all, and one that is not \`done\` has not passed its review yet.`,
-    `The commands are in the record of each issue, under "For the owner: the deploy". The loop closes this issue once cb4 runs the seed of \`main\`.`,
+    `What to run is in the record of an issue that was landed for your deploy, under "For the owner: the deploy". The loop closes this issue once cb4 runs the seed of \`main\`.`,
   ].join("\n");
 }
 
