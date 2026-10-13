@@ -136,8 +136,11 @@ Each run of `verify-run.ts` lists what ran as `brain-shell: 9, brain-issues: 66`
 module `@test/verify-…`, with `tests: 67`. Why one of the 67 is under another module's name was not
 looked at.
 
-The rebase before the landing brought in one file, `.claude/skills/brain-maintenance/oversight.md`,
-which nothing here is built from.
+The rebase before that run of the suite brought in one file, `.claude/skills/brain-maintenance/oversight.md`,
+which nothing here is built from. The landing's rebase after it brought in the commits of two other tasks,
+`tests/tools/loop.test.ts`, `tools/cloud-brain/build.ts` and the seed `brain-usage.ojs` among them: the suite was
+not run again after it, and the build, `test.ts` and `tab-tests.ts` were, with the counts above (the comment of the
+submit, event 5970; `git diff --stat d5538771 d5dc1caa^`).
 
 ## Not tried
 
