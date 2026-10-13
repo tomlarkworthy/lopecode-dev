@@ -1396,14 +1396,6 @@ issuesApp = {
     const after = (await sql.exec(S.of, id)).rows.map((r) => J(r.event)).filter((e) => e.seq > asOf && issueMatters(e) && issueActor(e.by) !== me);
     return refuse(409, "Stale", `${after.length} event${after.length === 1 ? "" : "s"} of ${id} after ${asOf} that this caller did not write`, { asOf, touched, since: after.slice(-L.since).map((e) => ({ seq: e.seq, type: e.type, by: e.by, at: e.at })) });
   };
-  const judged = async (view, by, given) => {
-    await withSaid(view, given);
-    try {
-      return judge(view, by, given);
-    } catch (err) {
-      throw await staleAnswer(by, err);
-    }
-  };
   // The issues an issue says an after link of, read into the view: what issue.after of a `when` counts (issueWaitFacts).
   // An issue after more than L.wakeAfter is a 400, whatever its `when` reads.
   const ahead = async (view, id) => {
@@ -1443,7 +1435,14 @@ issuesApp = {
         await write({ by: { caller: "worker:brain-x-issues", via: "" }, origin: ctx.origin, ray: ctx.ray }, "policy/default", first);
         continue;
       }
-      const seq = view.seq + 1, [act, verdict] = await judged(view, ctx.by, given);
+      await withSaid(view, given);
+      let act, verdict;
+      try {
+        [act, verdict] = judge(view, ctx.by, given);
+      } catch (err) {
+        throw await staleAnswer(ctx.by, err);
+      }
+      const seq = view.seq + 1;
       const e = { seq, key, ...issueEvent(view, act, verdict), by: ctx.by, origin: ctx.origin, ray: ctx.ray, at: Date.now(), prev: view.head };
       e.hash = await sha256(issueCanon(e));
       e.sig = await sign.sign(e.hash);
@@ -1512,7 +1511,12 @@ issuesApp = {
       const view = await load([S.near, act.id, ""]);
       if (!view.policy && view.seq) throw refuse(503, "ViewLost", "the view has no policy: issue.rebuild makes it again from the record");
       if (!view.policy) throw refuse(404, "NotFound", "no such issue");
-      await judged(view, ctx.by, act);
+      await withSaid(view, act);
+      try {
+        judge(view, ctx.by, act);
+      } catch (err) {
+        throw await staleAnswer(ctx.by, err);
+      }
       await signer();
       await blobs.put("a/" + act.sha256, bytes);
     }
