@@ -2,7 +2,8 @@
 
 Spec of the feature `rules-checked-and-stale-knowledge-seen` on cb4's tracker. Written 2026-10-13 from
 07:00 CEST (event 5941's `at`, the take) by the spec writer `spec-8c5008`, from `lopecode-dev`
-`origin/main` at `d133b284` and the tracker at event 5942. Nothing here is built. The measurements
+`origin/main` at `d133b284` and the tracker at event 5942 (`origin/main` moved on while it was
+written; the seed's line numbers are those of the commit this file landed on). Nothing here is built. The measurements
 below were run between 07:00 and 08:40 CEST that day (`date`); the machine slept for about an hour of
 that, so no wall time of that span is given.
 
@@ -59,8 +60,8 @@ two others, read as evidence:
 
 - **R1.** One command walks every state a policy lets an issue reach, with the service's own judge,
   and holds the properties listed under "The properties". It fails with the path that breaks one.
-- **R2.** The walk runs on the policy file the owner is given to install, before he is given it, and
-  on the default policy of the seed, in the suite.
+- **R2.** The walk runs in the suite on the policy file the owner is given to install, before he is
+  given it, and by one command on the default policy of the seed.
 - **R3.** A write to an issue can name the last event of that issue its writer read, and is refused
   when the issue has an event after it that matters. The refusal lists those events.
 - **R4.** An agent's move and review carry that number with no line in a brief: the tool they write
@@ -75,7 +76,7 @@ two others, read as evidence:
 **The policy.** `issue.policy` with this token: the policy of event 5689, 4 workflows, 42
 moves, 2 swaps, 3,310 characters of move guards. It is the body of
 `plan/cloud-brain-issues-policy-v5.json`. Six `policy` events are in the record (seq 1, 12, 17, 483,
-4668, 5689): six installs in four days.
+4668, 5689): the default the Worker wrote and five installs by the owner, in four days.
 
 **What checks a policy today.**
 
@@ -90,8 +91,8 @@ moves, 2 swaps, 3,310 characters of move guards. It is the body of
 **The judge is a function.** `issueAllowed(view, by, act)` (line 879) and `issueApply(view, e)` (line
 612) read no clock and make no call. A guard reads `caller`, `issue` (`issueFacts`, line 820: state,
 labels, `major`, `by`, `reviews`, `children`) and `event`. Of `issue.by` the guards of the installed
-policy read three fields: `start`, `spec` and `owner-reject` (a search of the policy's text for
-`issue.by.`).
+policy read three fields: `start`, `spec` and `owner-reject` (two searches of the policy's text: `issue.by.<name>`, and
+`"<name>" in issue.by`, which is how `reopen` reads the third).
 
 **The walk, run as a prototype.** One cell compiled at the end of the seed, as
 `tests/tools/issues-policy-v4.test.ts` compiles its rig, and run by `cloud-brain-dev/test.ts`; the cell
@@ -116,11 +117,16 @@ what the Worker's call was allowed      task.start task.submit task.review task.
                                         project.review project.respec project.to-approval
 ```
 
+The same cell with `issuesDefaultPolicy` of the seed in the file's place (one line of the cell changed,
+08:51 CEST): 30,144 states, 977,536 moves allowed, the same counts on every line, and
+`project/awaiting-approval` among the states only the owner ends, since the default names no
+approver. 42.1 s as a command.
+
 So the three properties the issue names hold on the policy in force. Two things the run says beyond them:
 
 - **A Worker of the Brain passes a task.** The guards of `review`, `pass`, `to-approval`, `rework` and
   `respec`, and of `start` from `ready`, name no kind of caller, and the service's own rule lets in
-  `caller.kind in ['owner','token','worker','deployer']` (line 333). A Worker that starts an issue at
+  `caller.kind in ['owner','token','worker','deployer']` (line 336). A Worker that starts an issue at
   `ready` may submit it; another may review and pass it. In the record no Worker and no deployer has
   done more than open: of 5,942 events, 2 `opened` by a Worker, 1 by the deployer, and no move, review
   or label by either. Since 2026-10-11 the loop deploys services (`philosophy.md`, Clarifications), so
@@ -141,7 +147,7 @@ by.submit dropped (the review guard reads by.start), as above              30,14
 ```
 
 **A write and what its writer read.** A write is judged at the head it is written at (`write`, line
-1322: the view is loaded, the act judged, the event appended, and on a lost race judged again), so two
+1333: the view is loaded, the act judged, the event appended, and on a lost race judged again), so two
 writes cannot both pass a guard that only one may. What the service cannot know is what the caller had
 read. One act already says where it thinks the issue is: a swap with `from` is refused when "the issue
 is no longer where this swap takes it from" (line 918). No other act has such a field:
@@ -231,7 +237,7 @@ Outside, four searches, each **read in a summary of search results only**, none 
 
 ### 1. The walk (R1, R2)
 
-A tool, `tools/cloud-brain/policy-walk.ts <policy.json>`, and a fixture cell,
+A tool, `tools/cloud-brain/policy-walk.ts <policy.json> | --default | --in-force --token <t>`, and a fixture cell,
 `tests/tools/fixtures/policy-walk.ojs`, which the tool compiles at the end of this checkout's
 `brain-issues.ojs` with no other test cell and runs with `cloud-brain-dev/test.ts --with`. The cell is
 the prototype at the end of this file with its properties as a list. Nothing is added to the seed and
@@ -247,7 +253,7 @@ was not compiled.
 
 | Name | Holds when | On v5 |
 |---|---|---|
-| `major-done-is-his` | No move takes an issue that carries `major` to `done`, on a workflow that has a move `pass`, but one by the owner present or by the delegation the `approve` guard names | holds |
+| `major-done-is-his` | No move takes an issue that carries `major` to `done`, on a workflow that has no move `decompose` (`task` and `security` today; `security` has no `pass`), but one by the owner present or by the delegation the `approve` guard names | holds |
 | `major-stays` | `major` is taken off by the owner present alone | holds |
 | `project-done-was-approved` | On a workflow with a move `decompose`: with the `approve` moves of the owner present and of that delegation cut, `done` is not reached from the open | holds |
 | `no-own-review` | No review, and no move out of a review state, by the actor the workflow's review guard compares with (`by.start`, `by.spec`) | holds |
@@ -256,7 +262,11 @@ was not compiled.
 | `moves-are-his-or-a-token` | No move, review, label or swap is allowed to a caller that is neither the owner nor a token | **fails**: the nine of the run above |
 
 `tests/tools/policy-walk.test.ts` runs the tool on the newest `plan/cloud-brain-issues-policy-v<n>.json`
-(as `policy-pins.ts` finds it) and on the cell `issuesDefaultPolicy`, and expects each property's line.
+(as `policy-pins.ts` finds it) and expects each property's line. That is one whole walk a run of the
+suite. The default policy of the seed differs from the file in its two `approve` guards
+(`issues-policy-v4.test.ts` holds that), and is walked by `policy-walk.ts --default`, which the writer
+of a task that changes the cell runs and records; it is not in the suite, where a second whole walk
+would make this file the longest.
 Until `rk-2` lands it expects `moves-are-his-or-a-token` to fail with those nine, by name: the test
 then says what is known and fails when a tenth appears.
 
@@ -278,15 +288,20 @@ that holds here holds for those bounds.
 `move`, `review`, `comment`, `label`, `link`, `attach`, `hold`, `swap`, `narrow`. Left out, the write
 is judged as today.
 
-The view keeps one more number an issue, `touched`: the seq of its last event that matters. An event
+The view keeps one more thing an issue, `said`: for each actor that wrote an event of it that matters,
+the seq of that actor's last one (the newest 20 actors; `issueApply` has the actor of each event, and
+keeps today no list of events and no actor of one but the reviews'). `touched` is the greatest of
+them. An event
 matters when its type is not `cost` and not `waits`, which are the two `issueApply` already leaves out
-of `updated_at` (line 629: "What a run cost is not work on the issue"). A link said of the issue by
-another (`after`, `related`, `cause`, `duplicate`) and a part opened under it move its `touched` too:
-both change what its guards and its queue row read.
+of `updated_at` (line 629: "What a run cost is not work on the issue"). Only the issue's own events
+count. A link another issue says of it, and a part opened under it, are events of the other issue:
+`get?id=` of this one does not list them, so a refusal for one could not be shown to the caller by a
+read of the issue. They are left out, and a guard still reads `children` at the write as today.
 
-`issueAllowed` refuses the act when `asOf < touched` and one of the events between was written by
-another actor than the caller. The caller's own events never refuse it: a writer that attaches,
-comments and then moves has read what it wrote. The answer is 409:
+`issueAllowed` refuses the act when an actor other than the caller has a seq in `said` greater than
+`asOf`. The caller's own events never refuse it. The judge answers the refusal and the two numbers;
+`since` is read by the service from the event table (the events of the issue after `asOf`, as
+`issue.get` reads them), not by the judge. The answer is 409:
 
 ```
 { "error": "Stale", "message": "2 events of fly-4-loop-files after 5114 that this caller did not write",
@@ -300,7 +315,8 @@ count is of that example and no service has answered it.
 
 `since` is at most 20 entries, the newest; `issue.get` has the bodies. The check is in the judge, so
 it is made at the head the event is written at, as a guard is, and `issue.verify?guards=true` judges
-it again: the event keeps `asOf`. A guard can read it as `event.asOf` (0 when none was sent), so a
+it again: the event keeps `asOf`, and the replay builds `said` as the view did. `issue.get` answers
+`touched` beside the issue's `seq`. A guard can read it as `event.asOf` (0 when none was sent), so a
 later policy may require it on a move; this spec's policy does not.
 
 `asOf` greater than the record's last seq is a 400. An issue the caller may not read is 404 before
@@ -308,9 +324,10 @@ the number is looked at, as for every act.
 
 ### 3. The tool sends it (R4)
 
-`issue-as.sh` keeps, for each token and issue, the highest seq it has printed to that token of that
-issue: the `seq` of the issue in an answer of `get`, and the `seq` of the event in the answer of a
-write. The file is `.emitted/issue-loop/read/<token>.json`, beside the journal, git-ignored, removed
+`issue-as.sh` keeps, for each token and issue, the `seq` of the issue in the last answer of `get` it
+printed to that token. The answer of a write is not kept: a writer that reads at 100, is commented to
+at 101 and attaches at 102 would then send 102 with its submit and never be shown 101, which is the
+order of the one known miss (comment 1571, submit 1578). The file is `.emitted/issue-loop/read/<token>.json`, beside the journal, git-ignored, removed
 by `agent-token revoke`. For a `move` or a `review` whose body has no `asOf`, the tool adds the kept
 number. With none kept (the token never read the issue through this tool) it adds nothing.
 
@@ -320,9 +337,11 @@ exits 5. The agent has then been shown what it had not read; the same command se
 new number. One line is appended to `.emitted/issue-loop/stale.jsonl`: the time, the token, the issue,
 the act, `asOf`, `touched` and the types in `since`. R6 is counted from that file.
 
-`--no-as-of` sends the body as it is. `loop.ts` writes through `issue-as.sh` (`as`, line 157, which `write` calls), so a step's `start`, `back` and `cost` go the same way with no change to it: its reads are of
-`issue.queue`, which keeps no number, so its moves carry none until a later task has the queue's rows
-say each issue's `touched`. That is not in this spec.
+`--no-as-of` sends the body as it is. `loop.ts` reads and writes through `issue-as.sh` (`as`, line
+156), so its one move, the `back` of a dead writer's issue (line 367), carries the seq of the `get`
+it made before it (line 363), with no change to `loop.ts`. A step that moves from a row of
+`issue.queue` alone carries none, since the tool keeps no number from a queue; the queue's rows
+saying each issue's `touched` is a later task and not in this spec.
 
 No brief changes. The writer's and the spec writer's briefs keep their line "read the issue again
 before the submit"; a later oversight may take it out when R6 shows the refusal does the job.
@@ -337,8 +356,9 @@ before the submit"; a later oversight may take it out when R6 shows the refusal 
   `{"kind":"commit","value":"lopecode-dev@<sha>"}`, the ref of its `submit-spec`.
 - `issue.cost` takes `from`: at most 8 entries `{ name, hash }`, a name of 60 characters and a hash of
   40 or 64 hex digits. `loop.ts start` fills it on the `running` event: the blob at `origin/main` of
-  the role's brief, of `rules.md` and of `philosophy.md` (`git rev-parse origin/main:<path>`), and the
-  issue's seq as `{ name: "issue", … }` is not a hash and goes in `event`, which the cost event has.
+  the role's brief, of `rules.md` and of `philosophy.md` (`git rev-parse origin/main:<path>`). The
+  seq of the issue as the run's start read it is no hash: it goes in `event`, a field the cost event
+  has already.
 
 Nothing reads these to mark or to wake. They are what a post mortem and a review read to say which
 brief a run had, and what `issue-stats.ts` can count later. Why no mark is under "Not chosen".
@@ -350,7 +370,9 @@ spec says so in a part of its own, as `orchestrator-as-steps` part 6 does, and t
 writes one comment on each task named there. That sentence of the row is the one line of prose this
 spec adds, because who a spec amends is a judgment made once, by its writer.
 
-## What exists today for the same job, and why it is not extended
+## Not chosen
+
+### What exists today for the same job, and why it is not extended
 
 Each standing thing the design adds, with what does the same job today.
 
@@ -379,7 +401,7 @@ Each standing thing the design adds, with what does the same job today.
 
 No role, brief, token, Worker, method or store is added.
 
-## Not chosen
+### Other ways
 
 1. **The walk inside `issue.install`, as a refusal.** It would hold a file the owner pastes by hand,
    which the suite does not. Not taken: 54 s of CPU at an install, in a Worker; and an install he
@@ -431,13 +453,15 @@ is built says so.
   `all.edges`, `all.tried`, `all.p1ByWorkflow`, `p1b`, `p1c`, `p2n`, `trapped`, `needOwner`, `who2`, `ms`). After `rk-1`: `bun tools/cloud-brain/policy-walk.ts plan/cloud-brain-issues-policy-v5.json`
   exits 1 and names `moves-are-his-or-a-token` with the nine acts, and every other property with
   `holds`. Not run: the tool is not written.
-- **R1, that the walk can fail.** `rk-1`'s test walks three policies made from v5 in the test, each
+- **R1, that the walk can fail.** `rk-1`'s test walks, each until its first broken edge, three policies made from v5 in the test, each
   with one guard weakened, and expects the property and a path: `pass` without `!issue.major`
   (`major-done-is-his`), the label guard without its `caller.present` clause (`major-stays`), `review`
   without `caller.actor != issue.by.start` (`no-own-review`). Not run.
-- **R2.** `bun test --timeout=200000 ./tests/tools/policy-walk.test.ts` passes, in under 90 s on the
-  machine of the suite (the suite's longest file is 80 to 94 s, `suite.sh`; the prototype's command
-  took 58.4 s). Not run. After `rk-2`'s install, with a token:
+- **R2.** `bun test ./tests/tools/policy-walk.test.ts` passes; each test of the file names its own
+  timeout, 200 s, since the suite's is 30 s. Its time is not known: one whole walk was 58.4 s as a
+  command, and the suite's longest file is 80 to 94 s (`suite.sh`), so the file is to end under that
+  or `rk-1`'s record says what it did to `suite.sh`'s time. The three weakened walks stop at the first
+  edge that breaks their property; how soon that is was not tried. Not run. After `rk-2`'s install, with a token:
   `bun tools/cloud-brain/policy-walk.ts --in-force --token <t>` prints `in force: v6`. Not run.
 - **R3.** Test cells of the seed, run by `cd cloud-brain-dev && bun test.ts brain-x-issues --with <built>`:
   a move with `asOf` behind another token's comment is 409 with that comment in `since`; behind the
@@ -462,19 +486,20 @@ Ids `rk-<n>-…`. Two can start at once: `rk-1` and `rk-3`.
 - **`rk-1-policy-walk`.** After nothing. `tools/cloud-brain/policy-walk.ts`,
   `tests/tools/fixtures/policy-walk.ojs` and `policy-walk-his.json`, `tests/tools/policy-walk.test.ts`
   with the three weakened policies, the sentence of `SKILL.md` step 7 for `--in-force`. No knowledge page names the policy files (`grep -ln issues-policy-v knowledge/*.md tools/cloud-brain/*.md` prints nothing), so none changes. No seed, no deploy.
-- **`rk-2-moves-are-his-or-a-token`.** After `rk-1`. `major`: it changes who may do what.
+- **`rk-2-moves-are-his-or-a-token`.** After `rk-1` and after `rk-3` (the same seed, and one deploy at a time of `brain-x-issues`). `major`: it changes who may do what.
   `caller.kind in ["owner", "token"]` on the guards of `review`, `pass`, `to-approval`, `rework`,
   `respec`, and on the `issue.state == "ready"` side of `start`, in `issuesDefaultPolicy` and in a new
   `plan/cloud-brain-issues-policy-v6.json` (`policy-pins.ts remake` for its reason); the walk's test
   expects `moves-are-his-or-a-token` to hold; `issues-policy-v6.test.ts`. A deploy of `brain-x-issues`
   by the loop for the cell. The install is the owner's. Left out under choice B.
-- **`rk-3-as-of`.** After nothing. The seed: `asOf` in `issueAct`, `touched` in `issueApply`, the
+- **`rk-3-as-of`.** After nothing (when `rk-2` is opened it is after this, for the seed). The seed: `asOf` in `issueAct`, `touched` in `issueApply`, the
   refusal in `issueAllowed`, `event.asOf` for a guard, the 409 in the service, the method reference,
-  the test cells of R3. A deploy of `brain-x-issues` by the loop.
+  the test cells of R3. A deploy of `brain-x-issues` by the loop. Not `major` in the writer's view:
+  a call that sends no `asOf` is judged as today, so no caller of a method meets a change, and who may
+  do what is as it was.
 - **`rk-4-issue-as-sends-as-of`.** After `rk-3`. `issue-as.sh`, its two files, `agent-token revoke`
   removing the first, the test of R4, the line of `--short`'s header that says what the tool keeps.
-- **`rk-5-made-from`.** After `rk-3` (the same seed) and after `rk-2` when it is opened (the same
-  cell's neighbours). `refs` on `issue.open`, `from` on `issue.cost`, `loop.ts start`, the row
+- **`rk-5-made-from`.** After `rk-3`, and after `rk-2` when it is opened (the same seed). `refs` on `issue.open`, `from` on `issue.cost`, `loop.ts start`, the row
   `decompose` of `SKILL.md` with its two sentences, the tests of R5. A deploy of `brain-x-issues`.
   `major` if triage reads a row of `SKILL.md` as the loop's procedure, as `fly-4` was.
 - **`rk-6-read-after-three-days`.** After `rk-4`, and a wait that is not for a task: three days from
@@ -497,12 +522,10 @@ Nothing. The spec names no token.
 - Whether the walk fits a Worker's CPU limit. Not measured; it is why the walk is a tool.
 - The deployer as a caller of the walk, and a Worker as the opener of a `security` issue.
 - How many of the 34 submits and 28 reviews had a writer that missed the event. The record cannot say.
-- Whether `touched` moved by a part being opened refuses too often: a project's orchestrator opens
-  parts while a reviewer reads the spec. The orchestrator's own events do not refuse it; a reviewer's
-  `pass` after a part was opened by another would be refused once. Counted by `rk-6`.
+- A change that reaches an issue only as another issue's event (a link said of it, a part opened
+  under it) refuses nothing. No case of a writer misled by one was looked for.
 - What the page does on a 409: it sends no `asOf`, so it meets none.
 - The four outside sources were read in summaries of search results.
-- No fresh reader read this file before the submit.
 
 ## What misled the writer of this spec
 
@@ -514,6 +537,17 @@ Nothing. The spec names no token.
   not name.
 - The body's "42 moves" is the installed policy's; the v5 file read by hand gives the same 42 and 2
   swaps, and the count of 44 a reader gets by adding the swaps is not the body's.
+
+## The fresh review before submitting (2026-10-13, answered by 08:52 CEST)
+
+One agent with the file alone (`/review-notebook`): FIX, 9 findings and 3 smaller, all taken. It ran the
+prototype twice and the counts held (53.2 s in the cell). What the writer had not seen: one number an
+issue cannot tell the caller's events from another's (now `said`, a seq an actor); the tool kept the
+seq of a write's answer, which hides the event the write came after; `loop.ts` does make a move;
+`major-done-is-his` was scoped by a move `security` lacks; the test as first written was five whole
+walks; the default policy had not been walked (now run); `rk-2` and `rk-3` had no order; three line
+numbers. One call of the advisor before the landing: the time bound of R2, links said by another
+issue (left out of what matters), and why `rk-3` is not `major`.
 
 ## The prototype
 
