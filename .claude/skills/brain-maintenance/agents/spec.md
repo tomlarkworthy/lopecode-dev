@@ -113,9 +113,15 @@ a mean 1.73 calls a run of a spec writer, 21% of what such a run cost.
      A wait that is not for a task (two days, a count) is said as that, with what is read when it ends: it becomes a
      hold (`issue.hold`). (Since `bk-6-skill-watch-and-stats`, 2026-10-13; R6 of
      `plan/cloud-brain-bookkeeping-in-the-tracker.md`. First spec decomposed with links by that row: not yet, when
-     this was written);
+     this was written).
+     A task that is the owner's act (a first run he makes, a revoke with his key) says so in a line of its own, "The
+     owner's: <the act>", beside the tasks it is after. The orchestrator labels it `needs-owner` when it opens it, and
+     writes its `after` links too: the queue answers an issue with that label that no writer has begun as waiting for
+     the owner, and reads the label and the links and no title or body. "The owner's act" in the title or the body of a task alone is read by no step:
+     fly-4b-first-run had it there and an `after` link, and a writer was started on it when the link was done
+     (`writer-started-on-an-owners-act-task`, 2026-10-13; no spec had such a line when this was written);
    - what only the owner can do (a deploy of the kernel, core, database or deployer; a policy
-     install; a rule), as one list. A token the design needs is not in that list. It goes in a list of
+     install; a rule), as one list. Each act of that list that is a task is named there by the task's id. A token the design needs is not in that list. It goes in a list of
      its own, "What the orchestrator makes": the name, the methods and no more, the command
      (`brain.ts token NAME METHODS`), the task that needs it, and what holds the token to its use when
      its methods reach further. The owner's approval of the spec is his word for making it (Tom,

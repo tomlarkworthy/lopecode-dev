@@ -122,6 +122,10 @@ on; what stands above that heading is for a judgment run and not for you. (Until
 Where this file or another text names one of the five as a section or a row of `SKILL.md` ("Triage,
 below", "`SKILL.md`, "A post mortem""), it means that file.
 
+One of the five has been added to since: "The `decompose` row" has, after its sentence on which tasks are made
+ready, what a task that is the owner's and after another task gets (`writer-started-on-an-owners-act-task`,
+2026-10-13). The test reads the two commits of the move, and not the brief as it is now.
+
 ## State
 
 There is no state file. What is true is in the tracker:
@@ -372,7 +376,8 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    `issue-as.sh <your token> hold '{"key":"orch/<id>/hold-<n>","id":"<id>","until":<ms>,"reason":"<what to read when it comes back>"}'`,
    with `until` in milliseconds since 1970 and 30 days on at most (`echo $(( ($(date +%s) + 86400) * 1000 ))` is a day from now).
    A wait for the owner is the label `needs-owner`, after its comment (the row below). A wait is written in one of those three,
-   which the queue reads, and never in a comment alone: a comment that begins `held:` is no longer written.
+   which the queue reads, and never in a comment alone: a comment that begins `held:` is no longer written. An issue that waits for two of them has both:
+   a task that is the owner's act and after another task has the link and the label (`agents/orchestrator.md`, "The `decompose` row").
    The record does not know which agents run: skip an entry an agent of yours is on (step 2). It does know which
    agent said it listens: an entry with `waiter` is that agent's, until `waiter.until` (step 2, "A writer that waits").
    A writer and a reviewer are different agents and do not take each other's place: the order says which you spawn
