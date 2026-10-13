@@ -63,8 +63,9 @@ My own read of `getSource` failed: at the Brain's address the path answers 501 w
   It shows at the first apply of `cu-2-usage-service` as `token.mint-failed`; the token the owner makes next then
   names the group (the spec, "What only the owner can do", item 3).
 - No test declares `Billing Read` in a recipe and sees it held; the spec lists none.
-- The token `loop-usage` (`usage.account`) is not made. The spec gives it to the orchestrating session, which makes
-  it when `cu-2-usage-service` has deployed the method.
+- The token `loop-usage` (`usage.account`) is not made. The spec gives it to the orchestrating session: "Made when
+  task 2 is next, after task 1 is done", and after task 2's apply if `token.create` refuses a method that no Worker
+  declares yet ("What the orchestrator makes").
 - The way back was not run.
 - Comment 5824 and the label event 5825 were written with the role token `issues-implementer-2` by a session outside
   the loop; the reviewer added the case to `seen-outside-session-wrote-as-impl-2`.
