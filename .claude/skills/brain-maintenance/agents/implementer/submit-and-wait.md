@@ -12,7 +12,11 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
     a README or wording; the owner that day: "reduce review rounds"). Each is a minute now and a round later:
     - The record exists, `tools/cloud-brain/records/<id>.md`, and has what changed, the test count and what was not tried.
     - Every count in the submit's reason, the comment and the record is one a command of yours printed, and
-      the count of the whole suite is from a run made after your last edit.
+      the count of the whole suite is from a run made after your last edit. Writing that count in the record
+      is no such edit: the suite is not run again for it, and the record is not committed once more for a
+      count alone (`suite-count-in-the-record-loops`, 2026-10-13: of three writers that day one ran the suite
+      three times, and two made a commit of the record alone, for it). A test of yours that reads the
+      record is run after the count is written, that file alone: `land.sh --test` runs it on the tree pushed.
     - No sentence says more than you saw: "every", "always", "no other", and anything of a run you did not make.
     - A number that is not from this change has where it is from beside it.
     - The test you added fails without the fix, and you ran it without the fix to see.

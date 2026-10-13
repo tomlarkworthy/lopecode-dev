@@ -157,8 +157,8 @@ that path, `<tree>` what follows `bm-`, its branch `bm/<tree>`, and `<root>` the
     that begins `<tree> ` reads `clean` and `ahead=0`.
 11. **Before the submit, read your change as the reviewer will.** Each of these is a minute now and a round later:
     - The record exists and has what changed, the test count and what was not tried.
-    - Every count in the reason, the comment and the record is one a command of yours printed, and the
-      count of the whole suite is from a run made after your last edit.
+    - Every count in the reason, the comment and the record is one a command of yours printed; the suite's
+      is from after your last edit; writing it in the record is no such edit.
     - No sentence says more than you saw: "every", "always", "no other", and anything of a run you did not make.
     - A number that is not from this change has where it is from beside it.
     - The test you added fails without the fix, and you ran it without the fix to see.
