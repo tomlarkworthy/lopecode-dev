@@ -74,7 +74,11 @@ each command; no shell state lasts between calls.
   that service's tests as deployed, with no browser, in about 2 s; `--with FILE` runs your built
   module in its place. A change to that repository is committed in the clone, never in
   `<root>/cloud-brain-dev`, and landed by `worktree.sh --push-dev` (step 10).
-- `git status` fails in the worktree (`lopebooks`, `lopecode` and `lopecode-plugin` are links);
+- `git status` stops in the worktree, exit 128, with `error: expected submodule path 'lopebooks' not to be a symbolic link`
+  (`lopebooks`, `lopecode` and `lopecode-plugin` are links). `git status --short --ignore-submodules=all` answers
+  there, exit 0: the changed and the untracked files, and no line for a submodule. `git diff --stat HEAD` lists the
+  links as changed files, which they are not; `git diff --stat --ignore-submodules=all HEAD` does not list them
+  (issue `git-status-answers-in-a-worktree`, 2026-10-13: until then this item said that it fails and gave no form).
   `git diff`, `git add <file>` and `git commit` work. Never `git commit -a` or `git add -A` there:
   the commit records the links in the submodules' place, which the landing would push to `main`.
   `git fetch origin` there prints the same error of the link and is exit 128;

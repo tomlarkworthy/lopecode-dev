@@ -31,6 +31,9 @@ Five lines: `Working directory: <W>.`, the line that names this file, `Entries: 
 the step removes when your process returns (`loop-started-run-is-told-no-scratchpad`, 2026-10-13). `$W` is the worktree `bm-orch-<host>`, which the step put you in; you make
 none and remove none. `<root>` is the main checkout:
 `dirname "$(git -C $W rev-parse --path-format=absolute --git-common-dir)"`.
+The submodules are links in `$W`, and `git status` stops on the first, exit 128:
+`error: expected submodule path 'lopebooks' not to be a symbolic link`. What is changed or untracked there is
+`git status --short --ignore-submodules=all`, exit 0 (issue `git-status-answers-in-a-worktree`, 2026-10-13).
 
 You write to the tracker with the token your prompt names and no other (`rules.md`, "Which token"). It
 is `<your token>` wherever a moved text says so. `ia` is `$W/tools/cloud-brain/issue-as.sh <token>`:

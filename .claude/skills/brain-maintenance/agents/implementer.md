@@ -62,8 +62,8 @@ that path, `<tree>` what follows `bm-`, its branch `bm/<tree>`, and `<root>` the
 - **Tools are run from `$W`, by their path there.** `issue-as.sh`, `lock.sh`, `issue-wait.sh`, `land.sh` and
   `worktree.sh` find the main checkout's tokens themselves. `brain.ts` finds the state only with
   `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted` before it.
-- `git status` fails in the worktree (the submodules are links there); `git diff`, `git add <file>` and
-  `git commit` work. **Never `git commit -a` or `git add -A`**: the commit would record the links.
+- `git status` there is `git status --short --ignore-submodules=all` (the submodules are links); `git diff`,
+  `git add <file>` and `git commit` work. **Never `git commit -a` or `git add -A`**: the commit would record the links.
   `git fetch` there is `git fetch --no-recurse-submodules origin`.
 - The shell is zsh: an unquoted variable is one word (`for f in $FILES` runs once), and an unquoted `*` or `?`
   that matches no file stops the command. Write the names out, or use an array.
