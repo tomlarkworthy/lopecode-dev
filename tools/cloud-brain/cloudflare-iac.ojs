@@ -51,19 +51,46 @@ serviceRows = (emitted, deployerState, reported = {}, registry = {}) => [
 // %%
 // The Services table. \`brain\` is { state(), info(worker), apply(emitted), deployerUrl }; with none it lists what is declared.
 // \`moduleLink(module, label)\` gives the node shown for a Worker's name, a link to its module; with none the name is plain.
+// A read (\`refresh\`) puts a new table in place once, at its answer, and only when a cell of it would read otherwise;
+// the value is a new array, with an \`input\` event, only when a row differs. The line beside the buttons says a read is going.
 serviceList = ({ services = [], brain = null, moduleLink = null } = {}) => {
   const hue = { "in sync": "#2e9e5b", "not installed": "#2e9e5b", changed: "#e6a700", unknown: "var(--theme-foreground-muted)", skewed: "#e5484d", failing: "#e5484d", "cannot deploy": "#e5484d", "no source": "#e5484d" };
-  const body = htl.html`<div></div>`;
+  // The deployer refuses a change with no reason, and logs the one it is given.
+  const why = htl.html`<input placeholder="Reason for the change" maxlength="300" style="font:inherit;min-width:18em;flex:1">`;
+  const buttons = htl.html`<span style="display:contents"></span>`;
+  const status = htl.html`<span style="color:var(--theme-foreground-muted)"></span>`;
+  const notices = htl.html`<div></div>`;
+  // The table is the first child of body and the one node of it that is replaced; what is under it is changed in place.
+  const body = htl.html`<div><div></div><div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${why}${buttons}${status}</div>${notices}</div>`;
   const root = htl.html`<div style="font:14px/1.45 var(--sans-serif, system-ui, sans-serif);color:var(--theme-foreground)">${body}</div>`;
   let emitted = [], deployerState = null, reported = {}, registry = {}, busy = "", results = [], reason = "";
+  // What the table in place and the value were made from, as text; null until the first.
+  let shownTable = null, shownRows = null;
   const short = (h) => (h ? String(h).slice(0, 12) : "none");
-  const draw = () => {
-    const rows = serviceRows(emitted, deployerState, reported, registry);
+  why.oninput = () => (reason = why.value);
+  // \`table\` false: the rows are not looked at, only what is under the table is drawn. Answers whether a row differed.
+  const draw = (table = true) => {
+    const rows = table ? serviceRows(emitted, deployerState, reported, registry) : root.value;
     const differing = rows.filter((r) => ["changed", "not installed"].includes(r.state));
-    root.value = rows;
+    const apply = Inputs.button(`Apply ${differing.length} change${differing.length === 1 ? "" : "s"}`, { disabled: !brain || !differing.length || !!busy, reduce: () => void run(differing) });
+    const again = Inputs.button("Refresh", { disabled: !brain || !!busy, reduce: () => void refresh() });
+    const waiting = results.filter((r) => r.state === "waiting");
+    const refused = results.filter((r) => r.state === "refused" || r.state === "put-back");
+    buttons.replaceChildren(apply, again);
+    status.textContent = busy;
+    notices.replaceChildren(htl.html`${waiting.length ? htl.html`<div style="margin-top:6px;color:var(--theme-foreground-muted)">Waiting for approval: ${waiting.map((r) => r.worker).join(", ")}. ${brain && brain.deployerUrl ? htl.html`Approve on the <a href=${brain.deployerUrl} target="_blank" rel="noopener">deployer page</a>, then press Apply again.` : ""}</div>` : ""}
+      ${refused.map((r) => htl.html`<div style="margin-top:6px;color:#e5484d">${r.state === "refused" ? "Refused: " + r.reason : `${r.worker} was put back to ${short(r.previous)}: ${r.reason}`}</div>`)}`);
+    if (!table) return false;
+    const rowsText = JSON.stringify(rows);
+    const differs = rowsText !== shownRows;
+    if (differs) (shownRows = rowsText), (root.value = rows);
+    const data = rows.map((r) => ({ worker: r.worker || r.name, module: r.module || null, serves: [...(r.methods || []).map((m) => m.replace("com.lopecode.brain.", "")), ...(r.paths || [])].join(", "), version: r.hash, state: r.state, tests: root.tests[r.worker] || "", note: r.note || "", running: r.running }));
+    const dataText = JSON.stringify(data);
+    if (dataText === shownTable) return differs;
+    shownTable = dataText;
     const red = (note, state) => /put back|cannot|did not deploy|tests failed|tests fail now/.test(note) || state === "cannot deploy";
-    const table = Inputs.table(
-      rows.map((r) => ({ worker: r.worker || r.name, module: r.module || null, serves: [...(r.methods || []).map((m) => m.replace("com.lopecode.brain.", "")), ...(r.paths || [])].join(", "), version: r.hash, state: r.state, tests: root.tests[r.worker] || "", note: r.note || "", running: r.running })),
+    body.firstChild.replaceWith(Inputs.table(
+      data,
       {
         columns: ["worker", "serves", "version", "state", "tests", "note"],
         select: false,
@@ -76,28 +103,17 @@ serviceList = ({ services = [], brain = null, moduleLink = null } = {}) => {
           note: (v, i, data) => htl.html`<span style=${`white-space:normal;color:${red(v, data[i].state) ? "#e5484d" : "var(--theme-foreground-muted)"}`}>${v}</span>`
         }
       }
-    );
-    // The deployer refuses a change with no reason, and logs the one it is given.
-    const why = htl.html`<input placeholder="Reason for the change" maxlength="300" style="font:inherit;min-width:18em;flex:1">`;
-    why.value = reason;
-    why.oninput = () => (reason = why.value);
-    const apply = Inputs.button(`Apply ${differing.length} change${differing.length === 1 ? "" : "s"}`, { disabled: !brain || !differing.length || !!busy, reduce: () => void run(differing) });
-    const again = Inputs.button("Refresh", { disabled: !brain || !!busy, reduce: () => void refresh() });
-    const waiting = results.filter((r) => r.state === "waiting");
-    const refused = results.filter((r) => r.state === "refused" || r.state === "put-back");
-    body.replaceChildren(htl.html`${table}
-      <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${why}${apply}${again}<span style="color:var(--theme-foreground-muted)">${busy}</span></div>
-      ${waiting.length ? htl.html`<div style="margin-top:6px;color:var(--theme-foreground-muted)">Waiting for approval: ${waiting.map((r) => r.worker).join(", ")}. ${brain && brain.deployerUrl ? htl.html`Approve on the <a href=${brain.deployerUrl} target="_blank" rel="noopener">deployer page</a>, then press Apply again.` : ""}</div>` : ""}
-      ${refused.map((r) => htl.html`<div style="margin-top:6px;color:#e5484d">${r.state === "refused" ? "Refused: " + r.reason : `${r.worker} was put back to ${short(r.previous)}: ${r.reason}`}</div>`)}`);
+    ));
+    return differs;
   };
   const refresh = async () => {
     emitted = await Promise.all(services.map((s) => s.emit().catch((e) => ({ name: s.name, error: String((e && e.message) || e) }))));
     emitted.sort((a, b) => String(a.meta ? a.meta.worker : a.name).localeCompare(String(b.meta ? b.meta.worker : b.name)));
     if (brain && brain.asDeployed) for (const e of emitted) if (e.meta) e.asDeployed = brain.asDeployed(e);
-    draw();
-    if (!brain) return;
+    // With a Brain the table waits for the answer, so a read is one table at most; the first shows what the tab holds.
+    if (!brain) return void draw();
     busy = "reading what is running…";
-    draw();
+    draw(shownTable == null);
     try {
       deployerState = await brain.state();
       const infos = await Promise.all(emitted.filter((e) => e.meta).map((e) => brain.info(e.meta.worker).catch(() => null)));
@@ -107,8 +123,7 @@ serviceList = ({ services = [], brain = null, moduleLink = null } = {}) => {
     } catch (e) {
       busy = "could not read the deployer: " + String((e && e.message) || e);
     }
-    draw();
-    root.dispatchEvent(new CustomEvent("input", { bubbles: true }));
+    if (draw()) root.dispatchEvent(new CustomEvent("input", { bubbles: true }));
   };
   const run = async (rows) => {
     results = [];
@@ -116,7 +131,7 @@ serviceList = ({ services = [], brain = null, moduleLink = null } = {}) => {
     const order = (r) => (r.role === "core" ? 0 : r.role === "kernel" ? 2 : 1);
     for (const r of [...rows].sort((a, b) => order(a) - order(b))) {
       busy = `applying ${r.worker}…`;
-      draw();
+      draw(false);
       try {
         // r.running is what this page last read from the deployer: the view the owner pressed Apply on.
         const out = await brain.apply(emitted.find((e) => e.meta && e.meta.worker === r.worker), { reason, was: r.running });
@@ -2340,6 +2355,88 @@ test_service_rows_states = {
   expect(orphan.map((r) => r.worker)).toEqual(["brain-x-b", "brain-x-d", "brain-x-e"]);
   expect(orphan[0]).toMatchObject({ hash: null, running: "old" });
   return rows.map((r) => r.state).join(", ");
+}
+// %%
+// The Services table of the page stood under the owner's eye while each read of what runs put a new one in its place three
+// times (issue services-table-drawn-three-times-a-read). Counted here as the page-redraws tool counts it: a node with
+// a table added under the control. The records are read at once after each read, so nothing waits on a clock.
+test_a_read_of_the_same_rows_puts_no_new_services_table_in_place = {
+  const e = (name, hash) => ({ name, emit: async () => ({ name, hash, meta: { worker: "brain-x-" + name, role: "recipe", methods: [], paths: [], secrets: [] } }) });
+  const running = { "brain-x-a": "h1", "brain-x-b": "h2" };
+  let fail = null, during = null, list = null;
+  const brain = {
+    state: async () => {
+      during = list.textContent;
+      if (fail) throw new Error(fail);
+      return { workers: Object.entries(running).map(([worker, hash]) => ({ worker, hash, fails: 0 })), kernel: {}, pending: [], approved: [] };
+    },
+    info: async (worker) => ({ name: worker, hash: running[worker] })
+  };
+  let events = 0;
+  list = serviceList({ services: [e("a", "h1"), e("b", "h2")], brain });
+  // The control starts a read of its own: its answer differs from what the tab holds, so it ends with an event.
+  await new Promise((done) => list.addEventListener("input", done, { once: true }));
+  list.addEventListener("input", () => events++);
+  // A record is handed over before the read's promise is answered, or is still held: both are counted.
+  const records = [];
+  // Named through document, the one browser global this cell names: with no browser cloud-brain-dev/test.ts counts
+  // a test "needs a browser" by that name, and fails one that names MutationObserver.
+  const seen = new document.defaultView.MutationObserver((list) => void records.push(...list));
+  seen.observe(list, { childList: true, subtree: true });
+  const tables = () => [...records.splice(0), ...seen.takeRecords()].filter((m) => [...m.addedNodes].some((n) => n.nodeType === 1 && (n.matches("table") || n.querySelector("table")))).length;
+  const states = () => [...list.querySelectorAll("tbody tr")].map((tr) => tr.textContent.replace(/\s+/g, " ").trim());
+  const why = list.querySelector("input[placeholder]");
+  why.value = "a reason half typed";
+  const table = list.querySelector("table"), value = list.value;
+  expect(states().length).toBe(2);
+  expect(value.map((r) => r.state)).toEqual(["in sync", "in sync"]);
+
+  // A read whose rows are the ones shown: no node of the table, the same array, no event. The line says it reads.
+  await list.refresh();
+  expect([tables(), events, list.querySelector("table") === table, list.value === value]).toEqual([0, 0, true, true]);
+  expect(during).toContain("reading what is running…");
+  expect(list.textContent).not.toContain("reading what is running…");
+  await list.refresh();
+  expect([tables(), events]).toEqual([0, 0]);
+
+  // A read whose rows differ: one table, one event.
+  running["brain-x-b"] = "h2-of-another-session";
+  await list.refresh();
+  expect([tables(), events]).toEqual([1, 1]);
+  expect(list.value.map((r) => r.state)).toEqual(["in sync", "changed"]);
+  expect(states()[1]).toContain("changed");
+  expect(list.querySelector("table") === table).toBe(false);
+
+  // The tests column is a cell of the table and no part of the value: one table, no event.
+  list.tests = { "brain-x-a": "3/3" };
+  await list.refresh();
+  expect([tables(), events]).toEqual([1, 1]);
+  expect(states()[0]).toContain("3/3");
+
+  // A read that fails says so under the table and leaves the table.
+  fail = "the deployer is away";
+  const kept = list.querySelector("table");
+  await list.refresh();
+  expect([tables(), events, list.querySelector("table") === kept]).toEqual([0, 1, true]);
+  expect(list.textContent).toContain("could not read the deployer: the deployer is away");
+  fail = null;
+  await list.refresh();
+  expect([tables(), events]).toEqual([0, 1]);
+  expect(list.textContent).not.toContain("could not read the deployer");
+
+  // The box of the reason is the one that was typed in.
+  expect(list.querySelector("input[placeholder]") === why).toBe(true);
+  expect(why.value).toBe("a reason half typed");
+
+  // With no Brain the table is what the tab holds, put in place once.
+  const plain = serviceList({ services: [e("a", "h1")] });
+  await plain.refresh();
+  const first = plain.querySelector("table");
+  await plain.refresh();
+  expect(plain.querySelector("table") === first).toBe(true);
+  expect(plain.value.map((r) => r.state)).toEqual(["unknown"]);
+  seen.disconnect();
+  return "0 tables for the same rows, 1 for rows that differ";
 }
 // %%
 test_hash_is_stable_and_per_service = {

@@ -90,6 +90,8 @@ owner's works in one is his to say: the spec does not ask it ("the main checkout
    the owner reaches the Brain), and prints the cells of `@tomlarkworthy/cloud-brain` that were computed again and how many times the Services
    table was put in place, at rest or after N entries of the deployer in one `inbox.poll`. Exit 1 and `failed` when a cell was computed again or
    the table was put in place more than for two reads. `tools/cloud-brain/records/page-services-refreshes-in-a-loop.md`.
+   A read is one table at most, and none when no cell of it differs from the one shown, since `services-table-drawn-three-times-a-read`
+   (2026-10-13; with `--differ` each read's rows are others than the ones shown, and the count is then 1 a read; a page whose shell is of before it counts 3 a read and is exit 1 with an entry: `tools/cloud-brain/records/services-table-drawn-three-times-a-read.md`).
 5. Update the as-built record and the backlog in the same change.
 6. Run `/review-notebook` on what changed. The two logging reviews on 2026-10-08 found 15 real
    defects the authoring session had not seen.

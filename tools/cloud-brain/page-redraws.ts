@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// page-redraws.ts [--base NAME|URL] [--owner] [--seconds N] [--entries N] [--shell FILE] [--view LAYOUT] [--at table|end]
+// page-redraws.ts [--base NAME|URL] [--owner] [--seconds N] [--entries N] [--differ] [--shell FILE] [--view LAYOUT] [--at table|end]
 //
 // Counts what the Brain's page computes and draws again while nothing is changed. It opens the Brain's own
 // address in a local headless Chrome, waits for the page's module to join, and from then reads once a second:
@@ -17,6 +17,9 @@
 // --seconds  how long it counts after the page is at rest, 60 by default.
 // --entries  with --owner: that many entries of the deployer are handed to the page in one inbox.poll once it is
 //            at rest, as a deploy of that many Workers by another session would.
+// --differ   with --entries: each read of what runs after the entries are handed over is answered with another hash
+//            for the first Worker, so its rows differ from the ones shown. The table is then put in place once a
+//            read, and a count of 0 is a failure: the tool did not see a table that had to be replaced.
 // --view     the layout the page opens with, as the address has it after #view= ; with none, the shell's own.
 // --shell    the document is answered from FILE; every other request goes to the Brain. A file that holds the
 //            page's module (a whole build, .emitted/cloud-brain.html) is served with its boot list cut to brain-shell
@@ -32,20 +35,22 @@
 // the most pixels of one such move, and `heights` the frames in which the pane's scroll height was another.
 // `calls` is what the page sent during the count, by method.
 // Exit 0: `failed` is empty (judge, below): with no entry nothing computed and nothing drew during the count; with
-// entries no cell was computed again and the table was put in place 6 times at most (3 for one entry).
+// entries no cell was computed again and the table was put in place twice at most (once for one entry). A page whose
+// shell is of before services-table-drawn-three-times-a-read (2026-10-13) puts it in place 3 times a read, and is exit 1.
 // Exit 1: `failed` says what did. Exit 64: the arguments. Exit 70: the tool could not run.
 import { readFileSync } from "node:fs";
 import { chromeFor } from "../lib/playwright-chrome.js";
 import { routes, shellDocument, SHELL } from "./verify-run.ts";
 
 export const PAGE = "@tomlarkworthy/cloud-brain";
-export const usage = "page-redraws.ts [--base NAME|URL] [--owner] [--seconds N] [--entries N] [--shell FILE] [--view LAYOUT] [--at table|end]";
+export const usage = "page-redraws.ts [--base NAME|URL] [--owner] [--seconds N] [--entries N] [--differ] [--shell FILE] [--view LAYOUT] [--at table|end]";
 
 export function parseArgs(argv: string[], env: Record<string, string | undefined> = {}) {
-  const out = { base: env.BRAIN_BASE || "cb4", owner: false, seconds: 60, entries: 0, shell: null as string | null, view: null as string | null, at: "table" };
+  const out = { base: env.BRAIN_BASE || "cb4", owner: false, differ: false, seconds: 60, entries: 0, shell: null as string | null, view: null as string | null, at: "table" };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--owner") out.owner = true;
+    else if (a === "--differ") out.differ = true;
     else if (a === "--base" || a === "--shell" || a === "--view" || a === "--at" || a === "--seconds" || a === "--entries") {
       const v = argv[++i];
       if (!v || v.startsWith("--")) throw new Error(`${a} takes a value`);
@@ -57,6 +62,7 @@ export function parseArgs(argv: string[], env: Record<string, string | undefined
   }
   if (out.at !== "table" && out.at !== "end") throw new Error("--at takes table or end");
   if (out.entries && !out.owner) throw new Error("--entries goes with --owner");
+  if (out.differ && !out.entries) throw new Error("--differ goes with --entries");
   return { ...out, base: /^https?:\/\//.test(out.base) ? out.base.replace(/\/+$/, "") : `https://${out.base}.endpointservices.workers.dev` };
 }
 
@@ -69,15 +75,18 @@ export function moved(before: Record<string, number>, after: Record<string, numb
 
 // What a count says. []: the page did what is asked of it. With no entry nothing is computed and nothing drawn. With
 // entries no cell is computed again, and the table is put in place for two reads of what runs at most, however many
-// the entries were: 3 times a read (serviceList of cloudflare-iac draws what the tab holds, "reading…" and the answer).
-export const DRAWS_A_READ = 3;
-export function judge(r: { settledMs: number | null; entries: number; computed: Record<string, number>; draws: number; tables: number }): string[] {
+// the entries were: once a read (serviceList of cloudflare-iac puts a table in place at the answer, when a cell of it
+// differs from the one shown; until services-table-drawn-three-times-a-read it did so 3 times a read, whatever the rows).
+// The count is of the nodes added to the first child of the control, where the table is the one node that is replaced.
+export const DRAWS_A_READ = 1;
+export function judge(r: { settledMs: number | null; entries: number; computed: Record<string, number>; draws: number; tables: number; differ?: boolean }): string[] {
   const bad: string[] = [], names = Object.keys(r.computed);
   if (r.settledMs == null) return ["the page did not come to rest"];
   if (names.length) bad.push(`${names.length} cell${names.length === 1 ? " was" : "s were"} computed again: ${names.map((n) => `${n} ${r.computed[n]}`).join(", ")}`);
   if (r.tables) bad.push(`the control of Services was made again ${r.tables} time${r.tables === 1 ? "" : "s"}`);
   const most = DRAWS_A_READ * Math.min(r.entries, 2);
   if (r.draws > most) bad.push(`the table was put in place ${r.draws} times, and ${most} at most ${r.entries ? `for ${r.entries} entr${r.entries === 1 ? "y" : "ies"}` : "with nothing changed"}`);
+  if (r.differ && r.entries && !r.draws) bad.push("the rows of each read differed and no table was put in place");
   return bad;
 }
 
@@ -132,7 +141,7 @@ export function callsAnswer(since: number, until: number) {
 async function main() {
   let args;
   try { args = parseArgs(process.argv.slice(2), process.env); } catch (e: any) { console.error(`${e.message}\n${usage}`); process.exit(64); }
-  const { base, owner, seconds, entries, shell, view, at } = args;
+  const { base, owner, differ, seconds, entries, shell, view, at } = args;
   const { chromium } = await import("playwright");
   const browser = await chromium.launch({ headless: true, executablePath: chromeFor(chromium.executablePath(), process.env, { headless: true }) });
   try {
@@ -144,7 +153,7 @@ async function main() {
     const doc = shell ? shellDocument(readFileSync(shell, "utf8"), PAGE) : null;
     const refusals = await routes(page, base, doc && doc.body, !!(doc && doc.mains));
     const layout = view || (doc && doc.mains ? `C100(S100(${PAGE},${SHELL}))` : null);
-    let hand = 0, handed = 0;
+    let hand = 0, handed = 0, others = 0;
     const json = (route: any, body: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(body) });
     await page.route((url: URL) => url.origin === base && (url.pathname === "/auth/session" || url.pathname.startsWith("/xrpc/")), async (route: any) => {
       const request = route.request(), url = new URL(request.url()), method = url.pathname.replace("/xrpc/com.lopecode.brain.", "");
@@ -153,7 +162,8 @@ async function main() {
       if (url.pathname === "/auth/session") return json(route, { signedIn: true, owner: true, did: "did:plc:page-redraws", handle: "page-redraws.test", ownerSet: true });
       if (method === "infra.getState") {
         const list = await fetch(base + "/xrpc/com.lopecode.brain.service.list").then((r) => r.json());
-        return json(route, { workers: list.services.map((s: any) => ({ worker: s.worker, hash: s.hash, fails: 0 })), kernel: {}, pending: [], approved: [] });
+        const other = differ && handed ? `page-redraws-other-${++others}` : null;
+        return json(route, { workers: list.services.map((s: any, i: number) => ({ worker: s.worker, hash: other && !i ? other : s.hash, fails: 0 })), kernel: {}, pending: [], approved: [] });
       }
       if (method === "inbox.poll") {
         const now = hand;
@@ -186,7 +196,7 @@ async function main() {
     await page.waitForTimeout(seconds * 1000);
     const end = (await page.evaluate(read, PAGE))!;
     const computed = moved(start.versions, end.versions), calls = moved(sentAtRest, sent);
-    const counted = { settledMs, entries, computed, draws: end.draws - start.draws, tables: end.tables - start.tables };
+    const counted = { settledMs, entries, differ, computed, draws: end.draws - start.draws, tables: end.tables - start.tables };
     const failed = judge(counted);
     console.log(JSON.stringify({ base, owner, shell, module: doc && doc.mains ? "document" : "brain", refused: refusals.refused, view: layout, seconds, handed, ok: !failed.length, failed, ...counted, atRest: { tables: start.tables, rows: start.rows, mains: start.mains }, where: at, moves: end.moves - start.moves, far: end.far, heights: end.heights - start.heights, calls, ...(errors.length ? { errors: errors.slice(0, 5) } : {}), browser: browser.version(), at: new Date().toISOString() }));
     process.exit(failed.length ? 1 : 0);

@@ -7,9 +7,9 @@ const rest = { settledMs: 2000, entries: 0, computed: {}, draws: 0, tables: 0 };
 
 describe("page-redraws", () => {
   test("the arguments", () => {
-    expect(parseArgs([])).toEqual({ base: "https://cb4.endpointservices.workers.dev", owner: false, seconds: 60, entries: 0, shell: null, view: null, at: "table" });
+    expect(parseArgs([])).toEqual({ base: "https://cb4.endpointservices.workers.dev", owner: false, differ: false, seconds: 60, entries: 0, shell: null, view: null, at: "table" });
     expect(parseArgs([], { BRAIN_BASE: "cb9" }).base).toBe("https://cb9.endpointservices.workers.dev");
-    expect(parseArgs(["--owner", "--entries", "6", "--seconds", "45", "--base", "https://b.example/", "--shell", "s.html", "--view", "C100(S100(a))", "--at", "end"])).toEqual({ base: "https://b.example", owner: true, seconds: 45, entries: 6, shell: "s.html", view: "C100(S100(a))", at: "end" });
+    expect(parseArgs(["--owner", "--entries", "6", "--seconds", "45", "--base", "https://b.example/", "--shell", "s.html", "--view", "C100(S100(a))", "--at", "end"])).toEqual({ base: "https://b.example", owner: true, differ: false, seconds: 45, entries: 6, shell: "s.html", view: "C100(S100(a))", at: "end" });
     for (const bad of [["--entries", "6"], ["--seconds"], ["--seconds", "ten"], ["--seconds", "--owner"], ["--at", "top"], ["a.html"], ["--times", "2"]]) expect(() => parseArgs(bad)).toThrow();
   });
 
@@ -26,12 +26,22 @@ describe("page-redraws", () => {
   });
 
   test("entries of the deployer are two reads at most, and compute no cell", () => {
-    expect(DRAWS_A_READ).toBe(3);
-    expect(judge({ ...rest, entries: 1, draws: 3 })).toEqual([]);
-    expect(judge({ ...rest, entries: 1, draws: 6 })).toEqual(["the table was put in place 6 times, and 3 at most for 1 entry"]);
-    expect(judge({ ...rest, entries: 6, draws: 6 })).toEqual([]);
+    expect(DRAWS_A_READ).toBe(1);
+    expect(judge({ ...rest, entries: 1, draws: 0 })).toEqual([]);
+    expect(judge({ ...rest, entries: 1, draws: 1 })).toEqual([]);
+    // What a read drew until services-table-drawn-three-times-a-read: 3 tables, whatever the rows.
+    expect(judge({ ...rest, entries: 1, draws: 3 })).toEqual(["the table was put in place 3 times, and 1 at most for 1 entry"]);
+    expect(judge({ ...rest, entries: 6, draws: 2 })).toEqual([]);
+    // --differ: the rows of each read are others, so a count of no table is the tool not seeing one.
+    expect(judge({ ...rest, entries: 1, differ: true, draws: 1 })).toEqual([]);
+    expect(judge({ ...rest, entries: 1, differ: true, draws: 0 })).toEqual(["the rows of each read differed and no table was put in place"]);
+    expect(judge({ ...rest, entries: 1, differ: true, draws: 3 })).toEqual(["the table was put in place 3 times, and 1 at most for 1 entry"]);
+    expect(parseArgs(["--owner", "--entries", "1", "--differ"]).differ).toBe(true);
+    expect(parseArgs(["--owner"]).differ).toBe(false);
+    expect(() => parseArgs(["--owner", "--differ"])).toThrow("--differ goes with --entries");
+    expect(judge({ ...rest, entries: 6, draws: 3 })).toEqual(["the table was put in place 3 times, and 2 at most for 6 entries"]);
     // What cb4 served on 2026-10-13 before the change: a read an entry, and the panels of Health drawn again for each.
-    expect(judge({ ...rest, entries: 6, draws: 18, computed: { panelDrawing: 6, panel: 6, workerLink: 6 } })).toEqual(["3 cells were computed again: panelDrawing 6, panel 6, workerLink 6", "the table was put in place 18 times, and 6 at most for 6 entries"]);
+    expect(judge({ ...rest, entries: 6, draws: 18, computed: { panelDrawing: 6, panel: 6, workerLink: 6 } })).toEqual(["3 cells were computed again: panelDrawing 6, panel 6, workerLink 6", "the table was put in place 18 times, and 2 at most for 6 entries"]);
   });
 
   test("the page on changing a Worker names the tool and its record", () => {
