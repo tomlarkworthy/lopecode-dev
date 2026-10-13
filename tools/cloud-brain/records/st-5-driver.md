@@ -19,7 +19,7 @@ process started by `loop.ts start` in its sandbox, with the token `impl-e88c70`.
 |---|---|
 | `tools/cloud-brain/loop.ts` | the command `run [--dry]`; `drive`, `madeMove` and the five constants exported; `step` takes `--for clock\|event\|run`; `runFiles` moved out of `step` |
 | `tools/cloud-brain/lock.sh` | the name `loop` beside `land` and `cb4`; one line of the usage, which is 18 lines now (`sed -n '2,19p' lock.sh | wc -l`) |
-| `tools/cloud-brain/loop.sh` | new, 22 lines, zsh: `safehouse` with the arguments `metadev` gives it, then the driver |
+| `tools/cloud-brain/loop.sh` | new, 23 lines, zsh: `safehouse` with the arguments `metadev` gives it, then the driver |
 | `tests/tools/loop-run.test.ts` | new: 18 tests |
 | `tests/tools/loop-step.test.ts` | 1 test more (28), and the usage line in one expectation |
 | `tests/tools/lock.test.ts` | 1 test more (31, with 2 that came in at the rebase), and the usage line in one expectation |
