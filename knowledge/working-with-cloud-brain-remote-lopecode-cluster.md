@@ -20,7 +20,10 @@ so that an agent reads the one for what it is doing (the whole file was 28.6 KB,
 | Change a seed, build, test, deploy, commit; `redistil`, `apply`, `saw`; a Playwright script in `tools/`; where a service keeps files | `knowledge/changing-and-deploying-a-cloud-brain-worker.md` |
 | Pair with the Brain's page, on this machine or in a browser of the cluster (`brain.ts page up`) | `knowledge/pairing-with-the-cloud-brain-page.md` |
 
-The hook that asks for this file asks for the page too, when the command is one of that page's.
+The hook that asks for this file asks for the page too, when the command is one of that page's. A write under
+`tools/cloud-brain/` asks for this file, and for the page on changing and deploying when the file is a seed or
+a tool (`.ojs`, `.ts`, `.js`, `.sh`, `.py`): a record, a post mortem or another `.md` asks for this file alone
+(since 2026-10-13, issue `learnings-gate-deploy-page-for-a-record`).
 
 ## Where the documents are
 

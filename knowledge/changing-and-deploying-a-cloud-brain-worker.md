@@ -2,7 +2,7 @@
 scope: [local-development]
 topics: Cloud Brain; changing a seed; a git worktree for the change (worktree.sh), landed by a push; build.ts; deploying a Worker; brain.ts apply, redistil, saw, confirm; waiting-deploys.ts, which of the kernel, the core, the database and the deployer cb4 runs behind main; the deploy lock; a Playwright script in tools; where a service keeps files
 triggers:
-  - "^(Edit|Write|MultiEdit) .*tools/cloud-brain/"
+  - "^(Edit|Write|MultiEdit) .*tools/cloud-brain/.*\.(ojs|ts|js|sh|py)$"
   - "(^Bash |^|[;&|] )bun +tools/cloud-brain/build\.ts( |$)"
   - "(^Bash |^|[;&|] )BRAIN_BASE=[a-z0-9]+ +bun +tools/cloud-brain/build\.ts( |$)"
   - "(^Bash |^|[;&|] )bun +tools/cloud-brain/brain\.ts +(apply|redistil|saw|confirm|shell|remove|rollback|install-deployer)( |$)"
