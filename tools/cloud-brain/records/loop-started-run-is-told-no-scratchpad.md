@@ -28,6 +28,13 @@ makes a directory with `mktemp -d` and a prompt line `scratch: $SCRATCH` for a r
 | `tests/tools/loop-step.test.ts` | the test that pins a judgment run's prompt has the line |
 | `.claude/skills/brain-maintenance/agents/orchestrator.md` | "Your prompt, and your token": five lines, and what `<dir>` is |
 | `.claude/skills/brain-maintenance/agents/implementer.md` | "Where you work": the scratchpad is the prompt's `scratch:` line, else the session's |
+| `plan/cloud-brain-orchestrator-as-steps.md` | three notes, where part 2 and part 3 say the prompt is four lines and the message three |
+
+The triage (event 6579) has "the briefs are the overseer's", and of the sentence of `implementer.md`, that it
+"is then the overseer's to change". The two brief lines were changed here all the same: step 11 of
+`agents/implementer.md` has a line the change made untrue mended in its landing, and `orchestrator.md` would
+tell the next judgment run its prompt has four lines. `implementer.md` is 19,961 characters before and after
+(`wc -m`), of the 20,000 its test allows.
 
 The prompt of a writer since this change, as the test reads it from the stand-in's log:
 
@@ -72,8 +79,9 @@ before the process returns, and a round sent back gets an empty directory at the
 
 ## Tests
 
-The two files were run 15:05 to 15:10, after the last edit of `loop.ts` and of the tests; the suite at 15:22,
-after the rebase on `origin/main`, with nothing edited since but this file.
+The two files were run after the last edit of `loop.ts` and of the tests, and before the rebase; no `date` was
+read at them. The suite ended at 15:25, after the rebase on `origin/main`, with nothing edited since but this
+file and three notes of the plan.
 
 ```
 bun test --timeout=30000 ./tests/tools/loop.test.ts        20 pass, 0 fail
@@ -87,7 +95,7 @@ The two new tests were run before `loop.ts` was changed: `0 pass, 2 fail`
 **Before the rebase the suite had 3 fails in this run, and none of them was of the change.** A run
 `loop.ts start` began has `WORK` and `SESSION` set, and a test that ran the real `agent.sh` passed them on:
 `1232 pass, 3 fail` as the run was, `1235 pass, 0 fail` with `env -u WORK -u SESSION`. It was filed as
-`seen-000b4c` at 15:21. The rebase then brought in `suite-fails-under-a-loop-started-run`, another writer's
+`seen-000b4c` (event 6611). The rebase then brought in `suite-fails-under-a-loop-started-run`, another writer's
 fix of the same thing, and the run above is with no `env -u`.
 
 What the two new tests hold:

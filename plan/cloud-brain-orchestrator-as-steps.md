@@ -285,6 +285,10 @@ things are added to it, each an environment variable beside `TAB`, `READS` and `
   `--mcp-config`, on a start and on `--resume`, and the process has none
   (`tools/cloud-brain/records/st-1b-work-process-without-mcp.md`).
   The prompt is the four lines of `SKILL.md` step 4, unchanged, so the briefs are read as they are.
+  As built (since `loop-started-run-is-told-no-scratchpad`, 2026-10-13): five lines for a run `loop.ts start` begins. The fourth is
+  `scratch: <dir>`, a directory of the run alone that `start` makes and `ended` removes, since such a process has
+  no session's scratchpad and the briefs send the files of a landing there
+  (`tools/cloud-brain/records/loop-started-run-is-told-no-scratchpad.md`). An approver's prompt is its three lines.
 - `SESSION=<uuid>`: passed as `--session-id`, so the id is known, and written, before the run.
 - `--resume SESSION "message"` as today, from any process. `WORK` holds for it too: the resume
   branch of the script gives the four tools today (`GIVE=(--tools "Bash,Read,Grep,Glob" …)`), and a
@@ -392,7 +396,8 @@ event was replaced with, and it stays in the record when the next run's event ta
 
 `loop.ts resume <id>` is "A rework round goes to the agent that wrote the change": the last run of
 the role from `runs?id=`, its token live, its `agent` naming this machine: `agent.sh --resume
-<session>` with the three lines of that section, a `running` event for the round with
+<session>` with the three lines of that section (since `loop-started-run-is-told-no-scratchpad`, 2026-10-13 a fourth, `scratch: <dir>`, the
+run's directory made again), a `running` event for the round with
 `how: "resumed"`, under the key above. Anything else is the row "A dead writer": the token ended, `back`, and the
 issue is a `start` at the next read.
 
@@ -588,7 +593,8 @@ written.
 - The step makes the run's token (`agent-token orch judgment:<issue>`) and writes the `given` comments,
   then runs `loop.ts start [<issue>] --role orchestrator --token <token> --give "<do> <id> (event <at>); …"`,
   with `<issue>` the first entry's. The prompt is the four lines of the other roles, its third
-  `Entries: <do> <id> (event <at>); …`: the run needs `<at>` for the key of its verdict.
+  `Entries: <do> <id> (event <at>); …`: the run needs `<at>` for the key of its verdict. since `loop-started-run-is-told-no-scratchpad`, 2026-10-13 it has
+  the line `scratch: <dir>` before the token's, as a writer's has.
 - The entries of a step are one run's, started at the step's end. "A second such process is not started
   while one runs" is read from the files of `runs/` of this machine: a run of the role `orchestrator`
   that is not ended and whose process lives. The entries of that step are then in `skipped`, with no
