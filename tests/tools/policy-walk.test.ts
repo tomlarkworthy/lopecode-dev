@@ -144,7 +144,7 @@ const standIn = (name: string, answer: unknown, exit = 0) => {
 };
 const hashes = async () => JSON.parse((await tool([FILE, "--until", "moves-are-his-or-a-token", "--json"])).out).hashes as Record<string, string>;
 
-withSeed(`--in-force: an issue.policy with the hashes of the newest file is \`in force: ${V}\`, and the second line says whose reason it has`, async () => {
+withSeed(`--in-force: an issue.policy with the hashes and the reason of the newest file is \`in force: ${V}\`; with its hashes and another reason, the workflows of ${V} under another reason`, async () => {
   all();
   const names = await hashes();
   const same = await tool(["--in-force", "--token", "impl-test"], { ISSUE_AS: standIn("same", { policy: { seq: 77, kinds: file.policy.kinds, names, reason: file.reason }, workflows: {} }) });
@@ -154,7 +154,7 @@ withSeed(`--in-force: an issue.policy with the hashes of the newest file is \`in
   expect(readFileSync(join(tmp, "same.sh.token"), "utf8").trim()).toBe("impl-test");
   const other = await tool(["--in-force", "--token", "impl-test"], { ISSUE_AS: standIn("other-reason", { policy: { seq: 78, names, reason: "another file's" }, workflows: {} }) });
   expect(other.code).toBe(0);
-  expect(other.out.trim().split("\n")[1]).toEndWith("the reason in force is not the file's: an install of another file with the same workflows reads the same here");
+  expect(other.out.trim().split("\n")).toEqual([`in force: the workflows of ${V}, under another reason`, `  the 4 workflow hashes of the policy of event 78 are those of ${FILE}; the reason in force is not the file's: the install was of another file with these workflows, and what reads the reason (approver.ts, its two blobs) reads that file's`]);
 }, T);
 
 withSeed("--in-force: one hash that differs, a workflow more or a workflow less is `in force: not`, exit 1, with which", async () => {
@@ -195,7 +195,8 @@ test("SKILL.md, step 7, has the run after an install, with what each first line 
   expect(seven.length).toBeGreaterThan(1000);
   expect(seven).toContain("**After an install.**");
   expect(seven).toContain("`bun tools/cloud-brain/policy-walk.ts --in-force --token <your token>`");
-  expect(seven).toContain("`in force: v<n>`\n   (exit 0)");
+  expect(seven).toContain("`in force: v<n>` (exit 0)");
+  expect(seven).toContain("`in force: the workflows of v<n>, under another reason` (exit 0 too)");
   expect(seven).toContain("`in force: not v<n>` (exit 1)");
 });
 

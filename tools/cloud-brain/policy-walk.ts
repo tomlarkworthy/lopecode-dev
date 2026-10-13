@@ -13,16 +13,18 @@
 // --until        Ends the walk at the first edge that breaks <property>, one of major-done-is-his, major-stays,
 //                no-own-review, moves-are-his-or-a-token, and prints that property alone. The others are not asked.
 // --in-force     Reads issue.policy with <t>, a name issue-as.sh keeps, and prints whether its workflow hashes are those
-//                issuePolicyAct gives the newest plan/cloud-brain-issues-policy-v<n>.json: `in force: v<n>`. No walk.
-//                Two files with one policy have the same hashes (v5 and v6 do), so a second line says whether the
-//                reason in force is the file's.
+//                issuePolicyAct gives the newest plan/cloud-brain-issues-policy-v<n>.json. No walk. `in force: v<n>`
+//                when the reason in force is the file's too. Two files with one policy have the same hashes (v5, v6
+//                and v7 do), so with another reason the line is `in force: the workflows of v<n>, under another
+//                reason`: the walk of the file is a walk of what is in force, and the file itself is not installed.
+//                `in force: not v<n>`, with the workflows that differ, when a hash is another.
 // --json         What the cell answered, as one line of JSON, in the lines' place.
 //
 // It prints one line a property, `<name>: holds` or `<name>: fails`, with its count, and under a broken one the
 // shortest path of acts from an open to what breaks it. The properties, and what the walk does not show (issue.narrow,
 // the owner's own swap, holds and waits, links, a second level of parts), are in the spec's section 1.
-// Exit 0: every property asked holds, or the policy in force is the newest file's. Exit 1: one fails, with the paths, or
-// the policy in force is not. Exit 2: nothing was asked, and stderr says why (the arguments, the seed was not compiled,
+// Exit 0: every property asked holds, or the workflows in force are the newest file's. Exit 1: one fails, with the paths,
+// or a workflow in force is not the file's. Exit 2: nothing was asked, and stderr says why (the arguments, the seed was not compiled,
 // the cell gave no answer, issue.policy was not read).
 //
 // The walk is the cell tests/tools/fixtures/policy-walk.ojs, compiled here at the end of the seed with no other test cell
@@ -112,8 +114,9 @@ async function main(argv: string[]): Promise<number> {
       console.log(`in force: not ${v}. Of the policy of event ${read.policy.seq}, ${differ.map((n) => (n in names ? (n in hashes ? `${n} differs` : `${n} is not in ${path}`) : `${n} is not in force`)).join(", ")}; ${Object.keys(hashes).length - differ.filter((n) => n in hashes).length} of the ${Object.keys(hashes).length} workflow hashes of ${path} are in force`);
       return 1;
     }
-    console.log(`in force: ${v}`);
-    console.log(`  the ${Object.keys(hashes).length} workflow hashes of the policy of event ${read.policy.seq} are those of ${path}; the reason in force is ${read.policy.reason === file.reason ? "the file's" : "not the file's: an install of another file with the same workflows reads the same here"}`);
+    const whole = read.policy.reason === file.reason;
+    console.log(whole ? `in force: ${v}` : `in force: the workflows of ${v}, under another reason`);
+    console.log(`  the ${Object.keys(hashes).length} workflow hashes of the policy of event ${read.policy.seq} are those of ${path}; the reason in force is ${whole ? "the file's" : "not the file's: the install was of another file with these workflows, and what reads the reason (approver.ts, its two blobs) reads that file's"}`);
     return 0;
   }
 

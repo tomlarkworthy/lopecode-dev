@@ -52,6 +52,29 @@ in force: v6
   the 4 workflow hashes of the policy of event 6510 are those of plan/cloud-brain-issues-policy-v6.json; the reason in force is the file's
 ```
 
+## After the rebase: the seed of `rk-3-as-of`, and a v7 file
+
+`worktree.sh --rebase` before the landing brought in `rk-3-as-of`, which changes `issueApply` and `issueAllowed`, and
+`plan/cloud-brain-issues-policy-v7.json` of `approver-check-wants-an-orch-starter`: the v6 policy again under a key
+and a reason of its own (the same `python3` line on v6 and v7 prints `True`). Run again on the rebased seed, from
+22:22 CEST, load 2.45:
+
+- the v6 file whole: 30144 states, 980128 acts allowed, 2362256 acts tried, 10.2 s in the cell, the same lines;
+- `--default`: 30144, 977536, 2362256, 10.2 s in the cell, the same lines;
+- the v7 file whole: the same first line as v6 but for its name. It is the newest, so it is what the test walks now.
+
+`--in-force` against cb4 at 22:23 printed `in force: v7` with the second line "the reason in force is not the
+file's". The owner has not installed v7: event 6510 is his install of v6. The first line was true of the workflows
+and read as an install that had not happened, and `approver.ts` reads the reason. The tool was changed for it, and
+at 22:24 CEST printed:
+
+```
+in force: the workflows of v7, under another reason
+  the 4 workflow hashes of the policy of event 6510 are those of plan/cloud-brain-issues-policy-v7.json; the reason in force is not the file's: the install was of another file with these workflows, and what reads the reason (approver.ts, its two blobs) reads that file's
+```
+
+Exit 0 for both first lines: what the walk holds is of the workflows, and those in force are the file's.
+
 ## That the walk can fail
 
 Three policies, each the v6 file with one guard changed, each walked with `--until <property>`. The test makes them;
@@ -73,15 +96,19 @@ with the path `a opens x (project) > owner spec … > a reviews pass > a to-appr
 
 That a test fails when the cell does not check: with `false &&` put before the body of `major-stays` in the cell,
 `bun test --timeout=30000 ./tests/tools/policy-walk.test.ts -t "breaks major-stays"` gave `0 pass, 1 fail`
-(`Expected: 1, Received: 0`, the exit). The cell was put back from a copy and `git diff --stat` of it printed nothing.
+(`Expected: 1`, `Received: 0`). The cell was put back from a copy and `git diff --stat` of it printed nothing.
 
 ## Where this differs from the spec
 
-- **The newest file is v6, and it is not `rk-2`'s.** The spec names `plan/cloud-brain-issues-policy-v6.json` as the
-  file `rk-2` will make. A v6 file is on `main` since `approver-policy-mark-takes-every-route`: the v5 policy under a
-  key of its own, for the approver's pins. The test walks the newest file as `policy-pins.ts` finds it, so it walks
-  v6 today, and `rk-2`'s file is the next number. The spec's sentence "after `rk-2`'s install … prints `in force: v6`"
-  is true today for another reason, as the run above shows.
+- **The newest file is v7, and neither v6 nor v7 is `rk-2`'s.** The spec names `plan/cloud-brain-issues-policy-v6.json`
+  and `issues-policy-v6.test.ts` as what `rk-2` will make. Both are on `main` since
+  `approver-policy-mark-takes-every-route`, and a v7 since `approver-check-wants-an-orch-starter`: the v5 policy each
+  time, under a key of its own, for the approver's pins. The test walks the newest file as `policy-pins.ts` finds it,
+  and `rk-2`'s file is the next number when it is made, v8 today. `policy-pins.ts remake` refuses a `<to.json>` that
+  exists (its header).
+- **`--in-force` has three first lines, not two.** The spec has `in force: v<n>` for hashes that are the file's. With
+  three files of one policy that line named a file the owner had not installed (above), so it is printed when the
+  reason is the file's too, and `in force: the workflows of v<n>, under another reason` when it is not.
 - **The list of the owner's states has two lists**, `file` and `default`. The spec has one file that "lists" the
   states and says of the default policy that `project/awaiting-approval` is among the states only the owner ends,
   "since the default names no approver". With one list `--default` would fail `loop-ends-it` on a state the spec
@@ -99,7 +126,8 @@ That a test fails when the cell does not check: with `false &&` put before the b
   their first broken edge, and `--json`. Exit 2 is also the arguments, a file that is no policy, and an
   `issue.policy` that was not read.
 - **A view is copied by its issues alone at each act**, where the prototype copied the whole view. `issueApply`
-  writes `seq`, `head` and `issues` for an event that is no policy (read in the seed, lines 612 to 677). The counts
+  writes `seq`, `head` and `issues` for an event that is no policy (read in the seed's `issueApply`, and again
+  after the rebase, where `rk-3-as-of` added `said` to an issue's row and nothing to the view). The counts
   are the same and the walk of the v6 file went from 98.7 s in the cell (21:31 CEST, `uptime` load 32 on 18 cores) to
   19.1 s (21:40 CEST, load 35).
 - **What the compiler prints is not shown.** The toolchain notebook, loaded with no browser, wrote 34,767 lines
@@ -107,10 +135,12 @@ That a test fails when the cell does not check: with `false &&` put before the b
 
 ## Tests
 
-- `bun test --timeout=30000 ./tests/tools/policy-walk.test.ts`: 11 pass, 0 fail, 107 expect() calls, 29.47 s
-  (21:43 CEST, the run before the commit of the change). The file was 33.30 s, 86.32 s and 147.72 s in three
+- `bun test --timeout=30000 ./tests/tools/policy-walk.test.ts`: 11 pass, 0 fail, 108 expect() calls, 24.11 s
+  (22:24 CEST, after the rebase and the last edit). The file was 33.30 s, 86.32 s and 147.72 s in three
   earlier runs, the last two before the copy was made lighter. Each test names 200 s.
-- `tests/tools/suite.sh`, four runs after the last edit of the change, each of 1312 tests in 137 files:
+- `tests/tools/suite.sh` after the rebase and the last edit: 1353 pass, 0 fail, 11268 expect() calls, 1353 tests in 142 files,
+  142.91 s (22:25 CEST, load 2.36).
+- `tests/tools/suite.sh` before the rebase, four runs, each of 1312 tests in 137 files:
 
   | Began (CEST) | `uptime` load at the start | Result | Time |
   |---|---|---|---|
@@ -121,7 +151,7 @@ That a test fails when the cell does not check: with `false &&` put before the b
 
   No test of `policy-walk.test.ts` failed in the two runs that had failures. Each of the four files that did was
   then run alone, `bun test --timeout=30000 ./tests/tools/<file>`, before 21:57: `summarize-papers` 33 pass,
-  `issue-wait` 22 pass, `loop-step` 40 pass (119.60 s), `light-agent` 30 pass, and none failed. What held the third
+  `issue-wait` 22 pass, `loop-step` 40 pass (119.60 s), `light-agent` 30 pass, with no fail in any. What held the third
   run was not found. Its temp directory, `/tmp/bm-suite-run.2Vy8ys/t`, had nothing newer than 22:00, the directory of
   this test's stand-ins was there with 27 entries, and no directory of the tool (`policy-walk-…`) was left, so each
   process of the tool had ended. The other writers of the loop were at work on the machine through the first three.
@@ -139,7 +169,8 @@ and then the processes of `--in-force` and of the refusals. Alone it was 24.77 s
 - A policy with a workflow that lacks the names a property reads: the line "asked of no workflow" is tested with a
   made-up answer.
 - `--in-force` when cb4 is not reached. The refusal is tested with a stand-in of `issue-as.sh` that exits 3.
-- `--in-force` answering `not v<n>` against cb4: every such answer is of the stand-in.
+- `--in-force` answering `not v<n>` against cb4: every such answer is of the stand-in. So is `in force: v<n>` for
+  the file that is the newest now; against cb4 it was seen for v6 while v6 was the newest.
 - The paragraph of `SKILL.md` step 7 followed by an orchestrator after an install.
 - The time of a walk on a machine at rest: each walk timed here was at a load of 30 or more.
 - Why the third run of the suite did not end, and the suite's time without this file.
