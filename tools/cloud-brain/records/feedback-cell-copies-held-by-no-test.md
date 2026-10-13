@@ -3,8 +3,9 @@
 Written 2026-10-13 by a writer of the issue loop (`impl-8f62ef`), round 1. One seed,
 `tools/cloud-brain/brain-feedback.ojs`, and one new test file, `tests/tools/feedback-cell.test.ts`. No Worker's
 module changed and nothing was deployed. **cb4 does not run it until the shell is posted**, which is the
-orchestrating session's after a review (`rules.md`, "Two standing leaves of the orchestrating session"). What
-the owner's page does is the same before and after: the change is a function with a name and two tests.
+orchestrating session's after a review (`rules.md`, "Two standing leaves of the orchestrating session"). The
+app is given the same arguments as before, now made by a function with a name; the rest is tests. The owner's
+page was not opened.
 
 ## What the issue said, run again
 
@@ -89,8 +90,12 @@ the reviewer's own edit fails it.
 - `cd $W && bun test --timeout=30000 ./tests/tools/feedback-cell.test.ts`, 09:43:59 CEST: `3 pass`, `0 fail`.
 - `$W/tests/tools/suite.sh`, ending 09:47:13 CEST, after the last edit: `1113 pass`, `0 fail`, 114 files, no
   line `skipped:`.
+- After the rebase on `origin/main` at `37542787`, which brought in `cloud-brain.ojs` and not this seed: the
+  first two commands again, 09:48:37 CEST, `"tests":16,"passed":16,"failed":[]` and `3 pass`, `0 fail`. The whole
+  suite was not run again on that tree.
 - `bun tools/cloud-brain/feedback-away-check.ts` and `feedback-reload-check.ts` on the build, 09:37 CEST: the
-  eight lines and the seven lines as before, `page errors: []` in both. They redefine the cell `feedback`
+  first printed its eight lines, with no note from line 3 to line 6, and `page errors: []`; of the second the
+  last lines were read, 5 to 7 and `page errors: []`. They redefine the cell `feedback`
   themselves and were not changed.
 
 ## What the Brain's search had
