@@ -121,10 +121,10 @@ each command; no shell state lasts between calls.
 3. **Decide whether it is yours.** Stop, comment with what you found, add the label
    `needs-owner`, and report, when any of these is true (the comment is for the owner to decide by: it is
    written as `rules.md`, "What the owner is asked to decide", has it, short, with what you found in a second comment or after the choice):
-   - the fix needs something in the Never list of the rules. A change to a `test_*` cell counts:
-     a Worker's hash covers its module's source with the test cells, so a test changed in
-     `brain-kernel.ojs`, `brain-core.ojs`, `brain-db.ojs`, `brain-deployer.ojs` or
-     `cloudflare-iac.ojs` (the deployer's hash covers it) moves a Worker the loop may not deploy;
+   - the fix needs something in the Never list of the rules. A change to `brain-kernel.ojs`,
+     `brain-core.ojs`, `brain-db.ojs`, `brain-deployer.ojs` or `cloudflare-iac.ojs` is not such a
+     fix: the deploy of its Worker is in that list, and writing the change is not (the paragraph
+     after these three);
    - `philosophy.md` (beside `rules.md`) does not say which of two reasonable behaviours to take.
      When it does, take it and say in your comment which line decided it; that is not a stop;
    - it needs a new policy, a new secret, a new permission or a new Worker. A token that an
@@ -134,12 +134,24 @@ each command; no shell state lasts between calls.
      not make it.
    Do not `start` such an issue.
    What you need of the orchestrating session, and not of the owner, once you work: "When you need the orchestrating session", below.
-   An issue that comes back with the owner's answer to land such a seed, or a task of an approved
-   spec that says the deploy is his, is started: the seed is landed on `main` by step 10 with no
-   deploy, steps 7 and 8 run on the build of your worktree, and you build, apply and probe nothing
-   of it on cb4. The first line of your comment and the reason of your submit say that cb4 does
-   not run the change and whose act the deploy is. Three writers did so from their issue alone on
-   2026-10-12 (`token-revoke-no-name-ends-links`, `ds-1-rows-add-within`, `ds-2-core-spends-by-row`).
+   **A fix in the seed of the kernel, the core, the database or the deployer is started as any
+   issue is, with no word of the owner; its deploy alone is his** (`rules.md`, Never, since
+   `never-list-three-reductions`, 2026-10-13). The seeds are `brain-kernel.ojs`, `brain-core.ojs`,
+   `brain-db.ojs`, `brain-deployer.ojs` and `cloudflare-iac.ojs` (the deployer's hash covers it).
+   A change to a `test_*` cell of one is such a fix too: a Worker's hash covers its module's
+   source with the test cells, so it moves a Worker the loop does not deploy.
+   The seed is landed on `main` by step 10 with no deploy: `land.sh` with `--seed-lands-undeployed`
+   beside its `--test` (without the flag it refuses a commit that changes a seed, exit 64). Steps 7
+   and 8 run on the build of your worktree, and you emit, apply and probe nothing of it on cb4. The
+   first line of your comment and the reason of your submit say that cb4 does not run the change
+   and that the deploy is the owner's, and the comment says what he is to apply. Your record says
+   what his deploy will meet, when you know of something. A new policy, secret, permission or
+   Worker that the fix also needs is still the third stop above.
+   (Until that day such an issue was labeled `needs-owner` and not started, and was started only
+   when it came back with the owner's answer to land the seed or was a task of an approved spec
+   that said the deploy was his. Three writers landed so from their issue alone on 2026-10-12:
+   `token-revoke-no-name-ends-links`, `ds-1-rows-add-within`, `ds-2-core-spends-by-row`. No writer
+   had landed so on the rule alone when this was written.)
 4. **Claim it.** `ia move '{"key":"impl/<id>/start","id":"<id>","to":"in-progress","reason":"…"}'`.
    Whoever starts an issue is the only one who can submit it: the policy lets the token of its
    last `start` submit and refuses every other, 403. An issue that is already `in-progress` is

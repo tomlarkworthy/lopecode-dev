@@ -85,15 +85,15 @@ that path, `<tree>` what follows `bm-`, its branch `bm/<tree>`, and `<root>` the
    copied. Your comment says what you searched for and what you used, or that nothing bore on it.
 3. **Decide whether it is yours.** Do not `start` it, comment as `rules.md`, "What the owner is asked to
    decide", has it, add the label `needs-owner` and report, when any of these is true:
-   - the fix needs something in the Never list of the rules. A change to a `test_*` cell of
-     `brain-kernel.ojs`, `brain-core.ojs`, `brain-db.ojs`, `brain-deployer.ojs` or `cloudflare-iac.ojs`
-     counts: it moves the hash of a Worker the loop may not deploy;
+   - the fix needs something in the Never list of the rules. A change to `brain-kernel.ojs`,
+     `brain-core.ojs`, `brain-db.ojs`, `brain-deployer.ojs` or `cloudflare-iac.ojs` does not: it
+     is yours, and its deploy alone is the owner's;
    - `philosophy.md` does not say which of two reasonable behaviours to take. When it does, take it and say
      in your comment which line decided it;
    - it needs a new policy, a new secret, a new permission or a new Worker. A token an approved spec names
      is the orchestrator's to make: say in a comment and your report that it is not kept, with no label.
 
-   An issue that comes back with the owner's answer to land a seed whose deploy is his: the page `start`.
+   A seed whose deploy is the owner's is landed with no deploy: read the page `start` first.
 4. **Claim it.** `ia move '{"key":"impl/<id>/start","id":"<id>","to":"in-progress","reason":"…"}'`. Only the
    token of an issue's last `start` can submit it. An issue already `in-progress`: read `by` of its last
    `start`. Your token: it was sent back to you, so skip this step. Another's: it is not yours to submit,

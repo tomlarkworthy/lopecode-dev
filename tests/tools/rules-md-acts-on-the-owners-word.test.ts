@@ -85,7 +85,8 @@ test("Never agrees: the approve line, the first line and the line of the four Wo
   // The section is named in the first line, the approve line and the line of the kernel, core, db and deployer,
   // and since rules-md-owners-word-not-secrets in the line of the secrets, which it does not reach.
   expect(never.split(ref).length - 1).toBe(4);
-  expect(never).toContain(`and is not started. A session with the owner present deploys one on his word (${ref}).`);
+  // (until never-list-three-reductions, 2026-10-13, the sentence followed "and is not started.")
+  expect(never).toContain(`A session with the owner present deploys one on his word (${ref}).`);
 });
 
 test("the sentence that lists every act with his session names the section", () => {

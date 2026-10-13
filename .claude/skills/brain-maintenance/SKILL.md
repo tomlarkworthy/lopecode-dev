@@ -935,12 +935,18 @@ A time you write in an issue's body, a comment or a reason is read from `date` o
      pull apart with a real cost on each side, or when the issue proposes to change one of them
      or a line of `rules.md`. The comment is written as `rules.md`, "What the owner is asked to decide", has it: what its project is for, what it is, whether it is live, the one flaw, a line a choice, the pick. (Until `owner-decisions-written-dense`, 2026-10-12: "in the form `philosophy.md` gives", the longer order of 2026-10-11.)
    - Also `needs-owner`, until the owner changes `rules.md`: the change needs something only he
-     may do (a policy install, a new secret, a deploy of the kernel, core, database or deployer,
-     a deletion of kept data). Decide from the seven whether it should be done, and comment
-     with the plan and the one command or word he would give. Do not ask him which side.
-     `philosophy.md` has a proposal to build such a change first, under a label of its own;
-     it is not in force. A token that an approved spec names is not such a secret: you make it
-     ("A token an approved spec names", below).
+     may do (a policy install, a new secret, a deletion of kept data). Decide from the seven
+     whether it should be done, and comment with the plan and the one command or word he would
+     give. Do not ask him which side. A token that an approved spec names is not such a secret:
+     you make it ("A token an approved spec names", below).
+   - Not `needs-owner` for its deploy alone: a fix in the seed of the kernel, the core, the
+     database or the deployer. It goes to `ready` as any issue does, and its writer lands the
+     seed with no deploy (`rules.md`, Never, the line of the four; `agents/implementer.md`,
+     step 3). The deploy is still the owner's. The labels of the paragraph after these three
+     questions are added as for any change: a fix there that alters who may do what is `major`
+     and waits under `needs-owner` with its plan. (Since `never-list-three-reductions`,
+     2026-10-13. Until then a deploy of one of the four was in the list of the item above, and
+     such an issue was left at `triaged`.)
 3. Is it one change? More than one becomes subtasks (`open` with `parent`), and the parent goes
    to `ready` when they are closed. More than a handful, or a change of design: it is a `project`.
 
