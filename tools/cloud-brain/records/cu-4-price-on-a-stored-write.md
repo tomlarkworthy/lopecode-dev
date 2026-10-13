@@ -96,6 +96,23 @@ The whole suite, `tests/tools/suite.sh`, run after the rebase and the last edit 
 `1095 pass`, `0 fail`, and `grep -c 'skipped:'` over its output is 0. A run that ended 08:44:25 had the same two counts and
 `Ran 1095 tests across 112 files`. It runs no test of a seed.
 
+## The landing
+
+Under the landing lock, taken 08:50:16 CEST, and the deploy lock, taken 08:57:19 after a wait for `ds-ingestion`.
+
+- The rebase brought in `brain-core.ojs` and `brain-issues.ojs`, neither of which the two modules are built from.
+- The first apply of each was refused, 08:57:27: `brain-x-static is badc774ffae0, you saw 3edce35d1118, your view is
+  stale`, and `brain-x-blob is 202ee45a560f, you saw 9ef6e8a074db`. Both Workers had changed on cb4 at 08:48 and
+  08:42 (the times of the next refusal), by a deploy that is not on `origin/main`. `getSource?worker=` of each,
+  compared with `source.text` of the emitted record (`difflib`, no context): 24 and 23 lines differ, each of this
+  change. So `saw` of both, then the build and the emit again, since `apply` does not send a record emitted before a
+  Worker last changed: `tab-tests.ts … --emit`, 13 of 13 and 10 of 10, the same two hashes as before.
+- `apply`, 08:58:58 and 08:59:14: `brain-x-static` `6ba2091970d2` `"state":"verified"`, `"tests":13`; `brain-x-blob`
+  `4dd90bf3b589` `"state":"verified"`, `"tests":10`. `redistil` then reads `same` for both.
+- `notebook-backup.sh`: `not due: last committed 2026-10-13`.
+
+What the two Workers answer on cb4 after it is in the comment on the issue.
+
 ## Not tried
 
 - A priced `static.put` or `blob.upload` through the core and the Worker together. The seeds' rigs have no core; the
