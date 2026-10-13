@@ -152,6 +152,8 @@ another home here: each needs a decision of where it goes, and `overseer-sweep-j
   overseer started (the driver stopped for a day, a live `over-` token for hours) is not looked at.
 - **One start a step**, and the oldest drawn ending first.
 - **The draw is not weighted**: a quick win and a three-round task are as likely.
+- **Every ending is in the draw**, as every one was in the old count: a digest the step rejected as covered by a
+  later one, and an issue rejected at triage, among them. An overseer drawn for one has little to read.
 - **The 3 issues and 2 edits of one oversight are unchanged.** With fewer oversights the loop files and edits
   less in all; whether the limits should move was not asked and not changed.
 
