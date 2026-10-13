@@ -106,9 +106,9 @@ Counts, each from a run after the rebase and after the last edit of a tool or a 
 
 | Command | Result |
 |---|---|
-| `bun test --timeout=30000 ./tests/tools/issue-wait.test.ts` | SUITE_WAIT |
-| `bun test --timeout=30000 ./tests/tools/issue-watch.test.ts` | SUITE_WATCH |
-| `tests/tools/suite.sh` | SUITE_ALL |
+| `bun test --timeout=30000 ./tests/tools/issue-wait.test.ts` | `26 pass, 0 fail`, 216 expects |
+| `bun test --timeout=30000 ./tests/tools/issue-watch.test.ts` | `41 pass, 0 fail`, 144 expects |
+| `tests/tools/suite.sh` | 06:07:37 to 06:09:15 CEST: `1056 pass, 0 fail` in 106 files, 94.00 s |
 
 ## The tool against cb4
 
