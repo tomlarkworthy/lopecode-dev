@@ -73,7 +73,7 @@ The whole suite, `tests/tools/suite.sh`, after the last edit of the tool and the
 CEST on 2026-10-13: 978 pass, 0 fail, 99 files, no `skipped:` line.
 
 One run outside the tests: `$W/tools/cloud-brain/notebook-backup.sh --take-back` on the main checkout's
-`lopebooks` at about 02:09 CEST, where `git log origin/main..HEAD` printed no line: `nothing to take
+`lopebooks` on 2026-10-13 between 02:06:22 and 02:11:03 CEST (two reads of `date`), where `git log origin/main..HEAD` printed no line: `nothing to take
 back`, exit 0, and the log was empty after as before.
 
 ## Not tried
@@ -83,8 +83,9 @@ back`, exit 0, and the log was empty after as before.
   the apply, last through an apply, a `redistil`, a `saw` and then a build was not measured; the step has
   a second renew before the push, as before.
 - An apply that is put back, met by a writer who follows the step.
-- The undo in the real `lopebooks` with a commit to undo: only the call that found nothing. The hook of
-  `lopebooks` runs on a commit and not on a reset; that was read, not seen there.
+- The undo in the real `lopebooks` with a commit to undo: only the call that found nothing. What the
+  hooks of `lopebooks` do on the commit that follows an undo was not looked at; the tests have no hook
+  in the repositories with an `origin`.
 - That an apply answers `verified` in its own line was read in `tools/cloud-brain/brain.ts` (`STANDS`) and
   in `brain-deployer.ojs` (`state: "verified"`), not seen in a run of mine.
 - A `HEAD` of `lopebooks` that is detached, or a branch with no upstream: the tool then undoes nothing,

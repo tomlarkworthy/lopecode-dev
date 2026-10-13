@@ -128,10 +128,11 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
       The tool writes the build over `<root>/lopebooks/notebooks/@tomlarkworthy_cloud-brain.html`, where the
       owner and a session read it, and commits it there only when the file's last commit is of an
       earlier day. Its one line is `committed <sha> <day>`, `not due: …` or `same: …`
-      (the header of `notebook-backup.sh`). A backup commit of the tool's that was never pushed is taken back
-      by this run first, with `took back <sha>` on stderr, and the line is then of the commit before it. Since `notebook-commit-once-a-day` (the owner, 2026-10-11:
+      (the header of `notebook-backup.sh`). Since `notebook-commit-once-a-day` (the owner, 2026-10-11:
       "we don't need to commit  @tomlarkworthy_cloud-brain.html all the time, that can be a once a day
       thing for backups"); until then every landing that built committed it (the issue's count at about 22:30 CEST that day: 53 commits of an 8.7 MB file).
+      A backup commit of the tool's that was never pushed is taken back by this run first, with
+      `took back <sha>` on stderr, and the one line is then of the commit before it.
       The notebook of a change is the build of its `lopecode-dev` commit (`build.ts --out`, the same bytes),
       so nothing waits on the backup.
       That file, and its commit in `lopebooks` once a day, is all a landing writes in the main checkout: one
@@ -139,7 +140,7 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
       Never `build.ts` in the main checkout: another session may have seeds open there, uncommitted
       and with no lock, and that build writes them into the notebook (six such files
       on 2026-10-10 23:29; one writer built them in and had to undo it).
-      The tests are not run again: the seeds are the ones you tested, and the build is of the version cb4 now runs.
+      The tests are not run again: the seeds are the ones you tested.
     - Commit `seen.json` in the worktree: `git -C $W add tools/cloud-brain/seen.json`, then
       `git -C $W commit -m "<id>: seen.json after the deploy of <worker>"`.
       After `not due: …` or `same: …` there is no `lopebooks` commit,
