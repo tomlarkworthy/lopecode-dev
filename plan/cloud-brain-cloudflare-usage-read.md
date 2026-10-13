@@ -355,6 +355,12 @@ What only the owner can measure is in his list (item 4) and is no condition of a
 4. **`cu-4-price-on-a-stored-write`.** `price` on `static.put` and `blob.upload` with the number of
    task 3, the two tests, the sentence in each seed's reference, the two applies. Waits for task 3
    and for `priced-calls-of-the-day-used-up` to be closed.
+   (As built, `cu-4-price-on-a-stored-write`, 2026-10-13: the number is task 3's, and the text in the two seeds is
+   `'origin.kind == "anonymous" ? 0.0 : 0.00018'`. The core refuses a priced call whose origin has no account, 402
+   "anonymous has no credits", and `brain-x-whatsapp` calls `static.put` while it answers Meta's webhook, which
+   nobody started: with the text `"0.00018"` that picture would not be kept. A write of such a chain has the
+   price 0, as before; every other origin pays the number. The record is
+   `tools/cloud-brain/records/cu-4-price-on-a-stored-write.md`.)
 
 ## What only the owner can do
 

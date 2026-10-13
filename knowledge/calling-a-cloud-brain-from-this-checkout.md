@@ -295,7 +295,7 @@ By hand:
 
 ```
 BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts status --check   # fresh / stale (and for how long) / missing / badname, one line a doc
-BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --stale      # what the release runs; $0.00005 a doc whose text changed
+BRAIN_BASE=cb4 bun tools/cloud-brain/knowledge-docs.ts put --stale      # what the release runs; $0.00005 a doc whose text changed, and since 2026-10-13 the price of `static.put` for its file, $0.00018
 ```
 
 `put --stale` puts a doc that `status` reads `stale` or `missing`, one whose kept file is not the doc's (above), and since 2026-10-12 one whose line ends `, unmarked`:

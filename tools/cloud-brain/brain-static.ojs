@@ -42,6 +42,8 @@ A recipe is the owner's code and is not checked by tag: it reads and changes wha
 
 The core sends, with each call by a person, whether they are a member, their tag grants and their limit in bytes. The limit counts every file under \`u/ID/\`, default 20 MB.
 
+**Price.** \`static.put\` has a price of $0.00018 a call since 2026-10-13 (\`cu-4-price-on-a-stored-write\`). The core charges it to the account of the call's origin before the call reaches this Worker (its reference, "Prices and credits"), so it is the same for 1 byte and for 50 MB, nothing is charged for the time a file is kept, and a delete gives nothing back. The limit in bytes is as it was. A put in a chain that nobody started (\`origin.kind == "anonymous"\`: \`brain-x-whatsapp\` keeps a picture while it answers Meta's webhook) has no account, and its price is 0. The number is Cloudflare's list price for 1 MB kept in R2 for 12 months and one write: the account's bill had no cost to divide (\`tools/cloud-brain/cloudflare-usage.md\`). The owner changes it with \`price.put\` and no deploy, and a price of \`"0"\` ends it.
+
 Each put records its caller as the file's \`writer\`. A file is served with \`Content-Security-Policy: sandbox\`, so a browser gives it no script and no origin, unless its writer is the owner in their own session, the deployer or a recipe. The owner by a turn, a portal or a PDS call is the writer \`owner by turn\` (\`portal\`, \`jwt\`), and the owner under a delegation \`owner by d:<id>\`: its file is sandboxed, its \`type\` is not taken, and it does not write under \`shell/\` or \`library/\`. A token's file and a member's are sandboxed, and so is the owner's file once either has written it, until the owner puts it again. A file kept before \`writer\` (2026-10-09) is sandboxed unless it is under \`shell/\`.
 
 ## Where a file goes
@@ -60,7 +62,8 @@ A page served from \`/static\` runs on the Brain's own address, so its scripts c
 // %%
 static_service = cloudflare.Service("static", staticApp, {
   methods: {
-    "com.lopecode.brain.static.put": { type: "procedure", who: "workers" },
+    // The number: tools/cloud-brain/cloudflare-usage.md, "The price of a stored write". A chain nobody started has no account: the core would refuse it.
+    "com.lopecode.brain.static.put": { type: "procedure", who: "workers", price: 'origin.kind == "anonymous" ? 0.0 : 0.00018' },
     "com.lopecode.brain.static.get": { type: "query", who: "workers" },
     "com.lopecode.brain.static.list": { type: "query", who: "workers" },
     "com.lopecode.brain.static.setPublic": { type: "procedure", who: "workers" },
@@ -601,7 +604,20 @@ test_static_a_listing_does_not_show_a_person_what_is_only_public = {
   return "1 public file, listed to nobody it was not given to";
 }
 // %%
-import {cloudflare, rows, blobs, config, hono, simulate, sha256, ownTab} from "@tomlarkworthy/cloudflare-iac"
+test_static_put_has_the_price_of_a_stored_write = {
+  const { meta } = await static_service.emit(), P = "com.lopecode.brain.static.";
+  const price = meta.access[P + "put"].price;
+  expect(price).toBe('origin.kind == "anonymous" ? 0.0 : 0.00018');
+  expect(Object.keys(meta.access).filter((m) => "price" in meta.access[m])).toEqual([P + "put"]);
+  // As the core reads a price (priceValue of brain-core.ojs): a put by a Worker that answers each of these origins.
+  const usd = (origin) => Number(cel.parse(price)({ caller: callerOf({ caller: "worker:brain-x-whatsapp" }), origin: callerOf({ caller: origin }), request: { params: {} } }));
+  expect(["owner", "did:plc:alice", "token:cron", "worker:brain-x-snapshot", "deployer", "anonymous"].map(usd)).toEqual([0.00018, 0.00018, 0.00018, 0.00018, 0.00018, 0]);
+  const text = await (await (await staticRig()).call("anonymous", "/xrpc/com.lopecode.brain.getSource?part=reference")).text();
+  expect(text.split("\n").filter((l) => l.startsWith("**Price.** `static.put` has a price of $0.00018 a call")).length).toBe(1);
+  return price;
+}
+// %%
+import {cloudflare, rows, blobs, config, hono, simulate, sha256, ownTab, cel, callerOf} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {plugins} from "@tomlarkworthy/plugin-registry"
 // %%

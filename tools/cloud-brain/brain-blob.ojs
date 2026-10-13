@@ -57,6 +57,7 @@ An uploader may retag, so a second uploader can remove a label the first one set
 
 ## Limits
 
+- \`blob.upload\` has a price of $0.00018 a call since 2026-10-13 (\`cu-4-price-on-a-stored-write\`). The core charges it to the account of the call's origin before the call reaches this Worker (its reference, "Prices and credits"), so it is the same for 1 byte and for 50 MB, nothing is charged for the time a blob is kept, and a delete gives nothing back. An upload in a chain that nobody started (\`origin.kind == "anonymous"\`) has no account, and its price is 0. The number is Cloudflare's list price for 1 MB kept in R2 for 12 months and one write: the account's bill had no cost to divide (\`tools/cloud-brain/cloudflare-usage.md\`). The owner changes it with \`price.put\` and no deploy, and a price of \`"0"\` ends it.
 - 50 MB a blob. A person's limit is the one the core sends for files (\`quota.bytes\`, default 20 MB), counted here over the blobs carrying their \`by:\`. It is counted apart from their files in \`brain-static\`.
 - A blob kept before 2026-10-09 is read by the same rule, from the order of its tags: one a person uploaded before the owner is sandboxed until the owner uploads it again. One a token uploaded before then carries the owner's tag and is not sandboxed.
 - A blob is kept until it is deleted. A PDS drops a blob no record refers to; this Brain has no record store, so nothing is collected.
@@ -72,7 +73,8 @@ made = await (await fetch("https://brain.example/xrpc/com.lopecode.brain.blob.up
 // %%
 blob_service = cloudflare.Service("blob", blobApp, {
   methods: {
-    "com.lopecode.brain.blob.upload": { type: "procedure", who: "workers" },
+    // The number: tools/cloud-brain/cloudflare-usage.md, "The price of a stored write". A chain nobody started has no account: the core would refuse it.
+    "com.lopecode.brain.blob.upload": { type: "procedure", who: "workers", price: 'origin.kind == "anonymous" ? 0.0 : 0.00018' },
     "com.lopecode.brain.blob.get": { type: "query", who: "anyone" },
     "com.lopecode.brain.blob.info": { type: "query", who: "anyone" },
     "com.lopecode.brain.blob.list": { type: "query", who: "workers" },
@@ -642,7 +644,20 @@ test_blob_declares_what_it_needs = {
   return meta.resources.join(", ");
 }
 // %%
-import {cloudflare, sql, blobs, config, hono, simulate, sha256, ownTab} from "@tomlarkworthy/cloudflare-iac"
+test_blob_upload_has_the_price_of_a_stored_write = {
+  const { meta } = await blob_service.emit(), P = "com.lopecode.brain.blob.";
+  const price = meta.access[P + "upload"].price;
+  expect(price).toBe('origin.kind == "anonymous" ? 0.0 : 0.00018');
+  expect(Object.keys(meta.access).filter((m) => "price" in meta.access[m])).toEqual([P + "upload"]);
+  // As the core reads a price (priceValue of brain-core.ojs): an upload by a Worker that answers each of these origins.
+  const usd = (origin) => Number(cel.parse(price)({ caller: callerOf({ caller: "worker:brain-x-a" }), origin: callerOf({ caller: origin }), request: { params: {} } }));
+  expect(["owner", "did:plc:alice", "token:cron", "worker:brain-x-a", "deployer", "anonymous"].map(usd)).toEqual([0.00018, 0.00018, 0.00018, 0.00018, 0.00018, 0]);
+  const text = await (await (await blobRig()).sim.fetch("https://blob.internal/xrpc/com.lopecode.brain.getSource?part=reference", { headers: { "x-brain-caller": "anonymous" } })).text();
+  expect(text.split("\n").filter((l) => l.startsWith("- `blob.upload` has a price of $0.00018 a call")).length).toBe(1);
+  return price;
+}
+// %%
+import {cloudflare, sql, blobs, config, hono, simulate, sha256, ownTab, cel, callerOf} from "@tomlarkworthy/cloudflare-iac"
 // %%
 import {plugins} from "@tomlarkworthy/plugin-registry"
 // %%

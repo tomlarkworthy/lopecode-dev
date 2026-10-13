@@ -128,7 +128,7 @@ charged its callers over those days was not read: no token of the loop names `qu
 | Browser Rendering, Browser Hours | 6.80556 hours in 6 days | $0 | `browser.extend` | $0.000025 a second, $0.09 an hour (`brain-browser.ojs`, `browserLimits.dollarsPerSecond`), by which 6.80556 hours are $0.61 |
 | Containers: vCPU, memory, disk, egress | 17.89 vCPU-seconds, 153 GiB-seconds, 1238 GB-seconds of disk, in 2 days | $0 | `container.extend` | $0.000002 a second of the image `node` (`brain-container.ojs`, `containerImageList`) |
 | Artifacts | no row | | `git.create` | $0.001 a call (`brain-git.ojs`, `gitDefaults.usd`) |
-| R2: storage, Class A | 0.311613 GB-months, 31240 operations | $0 | `static.put`, `blob.upload` | none today; the next section |
+| R2: storage, Class A | 0.311613 GB-months, 31240 operations | $0 | `static.put`, `blob.upload` | none when this was read; $0.00018 a call since `cu-4-price-on-a-stored-write`, the same day (the next section) |
 
 The two dollar figures in the last column are the Brain's rate times the account's use, which is not what the Brain
 took: the use is every Worker's of the account and not all of it was bought through these methods.
@@ -156,7 +156,11 @@ So the price is the spec's other number, and task 4 writes it in the two seeds a
 price: "0.00018"
 ```
 
-which is 180 of the core's smallest unit. The arithmetic behind that number, at the list prices the spec quotes
+(As built, `cu-4-price-on-a-stored-write`, 2026-10-13: the two seeds have `price: 'origin.kind == "anonymous" ? 0.0 : 0.00018'`,
+the same number for every origin that has an account. With the text above the core refuses a write in a chain nobody
+started, which is how `brain-x-whatsapp` keeps a picture; `tools/cloud-brain/records/cu-4-price-on-a-stored-write.md`.)
+
+The number is 180 of the core's smallest unit. The arithmetic behind that number, at the list prices the spec quotes
 ($0.015 a GB-month, $4.50 a million Class A operations), is 12 x $0.015 / 1024 = $0.00017578 for the megabyte and
 $0.0000045 for the operation, $0.00018028 together. Rounded up to a whole millionth that is $0.000181; the spec
 states $0.00018 and that is what is taken, since the rounding in its rule is of the quotient.
