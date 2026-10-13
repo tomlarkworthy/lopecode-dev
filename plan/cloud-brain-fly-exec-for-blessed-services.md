@@ -4,10 +4,13 @@ Spec of the feature `fly-exec-for-blessed-services` on cb4's tracker. Written 20
 08:49 CEST (the `spec` move, event 6106), from `lopecode-dev` `3a159fbf`. Nothing here is built.
 The method of "The design" was made once in the worktree as a trial, its tests were run, and the
 edit was taken back; the counts under "How each requirement is known to be met" are that run's.
+Round 2, 2026-10-13 09:03 CEST: the finding of review 6155 is answered under "Round 2: review 6155"
+at the end, and the text it names is changed: a blessing is now a delegation and its id in a
+setting of the service, and the trial was run again with that.
 
-The design adds one method, `fly.exec`, to the service `brain-x-fly`, and nothing else that stays:
-no Worker, no token, no store, no role. A blessing is a delegation, which the core has had since
-2026-10-10.
+The design adds one method, `fly.exec`, and one setting, `blessed`, to the service `brain-x-fly`,
+and nothing else that stays: no Worker, no token, no role. A blessing is a delegation, which the
+core has had since 2026-10-10, whose id the owner has put in that setting.
 
 ## What was asked
 
@@ -30,8 +33,8 @@ Four things his words do not say. Each is decided below, and each decision is ma
    the setting `machine` of `brain-x-fly` names. A member with a machine of their own is not
    designed for; there is none.
 2. "services they have blessed". The design's reading: a Worker of the Brain the owner deployed,
-   which holds a delegation he made for it in his own session with the scope `fly.exec`. Not a
-   token, and not a member's Worker.
+   which holds a delegation of his whose id he has put, in his own session, in the setting
+   `blessed` of `brain-x-fly`. Not a token, and not a member's Worker.
 3. Whether a blessing names commands. The design's reading: it does not. A blessed Worker runs any
    command, as root. This is the one choice he may want the other way ("One choice", below).
 4. Whether a blessing ends by itself. The design's reading: the form that makes one gives it an
@@ -57,7 +60,8 @@ linked `related` to `worker-machine-on-fly`, whose comment 4258 is the finding.
 - **R3.** A Worker of the Brain that he has blessed calls it. No other Worker does, and no token,
   member or member's Worker.
 - **R4.** He makes a blessing and takes it back in his own session, with no deploy; he can list
-  them; a blessing taken back is refused at the next call, within the 5 s a core instance keeps a row.
+  them; a blessing taken back is refused within the 5 s a core instance keeps a row. A Worker that
+  holds a delegation of his for another job, however wide its scope, is not blessed by it.
 - **R5.** The secret stays the service's: the rule of `FLY_API_TOKEN` is not changed, and no
   answer and no log line of `fly.exec` has it.
 - **R6.** Each call writes one log line that says who called and which program, and no argument.
@@ -203,22 +207,42 @@ The rule, fixed, so that `rule.put` cannot widen it:
 caller.session || (caller.id == "owner" && caller.delegation != "" && caller.holder.startsWith("worker:"))
 ```
 
-The service says the same again from the headers the core sends, as `fly.get` and `fly.post` do
-for theirs: the owner's tab, or `x-brain-caller: owner` with a via that starts `delegation:` and a
-holder that starts `worker:`. Anything else is 403.
-
-Seven callers, by the trial's test (the rule through `decide` and `callerOf`, the service through
-its rig):
+**The rule is not the whole decision, and the service's check is the narrower.** A rule reads the
+caller and never a delegation's scope, and the core lets a delegated call through when
+`matches(d.scope, nsid)` (`brain-core.ojs` line 297), where a scope of `*` or `fly.*` reaches
+`fly.exec` (`matches` and `scoped`, `cloudflare-iac.ojs` lines 1819 and 1826; `neverHeld` keeps six
+prefixes from every holder and `fly` is not one). So the rule is true for a Worker that holds any
+delegation of his that is wide enough, made for another job (review 6155). The service therefore
+reads the id of the delegation from the header the core sends, `x-brain-via: delegation:<id>`, and
+lets a Worker through only when that id is in its setting `blessed`. A setting is a number, a
+boolean or a text of at most 500 characters (`brain-core.ojs` line 32, the row of `config.set`),
+so `blessed` is a text of ids with one space between them, 38 ids at most:
 
 ```
-tab            owner, via session                                   rule true    200
-blessed        owner, via delegation:…, holder worker:brain-x-other rule true    200
-token          owner, via delegation:d1, holder secret:loop-fly     rule false   403
-worker         worker:brain-x-other, no delegation                  rule false   403
-member         did:plc:ada, in their tab                            rule false   403
-membersWorker  did:plc:ada, via delegation:…, holder worker:…       rule false   403
-anonymous                                                           rule false   403
+the owner's tab (x-brain-caller: owner, x-brain-tab: 1)
+or  x-brain-caller: owner, x-brain-holder starts "worker:", x-brain-via is "delegation:<id>" with <id> one of config.blessed.split(" ") that is 12 hex digits
 ```
+
+Anything else is 403. With the setting not set, or not such a text, no Worker passes.
+
+Nine callers, by the trial's test (the rule through `decide` and `callerOf`, the service through
+its rig with `blessed: "bbbbbbbbbbbb aaaaaaaaaaaa"`):
+
+```
+tab            owner, via session                                              rule true    200
+blessed        owner, via delegation:aaaaaaaaaaaa, holder worker:brain-x-other  rule true    200
+wide           owner, via delegation:cccccccccccc, holder worker:brain-x-other  rule true    403
+token          owner, via delegation:d1, holder secret:loop-fly                 rule false   403
+tokenNamed     owner, via delegation:aaaaaaaaaaaa, holder secret:loop-fly       rule false   403
+worker         worker:brain-x-other, no delegation                             rule false   403
+member         did:plc:ada, in their tab                                       rule false   403
+membersWorker  did:plc:ada, via delegation:…, holder worker:…                  rule false   403
+anonymous                                                                      rule false   403
+```
+
+`wide` is the caller of the review's finding: the rule passes it and the service refuses it. The
+same test holds that with no setting, and with each of `""`, an id one digit short, an id one
+character long, `"delegation:aaaaaaaaaaaa"`, `true` and `12`, the blessed caller is 403 and the tab 200.
 
 A token is refused whatever it names, with one exception that exists today for every method of
 the owner's session: a token made with the cap `session` and a scope that names `fly.exec` is the
@@ -228,15 +252,21 @@ owner's tab to the core (`asSecret`). That cap is his alone to give, in his own 
 
 ### A blessing (R4)
 
-A blessing is a delegation the owner makes in his own session:
+A blessing is two acts of the owner in his own session: a delegation, and its id put in the
+setting `blessed` of `brain-x-fly`.
 
 ```
-delegation.create { name: "fly-exec-<worker>", holder: { worker: "brain-x-NAME" }, scope: ["fly.exec"], until: <ms>, note: "<what for>" }
+delegation.create { name: "fly-exec-<worker>", holder: { worker: "brain-x-NAME" }, scope: ["fly.exec"], until: <ms>, note: "<what for>" }   -> { id }
+config.set { worker: "brain-x-fly", key: "blessed", value: "<the ids before> <id>" }
 delegation.list
 delegation.revoke { id }
 ```
 
-The three are the core's and are not changed. `delegation.create` refuses a Worker whose role is
+The four are the core's and are not changed. The delegation gives the Worker the call, with an
+end, a note and an id in the log; the setting is where he names that delegation for this method,
+since a scope alone does not (above). Either taken back ends the blessing: a revoke, the end of
+`until`, or the id taken out of the setting. An id in the setting whose delegation has ended
+blesses nothing: the core refuses the call before the service sees it. `delegation.create` refuses a Worker whose role is
 not `recipe` or `system`, so a member's Worker cannot be blessed; a Worker holder has no caps.
 `stands` reads the row on each call through 5 s of memory, so a revoke or the end of `until` is a
 refusal within 5 s.
@@ -250,15 +280,14 @@ xrpc.fetch("com.lopecode.brain.fly.exec", { method: "POST", headers: { "x-brain-
 
 It needs no `fly.exec` in its `calls`: the core does not hold a call under a delegation to that list.
 
-**Who else can make one.** The rule and the core admit any delegation that is `from` the owner and
-held by a Worker, whoever made the row. A token of his with the cap `delegate` makes delegations
-under itself, held by a Worker or a secret, each with a scope inside its own
-(`plan/cloud-brain-authority.md`, "A delegation made under a delegation"). So a token with
-`delegate` whose scope reaches `fly.exec` could bless a Worker with nobody present. The two such
-tokens this spec's writer knows of, `loop-agents` (`rules.md`, "A token an approved spec names")
-and `fly-agents` (the fly spec, "What the orchestrator makes"), name `issue.*` and do not reach it;
-the list on cb4 was not read, being the owner's. A token with `delegate` and a scope of `*` or
-`fly.*` is a blessing given away: he makes none, or the blessing is no longer his alone.
+**Who else can make one.** Nobody, while `config.set` is his own session's. A token of his with
+the cap `delegate` makes delegations under itself, held by a Worker, each with a scope inside its
+own (`plan/cloud-brain-authority.md`, "A delegation made under a delegation"), and a delegation he
+made for another job may have a scope of `*`. Neither is blessed: its id is not in the setting.
+`config.set` is a method of the core for the owner's own session
+(`knowledge/working-with-cloud-brain-remote-lopecode-cluster.md`, "Settings"), which a token
+reaches only with the cap `session` and a scope that names it by name or prefix; that cap is his
+alone to give. The delegations and tokens on cb4 were not read, being the owner's to list.
 
 Two limits of a blessing, which the comment for his approval says:
 
@@ -277,10 +306,15 @@ Three controls in `flyPanel`, the panel of `brain-fly.ojs`, for the owner signed
 - **Run**: one line of text and a button. It sends `fly.exec { command: ["sh", "-c", <text>] }` and
   shows `exit N` with the first 4,000 characters of `stdout` and `stderr`, as the panel of
   `brain-container.ojs` does. One call at a time: the button is off until the answer.
-- **Blessed**: a row for each delegation of `delegation.list` whose holder is a Worker and whose
-  scope names `fly.exec`: the Worker, the note, the end, and Revoke.
+- **Blessed**: a row for each id of the setting `blessed`, with its delegation from
+  `delegation.list`: the Worker, the scope, the note, the end, and Revoke, which sends
+  `delegation.revoke` and then `config.set` with the id taken out. An id with no live delegation
+  is shown as ended, with a button that takes it out. Under the rows, one line that counts the
+  other delegations of his that a Worker holds and whose scope reaches `fly.exec` by `matches`,
+  and says that they are not blessed.
 - **Bless**: a Worker's name, a note, days (7), and a button that sends `delegation.create` and
-  then shows the id, with the `config.set` line he would give the Worker.
+  then `config.set` with the id added, and shows the id with the `config.set` line he would give
+  the Worker. When the second call fails the row says so, and the delegation stands unblessed.
 
 ### Not chosen
 
@@ -302,8 +336,17 @@ Three controls in `flyPanel`, the panel of `brain-fly.ojs`, for the owner signed
   with `fly.exec` in the Worker's `calls`. It is how a secret names its readers. It needs the rule
   not fixed, and then one `rule.put` opens root on the machine to tokens; a rule has no end, no
   note and no id in the log. A delegation has the three and leaves the rule fixed.
-- **A setting of `brain-x-fly` that lists the blessed Workers.** A second place for what
-  `delegation.list` already answers, with no end and no revoke of its own.
+- **The delegation alone, with no setting.** Round 1 of this spec. A delegation of his with a
+  scope of `*` or `fly.*`, made for another job, then runs commands as root (review 6155), and no
+  rule can read a scope to keep it out.
+- **`*` kept from `fly.exec` in the core**, as `asSecret` keeps `*` from the methods of his own
+  session for a token. It is the general answer. It is a change to `brain-core`, which the loop
+  does not deploy (`rules.md`, Never), for one method.
+- **A setting that lists the blessed Workers by name, with no delegation.** The Worker would call
+  as itself, with `fly.exec` in its `calls`. No end, no note, and no id in the log; and the rule
+  could not then be told from `who: "workers"` without the service's check.
+- **A setting of names beside the delegation.** A Worker with two delegations of his, one wide
+  and one for this, would be blessed through either. An id is one delegation.
 - **A token that names `fly.exec`.** His words are "services". A token is whoever sends it, and
   the loop's tokens are in a file on the laptop.
 - **Named commands only** (a setting `commands: { name: [texts] }`, and a blessed Worker sends a
@@ -338,8 +381,9 @@ is to be blessed.
 
 ## How each requirement is known to be met
 
-Each command is run in the worktree, `$W`. The first was run for this spec at 08:53 CEST with the
-design's edit in place (126 lines of diff to `brain-fly.ojs`, since taken back):
+Each command is run in the worktree, `$W`. The first was run for this spec at 08:53 CEST with
+round 1's edit in place, and again at 09:07 CEST with round 2's (135 lines of diff to
+`brain-fly.ojs`, since taken back); both runs printed the line below:
 
 ```
 cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html \
@@ -357,8 +401,8 @@ lists the manifest's rules, and `test_fly_get_and_post_pass_a_path_of_the_app_an
 | | Known by |
 |---|---|
 | R1 | The new test, `test_fly_exec_is_the_owners_tab_and_a_worker_the_owner_blessed`: the two requests Fly.io was sent are `POST …/machines/853145b4217618/exec` with the body as given; with no `machine` set the answer is 409 and nothing is sent; seven bodies are 400 and nothing is sent |
-| R2, R3 | The same test: the table of seven callers above, each through the rule and through the service |
-| R4 | Not this change's: `delegation.create`, `list` and `revoke` are the core's. `test_a_delegation_is_made_in_a_persons_own_session_for_a_worker_the_owner_deployed` and `test_a_worker_calls_under_a_delegation_as_who_made_it_and_not_in_their_tab` of `brain-core.ojs` hold them; neither was run for this spec. Task 2's test holds that the panel sends those calls |
+| R2, R3 | The same test: the table of nine callers above, each through the rule and through the service. `wide`, a Worker under a delegation of the owner's that is not in the setting, is 403 |
+| R4 | The same test for the setting: with none, and with six values that are not a text of ids, the blessed caller is 403. The rest is not this change's: `delegation.create`, `list` and `revoke` are the core's. `test_a_delegation_is_made_in_a_persons_own_session_for_a_worker_the_owner_deployed` and `test_a_worker_calls_under_a_delegation_as_who_made_it_and_not_in_their_tab` of `brain-core.ojs` hold them; neither was run for this spec. Task 2's test holds that the panel sends those calls |
 | R5 | The new test reads `authorization` of each request and its host; `test_fly_declares_one_secret_one_cron_and_two_calls` holds `meta.secrets` and that the source names `api.machines.dev` once. `git diff` of task 1 touches no line of `reach` or `send` |
 | R6 | The new test: one line `fly.exec` with `by: "worker:brain-x-other"`, `program: "sh"`, `texts: 3` for `["sh","-c","echo s3cret"]`, and `s3cret` in no line |
 | R7 | `test_fly_get_and_post_pass_a_path_of_the_app_and_no_other`, whose four 403s of `post?path=machines/…/exec` stand |
@@ -385,13 +429,15 @@ What only he can measure is in his list below and is no condition of a task land
 ## The tasks, in the order they land
 
 1. **`fx-1-exec-method`**: `fly.exec` in `brain-fly.ojs` as "The method" and "Who calls it" have
-   it; the new test; the two older tests changed; the method table and the paragraph under it in
+   it, with the setting `blessed` in the table of settings; the new test; the two older tests changed; the method table and the paragraph under it in
    the seed's reference (`test_fly_reference_says_each_default_and_has_no_hole` passed in the
    trial without the four new defaults in the table: the writer adds them and sees whether the
    test reads them); a deploy of `brain-x-fly`; the record. Label `major`: it changes who may do
    what. After nothing.
 2. **`fx-2-panel`**: Run, Blessed and Bless in `flyPanel`, with the panel's test extended for a
-   second press before the answer, a refused call, and a revoke; a deploy; a paragraph in the
+   second press before the answer, a refused `delegation.create`, a `config.set` refused after a
+   `delegation.create` that was not, a revoke, an id with no live delegation, and the count of
+   wide delegations that are not blessed; a deploy; a paragraph in the
    knowledge page of the machine when `fly-5-docs` has made it, else in the seed's reference
    alone. After `fx-1-exec-method`.
 
@@ -411,6 +457,35 @@ Nothing. The design names no token.
   things marked not verified: the unit of `timeout` (`sleep 5` with the default) and, with the
   machine stopped, what Fly.io answers.
 - Bless a Worker, when one is written that needs it. None is.
+
+No read of `delegation.list` is asked of him before the deploy of task 1: a delegation that exists
+then is in no setting, and is refused.
+
+## Round 2: review 6155
+
+One finding, and it held: a Worker he did not bless for this calls `fly.exec`. The rule reads no
+scope, and a Worker-held delegation of his with a scope of `*`, `fly.*` or `com.lopecode.brain.*`
+passes both the rule and round 1's check of the headers. The reviewer named two answers: say the
+limit and show such delegations in the panel, or "a design in which a wide scope does not reach
+it". The second is taken, since the first leaves root on the machine open to a delegation he made
+for something else.
+
+- **Changed:** "Who calls it" (the service reads the delegation's id against the setting
+  `blessed`; nine callers, `wide` among them, 403), "A blessing" (two acts; "Who else can make
+  one" rewritten, since a `delegate` token's child is in no setting), "The panel" (Bless and Revoke
+  send both calls; Blessed is the setting's ids; the wide ones are counted and said not to be
+  blessed), R4, "Not chosen" (round 1's design, the core's `*`, and two shapes of the setting),
+  the checks and task 2's cases.
+- **Run again:** the trial, with the setting and the two new callers:
+  `13 passed, 0 failed, 1 need a browser` at 09:07 CEST. A run at 09:06 had the setting as a
+  list, which `config.set` does not take; the row of `config.set` was read after it and the
+  setting became a text.
+- **Not done:** the rule is as round 1 had it. It cannot be made narrower (no rule reads a setting
+  or a scope), and it still keeps out every token, Worker and member with no delegation of the
+  owner's held by a Worker.
+- **What the setting adds that stays:** one key of `brain-x-fly`'s settings. The round-1 spec
+  left a setting out as "a second place for what `delegation.list` already answers"; the finding
+  is that `delegation.list` does not answer it.
 
 ## What misled the writer of this spec
 
