@@ -1,0 +1,3 @@
+# `bun test` at this root gives each run a TMPDIR of its own: tests/tools/own-tmpdir.ts has what and why.
+[test]
+preload = ["./tests/tools/own-tmpdir.ts"]

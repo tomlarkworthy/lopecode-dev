@@ -136,10 +136,9 @@ test("the brief says what the flags do, where a failure's message is, and how th
   expect(flat).toContain("`records/tests-tools-suite-three-minutes.md`");
 });
 
-test("the brief says that the script's run has a TMPDIR of its own and that one file run alone has not", () => {
+test("the brief says that the script's run has a TMPDIR of its own", () => {
   expect(flat).toContain("the script gives the run a `TMPDIR` of its own, a new directory of `/tmp` that it removes at the end and names in its second line on stderr");
   expect(flat).toContain("its last line there is the count of entries of the temporary directory it was called with");
-  expect(flat).toContain("One file run alone makes its rigs in that directory, and what a test does not remove stays.");
 });
 
 test("the paragraph still asks for the command as run and the skipped lines", () => {

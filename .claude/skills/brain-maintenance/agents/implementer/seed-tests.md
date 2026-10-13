@@ -41,7 +41,11 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
    four workers and why 30 s for a test that names no timeout.
    Since `tmpdir-entries-slow-every-bun-start` (2026-10-13) the script gives the run a `TMPDIR` of its own, a new directory
    of `/tmp` that it removes at the end and names in its second line on stderr; its last line there is the count of entries of the
-   temporary directory it was called with. One file run alone makes its rigs in that directory, and what a test does not remove stays.
+   temporary directory it was called with.
+   Since `test-rigs-left-when-a-file-runs-alone` (2026-10-13) one file run alone has a `TMPDIR` of its own too: `bunfig.toml` at the root
+   preloads `tests/tools/own-tmpdir.ts` into a `bun test` started there, which makes a directory `bm-test-run.XXXXXX` of `/tmp` and
+   removes it after the file's last test. `KEEP_TEST_TMP=1` before the command leaves the directory and names it on stderr, for a rig
+   you want to look at. A `bun test` started in another directory than the root has the `TMPDIR` of its caller.
    The tests that hold lines of the reviewer's brief (`reviewer-brief-*.test.ts`, `reviewer-in-a-view.test.ts`, the last of
    `lock.test.ts`) read `tests/tools/fixtures/reviewer-brief.md`, a copy of the commit, and not the Brain: a put of the brief
    moves no count of the suite (`suite-tests-read-the-live-brief`, 2026-10-12; before it a worktree behind `origin/main` had a fail after a put).
