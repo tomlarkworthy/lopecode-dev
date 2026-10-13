@@ -134,8 +134,14 @@ rejected 49 s, 20 s and 45 s after their open (`get?id=` of each: events 599 and
 953); `list?kind=feedback&state=open` answers a list, 30 issues of that kind and state; `browser.all` and
 `container.all` answer 403 to `--as loop-dashboard` and `{"browsers":[]}`, `{"containers":[]}` to `--owner`; the
 reviewer's sentence on a spec's measurements is line 42 of the journal of `owner-acts-on-what-waits-for-him`.
-Not checked: that the tracker names the move of a spec's `pass` `to-approval` (the note's words, from one
-reviewer's report).
+`browser.all` answers 403 to this run's own token too (`--as impl-449d80`), which is made as a reviewer's is,
+for `issue.*`; no `rev-` token was tried. Not checked: that the tracker names the move of a spec's `pass`
+`to-approval` (the note's words, from one reviewer's report).
+
+Five calls of these were not made through `issue-as.sh`: `browser.all` with `--as loop-dashboard`, with
+`--as impl-449d80` and with `--owner`, and `container.all` with `--as loop-dashboard` and with `--owner`. Each
+is a read of a service that is not the tracker. `rules.md`, Never, keeps `--owner` from a write to the tracker,
+and `knowledge/calling-a-cloud-brain-from-this-checkout.md` gives the two `--owner` reads as its health check.
 
 What of note 7 is not in the file is listed in the new issue's body. Each is one reviewer's line.
 
@@ -147,6 +153,19 @@ the note and of its comments 5727, 5732, 6270, 6678 and 6758 are gathered, 21 of
 `approver-brief-lines-of-the-approvers`, opened with `major` and `needs-owner`. The 21 are as the note quotes
 each approver's report: the journals were not read, and no line was read against `agents/approver.md` but one
 (its line 38 has "the orchestrator's decision comment", which the note gives as line 34).
+
+## What was written to the tracker
+
+All with `impl-449d80`, 2026-10-13, before the landing. `reviewer-brief-put-of-fb-batch` was opened at event
+7073 and `approver-brief-lines-of-the-approvers` at 7074, each with a comment for the owner (7075, 7076) and
+its `related` links (7077 to 7082). Each of the ten notes has a comment that names its row and a `close` move
+whose reason has the same words: events 7083 to 7103. The first close was sent alone, to see that the policy
+takes it from a writer's token; it did. After the last, `list?kind=feedback&state=open` answered 20 issues and
+none of the ten.
+
+`SKILL.md` has nobody close a feedback issue that is not the owner's since `overseer-runs-too-often`; these ten
+are closed because the issue asks it of this writer ("Each feedback issue is closed with a comment that names
+the row").
 
 ## The tests
 
@@ -161,8 +180,13 @@ Each run in this worktree after the last edit of a file it reads.
 | `tests/tools/suite.sh` | 1299 pass, 0 fail, 136 files; no `skipped:` line |
 
 `tests/tools/fb-batch-role-briefs.test.ts` is new: without the change it has no record and no file of the new
-text to read. The test of the search was run against the brief with `-e` before the test was changed: 1 fail,
-its expected string.
+text to read, which fails its last two tests. Its first three hold sentences that the files of lopecode-dev
+c58fb733, the commit this worktree was made at, do not have: `git grep -c -F -e '<sentence>' c58fb733 -- <file>`
+names no file for "A change that only narrows what a caller may do alters who may do what"
+(`agents/orchestrator.md`), "A design that changes who may do what" (`agents/implementer.md` and its page
+`asking-and-waiting`), "log --since=<the at of your start move>" (`resumed-round`) and "log --since=<the at of
+your spec move>" (`agents/spec.md`). They were not run against those files. The test of the search was run
+against the brief with `-e` before the test was changed: 1 fail, its expected string.
 
 ## The searches
 
