@@ -132,10 +132,10 @@ test("the command: check is exit 0 here; remake makes the file from v4 and write
   const dir = mkdtempSync(join(tmpdir(), "policy-pins-"));
   try {
     const to = join(dir, "out.json");
-    const made = run("remake", join(root, V4), to, "--note", NOTE);
+    const made = run("remake", join(root, V4), to, "--note", NOTE, "--key", "a-key-of-this-test");
     expect(made.status).toBe(0);
     // The blobs it writes are the checkout's: v5's when this file was the newest.
-    expect(readFileSync(to, "utf8")).toBe(remake(text(V4), blobs(root), NOTE));
+    expect(readFileSync(to, "utf8")).toBe(remake(text(V4), blobs(root), NOTE, "a-key-of-this-test"));
     const again = run("remake", join(root, V4), to);
     expect([again.status, again.stderr.trim()]).toEqual([1, `policy-pins.ts: ${to} exists, and is not written over`]);
     expect(run("remake", join(root, V4)).status).toBe(1);

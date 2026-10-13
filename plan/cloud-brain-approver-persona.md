@@ -454,9 +454,12 @@ comparison is not held by it: that is the agent on one machine of part 1.
 (As built, `policy-v5-names-the-approver-as-it-is`, 2026-10-13: two landed changes had stopped approvals this way.
 `tests/tools/issues-policy-v5.test.ts` fails in a checkout whose brief or tool is not what the newest policy file
 names, and its line says what the change costs; `tools/cloud-brain/policy-pins.ts remake` writes the next file. The
-install is still his; the record. `remake` keeps the key of the file it reads: the next file after one that was
-installed takes a key of its own by hand, as `plan/cloud-brain-issues-policy-v6.json` has, or its install writes
-nothing; `tests/tools/issues-policy-v6.test.ts` has both in the tracker's rig.)
+install is still his; the record. A file under the key of one that was installed is installed with no effect:
+`tests/tools/issues-policy-v6.test.ts` has that in the tracker's rig. Until `policy-pins-remake-keeps-the-key`,
+2026-10-13, `remake` wrote the key of the file it read, and `plan/cloud-brain-issues-policy-v6.json` got a key of its
+own by hand. Since then the key of the new file is an argument, `remake <from.json> <to.json> --key <key>`, and
+nothing is written with no key, or with the key of `<from.json>` or of a policy file of `plan/`
+(`tests/tools/policy-pins-remake-key.test.ts`).)
 
 **The approver does not judge a change to itself.** `approver.ts approve` refuses an issue of which
 a ref touches `agents/approver.md`, `tools/cloud-brain/approver.ts`, its test,
