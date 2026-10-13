@@ -42,6 +42,11 @@ state lasts between calls. An issue is read in its short form, `ia "get?id=<id>"
 than a few lines, or with an apostrophe, is written to a file of the scratchpad whose name begins with
 your token and sent with `@`: `ia comment @<file>`. The step ends your token when your process returns.
 
+The tracker refuses, 400 with nothing written, an id of more than 40 characters, a key of more than 100 and a
+`reason` of more than 2,000 (a body: 20,000). The three answers of a triage that do not fit a reason go in a
+comment, and the reason names it (`tracker-limits-in-no-brief`, 2026-10-13: two calls of a judgment run were
+refused 400 for a reason that was longer).
+
 ## The entries
 
 An entry is `<do> <id> (event <at>)`: `<at>` is the seq of the one event of the issue the entry is due

@@ -103,7 +103,9 @@ a mean 1.73 calls a run of a spec writer, 21% of what such a run cost.
      module draws is in it. A result with no run behind it is a round, the task's writer could not have
      met it (`record-checked-by-review-alone`, review 1929: `grep -c "read("` written as 2 after the
      task, 1 by the run; `i1842`, review 1951: a probe of a fetched copy, to find a chat that cannot be there);
-   - the tasks, in the order they land, each small enough for one writer and one review. Each task names the tasks
+   - the tasks, in the order they land, each small enough for one writer and one review. An id is `a-z 0-9 -`,
+     40 characters at most: the tracker refuses the open of a longer one (`tracker-limits-in-no-brief`,
+     2026-10-13). Each task names the tasks
      it is after, by id ("After bk-2"), or says that it is after nothing: a task that names none can be started at
      once, and two such tasks may be written at the same time. The orchestrator writes one link `after` for each when
      it opens the tasks (`SKILL.md`, step 3, the row `decompose`), and the tracker's queue orders the starts by those

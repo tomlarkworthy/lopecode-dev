@@ -15,6 +15,12 @@ Each is `ia <call> '<json>'`, and each takes a `key`. The shapes, from the track
 | `label` | `{ key, id, add, remove }`, lists of names |
 | `move` | `{ key, id, to, reason, refs }` |
 
+A text that is too long is refused 400 with nothing written, by a message such as `reason: text, 2000 characters
+at most`: an id 40 characters, a key 100, a title 300, a `reason` 2,000, a body 20,000 (of an issue and of a
+comment). They are `issuesLimits` and `issueAct` of `tools/cloud-brain/brain-issues.ojs`, asked of the seed by
+`tests/tools/tracker-limits-in-the-briefs.test.ts`. What does not fit a reason goes in a comment, and the reason
+names it. (`tracker-limits-in-no-brief`, 2026-10-13: three runs were refused for an id or a reason.)
+
 A body with an apostrophe, or of more than a few lines, is written to a file in the scratchpad (the
 Write tool) and sent with `@`: `ia comment @<scratchpad>/<token>-comment.json`. The scratchpad is the
 directory your prompt's `scratch:` line names, which is of your run alone (since
