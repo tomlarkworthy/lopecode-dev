@@ -182,6 +182,11 @@ are no part of a usage figure.
 - **When no token is bound** (the mint failed: `token.mint-failed`, tried again each tick of the
   deployer) the method answers 502 and says so. When Cloudflare refuses, its status and its
   `errors` are passed on, as `brain-logs` passes them.
+  (As built, `cu-2-usage-service`, 2026-10-13: there is no 502 of the service's own. A service that
+  reads `secrets.CF_TOKEN` declares a secret of that name in its manifest, so the call is sent as it
+  is, Cloudflare's refusal is the answer, and the message of a 400, 401 or 403 names the line
+  `token.mint-failed`. A refusal of `/billable-usage/info` alone leaves `anchor` null, and
+  `cloudflare` has a fourth field, `info`, the status of that read; the record.)
 
 ### Why this source and not the analytics
 
