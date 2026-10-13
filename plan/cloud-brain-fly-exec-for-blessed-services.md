@@ -60,7 +60,7 @@ linked `related` to `worker-machine-on-fly`, whose comment 4258 is the finding.
 - **R3.** A Worker of the Brain that he has blessed calls it. No other Worker does, and no token,
   member or member's Worker.
 - **R4.** He makes a blessing and takes it back in his own session, with no deploy; he can list
-  them; a blessing taken back is refused within the 5 s a core instance keeps a row. A Worker that
+  them; a blessing taken back by a revoke is refused within the 5 s a core instance keeps a row. A Worker that
   holds a delegation of his for another job, however wide its scope, is not blessed by it.
 - **R5.** The secret stays the service's: the rule of `FLY_API_TOKEN` is not changed, and no
   answer and no log line of `fly.exec` has it.
@@ -265,7 +265,9 @@ delegation.revoke { id }
 The four are the core's and are not changed. The delegation gives the Worker the call, with an
 end, a note and an id in the log; the setting is where he names that delegation for this method,
 since a scope alone does not (above). Either taken back ends the blessing: a revoke, the end of
-`until`, or the id taken out of the setting. An id in the setting whose delegation has ended
+`until`, or the id taken out of the setting. The first two are refused by the core within 5 s
+(`stands`). How soon the service reads a changed setting was **not measured**, so Revoke in the
+panel sends the revoke first. An id in the setting whose delegation has ended
 blesses nothing: the core refuses the call before the service sees it. `delegation.create` refuses a Worker whose role is
 not `recipe` or `system`, so a member's Worker cannot be blessed; a Worker holder has no caps.
 `stands` reads the row on each call through 5 s of memory, so a revoke or the end of `until` is a
