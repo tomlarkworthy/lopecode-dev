@@ -36,6 +36,7 @@ const BRAIN = script("brain.ts", `import { appendFileSync, existsSync, readFileS
 const R = process.env.RIG, a = process.argv.slice(2), F = process.env.BRAIN_STATE_DIR + "/cb4-agent-tokens.json", t = JSON.parse(readFileSync(F, "utf8"));
 appendFileSync(R + "/brain.log", a.join(" ") + "\\n");
 if (existsSync(R + "/brain-exit")) { console.log("502 no token"); process.exit(1); }
+if (a[1] === "revoke" && existsSync(R + "/brain-revoke-exit")) { console.log(readFileSync(R + "/brain-revoke-exit", "utf8")); process.exit(1); }
 if (a[1] === "revoke") { delete t[a[2]]; writeFileSync(F, JSON.stringify(t)); console.log("401: revoked"); }
 else { const n = a[1] + "-" + String(readFileSync(R + "/brain.log", "utf8").split("\\n").filter((l) => l && !l.includes(" revoke ")).length).padStart(6, "0"); t[n] = "v-" + n; writeFileSync(F, JSON.stringify(t)); console.log(n); }
 `);
@@ -91,7 +92,7 @@ const server = Bun.serve({ port: 0, hostname: "127.0.0.1", async fetch(req) {
 } });
 afterAll(() => { server.stop(true); rmSync(RIG, { recursive: true, force: true }); });
 
-const CONTROLS = ["agent-hold", "agent-silent", "agent-error", "agent-result", "usage-exit", "tab-exit", "brain-exit"];
+const CONTROLS = ["agent-hold", "agent-silent", "agent-error", "agent-result", "usage-exit", "tab-exit", "brain-exit", "brain-revoke-exit"];
 function fresh() {
   T = { seq: 100, issues: new Map(), keys: new Map(), queue: { queue: [], waiting: [] }, calls: [] };
   for (const f of readdirSync(RIG)) if (f.endsWith(".log") || CONTROLS.includes(f) || f.startsWith("wt-")) rmSync(join(RIG, f));
@@ -596,6 +597,53 @@ test("resume, a second dead writer of one rework: its `back` has a key of its ow
   expect(dup.err).toContain(`back was not made: the tracker has the key orch/d2/back/impl-bbbbbb/${sixth.seq} at event 103 and wrote nothing; d2 is at in-progress. The token impl-bbbbbb is ended`);
   expect(events("d2", "moved").length).toBe(moves);
   expect(state()).toBe("in-progress");
+});
+
+test("a revoke that exits non-zero: the token is not said to be ended, in the `back`, in what resume prints, at a key the tracker has, and when a start is unmade", async () => {
+  fresh();
+  open("nr", { state: "in-progress" });
+  const rework = ev("nr", "rev-cccccc", { type: "moved", move: "rework", to: "in-progress" });
+  const backs = () => events("nr", "moved").filter((e) => e.move === "back");
+  const dies = (token: string, pid: number) => { T.issues.get("nr")!.issue.runs = [{ role: "implementer", round: 2, how: "fresh", outcome: "stopped", token, session: "s" + pid, agent: "elsewhere:" + pid, seq: T.seq }]; };
+  const ANSWER = '200: "impl-abcdef" still answers a read of issue.policy after its revoke, on read 13, 12004 ms after. Its entry is kept';
+  // What the command answered is printed as one line.
+  flagFile("brain-revoke-exit", ANSWER.replace(", on read", ",\n  on read") + "\n");
+  dies("impl-abcdef", 1);
+  const r = await cli(["resume", "nr"]);
+  // The `back` is made all the same: the issue is a start at the next read, and the record says the token lives.
+  expect(r.code).toBe(0);
+  expect(log("brain")).toEqual(["agent-token revoke impl-abcdef"]);
+  expect(backs().map((e) => e.key)).toEqual([`orch/nr/back/impl-abcdef/${rework.seq}`]);
+  expect(r.json).toEqual({ dead: "nr", role: "implementer", why: "its last run is another machine's (elsewhere:1)", token: `impl-abcdef not ended: exit 1, ${ANSWER}`, back: backs()[0].seq });
+  expect(backs()[0].reason).toBe(`A dead writer: the round of event ${rework.seq} cannot be sent to the implementer that started it, since its last run is another machine's (elsewhere:1). Its token impl-abcdef is not ended: exit 1, ${ANSWER}. The next writer makes its own start.`);
+  expect(T.issues.get("nr")!.issue.state).toBe("ready");
+  // A key the tracker has, and the revoke fails: the line of the exit says the same.
+  const second = ev("nr", "impl-fedcba", { type: "moved", move: "start", from: "ready", to: "in-progress" });
+  T.issues.get("nr")!.issue.state = "in-progress";
+  dies("impl-fedcba", 2);
+  T.keys.set(`orch/nr/back/impl-fedcba/${second.seq}`, 103);
+  const dup = await cli(["resume", "nr"]);
+  expect(dup.code).toBe(1);
+  expect(dup.out).toBe("");
+  expect(dup.err).toContain(`nr is at in-progress. The token impl-fedcba is not ended: exit 1, ${ANSWER}`);
+  expect(dup.err).not.toContain("is ended");
+  // A command that answers nothing.
+  flagFile("brain-revoke-exit", "");
+  T.keys.delete(`orch/nr/back/impl-fedcba/${second.seq}`);
+  expect((await cli(["resume", "nr"])).json.token).toBe("impl-fedcba not ended: exit 1, it answered nothing");
+  // A start that is unmade (the worktree is refused) ends the token it made, and says so only when the revoke exited 0.
+  open("um", { state: "ready" });
+  flagFile("wt-exit-um", "2 origin was not reached");
+  flagFile("brain-revoke-exit", ANSWER);
+  const um = await cli(["start", "um", "--role", "implementer"]);
+  expect(um.code).toBe(2);
+  expect(log("brain").slice(-2).map((l) => l.replace(/ impl-\d+$/, ""))).toEqual(["agent-token impl um", "agent-token revoke"]);
+  expect(um.err).toContain(`; the token ${log("brain").pop()!.split(" ").pop()} is not ended: exit 1, ${ANSWER}`);
+  expect(um.err).not.toContain("is ended");
+  rmSync(join(RIG, "brain-revoke-exit"));
+  const ok = await cli(["start", "um", "--role", "implementer"]);
+  expect(ok.code).toBe(2);
+  expect(ok.err).toContain(`; the token ${log("brain").pop()!.split(" ").pop()} is ended`);
 });
 
 test("with no LOOP_TOKEN nothing is read or sent; a role the queue does not give is asked for; a token that was not made starts nothing", async () => {

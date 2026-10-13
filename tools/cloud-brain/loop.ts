@@ -50,6 +50,8 @@
 //         that is the later. A run that still runs: exit 3. Anything else is "A dead writer": the token ended
 //         (not a role's token, which is the owner's), then `back`, key orch/<id>/back/<token>/<seq of the issue's
 //         last move> (`no-token` with no token). A key the tracker has (`duplicate: true`) is exit 1: no `back` was made.
+//         The revoke is read by its exit: at 0 the `back`, the printed `token` and the line of exit 1 say `ended`,
+//         at any other `not ended: exit N, <what the command answered>`; the `back` is made either way.
 // dead    How many runs of a role and round died: the `cost` events of get?id= with the outcome `stopped` or
 //         `no-submit`. `runs` keeps one run a role and round and cannot say.
 //
@@ -151,6 +153,8 @@ const words = (v: string | undefined, or: string[]) => (v ? v.split(" ") : or);
 const tool = (cmd: string[], args: string[], more: Record<string, string> = {}) => sh(cmd[0], [...cmd.slice(1), ...args], more);
 const worktree = (...a: string[]) => sh(env.LOOP_WORKTREE || join(HERE, "worktree.sh"), a);
 const brain = (...a: string[]) => tool(words(env.LOOP_BRAIN, ["bun", join(HERE, "brain.ts")]), a, { BRAIN_BASE: "cb4", BRAIN_STATE_DIR: STATE() });
+// `agent-token revoke`, read by its exit: "ended", or "not ended: exit N, <what the command answered>".
+const revoke = (token: string) => { const r = brain("agent-token", "revoke", token); return r.code === 0 ? "ended" : `not ended: exit ${r.code}, ${(r.out + r.err).trim().replace(/\s+/g, " ") || "it answered nothing"}`; };
 
 // One call of the tracker through issue-as.sh. The status is the ` [200]` it writes on stderr; 0 when nothing was sent.
 function as(token: string, method: string, body?: any) {
@@ -208,10 +212,10 @@ function place(first: string, topic: string, token: string, id: string, owner: (
 }
 const worktreeComments = (events: Ev[]) => events.filter((e) => e.type === "commented" && /^worktree \{/.test(e.body || "")).map((e) => { try { return JSON.parse(e.body.slice(9)); } catch { return {}; } });
 const unmake = (run: Run, text: string, code = 1): never => {
-  if (run.made) brain("agent-token", "revoke", run.token);
+  const token = run.made ? revoke(run.token) : "";
   if (run.tree) WRITERS.includes(run.role) || run.role === "overseer" ? worktree("--leave", run.tree) : worktree("--remove", run.tree, "--force");
   rmSync(fileOf(run.token), { force: true });
-  return stop(code, text + (run.made ? `; the token ${run.token} is ended` : ""));
+  return stop(code, text + (token ? `; the token ${run.token} is ${token}` : ""));
 };
 const lastOversight = (file: string) => { try { return (last([...readFileSync(file, "utf8").matchAll(/^## .*events \d+ to (\d+)/gm)]) || [])[1] || ""; } catch { return ""; } };
 
@@ -360,16 +364,16 @@ async function resume(args: string[]) {
   const round = roundOf(role, events), file = run && run.token ? load(run.token) : null;
   const why = !run ? "it has no run of that role in the record" : !run.session ? "its last run names no session" : !run.token ? "its last run names no token" : !here(run) ? `its last run is another machine's (${run.agent})` : !live(run.token, id) ? `its token ${run.token} no longer reads the tracker` : "";
   if (why) {
-    // "A dead writer": its token ended (a role's token is the owner's), then `back`. The issue is a start at the next read.
+    // "A dead writer": its token ended (a role's token is the owner's), then `back`, which is made whatever the revoke exited with. The issue is a start at the next read.
     const named = run && /^(impl|dig|spec)-[0-9a-f]{6}$/.test(run.token || "") ? run.token : "";
-    const revoked = named && !(file && file.made === false) ? brain("agent-token", "revoke", named) : null;
+    const revoked = named && !(file && file.made === false) ? revoke(named) : "";
     const key = backKey(id, run && run.token, events);
-    const b = write(me, "move", { key, id, to: role === "spec-writer" ? "open" : "ready", reason: `A dead writer: the round of event ${at} cannot be sent to the ${role} that started it, since ${why}. ${revoked ? `Its token ${named} is ended. ` : ""}The next writer makes its own start.`, refs: [] });
-    const ended = revoked ? ` The token ${named} is ended.` : "";
+    const b = write(me, "move", { key, id, to: role === "spec-writer" ? "open" : "ready", reason: `A dead writer: the round of event ${at} cannot be sent to the ${role} that started it, since ${why}. ${revoked ? `Its token ${named} is ${revoked}. ` : ""}The next writer makes its own start.`, refs: [] });
+    const ended = revoked ? ` The token ${named} is ${revoked}.` : "";
     if (!b.ok) stop(1, `back was not made: ${b.status} ${b.said || ""}`);
     // A key the tracker has is answered 200 and nothing is written: the event of that seq is not this `back`.
     if (b.duplicate) stop(1, `back was not made: the tracker has the key ${key} at event ${b.seq} and wrote nothing; ${id} is at ${read(me, `get?id=${id}`).issue.state}.${ended}`);
-    return say({ dead: id, role, why, token: revoked ? `${named} ended` : "none ended", back: b.seq });
+    return say({ dead: id, role, why, token: revoked ? `${named} ${revoked}` : "none ended", back: b.seq });
   }
   const topic = issue.parent || id, tEvents: Ev[] = topic === id ? events : (as(me, `get?id=${topic}`).data || {}).events || [];
   const notes = [...worktreeComments(tEvents), ...worktreeComments(events)];
