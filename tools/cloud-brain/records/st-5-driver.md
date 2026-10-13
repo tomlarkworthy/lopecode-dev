@@ -71,8 +71,8 @@ lines from `ENV_PASS=` to the `)` that ends `SAFEHOUSE_ARGS=(`, in a function wh
 (the file names `tools/safehouse-adb.sb` beside itself with `${0:A:h}`). Those lines have a `mkdir -p`
 of the directories the sandbox mounts, which is run. No other line of `metadev` is run.
 
-With a stand-in `safehouse` that prints its arguments, on the `PATH` before the real one, 10:45 CEST
-(`date` after it was 10:46:13):
+With a stand-in `safehouse` that prints its arguments, on the `PATH` before the real one (run before 10:46:13 CEST,
+the `date` of the command after it):
 
 ```
 $ PATH=<stand-in>:$PATH tools/cloud-brain/loop.sh --dry | wc -l
@@ -115,8 +115,8 @@ The service takes the name with no change to it. Before this change `show loop` 
 (the spec, line 205).
 
 **The dry driver**, `LOOP_TOKEN=impl-e88c70 bun tools/cloud-brain/loop.ts run --dry`, in the background
-from 10:46:24, its stdout to a file, stopped with `kill -INT` at about 10:48:11 (`date` after: 10:48:14).
-Two lines on stdout, nothing on stderr, and the process was gone 3 s after the signal:
+from 10:46:24, its stdout to a file, stopped with `kill -INT` (`date` 3 s after the signal: 10:48:14).
+Two lines on stdout, nothing on stderr, and `kill -0` of its pid in the next command: `no such process`.
 
 | `at` of the line | `seq` | `for` | `health` | acts named |
 |---|---|---|---|---|
@@ -135,7 +135,7 @@ Events 6429 to 6431 (`sync?after=6428`) were a comment, the `submit` and a `wait
 | `step --dry --for event` | 5.31 s |
 | `step --dry --for clock` | 37.48 s |
 
-A dry step makes no pull, so a whole step that is not dry is longer than 37 s by its two pulls. One run each.
+A dry step makes no pull. A whole step that is not dry makes the two pulls as well, which were not timed. One run each.
 
 ## Tests
 
