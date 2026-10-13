@@ -624,7 +624,11 @@ only; neither is `major`, and each goes to `done` on a reviewer's `pass` as any 
    that the overseer does not edit the approver's brief; `major` is then "approved by the owner, or
    for him on words of his that the approval quotes"), and in `agents/overseer.md` that
    `approver.ts check` is run at each oversight. Lands before his install and changes nothing
-   until it. `major`.
+   until it. `major`. (As built, `ap-6-rules-and-live-step`, 2026-10-13: it landed after his install
+   of event 4668 and says what was in force that day. `rules.md` has a section "The approver" with
+   his words, which the other lines name; the paragraph "Who does it" that review 4118 named is
+   written too; `SKILL.md` and the overseer's own table say that it does not edit the brief or the
+   tool; the record.)
 
 ## What the orchestrator makes
 

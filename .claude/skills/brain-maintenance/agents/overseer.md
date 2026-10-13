@@ -56,6 +56,22 @@ machine that carried no more writers (memory,
 the channel rows of QA tabs, a tab that did not open), name the sign in your entry and add it to
 `SKILL.md` step 2 as one of your two edits (the spec, part 3, "Not known").
 
+Then `bun $W/tools/cloud-brain/approver.ts check --token <token>`, at each oversight (`rules.md`,
+"The approver"; `plan/cloud-brain-approver-persona.md`, part 5 and task 6). `$W` is your worktree
+("What you may do"). It reads the whole record and judges again each `approve` a delegation made,
+as the tool would have sent it: the verdict it names, the `asked:` line, the files of its commits,
+the `cost` event of the run. Whatever it exits with, put its last line in your entry.
+
+- **Exit 0**: `N approves by a delegation, 0 that do not stand`. (cb4, 2026-10-13 05:47 CEST, the
+  record at 5733, with a writer's token: `1 approves by a delegation, 0 that do not stand`.)
+- **Exit 1**: before that line, `approve <seq> of <id>:` and a line for each thing that does not
+  hold. Such an approval was made for the owner and the record does not bear it out. The undo is
+  his (`revert` of a task, `owner-reject` of a spec). File one `bug` for it, `about` `issue-loop`,
+  with the lines as printed, as the first of your 3, and name it first in your report: the
+  orchestrating session tells him. No run had exited 1 when this was written.
+- **Exit 2**: nothing was judged (the token is not kept, or the tracker was not reached). Say so in
+  the entry, with the line of stderr; it says nothing of any approval.
+
 The owner, 2026-10-11: "we want a system that self adapt and gets better over time, at the moment
 the system is quite ineffecient". On that day 57 issues had spent 47.4 h waiting in `open`,
 `triaged` and `ready` and 9.1 h being worked; 15 of 37 submits were sent back
@@ -152,7 +168,7 @@ Each thing you find gets exactly one of these.
 |---|---|
 | A defect or a gap in the cluster, a service, a tool or a doc | File it: `io open` with `kind` `bug` or `task`, `about` the Worker or `brain`, and a body that quotes the evidence (issue id, event seq, the line of the journal). Search the open issues first (`io "list"`); comment on an existing one instead of filing a second. |
 | A brief that misled an agent or left something out | Edit `agents/implementer.md` or the reviewer's brief (on the Brain, below), or the procedure in `SKILL.md`. `agents/implementer.md` is what every task needs and is held to 20,000 characters (`tests/tools/implementer-brief-core.test.ts`): what one kind of task needs goes on its page of `agents/implementer/`, which the brief's table "The pages" names. |
-| A rule in `rules.md` that is wrong, or anything about this file | File a `task` with the label `major` and the proposed text in the body. Do not edit either file. |
+| A rule in `rules.md` that is wrong, anything about this file, or anything about the approver's brief or its tool (`agents/approver.md`, `tools/cloud-brain/approver.ts`) | File a `task` with the label `major` and the proposed text in the body. Do not edit any of them: an edit of the approver's two stops every approval it makes until the owner installs a policy that names them (`rules.md`, "The approver"). |
 | A decision only the owner can take | Comment on the issue it blocks, with the choice and the cost of each side, written as `rules.md`, "What the owner is asked to decide", has it: a line a choice, and your pick. |
 
 Limits, so a bad round cannot compound:

@@ -975,7 +975,8 @@ the procedure above directly, one commit an edit, each quoting the issue that sh
 list is `cloud-brain-dev/put.sh --history roles/reviewer.md`, and `put.sh --restore roles/reviewer.md <name>` then
 `put.sh roles/reviewer.md` undoes one.
 
-It does not edit `rules.md` or its own brief, and it may not remove a check from any brief.
+It does not edit `rules.md`, its own brief or the approver's (`agents/approver.md`, with its tool:
+`rules.md`, "The approver"), and it may not remove a check from any brief.
 Those go to the tracker as `major`, which lands at `awaiting-approval` for the owner. The cost of
 letting it edit everything: an agent judged by its own account of itself tends to drop the steps
 that slow it, and the next pass runs the edited brief with nobody having read it. The cost of
