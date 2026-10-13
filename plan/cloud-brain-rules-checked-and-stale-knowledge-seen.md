@@ -336,14 +336,27 @@ printed to that token. The answer of a write is not kept: a writer that reads at
 at 101 and attaches at 102 would then send 102 with its submit and never be shown 101, which is the
 order of the one known miss (comment 1571, submit 1578).
 
-**A read a tool makes for itself keeps no number.** Three tools read an issue with the agent's token
+**A read a tool makes for itself keeps no number.** Four tools read an issue with an agent's token
 and show the agent nothing of it, or one event of it: `land.sh` (line 111, its answer to a temporary
 file, before it sends the comment and the submit at line 176 with the same token), `issue-wait.sh`
-(line 118) and `worktree.sh` (line 134). Each sets `ISSUE_AS_KEEP=0` for that call, and `issue-as.sh`
-then keeps nothing of the answer. So the submit `land.sh` sends carries the number of the last `get`
+(line 118), `worktree.sh` (line 134), and `loop.ts` where it reads with a run's token and not its own:
+`live` (line 171), which `resume` asks of the writer's token after the move back and before it
+starts the writer again, and the check of a token given to `start` (line 239). Each sets
+`ISSUE_AS_KEEP=0` for that call, and `issue-as.sh` then keeps nothing of the answer. They are all
+there are: of the twelve files under `tools/cloud-brain` that name `issue-as.sh`, a search for
+`get?id` finds these four and the tool itself; the others read `sync`, `list` and `queue`, of which
+no number is kept. So the submit `land.sh` sends carries the number of the last `get`
 the agent itself ran, and a comment that came after that read refuses the submit: `land.sh` passes
 the tool's exit 5 and its lines on, and the landing it has made stands, as for any refused submit
-today. `loop.ts` is not such a tool: it is the reader of what it reads, and its `get` is kept. The file is `.emitted/issue-loop/read/<token>.json`, beside the journal, git-ignored, removed
+today. What `loop.ts` reads with its own token (`LOOP_TOKEN`, the `read(me, …)` calls) is kept: of
+those it is the reader. Without the two lines above, a resume would leave the writer's token with the
+head of the issue as `loop.ts` found it, the review and the move back under it, and a submit of the
+round sent with no `get` of the writer's own would be written.
+
+`issue-wait.sh` prints the wake and the review whole to a writer that takes a round by the wait, and
+keeps nothing of them. Such a writer reads the issue again by its brief ("A resumed round": "Read the
+issue again"), and that `get` is kept. One that does not is refused once at its submit, with the
+review and the move back in `since`; `rk-6` counts those lines apart, by their types. The file is `.emitted/issue-loop/read/<token>.json`, beside the journal, git-ignored, removed
 by `agent-token revoke`. For a `move` or a `review` whose body has no `asOf`, the tool adds the kept
 number. With none kept (the token never read the issue through this tool) it adds nothing.
 
@@ -355,7 +368,7 @@ the act, `asOf`, `touched` and the types in `since`. R6 is counted from that fil
 
 `--no-as-of` sends the body as it is. `loop.ts` reads and writes through `issue-as.sh` (`as`, line
 160), so its one move, the `back` of a dead writer's issue (line 371), carries the seq of the `get`
-it made before it (line 362), with no change to `loop.ts`. A step that moves from a row of
+it made before it with its own token (line 362), with no change to that path. A step that moves from a row of
 `issue.queue` alone carries none, since the tool keeps no number from a queue; the queue's rows
 saying each issue's `touched` is a later task and not in this spec.
 
@@ -412,7 +425,8 @@ Each standing thing the design adds, with what does the same job today.
   act and names a state, not an event: two comments leave the state as it was. It is not widened to
   the other acts because a state does not say that something was said. The `key` of a write does
   another job: the same write sent twice.
-- **The state file `.emitted/issue-loop/read/<token>.json` and `stale.jsonl`.** `issue-as.sh` keeps
+- **The state file `.emitted/issue-loop/read/<token>.json` and `stale.jsonl`, with the variable
+  `ISSUE_AS_KEEP`, which a tool sets to 0 for a read of its own.** `issue-as.sh` keeps
   nothing between calls today (it reads the token files and no other state). The journal directory
   `.emitted/issue-loop/` is where a run's file is (`loop.ts`, `runs/<token>.json`); the two are put
   beside it and not in it, because a run's file is written by `loop.ts` for a run it started, and a
@@ -499,7 +513,9 @@ is built says so.
   `get` printed; a 409 exits 5, prints the events and appends one line to `stale.jsonl`; `--no-as-of`
   sends none; a `get` with `ISSUE_AS_KEEP=0` keeps none. And in `tests/tools/land.test.ts`: a `get` by
   the agent, then a comment by a second token, then `land.sh` to its submit, which is refused with the
-  comment shown, where `land.sh`'s own `get` came after the comment. Not run. Today:
+  comment shown, where `land.sh`'s own `get` came after the comment. And in `tests/tools/loop.test.ts`:
+  after `resume`, and after `start --token <t>`, the file of the run's token has the number it had
+  before. Not run. Today:
   `grep -c asOf tools/cloud-brain/issue-as.sh` prints 0 (run 08:37 CEST).
 - **R5.** A test cell: an issue opened with a ref answers it as `issue.from`; a `cost` with `from` of
   nine entries is 400. `tests/tools/loop.test.ts`: `start` writes the three blobs. Not run. On cb4, after the next decompose: `get?id=<task> --short` has
@@ -526,7 +542,7 @@ Ids `rk-<n>-…`. Two can start at once: `rk-1` and `rk-3`.
   a call that sends no `asOf` is judged as today, so no caller of a method meets a change, and who may
   do what is as it was.
 - **`rk-4-issue-as-sends-as-of`.** After `rk-3`. `issue-as.sh`, its two files, `agent-token revoke`
-  removing the first, `ISSUE_AS_KEEP=0` in `land.sh`, `issue-wait.sh` and `worktree.sh`, the two tests of R4, the line of `--short`'s header that says what the tool keeps.
+  removing the first, `ISSUE_AS_KEEP=0` in `land.sh`, `issue-wait.sh`, `worktree.sh` and the two reads of `loop.ts` with a run's token (lines 171 and 239), the three tests of R4, the line of `--short`'s header that says what the tool keeps.
 - **`rk-5-made-from`.** After `rk-3`, and after `rk-2` when it is opened (the same seed). `refs` on `issue.open`, `from` on `issue.cost`, `loop.ts start`, the row
   `decompose` of `SKILL.md` with its two sentences, the tests of R5. A deploy of `brain-x-issues`.
   `major` if triage reads a row of `SKILL.md` as the loop's procedure, as `fly-4` was.
@@ -590,6 +606,21 @@ Taken with `issue-wait.sh … --work`; a resumed round. Two findings and a note,
 
 Read again for the round: `land.sh` lines 111 and 176, `issue-wait.sh` 118 (110 in the review, before
 `tr-4` landed), `worktree.sh` 134, `approver.ts` 451 and 468, the seed's lines 269 and 1603.
+
+## Round 3: review 6198 (2026-10-13, 09:14 CEST)
+
+A resumed round, sent by a message. One finding and two notes, each answered in place. Read again at
+`6cb3f2f8`: `loop.ts` lines 160, 171, 239, 362 and 371, and every file under `tools/cloud-brain` that names
+`issue-as.sh`.
+
+1. `loop.ts` reads the issue with the writer's token before a resume (line 171) and at a start with a
+   token given (line 239). Section 3 names both among the reads that keep no number, says which of
+   `loop.ts`'s reads are kept, and R4 has a test in `loop.test.ts`; `rk-4` names `loop.ts`. Round 2
+   answered the three tools the review named and did not search for the rest; this round did.
+2. The note on a round taken by the wait: left as a refusal that is counted apart in `rk-6`, with why.
+3. The note on `ISSUE_AS_KEEP`: named in the bullet of the state file under "Not chosen".
+
+No call of the advisor for this round: it was rate-limited at round 2 and was not asked again.
 
 ## The prototype
 
