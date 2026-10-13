@@ -18,7 +18,7 @@ is written after this file is pushed.
 | `issueAllowed` | after the read guard and before the act's own: 400 past `view.seq`, a refusal when the row has no `said`, and `{ stale: true, asOf, touched }` when another actor's seq in `said` is after `asOf`. `event.asOf` for a guard, 0 with none |
 | `issueEvent` | the event of one of the nine acts keeps `asOf` |
 | `issuesApp` | `judge` throws 409 `Stale`; `withSaid` makes `said` of a row that has none before the judge is asked; `staleAnswer` reads the issue's events for `since` and the count; both the write and the judge of an attachment before its bytes are kept go through them. `issue.get` answers `issue.touched` |
-| the prose | "A write names what it read" under the Methods table, `asOf` among an event's fields, `event.asOf` among what a guard reads, `issue.touched` in the row of `issue.get` |
+| the prose | "A write names what it read" under the Methods table, the status of each refusal where the reference said 403 for all, `asOf` among an event's fields, `event.asOf` among what a guard reads, `issue.touched` in the row of `issue.get` |
 
 The spec gained one paragraph, "(As built, `rk-3-as-of` …)", at the end of its section 2.
 
@@ -83,15 +83,16 @@ In a browser, `bun tools/cloud-brain/tab-tests.ts tools/cloud-brain/.emitted/clo
 the run that emitted: `"tests":73,"passed":73,"failed":[]`.
 
 `BRAIN_BASE=cb4 bun tools/cloud-brain/verify-run.ts brain-x-issues --shell <the build> --times 20`, from the main
-checkout, on the build that was emitted, ended 2026-10-13T19:51:17Z by its last line:
+checkout, on the build that was emitted, ended 2026-10-13T20:05:21Z by its last line (the third such run: one for each build, 20 of 20 each):
 
 ```
 "mains":["@tomlarkworthy/brain-shell","@tomlarkworthy/brain-issues"]
 {"worker":"brain-x-issues","runs":20,"passed":20,"failed":0,"none":0,"from":["document"],…,"byChance":[],…}
 ```
 
-The whole suite, `tests/tools/suite.sh`, after the last edit of the seed: 1306 pass, 1 fail, 1 error.
-The fail is a test of `tests/tools/loop-step.test.ts` ("labeled `needs-owner`: nothing until the owner has written
+The whole suite, `tests/tools/suite.sh`, after the last edit of the seed: 1307 pass, 0 fail.
+The run before it, on the seed with one sentence of the prose and one value of a test yet to come, gave 1306
+pass, 1 fail, 1 error. The fail is a test of `tests/tools/loop-step.test.ts` ("labeled `needs-owner`: nothing until the owner has written
 after the label …") that timed out at 30000 ms, and the error is the same test's, after the time; `uptime` after the
 run gave 33.04 as its first number. That file alone, `bun test --timeout=30000 ./tests/tools/loop-step.test.ts`,
 then gave 40 pass, 0 fail, with `uptime` at 13.16. `grep -c brain-issues.ojs` prints 0 for that
@@ -109,7 +110,7 @@ What the cells hold, beyond the answer above:
 - Written: behind the caller's own event, behind a `cost`, behind a `waits`, with no `asOf`, and behind a link
   another issue says of it and a part opened under it.
 - The same key is 409 twice, then written with the seq the refusal showed.
-- 400 for `asOf` of the head plus one, a string, 0, 1.5, `null` and -1; written at the head itself.
+- 400 for `asOf` of the head plus one, a string, the empty string, 0, 1.5, `null` and -1; written at the head itself.
 - 404 for an issue the caller may not read, with `asOf: 99999`.
 - Each of the nine acts is 409 behind another token's comment, no event is written and no bytes are kept.
 - `issue.wait` passes over the field, `issue.cost` answers 400, `issue.open` writes an event with none.
