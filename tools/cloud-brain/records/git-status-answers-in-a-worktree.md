@@ -11,7 +11,8 @@ checkout's submodules. `git status` stops on the first. `agents/implementer.md` 
 with no form of `status`. `agents/orchestrator.md` had no line. The issue names three runs of 2026-10-13 that
 met it, one of which wrote "I could not confirm with git that the worktree is unchanged".
 
-Run in this worktree at 15:21 CEST (`date`), git 2.55.0, with one line added to `CLAUDE.md` and taken out after:
+Run in this worktree before 15:23:35 CEST on 2026-10-13 (the `date` of the command after the edits; the run itself
+had none), git 2.55.0, with one line added to `CLAUDE.md` and taken out after:
 
 ```
 git status                                   -> error: expected submodule path 'lopebooks' not to be a symbolic link   exit 128
@@ -28,12 +29,14 @@ git diff --stat --ignore-submodules=all HEAD -> CLAUDE.md, "1 file changed"
 
 - `agents/implementer.md`, "Where you work": "`git status` fails in the worktree (the submodules are links
   there)" is now "`git status` there is `git status --short --ignore-submodules=all` (the submodules are
-  links)". The line was replaced and not added to: the file is 19,987 characters of the 20,000 that
+  links)". One line for one line: the file is 19,987 characters of the 20,000 that
   `tests/tools/implementer-brief-core.test.ts` allows (`wc -m`; 19,961 before).
 - `agents/implementer/start.md`, the same item: the error and its exit, the form, and the two diffs above.
 - `agents/orchestrator.md`, "Your prompt, and your token": three lines with the error and the form. They are
   in the brief's own part. The texts from "A quick win" on are held word for word by
   `tests/tools/orchestrator-brief.test.ts` and were not touched.
+- `plan/cloud-brain-bookkeeping-in-the-tracker.md`, "What misled the writer of this spec": its line "The brief says
+  so of `git status`, not of `diff`" has a dated note after it that `start.md` now says it of `diff --stat`.
 - `tests/tools/briefs-git-status-in-a-worktree.test.ts`, four tests. The first makes a repository with a
   submodule named `lopebooks` and a worktree of it in a temporary directory, puts a link in the submodule's
   place, changes one file and adds one, and holds: `git status --short` is exit 128 with that error and no
@@ -50,8 +53,9 @@ written there would be the one every checkout shares.
   1 pass, 3 fail. The three that read the briefs failed on "Expected to contain" with the form; the one that
   runs git passed, since it holds git and no text.
 - After: the same command, 4 pass, 0 fail.
-- The whole suite, after the last edit: `tests/tools/suite.sh`, 1239 pass, 0 fail, "Ran 1239 tests across 128 files", ended
+- The whole suite, after the last edit of a brief or a test: `tests/tools/suite.sh`, 1239 pass, 0 fail, "Ran 1239 tests across 128 files", ended
   15:31 CEST (`date`). No line of its output begins `skipped:` or `(fail)` (`grep -n` of the output kept in a file).
+  This file was edited after that run. The run made after its last edit is in the comment of the submit on the issue.
 
 ## Not changed, for the overseer
 

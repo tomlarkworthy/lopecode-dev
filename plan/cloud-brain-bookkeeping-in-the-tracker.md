@@ -600,6 +600,8 @@ Nothing. Every call of this design is `issue.*`, which each agent's token alread
   command it will quote.
 - `git diff --stat` in the worktree lists `lopebooks`, `lopecode` and `lopecode-plugin` as changed
   after a clean checkout: they are the links. The brief says so of `git status`, not of `diff`.
+  (Since `git-status-answers-in-a-worktree`, 2026-10-13, the page `agents/implementer/start.md` says it of
+  `git diff --stat HEAD` too, with `git diff --stat --ignore-submodules=all HEAD`, which does not list them.)
 
 ## The fresh review before submitting (2026-10-12, answered by 12:43 CEST)
 
