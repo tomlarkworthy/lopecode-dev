@@ -90,7 +90,7 @@
 //            of the owner after the label. `ready` and `finish`: the move. `start`, `spec`: start the writer.
 //            `waiting`, `owner`, at `awaiting-approval` with no verdict of the round and no `leave`: start the
 //            approver. `waiting`, `work`, no running writer, no `waiter`: "A dead writer", the token ended and
-//            `back`. A digest the snapshot opened: the older ones rejected, `triage`, `ready`. An overseer when 3
+//            `back`; labeled `needs-owner` it is the owner's, as a `round` so labeled, and no `back` is made. A digest the snapshot opened: the older ones rejected, `triage`, `ready`. An overseer when 3
 //            issues came to `done`, `rejected` or `needs-owner`, or one to its third `rework`, since the last
 //            heading of oversight.md, none runs, and fewer than 2 were started since. No agent of a role is
 //            started on an issue that has a `running` run of it (the writers are one role for this), nor at 2 dead
