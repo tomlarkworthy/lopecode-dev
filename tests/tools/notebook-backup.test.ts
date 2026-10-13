@@ -137,6 +137,112 @@ test("no build, an empty build and no argument are exit 1 and write nothing", ()
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// backup-committed-before-apply-answers (2026-10-13): a backup committed before an apply that was put back is the
+// build of a version cb4 never ran, and it was never pushed. A repository with an origin, as the main checkout's
+// lopebooks has: the tool takes back a backup commit of its own that origin does not have.
+const withOrigin = (dir: string) => {
+  const bare = mkdtempSync(join(tmpdir(), "nb-backup-origin-"));
+  sh(["git", "init", "-q", "--bare", "-b", "main"], bare);
+  sh(["git", "remote", "add", "origin", bare], dir);
+  expect(sh(["git", "push", "-q", "-u", "origin", "main"], dir).code).toBe(0);
+  return bare;
+};
+const ahead = (dir: string) => sh(["git", "log", "--format=%s", "origin/main..HEAD"], dir).out;
+const head = (dir: string) => sh(["git", "rev-parse", "--short=8", "HEAD"], dir).out;
+
+test("a backup that was committed and not pushed is taken back by the next run, which makes the day's backup of its own build", () => {
+  const dir = repo("2026-10-10"), bare = withOrigin(dir);
+  const real = sh(["date", "+%F"], dir).out;
+  try {
+    const first = run(dir, built(dir, "<html>never ran</html>\n"), real);
+    expect(first.out).toMatch(/^committed [0-9a-f]{8} /);
+    const never = head(dir);
+    expect(ahead(dir)).toContain("cloud-brain: the notebook of");
+    const r = run(dir, built(dir, "<html>ran</html>\n"), real);
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(new RegExp(`^committed [0-9a-f]{8} ${real}$`));
+    expect(r.err).toContain(`took back ${never}`);
+    expect(sh(["git", "rev-parse", "HEAD~1"], dir).out).toBe(sh(["git", "rev-parse", "origin/main"], dir).out);
+    expect(sh(["git", "show", `HEAD:${HTML}`], dir).out).toBe("<html>ran</html>");
+    expect(sh(["git", "log", "--format=%h", "--abbrev=8"], dir).out).not.toContain(never);
+    expect(dirty(dir)).toBe("");
+  } finally { rmSync(dir, { recursive: true, force: true }); rmSync(bare, { recursive: true, force: true }); }
+});
+
+test("a backup taken back whose next build is the file origin has leaves nothing ahead of origin", () => {
+  const dir = repo("2026-10-10"), bare = withOrigin(dir);
+  try {
+    run(dir, built(dir, "<html>never ran</html>\n"), "2026-10-12");
+    const r = run(dir, built(dir, "<html>one</html>\n"), "2026-10-12");
+    expect([r.code, r.out]).toEqual([0, "same: last committed 2026-10-10"]);
+    expect(ahead(dir)).toBe("");
+    expect(dirty(dir)).toBe("");
+  } finally { rmSync(dir, { recursive: true, force: true }); rmSync(bare, { recursive: true, force: true }); }
+});
+
+test("--take-back undoes an unpushed backup with its .json, puts the committed notebook back, and keeps what else is staged", () => {
+  const dir = repo("2026-10-10"), bare = withOrigin(dir);
+  try {
+    writeFileSync(join(dir, JSON_), "{}\n");
+    writeFileSync(join(dir, "other.txt"), "changed");
+    sh(["git", "add", "other.txt"], dir);
+    expect(run(dir, built(dir, "<html>never ran</html>\n"), "2026-10-12").out).toMatch(/^committed /);
+    const never = head(dir);
+    const r = sh(["bash", TOOL, "--take-back"], ROOT, { NOTEBOOK_REPO: dir });
+    expect([r.code, r.out]).toEqual([0, `took back ${never}`]);
+    expect(ahead(dir)).toBe("");
+    expect(readFileSync(join(dir, HTML), "utf8")).toBe("<html>one</html>\n");
+    expect(sh(["git", "status", "--porcelain"], dir).out.split("\n").sort()).toEqual(["?? built.html", "?? " + JSON_, "M  other.txt"]);
+    const again = sh(["bash", TOOL, "--take-back"], ROOT, { NOTEBOOK_REPO: dir });
+    expect([again.code, again.out]).toEqual([0, "nothing to take back"]);
+  } finally { rmSync(dir, { recursive: true, force: true }); rmSync(bare, { recursive: true, force: true }); }
+});
+
+test("a backup that was pushed is kept: the next run of the day is not due", () => {
+  const dir = repo("2026-10-10"), bare = withOrigin(dir);
+  const real = sh(["date", "+%F"], dir).out;
+  try {
+    run(dir, built(dir, "<html>two</html>\n"), real);
+    const kept = head(dir);
+    expect(sh(["git", "push", "-q"], dir).code).toBe(0);
+    const r = run(dir, built(dir, "<html>three</html>\n"), real);
+    expect([r.code, r.out, r.err]).toEqual([0, `not due: last committed ${real}`, ""]);
+    expect(head(dir)).toBe(kept);
+    const t = sh(["bash", TOOL, "--take-back"], ROOT, { NOTEBOOK_REPO: dir });
+    expect([t.code, t.out, head(dir)]).toEqual([0, "nothing to take back", kept]);
+  } finally { rmSync(dir, { recursive: true, force: true }); rmSync(bare, { recursive: true, force: true }); }
+});
+
+test("an unpushed commit that is not the tool's is not taken back: another subject, or another file in it", () => {
+  for (const kind of ["subject", "file"]) {
+    const dir = repo("2026-10-10"), bare = withOrigin(dir);
+    const real = sh(["date", "+%F"], dir).out;
+    try {
+      writeFileSync(join(dir, HTML), "<html>by hand</html>\n");
+      if (kind === "file") writeFileSync(join(dir, "other.txt"), "y");
+      sh(["git", "add", "-A"], dir);
+      sh(["git", "commit", "-q", "-m", kind === "file" ? "cloud-brain: the notebook of a day, and another file" : "an edit by hand"], dir);
+      const kept = head(dir);
+      const r = run(dir, built(dir, "<html>two</html>\n"), real);
+      expect([kind, r.code, r.out, r.err]).toEqual([kind, 0, `not due: last committed ${real}`, ""]);
+      const t = sh(["bash", TOOL, "--take-back"], ROOT, { NOTEBOOK_REPO: dir });
+      expect([kind, t.out, head(dir)]).toEqual([kind, "nothing to take back", kept]);
+    } finally { rmSync(dir, { recursive: true, force: true }); rmSync(bare, { recursive: true, force: true }); }
+  }
+});
+
+test("a repository with no origin is run as before: --take-back finds nothing, and a second run of the day is not due", () => {
+  const dir = repo("2026-10-10");
+  const real = sh(["date", "+%F"], dir).out;
+  try {
+    run(dir, built(dir, "<html>two</html>\n"), real);
+    const kept = head(dir);
+    const t = sh(["bash", TOOL, "--take-back"], ROOT, { NOTEBOOK_REPO: dir });
+    expect([t.code, t.out, head(dir)]).toEqual([0, "nothing to take back", kept]);
+    expect(run(dir, built(dir, "<html>three</html>\n"), real).out).toBe(`not due: last committed ${real}`);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 // wt-3-land-by-push: a landing runs the tool from its worktree and commits nothing in the main checkout, whose HEAD
 // is then behind the seeds of the build. The message named the main checkout's HEAD until that change.
 test("the backup's message names the commit of the checkout the tool is run from, a worktree's and not the main checkout's", () => {
@@ -174,6 +280,19 @@ test("step 10 of the writer's brief hands the build to the tool and commits lope
   expect(s).not.toMatch(/&& cp tools\/cloud-brain\/\.emitted\/cloud-brain\.html/);
   expect(s).toMatch(/`not due: …` or `same: …`[^.]*no `lopebooks` commit/);
   expect(existsSync(TOOL)).toBe(true);
+});
+
+test("step 10 has the backup after the apply has answered, and a put-back with no backup", () => {
+  const s = flat(step(brief(), 10));
+  const apply = s.indexOf("brain.ts apply <id>-<worker>.json"), backup = s.indexOf('tools/cloud-brain/notebook-backup.sh "$W/tools/cloud-brain/.emitted/cloud-brain.html"');
+  const pull = s.indexOf("git -C <root>/lopebooks pull --ff-only"), seen = s.indexOf("Commit `seen.json` in the worktree");
+  expect(apply).toBeGreaterThan(0);
+  expect(pull).toBeGreaterThan(apply);
+  expect(backup).toBeGreaterThan(pull);
+  expect(seen).toBeGreaterThan(backup);
+  expect(s).toContain("notebook-backup.sh --take-back");
+  expect(s).toMatch(/put back[^.]*: no build[^.]*no backup/);
+  expect(s).toContain("git -C <root>/lopebooks log origin/main..HEAD");
 });
 
 test("step 12 asks for no lopebooks ref", () => {

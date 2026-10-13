@@ -58,8 +58,8 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
     git -C $W push origin HEAD:main
     LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh release land <id>
     ```
-    No build, apply or `lopebooks` commit. With a deploy, the build, the apply and their commits come between
-    the rebase and that renew. Each line, and what comes between, in order:
+    No build, apply or `lopebooks` commit. With a deploy, the apply, then the build and their commits come
+    between the rebase and that renew. Each line, and what comes between, in order:
     - Take the landing lock: `LOCK_TOKEN=<token> $W/tools/cloud-brain/lock.sh take land <id>`. Since
       `lk-3-lock-sh-over-the-cluster` the lock is held in the cluster (a row `brain-x-issues` keeps,
       for 600 s from the take), so a writer in another checkout or on another machine meets the
@@ -83,34 +83,12 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
       is stale: `LOCK_TOKEN=<token> lock.sh release land <id>`, build, test and emit again, and come back. Never apply a file
       emitted before such a change; it would deploy the Worker without the other writer's work.
       Anything else: keep the lock and carry on.
-    - **With a deploy: the notebook, built from committed seeds.** First `LOCK_TOKEN=<token> lock.sh renew land <id>`. The renew gives
-      600 s from now and says the lock is still yours. Exit 1 is a stop before anything of the main checkout is
-      written to: your 600 s ended and another writer has the lock, or has had it. No build there; report.
+    - **With a deploy**, first `LOCK_TOKEN=<token> lock.sh renew land <id>`. The renew gives
+      600 s from now and says the lock is still yours. Exit 1 is a stop before anything is deployed and before
+      anything of the main checkout is written to: your 600 s ended and another writer has the lock, or has had
+      it. No apply and no build there; report.
       Exit 0 with the line `renewed after it had ended … nobody held it between` is
       yours: go on. Exit 2: cb4 was not reached; ask again, and do not go on until it answers 0.
-      Then `git -C <root>/lopebooks pull --ff-only`: a writer on another machine may have made the day's backup.
-      With every writer on one machine it brings nothing in. The notebook in `lopebooks` is changed there after
-      every landing that builds but the day's first (below), so a pull that brings in a commit of it from another
-      machine is refused for that file: it is a build and nothing of it is lost, so
-      `git -C <root>/lopebooks checkout -- notebooks/@tomlarkworthy_cloud-brain.html notebooks/@tomlarkworthy_cloud-brain.json`
-      and pull again (run on two scratch repositories on 2026-10-11, not in `lopebooks`; the record of
-      `notebook-commit-once-a-day`). Any other refusal of it is a stop: release, report.
-      Then the build, from your worktree, which is at the commit you will push:
-      `cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html && tools/cloud-brain/notebook-backup.sh "$W/tools/cloud-brain/.emitted/cloud-brain.html"`.
-      The tool writes the build over `<root>/lopebooks/notebooks/@tomlarkworthy_cloud-brain.html`, where the
-      owner and a session read it, and commits it there only when the file's last commit is of an
-      earlier day. Its one line is `committed <sha> <day>`, `not due: …` or `same: …`
-      (the header of `notebook-backup.sh`). Since `notebook-commit-once-a-day` (the owner, 2026-10-11:
-      "we don't need to commit  @tomlarkworthy_cloud-brain.html all the time, that can be a once a day
-      thing for backups"); until then every landing that built committed it (the issue's count at about 22:30 CEST that day: 53 commits of an 8.7 MB file).
-      The notebook of a change is the build of its `lopecode-dev` commit (`build.ts --out`, the same bytes),
-      so nothing waits on the backup.
-      That file, and its commit in `lopebooks` once a day, is all a landing writes in the main checkout: one
-      file, written whole from committed seeds by the lock's holder.
-      Never `build.ts` in the main checkout: another session may have seeds open there, uncommitted
-      and with no lock, and that build writes them into the notebook (six such files
-      on 2026-10-10 23:29; one writer built them in and had to undo it).
-      The tests are not run again: the seeds are the ones you tested.
     - Deploy under the deploy lock (inside the landing lock: `LOCK_TOKEN=<token> lock.sh take cb4 <id>`, and `LOCK_TOKEN=<token> lock.sh release cb4 <id>` when the apply has answered; an exit 1 or 2 from that take is no apply), with a reason that names the issue:
       `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted BRAIN_BASE=cb4 bun $W/tools/cloud-brain/brain.ts apply <id>-<worker>.json --reason="<id>: …"`.
       `brain.ts` is your worktree's, with the main checkout's state: it reads the file you emitted from that
@@ -127,6 +105,41 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
       words of `deploy.verify.none`, and the runs of yours the version stands on (three writers on
       2026-10-11, `ow-2-panel-offers-what-it-shows`, `fb-a2b5yudl8s` and `ow-3-operator-shown-the-issue`,
       after "browser.extend answered 402 owner has made 2000 priced calls today"; this step had no line for it).
+    - **The notebook, built from committed seeds, once the apply has answered.** Since
+      `backup-committed-before-apply-answers` (2026-10-13) this comes after the deploy and not before it: after
+      the apply answered `verified`, or after your `confirm` of a version on `probation`. An apply that is
+      refused, answers `failing` or is put back: no build into `lopebooks` and no backup, whatever you do next
+      (mend and apply again, or release both locks and report). Read `git -C <root>/lopebooks log origin/main..HEAD`
+      then: it prints nothing. When it prints a backup (`cloud-brain: the notebook of …`),
+      `$W/tools/cloud-brain/notebook-backup.sh --take-back` undoes it, never a `git reset` of yours there: it
+      prints `took back <sha>` or `nothing to take back`. Until that day the backup was made before the apply,
+      and on 2026-10-13 at 00:03:05 CEST an apply of `tr-1-wait-in-the-record` was put back after it: the main
+      checkout's `lopebooks` held a commit, never pushed, of a build no Worker ran, and the writer undid it by
+      hand (`tools/cloud-brain/records/backup-committed-before-apply-answers.md`).
+      First `git -C <root>/lopebooks pull --ff-only`: a writer on another machine may have made the day's backup.
+      With every writer on one machine it brings nothing in. The notebook in `lopebooks` is changed there after
+      every landing that builds but the day's first (below), so a pull that brings in a commit of it from another
+      machine is refused for that file: it is a build and nothing of it is lost, so
+      `git -C <root>/lopebooks checkout -- notebooks/@tomlarkworthy_cloud-brain.html notebooks/@tomlarkworthy_cloud-brain.json`
+      and pull again (run on two scratch repositories on 2026-10-11, not in `lopebooks`; the record of
+      `notebook-commit-once-a-day`). Any other refusal of it is a stop: release, report.
+      Then the build, from your worktree, which is at the commit you will push:
+      `cd $W && bun tools/cloud-brain/build.ts --out tools/cloud-brain/.emitted/cloud-brain.html && tools/cloud-brain/notebook-backup.sh "$W/tools/cloud-brain/.emitted/cloud-brain.html"`.
+      The tool writes the build over `<root>/lopebooks/notebooks/@tomlarkworthy_cloud-brain.html`, where the
+      owner and a session read it, and commits it there only when the file's last commit is of an
+      earlier day. Its one line is `committed <sha> <day>`, `not due: …` or `same: …`
+      (the header of `notebook-backup.sh`). A backup commit of the tool's that was never pushed is taken back
+      by this run first, with `took back <sha>` on stderr, and the line is then of the commit before it. Since `notebook-commit-once-a-day` (the owner, 2026-10-11:
+      "we don't need to commit  @tomlarkworthy_cloud-brain.html all the time, that can be a once a day
+      thing for backups"); until then every landing that built committed it (the issue's count at about 22:30 CEST that day: 53 commits of an 8.7 MB file).
+      The notebook of a change is the build of its `lopecode-dev` commit (`build.ts --out`, the same bytes),
+      so nothing waits on the backup.
+      That file, and its commit in `lopebooks` once a day, is all a landing writes in the main checkout: one
+      file, written whole from committed seeds by the lock's holder.
+      Never `build.ts` in the main checkout: another session may have seeds open there, uncommitted
+      and with no lock, and that build writes them into the notebook (six such files
+      on 2026-10-10 23:29; one writer built them in and had to undo it).
+      The tests are not run again: the seeds are the ones you tested, and the build is of the version cb4 now runs.
     - Commit `seen.json` in the worktree: `git -C $W add tools/cloud-brain/seen.json`, then
       `git -C $W commit -m "<id>: seen.json after the deploy of <worker>"`.
       After `not due: …` or `same: …` there is no `lopebooks` commit,

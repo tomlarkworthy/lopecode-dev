@@ -162,6 +162,9 @@ read, not run from a worktree).
    `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted bun $W/tools/cloud-brain/brain.ts apply …`,
    then `redistil`, `saw` and the confirm of step 10; the deploy lock released; `git add
    tools/cloud-brain/seen.json` and a commit in `$W`.
+   (As built, `backup-committed-before-apply-answers`, 2026-10-13: `build.ts --out` and `notebook-backup.sh` come
+   after the apply has answered, not before the deploy lock. An apply put back on 2026-10-13 at 00:03:05 CEST had left
+   a backup of a build no Worker ran, committed in the main checkout's `lopebooks` and not pushed.)
 4. When the backup printed `committed <sha> <day>`: `git -C <root>/lopebooks push`, then in `$W`
    `git update-index --cacheinfo 160000,<sha>,lopebooks` and a commit. `git add lopebooks` there
    would record the link. Tried at 03:34 in this spec's worktree with another commit of

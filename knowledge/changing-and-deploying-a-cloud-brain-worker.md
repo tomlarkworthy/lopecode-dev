@@ -98,7 +98,10 @@ owner's works in one is his to say: the spec does not ask it ("the main checkout
    and a rebase on `origin/main`), `git push origin HEAD:main` there, `LOCK_TOKEN=<token> tools/cloud-brain/lock.sh release land <who>`.
    Nothing is committed, merged or pulled in the main checkout, and the worktree's branch `bm/<name>` is not pushed, so the
    work is still on `main`. With a deploy, `notebook-backup.sh` is run from the worktree with its build, and writes the main
-   checkout's `lopebooks` (the script's header; not run by the writer of this line); a change to `cloud-brain-dev` is committed in the worktree's clone and pushed by
+   checkout's `lopebooks` (the script's header; not run by the writer of this line), since 2026-10-13 after the apply has
+   answered and not before it, so that an apply that is put back leaves no backup of a build no Worker ran; a backup commit
+   of the tool's that was not pushed is undone by its next run, or by `notebook-backup.sh --take-back`
+   (`tools/cloud-brain/records/backup-committed-before-apply-answers.md`); a change to `cloud-brain-dev` is committed in the worktree's clone and pushed by
    `tools/cloud-brain/worktree.sh --push-dev <name>` before the push of `lopecode-dev`. Until then a landing pulled and merged
    its branch in the main checkout: 174 such merges in its reflog of 2026-10-11, and another session's uncommitted file there
    refused a writer's merge for 19 minutes (the spec, "What exists today" and "The reports gathered";

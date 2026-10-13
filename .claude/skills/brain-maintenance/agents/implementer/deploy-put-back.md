@@ -15,3 +15,7 @@ So: open the `run` address in a QA tab. When the test passes there, do not call 
 cluster's browser the one thing you suspect, with a token for `browser.extend browser.run`:
 `browser.run { url, expression }` gives the expression's value from a page there (60 s is $0.0015).
 
+A landing whose apply was put back makes no backup of the notebook in `lopebooks`, and one it finds there
+unpushed is undone with `notebook-backup.sh --take-back` (the page `landing`, step 10; since
+`backup-committed-before-apply-answers`, 2026-10-13).
+
