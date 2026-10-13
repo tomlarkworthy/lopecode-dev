@@ -181,7 +181,7 @@ a mean 1.73 calls a run of a spec writer, 21% of what such a run cost.
    $W/tools/cloud-brain/issue-wait.sh <token> <id> <seq> --left spec-review
    ```
    The first run writes a wait on the issue (`issue.wait`, 25 minutes), by which the queue's entry of the project has
-   `waiter` and the orchestrator sends you no round; then it reads `wakes?id=<id>` every 15 s. Run it only after
+   `waiter` and the orchestrator sends you no round; then it reads `wakes?id=<id>&seconds=25`, a call the tracker holds until the wait is due, 25 s at most. Run it only after
    the submit.
    - Exit 3, nothing printed: still at `spec-review` after 240 s. Run the same line again, up to 5 runs in all, the
      fifth with `--last`, which takes the wait off at its exit 3. Then report: the round, when it comes, is sent to

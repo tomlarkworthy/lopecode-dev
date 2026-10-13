@@ -1,8 +1,11 @@
 #!/bin/bash
 # issue-wait.sh <token> <id> <after seq> --when '<CEL>' [seconds] [--until <minutes>] [--last]
 # issue-wait.sh <token> <id> <after seq> --left <state> [seconds] [--until <minutes>] [--last] [--no-round]
-#   A wait of the tracker's record (issue.wait), then a read of the caller's due waits (issue.wakes?id=) every 15 s.
+#   A wait of the tracker's record (issue.wait), then reads of the caller's due waits (issue.wakes?id=), each a call the
+#   tracker holds up to 25 s and answers when the wait is due (&seconds=, part 4 of the plan; records/tr-4-held-read.md).
 #   Part 3 of plan/cloud-brain-tracker-trigger-rules.md; records/tr-2-issue-wait-over-wakes.md.
+#   A read begins 15 s or more after the one before it, so a tracker that answers at once is read every 15 s, as before
+#   part 4. After a held read that gave no answer the reads of that run are sent with no seconds, and stderr says so.
 #   The wait: key <role>/<id>/wait-<after seq>, <role> the token's name up to its first `-`; `until` the minutes from this
 #   run, 25 with no --until. The tracker keeps a key once, so the first run writes the wait and a later run of the same
 #   <id> and <after seq> writes nothing. <after seq> is the caller's: the seq of its own submit, or of the event it began
@@ -33,6 +36,7 @@
 # The wait for an event, `issue-wait.sh <token> <id> <after seq> [seconds]` with no flag, and `--filter` were taken out
 # with task 3 of that plan (records/tr-3-briefs-and-queue.md): the briefs name --left. A call with no flag is exit 64 with
 # nothing sent, and stderr has the line to run in its place.
+# ISSUE_WAIT_HOLD names another 25, a number from 0 to 25: with 0 no read is held, and each is `wakes?id=` alone every 15 s.
 # ISSUE_AS_SH names another issue-as.sh, ISSUE_WAIT_EVERY another 15 and ISSUE_WAIT_MOVE another 30: the test's. tests/tools/issue-wait.test.ts.
 D="$(cd "$(dirname "$0")" && pwd)"
 exec python3 -I -c '
@@ -61,6 +65,10 @@ if not mode:
     sys.exit(64)
 token, seconds = a[0], int(a[3]) if len(a) == 4 else 240
 every = float(os.environ.get("ISSUE_WAIT_EVERY") or 15); grace = float(os.environ.get("ISSUE_WAIT_MOVE") or 30)
+hold = os.environ.get("ISSUE_WAIT_HOLD")
+if hold is not None and hold != "" and (not re.fullmatch(r"[0-9]{1,2}(\.[0-9]{1,3})?", hold) or float(hold) > 25):
+    print("issue-wait.sh: ISSUE_WAIT_HOLD is a number from 0 to 25; nothing was sent", file=sys.stderr); sys.exit(64)
+hold = float(hold) if hold else 25.0
 tool = os.environ.get("ISSUE_AS_SH") or os.path.join(sys.argv[1], "issue-as.sh")
 mode = mode[0]; id, after = a[1], int(a[2]); role = token.split("-")[0]
 if mode in ("--work", "--remove") and (len(a) != 3 or len(opt) != 1): usage()
@@ -131,7 +139,8 @@ when = opt["--when"] if mode == "--when" else "issue.state != \"%s\"" % opt["--l
 wait = {"key": key("wait"), "id": id, "when": when, "until": int(time.time() * 1000) + int(opt.get("--until", 25)) * 60000}
 mine = None; calls = unread = 0; due = False
 while True:
-    if time.monotonic() >= start + seconds: break
+    began = time.monotonic()
+    if began >= start + seconds: break
     if mine is None:
         calls += 1; status, text = call("wait", wait); d = obj(text) or {}
         if status == 200 and isinstance(d.get("seq"), int):
@@ -142,8 +151,13 @@ while True:
             say("the wait was refused %s" % why(status, text)); sys.exit(64)
         else: unread += 1
     if mine is not None:
-        calls += 1; status, text = call("wakes?id=" + id); d = obj(text) if status == 200 else None
-        if not d or not isinstance(d.get("due"), list) or not isinstance(d.get("waiting"), list): unread += 1
+        # A held read: the tracker answers when the wait is due, or after the seconds, which end with the run.
+        held = ("%.3f" % min(hold, start + seconds - time.monotonic())).rstrip("0").rstrip(".") if hold else "0"
+        calls += 1; status, text = call("wakes?id=" + id + ("&seconds=" + held if held != "0" else "")); d = obj(text) if status == 200 else None
+        if not d or not isinstance(d.get("due"), list) or not isinstance(d.get("waiting"), list):
+            unread += 1
+            if held != "0":
+                hold = 0; say("a read held %s s gave no answer that was read %s: the reads of this run are sent with no seconds from here" % (held, why(status, text)))
         else:
             of = lambda l: next((e for e in l if isinstance(e, dict) and e.get("id") == id and e.get("seq") == mine), None)
             e = of(d["due"])
@@ -160,7 +174,7 @@ while True:
             elif not of(d["waiting"]):
                 say("the wait %s (event %d) is not live: it is past its until, was taken off, or another wait of this token on %s took its place" % (wait["key"], mine, id)); sys.exit(5)
             else: due = False
-    time.sleep(max(0.0, min(every, start + seconds - time.monotonic())))
+    time.sleep(max(0.0, min(began + every, start + seconds) - time.monotonic()))
 if due: say("the wait is due and the issue was not read (get?id=%s): run it again" % id)
 if unread: say("%d of %d calls gave no answer that was read" % (unread, calls))
 if "--last" in opt: remove()

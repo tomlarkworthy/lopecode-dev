@@ -53,7 +53,8 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
     in the foreground, with the Bash `timeout` at 280000, by its absolute path (from a worktree it
     reads the main checkout's tokens, as `issue-as.sh` beside it does). The first run writes the wait, key
     `impl/<id>/wait-<seq>`, `when` `issue.state != "in-review"`, for 25 minutes; then it reads
-    `wakes?id=<id>` every 15 s. A later run with the same `<seq>` writes nothing and reads the same wait, so
+    `wakes?id=<id>&seconds=25`, a call the tracker holds until the wait is due, 25 s at most (since `tr-4-held-read`,
+    2026-10-13; every 15 s until then). A later run with the same `<seq>` writes nothing and reads the same wait, so
     the seq and the state are the same in every run of one wait. Run it only after your submit: on an issue
     you are at work on, `--left in-review` is due at once and reads as a round sent back.
     - **Exit 3**, nothing printed: the issue is still at `in-review` after 240 s. Run the same line again, up

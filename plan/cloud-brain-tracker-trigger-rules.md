@@ -428,6 +428,15 @@ waits, and the fixture that does (`fx_chain` of `cloudflare-iac.ojs`, `?wait=`) 
 task's first act on cb4 after its deploy is that probe. When a held call is cut, the tool is
 landed without `seconds` and the record says what cut it.
 
+(As built, `tr-4-held-read`, 2026-10-13: the probe held. A call of `wakes?id=…&seconds=25` through the kernel and the
+core of cb4 answered 200 after 25.73 s with `due: []`, and one whose wait was made due 5 s in answered after 6.34 s, so
+the tool sends `seconds`. Four things are not as above. The pauses are twelve of 2 s and one of 1 s, with one read of
+the head after each, and the issue is read again at each read that finds the head moved. A call is held only while the
+caller has a wait on the issue that is not due: with none, or with one that is due, it answers at once. `seconds` over
+25, or not a number written in digits, is 400, and so is `seconds` over 0 with no `id`. The tool's next read begins
+when the one before it has answered, and after a held read with no answer the reads of that run are sent with no
+`seconds`; `ISSUE_WAIT_HOLD=0` sends none at all. The record.)
+
 ## What exists today for the same job, and why it is not extended
 
 `agents/spec.md` gained this item while this spec was written (it came with the rebase of the

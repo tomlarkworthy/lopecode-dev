@@ -6,6 +6,8 @@
 //   ISSUE_WAIT_SH=/path/to/another/issue-wait.sh bun test …
 // No call leaves the machine: the tool calls a stand-in for issue-as.sh (ISSUE_AS_SH), and ISSUE_WAIT_EVERY makes its
 // 15 s short. IMPLEMENTER=, SPEC_BRIEF= and SKILL= read another copy of the three texts.
+// tr-4-held-read (part 4 of the plan): a read is sent with &seconds=. The tests from before it run with ISSUE_WAIT_HOLD=0,
+// the tool with no held read, and the ones of the held read are the last four before the briefs'.
 import { test, expect } from "bun:test";
 import { inFull, core } from "./implementer-brief";
 import { readFileSync, writeFileSync, mkdtempSync, chmodSync, existsSync } from "node:fs";
@@ -21,9 +23,10 @@ const moved = (seq: number, id: string, move: string, to: string) =>
 const commented = (seq: number, id: string) => ({ seq, type: "commented", id, body: "cost {}", by: by("orch-aaaaaa") });
 const lines = (s: string) => s.split("\n").filter(Boolean);
 
-const wait = (f: { sh: string }, args: string[], every = "0.05") => {
+const wait = (f: { sh: string }, args: string[], every = "0.05", hold: string | null = "0") => {
   const t = Date.now();
-  const p = Bun.spawnSync(["bash", script, ...args], { env: { ...process.env, ISSUE_AS_SH: f.sh, ISSUE_WAIT_EVERY: every } });
+  const { ISSUE_WAIT_HOLD: _, ...env } = process.env;
+  const p = Bun.spawnSync(["bash", script, ...args], { env: { ...env, ISSUE_AS_SH: f.sh, ISSUE_WAIT_EVERY: every, ...(hold === null ? {} : { ISSUE_WAIT_HOLD: hold }) } });
   return { code: p.exitCode, out: lines(p.stdout.toString()), err: p.stderr.toString(), ms: Date.now() - t };
 };
 
@@ -31,9 +34,10 @@ const wait = (f: { sh: string }, args: string[], every = "0.05") => {
 // A stand-in for issue-as.sh that keeps what the tracker keeps of one issue in s.json beside it: the keys it has
 // answered, the one wait of the caller, the issue's state and events. `moves` changes the issue at the nth read of
 // wakes, `fail` answers the next n calls of a method 502, `status` answers every call of a method that status,
-// `foreign` are keys another actor wrote. It knows the `when` of two shapes, issue.state != "S" and issue.state == "S".
+// `foreign` are keys another actor wrote, and with `holds` a read of wakes with seconds, of a wait that is not due, is
+// answered after those seconds. It knows the `when` of two shapes, issue.state != "S" and issue.state == "S".
 type Tracker = { issue: { id: string; state: string }; events: unknown[]; keys?: Record<string, any>; wait?: any; seq?: number;
-  moves?: { wakes: number; state: string; events?: unknown[] }[]; fail?: Record<string, number>; status?: Record<string, number>; foreign?: string[]; exit?: number };
+  moves?: { wakes: number; state: string; events?: unknown[] }[]; holds?: boolean; fail?: Record<string, number>; status?: Record<string, number>; foreign?: string[]; exit?: number };
 const tracker = (t: Tracker) => {
   const dir = mkdtempSync(join(tmpdir(), "issue-wait-tr-"));
   const file = join(dir, "s.json");
@@ -80,6 +84,8 @@ if method == "wakes":
         e = {x: w[x] for x in ("when", "until", "note", "seq") if x in w}; e["id"] = s["issue"]["id"]
         if due(w): a["due"].append(dict(e, since=5, issue={"state": s["issue"]["state"], "closed": False, "last": {"move": "", "at": 0}, "labels": []}))
         else: a["waiting"].append(e)
+    held = re.search(r"[?&]seconds=([0-9.]+)", call)
+    if held and s.get("holds") and a["waiting"]: time.sleep(float(held.group(1)))
     out(200, a)
 if method == "get": out(200, {"issue": s["issue"], "children": [], "events": s["events"]})
 out(501, {"error": "MethodNotImplemented"})
@@ -334,6 +340,59 @@ test("a token that is not kept, and a call that is refused 401 or 403, are exit 
   const read = inReview({ status: { wakes: 401 } });
   expect(wait(read, [T, "mine", "7", "--left", "in-review", "20"]).code).toBe(2);
   expect(read.calls().length).toBe(2);
+});
+
+// tr-4-held-read, part 4 of the plan: the read is a call the tracker holds.
+test("a read is sent with seconds=25, the most the tracker holds, when the run has that long left; ISSUE_WAIT_HOLD names another, and 0 none", () => {
+  const due = () => inReview({ moves: [{ wakes: 1, state: "done" }] });
+  const first = (hold: string | null) => { const f = due(); const r = wait(f, [T, "mine", "7", "--left", "in-review"], "0.05", hold); return [r.code, f.sent().map((c) => c[0])]; };
+  expect(first(null)).toEqual([0, ["wait", "wakes?id=mine&seconds=25", "get?id=mine", "wait"]]);
+  expect(first("")).toEqual([0, ["wait", "wakes?id=mine&seconds=25", "get?id=mine", "wait"]]);
+  expect(first("7.5")).toEqual([0, ["wait", "wakes?id=mine&seconds=7.5", "get?id=mine", "wait"]]);
+  expect(first("0")).toEqual([0, ["wait", "wakes?id=mine", "get?id=mine", "wait"]]);
+  for (const bad of ["26", "25.001", "-1", "x", "1e1", "5s"]) {
+    const f = due(); const r = wait(f, [T, "mine", "7", "--left", "in-review"], "0.05", bad);
+    expect([bad, r.code, r.out, r.err, f.calls()]).toEqual([bad, 64, [], "issue-wait.sh: ISSUE_WAIT_HOLD is a number from 0 to 25; nothing was sent\n", []]);
+  }
+});
+
+test("held reads follow one another with no pause between, each for what is left of the run at most, and a wait made due is exit 0 at that read", () => {
+  // A tracker that holds: 1 s of run with reads held 0.3 s is 4 reads or 5, where a read every 0.05 s would be 15 or more.
+  const f = inReview({ holds: true });
+  const r = wait(f, [T, "mine", "7", "--left", "in-review", "1"], "0.05", "0.3");
+  expect([r.code, r.out, r.err]).toEqual([3, [], ""]);
+  const reads = f.sent().slice(1).map((c) => c[0]);
+  expect(reads.every((c) => /^wakes\?id=mine&seconds=0(\.\d{1,3})?$/.test(c))).toBe(true);
+  expect(reads.map((c) => Number(c.split("seconds=")[1])).every((n) => n > 0 && n <= 0.3)).toBe(true);
+  expect(reads.slice(0, 2)).toEqual(["wakes?id=mine&seconds=0.3", "wakes?id=mine&seconds=0.3"]);
+  expect([reads.length >= 3, reads.length <= 6]).toEqual([true, true]);
+  expect(r.ms).toBeLessThan(5000);
+  // The second read is the one at which the issue has moved: exit 0 with the entry, then the issue and the remove.
+  const g = inReview({ holds: true, moves: [{ wakes: 2, state: "done", events: [reviewed(9, "mine", "pass")] }] });
+  const w = wait(g, [T, "mine", "7", "--left", "in-review", "20"], "0.05", "0.3");
+  expect([w.code, w.out.length, JSON.parse(w.out[1]).verdict, w.err]).toEqual([0, 2, "pass", ""]);
+  expect(g.sent().map((c) => c[0])).toEqual(["wait", "wakes?id=mine&seconds=0.3", "wakes?id=mine&seconds=0.3", "get?id=mine", "wait"]);
+});
+
+test("a tracker that answers a read with seconds at once is read every 15 s, as before the held read", () => {
+  const f = inReview();
+  const r = wait(f, [T, "mine", "7", "--left", "in-review", "1"], "0.3", "25");
+  expect([r.code, r.out, r.err]).toEqual([3, [], ""]);
+  const reads = f.sent().slice(1).map((c) => c[0]);
+  expect(reads.every((c) => /^wakes\?id=mine&seconds=0(\.\d{1,3})?$/.test(c))).toBe(true);
+  expect([reads.length >= 3, reads.length <= 5]).toEqual([true, true]);
+});
+
+test("a held read that gave no answer: the reads after it in that run are sent with no seconds, and stderr says so once", () => {
+  const f = inReview({ fail: { wakes: 1 } });
+  const r = wait(f, [T, "mine", "7", "--left", "in-review", "1"], "0.2", "0.5");
+  expect([r.code, r.out]).toEqual([3, []]);
+  expect(r.err).toMatch(/^issue-wait\.sh: a read held 0\.5 s gave no answer that was read \[502\] UpstreamFailed: the reads of this run are sent with no seconds from here\nissue-wait\.sh: 1 of \d+ calls gave no answer that was read\n$/);
+  const reads = f.sent().slice(1).map((c) => c[0]);
+  expect([reads[0], reads.length > 2, reads.slice(1).every((c) => c === "wakes?id=mine")]).toEqual(["wakes?id=mine&seconds=0.5", true, true]);
+  // The next run holds again: the tool keeps nothing between two runs.
+  const again = wait(f, [T, "mine", "7", "--left", "in-review", "1"], "0.2", "0.5");
+  expect([again.code, again.err, f.sent().at(-1)![0].startsWith("wakes?id=mine&seconds=0")]).toEqual([3, "", true]);
 });
 
 const flat = (env: string | undefined, path: string) => readFileSync(env || resolve(import.meta.dir, path), "utf8").replace(/\s+/g, " ");
