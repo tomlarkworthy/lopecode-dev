@@ -76,8 +76,8 @@ answer of cb4", from the run that emitted.
 | (the design: kept 600 s) | `test_usage_keeps_an_answer_600_s_under_its_two_dates` |
 | (the design: a refusal is passed on) | `test_usage_passes_on_cloudflares_refusal_and_names_the_mint_when_it_may_be_the_cause` |
 
-Each cell fails on a change of the line it holds. Five builds with one line changed, 2026-10-13 before 06:48 CEST,
-each run with `tab-tests.ts` and then taken back:
+Each cell fails on a change of the line it holds. Six builds with one line changed, 2026-10-13, five before 06:48 CEST
+and the sixth at 06:57, each run with `tab-tests.ts` and then taken back:
 
 ```
 no check of the days                       4 of 5  test_usage_sends_two_fixed_gets_and_of_a_caller_only_two_days
@@ -93,9 +93,11 @@ no catch of a read that throws (06:57)    4 of 5  test_usage_passes_on_cloudflar
 
 ## Not tried, not done
 
-- `cloud-brain-dev/test.ts` (the tests with no browser) was not run: `bun test.ts brain-x-usage --with FILE` and
+- `cloud-brain-dev/test.ts` (the tests with no browser) was not run before the deploy: `bun test.ts brain-x-usage --with FILE` and
   `bun test.ts @tomlarkworthy/brain-usage --with FILE` both answered `--with takes a Worker of one module, or the
   module's name`. It names a Worker by what `sync.ts` read from cb4, and this one was not deployed.
+  After the deploy it runs: the reviewer's `bun sync.ts … && bun test.ts brain-x-usage` at 07:05 CEST that day ended
+  `brain-x-usage @tomlarkworthy/brain-usage ca6839f91025: 5 passed, 0 failed, 0 need a browser`.
 - `verify-run.ts brain-x-usage --shell … --times 20` was not run before the deploy, for the same reason: the
   deployer has no run address for a Worker it does not run. The three runs of `tab-tests.ts` stand in for it.
 - No row for the service in `tools/cloud-brain/cloud-brain-docs.ojs` (the table of services on the page). The
