@@ -1,6 +1,6 @@
 # The overseer's brief asks for a read before a comment that says an ask of the owner's was not answered (`overseer-says-unanswered-without-a-read`)
 
-Round 1, by a writer of the issue loop on 2026-10-13, in a worktree made at `5e424746`. Four
+Round 1, by a writer of the issue loop on 2026-10-13, in a worktree made at `5e424746`. Three
 sentences and a case were added to one paragraph of
 `.claude/skills/brain-maintenance/agents/overseer.md`, under "Feedback that is due", with a test
 file. No seed, no tool, no deploy.
@@ -43,8 +43,9 @@ three places:
   body names the place in its second paragraph ("anchored in the cell `healthView` of
   `@tomlarkworthy/cloud-brain` at the text \"Health\""). In a note filed from the page
   (`fb-a2oogpkdjb`, `fb-a2b5yudl8s`) the sentence "Annotated on the Brain's page: module …, cell …,
-  at the text …" stands before the anchor's JSON. The brief has "the note's body names the cell and
-  the text, in the sentence before the anchor when it was filed from the page".
+  at the text …" stands before the anchor's JSON, and the second of the two has no cell in it
+  (`"cell":null` in its anchor). The brief has "the note's body names the text, and the cell when it
+  has one, in the sentence before the anchor when it was filed from the page".
 - **The case.** The issue has "had not looked" and "the panel had been off the page for a day". The
   brief has "had not seen the page", which is what comment 4271 says, and "the panel had left the
   page on 2026-10-11": `git log -1 --format=%ci 759325a8` prints `2026-10-11 21:50:18 +0200`, and
