@@ -48,7 +48,8 @@
 //         `running` event, how `resumed`, key cost/<id>/<role>/<round>/<token>/resumed-<at>. <at> is the seq of the
 //         last `rework` or `respec` move, or of a comment keyed orch/<id>/verdict-round-… that begins `go-on` when
 //         that is the later. A run that still runs: exit 3. Anything else is "A dead writer": the token ended
-//         (not a role's token, which is the owner's), then `back`.
+//         (not a role's token, which is the owner's), then `back`, key orch/<id>/back/<token>/<seq of the issue's
+//         last move> (`no-token` with no token). A key the tracker has (`duplicate: true`) is exit 1: no `back` was made.
 // dead    How many runs of a role and round died: the `cost` events of get?id= with the outcome `stopped` or
 //         `no-submit`. `runs` keeps one run a role and round and cannot say.
 //
@@ -91,6 +92,12 @@ export const deadRuns = (events: Ev[], role: string, round: number) =>
 export const resumeAt = (id: string, events: Ev[]): number =>
   Math.max(0, ...moved(events, "rework", "respec").map((e) => e.seq),
     ...events.filter((e) => e.type === "commented" && String(e.key || "").startsWith(`orch/${id}/verdict-round-`) && /^go-on\b/.test(e.body || "")).map((e) => e.seq));
+
+// The key of the `back` of "A dead writer". It names the dead run by its token, and the last move of the issue: a
+// `back` and the next writer's `start` add no `rework`, and each `start` is a move, so no two writers that died in one
+// round share a key, nor two runs of one token. The same call sent again is the same key.
+export const backKey = (id: string, token: string | undefined, events: Ev[]) =>
+  `orch/${id}/back/${token || "no-token"}/${Math.max(0, ...events.filter((e) => e.type === "moved").map((e) => e.seq))}`;
 
 // What a run left, read from the issue. `returned`: its process gave a result line; `error`: that result was an error.
 // Of a first run every event of its token is the run's; of a resumed round the events after the one it was sent for.
@@ -356,8 +363,12 @@ async function resume(args: string[]) {
     // "A dead writer": its token ended (a role's token is the owner's), then `back`. The issue is a start at the next read.
     const named = run && /^(impl|dig|spec)-[0-9a-f]{6}$/.test(run.token || "") ? run.token : "";
     const revoked = named && !(file && file.made === false) ? brain("agent-token", "revoke", named) : null;
-    const b = write(me, "move", { key: `orch/${id}/back-${at}`, id, to: role === "spec-writer" ? "open" : "ready", reason: `A dead writer: the round of event ${at} cannot be sent to the ${role} that started it, since ${why}. ${revoked ? `Its token ${named} is ended. ` : ""}The next writer makes its own start.`, refs: [] });
+    const key = backKey(id, run && run.token, events);
+    const b = write(me, "move", { key, id, to: role === "spec-writer" ? "open" : "ready", reason: `A dead writer: the round of event ${at} cannot be sent to the ${role} that started it, since ${why}. ${revoked ? `Its token ${named} is ended. ` : ""}The next writer makes its own start.`, refs: [] });
+    const ended = revoked ? ` The token ${named} is ended.` : "";
     if (!b.ok) stop(1, `back was not made: ${b.status} ${b.said || ""}`);
+    // A key the tracker has is answered 200 and nothing is written: the event of that seq is not this `back`.
+    if (b.duplicate) stop(1, `back was not made: the tracker has the key ${key} at event ${b.seq} and wrote nothing; ${id} is at ${read(me, `get?id=${id}`).issue.state}.${ended}`);
     return say({ dead: id, role, why, token: revoked ? `${named} ended` : "none ended", back: b.seq });
   }
   const topic = issue.parent || id, tEvents: Ev[] = topic === id ? events : (as(me, `get?id=${topic}`).data || {}).events || [];

@@ -523,7 +523,7 @@ test("resume, a dead writer: a token that no longer reads the tracker is ended a
   expect(r.code).toBe(0);
   const back = events("dw", "moved").pop()!;
   expect(r.json).toEqual({ dead: "dw", role: "implementer", why: `its token ${token} no longer reads the tracker`, token: `${token} ended`, back: back.seq });
-  expect([back.key, back.move, back.to, back.by.holder]).toEqual([`orch/dw/back-${rework.seq}`, "back", "ready", "secret:" + ME]);
+  expect([back.key, back.move, back.to, back.by.holder]).toEqual([`orch/dw/back/${token}/${rework.seq}`, "back", "ready", "secret:" + ME]);
   expect(back.reason).toContain(`its token ${token} no longer reads the tracker`);
   expect(log("brain").pop()).toBe(`agent-token revoke ${token}`);
   expect(log("agent")).toEqual([]);
@@ -536,7 +536,7 @@ test("resume, a dead writer: a token that no longer reads the tracker is ended a
   T.issues.get("sp")!.issue.runs = [{ role: "spec-writer", round: 1, how: "fresh", outcome: "in-review", token: "spec-abcdef", session: "s1", agent: "elsewhere:77", seq: 1 }];
   const o = await cli(["resume", "sp"]);
   expect(o.json).toMatchObject({ dead: "sp", role: "spec-writer", why: "its last run is another machine's (elsewhere:77)", token: "spec-abcdef ended" });
-  expect(events("sp", "moved").pop()).toMatchObject({ key: `orch/sp/back-${respec.seq}`, to: "open" });
+  expect(events("sp", "moved").pop()).toMatchObject({ key: `orch/sp/back/spec-abcdef/${respec.seq}`, to: "open" });
   // One that still runs there is left.
   open("far", { state: "in-progress" });
   ev("far", "rev-cccccc", { type: "moved", move: "rework", to: "in-progress" });
@@ -544,6 +544,58 @@ test("resume, a dead writer: a token that no longer reads the tracker is ended a
   const far = await cli(["resume", "far"]);
   expect(far.code).toBe(3);
   expect(events("far", "moved").length).toBe(1);
+});
+
+test("resume, a second dead writer of one rework: its `back` has a key of its own, and a key the tracker has is not a `back` that was made", async () => {
+  fresh();
+  open("d2", { state: "in-progress" });
+  const rework = ev("d2", "rev-cccccc", { type: "moved", move: "rework", to: "in-progress" });
+  const state = () => T.issues.get("d2")!.issue.state;
+  const backs = () => events("d2", "moved").filter((e) => e.move === "back");
+  // A run of round 2 that ended on another machine, and the next writer's own `start`: no `rework` is added.
+  const dies = (token: string, pid: number) => { T.issues.get("d2")!.issue.runs = [{ role: "implementer", round: 2, how: "fresh", outcome: "stopped", token, session: "s" + pid, agent: "elsewhere:" + pid, seq: T.seq }]; };
+  const starts = (token: string) => { const e = ev("d2", token, { type: "moved", move: "start", from: "ready", to: "in-progress" }); T.issues.get("d2")!.issue.state = "in-progress"; return e; };
+  dies("impl-abcdef", 1);
+  const one = await cli(["resume", "d2"]);
+  expect(one.code).toBe(0);
+  expect(backs().map((e) => e.key)).toEqual([`orch/d2/back/impl-abcdef/${rework.seq}`]);
+  expect(one.json).toMatchObject({ dead: "d2", token: "impl-abcdef ended", back: backs()[0].seq });
+  expect(state()).toBe("ready");
+  // The second writer of that rework dies too: another token, the same last `rework`.
+  const second = starts("impl-fedcba");
+  dies("impl-fedcba", 2);
+  const two = await cli(["resume", "d2"]);
+  expect(two.code).toBe(0);
+  expect(backs().map((e) => e.key)).toEqual([`orch/d2/back/impl-abcdef/${rework.seq}`, `orch/d2/back/impl-fedcba/${second.seq}`]);
+  expect(two.json).toMatchObject({ dead: "d2", token: "impl-fedcba ended", back: backs()[1].seq });
+  expect(backs()[1].reason).toContain(`the round of event ${rework.seq}`);
+  expect(state()).toBe("ready");
+  // A third with the token of the second (one `start --token` gave again): the key has the seq of its `start`.
+  const third = starts("impl-fedcba");
+  dies("impl-fedcba", 3);
+  const three = await cli(["resume", "d2"]);
+  expect(three.code).toBe(0);
+  expect(backs().map((e) => e.key).pop()).toBe(`orch/d2/back/impl-fedcba/${third.seq}`);
+  expect(three.json.back).toBe(backs()[2].seq);
+  expect(state()).toBe("ready");
+  // No run in the record at all, twice.
+  T.issues.get("d2")!.issue.runs = [];
+  const fourth = starts("impl-aaaaaa");
+  expect((await cli(["resume", "d2"])).json).toMatchObject({ why: "it has no run of that role in the record", token: "none ended", back: backs()[3].seq });
+  const fifth = starts("impl-aaaaaa");
+  expect((await cli(["resume", "d2"])).json.back).toBe(backs()[4].seq);
+  expect(backs().slice(3).map((e) => e.key)).toEqual([`orch/d2/back/no-token/${fourth.seq}`, `orch/d2/back/no-token/${fifth.seq}`]);
+  // A key the tracker has: it answers 200 with `duplicate: true` and writes nothing. That is exit 1, and no `back` is printed.
+  const sixth = starts("impl-bbbbbb");
+  dies("impl-bbbbbb", 6);
+  T.keys.set(`orch/d2/back/impl-bbbbbb/${sixth.seq}`, 103);
+  const moves = events("d2", "moved").length;
+  const dup = await cli(["resume", "d2"]);
+  expect(dup.code).toBe(1);
+  expect(dup.out).toBe("");
+  expect(dup.err).toContain(`back was not made: the tracker has the key orch/d2/back/impl-bbbbbb/${sixth.seq} at event 103 and wrote nothing; d2 is at in-progress. The token impl-bbbbbb is ended`);
+  expect(events("d2", "moved").length).toBe(moves);
+  expect(state()).toBe("in-progress");
 });
 
 test("with no LOOP_TOKEN nothing is read or sent; a role the queue does not give is asked for; a token that was not made starts nothing", async () => {
