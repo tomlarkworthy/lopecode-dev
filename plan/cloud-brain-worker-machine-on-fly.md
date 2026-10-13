@@ -280,7 +280,8 @@ The script itself never exits (its line 4; lines 35 and 5 since `asks-orchestrat
 2026-10-12, which added a line to the header and a line to the filter; lines 38 and 7 since
 `watch-prints-an-outside-sessions-comment`, the same day, which added two to the header and one to the filter; lines 59 and 7 since `wait-says-what-runs-and-until-when`, that day,
 which added the read of `list?label=asks-orchestrator` beside the read of `sync`, also every 30 s; lines 84 and 5 since
-`bk-6-skill-watch-and-stats`, 2026-10-13, which added a third read, of `queue`, at the same times); the `Monitor`'s `timeout_ms` ends it after 30 minutes,
+`bk-6-skill-watch-and-stats`, 2026-10-13, which added a third read, of `queue`, at the same times; lines 111 and 5 since
+`tr-2-issue-wait-over-wakes`, that day, which added a fourth, of `wakes`); the `Monitor`'s `timeout_ms` ends it after 30 minutes,
 and the orchestrator arms it again "in the same turn".
 
 T4 gives the watch a flag, `--hold <who>` (its second and third arguments are taken: `<token>

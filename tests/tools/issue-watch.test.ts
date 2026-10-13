@@ -380,6 +380,79 @@ echo " [200]" >&2
   expect(calls.filter((c) => c === "queue").length).toBeGreaterThan(1);
 });
 
+// tr-2-issue-wait-over-wakes, part 3 of plan/cloud-brain-tracker-trigger-rules.md: `--wakes <file>` reads one answer of
+// issue.wakes and prints `WAKE <id> <when>` for each due wait that was not due in the answer before.
+const dueWait = (id: string, seq: number, when = 'issue.state != "awaiting-approval"', more: any = {}) =>
+  ({ id, when, until: 9e12, seq, since: 5, issue: { state: "approved", closed: false, last: { move: "approve", at: 5 }, labels: [] }, ...more });
+const wakesOf = (file: string, a: unknown) => {
+  const p = Bun.spawnSync(["bash", script, "--wakes", file], { stdin: Buffer.from(typeof a === "string" ? a : JSON.stringify(a)) });
+  return { code: p.exitCode, lines: p.stdout.toString().split("\n").filter(Boolean) };
+};
+const wakes = (due: unknown[], waiting: unknown[] = []) => ({ seq: 9, now: 5, due, waiting });
+
+test("--wakes: a due wait is one line WAKE, once while it stays due; a wait that is not due is none; a new wait of the same issue is a line", () => {
+  const file = seenFile();
+  const first = wakesOf(file, wakes([dueWait("a", 11), dueWait("b", 12, "issue.after.open == 0")], [{ id: "c", when: "issue.children.work == 0", until: 9e12, seq: 13 }]));
+  expect(first.code).toBe(0);
+  expect(first.lines).toEqual(['WAKE a issue.state != "awaiting-approval"', "WAKE b issue.after.open == 0"]);
+  expect(wakesOf(file, wakes([dueWait("a", 11), dueWait("b", 12)])).lines).toEqual([]);
+  expect(readFileSync(file, "utf8")).toBe("a 11\nb 12");
+  // c becomes due; a's wait was written again (another seq); b's is no longer due, then due again.
+  expect(wakesOf(file, wakes([dueWait("a", 20), dueWait("c", 13, "issue.children.work == 0")])).lines).toEqual(['WAKE a issue.state != "awaiting-approval"', "WAKE c issue.children.work == 0"]);
+  expect(wakesOf(file, wakes([dueWait("a", 20), dueWait("b", 12, "issue.after.open == 0"), dueWait("c", 13)])).lines).toEqual(["WAKE b issue.after.open == 0"]);
+});
+
+test("--wakes: an answer that is not one of wakes prints nothing and leaves what is kept; a `when` is one line; an entry with no id or seq is no line", () => {
+  const file = seenFile();
+  wakesOf(file, wakes([dueWait("a", 11)]));
+  for (const bad of ["not json", "", { error: "MethodNotImplemented" }, { due: { a: 1 } }, { due: "a 11" }, { waiting: [] }, [dueWait("z", 1)], null]) {
+    const r = wakesOf(file, bad);
+    expect([JSON.stringify(bad), r.code, r.lines]).toEqual([JSON.stringify(bad), 0, []]);
+    expect(readFileSync(file, "utf8")).toBe("a 11");
+  }
+  const r = wakesOf(file, wakes([dueWait("a", 11), dueWait("b", 12, 'issue.state != "spec" &&\n  issue.closed'), { when: "true", seq: 3 }, { id: "n", when: "true" }, { id: "t", seq: true, when: "true" },
+    { id: 7, seq: 4 }, "a 11", null, dueWait("d", 14, undefined as any, { when: null })]));
+  expect(r.lines).toEqual(['WAKE b issue.state != "spec" && issue.closed', "WAKE d "]);
+  expect(wakesOf(file, wakes([])).lines).toEqual([]);
+  expect(wakesOf(file, wakes([dueWait("a", 11)])).lines).toEqual(['WAKE a issue.state != "awaiting-approval"']);
+  expect(Bun.spawnSync(["bash", script, "--wakes"], { stdin: Buffer.from(JSON.stringify(wakes([dueWait("a", 11)]))) }).exitCode).not.toBe(0);
+});
+
+test("the watch's loop asks wakes with no id at each read and prints a wait that stays due once", () => {
+  const dir = mkdtempSync(join(tmpdir(), "issue-watch-wakes-"));
+  const sh = join(dir, "issue-as.sh");
+  writeFileSync(sh, `#!/bin/bash
+echo "$1 $2" >> "${dir}/calls.log"
+case "$2" in
+  sync*) echo '{"events":[]}';;
+  list*) echo '{"issues":[]}';;
+  queue) echo '{"seq":9,"now":5,"more":false,"waiting":[],"queue":[]}';;
+  wakes) echo '{"seq":9,"now":5,"waiting":[],"due":[{"id":"a","when":"issue.state != \\"awaiting-approval\\"","until":9000000000000,"seq":11,"since":5,"issue":{"state":"approved"}}]}';;
+esac
+echo " [200]" >&2
+`);
+  chmodSync(sh, 0o755);
+  const p = Bun.spawnSync(["bash", script, me, "0", "1"], { env: { ...process.env, ISSUE_AS_SH: sh }, timeout: 4000 });
+  expect(p.stdout.toString().split("\n").filter(Boolean)).toEqual(['WAKE a issue.state != "awaiting-approval"']);
+  const calls = readFileSync(join(dir, "calls.log"), "utf8").split("\n").filter(Boolean);
+  expect(calls.filter((c) => c === `${me} wakes`).length).toBeGreaterThan(1);
+  expect(calls.some((c) => c.includes("wakes?"))).toBe(false);
+});
+
+// SKILL=, FLY_PLAN= and TRIGGER_PLAN= read another copy of the three texts.
+test("SKILL.md, step 8, has the WAKE line; the Fly plan cites the watch's two lines where they are; the spec says what was built", () => {
+  const read = (env: string | undefined, path: string) => readFileSync(env || resolve(import.meta.dir, "../..", path), "utf8").replace(/\s+/g, " ");
+  const skill = read(process.env.SKILL, ".claude/skills/brain-maintenance/SKILL.md");
+  expect(skill).toMatch(/issue-watch\.sh <your token>.*it also reads `wakes` at each read and prints `WAKE <id> <when>` for each wait of your token that is due and was not due in the answer before/);
+  // The last pair of lines that plan names is where the script has its sleep and its "never exits" now.
+  const cited = [...read(process.env.FLY_PLAN, "plan/cloud-brain-worker-machine-on-fly.md").matchAll(/lines (\d+) and (\d+) since `([a-z0-9-]+)`/g)].at(-1)!;
+  const sh = readFileSync(script, "utf8").split("\n");
+  expect([cited[3], sh[Number(cited[1]) - 1], sh[Number(cited[2]) - 1].includes("never exits")]).toEqual(["tr-2-issue-wait-over-wakes", '  sleep "$every"', true]);
+  const plan = read(process.env.TRIGGER_PLAN, "plan/cloud-brain-tracker-trigger-rules.md");
+  expect(plan).toMatch(/\(As built, `tr-2-issue-wait-over-wakes`, 2026-10-13: `--work` is a read and a write/);
+  expect(plan).toMatch(/\(As built, `tr-2-issue-wait-over-wakes`, 2026-10-13: the read is `wakes` with no `id`/);
+});
+
 // bk-6-skill-watch-and-stats, R6: the texts beside step 3. SPEC_BRIEF=, IMPLEMENTER= and CLUSTER_GUIDE= read another copy.
 test("agents/spec.md has each task name what it is after; the implementer's brief and the knowledge doc name the queue", () => {
   const read = (env: string | undefined, path: string) => readFileSync(env || resolve(import.meta.dir, "../..", path), "utf8").replace(/\s+/g, " ");

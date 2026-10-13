@@ -9,10 +9,16 @@
 # `promote`, and `review`.
 # With each read it also reads list?label=asks-orchestrator and prints `<seq> asks-still <id> <N> min …` for an issue that has
 # the label and whose updated_at is 5 minutes old or more, once at each 5 minutes: an ask this session did not answer.
+# With each read it also reads wakes (issue.wakes with no id: the waits of this token that are due, on every issue) and
+# prints `WAKE <id> <when>` for a due wait that was not due in the answer before: once while it stays due, and again when it
+# is due after an answer without it. A session that wants to look at an issue again when something is true of it writes
+# a wait (`issue-as.sh <token> wait '{"key":…,"id":…,"when":…,"until":…}'`). Part 3 of plan/cloud-brain-tracker-trigger-rules.md.
 # Usage: issue-watch.sh <token> [after-seq] [seconds]   (after-seq defaults to the tracker's last)
 #        issue-watch.sh --filter <token> < an answer of sync?after=   (the lines of that answer, then LAST <seq>; no call)
 #        issue-watch.sh --still <now, ms> < an answer of list?label=asks-orchestrator   (the asks-still lines of it; no call)
 #        issue-watch.sh --queue <file> < an answer of queue   (the lines of what is not in <file>, which is then written
+#                                                              again from the answer; no call)
+#        issue-watch.sh --wakes <file> < an answer of wakes   (the WAKE lines of what is not in <file>, which is then written
 #                                                              again from the answer; no call)
 # ISSUE_AS_SH names another issue-as.sh: the test's.
 cd "$(dirname "$0")/../.." || exit 70
@@ -63,12 +69,32 @@ t=sys.argv[1]+".new"
 with open(t,"w",encoding="utf-8") as f: f.write("\n".join(now))
 os.replace(t,sys.argv[1])' "$@"
 }
+# An answer that is not one of wakes prints nothing and leaves the file as it was. A wait is known by its issue and the seq of its event.
+wakes() {
+  python3 -I -c '
+import sys,json,os
+try: due=json.load(sys.stdin)["due"]
+except Exception: sys.exit()
+if not isinstance(due,list): sys.exit()
+try: seen=set(open(sys.argv[1],encoding="utf-8").read().split("\n"))
+except OSError: seen=set()
+now=[]
+for e in due:
+    if not isinstance(e,dict) or not isinstance(e.get("id"),str) or isinstance(e.get("seq"),bool) or not isinstance(e.get("seq"),int): continue
+    k=e["id"]+" "+str(e["seq"]); now.append(k)
+    if k not in seen: print("WAKE",e["id"]," ".join(str(e.get("when") or "").split())[:500],flush=True)
+t=sys.argv[1]+".new"
+with open(t,"w",encoding="utf-8") as f: f.write("\n".join(now))
+os.replace(t,sys.argv[1])' "$@"
+}
 if [ "$1" = "--filter" ]; then filter "${2:?token}"; exit; fi
 if [ "$1" = "--still" ]; then still "${2:?now}"; exit; fi
 if [ "$1" = "--queue" ]; then queue "${2:?file}"; exit; fi
+if [ "$1" = "--wakes" ]; then wakes "${2:?file}"; exit; fi
 token=${1:?token}; last=${2:-}; every=${3:-30}; as=${ISSUE_AS_SH:-tools/cloud-brain/issue-as.sh}; told="|"
 seen=$(mktemp "${TMPDIR:-/tmp}/issue-watch.XXXXXX") || exit 70
-trap 'rm -f "$seen" "$seen.new"' EXIT
+woke=$(mktemp "${TMPDIR:-/tmp}/issue-watch.XXXXXX") || exit 70
+trap 'rm -f "$seen" "$seen.new" "$woke" "$woke.new"' EXIT
 trap 'exit 143' TERM INT
 read_new() { "$as" "$token" "sync?after=$1" 2>/dev/null | filter "$token" $2; }
 if [ -z "$last" ]; then last=$(read_new 0 quiet | awk '/^LAST/{print $2}'); last=${last:-0}; fi
@@ -81,5 +107,6 @@ while true; do
     case "$told" in *"|$l|"*) ;; *) echo "$l"; told="$told$l|";; esac
   done <<< "$("$as" "$token" "list?label=asks-orchestrator&limit=100" 2>/dev/null | still "$(date +%s)000")"
   "$as" "$token" "queue" 2>/dev/null | queue "$seen"
+  "$as" "$token" "wakes" 2>/dev/null | wakes "$woke"
   sleep "$every"
 done

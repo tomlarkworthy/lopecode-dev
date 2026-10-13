@@ -356,6 +356,14 @@ arguments writes nothing, whatever has happened to the issue between them. Then 
 - Exit 2 and 64 as today. `--filter`, and a call with no `--when`, `--left`, `--work` or `--remove`
   (today's), stay until task 3 has changed the brief, and are then removed.
 
+(As built, `tr-2-issue-wait-over-wakes`, 2026-10-13: `--work` is a read and a write, `get?id=` for the state and then the
+wait, since no one call gives the state the issue is in; exit 5 is also the answer for a wait that was taken off or whose
+place another wait of the token took, which the two lists of `issue.wakes` do not tell from one past its `until`; a wait the
+tracker refuses, 400 or 404, or whose key another actor wrote, is exit 64 with the tracker's message; a wait that is due
+while `get?id=` gives no answer is exit 3, with nothing printed and nothing taken off but by `--last`; `--work` and `--remove`
+are exit 1 when their write was not made, and `--remove` with no wait there is exit 0; `--until` takes 1 to 43200 minutes;
+the role is the token's name up to its first `-`; the record.)
+
 **`agents/implementer.md`, step 13** runs `issue-wait.sh <token> <id> <seq of your submit> --left in-review`. The rest
 of the step stands: the Bash timeout, 5 runs, one round, the judgment at 3 `rework` moves. The
 fifth run has `--last`. At a `changes` with the issue at `in-progress`: a writer that takes the
@@ -389,6 +397,9 @@ wait of its token. An orchestrating session that wants to look at an issue again
 true of it writes a wait (`issue-as.sh <token> wait '{…}'`) where it would have kept a note. The
 row `owner` of the queue's `waiting` is not replaced by this: no fact says that the owner has
 commented.
+(As built, `tr-2-issue-wait-over-wakes`, 2026-10-13: the read is `wakes` with no `id`, every 30 s with the others; a wait is
+known by its issue and the seq of its event, and its line is printed again when it is due after an answer without it, as a
+`QUEUE` line is; `issue-watch.sh --wakes <file>` reads one answer from stdin; the record.)
 
 ### 4. A held read, after a probe (R4)
 

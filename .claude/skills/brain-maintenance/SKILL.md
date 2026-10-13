@@ -624,6 +624,10 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    for each comment written with a token `out-` and six hex digits, but the one the watch is given (since `watch-prints-an-outside-sessions-comment`: a session outside the loop, which the owner may be in, `rules.md`, "Which token"; read the comment, which may have his words or a line for you, and until that change it was no line: comment 4916 of `fly-1-by-hand`; that token's moves and labels are no line, and a watch armed before that change prints none until it is armed again), and
    for each event made with the owner's session (a comment, a label, a move, an approval in the
    panel). A `QUEUE` line names its row of step 3: its `do`.
+   Since `tr-2-issue-wait-over-wakes` (2026-10-13) it also reads `wakes` at each read and prints `WAKE <id> <when>` for each wait
+   of your token that is due and was not due in the answer before: a wait is one you wrote on an issue, to look at it again when its
+   `when` is true of it (`issue-as.sh <your token> wait '{"key":…,"id":…,"when":…,"until":…}'`; `tools/cloud-brain/brain-issues.ojs`, "A wait",
+   has the conditions). No step of this file writes one yet, and a watch armed before that change prints no such line until it is armed again.
    A line is a wake: read that issue and take it from the table of step 3, without a
    whole pass. A write of an agent's that makes no entry of the queue new prints nothing; its report wakes you as before. The monitor
    ends after 30 minutes and says so: arm it again from the last seq, in the same turn. Then
