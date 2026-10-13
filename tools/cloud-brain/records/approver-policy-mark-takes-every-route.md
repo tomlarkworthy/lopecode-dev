@@ -17,7 +17,7 @@ force names by their blobs; this change is to both. "For the owner" below has th
 
 "`approver.ts facts` of lopecode-dev 489aea7a prints no `[policy]` mark". With the tool as it was
 (put in the worktree's `tools/cloud-brain/approver.ts` for the run, then put back) and with this
-change, at 10:37 and 10:33 CEST:
+change, the second at 10:33 CEST and the first before it (its time was not read):
 
 ```
 $ bun tools/cloud-brain/approver.ts facts tr-4-held-read --token impl-669077      # before
