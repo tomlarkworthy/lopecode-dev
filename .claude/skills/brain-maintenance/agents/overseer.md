@@ -181,8 +181,12 @@ Limits, so a bad round cannot compound:
   `cloud-brain-dev/put.sh roles/reviewer.md` (token `loop-roles`; the copy before is kept on the Brain under
   `cloud-brain-dev-history/`; `put.sh --history` lists them and `--restore` brings one back). No lock.
   Before the put, the tests that hold lines of the brief are run on the edited file:
-  `BRIEF=$W/cloud-brain-dev/brain/roles/reviewer.md bun test ./tests/tools/reviewer-brief-waits-on-show.test.ts ./tests/tools/reviewer-in-a-view.test.ts ./tests/tools/reviewer-brief-names-token.test.ts ./tests/tools/lock.test.ts`,
-  0 fail, with the count in the entry. Since `suite-tests-read-the-live-brief` (2026-10-12) the suite reads a copy kept in
+  `BRIEF=$W/cloud-brain-dev/brain/roles/reviewer.md bun test --timeout=30000 $(cd $W && grep -l -E 'briefOf|reviewer-brief' tests/tools/*.test.ts | sed 's|^|./|')`,
+  run in `$W`, 0 fail, with the count and the number of files in the entry. The list is made by the `grep` and not written here:
+  a writer that adds a test of the brief adds no line to this file. (Until `overseer-pre-put-run-names-four-files`,
+  2026-10-13, this line named four files and had no timeout. The `grep` gave ten that day: seven import
+  `tests/tools/reviewer-brief.ts`, and one is the test of this line, `tests/tools/overseer-pre-put-run.test.ts`, which reads
+  this file whatever `BRIEF` is.) Since `suite-tests-read-the-live-brief` (2026-10-12) the suite reads a copy kept in
   the repository, `tests/tools/fixtures/reviewer-brief.md`, and not the Brain, so this run is the one that shows a put
   took out a line a test holds: with a fail, the line stays, or the test and the kept copy change in a commit a writer lands
   (`tests/tools/reviewer-brief.ts`). The entry in `oversight.md` carries what the commit message would have:
