@@ -327,6 +327,9 @@ it("--file keeps the issue of a Worker that waits: opened, left alone at the nex
   a = await run("--file", "impl-aaaaaa");
   expect(a.code).toBe(1);
   expect(a.lines.at(-1)).toContain("deploy-waits-brain-db not opened [403]");
+  // No list is sent to an issue that was not opened.
+  expect(a.lines.at(-1)).not.toContain("list said");
+  expect(svc.calls.filter((c) => c.body.id === issueOf("brain-db")).map((c) => c.path)).toEqual(["open"]);
   const m = svc.calls.length;
   a = await run("--file", "impl-bbbbbb");
   expect(a.code).toBe(1);

@@ -272,6 +272,8 @@ if (import.meta.main) {
         const what = w.call === "move" ? (w.body.to === "closed" ? "closed" : "opened again") : w.call === "open" ? "opened" : w.call === "label" ? "labelled" : w.what ?? "list changed";
         const r = as(w.call, w.body);
         if (r.status === 200) wrote.push(`${issueOf(row.worker)} ${what}`); else refused.push(`${issueOf(row.worker)} not ${what} ${r.why}`);
+        // An issue that was not opened has no comment to take: the next run opens it and says the list.
+        if (r.status !== 200 && w.call === "open") break;
       }
     }
   } finally { rmSync(tmp, { recursive: true, force: true }); }
