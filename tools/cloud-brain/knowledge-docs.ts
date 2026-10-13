@@ -71,7 +71,7 @@
 // when no commit has that version. A put of a doc that is due and has a summary sends that time as staleSince, and 0
 // when it is not due, so knowledge.list?stale=true&kind=doc answers the docs whose summary is due again. The last line
 // of status also has `long`, `summarized`, `behind` (summarized, of another version of the file) and `refused` (due,
-// and refused twice at this file by a run that was not --dry).
+// and refused twice at this file by a run that was not --dry, with no put at that file since).
 // summarize: nothing is fetched; the docs are origin/main's. Before the first doc, the canary of summarize-papers.ts
 // (exit 3 unless a haiku agent with an empty directory fails to read a line beside the token files); with no doc to run,
 // no agent is started. For a doc: its file with the frontmatter taken off and no line over 1500 characters is written
@@ -90,13 +90,13 @@
 // line it prints `summaries due: <name>, <name>…` (8 names, then `and N more`) when a long doc is due and `summarize --due`
 // would start an agent for it: not one refused twice at this file, and not one a summarizer is running on. `lock.sh
 // release land` prints it as `summaries due (<brain>): …` with the command to run, which has --first-paragraph: the form
-// the owner chose for every long doc (comment 6005 of that issue). No other put prints the line.
+// the owner chose for the long docs (comment 6005 of that issue). No other put prints the line.
 // While an agent reads a doc, <state>/docs/<name>.running holds the time: a summarize that finds one under ten minutes
 // old skips the doc, and so does put --stale, which names it (`running`) and leaves it for the next put, since it read
 // the kept text before a summary that lands in between. <state> is one machine's.
 // status --check-summaries: the long docs, or the named ones. It fails a doc whose entry has the line and not a first
 // paragraph within its limit, the five headings in order or no heading (--first-paragraph), a next line that names the entry's own file and a text of
-// TEXT at most; a doc whose summary has been due for over 24 hours; and one refused twice at this file. One line of
+// TEXT at most; a doc whose summary has been due for over 24 hours; and one refused twice at this file and not put at it since. One line of
 // JSON a doc and a last line { checked, summarized, excepted, failing }. status --check is as it was.
 // summarize-papers.ts is loaded by summarize and --check-summaries alone: status and put, which a release runs, load no
 // other file of the repository.

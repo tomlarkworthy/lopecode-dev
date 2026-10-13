@@ -41,13 +41,13 @@ test("SKILL.md step 5 has the role summarizer for a paper and a doc, with both j
   expect(skill).not.toContain("**The role `paper-summarizer`**");
 });
 
-test("the guide has the fourth line of a release and says since when every long doc has a paragraph; the spec has the note of task 4", () => {
+test("the guide has the fourth line of a release and says since when the 49 long docs have a paragraph; the spec has the note of task 4", () => {
   const guide = flat(read("knowledge/calling-a-cloud-brain-from-this-checkout.md"));
   expect(guide).toContain("summaries due (cb4): <names>. A writer or a spec writer runs");
-  expect(guide).toContain("**Every long doc has a first paragraph since 2026-10-13, 09:09 CEST**");
+  expect(guide).toContain("**The 49 long docs of 2026-10-13, 07:30 CEST, have a first paragraph since 09:09 that day**");
   expect(guide).toContain("The release starts no agent.");
   const spec = flat(read("plan/cloud-brain-docs-summarised-for-search.md"));
-  expect(spec).toContain("**As built, task 4 (`sd-4-the-rest-and-the-release-line`, 2026-10-13): every long doc has the first paragraph of a summary, and a release names the docs that wait for one.**");
+  expect(spec).toContain("**As built, task 4 (`sd-4-the-rest-and-the-release-line`, 2026-10-13): the 49 long docs of that morning have the first paragraph of a summary, and a release names the docs that wait for one.**");
   expect(spec).toContain("`summarize --due` with no flag still puts a whole summary, the form that failed R5.");
 });
 

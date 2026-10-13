@@ -77,7 +77,7 @@ with the ten paragraphs, rank for rank; set L fell, by words 0.623 to 0.614 and 
 cost $0.13 and were put back with `put --plain`, each to the bytes it had before: no summary of a doc is on cb4. The
 record is `tools/cloud-brain/records/sd-3b-first-paragraph-alone.md`.
 
-**As built, task 4 (`sd-4-the-rest-and-the-release-line`, 2026-10-13): every long doc has the first paragraph of a
+**As built, task 4 (`sd-4-the-rest-and-the-release-line`, 2026-10-13): the 49 long docs of that morning have the first paragraph of a
 summary, and a release names the docs that wait for one.** The owner chose to go on (his "1 B", quoted in comment 6005
 of that issue) after he was shown that the sets measure no gain. The record is
 `tools/cloud-brain/records/sd-4-the-rest-and-the-release-line.md`. Where a line below says otherwise, read these:
@@ -89,11 +89,12 @@ of that issue) after he was shown that the sets measure no gain. The record is
 - **The line is made from a line of the tool's own, not from `due` in its last line.** `put --stale` prints
   `summaries due: <names>` before its last line, 8 names and then `and N more`, and `lock.sh` prints it after
   `docs (cb4): …` with the command. `put`'s last line has no `due`: the names would be printed twice at each landing.
+  Piece 4 says the line "names every doc that is due"; past 8 it gives their count, and the command runs them all.
 - **Not named: a doc refused twice at its file, and one a summarizer is running on.** `summarize --due` starts no
   agent for either, so the line would ask for a run that does nothing.
 - **The sentence of the implementer's brief is in its page `implementer/landing.md`**, where the brief has said what
   the `docs (cb4)` line is since `writer-brief-and-tool-output-smaller` (2026-10-13). `agents/implementer.md` itself
-  was 19,996 characters of the 20,000 its test allows and has no sentence: a writer who lands with `land.sh` reads
+  was 19,996 characters of the 20,000 its test allows when the task began (19,961 at its landing) and has no sentence: a writer who lands with `land.sh` reads
   who runs the command in the line.
 - **A put after a refusal ends the refusal.** `status --check-summaries` failed the doc that was refused twice and
   then put with `--again`; `refusedAt` now reads the last of the doc's lines at that file.

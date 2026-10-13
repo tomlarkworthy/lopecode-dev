@@ -191,7 +191,7 @@ an entry of kind doc over 16,000 characters              [the first N of M chara
   fourth is the line a test of `tools/cloud-brain/cloud-brain.ojs` expects of `callAnswer`, not one read in the page;
   for a procedure the same function ends the line `The rest is not read: a procedure called again would run a second time`.
 - A cut doc's last line names its file, which is the whole ("The knowledge docs in the Brain's search", below).
-  This page was such a doc until 09:09 CEST that day: a long doc's entry now begins with a summarizer's paragraph ("Every long doc", below).
+  This page was such a doc until 09:09 CEST that day: a long doc's entry now begins with a summarizer's paragraph ("The 49 long docs", below).
 
 ## Why did that happen: the logs
 
@@ -334,7 +334,7 @@ None was on cb4 from 06:17 CEST that day until the run below.) What changed in t
   checkout. Its last line names them, `noText` and `running`.
 - The last line of `status` has `long`, `summarized`, `behind`, and by name `due` and `refused`.
 
-**Every long doc has a first paragraph since 2026-10-13, 09:09 CEST** (`sd-4-the-rest-and-the-release-line`, task 4 of
+**The 49 long docs of 2026-10-13, 07:30 CEST, have a first paragraph since 09:09 that day** (`sd-4-the-rest-and-the-release-line`, task 4 of
 that plan, on the owner's B of comment 6005 there). `summarize --due --first-paragraph --usd-max 2`, haiku, from 07:30
 put 48 of the 49 long docs and refused one twice, which `summarize <name> --first-paragraph --again` then put: 49
 entries, $0.674 with the two canaries (`.emitted/docs/journal.jsonl`; `tools/cloud-brain/records/sd-4-the-rest-and-the-release-line.md`).

@@ -97,18 +97,22 @@ summaries due (cb4): <names>. A writer or a spec writer runs, and names the jour
 The release starts nothing and stays exit 0. It has not been printed by a release on cb4 when this is written: the
 release of this task's landing is the first that can; what it printed is in a comment the writer makes on the issue after the landing.
 
-**Chosen against the spec, three times**, each also in the spec's note "As built, task 4":
+**Chosen against the spec, four times**, each also in the spec's note "As built, task 4":
 
 - The spec has the line "made from the tool's last line", with `due` in it. A line of the tool's own was taken:
   `put`'s last line is printed whole as `docs (cb4): …`, and 49 names in it would be printed twice at a landing. The
   cost is a second line for `lock.sh` to find, by `sed -n 's/^summaries due: //p'`.
+- The spec's line "names every doc that is due". Eight are named and the rest counted (`and N more`): at 07:30 the
+  line would have had 49 names, about 1,800 characters in every landing's output. The cost is that a writer sees 8 of
+  them; the command runs all.
 - The command has `--first-paragraph`, which the spec's line has not: it is the form the owner chose. `summarize --due`
   typed with no flag still puts a whole summary, the form that lost passages in the pilot. Making the flag the default
   would close that; it changes what task 2's tests hold, and was not done.
 - The sentence for the implementer is in the page `agents/implementer/landing.md`, at the release, and not in
-  `agents/implementer.md`: the brief was 19,996 characters of the 20,000 that `implementer-brief-core.test.ts` allows.
+  `agents/implementer.md`: the brief was 19,996 characters of the 20,000 that `implementer-brief-core.test.ts` allows at `d133b284`, where the
+  task began, and is 19,961 after the rebase of 09:12 (`len()` of the file in python3, both).
   A writer who lands with `land.sh` reads no page; `land.sh` prints the release's lines, and the line itself says who
-  runs the command. For the overseer: a sentence in the brief's step 10 needs 100 characters cut elsewhere.
+  runs the command. For the overseer: a sentence in the brief's step 10 needs about 60 characters cut elsewhere.
 
 **A put after a refusal ends it.** At 09:10 `status --check-summaries` exited 1 on one doc:
 
@@ -126,7 +130,7 @@ the tool of before, one run each. The 1.6 s is a `git log` a long doc.
 `cost/<id>/summarizer/<round>`; the list of roles has `summarizer`. `agents/spec.md` step 6 and
 `agents/implementer/landing.md`: run the command in the background, read its last line, name the `at` of the first
 journal line. The guide (`knowledge/calling-a-cloud-brain-from-this-checkout.md`): the fourth line of a release, who
-runs it, that every long doc has a paragraph since 09:09, and the role's name where it speaks of the papers.
+runs it, that the 49 long docs of 07:30 have a paragraph since 09:09, and the role's name where it speaks of the papers.
 
 ## The tests
 
@@ -149,7 +153,7 @@ Without the change, each with the file of `d133b284` in the tool's place (`LOCK_
 `lock.test.ts` 26 pass, 2 fail; `knowledge-docs-summaries.test.ts` 10 pass, 3 fail; `knowledge-docs.test.ts` with it,
 2 more fail.
 
-The whole suite, `tests/tools/suite.sh`, after the last edit (09:25 to 09:27 CEST): `1119 pass, 0 fail, 9248 expect() calls, 114 files`. The record's two counts were written after it; `sd-4-the-rest-and-the-release-line.test.ts`, which reads the record, was run again.
+The whole suite, `tests/tools/suite.sh`, after the last edit (started 09:33 CEST, after the advisor's findings were mended): `1119 pass, 0 fail, 9248 expect() calls, 114 files`, as at 09:25 before them. This line was written before the run and the run was read against it.
 
 ## Not tried
 
