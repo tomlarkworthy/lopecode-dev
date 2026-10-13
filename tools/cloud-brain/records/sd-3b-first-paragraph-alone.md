@@ -244,8 +244,9 @@ $0.59 by length. Neither is a forecast, as the pilot said of its two.
   an entry whose head is a paragraph and then text with no `## ` line passes it where it failed before. Read in the
   code, not run. Nothing puts such an entry: the judge refuses an answer without the five headings.
 - **The pilot's kept first answers.** This run wrote `D/<name>.first-answer.txt` for `maintaining-…`,
-  `pushing-cells-to-observablehq` and `cloud-brain-dashboard-service` (06:07 to 06:09). The first two were the opus
-  run's, which `records/sd-3-pilot-ten.md` names, and are no longer on this machine.
+  `pushing-cells-to-observablehq` and `cloud-brain-dashboard-service` (06:07 to 06:09). The pilot had kept one for
+  each of the first two (by its record, the opus run's of `maintaining-…` and the haiku run's of `pushing-cells-…`);
+  those two are no longer on this machine.
 - A whole summary and a first paragraph on cb4 at once: `status` counts both as `summarized` and its line for a doc
   does not say which.
 
