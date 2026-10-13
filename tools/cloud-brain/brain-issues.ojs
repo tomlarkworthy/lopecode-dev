@@ -2438,6 +2438,8 @@ test_issues_label_annotation_is_the_owner_present = {
   expect(await answer(rig.as("owner", "delegation:d1", { "x-brain-holder": "secret:laptop" })("label", { id: "fb-n1", remove: ["annotation"] }))).toEqual([403, why]);
   expect(await answer(rig.as("owner", "session", { "x-brain-tab": "0" })("label", { id: "fb-n1", remove: ["annotation"] }))).toEqual([403, why]);
   expect([(await rig.worker("label", { id: "fb-n1", remove: ["annotation"] })).status, (await rig.member("label", { id: "fb-n1", remove: ["annotation"] })).status]).toEqual([403, 403]);
+  // No other spelling is a label at all: a name is a-z 0-9 -, and add and remove are lists.
+  for (const remove of [["Annotation"], [" annotation"], "annotation", [["annotation"]]]) expect((await rig.a("label", { id: "fb-n1", remove })).status).toBe(400);
   // A refusal writes nothing.
   expect([seq(), labels("fb-n1"), labels("t1")]).toEqual([before, ["annotation", "ui"], ["ui"]]);
   // Every other label is the workflow's guard, as before; a name that only starts the same is another label.
