@@ -89,8 +89,14 @@ export const cells = (src: string) => parseModule(src).cells;
  *  `function _x(d)\n{\n  return <expr>;\n}` and lays the braces out differently again.
  *  Compare the BODY — the returned expression, or the statement block when there is more
  *  than a return — as a token stream plus its comments. Wrapper shape and indentation stop
- *  being differences; code and prose stay one. */
-export function sig(def: string): string {
+ *  being differences; code and prose stay one.
+ *
+ *  With `inputs`, a `viewof`/`mutable` placeholder (`$0`, `$1` …) is read as the input it
+ *  stands for. The number is the compiler's: Observable numbers a cell's placeholders in the
+ *  order its source first names them and the lopecode exporter in another, so one cell is
+ *  `$0.value` on one side and `$1.value` on the other (annotate's `a2Store`, 2026-10-12).
+ *  A comment that names a placeholder is prose and is compared as written. */
+export function sig(def: string, inputs?: string[]): string {
   const comments: acorn.Comment[] = [], tokens: acorn.Token[] = [];
   let node: any;
   try {
@@ -106,11 +112,21 @@ export function sig(def: string): string {
   }
   const [lo, hi] = body ? [body.start, body.end] : [0, def.length + 2];
   const within = (x: { start: number; end: number }) => x.start >= lo && x.end <= hi;
-  return tokens.filter(within).map((t) => `${t.type.label}\u0002${t.value ?? ""}`).join("\u0001") +
+  // placeholder parameter -> the input at its position
+  const stands = new Map<string, string>();
+  (node?.params ?? []).forEach((p: any, i: number) => {
+    if (p?.type === "Identifier" && /^\$\d+$/.test(p.name) && typeof inputs?.[i] === "string") stands.set(p.name, inputs[i]);
+  });
+  const value = (t: acorn.Token, i: number, all: acorn.Token[]) =>
+    // `x.$0` is a property that happens to be spelled like one
+    t.type.label === "name" && stands.has(t.value) && ![".", "?."].includes(all[i - 1]?.type.label) ? `\u0006${stands.get(t.value)}` : t.value ?? "";
+  return tokens.filter(within).map((t, i, all) => `${t.type.label}\u0002${value(t, i, all)}`).join("\u0001") +
     "\u0003" + comments.filter(within).map((c) => c.value.replace(/\s+/g, " ").trim()).join("\u0001");
 }
 
-export const sameDef = (a: Cell, b: Cell) => a.def === b.def || sig(a.def) === sig(b.def);
+// No shortcut on equal text: `$0.value - $1.value` over ["viewof a", "viewof b"] and over
+// ["viewof b", "viewof a"] is one text and two cells.
+export const sameDef = (a: Cell, b: Cell) => sig(a.def, a.inputs) === sig(b.def, b.inputs);
 
 // The Observable runtime's builtin scope. A dep is a real dataflow edge when it names a
 // cell in either module or one of these; anything else — `fetch`, `DOMParser`,

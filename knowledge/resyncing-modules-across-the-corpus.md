@@ -75,6 +75,9 @@ cell* — the census has not been retaken since the rewrite.
 
 `triage/cellwise-diff.ts <@a/b> <lopecode|lopebooks|path.js>` prints both sides of everything
 cellwise counts, including a working copy mid-merge. Reach for it before believing a verdict.
+A `viewof`/`mutable` placeholder (`$0`, `$1`) is compared as the input it stands for, not by its
+number: the two compilers number them in different orders, and until 2026-10-13 a cell with two
+such inputs printed `DIFFER` after a push that had made it the same (annotate's `a2Store`).
 
 ## The three ways a resync breaks a notebook
 
