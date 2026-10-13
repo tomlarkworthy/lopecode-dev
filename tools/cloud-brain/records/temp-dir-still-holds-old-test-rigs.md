@@ -33,7 +33,7 @@ Each prefix was read from the repository. `git grep -n -E 'mkdtemp|mktemp' -- te
 printed 190 lines; a prefix is taken when one of those lines has it in quotes with the dash after it, or, for
 seven, when the line is gone or passes the prefix through a function (below).
 
-**51 prefixes, older than 60 minutes.** Fifty are made in a file of `tests/tools` and by no tool:
+**51 prefixes, older than 60 minutes.** Fifty are made as directories in a file of `tests/tools` and by no tool (`tools/cloud-brain/issue-watch.sh` makes a file `issue-watch.XXXXXX`, with a dot, which no pattern here matches):
 `bm-worktree`, `light-agent`, `bm-lock`, `bm-lock-docs`, `bm-lock-sleep`, `bm-lock-empty`, `bm-kdocs`,
 `bm-ksum`, `bm-papers`, `bm-papers-keep`, `agent-token`, `brain-seen`, `nbblocks`, `nbstage`, `issue-ask`,
 `issue-ask-state`, `issue-as`, `issue-as-file`, `issue-as-status`, `issue-as-short`, `issue-wait`,
@@ -92,7 +92,7 @@ and 3,477 of the seven that were younger than 24 hours (`find` with `-mmin +0` i
 this night's and a later run of the same two `find` takes them.
 
 Not removed, whatever their age, because no line of the repository makes the name or because it is in use:
-about 830 names of `tmp` and eight characters (Python's `tempfile`; which program was not read),
+about 830 names of `tmp` and six to eight characters (Python's `tempfile`; which program was not read),
 `playwright-artifacts-` 124 and `playwright_chromiumdev_profile-` 90 (Playwright's own), `seed-module-` and
 twelve hex digits (`tests/tools/needs.ts`, a store of built seeds that a checkout reads again),
 `agent-sandbox-policy` 28, `cloud-brain-agent` 22, `brain-probe` 12, `probe-seen` 10, the `issue-watch.XXXXXX`
