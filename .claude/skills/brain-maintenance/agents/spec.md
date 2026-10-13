@@ -67,7 +67,11 @@ a mean 1.73 calls a run of a spec writer, 21% of what such a run cost.
    prompt names (`Working directory: <W>`, `…/.claude/worktrees/bm-<tree>`), which the orchestrator made at
    `origin/main` before it spawned you (`agents/implementer.md`, "Where you work", has `$W`, `<tree>` and `<root>`,
    and the prompt that names the main checkout: then `W=$(tools/cloud-brain/worktree.sh <id>)`, and `<tree>` is `<id>`):
-   - what was asked, in the owner's words where he gave any, with the date;
+   - what was asked, in the owner's words where he gave any, with the date.
+     Where the design rests on more than his words say, the sentence that says so is marked where it stands as
+     your reading and not his words, with the word `reading` in it, so that
+     `grep -n -i "reading" plan/cloud-brain-<id>.md` prints it: step 7 lists those sentences for the comment he
+     decides by;
    - each gathered report in one line with its id, and the requirement it becomes or why it is left out;
    - what exists today, measured;
    - the smallest design that meets the requirements, and what was not chosen and why.
@@ -145,11 +149,33 @@ a mean 1.73 calls a run of a spec writer, 21% of what such a run cost.
    comment and not attached. The issue lists the file from then on (`attachments` of `get?id=`; the tracker's
    reference says its panel on the Brain's page has a line for it under the issue's body), and `ia "attachment?id=<id>&name=cloud-brain-<id>-r<round>.md"` answers its text.
    The commit is still the ref of the move, and the reviewer and the approver read the spec from it.
+   **Then say on the issue what the spec adds that stays and what it reads into his words, before the move**:
+   one comment, keyed `spec/<id>/adds-<round>`, of two parts, each a line a thing. The orchestrator writes the
+   comment for his approval from it (`SKILL.md`, step 7, "A spec put to him"), and it is on the issue because
+   the session that writes that comment may not be the one that reads your report.
+   ```
+   adds, to stay:
+   - <kind> `<name>`: <what exists today of the same job, and in a clause why it is not extended; or "nothing exists of this job">
+   readings of his words:
+   - line <n>: <the sentence the spec marks as your reading and not his words, in one line>
+   ```
+   The first part has each standing thing the design adds, by its name: a role and its brief, a tool, a token,
+   a Worker, a method, a store, as step 5 lists them, each with the sentence step 5 asked of it. The second has
+   each sentence step 5 had you mark; `grep -n -i "reading" $W/plan/cloud-brain-<id>.md` prints the lines
+   that have the word, and a line it prints that is no reading of his words is left out. A part with nothing in it
+   says `nothing` or `none marked`, and is not left out: the reader of an absent part cannot tell it from one
+   nobody wrote. Your report has the two parts as the comment has them.
+   (Since `decision-comment-names-what-is-added`, 2026-10-13, an action of
+   `tools/cloud-brain/post-mortems/pm-second-summarizer-role.md`. The spec of `docs-summarised-for-search` at
+   619354c2 marked one reading, lines 28 to 31 of 655: "That is the writer's reading and not his words; his
+   approval of this spec is where he says otherwise." The comment he approved by, 4344 of that issue, had
+   "One light agent a doc writes the summary, as for the papers", and neither the role, its brief, its tool nor
+   the reading. First comment written by this step: not yet, when this was written.)
    `ia move '{"key":"spec/<id>/submit-<round>","id":"<id>","to":"spec-review","refs":[{"kind":"commit","value":"<sha>"}]}'`,
    with `<round>` 1 the first time. Read the issue again and see `spec-review`.
    Sent back (`spec` again): read the review whole before the file (the `reviewed` event the `respec` move names),
    work in your worktree, brought up with `$W/tools/cloud-brain/worktree.sh --rebase <tree>`, answer each finding in the file, and
-   attach and submit again with the next round's key and name. Steps 2 to 4 are done again for what a finding asks to be read or
+   attach, say again what it adds and reads (`spec/<id>/adds-<round>`, whole, as the file then has it) and submit again, each with the next round's key and name. Steps 2 to 4 are done again for what a finding asks to be read or
    measured and for a part gathered since, not from the start; steps 5 to 7 hold for the round as for the first.
 
 After the owner's approval the orchestrator opens the tasks as parts and moves the project to
