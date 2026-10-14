@@ -359,6 +359,8 @@ document when you mend a note in it ("What holds a change, and what is a note", 
    | `pass`, issue not `major`, workflow has a `pass` move | `to: "done"` |
    | `pass`, issue `major`, or the workflow is `security` | `to: "awaiting-approval"`, then stop: the owner approves |
    | `changes` or `block` | `to: "in-progress"` (the `rework` move), with what holds the change in the reason; the notes are not in it |
+   | a spec, at `spec-review`: `pass` | `to: "awaiting-approval"` (the tracker names the move `to-approval`), then stop: the owner approves ("A spec") |
+   | a spec, at `spec-review`: `changes` | `to: "spec"` (the `respec` move), with what sends it back in the reason |
 
    **The mark.** When every finding and every note of your review is a statement (untrue against a
    source, or a record or a ref that is missing), in whatever file, and none asks a change of code,
@@ -430,6 +432,13 @@ ticket (`seen-<short>`), not one each. First written 2026-10-11; say in your rep
 
 `pass` means nothing holds the change. Something out of the issue's scope is a new issue: file it with
 `ir open '{"key":"rev/<id>/open-1","id":"<a name for it>","title":"…","body":"…","kind":"bug","about":"brain"}'` (`id` is `a-z 0-9 -`, 40 at most; the example had none until 2026-10-12 and two reviewers added it on a guess; `about` is `brain` or a Worker's name; a body that says how you saw it; no `parent`, which would hold the parent back) and do not hold the review for it.
+A `bug` is for a defect that a caller has met, or meets as the code stands by a call the issue or a doc names. A
+defect you read in the code, or reached only by a probe of your own, that has cost nobody anything, is not one: it
+is a feedback ticket ("If you see something", below), which stays open and gathers a second case, where a rejected
+bug is closed and gathers nothing. Triage rejected three such bugs within a minute of their open
+(`snapshot-other-logged-reads-not-own`, event 602; `verify-run-gives-none-for-deployer`, 889;
+`lock-sh-wait-tiny-seconds-busy-loop`, 953: "Not met: found by a probe in review 944, never by a caller").
+(`seen-reviewer-bug-rejected-in-seconds`; put with `fb-batch-role-briefs`, 2026-10-13.)
 
 ## A spec
 
@@ -449,6 +458,14 @@ writes without end where a caller the issue names would meet it; a review of `gr
 else is a note. You run no tests for a spec and the rule on a test count
 does not apply. First written 2026-10-11; 19 reviews of a spec by event 1920.
 
+A spec's numbers: check each one that a requirement, or a report said to be left out, rests on, and each line of a
+seed or a file the design cites, with the command beside it in the body. The others (a median, a sum, what the loop
+cost that day) are background: leave them, and say under what you did not run that you did. A number that is wrong
+and decides nothing is a note, as "What holds a change" has it of a world measurement. (The reviewer of
+`owner-acts-on-what-waits-for-him`, 2026-10-11: "gives no depth for checking a spec's measurements. I checked the
+one count a left-out report rests on and the cited seed lines, and left the medians." Put with
+`fb-batch-role-briefs`, 2026-10-13; one reviewer's way, not measured.)
+
 A round after the first: read the review that sent the spec back (the last `reviewed` event before the `respec`, in
 the issue's events) before the new file, look for each thing it held in the new file first, and then answer the
 four of the whole file as it now is. (The reviewers of round 2 of `fly-exec-for-blessed-services` and of
@@ -464,9 +481,22 @@ event 2400, one sentence of a `knowledge/*.md` or `plan/*.md` that the change sh
 
 Anything that seems off against one of the seven lines of `philosophy.md` and is not a finding on
 this issue: open a feedback ticket with `ir open`, kind `feedback`, id `seen-<short>`: what was
-seen, when, where to read it, which line. No fix in it (2026-10-11, `philosophy.md`, Clarifications).
+seen, when, where to read it, which line. No fix in it (2026-10-11, `philosophy.md`, Clarifications), but for
+the one case of the paragraph above: a small thing whose fix you know has that fix as its last line, one line, so
+that whoever takes it does not look for it again. A thing seen that already has a ticket gets a comment on that
+ticket and no new one (`ir "list?kind=feedback&state=open"` has the titles).
 An id is 40 characters at most (`open` answers 400 for a longer one): open the ticket, or the
 issue above, before the body of your review names it, and name the id the call answered.
+
+**Before finishing** (`rules.md`, Always: "`browser.all` and `container.all` show nothing you started"). A review
+that opened no QA tab by name and started no browser and no container of the cluster has nothing in either: say so
+in your report and make no call. `tab-tests.ts` is a headless Chrome of this machine and is in neither. Your token
+names `issue.*` and is answered 403 by both methods, and so is a token of the loop that reads other services
+(`loop-dashboard`, tried 2026-10-13). A review that did start one reads them with the owner's session, which is a
+read and no write: `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.brain.browser.all --owner`,
+and the same with `container.all` (`knowledge/calling-a-cloud-brain-from-this-checkout.md`, the health check).
+(`seen-browser-all-403-to-a-reviewer`: two reviewers of 2026-10-11 were refused and reported the check as not
+made, two read both with `--owner`. Put with `fb-batch-role-briefs`, 2026-10-13.)
 
 ## A digest
 
