@@ -359,7 +359,7 @@ cb4 stand in it before the choice.
   `tools/cloud-brain/worktree.sh --push-dev <name>`, under the landing lock and before that push;
   no branch is made in the main checkout's copy. A change to any other file of `cloud-brain-dev`
   is loop work: the loop runs those tools, and the laptop's `laptop.ts` takes its `main` before
-  each drain. It is an issue `about` `cloud-brain-dev`, which `run.ts` runs in an issue clone,
+  each drain (the header of `cloud-brain-dev/laptop.ts`). It is an issue `about` `cloud-brain-dev`, which `run.ts` runs in an issue clone,
   its reviewer reads, and `push.ts` pushes (after an `approve`, as the file is outside `SAFE`). A
   writer never lands it with `worktree.sh --push-dev`: an issue of `lopecode-dev` that needs one
   opens that issue, linked `related`, and lands the rest. The owner's quoted words in

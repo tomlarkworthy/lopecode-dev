@@ -54,7 +54,9 @@ brief is not the loop's to edit (`rules.md`, "The approver").
 ## Not tried
 
 - No agent was run on the new text, a writer or a reviewer.
-- Nothing checks that a writer obeys it: `worktree.sh --push-dev` still pushes any file. A guard there, refusing a
+- Nothing checks that a writer obeys it: no guard was added to `worktree.sh --push-dev`, and its case
+  (`tools/cloud-brain/worktree.sh`, from `--push-dev)`) has no test of a file's name: a `grep` there for `SAFE`,
+  `README` and `records` prints nothing. A guard there, refusing a
   file outside `SAFE`, was not asked for; it is named for the owner in the issue's comment.
 - The reviewer's brief is on the Brain (`roles/reviewer.md`, `agents/reviewer.md`); it was not changed. The line it
   wants is in the issue's comment, for the overseer.
