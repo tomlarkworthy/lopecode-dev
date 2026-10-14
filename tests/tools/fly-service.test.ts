@@ -4,7 +4,7 @@
 // that the path a caller gives fly.get and fly.post stays under the app. The cells are read from what cb4 runs, as
 // cloud-brain-dev/deploy has it after `bun sync.ts`, never retyped: the seed was deleted on 2026-10-14, behind what ran.
 import { expect, beforeAll } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { importNotebookModule } from "../../tools/notebook-import.ts";
 import { testNeeding } from "./needs.ts";
@@ -15,7 +15,7 @@ const test = testNeeding("fly-service.test.ts", [module], "git submodule update 
 
 let fly: any;
 beforeAll(async () => {
-  if (module) fly = await importNotebookModule(module);
+  if (existsSync(module)) fly = await importNotebookModule(module);
 });
 
 test("the machine body of the set-up form is fly/machine.json, and the image body is its config whole", async () => {

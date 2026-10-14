@@ -6,15 +6,16 @@
 // extractor of lope-push-ws.js (runningGroups of needs.ts).
 //
 //   bun test ./tests/tools/dsv-5-docs-name-the-dashboard-service.test.ts
-import { test, expect } from "bun:test";
+import { expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { runningGroups } from "./needs.ts";
+import { runningGroups, testNeedingRunning } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 const page = read("tools/cloud-brain/cloud-brain.ojs");
-const { groups, imports } = await runningGroups("brain-dashboard");
+const { test, module } = testNeedingRunning("dsv-5-docs-name-the-dashboard-service.test.ts", "brain-dashboard");
+const { groups, imports } = module ? await runningGroups("brain-dashboard") : { groups: [], imports: [] };
 // A cell by its name, as `name = ` (the form these tests had over the seed): the bodies of its variables.
 const cell = (start: string) => groups.find((g) => g.name + " = " === start)?.text || "";
 const docs = read("tools/cloud-brain/cloud-brain-docs.ojs").split("\n");

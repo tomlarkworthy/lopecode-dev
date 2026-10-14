@@ -10,18 +10,19 @@
 // build.ts, the modules a Worker owns: each is named in the docs module as a link, mod("NAME"), so the next service
 // with no row and no mention fails here. And the rows of the four services that had none (snapshot, knowledge, git,
 // fly) are held to their seeds' text, as the row of brain-usage is.
-import { test, expect } from "bun:test";
+import { expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { runningCells } from "./needs.ts";
+import { runningCells, testNeedingRunning } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const read = (env: string, path: string) => readFileSync(process.env[env] || resolve(root, path), "utf8");
 const docs = read("DOCS", "tools/cloud-brain/cloud-brain-docs.ojs");
-const seed = read("SEED", "cloud-brain-dev/deploy/@tomlarkworthy/brain-usage.js");
+const { test, module } = testNeedingRunning("usage-service-row-in-the-docs-module.test.ts", "brain-usage");
+const seed = process.env.SEED ? readFileSync(process.env.SEED, "utf8") : module ? readFileSync(module, "utf8") : "";
 const build = read("BUILD", "tools/cloud-brain/build.ts");
 // The first md cell, its method reference.
-const reference = (await runningCells("brain-usage"))[0]._definition;
+const reference = module ? (await runningCells("brain-usage"))[0]._definition : "";
 // Each `usage.NAME` a text names as code.
 const methods = (text: string) => [...new Set([...text.matchAll(/`usage\.([a-z]+)\b/g)].map((m) => m[1]))].sort();
 const table = docs.slice(docs.indexOf("md`## Services outside the core"));

@@ -6,10 +6,10 @@
 //
 //   bun test ./tests/tools/tp-4-docs.test.ts
 // DOCS=, HUB=, PROPOSAL=, BACKLOG= each read another copy of that file (the file before the change).
-import { test, expect } from "bun:test";
+import { expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { runningCells } from "./needs.ts";
+import { runningCells, testNeedingRunning } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const read = (env: string, path: string) => readFileSync(process.env[env] || resolve(root, path), "utf8");
@@ -18,7 +18,8 @@ const hub = read("HUB", "knowledge/working-with-cloud-brain-remote-lopecode-clus
 const proposal = read("PROPOSAL", "plan/cloud-brain-topics.md");
 const build = read("BUILD", "tools/cloud-brain/build.ts");
 // The first md cell of what cb4 runs, its method reference.
-const reference = (await runningCells("brain-topic"))[0]._definition;
+const { test, module } = testNeedingRunning("tp-4-docs.test.ts", "brain-topic");
+const reference = module ? (await runningCells("brain-topic"))[0]._definition : "";
 const TASKS = ["tp-1-topics-append-read", "tp-2-push-to-receive", "tp-3-take-and-done", "tp-3b-take-is-one-transaction-test", "tp-4-docs"];
 // Each `topic.NAME` a text names as code.
 const methods = (text: string) => [...new Set([...text.matchAll(/`topic\.([a-z]+)\b/g)].map((m) => m[1]))].sort();

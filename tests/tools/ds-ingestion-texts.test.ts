@@ -1,13 +1,15 @@
 // ds-ingestion-tail-to-analytics-engine, review 6248: the texts that said stage 2 ran on no Brain, and the
 // sentence of the measurement the dashboard's own test holds.
-import { test, expect } from "bun:test";
+import { expect } from "bun:test";
+import { testNeedingRunning } from "./needs.ts";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = join(import.meta.dir, "..", "..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");
 // What cb4 runs of brain-x-dashboard (cloud-brain-dev/deploy after `bun sync.ts`): its seed was deleted on 2026-10-14.
-const seed = read("cloud-brain-dev/deploy/@tomlarkworthy/brain-dashboard.js");
+const { test, module } = testNeedingRunning("ds-ingestion-texts.test.ts", "brain-dashboard");
+const seed = module ? readFileSync(module, "utf8") : "";
 const record = "tools/cloud-brain/records/ds-ingestion-tail-to-analytics-engine.md";
 
 test("the dashboard's test holds a sentence its prose has", () => {
