@@ -29,8 +29,15 @@ A deploy of `brain-x-git` built from that seed would take the five away: do not 
 What stands in the way of one is `was`: `tools/cloud-brain/seen.json` has `brain-x-git` at `9ba9cc3be98a`, the hash
 before the five, and `brain.ts apply` refuses a Worker whose running hash is not the one seen. `brain.ts saw
 brain-x-git` takes that guard away, so it is not run for this service before the seed has the five. (`redistil` does
-not show the difference: it distils the source the deployer keeps, which is the patched one.) No other service was
-changed this way.
+not show the difference: it distils the source the deployer keeps, which is the patched one.)
+
+On 2026-10-14 two more were changed so, at 05:49 and 05:50 CEST, for `brain-x-loop`: `brain-x-issues` (`4da136beec0e`,
+74 tests: an open, a move, a swap and a label told to the topic its setting `topic` names) and `brain-x-fly`
+(`9526a5569219`, 14 tests: the tick stops a machine and starts none). The patches and their commits are the
+repositories `w-auto-loop-issues` and `w-auto-loop-fly` on the Brain's git service. `tools/cloud-brain/brain-issues.ojs`
+and `brain-fly.ojs` have neither, and `seen.json` has the hashes from before, so `brain.ts apply` refuses a build of
+either seed as it refuses one of `brain-git`. `brain-x-loop` itself is a seed, `tools/cloud-brain/brain-loop.ojs`,
+deployed with `brain.ts apply` (`0ea22abdb28c`, 5 tests), because a new Worker is declared to the page by the build.
 
 ## Changing it
 
