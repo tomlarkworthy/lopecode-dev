@@ -176,3 +176,36 @@ test.skipIf(!have)("drain.ts: a run that stops at sandbox-check ends the drain, 
     expect(b.calls.filter((c) => c === "issue.get")).toEqual(["issue.get"]);
   } finally { b.stop(); }
 });
+
+// Past the check, to an agent and back: a copy of cloud-brain-dev with work.ts and agent.sh as stubs. The agent writes
+// nothing, so the run stops at writer-not-submitted and says so. On 2026-10-14 the first real run (fx-2-panel) threw
+// there instead, `read` being agent()'s array, and left the issue as it was and its two tokens alive.
+test.skipIf(!have)("run.ts: an agent that submits nothing stops the run, said on the issue, its tokens ended", async () => {
+  const copy = resolve(rig, "dev-copy");
+  mkdirSync(copy);
+  for (const f of ["run.ts", "sandbox.ts", "patch.ts"]) writeFileSync(resolve(copy, f), readFileSync(resolve(dev, f)));
+  writeFileSync(resolve(copy, "work.ts"), `const d = process.argv[process.argv.indexOf("--dir") + 1]; require("node:fs").mkdirSync(d, { recursive: true });\n`);
+  writeFileSync(resolve(copy, "agent.sh"), `#!/bin/sh\necho '{"usd":0.01,"session":"s1","turns":1}'\n`);
+  chmodSync(resolve(copy, "agent.sh"), 0o755);
+  const calls: string[] = [];
+  let n = 0;
+  const server = Bun.serve({ port: 0, async fetch(req) {
+    const u = new URL(req.url), m = u.pathname.replace("/xrpc/com.lopecode.brain.", "");
+    calls.push(m);
+    if (m === "issue.get") return Response.json({ issue: issue("one-issue", 1), events: [] });
+    if (m === "delegation.create") return Response.json({ id: "d" + ++n, secret: "s" + n });
+    if (["issue.cost", "issue.comment", "issue.label", "issue.move"].includes(m)) return Response.json({ seq: 1 });
+    if (m === "delegation.revoke") return Response.json({ revoked: true });
+    return new Response("not in the rig", { status: 500 });
+  } });
+  try {
+    const p = Bun.spawn([BUN, resolve(copy, "run.ts"), "one-issue"], { cwd: copy, env: { PATH: SYSTEM.join(":"), HOME: process.env.HOME || "", BRAIN: "http://127.0.0.1:" + server.port, AGENTS_TOKEN: "parent", BRAIN_TOKEN: "work" }, stdout: "pipe", stderr: "pipe" });
+    const [out, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
+    expect(err).not.toContain("TypeError");
+    expect(code).toBe(1);
+    expect(JSON.parse(out.trim().split("\n").pop()!)).toMatchObject({ outcome: "writer-not-submitted", sandbox: "none", revoked: "2 of 2", runs: [{ role: "implementer", outcome: "not-submitted", usd: 0.01 }] });
+    expect(calls).toContain("issue.cost");
+    expect(calls).toContain("issue.comment");
+    expect(calls).toContain("issue.label");
+  } finally { server.stop(true); }
+});
