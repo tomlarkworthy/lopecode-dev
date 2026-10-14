@@ -84,3 +84,36 @@ The suite's count is in the issue's comment.
 - The main checkout's `cloud-brain-dev` after a fast-forward. Read, not run: it would move past the commit
   `lopecode-dev` records for the submodule, and the Fly machine, which follows that record (the issue's body), keeps
   the older tools until a pointer commit.
+
+## Round 2, 2026-10-14
+
+The review of round 1 (event 7480, `rev-62a8e3`, `changes`) held three findings. Each is taken.
+
+1. **A list of driver files let code past with no approve.** Bun reads `bunfig.toml` (its `preload`) and `.env` from
+   the directory of every driver process, and a new `.ts` imported from either runs outside the sandbox with every
+   token; none was in `DRIVER`. The gate is turned around: `patch.ts` `SAFE` names what needs no approve,
+   `README.md` and `records/<name>.md`, and `needsApprove(files)` is every other file. `DRIVER` and `touchesDriver`
+   are gone. With this, most changes to the repository are `major` and wait for an approve, which the approver may
+   give (comment 7458).
+2. **The reader of a dev issue ran the writer's `issue.ts`, and got the writer's `CLAUDE.md`.** `run.ts` copies the
+   driver's tools over the reader's clone for a dev issue as for a service, and takes a `bunfig.toml` or `.env*` out
+   of it, for both kinds. `roles/dev-reviewer.md` step 4 says the clone's tools are the driver's and the writer's are
+   tested in a `git archive` copy, and to read a `bunfig.toml` or `.env` of the patch before running anything there.
+3. **`fastForward` kept a checkout that was only ahead of main.** `merge --ff-only` answers "Already up to date"
+   for it. It now checks `git merge-base --is-ancestor HEAD FETCH_HEAD` and stops with `the checkout has commits
+   origin's main has not`; the test has the ahead-only case before the diverged one, on a detached head.
+
+The record of round 1 named `DRIVER`, `touchesDriver` and the reader's clone keeping the writer's tools; those lines
+above are of round 1 and no longer of the code.
+
+```
+bun test --timeout=30000 ./tests/tools/run-ts-commits-to-cloud-brain-dev.test.ts     12 pass, 0 fail, 64 expect() calls
+```
+
+Each fix taken out alone, the file run again: without the `--is-ancestor` check, the `fastForward` test fails; with
+the copy of the tools for services only and no removal, the test of the reader's clone fails; with `SAFE` as the
+owner's six names, the `devPatch` test and the test of the reader's clone fail (10 pass, 2 fail).
+
+Not tried in this round, beside the list of round 1: a `bunfig.toml` below the top of the clone (bun reads the one of
+the directory it runs in, and the reader's clone is run at its top; not checked further), and a `package.json` or
+`tsconfig.json` of the writer's in the reader's clone, which are left there.

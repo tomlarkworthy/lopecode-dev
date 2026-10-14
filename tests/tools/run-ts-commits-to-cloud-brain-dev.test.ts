@@ -78,7 +78,8 @@ test.skipIf(!have)("devPatch: the whole diff from upstream main, the same SHA-25
   expect(a.sha).toBe(b.sha);
   expect(a.files.sort()).toEqual(["records/x.md", "run.ts"]);
   expect(a.base).toBe(git(up, "rev-parse", "main"));
-  expect(patch.touchesDriver(a.files)).toEqual(["run.ts"]);
+  expect(patch.needsApprove(a.files)).toEqual(["run.ts"]);
+  expect(patch.needsApprove(["README.md", "records/x.md", "records/a/b.md", "bunfig.toml", ".env", "evil.ts", "roles/dev-writer.md", "AGENTS.md"])).toEqual(["records/a/b.md", "bunfig.toml", ".env", "evil.ts", "roles/dev-writer.md", "AGENTS.md"]);
   // the writer's path to the same SHA-256: work.ts patch --dev, run in its clone
   for (const f of ["work.ts", "patch.ts"]) writeFileSync(resolve(w, f), readFileSync(resolve(dev, f)));
   git(w, "config", "brain.work", "devx");
@@ -115,9 +116,13 @@ test.skipIf(!have)("fastForward: deploy/ put back and the checkout brought to ma
   writeFileSync(resolve(here, "README.md"), "edited\n");
   expect(patch.fastForward(here).why).toContain("README.md");
   git(here, "checkout", "--", "README.md");
+  // ahead of main alone, then ahead and behind
   writeFileSync(resolve(here, "local.ts"), "x\n"); git(here, "add", "local.ts"); git(here, "commit", "-q", "-m", "local");
+  const ahead = git(here, "rev-parse", "HEAD");
+  expect(patch.fastForward(here).why).toContain("commits origin's main has not");
+  expect(git(here, "rev-parse", "HEAD")).toBe(ahead);
   writeFileSync(resolve(there, "README.md"), "three\n"); git(there, "commit", "-q", "-am", "three"); git(there, "push", "-q", "origin", "HEAD:main");
-  expect(patch.fastForward(here).why).toContain("git:");
+  expect(patch.fastForward(here).why).toContain("commits origin's main has not");
 });
 
 // push.ts in a copy of cloud-brain-dev: work.ts a stub that clones the fork, the Brain a Bun.serve with the record given.
@@ -153,7 +158,7 @@ const record = (sha: string, more: any[] = []) => [
 
 test.skipIf(!have)("push.ts: a passed change goes on main as a fast-forward, the issue moved done with the commit", async () => {
   const { up, fork } = repos();
-  const w = write(fork, { "records/x.md": "rec\n", "issue.ts": "// better\n" });
+  const w = write(fork, { "records/x.md": "rec\n", "README.md": "better\n" });
   const sha = patch.devPatch(w, up).sha;
   const r = pushRig(fork, { id: "devx", about: "cloud-brain-dev", state: "in-review", labels: [] }, record(sha));
   r.set({ GIT_PUSH_URL: up, DEV_UPSTREAM: up });
@@ -173,7 +178,7 @@ test.skipIf(!have)("push.ts: a passed change goes on main as a fast-forward, the
 
 test.skipIf(!have)("push.ts: main moved since the base is refused, said on the issue, nothing moved", async () => {
   const { up, fork } = repos();
-  const w = write(fork, { "issue.ts": "// better\n" });
+  const w = write(fork, { "README.md": "better\n" });
   const sha = patch.devPatch(w, up).sha;
   const u2 = resolve(dirname(fork), "u2"); execFileSync("git", ["clone", "-q", up, u2]);
   writeFileSync(resolve(u2, "README.md"), "two\n"); git(u2, "commit", "-q", "-am", "moved"); git(u2, "push", "-q", "origin", "HEAD:main");
@@ -270,9 +275,11 @@ const fullRun = async (files: Record<string, string>) => {
   const copy = resolve(dirname(fork), "full" + ++n);
   mkdirSync(copy);
   for (const f of ["run.ts", "sandbox.ts", "patch.ts", "push.ts"]) writeFileSync(resolve(copy, f), readFileSync(resolve(dev, f)));
+  writeFileSync(resolve(copy, "issue.ts"), "// the driver's issue.ts\n");
   writeFileSync(resolve(copy, "work.ts"), `const a = process.argv; require("node:child_process").execFileSync("git", ["clone", "-q", ${JSON.stringify(fork)}, a[a.indexOf("--dir") + 1]]); console.log("{}");\n`);
+  const readerSaw = resolve(copy, "reader-saw");
   const post = (m: string, body: string) => `curl -s -X POST -H "authorization: Bearer $ISSUE_TOKEN" -H 'content-type: application/json' "$BRAIN/xrpc/com.lopecode.brain.${m}" -d '${body}' >/dev/null`;
-  writeFileSync(resolve(copy, "agent.sh"), `#!/bin/sh\ncase "$1" in\n  dev-writer) ${post("issue.move", `{"id":"dev-full","to":"in-review","refs":[{"kind":"patch","value":"${sha}"}]}`)};;\n  dev-reviewer) ${post("issue.review", `{"id":"dev-full","verdict":"pass","refs":[{"kind":"patch","value":"${sha}"}]}`)};;\nesac\necho '{"usd":0.01,"session":"s1","turns":1}'\n`);
+  writeFileSync(resolve(copy, "agent.sh"), `#!/bin/sh\ncase "$1" in\n  dev-writer) ${post("issue.move", `{"id":"dev-full","to":"in-review","refs":[{"kind":"patch","value":"${sha}"}]}`)};;\n  dev-reviewer) cat issue.ts > "${readerSaw}"; ls -a >> "${readerSaw}"; ${post("issue.review", `{"id":"dev-full","verdict":"pass","refs":[{"kind":"patch","value":"${sha}"}]}`)};;\nesac\necho '{"usd":0.01,"session":"s1","turns":1}'\n`);
   chmodSync(resolve(copy, "agent.sh"), 0o755);
   const issue: any = { id: "dev-full", state: "ready", about: "cloud-brain-dev", labels: [] }, events: any[] = [], names: Record<string, string> = {}, calls: { m: string; body: any }[] = [];
   let k = 0, seq = 0;
@@ -293,7 +300,7 @@ const fullRun = async (files: Record<string, string>) => {
   try {
     const p = Bun.spawn([BUN, resolve(copy, "run.ts"), "dev-full"], { cwd: copy, env: { PATH: SYSTEM, HOME: process.env.HOME || "", BRAIN: "http://127.0.0.1:" + server.port, AGENTS_TOKEN: "parent", BRAIN_TOKEN: "work", GIT_TOKEN: "gitparent", GIT_PUSH_URL: up, DEV_UPSTREAM: up }, stdout: "pipe", stderr: "pipe" });
     const [out, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
-    return { code, err, last: JSON.parse(out.trim().split("\n").pop()!), issue, calls, up, head: git(w, "rev-parse", "HEAD"), base: git(fork, "rev-parse", "main~1") };
+    return { code, err, last: JSON.parse(out.trim().split("\n").pop()!), issue, calls, up, readerSaw: existsSync(readerSaw) ? readFileSync(readerSaw, "utf8") : "", head: git(w, "rev-parse", "HEAD"), base: git(fork, "rev-parse", "main~1") };
   } finally { server.stop(true); }
 };
 
@@ -312,4 +319,14 @@ test.skipIf(!have)("run.ts: a passed dev change to another file is pushed by pus
   expect(r.last).toMatchObject({ outcome: "pushed", push: { pushed: true, moved: "done", head: r.head } });
   expect(r.issue.state).toBe("done");
   expect(git(r.up, "rev-parse", "main")).toBe(r.head);
+});
+
+test.skipIf(!have)("run.ts: the reader's clone has the driver's issue.ts, and no bunfig.toml or .env of the writer's; both need an approve", async () => {
+  const r = await fullRun({ "bunfig.toml": 'preload = ["./evil.ts"]\n', ".env": "BRAIN=https://elsewhere.example\n", "issue.ts": "// the writer's issue.ts\n" });
+  expect(r.last).toMatchObject({ outcome: "awaiting-approval" });
+  expect(r.issue.labels).toEqual(["major"]);
+  expect(r.readerSaw).toContain("// the driver's issue.ts");
+  expect(r.readerSaw).not.toContain("the writer's issue.ts");
+  expect(r.readerSaw.split("\n")).not.toContain("bunfig.toml");
+  expect(r.readerSaw.split("\n")).not.toContain(".env");
 });
