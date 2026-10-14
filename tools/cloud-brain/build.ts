@@ -5,7 +5,10 @@
  * A module with `running` in place of `seed` has no seed here: it is changed as a patch in cloud-brain-dev, and its
  * source is what the Brain runs, read from getSource of BRAIN_BASE (cb4) at each build. Its seed was deleted on
  * 2026-10-14 because it was behind what ran, and a build of it would have undone the patches (Tom: "remove the stale
- * seeds from lopecode-dev so there are no accidents"). No answer, no build.
+ * seeds from lopecode-dev so there are no accidents"). No answer, no build. Since later that day every brain-x-*
+ * service but the page is `running`: the 18 other seeds were deleted while each still matched what ran. A new service
+ * starts as a seed and an entry here (the page declares services from this build); after its first deploy its seed
+ * is deleted and its entry becomes `running`.
  * Beside it, in .emitted/ here: shell.html (the notebook without the modules a Brain's Workers serve) and
  * verify.html (the shell with mains cut to brain-shell, verify-shell.ts).
  */
@@ -28,27 +31,27 @@ const MODULES = [
   { name: "@tomlarkworthy/brain-deployer", seed: "brain-deployer.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-core", seed: "brain-core.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-kernel", seed: "brain-kernel.ojs", main: true, files: { "atcute.js": "text/javascript" } },
-  { name: "@tomlarkworthy/brain-proxy", seed: "brain-proxy.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-whatsapp", seed: "brain-whatsapp.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-bluesky", seed: "brain-bluesky.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-static", seed: "brain-static.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-blob", seed: "brain-blob.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-library", seed: "brain-library.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-feed", seed: "brain-feed.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-browser", seed: "brain-browser.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-inbox", seed: "brain-inbox.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-logs", seed: "brain-logs.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-snapshot", seed: "brain-snapshot.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-knowledge", seed: "brain-knowledge.ojs", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-proxy", running: "brain-x-proxy", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-whatsapp", running: "brain-x-whatsapp", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-bluesky", running: "brain-x-bluesky", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-static", running: "brain-x-static", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-blob", running: "brain-x-blob", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-library", running: "brain-x-library", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-feed", running: "brain-x-feed", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-browser", running: "brain-x-browser", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-inbox", running: "brain-x-inbox", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-logs", running: "brain-x-logs", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-snapshot", running: "brain-x-snapshot", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-knowledge", running: "brain-x-knowledge", main: true, files: {} },
   { name: "@tomlarkworthy/brain-issues", running: "brain-x-issues", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-container", seed: "brain-container.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-ai", seed: "brain-ai.ojs", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-container", running: "brain-x-container", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-ai", running: "brain-x-ai", main: true, files: {} },
   { name: "@tomlarkworthy/brain-git", running: "brain-x-git", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-dashboard", seed: "brain-dashboard.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-topic", seed: "brain-topic.ojs", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-dashboard", running: "brain-x-dashboard", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-topic", running: "brain-x-topic", main: true, files: {} },
   { name: "@tomlarkworthy/brain-fly", running: "brain-x-fly", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-usage", seed: "brain-usage.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-loop", seed: "brain-loop.ojs", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-usage", running: "brain-x-usage", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-loop", running: "brain-x-loop", main: true, files: {} },
   { name: "@tomlarkworthy/cloud-brain", seed: "cloud-brain.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/cloud-brain-docs", seed: "cloud-brain-docs.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-secrets", seed: "brain-secrets.ojs", main: true, files: {} },

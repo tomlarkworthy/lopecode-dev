@@ -1,11 +1,12 @@
-// The SQL of brain-x-topic, on a SQLite. The test cells of brain-topic.ojs run on topicFakeSql, whose reading of each
+// The SQL of brain-x-topic, on a SQLite. The test cells of brain-topic run on topicFakeSql, whose reading of each
 // WHERE was written by hand; this runs the statements themselves.
 //   1. Each statement's plan, made here with EXPLAIN, is given to the check of the deployed brain-db
 //      (cloud-brain-dev/deploy/@tomlarkworthy/brain-db.js: sqlShape, sqlNeeds, sqlSignature). D1 plans with its own
 //      SQLite, so a pass here is not a pass there: the first call on cb4 is that test.
 //   2. One list of calls is run on a SQLite and on topicFakeSql, and each answer is compared.
-// The statements are read from the seed of this checkout (tools/cloud-brain/brain-topic.ojs), compiled as build.ts
-// compiles it, never retyped, and from no notebook, as tests/tools/issue-lock-sql.test.ts reads its own.
+// The statements are read from what cb4 runs (cloud-brain-dev/deploy/@tomlarkworthy/brain-topic.js after `bun sync.ts`;
+// the seed tools/cloud-brain/brain-topic.ojs until 2026-10-14), never retyped, and from no notebook, as
+// tests/tools/issue-lock-sql.test.ts reads its own.
 // plan/cloud-brain-topics-service.md, task 1; tools/cloud-brain/records/tp-1-topics-append-read.md.
 // Task 2 (tp-2-push-to-receive) added topic_subs and the deliverer's statements.
 // Task 3 (tp-3-take-and-done) added topic_claims and the statements of a take.
@@ -13,11 +14,11 @@ import { expect, beforeAll } from "bun:test";
 import { Database } from "bun:sqlite";
 import { resolve } from "node:path";
 import { importNotebookModule } from "../../tools/notebook-import.ts";
-import { testNeedingSeedAnd } from "./needs.ts";
+import { testNeedingRunning } from "./needs.ts";
 
 const ROOT = resolve(import.meta.dir, "../..");
 const BRAIN_DB = resolve(ROOT, "cloud-brain-dev/deploy/@tomlarkworthy/brain-db.js");
-const { test, module } = await testNeedingSeedAnd("topic-sql.test.ts", "brain-topic.ojs", [BRAIN_DB]);
+const { test, module } = testNeedingRunning("topic-sql.test.ts", "brain-topic", [BRAIN_DB]);
 
 let S: Record<string, string>, schema: string[], fakeSql: any, db_: any;
 

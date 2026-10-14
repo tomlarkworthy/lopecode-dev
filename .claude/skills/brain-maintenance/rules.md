@@ -59,6 +59,9 @@ that list it asks for is left for him as before.
   the owner's word to a session is no leave for it ("An act of Never, on the owner's word", "What
   it does not reach").
 - Deploy text that was not built from a seed. A change goes seed, `build.ts`, tests, emit, apply.
+  Since 2026-10-14 no `brain-x-*` service but the page has a seed here: a change to one is a patch,
+  made, tested and deployed from `cloud-brain-dev` (`run.ts`; its README, "One issue, from ready to
+  deployed"), and that is the one way such a service is deployed.
 - Deploy the kernel (`brain`), `brain-core`, `brain-db` or the deployer. A fix that needs one of
   them is written, tested and reviewed with no word of the owner, and the deploy alone waits for
   him. Its seed is landed on `main` with no deploy (`land.sh`, `--seed-lands-undeployed`): nothing
@@ -509,7 +512,7 @@ The four of that day, each kept in `.emitted/cb4-tokens.json` and not printed:
   entry of kind `doc`: the file first, with `static.put`, at `docs/<source>/<path>` of the file
   store, then the entry, which names that file. `static.put`
   by a token reaches the paths the owner does but `shell/` and `library/`
-  (`tools/cloud-brain/brain-static.ojs`, "A token is the owner's"). It names no `static.get` and
+  (the prose of `brain-x-static`, "A token is the owner's": `getSource?worker=brain-x-static`). It names no `static.get` and
   no `static.delete`. The agreement as first written (comment 4775 of `sd-1-doc-files`) reads
   "for files only under `knowledge-docs/`", the prefix of the spec. The tool puts under `docs/`,
   where 53 of the docs had a file already; `static.list?prefix=knowledge-docs/` answered 0 files
@@ -611,7 +614,7 @@ BRAIN_BASE=cb4 bun <root>/tools/cloud-brain/brain.ts curl /xrpc/com.lopecode.bra
   (`brain.ts token loop-bluesky bluesky.send`); it is in `.emitted/cb4-tokens.json` and is not printed.
 - The owner's DID: `curl -s "https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=larkworthy.bsky.social"`.
 - The service refuses a `to` that is neither the owner nor a person the Brain knows
-  (`brain-bluesky.ojs`, `served`). It does not know who owns which service: that the addressee
+  (`brain-x-bluesky`, `served`). It does not know who owns which service: that the addressee
   is one of the two above is yours to check, and no `room` is sent.
 - A member's DID cannot be read by the loop today. Their Worker is `brain-m-<id>-<name>` with
   `id` a hash of the DID, `people.list` is the owner's, and `member.services` answers its

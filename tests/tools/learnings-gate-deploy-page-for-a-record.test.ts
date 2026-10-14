@@ -53,7 +53,7 @@ test("neither is a post mortem (by Write, Edit and MultiEdit), a digest's README
 });
 
 test("a seed or a tool is still asked for both pages, at any depth and by a relative path", () => {
-  const paths = ["brain-topic.ojs", "brain.ts", "land.sh", "hono.js", "merge-live.py", "fly/token-file.ts", "digests/2026-10-13.ojs"]
+  const paths = ["brain-operator.ojs", "brain.ts", "land.sh", "hono.js", "merge-live.py", "fly/token-file.ts", "digests/2026-10-13.ojs"]
     .map(under)
     .concat(["tools/cloud-brain/build.ts"]);
   // Each tool name is tried on the first path, and Write on the rest: a run of the hook is about 0.75 s.

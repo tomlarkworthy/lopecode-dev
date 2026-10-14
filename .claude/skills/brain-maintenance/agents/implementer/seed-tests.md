@@ -10,9 +10,11 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
    there by running the neighbour inside the test's own window (a second rig), and count it where
    it was met: the deployer's run address opened N times before the fix and N times after, with N
    and both counts in the comment (`snapshot-digest-test-fails-by-chance`: 14 of 40, then 0 of 40).
-6. **Fix it in the seed.** Never the notebook HTML, never the deployed text. `brain-git`, `brain-fly` and `brain-issues` have no seed
-   since 2026-10-14 (each was behind what ran, and was deleted): those three are changed as a patch in `cloud-brain-dev`
-   (its README, "A service changed as a patch"; `run.ts`), never from a seed here. Add or change a
+6. **Fix it in the seed.** Never the notebook HTML, never the deployed text. No `brain-x-*` service but the page has a
+   seed since 2026-10-14 (`brain-git`, `brain-fly` and `brain-issues` were behind what ran; the other 18 matched it and
+   were deleted later that day): a service is changed as a patch in `cloud-brain-dev` (its README, "One issue, from ready
+   to deployed"; `run.ts`), never from a seed here. A new service starts as a seed and a `build.ts` entry
+   (`knowledge/changing-and-deploying-a-cloud-brain-worker.md`, "A service changed as a patch"). Add or change a
    `test_*` cell in the same module so the defect cannot return unseen.
    When the change adds a branch beside others (one store's place in a call, a case of a switch), a test
    enters that branch through the function that has it, so the new line itself runs. A test that makes the

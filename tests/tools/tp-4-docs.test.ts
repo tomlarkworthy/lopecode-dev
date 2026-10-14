@@ -1,29 +1,31 @@
 // The docs name the topic service (task 4 of plan/cloud-brain-topics-service.md, issue tp-4-docs). Before the task the
 // modules table of cloud-brain-docs.ojs had no row for brain-topic, the knowledge page listed no service `topic` and
 // called the proposal the only document, and the proposal's head said "not built" with no word of the spec.
-// What the lines say of the service is held to the text of its seed, brain-topic.ojs, not to a run of it.
+// What the lines say of the service is held to the text of its module, not to a run of it: until 2026-10-14 its seed,
+// brain-topic.ojs; since then what cb4 runs, from cloud-brain-dev/deploy after `bun sync.ts` (the seed was deleted that day).
 //
 //   bun test ./tests/tools/tp-4-docs.test.ts
 // DOCS=, HUB=, PROPOSAL=, BACKLOG= each read another copy of that file (the file before the change).
 import { test, expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { runningCells } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const read = (env: string, path: string) => readFileSync(process.env[env] || resolve(root, path), "utf8");
 const docs = read("DOCS", "tools/cloud-brain/cloud-brain-docs.ojs");
 const hub = read("HUB", "knowledge/working-with-cloud-brain-remote-lopecode-cluster.md");
 const proposal = read("PROPOSAL", "plan/cloud-brain-topics.md");
-const seed = read("SEED", "tools/cloud-brain/brain-topic.ojs");
 const build = read("BUILD", "tools/cloud-brain/build.ts");
-const reference = seed.split("\n// %%\n")[0];
+// The first md cell of what cb4 runs, its method reference.
+const reference = (await runningCells("brain-topic"))[0]._definition;
 const TASKS = ["tp-1-topics-append-read", "tp-2-push-to-receive", "tp-3-take-and-done", "tp-3b-take-is-one-transaction-test", "tp-4-docs"];
 // Each `topic.NAME` a text names as code.
 const methods = (text: string) => [...new Set([...text.matchAll(/`topic\.([a-z]+)\b/g)].map((m) => m[1]))].sort();
-// The methods the seed's reference has a row for: a row of the first table says procedure or query.
+// The methods the module's reference has a row for: a row of the first table says procedure or query.
 const rows = [...reference.matchAll(/^\| \\`topic\.([a-z]+)\\` \| (?:procedure|query)\./gm)].map((m) => m[1]).sort();
 
-test("the seed's reference has a row for each of the eleven methods", () => {
+test("the module's reference has a row for each of the eleven methods", () => {
   expect(rows).toEqual(["append", "create", "delete", "done", "list", "read", "receive", "subs", "subscribe", "take", "unsubscribe"]);
 });
 
@@ -38,22 +40,22 @@ test("the modules table of the docs has one row for brain-topic, after brain-inb
   expect(methods(row)).toEqual(["append", "done", "read", "subscribe", "take"]);
   for (const m of methods(row)) expect(rows).toContain(m);
   // The module the row links to is one the build has, and one a Worker owns.
-  expect(build).toContain('{ name: "@tomlarkworthy/brain-topic", seed: "brain-topic.ojs", main: true');
+  expect(build).toContain('{ name: "@tomlarkworthy/brain-topic", running: "brain-x-topic", main: true');
   expect(/const OWNED = \[([^\]]*)\]/.exec(build)![1]).toContain('"brain-topic"');
 });
 
-test("the row says of the service what the first sentences of its seed say", () => {
+test("the row says of the service what the first sentences of its module say", () => {
   expect(reference).toContain("Named, ordered logs kept by a Cloud Brain. Each topic has a rule for who appends and a rule for who reads");
   expect(reference).toContain("hands each entry of a subscription to take from to one taker");
   expect(reference).toContain("\\`target\\` is a method named \\`NAME.receive\\`");
   expect(reference).toContain("The reader keeps \\`next\\` and sends it as \\`after\\`");
 });
 
-test("the knowledge page lists topic among the services, with its reads, its seed and its spec", () => {
+test("the knowledge page lists topic among the services, with its reads, its method reference and its spec", () => {
   const services = hub.slice(hub.indexOf("- **Services**"), hub.indexOf("- **Database**"));
   expect(services.slice(0, services.indexOf("`<base>-x-page` is built from"))).toContain("topic (since 2026-10-12");
   const said = services.slice(services.indexOf("topic (since 2026-10-12"), services.indexOf("`<base>-x-page` is built from"));
-  for (const part of ["topic.append { topic, key, body }", "topic.read?topic=&after=&limit=", "NAME.receive", "brain-x-topic", "topic.take", "topic.done", "loop-topic", "plan/cloud-brain-topics-service.md", "tools/cloud-brain/brain-topic.ojs"]) expect(said).toContain(part);
+  for (const part of ["topic.append { topic, key, body }", "topic.read?topic=&after=&limit=", "NAME.receive", "brain-x-topic", "topic.take", "topic.done", "loop-topic", "plan/cloud-brain-topics-service.md", "getSource?worker=brain-x-topic&part=reference"]) expect(said).toContain(part);
   for (const m of methods(said)) expect(rows).toContain(m);
   // The page says a member is not let in without the owner's grant: the member's list in the seed names no topic method.
   expect(said).toContain("grant");

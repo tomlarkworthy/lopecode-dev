@@ -1,6 +1,6 @@
 ---
 scope: [local-development]
-topics: Cloud Brain; a service changed as a patch from cloud-brain-dev (run.ts), and the seed of brain-git that is behind what runs; changing a seed; a git worktree for the change (worktree.sh), landed by a push; build.ts; deploying a Worker; brain.ts apply, redistil, saw, confirm; waiting-deploys.ts, which of the kernel, the core, the database and the deployer cb4 runs behind main; the deploy lock; a Playwright script in tools; where a service keeps files
+topics: Cloud Brain; a service changed as a patch from cloud-brain-dev (run.ts), the one way for a brain-x service since 2026-10-14, when its seed was deleted; a new service's first deploy from a seed and a build.ts entry; changing a seed of the kernel, the core, the database, the deployer or the page; a git worktree for the change (worktree.sh), landed by a push; build.ts; deploying a Worker; brain.ts apply, redistil, saw, confirm; waiting-deploys.ts, which of the kernel, the core, the database and the deployer cb4 runs behind main; the deploy lock; a Playwright script in tools; where a service keeps files
 triggers:
   - "^(Edit|Write|MultiEdit) .*tools/cloud-brain/.*\.(ojs|ts|js|sh|py)$"
   - "(^Bash |^|[;&|] )bun +tools/cloud-brain/build\.ts( |$)"
@@ -59,6 +59,29 @@ the seed's policy cells (`rules.md`, "Its own files").
 A build is no longer a function of its commit alone: `brain-git`, `brain-fly` and `brain-issues` are what cb4 runs at
 the time of the build, and with cb4 not answering the build stops.
 
+Later on 2026-10-14 the other 18 service seeds were deleted (Tom: every `brain-x-*` service is changed only as a patch
+in `cloud-brain-dev`, so its seed goes stale the first time one is patched): `brain-ai`, `blob`, `bluesky`, `browser`,
+`container`, `dashboard`, `feed`, `inbox`, `knowledge`, `library`, `logs`, `loop`, `proxy`, `snapshot`, `static`,
+`topic`, `usage` and `whatsapp`. Before the deletion each was `same` as what cb4 ran, cell by cell (`differ` over the
+compiled seed and `cloud-brain-dev/deploy` after `sync.ts`), so no patch was lost. Each `build.ts` entry is
+`running: "brain-x-NAME"`; the build printed `what brain-x-… runs` for 21 modules, and `tab-tests.ts` on it passed
+`brain-topic` 18/18, `brain-knowledge` 11/11, `brain-usage` 5/5 and `brain-loop` 5/5. The tests of `tests/tools` that
+read one of those seeds read the running module (`running`, `runningCells`, `runningGroups` of `tests/tools/needs.ts`).
+
+So, since that day:
+
+- **A `brain-x-*` service but the page** is changed as a patch from `cloud-brain-dev` (`run.ts`; its README, "One
+  issue, from ready to deployed"). Its method reference is `getSource?worker=brain-x-NAME&part=reference`.
+  `seen.json` keeps entries for those Workers from before; `brain.ts apply` and `saw` are not run for them, because no
+  record of them is emitted from a seed here.
+- **The seed steps below** apply to the seeds left: the kernel, `brain-core`, `brain-db`, the deployer,
+  `cloudflare-iac` and `cloudflare-iac-fixtures`, whose deploys are the owner's ("The deploys that wait for the
+  owner"), and the page's own modules (`cloud-brain`, `brain-shell`, `cloud-brain-docs`, `cloud-brain-specs`,
+  `brain-secrets`, `brain-feedback`, `brain-operator`, `xrpc-client`).
+- **A new service** still starts as a seed and a `build.ts` entry, because the page declares services from the build
+  (as `brain-x-loop` did, above). It is deployed with the steps below. After its first deploy its seed is deleted and
+  its entry becomes `running: "brain-x-NAME"`; from then on it is changed as a patch. Not yet done for any service.
+
 ## Changing it
 
 Since 2026-10-12 an agent of the issue loop does these steps in a git worktree and writes no tracked file of the main
@@ -71,7 +94,9 @@ before it. The order of a landing, with each command, is step 10 of the implemen
 The steps below were written for the main checkout, and a line says where a worktree differs. Whether a session of the
 owner's works in one is his to say: the spec does not ask it ("the main checkout is his").
 
-1. Edit the seed in `tools/cloud-brain/*.ojs`. Never the notebook HTML.
+1. Edit the seed in `tools/cloud-brain/*.ojs`. Never the notebook HTML. Since 2026-10-14 that is one of the seeds
+   left, or a new service's before its first deploy ("A service changed as a patch", above); a `brain-x-*` service is
+   changed as a patch.
 2. `bun tools/cloud-brain/build.ts`. Beside the notebook it writes two files in `tools/cloud-brain/.emitted/`:
    `shell.html`, the notebook without the modules a Worker serves (what `brain.ts shell` posts), and since
    2026-10-11 `verify.html`, that shell with `mains` cut to `["@tomlarkworthy/brain-shell"]`

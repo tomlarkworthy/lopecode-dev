@@ -76,7 +76,7 @@ that path, `<tree>` what follows `bm-`, its branch `bm/<tree>`, and `<root>` the
    `reviewed` events: fix those and nothing else, as the page `resumed-round` has it. An issue whose
    `labels` have `post-mortem` is not a fix: read the page `post-mortem` before step 2.
 2. **Read the code it is about, then search the Brain for prior art, before you design the fix.** The source
-   of a service is its seed, `tools/cloud-brain/<name>.ojs`, whose first `md` cell is its method reference;
+   of a `brain-x-*` service is what cb4 runs, else a seed (the page `start`, step 2);
    `tools/cloud-brain/records/` has the history. Two or three searches, in the words of the problem and of
    the fix you have in mind:
    `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted BRAIN_BASE=cb4 bun $W/tools/cloud-brain/brain.ts curl "/xrpc/com.lopecode.brain.knowledge.search?semantic=true&q=<words, url-encoded>" --as loop-knowledge 2>/dev/null`.
@@ -104,7 +104,7 @@ that path, `<tree>` what follows `bm-`, its branch `bm/<tree>`, and `<root>` the
    issue gives, run before anything else is changed. If you cannot reproduce it, say so on the issue and stop.
 6. **Fix it, with a test that fails without the fix.**
    - **A seed** (`tools/cloud-brain/*.ojs`, a `test_*` cell, a control of a panel): never the notebook HTML,
-     never the deployed text. Read the page `seed-tests` now; it has steps 5 to 8 for a seed.
+     never the deployed text; a `brain-x-*` service is a patch. Read the page `seed-tests` now; it has steps 5 to 8.
    - **A local tool or a doc**: the test is a file under `tests/` that `bun test` or `node --test` runs. A
      doc alone has one too, which reads the doc and fails before the edit. One file is run
      `cd $W && bun test --timeout=30000 ./tests/tools/<file>`, with the `./` and the timeout. The whole

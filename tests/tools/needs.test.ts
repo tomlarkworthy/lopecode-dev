@@ -42,11 +42,12 @@ test("a test of a seed and of files: skipped for the first file lacking with not
   }
 });
 
-// Since 2026-10-14 issue-lock-sql.test.ts reads what cb4 runs: brain-issues.ojs was deleted that day, behind what ran.
+// Since 2026-10-14 both read what cb4 runs: brain-issues.ojs was deleted that day, behind what ran, and brain-topic.ojs
+// later that day with the other service seeds.
 test("the two SQL tests read their statements from the seed of the checkout or what cb4 runs, and no file of tests/tools names the built notebook to read it", async () => {
   const needs = await import("./needs.ts");
   expect(Object.keys(needs).filter((k) => /^(BUILT|COMMITTED|notebookOf)$/.test(k))).toEqual([]);
-  for (const [file, line] of [["issue-lock-sql.test.ts", 'testNeedingRunning("issue-lock-sql.test.ts", "brain-issues", [BRAIN_DB])'], ["topic-sql.test.ts", 'await testNeedingSeedAnd("topic-sql.test.ts", "brain-topic.ojs", [BRAIN_DB])']]) {
+  for (const [file, line] of [["issue-lock-sql.test.ts", 'testNeedingRunning("issue-lock-sql.test.ts", "brain-issues", [BRAIN_DB])'], ["topic-sql.test.ts", 'testNeedingRunning("topic-sql.test.ts", "brain-topic", [BRAIN_DB])']]) {
     const src = readFileSync(resolve(here, file), "utf8");
     expect(src).toContain(line);
     expect(src).toContain("importNotebookModule(module)");
@@ -88,16 +89,16 @@ test("atproto-publish.test.ts with no atproto.html leaves fetch a function for t
 
 // Issue cost-events-test-reads-stale-deploy: cost-events.test.ts asked issueAct of cloud-brain-dev/deploy/, and failed 3
 // in a checkout whose copy was from before issue.cost.
-// Until 2026-10-14 of brain-issues.ojs, deleted that day; brain-topic.ojs since.
+// Until 2026-10-14 of brain-issues.ojs, deleted that day; then brain-topic.ojs, deleted later that day; brain-db.ojs since.
 test("a module is compiled from the seed of this checkout, once, into a file that is not in the checkout", async () => {
-  const file = await seedModule("brain-topic.ojs");
-  expect(file).toEndWith("/brain-topic.js");
+  const file = await seedModule("brain-db.ojs");
+  expect(file).toEndWith("/brain-db.js");
   expect(file.startsWith(resolve(here, "../.."))).toBe(false);
-  expect(await seedModule("brain-topic.ojs")).toBe(file);
-  // topicLimits' line of the seed, as the seed has it, is in what was compiled.
-  const limits = readFileSync(resolve(here, "../../tools/cloud-brain/brain-topic.ojs"), "utf8").split("\n").find((l) => l.startsWith("topicLimits = "))!.slice("topicLimits = ".length);
-  expect(readFileSync(file, "utf8")).toContain(limits);
-  expect((await testNeedingSeed("needs.test.ts", "brain-topic.ojs")).module).toBe(file);
+  expect(await seedModule("brain-db.ojs")).toBe(file);
+  // sqlMaster's line of the seed, as the seed has it, is in what was compiled.
+  const master = readFileSync(resolve(here, "../../tools/cloud-brain/brain-db.ojs"), "utf8").split("\n").find((l) => l.startsWith("sqlMaster = "))!.slice("sqlMaster = ".length);
+  expect(readFileSync(file, "utf8")).toContain(master);
+  expect((await testNeedingSeed("needs.test.ts", "brain-db.ojs")).module).toBe(file);
 }, 60000);
 
 // Issue rows-add-within-sql-fails-once-in-suite: in the first run of the suite in a checkout, cost-events.test.ts imported

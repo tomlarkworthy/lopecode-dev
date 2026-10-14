@@ -39,7 +39,7 @@ const policy = { policy: { seq: 500, reason: `his words. approver brief ${B} too
 const git: any = {
   main: "origin/main", fetch: () => true, self: () => T, philosophy: () => `1. "Ensures secure from outsides and between members."\n`,
   blob: (p: string) => (p === BRIEF ? B : p === TOOL ? T : null), text: () => `Tom: "It seems like common sense to issue scoped tokens that follow a spec."\n`,
-  files: () => ["tools/cloud-brain/brain-topic.ojs"]
+  files: () => ["tools/cloud-brain/brain-operator.ojs"]
 };
 const fill = (b: string, line: string) => b.trimEnd().split("\n").map((l) => (l.startsWith("asked: ") ? line : l)).join("\n").replace("<blob>", B);
 

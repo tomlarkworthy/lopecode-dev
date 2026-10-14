@@ -1,19 +1,22 @@
 // The docs name the dashboard service and the select and panels that draw a dashboard, and say of them what their
 // cells do (dsv-5-page-section). Before that task no doc named either. The sentences are held to the seed's text,
 // not to what a reader understands by them. The cells were a section of cloud-brain.ojs until fb-a2g3jyhecp, which
-// moved them to the top of brain-dashboard.ojs: the first two tests hold where they are.
+// moved them to the top of brain-dashboard.ojs: the first two tests hold where they are. That seed was deleted on
+// 2026-10-14: the cells are read from what cb4 runs (cloud-brain-dev/deploy after `bun sync.ts`), by the acorn
+// extractor of lope-push-ws.js (runningGroups of needs.ts).
 //
 //   bun test ./tests/tools/dsv-5-docs-name-the-dashboard-service.test.ts
 import { test, expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { runningGroups } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 const page = read("tools/cloud-brain/cloud-brain.ojs");
-const service = read("tools/cloud-brain/brain-dashboard.ojs");
-const cells = service.split("\n// %%\n");
-const cell = (start: string) => cells.map((c) => c.replace(/^(\/\/.*\n)+/, "")).find((c) => c.startsWith(start)) || "";
+const { groups, imports } = await runningGroups("brain-dashboard");
+// A cell by its name, as `name = ` (the form these tests had over the seed): the bodies of its variables.
+const cell = (start: string) => groups.find((g) => g.name + " = " === start)?.text || "";
 const docs = read("tools/cloud-brain/cloud-brain-docs.ojs").split("\n");
 const line = (has: string) => docs.find((l) => l.includes(has)) || "";
 const knowledge = read("knowledge/working-with-cloud-brain-remote-lopecode-cluster.md");
@@ -22,13 +25,12 @@ const section = ["dashboardList", "dashboardOf", "dashboardHash", "dashboardPick
 const tests = ["test_a_dashboard_is_read_with_one_metric_query_for_each_distinct_metric_by_and_filter", "test_the_address_names_the_dashboard_and_keeps_its_other_pairs", "test_the_select_opens_on_the_address_and_writes_a_choice_to_it", "test_bars_and_a_table_draw_any_metric_and_a_panel_says_what_it_cannot_draw"];
 
 test("the select and the panels are the first cells of the service's module after its title, before its methods", () => {
-  const starts = cells.map((c) => c.replace(/^(\/\/.*\n)+/, ""));
-  expect(starts[0].startsWith("md`# brain-dashboard")).toBe(true);
-  expect(starts[1].startsWith("viewof dashboardName = ")).toBe(true);
-  expect(starts[2].startsWith("dashboardView = ")).toBe(true);
-  expect(starts.findIndex((c) => c.startsWith("md`## Methods"))).toBe(4);
+  expect(groups[0].name === null && groups[0].text.includes("return (md`# brain-dashboard")).toBe(true);
+  expect(groups[1].name).toBe("viewof dashboardName");
+  expect(groups[2].name).toBe("dashboardView");
+  expect(groups.findIndex((g) => g.name === null && g.text.includes("return (md`## Methods"))).toBe(4);
   // The 18 cells and the 4 tests, each once.
-  for (const name of [...section, ...tests]) expect([name, starts.filter((c) => c.startsWith(name + " = ")).length]).toEqual([name, 1]);
+  for (const name of [...section, ...tests]) expect([name, groups.filter((g) => g.name === name).length]).toEqual([name, 1]);
 });
 
 test("the page's module has none of them, and no heading Dashboards", () => {
@@ -36,7 +38,7 @@ test("the page's module has none of them, and no heading Dashboards", () => {
   for (const name of [...section, ...tests]) expect([name, starts.filter((c) => c.startsWith(name + " = ")).length]).toEqual([name, 0]);
   expect(page.indexOf("md`## Dashboards")).toBe(-1);
   // What the cells read of the page is imported from it, and the page imports nothing of the service's module.
-  const imported = /import \{([^}]*)\} from "@tomlarkworthy\/cloud-brain"/.exec(service);
+  const imported = /import \{([^}]*)\} from "@tomlarkworthy\/cloud-brain"$/.exec(imports.find((i) => i.endsWith('"@tomlarkworthy/cloud-brain"')) || "");
   expect(imported![1].split(",").map((n) => n.trim())).toEqual(["session", "client", "timeRange", "spanName", "dashboard", "chartBase", "requestsChart", "healthStrip", "methodTable"]);
   expect(page).not.toContain('from "@tomlarkworthy/brain-dashboard"');
 });
@@ -72,7 +74,7 @@ test("the knowledge page lists dashboard among the services, with its read and t
   expect(services).toContain("dashboard (");
   expect(services).toContain("metric.query?metric=");
   expect(services).toContain("dashboard=NAME");
-  expect(services).toContain("tools/cloud-brain/brain-dashboard.ojs");
+  expect(services).toContain("getSource?worker=brain-x-dashboard");
   expect(services).toContain("the select at the top of its module draws the one it names");
   expect(services).not.toContain("the page's section Dashboards");
 });

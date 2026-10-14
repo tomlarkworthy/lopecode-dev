@@ -1,9 +1,10 @@
 // The docs module names the usage service (issue usage-service-row-in-the-docs-module). Before it the table
 // "Services outside the core" of cloud-brain-docs.ojs had no row for brain-usage, which cb4 has run since cu-2-usage-service.
-// What the row says of the service is held to the text of its seed, brain-usage.ojs, not to a run of it.
+// What the row says of the service is held to the text of its module, not to a run of it: until 2026-10-14 its seed,
+// brain-usage.ojs; since then what cb4 runs, from cloud-brain-dev/deploy after `bun sync.ts` (the seed was deleted that day).
 //
 //   bun test --timeout=30000 ./tests/tools/usage-service-row-in-the-docs-module.test.ts
-// DOCS= reads another copy of the docs seed (the file before the change).
+// DOCS= reads another copy of the docs seed (the file before the change); SEED= another copy of brain-usage.js.
 //
 // Since fb-batch-docs-and-tools (entry seen-d1b8cc-docs-table-four-services) the file also holds the module to OWNED of
 // build.ts, the modules a Worker owns: each is named in the docs module as a link, mod("NAME"), so the next service
@@ -12,13 +13,15 @@
 import { test, expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { runningCells } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const read = (env: string, path: string) => readFileSync(process.env[env] || resolve(root, path), "utf8");
 const docs = read("DOCS", "tools/cloud-brain/cloud-brain-docs.ojs");
-const seed = read("SEED", "tools/cloud-brain/brain-usage.ojs");
+const seed = read("SEED", "cloud-brain-dev/deploy/@tomlarkworthy/brain-usage.js");
 const build = read("BUILD", "tools/cloud-brain/build.ts");
-const reference = seed.split("\n// %%\n")[0];
+// The first md cell, its method reference.
+const reference = (await runningCells("brain-usage"))[0]._definition;
 // Each `usage.NAME` a text names as code.
 const methods = (text: string) => [...new Set([...text.matchAll(/`usage\.([a-z]+)\b/g)].map((m) => m[1]))].sort();
 const table = docs.slice(docs.indexOf("md`## Services outside the core"));
@@ -30,7 +33,7 @@ test("the table has one row for brain-usage, after brain-dashboard, and the modu
   const rows = table.slice(0, table.indexOf("\n// %%\n")).split("\n").filter((l) => l.startsWith("| ${mod("));
   const at = rows.findIndex((l) => l.startsWith('| ${mod("brain-usage")} |'));
   expect(rows[at - 1].startsWith('| ${mod("brain-dashboard")} |')).toBe(true);
-  expect(build).toContain('{ name: "@tomlarkworthy/brain-usage", seed: "brain-usage.ojs", main: true');
+  expect(build).toContain('{ name: "@tomlarkworthy/brain-usage", running: "brain-x-usage", main: true');
   expect(/const OWNED = \[([^\]]*)\]/.exec(build)![1]).toContain('"brain-usage"');
 });
 
@@ -119,12 +122,12 @@ const HELD: Record<string, { methods: string[]; said: [string, string][] }> = {
   ] },
 };
 
-const RUNNING = ["brain-git", "brain-fly"];
 for (const [name, held] of Object.entries(HELD)) {
-  test(`the row of ${name}: one row, the methods it names are of the seed's manifest, and each sentence is the seed's`, () => {
-    // A service with no seed here (since 2026-10-14: git, fly) is read as cb4 runs it, from cloud-brain-dev/deploy after sync.ts.
-    const short = name.slice("brain-".length), unseeded = RUNNING.includes(name);
-    const text = read("SEED_" + short.toUpperCase(), unseeded ? `cloud-brain-dev/deploy/@tomlarkworthy/${name}.js` : `tools/cloud-brain/${name}.ojs`);
+  test(`the row of ${name}: one row, the methods it names are of the module's manifest, and each sentence is the module's`, () => {
+    // No service has a seed here since 2026-10-14 (git and fly first, the others later that day): each is read as cb4
+    // runs it, from cloud-brain-dev/deploy after sync.ts.
+    const short = name.slice("brain-".length);
+    const text = read("SEED_" + short.toUpperCase(), `cloud-brain-dev/deploy/@tomlarkworthy/${name}.js`);
     expect(rowsOf(name).length).toBe(1);
     const row = rowsOf(name)[0] || "";
     // Each `short.NAME` the row names as code, and the methods the seed's manifest has.
@@ -141,6 +144,6 @@ for (const [name, held] of Object.entries(HELD)) {
     let left = cell;
     for (const [said] of held.said) left = left.split(said).join("");
     expect(left.replace(/[\s.,]/g, "")).toBe("");
-    expect(build).toContain(unseeded ? `{ name: "@tomlarkworthy/${name}", running: "brain-x-${short}"` : `{ name: "@tomlarkworthy/${name}", seed: "${name}.ojs"`);
+    expect(build).toContain(`{ name: "@tomlarkworthy/${name}", running: "brain-x-${short}"`);
   });
 }

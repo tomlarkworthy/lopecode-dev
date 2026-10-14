@@ -172,10 +172,10 @@ const call = (path: string, body?: any, file?: Uint8Array) => {
 
 const head = line(root, "rev-parse", SRC);
 if (!head) throw new Error(`no ${SRC} in ${root}`);
-// What knowledge.put takes as an id (brain-knowledge.ojs, knowledgePatterns.id and knowledgeLimits.id, read 2026-10-11). One id
+// What knowledge.put takes as an id (brain-x-knowledge, knowledgePatterns.id and knowledgeLimits.id, read 2026-10-11 from its seed, deleted 2026-10-14). One id
 // outside it has the whole call refused 400, so a doc with such a name is named and left out of the put.
 const ID = /^[a-z0-9][a-z0-9._:-]*$/, ID_MAX = 100;
-// What static.put takes as a path, and knowledge.put as an entry's file (brain-static.ojs, "A path is segments of"; knowledgeLimits.file).
+// What static.put takes as a path, and knowledge.put as an entry's file (brain-x-static, "A path is segments of"; knowledgeLimits.file).
 const PATH = /^[A-Za-z0-9@._-]+(\/[A-Za-z0-9@._-]+)*$/, PATH_MAX = 200;
 // A text over TEXT, cut so that it and its last line are TEXT characters. The line holds its own first number, so the
 // longest part that fits is looked for from above.

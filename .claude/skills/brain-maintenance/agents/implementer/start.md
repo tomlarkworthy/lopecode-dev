@@ -107,11 +107,13 @@ each command; no shell state lasts between calls.
    review, the reviewer's findings are the `reviewed` events; fix those and nothing else.
    If you wrote the round before and this one came to you as a message, read "A resumed round" below first.
    An issue whose `labels` have `post-mortem` is not a fix: read "A post mortem" below before step 2.
-2. **Read the code it is about.** The source of a service is its seed, `tools/cloud-brain/<name>.ojs`.
-   The first `md` cell is its method reference. `spec-as-built.md` and `tools/cloud-brain/records/` have the history.
-   What runs on cb4, when that is the question, is in your worktree:
-   `$W/cloud-brain-dev/deploy/@tomlarkworthy/<module>.js`, with each Worker's hash in `deploy/services.json`.
-   It is for reading. A change is made in the seed.
+2. **Read the code it is about.** The source of a `brain-x-*` service (but the page) is what cb4 runs, in your
+   worktree after `bun sync.ts` in `$W/cloud-brain-dev`: `$W/cloud-brain-dev/deploy/@tomlarkworthy/<module>.js`, with
+   each Worker's hash in `deploy/services.json`. Its seed was deleted on 2026-10-14, and a change to it is a patch in
+   `cloud-brain-dev` (its README, "One issue, from ready to deployed"; `run.ts`). Its first `md` cell is its method
+   reference, also `getSource?worker=brain-x-NAME&part=reference`. The kernel, the core, the database, the deployer,
+   `cloudflare-iac` and the page's own modules are seeds, `tools/cloud-brain/<name>.ojs`, and a change to one is made
+   in the seed. `spec-as-built.md` and `tools/cloud-brain/records/` have the history.
    **Then search the Brain for prior art, before you design the fix** (Tom, 2026-10-11: "update
    the loop instructions to use knowledge.search to do prior art research before implementing or
    designing"): `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted BRAIN_BASE=cb4 bun $W/tools/cloud-brain/brain.ts curl "/xrpc/com.lopecode.brain.knowledge.search?semantic=true&q=<words, url-encoded>" --as loop-knowledge 2>/dev/null`.

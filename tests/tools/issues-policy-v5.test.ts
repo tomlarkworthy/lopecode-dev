@@ -63,7 +63,7 @@ test("approver.ts judges an approve: refused on R7 under the reason of v4, sent 
     { seq: 8, type: "moved", id: "t1", move: "to-approval", to: "awaiting-approval", by: by("rev-333333", "delegation:cccccccccccc") },
     { seq: 9, type: "commented", id: "t1", key: "approver/t1/verdict-1", body: `approver: approve\nasked: 3 "${HIS}"\nbrief ${brief}`, by: by("appr-444444", "delegation:dddddddddddd") }
   ];
-  const git: any = { main: "origin/main", fetch: () => true, self: () => now.tool, philosophy: () => "", text: () => "", blob: (f: string) => (f === BRIEF ? now.brief : f === TOOL ? now.tool : null), files: () => ["tools/cloud-brain/brain-topic.ojs"] };
+  const git: any = { main: "origin/main", fetch: () => true, self: () => now.tool, philosophy: () => "", text: () => "", blob: (f: string) => (f === BRIEF ? now.brief : f === TOOL ? now.tool : null), files: () => ["tools/cloud-brain/brain-operator.ojs"] };
   const under = (reason: string, brief: string) => judge(record(brief), { policy: { seq: 4668, reason }, workflows: v5.policy.workflows }, git, { id: "t1", verdict: 9 });
   const old = pinsOf(v4.reason)!;
   // v4, whichever brief the verdict names: the one the policy would name, or the one main has.

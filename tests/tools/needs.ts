@@ -20,8 +20,8 @@ export const testNeeding = (file: string, paths: string[], how = SUBMODULES) => 
 // A module of the Brain compiled from its seed in this checkout, as build.ts compiles one, in a file of the temp directory: its path.
 // For a test that asks a module something: cloud-brain-dev/deploy/ is git-ignored and as old as the checkout's last
 // sync.ts, and a copy from before a method fails the test of it (issue cost-events-test-reads-stale-deploy).
-// A module with no seed here (brain-issues, brain-git, brain-fly since 2026-10-14: changed as patches in cloud-brain-dev)
-// is read from deploy/ (`running` below), and a test of it is as new as that sync.
+// A module with no seed here (since 2026-10-14 every brain-x-* service but the page: changed as patches in
+// cloud-brain-dev) is read from deploy/ (`running` below), and a test of it is as new as that sync.
 const ROOT = resolve(import.meta.dir, "../..");
 const built = new Map<string, Promise<string>>();
 // One compiler a process, and one seed at a time. A second compiler() after the first was disposed threw
@@ -69,7 +69,8 @@ export const testNeedingSeedAnd = async (file: string, seed: string, paths: stri
 };
 
 // ---- What cb4 runs of a module that has no seed here, as cloud-brain-dev/deploy/ has it after `bun sync.ts`.
-// brain-issues.ojs was deleted on 2026-10-14, behind what ran: the tracker is changed as a patch in cloud-brain-dev.
+// brain-issues.ojs was deleted on 2026-10-14, behind what ran, and the other service seeds later that day: a service
+// is changed as a patch in cloud-brain-dev.
 export const RUNNING_HOW = "git submodule update --init cloud-brain-dev, then bun sync.ts https://cb4.endpointservices.workers.dev there";
 export const running = (name: string) => resolve(ROOT, "cloud-brain-dev/deploy/@tomlarkworthy", name + ".js");
 // `test` and the module's path, or test.skip, "" and a line naming what lacks (the module or one of `paths`).
@@ -82,6 +83,14 @@ export const runningCells = async (name: string): Promise<{ _name: string | null
   const acorn = await import(resolve(ROOT, "tools/node_modules/acorn/dist/acorn.mjs"));
   const { parseVariableGroups } = await import(resolve(ROOT, "tools/lope-push-ws.js"));
   return (parseVariableGroups(readFileSync(running(name), "utf8"), acorn).groups ?? []).flat().map((v: any) => ({ ...v, _definition: String(v._definition) }));
+};
+// Its cells in their order, as the same extractor groups its variables: `name` is the cell's (`viewof x` for a viewof,
+// null for one with no name) and `text` the bodies of its variables; `imports` its import cells as source.
+export const runningGroups = async (name: string): Promise<{ groups: { name: string | null; text: string }[]; imports: string[] }> => {
+  const acorn = await import(resolve(ROOT, "tools/node_modules/acorn/dist/acorn.mjs"));
+  const { parseVariableGroups } = await import(resolve(ROOT, "tools/lope-push-ws.js"));
+  const { groups, preformatted } = parseVariableGroups(readFileSync(running(name), "utf8"), acorn);
+  return { groups: groups.map((g: any[]) => ({ name: g[0]._name, text: g.map((v) => String(v._definition)).join("\n") })), imports: preformatted };
 };
 // The running module with no test cell, and `edit.cell` (Observable source) compiled and added, under edit.name: its path.
 // For a rig that runs one cell of its own beside the module (cloud-brain-dev/test.ts --with): what seedModule's edit did

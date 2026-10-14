@@ -6,7 +6,8 @@ import { join } from "node:path";
 
 const root = join(import.meta.dir, "..", "..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");
-const seed = read("tools/cloud-brain/brain-dashboard.ojs");
+// What cb4 runs of brain-x-dashboard (cloud-brain-dev/deploy after `bun sync.ts`): its seed was deleted on 2026-10-14.
+const seed = read("cloud-brain-dev/deploy/@tomlarkworthy/brain-dashboard.js");
 const record = "tools/cloud-brain/records/ds-ingestion-tail-to-analytics-engine.md";
 
 test("the dashboard's test holds a sentence its prose has", () => {

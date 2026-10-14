@@ -61,7 +61,7 @@ the build, the check, the publish and the message
 - A rule for what a digest may claim: each number from a stored summary or a page fetched that day,
   title-only items marked. Today that rule is in the prompt.
 - A trigger after the snapshot's daily run. **Built 2026-10-11:** the run opens a task in the Brain's
-  tracker, `digest-<day>`, labeled `digest` (`brain-snapshot.ojs`; record in
+  tracker, `digest-<day>`, labeled `digest` (`brain-x-snapshot`, read with `getSource?worker=brain-x-snapshot`; record in
   `tools/cloud-brain/records/snapshot-opens-digest-issue.md`). The issue loop has a brief for it,
   `.claude/skills/brain-maintenance/agents/digest.md`. The task waits until a session runs the loop.
 - A way to send the DM as the Brain. **Allowed 2026-10-11** for the owner

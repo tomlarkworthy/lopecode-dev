@@ -200,7 +200,7 @@ One read is not the owner's alone (since 2026-10-11): `logs.deploys?from=MS&to=M
 wrote about deploys (`at: "deploy.…"`) over a span, whole, with the test runs counted by Worker, hash and
 failed test, and since 2026-10-12 `restores`, a row for each put-back with the next deploy of that Worker that stood. A token that names it reads it: `brain.ts curl "/xrpc/com.lopecode.brain.logs.deploys" --as loop-deploys`
 (the last 24 hours; the token is made once with the owner's session, `brain.ts token loop-deploys logs.deploys`).
-What its counts mean and do not is in `brain-logs.ojs`, "The deploys of a span": a member's line leaves without the member's DID and text, and `runs` is whole only for a span that starts at or after 2026-10-11 05:52:03 UTC (`from=1791697923049`).
+What its counts mean and do not is in the prose of `brain-x-logs`, "The deploys of a span" (`getSource?worker=brain-x-logs`; its seed `brain-logs.ojs` until 2026-10-14): a member's line leaves without the member's DID and text, and `runs` is whole only for a span that starts at or after 2026-10-11 05:52:03 UTC (`from=1791697923049`).
 The core writes one line a call with keys `at ray caller via origin delegation holder method worker status
 error ms price rule by`. Three traps met on the first day:
 
