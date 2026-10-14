@@ -158,7 +158,11 @@ brief before the cut: the table "The pages" of `agents/implementer.md` has the p
       Never `git add lopebooks` in the worktree: it is a link there, and the commit would record the link. The
       sha is the whole one: `update-index` refuses the 8 characters the tool prints. Exit 3 from the tool is no
       stop of the landing: the backup was not made, say so in your comment with the hook's words.
-    - **A change to `cloud-brain-dev`**, committed in the clone `$W/cloud-brain-dev` (on a branch of the clone
+    - **A change to `README.md` and `records/*.md` of `cloud-brain-dev`** (`SAFE` of its `patch.ts`). A change
+      to any other file of it is not yours to land, with this command or any other: it is an issue `about`
+      `cloud-brain-dev`, linked `related` to yours, that `run.ts` runs in an issue clone and `push.ts` pushes
+      after its review (`rules.md`, "Always", the item "Work on `main`"). The `SAFE` change, committed in the
+      clone `$W/cloud-brain-dev` (on a branch of the clone
       when you want one): `$W/tools/cloud-brain/worktree.sh --push-dev <tree>`, here, before the push of
       `lopecode-dev`. It rebases the clone's commits on the cluster's `main`, pushes them there with a write token
       of 60 s (`git.token`, called as `loop-git`; never printed), commits the pointer in `$W` itself and prints

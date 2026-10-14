@@ -354,9 +354,20 @@ cb4 stand in it before the choice.
 - Work on `main`: the branch of a worktree, `bm/<name>`, is local and is not pushed. Stage only the
   files you changed, each by its name: `git commit -a` and `git add -A` in a worktree record the
   links that stand there in the submodules' place. Push `lopecode-dev` as the item on the landing
-  has it. A change to `cloud-brain-dev` is committed in the worktree's clone and pushed by
+  has it. A change to `README.md` and `records/*.md` of `cloud-brain-dev` (`SAFE` of its
+  `patch.ts`) is committed in the worktree's clone and pushed by
   `tools/cloud-brain/worktree.sh --push-dev <name>`, under the landing lock and before that push;
-  no branch is made in the main checkout's copy. `lopebooks` is pushed from the main checkout, on
+  no branch is made in the main checkout's copy. A change to any other file of `cloud-brain-dev`
+  is loop work: the loop runs those tools, and the laptop's `laptop.ts` takes its `main` before
+  each drain. It is an issue `about` `cloud-brain-dev`, which `run.ts` runs in an issue clone,
+  its reviewer reads, and `push.ts` pushes (after an `approve`, as the file is outside `SAFE`). A
+  writer never lands it with `worktree.sh --push-dev`: an issue of `lopecode-dev` that needs one
+  opens that issue, linked `related`, and lands the rest. The owner's quoted words in
+  `philosophy.md` are pushed as "Two standing leaves of a session the owner is in" has it. (The owner, 2026-10-14, to a session,
+  after a writer had landed such a change before its review, as the body of issue
+  `loop-work-in-issue-clone` quotes him: "If they are doing loop work that should still be done
+  in an issue clone and not literally the thing they are standing on. In this case it is benign
+  so lets ignore it but create an update of instructions to avoid this in the future.") `lopebooks` is pushed from the main checkout, on
   the day's first landing that builds, when `notebook-backup.sh` has committed there.
 - Write what the owner is asked to decide short and plain: what its project is for, what it is,
   whether it is live, the one flaw, a line a choice, the pick ("What the owner is asked to decide").

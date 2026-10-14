@@ -72,8 +72,12 @@ each command; no shell state lasts between calls.
   `bun sync.ts https://cb4.endpointservices.workers.dev` there reads it again and loses any edit
   under `deploy/`; `worktree.sh --rebase <tree>` does it too). `bun test.ts <worker>` there runs
   that service's tests as deployed, with no browser, in about 2 s; `--with FILE` runs your built
-  module in its place. A change to that repository is committed in the clone, never in
-  `<root>/cloud-brain-dev`, and landed by `worktree.sh --push-dev` (step 10).
+  module in its place. A change to `README.md` and `records/*.md` of that repository is committed
+  in the clone, never in `<root>/cloud-brain-dev`, and landed by `worktree.sh --push-dev` (step 10).
+  A change to any other file of it (its tools, `agent.sh`, `roles/`, `AGENTS.md`) is not yours to
+  land: the loop runs those files. Open an issue `about` `cloud-brain-dev` for it, linked
+  `related` to yours, which `run.ts` runs in an issue clone and `push.ts` pushes after its review
+  (`rules.md`, "Always", the item "Work on `main`").
 - `git status` stops in the worktree, exit 128, with `error: expected submodule path 'lopebooks' not to be a symbolic link`
   (`lopebooks`, `lopecode` and `lopecode-plugin` are links). `git status --short --ignore-submodules=all` answers
   there, exit 0: the changed and the untracked files, and no line for a submodule. `git diff --stat HEAD` lists the
