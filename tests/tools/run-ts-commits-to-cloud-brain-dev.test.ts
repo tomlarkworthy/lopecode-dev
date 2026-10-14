@@ -79,6 +79,13 @@ test.skipIf(!have)("devPatch: the whole diff from upstream main, the same SHA-25
   expect(a.files.sort()).toEqual(["records/x.md", "run.ts"]);
   expect(a.base).toBe(git(up, "rev-parse", "main"));
   expect(patch.touchesDriver(a.files)).toEqual(["run.ts"]);
+  // the writer's path to the same SHA-256: work.ts patch --dev, run in its clone
+  for (const f of ["work.ts", "patch.ts"]) writeFileSync(resolve(w, f), readFileSync(resolve(dev, f)));
+  git(w, "config", "brain.work", "devx");
+  const printed = JSON.parse(execFileSync(BUN, [resolve(w, "work.ts"), "patch", "--dev", "--out", resolve(dirname(fork), "w.patch")], { cwd: w, encoding: "utf8", env: { PATH: SYSTEM, DEV_UPSTREAM: up } }).trim().split("\n").pop()!);
+  expect(printed.patch).toBe(a.sha);
+  expect(readFileSync(resolve(dirname(fork), "w.patch"), "utf8")).toBe(a.bytes);
+  rmSync(resolve(w, "work.ts")); rmSync(resolve(w, "patch.ts"));
   // upstream moving on does not change the patch: the base is where the fork left it.
   const u2 = resolve(dirname(fork), "u2"); execFileSync("git", ["clone", "-q", up, u2]);
   writeFileSync(resolve(u2, "README.md"), "two\n"); git(u2, "commit", "-q", "-am", "moved"); git(u2, "push", "-q", "origin", "HEAD:main");
@@ -93,6 +100,8 @@ test.skipIf(!have)("devPatch: the whole diff from upstream main, the same SHA-25
 test.skipIf(!have)("fastForward: deploy/ put back and the checkout brought to main; another file in no commit, or a checkout ahead, is a stop", () => {
   const { up } = repos();
   const here = resolve(dirname(up), "here"); execFileSync("git", ["clone", "-q", up, here]);
+  // A submodule's checkout is a detached head, as the laptop's is.
+  git(here, "checkout", "-q", "--detach");
   mkdirSync(resolve(here, "deploy"));
   writeFileSync(resolve(here, "deploy/shared.json"), "{}\n"); git(here, "add", "deploy/shared.json"); git(here, "commit", "-q", "-m", "shared"); git(here, "push", "-q", "origin", "HEAD:main");
   expect(patch.fastForward(here)).toMatchObject({ from: git(here, "rev-parse", "HEAD"), to: git(here, "rev-parse", "HEAD") });

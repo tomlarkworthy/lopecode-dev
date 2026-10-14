@@ -17,7 +17,7 @@ In `cloud-brain-dev`, one commit in the clone of this worktree, pushed with `wor
 - `patch.ts`. `devPatch(clone, upstream)`: `git fetch` of `upstream`'s main into the clone, the merge-base with `HEAD`,
   and `git diff --binary` from there to `HEAD` over every file, with its SHA-256 and the names of the files.
   `DRIVER` and `touchesDriver(files)`: `run.ts`, `ship.ts`, `push.ts`, `drain.ts`, `laptop.ts`, `laptop.sh`,
-  `sandbox.ts`, `patch.ts`, `work.ts`, `apply.ts`, `sync.ts`. `fastForward(dir)`: a fetch of `origin main` and a
+  `sandbox.ts`, `patch.ts`, `work.ts`, `apply.ts`, `sync.ts`, `roles/dev-writer.md`, `roles/dev-reviewer.md`. `fastForward(dir)`: a fetch of `origin main` and a
   `merge --ff-only FETCH_HEAD`, with a change in no commit under `deploy/` put back first and one elsewhere a stop.
 - `push.ts`, new: what `ship.ts` is for a service. It checks the record as `ship.ts` does (the submit's `patch:`, a
   pass of it by another actor, no review against), makes a clone with `work.ts open`, makes `devPatch` there, and
@@ -50,22 +50,26 @@ Decisions taken, with the line that took each:
 - **The push after an approve is `push.ts ID` run by hand.** The `approve` move leaves the issue `done`; nothing in
   the loop runs `push.ts` then. Wiring it into `laptop.ts`'s wake is more code in a driver file (philosophy line 2:
   the smaller side).
-- **`DRIVER` is wider than the owner's list** by `push.ts`, `work.ts`, `apply.ts` and `sync.ts`: each runs outside
-  the sandbox, `apply.ts` and `sync.ts` from `ship.ts` with the key. Philosophy line 1: a change that only narrows what
-  passes without an approve is taken.
+- **`DRIVER` is wider than the owner's list** by `push.ts`, `work.ts`, `apply.ts` and `sync.ts`, each of which runs
+  outside the sandbox (`apply.ts` and `sync.ts` from `ship.ts` with the key), and by the two dev briefs, which a writer
+  could otherwise rewrite for the next writer with one reviewer's pass. Philosophy line 1: a change that only narrows
+  what passes without an approve is taken.
 - **A dev issue is doable only with `GIT_TOKEN`**, so the Fly machine (no such token) spends no writer and reader on
   an issue it cannot push.
 
 ## Tests
 
 ```
-bun test --timeout=30000 ./tests/tools/run-ts-commits-to-cloud-brain-dev.test.ts     11 pass, 0 fail, 53 expect() calls
+bun test --timeout=30000 ./tests/tools/run-ts-commits-to-cloud-brain-dev.test.ts     11 pass, 0 fail, 55 expect() calls
 ```
 
 With `run.ts`, `drain.ts`, `patch.ts`, `laptop.ts`, `laptop.sh` and `work.ts` put back to 7df3c5b (`push.ts` and
 `roles/` kept): 0 pass, 9 fail of the 9 tests the file had then. With `GIT_TOKEN` taken out of `NOT_PASSED` the
 `run.ts` brief test fails; with the driver stop of `push.ts` taken out the stops test fails; with the `major` label of
-`run.ts` taken out the `awaiting-approval` test fails. `tests/tools/run-sandboxes-agents.test.ts`: 9 pass, 0 fail.
+`run.ts` taken out the `awaiting-approval` test fails (these three runs were made before `roles/` joined `DRIVER`
+and before the `work.ts patch --dev` and detached-head lines were added to the test). The `devPatch` test runs
+`work.ts patch --dev` in a writer's clone and gets `devPatch`'s SHA-256 and bytes; the `fastForward` test runs on a
+detached head, as a submodule's checkout is. `tests/tools/run-sandboxes-agents.test.ts`: 9 pass, 0 fail.
 
 The suite's count is in the issue's comment.
 
