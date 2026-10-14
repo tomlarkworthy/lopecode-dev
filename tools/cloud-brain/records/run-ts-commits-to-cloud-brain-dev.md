@@ -94,7 +94,9 @@ The review of round 1 (event 7480, `rev-62a8e3`, `changes`) held three findings.
    token; none was in `DRIVER`. The gate is turned around: `patch.ts` `SAFE` names what needs no approve,
    `README.md` and `records/<name>.md`, and `needsApprove(files)` is every other file. `DRIVER` and `touchesDriver`
    are gone. With this, most changes to the repository are `major` and wait for an approve, which the approver may
-   give (comment 7458).
+   give (comment 7458). So the common path of a dev issue is now `awaiting-approval`, then `approve` to `done`,
+   with nothing on main until `push.ts ID` is run by hand. The task `push-after-approve-of-dev-issue` (event 7489,
+   linked `related`) is for something in the loop to run it.
 2. **The reader of a dev issue ran the writer's `issue.ts`, and got the writer's `CLAUDE.md`.** `run.ts` copies the
    driver's tools over the reader's clone for a dev issue as for a service, and takes a `bunfig.toml` or `.env*` out
    of it, for both kinds. `roles/dev-reviewer.md` step 4 says the clone's tools are the driver's and the writer's are
