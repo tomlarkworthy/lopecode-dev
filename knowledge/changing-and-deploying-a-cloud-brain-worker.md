@@ -23,9 +23,9 @@ of that one piece of work, and what is deployed is a patch. The commands and eac
 is the whole of it for one issue. The owner, 2026-10-13, in the session that built it (issue `fly-loop-needs-cloud-brain-dev-alone` has that evening): "the cluster is the source of truth. Seeds go stale."
 
 **`brain-x-git` was changed that way five times on 2026-10-13 and 14** (`git.fork`, `git.work`, `git.works`, and two
-changes to its tests; cb4 runs hash `03c0b2f81f63`). Its seed, `tools/cloud-brain/brain-git.ojs`, has none of them.
-A deploy of `brain-x-git` built from that seed would take the five away: do not make one. Change that service in
-`cloud-brain-dev`, or carry the five into the seed first (not done; whether seeds are kept at all is the owner's).
+changes to its tests; cb4 ran hash `03c0b2f81f63` then, `c588784ddb62` after two more on 2026-10-14). Its seed,
+`tools/cloud-brain/brain-git.ojs`, had none of them, and a deploy built from it would have taken the five away. The seed
+was deleted on 2026-10-14 (the last paragraph of this section): change that service in `cloud-brain-dev`.
 What stands in the way of one is `was`: `tools/cloud-brain/seen.json` has `brain-x-git` at `9ba9cc3be98a`, the hash
 before the five, and `brain.ts apply` refuses a Worker whose running hash is not the one seen. `brain.ts saw
 brain-x-git` takes that guard away, so it is not run for this service before the seed has the five. (`redistil` does
@@ -49,7 +49,11 @@ seed on `main` differed cell by cell from what ran (`waiting-deploys.ts`'s `diff
 the build fetches `getSource?worker=` of `BRAIN_BASE` (cb4) for them, or stops. A record emitted from that build is what
 runs: `brain-x-fly` emitted `9526a5569219`, its running hash; `brain-x-git` emitted `2c05c074f3e8` where `c588784ddb62`
 runs, the same cells in the same order with one blank line in another place (the patch tool's). `brain-issues.ojs` is
-kept for now: `approver.ts` reads its policy cells, and so do `policy-walk.ts` and five files of `tests/tools`.
+kept for now: `approver.ts` reads its policy cells, and so do `policy-walk.ts` and 23 files of `tests/tools`
+(`grep -rlE 'brain-issues\.ojs|seedModule\("brain-issues' tests/tools`, 2026-10-14).
+
+A build is no longer a function of its commit alone: `brain-git` and `brain-fly` are what cb4 runs at the time of the
+build, and with cb4 not answering the build stops.
 
 ## Changing it
 

@@ -18,7 +18,8 @@
 # notebook-backup.sh --take-back
 #   That alone, with no build: prints `took back <sha>` (one sha a commit) or `nothing to take back`, exit 0. The
 #   notebook, and its .json when the commit before has one, are put back as that commit has them.
-# The notebook is the build of the seeds of a lopecode-dev commit (`build.ts --out`, the same bytes), so what is
+# The notebook is the build of the seeds of a lopecode-dev commit (`build.ts --out`; since 2026-10-14 with brain-git and
+# brain-fly as cb4 runs them at the build, as they have no seed), so what is
 # committed here is a backup and no landing waits on it. Issue notebook-commit-once-a-day; tests/tools/notebook-backup.test.ts.
 # NOTEBOOK_REPO is the repository, the main checkout's lopebooks with none. NOTEBOOK_TODAY is the day, `date +%F` with
 # none. Only the tests set them.
