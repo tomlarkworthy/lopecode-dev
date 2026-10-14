@@ -88,7 +88,7 @@ export const runningCells = async (name: string): Promise<{ _name: string | null
 // to the seed. The cells are found with acorn: a `$def(pid, "test_…", …)` statement of `define` is left out, the
 // cell's consts go before `export default` and its `$def`s before `return main`.
 export const runningModule = (name: string, edit: { name: string; cell: string }, into = SEEDS): Promise<string> => {
-  const key = `${into}\n${name}.js\n${edit.name}`;
+  const key = `${into}\n${name}.js\n${edit.name}\n${createHash("sha256").update(edit.cell).digest("hex")}`;
   if (!built.has(key)) built.set(key, (last = last.catch(() => {}).then(async () => {
     const acorn = await import(resolve(ROOT, "tools/node_modules/acorn/dist/acorn.mjs"));
     const { compiler, moduleSource } = await import(resolve(ROOT, "tools/spec-notebook.ts"));
@@ -104,6 +104,8 @@ export const runningModule = (name: string, edit: { name: string; cell: string }
     };
     const text = readFileSync(running(name), "utf8"), m = parts(text);
     const add = moduleSource([edit.cell], compile), a = parts(add);
+    // An import compiles to main.define(...), which this splice does not carry: refuse it rather than drop it.
+    if (/\n  main\.define\(/.test(add)) throw new Error(`${edit.name}: the added cell imports; runningModule carries $def cells only`);
     const cut = (s: any) => { const n = s.expression.arguments[1]; return n?.type === "Literal" && typeof n.value === "string" && n.value.startsWith("test_"); };
     const edits = [
       ...m.defs.filter(cut).map((s: any) => ({ at: s.start, end: s.end, put: "" })),

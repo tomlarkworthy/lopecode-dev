@@ -131,7 +131,10 @@ nothing, and report it.
    verdict is `leave`, and its line is `why: the approver's own files`. Until 2026-10-14 `policy`
    also marked a commit that changed a policy cell of `brain-issues.ojs`, and `tracker` one that
    changed none; that seed was deleted that day, and the tracker's policy cells are changed only as
-   `brain-x-issues` patches in `cloud-brain-dev`.
+   `brain-x-issues` patches in `cloud-brain-dev`. The tool marks no such patch, so read it yourself: an issue whose
+   change patches `issueAllowed`, `issuesDefaultPolicy`, `issueReplay`, `issuePolicyAct`, `issueApply`, `issueAct`,
+   `issueEvent`, or the rules of `issues_service`, is `leave` with `why: the approver's own files`, as above. Those cells
+   say who may approve, you among them.
 7. **In keeping.** Any of the seven lines, or words of his, that the change pulls against.
 8. **Decide.** The refusal of step 6 is first: with a file marked `approver`, or `policy` with it,
    the verdict is `leave` with the line step 6 gives, whatever the rest of the change is. Else

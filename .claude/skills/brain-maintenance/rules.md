@@ -200,7 +200,8 @@ task 6 of that spec, `ap-6-rules-and-live-step`, 2026-10-13.
   `plan/cloud-brain-issues-policy-*.json`: the tool refuses an issue of which a commit touches one,
   and such an issue is the owner's. Until 2026-10-14 the list had the policy cells of
   `brain-issues.ojs` as well; that seed was deleted that day, and the policy cells are now changed
-  only as `brain-x-issues` patches in `cloud-brain-dev`, which the tool does not read. The reason of the
+  only as `brain-x-issues` patches in `cloud-brain-dev`, which the tool does not read. Such a patch is still the
+  owner's: the brief (step 6) names the cells, and the approver leaves an issue that patches one. The reason of the
   policy in force ends `approver brief <blob> tool <blob>`, and the tool makes no move when the
   brief or the tool of `origin/main` is another blob. So a landed change to either stops every
   approval by the approver until he installs a policy that names it
