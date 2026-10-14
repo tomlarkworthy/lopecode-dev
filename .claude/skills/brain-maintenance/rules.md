@@ -61,7 +61,8 @@ that list it asks for is left for him as before.
 - Deploy text that was not built from a seed. A change goes seed, `build.ts`, tests, emit, apply.
   Since 2026-10-14 no `brain-x-*` service but the page has a seed here: a change to one is a patch,
   made, tested and deployed from `cloud-brain-dev` (`run.ts`; its README, "One issue, from ready to
-  deployed"), and that is the one way such a service is deployed.
+  deployed"), and that is the one way such a service is deployed. Such a patch is not text this line
+  forbids: the line is of the seeds left.
 - Deploy the kernel (`brain`), `brain-core`, `brain-db` or the deployer. A fix that needs one of
   them is written, tested and reviewed with no word of the owner, and the deploy alone waits for
   him. Its seed is landed on `main` with no deploy (`land.sh`, `--seed-lands-undeployed`): nothing

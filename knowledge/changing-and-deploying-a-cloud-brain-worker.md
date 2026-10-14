@@ -25,7 +25,7 @@ is the whole of it for one issue. The owner, 2026-10-13, in the session that bui
 **`brain-x-git` was changed that way five times on 2026-10-13 and 14** (`git.fork`, `git.work`, `git.works`, and two
 changes to its tests; cb4 ran hash `03c0b2f81f63` then, `c588784ddb62` after two more on 2026-10-14). Its seed,
 `tools/cloud-brain/brain-git.ojs`, had none of them, and a deploy built from it would have taken the five away. The seed
-was deleted on 2026-10-14 (the last paragraph of this section): change that service in `cloud-brain-dev`.
+was deleted on 2026-10-14 ("Later on 2026-10-14 the seeds …", below): change that service in `cloud-brain-dev`.
 What stands in the way of one is `was`: `tools/cloud-brain/seen.json` has `brain-x-git` at `9ba9cc3be98a`, the hash
 before the five, and `brain.ts apply` refuses a Worker whose running hash is not the one seen. `brain.ts saw
 brain-x-git` takes that guard away, so it is not run for this service before the seed has the five. (`redistil` does
@@ -39,7 +39,7 @@ repositories `w-auto-loop-issues` and `w-auto-loop-fly` on the Brain's git servi
 and `brain-fly.ojs` had neither, and `seen.json` has the hashes from before, so `brain.ts apply` refuses a build of
 either seed as it refuses one of `brain-git`. Do not `saw` either before its seed has the patch: a build of
 `brain-issues.ojs` drops the append that `brain-x-loop` is told by, and the loop then never starts the machine with no
-error anywhere; one of `brain-fly.ojs` restores a tick that starts the machine. `brain-x-loop` itself is a seed, `tools/cloud-brain/brain-loop.ojs`,
+error anywhere; one of `brain-fly.ojs` restores a tick that starts the machine. `brain-x-loop` itself was then a seed, `tools/cloud-brain/brain-loop.ojs` (deleted later that day),
 deployed with `brain.ts apply` (`0ea22abdb28c`, 5 tests), because a new Worker is declared to the page by the build.
 
 Later on 2026-10-14 the seeds `brain-git.ojs` and `brain-fly.ojs` were deleted (Tom: "remove the stale seeds from
@@ -57,7 +57,8 @@ as the last sync, and a copy from before a change of the tracker fails it: sync 
 the seed's policy cells (`rules.md`, "Its own files").
 
 A build is no longer a function of its commit alone: `brain-git`, `brain-fly` and `brain-issues` are what cb4 runs at
-the time of the build, and with cb4 not answering the build stops.
+the time of the build (all 21 `running:` entries of `build.ts` since the paragraph below), and with cb4 not answering
+the build stops.
 
 Later on 2026-10-14 the other 18 service seeds were deleted (Tom: every `brain-x-*` service is changed only as a patch
 in `cloud-brain-dev`, so its seed goes stale the first time one is patched): `brain-ai`, `blob`, `bluesky`, `browser`,
