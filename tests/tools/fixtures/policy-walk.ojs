@@ -1,5 +1,5 @@
-// One cell, compiled at the end of brain-issues.ojs by tools/cloud-brain/policy-walk.ts, with no other test cell, and run
-// by cloud-brain-dev/test.ts. It walks every state a policy lets one issue reach, with the seed's own judge
+// One cell, compiled into the tracker cb4 runs in place of its test cells (until 2026-10-14 at the end of brain-issues.ojs)
+// by tools/cloud-brain/policy-walk.ts, and run by cloud-brain-dev/test.ts. It walks every state a policy lets one issue reach, with the tracker's own judge
 // (issuePolicyAct, issueAllowed, issueEvent, issueApply), and returns as JSON what each property of
 // plan/cloud-brain-rules-checked-and-stale-knowledge-seen.md, "The properties", found. It asserts nothing: the tool reads it.
 // The string of `data` is replaced by { policy, kinds, cap, until, his, hashes }: `policy` null is issuesDefaultPolicy,

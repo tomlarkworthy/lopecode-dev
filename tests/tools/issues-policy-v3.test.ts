@@ -3,7 +3,7 @@
 // installs: what is held here is that it is the policy of v2 with two guards changed and nothing else, that the guard
 // takes the two callers it should, that approver.ts reads its delegation and its two blobs, and that the blobs are
 // those of the brief and the tool at the commit the file is of. The policy in a rig is the seed's test,
-// test_issues_an_approver_delegation_approves_and_no_other_token (brain-issues.ojs).
+// test_issues_an_approver_delegation_approves_and_no_other_token (brain-x-issues).
 //
 //   bun test ./tests/tools/issues-policy-v3.test.ts
 import { test, expect } from "bun:test";

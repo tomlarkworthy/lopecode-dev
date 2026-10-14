@@ -17,7 +17,7 @@ const record = readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain/re
 
 // Every example call of issue.cost in SKILL.md, parsed: a line `issue-as.sh <your token> cost '{…}'`.
 const costs = [...skill.matchAll(/^ *issue-as\.sh <your token> cost '(\{.*\})'$/gm)].map((m) => JSON.parse(m[1]));
-// The fields issue.cost takes beside key and id (issuesLimits.cost of brain-issues.ojs), and the ones it requires.
+// The fields issue.cost takes beside key and id (issuesLimits.cost of the tracker cb4 runs), and the ones it requires.
 const FIELDS = ["role", "round", "how", "outcome", "seconds", "context", "tools", "event", "of", "agent", "session", "token", "usage", "usd", "backfilled"];
 const REQUIRED = ["role", "round", "how", "outcome", "seconds", "context"];
 // A `## ` section, up to the next one.
@@ -49,12 +49,12 @@ test("each cost example is a call the tracker takes: its key, the required field
     expect(["fresh", "resumed", "light"]).toContain(c.how);
   }
   expect(costs[0].usage).toEqual({ input: 61, cacheWrite: 141873, cacheRead: 3561349, output: 17885, requests: 29, advisor: { calls: 2, input: 254047, output: 13751 } });
-  // The list above is the seed's, and issueAct of what cb4 runs takes both examples (a checkout with no deploy/ skips this half with a line).
-  const seed = readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain/brain-issues.ojs"), "utf8");
-  expect(seed.includes(`cost: [${FIELDS.map((f) => JSON.stringify(f)).join(", ")}]`)).toBe(true);
+  // The list above is that of what cb4 runs, and its issueAct takes both examples (a checkout with no deploy/ skips this
+  // half with a line). Until 2026-10-14 the list was read from the seed brain-issues.ojs, deleted that day behind what ran.
   const built = resolve(import.meta.dir, "../../cloud-brain-dev/deploy/@tomlarkworthy/brain-issues.js");
   const { existsSync } = await import("node:fs");
   if (!existsSync(built)) return void console.log(`skipped: rework-resumes-the-implementer.test.ts: no ${built}`);
+  expect(readFileSync(built, "utf8").includes(`cost: [${FIELDS.map((f) => JSON.stringify(f)).join(", ")}]`)).toBe(true);
   // deploy/ is as old as the checkout's last sync.ts: a copy from before issue.cost (2026-10-12) is not asked.
   if (!readFileSync(built, "utf8").includes('cost: ["role"')) return void console.log(`skipped: rework-resumes-the-implementer.test.ts: ${built} is from before issue.cost; bun sync.ts in cloud-brain-dev reads what cb4 runs`);
   const { importNotebookModule } = await import("../../tools/notebook-import.ts");

@@ -95,11 +95,11 @@ test("an approval by the approver is no word of his, and it approves no change t
   expect(no).toContain("is not a word of the owner's");
   expect(no).toContain("`asked:`");
   const own = of("- **Its own files.**");
-  for (const f of ["`agents/approver.md`", "`tools/cloud-brain/approver.ts`", "`tests/tools/approver.test.ts`", "`plan/cloud-brain-issues-policy-*.json`", "`brain-issues.ojs`"]) expect(own).toContain(f);
+  for (const f of ["`agents/approver.md`", "`tools/cloud-brain/approver.ts`", "`tests/tools/approver.test.ts`", "`plan/cloud-brain-issues-policy-*.json`"]) expect(own).toContain(f);
   expect(own).toContain("`approver brief <blob> tool <blob>`");
   expect(own).toContain("stops every approval by the approver until he installs");
   // The tool refuses what the item names.
-  expect(tool).toContain("tests/tools/approver.test.ts, a plan/cloud-brain-issues-policy-*.json or a policy");
+  expect(tool).toContain("tests/tools/approver.test.ts or a plan/cloud-brain-issues-policy-*.json (R7)");
 });
 
 test("the overseer does not edit the approver's brief: rules.md, SKILL.md and its own brief agree", () => {

@@ -234,11 +234,11 @@ export const BRIEF: Record<string, string> = { implementer: "implementer", diges
 // The roles whose run is in a worktree of the machine and not of an issue: `over-<host>`, `orch-<host>`.
 const ALONE: Record<string, string> = { overseer: "over-", orchestrator: "orch-" };
 export const WRITERS = ["implementer", "digest", "spec-writer"];
-export const KEY_MOST = 100; // issuesLimits.key of brain-issues.ojs
+export const KEY_MOST = 100; // issuesLimits.key of brain-x-issues
 // The files of an issue's submitted commits that `approver.ts facts` marks `approver` or `policy`, each once with its
 // marks: the approver's own (rules.md, "The approver", "Its own files"). Its tool refuses an issue that has one, so a
 // run on it can only leave. A commit the checkout does not have has no files here and names none.
-export const ownFiles = (f: ReturnType<typeof approverFacts>) => [...new Set(f.refs.flatMap((r) => (r.files || []).filter((x) => x.marks.includes("approver") || x.marks.includes("policy")).map((x) => `[${x.marks.join(",")}] ${x.file}${x.cells && x.cells.length ? `: ${x.cells.join(", ")}` : ""}`)))];
+export const ownFiles = (f: ReturnType<typeof approverFacts>) => [...new Set(f.refs.flatMap((r) => (r.files || []).filter((x) => x.marks.includes("approver") || x.marks.includes("policy")).map((x) => `[${x.marks.join(",")}] ${x.file}`)))];
 // What a step writes on such an issue in the place of a run: for the owner, who approves it or sends it back. In the
 // form of rules.md, "What the owner is asked to decide", as far as a program has the words: its project and its title
 // first, no number of an event, and the files in the one last line that says where the rest is.

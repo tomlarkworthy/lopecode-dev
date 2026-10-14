@@ -72,7 +72,7 @@ A method list also takes a prefix (`'browser.*'`), quoted: zsh stops on a bare o
 on issue `doc-example-mints-tracker-token` event 234 is `via delegation:84cd2100b161` (holder
 `secret:issues-reviewer-2`) and event 236 `via delegation:b6559fa96c36` (holder
 `secret:issues-implementer-2`). The workflow's guard for a pass is
-`r.verdict == "pass" && r.actor != issue.by.start` (`tools/cloud-brain/brain-issues.ojs`), and
+`r.verdict == "pass" && r.actor != issue.by.start` (`brain-x-issues`, `issuesDefaultPolicy`), and
 between two tokens one agent made that keeps nothing apart. This is an agreement: `token.create` does not refuse `issue.*` to a caller that holds one, which would be a
 change to the kernel and is the owner's (the triage of that issue, event 236).
 
@@ -185,7 +185,7 @@ an entry of kind doc over 16,000 characters              [the first N of M chara
 - Run 2026-10-13 04:08 CEST with a tracker token, the record at 5675 events: `list?limit=100` answered 100 issues,
   `total` 460 and `more: true`; `list?limit=500` 460 and `more: false`; `sync?after=0` events 1 to 200 and
   `more: true`, and with `&limit=500` events 1 to 500 and `more: true`. `issue.queue` and `issue.runs` have a
-  `more` too, by their rows of the reference (`tools/cloud-brain/brain-issues.ojs`); neither was called for this.
+  `more` too, by their rows of the reference (`getSource?worker=brain-x-issues&part=reference`); neither was called for this.
 - The third line is what `tools/cloud-brain/cut.ts` made of a text of 1,421 characters cut at 400, the same day;
   `cloud-brain-dev/test.ts` has a copy of that function, with a value cut at 120 and an error at 600, by its source. The
   fourth is the line a test of `tools/cloud-brain/cloud-brain.ojs` expects of `callAnswer`, not one read in the page;

@@ -17,7 +17,7 @@ Each is `ia <call> '<json>'`, and each takes a `key`. The shapes, from the track
 
 A text that is too long is refused 400 with nothing written, by a message such as `reason: text, 2000 characters
 at most`: an id 40 characters, a key 100, a title 300, a `reason` 2,000, a body 20,000 (of an issue and of a
-comment). They are `issuesLimits` and `issueAct` of `tools/cloud-brain/brain-issues.ojs`, asked of the seed by
+comment). They are `issuesLimits` and `issueAct` of `brain-x-issues`, asked of the module cb4 runs by
 `tests/tools/tracker-limits-in-the-briefs.test.ts`. What does not fit a reason goes in a comment, and the reason
 names it. (`tracker-limits-in-no-brief`, 2026-10-13: three runs were refused for an id or a reason.)
 

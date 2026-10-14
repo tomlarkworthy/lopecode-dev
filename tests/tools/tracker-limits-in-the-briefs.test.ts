@@ -1,7 +1,8 @@
 // Three runs of 2026-10-13 were refused a write to the tracker for a length no brief they read names: an id over 40
-// characters, a move's reason over 2,000. Three briefs now have the lengths. The numbers are asked of the seed of
-// this checkout (tools/cloud-brain/brain-issues.ojs: issuesLimits, and issueAct for the id, which is no entry of
-// issuesLimits), so a limit that changes there fails this file until the briefs say the new one.
+// characters, a move's reason over 2,000. Three briefs now have the lengths. The numbers are asked of the tracker cb4
+// runs (cloud-brain-dev/deploy/@tomlarkworthy/brain-issues.js after `bun sync.ts`: issuesLimits, and issueAct for the id,
+// which is no entry of issuesLimits; the seed brain-issues.ojs until 2026-10-14), so a limit that changes there fails this
+// file until the briefs say the new one.
 // Issue tracker-limits-in-no-brief.
 //
 //   bun test --timeout=30000 ./tests/tools/tracker-limits-in-the-briefs.test.ts
@@ -9,10 +10,10 @@ import { expect, beforeAll } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { importNotebookModule } from "../../tools/notebook-import.ts";
-import { testNeedingSeedAnd } from "./needs.ts";
+import { testNeedingRunning } from "./needs.ts";
 
 const AGENTS = resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/agents");
-const { test, module } = await testNeedingSeedAnd("tracker-limits-in-the-briefs.test.ts", "brain-issues.ojs", []);
+const { test, module } = testNeedingRunning("tracker-limits-in-the-briefs.test.ts", "brain-issues");
 const flat = (s: string) => s.replace(/\s+/g, " ");
 const brief = (file: string) => flat(readFileSync(join(AGENTS, file), "utf8"));
 // 2000 as a brief writes it: "2,000".

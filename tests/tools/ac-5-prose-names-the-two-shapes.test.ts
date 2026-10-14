@@ -2,7 +2,9 @@
 // of plan/cloud-brain-answers-cut-and-not-said.md, issue ac-5-prose-names-the-two-shapes). Before the task
 // agents/overseer.md gave `io "sync?after=<seq>"` as "every event since the last oversight" with no word of a page,
 // neither it nor SKILL.md said what `more` of a list is, and the knowledge page had no paragraph on the two shapes.
-// The numbers the prose gives are held to the text of the seed's reference and of cut.ts, not to a run of cb4.
+// The numbers the prose gives are held to the text of the tracker's reference and of cut.ts, not to a run of cb4. The
+// reference is read from what cb4 runs, as cloud-brain-dev/deploy/ has it after `bun sync.ts` (the seed brain-issues.ojs
+// until it was deleted on 2026-10-14, behind what ran).
 //
 //   bun test --timeout=30000 ./tests/tools/ac-5-prose-names-the-two-shapes.test.ts
 // OVERSEER=, SKILL=, CALLING= each read another copy of that file (the file before the change).
@@ -10,13 +12,15 @@ import { test, expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { cut } from "../../tools/cloud-brain/cut.ts";
+import { testNeedingRunning } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const read = (env: string, path: string) => readFileSync(process.env[env] || resolve(root, path), "utf8");
 const overseer = read("OVERSEER", ".claude/skills/brain-maintenance/agents/overseer.md");
 const skill = read("SKILL", ".claude/skills/brain-maintenance/SKILL.md");
 const calling = read("CALLING", "knowledge/calling-a-cloud-brain-from-this-checkout.md");
-const seed = read("SEED", "tools/cloud-brain/brain-issues.ojs");
+const { test: withTracker, module: tracker } = process.env.SEED ? { test, module: process.env.SEED } : testNeedingRunning("ac-5-prose-names-the-two-shapes.test.ts, the reference", "brain-issues");
+const seed = tracker ? readFileSync(tracker, "utf8") : "";
 const page = read("PAGE", "tools/cloud-brain/cloud-brain.ojs");
 
 // A block of a markdown file: the lines from the one that holds `start` to the next blank line or list item.
@@ -30,7 +34,7 @@ const block = (text: string, start: string) => {
 };
 const row = (method: string) => seed.split("\n").find((l) => l.startsWith("| \\`" + method + "\\` |")) || "";
 
-test("the seed's reference still gives the sizes the prose repeats", () => {
+withTracker("the tracker's reference still gives the sizes the prose repeats", () => {
   expect(row("issue.sync")).toContain("200 events when left out, 500 at most");
   expect(row("issue.sync")).toContain("the next page is the same call with \\`after=\\` the \\`seq\\` of the last event answered");
   expect(row("issue.list")).toContain("100 issues when left out, 500 at most");

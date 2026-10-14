@@ -17,11 +17,11 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { newest } from "../../tools/cloud-brain/policy-pins.ts";
 import { lines, UNTIL } from "../../tools/cloud-brain/policy-walk.ts";
-import { testNeedingSeedAnd } from "./needs.ts";
+import { testNeedingRunning } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../.."), me = "policy-walk.test.ts", dev = join(root, "cloud-brain-dev");
 const TOOL = join(root, "tools/cloud-brain/policy-walk.ts"), FILE = newest(root)!, V = "v" + /-v(\d+)\.json$/.exec(FILE)![1];
-const { test: withSeed } = await testNeedingSeedAnd(me, "brain-issues.ojs", [join(dev, "test.ts"), join(dev, "deploy/services.json")]);
+const { test: withSeed } = testNeedingRunning(me, "brain-issues", [join(dev, "test.ts"), join(dev, "deploy/services.json")]);
 const tmp = mkdtempSync(join(tmpdir(), "policy-walk-test-"));
 const T = 200000;
 

@@ -10,7 +10,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { seedModule, testNeedingSeed, testNeedingSeedAnd } from "./needs.ts";
+import { runningCells, runningModule, seedModule, testNeedingRunning, testNeedingSeed, testNeedingSeedAnd } from "./needs.ts";
 
 const here = import.meta.dir;
 const none = resolve(here, "no-such-place");
@@ -42,12 +42,13 @@ test("a test of a seed and of files: skipped for the first file lacking with not
   }
 });
 
-test("the two SQL tests read their statements from the seed of the checkout, and no file of tests/tools names the built notebook to read it", async () => {
+// Since 2026-10-14 issue-lock-sql.test.ts reads what cb4 runs: brain-issues.ojs was deleted that day, behind what ran.
+test("the two SQL tests read their statements from the seed of the checkout or what cb4 runs, and no file of tests/tools names the built notebook to read it", async () => {
   const needs = await import("./needs.ts");
   expect(Object.keys(needs).filter((k) => /^(BUILT|COMMITTED|notebookOf)$/.test(k))).toEqual([]);
-  for (const [file, seed] of [["issue-lock-sql.test.ts", "brain-issues.ojs"], ["topic-sql.test.ts", "brain-topic.ojs"]]) {
+  for (const [file, line] of [["issue-lock-sql.test.ts", 'testNeedingRunning("issue-lock-sql.test.ts", "brain-issues", [BRAIN_DB])'], ["topic-sql.test.ts", 'await testNeedingSeedAnd("topic-sql.test.ts", "brain-topic.ojs", [BRAIN_DB])']]) {
     const src = readFileSync(resolve(here, file), "utf8");
-    expect(src).toContain(`await testNeedingSeedAnd("${file}", "${seed}", [BRAIN_DB])`);
+    expect(src).toContain(line);
     expect(src).toContain("importNotebookModule(module)");
     expect(src).not.toMatch(/lope-reader|--get-module|BRAIN_NOTEBOOK(?! named another)|process\.env/);
   }
@@ -87,15 +88,16 @@ test("atproto-publish.test.ts with no atproto.html leaves fetch a function for t
 
 // Issue cost-events-test-reads-stale-deploy: cost-events.test.ts asked issueAct of cloud-brain-dev/deploy/, and failed 3
 // in a checkout whose copy was from before issue.cost.
+// Until 2026-10-14 of brain-issues.ojs, deleted that day; brain-topic.ojs since.
 test("a module is compiled from the seed of this checkout, once, into a file that is not in the checkout", async () => {
-  const file = await seedModule("brain-issues.ojs");
-  expect(file).toEndWith("/brain-issues.js");
+  const file = await seedModule("brain-topic.ojs");
+  expect(file).toEndWith("/brain-topic.js");
   expect(file.startsWith(resolve(here, "../.."))).toBe(false);
-  expect(await seedModule("brain-issues.ojs")).toBe(file);
-  // The list of issue.cost's fields, as the seed has it, is in what was compiled.
-  const fields = readFileSync(resolve(here, "../../tools/cloud-brain/brain-issues.ojs"), "utf8").match(/ cost: \[("[a-z]+"(, )?)+\]/)![0];
-  expect(readFileSync(file, "utf8")).toContain(fields);
-  expect((await testNeedingSeed("needs.test.ts", "brain-issues.ojs")).module).toBe(file);
+  expect(await seedModule("brain-topic.ojs")).toBe(file);
+  // topicLimits' line of the seed, as the seed has it, is in what was compiled.
+  const limits = readFileSync(resolve(here, "../../tools/cloud-brain/brain-topic.ojs"), "utf8").split("\n").find((l) => l.startsWith("topicLimits = "))!.slice("topicLimits = ".length);
+  expect(readFileSync(file, "utf8")).toContain(limits);
+  expect((await testNeedingSeed("needs.test.ts", "brain-topic.ojs")).module).toBe(file);
 }, 60000);
 
 // Issue rows-add-within-sql-fails-once-in-suite: in the first run of the suite in a checkout, cost-events.test.ts imported
@@ -144,5 +146,25 @@ test("with no toolchain notebook the tests of a seed are skipped with a line, an
     expect(lines.length).toBe(1);
   } finally {
     console.log = log;
+  }
+}, 60000);
+
+// Since 2026-10-14 a rig's cell is compiled into what cb4 runs of the tracker, as seedModule's edit put it at the end of the seed.
+testNeedingRunning("needs.test.ts, runningModule", "brain-issues").test("runningModule: the running module with no test cell of its own and the one cell added, in a file that is not in the checkout", async () => {
+  const into = mkdtempSync(join(tmpdir(), "running-"));
+  try {
+    const file = await runningModule("brain-issues", { name: "brain-issues-probe", cell: "// a probe\ntest_probe = issuesLimits.key" }, into);
+    expect(file).toBe(join(into, "brain-issues-probe", "brain-issues-probe.js"));
+    const { importNotebookModule } = await import("../../tools/notebook-import.ts");
+    const m = await importNotebookModule(file, { overrides: { checkedRule: () => { throw new Error("no rule is checked here"); } } });
+    expect(await m.value("test_probe")).toBe(await m.value("issuesLimits").then((L: any) => L.key));
+    // Of the running module's cells, every one but its test cells is still defined.
+    const had = (await runningCells("brain-issues")).map((v) => v._name).filter((n): n is string => !!n);
+    const text = readFileSync(file, "utf8");
+    expect(had.filter((n) => n.startsWith("test_")).length).toBeGreaterThan(50);
+    expect(had.filter((n) => n.startsWith("test_") && text.includes(`"${n}", [`))).toEqual([]);
+    expect(had.filter((n) => !n.startsWith("test_") && !text.includes(`"${n}", [`))).toEqual([]);
+  } finally {
+    rmSync(into, { recursive: true, force: true });
   }
 }, 60000);

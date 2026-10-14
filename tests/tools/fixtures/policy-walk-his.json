@@ -1,5 +1,5 @@
 {
-  "what": "The states, as workflow/state, that tools/cloud-brain/policy-walk.ts expects only the owner present to end: from each, no closed state is reached by the loop's tokens and the approver alone. loop-ends-it fails for a state that is not listed here. `file` is read for a policy file and for --in-force, `default` for issuesDefaultPolicy of the seed, which names no approver. plan/cloud-brain-rules-checked-and-stale-knowledge-seen.md, section 1.",
+  "what": "The states, as workflow/state, that tools/cloud-brain/policy-walk.ts expects only the owner present to end: from each, no closed state is reached by the loop's tokens and the approver alone. loop-ends-it fails for a state that is not listed here. `file` is read for a policy file and for --in-force, `default` for issuesDefaultPolicy of the tracker, which names no approver. plan/cloud-brain-rules-checked-and-stale-knowledge-seen.md, section 1.",
   "file": ["security/in-review", "security/awaiting-approval"],
   "default": ["security/in-review", "security/awaiting-approval", "project/awaiting-approval"]
 }

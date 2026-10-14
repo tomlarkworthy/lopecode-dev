@@ -1,6 +1,8 @@
 #!/usr/bin/env bun
 // The tracker's policy walked as a state machine: every state a policy lets one issue reach, judged by the seed's own
-// issueAllowed, and seven properties asked of what was reached. Issue rk-1-policy-walk;
+// issueAllowed, and seven properties asked of what was reached. The seed is the tracker cb4 runs, as cloud-brain-dev/deploy/
+// has it after `bun sync.ts`: brain-issues.ojs was deleted on 2026-10-14, behind what ran (the tracker is changed as a patch
+// in cloud-brain-dev). Issue rk-1-policy-walk;
 // plan/cloud-brain-rules-checked-and-stale-knowledge-seen.md, section 1; tools/cloud-brain/records/rk-1-policy-walk.md.
 //
 //   bun tools/cloud-brain/policy-walk.ts <policy.json> [--until <property>] [--json]
@@ -8,8 +10,8 @@
 //   bun tools/cloud-brain/policy-walk.ts --in-force --token <t>
 //
 // <policy.json>  A body of issue.install ({ key, reason, policy, migrate }) or a policy itself, by its path.
-// --default      issuesDefaultPolicy of this checkout's brain-issues.ojs. Run and recorded by the writer of a change to
-//                that cell; the suite walks the newest policy file alone (tests/tools/policy-walk.test.ts).
+// --default      issuesDefaultPolicy of the tracker cb4 runs. Run and recorded by the writer of a change to that cell;
+//                the suite walks the newest policy file alone (tests/tools/policy-walk.test.ts).
 // --until        Ends the walk at the first edge that breaks <property>, one of major-done-is-his, major-stays,
 //                no-own-review, moves-are-his-or-a-token, and prints that property alone. The others are not asked.
 // --in-force     Reads issue.policy with <t>, a name issue-as.sh keeps, and prints whether its workflow hashes are those
@@ -24,12 +26,12 @@
 // shortest path of acts from an open to what breaks it. The properties, and what the walk does not show (issue.narrow,
 // the owner's own swap, holds and waits, links, a second level of parts), are in the spec's section 1.
 // Exit 0: every property asked holds, or the workflows in force are the newest file's. Exit 1: one fails, with the paths,
-// or a workflow in force is not the file's. Exit 2: nothing was asked, and stderr says why (the arguments, the seed was not compiled,
+// or a workflow in force is not the file's. Exit 2: nothing was asked, and stderr says why (the arguments, the cell was not compiled,
 // the cell gave no answer, issue.policy was not read).
 //
-// The walk is the cell tests/tools/fixtures/policy-walk.ojs, compiled here at the end of the seed with no other test cell
-// and run by cloud-brain-dev/test.ts --with, in a directory of the temp directory that is removed at the end. Nothing is
-// added to the seed, nothing is deployed, and but for --in-force no call leaves the machine. The states only the owner
+// The walk is the cell tests/tools/fixtures/policy-walk.ojs, compiled into the running module in place of its test cells
+// (runningModule of tests/tools/needs.ts) and run by cloud-brain-dev/test.ts --with, in a directory of the temp directory
+// that is removed at the end. Nothing is added to the module that runs, nothing is deployed, and but for --in-force no call leaves the machine. The states only the owner
 // ends are listed in tests/tools/fixtures/policy-walk-his.json.
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -44,9 +46,9 @@ const KINDS = ["task", "security", "feedback", "project"], CAP = 400000, SECONDS
 
 class Stop extends Error { constructor(public code: number, message: string) { super(message); } }
 
-// The cell's answer for `data`: the seed compiled with the cell, then one run of cloud-brain-dev/test.ts.
+// The cell's answer for `data`: the running module with the cell compiled in, then one run of cloud-brain-dev/test.ts.
 async function ask(data: Record<string, unknown>): Promise<any> {
-  for (const p of [join(DEV, "test.ts"), join(DEV, "deploy/services.json")]) if (!existsSync(p)) throw new Stop(2, `no ${p}: tools/cloud-brain/worktree.sh makes a worktree that has it, and (cd cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev) writes deploy/`);
+  for (const p of [join(DEV, "test.ts"), join(DEV, "deploy/services.json"), join(DEV, "deploy/@tomlarkworthy/brain-issues.js")]) if (!existsSync(p)) throw new Stop(2, `no ${p}: tools/cloud-brain/worktree.sh makes a worktree that has it, and (cd cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev) writes deploy/`);
   const dir = mkdtempSync(join(tmpdir(), "policy-walk-"));
   try {
     let built: string;
@@ -54,12 +56,9 @@ async function ask(data: Record<string, unknown>): Promise<any> {
     const said = { ...console };
     try {
       for (const k of ["log", "info", "warn", "error", "debug"] as const) (console as any)[k] = () => {};
-      const { seedModule } = await import(resolve(ROOT, "tests/tools/needs.ts"));
-      built = await seedModule("brain-issues.ojs", dir, { name: "brain-issues-policy-walk", text: (seed: string) => {
-        const cells = seed.split(/^(?=\/\/ %%)/m).filter((c) => !/^(\/\/ %%.*\n)?(\/\/.*\n)*test_\w+ = /.test(c));
-        return cells.join("") + "\n// %%\n" + readFileSync(join(ROOT, CELL), "utf8").replace('"__DATA__"', () => JSON.stringify(data));
-      } });
-    } catch (e: any) { throw new Stop(2, `the seed was not compiled: ${e?.message ?? e}`); } finally { Object.assign(console, said); }
+      const { runningModule } = await import(resolve(ROOT, "tests/tools/needs.ts"));
+      built = await runningModule("brain-issues", { name: "brain-issues-policy-walk", cell: readFileSync(join(ROOT, CELL), "utf8").replace('"__DATA__"', () => JSON.stringify(data)) }, dir);
+    } catch (e: any) { throw new Stop(2, `the cell was not compiled into the running module: ${e?.message ?? e}`); } finally { Object.assign(console, said); }
     const report = join(dir, "report.json");
     const r = spawnSync("bun", ["test.ts", "brain-x-issues", "--with", built, "--whole", "--seconds", String(SECONDS), "--report", report], { cwd: DEV, encoding: "utf8", maxBuffer: 1 << 28 });
     let test: any;
@@ -124,7 +123,7 @@ async function main(argv: string[]): Promise<number> {
   if (argv.includes("--default") === !!first) throw new Stop(2, usage);
   const policy = first ? policyOf(first).policy : null;
   const a = await ask({ policy, kinds: KINDS, cap: CAP, until: until ?? "", his: his[first ? "file" : "default"], hashes: false });
-  const { text, holds } = lines(first ?? "issuesDefaultPolicy of tools/cloud-brain/brain-issues.ojs", a);
+  const { text, holds } = lines(first ?? "issuesDefaultPolicy of the tracker cb4 runs (cloud-brain-dev/deploy/@tomlarkworthy/brain-issues.js)", a);
   console.log(json ? JSON.stringify(a) : text.join("\n"));
   return holds ? 0 : 1;
 }

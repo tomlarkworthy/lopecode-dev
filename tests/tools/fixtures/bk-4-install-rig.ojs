@@ -1,4 +1,5 @@
-// One cell, compiled at the end of brain-issues.ojs by tests/tools/issues-policy-v4.test.ts and run by cloud-brain-dev/test.ts.
+// One cell, compiled into the tracker cb4 runs (runningModule of tests/tools/needs.ts; until 2026-10-14 at the end of
+// brain-issues.ojs) by tests/tools/issues-policy-v4.test.ts and run by cloud-brain-dev/test.ts.
 // It asserts nothing: it returns what the rig answered, as JSON, and the test reads it. The string of `data` is replaced by
 // { v3, v4, projects, approver }: the two install bodies of plan/, the fixture's projects, the approver's delegation id.
 test_bk4_install_in_the_rig = {

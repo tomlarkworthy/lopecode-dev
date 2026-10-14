@@ -48,12 +48,16 @@ seed on `main` differed cell by cell from what ran (`waiting-deploys.ts`'s `diff
 `sync.ts`); the other 23 were `same`. Their entries in `build.ts` say `running: "brain-x-NAME"` in place of `seed:`, and
 the build fetches `getSource?worker=` of `BRAIN_BASE` (cb4) for them, or stops. A record emitted from that build is what
 runs: `brain-x-fly` emitted `9526a5569219`, its running hash; `brain-x-git` emitted `2c05c074f3e8` where `c588784ddb62`
-runs, the same cells in the same order with one blank line in another place (the patch tool's). `brain-issues.ojs` is
-kept for now: `approver.ts` reads its policy cells, and so do `policy-walk.ts` and 23 files of `tests/tools`
-(`grep -rlE 'brain-issues\.ojs|seedModule\("brain-issues' tests/tools`, 2026-10-14).
+runs, the same cells in the same order with one blank line in another place (the patch tool's). `brain-issues.ojs` was
+deleted the same day, and its `build.ts` entry is `running: "brain-x-issues"`; the build's module passed its 74 tests
+(`tab-tests.ts`). What read the seed reads `cloud-brain-dev/deploy/@tomlarkworthy/brain-issues.js`, as `bun sync.ts`
+there wrote it from cb4: `policy-walk.ts` and the tests of `tests/tools` (`running`, `runningCells` and `runningModule`
+of `tests/tools/needs.ts`; a rig's cell is compiled into that module in place of its test cells). Such a test is as new
+as the last sync, and a copy from before a change of the tracker fails it: sync again. `approver.ts` no longer marks
+the seed's policy cells (`rules.md`, "Its own files").
 
-A build is no longer a function of its commit alone: `brain-git` and `brain-fly` are what cb4 runs at the time of the
-build, and with cb4 not answering the build stops.
+A build is no longer a function of its commit alone: `brain-git`, `brain-fly` and `brain-issues` are what cb4 runs at
+the time of the build, and with cb4 not answering the build stops.
 
 ## Changing it
 

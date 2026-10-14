@@ -541,12 +541,12 @@ test("at `awaiting-approval` with a commit that changes the approver's own files
   expect([acts(again.line).filter((a: string) => /no-approver| [ac] /.test(a)), writes().filter((c) => ["a", "c"].includes(c.body.id))]).toEqual([[], []]);
 });
 
-test("ownFiles and noApproverText: the files marked `approver` or `policy` of every ref, each once with its cells; none for a ref with no files; the text of a task with no parent and no title, and of a spec", () => {
+test("ownFiles and noApproverText: the files marked `approver` or `policy` of every ref, each once; none for a ref with no files; the text of a task with no parent and no title, and of a spec", () => {
   const f: any = { refs: [
-    { kind: "commit", files: [{ file: "tools/cloud-brain/approver.ts", marks: ["approver"] }, { file: "tools/cloud-brain/loop.ts", marks: [] }, { file: "tools/cloud-brain/brain-issues.ojs", marks: ["policy"], cells: ["issuesApp", "issuesLimits"] }] },
-    { kind: "commit", files: [{ file: "tools/cloud-brain/approver.ts", marks: ["approver"] }, { file: "tools/cloud-brain/brain-issues.ojs", marks: ["tracker"], cells: [] }, { file: "tools/cloud-brain/brain-kernel.ojs", marks: ["never"] }, { file: ".claude/skills/brain-maintenance/rules.md", marks: ["rules"] }] },
+    { kind: "commit", files: [{ file: "tools/cloud-brain/approver.ts", marks: ["approver"] }, { file: "tools/cloud-brain/loop.ts", marks: [] }, { file: "plan/cloud-brain-issues-policy-v8.json", marks: ["policy"] }] },
+    { kind: "commit", files: [{ file: "tools/cloud-brain/approver.ts", marks: ["approver"] }, { file: "plan/cloud-brain-issues-policy-v8.json", marks: ["policy"] }, { file: "tools/cloud-brain/brain-kernel.ojs", marks: ["never"] }, { file: ".claude/skills/brain-maintenance/rules.md", marks: ["rules"] }] },
     { kind: "commit", files: null }, { kind: "hash", files: null }] };
-  expect(ownFiles(f)).toEqual(["[approver] tools/cloud-brain/approver.ts", "[policy] tools/cloud-brain/brain-issues.ojs: issuesApp, issuesLimits"]);
+  expect(ownFiles(f)).toEqual(["[approver] tools/cloud-brain/approver.ts", "[policy] plan/cloud-brain-issues-policy-v8.json"]);
   expect(ownFiles({ refs: [] } as any)).toEqual([]);
   expect(noApproverText({ id: "t-1", kind: "task", parent: null }, ["[approver] x"])).toBe("t-1.\n\nNo approver read this one. Its commits change files that are the approver's own or the tracker's policy, and the approver's tool refuses to approve a change to those, so a run could only have left it to you. It is built and reviewed. Your answer is your approve or your send-back.\n\nThe files, as `approver.ts facts` marks them: [approver] x.");
   const spec = noApproverText({ id: "p-1", kind: "feature", title: " A policy for it " }, ["[policy] y", "[approver] x"]);

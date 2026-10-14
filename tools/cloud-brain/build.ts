@@ -40,7 +40,7 @@ const MODULES = [
   { name: "@tomlarkworthy/brain-logs", seed: "brain-logs.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-snapshot", seed: "brain-snapshot.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-knowledge", seed: "brain-knowledge.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-issues", seed: "brain-issues.ojs", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-issues", running: "brain-x-issues", main: true, files: {} },
   { name: "@tomlarkworthy/brain-container", seed: "brain-container.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-ai", seed: "brain-ai.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-git", running: "brain-x-git", main: true, files: {} },

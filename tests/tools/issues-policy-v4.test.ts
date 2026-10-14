@@ -6,15 +6,17 @@
 // copy of cb4's open projects (fixtures/bk-4-open-projects.json).
 //
 //   bun test --timeout=120000 ./tests/tools/issues-policy-v4.test.ts
-// The rig is issuesRig of this checkout's brain-issues.ojs, compiled here with one more cell (fixtures/bk-4-install-rig.ojs)
-// and no other test cell, and run by cloud-brain-dev/test.ts beside the other modules as cloud-brain-dev/deploy/ has them.
+// The rig is issuesRig of the tracker cb4 runs (cloud-brain-dev/deploy/ after `bun sync.ts`; this checkout's
+// brain-issues.ojs until it was deleted on 2026-10-14), with no test cell of its own and one more cell compiled in
+// (fixtures/bk-4-install-rig.ojs, runningModule of needs.ts), and run by cloud-brain-dev/test.ts beside the other modules
+// as cloud-brain-dev/deploy/ has them.
 // No call leaves the machine.
 import { expect, test } from "bun:test";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { dirname, resolve, join } from "node:path";
 import { BRIEF, TOOL } from "../../tools/cloud-brain/approver.ts";
-import { SEEDS, seedModule, testNeedingSeed, testNeedingSeedAnd } from "./needs.ts";
+import { testNeedingRunning, testNeedingRunningModule } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../.."), me = "issues-policy-v4.test.ts";
 const FILE = "plan/cloud-brain-issues-policy-v4.json";
@@ -25,7 +27,7 @@ const moveOf = (policy: any, workflow: string, name: string) => policy.workflows
 const approve = moveOf(v3.policy, "task", "approve").guard as string;
 const approver = /^caller\.present \|\| caller\.actor == "delegation:([0-9a-f]{12})"$/.exec(approve)?.[1];
 
-const { test: withSeed, module: tracker } = await testNeedingSeed(me + ", the cell issuesDefaultPolicy", "brain-issues.ojs");
+const { test: withSeed, module: tracker } = testNeedingRunning(me + ", the cell issuesDefaultPolicy", "brain-issues");
 
 withSeed("it is the policy of v3 with decompose and finish of project as the built cell has them, and nothing else", async () => {
   expect(Object.keys(v4)).toEqual(["key", "reason", "policy", "migrate"]);
@@ -64,14 +66,10 @@ test("the reason fits an install, has his words, and ends with the approver's br
 
 // The rig. One run of cloud-brain-dev/test.ts, read by the tests below.
 const CELL = "test_bk4_install_in_the_rig";
-const withCell = { name: "brain-issues-bk-4-install", text: (seed: string) => {
-  const cells = seed.split(/^(?=\/\/ %%)/m).filter((c) => !/^(\/\/ %%.*\n)?(\/\/.*\n)*test_\w+ = /.test(c));
-  const data = JSON.stringify({ v3, v4, projects: cb4.projects, approver });
-  const cell = readFileSync(join(root, "tests/tools/fixtures/bk-4-install-rig.ojs"), "utf8").replace('"__DATA__"', () => data);
-  return cells.join("") + "\n// %%\n" + cell;
-} };
+const data = JSON.stringify({ v3, v4, projects: cb4.projects, approver });
+const withCell = { name: "brain-issues-bk-4-install", cell: readFileSync(join(root, "tests/tools/fixtures/bk-4-install-rig.ojs"), "utf8").replace('"__DATA__"', () => data) };
 const dev = join(root, "cloud-brain-dev");
-const { test: withRig, module: built } = await testNeedingSeedAnd(me + ", the rig", "brain-issues.ojs", [join(dev, "test.ts"), join(dev, "deploy/services.json")], (seed) => seedModule(seed, SEEDS, withCell));
+const { test: withRig, module: built } = await testNeedingRunningModule(me + ", the rig", "brain-issues", withCell, [join(dev, "test.ts"), join(dev, "deploy/services.json")]);
 let ran: Promise<any> | undefined;
 const rig = () => (ran ??= (async () => {
   // The report is a file since test-ts-output-floods-the-reader; a test.ts from before it prints it as its last line.

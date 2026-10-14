@@ -8,6 +8,7 @@ import { expect, test } from "bun:test";
 import { inFull } from "./implementer-brief";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { runningCells, testNeedingRunning } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const dir = resolve(root, ".claude/skills/brain-maintenance");
@@ -152,9 +153,13 @@ test("SKILL.md, \"A post mortem\": what one is, the owner who declares, and the 
     "the four lines, and nothing of what you think went wrong",
     "Never you, as a quick win or otherwise",
   ]);
-  // the three moves are moves of the tracker's default policy
-  const seed = read("tools/cloud-brain/brain-issues.ojs");
-  for (const move of ["send-back", "owner-reject", "revert"]) expect(seed).toContain(`"${move}"`);
+});
+
+// The three moves are moves of the tracker's default policy, as cb4 runs it (cloud-brain-dev/deploy/ after `bun sync.ts`;
+// the seed brain-issues.ojs until 2026-10-14).
+testNeedingRunning("pm-2-brief-and-procedure.test.ts, issuesDefaultPolicy", "brain-issues").test("the three moves the brief names are moves of the default policy", async () => {
+  const policy = (await runningCells("brain-issues")).find((v) => v._name === "issuesDefaultPolicy")!._definition;
+  for (const move of ["send-back", "owner-reject", "revert"]) expect(policy).toContain(`"${move}"`);
 });
 
 test("SKILL.md: the triage of one, the actions filed at `done`, the read after three, and what step 7 tells the owner", () => {

@@ -1,24 +1,23 @@
-// The SQL of issue.lock (brain-x-issues), on a SQLite. The test cells of brain-issues.ojs run on issuesFakeSql,
+// The SQL of issue.lock (brain-x-issues), on a SQLite. The test cells of brain-x-issues run on issuesFakeSql,
 // whose reading of each WHERE was written by hand; this runs the statements themselves.
 //   1. Each statement's plan, made here with EXPLAIN, is given to the check of the deployed brain-db
 //      (cloud-brain-dev/deploy/@tomlarkworthy/brain-db.js: sqlShape, sqlNeeds, sqlSignature). D1 plans with its own
 //      SQLite, so a pass here is not a pass there: the first call on cb4 is that test.
 //   2. The batches of issueLocking are run as one transaction each, as brain-db runs a batch.
-// The statements are read from the seed of this checkout (tools/cloud-brain/brain-issues.ojs), compiled as build.ts
-// compiles it (seedModule of needs.ts), never retyped, and from no notebook: a seed changed here is what is tested,
-// built or not. With no toolchain notebook to compile with, or no brain-db.js, the tests are skipped, and a line says
-// for want of what. Until view-isolated-from-main-notebook (2026-10-12) the module was taken from a notebook, in a
+// The statements are read from what cb4 runs (cloud-brain-dev/deploy/@tomlarkworthy/brain-issues.js after `bun sync.ts`),
+// never retyped, and from no notebook; until 2026-10-14 from the seed tools/cloud-brain/brain-issues.ojs, deleted that day
+// behind what ran. With no brain-issues.js or brain-db.js the tests are skipped, and a line says for want of what. Until view-isolated-from-main-notebook (2026-10-12) the module was taken from a notebook, in a
 // worktree with no build the main checkout's through the lopebooks link, and BRAIN_NOTEBOOK named another.
 // plan/cloud-brain-locks-held-in-the-cluster.md, task 1; tools/cloud-brain/records/lk-1-issue-lock-methods.md.
 import { expect, beforeAll } from "bun:test";
 import { Database } from "bun:sqlite";
 import { resolve } from "node:path";
 import { importNotebookModule } from "../../tools/notebook-import.ts";
-import { testNeedingSeedAnd } from "./needs.ts";
+import { testNeedingRunning } from "./needs.ts";
 
 const ROOT = resolve(import.meta.dir, "../..");
 const BRAIN_DB = resolve(ROOT, "cloud-brain-dev/deploy/@tomlarkworthy/brain-db.js");
-const { test, module } = await testNeedingSeedAnd("issue-lock-sql.test.ts", "brain-issues.ojs", [BRAIN_DB]);
+const { test, module } = testNeedingRunning("issue-lock-sql.test.ts", "brain-issues", [BRAIN_DB]);
 
 let S: Record<string, string>, schema: string[], locking: any, limits: any, db_: any;
 

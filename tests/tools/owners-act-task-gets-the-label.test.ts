@@ -7,6 +7,7 @@
 import { test, expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
+import { runningCells, testNeedingRunning } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const DIR = ".claude/skills/brain-maintenance";
@@ -48,8 +49,9 @@ test("SKILL.md, where a pass by hand reads the three ways a wait is written, say
   for (const said of ["moved as they stood with no word changed", "One of the five has been added to since: \"The `decompose` row\"", "`writer-started-on-an-owners-act-task`"]) expect(note).toContain(said);
 });
 
-test("the queue reads the label before the link: `waits` of brain-issues.ojs answers `owner` above its `after` line", () => {
-  const seed = read("tools/cloud-brain/brain-issues.ojs");
+// Of the tracker cb4 runs (cloud-brain-dev/deploy/ after `bun sync.ts`): its seed brain-issues.ojs was deleted on 2026-10-14.
+testNeedingRunning("owners-act-task-gets-the-label.test.ts, issueQueue", "brain-issues").test("the queue reads the label before the link: `waits` of issueQueue answers `owner` above its `after` line", async () => {
+  const seed = (await runningCells("brain-issues")).find((v) => v._name === "issueQueue")!._definition;
   const a = seed.indexOf("  const waits = (i) => {"), body = seed.slice(a, seed.indexOf("\n  };", a));
   const owner = body.indexOf('includes("needs-owner") && !begun.includes(i.state)'), after = body.indexOf('return { why: "after"');
   expect([a > 0, owner > 0, after > owner]).toEqual([true, true, true]);

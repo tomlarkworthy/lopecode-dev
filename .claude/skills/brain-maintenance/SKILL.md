@@ -368,7 +368,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
 3. **Read the queue and take its entries in order.** `issue-as.sh <your token> "queue"` answers `queue`, what the
    record says is next, and `waiting`, what is not next and why: `{ seq, now, queue: [{ id, do, kind, state, title, labels,
    for, since, late, hold, waiter }], waiting: [{ id, kind, state, why, on, until, waiter }], more }`. The order is the service's
-   (`issueQueue` of `tools/cloud-brain/brain-issues.ojs`, whose prose "The queue" says what each row reads): a round that was
+   (`issueQueue` of `brain-x-issues`, whose prose "The queue" says what each row reads): a round that was
    sent back (a writer's or a spec's), a review that waits, your own acts, a start; among starts the owner's, then one past
    4 hours (`late`; step 1, "Past 4 hours"), then a bug or a task before a project or a feature (a `start` before a `spec`),
    then the oldest. You do not order anything, and you match no issue against a table: an entry says what it wants in `do`.
@@ -798,7 +798,7 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token revoke <name>       # 
    panel). A `QUEUE` line names its row of step 3: its `do`.
    Since `tr-2-issue-wait-over-wakes` (2026-10-13) it also reads `wakes` at each read and prints `WAKE <id> <when>` for each wait
    of your token that is due and was not due in the answer before: a wait is one you wrote on an issue, to look at it again when its
-   `when` is true of it (`issue-as.sh <your token> wait '{"key":…,"id":…,"when":…,"until":…}'`; `tools/cloud-brain/brain-issues.ojs`, "A wait",
+   `when` is true of it (`issue-as.sh <your token> wait '{"key":…,"id":…,"when":…,"until":…}'`; the prose "A wait" of `brain-x-issues`
    has the conditions). No step of this file writes one yet, and a watch armed before that change prints no such line until it is armed again.
    A line is a wake: read that issue and take it from the table of step 3, without a
    whole pass. A write of an agent's that makes no entry of the queue new prints nothing; its report wakes you as before. The monitor

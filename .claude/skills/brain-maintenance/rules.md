@@ -191,28 +191,16 @@ task 6 of that spec, `ap-6-rules-and-live-step`, 2026-10-13.
   stays his. So does an issue an approver left: its verdict begins `approver: leave`, and he
   approves it or nobody does. It makes no other move of the Never line and no `install`: in a rig
   the approver's token is refused a `revert`, an `owner-reject`, the install itself and taking
-  `major` off (`brain-issues.ojs`, `test_issues_an_approver_delegation_approves_and_no_other_token`).
+  `major` off (`brain-x-issues`, `test_issues_an_approver_delegation_approves_and_no_other_token`).
 - **No word of his.** An approval by the approver is not a word of the owner's. Nothing rests on
   one as his: not a later verdict's `asked:` line, not a session that reads the record for what he
   said, not a token ("A token an approved spec names").
 - **Its own files.** The approver approves no change to `agents/approver.md`,
-  `tools/cloud-brain/approver.ts`, `tests/tools/approver.test.ts`, a
-  `plan/cloud-brain-issues-policy-*.json` or a policy cell of `brain-issues.ojs`: the tool refuses
-  an issue of which a commit touches one, and such an issue is the owner's. Of two of those cells,
-  `issuesApp` and `issuesLimits`, a commit touches a policy part or it does not touch the cell
-  (since `approver-policy-mark-takes-every-route`, 2026-10-13): of `issuesApp` every declaration,
-  every route that takes a POST, the routes `policy` and `sync`, every statement that is no
-  declaration and no route, and in a route that is left, each a GET, every statement that asks a
-  guard and every statement that names `app` or sets a declaration; of `issuesLimits` the entries
-  that a policy cell or such a part reads. Either cell is taken whole, as the other policy cells
-  are, where the tool cannot cut it on both sides of the commit. A route that takes a GET and is
-  neither `policy` nor `sync`, changed, added or removed, is no policy part in what it does beside
-  those statements, and an entry of `issuesLimits` that no policy cell and no such part reads is
-  none: a commit of the seed that touches no policy cell, no policy part and no cell with no name
-  is marked `tracker`, which is no refusal, and the approver reads its diff (`agents/approver.md`,
-  step 6). A cell with no name is an import, or prose with `${` in it: of one added, changed or
-  removed the tool names `a cell with no name`, the seed is marked `policy`, and the issue is the
-  owner's (said here since `fb-batch-rules-md`, 2026-10-13; the tool did so before). The reason of the
+  `tools/cloud-brain/approver.ts`, `tests/tools/approver.test.ts` or a
+  `plan/cloud-brain-issues-policy-*.json`: the tool refuses an issue of which a commit touches one,
+  and such an issue is the owner's. Until 2026-10-14 the list had the policy cells of
+  `brain-issues.ojs` as well; that seed was deleted that day, and the policy cells are now changed
+  only as `brain-x-issues` patches in `cloud-brain-dev`, which the tool does not read. The reason of the
   policy in force ends `approver brief <blob> tool <blob>`, and the tool makes no move when the
   brief or the tool of `origin/main` is another blob. So a landed change to either stops every
   approval by the approver until he installs a policy that names it

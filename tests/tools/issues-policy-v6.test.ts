@@ -7,8 +7,9 @@
 // issues-policy-v5.test.ts for whichever file is the newest.
 //
 //   bun test --timeout=120000 ./tests/tools/issues-policy-v6.test.ts
-// The rig is issuesRig of this checkout's brain-issues.ojs, compiled here with one more cell (fixtures/v6-install-rig.ojs)
-// and no other test cell, and run by cloud-brain-dev/test.ts, as issues-policy-v4.test.ts runs its own. No call leaves
+// The rig is issuesRig of the tracker cb4 runs (cloud-brain-dev/deploy/ after `bun sync.ts`; this checkout's
+// brain-issues.ojs until it was deleted on 2026-10-14), with no test cell of its own and one more cell compiled in
+// (fixtures/v6-install-rig.ojs), and run by cloud-brain-dev/test.ts, as issues-policy-v4.test.ts runs its own. No call leaves
 // the machine.
 import { expect, test } from "bun:test";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -16,7 +17,7 @@ import { existsSync, readFileSync, rmSync } from "node:fs";
 import { dirname, resolve, join } from "node:path";
 import { BRIEF, TOOL } from "../../tools/cloud-brain/approver.ts";
 import { pinsOf, remake } from "../../tools/cloud-brain/policy-pins.ts";
-import { SEEDS, seedModule, testNeedingSeedAnd } from "./needs.ts";
+import { testNeedingRunningModule } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../.."), me = "issues-policy-v6.test.ts";
 const FILE = "plan/cloud-brain-issues-policy-v6.json", V5 = "plan/cloud-brain-issues-policy-v5.json";
@@ -50,13 +51,9 @@ test("the two blobs are those of the brief and the tool at the commit the file i
 
 // The rig. One run of cloud-brain-dev/test.ts, read by the tests below.
 const CELL = "test_v6_install_in_the_rig";
-const withCell = { name: "brain-issues-v6-install", text: (seed: string) => {
-  const cells = seed.split(/^(?=\/\/ %%)/m).filter((c) => !/^(\/\/ %%.*\n)?(\/\/.*\n)*test_\w+ = /.test(c));
-  const cell = readFileSync(join(root, "tests/tools/fixtures/v6-install-rig.ojs"), "utf8").replace('"__DATA__"', () => JSON.stringify({ v3, v5, v6 }));
-  return cells.join("") + "\n// %%\n" + cell;
-} };
+const withCell = { name: "brain-issues-v6-install", cell: readFileSync(join(root, "tests/tools/fixtures/v6-install-rig.ojs"), "utf8").replace('"__DATA__"', () => JSON.stringify({ v3, v5, v6 })) };
 const dev = join(root, "cloud-brain-dev");
-const { test: withRig, module: built } = await testNeedingSeedAnd(me + ", the rig", "brain-issues.ojs", [join(dev, "test.ts"), join(dev, "deploy/services.json")], (seed) => seedModule(seed, SEEDS, withCell));
+const { test: withRig, module: built } = await testNeedingRunningModule(me + ", the rig", "brain-issues", withCell, [join(dev, "test.ts"), join(dev, "deploy/services.json")]);
 let ran: Promise<any> | undefined;
 const rig = () => (ran ??= (async () => {
   const file = join(dirname(built), "report.json");

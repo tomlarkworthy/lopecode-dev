@@ -7,6 +7,9 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { runningCells, testNeedingRunning } from "./needs.ts";
+
+const withTracker = testNeedingRunning("os-2-order-and-pool.test.ts, the prose \"The queue\"", "brain-issues").test;
 
 const skill = readFileSync(process.env.SKILL || resolve(import.meta.dir, "../../.claude/skills/brain-maintenance/SKILL.md"), "utf8");
 const flat = skill.replace(/\s+/g, " ");
@@ -25,7 +28,7 @@ test("step 3 reads the queue, and names the service's order once, with the two l
   expect(count(flat, "A place goes, in this order")).toBe(0);
   const three = step(3);
   expect(three).toContain('3. **Read the queue and take its entries in order.** `issue-as.sh <your token> "queue"` answers `queue`');
-  expect(three).toContain("The order is the service's (`issueQueue` of `tools/cloud-brain/brain-issues.ojs`");
+  expect(three).toContain("The order is the service's (`issueQueue` of `brain-x-issues`");
   expect(three).toContain("a round that was sent back (a writer's or a spec's), a review that waits, your own acts, a start; among starts the owner's, then one past 4 hours");
   expect(three).toContain("then a bug or a task before a project or a feature (a `start` before a `spec`), then the oldest.");
   expect(three).toContain("You do not order anything");
@@ -38,16 +41,15 @@ test("step 3 reads the queue, and names the service's order once, with the two l
   expect(flat).toContain('"Finishing comes before starting.');
 });
 
-test("step 3 has a row for each `do` of the queue and each `why` of `waiting`, and under them the rows they name", () => {
+withTracker("step 3 has a row for each `do` of the queue and each `why` of `waiting`, and under them the rows they name", async () => {
   const rows = skill.split("\n").filter((l) => l.startsWith("   | "));
   const at = (part: string) => {
     const found = rows.map((l, i) => (l.includes(part) ? i : -1)).filter((i) => i >= 0);
     expect([part, found.length]).toEqual([part, 1]);
     return found[0];
   };
-  // The ten values of `do` and the six of `why`, as the prose "The queue" of the seed has them.
-  const seed = readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain/brain-issues.ojs"), "utf8");
-  const prose = seed.slice(seed.indexOf("md`## The queue"), seed.indexOf("issueQueue = "));
+  // The ten values of `do` and the six of `why`, as the prose "The queue" of the tracker cb4 runs has them.
+  const prose = (await runningCells("brain-issues")).find((v) => v._definition.includes("md`## The queue"))!._definition;
   const named = (head: string) => { const t = prose.slice(prose.indexOf(head)); return [...new Set([...t.slice(0, t.indexOf("\n\n")).matchAll(/^\| \\`([a-z]+)\\` \|/gm)].map((m) => m[1]))].filter((n) => n !== "do" && n !== "why"); };
   const dos = named("| \\`do\\` | The issue is |"), whys = named("| \\`why\\` | The issue |");
   expect(dos.sort()).toEqual(["decompose", "finish", "look", "promote", "ready", "review", "round", "spec", "start", "triage"]);
