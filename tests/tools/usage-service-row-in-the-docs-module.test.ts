@@ -63,7 +63,7 @@ test("the row says of the service what its seed's first cell says", () => {
 
 test("the rows the table had are as they were: twelve, in their order, before this one; then the four of fb-batch-docs-and-tools", () => {
   const rows = table.slice(0, table.indexOf("\n// %%\n")).split("\n").filter((l) => l.startsWith("| ${mod("));
-  expect(rows.map((l) => /mod\("([a-z-]+)"\)/.exec(l)![1])).toEqual(["brain-inbox", "brain-topic", "brain-issues", "brain-whatsapp", "brain-library", "brain-feed", "brain-browser", "brain-container", "brain-ai", "brain-proxy", "brain-logs", "brain-dashboard", "brain-usage", "brain-snapshot", "brain-knowledge", "brain-git", "brain-fly"]);
+  expect(rows.map((l) => /mod\("([a-z-]+)"\)/.exec(l)![1])).toEqual(["brain-inbox", "brain-topic", "brain-issues", "brain-whatsapp", "brain-library", "brain-feed", "brain-browser", "brain-container", "brain-ai", "brain-proxy", "brain-logs", "brain-dashboard", "brain-usage", "brain-snapshot", "brain-knowledge", "brain-git", "brain-fly", "brain-loop"]);
 });
 
 // ---- fb-batch-docs-and-tools: the module and OWNED of build.ts.
@@ -103,17 +103,28 @@ const HELD: Record<string, { methods: string[]; said: [string, string][] }> = {
   ] },
   "brain-fly": { methods: ["down", "status", "up"], said: [
     ["One machine of Fly.io that runs the issue loop.", "one machine of [Fly.io](https://fly.io/docs/machines/api/) that runs the issue loop"],
-    ["The service starts it when the tracker has work and no loop holds the lock \\`loop\\`, and the machine is stopped by its own exit.", "started by this service when the tracker has work and no loop holds the lock \\`loop\\`, and stopped by its own exit"],
+    ["It is started by \\`fly.up\\`, which \\`brain-loop\\` calls when the tracker has work, and stopped by its own exit.", "started by \\`fly.up\\` (which \\`brain-x-loop\\` calls when the tracker has work, since 2026-10-14), and stopped by its own exit"],
     ["\\`fly.status\\` answers the machine, its hours today and who holds the lock.", "\\`{ app, machine: { id, state, region, image, guest }, volume, hoursToday, maxHoursADay, loop, yield, work }\\`. \\`loop\\` is who holds the lock \\`loop\\`"],
     ["\\`fly.up\\` starts it.", "| \\`POST fly.up\\` | the same | Starts the machine when it is \\`stopped\\`"],
     ["\\`fly.down\\` asks the loop on it to yield.", "| \\`POST fly.down\\` | the same as \\`fly.up\\` | Asks the loop on the machine to yield"],
     ["The service holds one secret, \\`FLY_API_TOKEN\\`.", "The service holds one secret, \\`FLY_API_TOKEN\\`"],
   ] },
+  "brain-loop": { methods: ["status", "work"], said: [
+    ["Told of each change to the tracker, it starts the worker machine when an issue is doable and the machine is stopped.", "told of each change to the tracker, it starts the worker machine when an issue is doable and the machine is stopped"],
+    ["It has no model and no timer.", "A Cloud Brain recipe with no model and no timer"],
+    ["The switch is the setting \\`on\\`.", "The switch is the setting \\`on\\`"],
+    ["\\`loop.status\\` answers the setting and the last decision, \\`loop.work\\` the doable issues.", "| \\`GET loop.status\\` | the same | \\`{ on, last }\\`: the setting, and the last decision"],
+    ["\\`loop.status\\` answers the setting and the last decision, \\`loop.work\\` the doable issues.", "| \\`GET loop.work\\` | the same | \\`{ work: [{ id, about, title }] }\\`: the doable issues"],
+    ["It answers the owner and no one else.", "The rule of all four is \\`caller.id == \"owner\"\\`. A member, another Worker and anyone else are refused."],
+  ] },
 };
 
+const RUNNING = ["brain-git", "brain-fly"];
 for (const [name, held] of Object.entries(HELD)) {
   test(`the row of ${name}: one row, the methods it names are of the seed's manifest, and each sentence is the seed's`, () => {
-    const short = name.slice("brain-".length), text = read("SEED_" + short.toUpperCase(), `tools/cloud-brain/${name}.ojs`);
+    // A service with no seed here (since 2026-10-14: git, fly) is read as cb4 runs it, from cloud-brain-dev/deploy after sync.ts.
+    const short = name.slice("brain-".length), unseeded = RUNNING.includes(name);
+    const text = read("SEED_" + short.toUpperCase(), unseeded ? `cloud-brain-dev/deploy/@tomlarkworthy/${name}.js` : `tools/cloud-brain/${name}.ojs`);
     expect(rowsOf(name).length).toBe(1);
     const row = rowsOf(name)[0] || "";
     // Each `short.NAME` the row names as code, and the methods the seed's manifest has.
@@ -130,6 +141,6 @@ for (const [name, held] of Object.entries(HELD)) {
     let left = cell;
     for (const [said] of held.said) left = left.split(said).join("");
     expect(left.replace(/[\s.,]/g, "")).toBe("");
-    expect(build).toContain(`{ name: "@tomlarkworthy/${name}", seed: "${name}.ojs"`);
+    expect(build).toContain(unseeded ? `{ name: "@tomlarkworthy/${name}", running: "brain-x-${short}"` : `{ name: "@tomlarkworthy/${name}", seed: "${name}.ojs"`);
   });
 }

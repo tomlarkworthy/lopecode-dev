@@ -2,6 +2,10 @@
  * Builds lopebooks/notebooks/@tomlarkworthy_cloud-brain.html from the seeds in this directory.
  *   bun tools/cloud-brain/build.ts [--out path] [--token LOPE-…]
  * While the notebook is built from seeds, the seeds are the source and the HTML is regenerated.
+ * A module with `running` in place of `seed` has no seed here: it is changed as a patch in cloud-brain-dev, and its
+ * source is what the Brain runs, read from getSource of BRAIN_BASE (cb4) at each build. Its seed was deleted on
+ * 2026-10-14 because it was behind what ran, and a build of it would have undone the patches (Tom: "remove the stale
+ * seeds from lopecode-dev so there are no accidents"). No answer, no build.
  * Beside it, in .emitted/ here: shell.html (the notebook without the modules a Brain's Workers serve) and
  * verify.html (the shell with mains cut to brain-shell, verify-shell.ts).
  */
@@ -39,10 +43,10 @@ const MODULES = [
   { name: "@tomlarkworthy/brain-issues", seed: "brain-issues.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-container", seed: "brain-container.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-ai", seed: "brain-ai.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-git", seed: "brain-git.ojs", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-git", running: "brain-x-git", main: true, files: {} },
   { name: "@tomlarkworthy/brain-dashboard", seed: "brain-dashboard.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-topic", seed: "brain-topic.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-fly", seed: "brain-fly.ojs", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-fly", running: "brain-x-fly", main: true, files: {} },
   { name: "@tomlarkworthy/brain-usage", seed: "brain-usage.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-loop", seed: "brain-loop.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/cloud-brain", seed: "cloud-brain.ojs", main: true, files: {} },
@@ -67,11 +71,26 @@ const SPEC = {
 };
 const DROP_MAINS = ["@tomlarkworthy/at-login", "@tomlarkworthy/at-write", "@tomlarkworthy/grid-container", "@tomlarkworthy/debugger-2"];
 
+const BRAIN = `https://${process.env.BRAIN_BASE || "cb4"}.endpointservices.workers.dev`;
+const running = new Map<string, string>();
+for (const m of MODULES) {
+  if (!("running" in m) || !m.running) continue;
+  const r = await fetch(`${BRAIN}/xrpc/com.lopecode.brain.getSource?worker=${m.running}`, { signal: AbortSignal.timeout(30000) }).catch((e) => { throw new Error(`${m.running}: the Brain at ${BRAIN} did not answer: ${e.message}`); });
+  const got: any = r.ok ? await r.json() : null;
+  if (!got || got.module !== m.name || typeof got.text !== "string") throw new Error(`${m.running}: getSource answered ${r.status}, not the source of ${m.name}`);
+  running.set(m.name, got.text);
+  console.error(`${m.name}: what ${m.running} runs on ${BRAIN}, ${String(got.hash).slice(0, 12)}`);
+}
+const textOf = (m: (typeof MODULES)[number]) => ("running" in m && m.running ? running.get(m.name)! : readFileSync(resolve(HERE, m.seed!), "utf8"));
+const testsOf = (m: (typeof MODULES)[number]) => "running" in m && m.running
+  ? [...textOf(m).matchAll(/\$def\("[^"]*", "(test_[A-Za-z0-9_]+)"/g)].map((x) => x[1])
+  : [...textOf(m).matchAll(/^(test_[A-Za-z0-9_]+) = /gm)].map((x) => x[1]);
+
 // The spec and the docs cite test cells by name and link modules with mod("name"). A name that no seed defines, or a
 // module that is not a main of the notebook, stops the build.
 {
   const seedText = (f: string) => readFileSync(resolve(HERE, f), "utf8");
-  const tests = new Map(MODULES.map((m) => [m.name.split("/")[1], new Set([...seedText(m.seed).matchAll(/^(test_[A-Za-z0-9_]+) = /gm)].map((x) => x[1]))]));
+  const tests = new Map(MODULES.map((m) => [m.name.split("/")[1], new Set(testsOf(m))]));
   const all = new Set([...tests.values()].flatMap((t) => [...t]));
   const mains = new Set([...MODULES.filter((m) => m.main), SPEC].map((m) => m.name.split("/")[1]));
   const wrong: string[] = [];
@@ -134,7 +153,7 @@ const before = blockSpans(html).map((s) => s.id);
 try {
   const pieces: string[] = [];
   for (const m of MODULES) {
-    let src = moduleSource(splitSeed(readFileSync(resolve(HERE, m.seed), "utf8")), compile);
+    let src = "running" in m && m.running ? textOf(m) : moduleSource(splitSeed(textOf(m)), compile);
     const names = Object.keys(m.files);
     if (names.length) {
       // Attachments first, then a loader map: the exporter keeps only attachments the module registers.

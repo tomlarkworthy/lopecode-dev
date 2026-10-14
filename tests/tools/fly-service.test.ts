@@ -1,16 +1,17 @@
-// brain-x-fly (tools/cloud-brain/brain-fly.ojs), task 3 of plan/cloud-brain-worker-machine-on-fly.md, issue
+// brain-x-fly (until 2026-10-14 tools/cloud-brain/brain-fly.ojs; since then changed as a patch in cloud-brain-dev), task 3 of plan/cloud-brain-worker-machine-on-fly.md, issue
 // fly-3-brain-fly-service. The service's own tests are its test_* cells. This holds what a cell cannot read: that the
 // machine body of the panel's set-up form is tools/cloud-brain/fly/machine.json, which a notebook cannot import, and
-// that the path a caller gives fly.get and fly.post stays under the app. The cells are read from the seed of this
-// checkout, compiled as build.ts compiles it, never retyped.
+// that the path a caller gives fly.get and fly.post stays under the app. The cells are read from what cb4 runs, as
+// cloud-brain-dev/deploy has it after `bun sync.ts`, never retyped: the seed was deleted on 2026-10-14, behind what ran.
 import { expect, beforeAll } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { importNotebookModule } from "../../tools/notebook-import.ts";
-import { testNeedingSeed } from "./needs.ts";
+import { testNeeding } from "./needs.ts";
 
 const ROOT = resolve(import.meta.dir, "../..");
-const { test, module } = await testNeedingSeed("fly-service.test.ts", "brain-fly.ojs");
+const module = resolve(ROOT, "cloud-brain-dev/deploy/@tomlarkworthy/brain-fly.js");
+const test = testNeeding("fly-service.test.ts", [module], "git submodule update --init cloud-brain-dev, then bun sync.ts https://cb4.endpointservices.workers.dev there");
 
 let fly: any;
 beforeAll(async () => {

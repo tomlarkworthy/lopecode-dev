@@ -36,11 +36,20 @@ that `brain-x-loop` could work: `brain-x-issues` (`4da136beec0e`, 74 tests: it a
 to the topic named by its new setting `topic`) and `brain-x-fly`
 (`9526a5569219`, 14 tests: the tick stops a machine and starts none). The patches and their commits are the
 repositories `w-auto-loop-issues` and `w-auto-loop-fly` on the Brain's git service. `tools/cloud-brain/brain-issues.ojs`
-and `brain-fly.ojs` have neither, and `seen.json` has the hashes from before, so `brain.ts apply` refuses a build of
+and `brain-fly.ojs` had neither, and `seen.json` has the hashes from before, so `brain.ts apply` refuses a build of
 either seed as it refuses one of `brain-git`. Do not `saw` either before its seed has the patch: a build of
 `brain-issues.ojs` drops the append that `brain-x-loop` is told by, and the loop then never starts the machine with no
 error anywhere; one of `brain-fly.ojs` restores a tick that starts the machine. `brain-x-loop` itself is a seed, `tools/cloud-brain/brain-loop.ojs`,
 deployed with `brain.ts apply` (`0ea22abdb28c`, 5 tests), because a new Worker is declared to the page by the build.
+
+Later on 2026-10-14 the seeds `brain-git.ojs` and `brain-fly.ojs` were deleted (Tom: "remove the stale seeds from
+lopecode-dev so there are no accidents"). Of the 26 services cb4 ran then, these and `brain-issues` were the three whose
+seed on `main` differed cell by cell from what ran (`waiting-deploys.ts`'s `differ` over `cloud-brain-dev/deploy` after
+`sync.ts`); the other 23 were `same`. Their entries in `build.ts` say `running: "brain-x-NAME"` in place of `seed:`, and
+the build fetches `getSource?worker=` of `BRAIN_BASE` (cb4) for them, or stops. A record emitted from that build is what
+runs: `brain-x-fly` emitted `9526a5569219`, its running hash; `brain-x-git` emitted `2c05c074f3e8` where `c588784ddb62`
+runs, the same cells in the same order with one blank line in another place (the patch tool's). `brain-issues.ojs` is
+kept for now: `approver.ts` reads its policy cells, and so do `policy-walk.ts` and five files of `tests/tools`.
 
 ## Changing it
 
