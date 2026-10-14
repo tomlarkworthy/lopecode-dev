@@ -31,12 +31,15 @@ before the five, and `brain.ts apply` refuses a Worker whose running hash is not
 brain-x-git` takes that guard away, so it is not run for this service before the seed has the five. (`redistil` does
 not show the difference: it distils the source the deployer keeps, which is the patched one.)
 
-On 2026-10-14 two more were changed so, at 05:49 and 05:50 CEST, for `brain-x-loop`: `brain-x-issues` (`4da136beec0e`,
-74 tests: an open, a move, a swap and a label told to the topic its setting `topic` names) and `brain-x-fly`
+On 2026-10-14 two more services were patched from `cloud-brain-dev`, not from their seeds, at 05:49 and 05:50 CEST, so
+that `brain-x-loop` could work: `brain-x-issues` (`4da136beec0e`, 74 tests: it appends each open, move, swap and label
+to the topic named by its new setting `topic`) and `brain-x-fly`
 (`9526a5569219`, 14 tests: the tick stops a machine and starts none). The patches and their commits are the
 repositories `w-auto-loop-issues` and `w-auto-loop-fly` on the Brain's git service. `tools/cloud-brain/brain-issues.ojs`
 and `brain-fly.ojs` have neither, and `seen.json` has the hashes from before, so `brain.ts apply` refuses a build of
-either seed as it refuses one of `brain-git`. `brain-x-loop` itself is a seed, `tools/cloud-brain/brain-loop.ojs`,
+either seed as it refuses one of `brain-git`. Do not `saw` either before its seed has the patch: a build of
+`brain-issues.ojs` drops the append that `brain-x-loop` is told by, and the loop then never starts the machine with no
+error anywhere; one of `brain-fly.ojs` restores a tick that starts the machine. `brain-x-loop` itself is a seed, `tools/cloud-brain/brain-loop.ojs`,
 deployed with `brain.ts apply` (`0ea22abdb28c`, 5 tests), because a new Worker is declared to the page by the build.
 
 ## Changing it
