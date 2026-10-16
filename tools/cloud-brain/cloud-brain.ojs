@@ -126,36 +126,49 @@ tokenDraws = new Map([["usd", "usd"], ["output", "output tokens"]])
 // each panel after it, of this range, is answered the same promise. So a page whose panels draw no runs asks for none.
 // The owner's session only, as calls is: a visitor's function answers null and sends nothing.
 costRuns = {
-  const read = { client: session.owner ? client : null, range: timeRange };
+  const read = { client: session.owner ? client : null, range: timeRange, kept: runsKept };
   let made = null;
   return () => (made ??= runsRead(read));
 }
 // %%
-// The most pages of issue.runs one read takes, 500 runs a page. issue.runs has no time filter, so a read is every run
-// in the record from the first, oldest first, and a read cut here is missing the newest: cb4 had 1039 runs, 3 pages,
-// on 2026-10-16. A filter by time in issue.runs would make a read one page; the tracker has none.
+// The runs read so far, kept for the session: a new span or "Refresh" asks issue.runs only for the runs past the last
+// seq read (after), not the whole record again. reading chains the reads, so two do not page over each other.
+runsKept = {
+  session, client;
+  return { runs: new Map(), after: 0, reading: Promise.resolve() };
+}
+// %%
+// The most pages of issue.runs one read takes, 500 runs a page. issue.runs has no time filter, so the first read of a
+// session is every run in the record from the first, oldest first (cb4 had 1039 runs, 3 pages, on 2026-10-16), and
+// each later read is the runs past the last one read. A read cut here is missing the newest: the note says "Read
+// stopped at 20 pages", and the next read of the session goes on from where it stopped. A filter by time in
+// issue.runs would make the first read one page; the tracker has none.
 runsPageLimit = 20
 // %%
-// The runs of the tracker over a range, as runsRows answers them: issue.runs page by page (after the seq of the last run
-// read) until it says there are no more. A run written again between two pages is read twice, under its new seq: the one
-// read last stands, as in the issue's row. No client: null, and nothing is sent. A read that fails answers no rows and the error.
-runsRead = async ({ client, range, pages = runsPageLimit }) => {
+// The runs of the tracker over a range, as runsRows answers them: issue.runs page by page, after the seq of the last run
+// in kept, until it says there are no more, then the runs of kept in the range. A run written again is read again under
+// its new seq: the one read last stands, as in the issue's row. kept is runsKept's shape; with none given, a read is of
+// the whole record. No client: null, and nothing is sent. A read that fails answers no rows and the error; the pages
+// read before it stay kept.
+runsRead = async ({ client, range, pages = runsPageLimit, kept = { runs: new Map(), after: 0, reading: Promise.resolve() } }) => {
   if (!client) return null;
-  try {
-    const kept = new Map();
-    let after = 0, read = 0, more = true;
-    while (more && read < pages) {
-      const answer = await client.query("issue.runs", { after, limit: 500 });
-      const runs = (answer && answer.runs) || [];
-      read++;
-      for (const r of runs) kept.set(JSON.stringify([r.id, r.role, r.round]), r);
-      more = !!(answer && answer.more) && runs.length > 0;
-      if (runs.length) after = runs.at(-1).seq;
+  const read = async () => {
+    try {
+      let read = 0, more = true;
+      while (more && read < pages) {
+        const answer = await client.query("issue.runs", { after: kept.after, limit: 500 });
+        const runs = (answer && answer.runs) || [];
+        read++;
+        for (const r of runs) kept.runs.set(JSON.stringify([r.id, r.role, r.round]), r);
+        more = !!(answer && answer.more) && runs.length > 0;
+        if (runs.length) kept.after = runs.at(-1).seq;
+      }
+      return runsRows([...kept.runs.values()], range, { pages: read, cut: more });
+    } catch (e) {
+      return { ...range, step: runsStep(range.until - range.since), series: [], runs: 0, noUsd: 0, noUsage: 0, backfilled: 0, pages: 0, cut: false, error: String((e && e.message) || e) };
     }
-    return runsRows([...kept.values()], range, { pages: read, cut: more });
-  } catch (e) {
-    return { ...range, step: runsStep(range.until - range.since), series: [], runs: 0, noUsd: 0, noUsage: 0, backfilled: 0, pages: 0, cut: false, error: String((e && e.message) || e) };
-  }
+  };
+  return (kept.reading = kept.reading.then(read));
 }
 // %%
 // The step of the bars of runs for a span of ms: the first of 1 minute, 5 and 15 minutes, 1 and 6 hours and a day that
@@ -168,7 +181,7 @@ runsStep = (ms) => [60000, 300000, 900000, 3600000, 21600000].find((step) => ms 
 // 2026-10-16 it named the role of each run that had one (impl- implementer, rev- reviewer, appr- approver, ...), but for
 // 4 summarizer runs made with an implementer's token. A run is drawn at its at, the time its cost event was written
 // (the end of the run, or the time it was written again). A backfilled run is counted and not drawn: its at is the
-// backfill's (100 of the 1039, all on 2026-10-11), not when it ran. A run with no usd or no usage adds 0 to that measure.
+// backfill's (100 of the 1039, all on 2026-10-12 between 00:55:42 and 00:56:19 UTC), not when it ran. A run with no usd or no usage adds 0 to that measure.
 runsRows = (runs, range, { pages = 1, cut = false } = {}) => {
   const step = runsStep(range.until - range.since);
   const inRange = runs.filter((r) => r.at >= range.since && r.at < range.until);
@@ -189,11 +202,11 @@ runsNote = (data) => {
   const sum = (k) => data.series.reduce((s, d) => s + d[k], 0);
   const [count, unit] = data.step % 3600000 === 0 ? [data.step / 3600000, "hour"] : [data.step / 60000, "minute"];
   return [
-    `The last ${spanName(Math.round((data.until - data.since) / 60000))}, from the tracker's runs: ${data.runs} runs, $${sum("usd").toFixed(2)}, ${sum("output").toLocaleString("en-US")} output tokens, by role, one bar each ${count} ${count === 1 ? unit : unit + "s"}. A run is drawn when its cost was written.`,
+    `The last ${spanName(Math.round((data.until - data.since) / 60000))}, from the tracker's runs: ${data.runs} ${data.runs === 1 ? "run" : "runs"}, $${sum("usd").toFixed(2)}, ${sum("output").toLocaleString("en-US")} output tokens, by role, one bar each ${count} ${count === 1 ? unit : unit + "s"}. A run is drawn when its cost was written.`,
     data.noUsd ? `${data.noUsd} reported no usd.` : null,
     data.noUsage ? `${data.noUsage} reported no usage.` : null,
-    data.backfilled ? `${data.backfilled} backfilled runs are not drawn: their time is when they were written into the record.` : null,
-    data.cut ? `Only the first ${data.pages} pages of runs were read, 500 a page and oldest first: the newest are missing.` : null
+    data.backfilled ? `${data.backfilled} backfilled ${data.backfilled === 1 ? "run is" : "runs are"} not drawn: their time is when they were written into the record.` : null,
+    data.cut ? `Read stopped at ${data.pages} pages of 500 runs, oldest first: the newest are missing, and the next read ("Refresh") goes on from there.` : null
   ].filter(Boolean).join(" ");
 }
 // %%
@@ -387,17 +400,17 @@ test_health_draws_calls_and_methods_and_no_strip_of_faults = {
   expect(rowsOf(table).map((r) => r.slice(0, 5))).toEqual([["brain-x-inbox", "inbox.poll", "3", "0", "1"], ["brain-core", "rule.list", "1", "1", "0"]]);
   // link is handed to the table: a Worker it knows is a link, another is its name.
   expect([...table.querySelectorAll("tbody a")].map((a) => a.textContent)).toEqual(["brain-core"]);
-  // With no rows: the same two panels, and the table says it has none.
+  // With no rows: the same three panels, and the table says it has none.
   const none = bodies({ since, until, step: 60000, groups: 0, series: [] });
   expect(none.length).toBe(3);
   expect(rowsOf(none[1])).toEqual([["No results."]]);
   // The third is the runs' chart under its note, and no table.
   const third = bodies(data)[2];
-  expect([third.textContent.includes("from the tracker's runs: 1 runs, $0.50"), !!third.querySelector("svg"), third.querySelector("table")]).toEqual([true, true, null]);
+  expect([third.textContent.includes("from the tracker's runs: 1 run, $0.50"), !!third.querySelector("svg"), third.querySelector("table")]).toEqual([true, true, null]);
   return "3 panels under Health";
 }
 // %%
-test_a_panel_draws_one_of_three_for_one_worker_or_all = {
+test_a_panel_draws_one_of_five_for_one_worker_or_all = {
   const since = Date.UTC(2026, 9, 9, 7, 0), until = Date.UTC(2026, 9, 9, 8, 0);
   const data = { since, until, step: 60000, groups: 2, series: [
     { t: since + 60000, worker: "brain-x-inbox", method: "inbox.poll", status: 200, n: 2, ms: 80, max: 50 },
@@ -438,7 +451,7 @@ test_a_panel_draws_one_of_three_for_one_worker_or_all = {
   expect(panelWorkers(null)).toEqual([""]);
   expect(panelWorkers(null, "brain-core")).toEqual(["", "brain-core"]);
   expect(panelWorkers({ ...data, series: [] }, "")).toEqual([""]);
-  return "3 draws, 1 Worker or all";
+  return "5 draws, 1 Worker or all";
 }
 // %%
 // R4 of plan/cloud-brain-dashboards-share-series-and-controls.md: the panels are instances of the cells under "One panel".
@@ -559,22 +572,35 @@ test_token_runs_are_read_page_by_page_and_not_without_a_client = {
   // The reviewer's run is before the range; the approver's is backfilled; the implementer's stands once, at its second time.
   expect(data).toMatchObject({ ...range, step: 60000, runs: 1, noUsd: 0, noUsage: 0, backfilled: 1, pages: 2, cut: false });
   expect(data.series).toEqual([{ t: range.since + 50 * 60000, persona: "implementer", n: 1, usd: 0.4, output: 10 }]);
+  // Kept for a session: the second read, of a later range, asks only past the last seq read, and still has the runs read before.
+  const kept = { runs: new Map(), after: 0, reading: Promise.resolve() };
+  seen.length = 0;
+  await runsRead({ client: counting, range, kept });
+  pages.push({ runs: [run(5, "d", "reviewer", 1, 70)], more: false });
+  const later = { since: range.since + 30 * 60000, until: range.until + 30 * 60000 };
+  const second = await runsRead({ client: counting, range: later, kept });
+  expect(seen.map(([, params]) => params.after)).toEqual([0, 2, 4]);
+  expect([kept.after, kept.runs.size, second.runs, second.series.map((d) => d.persona)]).toEqual([5, 4, 2, ["implementer", "reviewer"]]);
   // No client (a visitor): nothing is sent.
   expect(await runsRead({ client: null, range })).toBe(null);
-  expect(seen.length).toBe(2);
+  expect(seen.length).toBe(3);
   // A read that fails: the error, no rows, and the note says it.
   const failed = await runsRead({ client: { query: async () => { throw new Error("Refused"); } }, range });
   expect([failed.error, failed.series, runsNote(failed)]).toEqual(["Refused", [], "issue.runs failed: Refused"]);
   // A record longer than the pages one read takes: it stops, and the note says the newest are missing.
   let asked = 0;
   const endless = { query: async () => ({ runs: [run(++asked, "c" + asked, "implementer", 1, 1)], more: true }) };
-  const cut = await runsRead({ client: endless, range, pages: 2 });
+  const endlessKept = { runs: new Map(), after: 0, reading: Promise.resolve() };
+  const cut = await runsRead({ client: endless, range, pages: 2, kept: endlessKept });
   expect([asked, cut.pages, cut.cut, cut.runs]).toEqual([2, 2, true, 2]);
-  expect(runsNote(cut)).toContain("Only the first 2 pages of runs were read, 500 a page and oldest first: the newest are missing.");
+  expect(runsNote(cut)).toContain('Read stopped at 2 pages of 500 runs, oldest first: the newest are missing, and the next read ("Refresh") goes on from there.');
+  // The next read of that session goes on from where the first stopped.
+  const on = await runsRead({ client: endless, range, pages: 2, kept: endlessKept });
+  expect([asked, endlessKept.after, on.runs]).toEqual([4, 4, 4]);
   // The step for each span of the select: 60 bars or fewer.
   expect([...spanOptions.values()].map((m) => runsStep(m * 60000))).toEqual([60000, 60000, 900000, 3600000, 21600000]);
   expect(runsPageLimit).toBe(20);
-  return "2 pages, 1 run in the range, 0 sent with no client";
+  return "2 pages, 1 run in the range, then 1 page past seq 4, 0 sent with no client";
 }
 // %%
 // The issue's rig: a few cost runs of three personas, drawn for both measures; the bars, as drawn, sum to the runs of each persona.
@@ -605,7 +631,7 @@ test_token_bars_sum_to_the_runs_by_persona = {
     for (const [persona, sum] of Object.entries(want[measure])) expect(drawn[persona]).toBeCloseTo(sum, 6);
     expect(body.textContent).toContain(tokenDraws.get(measure));
   }
-  expect(runsNote(data)).toBe("The last hour, from the tracker's runs: 7 runs, $0.70, 10,679 output tokens, by role, one bar each 1 minute. A run is drawn when its cost was written. 1 reported no usd. 1 reported no usage. 1 backfilled runs are not drawn: their time is when they were written into the record.");
+  expect(runsNote(data)).toBe("The last hour, from the tracker's runs: 7 runs, $0.70, 10,679 output tokens, by role, one bar each 1 minute. A run is drawn when its cost was written. 1 reported no usd. 1 reported no usage. 1 backfilled run is not drawn: their time is when they were written into the record.");
   return "6 bars of 7 runs, 3 personas, both measures sum to the runs";
 }
 // %%
