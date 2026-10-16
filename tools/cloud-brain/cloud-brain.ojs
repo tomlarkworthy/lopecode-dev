@@ -57,8 +57,9 @@ healthView = {
 // The panels under Health, in order: what each shows when the page opens. A panel is one more entry.
 // draw is a value of panelDraws, and worker is a Worker's name, or "" for all of them.
 // The strip of faults by Worker was the second until 2026-10-11, when the owner took it off the page (fb-a2oogpkdjb):
-// no entry is "faults", and the "Show" of a panel still offers it.
-healthPanels = [{ draw: "calls", worker: "" }, { draw: "table", worker: "" }]
+// no entry is "faults", and the "Show" of a panel still offers it. The third, the dollars of the tracker's runs by
+// role, since 2026-10-16 (health-view-token-use-by-persona: "I would like to see token consumption too").
+healthPanels = [{ draw: "calls", worker: "" }, { draw: "table", worker: "" }, { draw: "usd", worker: "" }]
 // %%
 // One instance of the template for each entry, in a second runtime (instantiateDataflow of dataflow-templating): the
 // entry is the instance's panelStart, and its cell "panel" is drawn into a box by an Inspector. Every other name the
@@ -88,8 +89,8 @@ Each panel above is an instance of the cells below from \`viewof panelDraw\` to 
 // What a panel shows when it is made. An instance has its entry of healthPanels in this cell's place.
 panelStart = ({ draw: "calls", worker: "" })
 // %%
-// What "Show" offers: the name, and the draw panelView knows it by.
-panelDraws = new Map([["Calls", "calls"], ["Faults by Worker", "faults"], ["By method", "table"]])
+// What "Show" offers: the name, and the draw panelView knows it by. The last two are of the tracker's runs (tokenDraws).
+panelDraws = new Map([["Calls", "calls"], ["Faults by Worker", "faults"], ["By method", "table"], ["Tokens: usd", "usd"], ["Tokens: output", "output"]])
 // %%
 viewof panelDraw = Inputs.select(panelDraws, { label: "Show", value: panelStart.draw })
 // %%
@@ -100,17 +101,114 @@ viewof panelWorker = {
   return Inputs.select(panelWorkers(calls, chosen), { label: "Worker", format: (worker) => worker || "all", value: chosen });
 }
 // %%
-panelDrawing = panelView(calls, { draw: panelDraw, worker: panelWorker, width: width - 40, link: workerLink })
+// The runs are asked for only by a panel that draws them (costRuns), so a panel of calls does not wait for the tracker.
+panelDrawing = panelView(calls, { draw: panelDraw, worker: panelWorker, width: width - 40, link: workerLink, runs: tokenDraws.has(panelDraw) ? await costRuns() : null })
 // %%
-panel = htl.html`<div><div style="display:flex;flex-wrap:wrap;gap:4px 16px;margin-bottom:6px">${viewof panelDraw}${viewof panelWorker}</div>${panelDrawing}</div>`
+// A draw of the runs has no "Worker": a run is of an issue, not of a Worker.
+panel = htl.html`<div><div style="display:flex;flex-wrap:wrap;gap:4px 16px;margin-bottom:6px">${viewof panelDraw}${tokenDraws.has(panelDraw) ? "" : viewof panelWorker}</div>${panelDrawing}</div>`
 // %%
 // What a panel draws of an answer of callsRead: the calls, the strip of faults or the table by method, of one Worker's
-// rows or of all. With no answer (a visitor) it is one line, and no drawing function is called.
-panelView = (data, { draw = "calls", worker = "", width, link = null } = {}) => {
-  if (!data) return htl.html`<i style="color:var(--theme-foreground-muted)">Sign in as the owner to see a panel.</i>`;
+// rows or of all. A draw of tokenDraws is of runs, an answer of runsRead, under its note: the calls are not read.
+// With no answer (a visitor) it is one line, and no drawing function is called.
+panelView = (data, { draw = "calls", worker = "", width, link = null, runs = null } = {}) => {
+  const none = htl.html`<i style="color:var(--theme-foreground-muted)">Sign in as the owner to see a panel.</i>`;
+  if (tokenDraws.has(draw)) return runs ? htl.html`<div><div style="color:var(--theme-foreground-muted);margin-bottom:6px">${runsNote(runs)}</div>${runs.error ? "" : tokensChart(runs, { measure: draw, width })}</div>` : none;
+  if (!data) return none;
   const shown = worker ? { ...data, series: data.series.filter((d) => d.worker === worker) } : data;
   return draw === "table" ? methodTable(shown, { link }) : draw === "faults" ? healthStrip(shown, { width }) : requestsChart(shown, { width });
 }
+// %%
+// The draws of "Show" that are of the tracker's runs, and what the bars of each measure: the dollars a run reported
+// of itself (usd of issue.cost), or its output tokens (usage.output).
+tokenDraws = new Map([["usd", "usd"], ["output", "output tokens"]])
+// %%
+// The runs over the range of the panels, as a function a panel calls when it draws them: the first call reads, and
+// each panel after it, of this range, is answered the same promise. So a page whose panels draw no runs asks for none.
+// The owner's session only, as calls is: a visitor's function answers null and sends nothing.
+costRuns = {
+  const read = { client: session.owner ? client : null, range: timeRange };
+  let made = null;
+  return () => (made ??= runsRead(read));
+}
+// %%
+// The most pages of issue.runs one read takes, 500 runs a page. issue.runs has no time filter, so a read is every run
+// in the record from the first, oldest first, and a read cut here is missing the newest: cb4 had 1039 runs, 3 pages,
+// on 2026-10-16. A filter by time in issue.runs would make a read one page; the tracker has none.
+runsPageLimit = 20
+// %%
+// The runs of the tracker over a range, as runsRows answers them: issue.runs page by page (after the seq of the last run
+// read) until it says there are no more. A run written again between two pages is read twice, under its new seq: the one
+// read last stands, as in the issue's row. No client: null, and nothing is sent. A read that fails answers no rows and the error.
+runsRead = async ({ client, range, pages = runsPageLimit }) => {
+  if (!client) return null;
+  try {
+    const kept = new Map();
+    let after = 0, read = 0, more = true;
+    while (more && read < pages) {
+      const answer = await client.query("issue.runs", { after, limit: 500 });
+      const runs = (answer && answer.runs) || [];
+      read++;
+      for (const r of runs) kept.set(JSON.stringify([r.id, r.role, r.round]), r);
+      more = !!(answer && answer.more) && runs.length > 0;
+      if (runs.length) after = runs.at(-1).seq;
+    }
+    return runsRows([...kept.values()], range, { pages: read, cut: more });
+  } catch (e) {
+    return { ...range, step: runsStep(range.until - range.since), series: [], runs: 0, noUsd: 0, noUsage: 0, backfilled: 0, pages: 0, cut: false, error: String((e && e.message) || e) };
+  }
+}
+// %%
+// The step of the bars of runs for a span of ms: the first of 1 minute, 5 and 15 minutes, 1 and 6 hours and a day that
+// makes 60 bars or fewer. 15 minutes and 1 hour: 1 minute; 6 hours: 15 minutes; 24 hours: 1 hour; 7 days: 6 hours.
+runsStep = (ms) => [60000, 300000, 900000, 3600000, 21600000].find((step) => ms / step <= 60) || 86400000
+// %%
+// Runs of issue.runs as bars: { since, until, step, series, runs, noUsd, noUsage, backfilled, pages, cut }, with the rows
+// { t, persona, n, usd, output } that tokensChart stacks. A bar is a step of whole multiples since 1970 and a persona.
+// The persona is the run's role as written. The token's prefix was looked at and not used: over the 1039 runs of cb4 on
+// 2026-10-16 it named the role of each run that had one (impl- implementer, rev- reviewer, appr- approver, ...), but for
+// 4 summarizer runs made with an implementer's token. A run is drawn at its at, the time its cost event was written
+// (the end of the run, or the time it was written again). A backfilled run is counted and not drawn: its at is the
+// backfill's (100 of the 1039, all on 2026-10-11), not when it ran. A run with no usd or no usage adds 0 to that measure.
+runsRows = (runs, range, { pages = 1, cut = false } = {}) => {
+  const step = runsStep(range.until - range.since);
+  const inRange = runs.filter((r) => r.at >= range.since && r.at < range.until);
+  const placed = inRange.filter((r) => !r.backfilled);
+  const bars = new Map();
+  for (const r of placed) {
+    const t = Math.floor(r.at / step) * step, key = JSON.stringify([t, r.role]);
+    const m = bars.get(key) || { t, persona: r.role, n: 0, usd: 0, output: 0 };
+    bars.set(key, { ...m, n: m.n + 1, usd: m.usd + (typeof r.usd === "number" ? r.usd : 0), output: m.output + ((r.usage && r.usage.output) || 0) });
+  }
+  const series = [...bars.values()].sort((a, b) => a.t - b.t || (a.persona < b.persona ? -1 : a.persona > b.persona ? 1 : 0));
+  return { since: range.since, until: range.until, step, series, runs: placed.length, noUsd: placed.filter((r) => typeof r.usd !== "number").length, noUsage: placed.filter((r) => !r.usage).length, backfilled: inRange.length - placed.length, pages, cut };
+}
+// %%
+// The line above a chart of runs: the span, the runs and their sums, the step, and what is not in the bars.
+runsNote = (data) => {
+  if (data.error) return "issue.runs failed: " + data.error;
+  const sum = (k) => data.series.reduce((s, d) => s + d[k], 0);
+  const [count, unit] = data.step % 3600000 === 0 ? [data.step / 3600000, "hour"] : [data.step / 60000, "minute"];
+  return [
+    `The last ${spanName(Math.round((data.until - data.since) / 60000))}, from the tracker's runs: ${data.runs} runs, $${sum("usd").toFixed(2)}, ${sum("output").toLocaleString("en-US")} output tokens, by role, one bar each ${count} ${count === 1 ? unit : unit + "s"}. A run is drawn when its cost was written.`,
+    data.noUsd ? `${data.noUsd} reported no usd.` : null,
+    data.noUsage ? `${data.noUsage} reported no usage.` : null,
+    data.backfilled ? `${data.backfilled} backfilled runs are not drawn: their time is when they were written into the record.` : null,
+    data.cut ? `Only the first ${data.pages} pages of runs were read, 500 a page and oldest first: the newest are missing.` : null
+  ].filter(Boolean).join(" ");
+}
+// %%
+// The runs of an answer of runsRows stacked by persona, one bar a step: measure is "usd" or "output". Each bar's title
+// is its persona, its value and its runs.
+tokensChart = (data, { measure = "usd", ...options } = {}) =>
+  Plot.plot({
+    ...chartBase(data, options),
+    y: { label: tokenDraws.get(measure) || measure, grid: true },
+    color: { legend: true },
+    marks: [
+      Plot.rectY(data.series, Plot.stackY({ x1: (d) => new Date(Math.max(d.t, data.since)), x2: (d) => new Date(Math.min(d.t + data.step, data.until)), y: measure, fill: "persona", insetRight: 1, title: (d) => `${d.persona}\n${measure === "usd" ? "$" + d.usd.toFixed(4) : d.output.toLocaleString("en-US") + " output tokens"}\n${d.n} ${d.n === 1 ? "run" : "runs"}` })),
+      Plot.ruleY([0])
+    ]
+  })
 // %%
 // The Workers a panel's select offers: "" for all, then each Worker of the answer, and the one that is chosen when the answer has no call of it.
 panelWorkers = (data, chosen = "") => ["", ...[...new Set([...((data && data.series) || []).map((d) => d.worker), chosen])].filter(Boolean).sort()]
@@ -270,13 +368,15 @@ test_health_draws_calls_and_methods_and_no_strip_of_faults = {
     { t: since + 120000, worker: "brain-x-inbox", method: "inbox.poll", status: 502, n: 1, ms: 900, max: 900 },
     { t: since + 60000, worker: "brain-core", method: "rule.list", status: 401, n: 1, ms: 3, max: 3 }
   ] };
-  // The panels under Health are a list: the calls and the table by method, each of every Worker. No entry is the strip.
-  expect(healthPanels).toEqual([{ draw: "calls", worker: "" }, { draw: "table", worker: "" }]);
+  // The panels under Health are a list: the calls and the table by method, each of every Worker, and the dollars of the
+  // tracker's runs. No entry is the strip.
+  expect(healthPanels).toEqual([{ draw: "calls", worker: "" }, { draw: "table", worker: "" }, { draw: "usd", worker: "" }]);
   const link = (worker, label) => (worker === "brain-core" ? htl.html`<a href="#core">${label}</a>` : null);
-  const bodies = (rows) => healthPanels.map((entry) => panelView(rows, { ...entry, width: 600, link }));
+  const runs = runsRows([{ id: "a", role: "implementer", round: 1, usd: 0.5, usage: { output: 100 }, seq: 1, at: since + 60000 }], { since, until });
+  const bodies = (rows) => healthPanels.map((entry) => panelView(rows, { ...entry, width: 600, link, runs }));
   // No panel has the legend of the strip.
   const drawn = dashboard(bodies(data).map((body) => ({ body, wide: true })));
-  expect(drawn.querySelectorAll("div[style*=border]").length).toBe(2);
+  expect(drawn.querySelectorAll("div[style*=border]").length).toBe(3);
   expect(drawn.textContent).not.toContain("share of calls that were faults");
   // A panel is given no title, since its "Show" says what it is, and has no line for one; a panel with a title has.
   expect([drawn, dashboard([{ title: "a", body: "x" }])].map((el) => el.querySelectorAll("div[style*=font-weight]").length)).toEqual([0, 1]);
@@ -289,9 +389,12 @@ test_health_draws_calls_and_methods_and_no_strip_of_faults = {
   expect([...table.querySelectorAll("tbody a")].map((a) => a.textContent)).toEqual(["brain-core"]);
   // With no rows: the same two panels, and the table says it has none.
   const none = bodies({ since, until, step: 60000, groups: 0, series: [] });
-  expect(none.length).toBe(2);
+  expect(none.length).toBe(3);
   expect(rowsOf(none[1])).toEqual([["No results."]]);
-  return "2 panels under Health";
+  // The third is the runs' chart under its note, and no table.
+  const third = bodies(data)[2];
+  expect([third.textContent.includes("from the tracker's runs: 1 runs, $0.50"), !!third.querySelector("svg"), third.querySelector("table")]).toEqual([true, true, null]);
+  return "3 panels under Health";
 }
 // %%
 test_a_panel_draws_one_of_three_for_one_worker_or_all = {
@@ -304,7 +407,9 @@ test_a_panel_draws_one_of_three_for_one_worker_or_all = {
   const rowsOf = (table) => [...table.querySelectorAll("tbody tr")].map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent.trim()).filter(Boolean).slice(0, 5));
   const strip = "share of calls that were faults";
   // What "Show" offers, by the name a panel's entry gives it.
-  expect([...panelDraws]).toEqual([["Calls", "calls"], ["Faults by Worker", "faults"], ["By method", "table"]]);
+  expect([...panelDraws]).toEqual([["Calls", "calls"], ["Faults by Worker", "faults"], ["By method", "table"], ["Tokens: usd", "usd"], ["Tokens: output", "output"]]);
+  // The two draws of runs read no calls: with calls and no runs, the line; their bars are test_token_bars_sum_to_the_runs_by_persona.
+  for (const draw of tokenDraws.keys()) expect(panelView(data, { draw, width: 600 }).textContent).toBe("Sign in as the owner to see a panel.");
   // Each draw is the function that drew it before: the table, the strip (its legend), the chart of calls (no such legend).
   expect(rowsOf(panelView(data, { draw: "table" }))).toEqual([["brain-x-inbox", "inbox.poll", "3", "0", "1"], ["brain-core", "rule.list", "1", "1", "0"]]);
   expect(panelView(data, { draw: "faults", width: 600 }).textContent).toContain(strip);
@@ -322,7 +427,7 @@ test_a_panel_draws_one_of_three_for_one_worker_or_all = {
   // link reaches the table.
   expect([...panelView(data, { draw: "table", link: (worker, label) => (worker === "brain-core" ? htl.html`<a href="#core">${label}</a>` : null) }).querySelectorAll("tbody a")].map((a) => a.textContent)).toEqual(["brain-core"]);
   // No answer (a visitor): the line, and nothing drawn, whatever was asked for.
-  for (const draw of ["calls", "faults", "table"]) {
+  for (const draw of ["calls", "faults", "table", "usd", "output"]) {
     const body = panelView(null, { draw, worker: "brain-core", width: 600 });
     expect([body.textContent, body.querySelectorAll("svg, table").length]).toEqual(["Sign in as the owner to see a panel.", 0]);
   }
@@ -436,6 +541,72 @@ test_calls_are_read_once_for_a_range_and_not_without_a_client = {
   // A query that fails answers the range, no rows and the error.
   expect(await callsRead({ client: { query: async () => { throw new Error("AuthRequired"); } }, range })).toEqual({ ...range, step: 60000, series: [], error: "AuthRequired" });
   return "1 metric.query for a range and no logs.query, 0 with no client";
+}
+// %%
+// health-view-token-use-by-persona: the runs are read whole, page by page, once; a run written again stands once.
+test_token_runs_are_read_page_by_page_and_not_without_a_client = {
+  const range = { since: Date.UTC(2026, 9, 16, 7, 0), until: Date.UTC(2026, 9, 16, 8, 0) };
+  const run = (seq, id, role, round, minute, extra = {}) => ({ id, role, round, how: "fresh", outcome: "in-review", seconds: 60, context: 1, usd: 0.1, usage: { input: 1, cacheWrite: 2, cacheRead: 3, output: 10, requests: 1, advisor: { calls: 0, input: 0, output: 0 } }, seq, at: range.since + minute * 60000, ...extra });
+  const pages = [
+    { runs: [run(1, "a", "implementer", 1, 5), run(2, "a", "reviewer", 1, -30)], more: true },
+    // The first run of "a" written again, with a usd it had not had: one run, the second.
+    { runs: [run(3, "b", "approver", 1, 10, { backfilled: true }), run(4, "a", "implementer", 1, 50, { usd: 0.4 })], more: false }
+  ];
+  const seen = [];
+  const counting = { query: async (name, params) => (seen.push([name, params]), pages[seen.length - 1]) };
+  const data = await runsRead({ client: counting, range });
+  expect(seen).toEqual([["issue.runs", { after: 0, limit: 500 }], ["issue.runs", { after: 2, limit: 500 }]]);
+  // The reviewer's run is before the range; the approver's is backfilled; the implementer's stands once, at its second time.
+  expect(data).toMatchObject({ ...range, step: 60000, runs: 1, noUsd: 0, noUsage: 0, backfilled: 1, pages: 2, cut: false });
+  expect(data.series).toEqual([{ t: range.since + 50 * 60000, persona: "implementer", n: 1, usd: 0.4, output: 10 }]);
+  // No client (a visitor): nothing is sent.
+  expect(await runsRead({ client: null, range })).toBe(null);
+  expect(seen.length).toBe(2);
+  // A read that fails: the error, no rows, and the note says it.
+  const failed = await runsRead({ client: { query: async () => { throw new Error("Refused"); } }, range });
+  expect([failed.error, failed.series, runsNote(failed)]).toEqual(["Refused", [], "issue.runs failed: Refused"]);
+  // A record longer than the pages one read takes: it stops, and the note says the newest are missing.
+  let asked = 0;
+  const endless = { query: async () => ({ runs: [run(++asked, "c" + asked, "implementer", 1, 1)], more: true }) };
+  const cut = await runsRead({ client: endless, range, pages: 2 });
+  expect([asked, cut.pages, cut.cut, cut.runs]).toEqual([2, 2, true, 2]);
+  expect(runsNote(cut)).toContain("Only the first 2 pages of runs were read, 500 a page and oldest first: the newest are missing.");
+  // The step for each span of the select: 60 bars or fewer.
+  expect([...spanOptions.values()].map((m) => runsStep(m * 60000))).toEqual([60000, 60000, 900000, 3600000, 21600000]);
+  expect(runsPageLimit).toBe(20);
+  return "2 pages, 1 run in the range, 0 sent with no client";
+}
+// %%
+// The issue's rig: a few cost runs of three personas, drawn for both measures; the bars, as drawn, sum to the runs of each persona.
+test_token_bars_sum_to_the_runs_by_persona = {
+  const range = { since: Date.UTC(2026, 9, 16, 7, 0), until: Date.UTC(2026, 9, 16, 8, 0) };
+  const run = (seq, role, minute, usd, output, extra = {}) => ({ id: "i" + seq, role, round: 1, how: "fresh", outcome: "done", seconds: 1, context: 1, ...(usd == null ? {} : { usd }), ...(output == null ? {} : { usage: { input: 1, cacheWrite: 0, cacheRead: 0, output, requests: 1, advisor: { calls: 0, input: 0, output: 0 } } }), seq, at: range.since + minute * 60000, ...extra });
+  const runs = [
+    run(1, "implementer", 3, 0.2236, 6354), run(2, "implementer", 3, 0.1, 1000), run(3, "implementer", 40, 0.05, 500),
+    run(4, "reviewer", 3, 0.3, 2000), run(5, "reviewer", 41, 0.0125, 125),
+    // Reported no usd, and one no usage: each adds 0 to that measure.
+    run(6, "approver", 20, null, 700), run(7, "approver", 21, 0.01, null),
+    // Not in the bars: after the range, and backfilled.
+    run(8, "implementer", 61, 9, 9000), run(9, "reviewer", 30, 9, 9000, { backfilled: true })
+  ];
+  const data = runsRows(runs, range);
+  expect([data.runs, data.noUsd, data.noUsage, data.backfilled, data.step]).toEqual([7, 1, 1, 1, 60000]);
+  // Two runs of one persona in one step are one bar.
+  expect(data.series.length).toBe(6);
+  const want = { usd: { implementer: 0.3736, reviewer: 0.3125, approver: 0.01 }, output: { implementer: 7854, reviewer: 2125, approver: 700 } };
+  for (const measure of ["usd", "output"]) {
+    const body = panelView(null, { draw: measure, runs: data, width: 600 });
+    // Each bar is a rect with its title, "persona\nvalue\nruns"; the legend's swatches have none.
+    const bars = [...body.querySelectorAll("rect")].filter((r) => r.querySelector("title")).map((r) => r.querySelector("title").textContent.split("\n"));
+    expect(bars.length).toBe(6);
+    const drawn = {};
+    for (const [persona, value] of bars) drawn[persona] = (drawn[persona] || 0) + Number(value.replace(/[$,]|output tokens/g, ""));
+    expect(Object.keys(drawn).sort()).toEqual(["approver", "implementer", "reviewer"]);
+    for (const [persona, sum] of Object.entries(want[measure])) expect(drawn[persona]).toBeCloseTo(sum, 6);
+    expect(body.textContent).toContain(tokenDraws.get(measure));
+  }
+  expect(runsNote(data)).toBe("The last hour, from the tracker's runs: 7 runs, $0.70, 10,679 output tokens, by role, one bar each 1 minute. A run is drawn when its cost was written. 1 reported no usd. 1 reported no usage. 1 backfilled runs are not drawn: their time is when they were written into the record.");
+  return "6 bars of 7 runs, 3 personas, both measures sum to the runs";
 }
 // %%
 test_the_note_names_the_span_and_says_when_the_answer_is_at_the_limit = {
