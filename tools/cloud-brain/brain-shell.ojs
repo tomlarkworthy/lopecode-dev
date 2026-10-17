@@ -152,7 +152,8 @@ brainJoined = {
 // %%
 // Runs every test_ cell of one module of this page, each with a limit, and asks the Worker which hash it runs.
 // otherTestsRan: test cells of other modules that ran on the page beside these.
-verifyModule = async ({ worker, module, hash }, { client = brainClient, rt = runtime, limit = 30000, settle = 30000, wait = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) => {
+// dry: the deployer's dry run, of source no Worker runs; the Worker is not asked.
+verifyModule = async ({ worker, module, hash }, { client = brainClient, rt = runtime, limit = 30000, settle = 30000, wait = (ms) => new Promise((r) => setTimeout(r, ms)), dry = false } = {}) => {
   const began = Date.now(), mod = rt.mains.get(module);
   if (!mod) return { worker, module, hash, none: "the module is not on the page" };
   const isTest = (v) => /^test_/.test(v._name || "");
@@ -165,8 +166,8 @@ verifyModule = async ({ worker, module, hash }, { client = brainClient, rt = run
   );
   // What the Worker says it runs has to be what was loaded and tested. A new version takes some seconds to reach
   // every place Cloudflare answers from, so the version before may answer first.
-  let running = null;
-  for (const until = Date.now() + settle; ; await wait(1500)) {
+  let running = dry ? hash : null;
+  if (!dry) for (const until = Date.now() + settle; ; await wait(1500)) {
     running = await client.query("getInfo", { worker }).then((i) => i.hash, () => null);
     if (running === hash || Date.now() >= until) break;
   }
@@ -188,7 +189,8 @@ brainVerdict = {
   if (brainModules.error) return say({ worker, none: "the modules of this Brain could not be read: " + brainModules.error });
   const m = brainModules.modules.find((x) => x.worker === worker && brainJoined.includes(x.module));
   if (!m) return say({ worker, none: "no module of this Worker is in the layout" });
-  return say(await verifyModule(m).catch((e) => ({ worker, module: m.module, hash: m.hash, none: String((e && e.message) || e) })));
+  const dry = new URLSearchParams(String(location.hash).replace(/^#/, "")).has("dry");
+  return say(await verifyModule(m, { dry }).catch((e) => ({ worker, module: m.module, hash: m.hash, none: String((e && e.message) || e) })));
 }
 // %%
 md`## Reference
@@ -202,14 +204,14 @@ md`## Reference
 | \`brainPortal\` | Null on a Brain's page. In a portal: \`{ base, author, id, methods, module, viewer, token, ready }\`; \`methods\` is the prefix of that member's method names. |
 | \`portalHtml(shell, { base, author, id, module, viewer })\` | The shell file as a portal's document: the layout is the member's module then this one, and a first script waits for the token from the page that framed it. |
 | \`openPortal(service, { client, base })\` | The frame for one row of \`member.services\`, kept supplied with a token. |
-| \`brainModules\` | What the deployer answers at \`infra.getModules\`: \`{ distiller, modules: [{ module, worker, hash, text, files }] }\`. Public. |
+| \`brainModules\` | What the deployer answers at \`infra.getModules\`: \`{ distiller, modules: [{ module, worker, hash, text, files }] }\`. Public. With \`&dry=ID\` in the address, \`getModules?dry=ID\`: a dry apply's modules in place of the ones kept. |
 | \`joinModules(list, { mains })\` | Adds each module's source and files to the page as script blocks, and each one named in \`mains\` (all of them when not given) as a main, once. A module that was added as source and imported since becomes a main as it is. A module the file holds is left alone. |
 | \`viewModules(hash)\` | The modules a layout names. |
 | \`wantedOf(hash, before)\` | The modules the page will show: the layout's when the address has one, or else \`before\`, with the module of an \`open=\` intent added and of a \`close=\` taken away. |
 | \`brainWanted\` | The Brain's modules the layout names now, or that a link has just asked for. |
 | \`brainJoined\` | The Brain's modules on this page: \`brainWanted\` joined, with the source of what they import. |
 | \`verifyModule({ worker, module, hash })\` | Runs the module's \`test_\` cells, 30 s each, and checks the Worker reports that hash: \`{ worker, module, hash, ok, tests, failed, otherTestsRan, ms, heapMB }\`, or \`{ none }\` when the module is not on the page. |
-| \`brainVerdict\` | With \`&verify=brain-x-NAME\` in the address, \`verifyModule\` of that Worker's module in the layout, also at \`window.__brainVerdict\`. Sent nowhere. |
+| \`brainVerdict\` | With \`&verify=brain-x-NAME\` in the address, \`verifyModule\` of that Worker's module in the layout, also at \`window.__brainVerdict\`. Sent nowhere. With \`&dry=ID\` too, \`verifyModule\` with \`dry\`: the Worker is not asked what it runs. |
 | \`shellOf(html, modules)\` | A notebook file without those modules, their files, or their places in the layout. |
 
 A module joins before any of its cells exists, so the page names it; an \`import\` of it from any other module, the shell's or a Brain's, reaches this one copy.`
@@ -258,7 +260,7 @@ brainModules = !brainOrigin
   ? null
   : brainPortal
   ? brainClient.procedure("portal.modules", {}).catch((e) => ({ error: String((e && e.message) || e), modules: [] }))
-  : fetch(brainDeployer + "/xrpc/com.lopecode.brain.infra.getModules").then(
+  : fetch(brainDeployer + "/xrpc/com.lopecode.brain.infra.getModules" + ((id) => (id ? "?dry=" + encodeURIComponent(id) : ""))(new URLSearchParams(String(location.hash).replace(/^#/, "")).get("dry"))).then(
       async (r) => (r.ok ? r.json() : { error: "the deployer answered " + r.status, modules: [] }),
       (e) => ({ error: String((e && e.message) || e), modules: [] })
     )
@@ -575,6 +577,9 @@ test_verifyModule_runs_the_tests_and_checks_the_hash = {
     const late = { query: async () => ({ hash: ++asked < 3 ? "h1" : "h2" }) };
     expect((await verifyModule({ worker: "brain-x-t", module: none, hash: "h2" }, { ...quick, settle: 5000, client: late })).ok).toBe(true);
     expect(asked).toBe(3);
+    // A dry run's source runs nowhere: the Worker is not asked, and the hash is the one loaded.
+    const silent = { query: async () => { throw new Error("asked"); } };
+    expect(await verifyModule({ worker: "brain-x-t", module: none, hash: "h2" }, { ...quick, client: silent, dry: true })).toMatchObject({ hash: "h2", ok: true, tests: 0, failed: [] });
     expect(await verifyModule({ worker: "brain-x-t", module: "@test/not-here", hash: "h1" }, { ...quick, client: says("h1") })).toEqual({ worker: "brain-x-t", module: "@test/not-here", hash: "h1", none: "the module is not on the page" });
     return "3 tests, 2 failed; none is a pass";
   } finally {

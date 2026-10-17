@@ -70,7 +70,7 @@ A service that declares \`cloudflare: ["GROUP"]\` gets a Cloudflare API token (\
 
 The deployer's own token needs the permission \`Account API Tokens Write\` to mint, and each group it hands out.
 
-Every change names what it saw. Each Worker in \`infra.apply\` carries \`was\`: the hash the caller saw running, or \`null\` for no Worker. \`remove\` is \`[{ worker, was }]\`; \`member.deploy\` and \`member.remove\` take \`was\`; a roll back button carries it. When the Worker is no longer that, the answer is \`refused\` with \`NAME is A, you saw B\` and \`running\`, and nothing is deployed. There is no value that skips the check. A \`dry\` apply is not checked. An import of another module is not part of the check: a Worker is distilled against the kept source of its imports as they are at the deploy.
+Every change names what it saw. Each Worker in \`infra.apply\` carries \`was\`: the hash the caller saw running, or \`null\` for no Worker. \`remove\` is \`[{ worker, was }]\`; \`member.deploy\` and \`member.remove\` take \`was\`; a roll back button carries it. When the Worker is no longer that, the answer is \`refused\` with \`NAME is A, you saw B\` and \`running\`, and nothing is deployed. There is no value that skips the check. A \`dry\` apply is not checked, and holds no row (see A dry run runs the tests). An import of another module is not part of the check: a Worker is distilled against the kept source of its imports as they are at the deploy.
 
 One change to a Worker runs at a time, the tick's health check and a verdict's put-back among them: each takes the same row for its writes and leaves a Worker whose row is held. The tick's health check itself runs with no row held, and a caller waits up to a second for a row before it is refused. The deployer makes the row \`deploying/NAME\` (\`putIfAbsent\`) before it reads what is running, and deletes it when the change ends, deployed or not. A second caller in that time is refused with \`another change to NAME is running\`. A change that died leaves the row; after 5 minutes one caller takes it over, the one that makes \`deploying-over/NAME/ID/MINUTE\`, which is deleted when the take-over ends. A take-over that died leaves that row, and the next minute has a new one. The take-over is logged as \`deploy.lease-taken-over\`. The rows have no compare-and-swap, so one case is open: a change over 5 minutes old that ends within one row read of the take-over. An approval is of one hash over one hash: the pending row keeps \`was\`, and an approval does not stand once the Worker has moved. Added 2026-10-09. Every \`deploy.…\` line also carries \`deployer\`, the hash of the deployer that wrote it.
 
@@ -78,7 +78,7 @@ A sign-in link made to deploy with no approval (\`token.link\` with \`unattended
 
 Every change says why. \`infra.apply\` (unless \`dry\`), \`infra.redistil\` with \`apply\`, a roll back on the page, \`member.deploy\` and \`member.remove\` take \`reason\`, 3 to 300 characters, and are refused without one (400 \`InvalidRequest\`, or \`refused\` for a member). The reason is logged before anything is done, as \`deploy.reason\` with \`reason\`, \`by\` (\`owner\`, \`recovery key\`, the member's DID, or \`token:NAME\` for a sign-in link made to deploy with no approval) and \`targets\`. Added 2026-10-09.
 
-The deployer writes a line for each step of a deploy with the \`log\` cell: \`deploy.uploaded\`, \`deploy.deployed\`, \`deploy.probation\`, \`deploy.confirmed\`, \`deploy.unhealthy\` with what the last health check answered, \`deploy.put-back\` with the reason, \`deploy.refused\`, \`deploy.waiting\`, \`deploy.removed\`, \`deploy.failing\`, \`deploy.logs-on\`, \`deploy.verify\`, \`deploy.verified\`, \`deploy.failed\`, \`deploy.verify.none\`, \`deploy.verify.stale\`, \`deploy.over-unverified\`, \`token.mint\`, \`token.roll\`, \`token.delete\`, \`token.mint-failed\`. A member's deploy writes \`deploy.deployed\` and \`deploy.put-back\`. The \`reason\` of a put-back can be Cloudflare's own text about the code that was sent; it is not text a caller of a method sent.`
+The deployer writes a line for each step of a deploy with the \`log\` cell: \`deploy.uploaded\`, \`deploy.deployed\`, \`deploy.probation\`, \`deploy.confirmed\`, \`deploy.unhealthy\` with what the last health check answered, \`deploy.put-back\` with the reason, \`deploy.refused\`, \`deploy.waiting\`, \`deploy.removed\`, \`deploy.failing\`, \`deploy.logs-on\`, \`deploy.verify\`, \`deploy.verified\`, \`deploy.failed\`, \`deploy.verify.none\`, \`deploy.verify.stale\`, \`deploy.over-unverified\`, \`deploy.dry.run\`, \`deploy.dry.tests\`, \`deploy.dry.none\`, \`token.mint\`, \`token.roll\`, \`token.delete\`, \`token.mint-failed\`. A member's deploy writes \`deploy.deployed\` and \`deploy.put-back\`. The \`reason\` of a put-back can be Cloudflare's own text about the code that was sent; it is not text a caller of a method sent.`
 // %%
 md`## A deploy is verified by the deployer
 
@@ -116,7 +116,21 @@ While a Worker is on probation a second deploy or a removal of it is refused: \`
 
 On cb4 since 2026-10-11 07:51 CEST. Read from its logs that morning: brain-core, 34 tests, \`deploy.verify\` to \`deploy.verified\` 12 s (the run itself 14.1 s by the page's count), the apply 35 s; brain-x-page, 16 tests, 8 s, the apply 52 s. A scratch Worker whose second version threw in its one test was put back in a 22 s apply, with the reason \`its tests failed: test_verifycheck: version 2 is broken on purpose\`; a call to it 1 s later was still answered by the version put back from, and 8 s later by the version before. A second forced deploy of a kernel on probation was refused with the words above. Record: \`tools/cloud-brain/records/deploy-verification.md\`.
 
-Before that, on 2026-10-10, the page half was run in a local Chrome against cb4's address with the built modules substituted (\`tools/scratch/cloud-brain-experiments/verify-page/shell-check.ts\`, \`BUILT='*' ONLY=verify\`), once for each of the 19 Workers cb4 runs other than the kernel: 19 pass, 3 to 34 tests each, a verdict 1.4 to 2.6 s after load for 17, 7.0 s for brain-x-bluesky and 11.8 s for brain-x-browser.`
+Before that, on 2026-10-10, the page half was run in a local Chrome against cb4's address with the built modules substituted (\`tools/scratch/cloud-brain-experiments/verify-page/shell-check.ts\`, \`BUILT='*' ONLY=verify\`), once for each of the 19 Workers cb4 runs other than the kernel: 19 pass, 3 to 34 tests each, a verdict 1.4 to 2.6 s after load for 17, 7.0 s for brain-x-bluesky and 11.8 s for brain-x-browser.
+
+### A dry run runs the tests
+
+Since 2026-10-17 (issue \`deployer-dry-run-runs-the-tests\`; the owner, 2026-10-16: "test.ts should run the real tests on the deployer machine, but without a deploy"). An \`infra.apply\` with \`dry: true\` distils each source and answers as before; for each Worker whose answer is \`ready\` or \`unchanged\` and that names a module (not the kernel) it then makes the run above on the source that was sent, and deploys nothing. The deployer keeps the modules sent in that apply under the row \`dry/ID\` for the run (120 s at most; deleted when it ends, and one past its time at the next dry run), and the address ends \`&verify=WORKER&dry=ID\`. The page's brain-shell asks \`infra.getModules?dry=ID\`, which answers those modules in place of the ones kept, and does not ask the Worker which hash it runs. Only the browser time is spent (\`browser.extend\`, 120 s, $0.003); no script or version is made.
+
+Nothing follows the verdict: no row \`deploying/NAME\` is taken, no probation, no put-back, no \`deploy.report\`, no issue. A test that calls the Worker over the network reaches the version that runs, not the source sent. The answer of each such Worker gets:
+
+| the run gave | added to the answer |
+|---|---|
+| a pass | \`tests\`, \`ms\`; \`state\` stays \`ready\` or \`unchanged\` |
+| a fail | \`state: "tests-failed"\`, \`tests\`, \`failed: [{ name, message, stack }]\` (as the page gives them: 300 and 600 characters), \`reason\` (every \`NAME: MESSAGE\`, uncut), \`ms\` |
+| no verdict, or a verdict for another hash (a \`shell/verify.html\` from before this change, whose brain-shell does not read \`&dry=\`) | \`none\` with the reason; \`state\` stays |
+
+Log lines: \`deploy.dry.run\` (with \`run\`), \`deploy.dry.tests\` (\`tests\`, the names of the failed, \`ms\`), \`deploy.dry.none\`. A sign-in link's token is capped as for a deploy: a dry apply of one of the owner's four by it is 403, and the deployer's own module is refused as a deploy of it is. The whole result is in the answer and in no row or file: keeping it is \`deployer-keeps-whole-test-failure\`.`
 // %%
 deployerOps = {
   const text = (v) => JSON.stringify(v);
@@ -729,6 +743,8 @@ deployerOps = {
     // What a source is a Worker of is what it distils to, so the cap reads that, and one name outside it stops the whole apply.
     const barred = distilled.map((w) => forbid(w && w.meta && w.meta.worker)).find(Boolean);
     if (barred) return { error: "Forbidden", message: barred };
+    // What a dry run's page loads in place of the kept source: every module of this apply that was sent as source.
+    const candidates = distilled.filter((w) => w && typeof w.source === "string" && w.meta).map((w) => ({ module: w.module, worker: w.meta.worker, hash: w.hash, text: w.source, files: w.files || {} }));
     for (const w of distilled) {
       const logical = w && w.meta && w.meta.worker;
       const rec = typeof logical === "string" ? await rows.get("worker/" + logical) : null;
@@ -777,7 +793,12 @@ deployerOps = {
       }
       return { ...base, ...results[0] };
       };
-      results.push(dry ? await change(rec) : { ...base, ...(await guard(logical, w.was, change)) });
+      if (!dry) results.push({ ...base, ...(await guard(logical, w.was, change)) });
+      else {
+        const r = await change(rec);
+        // A dry run of a Worker that would deploy, or runs already, runs its module's tests on the source sent.
+        results.push(["ready", "unchanged"].includes(r.state) && w.meta.module && w.meta.role !== "kernel" ? { ...r, ...(await dryTests(w, logical, candidates)) } : r);
+      }
     }
     // remove is [{ worker, was }].
     for (const item of remove) {
@@ -997,20 +1018,52 @@ deployerOps = {
     } catch {}
     return "/";
   };
+  // One run of the page: the verdict it left at window.__brainVerdict, or a throw that says why there is none.
+  // line is said once the time is bought, before the run.
+  const runPage = async (url, line) => {
+    // Time is bought before a browser is used, and a run needs as much as its timeout: the run asks for less.
+    const bought = await viaCore("browser.extend?seconds=" + RUN_SECONDS, {});
+    if (!bought) throw new Error("there is no core to reach the browser through");
+    if (bought.status !== 200) throw new Error(`browser.extend answered ${bought.status} ${bought.data.message || bought.data.error || ""}`);
+    say(line);
+    const ran = await viaCore("browser.run", { url, wait: "!!window.__brainVerdict", expression: "window.__brainVerdict", timeout: (RUN_SECONDS - 20) * 1000 });
+    if (ran.status !== 200) throw new Error(`browser.run answered ${ran.status} ${ran.data.message || ran.data.error || ""}`);
+    return ran.data.value;
+  };
+  // A dry apply's run: the same page, with &dry=ID, whose infra.getModules?dry=ID answers the modules of this apply
+  // (the row dry/ID) in place of the ones kept. Nothing holds the Worker's row and nothing follows the verdict: no
+  // probation, no put-back, no report to the core, no issue. The answer is the tests: { tests, ms }, or
+  // { state: "tests-failed", tests, failed: [{ name, message, stack }], reason }, or { none } with no verdict.
+  const dryTests = async (w, logical, candidates) => {
+    const id = crypto.randomUUID(), hash = w.hash, t0 = Date.now();
+    const none = (reason) => ((reason = String(reason).slice(0, 300)), say({ at: "deploy.dry.none", target: logical, hash, reason }), { none: reason });
+    for (const r of await rows.list("dry/")) if (!(r.value && r.value.until > Date.now())) await rows.delete(r.key);
+    await rows.put("dry/" + id, { until: Date.now() + RUN_SECONDS * 1000, modules: candidates });
+    const url = `${urlOf("brain")}${await verifyPage()}#view=C100(S100(${w.meta.module},@tomlarkworthy/brain-shell))&verify=${logical}&dry=${id}`;
+    let v;
+    try {
+      v = await runPage(url, { at: "deploy.dry.run", target: logical, hash, run: url });
+    } catch (e) {
+      return none((e && e.message) || e);
+    } finally {
+      await rows.delete("dry/" + id);
+    }
+    if (!v || typeof v !== "object" || v.none || v.worker !== logical || !Array.isArray(v.failed)) return none((v && v.none) || "the page left no verdict");
+    // A page whose shell/verify.html is from before dry runs loads the module that runs, and tested that.
+    if (v.hash !== hash) return none(`the page tested ${h12(v.hash)}, not ${h12(hash)}: its brain-shell does not read &dry=`);
+    const tests = Number(v.tests) || 0, ms = Date.now() - t0;
+    const failed = v.failed.map((f) => ({ name: String(f.name), message: String(f.message || ""), stack: String(f.stack || "") }));
+    say({ at: "deploy.dry.tests", target: logical, hash, tests, failed: failed.map((f) => f.name), ms });
+    if (v.ok === true && !failed.length) return { tests, ms };
+    return { state: "tests-failed", tests, failed, reason: "its tests failed: " + failed.map((f) => `${f.name}: ${f.message}`).join("; "), ms };
+  };
   const verifyDeploy = async (logical, module, hash) => {
     const t0 = Date.now();
     const none = (reason) => (say({ at: "deploy.verify.none", target: logical, hash, reason: String(reason).slice(0, 300) }), {});
     const url = `${urlOf("brain")}${await verifyPage()}#view=C100(S100(${module},@tomlarkworthy/brain-shell))&verify=${logical}`;
     let v;
     try {
-      // Time is bought before a browser is used, and a run needs as much as its timeout: the run asks for less.
-      const bought = await viaCore("browser.extend?seconds=" + RUN_SECONDS, {});
-      if (!bought) return none("there is no core to reach the browser through");
-      if (bought.status !== 200) return none(`browser.extend answered ${bought.status} ${bought.data.message || bought.data.error || ""}`);
-      say({ at: "deploy.verify", target: logical, hash, run: url });
-      const ran = await viaCore("browser.run", { url, wait: "!!window.__brainVerdict", expression: "window.__brainVerdict", timeout: (RUN_SECONDS - 20) * 1000 });
-      if (ran.status !== 200) return none(`browser.run answered ${ran.status} ${ran.data.message || ran.data.error || ""}`);
-      v = ran.data.value;
+      v = await runPage(url, { at: "deploy.verify", target: logical, hash, run: url });
     } catch (e) {
       return none((e && e.message) || e);
     }
@@ -1365,8 +1418,13 @@ deployerFn = async (request, context) => {
   const recoveryKey = await secrets.RECOVERY_KEY;
   // For anyone: the source of every module a Worker of this Brain owns, as the deployer holds it. A page with no
   // service modules of its own loads them from here. Source is public at each Worker's getSource already.
-  if (url.pathname === "/xrpc/com.lopecode.brain.infra.getModules" && request.method === "GET" && !inside)
-    return json({ distiller: deployerOps.self.hash, modules: await deployerModules(context && context.source) });
+  // With ?dry=ID, for the page of a dry apply's run while it lasts: the modules sent in that apply in place of the ones kept.
+  if (url.pathname === "/xrpc/com.lopecode.brain.infra.getModules" && request.method === "GET" && !inside) {
+    const modules = await deployerModules(context && context.source), id = url.searchParams.get("dry");
+    const dry = /^[0-9a-f-]{36}$/.test(id || "") ? await rows.get("dry/" + id) : null;
+    if (!dry || !(dry.until > Date.now())) return json({ distiller: deployerOps.self.hash, modules });
+    return json({ distiller: deployerOps.self.hash, modules: [...modules.filter((m) => !dry.modules.some((c) => c.module === m.module)), ...dry.modules] });
+  }
   // A member's own deploys, passed on by the kernel with the DID it signed in. No approval and no recovery key.
   if (url.pathname.startsWith("/xrpc/com.lopecode.brain.member.") && request.method === "POST") {
     const kernel = await rows.get("worker/brain");
@@ -2420,6 +2478,66 @@ test_deployer_a_module_with_no_tests_is_verified = {
   expect(lines.filter((l) => l.at === "deploy.verified").map((l) => l.tests)).toEqual([0]);
   expect(t.ks().state).toBe("confirmed");
   return "tests: 0";
+}
+// %%
+// deployer-dry-run-runs-the-tests: a dry apply runs the module's tests on the page, with &dry=ID, and deploys nothing.
+test_deployer_a_dry_apply_runs_the_tests_and_deploys_nothing = {
+  const seen = [];
+  const t = await verifyRig({ run: (body) => (seen.push({ url: body.url, row: [...t.rig.sim.rows.keys()].filter((k) => k.startsWith("dry/")) }), answer()) });
+  const { rig, A, v1, v2, ks, running } = t;
+  let answer = () => t.verdict(v2.hash);
+  const held = () => [...rig.sim.rows.keys()].filter((k) => /^(dry|pending|kernelstate|deploying)\//.test(k));
+  const before = { log: rig.fake.log.length, calls: rig.fake.calls.length, held: held() };
+  const lines = await rig.saidIn(async () => expect((await rig.recover({ workers: [v2], dry: true, reason: null })).results).toEqual([{ worker: A, hash: v2.hash, state: "ready", tests: 3, ms: expect.any(Number) }]));
+  // One run, of the verify page with &dry=ID, while the row dry/ID was there; deleted after.
+  expect(seen.length).toBe(1);
+  const id = /&verify=brain-x-a&dry=([0-9a-f-]{36})$/.exec(seen[0].url)[1];
+  expect(seen[0]).toEqual({ url: "https://cb.sub.workers.dev/#view=C100(S100(@t/a,@tomlarkworthy/brain-shell))&verify=brain-x-a&dry=" + id, row: ["dry/" + id] });
+  expect(held()).toEqual(before.held);
+  // Nothing was sent to Cloudflare but reads, and nothing followed the verdict: no report, no issue, no probation.
+  expect(rig.fake.log.slice(before.log).filter((l) => / api\//.test(l) && !l.startsWith("GET "))).toEqual([]);
+  expect(rig.fake.calls.slice(before.calls).map((c) => c.nsid)).toEqual(["static.get", "browser.extend", "browser.run"]);
+  expect([running(), ks()]).toEqual([v1.hash, undefined]);
+  expect(lines.map((l) => l.at)).toEqual(["deploy.dry.run", "deploy.dry.tests"]);
+  // What runs already is tested too: unchanged, with its tests.
+  answer = () => t.verdict(v1.hash);
+  expect((await rig.recover({ workers: [v1], dry: true })).results[0]).toMatchObject({ state: "unchanged", tests: 3 });
+  // A page that tested another hash (a brain-shell that does not read &dry=) is no verdict.
+  expect((await rig.recover({ workers: [v2], dry: true })).results[0]).toMatchObject({ state: "ready", none: `the page tested ${v1.hash.slice(0, 12)}, not ${v2.hash.slice(0, 12)}: its brain-shell does not read &dry=` });
+  return id.length + " characters of id, 3 tests";
+}
+// %%
+test_deployer_a_dry_apply_answers_each_failed_test_whole = {
+  const failed = [{ name: "test_a", message: "x".repeat(300), stack: "at a" }, { name: "test_b", message: "broken", stack: "" }];
+  const t = await verifyRig({ run: () => t.verdict(t.v2.hash, { ok: false, tests: 5, failed }) });
+  const { rig, A, v1, v2, running } = t;
+  const before = rig.fake.calls.length;
+  const out = (await rig.recover({ workers: [v2], dry: true })).results[0];
+  expect(out).toEqual({ worker: A, hash: v2.hash, state: "tests-failed", tests: 5, failed, reason: `its tests failed: test_a: ${"x".repeat(300)}; test_b: broken`, ms: expect.any(Number) });
+  expect(rig.fake.calls.slice(before).map((c) => c.nsid)).toEqual(["static.get", "browser.extend", "browser.run"]);
+  expect([running(), rig.sim.rows.get("worker/" + A).lastError]).toEqual([v1.hash, undefined]);
+  // No browser time: the state stands, with why there is no verdict.
+  rig.fake.browser.extend = () => [429, { error: "TooManyBrowsers", message: "3 browsers are up" }];
+  expect((await rig.recover({ workers: [v2], dry: true })).results[0]).toEqual({ worker: A, hash: v2.hash, state: "ready", none: "browser.extend answered 429 3 browsers are up" });
+  return out.reason.length + " characters of reason";
+}
+// %%
+test_getModules_with_dry_answers_the_modules_of_that_run = {
+  const rig = await deployerRig();
+  const U = "https://cb-deployer.sub.workers.dev/xrpc/com.lopecode.brain.infra.getModules";
+  const list = async (q = "") => (await (await rig.sim.fetch(U + q)).json()).modules.map((m) => [m.module, m.text]);
+  const id = crypto.randomUUID(), plain = await list();
+  const sent = [{ module: "@tomlarkworthy/cloudflare-iac", worker: "brain-deployer", hash: "h", text: "T", files: {} }, { module: "@t/new", worker: "brain-x-new", hash: "n", text: "N", files: {} }];
+  rig.sim.rows.set("dry/" + id, { until: Date.now() + 60000, modules: sent });
+  // The modules sent in place of the ones of that name, and the others as they are.
+  expect(await list("?dry=" + id)).toEqual([...plain.filter(([m]) => m !== "@tomlarkworthy/cloudflare-iac"), ["@tomlarkworthy/cloudflare-iac", "T"], ["@t/new", "N"]]);
+  // Without it, with another id, or past its time: what is kept.
+  expect(await list()).toEqual(plain);
+  expect(await list("?dry=" + crypto.randomUUID())).toEqual(plain);
+  expect(await list("?dry=..%2Fworker%2Fbrain")).toEqual(plain);
+  rig.sim.rows.set("dry/" + id, { until: Date.now() - 1, modules: sent });
+  expect(await list("?dry=" + id)).toEqual(plain);
+  return plain.length + 1 + " modules with dry";
 }
 // %%
 // R14
