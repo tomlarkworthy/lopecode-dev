@@ -249,7 +249,7 @@ runs them (the gap of gate 6); they are the session's of pick 2.
 | `mde-5-owed-reads-personas` | 3, 4 | `brain-x-loop` | mde-4, `triager-build` | `owed()` lines 232 and 245 read `loopAccepts` for `triage` and `approve`, not constants |
 | `ap-3-trial` (re-aimed) | 3 | per gate 6 | `spec-notebook-summarizer-persona` | the read of the 41 verdicts as a comment |
 | `mde-6-page-build-from-deploy` | 1 seeds | `cloud-brain-dev` | mde-1 | a build of the page from `deploy/` in `cloud-brain-dev` (README "Not here yet": nothing does that today); `major` |
-| The owner's: delete the 18 seeds and `build.ts`'s reads of them in lopecode-dev, after `mde-6` | 1 seeds | | mde-6 | the one lopecode-dev act left; a session does it |
+| A session's, not the machine's: delete the 18 seeds and `build.ts`'s reads of them in lopecode-dev | 1 seeds | | mde-6 | the one lopecode-dev act left |
 | `mde-7-close-landed-submits` | 7 | `cloud-brain-dev` | mde-1 | applied to the 4 by the session of pick 2 (`roles/triage.md` takes `states: [open]` only, and these are `in-review`); the rule for later submits is a line of the reviewer's brief |
 
 Gate 2, 4, 5 and 6 tasks exist already: `deploy-token-capped-to-services` → `drain-ships-with-a-capped-token`;
