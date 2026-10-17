@@ -1,6 +1,6 @@
 ---
 scope: [local-development]
-topics: Cloud Brain; a service changed as a patch from cloud-brain-dev (run.ts), the one way for a brain-x service since 2026-10-14, when its seed was deleted; a new service's first deploy from a seed and a build.ts entry; changing a seed of the kernel, the core, the database, the deployer or the page; a git worktree for the change (worktree.sh), landed by a push; build.ts; deploying a Worker; brain.ts apply, redistil, saw, confirm; waiting-deploys.ts, which of the kernel, the core, the database and the deployer cb4 runs behind main; the deploy lock; a Playwright script in tools; where a service keeps files
+topics: Cloud Brain; a service changed as a patch from cloud-brain-dev (run.ts), the one way for a brain-x service since 2026-10-14, when its seed was deleted; a new service's first deploy from a seed and a build.ts entry; changing a seed of the kernel, the core, the database, the deployer or the page; a git worktree for the change (worktree.sh), landed by a push; build.ts; deploying a Worker; brain.ts apply, redistil, saw, confirm; waiting-deploys.ts, which of the kernel, the core, the database and the deployer cb4 runs behind main; the deploy lock; a Playwright script in tools; where a change made on the Brain's page is kept (the address, this browser, a service's rows, the seed); where a service keeps files
 triggers:
   - "^(Edit|Write|MultiEdit) .*tools/cloud-brain/.*\.(ojs|ts|js|sh|py)$"
   - "(^Bash |^|[;&|] )bun +tools/cloud-brain/build\.ts( |$)"
@@ -186,6 +186,49 @@ owner's works in one is his to say: the spec does not ask it ("the main checkout
    `tools/cloud-brain/records/wt-3-land-by-push.md`). A landing with no deploy, run this way on 2026-10-12, is in
    `tools/cloud-brain/records/wt-5-docs.md`. Until 2026-10-14 `--push-dev` landed a change to any file of
    `cloud-brain-dev` (`rules.md` of the issue loop, "Always", the item "Work on `main`", has the owner's words).
+
+## Where a change made on the Brain's page is kept
+
+Written 2026-10-18 for issue `pm-2-rule-in-the-doc`, from "The rule (R4)" of
+`plan/cloud-brain-page-modifications-how-they-are-kept.md` (spec at `32569c72`; the owner chose its pick A on
+2026-10-13), after `pm-1-notes-put-away-are-kept` landed in `brain-feedback.ojs` (`44a39cc3`). Read it before a
+seed of the page is edited, when the edit keeps something the owner changes on the page. The owner, 2026-10-13: "I
+closed all the feedback panels, but a refresh later and they have all appeared again".
+
+A change made on the page is kept by what it is:
+
+| The change is | Kept in | Today |
+|---|---|---|
+| a fact about the work, which any reader or any browser should have | the record or the rows of the service it belongs to | a note filed (the label `annotation`, `feedbackLimits`), Remove (`issue.label`), a dashboard's panels (`dashboard.put`), a Worker's setting (`config.set`) |
+| what he is looking at, which a link should carry | the address | the panes (`#view=…`, `viewModules` in `brain-shell.ojs`), the dashboard shown (`dashboard=NAME`) |
+| something of his own that he put out of sight, or has not sent yet | this browser: one `localStorage` item a module for a Brain's address, read and written through a pair `{ get, set }` the tests replace | a note not yet filed, in `brain_feedback_drafts ADDRESS` (`feedbackKept(ADDRESS)`); a note put away with × before its work is done, in `brain_feedback_away ADDRESS` (`feedbackKept(ADDRESS, "away")`), listed with **Show** in the cell `feedbackAway` |
+| a change to what the page is or does | the seed of a page module, or a patch from `cloud-brain-dev` for a `brain-x-*` service ("A service changed as a patch", above), reached through a note filed on the page | every cell |
+
+The fourth row differs from the spec's, which says "the seed" alone: the spec was written 2026-10-13, before the
+service seeds were deleted on 2026-10-14.
+
+Changes that have no place, and are lost at a load:
+
+| The change | Its kind | Where it is held now |
+|---|---|---|
+| a note's box, moved | third | nowhere: `brain-feedback.ojs` line 23, "A note's box can be moved; the new place is not kept." |
+| the span of Health | second or third | the value of `viewof span` (`cloud-brain.ojs` line 36) |
+| the filters of the Issues panel | second or third | the panel's selects (`chooser`, an `Inputs.select` at line 1794 of `cloud-brain-dev/deploy/@tomlarkworthy/brain-issues.js`, read at `cloud-brain-dev` `749a444`, 2026-10-14) |
+| a cell edited in the page's editor | fourth | the runtime: the page is the shell and the Workers' modules, and each is built from a seed or a patch (the spec's table; not run here) |
+
+He has not asked for the first three and no task builds them; the dashboards' spec left the span out as "Not
+asked". One row fits no kind: who is signed in, `brain_session` in this browser (`brain-shell.ojs` line 226). It is
+kept where the third kind is, and is neither put out of sight nor unsent. `brain_issues2 ADDRESS`
+(`issuesStore` of `brain-issues`) is a browser item too and is no change of his: a copy of the tracker's view.
+
+Falsified by a change that is of two kinds at once. The × of a note is close to one: under the spec's option C it
+would be a fact of the record (a second label). The rule calls it his own because nobody else acts on it.
+
+`knowledge/keeping-user-state-in-the-saved-notebook.md` is for a notebook file the reader saves ("the state is
+written into that file when the notebook is saved"); the Brain's page is not a file he saves, so the `sticky` that
+doc's hook sends a writer to, on any edit that names `localStorage`, would write into a cell nothing keeps.
+
+`tests/tools/pm-2-page-changes-kept.test.ts` holds the section to the seeds.
 
 ## The commands that deploy
 
