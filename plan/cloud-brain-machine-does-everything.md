@@ -167,8 +167,9 @@ policy that pins the new blobs is his to install. What installing it lets the ap
 approver", and the issue): a change to the owner's four, to the approver's own files or the policy cells, a credential,
 a deploy key, a Cloudflare permission, and an issue an approver left.
 
-`ap-3-trial` waited "until `approver.ts trial` prints 20 verdicts" (comment 4478). The record has 41, so the trial is a
-read of the record (class C) and needs no more runs.
+`ap-3-trial` waited "until `approver.ts trial` prints 20 verdicts" (comment 4478), with the six `test-approver-*` rig
+issues kept apart (review 4118, finding 7). The record has 41, and none is on an issue whose id starts
+`test-approver`. So the trial is a read of the record (class C) and needs no more runs.
 
 The three rows today: `deploy-token-capped-to-services` (the four: stays his), `triager-build` (`cloud-brain-dev`,
 `major`; an approver could take it), `dev-sandbox-args-of-its-own` (he said "yes lets leave it", comment 8375).
@@ -233,6 +234,10 @@ issue.locks?history=500         hours of drain-d896915f316098 per day           
 ## The tasks, in the order they land
 
 Each is one writer and one review. Ids are ≤ 40 characters. "The owner's" lines are labelled `needs-owner`.
+`SAFE` of `patch.ts` is `README.md` alone, so every `cloud-brain-dev` task below is `major` and waits for an approve:
+his, until `mde-4` and its policy put an approver on the machine. This is why `mde-4` cannot come first: it is itself
+`major`, and his install follows it. `mde-1` and `mde-7`'s first run make moves and no patch, so no `run.ts` writer
+runs them (the gap of gate 6); they are the session's of pick 2.
 
 | id | gate | about | after | what |
 |---|---|---|---|---|
@@ -243,8 +248,9 @@ Each is one writer and one review. Ids are ≤ 40 characters. "The owner's" line
 | The owner's: install the policy that pins `mde-4`'s blobs | 3 | | mde-4 | pick 3 |
 | `mde-5-owed-reads-personas` | 3, 4 | `brain-x-loop` | mde-4, `triager-build` | `owed()` lines 232 and 245 read `loopAccepts` for `triage` and `approve`, not constants |
 | `ap-3-trial` (re-aimed) | 3 | per gate 6 | `spec-notebook-summarizer-persona` | the read of the 41 verdicts as a comment |
-| `mde-6-page-and-four-from-running` | 1 seeds | `cloud-brain-dev` | mde-1 | `build.ts` reads the page and the four from what runs, as `no-stale-seeds` did; the seeds deleted; `major` |
-| `mde-7-close-landed-submits` | 7 | `cloud-brain-dev` | mde-1 | the gate 7 rule in `roles/triage.md` (or the triager's), then applied to the 4 |
+| `mde-6-page-build-from-deploy` | 1 seeds | `cloud-brain-dev` | mde-1 | a build of the page from `deploy/` in `cloud-brain-dev` (README "Not here yet": nothing does that today); `major` |
+| The owner's: delete the 18 seeds and `build.ts`'s reads of them in lopecode-dev, after `mde-6` | 1 seeds | | mde-6 | the one lopecode-dev act left; a session does it |
+| `mde-7-close-landed-submits` | 7 | `cloud-brain-dev` | mde-1 | applied to the 4 by the session of pick 2 (`roles/triage.md` takes `states: [open]` only, and these are `in-review`); the rule for later submits is a line of the reviewer's brief |
 
 Gate 2, 4, 5 and 6 tasks exist already: `deploy-token-capped-to-services` → `drain-ships-with-a-capped-token`;
 `triager-build` → `owner-feedback-acted-on-at-once`; `approver-also-readies`; `spec-notebook-summarizer-persona` →
@@ -277,7 +283,7 @@ On 2026-10-24, with the commands of "How each is known to be met":
 |---|---|---|---|
 | 1 | 21 `write` by scope or `laptop` → 0 with that `why` | machine's share of `done` rises | — |
 | 2 | passes waiting a hand ship → 0 | ships by `drain-agents`, not `out-*` | — |
-| 3 | 3 `approve` → those of the four and the approver's own files only | approves by the delegation | approves in his session fall below 17 |
+| 3 | 3 `approve` → those of the four and the approver's own files only | approves by the delegation | approves in his session: only the four, the approver's files and the `mde-*` tasks |
 | 4 | 15 `triage` → `feedback` only, each under a day | | |
 | 5 | 6 `go` → 1 (`never-core-…`) | | |
 | 6 | the reads and post mortems submitted with text | | |
