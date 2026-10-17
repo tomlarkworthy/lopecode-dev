@@ -120,7 +120,7 @@ Before that, on 2026-10-10, the page half was run in a local Chrome against cb4'
 
 ### A dry run runs the tests
 
-Since 2026-10-17 (issue \`deployer-dry-run-runs-the-tests\`; the owner, 2026-10-16: "test.ts should run the real tests on the deployer machine, but without a deploy"). An \`infra.apply\` with \`dry: true\` distils each source and answers as before; for each Worker whose answer is \`ready\` or \`unchanged\` and that names a module (not the kernel) it then makes the run above on the source that was sent, and deploys nothing. The deployer keeps the modules sent in that apply under the row \`dry/ID\` for the run (120 s at most; deleted when it ends, and one past its time at the next dry run), and the address ends \`&verify=WORKER&dry=ID\`. The page's brain-shell asks \`infra.getModules?dry=ID\`, which answers those modules in place of the ones kept, and does not ask the Worker which hash it runs. Only the browser time is spent (\`browser.extend\`, 120 s, $0.003); no script or version is made.
+Since 2026-10-17 (issue \`deployer-dry-run-runs-the-tests\`; the owner, 2026-10-16: "test.ts should run the real tests on the deployer machine, but without a deploy"). An \`infra.apply\` with \`dry: true\` distils each source and answers as before; for each Worker whose answer is \`ready\` or \`unchanged\` and that names a module (not the kernel) it then makes the run above on the source that was sent, and deploys nothing. The deployer keeps the modules sent in that apply under the rows \`dry/ID/MODULE\` for the run (120 s at most; deleted when it ends, and one past its time at the next dry run), and the address ends \`&verify=WORKER&dry=ID\`. The page's brain-shell asks \`infra.getModules?dry=ID\`, which answers those modules in place of the ones kept, and does not ask the Worker which hash it runs. Only the browser time is spent (\`browser.extend\`, 120 s, $0.003); no script or version is made.
 
 Nothing follows the verdict: no row \`deploying/NAME\` is taken, no probation, no put-back, no \`deploy.report\`, no issue. A test that calls the Worker over the network reaches the version that runs, not the source sent. The answer of each such Worker gets:
 
@@ -1037,16 +1037,17 @@ deployerOps = {
   const dryTests = async (w, logical, candidates) => {
     const id = crypto.randomUUID(), hash = w.hash, t0 = Date.now();
     const none = (reason) => ((reason = String(reason).slice(0, 300)), say({ at: "deploy.dry.none", target: logical, hash, reason }), { none: reason });
-    for (const r of await rows.list("dry/")) if (!(r.value && r.value.until > Date.now())) await rows.delete(r.key);
-    await rows.put("dry/" + id, { until: Date.now() + RUN_SECONDS * 1000, modules: candidates });
     const url = `${urlOf("brain")}${await verifyPage()}#view=C100(S100(${w.meta.module},@tomlarkworthy/brain-shell))&verify=${logical}&dry=${id}`;
     let v;
     try {
+      for (const r of await rows.list("dry/")) if (!(r.value && r.value.until > Date.now())) await rows.delete(r.key);
+      // One row a module, as source/ is: a row of every module of the apply would be the largest value kept.
+      for (const c of candidates) await rows.put(`dry/${id}/${c.module}`, { until: Date.now() + RUN_SECONDS * 1000, ...c });
       v = await runPage(url, { at: "deploy.dry.run", target: logical, hash, run: url });
     } catch (e) {
       return none((e && e.message) || e);
     } finally {
-      await rows.delete("dry/" + id);
+      await rows.deletePrefix(`dry/${id}/`).catch(() => null);
     }
     if (!v || typeof v !== "object" || v.none || v.worker !== logical || !Array.isArray(v.failed)) return none((v && v.none) || "the page left no verdict");
     // A page whose shell/verify.html is from before dry runs loads the module that runs, and tested that.
@@ -1421,9 +1422,8 @@ deployerFn = async (request, context) => {
   // With ?dry=ID, for the page of a dry apply's run while it lasts: the modules sent in that apply in place of the ones kept.
   if (url.pathname === "/xrpc/com.lopecode.brain.infra.getModules" && request.method === "GET" && !inside) {
     const modules = await deployerModules(context && context.source), id = url.searchParams.get("dry");
-    const dry = /^[0-9a-f-]{36}$/.test(id || "") ? await rows.get("dry/" + id) : null;
-    if (!dry || !(dry.until > Date.now())) return json({ distiller: deployerOps.self.hash, modules });
-    return json({ distiller: deployerOps.self.hash, modules: [...modules.filter((m) => !dry.modules.some((c) => c.module === m.module)), ...dry.modules] });
+    const dry = /^[0-9a-f-]{36}$/.test(id || "") ? (await rows.list(`dry/${id}/`)).map((r) => r.value).filter((c) => c && c.until > Date.now()).map(({ until, ...c }) => c) : [];
+    return json({ distiller: deployerOps.self.hash, modules: [...modules.filter((m) => !dry.some((c) => c.module === m.module)), ...dry] });
   }
   // A member's own deploys, passed on by the kernel with the DID it signed in. No approval and no recovery key.
   if (url.pathname.startsWith("/xrpc/com.lopecode.brain.member.") && request.method === "POST") {
@@ -2483,7 +2483,8 @@ test_deployer_a_module_with_no_tests_is_verified = {
 // deployer-dry-run-runs-the-tests: a dry apply runs the module's tests on the page, with &dry=ID, and deploys nothing.
 test_deployer_a_dry_apply_runs_the_tests_and_deploys_nothing = {
   const seen = [];
-  const t = await verifyRig({ run: (body) => (seen.push({ url: body.url, row: [...t.rig.sim.rows.keys()].filter((k) => k.startsWith("dry/")) }), answer()) });
+  const t = await verifyRig({ run: (body) => (seen.push({ url: body.url, row: [...t.rig.sim.rows.keys()].filter((k) => k.startsWith("dry/")) }), answer(body)) });
+  // The rig's Workers are emitted, not source: no module of this apply is kept for the page.
   const { rig, A, v1, v2, ks, running } = t;
   let answer = () => t.verdict(v2.hash);
   const held = () => [...rig.sim.rows.keys()].filter((k) => /^(dry|pending|kernelstate|deploying)\//.test(k));
@@ -2492,7 +2493,7 @@ test_deployer_a_dry_apply_runs_the_tests_and_deploys_nothing = {
   // One run, of the verify page with &dry=ID, while the row dry/ID was there; deleted after.
   expect(seen.length).toBe(1);
   const id = /&verify=brain-x-a&dry=([0-9a-f-]{36})$/.exec(seen[0].url)[1];
-  expect(seen[0]).toEqual({ url: "https://cb.sub.workers.dev/#view=C100(S100(@t/a,@tomlarkworthy/brain-shell))&verify=brain-x-a&dry=" + id, row: ["dry/" + id] });
+  expect(seen[0]).toEqual({ url: "https://cb.sub.workers.dev/#view=C100(S100(@t/a,@tomlarkworthy/brain-shell))&verify=brain-x-a&dry=" + id, row: [] });
   expect(held()).toEqual(before.held);
   // Nothing was sent to Cloudflare but reads, and nothing followed the verdict: no report, no issue, no probation.
   expect(rig.fake.log.slice(before.log).filter((l) => / api\//.test(l) && !l.startsWith("GET "))).toEqual([]);
@@ -2504,6 +2505,14 @@ test_deployer_a_dry_apply_runs_the_tests_and_deploys_nothing = {
   expect((await rig.recover({ workers: [v1], dry: true })).results[0]).toMatchObject({ state: "unchanged", tests: 3 });
   // A page that tested another hash (a brain-shell that does not read &dry=) is no verdict.
   expect((await rig.recover({ workers: [v2], dry: true })).results[0]).toMatchObject({ state: "ready", none: `the page tested ${v1.hash.slice(0, 12)}, not ${v2.hash.slice(0, 12)}: its brain-shell does not read &dry=` });
+  // A module sent as source: while the run lasts, getModules?dry=ID answers it in place of what is kept; after, nothing.
+  const S = "@tomlarkworthy/brain-static", source = (await exportModuleJS(S)).source + "\n// sent in a dry apply";
+  const asked = async (q) => (await (await rig.sim.fetch("https://cb-deployer.sub.workers.dev/xrpc/com.lopecode.brain.infra.getModules?dry=" + q)).json()).modules.find((m) => m.module === S);
+  let during = null, q = null;
+  answer = async (body) => ((q = /&dry=(.*)$/.exec(body.url)[1]), (during = await asked(q)), [200, { value: { worker: "brain-x-static", module: S, hash: during.hash, ok: true, tests: 1, failed: [] } }]);
+  const out = (await rig.recover({ workers: [{ module: S, source }], dry: true })).results[0];
+  expect([out.worker, out.state, out.tests, out.hash === during.hash, during.text === source, during.worker]).toEqual(["brain-x-static", "ready", 1, true, true, "brain-x-static"]);
+  expect([await asked(q), [...rig.sim.rows.keys()].filter((k) => k.startsWith("dry/")), rig.sim.rows.has("worker/brain-x-static")]).toEqual([undefined, [], false]);
   return id.length + " characters of id, 3 tests";
 }
 // %%
@@ -2528,14 +2537,14 @@ test_getModules_with_dry_answers_the_modules_of_that_run = {
   const list = async (q = "") => (await (await rig.sim.fetch(U + q)).json()).modules.map((m) => [m.module, m.text]);
   const id = crypto.randomUUID(), plain = await list();
   const sent = [{ module: "@tomlarkworthy/cloudflare-iac", worker: "brain-deployer", hash: "h", text: "T", files: {} }, { module: "@t/new", worker: "brain-x-new", hash: "n", text: "N", files: {} }];
-  rig.sim.rows.set("dry/" + id, { until: Date.now() + 60000, modules: sent });
-  // The modules sent in place of the ones of that name, and the others as they are.
-  expect(await list("?dry=" + id)).toEqual([...plain.filter(([m]) => m !== "@tomlarkworthy/cloudflare-iac"), ["@tomlarkworthy/cloudflare-iac", "T"], ["@t/new", "N"]]);
+  for (const c of sent) rig.sim.rows.set(`dry/${id}/${c.module}`, { until: Date.now() + 60000, ...c });
+  // The modules sent in place of the ones of that name, and the others as they are. The rows are read in the order of their keys.
+  expect(await list("?dry=" + id)).toEqual([...plain.filter(([m]) => m !== "@tomlarkworthy/cloudflare-iac"), ["@t/new", "N"], ["@tomlarkworthy/cloudflare-iac", "T"]]);
   // Without it, with another id, or past its time: what is kept.
   expect(await list()).toEqual(plain);
   expect(await list("?dry=" + crypto.randomUUID())).toEqual(plain);
   expect(await list("?dry=..%2Fworker%2Fbrain")).toEqual(plain);
-  rig.sim.rows.set("dry/" + id, { until: Date.now() - 1, modules: sent });
+  for (const c of sent) rig.sim.rows.set(`dry/${id}/${c.module}`, { until: Date.now() - 1, ...c });
   expect(await list("?dry=" + id)).toEqual(plain);
   return plain.length + 1 + " modules with dry";
 }
