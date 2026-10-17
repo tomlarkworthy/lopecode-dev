@@ -78,12 +78,12 @@ precedent is a twin: `reader-clone-keeps-writer-claude-hooks` (about `brain`) wa
 |---|---|---|
 | laptop loop briefs | `.claude/skills/brain-maintenance/agents/` 18 files, 218 KB; `SKILL.md` 114 KB; `oversight.md` 399 KB | none of these; the machine loop has `roles/writer.md`, `reviewer.md`, `triage.md` in `cloud-brain-dev` |
 | rules | `rules.md` 51 KB | `AGENTS.md` "Rules, the owner's", 7 lines |
-| approver | `agents/approver.md` (222 lines), `tools/cloud-brain/approver.ts`, `tests/tools/approver*.test.ts` | the policy in force pins the blobs of the first two on lopecode-dev `origin/main` (`rules.md`) |
+| approver | `agents/approver.md` (247 lines), `tools/cloud-brain/approver.ts`, `tests/tools/approver*.test.ts` | the policy in force pins the blobs of the first two on lopecode-dev `origin/main` (`rules.md`) |
 | plans, specs | `plan/cloud-brain-*.md` 38 files, 1.5 MB | a `doc:` entry each and a file in `static` (`docs/lopecode-dev/…`), put at each landing by `loop-docs` |
 | records | `tools/cloud-brain/records/` 313 files, 2.9 MB | for `cloud-brain-dev`, the record is the issue's comments (`dev-records-to-tracker`, 2026-10-15) |
 | post mortems, digests | 3 files 42 KB; 9 files 127 KB | post mortems as `doc:pm-*`; digests as library notebooks |
 | seeds | 18 `.ojs`, 1.4 MB: kernel, core, db, deployer, the page and its modules, iac, 4 digests | the running modules (`deploy/services.json`, 27 entries, the four and `brain-x-page` among them) |
-| tools and tests of the laptop loop | 51 `.ts`/`.sh`/`.py`, 711 KB; `tests/tools` 168 files, 2.3 MB | `cloud-brain-dev` has its own: `issue.ts`, `run.ts`, `drain.ts`, 23 test files |
+| tools and tests of the laptop loop | `tools/cloud-brain/*.{ts,sh,py}` (top level) 51 files, 711 KB; `tests/tools` 168 files, 2.3 MB | `cloud-brain-dev` has its own: `issue.ts`, `run.ts`, `drain.ts`, 22 `*.test.ts` files |
 | summarizer brief | `knowledge-docs.ts`, `summarize-papers.ts` | `brain/roles/summarizer.md` on the Brain, 6656 bytes |
 
 `brain/roles/` on the Brain still lists `service-writer.md` and `service-reviewer.md`. The README says they are to be
@@ -155,7 +155,9 @@ left"). The issue's body therefore has the token minted per ship step by `brain-
 ## Gate 3: approving
 
 In force: the `approve` guard is `caller.present || caller.actor == "delegation:eb3db9d0c6a5"` (`loop-approver`), by
-the policies of events 4668 and 5689. That delegation made 13 `approve` moves; the owner's session made 120. The policy
+the policies of events 4668 and 5689. That delegation made 13 `approve` moves; the owner's session made 120. Of the 16 `approve` verdicts, 13 were moved by
+the delegation; the other 3 (`fly-3-brain-fly-service`, `design-process-for-services`, `never-page-up-line-after-a-check`)
+were approved later in his session. The policy
 pins `agents/approver.md` and `approver.ts` by blob on lopecode-dev `origin/main`, and the tool makes no move when
 either blob differs (`rules.md`, "Its own files"). Nothing on the machine runs an approver: `brain-loop.js:245` returns
 the `approve` row with `machineDoable: false` as a constant, and no `roles/approver.md` exists. `accept.ts` already
@@ -180,7 +182,7 @@ The three rows today: `deploy-token-capped-to-services` (the four: stays his), `
 `owner-feedback-acted-on-at-once` is `after` it. Two gaps remain after it is pushed:
 
 - `brain-loop.js:232` returns the `open` row as "not triaged; no triager yet", a constant, whatever `roles/` declares.
-- `roles/triage.md` takes `about: [service, dev]` and kind `task`/`bug`. 7 of the 15 are `feedback`, which stays
+- `roles/triage.md` takes `about: [service, dev]`, and `drain.ts` (line 196) only kind `task`/`bug`. 7 of the 15 are `feedback`, which stays
   `open` until gate 4's second task promotes it.
 
 ## Gate 5: readying
@@ -203,8 +205,11 @@ defines the step.
 ## Gate 7: old submits with no patch
 
 All four are `in-review`, have no review, and refer only to lopecode-dev commits. `git merge-base --is-ancestor` on
-each ref against `origin/main`: all 10 are on main, dated 2026-10-13 or 2026-10-14. `rk-3-as-of` also has
-`deploy brain-x-issues@cdadff0b3560`. Port-seed-era comment 7436 says its change is in what cb4 runs.
+the refs below against `origin/main`: all 10 checked are on main, dated 2026-10-13 or 2026-10-14. `rk-3-as-of` also has
+`deploy brain-x-issues@cdadff0b3560`. Comment 7436 of `port-seed-era-service-issues` says `rk-3`'s change is in what cb4 runs. The four and their refs:
+`rk-1-policy-walk` (`240c1a5c`, `e6633024`, `e9f08a5a`), `rk-3-as-of` (7 commits, `8673b6a7` to `e5a9a31a`, of which
+`8673b6a7`, `5fd13c33`, `e5a9a31a` were checked), `fb-batch-loop-tools` (4, of which `e5ca3537`, `7170b411` were
+checked), `fly-tools-from-reviewed-ref` (`91cf5396`, `d9ae8110`). 10 refs checked, all on main.
 
 Rule: a submit whose every ref is on main (and, for a service, in what runs) is closed with the reason
 "landed unreviewed under the retired laptop loop at <shas>", by the triager or the session that runs gate 1. A submit
@@ -237,20 +242,22 @@ Each is one writer and one review. Ids are ≤ 40 characters. "The owner's" line
 `SAFE` of `patch.ts` is `README.md` alone, so every `cloud-brain-dev` task below is `major` and waits for an approve:
 his, until `mde-4` and its policy put an approver on the machine. This is why `mde-4` cannot come first: it is itself
 `major`, and his install follows it. `mde-1` and `mde-7`'s first run make moves and no patch, so no `run.ts` writer
-runs them (the gap of gate 6); they are the session's of pick 2.
+runs them (the gap of gate 6). Pick 2 decides who runs `mde-1`; `mde-7`'s four are `in-review`, which no triager
+takes, so the coordinator session closes them whichever way pick 2 goes.
 
 | id | gate | about | after | what |
 |---|---|---|---|---|
 | `mde-1-close-retired-loop-rows` | 1 A | `cloud-brain-dev` | nothing | close the 8 class-A `write` rows and `plain-worktree-outside-checkout-fails`, each with the reason and twin; pick 2 says who |
 | `mde-2-rules-and-briefs-to-dev` | 1 B | `cloud-brain-dev` | nothing | `rules.md` in `cloud-brain-dev` (takes `dev-rules-of-the-loop`'s place); the 5 class-B rows as twins, each with its lopecode-dev text attached |
-| `mde-3-retire-laptop-label` | 1 E | `cloud-brain-dev` | mde-1 | `laptop` out of `labels-not` and `LABEL`; then the `brain-x-loop` patch of the cell `loopAccepts` (`bun accept.ts --cell`); `laptop` taken off `rk-2`, `rk-5` |
+| `mde-3-retire-laptop-label` | 1 E | `cloud-brain-dev` | mde-1 | `laptop` out of `labels-not` and `LABEL`; `laptop` taken off `rk-2`, `rk-5` |
+| `mde-3b-loop-accepts-cell` | 1 E | `brain-x-loop` | mde-3 | the cell `loopAccepts` again (`bun accept.ts --cell`): a role change is a dev patch, then a service patch (`brain-loop.js` doc, line 30) |
 | `mde-4-approver-role-in-dev` | 3 | `cloud-brain-dev` | mde-2 | `roles/approver.md` (`step: approve`) and the tool, from lopecode-dev's text attached; `major` |
 | The owner's: install the policy that pins `mde-4`'s blobs | 3 | | mde-4 | pick 3 |
-| `mde-5-owed-reads-personas` | 3, 4 | `brain-x-loop` | mde-4, `triager-build` | `owed()` lines 232 and 245 read `loopAccepts` for `triage` and `approve`, not constants |
+| `mde-5-owed-reads-personas` | 3, 4 | `brain-x-loop` | mde-4, `triager-build` | `loopAccepts` again with the approver and triager roles (the deployed cell lists `writer` and `reviewer` only), and `owed()` lines 232 and 245 read it, not constants |
 | `ap-3-trial` (re-aimed) | 3 | per gate 6 | `spec-notebook-summarizer-persona` | the read of the 41 verdicts as a comment |
 | `mde-6-page-build-from-deploy` | 1 seeds | `cloud-brain-dev` | mde-1 | a build of the page from `deploy/` in `cloud-brain-dev` (README "Not here yet": nothing does that today); `major` |
 | A session's, not the machine's: delete the 18 seeds and `build.ts`'s reads of them in lopecode-dev | 1 seeds | | mde-6 | the one lopecode-dev act left |
-| `mde-7-close-landed-submits` | 7 | `cloud-brain-dev` | mde-1 | applied to the 4 by the session of pick 2 (`roles/triage.md` takes `states: [open]` only, and these are `in-review`); the rule for later submits is a line of the reviewer's brief |
+| `mde-7-close-landed-submits` | 7 | `cloud-brain-dev` | mde-1 | applied to the 4 of gate 7 by the coordinator session (`roles/triage.md` takes `states: [open]` only, and these are `in-review`); the rule for later submits is a line of the reviewer's brief |
 
 Gate 2, 4, 5 and 6 tasks exist already: `deploy-token-capped-to-services` → `drain-ships-with-a-capped-token`;
 `triager-build` → `owner-feedback-acted-on-at-once`; `approver-also-readies`; `spec-notebook-summarizer-persona` →
