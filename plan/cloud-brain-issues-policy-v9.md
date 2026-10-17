@@ -39,7 +39,7 @@ work again.
 |---|---|---|
 | 1 | Filing by the owner or a token goes straight to `ready` | `ready` now moves from `open` as well as `triaged`, with the same guard: `caller.kind in ["owner", "token"] && issue.children.open == 0`, no reason needed. `triage` is unchanged and still works, so a v8 caller that triages and then readies is not broken. |
 | 2 | A stopped run and needs-owner become a state | New state `stopped`. It is not a closed state. `stop` moves ready, in-progress or in-review → stopped. `retry` moves stopped → ready. Each needs `caller.kind in ["owner", "token"] && event.reason != ""`. `stopped` is added to the `from` of `owner-reject` and of `close`. The labels `run-stopped` and `needs-owner` are kept, and the `start` guard still reads `needs-owner`. |
-| 3 | A refused push has a way back | The task workflow has no `approved` state: `approve` goes to `done`, and push.ts treats `done` with an `approve` after `to-approval` as approved but not yet pushed (`cloud-brain-dev/push.ts` lines 63-66). After a refused push the issue goes to 7928's `not-done`. New move `requeue`: not-done → ready, owner or token, with a reason. A major issue goes through `to-approval` again, so the owner approves the new patch. For in-review, `back` now moves from `in-review` as well as `in-progress`, to `ready`, owner or token, with a reason. |
+| 3 | A refused push has a way back | The task workflow has no `approved` state: `approve` goes to `done`, and push.ts treats `done` with an `approve` after `to-approval` as approved but not yet pushed (`cloud-brain-dev/push.ts` lines 63-66). After a refused push the issue can be moved to 7928's `not-done` (push.ts does not make that move yet: follow-up 4). New move `requeue`: not-done → ready, owner or token, with a reason. A major issue goes through `to-approval` again, so the owner approves the new patch. For in-review, `back` now moves from `in-review` as well as `in-progress`, to `ready`, owner or token, with a reason. |
 | 4 | Say what `major` means now | This is said in the reason. `major` covers a change to a credential, a Cloudflare permission, the rule-checking code (policy cells, the approver's files), or a deploy of one of the owner's four Workers (`OWNERS` in `cloud-brain-dev/drain.ts` line 60: kernel, core, db, deployer). The label and every guard that reads it are unchanged. Which files make a change major is decided by the loop, not by this file (follow-up 1). |
 | 5 | No move removed without a replacement | Every move name of 7928 is still in v9 (the test checks this). Nothing was removed. |
 
@@ -49,7 +49,7 @@ Some details behind these choices:
   low. Its target is `ready`, not `in-progress`. A move to in-progress that is not `start` would
   leave `issue.by.start` set to the old writer, and `submit` is guarded by `caller.actor == issue.by.start`.
   From `ready`, the next run's `start` names the new writer. A move clears `issue.reviews`
-  (`brain-issues.js` line 600), so an old pass does not carry into the next round.
+  (the `moved` branch of the issue's apply in `brain-issues.js`, line 604 of the copy `sync.ts` wrote on 2026-10-17), so an old pass does not carry into the next round.
 - **`stop` is allowed from `ready`.** The six issues that carry `run-stopped` today are all at
   `ready`, and each then needs only one move (see Migration). The alternative was to leave `ready`
   out and require `start` then `stop`, which is two moves and an empty run on the record.
@@ -58,7 +58,10 @@ Some details behind these choices:
   `label` guard protects only `major`. Requiring the owner present on `retry` for a labelled issue
   would have been the stricter option. It was not done, to follow the owner's "security without
   pedantry". The owner's authority is still kept by `approve` for a major change and by
-  `owner-reject` from every open state.
+  `owner-reject` from every open state. In practice the loop still refuses the label: `run.ts` line 95
+  stops on an issue labelled `needs-owner`, and `drain.ts` (lines 61 and 69) takes no issue with
+  `run-stopped` or `needs-owner`. Until follow-ups 2 and 3 land, a `retry` or `requeue` is followed by
+  an `issue.label` that removes `run-stopped`; `needs-owner` is removed when the owner has answered.
 - **`requeue` starts from `not-done`, not `done`.** A move straight from `done` would let a token
   re-open any finished task. `not-done` is the state the owner chose on 2026-10-15 for "approved, but
   the change did not land", and his words then were "we can figure out how to reenqueue later".
@@ -109,14 +112,18 @@ ds-1-dashboards-pilot  ap-3-trial-d  bk-7-read-after-two-days-d  mde-4-approver-
 drain-ships-service  deployer-keeps-whole-test-failure
 ```
 
-Each one gets one `stop` move made by a token:
+Each one gets one `stop` move made by a token, and its `run-stopped` label is removed, so that the
+state alone says it is stopped and a later `retry` is drained:
 `issue-as.sh <token> move '{"key":"v9-migrate/<id>/stop","id":"<id>","to":"stopped","reason":"run-stopped under v8; v9 makes it a state"}'`.
+Then `issue-as.sh <token> label '{"key":"v9-migrate/<id>/label","id":"<id>","add":[],"remove":["run-stopped"]}'`.
 Read the list again before doing this, because it changes.
 
 Two closed issues carry `run-stopped` and `major` at `done`: `dev-triage-step-on-main` and
 `drain-checks-free-disk`. They may be approves whose push was refused. If so, they belong at
 `not-done`, and the `not-done` move needs a ref to the refusal. That is for the owner or the loop to
-judge. It is not part of this install.
+judge. It is not part of this install. An install moves open issues only (`issue.install`, `brain-issues.js`
+line 47), so these two, and any issue already at `not-done`, stay on 7928's task workflow, which has
+no `requeue`. Requeuing one needs the owner's own swap to the v9 task workflow first.
 
 A swap clears `issue.reviews`. On 2026-10-17 two tasks were at `in-review`
 (`service-docs-are-reference-2`, `-3`). A pass written but not yet acted on before the install has to
@@ -133,9 +140,10 @@ be written again after it (`plan/cloud-brain-issues.md`, "Installing it").
 2. **run.ts: `stop` instead of `back` and the `run-stopped` label.** A run that ends short of a pass
    makes `stop` with its reason. A `block` review keeps the `needs-owner` label beside the move. The
    labels can be added as they are now, until nothing reads them.
-3. **drain.ts: nothing is required.** It already takes only `state === "ready"` (`drain.ts` line
-   67), so a `stopped` issue is not drained, whatever its labels. `run-stopped` can be removed from
-   `NOT` once run.ts no longer adds it and the six above have been moved.
+3. **drain.ts: drop `run-stopped` from `NOT`.** It already takes only `state === "ready"` (`drain.ts`
+   line 67), so a `stopped` issue is not drained whatever its labels. But until `run-stopped` leaves
+   `NOT` (line 61), an issue that is retried with the label still on it is skipped. Remove it once
+   run.ts no longer adds the label.
 4. **push.ts: on a refused push after an approve, make `not-done`** with the refusal as its ref,
    instead of the comment. This is already the planned next step in the body of
    `approved-not-landed-state`. A later run, or the open issue `loop-retries-a-stopped-run`, makes
