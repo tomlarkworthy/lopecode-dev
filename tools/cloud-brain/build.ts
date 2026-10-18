@@ -55,7 +55,7 @@ const MODULES = [
   { name: "@tomlarkworthy/brain-usage", running: "brain-x-usage", main: true, files: {} },
   { name: "@tomlarkworthy/brain-loop", running: "brain-x-loop", main: true, files: {} },
   { name: "@tomlarkworthy/cloud-brain", seed: "cloud-brain.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/cloud-brain-docs", seed: "cloud-brain-docs.ojs", main: true, files: {} },
+  { name: "@tomlarkworthy/cloud-brain-docs", deployed: true, main: true, files: {} },
   { name: "@tomlarkworthy/brain-secrets", deployed: true, main: true, files: {} },
   { name: "@tomlarkworthy/brain-feedback", deployed: true, main: true, files: {} },
   { name: "@tomlarkworthy/brain-operator", deployed: true, main: true, files: {} },
@@ -111,9 +111,13 @@ const testsOf = (m: (typeof MODULES)[number]) => compiled(m)
   const all = new Set([...tests.values()].flatMap((t) => [...t]));
   const mains = new Set([...MODULES.filter((m) => m.main), SPEC].map((m) => m.name.split("/")[1]));
   const wrong: string[] = [];
-  for (const f of [SPEC.seed, "cloud-brain-docs.ojs", "spec-as-built-short.md"]) {
-    const text = seedText(f);
-    const own = f.endsWith(".ojs") ? new Set([...text.matchAll(/^(test_[A-Za-z0-9_]+) = /gm)].map((x) => x[1])) : new Set<string>();
+  const docs = MODULES.find((m) => m.name === "@tomlarkworthy/cloud-brain-docs")!;
+  const cited = [
+    { f: SPEC.seed, text: seedText(SPEC.seed), own: new Set([...seedText(SPEC.seed).matchAll(/^(test_[A-Za-z0-9_]+) = /gm)].map((x) => x[1])) },
+    { f: docs.name, text: textOf(docs), own: new Set(testsOf(docs)) },
+    { f: "spec-as-built-short.md", text: seedText("spec-as-built-short.md"), own: new Set<string>() },
+  ];
+  for (const { f, text, own } of cited) {
     // "module: test_a, test_b" must be in that module. A name with no module before it must be in a module.
     const inModule = new Set<number>();
     for (const m of text.matchAll(/\b([a-z][a-z0-9-]*): (test_[A-Za-z0-9_]+(?:, test_[A-Za-z0-9_]+)*)/g)) {

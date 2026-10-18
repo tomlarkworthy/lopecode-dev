@@ -6,11 +6,12 @@
 import { test, expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { running } from "./needs";
 
 const seed = (name: string) => readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain", name), "utf8");
 const cells = seed("cloud-brain.ojs").split("\n// %%\n");
 const cell = (start: string) => cells.map((c) => c.replace(/^(\/\/.*\n)+/, "")).find((c) => c.startsWith(start)) || "";
-const health = seed("cloud-brain-docs.ojs").split("\n").find((l) => l.includes("The Health section of the page")) || "";
+const health = readFileSync(running("cloud-brain-docs"), "utf8").split("\n").find((l) => l.includes("The Health section of the page")) || "";
 
 test("the cells the docs line is about are found in the seed", () => {
   expect(cell("dashboard = ")).toContain("${note ?");

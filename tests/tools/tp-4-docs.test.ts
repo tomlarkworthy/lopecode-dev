@@ -9,11 +9,11 @@
 import { expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { runningCells, testNeedingRunning } from "./needs.ts";
+import { running, runningCells, testNeedingRunning } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const read = (env: string, path: string) => readFileSync(process.env[env] || resolve(root, path), "utf8");
-const docs = read("DOCS", "tools/cloud-brain/cloud-brain-docs.ojs");
+const docs = readFileSync(process.env.DOCS || running("cloud-brain-docs"), "utf8");
 const hub = read("HUB", "knowledge/working-with-cloud-brain-remote-lopecode-cluster.md");
 const proposal = read("PROPOSAL", "plan/cloud-brain-topics.md");
 const build = read("BUILD", "tools/cloud-brain/build.ts");

@@ -9,7 +9,7 @@
 import { expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { runningGroups, testNeedingRunning } from "./needs.ts";
+import { running, runningGroups, testNeedingRunning } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
@@ -18,7 +18,7 @@ const { test, module } = testNeedingRunning("dsv-5-docs-name-the-dashboard-servi
 const { groups, imports } = module ? await runningGroups("brain-dashboard") : { groups: [], imports: [] };
 // A cell by its name, as `name = ` (the form these tests had over the seed): the bodies of its variables.
 const cell = (start: string) => groups.find((g) => g.name + " = " === start)?.text || "";
-const docs = read("tools/cloud-brain/cloud-brain-docs.ojs").split("\n");
+const docs = readFileSync(running("cloud-brain-docs"), "utf8").split("\n");
 const line = (has: string) => docs.find((l) => l.includes(has)) || "";
 const knowledge = read("knowledge/working-with-cloud-brain-remote-lopecode-cluster.md");
 
