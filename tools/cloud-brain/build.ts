@@ -8,7 +8,9 @@
  * seeds from lopecode-dev so there are no accidents"). No answer, no build. Since later that day every brain-x-*
  * service but the page is `running`: the 18 other seeds were deleted while each still matched what ran. A new service
  * starts as a seed and an entry here (the page declares services from this build); after its first deploy its seed
- * is deleted and its entry becomes `running`.
+ * is deleted and its entry becomes `running`. A page module that is no Worker's has `deployed` (since 2026-10-18,
+ * i13287): its source is cloud-brain-dev/deploy/@tomlarkworthy/NAME.js after `bun sync.ts`, its seed deleted while
+ * the same as what cb4 served.
  * Beside it, in .emitted/ here: shell.html (the notebook without the modules a Brain's Workers serve) and
  * verify.html (the shell with mains cut to brain-shell, verify-shell.ts).
  */
@@ -54,7 +56,7 @@ const MODULES = [
   { name: "@tomlarkworthy/brain-loop", running: "brain-x-loop", main: true, files: {} },
   { name: "@tomlarkworthy/cloud-brain", seed: "cloud-brain.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/cloud-brain-docs", seed: "cloud-brain-docs.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-secrets", seed: "brain-secrets.ojs", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-secrets", deployed: true, main: true, files: {} },
   { name: "@tomlarkworthy/brain-feedback", seed: "brain-feedback.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-operator", seed: "brain-operator.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-db", seed: "brain-db.ojs", main: true, files: {} },
@@ -84,8 +86,19 @@ for (const m of MODULES) {
   running.set(m.name, got.text);
   console.error(`${m.name}: what ${m.running} runs on ${BRAIN}, ${String(got.hash).slice(0, 12)}`);
 }
-const textOf = (m: (typeof MODULES)[number]) => ("running" in m && m.running ? running.get(m.name)! : readFileSync(resolve(HERE, m.seed!), "utf8"));
-const testsOf = (m: (typeof MODULES)[number]) => "running" in m && m.running
+// A page module with `deployed` is no Worker's: its source is cloud-brain-dev/deploy/, which sync.ts writes from the page
+// cb4 serves. services.json is written by sync.ts alone (git-ignored): without it the committed copies may be behind.
+const DEPLOY = resolve(ROOT, "cloud-brain-dev/deploy");
+const deployed = new Map<string, string>();
+for (const m of MODULES) {
+  if (!("deployed" in m) || !m.deployed) continue;
+  const file = resolve(DEPLOY, m.name + ".js");
+  if (!existsSync(resolve(DEPLOY, "services.json")) || !existsSync(file)) throw new Error(`${m.name}: no ${file} from a sync. git submodule update --init cloud-brain-dev, then bun sync.ts ${BRAIN} there`);
+  deployed.set(m.name, readFileSync(file, "utf8"));
+}
+const compiled = (m: (typeof MODULES)[number]) => ("running" in m && !!m.running) || ("deployed" in m && !!m.deployed);
+const textOf = (m: (typeof MODULES)[number]) => ("running" in m && m.running ? running.get(m.name)! : "deployed" in m && m.deployed ? deployed.get(m.name)! : readFileSync(resolve(HERE, m.seed!), "utf8"));
+const testsOf = (m: (typeof MODULES)[number]) => compiled(m)
   ? [...textOf(m).matchAll(/\$def\("[^"]*", "(test_[A-Za-z0-9_]+)"/g)].map((x) => x[1])
   : [...textOf(m).matchAll(/^(test_[A-Za-z0-9_]+) = /gm)].map((x) => x[1]);
 
@@ -156,7 +169,7 @@ const before = blockSpans(html).map((s) => s.id);
 try {
   const pieces: string[] = [];
   for (const m of MODULES) {
-    let src = "running" in m && m.running ? textOf(m) : moduleSource(splitSeed(textOf(m)), compile);
+    let src = compiled(m) ? textOf(m) : moduleSource(splitSeed(textOf(m)), compile);
     const names = Object.keys(m.files);
     if (names.length) {
       // Attachments first, then a loader map: the exporter keeps only attachments the module registers.
