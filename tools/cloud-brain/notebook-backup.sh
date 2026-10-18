@@ -28,7 +28,7 @@
 #   landing yet: notebook.ts writes no bootloader, so its file does not open in a browser as build.ts's does.
 # NOTEBOOK_REPO is the repository, the main checkout's lopebooks with none. NOTEBOOK_TODAY is the day, `date +%F` with
 # none. NOTEBOOK_DEV is the cloud-brain-dev clone, this checkout's with none; NOTEBOOK_BRAIN the Brain's address, cb4's
-# with none. Only the tests set the first three.
+# with none. Only the tests set them.
 BUILT="$1"
 FROM="the seeds of lopecode-dev@$(git -C "$(dirname "$0")" rev-parse --short HEAD)"
 if [ "$BUILT" = "--build" ]; then
@@ -80,7 +80,7 @@ LAST="$(git -C "$REPO" log -1 --format=%cd --date=format-local:%F -- "$HTML")"
 if [ "$LAST" = "$TODAY" ]; then echo "not due: last committed $LAST"; exit 0; fi
 if [ -n "$LAST" ] && git -C "$REPO" diff --quiet HEAD -- "$HTML"; then echo "same: last committed $LAST"; exit 0; fi
 # The commit named is the HEAD of the checkout this copy is in: a landing runs its worktree's, where the seeds of the
-# build are committed and the main checkout's HEAD is behind (wt-3-land-by-push).
+# build are committed and the main checkout's HEAD is behind (wt-3-land-by-push). With --build it is cloud-brain-dev's.
 MSG="cloud-brain: the notebook of $TODAY, built from $FROM (the day's backup; notebook-commit-once-a-day)"
 # The spec-sync hook of lopebooks may write the .json beside the notebook and refuse the commit: the next try has it.
 n=0; made=""
