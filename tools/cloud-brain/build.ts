@@ -10,7 +10,9 @@
  * starts as a seed and an entry here (the page declares services from this build); after its first deploy its seed
  * is deleted and its entry becomes `running`. A page module that is no Worker's has `deployed` (since 2026-10-18,
  * i13287): its source is cloud-brain-dev/deploy/@tomlarkworthy/NAME.js after `bun sync.ts`, its seed deleted while
- * the same as what cb4 served.
+ * the same as what cb4 served. The owner's Workers and their modules are retired the same way (2026-10-18, on his
+ * word): the kernel, the core and the database are `running`; the deployer has no getSource, so it and its modules are
+ * `deployed`, from the deployer's infra.getModules as sync.ts writes it. Their text is cb4's, not a compiled seed's.
  * Beside it, in .emitted/ here: shell.html (the notebook without the modules a Brain's Workers serve) and
  * verify.html (the shell with mains cut to brain-shell, verify-shell.ts).
  */
@@ -32,7 +34,7 @@ const MODULES = [
   { name: "@tomlarkworthy/cloudflare-iac", seed: "cloudflare-iac.ojs", main: true, files: { "hono.js": "text/javascript", "cel.js": "text/javascript", "quickjs.js": "text/javascript", "observable-runtime.js": "text/javascript", "acorn.js": "text/javascript", "acorn-walk.js": "text/javascript", "quickjs.wasm.b64": "text/plain" } },
   { name: "@tomlarkworthy/brain-deployer", seed: "brain-deployer.ojs", main: true, files: {} },
   { name: "@tomlarkworthy/brain-core", seed: "brain-core.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-kernel", seed: "brain-kernel.ojs", main: true, files: { "atcute.js": "text/javascript" } },
+  { name: "@tomlarkworthy/brain-kernel", running: "brain", main: true, files: { "atcute.js": "text/javascript" } },
   { name: "@tomlarkworthy/brain-proxy", running: "brain-x-proxy", main: true, files: {} },
   { name: "@tomlarkworthy/brain-whatsapp", running: "brain-x-whatsapp", main: true, files: {} },
   { name: "@tomlarkworthy/brain-bluesky", running: "brain-x-bluesky", main: true, files: {} },
@@ -192,7 +194,8 @@ try {
         `  }));`,
         `  main.builtin("FileAttachment", runtime.fileAttachments(name => fileAttachments.get(name)));`,
       ].join("\n");
-      src = src.replace("  const main = runtime.module();\n", "  const main = runtime.module();\n" + prologue + "\n");
+      // A module read from what cb4 runs registers its attachments already.
+      if (!compiled(m)) src = src.replace("  const main = runtime.module();\n", "  const main = runtime.module();\n" + prologue + "\n");
     }
     src = stablePids(src, "_" + m.name.split("/")[1].replace(/[^a-z0-9]/g, "") + "_");
     pieces.push(block(m.name, "application/javascript", src));
