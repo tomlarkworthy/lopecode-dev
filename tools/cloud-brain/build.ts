@@ -61,7 +61,7 @@ const MODULES = [
   { name: "@tomlarkworthy/brain-secrets", deployed: true, main: true, files: {} },
   { name: "@tomlarkworthy/brain-feedback", deployed: true, main: true, files: {} },
   { name: "@tomlarkworthy/brain-operator", deployed: true, main: true, files: {} },
-  { name: "@tomlarkworthy/brain-db", seed: "brain-db.ojs", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-db", running: "brain-db", main: true, files: {} },
 ];
 // What a Worker of a Brain owns: the deployer's two, and one per service. The shell is the notebook without these.
 const OWNED = ["cloudflare-iac", "brain-deployer", "brain-core", "brain-kernel", "brain-proxy", "brain-whatsapp", "brain-bluesky", "brain-static", "brain-blob", "brain-library", "brain-feed", "brain-browser", "brain-inbox", "brain-logs", "brain-snapshot", "brain-knowledge", "brain-issues", "brain-container", "brain-ai", "brain-git", "brain-dashboard", "brain-topic", "brain-fly", "brain-usage", "brain-loop", "cloud-brain", "brain-db"].map((n) => "@tomlarkworthy/" + n);

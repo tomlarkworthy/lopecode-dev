@@ -89,16 +89,17 @@ test("atproto-publish.test.ts with no atproto.html leaves fetch a function for t
 
 // Issue cost-events-test-reads-stale-deploy: cost-events.test.ts asked issueAct of cloud-brain-dev/deploy/, and failed 3
 // in a checkout whose copy was from before issue.cost.
-// Until 2026-10-14 of brain-issues.ojs, deleted that day; then brain-topic.ojs, deleted later that day; brain-db.ojs since.
+// Until 2026-10-14 of brain-issues.ojs, deleted that day; then brain-topic.ojs, deleted later that day; then brain-db.ojs,
+// deleted 2026-10-18; cloud-brain.ojs and cloud-brain-specs.ojs since, the seeds left (i13287 retires them too).
 test("a module is compiled from the seed of this checkout, once, into a file that is not in the checkout", async () => {
-  const file = await seedModule("brain-db.ojs");
-  expect(file).toEndWith("/brain-db.js");
+  const file = await seedModule("cloud-brain.ojs");
+  expect(file).toEndWith("/cloud-brain.js");
   expect(file.startsWith(resolve(here, "../.."))).toBe(false);
-  expect(await seedModule("brain-db.ojs")).toBe(file);
-  // sqlMaster's line of the seed, as the seed has it, is in what was compiled.
-  const master = readFileSync(resolve(here, "../../tools/cloud-brain/brain-db.ojs"), "utf8").split("\n").find((l) => l.startsWith("sqlMaster = "))!.slice("sqlMaster = ".length);
-  expect(readFileSync(file, "utf8")).toContain(master);
-  expect((await testNeedingSeed("needs.test.ts", "brain-db.ojs")).module).toBe(file);
+  expect(await seedModule("cloud-brain.ojs")).toBe(file);
+  // spanOptions's line of the seed, as the seed has it, is in what was compiled.
+  const spans = readFileSync(resolve(here, "../../tools/cloud-brain/cloud-brain.ojs"), "utf8").split("\n").find((l) => l.startsWith("spanOptions = "))!.slice("spanOptions = ".length);
+  expect(readFileSync(file, "utf8")).toContain(spans);
+  expect((await testNeedingSeed("needs.test.ts", "cloud-brain.ojs")).module).toBe(file);
 }, 60000);
 
 // Issue rows-add-within-sql-fails-once-in-suite: in the first run of the suite in a checkout, cost-events.test.ts imported
@@ -107,13 +108,13 @@ test("a module is compiled from the seed of this checkout, once, into a file tha
 test("a second seed, compiled after the first seed's module was imported, is found by import()", async () => {
   const into = mkdtempSync(join(tmpdir(), "seed-module-test-"));
   try {
-    const first = await seedModule("brain-db.ojs", into);
+    const first = await seedModule("cloud-brain.ojs", into);
     expect(first.startsWith(into)).toBe(true);
     expect(typeof (await import(pathToFileURL(first).href)).default).toBe("function");
-    const second = await seedModule("cloudflare-iac-fixtures.ojs", into);
+    const second = await seedModule("cloud-brain-specs.ojs", into);
     expect(typeof (await import(pathToFileURL(second).href)).default).toBe("function");
     expect(dirname(second)).not.toBe(dirname(first));
-    expect(await seedModule("brain-db.ojs", into)).toBe(first);
+    expect(await seedModule("cloud-brain.ojs", into)).toBe(first);
   } finally {
     rmSync(into, { recursive: true, force: true });
   }
