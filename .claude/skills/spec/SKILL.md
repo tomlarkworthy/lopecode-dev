@@ -79,6 +79,14 @@ The template's placeholders say what each section holds. The parts that are easy
 - **Handover.** File paths, the existing pattern to copy, always / ask first / never, exact
   check commands, ordered steps with stop points. The implementer starts with no other context.
 
+A design sheet is not a spec. It is what a Cloud Brain spec writer makes for a project with a face
+before its spec (`roles/spec.md` of `cloud-brain-dev`, "The design round"): one seed
+`design-<id>.ojs` of md and html cells, with the needs, the other products, and one
+`artboard_<letter>` per idea, each a grey wireframe of the state with data, no colour and no
+second state. The owner picks among the ideas; the spec written after his pick names the
+artboard it draws from. It is published as `design-<id>`, as `rules.md` of `brain-maintenance`
+has it.
+
 Size the spec to the work. A two-hour change needs the opening, scope, one drawing if it has a
 face, three requirements and the checks; delete the other sections from the seed.
 

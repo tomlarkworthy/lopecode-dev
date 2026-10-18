@@ -71,6 +71,11 @@ A row of `SKILL.md` is one line of it, read by its first cell between two bars:
 ``grep -n -F '| labeled `needs-owner` |' $W/.claude/skills/brain-maintenance/SKILL.md``. Each of the five
 first cells above was on one line of the file on 2026-10-13 (`grep -c -F`, 1 for each).
 
+An `answer` on a project at `spec` that the drain's spec persona asked at the design round (`roles/spec.md` of
+`cloud-brain-dev`, "The design round", step 7): quote his pick of ideas in the comment and take `needs-owner` off, as
+the row `` labeled `needs-owner` `` has it. Start no spec writer and do not use "A spec sent back": the persona
+writes the spec from his pick at its next `assign` of step `spec`. You pick no idea and write no spec.
+
 ## How an entry is answered
 
 By a fact the next step reads. One of:

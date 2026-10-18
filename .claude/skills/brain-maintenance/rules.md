@@ -606,7 +606,9 @@ the loop (Never).
 method was not tried. A notebook put with it is served with no origin and no
 session; one whose newest version is the owner's is refused (403). The call is in
 `agents/digest.md`, step 8. Do not put with `--owner`: that publishes an agent's page as the
-owner's own, to run as whoever opens it.
+owner's own, to run as whoever opens it. The drain's spec persona publishes a design sheet (`publish.ts`, with
+`LIBRARY_TOKEN` when it is set) as `design-<id>` with `library.put`, public only as the owner says
+(`cloud-brain-dev/roles/spec.md`, "The design round").
 
 ## A Bluesky DM
 
