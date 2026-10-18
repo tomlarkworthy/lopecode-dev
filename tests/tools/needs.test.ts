@@ -124,14 +124,14 @@ test("a second seed, compiled after the first seed's module was imported, is fou
 test("a seed compiled with an edit of its text is another file under the edit's name, and the seed's own module is as it was", async () => {
   const into = mkdtempSync(join(tmpdir(), "seed-module-test-"));
   try {
-    const plain = await seedModule("cloudflare-iac-fixtures.ojs", into);
-    const edit = { name: "cloudflare-iac-fixtures-and-one", text: (seed: string) => seed + "\n// %%\none_more_cell_of_a_test = 41 + 1\n" };
-    const edited = await seedModule("cloudflare-iac-fixtures.ojs", into, edit);
-    expect(edited).toEndWith("/cloudflare-iac-fixtures-and-one/cloudflare-iac-fixtures-and-one.js");
+    const plain = await seedModule("cloud-brain-specs.ojs", into);
+    const edit = { name: "cloud-brain-specs-and-one", text: (seed: string) => seed + "\n// %%\none_more_cell_of_a_test = 41 + 1\n" };
+    const edited = await seedModule("cloud-brain-specs.ojs", into, edit);
+    expect(edited).toEndWith("/cloud-brain-specs-and-one/cloud-brain-specs-and-one.js");
     expect(readFileSync(edited, "utf8")).toContain("one_more_cell_of_a_test");
     expect(readFileSync(plain, "utf8")).not.toContain("one_more_cell_of_a_test");
     // Asked again, each is the file it was.
-    expect([await seedModule("cloudflare-iac-fixtures.ojs", into, edit), await seedModule("cloudflare-iac-fixtures.ojs", into)]).toEqual([edited, plain]);
+    expect([await seedModule("cloud-brain-specs.ojs", into, edit), await seedModule("cloud-brain-specs.ojs", into)]).toEqual([edited, plain]);
   } finally {
     rmSync(into, { recursive: true, force: true });
   }

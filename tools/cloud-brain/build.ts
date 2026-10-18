@@ -11,8 +11,9 @@
  * is deleted and its entry becomes `running`. A page module that is no Worker's has `deployed` (since 2026-10-18,
  * i13287): its source is cloud-brain-dev/deploy/@tomlarkworthy/NAME.js after `bun sync.ts`, its seed deleted while
  * the same as what cb4 served. The owner's Workers and their modules are retired the same way (2026-10-18, on his
- * word): the kernel, the core and the database are `running`; the deployer has no getSource, so it and its modules are
- * `deployed`, from the deployer's infra.getModules as sync.ts writes it. Their text is cb4's, not a compiled seed's.
+ * word): the kernel, the core and the database are `running`; the deployer has no getSource, so it and cloudflare-iac
+ * are `deployed`, from the deployer's infra.getModules as sync.ts writes it, and so is cloudflare-iac-fixtures, a page
+ * module. Their text is cb4's, not a compiled seed's.
  * Beside it, in .emitted/ here: shell.html (the notebook without the modules a Brain's Workers serve) and
  * verify.html (the shell with mains cut to brain-shell, verify-shell.ts).
  */
@@ -30,7 +31,7 @@ const HOST = "@tomlarkworthy/blank-notebook";
 const MODULES = [
   { name: "@tomlarkworthy/xrpc-client", deployed: true, main: true, files: {} },
   { name: "@tomlarkworthy/brain-shell", deployed: true, main: true, files: {} },
-  { name: "@tomlarkworthy/cloudflare-iac-fixtures", seed: "cloudflare-iac-fixtures.ojs", main: false, files: {} },
+  { name: "@tomlarkworthy/cloudflare-iac-fixtures", deployed: true, main: false, files: {} },
   { name: "@tomlarkworthy/cloudflare-iac", deployed: true, main: true, files: { "hono.js": "text/javascript", "cel.js": "text/javascript", "quickjs.js": "text/javascript", "observable-runtime.js": "text/javascript", "acorn.js": "text/javascript", "acorn-walk.js": "text/javascript", "quickjs.wasm.b64": "text/plain" } },
   { name: "@tomlarkworthy/brain-deployer", deployed: true, main: true, files: {} },
   { name: "@tomlarkworthy/brain-core", running: "brain-core", main: true, files: {} },
