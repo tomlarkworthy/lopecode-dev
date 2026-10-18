@@ -1,12 +1,14 @@
 // The section "Where a change made on the Brain's page is kept" of knowledge/changing-and-deploying-a-cloud-brain-worker.md:
 // the four kinds of the rule, the changes that have no place, and the sentence on the saved-notebook doc
 // (pm-2-rule-in-the-doc; R4 of plan/cloud-brain-page-modifications-how-they-are-kept.md). The names the section gives
-// are held to the seeds that still exist, so a rename in brain-feedback.ojs, brain-shell.ojs or cloud-brain.ojs fails here.
+// are held to the modules, so a rename in brain-feedback, brain-shell.ojs or cloud-brain.ojs fails here. brain-feedback
+// has no seed since 2026-10-18 (i13287): it is read from cloud-brain-dev/deploy/ after bun sync.ts.
 //
 //   bun test ./tests/tools/pm-2-page-changes-kept.test.ts
 import { test, expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { running, runningCells } from "./needs";
 
 const root = resolve(import.meta.dir, "../..");
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
@@ -14,7 +16,9 @@ const HEADING = "## Where a change made on the Brain's page is kept";
 const doc = read("knowledge/changing-and-deploying-a-cloud-brain-worker.md");
 const start = doc.indexOf(HEADING);
 const section = doc.slice(start, doc.indexOf("\n## ", start + 1));
-const feedback = read("tools/cloud-brain/brain-feedback.ojs");
+const feedback = readFileSync(running("brain-feedback"), "utf8");
+const feedbackCells = await runningCells("brain-feedback");
+const cellOf = (cells: { _name: string | null; _definition: string }[], name: string) => cells.find((c) => c._name === name);
 const shell = read("tools/cloud-brain/brain-shell.ojs");
 const page = read("tools/cloud-brain/cloud-brain.ojs");
 const row = (first: string) => section.split("\n").find((l) => l.startsWith("| " + first)) || "";
@@ -33,15 +37,15 @@ test("the rule has its four kinds, each with where it is kept", () => {
   expect(row("a change to what the page is or does")).toContain("cloud-brain-dev");
 });
 
-test("the third row names the browser's items and functions as brain-feedback.ojs has them", () => {
+test("the third row names the browser's items and functions as brain-feedback has them", () => {
   const third = row("something of his own");
   for (const name of ["brain_feedback_drafts ADDRESS", "brain_feedback_away ADDRESS", 'feedbackKept(ADDRESS, "away")', "feedbackAway"]) expect([name, third.includes(name)]).toEqual([name, true]);
   // feedbackKept names its item "brain_feedback_" + what + " " + brain, drafts by default.
-  expect(feedback).toContain('feedbackKept = (brain = "", what = "drafts") =>');
+  expect(cellOf(feedbackCells, "feedbackKept")?._definition).toContain('(brain = "", what = "drafts") =>');
   expect(feedback).toContain('("brain_feedback_" + what + " " + brain)');
   expect(feedback).toContain("brain_feedback_away ADDRESS");
   expect(feedback).toContain("brain_feedback_drafts ADDRESS");
-  expect(lines(feedback).some((l) => l.startsWith("feedbackAway = "))).toBe(true);
+  expect(cellOf(feedbackCells, "feedbackAway")).toBeDefined();
 });
 
 test("the first two rows name what the seeds have", () => {

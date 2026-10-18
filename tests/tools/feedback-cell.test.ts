@@ -1,14 +1,14 @@
-// The cell `feedback` of tools/cloud-brain/brain-feedback.ojs, computed as the seed has it with feedbackOn true.
+// The cell `feedback` of brain-feedback, computed as cloud-brain-dev/deploy/ has it (its seed was deleted 2026-10-18), with feedbackOn true.
 // On a file the cell is null, and every test cell of the module makes an app of its own, so until this file no test
-// read what the cell gives the app (issue feedback-cell-copies-held-by-no-test). Here the module is compiled from the
-// seed of this checkout and the cell's inputs are given: the owner's page is stood in for by feedbackOn true, an
+// read what the cell gives the app (issue feedback-cell-copies-held-by-no-test). Here the module is the one sync.ts wrote
+// and the cell's inputs are given: the owner's page is stood in for by feedbackOn true, an
 // address, the module's own rig for the tracker and for annotate's store, and a localStorage held in a Map.
 import { afterAll, beforeAll, expect } from "bun:test";
 import { resolve } from "node:path";
-import { testNeedingSeed } from "./needs";
+import { testNeedingRunning } from "./needs";
 
 const root = resolve(import.meta.dir, "../..");
-const { test, module: seed } = await testNeedingSeed("feedback-cell.test.ts", "brain-feedback.ojs");
+const { test, module: seed } = testNeedingRunning("feedback-cell.test.ts", "brain-feedback");
 
 const ADDRESS = "https://brain.example";
 const DRAFTS = "brain_feedback_drafts " + ADDRESS, AWAY = "brain_feedback_away " + ADDRESS;
