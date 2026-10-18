@@ -17,7 +17,7 @@ The other pages are listed in that file, which is read first.
 
 ## A service changed as a patch (since 2026-10-13; from `cloud-brain-dev` alone since 2026-10-14)
 
-A second way exists beside the seeds, for a `brain-x-*` service: the module is edited as cb4 runs it, in a repository
+For a `brain-x-*` service but the page this is the one way since 2026-10-14 (until then it was a second way beside its seed): the module is edited as cb4 runs it, in a repository
 of that one piece of work, and what is deployed is a patch. The commands and each run are in `cloud-brain-dev/README.md`
 ("A change sent back", "The repository of a piece of work", "One issue, from ready to deployed"); `bun run.ts ID` there
 is the whole of it for one issue. The owner, 2026-10-13, in the session that built it (issue `fly-loop-needs-cloud-brain-dev-alone` has that evening): "the cluster is the source of truth. Seeds go stale."
@@ -78,7 +78,14 @@ So, since that day:
 - **The seed steps below** apply to the seeds left: the kernel, `brain-core`, `brain-db`, the deployer,
   `cloudflare-iac` and `cloudflare-iac-fixtures`, whose deploys are the owner's ("The deploys that wait for the
   owner"), and the page's own modules (`cloud-brain`, `brain-shell`, `cloud-brain-docs`, `cloud-brain-specs`,
-  `brain-secrets`, `brain-feedback`, `brain-operator`, `xrpc-client`).
+  `brain-secrets`, `brain-feedback`, `brain-operator`, `xrpc-client`). Which modules those are at a commit is the
+  entries with `seed:` in `MODULES` of `tools/cloud-brain/build.ts`, with `cloud-brain-specs`, which it builds apart.
+  Since 2026-10-18 the owner's spec i13287 (r2, option A, approved at event 13425) retires each of them, one task a seed
+  (`sr-*`, opened that day; none done when this line was written): `cloud-brain-dev/deploy/@tomlarkworthy/NAME.js`
+  becomes the one source, and a module whose seed is gone is changed there. For a module no Worker runs (the page's
+  modules but `cloud-brain`, and `cloudflare-iac-fixtures`) no command sends such a change to cb4 yet: `apply.ts --patch`
+  stops with "the patch names …, which is no service's module or doc of deploy/services.json" (its line 113, read
+  2026-10-18), and the spec does not say which tool will.
 - **A new service** still starts as a seed and a `build.ts` entry, because the page declares services from the build
   (as `brain-x-loop` did, above). It is deployed with the steps below. After its first deploy its seed is deleted and
   its entry becomes `running: "brain-x-NAME"`; from then on it is changed as a patch. Not yet done for any service.

@@ -115,9 +115,14 @@ each command; no shell state lasts between calls.
    worktree after `bun sync.ts` in `$W/cloud-brain-dev`: `$W/cloud-brain-dev/deploy/@tomlarkworthy/<module>.js`, with
    each Worker's hash in `deploy/services.json`. Its seed was deleted on 2026-10-14, and a change to it is a patch in
    `cloud-brain-dev` (its README, "One issue, from ready to deployed"; `run.ts`). Its first `md` cell is its method
-   reference, also `getSource?worker=brain-x-NAME&part=reference`. The kernel, the core, the database, the deployer,
-   `cloudflare-iac` and the page's own modules are seeds, `tools/cloud-brain/<name>.ojs`, and a change to one is made
-   in the seed. `spec-as-built.md` and `tools/cloud-brain/records/` have the history.
+   reference, also `getSource?worker=brain-x-NAME&part=reference`. A module whose entry in `MODULES` of
+   `tools/cloud-brain/build.ts` has `seed:` (and `cloud-brain-specs`, which `build.ts` builds from its seed apart) is a
+   seed, `tools/cloud-brain/<name>.ojs`, and a change to it is made in the seed: on 2026-10-18 the kernel, the core,
+   the database, the deployer, `cloudflare-iac` and its fixtures, and the page's own modules. Each is being retired by
+   a task of i13287 (spec r2, option A: `cloud-brain-dev/deploy/@tomlarkworthy/<name>.js` is the one source); once its
+   seed is gone, read that file and change it there. For a module no Worker owns (all of the page's but `cloud-brain`,
+   and `cloudflare-iac-fixtures`) no command sends such a change to cb4 yet: `apply.ts` refuses a patch of a file that is
+   no service's module in `deploy/services.json` (2026-10-18). `spec-as-built.md` and `tools/cloud-brain/records/` have the history.
    **Then search the Brain for prior art, before you design the fix** (Tom, 2026-10-11: "update
    the loop instructions to use knowledge.search to do prior art research before implementing or
    designing"): `BRAIN_STATE_DIR=<root>/tools/cloud-brain/.emitted BRAIN_BASE=cb4 bun $W/tools/cloud-brain/brain.ts curl "/xrpc/com.lopecode.brain.knowledge.search?semantic=true&q=<words, url-encoded>" --as loop-knowledge 2>/dev/null`.
