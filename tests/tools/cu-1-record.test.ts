@@ -1,12 +1,15 @@
 import { test, expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { testNeedingRunning } from "./needs.ts";
 
 const root = join(import.meta.dir, "..", "..");
 const record = readFileSync(join(root, "tools/cloud-brain/records/cu-1-deployer-gains-billing-read.md"), "utf8");
-const seed = readFileSync(join(root, "tools/cloud-brain/brain-deployer.ojs"), "utf8");
+// What cb4's deployer runs, as sync.ts writes it: its seed was deleted 2026-10-18 (sr-brain-deployer).
+const deployer = testNeedingRunning("cu-1-record.test.ts", "brain-deployer");
 
-test("the seed's GROUPS is the list the record quotes", () => {
+deployer.test("the deployer's GROUPS is the list the record quotes", () => {
+  const seed = readFileSync(deployer.module, "utf8");
   const groups = seed.match(/const GROUPS = (\[[^\]]*\]);/);
   expect(groups).not.toBeNull();
   expect(JSON.parse(groups![1])).toContain("Billing Read");

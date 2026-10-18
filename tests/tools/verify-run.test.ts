@@ -8,6 +8,7 @@ import { test, expect } from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
+import { testNeedingRunning } from "./needs.ts";
 
 const script = process.env.VERIFY_RUN_TS || resolve(import.meta.dir, "../../tools/cloud-brain/verify-run.ts");
 const { judge, parseArgs, runAddress, chromeFor, shellDocument } = await import(script);
@@ -94,9 +95,11 @@ test("the arguments: one Worker, --times, --shell, --base as a name or an addres
 // When this fails the deployer opens another address than the tool does: change runAddress with it.
 // Since dv-3-deployer-opens-verify-html the deployer's page is "/" or "/static/shell/verify.html" (verifyPage); the
 // tool opens "/" and --shell answers that document with the built verify file, so the part after the page is what is held.
-test("the address is the one the deployer's seed writes", () => {
+// What cb4's deployer runs, as sync.ts writes it: its seed was deleted 2026-10-18 (sr-brain-deployer).
+const deployer = testNeedingRunning("verify-run.test.ts", "brain-deployer");
+deployer.test("the address is the one the deployer writes", () => {
   expect(runAddress("https://cb.sub.workers.dev", "@t/a", "brain-x-a")).toBe("https://cb.sub.workers.dev/#view=C100(S100(@t/a,@tomlarkworthy/brain-shell))&verify=brain-x-a");
-  const seed = readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain/brain-deployer.ojs"), "utf8");
+  const seed = readFileSync(deployer.module, "utf8");
   expect(seed).toContain("const url = `${urlOf(\"brain\")}${await verifyPage()}#view=C100(S100(${module},@tomlarkworthy/brain-shell))&verify=${logical}`;");
   expect(seed).toContain('if (r && r.status === 200) return "/static/" + VERIFY_PAGE;\n    } catch {}\n    return "/";');
 });
