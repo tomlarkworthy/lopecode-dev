@@ -22,7 +22,7 @@ import { resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { blockSpans, blockContent, findSpan } from "../lib/notebook-blocks.ts";
 import { compiler, moduleSource, splitSeed } from "../spec-notebook.ts";
-import { carryCells, patchSpec } from "./spec-patch.ts";
+import { carryCells, defsOf, patchSpec, SPEC } from "./spec-patch.ts";
 import { verifyShell, VERIFY_MAINS } from "./verify-shell.ts";
 
 const ROOT = resolve(import.meta.dir, "../..");
@@ -66,17 +66,8 @@ const MODULES = [
 ];
 // What a Worker of a Brain owns: the deployer's two, and one per service. The shell is the notebook without these.
 const OWNED = ["cloudflare-iac", "brain-deployer", "brain-core", "brain-kernel", "brain-proxy", "brain-whatsapp", "brain-bluesky", "brain-static", "brain-blob", "brain-library", "brain-feed", "brain-browser", "brain-inbox", "brain-logs", "brain-snapshot", "brain-knowledge", "brain-issues", "brain-container", "brain-ai", "brain-git", "brain-dashboard", "brain-topic", "brain-fly", "brain-usage", "brain-loop", "cloud-brain", "brain-db"].map((n) => "@tomlarkworthy/" + n);
-// The spec is built from a seed, and the cells a reviewer writes in the page (notes, the status) are carried over from
-// the previous build. Before 2026-10-07 the module was @spec/cloud-brain and was carried whole.
-const SPEC = {
-  name: "@tomlarkworthy/cloud-brain-specs", seed: "cloud-brain-specs.ojs", was: "@spec/cloud-brain", first: "plan/specs/cloud-brain.html",
-  keep: /^(annotation_|(viewof )?specStatus$)/, before: "readiness",
-  // The 17 notes written up to 2026-10-07 were deleted on that date. A copy of the notebook from before then still
-  // has them, so they are named here and never carried. A note written later is carried.
-  drop: new RegExp("^annotation_(" + ["a23ahpyuxt", "a24xfwjh5b", "a25m73v31h", "a25rb6dkmz", "a2dbw0gqoq", "a2fv75k8nc", "a2h9xiljyh", "a2jt29zm5d", "a2k5w4ll7i", "a2lfiuj62x", "a2llvc93z9", "a2mw1jiv7f", "a2ol0gte11", "a2rpun2hls", "a2vs1omqg3", "a2ys8x7d28", "a2zdaxjzif"].join("|") + ")(_note)?$"),
-  // Notes are anchored to these ids.
-  pids: { readiness: "_spec_3_0", drawTools: "_spec_15_0", design: "_spec_46_0", handover: "_spec_54_0" } as Record<string, string>,
-};
+// The spec (SPEC of spec-patch.ts) is `deployed` since 2026-10-18 (i13600). The cells a reviewer writes in the page
+// (notes, the status) are carried over from the previous build when the module lacks them.
 const DROP_MAINS = ["@tomlarkworthy/at-login", "@tomlarkworthy/at-write", "@tomlarkworthy/grid-container", "@tomlarkworthy/debugger-2"];
 
 const BRAIN = `https://${process.env.BRAIN_BASE || "cb4"}.endpointservices.workers.dev`;
@@ -93,7 +84,7 @@ for (const m of MODULES) {
 // cb4 serves. services.json is written by sync.ts alone (git-ignored): without it the committed copies may be behind.
 const DEPLOY = resolve(ROOT, "cloud-brain-dev/deploy");
 const deployed = new Map<string, string>();
-for (const m of MODULES) {
+for (const m of [...MODULES, SPEC]) {
   if (!("deployed" in m) || !m.deployed) continue;
   const file = resolve(DEPLOY, m.name + ".js");
   if (!existsSync(resolve(DEPLOY, "services.json")) || !existsSync(file)) throw new Error(`${m.name}: no ${file} from a sync. git submodule update --init cloud-brain-dev, then bun sync.ts ${BRAIN} there`);
@@ -116,7 +107,7 @@ const testsOf = (m: (typeof MODULES)[number]) => compiled(m)
   const wrong: string[] = [];
   const docs = MODULES.find((m) => m.name === "@tomlarkworthy/cloud-brain-docs")!;
   const cited = [
-    { f: SPEC.seed, text: seedText(SPEC.seed), own: new Set([...seedText(SPEC.seed).matchAll(/^(test_[A-Za-z0-9_]+) = /gm)].map((x) => x[1])) },
+    { f: SPEC.name, text: deployed.get(SPEC.name)!, own: new Set(defsOf(deployed.get(SPEC.name)!).flatMap((d) => (d.name?.startsWith("test_") ? [d.name] : []))) },
     { f: docs.name, text: textOf(docs), own: new Set(testsOf(docs)) },
     { f: "spec-as-built-short.md", text: seedText("spec-as-built-short.md"), own: new Set<string>() },
   ];
@@ -202,9 +193,10 @@ try {
     pieces.push(block(m.name, "application/javascript", src));
   }
   {
-    const prefix = "_cloudbrainspecs_";
-    let src = stablePids(moduleSource(splitSeed(readFileSync(resolve(HERE, SPEC.seed), "utf8")), compile), prefix);
-    for (const [name, pid] of Object.entries(SPEC.pids)) src = src.replace(new RegExp(prefix + name + "(?![A-Za-z0-9_])", "g"), pid);
+    // Its ids are those of the build that made it: stablePids would rename the carried ones (specStatus's _spec_2_0).
+    const src = deployed.get(SPEC.name)!;
+    const defs = new Map(defsOf(src).map((d) => [d.name, d.pid]));
+    for (const [name, pid] of Object.entries(SPEC.pids)) if (defs.get(name) !== pid) throw new Error(`${SPEC.name}: ${name} is not ${pid}, the id its notes are anchored to`);
     const prev = existsSync(out) ? readFileSync(out, "utf8") : "";
     const sources: [string, string | null][] = [
       [`the previous build's ${SPEC.name}`, prev ? blockContent(prev, SPEC.name) : null],
