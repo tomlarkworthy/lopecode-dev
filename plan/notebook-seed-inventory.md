@@ -13,7 +13,7 @@ tests read `cloud-brain-dev/deploy/`. So the 18 retire tickets i13488 to i13556 
 ## The 14 seeds
 
 Bytes are `wc -c`. **deploy/** is whether `cloud-brain-dev/deploy/@tomlarkworthy/NAME.js` exists after the sync, and
-whether that file is committed in `cloud-brain-dev` (`git ls-files`) or git-ignored as a service's module. **Same** is
+whether that file is committed in `cloud-brain-dev` (`git ls-files`) or git-ignored as a service's module (`deploy/.gitignore`, which `sync.ts` writes with each service's module in it). **Same** is
 `differ` of `tools/cloud-brain/waiting-deploys.ts`: the seed compiled as `build.ts` compiles it
 (`moduleSource(splitSeed(…))`) against the file the sync wrote, cell by cell (each named cell's body signature and
 inputs, the cells with no name as a sorted list, the imports). Not bytes. For `cloud-brain` the other side is
@@ -80,7 +80,7 @@ build of `brain-git.ojs` would have on 2026-10-14. Not retired here; the seed mu
 
 `specStatus` is carried from the previous build (`SPEC.keep`, `build.ts` line 68, `carryCells`), and the `built_*`
 cells are written by `patchSpec` (`tools/cloud-brain/spec-patch.ts`) from `spec-as-built.md`. The seed's own cells are
-the same. It is still not retired: `build.ts` treats it apart (`SPEC`, lines 66 to 76 and 184: the carry, the anchored
+the same. It is still not retired: `build.ts` treats it apart (`SPEC`, lines 66 to 74 and 184: the carry, the anchored
 ids, `patchSpec`), and the build's citation check reads it as a seed (line 100).
 
 ## The lines of build.ts that read seeds
@@ -98,15 +98,24 @@ At `a0a2aaa0`:
 184            the spec compiled from SPEC.seed
 ```
 
-## The order the retire tickets take
+## What the retire tickets came to (2026-10-18, branch worktree-agent-afb1ffdf28e15dac6, not pushed)
 
-Each in its own commit that leaves `build.ts` and the touched tests passing. What each turned out to be is in its
-ticket's comment and in `git log` of this branch:
+Each retirement is one commit; each ticket has one comment with what was measured.
 
-- i13488 to i13556, the 18 services: nothing to do (deleted in `ad513872`).
-- i13482 `cloud-brain`: not retired, differs (above).
-- i13600 `cloud-brain-specs`: not retired, the build's own carry and patch (above).
-- `brain-secrets`, `brain-feedback`, `brain-operator`, `brain-shell`, `xrpc-client`, `cloud-brain-docs`: same, retired
-  if the tests that read each can be moved to its `deploy/` file.
-- The owner's six (`brain-kernel`, `brain-core`, `brain-db`, `brain-deployer`, `cloudflare-iac`,
-  `cloudflare-iac-fixtures`): all `same` on this day, left for the owner (i13610 to i13620).
+| ticket | seed | outcome | commit |
+|---|---|---|---|
+| i13488 to i13556 | the 18 services | nothing to do, deleted in `ad513872` | none |
+| i13564 | `brain-secrets` | retired; `build.ts` gets the entry kind `deployed: true` | `3305f5b3` |
+| i13568 | `brain-feedback` | retired | `ada7a253` |
+| i13572 | `brain-operator` | retired | `0be585ef` |
+| i13560 | `brain-shell` | retired; a deployed module gets back the newline before `</script>` that `sync.ts` strips | `479950ac` |
+| i13578 | `xrpc-client` | retired | `cc754df5` |
+| i13590 | `cloud-brain-docs` | retired; the citation check reads the module from `deploy/` | `d904b618` |
+| i13482 | `cloud-brain` | not retired: differs, cb4 ahead | none |
+| i13600 | `cloud-brain-specs` | not retired: the `SPEC` handling (carry, patch, pids) | none |
+| i13610 to i13620 | the owner's six | left for the owner; all `same` on this day | none |
+
+`deployed: true` reads `cloud-brain-dev/deploy/@tomlarkworthy/NAME.js` and stops the build when that file or
+`deploy/services.json` is missing. `services.json` is git-ignored and only `sync.ts` writes it, so its presence shows a
+sync ran; it does not show the sync is recent. After the six retirements the notebook `build.ts --out` wrote was
+byte-identical (`cmp`) to the one built by `1db614f3`'s `build.ts` from its seeds.
