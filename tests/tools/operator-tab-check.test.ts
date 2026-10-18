@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { running, runningGroups } from "./needs";
 import { judgeBase, judgeFile, parseArgs, PAGE, PAIRING, TAB, type Read } from "../../tools/cloud-brain/operator-tab-check.ts";
 
 const ROOT = resolve(import.meta.dir, "../..");
@@ -47,15 +48,16 @@ describe("operator-tab-check", () => {
     expect(judgeBase({ ...oldShell, pageSection: null }, 1729, "old-shell").length).toBe(1);
   });
 
-  test("the build's layout is the one the probe looks for, and the seeds carry what it reads", () => {
+  // brain-operator has no seed since 2026-10-18 (i13287): it is read from cloud-brain-dev/deploy/ after bun sync.ts.
+  test("the build's layout is the one the probe looks for, and the modules carry what it reads", async () => {
     const build = readFileSync(resolve(ROOT, "tools/cloud-brain/build.ts"), "utf8");
     expect(build).toContain(`conf.hash = "${HASH}";`);
-    expect(build).toContain(`{ name: "${TAB}", seed: "brain-operator.ojs", main: true, files: {} }`);
+    expect(build).toContain(`{ name: "${TAB}", deployed: true, main: true, files: {} }`);
     expect(/const OWNED = \[[^\]]*"brain-operator"/.test(build)).toBe(false);
-    const tab = readFileSync(resolve(ROOT, "tools/cloud-brain/brain-operator.ojs"), "utf8");
+    const tab = readFileSync(running("brain-operator"), "utf8");
     expect(tab).toContain('data-operator="chat"');
     expect(tab).toContain('data-operator="no part"');
-    expect([...tab.matchAll(/^import \{[^}]*\} from "([^"]+)"/gm)].map((m) => m[1])).toEqual(["@tomlarkworthy/plugin-registry", "@tomlarkworthy/lopepage-urls", "@tomlarkworthy/jest-expect-standalone"]);
+    expect((await runningGroups("brain-operator")).imports.map((i) => /^import \{[^}]*\} from "([^"]+)"/.exec(i)?.[1])).toEqual(["@tomlarkworthy/plugin-registry", "@tomlarkworthy/lopepage-urls", "@tomlarkworthy/jest-expect-standalone"]);
     const page = readFileSync(resolve(ROOT, "tools/cloud-brain/cloud-brain.ojs"), "utf8");
     expect(page).toContain('data-operator-section="link"');
     expect(page).toContain('data-operator-section="chat"');

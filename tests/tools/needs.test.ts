@@ -110,7 +110,7 @@ test("a second seed, compiled after the first seed's module was imported, is fou
     const first = await seedModule("xrpc-client.ojs", into);
     expect(first.startsWith(into)).toBe(true);
     expect(typeof (await import(pathToFileURL(first).href)).default).toBe("function");
-    const second = await seedModule("brain-operator.ojs", into);
+    const second = await seedModule("cloudflare-iac-fixtures.ojs", into);
     expect(typeof (await import(pathToFileURL(second).href)).default).toBe("function");
     expect(dirname(second)).not.toBe(dirname(first));
     expect(await seedModule("xrpc-client.ojs", into)).toBe(first);
