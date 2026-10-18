@@ -38,9 +38,9 @@
 # --first-paragraph --usd-max 1 …`. The release starts no agent; who runs the command is in the line
 # (issue sd-4-the-rest-and-the-release-line; plan/cloud-brain-docs-summarised-for-search.md, design piece 4).
 # The deploys step (issue undeployed-seeds-not-shown-to-owner), after the docs step: `waiting-deploys.ts --file <LOCK_TOKEN>`
-# reads whether cb4 runs the seed of origin/main for the kernel, the core, the database and the deployer, and keeps one
-# issue `deploy-waits-<worker>` for each that does not, labelled needs-owner. The line printed is the tool's last,
-# `deploys (<brain>): <what waits>; <what was written>`, or `deploys (<brain>): not read (<why>)`; the exit is the
+# reads whether cloud-brain-dev/deploy/ has what cb4 runs for the kernel, the core, the database and the deployer (no
+# seeds since 2026-10-18), and closes an open `deploy-waits-<worker>` of one that does. The line printed is the tool's last,
+# `deploys (<brain>): <what differs>; <what was written>`, or `deploys (<brain>): not read (<why>)`; the exit is the
 # release's either way. LOCK_DEPLOYS=0 leaves the step out; LOCK_DEPLOYS=<program> runs that program in the tool's place.
 # With LOCK_BASE set the step is run only for such a program.
 usage() { sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }

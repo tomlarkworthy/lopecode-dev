@@ -5,8 +5,8 @@
 //
 //   bun test ./tests/tools/needs.test.ts
 // Three files are run as they are, each pointed at a place that has nothing.
-import { test, expect } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { afterAll, test, expect } from "bun:test";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -89,17 +89,24 @@ test("atproto-publish.test.ts with no atproto.html leaves fetch a function for t
 
 // Issue cost-events-test-reads-stale-deploy: cost-events.test.ts asked issueAct of cloud-brain-dev/deploy/, and failed 3
 // in a checkout whose copy was from before issue.cost.
-// Until 2026-10-14 of brain-issues.ojs, deleted that day; then brain-topic.ojs, deleted later that day; then brain-db.ojs,
-// deleted 2026-10-18; cloud-brain.ojs and cloud-brain-specs.ojs since, the seeds left (i13287 retires them too).
-test("a module is compiled from the seed of this checkout, once, into a file that is not in the checkout", async () => {
-  const file = await seedModule("cloud-brain.ojs");
-  expect(file).toEndWith("/cloud-brain.js");
+// Until 2026-10-18 these compiled seeds of tools/cloud-brain/ (brain-issues.ojs, brain-topic.ojs, brain-db.ojs,
+// cloud-brain.ojs and cloud-brain-specs.ojs in turn); since i13482 and i13600 that day none is left, and they compile
+// two small seeds of their own, by path. A new service still starts as a seed (build.ts's header).
+const SEED_DIR = mkdtempSync(join(tmpdir(), "seed-fixtures-"));
+const SEED_A = join(SEED_DIR, "fixture-a.ojs"), SEED_B = join(SEED_DIR, "fixture-b.ojs");
+writeFileSync(SEED_A, "md`# fixture a`\n// %%\nspanOptions = [\"1h\", \"24h\"]\n// %%\ntwice = spanOptions.length * 2\n");
+writeFileSync(SEED_B, "md`# fixture b`\n// %%\nvalue_b = 1\n");
+afterAll(() => rmSync(SEED_DIR, { recursive: true, force: true }));
+
+test("a module is compiled from a seed, once, into a file that is not in the checkout", async () => {
+  const file = await seedModule(SEED_A);
+  expect(file).toEndWith("/fixture-a.js");
   expect(file.startsWith(resolve(here, "../.."))).toBe(false);
-  expect(await seedModule("cloud-brain.ojs")).toBe(file);
+  expect(await seedModule(SEED_A)).toBe(file);
   // spanOptions's line of the seed, as the seed has it, is in what was compiled.
-  const spans = readFileSync(resolve(here, "../../tools/cloud-brain/cloud-brain.ojs"), "utf8").split("\n").find((l) => l.startsWith("spanOptions = "))!.slice("spanOptions = ".length);
+  const spans = readFileSync(SEED_A, "utf8").split("\n").find((l) => l.startsWith("spanOptions = "))!.slice("spanOptions = ".length);
   expect(readFileSync(file, "utf8")).toContain(spans);
-  expect((await testNeedingSeed("needs.test.ts", "cloud-brain.ojs")).module).toBe(file);
+  expect((await testNeedingSeed("needs.test.ts", SEED_A)).module).toBe(file);
 }, 60000);
 
 // Issue rows-add-within-sql-fails-once-in-suite: in the first run of the suite in a checkout, cost-events.test.ts imported
@@ -108,30 +115,30 @@ test("a module is compiled from the seed of this checkout, once, into a file tha
 test("a second seed, compiled after the first seed's module was imported, is found by import()", async () => {
   const into = mkdtempSync(join(tmpdir(), "seed-module-test-"));
   try {
-    const first = await seedModule("cloud-brain.ojs", into);
+    const first = await seedModule(SEED_A, into);
     expect(first.startsWith(into)).toBe(true);
     expect(typeof (await import(pathToFileURL(first).href)).default).toBe("function");
-    const second = await seedModule("cloud-brain-specs.ojs", into);
+    const second = await seedModule(SEED_B, into);
     expect(typeof (await import(pathToFileURL(second).href)).default).toBe("function");
     expect(dirname(second)).not.toBe(dirname(first));
-    expect(await seedModule("cloud-brain.ojs", into)).toBe(first);
+    expect(await seedModule(SEED_A, into)).toBe(first);
   } finally {
     rmSync(into, { recursive: true, force: true });
   }
 }, 60000);
 
-// Issue bk-4-install-the-project-workflow: issues-policy-v4.test.ts runs a cell that is not in the seed, in the seed's rig.
+// Issue bk-4-install-the-project-workflow: issues-policy-v4.test.ts ran a cell that was not in the seed, in the seed's rig.
 test("a seed compiled with an edit of its text is another file under the edit's name, and the seed's own module is as it was", async () => {
   const into = mkdtempSync(join(tmpdir(), "seed-module-test-"));
   try {
-    const plain = await seedModule("cloud-brain-specs.ojs", into);
-    const edit = { name: "cloud-brain-specs-and-one", text: (seed: string) => seed + "\n// %%\none_more_cell_of_a_test = 41 + 1\n" };
-    const edited = await seedModule("cloud-brain-specs.ojs", into, edit);
-    expect(edited).toEndWith("/cloud-brain-specs-and-one/cloud-brain-specs-and-one.js");
+    const plain = await seedModule(SEED_B, into);
+    const edit = { name: "fixture-b-and-one", text: (seed: string) => seed + "\n// %%\none_more_cell_of_a_test = 41 + 1\n" };
+    const edited = await seedModule(SEED_B, into, edit);
+    expect(edited).toEndWith("/fixture-b-and-one/fixture-b-and-one.js");
     expect(readFileSync(edited, "utf8")).toContain("one_more_cell_of_a_test");
     expect(readFileSync(plain, "utf8")).not.toContain("one_more_cell_of_a_test");
     // Asked again, each is the file it was.
-    expect([await seedModule("cloud-brain-specs.ojs", into, edit), await seedModule("cloud-brain-specs.ojs", into)]).toEqual([edited, plain]);
+    expect([await seedModule(SEED_B, into, edit), await seedModule(SEED_B, into)]).toEqual([edited, plain]);
   } finally {
     rmSync(into, { recursive: true, force: true });
   }

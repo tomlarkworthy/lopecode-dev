@@ -3,7 +3,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { test } from "bun:test";
 
 // How a checkout that is not from worktree.sh gets what a submodule holds.
@@ -30,7 +30,7 @@ const built = new Map<string, Promise<string>>();
 let compiling: Promise<any> | null = null, last: Promise<any> = Promise.resolve();
 // Where a checkout's modules are written: one directory a checkout, written over by each run, so a run leaves nothing new behind it.
 export const SEEDS = join(tmpdir(), "seed-module-" + createHash("sha1").update(ROOT).digest("hex").slice(0, 12));
-// `edit`: the module of a seed whose text was changed first (a cell added, cells left out), under a name of its own.
+// `seed` is a file of tools/cloud-brain/, or a path. `edit`: the module of a seed whose text was changed first (a cell added, cells left out), under a name of its own.
 export const seedModule = (seed: string, into = SEEDS, edit?: { name: string; text: (seed: string) => string }): Promise<string> => {
   const key = `${into}\n${seed}\n${edit?.name ?? ""}`;
   if (!built.has(key)) built.set(key, (last = last.catch(() => {}).then(async () => {
@@ -38,7 +38,7 @@ export const seedModule = (seed: string, into = SEEDS, edit?: { name: string; te
     const { compile } = await (compiling ??= compiler());
     // A directory of its own for each seed. bun 1.4.0 does not find, by import(), a file written into a directory after
     // it imported another file of that directory (issue rows-add-within-sql-fails-once-in-suite).
-    const name = edit?.name ?? seed.replace(/\.ojs$/, ""), dir = join(into, name), file = join(dir, name + ".js");
+    const name = edit?.name ?? basename(seed).replace(/\.ojs$/, ""), dir = join(into, name), file = join(dir, name + ".js");
     const text = readFileSync(resolve(ROOT, "tools/cloud-brain", seed), "utf8");
     mkdirSync(dir, { recursive: true });
     writeFileSync(`${file}.${process.pid}`, moduleSource(splitSeed(edit ? edit.text(text) : text), compile));

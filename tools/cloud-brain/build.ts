@@ -1,19 +1,15 @@
 /**
- * Builds lopebooks/notebooks/@tomlarkworthy_cloud-brain.html from the seeds in this directory.
+ * Builds lopebooks/notebooks/@tomlarkworthy_cloud-brain.html from what cb4 runs and serves.
  *   bun tools/cloud-brain/build.ts [--out path] [--token LOPE-…]
- * While the notebook is built from seeds, the seeds are the source and the HTML is regenerated.
- * A module with `running` in place of `seed` has no seed here: it is changed as a patch in cloud-brain-dev, and its
- * source is what the Brain runs, read from getSource of BRAIN_BASE (cb4) at each build. Its seed was deleted on
- * 2026-10-14 because it was behind what ran, and a build of it would have undone the patches (Tom: "remove the stale
- * seeds from lopecode-dev so there are no accidents"). No answer, no build. Since later that day every brain-x-*
- * service but the page is `running`: the 18 other seeds were deleted while each still matched what ran. A new service
- * starts as a seed and an entry here (the page declares services from this build); after its first deploy its seed
- * is deleted and its entry becomes `running`. A page module that is no Worker's has `deployed` (since 2026-10-18,
- * i13287): its source is cloud-brain-dev/deploy/@tomlarkworthy/NAME.js after `bun sync.ts`, its seed deleted while
- * the same as what cb4 served. The owner's Workers and their modules are retired the same way (2026-10-18, on his
- * word): the kernel, the core and the database are `running`; the deployer has no getSource, so it and cloudflare-iac
- * are `deployed`, from the deployer's infra.getModules as sync.ts writes it, and so is cloudflare-iac-fixtures, a page
- * module. Their text is cb4's, not a compiled seed's.
+ * Since 2026-10-18 no module of the notebook has a seed here. A module with `running` is a Worker's: its source is
+ * what that Worker runs, read from getSource of BRAIN_BASE (cb4) at each build; no answer, no build. A module with
+ * `deployed` has no getSource (a page module, the deployer, cloudflare-iac, the spec): its source is
+ * cloud-brain-dev/deploy/@tomlarkworthy/NAME.js after `bun sync.ts`. Either is changed as a patch in cloud-brain-dev.
+ * Each seed was deleted while it matched what cb4 ran or served (2026-10-14: "remove the stale seeds from lopecode-dev
+ * so there are no accidents"; 2026-10-18, i13287 and the owner's "yes delete them"), because a build of a seed behind
+ * what ran would have undone the patches. The page module is `running: "brain-x-page"` (i13482); the spec is SPEC of
+ * spec-patch.ts (i13600). A new service may still start as a seed and an entry here (`seed`, compiled at build, with
+ * an attachment prologue added); after its first deploy its seed is deleted and its entry becomes `running`.
  * Beside it, in .emitted/ here: shell.html (the notebook without the modules a Brain's Workers serve) and
  * verify.html (the shell with mains cut to brain-shell, verify-shell.ts).
  */
@@ -97,7 +93,7 @@ const testsOf = (m: (typeof MODULES)[number]) => compiled(m)
   ? [...textOf(m).matchAll(/\$def\("[^"]*", "(test_[A-Za-z0-9_]+)"/g)].map((x) => x[1])
   : [...textOf(m).matchAll(/^(test_[A-Za-z0-9_]+) = /gm)].map((x) => x[1]);
 
-// The spec and the docs cite test cells by name and link modules with mod("name"). A name that no seed defines, or a
+// The spec and the docs cite test cells by name and link modules with mod("name"). A name that no module defines, or a
 // module that is not a main of the notebook, stops the build.
 {
   const seedText = (f: string) => readFileSync(resolve(HERE, f), "utf8");
