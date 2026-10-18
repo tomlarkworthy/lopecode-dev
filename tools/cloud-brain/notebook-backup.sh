@@ -21,9 +21,26 @@
 # The notebook is the build of the seeds of a lopecode-dev commit (`build.ts --out`; since 2026-10-14 with brain-git and
 # brain-fly as cb4 runs them at the build, as they have no seed), so what is
 # committed here is a backup and no landing waits on it. Issue notebook-commit-once-a-day; tests/tools/notebook-backup.test.ts.
+# notebook-backup.sh --build
+#   The same, with the notebook that notebook.ts of cloud-brain-dev makes from deploy/ as sync.ts reads it from the Brain
+#   in place of a build given (R9 of i13287, issue i13812). Both run in a detached worktree of NOTEBOOK_DEV's HEAD, which
+#   is removed after, so no checkout's deploy/ is written. Exit 1 when either fails; nothing is written. Not run by a
+#   landing yet: notebook.ts writes no bootloader, so its file does not open in a browser as build.ts's does.
 # NOTEBOOK_REPO is the repository, the main checkout's lopebooks with none. NOTEBOOK_TODAY is the day, `date +%F` with
-# none. Only the tests set them.
+# none. NOTEBOOK_DEV is the cloud-brain-dev clone, this checkout's with none; NOTEBOOK_BRAIN the Brain's address, cb4's
+# with none. Only the tests set the first three.
 BUILT="$1"
+FROM="the seeds of lopecode-dev@$(git -C "$(dirname "$0")" rev-parse --short HEAD)"
+if [ "$BUILT" = "--build" ]; then
+  DEV="${NOTEBOOK_DEV:-$(git -C "$(dirname "$0")" rev-parse --show-toplevel)/cloud-brain-dev}"
+  BRAIN="${NOTEBOOK_BRAIN:-https://cb4.endpointservices.workers.dev}"
+  TMP="$(mktemp -d)"; WT="$TMP/dev"
+  trap 'git -C "$DEV" worktree remove --force "$WT" >/dev/null 2>&1; rm -rf "$TMP"' EXIT
+  git -C "$DEV" worktree add -q --detach "$WT" HEAD >&2 || { echo "notebook-backup.sh --build: no worktree of $DEV; nothing is written" >&2; exit 1; }
+  ( cd "$WT" && bun sync.ts "$BRAIN" >&2 && bun notebook.ts --out "$TMP/cloud-brain.html" >&2 ) || { echo "notebook-backup.sh --build: sync.ts or notebook.ts failed in a worktree of $DEV; nothing is written" >&2; exit 1; }
+  BUILT="$TMP/cloud-brain.html"
+  FROM="deploy/ by notebook.ts of cloud-brain-dev@$(git -C "$WT" rev-parse --short HEAD), as sync.ts read it from $BRAIN"
+fi
 [ "$BUILT" = "--take-back" ] || { [ -n "$BUILT" ] && [ -s "$BUILT" ]; } || { echo "notebook-backup.sh <built notebook>: no file, or an empty one, at '${BUILT}'" >&2; exit 1; }
 ROOT="$(dirname "$(git -C "$(dirname "$0")" rev-parse --path-format=absolute --git-common-dir)")"
 REPO="${NOTEBOOK_REPO:-$ROOT/lopebooks}"
@@ -64,7 +81,7 @@ if [ "$LAST" = "$TODAY" ]; then echo "not due: last committed $LAST"; exit 0; fi
 if [ -n "$LAST" ] && git -C "$REPO" diff --quiet HEAD -- "$HTML"; then echo "same: last committed $LAST"; exit 0; fi
 # The commit named is the HEAD of the checkout this copy is in: a landing runs its worktree's, where the seeds of the
 # build are committed and the main checkout's HEAD is behind (wt-3-land-by-push).
-MSG="cloud-brain: the notebook of $TODAY, built from the seeds of lopecode-dev@$(git -C "$(dirname "$0")" rev-parse --short HEAD) (the day's backup; notebook-commit-once-a-day)"
+MSG="cloud-brain: the notebook of $TODAY, built from $FROM (the day's backup; notebook-commit-once-a-day)"
 # The spec-sync hook of lopebooks may write the .json beside the notebook and refuse the commit: the next try has it.
 n=0; made=""
 while [ $n -lt 3 ]; do

@@ -137,6 +137,48 @@ test("no build, an empty build and no argument are exit 1 and write nothing", ()
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// i13812: --build runs sync.ts and notebook.ts of a cloud-brain-dev clone (stand-ins here) in a worktree it removes.
+const devRepo = (notebook: string) => {
+  const dev = mkdtempSync(join(tmpdir(), "nb-dev-"));
+  sh(["git", "init", "-q", "-b", "main"], dev);
+  writeFileSync(join(dev, "sync.ts"), `import { mkdirSync, writeFileSync } from "node:fs";\nmkdirSync("deploy", { recursive: true });\nwriteFileSync("deploy/from.txt", process.argv[2]);\n`);
+  writeFileSync(join(dev, "notebook.ts"), notebook);
+  sh(["git", "add", "-A"], dev);
+  sh(["git", "commit", "-q", "-m", "tools"], dev);
+  return dev;
+};
+const runBuild = (dir: string, dev: string, today: string) =>
+  sh(["bash", TOOL, "--build"], ROOT, { NOTEBOOK_REPO: dir, NOTEBOOK_TODAY: today, NOTEBOOK_DEV: dev, NOTEBOOK_BRAIN: "https://stub.example" });
+
+test("--build commits what notebook.ts made from what sync.ts read, and leaves the clone as it was", () => {
+  const dir = repo("2026-10-10");
+  const dev = devRepo(`import { readFileSync, writeFileSync } from "node:fs";\nconst a = process.argv;\nwriteFileSync(a[a.indexOf("--out") + 1], "<html>" + readFileSync("deploy/from.txt", "utf8") + "</html>\\n");\n`);
+  try {
+    const r = runBuild(dir, dev, "2026-10-12");
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(/^committed [0-9a-f]{8} 2026-10-12$/);
+    expect(sh(["git", "show", `HEAD:${HTML}`], dir).out).toBe("<html>https://stub.example</html>");
+    const sha = sh(["git", "rev-parse", "--short", "HEAD"], dev).out;
+    expect(sh(["git", "log", "-1", "--format=%s"], dir).out).toBe(
+      `cloud-brain: the notebook of 2026-10-12, built from deploy/ by notebook.ts of cloud-brain-dev@${sha}, as sync.ts read it from https://stub.example (the day's backup; notebook-commit-once-a-day)`);
+    expect(sh(["git", "status", "--porcelain"], dev).out).toBe("");
+    expect(sh(["git", "worktree", "list", "--porcelain"], dev).out.split("\n").filter((l) => l.startsWith("worktree ")).length).toBe(1);
+  } finally { rmSync(dir, { recursive: true, force: true }); rmSync(dev, { recursive: true, force: true }); }
+});
+
+test("--build whose notebook.ts fails is exit 1 and writes nothing", () => {
+  const dir = repo("2026-10-10");
+  const dev = devRepo(`process.exit(1);\n`);
+  try {
+    const r = runBuild(dir, dev, "2026-10-12");
+    expect([r.code, r.out]).toEqual([1, ""]);
+    expect(r.err).toContain("sync.ts or notebook.ts failed");
+    expect(readFileSync(join(dir, HTML), "utf8")).toBe("<html>one</html>\n");
+    expect(count(dir)).toBe(1);
+    expect(sh(["git", "worktree", "list", "--porcelain"], dev).out.split("\n").filter((l) => l.startsWith("worktree ")).length).toBe(1);
+  } finally { rmSync(dir, { recursive: true, force: true }); rmSync(dev, { recursive: true, force: true }); }
+});
+
 // backup-committed-before-apply-answers (2026-10-13): a backup committed before an apply that was put back is the
 // build of a version cb4 never ran, and it was never pushed. A repository with an origin, as the main checkout's
 // lopebooks has: the tool takes back a backup commit of its own that origin does not have.
