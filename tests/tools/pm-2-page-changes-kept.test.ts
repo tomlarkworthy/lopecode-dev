@@ -1,8 +1,9 @@
 // The section "Where a change made on the Brain's page is kept" of knowledge/changing-and-deploying-a-cloud-brain-worker.md:
 // the four kinds of the rule, the changes that have no place, and the sentence on the saved-notebook doc
 // (pm-2-rule-in-the-doc; R4 of plan/cloud-brain-page-modifications-how-they-are-kept.md). The names the section gives
-// are held to the modules, so a rename in brain-feedback, brain-shell or cloud-brain.ojs fails here. brain-feedback and
-// brain-shell have no seed since 2026-10-18 (i13287): they are read from cloud-brain-dev/deploy/ after bun sync.ts.
+// are held to the modules, so a rename in brain-feedback, brain-shell or cloud-brain fails here. brain-feedback,
+// brain-shell and cloud-brain have no seed since 2026-10-18 (i13287, i13482): they are read from cloud-brain-dev/deploy/
+// after bun sync.ts.
 //
 //   bun test ./tests/tools/pm-2-page-changes-kept.test.ts
 import { test, expect } from "bun:test";
@@ -20,9 +21,8 @@ const feedback = readFileSync(running("brain-feedback"), "utf8");
 const feedbackCells = await runningCells("brain-feedback");
 const cellOf = (cells: { _name: string | null; _definition: string }[], name: string) => cells.find((c) => c._name === name);
 const shellCells = await runningCells("brain-shell");
-const page = read("tools/cloud-brain/cloud-brain.ojs");
+const pageCells = await runningCells("cloud-brain");
 const row = (first: string) => section.split("\n").find((l) => l.startsWith("| " + first)) || "";
-const lines = (s: string) => s.split("\n");
 
 test("the section is in the doc once", () => {
   expect(doc.split("\n").filter((l) => l === HEADING).length).toBe(1);
@@ -60,8 +60,8 @@ test("the changes with no place are listed, each with where it is held, as the s
     expect([first, row(first) !== ""]).toEqual([first, true]);
   expect(row("a note's box, moved")).toContain("the new place is not kept");
   expect(feedback).toContain("A note's box can be moved; the new place is not kept.");
-  expect(row("the span of Health")).toContain("`cloud-brain.ojs` line 36");
-  expect(lines(page)[35]).toStartWith("viewof span = ");
+  expect(row("the span of Health")).toContain("`viewof span` of `cloud-brain`");
+  expect(cellOf(pageCells, "viewof span")).toBeDefined();
   // Who is signed in is said apart: a browser item of no kind.
   expect(section).toContain("`brain_session`");
   expect(section).toContain("`brainSession` of `brain-shell`");

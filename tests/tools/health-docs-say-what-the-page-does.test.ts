@@ -1,19 +1,21 @@
-// The docs line on Health says where the note is drawn and what asks for the calls again, as the page's seed has
-// them. Round 1 of ds-2-span-and-refresh-controls wrote "under the charts" and "at no other time"; the note is
-// drawn before the panels, and `calls` also names assembled, session and client (review 1202).
+// The docs line on Health says where the note is drawn and what asks for the calls again, as the page's module has
+// them (what brain-x-page runs, from deploy/; the seed cloud-brain.ojs until 2026-10-18, i13482). Round 1 of
+// ds-2-span-and-refresh-controls wrote "under the charts" and "at no other time"; the note is drawn before the panels,
+// and `calls` also names assembled, session and client (review 1202).
 //
 //   bun test ./tests/tools/health-docs-say-what-the-page-does.test.ts
-import { test, expect } from "bun:test";
+import { expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { running } from "./needs";
+import { running, runningGroups, testNeedingRunning } from "./needs";
 
-const seed = (name: string) => readFileSync(resolve(import.meta.dir, "../../tools/cloud-brain", name), "utf8");
-const cells = seed("cloud-brain.ojs").split("\n// %%\n");
-const cell = (start: string) => cells.map((c) => c.replace(/^(\/\/.*\n)+/, "")).find((c) => c.startsWith(start)) || "";
+const { test, module } = testNeedingRunning("health-docs-say-what-the-page-does.test.ts", "cloud-brain");
+const { groups } = module ? await runningGroups("cloud-brain") : { groups: [] };
+// A cell by its name, as `name = ` (the form these tests had over the seed): the bodies of its variables.
+const cell = (start: string) => groups.find((g) => g.name + " = " === start)?.text || "";
 const health = readFileSync(running("cloud-brain-docs"), "utf8").split("\n").find((l) => l.includes("The Health section of the page")) || "";
 
-test("the cells the docs line is about are found in the seed", () => {
+test("the cells the docs line is about are found in the page's module", () => {
   expect(cell("dashboard = ")).toContain("${note ?");
   expect(cell("calls = ")).toContain("callsRead(");
   // Since dsv-6-health-through-the-service the calls are one metric.query of core.calls, and no logs.query.

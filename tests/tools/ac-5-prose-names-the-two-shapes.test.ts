@@ -21,7 +21,9 @@ const skill = read("SKILL", ".claude/skills/brain-maintenance/SKILL.md");
 const calling = read("CALLING", "knowledge/calling-a-cloud-brain-from-this-checkout.md");
 const { test: withTracker, module: tracker } = process.env.SEED ? { test, module: process.env.SEED } : testNeedingRunning("ac-5-prose-names-the-two-shapes.test.ts, the reference", "brain-issues");
 const seed = tracker ? readFileSync(tracker, "utf8") : "";
-const page = read("PAGE", "tools/cloud-brain/cloud-brain.ojs");
+// The page module, cloud-brain, has no seed since 2026-10-18 (i13482): what brain-x-page runs, from deploy/.
+const { test: withPage, module: pageModule } = process.env.PAGE ? { test, module: process.env.PAGE } : testNeedingRunning("ac-5-prose-names-the-two-shapes.test.ts, the page", "cloud-brain");
+const page = pageModule ? readFileSync(pageModule, "utf8") : "";
 
 // A block of a markdown file: the lines from the one that holds `start` to the next blank line or list item.
 const block = (text: string, start: string) => {
@@ -77,14 +79,14 @@ test("the knowledge page has one paragraph on the two shapes, inside the part of
   expect(calling.indexOf(head)).toBeLessThan(calling.indexOf("## Why did that happen: the logs"));
 });
 
-test("each mark the knowledge page quotes is one its tool writes", () => {
+withPage("each mark the knowledge page quotes is one its tool writes", () => {
   expect(calling).toContain("## An answer that was cut");
   const section = calling.slice(calling.indexOf("## An answer that was cut")).split("\n## ")[0];
   // cut.ts: the page quotes the mark of a text of 1421 characters cut at 400.
   const mark = cut("x".repeat(1421), 400).slice(400);
   expect(mark).toBe("… (cut: 400 of 1421 characters; --whole prints all)");
   expect(section).toContain(mark);
-  // callAnswer: the page quotes the line the seed's own test expects.
+  // callAnswer: the page quotes the line the module's own test expects.
   const line = "[characters 0 to 20000 of 27094. The rest: the same call with offset 20000]";
   expect(page).toContain(line);
   expect(section).toContain(line);

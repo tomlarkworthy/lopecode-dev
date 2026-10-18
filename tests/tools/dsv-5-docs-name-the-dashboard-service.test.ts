@@ -3,7 +3,8 @@
 // not to what a reader understands by them. The cells were a section of cloud-brain.ojs until fb-a2g3jyhecp, which
 // moved them to the top of brain-dashboard.ojs: the first two tests hold where they are. That seed was deleted on
 // 2026-10-14: the cells are read from what cb4 runs (cloud-brain-dev/deploy after `bun sync.ts`), by the acorn
-// extractor of lope-push-ws.js (runningGroups of needs.ts).
+// extractor of lope-push-ws.js (runningGroups of needs.ts). So is the page's module, whose seed cloud-brain.ojs was
+// deleted on 2026-10-18 (i13482): what brain-x-page runs.
 //
 //   bun test ./tests/tools/dsv-5-docs-name-the-dashboard-service.test.ts
 import { expect } from "bun:test";
@@ -13,8 +14,8 @@ import { running, runningGroups, testNeedingRunning } from "./needs.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
-const page = read("tools/cloud-brain/cloud-brain.ojs");
-const { test, module } = testNeedingRunning("dsv-5-docs-name-the-dashboard-service.test.ts", "brain-dashboard");
+const { test, module } = testNeedingRunning("dsv-5-docs-name-the-dashboard-service.test.ts", "brain-dashboard", [running("cloud-brain")]);
+const page = module ? await runningGroups("cloud-brain") : { groups: [], imports: [] };
 const { groups, imports } = module ? await runningGroups("brain-dashboard") : { groups: [], imports: [] };
 // A cell by its name, as `name = ` (the form these tests had over the seed): the bodies of its variables.
 const cell = (start: string) => groups.find((g) => g.name + " = " === start)?.text || "";
@@ -35,13 +36,12 @@ test("the select and the panels are the first cells of the service's module afte
 });
 
 test("the page's module has none of them, and no heading Dashboards", () => {
-  const starts = page.split("\n// %%\n").map((c) => c.replace(/^(\/\/.*\n)+/, ""));
-  for (const name of [...section, ...tests]) expect([name, starts.filter((c) => c.startsWith(name + " = ")).length]).toEqual([name, 0]);
-  expect(page.indexOf("md`## Dashboards")).toBe(-1);
+  for (const name of [...section, ...tests]) expect([name, page.groups.filter((g) => g.name === name).length]).toEqual([name, 0]);
+  expect(page.groups.filter((g) => g.text.includes("md`## Dashboards")).length).toBe(0);
   // What the cells read of the page is imported from it, and the page imports nothing of the service's module.
   const imported = /import \{([^}]*)\} from "@tomlarkworthy\/cloud-brain"$/.exec(imports.find((i) => i.endsWith('"@tomlarkworthy/cloud-brain"')) || "");
   expect(imported![1].split(",").map((n) => n.trim())).toEqual(["session", "client", "timeRange", "spanName", "dashboard", "chartBase", "requestsChart", "healthStrip", "methodTable"]);
-  expect(page).not.toContain('from "@tomlarkworthy/brain-dashboard"');
+  expect(page.imports.filter((i) => i.endsWith('"@tomlarkworthy/brain-dashboard"'))).toEqual([]);
 });
 
 test("the docs name the service in the modules table and the section in the owner's table", () => {

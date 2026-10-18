@@ -48,7 +48,7 @@ describe("operator-tab-check", () => {
     expect(judgeBase({ ...oldShell, pageSection: null }, 1729, "old-shell").length).toBe(1);
   });
 
-  // brain-operator has no seed since 2026-10-18 (i13287): it is read from cloud-brain-dev/deploy/ after bun sync.ts.
+  // brain-operator and cloud-brain have no seed since 2026-10-18 (i13287, i13482): read from cloud-brain-dev/deploy/ after bun sync.ts.
   test("the build's layout is the one the probe looks for, and the modules carry what it reads", async () => {
     const build = readFileSync(resolve(ROOT, "tools/cloud-brain/build.ts"), "utf8");
     expect(build).toContain(`conf.hash = "${HASH}";`);
@@ -58,7 +58,7 @@ describe("operator-tab-check", () => {
     expect(tab).toContain('data-operator="chat"');
     expect(tab).toContain('data-operator="no part"');
     expect((await runningGroups("brain-operator")).imports.map((i) => /^import \{[^}]*\} from "([^"]+)"/.exec(i)?.[1])).toEqual(["@tomlarkworthy/plugin-registry", "@tomlarkworthy/lopepage-urls", "@tomlarkworthy/jest-expect-standalone"]);
-    const page = readFileSync(resolve(ROOT, "tools/cloud-brain/cloud-brain.ojs"), "utf8");
+    const page = readFileSync(running("cloud-brain"), "utf8");
     expect(page).toContain('data-operator-section="link"');
     expect(page).toContain('data-operator-section="chat"');
     expect(page).toContain(`mains.has("${TAB}")`);

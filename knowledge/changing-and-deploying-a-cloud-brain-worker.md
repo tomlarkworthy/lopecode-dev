@@ -219,7 +219,7 @@ Changes that have no place, and are lost at a load:
 | The change | Its kind | Where it is held now |
 |---|---|---|
 | a note's box, moved | third | nowhere: `brain-feedback.ojs` line 23, "A note's box can be moved; the new place is not kept." |
-| the span of Health | second or third | the value of `viewof span` (`cloud-brain.ojs` line 36) |
+| the span of Health | second or third | the value of `viewof span` of `cloud-brain` |
 | the filters of the Issues panel | second or third | the panel's selects (`chooser`, an `Inputs.select` inside `issuesPanel` of the built `cloud-brain-dev/deploy/@tomlarkworthy/brain-issues.js`, which is git-ignored build output of what cb4 runs, read 2026-10-14; run `bun sync.ts` in `cloud-brain-dev` to have it) |
 | a cell edited in the page's editor | fourth | the runtime: the page is the shell and the Workers' modules, and each is built from a seed or a patch (the spec's table; not run here) |
 
@@ -235,7 +235,7 @@ would be a fact of the record (a second label). The rule calls it his own becaus
 written into that file when the notebook is saved"); the Brain's page is not a file he saves, so the `sticky` that
 doc's hook sends a writer to, on any edit that names `localStorage`, would write into a cell nothing keeps.
 
-`tests/tools/pm-2-page-changes-kept.test.ts` holds the rows that name `brain-feedback.ojs`, `brain-shell.ojs` and `cloud-brain.ojs` to those seeds; the other rows are read, not tested.
+`tests/tools/pm-2-page-changes-kept.test.ts` holds the rows that name cells of `brain-feedback`, `brain-shell` and `cloud-brain` to those modules as `cloud-brain-dev/deploy/` has them after `bun sync.ts`; the other rows are read, not tested.
 
 ## The commands that deploy
 

@@ -7,6 +7,7 @@
 //   bun test ./tests/tools/tx-1-six-lines.test.ts
 import { test, expect } from "bun:test";
 import { inFull } from "./implementer-brief";
+import { runningCells, testNeedingRunning } from "./needs";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -14,13 +15,17 @@ const root = resolve(import.meta.dir, "../..");
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 const count = (text: string, phrase: string) => text.split(phrase).length - 1;
 
-test("the dashboards spec puts the note above the panels, where the cell `dashboard` draws it", () => {
+// The page module has no seed since 2026-10-18 (i13482): the cell is read from what brain-x-page runs, in deploy/.
+const { test: withPage, module: page } = testNeedingRunning("tx-1-six-lines.test.ts", "cloud-brain");
+const cells = page ? await runningCells("cloud-brain") : [];
+
+withPage("the dashboards spec puts the note above the panels, where the cell `dashboard` draws it", () => {
   const spec = read("plan/cloud-brain-dashboards-share-series-and-controls.md");
   expect(count(spec, "under the panels")).toBe(0);
   expect(spec).toContain("the page says what it got: the note above the panels gives the span, the step and");
   expect(spec).toContain("the note above the panels (line 42) and the line a visitor reads (line 35) name the span");
-  const page = read("tools/cloud-brain/cloud-brain.ojs");
-  const cell = page.slice(page.indexOf("\ndashboard = (panels, { note"));
+  const cell = cells.find((c) => c._name === "dashboard")?._definition || "";
+  expect(cell).toContain("{ note");
   const note = cell.indexOf("${note ? htl.html`<div");
   const grid = cell.indexOf("display:grid");
   expect(note).toBeGreaterThan(0);

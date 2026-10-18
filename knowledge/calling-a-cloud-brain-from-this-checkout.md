@@ -188,7 +188,7 @@ an entry of kind doc over 16,000 characters              [the first N of M chara
   `more` too, by their rows of the reference (`getSource?worker=brain-x-issues&part=reference`); neither was called for this.
 - The third line is what `tools/cloud-brain/cut.ts` made of a text of 1,421 characters cut at 400, the same day;
   `cloud-brain-dev/test.ts` has a copy of that function, with a value cut at 120 and an error at 600, by its source. The
-  fourth is the line a test of `tools/cloud-brain/cloud-brain.ojs` expects of `callAnswer`, not one read in the page;
+  fourth is the line a test of the page module `cloud-brain` expects of `callAnswer`, not one read in the page;
   for a procedure the same function ends the line `The rest is not read: a procedure called again would run a second time`.
 - A cut doc's last line names its file, which is the whole ("The knowledge docs in the Brain's search", below).
   This page was such a doc until 09:09 CEST that day: a long doc's entry now begins with a summarizer's paragraph ("The 49 long docs", below).

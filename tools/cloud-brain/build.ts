@@ -57,7 +57,7 @@ const MODULES = [
   { name: "@tomlarkworthy/brain-fly", running: "brain-x-fly", main: true, files: {} },
   { name: "@tomlarkworthy/brain-usage", running: "brain-x-usage", main: true, files: {} },
   { name: "@tomlarkworthy/brain-loop", running: "brain-x-loop", main: true, files: {} },
-  { name: "@tomlarkworthy/cloud-brain", seed: "cloud-brain.ojs", main: true, files: {} },
+  { name: "@tomlarkworthy/cloud-brain", running: "brain-x-page", main: true, files: {} },
   { name: "@tomlarkworthy/cloud-brain-docs", deployed: true, main: true, files: {} },
   { name: "@tomlarkworthy/brain-secrets", deployed: true, main: true, files: {} },
   { name: "@tomlarkworthy/brain-feedback", deployed: true, main: true, files: {} },

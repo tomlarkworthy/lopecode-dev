@@ -105,7 +105,7 @@ export function shellDocument(html: string, module: string): { body: string; mai
 
 // What the page of a run is answered: the file in the document's place, and, when the file holds the module
 // (cut), no answer to getSource, which is how a page learns what a Worker runs to write it over its own copy
-// (cloud-brain.ojs, loadService). The count of those is the returned object's `refused`.
+// (cloud-brain, loadService). The count of those is the returned object's `refused`.
 export const isGetSource = (url: URL) => url.pathname === "/xrpc/com.lopecode.brain.getSource";
 export async function routes(page: any, base: string, body: string | null, cut: boolean) {
   const seen = { refused: 0 };
