@@ -217,7 +217,7 @@ Changes that have no place, and are lost at a load:
 | a cell edited in the page's editor | fourth | the runtime: the page is the shell and the Workers' modules, and each is built from a seed or a patch (the spec's table; not run here) |
 
 He has not asked for the first three and no task builds them; `plan/cloud-brain-dashboards-share-series-and-controls.md` (line 285) left the span out as "Not
-asked". One row fits no kind: who is signed in, `brain_session` in this browser (`brain-shell.ojs` line 226). It is
+asked". One row fits no kind: who is signed in, `brain_session` in this browser (`brainSession` of `brain-shell`). It is
 kept where the third kind is, and is neither put out of sight nor unsent. `brain_issues2 ADDRESS`
 (`issuesStore` of `brain-issues`) is a browser item too and is no change of his: a copy of the tracker's view.
 

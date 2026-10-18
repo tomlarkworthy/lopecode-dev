@@ -22,7 +22,7 @@
 //                at 200 in the summary's count by test, a page error at 160 and why a run had no verdict at 200, and
 //                a text that was cut ends "… (cut: 160 of 300 characters; --whole prints all)" (cut.ts). It takes no
 //                value. A failed test's message reaches the tool from brain-shell, which keeps its first 300
-//                characters and marks nothing (brain-shell.ojs, `message: String(…).slice(0, 300)`): the mark's
+//                characters and marks nothing (brain-shell, `message: String(…).slice(0, 300)`): the mark's
 //                second number is the length of what the tool received, after each run of white space in it is
 //                made one space, and --whole prints that, 300 at most.
 // CHROME=path    another Chrome than Playwright's own. With none, and Playwright's own build not installed, the

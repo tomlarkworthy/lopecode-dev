@@ -1,8 +1,8 @@
 // The section "Where a change made on the Brain's page is kept" of knowledge/changing-and-deploying-a-cloud-brain-worker.md:
 // the four kinds of the rule, the changes that have no place, and the sentence on the saved-notebook doc
 // (pm-2-rule-in-the-doc; R4 of plan/cloud-brain-page-modifications-how-they-are-kept.md). The names the section gives
-// are held to the modules, so a rename in brain-feedback, brain-shell.ojs or cloud-brain.ojs fails here. brain-feedback
-// has no seed since 2026-10-18 (i13287): it is read from cloud-brain-dev/deploy/ after bun sync.ts.
+// are held to the modules, so a rename in brain-feedback, brain-shell or cloud-brain.ojs fails here. brain-feedback and
+// brain-shell have no seed since 2026-10-18 (i13287): they are read from cloud-brain-dev/deploy/ after bun sync.ts.
 //
 //   bun test ./tests/tools/pm-2-page-changes-kept.test.ts
 import { test, expect } from "bun:test";
@@ -19,7 +19,7 @@ const section = doc.slice(start, doc.indexOf("\n## ", start + 1));
 const feedback = readFileSync(running("brain-feedback"), "utf8");
 const feedbackCells = await runningCells("brain-feedback");
 const cellOf = (cells: { _name: string | null; _definition: string }[], name: string) => cells.find((c) => c._name === name);
-const shell = read("tools/cloud-brain/brain-shell.ojs");
+const shellCells = await runningCells("brain-shell");
 const page = read("tools/cloud-brain/cloud-brain.ojs");
 const row = (first: string) => section.split("\n").find((l) => l.startsWith("| " + first)) || "";
 const lines = (s: string) => s.split("\n");
@@ -52,7 +52,7 @@ test("the first two rows name what the seeds have", () => {
   expect(row("a fact about the work")).toContain("`annotation`");
   expect(feedback).toContain('label: "annotation"');
   expect(row("what he is looking at")).toContain("viewModules");
-  expect(lines(shell).some((l) => l.startsWith("viewModules = "))).toBe(true);
+  expect(cellOf(shellCells, "viewModules")).toBeDefined();
 });
 
 test("the changes with no place are listed, each with where it is held, as the seeds have it", () => {
@@ -64,7 +64,8 @@ test("the changes with no place are listed, each with where it is held, as the s
   expect(lines(page)[35]).toStartWith("viewof span = ");
   // Who is signed in is said apart: a browser item of no kind.
   expect(section).toContain("`brain_session`");
-  expect(lines(shell)[225]).toContain('"brain_session"');
+  expect(section).toContain("`brainSession` of `brain-shell`");
+  expect(cellOf(shellCells, "brainSession")?._definition).toContain('"brain_session"');
 });
 
 test("one sentence says the saved-notebook doc is for a file the reader saves", () => {

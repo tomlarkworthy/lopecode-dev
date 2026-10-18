@@ -27,7 +27,7 @@ const HERE = import.meta.dir;
 const HOST = "@tomlarkworthy/blank-notebook";
 const MODULES = [
   { name: "@tomlarkworthy/xrpc-client", seed: "xrpc-client.ojs", main: true, files: {} },
-  { name: "@tomlarkworthy/brain-shell", seed: "brain-shell.ojs", main: true, files: {} },
+  { name: "@tomlarkworthy/brain-shell", deployed: true, main: true, files: {} },
   { name: "@tomlarkworthy/cloudflare-iac-fixtures", seed: "cloudflare-iac-fixtures.ojs", main: false, files: {} },
   { name: "@tomlarkworthy/cloudflare-iac", seed: "cloudflare-iac.ojs", main: true, files: { "hono.js": "text/javascript", "cel.js": "text/javascript", "quickjs.js": "text/javascript", "observable-runtime.js": "text/javascript", "acorn.js": "text/javascript", "acorn-walk.js": "text/javascript", "quickjs.wasm.b64": "text/plain" } },
   { name: "@tomlarkworthy/brain-deployer", seed: "brain-deployer.ojs", main: true, files: {} },
@@ -94,7 +94,8 @@ for (const m of MODULES) {
   if (!("deployed" in m) || !m.deployed) continue;
   const file = resolve(DEPLOY, m.name + ".js");
   if (!existsSync(resolve(DEPLOY, "services.json")) || !existsSync(file)) throw new Error(`${m.name}: no ${file} from a sync. git submodule update --init cloud-brain-dev, then bun sync.ts ${BRAIN} there`);
-  deployed.set(m.name, readFileSync(file, "utf8"));
+  // sync.ts strips the newline a block ends with; a compiled seed had it.
+  deployed.set(m.name, readFileSync(file, "utf8").replace(/\n?$/, "\n"));
 }
 const compiled = (m: (typeof MODULES)[number]) => ("running" in m && !!m.running) || ("deployed" in m && !!m.deployed);
 const textOf = (m: (typeof MODULES)[number]) => ("running" in m && m.running ? running.get(m.name)! : "deployed" in m && m.deployed ? deployed.get(m.name)! : readFileSync(resolve(HERE, m.seed!), "utf8"));
