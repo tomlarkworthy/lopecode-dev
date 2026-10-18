@@ -31,7 +31,7 @@ const MODULES = [
   { name: "@tomlarkworthy/xrpc-client", deployed: true, main: true, files: {} },
   { name: "@tomlarkworthy/brain-shell", deployed: true, main: true, files: {} },
   { name: "@tomlarkworthy/cloudflare-iac-fixtures", seed: "cloudflare-iac-fixtures.ojs", main: false, files: {} },
-  { name: "@tomlarkworthy/cloudflare-iac", seed: "cloudflare-iac.ojs", main: true, files: { "hono.js": "text/javascript", "cel.js": "text/javascript", "quickjs.js": "text/javascript", "observable-runtime.js": "text/javascript", "acorn.js": "text/javascript", "acorn-walk.js": "text/javascript", "quickjs.wasm.b64": "text/plain" } },
+  { name: "@tomlarkworthy/cloudflare-iac", deployed: true, main: true, files: { "hono.js": "text/javascript", "cel.js": "text/javascript", "quickjs.js": "text/javascript", "observable-runtime.js": "text/javascript", "acorn.js": "text/javascript", "acorn-walk.js": "text/javascript", "quickjs.wasm.b64": "text/plain" } },
   { name: "@tomlarkworthy/brain-deployer", deployed: true, main: true, files: {} },
   { name: "@tomlarkworthy/brain-core", running: "brain-core", main: true, files: {} },
   { name: "@tomlarkworthy/brain-kernel", running: "brain", main: true, files: { "atcute.js": "text/javascript" } },

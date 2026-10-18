@@ -143,3 +143,30 @@ export const testNeedingRunningModule = async (file: string, name: string, edit:
     return { test: test.skip, module: "" };
   }
 };
+
+// What cb4 runs of a module with attachments registers them in define (window.lopecode.contentSync and
+// runtime.fileAttachments), which a headless runtime has neither of. For a test that reads no attachment: a copy with
+// those two statements left out (found with acorn), so FileAttachment is the runtime's own. Its path.
+export const runningNoFiles = (name: string, into = SEEDS): Promise<string> => {
+  const key = `${into}\n${name}.js\nno files`;
+  if (!built.has(key)) built.set(key, (last = last.catch(() => {}).then(async () => {
+    const acorn = await import(resolve(ROOT, "tools/node_modules/acorn/dist/acorn.mjs"));
+    const text = readFileSync(running(name), "utf8");
+    const ast: any = acorn.parse(text, { ecmaVersion: "latest", sourceType: "module" });
+    const define = ast.body.find((n: any) => n.type === "ExportDefaultDeclaration")?.declaration;
+    if (define?.type !== "FunctionDeclaration") throw new Error(`${name}: no export default function define`);
+    const cut = define.body.body.filter((s: any) =>
+      (s.type === "VariableDeclaration" && s.declarations[0]?.id?.name === "fileAttachments") ||
+      (s.type === "ExpressionStatement" && s.expression.type === "CallExpression" && s.expression.callee.type === "MemberExpression" &&
+        s.expression.callee.object.name === "main" && s.expression.callee.property.name === "builtin" && s.expression.arguments[0]?.value === "FileAttachment"));
+    if (cut.length !== 2) throw new Error(`${name}: ${cut.length} statements of the attachment prologue, not 2`);
+    let out = text;
+    for (const s of [...cut].sort((x: any, y: any) => y.start - x.start)) out = out.slice(0, s.start) + out.slice(s.end);
+    const dir = join(into, name + "-no-files"), file = join(dir, name + ".js");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(`${file}.${process.pid}`, out);
+    renameSync(`${file}.${process.pid}`, file);
+    return file;
+  })));
+  return built.get(key)!;
+};

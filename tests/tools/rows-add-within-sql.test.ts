@@ -1,16 +1,18 @@
 // rows.addWithin(key, add, max) of cloudflare-iac.ojs: the statement a Worker sends to D1, run on a SQLite, beside
 // the function the Durable Object, the test rig and the notebook's store answer with (`within.next`). The first test
 // sends it as a Worker does, platform.rows through sqlCall to a binding of D1's shape; the others bind the statement here.
-// The statement is read from the seed of this checkout, compiled as build.ts compiles it, never retyped.
+// The statement is read from what cb4 runs (cloud-brain-dev/deploy after `bun sync.ts`), never retyped; from the seed
+// of this checkout until 2026-10-18 (sr-cloudflare-iac).
 // D1 has its own SQLite and binds a number its own way: a pass here is not a pass there.
 // plan/cloud-brain-day-spend-not-bounded-by-one-row.md, task 1; tools/cloud-brain/records/ds-1-rows-add-within.md.
 import { expect } from "bun:test";
 import { Database } from "bun:sqlite";
 import { resolve } from "node:path";
 import { importNotebookModule } from "../../tools/notebook-import.ts";
-import { testNeedingSeed } from "./needs.ts";
+import { runningNoFiles, testNeedingRunning } from "./needs.ts";
 
-const { test, module } = await testNeedingSeed("rows-add-within-sql.test.ts", "cloudflare-iac.ojs");
+const needing = testNeedingRunning("rows-add-within-sql.test.ts", "cloudflare-iac");
+const { test } = needing, module = needing.module && await runningNoFiles("cloudflare-iac");
 const SPEC = resolve(import.meta.dir, "../../plan/cloud-brain-day-spend-not-bounded-by-one-row.md");
 
 let within: any = null, runtime: any = null;
