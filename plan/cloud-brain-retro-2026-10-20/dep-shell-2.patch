@@ -1,0 +1,192 @@
+diff --git a/deploy/@tomlarkworthy/brain-deployer.js b/deploy/@tomlarkworthy/brain-deployer.js
+index 3caf508..52fd7e6 100644
+--- a/deploy/@tomlarkworthy/brain-deployer.js
++++ b/deploy/@tomlarkworthy/brain-deployer.js
+@@ -161,8 +161,14 @@ The deployer caps such a token, whatever tool sends it. It answers 403 \`Forbidd
+ - an apply or a removal that names a Worker outside \`brain-x-[a-z0-9-]+\`, or a source that distils to one;
+ - an apply or a removal of \`brain-x-kernel\`, \`brain-x-core\`, \`brain-x-db\` or \`brain-x-deployer\`;
+ - a Worker outside the token's list (see What an apply may touch);
++- an apply, a dry apply or a removal by a token whose name starts with \`ship-\` and that has no list. The owner sets its list with \`infra.tokenWorkers\`;
++- an apply or a dry apply that carries \`shared\` (see Shared modules of the page). The deployer then writes no file under \`shell/\`;
++- an apply, a dry apply or a removal of \`brain-x-page\`;
++- an apply, a dry apply or a removal of a Worker that serves a path, or of a Worker whose new version serves a path. \`brain-x-page\` serves \`/\`. The deployer reads the paths of the version that runs and of the version sent;
+ - \`infra.shell\`, \`infra.redistil\`, \`infra.confirm\`, \`infra.tokenWorkers\` and \`infra.approveRequest\`.
+ 
++A call with \`x-brain-unattended\` that does not match \`token:[a-z0-9-]{1,40}\` gets 403 \`Forbidden\` for every \`infra\` method.
++
+ The deployer distils a source before this check, and the distil deploys nothing. The owner's four are the owner's to deploy, in a session or with the recovery key.
+ 
+ ## A change says why
+@@ -281,6 +287,8 @@ Two empty maps change nothing. A change of the shared modules goes through these
+ 
+ The approval of a shared change works as the approval of a deploy. The deployer keeps the approval under the SHA-256 of the Worker's hash and the id and new SHA-256 of each module. That key is the \`hash\` of the pending row and of the request, and the pending row lists the ids as \`shared\`. A Worker that runs the version sent still waits for this approval. The tests before the request are the module's tests, on the page without the new text.
+ 
++The owner's session and the recovery key change the shared modules. A sign-in link made with \`unattended\` gets 403 \`Forbidden\` for an apply or a dry apply that carries \`shared\` with an id. The deployer then reads and writes no file under \`shell/\`.
++
+ | the apply gave | the answer for the entry |
+ |---|---|
+ | the page holds the new text after the write | \`state: "verified"\` (or the Worker's \`deployed\` or \`probation\`), \`tests\`, \`ms\`, \`shared\` |
+@@ -1032,6 +1040,8 @@ const _braindeployer_deployerOps = function _deployerOps(config,secrets,rows,log
+     // The Workers a token may touch: the list kept for it by infra.tokenWorkers. A token with no list has none to keep to.
+     const list = by && !recovery ? ((await rows.get("tokenscope/" + by.slice(6))) || {}).workers || null : null;
+     const forbid = (name) => (by && !recovery && capped(typeof name === "string" ? name : "", list)) || null;
++    // A ship-NAME token is made for one issue: it deploys only the Workers the owner listed for it.
++    if (by && !recovery && by.slice(6).startsWith("ship-") && !list) return { error: "Forbidden", message: `${by.slice(6, 46)} has no list of Workers: the owner sets one with infra.tokenWorkers { token: "${by.slice(6, 46)}", workers }` };
+     const denied = remove.map((n) => forbid(n && n.worker !== undefined ? n.worker : n)).find(Boolean);
+     if (denied) return { error: "Forbidden", message: denied };
+     if (!dry && !reasonOf(reason)) return { error: "InvalidRequest", message: WHY };
+@@ -1060,6 +1070,21 @@ const _braindeployer_deployerOps = function _deployerOps(config,secrets,rows,log
+     // What a source is a Worker of is what it distils to, so the cap reads that, and one name outside it stops the whole apply.
+     const barred = distilled.map((w) => forbid(w && w.meta && w.meta.worker)).find(Boolean);
+     if (barred) return { error: "Forbidden", message: barred };
++    // The page's shared modules are blocks of shell/index.html, the page that runs in the owner's session: the token writes no file under shell/.
++    const paged = by && !recovery && distilled.find((w) => w && w.shared && typeof w.shared === "object" && Object.keys(w.shared).length);
++    if (paged) return { error: "Forbidden", message: `a sign-in link's token does not change the page's shared modules in shell/index.html: the owner's session or the recovery key. ${String((paged.meta && paged.meta.worker) || paged.module).slice(0, 60)} carries shared` };
++    // The page's Worker serves the page that runs in the owner's session, and its module is joined there.
++    const page = by && !recovery && [...distilled.map((w) => w && w.meta && w.meta.worker), ...remove.map((n) => (n && n.worker !== undefined ? n.worker : n))].includes(PAGE_WORKER);
++    if (page) return { error: "Forbidden", message: `a sign-in link's token does not deploy or remove ${PAGE_WORKER}: the owner's session or the recovery key` };
++    // A Worker that serves a path answers on the Brain's address, beside the owner's session: the token neither deploys nor removes one.
++    if (by && !recovery) {
++      const routes = (list) => (Array.isArray(list) ? list : []).map((p) => (p && typeof p === "object" ? p.path : p));
++      const touches = [...distilled.map((w) => [w && w.meta && w.meta.worker, w && w.meta && w.meta.paths]), ...remove.map((n) => [n && n.worker !== undefined ? n.worker : n, []])];
++      for (const [logical, next] of touches) {
++        const served = [...new Set([...routes(next), ...routes(((await rows.get("worker/" + logical)) || {}).paths)])];
++        if (served.length) return { error: "Forbidden", message: `a sign-in link's token does not deploy or remove a Worker that serves a path: ${String(logical).slice(0, 60)} serves ${served.join(", ").slice(0, 120)}. The owner's session or the recovery key deploys it` };
++      }
++    }
+     // What a dry run's page loads in place of the kept source: every module of this apply that was sent as source.
+     const candidates = distilled.filter((w) => w && typeof w.source === "string" && w.meta).map((w) => ({ module: w.module, worker: w.meta.worker, hash: w.hash, text: w.source, files: w.files || {} }));
+     for (const w of distilled) {
+@@ -1802,6 +1827,8 @@ const _braindeployer_deployerFn = function _deployerFn(deployerOps,Response,depl
+     // only beside the kernel's key.
+     const by = viaKernel && /^token:[a-z0-9-]{1,40}$/.test(request.headers.get("x-brain-unattended") || "") ? request.headers.get("x-brain-unattended") : null;
+     if (!viaKernel && !recovery) return json({ error: "AuthRequired", message: "the owner's session or the recovery key" }, 401);
++    // A token name the deployer cannot read is not taken for the owner's session.
++    if (viaKernel && request.headers.get("x-brain-unattended") !== null && !by) return json({ error: "Forbidden", message: "x-brain-unattended is token:NAME, NAME 1 to 40 characters of a-z, 0-9 and -" }, 403);
+     // The rows hold every Worker's key: they leave and enter with the recovery key only, never through the kernel.
+     if (["exportRows", "importRows", "rowsDigest"].includes(method)) {
+       if (!recovery) return json({ error: "AuthRequired", message: "the recovery key" }, 401);
+@@ -3028,6 +3055,112 @@ const _braindeployer_test_deployer_an_apply_of_the_page_stores_the_shared_module
+   expect((await send()).results[0]).toMatchObject({ state: "not-stored", reason: "shell/index.html does not hold the new @t/a after the write" });
+   return "4 tests, shared module stored in the page, read back";
+ };
++const _braindeployer_test_deployer_a_link_token_does_not_change_the_shared_modules_of_the_page = async function _test_deployer_a_link_token_does_not_change_the_shared_modules_of_the_page(deployerRig,sha256,expect) {
++  const rig = await deployerRig();
++  await rig.recover({ workers: [await rig.made("brain", "kernel", "k0"), await rig.made("brain-core", "core", "c1")] });
++  const P = "brain-x-page", M = "@t/page", block = (id, text) => `<script id="${id}" data-mime="application/javascript">\n${text}\n</script>\n`;
++  const page = (a) => `<!DOCTYPE html>\n${block("@t/a", a)}${block(M, "page module")}`;
++  const files = new Map([["shell/index.html", page("OLD A")]]);
++  rig.fake.static.homes.push("deploys/");
++  rig.fake.static.get = (url) => (files.has(new URLSearchParams(url.search).get("path")) ? [200, files.get(new URLSearchParams(url.search).get("path"))] : [404, { error: "NotFound" }]);
++  rig.fake.static.put = (url, body) => (files.set(new URLSearchParams(url.search).get("path"), body), [200, {}]);
++  const p1 = await rig.made(P, "recipe", "p1", { module: M });
++  await rig.recover({ workers: [p1] });
++  let running = p1.hash;
++  rig.fake.browser.run = () => [200, { loaded: true, value: { worker: P, module: M, hash: running, ok: true, tests: 4, failed: [] } }];
++  const LINK = { "x-brain-unattended": "token:kid" };
++  const send = async (body) => ((r) => r.json().then((j) => [r.status, j]))(await rig.sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.infra.apply", { method: "POST", headers: { "content-type": "application/json", "x-brain-key": rig.sim.rows.get("worker/brain").key, "x-brain-caller": "owner", ...LINK }, body: JSON.stringify({ reason: "a test", ...body }) }));
++  const touched = () => [files.get("shell/index.html"), files.get("shell/candidate.html"), rig.fake.calls.filter((c) => c.nsid === "static.put" || c.nsid === "browser.run").length, rig.sim.rows.get("worker/" + P).hash];
++  const evil = { ...p1, was: p1.hash, shared: { "@t/a": "EVIL" }, wasShared: { "@t/a": await sha256("OLD A") } };
++  // An apply and a dry apply by the token that carry shared: 403, and nothing under shell/ is written or tested.
++  const before = touched();
++  for (const body of [{ workers: [evil] }, { workers: [evil], dry: true }]) {
++    const [status, out] = await send(body);
++    expect([status, out.error, out.message]).toEqual([403, "Forbidden", "a sign-in link's token does not change the page's shared modules in shell/index.html: the owner's session or the recovery key. brain-x-page carries shared"]);
++  }
++  expect(touched()).toEqual(before);
++  expect(before[0]).toBe(page("OLD A"));
++  // Two empty maps pass this check, and the page's Worker is refused to the token with or without them.
++  const p2 = await rig.made(P, "recipe", "p2", { module: M });
++  for (const more of [{ shared: {}, wasShared: {} }, {}]) {
++    const [status, out] = await send({ workers: [{ ...p2, was: p1.hash, ...more }] });
++    expect([status, out.error, out.message]).toEqual([403, "Forbidden", "a sign-in link's token does not deploy or remove brain-x-page: the owner's session or the recovery key"]);
++  }
++  expect(touched()).toEqual(before);
++  // The recovery key deploys the page's Worker and changes the shared modules.
++  running = p2.hash;
++  const owned = (await rig.recover({ workers: [{ ...p2, was: p1.hash, shared: { "@t/a": "NEW A" }, wasShared: { "@t/a": await sha256("OLD A") } }] })).results[0];
++  expect([owned.state, files.get("shell/index.html")]).toEqual(["verified", page("NEW A")]);
++  return "403 for the token, with or without dry, and for the page's Worker; the recovery key stores";
++};
++const _braindeployer_test_deployer_a_link_token_does_not_deploy_or_remove_a_worker_that_serves_a_path = async function _test_deployer_a_link_token_does_not_deploy_or_remove_a_worker_that_serves_a_path(deployerRig,expect) {
++  const rig = await deployerRig();
++  await rig.recover({ workers: [await rig.made("brain", "kernel", "k0"), await rig.made("brain-core", "core", "c1")] });
++  const P = "brain-x-page", root = { paths: [{ path: "/", who: "anyone" }] };
++  const p1 = await rig.made(P, "recipe", "p1", root);
++  expect((await rig.recover({ workers: [p1] })).results[0].state).toBe("deployed");
++  const send = async (body) => ((r) => r.json().then((j) => [r.status, j.error, j.message]))(await rig.sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.infra.apply", { method: "POST", headers: { "content-type": "application/json", "x-brain-key": rig.sim.rows.get("worker/brain").key, "x-brain-caller": "owner", "x-brain-unattended": "token:claude-1" }, body: JSON.stringify({ reason: "a test", ...body }) }));
++  const nopage = [403, "Forbidden", "a sign-in link's token does not deploy or remove brain-x-page: the owner's session or the recovery key"];
++  const no = (worker, paths) => [403, "Forbidden", `a sign-in link's token does not deploy or remove a Worker that serves a path: ${worker} serves ${paths}. The owner's session or the recovery key deploys it`];
++  const uploads = rig.fake.log.length;
++  // The page: a new version, a version with no path, a dry apply and a removal.
++  expect(await send({ workers: [{ ...(await rig.made(P, "recipe", "p2", root)), was: p1.hash }] })).toEqual(nopage);
++  expect(await send({ workers: [{ ...(await rig.made(P, "recipe", "p3")), was: p1.hash }] })).toEqual(nopage);
++  expect(await send({ workers: [await rig.made(P, "recipe", "p4", root)], dry: true })).toEqual(nopage);
++  expect(await send({ remove: [{ worker: P, was: p1.hash }] })).toEqual(nopage);
++  // A new Worker with a path, alone or beside a plain one, and a path added to a Worker that served none.
++  const evil = await rig.made("brain-x-evil", "recipe", "e1", { paths: [{ path: "/x/*", who: "anyone" }] });
++  expect(await send({ workers: [{ ...evil, was: null }] })).toEqual(no("brain-x-evil", "/x/*"));
++  const plain = await rig.made("brain-x-plain", "recipe", "a1");
++  expect(await send({ workers: [{ ...plain, was: null }, { ...evil, was: null }] })).toEqual(no("brain-x-evil", "/x/*"));
++  expect([rig.fake.log.length, rig.sim.rows.get("worker/brain-x-evil"), rig.sim.rows.get("worker/brain-x-plain"), rig.sim.rows.get("worker/" + P).hash]).toEqual([uploads, undefined, undefined, p1.hash]);
++  // A Worker that serves a path: a new version, one with no path, and a removal.
++  const hook = await rig.made("brain-x-hook", "recipe", "h1", { paths: [{ path: "/hooks/h", who: "anyone" }] });
++  await rig.recover({ workers: [hook] });
++  expect(await send({ workers: [{ ...(await rig.made("brain-x-hook", "recipe", "h2")), was: hook.hash }] })).toEqual(no("brain-x-hook", "/hooks/h"));
++  expect(await send({ remove: [{ worker: "brain-x-hook", was: hook.hash }] })).toEqual(no("brain-x-hook", "/hooks/h"));
++  // A Worker with no path deploys with no approval; a path added to it later is refused.
++  expect((await send({ workers: [{ ...plain, was: null }] })).slice(0, 2)).toEqual([200, undefined]);
++  expect(rig.sim.rows.get("worker/brain-x-plain").hash).toBe(plain.hash);
++  expect(await send({ workers: [{ ...(await rig.made("brain-x-plain", "recipe", "a2", { paths: [{ path: "/hooks/a", who: "anyone" }] })), was: plain.hash }] })).toEqual(no("brain-x-plain", "/hooks/a"));
++  // The owner's session is held for approval, not refused; the recovery key deploys the page.
++  const p5 = await rig.made(P, "recipe", "p5", root);
++  expect((await rig.asOwner("apply", { workers: [p5] })).results[0].state).toBe("waiting");
++  expect((await rig.recover({ workers: [p5] })).results[0].state).toBe("probation");
++  return "the page, a Worker with a path, a dry apply, a removal and a new path: 403; a plain Worker deploys; the owner and the recovery key are not refused";
++};
++const _braindeployer_test_deployer_a_ship_token_deploys_only_the_workers_of_its_list = async function _test_deployer_a_ship_token_deploys_only_the_workers_of_its_list(deployerRig,expect) {
++  const rig = await deployerRig();
++  await rig.recover({ workers: [await rig.made("brain", "kernel", "k0"), await rig.made("brain-core", "core", "c1")] });
++  const send = async (method, body, token) => ((r) => r.json().then((j) => [r.status, j.error, j.message]))(await rig.sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.infra." + method, { method: "POST", headers: { "content-type": "application/json", "x-brain-key": rig.sim.rows.get("worker/brain").key, "x-brain-caller": "owner", ...(token ? { "x-brain-unattended": "token:" + token } : {}) }, body: JSON.stringify({ reason: "a test", ...body }) }));
++  const one = await rig.made("brain-x-one", "recipe", "o1"), two = await rig.made("brain-x-two", "recipe", "t1");
++  const none = [403, "Forbidden", `ship-i1 has no list of Workers: the owner sets one with infra.tokenWorkers { token: "ship-i1", workers }`];
++  // No list: an apply, a dry apply and a removal are refused, and nothing is uploaded.
++  const uploads = rig.fake.log.length;
++  expect(await send("apply", { workers: [{ ...one, was: null }] }, "ship-i1")).toEqual(none);
++  expect(await send("apply", { workers: [{ ...one, was: null }], dry: true }, "ship-i1")).toEqual(none);
++  expect(await send("apply", { remove: [{ worker: "brain-x-one", was: null }] }, "ship-i1")).toEqual(none);
++  expect([rig.fake.log.length, rig.sim.rows.get("worker/brain-x-one")]).toEqual([uploads, undefined]);
++  // A token of another name with no list deploys as before.
++  expect((await send("apply", { workers: [{ ...two, was: null }] }, "claude-1")).slice(0, 2)).toEqual([200, undefined]);
++  // With a list from the owner's session: the listed Worker deploys, another answers 403.
++  expect((await send("tokenWorkers", { token: "ship-i1", workers: ["brain-x-one"] }))[0]).toBe(200);
++  expect((await send("apply", { workers: [{ ...one, was: null }] }, "ship-i1")).slice(0, 2)).toEqual([200, undefined]);
++  expect(rig.sim.rows.get("worker/brain-x-one").hash).toBe(one.hash);
++  expect((await send("apply", { workers: [{ ...(await rig.made("brain-x-two", "recipe", "t2")), was: two.hash }] }, "ship-i1")).slice(0, 2)).toEqual([403, "Forbidden"]);
++  return "no list: 403; listed Worker deploys; another 403";
++};
++const _braindeployer_test_deployer_an_unreadable_token_name_is_not_the_owners_session = async function _test_deployer_an_unreadable_token_name_is_not_the_owners_session(deployerRig,expect) {
++  const rig = await deployerRig();
++  await rig.recover({ workers: [await rig.made("brain", "kernel", "k0"), await rig.made("brain-core", "core", "c1")] });
++  const call = async (header) => ((r) => r.json().then((j) => [r.status, j.error]))(await rig.sim.fetch("https://deployer.internal/xrpc/com.lopecode.brain.infra.apply", { method: "POST", headers: { "content-type": "application/json", "x-brain-key": rig.sim.rows.get("worker/brain").key, "x-brain-caller": "owner", ...(header === null ? {} : { "x-brain-unattended": header }) }, body: JSON.stringify({ reason: "a test", workers: [await rig.made("brain-x-one", "recipe", String(Math.random()))] }) }));
++  for (const bad of ["token:Bad Name", "token:" + "a".repeat(41), "token:", "free", ""]) expect(await call(bad)).toEqual([403, "Forbidden"]);
++  expect(rig.sim.rows.get("worker/brain-x-one")).toBe(undefined);
++  // A good name deploys with no approval; no header is the owner's session, which waits.
++  expect(await call("token:claude-1")).toEqual([200, undefined]);
++  expect(await call(null)).toEqual([200, undefined]);
++  return "a name outside token:[a-z0-9-]{1,40}: 403";
++};
+ const _braindeployer_test_deployer_a_change_of_the_shared_modules_waits_for_approval = async function _test_deployer_a_change_of_the_shared_modules_waits_for_approval(deployerRig,sha256,expect) {
+   const rig = await deployerRig();
+   await rig.recover({ workers: [await rig.made("brain", "kernel", "k0"), await rig.made("brain-core", "core", "c1")] });
+@@ -3895,6 +4028,10 @@ export default function define(runtime, observer) {
+   $def("_braindeployer_test_deployer_a_dry_apply_runs_the_tests_and_deploys_nothing", "test_deployer_a_dry_apply_runs_the_tests_and_deploys_nothing", ["verifyRig","expect","exportModuleJS"], _braindeployer_test_deployer_a_dry_apply_runs_the_tests_and_deploys_nothing);  
+   $def("_braindeployer_test_deployer_a_held_deploy_runs_its_tests_before_it_asks_the_owner", "test_deployer_a_held_deploy_runs_its_tests_before_it_asks_the_owner", ["verifyRig","expect"], _braindeployer_test_deployer_a_held_deploy_runs_its_tests_before_it_asks_the_owner);  
+   $def("_braindeployer_test_deployer_an_apply_of_the_page_stores_the_shared_modules_in_it", "test_deployer_an_apply_of_the_page_stores_the_shared_modules_in_it", ["deployerRig","sha256","expect"], _braindeployer_test_deployer_an_apply_of_the_page_stores_the_shared_modules_in_it);  
++  $def("_braindeployer_test_deployer_a_link_token_does_not_change_the_shared_modules_of_the_page", "test_deployer_a_link_token_does_not_change_the_shared_modules_of_the_page", ["deployerRig","sha256","expect"], _braindeployer_test_deployer_a_link_token_does_not_change_the_shared_modules_of_the_page);
++  $def("_braindeployer_test_deployer_a_link_token_does_not_deploy_or_remove_a_worker_that_serves_a_path", "test_deployer_a_link_token_does_not_deploy_or_remove_a_worker_that_serves_a_path", ["deployerRig","expect"], _braindeployer_test_deployer_a_link_token_does_not_deploy_or_remove_a_worker_that_serves_a_path);
++  $def("_braindeployer_test_deployer_a_ship_token_deploys_only_the_workers_of_its_list", "test_deployer_a_ship_token_deploys_only_the_workers_of_its_list", ["deployerRig","expect"], _braindeployer_test_deployer_a_ship_token_deploys_only_the_workers_of_its_list);
++  $def("_braindeployer_test_deployer_an_unreadable_token_name_is_not_the_owners_session", "test_deployer_an_unreadable_token_name_is_not_the_owners_session", ["deployerRig","expect"], _braindeployer_test_deployer_an_unreadable_token_name_is_not_the_owners_session);
+   $def("_braindeployer_test_deployer_a_change_of_the_shared_modules_waits_for_approval", "test_deployer_a_change_of_the_shared_modules_waits_for_approval", ["deployerRig","sha256","expect"], _braindeployer_test_deployer_a_change_of_the_shared_modules_waits_for_approval);  
+   $def("_braindeployer_test_deployer_a_dry_apply_answers_each_failed_test_whole", "test_deployer_a_dry_apply_answers_each_failed_test_whole", ["verifyRig","expect"], _braindeployer_test_deployer_a_dry_apply_answers_each_failed_test_whole);  
+   $def("_braindeployer_test_getModules_with_dry_answers_the_modules_of_that_run", "test_getModules_with_dry_answers_the_modules_of_that_run", ["deployerRig","expect"], _braindeployer_test_getModules_with_dry_answers_the_modules_of_that_run);  

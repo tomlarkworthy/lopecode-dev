@@ -1,0 +1,213 @@
+diff --git a/deploy/@tomlarkworthy/brain-core.js b/deploy/@tomlarkworthy/brain-core.js
+index c2a6276..070ccd1 100644
+--- a/deploy/@tomlarkworthy/brain-core.js
++++ b/deploy/@tomlarkworthy/brain-core.js
+@@ -39,10 +39,20 @@ The core answers bindings only. The kernel names a caller, and the core knows th
+ | \`quota.ledger\` | query, owner. \`?day=&who=&limit=\`. \`{ day, unit, charges: [{ at, who, origin, caller, method, price, cost, counted }], total, byWho, byMethod }\`: the charges of one day, newest first, with totals by account and by method over the whole day. \`limit\` is 200 when you give none, and at most the setting \`charges\`. It reads the day whole. It also reads a day that a row \`spend/DAY/ACCOUNT\` keeps as one list. |
+ | \`quota.put\` | procedure, the owner's own session. \`{ who, daily }\`. \`null\` restores the default. |
+ | \`quota.setDefaults\` | procedure, the owner's own session. Any of \`{ owner, member, worker, token, perCall, keepDays, charges }\` → \`{ defaults }\`. The first five are US dollars, 0 or more. \`keepDays\` (30) and \`charges\` (8000, the most priced calls of one account that count in a day) are whole numbers of 1 or more. \`null\` restores the default. A change holds from the next call, with no deploy. |
+-| \`delegation.create\` | procedure, the owner's or a member's own session. \`{ name, holder: { worker }, scope, until, daily, note }\` → the record, with its \`id\`. With \`holder: { secret: true }\` and \`caps\`, the answer has \`secret\` one time: a token. A member makes one for what they may call. The caps \`session\`, \`deploy\` and \`unattended\` belong to the owner to give. The cap \`delegate\` belongs to the owner or a member. The kernel's \`token.create\` and a sign-in link make delegations. |
++| \`delegation.create\` | procedure, the owner's or a member's own session. \`{ name, holder: { worker }, scope, until, daily, note }\` → the record, with its \`id\`. With \`holder: { secret: true }\` and \`caps\`, the answer has \`secret\` one time: a token. A member makes one for what they may call. The caps \`session\`, \`deploy\`, \`unattended\` and \`ship\` belong to the owner to give. The cap \`delegate\` belongs to the owner or a member. The kernel's \`token.create\` and a sign-in link make delegations. |
+ | \`delegation.resolve\`, \`delegation.adopt\` | procedures, the kernel. \`resolve\` takes \`{ sha256 }\` of a secret, or \`{ did }\` for that DID's grant, and answers \`{ delegation }\` or null. \`adopt\` takes a token that has no delegation yet, by its hash. |
+ | \`delegation.list\`, \`delegation.revoke\` | query and procedure, the same callers. The owner reads and revokes any delegation. A member reads and revokes their own. \`revoke\` takes \`{ id }\`. |
+-| | A token whose delegation has the cap \`delegate\` also calls \`delegation.create\`, \`list\` and \`revoke\`. A delegation it makes comes \`from\` the same person, with that delegation as \`parent\`. A Worker or a secret holds it, it has no caps, each scope entry lies inside the parent's, \`until\` is no later and \`daily\` is no more. What a child spends counts against the parent's \`daily\` and its own. The token lists and revokes what it made. Revoking a delegation deletes what the holder made under it. The core refuses a call under such a child when the parent is revoked, has ended or does not reach the method. |
++| | A token whose delegation has the cap \`delegate\` also calls \`delegation.create\`, \`list\` and \`revoke\`. A delegation it makes comes \`from\` the same person, with that delegation as \`parent\`. A Worker or a secret holds it, it has no caps except under \`ship\`, each scope entry lies inside the parent's, \`until\` is no later and \`daily\` is no more. What a child spends counts against the parent's \`daily\` and its own. The token lists and revokes what it made. Revoking a delegation deletes what the holder made under it. The core refuses a call under such a child when the parent is revoked, has ended or does not reach the method. |
++| | The owner gives the cap \`ship\` with \`delegate\` and no other cap. |
++| | A token with \`ship\` also makes a secret child with exactly the caps \`deploy\`, \`unattended\` and \`session\`. |
++| | That child has the scope \`[]\`. It calls no method of a service or of the core. |
++| | Its name is \`ship-\` and the parent's \`id\`. One such child lives at a time. |
++| | That child ends in one hour at most. |
++| | With no end named, it ends in one hour or at its parent's end, whichever comes first. |
++| | The kernel lets that child call \`infra.apply\` alone. |
++| | The deployer refuses its apply of the kernel, the core, the database or the deployer. |
++| | The deployer keeps a list of Workers for each token name (\`infra.tokenWorkers\`). The owner sets the list for \`ship-\` and the parent's \`id\` once. |
++| | Without that list, the child may apply any service. |
+ 
+ **Delegations.** A Worker, a secret or a DID holds a delegation. The plan is \`plan/cloud-brain-authority.md\`. The owner or a member lets a Worker the owner deployed call the methods in a \`scope\`, up to an end time or a revoke. The Worker names the delegation on a call it makes:
+ 
+@@ -985,8 +995,9 @@ ${deployed.join("\n\n")}
+     });
+   // Making a delegation. The holder is a Worker the owner deployed, a secret that this answers once (a token), or
+   // a DID (a grant). A secret alone has caps. session, deploy and unattended are the owner's to give; delegate is
+-  // the owner's or a member's.
+-  const CAPS = ["session", "deploy", "unattended", "delegate"];
++  // the owner's or a member's. ship is the owner's, with delegate alone: under it a token makes a short deploy child.
++  const CAPS = ["session", "deploy", "unattended", "delegate", "ship"];
++  const SHIP = ["deploy", "unattended", "session"], SHIP_LIFE = 3600000;
+   // Is a pattern inside a scope: a name the scope reaches, or a prefix under one of the scope's prefixes.
+   const inside = (m, scope) => scope.some((p) => p === m || (/[./]\*$/.test(p) && m.startsWith(p.slice(0, -1))));
+   const drop = async (d) => {
+@@ -998,8 +1009,11 @@ ${deployed.join("\n\n")}
+   };
+   app.post(NS + "delegation.create", delegating, async (c) => {
+     const from = c.get("who").caller, b = (await c.req.json().catch(() => null)) || {}, parent = c.get("parent") || null;
++    // Under a parent with ship, a child with caps ends within SHIP_LIFE, and at the parent's end when that is sooner.
++    const shipping = !!parent && parent.caps.includes("ship") && Array.isArray(b.caps) && b.caps.length > 0;
+     // Under another, it ends no later and spends no more than that one, and is given that one's end and amount when it names none.
+-    const { name, holder, caps = [], until = parent ? parent.until : null, daily = parent ? parent.daily : null, note = "" } = b;
++    // Its name is ship- and the parent's id, so the deployer's list of Workers for that name (infra.tokenWorkers) is the owner's to set.
++    const { name = shipping ? "ship-" + parent.id : undefined, holder, caps = [], until = shipping ? Math.min(clock() + SHIP_LIFE, parent.until ?? Infinity) : parent ? parent.until : null, daily = parent ? parent.daily : null, note = "" } = b;
+     const one = holder && typeof holder === "object" && Object.keys(holder).length === 1, secretHeld = !!one && holder.secret === true;
+     // A grant: the owner gives another account methods, and that account calls them as itself and pays for them.
+     // A DID holds one, named grant; a second for the same DID takes the place of the first.
+@@ -1028,10 +1042,15 @@ ${deployed.join("\n\n")}
+     // A delegation names a Worker and not its code, so the Worker is one the owner deploys.
+     const route = secretHeld ? null : await rows.get("route/" + holder.worker);
+     if (!secretHeld && (!route || !["recipe", "system"].includes(route.role))) return fail(c, 400, "InvalidRequest", `${holder.worker} is not a service the owner deployed`);
+-    if (!Array.isArray(caps) || caps.some((x) => !CAPS.includes(x)) || new Set(caps).size !== caps.length) return fail(c, 400, "InvalidRequest", "caps are session, deploy, unattended and delegate");
++    if (!Array.isArray(caps) || caps.some((x) => !CAPS.includes(x)) || new Set(caps).size !== caps.length) return fail(c, 400, "InvalidRequest", "caps are session, deploy, unattended, delegate and ship");
+     if (caps.length && !secretHeld) return fail(c, 400, "InvalidRequest", "a Worker holder has no caps");
+-    if (caps.length && parent) return fail(c, 400, "InvalidRequest", "a delegation made under another has no caps");
+-    if (caps.some((x) => x !== "delegate") && from !== "owner") return fail(c, 403, "Forbidden", "session, deploy and unattended are the owner's to give");
++    if (caps.length && parent && !parent.caps.includes("ship")) return fail(c, 400, "InvalidRequest", "a delegation made under another has no caps");
++    if (shipping && !(caps.length === SHIP.length && SHIP.every((x) => caps.includes(x)))) return fail(c, 403, "Forbidden", `under ${parent.name} a token has the caps deploy, unattended and session, and no other`);
++    if (shipping && name !== "ship-" + parent.id) return fail(c, 403, "Forbidden", `a token made under ${parent.name} is named ship-${parent.id}`);
++    // It names no method, so its session cap makes no call the owner's tab: it reaches infra.apply through the kernel alone.
++    if (shipping && !(Array.isArray(b.scope) && !b.scope.length)) return fail(c, 403, "Forbidden", `a token made under ${parent.name} names no method: scope is []`);
++    if (caps.some((x) => x !== "delegate") && from !== "owner") return fail(c, 403, "Forbidden", "session, deploy, unattended and ship are the owner's to give");
++    if (caps.includes("ship") && !(caps.length === 2 && caps.includes("delegate"))) return fail(c, 400, "InvalidRequest", "ship goes with delegate and no other cap");
+     // Deploying with nobody asked can deploy a kernel, so it is the owner in effect and is said to be: both other caps.
+     if (caps.includes("unattended") && !(caps.includes("deploy") && caps.includes("session"))) return fail(c, 400, "InvalidRequest", "unattended goes with deploy and session");
+     if (!scope) return fail(c, 400, "InvalidRequest", "scope is 1 to 50 method names; a prefix ends .* or /*, and * is every method");
+@@ -1045,6 +1064,7 @@ ${deployed.join("\n\n")}
+     }
+     if (until !== null && !(Number.isInteger(until) && until > clock())) return fail(c, 400, "InvalidRequest", "until is a time in ms after now, or null");
+     if (daily !== null && !(typeof daily === "number" && Number.isFinite(daily) && daily >= 0)) return fail(c, 400, "InvalidRequest", "daily is US dollars a UTC day, or null");
++    if (shipping && !(until !== null && until <= clock() + SHIP_LIFE)) return fail(c, 403, "Forbidden", `a token made under ${parent.name} ends within one hour`);
+     if (parent) {
+       const out = scope.find((m) => !inside(m, parent.scope));
+       if (out) return fail(c, 403, "Forbidden", `${out} is outside the scope of ${parent.name}, which this is made under`);
+@@ -1083,7 +1103,7 @@ ${deployed.join("\n\n")}
+   app.post(NS + "delegation.adopt", async (c) => {
+     const w = c.get("who"), b = (await c.req.json().catch(() => null)) || {};
+     if (!(w.kernel && w.caller === "kernel")) return fail(c, 401, "AuthRequired", "the kernel");
+-    const ok = typeof b.sha256 === "string" && /^[0-9a-f]{64}$/.test(b.sha256) && typeof b.name === "string" && /^[a-z0-9-]{1,40}$/.test(b.name) && Array.isArray(b.scope) && b.scope.every((m) => typeof m === "string") && Array.isArray(b.caps) && b.caps.every((x) => CAPS.includes(x));
++    const ok = typeof b.sha256 === "string" && /^[0-9a-f]{64}$/.test(b.sha256) && typeof b.name === "string" && /^[a-z0-9-]{1,40}$/.test(b.name) && Array.isArray(b.scope) && b.scope.every((m) => typeof m === "string") && Array.isArray(b.caps) && b.caps.every((x) => CAPS.includes(x) && x !== "ship");
+     if (!ok) return fail(c, 400, "InvalidRequest", "{ sha256, name, scope, caps, until, created, note }");
+     const had = await rows.get("holder/secret/" + b.sha256);
+     if (had && (await rows.get("delegation/" + had))) return c.json(await rows.get("delegation/" + had));
+@@ -2258,6 +2278,44 @@ const _braincore_test_a_grant_is_a_delegation_that_a_did_holds = async function
+   expect((await mine("b")).status).toBe(200);
+   return "a grant: one delegation for a DID, the owner's to make, read on each call";
+ };
++const _braincore_test_a_delegation_with_the_cap_ship_makes_a_short_deploy_child = async function _test_a_delegation_with_the_cap_ship_makes_a_short_deploy_child(Response,coreRig,sha256,expect) {
++  const B = "com.lopecode.brain.", ADA = "did:plc:ada", HOUR = 3600000, end = Date.now() + 3 * HOUR, DEPLOY = ["deploy", "unattended", "session"];
++  const hear = async (request) => (request.url.endsWith(".getInfo") ? Response.json({ name: "brain-x-shop", hash: "h", calls: [] }) : Response.json({ ok: true }));
++  const rig = await coreRig({ workers: { shop: hear } }), kernel = rig.as("kernel", "");
++  await rig.deployer("service.register", { worker: "brain-x-shop", role: "recipe", paths: [], secrets: [], hash: "h", keyHash: await sha256("shop-key"), methods: { [B + "shop.receive"]: { type: "procedure", who: "anyone" }, [B + "shop.other"]: { type: "procedure", who: "anyone" } } });
++  await kernel("people.sync", { people: [{ did: ADA }] });
++  await rig.owner("delegation.create", { name: "grant", holder: { did: ADA }, scope: ["shop.receive"] });
++  const sent = (id) => (m, body) => rig.as("owner", "token")(m, body, { "x-brain-delegation": id });
++  const secret = (body) => rig.owner("delegation.create", { holder: { secret: true }, scope: ["shop.receive"], ...body });
++  const status = (r) => r.then((x) => x.status);
++  // The owner gives ship with delegate and no other cap. A member, a Worker holder and the kernel's adopt do not.
++  expect(await Promise.all([secret({ name: "s1", caps: ["ship"] }), secret({ name: "s2", caps: ["delegate", "ship", "session"] }), secret({ name: "s3", caps: ["ship", ...DEPLOY] }), rig.owner("delegation.create", { name: "s4", holder: { worker: "brain-x-echo" }, scope: ["shop.receive"], caps: ["delegate", "ship"] }), rig.as(ADA)("delegation.create", { name: "s5", holder: { secret: true }, scope: ["shop.receive"], caps: ["delegate", "ship"] }), kernel("delegation.adopt", { sha256: await sha256("old"), name: "s6", scope: [], caps: ["delegate", "ship"], until: null, created: 5, note: "" })].map(status))).toEqual([400, 400, 400, 400, 403, 400]);
++  const loop = (await secret({ name: "loop", scope: ["*"], caps: ["delegate", "ship"], until: end })).data, agent = (await secret({ name: "agent", caps: ["delegate"], until: end })).data;
++  expect(loop.caps).toEqual(["delegate", "ship"]);
++  const under = (id, body) => sent(id)("delegation.create", { holder: { secret: true }, scope: [], caps: DEPLOY, ...body });
++  const no = (id, body) => status(under(id, body));
++  // Refused: another set of caps, a longer life, no end, a Worker holder, a scope, another name, and a parent without ship.
++  expect(await Promise.all([no(loop.id, { caps: ["deploy"] }), no(loop.id, { caps: ["deploy", "unattended"] }), no(loop.id, { caps: [...DEPLOY, "delegate"] }), no(loop.id, { caps: [...DEPLOY, "ship"] }), no(loop.id, { caps: ["delegate", "ship"] }), no(loop.id, { caps: ["delegate"] }), no(loop.id, { until: Date.now() + 2 * HOUR }), no(loop.id, { until: null }), no(loop.id, { holder: { worker: "brain-x-echo" } }), no(loop.id, { scope: ["shop.receive"] }), no(loop.id, { scope: ["config.set", "rule.put"] }), no(loop.id, { scope: undefined }), no(loop.id, { name: "deploy-any" }), no(agent.id, { name: "r11" })])).toEqual([403, 403, 403, 403, 403, 403, 403, 403, 400, 403, 403, 403, 403, 400]);
++  // The allowed child: exactly deploy, unattended and session, no method, named for its parent, from the owner, ending in one hour.
++  const t0 = Date.now(), child = (await under(loop.id, {})).data;
++  expect([child.name, child.from, child.parent, child.caps, child.scope, child.until >= t0 + HOUR && child.until <= Date.now() + HOUR, /^[0-9a-f]{64}$/.test(child.secret)]).toEqual(["ship-" + loop.id, "owner", loop.id, DEPLOY, [], true, true]);
++  const seen = (await kernel("delegation.resolve", { sha256: child.holder.secret })).data.delegation;
++  expect([seen.id, seen.caps, seen.scope, (await sent(child.id)("delegation.create", { holder: { secret: true }, scope: [], caps: DEPLOY })).status, await no(loop.id, {})]).toEqual([child.id, DEPLOY, [], 403, 400]);
++  // Its session cap opens no route of the owner's tab: it reaches no method of the core or of a service.
++  const call = (m) => (m === "config.list" ? rig.as("owner", "token")(m, undefined, { "x-brain-delegation": child.id }) : sent(child.id)(m, {})).then((r) => [r.status, /does not reach/.test(r.data && r.data.message)]);
++  expect(await Promise.all(["config.list", "rule.put", "config.set", "quota.put", "calls.setMode", "shop.receive"].map(call))).toEqual(Array(6).fill([403, true]));
++  // Its parent lists it and revokes it; then it makes the next.
++  expect([(await sent(loop.id)("delegation.list")).data.delegations.map((d) => d.name), (await sent(loop.id)("delegation.revoke", { id: child.id })).data.revoked]).toEqual([["ship-" + loop.id], true]);
++  const timed = (await under(loop.id, { until: Date.now() + HOUR - 1000 })).data;
++  expect([timed.name, timed.caps, timed.scope]).toEqual(["ship-" + loop.id, DEPLOY, []]);
++  // With no end named, a child ends at its parent's end when that comes before one hour.
++  const brief = (await secret({ name: "brief", caps: ["delegate", "ship"], until: Date.now() + 600000 })).data;
++  expect([await no(brief.id, { until: brief.until + 1000 }), (await under(brief.id, {})).data.until]).toEqual([403, brief.until]);
++  // Revoking the parent ends it.
++  await rig.owner("delegation.revoke", { id: loop.id });
++  expect([(await kernel("delegation.resolve", { sha256: timed.holder.secret })).data, (await sent(timed.id)("shop.receive", {})).status]).toEqual([{ delegation: null }, 401]);
++  return "ship: the owner's, with delegate; under it a token with deploy, unattended and session, no method, that ends within an hour and goes with its parent";
++};
+ const _braincore_test_a_delegation_with_the_cap_delegate_makes_delegations_under_itself = async function _test_a_delegation_with_the_cap_delegate_makes_delegations_under_itself(Response,coreRig,sha256,expect) {
+   const B = "com.lopecode.brain.", ADA = "did:plc:ada", end = Date.now() + 3600000;
+   const hear = async (request) => (request.url.endsWith(".getInfo") ? Response.json({ name: "brain-x-shop", hash: "h", calls: [] }) : Response.json({ ok: true }));
+@@ -2428,6 +2486,7 @@ export default function define(runtime, observer) {
+   $def("_braincore_test_a_delegation_is_made_in_a_persons_own_session_for_a_worker_the_owner_deployed", "test_a_delegation_is_made_in_a_persons_own_session_for_a_worker_the_owner_deployed", ["coreRig","expect"], _braincore_test_a_delegation_is_made_in_a_persons_own_session_for_a_worker_the_owner_deployed);  
+   $def("_braincore_test_a_token_is_a_delegation_with_a_secret_holder_that_the_kernel_resolves", "test_a_token_is_a_delegation_with_a_secret_holder_that_the_kernel_resolves", ["Response","coreRig","sha256","expect"], _braincore_test_a_token_is_a_delegation_with_a_secret_holder_that_the_kernel_resolves);  
+   $def("_braincore_test_a_grant_is_a_delegation_that_a_did_holds", "test_a_grant_is_a_delegation_that_a_did_holds", ["Response","coreRig","sha256","expect"], _braincore_test_a_grant_is_a_delegation_that_a_did_holds);  
++  $def("_braincore_test_a_delegation_with_the_cap_ship_makes_a_short_deploy_child", "test_a_delegation_with_the_cap_ship_makes_a_short_deploy_child", ["Response","coreRig","sha256","expect"], _braincore_test_a_delegation_with_the_cap_ship_makes_a_short_deploy_child);
+   $def("_braincore_test_a_delegation_with_the_cap_delegate_makes_delegations_under_itself", "test_a_delegation_with_the_cap_delegate_makes_delegations_under_itself", ["Response","coreRig","sha256","expect"], _braincore_test_a_delegation_with_the_cap_delegate_makes_delegations_under_itself);  
+   $def("_braincore_test_a_worker_calls_under_a_delegation_as_who_made_it_and_not_in_their_tab", "test_a_worker_calls_under_a_delegation_as_who_made_it_and_not_in_their_tab", ["Response","coreRig","sha256","expect"], _braincore_test_a_worker_calls_under_a_delegation_as_who_made_it_and_not_in_their_tab);  
+   main.define("module @tomlarkworthy/cloudflare-iac", async () => runtime.module((await import("/@tomlarkworthy/cloudflare-iac.js?v=4")).default));  
+diff --git a/deploy/@tomlarkworthy/brain-kernel.js b/deploy/@tomlarkworthy/brain-kernel.js
+index 0d9f3bc..159dcfb 100644
+--- a/deploy/@tomlarkworthy/brain-kernel.js
++++ b/deploy/@tomlarkworthy/brain-kernel.js
+@@ -46,13 +46,13 @@ A person is an atproto account, named by its DID. There are two roles. The **own
+ 
+ **Other origins.** The kernel reads no cookie, so any origin may call with a token and read the answer. A refusal is readable too. An answer to a call with no \`authorization\` header carries \`access-control-allow-origin\`, so a page with no key reads the 401. A preflight gets the headers it asked for (\`access-control-request-headers\`), because a client library adds its own headers. The OpenAI library sends \`x-stainless-*\`. That holds when the names use letters, digits and \`-\`. A preflight that asks for any other name (\`x_trace_id\`) gets \`authorization, content-type\` only. A page on another origin can read four headers of an answer: \`x-brain-price\`, \`x-ai-usd\`, \`x-ai-neurons\` and \`x-proxy-upstream\`.
+ 
+-With \`deploy: true\`, \`token.link\` makes a link whose token also calls three \`infra\` methods as the owner's session does: \`infra.apply\`, \`infra.getState\` and \`infra.redistil\`. With \`unattended\` too, the token reaches \`infra.apply\` alone (see below). The token cannot call \`infra.confirm\`, which would keep its own deploy with no test run, because the deployer verifies a deploy itself. It cannot call \`infra.shell\`, which puts HTML at \`/\` with no reason, no \`was\` and no approval. The page at \`/\` runs where the owner's session lives, so a program cannot renew the page's shell, and the owner does after the program deploys the page. The token deploys and removes any Worker of this Brain, the kernel among them. A kernel it deploys gets no test run. A Worker that names no module gets none either. Both revert after 10 minutes unless the owner's session or the recovery key confirms them by name. This token's apply follows a session's rules. It needs a reason and \`was\`. When deploys need approval, it needs approval on the deployer's page, which needs the recovery key. The token itself names no secret, token, grant or people method. That limit holds only while deploys need approval. With approval off, it can deploy a kernel of its own writing. The kernel names the caller, so the token then acts as the owner. Only a link makes such a token, so it always ends, in 24 hours at most; \`token.create\` cannot. The kernel logs each call as \`infra.by.link\` with \`d:\` and the id of the token's delegation.
++With \`deploy: true\`, \`token.link\` makes a link whose token also calls three \`infra\` methods as the owner's session does: \`infra.apply\`, \`infra.getState\` and \`infra.redistil\`. With \`unattended\` too, the token reaches \`infra.apply\` alone (see below). The token cannot call \`infra.confirm\`, which would keep its own deploy with no test run, because the deployer verifies a deploy itself. It cannot call \`infra.shell\`, which puts HTML at \`/\` with no reason, no \`was\` and no approval. The page at \`/\` runs where the owner's session lives, so a program cannot renew the page's shell, and the owner does after the program deploys the page. The token deploys and removes any Worker of this Brain, the kernel among them. A kernel it deploys gets no test run. A Worker that names no module gets none either. Both revert after 10 minutes unless the owner's session or the recovery key confirms them by name. This token's apply follows a session's rules. It needs a reason and \`was\`. When deploys need approval, it needs approval on the deployer's page, which needs the recovery key. The token itself names no secret, token, grant or people method. That limit holds only while deploys need approval. With approval off, it can deploy a kernel of its own writing. The kernel names the caller, so the token then acts as the owner. A link makes such a token, and that token ends in 24 hours at most. A delegate token with the cap \`ship\` also makes one, with the core's \`delegation.create\`. That child ends in one hour, or at its parent's end when that is sooner. \`token.create\` makes neither. The kernel logs each call as \`infra.by.link\` with \`d:\` and the id of the token's delegation.
+ 
+-With \`unattended: true\` beside \`deploy: true\`, nothing that token applies, removes or redistils waits for approval. That includes a Worker that declares Cloudflare permissions, so it changes which Cloudflare token a Worker gets. The deployer logs \`by: token:NAME\`. That token belongs to a machine and has caps: it reaches \`infra.apply\` and no other \`infra\` method (403 from here for \`infra.shell\`, \`infra.redistil\` and \`infra.getState\`). The deployer refuses its apply with 403 when the apply names a Worker outside \`brain-x-[a-z0-9-]+\`. It also refuses an apply that names the kernel, the core, the database or the deployer. So the token deploys and removes services, and the owner's four stay the owner's, whatever tool sends it. Four things bound it. It ends (8 hours unless said, 24 at most), and \`token.revoke\` ends it. The log records every change with its reason, and \`was\` holds. The deployer mints only the groups in its \`GROUPS\`.
++With \`unattended: true\` beside \`deploy: true\`, nothing that token applies, removes or redistils waits for approval. That includes a Worker that declares Cloudflare permissions, so it changes which Cloudflare token a Worker gets. The deployer logs \`by: token:NAME\`. That token belongs to a machine and has caps: it reaches \`infra.apply\` and no other \`infra\` method (403 from here for \`infra.shell\`, \`infra.redistil\` and \`infra.getState\`). The deployer refuses its apply with 403 when the apply names a Worker outside \`brain-x-[a-z0-9-]+\`. It also refuses an apply that names the kernel, the core, the database or the deployer. So the token deploys and removes services, and the owner's four stay the owner's, whatever tool sends it. Four things bound it. A link's token ends in 8 hours unless said, 24 at most, and \`token.revoke\` ends it. A \`ship\` child ends in one hour at most, and names no method. \`delegation.revoke\` of the child or of its parent ends it. The log records every change with its reason, and \`was\` holds. The deployer mints only the groups in its \`GROUPS\`.
+ 
+ Such a token's delegation has the cap \`session\`, and the core reads that from the row. For the methods its list names by a name or a prefix, the call counts as the owner's own tab. So a rule of \`caller.session\` holds, and a browser or a container it opens is the owner's. A method that only \`*\` reaches does not count as called from the owner's tab. So \`*\` does not reach \`rule.put\`, \`price.put\`, \`quota.put\` or \`logs.query\`, and the list must name them. The kernel does not rewrite the caller and has no \`call.by.link\` line: the core's line has the delegation's id. A deploy does not pass the core, so the kernel logs \`infra.by.link\` with \`d:<id>\`. A token reaches its methods and no path, so a client reads \`/llms.txt\` with no \`Authorization\` header. The kernel deletes ended links and tokens when someone makes the next link. It keeps only the hash of the code and of the token. The code sits in a query string, which Cloudflare keeps beside each log line. It works once, or as many times as the \`uses\` of a link for several.
+ 
+-**Asking for more.** A program whose token names too little asks, and the owner answers in their own tab. \`token.request\` (procedure, anyone, with any token whatever it names) takes \`{ methods, caps, hours, reason, publicKey }\`. It also takes \`name\` when the call sends no token. \`caps\` are \`session\`, \`deploy\` and \`unattended\`, and \`unattended\` needs the other two. If the request leaves out \`caps\`, it reads \`deploy\` and \`unattended\` as \`token.link\` does. \`publicKey\` is an RSA key of 2048 bits or more, SPKI DER in base64. It answers \`{ id, kind, name, url, code, until }\`: \`kind\` is \`upgrade\` when a token asked and \`new\` otherwise; \`url\` is \`/auth/request?id=…\`; \`code\` is the first 6 hex of the SHA-256 of the key, \`ABC-DEF\`, which the program shows its user. The owner can then tell their request from someone else's. \`token.requested?id=\` (query, anyone, any token) answers the request and its \`status\`: \`pending\`, \`approved\` with \`granted\` and \`sealed\`, or \`denied\`. To the owner's session it also says what an upgrading token holds. \`token.requests\` (owner's session) lists those waiting. \`token.approve\` (owner's session) takes \`{ id, hours, caps }\` or \`{ id, deny: true }\`: fewer hours and fewer caps than asked, never more. The answer is a sign-in link as \`token.link\` makes, good for 30 minutes and carrying its caps. The kernel keeps the link as its hash and returns it as \`sealed\`: RSA-OAEP SHA-256 to the key, in base64. The link is never kept in clear and only the key opens it. A delegation never widens in place. For an upgrade, the link's delegation has the token's scope and caps plus what the owner granted. It takes the name \`NAME-XXXX\` from the token's name. Its POST makes the new token and then revokes the token that asked, so the program never ends up with no token. The replacement of a token from a link for several joins the same group, and \`token.revoke\` of the group's name ends it too. The program polls; nothing here pushes. \`/auth/request\` refuses frames and writes what a request says as text. It signs the owner in and back (\`/auth/login\` takes \`next=/auth/request?id=…\`), and closes its tab after an answer when the browser lets it. A request ends 60 minutes after its creation. At most 20 new requests and 5 requests of each token wait. Rows \`request/<id>\`.
++**Asking for more.** A program whose token names too little asks, and the owner answers in their own tab. \`token.request\` (procedure, anyone, with any token whatever it names, but one made under another delegation) takes \`{ methods, caps, hours, reason, publicKey }\`. It also takes \`name\` when the call sends no token. \`caps\` are \`session\`, \`deploy\` and \`unattended\`, and \`unattended\` needs the other two. If the request leaves out \`caps\`, it reads \`deploy\` and \`unattended\` as \`token.link\` does. \`publicKey\` is an RSA key of 2048 bits or more, SPKI DER in base64. It answers \`{ id, kind, name, url, code, until }\`: \`kind\` is \`upgrade\` when a token asked and \`new\` otherwise; \`url\` is \`/auth/request?id=…\`; \`code\` is the first 6 hex of the SHA-256 of the key, \`ABC-DEF\`, which the program shows its user. The owner can then tell their request from someone else's. \`token.requested?id=\` (query, anyone, any token) answers the request and its \`status\`: \`pending\`, \`approved\` with \`granted\` and \`sealed\`, or \`denied\`. To the owner's session it also says what an upgrading token holds. \`token.requests\` (owner's session) lists those waiting. \`token.approve\` (owner's session) takes \`{ id, hours, caps }\` or \`{ id, deny: true }\`: fewer hours and fewer caps than asked, never more. The answer is a sign-in link as \`token.link\` makes, good for 30 minutes and carrying its caps. The kernel keeps the link as its hash and returns it as \`sealed\`: RSA-OAEP SHA-256 to the key, in base64. The link is never kept in clear and only the key opens it. A delegation never widens in place. For an upgrade, the link's delegation has the token's scope and caps plus what the owner granted. It takes the name \`NAME-XXXX\` from the token's name. Its POST makes the new token and then revokes the token that asked, so the program never ends up with no token. The replacement of a token from a link for several joins the same group, and \`token.revoke\` of the group's name ends it too. The program polls; nothing here pushes. \`/auth/request\` refuses frames and writes what a request says as text. It signs the owner in and back (\`/auth/login\` takes \`next=/auth/request?id=…\`), and closes its tab after an answer when the browser lets it. A request ends 60 minutes after its creation. At most 20 new requests and 5 requests of each token wait. Rows \`request/<id>\`.
+ 
+ **A held deploy** (\`/auth/request?id=dp-…\`). The deployer's answer to a deploy that waits for approval carries a \`url\` of this page. For an id that starts \`dp-\` the page reads \`infra.approvalRequest?id=\`. It shows the worker, the hash, the code and \`changed\` as text, then the rest of the answer. Beside the buttons it shows the \`tests\` passed and \`ms\` of the deployer's test run, or \`no test result\` when \`tests\` is null. The owner's click calls \`infra.approveRequest\` with \`{ id }\`, or \`{ id, deny: true }\` for Deny. A stale answer (409) shows the hash the Worker runs. The sign-in flow and the refusal of frames are those of a token request.
+ 
+@@ -194,7 +194,7 @@ const _brainkernel_kernelApp = function _kernelApp(hono,Response,secrets,config,
+   const PORTAL_OWN = ["member.whoami", "member.services", "member.deploy", "member.remove", "member.modules"].map((m) => "com.lopecode.brain." + m);
+   // A method of some member's own service. Its rule, which the deployer wrote, says whether another member may call it.
+   const MEMBER_NS = "com.lopecode.brain.m.";
+-  // Any token may ask for more, and read the answer (Asking for more).
++  // Any token may ask for more, and read the answer (Asking for more), but one made under another: its answer would outlive its parent.
+   const ASKS = ["com.lopecode.brain.token.request", "com.lopecode.brain.token.requested", "com.lopecode.brain.secret.request"];
+ 
+   // Every caller sends a token in a header, this Brain's own page included, so any origin may call and read the answer.
+@@ -262,7 +262,7 @@ const _brainkernel_kernelApp = function _kernelApp(hono,Response,secrets,config,
+     // The core did not answer. Not "unknown token": the token may be good.
+     if (d === undefined) return { refused: { status: 503, error: "UpstreamFailure", message: "the core did not answer, so this token could not be read" } };
+     if (d && d.until && d.until <= Date.now()) return { refused: { error: "AuthRequired", message: "this token has expired" } };
+-    return d ? { caller: d.from, via: "token", name: d.name, methods: d.scope, deploy: d.caps.includes("deploy"), unattended: d.caps.includes("unattended"), delegate: d.caps.includes("delegate"), delegation: d.id } : { refused: { error: "AuthRequired", message: "unknown token" } };
++    return d ? { caller: d.from, via: "token", name: d.name, methods: d.scope, deploy: d.caps.includes("deploy"), unattended: d.caps.includes("unattended"), delegate: d.caps.includes("delegate"), delegation: d.id, parent: d.parent || null } : { refused: { error: "AuthRequired", message: "unknown token" } };
+   };
+   // Calls the kernel makes to the core's delegation methods: as itself to ask whose secret a hash is, and as the
+   // owner's session for a route below that its own session guard has passed, or for a link the owner's session made.
+@@ -318,7 +318,7 @@ const _brainkernel_kernelApp = function _kernelApp(hono,Response,secrets,config,
+     // A token or another DID reaches only the methods it was given, and no path that is not a method.
+     // A token of a sign-in link the owner made with deploy reaches infra.* too.
+     // One with the cap delegate reaches the three delegation methods; the core says what it may make there.
+-    if (who.via === "token" && !(nsid && (ASKS.includes(nsid) || names(who.methods, nsid) || (who.deploy && deploys(who).includes(nsid)) || (who.delegate && DELEGATE.includes(nsid))))) return fail(c, 403, "Forbidden", "this token does not name " + (nsid || path) + ". To ask the owner for it: GET https://" + config.host + "/auth/ask");
++    if (who.via === "token" && !(nsid && ((ASKS.includes(nsid) && !who.parent) || names(who.methods, nsid) || (who.deploy && deploys(who).includes(nsid)) || (who.delegate && DELEGATE.includes(nsid))))) return fail(c, 403, "Forbidden", "this token does not name " + (nsid || path) + ". To ask the owner for it: GET https://" + config.host + "/auth/ask");
+     // A portal shows one member's services to whoever opened it. Its token reaches the methods of that member's
+     // Workers and the list of their modules, as the viewer; when the viewer is that member, their own services too.
+     if (who.portal) {
+@@ -1531,6 +1531,15 @@ const _brainkernel_test_token_revoke_is_refused_a_body_with_no_name = async func
+   expect([(await rig.call("token.revoke", { session: rig.owner, body: { name: "many" } })).data, await state()]).toEqual([{ revoked: 2 }, [0, 0, 1, 200, 401]]);
+   return bodies.length + 1 + " bodies with no name of the pattern refused, nothing ended by them";
+ };
++const _brainkernel_test_a_ship_child_reaches_infra_apply_alone = async function _test_a_ship_child_reaches_infra_apply_alone(kernelRig,sha256,expect) {
++  // The core makes this child under a delegate token with the cap ship; the kernel reads only the row.
++  const rig = await kernelRig(), hash = await sha256("child-secret");
++  rig.held.set(hash.slice(0, 12), { id: hash.slice(0, 12), name: "ship-1", from: "owner", holder: { secret: hash }, scope: [], caps: ["deploy", "unattended", "session"], until: Date.now() + 3600000, daily: null, parent: "aaaaaaaaaaaa", note: "", created: Date.now() });
++  const status = async (m) => (await rig.call(m, { bearer: "child-secret", body: { workers: [], reason: "a test" } })).status;
++  expect([await status("infra.apply"), rig.toDeployer.at(-1).headers["x-brain-unattended"]]).toEqual([200, "token:ship-1"]);
++  expect(await Promise.all(["infra.shell", "infra.redistil", "infra.getState", "infra.confirm", "config.set", "rule.put", "quota.put", "calls.setMode", "token.create", "delegation.create", "token.request", "token.requested", "secret.request"].map(status))).toEqual(Array(13).fill(403));
++  return "a ship child: infra.apply as token:NAME, and nothing else";
++};
+ const _brainkernel_test_a_token_with_the_cap_delegate_reaches_the_delegation_methods = async function _test_a_token_with_the_cap_delegate_reaches_the_delegation_methods(kernelRig,sha256,expect) {
+   const rig = await kernelRig(), P = "com.lopecode.brain.proxy.fetch";
+   const put = async (name, secret, more) => {
+@@ -2307,6 +2316,7 @@ export default function define(runtime, observer) {
+   $def("_brainkernel_test_tokens_reach_only_their_methods", "test_tokens_reach_only_their_methods", ["kernelRig","expect","sha256"], _brainkernel_test_tokens_reach_only_their_methods);  
+   $def("_brainkernel_test_a_link_for_several_gives_each_a_token_of_their_own", "test_a_link_for_several_gives_each_a_token_of_their_own", ["kernelRig","expect"], _brainkernel_test_a_link_for_several_gives_each_a_token_of_their_own);  
+   $def("_brainkernel_test_token_revoke_is_refused_a_body_with_no_name", "test_token_revoke_is_refused_a_body_with_no_name", ["kernelRig","expect"], _brainkernel_test_token_revoke_is_refused_a_body_with_no_name);  
++  $def("_brainkernel_test_a_ship_child_reaches_infra_apply_alone", "test_a_ship_child_reaches_infra_apply_alone", ["kernelRig","sha256","expect"], _brainkernel_test_a_ship_child_reaches_infra_apply_alone);
+   $def("_brainkernel_test_a_token_with_the_cap_delegate_reaches_the_delegation_methods", "test_a_token_with_the_cap_delegate_reaches_the_delegation_methods", ["kernelRig","sha256","expect"], _brainkernel_test_a_token_with_the_cap_delegate_reaches_the_delegation_methods);  
+   $def("_brainkernel_test_the_request_page_shows_a_held_deploy", "test_the_request_page_shows_a_held_deploy", ["kernelRig","expect"], _brainkernel_test_the_request_page_shows_a_held_deploy);
+   $def("_brainkernel_test_a_program_asks_for_more", "test_a_program_asks_for_more", ["kernelRig","expect"], _brainkernel_test_a_program_asks_for_more);  
