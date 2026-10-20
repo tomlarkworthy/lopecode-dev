@@ -197,3 +197,8 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   confirmed, 3 plausible) and 2 smaller, all taken. 123,933 subagent tokens, 4m19s. What the author had not seen: the role of a run in the record
   (`spec-writer`, `overseer`) is not the prefix of its token (`spec`, `over`), so the condition the round was written to mend read a role no run
   has; and a task told its writer to ask "in a comment", the form the same spec says nothing reads.
+- 2026-10-20 `tools/cloud-brain/retro/brief.md` with `run.sh` and `boot.sh` (a daily agent with the owner's authority on
+  Fly, authored by the spawning session): BLOCK, 10 findings (6 confirmed, 4 plausible), 9 taken (lopecode-dev `38e235e4`),
+  1 moot (the model id; the run had already accepted it, and the default became Opus). 121k subagent tokens, 5m16s. What
+  the author had not seen: the tracker token and the deploy lock both needed a kept parent token the machine never had,
+  and a Cloudflare token would have sat in an un-ignored path of a public repository the agent commits to.
