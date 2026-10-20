@@ -1,6 +1,6 @@
 ---
 scope: [local-development]
-topics: Cloud Brain; cb4; brain.ts; deploying Workers from a notebook; pairing with a Brain page on the cluster; where the Cloud Brain architecture documents are
+topics: Cloud Brain; cb4; brain.ts; deploying Workers from a notebook; pairing with a Brain page on the cluster; where the Cloud Brain architecture documents are; the dashboard chat (agentic dashboards)
 triggers:
   - "^(Edit|Write|MultiEdit) .*tools/cloud-brain/"
   - "(^Bash |^|[;&|] )bun +tools/cloud-brain/(brain|build)\.ts( |$)"
@@ -90,6 +90,61 @@ public), and for the kernel, the core, the database and the deployer it is also 
   the core, the owner's own session, no deploy. `config.get?worker=` shows what a Worker has read.
 - **`/llms.txt`** on the kernel's address says how a program calls this Brain; it is written from what is deployed.
   One Worker's method table: `/xrpc/com.lopecode.brain.getSource?worker=NAME&part=reference`.
+
+## The dashboard chat
+
+Project `agentic-dashboards` (issues `ad-*`). Read 2026-10-20 from what cb4 ran: `bun sync.ts
+https://cb4.endpointservices.workers.dev` in a clone of `cloud-brain-dev` (HEAD `8f7d351`; a service's module
+is git-ignored, so the files are what cb4 ran at that sync), under `deploy/@tomlarkworthy/`. The reference is
+the module's own section "The chat" and its subsection "The selection" of `brain-dashboard.js`, written by
+`ad-6-docs` (done 2026-10-20 06:36 UTC, the time given in the reason of `ad-7`'s hold); read it there, not here. What follows is where each part is.
+
+- **Where.** Only the owner's tab draws it, under the dashboard: a robocoop-5 chat of the group `dashboard`,
+  beside the Operator's of the group `brain`, with the model, endpoint and key of the Operator's settings panel.
+- **Eight tools, none writes to the Brain**: `metrics_list`, `metric_query`, `dashboard_read`, `draft_set`,
+  `show`, `logs_query`, `knowledge_search`, `screenshot` (cell `chatTable`). Bounds a turn, in `chatLimits`:
+  20 calls of `metric_query` and `show` together, 5 `logs_query`, 5 `knowledge_search`, 5 `draft_set`,
+  3 `screenshot`. The prompt, cell `dashboardPrompt`, has the model explore, `draft_set`,
+  `screenshot`, judge and correct.
+- **Draft, Keep, Undo, Discard.** The draft is the page value `dashboardDraft`, not a row of the service; a
+  reload loses it. Keep sends one `dashboard.put`; Undo is one step back; Discard empties it. The model cannot
+  Keep.
+- **Arranging.** A kept dashboard has twelve buttons a panel (move, size, order, Rename, Delete) and Rename/Delete
+  dashboard; a built-in dashboard, a visitor, and a page with a draft of another dashboard have none. A control edits the draft only, giving each panel a `pos` and `size`; Keep writes them. The agent
+  sets `pos` and `size` through `draft_set` and has no tool for the buttons.
+- **Selection** (`dashboardSelection`). A drag on the time axis of a `bars`, `points` or `calls` panel sets the
+  span; a click on a bar, dot or table/share row sets the group. Then Zoom (sets the zoom of `cloud-brain`),
+  Break down by each other dimension (one `metric.query` or `issue.flow`, no model), Lines (`logs.query`, 50
+  newest; for a `flow.` metric the issues; none for `deploys.restore`) and Clear. In a tab not the owner's, Zoom, Break down and Lines are disabled.
+- **`screenshot`** draws the draft (or the kept dashboard) into one JPEG through an SVG `foreignObject` on a
+  canvas (`pictureOf`), at most 1600 px on its long side and 1,500,000 characters, in 4 tries at most, each after the first
+  at 0.7 of the scale before (`pictureLimits`; the module's prose says "smaller up to 4 times"),
+  and passes it to `ctx.attachImage`. With no `attachImage`, nothing drawn, or a browser that cannot draw it,
+  it answers in text.
+- **Vision.** The tool attaches nothing and counts no call when the selected model's option label carries
+  robocoop-5's "no vision" mark (`modelSees`, test
+  `test_screenshot_attaches_nothing_when_the_selected_model_is_text_only`). robocoop-5 sets that mark from
+  `architecture.input_modalities` of the catalog its settings panel reads (`robocoop-5-engine.js`, `hasVision`,
+  `catalogUrl`): OpenRouter's `/api/v1/models` with a key, the gateway's `/models` in demo mode (no key), or
+  `<endpoint>/models` for a custom endpoint. When the fetch fails or takes over 5 s it falls back to the starred
+  ids of `SNAPSHOT`, or `DEMO_FALLBACK` in demo mode; for the mimo ids both agree with the catalogs. The
+  catalog's `input_modalities` is the truth, not a model's name. OpenRouter's `/api/v1/models` on 2026-10-20:
+  ```
+  xiaomi/mimo-v2.5-pro ['text']
+  xiaomi/mimo-v2.5     ['text', 'audio', 'image', 'video']
+  xiaomi/mimo-v2.6-pro / -flash / -pro-ultraspeed  ['text', 'image', 'video', 'audio']
+  ```
+  The gateway (`openrouter-gateway.endpointservices.workers.dev/v1/models`) gave the same for mimo-v2.5-pro,
+  mimo-v2.5, v2.6-flash and v2.6-pro that day. So on `mimo-v2.5-pro`, the
+  demo default, the chat judges a draft from its rows alone.
+- **The Operator's brief** (`ad-6a-operator-brief`; `assistantPrompt` of `cloud-brain.js`, test
+  `test_the_operator_is_told_the_dashboard_has_a_chat_of_its_own`) tells the Operator not to answer a question about
+  a metric's chart or a dashboard draft, and to tell the owner to ask it in the dashboard chat.
+
+Not done or not verified, 2026-10-20: `ad-7-read-after-a-week` (drafts kept, sessions of the group, what the
+owner said) is held until 2026-10-27 and has not run, so no use of the chat is recorded. This section was
+written from the source and its tests; the chat was not opened or run in a browser for it, and whether the
+module's tests pass on cb4 now was not checked.
 
 ## Standing rules from Tom
 

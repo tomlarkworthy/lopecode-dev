@@ -234,3 +234,6 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   two logs against every figure: the hashes, seqs, counts and dollars held; what the author had wrong was the date (the landing was
   the 21st, the author wrote the 22nd and 23rd), two of eight turns left out of a table whose total counted them, a 14 s race
   written as 1 s, and two placeholders ("01:0x") left in place of times the record had.
+- 2026-10-20 `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md`, section "The dashboard chat" (ad-6b): FIX, 7 findings (6 confirmed,
+  1 plausible), all taken. 101k subagent tokens, 2m24s. What the author had not seen: in demo mode the vision mark comes from the gateway's
+  catalog, not OpenRouter's, and the Operator's brief tells the Operator to send the owner to the dashboard chat, not to forward the question.
