@@ -1,6 +1,8 @@
 #!/bin/bash
-# machine.sh   makes the daily retro's machine on the Fly app cloudbrain-retro, with the owner's `fly auth login`.
+# machine.sh   makes (does not start) the daily retro's machine on the Fly app cloudbrain-retro, with the owner's `fly auth login`.
 # Run from the repository root. DRY=1 prints the commands. It makes a volume and a machine; it sets no secret.
+# `create`, not `run`: a machine made with `run --schedule daily` starts at once, a second retro that day.
+# The volume holds .emitted/cb4-tokens.json (retro-agents); a new volume needs `brain.ts token revoke retro-agents` first.
 #
 # The app and its secrets, made once by hand on 2026-10-20 (values never printed or kept in the repository):
 #   fly apps create cloudbrain-retro --org personal
@@ -24,9 +26,9 @@ if [ -z "$VOL" ]; then
   run fly volumes create retro_data -a $APP -r ams -s "$GB" -y
   [ "$DRY" = 1 ] || VOL=$(fly volumes list -a $APP --json | jq -r '[.[] | select(.name=="retro_data" and .attached_machine_id==null)][0].id')
 fi
-run fly machine run "$IMAGE" -a $APP -r ams --name retro \
+run fly machine create "$IMAGE" -a $APP -r ams --name retro \
   --vm-cpu-kind performance --vm-cpus 2 --vm-memory 4096 --volume "${VOL:-<volume>}:/data" --restart no --schedule daily \
   --file-local /usr/local/bin/retro-boot.sh=tools/cloud-brain/retro/boot.sh \
   --file-secret /root/.ssh/lopecode-dev.key=DEPLOY_KEY_LOPECODE_DEV --file-secret /root/.ssh/lopebooks.key=DEPLOY_KEY_LOPEBOOKS \
   --file-secret /root/.ssh/lopecode-plugin.key=DEPLOY_KEY_LOPECODE_PLUGIN --file-secret /root/.ssh/lopecode.key=DEPLOY_KEY_LOPECODE \
-  --file-secret /root/cb4.json=CB4_STATE --entrypoint "/bin/bash /usr/local/bin/retro-boot.sh" --detach
+  --file-secret /root/cb4.json=CB4_STATE --entrypoint "/bin/bash /usr/local/bin/retro-boot.sh"
