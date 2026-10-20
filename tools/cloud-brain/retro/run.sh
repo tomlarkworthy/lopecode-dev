@@ -22,7 +22,10 @@ for m in cloud-brain-dev lopebooks lopecode-plugin lopecode; do
   git submodule update -q --init --no-fetch "$m" 2>/dev/null
   git -C "$m" fetch -q origin main && git -C "$m" checkout -q -B main origin/main && say "$m: pointer not on the remote, at origin/main" || say "$m: not checked out"
 done
-for m in lopebooks lopecode-plugin lopecode; do git -C "$m" checkout -q -B main 2>/dev/null; git -C "$m" branch -q -u origin/main 2>/dev/null; done
+# each submodule at its remote's main, so a change is made on the latest and pushes without a conflict
+for m in cloud-brain-dev lopebooks lopecode-plugin lopecode; do
+  git -C "$m" fetch -q origin main && git -C "$m" checkout -q -B main origin/main || say "$m: not at origin/main"
+done
 [ -n "$CB4_STATE_FILE" ] || CB4_STATE_FILE=/root/cb4.json
 mkdir -p tools/cloud-brain/.emitted && install -m 600 "$CB4_STATE_FILE" tools/cloud-brain/.emitted/cb4.json || { say "no owner state file"; exit 1; }
 [ -f /root/cf-token ] && install -m 600 /root/cf-token tools/cloud-brain/.cf-token
