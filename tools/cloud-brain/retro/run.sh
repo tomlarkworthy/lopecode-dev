@@ -28,7 +28,12 @@ for m in cloud-brain-dev lopebooks lopecode-plugin lopecode; do
 done
 [ -n "$CB4_STATE_FILE" ] || CB4_STATE_FILE=/root/cb4.json
 mkdir -p tools/cloud-brain/.emitted && install -m 600 "$CB4_STATE_FILE" tools/cloud-brain/.emitted/cb4.json || { say "no owner state file"; exit 1; }
-[ -f /root/cf-token ] && install -m 600 /root/cf-token tools/cloud-brain/.cf-token
+# the Cloudflare token, when the owner has given one, stays under the git-ignored .emitted/
+[ -f /root/cf-token ] && install -m 600 /root/cf-token tools/cloud-brain/.emitted/cf-token && export CF_TOKEN_FILE="$C/tools/cloud-brain/.emitted/cf-token"
+# retro-agents: the retro's own delegate for issue.*, made once with the owner's session and kept on the volume;
+# the agent makes its tracker and lock tokens as its children (agent-token --parent retro-agents)
+grep -q '"retro-agents"' tools/cloud-brain/.emitted/cb4-tokens.json 2>/dev/null || \
+  BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token retro-agents 'issue.*' --delegate >/dev/null || say "retro-agents was not made"
 bun install --silent || say "bun install failed at the root"
 (cd tools && bun install --silent) || say "bun install failed in tools/"
 (cd cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev >/dev/null 2>&1) || say "cloud-brain-dev sync.ts failed"
@@ -46,6 +51,9 @@ say "the agent ended with $CODE; $(tail -1 "/data/retro-logs/$DAY.jsonl" | jq -r
 if [ -f "plan/retros/$DAY.md" ] && ! git ls-files --error-unmatch "plan/retros/$DAY.md" >/dev/null 2>&1; then
   git add "plan/retros/$DAY.md" && git commit -q -m "retro $DAY: report (committed by run.sh; the agent did not)"
 fi
-git pull -q --rebase origin main && git push -q origin HEAD:main || say "push failed"
+if ! { git pull -q --rebase origin main && git push -q origin HEAD:main; }; then
+  git rebase --abort 2>/dev/null
+  git push -q origin "HEAD:refs/heads/retro/$DAY" && say "main did not take the push; the work is on the branch retro/$DAY" || say "push failed"
+fi
 exit $CODE
 }
