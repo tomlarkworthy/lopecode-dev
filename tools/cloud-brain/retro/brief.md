@@ -93,11 +93,10 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
    one-line survey of step 2 first; yesterday's actions and whether they worked; the diagnosis; each change with its
    commit, deploy id or tracker event, and how it was verified live; what you left for the owner and why it needs
    him; your own cost (from the end of your run, estimated if you must).
-   Commit with a message that begins `retro <date>:`, `git pull --rebase`, push to `main`. Then post one comment
-   with the report's GitHub URL on the tracker issue `retro-log`. If it does not exist, open it as a `task` with
-   `about: cloud-brain-dev` and the label `needs-owner`, which the working roles skip (the overseer's selector still admits it), and never move it; it does not
-   count toward the three. If the push to `main` fails, run.sh puts your commits on the branch `retro/<date>`: say
-   so in the comment. Then revoke your tracker token.
+   Commit with a message that begins `retro <date>:`, `git pull --rebase`, push to `main`. Then post one comment with the report's GitHub URL on your run's issue, `retro-<date>` (your prompt names
+   it): run.sh opened and held it before you started and closes it after you end, with your run's `cost` event (role
+   `retro`), so do not move it. If the push to `main` fails, run.sh puts your commits on the branch `retro/<date>`:
+   say so in the comment. Then revoke your tracker token.
 
 ## Rules that hold even with the owner's authority
 

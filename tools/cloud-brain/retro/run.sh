@@ -39,7 +39,15 @@ bun install --silent || say "bun install failed at the root"
 (cd cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev >/dev/null 2>&1) || say "cloud-brain-dev sync.ts failed"
 
 mkdir -p /data/retro-logs
-PROMPT="Today is $DAY (UTC). You are the daily retro of the Cloud Brain factory. Read tools/cloud-brain/retro/brief.md whole and do what it says. Your report is plan/retros/$DAY.md."
+# The run's own issue, retro-<date>: opened and held now so no loop role takes it, closed below with a `cost` event of
+# role `retro`, so the run is counted with the loop's roles (issue.runs?role=retro, issue-stats.ts).
+IA=tools/cloud-brain/issue-as.sh; ISSUE="retro-$DAY"; START=$(date +%s)
+RT=$(BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token --parent retro-agents out "retro run.sh $DAY" 2>/dev/null | tail -1)
+if [ -n "$RT" ]; then
+  $IA "$RT" open "{\"key\":\"$ISSUE/open\",\"id\":\"$ISSUE\",\"kind\":\"task\",\"about\":\"cloud-brain-dev\",\"title\":\"Retro $DAY\",\"body\":\"The daily retro's run of $DAY (tools/cloud-brain/retro/). Its report is plan/retros/$DAY.md; run.sh closes this issue with the run's cost.\"}" >/dev/null 2>&1
+  $IA "$RT" hold "{\"key\":\"$ISSUE/hold\",\"id\":\"$ISSUE\",\"until\":$(( (START + 6*3600) * 1000 )),\"reason\":\"the daily retro runs; run.sh closes it with its cost\"}" >/dev/null 2>&1
+else say "no run token: retro-$DAY not opened, no cost event"; fi
+PROMPT="Today is $DAY (UTC). You are the daily retro of the Cloud Brain. Read tools/cloud-brain/retro/brief.md whole and do what it says. Your report is plan/retros/$DAY.md; your run's tracker issue is $ISSUE."
 say "starting the agent (${MODEL:-claude-opus-5-5}, effort ${EFFORT:-high}, budget \$${BUDGET_USD:-60})"
 IS_SANDBOX=1 METADEV=1 BRAIN_BASE=cb4 CLAUDE_CONFIG_DIR=/data/claude timeout "${HOURS:-4}h" \
   claude -p "$PROMPT" --model "${MODEL:-claude-opus-5-5}" --fallback-model sonnet --effort "${EFFORT:-high}" \
@@ -54,6 +62,22 @@ fi
 if ! { git pull -q --rebase origin main && git push -q origin HEAD:main; }; then
   git rebase --abort 2>/dev/null
   git push -q origin "HEAD:refs/heads/retro/$DAY" && say "main did not take the push; the work is on the branch retro/$DAY" || say "push failed"
+fi
+if [ -n "$RT" ]; then
+  L="/data/retro-logs/$DAY.jsonl"
+  OUTCOME=reported; [ "$CODE" = 124 ] && OUTCOME=timeout
+  git cat-file -e "origin/main:plan/retros/$DAY.md" 2>/dev/null || OUTCOME="${OUTCOME/reported/no-report}"
+  BODY=$(jq -s -c --arg id "$ISSUE" --arg tok "$RT" --arg out "$OUTCOME" --argjson secs $(( $(date +%s) - START )) '
+    (map(select(.type=="result")) | last) as $r | (map(select(.type=="assistant")) | last | .message.usage // {}) as $a |
+    { key: ("cost/" + $id + "/retro/1"), id: $id, role: "retro", round: 1, how: "light", outcome: $out, seconds: $secs,
+      context: (($a.input_tokens // 0) + ($a.cache_read_input_tokens // 0) + ($a.cache_creation_input_tokens // 0)), token: $tok,
+      usage: { input: ($r.usage.input_tokens // 0), cacheWrite: ($r.usage.cache_creation_input_tokens // 0),
+               cacheRead: ($r.usage.cache_read_input_tokens // 0), output: ($r.usage.output_tokens // 0),
+               requests: ($r.num_turns // 0), advisor: { calls: 0, input: 0, output: 0 } },
+      usd: ($r.total_cost_usd // 0) }' "$L" 2>/dev/null)
+  [ -n "$BODY" ] && $IA "$RT" cost "$BODY" >/dev/null 2>&1 || say "the cost event was not written"
+  $IA "$RT" move "{\"key\":\"$ISSUE/close\",\"id\":\"$ISSUE\",\"to\":\"closed\",\"reason\":\"retro $DAY ended ($OUTCOME): https://github.com/tomlarkworthy/lopecode-dev/blob/main/plan/retros/$DAY.md\"}" >/dev/null 2>&1 || say "$ISSUE was not closed"
+  BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token --parent retro-agents revoke "$RT" >/dev/null 2>&1
 fi
 exit $CODE
 }
