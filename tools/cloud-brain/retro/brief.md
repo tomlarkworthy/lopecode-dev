@@ -29,6 +29,9 @@ role measured outcomes, and the only reflective role, the overseer, is told to r
   retro <date>"` prints its name, `out-<hex>`. Use it with `tools/cloud-brain/issue-as.sh <name> …` and as
   `LOCK_TOKEN=<name>` for `tools/cloud-brain/lock.sh`. `retro-agents` is kept by run.sh; do not use `loop-agents`
   or make another delegate. Revoke yours at the end (`agent-token --parent retro-agents revoke <name>`).
+- Reads of the record go through `brain.ts curl … --owner` (`issue.sync?after=N&limit=500`, paged: 19,089 events in 64 s
+  on 2026-10-20). `tools/cloud-brain/retro/pull-sync.py` pulls it to `$S/events.json` and `measure.py` prints the tables
+  of step 2 from it and from `logs.deploys` of the last 7 days (`$S/deploys7d.json`).
 - The tools: `issue-stats.ts`, `cost-events.ts`, `agent-usage.ts`, `cloud-brain-dev/stats.ts`, `cloud-brain-dev/rollback.ts`, `brain.ts curl` on
   `issue.sync`, `issue.flow`, `loop.work`, `fly.*`, `logs.*`, `usage.account`. Web search, for a problem with a
   literature.

@@ -983,6 +983,7 @@ and "An act of Never, on the owner's word").
 
 - Anything owner-present: install a policy, approve, revert, rebuild. See `rules.md` for what you do of these on his word: the `approve` move since 2026-10-11, and since 2026-10-12 an act of its Never list that he gives his word for in this session, quoted on the issue with its date, but a secret printed, copied or logged, which no word of his in a session gives leave for ("An act of Never, on the owner's word"). An agent you spawn does none of them; an approver makes the `approve` move through `approver.ts` alone, which sends none until the owner has installed a policy that names its delegation (step 3, the row for `awaiting-approval`).
 - Two agents on one issue. (No number of writers or reviewers is set: step 2.)
+- Work on its own machinery by ticket (`rules.md`, "Always", the owner's words of 2026-10-20). A defect in the drain, `run.ts`, `ship.ts`, `push.ts`, the approver, a brief or `brain-x-loop` is fixed directly by the session that meets it; it is not filed, triaged, written, reviewed and approved as an issue. The orchestrating sessions opened 373 of the 607 issues of 2026-10-13 to 10-20, 507 of the 607 about the machinery (`plan/retros/2026-10-20.md`).
 - Issues whose fix is in `exporter-3`, `robocoop-5`, the channel server or `lopecode`. Comment with the change wanted and label `needs-owner`.
 - Carry on past a cluster that is not healthy.
 
