@@ -14,8 +14,11 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
 
 - `/data/lopecode-dev`: a checkout of `lopecode-dev` at `origin/main` with the submodules `cloud-brain-dev`,
   `lopebooks`, `lopecode-plugin`, `lopecode`, each on `main` with write access (deploy keys; GitHub over ssh aliases
-  `github-<repo>`). `cloud-brain-dev` pushes to the Brain's git: `cloud-brain-dev/README.md`, "A change from a
-  worktree", with a token from `git.token` made with the owner's session.
+  `github-<repo>`). `cloud-brain-dev` pushes to Cloudflare's address of the Brain's git, not the address it was cloned from: the
+  recipe is `cloud-brain-dev/README.md`, "Calling the Brain" (`git.token` with `scope=write` and `git.get`, both with
+  the owner's session; set `remote.origin.pushurl`; push with the token in `http.extraHeader`). Its later section "A
+  change from a worktree" is for the loop's worktrees and does not apply here. After a push there, commit the new
+  `cloud-brain-dev` pointer in `lopecode-dev`.
 - `tools/cloud-brain/.emitted/cb4.json`: the owner's state file (recovery key, deployer key, owner session). With it
   `bun tools/cloud-brain/brain.ts` does everything the owner does from his laptop: `curl … --owner`, `token`,
   `agent-token`, `apply`, `rollback`, policy installs, approving a held deploy (`infra.approveRequest` with the
@@ -30,9 +33,11 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
   `LOCK_TOKEN=<name>` for `tools/cloud-brain/lock.sh`. `retro-agents` is kept by run.sh; do not use `loop-agents`
   or make another delegate. Revoke yours at the end (`agent-token --parent retro-agents revoke <name>`).
 - Reads of the record go through `brain.ts curl … --owner` (`issue.sync?after=N&limit=500`, paged: 19,089 events in 64 s
-  on 2026-10-20). `tools/cloud-brain/retro/pull-sync.py` pulls it to `$S/events.json` and `measure.py` prints the tables
-  of step 2 from it and from `logs.deploys` of the last 7 days (`$S/deploys7d.json`).
-- The tools: `issue-stats.ts`, `cost-events.ts`, `agent-usage.ts`, `cloud-brain-dev/stats.ts`, `cloud-brain-dev/rollback.ts`, `brain.ts curl` on
+  on 2026-10-20). `S=<a scratch dir> python3 tools/cloud-brain/retro/pull-sync.py` (from the repository root) writes `$S/events.json` and
+  `$S/deploys7d.json` (`logs.deploys` of 7 days); `S=<same> python3 tools/cloud-brain/retro/measure.py` prints the
+  factory's tables from them. `cloud-brain-dev/rollback.ts` is not a read: it comments, labels and moves issues.
+- The tools: `tools/cloud-brain/issue-stats.ts`, `cost-events.ts` and `agent-usage.ts` there, `cloud-brain-dev/stats.ts`,
+  `brain.ts curl` on
   `issue.sync`, `issue.flow`, `loop.work`, `fly.*`, `logs.*`, `usage.account`. Web search, for a problem with a
   literature.
 
@@ -81,7 +86,8 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
      test is not that. If you cannot run it today, say "not verified" in the report.
    - Deploy under the deploy lock (`LOCK_TOKEN=<name> tools/cloud-brain/lock.sh take cb4 retro`), and give each
      `brain.ts apply`, `rollback` or `redistil --apply` a `--reason=` naming this retro. If the health check or the
-     tests of what you deployed fail, roll back and say so. Release the lock.
+     tests of what you deployed fail, roll back and say so. The lock lasts 600 s: `lock.sh renew cb4 retro` every few
+     minutes while you hold it. Release it when done.
    - Stop what is burning money or doing harm (the loop, a machine, a browser, a token) and say why.
 5. **Report** in `plan/retros/<date>.md`, terse and factual (`.claude/skills/document/` has the house style): the
    one-line survey of step 2 first; yesterday's actions and whether they worked; the diagnosis; each change with its
@@ -89,7 +95,7 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
    him; your own cost (from the end of your run, estimated if you must).
    Commit with a message that begins `retro <date>:`, `git pull --rebase`, push to `main`. Then post one comment
    with the report's GitHub URL on the tracker issue `retro-log`. If it does not exist, open it as a `task` with
-   `about: cloud-brain-dev` and the label `needs-owner`, which every loop role skips, and never move it; it does not
+   `about: cloud-brain-dev` and the label `needs-owner`, which the working roles skip (the overseer's selector still admits it), and never move it; it does not
    count toward the three. If the push to `main` fails, run.sh puts your commits on the branch `retro/<date>`: say
    so in the comment. Then revoke your tracker token.
 

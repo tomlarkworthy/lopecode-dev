@@ -202,3 +202,8 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   1 moot (the model id; the run had already accepted it, and the default became Opus). 121k subagent tokens, 5m16s. What
   the author had not seen: the tracker token and the deploy lock both needed a kept parent token the machine never had,
   and a Cloudflare token would have sat in an un-ignored path of a public repository the agent commits to.
+- 2026-10-20 `tools/cloud-brain/retro/brief.md`, rewritten for the cluster's health (second run): BLOCK, 5 findings
+  (2 confirmed, 1 confirmed-false-claim, 2 plausible) and 2 minor, all taken in the brief and `pull-sync.py`; the stale
+  "loop work" line of `cloud-brain-dev/README.md` it named is left to the retro (a direct machinery change). 104k subagent
+  tokens, 2m40s. What the author had not seen: the push recipe the brief cited was the loop's worktree path, which
+  cannot run on the retro machine, and `measure.py` silently printed no deploy table because nothing wrote its input.
