@@ -4,7 +4,7 @@
 # Started by boot.sh after it pulled main. One agent, the brief beside this file, owner authority, no tracker
 # workflow. The machine stops when this ends (restart policy no; schedule daily).
 #
-# Env: MODEL (claude-fable-5-1), EFFORT (high), BUDGET_USD (60), HOURS (4) — set at machine create to change them.
+# Env: MODEL (claude-opus-5-5), EFFORT (high), BUDGET_USD (60), HOURS (4) — set at machine create to change them.
 # Writes: /data/retro-logs/<date>.jsonl (the stream), the agent's own commits. Never prints a secret.
 {
 export HOME=/root
@@ -35,9 +35,9 @@ bun install --silent || say "bun install failed at the root"
 
 mkdir -p /data/retro-logs
 PROMPT="Today is $DAY (UTC). You are the daily retro of the Cloud Brain factory. Read tools/cloud-brain/retro/brief.md whole and do what it says. Your report is plan/retros/$DAY.md."
-say "starting the agent (${MODEL:-claude-fable-5-1}, effort ${EFFORT:-high}, budget \$${BUDGET_USD:-60})"
+say "starting the agent (${MODEL:-claude-opus-5-5}, effort ${EFFORT:-high}, budget \$${BUDGET_USD:-60})"
 IS_SANDBOX=1 METADEV=1 BRAIN_BASE=cb4 CLAUDE_CONFIG_DIR=/data/claude timeout "${HOURS:-4}h" \
-  claude -p "$PROMPT" --model "${MODEL:-claude-fable-5-1}" --fallback-model opus --effort "${EFFORT:-high}" \
+  claude -p "$PROMPT" --model "${MODEL:-claude-opus-5-5}" --fallback-model sonnet --effort "${EFFORT:-high}" \
   --max-budget-usd "${BUDGET_USD:-60}" --permission-mode bypassPermissions --output-format stream-json --verbose \
   < /dev/null > "/data/retro-logs/$DAY.jsonl" 2>&1
 CODE=$?
