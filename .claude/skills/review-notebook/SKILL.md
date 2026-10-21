@@ -212,3 +212,14 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   tokens, 3m18s. What the author had not seen: a yield that left `worker-processing` on would never be started again by its own wake rule; a wait
   written before its label is due at once; an expired wait is in no read, so nothing named noticed it; and the session store on `/data` was said to
   exist (`useradd --create-home` has no `-d`).
+- 2026-10-21 `cloud-brain-dev` `brain-issues.js` since tag `base` (tracker changes 1 to 4 of the redesign, branch `redesign-tracker`),
+  `plan/cloud-brain-issues-policy-v10.md` and `tools/cloud-brain/migrate-labels.ts`, one agent for the three: FIX, 6 findings (2 confirmed,
+  4 plausible) and 3 minor, all sent back to the builder. 171k subagent tokens, 6m26s. What the author had not seen: a worker's own token
+  could call `issue.receive` and write a "deploy.confirmed" line for its own wait; a logged deployer line carries `worker: "brain-deployer"`
+  beside `target`, and the handler read `worker` first; two lines of one ray shared a comment key, so `confirmed` after `verified` was dropped.
+- 2026-10-21 `cloud-brain-dev` branch `redesign-drain` `c364fca` (`drain2.ts`, `deploy.ts`, the sessions on the volume, the worker and reviewer
+  briefs; TypeScript and markdown, not a notebook): BLOCK, 14 findings (8 confirmed, 6 plausible), all sent back; the same reviewer then
+  verified the fix commit `167c67a`: 10 fixed, 4 partly, one new (boot recovery reclaimed another machine's sessions). 142k + 193k subagent
+  tokens, 4m08s + 1m52s. What the author had not seen: the deploy token reached an agent running as root, since the hand-off was named in
+  the header and not called; a worker under `bypassPermissions` could write a `SessionStart` hook into the shared persisted home that
+  would run in the reviewer's session with the reviewer's token; and an owner-held deploy was yielded on and never sent again.
