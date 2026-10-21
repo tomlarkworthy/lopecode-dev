@@ -207,3 +207,8 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   "loop work" line of `cloud-brain-dev/README.md` it named is left to the retro (a direct machinery change). 104k subagent
   tokens, 2m40s. What the author had not seen: the push recipe the brief cited was the loop's worktree path, which
   cannot run on the retro machine, and `measure.py` silently printed no deploy table because nothing wrote its input.
+- 2026-10-21 `plan/cloud-brain-agentic-redesign.md` (the redesign of the issue loop as labels, one resumed session and one review guard, first
+  writing): FIX, 10 findings (9 confirmed, 1 plausible), all taken; 2 had been fixed by the author between the spawn and the report. 120k subagent
+  tokens, 3m18s. What the author had not seen: a yield that left `worker-processing` on would never be started again by its own wake rule; a wait
+  written before its label is due at once; an expired wait is in no read, so nothing named noticed it; and the session store on `/data` was said to
+  exist (`useradd --create-home` has no `-d`).
