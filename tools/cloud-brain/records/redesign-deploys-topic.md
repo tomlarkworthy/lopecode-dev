@@ -70,21 +70,26 @@ From a clone of `cloud-brain-dev` with `bun sync.ts https://cb4.endpointservices
 lock `cb4`. `P=../tools/cloud-brain/records`. The calls are `brain.ts curl … --owner -X POST -H 'content-type:
 application/json' -d '…'` of the main checkout, or the page.
 
-1. The tracker's `issue.receive` (worktree `bm-redesign-tracker`, `171a0b2`; step 1 of §7) deployed. A push before
-   it answers 404 and is given up at once and counted in `dropped`.
+1. The tracker's patch deployed: the head of the branch `redesign-tracker` of the clone of `cloud-brain-dev` in the
+   worktree `bm-redesign-tracker` (step 1 of §7; the branch moves, so no hash here), then `issue.rebuild`. A push
+   before `issue.receive` is deployed answers 404 and is given up at once and counted in `dropped`.
 2. `bun apply.ts --patch $P/redesign-deploys-topic-topic.patch --dry`, then the same with `--reason="the deployer appends its deploy lines to a topic"`.
 3. `topic.create { "topic": "deploys", "write": "caller.kind == \"deployer\"", "read": "caller.id == \"owner\"" }`
 4. `delegation.create { "name": "deploys-push", "holder": { "worker": "brain-x-topic" }, "scope": ["com.lopecode.brain.issue.receive", "com.lopecode.brain.quota.get"], "note": "brain-topic pushes the deployer's lines to issue.receive" }` → `{ id }`
 5. `topic.subscribe { "topic": "deploys", "name": "tracker", "target": "issue.receive", "delegation": "<id>" }`
 6. `bun deploy-deployer.ts --patch $P/redesign-deploys-topic-deployer.patch --dry` (tests, the hash it would upload
-   and `rebuilds`), then without `--dry`; `bun brain.ts confirm brain-deployer` if probation shows. The tool takes no
-   `--reason`. Run before 3, each deploy line would be a `deploy.topic.failed` with a 403 (a topic that is not there
-   answers 403 to a caller who could not create it, `brain-topic.js:419`).
+   and `rebuilds`), then without `--dry`. The tool takes no `--reason`. Run before 3, each deploy line would be a
+   `deploy.topic.failed` with a 403 (a topic that is not there answers 403 to a caller who could not create it,
+   `brain-topic.js:419`).
+7. `bun brain.ts confirm brain-deployer`, if probation shows.
+8. The check: one deploy of any service whose issue waits with the note `deploy:<worker>@<hash12>`, then
+   `topic.read?topic=deploys` shows its lines, `topic.subs?topic=deploys` shows `position` moved and `dropped` 0, and
+   `issue.get?id=<issue>` has a comment with the ref `deployed:<worker>@<hash>` and, on `confirmed` or `put-back`,
+   `needs-worker`. Not run: nothing is deployed.
 
-The check: one deploy of any service whose issue waits with the note `deploy:<worker>@<hash12>`, then
-`topic.read?topic=deploys` shows its lines, `topic.subs?topic=deploys` shows `position` moved and `dropped` 0, and
-`issue.get?id=<issue>` has a comment with the ref `deployed:<worker>@<hash>` and, on `confirmed` or `put-back`,
-`needs-worker`. Not run: nothing is deployed.
+The live subscription `issues → loop` had `dropped` 393 (position 2568) at 2026-10-21 21:59:47 UTC, and 392 at a read
+about an hour before whose time was not written down: `brain.ts curl "/xrpc/com.lopecode.brain.topic.subs?topic=issues" --owner`.
+Why they were dropped was not looked into.
 
 ### Where the plan and the code differ
 
