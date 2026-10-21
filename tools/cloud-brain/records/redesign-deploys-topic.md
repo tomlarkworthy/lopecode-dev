@@ -5,14 +5,14 @@
 Step 5 of `plan/cloud-brain-agentic-redesign.md` §7 (§6, "The one change to the owner's four"; §3.4, "Deploys reach
 the issue through a topic"). Nothing here was deployed, created or subscribed: each act below is the owner's, with
 his session or his recovery key. Built in the worktree `bm-redesign-deployer`, its clone of `cloud-brain-dev` on the
-branch `redesign-deployer` (`fd89a4a` base, `4211023` the change, not pushed).
+branch `redesign-deployer` (`fd89a4a` base, `4211023` the change, `b53bc18` the review's fix, not pushed).
 
 ### What changed
 
 Two patches, beside this file, made with `git diff base` in that clone after `bun sync.ts` of cb4:
 
 ```
-redesign-deploys-topic-deployer.patch  197 lines  sha256 b208af7f1eef…  brain-deployer e0b142be88a9 -> 8488d4d05ca5 (emit-deployer.ts)
+redesign-deploys-topic-deployer.patch  200 lines  sha256 72ef0c7f2ef1…  brain-deployer e0b142be88a9 -> 622dab8373c1
 redesign-deploys-topic-topic.patch      42 lines  sha256 37e3fd226e58…  brain-x-topic  fb29475aecab
 ```
 
@@ -22,11 +22,15 @@ redesign-deploys-topic-topic.patch      42 lines  sha256 37e3fd226e58…  brain-
   `id`, 40 random hex digits, which is the key and what `issue.receive` keys its events on (it reads `line.ray`, then
   `line.id`, then the entry's key). A refused or thrown append is one line `deploy.topic.failed` with `kind`, `topic`
   and `reason`; with no core row nothing is sent. `deployerFn` and the cron's `scheduled` end after the appends
-  they caused have answered (`appended`), so a line said just before an answer is not cut off.
+  not yet answered have answered (`appended`), so a line said just before an answer is not cut off. The appends
+  are one set an isolate keeps, each removing itself when it answers, and a request or tick waits on a copy: one
+  that ends first waits on another's too and takes none from it. Until the review (`b53bc18`) `appended` emptied the
+  list, and the request or tick that ended second ended without waiting for its own. No timer bounds a core that
+  does not answer: every response that said a deploy line then waits on it.
 - **brain-x-topic.** `topicRule` is `caller.kind in ["owner", "token", "did", "worker", "deployer"]`. Without it the
   core refuses every append: `callerOf` names the deployer's kind `deployer` (`cloudflare-iac.js:1650`), and the
   topic's own test asserted the deployer was not let in (`test_topic_declares_what_it_needs`). The tracker lists
-  `deployer` in its rules for the same reason (`brain-issues.js:359`). A deployer still creates no topic (`owns`).
+  `deployer` in its rules for the same reason (`brain-issues.js:363`). A deployer still creates no topic (`owns`).
 
 ### Tests
 
@@ -38,10 +42,18 @@ cloudflare-iac          26 passed, 3 need a browser      26 passed, 3 need a bro
 brain-x-topic   before  18 passed, 0 failed      after  18 passed, 0 failed
 ```
 
+The hashes are `emit-deployer.ts` builds of the module with no settings read: the base built `e0b142be88a9…`, the
+hash `deploy/services.json` names for `brain-deployer`. The values of the two new tests, from `reports/brain-deployer.json`:
+
+```
+test_deployer_appends_each_deploy_line_to_the_topic          passed  "17 lines appended, 3 not"
+test_deployer_a_topic_that_fails_does_not_fail_the_deploy    passed  "5 appends failed, the deploy verified"
+```
+
 - `test_deployer_appends_each_deploy_line_to_the_topic`: a pass, a fail, a run with no verdict, a confirm and a dry
   run; every line with a Worker and a hash is appended once and no other (`deploy.reason` is not), each of
   `verified`, `failed`, `put-back`, `verify.none`, `confirmed`, `dry.tests` among them; 17 appended, 3 not; the keys
-  are distinct. `waiting` and `approved` were not driven by it.
+  are distinct. `waiting` and `approved` (`approveRequest`) were not driven by it, and no test shows they reach the topic.
 - `test_deployer_a_topic_that_fails_does_not_fail_the_deploy`: the topic answering 500 and then throwing, the apply
   is `verified` both times, one `deploy.topic.failed` for each append tried (5); `deploysTopic: "builds"` and `""`.
 - Two dry-run tests now leave `topic.append` out of the list of core calls they compare.
@@ -66,7 +78,8 @@ application/json' -d '…'` of the main checkout, or the page.
 5. `topic.subscribe { "topic": "deploys", "name": "tracker", "target": "issue.receive", "delegation": "<id>" }`
 6. `bun deploy-deployer.ts --patch $P/redesign-deploys-topic-deployer.patch --dry` (tests, the hash it would upload
    and `rebuilds`), then without `--dry`; `bun brain.ts confirm brain-deployer` if probation shows. The tool takes no
-   `--reason`. Before 3, every deploy line would be a `deploy.topic.failed` (no such topic); harmless, and noisy.
+   `--reason`. Run before 3, each deploy line would be a `deploy.topic.failed` with a 403 (a topic that is not there
+   answers 403 to a caller who could not create it, `brain-topic.js:419`).
 
 The check: one deploy of any service whose issue waits with the note `deploy:<worker>@<hash12>`, then
 `topic.read?topic=deploys` shows its lines, `topic.subs?topic=deploys` shows `position` moved and `dropped` 0, and
