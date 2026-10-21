@@ -89,6 +89,9 @@ The check: one deploy of any service whose issue waits with the note `deploy:<wo
 - `config.deploysTopic` is no setting: `config.get?worker=brain-deployer` answered 404 "no Worker brain-deployer
   takes settings" (2026-10-21), and the deployer's config is `BRAIN_CONFIG`, bound at upload. Off means a deploy.
 - The deployer's seed was retired at `d0508ae1` (2026-10-18); the change is a patch of what cb4 runs.
-- `tools/cloud-brain/waiting-deploys.ts` compares seeds of `origin/main` and printed `brain-deployer: same`: with no
-  seed and nothing pushed it cannot show this. The owner's list of waiting deploys is `cloud-brain-dev/waiting-deploys.ts`
-  (issues labelled `owner-deploy`), and no issue carries this patch.
+- `tools/cloud-brain/waiting-deploys.ts` does not say the deployer waits. Run in the worktree after the commit it
+  compared the clone's `deploy/` with cb4 and printed
+  `brain-deployer: differs. 9 differences (~deployer_service ~deployerOps ~deployerFn ~fakeCloudflare +test_deployer_appends_each_deploy_line_to_the_topic …). deploy/ is not what cb4 runs (e0b142be88a9): bun sync.ts in cloud-brain-dev`;
+  run before the edit it printed `brain-deployer: same`. A sync puts `deploy/` back to what runs, and the patch is
+  then in no place the tool reads. The owner's list is `cloud-brain-dev/waiting-deploys.ts` (issues labelled
+  `owner-deploy`), and no issue carries this patch.
