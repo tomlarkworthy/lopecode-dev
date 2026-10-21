@@ -43,7 +43,9 @@ or the approver finishes a major issue by a move with a reason.
 only and puts no label, so `tools/cloud-brain/migrate-labels.ts` puts §5's labels after the
 install, dry by default:
 
-- `open`/`triaged`/`ready` → `needs-worker`, unless the issue carries `needs-owner` or `laptop`
+- `laptop`, in any state → `needs-owner`, and `laptop` taken off in the same event, no `needs-worker`:
+  §3.1 retires the label, which meant the owner's hands
+- `open`/`triaged`/`ready` → `needs-worker`, unless the issue carries `needs-owner`
 - `in-progress`, `stopped` → `needs-worker`; for `stopped` a comment quoting the stop's reason first,
   and the label only when that comment answered 200
 - `in-review` → `needs-worker`, **not** `needs-reviewer` as §5 says: the review guard reads
@@ -52,7 +54,7 @@ install, dry by default:
 - `awaiting-approval` → `needs-worker`, `major`, **not** `needs-owner`: it has no pass after a put of
   `needs-reviewer`, so under v10 `finish` has nothing to read and the issue has no path to `done`
   until the worker hands it over again.
-- `run-stopped`, `stranded` are taken off where carried.
+- `run-stopped`, `stranded` and `laptop` are taken off where carried.
 
 `not-done` is closed in 15036 and is not migrated. On 2026-10-21 cb4 had 22 open task issues
 (11 `ready`, 4 `triaged`, 3 `in-review`, 2 `stopped`, 2 `open`).

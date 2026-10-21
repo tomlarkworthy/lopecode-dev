@@ -63,7 +63,9 @@ test("migrate-labels.ts puts §5's labels and takes off only the ones the issue 
   const w = (from: string, labels: string[] = []) => { const { add, remove } = labelsFor(from, labels); return [add, remove]; };
   expect(w("ready")).toEqual([["needs-worker"], []]);
   expect(w("triaged", ["needs-owner"])).toEqual([[], []]);
-  expect(w("ready", ["laptop", "stranded"])).toEqual([[], ["stranded"]]);
+  // laptop is retired: needs-owner on, laptop off, in the one event, and no needs-worker whatever the state.
+  expect(w("ready", ["laptop", "stranded"])).toEqual([["needs-owner"], ["stranded", "laptop"]]);
+  expect(w("in-progress", ["laptop", "needs-owner"])).toEqual([[], ["laptop"]]);
   expect(w("in-progress")).toEqual([["needs-worker"], []]);
   expect(w("in-review", ["owner", "major", "run-stopped", "stranded"])).toEqual([["needs-worker"], ["run-stopped", "stranded"]]);
   // Not needs-owner: under v10 it has no pass after +needs-reviewer, so no path to done but the worker's hand-over.

@@ -18,14 +18,16 @@ import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
 const AS = resolve(import.meta.dir, "issue-as.sh");
-export const GONE = ["run-stopped", "stranded"];
+export const GONE = ["run-stopped", "stranded", "laptop"];
 
 // §5's table, but in-review and awaiting-approval go back to the worker: v10's review guard compares the reviewer with
 // by["+worker-processing"] and finish wants a pass after +needs-reviewer, which no migrated issue has.
 export function labelsFor(from: string, labels: string[]): { add: string[]; remove: string[]; why: string } {
   const has = (l: string) => labels.includes(l);
-  const want = ["open", "triaged", "ready"].includes(from)
-    ? has("needs-owner") || has("laptop") ? [] : ["needs-worker"]
+  // laptop is retired (plan §3.1): it meant the owner's hands, which needs-owner is, whatever the state.
+  const want = has("laptop") ? ["needs-owner"]
+    : ["open", "triaged", "ready"].includes(from)
+    ? has("needs-owner") ? [] : ["needs-worker"]
     : from === "awaiting-approval" ? ["needs-worker", "major"]
     : ["in-progress", "in-review", "stopped"].includes(from) ? ["needs-worker"]
     : [];
