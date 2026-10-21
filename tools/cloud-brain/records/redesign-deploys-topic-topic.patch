@@ -1,0 +1,42 @@
+diff --git a/deploy/@tomlarkworthy/brain-topic.js b/deploy/@tomlarkworthy/brain-topic.js
+index f0c4073..b6ca03a 100644
+--- a/deploy/@tomlarkworthy/brain-topic.js
++++ b/deploy/@tomlarkworthy/brain-topic.js
+@@ -123,7 +123,7 @@ Giving up works as it does for a push. When the subscription has \`failed\`, the
+ \`topic.take\` and \`topic.done\` serve the caller that made the subscription only. Anyone else, the owner and the creator of the topic included, gets the 404 of a subscription that does not exist. Every token of the owner's and the owner's tab are one caller, \`owner\`, and share a subscription. The service asks the topic's \`read\` rule at \`topic.subscribe\` and again at each \`topic.take\`, so a reader that the creator shuts out takes no more. \`topic.done\` asks no rule. The service asks the \`write\` rule of \`failed\` at \`topic.subscribe\` only.
+ 
+ The service does not hand out again a claimed entry that the clock deletes. \`topic.done\` ends its claim and sends nothing, whatever \`failed\` says. Otherwise the clock's next deletion removes the claim.`);};
+-const _braintopic_topicRule = function _topicRule() {return ('caller.kind in ["owner", "token", "did", "worker"]');};
++const _braintopic_topicRule = function _topicRule() {return ('caller.kind in ["owner", "token", "did", "worker", "deployer"]');};
+ const _braintopic_topic_service = function _topic_service(cloudflare,topicApp,topicOps,topicRule) {return (cloudflare.Service("topic", topicApp, {
+   crons: ["* * * * *"],
+   // A cron event carries its time; a test gives one.
+@@ -888,7 +888,13 @@ const _braintopic_test_topic_rules_decide_who_appends_and_who_reads = async func
+   // A rule that reads what no caller has refuses, and is no error of the service.
+   await rig.owner("create", { topic: "mine", read: "caller.nothing == 1" });
+   expect((await rig.owner("read?topic=mine")).status).toBe(403);
+-  return "the rules of news and of mine";
++  // The deployer appends to a topic whose rule names it, with itself the sender, and creates none.
++  const deployer = rig.as("deployer");
++  await rig.owner("create", { topic: "deploys", write: 'caller.kind == "deployer"' });
++  expect((await deployer("append", { topic: "deploys", key: "k1", body: { at: "deploy.verified" } })).data).toEqual({ seq: 1, duplicate: false });
++  expect((await rig.owner("read?topic=deploys")).data.entries.map((e) => e.sender)).toEqual(["deployer"]);
++  expect([(await rig.worker("append", { topic: "deploys", key: "k2", body: 1 })).status, (await deployer("create", { topic: "mine2" })).status]).toEqual([403, 403]);
++  return "the rules of news, of mine and of deploys";
+ };
+ const _braintopic_test_topic_member_has_names_of_their_own = async function _test_topic_member_has_names_of_their_own(topicRig,expect) {
+   const rig = await topicRig();
+@@ -1567,10 +1573,11 @@ const _braintopic_test_topic_declares_what_it_needs = async function _test_topic
+   expect(meta).toMatchObject({ worker: "brain-x-topic", role: "recipe", module: "@tomlarkworthy/brain-topic", resources: ["sql", "xrpc"], secrets: [], calls: [], crons: ["* * * * *"] });
+   const N = "com.lopecode.brain.topic.";
+   expect(Object.keys(meta.access).sort().map((m) => m.replace(N, ""))).toEqual(["append", "create", "delete", "done", "list", "read", "receive", "subs", "subscribe", "take", "unsubscribe"]);
+-  // The method's rule lets in whoever a topic's rule could name, and nobody the core does not know.
++  // The method's rule lets in whoever a topic's rule could name, and nobody the core does not know. The deployer
++  // appends its deploy lines to a topic (brain-deployer, config.deploysTopic).
+   const callers = { owner: { caller: "owner", via: "session" }, token: { caller: "owner", via: "delegation:0007ea9d1903", holder: "secret:loop-topic" }, member: { caller: "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa" }, worker: { caller: "worker:brain-x-echo" }, deployer: { caller: "deployer" }, anonymous: {} };
+   const through = (m) => Object.entries(callers).filter(([, w]) => decide(meta.access[N + m], { caller: callerOf(w), origin: callerOf(w), request: { params: {} } }).allow).map(([k]) => k);
+-  for (const m of ["append", "create", "delete", "done", "list", "read", "receive", "subs", "subscribe", "take", "unsubscribe"]) expect([m, through(m)]).toEqual([m, ["owner", "token", "member", "worker"]]);
++  for (const m of ["append", "create", "delete", "done", "list", "read", "receive", "subs", "subscribe", "take", "unsubscribe"]) expect([m, through(m)]).toEqual([m, ["owner", "token", "member", "worker", "deployer"]]);
+   return Object.keys(meta.access).length + " methods";
+ };
+ 

@@ -1,0 +1,197 @@
+diff --git a/deploy/@tomlarkworthy/brain-deployer.js b/deploy/@tomlarkworthy/brain-deployer.js
+index 3caf508..f4229db 100644
+--- a/deploy/@tomlarkworthy/brain-deployer.js
++++ b/deploy/@tomlarkworthy/brain-deployer.js
+@@ -29,7 +29,7 @@ const _braindeployer_deployer_service = function _deployer_service(cloudflare,de
+   role: "deployer",
+   crons: ["* * * * *"],
+   flags: ["global_fetch_strictly_public"],
+-  scheduled: () => deployerOps.tick()
++  scheduled: () => deployerOps.tick().then(deployerOps.appended)
+ }));};
+ const _braindeployer_anon_1af2f0356e = function _anonymous(md) {return (md`## What an apply may touch
+ 
+@@ -189,9 +189,12 @@ The deployer writes each line with the \`log\` cell. A line carries \`deployer\`
+ | \`deploy.verify\`, \`deploy.verified\`, \`deploy.failed\`, \`deploy.verify.none\`, \`deploy.verify.stale\`, \`deploy.run.none\`, \`deploy.issue.none\` | the test run after a deploy |
+ | \`deploy.dry.run\`, \`deploy.dry.tests\`, \`deploy.dry.none\` | the test run of a dry apply or a held deploy |
+ | \`deploy.shared\`, \`deploy.shared.not-stored\` | the shared modules of the page |
++| \`deploy.topic.failed\` | an append of a line to the topic below that failed, with \`kind\` (the line's \`at\`), \`topic\` and \`reason\` |
+ | \`token.mint\`, \`token.roll\`, \`token.delete\`, \`token.mint-failed\` | Cloudflare tokens |
+ 
+-A member's deploy writes \`deploy.reason\`, \`deploy.deployed\`, \`deploy.unhealthy\`, \`deploy.put-back\` and the lines of \`ensureLogs\`. The \`reason\` of a put-back can be Cloudflare's own text about the code that the deployer sent. It is not text that a caller of a method sent.`);};
++A member's deploy writes \`deploy.reason\`, \`deploy.deployed\`, \`deploy.unhealthy\`, \`deploy.put-back\` and the lines of \`ensureLogs\`. The \`reason\` of a put-back can be Cloudflare's own text about the code that the deployer sent. It is not text that a caller of a method sent.
++
++Each \`deploy.*\` line that names a Worker (\`target\`) and a \`hash\` is also appended to the topic of the setting \`deploysTopic\` (\`deploys\` when it is not set, none when it is \`""\`), with \`topic.append\` through the core: the body is the line as logged, with \`deployer\`, \`said\` (the time it was said, in ms) and \`id\`, 40 random hex digits, which is also the entry's key and what \`issue.receive\` keys its events on. \`deploy.reason\` and the other lines with no hash are not appended. The tracker's \`issue.receive\` subscribes to that topic. An append that is refused or throws writes \`deploy.topic.failed\` and the deploy goes on; with no core row nothing is appended. A request and a tick end after their appends have answered.`);};
+ const _braindeployer_anon_8bb1b5f1cf = function _anonymous(md) {return (md`## A deploy is verified by the deployer
+ 
+ The deployer itself runs the tests of a deploy. The verdict does not depend on an open tab of the owner.
+@@ -357,7 +360,28 @@ const _braindeployer_deployerOps = function _deployerOps(config,secrets,rows,log
+   const self = { hash: null };
+   // Each line names the deployer that wrote it: after an install, two deployers answer for a while.
+   // config.said: a list a test's rig gives, to read this deployer's lines apart from every other test's console.
+-  const say = (line) => (Array.isArray(config.said) && config.said.push(line), log(self.hash ? { ...line, deployer: self.hash } : line));
++  const say = (line) => {
++    const out = self.hash ? { ...line, deployer: self.hash } : line;
++    Array.isArray(config.said) && config.said.push(line);
++    log(out);
++    toTopic(out);
++  };
++  // A deploy line with a Worker and a hash goes to the topic config.deploysTopic ("deploys"; "" for none) as well, for
++  // the tracker's issue.receive. The key is the line's id, 40 random hex, which issue.receive keys its events on.
++  // An append that fails is one line deploy.topic.failed, and the deploy goes on.
++  const appending = [];
++  const toTopic = (line) => {
++    const topic = config.deploysTopic ?? "deploys";
++    if (!topic || typeof line.at !== "string" || !line.at.startsWith("deploy.") || line.at === "deploy.topic.failed" || typeof line.target !== "string" || typeof line.hash !== "string") return;
++    const body = { ...line, id: randomKey().slice(0, 40), said: Date.now() };
++    appending.push((async () => {
++      const r = await viaCore("topic.append", { topic, key: body.id, body });
++      // No core: a Brain being installed, with no topic service to reach.
++      if (r && r.status !== 200) throw new Error(`topic.append answered ${r.status} ${r.data.message || r.data.error || ""}`);
++    })().catch((e) => say({ at: "deploy.topic.failed", target: line.target, hash: line.hash, kind: line.at, topic, reason: String((e && e.message) || e).slice(0, 300) })));
++  };
++  // Every append said so far has answered. deployerFn and the tick wait for it before they end, so none is cut off.
++  const appended = async (out) => (await Promise.allSettled(appending.splice(0)), out);
+   // The source kept for each module is the source of what is running. A version put back takes its source with it.
+   const keptSources = async () => (await rows.list("source/")).filter((r) => !r.value.stale).map((r) => ({ module: r.key.slice("source/".length), ...r.value }));
+   // was: the module's row as it stands. A row of the version before goes with the new one, for a put back to take.
+@@ -1690,7 +1714,7 @@ const _braindeployer_deployerOps = function _deployerOps(config,secrets,rows,log
+     return { imported: given.filter((r) => !OWN.has(r.key)).length, ...(await rowsDigest()) };
+   };
+ 
+-  return { reasonOf, because, WHY, tokenWorkers, setTokenWorkers, apply, tick, confirm, confirmByHand, rollback, approve, approvalRequest, approvalRequests, approveRequest, state, setApproval, shell, redistil, self, memberDeploy, memberRemove, memberPurge, memberId, exportRows, importRows, rowsDigest };
++  return { appended, reasonOf, because, WHY, tokenWorkers, setTokenWorkers, apply, tick, confirm, confirmByHand, rollback, approve, approvalRequest, approvalRequests, approveRequest, state, setApproval, shell, redistil, self, memberDeploy, memberRemove, memberPurge, memberId, exportRows, importRows, rowsDigest };
+ };
+ const _braindeployer_anon_b5cfc17bdb = function _anonymous(md) {return (md`## The page
+ 
+@@ -1761,7 +1785,7 @@ ${rollbacks.length ? rollbacks.join("<br>") : "<p>No confirmed version to roll b
+ <input id="key" name="key" type="password" autocomplete="off" required>
+ </form></body></html>`;
+ });};
+-const _braindeployer_deployerFn = function _deployerFn(deployerOps,Response,deployerPage,secrets,deployerModules,rows,config,deployerDistil) {return (async (request, context) => {
++const _braindeployer_deployerFn = function _deployerFn(deployerOps,Response,deployerPage,secrets,deployerModules,rows,config,deployerDistil) {return (async (request, context) => deployerOps.appended(await (async () => {
+   const url = new URL(request.url);
+   deployerOps.self.hash = (context && context.info && context.info.hash) || null;
+   const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type, authorization", "access-control-allow-methods": "GET, POST" };
+@@ -1865,7 +1889,7 @@ const _braindeployer_deployerFn = function _deployerFn(deployerOps,Response,depl
+   } catch (e) {
+     return page("Failed: " + String((e && e.message) || e), 500);
+   }
+-});};
++})()));};
+ const _braindeployer_deployerModules = function _deployerModules(distillerData,deployerOps,rows) {return (async (own, member = null) => {
+   const d = distillerData.default, IAC = "@tomlarkworthy/cloudflare-iac";
+   const files = { ...(d.files || {}) };
+@@ -1895,6 +1919,8 @@ const _braindeployer_fakeCloudflare = function _fakeCloudflare(Response) {return
+   const scripts = new Map(), log = [], calls = [], unhealthy = new Set(), stored = {}, d1 = [], tokens = new Map(), apps = [], indexes = [];
+   // What the Brain's browser answers the deployer, through the core. A test sets run to (body) => [status, data].
+   const browser = { run: null, extend: null };
++  // What brain-x-topic answers the deployer's topic.append, through the core: (body) => [status, data]. With none set, 200.
++  const topics = { append: null };
+   // What brain-static answers the deployer's static.get, through the core: (url) => [status, data]. With none set, 404: no such file.
+   const statics = { get: null, put: null, homes: ["shell/"] };
+   const account = ["com.cloudflare.api.account"];
+@@ -1959,6 +1985,7 @@ const _braindeployer_fakeCloudflare = function _fakeCloudflare(Response) {return
+       }
+       // A string is the file's own text; anything else is JSON.
+       if (url.pathname.endsWith(".static.get")) return (([status, data]) => (typeof data === "string" ? new Response(data, { status }) : Response.json(data, { status })))(statics.get ? await statics.get(url) : [404, { error: "NotFound", message: url.searchParams.get("path") }]);
++      if (url.pathname.endsWith(".topic.append") && topics.append) return (([status, data]) => Response.json(data, { status }))(await topics.append(body));
+       return Response.json({});
+     }
+     if (request.headers.get("authorization") !== "Bearer tok" && !url.pathname.endsWith("/assets/upload")) return bad(403, "bad token");
+@@ -2045,7 +2072,7 @@ const _braindeployer_fakeCloudflare = function _fakeCloudflare(Response) {return
+     const s = scripts.get(name);
+     return s ? bindingOf(live(s), "BRAIN_INFO").json.hash : null;
+   };
+-  return { fetch, scripts, log, calls, unhealthy, stored, d1, tokens, apps, indexes, browser, static: statics, running, live: (name) => live(scripts.get(name)) };
++  return { fetch, scripts, log, calls, unhealthy, stored, d1, tokens, apps, indexes, browser, static: statics, topic: topics, running, live: (name) => live(scripts.get(name)) };
+ });};
+ const _braindeployer_deployerRig = function _deployerRig(fakeCloudflare,simulate,deployer_service,partsHash,URLSearchParams) {return (async ({ acceptEmitted = true, config = {}, store } = {}) => {
+   const fake = fakeCloudflare(), said = [];
+@@ -2855,6 +2882,59 @@ const _braindeployer_test_deployer_makes_no_file_where_static_does_not_let_it =
+   expect(lines.filter((l) => l.at === "deploy.run.none").map((l) => l.reason)).toEqual(["static.put answered 403"]);
+   return "a 403 keeps the deploy going";
+ };
++const _braindeployer_test_deployer_appends_each_deploy_line_to_the_topic = async function _test_deployer_appends_each_deploy_line_to_the_topic(verifyRig,expect) {
++  let answer = () => t.verdict(t.v2.hash);
++  const t = await verifyRig({ run: () => answer() });
++  const { rig, A, v1, v2, v3 } = t;
++  const sent = () => rig.fake.calls.filter((c) => c.nsid === "topic.append").map((c) => c.body);
++  const n = sent().length;
++  const lines = await rig.saidIn(async () => {
++    expect((await rig.recover({ workers: [v2] })).results[0].state).toBe("verified");
++    answer = () => t.verdict(v3.hash, { ok: false, failed: [{ name: "test_x", message: "no" }] });
++    expect((await rig.recover({ workers: [v3] })).results[0].state).toBe("put-back");
++    answer = () => [502, { error: "BrowserUnavailable", message: "down" }];
++    expect((await rig.recover({ workers: [v3] })).results[0].state).toBe("probation");
++    expect(await rig.asOwner("confirm", { worker: A })).toEqual({ confirmed: [A] });
++    answer = () => t.verdict(v1.hash);
++    expect((await rig.recover({ workers: [v1], dry: true })).results[0].state).toBe("ready");
++  });
++  // Each line with a Worker and a hash, and no other: deploy.reason names neither.
++  const due = lines.filter((l) => l.at.startsWith("deploy.") && typeof l.target === "string" && typeof l.hash === "string");
++  const got = sent().slice(n);
++  expect(lines.some((l) => l.at === "deploy.reason")).toBe(true);
++  for (const kind of ["deploy.verified", "deploy.failed", "deploy.put-back", "deploy.verify.none", "deploy.confirmed", "deploy.dry.tests"]) expect([kind, got.filter((b) => b.body.at === kind).length]).toEqual([kind, due.filter((l) => l.at === kind).length || "none said"]);
++  const order = (list) => list.map((x) => JSON.stringify(x)).sort();
++  expect(order(got.map(({ body: { said, deployer, id, ...line } }) => line))).toEqual(order(due));
++  expect([...new Set(got.map((b) => b.topic))]).toEqual(["deploys"]);
++  // The key is the line's id, which the body carries for issue.receive: one a line, though v3 was deployed twice.
++  expect(got.every((b) => b.key === b.body.id && /^[0-9a-f]{40}$/.test(b.key) && typeof b.body.said === "number")).toBe(true);
++  expect(new Set(got.map((b) => b.key)).size).toBe(got.length);
++  return `${got.length} lines appended, ${lines.length - due.length} not`;
++};
++const _braindeployer_test_deployer_a_topic_that_fails_does_not_fail_the_deploy = async function _test_deployer_a_topic_that_fails_does_not_fail_the_deploy(verifyRig,deployerRig,expect) {
++  const t = await verifyRig({ run: () => t.verdict(t.v2.hash) });
++  const { rig, A, v2 } = t;
++  rig.fake.topic.append = () => [500, { error: "Boom", message: "the topic is down" }];
++  const n = rig.fake.calls.length;
++  const lines = await rig.saidIn(async () => expect((await rig.recover({ workers: [v2] })).results[0]).toMatchObject({ worker: A, hash: v2.hash, state: "verified" }));
++  const tried = rig.fake.calls.slice(n).filter((c) => c.nsid === "topic.append").map((c) => c.body.body.at);
++  const failed = lines.filter((l) => l.at === "deploy.topic.failed");
++  // One line for each append that failed, and none of those lines is appended.
++  expect(failed.map((l) => l.kind).sort()).toEqual([...tried].sort());
++  expect(tried.includes("deploy.verified") && !tried.includes("deploy.topic.failed")).toBe(true);
++  expect(failed[0]).toMatchObject({ target: A, hash: v2.hash, topic: "deploys", reason: "topic.append answered 500 the topic is down" });
++  // A topic that throws: the same.
++  rig.fake.topic.append = () => { throw new Error("no answer"); };
++  expect((await rig.recover({ workers: [{ ...v2, force: true }] })).results[0].state).toBe("verified");
++  // The setting names another topic, or none.
++  for (const [deploysTopic, want] of [["builds", ["builds"]], ["", []]]) {
++    const other = await deployerRig({ config: { deploysTopic } });
++    await other.recover({ workers: [await other.made("brain", "kernel", "k0"), await other.made("brain-core", "core", "c1")] });
++    await other.recover({ workers: [await other.made("brain-x-b", "recipe", "one")] });
++    expect([deploysTopic, [...new Set(other.fake.calls.filter((c) => c.nsid === "topic.append").map((c) => c.body.topic))]]).toEqual([deploysTopic, want]);
++  }
++  return `${failed.length} appends failed, the deploy verified`;
++};
+ const _braindeployer_test_deployer_no_verdict_changes_nothing = async function _test_deployer_no_verdict_changes_nothing(verifyRig,expect) {
+   const t = await verifyRig();
+   const { rig, A, v2, ks, running } = t;
+@@ -2915,7 +2995,7 @@ const _braindeployer_test_deployer_a_dry_apply_runs_the_tests_and_deploys_nothin
+   expect(held()).toEqual(before.held);
+   // Nothing was sent to Cloudflare but reads, and nothing followed the verdict: no report, no issue, no probation.
+   expect(rig.fake.log.slice(before.log).filter((l) => / api\//.test(l) && !l.startsWith("GET "))).toEqual([]);
+-  expect(rig.fake.calls.slice(before.calls).map((c) => c.nsid)).toEqual(["static.get", "browser.extend", "browser.run"]);
++  expect(rig.fake.calls.slice(before.calls).map((c) => c.nsid).filter((n) => n !== "topic.append")).toEqual(["static.get", "browser.extend", "browser.run"]);
+   expect([running(), ks()]).toEqual([v1.hash, undefined]);
+   expect(lines.map((l) => l.at)).toEqual(["deploy.dry.run", "deploy.dry.tests"]);
+   // What runs already is tested too: unchanged, with its tests.
+@@ -3060,7 +3140,7 @@ const _braindeployer_test_deployer_a_dry_apply_answers_each_failed_test_whole =
+   const before = rig.fake.calls.length;
+   const out = (await rig.recover({ workers: [v2], dry: true })).results[0];
+   expect(out).toEqual({ worker: A, hash: v2.hash, state: "tests-failed", tests: 5, failed, reason: `its tests failed: test_a: ${"x".repeat(300)}; test_b: broken`, ms: expect.any(Number) });
+-  expect(rig.fake.calls.slice(before).map((c) => c.nsid)).toEqual(["static.get", "browser.extend", "browser.run"]);
++  expect(rig.fake.calls.slice(before).map((c) => c.nsid).filter((n) => n !== "topic.append")).toEqual(["static.get", "browser.extend", "browser.run"]);
+   expect([running(), rig.sim.rows.get("worker/" + A).lastError]).toEqual([v1.hash, undefined]);
+   // No browser time: the state stands, with why there is no verdict.
+   rig.fake.browser.extend = () => [429, { error: "TooManyBrowsers", message: "3 browsers are up" }];
+@@ -3889,6 +3969,8 @@ export default function define(runtime, observer) {
+   $def("_braindeployer_test_deployer_keeps_the_whole_result_of_a_test_run_in_a_file", "test_deployer_keeps_the_whole_result_of_a_test_run_in_a_file", ["verifyRig","expect"], _braindeployer_test_deployer_keeps_the_whole_result_of_a_test_run_in_a_file);  
+   $def("_braindeployer_test_deployer_a_failed_write_of_a_test_run_does_not_fail_the_deploy", "test_deployer_a_failed_write_of_a_test_run_does_not_fail_the_deploy", ["verifyRig","expect"], _braindeployer_test_deployer_a_failed_write_of_a_test_run_does_not_fail_the_deploy);  
+   $def("_braindeployer_test_deployer_makes_no_file_where_static_does_not_let_it", "test_deployer_makes_no_file_where_static_does_not_let_it", ["verifyRig","expect"], _braindeployer_test_deployer_makes_no_file_where_static_does_not_let_it);  
++  $def("_braindeployer_test_deployer_appends_each_deploy_line_to_the_topic", "test_deployer_appends_each_deploy_line_to_the_topic", ["verifyRig","expect"], _braindeployer_test_deployer_appends_each_deploy_line_to_the_topic);  
++  $def("_braindeployer_test_deployer_a_topic_that_fails_does_not_fail_the_deploy", "test_deployer_a_topic_that_fails_does_not_fail_the_deploy", ["verifyRig","deployerRig","expect"], _braindeployer_test_deployer_a_topic_that_fails_does_not_fail_the_deploy);  
+   $def("_braindeployer_test_deployer_no_verdict_changes_nothing", "test_deployer_no_verdict_changes_nothing", ["verifyRig","expect"], _braindeployer_test_deployer_no_verdict_changes_nothing);  
+   $def("_braindeployer_test_deployer_first_deploy_is_verified_with_nothing_to_put_back", "test_deployer_first_deploy_is_verified_with_nothing_to_put_back", ["verifyRig","expect"], _braindeployer_test_deployer_first_deploy_is_verified_with_nothing_to_put_back);  
+   $def("_braindeployer_test_deployer_a_module_with_no_tests_is_verified", "test_deployer_a_module_with_no_tests_is_verified", ["verifyRig","expect"], _braindeployer_test_deployer_a_module_with_no_tests_is_verified);  
