@@ -1,7 +1,9 @@
 #!/usr/bin/env bun
 // The personas set of brain-x-loop, from the role files of a cloud-brain-dev checkout (plan/cloud-brain-agentic-redesign.md
-// §3.8). A persona is a file roles/<name>.md whose `accepts` block parses (accept.ts of that checkout, the parser drain.ts
-// uses); its label is needs-<name>, and the loop starts the machine for an open flow issue with that label ("A flow issue"
+// §3.8). A persona is a file roles/<name>.md or flow/<name>.md whose `accepts` block parses (accept.ts of that checkout,
+// the parser drain.ts uses). Both directories are read when present: the drain of branch redesign-drain keeps its briefs
+// (flow/worker.md, flow/reviewer.md) in flow/ until the cutover moves them into roles/. A name in both is one persona,
+// the file of roles/ read. Its label is needs-<name>, and the loop starts the machine for an open flow issue with that label ("A flow issue"
 // of brain-x-loop). The prek pre-push hook of cloud-brain-dev runs it with --ref main, so a persona landed on main from a
 // laptop is startable before the machine next boots. The drain is to send the same list at its boot (step 3 of the plan;
 // drain.ts does not yet).
@@ -10,7 +12,7 @@
 //   bun tools/cloud-brain/personas.ts --set [--as NAME] [--soft] [--dev DIR] [--ref REF]
 //
 // --dev    the cloud-brain-dev checkout (default: the submodule beside this file's lopecode-dev)
-// --ref    read roles/*.md at that commit of --dev (git ls-tree, git show), not the files on disk: the hook's main, which
+// --ref    read roles/*.md and flow/*.md at that commit of --dev (git ls-tree, git show), not the files on disk: the hook's main, which
 //          the machine's drain runs, so a branch pushed with a role of its own does not change the set
 // --set    sends loop.personas { list } with the token NAME (default loop-personas), through brain.ts curl --as, and
 //          prints the answer's list. The owner makes the token once:
@@ -20,6 +22,7 @@
 // Exit 1: a role file whose accepts block does not parse, named with why, or a --ref git cannot read (exit 0 with
 // --soft: a clone with no local main); nothing is sent.
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { dirname, join, resolve, basename } from "node:path";
 
 const args = process.argv.slice(2), flag = (f: string) => args.includes(f), opt = (f: string, d: string) => { const i = args.indexOf(f); return i >= 0 && args[i + 1] ? args[i + 1] : d; };
@@ -27,12 +30,17 @@ const root = resolve(import.meta.dir, "../.."), dev = resolve(opt("--dev", join(
 const { roleFiles, accepts, parseAccepts } = await import(join(dev, "accept.ts"));
 const ref = opt("--ref", "");
 const at = (...a: string[]) => { const r = spawnSync("git", ["-C", dev, ...a], { encoding: "utf8" }); if (r.status !== 0) { console.error(`git ${a.join(" ")}: ${(r.stderr || "").trim()}`); process.exit(flag("--soft") ? 0 : 1); } return r.stdout; };
-const found = ref
-  ? at("ls-tree", "--name-only", ref, "roles/").split("\n").filter((f) => f.endsWith(".md")).sort().map((f) => ({ name: basename(f, ".md"), a: parseAccepts(at("show", `${ref}:${f}`)) }))
-  : roleFiles(join(dev, "roles")).map((f: string) => ({ name: basename(f, ".md"), a: accepts(f) }));
+const parsed = (text: string) => { try { return parseAccepts(text); } catch (e) { return { why: (e as Error).message }; } };
+const read = (d: string) =>
+  ref
+    ? at("ls-tree", "--name-only", ref, d + "/").split("\n").filter((f) => f.endsWith(".md")).map((f) => ({ name: basename(f, ".md"), file: f, a: parsed(at("show", `${ref}:${f}`)) }))
+    : existsSync(join(dev, d)) ? roleFiles(join(dev, d)).map((f: string) => ({ name: basename(f, ".md"), file: `${d}/${basename(f)}`, a: accepts(f) })) : [];
+const byName = new Map<string, any>();
+for (const p of [...read("flow"), ...read("roles")]) byName.set(p.name, p);
+const found = [...byName.values()].sort((x, y) => (x.name < y.name ? -1 : 1));
 const bad = found.filter((p: any) => "why" in p.a);
 if (bad.length) {
-  for (const p of bad) console.error(`roles/${p.name}.md: ${p.a.why}`);
+  for (const p of bad) console.error(`${p.file}: ${p.a.why}`);
   process.exit(1);
 }
 for (const p of found) console.log(`${p.name} ${p.a.step} needs-${p.name}`);
