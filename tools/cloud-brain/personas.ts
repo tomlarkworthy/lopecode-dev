@@ -2,28 +2,34 @@
 // The personas set of brain-x-loop, from the role files of a cloud-brain-dev checkout (plan/cloud-brain-agentic-redesign.md
 // §3.8). A persona is a file roles/<name>.md whose `accepts` block parses (accept.ts of that checkout, the parser drain.ts
 // uses); its label is needs-<name>, and the loop starts the machine for an open flow issue with that label ("A flow issue"
-// of brain-x-loop). The drain calls loop.personas with the same list at its boot, from its clone of main; this tool is the
-// other writer, run by the prek pre-push hook of cloud-brain-dev, so a persona added on a laptop is startable before the
-// machine next boots.
+// of brain-x-loop). The prek pre-push hook of cloud-brain-dev runs it with --ref main, so a persona landed on main from a
+// laptop is startable before the machine next boots. The drain is to send the same list at its boot (step 3 of the plan;
+// drain.ts does not yet).
 //
-//   bun tools/cloud-brain/personas.ts [--dev DIR]                         prints one line a persona: name, step, label
-//   bun tools/cloud-brain/personas.ts --set [--as NAME] [--soft] [--dev DIR]
+//   bun tools/cloud-brain/personas.ts [--dev DIR] [--ref REF]                prints one line a persona: name, step, label
+//   bun tools/cloud-brain/personas.ts --set [--as NAME] [--soft] [--dev DIR] [--ref REF]
 //
 // --dev    the cloud-brain-dev checkout (default: the submodule beside this file's lopecode-dev)
+// --ref    read roles/*.md at that commit of --dev (git ls-tree, git show), not the files on disk: the hook's main, which
+//          the machine's drain runs, so a branch pushed with a role of its own does not change the set
 // --set    sends loop.personas { list } with the token NAME (default loop-personas), through brain.ts curl --as, and
 //          prints the answer's list. The owner makes the token once:
 //          BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-personas loop.personas
 // --soft   a call that fails (no token kept, a refusal, no answer) is one line on stderr and exit 0: the hook's, so a push
 //          is not held by the Brain. Without it such a call is exit 2.
-// Exit 1: a role file whose accepts block does not parse, named with why; nothing is sent.
+// Exit 1: a role file whose accepts block does not parse, named with why, or a --ref git cannot read (exit 0 with
+// --soft: a clone with no local main); nothing is sent.
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve, basename } from "node:path";
 
 const args = process.argv.slice(2), flag = (f: string) => args.includes(f), opt = (f: string, d: string) => { const i = args.indexOf(f); return i >= 0 && args[i + 1] ? args[i + 1] : d; };
 const root = resolve(import.meta.dir, "../.."), dev = resolve(opt("--dev", join(root, "cloud-brain-dev"))), token = opt("--as", "loop-personas");
-const { roleFiles, accepts } = await import(join(dev, "accept.ts"));
-
-const found = roleFiles(join(dev, "roles")).map((f: string) => ({ name: basename(f, ".md"), a: accepts(f) }));
+const { roleFiles, accepts, parseAccepts } = await import(join(dev, "accept.ts"));
+const ref = opt("--ref", "");
+const at = (...a: string[]) => { const r = spawnSync("git", ["-C", dev, ...a], { encoding: "utf8" }); if (r.status !== 0) { console.error(`git ${a.join(" ")}: ${(r.stderr || "").trim()}`); process.exit(flag("--soft") ? 0 : 1); } return r.stdout; };
+const found = ref
+  ? at("ls-tree", "--name-only", ref, "roles/").split("\n").filter((f) => f.endsWith(".md")).sort().map((f) => ({ name: basename(f, ".md"), a: parseAccepts(at("show", `${ref}:${f}`)) }))
+  : roleFiles(join(dev, "roles")).map((f: string) => ({ name: basename(f, ".md"), a: accepts(f) }));
 const bad = found.filter((p: any) => "why" in p.a);
 if (bad.length) {
   for (const p of bad) console.error(`roles/${p.name}.md: ${p.a.why}`);
