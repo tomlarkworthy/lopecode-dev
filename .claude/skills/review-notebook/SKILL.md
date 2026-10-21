@@ -223,3 +223,9 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   tokens, 4m08s + 1m52s. What the author had not seen: the deploy token reached an agent running as root, since the hand-off was named in
   the header and not called; a worker under `bypassPermissions` could write a `SessionStart` hook into the shared persisted home that
   would run in the reviewer's session with the reviewer's token; and an owner-held deploy was yielded on and never sent again.
+- 2026-10-22 `plan/cloud-brain-agentic-redesign.md`, changes since `76cf02be` (the amendments made while building it): FIX, 9 findings and
+  4 minor, all taken (one a tracker change: a `waiting` line now swaps `waiting-deploy` for `needs-owner`, so an issue carries one routing
+  label at every step). 113k subagent tokens, 4m20s. What the author had not seen: the method was `issues.receive` in §2 and §3.4 and
+  `issue.receive` in §5 and the code; §3.3 held two designs for the agent's home in one paragraph; and the header still said "not built".
+  A separate read-only agent then checked the four branches against each other (fields, keys, order of events, auth, env): 5 runtime
+  mismatches none of the four per-branch reviews could see, since each branch was built against prose about its neighbours.

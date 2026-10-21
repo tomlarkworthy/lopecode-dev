@@ -13,6 +13,11 @@ and two read-only summaries of `cloud-brain-dev` (`drain.ts`, `run.ts`, `ship.ts
 `roles/*.md`, HEAD `aff660e`) and of `.claude/skills/brain-maintenance/` and `plan/cloud-brain-issues-policy-v8.json`.
 Line numbers below are of those files at that commit. Nothing here was run.
 
+Revised 2026-10-21 21:00 to 2026-10-22 00:30 UTC after the four branches of §7 were built (each by an Opus agent in
+a worktree, each reviewed by a fresh-context agent, every finding taken; nothing deployed, nothing pushed to any
+`main` but this file): what the code contradicted is changed in place and says so with the date; §5's acts and
+§11 are new; two live reads were added (`topic.subs?topic=issues` at 22:19 UTC, the deployed `issue.install`).
+
 ## 0. The brief
 
 The owner, 2026-10-21, as typed:
@@ -82,7 +87,7 @@ was about, the tails, and the hours between steps.
      hand    label needs-Y                                    (reviewer, spec, …)
      finish  move finish  ──guard──► an independent pass on the head ref, and a live ref
 
-   wake:  deployer ─► topic deploys ─► issues.receive ─► the wait's `when` is true ─► label needs-worker
+   wake:  deployer ─► topic deploys ─► issue.receive ─► the wait's `when` is true ─► label needs-worker
           owner answers / token made / review written  ─► same path, no deployer needed
 ```
 
@@ -158,11 +163,12 @@ last put: a second round puts `needs-reviewer` again and the guard reads that ro
 ### 3.3 One worker, one session
 
 The worker is a Claude Code session (`agent.sh`, `claude -p`) with its transcript on the volume: `HOME` (and so
-`~/.claude/projects/`) of the `agent` user would be `/data/agent`. That is new work: `ensureAgentUser` runs
-`useradd --create-home` with no `-d` (`sandbox.ts:75`), so today the home is the system default on the rootfs, and
-`agent.sh:46-47` reads it from `getent passwd`; the change is `useradd -d /data/agent` when `/data` is a mount, as
-`TOKEN_PATH` already tests (`sandbox.ts:66-68`). One uid and home per persona (`agent-worker` at `/data/agent-worker`,
-`agent-reviewer` at `/data/agent-reviewer`), and `claude` runs with `--setting-sources project`: the review of
+`~/.claude/projects/`) of the persona's user is on `/data`. That is new work: `ensureAgentUser` ran
+`useradd --create-home` with no `-d` (`sandbox.ts:75`), so the home was the system default on the rootfs, and
+`agent.sh:46-47` reads it from `getent passwd`; the change is `useradd -d /data/agent-<persona>` when `/data` is a
+mount, as `TOKEN_PATH` already tests (`sandbox.ts:66-68`), mode 0700. One uid and home per persona (`agent-worker`
+at `/data/agent-worker`, `agent-reviewer` at `/data/agent-reviewer`), `claude` runs with `--setting-sources project`,
+and the reviewer's clone has its `.claude/` replaced by the driver's own (`drain2.ts`): the review of
 2026-10-21 found that with one shared persisted home a worker under `bypassPermissions` could write a `SessionStart`
 hook into `~/.claude/settings.json` that would run in the reviewer's session with the reviewer's token and write the
 pass the §3.5 guard needs to be independent. Every process of the persona's uid is killed at session end. The
@@ -211,7 +217,7 @@ fields, `labels`, `by`, `reviews`, `links`, `children`, `closed`, `last` and `af
 
 | the worker waits for | who puts `needs-worker` back, taking the wait's label off in the same event | the label put at the yield |
 |---|---|---|
-| a deploy's end: `confirmed` or `put-back` | `issues.receive`, from the topic (below); a `waiting` line (the owner's hold) is a comment with the link and `needs-owner` instead, and the later `approved` line takes `needs-owner` off again with no answer on the page needed | `waiting-deploy` |
+| a deploy's end: `confirmed` or `put-back` | `issue.receive`, from the topic (below); a `waiting` line (the owner's hold) is a comment with the link and `needs-owner` instead, and the later `approved` line swaps `needs-owner` for `needs-worker` so the worker sends the patch, with no answer on the page needed | `waiting-deploy` |
 | the owner's answer | the page's answer button | `needs-owner` |
 | a token | the session that made it | `needs-token` |
 | another issue, or its parts | the tracker, on the write that makes the wait's `when` true (change 2) | `waiting-issue`, and an `after` link |
@@ -231,13 +237,16 @@ label events (line 367, `e.remove.includes("run-stopped")`). It starts the machi
 
 **Deploys reach the issue through a topic.** The deployer appends each `deploy.*` line it logs (`deploy.waiting`,
 `approved`, `verified`, `confirmed`, `put-back`, `dry.none`, `verify.none`) to the topic `deploys`
-(`brain-x-topic`, `topic.append`), and the tracker subscribes with `topic.subscribe { target: "issues.receive" }`.
-`issues.receive` (**tracker change 3**) finds the open issue with a live wait whose `note` is
-`deploy:<worker>@<hash12>` (the worker's yield writes that note; live waits are in the view with their notes, ten
+(`brain-x-topic`, `topic.append`), and the tracker subscribes with `topic.subscribe { target: "issue.receive" }`.
+`issue.receive` (**tracker change 3**) finds the open issue with a live wait whose `note` is
+`deploy:<worker>@<hash12>` (the worker's yield writes that note, one such word a service the patch touched, a space
+between; live waits are in the view with their notes, ten
 an issue, line 324, where a comment is only a count), writes the line as a comment with the ref
 `deployed:<worker>@<hash>`, and in the same call: on `confirmed` or `put-back` puts `needs-worker` and takes off
-whichever of `waiting-deploy` and `needs-owner` the issue carries; on `waiting` puts `needs-owner` with the link; on
-`approved` takes `needs-owner` off and puts `needs-worker`, because a held deploy was only dry-run: the worker
+whichever of `waiting-deploy` and `needs-owner` the issue carries; on `waiting` swaps `waiting-deploy` for
+`needs-owner` with the link, so the issue carries one routing label at each step (the plan's review of 2026-10-22
+found the first draft left both on); on `approved` swaps `needs-owner` for `needs-worker`, because a held deploy was
+only dry-run: the worker
 re-runs `deploy.ts` on the same patch, which now goes through (the review of 2026-10-21 found the first draft left
 the patch unsent for ever). `verified` ends no wait: a verified deploy is on probation for 10 minutes and is
 put back if nothing confirms it (P8), so the wait ends on the line that ends probation. The deployer is
@@ -429,7 +438,8 @@ readable and verifiable as they are, which is what "no orphaning" needs. The map
 | `in-progress` | `open` | `needs-worker` | the fork keeps the work; the session is new (no transcript yet) |
 | `in-review` | `open` | `needs-worker` | a swap empties `issue.reviews`, and the `finish` guard reads `by["+worker-processing"]`, which a migrated issue lacks (review of 2026-10-21): the worker's first turn re-sends; a landed no-patch submit is closed by hand before the install (4 on 2026-10-17, `plan/cloud-brain-machine-does-everything.md` gate 7) |
 | `awaiting-approval` | `open` | `needs-worker`, `major` | the same guard: no pass after `+needs-reviewer` means no path to `done` from `needs-owner` (0 such issues on 2026-10-21) |
-| `stopped`, `not-done` | `open` | `needs-worker` with the stop reason quoted | `run-stopped` taken off |
+| `stopped` | `open` | `needs-worker` with the stop reason quoted | `run-stopped` taken off; `not-done` is closed and not migrated |
+| any open state with `laptop` | as above | `needs-owner`, `laptop` taken off, no `needs-worker` | §3.1; 3 issues on 2026-10-21 |
 | `done`, `closed`, `rejected`, `reverted` | not migrated | | |
 
 The `project` workflow (5 open: 2 `spec`, 3 `building`) and `feedback` are not touched by this install. A project's
@@ -444,22 +454,33 @@ The order of the owner's acts, each one click or one command with his session:
    `[owner, token, did, worker]`; found 2026-10-21 building §6), `topic.create deploys` (write: the deployer; read:
    the owner), `delegation.create deploys-push` for `brain-x-topic` over `issue.receive`, and
    `topic.subscribe deploys → issue.receive` with it. The delegation of §10 is the subscriber's, made in his session.
-3. Deploy `brain-x-loop` with the wake rule, `loop.personas` and the watchdog (§3.4, §3.8); make the `loop-personas`
-   token; remake `loop-reconcile` with `issue.comment` in scope (the watchdog's notes are comments).
-4. Merge the three `cloud-brain-dev` branches, set the machine's command to `drain2.ts` and move `flow/*` to
-   `roles/` in the same commit; the persona users' homes are made on the volume at boot.
+3. Deploy `brain-x-loop` with the wake rule, `loop.personas`, the watchdog and `loop.receive` answering before it
+   decides (§3.4, §3.8); make the `loop-personas` token; re-mint `LOOP_TOKEN` with `loop.personas` in scope (today it
+   names `loop.assign` and `loop.done` only, `drain.ts:87`); remake `loop-reconcile` with `issue.comment` in scope
+   (the watchdog's notes are comments).
+4. Merge `redesign-drain` (code) and `redesign-loop` (the prek hook) into `cloud-brain-dev` `main`; the tracker,
+   loop and deployer branches are patch vehicles against `deploy/` and are applied in steps 1, 3 and 6, not merged.
+   Set the machine's command to `drain2.ts` and move `flow/*` to `roles/` in the same commit; the persona users'
+   homes are made on the volume at boot.
 5. Install the policy with `flow` and the map above (`issue.install`, owner present), then
    `migrate-labels.ts --write` with a session token.
 6. Deploy the deployer with the `topic.append` (§6) by `deploy-deployer.ts`, then `confirm` it.
 7. Deploy one service whose issue waits on `deploy:<worker>@<hash12>`: `topic.subs` shows `dropped` 0 and the issue
-   a `deployed:` comment and `needs-worker`. The live `issues → loop` subscription showed 392 dropped entries on
-   2026-10-21, a defect of today's loop outside this plan.
+   a `deployed:` comment and `needs-worker`. The live `issues → loop` subscription read at 2026-10-21T22:19Z: position
+   2569 of 5841, `dropped: 394`, every try `no answer in 10000 ms`; the topic service retries at 1, 2, 4 and 8 minutes
+   and drops on the fifth, so each tracker event costs 15 minutes and is then lost, and today's loop is woken by its
+   5-minute tick alone. The wake rule of §3.8 rides the same call, so `loop.receive` is changed in step 3 to answer
+   before it decides and to dedupe by `seq` (the push is at least once). The `deploys → issue.receive` subscription of
+   step 2 has the same 10 s window; `issue.receive` writes one or two events and answers, which is within it on the
+   tracker's own timings (unverified until step 7).
 
 ## 6. The one change to the owner's four
 
 The deployer appends each `deploy.*` log line to the topic `deploys` (`topic.append { topic: "deploys", key: <ray>,
-body: <the line> }`), under a delegation for `brain-x-topic` as `topic.subscribe` asks. About ten lines in
-`brain-deployer.ojs`, beside the existing log write. The owner deploys it with the recovery key as he deploys the
+body: <the line> }`), let through by `brain-x-topic`'s method rule widened to the deployer's caller kind (§5
+step 2; the deployer declares no `calls`). About twenty lines in the deployed `brain-deployer.js` (its seed was
+retired at `d0508ae1`), beside the existing log write; a line is sent only when it has a `target` and a `hash`, and
+a failed append is one `deploy.topic.failed` line, never a failed deploy. The owner deploys it with the recovery key as he deploys the
 four. Without it, §3.4's fallback poll stands and the plan still works; with it, no poll is left in the loop.
 
 ## 7. Order of work
@@ -475,7 +496,9 @@ Each step has a check that is a number or a live event, so the retro can say whe
 | 5 | The deployer's `topic.append` (§6) | a `deploy.verified` line reaches the issue as a comment with its `deployed:` ref, and `needs-worker` with it, with no `infra.getState` read in the drain's log |
 | 6 | The retro brief: measure the share of issues whose worker session was resumed, resumes per issue, idle half-hours with a `needs-*` label, owner clicks per `done` | the next retro's survey has the four rows |
 
-Steps 1 and 3 can be built together on a stand-in Brain; nothing lands on cb4 before step 2's install.
+Steps 1 and 3 can be built together on a stand-in Brain. No `flow` issue exists on cb4 before the install (§5
+step 5); the service deploys of §5 steps 1 to 3 come before it and must be safe for today's workflows (the tracker
+patch's 409 and `by`/review fields change no answer for a caller of the task workflow; the loop's old rows stay).
 
 ## 8. Not chosen
 
@@ -507,7 +530,7 @@ asked separately and is kept until he strikes it.
    gate the loop. B. Before each deploy, as today: a review per round, no unreviewed service code live, more sessions.
 2. **Width.** A. One session at a time (your sketch; recommended for the first month, with the idle measure).
    B. One per `about`, as `brain-x-loop` does today, keeping the overlap rule.
-3. **The deployer's topic append (§6).** A. You deploy it in step 5 (recommended). B. Leave the 10 s poll as the
+3. **The deployer's topic append (§6).** A. You deploy it (§7 step 5, §5 step 6) (recommended). B. Leave the 10 s poll as the
    standing fallback. C. The tracker reads `logs.deploys` on each `issue.wakes` call instead (no deployer change; a
    read on every wake).
 4. **Projects.** A. Leave the `project` workflow for now (recommended; 5 open). B. Migrate it in the same install
@@ -518,17 +541,25 @@ asked separately and is kept until he strikes it.
 
 ## 10. Not verified
 
-- Whether `claude --resume` works for the `agent` user under `setpriv` with `HOME` on `/data`, and whether a
+- Whether `claude --resume` works for an `agent-<persona>` user under `setpriv` with `HOME` on `/data`, and whether a
   transcript survives a Fly stop there (the volume does; the file layout of `~/.claude/projects/` is the CLI's).
 - ~~Whether `topic.subscribe` needs a delegation the deployer does not hold~~: settled 2026-10-21 by reading the
   topic service; the delegation is the subscriber's (`deploys-push`, held by `brain-x-topic`), made in the owner's
   session (§5 step 2). The deployer declares no `calls` and the core checks none.
 - The cost figure per resume is from the price table, not a measurement.
-- Whether `issue.install`'s `migrate` can put a label beside the state it maps to (event 483 mapped states only).
-  If not, the label column of §5 is a script run right after the install with a session's `out-` token, one
-  `labelled` event an issue, keyed `migrate/<issue>/flow`; the watchdog of §3.4 would put `needs-worker` on any it
-  missed, with the note "no label", so nothing is orphaned either way.
+- ~~Whether `issue.install`'s `migrate` can put a label beside the state it maps to~~: it cannot (it maps states
+  only; read 2026-10-21 in the deployed `issue.install`). The label column of §5 is
+  `tools/cloud-brain/migrate-labels.ts` in `lopecode-dev`, run after the install with a session token, dry by default,
+  one `labelled` event an issue keyed `migrate/<issue>/flow`; the watchdog of §3.4 puts `needs-worker` on any it
+  missed, with the note "no label at open".
 - `issue.list?label=` takes one label; "has `needs-X` and not `X-processing`" is two reads or a tracker change.
+- A `brain-x-page` deploy with shared modules: the deployer's `deploy.approved` line carries `hash: view.hash`, which
+  is the plan's key and not the module's hash (`brain-deployer.js:947,1112`, read 2026-10-22), so that `approved`
+  matches no wait and the worker is not woken; the owner's `needs-owner` click is then the wake. Not changed: the
+  deployer is the owner's.
+- The `deploys` topic pushes a `deploy.waiting` line seconds before `deploy.ts` has written its wait; `issue.receive`
+  answers 503 to an unmatched `waiting` so the topic brings it back a minute later. Whether one minute is enough on
+  cb4 is measured at §5 step 7.
 
 ## 11. The plan of 2026-10-17
 
@@ -538,4 +569,6 @@ triager) and 5 (readying) are superseded, since the approver, `triaged` and `rea
 capped deploy token) is kept by §3.6 without its per-ship minted token; gate 1's `laptop` retirement and gate 7's
 closing of landed no-patch submits are taken into §3.1 and §5 above; gate 6 (a text-product persona) and its
 classes A–E of stranded rows are not in this plan. The §3.4 watchdog puts `needs-worker` on any open `flow` issue
-the migration left without a routing label, which is how the 6 `stranded` rows are reached.
+the migration left without a routing label. The 6 open `stranded` rows are open issues of the task workflow, so
+the §5 map reaches them and `migrate-labels.ts` takes `stranded` off; the watchdog is the net under the map, not
+the route.
