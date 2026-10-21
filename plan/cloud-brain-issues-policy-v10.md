@@ -75,13 +75,16 @@ The four project acts are 15036's, unchanged. The nine task acts the v9 walk lis
 review guard is not modelled. The holder rule is tested in brain-x-issues
 (`test_issues_flow_finish_wants_a_pass_by_another_holder_after_the_hand_over`).
 
-**Not passing with v10 as the newest file:**
-- `policy-pins.ts check` exits 1: "has no `approver brief <blob> tool <blob>` at the end of its
-  reason". The reason ends `approver from e7af0169…`, the format cloud-brain-dev's `approver.ts`
-  and `policy-check.ts` read; 15036 has the same format. `policy-pins.ts`, `issues-policy-v5.test.ts`
-  and `policy-pins-remake-key.test.ts` (6 fails) still read the old format.
-- `tests/tools/policy-walk.test.ts` throws: its weakened copies cut v9's `task.pass` guard, which v10
-  has no move for.
+The reason ends `approver from e7af0169…`, the format cloud-brain-dev's `approver.ts` and
+`policy-check.ts` read, as 15036 does. `policy-pins.ts` now reads both forms and `remake` writes
+`approver from` cloud-brain-dev's origin/main. `policy-pins.ts check`, 2026-10-21:
+
+```
+plan/cloud-brain-issues-policy-v10.json names approver from e7af0169f7904eb20af4432f8c08094bb9cd3a49, an ancestor of origin/main of cloud-brain-dev
+```
+
+`tests/tools/policy-walk.test.ts` walks the newest file as it is and makes its weakened policies
+from v9.
 
 ## Installing it
 

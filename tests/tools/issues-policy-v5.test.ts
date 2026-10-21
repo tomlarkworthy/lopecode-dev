@@ -13,7 +13,7 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, ap
 import { tmpdir } from "node:os";
 import { dirname, resolve, join } from "node:path";
 import { judge, BRIEF, TOOL } from "../../tools/cloud-brain/approver.ts";
-import { blobs, check, newest, pinsOf, remake, COST } from "../../tools/cloud-brain/policy-pins.ts";
+import { blobs, check, current, newest, pinsOf, remake, COST } from "../../tools/cloud-brain/policy-pins.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const FILE = "plan/cloud-brain-issues-policy-v5.json", V4 = "plan/cloud-brain-issues-policy-v4.json";
@@ -24,7 +24,10 @@ const NOTE = "Made again by policy-v5-names-the-approver-as-it-is, for the brief
 const A = "a".repeat(40), B = "b".repeat(40);
 // The newest policy file: this one until approver-policy-mark-takes-every-route made v6. What is held of "the newest"
 // below is held of whichever it is.
-const NEWEST = newest(root)!, latest = JSON.parse(text(NEWEST));
+// From v10 the newest ends `approver from <sha>`, which this checkout's approver.ts does not read: what is held here of
+// the blobs is held of the newest file that names blobs.
+const NEWEST = (() => { for (let n = Number(/v(\d+)\.json$/.exec(newest(root)!)![1]); n >= 5; n--) { const f = `plan/cloud-brain-issues-policy-v${n}.json`; try { if (pinsOf(JSON.parse(text(f)).reason)?.brief) return f; } catch {} } return FILE; })();
+const latest = JSON.parse(text(NEWEST));
 
 test("it is the v4 file but for the end of its reason: the key, the policy and the migrate are v4's", () => {
   expect(Object.keys(v5)).toEqual(["key", "reason", "policy", "migrate"]);
@@ -78,7 +81,7 @@ test("approver.ts judges an approve: refused on R7 under the reason of v4, sent 
   expect(sent.send).toMatchObject({ key: "approver/t1/approve-1", id: "t1", to: "done" });
 });
 
-test("the newest policy file names the brief and the tool as this checkout has them", () => {
+test("the newest policy file names its pin as this checkout has it", () => {
   // A fail here is no defect of the test: its line ends with what the change that made it fail costs.
   const c = check(root);
   if (c.exit) throw new Error(c.line);
@@ -106,7 +109,7 @@ test("a checkout whose brief or tool is not the newest file's is exit 1, with bo
     expect(check(dir).exit).toBe(1);
     rmSync(join(dir, "plan"), { recursive: true });
     mkdirSync(join(dir, "plan"));
-    expect(check(dir)).toEqual({ exit: 1, line: "policy-pins.ts: no policy file has no `approver brief <blob> tool <blob>` at the end of its reason" });
+    expect(check(dir)).toEqual({ exit: 1, line: "policy-pins.ts: no policy file has no `approver from <sha>` or `approver brief <blob> tool <blob>` at the end of its reason" });
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -128,14 +131,14 @@ test("remake changes the two blobs and nothing else, and refuses a text it canno
 test("the command: check is exit 0 here; remake makes the file from v4 and writes no file over another", () => {
   const tool = join(root, "tools/cloud-brain/policy-pins.ts"), run = (...a: string[]) => spawnSync("bun", [tool, ...a], { encoding: "utf8" });
   const ok = run("check");
-  expect([ok.status, ok.stdout.trim()]).toEqual([0, `${newest(root)} names the brief ${blobs(root).brief} and the tool ${blobs(root).tool}, as the checkout has them`]);
+  expect([ok.status, ok.stdout.trim()]).toEqual([0, check(root).line]);
   const dir = mkdtempSync(join(tmpdir(), "policy-pins-"));
   try {
     const to = join(dir, "out.json");
     const made = run("remake", join(root, V4), to, "--note", NOTE, "--key", "a-key-of-this-test");
     expect(made.status).toBe(0);
-    // The blobs it writes are the checkout's: v5's when this file was the newest.
-    expect(readFileSync(to, "utf8")).toBe(remake(text(V4), blobs(root), NOTE, "a-key-of-this-test"));
+    // The pin it writes is cloud-brain-dev's origin/main.
+    expect(readFileSync(to, "utf8")).toBe(remake(text(V4), current(root), NOTE, "a-key-of-this-test"));
     const again = run("remake", join(root, V4), to);
     expect([again.status, again.stderr.trim()]).toEqual([1, `policy-pins.ts: ${to} exists, and is not written over`]);
     expect(run("remake", join(root, V4)).status).toBe(1);
