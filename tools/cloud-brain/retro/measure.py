@@ -92,7 +92,8 @@ for w,lo in(("24h",D1),("7d",D7)):
 # ---- 4 dollars
 P("\n## dollars (cost events)")
 for w,lo in(("24h",D1),("7d",D7)):
-    cs=[e for e in E if e["type"]=="cost" and e["at"]>=lo]
+    # test-retro-cost-* are run.sh's checks of its cost path; test-retro-cost-1792527157 carried the real 12.58 of retro-2026-10-20
+    cs=[e for e in E if e["type"]=="cost" and e["at"]>=lo and not str(e.get("id","")).startswith("test-retro-cost-")]
     byrole=collections.defaultdict(float); n=collections.Counter(); byclass=collections.defaultdict(float)
     for e in cs: byrole[e.get("role")]+=e.get("usd") or 0; n[e.get("role")]+=1; byclass[klass(ISSUE.get(e.get("id"),{"title":"","about":""}))]+=e.get("usd") or 0
     tot=sum(byrole.values()); prod=done[w]["product"]

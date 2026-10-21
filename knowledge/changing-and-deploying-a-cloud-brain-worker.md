@@ -187,7 +187,9 @@ owner's works in one is his to say: the spec does not ask it ("the main checkout
    of the tool's that was not pushed is undone by its next run, or by `notebook-backup.sh --take-back`
    (`tools/cloud-brain/records/backup-committed-before-apply-answers.md`); a change to `README.md` and `records/*.md` of `cloud-brain-dev` is committed in the worktree's clone and pushed by
    `tools/cloud-brain/worktree.sh --push-dev <name>` before the push of `lopecode-dev`; a change to any other file of
-   it is an issue `about` `cloud-brain-dev`, pushed by its `push.ts` after a review. Until 2026-10-12 a landing pulled and merged
+   it is made directly by the session that needs it and pushed with a write token of `git.token` (the owner, 2026-10-20
+   18:10 UTC; `cloud-brain-dev/README.md`, "A change from a worktree of lopecode-dev"); from 2026-10-14 to that day it was an
+   issue `about` `cloud-brain-dev`, pushed by its `push.ts` after a review. Until 2026-10-12 a landing pulled and merged
    its branch in the main checkout: 174 such merges in its reflog of 2026-10-11, and another session's uncommitted file there
    refused a writer's merge for 19 minutes (the spec, "What exists today" and "The reports gathered";
    `tools/cloud-brain/records/wt-3-land-by-push.md`). A landing with no deploy, run this way on 2026-10-12, is in
