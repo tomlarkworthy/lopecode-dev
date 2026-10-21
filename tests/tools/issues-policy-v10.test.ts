@@ -66,7 +66,11 @@ test("migrate-labels.ts puts §5's labels and takes off only the ones the issue 
   expect(w("ready", ["laptop", "stranded"])).toEqual([[], ["stranded"]]);
   expect(w("in-progress")).toEqual([["needs-worker"], []]);
   expect(w("in-review", ["owner", "major", "run-stopped", "stranded"])).toEqual([["needs-worker"], ["run-stopped", "stranded"]]);
-  expect(w("awaiting-approval", ["major"])).toEqual([["needs-owner"], []]);
+  // Not needs-owner: under v10 it has no pass after +needs-reviewer, so no path to done but the worker's hand-over.
+  expect(w("awaiting-approval", ["major"])).toEqual([["needs-worker"], []]);
+  expect(w("awaiting-approval")).toEqual([["needs-worker", "major"], []]);
+  // not-done is closed and not migrated: it is no state of the table.
+  expect(w("not-done")).toEqual([[], []]);
   expect(w("stopped", ["major", "run-stopped", "needs-owner"])).toEqual([["needs-worker"], ["run-stopped"]]);
   expect(w("ready", ["needs-worker"])).toEqual([[], []]);
 });

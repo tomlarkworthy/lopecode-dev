@@ -12,7 +12,7 @@
 //
 // One line of JSON an issue: { id, from, add, remove, why }. A write is one labelled event keyed migrate/<id>/flow,
 // and for an issue that was stopped a comment before it, keyed migrate/<id>/flow-why, quoting the reason of the move
-// that stopped it. `remove` names only labels the issue carries (issue.label refuses any other with 409).
+// that stopped it; the label is sent only when that comment answered 200. `remove` names only labels the issue carries (issue.label refuses any other with 409).
 // Exit 0: done, or a dry run. 1: a write was refused (the rest are still tried). 2: the arguments, or a read failed.
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
@@ -20,16 +20,16 @@ import { resolve } from "node:path";
 const AS = resolve(import.meta.dir, "issue-as.sh");
 export const GONE = ["run-stopped", "stranded"];
 
-// §5's table. in-review is put back to the worker, not to a reviewer: the review guard of v10 compares the reviewer
-// with by["+worker-processing"], which no migrated issue has, so its reviewer would be refused.
+// §5's table, but in-review and awaiting-approval go back to the worker: v10's review guard compares the reviewer with
+// by["+worker-processing"] and finish wants a pass after +needs-reviewer, which no migrated issue has.
 export function labelsFor(from: string, labels: string[]): { add: string[]; remove: string[]; why: string } {
   const has = (l: string) => labels.includes(l);
   const want = ["open", "triaged", "ready"].includes(from)
     ? has("needs-owner") || has("laptop") ? [] : ["needs-worker"]
-    : from === "awaiting-approval" ? ["needs-owner", "major"]
-    : ["in-progress", "in-review", "stopped", "not-done"].includes(from) ? ["needs-worker"]
+    : from === "awaiting-approval" ? ["needs-worker", "major"]
+    : ["in-progress", "in-review", "stopped"].includes(from) ? ["needs-worker"]
     : [];
-  const why = from === "in-review" ? "in-review: the worker hands it over again, so the review guard has a worker to compare with" : `from ${from}`;
+  const why = ["in-review", "awaiting-approval"].includes(from) ? `${from}: the worker hands it over again, so review and finish have a worker and a hand-over to read` : `from ${from}`;
   return { add: want.filter((l) => !has(l)), remove: GONE.filter(has), why };
 }
 
@@ -54,12 +54,15 @@ if (import.meta.main) {
     const events = got.data.events || [], swap = events.find((e: any) => e.type === "swapped" && e.key === `policy/${install}/${row.id}`);
     if (!swap) { console.log(JSON.stringify({ id: row.id, skipped: `no swap of install ${install}` })); continue; }
     const plan = labelsFor(swap.from.state, got.data.issue.labels || []);
-    const stop = ["stopped", "not-done"].includes(swap.from.state) ? events.filter((e: any) => e.type === "moved" && e.to === swap.from.state).at(-1) : null;
+    const stop = swap.from.state === "stopped" ? events.filter((e: any) => e.type === "moved" && e.to === swap.from.state).at(-1) : null;
     console.log(JSON.stringify({ id: row.id, from: swap.from.state, ...plan, ...(stop ? { stopped: stop.reason } : {}) }));
     if (!write || (!plan.add.length && !plan.remove.length)) continue;
+    // The label only after the comment is written: a stopped issue is not handed back without its reason. The quoted
+    // reason names past times, so issue-as.sh's time check (ISSUE_AS_TIME_AHEAD) is not passed over.
     const said = stop ? call(token, "comment", { key: `migrate/${row.id}/flow-why`, id: row.id, body: `Moved to open by policy ${install}, from ${swap.from.state}. Its reason then (event ${stop.seq}): ${stop.reason}` }) : { status: 200 };
+    if (said.status !== 200) { refused++; console.error(`migrate-labels.ts: ${row.id}: comment ${said.status}, no label sent`); continue; }
     const put = call(token, "label", { key: `migrate/${row.id}/flow`, id: row.id, add: plan.add, remove: plan.remove });
-    if (said.status !== 200 || put.status !== 200) { refused++; console.error(`migrate-labels.ts: ${row.id}: comment ${said.status}, label ${put.status} ${JSON.stringify(put.data)}`); }
+    if (put.status !== 200) { refused++; console.error(`migrate-labels.ts: ${row.id}: label ${put.status} ${JSON.stringify(put.data)}`); }
   }
   process.exit(refused ? 1 : 0);
 }

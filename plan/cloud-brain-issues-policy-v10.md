@@ -44,11 +44,14 @@ only and puts no label, so `tools/cloud-brain/migrate-labels.ts` puts §5's labe
 install, dry by default:
 
 - `open`/`triaged`/`ready` → `needs-worker`, unless the issue carries `needs-owner` or `laptop`
-- `in-progress`, `stopped` → `needs-worker`; for `stopped` a comment quoting the stop's reason first
+- `in-progress`, `stopped` → `needs-worker`; for `stopped` a comment quoting the stop's reason first,
+  and the label only when that comment answered 200
 - `in-review` → `needs-worker`, **not** `needs-reviewer` as §5 says: the review guard reads
   `issue.by["+worker-processing"]`, which no migrated issue has, so a reviewer would be refused.
   The worker hands it over again.
-- `awaiting-approval` → `needs-owner`, `major`
+- `awaiting-approval` → `needs-worker`, `major`, **not** `needs-owner`: it has no pass after a put of
+  `needs-reviewer`, so under v10 `finish` has nothing to read and the issue has no path to `done`
+  until the worker hands it over again.
 - `run-stopped`, `stranded` are taken off where carried.
 
 `not-done` is closed in 15036 and is not migrated. On 2026-10-21 cb4 had 22 open task issues
@@ -71,9 +74,11 @@ moves-are-his-or-a-token: fails: 4 … project.respec project.review project.sub
 ```
 
 The four project acts are 15036's, unchanged. The nine task acts the v9 walk listed are gone.
-`no-own-review` is not asked of task: the walk's fixture names actors, not holders, so the new
-review guard is not modelled. The holder rule is tested in brain-x-issues
-(`test_issues_flow_finish_wants_a_pass_by_another_holder_after_the_hand_over`).
+**The walk never reaches the task `review` and `finish` guards.** It puts only `major`,
+`needs-owner` and `security`, and its state key does not read `issue.by["+…"]`, so every task review
+and finish it tries reads a `+worker-processing` or `+needs-reviewer` that is not there and is
+refused. `no-own-review` is not asked of task for the same reason. Their only check is the module's test
+`test_issues_flow_finish_wants_a_pass_by_another_holder_after_the_hand_over`.
 
 The reason ends `approver from e7af0169…`, the format cloud-brain-dev's `approver.ts` and
 `policy-check.ts` read, as 15036 does. `policy-pins.ts` now reads both forms and `remake` writes
@@ -92,7 +97,7 @@ The owner's step; not run. In order:
 
 1. Deploy brain-x-issues from branch `redesign-tracker`:
    `bun apply.ts --patch <the patch> --owner` in the clone (dry run 2026-10-21: hash
-   `d95f66dd5f59…`, state ready, 86 tests).
+   `7088cbbf5fcb…`, state ready, 86 tests).
 2. `issue.rebuild`, so rows written before it carry `holder`, `seq` and `+label`.
 3. `issue.policy` should answer seq 15036; if not, remake this file from what it answers.
 4. From the main checkout after merging:
