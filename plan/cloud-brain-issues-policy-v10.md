@@ -98,8 +98,8 @@ from v9.
 The owner's step; not run. In order:
 
 1. Deploy brain-x-issues from branch `redesign-tracker`:
-   `bun apply.ts --patch <the patch> --owner` in the clone (dry run 2026-10-21: hash
-   `7088cbbf5fcb…`, state ready, 86 tests).
+   `bun apply.ts --patch <the patch> --owner` in the clone (dry run 2026-10-22, of cloud-brain-dev 2d02222: hash
+   `2f1d7e772924…`, state ready, 86 tests).
 2. `issue.rebuild`, so rows written before it carry `holder`, `seq` and `+label`.
 3. `issue.policy` should answer seq 15036; if not, remake this file from what it answers.
 4. From the main checkout after merging:
