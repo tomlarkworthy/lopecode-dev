@@ -18,6 +18,9 @@ a worktree, each reviewed by a fresh-context agent, every finding taken; nothing
 `main` but this file): what the code contradicted is changed in place and says so with the date; §5's acts and
 §11 are new; two live reads were added (`topic.subs?topic=issues` at 22:19 UTC, the deployed `issue.install`).
 
+Landed on cb4 2026-10-21 22:47 to 23:30 UTC and run live from 23:12: §12. "A plan, not built" and "nothing
+deployed" above are the state of the first two days, kept as written.
+
 ## 0. The brief
 
 The owner, 2026-10-21, as typed:
@@ -541,12 +544,15 @@ asked separately and is kept until he strikes it.
 
 ## 10. Not verified
 
-- Whether `claude --resume` works for an `agent-<persona>` user under `setpriv` with `HOME` on `/data`, and whether a
-  transcript survives a Fly stop there (the volume does; the file layout of `~/.claude/projects/` is the CLI's).
+- ~~Whether `claude --resume` works for an `agent-<persona>` user under `setpriv` with `HOME` on `/data`, and
+  whether a transcript survives a Fly stop there~~: it does; event 19486 (`how: "resumed"`, session `c6a5c88b`)
+  resumed `pds-worker-api` on 2026-10-22 01:18 UTC, two hours and two machine restarts after its first turn.
 - ~~Whether `topic.subscribe` needs a delegation the deployer does not hold~~: settled 2026-10-21 by reading the
   topic service; the delegation is the subscriber's (`deploys-push`, held by `brain-x-topic`), made in the owner's
   session (§5 step 2). The deployer declares no `calls` and the core checks none.
-- The cost figure per resume is from the price table, not a measurement.
+- ~~The cost figure per resume is from the price table, not a measurement~~: measured once, event 19489: round 2,
+  resumed, 58 s, $2.83, context 102,193, cache write 91,209. One resume of a 100k context costs about as much as
+  a fresh 300 s turn did in the first table; the figure to beat is the fresh start's rebuild, not this.
 - ~~Whether `issue.install`'s `migrate` can put a label beside the state it maps to~~: it cannot (it maps states
   only; read 2026-10-21 in the deployed `issue.install`). The label column of §5 is
   `tools/cloud-brain/migrate-labels.ts` in `lopecode-dev`, run after the install with a session token, dry by default,
@@ -572,3 +578,78 @@ classes A–E of stranded rows are not in this plan. The §3.4 watchdog puts `ne
 the migration left without a routing label. The 6 open `stranded` rows are open issues of the task workflow, so
 the §5 map reaches them and `migrate-labels.ts` takes `stranded` off; the watchdog is the net under the map, not
 the route.
+
+## 12. Landed, and the first 90 minutes
+
+Landed on cb4 on 2026-10-21, 22:47 to 23:30 UTC, by an Opus agent with the owner's session on his word of that
+evening ("yes push, get it in and tested"), the commands and answers in `tools/cloud-brain/records/redesign-landing-2026-10-21.md`. The §5 acts
+as run: tracker `22cab5740bad` (506-line patch, 86 tests, `issue.rebuild` 1,149 issues); topic `d22d0597ecd0`,
+topic `deploys`, delegation `deploys-push` `73d2f35c4f8c`, subscription `deploys/tracker`; loop `c42f8e9789d1`
+then `1b5dac902427` (the policy kept the workflow name `task`, so the loop reads the `kinds` map now, `flow` as an
+alias); `cloud-brain-dev` main `e7af016..5312e4b` (briefs into `roles/`, `drain.ts` kept as an import); the
+machine's command `exec bun drain2.ts` (`machine.ts update`; Fly refused the 90 s wait, `MACHINE_STOP_SECONDS=25`
+went through); policy seq 19355, 22 swaps, `migrate-labels.ts` 22 issues (one got both `needs-owner` and
+`needs-worker`, fixed by hand: 11 and 11 after); deployer `622dab8373c1`, `redistil` 26 `same`. No deploy was
+held: an apply with `--owner` and the recovery key skips the hold, and the two `brain-x-pds` deploys `deploy.ts`
+made from a worker session (a713822f5e68, 5cb37f70993a) went `verified` to `confirmed` with no `waiting` line either,
+for a reason not yet read (the token, the target, or a hold since removed), so §3.6's click was never met and §10's
+`waiting` race is unmeasured. `brain.ts curl`
+gives up at 30 s and the `issue.install` answer was lost; the swaps were read from `issue.sync`. `LOOP_TOKEN` is
+`drain-loop-4`; `loop-reconcile` had never existed and was made (`ac22ec2bcf6b`).
+
+The machine started at 23:09:55Z (16 s, no work: no `needs-*` label yet) from the issues topic's push to `loop.receive`
+(the old rows acting on the 22 issues the install had just moved to `open`), and again at 23:12:20Z by a brain-x-loop
+decision whose log lines were cancelled (inferred, not seen). 23:12 UTC on the 21st to 00:54 on the 22nd, from the record:
+
+```
+23:12:33  claim pm-loop-stranded-work      ended   64 s  $0.28   closed by the worker, filed fb-close-keeps-processing
+23:13:52  claim pds-worker-api             yield  467 s  $1.89   deploy.ts sent brain-x-pds a713822f5e68, verified, 136 tests
+23:21:24    the deployer's confirmed line reached the topic (entry 10): 1 s before deploy.ts's sent comment (19406), 14 s before the wait (19408)
+23:21:38    -> waiting-deploy matched nothing; woken by hand at 23:28 (comment 19424, label 19425)
+23:21:59  claim pds-trial                   yield   38 s  $0.23   -> waiting-issue (its chain not done)
+23:23:03  claim pds-spec-rows               yield   45 s  $0.28   -> waiting-issue (a shared module, the owner's)
+23:24:05  claim pds-kernel-route           yield  314 s  $1.79   deploy.ts refused the kernel (owner's four) -> needs-owner
+23:29:34  claim page-glitches-2026-10-18   yield 1968 s  $2.49   -> needs-reviewer at 00:02
+00:02:37  claim i18866                     yield   75 s  $0.49   asks the owner to approve a spec -> needs-owner
+00:04:09  claim i18817                     ended   32 s  $0.23   closed as superseded
+00:04:59  claim i13852                     running at 00:54; opened two child issues at 00:55
+```
+
+Eight turns, $7.68, context 31k to 132k, no cost event refused; the `deploys` topic delivered 14 entries, 0
+dropped. Nothing reached `done` in the window: no reviewer had run (one session at a time, and the pick order put
+every `needs-worker` issue before the one `needs-reviewer`), the first of the fixes below (`2a9d435`). What broke,
+fixed on `main` the same night and live at the next boot: the wait written after the deployer had confirmed
+(`6d72e66`: `deploy.ts` writes the wait before it sends, and a `needs-worker` that arrived during the send is read
+as `arrived`); the persona user could not write `issue.ts`'s seq file, since `drain2` handed it the clone and not
+the clone's parent (`71e3872`; a reviewer's parent is a root `mkdtemp`, so no reviewer would have reached its clone).
+Also seen: `brain-x-loop`'s deferred decisions cancelled 361 of 615 in 15 minutes ("waitUntil cancelled"), the
+cause not yet read; `lock.sh take` refused once and the command did not check its exit, so one apply ran under
+another session's lock. The watch rule "20 minutes with no tracker event" stopped twice on a session that was
+still writing its transcript; the transcript's mtime is the liveness signal.
+
+**00:55 to 01:31 UTC on 2026-10-22, after two more fixes on `main`, one deploy of brain-x-loop from a branch, and two
+restarts between sessions.** `2a9d435`: `drain2`
+claims `needs-reviewer` before `needs-worker`, orders by the seq of the label's own put, and skips an issue that
+also carries `needs-owner`. `8e8d690d1e54` (brain-x-loop `39caffb`): one deferred decision at a time under a 45 s
+lease, `decided` recorded only at the end, the tick deciding when it is behind; the cause of the cancellations was
+Cloudflare ending `waitUntil` work 30 s after the answer while a topic tick pushed 57 entries in 19.6 s and a
+decision (`loop.check`) took 10.5 s at least, 14.7 median, 46 at most over 24 h. Measured: 00:46 to 01:01, 202 pushes,
+10 decided, 192 cancelled; 01:15 to 01:30, 14
+pushes, 14 decided, 0 cancelled (low traffic; a burst is not yet measured). `e379022`: on a pass the tracker
+makes `finish` itself (`auto/<seq>`; a non-`major` issue's guard has no caller clause), so `drain2`'s own `finish`
+was refused "no move from done to done" and it had put `needs-owner` on a `done` issue; now it only takes the
+processing label off.
+
+```
+01:05:16  reviewer claim page-glitches-2026-10-18    01:07:18 pass, patch:607f4065…   01:07:18 done (auto)   $0.68
+01:18:20  worker resumed pds-worker-api  58 s  $2.83  (a 102k context read again: the cost of a resume, P1)
+01:19:10    handed to the reviewer;  01:22:25 pass, refs patch:1415d28a… deployed:brain-x-pds@a713822f…;  done (auto)  $0.75
+01:22-01:27 pds-atproto-declare: the wait written before the send (19501), the deployer's lines through issue.receive
+           (19502–19506), +needs-worker at the confirm (19507): §3.4 as designed, first seen live
+```
+
+Still open, the owner's: a `cloud-brain-dev` patch is finished at its pass and before it lands (i13852, 01:17:50, 19480/19481;
+`drain2` puts `needs-owner` on the `done` issue so he sees it, 19483/19484; the fix is a `finish` clause that wants a landed
+ref for a dev patch, a policy body); `brain-x-loop`'s 5-minute tick has never run (0 decisions `by: tick` in 6
+days: the deployer sets a cron on a Worker's first upload only); `personas.ts` publishes 11 names where `drain2`
+runs 2; a project's spec review has no persona.

@@ -229,3 +229,8 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   `issue.receive` in §5 and the code; §3.3 held two designs for the agent's home in one paragraph; and the header still said "not built".
   A separate read-only agent then checked the four branches against each other (fields, keys, order of events, auth, env): 5 runtime
   mismatches none of the four per-branch reviews could see, since each branch was built against prose about its neighbours.
+- 2026-10-22 `plan/cloud-brain-agentic-redesign.md` §12 (the landing and the first live hours, written from the landing agent's reports):
+  FIX, 11 findings (9 confirmed, 2 plausible), all taken. 130k subagent tokens, 2m37s. It read the 176 events of the record and the
+  two logs against every figure: the hashes, seqs, counts and dollars held; what the author had wrong was the date (the landing was
+  the 21st, the author wrote the 22nd and 23rd), two of eight turns left out of a table whose total counted them, a 14 s race
+  written as 1 s, and two placeholders ("01:0x") left in place of times the record had.
