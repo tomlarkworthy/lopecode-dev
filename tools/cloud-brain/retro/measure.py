@@ -132,18 +132,22 @@ for w,lo in(("24h",D1),("7d",D7)):
     op=[e for e in E if e["type"]=="opened" and e["at"]>=lo]
     P(w,"opened:",len(op),"by:",dict(collections.Counter(who(e) for e in op).most_common()),"| kind:",dict(collections.Counter(e.get("kind") for e in op)),"| class:",dict(collections.Counter(klass(ISSUE[e.get("id")]) for e in op)))
 # ---- 7 machine idle with work waiting (from runs' cost events: start = at - seconds)
-P("\n## runs active vs doable issues, 24h, 30-min buckets (from cost events; doable = ready, awaiting-approval, in-review)")
+P("\n## runs active vs doable issues, 24h, 30-min buckets (from cost events; doable = not ended, labelled needs-* but not needs-owner, the redesign's routing since 2026-10-21 22:47Z)")
 B=30*60000; buckets=[D1+k*B for k in range(48)]
 runs=[(e["at"]-(e.get("seconds") or 0)*1000,e["at"]) for e in E if e["type"]=="cost" and e["at"]>=D1-6*H]
-# state at time t: replay
-timeline=[(e["at"],e.get("id"),e["to"]) for e in E if e["type"]=="moved"]+[(e["at"],e.get("id"),e.get("state","open")) for e in E if e["type"]=="opened"]
-timeline.sort()
-st={}; ti=0; idle=[]
+# state and labels at time t: replay
+timeline=sorted([e for e in E if e["type"] in ("moved","opened","labelled")],key=lambda e:e["at"])
+st={}; lab=collections.defaultdict(set); ti=0; idle=[]
 for b in buckets:
-    while ti<len(timeline) and timeline[ti][0]<=b: st[timeline[ti][1]]=timeline[ti][2]; ti+=1
-    doable=sum(1 for v in st.values() if v in("ready","awaiting-approval","in-review"))
+    while ti<len(timeline) and timeline[ti]["at"]<=b:
+        e=timeline[ti]; ti+=1; i=e.get("id")
+        if e["type"]=="moved": st[i]=e["to"]
+        elif e["type"]=="opened": st[i]=e.get("state","open"); lab[i]=set(e.get("labels") or [])
+        else: lab[i]=(lab[i]|set(e.get("add") or []))-set(e.get("remove") or [])
+    doable=sum(1 for i,v in st.items() if v not in ENDED and any(l.startswith("needs-") and l!="needs-owner" for l in lab[i]))
+    owner=sum(1 for i,v in st.items() if v not in ENDED and "needs-owner" in lab[i])
     active=sum(1 for s,t in runs if s<b+B and t>b)
     flag="  <- idle with work" if doable and not active else ""
-    P(" ",iso(b),"doable",doable,"runs active",active,flag)
+    P(" ",iso(b),"doable",doable,"needs-owner",owner,"runs active",active,flag)
     if flag: idle.append(b)
 P("buckets idle with work:",len(idle),"of 48 (",len(idle)/2,"h )")
