@@ -5,6 +5,13 @@
 # The machine, its image, files and secrets: machine.sh beside this file. The aliases github-lopecode-dev,
 # -lopebooks and -lopecode-plugin come from the loop's image (tools/cloud-brain/fly/ssh_config); github-lopecode is added here.
 export HOME=/root
+# Fly's schedules have no time of day, so the machine boots hourly and runs once a day from 03:00 Paris time, the owner's
+# choice of 2026-10-23 ("a chance of unblocking the night shift"); the window to 08:59 covers a boot that drifts past an hour.
+H=$(TZ=Europe/Paris date +%-H); D=$(TZ=Europe/Paris date +%F)
+if [ -z "$RETRO_NOW" ]; then
+  { [ "$H" -ge 3 ] && [ "$H" -le 8 ] && [ "$(cat /data/retro-last-day 2>/dev/null)" != "$D" ]; } || { echo "boot.sh: $D ${H}h Paris, not the retro's hour"; exit 0; }
+fi
+echo "$D" > /data/retro-last-day
 mkdir -p /root/.ssh && chmod 700 /root/.ssh
 for k in /root/.ssh/*.key; do [ -f "$k" ] && chmod 600 "$k"; done
 cat > /root/.ssh/config <<'EOF'

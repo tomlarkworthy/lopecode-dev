@@ -2,7 +2,7 @@
 # run.sh   the daily retro of the Cloud Brain factory, on the Fly app cloudbrain-retro (not the loop's app: its
 # secrets include the owner's state file, and Fly gives an app's secrets to every machine of that app).
 # Started by boot.sh after it pulled main. One agent, the brief beside this file, owner authority, no tracker
-# workflow. The machine stops when this ends (restart policy no; schedule daily).
+# workflow. The machine stops when this ends (restart policy no; schedule hourly, and boot.sh lets one boot a day through, from 03:00 Paris time).
 #
 # Env: MODEL (claude-opus-5-5), EFFORT (high), BUDGET_USD (60), HOURS (4) — set at machine create to change them.
 # Writes: /data/retro-logs/<date>.jsonl (the stream), the agent's own commits. Never prints a secret.
