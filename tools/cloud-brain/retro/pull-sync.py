@@ -6,7 +6,7 @@ after=0; events=[]
 while True:
     r=subprocess.run(["bun","tools/cloud-brain/brain.ts","curl",f"/xrpc/com.lopecode.brain.issue.sync?after={after}&limit=500","--owner"],capture_output=True,text=True)
     try: d=json.loads(r.stdout)
-    except Exception: print("bad",r.stdout[:200],r.stderr[:200],file=sys.stderr); break
+    except Exception: sys.exit(f"pull-sync.py: issue.sync answered no JSON after seq {after}: {r.stdout[:200]} {r.stderr[:200]}")
     if d.get("error"): sys.exit(f"pull-sync.py: issue.sync answered {d['error']}: {d.get('message','')}. An ended owner session: bun tools/cloud-brain/brain.ts session")
     ev=d.get("events") or []
     if not ev: 
