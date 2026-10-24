@@ -1,6 +1,6 @@
-// cloud-brain-dev run.ts starts each agent in safehouse and checks that sandbox before any token is made; with no
-// safehouse and a key file in reach it starts nothing; drain.ts ends at that stop (issue
-// run-sandboxes-its-agents-not-the-loop; tools/cloud-brain/records/run-sandboxes-its-agents-not-the-loop.md).
+// cloud-brain-dev sandbox.ts: how an agent is started in safehouse, and the check made before any token (issue
+// run-sandboxes-its-agents-not-the-loop; tools/cloud-brain/records/run-sandboxes-its-agents-not-the-loop.md). The run.ts
+// and drain.ts cases went with those files (cloud-brain-dev, 2026-10-24).
 // safehouse here is a stub on the PATH: it passes only the --env-pass names, as safehouse does, and no file rule.
 //
 //   bun test --timeout=30000 ./tests/tools/run-sandboxes-agents.test.ts
@@ -116,96 +116,4 @@ test.skipIf(!have)("the check fails on a readable key file or a missing token, a
     expect(c.lines).toContain("lacks ISSUE_TOKEN or BRAIN_TOKEN");
     chmodSync(key, 0o600);
   });
-});
-
-// A Brain that answers what run.ts and drain.ts ask before an agent, and counts what else is called.
-const brain = (issues: any[]) => {
-  const calls: string[] = [];
-  const server = Bun.serve({ port: 0, async fetch(req) {
-    const u = new URL(req.url), m = u.pathname.replace("/xrpc/com.lopecode.brain.", "");
-    calls.push(m);
-    const j = (o: unknown) => Response.json(o);
-    if (m === "issue.get") { const i = issues.find((x) => x.id === u.searchParams.get("id")); return i ? j({ issue: i, events: [] }) : new Response("no", { status: 404 }); }
-    if (m === "issue.list") return j({ issues });
-    if (m === "issue.queue") return j({ queue: issues.map((i) => ({ id: i.id })), waiting: [] });
-    if (m === "issue.lock") return j({ ok: true });
-    return new Response("not in the rig", { status: 500 });
-  } });
-  return { url: "http://127.0.0.1:" + server.port, calls, stop: () => server.stop(true) };
-};
-const issue = (id: string, t: number) => ({ id, state: "ready", about: "brain-x-foo", labels: [], title: id, opened_at: t });
-const tool = async (file: string, a: string[], env: Record<string, string>) => {
-  const p = Bun.spawn([BUN, resolve(dev, file), ...a], { cwd: dev, env, stdout: "pipe", stderr: "pipe" });
-  const [out, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
-  return { code, out, err, last: JSON.parse(out.trim().split("\n").pop() || "null") };
-};
-
-test.skipIf(!have)("run.ts: a sandbox check that fails stops it at sandbox-check, exit 2, before any token is made", async () => {
-  const b = brain([issue("one-issue", 1)]);
-  const d = fakeDev("run-check"), key = resolve(rig, "run-key.json"); writeFileSync(key, "{}");
-  try {
-    const r = await tool("run.ts", ["one-issue"], { PATH: [stubs, ...SYSTEM].join(":"), HOME: process.env.HOME || "", BRAIN: b.url, AGENTS_TOKEN: "parent", BRAIN_TOKEN: "work", KEY_FILE: key, LOPECODE_DEV: d });
-    expect(r.code).toBe(2);
-    expect(r.last.outcome).toBe("sandbox-check");
-    expect(r.last.sandbox).toBe("safehouse");
-    expect(r.last.check).toContain("READS " + key);
-    expect(b.calls).toEqual(["issue.get"]);
-    expect(readFileSync(log, "utf8")).toContain("--enable=all-agents");
-  } finally { b.stop(); }
-});
-
-test.skipIf(!have)("run.ts: no safehouse and a key file in reach starts nothing", async () => {
-  const b = brain([issue("one-issue", 1)]);
-  const key = resolve(rig, "run-key-2.json"); writeFileSync(key, "{}");
-  try {
-    const r = await tool("run.ts", ["one-issue"], { PATH: SYSTEM.join(":"), HOME: process.env.HOME || "", BRAIN: b.url, AGENTS_TOKEN: "parent", BRAIN_TOKEN: "work", KEY_FILE: key });
-    expect(r.code).toBe(2);
-    expect(r.last).toMatchObject({ outcome: "sandbox-check", sandbox: "refused", runs: [], usd: 0 });
-    expect(r.last.why).toContain("no safehouse on the PATH");
-    expect(b.calls).toEqual(["issue.get"]);
-  } finally { b.stop(); }
-});
-
-test.skipIf(!have)("drain.ts: a run that stops at sandbox-check ends the drain, and the next issue is not run", async () => {
-  const b = brain([issue("first-issue", 1), issue("second-issue", 2)]);
-  const key = resolve(rig, "drain-key.json"); writeFileSync(key, "{}");
-  try {
-    const r = await tool("drain.ts", ["--laptop"], { PATH: SYSTEM.join(":"), HOME: process.env.HOME || "", BRAIN: b.url, AGENTS_TOKEN: "parent", BRAIN_TOKEN: "work", KEY_FILE: key });
-    expect(r.code).toBe(1);
-    expect(r.last).toMatchObject({ outcome: "sandbox-check", runs: 1 });
-    expect(b.calls.filter((c) => c === "issue.get")).toEqual(["issue.get"]);
-  } finally { b.stop(); }
-});
-
-// Past the check, to an agent and back: a copy of cloud-brain-dev with work.ts and agent.sh as stubs. The agent writes
-// nothing, so the run stops at writer-not-submitted and says so. On 2026-10-14 the first real run (fx-2-panel) threw
-// there instead, `read` being agent()'s array, and left the issue as it was and its two tokens alive.
-test.skipIf(!have)("run.ts: an agent that submits nothing stops the run, said on the issue, its tokens ended", async () => {
-  const copy = resolve(rig, "dev-copy");
-  mkdirSync(copy);
-  for (const f of ["run.ts", "sandbox.ts", "patch.ts"]) writeFileSync(resolve(copy, f), readFileSync(resolve(dev, f)));
-  writeFileSync(resolve(copy, "work.ts"), `const d = process.argv[process.argv.indexOf("--dir") + 1]; require("node:fs").mkdirSync(d, { recursive: true });\n`);
-  writeFileSync(resolve(copy, "agent.sh"), `#!/bin/sh\necho '{"usd":0.01,"session":"s1","turns":1}'\n`);
-  chmodSync(resolve(copy, "agent.sh"), 0o755);
-  const calls: string[] = [];
-  let n = 0;
-  const server = Bun.serve({ port: 0, async fetch(req) {
-    const u = new URL(req.url), m = u.pathname.replace("/xrpc/com.lopecode.brain.", "");
-    calls.push(m);
-    if (m === "issue.get") return Response.json({ issue: issue("one-issue", 1), events: [] });
-    if (m === "delegation.create") return Response.json({ id: "d" + ++n, secret: "s" + n });
-    if (["issue.cost", "issue.comment", "issue.label", "issue.move"].includes(m)) return Response.json({ seq: 1 });
-    if (m === "delegation.revoke") return Response.json({ revoked: true });
-    return new Response("not in the rig", { status: 500 });
-  } });
-  try {
-    const p = Bun.spawn([BUN, resolve(copy, "run.ts"), "one-issue"], { cwd: copy, env: { PATH: SYSTEM.join(":"), HOME: process.env.HOME || "", BRAIN: "http://127.0.0.1:" + server.port, AGENTS_TOKEN: "parent", BRAIN_TOKEN: "work" }, stdout: "pipe", stderr: "pipe" });
-    const [out, err, code] = await Promise.all([new Response(p.stdout).text(), new Response(p.stderr).text(), p.exited]);
-    expect(err).not.toContain("TypeError");
-    expect(code).toBe(1);
-    expect(JSON.parse(out.trim().split("\n").pop()!)).toMatchObject({ outcome: "writer-not-submitted", sandbox: "none", revoked: "2 of 2", runs: [{ role: "implementer", outcome: "not-submitted", usd: 0.01 }] });
-    expect(calls).toContain("issue.cost");
-    expect(calls).toContain("issue.comment");
-    expect(calls).toContain("issue.label");
-  } finally { server.stop(true); }
 });

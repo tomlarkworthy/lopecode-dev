@@ -36,7 +36,7 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
   on 2026-10-20). `S=<a scratch dir> python3 tools/cloud-brain/retro/pull-sync.py` (from the repository root) writes `$S/events.json` and
   `$S/deploys7d.json` (`logs.deploys` of 7 days); `S=<same> python3 tools/cloud-brain/retro/measure.py` prints the
   factory's tables from them. `cloud-brain-dev/rollback.ts` is not a read: it comments, labels and moves issues.
-- The tools: `tools/cloud-brain/issue-stats.ts`, `cost-events.ts` and `agent-usage.ts` there, `cloud-brain-dev/stats.ts`,
+- The tools: `tools/cloud-brain/issue-stats.ts`, `cost-events.ts` and `agent-usage.ts` there,
   `brain.ts curl` on
   `issue.sync`, `issue.flow`, `loop.work`, `fly.*`, `logs.*`, `usage.account`. Web search, for a problem with a
   literature.
