@@ -90,7 +90,15 @@ for w,lo in(("24h",D1),("7d",D7)):
     op=[e for e in acts if e["type"]=="opened"]; 
     for e in op: P("    opened",iso(e["at"]),e.get("id"),"|",e.get("kind"),"|",(e.get("title") or "")[:90])
 # ---- 4 dollars
-P("\n## dollars (cost events)")
+# A resumed run's usd was its session's total until drain2.ts keyed a run's own cost /run-cost (accept.ts runUsd, retro
+# 2026-10-24): each cost event's usd is replaced by what that run cost, the same reading of the record.
+_before=collections.defaultdict(float); _since=collections.defaultdict(float)
+for e in E:
+    if e["type"]!="cost" or not e.get("session"): continue
+    u=e.get("usd") or 0; s=e["session"]
+    if str(e.get("key","")).endswith("/run-cost"): _since[s]+=u
+    else: e["usd"]=max(0,u-_before[s]-_since[s]); _before[s]=max(_before[s],u)
+P("\n## dollars (cost events; a resumed run's session total turned into the run's own cost)")
 for w,lo in(("24h",D1),("7d",D7)):
     # test-retro-cost-* are run.sh's checks of its cost path; test-retro-cost-1792527157 carried the real 12.58 of retro-2026-10-20
     cs=[e for e in E if e["type"]=="cost" and e["at"]>=lo and not str(e.get("id","")).startswith("test-retro-cost-")]
@@ -132,11 +140,14 @@ for w,lo in(("24h",D1),("7d",D7)):
     op=[e for e in E if e["type"]=="opened" and e["at"]>=lo]
     P(w,"opened:",len(op),"by:",dict(collections.Counter(who(e) for e in op).most_common()),"| kind:",dict(collections.Counter(e.get("kind") for e in op)),"| class:",dict(collections.Counter(klass(ISSUE[e.get("id")]) for e in op)))
 # ---- 7 machine idle with work waiting (from runs' cost events: start = at - seconds)
-P("\n## runs active vs doable issues, 24h, 30-min buckets (from cost events; doable = not ended, labelled needs-* but not needs-owner, the redesign's routing since 2026-10-21 22:47Z)")
+P("\n## runs active vs doable issues, 24h, 30-min buckets (from cost events; doable = not ended, labelled needs-<a persona>; needs-owner counts needs-owner and needs-token)")
 B=30*60000; buckets=[D1+k*B for k in range(48)]
 runs=[(e["at"]-(e.get("seconds") or 0)*1000,e["at"]) for e in E if e["type"]=="cost" and e["at"]>=D1-6*H]
 # state and labels at time t: replay
 timeline=sorted([e for e in E if e["type"] in ("moved","opened","labelled")],key=lambda e:e["at"])
+# The labels a persona of drain2 takes (loop.status personas, 2026-10-24); needs-token waited on the owner and was counted
+# doable until then (all 20 idle half-hours of the 2026-10-24 retro's window).
+PERSONA_LABELS={"needs-worker","needs-reviewer","needs-spec","needs-spec-reviewer"}; OWNER_LABELS={"needs-owner","needs-token"}
 st={}; lab=collections.defaultdict(set); ti=0; idle=[]
 for b in buckets:
     while ti<len(timeline) and timeline[ti]["at"]<=b:
@@ -144,8 +155,8 @@ for b in buckets:
         if e["type"]=="moved": st[i]=e["to"]
         elif e["type"]=="opened": st[i]=e.get("state","open"); lab[i]=set(e.get("labels") or [])
         else: lab[i]=(lab[i]|set(e.get("add") or []))-set(e.get("remove") or [])
-    doable=sum(1 for i,v in st.items() if v not in ENDED and any(l.startswith("needs-") and l!="needs-owner" for l in lab[i]))
-    owner=sum(1 for i,v in st.items() if v not in ENDED and "needs-owner" in lab[i])
+    doable=sum(1 for i,v in st.items() if v not in ENDED and lab[i]&PERSONA_LABELS)
+    owner=sum(1 for i,v in st.items() if v not in ENDED and lab[i]&OWNER_LABELS)
     active=sum(1 for s,t in runs if s<b+B and t>b)
     flag="  <- idle with work" if doable and not active else ""
     P(" ",iso(b),"doable",doable,"needs-owner",owner,"runs active",active,flag)

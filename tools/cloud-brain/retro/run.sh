@@ -24,10 +24,13 @@ for m in cloud-brain-dev lopebooks lopecode-plugin lopecode; do
 done
 # each submodule at its remote's main, so a change is made on the latest and pushes without a conflict
 for m in cloud-brain-dev lopebooks lopecode-plugin lopecode; do
-  git -C "$m" fetch -q origin main && git -C "$m" checkout -q -B main origin/main || say "$m: not at origin/main"
+  # -f: sync.ts below rewrites tracked files of cloud-brain-dev/deploy, and without it the next run stayed on the old main (2026-10-24: 4f4213c, 1.5 days behind)
+  git -C "$m" fetch -q origin main && git -C "$m" checkout -q -f -B main origin/main || say "$m: not at origin/main"
 done
 [ -n "$CB4_STATE_FILE" ] || CB4_STATE_FILE=/root/cb4.json
 mkdir -p tools/cloud-brain/.emitted && install -m 600 "$CB4_STATE_FILE" tools/cloud-brain/.emitted/cb4.json || { say "no owner state file"; exit 1; }
+# the secret's session ends 7 days after it was minted (10-22 and 10-24 runs read AuthRequired until they minted one)
+BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts session >/dev/null || say "no owner session was minted"
 # the Cloudflare token, when the owner has given one, stays under the git-ignored .emitted/
 [ -f /root/cf-token ] && install -m 600 /root/cf-token tools/cloud-brain/.emitted/cf-token && export CF_TOKEN_FILE="$C/tools/cloud-brain/.emitted/cf-token"
 # retro-agents: the retro's own delegate for issue.*, made once with the owner's session and kept on the volume;
