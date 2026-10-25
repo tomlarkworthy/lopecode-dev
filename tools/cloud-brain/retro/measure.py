@@ -65,7 +65,7 @@ if DEP:
         c=collections.Counter(l["at"] for l in L if l["t"]>=lo); ver=collections.Counter(l["target"] for l in L if l["t"]>=lo and l["at"]=="deploy.verified")
         P(w,"verified:",sum(ver.values()),dict(ver),"| put-back:",c["deploy.put-back"],"waiting:",c["deploy.waiting"],"approved:",c["deploy.approved"],"refused:",c["deploy.refused"],"failed:",c["deploy.failed"])
     P("by (who deployed), 7d:",dict(collections.Counter(l.get("by") for l in L if l["at"]=="deploy.reason")))
-    P("restores 7d:",[(r["target"],iso(r["putBack"]),round(r["ms"]/H,1)) for r in DEP["restores"]])
+    P("restores 7d:",[(r["target"],iso(r["putBack"]),round(r["ms"]/H,1) if r["ms"] is not None else "not restored") for r in DEP["restores"]])
 # pass -> live on the tracker: a pass review then a comment that says deployed/live
 P("hours from a pass to a `live`/`deployed` comment, 7d, service issues:")
 lat=[]
