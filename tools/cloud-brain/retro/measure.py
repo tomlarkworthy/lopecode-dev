@@ -140,22 +140,24 @@ for w,lo in(("24h",D1),("7d",D7)):
     op=[e for e in E if e["type"]=="opened" and e["at"]>=lo]
     P(w,"opened:",len(op),"by:",dict(collections.Counter(who(e) for e in op).most_common()),"| kind:",dict(collections.Counter(e.get("kind") for e in op)),"| class:",dict(collections.Counter(klass(ISSUE[e.get("id")]) for e in op)))
 # ---- 7 machine idle with work waiting (from runs' cost events: start = at - seconds)
-P("\n## runs active vs doable issues, 24h, 30-min buckets (from cost events; doable = not ended, labelled needs-<a persona>; needs-owner counts needs-owner and needs-token)")
+P("\n## runs active vs doable issues, 24h, 30-min buckets (from cost events; doable = not ended, labelled needs-<a persona>, no after link to an issue not ended; needs-owner counts needs-owner and needs-token)")
 B=30*60000; buckets=[D1+k*B for k in range(48)]
 runs=[(e["at"]-(e.get("seconds") or 0)*1000,e["at"]) for e in E if e["type"]=="cost" and e["at"]>=D1-6*H]
 # state and labels at time t: replay
-timeline=sorted([e for e in E if e["type"] in ("moved","opened","labelled")],key=lambda e:e["at"])
+timeline=sorted([e for e in E if e["type"] in ("moved","opened","labelled") or (e["type"]=="linked" and e.get("rel")=="after")],key=lambda e:e["at"])
 # The labels a persona of drain2 takes (loop.status personas, 2026-10-24); needs-token waited on the owner and was counted
 # doable until then (all 20 idle half-hours of the 2026-10-24 retro's window).
 PERSONA_LABELS={"needs-worker","needs-reviewer","needs-spec","needs-spec-reviewer"}; OWNER_LABELS={"needs-owner","needs-token"}
-st={}; lab=collections.defaultdict(set); ti=0; idle=[]
+st={}; lab=collections.defaultdict(set); aft=collections.defaultdict(set); ti=0; idle=[]
 for b in buckets:
     while ti<len(timeline) and timeline[ti]["at"]<=b:
         e=timeline[ti]; ti+=1; i=e.get("id")
         if e["type"]=="moved": st[i]=e["to"]
         elif e["type"]=="opened": st[i]=e.get("state","open"); lab[i]=set(e.get("labels") or [])
+        elif e["type"]=="linked": (aft[i].discard if e.get("remove") else aft[i].add)(e.get("to"))
         else: lab[i]=(lab[i]|set(e.get("add") or []))-set(e.get("remove") or [])
-    doable=sum(1 for i,v in st.items() if v not in ENDED and lab[i]&PERSONA_LABELS)
+    # Linked after an issue not ended is no work (brain-x-loop, "Before after"); its label flapped 10-25 23:40 to 10-26 02:16.
+    doable=sum(1 for i,v in st.items() if v not in ENDED and lab[i]&PERSONA_LABELS and not any(st.get(t,"open") not in ENDED for t in aft[i]))
     owner=sum(1 for i,v in st.items() if v not in ENDED and lab[i]&OWNER_LABELS)
     active=sum(1 for s,t in runs if s<b+B and t>b)
     flag="  <- idle with work" if doable and not active else ""
