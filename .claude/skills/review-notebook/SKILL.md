@@ -237,3 +237,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
 - 2026-10-20 `knowledge/working-with-cloud-brain-remote-lopecode-cluster.md`, section "The dashboard chat" (ad-6b): FIX, 7 findings (6 confirmed,
   1 plausible), all taken. 101k subagent tokens, 2m24s. What the author had not seen: in demo mode the vision mark comes from the gateway's
   catalog, not OpenRouter's, and the Operator's brief tells the Operator to send the owner to the dashboard chat, not to forward the question.
+- 2026-10-27 `plan/retros/2026-10-27.md` and `cloud-brain-dev` `40e3daf` (push.ts/drain2.ts land a dev patch on a service
+  issue), authored by the spawning session: BLOCK, 9 findings and 2 minor, all taken (`cloud-brain-dev` `f4b77e1`, the report).
+  123k subagent tokens, 6m37s. What the author had not seen: three more lost patches from 10-22 and 10-23 outside the
+  window it searched, and that no test failed with the new `devWork` check forced true.
