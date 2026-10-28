@@ -66,6 +66,24 @@ if DEP:
         P(w,"verified:",sum(ver.values()),dict(ver),"| put-back:",c["deploy.put-back"],"waiting:",c["deploy.waiting"],"approved:",c["deploy.approved"],"refused:",c["deploy.refused"],"failed:",c["deploy.failed"])
     P("by (who deployed), 7d:",dict(collections.Counter(l.get("by") for l in L if l["at"]=="deploy.reason")))
     P("restores 7d:",[(r["target"],iso(r["putBack"]),round(r["ms"]/H,1) if r["ms"] is not None else "not restored") for r in DEP["restores"]])
+    # A line of the four kinds that label an issue, made while a live wait named its Worker@hash12, and no receive/ comment
+    # of that kind on that issue: the tracker never heard it. issue.receive refused keys over 100 characters until
+    # brain-x-issues db051d31b47f (retro 2026-10-28: five approvals of fb-loop-assign-step-reads-every-list lost).
+    WAITS=collections.defaultdict(list); ENDAT={}
+    for e in E:
+        if e["type"]=="waits":
+            for w in str(e.get("note") or "").split():
+                if w.startswith("deploy:"): WAITS[w[7:]].append((e["id"],e["at"],e.get("until") or 9e15))
+        if e["type"]=="moved" and e.get("to") in ("done","closed","rejected"): ENDAT.setdefault(e["id"],e["at"])
+    GOT={m.groups() for e in E if e["type"]=="commented" for m in [re.match(r"receive/[^/]+/([a-z.-]+)/(.+)/comment$",e.get("key",""))] if m}
+    for w,lo in(("24h",D1),("7d",D7)):
+        lost=set()
+        for l in L:
+            k=l["at"][7:]
+            if l["t"]<lo or k not in ("waiting","approved","confirmed","put-back") or not l.get("target") or not l.get("hash"): continue
+            for i,a,u in WAITS.get(l["target"]+"@"+l["hash"][:12],[]):
+                if a<=l["t"]<u and not ENDAT.get(i,9e15)<l["t"] and (k,i) not in GOT: lost.add((iso(l["t"]),k,l["target"]+"@"+l["hash"][:12],i))
+        P(w,"deploy lines a live wait named that never reached the issue:",len(lost),sorted(lost)[:12])
 # pass -> live on the tracker: a pass review then a comment that says deployed/live
 P("hours from a pass to a `live`/`deployed` comment, 7d, service issues:")
 lat=[]

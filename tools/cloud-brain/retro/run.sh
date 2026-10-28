@@ -37,6 +37,9 @@ BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts session >/dev/null || say "no owne
 # the agent makes its tracker and lock tokens as its children (agent-token --parent retro-agents)
 grep -q '"retro-agents"' tools/cloud-brain/.emitted/cb4-tokens.json 2>/dev/null || \
   BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token retro-agents 'issue.*' --delegate >/dev/null || say "retro-agents was not made"
+# retro-docs: the retro's token for the knowledge docs (knowledge-docs.ts DOCS_TOKEN); loop-docs is another machine's (retro 2026-10-28)
+grep -q '"retro-docs"' tools/cloud-brain/.emitted/cb4-tokens.json 2>/dev/null || \
+  BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token retro-docs knowledge.put knowledge.list static.put static.list >/dev/null || say "retro-docs was not made"
 bun install --silent || say "bun install failed at the root"
 (cd tools && bun install --silent) || say "bun install failed in tools/"
 (cd cloud-brain-dev && bun sync.ts https://cb4.endpointservices.workers.dev >/dev/null 2>&1) || say "cloud-brain-dev sync.ts failed"
@@ -72,6 +75,8 @@ if ! { git pull -q --rebase origin main && git push -q origin HEAD:main; }; then
   git rebase --abort 2>/dev/null
   git push -q origin "HEAD:refs/heads/retro/$RUN" && say "main did not take the push; the work is on the branch retro/$RUN" || say "push failed"
 fi
+# the docs as main has them now, into the Brain's search (two were stale 10-23 to 10-28: no machine of the retro entered them)
+BRAIN_BASE=cb4 DOCS_TOKEN=retro-docs timeout 600 bun tools/cloud-brain/knowledge-docs.ts put --stale --limit=30 >/dev/null 2>&1 || say "knowledge docs: put --stale did not end with 0"
 if [ -n "$RT" ]; then
   L="/data/retro-logs/$RUN.jsonl"
   OUTCOME=reported; [ "$CODE" = 124 ] && OUTCOME=timeout

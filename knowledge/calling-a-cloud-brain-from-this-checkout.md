@@ -291,6 +291,11 @@ summaries due (cb4): <names>. A writer or a spec writer runs, …: BRAIN_BASE=cb
   12 entries carry `at` 2026-10-11 20:48:28 CEST (`knowledge.list` with `loop-docs`), 9 of them new and 3 changed, after
   the landing of `49fa9983` (its writer gives the release as 20:48:26); `status --check` at 20:50:28 read 70 docs, 70 fresh, exit 0
   (`tools/cloud-brain/records/bd-3-first-run-of-the-docs-step.md`).
+- `DOCS_TOKEN=<name>` makes the tool call with another kept token of the same four methods (2026-10-28). The retro's
+  machine keeps `retro-docs` (made by `retro/run.sh` once; `loop-docs` exists on the Brain and is kept elsewhere, so
+  `brain.ts token loop-docs …` there answered 400 "a delegation named loop-docs exists"), and `run.sh` runs `put --stale`
+  after its push. Run that day: `cloud-brain-dev-agents` and `-readme`, stale since 10-23 and 10-22, put; `status --check`
+  101 of 101 fresh.
 - With no `loop-docs` kept the tool exits 2 and the release prints, as it did at 20:05:34 that day with its lock and
   state in a temporary directory, in 1.2 s:
   `docs (cb4): not entered (no token "loop-docs" is kept. The owner makes it once: BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts token loop-docs knowledge.put knowledge.list)`.

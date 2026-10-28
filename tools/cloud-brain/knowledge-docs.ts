@@ -20,7 +20,7 @@
 // The source is origin/main of this repository, read with git: an edit on disk and a commit not pushed are not seen,
 // by status or by put. The three files of cloud-brain-dev are read at the commit origin/main records for the
 // submodule; when its checkout lacks that commit they are left as they are and the last line says so (cloudBrainDev).
-// A call is made with the token loop-docs (knowledge.put, knowledge.list, static.put, static.list), kept in the main
+// A call is made with the token loop-docs (knowledge.put, knowledge.list, static.put, static.list), or the kept token DOCS_TOKEN names (retro/run.sh: retro-docs), kept in the main
 // checkout's .emitted/, so the tool runs from a worktree. With no such token it prints the command the owner makes it
 // with and exits 2; so too with one that does not name a method it calls (the token of before sd-1-doc-files).
 // The whole of a doc is a file the Brain keeps (sd-1-doc-files, task 1 of plan/cloud-brain-docs-summarised-for-search.md).
@@ -131,7 +131,7 @@ const VALUED = ["--except", "--usd-max", "--model"];
 const opt = (f: string) => { const eq = args.find((a) => a.startsWith(f + "=")), i = args.indexOf(f); return eq ? eq.slice(f.length + 1) : i >= 0 ? args[i + 1] : undefined; };
 const names = args.filter((a, i) => !a.startsWith("--") && !VALUED.includes(args[i - 1]));
 const limit = (args.find((a) => /^--limit=\d+$/.test(a)) || "--limit=120").slice(8);
-const REPO = "https://github.com/tomlarkworthy/lopecode-dev/blob/main/", TEXT = 16000, SRC = "origin/main", TOKEN = "loop-docs", METHODS = "knowledge.put knowledge.list static.put static.list";
+const REPO = "https://github.com/tomlarkworthy/lopecode-dev/blob/main/", TEXT = 16000, SRC = "origin/main", TOKEN = process.env.DOCS_TOKEN || "loop-docs", METHODS = "knowledge.put knowledge.list static.put static.list";
 // Where a doc's file is kept in brain-static: FILES<source>/<path>. 53 docs had a file there, put on 2026-10-10,
 // which their entries named; the spec's `knowledge-docs/` would have been a second place (records/sd-1-doc-files.md).
 const FILES = "docs/", FILE_TAG = "knowledge-doc";
