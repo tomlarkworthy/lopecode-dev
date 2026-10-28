@@ -2255,20 +2255,6 @@
    "kind": "unused-dep"
   }
  ],
- "lopebooks/notebooks/linux-claude.html": [
-  {
-   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
-   "kind": "unused-dep"
-  },
-  {
-   "detail": "@tomlarkworthy/lopepage-2: lp2_bootDormant declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
-   "kind": "unused-dep"
-  }
- ],
  "lopebooks/notebooks/quick_start.html": [
   {
    "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
@@ -2378,6 +2364,24 @@
   },
   {
    "detail": "@tomlarkworthy/robocoop-5-srctools: pathLib declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  }
+ ],
+ "lopebooks/notebooks/robocoop-5-voice-try.html": [
+  {
+   "detail": "@tomlarkworthy/dataflow-templating: instancingCost declares dataflows (a cell here) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/file-sync: jbApply declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/robocoop-5-srctools: pathLib declares importShim (imported from @tomlarkworthy/runtime-sdk) but never uses it",
+   "kind": "unused-dep"
+  },
+  {
+   "detail": "@tomlarkworthy/robocoop-5-voice: vadDetector declares globalThis (nothing here defines it) but never uses it",
    "kind": "unused-dep"
   }
  ],
