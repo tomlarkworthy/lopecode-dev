@@ -182,3 +182,15 @@ for b in buckets:
     P(" ",iso(b),"doable",doable,"needs-owner",owner,"runs active",active,flag)
     if flag: idle.append(b)
 P("buckets idle with work:",len(idle),"of 48 (",len(idle)/2,"h )")
+
+# ---- unrouted: an open issue no route reads (retro 2026-10-30: services-own-sqlite-objects, an owner's project opened with
+# `owner` alone, waited 4.7 days and was never doable above). Routing labels as route.js `routed`; standing and superseded left.
+P("\n## issues at open with no routing label for over an hour (no needs-*, *-processing or waiting-*; not standing or superseded; a project at building waits on its parts and is left)")
+ROUTED=lambda l: l.startswith("needs-") or l.endswith("-processing") or l.startswith("waiting-")
+since={}
+for i,v in st.items():
+    if v!="open" or any(ROUTED(l) for l in lab[i]) or lab[i]&{"standing","superseded"}: continue
+    last=max([e["at"] for e in BYID.get(i,[]) if e["type"] in("labelled","moved","opened")] or [0])
+    if NOW-last>H: since[i]=last
+for i,t in sorted(since.items(),key=lambda x:x[1]): P(" ",iso(t),v if (v:=st.get(i)) else "",i,"|",ISSUE.get(i,{}).get("kind",""),sorted(lab[i]),"|",ISSUE.get(i,{}).get("title","")[:70])
+P("unrouted:",len(since))
