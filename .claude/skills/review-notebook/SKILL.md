@@ -241,3 +241,6 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   issue), authored by the spawning session: BLOCK, 9 findings and 2 minor, all taken (`cloud-brain-dev` `f4b77e1`, the report).
   123k subagent tokens, 6m37s. What the author had not seen: three more lost patches from 10-22 and 10-23 outside the
   window it searched, and that no test failed with the new `devWork` check forced true.
+- 2026-10-31 `plan/retros/2026-10-31.md`, authored by the spawning session: FIX, 5 findings, all confirmed and taken (a table
+  header naming one of two checks, two patches not named, a negative median unexplained, a heading that said 21 missing
+  where the body found 5, a line reference into a git-ignored file). 77k subagent tokens, 3m37s.

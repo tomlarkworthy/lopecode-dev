@@ -194,3 +194,16 @@ for i,v in st.items():
     if NOW-last>H: since[i]=last
 for i,t in sorted(since.items(),key=lambda x:x[1]): P(" ",iso(t),v if (v:=st.get(i)) else "",i,"|",ISSUE.get(i,{}).get("kind",""),sorted(lab[i]),"|",ISSUE.get(i,{}).get("title","")[:70])
 P("unrouted:",len(since))
+
+# ---- an ask on a closed issue (retro 2026-10-31: 23 passes of 2026-10-22/23, done at the pass, then "For your decision … Land
+# it with push.ts" on the done issue; the page's open work and issue.flow leave a closed issue out, and 21 never landed).
+P("\n## needs-owner put on at or after the move that closed the issue (an ask no list the owner reads shows)")
+CLOSED_ST={"done","closed","rejected","reverted","not-done"}
+late=[]
+for i,v in st.items():
+    if v not in CLOSED_ST or "needs-owner" not in lab[i]: continue
+    ev=BYID.get(i,[]); end=max([e["seq"] for e in ev if e["type"]=="moved"] or [0])
+    put=[e for e in ev if e["type"]=="labelled" and "needs-owner" in (e.get("add") or []) and e["seq"]>=end]
+    if put: late.append((put[-1]["at"],i,v))
+for t,i,v in sorted(late): P(" ",iso(t),v,i,"|",ISSUE.get(i,{}).get("title","")[:80])
+P("asks on closed issues:",len(late),"| 7d:",sum(1 for t,_,_ in late if t>=D7),"| closed issues carrying needs-owner:",sum(1 for i,v in st.items() if v in CLOSED_ST and "needs-owner" in lab[i]))
