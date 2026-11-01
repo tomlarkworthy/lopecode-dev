@@ -60,7 +60,8 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
    - **Data**: the daily snapshot ran and is whole; stores that grow without bound; anything written that cannot be
      read back.
    - **People** (line 4): feedback issues and member reports, answered or not; what the owner asked for this week and
-     whether it happened; how long he waits, and on what.
+     whether it happened; how long he waits, and on what. An ask of his that is only a read with his session
+     (`logs.query`; `measure.py` lists them) is yours: make the read, comment the figures, hand the issue back.
    - **Documentation** (line 3): docs that a change this week made false; whether the Brain's knowledge search
      answers with current docs (`knowledge-docs.ts`).
    - **The factory** (lines 2, 5, 6): share of `done` a user would see against work on the factory itself; deploys

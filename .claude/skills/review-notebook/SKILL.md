@@ -244,3 +244,6 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
 - 2026-10-31 `plan/retros/2026-10-31.md`, authored by the spawning session: FIX, 5 findings, all confirmed and taken (a table
   header naming one of two checks, two patches not named, a negative median unexplained, a heading that said 21 missing
   where the body found 5, a line reference into a git-ignored file). 77k subagent tokens, 3m37s.
+- 2026-11-01 `plan/retros/2026-11-01.md`, authored by the spawning session: FIX, 6 findings (4 confirmed, 2 plausible), all
+  taken (a wait dated by the wrong state, a seq cited wrong, two reads counted as made where one was, a before row and the
+  issue's bar left out, an observation left with nobody, an ask count with no method). 89k subagent tokens, 3m20s.

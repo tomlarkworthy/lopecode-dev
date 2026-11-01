@@ -207,3 +207,16 @@ for i,v in st.items():
     if put: late.append((put[-1]["at"],i,v))
 for t,i,v in sorted(late): P(" ",iso(t),v,i,"|",ISSUE.get(i,{}).get("title","")[:80])
 P("asks on closed issues:",len(late),"| 7d:",sum(1 for t,_,_ in late if t>=D7),"| closed issues carrying needs-owner:",sum(1 for i,v in st.items() if v in CLOSED_ST and "needs-owner" in lab[i]))
+
+# ---- an ask that is only a read of the owner's session (retro 2026-11-01: topic-dbsql-slow had three fixes deployed in 9 days
+# that no persona could measure, since logs.query is the owner's alone; its reads waited 2.5 days and then 11 h). The retro holds
+# that session: it makes the read and comments the figures (brief, step 2, People).
+P("\n## open issues at needs-owner whose comments since the label name logs.query (a read the retro makes)")
+reads=[]
+for i,v in st.items():
+    if v in ENDED or "needs-owner" not in lab[i]: continue
+    ev=BYID.get(i,[]); put=max([e["seq"] for e in ev if e["type"]=="labelled" and "needs-owner" in (e.get("add") or [])] or [0])
+    if any(e["type"]=="commented" and e["seq"]>=put-3 and "logs.query" in (e.get("body") or "") for e in ev):
+        reads.append((min(e["at"] for e in ev if e["seq"]>=put-3),i))
+for t,i in sorted(reads): P(" ",iso(t),i,"|",ISSUE.get(i,{}).get("title","")[:80])
+P("reads asked of the owner:",len(reads))
