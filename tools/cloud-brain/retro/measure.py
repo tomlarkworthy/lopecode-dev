@@ -213,13 +213,31 @@ P("asks on closed issues:",len(late),"| 7d:",sum(1 for t,_,_ in late if t>=D7),"
 
 # ---- an ask that is only a read of the owner's session (retro 2026-11-01: topic-dbsql-slow had three fixes deployed in 9 days
 # that no persona could measure, since logs.query is the owner's alone; its reads waited 2.5 days and then 11 h). The retro holds
-# that session: it makes the read and comments the figures (brief, step 2, People).
-P("\n## open issues at needs-owner whose comments since the label name logs.query (a read the retro makes)")
+# that session: it makes the read and comments the figures (brief, step 2, People). Not logs.query alone: delve-strangers-owner-check
+# asked a delve.strangers read (rule caller.session) and waited 4.7 days, listed by four retros as "a look of his" (retro 2026-11-03).
+SESSION_READ=re.compile(r"logs\.query|caller\.session|your tab alone|no token (?:of mine )?can call|only your session")
+P("\n## open issues at needs-owner whose comments since the label name a read only the owner's session makes (the retro makes it; judge each)")
 reads=[]
 for i,v in st.items():
     if v in ENDED or "needs-owner" not in lab[i]: continue
     ev=BYID.get(i,[]); put=max([e["seq"] for e in ev if e["type"]=="labelled" and "needs-owner" in (e.get("add") or [])] or [0])
-    if any(e["type"]=="commented" and e["seq"]>=put-3 and "logs.query" in (e.get("body") or "") for e in ev):
+    if any(e["type"]=="commented" and e["seq"]>=put-3 and SESSION_READ.search(e.get("body") or "") for e in ev):
         reads.append((min(e["at"] for e in ev if e["seq"]>=put-3),i))
 for t,i in sorted(reads): P(" ",iso(t),i,"|",ISSUE.get(i,{}).get("title","")[:80])
 P("reads asked of the owner:",len(reads))
+
+# ---- a wait on a deploy line that no line answers (retro 2026-11-03: rls-7-specs-ws-line waited 2.3 days at waiting-deploy for
+# a deploy.confirmed of a page hash that a shared-only apply never uploads). The newest deploy wait of an open waiting-deploy issue,
+# over an hour old, with no deployer line for its hash since that ends or answers it: the retro reads what runs and hands it on.
+P("\n## open issues at waiting-deploy whose wait names a hash with no deployer line since that ends it (over 1 h)")
+DL=(DEP.get("lines",DEP) if isinstance(DEP,dict) else DEP) or []
+ENDS={"deploy.confirmed","deploy.put-back","deploy.failed","deploy.approved","deploy.refused"}
+dead=[]
+for i,v in st.items():
+    if v in ENDED or "waiting-deploy" not in lab[i]: continue
+    ws=[e for e in BYID.get(i,[]) if e["type"]=="waits" and "deploy:" in (e.get("note") or "")]
+    if not ws or NOW-ws[-1]["at"]<3600e3: continue
+    w=ws[-1]; hs=re.findall(r"deploy:([\w-]+)@([0-9a-f]{12})",w["note"])
+    if not any(l.get("target")==t and (l.get("hash") or "").startswith(h) and l.get("t",0)>w["at"] and l.get("at") in ENDS for t,h in hs for l in DL): dead.append((w["at"],i,w["note"]))
+for t,i,n in sorted(dead): P(" ",iso(t),i,"|",n)
+P("deploy waits no line answers:",len(dead))
