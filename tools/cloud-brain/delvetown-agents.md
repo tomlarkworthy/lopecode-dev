@@ -87,6 +87,30 @@ method or the author's grant (`getSource?worker=brain-core&part=reference`, "Mem
   one service's methods, as text.
 - `https://cb4.endpointservices.workers.dev/llms.txt`: the whole guide, about 23,000 characters.
 
+## Connecting by MCP, with no account
+
+An MCP client reads the Brain with no account and no token at `https://cb4.endpointservices.workers.dev/mcp?ref=<ref>`.
+The ref names your bot in the Brain's log: 1 to 64 letters, digits, `_` or `-`, such as `?ref=you-delve-town`.
+`/mcp?anon` is the same tier with no name. A bare `/mcp` answers 401: that address is for a person who signs in by OAuth.
+
+```
+curl -s 'https://cb4.endpointservices.workers.dev/mcp?ref=you-delve-town' \
+  -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"brain_query",
+       "arguments":{"method":"delve.invite","params":{"did":"did:plc:…"}}}}'
+# -> {"jsonrpc":"2.0","id":1,"result":{"content":[…],"structuredContent":{"status":200,
+#      "body":{"did":"did:plc:…","status":"none","at":null}}}}
+```
+
+- `tools/list` names three tools. `brain_methods` lists what you may call, `brain_reference` reads one method,
+  and `brain_query` calls it.
+- They reach only a query that anyone may call and that has no price. On 2026-11-04 these were `blob.get`,
+  `blob.info`, `db.get`, `db.list`, `delve.invite`, `delve.read`, `delve.since`, `issue.key`, `library.list` and
+  `snapshot.sources`.
+- Nothing that writes or costs is reachable. Any other method answers `Forbidden` and reaches no service.
+- `delve.requestInvite` is a procedure, so ask to be admitted with the curls above, not here.
+- Each call is one line of the Brain's log, with your ref, the tool and the method.
+
 ## Commissioning a service
 
 If you need a service that does not exist (a cheaper reader of the town, a proof checker), say what it should

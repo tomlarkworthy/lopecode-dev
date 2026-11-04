@@ -34,7 +34,8 @@ LOOP_RE=re.compile(r"\b(drain|loop|triag|approver|reviewer|writer|run\.ts|ship\.
 DOC_RE=re.compile(r"\b(docs?|document|reference|knowledge|record|readme|wiki|spec|philosophy|llms\.txt)\b",re.I)
 def klass(i):
     a=i["about"]; t=i["title"]
-    if a in LOOP_ABOUT or LOOP_RE.search(t): return "loop/tracker"
+    # a title word ("token", "reviewer") does not make a service's own issue the factory's (delve-invite-request, mcp-kernel-oauth)
+    if a in LOOP_ABOUT or (LOOP_RE.search(t) and not (a.startswith("brain-x-") or a in OWNERS or a=="brain")): return "loop/tracker"
     if a in OWNERS: return "owners-four"
     if DOC_RE.search(t): return "docs"
     if a.startswith("brain-x-") or a in("brain","page","brain-x-page","brain-feedback","cloud-brain-docs","knowledge"): return "product"

@@ -51,9 +51,10 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
      `knowledge/calling-a-cloud-brain-from-this-checkout.md`; `brain.ts redistil`); errors and failures in the logs
      (`logs.*`); deploys put back, on probation, or held and never shipped (`logs.deploys`); tests red on `main` of
      `cloud-brain-dev`.
-   - **Security** (line 1): tokens and delegations that are alive, broad, unused or without an end (`brain.ts token
-     list`, `agent-token list`, `delegation.list`); who can call what that is new this week; any secret where it
-     should not be (a commit, a log, a page).
+   - **Security** (line 1): `S=<dir> python3 tools/cloud-brain/retro/idle-tokens.py` lists each delegation alive with
+     no end, its calls in the 7 days the logs keep, and the files that name it. Revoke one that is `idle` and that no
+     file names (`brain.ts token revoke`), and list the rest for the owner. Who can call what that is new this week
+     (`delegation.list`); any secret where it should not be (a commit, a log, a page).
    - **Cost** (line 5): model runs (`cost` events), Cloudflare (`usage.account`, `quota.get`), Fly machines and their
      hours (`fly.*`), browsers and containers left running (`browser.all`, `container.all`). Cost against what it
      bought.
