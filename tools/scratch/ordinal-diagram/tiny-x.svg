@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 946 238" width="946" height="238" font-family="system-ui, sans-serif" font-size="11" class="odg">
+<defs><marker id="odg-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#6b7280"/></marker></defs>
+<rect x="0" y="30" width="946" height="46" fill="#000" fill-opacity="0.035"/>
+<rect x="0" y="122" width="946" height="46" fill="#000" fill-opacity="0.035"/>
+<text x="252" y="20" fill="#6b7280">depth 0</text>
+<text x="396" y="20" fill="#6b7280">depth 1</text>
+<text x="658" y="20" fill="#6b7280">depth 2</text>
+<text x="802" y="20" fill="#6b7280">depth 3</text>
+<g class="odg-fold" data-fold="[0]" style="cursor:pointer"><rect x="2" y="33" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="6" y="48" fill="#1f2937">▾ 0</text></g>
+<g class="odg-fold" data-fold="[1]" style="cursor:pointer"><rect x="2" y="79" width="112" height="86" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="6" y="94" fill="#1f2937">▾ 1</text></g>
+<g class="odg-fold" data-fold="[2]" style="cursor:pointer"><rect x="2" y="171" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="6" y="186" fill="#1f2937">▾ 2</text></g>
+<g class="odg-fold" data-fold="[0,&quot;web&quot;]" style="cursor:pointer"><rect x="120" y="33" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="124" y="48" fill="#1f2937">▾ web</text></g>
+<g class="odg-fold" data-fold="[1,&quot;api&quot;]" style="cursor:pointer"><rect x="120" y="79" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="124" y="94" fill="#1f2937">▾ api</text></g>
+<g class="odg-fold" data-fold="[1,&quot;auth&quot;]" style="cursor:pointer"><rect x="120" y="125" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="124" y="140" fill="#1f2937">▾ auth</text></g>
+<g class="odg-fold" data-fold="[2,&quot;db&quot;]" style="cursor:pointer"><rect x="120" y="171" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="124" y="186" fill="#1f2937">▾ db</text></g>
+<path class="odg-edge" d="M449,112 C449,128.5 553.5,145 658,145" fill="none" stroke="#6b7280" stroke-width="1.2" marker-end="url(#odg-arrow)"/>
+<path class="odg-edge" d="M449,112 C449,145 855,145 855,178" fill="none" stroke="#6b7280" stroke-width="1.2" marker-end="url(#odg-arrow)"/>
+<path class="odg-edge" d="M620,99 C639,99 639,145 658,145" fill="none" stroke="#6b7280" stroke-width="1.2" marker-end="url(#odg-arrow)"/>
+<path class="odg-edge" d="M620,99 C639,99 639,191 658,191" fill="none" stroke="#6b7280" stroke-width="1.2" marker-end="url(#odg-arrow)"/>
+<path class="odg-edge" d="M764,145 C783,145 783,191 802,191" fill="none" stroke="#6b7280" stroke-width="1.2" marker-end="url(#odg-arrow)"/>
+<path class="odg-edge" d="M358,53 C377,53 377,99 396,99" fill="none" stroke="#6b7280" stroke-width="1.2" marker-end="url(#odg-arrow)"/>
+<path class="odg-edge" d="M358,53 C462.5,53 567,69.5 567,86" fill="none" stroke="#6b7280" stroke-width="1.2" marker-end="url(#odg-arrow)"/>
+<g class="odg-node" data-id="web.page" style="cursor:grab"><rect x="252" y="40" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="259" y="57" fill="#111827">web.page</text></g>
+<g class="odg-node" data-id="api.list" style="cursor:grab"><rect x="396" y="86" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="403" y="103" fill="#111827">api.list</text></g>
+<g class="odg-node" data-id="api.save" style="cursor:grab"><rect x="514" y="86" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="521" y="103" fill="#111827">api.save</text></g>
+<g class="odg-node" data-id="auth.check" style="cursor:grab"><rect x="658" y="132" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="665" y="149" fill="#111827">auth.check</text></g>
+<g class="odg-node" data-id="db.write" style="cursor:grab"><rect x="658" y="178" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="665" y="195" fill="#111827">db.write</text></g>
+<g class="odg-node" data-id="db.read" style="cursor:grab"><rect x="802" y="178" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="809" y="195" fill="#111827">db.read</text></g>
+</svg>

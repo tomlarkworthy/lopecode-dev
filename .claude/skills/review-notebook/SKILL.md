@@ -250,3 +250,88 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
 - 2026-11-06 `plan/retros/2026-11-06.md`, authored by the spawning session: FIX, 6 findings (5 confirmed, 1 plausible), all
   taken (a hand-back said to need one start where the code needs a second pass 600 s later, three runs called none, a delay
   left out, a wait read as its label, `$S` undefined, a token's file the tool does not search). 100k subagent tokens, 3m58s.
+- 2026-10-24 `cloud-brain-dev/AGENTS.md` and `CLAUDE.md`, the new opening section "How the Brain is built, and how to decide": FIX, 3
+  findings confirmed and 1 plausible, all taken (cloud-brain-dev `b1f1c19`). 105,623 subagent tokens, 3m27s. What the author had not seen: the
+  two files gave opposite reading orders, the summary dropped the cases `philosophy.md` still leaves to the owner, and a session with no role
+  could not tell whether the read applied to it.
+- 2026-10-24 the same two files, changes since `b1f1c19` (old-loop sections cut, `CLAUDE.md` imports `AGENTS.md`): FIX, 3 confirmed and 1
+  plausible, all taken (cloud-brain-dev `753d702`). 88,982 subagent tokens, 1m58s. What the author had not seen: quoted Never lines cut with no
+  `[...]` (one cut changed behaviour), two owner rules that existed nowhere else, and `roles/digest.md` called dead when the worker follows it.
+- 2026-10-25 `cloud-brain-dev` commit `d0cb164` (`docs/usage.md` for every service: `roles/worker.md`, `roles/reviewer.md`,
+  `sync.ts`, `docs-check.ts`): FIX, 6 findings (4 confirmed, 2 plausible), all taken (cloud-brain-dev `4364de3`). 78k subagent
+  tokens, 1m09s. What the author had not seen: the reviewer's caller-only rule would have refused every doc in `docs/` that is
+  not `usage.md`, including the one that already exists, and one doc blob that failed to fetch stopped the whole sync, even for a removed Worker.
+- 2026-10-25 `cloud-brain-dev` commit `ab5a4df` (`usage.md` rewritten as a guide to the service: domain model, purpose of each method): FIX, 3 findings (2 confirmed,
+  1 plausible) and 1 aside, all taken (cloud-brain-dev `dec24c7`). 75k subagent tokens, 1m02s. What the author had not seen: the update rule
+  left out access, price and limits, which the guide itself lists, and the guide sent readers to a schema that does not exist yet.
+- 2026-10-25 `lopebooks/notebooks/@tomlarkworthy_vr-hackerspace.html`, module `@tomlarkworthy/vr-hackerspace` (Babylon 9 upgrade and an
+  HTML-in-canvas panel spike): BLOCK, 11 findings, 7 taken, 4 declined as scope (CDN libraries not vendored, no `test_*` cells,
+  the architecture prose, the sphere's box collider). 104k subagent tokens, 4m35s. What the author had not seen: the panel prose
+  said the flag was required while Babylon's SVG fallback draws it without one, and every edit upstream of `loop` added a second
+  physics observer. It could not enter VR or turn the flag on; the author's Playwright + IWER harness covered that.
+- 2026-10-27 `plan/specs/ordinal-diagram.html` (`@spec/ordinal-diagram`, spec with a running prototype, authored by the spawning
+  session): FIX, 5 findings, all confirmed by the reviewer in a browser; 4 fixed and rebuilt, 1 (offline the prototype draws nothing)
+  answered in the prose, because a cell cannot catch an error in the stdlib `SQLite` it depends on. 126k subagent tokens, 6m11s.
+  What the author had not seen: three edges read as calls the snapshot does not have, because a curve passed behind the box
+  between its ends; the author's fix covered same-row edges only, and a screenshot after it showed the cross-row case.
+- 2026-10-27 `lopebooks/notebooks/@tomlarkworthy_systems-tabletop.html`, module `@tomlarkworthy/systems-tabletop` (new, authored by
+  the spawning session): BLOCK, 7 findings (6 confirmed, 1 plausible), all taken; the plausible one (journal source grows ~1–2 KB per
+  step) is stated in the prose, not changed. 103k subagent tokens, 3m58s. What the author had not seen: dragging while a past board
+  was shown silently made it the live board, every log write wiped a half-typed note, and human rule edits left no log step.
+- 2026-10-27 the same notebook, second run after the fixes: FIX, 4 findings (3 confirmed by trace, 1 plausible), all taken. 93k
+  subagent tokens, 3m12s. What the author had not seen: `describe()` handed the AI the previewed board as the current one, and the
+  preview test could not fail because the previewed and live boards were the same.
+- 2026-10-27 `plan/specs/ordinal-diagram.html`, the Prototype section after it gained three linked views (second run): FIX, 4
+  findings (3 confirmed, 1 plausible), all taken and rebuilt. 116k subagent tokens, 4m25s. What the author had not seen: the
+  engine ignored `hulls: false`, which only the UI cell honoured, so the module the Handover tells an implementer to extract
+  would have drawn hulls on the matrix view. The fixes were first sent over the channel; the tab closed before
+  `export_notebook`, they were lost, and they went in through the seed instead.
+- 2026-10-27 the same notebook after a rewrite (component tray, drag-to-add, 10 shapes, robocoop-5 prompt rule + context +
+  tools): FIX, 4 findings, all taken. 108k subagent tokens, 3m29s. What the author had not seen: an `add` with no zone landed
+  inside Triage and was logged "in open space", and "duplicate" made two pieces with one label, which the AI addresses by label.
+- 2026-10-28 `lopebooks/notebooks/robocoop-5-voice-try.html`, modules `@tomlarkworthy/robocoop-5-voice-try` (new) and the
+  diff of `@tomlarkworthy/robocoop-5-voice` against cloud-brain-dev 928a2948 (speak `task_complete`'s summary): FIX, 6
+  findings (4 confirmed, 2 plausible), all taken (lopebooks `9a80ffa8`). 99k subagent tokens, 4m12s. What the author had
+  not seen: the fix was silent again whenever the model spoke a preamble before `task_complete`, because "said text" was
+  kept per turn, not per step; the author's live test happened to have no preamble. The new test for it times out with
+  the fix removed.
+- 2026-10-28 `plan/cloud-brain-delvetown.md` (first writing, authored by the spawning session): BLOCK, 9 findings (6 confirmed,
+  3 plausible), all taken. 90k subagent tokens, 4m06s. What the author had not seen: the town publishes its lexicons as
+  records, and `membership.join`'s says a code admits an account on any PDS, which removed one of option B's gaps and a
+  "Not known" item; the post limit is 100000 graphemes, not Bluesky's 300; a `.delve.town` handle does not survive a move.
+- 2026-10-28 `tools/cloud-brain/delvetown-agents.md` (a public page for Delvetown agents, authored by the spawning session):
+  FIX, 4 findings (2 confirmed, 2 plausible), all taken; the plausible one about `static.*` was partly answered by the
+  author's test (`static.list` 200 as a member) and the page now says `static.put` was not run. 76k subagent tokens,
+  1m37s. What the author had not seen: step 2 used `$TOKEN` that step 1 never set, and nothing said GET for a query
+  and POST for a procedure, so `member.deploy` could not be called from the page alone.
+- 2026-10-31 `plan/specs/ordinal-diagram.html`, rebuilt as an 11-step tutorial (Part 1), the full example (Part 2) and the
+  spec (Part 3): FIX, 4 findings, all confirmed and taken. 144k subagent tokens, 6m22s. What the author had not seen: every
+  Part 1 diagram waited on `sqlRows` (sql.js from a CDN) through `diagramFor`'s default argument though it passed its own
+  rows, so Part 1 was blank offline; and no test compared the SQL views with the JS copies the tests read.
+- 2026-10-31 `plan/specs/ordinal-diagram.html` (rebuilt as the cb4 article "How Do We Understand This Slop?"): FIX, 8 findings, all confirmed and all taken. 160k subagent tokens, 4m40s. What the author had not seen: the bindings parser read on into the next pipe table, the deployer's own calls and resources never reached the tables, and a wildcard call (`*.send`) was dropped with no note.
+- 2026-11-02 `plan/specs/ordinal-diagram.html`, whole (after methods nested in their Worker and "Explore any tables"): FIX, 7 findings, all
+  taken. Token count not recorded. What the author had not seen: the worked cases named the web shop but used rows only the
+  2026-10-27 snapshot has, and five internal cells printed raw values in the reading order.
+- 2026-11-03 `plan/specs/ordinal-diagram.html`, whole (after SQL was removed): BLOCK, 5 findings, all confirmed and all taken in the
+  next round (the move of every diagram onto tables). 170k subagent tokens, 7m25s. What the author had not seen: tutorial step 2
+  showed `tinySchema is not defined` while all 11 test cells passed, ↗ never opened on a box that shared a cell (the drag handler
+  captured the pointer), and the deployer lines quoted a sentence the saved fixture does not contain.
+- 2026-11-03 `plan/specs/ordinal-diagram.html`, whole (after every diagram moved onto tables): FIX, 4 findings, all confirmed and
+  taken. 178k subagent tokens, 8m37s. What the author had not seen: `products` dropped rows the `bindings` table still pointed at,
+  so Explore listed a gap the page made itself; the legend offered a "guess" line style no line has; and the mermaid flowchart
+  is the one cell that fails offline.
+- 2026-11-03 `plan/specs/ordinal-diagram.html`, whole (after the methods chapter and the method-level call graph): BLOCK, 3 findings,
+  all confirmed and taken. 156k subagent tokens, 5m04s. What the author had not seen: chapter 3's prose stated the call-depth
+  direction backwards, and chapter 2's fold instruction described the fold of the next level down.
+- 2026-11-02 `lopebooks/notebooks/@tomlarkworthy_systems-tabletop.html`, module `@tomlarkworthy/systems-tabletop`, whole (after ▶ tick and dice): FIX,
+  6 findings (4 confirmed, 1 confirmed/plausible, 1 plausible), all taken. 123k subagent tokens, 4m11s. What the author had not seen: seed rule 3
+  ("stands next to it") asked for a placement the tools cannot make or show; the live model had worked around it with a link, which hid the gap.
+- 2026-11-03 `lopebooks/notebooks/@tomlarkworthy_systems-tabletop.html`, module `@tomlarkworthy/systems-tabletop` (after the deck/draw change): FIX, 6 findings (4 confirmed, 2 plausible), all taken: prompt narrowed to "every op that changes the board" rather than loosening `note`'s fields, tray grows the board height, size note 2,717, `unlink` throws on a missing id, preview banner says the rules shown are current, "oldest" defined as lowest-numbered. 119k subagent tokens, 4m31s.
+- 2026-11-03 the same module after `draw` was replaced by `pick` + `$n` references: FIX, 6 findings. 3 taken (example tickets relabelled "Ticket 1".."3" so an added ticket is "Ticket 4"; opening a step stops a running replay; `BOARD NOW` cut at the last `\nBOARD:\n`, not the first, which rules text could contain). 3 declined: `why` on `note` (the owner ruled against loosening the tool; the prompt asks for it on board ops only), a key/endpoint sentence (unpaired demo mode needs none: tested with MiMo that day), a registration test (deferred). 124k subagent tokens, 5m10s.
+- 2026-11-03 the same module, cells `tabletopTools`, `aiPrompt`, the pick test (after `$n` became `as`/`$name`): FIX, 3 findings, all taken: a deck card could be moved or listed by name (now refused unless reached through a pick's `$name`, and left out of the "no piece" id list; the pick test covers both), `restoreMoment` takes a `why` (it changes the board), the prompt's draw example carries `why`. 94k subagent tokens, 3m48s.
+- 2026-11-03 `plan/specs/ordinal-diagram.html`, `@spec/ordinal-diagram`, the reflexion `compare`, line weights and the Prior art rewrite: BLOCK, 6 findings (4 confirmed, 2 plausible). 5 fixed (Explore threw on an `id` level after the new reserved-name guard; R14 contradicted its Decisions row; chapter 6 named 2 of 4 uncompared callers; a role held by 26 Workers mapped to one; the chapter's title), 1 left as is (a compared line into a docs-only method would be dashed; none exists). 131k subagent tokens, 5m31s.
+- 2026-11-04 `plan/specs/ordinal-diagram.html`, whole (after chapters 7 and 8, security and tests): BLOCK, 7 findings (6 confirmed,
+  1 plausible), all taken. 170k subagent tokens, 7m08s. What the author had not seen: the stranger added for chapter 7 made chapter
+  4's "the one row of the actors table" false, the opening still listed six questions, and every chapter waited for the 6.4 MB of
+  source that only chapter 8 reads.
+- 2026-11-05 `lopebooks/notebooks/@tomlarkworthy_systems-tabletop.html`, module `@tomlarkworthy/systems-tabletop`, named rules in place of numbered ones: FIX, 3 findings (all plausible), all taken. 76k subagent tokens, 16m10s. What the author had not seen: the rule-name definition also matched the example's title line and its "Each turn…:" line, and nothing on the page told a person writing rules that each needs a name.

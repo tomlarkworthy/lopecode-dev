@@ -1,0 +1,177 @@
+opening = md`Cloud Brain (\`cb4\`) is a set of Cloudflare Workers. Agents wrote almost all of it, through an issue loop that started on 2026-10-10. Nobody read every line. Now it is built, how do we understand it?
+
+- Ask one question at a time.
+- Answer each with a diagram drawn from the running system, not from memory.
+- Every box links to that service's own reference, served by the Brain.
+- Every line says where it comes from: the live **data**, the **docs**, or a guess.
+
+*Draft: Tom to rewrite.*`
+// %%
+brainStatus = htl.html`<div style="font:13px system-ui;padding:.5em .8em;border:1px solid color-mix(in srgb, currentColor 25%, transparent);border-radius:6px">
+  ${brainRaw.offline
+    ? htl.html`<strong>Offline.</strong> Showing the copy saved ${brainRaw.fetchedAt.slice(0, 16).replace("T", " ")} UTC. (${brainRaw.offline})`
+    : htl.html`<strong>Live.</strong> Read from <a href=${brainUrls(brainRaw.base).kernel} target="_blank">${brainRaw.base}</a> at ${brainRaw.fetchedAt.slice(11, 19)} UTC.`}
+  ${brainTables.workers.length} Workers · ${brainTables.methods.length} methods · ${brainRows.edges.length} lines
+  <span style="margin-left:1em">line styles:
+    <svg width="40" height="8"><line x1="0" y1="4" x2="40" y2="4" stroke="#6b7280" stroke-width="1.5"/></svg> data
+    <svg width="40" height="8"><line x1="0" y1="4" x2="40" y2="4" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="5 3"/></svg> docs
+    <svg width="40" height="8"><line x1="0" y1="4" x2="40" y2="4" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="1.5 3"/></svg> guess
+  </span>
+</div>`
+// %%
+md`## 1. What runs?
+
+- The Brain answers \`service.list\` to anyone: ${brainTables.workers.length - 1} Workers. The deployer answers for itself at its own address.
+- Grouped by \`role\`, as the deployer records it.
+- ${brainTables.workers.filter((w) => w.role === "recipe").length} of ${brainTables.workers.length} are a **recipe**: a service built from one notebook module.
+- ↗ on a box opens that Worker's reference (\`getSource?part=reference\`).`
+// %%
+chapter_runs = diagramFor(chapters.runs, invalidation, brainRows)
+// %%
+md`## 2. Who deploys it?
+
+- The relation is **deploys** (read backwards: *is deployed by*).
+- No endpoint answers it. Both facts are sentences in the deployer's reference, so the lines are dashed:
+  - "It distils module source to Worker code and deploys it."
+  - "The installer deploys \`deployer_service\`, and nothing on the Brain can change it."
+- So the chain is three steps deep: installer → deployer → every other Worker. Click the bar to unfold the ${brainTables.deploys.length - 1}.`
+// %%
+chapter_deploys = diagramFor(chapters.deploys, invalidation, brainRows)
+// %%
+md`## 3. Who can call it, and what does it call?
+
+- y = the widest audience of any method, from each method's \`who\`: anyone, then other Workers, then the owner only.
+- x = depth along **calls**, from \`getInfo\`'s \`calls\` joined to the Worker that owns each method. Solid lines: this is data.
+- ${chapterCalls.excluded.length} Workers have no methods, so they have no row here (${chapterCalls.excluded.join(", ")}).
+- ${chapterCalls.sccs.length ? `Dashed red: ${chapterCalls.sccs.map((s) => s.members.join(" ⇄ ")).join("; ")} call each other.` : "No Workers call each other."}`
+// %%
+chapter_calls = diagramFor(chapters.calls, invalidation, brainRows)
+// %%
+md`## 4. What does it touch?
+
+- Each Worker declares resources (\`getInfo\`'s \`resources\`).
+- The deployer's reference has a table from a declared resource to the binding it makes. The page reads that table live.
+- y = depth along **binds**. Workers are at 0. What they bind is at 1. What brain-core binds is at 2.
+- The Workers start folded. Each count is how many Workers bind that resource.`
+// %%
+chapter_binds = diagramFor(chapters.binds, invalidation, brainRows)
+// %%
+md`## 5. What do the docs not say?
+
+- Declared resources with no row in the deployer's table: ${brainGaps.unmapped.length ? brainGaps.unmapped.map((d) => `\`${d}\``).join(", ") : "none"}.
+- Lines by source: ${Object.entries(brainGaps.byProv).map(([k, n]) => `${n} ${k}`).join(", ")}.
+- Not in any public answer: who deployed each version, version history, Cloudflare binding ids, the Fly machines.
+- Each gap is a question to put to the service that owns it.`
+// %%
+md`## Explore
+
+- Pick the levels yourself. The same model, any two axes.`
+// %%
+viewof explorePick = Inputs.form({
+  y1: Inputs.select(Object.keys(exploreLevels), { label: "y", value: "role" }),
+  y2: Inputs.select(["none", ...Object.keys(exploreLevels)], { label: "then y", value: "none" }),
+  x: Inputs.select(["none", ...Object.keys(exploreLevels)], { label: "x", value: "calls (depth)" }),
+  kinds: Inputs.checkbox(["worker", "cloudflare", "actor"], { label: "show", value: ["worker"] }),
+  lines: Inputs.checkbox(["calls", "binds", "deploys"], { label: "lines", value: ["calls"] })
+})
+// %%
+explore = {
+  const p = explorePick;
+  const lv = (k) => (k === "none" ? [] : [exploreLevels[k]]);
+  const view = {
+    name: `explore: ${p.y1}${p.y2 === "none" ? "" : " › " + p.y2} × ${p.x}`,
+    y: [...lv(p.y1), ...lv(p.y2)], x: lv(p.x), xTitle: p.x === "none" ? "" : p.x, yTitle: "",
+    kinds: p.kinds, drawRelations: p.lines, wrap: p.x === "none" ? 7 : 3
+  };
+  return diagramFor(view, invalidation, brainRows);
+}
+// %%
+exploreLevels = ({
+  "role": { col: "role" },
+  "who can call": { col: "exposure", label: "exposure_name" },
+  "test result": { col: "verified" },
+  "deployed day": { col: "deployed_day" },
+  "kind": { col: "kind" },
+  "calls (depth)": { relation: "calls" },
+  "binds (depth)": { relation: "binds" },
+  "deploys (depth)": { relation: "deploys" }
+})
+// %%
+md`### The model
+
+- Loaded from public endpoints only. No token.
+- Tables, then the SQL below, then the diagrams. The page draws from the same rows computed in JS (\`brainRowsOf\`), so the diagrams work without the SQL engine. \`test_brain_sql_matches_js\` checks the two agree.`
+// %%
+brainSqlText = htl.html`<pre style="font-size:12px;white-space:pre-wrap">-- nodes
+${brainSql.nodes}
+
+-- edges
+${brainSql.edges}</pre>`
+// %%
+brainTablesView = htl.html`<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">${["workers", "bindings", "deploys"].map((t) => htl.html`<div><strong>${t}</strong> · ${brainTables[t].length} rows${Inputs.table(brainTables[t], { rows: 8, layout: "auto" })}</div>`)}</div>`
+// %%
+brainRaw = {
+  try {
+    return await liveLib.loadBrain("cb4");
+  } catch (e) {
+    return { ...brainFixture, offline: e.message };
+  }
+}
+// %%
+brainTables = liveLib.tablesOf(brainRaw)
+// %%
+brainRows = liveLib.brainRowsOf(brainTables)
+// %%
+brainSql = liveLib.brainSql
+// %%
+brainUrls = liveLib.brainUrls
+// %%
+chapterCalls = engine.layout({ view: chapters.calls, ...brainRows })
+// %%
+brainGaps = {
+  const mapped = new Set(brainTables.bindings.filter((b) => b.product).map((b) => b.declared));
+  const unmapped = [...new Set(brainTables.resources.map((r) => r.declared))].filter((d) => !mapped.has(d)).sort();
+  const byProv = {};
+  for (const e of brainRows.edges) byProv[e.prov] = (byProv[e.prov] || 0) + 1;
+  return { unmapped, byProv };
+}
+// %%
+liveLib = {
+/*@LIVE@*/
+  return { brainUrls, parseBindings, productOf, loadBrain, tablesOf, brainSql, brainRowsOf };
+}
+// %%
+chapters = {
+/*@CHAPTERS@*/
+  return chapters;
+}
+// %%
+// cb4's public answers saved 2026-10-31, used when the page cannot reach cb4 and by the tests.
+brainFixture = (/*@FIXTURE@*/)
+// %%
+test_brain_fixture = {
+  const t = liveLib.tablesOf(brainFixture);
+  const R = liveLib.brainRowsOf(t);
+  if (t.workers.length !== 30) throw new Error("workers " + t.workers.length);
+  const deploys = engine.layout({ view: chapters.deploys, ...R, folds: [] });
+  if (deploys.rows.length !== 3) throw new Error("deploy steps " + deploys.rows.length);
+  const calls = engine.layout({ view: chapters.calls, ...R });
+  const cyc = calls.sccs.map((s) => s.members.join("+")).join(";");
+  if (cyc !== "brain-x-fly+brain-x-loop") throw new Error("cycle " + cyc);
+  const mapped = new Set(t.bindings.filter((b) => b.product).map((b) => b.declared));
+  const gaps = [...new Set(t.resources.map((r) => r.declared))].filter((d) => !mapped.has(d)).sort().join(",");
+  if (gaps !== "containers,workers") throw new Error("gaps " + gaps);
+  return "fixture: 30 Workers, deploy chain 3 steps, fly ⇄ loop, gaps containers + workers";
+}
+// %%
+// Needs sql.js (network).
+test_brain_sql_matches_js = {
+  const norm = (rows) => rows.map((r) => JSON.stringify(Object.keys(r).sort().map((k) => [k, r[k]]))).sort().join("\n");
+  const sql = await runSql(brainTables, brainSql);
+  for (const k of ["nodes", "edges"]) if (norm(sql[k]) !== norm(brainRows[k])) throw new Error(`${k}: SQL and brainRowsOf differ`);
+  return `brainSql = brainRowsOf on ${brainRows.nodes.length} nodes and ${brainRows.edges.length} edges`;
+}
+// %%
+md`## How to read these diagrams
+
+The same engine on a small made-up web shop, one idea per step.`

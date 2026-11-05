@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1326 560" width="1326" height="560" font-family="system-ui, sans-serif" font-size="11" class="odg">
+<defs><marker id="odg-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#6b7280"/></marker><marker id="odg-arrow-convergence" viewBox="0 0 8 8" refX="7" refY="4" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#6b7280"/></marker><marker id="odg-arrow-divergence" viewBox="0 0 8 8" refX="7" refY="4" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#d97706"/></marker><marker id="odg-arrow-absence" viewBox="0 0 8 8" refX="7" refY="4" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="#dc2626"/></marker></defs>
+<rect x="0" y="30" width="1326" height="46" fill="#000" fill-opacity="0.035"/>
+<rect x="0" y="122" width="1326" height="46" fill="#000" fill-opacity="0.035"/>
+<rect x="0" y="214" width="1326" height="46" fill="#000" fill-opacity="0.035"/>
+<rect x="0" y="306" width="1326" height="46" fill="#000" fill-opacity="0.035"/>
+<rect x="0" y="398" width="1326" height="46" fill="#000" fill-opacity="0.035"/>
+<rect x="0" y="490" width="1326" height="46" fill="#000" fill-opacity="0.035"/>
+<text x="252" y="20" fill="#6b7280">depth along calls 0</text>
+<text x="396" y="20" fill="#6b7280">depth along calls 1</text>
+<text x="658" y="20" fill="#6b7280">depth along calls 2</text>
+<text x="802" y="20" fill="#6b7280">depth along calls 3</text>
+<text x="1064" y="20" fill="#6b7280">depth along calls 4</text>
+<g class="odg-fold" data-fold="1" style="cursor:pointer"><text x="6" y="20" fill="#6b7280" font-weight="600">▾ layer<title>layer</title></text></g>
+<g class="odg-fold" data-fold="2" style="cursor:pointer"><text x="124" y="20" fill="#6b7280" font-weight="600">▾ component<title>component</title></text></g>
+<g class="odg-fold" data-fold="[0]" style="cursor:pointer"><rect x="2" y="33" width="112" height="86" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="6" y="48" fill="#1f2937">▾ 0</text></g>
+<g class="odg-fold" data-fold="[1]" style="cursor:pointer"><rect x="2" y="125" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="6" y="140" fill="#1f2937">▾ 1</text></g>
+<g class="odg-fold" data-fold="[2]" style="cursor:pointer"><rect x="2" y="171" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="6" y="186" fill="#1f2937">▾ 2</text></g>
+<g class="odg-fold" data-fold="[3]" style="cursor:pointer"><rect x="2" y="217" width="112" height="224" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="6" y="232" fill="#1f2937">▾ 3</text></g>
+<g class="odg-fold" data-fold="[4]" style="cursor:pointer"><rect x="2" y="447" width="112" height="86" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="6" y="462" fill="#1f2937">▾ 4</text></g>
+<g class="odg-fold" data-fold="[0,&quot;drain&quot;]" style="cursor:pointer"><rect x="120" y="33" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="124" y="48" fill="#1f2937">▾ drain</text></g>
+<g class="odg-fold" data-fold="[0,&quot;tab&quot;]" style="cursor:pointer"><rect x="120" y="79" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="124" y="94" fill="#1f2937">▾ tab</text></g>
+<g class="odg-fold" data-fold="[1,&quot;kernel&quot;]" style="cursor:pointer"><rect x="120" y="125" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="124" y="140" fill="#1f2937">▾ kernel</text></g>
+<g class="odg-fold" data-fold="[2,&quot;core&quot;]" style="cursor:pointer"><rect x="120" y="171" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="124" y="186" fill="#1f2937">▾ core</text></g>
+<g class="odg-fold" data-fold="[3,&quot;bluesky&quot;]" style="cursor:pointer"><rect x="120" y="217" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="124" y="232" fill="#1f2937">▾ bluesky</text></g>
+<g class="odg-fold" data-fold="[3,&quot;inbox&quot;]" style="cursor:pointer"><rect x="120" y="263" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="124" y="278" fill="#1f2937">▾ inbox</text></g>
+<g class="odg-fold" data-fold="[3,&quot;library&quot;]" style="cursor:pointer"><rect x="120" y="309" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="124" y="324" fill="#1f2937">▾ library</text></g>
+<g class="odg-fold" data-fold="[3,&quot;metrics&quot;]" style="cursor:pointer"><rect x="120" y="355" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="124" y="370" fill="#1f2937">▾ metrics</text></g>
+<g class="odg-fold" data-fold="[3,&quot;secret&quot;]" style="cursor:pointer"><rect x="120" y="401" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="124" y="416" fill="#1f2937">▾ secret</text></g>
+<g class="odg-fold" data-fold="[4,&quot;d1&quot;]" style="cursor:pointer"><rect x="120" y="447" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="124" y="462" fill="#1f2937">▾ d1</text></g>
+<g class="odg-fold" data-fold="[4,&quot;r2&quot;]" style="cursor:pointer"><rect x="120" y="493" width="112" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/><text x="124" y="508" fill="#1f2937">▾ r2</text></g>
+<path class="odg-hull" data-hull="inbox.poll path" d="M252,86 L358,86 L620,132 L764,178 L908,270 L908,296 L802,296 L252,112 Z" fill="#f59e0b" fill-opacity="0.12" stroke="#f59e0b" stroke-opacity="0.35" stroke-width="16" stroke-linejoin="round"/>
+<text x="248" y="76" fill="#f59e0b" font-weight="600">inbox.poll path</text>
+<rect class="odg-scc" data-relation="calls" data-members="bluesky.poll core.route" x="654" y="220" width="114" height="34" rx="6" fill="none" stroke="#ef4444" stroke-dasharray="4 3"/>
+<rect class="odg-scc" data-relation="calls" data-members="bluesky.poll core.route" x="654" y="174" width="114" height="34" rx="6" fill="none" stroke="#ef4444" stroke-dasharray="4 3"/>
+<path class="odg-edge" d="M716,224 C716,214 716,214 716,204" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M855,204 C855,335.5 959.5,467 1064,467" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M855,204 C855,329 1235,329 1235,454" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M706,204 C706,214 706,214 706,224" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M764,191 C783,191 783,191 802,191" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M711,178 C711,130.6 973,130.6 973,178" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M764,191 C783,191 783,283 802,283" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M764,191 C783,191 783,375 802,375" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M764,191 C783,191 783,421 802,421" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M358,53 C462.5,53 567,92.5 567,132" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M620,145 C639,145 639,191 658,191" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M620,145 C927.5,145 1235,299.5 1235,454" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M502,329 C580,329 580,513 658,513" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M908,375 C1071.5,375 1235,414.5 1235,454" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M908,421 C1071.5,421 1235,437.5 1235,454" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M358,99 C377,99 377,145 396,145" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M358,99 C462.5,99 567,115.5 567,132" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<path class="odg-edge" d="M358,99 C377,99 377,329 396,329" fill="none" stroke="#6b7280" stroke-width="1.2" data-rel="calls" data-prov="data" marker-end="url(#odg-arrow)"><title></title></path>
+<g class="odg-node" data-id="drain.run" style="cursor:grab"><rect x="252" y="40" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="259" y="57" fill="#111827">drain.run</text></g>
+<g class="odg-node" data-id="tab.ui" style="cursor:grab"><rect x="252" y="86" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="259" y="103" fill="#111827">tab.ui</text></g>
+<g class="odg-node" data-id="r2.get" style="cursor:grab"><rect x="658" y="500" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="665" y="517" fill="#111827">r2.get</text></g>
+<g class="odg-node" data-id="kernel.health" style="cursor:grab"><rect x="252" y="132" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="259" y="149" fill="#111827">kernel.health</text></g>
+<g class="odg-node" data-id="kernel.session" style="cursor:grab"><rect x="396" y="132" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="403" y="149" fill="#111827">kernel.session</text></g>
+<g class="odg-node" data-id="kernel.xrpc" style="cursor:grab"><rect x="514" y="132" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="521" y="149" fill="#111827">kernel.xrpc</text></g>
+<g class="odg-node" data-id="core.route" style="cursor:grab"><rect x="658" y="178" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="665" y="195" fill="#111827">core.route</text></g>
+<g class="odg-node" data-id="core.charge" style="cursor:grab"><rect x="802" y="178" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="809" y="195" fill="#111827">core.charge</text></g>
+<g class="odg-node" data-id="core.decide" style="cursor:grab"><rect x="920" y="178" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="927" y="195" fill="#111827">core.decide</text></g>
+<g class="odg-node" data-id="bluesky.poll" style="cursor:grab"><rect x="658" y="224" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="665" y="241" fill="#111827">bluesky.poll</text></g>
+<g class="odg-node" data-id="inbox.poll" style="cursor:grab"><rect x="802" y="270" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="809" y="287" fill="#111827">inbox.poll</text></g>
+<g class="odg-node" data-id="library.blobs" style="cursor:grab"><rect x="396" y="316" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="403" y="333" fill="#111827">library.blobs</text></g>
+<g class="odg-node" data-id="metrics.query" style="cursor:grab"><rect x="802" y="362" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="809" y="379" fill="#111827">metrics.query</text></g>
+<g class="odg-node" data-id="secret.get" style="cursor:grab"><rect x="802" y="408" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="809" y="425" fill="#111827">secret.get</text></g>
+<g class="odg-node" data-id="rows.append" style="cursor:grab"><rect x="1064" y="454" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="1071" y="471" fill="#111827">rows.append</text></g>
+<g class="odg-node" data-id="rows.get" style="cursor:grab"><rect x="1182" y="454" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/><text x="1189" y="471" fill="#111827">rows.get</text></g>
+</svg>

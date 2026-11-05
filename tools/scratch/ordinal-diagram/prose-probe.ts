@@ -1,0 +1,10 @@
+import { chromium } from "playwright";
+import { chromeOptions } from "../../lib/playwright-chrome.js";
+const b = await chromium.launch({ headless: true, ...chromeOptions(chromium, { headless: true }) });
+const p = await (await b.newContext({ viewport: { width: 1300, height: 1400 } })).newPage();
+await p.goto(`file://${process.cwd()}/plan/specs/ordinal-diagram.html#view=S100(@spec/ordinal-diagram)`, { waitUntil: "load" });
+await p.waitForFunction(() => document.body.innerText.includes("Test names that speak of strangers"), null, { timeout: 90000 });
+await p.waitForTimeout(3000);
+const t = await p.evaluate(() => document.body.innerText);
+console.log(process.argv[2] ? t.split("\n").filter((l) => l.includes(process.argv[2])).join("\n") : t.slice(t.indexOf("7. What can a stranger"), t.indexOf("Explore")));
+await b.close();

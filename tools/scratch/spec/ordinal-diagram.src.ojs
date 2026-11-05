@@ -1,0 +1,1205 @@
+opening = md`Cloud Brain (\`cb4\`) is ${brainTables.workers.length} Cloudflare Workers. Each is an XRPC service: it answers named methods at \`/xrpc/com.lopecode.brain.<method>\`, and calls other Workers' methods. Agents wrote almost all of it, through an issue loop that started on 2026-10-10. Nobody read every line.
+
+The page reads the running Brain's public answers and asks, in order:
+
+1. What runs?
+2. What does each Worker answer? Every method, with its parameters and who may call it.
+3. Who calls what? Every call from one Worker to another's method.
+4. Who deploys it?
+5. What does it touch?
+6. What do the docs not say?
+7. What can a stranger reach?
+8. What do the tests say about strangers?
+
+Each diagram is drawn from those answers, not from memory. ↗ on a Worker opens its reference. A solid line is live **data**; a dashed line rests on the **docs**.
+
+*Draft: Tom to rewrite.*
+
+This file is also the spec of the ordinal-diagram module that draws these pictures: the chapters are its worked example, a tutorial follows, then the spec, under **The spec** with its readiness check.`
+// %%
+brainStatus = htl.html`<div style="font:13px system-ui;padding:.5em .8em;border:1px solid color-mix(in srgb, currentColor 25%, transparent);border-radius:6px">
+  ${brainRaw.offline
+    ? htl.html`<strong>Offline.</strong> Showing the copy saved ${brainRaw.fetchedAt.slice(0, 16).replace("T", " ")} UTC. (${brainRaw.offline})`
+    : htl.html`<strong>Live.</strong> Read from <a href=${brainUrls(brainRaw.base).kernel} target="_blank">${brainRaw.base}</a> at ${brainRaw.fetchedAt.slice(11, 19)} UTC.`}
+  ${brainTables.workers.length} Workers · ${brainTables.methods.length} methods · ${brainAll.edges.length} lines
+  <span style="margin-left:1em">line styles:
+    <svg width="40" height="8"><line x1="0" y1="4" x2="40" y2="4" stroke="#6b7280" stroke-width="1.5"/></svg> data
+    <svg width="40" height="8"><line x1="0" y1="4" x2="40" y2="4" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="5 3"/></svg> docs
+  </span>
+</div>`
+// %%
+md`## 1. What runs?
+
+- The Brain answers \`service.list\` to anyone: ${brainTables.workers.length - 1} Workers. The deployer answers for itself at its own address.
+- Grouped by \`role\`, as the deployer records it.
+- ${brainTables.workers.filter((w) => w.role === "recipe").length} of ${brainTables.workers.length} are a **recipe**: a service built from one notebook module.
+- ↗ on a box opens that Worker's reference (\`getSource?part=reference\`).`
+// %%
+chapter_runs = drawTables(brainTables, brainSchema, chapters.runs, invalidation)
+// %%
+md`## 2. What does each Worker answer?
+
+- \`service.list\` gives every method of every Worker: its \`type\` (\`query\` is a GET, \`procedure\` a POST) and \`who\` may call it.
+- Each Worker's lexicons give the parameters: \`(query parameters) {JSON body fields}\`; \`?\` marks an optional one.
+- ${brainTables.methods.length} methods across ${new Set(brainTables.methods.map((m) => m.worker)).size} Workers. By who may call: ${["anyone", "workers", "owner"].map((w) => `${brainTables.methods.filter((m) => m.who === w).length} ${w}`).join(", ")}.
+- Rows: role, then Worker, then who may call (0 anyone, 1 other Workers, 2 the owner only). Each box is a method's name and its parameters.
+- Not drawn, because they publish no method: ${brainTables.workers.filter((w) => !brainTables.methods.some((m) => m.worker === w.id)).map((w) => w.id).join(", ")}. The deployer is not in \`service.list\`; its methods are in its reference only.
+- Click **worker** above the margin to fold each Worker to one bar with its method count, or **who** to fold each audience of each Worker.`
+// %%
+chapter_methods = drawTables(brainTables, brainSchema, chapters.methods, invalidation)
+// %%
+md`## 3. Who calls what?
+
+- Each Worker's \`getInfo\` lists the methods it calls. One \`calls\` row = one Worker calling one method. Solid lines: this is data.
+- A line goes from the caller to the method it calls, drawn inside the Worker that answers it. Only methods another Worker calls are drawn: ${chapterCalls.called} of ${brainTables.methods.length}, over ${chapterCalls.lines} lines.
+- One row per Worker. y = the Worker's widest audience (anyone, then other Workers, then the owner only), then the Worker.
+- x = depth along **calls**: a Worker no other Worker calls is at 0, and a Worker it calls sits at least one column to its right. A method sits in its Worker's column.
+- ${chapterCalls.excluded.length} Workers have no method with a \`who\`, so they have no row here: ${chapterCalls.excluded.filter((w) => w !== "brain-deployer").join(", ")} list none in \`service.list\`${chapterCalls.excluded.includes("brain-deployer") ? ", and brain-deployer is not in \`service.list\`" : ""}.
+- ${chapterCalls.sccs.length ? `Dashed red: ${chapterCalls.sccs.map((s) => s.members.join(" ⇄ ")).join("; ")} call each other.` : "No Workers call each other."}`
+// %%
+chapter_calls = drawTables(brainTables, brainSchema, chapters.calls, invalidation)
+// %%
+md`## 4. Who deploys it?
+
+- The relation is **deploys** (read backwards: *is deployed by*).
+- No endpoint answers it. Each line rests on a sentence in the deployer's reference, so the lines are dashed:
+${[...new Set(brainTables.deploys.map((d) => d.said))].map((x) => `  - "${x}"`).join("\n")}
+- The installer is in no Worker list. It is a row of the \`actors\` table; the other row is the stranger of chapter 7.
+- So the chain is three steps deep: installer → deployer → every other Worker. Click the bar to unfold the ${brainTables.deploys.filter((d) => d.deployer === "brain-deployer").length}.`
+// %%
+chapter_deploys = drawTables(brainTables, brainSchema, chapters.deploys, invalidation)
+// %%
+md`## 5. What does it touch?
+
+- Each Worker declares resources (\`getInfo\`'s \`resources\`).
+- The deployer's reference has a table from a declared resource to the binding it makes. The page reads that table live, as \`bindings\`. A binding's product is a Worker (brain-core, brain-deployer) or a row of \`products\`.
+- A \`resources\` row goes from a Worker to a binding. Bindings nest in their product, so the line goes to the product. It passed through the docs, so it is dashed.
+- y = depth along **resources**. Workers that nothing binds are at 0, and so is a product the deployer's table names but no Worker declares. What they bind is at 1: Cloudflare products, and brain-core and brain-deployer. What those bind is at 2.
+- Depth 0 starts folded. Each count is how many of its Workers bind that resource.`
+// %%
+chapter_binds = drawTables(brainTables, brainSchema, chapters.binds, invalidation)
+// %%
+md`## 6. What do the docs not say?
+
+The deployer's reference has a table of its methods and who calls each. Where the caller is a Worker's role ("the kernel"), the claim can be checked against the calls that Worker publishes. Each pair of Workers gets one line, as in a reflexion model ([Murphy, Notkin, Sullivan 1995](https://doi.org/10.1145/222124.222136)):
+
+- grey: claimed and observed (convergence)
+- orange: observed, not claimed (divergence)
+- red, dashed: claimed, not observed (absence)
+
+Only lines that end at a Worker the reference makes claims about are drawn. ${brainClaims.length ? brainClaims.map((e) => `${e.state}: ${e.src.slice(8)} → ${e.dst.slice(8)}, ${e.label.map((m) => `\`${m}\``).join(", ")}`).join("; ") : "Nothing to compare"}.`
+// %%
+chapter_claims = drawTables(brainTables, brainSchema, chapters.claims, invalidation)
+// %%
+md`- An absence from the kernel is not proof that the call never happens. The kernel's \`calls\` is ${JSON.stringify(brainRaw.infos.find((i) => i.name === "brain")?.calls ?? null)}, and its resources include \`deployer\`: it holds the deployer binding. The calls may go through that binding and be left out of \`calls\`; *not checked* against the kernel's source.
+- Callers in the same table that are not one Worker's role are not compared, because nothing public records their calls: ${brainUncompared.map((c) => `"${c}"`).join(", ")}.
+- Declared resources with no row in the deployer's table: ${brainGaps.unmapped.length ? brainGaps.unmapped.map((d) => `\`${d}\``).join(", ") : "none"}.
+- Declared calls that match no method, so no line is drawn: ${brainGaps.unresolved.length ? brainGaps.unresolved.map((c) => `${c.worker} → \`${c.method}\``).join(", ") : "none"}.
+- Lines by source: ${Object.entries(brainGaps.byProv).map(([k, n]) => `${n} ${k}`).join(", ")}.
+- Not in any public answer: who deployed each version, version history, Cloudflare binding ids, the Fly machines.
+- Each gap is a question to put to the service that owns it.`
+// %%
+md`## 7. What can a stranger reach?
+
+- A door is a method or a path whose \`who\` is \`anyone\`: a request with no token may use it. cb4 publishes ${brainTables.doors.length} doors on ${new Set(brainReach.edges.filter((e) => e.src === "actors:stranger").map((e) => e.dst)).size} Workers (\`doors\`).
+- A line from the stranger to a Worker carries that Worker's doors. Its width grows with their count. Hover a line to list them.
+- From each Worker a stranger reaches, a line goes to what it binds, and on from there until nothing new is reached (\`reach\`). The resource names go through the deployer's table, as in chapter 5.
+- Under a box: the Worker's Cloudflare grants and how many secrets it holds (\`holds\`, names in \`secrets\`).
+- y = depth along **reach**, the longest path from the stranger. A product bound both by a Worker behind a door and by brain-core sits below brain-core (D1 (shared) on 2026-11-04).`
+// %%
+chapter_reach = drawTables(brainTables, brainSchema, chapters.reach, invalidation)
+// %%
+md`- ${brainReach.toCore.length} of the Workers behind a door hold a binding to brain-core: ${brainReach.toCore.join(", ")}. A binding lets the Worker's code call the core as that Worker. It does not let the stranger call the core: the kernel drops a caller header that a request sets itself (\`test_forged_caller_is_dropped\` in the kernel).
+- What a Worker behind a door also holds: ${brainReach.held.join("; ") || "nothing"}.
+- Platform Workers no door leads to: ${brainReach.not.join(", ") || "none"}.
+- The kernel's own public methods are in no table. This page reads \`service.list\`, \`getInfo\` and \`getSource\` with no token, but the kernel publishes no \`methods\`, so it has no door here.
+- A door is what a Worker declares. What its code does with the request is *not checked*.`
+// %%
+md`## 8. What do the tests say about strangers?
+
+Each Worker's whole source is public (\`getSource\`), and with it the names of its test cells: ${brainTablesWithTests.tests.length} names in ${Object.keys(brainTestNames).length} Workers. The names are sentences, such as \`test_whatsapp_a_stranger_gets_a_link_and_no_entry\`.
+
+The diagram compares the doors (chapter 7) with the tests whose name says *stranger*, *anonymous*, *anyone*, *outsider* or *public*. Colours as in chapter 6:
+
+- grey: the Worker has a door for strangers, and a test name speaks of strangers
+- orange: a test name speaks of strangers, and the Worker declares no door for them
+- red, dashed: the Worker has a door for strangers, and no test name speaks of strangers
+
+Width: how many doors (red) or such tests (grey, orange). The number on a box is its test cells.`
+// %%
+chapter_strangers = drawTables(brainTablesWithTests, brainSchema, chapters.strangers, invalidation)
+// %%
+md`- Doors with no test that names a stranger (doors in brackets): ${brainStrangers.absence}.
+- Doors with such a test (tests in brackets): ${brainStrangers.convergence}.
+- Test names that speak of strangers at a Worker that declares no door: ${brainStrangers.divergence}. The names: ${brainStrangers.divergent.map((n) => `\`${n}\``).join(", ")}. On 2026-11-04 the kernel's were about doors it has and does not declare (see chapter 7), and bluesky's strangers were people who message it on Bluesky, not callers of a method.
+- Only the names are read. A test may send a request with no token and not say so in its name, and a name with *public* may be about a public notebook rather than a caller. The bodies are *not checked*.
+- ${brainStrangers.passed} Workers publish a passed test run (\`verified\` in \`service.list\`): the deployer runs a Worker's tests after it deploys it. Workers that publish no run but have test cells: ${brainStrangers.unverified.join(", ") || "none"}. On 2026-11-04 these were the kernel and brain-deployer, which the installer deploys (chapter 4). Whether their tests run anywhere else is *not checked*.`
+// %%
+md`## Explore
+
+Every diagram on this page is a choice of boxes, lines and levels over one set of tables. Make your own.
+
+- **tables**: cb4's, read above, or the web shop of the tutorial below.
+- **boxes**: the tables whose rows are boxes.
+- **lines**: relations. A relation is a foreign key (\`methods.worker\`), or a link table with two (\`calls(worker, method)\`, one line per row). Lines between the same two boxes are one line, labelled with the keys they end at.
+- **nest**: foreign keys that put a row inside its parent: a method inside its Worker. A row that is not a box sends its lines to its nearest parent that is.
+- **y levels**, **x levels**, outermost first. A level is one of:
+  - a column, also through a foreign key (\`component.zone\`). A nested row without the column reads its parent's;
+  - **depth along** a relation, optionally of the row a path reaches;
+  - **nest 1**: the row's outermost parent. Folded, each parent is one card; click it to open;
+  - **table**: the row's table.
+- **show on box**: columns printed on each box. Try \`signature\` with methods as boxes.
+- **filter**: untick a value to drop the boxes that have it. The values are those of the column levels on the axes.
+- A key that names no row is listed under the diagram, not drawn.`
+// %%
+viewof tableSet = Inputs.radio(Object.keys(tableSets), { label: "tables", value: "cb4" })
+// %%
+viewof tablePick = {
+  const { schema, defaults } = tableSets[tableSet];
+  const o = tableOptions;
+  return Inputs.form({
+    boxes: Inputs.checkbox(Object.keys(schema.tables).filter((t) => !schema.tables[t].link), { label: "boxes", value: defaults.boxes }),
+    lines: Inputs.checkbox(o.relations, { label: "lines", value: defaults.lines }),
+    nest: Inputs.checkbox(o.foreignKeys, { label: "nest", value: defaults.nest }),
+    y: levelList(Object.keys(o.levels), "y levels", defaults.y),
+    x: levelList(Object.keys(o.levels), "x levels", defaults.x),
+    show: Inputs.checkbox(o.columns, { label: "show on box", value: [] })
+  });
+}
+// %%
+// One checkbox list per column level on the axes. A list with every value ticked does not filter.
+viewof tableWhere = {
+  const { tables, schema } = tableSets[tableSet];
+  const C = relLib.compile(tables, schema, tableView);
+  const keys = [...tablePick.y, ...tablePick.x].filter((k) => { const l = tableOptions.levels[k]; return l.col || l.table || (l.depth && l.at); });
+  const str = (v) => (v === null || v === undefined ? "∅" : String(v));
+  const all = Object.fromEntries(keys.map((k) => [k, [...new Set(C.nodes.map((n) => str(n[k])))].sort((a, b) => a.localeCompare(b, "en", { numeric: true }))]));
+  const form = Inputs.form(Object.fromEntries(keys.map((k) => [k, Inputs.checkbox(all[k], { label: k, value: all[k] })])));
+  const box = htl.html`<details style="margin:3px 0"><summary>filter</summary>${form}</details>`;
+  const read = () => Object.fromEntries(Object.entries(form.value).filter(([k, v]) => v.length < all[k].length));
+  box.value = read();
+  form.addEventListener("input", () => { box.value = read(); });
+  return box;
+}
+// %%
+tablesDiagram = {
+  const { tables, schema } = tableSets[tableSet];
+  return drawTables(tables, schema, { ...tableView, where: tableWhere }, invalidation, { gaps: true });
+}
+// %%
+md`### The model
+
+- Loaded from public endpoints only. No token.
+- Tables below, then their keys (\`brainSchema\`). Each chapter picks some tables as boxes and some relations as lines.`
+// %%
+brainTablesView = {
+  // Where each table comes from, and the chapters that draw it.
+  const from = {
+    workers: "service.list and each getInfo · chapters 1–8",
+    methods: "service.list, signatures from the lexicons · chapters 2, 3",
+    bindings: "the deployer's reference, its declared → binding table · chapters 5, 7",
+    products: "made from bindings: a binding target that is not a Worker · chapters 5, 7",
+    deploys: "two sentences of the deployer's reference · chapter 4",
+    doors: "methods and paths whose who is anyone · chapters 7, 8",
+    tests: "test cell names in each Worker's getSource · chapter 8"
+  };
+  return htl.html`<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">${Object.keys(from).map((t) => htl.html`<div><strong>${t}</strong> · ${brainTablesWithTests[t].length} rows<div style="font-size:12px;color:#6b7280;max-width:320px">${from[t]}</div>${Inputs.table(brainTablesWithTests[t], { rows: 8, layout: "auto" })}</div>`)}</div>`;
+}
+// %%
+brainKeys = keysView(brainSchema)
+// %%
+brainClaims = relLib.compile(brainTables, brainSchema, chapters.claims).report.compared
+// %%
+brainUncompared = {
+  const compared = new Set(brainTables.said_calls.map((c) => c.said));
+  return [...new Set(liveLib.parseMethodTable(brainRaw.depRef).map((r) => r.caller))].filter((c) => !compared.has(c)).sort();
+}
+// %%
+// Chapter 7's diagram, for its prose.
+brainReach = {
+  const C = relLib.compile(brainTables, brainSchema, chapters.reach);
+  const reached = new Set(C.nodes.filter((n) => n.kind === "workers").map((n) => n.id.slice(8)));
+  const toCore = C.edges.filter((e) => e.dst === "workers:brain-core").map((e) => e.src.slice(8)).sort();
+  const held = brainTables.workers.filter((w) => reached.has(w.id) && w.holds).map((w) => `${w.name}: ${w.holds}`);
+  const not = brainTables.workers.filter((w) => !reached.has(w.id) && ["kernel", "core", "deployer", "system"].includes(w.role)).map((w) => w.id);
+  return { edges: C.edges, reached: [...reached].sort(), toCore, held, not };
+}
+// %%
+brainStrangers = {
+  const by = Object.groupBy(relLib.compile(brainTablesWithTests, brainSchema, chapters.strangers).report.compared, (e) => e.state);
+  const list = (s) => (by[s] || []).map((e) => `${e.dst.slice(8)} (${e.n})`).join(", ") || "none";
+  const unverified = brainTablesWithTests.workers.filter((w) => w.verified === "none" && w.test_cells).map((w) => `${w.id} (${w.test_cells} test cells)`);
+  const counted = brainTablesWithTests.workers.filter((w) => w.verified === "passed");
+  const divergent = (by.divergence || []).flatMap((e) => e.observed.map((p) => p.split("/").pop()));
+  return { absence: list("absence"), convergence: list("convergence"), divergence: list("divergence"), divergent, unverified, passed: counted.length };
+}
+// %%
+tableView = {
+  const p = tablePick, o = tableOptions;
+  const nestAt = p.y.indexOf("nest 1");
+  return {
+    name: `${tableSet}: ${p.y.join(" › ") || "–"} × ${p.x.join(" › ") || "–"}`,
+    boxes: p.boxes, lines: p.lines, nest: p.nest,
+    y: p.y.map((k) => o.levels[k]), x: p.x.map((k) => o.levels[k]), xTitle: p.x.join(" · "),
+    show: p.show.map((k) => o.levels[k].col),
+    cards: true, edgeLabels: true, wrap: p.x.length ? 3 : 7, slot: p.show.length ? 230 : p.nest.length ? 150 : undefined,
+    folds: nestAt >= 0 && p.nest.length ? [nestAt + 1] : []
+  };
+}
+// %%
+brainRaw = {
+  try {
+    return await liveLib.loadBrain("cb4", fetch, { tests: false });
+  } catch (e) {
+    return { ...brainFixture, offline: e.message };
+  }
+}
+// %%
+brainTables = liveLib.tablesOf(brainRaw)
+// %%
+// Test names need every Worker's whole source (6.4 MB), so only chapter 8 and the table view wait for them.
+brainTestNames = brainRaw.offline ? brainFixture.tests : liveLib.loadTestNames("cb4", brainRaw.services.map((s) => s.worker)).catch(() => brainFixture.tests)
+// %%
+brainTablesWithTests = liveLib.tablesOf({ ...brainRaw, tests: brainTestNames })
+// %%
+brainSchema = liveLib.brainSchema
+// %%
+brainUrls = liveLib.brainUrls
+// %%
+// Chapter 3's diagram, for its prose: the Workers it leaves out and the cycles, by name.
+chapterCalls = {
+  const C = relLib.compile(brainTables, brainSchema, chapters.calls);
+  const L = engine.layout({ view: C.view, nodes: C.nodes, edges: C.edges });
+  const name = new Map(C.nodes.map((n) => [n.id, n.label]));
+  const workers = L.excluded.filter((id) => id.startsWith("workers:"));
+  return { excluded: workers.map((id) => name.get(id) ?? id.slice(8)), sccs: L.sccs.map((c) => ({ members: c.members.map((id) => name.get(id) ?? id.slice(8)) })), called: C.nodes.filter((n) => n.kind === "methods").length, lines: C.edges.length };
+}
+// %%
+// Every Worker, product and actor, with every line, for the counts above and the gaps of chapter 6.
+brainAll = relLib.compile(brainTables, brainSchema, { boxes: ["workers", "products", "actors"], nest: ["methods.worker", "bindings.product"], lines: ["calls", "resources", "deploys"], y: [], x: [] })
+// %%
+brainGaps = {
+  const d = brainAll.report.dangling;
+  const unmapped = [...new Set(d.filter((g) => g.relation === "resources").map((g) => g.to))].sort();
+  const unresolved = d.filter((g) => g.relation === "calls").map((g) => ({ worker: g.from, method: g.to }));
+  const byProv = {};
+  for (const e of brainAll.edges) byProv[e.prov] = (byProv[e.prov] || 0) + 1;
+  return { unmapped, unresolved, byProv };
+}
+// %%
+liveLib = {
+/*@LIVE@*/
+  return { brainUrls, parseBindings, parseMethodTable, productOf, loadBrain, loadTestNames, testNamesOf, STRANGER, tablesOf, brainSchema };
+}
+// %%
+chapters = {
+/*@CHAPTERS@*/
+  return chapters;
+}
+// %%
+// cb4's public answers saved 2026-10-31, and the test names added 2026-11-04 (testsFetchedAt). Used when the page cannot reach cb4 and by the tests.
+brainFixture = (/*@FIXTURE@*/)
+// %%
+test_brain_fixture = {
+  const t = liveLib.tablesOf(brainFixture);
+  const strip = (id) => id.replace(/^[a-z_]+:/, "");
+  const lay = (v) => { const C = relLib.compile(t, liveLib.brainSchema, v); return engine.layout({ view: C.view, nodes: C.nodes, edges: C.edges }); };
+  if (t.workers.length !== 30) throw new Error("workers " + t.workers.length);
+  const deploys = lay(chapters.deploys);
+  if (deploys.rows.length !== 3) throw new Error("deploy steps " + deploys.rows.length);
+  const cyc = lay(chapters.calls).sccs.map((s) => s.members.map(strip).join("+")).join(";");
+  if (cyc !== "brain-x-fly+brain-x-loop") throw new Error("cycle " + cyc);
+  const d = relLib.compile(t, liveLib.brainSchema, { boxes: ["workers"], y: [], x: [] }).report.dangling;
+  const gaps = [...new Set(d.filter((g) => g.relation === "resources").map((g) => g.to))].sort().join(",");
+  if (gaps !== "containers,workers") throw new Error("gaps " + gaps);
+  return "fixture: 30 Workers, deploy chain 3 steps, fly ⇄ loop, gaps containers + workers";
+}
+// %%
+test_strangers = {
+  const t = liveLib.tablesOf(brainFixture);
+  const reach = relLib.compile(t, liveLib.brainSchema, chapters.reach);
+  if (reach.nodes.some((n) => n.id === "workers:brain-deployer")) throw new Error("a door reaches the deployer");
+  const pds = reach.edges.find((e) => e.src === "actors:stranger" && e.dst === "workers:brain-x-pds");
+  if (pds?.n !== 21) throw new Error("pds doors " + pds?.n);
+  const abs = relLib.compile(t, liveLib.brainSchema, chapters.strangers).report.compared.filter((e) => e.state === "absence").map((e) => e.dst.slice(8)).join(",");
+  if (abs !== "brain-db,brain-x-blob,brain-x-feed,brain-x-issues,brain-x-page,brain-x-pds") throw new Error("absence " + abs);
+  return "no door reaches the deployer; pds has 21 doors; 6 Workers with doors and no stranger test name";
+}
+// %%
+md`## How to read these diagrams
+
+The same engine on a small made-up web shop, one idea per step.`
+// %%
+md`### 1. The data is tables
+
+- A snapshot = a map from table name to an array of rows.
+- All rows in one table have the same columns.
+- Every diagram on this page, the chapters above included, is drawn from tables like these.
+- The diagram reads the tables. It never changes them.`
+// %%
+step1_tables = htl.html`<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">${Object.entries(tiny).map(([t, rows]) => htl.html`<div><strong>${t}</strong> · ${rows.length} rows${Inputs.table(rows, { rows: rows.length + 1, layout: "auto" })}</div>`)}</div>`
+// %%
+md`### 2. Keys make boxes and lines
+
+- Each table names its key and which columns point at other tables.
+- One \`methods\` row = one box. One \`calls\` row = one line, from \`caller\` to \`callee\`.
+- A box reads columns through the pointers: a method's zone is its component's zone.
+- Below: the keys, then one row per box, with the value of each level of step 4.`
+// %%
+step2_keys = keysView(tinySchema)
+// %%
+step2_result = Inputs.table(relLib.compile(tiny, tinySchema, steps.y2).nodes, { columns: ["id", "label", "zone", "zone#label", "component", "component#label"], rows: 7, layout: "auto" })
+// %%
+md`### 3. Y axis: one column
+
+- View: \`y: [zone]\`. No x axis yet.
+- \`zone\` is depth along \`zone_order\` of the method's \`component.zone\`: how many \`zone_order\` rows sit in front of the zone. user device = 0, public edge = 1, data store = 2. The order comes from data, not from a typed rank.
+- Same value = same row. Rows are sorted by value.
+- Several boxes in one row are sorted by \`id\`. Boxes never stack.`
+// %%
+step3 = drawTables(tiny, tinySchema, steps.y1, invalidation)
+// %%
+md`### 4. Y axis: a list of columns
+
+- View: \`y: [zone, component]\`.
+- Each box gets a path. \`auth.check\` has path \`[1, "auth"]\`.
+- Paths are compared left to right, like words in a dictionary.
+- The left margin has one label column per level.`
+// %%
+step4 = drawTables(tiny, tinySchema, steps.y2, invalidation)
+// %%
+md`### 5. X axis: depth along a relation
+
+- View: \`x: [calls]\`.
+- Depth = the longest chain of calls from a box that nothing calls.
+- \`web.page → api.list → auth.check → db.read\`, so \`db.read\` is depth 3.
+- \`db.write\` is only called by \`api.save\`, so it is depth 2.
+- Only order counts. The gap between columns means nothing.
+- The lines are the \`calls\` rows.`
+// %%
+step5 = drawTables(tiny, tinySchema, steps.x, invalidation)
+// %%
+md`### 6. A cycle shares one depth
+
+- One made-up call is added: \`auth.check → api.list\`.
+- Now \`api.list\` and \`auth.check\` call each other. Neither is deeper.
+- Both get the same depth. A dashed red outline marks them.`
+// %%
+step6 = drawTables(tinyWithCycle, tinySchema, steps.cycle, invalidation)
+// %%
+md`### 7. Fold: hide detail
+
+- Click the **public edge** label in the first margin column.
+- All boxes under it become one bar.
+- Lines into the bar merge. **×2** = two lines merged.
+- **2 inside** = lines with both ends in the bar. They are hidden.
+- Folding **api** in the second column (the component) gathers only \`api.list\` and \`api.save\`. No call joins them, so there is no inside count.
+- Click the bar or the label again to unfold.`
+// %%
+step7 = drawTables(tiny, tinySchema, steps.fold, invalidation, { hint: "click a label in the left margin" })
+// %%
+md`### 8. Drag: change order by hand
+
+- Only boxes in the same cell can swap. Try \`api.list\` and \`api.save\`.
+- A drag writes rows to a separate table \`order\`: \`(id, fkey)\`. It is shown below the diagram.
+- The data tables do not change.
+- \`fkey\` is a text key. Boxes in a cell sort by \`fkey\`, then \`id\`.
+- A new key always fits between two keys, so later drags write one row.
+- Last table: example keys from \`keyBetween\`.`
+// %%
+step8 = drawTables(tiny, tinySchema, steps.drag, invalidation, { hint: "drag api.save to the left of api.list" })
+// %%
+step8_order = {
+  const rows = order[steps.drag.name] || [];
+  return htl.html`<div><strong>order</strong> · ${rows.length} rows${rows.length ? Inputs.table(rows, { columns: ["id", "fkey"], layout: "auto" }) : htl.html`<div><em>empty until you drag</em></div>`}</div>`;
+}
+// %%
+step8_keys = {
+  const a = engine.keyBetween("", null), b = engine.keyBetween(a, null), m = engine.keyBetween(a, b), n = engine.keyBetween(a, m);
+  return Inputs.table([
+    { between: "start and end", key: a },
+    { between: `${a} and end`, key: b },
+    { between: `${a} and ${b}`, key: m },
+    { between: `${a} and ${m}`, key: n }
+  ], { layout: "auto" });
+}
+// %%
+md`### 9. Missing values
+
+- One method is added, \`cache.get\`. Its component has no \`zone\`.
+- It cannot be placed on \`y: [zone, …]\`, so it is not drawn.
+- The count is shown under the diagram.`
+// %%
+step9 = drawTables(tinyWithMissing, tinySchema, steps.missing, invalidation)
+// %%
+md`### 10. A set of boxes: hull
+
+- A table \`flow_steps(flow, step, method)\` lists the methods one save request passes through.
+- The view names the foreign key \`flow_steps.method\` and the column \`flow\`: one hull per flow, around the boxes its rows name.
+- One outline is drawn around each hull's boxes.
+- The outline is convex, so it can cover a box that is not in the set (\`api.list\` here).`
+// %%
+step10 = drawTables(tinyWithHull, tinySchema, steps.hull, invalidation)
+// %%
+md`### 11. Same data, two views
+
+- First view: y = trust zone. Second view: y = compute (where the code runs).
+- \`auth\` and \`database\` are in different zones but both run serverless.
+- Fold **serverless** in the second view. The first does not change: each view has its own folds.
+- Hover a box. The same row is outlined orange in both views.`
+// %%
+step11 = htl.html`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">${drawTables(tiny, tinySchema, steps.byZone, invalidation)}${drawTables(tiny, tinySchema, steps.byCompute, invalidation)}</div>`
+// %%
+step12 = htl.html`<div>${md`### 12. Y axis from a relation
+
+- View: \`y: [calls]\`, \`x: [zone]\`. Step 5 turned around.
+- Any edge relation works on either axis.
+- Why it is allowed:
+  - a relation = a directed graph
+  - "a reaches b" is a preorder (reflexive, transitive)
+  - a cycle breaks antisymmetry, so merge each cycle into one node (step 6)
+  - the merged graph is a POSET
+  - a POSET is not a line, so pick a rank: longest path from a source
+- Same rank does not mean related. \`auth.check\` and \`db.write\` are both depth 2 and never call each other.
+- So folding **depth 2** gathers boxes that only share a number. Relation levels are good for position, column levels for grouping.`}
+${drawTables(tiny, tinySchema, steps.yRel, invalidation, { hint: "click depth 2 in the left margin" })}
+${md`### 13. The design against the calls
+
+- The shop's design doc is one more table, \`intended\`: component → component, marked docs.
+- View: \`compare: [{ claimed: "intended", observed: "calls" }]\`. Calls lift to their components, then each pair of components gets one line.
+- grey \`web → api\`, \`api → db\`, \`auth → db\`: in the doc and in the calls.
+- orange \`api → auth\`: two calls the doc does not mention. Hover it to see them.
+- red dashed \`web → auth\`: in the doc, never called.
+- A line is wider the more rows are behind it. Folding sums those rows, so a fold's ×n counts calls, not lines.`}
+${drawTables(tinyWithIntent, tinySchema, steps.compare, invalidation)}
+${md`### Summary
+
+- data: tables with keys, never edited
+- view: which tables are boxes, which relations are lines, + a list of levels per axis
+- level: a column, also through a foreign key (sorted by value), or depth along a relation
+- tie break: \`order\` table key, then \`id\`
+- relation level: cycles merged, then rank = longest path. Good to place, weak to fold
+- fold: a y label becomes one bar; lines merge, ×n counts the rows behind them
+- compare: a claimed relation against an observed one, one line per pair of ends
+- several views over one snapshot, each with its own folds and order`}</div>`
+// %%
+tinyLib = {
+/*@TINY@*/
+  return { tiny, tinyWithHull, tinyWithCycle, tinyWithMissing, tinyWithIntent, steps, tinySchema };
+}
+// %%
+tiny = tinyLib.tiny
+// %%
+tinyWithHull = tinyLib.tinyWithHull
+// %%
+tinyWithCycle = tinyLib.tinyWithCycle
+// %%
+tinyWithMissing = tinyLib.tinyWithMissing
+// %%
+tinyWithIntent = tinyLib.tinyWithIntent
+// %%
+tinySchema = tinyLib.tinySchema
+// %%
+steps = tinyLib.steps
+// %%
+test_hull = {
+  const C = relLib.compile(tinyWithHull, tinySchema, steps.hull);
+  const L = engine.layout({ view: C.view, nodes: C.nodes, edges: C.edges, hulls: C.hulls });
+  const h = L.hulls.map((x) => x.hull + ": " + x.items.map((id) => id.replace(/^methods:/, "")).join(",")).join("; ");
+  if (h !== "save request: api.save,auth.check,db.write,web.page") throw new Error("hulls " + h);
+  return h;
+}
+// %%
+test_compare = {
+  const C = relLib.compile(tinyWithIntent, tinySchema, steps.compare);
+  const got = C.edges.map((e) => `${e.state} ${e.src.slice(11)}→${e.dst.slice(11)}`).join("; ");
+  if (got !== "divergence api→auth; convergence api→db; convergence auth→db; convergence web→api; absence web→auth") throw new Error("compare " + got);
+  const k = relLib.compile(liveLib.tablesOf(brainFixture), brainSchema, chapters.claims).report.compared.map((e) => `${e.state} ${e.src.slice(8)}→${e.dst.slice(8)}`).join("; ");
+  if (k !== "absence brain→brain-deployer") throw new Error("cb4 claims " + k);
+  return got + "; cb4: " + k;
+}
+// %%
+test_tutorial_steps = {
+  const lay = (data, v, folds = []) => { const C = relLib.compile(data, tinySchema, v); return engine.layout({ view: C.view, nodes: C.nodes, edges: C.edges, folds }); };
+  const bare = (ids) => ids.map((id) => id.replace(/^methods:/, "")).join(",");
+  const X = lay(tiny, steps.x);
+  const colOf = (id) => X.items.find((it) => it.id === "methods:" + id).col;
+  const depths = ["web.page", "api.list", "auth.check", "db.write", "db.read"].map(colOf).join(",");
+  if (depths !== "0,1,2,2,3") throw new Error("depths " + depths);
+  const cyc = lay(tinyWithCycle, steps.cycle).sccs.map((c) => `${c.relation}: ${bare(c.members)}`).join("; ");
+  if (cyc !== "calls: api.list,auth.check") throw new Error("cycle " + cyc);
+  const m = bare(lay(tiny, steps.byCompute, [[2]]).items.find((it) => it.kind === "group").members);
+  if (m !== "auth.check,db.read,db.write") throw new Error("serverless fold " + m);
+  const y2 = bare(lay(tiny, steps.yRel, [[2]]).items.find((it) => it.kind === "group").members);
+  if (y2 !== "auth.check,db.write") throw new Error("depth 2 fold " + y2);
+  return "depths 0,1,2,2,3; cycle api.list+auth.check; serverless folds auth.check, db.read, db.write; y depth 2 folds auth.check, db.write";
+}
+// %%
+md`### Machinery
+
+The cells below are shared by every diagram above.`
+// %%
+// Levels offered: every column of every table, each column one foreign key out, and depth along each relation.
+tableOptions = {
+  const { tables, schema } = tableSets[tableSet];
+  const S = schema.tables, rels = relLib.relationsOf(schema);
+  const cols = (t) => [...new Set((tables[t] || []).flatMap((r) => Object.keys(r)))].filter((c) => c !== S[t].href);
+  // A foreign key into several tables is offered as a column but not followed.
+  const one = (r) => (Array.isArray(r) ? undefined : r);
+  const refs = (t) => Object.entries(S[t].refs || {}).filter(([, to]) => one(to));
+  const labelOf = (t) => S[t].label || (Array.isArray(S[t].key) ? null : S[t].key);
+  const levels = { table: { table: true } };
+  for (const t of Object.keys(S).filter((t) => !S[t].link)) {
+    for (const c of cols(t)) {
+      const to = one((S[t].refs || {})[c]);
+      // A box already has an id, label, kind and href, so a level on one of those columns needs its own name.
+      const named = ["id", "label", "kind", "href"].includes(c) ? { name: `row ${c}` } : {};
+      levels[c] ??= to && labelOf(to) ? { ...named, col: c, label: `${c}.${labelOf(to)}` } : { ...named, col: c };
+    }
+    for (const [c, to] of refs(t)) for (const d of cols(to)) {
+      const path = `${c}.${d}`, to2 = one((S[to].refs || {})[d]);
+      levels[path] ??= to2 && labelOf(to2) ? { col: path, label: `${path}.${labelOf(to2)}` } : { col: path };
+      for (const r of rels.filter((r) => to2 && r.fromTables.join() === to2 && r.toTables.join() === to2)) levels[`depth along ${r.name} of ${path}`] = { depth: r.name, at: path, label: labelOf(to2) };
+    }
+  }
+  for (const r of rels) levels[`depth along ${r.name}`] = { depth: r.name };
+  levels["nest 1"] = { nest: 1 };
+  return {
+    relations: rels.map((r) => r.name),
+    foreignKeys: rels.filter((r) => !r.from).map((r) => r.name),
+    columns: Object.keys(levels).filter((k) => levels[k].col && !levels[k].name).sort(),
+    levels: Object.fromEntries(Object.entries(levels).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+  };
+}
+// %%
+tableSets = ({
+  cb4: {
+    tables: brainTables, schema: liveLib.brainSchema,
+    defaults: { boxes: ["methods", "workers"], lines: ["calls"], nest: ["methods.worker"], y: ["role", "nest 1"], x: ["depth along calls"] }
+  },
+  "web shop": {
+    tables: tinyLib.tinyWithHull, schema: tinyLib.tinySchema,
+    defaults: { boxes: ["methods"], lines: ["calls"], nest: ["methods.component"], y: ["depth along zone_order of component.zone", "nest 1"], x: ["depth along calls"] }
+  }
+})
+// %%
+// A chain of selects, outermost first. The last one reads "none"; picking a value there adds a slot,
+// and setting any slot to "none" removes it, so the ones after it move up.
+levelList = (options, label, init) => {
+  let levels = [...init];
+  const root = htl.html`<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin:3px 0"><span style="width:110px">${label}</span></div>`;
+  const list = htl.html`<span style="display:contents"></span>`;
+  root.append(list);
+  const draw = () => list.replaceChildren(...[...levels, "none"].map((v, i) => {
+    const sel = htl.html`<select>${["none", ...options].map((o) => htl.html`<option selected=${o === v}>${o}</option>`)}</select>`;
+    sel.oninput = () => {
+      if (sel.value === "none") levels.splice(i, 1);
+      else levels[i] = sel.value;
+      draw();
+    };
+    return htl.html`<span>${i ? "› " : ""}${sel}</span>`;
+  }));
+  Object.defineProperty(root, "value", { get: () => [...levels], set: (v) => { levels = [...v]; draw(); } });
+  draw();
+  return root;
+}
+// %%
+relLib = {
+  const { posetRanks } = engine;
+/*@REL@*/
+  return { compile, relationsOf, levelName };
+}
+// %%
+// Compiles a view over tables and draws it. With gaps, keys that name no row are listed under it.
+drawTables = (tables, schema, view, invalidation, { gaps, ...opts } = {}) => {
+  const C = relLib.compile(tables, schema, view);
+  const host = diagramFor(C.view, invalidation, C, opts);
+  const d = C.report.dangling;
+  if (gaps && d.length) host.append(htl.html`<details style="margin-top:6px"><summary>${d.length} keys name no row</summary><ul>${d.map((g) => htl.html`<li><code>${g.relation}</code>: ${g.from} → <code>${g.to}</code></li>`)}</ul></details>`);
+  return host;
+}
+// %%
+// A schema's tables, one line each: key, label, foreign keys, link.
+keysView = (schema) => htl.html`<pre style="font-size:12px;white-space:pre-wrap">${Object.entries(schema.tables).map(([t, d]) => `${t}: ${JSON.stringify(d)}`).join("\n")}</pre>`
+// %%
+viewof folds = Inputs.input({})
+// %%
+viewof order = Inputs.input({})
+// %%
+// Label of a prefix of column levels: the label column of the first row (by id) under it.
+axisLabel = (rows, levels, title) => (prefix) => {
+  if (!prefix.length) return title;
+  const k = prefix.length - 1, lvl = levels[k];
+  if (levels.slice(0, k + 1).some((l) => !l.col)) return `${title} ${prefix.join(" · ")}`;
+  const hit = [...rows.nodes].sort((a, b) => (a.id < b.id ? -1 : 1)).find((n) => levels.slice(0, k + 1).every((l, i) => n[l.col] === prefix[i]));
+  return hit && lvl.label ? String(hit[lvl.label]) : String(prefix[k]);
+}
+// %%
+focusBus = new EventTarget()
+// %%
+diagramFor = (v, invalidation, rows, { hint } = {}) => {
+  const myFolds = folds[v.name] ?? v.folds ?? [], myOrder = order[v.name] || [];
+  const L = engine.layout({ view: v, ...rows, order: myOrder, folds: myFolds });
+  const { svg, geometry } = engine.render(L, { labelFor: axisLabel(rows, v.y, v.yTitle || ""), xLabelFor: axisLabel(rows, v.x, v.xTitle) });
+  const host = htl.html`<div style="background:#f6f7f9;color:#111827;border-radius:6px;padding:10px;overflow-x:auto;font:12px system-ui"><div style="font-weight:600;margin-bottom:4px">${v.name}</div></div>`;
+  const pic = htl.html`<div></div>`;
+  pic.innerHTML = svg;
+  host.append(pic);
+  const name = new Map(rows.nodes.map((n) => [n.id, n.label ?? n.id]));
+  const notes = [hint, L.excluded.length && `${L.excluded.length} ${L.excluded.length === 1 ? "row has" : "rows have"} no value for this view's axes and ${L.excluded.length === 1 ? "is" : "are"} not drawn (${L.excluded.map((id) => name.get(id)).join(", ")})`].filter(Boolean);
+  if (notes.length) host.append(htl.html`<div style="margin-top:6px;opacity:.75">${notes.join(" · ")}</div>`);
+  const setInput = (input, value) => { input.value = value; input.dispatchEvent(new window.Event("input", { bubbles: true })); };
+  const cellOf = new Map();
+  for (const ids of L.cells.values()) for (const id of ids) cellOf.set(id, ids);
+  pic.querySelectorAll(".odg-scc").forEach((el) => {
+    const t = window.document.createElementNS("http://www.w3.org/2000/svg", "title");
+    t.textContent = `these rows reach each other along ${el.getAttribute("data-relation")}, so they share a rank`;
+    el.append(t);
+  });
+  // data-fold is a prefix (one band or bar) or a level number (every prefix of that length).
+  pic.querySelectorAll("[data-fold]").forEach((el) => el.addEventListener("click", () => {
+    const f = JSON.parse(el.getAttribute("data-fold"));
+    const same = (a) => (b) => JSON.stringify(b) === JSON.stringify(a);
+    const has = (x) => myFolds.some(same(x));
+    const drop = (x) => myFolds.filter((y) => !same(x)(y));
+    let next;
+    if (!Array.isArray(f)) next = has(f) ? drop(f).filter((y) => !(y && y.open && y.open.length === f)) : [...myFolds.filter((y) => !(Array.isArray(y) && y.length === f)), f];
+    else if (has(f)) next = drop(f);
+    else if (has(f.length) && has({ open: f })) next = drop({ open: f });
+    else if (has(f.length)) next = [...myFolds, { open: f }];
+    else next = [...myFolds, f];
+    setInput(viewof folds, { ...folds, [v.name]: next });
+  }));
+  // Linked hover: every view highlights the boxes holding any of the hovered ids.
+  const idsOf = (el) => (el.getAttribute("data-id") || el.getAttribute("data-members") || "").split(" ").filter(Boolean);
+  pic.querySelectorAll(".odg-node, .odg-group").forEach((el) => {
+    el.addEventListener("pointerenter", () => focusBus.dispatchEvent(new window.CustomEvent("focus", { detail: idsOf(el) })));
+    el.addEventListener("pointerleave", () => focusBus.dispatchEvent(new window.CustomEvent("focus", { detail: [] })));
+  });
+  const onFocus = (e) => {
+    const want = new Set(e.detail);
+    pic.querySelectorAll(".odg-node, .odg-group").forEach((el) => {
+      const r = el.querySelector("rect");
+      const hit = want.size && idsOf(el).some((id) => want.has(id));
+      r.setAttribute("stroke-width", hit ? "3" : "1");
+      r.setAttribute("stroke", hit ? "#f97316" : el.classList.contains("odg-group") ? "#3b82f6" : "#9ca3af");
+    });
+  };
+  focusBus.addEventListener("focus", onFocus);
+  invalidation.then(() => focusBus.removeEventListener("focus", onFocus));
+  pic.querySelectorAll(".odg-node").forEach((el) => el.addEventListener("pointerdown", (e) => {
+    if (e.target.closest(".odg-link")) return;
+    const id = el.getAttribute("data-id");
+    const ids = cellOf.get(id);
+    if (!ids || ids.length < 2) return;
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    const svgEl = pic.querySelector("svg");
+    const scale = svgEl.viewBox.baseVal.width / svgEl.getBoundingClientRect().width;
+    const x0 = e.clientX;
+    let dx = 0;
+    const move = (m) => { dx = (m.clientX - x0) * scale; el.setAttribute("transform", `translate(${dx},0)`); };
+    const done = () => {
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", cancel);
+    };
+    const cancel = () => { done(); el.removeAttribute("transform"); };
+    const up = () => {
+      done();
+      // Reading order inside a wrapped cell: line first, then x.
+      const at = (k) => { const b = geometry.box.get(k); return [b.y, b.x + b.w / 2]; };
+      const [myY, myX] = at(id);
+      const before = ([y, x]) => y < myY || (y === myY && x < myX + dx);
+      const toIndex = ids.filter((o) => o !== id && before(at(o))).length;
+      if (toIndex === ids.indexOf(id)) { el.removeAttribute("transform"); return; }
+      const res = engine.reorder({ order: myOrder, cellIds: ids, id, toIndex });
+      setInput(viewof order, { ...order, [v.name]: res.order });
+    };
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", cancel);
+  }));
+  return host;
+}
+// %%
+engine = {
+/*@ENGINE@*/
+  return { cmp, cmpTuple, keyBetween, posetRanks, layout, reorder, geometry, render, convexHull };
+}
+// %%
+md`## The spec
+
+For the person who builds the module.`
+// %%
+viewof specStatus = sticky(Inputs.select(["draft", "in review", "approved for handover"], { label: "Status", value: "draft" }), "draft")
+// %%
+readiness = {
+  const notes = (annotations || []).filter((a) => a.home === specModule || (a.anchor && a.anchor.module === specModule));
+  const unchecked = requirements.filter((r) => !r.check || /^<.*>$/.test(r.check.trim()));
+  const blocking = questions.filter((q) => q.blocking && !q.answer);
+  const undrawn = states.filter((s) => !s.drawing);
+  const items = [
+    [notes.length, "annotations to resolve"],
+    [blocking.length, "blocking questions open"],
+    [unchecked.length, `of ${requirements.length} requirements without a check`],
+    [undrawn.length, `of ${states.length} states without a drawing`]
+  ];
+  const ready = items.every(([n]) => n === 0) && specStatus === "approved for handover";
+  // Everything that still needs the reviewer, listed here with a link to where it is answered.
+  const open = questions.map((q, i) => ({ q, i })).filter(({ q }) => !q.answer);
+  const todo = [
+    ...open.filter(({ q }) => q.blocking).map(({ q, i }) => ({ tag: "blocking question", text: q.q, to: `[data-question="${i}"]` })),
+    ...open.filter(({ q }) => !q.blocking).map(({ q, i }) => ({ tag: "open question", text: q.q, to: `[data-question="${i}"]` })),
+    ...unchecked.map((r) => ({ tag: "no check", text: `${r.id} ${r.text}`, to: `[data-requirement="${r.id}"]` })),
+    ...undrawn.map((s) => ({ tag: "not drawn", text: `state: ${s.state}`, to: `[data-state="${s.state}"]` }))
+  ];
+  const box = htl.html`<div style="font:13px system-ui;padding:.5em .8em;border:1px solid color-mix(in srgb, currentColor 25%, transparent);border-radius:6px"></div>`;
+  // Scrolls the pane; a plain #fragment link would replace the lopepage layout hash.
+  const jump = (to) => (e) => {
+    e.preventDefault();
+    const el = (box.closest(".lp2-pane") || box.ownerDocument).querySelector(to);
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (el.animate) el.animate([{ background: "color-mix(in srgb, currentColor 22%, transparent)" }, { background: "transparent" }], 1800);
+  };
+  const short = (s) => (s.length > 110 ? s.slice(0, 110) + "…" : s);
+  box.append(htl.html`<div style="display:flex;gap:1.2em;flex-wrap:wrap;align-items:baseline">
+    <strong>${ready ? "Ready to hand over" : "Not ready to hand over"}</strong>
+    ${items.map(([n, label]) => htl.html`<span style=${{ opacity: n ? 1 : 0.5 }}><strong>${n}</strong> ${label}</span>`)}
+  </div>`);
+  if (todo.length) box.append(htl.html`<ol style="margin:.5em 0 0;padding-left:1.4em">${todo.map((t) => htl.html`<li><a href="#" onclick=${jump(t.to)}>${t.tag}</a>: ${short(t.text)}</li>`)}</ol>`);
+  return box;
+}
+// %%
+md`## Reviewing this spec
+
+- **Leave a note**: ☰ → Annotate → Note, then drag over the words or click the shape. Notes are review comments; Claude Code works through them, and you delete each when it is dealt with.
+- **Ask about a spot**: ☰ → Annotate → Ask, then pick the words or shape and type. The answer threads at that spot.
+- **Click prose** to rewrite it. **Drag shapes** in a drawing to move them.
+- **Play with the prototype**: click a label in its left margin to fold or unfold that level; drag a box sideways to reorder it inside its cell.
+- ☰ → **Save in place** keeps your edits and notes in this file.`
+// %%
+md`## Problem
+
+Tom, 2026-10-25: "I think a diagram should be something close to an ontology. So the links and nodes map to something real, but we don't want a diagram to show everything, rather it has views, and the concept of expansions and compaction, like a 'details' but it folds elements up, so you can have a high level and/or a focus of a real system. The axis need to mean something ordinal, like Y is time, or Y is complexity."
+
+Drawn diagrams (svg-lens, mermaid-lens in this corpus) store coordinates. A box placed by hand says nothing about the system, goes stale when the system changes, and there is no way to ask for the same picture one level up.`
+// %%
+md`## Outcome
+
+- Given a snapshot (a named map of arrays of fixed-shape rows) and a view (which rows are boxes and lines, plus a level list per axis), the diagram is drawn with no hand placement.
+- The same snapshot, view, folds and overlay give a byte-identical SVG, whatever order the snapshot rows arrive in.
+- One snapshot is drawn through several views at once (step 11; the cb4 chapters), each with its own folds and order; hovering a box highlights the same row in every view.
+- Clicking a level label folds every row under it into one span bar; edges crossing the fold are lifted onto the bar with a count.
+- Dragging a box reorders it inside its cell by writing a fractional key to the overlay table; the snapshot tables are not modified.
+- Rows with no value for an axis level are left out and counted.`
+// %%
+md`### Size
+
+Not estimated. The engine above (layout, poset ranks, fold, lift, fractional keys, SVG) is 420 lines (\`engine.js\`, 2026-11-02, after nested folds and cards were added), plus 228 for reading tables into boxes and lines (\`rel.js\`, 2026-11-04), and was first written and tested in one session on 2026-10-26. A module with the open questions settled is more than that.`
+// %%
+md`## Scope
+
+### Not your concern, do not build it
+
+- Live data from the Cloud Brain or any endpoint. The input is a snapshot.
+- A schema or vocabulary for architecture (service, store, calls…). The tool is schema-agnostic.
+- Freehand drawing; that is svg-lens.
+- Mermaid output; that is mermaid-lens.
+- Editing the snapshot from the diagram.
+
+### Non-goals
+
+- Numeric axes. Levels are ordinal so they can fold; a numeric scale cannot collapse.
+- A force-directed or optimising solver. The layout must be deterministic (Tom, 2026-10-26), and the ordinal levels leave nothing continuous to optimise.
+- Edge routing around boxes. Edges are drawn as curves between box sides.`
+// %%
+md`## Words
+
+The implementer uses these strings as written.`
+// %%
+copy_title = md`Ordinal diagram`
+// %%
+copy_opening = md`Each box is a row and each line is a row. Position comes from the axes you pick; folding a level gathers its rows into one bar. Dragging only reorders ties.`
+// %%
+copy_strings = md`| where | text |
+|---|---|
+| excluded notice | *N* rows have no value for this view's axes and are not drawn (*ids*) (one: "1 row has … and is not drawn") |
+| folded group | ▸ *label* · *count*, or with kinds: ▸ *label* · *n* *kind*s, *m* *kind*s |
+| folded card (second line) | *n* *kind*s, *m* *kind*s |
+| folded group with internal edges | ▸ *label* · *count* · *k* inside |
+| lifted edge with more than one | ×*count* |
+| cycle outline tooltip | these rows reach each other along *relation*, so they share a rank |
+| margin hint | click a label to fold or unfold it · drag a box sideways to reorder it (the tutorial steps use a hint per step instead) |`
+// %%
+md`### Tests
+
+- On the 2026-10-27 snapshot (\`snapshot\`, \`snapshotSchema\`, \`views\`): views_differ, matrix_draws_no_edges, deterministic, excluded, cycle, fold_lift, drag_writes_one_row.
+- On saved data: \`test_brain_fixture\` and \`test_strangers\` (cb4, 2026-10-31, test names 2026-11-04), \`test_tutorial_steps\` and \`test_hull\` (the web shop), \`test_compare\` (the web shop's design doc, and cb4's claims).`
+// %%
+md`### Engine test fixtures
+
+The illustrative Cloud Brain snapshot of 2026-10-27, kept for the engine tests below. The live chapters above replaced its diagrams.`
+// %%
+snapshot = (/*@SNAPSHOT@*/)
+// %%
+views = (/*@VIEWS@*/)
+// %%
+snapshotSchema = (/*@SNAPSCHEMA@*/)
+// %%
+// One of the views above drawn from the snapshot; with tables, from those rows instead.
+snapLayout = (i, extra = {}, tables = snapshot) => {
+  const C = relLib.compile(tables, snapshotSchema, views[i]);
+  return engine.layout({ view: C.view, nodes: C.nodes, edges: C.edges, hulls: C.hulls, ...extra });
+}
+// %%
+bare = (id) => id.replace(/^methods:/, "")
+// %%
+test_views_differ = {
+  const L = snapLayout(1, { folds: [[2]] });
+  const g = L.items.find((it) => it.kind === "group");
+  if (!g || g.members.length !== 11) throw new Error("compute fold members: " + (g && g.members.length));
+  const into = L.liftedEdges.filter((e) => e.dst === "[2]").map((e) => bare(e.src) + "×" + e.count).join(", ");
+  if (into !== "drain.run×1, tab.ui×3") throw new Error("into Workers: " + into);
+  return "compute view: Workers band folds 11 methods; drain.run ×1 and tab.ui ×3 call into it";
+}
+// %%
+test_matrix_draws_no_edges = {
+  const M = snapLayout(2);
+  if (M.liftedEdges.length || M.sccs.length || M.hulls.length) throw new Error(`edges ${M.liftedEdges.length}, sccs ${M.sccs.length}, hulls ${M.hulls.length}`);
+  if (M.rows.length !== 5 || M.cols.length !== 5) throw new Error(`grid ${M.rows.length}×${M.cols.length}`);
+  return "compute × layer: 5×5 grid, no edges, no cycle outline, no hull";
+}
+// %%
+test_deterministic = {
+  const svgOf = (tables) => engine.render(snapLayout(0, { folds: [[3]] }, tables)).svg;
+  const a = svgOf(snapshot);
+  const rev = Object.fromEntries(Object.entries(snapshot).map(([k, rows]) => [k, [...rows].reverse()]));
+  if (svgOf(rev) !== a) throw new Error("reversed snapshot rows changed the SVG");
+  return `identical SVG for both row orders, ${a.length} chars`;
+}
+// %%
+test_excluded = {
+  const L = snapLayout(0);
+  if (JSON.stringify(L.excluded.map(bare)) !== '["cache.get"]') throw new Error("excluded: " + JSON.stringify(L.excluded));
+  return "cache.get excluded (no layer)";
+}
+// %%
+test_cycle = {
+  const L = snapLayout(0);
+  const got = JSON.stringify(L.sccs.map((c) => ({ relation: c.relation, members: c.members.map(bare) })));
+  if (got !== '[{"relation":"calls","members":["bluesky.poll","core.route"]}]') throw new Error("sccs: " + got);
+  return "bluesky.poll and core.route share a rank";
+}
+// %%
+test_fold_lift = {
+  const L = snapLayout(0, { folds: [[3]] });
+  const e = L.liftedEdges.filter((x) => x.src === "methods:core.route" && x.dst === "[3]");
+  if (e.length !== 1 || e[0].count !== 4) throw new Error("lifted: " + JSON.stringify(e));
+  return "core.route → services: one edge, ×4";
+}
+// %%
+test_drag_writes_one_row = {
+  const before = JSON.stringify(snapshot);
+  const L = snapLayout(0);
+  const cell = [...L.cells.values()].find((ids) => ids.length > 1);
+  const first = engine.reorder({ order: [], cellIds: cell, id: cell[0], toIndex: cell.length });
+  const L2 = snapLayout(0, { order: first.order });
+  const cell2 = [...L2.cells.values()].find((ids) => ids.includes(cell[0]));
+  const second = engine.reorder({ order: first.order, cellIds: cell2, id: cell[0], toIndex: 0 });
+  if (second.written.length !== 1) throw new Error("second drag wrote " + second.written.length);
+  if (JSON.stringify(snapshot) !== before) throw new Error("snapshot tables changed");
+  return `first drag keyed ${first.written.length} rows, second wrote 1; snapshot unchanged`;
+}
+// %%
+md`## Visual design
+
+The prototype above is the drawing for the open, folded and reordered states. The one drawing below is for a state the prototype does not reach.`
+// %%
+drawTools = {
+  const tools = [["select", "Select", "V"], ["rect", "Rect", "R"], ["ellipse", "Ellipse", "E"], ["line", "Line", "L"], ["text", "Text", "T"], ["pen", "Pen", "P"], ["scribble", "Scribble", "S"]];
+  let host = null;
+  const drawing = () => host && [...host.querySelectorAll("svg")].find((s) => typeof s.setTool === "function");
+  const hint = htl.html`<span style="opacity:.6">click a drawing, then pick a tool</span>`;
+  const bar = htl.html`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;font:13px system-ui;position:sticky;top:0;z-index:2;padding:.4em 0;background:var(--theme-background, #fff)"></div>`;
+  for (const [id, label, key] of tools) {
+    const b = htl.html`<button title="${label} (${key})">${label}</button>`;
+    b.onclick = () => { const d = drawing(); if (d) d.setTool(id); else hint.textContent = "click a drawing first"; };
+    bar.append(b);
+  }
+  bar.append(hint);
+  const onDown = (e) => {
+    let n = e.target && e.target.closest ? e.target.closest("svg") : null;
+    while (n && typeof n.setTool !== "function") n = n.parentElement ? n.parentElement.closest("svg") : null;
+    if (!n) return;
+    host = n.parentElement;
+    hint.textContent = "tools apply to the drawing you last clicked";
+  };
+  window.document.addEventListener("pointerdown", onDown, true);
+  invalidation.then(() => window.document.removeEventListener("pointerdown", onDown, true));
+  return bar;
+}
+// %%
+artboard_x_fold = svgLens({ keyboard: true })`<svg viewBox="0 0 660 300" width="100%" style="max-width:660px;background:#f6f7f9" font-family="system-ui, sans-serif" font-size="11">
+  <text x="216" y="20" fill="#6b7280">depth along calls 0</text>
+  <rect x="346" y="8" width="170" height="18" rx="9" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="356" y="21" fill="#1e3a8a">▸ depth 1–3 · 11</text>
+  <text x="530" y="20" fill="#6b7280">depth 4</text>
+  <rect x="6" y="34" width="96" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/>
+  <text x="10" y="52" fill="#1f2937">▾ client</text>
+  <rect x="6" y="80" width="96" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/>
+  <text x="10" y="98" fill="#1f2937">▾ edge</text>
+  <rect x="6" y="126" width="96" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/>
+  <text x="10" y="144" fill="#1f2937">▾ core</text>
+  <rect x="6" y="172" width="96" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/>
+  <text x="10" y="190" fill="#1f2937">▾ services</text>
+  <rect x="6" y="218" width="96" height="40" rx="4" fill="#3b82f6" fill-opacity="0.07"/>
+  <text x="10" y="236" fill="#1f2937">▾ storage</text>
+  <rect x="122" y="44" width="86" height="26" rx="4" fill="#fff" stroke="#9ca3af"/>
+  <text x="129" y="61" fill="#111827">drain.run</text>
+  <rect x="216" y="44" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/>
+  <text x="223" y="61" fill="#111827">tab.ui</text>
+  <rect x="216" y="90" width="106" height="26" rx="4" fill="#fff" stroke="#9ca3af"/>
+  <text x="223" y="107" fill="#111827">kernel.health</text>
+  <rect x="346" y="90" width="170" height="164" rx="13" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="356" y="176" fill="#1e3a8a">▸ depth 1–3 · 11</text>
+  <rect x="530" y="228" width="60" height="26" rx="4" fill="#fff" stroke="#9ca3af"/>
+  <text x="535" y="245" fill="#111827">rows.get</text>
+  <rect x="596" y="228" width="60" height="26" rx="4" fill="#fff" stroke="#9ca3af"/>
+  <text x="600" y="245" fill="#111827">rows.app…</text>
+  <path d="M322,57 C334,57 334,110 346,110" fill="none" stroke="#6b7280" stroke-width="2"/>
+  <text x="330" y="84" fill="#374151">×3</text>
+  <path d="M165,70 C165,140 300,140 346,140" fill="none" stroke="#6b7280" stroke-width="1.2"/>
+  <path d="M516,241 C523,241 523,241 530,241" fill="none" stroke="#6b7280" stroke-width="2"/>
+  <text x="514" y="226" fill="#374151">×4</text>
+  <path d="M516,200 C600,200 626,210 626,228" fill="none" stroke="#6b7280" stroke-width="1.2"/>
+  <text x="20" y="286" fill="#52606d" font-size="12">Folding an x-level: the group is one bar spanning the rows its members sit in. Not in the prototype.</text>
+</svg>`
+// %%
+md`*X-axis fold, drawn from this snapshot's ranks: depths 1–3 hold 11 methods in rows edge to storage (drain.run, tab.ui and kernel.health are depth 0; rows.append and rows.get are depth 4; r2.get is depth 2). The bar is one box over rows, so on a real x fold the y rows it crosses would have to give up those cells. Folding both axes at once can make two groups claim the same cells; the prototype folds y only.*`
+// %%
+states = [
+  { state: "open", drawing: "chapter_runs", when: "no folds" },
+  { state: "folded", drawing: "chapter_deploys", when: "a y-level label clicked (chapter 4 starts folded)" },
+  { state: "reordered", drawing: "step8", when: "a box dragged inside its cell" },
+  { state: "excluded rows", drawing: "chapter_calls", when: "a row has no value for an axis level (Workers that list no methods in service.list, and brain-deployer, which is not in it)" },
+  { state: "data cycle", drawing: "chapter_calls", when: "rows reach each other along a rank relation (fly ⇄ loop, dashed red outline per member)" },
+  { state: "linked hover", drawing: "step11", when: "the pointer is over a box in any view" },
+  { state: "x-axis fold", drawing: "artboard_x_fold", when: "a column prefix folded" }
+]
+// %%
+statesTable = htl.html`<table style="font-size:.9em">
+  <thead><tr><th>state</th><th>when</th><th>drawing</th></tr></thead>
+  <tbody>${states.map((s) => htl.html`<tr data-state=${s.state}><td>${s.state}</td><td>${s.when}</td><td>${s.drawing ? htl.html`<code>${s.drawing}</code>` : htl.html`<em>not drawn</em>`}</td></tr>`)}</tbody>
+</table>`
+// %%
+md`### Visual constraints
+
+The prototype uses fixed light colours on a light panel (\`#f6f7f9\`) so it reads on the dark theme; a module should take theme variables instead. Slot 118 px, row 46 px, box 26 px, margin 118 px a y-level. At 640 px, chapter 3 (4 columns, cells wrapped at 3) scrolls horizontally inside its panel.`
+// %%
+md`## Behaviour
+
+One requirement per row, in priority order.`
+// %%
+requirements = [
+  { id: "R1", text: "The same snapshot, view, folds and overlay shall produce a byte-identical SVG, whatever order the snapshot rows are in.", check: "test_deterministic; bun test tools/scratch/ordinal-diagram/engine.test.js (shuffles with 3 seeds)" },
+  { id: "R2", text: "Each axis shall be an ordered list of levels; a level is a column (total order) or a relation (rank along its edges); the human key and then id are always the last two levels.", check: "test_cycle; step 4: api.list and api.save share a cell, ordered by id" },
+  { id: "R3", text: "When a y-prefix is folded, all rows under it shall draw as one bar spanning its members' columns (or, with view.cards and all members in one column, as one card in its parent's row), and edges with one end inside shall be lifted onto it with a count.", check: "test_fold_lift; step 7: click public edge and see one bar, ×2 from web.page" },
+  { id: "R4", text: "A drag inside a cell shall write fractional keys to the overlay table and nothing else; once the cell is keyed, a drag writes one row.", check: "test_drag_writes_one_row; step 8: drag api.save left of api.list and see the order table gain 2 rows" },
+  { id: "R5", text: "A row with no value for an axis column level shall be left out and counted under the diagram.", check: "test_excluded; step 9 names cache.get under its diagram" },
+  { id: "R6", text: "Rows that reach each other along a rank relation shall share one rank and be outlined.", check: "test_cycle, test_brain_fixture; chapter 3 outlines fly and loop" },
+  { id: "R7", text: "Rows of an n-ary table named as hulls shall be enclosed by one hull per key.", check: "test_hull; step 10: the save request hull encloses web.page, api.save, auth.check, db.write" },
+  { id: "R8", text: "Boxes and lines shall be read from tables by their declared keys, with no query language and no node or edge table written by hand. Every diagram on the page is drawn this way.", check: "rel.test.js: every tutorial step, every chapter and the 2026-10-27 views lay out as the old hand-written rows did; test_tutorial_steps, test_brain_fixture" },
+  { id: "R9", text: "Several views over one snapshot shall be drawn together, each with its own folds and order table, and hovering a box shall highlight the boxes holding the same row in every view.", check: "test_views_differ; step 11: fold serverless in the second view and the first is unchanged; hover a box and it is outlined orange in both" },
+  { id: "R10", text: "A fold may name a whole y level, folding every prefix of that length, with single prefixes kept open; clicking a level's header toggles it, and a folded group's label counts its rows by kind.", check: "live.test.js 'methods inside their Worker'; Explore on cb4: click a card, then the nest 1 header" },
+  { id: "R11", text: "A foreign key may name several tables (the first holding the key wins); a line lifted through a docs row is docs; lines with the same drawn ends are one line with the keys they end at; every key that names no row is listed.", check: "rel.test.js; chapter 5 dashes resources lines; Explore lists the keys that name no row (3 on live cb4, 2026-11-03)" },
+  { id: "R12", text: "A view may compare a claimed relation with an observed one: after lifting, each pair of drawn ends gets one line, marked convergence (both), divergence (observed only) or absence (claimed only); with scope 'claimed', only divergences ending where a claim ends are kept.", check: "test_compare; rel.test.js 'the design doc against the calls', 'cb4's deployer reference claims four calls'; step 13 draws one red dashed web → auth" },
+  { id: "R13", text: "Every line shall carry the base rows behind it; a fold's count and a line's width shall be the number of base rows, summed through every lift.", check: "rel.test.js 'a fold's line weight counts base rows'; hover a line to list its rows" },
+  { id: "R14", text: "A lifted line shall equal Holt's lift without its '- D - A' term: containment composed with the relation composed with containment's inverse, less the identity. A line between a box and a box nested in it is kept (see Decisions).", check: "rel.test.js 'a lifted line is the relation composed with containment', on the shop and on cb4" }
+]
+// %%
+requirementsTable = htl.html`<table style="font-size:.9em">
+  <thead><tr><th>id</th><th>requirement</th><th>check</th></tr></thead>
+  <tbody>${requirements.map((r) => htl.html`<tr data-requirement=${r.id}><td><strong>${r.id}</strong></td><td>${r.text}</td><td>${r.check ? htl.html`<code>${r.check}</code>` : htl.html`<em>none</em>`}</td></tr>`)}</tbody>
+</table>`
+// %%
+md`Worked cases on the 2026-10-27 test snapshot (the \`snapshot\` cell, not drawn on this page), the first checked by \`test_fold_lift\`, the last by \`test_drag_writes_one_row\`:`
+// %%
+examples = [
+  { given: "fold [3] (services)", expect: "one bar 'services · 5 methods', edge core.route → bar ×4, bar → cb4-sql edges lifted" },
+  { given: "fold [3] and [4]", expect: "services and storage rows each one bar; storage bar shows its inbound edges lifted (not asserted by a test)" },
+  { given: "drag kernel.xrpc to the left of kernel.session", expect: "order gains 2 rows (cell keyed), kernel.xrpc first; a second drag in that cell changes 1 row" }
+]
+// %%
+examplesTable = htl.html`<table style="font-size:.9em"><thead><tr><th>given</th><th>expect</th></tr></thead>
+  <tbody>${examples.map((e) => htl.html`<tr><td>${e.given}</td><td>${e.expect}</td></tr>`)}</tbody></table>`
+// %%
+md`## Design
+
+The flowchart below is drawn by mermaid, which loads from a CDN: offline it shows \`unable to load module\`.`
+// %%
+architecture = onPaper(mermaid`flowchart LR
+  snap[(snapshot tables + keys)] --> keys[compile: boxes, lines, hulls]
+  keys --> lv[levels per axis]
+  ord[(overlay: order fkey)] --> lv
+  lv --> rk[ranks: column order or SCC + longest path]
+  rk --> paths[x path, y path per row]
+  folds[folds: y prefixes] --> q[quotient: rows under a folded prefix become one group]
+  paths --> q
+  q --> lift[lift edges: group by visible ends, sum base rows]
+  q --> geo[geometry: column widths from cell occupancy]
+  lift --> svg[SVG string]
+  geo --> svg
+  svg -. click label .-> folds
+  svg -. drag in cell .-> ord`)
+// %%
+md`### How a row gets its place
+
+1. Every level gives the row a value: the column's value, or its rank along the relation. A relation is condensed into strongly connected components first, so a cycle gets one rank; rank is the longest path from a source, ties visited in id order.
+2. The y values form the row's y path, the x values its x path. Distinct y paths are rows of the grid and distinct x paths are columns, both sorted lexicographically (numbers before strings, strings by code unit, never \`localeCompare\`).
+3. Rows sharing both paths share a cell and are ordered inside it by the view's \`cellSort\` columns, then human key, then id.
+4. A folded y prefix replaces every row under it with one group. The group's row is the prefix itself and it spans from its leftmost to its rightmost member's column. With \`view.cards\`, a group whose members share one column is instead a box in its parent prefix's row, ordered with that row's boxes. A fold is a prefix, a level number (every prefix of that length), or \`{open: prefix}\` (an exception to a level fold).
+5. Column width is the largest cell occupancy in that column across the visible rows, so folding reflows widths as well as rows.`
+// %%
+md`### Decisions
+
+| decided | instead of | because |
+|---|---|---|
+| input is a snapshot of tables | live entities from a Cloud Brain endpoint (interview answer, 2026-10-25) | Tom, 2026-10-26: "really it should work off a snapshot"; the RPC map is test data |
+| schema-agnostic: a named map of arrays of fixed-shape rows | Cloud Brain lexicons as the vocabulary (2026-10-25) | "its a general diagram drawing tool, so the source is probably something morphic to a relational model" |
+| one model: every diagram is boxes and lines read from tables by their keys | nodes and edges built in JS per diagram (\`brainRowsOf\`, \`withMethods\`, \`tinyRowsOf\`) | Tom, 2026-11-03: "yes move everything to tables so we have one conceptual model in play" |
+| boxes and lines come from the tables' keys, no query language | SQL queries (sql.js), chosen 2026-10-26 ("lets do real SQL I think it will make it more readable") | Tom, 2026-11-03: "yes lets eliminate SQL now, it simplifies things". Every query had a JS twin the diagrams drew from, sql.js needed the network, and depth along a relation stayed in JS |
+| axes are ordinal levels, no numeric spacing | numeric scales | "the axis are not spaced numerically, so they are collapsable" |
+| every level is an order relation; a column is the total-order case | attribute axes and graph axes as separate kinds | Tom: "Maybe its more consistent if edges ARE the coordinate system?" |
+| a drag writes a fractional key to an overlay table | a pairwise "C below B" row per drag (Tom's first pick) | Tom: "fraction key is simpler"; it cannot form a cycle. Also "human edits cannot change the truth of the dataset" |
+| id is always the last tie break | allowing boxes to stack | "we always need tie breakers to avoid stacking on top, even if its some default system id" |
+| deterministic layout, no solver | constraint or force solver | Tom, 2026-10-26: "it needs to be a deterministic layout" |
+| fold = truncate a y prefix; lift = group by visible ends, count | Datalog lifting rules (interview answer, 2026-10-25) | a lift is a group-by on the visible ends; renaming a relation as it lifts is not built |
+| a line between a box and a box nested in it is kept | Holt's lift, which removes ancestor and descendant pairs (\`HLU := (D o U o A) - ID - D - A\`, Fahmy, Holt, Cordy 2001) | a Worker calling a method drawn inside another Worker is the call graph of chapter 3; the two definitions agree wherever no row is drawn inside another drawn row: R14's test draws parent boxes only, and on the 2026-11-03 fixture no chapter draws a line between a row and its ancestor (cb4 has no Worker calling its own method) |
+| docs against data is a compare of two relations | data and docs lines drawn side by side, never compared (before 2026-11-03) | Tom, 2026-11-03: "Maybe they do some things better we can integrate"; reflexion models are the closest published form |
+| a level named \`id\`, \`label\`, \`kind\` or \`href\` is refused | storing it and overwriting the box's field | found 2026-11-03: \`{ col: "id" }\` replaced every box's id, and every line was hidden |
+| folds and order are keyed by view name | one shared fold state | Tom, 2026-10-27: "hard to see its value without multiple views… interesting to see the code/infra grouped by compute type vs. call graph" |
+| folded group is a span bar over its members' range | a point at an aggregate value | Tom's answer 2026-10-25 |
+| fold groups are the levels the drawer chose | a fixed containment tree | "possibly an aesthetic choice up to the diagram drawer" |
+| rows missing an axis value are excluded and counted | a parking strip, or inferring a value | Tom's answer 2026-10-25 |
+| n-ary relations draw as hulls | hub nodes or metro lines | Tom's answer 2026-10-25 |
+| expand reflows in place | drill down, fisheye | Tom's answer 2026-10-25 |
+
+### Known traps
+
+- \`localeCompare\` depends on the browser's locale, so it would break R1 across machines. The engine compares by code unit.
+- A convex hull of a flow's boxes covers boxes that are not in the flow. Seen 2026-10-26 in the prototype: the 'inbox.poll path' hull covers kernel.session. A hull that hugs only its members is more work and is not built.
+- A curve between two boxes in one row passes behind any box between them and reads as an edge from that box. The 2026-10-27 review found three: tab.ui → kernel.xrpc looked like kernel.session → kernel.xrpc, and likewise core.route → core.decide and the calls into rows.get. The engine now arcs a same-row edge over the row, and attaches a cross-row edge's end at the top or bottom of its box when a box sits between the ends in that row. Two opposite edges between the same boxes (core.route ⇄ the folded services bar) drew on one line; they are now offset 5 px each way, with the count beside the line.
+- A cycle outline drawn around a folded group covers the whole bar. The engine draws the outline only while every member is its own box; folded, the cycle shows as lifted edges in both directions.
+- \`Map\` and \`Set\` iterate in insertion order, which is snapshot row order. Every iteration the engine's output depends on is sorted first; R1's test reverses the rows to catch a miss.`
+// %%
+md`### Prior art
+
+Read 2026-11-03 by three research agents, each citation checked against its DOI or Crossref record and, where marked, the paper's own text. The 2026-10-26 list it replaces was from a web search and memory.
+
+**What each part of the model is called**
+
+| here | published as | source | read |
+|---|---|---|---|
+| y and x level lists | *nest*: "only creates set entries for which there exist records with those domain values"; the grid is the *cross* of the two axes | Stolte, Tang, Hanrahan, [Polaris](https://graphics.stanford.edu/papers/polaris_extended/polaris.pdf), IEEE TVCG 8(1) 2002, §4.1 | full text |
+| fold | *roll-up*: nodes equal on every dimension in D become one node; edge weight is the sum over the members | Wattenberg, [PivotGraph](https://doi.org/10.1145/1124772.1124891), CHI 2006 | full text |
+| \`where\` | *selection*: the induced subgraph on chosen attribute values | same | full text |
+| lifting through \`nest\` | *lift*: \`(D o U o A) - ID - D - A\`, with \`D = C+\`, \`A = inv(C)+\` | Fahmy, Holt, Cordy, [Wins and Losses of Algebraic Transformations of Software Architectures](https://doi.org/10.1109/ASE.2001.989790), ASE 2001; Holt, [Structural manipulations of software architecture using Tarski relational algebra](https://doi.org/10.1109/WCRE.1998.723191), WCRE 1998 | ASE 2001 full text; WCRE 1998 citation only |
+| \`compare\` | *reflexion model*: convergences, divergences, absences of a high-level model against a mapped source model | Murphy, Notkin, Sullivan, [Software reflexion models](https://doi.org/10.1145/222124.222136), FSE 1995 | full text |
+| depth along a relation | longest-path layering after merging each cycle; the Graphviz paper rejects merging cycles ("more informative drawings than would be obtained by collapsing all the nodes in a cycle") and minimises edge length instead | Gansner, Koutsofios, North, Vo, [A technique for drawing directed graphs](https://doi.org/10.1109/32.221135), IEEE TSE 1993 | full text |
+| deterministic layout | "Hive plots are predictable: for a given set of rules, the same structures always have the same layout" | Krzywinski et al., [Hive plots](https://doi.org/10.1093/bib/bbr069), Briefings in Bioinformatics 2012 | full text |
+| placement by attribute | "non-overlapping regions in which node placement is based on node attributes" | Shneiderman, Aris, [Semantic substrates](https://doi.org/10.1109/TVCG.2006.166), IEEE TVCG 2006 | full text |
+| drag order | fractional index: "Reordering an object only involves editing a single value" | Wallace, [Realtime editing of ordered sequences](https://www.figma.com/blog/realtime-editing-of-ordered-sequences/), Figma 2017 | fetched |
+
+**Taken from it on 2026-11-03**
+
+- From Holt: R14's test builds the lift in set algebra and compares it with \`compile\`. It holds on the shop and on cb4. The one difference is kept on purpose (see Decisions).
+- From Murphy et al.: \`compare\`, R12, chapter 6 and tutorial step 13. Their \`mapFunc\` takes "the first match of a given source model entity", the rule R11 already used for a foreign key naming several tables.
+- From PivotGraph and from Graph Cube ([Zhao et al.](https://doi.org/10.1145/1989323.1989413), SIGMOD 2011, Def. 2): a line's weight is the sum over its base rows (R13). Before, a fold counted lines it merged, so two calls already merged into one line counted as one. Width now grows with the log of the weight.
+
+**Where this tool differs**
+
+- A fold set is not a Graph Cube cuboid. A cuboid replaces any subset of dimensions with \`*\`; a fold hides only the tail of the y list, chosen per subtree, and never an x level.
+- PivotGraph rolls up two flat dimensions; levels here nest and may be ranks along a relation.
+- Lakos's level (*Large-Scale C++ Software Design*, 1996) counts from the sinks, and cyclic components have no level. Both are from secondary sources, *not checked* in the book. Depth here counts from the sources and gives a cycle one rank, which is this tool's choice.
+
+**Not taken, with the cost**
+
+- Polaris concatenation (\`+\`): rows of different tables, each with its own levels, side by side on one axis. Today a row missing a level column is excluded (R5). Small.
+- Edge attributes as levels: a relation's own columns for \`where\` and \`show\`. Nobre et al. ([survey](https://doi.org/10.1111/cgf.13728), CGF 2019) note faceting does not support them. Medium.
+- Ordering an axis's values by barycentre or by hand (PivotGraph; Bertin's reorderable matrix, *not checked*). The \`order\` table reorders ties inside a cell only. Medium.
+- Holt's "diagnostic" lowering as a gesture: the rows are on each line (R13) and shown on hover; a click that opens them is not built. Small.
+- A stability test: adding rows keeps every pair's order on each axis. It holds for column levels by construction and fails for depth levels, where one new call can move a box deeper. The criterion is in the mental-map literature (Misue, Eades, Lai, Sugiyama, [Layout adjustment and the mental map](https://doi.org/10.1006/jvlc.1995.1010), 1995; its wording *not checked*). Small.
+- SetCoLa ([Hoffswell, Borning, Heer](https://doi.org/10.1111/cgf.13440), EuroVis 2018): constraints on sets chosen by data properties. It needs a solver; Boundaries say ask first.
+
+Citation only, not read: Koschke and Simon, [Hierarchical reflexion models](https://doi.org/10.1109/WCRE.2003.1287235), WCRE 2003, the next thing to read for a \`compare\` with nested claims; Wilkinson, *The Grammar of Graphics* (2005); Bertin, *Semiology of Graphics*; Eades and Feng's clustered graphs (GD '96).`
+// %%
+md`## Handover
+
+### Where the work goes
+
+- A new module, name not settled (open question). The engine is this spec's \`engine\` cell; \`tools/scratch/ordinal-diagram/engine.js\` is the same source with its bun tests.
+- Tables to boxes and lines is this spec's \`relLib\` cell, the same source as \`tools/scratch/ordinal-diagram/rel.js\` (tests in \`rel.test.js\`). Added 2026-11-02; since 2026-11-03 every diagram on the page goes through it. \`oracle.js\` keeps the hand-written rows the page drew before, for the tests only.
+- Read \`knowledge/svg-editor-architecture.md\` before adding editing to the SVG, and \`knowledge/keeping-user-state-in-the-saved-notebook.md\` before persisting the overlay table.
+
+### Boundaries
+
+| | |
+|---|---|
+| **always** | keep every iteration the SVG depends on sorted; run the checks below |
+| **ask first** | adding a query language; adding any solver |
+| **never** | write to snapshot tables from the diagram; use \`localeCompare\` or \`Math.random\` in layout |
+
+### Checks
+
+\`\`\`
+bun test tools/scratch/ordinal-diagram/                 # 33 pass (engine.test.js, live.test.js, rel.test.js)
+run_tests on @spec/ordinal-diagram                     # 12 test_* cells pass, offline
+\`\`\`
+
+### Steps
+
+1. Settle the blocking questions below. **stop and show**
+2. Move the engine into a module with the tests as its \`test_*\` cells.
+3. Persist \`order\` and \`folds\` in the saved notebook.
+4. Load a second, non-architecture snapshot and view to check the tool is schema-agnostic. **stop and show**`
+// %%
+md`## Open questions
+
+A question marked blocking stops the handover.`
+// %%
+questions = [
+  { q: "The axis template. The prototype reads boxes and lines from the tables' keys plus a JS list of levels. Tom described nested queries (..X, x, y) where each axis is a nesting of data transforms. Which form is the view definition?", blocking: true, answer: "" },
+  { q: "Can the human key sit before data levels (overriding them), or only after them as a tie break? The prototype puts it last but one, so a drag cannot move a box out of its cell.", blocking: true, answer: "" },
+  { q: "Rank within a relation level: longest path from sources (prototype), or distance from chosen roots (for a focus view)?", blocking: false, answer: "" },
+  { q: "Should a deterministic crossing-reduction pass order boxes inside a column before the id tie break? The prototype has none.", blocking: false, answer: "" },
+  { q: "Data cycles: keep sharing one rank with an outline (prototype), or fold each cycle into a group automatically?", blocking: false, answer: "" },
+  { q: "What is 'a dimension' as a constraint condition? Tom listed it beside edge label and entity type on 2026-10-26.", blocking: false, answer: "" },
+  { q: "Should x-levels fold too (artboard_x_fold)? If both axes fold, two groups can claim the same cells.", blocking: false, answer: "" },
+  { q: "Where does a promoted group live, given the snapshot is never edited: an overlay table in the notebook?", blocking: false, answer: "" },
+  { q: "sql.js from a CDN (prototype, via stdlib SQLite) or vendored as a file attachment so the notebook works offline?", blocking: false, answer: "Neither. Tom, 2026-11-03: \"yes lets eliminate SQL now, it simplifies things\". SQL removed." },
+  { q: "Rule rows (\"all stores below all services\", conditioned on relation, type or dimension) as a second overlay table, with cycles among them shown: in scope for the first module?", blocking: false, answer: "" },
+  { q: "Should edges be drawable only for relations the view names (drawRelations), with rank relations hidden by default?", blocking: false, answer: "" },
+  { q: "Module name.", blocking: false, answer: "" }
+]
+// %%
+questionsTable = htl.html`<table style="font-size:.9em">
+  <thead><tr><th></th><th>question</th><th>answer</th></tr></thead>
+  <tbody>${questions.map((q, i) => htl.html`<tr data-question=${i}><td>${q.blocking && !q.answer ? "blocking" : ""}</td><td>${q.q}</td><td>${q.answer || htl.html`<em>open</em>`}</td></tr>`)}</tbody>
+</table>`
+// %%
+// mermaid draws dark text on no background, which is unreadable on a dark theme.
+onPaper = (node) => htl.html`<div style="max-width:640px;background:#f6f7f9;border-radius:6px;padding:10px">${node}</div>`
+// %%
+specModule = "__SPEC_MODULE__"
+// %%
+import {md} from "@tomlarkworthy/editable-md"
+// %%
+import {svgLens} from "@tomlarkworthy/svg-lens"
+// %%
+import {annotation, annotations} from "@tomlarkworthy/annotate"
+// %%
+import {sticky} from "@tomlarkworthy/sticky"
+
+
