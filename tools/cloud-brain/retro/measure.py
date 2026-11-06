@@ -76,14 +76,16 @@ if DEP:
             for w in str(e.get("note") or "").split():
                 if w.startswith("deploy:"): WAITS[w[7:]].append((e["id"],e["at"],e.get("until") or 9e15))
         if e["type"]=="moved" and e.get("to") in ("done","closed","rejected"): ENDAT.setdefault(e["id"],e["at"])
-    GOT={m.groups() for e in E if e["type"]=="commented" for m in [re.match(r"receive/[^/]+/([a-z.-]+)/(.+)/comment$",e.get("key",""))] if m}
+    # Keyed by Worker@hash12 too: an issue that heard an approval of one hash had hid a lost approval of the next (retro 2026-11-06).
+    GOT={m.groups()+(h,) for e in E if e["type"]=="commented" for m in [re.match(r"receive/[^/]+/([a-z.-]+)/(.+)/comment$",e.get("key",""))] if m
+         for h in [next((r["value"].split("@")[0]+"@"+r["value"].split("@")[1][:12] for r in e.get("refs") or [] if r.get("kind")=="deployed" and "@" in r.get("value","")),None)]}
     for w,lo in(("24h",D1),("7d",D7)):
         lost=set()
         for l in L:
             k=l["at"][7:]
             if l["t"]<lo or k not in ("waiting","approved","confirmed","put-back") or not l.get("target") or not l.get("hash"): continue
             for i,a,u in WAITS.get(l["target"]+"@"+l["hash"][:12],[]):
-                if a<=l["t"]<u and not ENDAT.get(i,9e15)<l["t"] and (k,i) not in GOT: lost.add((iso(l["t"]),k,l["target"]+"@"+l["hash"][:12],i))
+                if a<=l["t"]<u and not ENDAT.get(i,9e15)<l["t"] and (k,i,l["target"]+"@"+l["hash"][:12]) not in GOT: lost.add((iso(l["t"]),k,l["target"]+"@"+l["hash"][:12],i))
         P(w,"deploy lines a live wait named that never reached the issue:",len(lost),sorted(lost)[:12])
 # pass -> live on the tracker: a pass review then a comment that says deployed/live
 P("hours from a pass to a `live`/`deployed` comment, 7d, service issues:")
