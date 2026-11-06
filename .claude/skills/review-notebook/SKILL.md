@@ -247,3 +247,6 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
 - 2026-11-01 `plan/retros/2026-11-01.md`, authored by the spawning session: FIX, 6 findings (4 confirmed, 2 plausible), all
   taken (a wait dated by the wrong state, a seq cited wrong, two reads counted as made where one was, a before row and the
   issue's bar left out, an observation left with nobody, an ask count with no method). 89k subagent tokens, 3m20s.
+- 2026-11-06 `plan/retros/2026-11-06.md`, authored by the spawning session: FIX, 6 findings (5 confirmed, 1 plausible), all
+  taken (a hand-back said to need one start where the code needs a second pass 600 s later, three runs called none, a delay
+  left out, a wait read as its label, `$S` undefined, a token's file the tool does not search). 100k subagent tokens, 3m58s.
