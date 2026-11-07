@@ -392,3 +392,15 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   mains and svg-lens dropped, 5.1 MB -> 3.9 MB): BLOCK, 6 findings (4 confirmed, 2 plausible), all taken. 173k subagent tokens, 7m27s. What the
   author had not seen: dropping svg-lens left the drawing toolbar and a "drag shapes" instruction with nothing to act on, and path ids
   held a space, which the linked hover splits on.
+- 2026-11-07 `plan/specs/modular-arm.html`, `@spec/modular-arm`, the round-2 cells (`jointTrials`, `powerChain`, "Joints", "Drive",
+  "Proposed compromise", `test_compromise_numbers`, the HPCB 6 V table in `ds`): FIX, 9 findings, all taken in round 3 the same evening.
+  What the author had not seen: dropping the 1 A cap had lowered the continuous limit to 0.375 A, so "30:1 cannot" was a duty of 0.73,
+  not a no; a stall's 231 N went into a screw, nut and gearbox nobody had checked; and the parallel-bridge wiring needs AISEN and BISEN
+  on one resistor, on a datasheet page the excerpt had dropped.
+- 2026-11-07 `plan/specs/modular-arm.html`, `@spec/modular-arm`, whole, after round 3 (tool forces, thrust bearing, 3.3 V rail, DRV8215,
+  measurement kit, 22 attachments): FIX, 12 findings, 10 taken and 2 declined (one cell of proposal values to replace three copies of the
+  same literals, left as upkeep; the 16 MB size, explained in the notebook instead of shrunk). 293k subagent tokens, 7m25s. What the author
+  had not seen: "One strut, end to end" still told a builder to glue the ball and fit the brass coupling two headings after both were
+  replaced, the 3D model still drew the coupling, and Handover named 4 of the 9 blocking questions and not the proposed next step.
+- 2026-11-07 `plan/specs/modular-arm.html` (`@spec/modular-arm`), the Test kit BoM section and the cutSheets style scoping: FIX, 6 findings, all confirmed and all taken. 118k subagent tokens, 5m21s. What the author had not seen: the kit had no bench supply or controller for two of its six measurements, the cup arc was drawn as a dome over the ball (SVG sweep flag), the lip sat at the wrong height and cut into the ball, two labels collided, and two earlier pointers still sent the reader to the superseded €92 list.
+- 2026-11-07 `@tomlarkworthy/exporter-3`, changes since `e65982c~1` (write `"prerender": false` back to bootconf): FIX, 2 findings and 1 note, all confirmed. Taken: the missing test (prerender logic pulled into `resolvePrerender` and `bootconfPrerenderLine`, two tests, lopecode `b87dbcd` / lopebooks `2f00130b`). Left for Tom: the push of the `book` cell to Observable, whose copy still has the old line, and the sweep to the 252 other copies. 77k subagent tokens, 2m51s.
