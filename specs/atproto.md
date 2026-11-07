@@ -105,7 +105,7 @@ A lexicon is published as a `com.atproto.lexicon.schema` record whose rkey is th
 
 ```
 _lexicon.lopecode.com  TXT  "did=did:plc:j7nm3lrd5h7fm3sfhcv3lhfv"     (larkworthy.bsky.social, PDS earthstar.us-east.host.bsky.network)
-_lexicon.bundle.lopecode.com                                           no record
+_lexicon.bundle.lopecode.com  TXT  "did=did:plc:j7nm3lrd5h7fm3sfhcv3lhfv"     (added by the owner later on 2026-11-07)
 
 at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/com.atproto.lexicon.schema/com.lopecode.bundle           present  bafyreihby6h3hcdbdilecpi4byzj6czp6gyfidfcxdaqvufltvy2ysf2w4
 at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/com.atproto.lexicon.schema/com.lopecode.bundle.version   present  bafyreialwki4cwvprrdf724ab5fpfg337avdcrhfmgtazhtmgk6wdyqqzm
@@ -114,7 +114,7 @@ at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/com.atproto.lexicon.schema/com.lopecode.mo
 
 `com.lopecode.module` was created by the lopecode workflow run 42417311979 at 21:45:10 UTC on 2026-11-07 (commit `693851c`), the first credentialed run of the lexicon step; the same run printed no-change for `com.lopecode.bundle` and the warning for `com.lopecode.bundle.version`. Read back from the PDS afterwards: required `id, source, imports, attachments, createdAt`, no `by`, `encoding` a plain string.
 
-- **`com.lopecode.bundle.version` does not resolve.** Its record is in the repo, but a resolver looks for `_lexicon.bundle.lopecode.com`, which does not exist. The fix is that TXT record, with the same `did=` value, in the `lopecode.com` zone. Not done.
+- **`com.lopecode.bundle.version` did not resolve until 2026-11-07.** Its record was in the repo, but a resolver looks for `_lexicon.bundle.lopecode.com`, which did not exist. The owner added it that evening (`TXT "did=did:plc:j7nm3lrd5h7fm3sfhcv3lhfv"`, read over DNS-over-HTTPS), and the dry run after it read all three records as no-change, exit 0.
 - **The source of truth is `lopecode/lexicons/<nsid>.json`**: the lexicon document without `$type`. The two bundle files were copied from the live records on 2026-11-07, and each equals its record. The tool reports `com.lopecode.bundle` as no-change; it skips `com.lopecode.bundle.version` before comparing, because `_lexicon.bundle.lopecode.com` does not resolve.
 - **Publishing.** `bun tools/atproto-publish-lexicons.ts --publisher lopecode/notebooks/atproto.html [--dry-run] lopecode/lexicons/*.json`, or `--changed <file listing changed paths> --repo-root <dir>` as the workflow runs it. It resolves `_lexicon.<authority>` over DNS-over-HTTPS. With no such record it prints a `::warning::` and skips the file (exit 0), since no resolver could reach the record. It refuses when the session's DID is not the one DNS names, leaves a record holding the same document, and writes a changed one with `putRecord` and `swapRecord` set to the CID it read. A `getRecord` error other than `RecordNotFound` fails the file rather than being taken as no record. Login is at-login's `createAppPasswordSession` and `xrpc`, loaded from `atproto.html` by `loadPublisher` of `tools/atproto-publish.ts`. `--dry-run` needs no credentials.
 - **CI.** `lopecode/.github/workflows/atproto-publish.yml` triggers on `lexicons/**` too, and its last step, "Publish lexicons", runs the tool on the changed paths with the repo's `ATPROTO_IDENTIFIER` / `ATPROTO_APP_PASSWORD`. It runs when the notebook step failed too (`!cancelled()`). The workflow checks out `tools/` of lopecode-dev `main`, so the tool must be on that branch before a lexicon push publishes. Only lopecode's workflow has the step; lopebooks' has none.
