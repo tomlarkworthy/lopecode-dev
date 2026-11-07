@@ -335,3 +335,60 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   4's "the one row of the actors table" false, the opening still listed six questions, and every chapter waited for the 6.4 MB of
   source that only chapter 8 reads.
 - 2026-11-05 `lopebooks/notebooks/@tomlarkworthy_systems-tabletop.html`, module `@tomlarkworthy/systems-tabletop`, named rules in place of numbered ones: FIX, 3 findings (all plausible), all taken. 76k subagent tokens, 16m10s. What the author had not seen: the rule-name definition also matched the example's title line and its "Each turn…:" line, and nothing on the page told a person writing rules that each needs a name.
+- 2026-11-06 `plan/specs/modular-arm.html` (`@spec/modular-arm`, design-space spec for a modular 6DOF arm, authored by the spawning
+  session): FIX, 9 findings (8 confirmed, 1 plausible), all taken and rebuilt. 112k subagent tokens, 8m23s. What the author had not
+  seen: the belt stage was attached by object identity, so it also geared the wrist whenever both actuator choices matched; fixing it
+  made an identical-module design pass at 0.3 kg @ 0.4 m, and that falsified the author's "never passes" finding. Two quoted figures
+  (92% of stall, 0.2–0.4 kg on a bayonet) came from the wrong column.
+- 2026-11-06 `plan/specs/modular-arm.html`, `@spec/modular-arm`, the four sections added after the servo-arm findings (direction, prior art, market research, hexapod links) and `questions`: FIX, 8 findings (6 confirmed, 2 plausible), 7 taken, 1 partly (the untracked `hexlink.ts` is labelled uncommitted, not committed or moved into a cell). 102k subagent tokens, 3m32s. What the author had not seen: the T8×8 screw it called self-locking back-drives (lead angle ~20° against ~11° friction), the spec's opening and Handover still built the servo arm, and the new 0.1 mm target had no requirement.
+- 2026-11-06 `plan/specs/modular-arm.html`, `@spec/modular-arm`, the hexapod-link-with-cube-joints and low-cost-link entries plus the research-log rewording: FIX, 10 findings, all taken. 117k subagent tokens, 4m43s. What the author had not seen: a servo link priced "under $100" from parts its own row put at up to $159, and a "serves" column naming markets the market table never researched.
+- 2026-11-06 the same module, the DC-motor strut entry (live thrust/speed/resolution table): BLOCK, 7 findings, all taken. 92k subagent tokens, 4m09s. What the author had not seen: it sized the fast N20 for "about 20 N" of tool load when the notebook's own strut-force ratio (2.4–3.9× the load) gives 5–9 N, and the summary block was hand-copied from the live table with no test (one added).
+- 2026-11-06 the same module, the light-link stack entry (`stackDemand`, new N20/HPCB/JGA25 rows): BLOCK, 6 findings, all taken. 111k subagent tokens, 3m48s. What the author had not seen: the demand table filed the HPCB motors under a 0.6 kg link while the prose rated them against the 0.3 kg demand (HPCB is N20-size; the row label was the error), and the HPCB rows used 28 encoder counts where Pololu's encoder is 12 CPR.
+- 2026-11-06 `plan/specs/modular-arm.html`, `@spec/modular-arm`, cells from "Hexapod link model, moved into the notebook" to the end
+  (the hexapod model, four configurations, a three.js viewer, a design proposal): BLOCK, 6 findings (5 confirmed, 1 plausible),
+  all taken. 116k subagent tokens, 5m04s. What the author had not seen: the proposal priced generic N20s next to a branded
+  Pololu strut, a "within 2°" claim the sliders contradict (and a twist range that falls to ±55° at 15°), and a ±40° tilt
+  that holds only when the platform height may move (±37–38.5° at home height).
+- 2026-11-06 `plan/specs/modular-arm.html`, `@spec/modular-arm`, the link-controller cells (`linkPinBudget`, its test, "Link
+  controller: proposal"): FIX, 7 findings (2 confirmed, 1 datasheet fact, 4 plausible), all taken. 79k subagent tokens, 3m39s.
+  What the author had not seen: two earlier cells still named the RP2040 the new cell replaced; 26 GPIO is the Pico board,
+  not the chip (30); a DRV8833 has two sense pins, which took the budget from 33 to 36; and "a port gives 15 W" is a maximum.
+- 2026-11-06 `plan/specs/modular-arm.html`, `@spec/modular-arm`, the draft link-controller circuit (`ctrlPinMap`, `ctrlParts`,
+  `ctrlSense`, block diagram, notes): FIX, 12 findings (6 confirmed against fetched datasheets, 6 plausible), all taken.
+  120k subagent tokens, 5m34s. The reviewer fetched the RP2350, DRV8833 and Pololu #3072 pages and closed the author's
+  "recalled, unchecked" caveats. What the author had not seen: the proposal's "cap to what the port reports" had no wire to
+  the CC pins; the ADC behind an RC filter reads current × duty, not current; a 100 µF bulk cap charged straight from VBUS;
+  and six motors at rated load draw about 3.6 A, more than a 3 A port.
+- 2026-11-07 `plan/specs/modular-arm.html`, `@spec/modular-arm`, the connector cells (`interfaceLoads` to "Connector:
+  proposal"): FIX, 8 findings (5 confirmed, 3 plausible), all taken. 134k subagent tokens, 11m46s. The mechanics and every
+  load figure recomputed. What the author had not seen: the test went red when a slider moved; a "thumbscrew" reached only
+  by a hex key, so the 0.3 N·m behind 375 N was uncontrolled and the margin over 360 N was 4 %; 2 magnets cannot match 3
+  coupling orientations; a 3 mm hex cannot pass an M4 thread at all; and a tilted link puts its screw 72 mm off the key's line.
+- 2026-11-07 `plan/specs/modular-arm.html`, `@spec/modular-arm`, the quarter-turn collar cells (`wrenchAtConnectors` to
+  `test_collar_connector`): BLOCK, 6 findings (5 confirmed, 1 plausible), all taken; the plausible one (no plug boss in the
+  model) went into the prose and "Not done", not the masses. 142k subagent tokens, 11m23s. What the author had not seen: the
+  3D model drew every hook lip mirrored (three's cylinder theta runs from +z, so world angle = theta − π/2), and the author's
+  own screenshot of it had looked right; "the ramp back-drives" ignored the thrust washer that the closing torque counted.
+- 2026-11-07 `plan/specs/modular-arm.html` (`@spec/modular-arm`), the collar section after the joint-height change, the stiffness
+  model, and the mass and design cells: BLOCK, 4 findings and 3 minor, all taken. 128k subagent tokens, 7m31s. What the author had
+  not seen: the 3D view drew a 20.3 mm joint (6.3 mm seat + 14 mm boss) while the stack model used 14 mm. Every load moved with the fix
+  (spring 429 → 462 N), and the plain elbow arm's plate clash went away, with 1.3 mm of joint height to spare. The prose also said
+  the boss was a fifth of a rise it was nearly all of, and that strut stiffness mattered less than the seat's, which is false for the
+  steel seats the same paragraph recommended.
+- 2026-11-07 the same notebook, second round over the collar, stiffness, BOM and summary sections: BLOCK, 11 findings, 10 taken,
+  1 handled by a pointer rather than a move (the collar section's data cells render above its heading; a sentence now says so, as
+  moving seven cells including a viewof means delete and redefine). 157k subagent tokens, 6m21s. What the author had not seen:
+  the clash margin was read off a sweep with 1 mm steps (1.3 mm; the edge is at 18.5 mm, so 1.8 mm), the drawn stop post met the
+  lug at 77° of an 86° turn, before the dwell, and the configuration the proposal keeps (the spacer elbow) sags most, while the
+  summary named only the 3-link stack.
+- 2026-11-07 `plan/specs/modular-arm.html` (`@spec/modular-arm`, the Parts and adjacent-face sections, authored by the spawning session): FIX, 8
+  findings (7 confirmed, 1 plausible). 7 fixed, 1 partly: the cut sheet and 3D view still render before the prose that explains them,
+  because cells defined over the channel cannot be moved; the Parts intro now gives the reading order. 143k subagent tokens, 5m19s. What the author had not
+  seen: the adjacent-face check held the first link at one rotation, so its 78–80 mm answer depended on how the sockets are clocked
+  (at any rotation the cube needs 82 mm); and the opening summary still gave the proposal's 2.2× margin and $830 stack after Parts had replaced them.
+- 2026-11-07 `plan/specs/modular-arm.html`, `@spec/modular-arm`, the wiring and power cells (base, mains, link cable, cube harness, tools): FIX, 8 findings (5 confirmed, 3 plausible), all taken. 144k subagent tokens, 5m47s. What the author had not seen: the drop per run never added up to the voltage at the top link (6.44 V before contacts, 13.5 mΩ a joint may lose), the coil's turn count assumed a full helix through a 10 mm wire hole, and "The model" still said wires were not drawn.
+- 2026-11-07 `plan/specs/modular-arm.html`, `@spec/modular-arm`, the datasheet cells (18 attached PDFs, `ds`, `ratingChecks`, the "What the datasheets say" section): BLOCK, 9 findings (8 confirmed, 1 plausible), all taken. 157k subagent tokens, 7m42s. What the author had not seen: the 0.2 Ω sense resistor the section proposed allows 1.2 A against the 1 A contact, because the DRV8833's trip tolerance was on a page the excerpt had dropped; the XT30U citation pointed at a cover page; and the section above it still said "XT30 is rated 15 A" and "from memory". Also: a cell can be moved after all, by defining a new variable with the same source and deleting the old one (it is appended to the module, and the exporter keeps that order).
+- 2026-11-07 `lopebooks/notebooks/ordinal-diagram.html`, `@spec/ordinal-diagram`, whole (the spec trimmed for lopebooks: robocoop-5, pairing
+  mains and svg-lens dropped, 5.1 MB -> 3.9 MB): BLOCK, 6 findings (4 confirmed, 2 plausible), all taken. 173k subagent tokens, 7m27s. What the
+  author had not seen: dropping svg-lens left the drawing toolbar and a "drag shapes" instruction with nothing to act on, and path ids
+  held a space, which the linked hover splits on.

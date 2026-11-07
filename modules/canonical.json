@@ -1,4 +1,8 @@
 {
+  "@spec/ordinal-diagram": {
+    "lopebooks": "lopebooks/notebooks/ordinal-diagram.html",
+    "upstream": null
+  },
   "@tomlarkworthy/2d-spatial-wormhole-warp": {
     "lopebooks": "lopebooks/notebooks/@tomlarkworthy_2d-spatial-wormhole-warp.html"
   },

@@ -1,7 +1,7 @@
 // Opens the spec page, lists every cell error in @spec/ordinal-diagram, and screenshots the given cells.
 import { chromium } from "playwright";
 import { chromeOptions } from "../../lib/playwright-chrome.js";
-const file = `file://${process.cwd()}/plan/specs/ordinal-diagram.html#view=S100(@spec/ordinal-diagram)`;
+const file = `file://${process.cwd()}/${process.env.PAGE || "plan/specs/ordinal-diagram.html"}#view=S100(@spec/ordinal-diagram)`;
 const out = process.argv[2] || "/tmp/odg";
 const b = await chromium.launch({ headless: true, ...chromeOptions(chromium, { headless: true }) });
 const p = await (await b.newContext({ viewport: { width: 1300, height: Number(process.env.VH || 1400) } })).newPage();

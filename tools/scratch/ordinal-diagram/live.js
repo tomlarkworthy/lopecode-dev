@@ -143,7 +143,7 @@ export const tablesOf = ({ base, fetchedAt, services, infos, depInfo, depRef, le
   const byRole = new Map(Object.entries(holders).filter(([, ws]) => ws.length === 1).map(([role, [s]]) => [role, s.worker]));
   const said_calls = table.flatMap((r) => [...byRole].filter(([role]) => new RegExp(`\\bthe ${role}\\b`).test(r.caller)).map(([, w]) => ({ worker: w, method: r.method, said: r.caller })));
   // The doors a stranger may use: a method or a path whose who is anyone.
-  const paths = all.flatMap((i) => (i.paths || []).map((p) => ({ id: `${i.name} ${p.path}`, worker: i.name, path: p.path, who: p.who })));
+  const paths = all.flatMap((i) => (i.paths || []).map((p) => ({ id: `${i.name}${p.path}`, worker: i.name, path: p.path, who: p.who })));
   const doors = [...methods, ...paths].filter((d) => d.who === "anyone").map((d) => ({ actor: "stranger", door: d.id }));
   // What a stranger's request reaches: the Workers behind its doors, then what each reached Worker binds, until nothing new.
   const product = new Map(bindings.map((b) => [b.declared, b.product]));

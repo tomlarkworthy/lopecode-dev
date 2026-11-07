@@ -65,7 +65,7 @@ md`## 4. Who deploys it?
 - No endpoint answers it. Each line rests on a sentence in the deployer's reference, so the lines are dashed:
 ${[...new Set(brainTables.deploys.map((d) => d.said))].map((x) => `  - "${x}"`).join("\n")}
 - The installer is in no Worker list. It is a row of the \`actors\` table; the other row is the stranger of chapter 7.
-- So the chain is three steps deep: installer → deployer → every other Worker. Click the bar to unfold the ${brainTables.deploys.filter((d) => d.deployer === "brain-deployer").length}.`
+- So the chain has three levels: installer → deployer → every other Worker. Click the bar to unfold the ${brainTables.deploys.filter((d) => d.deployer === "brain-deployer").length}.`
 // %%
 chapter_deploys = drawTables(brainTables, brainSchema, chapters.deploys, invalidation)
 // %%
@@ -272,7 +272,7 @@ chapterCalls = {
   const L = engine.layout({ view: C.view, nodes: C.nodes, edges: C.edges });
   const name = new Map(C.nodes.map((n) => [n.id, n.label]));
   const workers = L.excluded.filter((id) => id.startsWith("workers:"));
-  return { excluded: workers.map((id) => name.get(id) ?? id.slice(8)), sccs: L.sccs.map((c) => ({ members: c.members.map((id) => name.get(id) ?? id.slice(8)) })), called: C.nodes.filter((n) => n.kind === "methods").length, lines: C.edges.length };
+  return { excluded: workers.map((id) => id.slice(8)), sccs: L.sccs.map((c) => ({ members: c.members.map((id) => name.get(id) ?? id.slice(8)) })), called: C.nodes.filter((n) => n.kind === "methods").length, lines: C.edges.length };
 }
 // %%
 // Every Worker, product and actor, with every line, for the counts above and the gaps of chapter 6.
@@ -775,8 +775,7 @@ readiness = {
 md`## Reviewing this spec
 
 - **Leave a note**: ☰ → Annotate → Note, then drag over the words or click the shape. Notes are review comments; Claude Code works through them, and you delete each when it is dealt with.
-- **Ask about a spot**: ☰ → Annotate → Ask, then pick the words or shape and type. The answer threads at that spot.
-- **Click prose** to rewrite it. **Drag shapes** in a drawing to move them.
+- **Click prose** to rewrite it.
 - **Play with the prototype**: click a label in its left margin to fold or unfold that level; drag a box sideways to reorder it inside its cell.
 - ☰ → **Save in place** keeps your edits and notes in this file.`
 // %%
@@ -917,31 +916,7 @@ md`## Visual design
 
 The prototype above is the drawing for the open, folded and reordered states. The one drawing below is for a state the prototype does not reach.`
 // %%
-drawTools = {
-  const tools = [["select", "Select", "V"], ["rect", "Rect", "R"], ["ellipse", "Ellipse", "E"], ["line", "Line", "L"], ["text", "Text", "T"], ["pen", "Pen", "P"], ["scribble", "Scribble", "S"]];
-  let host = null;
-  const drawing = () => host && [...host.querySelectorAll("svg")].find((s) => typeof s.setTool === "function");
-  const hint = htl.html`<span style="opacity:.6">click a drawing, then pick a tool</span>`;
-  const bar = htl.html`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;font:13px system-ui;position:sticky;top:0;z-index:2;padding:.4em 0;background:var(--theme-background, #fff)"></div>`;
-  for (const [id, label, key] of tools) {
-    const b = htl.html`<button title="${label} (${key})">${label}</button>`;
-    b.onclick = () => { const d = drawing(); if (d) d.setTool(id); else hint.textContent = "click a drawing first"; };
-    bar.append(b);
-  }
-  bar.append(hint);
-  const onDown = (e) => {
-    let n = e.target && e.target.closest ? e.target.closest("svg") : null;
-    while (n && typeof n.setTool !== "function") n = n.parentElement ? n.parentElement.closest("svg") : null;
-    if (!n) return;
-    host = n.parentElement;
-    hint.textContent = "tools apply to the drawing you last clicked";
-  };
-  window.document.addEventListener("pointerdown", onDown, true);
-  invalidation.then(() => window.document.removeEventListener("pointerdown", onDown, true));
-  return bar;
-}
-// %%
-artboard_x_fold = svgLens({ keyboard: true })`<svg viewBox="0 0 660 300" width="100%" style="max-width:660px;background:#f6f7f9" font-family="system-ui, sans-serif" font-size="11">
+artboard_x_fold = htl.svg`<svg viewBox="0 0 660 300" width="100%" style="max-width:660px;background:#f6f7f9" font-family="system-ui, sans-serif" font-size="11">
   <text x="216" y="20" fill="#6b7280">depth along calls 0</text>
   <rect x="346" y="8" width="170" height="18" rx="9" fill="#dbeafe" stroke="#3b82f6"/>
   <text x="356" y="21" fill="#1e3a8a">▸ depth 1–3 · 11</text>
@@ -996,7 +971,7 @@ statesTable = htl.html`<table style="font-size:.9em">
 // %%
 md`### Visual constraints
 
-The prototype uses fixed light colours on a light panel (\`#f6f7f9\`) so it reads on the dark theme; a module should take theme variables instead. Slot 118 px, row 46 px, box 26 px, margin 118 px a y-level. At 640 px, chapter 3 (4 columns, cells wrapped at 3) scrolls horizontally inside its panel.`
+The prototype uses fixed light colours on a light panel (\`#f6f7f9\`) so it reads on the dark theme; a module should take theme variables instead. Slot 118 px, row 46 px, box 26 px, margin 118 px a y-level. At 640 px, chapter 3 (5 columns on 2026-11-07, cells wrapped at 3) scrolls horizontally inside its panel.`
 // %%
 md`## Behaviour
 
@@ -1024,7 +999,7 @@ requirementsTable = htl.html`<table style="font-size:.9em">
   <tbody>${requirements.map((r) => htl.html`<tr data-requirement=${r.id}><td><strong>${r.id}</strong></td><td>${r.text}</td><td>${r.check ? htl.html`<code>${r.check}</code>` : htl.html`<em>none</em>`}</td></tr>`)}</tbody>
 </table>`
 // %%
-md`Worked cases on the 2026-10-27 test snapshot (the \`snapshot\` cell, not drawn on this page), the first checked by \`test_fold_lift\`, the last by \`test_drag_writes_one_row\`:`
+md`Worked cases on the 2026-10-27 test snapshot (the \`snapshot\` cell, not drawn on this page), the edge core.route → bar ×4 of the first checked by \`test_fold_lift\` and the rest of it not asserted, the last by \`test_drag_writes_one_row\`:`
 // %%
 examples = [
   { given: "fold [3] (services)", expect: "one bar 'services · 5 methods', edge core.route → bar ×4, bar → cb4-sql edges lifted" },
@@ -1195,8 +1170,6 @@ onPaper = (node) => htl.html`<div style="max-width:640px;background:#f6f7f9;bord
 specModule = "__SPEC_MODULE__"
 // %%
 import {md} from "@tomlarkworthy/editable-md"
-// %%
-import {svgLens} from "@tomlarkworthy/svg-lens"
 // %%
 import {annotation, annotations} from "@tomlarkworthy/annotate"
 // %%

@@ -9436,7 +9436,7 @@ const _spec_9_0 = function _anonymous(md,brainTables) {return (md`## 4. Who depl
 - No endpoint answers it. Each line rests on a sentence in the deployer's reference, so the lines are dashed:
 ${[...new Set(brainTables.deploys.map((d) => d.said))].map((x) => `  - "${x}"`).join("\n")}
 - The installer is in no Worker list. It is a row of the \`actors\` table; the other row is the stranger of chapter 7.
-- So the chain is three steps deep: installer → deployer → every other Worker. Click the bar to unfold the ${brainTables.deploys.filter((d) => d.deployer === "brain-deployer").length}.`);};
+- So the chain has three levels: installer → deployer → every other Worker. Click the bar to unfold the ${brainTables.deploys.filter((d) => d.deployer === "brain-deployer").length}.`);};
 const _spec_10_0 = function _chapter_deploys(drawTables,brainTables,brainSchema,chapters,invalidation) {return (drawTables(brainTables, brainSchema, chapters.deploys, invalidation));};
 const _spec_11_0 = function _anonymous(md) {return (md`## 5. What does it touch?
 
@@ -9610,7 +9610,7 @@ const _spec_41_0 = function _chapterCalls(relLib,brainTables,brainSchema,chapter
   const L = engine.layout({ view: C.view, nodes: C.nodes, edges: C.edges });
   const name = new Map(C.nodes.map((n) => [n.id, n.label]));
   const workers = L.excluded.filter((id) => id.startsWith("workers:"));
-  return { excluded: workers.map((id) => name.get(id) ?? id.slice(8)), sccs: L.sccs.map((c) => ({ members: c.members.map((id) => name.get(id) ?? id.slice(8)) })), called: C.nodes.filter((n) => n.kind === "methods").length, lines: C.edges.length };
+  return { excluded: workers.map((id) => id.slice(8)), sccs: L.sccs.map((c) => ({ members: c.members.map((id) => name.get(id) ?? id.slice(8)) })), called: C.nodes.filter((n) => n.kind === "methods").length, lines: C.edges.length };
 };
 const _spec_42_0 = function _brainAll(relLib,brainTables,brainSchema) {return (relLib.compile(brainTables, brainSchema, { boxes: ["workers", "products", "actors"], nest: ["methods.worker", "bindings.product"], lines: ["calls", "resources", "deploys"], y: [], x: [] }));};
 const _spec_43_0 = function _brainGaps(brainAll) {
@@ -9767,7 +9767,7 @@ const tablesOf = ({ base, fetchedAt, services, infos, depInfo, depRef, lexicons 
   const byRole = new Map(Object.entries(holders).filter(([, ws]) => ws.length === 1).map(([role, [s]]) => [role, s.worker]));
   const said_calls = table.flatMap((r) => [...byRole].filter(([role]) => new RegExp(`\\bthe ${role}\\b`).test(r.caller)).map(([, w]) => ({ worker: w, method: r.method, said: r.caller })));
   // The doors a stranger may use: a method or a path whose who is anyone.
-  const paths = all.flatMap((i) => (i.paths || []).map((p) => ({ id: `${i.name} ${p.path}`, worker: i.name, path: p.path, who: p.who })));
+  const paths = all.flatMap((i) => (i.paths || []).map((p) => ({ id: `${i.name}${p.path}`, worker: i.name, path: p.path, who: p.who })));
   const doors = [...methods, ...paths].filter((d) => d.who === "anyone").map((d) => ({ actor: "stranger", door: d.id }));
   // What a stranger's request reaches: the Workers behind its doors, then what each reached Worker binds, until nothing new.
   const product = new Map(bindings.map((b) => [b.declared, b.product]));
@@ -11001,8 +11001,7 @@ const _spec_102_0 = function _readiness(annotations,specModule,requirements,ques
 const _spec_103_0 = function _anonymous(md) {return (md`## Reviewing this spec
 
 - **Leave a note**: ☰ → Annotate → Note, then drag over the words or click the shape. Notes are review comments; Claude Code works through them, and you delete each when it is dealt with.
-- **Ask about a spot**: ☰ → Annotate → Ask, then pick the words or shape and type. The answer threads at that spot.
-- **Click prose** to rewrite it. **Drag shapes** in a drawing to move them.
+- **Click prose** to rewrite it.
 - **Play with the prototype**: click a label in its left margin to fold or unfold that level; drag a box sideways to reorder it inside its cell.
 - ☰ → **Save in place** keeps your edits and notes in this file.`);};
 const _spec_104_0 = function _anonymous(md) {return (md`## Problem
@@ -11509,30 +11508,7 @@ const _spec_125_0 = function _test_drag_writes_one_row(snapshot,snapLayout,engin
 const _spec_126_0 = function _anonymous(md) {return (md`## Visual design
 
 The prototype above is the drawing for the open, folded and reordered states. The one drawing below is for a state the prototype does not reach.`);};
-const _spec_127_0 = function _drawTools(htl,invalidation) {
-  const tools = [["select", "Select", "V"], ["rect", "Rect", "R"], ["ellipse", "Ellipse", "E"], ["line", "Line", "L"], ["text", "Text", "T"], ["pen", "Pen", "P"], ["scribble", "Scribble", "S"]];
-  let host = null;
-  const drawing = () => host && [...host.querySelectorAll("svg")].find((s) => typeof s.setTool === "function");
-  const hint = htl.html`<span style="opacity:.6">click a drawing, then pick a tool</span>`;
-  const bar = htl.html`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;font:13px system-ui;position:sticky;top:0;z-index:2;padding:.4em 0;background:var(--theme-background, #fff)"></div>`;
-  for (const [id, label, key] of tools) {
-    const b = htl.html`<button title="${label} (${key})">${label}</button>`;
-    b.onclick = () => { const d = drawing(); if (d) d.setTool(id); else hint.textContent = "click a drawing first"; };
-    bar.append(b);
-  }
-  bar.append(hint);
-  const onDown = (e) => {
-    let n = e.target && e.target.closest ? e.target.closest("svg") : null;
-    while (n && typeof n.setTool !== "function") n = n.parentElement ? n.parentElement.closest("svg") : null;
-    if (!n) return;
-    host = n.parentElement;
-    hint.textContent = "tools apply to the drawing you last clicked";
-  };
-  window.document.addEventListener("pointerdown", onDown, true);
-  invalidation.then(() => window.document.removeEventListener("pointerdown", onDown, true));
-  return bar;
-};
-const _spec_128_0 = function _artboard_x_fold(svgLens) {return (svgLens({ keyboard: true })`<svg viewBox="0 0 660 300" width="100%" style="max-width:660px;background:#f6f7f9" font-family="system-ui, sans-serif" font-size="11">
+const _spec_127_0 = function _artboard_x_fold(htl) {return (htl.svg`<svg viewBox="0 0 660 300" width="100%" style="max-width:660px;background:#f6f7f9" font-family="system-ui, sans-serif" font-size="11">
   <text x="216" y="20" fill="#6b7280">depth along calls 0</text>
   <rect x="346" y="8" width="170" height="18" rx="9" fill="#dbeafe" stroke="#3b82f6"/>
   <text x="356" y="21" fill="#1e3a8a">▸ depth 1–3 · 11</text>
@@ -11567,8 +11543,8 @@ const _spec_128_0 = function _artboard_x_fold(svgLens) {return (svgLens({ keyboa
   <path d="M516,200 C600,200 626,210 626,228" fill="none" stroke="#6b7280" stroke-width="1.2"/>
   <text x="20" y="286" fill="#52606d" font-size="12">Folding an x-level: the group is one bar spanning the rows its members sit in. Not in the prototype.</text>
 </svg>`);};
-const _spec_129_0 = function _anonymous(md) {return (md`*X-axis fold, drawn from this snapshot's ranks: depths 1–3 hold 11 methods in rows edge to storage (drain.run, tab.ui and kernel.health are depth 0; rows.append and rows.get are depth 4; r2.get is depth 2). The bar is one box over rows, so on a real x fold the y rows it crosses would have to give up those cells. Folding both axes at once can make two groups claim the same cells; the prototype folds y only.*`);};
-const _spec_130_0 = function _states() {return ([
+const _spec_128_0 = function _anonymous(md) {return (md`*X-axis fold, drawn from this snapshot's ranks: depths 1–3 hold 11 methods in rows edge to storage (drain.run, tab.ui and kernel.health are depth 0; rows.append and rows.get are depth 4; r2.get is depth 2). The bar is one box over rows, so on a real x fold the y rows it crosses would have to give up those cells. Folding both axes at once can make two groups claim the same cells; the prototype folds y only.*`);};
+const _spec_129_0 = function _states() {return ([
   { state: "open", drawing: "chapter_runs", when: "no folds" },
   { state: "folded", drawing: "chapter_deploys", when: "a y-level label clicked (chapter 4 starts folded)" },
   { state: "reordered", drawing: "step8", when: "a box dragged inside its cell" },
@@ -11577,17 +11553,17 @@ const _spec_130_0 = function _states() {return ([
   { state: "linked hover", drawing: "step11", when: "the pointer is over a box in any view" },
   { state: "x-axis fold", drawing: "artboard_x_fold", when: "a column prefix folded" }
 ]);};
-const _spec_131_0 = function _statesTable(htl,states) {return (htl.html`<table style="font-size:.9em">
+const _spec_130_0 = function _statesTable(htl,states) {return (htl.html`<table style="font-size:.9em">
   <thead><tr><th>state</th><th>when</th><th>drawing</th></tr></thead>
   <tbody>${states.map((s) => htl.html`<tr data-state=${s.state}><td>${s.state}</td><td>${s.when}</td><td>${s.drawing ? htl.html`<code>${s.drawing}</code>` : htl.html`<em>not drawn</em>`}</td></tr>`)}</tbody>
 </table>`);};
-const _spec_132_0 = function _anonymous(md) {return (md`### Visual constraints
+const _spec_131_0 = function _anonymous(md) {return (md`### Visual constraints
 
-The prototype uses fixed light colours on a light panel (\`#f6f7f9\`) so it reads on the dark theme; a module should take theme variables instead. Slot 118 px, row 46 px, box 26 px, margin 118 px a y-level. At 640 px, chapter 3 (4 columns, cells wrapped at 3) scrolls horizontally inside its panel.`);};
-const _spec_133_0 = function _anonymous(md) {return (md`## Behaviour
+The prototype uses fixed light colours on a light panel (\`#f6f7f9\`) so it reads on the dark theme; a module should take theme variables instead. Slot 118 px, row 46 px, box 26 px, margin 118 px a y-level. At 640 px, chapter 3 (5 columns on 2026-11-07, cells wrapped at 3) scrolls horizontally inside its panel.`);};
+const _spec_132_0 = function _anonymous(md) {return (md`## Behaviour
 
 One requirement per row, in priority order.`);};
-const _spec_134_0 = function _requirements() {return ([
+const _spec_133_0 = function _requirements() {return ([
   { id: "R1", text: "The same snapshot, view, folds and overlay shall produce a byte-identical SVG, whatever order the snapshot rows are in.", check: "test_deterministic; bun test tools/scratch/ordinal-diagram/engine.test.js (shuffles with 3 seeds)" },
   { id: "R2", text: "Each axis shall be an ordered list of levels; a level is a column (total order) or a relation (rank along its edges); the human key and then id are always the last two levels.", check: "test_cycle; step 4: api.list and api.save share a cell, ordered by id" },
   { id: "R3", text: "When a y-prefix is folded, all rows under it shall draw as one bar spanning its members' columns (or, with view.cards and all members in one column, as one card in its parent's row), and edges with one end inside shall be lifted onto it with a count.", check: "test_fold_lift; step 7: click public edge and see one bar, ×2 from web.page" },
@@ -11603,22 +11579,22 @@ const _spec_134_0 = function _requirements() {return ([
   { id: "R13", text: "Every line shall carry the base rows behind it; a fold's count and a line's width shall be the number of base rows, summed through every lift.", check: "rel.test.js 'a fold's line weight counts base rows'; hover a line to list its rows" },
   { id: "R14", text: "A lifted line shall equal Holt's lift without its '- D - A' term: containment composed with the relation composed with containment's inverse, less the identity. A line between a box and a box nested in it is kept (see Decisions).", check: "rel.test.js 'a lifted line is the relation composed with containment', on the shop and on cb4" }
 ]);};
-const _spec_135_0 = function _requirementsTable(htl,requirements) {return (htl.html`<table style="font-size:.9em">
+const _spec_134_0 = function _requirementsTable(htl,requirements) {return (htl.html`<table style="font-size:.9em">
   <thead><tr><th>id</th><th>requirement</th><th>check</th></tr></thead>
   <tbody>${requirements.map((r) => htl.html`<tr data-requirement=${r.id}><td><strong>${r.id}</strong></td><td>${r.text}</td><td>${r.check ? htl.html`<code>${r.check}</code>` : htl.html`<em>none</em>`}</td></tr>`)}</tbody>
 </table>`);};
-const _spec_136_0 = function _anonymous(md) {return (md`Worked cases on the 2026-10-27 test snapshot (the \`snapshot\` cell, not drawn on this page), the first checked by \`test_fold_lift\`, the last by \`test_drag_writes_one_row\`:`);};
-const _spec_137_0 = function _examples() {return ([
+const _spec_135_0 = function _anonymous(md) {return (md`Worked cases on the 2026-10-27 test snapshot (the \`snapshot\` cell, not drawn on this page), the edge core.route → bar ×4 of the first checked by \`test_fold_lift\` and the rest of it not asserted, the last by \`test_drag_writes_one_row\`:`);};
+const _spec_136_0 = function _examples() {return ([
   { given: "fold [3] (services)", expect: "one bar 'services · 5 methods', edge core.route → bar ×4, bar → cb4-sql edges lifted" },
   { given: "fold [3] and [4]", expect: "services and storage rows each one bar; storage bar shows its inbound edges lifted (not asserted by a test)" },
   { given: "drag kernel.xrpc to the left of kernel.session", expect: "order gains 2 rows (cell keyed), kernel.xrpc first; a second drag in that cell changes 1 row" }
 ]);};
-const _spec_138_0 = function _examplesTable(htl,examples) {return (htl.html`<table style="font-size:.9em"><thead><tr><th>given</th><th>expect</th></tr></thead>
+const _spec_137_0 = function _examplesTable(htl,examples) {return (htl.html`<table style="font-size:.9em"><thead><tr><th>given</th><th>expect</th></tr></thead>
   <tbody>${examples.map((e) => htl.html`<tr><td>${e.given}</td><td>${e.expect}</td></tr>`)}</tbody></table>`);};
-const _spec_139_0 = function _anonymous(md) {return (md`## Design
+const _spec_138_0 = function _anonymous(md) {return (md`## Design
 
 The flowchart below is drawn by mermaid, which loads from a CDN: offline it shows \`unable to load module\`.`);};
-const _spec_140_0 = function _architecture(onPaper,mermaid) {return (onPaper(mermaid`flowchart LR
+const _spec_139_0 = function _architecture(onPaper,mermaid) {return (onPaper(mermaid`flowchart LR
   snap[(snapshot tables + keys)] --> keys[compile: boxes, lines, hulls]
   keys --> lv[levels per axis]
   ord[(overlay: order fkey)] --> lv
@@ -11632,14 +11608,14 @@ const _spec_140_0 = function _architecture(onPaper,mermaid) {return (onPaper(mer
   geo --> svg
   svg -. click label .-> folds
   svg -. drag in cell .-> ord`));};
-const _spec_141_0 = function _anonymous(md) {return (md`### How a row gets its place
+const _spec_140_0 = function _anonymous(md) {return (md`### How a row gets its place
 
 1. Every level gives the row a value: the column's value, or its rank along the relation. A relation is condensed into strongly connected components first, so a cycle gets one rank; rank is the longest path from a source, ties visited in id order.
 2. The y values form the row's y path, the x values its x path. Distinct y paths are rows of the grid and distinct x paths are columns, both sorted lexicographically (numbers before strings, strings by code unit, never \`localeCompare\`).
 3. Rows sharing both paths share a cell and are ordered inside it by the view's \`cellSort\` columns, then human key, then id.
 4. A folded y prefix replaces every row under it with one group. The group's row is the prefix itself and it spans from its leftmost to its rightmost member's column. With \`view.cards\`, a group whose members share one column is instead a box in its parent prefix's row, ordered with that row's boxes. A fold is a prefix, a level number (every prefix of that length), or \`{open: prefix}\` (an exception to a level fold).
 5. Column width is the largest cell occupancy in that column across the visible rows, so folding reflows widths as well as rows.`);};
-const _spec_142_0 = function _anonymous(md) {return (md`### Decisions
+const _spec_141_0 = function _anonymous(md) {return (md`### Decisions
 
 | decided | instead of | because |
 |---|---|---|
@@ -11670,7 +11646,7 @@ const _spec_142_0 = function _anonymous(md) {return (md`### Decisions
 - A curve between two boxes in one row passes behind any box between them and reads as an edge from that box. The 2026-10-27 review found three: tab.ui → kernel.xrpc looked like kernel.session → kernel.xrpc, and likewise core.route → core.decide and the calls into rows.get. The engine now arcs a same-row edge over the row, and attaches a cross-row edge's end at the top or bottom of its box when a box sits between the ends in that row. Two opposite edges between the same boxes (core.route ⇄ the folded services bar) drew on one line; they are now offset 5 px each way, with the count beside the line.
 - A cycle outline drawn around a folded group covers the whole bar. The engine draws the outline only while every member is its own box; folded, the cycle shows as lifted edges in both directions.
 - \`Map\` and \`Set\` iterate in insertion order, which is snapshot row order. Every iteration the engine's output depends on is sorted first; R1's test reverses the rows to catch a miss.`);};
-const _spec_143_0 = function _anonymous(md) {return (md`### Prior art
+const _spec_142_0 = function _anonymous(md) {return (md`### Prior art
 
 Read 2026-11-03 by three research agents, each citation checked against its DOI or Crossref record and, where marked, the paper's own text. The 2026-10-26 list it replaces was from a web search and memory.
 
@@ -11710,7 +11686,7 @@ Read 2026-11-03 by three research agents, each citation checked against its DOI 
 - SetCoLa ([Hoffswell, Borning, Heer](https://doi.org/10.1111/cgf.13440), EuroVis 2018): constraints on sets chosen by data properties. It needs a solver; Boundaries say ask first.
 
 Citation only, not read: Koschke and Simon, [Hierarchical reflexion models](https://doi.org/10.1109/WCRE.2003.1287235), WCRE 2003, the next thing to read for a \`compare\` with nested claims; Wilkinson, *The Grammar of Graphics* (2005); Bertin, *Semiology of Graphics*; Eades and Feng's clustered graphs (GD '96).`);};
-const _spec_144_0 = function _anonymous(md) {return (md`## Handover
+const _spec_143_0 = function _anonymous(md) {return (md`## Handover
 
 ### Where the work goes
 
@@ -11739,10 +11715,10 @@ run_tests on @spec/ordinal-diagram                     # 12 test_* cells pass, o
 2. Move the engine into a module with the tests as its \`test_*\` cells.
 3. Persist \`order\` and \`folds\` in the saved notebook.
 4. Load a second, non-architecture snapshot and view to check the tool is schema-agnostic. **stop and show**`);};
-const _spec_145_0 = function _anonymous(md) {return (md`## Open questions
+const _spec_144_0 = function _anonymous(md) {return (md`## Open questions
 
 A question marked blocking stops the handover.`);};
-const _spec_146_0 = function _questions() {return ([
+const _spec_145_0 = function _questions() {return ([
   { q: "The axis template. The prototype reads boxes and lines from the tables' keys plus a JS list of levels. Tom described nested queries (..X, x, y) where each axis is a nesting of data transforms. Which form is the view definition?", blocking: true, answer: "" },
   { q: "Can the human key sit before data levels (overriding them), or only after them as a tie break? The prototype puts it last but one, so a drag cannot move a box out of its cell.", blocking: true, answer: "" },
   { q: "Rank within a relation level: longest path from sources (prototype), or distance from chosen roots (for a focus view)?", blocking: false, answer: "" },
@@ -11756,12 +11732,12 @@ const _spec_146_0 = function _questions() {return ([
   { q: "Should edges be drawable only for relations the view names (drawRelations), with rank relations hidden by default?", blocking: false, answer: "" },
   { q: "Module name.", blocking: false, answer: "" }
 ]);};
-const _spec_147_0 = function _questionsTable(htl,questions) {return (htl.html`<table style="font-size:.9em">
+const _spec_146_0 = function _questionsTable(htl,questions) {return (htl.html`<table style="font-size:.9em">
   <thead><tr><th></th><th>question</th><th>answer</th></tr></thead>
   <tbody>${questions.map((q, i) => htl.html`<tr data-question=${i}><td>${q.blocking && !q.answer ? "blocking" : ""}</td><td>${q.q}</td><td>${q.answer || htl.html`<em>open</em>`}</td></tr>`)}</tbody>
 </table>`);};
-const _spec_148_0 = function _onPaper(htl) {return ((node) => htl.html`<div style="max-width:640px;background:#f6f7f9;border-radius:6px;padding:10px">${node}</div>`);};
-const _spec_149_0 = function _specModule() {return ("@spec/ordinal-diagram");};
+const _spec_147_0 = function _onPaper(htl) {return ((node) => htl.html`<div style="max-width:640px;background:#f6f7f9;border-radius:6px;padding:10px">${node}</div>`);};
+const _spec_148_0 = function _specModule() {return ("@spec/ordinal-diagram");};
 
 export default function define(runtime, observer) {
   const main = runtime.module();
@@ -11901,33 +11877,30 @@ export default function define(runtime, observer) {
   $def("_spec_124_0", "test_fold_lift", ["snapLayout"], _spec_124_0);
   $def("_spec_125_0", "test_drag_writes_one_row", ["snapshot","snapLayout","engine"], _spec_125_0);
   $def("_spec_126_0", null, ["md"], _spec_126_0);
-  $def("_spec_127_0", "drawTools", ["htl","invalidation"], _spec_127_0);
-  $def("_spec_128_0", "artboard_x_fold", ["svgLens"], _spec_128_0);
-  $def("_spec_129_0", null, ["md"], _spec_129_0);
-  $def("_spec_130_0", "states", [], _spec_130_0);
-  $def("_spec_131_0", "statesTable", ["htl","states"], _spec_131_0);
+  $def("_spec_127_0", "artboard_x_fold", ["htl"], _spec_127_0);
+  $def("_spec_128_0", null, ["md"], _spec_128_0);
+  $def("_spec_129_0", "states", [], _spec_129_0);
+  $def("_spec_130_0", "statesTable", ["htl","states"], _spec_130_0);
+  $def("_spec_131_0", null, ["md"], _spec_131_0);
   $def("_spec_132_0", null, ["md"], _spec_132_0);
-  $def("_spec_133_0", null, ["md"], _spec_133_0);
-  $def("_spec_134_0", "requirements", [], _spec_134_0);
-  $def("_spec_135_0", "requirementsTable", ["htl","requirements"], _spec_135_0);
-  $def("_spec_136_0", null, ["md"], _spec_136_0);
-  $def("_spec_137_0", "examples", [], _spec_137_0);
-  $def("_spec_138_0", "examplesTable", ["htl","examples"], _spec_138_0);
-  $def("_spec_139_0", null, ["md"], _spec_139_0);
-  $def("_spec_140_0", "architecture", ["onPaper","mermaid"], _spec_140_0);
+  $def("_spec_133_0", "requirements", [], _spec_133_0);
+  $def("_spec_134_0", "requirementsTable", ["htl","requirements"], _spec_134_0);
+  $def("_spec_135_0", null, ["md"], _spec_135_0);
+  $def("_spec_136_0", "examples", [], _spec_136_0);
+  $def("_spec_137_0", "examplesTable", ["htl","examples"], _spec_137_0);
+  $def("_spec_138_0", null, ["md"], _spec_138_0);
+  $def("_spec_139_0", "architecture", ["onPaper","mermaid"], _spec_139_0);
+  $def("_spec_140_0", null, ["md"], _spec_140_0);
   $def("_spec_141_0", null, ["md"], _spec_141_0);
   $def("_spec_142_0", null, ["md"], _spec_142_0);
   $def("_spec_143_0", null, ["md"], _spec_143_0);
   $def("_spec_144_0", null, ["md"], _spec_144_0);
-  $def("_spec_145_0", null, ["md"], _spec_145_0);
-  $def("_spec_146_0", "questions", [], _spec_146_0);
-  $def("_spec_147_0", "questionsTable", ["htl","questions"], _spec_147_0);
-  $def("_spec_148_0", "onPaper", ["htl"], _spec_148_0);
-  $def("_spec_149_0", "specModule", [], _spec_149_0);
+  $def("_spec_145_0", "questions", [], _spec_145_0);
+  $def("_spec_146_0", "questionsTable", ["htl","questions"], _spec_146_0);
+  $def("_spec_147_0", "onPaper", ["htl"], _spec_147_0);
+  $def("_spec_148_0", "specModule", [], _spec_148_0);
   main.define("module @tomlarkworthy/editable-md", [], async () => runtime.module((await import("/@tomlarkworthy/editable-md.js?v=4")).default));
   main.define("md", ["module @tomlarkworthy/editable-md","@variable"], (_, v) => v.import("md", _));
-  main.define("module @tomlarkworthy/svg-lens", [], async () => runtime.module((await import("/@tomlarkworthy/svg-lens.js?v=4")).default));
-  main.define("svgLens", ["module @tomlarkworthy/svg-lens","@variable"], (_, v) => v.import("svgLens", _));
   main.define("module @tomlarkworthy/annotate", [], async () => runtime.module((await import("/@tomlarkworthy/annotate.js?v=4")).default));
   main.define("annotation", ["module @tomlarkworthy/annotate","@variable"], (_, v) => v.import("annotation", _));
   main.define("annotations", ["module @tomlarkworthy/annotate","@variable"], (_, v) => v.import("annotations", _));
