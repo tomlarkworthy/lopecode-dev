@@ -1,0 +1,10 @@
+{
+  "name": "nk-repro",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@observablehq/notebook-kit": "2.9.1",
+    "rt600": "npm:@observablehq/runtime@6.0.0",
+    "rt610": "npm:@observablehq/runtime@6.1.0"
+  }
+}

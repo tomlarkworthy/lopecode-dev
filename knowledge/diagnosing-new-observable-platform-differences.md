@@ -72,6 +72,8 @@ Tools live in `tools/` (all Playwright, all headless by default, `HEADED=1` to w
 | Tool | Answers |
 |---|---|
 | `newobs-probe.ts <url>` | what errors, in which frame, plus every console line |
+| `HEADED=1 newobs-fork-blank.ts [url]` | exports a Fork from the live page and boots it as a real `blob:`; `PATCH=1`, `BOOT_FILE=`, `EVAL=`, `GEN2=1`, `CDP=1`, `SETTLE=ms`, `CHROME_BIN=`; writes `scratch/newobs-fork-g1*.html`, `tools/screenshots/newobs-fork-g1*.png` |
+| `newobs-fa-capture.ts` | the live `FileAttachment` builtin shape of an imported module (exporter-3's `nkRuntime` module, hardcoded), and what `getFileAttachments` captures from it |
 | `newobs-probe-repin.ts <url>` | same, but rewrites a pinned module version **in flight** — test a version bump before touching Observable. `NO_REPIN=1` for the baseline |
 | `newobs-imports.ts <url>` | every notebook module fetched, with its pinned version + resolution context |
 | `newobs-pin-audit.ts [slug…]` | which of our notebooks pin `@mootari/access-runtime` below the fix |
@@ -90,6 +92,12 @@ Tools live in `tools/` (all Playwright, all headless by default, `HEADED=1` to w
 | `newobs-scope-probe.ts`, `newobs-grid-candidates.ts` | dump a module's `_scope` keys and a widget's own candidate list — the classic-vs-new naming diff |
 | `newobs-importdef.ts <url>` | every distinct `_definition` containing `import(`, with its inputs — how to see a compiler's import shape rather than guess it |
 | `local-grid-check.ts <html>` | the lopecode/legacy-runtime leg of the regression matrix, from a local file |
+
+**Since at least 2026-11-07 Observable answers a default Playwright launch with "Failed to verify
+your browser — Code 21"** and no runtime frame is ever found. Launching with
+`ignoreDefaultArgs: ["--enable-automation"]` and `--disable-blink-features=AutomationControlled`
+got through (headed, `tools/newobs-fork-blank.ts`). Every tool in the table above except `newobs-fork-blank.ts` and `newobs-fa-capture.ts` lacks
+these flags.
 
 Recommended order:
 
@@ -258,7 +266,7 @@ that notebook.
 
 ### `FileAttachment` — three differences
 
-For the **viewed** notebook only (imported modules keep the classic shape):
+For the **viewed** notebook (imported modules do carry a per-module builtin; since runtime 6.1.0 it is stored as `[() => FileAttachment]`, see below):
 
 1. `FileAttachment` is a single **runtime-level** builtin, so `module._builtins` holds only
    `@variable, invalidation, visibility`. Anything doing
@@ -276,6 +284,69 @@ never settles on classic). See `knowledge/how-file-attachments-work.md`.
 Note the capture hack in `getFileAttachmentsMap` — patch `Map.prototype.get/has`, call
 `FileAttachment("")`, keep `this`. notebook-kit **memoises unknown names**, so the probe must also
 no-op `Map.prototype.set` or it registers `document.baseURI` as a bogus attachment.
+
+#### `@observablehq/runtime` 6.1.0 stores every builtin as a definition (measured 2026-11-07)
+
+The new site now runs runtime 6.1.0 (notebook-kit `765261e`). Its `module.builtin` changed:
+
+```js
+// 6.0.0  — what lopecode files ship
+function module_builtin(name, value) { this._builtins.set(name, value); }
+// 6.1.0
+function module_builtin(name, ...value) {
+  this._builtins.set(name, value.length < 2 ? [constant(value[0])] : value);
+```
+
+So on the new site `module._builtins.get(x)` is `[() => value]` (or `[inputs, definition]`) for
+every module, imported ones included; `String()` of it prints `()=>e`. `/api/import` also passes
+`fileAttachments` an array of `{name, href, mimeType}` rather than a resolver over `{url}`.
+
+Offline, no browser (`node tools/nk-repro/repro.mjs` from the repo root, notebook-kit 2.9.1 from npm):
+
+```
+rt600  builtin stored as function  exporter-3 b87dbcd getFileAttachments    -> [["x.js.gz",{"name":"x.js.gz","href":"https://static.example/x","mimeType":"application/gzip"}]]
+rt600  builtin stored as function  fileattachments fileAttachmentEntries    -> [["x.js.gz",{"name":"x.js.gz","href":"https://static.example/x","mimeType":"application/gzip","url":"https://static.example/x"}]]
+rt610  builtin stored as array  exporter-3 b87dbcd getFileAttachments    -> undefined
+rt610  builtin stored as array  fileattachments fileAttachmentEntries    -> [["x.js.gz",{"name":"x.js.gz","href":"https://static.example/x","mimeType":"application/gzip","url":"https://static.example/x"}]]
+```
+
+`b87dbcd` is lopecode's last exporter-3 with its own capture. Row 1 has no `url`, which the
+exporter's `lopemodule` reads, so the `href` half was needed even on 6.0.0. Setup once:
+`(cd tools/nk-repro && npm install)`; module sources are extracted from the notebook HTML at run
+time.
+
+Consequence: Fork on `new.observablehq.com/@tomlarkworthy/exporter-3` opened a blank page. The
+exporter's capture called the array, the `TypeError` was swallowed, every module shipped without
+its attachments, and the child died on `File not found: notebook-kit-runtime-2.5.6.js.gz`.
+
+```
+before   modules with attachments 8 of 14, 0 chars rendered, 0 .observablehq nodes, no exporter UI
+after    modules with attachments 14 of 14, 304 .observablehq nodes, 0 errored variables, exporter UI
+gen 2    (forked from the fork) the same: 14 of 14, 304 nodes, 0 errored
+old site 11 modules with attachments and 175 nodes, before and after
+```
+
+Fix, in the module that owns the abstraction: `@tomlarkworthy/fileattachments` gained
+`moduleFileAttachment(module)` (unwraps the definition form) and `fileAttachmentEntries(module)`
+(`name -> {url, mimeType}` from any shape). Every `_builtins` read in that module goes through the
+first. exporter-3 deleted its own copy of the capture and imports
+`{fileAttachmentEntries as getFileAttachments}`. Published 2026-11-07: fileattachments v471 (v475 after review fixes),
+exporter-3 v17370. Tests: `test_moduleFileAttachment_unwraps_definition_form`,
+`test_fileAttachmentEntries_normalises_every_shape`.
+
+Measured with `tools/newobs-fork-blank.ts` (export through the real `actionHandler("tab")`, boot as
+a real `blob:`; `PATCH=1` swaps in `newobs-getFileAttachments-patch.js`, the A/B arm used before
+the fix existed; `BOOT_FILE=` boots a saved HTML; `EVAL=`/`GEN2=1` run code in the child).
+
+Among the canonical modules, the only other `_builtins.get` reader is the legacy exporter-2
+(not changed). Any other `_builtins` read added later has the same exposure on the new site.
+
+**Still open:** the fork logs two `Cannot read properties of undefined (reading 'value')` page
+errors from exporter-3's notebook-kit `Mutable` builtin
+(`main.value("module @tomlarkworthy/js-toolchain")…toolchain.value("nkRuntime")`) in the
+runtime-sdk and cell-map blocks. Read after boot, the same builtin resolves to a function, and the
+child and its own fork render with 0 errored variables, so it is some other instance during boot.
+Not found which.
 
 ### Import cells — shape *and* name both change (this one hangs, it does not error)
 
