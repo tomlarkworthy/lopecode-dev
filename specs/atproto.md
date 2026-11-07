@@ -109,8 +109,10 @@ _lexicon.bundle.lopecode.com                                           no record
 
 at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/com.atproto.lexicon.schema/com.lopecode.bundle           present  bafyreihby6h3hcdbdilecpi4byzj6czp6gyfidfcxdaqvufltvy2ysf2w4
 at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/com.atproto.lexicon.schema/com.lopecode.bundle.version   present  bafyreialwki4cwvprrdf724ab5fpfg337avdcrhfmgtazhtmgk6wdyqqzm
-at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/com.atproto.lexicon.schema/com.lopecode.module           not yet (RecordNotFound)
+at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/com.atproto.lexicon.schema/com.lopecode.module           present  bafyreia7zhspr4w3clpmkeloevx3l72lwn4ju2qzwg35duwx5zcqy6awla
 ```
+
+`com.lopecode.module` was created by the lopecode workflow run 42417311979 at 21:45:10 UTC on 2026-11-07 (commit `693851c`), the first credentialed run of the lexicon step; the same run printed no-change for `com.lopecode.bundle` and the warning for `com.lopecode.bundle.version`. Read back from the PDS afterwards: required `id, source, imports, attachments, createdAt`, no `by`, `encoding` a plain string.
 
 - **`com.lopecode.bundle.version` does not resolve.** Its record is in the repo, but a resolver looks for `_lexicon.bundle.lopecode.com`, which does not exist. The fix is that TXT record, with the same `did=` value, in the `lopecode.com` zone. Not done.
 - **The source of truth is `lopecode/lexicons/<nsid>.json`**: the lexicon document without `$type`. The two bundle files were copied from the live records on 2026-11-07, and each equals its record. The tool reports `com.lopecode.bundle` as no-change; it skips `com.lopecode.bundle.version` before comparing, because `_lexicon.bundle.lopecode.com` does not resolve.
