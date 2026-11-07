@@ -20,6 +20,8 @@ Status: draft / exploratory. Refining a sketch authored without knowledge of the
 - **2026-08-25 — atproto as an upstream target: CI revision publishing.** A notebook in a content repo declares its published bundle in the sibling spec `.json` (`publish.atproto: {did, rkey, auto}`); a push to `main` touching a declared+armed notebook republishes it as a revision. `tools/atproto-publish.ts` (lopecode-dev) is driven by `.github/workflows/atproto-publish.yml` in both content repos. The tool imports the real publisher cells headlessly (`extractFiles`, `utils`, `publishBundleVersion` from at-write; `xrpc` from at-login; via `notebook-import.ts` + linkedom `DOMParser`) — only the widget's ~90-line orchestration is ported. See [CI publishing](#ci-publishing-atproto-as-an-upstream-target). Verified 2026-08-25: headless `extractFiles` over the on-disk HTML reproduces live PDS CIDs byte-for-byte (53/84 blocks identical for `tomlarkworthy-virtual-monorepo`; the 29 diffs are real local edits since the 2026-07-11 publish); the app-password branch of `xrpc` runs unmodified in Bun. The rkey comes from the declaration, never `slugifyTitle` — measured against the 10 live bundles, deriving from current titles would have orphaned 9. Surfaced a live at-write bug: the PDS ignores `rkeyStart`/`rkeyEnd`, so `publishBundleVersion`'s `previousVersion` tip lookup returns a wrong-bundle snapshot (observed: `atproto--3mlpvidznr2d6` for a bundle with zero snapshots of its own). No credentialed CI run has happened yet.
 - **2026-08-25 (later) — CI publishing live; at-write refactored into a library (Tier 1).** Three green credentialed runs: lopebooks 32814392059 (virtual-monorepo first CI republish: 24 uploaded / 60 reused, notify 200), lopecode 32819951823 (ledger: chained `previousVersion` to pre-existing `ledger--3mnfpqvh76kt5`; lopefeed: first snapshot, prev absent), lopebooks 32820057761 (virtual-monorepo second republish after the at-write resync: 0 uploaded / 84 reused — the two changed module blobs were already on the PDS from the lopecode run, CID dedup across bundles in one repo). PDS-verified: snapshot `tomlarkworthy-virtual-monorepo--3mtvb3w5ad2ip` has `previousVersion → --3mtv4s26jncgz` — the first correct chain produced by at-write itself, no client shim. Tier 1: the widget's publish core hoisted into named cells (`publishBundle`, `extractCard`, `knownCidsFromPds`, `notifyOfUpdate`, `createAppPasswordSession` in at-login), and the `rkeyStart`/`rkeyEnd` bug fixed at **both** consumers (`publishBundleVersion`, `listBundleVersions`) with a paged client-side `${rkey}--` prefix scan; synced to all 13 embedders in both repos, pushed upstream (at-write v129, at-login v113). `tools/atproto-publish.ts` shrank 582→464 lines by consuming the cells (lopecode-dev `9ff1d4e`). Declarations grew an optional `title` field pinning presentation (ledger/lopefeed local `<title>`s are module ids; without the pin a republish would have downgraded the human titles).
 
+- **2026-11-07 — `com.lopecode.module`, and lexicons published from CI.** Cloud Brain's module-lexicon project (the owner's, 2026-11-07) adds a record for one version of one module, with its imports pinned by strongRef; see [`com.lopecode.module`](#comlopecodemodule-one-module-version) and [Cloud Brain on atproto](#cloud-brain-on-atproto). The schema files are now kept in `lopecode/lexicons/<nsid>.json`, and a push that changes one publishes it from `.github/workflows/atproto-publish.yml` through `tools/atproto-publish-lexicons.ts`; see [Published lexicon records](#published-lexicon-records). Dry run that day: `com.lopecode.bundle` no-change, `com.lopecode.module` would create, `com.lopecode.bundle.version` skipped with a warning (no `_lexicon.bundle.lopecode.com`). The owner dropped `by` from the published schema and made `fileEntry.encoding` a plain string before publishing ("schema are hard to change"); brain-x-pds still writes `by` and `text`/`base64`, which the looser schema allows.
+
 ## Design references
 
 The social-layer surfaces (feed, profile, in-notebook panel) are designed in a Claude Design hub. The user picked the locked-in directions in chat:
@@ -96,6 +98,24 @@ Because lopecode already represents everything as files, the mapping to atproto 
 - **A bundle record holds the file table** — `[{id, encoding, blob}]`, where `blob` is an atproto blob ref carrying CID + mimeType + size. This is the same shape v0 already ships.
 
 That's the entire object model for v1.
+
+## Published lexicon records
+
+A lexicon is published as a `com.atproto.lexicon.schema` record whose rkey is the NSID, in the repo of the DID that the TXT record `_lexicon.<authority>` names. The authority is the NSID without its last segment, reversed: `com.lopecode.module` → `lopecode.com`, `com.lopecode.bundle.version` → `bundle.lopecode.com`. Read 2026-11-07:
+
+```
+_lexicon.lopecode.com  TXT  "did=did:plc:j7nm3lrd5h7fm3sfhcv3lhfv"     (larkworthy.bsky.social, PDS earthstar.us-east.host.bsky.network)
+_lexicon.bundle.lopecode.com                                           no record
+
+at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/com.atproto.lexicon.schema/com.lopecode.bundle           present  bafyreihby6h3hcdbdilecpi4byzj6czp6gyfidfcxdaqvufltvy2ysf2w4
+at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/com.atproto.lexicon.schema/com.lopecode.bundle.version   present  bafyreialwki4cwvprrdf724ab5fpfg337avdcrhfmgtazhtmgk6wdyqqzm
+at://did:plc:j7nm3lrd5h7fm3sfhcv3lhfv/com.atproto.lexicon.schema/com.lopecode.module           not yet (RecordNotFound)
+```
+
+- **`com.lopecode.bundle.version` does not resolve.** Its record is in the repo, but a resolver looks for `_lexicon.bundle.lopecode.com`, which does not exist. The fix is that TXT record, with the same `did=` value, in the `lopecode.com` zone. Not done.
+- **The source of truth is `lopecode/lexicons/<nsid>.json`**: the lexicon document without `$type`. The two bundle files were copied from the live records on 2026-11-07, and each equals its record. The tool reports `com.lopecode.bundle` as no-change; it skips `com.lopecode.bundle.version` before comparing, because `_lexicon.bundle.lopecode.com` does not resolve.
+- **Publishing.** `bun tools/atproto-publish-lexicons.ts --publisher lopecode/notebooks/atproto.html [--dry-run] lopecode/lexicons/*.json`, or `--changed <file listing changed paths> --repo-root <dir>` as the workflow runs it. It resolves `_lexicon.<authority>` over DNS-over-HTTPS. With no such record it prints a `::warning::` and skips the file (exit 0), since no resolver could reach the record. It refuses when the session's DID is not the one DNS names, leaves a record holding the same document, and writes a changed one with `putRecord` and `swapRecord` set to the CID it read. A `getRecord` error other than `RecordNotFound` fails the file rather than being taken as no record. Login is at-login's `createAppPasswordSession` and `xrpc`, loaded from `atproto.html` by `loadPublisher` of `tools/atproto-publish.ts`. `--dry-run` needs no credentials.
+- **CI.** `lopecode/.github/workflows/atproto-publish.yml` triggers on `lexicons/**` too, and its last step, "Publish lexicons", runs the tool on the changed paths with the repo's `ATPROTO_IDENTIFIER` / `ATPROTO_APP_PASSWORD`. It runs when the notebook step failed too (`!cancelled()`). The workflow checks out `tools/` of lopecode-dev `main`, so the tool must be on that branch before a lexicon push publishes. Only lopecode's workflow has the step; lopebooks' has none.
 
 ## Schemas (v1)
 
@@ -377,13 +397,37 @@ If we eventually want pinned bundles, an "about" page, or an author-curated subs
 
 Either way, it's an *additive* layer over the listRecords-derived view. Listed in [Open v1 questions](#open-v1-questions).
 
+### `com.lopecode.module` (one module version)
+
+The schema is `lopecode/lexicons/com.lopecode.module.json`; it is not repeated here. A record is one version of one module: `id` (`@user/name`), `source` (a blob of the compiled module text), `imports` (`{ id, ref }`, `ref` a `com.atproto.repo.strongRef` to the imported version's record), `attachments` (`{ name, encoding, blob }`), `prev` (strongRef to the version it follows, optional), `createdAt`. `key: tid`; a record is never rewritten, a new version is a new record.
+
+- Blobs are content-addressed as in the bundle's `files[]`, so a module record and a bundle in one repo share blobs.
+- The schema published is looser than the one brain-x-pds holds (its cell `comLopecodeModuleLexicon`, with `recordSchemas` of `pds_validation` written from it by hand): that one requires `by` (the caller that published) and gives `encoding` the enum `text`/`base64`. A lexicon object allows undeclared fields and a plain string takes either value, so every record brain-x-pds accepts validates against the published schema. The two JSONs differ on purpose; a change to brain-x-pds's is checked against this file by hand.
+- Nothing links a bundle to module records yet. Cloud Brain's spec (`module-lexicon-spec-r3.md`, §9 "Later, not this project") leaves bundles referring to module records, and the corpus resolving canonical/stale from records instead of `modules/canonical.json`, to a later project.
+
+## Cloud Brain on atproto
+
+Cloud Brain (`tools/cloud-brain/`, cb4 at `https://cb4.endpointservices.workers.dev`) has its own atproto services, built 2026-10 to 2026-11. Each line is from that service's guide as cb4 ran it on 2026-11-07: Worker `brain-x-NAME`, module `@tomlarkworthy/brain-NAME`, guide `cloud-brain-dev/deploy/@tomlarkworthy/brain-NAME/docs/usage.md` after `bun sync.ts https://cb4.endpointservices.workers.dev` (a checkout not synced that day may predate the module record), or `<brain>/xrpc/com.lopecode.brain.getSource?worker=brain-x-NAME&part=docs`.
+
+| Service | What it does on atproto |
+|---|---|
+| `brain-x-pds` | The Brain's own PDS. It mints `did:plc` identities for the owner, members and their Workers, with no password or Bluesky account; keeps their signed repos (the keys never leave the service); relays and Bluesky crawl them like any PDS. It holds the `com.lopecode.module` lexicon and refuses a record that does not match it. |
+| `brain-x-library` | Keeps lopecode notebooks at `<brain>/library/<name>`, and publishes module versions as `com.lopecode.module` records in the cluster identity's repo. |
+| `brain-x-bluesky` | The Brain's Bluesky account: chat DMs in and out of the Brain's inbox, group chats, and the account's feed generator records. |
+| `brain-x-feed` | Bluesky feed generators served by the Brain; a caller fills a feed with post URIs, and its `app.bsky.feed.generator` record lives in the Bluesky account's repo. |
+| `brain-x-delve` | The Brain's account in Delvetown, a town of people and agents on atproto: mentions and replies reach the inbox, answers go back as replies, and it keeps a record of the bots it meets. |
+
+- **Handles on `cloudbrain.social`** since 2026-11-07: a wildcard AAAA `100::` record and a Workers route `*.cloudbrain.social/.well-known/atproto-did` to the kernel, both made by hand outside the deployer, and brain-x-pds setting `handleDomain=cloudbrain.social`. `root.cloudbrain.social` is `did:plc:4gi7shchl6byhpebkv5qt53d`, the cluster's own identity, on the PDS `https://cb4.endpointservices.workers.dev`. Its `/.well-known/atproto-did` answered the DID (200) on 2026-11-07 after that day's kernel deploy of 21:19 UTC, which the hand-made route survived.
+- **Module records**: `describeRepo?repo=did:plc:4gi7shchl6byhpebkv5qt53d` on cb4 listed no collections on 2026-11-07 (`repo=root.cloudbrain.social` answers `RepoNotFound` there), so no `com.lopecode.module` record is published yet. The task that publishes the first is `ml-library-modules`.
+- **Two authorities.** The schema record is under `lopecode.com` (the owner's repo, `larkworthy.bsky.social`); the module records are in the cluster's repo (`root.cloudbrain.social`). A reader resolves the schema by NSID, not by the repo a record is in.
+
 ## Deferred (v2+)
 
 The early sketch had four lexicons (`module` + `moduleVersion` + `app` + `appVersion`) for cross-notebook module reuse with mutable lineages and immutable versions. v1 doesn't need any of that — bundles are addressed by `at://{did}/com.lopecode.bundle/{slug}`, mutable per notebook id (see [Notebook identity in the rkey](#notebook-identity-in-the-rkey)), and dependencies are resolved at *publish time* by inlining (the file table is the transitive closure).
 
 Three things that would justify revisiting:
 
-- **Cross-notebook module reuse** — if many notebooks want to import the same module without duplicating its bytes. Then: split modules into their own records, addressed by CID; notebooks reference them.
+- **Cross-notebook module reuse** — if many notebooks want to import the same module without duplicating its bytes. Then: split modules into their own records, addressed by CID; notebooks reference them. *(2026-11-07: started as `com.lopecode.module` for Cloud Brain's services; bundles do not refer to it yet. See [`com.lopecode.module`](#comlopecodemodule-one-module-version).)*
 - **Versioned snapshots / "follow across versions"** — bundles are now mutable per slug (republish overwrites), so the historical version-set is no longer enumerable from `listRecords`. If we eventually want subscribe-to-updates or "show all versions of this notebook" UX, add a separate lineage record (`com.lopecode.line`?) with a `head` ref pointing at the current bundle and a history array (or a parallel snapshot collection with TID rkeys). Additive, not replacing. For now, "follow the author on Bluesky" covers this socially; the deleted-version bytes still exist in atproto blob storage if anyone kept the CIDs.
 - **Per-cell records** — for cell-level diff / discussion / live editing. Natural fit for the pairing channel's `define_cell` granularity. Defer until UX demands it.
 
