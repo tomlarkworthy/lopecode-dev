@@ -131,6 +131,15 @@ for w,lo in(("24h",D1),("7d",D7)):
     top=collections.defaultdict(float)
     for e in cs: top[e.get("id")]+=e.get("usd") or 0
     P("   top issues by usd:",[(k,round(v,2)) for k,v in sorted(top.items(),key=lambda x:-x[1])[:8]])
+# brain-x-loop's budgetUsd (the owner, 2026-10-17: 200) is "the budget of the loop" a UTC day; drain2.ts picks from the
+# lists and gives each assign back with usd 0, so nothing holds the runs to it (retro 2026-11-08: 11-07 cost 314 USD).
+try: BUDGET=json.load(open(S+"/loopcfg.json")).get("values",{}).get("budgetUsd")
+except Exception: BUDGET=None
+_day=collections.defaultdict(float); _dn=collections.Counter()
+for e in E:
+    if e["type"]=="cost" and e["at"]>=D7-24*H and not str(e.get("id","")).startswith("test-retro-cost-"):
+        k=iso(e["at"])[:10]; _day[k]+=e.get("usd") or 0; _dn[k]+=1
+P("   by UTC day, usd (runs); brain-x-loop budgetUsd",BUDGET,"(not enforced):"," ".join(f"{k[5:]} {round(v,2)} ({_dn[k]}){' OVER' if BUDGET and v>BUDGET else ''}" for k,v in sorted(_day.items())))
 # ---- 5 retries, rework, stuck
 P("\n## retries, run-stops, rework, stuck")
 for w,lo in(("24h",D1),("7d",D7)):
