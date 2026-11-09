@@ -4,7 +4,7 @@
 #   python3 measure.py [--now ISO] [--json]           # reads $S/events.json and $S/deploys7d.json, prints the tables
 # S defaults to /tmp/retro. The classes of an issue (product, loop, tracker, docs, tooling, owners) are regexes over
 # `about` and the title (CLASS below): say so when quoting them. Written 2026-10-20 by the first retro.
-import json,collections,re,os,sys,datetime,statistics
+import json,collections,re,os,sys,datetime,statistics,bisect
 S=os.environ.get("S","/tmp/retro")
 E=json.load(open(S+"/events.json"))
 try: DEP=json.load(open(S+"/deploys7d.json"))
@@ -87,6 +87,22 @@ if DEP:
             for i,a,u in WAITS.get(l["target"]+"@"+l["hash"][:12],[]):
                 if a<=l["t"]<u and not ENDAT.get(i,9e15)<l["t"] and (k,i,l["target"]+"@"+l["hash"][:12]) not in GOT: lost.add((iso(l["t"]),k,l["target"]+"@"+l["hash"][:12],i))
         P(w,"deploy lines a live wait named that never reached the issue:",len(lost),sorted(lost)[:12])
+    # Late, not lost: the topic holds every line behind one it pushes again, and a review-first hold's waiting line, which no
+    # wait names, held them 15 min each from 11-07 (retro 2026-11-09: p90 73 to 107 s a day before, 816 and 731 s on 11-07 and 11-08).
+    SAID=collections.defaultdict(list)
+    for l in L:
+        if l.get("target") and l.get("hash"): SAID[(l["at"][7:],l["target"],l["hash"])].append(l["t"])
+    for v in SAID.values(): v.sort()
+    for w,lo in(("24h",D1),("7d",D7)):
+        late=[]
+        for e in E:
+            m=re.match(r"receive/[^/]+/([a-z.-]+)/(.+)/comment$",e.get("key","")) if e["type"]=="commented" and e["at"]>=lo else None
+            ref=next((r["value"] for r in e.get("refs") or [] if r.get("kind")=="deployed" and "@" in r.get("value","")),None) if m else None
+            ts=SAID.get((m.group(1),)+tuple(ref.split("@",1))) if ref else None
+            j=bisect.bisect_right(ts,e["at"])-1 if ts else -1
+            if j>=0: late.append((e["at"]-ts[j])/1000)
+        late.sort()
+        P(w,"s from a deploy line to its issue's comment: n",len(late),"median",round(statistics.median(late)) if late else None,"p90",round(late[int(.9*len(late))]) if late else None,"max",round(late[-1]) if late else None,"over 300 s:",sum(1 for x in late if x>300))
 # pass -> live on the tracker: a pass review then a comment that says deployed/live
 P("hours from a pass to a `live`/`deployed` comment, 7d, service issues:")
 lat=[]
