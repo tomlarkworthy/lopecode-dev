@@ -195,7 +195,7 @@ timeline=sorted([e for e in E if e["type"] in ("moved","opened","labelled") or (
 # The labels a persona of drain2 takes (loop.status personas, 2026-10-24); needs-token waited on the owner and was counted
 # doable until then (all 20 idle half-hours of the 2026-10-24 retro's window).
 PERSONA_LABELS={"needs-worker","needs-reviewer","needs-spec","needs-spec-reviewer"}; OWNER_LABELS={"needs-owner","needs-token"}
-st={}; lab=collections.defaultdict(set); aft=collections.defaultdict(set); worked=set(); ti=0; idle=[]
+st={}; lab=collections.defaultdict(set); aft=collections.defaultdict(set); worked=set(); ti=0; idle=[]; starved=[]
 for b in buckets:
     while ti<len(timeline) and timeline[ti]["at"]<=b:
         e=timeline[ti]; ti+=1; i=e.get("id")
@@ -209,10 +209,14 @@ for b in buckets:
     doable=sum(1 for i,v in st.items() if v not in ENDED and lab[i]&PERSONA_LABELS and (i in worked or not any(st.get(t,"open") not in ENDED for t in aft[i])))
     owner=sum(1 for i,v in st.items() if v not in ENDED and lab[i]&OWNER_LABELS)
     active=sum(1 for s,t in runs if s<b+B and t>b)
-    flag="  <- idle with work" if doable and not active else ""
-    P(" ",iso(b),"doable",doable,"needs-owner",owner,"runs active",active,flag)
-    if flag: idle.append(b)
+    # Held by an after link to an issue not ended (retro 2026-11-11: 10 parts of rows-atomic-writes chained 83 h behind owner deploys read "idle with work: 0").
+    chained=sum(1 for i,v in st.items() if v not in ENDED and "waiting-issue" in lab[i] and any(st.get(t,"open") not in ENDED for t in aft[i]))
+    flag="  <- idle with work" if doable and not active else ("  <- nothing doable, chained" if chained and not doable else "")
+    P(" ",iso(b),"doable",doable,"needs-owner",owner,"chained",chained,"runs active",active,flag)
+    if doable and not active: idle.append(b)
+    if chained and not doable: starved.append(b)
 P("buckets idle with work:",len(idle),"of 48 (",len(idle)/2,"h )")
+P("buckets with nothing doable while issues wait on an after link:",len(starved),"of 48 (",len(starved)/2,"h )")
 
 # ---- unrouted: an open issue no route reads (retro 2026-10-30: services-own-sqlite-objects, an owner's project opened with
 # `owner` alone, waited 4.7 days and was never doable above). Routing labels as route.js `routed`; standing and superseded left.
