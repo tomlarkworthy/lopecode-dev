@@ -191,11 +191,11 @@ B=30*60000; buckets=[D1+k*B for k in range(48)]
 runs=[(e["at"]-(e.get("seconds") or 0)*1000,e["at"]) for e in E if e["type"]=="cost" and e["at"]>=D1-6*H]
 # state and labels at time t: replay
 WSTART=lambda e: e["type"]=="commented" and '"kind":"started"' in (e.get("body") or "") and '"persona":"worker"' in (e.get("body") or "")
-timeline=sorted([e for e in E if e["type"] in ("moved","opened","labelled") or (e["type"]=="linked" and e.get("rel")=="after") or WSTART(e)],key=lambda e:e["at"])
+timeline=sorted([e for e in E if e["type"] in ("moved","opened","labelled","held") or (e["type"]=="linked" and e.get("rel")=="after") or WSTART(e)],key=lambda e:e["at"])
 # The labels a persona of drain2 takes (loop.status personas, 2026-10-24); needs-token waited on the owner and was counted
 # doable until then (all 20 idle half-hours of the 2026-10-24 retro's window).
 PERSONA_LABELS={"needs-worker","needs-reviewer","needs-spec","needs-spec-reviewer"}; OWNER_LABELS={"needs-owner","needs-token"}
-st={}; lab=collections.defaultdict(set); aft=collections.defaultdict(set); worked=set(); ti=0; idle=[]; starved=[]
+st={}; lab=collections.defaultdict(set); aft=collections.defaultdict(set); worked=set(); hold={}; ti=0; idle=[]; starved=[]
 for b in buckets:
     while ti<len(timeline) and timeline[ti]["at"]<=b:
         e=timeline[ti]; ti+=1; i=e.get("id")
@@ -203,10 +203,12 @@ for b in buckets:
         elif e["type"]=="opened": st[i]=e.get("state","open"); lab[i]=set(e.get("labels") or [])
         elif e["type"]=="linked": (aft[i].discard if e.get("remove") else aft[i].add)(e.get("to"))
         elif e["type"]=="commented": worked.add(i)
+        elif e["type"]=="held": hold[i]=0 if e.get("remove") else (e.get("until") or 0)
         else: lab[i]=(lab[i]|set(e.get("add") or []))-set(e.get("remove") or [])
     # Linked after an issue not ended is no work before its first worker session (route.js beforeAfter; the drain took
     # topic-dbsql-slow, linked after an open issue at its 9th round, on 2026-11-01).
-    doable=sum(1 for i,v in st.items() if v not in ENDED and lab[i]&PERSONA_LABELS and (i in worked or not any(st.get(t,"open") not in ENDED for t in aft[i])))
+    # A live hold is no work (route.js takes): delve-scout-by-post-advert-check, held with needs-worker 11-11 06:45 to 11-12 00:30, read "idle with work" 30 of 48 (retro 2026-11-12).
+    doable=sum(1 for i,v in st.items() if v not in ENDED and lab[i]&PERSONA_LABELS and hold.get(i,0)<=b and (i in worked or not any(st.get(t,"open") not in ENDED for t in aft[i])))
     owner=sum(1 for i,v in st.items() if v not in ENDED and lab[i]&OWNER_LABELS)
     active=sum(1 for s,t in runs if s<b+B and t>b)
     # Held by an after link to an issue not ended (retro 2026-11-11: 10 parts of rows-atomic-writes chained 83 h behind owner deploys read "idle with work: 0").
@@ -273,3 +275,32 @@ for i,v in st.items():
     if not any(l.get("target")==t and (l.get("hash") or "").startswith(h) and l.get("t",0)>w["at"] and l.get("at") in ENDS for t,h in hs for l in DL): dead.append((w["at"],i,w["note"]))
 for t,i,n in sorted(dead): P(" ",iso(t),i,"|",n)
 P("deploy waits no line answers:",len(dead))
+
+# ---- done with its deploy still held (retro 2026-11-12: raw-library-cas and raw-static-cas were finished by a review's pass
+# while the deployer held their versions for the owner; the owner found it, fb-deploy-end-of-task, cloud-brain-dev 76be28a).
+P("\n## service issues moved to done whose last deploy line on the issue, before the move, is deploy.waiting (done, not live)")
+DLINE=re.compile(r"deploy\.([a-z.]+) · ([\w-]+)@([0-9a-f]{12})")
+held_done=[]
+for e in E:
+    if e["type"]!="moved" or e.get("to")!="done" or e["at"]<D7: continue
+    ls=[m for x in BYID.get(e.get("id"),[]) if x["type"]=="commented" and x["seq"]<e["seq"] and (m:=DLINE.match(x.get("body") or ""))]
+    if ls and ls[-1].group(1)=="waiting": held_done.append((e["at"],e.get("id"),ls[-1].group(2)+"@"+ls[-1].group(3)))
+for t,i,w in held_done: P(" ",iso(t),i,w)
+P("done with a held deploy, 24h:",sum(1 for t,_,_ in held_done if t>=D1),"| 7d:",len(held_done))
+
+
+# ---- the owner's finish of a major issue (retro 2026-11-12: 28 asks in 7 d waited 161.8 h, none of 43 ended asks sent back; the
+# issues linked after them wait for the finish, not for the change, which is live at the ask).
+P("\n## asks for the owner's finish of a major issue (drain2.ts \"so its finish is yours\"), 7d, by the ask")
+fa={}
+for e in E:
+    if e["type"]=="commented" and "so its finish is yours" in (e.get("body") or "") and e["at"]>=D7: fa.setdefault(e.get("id"),e)
+AFTER_OF=collections.defaultdict(set)
+for e in E:
+    if e["type"]=="linked" and e.get("rel")=="after": (AFTER_OF[e.get("to")].discard if e.get("remove") else AFTER_OF[e.get("to")].add)(e.get("id"))
+fh=dh=wh=0
+for i,a in sorted(fa.items(),key=lambda x:x[1]["at"]):
+    end=min([x["at"] for x in BYID.get(i,[]) if x["type"]=="moved" and x["seq"]>a["seq"]] or [NOW]); w=(end-a["at"])/H; fh+=w; dh+=w*len(AFTER_OF[i]); wh+=w if AFTER_OF[i] else 0
+    P(" ",iso(a["at"]),"%5.1f h"%w,"open" if end==NOW else "ended","after it:",len(AFTER_OF[i]),i)
+# after it: issues linked after it now (links removed later are not counted), times the whole wait, so an upper bound.
+P("finish asks, 7d:",len(fa),"| hours waited:",round(fh,1),"| of them by asks with an issue after them:",round(wh,1),"| hours of the issues after them (at most):",round(dh,1))
