@@ -413,3 +413,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   placeholder, the spec's own `after` column already chained so the brief's step 4 was not the only cause, a new `measure.py`
   line that also counts needed chains, two owner tokens left out of a count unsaid, the owner's approved pick undone without a
   word in section 4, one point said twice). 90k subagent tokens, 3m38s.
+- 2026-11-13 `plan/retros/2026-11-13.md`, authored by the spawning session: FIX, 7 findings (6 confirmed, 1 plausible), all
+  taken (queue counts taken after the change, owner waits compared on two bases, a 7 d figure said to fall in a day, the
+  owner's 16A not on file and not asked, a second stale wait left out, a time and a quoted condition's commit). 134.5k
+  subagent tokens, 8m09s.

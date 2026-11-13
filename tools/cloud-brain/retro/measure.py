@@ -304,3 +304,26 @@ for i,a in sorted(fa.items(),key=lambda x:x[1]["at"]):
     P(" ",iso(a["at"]),"%5.1f h"%w,"open" if end==NOW else "ended","after it:",len(AFTER_OF[i]),i)
 # after it: issues linked after it now (links removed later are not counted), times the whole wait, so an upper bound.
 P("finish asks, 7d:",len(fa),"| hours waited:",round(fh,1),"| of them by asks with an issue after them:",round(wh,1),"| hours of the issues after them (at most):",round(dh,1))
+
+
+# ---- deploy.ts's holds and review-key approvals, by reason and kind (retro 2026-11-13: deploy.ts used the review key for kind
+# task only, so a bug and a promoted feedback, both on the task workflow, went to the owner: 29 holds of 15 issues in 7 d;
+# cloud-brain-dev 553d19c reads the workflow). "owner, other" is a hold that is neither a path nor the owner's four.
+P("\n## deploy.ts's holds for the owner and the review key's approvals, 7d, by reason and the issue's kind")
+def hold_reason(b):
+    if "owner's four" in b: return "owner's four"
+    if "serves a path" in b: return "path"
+    if "a reviewer's pass of the patch approves it" in b: return "review-first"
+    if "waits for the owner's approval" in b: return "owner, other"
+    return None
+hc={"24h":collections.Counter(),"7d":collections.Counter()}; kc={"24h":collections.Counter(),"7d":collections.Counter()}
+for e in E:
+    b=e.get("body") or ""
+    if e["type"]!="commented" or not (w:=win(e["at"])): continue
+    k=ISSUE.get(e.get("id"),{}).get("kind","?")
+    r=hold_reason(b) if b.startswith("deploy.ts did not deploy") else None
+    for x in (["24h","7d"] if w=="24h" else ["7d"]):
+        if r: hc[x][(r,k)]+=1
+        if b.startswith("deploy.ts approved with the review key"): kc[x][k]+=1
+for x in ("24h","7d"):
+    P(x,"holds:",dict(sorted(hc[x].items())),"| 'owner, other' on a bug or feedback:",sum(v for (r,k),v in hc[x].items() if r=="owner, other" and k in("bug","feedback")),"| review-key approvals by kind:",dict(kc[x]))
