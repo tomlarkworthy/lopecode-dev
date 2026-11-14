@@ -53,6 +53,8 @@ export const forget = (definition: object) => {
   const id = /\bid: "(\w+)", invalidation: [\w$]+\}\); \}$/.exec(String(definition))?.[1];
   if (id) { memos.delete(id); evalCounts.delete(id); }
 };
+export const memoSize = () => memos.size;
+export const memoHas = (id: string) => memos.has(id);
 
 type Opts = { kind: "cell" | "ref" | "source"; name: string; memo: boolean; id: string; invalidation: Promise<unknown> | null };
 
@@ -92,13 +94,28 @@ export function cell(fn: (...a: unknown[]) => unknown, args: unknown[], o: Opts)
 type Running = { source: unknown; action: unknown; count: number; stop: () => void };
 const live: Running[] = [];
 // per set: what it holds, and how many runs of a cell currently return it
-const held = new Map<object, { mine: Running[]; runs: number }>();
+const held = new Map<object, { mine: Running[]; runs: number; pinned: boolean }>();
 export const running = () => live.length;
+// removes a stopped subscription from live and from every set's list, once
+function unlist(e: Running) {
+  const i = live.indexOf(e);
+  if (i >= 0) live.splice(i, 1);
+  for (const h of held.values()) { const j = h.mine.indexOf(e); if (j >= 0) h.mine.splice(j, 1); }
+  e.count = 0;
+}
+const label = (x: any) => (x && typeof x === "object" ? x.source : x?.name) || "(anonymous)";
 function start(source: { make: () => any }, act: (x: unknown) => void): Running {
   let stopped = false;
   const gen = source.make();
-  // a generator or action that throws ends its subscription, so the same pair can be started again
-  const fail = (e: unknown) => { console.error(e); entry.stop(); const i = live.indexOf(entry); if (i >= 0) live.splice(i, 1); };
+  // A generator or action that throws logs the error naming the source and action, and stops only
+  // its own subscription: it leaves live and every set that held it, while every other subscription
+  // keeps running. A set made later that holds the same (source, action) pair starts it afresh.
+  const fail = (e: unknown) => {
+    if (stopped) return;
+    console.error(`subscription ${label(source)} -> ${label(act)} failed:`, e);
+    entry.stop();
+    unlist(entry);
+  };
   const step = () => {
     if (stopped) return;
     try {
@@ -125,21 +142,31 @@ function hold(set: { source: any; action: any }[], invalidation: Promise<unknown
       if (!e) { e = start(w.source, w.action); live.push(e); }
       if (!mine.includes(e)) { e.count++; mine.push(e); }
     }
-    held.set(set, (h = { mine, runs: 0 }));
+    held.set(set, (h = { mine, runs: 0, pinned: false }));
   }
+  // A run with no invalidation (a cell that forwards a set) is never released by the runtime, so all
+  // such runs of a set count as one holder, which release(set) or sweep removes.
+  if (!invalidation) { if (!h.pinned) { h.pinned = true; h.runs++; } return; }
   h.runs++;
   // dropped after the cell's next value is held, so a set that keeps a subscription does not restart it
-  invalidation?.then(() => setTimeout(() => { const x = held.get(set); if (x && --x.runs <= 0) release(set); }, 0));
+  invalidation.then(() => setTimeout(() => release(set), 0));
 }
-// Stops what a subscription set held. The runtime does not resolve invalidation when a variable is
-// deleted, so the module calls this with the deleted variable's value too.
+// One holder of a subscription set is gone: the set's subscriptions stop when no holder remains.
+// Equal compiled text in two modules shares a memo id, so two variables can hold one set object.
+// Each run of a cell that returns the set is a holder, and its invalidation releases it. The runtime
+// does not resolve invalidation when a variable is deleted, so the module calls this once with the
+// deleted variable's value; a variable whose invalidation will resolve must not also call it.
 export function release(set: unknown) {
   const h = held.get(set as object);
+  if (h && --h.runs <= 0) drop(set as object);
+}
+// stops what a set held, whatever its holder count
+function drop(set: object) {
+  const h = held.get(set);
   if (!h) return;
-  held.delete(set as object);
-  bornAt.delete(set as object);
-  const mine = h.mine;
-  for (const e of mine) if (--e.count === 0) { e.stop(); live.splice(live.indexOf(e), 1); }
+  held.delete(set);
+  bornAt.delete(set);
+  for (const e of [...h.mine]) if (--e.count <= 0) { e.stop(); unlist(e); }
 }
 
 // Stops the sets no live variable holds. A set made since the last sweep is spared once: it may be
@@ -151,16 +178,30 @@ export function sweep(values: Set<unknown>) {
   for (const set of [...held.keys()]) {
     if (values.has(set)) { bornAt.delete(set); continue; }
     if (!bornAt.has(set)) { bornAt.set(set, generation); continue; }
-    if (bornAt.get(set)! < generation) { bornAt.delete(set); release(set); }
+    if (bornAt.get(set)! < generation) { bornAt.delete(set); drop(set); }
   }
 }
 
+// page-wide, so two modules' islands never share a key in one pool
+let made = 0;
+const ISLANDS = 64;
 // compile for one module. read() returns that module's SoundScript source; an island runs only when
 // the checker accepts it and the calling cell.
 export function compiler(read: () => string) {
   const owners = new Map<string, { dead: boolean }>();
+  // island text -> key, least recently used first, at most ISLANDS entries. A key is never reused for
+  // other text (workers cache compiled islands by key), so an evicted island gets a fresh key.
   const keys = new Map<string, string>();
+  const keyFor = (js: string, caller: string) => {
+    let key = keys.get(js);
+    if (key) keys.delete(js);
+    else key = `island${++made}:${caller}`;
+    keys.set(js, key);
+    if (keys.size > ISLANDS) keys.delete(keys.keys().next().value!);
+    return key;
+  };
   return {
+    islands: () => keys.size,
     // called each time the calling cell runs: the functions it made before are superseded
     for(caller: string, refs: Record<string, unknown>) {
       owners.get(caller) && (owners.get(caller)!.dead = true);
@@ -177,8 +218,7 @@ export function compiler(read: () => string) {
         const notOk = [caller, ...isl.order].filter((n) => !verdict.get(n));
         if (notOk.length) throw new Error(`compile refused: ${notOk.join(", ")} not ok by the checker`);
         const js = erase(lowerJsx(isl.order.map((n) => byName.get(n)!.text).join("\n\n")));
-        if (!keys.has(js)) keys.set(js, `island${keys.size + 1}:${caller}`);
-        const key = keys.get(js)!;
+        const key = keyFor(js, caller);
         const order = isl.order.map((n) => ({ name: n, params: byName.get(n)!.info.params.map((p) => p.name) }));
         const runtime = spec.options?.runtime;
         return async (args: Record<string, unknown>) => {

@@ -21,7 +21,25 @@ function cutsOf(src: string): [number, number][] {
     }
     if (n.type === "ExportNamedDeclaration" && n.declaration) cuts.push([n.start, n.declaration.start]);
     if (n.type === "TSAsExpression" || n.type === "TSSatisfiesExpression") {
-      cuts.push([n.expression.end, n.end]);
+      // the cut starts after the parentheses that close a parenthesised operand, `(x) as T`, and after
+      // the /*ss>*/ that closes a lowered JSX operand
+      const at = n.expression.end;
+      let from = at;
+      const gap = src.slice(at, n.typeAnnotation.start);
+      for (const t of tokens(gap, (_b, text, _s, end) => { if (text === "ss>") from = Math.max(from, at + end); })) if (t.type.label === ")") from = Math.max(from, at + t.end);
+      cuts.push([from, n.end]);
+      walk(n.expression);
+      return;
+    }
+    if (n.type === "TSNonNullExpression") {
+      cuts.push([n.end - 1, n.end]);
+      walk(n.expression);
+      return;
+    }
+    if (n.type === "TSTypeAssertion") {
+      const gt = tokens(src.slice(n.typeAnnotation.end, n.expression.start)).find((t) => t.type.label === "</>/<=/>=");
+      if (!gt) throw new Error("unsupported: a <T>x assertion whose closing > was not found");
+      cuts.push([n.start, n.typeAnnotation.end + gt.end]);
       walk(n.expression);
       return;
     }
@@ -52,9 +70,11 @@ function cutsOf(src: string): [number, number][] {
   return merged;
 }
 
-// "*/" inside a type (a string literal type) would close the comment; "*\/" cannot occur in TS source outside strings/comments.
-const esc = (s: string) => s.replaceAll("*/", "*\\/");
-const unesc = (s: string) => s.replaceAll("*\\/", "*/");
+// Text kept inside a comment must not hold "*/". esc adds one backslash to every "*", backslashes, "/"
+// run ("*/" -> "*\/", "*\/" -> "*\\/"), so it never writes "*/" and unesc inverts it exactly.
+export const esc = (s: string) => s.replace(/\*(\\*)\//g, "*\\$1/");
+export const unesc = (s: string) => s.replace(/\*\\(\\*)\//g, "*$1/");
+const tokens = (js: string, onComment?: (block: boolean, text: string, start: number, end: number) => void) => [...acorn.tokenizer(js, { ecmaVersion: "latest", onComment })];
 
 export const LANG = '/*{lang:"ss"}*/';
 

@@ -3,10 +3,10 @@
 // it (types as /*ss:...*/ comments, JSX as /*ss<...*/, the text around the function in a /*ss^{...}*/
 // header), so decompile recovers the cell exactly from the variable's definition text.
 import * as acorn from "acorn";
-import { parse, type Node } from "../parse.ts";
+import { parse, kids, type Node } from "../parse.ts";
 import { lowerJsx } from "../jsx/lower.ts";
 import { cellsOf, type CellInfo } from "../facts.ts";
-import { commentTypes, uncommentTypes, langOf, LANG } from "./comment-types.ts";
+import { commentTypes, uncommentTypes, langOf, LANG, esc, unesc } from "./comment-types.ts";
 
 export type Variable = { name: string; inputs: string[]; definition: string };
 export { langOf, LANG };
@@ -22,7 +22,40 @@ const PROJECTION = "/*ss@ref*/";
 const header = (o: object) => `/*ss^${JSON.stringify(o).replaceAll("*/", "*\\/")}*/`;
 
 function reserved(text: string) {
-  for (const m of ["/*ss", LANG, "*\\/"]) if (text.includes(m)) throw new Error(`cell source contains the reserved text ${m}`);
+  for (const m of ["/*ss", LANG]) if (text.includes(m)) throw new Error(`cell source contains the reserved text ${m}`);
+}
+
+// lowerJsx keeps each top-level element's source in a /*ss<...*/ comment, escaped in a way that cannot
+// hold "*\/"; rewrite each kept original with esc, which decompile inverts exactly
+function keepJsx(fnSrc: string): string {
+  const s = `(${fnSrc})`;
+  const originals: string[] = [];
+  const visit = (n: Node) => {
+    if (n.type === "JSXElement" || n.type === "JSXFragment") { originals.push(s.slice(n.start, n.end)); return; }
+    for (const c of kids(n)) visit(c);
+  };
+  visit(parse(s, { jsx: true }).program);
+  let i = 0;
+  const out = lowerJsx(s, { keep: true }).replace(/\/\*ss<[\s\S]*?\*\//g, () => `/*ss<${esc(originals[i++])}*/`);
+  if (i !== originals.length) throw new Error("JSX originals and kept comments do not match");
+  return out.slice(1, -1);
+}
+
+// a TS form commentTypes leaves in the code is refused by name, never emitted as JS that does not parse
+function erasesToJs(typed: string, fn: Node) {
+  try { acorn.parseExpressionAt(`(${typed})`, 0, { ecmaVersion: "latest" }); return; } catch (e) {
+    let what = "";
+    const find = (n: Node) => {
+      if (what || !n || typeof n !== "object") return;
+      if (n.definite) what = "definite assignment `!:`";
+      else if (n.type === "TSParameterProperty") what = "a parameter property";
+      else if (/^TS(Enum|Module)Declaration$/.test(n.type)) what = n.type === "TSEnumDeclaration" ? "enum" : "namespace";
+      else if (n.accessibility || n.abstract || n.declare || n.override) what = "a class member modifier";
+      else for (const c of kids(n)) find(c);
+    };
+    find(fn);
+    throw new Error(`unsupported: ${what || "TypeScript syntax that does not erase to JavaScript"} (${(e as Error).message})`);
+  }
 }
 
 // Split a SoundScript file into cell texts (leading comments included), in order.
@@ -57,7 +90,8 @@ const identifiers = (n: Node, acc = new Set<string>()): Set<string> => {
 // memoised; null, as for a cell compiled on its own, memoises none). compileModule works it out.
 // facts: each cell's facts (facts.ts) when a check result supplied them, so compileCell does not parse
 // for them again.
-export type Context = { generators: ReadonlySet<string>; sourced: ReadonlySet<string>; accepted: ReadonlySet<string> | null; facts?: ReadonlyMap<string, CellInfo> | null };
+// subs: cells whose value type, as the checker inferred it, holds Sub; null when no check ran.
+export type Context = { generators: ReadonlySet<string>; sourced: ReadonlySet<string>; accepted: ReadonlySet<string> | null; facts?: ReadonlyMap<string, CellInfo> | null; subs?: ReadonlySet<string> | null };
 const NO_CONTEXT: Context = { generators: new Set(), sourced: new Set(), accepted: null };
 const NO_MEMO_CAPS = new Set(["now", "random", "fetch", "log"]);
 
@@ -65,20 +99,36 @@ export function contextOf(texts: string[], tsx: boolean, accepted: ReadonlySet<s
   const infos = texts.flatMap((t) => { try { return cellsOf(tsx ? lowerJsx(t) : t); } catch { return []; } });
   return contextOfFacts(infos, accepted);
 }
-function contextOfFacts(infos: Iterable<CellInfo>, accepted: ReadonlySet<string> | null, facts: ReadonlyMap<string, CellInfo> | null = null): Context {
+function contextOfFacts(infos: Iterable<CellInfo>, accepted: ReadonlySet<string> | null, facts: ReadonlyMap<string, CellInfo> | null = null, subs: ReadonlySet<string> | null = null): Context {
   const list = [...infos];
   const generators = new Set(list.filter((c) => c.generator).map((c) => c.name));
   const sourced = new Set(list.flatMap((c) => c.params.filter((p) => p.sourceTyped && generators.has(p.name)).map((p) => p.name)));
-  return { generators, sourced, accepted, facts };
+  return { generators, sourced, accepted, facts, subs };
 }
 // the cells a check result accepts: ok, with no errors. Only these are memoised.
-type CheckLike = { cells: { name: string; status: string; errors: unknown[] }[]; facts?: ReadonlyMap<string, CellInfo> };
+type CheckLike = { cells: { name: string; status: string; errors: unknown[]; value?: string }[]; facts?: ReadonlyMap<string, CellInfo> };
 export const acceptedOf = (result: CheckLike) => new Set(result.cells.filter((c) => c.status === "ok" && !c.errors.length).map((c) => c.name));
-// the same context as contextOf over the module's texts, from one check of the whole module, with no parse
-export function contextFromCheck(result: CheckLike): Context {
+// the same context as contextOf over the module's texts, from one check of the whole module, plus which
+// cells hold Sub. The checker shows an alias by its name, so source (the checked module text) is
+// needed to see Sub through `type Subs = Sub[]`; without it only types that spell Sub count.
+export function contextFromCheck(result: CheckLike, source?: string, tsx = true): Context {
   if (!result.facts) throw new Error("this check result carries no cell facts");
-  return contextOfFacts(result.facts.values(), acceptedOf(result), result.facts);
+  const names = new Set(["Sub"]);
+  if (source !== undefined) {
+    const aliases: [string, string][] = [];
+    for (const st of parse(source, { jsx: tsx }).program.body as Node[]) {
+      const d = st.type === "ExportNamedDeclaration" ? st.declaration : st;
+      if (d && /^TS(TypeAlias|Interface)Declaration$/.test(d.type)) aliases.push([d.id.name, source.slice(d.start, d.end)]);
+    }
+    for (let grew = true; grew;) {
+      grew = false;
+      for (const [n, text] of aliases) if (!names.has(n) && mentions(text.slice(text.indexOf(n) + n.length), names)) { names.add(n); grew = true; }
+    }
+  }
+  const subs = new Set(result.cells.filter((c) => mentions(c.value ?? "", names)).map((c) => c.name));
+  return contextOfFacts(result.facts.values(), acceptedOf(result), result.facts, subs);
 }
+const mentions = (text: string, names: ReadonlySet<string>) => (text.match(/[\w$]+/g) ?? []).some((w) => names.has(w));
 
 // The variable a cell's value is read from, and the one that holds its handle.
 export const handleName = (name: string) => `viewof ${name}`;
@@ -116,17 +166,19 @@ export function compileCell(text: string, tsx: boolean, ctx: Context = NO_CONTEX
   // an anonymous function* (...) is not a statement, so each pass sees the function as an expression
   const asExpr = (f: (s: string) => string, s: string) => f(`(${s})`).slice(1, -1);
   const fnSrc = text.slice(fn.start, fn.end);
-  const lowered = tsx ? asExpr((s) => lowerJsx(s, { keep: true }), fnSrc) : fnSrc;
+  const lowered = tsx ? keepJsx(fnSrc) : fnSrc;
   const typed = asExpr(commentTypes, lowered);
+  erasesToJs(typed, fn);
   const params = info.params.map((p) => p.name);
   const used = [...identifiers(parse(`(${lowered})`).program)].filter((n) => PRELUDE.includes(n) && !params.includes(n));
   const inputs = [STDLIB_INPUT, ...info.params.map((p) => (p.refTyped ? handleName(p.name) : CAP_INPUTS[p.name] ?? p.name))];
   const kind = info.returnsRef ? "ref" : info.generator && ctx.sourced.has(info.name) ? "source" : "cell";
-  // hidden inputs: invalidation for a cell that builds subscriptions (they stop when it re-runs), and
-  // the refs of its compile(...) calls (it re-runs, and returns new functions, when one changes)
+  // hidden inputs: invalidation for a cell that builds subscriptions or whose value holds them (the set
+  // it returns is released when it re-runs), and the refs of its compile(...) calls (it re-runs, and
+  // returns new functions, when one changes)
   const hidden: string[] = [];
   const hiddenInputs: string[] = [];
-  if (used.includes("on") && !params.includes("invalidation")) { hidden.push("$ss$inv"); hiddenInputs.push("invalidation"); }
+  if ((used.includes("on") || !!ctx.subs?.has(info.name)) && !params.includes("invalidation")) { hidden.push("$ss$inv"); hiddenInputs.push("invalidation"); }
   const inv = params.includes("invalidation") ? "invalidation" : hidden.includes("$ss$inv") ? "$ss$inv" : "null";
   const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
   const refArgs = refs.map((r, i) => { hidden.push(`$ss$r${i}`); hiddenInputs.push(r); return `${JSON.stringify(r)}: $ss$r${i}`; });
@@ -157,7 +209,14 @@ export function compileModule(src: string, tsx: boolean, accepted: ReadonlySet<s
   return texts.flatMap((c) => compileCell(c, tsx, ctx));
 }
 
-const unesc = (s: string) => s.replaceAll("*\\/", "*/");
+// The compiler's memo id: the id in the options object it writes last in a cell's definition. A user's
+// own `id:` property cannot match, because nothing follows the options object but `); }`.
+const ID_AT = /\bid: "(\w+)"(?=, invalidation: [\w$]+\}\); \}$)/;
+export const idOf = (definition: string): string | null => ID_AT.exec(definition)?.[1] ?? null;
+export function withId(definition: string, id: string): string {
+  if (!/^\w+$/.test(id)) throw new Error(`a memo id is word characters only: ${JSON.stringify(id)}`);
+  return definition.replace(ID_AT, () => `id: "${id}"`);
+}
 
 // The cell source a variable holds; null for a variable that is not SoundScript or is a generated part of a cell.
 export function decompileVariable(definition: string): string | null {
@@ -171,13 +230,16 @@ export function decompileVariable(definition: string): string | null {
   const ast: any = acorn.parseExpressionAt(definition, 0, { ecmaVersion: "latest" });
   const ret = ast.body.body.find((s: any) => s.type === "ReturnStatement");
   let end = ret.argument.arguments[0].end;
-  // a JSX element that ends the function body closes after the function node does
-  while (definition.startsWith("/*ss>*/", end)) end += 7;
+  // a JSX element or a type (`x as T`, `x!`) that ends an arrow body closes after the function node does
+  for (;;) {
+    if (definition.startsWith("/*ss>*/", end)) end += 7;
+    else if (definition.startsWith("/*ss:", end)) end = definition.indexOf("*/", end) + 2;
+    else break;
+  }
   const fnJs = definition.slice(hEnd, end);
-  const jsx = fnJs.replace(/\/\*ss<([\s\S]*?)\*\/[\s\S]*?\/\*ss>\*\//g, (_m, orig: string) => `\u0000${orig}\u0001`);
-  // restore types outside the JSX originals, then the originals themselves
-  const parts = jsx.split(/(\u0000[\s\S]*?\u0001)/);
-  const fn = parts.map((p) => (p.startsWith("\u0000") ? unesc(p.slice(1, -1)) : uncommentTypes(p))).join("");
+  // split around each lowered JSX element: odd parts are the kept originals, even parts plain code
+  const parts = fnJs.split(/\/\*ss<([\s\S]*?)\*\/[\s\S]*?\/\*ss>\*\//);
+  const fn = parts.map((p, i) => (i % 2 ? unesc(p) : uncommentTypes(p))).join("");
   return hdr.h + fn + hdr.t;
 }
 

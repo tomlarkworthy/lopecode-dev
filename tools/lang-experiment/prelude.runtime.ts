@@ -71,16 +71,22 @@ export function* refValues(handle: object): Generator<unknown> {
   }
 }
 
+// All or nothing: every new value is computed before any is stored, so an update function that throws
+// leaves every store, version and waiter as it was. flush runs from setTimeout, where a rethrow is an
+// uncaught exception with no caller to catch it, so the error goes to console.error.
 function flush() {
   state.flushScheduled = false;
   const q = state.queue;
   state.queue = [];
-  const touched = new Set<Store>();
-  for (const w of q) {
-    w.store.value = w.apply(w.store.value);
-    touched.add(w.store);
+  const next = new Map<Store, unknown>();
+  try {
+    for (const w of q) next.set(w.store, w.apply(next.has(w.store) ? next.get(w.store) : w.store.value));
+  } catch (e) {
+    console.error(e);
+    return;
   }
-  for (const s of touched) {
+  for (const [s, v] of next) s.value = v;
+  for (const s of next.keys()) {
     s.version++;
     const ws = s.waiters;
     s.waiters = [];
@@ -93,8 +99,13 @@ export function action(f: (...args: unknown[]) => void) {
   const a = (...args: unknown[]) => {
     if (state.evalDepth > 0 && state.actionDepth === 0) throw new Error("action called during a cell evaluation");
     state.actionDepth++;
+    // all or nothing: a throw discards the writes this call queued, its nested calls' included
+    const mark = state.queue.length;
     try {
       f(...args);
+    } catch (e) {
+      state.queue.length = mark;
+      throw e;
     } finally {
       state.actionDepth--;
       if (state.actionDepth === 0 && state.queue.length && !state.flushScheduled) {

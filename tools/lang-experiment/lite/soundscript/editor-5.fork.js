@@ -1053,7 +1053,7 @@ const _19d9pua = function _observableJS_lint(codemirror){return(
     })
 ]
 )};
-const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,literalCompletions,EditorState,decompiled,cellIdFacet,EditorView,states,compile_and_update,code_editor_view,replaceCodeMirrorDoc,observableJS_language,observableJS_highlightStyle,myDefaultTheme,cellLanguage,languageOf)
+const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,literalCompletions,EditorState,decompiled,cellIdFacet,EditorView,states,compile_and_update,code_editor_view,replaceCodeMirrorDoc,observableJS_language,observableJS_highlightStyle,myDefaultTheme,cellLanguage,languageOf,unloadedLanguage)
 {
   if (!editedCell?.variables?.length)
     return;
@@ -1208,8 +1208,13 @@ const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,liter
   const registered = languageOf(editedCell?.variables ?? [], editedCell);
   // asked on every lint, so a new cell typed as a registered language's source is linted as that language
   const languageNow = view => registered ?? languageOf([], editedCell, view.state.doc.toString());
+  const unloaded = unloadedLanguage(editedCell?.variables ?? []);
+  let extensionError = null;
   const anyLint = view => {
     const lang = languageNow(view);
+    const head = Math.min(1, view.state.doc.length);
+    if (extensionError) return [{ from: 0, to: head, severity: 'error', message: `The ${registered.id} editor support failed, so this is the plain editor: ${extensionError?.message ?? extensionError}` }, ...(lang?.lint ? [] : lintSource(view))];
+    if (unloaded && !lang) return [{ from: 0, to: head, severity: 'error', message: `This is a "${unloaded}" cell and that language is not loaded yet, so its typed source is not shown and Shift-Enter does not save it.` }];
     if (!lang?.lint) return lintSource(view);
     try {
       return lang.lint(view.state.doc.toString(), editedCell.variables, editedCell) ?? [];
@@ -1217,7 +1222,10 @@ const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,liter
       return [{ from: 0, to: Math.min(1, view.state.doc.length), severity: 'error', message: String(e?.message ?? e) }];
     }
   };
-  const language = registered?.extension ? registered.extension(codemirror) : isJs ? codemirror.javascript() : observableJS_language;
+  // a language plugin that throws leaves the plain editor, with the error as a diagnostic
+  let language;
+  try { language = registered?.extension ? registered.extension(codemirror) : isJs ? codemirror.javascript() : observableJS_language; }
+  catch (e) { console.error(e); extensionError = e; language = isJs ? codemirror.javascript() : observableJS_language; }
   const state = EditorState.create({
     doc: decompiled,
     extensions: [
@@ -1589,8 +1597,9 @@ async ({ cells, editedCell }) => {
 const _z9vacx = function _86(md){return(
 md`## Decompiler`
 )};
-const _gbuhyc = function _decompiled(editedCell,decompile)
+const _gbuhyc = function _decompiled(editedCell,decompile,cellLanguagesVersion)
 {
+    void cellLanguagesVersion; // rerun when a language registers after boot
     if (!editedCell?.variables?.length)
         return '';
     return decompile(editedCell.variables);
@@ -1815,7 +1824,8 @@ plugins.add("cell_languages", {
 const _e5lng1 = function _cellLanguagesRef(plugins,invalidation)
 {
   // follows the set itself, as cellSourceHandlersRef does
-  const ref = { current: [] };
+  // version and listeners let cellLanguagesVersion follow a registration that lands after boot
+  const ref = { current: [], version: 0, listeners: new Set() };
   const gen = plugins.get("cell_languages");
   let live = true;
   invalidation.then(() => { live = false; gen.return?.(); });
@@ -1824,7 +1834,15 @@ const _e5lng1 = function _cellLanguagesRef(plugins,invalidation)
       const step = await gen.next();
       if (step.done) break;
       const languages = await step.value;
-      if (live) ref.current = [...languages];
+      if (!live) continue;
+      const next = [...languages];
+      // the set yields on every registration of any plugin; an open editor is rebuilt only when the languages differ
+      const changed = next.length !== ref.current.length || next.some((l, i) => l !== ref.current[i]);
+      ref.current = next;
+      if (changed) {
+        ref.version++;
+        for (const f of ref.listeners) f();
+      }
     }
   })();
   return ref;
@@ -1836,6 +1854,27 @@ const _e5lng2 = function _languageOf(cellLanguagesRef){return(
   const all = cellLanguagesRef.current;
   if (variables.length) return all.find((l) => ask(() => l.claims(variables))) ?? null;
   if (typeof source === "string") return all.find((l) => l.claimsSource && ask(() => l.claimsSource(source, cell))) ?? null;
+  return null;
+}
+)};
+const _e5lng4 = function _cellLanguagesVersion(cellLanguagesRef,Generators){return(
+// changes when a language registers or leaves, so an editor opened before registration is rebuilt
+Generators.observe((notify) => {
+  notify(cellLanguagesRef.version ?? 0);
+  const f = () => notify(cellLanguagesRef.version);
+  cellLanguagesRef.listeners?.add(f);
+  return () => cellLanguagesRef.listeners?.delete(f);
+})
+)};
+const _e5lng5 = function _unloadedLanguage(languageOf){return(
+// the language id a cell's compiled definition is marked with (/*{lang:"id"}*/) when no registered
+// language claims it: its source cannot be shown or saved until that language registers
+(variables = []) => {
+  if (!variables.length || languageOf(variables)) return null;
+  for (const v of variables) {
+    const m = /\/\*\{lang:"([\w-]+)"\}\*\//.exec(String(v?._definition ?? ""));
+    if (m) return m[1];
+  }
   return null;
 }
 )};
@@ -1868,7 +1907,7 @@ const _e5lng3 = async function _test_e5_language_hook(cellLanguagesRef,languageO
 const _1whoy5n = function _91(md){return(
 md`### Apply Update`
 )};
-const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionSetElement,decompile,cellLanguage,defineJsCell,sourceLanguage,pinOnCreate,claimCellSource,languageOf)
+const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionSetElement,decompile,cellLanguage,defineJsCell,sourceLanguage,pinOnCreate,claimCellSource,languageOf,unloadedLanguage)
 {
   // Typed source that does not parse may be claimed by a "cell_source_handlers" plugin, which supplies
   // the source to compile instead.
@@ -1887,6 +1926,9 @@ const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionS
     try {
       const registered = languageOf(variables, cell) ?? languageOf([], cell, source);
       if (registered) return await registered.apply(source, variables, cell);
+      // saving a marked cell through the js/ojs path would replace it with its compiled text
+      const unloaded = unloadedLanguage(variables);
+      if (unloaded) { console.error(new Error(`not saved: this is a "${unloaded}" cell and that language is not loaded yet`)); return undefined; }
       const language = sourceLanguage(source, variables, cell);
       if (variables.length && language !== cellLanguage(variables, cell)) return await switchLanguage(source, variables, cell);
       if (language === 'js') return await defineJsCell(source, variables, cell);
@@ -2726,7 +2768,7 @@ export default function define(runtime, observer) {
   $def("_7btuqg", "observableJS_language", ["codemirror","observable_lezer_parser"], _7btuqg);  
   $def("_1xf04v5", "observableJS_highlightStyle", ["codemirror","lezerhighlight"], _1xf04v5);  
   $def("_19d9pua", "observableJS_lint", ["codemirror"], _19d9pua);  
-  $def("_125gzhe", "editor_manager", ["editedCell","globalThis","codemirror","literalCompletions","EditorState","decompiled","cellIdFacet","EditorView","states","compile_and_update","code_editor_view","replaceCodeMirrorDoc","observableJS_language","observableJS_highlightStyle","myDefaultTheme","cellLanguage","languageOf"], _125gzhe);  
+  $def("_125gzhe", "editor_manager", ["editedCell","globalThis","codemirror","literalCompletions","EditorState","decompiled","cellIdFacet","EditorView","states","compile_and_update","code_editor_view","replaceCodeMirrorDoc","observableJS_language","observableJS_highlightStyle","myDefaultTheme","cellLanguage","languageOf","unloadedLanguage"], _125gzhe);  
   $def("_65mlp5", "divToCell", [], _65mlp5);  
   $def("_bt6o0p", null, ["md"], _bt6o0p);  
   $def("_jh2ad1", "editor_refresh_from_runtime", ["editedCell","decompile","code_editor_view","replaceCodeMirrorDoc","queueMicrotask","onCodeChange","invalidation"], _jh2ad1);  
@@ -2750,7 +2792,7 @@ export default function define(runtime, observer) {
   $def("_1w99cbu", "pasteObservableCellsIntoModule", ["viewof liveCellMap","normalizeObservableClipboardCell","findCell","compile_and_update"], _1w99cbu);  
   $def("_z9vacx", null, ["md"], _z9vacx);  
   main.define("modules", ["module @tomlarkworthy/modules", "@variable"], (_, v) => v.import("currentModules", "modules", _));  
-  $def("_gbuhyc", "decompiled", ["editedCell","decompile"], _gbuhyc);  
+  $def("_gbuhyc", "decompiled", ["editedCell","decompile","cellLanguagesVersion"], _gbuhyc);  
   $def("_w5q3yf", "viewof editorModule", ["thisModule"], _w5q3yf);  
   $def("_18kaj2p", "editorModule", ["Generators","viewof editorModule"], _18kaj2p);  
   $def("_yeikvo", "editor_jobs", ["command_processor","submit_summary","save_options","persist_attach_menu"], _yeikvo);  
@@ -2761,9 +2803,11 @@ export default function define(runtime, observer) {
   $def("_e5lng0", null, ["md"], _e5lng0);
   $def("_e5lng1", "cellLanguagesRef", ["plugins","invalidation"], _e5lng1);
   $def("_e5lng2", "languageOf", ["cellLanguagesRef"], _e5lng2);
+  $def("_e5lng4", "cellLanguagesVersion", ["cellLanguagesRef","Generators"], _e5lng4);
+  $def("_e5lng5", "unloadedLanguage", ["languageOf"], _e5lng5);
   $def("_e5lng3", "test_e5_language_hook", ["cellLanguagesRef","languageOf","cellLanguage","sourceLanguage","decompile","compile_and_update","expect"], _e5lng3);
   $def("_1whoy5n", null, ["md"], _1whoy5n);  
-  $def("_gk83fp", "compile_and_update", ["compile","runtime","realize","repositionSetElement","decompile","cellLanguage","defineJsCell","sourceLanguage","pinOnCreate","claimCellSource","languageOf"], _gk83fp);
+  $def("_gk83fp", "compile_and_update", ["compile","runtime","realize","repositionSetElement","decompile","cellLanguage","defineJsCell","sourceLanguage","pinOnCreate","claimCellSource","languageOf","unloadedLanguage"], _gk83fp);
   $def("_e5csh1", "cellSourceHandlers", ["plugins"], _e5csh1);
   $def("_e5csh2", "cellSourceHandlersRef", ["plugins","invalidation"], _e5csh2);
   $def("_e5csh4", "claimCellSource", ["parser","transpileJavaScript","cellSourceHandlersRef"], _e5csh4);

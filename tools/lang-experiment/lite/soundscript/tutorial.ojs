@@ -425,11 +425,13 @@ md`### Subscriptions: \`Source\`, \`on\` (*lite*)
 | \`on(ticks, tick)\` | a \`Sub\`: deliver each value of \`ticks\` to \`tick\`, which must be an \`Action<[number]>\` (\`[type]\`) |
 | a cell returning \`Sub[]\` | the subscriptions the program wants now |
 
-The standard library keeps one running generator per (source, action) held by any cell, starts one when it first appears in a set, and stops it (\`return()\`) when no set holds it. A sync generator is stepped once per animation frame. Section 9.`
+The standard library keeps one running generator per (source, action) held by any cell, starts one when it first appears in a set, and stops it (\`return()\`) when no set holds it. A sync generator is stepped once per animation frame. If the generator or the action throws, the error is logged to the console as \`subscription <source> -> <action> failed\`, that subscription stops, and every other one keeps running; a set made later that holds the same pair starts it again. An action that throws writes nothing: the writes it made before the throw are discarded. Section 9.`
 // %%
 md`### Workers: \`compile\` (*lite*)
 
 \`compile({ inputs: [...], refs: [...], outputs: [...], options: { runtime: pool } })\`, every list a literal array of cell names. The *island* is the cells needed to compute \`outputs\` from \`inputs\`. The value is a function of type \`(args: Pick<C, inputs>) => Promise<Pick<C, outputs>>\`, where \`C\` maps cell names to value types; it runs on the pool when \`runtime\` is given, on the page otherwise.
+
+When the cell calling \`compile\` runs again (a ref it names changed), the old function is superseded. Its calls already sent to a worker finish and resolve with their own result; its calls still queued reject with a \`SupersededError\`. The runtime discards the value of a cell's earlier run, so a cell such as \`image\` that awaits the function never shows a picture for an old input.
 
 | rule | |
 |---|---|

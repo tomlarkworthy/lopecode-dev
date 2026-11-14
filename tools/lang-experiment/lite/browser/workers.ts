@@ -23,7 +23,7 @@ export const EXEC = `(function () {
   return function run(job) {
     if (!modules.has(job.key)) {
       if (modules.size > 16) modules.clear();
-      if (!job.js) throw new Error("island " + job.key + " was not sent");
+      if (!job.js) throw Object.assign(new Error("island " + job.key + " was not sent"), { missing: true });
       const f = new Function("ref", "action", "mut", "freeze", "borrow", "snapshot", "equals", "h",
         '"use strict";\\n' + job.js + "\\nreturn {" + job.names.join(", ") + "};");
       modules.set(job.key, f(refuse("ref"), refuse("action"), id, id, id, snapshot, equals, refuse("h")));
@@ -45,45 +45,56 @@ self.onmessage = (e) => {
     const transfer = [...new Set(Object.values(out).filter((v) => ArrayBuffer.isView(v)).map((v) => v.buffer))];
     self.postMessage({ id, out }, transfer);
   } catch (err) {
-    self.postMessage({ id, error: String((err && err.message) || err) });
+    if (err && err.missing) self.postMessage({ id, missing: true });
+    else self.postMessage({ id, error: String((err && err.message) || err) });
   }
 };`;
 
 export const runHere: (job: Job) => Record<string, unknown> = new Function(`return ${EXEC}`)();
 
 type Slot = { worker: Worker; busy: boolean; has: Set<string>; current: number };
-type Queued = { job: Job; owner: { dead: boolean }; resolve: (v: Record<string, unknown>) => void; reject: (e: Error) => void };
+type Queued = { job: Job; owner: { dead: boolean }; resolve: (v: Record<string, unknown>) => void; reject: (e: Error) => void; resent?: boolean };
 
 export type Pool = { readonly size: number; run(job: Job, owner: { dead: boolean }): Promise<Record<string, unknown>> };
 
-// One pool per page. A job whose owner (a compiled function) has been replaced is dropped from the
-// queue, so a slider drag does not leave stale work ahead of the current value.
-let shared: Pool | null = null;
-export function pagePool(): Pool {
-  if (shared) return shared;
-  const size = Math.max(1, Math.min(8, (globalThis.navigator?.hardwareConcurrency ?? 2) - 1));
-  const url = URL.createObjectURL(new Blob([WORKER], { type: "text/javascript" }));
+const superseded = () => Object.assign(new Error("superseded"), { name: "SupersededError" });
+
+// A job whose owner (a compiled function) has been replaced is dropped from the queue with a
+// SupersededError, so a slider drag does not leave stale work ahead of the current value; a job
+// already sent to a worker runs to the end and resolves. Each slot remembers which islands it sent
+// code for; a worker that has dropped one answers `missing` and the job is sent again with its code.
+// makeWorker is the injection point for tests; pagePool uses the browser's Worker on a blob URL.
+export function makePool(size: number, makeWorker: () => Worker): Pool {
   const slots: Slot[] = [];
   const queue: Queued[] = [];
   const waiting = new Map<number, Queued>();
   let next = 0;
+  const send = (s: Slot, id: number, q: Queued, withCode: boolean) => {
+    s.worker.postMessage({ id, job: withCode ? q.job : { ...q.job, js: undefined } });
+    s.has.add(q.job.key);
+  };
   const pump = () => {
     for (const s of slots) {
-      if (s.busy) continue;
-      let q: Queued | undefined;
-      while ((q = queue.shift()) && q.owner.dead) q.reject(new Error("superseded"));
-      if (!q) return;
-      const id = next++;
-      s.busy = true;
-      s.current = id;
-      waiting.set(id, q);
-      const job = s.has.has(q.job.key) ? { ...q.job, js: undefined } : q.job;
-      s.has.add(q.job.key);
-      s.worker.postMessage({ id, job });
+      while (!s.busy) {
+        let q: Queued | undefined;
+        while ((q = queue.shift()) && q.owner.dead) q.reject(superseded());
+        if (!q) return;
+        const id = next++;
+        s.busy = true;
+        s.current = id;
+        waiting.set(id, q);
+        try {
+          send(s, id, q, !s.has.has(q.job.key));
+        } catch (err) {
+          waiting.delete(id);
+          s.busy = false;
+          q.reject(err instanceof Error ? err : new Error(String(err)));
+        }
+      }
     }
   };
   for (let i = 0; i < size; i++) {
-    const slot: Slot = { worker: new Worker(url), busy: false, has: new Set(), current: -1 };
+    const slot: Slot = { worker: makeWorker(), busy: false, has: new Set(), current: -1 };
     slot.worker.onerror = (e: ErrorEvent) => {
       const q = waiting.get(slot.current);
       waiting.delete(slot.current);
@@ -92,18 +103,37 @@ export function pagePool(): Pool {
       pump();
     };
     slot.worker.onmessage = (e: MessageEvent) => {
-      const q = waiting.get(e.data.id)!;
-      waiting.delete(e.data.id);
+      const { id, out, error, missing } = e.data;
+      const q = waiting.get(id);
+      if (!q) return;
+      let failure: Error | null = error ? new Error(error) : null;
+      if (missing) {
+        slot.has.delete(q.job.key);
+        failure = new Error(`island ${q.job.key} was not sent`);
+        if (q.job.js && !q.resent) {
+          q.resent = true;
+          try { send(slot, id, q, true); return; } catch (err) { failure = err instanceof Error ? err : new Error(String(err)); }
+        }
+      }
+      waiting.delete(id);
       slot.busy = false;
-      if (e.data.error) q.reject(new Error(e.data.error));
-      else q.resolve(e.data.out);
+      if (failure) q.reject(failure);
+      else q.resolve(out);
       pump();
     };
     slots.push(slot);
   }
-  shared = {
+  return {
     size,
     run: (job, owner) => new Promise((resolve, reject) => { queue.push({ job, owner, resolve, reject }); pump(); }),
   };
-  return shared;
+}
+
+// One pool per page.
+let shared: Pool | null = null;
+export function pagePool(): Pool {
+  if (shared) return shared;
+  const size = Math.max(1, Math.min(8, (globalThis.navigator?.hardwareConcurrency ?? 2) - 1));
+  const url = URL.createObjectURL(new Blob([WORKER], { type: "text/javascript" }));
+  return (shared = makePool(size, () => new Worker(url)));
 }

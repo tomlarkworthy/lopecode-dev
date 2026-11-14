@@ -37,7 +37,7 @@ mkdirSync(SCRATCH, { recursive: true });
 let passes = 0, fails = 0;
 const report = (ok: boolean, what: string) => { console.log(`${ok ? "pass" : "FAIL"} ${what}`); ok ? passes++ : fails++; };
 
-const CORE_TESTS = ["test_ss_roundtrip", "test_ss_example_checks", "test_ss_unchanged_source_checks", "test_ss_wrong_type_is_refused", "test_ss_downstream_break_is_refused", "test_ss_ref_handle", "ss_registration"];
+const CORE_TESTS = ["test_ss_roundtrip", "test_ss_example_checks", "test_ss_unchanged_source_checks", "test_ss_wrong_type_is_refused", "test_ss_downstream_break_is_refused", "test_ss_copy_keeps_its_name", "test_ss_failed_apply_changes_nothing", "test_ss_edits_do_not_grow_the_memo", "test_ss_instance_keeps_user_ids", "test_ss_ref_handle", "ss_registration"];
 const TUTORIAL_TESTS = ["test_ss_roundtrip", "test_ss_module_checks", "test_ss_counter", "test_half",
   "test_examples_check_as_expected", "test_compile_pool_matches_main", "test_compile_refuses_unchecked", "test_breakout_subscriptions", "test_breakout_memo", "benchmark"];
 
@@ -440,6 +440,14 @@ const editorText = (host: any) => host.locator(".cm-content").first().evaluate((
 async function typeInto(page: Page, host: any, text: string) {
   // keys go to whatever has focus, and Enter on a focused link navigates, so the editor must hold focus first
   const content = host.locator(".cm-content").first();
+  await page.evaluate(() => {
+    const w = window as any;
+    if (w.__focusLog) return;
+    w.__focusLog = [];
+    const d = (e: any) => e ? `${e.tagName}.${String(e.className).slice(0, 40)}${e.isConnected ? "" : "(detached)"}` : "null";
+    document.addEventListener("focusout", (e) => w.__focusLog.push(`${Math.round(performance.now())} out ${d(e.target)} -> ${d(e.relatedTarget)}`), true);
+    document.addEventListener("focusin", (e) => w.__focusLog.push(`${Math.round(performance.now())} in ${d(e.target)}`), true);
+  });
   for (let i = 0; i < 20; i++) {
     await content.click();
     if (await content.evaluate((el: Element) => el.contains(document.activeElement))) break;
@@ -449,7 +457,11 @@ async function typeInto(page: Page, host: any, text: string) {
     console.log("  typeInto: clicks did not focus the editor; focusing it directly");
     await content.evaluate((el: HTMLElement) => { el.scrollIntoView({ block: "center" }); el.focus(); });
   }
-  if (!(await content.evaluate((el: Element) => el.contains(document.activeElement)))) throw new Error("the editor did not take focus after 20 clicks");
+  if (!(await content.evaluate((el: Element) => el.contains(document.activeElement)))) {
+    // evidence for the failure: where focus went, and whether the editor node is still in the page
+    const why = await content.evaluate((el: Element) => ({ connected: el.isConnected, active: `${document.activeElement?.tagName}.${String((document.activeElement as HTMLElement)?.className).slice(0, 60)}`, log: ((window as any).__focusLog ?? []).slice(-8) })).catch((e: Error) => ({ detached: String(e.message).slice(0, 120) }));
+    throw new Error(`the editor did not take focus after 20 clicks: ${JSON.stringify(why)}`);
+  }
   await page.keyboard.press(`${MOD}+KeyA`);
   await page.keyboard.insertText(text);
   await page.keyboard.press("Shift+Enter");
@@ -1149,6 +1161,77 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   report(after.present && after.typed && after.verdict === "ok" && after.editorSource === NEW && after.value === 0, `core-only reopened: the added cell survived the export as typed source that checks: ${JSON.stringify(after)}`);
   requests("core-only reopened page", D);
   await D.page.close();
+
+  // --- 6: the core only as the tutorial's import, so ss_registration never runs on its own. An
+  // editor opened then shows the compiled text and must refuse to save it; once the language
+  // registers, the same open editor shows the typed source.
+  const unreg = join(SCRATCH, "core-not-main.html");
+  const built6 = Bun.spawnSync(["bun", join(HERE, "build.ts"), "--core-not-main", "--force", "--out", unreg], { stdout: "pipe", stderr: "pipe" });
+  report(built6.exitCode === 0, `core-not-main: built ${unreg}${built6.exitCode ? ": " + built6.stderr.toString().slice(-400) : ""}`);
+  const U = await open(unreg);
+  await U.page.waitForFunction((tut) => (window as any).__ojs_runtime?.mains?.get(tut), TUTORIAL, { timeout: 60000 });
+  const g2 = await U.page.evaluate(async (tut) => {
+    const rt = (window as any).__ojs_runtime;
+    const until = async (fn: () => any, what: string, ms = 30000) => {
+      const t0 = Date.now();
+      for (;;) { const got = await fn(); if (got) return got; if (Date.now() - t0 > ms) throw new Error(`${what} not reached in ${ms} ms`); await new Promise((r) => setTimeout(r, 100)); }
+    };
+    const find = (name: string, mod?: any) => [...rt._variables].find((v: any) => v._name === name && (!mod || v._module === mod));
+    const out: any = {};
+    try {
+      const mod = await until(() => rt.mains.get(tut), "the tutorial module");
+      const inc = await until(() => find("width", mod), "width");
+      await until(() => find("editors")?._value?.get(inc)?.querySelector(".hotbar"), "an editor bar beside width");
+      const langs = find("cellLanguagesRef")._value;
+      out.registeredAtOpen = langs.current.map((l: any) => l.id);
+      const host = find("editors")._value.get(inc);
+      host.querySelector(".hotbar").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      const EditorView = find("EditorView")._value, codemirror = find("codemirror")._value;
+      const view = () => { const cm = host.querySelector(".cm-editor"); return cm && EditorView.findFromDOM(cm); };
+      await until(() => view()?.state.doc.toString().trim(), "text in the editor");
+      out.shownBefore = view().state.doc.toString().slice(0, 60);
+      out.diagnostics = await until(() => { const ds: string[] = []; codemirror.forEachDiagnostic?.(view().state, (d: any) => ds.push(d.message)); return ds.length ? ds : null; }, "a diagnostic");
+      const def0 = inc._definition;
+      view().contentDOM.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", keyCode: 13, shiftKey: true, bubbles: true, cancelable: true }));
+      await new Promise((r) => setTimeout(r, 1500));
+      out.savedUnchanged = inc._definition === def0 && find("width", mod) === inc;
+      // now the language registers (an observer keeps ss_registration, and so the registration, alive);
+      // the open editor follows
+      find("ss_registration")._module.variable({}).define(["ss_registration"], (x: any) => x);
+      await until(() => /^export const width = /m.test(view()?.state.doc.toString() ?? ""), "the typed source after registration");
+      out.shownAfter = view().state.doc.toString();
+    } catch (e) { out.error = String((e as Error)?.message ?? e); }
+    return out;
+  }, TUTORIAL);
+  report(!g2.error && g2.registeredAtOpen?.length === 0 && /^width = \$ss\$\.cell\(/.test(g2.shownBefore ?? "") && g2.diagnostics?.some((d: string) => /not loaded yet/.test(d)) && g2.savedUnchanged,
+    `core-not-main: with no language registered the editor on width shows the compiled text, says it is not loaded, and Shift-Enter saves nothing: ${JSON.stringify({ ...g2, shownAfter: undefined })}`);
+  report(!g2.error && /^export const width = \(\) => 640;$/m.test(g2.shownAfter ?? "") && !g2.shownAfter.includes("$ss$"), `core-not-main: after registration the open editor shows the typed source: ${JSON.stringify(g2.shownAfter ?? g2.error)}`);
+  // a language whose editor extension throws leaves the plain editor, with the error shown
+  const g1 = await U.page.evaluate(async (tut) => {
+    const rt = (window as any).__ojs_runtime;
+    const until = async (fn: () => any, what: string, ms = 30000) => {
+      const t0 = Date.now();
+      for (;;) { const got = await fn(); if (got) return got; if (Date.now() - t0 > ms) throw new Error(`${what} not reached in ${ms} ms`); await new Promise((r) => setTimeout(r, 100)); }
+    };
+    const find = (name: string, mod?: any) => [...rt._variables].find((v: any) => v._name === name && (!mod || v._module === mod));
+    const lang = find("ss_language")._value, ext = lang.extension;
+    const out: any = {};
+    lang.extension = () => { throw new Error("injected extension fault"); };
+    try {
+      const mod = rt.mains.get(tut), inc = find("area", mod);
+      const host = await until(() => find("editors")?._value?.get(inc)?.querySelector(".hotbar") && find("editors")._value.get(inc), "an editor bar beside area");
+      host.querySelector(".hotbar").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      const EditorView = find("EditorView")._value, codemirror = find("codemirror")._value;
+      const view = () => { const cm = host.querySelector(".cm-editor"); return cm && EditorView.findFromDOM(cm); };
+      await until(() => view()?.state.doc.toString().trim(), "text in the editor");
+      out.shown = view().state.doc.toString().slice(0, 160);
+      out.diagnostics = await until(() => { const ds: string[] = []; codemirror.forEachDiagnostic?.(view().state, (d: any) => ds.push(d.message)); return ds.length ? ds : null; }, "a diagnostic");
+    } catch (e) { out.error = String((e as Error)?.message ?? e); }
+    finally { lang.extension = ext; }
+    return out;
+  }, TUTORIAL);
+  report(!g1.error && /^export const area = /m.test(g1.shown ?? "") && g1.diagnostics?.some((d: string) => d.includes("injected extension fault")), `core-not-main: an editor extension that throws leaves the plain editor with the error shown: ${JSON.stringify(g1)}`);
+  await U.page.close();
 }
 } catch (e) {
   // a thrown error ends the run early; it counts as a failure, so a partial run cannot read as a pass

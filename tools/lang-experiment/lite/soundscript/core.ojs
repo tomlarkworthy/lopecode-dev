@@ -79,6 +79,10 @@ ss.decompileVariable(definition)       // a compiled definition -> the cell's so
 ss.compiler(() => source)              // the value of ss_compile: compile(...) for the cells of that source
 ss.evals(variable._definition)         // how many times a compiled cell's body has run
 ss.running()                           // subscriptions running on the page
+ss.release(set)                        // one holder of a subscription set is gone; it stops when none is left
+ss.forget(definition)                  // drop a compiled definition's memo entry and run count
+ss.memoSize(), ss.memoHas(id)          // memo entries on the page; whether one id has one
+ss.idOf(definition), ss.withId(definition, id)  // read or replace a compiled definition's memo id
 ss_moduleCells(module)                 // a module's SoundScript cells: [{key, text, variable}]
 ss_source(module)                      // those cells' source, joined in runtime order
 ss_check(module)                       // checkSources over ss_source(module)
@@ -119,9 +123,15 @@ ss_moduleCells = (module) => {
     if (v._module !== module || typeof v._name !== "string" || typeof v._definition !== "function") continue;
     const def = String(v._definition);
     if (ss.langOf(def) !== "ss") continue;
-    const text = ss.decompileVariable(def);
+    let text = ss.decompileVariable(def);
     if (text === null) continue;
     const key = ss_keyOf(v._name);
+    // a compiled definition copied under another name (bump_copy) decompiles to the original's name;
+    // the variable's own name wins, so recompiling it never defines a second bump
+    if (!key.startsWith("type ")) {
+      const head = /^((?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*export\s+(?:const|let|function\*?)\s+)([\w$]+)/.exec(text);
+      if (head && head[2] !== key) text = head[1] + key + text.slice(head[0].length);
+    }
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ key, text, variable: v });
@@ -138,7 +148,7 @@ ss_check = (module) => {
 ss_context = (texts) => {
   // the compile context of a module's cells, from one (remembered) check of the whole module: which
   // cells are generators, which are taken as Source, which the checker accepts (only those are memoised)
-  try { return ss.contextFromCheck(ss.check(texts.join("\n\n"))); }
+  try { const source = texts.join("\n\n"); return ss.contextFromCheck(ss.check(source), source, true); }
   catch { return ss.contextOf(texts, true, null); }
 }
 // %%
@@ -164,6 +174,13 @@ ss_pool = ss.lazyPool()
 // %%
 ss_instances = new WeakSet()
 // %%
+ss_deleted = {
+  // A deleted variable's value gives up its hold on a subscription set once: the runtime does not
+  // resolve a deleted variable's invalidation, and one deletion reaches both apply and onCodeChange.
+  const done = new WeakSet();
+  return (v) => { if (done.has(v)) return; done.add(v); ss.release(v._value); };
+}
+// %%
 ss_instance = async (module, invalidation) => {
   // A second copy of module's SoundScript cells in a module of its own, so a test drives its own refs
   // and subscriptions, not the ones on the page. Ids get a suffix, so its memo and run counts are its
@@ -172,13 +189,13 @@ ss_instance = async (module, invalidation) => {
   const names = new Set(vars.map((v) => v._name));
   const outside = new Set(vars.flatMap((v) => v._inputs.map((i) => i._name)).filter((n) => !names.has(n) && n !== "invalidation"));
   const tag = Math.random().toString(36).slice(2, 8);
-  const fns = await realize(vars.map((v) => String(v._definition).replace(/\bid: "(\w+)"/, `id: "$1_${tag}"`)), runtime);
+  const fns = await realize(vars.map((v) => { const def = String(v._definition), id = ss.idOf(def); return id ? ss.withId(def, `${id}_${tag}`) : def; }), runtime);
   const inst = runtime.module();
   ss_instances.add(inst);
   for (const n of outside) inst.define(n, [], () => module.value(n));
   const made = vars.map((v, i) => inst.define(v._name, v._inputs.map((x) => x._name), fns[i]));
   const cancels = made.map((v) => observe(v, {}));
-  invalidation.then(() => { cancels.forEach((c) => c()); for (const v of [...runtime._variables]) if (v._module === inst) { ss.release(v._value); ss.forget(v._definition); v.delete(); } });
+  invalidation.then(() => { cancels.forEach((c) => c()); for (const v of [...runtime._variables]) if (v._module === inst) { ss_deleted(v); ss.forget(v._definition); v.delete(); } });
   return inst;
 }
 // %%
@@ -194,7 +211,12 @@ ss_lifecycle = {
   const off = onCodeChange(({ variable, previous }) => {
     const module = variable?._module ?? previous?._module;
     if (!isSs(variable) && !isSs(previous)) return;
-    if (variable === null) ss.release(previous.variable._value);
+    if (variable === null) ss_deleted(previous.variable);
+    // every edit gives a new memo id; the old one is forgotten once no variable has that definition
+    if (isSs(previous) && previous._definition !== variable?._definition) {
+      const text = String(previous._definition);
+      if (![...runtime._variables].some((x) => x._definition && String(x._definition) === text)) ss.forget(previous._definition);
+    }
     if (module?._scope?.has("ss") && !ss_instances.has(module)) touched.add(module);
     if (scheduled) return;
     scheduled = true;
@@ -244,7 +266,7 @@ ss_language = {
     let after = null, checkError = null;
     try { after = ss.check(texts.join("\n\n"), tsx); } catch (e) { checkError = e; }
     let defs;
-    try { defs = ss.compileCell(source, tsx, after ? ss.contextFromCheck(after) : ss.contextOf(texts, tsx, null)); }
+    try { defs = ss.compileCell(source, tsx, after ? ss.contextFromCheck(after, texts.join("\n\n"), tsx) : ss.contextOf(texts, tsx, null)); }
     catch (e) { return { ok: false, problems: [{ line: e.loc?.line ?? 1, rule: "compile", msg: e.message }] }; }
     const key = keyOf(defs.at(-1).name);
     const own = new Set([...variables, ...(oldKey ? family(module, oldKey) : [])]);
@@ -285,7 +307,9 @@ ss_language = {
   };
 
   // Replaces the variables in old with defs; new variables go after anchor.
-  const define = async (module, defs, old, anchor) => {
+  // With a transaction tx {made, doomed}, new variables are recorded and old ones are only marked, so
+  // the caller can delete them on commit or undo everything.
+  const define = async (module, defs, old, anchor, tx = null) => {
     const fns = await realize(defs.map((d) => d.definition), runtime);
     const fresh = [];
     const next = defs.map((d, i) => {
@@ -294,8 +318,12 @@ ss_language = {
         v = module.variable({});
         v.pid = "_" + Math.random().toString(36).slice(2, 9);
         fresh.push(v);
+        tx?.made.push(v);
       }
+      const was = v._definition;
       v.define(d.name, d.inputs, fns[i]);
+      // a reused variable's old definition is forgotten here: onCodeChange polls, so it can miss one
+      if (was && String(was) !== d.definition) forgetUnheld(was);
       return v;
     });
     // placed before the old variables go, since a deleted anchor has no position
@@ -303,8 +331,13 @@ ss_language = {
       let at = [...runtime._variables].indexOf(anchor) + 1;
       for (const v of fresh) repositionSetElement(runtime._variables, v, at++);
     }
-    for (const v of old) if (!next.includes(v)) { ss.release(v._value); ss.forget(v._definition); v.delete(); }
+    const drop = (v) => { ss_deleted(v); ss.forget(v._definition); v.delete(); };
+    for (const v of old) if (!next.includes(v)) tx ? tx.doomed.push(v) : drop(v);
     return next;
+  };
+  const forgetUnheld = (definition) => {
+    const text = String(definition);
+    if (![...runtime._variables].some((x) => x._definition && String(x._definition) === text)) ss.forget(definition);
   };
   const same = (vs, defs) => vs.length === defs.length && defs.every((d) => {
     const v = vs.find((x) => x._name === d.name);
@@ -323,13 +356,38 @@ ss_language = {
     const old = new Set([...variables.flatMap((v) => [v, ...(v._shadow?.values() ?? [])]), ...(oldKey ? family(module, oldKey) : [])]);
     const order = [...runtime._variables];
     const anchor = [...old].sort((a, b) => order.indexOf(a) - order.indexOf(b)).at(-1) ?? cell?.variables?.at(-1);
-    const next = await define(module, r.defs, old, anchor);
+    // every other cell whose compiled form the edit changes is compiled before anything is defined, so
+    // a cell that fails to compile refuses the edit and leaves the module as it was
+    const ctx = ss_context(r.texts);
+    const plan = [];
+    for (const c of ss_moduleCells(module)) {
+      if (c.key === r.key || c.key === oldKey) continue;
+      const defs = ss.compileCell(c.text, tsx, ctx);
+      const fam = family(module, c.key);
+      if (!same(fam, defs)) plan.push({ defs, fam });
+    }
+    // then all of it is defined; if any step throws, every variable touched gets its old definition back
+    const touchedVars = new Set([...old, ...plan.flatMap((p) => p.fam)]);
+    const saved = [...touchedVars].map((v) => ({ v, name: v._name, inputs: v._inputs.map((i) => i._name), definition: v._definition }));
+    const tx = { made: [], doomed: [] };
+    let next;
+    try {
+      next = await define(module, r.defs, old, anchor, tx);
+      if (faults.afterEditDefine === module) throw new Error("injected fault after the edited cell was defined");
+      for (const p of plan) await define(module, p.defs, new Set(p.fam), p.fam.at(-1), tx);
+    } catch (e) {
+      for (const v of tx.made) v.delete();
+      for (const s of saved) s.v.define(s.name, s.inputs, s.definition);
+      throw e;
+    }
+    for (const v of new Set(tx.doomed)) { ss_deleted(v); ss.forget(v._definition); v.delete(); }
     // a reused Kit head no longer has shadows; theirs were deleted with the rest of old
     for (const v of next) v._shadow?.clear?.();
-    await recompileNow(module, r.key);
     variables.splice(0, variables.length, ...next);
     return decompile(next);
   };
+  // test hook: set afterEditDefine to a module, and an apply there fails after defining the edited cell
+  const faults = { afterEditDefine: null };
   // compiles again every cell of module (but skip) whose form the rest of the module changed
   const recompileNow = async (module, skip) => {
     const cells = ss_moduleCells(module);
@@ -370,6 +428,7 @@ ss_language = {
     check,
     lint,
     apply,
+    faults,
     recompile,
     settle,
     extension: (codemirror) => codemirror.javascript({ typescript: true, jsx: true })
@@ -615,6 +674,89 @@ test_ss_downstream_break_is_refused = {
   const plain = r.problems.find((p) => p.cell === "doubled").msg;
   if (!plain.startsWith("Refused: `doubled` would stop checking.") || !plain.includes("string is not assignable to number")) throw new Error(`not in plain words: ${plain}`);
   return r.problems.map((p) => p.msg).join("; ");
+}
+// %%
+test_ss_copy_keeps_its_name = {
+  ss_tests_on;
+  // a definition copied under another name recompiles under the copy's own name, not the original's
+  let end;
+  const done = new Promise((r) => (end = r));
+  try {
+    const inst = await ss_instance(ss_module, done);
+    const bump = inst._scope.get("bump");
+    inst.variable({}).define("bump_copy", bump._inputs.map((i) => i._name), bump._definition);
+    const text = ss_moduleCells(inst).find((c) => c.key === "bump_copy")?.text ?? "";
+    if (!text.startsWith("export const bump_copy ")) throw new Error(`bump_copy decompiles as ${text.slice(0, 40)}`);
+    await ss_language.recompile(inst);
+    const named = (n) => [...runtime._variables].filter((v) => v._module === inst && v._name === n).length;
+    if (named("bump") !== 1 || named("bump_copy") !== 1) throw new Error(`bump ${named("bump")}, bump_copy ${named("bump_copy")}`);
+    await Promise.all([inst.value("bump"), inst.value("bump_copy")]);
+    return "bump_copy recompiles as bump_copy; one bump";
+  } finally { end(); }
+}
+// %%
+test_ss_failed_apply_changes_nothing = {
+  ss_tests_on;
+  // apply defines the edit and every cell it recompiles, or none of them
+  let end;
+  const done = new Promise((r) => (end = r));
+  const snap = (m) => JSON.stringify([...runtime._variables].filter((v) => v._module === m).map((v) => [v._name, String(v._definition), v._inputs.map((i) => i._name)]));
+  try {
+    const inst = await ss_instance(ss_module, done);
+    const v = inst._scope.get("viewof tally");
+    const source = (await ss_language.decompile([v])).replace("ref(0)", "ref(5)");
+    if (!ss_language.check(source, [v]).ok) throw new Error("the edit to tally does not check");
+    const before = snap(inst);
+    ss_language.faults.afterEditDefine = inst;
+    let threw = null;
+    try { await ss_language.apply(source, [v]); } catch (e) { threw = e; } finally { ss_language.faults.afterEditDefine = null; }
+    if (!threw) throw new Error("the injected fault did not reach apply's caller");
+    if (snap(inst) !== before) throw new Error("a failed apply left the module changed");
+    return `refused with "${threw.message}"; the module is as it was`;
+  } finally { end(); }
+}
+// %%
+test_ss_edits_do_not_grow_the_memo = {
+  ss_tests_on;
+  // each edit gives the cell a new memo id; the old id's entry and run count are forgotten
+  if (typeof ss.memoHas !== "function") throw new Error("ss.memoHas is missing");
+  let end;
+  const done = new Promise((r) => (end = r));
+  try {
+    const inst = await ss_instance(ss_module, done);
+    const edit = async (k) => {
+      const v = inst._scope.get("doubled");
+      const source = (await ss_language.decompile([v])).replace(/tally \* \d+/, `tally * ${k}`);
+      if (await ss_language.apply(source, [v]) === undefined) throw new Error(`edit ${k} was refused`);
+      if ((await inst.value("doubled")) !== (await inst.value("tally")) * k) throw new Error(`doubled is not tally * ${k}`);
+      await new Promise((r) => queueMicrotask(r));
+    };
+    // other tests run at the same time and add entries of their own, so the edited cell's ids are counted
+    const ids = [];
+    for (let k = 3; k < 203; k++) { await edit(k); ids.push(ss.idOf(String(inst._scope.get("doubled")._definition))); }
+    const kept = ids.filter((id) => ss.memoHas(id));
+    if (new Set(ids).size !== ids.length) throw new Error("two edits gave one memo id");
+    if (kept.length !== 1 || kept[0] !== ids.at(-1)) throw new Error(`after 200 edits ${kept.length} of their memo ids are kept: ${kept.slice(0, 5)}`);
+    return `200 edits of doubled: only the last one's memo entry is kept`;
+  } finally { end(); }
+}
+// %%
+test_ss_instance_keeps_user_ids = {
+  ss_tests_on;
+  // ss_instance gives the copy's memo ids a suffix; a cell's own \`id:\` property is left as written
+  let end;
+  const done = new Promise((r) => (end = r));
+  try {
+    const a = await ss_instance(ss_module, done);
+    const anchor = a._scope.get("doubled");
+    const made = await ss_language.apply('export const tagged = () => ({ id: "anon", n: 1 });', [], { module: { module: a }, variables: [anchor] });
+    if (made === undefined) throw new Error("tagged was refused");
+    const b = await ss_instance(a, done);
+    const value = await b.value("tagged");
+    const ida = ss.idOf(String(a._scope.get("tagged")._definition)), idb = ss.idOf(String(b._scope.get("tagged")._definition));
+    if (value.id !== "anon" || !idb || idb === ida || !idb.startsWith(ida + "_")) throw new Error(`value ${JSON.stringify(value)}, ids ${ida} -> ${idb}`);
+    return `tagged keeps id "anon"; its memo id ${ida} became ${idb}`;
+  } finally { end(); }
 }
 // %%
 //raw: test_ss_ref_handle

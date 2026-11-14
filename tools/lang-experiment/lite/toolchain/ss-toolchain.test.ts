@@ -18,8 +18,9 @@ for (const f of files) {
     // as the context and facts the compiler parses for itself
     let checked = null;
     try { checked = checkSources({ cells: src, tsx }); } catch {}
-    const ctx = contextOf(texts, tsx, checked ? acceptedOf(checked) : null);
     const fromCheck = checked ? contextFromCheck(checked) : null;
+    // which cells hold Sub comes from the checker's types, which no parse gives; share it
+    const ctx = { ...contextOf(texts, tsx, checked ? acceptedOf(checked) : null), subs: fromCheck?.subs ?? null };
     if (fromCheck && (JSON.stringify([...fromCheck.generators].sort()) !== JSON.stringify([...ctx.generators].sort()) || JSON.stringify([...fromCheck.sourced].sort()) !== JSON.stringify([...ctx.sourced].sort())))
       throw new Error(`contextFromCheck differs from contextOf: ${JSON.stringify([[...fromCheck.generators], [...ctx.generators]])}`);
     for (const t of texts) {
@@ -64,6 +65,10 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
   expect(/kind: "source"/.test(g.get("ticks")!.definition) && !g.has("viewof ticks"), "a generator taken as Source is one handle variable");
   expect(JSON.stringify(g.get("subscriptions")?.inputs) === JSON.stringify(["ss", "ticks", "tick", "playing", "over", "invalidation"]), "on(...) adds invalidation: " + g.get("subscriptions")?.inputs);
   expect(/memo: true/.test(g.get("bricksView")!.definition), "bricksView is memoised");
+  const rgSrc = await Bun.file(root + "fixtures/lite-game/reject-game/cells.tsx").text();
+  const rgCtx = contextFromCheck(checkSources({ cells: rgSrc, tsx: true }));
+  const rg = new Map(splitCells(rgSrc, true).flatMap((t) => compileCell(t, true, rgCtx)).map((v) => [v.name, v]));
+  expect(rg.get("ok_forward")!.inputs.includes("invalidation"), "a cell that passes a Sub[] on (no on(...)) takes invalidation: " + rg.get("ok_forward")!.inputs);
   expect(/memo: false/.test(g.get("ticks")!.definition), "a generator is not memoised");
   const w = by(await Bun.file(root + "lite/notebook/examples/07-workers.tsx").text());
   expect(JSON.stringify(w.get("inPool")?.inputs) === JSON.stringify(["ss", "ss_compile", "ss_pool", "width", "height", "maxIter"]), "compile refs are hidden inputs: " + w.get("inPool")?.inputs);

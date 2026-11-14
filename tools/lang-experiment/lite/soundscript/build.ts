@@ -16,9 +16,8 @@ import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compiler, splitSeed } from "../../../spec-notebook.ts";
 import { blockContent, blockSpans, findSpan } from "../../../lib/notebook-blocks.ts";
-import { compileCell, contextOf, splitCells, type Variable } from "../toolchain/ss-toolchain.ts";
+import { compileCell, contextOf, contextFromCheck, splitCells, type Variable } from "../toolchain/ss-toolchain.ts";
 import { checkSources } from "../core.ts";
-import { acceptedOf } from "../toolchain/ss-toolchain.ts";
 
 process.on("unhandledRejection", () => {});
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -48,6 +47,9 @@ const OUT = resolve(arg("--out") ?? DEFAULT_OUT);
 const withTutorial = !process.argv.includes("--no-tutorial");
 const guarded = OUT === DEFAULT_OUT;
 if (!withTutorial && guarded) throw new Error("--no-tutorial builds a test artefact; pass --out");
+// --core-not-main: the core only as the tutorial's import, so ss_registration never runs (a test artefact)
+const coreMain = !process.argv.includes("--core-not-main");
+if (!coreMain && (guarded || !withTutorial)) throw new Error("--core-not-main builds a test artefact with the tutorial; pass --out");
 const sha = (s: string | Buffer) => createHash("sha256").update(s).digest("hex");
 if (existsSync(OUT)) {
   if (!process.argv.includes("--force")) throw new Error(`${OUT} exists; pass --force to overwrite it`);
@@ -61,8 +63,8 @@ if (existsSync(OUT)) {
   }
 }
 
-const MAINS = ["@tomlarkworthy/lopepage-2", ...(withTutorial ? [TUTORIAL, ...SECTIONS.map((x) => x.name)] : []), CORE, "@tomlarkworthy/claude-code-pairing", "@tomlarkworthy/save-in-place"];
-const HASH = withTutorial ? `#view=S100(${TUTORIAL},${CORE})` : `#view=S100(${CORE})`;
+const MAINS = ["@tomlarkworthy/lopepage-2", ...(withTutorial ? [TUTORIAL, ...SECTIONS.map((x) => x.name)] : []), ...(coreMain ? [CORE] : []), "@tomlarkworthy/claude-code-pairing", "@tomlarkworthy/save-in-place"];
+const HASH = !coreMain ? `#view=S100(${TUTORIAL})` : withTutorial ? `#view=S100(${TUTORIAL},${CORE})` : `#view=S100(${CORE})`;
 // quick_start modules this notebook does not use, and the modules only they import.
 const EXPECT_REMOVED = [
   "@tomlarkworthy/annotate", "@tomlarkworthy/at-login", "@tomlarkworthy/at-write", "@tomlarkworthy/atproto",
@@ -128,7 +130,9 @@ function buildModule(name: string, ojs: string, files: File[]) {
   // one context for the whole module: a cell's compiled form depends on the other cells (ss-toolchain Context)
   // only cells the checker accepts are memoised, judged over the module's whole source as the core does
   const allTexts = blocks.flatMap((b) => cellsOfBlock(b)?.texts ?? []);
-  const ctx = contextOf(allTexts, true, allTexts.length ? acceptedOf(checkSources({ cells: allTexts.join("\n\n"), tsx: true })) : null);
+  // the same context the core builds from its check, types included, so a cell that passes a Sub set on takes invalidation
+  const allSource = allTexts.join("\n\n");
+  const ctx = allTexts.length ? contextFromCheck(checkSources({ cells: allSource, tsx: true }), allSource, true) : contextOf(allTexts, true, null);
   blocks.forEach((src, i) => {
     const ssm = cellsOfBlock(src), raw = /^\/\/raw: (\S+)$/.exec(src);
     if (ssm) {
