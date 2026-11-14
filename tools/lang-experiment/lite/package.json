@@ -1,0 +1,1 @@
+{"name":"lang-experiment-lite","private":true,"type":"module","dependencies":{"@sveltejs/acorn-typescript":"^1.0.13","acorn":"^8.19.0","happy-dom":"^15.11.7"}}

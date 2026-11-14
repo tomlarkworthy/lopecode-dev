@@ -1,0 +1,33 @@
+{
+  "reject-type-argument": [
+    "type",
+    "arity"
+  ],
+  "reject-type-record": [
+    "type",
+    "excess-property",
+    "no-member",
+    "possibly-undefined"
+  ],
+  "reject-type-return": [
+    "type"
+  ],
+  "reject-type-narrowing": [
+    "no-member",
+    "possibly-undefined"
+  ],
+  "reject-type-generic": [
+    "type",
+    "possibly-undefined"
+  ],
+  "reject-type-index": [
+    "possibly-undefined"
+  ],
+  "reject-cycle": [
+    "cycle"
+  ],
+  "reject-generics": [
+    "type",
+    "unsupported"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "check": {
+    "rules": [
+      "action-call"
+    ]
+  },
+  "run": {
+    "cells": {
+      "b": {
+        "status": "rejected",
+        "error": "action called during a cell evaluation"
+      }
+    }
+  }
+}

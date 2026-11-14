@@ -1,0 +1,121 @@
+glpk-canonicalization forward: pass 120  fail 0  blocked 0  timeout 0  (120 tests)  -> /Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/baseline/glpk-canonicalization.forward.json
+  pass    test_ordering_1 (30ms)  x + 1
+  pass    test_ordering_2 (30ms)  x + 1
+  pass    test_expandBrackets_1 (30ms)  -6 * 2 + 6 * x < 0
+  pass    test_expandBrackets_2 (30ms)  2 * 16 + 2 * 4 * x - 2 * y < 16
+  pass    test_expandBrackets_3 (30ms)  -2 * x - 2 * 1
+  pass    test_expandBrackets_4 (30ms)  1 - x2 + 5
+  pass    test_expandBrackets_5 (30ms)  x1 - x2 + 5
+  pass    test_expandBrackets_6 (30ms)  4 - x1 - x2 - 5
+  pass    test_expandBrackets_7 (30ms)  1 - x2 - 5
+  pass    test_expandBrackets_8 (30ms)  -x1 - x2
+  pass    test_expandBrackets_9 (30ms)  -x1 + x2
+  pass    test_expandBrackets_10 (30ms)  -x - 1
+  pass    test_expandBrackets_11 (30ms)  -1 - x
+  pass    test_expandBrackets_12 (30ms)  -1 + x
+  pass    test_expandBrackets_13 (30ms)  1 + x
+  pass    test_expandBrackets_14 (30ms)  1 - x
+  pass    test_expandBrackets_15 (30ms)  1
+  pass    test_expandBrackets_16 (30ms)  x
+  pass    test_expandBrackets_17 (30ms)  0
+  pass    test_expandBrackets_18 (30ms)  4 * x + 4 * 1
+  pass    test_expandBrackets_19 (30ms)  4 * x - 4 * 1
+  pass    test_expandBrackets_20 (30ms)  -x1 - x2
+  pass    test_multiplyOut_1 (30ms)  2
+  pass    test_constantsToRHS_1 (31ms)  0 < 0 - 1
+  pass    test_constantsToRHS_2 (31ms)  0 < 0 + 1
+  pass    test_constantsToRHS_3 (31ms)  -2 * y - 2 * x - y < 0 + 2
+  pass    test_constantsToRHS_4 (31ms)  -x + y < 0 + 2
+  pass    test_constantsToRHS_5 (31ms)  -x - y < 0 + 2
+  pass    test_constantsToRHS_6 (31ms)  -(2 * x) - y < 0 - 2
+  pass    test_constantsToRHS_7 (31ms)  0 < 1
+  pass    test_constantsToRHS_8 (31ms)  x + y < 0 + 1
+  pass    test_constantsToRHS_9 (31ms)  x1 < x2 - 4
+  pass    test_constantsToRHS_10 (31ms)  -x1 < x2 - 4
+  pass    test_constantsToRHS_11 (31ms)  -x1 < x2 + 4
+  pass    test_constantsToRHS_12 (31ms)  x1 < x2 + 4
+  pass    test_constantsToRHS_13 (31ms)  x1 < x2 - 4
+  pass    test_constantsToRHS_14 (31ms)  x1 < x2 + 4
+  pass    test_constantsToRHS_15 (31ms)  -x1 < x2 - 4
+  pass    test_constantsToRHS_16 (31ms)  -x1 < 0 - 5
+  pass    test_complexityToLHS_1 (30ms)  -(1 + 1) + x < 1
+  pass    test_complexityToLHS_2 (30ms)  -x2 + x1 < -5
+  pass    test_complexityToLHS_3 (30ms)  x + 1 < 2
+  pass    test_complexityToLHS_4 (30ms)  -x + 1 < 2
+  pass    test_complexityToLHS_5 (30ms)  -x + 1 < -2
+  pass    test_complexityToLHS_6 (30ms)  x + 1 < -2
+  pass    test_complexityToLHS_7 (30ms)  x + -1 < -2
+  pass    test_complexityToLHS_8 (30ms)  -x - 1 < -2
+  pass    test_complexityToLHS_9 (30ms)  -(-x) - 1 < -2
+  pass    test_complexityToLHS_10 (30ms)  -(-x) + -1 < 2
+  pass    test_complexityToLHS_11 (30ms)  -4 * y < 0
+  pass    test_addZeroToRHS_1 (30ms)  x - -3 * x < 0
+  pass    test_addZeroToRHS_2 (30ms)  0 < -1
+  pass    test_addZeroToRHS_3 (30ms)  x + x < 0
+  pass    test_addZeroToRHS_4 (30ms)  y - 5 * y < 0
+  pass    test_addZeroToRHS_5 (30ms)  x - y < 0
+  pass    test_addZeroToRHS_6 (30ms)  x < 3
+  pass    test_addZeroToRHS_7 (30ms)  x < -3
+  pass    test_addZeroToRHS_8 (30ms)  5 - x1 < 0
+  pass    test_addZeroToRHS_then_constantsToRHS (31ms)  -x1 < 0 - 5
+  pass    test_addZeroToRHS_9 (30ms)  -4 * y < 0
+  pass    test_simplifyStep_1 (38ms)  -6 * y < 0
+  pass    test_simplify2_1 (30ms)  -x1 - x2 < 5
+  pass    test_simplify2_2 (30ms)  -(4 * y) < 0
+  pass    test_simplify2_3 (30ms)  1.1
+  pass    test_simplify2_4 (30ms)  x - 3
+  pass    test_simplify2_5 (30ms)  x + y
+  pass    test_simplify2_6 (30ms)  y < 0
+  pass    test_simplifyStep_2 (38ms)  y < 0
+  pass    test_simplifyStep_3 (38ms)  -2 * x - 2 < 0
+  pass    test_simplifyStep_4 (38ms)  2 * x + 4 < 0
+  pass    test_simplifyStep_5 (38ms)  2 * x + 2
+  pass    test_simplifyStep_6 (38ms)  2 < 0
+  pass    test_step2_1 (86ms)  8 * x - 2 * y < -16
+  pass    test_step2_2 (86ms)  y - x < 2
+  pass    test_step2_3 (86ms)  2 * x < 0
+  pass    test_step2_4 (86ms)  -2 * x - y < 2
+  pass    test_step2_5 (86ms)  0 < 1
+  pass    test_step2_6 (86ms)  x1 < -1
+  pass    test_step2_7 (86ms)  x1 < -1
+  pass    test_step2_8 (86ms)  2 * x < -4
+  pass    test_step2_9 (86ms)  5 * x < -7
+  pass    test_step2_10 (86ms)  -x1 - x2 < 0
+  pass    test_step2_11 (86ms)  x - y < 0
+  pass    test_step2_12 (86ms)  -x1 < -5
+  pass    test_step2_13 (86ms)  -4 * y < 0
+  pass    test_step2_14 (86ms)  4 x < 0
+  pass    test_step2_15 (86ms)  x < 1.1
+  pass    test_step2_16 (86ms)  x + y < 0
+  pass    test_step2_17 (86ms)  2 * x < 0
+  pass    test_step2_18 (86ms)  0 < -1
+  pass    test_step2_19 (86ms)  4 * x < 0
+  pass    test_step2_20 (86ms)  x + 4 * y < 0
+  pass    test_canonicalize_1 (111ms)  x1 < -1
+  pass    test_canonicalize_2 (111ms)  -x1 > 1
+  pass    test_canonicalize_3 (111ms)  x1 < -2
+  pass    test_canonicalize_4 (111ms)  x1 <= -2
+  pass    test_canonicalize_5 (111ms)  -x1 - x2 > -5
+  pass    test_canonicalize_6 (111ms)  -4 * y - x > 0
+  pass    test_canonicalize_7 (111ms)  -4 * y - 4 * x > 0
+  pass    test_canonicalize_8 (111ms)  x > 1.1
+  pass    test_canonicalize_9 (111ms)  -x1 - x2 - x3 == -1
+  pass    test_canonicalize_10 (111ms)  x + y <= 0
+  pass    test_canonicalize_11 (111ms)  -2 * y - 2 * x - y <= 2
+  pass    test_canonicalize_scale_10k (86ms)  >
+  pass    test_isCanonical_1 (30ms)  true
+  pass    test_isCanonical_2 (30ms)  true
+  pass    test_isCanonical_3 (30ms)  false
+  pass    test_isCanonical_4 (30ms)  true
+  pass    test_extract_1 (131ms)  {"vars":[{"coef":4,"name":"x"}],"bounds":{"upper":6}}
+  pass    test_extract_2 (131ms)  {"vars":[{"coef":1,"name":"x"}],"bounds":{"upper":0}}
+  pass    test_extract_3 (131ms)  {"vars":[{"coef":30,"name":"y"},{"coef":4,"name":"x"}],"bounds":{"lower":-126}}
+  pass    test_extract_4 (131ms)  {"vars":[{"coef":-2,"name":"y"},{"coef":4,"name":"x"}],"bounds":{"lower":0}}
+  pass    test_extract_5 (131ms)  {"vars":[{"coef":1,"name":"y"},{"coef":1,"name":"x"}],"bounds":{"lower":0,"upper":0}}
+  pass    test_extract_6 (131ms)  {"vars":[{"coef":-2,"name":"y"},{"coef":-1,"name":"z"},{"coef":4,"name":"x"}],"bounds":{"lower":0}}
+  pass    test_extract_7 (131ms)  {"vars":[{"coef":2,"name":"x"}],"bounds":{"upper":0}}
+  pass    test_extract_8 (131ms)  {"vars":[],"bounds":{"lower":0,"upper":0}}
+  pass    test_extract_9 (131ms)  {"vars":[],"bounds":{"lower":1}}
+  pass    test_extract_10 (131ms)  {"vars":[{"coef":-3,"name":"y"},{"coef":-2,"name":"x"}],"bounds":{"upper":2}}
+  pass    test_extract_11 (131ms)  {"vars":[{"coef":-2,"name":"x"},{"coef":-1,"name":"y"}],"bounds":{"upper":2}}
+  pass    test_simplifyStep_7 (38ms)  0 < 1

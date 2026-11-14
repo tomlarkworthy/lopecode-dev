@@ -1,0 +1,130 @@
+# Cell language experiment: rules (working brief, v0)
+
+Question under test: can real lopecode modules be written in a checked, immutable-by-default
+subset of TypeScript where a cell is a function and its parameters are its dependencies, and
+what fraction of each module lands in each tier? Background: `plan/substrates-winter-2026.md`.
+
+This file is the single statement of the rules. If a construct has no home here, do not invent
+one silently: record it in the port's `GAPS.md` (construct, cell, what you did instead).
+
+## Files
+
+A ported module `<name>` is a directory `tools/lang-experiment/ports/<name>/`:
+
+- `cells.ts` checked cells. Only `export let|const name = <arrow or function expression>`,
+  `export function`/`function*`/`async function`, `type`/`interface` declarations and
+  `import type`. Nothing else at module level.
+- `shell.ts` shell cells: same shape, ordinary TypeScript, not linted. DOM, canvas, WebGL,
+  `md`, `htl`, `Inputs`, `d3`, `Plot`, timers, anything reflective.
+- `foreign.d.ts` trusted signatures for imported cells and libraries (see "foreign").
+- `GAPS.md` constructs with no home, and every place a test assertion had to change (it should not).
+- `MAP.md` one row per original cell: original name, tier, port name(s), note.
+
+## Cells and injection
+
+- A cell is an exported function. Its name is the cell name. Its parameters are its inputs,
+  injected by parameter name. A parameter name must be a cell in this module, a name in
+  `foreign.d.ts`, or a capability.
+- A parameter may omit its type; it then has the named cell's value type. The harness fills it in.
+- The value type of a cell: return type `T` gives `T`; `Promise<T>` gives `T`; `Generator<Y>`
+  gives `Y`; `RefCell<T>` gives `T`.
+- Free names: a body may use its parameters, its own locals, the prelude (`ref`, `action`, `mut`,
+  `freeze`, `borrow`, `snapshot`, `equals`), and allowed intrinsics. Any other free name is an error.
+  A cell may not call another cell by its module-level name; it must take it as a parameter.
+- Allowed intrinsics: `Object Array Math JSON Number String Boolean BigInt Symbol Map Set Error
+  TypeError RangeError RegExp Promise` the typed arrays, `ArrayBuffer DataView TextEncoder
+  TextDecoder Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent
+  decodeURIComponent encodeURI decodeURI atob btoa structuredClone URL URLSearchParams`. Not `Math.random`, `Date`,
+  `console`, `window`, `document`, `globalThis`, `fetch`, timers, `eval`, `Function`.
+- Capabilities are parameters with reserved names, provided by the harness: `now: Clock`
+  (`() => number`), `random: Random` (`() => number`), `fetch: Fetch`, `log: Log`, `invalidation`.
+- Preferred cell form (Tom, 2026-11-14): `export let x = (a: number) => 42 + a`. Every export is
+  a function from dependencies to the cell's value; the outer parameter list is always the
+  dependency list. `export let`/`export const` with an arrow or function expression, and
+  `export function`, are all the same thing. Generators cannot be arrows:
+  `export let ticks = function* () { ... }`. Async arrows are fine.
+- There is no shortcut for function-valued cells. A cell whose value is a function is two arrows:
+  `export let double = () => (n: number) => n * 2`.
+
+## Immutable by default
+
+Banned in `cells.ts`: assignment to a member (`a.b = `, `a[i] = `), `++`/`--`/compound assignment
+on a member, `delete`, mutating methods (`push pop shift unshift splice sort reverse fill
+copyWithin set add delete clear`) on Array/Map/Set/typed arrays, `Object.assign` onto an existing
+value, `var`, `class`, `this`, `arguments`, `new` on anything but an allowed intrinsic, `any`,
+`as` casts other than `as const`, non-null `!`, `@ts-ignore`/`@ts-expect-error`, enums,
+namespaces, `import()`.
+
+Allowed: `throw`, `try`/`catch`, loops, local `let` (reassignment of a local).
+
+A `let` may be assigned from inside a nested function only if that function is a local helper
+that does not escape: it is bound to a local `const`/function declaration and every use of its
+name is a direct call (never passed as an argument, returned, stored in a literal, or yielded).
+Otherwise assigning a captured `let` is an error. (v1, after the pilot: the outright ban forced a
+recursive-descent parser to thread a `Mut` cursor through every helper.)
+
+`===` on two non-primitive operands is banned; use `equals(a, b)` (structural).
+
+## Opt-in 1: `Mut<T>` locals
+
+`const out = mut(new Float32Array(n))` gives `Mut<Float32Array>`. Member writes and mutating
+methods are allowed on a `Mut<T>` receiver. A `Mut<T>` value may be: bound to a local `const`,
+written to, read, passed to a parameter typed `Mut<…>`, passed to `freeze`. It may not be:
+returned, yielded, aliased to another binding, captured by a nested function, placed in an
+object/array literal, or used after `freeze(out)`. `freeze(out)` has type `T`.
+
+## Opt-in 2: owner cells
+
+A generator cell may keep a `Mut<T>` across yields and `yield borrow(x)`; its value type is
+`Borrowed<T>` (read-only). A consumer may read a `Borrowed<T>` during its own synchronous
+evaluation. It may not hold it across an `await`, return it, or put it in a ref; `snapshot(b)`
+copies it to a plain `T`. A cell that yields `borrow` is counted in the `Owner` tier.
+
+## Refs and actions (replaces `viewof` and `mutable`)
+
+- `export function count(): RefCell<number> { return ref(0) }` declares state.
+- A parameter `count` (or `count: number`) receives the current value and is a dependency.
+  A parameter `count: Ref<number>` receives the reference and is not a dependency on the value.
+- `Ref<T>` has `set(v: T): void` and `update(f: (v: T) => T): void`, and no read.
+- Writes are legal only lexically inside `action(...)`: `action(() => count.update(c => c + 1))`
+  has type `Action<[]>`. An `Action` may be called only inside another `action(...)`. A cell body
+  never calls one; it returns it, puts it in a record, or passes it to a parameter typed `Action`
+  or to a shell cell. The world (shell cells, the harness) calls actions.
+- A `viewof x = Inputs.range(...)` ports as a ref cell `x` in `cells.ts` plus a shell cell
+  `x_view(x: Ref<number>, Inputs)` in `shell.ts` that builds the widget and calls `x.set`.
+- A `mutable x` ports as a ref cell; each `mutable x = …` write becomes an action.
+
+## Foreign values and the shell
+
+- A shell cell's value type, seen from `cells.ts`, is `Js` (`unknown`) unless `foreign.d.ts` gives
+  it a trusted signature. A checked cell turns a `Js` into a typed value with a decoder: a checked
+  function `(x: Js) => T` that narrows with `typeof`/`Array.isArray`/`in` and builds a new value.
+- `foreign.d.ts` may declare an imported cell or library with a trusted signature
+  (`declare const math: { add(a: number, b: number): number }`). Each declaration is counted as
+  trust surface. Mark each `/** pure */` or `/** effect */`; a checked cell may take only `pure` ones.
+- World state read at call time (v1, after the pilot). A value such as `location.href` or
+  `document.baseURI` is not a pure foreign. It is a shell source cell (`href` in `shell.ts`, which
+  may be a generator that yields on change), decoded by a checked cell. A function that used to
+  read it when called becomes a cell that depends on the decoded value and returns the function:
+  `export let linkTo = (href) => (target, opts) => ...`. Do not split a function into a checked
+  half and a shell wrapper to avoid this; the dependency on the shell cell is the honest result
+  and tests that depend on it count as having shell support.
+- A ref whose initial value comes from the world takes it as a dependency:
+  `export let vars = (vars_initial: Js): RefCell<Vars> => ref(decodeVars(vars_initial))`.
+- `shell.ts` may name a checked cell's value type as `ValueOf<"cellName">`.
+- Prose cells (`md`, headings) go to `shell.ts` and are excluded from tier denominators.
+
+## Tiers (for `MAP.md`)
+
+`default` (checked, no opt-in) · `mut-local` (uses `Mut` inside, pure outside) · `owner` ·
+`ref` (a `RefCell`) · `shell` · `prose` (excluded) · `import` (an import variable; excluded).
+
+## Tests
+
+`test_*` cells are ported with their assertions unchanged. A test passes if it does not throw.
+If an assertion cannot be kept, record it in `GAPS.md`; do not weaken it.
+
+## Checked mechanically vs by review
+
+The harness README states, for every rule above, whether `check` enforces it exactly, enforces an
+approximation (say which), or leaves it to review. A port's "passes check" means only the former two.

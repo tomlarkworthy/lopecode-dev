@@ -1,0 +1,231 @@
+{
+  "module": "lopepage-urls",
+  "file": "modules/@tomlarkworthy/lopepage-urls.js",
+  "order": "forward",
+  "timeoutMs": 10000,
+  "timeoutSemantics": "wall clock from the first define of the replay; all tests run in one runtime",
+  "ranAt": "2026-11-14T00:10:35.838Z",
+  "counts": {
+    "pass": 8,
+    "fail": 0,
+    "blocked": 0,
+    "timeout": 0
+  },
+  "supplied": {
+    "Generators": "vendor/observable-stdlib/src/generators",
+    "location": "happy-dom window.location (file:///lopecode/notebooks/lopepage-urls.html)"
+  },
+  "runtimeIntrinsic": [
+    "@variable"
+  ],
+  "blocked": [
+    "htl",
+    "md",
+    "runtime",
+    "tests",
+    "variables"
+  ],
+  "overrides": {},
+  "globalLookups": [],
+  "replayOrder": [
+    "(anonymous)",
+    "(anonymous)",
+    "(anonymous)",
+    "dslExamples",
+    "parseViewDSL",
+    "(anonymous)",
+    "test_parseViewDSL",
+    "test_reserialized",
+    "normalizeWeights",
+    "parseGoldenDSL",
+    "layouts",
+    "(anonymous)",
+    "serializeGoldenDSL",
+    "test_serializeGoldenDSL",
+    "test_parseGoldenDSL",
+    "(anonymous)",
+    "listModules",
+    "_getModuleTitles",
+    "test_list_modules",
+    "(anonymous)",
+    "getCell",
+    "(anonymous)",
+    "(anonymous)",
+    "navHref",
+    "(anonymous)",
+    "navigate",
+    "(anonymous)",
+    "isOnObservableCom",
+    "links",
+    "targets",
+    "linkTo",
+    "viewof vars",
+    "vars",
+    "test_linkTo",
+    "(anonymous)",
+    "runtime",
+    "variables",
+    "href_examples",
+    "test_extractNotebookAndCell",
+    "extractNotebookAndCell",
+    "updateNotebookImports",
+    "tests",
+    "convertToGoldenLayout",
+    "test_bareModulesWrappedInRC"
+  ],
+  "stats": {
+    "variables": 46,
+    "viewof": 1,
+    "mutable": 0,
+    "initial": 0,
+    "importBindings": [
+      "runtime",
+      "variables",
+      "tests"
+    ],
+    "moduleVariables": [
+      "module @tomlarkworthy/runtime-sdk",
+      "module @tomlarkworthy/tests"
+    ],
+    "anonymous": 12,
+    "tests": 8,
+    "nonTestNamedCells": [
+      "dslExamples",
+      "parseViewDSL",
+      "normalizeWeights",
+      "parseGoldenDSL",
+      "layouts",
+      "serializeGoldenDSL",
+      "listModules",
+      "_getModuleTitles",
+      "getCell",
+      "navHref",
+      "navigate",
+      "isOnObservableCom",
+      "links",
+      "targets",
+      "linkTo",
+      "viewof vars",
+      "href_examples",
+      "extractNotebookAndCell",
+      "updateNotebookImports",
+      "convertToGoldenLayout"
+    ],
+    "builtinsDeclaredByModule": [],
+    "grepCheck": {
+      "$def": 41,
+      "mainDefine": 5
+    }
+  },
+  "tests": {
+    "test_parseViewDSL": {
+      "status": "pass",
+      "value": "[{\"nodeType\":\"group\",\"groupType\":\"S\",\"weight\":200,\"children\":[{\"nodeType\":\"module\",\"weight\":null,\"slug\":\"@tomlarkworthy/slug\"},{\"nodeType\":\"module\",\"weight\":25,\"slug\":\"@owner/page#cell\"}]},{\"nodeType\"",
+      "ms": 1,
+      "support": [
+        "dslExamples",
+        "parseViewDSL"
+      ],
+      "externalInputs": [],
+      "staticBlockers": []
+    },
+    "test_reserialized": {
+      "status": "pass",
+      "value": "[{\"type\":\"stack\",\"content\":[{\"type\":\"component\",\"title\":\"@tomlarkworthy/slug\",\"weight\":null,\"size\":\"1fr\",\"id\":\"\",\"maximised\":false,\"isClosable\":true,\"reorderEnabled\":true,\"componentType\":\"module\",\"com",
+      "ms": 1,
+      "support": [
+        "convertToGoldenLayout",
+        "dslExamples",
+        "parseViewDSL"
+      ],
+      "externalInputs": [],
+      "staticBlockers": []
+    },
+    "test_serializeGoldenDSL": {
+      "status": "pass",
+      "value": "[\"S100(@tomlarkworthy/slug,@owner/page#cell)\",\"S100(@tomlarkworthy/slug,@owner/page)\",\"C100(S50(@tomlarkworthy/slug),S50(@owner/page))\",\"S100(@tomlarkworthy/slug,@owner/page)\",\"S100(@tomlarkworthy/slu",
+      "ms": 1,
+      "support": [
+        "convertToGoldenLayout",
+        "dslExamples",
+        "layouts",
+        "normalizeWeights",
+        "parseGoldenDSL",
+        "parseViewDSL",
+        "serializeGoldenDSL"
+      ],
+      "externalInputs": [],
+      "staticBlockers": []
+    },
+    "test_parseGoldenDSL": {
+      "status": "pass",
+      "value": "[{\"type\":\"stack\",\"content\":[{\"type\":\"component\",\"title\":\"@tomlarkworthy/slug\",\"size\":\"50.00%\",\"id\":\"\",\"maximised\":false,\"isClosable\":true,\"reorderEnabled\":true,\"componentType\":\"module\",\"componentState",
+      "ms": 2,
+      "support": [
+        "convertToGoldenLayout",
+        "dslExamples",
+        "layouts",
+        "normalizeWeights",
+        "parseGoldenDSL",
+        "parseViewDSL",
+        "serializeGoldenDSL",
+        "test_serializeGoldenDSL"
+      ],
+      "externalInputs": [],
+      "staticBlockers": []
+    },
+    "test_list_modules": {
+      "status": "pass",
+      "value": "[{},{},{},{},{},{},{},{},{},{}]",
+      "ms": 1,
+      "support": [
+        "_getModuleTitles",
+        "convertToGoldenLayout",
+        "dslExamples",
+        "listModules",
+        "normalizeWeights",
+        "parseGoldenDSL",
+        "parseViewDSL"
+      ],
+      "externalInputs": [],
+      "staticBlockers": []
+    },
+    "test_linkTo": {
+      "status": "pass",
+      "value": "[[\"#open=@tom/bar\",\"#open=d/1f41fef8b019cf4e@94\",\"#open=@tom/bar#cell\"],[\"#foo=bar&open=@tom/bar\",\"#foo=bar&open=d/1f41fef8b019cf4e@94\",\"#foo=bar&open=@tom/bar#cell\"]]",
+      "ms": 2,
+      "support": [
+        "isOnObservableCom",
+        "linkTo",
+        "links",
+        "targets"
+      ],
+      "externalInputs": [
+        "location"
+      ],
+      "staticBlockers": []
+    },
+    "test_extractNotebookAndCell": {
+      "status": "pass",
+      "value": "[{\"notebook\":\"@tomlarkworthy/import-notebook\",\"cell\":null},{\"notebook\":\"d/e1c39d41e8e944b0\",\"cell\":null},{\"notebook\":\"@tomlarkworthy/visualizer\",\"cell\":\"unorderedSync\"},{\"notebook\":\"@tomlarkworthy/rob",
+      "ms": 1,
+      "support": [
+        "extractNotebookAndCell",
+        "href_examples"
+      ],
+      "externalInputs": [],
+      "staticBlockers": []
+    },
+    "test_bareModulesWrappedInRC": {
+      "status": "pass",
+      "value": "ok",
+      "ms": 1,
+      "support": [
+        "convertToGoldenLayout",
+        "parseViewDSL"
+      ],
+      "externalInputs": [],
+      "staticBlockers": []
+    }
+  }
+}

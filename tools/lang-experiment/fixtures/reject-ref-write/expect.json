@@ -1,0 +1,15 @@
+{
+  "check": {
+    "rules": [
+      "ref-write"
+    ]
+  },
+  "run": {
+    "cells": {
+      "w": {
+        "status": "rejected",
+        "error": "outside an action"
+      }
+    }
+  }
+}

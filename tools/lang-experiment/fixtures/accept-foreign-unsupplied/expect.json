@@ -1,0 +1,4 @@
+{
+  "check": { "ok": true },
+  "run": { "cells": { "usesMissing": { "status": "shell-skip", "error": "missing is not defined" } } }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "lang-experiment-baseline",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "mathjs": "15.2.0",
+    "@observablehq/inputs": "0.12.0"
+  }
+}

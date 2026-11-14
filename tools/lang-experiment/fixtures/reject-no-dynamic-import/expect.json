@@ -1,0 +1,7 @@
+{
+  "check": {
+    "rules": [
+      "no-dynamic-import"
+    ]
+  }
+}

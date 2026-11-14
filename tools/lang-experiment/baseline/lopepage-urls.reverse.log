@@ -1,0 +1,9 @@
+lopepage-urls reverse: pass 8  fail 0  blocked 0  timeout 0  (8 tests)  -> /Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/baseline/lopepage-urls.reverse.json
+  pass    test_parseViewDSL (1ms)  [{"nodeType":"group","groupType":"S","weight":200,"children":[{"nodeType":"module","weight":null,"slug":"@tomlarkworthy/
+  pass    test_reserialized (1ms)  [{"type":"stack","content":[{"type":"component","title":"@tomlarkworthy/slug","weight":null,"size":"1fr","id":"","maximi
+  pass    test_serializeGoldenDSL (1ms)  ["S100(@tomlarkworthy/slug,@owner/page#cell)","S100(@tomlarkworthy/slug,@owner/page)","C100(S50(@tomlarkworthy/slug),S50
+  pass    test_parseGoldenDSL (2ms)  [{"type":"stack","content":[{"type":"component","title":"@tomlarkworthy/slug","size":"50.00%","id":"","maximised":false,
+  pass    test_list_modules (2ms)  [{},{},{},{},{},{},{},{},{},{}]
+  pass    test_linkTo (2ms)  [["#open=@tom/bar","#open=d/1f41fef8b019cf4e@94","#open=@tom/bar#cell"],["#foo=bar&open=@tom/bar","#foo=bar&open=d/1f41f
+  pass    test_extractNotebookAndCell (1ms)  [{"notebook":"@tomlarkworthy/import-notebook","cell":null},{"notebook":"d/e1c39d41e8e944b0","cell":null},{"notebook":"@t
+  pass    test_bareModulesWrappedInRC (1ms)  ok

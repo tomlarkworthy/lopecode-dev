@@ -1,0 +1,4 @@
+{
+  "accept-compile": [],
+  "reject-compile": ["compile-island", "compile-boundary", "compile-options", "type", "unsupported"]
+}

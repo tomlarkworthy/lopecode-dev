@@ -1,0 +1,2671 @@
+{
+  "module": "glpk-canonicalization",
+  "file": "modules/@tomlarkworthy/glpk-canonicalization.js",
+  "order": "reverse",
+  "timeoutMs": 10000,
+  "timeoutSemantics": "wall clock from the first define of the replay; all tests run in one runtime",
+  "ranAt": "2026-11-14T00:10:36.400Z",
+  "counts": {
+    "pass": 120,
+    "fail": 0,
+    "blocked": 0,
+    "timeout": 0
+  },
+  "supplied": {
+    "Generators": "vendor/observable-stdlib/src/generators",
+    "Inputs": "npm @observablehq/inputs 0.12.0 on happy-dom",
+    "math": "npm mathjs 15.2.0 lib/browser/math.js, evaluated as @tomlarkworthy/mathjs _math does"
+  },
+  "runtimeIntrinsic": [
+    "@variable"
+  ],
+  "blocked": [
+    "md",
+    "tex"
+  ],
+  "overrides": {},
+  "globalLookups": [],
+  "replayOrder": [
+    "checkStep",
+    "check",
+    "test_simplifyStep_7",
+    "simplifyStepExample",
+    "step2Example",
+    "canonicalExample",
+    "test_extract_11",
+    "test_extract_10",
+    "test_extract_9",
+    "test_extract_8",
+    "test_extract_7",
+    "test_extract_6",
+    "test_extract_5",
+    "test_extract_4",
+    "test_extract_3",
+    "test_extract_2",
+    "test_extract_1",
+    "checkExtract",
+    "extractLHS",
+    "extractRHS",
+    "extract",
+    "(anonymous)",
+    "test_isCanonical_4",
+    "test_isCanonical_3",
+    "test_isCanonical_2",
+    "test_isCanonical_1",
+    "isCanonical",
+    "(anonymous)",
+    "test_canonicalize_scale_10k",
+    "test_canonicalize_11",
+    "test_canonicalize_10",
+    "test_canonicalize_9",
+    "test_canonicalize_8",
+    "test_canonicalize_7",
+    "test_canonicalize_6",
+    "test_canonicalize_5",
+    "test_canonicalize_4",
+    "test_canonicalize_3",
+    "test_canonicalize_2",
+    "test_canonicalize_1",
+    "canonicalize",
+    "(anonymous)",
+    "test_step2_20",
+    "test_step2_19",
+    "test_step2_18",
+    "test_step2_17",
+    "test_step2_16",
+    "test_step2_15",
+    "test_step2_14",
+    "test_step2_13",
+    "test_step2_12",
+    "test_step2_11",
+    "test_step2_10",
+    "test_step2_9",
+    "test_step2_8",
+    "test_step2_7",
+    "test_step2_6",
+    "test_step2_5",
+    "test_step2_4",
+    "test_step2_3",
+    "test_step2_2",
+    "test_step2_1",
+    "step2",
+    "(anonymous)",
+    "test_simplifyStep_6",
+    "test_simplifyStep_5",
+    "test_simplifyStep_4",
+    "test_simplifyStep_3",
+    "test_simplifyStep_2",
+    "simplifyStep",
+    "test_simplify2_6",
+    "(anonymous)",
+    "test_simplify2_5",
+    "test_simplify2_4",
+    "test_simplify2_3",
+    "test_simplify2_2",
+    "test_simplify2_1",
+    "test_simplifyStep_1",
+    "simplify2",
+    "(anonymous)",
+    "test_addZeroToRHS_9",
+    "test_addZeroToRHS_then_constantsToRHS",
+    "test_addZeroToRHS_8",
+    "test_addZeroToRHS_7",
+    "test_addZeroToRHS_6",
+    "test_addZeroToRHS_5",
+    "test_addZeroToRHS_4",
+    "test_addZeroToRHS_3",
+    "test_addZeroToRHS_2",
+    "test_addZeroToRHS_1",
+    "(anonymous)",
+    "addZeroToRHS",
+    "(anonymous)",
+    "test_complexityToLHS_11",
+    "test_complexityToLHS_10",
+    "test_complexityToLHS_9",
+    "test_complexityToLHS_8",
+    "test_complexityToLHS_7",
+    "test_complexityToLHS_6",
+    "test_complexityToLHS_5",
+    "test_complexityToLHS_4",
+    "test_complexityToLHS_3",
+    "test_complexityToLHS_2",
+    "test_complexityToLHS_1",
+    "complexityToLHS",
+    "(anonymous)",
+    "test_constantsToRHS_16",
+    "test_constantsToRHS_15",
+    "test_constantsToRHS_14",
+    "test_constantsToRHS_13",
+    "test_constantsToRHS_12",
+    "test_constantsToRHS_11",
+    "test_constantsToRHS_10",
+    "test_constantsToRHS_9",
+    "test_constantsToRHS_8",
+    "test_constantsToRHS_7",
+    "test_constantsToRHS_6",
+    "test_constantsToRHS_5",
+    "test_constantsToRHS_4",
+    "test_constantsToRHS_3",
+    "test_constantsToRHS_2",
+    "test_constantsToRHS_1",
+    "constantsToRHSFn",
+    "constantsToRHS",
+    "(anonymous)",
+    "test_multiplyOut_1",
+    "multiplyOut",
+    "(anonymous)",
+    "test_expandBrackets_20",
+    "test_expandBrackets_19",
+    "test_expandBrackets_18",
+    "test_expandBrackets_17",
+    "test_expandBrackets_16",
+    "test_expandBrackets_15",
+    "test_expandBrackets_14",
+    "test_expandBrackets_13",
+    "test_expandBrackets_12",
+    "test_expandBrackets_11",
+    "test_expandBrackets_10",
+    "test_expandBrackets_9",
+    "test_expandBrackets_8",
+    "test_expandBrackets_7",
+    "test_expandBrackets_6",
+    "test_expandBrackets_5",
+    "test_expandBrackets_4",
+    "test_expandBrackets_3",
+    "test_expandBrackets_2",
+    "test_expandBrackets_1",
+    "expandBrackets",
+    "(anonymous)",
+    "test_ordering_2",
+    "test_ordering_1",
+    "ordering",
+    "(anonymous)",
+    "withOperator",
+    "(anonymous)",
+    "DEBUG",
+    "viewof DEBUG",
+    "(anonymous)",
+    "math",
+    "(anonymous)"
+  ],
+  "stats": {
+    "variables": 162,
+    "viewof": 1,
+    "mutable": 0,
+    "initial": 0,
+    "importBindings": [
+      "math"
+    ],
+    "moduleVariables": [
+      "module @tomlarkworthy/mathjs"
+    ],
+    "anonymous": 16,
+    "tests": 120,
+    "nonTestNamedCells": [
+      "viewof DEBUG",
+      "withOperator",
+      "ordering",
+      "expandBrackets",
+      "multiplyOut",
+      "constantsToRHS",
+      "constantsToRHSFn",
+      "complexityToLHS",
+      "addZeroToRHS",
+      "simplify2",
+      "simplifyStep",
+      "step2",
+      "canonicalize",
+      "isCanonical",
+      "extract",
+      "extractRHS",
+      "extractLHS",
+      "checkExtract",
+      "canonicalExample",
+      "step2Example",
+      "simplifyStepExample",
+      "check",
+      "checkStep"
+    ],
+    "builtinsDeclaredByModule": [],
+    "grepCheck": {
+      "$def": 160,
+      "mainDefine": 2
+    }
+  },
+  "tests": {
+    "test_ordering_1": {
+      "status": "pass",
+      "value": "x + 1",
+      "ms": 30,
+      "support": [
+        "check",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "ordering"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_ordering_2": {
+      "status": "pass",
+      "value": "x + 1",
+      "ms": 30,
+      "support": [
+        "check",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "ordering"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_1": {
+      "status": "pass",
+      "value": "-6 * 2 + 6 * x < 0",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_2": {
+      "status": "pass",
+      "value": "2 * 16 + 2 * 4 * x - 2 * y < 16",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_3": {
+      "status": "pass",
+      "value": "-2 * x - 2 * 1",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_4": {
+      "status": "pass",
+      "value": "1 - x2 + 5",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_5": {
+      "status": "pass",
+      "value": "x1 - x2 + 5",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_6": {
+      "status": "pass",
+      "value": "4 - x1 - x2 - 5",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_7": {
+      "status": "pass",
+      "value": "1 - x2 - 5",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_8": {
+      "status": "pass",
+      "value": "-x1 - x2",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_9": {
+      "status": "pass",
+      "value": "-x1 + x2",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_10": {
+      "status": "pass",
+      "value": "-x - 1",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_11": {
+      "status": "pass",
+      "value": "-1 - x",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_12": {
+      "status": "pass",
+      "value": "-1 + x",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_13": {
+      "status": "pass",
+      "value": "1 + x",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_14": {
+      "status": "pass",
+      "value": "1 - x",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_15": {
+      "status": "pass",
+      "value": "1",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_16": {
+      "status": "pass",
+      "value": "x",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_17": {
+      "status": "pass",
+      "value": "0",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_18": {
+      "status": "pass",
+      "value": "4 * x + 4 * 1",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_19": {
+      "status": "pass",
+      "value": "4 * x - 4 * 1",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_expandBrackets_20": {
+      "status": "pass",
+      "value": "-x1 - x2",
+      "ms": 30,
+      "support": [
+        "check",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_multiplyOut_1": {
+      "status": "pass",
+      "value": "2",
+      "ms": 30,
+      "support": [
+        "check",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_1": {
+      "status": "pass",
+      "value": "0 < 0 - 1",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_2": {
+      "status": "pass",
+      "value": "0 < 0 + 1",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_3": {
+      "status": "pass",
+      "value": "-2 * y - 2 * x - y < 0 + 2",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_4": {
+      "status": "pass",
+      "value": "-x + y < 0 + 2",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_5": {
+      "status": "pass",
+      "value": "-x - y < 0 + 2",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_6": {
+      "status": "pass",
+      "value": "-(2 * x) - y < 0 - 2",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_7": {
+      "status": "pass",
+      "value": "0 < 1",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_8": {
+      "status": "pass",
+      "value": "x + y < 0 + 1",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_9": {
+      "status": "pass",
+      "value": "x1 < x2 - 4",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_10": {
+      "status": "pass",
+      "value": "-x1 < x2 - 4",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_11": {
+      "status": "pass",
+      "value": "-x1 < x2 + 4",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_12": {
+      "status": "pass",
+      "value": "x1 < x2 + 4",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_13": {
+      "status": "pass",
+      "value": "x1 < x2 - 4",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_14": {
+      "status": "pass",
+      "value": "x1 < x2 + 4",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_15": {
+      "status": "pass",
+      "value": "-x1 < x2 - 4",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_constantsToRHS_16": {
+      "status": "pass",
+      "value": "-x1 < 0 - 5",
+      "ms": 31,
+      "support": [
+        "check",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_complexityToLHS_1": {
+      "status": "pass",
+      "value": "-(1 + 1) + x < 1",
+      "ms": 30,
+      "support": [
+        "check",
+        "complexityToLHS",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_complexityToLHS_2": {
+      "status": "pass",
+      "value": "-x2 + x1 < -5",
+      "ms": 30,
+      "support": [
+        "check",
+        "complexityToLHS",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_complexityToLHS_3": {
+      "status": "pass",
+      "value": "x + 1 < 2",
+      "ms": 30,
+      "support": [
+        "check",
+        "complexityToLHS",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_complexityToLHS_4": {
+      "status": "pass",
+      "value": "-x + 1 < 2",
+      "ms": 30,
+      "support": [
+        "check",
+        "complexityToLHS",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_complexityToLHS_5": {
+      "status": "pass",
+      "value": "-x + 1 < -2",
+      "ms": 30,
+      "support": [
+        "check",
+        "complexityToLHS",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_complexityToLHS_6": {
+      "status": "pass",
+      "value": "x + 1 < -2",
+      "ms": 30,
+      "support": [
+        "check",
+        "complexityToLHS",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_complexityToLHS_7": {
+      "status": "pass",
+      "value": "x + -1 < -2",
+      "ms": 30,
+      "support": [
+        "check",
+        "complexityToLHS",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_complexityToLHS_8": {
+      "status": "pass",
+      "value": "-x - 1 < -2",
+      "ms": 30,
+      "support": [
+        "check",
+        "complexityToLHS",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_complexityToLHS_9": {
+      "status": "pass",
+      "value": "-(-x) - 1 < -2",
+      "ms": 30,
+      "support": [
+        "check",
+        "complexityToLHS",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_complexityToLHS_10": {
+      "status": "pass",
+      "value": "-(-x) + -1 < 2",
+      "ms": 30,
+      "support": [
+        "check",
+        "complexityToLHS",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_complexityToLHS_11": {
+      "status": "pass",
+      "value": "-4 * y < 0",
+      "ms": 30,
+      "support": [
+        "check",
+        "complexityToLHS",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_addZeroToRHS_1": {
+      "status": "pass",
+      "value": "x - -3 * x < 0",
+      "ms": 30,
+      "support": [
+        "addZeroToRHS",
+        "checkStep",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_addZeroToRHS_2": {
+      "status": "pass",
+      "value": "0 < -1",
+      "ms": 30,
+      "support": [
+        "addZeroToRHS",
+        "checkStep",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_addZeroToRHS_3": {
+      "status": "pass",
+      "value": "x + x < 0",
+      "ms": 30,
+      "support": [
+        "addZeroToRHS",
+        "checkStep",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_addZeroToRHS_4": {
+      "status": "pass",
+      "value": "y - 5 * y < 0",
+      "ms": 30,
+      "support": [
+        "addZeroToRHS",
+        "checkStep",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_addZeroToRHS_5": {
+      "status": "pass",
+      "value": "x - y < 0",
+      "ms": 30,
+      "support": [
+        "addZeroToRHS",
+        "checkStep",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_addZeroToRHS_6": {
+      "status": "pass",
+      "value": "x < 3",
+      "ms": 30,
+      "support": [
+        "addZeroToRHS",
+        "checkStep",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_addZeroToRHS_7": {
+      "status": "pass",
+      "value": "x < -3",
+      "ms": 30,
+      "support": [
+        "addZeroToRHS",
+        "checkStep",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_addZeroToRHS_8": {
+      "status": "pass",
+      "value": "5 - x1 < 0",
+      "ms": 30,
+      "support": [
+        "addZeroToRHS",
+        "checkStep",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_addZeroToRHS_then_constantsToRHS": {
+      "status": "pass",
+      "value": "-x1 < 0 - 5",
+      "ms": 31,
+      "support": [
+        "addZeroToRHS",
+        "checkStep",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_addZeroToRHS_9": {
+      "status": "pass",
+      "value": "-4 * y < 0",
+      "ms": 30,
+      "support": [
+        "addZeroToRHS",
+        "checkStep",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_simplifyStep_1": {
+      "status": "pass",
+      "value": "-6 * y < 0",
+      "ms": 38,
+      "support": [
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "simplifyStepExample"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_simplify2_1": {
+      "status": "pass",
+      "value": "-x1 - x2 < 5",
+      "ms": 30,
+      "support": [
+        "check",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "simplify2"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_simplify2_2": {
+      "status": "pass",
+      "value": "-(4 * y) < 0",
+      "ms": 30,
+      "support": [
+        "check",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "simplify2"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_simplify2_3": {
+      "status": "pass",
+      "value": "1.1",
+      "ms": 30,
+      "support": [
+        "check",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "simplify2"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_simplify2_4": {
+      "status": "pass",
+      "value": "x - 3",
+      "ms": 30,
+      "support": [
+        "check",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "simplify2"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_simplify2_5": {
+      "status": "pass",
+      "value": "x + y",
+      "ms": 30,
+      "support": [
+        "check",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "simplify2"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_simplify2_6": {
+      "status": "pass",
+      "value": "y < 0",
+      "ms": 30,
+      "support": [
+        "check",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "simplify2"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_simplifyStep_2": {
+      "status": "pass",
+      "value": "y < 0",
+      "ms": 38,
+      "support": [
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "simplifyStepExample"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_simplifyStep_3": {
+      "status": "pass",
+      "value": "-2 * x - 2 < 0",
+      "ms": 38,
+      "support": [
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "simplifyStepExample"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_simplifyStep_4": {
+      "status": "pass",
+      "value": "2 * x + 4 < 0",
+      "ms": 38,
+      "support": [
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "simplifyStepExample"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_simplifyStep_5": {
+      "status": "pass",
+      "value": "2 * x + 2",
+      "ms": 38,
+      "support": [
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "simplifyStepExample"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_simplifyStep_6": {
+      "status": "pass",
+      "value": "2 < 0",
+      "ms": 38,
+      "support": [
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "simplifyStepExample"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_1": {
+      "status": "pass",
+      "value": "8 * x - 2 * y < -16",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_2": {
+      "status": "pass",
+      "value": "y - x < 2",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_3": {
+      "status": "pass",
+      "value": "2 * x < 0",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_4": {
+      "status": "pass",
+      "value": "-2 * x - y < 2",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_5": {
+      "status": "pass",
+      "value": "0 < 1",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_6": {
+      "status": "pass",
+      "value": "x1 < -1",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_7": {
+      "status": "pass",
+      "value": "x1 < -1",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_8": {
+      "status": "pass",
+      "value": "2 * x < -4",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_9": {
+      "status": "pass",
+      "value": "5 * x < -7",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_10": {
+      "status": "pass",
+      "value": "-x1 - x2 < 0",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_11": {
+      "status": "pass",
+      "value": "x - y < 0",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_12": {
+      "status": "pass",
+      "value": "-x1 < -5",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_13": {
+      "status": "pass",
+      "value": "-4 * y < 0",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_14": {
+      "status": "pass",
+      "value": "4 x < 0",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_15": {
+      "status": "pass",
+      "value": "x < 1.1",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_16": {
+      "status": "pass",
+      "value": "x + y < 0",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_17": {
+      "status": "pass",
+      "value": "2 * x < 0",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_18": {
+      "status": "pass",
+      "value": "0 < -1",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_19": {
+      "status": "pass",
+      "value": "4 * x < 0",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_step2_20": {
+      "status": "pass",
+      "value": "x + 4 * y < 0",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "step2Example",
+        "viewof DEBUG"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_canonicalize_1": {
+      "status": "pass",
+      "value": "x1 < -1",
+      "ms": 113,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalExample",
+        "canonicalize",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_canonicalize_2": {
+      "status": "pass",
+      "value": "-x1 > 1",
+      "ms": 113,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalExample",
+        "canonicalize",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_canonicalize_3": {
+      "status": "pass",
+      "value": "x1 < -2",
+      "ms": 113,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalExample",
+        "canonicalize",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_canonicalize_4": {
+      "status": "pass",
+      "value": "x1 <= -2",
+      "ms": 113,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalExample",
+        "canonicalize",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_canonicalize_5": {
+      "status": "pass",
+      "value": "-x1 - x2 > -5",
+      "ms": 113,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalExample",
+        "canonicalize",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_canonicalize_6": {
+      "status": "pass",
+      "value": "-4 * y - x > 0",
+      "ms": 113,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalExample",
+        "canonicalize",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_canonicalize_7": {
+      "status": "pass",
+      "value": "-4 * y - 4 * x > 0",
+      "ms": 113,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalExample",
+        "canonicalize",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_canonicalize_8": {
+      "status": "pass",
+      "value": "x > 1.1",
+      "ms": 113,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalExample",
+        "canonicalize",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_canonicalize_9": {
+      "status": "pass",
+      "value": "-x1 - x2 - x3 == -1",
+      "ms": 113,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalExample",
+        "canonicalize",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_canonicalize_10": {
+      "status": "pass",
+      "value": "x + y <= 0",
+      "ms": 113,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalExample",
+        "canonicalize",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_canonicalize_11": {
+      "status": "pass",
+      "value": "-2 * y - 2 * x - y <= 2",
+      "ms": 113,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalExample",
+        "canonicalize",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_canonicalize_scale_10k": {
+      "status": "pass",
+      "value": ">",
+      "ms": 91,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalize",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_isCanonical_1": {
+      "status": "pass",
+      "value": "true",
+      "ms": 30,
+      "support": [
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_isCanonical_2": {
+      "status": "pass",
+      "value": "true",
+      "ms": 30,
+      "support": [
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_isCanonical_3": {
+      "status": "pass",
+      "value": "false",
+      "ms": 30,
+      "support": [
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_isCanonical_4": {
+      "status": "pass",
+      "value": "true",
+      "ms": 30,
+      "support": [
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    },
+    "test_extract_1": {
+      "status": "pass",
+      "value": "{\"vars\":[{\"coef\":4,\"name\":\"x\"}],\"bounds\":{\"upper\":6}}",
+      "ms": 134,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalize",
+        "checkExtract",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extract",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_extract_2": {
+      "status": "pass",
+      "value": "{\"vars\":[{\"coef\":1,\"name\":\"x\"}],\"bounds\":{\"upper\":0}}",
+      "ms": 134,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalize",
+        "checkExtract",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extract",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_extract_3": {
+      "status": "pass",
+      "value": "{\"vars\":[{\"coef\":30,\"name\":\"y\"},{\"coef\":4,\"name\":\"x\"}],\"bounds\":{\"lower\":-126}}",
+      "ms": 134,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalize",
+        "checkExtract",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extract",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_extract_4": {
+      "status": "pass",
+      "value": "{\"vars\":[{\"coef\":-2,\"name\":\"y\"},{\"coef\":4,\"name\":\"x\"}],\"bounds\":{\"lower\":0}}",
+      "ms": 134,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalize",
+        "checkExtract",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extract",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_extract_5": {
+      "status": "pass",
+      "value": "{\"vars\":[{\"coef\":1,\"name\":\"y\"},{\"coef\":1,\"name\":\"x\"}],\"bounds\":{\"lower\":0,\"upper\":0}}",
+      "ms": 134,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalize",
+        "checkExtract",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extract",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_extract_6": {
+      "status": "pass",
+      "value": "{\"vars\":[{\"coef\":-2,\"name\":\"y\"},{\"coef\":-1,\"name\":\"z\"},{\"coef\":4,\"name\":\"x\"}],\"bounds\":{\"lower\":0}}",
+      "ms": 134,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalize",
+        "checkExtract",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extract",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_extract_7": {
+      "status": "pass",
+      "value": "{\"vars\":[{\"coef\":2,\"name\":\"x\"}],\"bounds\":{\"upper\":0}}",
+      "ms": 134,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalize",
+        "checkExtract",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extract",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_extract_8": {
+      "status": "pass",
+      "value": "{\"vars\":[],\"bounds\":{\"lower\":0,\"upper\":0}}",
+      "ms": 134,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalize",
+        "checkExtract",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extract",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_extract_9": {
+      "status": "pass",
+      "value": "{\"vars\":[],\"bounds\":{\"lower\":1}}",
+      "ms": 134,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalize",
+        "checkExtract",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extract",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_extract_10": {
+      "status": "pass",
+      "value": "{\"vars\":[{\"coef\":-3,\"name\":\"y\"},{\"coef\":-2,\"name\":\"x\"}],\"bounds\":{\"upper\":2}}",
+      "ms": 134,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalize",
+        "checkExtract",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extract",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_extract_11": {
+      "status": "pass",
+      "value": "{\"vars\":[{\"coef\":-2,\"name\":\"x\"},{\"coef\":-1,\"name\":\"y\"}],\"bounds\":{\"upper\":2}}",
+      "ms": 134,
+      "support": [
+        "DEBUG",
+        "addZeroToRHS",
+        "canonicalize",
+        "checkExtract",
+        "complexityToLHS",
+        "constantsToRHS",
+        "constantsToRHSFn",
+        "expandBrackets",
+        "extract",
+        "extractLHS",
+        "extractRHS",
+        "isCanonical",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "step2",
+        "viewof DEBUG",
+        "withOperator"
+      ],
+      "externalInputs": [
+        "@variable",
+        "Generators",
+        "Inputs"
+      ],
+      "staticBlockers": []
+    },
+    "test_simplifyStep_7": {
+      "status": "pass",
+      "value": "0 < 1",
+      "ms": 38,
+      "support": [
+        "expandBrackets",
+        "math",
+        "module @tomlarkworthy/mathjs",
+        "multiplyOut",
+        "simplifyStep",
+        "simplifyStepExample"
+      ],
+      "externalInputs": [
+        "@variable"
+      ],
+      "staticBlockers": []
+    }
+  }
+}

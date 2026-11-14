@@ -1,0 +1,9 @@
+{
+  "name": "lang-experiment",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@observablehq/runtime": "^6.1.0",
+    "typescript": "^6.0.3"
+  }
+}

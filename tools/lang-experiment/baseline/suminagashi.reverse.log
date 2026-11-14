@@ -1,0 +1,9 @@
+suminagashi reverse: pass 1  fail 0  blocked 7  timeout 0  (8 tests)  -> /Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/baseline/suminagashi.reverse.json
+  blocked test_film_is_conserved (10ms)  width
+  blocked test_ink_becomes_a_ring (10ms)  width
+  blocked test_fluids_stay_apart (10ms)  width
+  blocked test_film_settles_flat (10ms)  width
+  blocked test_water_settles_on_an_odd_tray (10ms)  width
+  blocked test_pressure_stays_centred (10ms)  width
+  pass    test_lines_keep_their_area (4ms)  a quarter turn changed the area by 6.0e-7 and left the centre 2.6e-4 cells off, on 76 vertices
+  blocked test_gpu_and_cpu_carry_lines_alike (10ms)  width

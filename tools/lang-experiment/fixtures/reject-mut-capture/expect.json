@@ -1,0 +1,7 @@
+{
+  "check": {
+    "rules": [
+      "mut-capture"
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "accept-suminagashi-controls": [],
+  "reject-jsx": [
+    "type",
+    "excess-property",
+    "no-member",
+    "mut-escape",
+    "free-name"
+  ]
+}
