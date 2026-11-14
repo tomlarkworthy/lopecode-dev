@@ -1,0 +1,282 @@
+readme_title = md`# SoundScript
+
+SoundScript is a subset of TypeScript for notebook cells. Its checker accepts a cell only if the cell reads nothing but its parameters and writes nothing it did not make, so the dependency graph is complete and equal inputs give equal values. This module is the language: the checker, the per-cell compiler, the runtime that compiled cells call, and the editor hook. The tutorial is the module \`@tomlarkworthy/soundscript-tutorial\`, in the other tab.
+
+The four cells below are SoundScript. Open one in the editor to see its typed source.`
+// %%
+//ss: ./core-example.ts
+// %%
+example_view = htl.html`<div class="ss-example"><button onclick=${() => bump()}>bump</button> <button onclick=${() => reset()}>reset</button> <code>tally = ${tally}</code>, <code>doubled = ${doubled}</code></div>`
+// %%
+readme_storage = md`## How a cell is stored
+
+The editor compiles one cell at a time to ordinary JavaScript: one runtime variable, or two for a ref cell (\`ref tally\` holds the handle, \`tally\` the value). The definition starts with the marker \`/*{lang:"ss"}*/\`, keeps the types as \`/*ss:…*/\` comments and JSX as \`/*ss<…*/\` beside the lowered \`h(...)\` calls, so the typed source is recovered from the definition text alone and survives a save. Each compiled cell takes \`ss\` as its first input, and one variable per capability it names:
+
+| parameter | variable |
+|---|---|
+| \`now\` | \`ss_now\` |
+| \`random\` | \`ss_random\` |
+| \`fetch\` | \`ss_fetch\` |
+| \`log\` | \`ss_log\` |
+| \`invalidation\` | the runtime's own \`invalidation\` |
+
+A module that holds SoundScript cells imports \`ss\` and these four from this module.`
+// %%
+readme_editing = md`## Editing
+
+\`ss_registration\` registers the language with the editor (plugin \`cell_languages\` of this notebook's \`@tomlarkworthy/editor-5\` fork). For a cell whose variables carry the marker, the editor shows the typed source, reports the checker's diagnostics as you type, and on Shift-Enter applies the edit only if the edited cell checks \`ok\` against the whole module and no cell that was \`ok\` stops being \`ok\`. A refused edit changes nothing. A new cell whose source starts with \`export\`, typed in a module that has \`ss\`, is SoundScript.`
+// %%
+readme_api = md`## API
+
+\`\`\`js
+ss.checkSources({ cells, tsx })        // the checker: per cell {name, status, errors, unsupported, value (its type)}
+ss.compileCell(source, tsx)            // one cell's source -> [{name, inputs, definition}]
+ss.decompileVariable(definition)       // a compiled definition -> the cell's source, or null
+ss.runCells(source, { tsx, checked })  // run a whole source in a private runtime (a Program)
+ss_moduleCells(module)                 // a module's SoundScript cells: [{key, text, variable}]
+ss_check(module)                       // checkSources over those cells, joined in runtime order
+ss_roundtrip(module)                   // decompile and recompile every cell; throws on a difference
+ss_language                            // the object registered with the editor
+\`\`\``
+// %%
+ss = {
+  const stream = (await FileAttachment("ss.js.gz").stream()).pipeThrough(new DecompressionStream("gzip"));
+  const url = URL.createObjectURL(new Blob([await new Response(stream).text()], { type: "text/javascript" }));
+  try {
+    return await import(url);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+// %%
+ss_now = () => performance.now()
+// %%
+ss_random = Math.random
+// %%
+ss_log = (...args) => console.log(...args)
+// %%
+ss_fetch = globalThis.fetch.bind(globalThis)
+// %%
+viewof ss_module = thisModule()
+// %%
+ss_moduleCells = (module) => {
+  // runtime order, one entry per cell: a ref cell's two variables give one
+  const out = [], seen = new Set();
+  for (const v of runtime._variables) {
+    if (v._module !== module || typeof v._name !== "string" || typeof v._definition !== "function") continue;
+    const def = String(v._definition);
+    if (ss.langOf(def) !== "ss") continue;
+    const text = ss.decompileVariable(def);
+    if (text === null) continue;
+    const key = v._name.startsWith("type ") ? v._name : v._name.replace(/^ref /, "");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ key, text, variable: v });
+  }
+  return out;
+}
+// %%
+ss_check = (module) => {
+  const cells = ss_moduleCells(module);
+  const source = cells.map((c) => c.text).join("\n\n");
+  return { cells, source, result: ss.checkSources({ cells: source, tsx: true }) };
+}
+// %%
+ss_roundtrip = (module) => {
+  let n = 0;
+  for (const c of ss_moduleCells(module)) {
+    for (const d of ss.compileCell(c.text, true)) {
+      const v = module._scope.get(d.name);
+      if (!v) throw new Error(`${d.name}: no variable`);
+      if (String(v._definition) !== d.definition) throw new Error(`${d.name}: the definition does not recompile to itself`);
+      if (JSON.stringify(v._inputs.map((i) => i._name)) !== JSON.stringify(d.inputs)) throw new Error(`${d.name}: inputs ${v._inputs.map((i) => i._name)} vs ${d.inputs}`);
+      n++;
+    }
+  }
+  return n;
+}
+// %%
+ss_language = {
+  const tsx = true;
+  const isSs = (v) => typeof v?._definition === "function" && ss.langOf(String(v._definition)) === "ss";
+  const keyOf = (name) => (name.startsWith("type ") ? name : name.replace(/^ref /, ""));
+  const moduleOf = (variables, cell) => variables.find((v) => v?._module)?._module ?? cell?.module?.module;
+  const family = (module, key) => (key.startsWith("type ") ? [key] : ["ref " + key, key]).map((n) => module?._scope?.get(n)).filter(isSs);
+  const ownKey = (variables) => { const v = variables.find(isSs); return v ? keyOf(v._name) : null; };
+  const sourceOf = (v) => ss.decompileVariable(String(v._definition));
+
+  const decompile = async (variables) => {
+    for (const v of variables) if (isSs(v)) { const s = sourceOf(v); if (s !== null) return s; }
+    // a ref cell's value variable holds no source; its handle variable does
+    const key = ownKey(variables);
+    for (const v of family(moduleOf(variables), key)) { const s = sourceOf(v); if (s !== null) return s; }
+    throw new Error(`no SoundScript source for ${key}`);
+  };
+
+  // {ok, problems: [{line, rule, msg}] with lines relative to source, defs}
+  const check = (source, variables = [], cell) => {
+    const module = moduleOf(variables, cell);
+    let defs;
+    try { defs = ss.compileCell(source, tsx); }
+    catch (e) { return { ok: false, problems: [{ line: e.loc?.line ?? 1, rule: "compile", msg: e.message }] }; }
+    const key = keyOf(defs[0].name);
+    const oldKey = ownKey(variables);
+    const own = new Set([...variables, ...(oldKey ? family(module, oldKey) : [])]);
+    const problems = [];
+    for (const d of defs) {
+      const there = module?._scope?.get(d.name);
+      if (there && !own.has(there)) problems.push({ line: 1, rule: "duplicate-cell", msg: `${d.name} is already defined in this module` });
+    }
+    const cells = ss_moduleCells(module);
+    const texts = cells.map((c) => c.text);
+    let at = cells.findIndex((c) => c.key === (oldKey ?? key));
+    if (at < 0) { texts.push(source); at = texts.length - 1; } else texts[at] = source;
+    const start = texts.slice(0, at).reduce((n, t) => n + t.split("\n").length + 1, 0);
+    const end = start + source.split("\n").length;
+    let before, after;
+    try { after = ss.checkSources({ cells: texts.join("\n\n"), tsx }); }
+    catch (e) { return { ok: false, problems: [...problems, { line: 1, rule: "check", msg: e.message }] }; }
+    try { before = ss.checkSources({ cells: cells.map((c) => c.text).join("\n\n"), tsx }); } catch { before = { cells: [] }; }
+    const rel = (e) => ({ ...e, line: Math.max(1, e.line - start) });
+    for (const e of after.module) if (e.line > start && e.line <= end) problems.push(rel(e));
+    const mine = after.cells.find((c) => c.name === key);
+    if (mine) {
+      for (const e of mine.errors) problems.push(rel(e));
+      for (const u of mine.unsupported) problems.push({ ...rel(u), rule: "unsupported" });
+      if (mine.status === "blocked") problems.push({ line: 1, rule: "blocked", msg: `blocked by ${mine.blockedBy.join(", ")}` });
+    }
+    const wasOk = new Set(before.cells.filter((c) => c.status === "ok").map((c) => c.name));
+    for (const c of after.cells) {
+      if (c.name === key || !wasOk.has(c.name) || c.status === "ok") continue;
+      const why = c.errors.map((e) => `[${e.rule}] ${e.msg}`).join("; ") || (c.status === "blocked" ? `blocked by ${c.blockedBy.join(", ")}` : c.status);
+      problems.push({ line: 1, rule: "downstream", msg: `${c.name} would become ${c.status}: ${why}` });
+    }
+    return { ok: problems.length === 0 && (!mine || mine.status === "ok"), problems, defs, key, status: mine?.status ?? null, type: mine?.value ?? null };
+  };
+
+  const lint = (source, variables = [], cell) => {
+    const starts = [0];
+    for (let i = 0; i < source.length; i++) if (source[i] === "\n") starts.push(i + 1);
+    return check(source, variables, cell).problems.map((p) => {
+      const l = Math.min(Math.max(p.line, 1), starts.length) - 1;
+      const to = l + 1 < starts.length ? starts[l + 1] - 1 : source.length;
+      return { from: starts[l], to: Math.max(to, starts[l]), severity: "error", message: `[${p.rule}] ${p.msg}` };
+    });
+  };
+
+  // Applies only a cell the checker accepts; otherwise returns undefined and changes nothing.
+  const apply = async (source, variables = [], cell) => {
+    const r = check(source, variables, cell);
+    if (!r.ok) return undefined;
+    const module = moduleOf(variables, cell);
+    const oldKey = ownKey(variables);
+    const old = new Set([...variables, ...(oldKey ? family(module, oldKey) : [])]);
+    const order = [...runtime._variables];
+    const anchor = [...old].sort((a, b) => order.indexOf(a) - order.indexOf(b)).at(-1) ?? cell?.variables?.at(-1);
+    const fns = await realize(r.defs.map((d) => d.definition), runtime);
+    const fresh = [];
+    const next = r.defs.map((d, i) => {
+      let v = module._scope.get(d.name);
+      if (!v || !old.has(v)) {
+        v = module.variable({});
+        v.pid = "_" + Math.random().toString(36).slice(2, 9);
+        fresh.push(v);
+      }
+      v.define(d.name, d.inputs, fns[i]);
+      return v;
+    });
+    for (const v of old) if (!next.includes(v)) v.delete();
+    if (anchor && fresh.length) {
+      let at = [...runtime._variables].indexOf(anchor) + 1;
+      for (const v of fresh) repositionSetElement(runtime._variables, v, at++);
+    }
+    variables.splice(0, variables.length, ...next);
+    return decompile(next);
+  };
+
+  // a new cell is SoundScript when its module has ss, which every compiled cell takes
+  const claimsSource = (source, cell) => {
+    const module = cell?.module?.module;
+    return !!module?._scope?.has("ss") && /^\s*(?:(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/)\s*)*export\b/.test(source);
+  };
+
+  return {
+    id: "ss",
+    claims: (variables) => variables.some(isSs),
+    claimsSource,
+    decompile,
+    check,
+    lint,
+    apply,
+    extension: (codemirror) => codemirror.javascript({ typescript: true, jsx: true })
+  };
+}
+// %%
+ss_registration = {
+  plugins.add("cell_languages", ss_language, { invalidation });
+  return md`SoundScript is registered as the editor language \`${ss_language.id}\` (plugin \`cell_languages\`).`;
+}
+// %%
+style = htl.html`<style>
+.ss-example { padding: 8px; border: 1px solid var(--theme-foreground-faint); border-radius: 4px; background: var(--theme-background-alt); }
+</style>`
+// %%
+readme_tests = md`## Tests`
+// %%
+test_ss_roundtrip = {
+  const n = ss_roundtrip(ss_module);
+  if (n < 5) throw new Error(`${n} SoundScript variables in this module; the example alone has 5 (tally is two)`);
+  return `${n} variables recompile to the same text and inputs`;
+}
+// %%
+test_ss_example_checks = {
+  const { result } = ss_check(ss_module);
+  const want = ["tally", "bump", "reset", "doubled"];
+  const got = Object.fromEntries(want.map((n) => [n, result.cells.find((c) => c.name === n)?.status]));
+  if (want.some((n) => got[n] !== "ok")) throw new Error(`verdicts ${JSON.stringify(got)}`);
+  return `${want.join(", ")}: ok`;
+}
+// %%
+test_ss_unchanged_source_checks = {
+  const v = ss_module._scope.get("bump");
+  const source = await ss_language.decompile([v]);
+  const r = ss_language.check(source, [v]);
+  if (!r.ok || r.problems.length) throw new Error(JSON.stringify(r.problems));
+  return `bump: ok, type ${r.type}`;
+}
+// %%
+test_ss_wrong_type_is_refused = {
+  const v = ss_module._scope.get("bump");
+  const before = String(v._definition);
+  const original = await ss_language.decompile([v]);
+  const source = original.replace("tally: Ref<number>", "tally: Ref<string>");
+  if (source === original) throw new Error("bump has no tally: Ref<number> parameter to change");
+  const r = ss_language.check(source, [v]);
+  if (r.ok || !r.problems.some((p) => p.rule === "inject-ref")) throw new Error(`check: ${JSON.stringify(r.problems)}`);
+  const lint = ss_language.lint(source, [v]);
+  if (!lint.length || lint[0].severity !== "error") throw new Error(`lint: ${JSON.stringify(lint)}`);
+  const applied = await ss_language.apply(source, [v]);
+  if (applied !== undefined || String(v._definition) !== before) throw new Error("a refused edit changed the definition");
+  return lint.map((d) => d.message).join("; ");
+}
+// %%
+test_ss_downstream_break_is_refused = {
+  const v = ss_module._scope.get("ref tally");
+  const original = await ss_language.decompile([v]);
+  const source = original.replace("RefCell<number> => ref(0)", 'RefCell<string> => ref("0")');
+  if (source === original) throw new Error("tally is not RefCell<number> => ref(0)");
+  const r = ss_language.check(source, [v]);
+  const names = r.problems.filter((p) => p.rule === "downstream").map((p) => p.msg.split(" ")[0]);
+  if (r.ok || JSON.stringify(names) !== JSON.stringify(["bump", "reset", "doubled"])) throw new Error(JSON.stringify(r.problems));
+  return r.problems.map((p) => p.msg).join("; ");
+}
+// %%
+//raw: test_ss_ref_handle
+// %%
+test_ss_results = tests({ filter: (t) => t.name.includes("@tomlarkworthy/soundscript#") })
+// %%
+import { runtime, realize, thisModule, repositionSetElement } from "@tomlarkworthy/runtime-sdk"
+// %%
+import { plugins } from "@tomlarkworthy/plugin-registry"
+// %%
+import { tests } from "@tomlarkworthy/tests"
