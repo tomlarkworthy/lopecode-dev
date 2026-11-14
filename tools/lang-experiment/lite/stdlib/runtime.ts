@@ -58,6 +58,12 @@ export const evals = (definition: object) => {
   return id ? evalCounts.get(id) ?? 0 : 0;
 };
 
+// drops what memos and run counts keep for a compiled definition that no variable holds any more
+export const forget = (definition: object) => {
+  const id = /\bid: "(\w+)", invalidation: [\w$]+\}\); \}$/.exec(String(definition))?.[1];
+  if (id) { memos.delete(id); evalCounts.delete(id); }
+};
+
 type Opts = { kind: "cell" | "ref" | "source"; name: string; memo: boolean; id: string; invalidation: Promise<unknown> | null };
 
 export function cell(fn: (...a: unknown[]) => unknown, args: unknown[], o: Opts): unknown {
@@ -101,19 +107,24 @@ export const running = () => live.length;
 function start(source: { make: () => any }, act: (x: unknown) => void): Running {
   let stopped = false;
   const gen = source.make();
+  // a generator or action that throws ends its subscription, so the same pair can be started again
+  const fail = (e: unknown) => { console.error(e); entry.stop(); const i = live.indexOf(entry); if (i >= 0) live.splice(i, 1); };
   const step = () => {
     if (stopped) return;
-    const res = gen.next();
-    const handle = (r: IteratorResult<unknown>, async: boolean) => {
-      if (stopped || r.done) return;
-      act(r.value);
-      if (async) step(); else requestAnimationFrame(step);
-    };
-    if (res && typeof res.then === "function") res.then((r: IteratorResult<unknown>) => handle(r, true));
-    else handle(res, false);
+    try {
+      const res = gen.next();
+      const handle = (r: IteratorResult<unknown>, async: boolean) => {
+        if (stopped || r.done) return;
+        act(r.value);
+        if (async) step(); else requestAnimationFrame(step);
+      };
+      if (res && typeof res.then === "function") res.then((r: IteratorResult<unknown>) => { try { handle(r, true); } catch (e) { fail(e); } }, fail);
+      else handle(res, false);
+    } catch (e) { fail(e); }
   };
+  const entry: Running = { source, action: act, count: 0, stop: () => { stopped = true; try { gen.return(); } catch {} } };
   requestAnimationFrame(step);
-  return { source, action: act, count: 0, stop: () => { stopped = true; try { gen.return(); } catch {} } };
+  return entry;
 }
 function hold(set: { source: any; action: any }[], invalidation: Promise<unknown> | null) {
   let h = held.get(set);

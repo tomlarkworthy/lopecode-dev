@@ -1,4 +1,4 @@
-md`# SoundScript, section 6: the variables a cell becomes
+md`# SoundScript, section 6: skipping cells that did not change
 
 The cells of section 6 of \`@tomlarkworthy/soundscript-tutorial\`, as live SoundScript cells, in a module of their own because their names are used by other sections. \`areaFn\` calls \`compile\`, which reads this module's cells, so the module defines \`ss_compile\`.`
 // %%

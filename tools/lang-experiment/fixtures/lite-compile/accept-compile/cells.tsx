@@ -6,7 +6,7 @@ export const y0 = () => 0;
 export const y1 = () => 1;
 
 // Escape-time Mandelbrot for rows y0 up to y1, four bytes (RGBA) per pixel. The smooth
-// iteration count goes through a cosine palette; points that never escape are black.
+// iteration count goes through a cosine palette, dark indigo far out through steel blue to gold near the set; points that never escape are black.
 export const rows = (width: number, height: number, maxIter: number, y0: number, y1: number) => {
   const out = mut(new Uint8ClampedArray((y1 - y0) * width * 4));
   for (let y = y0; y < y1; y++) {
@@ -25,9 +25,9 @@ export const rows = (width: number, height: number, maxIter: number, y0: number,
       if (i < maxIter) {
         const nu = i + 1 - Math.log2(Math.log2(zr * zr + zi * zi) / 2);
         const t = Math.sqrt(nu / 64);
-        out[at] = 255 * (0.5 + 0.5 * Math.cos(6.2832 * (t + 0.0)));
-        out[at + 1] = 255 * (0.5 + 0.5 * Math.cos(6.2832 * (t + 0.33)));
-        out[at + 2] = 255 * (0.5 + 0.5 * Math.cos(6.2832 * (t + 0.67)));
+        out[at] = 255 * (0.5 + 0.45 * Math.cos(6.2832 * (t + 0.2)));
+        out[at + 1] = 255 * (0.45 + 0.38 * Math.cos(6.2832 * (t + 0.3)));
+        out[at + 2] = 255 * (0.4 + 0.25 * Math.cos(6.2832 * (t + 0.5)));
       }
     }
   }

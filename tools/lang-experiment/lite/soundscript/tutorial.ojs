@@ -1,147 +1,242 @@
-md`# SoundScript: Sound Dataflow Language
+md`# SoundScript
 
-SoundScript is a subset of TypeScript for writing notebook cells, together with a checker that makes a promise about every cell it accepts: given the same inputs, the cell computes the same value, and everything it depends on is visible in the dependency graph. This page teaches the language by example.
+SoundScript is TypeScript with things taken out, for writing notebook cells. A checker reads each cell and accepts it only if everything the cell depends on is in its parameter list. For an accepted cell the notebook knows what can change its value, so it can skip it when nothing changed, run it on another thread, and replay it in a test.
 
-Every example the checker accepts is a live cell. Sections 1, 3, 4 and 8 are cells of this module, \`@tomlarkworthy/soundscript-tutorial\`. Sections 5, 6, 7 and 9 reuse cell names (\`app\` is in all four), so each is a small module of its own (\`@tomlarkworthy/soundscript-reducer\`, \`-model\`, \`-workers\`, \`-breakout\`), and this page shows its view and a live table of its cells. Every live cell is compiled to one or two ordinary runtime variables, so it runs in the notebook's own runtime, is edited in the notebook's editor and is saved with the notebook (section "Editing SoundScript cells"). Only the examples the checker must reject, in sections 2 and 8, are source boxes: edit one and it is checked again on every keystroke; a box is not run.
-
-The checker is \`lite\` (\`tools/lang-experiment/lite/\` in lopecode-dev). It is written for this subset without TypeScript's compiler. It, the compiler and the runtime are the module \`@tomlarkworthy/soundscript\` (the other tab), which this module imports; the page works from a \`file://\` URL with the network off. This is an experiment, started 2026-11-14; lopecode cells are not written this way today.`
+This page is the tutorial. Every example is a live cell of this notebook, except the boxes of mistakes in sections 2 and 8: open its editor, change it, and press Shift-Enter. The first, \`width\`, is under the next heading.`
 // %%
-md`## Why a new language
+md`## A first cell
 
-An Observable cell can do anything JavaScript can. It can read a global the runtime does not know about, call \`Math.random\` or \`Date.now\`, mutate an object another cell returned, or touch the page. The runtime cannot tell whether a cell did any of this, so it does the safe thing: when anything upstream changes it runs everything downstream again, it cannot reuse an old result, and it cannot move a cell to another thread, because the cell might need the page.
+\`width\`, \`height\` and \`area\` are three cells. A cell is a function. Its parameter names are the cells it reads, so \`area\` runs again when \`width\` or \`height\` changes.
 
-A census of the lopecode notebooks (\`plan/substrates-winter-2026.md\`, 2026-11-08) measured how often this happens. Of 8,650 cells, 941 (10.9%) reference a browser or host global that is not one of their inputs (the ES intrinsics, \`Math\` and \`Date\` among them, are not counted, so a cell calling \`Math.random\` is not in the 941); \`document\` appears in 347 cells and \`window\` in 291; 47 cells use \`this\`. Of 780 test cells, a syntactic scan (\`tools/hardened-runtime/lemma-h.mjs\`, 2026-11-09, quoted in the Substrates paper sources) found at most 393 (50.4%) whose support no page access, reflection or hidden state can reach; imports are not followed, so that is an upper bound. For the rest, a passing test is not evidence that it will pass on the next run.
-
-SoundScript starts from the other end: the language only lets you write cells whose behaviour the runtime can know.`
+Each cell is shown as its source, with the checker's verdict, the type it inferred and its current value under it. The **edit** bar under a cell opens its editor.`
 // %%
-md`## How it is designed
-
-Four rules, each enforced by the checker, and what each buys:
-
-- **Inputs are parameters.** A cell is an exported function; its parameters are the cells it reads. A body may use its parameters, its own locals, a short prelude and a fixed list of JavaScript intrinsics, and nothing else. So the dependency graph is complete: no global, no \`document\`, no hidden edge.
-- **Effects are parameters too.** The clock, randomness, the network, logging and the worker pool are *capabilities*: reserved parameter names (\`now\`, \`random\`, \`fetch\`, \`log\`, \`invalidation\`, \`compile\`, \`pool\`) that the host supplies. A cell with none of them is deterministic, and a cell with one says so in its signature (section 2).
-- **Values on edges are immutable.** A cell may build a value with \`mut\` and change it while it runs, but what it returns is read-only: the checker rejects any write to it, in that cell or any other (section 3). State lives in \`ref\` cells, written only inside \`action(...)\`, and only the host calls an action (sections 4 and 5).
-- **The world calls in; cells do not call out.** DOM events reach a cell as typed data through JSX event props, and time arrives through a subscription to a generator (section 9). The view is a value, a JSX element, that a renderer outside the language applies to the page.
-
-It is TypeScript so that editors, syntax and types already exist; the types are also what lets the checker say what crosses to a worker (section 7). It is a strict subset so that every rule above can be checked by reading the source, without running it.`
+//ss-cards: 01-cells.ts -aspect -scale -half -test_half
 // %%
-md`## What is guaranteed, and what is not
-
-For a cell that \`lite\` accepts: it reads only its parameters, the prelude and the allowed intrinsics; while it runs it writes only values it made, and a ref changes only when the host calls an action; every effect is a named parameter. A cell with no capability parameter, given the same input values, returns the same value. That is what *sound* means on this page.
-
-Not guaranteed:
-
-- \`lite\` is a prototype checked against a reference: 52 of 54 existing fixtures get the same verdict and reason as the TypeScript-based harness, with index reads typed \`T\` as TypeScript does (section "How good is the checker"). Where it approximates a rule, \`lite/README.md\` says so.
-- The runtime does not refuse a rejected cell. The rejected cells of sections 3 and 8 were compiled when the notebook was built, and they run; the checker's verdict only keeps them from being memoised. The editor refuses an edit that would leave a cell rejected (section "Editing SoundScript cells").
-- A cell may ask for \`now\` or \`random\` and be accepted; it is then not deterministic, and its signature says so. Nothing forces a reducer such as section 9's \`step\` to avoid them.`
+md`**Try it.** Press **edit** under \`width\` and change it to \`() => 800\`, then press Shift-Enter. \`area\` updates, and so do \`aspect\` and \`half\` in section 1, where \`test_half\` now fails because it expects \`half\` to be 128000. Now change it to \`() => "800"\`. The edit is refused: the cell's first line is underlined in red, and hovering over it names the two cells that would stop checking, \`area\` and \`aspect\`. \`width\` keeps its old value.`
 // %%
-md`## Why this makes notebooks fast
+md`## Why take things out
 
-Each rule removes something the runtime would otherwise have to assume. This page measures three consequences (headless Chromium, 2026-11-14):
+An ordinary notebook cell can do anything JavaScript can. It can read \`document\`, call \`Math.random\`, or change an object that another cell returned. The runtime cannot see any of that, so it has to assume the worst: run every downstream cell again on every change, never reuse a result, and keep everything on the main thread.
 
-- **Skip what did not change.** Because values are immutable, a cell whose inputs are the same values as last time can return its last result without running (section 6). In section 9's Breakout, in 1.5 s of play the world changed 89 times in 91 animation frames and the ball view ran 91 times, but the brick view ran once, when a brick broke, and the subscription set ran twice (play, then pause) (\`test_breakout_memo\`).
-- **Move work to other threads.** Because an accepted cell touches nothing but its inputs, a group of cells can run in a worker. Section 7 draws a 640×420 Mandelbrot in about 64 ms on the main thread and 15 to 22 ms on a pool of 8 workers (four runs), byte-identical; \`compile\` returns an ordinary typed async function.
-- **Patch, do not rebuild.** Views are values, so the renderer compares them with the last ones and changes only what differs. A Breakout frame writes about one \`style\` attribute to the DOM, and a broken brick removes one node.
+In the lopecode notebooks this is common. Of 8,650 cells counted on 2026-11-08 (279 modules, one declared canonical copy of each, from the lopecode and lopebooks notebook collections, each cell parsed and its free names compared with its inputs), 941 read a browser global that is not one of their inputs; \`document\` appears in 347 cells and \`window\` in 291.
 
-Not built yet: keeping results across a reload. A deterministic cell's result could be stored in the saved file and reused when its inputs are unchanged; \`plan/substrates-winter-2026.md\`, "Referential transparency → content-addressed caching", describes it.
-
-Sections 1 to 5 teach the language; 6 shows the runtime variables a cell becomes; 7 and 9 are the two performance demonstrations; 8 lists what JSX checking rejects. Edits to live cells, in this module or a section module, are kept when the notebook is saved; edits to the boxes are not.`
+SoundScript removes the constructs that hide a dependency or an effect. What is left is still TypeScript, and an editor highlights it as TypeScript.`
 // %%
-md`## 1. A cell is a function of its inputs
+md`## The four rules
 
-Each \`export\` is a cell. Its parameter names are the cells it depends on, so \`area\` below recomputes when \`width\` or \`height\` changes. The cells below are live cells of this notebook. The table after them is the checker's verdict on this module's SoundScript cells: the **type** column is what \`lite\` inferred, the **value** column is the cell's value in this runtime.`
+1. **Inputs are parameters.** A cell body may use its parameters, its own locals and a fixed list of built-ins. There are no globals.
+2. **Effects are parameters.** The clock, randomness, the network and logging are *capabilities*: reserved parameter names (\`now\`, \`random\`, \`fetch\`, \`log\`) that the notebook supplies. A cell that can give two answers for the same inputs says so in its signature.
+3. **Values do not change after they are returned.** A cell may build a value with local writes; once returned, it is read-only everywhere.
+4. **State changes only in actions.** State is a \`ref\` cell. A write to it must be inside \`action(...)\`, and a cell never calls an action. The page calls it, when a button is clicked or a frame arrives.
+
+Sections 1 to 5 teach these rules. Sections 6 to 9 show what they pay for.`
 // %%
-//ss: 01-cells.ts
+md`## 1. Cells and their inputs
+
+The other cells of the file that \`width\`, \`height\` and \`area\` came from. A parameter may leave out its type; it then has the type of the cell it names. A cell whose value is a function is written as two arrows, as \`scale\` is. A cell named \`test_…\` is a test: it passes if it does not throw.
+
+The diagram after them shows which cells each one reads.`
 // %%
-liveTable({ width, height, area, aspect, scale, half, test_half })
+//ss-cards: 01-cells.ts -width -height -area
 // %%
-md`Open \`width\`'s editor (the bar beside the cell), change it to \`() => "640"\` and press Shift-Enter. The editor does not apply it: \`width\` itself checks, but \`area\` would be rejected with \`[inject-type] width: string is not assignable to number\`, and \`aspect\`, which has no annotations and so takes the new type, with \`[type] string used as a number\`. Both are reported on \`width\`'s first line, and \`width\` keeps its old definition. \`half\` would stay ok: \`area\`'s type is still \`number\`, and that is all \`half\` sees. Section "Editing SoundScript cells" gives the rule.`
+depGraph(tutorial_module, invalidation, { only: ["width", "height", "area", "aspect", "scale", "half", "test_half"] })
 // %%
 md`## 2. What the checker rejects
 
-Five cells below break a rule, one rule each. They are in a box, not live cells: \`width\` and \`area\` are also section 1's names, and a module holds one cell per name. The box is checked, not run; had \`doubled\` run, it would be \`NaN\`, and nothing at run time would say so.`
+Five cells, each breaking one rule. They are shown in a box and checked as you type; they are not run. Each message starts with the name of the rule in brackets.`
 // %%
 viewof src_errors = sourceBox(examples.errors)
 // %%
 checkBox(src_errors)
 // %%
-md`\`jittered\` is the accepted form of \`jitter\`. \`random\` is a *capability*: a reserved parameter name (\`now\`, \`random\`, \`fetch\`, \`log\`, \`invalidation\`, and \`compile\` and \`pool\` from section 7) that the host supplies. A cell that reads the clock or a random source says so in its parameter list, so the dependency graph shows every cell that can differ between two runs.`
-// %%
-md`## 3. Local mutation with \`Mut\`
+md`\`jittered\` is how \`jitter\` should be written. It takes \`random\` as a parameter, so the dependency graph shows that this cell can differ between two runs.
 
-Writes are allowed on a value made by \`mut(...)\`, inside the cell that made it. \`freeze\` ends the writes and gives back a plain value. The checker tracks the \`Mut\` binding, not the object, so a \`Mut\` that is returned, aliased, used after \`freeze\`, or captured by a function that escapes is an error. A local helper that is only called may capture one; RULES.md forbids that too, and \`lite\` allows it on purpose.`
+**Try it.** In the box, change \`label: number\` to \`label: string\` in \`doubled\`. The message changes from an input type error to a type error on \`label * 2\`.`
 // %%
-//ss: 03-mut.ts
-// %%
-liveTable({ samples, histogram, leak, late })
-// %%
-md`\`leak\` and \`late\` are rejected and still run, because nothing at run time consults the checker. The editor will not apply an edit to either until the edit makes it pass.`
-// %%
-md`## 4. State, actions and JSX
+md`## 3. Local writes: \`mut\` and \`freeze\`
 
-There is no \`viewof\` and no \`mutable\`. State is a cell returning \`ref(initial)\`. A parameter typed \`Ref<T>\` gets the reference, which has \`set\` and \`update\` and no read; a parameter without \`Ref\` gets the current value and recomputes when it changes. Writes are legal only inside \`action(...)\`, and only the host (here, the renderer) calls an action.
+Building an array or a typed array one element at a time is ordinary and fast, and rule 3 does not forbid it. \`mut(...)\` marks a value this cell made as writable. \`freeze(...)\` ends the writes and returns the plain value. Between the two, the value may not leave the cell.
 
-The view is a cell too. A \`.tsx\` source may use JSX; each element is checked against the declared props of its tag (see the appendix), and an event prop must be an \`Action\` with the right argument types.`
+\`leak\` returns a writable value and \`late\` writes after \`freeze\`. Both are rejected. They are live here so that you can fix them.`
 // %%
-//ss: 04-counter.tsx
+//ss-cards: 03-mut.ts
 // %%
-view = ss.mount(app, this)
+md`**Try it.** Open \`leak\` and change \`return xs\` to \`return freeze(xs)\`. The edit is accepted, and \`leak\` turns from rejected to ok.`
 // %%
-liveTable({ count, increment, clear, app })
-// %%
-md`\`view\` is an ordinary Observable cell, not SoundScript: \`ss.mount(app, this)\` hands the element value to the renderer. Each JSX node in \`app\` became an \`h(tag, props, ...children)\` call (\`lite/jsx/lower.ts\`). \`h\` returns a frozen \`{tag, props, children}\` value. The renderer (\`lite/jsx/render.ts\`, 75 lines) is outside the checked language: it creates the DOM once, then patches it in place each time \`app\` produces a new value (skipping any element that is the same object as last time, and matching children by \`key\` when they all have one), and it calls the actions when DOM events arrive.
+md`## 4. State and views
 
-\`count\` is a ref cell, so it is two variables: \`viewof count\` holds the handle that \`Ref<number>\` parameters receive, and \`count\` holds the value. The handle takes the \`viewof\` name so the notebook's tools group the pair as one cell, the way they group \`viewof x\` and \`x\`: the page shows \`count\`, and the editor opens the one source.`
-// %%
-md`## 5. Every write as a reducer
+State is a cell that returns \`ref(initial)\`. Other cells use it in two ways. A parameter named \`count\` gets the current value and runs again when it changes. A parameter typed \`Ref<number>\` gets the reference, which can be written and cannot be read.
 
-When state has several fields, two actions that each \`set\` part of it can interleave. Writing every change as \`state.update(s => step(s, event))\` makes one function, \`step\`, responsible for all transitions. \`step\` is an ordinary function cell, so \`test_undo\` tests it with no DOM.`
+A write must be inside \`action(...)\`. \`increment\` and \`clear\` are actions. A cell cannot call them; the page does, when a button is clicked.
+
+The view is a cell too. \`app\` returns JSX: a description of the page that is built again whenever \`count\` changes. An event attribute such as \`onClick\` must be given an action.`
 // %%
-reducer_view = ss.mount(reducer_app, this)
+//ss-cards: 04-counter.tsx
+// %%
+view = framed(ss.mount(app, this))
+// %%
+md`**Try it.** Press **add one**. Then open \`app\` and change \`onClick={increment}\` to \`onClick={count}\`. The edit is refused: a number is not an action.`
+// %%
+md`## 5. One function for every change
+
+When state has several fields, separate actions that each change one field can leave it inconsistent. Here every action is the same line, \`state.update(s => step(s, event))\`, so one function, \`step\`, decides every transition. \`step\` is a plain function, and \`test_undo\` tests it without a page.`
+// %%
+reducer_view = framed(ss.mount(reducer_app, this))
+// %%
+sourceListing(reducer_module, invalidation)
 // %%
 moduleTable(reducer_module, invalidation)
 // %%
 md`The cells are in [@tomlarkworthy/soundscript-reducer](${linkTo("@tomlarkworthy/soundscript-reducer")}).`
 // %%
-md`## 6. The variables a cell becomes
-
-A cell is source. The compiler (\`lite/toolchain/ss-toolchain.ts\`) turns each one into one or two *variables* of the notebook's Observable runtime, the objects that hold a value and recompute when an input changes. The table under the app lists every SoundScript variable of \`@tomlarkworthy/soundscript-model\` with its inputs and how many times its body has run. Press **bump** and watch which ones run again.`
+md`**Try it.** Open the reducer module from the link under the table. In \`step\`, change \`- last\` to \`+ last\`. The edit is accepted, because the types still agree, and \`test_undo\` fails: its row in the table reads \`throws: undo left 6\`. The checker proves that a cell depends only on its inputs. It does not prove that the cell is right.`
 // %%
-model_view = ss.mount(model_app, this)
+md`## 6. Skipping cells that did not change
+
+A cell that depends only on its inputs, and whose inputs are the same values as last time, would return the same value. So the notebook does not run it. The table counts how many times each cell body has run.`
+// %%
+model_view = framed(ss.mount(model_app, this))
+// %%
+sourceListing(model_module, invalidation)
 // %%
 variableTable(model_module, invalidation)
 // %%
 md`The cells are in [@tomlarkworthy/soundscript-model](${linkTo("@tomlarkworthy/soundscript-model")}).`
 // %%
-md`Five kinds of variable, read off that table:
-
-- **A plain cell** is one variable with the cell's name. Its inputs are \`ss\` (the standard library) and its parameter names. It is *memoised*: when every input is the same value (\`Object.is\`) as on its last run, the body does not run and the variable keeps its last value. Observable still recomputes the readers, which then hit their own memo. The **runs** column counts body runs. This is sound because the checker only accepts cells that are functions of their inputs and never mutate a value they did not make; in ordinary Observable a cell can mutate an object in place and keep its identity, and memoising would hide the change. Three kinds are not memoised. A cell the checker rejects, such as the mistakes shown live in sections 3 and 8, is not covered by that argument, so it runs every time. A cell that takes \`now\`, \`random\`, \`fetch\` or \`log\` can differ between two runs on the same inputs (section 2). A cell that reads a generator's values may be lent the same buffer mutated between yields (\`yield borrow(buf)\`, \`RULES.md\`).
-- **A ref cell** (\`count\`) is two. \`viewof count\` holds the handle that \`Ref<number>\` parameters get, made once. \`count\` holds the current value and yields again after every committed write, so \`doubled\` recomputes on **bump** and \`bump\` does not.
-- **A capability** is a variable of the core module: \`now\` is \`ss_now\`, \`random\` is \`ss_random\`, and so on. \`stamped\` takes \`now\`, so its inputs list \`ss_now\`.
-- **A cell that calls \`compile\`** has the cells it names in \`refs\` as extra inputs, after its parameters. \`areaFn\` takes \`scale\` this way, although \`scale\` is not one of its parameters (section 7). Its \`compile\` parameter is \`ss_compile\`, which a module that compiles defines for itself, because \`compile\` reads that module's cells.
-- **A generator taken as a \`Source\`** (section 9) is one variable holding a handle. The runtime never steps it; only subscriptions do.
-
-Whether a cell is memoised, and whether a generator is a handle, depends on the other cells of its module, so an applied edit compiles again any other cell whose form it changes. None of this is typed in the language: a cell cannot see a variable. The typed form was sketched on 2026-11-14 and is not built (\`lite/NOTES-reflection.md\`):
-
-\`\`\`ts
-interface Variable<T, Args extends readonly unknown[]> {
-  readonly name: string;
-  readonly definition: (...args: Args) => T;
-  readonly inputs: { readonly [K in keyof Args]: Variable<Args[K], readonly unknown[]> };
-  readonly value: RefCell<T>;                 // reading it is a graph edge
-}
-interface Module<C extends Record<string, unknown>> {   // C: cell name -> value type
-  variable<K extends keyof C & string>(name: K): Variable<C[K], readonly unknown[]>;
-  redefine<K extends keyof C & string>(name: K, cell: Cell<C, C[K]>): Action;  // keeps the type
-  define<K extends string, T>(name: K, cell: Cell<C, T>): Action;              // recheck downstream
-}
-\`\`\`
-
-\`C\` would be generated from the types \`lite\` already infers, the **type** column. \`lite\` cannot check this sketch yet: it lacks bounds (\`K extends keyof C\`), \`keyof\` and indexed access, rest parameters typed by a tuple, and inferring \`Args\` from a parameter list. \`compile\`, next, is the one place a cell names other cells today, and \`lite\` types it by special case.`
+md`**Try it.** Press **bump** and read the **runs** column. \`doubled\` runs again, because \`count\` changed, and so do \`scale\` and the cells that read \`scale\`: \`area\`, \`areaFn\` and \`areaOf4\`. \`app\`, the view, runs again because it shows \`count\`. \`side\` and \`bump\` keep their old count; neither reads \`count\`. \`stamped\` runs again too, and always would: its **inputs** include \`ss_now\`, the clock, so it is never skipped.`
 // %%
-md`## 7. compile: cells as a function that runs on workers
+md`## 7. Running cells on other threads
 
-\`compile\` takes three lists of cell names and returns an ordinary async function:
+A cell that touches nothing but its inputs can run anywhere. \`compile\` takes a group of cells and returns an ordinary async function; with a worker pool it runs them off the main thread. The type of that function is worked out from the cells it names.
+
+This Mandelbrot set is computed in bands by a pool of workers. Move the slider to change the iteration count.`
+// %%
+workers_view = framed(ss.mount(workers_app, this))
+// %%
+workers_picture = {
+  const canvas = this ?? htl.html`<canvas class="lite-mandel">`;
+  canvas.width = workers_width;
+  canvas.height = workers_height;
+  const data = new ImageData(workers_width, workers_height);
+  data.data.set(workers_image);
+  canvas.getContext("2d").putImageData(data, 0, 0);
+  return canvas;
+}
+// %%
+workers_redraw = {
+  // workers_maxIterAt runs when maxIter changes, before image is computed, so this is slider to picture.
+  // At boot the time includes loading the page, so none is shown.
+  workers_picture;
+  const ms = (performance.now() - workers_maxIterAt.at).toFixed(0);
+  return htl.html`<div class="lite-readout">${workers_maxIter} iterations, ${workers_width}×${workers_height}: ${workers_maxIterAt.boot ? "move the slider to time a redraw" : `redrawn ${ms} ms after the slider moved (${workers_bands.length} bands in ${workers_poolSize} workers, then drawn on the canvas)`}</div>`;
+}
+// %%
+workers_maxIterAt = (workers_maxIter, { at: performance.now(), boot: this === undefined })   // hidden by the style cell
+// %%
+md`**Try it.** Press **measure again**. The table times the same cells on the main thread and in the pool, and checks that both produce the same bytes.`
+// %%
+viewof remeasure = Inputs.button("measure again")
+// %%
+benchmarkView = htl.html`<table class="lite-panel lite-bench">
+<tr><td>workers in the pool</td><td>${benchmark.poolSize} (navigator.hardwareConcurrency ${benchmark.hardware})</td></tr>
+<tr><td>bands (calls) per image</td><td>${benchmark.bands}</td></tr>
+<tr><td>main thread, median of ${benchmark.runs}</td><td>${benchmark.mainMs.toFixed(0)} ms</td></tr>
+<tr><td>worker pool, median of ${benchmark.runs}</td><td>${benchmark.poolMs.toFixed(0)} ms</td></tr>
+<tr><td>same bytes from both</td><td>${badge(benchmark.same ? "ok" : "rejected", String(benchmark.same))}</td></tr>
+</table>`
+// %%
+sourceListing(workers_module, invalidation)
+// %%
+moduleTable(workers_module, invalidation)
+// %%
+md`The cells are in [@tomlarkworthy/soundscript-workers](${linkTo("@tomlarkworthy/soundscript-workers")}).`
+// %%
+md`## 8. Mistakes in a view
+
+JSX is checked like the rest of a cell: each attribute against the attributes its tag declares, and each event handler against the action it is given. Eleven cells, one mistake each. Ten are live, so each can be fixed in place; the eleventh is in a box after them.`
+// %%
+//ss-cards: 08-reject-jsx.tsx -bad_free_component
+// %%
+md`\`bad_free_component\` uses a component that does not exist. As a live cell it would name a variable the module does not define, so it is checked on its own:`
+// %%
+viewof src_free_component = sourceBox(examples.rejectJsx.split("\n").find((l) => l.includes("bad_free_component")))
+// %%
+checkBox(src_free_component, { tsx: true })
+// %%
+md`## 9. A game
+
+Breakout, written with the pieces from the earlier sections. \`step(world, event)\` is the whole game, as in section 5. The world is one \`ref\`. The view is JSX, split into cells so that the bricks are not rebuilt while only the ball moves, as in section 6.
+
+One piece is new. A game needs a clock, and a cell cannot call an action. \`ticks\` is a generator cell that yields the time since the last frame. \`on(ticks, tick)\` describes a *subscription*: "deliver each value of \`ticks\` to the action \`tick\`". The cell \`subscriptions\` returns that description while the game is playing and an empty list otherwise, and the notebook starts and stops the clock to match.`
+// %%
+breakout_view = {
+  // the game's own view, with its state (press play, paused, game over) drawn over the board
+  const root = this ?? htl.html`<div class="lite-game"><div class="lite-game-state" aria-live="polite"></div></div>`;
+  const game = ss.mount(breakout_app, root.__game ?? null);
+  if (game !== root.__game) { root.__game?.remove(); root.prepend(game); root.__game = game; }
+  const label = breakout_over ? (/game over/.test(breakout_status) ? "game over · press new game" : "cleared · press new game") : breakout_playing ? "" : "press play";
+  const state = root.querySelector(".lite-game-state");
+  if (state.textContent !== label) { state.textContent = label; state.hidden = !label; }
+  // the 320×240 field is drawn at up to twice its size, to the width of the column (the CSS scales it
+  // by --k; pointer offsets are in the field's own coordinates, so aiming is unchanged)
+  if (!root.__resize) {
+    root.__resize = new ResizeObserver(() => {
+      const w = root.parentElement?.clientWidth ?? 320;
+      root.style.setProperty("--k", String(Math.max(0.5, Math.min(2, w / 320))));
+    });
+    // the root is placed in the page after this cell returns; observe its container once it is there
+    const attach = (tries) => root.parentElement ? root.__resize.observe(root.parentElement) : tries && requestAnimationFrame(() => attach(tries - 1));
+    attach(600);
+    // this cell runs again on every frame of play and reuses root; stop observing only once root has left the page
+    invalidation.then(() => queueMicrotask(() => { if (!root.isConnected) root.__resize.disconnect(); }));
+  }
+  return root;
+}
+// %%
+depGraph(breakout_module, invalidation)
+// %%
+sourceListing(breakout_module, invalidation)
+// %%
+moduleTable(breakout_module, invalidation)
+// %%
+md`The cells are in [@tomlarkworthy/soundscript-breakout](${linkTo("@tomlarkworthy/soundscript-breakout")}).`
+// %%
+md`**Try it.** Press **play** and move the pointer over the board. Then open the breakout module from the link under the table and, in \`step\`, change \`< 28\` (how far from the paddle's centre the ball still bounces) to \`< 60\`. The game keeps its score and its bricks, and the ball keeps moving, because the world is state and \`step\` is only the rule for changing it.`
+// %%
+md`\`test_replay\` plays 600 frames twice, with no browser and no clock, and checks that both runs end with the same score and ball position. A recorded list of events always replays to the same game, because \`step\` depends only on its arguments.`
+// %%
+md`## How it works
+
+What the notebook does with a SoundScript cell, one mechanism per cell. None of this is part of the checked language; it is the compiler, the standard library and the editor hook in \`@tomlarkworthy/soundscript\`, the other tab.`
+// %%
+md`### What a cell compiles to
+
+The compiler turns each cell, one at a time, into one *variable* of the notebook's Observable runtime: the object that holds a value and recomputes when an input changes. A ref cell becomes two. Section 6's table lists every variable of its module. A plain cell's variable has the cell's name, and its inputs are \`ss\` (the standard library) and its parameter names.
+
+A plain cell is *memoised*: when every input is the same value (\`Object.is\`) as on its last run, the body does not run and the variable keeps its last value. Observable still recomputes the readers, which then hit their own memo. This is sound because the checker accepts only cells that are functions of their inputs and never change a value they did not make. In ordinary Observable a cell can change an object in place and keep its identity, and memoising would hide the change.
+
+Three kinds of cell are not memoised. A cell the checker rejects, such as \`leak\` or section 8's mistakes, is not covered by that argument, so it runs every time. A cell that takes \`now\`, \`random\`, \`fetch\` or \`log\` can differ between two runs on the same inputs. A cell that reads a generator's values may be lent the same buffer, changed between yields (\`yield borrow(buf)\`).
+
+Whether a cell is memoised depends on the other cells of its module, so an applied edit compiles again any other cell whose form it changes.`
+// %%
+md`### A ref cell is two variables
+
+\`count\` in section 4 is \`viewof count\`, which holds the handle that \`Ref<number>\` parameters receive and is made once, and \`count\`, which holds the current value and yields again after every committed write. So in section 6 \`doubled\` runs again on **bump** and \`bump\` does not. Writes made by one action call are committed together after it returns.
+
+The handle takes the \`viewof\` name so the notebook's tools group the pair as one cell, the way they group \`viewof x\` and \`x\`: the page shows \`count\`, and the editor opens the one source.`
+// %%
+md`### Capabilities are cells of the core
+
+A capability parameter becomes an input on a variable of \`@tomlarkworthy/soundscript\`: \`now\` is \`ss_now\`, \`random\` is \`ss_random\`, \`fetch\` is \`ss_fetch\`, \`log\` is \`ss_log\` and \`pool\` is \`ss_pool\`; \`invalidation\` is the runtime's own. Section 6's \`stamped\` takes \`now\`, so its inputs list \`ss_now\`. \`compile\` is \`ss_compile\`, which a module that compiles defines for itself, because \`compile\` reads that module's cells:
+
+\`\`\`js
+ss_compile = ss.compiler(() => ss_source(my_module))
+viewof my_module = thisModule()
+\`\`\``
+// %%
+md`### \`compile\` and its island
+
+\`compile\` takes three lists of cell names:
 
 \`\`\`ts
 export const inPool = (compile: Compile, pool: Pool) =>
@@ -155,109 +250,68 @@ export const inPool = (compile: Compile, pool: Pool) =>
 
 The *island* is every cell upstream of the outputs, stopping at the inputs and refs; here it is \`rows\`. Island cells are ordinary cells: on the main thread \`rows\` computes one row, for the defaults \`y0 = 0\` and \`y1 = 1\`.
 
-**The type** is computed from the cell graph. \`inPool\` is \`(args: { y0: number; y1: number }) => Promise<{ rows: Uint8ClampedArray }>\` (the type column below), and \`image\` uses it without an annotation. With \`C\` the module's map from cell name to value type, as in section 6, it is \`(args: Pick<C, Inputs>) => Promise<Pick<C, Outputs>>\`. TypeScript cannot check that without \`C\`, so \`lite\` types the call itself, and the oracle cannot cross-check it. The names must be literal strings; anything else is \`unsupported\`.
+**The type** is computed from the cell graph. \`inPool\` is \`(args: { y0: number; y1: number }) => Promise<{ rows: Uint8ClampedArray }>\` (its type column in section 7), and \`image\` uses it without an annotation. With \`C\` the module's map from cell name to value type, it is \`(args: Pick<C, Inputs>) => Promise<Pick<C, Outputs>>\`. TypeScript cannot check that without \`C\`, so the checker types the call itself, and the TypeScript-based reference checker cannot cross-check it. The names must be literal strings; anything else is \`unsupported\`.
 
-**The reactive link.** Each name in \`refs\` is a hidden input of the cell that calls \`compile\` (section 6). Move the iterations slider: \`maxIter\` changes, \`inPool\` runs again and returns a new function with the new value inside it, and \`image\` recomputes because its input changed. Work still queued for the old function is dropped.
+**The reactive link.** Each name in \`refs\` is a hidden input of the cell that calls \`compile\`, after its parameters; section 6's \`areaFn\` takes \`scale\` this way. Moving section 7's slider changes \`maxIter\`, \`inPool\` runs again and returns a new function with the new value inside it, and \`image\` recomputes because its input changed. Work still queued for the old function is dropped.
 
-**The rules**, each a rejection in \`fixtures/lite-compile/reject-compile\`: a name must be a cell; an island cell must be accepted, synchronous, and take no capability and no ref cell (put the ref cell in \`refs\`); inputs, refs and outputs must survive \`structuredClone\` (no functions, refs or actions); \`options.runtime\` must be a \`Pool\`; and a call must match the computed argument type. \`compile\` refuses to run unless the checker accepts the calling cell and every island cell (\`test_compile_refuses_unchecked\`). That refusal is the only guard: the island's erased code runs in the worker unsandboxed, and keeping it to its inputs is the checker's job.`
-// %%
-workers_view = ss.mount(workers_app, this)
-// %%
-workers_picture = {
-  const canvas = this ?? htl.html`<canvas class="lite-mandel">`;
-  canvas.width = workers_width;
-  canvas.height = workers_height;
-  const data = new ImageData(workers_width, workers_height);
-  data.data.set(workers_image);
-  canvas.getContext("2d").putImageData(data, 0, 0);
-  return canvas;
-}
-// %%
-workers_redraw = {
-  // workers_maxIterAt runs in the same pass as inPool, so this is maxIter to picture
-  workers_picture;
-  return htl.html`<div class="lite-readout">${workers_width}×${workers_height}, maxIter ${workers_maxIter}: ${(performance.now() - workers_maxIterAt).toFixed(0)} ms from maxIter to the picture</div>`;
-}
-// %%
-workers_maxIterAt = (workers_maxIter, performance.now())
-// %%
-moduleTable(workers_module, invalidation)
-// %%
-md`The cells are in [@tomlarkworthy/soundscript-workers](${linkTo("@tomlarkworthy/soundscript-workers")}).`
-// %%
-md`Try, in the workers module's editor: in \`image\`, change \`inPool(b)\` to \`inPool({ y0: b.y0 })\`, and the edit is refused because the argument has no \`y1\`. Or add \`now\` as a parameter of \`rows\`, and it is refused because \`inPool\` would be rejected: an island cell takes a capability.
+**The rules**, each a rejection the checker's fixtures exercise: a name must be a cell; an island cell must be accepted, synchronous, and take no capability and no ref cell (put the ref cell in \`refs\`); inputs, refs and outputs must survive \`structuredClone\` (no functions, refs or actions); \`options.runtime\` must be a \`Pool\`; and a call must match the computed argument type. \`compile\` refuses to run unless the checker accepts the calling cell and every island cell (\`test_compile_refuses_unchecked\`). That refusal is the only guard: the island's code runs in the worker unsandboxed, and keeping it to its inputs is the checker's job.
 
-The same island and the same bands, timed on the main thread (\`onMain\`) and in the pool (\`inPool\`) in this browser, after three calls of each to warm up. The numbers are taken while the page loads, so press **measure again** for a quieter run:`
+Measured in headless Chromium over ten page loads on 2026-11-14: section 7's 640×420 image takes about 64 ms on the main thread and about 10 ms on a pool of 8 workers, and both give the same bytes (\`test_compile_pool_matches_main\`).`
 // %%
-viewof remeasure = Inputs.button("measure again")
-// %%
-benchmarkView = htl.html`<table class="lite-panel">
-<tr><td>workers in the pool</td><td>${benchmark.poolSize} (navigator.hardwareConcurrency ${benchmark.hardware})</td></tr>
-<tr><td>bands (calls) per image</td><td>${benchmark.bands}</td></tr>
-<tr><td>main thread, median of ${benchmark.runs}</td><td>${benchmark.mainMs.toFixed(0)} ms</td></tr>
-<tr><td>worker pool, median of ${benchmark.runs}</td><td>${benchmark.poolMs.toFixed(0)} ms</td></tr>
-<tr><td>same bytes from both</td><td>${benchmark.same}</td></tr>
-</table>`
-// %%
-md`## 8. What JSX checking rejects
+md`### Subscriptions
 
-\`fixtures/lite-jsx/reject-jsx\`: 11 cells, each with one JSX mistake, and the supporting cells they use. Eleven of them are live cells of this module, and they run, because nothing at run time consults the checker.`
+A parameter typed \`Source<number>\` gets a handle to a generator cell instead of its values, the way \`Ref<T>\` gets a handle to state instead of its value. A generator taken as a \`Source\` is one variable holding that handle, and the runtime never steps it; section 9's \`ticks\` row shows type \`number\` (what it yields) and the handle as its value. A parameter that names \`ticks\` without \`Source\` would get the handle as a number, so the checker rejects it (\`[inject-source]\`). Any other generator cell is stepped by the Observable runtime, at most once per animation frame.
+
+\`on(ticks, tick)\` is a value, and \`subscriptions\` returns the set of them the game wants now. The standard library (\`hold\` and \`release\`) keeps a subscription running while the same source and action stay in the set, starts a fresh generator for one that appears, and stops (\`return()\`) one that leaves. It steps a sync generator once per animation frame. Subscriptions are counted across cells, so a cell that passes the set on does not start a second clock.
+
+A set is released when the cell that returned it runs again, and, because the runtime does not resolve \`invalidation\` for a deleted variable, when that cell is deleted (the core's \`ss_lifecycle\`). So pause and game over both stop the clock. While the game runs, \`over\` stays \`false\`, so memoisation keeps \`subscriptions\` from running again, and if it did run, nothing would restart.
+
+A generator cannot be the loop by itself: its body would have to write the world, and writes are legal only inside \`action(...)\`. The checker's fixtures hold that generator (\`[ref-write]\`), a cell calling \`tick(16)\` itself (\`[action-call]\`), \`on\` given a plain function or an action of the wrong type (\`[type]\`), and a \`Source\` that names a cell which is not a generator, or yields another type (\`[inject-source]\`).`
 // %%
-//ss: 08-reject-jsx.tsx -bad_free_component
+md`### The renderer
+
+Each JSX node becomes an \`h(tag, props, ...children)\` call, and \`h\` returns a frozen \`{tag, props, children}\` value. Section 4's \`view\`, \`ss.mount(app, this)\`, is an ordinary Observable cell, not SoundScript: it hands that value to the renderer, 75 lines outside the checked language. The renderer creates the DOM once, then patches it in place each time \`app\` produces a new value: the same tag at the same position reuses the node, an element that is the same object as last time is skipped, and children that all carry \`key\` are matched by key. It calls the actions when DOM events arrive, decoding each event into data (\`PointerData\` from a \`PointerEvent\`, a string from an \`input\`); that decoding is trusted code.
+
+Section 9 is built on this. \`bricks\`, \`ball\` and \`paddle\` each select one part of the world, and \`bricksView\`, \`paddleView\` and \`ballView\` draw one part each. \`step\` returns the same \`bricks\` array when nothing was hit, so \`bricksView\`'s body does not run and \`app\` gets the same element object as before, and the 24 bricks cost one comparison per frame. A broken brick removes one node. \`test_breakout_memo\` measures this on a copy of the game; on 2026-11-14 in headless Chromium, 1.5 s of play gave 90 animation frames and 88 changes of the world; \`ballView\` ran 90 times, \`bricksView\` once, for the one brick that broke, \`paddleView\` not at all with no pointer moving, and \`subscriptions\` twice (play, then pause). The DOM saw 89 \`style\` writes, 3 text changes and 1 node removed.
+
+The board is \`div\`s positioned by \`style\` strings, since the checked JSX tags have no SVG or canvas drawing. A transparent \`canvas\` on top supplies \`onPointerMove\`.`
 // %%
-liveTable({ n, inc, setN, Badge, NotElem, bad_attr_type, bad_unknown_attr, bad_unknown_element, bad_handler_not_action, bad_handler_wrong_args, bad_component_props, bad_component_missing_prop, bad_component_not_elem, bad_mut_in_jsx, bad_child_object, ok_all })
+md`### How the typed source is kept
+
+A compiled variable's definition is ordinary JavaScript. Its first comment is the marker \`/*{lang:"ss"}*/\`, the types are kept as \`/*ss:…*/\` comments, JSX as \`/*ss<…*/\` beside its lowered \`h(...)\` calls, and the text around the function (the comments before it, \`export const name = \`) in a \`/*ss^{…}*/\` header. So the typed source is recovered from the definition alone, and a definition survives anything that keeps a function's text, such as saving the notebook. \`test_ss_roundtrip\` checks every live variable: decompile, compile again, and compare the text.`
 // %%
-md`The twelfth mistake, \`bad_free_component\`, uses a component that does not exist. As a live cell it would name a variable the module does not define, so it is shown in a box, checked on its own:`
+md`### When the editor refuses an edit
+
+This notebook carries its own copy of \`@tomlarkworthy/editor-5\` with one addition, a \`cell_languages\` plugin point (its cell \`languageOf\`). The core's cell \`ss_registration\` registers SoundScript there. For a cell whose variables carry the marker, the editor shows the typed source with TypeScript and JSX highlighting and reports the checker's diagnostics as you type.
+
+On Shift-Enter it checks the whole module with the edited text in place of the cell, and applies the edit only if the cell is \`ok\` and no cell that was \`ok\` before becomes rejected, unsupported or blocked. A diagnostic that belongs to another cell is shown on the edited cell's first line, naming that cell. For \`width = () => "800"\` in the first Try it, the editor shows:
+
+\`\`\`
+Refused: \`area\` would stop checking. [inject-type] width: string is not assignable to number
+Refused: \`aspect\` would stop checking. [type] string used as a number
+\`\`\`
+
+A refused edit changes nothing: the cell keeps its old definition and value, and the editor keeps the typed text with its diagnostics, so it can be fixed or abandoned. A new cell whose source starts with \`export\`, typed in a module that has \`ss\`, is SoundScript too.`
 // %%
-viewof src_free_component = sourceBox(examples.rejectJsx.split("\n").find((l) => l.includes("bad_free_component")))
+md`### Why four sections are modules
+
+A module is one namespace, and the example sources are shared with the checker's test fixtures, so they keep their names; \`app\` is in four of them. Two ways to make every section live were possible: rename the cells of each section (\`reducer_step\`, \`game_step\`), which changes the text the reader edits and the fixtures check, or give each colliding section its own module. This notebook does the second. The cost: sections 5, 6, 7 and 9 are edited in their own modules, opened by the link under each table, and this page imports each section's \`app\` under another name (\`reducer_app\`, \`breakout_app\`).
+
+Section 2's mistakes stay in a box because \`width\` and \`area\` are section 1's names; \`bad_free_component\` stays in a box because, live, it would name a variable that does not exist.`
 // %%
-checkBox(src_free_component, { tsx: true })
-// %%
-md`## 9. A game loop: Breakout
+md`## What is guaranteed
 
-Section 5's split, applied to a game. \`step(world, event)\` is the whole game: a pure function of the world and one event (\`tick\` with the milliseconds since the last frame, \`aim\` with the pointer's x, or \`reset\`). The world is a ref cell, and three actions, \`tick\`, \`aim\` and \`reset\`, are each one call of \`step\`.
+For a cell the checker accepts: it reads only its parameters and the allowed built-ins; while it runs it writes only values it made; a \`ref\` changes only when the page calls an action; and every effect is a named parameter. A cell with no capability parameter returns the same value for the same inputs.
 
-What calls \`tick\` is a **subscription**. The clock, \`ticks\`, is an ordinary generator cell: it yields the time since its last step and writes nothing. A parameter typed \`Source<number>\` gets a handle to that generator instead of its values, the way \`Ref<T>\` gets a handle to state instead of its value. \`on(ticks, tick)\` is a value describing "deliver each value of \`ticks\` to \`tick\`", and \`subscriptions\` returns the set of them the game wants now: one while playing and not over, none otherwise. The standard library (\`lite/stdlib/runtime.ts\`, \`hold\` and \`release\`) keeps a subscription running while the same source and action stay in the set, starts a fresh generator for one that appears, and stops one that leaves. It steps a sync generator once per animation frame. A set is released when the cell that returned it runs again, and, because the runtime does not resolve \`invalidation\` for a deleted variable, when that cell is deleted (\`ss_lifecycle\` in the core). So pause and game over both stop the clock. \`subscriptions\` reads \`over\`, which reads \`world\`. While the game runs, \`over\` stays \`false\`, so memoisation (section 6) keeps \`subscriptions\` from running again, and if it did run, nothing would restart. Subscriptions are counted across cells, so a cell that passes the set on does not start a second clock.
+Not guaranteed:
 
-The \`ticks\` row below shows type \`number\` and a handle as its value: the type is what the generator yields, and the value is the handle, because the runtime never steps a generator that is taken as a \`Source\`. A parameter that names \`ticks\` without \`Source\` would get that handle as a number, so the checker rejects it (\`[inject-source]\`).
-
-A generator cannot be the loop by itself: its body would have to write the world, and writes are legal only inside \`action(...)\`. \`fixtures/lite-game/reject-game\` holds that generator (\`[ref-write]\`), a cell calling \`tick(16)\` itself (\`[action-call]\`), \`on\` given a plain function or an action of the wrong type (\`[type]\`), and a \`Source\` that names a cell which is not a generator, or yields another type (\`[inject-source]\`).
-
-**Components are cells.** \`bricks\`, \`ball\` and \`paddle\` each select one part of the world, and \`bricksView\`, \`paddleView\` and \`ballView\` draw one part each; \`app\` puts the three elements in a frame. Because cells are memoised on their inputs (section 6), \`step\` returning the same \`bricks\` array when nothing was hit means \`bricksView\`'s body does not run, and \`app\` gets the same element object as before. The renderer (\`lite/jsx/render.ts\`) patches the DOM in place and skips a subtree whose element is the same object as last time, so the 24 bricks cost one comparison per frame. Children that all carry \`key\` are matched by key, so a broken brick removes one node. \`test_breakout_memo\` measures it. In this runtime the world changes once per animation frame while playing (121 changes in 121 frames over 2 s, headless Chromium, 2026-11-14).
-
-The board is \`div\`s positioned by \`style\` strings, since the checked JSX tags (appendix) have no SVG or canvas drawing. A transparent \`canvas\` on top supplies \`onPointerMove\`.`
-// %%
-breakout_view = ss.mount(breakout_app, this)
-// %%
-moduleTable(breakout_module, invalidation)
-// %%
-md`The cells are in [@tomlarkworthy/soundscript-breakout](${linkTo("@tomlarkworthy/soundscript-breakout")}).`
-// %%
-md`Press **play** and move the pointer over the board. \`test_replay\` plays 600 frames with the paddle following the ball, twice, without a browser or a clock, and checks that the two runs end with the same score and ball position and no life lost. That is the property \`step\` being pure buys: a recorded event list replays to the same game.
-
-Try, in the breakout module's editor: give \`step\` a \`now: Clock\` parameter and use it for \`dt\`. The checker accepts it, because \`now\` is a capability any cell may ask for, but \`step\` now has a capability in its signature and \`test_replay\` no longer has to agree with itself. Nothing in \`lite\` requires \`step\` to be pure beyond what its parameters show; section "Not built" describes labelling that.`
-// %%
-md`## Editing SoundScript cells
-
-A live cell is compiled one cell at a time (\`lite/toolchain/ss-toolchain.ts\`). The result is one runtime variable, or two for a ref cell, whose definition is ordinary JavaScript. It also depends on the rest of the module (section 6), so an applied edit compiles again any other cell whose form it changes. Its first comment is the marker \`/*{lang:"ss"}*/\`, the types are kept as \`/*ss:…*/\` comments, JSX as \`/*ss<…*/\` beside its lowered \`h(...)\` calls, and the text around the function (the comments above it, \`export const name = \`) in a \`/*ss^{…}*/\` header. So the typed source is recovered from the definition alone, and a definition survives anything that keeps a function's text, such as saving the notebook. \`test_ss_roundtrip\` checks every live variable: decompile, compile again, and compare the text.
-
-This notebook carries its own copy of \`@tomlarkworthy/editor-5\` with one addition, a \`cell_languages\` plugin point (its cell \`languageOf\`). The core's cell \`ss_registration\` registers SoundScript there. For a cell whose variables carry the marker, the editor then:
-
-- shows the typed source, with TypeScript and JSX highlighting;
-- reports the checker's diagnostics as you type;
-- on Shift-Enter or the apply button, checks the whole module with the edited text in place of the cell, and applies the edit only if the cell is \`ok\` and no cell that was \`ok\` before becomes rejected, unsupported or blocked. A diagnostic that belongs to another cell is shown on the edited cell's first line, naming that cell.
-
-A refused edit changes nothing: the cell keeps its old definition and value, and the editor keeps the typed text with its diagnostics, so it can be fixed or abandoned. A new cell typed in this module whose source starts with \`export\` is SoundScript too.`
-// %%
-md`## Why four sections are modules
-
-A module is one namespace, and the example sources (\`lite/notebook/examples/\`) are shared with the fixtures and the CLI tests (\`lite/notebook/verify.ts\` checks they are equal), so they keep their names. Two ways to make every section live were possible: rename the cells of each section (\`reducer_step\`, \`game_step\`), which changes the text the reader edits and the fixtures check, or give each colliding section its own module. This notebook does the second. The cost: a section's cells are edited in its own module, opened by the link under its table, and this page imports each section's \`app\` under another name (\`reducer_app\`, \`breakout_app\`).
-
-Section 2's errors stay in a box because \`width\` and \`area\` are section 1's names; section 8's \`bad_free_component\` stays in a box because, live, it would name a variable that does not exist.`
+- The checker is a prototype. On 2026-11-14, 52 of 54 existing fixtures got the same verdict and reason from it as from the TypeScript-based reference checker, with index reads typed \`T\` as TypeScript does ("How good is the checker").
+- A rejected cell still runs. The verdict keeps it from being skipped or sent to a worker, and the editor will not save an edit that leaves a cell rejected.
+- A cell may take \`now\` or \`random\` and be accepted. It is then not repeatable, and its signature shows it.`
 // %%
 md`## Language reference
 
-One entry per construct, as \`lite\` checks it on 2026-11-14. The rules come from \`tools/lang-experiment/RULES.md\` (v0); entries marked *lite* are additions made in \`lite\` this session and are not in RULES.md. The bracketed name is the rule a violation reports, as in the cell tables above.`
+One entry per construct, as the checker checks it on 2026-11-14. The rules come from the language's v0 rule list; entries marked *lite* are additions made in this checker and are not in that list. The bracketed name is the rule a violation reports, as in the cell tables.`
 // %%
 md`### Cells
 
@@ -268,7 +322,7 @@ A source file holds cells and type declarations, nothing else (\`[module-level]\
 | \`export const x = (a, b) => …\` | a cell \`x\` with inputs \`a\` and \`b\`; \`export let\`, a \`function\` expression and \`export function x(a, b) {…}\` are the same |
 | \`export const x = async (a) => …\` | value type \`T\` for a body returning \`Promise<T>\` |
 | \`export const x = function* (a) {…}\` | a generator cell; value type \`Y\` for \`Generator<Y>\`; generators cannot be arrows |
-| \`export const x = (): RefCell<T> => ref(v)\` | a ref cell: state, value type \`T\` (see Refs) |
+| \`export const x = (): RefCell<T> => ref(v)\` | a ref cell: state, value type \`T\` (see State) |
 | \`export const f = () => (n: number) => n * 2\` | a cell whose value is a function: two arrows, the outer one lists the inputs |
 | \`type T = …\`, \`interface I {…}\`, \`import type\` | allowed at top level, not cells |
 
@@ -283,7 +337,7 @@ Each parameter of a cell names what it reads. What it receives depends on the na
 | \`a\` or \`a: T\`, naming a cell | the cell's current value; an annotation must accept it (\`[inject-type]\`) | yes |
 | \`count: Ref<T>\`, naming a ref cell | the handle, with \`set\` and \`update\` and no read (\`[inject-ref]\` if not a ref cell of \`T\`) | no |
 | \`ticks: Source<T>\`, naming a sync generator cell (*lite*) | a handle for \`on(...)\` (\`[inject-source]\` if not a generator yielding \`T\`) | no |
-| a capability name (below) | the host's object for that effect | no |
+| a capability name (next entry) | the host's object for that effect | no |
 
 Once any cell takes a generator as a \`Source\`, a parameter reading it without \`Source\` is \`[inject-source]\`, because it would receive the handle. Any other name is \`[inject-unknown]\`; a destructuring pattern is \`[inject-pattern]\`. A body may not use a cell's name without taking it as a parameter (\`[cell-by-name]\`).
 
@@ -307,7 +361,7 @@ A cell that takes none of these is deterministic.`
 // %%
 md`### Names a body may use
 
-Its parameters, its own locals, the prelude (\`ref\`, \`action\`, \`mut\`, \`freeze\`, \`borrow\`, \`snapshot\`, \`equals\`, and \`on\` in *lite*), and these intrinsics: \`Object Array Math JSON Number String Boolean BigInt Symbol Map Set Error TypeError RangeError RegExp Promise\`, the typed arrays, \`ArrayBuffer DataView TextEncoder TextDecoder Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone URL URLSearchParams\`. RULES.md allows all of these, but \`lite\` has no declarations yet for \`Symbol\`, \`DataView\`, \`TextEncoder\` and \`TextDecoder\`: using one is *unsupported*, and \`new\` on one is \`[new-non-intrinsic]\`; \`new Promise\` is also unsupported. Any other name is \`[free-name]\`. Some members of allowed objects are banned, \`Math.random\` among them (\`[banned-member]\`); a member a declared type does not have is \`[no-member]\`, and any member of an intrinsic that \`lite\`'s declarations leave out is reported *unsupported*, not ok.
+Its parameters, its own locals, the prelude (\`ref\`, \`action\`, \`mut\`, \`freeze\`, \`borrow\`, \`snapshot\`, \`equals\`, and \`on\` in *lite*), and these intrinsics: \`Object Array Math JSON Number String Boolean BigInt Symbol Map Set Error TypeError RangeError RegExp Promise\`, the typed arrays, \`ArrayBuffer DataView TextEncoder TextDecoder Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone URL URLSearchParams\`. The v0 rules allow all of these, but the checker has no declarations yet for \`Symbol\`, \`DataView\`, \`TextEncoder\` and \`TextDecoder\`: using one is *unsupported*, and \`new\` on one is \`[new-non-intrinsic]\`; \`new Promise\` is also unsupported. Any other name is \`[free-name]\`. Some members of allowed objects are banned, \`Math.random\` among them (\`[banned-member]\`); a member a declared type does not have is \`[no-member]\`, and any member of an intrinsic that the checker's declarations leave out is reported *unsupported*, not ok.
 
 Not available at all: \`Date\`, \`console\`, \`window\`, \`document\`, \`globalThis\`, \`fetch\` (use the capability), timers, \`eval\`, \`Function\`.`
 // %%
@@ -327,13 +381,13 @@ Values are read-only. Rejected:
 | \`new\` on anything but an allowed intrinsic | \`[new-non-intrinsic]\` |
 | \`any\`, \`as\` (except \`as const\`), \`x!\`, \`@ts-ignore\`, \`enum\`, \`namespace\`, \`import()\` | \`[no-any]\` (inside a cell; not checked in a top-level \`type\`), \`[no-cast]\`, \`[no-non-null]\`, \`[no-ts-ignore]\`, \`[no-enum]\`, \`[no-namespace]\`, \`[no-dynamic-import]\` |
 
-Allowed: local \`let\` and reassigning it, loops, \`throw\`, \`try\`/\`catch\`. A \`let\` may be assigned from a nested function only if that function is a local helper called directly and never passed on (\`[let-capture]\`). Reading a property or index of a value that may be \`undefined\` is \`[possibly-undefined]\`. On this page an index read \`a[i]\` has type \`T | undefined\`, so \`xs[0] * 2\` is rejected; narrow it or write \`xs[0] ?? 0\`. (The oracle comparison in "How good is the checker" uses \`T\`, as TypeScript does.)
+Allowed: local \`let\` and reassigning it, loops, \`throw\`, \`try\`/\`catch\`. A \`let\` may be assigned from a nested function only if that function is a local helper called directly and never passed on (\`[let-capture]\`). Reading a property or index of a value that may be \`undefined\` is \`[possibly-undefined]\`. On this page an index read \`a[i]\` has type \`T | undefined\`, so \`xs[0] * 2\` is rejected; narrow it or write \`xs[0] ?? 0\`. (The comparison in "How good is the checker" uses \`T\`, as TypeScript does.)
 
 Not modelled, reported *unsupported*: \`switch\`, \`for…in\`, \`instanceof\`, \`??=\` \`&&=\` \`||=\`, destructuring assignment (\`[a, b] = [b, a]\`), tagged templates, the comma operator, \`satisfies\`, a \`type\` declared inside a body, \`yield*\`, \`for await\`, and, in a function holding a \`Mut\`, \`try/finally\` and labelled \`break\`.`
 // %%
 md`### Local mutation: \`mut\`, \`freeze\`
 
-\`const out = mut(new Float32Array(n))\` gives a \`Mut<Float32Array>\` that the cell may write; \`freeze(out)\` ends the writing and gives the plain value (section 3).
+\`const out = mut(new Float32Array(n))\` gives a \`Mut<Float32Array>\` that the cell may write; \`freeze(out)\` ends the writing and gives the plain value (section 3). The checker tracks the \`Mut\` binding, not the object.
 
 | rule | |
 |---|---|
@@ -345,7 +399,7 @@ md`### Local mutation: \`mut\`, \`freeze\`
 | a view (\`subarray\`) of a \`Mut\` buffer may only be passed straight to a non-retaining intrinsic, not bound to a name | \`[mut-view]\` |
 | only a \`Mut\` made by this function may be frozen, not a \`Mut\` parameter | \`[mut-freeze-param]\` |
 
-A helper may take a \`Mut<T>\` parameter and write it; \`lite\` also lets a non-escaping local helper capture one, which RULES.md does not (\`reject-mut-capture\` in "How good is the checker").`
+A helper may take a \`Mut<T>\` parameter and write it. The checker also lets a non-escaping local helper capture one, which the v0 rules do not (\`reject-mut-capture\` in "How good is the checker").`
 // %%
 md`### Lending a buffer: \`borrow\`, \`snapshot\`
 
@@ -387,20 +441,11 @@ Each name in \`refs\` is a hidden input of the calling cell, so a change gives a
 // %%
 md`### Views: JSX (*lite*)
 
-In a \`.tsx\` source, \`<tag prop={…}>children</tag>\` is a value of type \`Elem\`; spread attributes (\`{...props}\`) are unsupported. A fragment \`<>…</>\` groups children. A capitalised local function returning \`Elem\`, \`const Card = (p: { title: string }) => <div>{p.title}</div>\`, is a component used as \`<Card title="x" />\`; one that returns something else is \`[type]\`. Allowed tags: \`div span p label strong fieldset legend output button input canvas\`. Props: \`class style title id key\` on all; \`onClick disabled\` on \`button\`; \`type name value min max step checked disabled onInput onClick\` on \`input\`; \`width height onPointerDown onPointerMove onPointerUp onPointerCancel\` on \`canvas\`. A prop not declared for the tag is \`[excess-property]\` (so are \`data-*\` and \`aria-*\`); a tag not in the list, such as \`a ul li img select textarea section\`, is \`[no-member]\`. Event props take an \`Action\`: \`onClick\` an \`Action<[]>\`, \`onInput\` an \`Action<[string]>\`, pointer events an \`Action<[PointerData]>\` with \`x y t id buttons\`. Children are elements, strings, numbers, booleans, \`null\`/\`undefined\`, or arrays of elements. The full declarations are in the appendix; section 8 shows each rejection.`
-// %%
-md`### How live cells are evaluated (this page)
-
-Not part of the checked language; what the standard library (\`lite/stdlib/runtime.ts\`) does when a compiled cell runs.
-
-- A cell runs when an input it reads changes. A plain cell whose inputs are all the same values (\`Object.is\`) as last time does not run and keeps its value (memoised); excluded are cells the checker rejects, cells reading a generator and cells taking \`now\`, \`random\`, \`fetch\` or \`log\`.
-- A generator cell is stepped by the Observable runtime, at most once per animation frame, unless it is taken as a \`Source\`, in which case only subscriptions step it.
-- Rejected cells that were compiled into the notebook still run; the editor refuses edits that would leave a cell rejected, and \`compile\` refuses to run an island the checker did not accept.
-- The view returned by a mounted cell is applied to the DOM by patching: same tag at the same position reuses the node, an element that is the same object as last time is skipped, children that all carry \`key\` are matched by key.`
+In a \`.tsx\` source, \`<tag prop={…}>children</tag>\` is a value of type \`Elem\`; spread attributes (\`{...props}\`) are unsupported. A fragment \`<>…</>\` groups children. A capitalised local function returning \`Elem\`, \`const Card = (p: { title: string }) => <div>{p.title}</div>\`, is a component used as \`<Card title="x" />\`; one that returns something else is \`[type]\`. Allowed tags: \`div span p label strong fieldset legend output button input canvas\`. Props: \`class style title id key\` on all; \`onClick disabled\` on \`button\`; \`type name value min max step checked disabled onInput onClick\` on \`input\`; \`width height onPointerDown onPointerMove onPointerUp onPointerCancel\` on \`canvas\`. A prop not declared for the tag is \`[excess-property]\` (so are \`data-*\` and \`aria-*\`); a tag not in the list, such as \`a ul li img select textarea section\`, is \`[no-member]\`. Event props take an \`Action\`: \`onClick\` an \`Action<[]>\`, \`onInput\` an \`Action<[string]>\`, pointer events an \`Action<[PointerData]>\` with \`x y t id buttons\`. Children are elements, strings, numbers, booleans, \`null\`/\`undefined\`, or arrays of elements. The full declarations are in the first appendix; section 8 shows each rejection.`
 // %%
 md`## How good is the checker
 
-Measured 2026-11-14 with \`bun lite/oracle.ts\`, against the TypeScript-based harness (\`bun check.ts\`) as the reference. Details in \`tools/lang-experiment/lite/README.md\`.
+Measured 2026-11-14 against a reference checker that runs TypeScript's own compiler over the same rules. The fixtures and the three ports (lopecode notebooks rewritten in SoundScript) are not in this notebook.
 
 \`\`\`
 existing fixtures       52 of 54 same verdict and reason
@@ -408,11 +453,13 @@ existing fixtures       52 of 54 same verdict and reason
                          reject-no-ts-ignore: lite also reports a type error)
 three ports             144 + 25 + 38 cells, all ok   (index reads typed T, as TypeScript does)
                         6 + 3 + 3 rejected            (index reads typed T | undefined)
-173 mutants of ports    0 accepted that the oracle rejects
-                        2 rejected that the oracle accepts (unary minus on a string)
+173 mutants of ports    0 accepted that the reference rejects
+                        2 rejected that the reference accepts (a number made a string, then used as a number)
                         12 unsupported (renamed intrinsic members)
+fixture and port cells  5 of 503 accepted that the reference rejects: three helpers capturing a Mut
+                        (allowed deliberately), and one cell each for mut-escape and mut-after-freeze
 known slips             12 of 13 rejected
-check time, CLI         56-63 ms lite, 290-342 ms the TypeScript harness
+check time, CLI         53-63 ms lite, 282-331 ms the reference (whole process, median of 5)
 \`\`\`
 
 In this page:`
@@ -422,37 +469,45 @@ sizes = htl.html`<table class="lite-panel">
 <tr><td>section 7's 13 cells, check time in this browser, median of 20</td><td>${checkTime.toFixed(1)} ms</td></tr>
 </table>`
 // %%
-md`Limits that apply to everything above:
+md`Limits that apply to everything on this page:
 
 - No \`keyof\`, indexed access types, tuple rest or variadic inference. A cell that needs one is \`unsupported\`, never \`ok\`.
-- A module here holds one \`cells.tsx\` worth of cells. The ports also have \`shell.ts\` (unchecked cells) and \`foreign.d.ts\` (trusted signatures); the checker reads both (\`checkSources\`), this page does not pass them.
+- A module here holds one source file's worth of cells. The ports also have unchecked cells and trusted foreign signatures, which the checker reads when given them; this page does not pass them.
 - The renderer's event decoders (\`PointerData\` from a \`PointerEvent\`, a string from an \`input\`) are trusted code.
-- A \`.tsx\` source has no TypeScript cross-check: the oracle does not read JSX, so the JSX and \`compile\` rules above are checked by \`lite\` alone.`
+- A \`.tsx\` source has no TypeScript cross-check: the reference checker does not read JSX, so the JSX and \`compile\` rules are checked by this checker alone.`
 // %%
-md`## Not built: three design directions
+md`## Not built
 
-These were discussed on 2026-11-14 and none of them exists in \`lite\` or in this page.
+Discussed on 2026-11-14; none of these exists in the checker or in this page.
 
-**Label, do not reject.** \`Math.random\` above is an error. The alternative is to accept it and label the cell *unsound*, and every cell that takes a capability from it unsound too, by transitivity. A cell that only takes *data* from an unsound cell would stay sound, because a value cannot reach back into the clock. A \`sound(...)\` marker would turn the label back into an error where it matters. Unsound cells would interleave with sound ones in one module rather than living in a separate \`shell.ts\`.
-
-**Islands without the seal.** \`@tomlarkworthy/dataflow-islands\` (\`lopebooks/notebooks/@tomlarkworthy_dataflow-islands.html\`) runs groups of compiled Observable cells in a worker pool behind a runtime seal that, in its own words, "stops accidents, not an author trying to escape". Section 7 does the same for SoundScript cells with the checker's verdict in place of the seal. What is not built is the step between: labelling ordinary lopecode cells sound or unsound, so an island could be cut from a notebook that was not written in SoundScript.
-
-**Reflection.** The typed \`Variable\` and \`Module<C>\` of section 6, so a cell that defines or redefines other cells is checked, and a redefinition rechecks the cells downstream of it. Recorded in \`tools/lang-experiment/lite/NOTES-reflection.md\`; parked.`
+- **Effects as tagged libraries.** \`ref\`, \`action\`, \`Source\` and \`on\` are special cases inside the checker. The proposal moves them into declaration files whose tags (\`@write\`, \`@handle\`, \`@cell\`) say what each function may do, so a new kind of effect needs a library rather than a checker change.
+- **Actors**, as a library on those tags: an inbox cell, a post action, and the inbox's messages as a \`Source<M>\`. A \`mailbox\` primitive in the checker was proposed and rejected.
+- **Label, do not reject.** Accept \`Math.random\` and label the cell *unsound*, and every cell that takes a capability from it, instead of rejecting it; a \`sound(...)\` marker would turn the label back into an error where it matters.
+- **Typed reflection.** A typed \`Variable\` and \`Module<C>\`, so a cell that defines or redefines other cells is checked and a redefinition rechecks the cells downstream. The checker lacks \`keyof\`, bounds and indexed access, which this needs.
+- **Results kept across a reload.** A deterministic cell's result stored in the saved file and reused when its inputs are unchanged.
+- **Export to ObservableHQ.** The compiled cells are ordinary JavaScript, but the marker comments and the editor hook exist only in this notebook.
+- **\`now\` and \`random\` per cell.** Every cell that takes \`now\` gets the core's one \`ss_now\`, and every cell that takes \`random\` the one \`ss_random\`; a recorded or seeded source for each cell is not built.`
 // %%
 md`## Tests
 
-They run only when this is on, so reading the page costs nothing for them. Each test takes \`tests_on\`, pending until then. The Breakout tests play a copy of section 9's cells (\`ss_instance\`), not the game above.`
+The tests are off until **run the tests** is on, so reading the page costs nothing for them. Each test of this module takes \`tests_on\`, which stays pending until then. The Breakout tests play a copy of section 9's cells (\`ss_instance\`), not the game on this page, and \`test_ss_counter\` presses **add one** and **clear** on a copy of section 4's counter, so the counter on the page keeps its count. The section modules' own tests (\`test_undo\`, \`test_replay\`) are cheap and always run. The core's tests are in the core tab, behind its own switch.`
 // %%
-viewof run_tests = Inputs.toggle({ label: "run the tests" })
+viewof run_tests = {
+  const toggle = Inputs.toggle({ label: "run the tests" });
+  toggle.classList.add("lite-tests-toggle");
+  return toggle;
+}
 // %%
 tests_on = run_tests ? true : invalidation
+// %%
+testsView = testTable([["tutorial", tutorial_module], ["reducer", reducer_module], ["model", model_module], ["workers", workers_module], ["breakout", breakout_module]], invalidation)
 // %%
 test_examples_check_as_expected = {
   tests_on;
   const want = { cells: [7, 0], errors: [8, 5], mut: [4, 2], counter: [4, 0], reducer: [10, 0], model: [10, 0], workers: [13, 0], rejectJsx: [17, 11], game: [21, 0] };
   const got = {};
   for (const [k, [n, rejected]] of Object.entries(want)) {
-    const r = lite.checkSources({ cells: examples[k], tsx: k !== "cells" && k !== "errors" && k !== "mut" });
+    const r = ss.checkSources({ cells: examples[k], tsx: k !== "cells" && k !== "errors" && k !== "mut" });
     const bad = r.cells.filter((c) => c.status === "rejected").length;
     got[k] = [r.cells.length, bad];
     if (r.cells.length !== n || bad !== rejected) throw new Error(`${k}: ${r.cells.length} cells, ${bad} rejected; want ${n}, ${rejected}`);
@@ -543,15 +598,15 @@ test_breakout_memo = {
 // %%
 md`## Appendix: the declarations JSX is checked against
 
-From \`lite/intrinsics.ts\`. A tag not listed is an error (\`<blink>\` in section 8).`
+The checker's own declarations, as this page's bundle carries them. A tag not listed is an error (\`<blink>\` in section 8).`
 // %%
-htl.html`<pre class="lite-src">${lite.JSX_DECLS.trim()}</pre>`
+htl.html`<pre class="lite-src">${ss.JSX_DECLS.trim()}</pre>`
 // %%
 md`## Appendix: this notebook's code
 
-\`ss\` is imported from \`@tomlarkworthy/soundscript\`, which loads it from its attachment \`ss.js.gz\` (built by \`bun lite/soundscript/build.ts\` from \`lite/soundscript/entry.ts\`): the checker, the per-cell compiler, the JSX lowering and renderer, and the standard library that live cells call. \`lite\` is the same object under the name the boxes use. The example sources are attachments of this module.`
-// %%
-lite = ss
+\`ss\` is imported from \`@tomlarkworthy/soundscript\`, which loads it from its gzipped attachment \`ss.js.gz\`: the checker, the per-cell compiler, the JSX lowering and renderer, and the standard library that live cells call. The example sources are attachments of this module, and the boxes and \`test_examples_check_as_expected\` read them; the live cells were compiled from the same files when the notebook was built.
+
+Before each lesson cell is a cell \`card_<name>\` (\`ssCard\`). It shows the lesson cell's source, decompiled from its live definition, and the checker's verdict, type and value; \`cardStyle\` hides the lesson cell's own output line and leaves its edit bar. \`sourceListing\` does the same for a whole section module. Both colour the source with the editor's TypeScript parser (\`highlightTs\`).`
 // %%
 //raw: ss_bytes
 // %%
@@ -559,7 +614,7 @@ checkTime = {
   const ts = [];
   for (let i = 0; i < 20; i++) {
     const t0 = performance.now();
-    lite.checkSources({ cells: examples.workers, tsx: true });
+    ss.checkSources({ cells: examples.workers, tsx: true });
     ts.push(performance.now() - t0);
   }
   return ts.sort((a, b) => a - b)[10];
@@ -583,6 +638,201 @@ sourceBox = (value, { rows } = {}) => {
   return box;
 }
 // %%
+framed = (node) => {
+  // the renderer patches only the props it set, so a class added here stays
+  node.classList?.add("lite-app");
+  return node;
+}
+// %%
+badge = (status, text = status) => htl.html`<span class=${"lite-badge lite-badge-" + status}>${text}</span>`
+// %%
+depGraph = (module, invalidation, { only = null } = {}) => {
+  // The module's cells as a graph drawn from the checker's facts: an arrow from each parameter's cell
+  // to the cell that takes it. Redrawn when the module's code changes.
+  const CAPS = new Set(["now", "random", "fetch", "log", "invalidation", "compile", "pool"]);
+  const holder = htl.html`<figure class="lite-graph">`, uid = Math.random().toString(36).slice(2, 8);
+  const svgEl = (tag, attrs = {}, text) => {
+    const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+  // layers run left to right, or top to bottom (wrapped to 340 px) when the container is narrower than
+  // three quarters of the left-to-right drawing; a ResizeObserver redraws when that choice changes
+  let vertical = null, wide = 0;
+  const draw = () => {
+    let result;
+    try { result = ss_check(module).result; } catch (e) { holder.replaceChildren(htl.html`<div class="lite-err">${e.message}</div>`); return; }
+    const cells = result.cells.filter((c) => !only || only.includes(c.name));
+    const names = new Set(cells.map((c) => c.name));
+    const kindOf = (c) => {
+      const f = result.facts.get(c.name);
+      if (c.status !== "ok") return "rejected";
+      if (f?.returnsRef) return "ref";
+      if (/^Action\b/.test(c.value ?? "")) return "action";
+      if (/^Sub\[\]/.test(c.value ?? "")) return "subs";
+      if (f?.generator) return "source";
+      if (c.name.startsWith("test_")) return "test";
+      return "cell";
+    };
+    const nodes = new Map(cells.map((c) => [c.name, { name: c.name, kind: kindOf(c), ins: [], outs: [] }]));
+    const edges = [];
+    for (const c of cells) {
+      const f = result.facts.get(c.name);
+      for (const p of f?.params ?? []) {
+        if (CAPS.has(p.name)) {
+          if (!nodes.has(p.name)) nodes.set(p.name, { name: p.name, kind: "cap", ins: [], outs: [] });
+        } else if (!names.has(p.name)) continue;
+        edges.push({ from: p.name, to: c.name, kind: p.refTyped ? "handle" : p.sourceTyped ? "sourced" : "value" });
+      }
+      for (const spec of f?.compiles ?? []) for (const r of spec.refs) if (names.has(r)) edges.push({ from: r, to: c.name, kind: "refs" });
+    }
+    for (const e of edges) { nodes.get(e.from).outs.push(e.to); nodes.get(e.to).ins.push(e.from); }
+    // layers by longest path from a cell with no inputs; then a few sweeps ordering each layer by its neighbours
+    const layer = new Map();
+    const depth = (n, seen = new Set()) => {
+      if (layer.has(n)) return layer.get(n);
+      if (seen.has(n)) return 0;
+      seen.add(n);
+      const d = Math.max(0, ...nodes.get(n).ins.map((i) => depth(i, seen) + 1));
+      layer.set(n, d);
+      return d;
+    };
+    for (const n of nodes.keys()) depth(n);
+    const layers = [];
+    for (const [n, d] of layer) (layers[d] ??= []).push(n);
+    const pos = new Map();
+    const index = () => layers.forEach((l) => l.forEach((n, i) => pos.set(n, i / Math.max(1, l.length - 1))));
+    const mean = (xs, at) => (xs.length ? xs.reduce((a, x) => a + pos.get(x), 0) / xs.length : at);
+    index();
+    for (let sweep = 0; sweep < 4; sweep++) {
+      for (const l of sweep % 2 ? [...layers].reverse() : layers) {
+        const key = new Map(l.map((n) => [n, mean(sweep % 2 ? nodes.get(n).outs : nodes.get(n).ins, pos.get(n))]));
+        l.sort((a, b) => key.get(a) - key.get(b));
+        index();
+      }
+    }
+    const COL = 150, ROW = 32, H = 22, PAD = 6, GAP = 10, MAXW = 340;
+    const widthOf = (n) => Math.min(COL - 22, 14 + 7.4 * n.length);
+    const rows = Math.max(...layers.map((l) => l.length));
+    wide = layers.length * COL - 22 + 2 * PAD;
+    vertical ??= (holder.clientWidth || innerWidth - 32) < wide * 0.75;
+    const at = new Map();
+    let W, Ht;
+    if (!vertical) {
+      W = wide;
+      Ht = rows * ROW + 2 * PAD;
+      layers.forEach((l, d) => l.forEach((n, i) => at.set(n, { x: PAD + d * COL, y: PAD + ((rows - l.length) / 2 + i) * ROW, w: widthOf(n) })));
+    } else {
+      const lines = [];
+      for (const l of layers) {
+        let line = [], used = 0;
+        for (const n of l) {
+          if (line.length && used + GAP + widthOf(n) > MAXW) { lines.push(line); line = []; used = 0; }
+          used += (line.length ? GAP : 0) + widthOf(n);
+          line.push(n);
+        }
+        if (line.length) lines.push(line);
+      }
+      const spanOf = (line) => line.reduce((a, n) => a + widthOf(n), 0) + GAP * (line.length - 1);
+      W = Math.max(...lines.map(spanOf)) + 2 * PAD;
+      lines.forEach((line, r) => {
+        let x = PAD + (W - 2 * PAD - spanOf(line)) / 2;
+        for (const n of line) { at.set(n, { x, y: PAD + r * (ROW + 12), w: widthOf(n) }); x += widthOf(n) + GAP; }
+      });
+      Ht = lines.length * (ROW + 12) - 12 + 2 * PAD;
+    }
+    const svg = svgEl("svg", { viewBox: `0 0 ${W} ${Ht}`, width: W, role: "img", "aria-label": `dependency graph of ${[...nodes.keys()].join(", ")}` });
+    svg.style.maxWidth = "100%";
+    svg.style.height = "auto";
+    const defs = svgEl("defs");
+    for (const k of ["value", "handle", "sourced", "refs"]) {
+      const m = svgEl("marker", { id: `lite-arrow-${k}-${uid}`, viewBox: "0 0 8 8", refX: 7, refY: 4, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse", class: `lite-arrow-${k}` });
+      m.append(svgEl("path", { d: "M0,0 L8,4 L0,8 z" }));
+      defs.append(m);
+    }
+    svg.append(defs);
+    for (const e of edges) {
+      const a = at.get(e.from), b = at.get(e.to);
+      const d = vertical
+        ? (() => { const x1 = a.x + a.w / 2, y1 = a.y + H, x2 = b.x + b.w / 2, y2 = b.y - 2, my = (y1 + y2) / 2; return `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`; })()
+        : (() => { const x1 = a.x + a.w, y1 = a.y + H / 2, x2 = b.x - 2, y2 = b.y + H / 2, mx = (x1 + x2) / 2; return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`; })();
+      svg.append(svgEl("path", { d, class: `lite-edge lite-edge-${e.kind}`, "marker-end": `url(#lite-arrow-${e.kind}-${uid})` }));
+    }
+    for (const [n, node] of nodes) {
+      const p = at.get(n);
+      const g = svgEl("g", { class: `lite-node lite-node-${node.kind}` });
+      g.append(svgEl("title", {}, `${n}: ${node.kind}`));
+      g.append(svgEl("rect", { x: p.x, y: p.y, width: p.w, height: H, rx: node.kind === "action" || node.kind === "cap" ? 11 : 4 }));
+      g.append(svgEl("text", { x: p.x + p.w / 2, y: p.y + H / 2 + 4, "text-anchor": "middle" }, n));
+      svg.append(g);
+    }
+    const kinds = new Set([...nodes.values()].map((x) => x.kind)), kindsE = new Set(edges.map((e) => e.kind));
+    const KEY = { cell: "cell", test: "test", ref: "state (ref cell)", action: "action", source: "generator", subs: "subscriptions", cap: "capability", rejected: "rejected" };
+    const EKEY = { value: "reads the value", handle: "gets the handle (Ref)", sourced: "gets the handle (Source)", refs: "compile refs" };
+    holder.replaceChildren(
+      htl.html`<div class="lite-graph-scroll">${svg}</div>`,
+      htl.html`<figcaption>Arrows run from a cell to the cells that take it as a parameter, from the checker's facts for this module. ${[...kinds].map((k) => htl.html`<span class=${"lite-key lite-node-" + k}><i></i>${KEY[k]}</span>`)} ${[...kindsE].filter((k) => k !== "value").map((k) => htl.html`<span class=${"lite-key lite-edge-" + k}><b></b>${EKEY[k]}</span>`)}</figcaption>`
+    );
+  };
+  let queued = false;
+  const off = onCodeChange(({ variable, previous }) => {
+    if ((variable ?? previous)?._module !== module || queued) return;
+    queued = true;
+    queueMicrotask(() => { queued = false; draw(); });
+  });
+  const resized = new ResizeObserver(() => {
+    if (!holder.clientWidth || !wide) return;
+    const next = holder.clientWidth < wide * 0.75;
+    if (next !== vertical) { vertical = next; draw(); }
+  });
+  resized.observe(holder);
+  invalidation.then(() => { off(); resized.disconnect(); });
+  draw();
+  return holder;
+}
+// %%
+testTable = (modules, invalidation) => {
+  // every test_* variable of the given modules, with its state as it arrives; rebuilt when their code changes
+  const body = htl.html`<tbody>`, summary = htl.html`<div class="lite-summary">`;
+  let cancels = [], queued = false, generation = 0;
+  const rebuild = () => {
+    queued = false;
+    cancels.forEach((c) => c());
+    cancels = [];
+    const mine = ++generation;
+    const rows = [];
+    const tally = () => {
+      const n = (s) => rows.filter((r) => r.state === s).length;
+      summary.replaceChildren(`${rows.length} tests: `, badge("pass", `${n("pass")} pass`), " ", badge("fail", `${n("fail")} fail`), " ", badge("pending", `${n("pending")} not run`));
+    };
+    for (const [label, m] of modules) for (const v of runtime._variables) {
+      if (v._module !== m || typeof v._name !== "string" || !v._name.startsWith("test_")) continue;
+      const state = htl.html`<td>`, value = htl.html`<td class="v">`;
+      const row = { state: "pending" };
+      const set = (s, text) => { if (mine !== generation) return; row.state = s; state.replaceChildren(badge(s, s === "pending" ? "not run" : s)); value.textContent = text; tally(); };
+      set("pending", "");
+      rows.push(row);
+      body.append(htl.html`<tr><td>${label}</td><td><code>${v._name}</code></td>${state}${value}</tr>`);
+      cancels.push(observe(v, { fulfilled: (x) => set("pass", fmt(x)), rejected: (e) => set("fail", String(e?.message ?? e)), pending: () => set("pending", "") }));
+      // a promise superseded by a newer run rejects with the runtime's variable_stale; that is not a failure
+      v._promise?.then((x) => v._value !== undefined && set("pass", fmt(x)), (e) => isStale(e) || set("fail", String(e?.message ?? e)));
+    }
+    tally();
+  };
+  const off = onCodeChange(({ variable, previous }) => {
+    const m = (variable ?? previous)?._module;
+    if (!modules.some(([, x]) => x === m) || queued) return;
+    queued = true;
+    queueMicrotask(() => { body.replaceChildren(); rebuild(); });
+  });
+  rebuild();
+  invalidation.then(() => { off(); cancels.forEach((c) => c()); });
+  return htl.html`<div class="lite-tests">${summary}<div class="lite-scroll"><table class="lite-panel"><thead><tr><th>module</th><th>test</th><th>state</th><th>value</th></tr></thead>${body}</table></div></div>`;
+}
+// %%
+isStale = (e) => typeof e === "function" && e.name === "variable_stale"
+// %%
 fmt = (v) => {
   if (typeof v === "function") return "ƒ";
   if (typeof v === "number") return Number.isNaN(v) ? "NaN" : String(v);
@@ -596,12 +846,12 @@ fmt = (v) => {
 // %%
 checkBox = (src, { tsx = false } = {}) => {
   let checked;
-  try { checked = lite.checkSources({ cells: src, tsx }); }
+  try { checked = ss.checkSources({ cells: src, tsx }); }
   catch (e) { return htl.html`<div class="lite-panel lite-err">${e.message}</div>`; }
   const lines = src.split("\n");
   const body = htl.html`<tbody>`;
   for (const c of checked.cells) {
-    body.append(htl.html`<tr class=${"lite-" + c.status}><td><code>${c.name}</code></td><td>${c.status}</td><td><code>${c.value ?? ""}</code></td></tr>`);
+    body.append(htl.html`<tr class=${"lite-" + c.status}><td><code>${c.name}</code></td><td>${badge(c.status)}</td><td><code>${c.value ?? ""}</code></td></tr>`);
     const problems = [...c.errors, ...c.unsupported.map((u) => ({ ...u, rule: "unsupported" }))];
     if (c.status === "blocked") problems.push({ line: c.line, rule: "blocked", msg: `by ${c.blockedBy.join(", ")}` });
     for (const e of problems)
@@ -609,7 +859,7 @@ checkBox = (src, { tsx = false } = {}) => {
   }
   const count = (s) => checked.cells.filter((c) => c.status === s).length;
   return htl.html`<div class="lite-lesson"><div class="lite-summary">${checked.cells.length} cells: ${count("ok")} ok, ${count("rejected")} rejected, ${count("unsupported")} unsupported, ${count("blocked")} blocked. Checked in ${checked.ms.toFixed(1)} ms.</div>${checked.module.map((e) => htl.html`<div class="lite-err">line ${e.line} <b>[${e.rule}]</b> ${e.msg}</div>`)}
-<table class="lite-panel"><thead><tr><th>cell</th><th>check</th><th>type</th></tr></thead>${body}</table></div>`;
+<div class="lite-scroll"><table class="lite-panel"><thead><tr><th>cell</th><th>check</th><th>type</th></tr></thead>${body}</table></div></div>`;
 }
 // %%
 kindOf = (v) => {
@@ -633,13 +883,15 @@ liveRows = (module, invalidation, { head, cells, row, cls = "" }) => {
     cancels.forEach((c) => c());
     const made = cells().map((r) => ({ ...r, ...row(r) }));
     body.replaceChildren(...made.map((r) => r.tr));
-    cancels = made.map((r) => observe(r.variable, { fulfilled: () => r.update(), rejected: () => r.update() }));
+    // the runtime keeps no error field, so a row learns of an error from the variable's promise
+    cancels = made.map((r) => observe(r.variable, { fulfilled: () => r.update(), rejected: (e) => r.update(e ?? "error") }));
+    for (const r of made) r.variable._promise?.then(() => {}, (e) => isStale(e) || r.update(e ?? "error"));
   };
   const queue = () => { if (!rebuildQueued) { rebuildQueued = true; queueMicrotask(rebuild); } };
   const off = onCodeChange(({ variable, previous }) => { if ((variable ?? previous)?._module === module) queue(); });
   rebuild();
   invalidation.then(() => { off(); cancels.forEach((c) => c()); });
-  return htl.html`<table class=${"lite-panel " + cls}>${head}${body}</table>`;
+  return htl.html`<div class="lite-scroll"><table class=${"lite-panel " + cls}>${head}${body}</table></div>`;
 }
 // %%
 moduleTable = (module, invalidation) => {
@@ -651,13 +903,13 @@ moduleTable = (module, invalidation) => {
     cells: () => { const res = verdicts(); return ss_moduleCells(module).filter((c) => !c.key.startsWith("type ")).map((c) => ({ ...c, variable: module._scope.get(c.key) ?? c.variable, verdict: res.cells.find((x) => x.name === c.key) })); },
     row: ({ key, variable: v, verdict: r }) => {
       const val = htl.html`<td class="v">`, runs = htl.html`<td>`;
-      const update = () => {
-        val.textContent = v._error !== undefined ? `throws: ${v._error?.message ?? v._error}` : fmt(v._value);
+      const update = (error) => {
+        val.textContent = error !== undefined ? `throws: ${error?.message ?? error}` : fmt(v._value);
         const h = module._scope.get(ss.handleName(key)) ?? v;
         runs.textContent = String(ss.evals(String(h._definition).includes("$ss$.cell(") ? h._definition : v._definition));
       };
       update();
-      return { update, tr: htl.html`<tr class=${"lite-" + (r?.status ?? "blocked")}><td><code>${key}</code></td><td>${r?.status ?? ""}</td><td><code>${r?.value ?? ""}</code></td>${val}${runs}</tr>` };
+      return { update, tr: htl.html`<tr class=${"lite-" + (r?.status ?? "blocked")}><td><code>${key}</code></td><td>${r ? badge(r.status) : ""}</td><td><code>${r?.value ?? ""}</code></td>${val}${runs}</tr>` };
     },
   });
 }
@@ -690,40 +942,225 @@ benchmark = {
   return { poolSize: workers_poolSize, hardware: navigator.hardwareConcurrency, bands: bands.length, runs, mainMs: median(main), poolMs: median(pool), same };
 }
 // %%
-// %%
 style = htl.html`<style>
+:root {
+  --lite-ok: #2f9e44;
+  --lite-bad: var(--theme-error, #d6336c);
+  --lite-warn: #c98a12;
+  --lite-accent: var(--theme-foreground-focus, #3b6fd8);
+  /* text in these colours, mixed toward the foreground so it reads at 4.5:1 on dark and light themes */
+  --lite-ok-text: color-mix(in srgb, var(--lite-ok) 55%, var(--theme-foreground));
+  --lite-bad-text: color-mix(in srgb, var(--lite-bad) 55%, var(--theme-foreground));
+  --lite-warn-text: color-mix(in srgb, var(--lite-warn) 55%, var(--theme-foreground));
+  /* the theme's muted text and syntax colours, 30% toward the foreground: the light theme's own are 3.2 to 4.4:1 on a card */
+  --lite-muted-text: color-mix(in srgb, var(--theme-foreground-muted) 70%, var(--theme-foreground));
+}
 .lite-panel { border-collapse: collapse; font-size: 13px; width: 100%; max-width: 100%; }
-.lite-panel th { text-align: left; color: var(--theme-foreground-muted); font-weight: 600; }
-.lite-panel td, .lite-panel th { padding: 2px 8px 2px 0; vertical-align: top; border-bottom: 1px solid var(--theme-foreground-faintest); }
-.lite-panel td.v { font-family: var(--monospace, monospace); word-break: break-all; }
-.lite-panel tr.lite-rejected td:nth-child(2), .lite-err b { color: var(--theme-error, #c33); }
-.lite-panel tr.lite-unsupported td:nth-child(2), .lite-panel tr.lite-blocked td:nth-child(2) { color: var(--theme-foreground-muted); }
-.lite-panel tr.lite-err td { border-bottom: none; color: var(--theme-foreground-muted); font-size: 12px; }
-.lite-summary, .lite-readout { font-size: 13px; margin: 6px 0; color: var(--theme-foreground-muted); }
+.lite-panel th { text-align: left; color: var(--lite-muted-text); font-weight: 600; }
+.lite-panel td, .lite-panel th { padding: 3px 8px 3px 0; vertical-align: top; border-bottom: 1px solid var(--theme-foreground-faintest); }
+.lite-panel td code { white-space: nowrap; }
+.lite-panel td.v { font-family: var(--monospace, monospace); overflow-wrap: anywhere; min-width: 12ch; }
+.lite-panel tr.lite-rejected > td:first-child { box-shadow: inset 3px 0 0 var(--lite-bad); padding-left: 6px; }
+.lite-panel tr.lite-unsupported > td:first-child, .lite-panel tr.lite-blocked > td:first-child { box-shadow: inset 3px 0 0 var(--lite-warn); padding-left: 6px; }
+.lite-panel tr.lite-rejected { background: color-mix(in srgb, var(--lite-bad) 7%, transparent); }
+.lite-panel tr.lite-err td { border-bottom: none; color: var(--theme-foreground); font-size: 12px; padding-top: 0; }
+.lite-panel tr.lite-err + tr:not(.lite-err) td { border-top: 1px solid var(--theme-foreground-faintest); }
+.lite-err b { color: var(--lite-bad-text); }
+.lite-badge { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; font-weight: 600; line-height: 18px; white-space: nowrap; border: 1px solid currentColor; }
+.lite-badge-ok, .lite-badge-pass { color: var(--lite-ok-text); background: color-mix(in srgb, var(--lite-ok) 14%, transparent); }
+.lite-badge-rejected, .lite-badge-fail { color: var(--lite-bad-text); background: color-mix(in srgb, var(--lite-bad) 14%, transparent); }
+.lite-badge-unsupported, .lite-badge-blocked { color: var(--lite-warn-text); background: color-mix(in srgb, var(--lite-warn) 14%, transparent); }
+.lite-badge-pending { color: var(--lite-muted-text); }
+.lite-summary, .lite-readout { font-size: 13px; margin: 6px 0; color: var(--lite-muted-text); }
 .lite-readout { font-family: var(--monospace, monospace); color: var(--theme-foreground); }
-.lite-app { padding: 8px; margin: 6px 0; border: 1px solid var(--theme-foreground-faint); border-radius: 4px; background: var(--theme-background-alt); }
-.lite-mandel { display: block; max-width: 100%; margin: 6px 0; }
+.lite-game canvas { touch-action: none; }
+.observablehq[cell="workers_maxIterAt"], .observablehq[cell="workers_maxIterAt"] + div { display: none; }
+.lite-card { margin: 10px 0 0; border: 1px solid var(--theme-foreground-faint); border-left: 3px solid var(--lite-ok); border-radius: 4px; background: var(--theme-background-alt); max-width: 100%; box-sizing: border-box; }
+.lite-card.lite-rejected { border-left-color: var(--lite-bad); }
+.lite-card.lite-unsupported, .lite-card.lite-blocked { border-left-color: var(--lite-warn); }
+.lite-code { margin: 0; padding: 8px 10px; font: 13px/1.45 var(--monospace, monospace); color: var(--theme-foreground); background: none; overflow-x: auto; white-space: pre; tab-size: 2; }
+.lite-card-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 4px 10px 6px; border-top: 1px solid var(--theme-foreground-faintest); font-size: 13px; }
+.lite-card-type { color: var(--lite-muted-text); }
+.lite-card-value { font-family: var(--monospace, monospace); overflow-wrap: anywhere; min-width: 0; }
+.lite-card-value::before { content: "= "; color: var(--lite-muted-text); }
+.lite-card-value.lite-throws { color: var(--lite-bad-text); }
+.lite-card-msgs:empty { display: none; }
+.lite-card-msgs { padding: 0 10px 8px; font-size: 13px; }
+.lite-card-msgs .lite-err { margin-top: 2px; }
+.lite-listing { max-height: 420px; overflow: auto; border: 1px solid var(--theme-foreground-faint); border-radius: 4px; background: var(--theme-background-alt); }
+.lite-code .tok-keyword, .lite-code .tok-modifier, .lite-code .tok-controlKeyword, .lite-code .tok-operatorKeyword { color: color-mix(in srgb, var(--syntax-keyword) 70%, var(--theme-foreground)); }
+.lite-code .tok-string, .lite-code .tok-string2 { color: color-mix(in srgb, var(--syntax-string) 70%, var(--theme-foreground)); }
+.lite-code .tok-number, .lite-code .tok-bool, .lite-code .tok-atom, .lite-code .tok-null { color: color-mix(in srgb, var(--syntax-literal) 70%, var(--theme-foreground)); }
+.lite-code .tok-comment { color: color-mix(in srgb, var(--syntax-comment) 70%, var(--theme-foreground)); font-style: italic; }
+.lite-code .tok-definition { color: color-mix(in srgb, var(--syntax-definition) 70%, var(--theme-foreground)); }
+.lite-code .tok-typeName, .lite-code .tok-className { color: color-mix(in srgb, var(--syntax-atom) 70%, var(--theme-foreground)); }
+.lite-code .tok-propertyName { color: color-mix(in srgb, var(--syntax-variable) 70%, var(--theme-foreground)); }
+.lite-mandel { display: block; max-width: 100%; height: auto; margin: 6px 0; border-radius: 4px; }
 .lite-vars { margin-top: 10px; }
-.lite-app input[type=range] { vertical-align: middle; margin-left: 6px; }
+.lite-app { padding: 8px 10px; margin: 6px 0; border: 1px solid var(--theme-foreground-faint); border-radius: 6px; background: var(--theme-background-alt); }
+.lite-app output { font-variant-numeric: tabular-nums; }
+.lite-app input[type=range] { vertical-align: middle; margin: 0 6px; max-width: min(240px, 50vw); }
+.lite-scroll, .lite-graph-scroll { overflow-x: auto; max-width: 100%; }
 .lite-src { font-size: 12px; max-height: 320px; overflow: auto; background: var(--theme-background-alt); padding: 6px; }
 .lite-box textarea { font-size: 12px; }
+.lite-graph { margin: 8px 0; max-width: 100%; }
+.lite-graph svg { display: block; font: 12px var(--monospace, monospace); }
+.lite-graph figcaption { font-size: 12px; color: var(--lite-muted-text); margin-top: 4px; line-height: 1.8; }
+.lite-node rect { fill: var(--theme-background-alt); stroke: var(--theme-foreground-faint); stroke-width: 1.2; }
+.lite-node text { fill: var(--theme-foreground); }
+.lite-node-ref rect { fill: color-mix(in srgb, var(--lite-accent) 22%, var(--theme-background-alt)); stroke: var(--lite-accent); stroke-width: 2; }
+.lite-node-action rect { fill: color-mix(in srgb, var(--lite-warn) 18%, var(--theme-background-alt)); stroke: var(--lite-warn); }
+.lite-node-subs rect { fill: color-mix(in srgb, var(--lite-ok) 18%, var(--theme-background-alt)); stroke: var(--lite-ok); stroke-width: 2; }
+.lite-node-source rect { stroke: var(--lite-ok); stroke-dasharray: 4 2; }
+.lite-node-cap rect { fill: none; stroke: var(--theme-foreground-muted); stroke-dasharray: 2 2; }
+.lite-node-cap text { fill: var(--lite-muted-text); font-style: italic; }
+.lite-node-test rect { stroke-dasharray: 1 3; }
+.lite-node-rejected rect { stroke: var(--lite-bad); stroke-width: 2; }
+.lite-edge { fill: none; stroke: var(--theme-foreground-faint); stroke-width: 1.2; }
+.lite-edge-handle { stroke: var(--lite-accent); stroke-dasharray: 5 3; }
+.lite-edge-sourced { stroke: var(--lite-ok); stroke-dasharray: 5 3; }
+.lite-edge-refs { stroke-dasharray: 2 3; }
+.lite-arrow-value path, .lite-arrow-refs path { fill: var(--theme-foreground-faint); }
+.lite-arrow-handle path { fill: var(--lite-accent); }
+.lite-arrow-sourced path { fill: var(--lite-ok); }
+.lite-key { margin-right: 10px; white-space: nowrap; }
+.lite-key i { display: inline-block; width: 14px; height: 10px; margin-right: 4px; vertical-align: -1px; border: 1.2px solid var(--theme-foreground-faint); border-radius: 2px; background: var(--theme-background-alt); }
+.lite-key.lite-node-ref i { border: 2px solid var(--lite-accent); background: color-mix(in srgb, var(--lite-accent) 22%, var(--theme-background-alt)); }
+.lite-key.lite-node-action i { border-color: var(--lite-warn); border-radius: 6px; background: color-mix(in srgb, var(--lite-warn) 18%, var(--theme-background-alt)); }
+.lite-key.lite-node-subs i { border: 2px solid var(--lite-ok); background: color-mix(in srgb, var(--lite-ok) 18%, var(--theme-background-alt)); }
+.lite-key.lite-node-source i { border: 1.2px dashed var(--lite-ok); }
+.lite-key.lite-node-cap i { border: 1.2px dashed var(--theme-foreground-muted); background: none; border-radius: 6px; }
+.lite-key.lite-node-test i { border-style: dotted; }
+.lite-key.lite-node-rejected i { border: 2px solid var(--lite-bad); }
+.lite-key b { display: inline-block; width: 18px; margin-right: 4px; vertical-align: 3px; border-top: 2px dashed var(--theme-foreground-faint); }
+.lite-key.lite-edge-handle b { border-color: var(--lite-accent); }
+.lite-key.lite-edge-sourced b { border-color: var(--lite-ok); }
+.lite-key.lite-edge-refs b { border-top-style: dotted; }
+.lite-game { --k: 1; position: relative; display: inline-block; max-width: 100%; }
+.lite-game > div:first-child > div:first-child { border-radius: 4px; box-shadow: 0 0 0 1px var(--theme-foreground-faintest); transform: scale(var(--k)); transform-origin: 0 0; margin: 0 calc(320px * (var(--k) - 1)) calc(240px * (var(--k) - 1)) 0; }
+.lite-game output { display: block; margin: 8px 0 6px; font-variant-numeric: tabular-nums; font-size: 14px; font-weight: 600; }
+.lite-game button, .lite-app button, .lite-bench-button button { font: 13px/1.2 var(--sans-serif, system-ui); padding: 5px 12px; color: var(--theme-foreground); background: var(--theme-background-alt); border: 1px solid var(--theme-foreground-faint); border-radius: 5px; cursor: pointer; }
+.lite-game button:hover, .lite-app button:hover { border-color: var(--lite-accent); }
+.lite-app button:disabled { opacity: 0.5; cursor: default; }
+.lite-game-state { position: absolute; left: 0; top: 0; width: calc(320px * var(--k)); height: calc(240px * var(--k)); display: flex; align-items: center; justify-content: center; pointer-events: none; color: #fff; font: 600 15px var(--sans-serif, system-ui); letter-spacing: 0.02em; background: rgba(0, 0, 0, 0.45); border-radius: 4px; }
+.lite-game-state[hidden] { display: none; }
+.lite-tests-toggle { padding: 8px 12px; border: 1px solid var(--lite-accent); border-radius: 6px; background: color-mix(in srgb, var(--lite-accent) 10%, transparent); max-width: 260px; }
+.lite-tests-toggle label { font-weight: 600; }
+.lite-tests .lite-summary .lite-badge { margin-right: 2px; }
+.lite-bench td:first-child { color: var(--lite-muted-text); }
+@media (max-width: 640px) {
+  /* a card's source wraps on a phone, keeping its indentation, rather than scrolling out of sight */
+  .lite-card .lite-code { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .lp2-pane .lopecode-visualizer { padding: 0 16px; box-sizing: border-box; }
+  .lp2-pane .observablehq > div > table { display: block; overflow-x: auto; max-width: 100%; }
+  .lp2-pane .observablehq pre { margin-left: 0; margin-right: 0; }
+}
+.lp2-pane .observablehq pre, .lp2-pane .observablehq--inspect { overflow-x: auto; max-width: 100%; }
+.lp2-pane .observablehq--inspect { display: block; }
 </style>`
 // %%
 viewof tutorial_module = thisModule()
 // %%
-liveTable = (values) => {
-  // the cells as inputs, so the table follows them
-  const { result } = ss_check(tutorial_module);
-  const shown = { ...Object.fromEntries(Object.entries(values).map(([k, v]) => [k, fmt(v)])) };
-  const body = htl.html`<tbody>`;
-  for (const name of Object.keys(shown)) {
-    const c = result.cells.find((x) => x.name === name);
-    body.append(htl.html`<tr class=${"lite-" + (c?.status ?? "blocked")}><td><code>${name}</code></td><td>${c?.status ?? "not a SoundScript cell"}</td><td><code>${c?.value ?? ""}</code></td><td class="v">${shown[name]}</td></tr>`);
-    const problems = c ? [...c.errors, ...c.unsupported.map((u) => ({ ...u, rule: "unsupported" }))] : [];
-    for (const e of problems) body.append(htl.html`<tr class="lite-err"><td></td><td colspan="3"><b>[${e.rule}]</b> ${e.msg}</td></tr>`);
-  }
-  return htl.html`<table class="lite-panel"><thead><tr><th>cell</th><th>check</th><th>type</th><th>value</th></tr></thead>${body}</table>`;
+highlightTs = {
+  // TypeScript and JSX colouring with the editor's own parser, as spans with CodeMirror's tok-* classes
+  const lang = codemirror.javascript({ typescript: true, jsx: true }).language;
+  return (text) => {
+    const out = [];
+    let at = 0;
+    lezerhighlight.highlightTree(lang.parser.parse(text), lezerhighlight.classHighlighter, (from, to, cls) => {
+      if (from > at) out.push(text.slice(at, from));
+      const span = document.createElement("span");
+      span.className = cls;
+      span.textContent = text.slice(from, to);
+      out.push(span);
+      at = to;
+    });
+    if (at < text.length) out.push(text.slice(at));
+    return out;
+  };
 }
+// %%
+cardHub = {
+  // one check of a module per code change, shared by all of its cards and listings
+  const hubs = new Map();
+  invalidation.then(() => { for (const h of hubs.values()) h.off(); });
+  return (module) => {
+    if (hubs.has(module)) return hubs.get(module);
+    const subs = new Set();
+    let state = null, queued = false;
+    const off = onCodeChange(({ variable, previous }) => {
+      if ((variable ?? previous)?._module !== module || queued) return;
+      queued = true;
+      queueMicrotask(() => { queued = false; state = null; for (const f of subs) f(); });
+    });
+    const hub = {
+      off,
+      state: () => state ?? (state = { cells: ss_moduleCells(module), result: ss.check(ss_source(module)) }),
+      subscribe: (f) => { subs.add(f); return () => subs.delete(f); },
+    };
+    hubs.set(module, hub);
+    return hub;
+  };
+}
+// %%
+ssCard = (module, key, invalidation) => {
+  // a cell's typed source, decompiled from its live definition, with its check, type and value under it
+  const hub = cardHub(module);
+  const code = htl.html`<pre class="lite-code">`, value = htl.html`<span class="lite-card-value">`;
+  const meta = htl.html`<div class="lite-card-meta">`, msgs = htl.html`<div class="lite-card-msgs">`;
+  const root = htl.html`<div class="lite-card" data-cell=${key}>${code}${meta}${msgs}</div>`;
+  let text = null, variable = null, cancel = null, error;
+  const showValue = () => {
+    value.textContent = error !== undefined ? `throws: ${error?.message ?? error}` : variable?._value === undefined ? "not computed yet" : fmt(variable._value);
+    value.classList.toggle("lite-throws", error !== undefined);
+  };
+  const watch = (v) => {
+    cancel?.();
+    variable = v;
+    error = undefined;
+    // the runtime keeps no error field, so an error arrives from observe or from the variable's promise
+    cancel = observe(v, { fulfilled: () => { error = undefined; showValue(); }, rejected: (e) => { if (!isStale(e)) { error = e; showValue(); } } });
+    v._promise?.then(() => {}, (e) => { if (!isStale(e) && variable === v) { error = e; showValue(); } });
+  };
+  const draw = () => {
+    const { cells, result } = hub.state();
+    const c = cells.find((x) => x.key === key);
+    root.hidden = !c;
+    if (!c) return;
+    if (c.text !== text) { text = c.text; code.replaceChildren(...highlightTs(text)); }
+    const r = result.cells.find((x) => x.name === key);
+    const status = r?.status ?? "blocked";
+    root.className = `lite-card lite-${status}`;
+    meta.replaceChildren(badge(status), " ", htl.html`<code class="lite-card-type">${r?.value ?? ""}</code>`, " ", value);
+    const problems = r ? [...r.errors, ...r.unsupported.map((u) => ({ ...u, rule: "unsupported" }))] : [];
+    if (status === "blocked" && r?.blockedBy?.length) problems.push({ rule: "blocked", msg: `it reads ${r.blockedBy.join(", ")}, which is not ok` });
+    msgs.replaceChildren(...problems.map((e) => htl.html`<div class="lite-err"><b>[${e.rule}]</b> ${e.msg}</div>`));
+    const v = module._scope.get(key) ?? c.variable;
+    if (v !== variable) watch(v);
+    showValue();
+  };
+  draw();
+  const unsubscribe = hub.subscribe(draw);
+  invalidation.then(() => { unsubscribe(); cancel?.(); });
+  return root;
+}
+// %%
+sourceListing = (module, invalidation) => {
+  // a whole module's typed source, as its cells are now
+  const hub = cardHub(module);
+  const pre = htl.html`<pre class="lite-code lite-listing">`;
+  let text = null;
+  const draw = () => {
+    const t = hub.state().cells.map((c) => c.text).join("\n\n");
+    if (t !== text) { text = t; pre.replaceChildren(...highlightTs(t)); }
+  };
+  draw();
+  const unsubscribe = hub.subscribe(draw);
+  invalidation.then(unsubscribe);
+  return pre;
+}
+// %%
+cardStyle = Object.assign(document.createElement("style"), { textContent: ss_card_rules })
 // %%
 test_ss_roundtrip = {
   tests_on;
@@ -744,11 +1181,7 @@ test_ss_module_checks = {
 // %%
 //raw: test_ss_counter
 // %%
-test_ss_results = {
-  tests_on;
-  return tests({ filter: (t) => t.name.includes("@tomlarkworthy/soundscript-") });
-}
-// %%
+// the capabilities are imported for cells a reader adds; a compiled cell that takes now reads ss_now
 import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_check, ss_source, ss_moduleCells, ss_roundtrip, ss_instance } from "@tomlarkworthy/soundscript"
 // %%
 import { app as reducer_app, reducer_module } from "@tomlarkworthy/soundscript-reducer"
@@ -757,10 +1190,12 @@ import { app as model_app, model_module } from "@tomlarkworthy/soundscript-model
 // %%
 import { app as workers_app, image as workers_image, width as workers_width, height as workers_height, maxIter as workers_maxIter, bands as workers_bands, inPool as workers_inPool, onMain as workers_onMain, poolSize as workers_poolSize, workers_module } from "@tomlarkworthy/soundscript-workers"
 // %%
-import { app as breakout_app, breakout_module } from "@tomlarkworthy/soundscript-breakout"
+import { app as breakout_app, playing as breakout_playing, over as breakout_over, status as breakout_status, breakout_module } from "@tomlarkworthy/soundscript-breakout"
 // %%
 import { linkTo } from "@tomlarkworthy/lopepage-urls"
 // %%
 import { thisModule, runtime, observe, onCodeChange } from "@tomlarkworthy/runtime-sdk"
 // %%
-import { tests } from "@tomlarkworthy/tests"
+import { codemirror } from "@tomlarkworthy/codemirror-6-v2"
+// %%
+import { lezerhighlight } from "@tomlarkworthy/observablehq-lezer"

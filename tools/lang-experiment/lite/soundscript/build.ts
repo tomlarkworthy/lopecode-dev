@@ -77,15 +77,16 @@ const RAW: Record<string, Record<string, Variable>> = {
   [CORE]: {
     test_ss_ref_handle: {
       name: "test_ss_ref_handle",
-      inputs: ["ss_tests_on", "ss", "viewof tally", "bump", "reset"],
-      definition: "async (on, ss, handle, bump, reset) => { if (on !== true) throw new Error(\"the tests are off\"); const g = ss.refValues(handle); const v0 = g.next().value; bump(); const v1 = await g.next().value; reset(); const v2 = await g.next().value; if (v1 !== v0 + 1 || v2 !== 0) throw new Error(`${v0} -> ${v1} -> ${v2}`); return `${v0} -> ${v1} -> ${v2}`; }",
+      // on a private copy of the module, so the counter on the page keeps its count
+      inputs: ["ss_tests_on", "ss", "ss_instance", "ss_module"],
+      definition: "async (on, ss, ss_instance, mod) => { if (on !== true) throw new Error(\"the tests are off\"); let end; const done = new Promise((r) => (end = r)); try { const inst = await ss_instance(mod, done); const [handle, bump, reset] = await Promise.all([inst.value(\"viewof tally\"), inst.value(\"bump\"), inst.value(\"reset\")]); const g = ss.refValues(handle); const v0 = g.next().value; bump(); const v1 = await g.next().value; reset(); const v2 = await g.next().value; if (v1 !== v0 + 1 || v2 !== 0) throw new Error(`${v0} -> ${v1} -> ${v2}`); return `${v0} -> ${v1} -> ${v2}`; } finally { end(); } }",
     },
   },
   [TUTORIAL]: {
     test_ss_counter: {
       name: "test_ss_counter",
-      inputs: ["tests_on", "ss", "viewof count", "increment", "clear"],
-      definition: "async (on, ss, handle, increment, clear) => { if (on !== true) throw new Error(\"the tests are off\"); const g = ss.refValues(handle); const v0 = g.next().value; increment(); const v1 = await g.next().value; clear(); const v2 = await g.next().value; if (v1 !== v0 + 1 || v2 !== 0) throw new Error(`${v0} -> ${v1} -> ${v2}`); return `${v0} -> ${v1} -> ${v2}`; }",
+      inputs: ["tests_on", "ss", "ss_instance", "tutorial_module"],
+      definition: "async (on, ss, ss_instance, mod) => { if (on !== true) throw new Error(\"the tests are off\"); let end; const done = new Promise((r) => (end = r)); try { const inst = await ss_instance(mod, done); const [handle, increment, clear] = await Promise.all([inst.value(\"viewof count\"), inst.value(\"increment\"), inst.value(\"clear\")]); const g = ss.refValues(handle); const v0 = g.next().value; increment(); const v1 = await g.next().value; clear(); const v2 = await g.next().value; if (v1 !== v0 + 1 || v2 !== 0) throw new Error(`${v0} -> ${v1} -> ${v2}`); return `${v0} -> ${v1} -> ${v2}`; } finally { end(); } }",
     },
   },
 };
@@ -95,8 +96,8 @@ if (!b.success) throw new Error(b.logs.join("\n"));
 const js = await b.outputs[0].text();
 if (/["']node:/.test(js)) throw new Error("bundle still refers to a node: module");
 const gz = Bun.gzipSync(new TextEncoder().encode(js), { level: 9 });
-// the bundle's sizes, for the tutorial's table; constants, so no boot work decompresses it again
-RAW[TUTORIAL].ss_bytes = { name: "ss_bytes", inputs: [], definition: `() => ({ raw: ${js.length}, gz: ${gz.length} })` };
+// the bundle's sizes in bytes, for the tutorial's table, written at each build; constants, so no boot work decompresses it again
+RAW[TUTORIAL].ss_bytes = { name: "ss_bytes", inputs: [], definition: `() => ({ raw: ${new TextEncoder().encode(js).length}, gz: ${gz.length} })` };
 
 type File = { name: string; mime: string; base64: boolean; data: string };
 const q = JSON.stringify;
@@ -104,18 +105,19 @@ const { compile, dispose } = await compiler();
 
 function buildModule(name: string, ojs: string, files: File[]) {
   const consts: string[] = [], defs: string[] = [], imports: string[] = [], ssNames: string[] = [];
+  const cardHidden: string[] = [];
   const addVar = (pid: string, v: Variable) => {
     consts.push(`const ${pid} = ${v.definition};`);
     defs.push(`  $def(${q(pid)}, ${q(v.name)}, ${q(v.inputs)}, ${pid});`);
   };
   const cellsOfBlock = (src: string) => {
-    const ssm = /^\/\/ss: (\S+)((?: -\S+)*)$/.exec(src);
+    const ssm = /^\/\/ss(-cards)?: (\S+)((?: -\S+)*)$/.exec(src);
     if (!ssm) return null;
-    const file = ssm[1].startsWith("./") ? join(HERE, ssm[1]) : join(EXAMPLES, ssm[1]);
-    const skip = new Set(ssm[2].split(" -").filter(Boolean));
+    const file = ssm[2].startsWith("./") ? join(HERE, ssm[2]) : join(EXAMPLES, ssm[2]);
+    const skip = new Set(ssm[3].split(" -").filter(Boolean));
     const tsx = file.endsWith("x");
     const texts = splitCells(readFileSync(file, "utf8"), tsx).filter((t) => ![...skip].some((s) => new RegExp(`^(?:\\s*//[^\\n]*\\n)*\\s*export\\s+(?:const|let|function)\\s+${s}\\b`).test(t)));
-    return { texts, tsx, skip };
+    return { texts, tsx, skip, cards: !!ssm[1] };
   };
   const blocks = splitSeed(readFileSync(join(HERE, ojs), "utf8"));
   // one context for the whole module: a cell's compiled form depends on the other cells (ss-toolchain Context)
@@ -125,12 +127,23 @@ function buildModule(name: string, ojs: string, files: File[]) {
   blocks.forEach((src, i) => {
     const ssm = cellsOfBlock(src), raw = /^\/\/raw: (\S+)$/.exec(src);
     if (ssm) {
-      const { texts, tsx, skip } = ssm;
-      const vs = texts.flatMap((t) => compileCell(t, tsx, ctx));
+      const { texts, tsx, skip, cards } = ssm;
+      const per = texts.map((t) => compileCell(t, tsx, ctx));
+      const vs = per.flat();
       for (const s of skip) if (vs.some((v) => v.name === s)) throw new Error(`${ojs}: ${s} was not left out`);
-      for (const v of vs) {
-        addVar("_ss_" + v.name.replace(/[^A-Za-z0-9_$]/g, "_"), v);
-        ssNames.push(v.name);
+      for (const cell of per) {
+        // //ss-cards: a card cell before each cell shows its source, check, type and value; the cell's own
+        // inspector lines are hidden, and only its last variable's edit bar stays, under the card
+        if (cards) {
+          if (name !== TUTORIAL) throw new Error(`${ojs}: //ss-cards needs the tutorial's ssCard and tutorial_module`);
+          const key = cell[cell.length - 1].name.replace(/^viewof /, "");
+          addVar("_card_" + key, { name: "card_" + key, inputs: ["ssCard", "tutorial_module", "invalidation"], definition: `(ssCard, m, invalidation) => ssCard(m, ${q(key)}, invalidation)` } as Variable);
+          cardHidden.push(`.observablehq[cell="card_${key}"] + div`, ...cell.flatMap((v, i) => [`.observablehq[cell="${v.name}"]`, ...(i < cell.length - 1 ? [`.observablehq[cell="${v.name}"] + div`] : [])]));
+        }
+        for (const v of cell) {
+          addVar("_ss_" + v.name.replace(/[^A-Za-z0-9_$]/g, "_"), v);
+          ssNames.push(v.name);
+        }
       }
       return;
     }
@@ -153,6 +166,11 @@ function buildModule(name: string, ojs: string, files: File[]) {
       addVar(`_ss${i}_${j}`, { name: vname, inputs, definition: String(s._definition) } as Variable);
     });
   });
+  if (cardHidden.length) {
+    // the selectors the style cell hides, as one rule; its own inspector line and bar are in it too
+    const rule = [...cardHidden, `.observablehq[cell="ss_card_rules"]`, `.observablehq[cell="ss_card_rules"] + div`, `.observablehq[cell="cardStyle"]`, `.observablehq[cell="cardStyle"] + div`].join(",\n") + " { display: none; }";
+    addVar("_card_rules", { name: "ss_card_rules", inputs: [], definition: `() => ${JSON.stringify(rule)}` } as Variable);
+  }
   const prologue = `  const fileAttachments = new Map(${q(files.map((f) => f.name))}.map((name) => {
     const module_name = ${q(name)};
     const {status, mime, bytes} = window.lopecode.contentSync(module_name + "/" + encodeURIComponent(name));

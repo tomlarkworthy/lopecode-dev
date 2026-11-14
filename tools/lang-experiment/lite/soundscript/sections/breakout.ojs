@@ -1,4 +1,4 @@
-md`# SoundScript, section 9: Breakout
+md`# SoundScript, section 9: a game
 
 The cells of section 9 of \`@tomlarkworthy/soundscript-tutorial\`, as live SoundScript cells, in a module of their own because their names are used by other sections. Press **play** and move the pointer over the board.`
 // %%

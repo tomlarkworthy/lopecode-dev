@@ -1206,9 +1206,13 @@ const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,liter
   };
   const isJs = cellLanguage(editedCell?.variables ?? [], editedCell) === 'js';
   const registered = languageOf(editedCell?.variables ?? [], editedCell);
-  const registeredLint = view => {
+  // asked on every lint, so a new cell typed as a registered language's source is linted as that language
+  const languageNow = view => registered ?? languageOf([], editedCell, view.state.doc.toString());
+  const anyLint = view => {
+    const lang = languageNow(view);
+    if (!lang?.lint) return lintSource(view);
     try {
-      return registered.lint(view.state.doc.toString(), editedCell.variables, editedCell) ?? [];
+      return lang.lint(view.state.doc.toString(), editedCell.variables, editedCell) ?? [];
     } catch (e) {
       return [{ from: 0, to: Math.min(1, view.state.doc.length), severity: 'error', message: String(e?.message ?? e) }];
     }
@@ -1230,7 +1234,7 @@ const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,liter
               const canonical = await compile_and_update(code_editor_view.state.doc.toString(), editedCell.variables, editedCell);
               if (typeof canonical === 'string') {
                 replaceCodeMirrorDoc(code_editor_view, canonical, { preserveCursor: true });
-              } else if (registered) {
+              } else if (languageNow(code_editor_view)) {
                 codemirror.forceLinting?.(code_editor_view);
               }
             })();
@@ -1248,7 +1252,7 @@ const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,liter
         ]
       }),
       codemirror.lintGutter(),
-      codemirror.linter(registered?.lint ? registeredLint : lintSource, { delay: 250 }),
+      codemirror.linter(anyLint, { delay: 250 }),
       codemirror.EditorView.baseTheme({
         '.cm-lintRange.cm-lintRange-error': {
           textDecoration: 'underline wavy #e11',
