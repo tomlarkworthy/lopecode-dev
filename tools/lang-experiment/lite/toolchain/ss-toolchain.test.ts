@@ -1,7 +1,7 @@
 // bun lite/toolchain/ss-toolchain.test.ts — per-cell round trip over every example and fixture
 import { Glob } from "bun";
 import * as acorn from "acorn";
-import { compileModule, compileCell, decompileModule, decompileVariable, splitCells, langOf } from "./ss-toolchain.ts";
+import { compileModule, compileCell, contextOf, decompileModule, decompileVariable, splitCells, langOf } from "./ss-toolchain.ts";
 
 const root = new URL("../..", import.meta.url).pathname;
 const files = [...new Glob("lite/notebook/examples/*.ts*").scanSync(root), ...new Glob("fixtures/*/*/cells.ts*").scanSync(root)].sort();
@@ -11,9 +11,10 @@ for (const f of files) {
   const tsx = f.endsWith("x");
   try {
     const texts = splitCells(src, tsx);
+    const ctx = contextOf(texts, tsx);
     for (const t of texts) {
       let vs;
-      try { vs = compileCell(t, tsx); } catch (e) {
+      try { vs = compileCell(t, tsx, ctx); } catch (e) {
         if (/not supported by ss_toolchain yet/.test(String(e))) { skipped++; continue; }
         throw e;
       }
@@ -31,9 +32,28 @@ for (const f of files) {
     pass++;
   } catch (e) { fail++; console.log("FAIL", f, String((e as Error).message).slice(0, 400)); }
 }
-// whole module, for files with nothing unsupported
-const whole = await Bun.file(root + "lite/notebook/examples/05-reducer.tsx").text();
-const mod = decompileModule(compileModule(whole, true).map((v) => v.definition));
-if (mod !== splitCells(whole, true).join("\n\n") + "\n") { fail++; console.log("FAIL module round trip 05-reducer"); }
+// whole modules
+for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
+  const whole = await Bun.file(root + "lite/notebook/examples/" + f).text();
+  const mod = decompileModule(compileModule(whole, true).map((v) => v.definition));
+  if (mod !== splitCells(whole, true).join("\n\n") + "\n") { fail++; console.log("FAIL module round trip " + f); }
+}
+// shapes the runtime and cell-map depend on
+{
+  const by = (src: string) => new Map(compileModule(src, true).map((v) => [v.name, v]));
+  const g = by(await Bun.file(root + "lite/notebook/examples/09-breakout.tsx").text());
+  const expect = (ok: boolean, what: string) => { if (!ok) { fail++; console.log("FAIL " + what); } };
+  expect(JSON.stringify(g.get("world")?.inputs) === JSON.stringify(["viewof world", "ss"]), "a ref's value variable reads its handle first: " + g.get("world")?.inputs);
+  expect(g.has("viewof world") && !g.has("ref world"), "a ref's handle is viewof world");
+  expect(JSON.stringify(g.get("tick")?.inputs) === JSON.stringify(["ss", "viewof world", "step"]), "Ref<T> parameter reads the handle: " + g.get("tick")?.inputs);
+  expect(/kind: "source"/.test(g.get("ticks")!.definition) && !g.has("viewof ticks"), "a generator taken as Source is one handle variable");
+  expect(JSON.stringify(g.get("subscriptions")?.inputs) === JSON.stringify(["ss", "ticks", "tick", "playing", "over", "invalidation"]), "on(...) adds invalidation: " + g.get("subscriptions")?.inputs);
+  expect(/memo: true/.test(g.get("bricksView")!.definition), "bricksView is memoised");
+  expect(/memo: false/.test(g.get("ticks")!.definition), "a generator is not memoised");
+  const w = by(await Bun.file(root + "lite/notebook/examples/07-workers.tsx").text());
+  expect(JSON.stringify(w.get("inPool")?.inputs) === JSON.stringify(["ss", "ss_compile", "ss_pool", "width", "height", "maxIter"]), "compile refs are hidden inputs: " + w.get("inPool")?.inputs);
+  const m = by(await Bun.file(root + "lite/notebook/examples/06-model.tsx").text());
+  expect(/memo: false/.test(m.get("stamped")!.definition), "a cell taking now is not memoised");
+}
 console.log(`${pass} files pass, ${fail} fail; ${cells} cells, ${vars} variables; ${skipped} cells skipped (Source, pool or compile)`);
 if (fail) process.exit(1);

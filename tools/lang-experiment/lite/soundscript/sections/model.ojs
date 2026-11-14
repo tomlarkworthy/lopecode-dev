@@ -1,0 +1,15 @@
+md`# SoundScript, section 6: the variables a cell becomes
+
+The cells of section 6 of \`@tomlarkworthy/soundscript-tutorial\`, as live SoundScript cells, in a module of their own because their names are used by other sections. \`areaFn\` calls \`compile\`, which reads this module's cells, so the module defines \`ss_compile\`.`
+// %%
+//ss: 06-model.tsx
+// %%
+view = ss.mount(app, this)
+// %%
+ss_compile = ss.compiler(() => ss_source(model_module))
+// %%
+viewof model_module = thisModule()
+// %%
+import { ss, ss_now, ss_source } from "@tomlarkworthy/soundscript"
+// %%
+import { thisModule } from "@tomlarkworthy/runtime-sdk"

@@ -1,0 +1,13 @@
+md`# SoundScript, section 9: Breakout
+
+The cells of section 9 of \`@tomlarkworthy/soundscript-tutorial\`, as live SoundScript cells, in a module of their own because their names are used by other sections. Press **play** and move the pointer over the board.`
+// %%
+//ss: 09-breakout.tsx
+// %%
+view = ss.mount(app, this)
+// %%
+viewof breakout_module = thisModule()
+// %%
+import { ss, ss_now } from "@tomlarkworthy/soundscript"
+// %%
+import { thisModule } from "@tomlarkworthy/runtime-sdk"

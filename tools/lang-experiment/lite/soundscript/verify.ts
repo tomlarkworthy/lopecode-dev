@@ -1,20 +1,24 @@
-// bun lite/soundscript/verify.ts [notebook.html] [--shot file.png] [--no-variant]
+// bun lite/soundscript/verify.ts [notebook.html] [--shot file.png] [--no-variant] [--ui-only]
 // Headless Chromium, every non-file request aborted. Opens soundscript.html (default
 // lopebooks/notebooks/soundscript.html) with its own default layout, then:
-//  1. every test cell of the core and the tutorial, and editor-5's test_e5_language_hook; one
-//     instance of the core (the tutorial's import is the main), one ss_registration;
+//  1. every test cell of the core, the tutorial and the four section modules, and editor-5's
+//     test_e5_language_hook; one instance of the core, one ss_registration;
 //  2. the live counter: a real click on "add one";
-//  3. the editor fork on the tutorial's `increment`: typed source shown, an unchanged save keeps
-//     text and pid, Ref<string> shows a diagnostic and is refused; a new export cell is applied;
+//  3. the editor fork on the tutorial's `increment` (synthetic events): typed source shown, an
+//     unchanged save keeps text and pid, Ref<string> shows a diagnostic and is refused;
 //  4. export with exporter-3, reopen, run 1 and 2 there, compare SoundScript definitions, block ids
-//     and decompiled source, export again and compare the module blocks;
-//  5. the core without the tutorial (build.ts --no-tutorial into .scratch/): core tests, the editor
-//     on `bump`, a new cell added through the editor, export, reopen: the cell is there as typed
-//     source and checks.
+//     and decompiled source, export again and compare the module blocks; then, on the original page,
+//     delete `subscriptions` while Breakout plays and check the clock stops;
+//  5. real Playwright clicks and keys on a fresh page: tally renders as one cell and its hotbar opens
+//     the ref source; a typed refused edit and a typed applied edit of `width`; a cell added with the
+//     hotbar's add button; Save in place from the lopepage menu (showSaveFilePicker is stubbed to
+//     write .scratch/saved.html); the saved file reopened with the edits in it;
+//  6. the core without the tutorial (build.ts --no-tutorial into .scratch/): core tests, the editor
+//     on `bump`, a new cell, a ref made plain and a ref again, export, reopen.
 // No request to /@tomlarkworthy/ or api.observablehq.com may be made (a stripped module fetched).
 // The notebook file itself is never written.
 import { chromium, type Page } from "../../../../node_modules/playwright/index.mjs";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { blockContent, blockSpans } from "../../../lib/notebook-blocks.ts";
@@ -32,11 +36,12 @@ const report = (ok: boolean, what: string) => { console.log(`${ok ? "pass" : "FA
 
 const CORE_TESTS = ["test_ss_roundtrip", "test_ss_example_checks", "test_ss_unchanged_source_checks", "test_ss_wrong_type_is_refused", "test_ss_downstream_break_is_refused", "test_ss_ref_handle", "ss_registration"];
 const TUTORIAL_TESTS = ["test_ss_roundtrip", "test_ss_module_checks", "test_ss_counter", "test_half",
-  "test_examples_check_as_expected", "test_counter_click", "test_compile_pool_matches_main", "test_compile_refuses_unchecked", "test_example_tests_pass", "test_breakout_subscriptions", "test_breakout_memo", "benchmark"];
+  "test_examples_check_as_expected", "test_compile_pool_matches_main", "test_compile_refuses_unchecked", "test_breakout_subscriptions", "test_breakout_memo", "benchmark", "test_ss_results"];
 
 const browser = await chromium.launch();
-async function open(path: string) {
+async function open(path: string, saveTo?: string) {
   const page = await browser.newPage({ viewport: { width: 1100, height: 1400 } });
+  if (saveTo) await stubPicker(page, saveTo);
   const blocked: string[] = [], errors: string[] = [];
   await page.route("**/*", (r) => (/^(file|blob|data):/.test(r.request().url()) ? r.continue() : (blocked.push(r.request().url()), r.abort())));
   page.on("pageerror", (e) => errors.push(String(e.message)));
@@ -207,10 +212,174 @@ function sameBlocks(label: string, a: string, b: string) {
   report(gone.length === 0 && added.length === 0, `${label}: the export has the built file's ${A.size} block ids${gone.length ? "; dropped " + gone.join(", ") : ""}${added.length ? "; added " + added.join(", ") : ""}`);
 }
 
+
+// --- real user paths: Playwright mouse and keyboard on the editor and the lopepage menu
+const SECTIONS = ["@tomlarkworthy/soundscript-reducer", "@tomlarkworthy/soundscript-model", "@tomlarkworthy/soundscript-workers", "@tomlarkworthy/soundscript-breakout"];
+const SECTION_TESTS: Record<string, string[]> = { "@tomlarkworthy/soundscript-reducer": ["test_undo"], "@tomlarkworthy/soundscript-model": ["areaOf4"], "@tomlarkworthy/soundscript-workers": ["image"], "@tomlarkworthy/soundscript-breakout": ["test_replay"] };
+const MOD = process.platform === "darwin" ? "Meta" : "Control";
+let tagN = 0;
+// tags the editor host of a cell's variable so a locator can reach it; null when the cell has none in view
+const tagEditor = (page: Page, module: string, cell: string) => page.evaluate(async ([module, cell, tag]) => {
+  const rt = (window as any).__ojs_runtime;
+  const mod = rt.mains.get(module);
+  const v = [...rt._variables].find((v: any) => v._module === mod && v._name === cell);
+  const editors = [...rt._variables].find((v: any) => v._name === "editors")?._value;
+  for (let i = 0; i < 150; i++) {
+    const host = editors?.get(v);
+    if (host?.querySelector(".hotbar")) { host.setAttribute("data-verify", tag); host.scrollIntoView({ block: "center" }); return tag; }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return null;
+}, [module, cell, `e${++tagN}`]);
+const defOf = (page: Page, module: string, cell: string) => page.evaluate(([module, cell]) => {
+  const rt = (window as any).__ojs_runtime;
+  const v = [...rt._variables].find((v: any) => v._module === rt.mains.get(module) && v._name === cell);
+  return v ? String(v._definition) : null;
+}, [module, cell]);
+const valueOf = (page: Page, module: string, cell: string) => page.evaluate(async ([module, cell]) => {
+  const rt = (window as any).__ojs_runtime;
+  try { return await rt.mains.get(module).value(cell); } catch (e) { return "THREW " + String((e as Error)?.message ?? e); }
+}, [module, cell]);
+async function openEditor(page: Page, module: string, cell: string) {
+  const tag = await tagEditor(page, module, cell);
+  if (!tag) return null;
+  const host = page.locator(`[data-verify="${tag}"]`);
+  await host.locator(".hotbar").first().click();
+  await host.locator(".cm-editor").first().waitFor({ timeout: 10000 });
+  await page.waitForFunction((t) => (document.querySelector(`[data-verify="${t}"] .cm-content`)?.textContent ?? "").trim().length > 0, tag, { timeout: 10000 });
+  return host;
+}
+const editorText = (host: any) => host.locator(".cm-content").first().evaluate((el: any) => (window as any).__ojs_runtime && [...(window as any).__ojs_runtime._variables].find((v: any) => v._name === "EditorView")._value.findFromDOM(el.closest(".cm-editor")).state.doc.toString());
+async function typeInto(page: Page, host: any, text: string) {
+  await host.locator(".cm-content").first().click();
+  await page.keyboard.press(`${MOD}+KeyA`);
+  await page.keyboard.insertText(text);
+  await page.keyboard.press("Shift+Enter");
+}
+async function uiPaths(page: Page, saved: string) {
+  const tab = (m: string) => page.locator(`[title="${m}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
+  await tab(CORE);
+  await page.waitForTimeout(1000);
+  // ref as one cell: one rendered node for tally and viewof tally, and its editor shows the ref source
+  const nodes = await page.evaluate(() => {
+    const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
+    return [...document.querySelectorAll(".observablehq")].filter((n: any) => n.variable?._module === core && ["tally", "viewof tally"].includes(n.variable?._name)).map((n: any) => n.variable._name);
+  });
+  report(nodes.length === 1 && nodes[0] === "tally", `ui: the ref cell tally renders as one cell (${JSON.stringify(nodes)})`);
+  const tally = await openEditor(page, CORE, "tally");
+  const tallyText = tally ? await editorText(tally) : null;
+  report(!!tallyText && tallyText.includes("export const tally = (): RefCell<number> => ref(0);"), `ui: clicking tally's hotbar opens its ref source: ${JSON.stringify(tallyText)}`);
+
+  await tab(TUTORIAL);
+  // keyboard edit that is refused, then one that is applied
+  const w0 = await defOf(page, TUTORIAL, "width");
+  const width = await openEditor(page, TUTORIAL, "width");
+  if (!width) { report(false, "ui: no editor for width"); return; }
+  await typeInto(page, width, 'export const width = () => "640";');
+  await page.waitForSelector(`.cm-lintRange-error`, { timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(800);
+  const diag = await page.evaluate(() => [...document.querySelectorAll(".cm-lintRange-error")].length);
+  report((await defOf(page, TUTORIAL, "width")) === w0 && diag > 0, `ui: a typed width = "640" plus Shift-Enter is refused with a diagnostic (${diag} marks), width unchanged`);
+  await typeInto(page, width, "export const width = () => 600;");
+  await page.waitForFunction(async () => true);
+  for (let i = 0; i < 50 && (await valueOf(page, TUTORIAL, "width")) !== 600; i++) await page.waitForTimeout(100);
+  report((await valueOf(page, TUTORIAL, "width")) === 600 && (await valueOf(page, TUTORIAL, "area")) === 600 * 400, `ui: typed width = 600 plus Shift-Enter is applied: width ${await valueOf(page, TUTORIAL, "width")}, area ${await valueOf(page, TUTORIAL, "area")}`);
+
+  // a new cell: the hotbar's add button, then typing
+  const halfTag = await tagEditor(page, TUTORIAL, "half");
+  if (!halfTag) { report(false, "ui: no editor for half"); return; }
+  const before = await page.evaluate(() => document.querySelectorAll(".cm-editor").length);
+  await page.locator(`[data-verify="${halfTag}"] .add-cell-btn`).first().click();
+  await page.waitForFunction(() => [...document.querySelectorAll(".cm-editor")].some((e) => (e.querySelector(".cm-content")?.textContent ?? "").trim() === "{}"), null, { timeout: 15000 }).catch(() => {});
+  const tag = await page.evaluate(() => {
+    const eds = [...document.querySelectorAll(".cm-editor")].filter((e) => (e.querySelector(".cm-content")?.textContent ?? "").trim() === "{}");
+    const host = eds.at(-1);
+    if (!host) return null;
+    host.setAttribute("data-verify", "new");
+    return "new";
+  });
+  if (!tag) { report(false, "ui: the add button made no empty cell editor"); return; }
+  const NEW = "export const quadrupled = (width: number) => width * 4;";
+  await typeInto(page, page.locator('[data-verify="new"]'), NEW);
+  for (let i = 0; i < 50 && (await valueOf(page, TUTORIAL, "quadrupled")) !== 2400; i++) await page.waitForTimeout(100);
+  const q = await page.evaluate(() => {
+    const rt = (window as any).__ojs_runtime, mod = rt.mains.get("@tomlarkworthy/soundscript-tutorial");
+    const order = [...rt._variables].filter((v: any) => v._module === mod);
+    const names = order.map((v: any) => v._name);
+    return { after: names[names.indexOf("quadrupled") - 1], index: names.indexOf("quadrupled"), empties: order.filter((v: any) => String(v._definition).replace(/\s/g, "").includes("{return({})}") || String(v._definition).trim() === "{}").length };
+  });
+  report((await valueOf(page, TUTORIAL, "quadrupled")) === 2400 && q.after === "half" && q.empties === 0, `ui: a cell added with the add button and typed as SoundScript is applied: quadrupled ${await valueOf(page, TUTORIAL, "quadrupled")}, placed after ${q.after}, ${q.empties} empty cells left`);
+
+  // a section module opened from its link under the tutorial's table, then edited by keyboard
+  await page.locator("a", { hasText: "@tomlarkworthy/soundscript-breakout" }).first().click();
+  const BR = "@tomlarkworthy/soundscript-breakout";
+  await page.locator(`[title="${BR}  (drag to a pane edge to dock, or out to save as .js)"]`).first().waitFor({ timeout: 10000 }).catch(() => {});
+  const pv = await openEditor(page, BR, "paddleView");
+  if (!pv) report(false, "ui: the breakout link opened no editable paddleView");
+  else {
+    const src = await editorText(pv);
+    await typeInto(page, pv, src.replace('"#ddd"', '"#eee"'));
+    for (let i = 0; i < 50 && !String(await defOf(page, BR, "paddleView")).includes("#eee"); i++) await page.waitForTimeout(100);
+    const after = await page.evaluate(() => {
+      const rt = (window as any).__ojs_runtime, mod = rt.mains.get("@tomlarkworthy/soundscript-breakout");
+      const core = rt.mains.get("@tomlarkworthy/soundscript");
+      const names = [...rt._variables].filter((v: any) => v._module === mod && v._name).map((v: any) => v._name);
+      const dups = names.filter((n: string, i: number) => names.indexOf(n) !== i);
+      let roundtrip;
+      try { roundtrip = [...rt._variables].find((v: any) => v._module === core && v._name === "ss_roundtrip")._value(mod); } catch (e) { roundtrip = String((e as Error).message); }
+      return { dups, roundtrip };
+    });
+    report(String(await defOf(page, BR, "paddleView")).includes("#eee") && after.dups.length === 0 && typeof after.roundtrip === "number", `ui: the breakout link opens its module; a typed edit of paddleView is applied; duplicate names ${JSON.stringify(after.dups)}, round trip ${after.roundtrip}`);
+    await testsPass(page, "ui after the section edit", BR, ["test_replay"]);
+  }
+  // Save in place through the lopepage menu (the file picker is stubbed to write `saved`)
+  await page.locator('button[title="Menu"]').first().click();
+  await page.locator(".lp2-menu button.lp2-menu-item", { hasText: "Save in place" }).first().click();
+  for (let i = 0; i < 100 && !existsSync(saved); i++) await page.waitForTimeout(200);
+  report(existsSync(saved) && readFileSync(saved, "utf8").length > 1e6, `ui: the menu's Save in place wrote ${existsSync(saved) ? readFileSync(saved, "utf8").length : 0} bytes`);
+}
+async function afterReload(page: Page) {
+  const w = await valueOf(page, TUTORIAL, "width"), q = await valueOf(page, TUTORIAL, "quadrupled");
+  const text = await page.evaluate(() => {
+    const rt = (window as any).__ojs_runtime, mod = rt.mains.get("@tomlarkworthy/soundscript-tutorial");
+    const ss = [...rt._variables].find((v: any) => v._name === "ss" && v._module === rt.mains.get("@tomlarkworthy/soundscript"))._value;
+    const v = [...rt._variables].find((v: any) => v._module === mod && v._name === "quadrupled");
+    return v ? ss.decompileVariable(String(v._definition)) : null;
+  });
+  report(w === 600 && q === 2400 && text === "export const quadrupled = (width: number) => width * 4;", `reload after save: width ${w}, quadrupled ${q}, as typed source ${JSON.stringify(text)}`);
+}
+// deleting the cell that holds a subscription stops it (the runtime does not resolve its invalidation)
+async function deleteStops(page: Page) {
+  const r = await page.evaluate(async () => {
+    const rt = (window as any).__ojs_runtime, mod = rt.mains.get("@tomlarkworthy/soundscript-breakout");
+    const get = (n: string) => [...rt._variables].find((v: any) => v._module === mod && v._name === n);
+    const ss = [...rt._variables].find((v: any) => v._name === "ss" && v._module === rt.mains.get("@tomlarkworthy/soundscript"))._value;
+    const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
+    get("toggle")._value();
+    await wait(400);
+    const playing = ss.running();
+    get("subscriptions").delete();
+    await wait(600);
+    const w1 = get("world")._value;
+    await wait(300);
+    return { playing, after: ss.running(), still: get("world")._value === w1 };
+  });
+  report(r.playing === 1 && r.after === 0 && r.still, `deleting subscriptions while playing stops the clock: running ${r.playing} -> ${r.after}, world unchanged ${r.still}`);
+}
+const stubPicker = async (page: Page, saved: string) => {
+  await page.exposeFunction("__verifySave", (s: string) => writeFileSync(saved, s));
+  await page.addInitScript(() => {
+    (window as any).showSaveFilePicker = async () => ({ name: "saved.html", createWritable: async () => { let buf = ""; return { write: async (s: string) => { buf += s; }, close: async () => (window as any).__verifySave(buf) }; } });
+  });
+};
+
 // --- 1-3: the notebook
-const A = await open(file);
+const uiOnly = process.argv.includes("--ui-only");
+const A = uiOnly ? null as any : await open(file);
+if (!uiOnly) {
 await testsPass(A.page, "original", CORE, CORE_TESTS);
 await testsPass(A.page, "original", TUTORIAL, TUTORIAL_TESTS);
+for (const m of SECTIONS) await testsPass(A.page, "original", m, SECTION_TESTS[m]);
 await hookPass(A.page, "original");
 await oneCore(A.page, "original");
 await counterClick(A.page, "original");
@@ -226,30 +395,49 @@ const exp1 = await exportPage(A.page);
 const exp1Path = join(SCRATCH, "export-1.html");
 writeFileSync(exp1Path, exp1);
 const orig = readFileSync(file, "utf8");
-for (const m of [CORE, TUTORIAL]) {
+for (const m of [CORE, TUTORIAL, ...SECTIONS]) {
   const lA = ssLines(orig, m), l1 = ssLines(exp1, m);
   report(lA.length > 0 && JSON.stringify(lA) === JSON.stringify(l1), `export: ${m}: ${l1.length} SoundScript definition lines, identical to the original file's ${lA.length}`);
 }
 report(exp1.includes("/*ss:: Ref<number>*/"), "export: the type comments are in the exported module");
 sameBlocks("export", orig, exp1);
+await deleteStops(A.page);
 requests("original page", A);
 await A.page.close();
+
 
 const B = await open(exp1Path);
 await testsPass(B.page, "reopened export", CORE, CORE_TESTS);
 await testsPass(B.page, "reopened export", TUTORIAL, TUTORIAL_TESTS);
+for (const m of SECTIONS) await testsPass(B.page, "reopened export", m, SECTION_TESTS[m]);
 await hookPass(B.page, "reopened export");
 await counterClick(B.page, "reopened export");
 const sourceB = await ssSource(B.page, TUTORIAL);
 report(sourceA === sourceB, `reopened export: the tutorial's SoundScript source decompiles to the same ${sourceA.length} chars`);
 const exp2 = await exportPage(B.page);
 writeFileSync(join(SCRATCH, "export-2.html"), exp2);
-for (const m of [CORE, TUTORIAL]) report(blockContent(exp1, m) === blockContent(exp2, m), `second export: the ${m} block equals the first export's`);
+for (const m of [CORE, TUTORIAL, ...SECTIONS]) report(blockContent(exp1, m) === blockContent(exp2, m), `second export: the ${m} block equals the first export's`);
 requests("reopened page", B);
 await B.page.close();
-
+}
+// --- real clicks and keys on a second copy of the page; Save in place writes .scratch/saved.html
+const savedPath = join(SCRATCH, "saved.html");
+rmSync(savedPath, { force: true });
+const E = await open(file, savedPath);
+await testsPass(E.page, "ui", CORE, CORE_TESTS);
+await uiPaths(E.page, savedPath);
+requests("ui page", E);
+await E.page.close();
+if (existsSync(savedPath)) {
+  const F = await open(savedPath);
+  // the edits change width and add a cell, so the two tests that pin section 1's values and the verdict list are left out
+  await testsPass(F.page, "reload after save", TUTORIAL, TUTORIAL_TESTS.filter((t) => !["test_ss_module_checks", "test_half", "test_ss_results"].includes(t)));
+  await afterReload(F.page);
+  requests("reloaded saved page", F);
+  await F.page.close();
+}
 // --- 5: the core without the tutorial
-if (!process.argv.includes("--no-variant")) {
+if (!uiOnly && !process.argv.includes("--no-variant")) {
   const variant = join(SCRATCH, "core-only.html");
   const built = Bun.spawnSync(["bun", join(HERE, "build.ts"), "--no-tutorial", "--force", "--out", variant], { stdout: "pipe", stderr: "pipe" });
   report(built.exitCode === 0, `core-only: built ${variant}${built.exitCode ? ": " + built.stderr.toString().slice(-400) : ""}`);
@@ -262,6 +450,41 @@ if (!process.argv.includes("--no-variant")) {
   const NEW = "export const tripled = (doubled: number) => doubled * 3;";
   const added = await addCell(C.page, CORE, "doubled", NEW, true);
   report(added.back === NEW && added.value === 0 && added.afterAnchor && added.held, `core-only: a new cell added through the editor: ${JSON.stringify(added)}`);
+  // a ref cell made plain and a ref again through apply: the handle variable comes and goes
+  const flips = await C.page.evaluate(async () => {
+    const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
+    const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
+    const lang = get("ss_language")._value;
+    const names = () => [...rt._variables].filter((v: any) => v._module === core && /^(viewof )?flag$/.test(v._name)).map((v: any) => v._name).sort();
+    const out: any[] = [];
+    const vars: any[] = [];
+    out.push(await lang.apply("export const flag = (): RefCell<boolean> => ref(false);", vars, { module: { module: core }, variables: [get("tripled")] }), names());
+    out.push(await lang.apply("export const flag = () => true;", vars), names(), await core.value("flag"));
+    out.push(await lang.apply("export const flag = (): RefCell<boolean> => ref(false);", vars), names(), await core.value("flag"));
+    return out;
+  });
+  report(JSON.stringify(flips.filter((x: any) => Array.isArray(x))) === JSON.stringify([["flag", "viewof flag"], ["flag"], ["flag", "viewof flag"]]) && flips[4] === true && flips[7] === false, `core-only: flag ref -> plain -> ref through apply: ${JSON.stringify(flips)}`);
+  // a generator becomes a Source handle when a cell takes it as Source<T>, and a plain generator again
+  // when that cell is deleted outside apply (as the editor's delete button does)
+  const src = await C.page.evaluate(async () => {
+    const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
+    const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
+    const lang = get("ss_language")._value;
+    const kind = () => /kind: "(\w+)"/.exec(String(get("pulse")?._definition))?.[1];
+    const out: any = {};
+    out.gen = await lang.apply("export const pulse = function* () { while (true) yield 1; };", [], { module: { module: core }, variables: [get("tripled")] });
+    out.before = kind();
+    out.consumer = await lang.apply("export const pulses = (pulse: Source<number>) => [];", [], { module: { module: core }, variables: [get("pulse")] });
+    out.withConsumer = kind();
+    get("pulses").delete();
+    for (let i = 0; i < 50 && kind() !== "cell"; i++) await new Promise((r) => setTimeout(r, 100));
+    out.afterDelete = kind();
+    out.roundtrip = get("ss_roundtrip")._value(core);
+    get("pulse").delete();
+    await new Promise((r) => setTimeout(r, 300));
+    return out;
+  });
+  report(src.before === "cell" && src.withConsumer === "source" && src.afterDelete === "cell" && typeof src.roundtrip === "number" && typeof src.consumer === "string", `core-only: pulse is compiled as a source while pulses takes it as Source<number>, and as a plain generator after pulses is deleted: ${JSON.stringify(src)}`);
   const cexp = await exportPage(C.page);
   const cexpPath = join(SCRATCH, "core-only-export.html");
   writeFileSync(cexpPath, cexp);
@@ -278,8 +501,10 @@ if (!process.argv.includes("--no-variant")) {
     const text = get("ss")._value.decompileVariable(String(v._definition));
     const verdict = get("ss_check")._value(core).result.cells.find((c: any) => c.name === "tripled")?.status;
     const lang = get("ss_language")._value;
-    return { present: true, typed: text === NEW, verdict, editorSource: await lang.decompile([v]), value: await core.value("tripled") };
+    const flag = get("viewof flag") && get("flag") ? lang.decompile([get("flag")]) : null;
+    return { present: true, typed: text === NEW, verdict, editorSource: await lang.decompile([v]), value: await core.value("tripled"), flag: await flag, roundtrip: get("ss_roundtrip")._value(core) };
   }, NEW);
+  report(after.flag === "export const flag = (): RefCell<boolean> => ref(false);", `core-only reopened: flag is a ref cell again after export: ${after.flag}, ${after.roundtrip} variables round trip`);
   report(after.present && after.typed && after.verdict === "ok" && after.editorSource === NEW && after.value === 0, `core-only reopened: the added cell survived the export as typed source that checks: ${JSON.stringify(after)}`);
   requests("core-only reopened page", D);
   await D.page.close();

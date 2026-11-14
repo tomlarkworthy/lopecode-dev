@@ -16,13 +16,20 @@ import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compiler, splitSeed } from "../../../spec-notebook.ts";
 import { blockContent, blockSpans, findSpan } from "../../../lib/notebook-blocks.ts";
-import { compileModule, splitCells, type Variable } from "../toolchain/ss-toolchain.ts";
+import { compileCell, contextOf, splitCells, type Variable } from "../toolchain/ss-toolchain.ts";
 
 process.on("unhandledRejection", () => {});
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "../../../..");
 const CORE = "@tomlarkworthy/soundscript";
 const TUTORIAL = "@tomlarkworthy/soundscript-tutorial";
+// sections whose cell names collide with other sections are modules of their own
+const SECTIONS = [
+  { name: "@tomlarkworthy/soundscript-reducer", ojs: "sections/reducer.ojs" },
+  { name: "@tomlarkworthy/soundscript-model", ojs: "sections/model.ojs" },
+  { name: "@tomlarkworthy/soundscript-workers", ojs: "sections/workers.ojs" },
+  { name: "@tomlarkworthy/soundscript-breakout", ojs: "sections/breakout.ojs" },
+];
 const HOST = "@tomlarkworthy/blank-notebook";
 const EDITOR = "@tomlarkworthy/editor-5";
 const BASE = join(ROOT, "lopecode/notebooks/quick_start.html");
@@ -47,7 +54,7 @@ if (existsSync(OUT)) {
   }
 }
 
-const MAINS = ["@tomlarkworthy/lopepage-2", ...(withTutorial ? [TUTORIAL] : []), CORE, "@tomlarkworthy/claude-code-pairing", "@tomlarkworthy/save-in-place"];
+const MAINS = ["@tomlarkworthy/lopepage-2", ...(withTutorial ? [TUTORIAL, ...SECTIONS.map((x) => x.name)] : []), CORE, "@tomlarkworthy/claude-code-pairing", "@tomlarkworthy/save-in-place"];
 const HASH = withTutorial ? `#view=S100(${TUTORIAL},${CORE})` : `#view=S100(${CORE})`;
 // quick_start modules this notebook does not use, and the modules only they import.
 const EXPECT_REMOVED = [
@@ -64,18 +71,18 @@ const EXPECT_REMOVED = [
 const EXPECT_ORPHANS = ["@tomlarkworthy/observablejs-toolchain/acorn-walk-8.3.2.js.gz"];
 
 const RAW: Record<string, Record<string, Variable>> = {
-  // a ref handle has no Observable identifier, so these tests are written as variables
+  // written as variables so the handle input is spelled as the compiler spells it (viewof <cell>)
   [CORE]: {
     test_ss_ref_handle: {
       name: "test_ss_ref_handle",
-      inputs: ["ss", "ref tally", "bump", "reset"],
+      inputs: ["ss", "viewof tally", "bump", "reset"],
       definition: "async (ss, handle, bump, reset) => { const g = ss.refValues(handle); const v0 = g.next().value; bump(); const v1 = await g.next().value; reset(); const v2 = await g.next().value; if (v1 !== v0 + 1 || v2 !== 0) throw new Error(`${v0} -> ${v1} -> ${v2}`); return `${v0} -> ${v1} -> ${v2}`; }",
     },
   },
   [TUTORIAL]: {
     test_ss_counter: {
       name: "test_ss_counter",
-      inputs: ["ss", "ref count", "increment", "clear"],
+      inputs: ["ss", "viewof count", "increment", "clear"],
       definition: "async (ss, handle, increment, clear) => { const g = ss.refValues(handle); const v0 = g.next().value; increment(); const v1 = await g.next().value; clear(); const v2 = await g.next().value; if (v1 !== v0 + 1 || v2 !== 0) throw new Error(`${v0} -> ${v1} -> ${v2}`); return `${v0} -> ${v1} -> ${v2}`; }",
     },
   },
@@ -99,14 +106,23 @@ function buildModule(name: string, ojs: string, files: File[]) {
     consts.push(`const ${pid} = ${v.definition};`);
     defs.push(`  $def(${q(pid)}, ${q(v.name)}, ${q(v.inputs)}, ${pid});`);
   };
-  splitSeed(readFileSync(join(HERE, ojs), "utf8")).forEach((src, i) => {
-    const ssm = /^\/\/ss: (\S+)((?: -\S+)*)$/.exec(src), raw = /^\/\/raw: (\S+)$/.exec(src);
+  const cellsOfBlock = (src: string) => {
+    const ssm = /^\/\/ss: (\S+)((?: -\S+)*)$/.exec(src);
+    if (!ssm) return null;
+    const file = ssm[1].startsWith("./") ? join(HERE, ssm[1]) : join(EXAMPLES, ssm[1]);
+    const skip = new Set(ssm[2].split(" -").filter(Boolean));
+    const tsx = file.endsWith("x");
+    const texts = splitCells(readFileSync(file, "utf8"), tsx).filter((t) => ![...skip].some((s) => new RegExp(`^(?:\\s*//[^\\n]*\\n)*\\s*export\\s+(?:const|let|function)\\s+${s}\\b`).test(t)));
+    return { texts, tsx, skip };
+  };
+  const blocks = splitSeed(readFileSync(join(HERE, ojs), "utf8"));
+  // one context for the whole module: a cell's compiled form depends on the other cells (ss-toolchain Context)
+  const ctx = contextOf(blocks.flatMap((b) => cellsOfBlock(b)?.texts ?? []), true);
+  blocks.forEach((src, i) => {
+    const ssm = cellsOfBlock(src), raw = /^\/\/raw: (\S+)$/.exec(src);
     if (ssm) {
-      const file = ssm[1].startsWith("./") ? join(HERE, ssm[1]) : join(EXAMPLES, ssm[1]);
-      const skip = new Set(ssm[2].split(" -").filter(Boolean));
-      const tsx = file.endsWith("x");
-      const text = splitCells(readFileSync(file, "utf8"), tsx).filter((t) => ![...skip].some((s) => new RegExp(`^(?:\\s*//[^\\n]*\\n)*\\s*export\\s+(?:const|let|function)\\s+${s}\\b`).test(t))).join("\n\n");
-      const vs = compileModule(text, tsx);
+      const { texts, tsx, skip } = ssm;
+      const vs = texts.flatMap((t) => compileCell(t, tsx, ctx));
       for (const s of skip) if (vs.some((v) => v.name === s)) throw new Error(`${ojs}: ${s} was not left out`);
       for (const v of vs) {
         addVar("_ss_" + v.name.replace(/[^A-Za-z0-9_$]/g, "_"), v);
@@ -158,7 +174,7 @@ function buildModule(name: string, ojs: string, files: File[]) {
   return { html, consts: consts.length, ssNames };
 }
 
-let core, tutorial;
+let core, tutorial, sections: ReturnType<typeof buildModule>[] = [];
 try {
   core = buildModule(CORE, "core.ojs", [{ name: "ss.js.gz", mime: "application/gzip", base64: true, data: Buffer.from(gz).toString("base64") }]);
   if (withTutorial) {
@@ -168,6 +184,7 @@ try {
       return { name: f, mime: "text/plain", base64: false, data };
     });
     tutorial = buildModule(TUTORIAL, "tutorial.ojs", files);
+    sections = SECTIONS.map((x) => buildModule(x.name, x.ojs, []));
   }
 } finally {
   dispose();
@@ -185,7 +202,7 @@ html = html.slice(0, es.start) + eraw.slice(0, eraw.indexOf(">") + 1) + "\n" + f
 
 const host = findSpan(html, HOST);
 if (!host) throw new Error(`no ${HOST} block in ${BASE}`);
-html = html.slice(0, host.start) + core.html + (tutorial ? "\n" + tutorial.html : "") + html.slice(host.end);
+html = html.slice(0, host.start) + core.html + (tutorial ? "\n" + tutorial.html : "") + sections.map((x) => "\n" + x.html).join("") + html.slice(host.end);
 
 const conf = JSON.parse(blockContent(html, "bootconf.json")!);
 conf.mains = MAINS;
@@ -239,6 +256,6 @@ writeFileSync(OUT, html);
 if (guarded) writeFileSync(HASH_FILE, sha(html) + "\n");
 console.log(JSON.stringify({
   out: OUT, bytes: Buffer.byteLength(html), bytesBeforeStrip: sizeBefore, removed, orphans, bundle: js.length, bundleGz: gz.length,
-  coreVariables: core.consts, tutorialVariables: tutorial?.consts ?? 0, coreSoundScript: core.ssNames, tutorialSoundScript: tutorial?.ssNames ?? [], mains: conf.mains, hash: conf.hash,
+  coreVariables: core.consts, tutorialVariables: tutorial?.consts ?? 0, coreSoundScript: core.ssNames, tutorialSoundScript: tutorial?.ssNames ?? [], sectionVariables: sections.map((x) => x.consts), mains: conf.mains, hash: conf.hash,
 }, null, 2));
 process.exit(0);

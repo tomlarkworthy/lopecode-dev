@@ -1,70 +1,25 @@
 // Runs checked cells in a private Observable Runtime, without TypeScript or the file system: the
 // browser counterpart of ../../run.ts loadPort (cells.ts or cells.tsx only; no shell or foreign).
 import { Runtime } from "@observablehq/runtime";
-import { parse, type Node } from "../parse.ts";
+import { type Node } from "../parse.ts";
 import { lowerJsx } from "../jsx/lower.ts";
 import { h } from "../jsx/h.ts";
 import { erase } from "./erase.ts";
 import * as P from "../../prelude.runtime.ts";
-import { island, specOf, compileCalls, type IslandSpec } from "../island.ts";
+import { island, type IslandSpec } from "../island.ts";
+import { cellsOf, on, isSubs, guard, generatorish, type CellInfo } from "./cells.ts";
+export { cellsOf, on, guard, generatorish, type CellInfo };
 import { pagePool, runHere, type Pool } from "./workers.ts";
 
 export type Status = "pending" | "fulfilled" | "rejected";
 export type Rec = { name: string; status: Status; value?: unknown; error?: unknown; evals: number };
 // now and random are made per consuming cell, as the harness does.
 export type Capabilities = { now?: (cell: string) => () => number; random?: (cell: string) => () => number; fetch?: typeof fetch; log?: (cell: string, line: string) => void; pool?: () => Pool };
-export type CellInfo = { name: string; params: { name: string; refTyped: boolean; sourceTyped: boolean }[]; returnsRef: boolean; generator: boolean; compiles: IslandSpec[] };
 // The checker's verdict per cell, as checkSources returns it; compile refuses an island that is not all ok.
 export type Verdicts = { cells: { name: string; status: string; errors: unknown[] }[] };
 
 const CAPS = new Set(["now", "random", "fetch", "log", "invalidation", "compile", "pool"]);
 const PRELUDE = ["ref", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "h"];
-// on(source, action): a subscription, as a value. The runner keeps running the set a cell returns.
-const SUB = Symbol("sub");
-export const on = (source: unknown, act: unknown) => Object.freeze({ [SUB]: true, source, action: act });
-const isSubs = (v: unknown): v is { source: { make: () => any }; action: (x: unknown) => void }[] =>
-  Array.isArray(v) && v.length > 0 && v.every((x) => x && typeof x === "object" && SUB in x);
-
-function isRefCall(e: Node | null | undefined): boolean {
-  while (e && (e.type === "ParenthesizedExpression" || e.type === "TSAsExpression")) e = e.expression;
-  return !!e && e.type === "CallExpression" && e.callee.type === "Identifier" && e.callee.name === "ref";
-}
-
-export function cellsOf(src: string): CellInfo[] {
-  const out: CellInfo[] = [];
-  const add = (name: string, fn: Node) => {
-    const rt = fn.returnType?.typeAnnotation;
-    const returnsRef = (rt?.type === "TSTypeReference" && rt.typeName.name === "RefCell") ||
-      (fn.body.type === "BlockStatement" ? fn.body.body.some((s: Node) => s.type === "ReturnStatement" && isRefCall(s.argument)) : isRefCall(fn.body));
-    out.push({
-      name, returnsRef, generator: !!fn.generator,
-      compiles: compileCalls(fn).map(specOf).filter((s): s is NonNullable<ReturnType<typeof specOf>> => !!s).map(({ inputs, refs, outputs }) => ({ inputs, refs, outputs })),
-      params: fn.params.map((p: Node) => {
-        const a = p.typeAnnotation?.typeAnnotation;
-        const ref = (n: string) => a?.type === "TSTypeReference" && a.typeName.name === n;
-        return { name: p.type === "Identifier" ? p.name : "", refTyped: ref("Ref"), sourceTyped: ref("Source") };
-      }),
-    });
-  };
-  for (const st of parse(src).program.body) {
-    const d = st.type === "ExportNamedDeclaration" ? st.declaration : null;
-    if (d?.type === "FunctionDeclaration") add(d.id.name, d);
-    else if (d?.type === "VariableDeclaration")
-      for (const x of d.declarations)
-        if (x.id.type === "Identifier" && x.init && /^(Arrow)?FunctionExpression$/.test(x.init.type)) add(x.id.name, x.init);
-  }
-  return out;
-}
-
-export const generatorish = (v: any): v is Generator => !!v && typeof v.next === "function" && typeof v.return === "function";
-export function guard(g: Generator) {
-  const wrap = (m: "next" | "return" | "throw") => (...a: unknown[]) => {
-    P.state.evalDepth++;
-    try { return (g[m] as (...x: unknown[]) => unknown)(...a); } finally { P.state.evalDepth--; }
-  };
-  return { next: wrap("next"), return: wrap("return"), throw: wrap("throw"), [Symbol.iterator]() { return this; } };
-}
-
 export type Program = ReturnType<typeof runCells>;
 
 let programs = 0;

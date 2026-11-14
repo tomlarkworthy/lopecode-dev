@@ -5,7 +5,7 @@
 import * as acorn from "acorn";
 import { parse, type Node } from "../parse.ts";
 import { lowerJsx } from "../jsx/lower.ts";
-import { cellsOf } from "../browser/run.ts";
+import { cellsOf } from "../browser/cells.ts";
 import { commentTypes, uncommentTypes, langOf, LANG } from "./comment-types.ts";
 
 export type Variable = { name: string; inputs: string[]; definition: string };
@@ -14,8 +14,9 @@ export { langOf, LANG };
 const SS = "$ss$"; // wrapper parameter bound to the stdlib runtime object
 export const STDLIB_INPUT = "ss";
 const PRELUDE = ["ref", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "h"];
-// Capability parameter -> the variable the stdlib provides. invalidation is the runtime's own.
-export const CAP_INPUTS: Record<string, string> = { now: "ss_now", random: "ss_random", fetch: "ss_fetch", log: "ss_log", invalidation: "invalidation" };
+// Capability parameter -> the variable the stdlib provides. invalidation is the runtime's own;
+// ss_compile is defined in each module that compiles, because compile reads that module's cells.
+export const CAP_INPUTS: Record<string, string> = { now: "ss_now", random: "ss_random", fetch: "ss_fetch", log: "ss_log", pool: "ss_pool", compile: "ss_compile", invalidation: "invalidation" };
 const PROJECTION = "/*ss@ref*/";
 
 const header = (o: object) => `/*ss^${JSON.stringify(o).replaceAll("*/", "*\\/")}*/`;
@@ -51,7 +52,35 @@ const identifiers = (n: Node, acc = new Set<string>()): Set<string> => {
   return acc;
 };
 
-export function compileCell(text: string, tsx: boolean): Variable[] {
+// What one cell's compiled form depends on in the rest of its module: which cells are generators,
+// and which of those some cell takes as Source<T>. compileModule works it out; a cell compiled on
+// its own gets the empty context.
+export type Context = { generators: ReadonlySet<string>; sourced: ReadonlySet<string> };
+const NO_CONTEXT: Context = { generators: new Set(), sourced: new Set() };
+const NO_MEMO_CAPS = new Set(["now", "random", "fetch", "log"]);
+
+export function contextOf(texts: string[], tsx: boolean): Context {
+  const infos = texts.flatMap((t) => { try { return cellsOf(tsx ? lowerJsx(t) : t); } catch { return []; } });
+  const generators = new Set(infos.filter((c) => c.generator).map((c) => c.name));
+  const sourced = new Set(infos.flatMap((c) => c.params.filter((p) => p.sourceTyped && generators.has(p.name)).map((p) => p.name)));
+  return { generators, sourced };
+}
+
+// The variable a cell's value is read from, and the one that holds its handle.
+export const handleName = (name: string) => `viewof ${name}`;
+
+// two 32-bit FNV-1a hashes with different offsets, as 13 base-36 digits
+export function contentId(text: string): string {
+  let a = 0x811c9dc5, b = 0x01000193 ^ 0x5bd1e995;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    a = Math.imul(a ^ c, 0x01000193) >>> 0;
+    b = Math.imul(b ^ c, 0x01000193 + 2) >>> 0;
+  }
+  return a.toString(36).padStart(7, "0") + b.toString(36).padStart(7, "0");
+}
+
+export function compileCell(text: string, tsx: boolean, ctx: Context = NO_CONTEXT): Variable[] {
   reserved(text);
   const P = parse(text, { jsx: tsx });
   if (P.program.body.length !== 1) throw new Error("a cell is exactly one top-level statement");
@@ -68,11 +97,6 @@ export function compileCell(text: string, tsx: boolean): Variable[] {
 
   const info = cellsOf(tsx ? lowerJsx(text) : text)[0];
   if (!info) throw new Error("not a cell");
-  for (const p of info.params) {
-    if (p.sourceTyped) throw new Error(`${info.name}: Source parameters are not supported by ss_toolchain yet`);
-    if (p.name === "pool" || p.name === "compile") throw new Error(`${info.name}: the ${p.name} capability is not supported by ss_toolchain yet`);
-  }
-  if (info.compiles.length) throw new Error(`${info.name}: compile(...) is not supported by ss_toolchain yet`);
 
   // an anonymous function* (...) is not a statement, so each pass sees the function as an expression
   const asExpr = (f: (s: string) => string, s: string) => f(`(${s})`).slice(1, -1);
@@ -81,21 +105,42 @@ export function compileCell(text: string, tsx: boolean): Variable[] {
   const typed = asExpr(commentTypes, lowered);
   const params = info.params.map((p) => p.name);
   const used = [...identifiers(parse(`(${lowered})`).program)].filter((n) => PRELUDE.includes(n) && !params.includes(n));
-  const inputs = [STDLIB_INPUT, ...info.params.map((p) => (p.refTyped ? `ref ${p.name}` : CAP_INPUTS[p.name] ?? p.name))];
-  const kind = info.returnsRef ? "ref" : "cell";
+  const inputs = [STDLIB_INPUT, ...info.params.map((p) => (p.refTyped ? handleName(p.name) : CAP_INPUTS[p.name] ?? p.name))];
+  const kind = info.returnsRef ? "ref" : info.generator && ctx.sourced.has(info.name) ? "source" : "cell";
+  // hidden inputs: invalidation for a cell that builds subscriptions (they stop when it re-runs), and
+  // the refs of its compile(...) calls (it re-runs, and returns new functions, when one changes)
+  const hidden: string[] = [];
+  const hiddenInputs: string[] = [];
+  if (used.includes("on") && !params.includes("invalidation")) { hidden.push("$ss$inv"); hiddenInputs.push("invalidation"); }
+  const inv = params.includes("invalidation") ? "invalidation" : hidden.includes("$ss$inv") ? "$ss$inv" : "null";
+  const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
+  const refArgs = refs.map((r, i) => { hidden.push(`$ss$r${i}`); hiddenInputs.push(r); return `${JSON.stringify(r)}: $ss$r${i}`; });
+  const args = params.map((p) => (p === "compile" ? `${SS}.compileFor(compile, ${JSON.stringify(info.name)}, {${refArgs.join(", ")}})` : p));
+  const memo = kind === "cell" && !info.generator &&
+    !info.params.some((p) => NO_MEMO_CAPS.has(p.name) || (ctx.generators.has(p.name) && !p.sourceTyped));
   const inner = `${LANG}${header({ h: text.slice(0, fn.start), t: text.slice(fn.end) })}${typed}`;
   const destructure = used.length ? `const {${used.join(", ")}} = ${SS}; ` : "";
-  const definition = `(${[SS, ...params].join(", ")}) => { ${destructure}return ${SS}.cell(${inner}, ${JSON.stringify(kind)}, ${JSON.stringify(info.name)}, [${params.join(", ")}]); }`;
+  // id: a hash of the compiled text. The memo is keyed by it, so equal text with equal inputs shares a
+  // result (sound for a pure cell) and any edit starts empty.
+  const body = `${inner}, [${args.join(", ")}]`;
+  const id = contentId(`${kind} ${info.name} ${memo} ${body}`);
+  const opts = `{kind: ${JSON.stringify(kind)}, name: ${JSON.stringify(info.name)}, memo: ${memo}, id: ${JSON.stringify(id)}, invalidation: ${inv}}`;
+  const definition = `(${[SS, ...params, ...hidden].join(", ")}) => { ${destructure}return ${SS}.cell(${body}, ${opts}); }`;
+  const all = [...inputs, ...hiddenInputs];
   if (kind === "ref") {
     return [
-      { name: `ref ${info.name}`, inputs, definition },
-      { name: info.name, inputs: [STDLIB_INPUT, `ref ${info.name}`], definition: `(${SS}, _) => ${LANG}${PROJECTION}${SS}.refValues(_)` },
+      { name: info.name, inputs: [handleName(info.name), STDLIB_INPUT], definition: `(_, ${SS}) => ${LANG}${PROJECTION}${SS}.refValues(_)` },
+      { name: handleName(info.name), inputs: all, definition },
     ];
   }
-  return [{ name: info.name, inputs, definition }];
+  return [{ name: info.name, inputs: all, definition }];
 }
 
-export const compileModule = (src: string, tsx: boolean): Variable[] => splitCells(src, tsx).flatMap((c) => compileCell(c, tsx));
+export function compileModule(src: string, tsx: boolean): Variable[] {
+  const texts = splitCells(src, tsx);
+  const ctx = contextOf(texts, tsx);
+  return texts.flatMap((c) => compileCell(c, tsx, ctx));
+}
 
 const unesc = (s: string) => s.replaceAll("*\\/", "*/");
 
@@ -122,7 +167,7 @@ export function decompileVariable(definition: string): string | null {
 }
 
 // Variables of one cell, by any one of their names.
-export const cellOfVariable = (name: string): string => name.replace(/^(ref|type) /, "");
+export const cellOfVariable = (name: string): string => name.replace(/^(viewof|type) /, "");
 
 export function decompileModule(definitions: string[]): string {
   return definitions.map(decompileVariable).filter((s): s is string => s !== null).join("\n\n") + "\n";

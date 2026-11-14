@@ -1,0 +1,13 @@
+md`# SoundScript, section 5: every write as a reducer
+
+The cells of section 5 of \`@tomlarkworthy/soundscript-tutorial\`, as live SoundScript cells. They are a module of their own because their names (\`app\`, \`step\`, \`state\`) are used by other sections.`
+// %%
+//ss: 05-reducer.tsx
+// %%
+view = ss.mount(app, this)
+// %%
+viewof reducer_module = thisModule()
+// %%
+import { ss } from "@tomlarkworthy/soundscript"
+// %%
+import { thisModule } from "@tomlarkworthy/runtime-sdk"
