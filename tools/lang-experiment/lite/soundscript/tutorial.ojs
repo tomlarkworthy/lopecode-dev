@@ -32,7 +32,7 @@ For a cell that \`lite\` accepts: it reads only its parameters, the prelude and 
 Not guaranteed:
 
 - \`lite\` is a prototype checked against a reference: 52 of 54 existing fixtures get the same verdict and reason as the TypeScript-based harness, with index reads typed \`T\` as TypeScript does (section "How good is the checker"). Where it approximates a rule, \`lite/README.md\` says so.
-- The runtime does not consult the checker. The rejected cells of sections 3 and 8 were compiled when the notebook was built, and they run. The editor refuses an edit that would leave a cell rejected (section "Editing SoundScript cells").
+- The runtime does not refuse a rejected cell. The rejected cells of sections 3 and 8 were compiled when the notebook was built, and they run; the checker's verdict only keeps them from being memoised. The editor refuses an edit that would leave a cell rejected (section "Editing SoundScript cells").
 - A cell may ask for \`now\` or \`random\` and be accepted; it is then not deterministic, and its signature says so. Nothing forces a reducer such as section 9's \`step\` to avoid them.`
 // %%
 md`## Why this makes notebooks fast
@@ -115,7 +115,7 @@ md`The cells are in [@tomlarkworthy/soundscript-model](${linkTo("@tomlarkworthy/
 // %%
 md`Five kinds of variable, read off that table:
 
-- **A plain cell** is one variable with the cell's name. Its inputs are \`ss\` (the standard library) and its parameter names. It is *memoised*: when every input is the same value (\`Object.is\`) as on its last run, the body does not run and the variable keeps its last value. Observable still recomputes the readers, which then hit their own memo. The **runs** column counts body runs. This is sound because the checker only accepts cells that are functions of their inputs and never mutate a value they did not make; in ordinary Observable a cell can mutate an object in place and keep its identity, and memoising would hide the change. Two kinds are not memoised. A cell that takes \`now\`, \`random\`, \`fetch\` or \`log\` can differ between two runs on the same inputs (section 2). A cell that reads a generator's values may be lent the same buffer mutated between yields (\`yield borrow(buf)\`, \`RULES.md\`).
+- **A plain cell** is one variable with the cell's name. Its inputs are \`ss\` (the standard library) and its parameter names. It is *memoised*: when every input is the same value (\`Object.is\`) as on its last run, the body does not run and the variable keeps its last value. Observable still recomputes the readers, which then hit their own memo. The **runs** column counts body runs. This is sound because the checker only accepts cells that are functions of their inputs and never mutate a value they did not make; in ordinary Observable a cell can mutate an object in place and keep its identity, and memoising would hide the change. Three kinds are not memoised. A cell the checker rejects, such as the mistakes shown live in sections 3 and 8, is not covered by that argument, so it runs every time. A cell that takes \`now\`, \`random\`, \`fetch\` or \`log\` can differ between two runs on the same inputs (section 2). A cell that reads a generator's values may be lent the same buffer mutated between yields (\`yield borrow(buf)\`, \`RULES.md\`).
 - **A ref cell** (\`count\`) is two. \`viewof count\` holds the handle that \`Ref<number>\` parameters get, made once. \`count\` holds the current value and yields again after every committed write, so \`doubled\` recomputes on **bump** and \`bump\` does not.
 - **A capability** is a variable of the core module: \`now\` is \`ss_now\`, \`random\` is \`ss_random\`, and so on. \`stamped\` takes \`now\`, so its inputs list \`ss_now\`.
 - **A cell that calls \`compile\`** has the cells it names in \`refs\` as extra inputs, after its parameters. \`areaFn\` takes \`scale\` this way, although \`scale\` is not one of its parameters (section 7). Its \`compile\` parameter is \`ss_compile\`, which a module that compiles defines for itself, because \`compile\` reads that module's cells.
@@ -393,7 +393,7 @@ md`### How live cells are evaluated (this page)
 
 Not part of the checked language; what the standard library (\`lite/stdlib/runtime.ts\`) does when a compiled cell runs.
 
-- A cell runs when an input it reads changes. A plain cell whose inputs are all the same values (\`Object.is\`) as last time does not run and keeps its value (memoised); excluded are cells reading a generator and cells taking \`now\`, \`random\`, \`fetch\` or \`log\`.
+- A cell runs when an input it reads changes. A plain cell whose inputs are all the same values (\`Object.is\`) as last time does not run and keeps its value (memoised); excluded are cells the checker rejects, cells reading a generator and cells taking \`now\`, \`random\`, \`fetch\` or \`log\`.
 - A generator cell is stepped by the Observable runtime, at most once per animation frame, unless it is taken as a \`Source\`, in which case only subscriptions step it.
 - Rejected cells that were compiled into the notebook still run; the editor refuses edits that would leave a cell rejected, and \`compile\` refuses to run an island the checker did not accept.
 - The view returned by a mounted cell is applied to the DOM by patching: same tag at the same position reuses the node, an element that is the same object as last time is skipped, children that all carry \`key\` are matched by key.`
@@ -439,9 +439,16 @@ These were discussed on 2026-11-14 and none of them exists in \`lite\` or in thi
 
 **Reflection.** The typed \`Variable\` and \`Module<C>\` of section 6, so a cell that defines or redefines other cells is checked, and a redefinition rechecks the cells downstream of it. Recorded in \`tools/lang-experiment/lite/NOTES-reflection.md\`; parked.`
 // %%
-md`## Tests`
+md`## Tests
+
+They run only when this is on, so reading the page costs nothing for them. Each test takes \`tests_on\`, pending until then. The Breakout tests play a copy of section 9's cells (\`ss_instance\`), not the game above.`
+// %%
+viewof run_tests = Inputs.toggle({ label: "run the tests" })
+// %%
+tests_on = run_tests ? true : invalidation
 // %%
 test_examples_check_as_expected = {
+  tests_on;
   const want = { cells: [7, 0], errors: [8, 5], mut: [4, 2], counter: [4, 0], reducer: [10, 0], model: [10, 0], workers: [13, 0], rejectJsx: [17, 11], game: [21, 0] };
   const got = {};
   for (const [k, [n, rejected]] of Object.entries(want)) {
@@ -454,6 +461,7 @@ test_examples_check_as_expected = {
 }
 // %%
 test_compile_pool_matches_main = {
+  tests_on;
   const image = await workers_image;
   const main = await workers_onMain({ y0: 0, y1: workers_height });
   if (main.rows.length !== image.length || !main.rows.every((v, i) => v === image[i])) throw new Error("pool and main thread differ");
@@ -461,6 +469,7 @@ test_compile_pool_matches_main = {
 }
 // %%
 test_compile_refuses_unchecked = {
+  tests_on;
   // the workers example with one island cell made to read Math.random, which the checker rejects
   const source = examples.workers.replace("out[at + 3] = 255;", "out[at + 3] = Math.random();");
   if (source === examples.workers) throw new Error("rows no longer writes out[at + 3] = 255; update this test");
@@ -475,11 +484,12 @@ test_compile_refuses_unchecked = {
 }
 // %%
 test_breakout_subscriptions = {
+  tests_on;
+  // its own copy of section 9's cells: the game on the page is not played or reset
+  const game = await ss_instance(breakout_module, invalidation);
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-  const get = (n) => breakout_module._scope.get(n)._value;
-  for (const n of ["reset", "toggle", "world", "bricks"]) await breakout_module.value(n);
-  get("reset")();
-  await wait(50);
+  const get = (n) => game._scope.get(n)._value;
+  for (const n of ["reset", "toggle", "world", "bricks"]) await game.value(n);
   const w0 = get("world"), r0 = ss.running();
   get("toggle")();
   await wait(600);
@@ -489,25 +499,25 @@ test_breakout_subscriptions = {
   const w2 = get("world"), paused = ss.running() - r0;
   await wait(300);
   const w3 = get("world");
-  get("reset")();
   if (playing !== 1 || w1.ball.y === w0.ball.y) throw new Error(`playing: ${playing} subscriptions, ball ${w0.ball.y} -> ${w1.ball.y}; a hidden tab gets no animation frames`);
   if (paused !== 0 || w3 !== w2) throw new Error(`paused: ${paused} subscriptions, the world ${w3 === w2 ? "kept" : "changed"}`);
   return `play: 1 subscription, the ball moved ${w0.ball.y} -> ${w1.ball.y.toFixed(1)}; pause: none, and the world stays the same object`;
 }
 // %%
 test_breakout_memo = {
-  test_breakout_subscriptions; // both drive the same game, so they run one after the other
+  test_breakout_subscriptions; // both count running subscriptions, so they run one after the other
+  const game = await ss_instance(breakout_module, invalidation);
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-  const get = (n) => breakout_module._scope.get(n)._value;
-  for (const n of ["reset", "toggle", "world", "bricks"]) await breakout_module.value(n);
-  const runs = (n) => ss.evals(breakout_module._scope.get(n)._definition);
+  const get = (n) => game._scope.get(n)._value;
+  for (const n of ["reset", "toggle", "world", "bricks", "app"]) await game.value(n);
+  const runs = (n) => ss.evals(game._scope.get(n)._definition);
+  // the copy's app drawn into a node of its own, as breakout_view draws the page's
+  let view = null;
+  const drawn = new Promise((res) => invalidation.then(observe(game._scope.get("app"), { fulfilled(a) { view = ss.mount(a, view); res(); } })));
+  await drawn;
   const muts = {};
   const mo = new MutationObserver((rs) => { for (const r of rs) { const k = r.type === "attributes" ? "attr " + r.attributeName : r.type; muts[k] = (muts[k] ?? 0) + (r.type === "childList" ? r.addedNodes.length + r.removedNodes.length : 1); } });
   const names = ["ballView", "bricksView", "paddleView", "status", "app", "subscriptions"];
-  get("reset")();
-  await wait(50);
-  // read without a dependency: breakout_view recomputes every frame, and this cell would restart
-  const view = tutorial_module._scope.get("breakout_view")._value;
   mo.observe(view, { subtree: true, childList: true, attributes: true, characterData: true });
   const n0 = Object.fromEntries(names.map((n) => [n, runs(n)]));
   const b0 = get("bricks").length;
@@ -520,7 +530,6 @@ test_breakout_memo = {
   mo.disconnect();
   const ran = Object.fromEntries(names.map((n) => [n, runs(n) - n0[n]]));
   const broken = b0 - get("bricks").length;
-  get("reset")();
   if (frames < 20) throw new Error(`only ${frames} frames in 1.5 s; a hidden tab gets no animation frames`);
   if (changes < frames * 0.9) throw new Error(`the world changed ${changes} times in ${frames} frames`);
   if (broken < 1) throw new Error("no brick broke, so the keyed path was not exercised");
@@ -614,44 +623,57 @@ kindOf = (v) => {
   return `cell, ${kind}${extra}`;
 }
 // %%
-moduleTable = (module, invalidation) => {
-  // values every 250 ms, verdicts when the module's source changes
+liveRows = (module, invalidation, { head, cells, row, cls = "" }) => {
+  // A table of module's SoundScript variables, drawn on change only: all rows when the module's code
+  // changes (onCodeChange), one row's live part when its variable computes (observe).
   const body = htl.html`<tbody>`;
-  let source = null, result = null;
-  const draw = () => {
-    const s = ss_source(module);
-    if (s !== source) { source = s; result = ss.checkSources({ cells: s, tsx: true }); }
-    const rows = [];
-    for (const c of ss_moduleCells(module)) {
-      if (c.key.startsWith("type ")) continue;
-      const v = module._scope.get(c.key), r = result.cells.find((x) => x.name === c.key);
-      const val = v?._error !== undefined ? `throws: ${v._error?.message ?? v._error}` : fmt(v?._value);
-      rows.push(htl.html`<tr class=${"lite-" + (r?.status ?? "blocked")}><td><code>${c.key}</code></td><td>${r?.status ?? ""}</td><td><code>${r?.value ?? ""}</code></td><td class="v">${val}</td><td>${ss.evals(c.variable._definition)}</td></tr>`);
-    }
-    body.replaceChildren(...rows);
+  let cancels = [], rebuildQueued = false;
+  const rebuild = () => {
+    rebuildQueued = false;
+    cancels.forEach((c) => c());
+    const made = cells().map((r) => ({ ...r, ...row(r) }));
+    body.replaceChildren(...made.map((r) => r.tr));
+    cancels = made.map((r) => observe(r.variable, { fulfilled: () => r.update(), rejected: () => r.update() }));
   };
-  draw();
-  const t = setInterval(draw, 250);
-  invalidation.then(() => clearInterval(t));
-  return htl.html`<table class="lite-panel"><thead><tr><th>cell</th><th>check</th><th>type</th><th>value</th><th>runs</th></tr></thead>${body}</table>`;
+  const queue = () => { if (!rebuildQueued) { rebuildQueued = true; queueMicrotask(rebuild); } };
+  const off = onCodeChange(({ variable, previous }) => { if ((variable ?? previous)?._module === module) queue(); });
+  rebuild();
+  invalidation.then(() => { off(); cancels.forEach((c) => c()); });
+  return htl.html`<table class=${"lite-panel " + cls}>${head}${body}</table>`;
 }
 // %%
-variableTable = (module, invalidation) => {
-  const body = htl.html`<tbody>`;
-  const draw = () => {
-    const rows = [];
-    for (const v of runtime._variables) {
-      if (v._module !== module || typeof v._name !== "string" || typeof v._definition !== "function" || ss.langOf(String(v._definition)) !== "ss") continue;
-      const counted = String(v._definition).includes("$ss$.cell(");
-      rows.push(htl.html`<tr><td><code>${v._name}</code></td><td><code>${v._inputs.map((i) => i._name).join(", ")}</code></td><td>${kindOf(v)}</td><td>${counted ? ss.evals(v._definition) : ""}</td></tr>`);
-    }
-    body.replaceChildren(...rows);
-  };
-  draw();
-  const t = setInterval(draw, 250);
-  invalidation.then(() => clearInterval(t));
-  return htl.html`<table class="lite-panel lite-vars"><thead><tr><th>variable</th><th>inputs</th><th>kind</th><th>runs</th></tr></thead>${body}</table>`;
+moduleTable = (module, invalidation) => {
+  // verdicts come from the module's source, checked again when its code changes
+  let source = null, result = null;
+  const verdicts = () => { const s = ss_source(module); if (s !== source) { source = s; result = ss.check(s); } return result; };
+  return liveRows(module, invalidation, {
+    head: htl.html`<thead><tr><th>cell</th><th>check</th><th>type</th><th>value</th><th>runs</th></tr></thead>`,
+    cells: () => { const res = verdicts(); return ss_moduleCells(module).filter((c) => !c.key.startsWith("type ")).map((c) => ({ ...c, variable: module._scope.get(c.key) ?? c.variable, verdict: res.cells.find((x) => x.name === c.key) })); },
+    row: ({ key, variable: v, verdict: r }) => {
+      const val = htl.html`<td class="v">`, runs = htl.html`<td>`;
+      const update = () => {
+        val.textContent = v._error !== undefined ? `throws: ${v._error?.message ?? v._error}` : fmt(v._value);
+        const h = module._scope.get(ss.handleName(key)) ?? v;
+        runs.textContent = String(ss.evals(String(h._definition).includes("$ss$.cell(") ? h._definition : v._definition));
+      };
+      update();
+      return { update, tr: htl.html`<tr class=${"lite-" + (r?.status ?? "blocked")}><td><code>${key}</code></td><td>${r?.status ?? ""}</td><td><code>${r?.value ?? ""}</code></td>${val}${runs}</tr>` };
+    },
+  });
 }
+// %%
+variableTable = (module, invalidation) => liveRows(module, invalidation, {
+  cls: "lite-vars",
+  head: htl.html`<thead><tr><th>variable</th><th>inputs</th><th>kind</th><th>runs</th></tr></thead>`,
+  cells: () => [...runtime._variables].filter((v) => v._module === module && typeof v._name === "string" && typeof v._definition === "function" && ss.langOf(String(v._definition)) === "ss").map((variable) => ({ variable })),
+  row: ({ variable: v }) => {
+    const counted = String(v._definition).includes("$ss$.cell(");
+    const runs = htl.html`<td>`;
+    const update = () => { runs.textContent = counted ? String(ss.evals(v._definition)) : ""; };
+    update();
+    return { update, tr: htl.html`<tr><td><code>${v._name}</code></td><td><code>${v._inputs.map((i) => i._name).join(", ")}</code></td><td>${kindOf(v)}</td>${runs}</tr>` };
+  },
+})
 // %%
 benchmark = {
   remeasure;
@@ -704,12 +726,14 @@ liveTable = (values) => {
 }
 // %%
 test_ss_roundtrip = {
+  tests_on;
   const n = ss_roundtrip(tutorial_module);
   if (n < 33) throw new Error(`only ${n} SoundScript variables found`);
   return `${n} variables recompile to the same text and inputs`;
 }
 // %%
 test_ss_module_checks = {
+  tests_on;
   const { result } = ss_check(tutorial_module);
   const got = Object.fromEntries(result.cells.map((c) => [c.name, c.status]));
   const want = { width: "ok", height: "ok", area: "ok", aspect: "ok", scale: "ok", half: "ok", test_half: "ok", samples: "ok", histogram: "ok", leak: "rejected", late: "rejected", count: "ok", increment: "ok", clear: "ok", app: "ok", n: "ok", inc: "ok", setN: "ok", Badge: "ok", NotElem: "ok", bad_attr_type: "rejected", bad_unknown_attr: "rejected", bad_unknown_element: "rejected", bad_handler_not_action: "rejected", bad_handler_wrong_args: "rejected", bad_component_props: "rejected", bad_component_missing_prop: "rejected", bad_component_not_elem: "rejected", bad_mut_in_jsx: "rejected", bad_child_object: "rejected", ok_all: "ok" };
@@ -720,9 +744,12 @@ test_ss_module_checks = {
 // %%
 //raw: test_ss_counter
 // %%
-test_ss_results = tests({ filter: (t) => t.name.includes("@tomlarkworthy/soundscript-") })
+test_ss_results = {
+  tests_on;
+  return tests({ filter: (t) => t.name.includes("@tomlarkworthy/soundscript-") });
+}
 // %%
-import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_check, ss_source, ss_moduleCells, ss_roundtrip } from "@tomlarkworthy/soundscript"
+import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_check, ss_source, ss_moduleCells, ss_roundtrip, ss_instance } from "@tomlarkworthy/soundscript"
 // %%
 import { app as reducer_app, reducer_module } from "@tomlarkworthy/soundscript-reducer"
 // %%
@@ -734,6 +761,6 @@ import { app as breakout_app, breakout_module } from "@tomlarkworthy/soundscript
 // %%
 import { linkTo } from "@tomlarkworthy/lopepage-urls"
 // %%
-import { thisModule, runtime } from "@tomlarkworthy/runtime-sdk"
+import { thisModule, runtime, observe, onCodeChange } from "@tomlarkworthy/runtime-sdk"
 // %%
 import { tests } from "@tomlarkworthy/tests"

@@ -28,6 +28,8 @@ const KEYWORDS = new Map<string, Ty>([
 ]);
 const keyName = (k: Node): string | null => (k.type === "Identifier" ? k.name : k.type === "Literal" ? String(k.value) : null);
 
+let DECLS: [Parsed, Parsed, Parsed] | null = null;
+
 export class Registry {
   types = new Map<string, Decl>();
   values = new Map<string, ValueDecl>();
@@ -38,9 +40,11 @@ export class Registry {
   private ifaceMemo = new Map<string, Rec>();
 
   constructor() {
-    this.load(parse(INTRINSIC_DECLS), "intrinsic");
-    this.load(parse(PRELUDE_DECLS), "prelude");
-    this.load(parse(JSX_DECLS), "jsx"); // structural, unlike the opaque intrinsic interfaces
+    // the declaration texts are constants and nothing writes to a parsed tree, so they are parsed once
+    DECLS ??= [parse(INTRINSIC_DECLS), parse(PRELUDE_DECLS), parse(JSX_DECLS)];
+    this.load(DECLS[0], "intrinsic");
+    this.load(DECLS[1], "prelude");
+    this.load(DECLS[2], "jsx"); // structural, unlike the opaque intrinsic interfaces
   }
 
   // Top-level type/interface/declare statements of a file. Returns non-declaration statements untouched.

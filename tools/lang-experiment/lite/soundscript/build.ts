@@ -17,6 +17,8 @@ import { fileURLToPath } from "node:url";
 import { compiler, splitSeed } from "../../../spec-notebook.ts";
 import { blockContent, blockSpans, findSpan } from "../../../lib/notebook-blocks.ts";
 import { compileCell, contextOf, splitCells, type Variable } from "../toolchain/ss-toolchain.ts";
+import { checkSources } from "../core.ts";
+import { acceptedOf } from "../toolchain/ss-toolchain.ts";
 
 process.on("unhandledRejection", () => {});
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -75,15 +77,15 @@ const RAW: Record<string, Record<string, Variable>> = {
   [CORE]: {
     test_ss_ref_handle: {
       name: "test_ss_ref_handle",
-      inputs: ["ss", "viewof tally", "bump", "reset"],
-      definition: "async (ss, handle, bump, reset) => { const g = ss.refValues(handle); const v0 = g.next().value; bump(); const v1 = await g.next().value; reset(); const v2 = await g.next().value; if (v1 !== v0 + 1 || v2 !== 0) throw new Error(`${v0} -> ${v1} -> ${v2}`); return `${v0} -> ${v1} -> ${v2}`; }",
+      inputs: ["ss_tests_on", "ss", "viewof tally", "bump", "reset"],
+      definition: "async (on, ss, handle, bump, reset) => { if (on !== true) throw new Error(\"the tests are off\"); const g = ss.refValues(handle); const v0 = g.next().value; bump(); const v1 = await g.next().value; reset(); const v2 = await g.next().value; if (v1 !== v0 + 1 || v2 !== 0) throw new Error(`${v0} -> ${v1} -> ${v2}`); return `${v0} -> ${v1} -> ${v2}`; }",
     },
   },
   [TUTORIAL]: {
     test_ss_counter: {
       name: "test_ss_counter",
-      inputs: ["ss", "viewof count", "increment", "clear"],
-      definition: "async (ss, handle, increment, clear) => { const g = ss.refValues(handle); const v0 = g.next().value; increment(); const v1 = await g.next().value; clear(); const v2 = await g.next().value; if (v1 !== v0 + 1 || v2 !== 0) throw new Error(`${v0} -> ${v1} -> ${v2}`); return `${v0} -> ${v1} -> ${v2}`; }",
+      inputs: ["tests_on", "ss", "viewof count", "increment", "clear"],
+      definition: "async (on, ss, handle, increment, clear) => { if (on !== true) throw new Error(\"the tests are off\"); const g = ss.refValues(handle); const v0 = g.next().value; increment(); const v1 = await g.next().value; clear(); const v2 = await g.next().value; if (v1 !== v0 + 1 || v2 !== 0) throw new Error(`${v0} -> ${v1} -> ${v2}`); return `${v0} -> ${v1} -> ${v2}`; }",
     },
   },
 };
@@ -117,7 +119,9 @@ function buildModule(name: string, ojs: string, files: File[]) {
   };
   const blocks = splitSeed(readFileSync(join(HERE, ojs), "utf8"));
   // one context for the whole module: a cell's compiled form depends on the other cells (ss-toolchain Context)
-  const ctx = contextOf(blocks.flatMap((b) => cellsOfBlock(b)?.texts ?? []), true);
+  // only cells the checker accepts are memoised, judged over the module's whole source as the core does
+  const allTexts = blocks.flatMap((b) => cellsOfBlock(b)?.texts ?? []);
+  const ctx = contextOf(allTexts, true, allTexts.length ? acceptedOf(checkSources({ cells: allTexts.join("\n\n"), tsx: true })) : null);
   blocks.forEach((src, i) => {
     const ssm = cellsOfBlock(src), raw = /^\/\/raw: (\S+)$/.exec(src);
     if (ssm) {

@@ -8,13 +8,16 @@ import { ownership } from "./own.ts";
 import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec } from "./types.ts";
 import { CAPABILITIES } from "./intrinsics.ts";
 import { island, specOf, compileCalls } from "./island.ts";
+import { factsOf, type CellInfo } from "./facts.ts";
 
 export type LiteError = { rule: string; line: number; msg: string };
 export type LiteCell = {
   name: string; status: "ok" | "rejected" | "unsupported" | "blocked"; line: number;
   errors: LiteError[]; unsupported: LiteError[]; blockedBy: string[]; value?: string;
 };
-export type LiteResult = { port: string; file: string; ok: boolean; module: LiteError[]; cells: LiteCell[]; ms: number };
+// facts: per cell, what the compiler needs (facts.ts), from this check's parse. Not enumerable, so a
+// result prints and compares as before.
+export type LiteResult = { port: string; file: string; ok: boolean; module: LiteError[]; cells: LiteCell[]; ms: number; readonly facts?: ReadonlyMap<string, CellInfo> };
 
 type CellDef = { name: string; fn: Node; stmt: Node };
 
@@ -276,7 +279,9 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean } = {})
     r.status = r.errors.length ? "rejected" : r.unsupported.length ? "unsupported" : r.blockedBy.length ? "blocked" : "ok";
   }
   const list = cells.map((c) => out.get(c.name)!);
-  return { port: dir, file: tsx ? "cells.tsx" : "cells.ts", ok: moduleErrs.length === 0 && list.every((c) => c.status === "ok"), module: moduleErrs, cells: list, ms: performance.now() - t0 };
+  const result: LiteResult = { port: dir, file: tsx ? "cells.tsx" : "cells.ts", ok: moduleErrs.length === 0 && list.every((c) => c.status === "ok"), module: moduleErrs, cells: list, ms: performance.now() - t0 };
+  Object.defineProperty(result, "facts", { value: new Map(cells.map((c) => [c.name, factsOf(c.name, c.fn, c.stmt)])), enumerable: false });
+  return result;
 }
 
 function dedupe(es: LiteError[]): LiteError[] {

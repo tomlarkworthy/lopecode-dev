@@ -9,10 +9,23 @@ import { on, isSubs, generatorish, cellsOf } from "../browser/cells.ts";
 export { cellsOf };
 import { island, type IslandSpec } from "../island.ts";
 import { pagePool, runHere, type Pool } from "../browser/workers.ts";
-import { splitCells } from "../toolchain/ss-toolchain.ts";
-export { compileCell, compileModule, contextOf, decompileVariable, decompileModule, langOf, cellOfVariable, splitCells, handleName } from "../toolchain/ss-toolchain.ts";
+export { compileCell, compileModule, contextOf, contextFromCheck, acceptedOf, decompileVariable, decompileModule, langOf, cellOfVariable, splitCells, handleName } from "../toolchain/ss-toolchain.ts";
 import { checkSources } from "../core.ts";
 export { checkSources };
+// checkSources for SoundScript cells, remembered for the last 16 sources. The editor asks about the
+// same module source several times per keystroke (lint, the cells an edit would break, the compile
+// context); a result is never written to, so one is shared.
+const checks = new Map<string, ReturnType<typeof checkSources>>();
+export function check(source: string, tsx = true): ReturnType<typeof checkSources> {
+  const key = (tsx ? "x" : "s") + source;
+  let r = checks.get(key);
+  if (r) { checks.delete(key); checks.set(key, r); return r; }
+  r = checkSources({ cells: source, tsx });
+  checks.set(key, r);
+  if (checks.size > 16) checks.delete(checks.keys().next().value!);
+  return r;
+}
+
 
 export const { ref, action, mut, freeze, borrow, snapshot, equals, refValues } = P;
 export { h, on, create, patch, pagePool };
@@ -123,8 +136,22 @@ export function release(set: unknown) {
   const h = held.get(set as object);
   if (!h) return;
   held.delete(set as object);
+  bornAt.delete(set as object);
   const mine = h.mine;
   for (const e of mine) if (--e.count === 0) { e.stop(); live.splice(live.indexOf(e), 1); }
+}
+
+// Stops the sets no live variable holds. A set made since the last sweep is spared once: it may be
+// a value the runtime has not assigned yet.
+let generation = 0;
+const bornAt = new Map<object, number>();
+export function sweep(values: Set<unknown>) {
+  generation++;
+  for (const set of [...held.keys()]) {
+    if (values.has(set)) { bornAt.delete(set); continue; }
+    if (!bornAt.has(set)) { bornAt.set(set, generation); continue; }
+    if (bornAt.get(set)! < generation) { bornAt.delete(set); release(set); }
+  }
 }
 
 // compile for one module. read() returns that module's SoundScript source; an island runs only when
@@ -132,7 +159,6 @@ export function release(set: unknown) {
 export function compiler(read: () => string) {
   const owners = new Map<string, { dead: boolean }>();
   const keys = new Map<string, string>();
-  let checked: { source: string; result: ReturnType<typeof checkSources> } | null = null;
   return {
     // called each time the calling cell runs: the functions it made before are superseded
     for(caller: string, refs: Record<string, unknown>) {
@@ -141,11 +167,9 @@ export function compiler(read: () => string) {
       owners.set(caller, owner);
       return (spec: IslandSpec & { options?: { runtime?: Pool } }) => {
         const source = read();
-        if (checked?.source !== source) checked = { source, result: checkSources({ cells: source, tsx: true }) };
-        const { result } = checked;
-        const texts = splitCells(source, true);
-        const cells = texts.map((t) => { try { return cellsOf(lowerJsx(t))[0]; } catch { return undefined; } });
-        const byName = new Map(cells.flatMap((c, i) => (c ? [[c.name, { info: c, text: texts[i] }] as const] : [])));
+        const result = check(source);
+        // cell facts and text come from the check's parse
+        const byName = new Map([...result.facts!.values()].map((info) => [info.name, { info, text: source.slice(info.span![0], info.span![1]) }] as const));
         const isl = island([...byName.values()].map(({ info }) => ({ name: info.name, params: info.params.map((p) => p.name), refCell: info.returnsRef })), spec);
         if (isl.problems.length) throw new Error(isl.problems.map((p) => p.msg).join("; "));
         const verdict = new Map(result.cells.map((c) => [c.name, c.status === "ok" && !c.errors.length]));

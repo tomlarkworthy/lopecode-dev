@@ -2,16 +2,26 @@
 import { Glob } from "bun";
 import * as acorn from "acorn";
 import { compileModule, compileCell, contextOf, decompileModule, decompileVariable, splitCells, langOf } from "./ss-toolchain.ts";
+import { checkSources } from "../core.ts";
+import { acceptedOf, contextFromCheck } from "./ss-toolchain.ts";
+const accepted = (src: string, tsx = true) => acceptedOf(checkSources({ cells: src, tsx }));
 
 const root = new URL("../..", import.meta.url).pathname;
 const files = [...new Glob("lite/notebook/examples/*.ts*").scanSync(root), ...new Glob("fixtures/*/*/cells.ts*").scanSync(root)].sort();
-let pass = 0, skipped = 0, fail = 0, cells = 0, vars = 0;
+let pass = 0, skipped = 0, fail = 0, cells = 0, vars = 0, factsCompared = 0;
 for (const f of files) {
   const src = await Bun.file(root + f).text();
   const tsx = f.endsWith("x");
   try {
     const texts = splitCells(src, tsx);
-    const ctx = contextOf(texts, tsx);
+    // the context and facts from one check of the module must compile every cell to the same text
+    // as the context and facts the compiler parses for itself
+    let checked = null;
+    try { checked = checkSources({ cells: src, tsx }); } catch {}
+    const ctx = contextOf(texts, tsx, checked ? acceptedOf(checked) : null);
+    const fromCheck = checked ? contextFromCheck(checked) : null;
+    if (fromCheck && (JSON.stringify([...fromCheck.generators].sort()) !== JSON.stringify([...ctx.generators].sort()) || JSON.stringify([...fromCheck.sourced].sort()) !== JSON.stringify([...ctx.sourced].sort())))
+      throw new Error(`contextFromCheck differs from contextOf: ${JSON.stringify([[...fromCheck.generators], [...ctx.generators]])}`);
     for (const t of texts) {
       let vs;
       try { vs = compileCell(t, tsx, ctx); } catch (e) {
@@ -19,6 +29,11 @@ for (const f of files) {
         throw e;
       }
       cells++;
+      if (fromCheck) {
+        const again = JSON.stringify(compileCell(t, tsx, fromCheck));
+        if (again !== JSON.stringify(vs)) throw new Error(`a cell compiles differently with the check's facts:\n${again}\n${JSON.stringify(vs)}`);
+        factsCompared++;
+      }
       for (const v of vs) {
         vars++;
         acorn.parseExpressionAt(v.definition, 0, { ecmaVersion: "latest" });
@@ -40,7 +55,7 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
 }
 // shapes the runtime and cell-map depend on
 {
-  const by = (src: string) => new Map(compileModule(src, true).map((v) => [v.name, v]));
+  const by = (src: string) => new Map(compileModule(src, true, accepted(src)).map((v) => [v.name, v]));
   const g = by(await Bun.file(root + "lite/notebook/examples/09-breakout.tsx").text());
   const expect = (ok: boolean, what: string) => { if (!ok) { fail++; console.log("FAIL " + what); } };
   expect(JSON.stringify(g.get("world")?.inputs) === JSON.stringify(["viewof world", "ss"]), "a ref's value variable reads its handle first: " + g.get("world")?.inputs);
@@ -54,6 +69,11 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
   expect(JSON.stringify(w.get("inPool")?.inputs) === JSON.stringify(["ss", "ss_compile", "ss_pool", "width", "height", "maxIter"]), "compile refs are hidden inputs: " + w.get("inPool")?.inputs);
   const m = by(await Bun.file(root + "lite/notebook/examples/06-model.tsx").text());
   expect(/memo: false/.test(m.get("stamped")!.definition), "a cell taking now is not memoised");
+  const mutSrc = await Bun.file(root + "lite/notebook/examples/03-mut.ts").text();
+  const mu = new Map(compileModule(mutSrc, false, accepted(mutSrc, false)).map((v) => [v.name, v]));
+  expect(/memo: false/.test(mu.get("leak")!.definition) && /memo: false/.test(mu.get("late")!.definition), "cells the checker rejects (leak, late) are not memoised");
+  expect([...mu.values()].some((v) => /memo: true/.test(v.definition)), "an accepted cell of 03-mut is memoised");
+  expect(compileModule(mutSrc, false).every((v) => !/memo: true/.test(v.definition)), "with no verdicts, nothing is memoised");
 }
-console.log(`${pass} files pass, ${fail} fail; ${cells} cells, ${vars} variables; ${skipped} cells skipped (Source, pool or compile)`);
+console.log(`${pass} files pass, ${fail} fail; ${cells} cells, ${vars} variables; ${skipped} cells skipped (Source, pool or compile); ${factsCompared} cells compiled the same from the check's facts`);
 if (fail) process.exit(1);

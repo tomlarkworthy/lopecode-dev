@@ -1,4 +1,4 @@
-// bun lite/soundscript/verify.ts [notebook.html] [--shot file.png] [--no-variant] [--ui-only]
+// bun lite/soundscript/verify.ts [notebook.html] [--shot file.png] [--no-variant] [--no-speed] [--ui-only | --variant-only | --speed-only]
 // Headless Chromium, every non-file request aborted. Opens soundscript.html (default
 // lopebooks/notebooks/soundscript.html) with its own default layout, then:
 //  1. every test cell of the core, the tutorial and the four section modules, and editor-5's
@@ -31,21 +31,24 @@ const shot = process.argv.includes("--shot") ? process.argv[process.argv.indexOf
 const SCRATCH = join(HERE, ".scratch");
 mkdirSync(SCRATCH, { recursive: true });
 
-let failed = false;
-const report = (ok: boolean, what: string) => { console.log(`${ok ? "pass" : "FAIL"} ${what}`); if (!ok) failed = true; };
+let passes = 0, fails = 0;
+const report = (ok: boolean, what: string) => { console.log(`${ok ? "pass" : "FAIL"} ${what}`); ok ? passes++ : fails++; };
 
 const CORE_TESTS = ["test_ss_roundtrip", "test_ss_example_checks", "test_ss_unchanged_source_checks", "test_ss_wrong_type_is_refused", "test_ss_downstream_break_is_refused", "test_ss_ref_handle", "ss_registration"];
 const TUTORIAL_TESTS = ["test_ss_roundtrip", "test_ss_module_checks", "test_ss_counter", "test_half",
   "test_examples_check_as_expected", "test_compile_pool_matches_main", "test_compile_refuses_unchecked", "test_breakout_subscriptions", "test_breakout_memo", "benchmark", "test_ss_results"];
 
 const browser = await chromium.launch();
+try {
 async function open(path: string, saveTo?: string) {
   const page = await browser.newPage({ viewport: { width: 1100, height: 1400 } });
   if (saveTo) await stubPicker(page, saveTo);
   const blocked: string[] = [], errors: string[] = [];
   await page.route("**/*", (r) => (/^(file|blob|data):/.test(r.request().url()) ? r.continue() : (blocked.push(r.request().url()), r.abort())));
   page.on("pageerror", (e) => errors.push(String(e.message)));
+  page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) console.log(`  console.error: ${m.text().slice(0, 400)}`); });
   await page.goto(`file://${path}`);
+  page.on("framenavigated", (f) => { if (f === page.mainFrame()) console.log(`  navigated: ${f.url().slice(0, 200)}`); });
   return { page, blocked, errors };
 }
 function requests(label: string, o: { blocked: string[]; errors: string[] }) {
@@ -97,6 +100,118 @@ async function oneCore(page: Page, label: string) {
     return { regs, same: imp ? imp._value === rt.mains.get(core) : null };
   }, [CORE, TUTORIAL]);
   report(r.regs === 1 && r.same === true, `${label}: one ss_registration variable (${r.regs}); the tutorial's import of the core is the main module (${r.same})`);
+}
+
+
+// Tests are gated by a "run the tests" toggle in each module that has them. At boot they must be
+// pending, cost nothing and leave the page's examples alone; then a real click turns them on.
+async function testsOn(page: Page, label: string, boot = true) {
+  const t0 = Date.now();
+  await page.waitForFunction(() => document.querySelectorAll("label").length > 0 && [...document.querySelectorAll("label")].some((l) => /run the tests/.test(l.textContent ?? "")), null, { timeout: 60000 });
+  if (boot) {
+    // the core and tutorial must have computed their example cells before "nothing ran" means anything
+    await page.waitForFunction(() => { const rt = (window as any).__ojs_runtime; const m = rt?.mains?.get("@tomlarkworthy/soundscript"); return m && m._scope.get("doubled")?._value !== undefined; }, null, { timeout: 60000 });
+    const idle = await page.evaluate(() => {
+      const rt = (window as any).__ojs_runtime;
+      const st: Record<string, string> = {};
+      for (const v of rt._variables) if (typeof v._name === "string" && /^test_(ss_|breakout|compile|examples)/.test(v._name) && v._module && [...rt.mains.values()].includes(v._module))
+        st[v._name] = v._value !== undefined ? "ran" : v._error !== undefined ? "error" : "pending";
+      const ss = [...rt._variables].find((v: any) => v._name === "ss" && v._value?.running)?._value;
+      const bm = rt.mains.get("@tomlarkworthy/soundscript-breakout");
+      const ball = bm?._scope.get("ballView");
+      return { ran: Object.entries(st).filter(([, x]) => x !== "pending").map(([n]) => n), pending: Object.keys(st).length, running: ss?.running(), ballRuns: ball ? ss?.evals(ball._definition) : null };
+    });
+    report(idle.ran.length === 0 && idle.running === 0 && (idle.ballRuns ?? 0) <= 1, `${label}: at boot ${idle.pending} test cells are pending and none ran (${JSON.stringify(idle.ran)}); subscriptions running ${idle.running}; the page's ballView ran ${idle.ballRuns} times`);
+  }
+  // each toggle is found by the module whose cell holds it; when its pane shows another tab, that
+  // module's tab is clicked first. The tutorial goes last, so its tab is the one left showing.
+  let n = 0;
+  for (const m of [CORE, TUTORIAL]) {
+    const tag = await page.evaluate((m) => {
+      const rt = (window as any).__ojs_runtime, mod = rt.mains.get(m);
+      for (const el of document.querySelectorAll("input[type=checkbox]")) {
+        const label = el.closest("form")?.querySelector("label")?.textContent ?? "";
+        const cell = el.closest(".observablehq") as any;
+        if (label.trim() === "run the tests" && cell?.variable?._module === mod) { el.setAttribute("data-tests-toggle", m); return true; }
+      }
+      return false;
+    }, m);
+    if (!tag) continue;
+    const box = page.locator(`[data-tests-toggle="${m}"]`);
+    if (!(await box.isVisible())) await page.locator(`[title="${m}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
+    await box.check();
+    n++;
+  }
+  console.log(`  ${label}: turned on ${n} test toggles (${Date.now() - t0} ms)`);
+}
+
+// --- speed, measured against budgets (headless Chromium on this machine; the numbers are printed)
+const BUDGET = { firstRenderMs: 1500, firstCheckMs: 1500, keystrokeCheckMs: 50, breakoutFps: 58, typingLongTasks: 0 };
+async function speed() {
+  const page = await browser.newPage({ viewport: { width: 1100, height: 1400 } });
+  await page.route("**/*", (r) => (/^(file|blob|data):/.test(r.request().url()) ? r.continue() : r.abort()));
+  // first appearance of a rendered tutorial cell and of a checker verdict, timed from navigation start
+  await page.addInitScript(() => {
+    const w = window as any;
+    w.__marks = {};
+    w.__longtasks = [];
+    try { new PerformanceObserver((l) => { for (const e of l.getEntries()) w.__longtasks.push({ at: e.startTime, ms: e.duration }); }).observe({ type: "longtask", buffered: true }); } catch {}
+    const mark = (k: string) => { w.__marks[k] ??= performance.now(); };
+    new MutationObserver(() => {
+      if (!w.__marks.firstRender && [...document.querySelectorAll("h1")].some((h) => /SoundScript/.test(h.textContent ?? ""))) mark("firstRender");
+      if (!w.__marks.firstCheck && document.querySelector("tr.lite-ok, .lite-summary")) mark("firstCheck");
+    }).observe(document, { subtree: true, childList: true });
+  });
+  await page.goto(`file://${file}`);
+  await page.waitForFunction(() => (window as any).__marks.firstRender && (window as any).__marks.firstCheck, null, { timeout: 60000 }).catch(() => {});
+  const marks = await page.evaluate(() => (window as any).__marks);
+  report(marks.firstRender < BUDGET.firstRenderMs, `speed: load to the tutorial's title rendered ${marks.firstRender?.toFixed(0)} ms (budget ${BUDGET.firstRenderMs})`);
+  report(marks.firstCheck < BUDGET.firstCheckMs, `speed: load to the first checker verdict on the page ${marks.firstCheck?.toFixed(0)} ms (budget ${BUDGET.firstCheckMs})`);
+  await page.waitForFunction(() => { const rt = (window as any).__ojs_runtime; const m = rt?.mains?.get("@tomlarkworthy/soundscript"); return m?._scope.get("ss_language")?._value; }, null, { timeout: 60000 });
+  // what the editor's lint runs for one keystroke: check the edited cell against the whole tutorial module
+  const ks = await page.evaluate(async () => {
+    const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript"), tut = rt.mains.get("@tomlarkworthy/soundscript-tutorial");
+    const lang = core._scope.get("ss_language")._value;
+    const v = tut._scope.get("width");
+    const src = await lang.decompile([v]);
+    const t: number[] = [];
+    for (let i = 0; i < 30; i++) { const a = performance.now(); lang.check(src.replace(/\d+/, String(600 + i)), [v]); t.push(performance.now() - a); }
+    t.sort((x, y) => x - y);
+    const cells = core._scope.get("ss_moduleCells")._value(tut).length;
+    return { cells, median: t[15], max: t[29] };
+  });
+  report(ks.max < BUDGET.keystrokeCheckMs, `speed: one keystroke's check of width against the ${ks.cells}-cell tutorial module: median ${ks.median.toFixed(1)} ms, max ${ks.max.toFixed(1)} ms of 30 (budget ${BUDGET.keystrokeCheckMs} for the max)`);
+  // the Mandelbrot timing the tutorial shows (its benchmark cell, measured during boot); Breakout is timed after it, so the two do not share the main thread
+  await page.waitForFunction(() => (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript-tutorial")._scope.get("benchmark")?._value, null, { timeout: 60000 }).catch(() => {});
+  const b = JSON.parse((await read(page, TUTORIAL))?.benchmark?.value ?? "null");
+  report(!!b && b.same && b.poolMs < b.mainMs, `speed: Mandelbrot ${b ? `main thread ${b.mainMs.toFixed(1)} ms, pool of ${b.poolSize} ${b.poolMs.toFixed(1)} ms, same bytes ${b.same}` : "no benchmark"} (budget: the pool is faster)`);
+  // Breakout on the page: a real click on play, then count world changes per second for 2 s
+  const play = page.getByRole("button", { name: "play", exact: true }).first();
+  await play.scrollIntoViewIfNeeded();
+  const before = await page.evaluate(() => { const bm = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript-breakout"); (window as any).__w = bm._scope.get("world")._value; return true; });
+  await play.click();
+  const fps = await page.evaluate(async () => {
+    const bm = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript-breakout");
+    let changes = 0, frames = 0, last = bm._scope.get("world")._value;
+    const t0 = performance.now();
+    await new Promise<void>((res) => { const f = () => { frames++; const w = bm._scope.get("world")._value; if (w !== last) { changes++; last = w; } if (performance.now() - t0 < 2000) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
+    return { changesPerS: changes / 2, framesPerS: frames / 2 };
+  });
+  await page.getByRole("button", { name: "pause", exact: true }).first().click();
+  report(before && fps.changesPerS >= BUDGET.breakoutFps, `speed: Breakout after a click on play: ${fps.changesPerS} world changes/s in ${fps.framesPerS} animation frames/s (budget ${BUDGET.breakoutFps})`);
+  // typing in a cell editor with the tutorial open: no task over 50 ms while 30 keys go in
+  const ed = await openEditor(page, TUTORIAL, "half");
+  if (!ed) report(false, "speed: no editor for half");
+  else {
+    await ed.locator(".cm-content").first().click();
+    await page.keyboard.press("End");
+    const t0 = await page.evaluate(() => performance.now());
+    await page.keyboard.type(" + 0".repeat(8), { delay: 40 });
+    await page.waitForTimeout(1200); // the lint runs after the editor's pause
+    const lt = await page.evaluate((t0) => (window as any).__longtasks.filter((e: any) => e.at >= t0), t0);
+    report(lt.length <= BUDGET.typingLongTasks, `speed: typing 32 keys into half's editor (40 ms apart) with the tutorial open: ${lt.length} tasks over 50 ms${lt.length ? " " + JSON.stringify(lt.map((e: any) => Math.round(e.ms))) : ""} (budget ${BUDGET.typingLongTasks})`);
+  }
+  await page.close();
 }
 
 const counterLesson = (page: Page) => page.locator(".observablehq").filter({ has: page.getByRole("button", { name: "add one" }) }).filter({ hasNot: page.locator(".lite-lesson") }).first();
@@ -251,7 +366,13 @@ async function openEditor(page: Page, module: string, cell: string) {
 }
 const editorText = (host: any) => host.locator(".cm-content").first().evaluate((el: any) => (window as any).__ojs_runtime && [...(window as any).__ojs_runtime._variables].find((v: any) => v._name === "EditorView")._value.findFromDOM(el.closest(".cm-editor")).state.doc.toString());
 async function typeInto(page: Page, host: any, text: string) {
-  await host.locator(".cm-content").first().click();
+  // keys go to whatever has focus, and Enter on a focused link navigates, so the editor must hold focus first
+  const content = host.locator(".cm-content").first();
+  for (let i = 0; i < 20; i++) {
+    await content.click();
+    if (await content.evaluate((el: Element) => el.contains(document.activeElement))) break;
+  }
+  if (!(await content.evaluate((el: Element) => el.contains(document.activeElement)))) throw new Error("the editor did not take focus after 20 clicks");
   await page.keyboard.press(`${MOD}+KeyA`);
   await page.keyboard.insertText(text);
   await page.keyboard.press("Shift+Enter");
@@ -276,10 +397,12 @@ async function uiPaths(page: Page, saved: string) {
   const width = await openEditor(page, TUTORIAL, "width");
   if (!width) { report(false, "ui: no editor for width"); return; }
   await typeInto(page, width, 'export const width = () => "640";');
-  await page.waitForSelector(`.cm-lintRange-error`, { timeout: 10000 }).catch(() => {});
-  await page.waitForTimeout(800);
-  const diag = await page.evaluate(() => [...document.querySelectorAll(".cm-lintRange-error")].length);
-  report((await defOf(page, TUTORIAL, "width")) === w0 && diag > 0, `ui: a typed width = "640" plus Shift-Enter is refused with a diagnostic (${diag} marks), width unchanged`);
+  // CodeMirror draws only the lines in view, so the editor is brought into view before its marks are read
+  await width.scrollIntoViewIfNeeded();
+  await width.locator(".cm-lintRange-error").first().waitFor({ state: "attached", timeout: 10000 }).catch(() => {});
+  const diag = await width.locator(".cm-lintRange-error").count();
+  const typed = await editorText(width);
+  report((await defOf(page, TUTORIAL, "width")) === w0 && diag > 0, `ui: a typed width = "640" plus Shift-Enter is refused with a diagnostic (${diag} marks), width unchanged${diag ? "" : `; editor holds ${JSON.stringify(typed)}`}`);
   await typeInto(page, width, "export const width = () => 600;");
   await page.waitForFunction(async () => true);
   for (let i = 0; i < 50 && (await valueOf(page, TUTORIAL, "width")) !== 600; i++) await page.waitForTimeout(100);
@@ -375,10 +498,23 @@ const stubPicker = async (page: Page, saved: string) => {
 
 // --- 1-3: the notebook
 const uiOnly = process.argv.includes("--ui-only");
-const A = uiOnly ? null as any : await open(file);
-if (!uiOnly) {
+const speedOnly = process.argv.includes("--speed-only");
+const variantOnly = process.argv.includes("--variant-only") || speedOnly;
+if ((!uiOnly && !variantOnly || speedOnly) && !process.argv.includes("--no-speed")) await speed();
+const A = uiOnly || variantOnly ? null as any : await open(file);
+if (!uiOnly && !variantOnly) {
+await testsOn(A.page, "original");
 await testsPass(A.page, "original", CORE, CORE_TESTS);
 await testsPass(A.page, "original", TUTORIAL, TUTORIAL_TESTS);
+{
+  // the Breakout tests ran on copies: the page's game was neither played nor reset
+  const g = await A.page.evaluate(() => {
+    const rt = (window as any).__ojs_runtime, bm = rt.mains.get("@tomlarkworthy/soundscript-breakout");
+    const ss = bm._scope.get("ss")._value;
+    return { ballRuns: ss.evals(bm._scope.get("ballView")._definition), y: bm._scope.get("world")._value.ball.y, running: ss.running() };
+  });
+  report(g.ballRuns <= 1 && g.y === 180 && g.running === 0, `original: after the tests, the page's Breakout is as it booted: ballView ran ${g.ballRuns} times, ball at y ${g.y}, ${g.running} subscriptions`);
+}
 for (const m of SECTIONS) await testsPass(A.page, "original", m, SECTION_TESTS[m]);
 await hookPass(A.page, "original");
 await oneCore(A.page, "original");
@@ -407,6 +543,9 @@ await A.page.close();
 
 
 const B = await open(exp1Path);
+
+
+await testsOn(B.page, "reopened export");
 await testsPass(B.page, "reopened export", CORE, CORE_TESTS);
 await testsPass(B.page, "reopened export", TUTORIAL, TUTORIAL_TESTS);
 for (const m of SECTIONS) await testsPass(B.page, "reopened export", m, SECTION_TESTS[m]);
@@ -422,28 +561,33 @@ await B.page.close();
 }
 // --- real clicks and keys on a second copy of the page; Save in place writes .scratch/saved.html
 const savedPath = join(SCRATCH, "saved.html");
+if (!variantOnly) {
 rmSync(savedPath, { force: true });
 const E = await open(file, savedPath);
+await testsOn(E.page, "ui");
 await testsPass(E.page, "ui", CORE, CORE_TESTS);
 await uiPaths(E.page, savedPath);
 requests("ui page", E);
 await E.page.close();
 if (existsSync(savedPath)) {
   const F = await open(savedPath);
+  await testsOn(F.page, "reload after save");
   // the edits change width and add a cell, so the two tests that pin section 1's values and the verdict list are left out
   await testsPass(F.page, "reload after save", TUTORIAL, TUTORIAL_TESTS.filter((t) => !["test_ss_module_checks", "test_half", "test_ss_results"].includes(t)));
   await afterReload(F.page);
   requests("reloaded saved page", F);
   await F.page.close();
 }
+}
 // --- 5: the core without the tutorial
-if (!uiOnly && !process.argv.includes("--no-variant")) {
+if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   const variant = join(SCRATCH, "core-only.html");
   const built = Bun.spawnSync(["bun", join(HERE, "build.ts"), "--no-tutorial", "--force", "--out", variant], { stdout: "pipe", stderr: "pipe" });
   report(built.exitCode === 0, `core-only: built ${variant}${built.exitCode ? ": " + built.stderr.toString().slice(-400) : ""}`);
   const vhtml = readFileSync(variant, "utf8");
   report(!ids(vhtml).has(TUTORIAL) && ![...ids(vhtml)].some((id) => id.startsWith(TUTORIAL + "/")), "core-only: no tutorial block or attachment in the file");
   const C = await open(variant);
+  await testsOn(C.page, "core-only");
   await testsPass(C.page, "core-only", CORE, CORE_TESTS);
   await hookPass(C.page, "core-only");
   await editorOn(C.page, "core-only", CORE, "bump", "tally: Ref<number>", "tally: Ref<string>", "inject-ref");
@@ -464,33 +608,47 @@ if (!uiOnly && !process.argv.includes("--no-variant")) {
     return out;
   });
   report(JSON.stringify(flips.filter((x: any) => Array.isArray(x))) === JSON.stringify([["flag", "viewof flag"], ["flag"], ["flag", "viewof flag"]]) && flips[4] === true && flips[7] === false, `core-only: flag ref -> plain -> ref through apply: ${JSON.stringify(flips)}`);
-  // a generator becomes a Source handle when a cell takes it as Source<T>, and a plain generator again
-  // when that cell is deleted outside apply (as the editor's delete button does)
-  const src = await C.page.evaluate(async () => {
-    const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
-    const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
-    const lang = get("ss_language")._value;
-    const kind = () => /kind: "(\w+)"/.exec(String(get("pulse")?._definition))?.[1];
-    const out: any = {};
-    out.gen = await lang.apply("export const pulse = function* () { while (true) yield 1; };", [], { module: { module: core }, variables: [get("tripled")] });
-    out.before = kind();
-    out.consumer = await lang.apply("export const pulses = (pulse: Source<number>) => [];", [], { module: { module: core }, variables: [get("pulse")] });
-    out.withConsumer = kind();
-    get("pulses").delete();
-    for (let i = 0; i < 50 && kind() !== "cell"; i++) await new Promise((r) => setTimeout(r, 100));
-    out.afterDelete = kind();
-    out.roundtrip = get("ss_roundtrip")._value(core);
-    get("pulse").delete();
-    await new Promise((r) => setTimeout(r, 300));
-    return out;
-  });
-  report(src.before === "cell" && src.withConsumer === "source" && src.afterDelete === "cell" && typeof src.roundtrip === "number" && typeof src.consumer === "string", `core-only: pulse is compiled as a source while pulses takes it as Source<number>, and as a plain generator after pulses is deleted: ${JSON.stringify(src)}`);
+  // A generator becomes a Source handle when a cell takes it as Source<T>, and a plain generator again
+  // when that cell is deleted outside apply (as the editor's delete button does). The consumer is
+  // deleted at once, before onCodeChange's snapshot has seen it, which is the case that used to leave
+  // pulse compiled as a Source; its subscription must stop too.
+  for (const consumer of ["export const pulses = (pulse: Source<number>) => [];", "export const pulses = (pulse: Source<number>, addn: Action<[number]>) => [on(pulse, addn)];"]) {
+    const src = await C.page.evaluate(async (consumer) => {
+      const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
+      const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
+      const lang = get("ss_language")._value, ss = get("ss")._value;
+      const kind = () => /kind: "(\w+)"/.exec(String(get("pulse")?._definition))?.[1];
+      const until = async (f: () => boolean) => { for (let i = 0; i < 100 && !f(); i++) await new Promise((r) => requestAnimationFrame(r)); return f(); };
+      const out: any = {};
+      out.gen = await lang.apply("export const pulse = function* () { while (true) yield 1; };", [], { module: { module: core }, variables: [get("tripled")] });
+      out.before = kind();
+      if (consumer.includes("addn")) out.addn = await lang.apply("export const addn = (tally: Ref<number>) => action((n: number) => tally.update((t) => t + n));", [], { module: { module: core }, variables: [get("pulse")] });
+      const r0 = ss.running();
+      out.consumer = await lang.apply(consumer, [], { module: { module: core }, variables: [get("pulse")] });
+      out.withConsumer = kind();
+      if (consumer.includes("on(") && out.consumer) { await core.value("pulses"); out.runningWith = ss.running() - r0; }
+      if (!out.consumer) return out;
+      get("pulses").delete();
+      out.settled = await until(() => kind() === "cell" && ss.running() === r0);
+      out.afterDelete = kind();
+      out.runningAfter = ss.running() - r0;
+      try { out.roundtrip = get("ss_roundtrip")._value(core); } catch (e) { out.roundtrip = String(e); }
+      get("pulse").delete();
+      get("addn")?.delete();
+      await until(() => !get("pulse") && !get("addn"));
+      get("reset")._value();
+      return out;
+    }, consumer);
+    const subs = consumer.includes("on(");
+    report(typeof src.consumer === "string" && src.before === "cell" && src.withConsumer === "source" && src.afterDelete === "cell" && src.runningAfter === 0 && (!subs || src.runningWith === 1) && typeof src.roundtrip === "number", `core-only: pulse is a source while pulses${subs ? " subscribes to it" : " takes it as Source<number>"}, a plain generator once pulses is deleted before the snapshot saw it${subs ? ", and the subscription stops" : ""}: ${JSON.stringify(src)}`);
+  }
   const cexp = await exportPage(C.page);
   const cexpPath = join(SCRATCH, "core-only-export.html");
   writeFileSync(cexpPath, cexp);
   requests("core-only page", C);
   await C.page.close();
   const D = await open(cexpPath);
+  await testsOn(D.page, "core-only reopened");
   await testsPass(D.page, "core-only reopened", CORE, CORE_TESTS);
   const after = await D.page.evaluate(async (NEW) => {
     const rt = (window as any).__ojs_runtime;
@@ -509,5 +667,11 @@ if (!uiOnly && !process.argv.includes("--no-variant")) {
   requests("core-only reopened page", D);
   await D.page.close();
 }
-await browser.close();
-process.exit(failed ? 1 : 0);
+} catch (e) {
+  // a thrown error ends the run early; it counts as a failure, so a partial run cannot read as a pass
+  console.log(`FAIL stopped by an error: ${(e as Error)?.stack ?? e}`);
+  fails++;
+}
+await browser.close().catch(() => {});
+console.log(`${passes} pass, ${fails} fail`);
+process.exit(fails ? 1 : 0);

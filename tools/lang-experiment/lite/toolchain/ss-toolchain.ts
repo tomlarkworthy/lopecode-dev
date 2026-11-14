@@ -5,7 +5,7 @@
 import * as acorn from "acorn";
 import { parse, type Node } from "../parse.ts";
 import { lowerJsx } from "../jsx/lower.ts";
-import { cellsOf } from "../browser/cells.ts";
+import { cellsOf, type CellInfo } from "../facts.ts";
 import { commentTypes, uncommentTypes, langOf, LANG } from "./comment-types.ts";
 
 export type Variable = { name: string; inputs: string[]; definition: string };
@@ -53,17 +53,31 @@ const identifiers = (n: Node, acc = new Set<string>()): Set<string> => {
 };
 
 // What one cell's compiled form depends on in the rest of its module: which cells are generators,
-// and which of those some cell takes as Source<T>. compileModule works it out; a cell compiled on
-// its own gets the empty context.
-export type Context = { generators: ReadonlySet<string>; sourced: ReadonlySet<string> };
-const NO_CONTEXT: Context = { generators: new Set(), sourced: new Set() };
+// which of those some cell takes as Source<T>, and which cells the checker accepted (only those are
+// memoised; null, as for a cell compiled on its own, memoises none). compileModule works it out.
+// facts: each cell's facts (facts.ts) when a check result supplied them, so compileCell does not parse
+// for them again.
+export type Context = { generators: ReadonlySet<string>; sourced: ReadonlySet<string>; accepted: ReadonlySet<string> | null; facts?: ReadonlyMap<string, CellInfo> | null };
+const NO_CONTEXT: Context = { generators: new Set(), sourced: new Set(), accepted: null };
 const NO_MEMO_CAPS = new Set(["now", "random", "fetch", "log"]);
 
-export function contextOf(texts: string[], tsx: boolean): Context {
+export function contextOf(texts: string[], tsx: boolean, accepted: ReadonlySet<string> | null = null): Context {
   const infos = texts.flatMap((t) => { try { return cellsOf(tsx ? lowerJsx(t) : t); } catch { return []; } });
-  const generators = new Set(infos.filter((c) => c.generator).map((c) => c.name));
-  const sourced = new Set(infos.flatMap((c) => c.params.filter((p) => p.sourceTyped && generators.has(p.name)).map((p) => p.name)));
-  return { generators, sourced };
+  return contextOfFacts(infos, accepted);
+}
+function contextOfFacts(infos: Iterable<CellInfo>, accepted: ReadonlySet<string> | null, facts: ReadonlyMap<string, CellInfo> | null = null): Context {
+  const list = [...infos];
+  const generators = new Set(list.filter((c) => c.generator).map((c) => c.name));
+  const sourced = new Set(list.flatMap((c) => c.params.filter((p) => p.sourceTyped && generators.has(p.name)).map((p) => p.name)));
+  return { generators, sourced, accepted, facts };
+}
+// the cells a check result accepts: ok, with no errors. Only these are memoised.
+type CheckLike = { cells: { name: string; status: string; errors: unknown[] }[]; facts?: ReadonlyMap<string, CellInfo> };
+export const acceptedOf = (result: CheckLike) => new Set(result.cells.filter((c) => c.status === "ok" && !c.errors.length).map((c) => c.name));
+// the same context as contextOf over the module's texts, from one check of the whole module, with no parse
+export function contextFromCheck(result: CheckLike): Context {
+  if (!result.facts) throw new Error("this check result carries no cell facts");
+  return contextOfFacts(result.facts.values(), acceptedOf(result), result.facts);
 }
 
 // The variable a cell's value is read from, and the one that holds its handle.
@@ -95,7 +109,8 @@ export function compileCell(text: string, tsx: boolean, ctx: Context = NO_CONTEX
     /^(Arrow)?FunctionExpression$/.test(d.declarations[0].init?.type ?? "")) fn = d.declarations[0].init;
   if (!fn) throw new Error(`unsupported top-level statement (${st.type}); a cell is an exported function`);
 
-  const info = cellsOf(tsx ? lowerJsx(text) : text)[0];
+  const declared = fn === d ? d.id?.name : d.declarations[0].id?.name;
+  const info = (declared && ctx.facts?.get(declared)) || cellsOf(tsx ? lowerJsx(text) : text)[0];
   if (!info) throw new Error("not a cell");
 
   // an anonymous function* (...) is not a statement, so each pass sees the function as an expression
@@ -116,7 +131,7 @@ export function compileCell(text: string, tsx: boolean, ctx: Context = NO_CONTEX
   const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
   const refArgs = refs.map((r, i) => { hidden.push(`$ss$r${i}`); hiddenInputs.push(r); return `${JSON.stringify(r)}: $ss$r${i}`; });
   const args = params.map((p) => (p === "compile" ? `${SS}.compileFor(compile, ${JSON.stringify(info.name)}, {${refArgs.join(", ")}})` : p));
-  const memo = kind === "cell" && !info.generator &&
+  const memo = kind === "cell" && !info.generator && !!ctx.accepted?.has(info.name) &&
     !info.params.some((p) => NO_MEMO_CAPS.has(p.name) || (ctx.generators.has(p.name) && !p.sourceTyped));
   const inner = `${LANG}${header({ h: text.slice(0, fn.start), t: text.slice(fn.end) })}${typed}`;
   const destructure = used.length ? `const {${used.join(", ")}} = ${SS}; ` : "";
@@ -136,9 +151,9 @@ export function compileCell(text: string, tsx: boolean, ctx: Context = NO_CONTEX
   return [{ name: info.name, inputs: all, definition }];
 }
 
-export function compileModule(src: string, tsx: boolean): Variable[] {
+export function compileModule(src: string, tsx: boolean, accepted: ReadonlySet<string> | null = null): Variable[] {
   const texts = splitCells(src, tsx);
-  const ctx = contextOf(texts, tsx);
+  const ctx = contextOf(texts, tsx, accepted);
   return texts.flatMap((c) => compileCell(c, tsx, ctx));
 }
 
