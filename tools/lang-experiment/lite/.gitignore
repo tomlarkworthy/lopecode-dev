@@ -2,3 +2,4 @@ node_modules/
 .jsx-build/
 .oracle-scratch/
 notebook/build/
+soundscript/.scratch/
