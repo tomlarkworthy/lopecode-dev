@@ -17,7 +17,15 @@ export function erase(src: string): string {
     }
     if (n.type === "ExportNamedDeclaration" && n.declaration) cuts.push([n.start, n.declaration.start]);
     if (n.type === "TSAsExpression" || n.type === "TSSatisfiesExpression") {
-      cuts.push([n.expression.end, n.end]);
+      // cut from the keyword, not from the operand's end: `(x) as T` must keep its `)`
+      const gap = src.slice(n.expression.end, n.typeAnnotation.start);
+      const kw = /^(?:\s|\)|\/\*[\s\S]*?\*\/|\/\/[^\n]*\n)*/.exec(gap)![0].length;
+      cuts.push([n.expression.end + kw, n.end]);
+      walk(n.expression);
+      return;
+    }
+    if (n.type === "TSNonNullExpression") {
+      cuts.push([n.end - 1, n.end]);
       walk(n.expression);
       return;
     }
