@@ -417,3 +417,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   taken (queue counts taken after the change, owner waits compared on two bases, a 7 d figure said to fall in a day, the
   owner's 16A not on file and not asked, a second stale wait left out, a time and a quoted condition's commit). 134.5k
   subagent tokens, 8m09s.
+- 2026-11-14 `plan/retros/2026-11-14.md`, authored by the spawning session: FIX, 6 findings and 3 minor, all taken (a
+  cost placeholder, "every hold has its wait" false for review-first holds, a token count, an unparseable clause, an event
+  cited as the dry run that was the worker's later record of it, a sentence that read as contradicting its own count,
+  three wordings). 100.6k subagent tokens, 3m06s.

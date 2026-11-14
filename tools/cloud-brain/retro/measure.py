@@ -276,6 +276,20 @@ for i,v in st.items():
 for t,i,n in sorted(dead): P(" ",iso(t),i,"|",n)
 P("deploy waits no line answers:",len(dead))
 
+# ---- an approval with no wait to carry it (retro 2026-11-14: raw-library-cas-deploy was opened by hand at needs-owner, no
+# wait; the owner approved brain-x-library@c4d6ca82659f on 2026-11-12 07:30, nothing sent it, and it asked him for 42 h more).
+P("\n## open issues at needs-owner that name a worker@hash the deployer approved after the mention, not deployed since")
+answered=[]
+for i,v in st.items():
+    if v in ENDED or "needs-owner" not in lab[i]: continue
+    for e in BYID.get(i,[]):
+        for t,h in set(re.findall(r"\b(brain[\w-]*)@([0-9a-f]{12})",e.get("body") or "")):
+            ap=[l for l in DL if l.get("at")=="deploy.approved" and l.get("target")==t and (l.get("hash") or "").startswith(h) and l.get("t",0)>e["at"]]
+            if ap and not any(l.get("target")==t and l.get("at") in("deploy.uploaded","deploy.shared") and l.get("t",0)>ap[-1]["t"] for l in DL):
+                answered.append((ap[-1]["t"],i,t+"@"+h,ap[-1].get("by")))
+for a in sorted(set(answered)): P(" ",iso(a[0]),a[1],a[2],"approved by",a[3])
+P("asks the deployer's log has answered:",len(set(answered)))
+
 # ---- done with its deploy still held (retro 2026-11-12: raw-library-cas and raw-static-cas were finished by a review's pass
 # while the deployer held their versions for the owner; the owner found it, fb-deploy-end-of-task, cloud-brain-dev 76be28a).
 P("\n## service issues moved to done whose last deploy line on the issue, before the move, is deploy.waiting (done, not live)")
