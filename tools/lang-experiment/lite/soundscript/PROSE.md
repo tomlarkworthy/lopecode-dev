@@ -249,3 +249,33 @@ Not guaranteed:
   editor will not save an edit that leaves a cell rejected.
 - A cell may take `now` or `random` and be accepted. It is then not repeatable, and its signature
   shows it.
+
+---
+
+# Core module README (`core.ojs`), added 2026-11-14 after the Phase 4 screenshots
+
+Replace `readme_title` with the text below. The four example cells must be shown as source cards
+(source, verdict, type, value), the same cards the tutorial uses, so the card renderer has to live
+in the core and the tutorial imports it. The counter view comes straight after the cards.
+
+# SoundScript
+
+This module is the SoundScript language: the checker, the compiler from a checked cell to runtime
+variables, the library those variables call, and the editor support. It does not need the tutorial
+module; a notebook can keep this one and drop the other.
+
+Four SoundScript cells and a view that uses them:
+
+(cards for `tally`, `bump`, `reset`, `doubled`, then `example_view`)
+
+`tally` is state. `bump` and `reset` are actions, the only places it is written. `doubled` reads
+it. Open any of them with its **edit** bar; a change is applied only if the whole module still
+checks.
+
+Then keep `readme_use` and the rest as they are, with these changes:
+
+- `readme_use`: start with "To write SoundScript cells in another module of this notebook, import
+  `ss` and each capability your cells name:" and keep the code block.
+- `readme_storage`, `readme_memo`, `readme_editing`: one mechanism each already; split any
+  sentence that carries two facts, and keep the facts.
+- `readme_limits`: unchanged.

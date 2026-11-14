@@ -5,7 +5,7 @@ import { h } from "../jsx/h.ts";
 import { create, patch } from "../jsx/render.ts";
 import { lowerJsx } from "../jsx/lower.ts";
 import { erase } from "../browser/erase.ts";
-import { on, isSubs, generatorish, cellsOf } from "../browser/cells.ts";
+import { on, isSubs, generatorish, cellsOf, guard as guardWith } from "../browser/cells.ts";
 export { cellsOf };
 import { island, type IslandSpec } from "../island.ts";
 import { pagePool, runHere, type Pool } from "../browser/workers.ts";
@@ -33,17 +33,7 @@ export { h, on, create, patch, pagePool };
 // Values a generator has yielded. A reader of one may be handed the same buffer mutated between
 // yields (borrow), so a memoised cell does not reuse its last value when one of these is an input.
 const lent = new WeakSet<object>();
-function guard(g: Generator) {
-  const wrap = (m: "next" | "return" | "throw") => (...a: unknown[]) => {
-    P.state.evalDepth++;
-    try {
-      const r = (g[m] as (...x: unknown[]) => IteratorResult<unknown>)(...a);
-      if (r && typeof r.value === "object" && r.value !== null) lent.add(r.value);
-      return r;
-    } finally { P.state.evalDepth--; }
-  };
-  return { next: wrap("next"), return: wrap("return"), throw: wrap("throw"), [Symbol.iterator]() { return this; } };
-}
+const guard = (g: Generator) => guardWith(g, (v) => lent.add(v));
 
 // Per compiled text (opts.id, a hash made by the compiler), the inputs and value of its last run. An
 // edit changes the id, so it starts empty; equal text with equal inputs gives the same value.

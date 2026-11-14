@@ -6,14 +6,16 @@ import { join } from "node:path";
 import type { Page } from "../../../../node_modules/playwright/index.mjs";
 
 const AIR = join(import.meta.dir, "theme-air");
-const BASE = "https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/";
+export const THEME_BASE = "https://raw.githubusercontent.com/observablehq/notebook-kit/6c2ec69e1ac30dd329789524a849578b2df17945/src/styles/";
 
-// call before goto; everything not file/blob/data is aborted, except the air stylesheets, served locally
-export async function offlineWithAir(page: Page) {
+// call before goto; everything not file/blob/data is aborted (and listed in `network`), except the
+// air stylesheets, served locally
+export async function offlineWithAir(page: Page, network: string[] = []) {
   await page.route("**/*", (r) => {
     const url = r.request().url();
     if (/^(file|blob|data):/.test(url)) return r.continue();
-    const f = url.startsWith(BASE) ? join(AIR, url.slice(BASE.length)) : null;
+    network.push(url);
+    const f = url.startsWith(THEME_BASE) ? join(AIR, url.slice(THEME_BASE.length)) : null;
     if (f && existsSync(f)) return r.fulfill({ status: 200, contentType: "text/css", body: readFileSync(f, "utf8") });
     return r.abort();
   });

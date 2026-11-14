@@ -33,6 +33,11 @@ const SECTIONS = [
   { name: "@tomlarkworthy/soundscript-breakout", ojs: "sections/breakout.ojs" },
 ];
 const HOST = "@tomlarkworthy/blank-notebook";
+// //ss-cards: the card renderer (from the core), the module it reads, and the style cell holding the rules
+const CARDS: Record<string, { card: string; module: string; style: string }> = {
+  [CORE]: { card: "ss_card", module: "ss_module", style: "ss_card_style" },
+  [TUTORIAL]: { card: "ssCard", module: "tutorial_module", style: "cardStyle" },
+};
 const EDITOR = "@tomlarkworthy/editor-5";
 const BASE = join(ROOT, "lopecode/notebooks/quick_start.html");
 const EXAMPLES = join(HERE, "../notebook/examples");
@@ -133,12 +138,15 @@ function buildModule(name: string, ojs: string, files: File[]) {
       for (const s of skip) if (vs.some((v) => v.name === s)) throw new Error(`${ojs}: ${s} was not left out`);
       for (const cell of per) {
         // //ss-cards: a card cell before each cell shows its source, check, type and value; the cell's own
-        // inspector lines are hidden, and only its last variable's edit bar stays, under the card
+        // inspector lines are hidden, and only one edit bar stays, under the card
         if (cards) {
-          if (name !== TUTORIAL) throw new Error(`${ojs}: //ss-cards needs the tutorial's ssCard and tutorial_module`);
+          const cfg = CARDS[name];
+          if (!cfg) throw new Error(`${ojs}: //ss-cards needs a card cell and a module cell (CARDS)`);
           const key = cell[cell.length - 1].name.replace(/^viewof /, "");
-          addVar("_card_" + key, { name: "card_" + key, inputs: ["ssCard", "tutorial_module", "invalidation"], definition: `(ssCard, m, invalidation) => ssCard(m, ${q(key)}, invalidation)` } as Variable);
-          cardHidden.push(`.observablehq[cell="card_${key}"] + div`, ...cell.flatMap((v, i) => [`.observablehq[cell="${v.name}"]`, ...(i < cell.length - 1 ? [`.observablehq[cell="${v.name}"] + div`] : [])]));
+          addVar("_card_" + key, { name: "card_" + key, inputs: [cfg.card, cfg.module, "invalidation"], definition: `(card, m, invalidation) => card(m, ${q(key)}, invalidation)` } as Variable);
+          // the bar kept is the rendered variable's: a ref cell renders its value variable, not viewof
+          const bar = cell.find((v) => !v.name.startsWith("viewof ")) ?? cell[cell.length - 1];
+          cardHidden.push(`.observablehq[cell="card_${key}"] + div`, ...cell.flatMap((v) => [`.observablehq[cell="${v.name}"]`, ...(v !== bar ? [`.observablehq[cell="${v.name}"] + div`] : [])]));
         }
         for (const v of cell) {
           addVar("_ss_" + v.name.replace(/[^A-Za-z0-9_$]/g, "_"), v);
@@ -168,7 +176,9 @@ function buildModule(name: string, ojs: string, files: File[]) {
   });
   if (cardHidden.length) {
     // the selectors the style cell hides, as one rule; its own inspector line and bar are in it too
-    const rule = [...cardHidden, `.observablehq[cell="ss_card_rules"]`, `.observablehq[cell="ss_card_rules"] + div`, `.observablehq[cell="cardStyle"]`, `.observablehq[cell="cardStyle"] + div`].join(",\n") + " { display: none; }";
+    // scoped to this module's pane: another module may have a cell of the same name
+    const style = CARDS[name].style, pane = `.lp2-pane[data-module="${name}"] `;
+    const rule = [...cardHidden, `.observablehq[cell="ss_card_rules"]`, `.observablehq[cell="ss_card_rules"] + div`, `.observablehq[cell="${style}"]`, `.observablehq[cell="${style}"] + div`].map((s) => pane + s).join(",\n") + " { display: none; }";
     addVar("_card_rules", { name: "ss_card_rules", inputs: [], definition: `() => ${JSON.stringify(rule)}` } as Variable);
   }
   const prologue = `  const fileAttachments = new Map(${q(files.map((f) => f.name))}.map((name) => {

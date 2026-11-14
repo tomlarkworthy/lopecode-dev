@@ -1,4 +1,4 @@
-// One of each kind of variable the runner makes. Press the button and watch the evals column.
+// One of each kind of variable the runner makes. Press the button and see which cells run again.
 export const count = (): RefCell<number> => ref(0);
 export const bump = (count: Ref<number>) => action(() => count.update((c) => c + 1));
 export const doubled = (count: number) => count * 2;

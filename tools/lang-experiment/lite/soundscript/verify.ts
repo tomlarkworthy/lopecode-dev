@@ -23,7 +23,7 @@ import { checkSources } from "../core.ts";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { blockContent, blockSpans } from "../../../lib/notebook-blocks.ts";
-import { offlineWithAir, setTheme, contrasts } from "./theme-check.ts";
+import { offlineWithAir, setTheme, contrasts, THEME_BASE } from "./theme-check.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CORE = "@tomlarkworthy/soundscript";
@@ -386,6 +386,14 @@ const ssSource = (page: Page, name: string) => page.evaluate((name) => {
 }, name);
 const ssLines = (html: string, name: string) => (blockContent(html, name) ?? "").split("\n").filter((l) => l.includes('/*{lang:"ss"}*/')).sort();
 const ids = (html: string) => new Set(blockSpans(html).map((s) => s.id));
+// the tutorial's bundle-size row is a constant build.ts writes; it must be the bundle the file embeds
+{
+  const html = readFileSync(file, "utf8");
+  const gz = Buffer.from((blockContent(html, "@tomlarkworthy/soundscript/ss.js.gz") ?? "").replace(/\s+/g, ""), "base64");
+  const raw = gz.length ? Bun.gunzipSync(gz).length : 0;
+  const m = /raw: (\d+), gz: (\d+)/.exec(blockContent(html, TUTORIAL) ?? "");
+  report(!!m && +m[1] === raw && +m[2] === gz.length, `ss_bytes: the size row (${m?.[1]} raw, ${m?.[2]} gz) is the embedded ss.js.gz (${raw} raw, ${gz.length} gz)`);
+}
 function sameBlocks(label: string, a: string, b: string) {
   const A = ids(a), B = ids(b);
   const gone = [...A].filter((x) => !B.has(x)), added = [...B].filter((x) => !A.has(x));
@@ -742,8 +750,10 @@ async function tryIts(page: Page) {
 // text the page draws reads at 4.5:1 or more against what is behind it.
 async function cardsAndThemes() {
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-  const errors: string[] = [];
-  await offlineWithAir(page);
+  const errors: string[] = [], network: string[] = [];
+  // offline, except the light theme's three stylesheets, which the file cannot carry beside the dark
+  // default (@tomlarkworthy/themes takes the first theme whose stylesheets are all embedded)
+  await offlineWithAir(page, network);
   page.on("pageerror", (e) => errors.push(String(e.message)));
   await page.goto(`file://${file}`);
   await page.waitForFunction(() => { const m = (window as any).__ojs_runtime?.mains?.get("@tomlarkworthy/soundscript-tutorial"); return m?._scope.get("benchmark")?._value && document.querySelectorAll(".lite-graph svg").length === 2; }, null, { timeout: 60000 });
@@ -765,11 +775,15 @@ async function cardsAndThemes() {
     }).map((w) => w.key);
     // the cells' own inspector lines are hidden: no "width = 640" line under the cards
     const shown = want.filter(({ key }) => { const d = document.querySelector(`.observablehq[cell="${key}"]`) as HTMLElement | null; return d && d.offsetParent; }).map((w) => w.key);
+    // each card keeps one visible edit bar: the editor host of the variable the page renders
+    const editors = [...rt._variables].find((v: any) => v._name === "editors")?._value;
+    const nobar = want.filter(({ key }) => !editors?.get(mod._scope.get(key))?.offsetParent).map((w) => w.key);
     const first = document.querySelector(".lite-card") as HTMLElement;
     const rejected = [...document.querySelectorAll(".lite-card.lite-rejected")].filter((e) => !(e.querySelector(".lite-card-msgs")!.textContent ?? "").includes("[")).map((e) => e.getAttribute("data-cell"));
-    return { n: want.length, missing, shown, first: first?.getAttribute("data-cell"), firstTop: Math.round(first?.getBoundingClientRect().top ?? 1e9), rejected };
+    return { n: want.length, missing, shown, nobar, first: first?.getAttribute("data-cell"), firstTop: Math.round(first?.getBoundingClientRect().top ?? 1e9), rejected };
   }, TUTORIAL);
   report(c.n >= 31 && c.missing.length === 0 && c.shown.length === 0 && c.rejected.length === 0, `cards: ${c.n} lesson cells each shown as its live source with check, type and value (missing ${JSON.stringify(c.missing)}); their inspector lines hidden (shown ${JSON.stringify(c.shown)}); every rejected card states its rule without a hover (${JSON.stringify(c.rejected)})`);
+  report(c.nobar.length === 0, `cards: every card has a visible edit bar (without one: ${JSON.stringify(c.nobar)})`);
   report(c.first === "width" && c.firstTop > 0 && c.firstTop < 800, `cards: the first card is ${c.first}, at y ${c.firstTop} of an 800 px window`);
   // the Breakout board follows the column width after play has re-run its view cell
   const boardW = () => page.evaluate(() => Math.round(document.querySelector(".lite-game > div > div")!.getBoundingClientRect().width));
@@ -786,6 +800,8 @@ async function cardsAndThemes() {
   report(w0 === 640 && w1 <= 468 && w2 === 640, `breakout: the board is ${w0} px at 1280, ${w1} px at 500 after play and pause, ${w2} px at 1280 again`);
   await page.evaluate(() => document.querySelector(".lite-card")!.scrollIntoView({ block: "start" }));
   const shoot = () => page.screenshot();
+  const darkFetches = network.filter((u) => u.startsWith(THEME_BASE));
+  report(darkFetches.length === 0, `themes: the default (dark) theme is complete from the file, with no stylesheet requested from the network (${JSON.stringify(darkFetches)})`);
   const dark = { shot: await shoot(), c: await contrasts(page) };
   await setTheme(page, "air");
   const light = { shot: await shoot(), c: await contrasts(page) };
@@ -793,6 +809,8 @@ async function cardsAndThemes() {
   const bg = await page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor);
   report(!dark.shot.equals(light.shot) && Object.keys(dark.c).length >= 15 && Object.keys(light.c).length >= 15, `themes: the dark and light renders differ (light background ${bg}); ${Object.keys(dark.c).length} and ${Object.keys(light.c).length} kinds of text measured`);
   report(low(dark.c).length === 0 && low(light.c).length === 0, `themes: every kind of text reads at 4.5:1 or more; lowest dark ${Math.min(...Object.values(dark.c).map((v: any) => v.min))}, light ${Math.min(...Object.values(light.c).map((v: any) => v.min))}; under 4.5: dark ${JSON.stringify(low(dark.c))}, light ${JSON.stringify(low(light.c))}`);
+  const airFetches = network.filter((u) => u.startsWith(THEME_BASE)).map((u) => u.slice(THEME_BASE.length)).sort();
+  report(JSON.stringify(airFetches) === JSON.stringify(["abstract-light.css", "syntax-light.css", "theme-air.css"]), `themes: switching to air requests only its three stylesheets that the file does not carry: ${JSON.stringify(airFetches)}`);
   report(errors.length === 0, `themes: page errors ${errors.length}${errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""}`);
   await page.close();
 }
@@ -825,6 +843,78 @@ async function phone() {
   report(errors.length === 0, `phone: page errors ${errors.length}${errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""}`);
   await page.close();
 }
+// the core's README shows its four example cells as source cards, then the counter view, in the full
+// notebook and in the notebook without the tutorial
+async function coreCards(page: Page, label: string) {
+  const tab = page.locator(`[title="${CORE}  (drag to a pane edge to dock, or out to save as .js)"]`);
+  await page.waitForFunction((C) => (window as any).__ojs_runtime?.mains?.get(C)?._scope.get("ss_card")?._value, CORE, { timeout: 60000 });
+  if (await tab.count()) await tab.first().click();
+  const pane = `.lp2-pane[data-module="${CORE}"]`;
+  const shown = await until(page, () => page.evaluate((pane) => [...document.querySelectorAll(`${pane} .lite-card`)].filter((c) => (c as HTMLElement).offsetParent).length === 4, pane), 20000);
+  const r = await page.evaluate(([pane, C]) => {
+    const rt = (window as any).__ojs_runtime, core = rt.mains.get(C), ss = core._scope.get("ss")._value;
+    const root = document.querySelector(pane)!;
+    const top = (e: Element | null) => (e ? Math.round(e.getBoundingClientRect().top + root.scrollTop) : null);
+    const cards = [...root.querySelectorAll(".lite-card")].map((c) => {
+      const key = c.getAttribute("data-cell")!;
+      const v = core._scope.get(key === "tally" ? "viewof tally" : key);
+      return { key, ok: c.classList.contains("lite-ok"), same: c.querySelector(".lite-code")!.textContent === ss.decompileVariable(String(v._definition)), value: c.querySelector(".lite-card-value")!.textContent, top: top(c) };
+    });
+    const visible = (name: string) => { const d = root.querySelector(`.observablehq[cell="${name}"]`) as HTMLElement | null; return !!d?.offsetParent; };
+    const editors = [...rt._variables].find((v: any) => v._name === "editors")?._value;
+    const nobar = cards.filter((c) => !editors?.get(core._scope.get(c.key))?.offsetParent).map((c) => c.key);
+    const h1 = [...root.querySelectorAll("h1")].find((h) => h.textContent === "SoundScript") ?? null;
+    return { cards, nobar, inspector: ["tally", "viewof tally", "bump", "reset", "doubled"].filter(visible), view: visible("example_view"), viewTop: top(root.querySelector('.observablehq[cell="example_view"]')), h1: top(h1), text: root.querySelector(".ss-example")?.textContent };
+  }, [pane, CORE]);
+  const keys = r.cards.map((c) => c.key).join(",");
+  const order = r.h1 !== null && r.cards.every((c, i) => c.top! > r.h1! && (i === 0 || c.top! > r.cards[i - 1].top!)) && r.view && r.viewTop! > r.cards[3]?.top!;
+  report(shown && keys === "tally,bump,reset,doubled" && r.cards.every((c) => c.ok && c.same && !/not computed|throws/.test(c.value!)) && r.inspector.length === 0 && r.nobar.length === 0 && order,
+    `${label}: the title, then cards for ${keys}, each with a visible edit bar (without: ${JSON.stringify(r.nobar)}) (each its live source, ok: ${JSON.stringify(r.cards.map((c) => [c.key, c.ok, c.same, c.value]))}), then the counter view (${JSON.stringify(r.text)}); inspector lines shown ${JSON.stringify(r.inspector)}`);
+  // a click on bump reaches the tally card's value
+  const before = r.cards[0]?.value;
+  await page.locator(`${pane} .ss-example button`, { hasText: "bump" }).click();
+  const moved = await until(page, () => page.evaluate((pane) => document.querySelector(`${pane} .lite-card[data-cell="tally"] .lite-card-value`)!.textContent, pane).then((t) => t !== before), 5000);
+  await page.locator(`${pane} .ss-example button`, { hasText: "reset" }).click();
+  report(moved, `${label}: bump changes the tally card's value from ${before}`);
+}
+
+// a phone reader plays with a finger: tap play, drag across the board; the paddle follows and the page does not scroll
+async function touch() {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  const page = await ctx.newPage();
+  const errors: string[] = [];
+  await page.route("**/*", (r) => (/^(file|blob|data):/.test(r.request().url()) ? r.continue() : r.abort()));
+  page.on("pageerror", (e) => errors.push(String(e.message)));
+  await page.goto(`file://${file}`);
+  await page.waitForFunction(() => (window as any).__ojs_runtime?.mains?.get("@tomlarkworthy/soundscript-breakout")?._scope.get("world")?._value, null, { timeout: 60000 });
+  const world = () => page.evaluate(() => { const w = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript-breakout")._scope.get("world")._value; return { paddle: w.paddle, y: w.ball.y }; });
+  const scroll = () => page.evaluate(() => [scrollY, ...[...document.querySelectorAll(".lp2-pane")].map((e) => e.scrollTop)].join(","));
+  const canvas = page.locator(".lite-game canvas").first();
+  await canvas.scrollIntoViewIfNeeded();
+  const play = (await page.locator(".lite-game button", { hasText: "play" }).first().boundingBox())!;
+  const y0 = (await world()).y;
+  await page.touchscreen.tap(play.x + play.width / 2, play.y + play.height / 2);
+  const running = await until(page, async () => (await world()).y !== y0, 10000);
+  // the page settles after play re-renders the game (scroll anchoring); the drag is measured after that
+  let last = "";
+  await until(page, async () => { const s = await scroll(); const same = s === last; last = s; return same; }, 10000);
+  const before = { world: await world(), scroll: await scroll(), top: (await canvas.boundingBox())!.y };
+  const bb = (await canvas.boundingBox())!;
+  const cdp = await ctx.newCDPSession(page);
+  const at = (f: number, dy: number) => [{ x: bb.x + bb.width * f, y: bb.y + bb.height * 0.8 - dy, id: 1 }];
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: at(0.5, 0) });
+  // left and upward, as a thumb moves: an upward drag on a page that may scroll would scroll it
+  for (let i = 1; i <= 10; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: at(0.5 - 0.04 * i, 15 * i) });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await until(page, async () => (await world()).paddle !== before.world.paddle, 3000);
+  const after = { world: await world(), scroll: await scroll(), top: (await canvas.boundingBox())!.y };
+  // the board's place on the screen is the test: a pane's scrollTop also moves when content above it
+  // grows late (scroll anchoring keeps the board where it is), which is not the drag scrolling the page
+  report(running && after.world.paddle < before.world.paddle - 60 && Math.abs(after.top - before.top) < 1 && after.scroll.split(",")[0] === before.scroll.split(",")[0],
+    `touch (390 px): a tap on play starts the game (${running}); a drag left moves the paddle from x ${before.world.paddle} to ${after.world.paddle}; the board stays at y ${Math.round(before.top)} -> ${Math.round(after.top)} (window and pane scroll ${before.scroll} -> ${after.scroll})`);
+  report(errors.length === 0, `touch: page errors ${errors.length}${errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""}`);
+  await ctx.close();
+}
 const stubPicker = async (page: Page, saved: string) => {
   await page.exposeFunction("__verifySave", (s: string) => writeFileSync(saved, s));
   await page.addInitScript(() => {
@@ -842,6 +932,14 @@ const variantOnly = process.argv.includes("--variant-only") || speedOnly;
 if (!variantOnly && !process.argv.includes("--no-try")) {
   await cardsAndThemes();
   await phone();
+  await touch();
+  {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await page.route("**/*", (r) => (/^(file|blob|data):/.test(r.request().url()) ? r.continue() : r.abort()));
+    await page.goto(`file://${file}`);
+    await coreCards(page, "core README");
+    await page.close();
+  }
   const G = await open(file);
   await tryIts(G.page);
   requests("try-it page", G);
@@ -955,7 +1053,27 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   await testsOn(C.page, "core-only");
   await testsPass(C.page, "core-only", CORE, CORE_TESTS);
   await hookPass(C.page, "core-only");
+  await coreCards(C.page, "core-only README");
   await editorOn(C.page, "core-only", CORE, "bump", "tally: Ref<number>", "tally: Ref<string>", "inject-ref");
+  // a cell with a Notebook Kit shadow variable, made SoundScript through apply: the shadow goes with the
+  // head. The head and its display shadow are made as @tomlarkworthy/js-toolchain's defineCell makes
+  // them (variable(undefined, { shadow: {} }), a display variable in _shadow), not by typing a Kit cell.
+  const shadow = await C.page.evaluate(async () => {
+    const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
+    const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
+    const head = core.variable(undefined, { shadow: {} });
+    const display = new head.constructor(2, core);
+    display.define(["kitcell"], () => (x: number) => x);
+    head._shadow.set("display", display);
+    head.define("kitcell", [], () => 1);
+    const out = await get("ss_language")._value.apply("export const kitcell = () => 2;", [head], { module: { module: core }, variables: [head] });
+    const alive = [...rt._variables].includes(display) || head._shadow.size > 0;
+    const v = get("kitcell");
+    const value = v ? await core.value("kitcell") : null;
+    v?.delete();
+    return { applied: typeof out === "string", shadowAlive: alive, value };
+  });
+  report(shadow.applied && !shadow.shadowAlive && shadow.value === 2, `core-only: a cell with a Kit shadow variable made SoundScript through apply leaves no shadow behind: ${JSON.stringify(shadow)}`);
   const NEW = "export const tripled = (doubled: number) => doubled * 3;";
   const added = await addCell(C.page, CORE, "doubled", NEW, true);
   report(added.back === NEW && added.value === 0 && added.afterAnchor && added.held, `core-only: a new cell added through the editor: ${JSON.stringify(added)}`);

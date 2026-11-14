@@ -43,7 +43,7 @@ depGraph(tutorial_module, invalidation, { only: ["width", "height", "area", "asp
 // %%
 md`## 2. What the checker rejects
 
-Five cells, each breaking one rule. They are shown in a box and checked as you type; they are not run. Each message starts with the name of the rule in brackets.`
+Eight cells: five each break one rule, \`width\` and \`label\` are the cells they read, and \`jittered\` is \`jitter\` written correctly. They are shown in a box and checked as you type; they are not run. Each message starts with the name of the rule in brackets.`
 // %%
 viewof src_errors = sourceBox(examples.errors)
 // %%
@@ -225,20 +225,20 @@ md`### A ref cell is two variables
 
 The handle takes the \`viewof\` name so the notebook's tools group the pair as one cell, the way they group \`viewof x\` and \`x\`: the page shows \`count\`, and the editor opens the one source.`
 // %%
-md`### Capabilities are cells of the core
+ss_highlightCode(md`### Capabilities are cells of the core
 
 A capability parameter becomes an input on a variable of \`@tomlarkworthy/soundscript\`: \`now\` is \`ss_now\`, \`random\` is \`ss_random\`, \`fetch\` is \`ss_fetch\`, \`log\` is \`ss_log\` and \`pool\` is \`ss_pool\`; \`invalidation\` is the runtime's own. Section 6's \`stamped\` takes \`now\`, so its inputs list \`ss_now\`. \`compile\` is \`ss_compile\`, which a module that compiles defines for itself, because \`compile\` reads that module's cells:
 
-\`\`\`js
+\`\`\`
 ss_compile = ss.compiler(() => ss_source(my_module))
 viewof my_module = thisModule()
-\`\`\``
+\`\`\``)
 // %%
-md`### \`compile\` and its island
+ss_highlightCode(md`### \`compile\` and its island
 
 \`compile\` takes three lists of cell names:
 
-\`\`\`ts
+\`\`\`
 export const inPool = (compile: Compile, pool: Pool) =>
   compile({
     inputs: ["y0", "y1"],                  // the function's argument: { y0, y1 }
@@ -256,7 +256,7 @@ The *island* is every cell upstream of the outputs, stopping at the inputs and r
 
 **The rules**, each a rejection the checker's fixtures exercise: a name must be a cell; an island cell must be accepted, synchronous, and take no capability and no ref cell (put the ref cell in \`refs\`); inputs, refs and outputs must survive \`structuredClone\` (no functions, refs or actions); \`options.runtime\` must be a \`Pool\`; and a call must match the computed argument type. \`compile\` refuses to run unless the checker accepts the calling cell and every island cell (\`test_compile_refuses_unchecked\`). That refusal is the only guard: the island's code runs in the worker unsandboxed, and keeping it to its inputs is the checker's job.
 
-Measured in headless Chromium over ten page loads on 2026-11-14: section 7's 640×420 image takes about 64 ms on the main thread and about 10 ms on a pool of 8 workers, and both give the same bytes (\`test_compile_pool_matches_main\`).`
+Measured in headless Chromium over ten page loads on 2026-11-14: section 7's 640×420 image takes about 64 ms on the main thread and about 10 ms on a pool of 8 workers, and both give the same bytes (\`test_compile_pool_matches_main\`).`)
 // %%
 md`### Subscriptions
 
@@ -606,7 +606,7 @@ md`## Appendix: this notebook's code
 
 \`ss\` is imported from \`@tomlarkworthy/soundscript\`, which loads it from its gzipped attachment \`ss.js.gz\`: the checker, the per-cell compiler, the JSX lowering and renderer, and the standard library that live cells call. The example sources are attachments of this module, and the boxes and \`test_examples_check_as_expected\` read them; the live cells were compiled from the same files when the notebook was built.
 
-Before each lesson cell is a cell \`card_<name>\` (\`ssCard\`). It shows the lesson cell's source, decompiled from its live definition, and the checker's verdict, type and value; \`cardStyle\` hides the lesson cell's own output line and leaves its edit bar. \`sourceListing\` does the same for a whole section module. Both colour the source with the editor's TypeScript parser (\`highlightTs\`).`
+Before each lesson cell is a cell \`card_<name>\`. It calls the core's \`ss_card\`, imported here as \`ssCard\`, which shows the lesson cell's source, decompiled from its live definition, and the checker's verdict, type and value. \`cardStyle\` hides the lesson cell's own output line and leaves its edit bar. \`sourceListing\` (the core's \`ss_listing\`) shows a whole section module's source. Both colour the source with the editor's TypeScript parser (the core's \`ss_highlight\`).`
 // %%
 //raw: ss_bytes
 // %%
@@ -643,8 +643,6 @@ framed = (node) => {
   node.classList?.add("lite-app");
   return node;
 }
-// %%
-badge = (status, text = status) => htl.html`<span class=${"lite-badge lite-badge-" + status}>${text}</span>`
 // %%
 depGraph = (module, invalidation, { only = null } = {}) => {
   // The module's cells as a graph drawn from the checker's facts: an arrow from each parameter's cell
@@ -831,19 +829,6 @@ testTable = (modules, invalidation) => {
   return htl.html`<div class="lite-tests">${summary}<div class="lite-scroll"><table class="lite-panel"><thead><tr><th>module</th><th>test</th><th>state</th><th>value</th></tr></thead>${body}</table></div></div>`;
 }
 // %%
-isStale = (e) => typeof e === "function" && e.name === "variable_stale"
-// %%
-fmt = (v) => {
-  if (typeof v === "function") return "ƒ";
-  if (typeof v === "number") return Number.isNaN(v) ? "NaN" : String(v);
-  if (v === undefined) return "undefined";
-  if (ArrayBuffer.isView(v)) return `${v.constructor.name}(${v.length}) [${Array.from(v.slice(0, 8)).join(", ")}${v.length > 8 ? ", …" : ""}]`;
-  if (v && typeof v === "object" && "tag" in v && "children" in v) return `<${v.tag || "fragment"}> element`;
-  let s;
-  try { s = JSON.stringify(v); } catch (e) { s = String(v); }
-  return s === undefined ? String(v) : s.length > 90 ? s.slice(0, 87) + "..." : s;
-}
-// %%
 checkBox = (src, { tsx = false } = {}) => {
   let checked;
   try { checked = ss.checkSources({ cells: src, tsx }); }
@@ -943,18 +928,6 @@ benchmark = {
 }
 // %%
 style = htl.html`<style>
-:root {
-  --lite-ok: #2f9e44;
-  --lite-bad: var(--theme-error, #d6336c);
-  --lite-warn: #c98a12;
-  --lite-accent: var(--theme-foreground-focus, #3b6fd8);
-  /* text in these colours, mixed toward the foreground so it reads at 4.5:1 on dark and light themes */
-  --lite-ok-text: color-mix(in srgb, var(--lite-ok) 55%, var(--theme-foreground));
-  --lite-bad-text: color-mix(in srgb, var(--lite-bad) 55%, var(--theme-foreground));
-  --lite-warn-text: color-mix(in srgb, var(--lite-warn) 55%, var(--theme-foreground));
-  /* the theme's muted text and syntax colours, 30% toward the foreground: the light theme's own are 3.2 to 4.4:1 on a card */
-  --lite-muted-text: color-mix(in srgb, var(--theme-foreground-muted) 70%, var(--theme-foreground));
-}
 .lite-panel { border-collapse: collapse; font-size: 13px; width: 100%; max-width: 100%; }
 .lite-panel th { text-align: left; color: var(--lite-muted-text); font-weight: 600; }
 .lite-panel td, .lite-panel th { padding: 3px 8px 3px 0; vertical-align: top; border-bottom: 1px solid var(--theme-foreground-faintest); }
@@ -965,36 +938,10 @@ style = htl.html`<style>
 .lite-panel tr.lite-rejected { background: color-mix(in srgb, var(--lite-bad) 7%, transparent); }
 .lite-panel tr.lite-err td { border-bottom: none; color: var(--theme-foreground); font-size: 12px; padding-top: 0; }
 .lite-panel tr.lite-err + tr:not(.lite-err) td { border-top: 1px solid var(--theme-foreground-faintest); }
-.lite-err b { color: var(--lite-bad-text); }
-.lite-badge { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; font-weight: 600; line-height: 18px; white-space: nowrap; border: 1px solid currentColor; }
-.lite-badge-ok, .lite-badge-pass { color: var(--lite-ok-text); background: color-mix(in srgb, var(--lite-ok) 14%, transparent); }
-.lite-badge-rejected, .lite-badge-fail { color: var(--lite-bad-text); background: color-mix(in srgb, var(--lite-bad) 14%, transparent); }
-.lite-badge-unsupported, .lite-badge-blocked { color: var(--lite-warn-text); background: color-mix(in srgb, var(--lite-warn) 14%, transparent); }
-.lite-badge-pending { color: var(--lite-muted-text); }
 .lite-summary, .lite-readout { font-size: 13px; margin: 6px 0; color: var(--lite-muted-text); }
 .lite-readout { font-family: var(--monospace, monospace); color: var(--theme-foreground); }
 .lite-game canvas { touch-action: none; }
 .observablehq[cell="workers_maxIterAt"], .observablehq[cell="workers_maxIterAt"] + div { display: none; }
-.lite-card { margin: 10px 0 0; border: 1px solid var(--theme-foreground-faint); border-left: 3px solid var(--lite-ok); border-radius: 4px; background: var(--theme-background-alt); max-width: 100%; box-sizing: border-box; }
-.lite-card.lite-rejected { border-left-color: var(--lite-bad); }
-.lite-card.lite-unsupported, .lite-card.lite-blocked { border-left-color: var(--lite-warn); }
-.lite-code { margin: 0; padding: 8px 10px; font: 13px/1.45 var(--monospace, monospace); color: var(--theme-foreground); background: none; overflow-x: auto; white-space: pre; tab-size: 2; }
-.lite-card-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 4px 10px 6px; border-top: 1px solid var(--theme-foreground-faintest); font-size: 13px; }
-.lite-card-type { color: var(--lite-muted-text); }
-.lite-card-value { font-family: var(--monospace, monospace); overflow-wrap: anywhere; min-width: 0; }
-.lite-card-value::before { content: "= "; color: var(--lite-muted-text); }
-.lite-card-value.lite-throws { color: var(--lite-bad-text); }
-.lite-card-msgs:empty { display: none; }
-.lite-card-msgs { padding: 0 10px 8px; font-size: 13px; }
-.lite-card-msgs .lite-err { margin-top: 2px; }
-.lite-listing { max-height: 420px; overflow: auto; border: 1px solid var(--theme-foreground-faint); border-radius: 4px; background: var(--theme-background-alt); }
-.lite-code .tok-keyword, .lite-code .tok-modifier, .lite-code .tok-controlKeyword, .lite-code .tok-operatorKeyword { color: color-mix(in srgb, var(--syntax-keyword) 70%, var(--theme-foreground)); }
-.lite-code .tok-string, .lite-code .tok-string2 { color: color-mix(in srgb, var(--syntax-string) 70%, var(--theme-foreground)); }
-.lite-code .tok-number, .lite-code .tok-bool, .lite-code .tok-atom, .lite-code .tok-null { color: color-mix(in srgb, var(--syntax-literal) 70%, var(--theme-foreground)); }
-.lite-code .tok-comment { color: color-mix(in srgb, var(--syntax-comment) 70%, var(--theme-foreground)); font-style: italic; }
-.lite-code .tok-definition { color: color-mix(in srgb, var(--syntax-definition) 70%, var(--theme-foreground)); }
-.lite-code .tok-typeName, .lite-code .tok-className { color: color-mix(in srgb, var(--syntax-atom) 70%, var(--theme-foreground)); }
-.lite-code .tok-propertyName { color: color-mix(in srgb, var(--syntax-variable) 70%, var(--theme-foreground)); }
 .lite-mandel { display: block; max-width: 100%; height: auto; margin: 6px 0; border-radius: 4px; }
 .lite-vars { margin-top: 10px; }
 .lite-app { padding: 8px 10px; margin: 6px 0; border: 1px solid var(--theme-foreground-faint); border-radius: 6px; background: var(--theme-background-alt); }
@@ -1049,8 +996,6 @@ style = htl.html`<style>
 .lite-tests .lite-summary .lite-badge { margin-right: 2px; }
 .lite-bench td:first-child { color: var(--lite-muted-text); }
 @media (max-width: 640px) {
-  /* a card's source wraps on a phone, keeping its indentation, rather than scrolling out of sight */
-  .lite-card .lite-code { white-space: pre-wrap; overflow-wrap: anywhere; }
   .lp2-pane .lopecode-visualizer { padding: 0 16px; box-sizing: border-box; }
   .lp2-pane .observablehq > div > table { display: block; overflow-x: auto; max-width: 100%; }
   .lp2-pane .observablehq pre { margin-left: 0; margin-right: 0; }
@@ -1061,106 +1006,7 @@ style = htl.html`<style>
 // %%
 viewof tutorial_module = thisModule()
 // %%
-highlightTs = {
-  // TypeScript and JSX colouring with the editor's own parser, as spans with CodeMirror's tok-* classes
-  const lang = codemirror.javascript({ typescript: true, jsx: true }).language;
-  return (text) => {
-    const out = [];
-    let at = 0;
-    lezerhighlight.highlightTree(lang.parser.parse(text), lezerhighlight.classHighlighter, (from, to, cls) => {
-      if (from > at) out.push(text.slice(at, from));
-      const span = document.createElement("span");
-      span.className = cls;
-      span.textContent = text.slice(from, to);
-      out.push(span);
-      at = to;
-    });
-    if (at < text.length) out.push(text.slice(at));
-    return out;
-  };
-}
-// %%
-cardHub = {
-  // one check of a module per code change, shared by all of its cards and listings
-  const hubs = new Map();
-  invalidation.then(() => { for (const h of hubs.values()) h.off(); });
-  return (module) => {
-    if (hubs.has(module)) return hubs.get(module);
-    const subs = new Set();
-    let state = null, queued = false;
-    const off = onCodeChange(({ variable, previous }) => {
-      if ((variable ?? previous)?._module !== module || queued) return;
-      queued = true;
-      queueMicrotask(() => { queued = false; state = null; for (const f of subs) f(); });
-    });
-    const hub = {
-      off,
-      state: () => state ?? (state = { cells: ss_moduleCells(module), result: ss.check(ss_source(module)) }),
-      subscribe: (f) => { subs.add(f); return () => subs.delete(f); },
-    };
-    hubs.set(module, hub);
-    return hub;
-  };
-}
-// %%
-ssCard = (module, key, invalidation) => {
-  // a cell's typed source, decompiled from its live definition, with its check, type and value under it
-  const hub = cardHub(module);
-  const code = htl.html`<pre class="lite-code">`, value = htl.html`<span class="lite-card-value">`;
-  const meta = htl.html`<div class="lite-card-meta">`, msgs = htl.html`<div class="lite-card-msgs">`;
-  const root = htl.html`<div class="lite-card" data-cell=${key}>${code}${meta}${msgs}</div>`;
-  let text = null, variable = null, cancel = null, error;
-  const showValue = () => {
-    value.textContent = error !== undefined ? `throws: ${error?.message ?? error}` : variable?._value === undefined ? "not computed yet" : fmt(variable._value);
-    value.classList.toggle("lite-throws", error !== undefined);
-  };
-  const watch = (v) => {
-    cancel?.();
-    variable = v;
-    error = undefined;
-    // the runtime keeps no error field, so an error arrives from observe or from the variable's promise
-    cancel = observe(v, { fulfilled: () => { error = undefined; showValue(); }, rejected: (e) => { if (!isStale(e)) { error = e; showValue(); } } });
-    v._promise?.then(() => {}, (e) => { if (!isStale(e) && variable === v) { error = e; showValue(); } });
-  };
-  const draw = () => {
-    const { cells, result } = hub.state();
-    const c = cells.find((x) => x.key === key);
-    root.hidden = !c;
-    if (!c) return;
-    if (c.text !== text) { text = c.text; code.replaceChildren(...highlightTs(text)); }
-    const r = result.cells.find((x) => x.name === key);
-    const status = r?.status ?? "blocked";
-    root.className = `lite-card lite-${status}`;
-    meta.replaceChildren(badge(status), " ", htl.html`<code class="lite-card-type">${r?.value ?? ""}</code>`, " ", value);
-    const problems = r ? [...r.errors, ...r.unsupported.map((u) => ({ ...u, rule: "unsupported" }))] : [];
-    if (status === "blocked" && r?.blockedBy?.length) problems.push({ rule: "blocked", msg: `it reads ${r.blockedBy.join(", ")}, which is not ok` });
-    msgs.replaceChildren(...problems.map((e) => htl.html`<div class="lite-err"><b>[${e.rule}]</b> ${e.msg}</div>`));
-    const v = module._scope.get(key) ?? c.variable;
-    if (v !== variable) watch(v);
-    showValue();
-  };
-  draw();
-  const unsubscribe = hub.subscribe(draw);
-  invalidation.then(() => { unsubscribe(); cancel?.(); });
-  return root;
-}
-// %%
-sourceListing = (module, invalidation) => {
-  // a whole module's typed source, as its cells are now
-  const hub = cardHub(module);
-  const pre = htl.html`<pre class="lite-code lite-listing">`;
-  let text = null;
-  const draw = () => {
-    const t = hub.state().cells.map((c) => c.text).join("\n\n");
-    if (t !== text) { text = t; pre.replaceChildren(...highlightTs(t)); }
-  };
-  draw();
-  const unsubscribe = hub.subscribe(draw);
-  invalidation.then(unsubscribe);
-  return pre;
-}
-// %%
-cardStyle = Object.assign(document.createElement("style"), { textContent: ss_card_rules })
+cardStyle = Object.assign(document.createElement("style"), { textContent: ss_card_css + "\n" + ss_card_rules })
 // %%
 test_ss_roundtrip = {
   tests_on;
@@ -1182,7 +1028,7 @@ test_ss_module_checks = {
 //raw: test_ss_counter
 // %%
 // the capabilities are imported for cells a reader adds; a compiled cell that takes now reads ss_now
-import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_check, ss_source, ss_moduleCells, ss_roundtrip, ss_instance } from "@tomlarkworthy/soundscript"
+import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_check, ss_source, ss_moduleCells, ss_roundtrip, ss_instance, ss_card as ssCard, ss_listing as sourceListing, ss_card_css, ss_highlightCode, ss_badge as badge, ss_fmt as fmt, ss_isStale as isStale } from "@tomlarkworthy/soundscript"
 // %%
 import { app as reducer_app, reducer_module } from "@tomlarkworthy/soundscript-reducer"
 // %%
@@ -1195,7 +1041,4 @@ import { app as breakout_app, playing as breakout_playing, over as breakout_over
 import { linkTo } from "@tomlarkworthy/lopepage-urls"
 // %%
 import { thisModule, runtime, observe, onCodeChange } from "@tomlarkworthy/runtime-sdk"
-// %%
-import { codemirror } from "@tomlarkworthy/codemirror-6-v2"
-// %%
-import { lezerhighlight } from "@tomlarkworthy/observablehq-lezer"
+
